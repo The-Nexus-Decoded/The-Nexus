@@ -18,6 +18,13 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Tailscale
+      uses: tailscale/github-action@v2
+      with:
+        oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+        oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+        tags: tag:ci
+
     - name: Deploy Core Engine via SSH
       uses: appleboy/ssh-action@master
       with:
@@ -30,19 +37,11 @@ jobs:
           mkdir -p /data/repos/Pryan-Fire/data  # For LedgerDB
           
           # 2. Sync Codebase (Clean deploy of src and root scripts)
-          # Note: We use rsync over Tailscale/SSH to ensure consistency
-          rsync -avz --delete \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude 'venv' \
-            --exclude '__pycache__' \
-            --exclude 'data/ledger.db' \
-            /data/repos/Pryan-Fire/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/data/repos/Pryan-Fire/
+          # Now that we are on Tailscale, direct SSH is possible
+          cd /data/repos/Pryan-Fire
+          git pull origin main || (git clone https://github.com/The-Nexus-Decoded/Pryan-Fire.git . && git checkout main)
           
           # 3. Process Management
-          # We check if the service exists, update it, and restart
-          cd /data/repos/Pryan-Fire
-          
           # Re-initialize venv if missing
           if [ ! -d "venv" ]; then
             python3 -m venv venv
@@ -52,10 +51,8 @@ jobs:
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install aiohttp websockets base58 solders solana
           
-          # Restart via systemd (Assumes a 'patryn-trader' service unit is configured)
-          # If not using systemd yet, we restart the openclaw-gateway 
-          # which manages the sub-agent that triggers the script.
-          systemctl --user restart patryn-trader || echo "Systemd service not found, please configure patryn-trader.service"
+          # Restart via systemd (if configured)
+          systemctl --user restart patryn-trader || echo "Systemd service not found"
           
           echo "MVP Deployment Complete. Checking heartbeats..."
           ./venv/bin/python3 -c "import sqlite3; conn = sqlite3.connect('data/ledger.db'); print('LedgerDB: OK')"
