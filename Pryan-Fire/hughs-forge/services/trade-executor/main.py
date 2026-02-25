@@ -557,161 +557,177 @@ class TradeExecutor:
 
         return trade_status
 
+from health_server import start_health_server, stop_health_server # New import
+import threading # New import for running health server in a separate thread
+import datetime # For health server timestamp
+
+# ... (rest of the file content) ...
+
 if __name__ == "__main__":
     import asyncio
 
     async def main_async():
-        logger.info("Quenching the blade: Checking connection to Solana network...")
-        # For testing open/close functionality, a private key is required
-        # Replace with a real private key for a test wallet for actual execution
-        TEST_PRIVATE_KEY = "" # WARNING: DO NOT USE A REAL WALLET'S PRIVATE KEY HERE
-        executor = TradeExecutor(RPC_ENDPOINT, private_key=TEST_PRIVATE_KEY)
-        
-        logger.info(f"\nChecking balance for the designated bot wallet...")
-        bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
-        executor.get_sol_balance(BOT_WALLET_PUBKEY)
+        # Health Server
+        health_server_thread = threading.Thread(target=start_health_server, args=(8000,), daemon=True)
+        health_server_thread.start()
+        logger.info("Health server started in a separate thread.")
 
-        # Example: Fetch a quote for swapping SOL to USDC
-        SOL_MINT = Pubkey.from_string("So11111111111111111111111111111111111111112")
-        USDC_MINT = Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
-        
-        # Amount in lamports (e.g., 0.01 SOL)
-        amount_to_swap = 10_000_000 # 0.01 SOL
+        try:
+            logger.info("Quenching the blade: Checking connection to Solana network...")
+            # For testing open/close functionality, a private key is required
+            # Replace with a real private key for a test wallet for actual execution
+            TEST_PRIVATE_KEY = "" # WARNING: DO NOT USE A REAL WALLET'S PRIVATE KEY HERE
+            executor = TradeExecutor(RPC_ENDPOINT, private_key=TEST_PRIVATE_KEY)
+            
+            logger.info(f"\nChecking balance for the designated bot wallet...")
+            bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
+            executor.get_sol_balance(BOT_WALLET_PUBKEY)
 
-        logger.info(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...")
-        quote = await executor.get_quote(SOL_MINT, USDC_MINT, amount_to_swap)
-        if quote:
-            logger.info(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
+            # Example: Fetch a quote for swapping SOL to USDC
+            SOL_MINT = Pubkey.from_string("So11111111111111111111111111111111111111112")
+            USDC_MINT = Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
+            
+            # Amount in lamports (e.g., 0.01 SOL)
+            amount_to_swap = 10_000_000 # 0.01 SOL
 
-        # Fetch Meteora DLMM LP positions and their balances (read-only)
-        logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
-        lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
-        
-        if lp_positions:
-            logger.info("--> Found LP Positions:")
-            for i, pos in enumerate(lp_positions):
-                logger.info(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
-                logger.info(f"        Owner: {pos['owner']}")
-                logger.info(f"        Pool: {pos['pool']}")
-                logger.info(f"        Liquidity: {pos['liquidity']}")
-                logger.info("        (Token balances for LP positions require further pool info parsing)")
+            logger.info(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...")
+            quote = await executor.get_quote(SOL_MINT, USDC_MINT, amount_to_swap)
+            if quote:
+                logger.info(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
 
-                # Example P&L calculation for each position
-                logger.info(f"        Calculating P&L for Position {pos['pubkey']}...")
-                # Placeholder: In a real scenario, current_price_x_per_y would come from a price feed.
-                current_price_x_per_y = 0.5 # Example price
-                pnl_results = await executor.calculate_unrealized_pnl(pos, current_price_x_per_y)
-                logger.info(f"            Unrealized P&L: {pnl_results['unrealized_pnl']:.4f}")
-                logger.info(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
-                logger.info(f"            Total Current Value: {pnl_results['total_value']:.4f}")
+            # Fetch Meteora DLMM LP positions and their balances (read-only)
+            logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
+            lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
+            
+            if lp_positions:
+                logger.info("--> Found LP Positions:")
+                for i, pos in enumerate(lp_positions):
+                    logger.info(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
+                    logger.info(f"        Owner: {pos['owner']}")
+                    logger.info(f"        Pool: {pos['pool']}")
+                    logger.info(f"        Liquidity: {pos['liquidity']}")
+                    logger.info("        (Token balances for LP positions require further pool info parsing)")
 
-            # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
-            if executor.wallet:
-                first_position_pubkey = lp_positions[0]['pubkey']
-                first_position_pool_pubkey = lp_positions[0]['pool']
-                logger.info(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
-                # Placeholder token mints for demonstration. In a real scenario, these would
-                # be derived from the pool_pubkey and its associated token mints.
-                DUMMY_TOKEN_X_MINT = Pubkey.new_unique()
-                DUMMY_TOKEN_Y_MINT = Pubkey.new_unique()
+                    # Example P&L calculation for each position
+                    logger.info(f"        Calculating P&L for Position {pos['pubkey']}...")
+                    # Placeholder: In a real scenario, current_price_x_per_y would come from a price feed.
+                    current_price_x_per_y = 0.5 # Example price
+                    pnl_results = await executor.calculate_unrealized_pnl(pos, current_price_x_per_y)
+                    logger.info(f"            Unrealized P&L: {pnl_results['unrealized_pnl']:.4f}")
+                    logger.info(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
+                    logger.info(f"            Total Current Value: {pnl_results['total_value']:.4f}")
 
-                tx_claim = await executor.claim_meteora_fees(
-                    position_pubkey=first_position_pubkey,
-                    pool_pubkey=first_position_pool_pubkey,
-                    token_x_mint=DUMMY_TOKEN_X_MINT,
-                    token_y_mint=DUMMY_TOKEN_Y_MINT,
-                    owner=executor.wallet
-                )
-                if tx_claim:
-                    logger.info(f"Claim fees transaction sent: {tx_claim}")
+                # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
+                if executor.wallet:
+                    first_position_pubkey = lp_positions[0]['pubkey']
+                    first_position_pool_pubkey = lp_positions[0]['pool']
+                    logger.info(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
+                    # Placeholder token mints for demonstration. In a real scenario, these would
+                    # be derived from the pool_pubkey and its associated token mints.
+                    DUMMY_TOKEN_X_MINT = Pubkey.new_unique()
+                    DUMMY_TOKEN_Y_MINT = Pubkey.new_unique()
+
+                    tx_claim = await executor.claim_meteora_fees(
+                        position_pubkey=first_position_pubkey,
+                        pool_pubkey=first_position_pool_pubkey,
+                        token_x_mint=DUMMY_TOKEN_X_MINT,
+                        token_y_mint=DUMMY_TOKEN_Y_MINT,
+                        owner=executor.wallet
+                    )
+                    if tx_claim:
+                        logger.info(f"Claim fees transaction sent: {tx_claim}")
+                else:
+                    logger.warning("Cannot claim fees: Wallet not loaded.")
+
+                # Example: Compound fees back into the first LP position (requires TEST_PRIVATE_KEY)
+                if executor.wallet:
+                    logger.info(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
+                    # Placeholder amounts and bin IDs. These would be actual claimed fees
+                    # and the current active bin range for compounding.
+                    COMPOUND_AMOUNT_X = 1000
+                    COMPOUND_AMOUNT_Y = 500
+                    COMPOUND_LOWER_BIN = lp_positions[0]['lowerBinId']
+                    COMPOUND_UPPER_BIN = lp_positions[0]['upperBinId']
+
+                    tx_compound = await executor.compound_meteora_fees(
+                        position_pubkey=first_position_pubkey,
+                        pool_pubkey=first_position_pool_pubkey,
+                        token_x_mint=DUMMY_TOKEN_X_MINT,
+                        token_y_mint=DUMMY_TOKEN_Y_MINT,
+                        amount_x=COMPOUND_AMOUNT_X,
+                        amount_y=COMPOUND_AMOUNT_Y,
+                        lower_bin_id=COMPOUND_LOWER_BIN,
+                        upper_bin_id=COMPOUND_UPPER_BIN,
+                        owner=executor.wallet
+                    )
+                    if tx_compound:
+                        logger.info(f"Compound fees transaction sent: {tx_compound}")
+                else:
+                    logger.warning("Cannot compound fees: Wallet not loaded.")
+
             else:
-                logger.warning("Cannot claim fees: Wallet not loaded.")
+                logger.info("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
 
-            # Example: Compound fees back into the first LP position (requires TEST_PRIVATE_KEY)
+            # Example: Open a new LP position (requires TEST_PRIVATE_KEY)
             if executor.wallet:
-                logger.info(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
-                # Placeholder amounts and bin IDs. These would be actual claimed fees
-                # and the current active bin range for compounding.
-                COMPOUND_AMOUNT_X = 1000
-                COMPOUND_AMOUNT_Y = 500
-                COMPOUND_LOWER_BIN = lp_positions[0]['lowerBinId']
-                COMPOUND_UPPER_BIN = lp_positions[0]['upperBinId']
+                # These are placeholder values. In a real scenario, you'd determine
+                # the actual pool, bin IDs, and liquidity based on market conditions.
+                DUMMY_POOL_PUBKEY = Pubkey.new_unique()
+                DUMMY_LOWER_BIN = 0
+                DUMMY_UPPER_BIN = 100
+                DUMMY_LIQUIDITY = 1000000 # Example liquidity amount
 
-                tx_compound = await executor.compound_meteora_fees(
-                    position_pubkey=first_position_pubkey,
-                    pool_pubkey=first_position_pool_pubkey,
-                    token_x_mint=DUMMY_TOKEN_X_MINT,
-                    token_y_mint=DUMMY_TOKEN_Y_MINT,
-                    amount_x=COMPOUND_AMOUNT_X,
-                    amount_y=COMPOUND_AMOUNT_Y,
-                    lower_bin_id=COMPOUND_LOWER_BIN,
-                    upper_bin_id=COMPOUND_UPPER_BIN,
-                    owner=executor.wallet
+                logger.info(f"\nAttempting to open a new LP position in dummy pool {DUMMY_POOL_PUBKEY}...")
+                tx_open = await executor.open_meteora_lp_position(
+                    pool_pubkey=DUMMY_POOL_PUBKEY,
+                    lower_bin_id=DUMMY_LOWER_BIN,
+                    upper_bin_id=DUMMY_UPPER_BIN,
+                    liquidity=DUMMY_LIQUIDITY,
+                    payer=executor.wallet
                 )
-                if tx_compound:
-                    logger.info(f"Compound fees transaction sent: {tx_compound}")
+                if tx_open:
+                    logger.info(f"Open transaction sent: {tx_open}")
             else:
-                logger.warning("Cannot compound fees: Wallet not loaded.")
+                logger.warning("Cannot open LP position: Wallet not loaded.")
+            
+            # Pyth Price Feed Integration Demonstration
+            logger.info("\n--- Pyth Price Feed Integration ---")
+            SOL_USD_PRICE_FEED_ID = "EdVCmQyygBCjS6nMj2xT9EtsNq5V3d3g1i9j1v3BvA6Z" # Example Pyth SOL/USD price feed ID
+            eth_usd_price_feed_id = "JBuCRv6r2eH2gC257y3R8XoJvK9vWpE2bS4M1f2B2Q3B" # Example Pyth ETH/USD price feed ID
 
-        else:
-            logger.info("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
+            sol_price_data = await executor.get_pyth_price(SOL_USD_PRICE_FEED_ID)
+            if sol_price_data:
+                logger.info(f"SOL/USD Price: {sol_price_data['price']}")
+            
+            eth_price_data = await executor.get_pyth_price(eth_usd_price_feed_id)
+            if eth_price_data:
+                logger.info(f"ETH/USD Price: {eth_price_data['price']}")
 
-        # Example: Open a new LP position (requires TEST_PRIVATE_KEY)
-        if executor.wallet:
-            # These are placeholder values. In a real scenario, you'd determine
-            # the actual pool, bin IDs, and liquidity based on market conditions.
-            DUMMY_POOL_PUBKEY = Pubkey.new_unique()
-            DUMMY_LOWER_BIN = 0
-            DUMMY_UPPER_BIN = 100
-            DUMMY_LIQUIDITY = 1000000 # Example liquidity amount
+            # Risk Manager Demonstration
+            logger.info("\n--- Risk Manager Demonstration ---")
+            test_trade_amount_ok = 50.0 # Within max_trade_size
+            test_trade_amount_too_large = 150.0 # Exceeds max_trade_size
 
-            logger.info(f"\nAttempting to open a new LP position in dummy pool {DUMMY_POOL_PUBKEY}...")
-            tx_open = await executor.open_meteora_lp_position(
-                pool_pubkey=DUMMY_POOL_PUBKEY,
-                lower_bin_id=DUMMY_LOWER_BIN,
-                upper_bin_id=DUMMY_UPPER_BIN,
-                liquidity=DUMMY_LIQUIDITY,
-                payer=executor.wallet
-            )
-            if tx_open:
-                logger.info(f"Open transaction sent: {tx_open}")
-        else:
-            logger.warning("Cannot open LP position: Wallet not loaded.")
-        
-        # Pyth Price Feed Integration Demonstration
-        logger.info("\n--- Pyth Price Feed Integration ---")
-        SOL_USD_PRICE_FEED_ID = "EdVCmQyygBCjS6nMj2xT9EtsNq5V3d3g1i9j1v3BvA6Z" # Example Pyth SOL/USD price feed ID
-        eth_usd_price_feed_id = "JBuCRv6r2eH2gC257y3R8XoJvK9vWpE2bS4M1f2B2Q3B" # Example Pyth ETH/USD price feed ID
+            logger.info(f"Attempting trade with amount: {test_trade_amount_ok}")
+            trade_result_ok = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+            logger.info(f"Trade result: {trade_result_ok}")
 
-        sol_price_data = await executor.get_pyth_price(SOL_USD_PRICE_FEED_ID)
-        if sol_price_data:
-            logger.info(f"SOL/USD Price: {sol_price_data['price']}")
-        
-        eth_price_data = await executor.get_pyth_price(eth_usd_price_feed_id)
-        if eth_price_data:
-            logger.info(f"ETH/USD Price: {eth_price_data['price']}")
+            logger.info(f"\nAttempting trade with amount: {test_trade_amount_too_large}")
+            trade_result_too_large = executor.execute_trade({"amount": test_trade_amount_too_large, "pair": "SOL/USDC"})
+            logger.info(f"Trade result: {trade_result_too_large}")
 
-        # Risk Manager Demonstration
-        logger.info("\n--- Risk Manager Demonstration ---")
-        test_trade_amount_ok = 50.0 # Within max_trade_size
-        test_trade_amount_too_large = 150.0 # Exceeds max_trade_size
+            logger.info("\nActivating circuit breaker...")
+            executor.risk_manager.activate_circuit_breaker()
+            trade_result_cb = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+            logger.info(f"Trade result after circuit breaker: {trade_result_cb}")
 
-        logger.info(f"Attempting trade with amount: {test_trade_amount_ok}")
-        trade_result_ok = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        logger.info(f"Trade result: {trade_result_ok}")
+            logger.info("\nDeactivating circuit breaker...")
+            executor.risk_manager.deactivate_circuit_breaker()
+            trade_result_deactivated = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+            logger.info(f"Trade result after deactivation: {trade_result_deactivated}")
 
-        logger.info(f"\nAttempting trade with amount: {test_trade_amount_too_large}")
-        trade_result_too_large = executor.execute_trade({"amount": test_trade_amount_too_large, "pair": "SOL/USDC"})
-        logger.info(f"Trade result: {trade_result_too_large}")
-
-        logger.info("\nActivating circuit breaker...")
-        executor.risk_manager.activate_circuit_breaker()
-        trade_result_cb = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        logger.info(f"Trade result after circuit breaker: {trade_result_cb}")
-
-        logger.info("\nDeactivating circuit breaker...")
-        executor.risk_manager.deactivate_circuit_breaker()
-        trade_result_deactivated = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        logger.info(f"Trade result after deactivation: {trade_result_deactivated}")
-
+        finally:
+            # Stop the health server gracefully
+            stop_health_server()
+            logger.info("Main async function finished, health server stopped.")
     asyncio.run(main_async())
