@@ -23,7 +23,7 @@ openclaw.json
 
 # Trading strategies and financial data
 strategies/
-signals/
+# signals/  <-- Unlocked for discovery modules
 hughs-forge/strategies/
 
 # Logs and audit trails
