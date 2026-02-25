@@ -1,4 +1,3 @@
-solders
-solana
 anchorpy
-jupiter-solana
+solana
+solders
