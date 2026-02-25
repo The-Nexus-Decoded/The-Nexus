@@ -15,8 +15,21 @@ from solders.transaction import Transaction
 from solana.rpc.api import CommitmentConfig
 from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.associated_token_account.program import ASSOCIATED_TOKEN_PROGRAM_ID
-import requests # New import for Pyth Hermes REST API
-import json # New import for Pyth Hermes REST API
+import requests
+import json
+import logging # New import for logging
+import datetime # New import for timestamps
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("trade_executor_audit.log"), # Log to file
+        logging.StreamHandler() # Also log to console
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
@@ -124,31 +137,31 @@ class RiskManager:
         self.max_trade_size = max_trade_size # Example: 100 USDC equivalent
         self.current_daily_loss = 0.0
         self.circuit_breaker_active = CIRCUIT_BREAKER_ACTIVE
-        print("Risk Manager initialized.")
-        print(f"-> Daily Loss Limit: {self.daily_loss_limit}")
-        print(f"-> Max Trade Size: {self.max_trade_size}")
+        logger.info("Risk Manager initialized.")
+        logger.info(f"-> Daily Loss Limit: {self.daily_loss_limit}")
+        logger.info(f"-> Max Trade Size: {self.max_trade_size}")
 
     def check_trade(self, proposed_trade_amount: float) -> bool:
         """Checks if a proposed trade adheres to risk parameters."""
         if self.circuit_breaker_active:
-            print("❌ Trade rejected: Circuit breaker is active.")
+            logger.warning("Trade rejected: Circuit breaker is active.")
             return False
         if proposed_trade_amount > self.max_trade_size:
-            print(f"❌ Trade rejected: Proposed amount ({proposed_trade_amount}) exceeds max trade size ({self.max_trade_size}).")
+            logger.warning(f"Trade rejected: Proposed amount ({proposed_trade_amount}) exceeds max trade size ({self.max_trade_size}).")
             return False
         # More complex checks (e.g., against current_daily_loss) would go here
-        print(f"✅ Trade approved by Risk Manager for amount: {proposed_trade_amount}")
+        logger.info(f"Trade approved by Risk Manager for amount: {proposed_trade_amount}")
         return True
 
     def activate_circuit_breaker(self):
         """Activates the circuit breaker, halting all trading."""
         self.circuit_breaker_active = True
-        print("🚨 CIRCUIT BREAKER ACTIVATED: All trading halted.")
+        logger.critical("🚨 CIRCUIT BREAKER ACTIVATED: All trading halted.")
 
     def deactivate_circuit_breaker(self):
         """Deactivates the circuit breaker, allowing trading to resume."""
         self.circuit_breaker_active = False
-        print("✅ CIRCUIT BREAKER DEACTIVATED: Trading can resume.")
+        logger.info("✅ CIRCUIT BREAKER DEACTIVATED: Trading can resume.")
 
 class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
@@ -170,11 +183,11 @@ class TradeExecutor:
         )
         self.risk_manager = RiskManager() # Initialize Risk Manager
 
-        print("Trade Executor initialized.")
+        logger.info("Trade Executor initialized.")
         if self.wallet:
-            print(f"-> Wallet Public Key (loaded): {self.wallet.pubkey()}")
+            logger.info(f"-> Wallet Public Key (loaded): {self.wallet.pubkey()}")
         else:
-            print("-> Wallet not loaded (read-only mode). Open/Close LP positions will not function.")
+            logger.warning("-> Wallet not loaded (read-only mode). Open/Close LP positions will not function.")
 
     def get_sol_balance(self, pubkey_str: str) -> float:
         """Fetches the SOL balance for a given public key."""
@@ -183,10 +196,10 @@ class TradeExecutor:
             balance_response = self.client.get_balance(pubkey)
             lamports = balance_response.value
             sol = lamports / 1_000_000_000
-            print(f"--> Balance for {pubkey_str}: {sol:.9f} SOL")
+            logger.info(f"--> Balance for {pubkey_str}: {sol:.9f} SOL")
             return sol
         except Exception as e:
-            print(f"--> Error fetching balance for {pubkey_str}: {e}")
+            logger.error(f"--> Error fetching balance for {pubkey_str}: {e}")
             return 0.0
 
     async def get_token_balance(self, token_account_pubkey: Pubkey) -> float:
@@ -196,15 +209,15 @@ class TradeExecutor:
             amount = int(token_balance_response.value.amount)
             decimals = token_balance_response.value.decimals
             balance = amount / (10**decimals)
-            print(f"--> Token Balance for {token_account_pubkey}: {balance:.{decimals}f}")
+            logger.info(f"--> Token Balance for {token_account_pubkey}: {balance:.{decimals}f}")
             return balance
         except Exception as e:
-            print(f"--> Error fetching token balance for {token_account_pubkey}: {e}")
+            logger.error(f"--> Error fetching token balance for {token_account_pubkey}: {e}")
             return 0.0
 
     async def get_quote(self, input_mint: Pubkey, output_mint: Pubkey, amount: int):
         """Fetches a quote from Jupiter for a given swap."""
-        print(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint}")
+        logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint}")
         try:
             quote_response = await self.jupiter_client.quote_get(
                 input_mint=input_mint,
@@ -213,20 +226,20 @@ class TradeExecutor:
                 swap_mode="ExactIn"
             )
             if quote_response and quote_response.data:
-                print("--> Jupiter Quote Received:")
+                logger.info("--> Jupiter Quote Received:")
                 for route in quote_response.data:
-                    print(f"    - In Amount: {route.in_amount}, Out Amount: {route.out_amount}, Price Impact: {route.price_impact_pct:.2f}%")
+                    logger.info(f"    - In Amount: {route.in_amount}, Out Amount: {route.out_amount}, Price Impact: {route.price_impact_pct:.2f}%")
                 return quote_response.data[0] # Return the first route for simplicity
             else:
-                print("--> No quotes found.")
+                logger.warning("--> No quotes found.")
                 return None
         except Exception as e:
-            print(f"--> Error fetching quote: {e}")
+            logger.error(f"--> Error fetching quote: {e}")
             return None
 
     async def get_meteora_lp_positions(self, owner_pubkey: Pubkey) -> List[Dict[str, Any]]:
         """Fetches Meteora DLMM LP positions for a given owner public key."""
-        print(f"Scrying Meteora DLMM for LP positions owned by {owner_pubkey}...")
+        logger.info(f"Scrying Meteora DLMM for LP positions owned by {owner_pubkey}...")
         positions = []
         try:
             # Fetch all accounts owned by the Meteora DLMM program
@@ -252,16 +265,16 @@ class TradeExecutor:
                             "totalFeeY": decoded_account.total_fee_y,
                             "lastUpdatedAt": decoded_account.last_updated_at,
                         })
-                        print(f"    -> Found LP Position {account_info.pubkey} in Pool {decoded_account.pool}")
+                        logger.info(f"    -> Found LP Position {account_info.pubkey} in Pool {decoded_account.pool}")
                 except Exception as e:
                     # This account might not be a 'Position' account or decoding failed
                     pass # Silently ignore accounts that don't match 'Position' type
 
             if not positions:
-                print(f"--> No Meteora DLMM LP positions found for {owner_pubkey}.")
+                logger.info(f"--> No Meteora DLMM LP positions found for {owner_pubkey}.")
             return positions
         except Exception as e:
-            print(f"--> Error fetching Meteora DLMM LP positions: {e}")
+            logger.error(f"--> Error fetching Meteora DLMM LP positions: {e}")
             return []
 
     async def open_meteora_lp_position(
@@ -274,10 +287,10 @@ class TradeExecutor:
     ) -> Optional[str]:
         """Opens a new Meteora DLMM LP position."""
         if not self.wallet or self.wallet.pubkey() != payer.pubkey():
-            print("❌ Cannot open LP position: Wallet private key not loaded or not matching payer.")
+            logger.error("❌ Cannot open LP position: Wallet private key not loaded or not matching payer.")
             return None
 
-        print(f"Opening Meteora DLMM LP position for Pool {pool_pubkey}...")
+        logger.info(f"Opening Meteora DLMM LP position for Pool {pool_pubkey}...")
         new_position_keypair = Keypair()
 
         try:
@@ -307,10 +320,10 @@ class TradeExecutor:
             # If there are other signers, they would be added to the populate call
             response = await self.client.send_transaction(transaction, payer, new_position_keypair)
             tx_hash = response.value
-            print(f"--> Opened LP Position. Tx Hash: {tx_hash}")
+            logger.info(f"--> Opened LP Position. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
-            print(f"--> Error opening LP position: {e}")
+            logger.error(f"--> Error opening LP position: {e}")
             return None
 
     async def close_meteora_lp_position(
@@ -321,10 +334,10 @@ class TradeExecutor:
     ) -> Optional[str]:
         """Closes an existing Meteora DLMM LP position."""
         if not self.wallet or self.wallet.pubkey() != owner.pubkey():
-            print("❌ Cannot close LP position: Wallet private key not loaded or not matching owner.")
+            logger.error("❌ Cannot close LP position: Wallet private key not loaded or not matching owner.")
             return None
 
-        print(f"Closing Meteora DLMM LP position {position_pubkey} for Pool {pool_pubkey}...")
+        logger.info(f"Closing Meteora DLMM LP position {position_pubkey} for Pool {pool_pubkey}...")
         try:
             # Construct the instruction
             ix = await self.meteora_dlmm_program.instruction["closePosition"].build(
@@ -342,10 +355,10 @@ class TradeExecutor:
             
             response = await self.client.send_transaction(transaction, owner)
             tx_hash = response.value
-            print(f"--> Closed LP Position. Tx Hash: {tx_hash}")
+            logger.info(f"--> Closed LP Position. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
-            print(f"--> Error closing LP position: {e}")
+            logger.error(f"--> Error closing LP position: {e}")
             return None
 
     async def claim_meteora_fees(
@@ -358,10 +371,10 @@ class TradeExecutor:
     ) -> Optional[str]:
         """Claims accumulated fees from a Meteora DLMM LP position."""
         if not self.wallet or self.wallet.pubkey() != owner.pubkey():
-            print("❌ Cannot claim fees: Wallet private key not loaded or not matching owner.")
+            logger.error("❌ Cannot claim fees: Wallet private key not loaded or not matching owner.")
             return None
         
-        print(f"Claiming fees for LP position {position_pubkey} in Pool {pool_pubkey}...")
+        logger.info(f"Claiming fees for LP position {position_pubkey} in Pool {pool_pubkey}...")
         try:
             owner_token_x_account = Pubkey.find_program_address(
                 [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_x_mint.to_bytes()],
@@ -391,10 +404,10 @@ class TradeExecutor:
             
             response = await self.client.send_transaction(transaction, owner)
             tx_hash = response.value
-            print(f"--> Claimed fees. Tx Hash: {tx_hash}")
+            logger.info(f"--> Claimed fees. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
-            print(f"--> Error claiming fees: {e}")
+            logger.error(f"--> Error claiming fees: {e}")
             return None
 
     async def compound_meteora_fees(
@@ -411,10 +424,10 @@ class TradeExecutor:
     ) -> Optional[str]:
         """Compounds (re-invests) claimed fees back into a Meteora DLMM LP position."""
         if not self.wallet or self.wallet.pubkey() != owner.pubkey():
-            print("❌ Cannot compound fees: Wallet private key not loaded or not matching owner.")
+            logger.error("❌ Cannot compound fees: Wallet private key not loaded or not matching owner.")
             return None
         
-        print(f"Compounding fees into LP position {position_pubkey} in Pool {pool_pubkey}...")
+        logger.info(f"Compounding fees into LP position {position_pubkey} in Pool {pool_pubkey}...")
         try:
             owner_token_x_account = Pubkey.find_program_address(
                 [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_x_mint.to_bytes()],
@@ -451,10 +464,10 @@ class TradeExecutor:
             
             response = await self.client.send_transaction(transaction, owner)
             tx_hash = response.value
-            print(f"--> Compounded fees. Tx Hash: {tx_hash}")
+            logger.info(f"--> Compounded fees. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
-            print(f"--> Error compounding fees: {e}")
+            logger.error(f"--> Error compounding fees: {e}")
             return None
 
     async def calculate_unrealized_pnl(
@@ -463,7 +476,7 @@ class TradeExecutor:
         current_price_x_per_y: float # Example: price of token X in terms of token Y
     ) -> Dict[str, float]:
         """Calculates unrealized P&L for a given LP position (simplified)."""
-        print(f"Calculating unrealized P&L for position {position_data['pubkey']}...")
+        logger.info(f"Calculating unrealized P&L for position {position_data['pubkey']}...")
         # This is a highly simplified calculation. Real P&L requires accurate
         # tracking of initial investment, impermanent loss, current token prices,
         # and pool state.
@@ -492,7 +505,7 @@ class TradeExecutor:
 
     async def get_pyth_price(self, price_feed_id: str) -> Optional[Dict[str, Any]]:
         """Fetches the latest Pyth price for a given price feed ID via Hermes REST API."""
-        print(f"Consulting the oracle for Pyth price feed {price_feed_id}...")
+        logger.info(f"Consulting the oracle for Pyth price feed {price_feed_id}...")
         try:
             # Pyth Hermes REST API uses a list of price_feed_ids
             params = {"ids": price_feed_id}
@@ -502,50 +515,59 @@ class TradeExecutor:
 
             if data and data["evm"] and len(data["evm"]) > 0:
                 price_data = data["evm"][0]
-                print(f"--> Pyth Price for {price_feed_id}: {price_data['price']} +/- {price_data['conf']} (expo: {price_data['expo']})")
+                logger.info(f"--> Pyth Price for {price_feed_id}: {price_data['price']} +/- {price_data['conf']} (expo: {price_data['expo']})")
                 return price_data
             else:
-                print(f"--> No Pyth price data found for {price_feed_id}.")
+                logger.warning(f"--> No Pyth price data found for {price_feed_id}.")
                 return None
         except requests.exceptions.RequestException as e:
-            print(f"--> Error fetching Pyth price via Hermes: {e}")
+            logger.error(f"--> Error fetching Pyth price via Hermes: {e}")
             return None
         except json.JSONDecodeError as e:
-            print(f"--> Error decoding JSON response from Hermes: {e}")
+            logger.error(f"--> Error decoding JSON response from Hermes: {e}")
             return None
         except Exception as e:
-            print(f"--> An unexpected error occurred: {e}")
+            logger.error(f"--> An unexpected error occurred: {e}")
             return None
 
     def execute_trade(self, trade_details: dict) -> Dict[str, Any]:
         """
         Connects to the DEX and executes a swap.
         """
+        # Audit log the attempt
+        logger.info(f"Trade attempt initiated: {trade_details}")
+
         # Check with Risk Manager before executing trade
         proposed_amount = trade_details.get("amount", 0.0)
         if not self.risk_manager.check_trade(proposed_amount):
+            logger.warning(f"Trade {trade_details} rejected by Risk Manager.")
             return {"status": "rejected", "message": "Trade rejected by Risk Manager"}
 
         if not self.wallet:
-            print("❌ Cannot execute trade: Wallet private key not loaded.")
+            logger.error("❌ Cannot execute trade: Wallet private key not loaded.")
             return {"status": "error", "message": "Wallet not loaded"}
         
-        print(f"Executing trade: {trade_details}")
+        logger.info(f"Executing trade: {trade_details}")
         # ... placeholder logic ...
-        print("Trade execution logic is not yet implemented.")
-        return {"status": "pending", "tx_hash": None}
+        trade_status = {"status": "pending", "tx_hash": None}
+        logger.info(f"Trade execution logic is not yet implemented. Status: {trade_status}")
+        
+        # Audit log the outcome
+        logger.info(f"Trade outcome: {trade_status}")
+
+        return trade_status
 
 if __name__ == "__main__":
     import asyncio
 
     async def main_async():
-        print("Quenching the blade: Checking connection to Solana network...")
+        logger.info("Quenching the blade: Checking connection to Solana network...")
         # For testing open/close functionality, a private key is required
         # Replace with a real private key for a test wallet for actual execution
         TEST_PRIVATE_KEY = "" # WARNING: DO NOT USE A REAL WALLET'S PRIVATE KEY HERE
         executor = TradeExecutor(RPC_ENDPOINT, private_key=TEST_PRIVATE_KEY)
         
-        print(f"\nChecking balance for the designated bot wallet...")
+        logger.info(f"\nChecking balance for the designated bot wallet...")
         bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
         executor.get_sol_balance(BOT_WALLET_PUBKEY)
 
@@ -556,38 +578,38 @@ if __name__ == "__main__":
         # Amount in lamports (e.g., 0.01 SOL)
         amount_to_swap = 10_000_000 # 0.01 SOL
 
-        print(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...")
+        logger.info(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...")
         quote = await executor.get_quote(SOL_MINT, USDC_MINT, amount_to_swap)
         if quote:
-            print(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
+            logger.info(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
 
         # Fetch Meteora DLMM LP positions and their balances (read-only)
-        print(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
+        logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
         lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
         
         if lp_positions:
-            print("--> Found LP Positions:")
+            logger.info("--> Found LP Positions:")
             for i, pos in enumerate(lp_positions):
-                print(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
-                print(f"        Owner: {pos['owner']}")
-                print(f"        Pool: {pos['pool']}")
-                print(f"        Liquidity: {pos['liquidity']}")
-                print("        (Token balances for LP positions require further pool info parsing)")
+                logger.info(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
+                logger.info(f"        Owner: {pos['owner']}")
+                logger.info(f"        Pool: {pos['pool']}")
+                logger.info(f"        Liquidity: {pos['liquidity']}")
+                logger.info("        (Token balances for LP positions require further pool info parsing)")
 
                 # Example P&L calculation for each position
-                print(f"        Calculating P&L for Position {pos['pubkey']}...")
+                logger.info(f"        Calculating P&L for Position {pos['pubkey']}...")
                 # Placeholder: In a real scenario, current_price_x_per_y would come from a price feed.
                 current_price_x_per_y = 0.5 # Example price
                 pnl_results = await executor.calculate_unrealized_pnl(pos, current_price_x_per_y)
-                print(f"            Unrealized P&L: {pnl_results['unrealized_pnl']:.4f}")
-                print(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
-                print(f"            Total Current Value: {pnl_results['total_value']:.4f}")
+                logger.info(f"            Unrealized P&L: {pnl_results['unrealized_pnl']:.4f}")
+                logger.info(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
+                logger.info(f"            Total Current Value: {pnl_results['total_value']:.4f}")
 
             # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
             if executor.wallet:
                 first_position_pubkey = lp_positions[0]['pubkey']
                 first_position_pool_pubkey = lp_positions[0]['pool']
-                print(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
+                logger.info(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
                 # Placeholder token mints for demonstration. In a real scenario, these would
                 # be derived from the pool_pubkey and its associated token mints.
                 DUMMY_TOKEN_X_MINT = Pubkey.new_unique()
@@ -601,13 +623,13 @@ if __name__ == "__main__":
                     owner=executor.wallet
                 )
                 if tx_claim:
-                    print(f"Claim fees transaction sent: {tx_claim}")
+                    logger.info(f"Claim fees transaction sent: {tx_claim}")
             else:
-                print("Cannot claim fees: Wallet not loaded.")
+                logger.warning("Cannot claim fees: Wallet not loaded.")
 
             # Example: Compound fees back into the first LP position (requires TEST_PRIVATE_KEY)
             if executor.wallet:
-                print(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
+                logger.info(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
                 # Placeholder amounts and bin IDs. These would be actual claimed fees
                 # and the current active bin range for compounding.
                 COMPOUND_AMOUNT_X = 1000
@@ -627,12 +649,12 @@ if __name__ == "__main__":
                     owner=executor.wallet
                 )
                 if tx_compound:
-                    print(f"Compound fees transaction sent: {tx_compound}")
+                    logger.info(f"Compound fees transaction sent: {tx_compound}")
             else:
-                print("Cannot compound fees: Wallet not loaded.")
+                logger.warning("Cannot compound fees: Wallet not loaded.")
 
         else:
-            print("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
+            logger.info("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
 
         # Example: Open a new LP position (requires TEST_PRIVATE_KEY)
         if executor.wallet:
@@ -643,7 +665,7 @@ if __name__ == "__main__":
             DUMMY_UPPER_BIN = 100
             DUMMY_LIQUIDITY = 1000000 # Example liquidity amount
 
-            print(f"\nAttempting to open a new LP position in dummy pool {DUMMY_POOL_PUBKEY}...")
+            logger.info(f"\nAttempting to open a new LP position in dummy pool {DUMMY_POOL_PUBKEY}...")
             tx_open = await executor.open_meteora_lp_position(
                 pool_pubkey=DUMMY_POOL_PUBKEY,
                 lower_bin_id=DUMMY_LOWER_BIN,
@@ -652,44 +674,44 @@ if __name__ == "__main__":
                 payer=executor.wallet
             )
             if tx_open:
-                print(f"Open transaction sent: {tx_open}")
+                logger.info(f"Open transaction sent: {tx_open}")
         else:
-            print("Cannot open LP position: Wallet not loaded.")
+            logger.warning("Cannot open LP position: Wallet not loaded.")
         
         # Pyth Price Feed Integration Demonstration
-        print("\n--- Pyth Price Feed Integration ---")
+        logger.info("\n--- Pyth Price Feed Integration ---")
         SOL_USD_PRICE_FEED_ID = "EdVCmQyygBCjS6nMj2xT9EtsNq5V3d3g1i9j1v3BvA6Z" # Example Pyth SOL/USD price feed ID
         eth_usd_price_feed_id = "JBuCRv6r2eH2gC257y3R8XoJvK9vWpE2bS4M1f2B2Q3B" # Example Pyth ETH/USD price feed ID
 
         sol_price_data = await executor.get_pyth_price(SOL_USD_PRICE_FEED_ID)
         if sol_price_data:
-            print(f"SOL/USD Price: {sol_price_data['price']}")
+            logger.info(f"SOL/USD Price: {sol_price_data['price']}")
         
         eth_price_data = await executor.get_pyth_price(eth_usd_price_feed_id)
         if eth_price_data:
-            print(f"ETH/USD Price: {eth_price_data['price']}")
+            logger.info(f"ETH/USD Price: {eth_price_data['price']}")
 
         # Risk Manager Demonstration
-        print("\n--- Risk Manager Demonstration ---")
+        logger.info("\n--- Risk Manager Demonstration ---")
         test_trade_amount_ok = 50.0 # Within max_trade_size
         test_trade_amount_too_large = 150.0 # Exceeds max_trade_size
 
-        print(f"Attempting trade with amount: {test_trade_amount_ok}")
+        logger.info(f"Attempting trade with amount: {test_trade_amount_ok}")
         trade_result_ok = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        print(f"Trade result: {trade_result_ok}")
+        logger.info(f"Trade result: {trade_result_ok}")
 
-        print(f"\nAttempting trade with amount: {test_trade_amount_too_large}")
+        logger.info(f"\nAttempting trade with amount: {test_trade_amount_too_large}")
         trade_result_too_large = executor.execute_trade({"amount": test_trade_amount_too_large, "pair": "SOL/USDC"})
-        print(f"Trade result: {trade_result_too_large}")
+        logger.info(f"Trade result: {trade_result_too_large}")
 
-        print("\nActivating circuit breaker...")
+        logger.info("\nActivating circuit breaker...")
         executor.risk_manager.activate_circuit_breaker()
         trade_result_cb = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        print(f"Trade result after circuit breaker: {trade_result_cb}")
+        logger.info(f"Trade result after circuit breaker: {trade_result_cb}")
 
-        print("\nDeactivating circuit breaker...")
+        logger.info("\nDeactivating circuit breaker...")
         executor.risk_manager.deactivate_circuit_breaker()
         trade_result_deactivated = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
-        print(f"Trade result after deactivation: {trade_result_deactivated}")
+        logger.info(f"Trade result after deactivation: {trade_result_deactivated}")
 
     asyncio.run(main_async())
