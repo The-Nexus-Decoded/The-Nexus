@@ -8,6 +8,11 @@ from typing import Optional, List, Dict, Any
 import asyncio
 from anchorpy import Program, Provider, Wallet
 from anchorpy.program.core import get_idl_account_address
+from anchorpy.idl import Idl
+from solders.system_program import ID as SYSTEM_PROGRAM_ID
+from solders.instruction import Instruction
+from solders.transaction import Transaction
+from solana.rpc.api import CommitmentConfig
 
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
@@ -17,10 +22,37 @@ BOT_WALLET_PUBKEY = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # From MEMORY
 METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo")
 
 # Placeholder for Meteora IDL - in a real scenario, this would be loaded from a file or fetched
-METEORA_IDL = {
+# This IDL is a *simplified assumption* for demonstration purposes and may not precisely
+# match the actual Meteora DLMM IDL. For a production system, the accurate IDL is required.
+METEORA_IDL_DICT = {
     "version": "0.1.0",
     "name": "dlmm",
-    "instructions": [], # We only need account structures for reading
+    "instructions": [
+        {
+            "name": "initializePosition",
+            "accounts": [
+                {"name": "position", "isMut": True, "isSigner": True},
+                {"name": "owner", "isMut": True, "isSigner": True},
+                {"name": "pool", "isMut": False, "isSigner": False},
+                {"name": "rent", "isMut": False, "isSigner": False},
+                {"name": "systemProgram", "isMut": False, "isSigner": False},
+            ],
+            "args": [
+                {"name": "lowerBinId", "type": "i64"},
+                {"name": "upperBinId", "type": "i64"},
+                {"name": "liquidity", "type": "u64"},
+            ],
+        },
+        {
+            "name": "closePosition",
+            "accounts": [
+                {"name": "position", "isMut": True, "isSigner": False},
+                {"name": "owner", "isMut": True, "isSigner": True},
+                {"name": "pool", "isMut": False, "isSigner": False}, # Pool might be needed for closing
+            ],
+            "args": [],
+        },
+    ],
     "accounts": [
         {
             "name": "Position",
@@ -40,6 +72,8 @@ METEORA_IDL = {
         },
     ],
 }
+METEORA_IDL = Idl.parse_raw(METEORA_IDL_DICT.encode('utf-8'))
+
 
 class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
@@ -64,7 +98,7 @@ class TradeExecutor:
         if self.wallet:
             print(f"-> Wallet Public Key (loaded): {self.wallet.pubkey()}")
         else:
-            print("-> Wallet not loaded (read-only mode).")
+            print("-> Wallet not loaded (read-only mode). Open/Close LP positions will not function.")
 
     def get_sol_balance(self, pubkey_str: str) -> float:
         """Fetches the SOL balance for a given public key."""
@@ -145,7 +179,6 @@ class TradeExecutor:
                         print(f"    -> Found LP Position {account_info.pubkey} in Pool {decoded_account.pool}")
                 except Exception as e:
                     # This account might not be a 'Position' account or decoding failed
-                    # print(f"Warning: Could not decode account {account_info.pubkey} as Position: {e}")
                     pass # Silently ignore accounts that don't match 'Position' type
 
             if not positions:
@@ -154,6 +187,90 @@ class TradeExecutor:
         except Exception as e:
             print(f"--> Error fetching Meteora DLMM LP positions: {e}")
             return []
+
+    async def open_meteora_lp_position(
+        self, 
+        pool_pubkey: Pubkey, 
+        lower_bin_id: int, 
+        upper_bin_id: int, 
+        liquidity: int,
+        payer: Keypair
+    ) -> Optional[str]:
+        """Opens a new Meteora DLMM LP position."""
+        if not self.wallet or self.wallet.pubkey() != payer.pubkey():
+            print("❌ Cannot open LP position: Wallet private key not loaded or not matching payer.")
+            return None
+
+        print(f"Opening Meteora DLMM LP position for Pool {pool_pubkey}...")
+        new_position_keypair = Keypair()
+
+        try:
+            # Construct the instruction
+            # This is a simplified call assuming the IDL matches these arguments and accounts.
+            # Real-world usage would require careful matching to the actual program IDL.
+            ix = await self.meteora_dlmm_program.instruction["initializePosition"].build(
+                {
+                    "lowerBinId": lower_bin_id,
+                    "upperBinId": upper_bin_id,
+                    "liquidity": liquidity,
+                },
+                {
+                    "position": new_position_keypair.pubkey(),
+                    "owner": payer.pubkey(),
+                    "pool": pool_pubkey,
+                    "rent": Pubkey.from_string("SysvarRent1111111111111111111111111111111"), # Assuming Rent Sysvar
+                    "systemProgram": SYSTEM_PROGRAM_ID,
+                },
+            )
+            
+            # Create and send transaction
+            recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
+            transaction = Transaction.populate(recent_blockhash, [ix], [payer, new_position_keypair])
+            
+            # Sign and send (assuming self.wallet is the payer)
+            # If there are other signers, they would be added to the populate call
+            response = await self.client.send_transaction(transaction, payer, new_position_keypair)
+            tx_hash = response.value
+            print(f"--> Opened LP Position. Tx Hash: {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            print(f"--> Error opening LP position: {e}")
+            return None
+
+    async def close_meteora_lp_position(
+        self, 
+        position_pubkey: Pubkey, 
+        pool_pubkey: Pubkey, # Pool pubkey might be required for validation
+        owner: Keypair
+    ) -> Optional[str]:
+        """Closes an existing Meteora DLMM LP position."""
+        if not self.wallet or self.wallet.pubkey() != owner.pubkey():
+            print("❌ Cannot close LP position: Wallet private key not loaded or not matching owner.")
+            return None
+
+        print(f"Closing Meteora DLMM LP position {position_pubkey} for Pool {pool_pubkey}...")
+        try:
+            # Construct the instruction
+            ix = await self.meteora_dlmm_program.instruction["closePosition"].build(
+                {},
+                {
+                    "position": position_pubkey,
+                    "owner": owner.pubkey(),
+                    "pool": pool_pubkey,
+                },
+            )
+            
+            # Create and send transaction
+            recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
+            transaction = Transaction.populate(recent_blockhash, [ix], [owner])
+            
+            response = await self.client.send_transaction(transaction, owner)
+            tx_hash = response.value
+            print(f"--> Closed LP Position. Tx Hash: {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            print(f"--> Error closing LP position: {e}")
+            return None
 
     def execute_trade(self, trade_details: dict):
         """
@@ -173,7 +290,10 @@ if __name__ == "__main__":
 
     async def main_async():
         print("Quenching the blade: Checking connection to Solana network...")
-        executor = TradeExecutor(RPC_ENDPOINT)
+        # For testing open/close functionality, a private key is required
+        # Replace with a real private key for a test wallet for actual execution
+        TEST_PRIVATE_KEY = "" # WARNING: DO NOT USE A REAL WALLET'S PRIVATE KEY HERE
+        executor = TradeExecutor(RPC_ENDPOINT, private_key=TEST_PRIVATE_KEY)
         
         print(f"\nChecking balance for the designated bot wallet...")
         bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
@@ -191,7 +311,7 @@ if __name__ == "__main__":
         if quote:
             print(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
 
-        # New: Fetch Meteora DLMM LP positions and their balances
+        # Fetch Meteora DLMM LP positions and their balances (read-only)
         print(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
         lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
         
@@ -202,9 +322,46 @@ if __name__ == "__main__":
                 print(f"        Owner: {pos['owner']}")
                 print(f"        Pool: {pos['pool']}")
                 print(f"        Liquidity: {pos['liquidity']}")
-                # In a real scenario, you'd parse pool info to get token mints and then fetch token balances
                 print("        (Token balances for LP positions require further pool info parsing)")
+
+            # Example: Close the first found LP position (requires TEST_PRIVATE_KEY)
+            if executor.wallet:
+                first_position_pubkey = lp_positions[0]['pubkey']
+                first_position_pool_pubkey = lp_positions[0]['pool']
+                print(f"\nAttempting to close LP position {first_position_pubkey}...")
+                tx_close = await executor.close_meteora_lp_position(
+                    position_pubkey=first_position_pubkey,
+                    pool_pubkey=first_position_pool_pubkey,
+                    owner=executor.wallet
+                )
+                if tx_close:
+                    print(f"Close transaction sent: {tx_close}")
+            else:
+                print("Cannot close LP position: Wallet not loaded.")
+
         else:
-            print("--> No LP positions found for the bot wallet.")
+            print("--> No LP positions found for the bot wallet. Cannot demonstrate closing.")
+
+        # Example: Open a new LP position (requires TEST_PRIVATE_KEY)
+        if executor.wallet:
+            # These are placeholder values. In a real scenario, you'd determine
+            # the actual pool, bin IDs, and liquidity based on market conditions.
+            DUMMY_POOL_PUBKEY = Pubkey.new_unique()
+            DUMMY_LOWER_BIN = 0
+            DUMMY_UPPER_BIN = 100
+            DUMMY_LIQUIDITY = 1000000 # Example liquidity amount
+
+            print(f"\nAttempting to open a new LP position in dummy pool {DUMMY_POOL_PUBKEY}...")
+            tx_open = await executor.open_meteora_lp_position(
+                pool_pubkey=DUMMY_POOL_PUBKEY,
+                lower_bin_id=DUMMY_LOWER_BIN,
+                upper_bin_id=DUMMY_UPPER_BIN,
+                liquidity=DUMMY_LIQUIDITY,
+                payer=executor.wallet
+            )
+            if tx_open:
+                print(f"Open transaction sent: {tx_open}")
+        else:
+            print("Cannot open LP position: Wallet not loaded.")
 
     asyncio.run(main_async())
