@@ -1,0 +1,36 @@
+name: Deploy Trading Services
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'hughs-forge/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-to-trade-server:
+    runs-on: ubuntu-latest
+    name: Deploy to ola-claw-trade
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+
+      - name: Add trade server to known_hosts
+        run: |
+          ssh-keyscan -p 22 -H ${{ secrets.TRADE_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy services to trade server
+        run: |
+          rsync -avz --delete hughs-forge/services/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/opt/the-nexus/hughs-forge/
+
+      - name: Restart Trade Orchestrator service
+        run: |
+          echo "Attempting to restart trade-orchestrator..."
+          ssh ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }} "sudo systemctl restart trade-orchestrator.service || echo 'Service not found, continuing...'"
