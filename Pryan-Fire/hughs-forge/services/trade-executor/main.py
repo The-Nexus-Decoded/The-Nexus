@@ -28,6 +28,9 @@ METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM
 # Pyth Hermes REST API Endpoint
 PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/api/latest_price_feeds" # Example endpoint
 
+# Circuit breaker status
+CIRCUIT_BREAKER_ACTIVE = False
+
 # Placeholder for Meteora IDL - in a real scenario, this would be loaded from a file or fetched
 # This IDL is a *simplified assumption* for demonstration purposes and may not precisely
 # match the actual Meteora DLMM IDL. For a production system, the accurate IDL is required.
@@ -114,6 +117,38 @@ METEORA_IDL_DICT = {
 }
 METEORA_IDL = Idl.parse_raw(METEORA_IDL_DICT.encode('utf-8'))
 
+class RiskManager:
+    """Manages trading risk, including limits and circuit breaker functionality."""
+    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0):
+        self.daily_loss_limit = daily_loss_limit # Example: -1000 USDC
+        self.max_trade_size = max_trade_size # Example: 100 USDC equivalent
+        self.current_daily_loss = 0.0
+        self.circuit_breaker_active = CIRCUIT_BREAKER_ACTIVE
+        print("Risk Manager initialized.")
+        print(f"-> Daily Loss Limit: {self.daily_loss_limit}")
+        print(f"-> Max Trade Size: {self.max_trade_size}")
+
+    def check_trade(self, proposed_trade_amount: float) -> bool:
+        """Checks if a proposed trade adheres to risk parameters."""
+        if self.circuit_breaker_active:
+            print("❌ Trade rejected: Circuit breaker is active.")
+            return False
+        if proposed_trade_amount > self.max_trade_size:
+            print(f"❌ Trade rejected: Proposed amount ({proposed_trade_amount}) exceeds max trade size ({self.max_trade_size}).")
+            return False
+        # More complex checks (e.g., against current_daily_loss) would go here
+        print(f"✅ Trade approved by Risk Manager for amount: {proposed_trade_amount}")
+        return True
+
+    def activate_circuit_breaker(self):
+        """Activates the circuit breaker, halting all trading."""
+        self.circuit_breaker_active = True
+        print("🚨 CIRCUIT BREAKER ACTIVATED: All trading halted.")
+
+    def deactivate_circuit_breaker(self):
+        """Deactivates the circuit breaker, allowing trading to resume."""
+        self.circuit_breaker_active = False
+        print("✅ CIRCUIT BREAKER DEACTIVATED: Trading can resume.")
 
 class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
@@ -133,6 +168,7 @@ class TradeExecutor:
             METEORA_DLMM_PROGRAM_ID,
             self.provider
         )
+        self.risk_manager = RiskManager() # Initialize Risk Manager
 
         print("Trade Executor initialized.")
         if self.wallet:
@@ -481,10 +517,15 @@ class TradeExecutor:
             print(f"--> An unexpected error occurred: {e}")
             return None
 
-    def execute_trade(self, trade_details: dict):
+    def execute_trade(self, trade_details: dict) -> Dict[str, Any]:
         """
         Connects to the DEX and executes a swap.
         """
+        # Check with Risk Manager before executing trade
+        proposed_amount = trade_details.get("amount", 0.0)
+        if not self.risk_manager.check_trade(proposed_amount):
+            return {"status": "rejected", "message": "Trade rejected by Risk Manager"}
+
         if not self.wallet:
             print("❌ Cannot execute trade: Wallet private key not loaded.")
             return {"status": "error", "message": "Wallet not loaded"}
@@ -628,5 +669,27 @@ if __name__ == "__main__":
         if eth_price_data:
             print(f"ETH/USD Price: {eth_price_data['price']}")
 
+        # Risk Manager Demonstration
+        print("\n--- Risk Manager Demonstration ---")
+        test_trade_amount_ok = 50.0 # Within max_trade_size
+        test_trade_amount_too_large = 150.0 # Exceeds max_trade_size
+
+        print(f"Attempting trade with amount: {test_trade_amount_ok}")
+        trade_result_ok = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+        print(f"Trade result: {trade_result_ok}")
+
+        print(f"\nAttempting trade with amount: {test_trade_amount_too_large}")
+        trade_result_too_large = executor.execute_trade({"amount": test_trade_amount_too_large, "pair": "SOL/USDC"})
+        print(f"Trade result: {trade_result_too_large}")
+
+        print("\nActivating circuit breaker...")
+        executor.risk_manager.activate_circuit_breaker()
+        trade_result_cb = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+        print(f"Trade result after circuit breaker: {trade_result_cb}")
+
+        print("\nDeactivating circuit breaker...")
+        executor.risk_manager.deactivate_circuit_breaker()
+        trade_result_deactivated = executor.execute_trade({"amount": test_trade_amount_ok, "pair": "SOL/USDC"})
+        print(f"Trade result after deactivation: {trade_result_deactivated}")
 
     asyncio.run(main_async())
