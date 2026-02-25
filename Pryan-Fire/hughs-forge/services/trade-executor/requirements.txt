@@ -1,3 +1,4 @@
 solders
 solana
 anchorpy
+jupiter-solana
