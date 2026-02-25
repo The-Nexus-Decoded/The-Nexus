@@ -23,6 +23,10 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
 
+      - name: Check network connectivity to trade server
+        run: |
+          ping -c 4 ${{ secrets.TRADE_SERVER_HOST }}
+
       - name: Add trade server to known_hosts
         run: |
           ssh-keyscan -p 22 -H ${{ secrets.TRADE_SERVER_HOST }} >> ~/.ssh/known_hosts
