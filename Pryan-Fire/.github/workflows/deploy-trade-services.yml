@@ -26,6 +26,10 @@ jobs:
         run: |
           ssh-keyscan -p 22 -H ${{ secrets.TRADE_SERVER_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Create deployment directory on trade server
+        run: |
+          ssh ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }} "sudo mkdir -p /opt/the-nexus/hughs-forge && sudo chown -R ${{ secrets.TRADE_SERVER_USER }}:${{ secrets.TRADE_SERVER_USER }} /opt/the-nexus"
+
       - name: Deploy services to trade server
         run: |
           rsync -avz --delete hughs-forge/services/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/opt/the-nexus/hughs-forge/
