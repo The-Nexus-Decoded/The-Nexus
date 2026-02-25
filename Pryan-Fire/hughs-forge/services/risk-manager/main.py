@@ -1,6 +1,40 @@
 # main.py for the Risk Manager service
 import time
 from .logger import audit_logger
+from fastapi import FastAPI
+import uvicorn
+
+app = FastAPI()
+
+# ... (RiskManager class and RISK_CONFIG remain the same) ...
+risk_manager_instance = RiskManager(RISK_CONFIG)
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "service": "RiskManager",
+        "consecutive_losses": risk_manager_instance.consecutive_losses,
+        "open_positions": len(risk_manager_instance.open_positions),
+        "circuit_breaker_tripped": risk_manager_instance.breaker_tripped_at > 0
+    }
+
+# This is a placeholder for the actual trade checking endpoint
+@app.post("/check_trade")
+def check_trade_endpoint(trade_details: dict):
+    is_approved, reason = risk_manager_instance.check_trade(trade_details)
+    return {"approved": is_approved, "reason": reason}
+
+if __name__ == "__main__":
+    # The test suite is now replaced by running the server
+    # uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    # Keeping test suite for now for local validation
+    # Test Suite
+    manager = risk_manager_instance
+    manager.check_trade({"pair": "SOL/USDC", "amount_usd": 500, "side": "buy"})
+    # ... (rest of test suite)
+
 
 # Configuration will be moved to a separate file later
 RISK_CONFIG = {
