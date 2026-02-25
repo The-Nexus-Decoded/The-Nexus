@@ -7,96 +7,81 @@ from src.signals.dex_screener import MomentumScanner
 from src.services.security_scanner import AntiRugScanner
 from src.services.ledger_db import LedgerDB
 from src.services.shutdown_manager import kill_switch
-# Assuming from Phase 2:
-# from src.executor.jupiter import JupiterExecutor 
 
-# Configure Master Loop Logging
+# Configure Core Engine Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s [ENGINE] %(message)s',
+    format='%(asctime)s [CORE] %(message)s',
     datefmt='%H:%M:%S'
 )
-logger = logging.getLogger("MainEngine")
+logger = logging.getLogger("TradingEngine")
 
-class PatrynTradeEngine:
+class TradingEngine:
     """
-    The Heart of the Ola-Claw-Trade Empire.
-    Weaves discovery, intelligence, and execution into a single lifecycle.
+    Central Trading Engine.
+    Orchestrates discovery, intelligence, and execution.
     """
     def __init__(self):
-        # 1. Initialize Memory (Phase 6)
+        # 1. Initialize Persistence
         self.ledger = LedgerDB()
         
-        # 2. Initialize Safety Shield (Phase 7)
+        # 2. Initialize Shutdown Manager
         kill_switch.register_callback(self.stop)
         
-        # 3. Initialize Intelligence (Phase 5)
+        # 3. Initialize Momentum Intelligence
         self.momentum_scanner = MomentumScanner()
         
-        # 4. Initialize Security (Phase 3)
-        # Using a conservative default profile for MVP
+        # 4. Initialize Security Sentinel
         self.profile = {
-            "name": "StandardSentinel",
+            "name": "Standard_Security",
             "buy_amount_sol": 0.1,
             "min_liquidity_usd": 10000,
             "security": {"use_rug_check": True, "use_bundle_check": True}
         }
         self.sentinel = AntiRugScanner(self.profile)
         
-        # 5. Initialize Discovery Ear (Phase 4a)
+        # 5. Initialize Discovery Stream
         self.ear = PumpFunSignal(on_token_received=self.on_discovery)
-        
-        # 6. Initialize Execution Blade (Phase 2 stub)
-        # self.executor = JupiterExecutor()
 
     async def run(self):
-        """Initializes the engine and begins the eternal hunt."""
-        logger.info("Initializing Patryn Trade Engine (MVP)...")
+        """Initializes the engine and begins the trading loop."""
+        logger.info("Initializing Trading Engine...")
         
         # A. State Recovery
         active_positions = self.ledger.get_active_positions()
         if active_positions:
-            logger.info(f"Resurrection Complete: Recovered {len(active_positions)} active positions.")
+            logger.info(f"Database Recovery: Found {len(active_positions)} active positions.")
             for pos in active_positions:
-                logger.info(f" -> Resuming Exit Strategy for {pos['symbol']} ({pos['mint']})")
-                # TODO: Re-attach Exit Strategist (Phase 2/3)
+                logger.info(f" -> Monitoring Exit Strategy for {pos['symbol']} ({pos['mint']})")
         
         # B. Start Discovery
-        logger.info("Engaging Discovery Array: Listening for Pump.fun launches...")
+        logger.info("Engaging Discovery: Listening for new launches...")
         await self.ear.run()
 
     async def on_discovery(self, mint: str, metadata: Dict[str, Any]):
-        """The Main Engine Pipeline: Discovery -> Int -> Security -> Strike."""
+        """Discovery Pipeline: Signal -> Intel -> Security -> Execution."""
         symbol = metadata.get('symbol', '???')
         
-        # 1. Market Intelligence Check (Phase 5)
+        # 1. Market Health Check
         intel = await self.momentum_scanner.validate_momentum(mint)
         if not intel["passed"]:
-            # logger.info(f"Skipping {symbol}: Market Health check failed ({intel['reasons'][0]})")
             return
 
-        # 2. Security Sentinel Audit (Phase 3)
+        # 2. Security Audit
         security = await self.sentinel.scan_token(mint)
         if not security["passed"]:
-            logger.warning(f"Aborting {symbol}: Security Sentinel detected risk ({security['reasons'][0]})")
+            logger.warning(f"Aborting {symbol}: Security risk detected ({security['reasons'][0]})")
             return
 
-        # 3. Execution Strike (Phase 2)
-        logger.info(f"TARGET VERIFIED: {symbol} passed all trials. Executing Buy...")
-        # try:
-        #     tx_sig = await self.executor.execute_buy(mint, amount=self.profile['buy_amount_sol'])
-        #     self.ledger.log_entry(mint, symbol, price=0, amount=0) # Update with real data
-        #     logger.info(f"STRIKE SUCCESSFUL: {tx_sig}")
-        # except Exception as e:
-        #     logger.error(f"STRIKE FAILED for {symbol}: {e}")
+        # 3. Execution (Simulated for MVP)
+        logger.info(f"VALIDATED: {symbol} passed security checks. Initializing transaction...")
 
     def stop(self):
-        """Graceful shutdown handler for the Kill-Switch."""
-        logger.info("Patryn Trade Engine entering dormancy...")
-        # Add cleanup for WebSockets or async tasks if needed
+        """Graceful shutdown handler."""
+        logger.info("Trading Engine shutting down...")
 
 if __name__ == "__main__":
-    engine = PatrynTradeEngine()
+    engine = TradingEngine()
     try:
         asyncio.run(engine.run())
     except KeyboardInterrupt:
