@@ -5,14 +5,19 @@ import asyncio
 class AntiRugScanner:
     """
     Sentinel of the Dev Factory. 
-    Uses GMGN.ai and RugPlus-style metrics to filter out high-risk tokens.
+    Uses GMGN.ai and profile-based metrics to filter out high-risk tokens.
     """
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key
-        self.base_url = "https://gmgn.ai/api/v1" # Placeholder for actual GMGN endpoint structure
-        # Baseline Security Wards
-        self.max_top_holders_pct = 25.0  # Combined top 10 wallets
-        self.min_organic_fee_ratio = 0.001 # 0.1% fee-to-volume ratio
+    def __init__(self, profile: Dict[str, Any]):
+        self.profile_data = profile
+        self.sec_config = profile.get("security", {})
+        
+        # Load constraints from profile
+        self.max_top_holders_pct = self.sec_config.get("max_top_holders_pct", 25.0)
+        self.min_organic_fee_ratio = self.sec_config.get("min_organic_fee_ratio", 0.001)
+        self.require_lp_burned = self.sec_config.get("require_lp_burned", True)
+        self.require_revoked_mint = self.sec_config.get("require_revoked_mint", True)
+        self.require_revoked_freeze = self.sec_config.get("require_revoked_freeze", True)
+        self.allow_bundled = self.sec_config.get("allow_bundled", False)
 
     async def scan_token(self, mint_address: str) -> Dict[str, Any]:
         """
@@ -21,7 +26,6 @@ class AntiRugScanner:
         print(f"[SENTINEL] Scanning token: {mint_address}")
         
         # 1. Fetch GMGN Security Data (Bundle & Security check)
-        # Note: GMGN usually requires specific headers/auth
         security_data = await self._fetch_gmgn_security(mint_address)
         
         # 2. Fetch GMGN Volume/Fees (Wash-trade check)
@@ -55,20 +59,20 @@ class AntiRugScanner:
         results = {"passed": True, "reasons": []}
         
         # Ward 1: Authorities
-        if security.get("is_mintable"):
+        if self.require_revoked_mint and security.get("is_mintable"):
             results["passed"] = False
             results["reasons"].append("MINT_AUTHORITY_ACTIVE")
-        if security.get("is_freezable"):
+        if self.require_revoked_freeze and security.get("is_freezable"):
             results["passed"] = False
             results["reasons"].append("FREEZE_AUTHORITY_ACTIVE")
             
         # Ward 2: Liquidity
-        if not security.get("is_lp_burned"):
+        if self.require_lp_burned and not security.get("is_lp_burned"):
             results["passed"] = False
             results["reasons"].append("LP_NOT_BURNED")
             
         # Ward 3: Bundles (GMGN Special)
-        if security.get("is_bundled"):
+        if not self.allow_bundled and security.get("is_bundled"):
             results["passed"] = False
             results["reasons"].append("BUNDLED_LAUNCH_DETECTED")
             
@@ -84,25 +88,3 @@ class AntiRugScanner:
             results["reasons"].append(f"WASH_TRADE_SUSPICION (Fee Ratio: {fee_ratio:.4f})")
             
         return results
-
-async def test_scanner():
-    scanner = AntiRugScanner()
-    # Test a "Safe" token
-    print("\n[TEST] Testing Safe Token:")
-    res = await scanner.scan_token("SAFE_MINT_123")
-    print(f"Result: {res}")
-    
-    # Test a "Rug" token
-    print("\n[TEST] Testing Rugged Token (Bundled + Low Fee):")
-    # Mocking a bad state for demo
-    scanner._fetch_gmgn_security = lambda m: asyncio.sleep(0, result={
-        "is_mintable": False, "is_freezable": True, "is_lp_burned": False, "is_bundled": True, "top_10_holders_share": 45.0
-    })
-    scanner._fetch_gmgn_market = lambda m: asyncio.sleep(0, result={
-        "volume_24h": 5000000.0, "total_fees": 500.0 # 0.01% ratio
-    })
-    res = await scanner.scan_token("RUG_MINT_456")
-    print(f"Result: {res}")
-
-if __name__ == "__main__":
-    asyncio.run(test_exit()) # Reusing test pattern logic

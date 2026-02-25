@@ -1,0 +1,62 @@
+{
+  "profiles": {
+    "safe": {
+      "description": "Strict defensive posture for high-conviction trades.",
+      "security": {
+        "max_top_holders_pct": 25.0,
+        "min_organic_fee_ratio": 0.001,
+        "require_lp_burned": true,
+        "require_revoked_mint": true,
+        "require_revoked_freeze": true,
+        "allow_bundled": false
+      },
+      "exit": {
+        "take_profit_pct": 20.0,
+        "stop_loss_pct": -10.0
+      },
+      "execution": {
+        "priority_fee_percentile": 75,
+        "max_priority_fee_cap": 10000000
+      }
+    },
+    "aggressive": {
+      "description": "Looser filters for high-volatility degen plays.",
+      "security": {
+        "max_top_holders_pct": 45.0,
+        "min_organic_fee_ratio": 0.0005,
+        "require_lp_burned": false,
+        "require_revoked_mint": true,
+        "require_revoked_freeze": true,
+        "allow_bundled": true
+      },
+      "exit": {
+        "take_profit_pct": 50.0,
+        "stop_loss_pct": -25.0
+      },
+      "execution": {
+        "priority_fee_percentile": 90,
+        "max_priority_fee_cap": 50000000
+      }
+    },
+    "sniper": {
+      "description": "Ultra-fast execution with minimal safety checks.",
+      "security": {
+        "max_top_holders_pct": 100.0,
+        "min_organic_fee_ratio": 0.0,
+        "require_lp_burned": false,
+        "require_revoked_mint": false,
+        "require_revoked_freeze": false,
+        "allow_bundled": true
+      },
+      "exit": {
+        "take_profit_pct": 100.0,
+        "stop_loss_pct": -50.0
+      },
+      "execution": {
+        "priority_fee_percentile": 99,
+        "max_priority_fee_cap": 100000000
+      }
+    }
+  },
+  "active_profile": "safe"
+}
