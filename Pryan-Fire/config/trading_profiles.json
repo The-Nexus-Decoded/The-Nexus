@@ -1,14 +1,17 @@
 {
+  "active_profile": "SafeSentinel",
   "profiles": {
-    "safe": {
+    "SafeSentinel": {
+      "display_name": "Safe Sentinel",
       "description": "Strict defensive posture for high-conviction trades.",
       "security": {
-        "max_top_holders_pct": 25.0,
-        "min_organic_fee_ratio": 0.001,
-        "require_lp_burned": true,
-        "require_revoked_mint": true,
-        "require_revoked_freeze": true,
-        "allow_bundled": false
+        "use_rug_check": true,
+        "use_bundle_check": true,
+        "enforce_lp_lock": true,
+        "enforce_revoked_mint": true,
+        "enforce_revoked_freeze": true,
+        "min_fee_volume_ratio": 0.001,
+        "max_holder_concentration": 20.0
       },
       "exit": {
         "take_profit_pct": 20.0,
@@ -19,34 +22,38 @@
         "max_priority_fee_cap": 10000000
       }
     },
-    "aggressive": {
-      "description": "Looser filters for high-volatility degen plays.",
+    "AggressiveLabyrinth": {
+      "display_name": "Aggressive Labyrinth",
+      "description": "Balanced risk/reward for standard volatility.",
       "security": {
-        "max_top_holders_pct": 45.0,
-        "min_organic_fee_ratio": 0.0005,
-        "require_lp_burned": false,
-        "require_revoked_mint": true,
-        "require_revoked_freeze": true,
-        "allow_bundled": true
+        "use_rug_check": true,
+        "use_bundle_check": true,
+        "enforce_lp_lock": false,
+        "enforce_revoked_mint": true,
+        "enforce_revoked_freeze": true,
+        "min_fee_volume_ratio": 0.0005,
+        "max_holder_concentration": 45.0
       },
       "exit": {
         "take_profit_pct": 50.0,
         "stop_loss_pct": -25.0
       },
       "execution": {
-        "priority_fee_percentile": 90,
+        "priority_fee_percentile": 85,
         "max_priority_fee_cap": 50000000
       }
     },
-    "sniper": {
+    "SniperDegen": {
+      "display_name": "Sniper Degen",
       "description": "Ultra-fast execution with minimal safety checks.",
       "security": {
-        "max_top_holders_pct": 100.0,
-        "min_organic_fee_ratio": 0.0,
-        "require_lp_burned": false,
-        "require_revoked_mint": false,
-        "require_revoked_freeze": false,
-        "allow_bundled": true
+        "use_rug_check": false,
+        "use_bundle_check": false,
+        "enforce_lp_lock": false,
+        "enforce_revoked_mint": false,
+        "enforce_revoked_freeze": false,
+        "min_fee_volume_ratio": 0.0,
+        "max_holder_concentration": 100.0
       },
       "exit": {
         "take_profit_pct": 100.0,
@@ -57,6 +64,5 @@
         "max_priority_fee_cap": 100000000
       }
     }
-  },
-  "active_profile": "safe"
+  }
 }

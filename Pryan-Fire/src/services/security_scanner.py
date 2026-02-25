@@ -5,33 +5,43 @@ import asyncio
 class AntiRugScanner:
     """
     Sentinel of the Dev Factory. 
-    Uses GMGN.ai and profile-based metrics to filter out high-risk tokens.
+    Uses GMGN.ai and profile-based boolean flags to filter out high-risk tokens.
+    Designed for eventual UI/Dashboard checkbox integration.
     """
     def __init__(self, profile: Dict[str, Any]):
         self.profile_data = profile
         self.sec_config = profile.get("security", {})
         
-        # Load constraints from profile
-        self.max_top_holders_pct = self.sec_config.get("max_top_holders_pct", 25.0)
-        self.min_organic_fee_ratio = self.sec_config.get("min_organic_fee_ratio", 0.001)
-        self.require_lp_burned = self.sec_config.get("require_lp_burned", True)
-        self.require_revoked_mint = self.sec_config.get("require_revoked_mint", True)
-        self.require_revoked_freeze = self.sec_config.get("require_revoked_freeze", True)
-        self.allow_bundled = self.sec_config.get("allow_bundled", False)
+        # Boolean Toggle Configuration (Future Dashboard Checkboxes)
+        self.use_rug_check = self.sec_config.get("use_rug_check", True)
+        self.use_bundle_check = self.sec_config.get("use_bundle_check", True)
+        self.enforce_lp_lock = self.sec_config.get("enforce_lp_lock", True)
+        self.enforce_revoked_mint = self.sec_config.get("enforce_revoked_mint", True)
+        self.enforce_revoked_freeze = self.sec_config.get("enforce_revoked_freeze", True)
+        
+        # Threshold Configuration
+        self.max_top_holders_pct = self.sec_config.get("max_holder_concentration", 25.0)
+        self.min_organic_fee_ratio = self.sec_config.get("min_fee_volume_ratio", 0.001)
 
     async def scan_token(self, mint_address: str) -> Dict[str, Any]:
         """
         Executes a pre-flight security scan for a token.
+        Bypasses checks based on profile-level boolean toggles.
         """
+        # Master Bypass
+        if not self.use_rug_check:
+            print(f"[SENTINEL] Security checks BYPASSED for {mint_address} (Sniper/Degen mode)")
+            return {"passed": True, "reasons": ["BYPASSED_BY_PROFILE"]}
+
         print(f"[SENTINEL] Scanning token: {mint_address}")
         
-        # 1. Fetch GMGN Security Data (Bundle & Security check)
+        # 1. Fetch GMGN Security Data
         security_data = await self._fetch_gmgn_security(mint_address)
         
-        # 2. Fetch GMGN Volume/Fees (Wash-trade check)
+        # 2. Fetch GMGN Volume/Fees
         market_data = await self._fetch_gmgn_market(mint_address)
         
-        # 3. Analyze Risks
+        # 3. Analyze Risks based on Profile Flags
         analysis = self._perform_risk_analysis(security_data, market_data)
         
         return analysis
@@ -52,36 +62,38 @@ class AntiRugScanner:
         await asyncio.sleep(0.01)
         return {
             "volume_24h": 1000000.0,
-            "total_fees": 1200.0 # 0.12% ratio
+            "total_fees": 1200.0
         }
 
     def _perform_risk_analysis(self, security: Dict[str, Any], market: Dict[str, Any]) -> Dict[str, Any]:
         results = {"passed": True, "reasons": []}
         
-        # Ward 1: Authorities
-        if self.require_revoked_mint and security.get("is_mintable"):
+        # Check Box 1: Mint Authority
+        if self.enforce_revoked_mint and security.get("is_mintable"):
             results["passed"] = False
             results["reasons"].append("MINT_AUTHORITY_ACTIVE")
-        if self.require_revoked_freeze and security.get("is_freezable"):
+
+        # Check Box 2: Freeze Authority
+        if self.enforce_revoked_freeze and security.get("is_freezable"):
             results["passed"] = False
             results["reasons"].append("FREEZE_AUTHORITY_ACTIVE")
             
-        # Ward 2: Liquidity
-        if self.require_lp_burned and not security.get("is_lp_burned"):
+        # Check Box 3: Liquidity Lock
+        if self.enforce_lp_lock and not security.get("is_lp_burned"):
             results["passed"] = False
             results["reasons"].append("LP_NOT_BURNED")
             
-        # Ward 3: Bundles (GMGN Special)
-        if not self.allow_bundled and security.get("is_bundled"):
+        # Check Box 4: Bundle Detection (GMGN Special)
+        if self.use_bundle_check and security.get("is_bundled"):
             results["passed"] = False
             results["reasons"].append("BUNDLED_LAUNCH_DETECTED")
             
-        # Ward 4: Holder Concentration
+        # Threshold: Holder Concentration
         if security.get("top_10_holders_share", 0) > self.max_top_holders_pct:
             results["passed"] = False
             results["reasons"].append(f"HIGH_HOLDER_CONCENTRATION ({security['top_10_holders_share']}%)")
             
-        # Ward 5: Wash-Trading (GMGN Special)
+        # Threshold: Wash-Trading (GMGN Special)
         fee_ratio = market.get("total_fees", 0) / market.get("volume_24h", 1)
         if fee_ratio < self.min_organic_fee_ratio:
             results["passed"] = False
