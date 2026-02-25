@@ -34,7 +34,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # This would be loaded securely, not hardcoded
-RPC_ENDPOINT = "https://api.mainnet-beta.solana.com" # Updated RPC_ENDPOINT
+RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
 TRADING_WALLET_PUBLIC_KEY = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # From MEMORY.md (should be loaded securely in production)
 BOT_WALLET_PUBKEY = TRADING_WALLET_PUBLIC_KEY # Aligning with the issue's requirement
 
@@ -42,8 +42,8 @@ BOT_WALLET_PUBKEY = TRADING_WALLET_PUBLIC_KEY # Aligning with the issue's requir
 METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo")
 
 # Define SPL Token Program ID and Associated Token Account Program ID directly
-TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXAbZf5XpyXYETzN5Zs")
-ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL") # Corrected Base58 string
+TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
 
 # Pyth Hermes REST API Endpoint
 PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/api/latest_price_feeds" # Example endpoint
@@ -183,12 +183,12 @@ class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
         self.wallet: Optional[Keypair] = Keypair.from_base58_string(private_key) if private_key else None
         self.client = AsyncClient(rpc_endpoint)
-        # self.sol_client = SolClient(rpc_endpoint) # Commented out Jupiter client init
+        # self.sol_client = SolClient(rpc_endpoint)
         # self.jupiter_client = Jupiter(
         #     self.sol_client,
         #     jupiter_keys=JupiterKeys(),
         #     referrer=JupReferrerAccount()
-        # ) # Commented out Jupiter client init
+        # )
 
         self.provider = Provider(self.client, Wallet(self.wallet) if self.wallet else None)
         self.meteora_dlmm_program = Program(
@@ -230,34 +230,11 @@ class TradeExecutor:
             logger.error(f"--> Error fetching token balance for {token_account_pubkey}: {e}")
             return 0.0
 
-    # async def get_quote(self, input_mint: Pubkey, output_mint: Pubkey, amount: int):
-    #     """Fetches a quote from Jupiter for a given swap."""
-    #     logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint}")
-    #     try:
-    #         quote_response = await self.jupiter_client.quote_get(
-    #             input_mint=input_mint,
-    #             output_mint=output_mint,
-    #             amount=amount,
-    #             swap_mode="ExactIn"
-    #         )
-    #         if quote_response and quote_response.data:
-    #             logger.info("--> Jupiter Quote Received:")
-    #             for route in quote_response.data:
-    #                 logger.info(f"    - In Amount: {route.in_amount}, Out Amount: {route.out_amount}, Price Impact: {route.price_impact_pct:.2f}%")
-    #             return quote_response.data[0]
-    #         else:
-    #             logger.warning("--> No quotes found.")
-    #             return None
-    #     except Exception as e:
-    #         logger.error(f"--> Error fetching quote: {e}")
-    #         return None
-
     async def get_meteora_lp_positions(self, owner_pubkey: Pubkey) -> List[Dict[str, Any]]:
         """Fetches Meteora DLMM LP positions for a given owner public key."""
         logger.info(f"Scrying Meteora DLMM for LP positions owned by {owner_pubkey} using raw RPC + Anchor decoder...")
         positions = []
         try:
-            # Corrected: Pass MemcmpOpts objects directly in the filters list
             filters = [MemcmpOpts(offset=8, bytes=str(owner_pubkey))]
 
             raw_accounts_response = await self.client.get_program_accounts(
@@ -585,17 +562,12 @@ if __name__ == "__main__":
             
             logger.info(f"\nChecking balance for the designated bot wallet...")
             bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
-            await executor.get_sol_balance(BOT_WALLET_PUBKEY)
+            await executor.get_sol_balance(bot_pubkey)
 
             SOL_MINT = Pubkey.from_string("So11111111111111111111111111111111111111112")
             USDC_MINT = Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
             
             amount_to_swap = 10_000_000
-
-            # logger.info(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...") # Commented out Jupiter call
-            # quote = await executor.get_quote(SOL_MINT, USDC_MINT, amount_to_swap)
-            # if quote:
-            #     logger.info(f"Successfully fetched a quote. Out amount: {quote.out_amount}")
 
             logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
             lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
