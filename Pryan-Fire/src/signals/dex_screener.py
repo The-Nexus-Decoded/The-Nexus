@@ -58,13 +58,13 @@ class MomentumScanner:
     def _apply_leash(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         """
         The MomentumLeash (Phase 5a).
-        Enforces minimum floors for trading quality.
+        Enforces minimum floors for trading quality within the Main Portfolio Engine.
         """
         reasons = []
         
-        # 1. Liquidity Floor
-        if metrics["liquidity"] < 5000:
-            reasons.append(f"Liquidity too thin (${metrics['liquidity']})")
+        # 1. Liquidity Floor (MVP Standard)
+        if metrics["liquidity"] < 10000:  # Raised for safer main-bag trading
+            reasons.append(f"Liquidity too thin for portfolio entry (${metrics['liquidity']})")
             
         # 2. Buy/Sell Ratio (Anti-Wash Guard - Initial Version)
         total_tx = metrics["buys_5m"] + metrics["sells_5m"]
