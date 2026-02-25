@@ -416,6 +416,39 @@ class TradeExecutor:
             print(f"--> Error compounding fees: {e}")
             return None
 
+    async def calculate_unrealized_pnl(
+        self, 
+        position_data: Dict[str, Any],
+        current_price_x_per_y: float # Example: price of token X in terms of token Y
+    ) -> Dict[str, float]:
+        """Calculates unrealized P&L for a given LP position (simplified)."""
+        print(f"Calculating unrealized P&L for position {position_data['pubkey']}...")
+        # This is a highly simplified calculation. Real P&L requires accurate
+        # tracking of initial investment, impermanent loss, current token prices,
+        # and pool state.
+
+        # Assume a simple value calculation based on liquidity and current price
+        # This needs to be refined significantly with actual token amounts in bins
+        # and current market prices.
+        current_value_x = position_data['liquidity'] * current_price_x_per_y # Very rough estimate
+        current_value_y = position_data['liquidity'] # Very rough estimate
+        total_current_value = current_value_x + current_value_y
+
+        # Placeholder for initial investment. In a real system, this would be recorded
+        # when the position was opened.
+        initial_investment_value = position_data['liquidity'] * 2 # Assuming 50/50 initial split for simplicity
+
+        unrealized_pnl = total_current_value - initial_investment_value
+        
+        # Include fees as part of total earnings for P&L
+        total_fees_earned = position_data['totalFeeX'] + position_data['totalFeeY']
+
+        return {
+            "unrealized_pnl": unrealized_pnl,
+            "total_fees_earned": total_fees_earned,
+            "total_value": total_current_value
+        }
+
     def execute_trade(self, trade_details: dict):
         """
         Connects to the DEX and executes a swap.
@@ -467,6 +500,15 @@ if __name__ == "__main__":
                 print(f"        Pool: {pos['pool']}")
                 print(f"        Liquidity: {pos['liquidity']}")
                 print("        (Token balances for LP positions require further pool info parsing)")
+
+                # Example P&L calculation for each position
+                print(f"        Calculating P&L for Position {pos['pubkey']}...")
+                # Placeholder: In a real scenario, current_price_x_per_y would come from a price feed.
+                current_price_x_per_y = 0.5 # Example price
+                pnl_results = await executor.calculate_unrealized_pnl(pos, current_price_x_per_y)
+                print(f"            Unrealized P&L: {pnl_results['unrealized_pnl']:.4f}")
+                print(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
+                print(f"            Total Current Value: {pnl_results['total_value']:.4f}")
 
             # Example: Close the first found LP position (requires TEST_PRIVATE_KEY)
             if executor.wallet:
