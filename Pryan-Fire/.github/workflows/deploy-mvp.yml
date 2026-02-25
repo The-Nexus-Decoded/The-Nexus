@@ -21,9 +21,7 @@ jobs:
     - name: Tailscale
       uses: tailscale/github-action@v2
       with:
-        oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-        oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-        tags: tag:ci
+        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
     - name: Deploy Core Engine via SSH
       uses: appleboy/ssh-action@master
