@@ -15,6 +15,8 @@ from solders.transaction import Transaction
 from solana.rpc.api import CommitmentConfig
 from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.associated_token_account.program import ASSOCIATED_TOKEN_PROGRAM_ID
+import requests # New import for Pyth Hermes REST API
+import json # New import for Pyth Hermes REST API
 
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
@@ -22,6 +24,9 @@ BOT_WALLET_PUBKEY = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # From MEMORY
 
 # Meteora DLMM Program ID
 METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo")
+
+# Pyth Hermes REST API Endpoint
+PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/api/latest_price_feeds" # Example endpoint
 
 # Placeholder for Meteora IDL - in a real scenario, this would be loaded from a file or fetched
 # This IDL is a *simplified assumption* for demonstration purposes and may not precisely
@@ -449,6 +454,33 @@ class TradeExecutor:
             "total_value": total_current_value
         }
 
+    async def get_pyth_price(self, price_feed_id: str) -> Optional[Dict[str, Any]]:
+        """Fetches the latest Pyth price for a given price feed ID via Hermes REST API."""
+        print(f"Consulting the oracle for Pyth price feed {price_feed_id}...")
+        try:
+            # Pyth Hermes REST API uses a list of price_feed_ids
+            params = {"ids": price_feed_id}
+            response = requests.get(PYTH_HERMES_ENDPOINT, params=params)
+            response.raise_for_status() # Raise an exception for HTTP errors (4xx or 5xx)
+            data = response.json()
+
+            if data and data["evm"] and len(data["evm"]) > 0:
+                price_data = data["evm"][0]
+                print(f"--> Pyth Price for {price_feed_id}: {price_data['price']} +/- {price_data['conf']} (expo: {price_data['expo']})")
+                return price_data
+            else:
+                print(f"--> No Pyth price data found for {price_feed_id}.")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"--> Error fetching Pyth price via Hermes: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"--> Error decoding JSON response from Hermes: {e}")
+            return None
+        except Exception as e:
+            print(f"--> An unexpected error occurred: {e}")
+            return None
+
     def execute_trade(self, trade_details: dict):
         """
         Connects to the DEX and executes a swap.
@@ -510,23 +542,10 @@ if __name__ == "__main__":
                 print(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
                 print(f"            Total Current Value: {pnl_results['total_value']:.4f}")
 
-            # Example: Close the first found LP position (requires TEST_PRIVATE_KEY)
+            # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
             if executor.wallet:
                 first_position_pubkey = lp_positions[0]['pubkey']
                 first_position_pool_pubkey = lp_positions[0]['pool']
-                print(f"\nAttempting to close LP position {first_position_pubkey}...")
-                tx_close = await executor.close_meteora_lp_position(
-                    position_pubkey=first_position_pubkey,
-                    pool_pubkey=first_position_pool_pubkey,
-                    owner=executor.wallet
-                )
-                if tx_close:
-                    print(f"Close transaction sent: {tx_close}")
-            else:
-                print("Cannot close LP position: Wallet not loaded.")
-
-            # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
-            if executor.wallet:
                 print(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
                 # Placeholder token mints for demonstration. In a real scenario, these would
                 # be derived from the pool_pubkey and its associated token mints.
@@ -595,5 +614,19 @@ if __name__ == "__main__":
                 print(f"Open transaction sent: {tx_open}")
         else:
             print("Cannot open LP position: Wallet not loaded.")
+        
+        # Pyth Price Feed Integration Demonstration
+        print("\n--- Pyth Price Feed Integration ---")
+        SOL_USD_PRICE_FEED_ID = "EdVCmQyygBCjS6nMj2xT9EtsNq5V3d3g1i9j1v3BvA6Z" # Example Pyth SOL/USD price feed ID
+        eth_usd_price_feed_id = "JBuCRv6r2eH2gC257y3R8XoJvK9vWpE2bS4M1f2B2Q3B" # Example Pyth ETH/USD price feed ID
+
+        sol_price_data = await executor.get_pyth_price(SOL_USD_PRICE_FEED_ID)
+        if sol_price_data:
+            print(f"SOL/USD Price: {sol_price_data['price']}")
+        
+        eth_price_data = await executor.get_pyth_price(eth_usd_price_feed_id)
+        if eth_price_data:
+            print(f"ETH/USD Price: {eth_price_data['price']}")
+
 
     asyncio.run(main_async())
