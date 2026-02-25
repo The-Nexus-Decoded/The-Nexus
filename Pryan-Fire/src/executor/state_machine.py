@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from .kill_switch import KILL_SWITCH
 from .guards import TradingGuards
 from ..services.jupiter_service import JupiterService
+from .transaction_core import TransactionCore
 
 class ExecutorState(Enum):
     IDLE = auto()
@@ -16,11 +17,13 @@ class ExecutorState(Enum):
     HALTED = auto()     # Emergency stop state
 
 class TradeStateMachine:
-    def __init__(self):
+    def __init__(self, rpc_url: str = "https://api.mainnet-beta.solana.com"):
         self.state = ExecutorState.IDLE
         self.current_trade: Optional[Dict[str, Any]] = None
         self.is_authorized = False # Final Law 3 flag
         self.jupiter = JupiterService()
+        self.tx_core = TransactionCore(rpc_url)
+        self.user_pubkey = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # Default bot wallet
 
     def transition(self, to_state: ExecutorState):
         if KILL_SWITCH.is_halted():
@@ -59,16 +62,14 @@ class TradeStateMachine:
             return
 
         # Estimate USD Value for Guard (assuming USDC/USDT output or stable value)
-        # For simulation, we'll extract the outAmount and use a basic Decimal conversion
-        # TODO: Refine USD valuation with a price feed or pool oracle
         usd_value = Decimal(quote.get("outAmount", "0")) / Decimal("1e6") # Assume 6 decimals for USDC/USDT
         
         self.current_trade["quote"] = quote
         self.current_trade["usd_value"] = usd_value
         
-        self.verify_trade()
+        await self.verify_trade()
 
-    def verify_trade(self):
+    async def verify_trade(self):
         self.transition(ExecutorState.VERIFYING)
         usd_value = self.current_trade["usd_value"]
 
@@ -80,33 +81,61 @@ class TradeStateMachine:
             return
 
         # If within threshold, proceed to execution (simulation)
-        self.execute_trade()
+        await self.execute_trade()
 
     def request_manual_approval(self, amount: Decimal):
         """Prepares the manual approval alert."""
         from .notifications import TradeNotifier
         msg = TradeNotifier.format_auth_request(self.current_trade)
         print(f"[NOTIFY] {msg}")
-        # The agent will capture this [NOTIFY] tag in logs and use the 'message' tool.
 
-    def execute_trade(self):
+    async def execute_trade(self):
         self.transition(ExecutorState.EXECUTING)
         try:
-            # Check Law 3: Live Authorization
+            # 1. Fetch the swap transaction
+            print("[TX] Requesting swap transaction from Jupiter...")
+            swap_b64 = await self.jupiter.get_swap_transaction(
+                self.current_trade["quote"], 
+                self.user_pubkey
+            )
+            
+            if not swap_b64:
+                print("[TX ERROR] Failed to fetch swap transaction.")
+                self.transition(ExecutorState.IDLE)
+                return
+
+            # 2. Deserialize
+            tx = await self.tx_core.build_from_jupiter(swap_b64)
+            if not tx:
+                self.transition(ExecutorState.IDLE)
+                return
+
+            # 3. Simulate (The Ultimate Truth)
+            sim_result = await self.tx_core.simulate(tx)
+            
+            # Final Law 3: Live Authorization check
             TradingGuards.verify_live_execution_status(self.is_authorized)
             
-            print("[LIVE] Executing transaction on-chain...")
-            # actual logic here
+            if sim_result["success"] and self.is_authorized:
+                print("[LIVE] Simulation succeeded and authorized. Manual signing required.")
+                # await self.tx_core.sign_and_broadcast(...)
+            else:
+                if not sim_result["success"]:
+                    print(f"[SIMULATION FAILED] Result: {sim_result.get('error')}")
+                print("[SIMULATION] Transaction simulation phase complete.")
+                
             self.transition(ExecutorState.IDLE)
         except PermissionError as e:
             print(f"[SIMULATION] {e}")
-            print("[SIMULATION] Transaction logged but not broadcast.")
+            self.transition(ExecutorState.IDLE)
+        except Exception as e:
+            print(f"[ERROR] Execution failed: {e}")
             self.transition(ExecutorState.IDLE)
 
-    def authorize_trade(self):
+    async def authorize_trade(self):
         """Manual override from Lord Xar."""
         if self.state == ExecutorState.AWAITING_AUTH:
             print("[AUTH] Manual authorization received.")
             self.is_authorized = True
-            self.execute_trade()
+            await self.execute_trade()
             self.is_authorized = False # Reset for safety

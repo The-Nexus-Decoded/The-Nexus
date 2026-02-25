@@ -11,8 +11,8 @@ class JupiterService:
     """
     # Try public failover first, fallback to standard
     ENDPOINTS = [
+        "https://api.jup.ag/swap/v1",
         "https://quote-api.jup.ag/v6",
-        "https://api.jup.ag/swap/v6"
     ]
 
     def __init__(self, timeout: int = 10, api_key: Optional[str] = None):
@@ -58,11 +58,39 @@ class JupiterService:
             
         return None
 
-    def calculate_usd_value(self, quote: Dict[str, Any], price_of_output: Decimal) -> Decimal:
+    async def get_swap_transaction(self, quote: Dict[str, Any], user_public_key: str) -> Optional[str]:
         """
-        Helper to estimate trade value in USD for the Guard threshold check.
+        Retrieves the base64 encoded swap transaction from Jupiter.
         """
-        out_amount = Decimal(quote.get("outAmount", "0"))
-        # This assumes we have an external price feed or are using a stablecoin pair
-        # For MVP, we'll likely route to/from USDC to get clean USD valuations.
-        return out_amount * price_of_output
+        payload = {
+            "quoteResponse": quote,
+            "userPublicKey": user_public_key,
+            "wrapAndUnwrapSol": True,
+            "useSharedAccounts": True,
+            "prioritizationFeeLamports": "auto"
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "OpenClaw-Haplo/1.0"
+        }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+            headers["x-api-key"] = self.api_key
+
+        async with aiohttp.ClientSession(timeout=self.timeout) as session:
+            for endpoint in self.ENDPOINTS:
+                url = f"{endpoint}/swap"
+                try:
+                    print(f"[*] Fetching swap transaction from: {url}")
+                    async with session.post(url, json=payload, headers=headers) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            return data.get("swapTransaction")
+                        else:
+                            error_text = await response.text()
+                            print(f"[JUPITER ERROR] swap endpoint {url} returned {response.status}: {error_text}")
+                except Exception as e:
+                    print(f"[JUPITER EXCEPTION] {url}: {e}")
+        return None
