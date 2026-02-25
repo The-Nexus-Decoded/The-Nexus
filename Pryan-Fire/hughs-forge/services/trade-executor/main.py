@@ -13,6 +13,8 @@ from solders.system_program import ID as SYSTEM_PROGRAM_ID
 from solders.instruction import Instruction
 from solders.transaction import Transaction
 from solana.rpc.api import CommitmentConfig
+from spl.token.constants import TOKEN_PROGRAM_ID
+from spl.associated_token_account.program import ASSOCIATED_TOKEN_PROGRAM_ID
 
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
@@ -51,6 +53,39 @@ METEORA_IDL_DICT = {
                 {"name": "pool", "isMut": False, "isSigner": False}, # Pool might be needed for closing
             ],
             "args": [],
+        },
+        {
+            "name": "claimFees",
+            "accounts": [
+                {"name": "position", "isMut": True, "isSigner": False},
+                {"name": "owner", "isMut": True, "isSigner": True},
+                {"name": "pool", "isMut": True, "isSigner": False},
+                {"name": "tokenXMint", "isMut": False, "isSigner": False},
+                {"name": "tokenYMint", "isMut": False, "isSigner": False},
+                {"name": "tokenXAccount", "isMut": True, "isSigner": False},
+                {"name": "tokenYAccount", "isMut": True, "isSigner": False},
+                {"name": "tokenProgram", "isMut": False, "isSigner": False},
+            ],
+            "args": [],
+        },
+        {
+            "name": "depositLiquidity", # Hypothetical instruction for compounding/adding liquidity
+            "accounts": [
+                {"name": "position", "isMut": True, "isSigner": False},
+                {"name": "owner", "isMut": True, "isSigner": True},
+                {"name": "pool", "isMut": True, "isSigner": False},
+                {"name": "tokenXSource", "isMut": True, "isSigner": False},
+                {"name": "tokenYSource", "isMut": True, "isSigner": False},
+                {"name": "tokenXVault", "isMut": True, "isSigner": False},
+                {"name": "tokenYVault", "isMut": True, "isSigner": False},
+                {"name": "tokenProgram", "isMut": False, "isSigner": False},
+            ],
+            "args": [
+                {"name": "amountX", "type": "u64"},
+                {"name": "amountY", "type": "u64"},
+                {"name": "lowerBinId", "type": "i64"},
+                {"name": "upperBinId", "type": "i64"},
+            ],
         },
     ],
     "accounts": [
@@ -272,6 +307,115 @@ class TradeExecutor:
             print(f"--> Error closing LP position: {e}")
             return None
 
+    async def claim_meteora_fees(
+        self, 
+        position_pubkey: Pubkey,
+        pool_pubkey: Pubkey,
+        token_x_mint: Pubkey,
+        token_y_mint: Pubkey,
+        owner: Keypair,
+    ) -> Optional[str]:
+        """Claims accumulated fees from a Meteora DLMM LP position."""
+        if not self.wallet or self.wallet.pubkey() != owner.pubkey():
+            print("❌ Cannot claim fees: Wallet private key not loaded or not matching owner.")
+            return None
+        
+        print(f"Claiming fees for LP position {position_pubkey} in Pool {pool_pubkey}...")
+        try:
+            owner_token_x_account = Pubkey.find_program_address(
+                [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_x_mint.to_bytes()],
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            )[0]
+            owner_token_y_account = Pubkey.find_program_address(
+                [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_y_mint.to_bytes()],
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            )[0]
+
+            ix = await self.meteora_dlmm_program.instruction["claimFees"].build(
+                {},
+                {
+                    "position": position_pubkey,
+                    "owner": owner.pubkey(),
+                    "pool": pool_pubkey,
+                    "tokenXMint": token_x_mint,
+                    "tokenYMint": token_y_mint,
+                    "tokenXAccount": owner_token_x_account,
+                    "tokenYAccount": owner_token_y_account,
+                    "tokenProgram": TOKEN_PROGRAM_ID,
+                },
+            )
+
+            recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
+            transaction = Transaction.populate(recent_blockhash, [ix], [owner])
+            
+            response = await self.client.send_transaction(transaction, owner)
+            tx_hash = response.value
+            print(f"--> Claimed fees. Tx Hash: {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            print(f"--> Error claiming fees: {e}")
+            return None
+
+    async def compound_meteora_fees(
+        self, 
+        position_pubkey: Pubkey,
+        pool_pubkey: Pubkey,
+        token_x_mint: Pubkey,
+        token_y_mint: Pubkey,
+        amount_x: int,
+        amount_y: int,
+        lower_bin_id: int,
+        upper_bin_id: int,
+        owner: Keypair,
+    ) -> Optional[str]:
+        """Compounds (re-invests) claimed fees back into a Meteora DLMM LP position."""
+        if not self.wallet or self.wallet.pubkey() != owner.pubkey():
+            print("❌ Cannot compound fees: Wallet private key not loaded or not matching owner.")
+            return None
+        
+        print(f"Compounding fees into LP position {position_pubkey} in Pool {pool_pubkey}...")
+        try:
+            owner_token_x_account = Pubkey.find_program_address(
+                [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_x_mint.to_bytes()],
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            )[0]
+            owner_token_y_account = Pubkey.find_program_address(
+                [owner.pubkey().to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_y_mint.to_bytes()],
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            )[0]
+
+            # This assumes a 'depositLiquidity' instruction exists for adding to an existing position.
+            # The actual Meteora instruction might be different (e.g., `addLiquidity`).
+            ix = await self.meteora_dlmm_program.instruction["depositLiquidity"].build(
+                {
+                    "amountX": amount_x,
+                    "amountY": amount_y,
+                    "lowerBinId": lower_bin_id,
+                    "upperBinId": upper_bin_id,
+                },
+                {
+                    "position": position_pubkey,
+                    "owner": owner.pubkey(),
+                    "pool": pool_pubkey,
+                    "tokenXSource": owner_token_x_account,
+                    "tokenYSource": owner_token_y_account,
+                    "tokenXVault": Pubkey.new_unique(), # Placeholder - needs actual vault
+                    "tokenYVault": Pubkey.new_unique(), # Placeholder - needs actual vault
+                    "tokenProgram": TOKEN_PROGRAM_ID,
+                },
+            )
+
+            recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
+            transaction = Transaction.populate(recent_blockhash, [ix], [owner])
+            
+            response = await self.client.send_transaction(transaction, owner)
+            tx_hash = response.value
+            print(f"--> Compounded fees. Tx Hash: {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            print(f"--> Error compounding fees: {e}")
+            return None
+
     def execute_trade(self, trade_details: dict):
         """
         Connects to the DEX and executes a swap.
@@ -339,8 +483,54 @@ if __name__ == "__main__":
             else:
                 print("Cannot close LP position: Wallet not loaded.")
 
+            # Example: Claim fees from the first LP position (requires TEST_PRIVATE_KEY)
+            if executor.wallet:
+                print(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
+                # Placeholder token mints for demonstration. In a real scenario, these would
+                # be derived from the pool_pubkey and its associated token mints.
+                DUMMY_TOKEN_X_MINT = Pubkey.new_unique()
+                DUMMY_TOKEN_Y_MINT = Pubkey.new_unique()
+
+                tx_claim = await executor.claim_meteora_fees(
+                    position_pubkey=first_position_pubkey,
+                    pool_pubkey=first_position_pool_pubkey,
+                    token_x_mint=DUMMY_TOKEN_X_MINT,
+                    token_y_mint=DUMMY_TOKEN_Y_MINT,
+                    owner=executor.wallet
+                )
+                if tx_claim:
+                    print(f"Claim fees transaction sent: {tx_claim}")
+            else:
+                print("Cannot claim fees: Wallet not loaded.")
+
+            # Example: Compound fees back into the first LP position (requires TEST_PRIVATE_KEY)
+            if executor.wallet:
+                print(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
+                # Placeholder amounts and bin IDs. These would be actual claimed fees
+                # and the current active bin range for compounding.
+                COMPOUND_AMOUNT_X = 1000
+                COMPOUND_AMOUNT_Y = 500
+                COMPOUND_LOWER_BIN = lp_positions[0]['lowerBinId']
+                COMPOUND_UPPER_BIN = lp_positions[0]['upperBinId']
+
+                tx_compound = await executor.compound_meteora_fees(
+                    position_pubkey=first_position_pubkey,
+                    pool_pubkey=first_position_pool_pubkey,
+                    token_x_mint=DUMMY_TOKEN_X_MINT,
+                    token_y_mint=DUMMY_TOKEN_Y_MINT,
+                    amount_x=COMPOUND_AMOUNT_X,
+                    amount_y=COMPOUND_AMOUNT_Y,
+                    lower_bin_id=COMPOUND_LOWER_BIN,
+                    upper_bin_id=COMPOUND_UPPER_BIN,
+                    owner=executor.wallet
+                )
+                if tx_compound:
+                    print(f"Compound fees transaction sent: {tx_compound}")
+            else:
+                print("Cannot compound fees: Wallet not loaded.")
+
         else:
-            print("--> No LP positions found for the bot wallet. Cannot demonstrate closing.")
+            print("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
 
         # Example: Open a new LP position (requires TEST_PRIVATE_KEY)
         if executor.wallet:
