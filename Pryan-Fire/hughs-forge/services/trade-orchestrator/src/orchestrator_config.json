@@ -1,0 +1,6 @@
+{
+  "reinvest_enabled": true,
+  "strategy_type": "SPOT_WIDE",
+  "swap_on_entry": true,
+  "risk_gate_timeout": 300
+}
