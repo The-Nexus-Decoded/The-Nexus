@@ -93,11 +93,15 @@ class TradeOrchestrator:
             return False
 
     async def _invoke_ts_armory(self, intent: Dict[str, Any]) -> bool:
-        self.logger.info(f"Triggering TS Armory for intent: {intent.get('action')}")
+        self.logger.info(f"Triggering TS Armory with Strategy: {intent.get('strategy')} | SwapOnEntry: {intent.get('swap_on_entry')}")
+        # Command bridge would pass intent keys as CLI args or environment to the TS process
         return True
 
     async def _invoke_ts_compounding(self, trade_id: str) -> bool:
-        self.logger.info(f"Triggering TS Compounding Engine for strike: {trade_id}")
+        strategy = self.config.get("strategy_type", "SPOT_WIDE")
+        padding = self.config.get("bin_step_padding", 5)
+        self.logger.info(f"Triggering TS Compounding with Strategy: {strategy} | Padding: {padding}")
+        # Command bridge passes these configuration runes to CompoundingEngine.ts
         return True
 
 async def main():
