@@ -26,13 +26,14 @@ export class CompoundingEngine {
             return;
         }
 
-        // 2. Reinvest into Active Strategy
+        // 2. Load Pool State for Reinvestment
         const poolPublicKey = new PublicKey(poolAddress);
         const dlmmPool = await DLMM.create(this.connection, poolPublicKey);
         
         console.log("[Compounding] Fees harvested. Re-injecting loot into active bin strategy...");
         
         // Spot Strategy centered on active bin (Requirement: custom reinvest loop)
+        // We use initializePositionAndAddLiquidityByStrategy to ensure the compound creates/updates the yield position.
         const reinvestTx = await dlmmPool.initializePositionAndAddLiquidityByStrategy({
             positionPubKey: Keypair.generate().publicKey,
             user: wallet.publicKey,
