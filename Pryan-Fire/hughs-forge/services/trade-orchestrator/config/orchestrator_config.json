@@ -1,0 +1,9 @@
+{
+  "strategy_type": "SPOT_WIDE",
+  "reinvest_enabled": true,
+  "risk_gate_active": true,
+  "bin_step_padding": 2,
+  "slippage_bps": 50,
+  "discord_alerts_enabled": true,
+  "fail_closed_timeout_seconds": 300
+}

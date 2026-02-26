@@ -9,9 +9,14 @@ from RiskManager import RiskManager
 # Inscribed by Haplo (ola-claw-dev) for Lord Xar.
 
 class TradeOrchestrator:
-    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger):
+    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger, config: Dict[str, Any] = None):
         self.risk_manager = risk_manager
         self.audit_logger = audit_logger
+        self.config = config or {
+            "reinvest_enabled": True,
+            "strategy_type": "SPOT_WIDE",
+            "risk_gate_active": True
+        }
         self.logger = logging.getLogger("Orchestrator")
 
     async def orchestrate_trade(self, trade_intent: Dict[str, Any]):
@@ -27,11 +32,13 @@ class TradeOrchestrator:
         })
 
         # 2. Gate via The Warden (Risk Manager)
-        approved = await self.risk_manager.check_trade(trade_id, trade_intent)
-        
-        if not approved:
-            self.audit_logger.log_event("TRADE_ABORTED", {"trade_id": trade_id, "reason": "Risk Gate / Timeout"})
-            return False
+        if self.config.get("risk_gate_active", True):
+            approved = await self.risk_manager.check_trade(trade_id, trade_intent)
+            if not approved:
+                self.audit_logger.log_event("TRADE_ABORTED", {"trade_id": trade_id, "reason": "Risk Gate / Timeout"})
+                return False
+        else:
+            self.logger.warning(f"Trade {trade_id} bypassing Risk Gate (FORCED_MODE)")
 
         # 3. Trigger Execution Armory (Meteora TS)
         self.audit_logger.log_event("TRADE_EXECUTING", {"trade_id": trade_id})
@@ -41,8 +48,8 @@ class TradeOrchestrator:
             success = await self._invoke_ts_armory(trade_intent)
             
             if success:
-                # 4. MANDATORY REINVESTMENT PULSE (Requirement #2)
-                if trade_intent.get("action") == "CLAIM_FEES":
+                # 4. REINVESTMENT PULSE
+                if trade_intent.get("action") == "CLAIM_FEES" and self.config.get("reinvest_enabled", True):
                     self.audit_logger.log_event("TREASURY_REINVESTING", {"trade_id": trade_id})
                     
                     # Logic call to CompoundingEngine.ts strike
