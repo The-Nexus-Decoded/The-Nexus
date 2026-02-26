@@ -1,6 +1,8 @@
 import asyncio
 import uuid
 import logging
+import json
+import os
 from typing import Dict, Any
 from AuditLogger import AuditLogger
 from RiskManager import RiskManager
@@ -9,15 +11,29 @@ from RiskManager import RiskManager
 # Inscribed by Haplo (ola-claw-dev) for Lord Xar.
 
 class TradeOrchestrator:
-    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger, config: Dict[str, Any] = None):
+    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger, config_path: str = None):
         self.risk_manager = risk_manager
         self.audit_logger = audit_logger
-        self.config = config or {
+        self.config = self._load_config(config_path)
+        self.logger = logging.getLogger("Orchestrator")
+
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        default_config = {
             "reinvest_enabled": True,
             "strategy_type": "SPOT_WIDE",
             "risk_gate_active": True
         }
-        self.logger = logging.getLogger("Orchestrator")
+        
+        target_path = config_path or os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
+        
+        try:
+            if os.path.exists(target_path):
+                with open(target_path, "r") as f:
+                    return {**default_config, **json.load(f)}
+        except Exception as e:
+            logging.error(f"Failed to load config from {target_path}: {e}")
+            
+        return default_config
 
     async def orchestrate_trade(self, trade_intent: Dict[str, Any]):
         """
