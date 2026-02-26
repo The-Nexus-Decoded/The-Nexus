@@ -36,6 +36,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Telemetry Logger for Phase 4
+telemetry_logger = logging.getLogger("telemetry")
+telemetry_logger.setLevel(logging.INFO)
+telemetry_handler = logging.FileHandler("trade_telemetry.jsonl")
+telemetry_handler.setFormatter(logging.Formatter('%(message)s'))
+# Prevent telemetry from propagating up and flooding the root logger
+telemetry_logger.propagate = False
+telemetry_logger.addHandler(telemetry_handler)
+
+def log_telemetry(event_type: str, data: dict):
+    entry = {
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "event_type": event_type,
+        "data": data
+    }
+    telemetry_logger.info(json.dumps(entry))
+
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
 TRADING_WALLET_PUBLIC_KEY = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # From MEMORY.md (should be loaded securely in production)
@@ -196,9 +213,11 @@ class RiskManager:
         """Checks if a proposed trade adheres to risk parameters."""
         if self.circuit_breaker_active:
             logger.warning("Trade rejected: Circuit breaker is active.")
+            log_telemetry("RISK_BLOCK", {"reason": "CIRCUIT_BREAKER_ACTIVE", "proposed_amount": proposed_trade_amount})
             return False
         if proposed_trade_amount > self.max_trade_size:
             logger.warning(f"Trade rejected: Proposed amount ({proposed_trade_amount}) exceeds max trade size ({self.max_trade_size}).")
+            log_telemetry("RISK_BLOCK", {"reason": "MAX_TRADE_SIZE_EXCEEDED", "proposed_amount": proposed_trade_amount, "max_size": self.max_trade_size})
             return False
         logger.info(f"Trade approved by Risk Manager for amount: {proposed_trade_amount}")
         return True
@@ -252,7 +271,8 @@ class RebalanceStrategy:
         return {"lower": new_lower, "upper": new_upper}
 
 class TradeExecutor:
-    def __init__(self, rpc_endpoint: str, private_key: str = None):
+    def __init__(self, rpc_endpoint: str, private_key: str = None, paper_trading_mode: bool = True):
+        self.paper_trading_mode = paper_trading_mode
         self.wallet: Optional[Keypair] = Keypair.from_base58_string(private_key) if private_key else None
         self.client = AsyncClient(rpc_endpoint)
         self.sync_client = Client(rpc_endpoint)
@@ -302,6 +322,12 @@ class TradeExecutor:
             "DUST_RESIDUE_ESTIMATE": f"{est_dust_loss:.6f} units",
             "RISK_MANAGER_STATUS": "APPROVED" if is_profitable else "VETOED"
         }
+        log_telemetry("SIMULATED_REBALANCE", {
+            "cost": total_friction,
+            "projected_fee_increase": fee_capture_increase,
+            "dust_estimate": est_dust_loss,
+            "status": "APPROVED" if is_profitable else "VETOED"
+        })
         
         logger.info(f"    ESTIMATED_REBALANCE_COST: {report['ESTIMATED_REBALANCE_COST']}")
         logger.info(f"    PROJECTED_FEE_CAPTURE_INCREASE: {report['PROJECTED_FEE_CAPTURE_INCREASE']}")
@@ -547,9 +573,14 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [payer, new_position_keypair])
             
-            response = await self.client.send_transaction(transaction, payer, new_position_keypair)
-            tx_hash = response.value
-            logger.info(f"--> Opened LP Position. Tx Hash: {tx_hash}")
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_open_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Opened LP Position. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
+            else:
+                response = await self.client.send_transaction(transaction, payer, new_position_keypair)
+                tx_hash = response.value
+                logger.info(f"--> Opened LP Position. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error opening LP position: {e}")
@@ -580,9 +611,14 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [owner])
             
-            response = await self.client.send_transaction(transaction, owner)
-            tx_hash = response.value
-            logger.info(f"--> Closed LP Position. Tx Hash: {tx_hash}")
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_close_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Closed LP Position. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            else:
+                response = await self.client.send_transaction(transaction, owner)
+                tx_hash = response.value
+                logger.info(f"--> Closed LP Position. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error closing LP position: {e}")
@@ -629,9 +665,14 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [owner])
             
-            response = await self.client.send_transaction(transaction, owner)
-            tx_hash = response.value
-            logger.info(f"--> Claimed fees. Tx Hash: {tx_hash}")
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_claim_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Claimed fees. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "claim_meteora_fees", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            else:
+                response = await self.client.send_transaction(transaction, owner)
+                tx_hash = response.value
+                logger.info(f"--> Claimed fees. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error claiming fees: {e}")
@@ -687,9 +728,14 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [owner])
             
-            response = await self.client.send_transaction(transaction, owner)
-            tx_hash = response.value
-            logger.info(f"--> Compounded fees. Tx Hash: {tx_hash}")
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_compound_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Compounded fees. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "compound_meteora_fees", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            else:
+                response = await self.client.send_transaction(transaction, owner)
+                tx_hash = response.value
+                logger.info(f"--> Compounded fees. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error compounding fees: {e}")
@@ -743,9 +789,14 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [owner])
             
-            response = await self.client.send_transaction(transaction, owner)
-            tx_hash = response.value
-            logger.info(f"--> Removed liquidity. Tx Hash: {tx_hash}")
+            if self.paper_trading_mode:
+                tx_hash = f"sim_tx_remove_{int(datetime.datetime.now().timestamp())}"
+                logger.info(f"--> [PAPER TRADING] Simulated Removed liquidity. Tx Hash: {tx_hash}")
+                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "remove_meteora_liquidity", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            else:
+                response = await self.client.send_transaction(transaction, owner)
+                tx_hash = response.value
+                logger.info(f"--> Removed liquidity. Tx Hash: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error removing liquidity: {e}")
@@ -808,6 +859,7 @@ class TradeExecutor:
         Connects to the DEX and executes a swap.
         """
         logger.info(f"Trade attempt initiated: {trade_details}")
+        log_telemetry("TRADE_SIGNAL_RECEIVED", trade_details)
         proposed_amount = trade_details.get("amount", 0.0)
         if not self.risk_manager.check_trade(proposed_amount):
             logger.warning(f"Trade {trade_details} rejected by Risk Manager.")
@@ -818,8 +870,16 @@ class TradeExecutor:
             return {"status": "error", "message": "Wallet not loaded"}
         
         logger.info(f"Executing trade: {trade_details}")
-        trade_status = {"status": "pending", "tx_hash": None}
-        logger.info(f"Trade execution logic is not yet implemented. Status: {trade_status}")
+        
+        if self.paper_trading_mode:
+            sim_tx_hash = f"sim_tx_{int(datetime.datetime.now().timestamp())}"
+            logger.info(f"--> [PAPER TRADING] Trade simulated. Tx Hash: {sim_tx_hash}")
+            log_telemetry("PAPER_TRADE_EXECUTED", {"action": "execute_trade", "tx_hash": sim_tx_hash, "details": trade_details})
+            trade_status = {"status": "success", "tx_hash": sim_tx_hash, "paper_trade": True}
+        else:
+            trade_status = {"status": "pending", "tx_hash": None}
+            logger.info(f"Trade execution logic is not yet implemented for live execution. Status: {trade_status}")
+        
         logger.info(f"Trade outcome: {trade_status}")
 
         return trade_status
