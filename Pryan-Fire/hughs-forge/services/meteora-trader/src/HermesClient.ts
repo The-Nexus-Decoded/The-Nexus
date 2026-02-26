@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 /**
- * HermesClient: Real-time Pyth price veil piercing.
+ * HermesClient: Pyth Network real-time price veil piercing.
+ * Required for P&L tracking (Fees - IL - Gas).
  */
 export class HermesClient {
     private hermesUrl: string;
@@ -11,19 +12,21 @@ export class HermesClient {
     }
 
     /**
-     * Fetches current price grain for P&L tracking (fees earned minus IL/gas).
+     * Pierces the veil to get actual price grain.
+     * Formula: price * 10^expo
      */
-    async getLatestPrice(priceId: string) {
+    async getPrice(priceId: string): Promise<number | null> {
         try {
-            console.log(`[Hermes] Piercing the veil for ID: ${priceId}...`);
+            console.log(`[Hermes] Requesting price for ${priceId}...`);
             const response = await axios.get(`${this.hermesUrl}/v2/latest_price_feeds?ids[]=${priceId}`);
-            const priceData = response.data[0].price;
+            const feed = response.data[0];
+            if (!feed) return null;
             
-            // Formula: price * 10^expo
-            const actualPrice = parseFloat(priceData.price) * Math.pow(10, priceData.expo);
-            return actualPrice;
+            const price = parseFloat(feed.price.price);
+            const expo = feed.price.expo;
+            return price * Math.pow(10, expo);
         } catch (error) {
-            console.error(`[Hermes] Could not perceive price: ${error}`);
+            console.error(`[Hermes] Failed to perceive price: ${error}`);
             return null;
         }
     }
