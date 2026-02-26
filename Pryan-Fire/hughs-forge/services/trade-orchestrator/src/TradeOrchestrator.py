@@ -95,17 +95,25 @@ class TradeOrchestrator:
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    
-    # Initialize Core Components
+
+    # --- ZIFNAB'S RUNE OF BINDING ---
+    config = {}
+    config_path = "/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src/orchestrator_config.json"
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        logging.info(f"Successfully loaded configuration from {config_path}")
+    except FileNotFoundError:
+        logging.warning(f"Configuration file not found at {config_path}. Using internal defaults.")
+    except Exception as e:
+        logging.error(f"Error loading configuration: {e}")
+
+    # Initialize Core Components with bound config
     audit_logger = AuditLogger()
     risk_manager = RiskManager()
+    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config_path=config_path if os.path.exists(config_path) else None)
     
-    # Load Configuration from local stone
-    config_path = os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
-    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config_path=config_path)
-    
-    orchestrator.logger.info(f"Orchestrator initialized with config from: {config_path}")
-    orchestrator.logger.info(f"Current State - Reinvest: {orchestrator.config.get('reinvest_enabled')}")
+    orchestrator.logger.info(f"Orchestrator initialized. Reinvest: {orchestrator.config.get('reinvest_enabled')}")
 
     while True:
         await asyncio.sleep(3600)
