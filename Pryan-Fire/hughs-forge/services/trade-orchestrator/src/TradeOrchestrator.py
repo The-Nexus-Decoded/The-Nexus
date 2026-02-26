@@ -95,6 +95,18 @@ class TradeOrchestrator:
 
 async def main():
     logging.basicConfig(level=logging.INFO)
+    
+    # Initialize Core Components
+    audit_logger = AuditLogger()
+    risk_manager = RiskManager()
+    
+    # Load Configuration from local stone
+    config_path = os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
+    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config_path=config_path)
+    
+    orchestrator.logger.info(f"Orchestrator initialized with config from: {config_path}")
+    orchestrator.logger.info(f"Current State - Reinvest: {orchestrator.config.get('reinvest_enabled')}")
+
     while True:
         await asyncio.sleep(3600)
 
