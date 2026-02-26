@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import discord
 from discord.ext import commands
 
@@ -14,11 +14,38 @@ logger = logging.getLogger("Warden")
 class RiskManager:
     def __init__(self, discord_token: str, channel_id: int):
         self.token = discord_token
-        self.channel_id = channel_id
+        self.channel_id = int(channel_id)
         self.bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
         self.lock = asyncio.Lock()
         self.pending_trades: Dict[str, asyncio.Event] = {}
         self.trade_approvals: Dict[str, bool] = {}
+
+    def _format_approval_message(self, trade_id: str, details: Dict[str, Any]) -> str:
+        """
+        Forges a high-fidelity Discord message for Lord Xar.
+        """
+        action = details.get('action', 'UNKNOWN_STRIKE')
+        pool = details.get('pool', 'N/A')
+        amount = details.get('amount', '0.0')
+        token = details.get('token', 'SOL')
+        est_yield = details.get('yield', 'N/A')
+        slippage = details.get('slippage', '0.5%')
+        
+        emoji = "🔥" if "CLAIM" in action else "🗡️"
+        
+        return (
+            f"🛡️ **PATRYN STRIKE AUTHORIZATION** 🛡️\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"**ID:** `{trade_id}`\n"
+            f"**Action:** {emoji} `{action}`\n"
+            f"**Target Pool:** `{pool}`\n"
+            f"**Size:** `{amount} {token}`\n"
+            f"**Max Slippage:** `{slippage}`\n"
+            f"**Est. Fees/Yield:** `{est_yield}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"React with ✅ to **AUTHORIZE** strike.\n"
+            f"React with ❌ to **ABORT**."
+        )
 
     async def check_trade(self, trade_id: str, trade_details: Dict[str, Any]) -> bool:
         """
@@ -27,57 +54,49 @@ class RiskManager:
         async with self.lock:
             logger.info(f"Checking trade: {trade_id}")
             
-            # Post to Discord
             channel = self.bot.get_channel(self.channel_id)
             if not channel:
-                logger.error("Trading channel not found!")
+                logger.error(f"Trading channel {self.channel_id} not found!")
                 return False
 
-            message_text = (
-                f"🛡️ **TRADE APPROVAL REQUIRED** 🛡️\n"
-                f"**ID:** `{trade_id}`\n"
-                f"**Action:** {trade_details.get('action')}\n"
-                f"**Pool:** `{trade_details.get('pool')}`\n"
-                f"**Size:** {trade_details.get('amount')} SOL\n\n"
-                f"React with ✅ to APPROVE or ❌ to REJECT."
-            )
+            message_text = self._format_approval_message(trade_id, trade_details)
             
             message = await channel.send(message_text)
             await message.add_reaction("✅")
             await message.add_reaction("❌")
 
-            # Setup wait state
             event = asyncio.Event()
             self.pending_trades[trade_id] = event
             
             try:
-                # Wait for interaction (Timeout after 5 mins)
+                # Wait for interaction (Timeout after 5 mins - fail CLOSED)
                 await asyncio.wait_for(event.wait(), timeout=300.0)
                 return self.trade_approvals.get(trade_id, False)
             except asyncio.TimeoutError:
-                logger.warning(f"Trade {trade_id} timed out.")
+                logger.warning(f"Trade {trade_id} timed out. ABORTING strike.")
+                await channel.send(f"⚠️ **ABORTED**: Trade `{trade_id}` timed out (5m).")
                 return False
             finally:
                 self.pending_trades.pop(trade_id, None)
+                self.trade_approvals.pop(trade_id, None)
 
     async def on_reaction(self, reaction: discord.Reaction, user: discord.User):
-        """
-        Handles the reaction-based approval logic.
-        """
-        if user.bot:
-            return
+        if user.bot: return
 
-        # Simple ID lookup via message content for MVP
-        if "TRADE APPROVAL REQUIRED" in reaction.message.content:
-            trade_idLine = [l for l in reaction.message.content.split('\n') if "**ID:**" in l]
-            if not trade_idLine: return
-            
-            trade_id = trade_idLine[0].split('`')[1]
+        if "PATRYN STRIKE AUTHORIZATION" in reaction.message.content:
+            # Extract trade_id from the formatted block
+            content = reaction.message.content
+            try:
+                trade_id = content.split("**ID:** `")[1].split("`")[0]
+            except IndexError:
+                return
             
             if trade_id in self.pending_trades:
                 if str(reaction.emoji) == "✅":
                     self.trade_approvals[trade_id] = True
                     self.pending_trades[trade_id].set()
+                    await reaction.message.channel.send(f"⚔️ Strike Authorized: `{trade_id}`")
                 elif str(reaction.emoji) == "❌":
                     self.trade_approvals[trade_id] = False
                     self.pending_trades[trade_id].set()
+                    await reaction.message.channel.send(f"🛡️ Strike Aborted: `{trade_id}`")
