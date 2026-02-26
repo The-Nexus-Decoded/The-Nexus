@@ -44,7 +44,8 @@ class TradeOrchestrator:
         # 1. Inscribe Intent
         self.audit_logger.log_event("TRADE_INTENT", {
             "trade_id": trade_id,
-            "details": trade_intent
+            "details": trade_intent,
+            "strategy": self.config.get("strategy_type")
         })
 
         # 2. Gate via The Warden (Risk Manager)
@@ -53,15 +54,21 @@ class TradeOrchestrator:
             if not approved:
                 self.audit_logger.log_event("TRADE_ABORTED", {"trade_id": trade_id, "reason": "Risk Gate / Timeout"})
                 return False
-        else:
-            self.logger.warning(f"Trade {trade_id} bypassing Risk Gate (FORCED_MODE)")
-
+        
         # 3. Trigger Execution Armory (Meteora TS)
-        self.audit_logger.log_event("TRADE_EXECUTING", {"trade_id": trade_id})
+        # Apply Sterol Toggles to the execution intent
+        execution_intent = {
+            **trade_intent,
+            "swap_on_entry": self.config.get("swap_on_entry", True),
+            "strategy": self.config.get("strategy_type", "SPOT_WIDE"),
+            "padding": self.config.get("bin_step_padding", 2)
+        }
+        
+        self.audit_logger.log_event("TRADE_EXECUTING", {"trade_id": trade_id, "mode": execution_intent["strategy"]})
         
         try:
             # Command bridge to the TypeScript Armory logic
-            success = await self._invoke_ts_armory(trade_intent)
+            success = await self._invoke_ts_armory(execution_intent)
             
             if success:
                 # 4. REINVESTMENT PULSE

@@ -1,6 +1,9 @@
 {
   "reinvest_enabled": true,
-  "strategy_type": "SPOT_WIDE",
-  "swap_on_entry": true,
-  "risk_gate_timeout": 300
+  "strategy_type": "STRATEGY_BID_ASK_WIDE",
+  "swap_on_entry": false,
+  "heart_attack_action": "IDLE",
+  "risk_gate_timeout": 300,
+  "bin_step_padding": 2,
+  "harvest_threshold": 0.01
 }
