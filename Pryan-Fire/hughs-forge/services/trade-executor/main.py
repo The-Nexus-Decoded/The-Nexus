@@ -865,7 +865,7 @@ class TradeExecutor:
             logger.warning(f"Trade {trade_details} rejected by Risk Manager.")
             return {"status": "rejected", "message": "Trade rejected by Risk Manager"}
 
-        if not self.wallet:
+        if not self.wallet and not self.paper_trading_mode:
             logger.error("❌ Cannot execute trade: Wallet private key not loaded.")
             return {"status": "error", "message": "Wallet not loaded"}
         
