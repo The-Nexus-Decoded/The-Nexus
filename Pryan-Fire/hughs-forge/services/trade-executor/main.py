@@ -4,7 +4,8 @@ from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 from solana.rpc.async_api import AsyncClient
 from solana.rpc.types import MemcmpOpts, TokenAccountOpts
-# from jupiter_solana import Jupiter, JupiterKeys, SolClient, JupReferrerAccount # Commented out Jupiter imports
+from solana.rpc.api import Client
+from jupiter_solana import Jupiter
 from typing import Optional, List, Dict, Any
 import asyncio
 from anchorpy import Program, Provider, Wallet, Idl
@@ -254,12 +255,10 @@ class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
         self.wallet: Optional[Keypair] = Keypair.from_base58_string(private_key) if private_key else None
         self.client = AsyncClient(rpc_endpoint)
-        # self.sol_client = SolClient(rpc_endpoint)
-        # self.jupiter_client = Jupiter(
-        #     self.sol_client,
-        #     jupiter_keys=JupiterKeys(),
-        #     referrer=JupReferrerAccount()
-        # )
+        self.sync_client = Client(rpc_endpoint)
+        self.jupiter_client = Jupiter(self.sync_client)
+        if self.wallet:
+            self.jupiter_client.keypair = self.wallet
 
         self.provider = Provider(self.client, Wallet(self.wallet) if self.wallet else None)
         self.meteora_dlmm_program = Program(
