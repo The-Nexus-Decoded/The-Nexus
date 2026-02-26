@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 /**
- * HermesClient: Inscribed by Haplo (ola-claw-dev) for real-time Pyth price runes.
+ * HermesClient: Real-time Pyth price runes for P&L tracking.
  */
 export class HermesClient {
     private hermesUrl: string;
@@ -10,9 +10,18 @@ export class HermesClient {
         this.hermesUrl = hermesUrl;
     }
 
-    async getPrice(priceId: string) {
-        console.log(`[Hermes] Fetching price for ${priceId}...`);
-        const response = await axios.get(`${this.hermesUrl}/v2/latest_price_feeds?ids[]=${priceId}`);
-        return response.data;
+    /**
+     * Fetches current price grain for real-time P&L minus gas logic.
+     */
+    async getLatestPrice(priceId: string) {
+        try {
+            const response = await axios.get(`${this.hermesUrl}/v2/latest_price_feeds?ids[]=${priceId}`);
+            const priceData = response.data[0].price;
+            // P&L Pulse: (Price * Expo)
+            return parseFloat(priceData.price) * Math.pow(10, priceData.expo);
+        } catch (error) {
+            console.error(`[Hermes] Error piercing the price veil: ${error}`);
+            return null;
+        }
     }
 }
