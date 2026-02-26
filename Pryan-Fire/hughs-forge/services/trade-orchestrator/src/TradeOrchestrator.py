@@ -104,18 +104,25 @@ async def main():
             config = json.load(f)
         logging.info(f"Successfully loaded configuration from {config_path}")
     except FileNotFoundError:
-        logging.warning(f"Configuration file not found at {config_path}. Using internal defaults.")
+        logging.error(f"FATAL: Configuration file not found at {config_path}")
+        return
+    except json.JSONDecodeError:
+        logging.error(f"FATAL: Could not decode JSON from {config_path}")
+        return
     except Exception as e:
         logging.error(f"Error loading configuration: {e}")
+        return
+    # --- END RUNE ---
 
     # Initialize Core Components with bound config
     audit_logger = AuditLogger()
     risk_manager = RiskManager()
-    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config_path=config_path if os.path.exists(config_path) else None)
+    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config=config)
     
-    orchestrator.logger.info(f"Orchestrator initialized. Reinvest: {orchestrator.config.get('reinvest_enabled')}")
+    orchestrator.logger.info("Orchestrator initialized and bound to stone law.")
 
     while True:
+        # Your main loop logic here...
         await asyncio.sleep(3600)
 
 if __name__ == "__main__":
