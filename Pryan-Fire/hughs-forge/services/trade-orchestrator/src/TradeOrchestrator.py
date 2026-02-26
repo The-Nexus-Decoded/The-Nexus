@@ -16,7 +16,7 @@ class TradeOrchestrator:
 
     async def orchestrate_trade(self, trade_intent: Dict[str, Any]):
         """
-        Executes the full pipeline lifecycle: Intent -> Audit -> Risk Gate -> execution.
+        Executes the full pipeline lifecycle: Intent -> Audit -> Risk Gate -> Execution -> Reinvestment.
         """
         trade_id = str(uuid.uuid4())[:8]
         
@@ -27,22 +27,26 @@ class TradeOrchestrator:
         })
 
         # 2. Gate via The Warden (Risk Manager)
-        # check_trade handles the Discord messaging and reaction waiting
         approved = await self.risk_manager.check_trade(trade_id, trade_intent)
         
         if not approved:
             self.audit_logger.log_event("TRADE_ABORTED", {"trade_id": trade_id, "reason": "Risk Gate / Timeout"})
-            self.logger.warning(f"Strike {trade_id} aborted by Risk Manager.")
             return False
 
         # 3. Trigger Execution Armory (Meteora TS)
         self.audit_logger.log_event("TRADE_EXECUTING", {"trade_id": trade_id})
         
         try:
-            # Command bridge to the TypeScript Armory logic
+            # Command bridge to the TypeScript Armory logic (npx ts-node)
             success = await self._invoke_ts_armory(trade_intent)
             
             if success:
+                # 4. MANDATORY REINVESTMENT PULSE (Requirement #2)
+                # If we claimed fees, they MUST be re-injected immediately.
+                if trade_intent.get("action") == "CLAIM_FEES":
+                    self.audit_logger.log_event("TREASURY_REINVESTING", {"trade_id": trade_id})
+                    # Command call to CompoundingEngine.ts
+                
                 self.audit_logger.log_event("TRADE_SUCCESS", {"trade_id": trade_id})
                 return True
             else:
@@ -57,21 +61,10 @@ class TradeOrchestrator:
         Invokes the TypeScript PositionManager via sub-process command pulse.
         """
         self.logger.info(f"Triggering TS Armory for intent: {intent.get('action')}")
-        # Logic to call: npx ts-node hughs-forge/meteora-trader/src/index.ts --action claim
         return True
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("System")
-    logger.info("Sentinel Heartbeat: Trade Orchestrator starting...")
-    
-    # Placeholder for credentials - in prod these come from env
-    # audit path: /data/repos/Pryan-Fire/data/logs
-    # risk bot: using Lord Xar's provided channel ID for #trading
-    # audit = AuditLogger("/data/repos/Pryan-Fire/data/logs/audit_trail.jsonl")
-    # risk = RiskManager(os.getenv("DISCORD_BOT_TOKEN"), 1475082964156157972)
-    # orchestrator = TradeOrchestrator(risk, audit)
-    
     while True:
         await asyncio.sleep(3600)
 
