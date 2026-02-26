@@ -18,11 +18,6 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Tailscale
-      uses: tailscale/github-action@v2
-      with:
-        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-
     - name: Deploy Core Engine via SSH
       uses: appleboy/ssh-action@master
       with:
@@ -32,25 +27,22 @@ jobs:
         script: |
           # 1. Prepare Target Environment
           mkdir -p /data/repos/Pryan-Fire
-          mkdir -p /data/repos/Pryan-Fire/data  # For LedgerDB
+          mkdir -p /data/repos/Pryan-Fire/data
           
-          # 2. Sync Codebase (Clean deploy of src and root scripts)
-          # Now that we are on Tailscale, direct SSH is possible
+          # 2. Sync Codebase
           cd /data/repos/Pryan-Fire
           git pull origin main || (git clone https://github.com/The-Nexus-Decoded/Pryan-Fire.git . && git checkout main)
           
           # 3. Process Management
-          # Re-initialize venv if missing
           if [ ! -d "venv" ]; then
             python3 -m venv venv
           fi
           
-          # Install/Update dependencies
+          # Install dependencies
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install aiohttp websockets base58 solders solana
           
           # Restart via systemd (if configured)
           systemctl --user restart patryn-trader || echo "Systemd service not found"
           
-          echo "MVP Deployment Complete. Checking heartbeats..."
-          ./venv/bin/python3 -c "import sqlite3; conn = sqlite3.connect('data/ledger.db'); print('LedgerDB: OK')"
+          echo "MVP Deployment Complete."
