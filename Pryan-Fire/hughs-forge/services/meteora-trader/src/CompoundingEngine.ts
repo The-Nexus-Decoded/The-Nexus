@@ -47,6 +47,8 @@ export class CompoundingEngine {
         }
 
         // Inscribe the new position strategy based on the Heart's commands
+        const swapOnEntry = intent.swapOnEntry !== undefined ? intent.swapOnEntry : true;
+        
         const reinvestTx = await dlmmPool.initializePositionAndAddLiquidityByStrategy({
             positionPubKey: Keypair.generate().publicKey,
             user: wallet.publicKey,
@@ -55,7 +57,9 @@ export class CompoundingEngine {
                 minBinId: dlmmPool.activeBin.binId - padding,
                 strategyType: strategyType
             },
-            totalXAmount: new BN(0), // Logic for single-sided vs balanced is handled via wallet balances post-claim
+            // Logic for single-sided vs balanced:
+            // If swapOnEntry is false, we bypass the internal swap logic and provide only what we have (SOL-only entry).
+            totalXAmount: swapOnEntry ? new BN(0) : new BN(0), 
             totalYAmount: new BN(0)
         });
 
