@@ -1,0 +1,18 @@
+[Unit]
+Description=Patryn Trade Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+User=openclaw
+WorkingDirectory=/data/repos/Pryan-Fire
+ExecStart=/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/venv/bin/python3 hughs-forge/services/trade-orchestrator/src/TradeOrchestrator.py
+Restart=always
+RestartSec=10
+
+# Audit trail location
+Environment=LOG_DIR=/data/repos/Pryan-Fire/data/logs
+Environment=PYTHONPATH=/data/repos/Pryan-Fire/hughs-forge/risk-manager/src:/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src
+
+[Install]
+WantedBy=default.target
