@@ -37,15 +37,21 @@ class TradeOrchestrator:
         self.audit_logger.log_event("TRADE_EXECUTING", {"trade_id": trade_id})
         
         try:
-            # Command bridge to the TypeScript Armory logic (npx ts-node)
+            # Command bridge to the TypeScript Armory logic
             success = await self._invoke_ts_armory(trade_intent)
             
             if success:
                 # 4. MANDATORY REINVESTMENT PULSE (Requirement #2)
-                # If we claimed fees, they MUST be re-injected immediately.
                 if trade_intent.get("action") == "CLAIM_FEES":
                     self.audit_logger.log_event("TREASURY_REINVESTING", {"trade_id": trade_id})
-                    # Command call to CompoundingEngine.ts
+                    
+                    # Logic call to CompoundingEngine.ts strike
+                    reinvest_success = await self._invoke_ts_compounding(trade_id)
+                    
+                    if reinvest_success:
+                        self.audit_logger.log_event("REINVEST_SUCCESS", {"trade_id": trade_id})
+                    else:
+                        self.audit_logger.log_event("REINVEST_FAILURE", {"trade_id": trade_id})
                 
                 self.audit_logger.log_event("TRADE_SUCCESS", {"trade_id": trade_id})
                 return True
@@ -57,10 +63,11 @@ class TradeOrchestrator:
             return False
 
     async def _invoke_ts_armory(self, intent: Dict[str, Any]) -> bool:
-        """
-        Invokes the TypeScript PositionManager via sub-process command pulse.
-        """
         self.logger.info(f"Triggering TS Armory for intent: {intent.get('action')}")
+        return True
+
+    async def _invoke_ts_compounding(self, trade_id: str) -> bool:
+        self.logger.info(f"Triggering TS Compounding Engine for strike: {trade_id}")
         return True
 
 async def main():
