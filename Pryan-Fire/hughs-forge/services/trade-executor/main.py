@@ -363,33 +363,60 @@ class TradeExecutor:
             logger.warning("⚠️ Autonomous audit halted: Force-stop lock file present.")
             return
 
-        # 0. Calibrate Volatility Scryer (Simplified for V1)
+        # 1. Calibrate Volatility Scryer (Simplified for V1)
         # In V2, this will use recent price variance. For now, we assume NORMAL.
         current_volatility = "NORMAL"
         
         logger.info(f"--- [AUTONOMOUS AUDIT: {datetime.datetime.now()} | VOL: {current_volatility}] ---")
         bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
         
-        # 1. Scry Positions
+        # 2. Scry Positions
         lp_positions = await self.get_meteora_lp_positions(bot_pubkey)
         
         if not lp_positions:
             logger.info("    -> No active positions found. All is quiet.")
             return
 
-        # 2. Process Decisions
+        # 3. Process Decisions & Rebalancing
         for pos in lp_positions:
             active_id = pos.get("activeId")
             if active_id is None: continue
             
             if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
                 new_range = self.rebalance_strategy.calculate_new_range(active_id)
-                report = await self.simulate_rebalance(pos, new_range)
                 
-                # Notification trigger
-                if report["RISK_MANAGER_STATUS"] == "APPROVED":
-                    logger.warning(f"🚨 [STRATEGY ALERT] Profitable Rebalance detected for {pos['pubkey']}!")
-                    # In Phase 5, this would trigger a message tool call to #coding
+                # Failsafe check
+                if self.risk_manager.circuit_breaker_active:
+                    logger.warning(f"Rebalance skipped for {pos['pubkey']}: Circuit breaker active.")
+                    continue
+
+                logger.warning(f"🚨 [REBALANCE TRIGGERED] Price drifted for position {pos['pubkey']}. Correcting range...")
+                send_discord_alert(f"🔄 **REBALANCE TRIGGERED**\n**Position**: `{pos['pubkey']}`\n**New Target Range**: {new_range['lower']} to {new_range['upper']}", color=16776960)
+
+                # Execute Rebalance Sequence
+                # Step A: Close Existing Position
+                close_tx = await self.close_meteora_lp_position(
+                    position_pubkey=pos['pubkey'],
+                    pool_pubkey=pos['pool'],
+                    owner=self.wallet if self.wallet else Keypair()
+                )
+
+                if close_tx:
+                    # Step B: Open New Centered Position
+                    open_tx = await self.open_meteora_lp_position(
+                        pool_pubkey=pos['pool'],
+                        lower_bin_id=new_range['lower'],
+                        upper_bin_id=new_range['upper'],
+                        liquidity=int(pos['liquidity']),
+                        payer=self.wallet if self.wallet else Keypair()
+                    )
+                    
+                    if open_tx:
+                        logger.info(f"✅ Rebalance sequence successful for {pos['pool']}")
+                    else:
+                        logger.error(f"❌ Rebalance failed at OPEN step for {pos['pool']}")
+                else:
+                    logger.error(f"❌ Rebalance failed at CLOSE step for {pos['pool']}")
 
     async def start_autonomous_loop(self, interval_seconds: int = 900):
         """Starts the persistent heartbeat of the executor."""
