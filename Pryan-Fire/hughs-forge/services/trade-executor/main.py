@@ -189,17 +189,18 @@ METEORA_IDL = Idl.from_json(json.dumps(METEORA_IDL_DICT))
 
 class RiskManager:
     """Manages trading risk, including limits, strategy scoring, and circuit breaker functionality."""
-    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0):
+    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "DEGEN"):
         self.daily_loss_limit = daily_loss_limit
         self.max_trade_size = max_trade_size
         self.current_daily_loss = 0.0
         self.circuit_breaker_active = CIRCUIT_BREAKER_ACTIVE
+        self.mode = mode # DEGEN or SAFE
         self.strategy_risk_scores = {
             "Spot": 1,    # Conservative
             "Curve": 3,   # Moderate
             "BidAsk": 5   # Aggressive
         }
-        logger.info("Risk Manager initialized.")
+        logger.info(f"Risk Manager initialized in {mode} mode.")
         logger.info(f"-> Daily Loss Limit: {self.daily_loss_limit}")
         logger.info(f"-> Max Trade Size: {self.max_trade_size}")
         logger.info(f"-> Strategy Risk Scores: {self.strategy_risk_scores}")
@@ -247,21 +248,20 @@ class RebalanceStrategy:
         self.target_width = target_width
         logger.info(f"Rebalance Strategy initialized (Buffer: {buffer_bins} bins, Target Width: {target_width} bins)")
 
-    def should_rebalance(self, current_active_id: int, lower_bin: int, upper_bin: int) -> bool:
-        """Determines if a position has drifted far enough to warrant a rebalance."""
-        dist_lower = lower_bin - current_active_id
-        dist_upper = current_active_id - upper_bin
-        max_dist = max(dist_lower, dist_upper)
+    def should_rebalance(self, current_active_id: int, lower_bin: int, upper_bin: int) -> str:
+        """
+        Determines the rebalance action based on price drift direction.
+        Returns: 'REBALANCE' (upward), 'STOP_LOSS' (downward), or 'HOLD' (stable).
+        """
+        # Price is going UP (Active ID exceeds Upper Bin)
+        if current_active_id > (upper_bin + self.buffer_bins):
+            return "REBALANCE"
+            
+        # Price is going DOWN (Active ID falls below Lower Bin)
+        if current_active_id < (lower_bin - self.buffer_bins):
+            return "STOP_LOSS"
         
-        decision = current_active_id < (lower_bin - self.buffer_bins) or current_active_id > (upper_bin + self.buffer_bins)
-        
-        logger.info(f"--> Rebalance Deliberation:")
-        logger.info(f"    Current Active ID: {current_active_id}")
-        logger.info(f"    Position Range: [{lower_bin}, {upper_bin}]")
-        logger.info(f"    Distance from Edge: {max_dist} bins")
-        logger.info(f"    Decision: {'REBALANCE' if decision else 'HOLD'}")
-        
-        return decision
+        return "HOLD"
 
     def profitability_check(self, current_value: float, estimated_cost: float) -> bool:
         """Checks if the rebalance cost is within acceptable limits (5%)."""
@@ -382,41 +382,35 @@ class TradeExecutor:
             active_id = pos.get("activeId")
             if active_id is None: continue
             
-            if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
+            action = self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId'])
+            
+            if action == "REBALANCE":
                 new_range = self.rebalance_strategy.calculate_new_range(active_id)
                 
-                # Failsafe check
                 if self.risk_manager.circuit_breaker_active:
                     logger.warning(f"Rebalance skipped for {pos['pubkey']}: Circuit breaker active.")
                     continue
 
-                logger.warning(f"🚨 [REBALANCE TRIGGERED] Price drifted for position {pos['pubkey']}. Correcting range...")
-                send_discord_alert(f"🔄 **REBALANCE TRIGGERED**\n**Position**: `{pos['pubkey']}`\n**New Target Range**: {new_range['lower']} to {new_range['upper']}", color=16776960)
+                logger.warning(f"🚨 [REBALANCE TRIGGERED] Price drifted UP for {pos['pubkey']}. Re-centering...")
+                send_discord_alert(f"🔄 **REBALANCE TRIGGERED (UPWARD)**\n**Position**: `{pos['pubkey']}`\n**New Target Range**: {new_range['lower']} to {new_range['upper']}", color=16776960)
 
-                # Execute Rebalance Sequence
-                # Step A: Close Existing Position
-                close_tx = await self.close_meteora_lp_position(
-                    position_pubkey=pos['pubkey'],
-                    pool_pubkey=pos['pool'],
-                    owner=self.wallet if self.wallet else Keypair()
-                )
-
+                close_tx = await self.close_meteora_lp_position(pos['pubkey'], pos['pool'], self.wallet if self.wallet else Keypair())
                 if close_tx:
-                    # Step B: Open New Centered Position
-                    open_tx = await self.open_meteora_lp_position(
-                        pool_pubkey=pos['pool'],
-                        lower_bin_id=new_range['lower'],
-                        upper_bin_id=new_range['upper'],
-                        liquidity=int(pos['liquidity']),
-                        payer=self.wallet if self.wallet else Keypair()
-                    )
-                    
-                    if open_tx:
-                        logger.info(f"✅ Rebalance sequence successful for {pos['pool']}")
-                    else:
-                        logger.error(f"❌ Rebalance failed at OPEN step for {pos['pool']}")
+                    open_tx = await self.open_meteora_lp_position(pos['pool'], new_range['lower'], new_range['upper'], int(pos['liquidity']), self.wallet if self.wallet else Keypair())
+                    if open_tx: logger.info(f"✅ Rebalance sequence successful for {pos['pool']}")
+            
+            elif action == "STOP_LOSS":
+                if self.risk_manager.mode == "DEGEN":
+                    logger.info(f"💔 [HEART ATTACK STRATEGY] Price drifted DOWN for {pos['pubkey']}. Holding positions as per DEGEN mode.")
+                    send_discord_alert(f"💔 **HEART ATTACK STRATEGY ACTIVE**\n**Position**: `{pos['pubkey']}`\n**Action**: HOLDING through downward drift (DEGEN mode).", color=10181046)
                 else:
-                    logger.error(f"❌ Rebalance failed at CLOSE step for {pos['pool']}")
+                    logger.warning(f"🚨 [STOP LOSS TRIGGERED] Price drifted DOWN for {pos['pubkey']}. Closing position as per SAFE mode.")
+                    send_discord_alert(f"🛑 **STOP LOSS TRIGGERED**\n**Position**: `{pos['pubkey']}`\n**Action**: CLOSING POSITION to SOL.", color=15158332)
+                    await self.close_meteora_lp_position(pos['pubkey'], pos['pool'], self.wallet if self.wallet else Keypair())
+                    # In SAFE mode, would follow with a swap back to SOL via Jupiter here.
+            
+            else:
+                logger.info(f"    -> Position {pos['pubkey']} is stable. Holding.")
 
     async def start_autonomous_loop(self, interval_seconds: int = 900):
         """Starts the persistent heartbeat of the executor."""
@@ -599,8 +593,31 @@ class TradeExecutor:
         payer: Keypair
     ) -> Optional[str]:
         """Opens a new Meteora DLMM LP position."""
+        # 1. Early Simulation Branch (Paper Trading)
+        if self.paper_trading_mode:
+            tx_hash = f"sim_tx_open_{int(datetime.datetime.now().timestamp())}"
+            logger.info(f"--> [PAPER TRADING] Simulated Opened LP Position. Tx Hash: {tx_hash}")
+            log_telemetry("PAPER_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
+            send_discord_alert(f"📝 **PAPER LP OPENED**\n**Pool**: `{pool_pubkey}`\n**Bins**: {lower_bin_id} to {upper_bin_id}\n**Hash**: `{tx_hash}`", color=3447003)
+            
+            # Record in Ledger
+            self.ledger.record_entry(
+                symbol=f"LP-{str(pool_pubkey)[:8]}",
+                mint=str(pool_pubkey),
+                price=0.0,
+                amount=float(liquidity),
+                metadata={"tx_hash": tx_hash, "paper": True, "position_pubkey": "SIM_POS_PUBKEY"}
+            )
+            return tx_hash
+
+        # 2. Live Execution Path
         if not self.wallet or self.wallet.pubkey() != payer.pubkey():
             logger.error("❌ Cannot open LP position: Wallet private key not loaded or not matching payer.")
+            return None
+
+        # Failsafe Check
+        if Path(FORCE_STOP_FILE).exists():
+            logger.critical("🚨 EXECUTION VETOED: Force-stop lock file detected!")
             return None
 
         logger.info(f"Opening Meteora DLMM LP position for Pool {pool_pubkey}...")
@@ -625,17 +642,25 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [payer, new_position_keypair])
             
-            if self.paper_trading_mode:
-                tx_hash = f"sim_tx_open_{int(datetime.datetime.now().timestamp())}"
-                logger.info(f"--> [PAPER TRADING] Simulated Opened LP Position. Tx Hash: {tx_hash}")
-                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
-            else:
-                response = await self.client.send_transaction(transaction, payer, new_position_keypair)
-                tx_hash = response.value
-                logger.info(f"--> Opened LP Position. Tx Hash: {tx_hash}")
+            response = await self.client.send_transaction(transaction, payer, new_position_keypair)
+            tx_hash = str(response.value)
+            logger.info(f"--> [LIVE] Opened LP Position. Tx Hash: {tx_hash}")
+            log_telemetry("LIVE_TRADE_EXECUTED", {"action": "open_meteora_lp_position", "tx_hash": tx_hash, "pool": str(pool_pubkey)})
+            send_discord_alert(f"🚀 **LIVE LP OPENED**\n**Pool**: `{pool_pubkey}`\n**Bins**: {lower_bin_id} to {upper_bin_id}\n**Hash**: `{tx_hash}`", color=3066993)
+            
+            # Record in Ledger
+            self.ledger.record_entry(
+                symbol=f"LP-{str(pool_pubkey)[:8]}",
+                mint=str(pool_pubkey),
+                price=0.0,
+                amount=float(liquidity),
+                metadata={"tx_hash": tx_hash, "paper": False, "position_pubkey": str(new_position_keypair.pubkey())}
+            )
+            
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error opening LP position: {e}")
+            send_discord_alert(f"❌ **LP OPEN FAILURE**\n**Error**: `{str(e)}`", color=15158332)
             return None
 
     async def close_meteora_lp_position(
@@ -645,8 +670,22 @@ class TradeExecutor:
         owner: Keypair
     ) -> Optional[str]:
         """Closes an existing Meteora DLMM LP position."""
+        # 1. Early Simulation Branch (Paper Trading)
+        if self.paper_trading_mode:
+            tx_hash = f"sim_tx_close_{int(datetime.datetime.now().timestamp())}"
+            logger.info(f"--> [PAPER TRADING] Simulated Closed LP Position. Tx Hash: {tx_hash}")
+            log_telemetry("PAPER_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            send_discord_alert(f"📝 **PAPER LP CLOSED**\n**Position**: `{position_pubkey}`\n**Hash**: `{tx_hash}`", color=3447003)
+            return tx_hash
+
+        # 2. Live Execution Path
         if not self.wallet or self.wallet.pubkey() != owner.pubkey():
             logger.error("❌ Cannot close LP position: Wallet private key not loaded or not matching owner.")
+            return None
+
+        # Failsafe Check
+        if Path(FORCE_STOP_FILE).exists():
+            logger.critical("🚨 EXECUTION VETOED: Force-stop lock file detected!")
             return None
 
         logger.info(f"Closing Meteora DLMM LP position {position_pubkey} for Pool {pool_pubkey}...")
@@ -663,17 +702,16 @@ class TradeExecutor:
             recent_blockhash = (await self.client.get_latest_blockhash()).value.blockhash
             transaction = Transaction.populate(recent_blockhash, [ix], [owner])
             
-            if self.paper_trading_mode:
-                tx_hash = f"sim_tx_close_{int(datetime.datetime.now().timestamp())}"
-                logger.info(f"--> [PAPER TRADING] Simulated Closed LP Position. Tx Hash: {tx_hash}")
-                log_telemetry("PAPER_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
-            else:
-                response = await self.client.send_transaction(transaction, owner)
-                tx_hash = response.value
-                logger.info(f"--> Closed LP Position. Tx Hash: {tx_hash}")
+            response = await self.client.send_transaction(transaction, owner)
+            tx_hash = str(response.value)
+            logger.info(f"--> [LIVE] Closed LP Position. Tx Hash: {tx_hash}")
+            log_telemetry("LIVE_TRADE_EXECUTED", {"action": "close_meteora_lp_position", "tx_hash": tx_hash, "position": str(position_pubkey)})
+            send_discord_alert(f"🚀 **LIVE LP CLOSED**\n**Position**: `{position_pubkey}`\n**Hash**: `{tx_hash}`", color=3066993)
+            
             return tx_hash
         except Exception as e:
             logger.error(f"--> Error closing LP position: {e}")
+            # send_discord_alert(f"❌ **LP CLOSE FAILURE**\n**Error**: `{str(e)}`", color=15158332)
             return None
 
     async def claim_meteora_fees(
