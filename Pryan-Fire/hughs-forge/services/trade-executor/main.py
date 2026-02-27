@@ -18,6 +18,7 @@ from solders.transaction import Transaction
 # from spl.associated_token_account.program import ASSOCIATED_TOKEN_PROGRAM_ID # Removed this import
 import requests
 import httpx
+from pathlib import Path
 import json
 import logging
 import datetime
@@ -70,6 +71,7 @@ PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/api/latest_price_feeds" # Ex
 
 # Circuit breaker status
 CIRCUIT_BREAKER_ACTIVE = False
+FORCE_STOP_FILE = "/data/openclaw/trade_stop.lock"
 
 # Placeholder for Meteora IDL - in a real scenario, this would be loaded from a file or fetched
 # This IDL is a *simplified assumption* for demonstration purposes and may not precisely
@@ -211,6 +213,11 @@ class RiskManager:
 
     def check_trade(self, proposed_trade_amount: float) -> bool:
         """Checks if a proposed trade adheres to risk parameters."""
+        # 1. Check for manual override kill-switch
+        if Path(FORCE_STOP_FILE).exists():
+            logger.critical("🚨 TRADE VETOED: Force-stop lock file detected!")
+            return False
+
         if self.circuit_breaker_active:
             logger.warning("Trade rejected: Circuit breaker is active.")
             log_telemetry("RISK_BLOCK", {"reason": "CIRCUIT_BREAKER_ACTIVE", "proposed_amount": proposed_trade_amount})
@@ -338,6 +345,11 @@ class TradeExecutor:
 
     async def run_autonomous_audit(self):
         """Single pass audit for autonomous loop."""
+        # 0. Check global safety lock
+        if Path(FORCE_STOP_FILE).exists():
+            logger.warning("⚠️ Autonomous audit halted: Force-stop lock file present.")
+            return
+
         # 0. Calibrate Volatility Scryer (Simplified for V1)
         # In V2, this will use recent price variance. For now, we assume NORMAL.
         current_volatility = "NORMAL"
