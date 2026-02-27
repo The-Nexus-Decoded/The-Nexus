@@ -18,6 +18,7 @@ from solders.transaction import Transaction
 # from spl.associated_token_account.program import ASSOCIATED_TOKEN_PROGRAM_ID # Removed this import
 import requests
 import httpx
+import os
 from pathlib import Path
 import json
 import logging
@@ -37,6 +38,27 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Discord Alerting (Telemetry Phase 48)
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_TRADE_ALERTS_WEBHOOK")
+
+def send_discord_alert(content: str, color: int = 3447003):
+    """Sends a structured alert to the Discord webhook."""
+    if not DISCORD_WEBHOOK_URL:
+        return
+    
+    payload = {
+        "embeds": [{
+            "title": "🗡️ [HAPLO] Trade Orchestrator Alert",
+            "description": content,
+            "color": color,
+            "timestamp": datetime.datetime.utcnow().isoformat()
+        }]
+    }
+    try:
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
+    except Exception as e:
+        logger.error(f"Failed to send Discord alert: {e}")
 
 # Telemetry Logger for Phase 4
 telemetry_logger = logging.getLogger("telemetry")
@@ -189,7 +211,7 @@ METEORA_IDL = Idl.from_json(json.dumps(METEORA_IDL_DICT))
 
 class RiskManager:
     """Manages trading risk, including limits, strategy scoring, and circuit breaker functionality."""
-    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "DEGEN"):
+    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "SAFE"):
         self.daily_loss_limit = daily_loss_limit
         self.max_trade_size = max_trade_size
         self.current_daily_loss = 0.0

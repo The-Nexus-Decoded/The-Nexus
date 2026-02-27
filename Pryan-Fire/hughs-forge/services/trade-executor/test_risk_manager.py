@@ -9,6 +9,14 @@ class TestRiskManager(unittest.TestCase):
         self.assertEqual(self.rm.daily_loss_limit, -500.0)
         self.assertEqual(self.rm.max_trade_size, 50.0)
         self.assertFalse(self.rm.circuit_breaker_active)
+        # This test now ensures the specific setUp values are correct
+
+    def test_default_safe_mode(self):
+        """Test that RiskManager initializes with 'SAFE' mode by default."""
+        default_rm = RiskManager()
+        self.assertEqual(default_rm.mode, "SAFE")
+        self.assertEqual(default_rm.daily_loss_limit, -1000.0)
+        self.assertEqual(default_rm.max_trade_size, 100.0)
 
     def test_check_strategy_risk(self):
         # Conservative strategy should pass even in HIGH volatility
