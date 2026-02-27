@@ -258,11 +258,13 @@ class RiskManager:
         """Activates the circuit breaker, halting all trading."""
         self.circuit_breaker_active = True
         logger.critical("🚨 CIRCUIT BREAKER ACTIVATED: All trading halted.")
+        send_discord_alert("🚨 **CIRCUIT BREAKER ACTIVATED**: All trading operations have been halted immediately.", color=15158332)
 
     def deactivate_circuit_breaker(self):
         """Deactivates the circuit breaker, allowing trading to resume."""
         self.circuit_breaker_active = False
         logger.info("✅ CIRCUIT BREAKER DEACTIVATED: Trading can resume.")
+        send_discord_alert("✅ **CIRCUIT BREAKER DEACTIVATED**: Trading operations have resumed.", color=3066993)
 
 class RebalanceStrategy:
     """Decision engine for determining when and where to move liquidity."""
@@ -319,8 +321,8 @@ class TradeExecutor:
         )
         self.risk_manager = RiskManager()
         self.rebalance_strategy = RebalanceStrategy()
-<<<<<<< HEAD
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
+        self.ledger = TradeLedger()
         
         # Load live wallet if not in paper trading mode
         if not self.paper_trading_mode:
@@ -332,9 +334,6 @@ class TradeExecutor:
             else:
                 logger.error("❌ FAILED TO LOAD LIVE WALLET. Falling back to paper trading.")
                 self.paper_trading_mode = True
-=======
-        self.ledger = TradeLedger()
->>>>>>> 23899d5 (feat: integrate trade ledger into orchestrator loop #45)
 
         logger.info("Trade Executor initialized.")
         if self.wallet:
@@ -424,19 +423,17 @@ class TradeExecutor:
 
     async def run_autonomous_audit(self):
         """Single pass audit for autonomous loop."""
-<<<<<<< HEAD
         # 0. Check global safety lock
         if Path(FORCE_STOP_FILE).exists():
             logger.warning("⚠️ Autonomous audit halted: Force-stop lock file present.")
             return
-=======
-        # 0. Recover state from ledger
+
+        # 0b. Recover state from ledger
         open_positions = self.ledger.get_open_positions()
         if open_positions:
             logger.info(f"--> Found {len(open_positions)} open positions in ledger. Resuming monitoring...")
             for pos in open_positions:
                 logger.info(f"    - Monitoring Trade ID {pos['id']}: {pos['symbol']} at {pos['entry_price']}")
->>>>>>> 23899d5 (feat: integrate trade ledger into orchestrator loop #45)
 
         # 1. Calibrate Volatility Scryer (Simplified for V1)
         # In V2, this will use recent price variance. For now, we assume NORMAL.
@@ -1151,7 +1148,16 @@ class TradeExecutor:
                 amount=proposed_amount,
                 metadata={"tx_hash": sim_tx_hash, "paper": True}
             )
-            
+
+            # Structured Telemetry Phase 48
+            send_discord_alert(
+                f"📝 **PAPER TRADE EXECUTED**\n"
+                f"**Pair**: {trade_details.get('pair', 'UNKNOWN')}\n"
+                f"**Amount**: {proposed_amount}\n"
+                f"**Hash**: `{sim_tx_hash}`",
+                color=3447003
+            )
+
             trade_status = {"status": "success", "tx_hash": sim_tx_hash, "paper_trade": True}
         else:
             trade_status = {"status": "pending", "tx_hash": None}
