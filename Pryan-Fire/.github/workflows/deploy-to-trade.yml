@@ -1,0 +1,23 @@
+name: Deploy to Trade Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to ola-claw-trade
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to trade server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TRADE_SERVER_HOST }}
+          username: ${{ secrets.TRADE_SERVER_USER }}
+          key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+          script: |
+            cd /data/repos/Pryan-Fire/hughs-forge
+            ./deploy.sh
