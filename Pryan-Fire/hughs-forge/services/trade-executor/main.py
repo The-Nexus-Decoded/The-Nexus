@@ -26,6 +26,7 @@ import datetime
 import threading
 from health_server import start_health_server, stop_health_server
 from models.keys import KeyManager
+from models.ledger import TradeLedger
 
 # Configure logging
 logging.basicConfig(
@@ -318,6 +319,7 @@ class TradeExecutor:
         )
         self.risk_manager = RiskManager()
         self.rebalance_strategy = RebalanceStrategy()
+<<<<<<< HEAD
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
         
         # Load live wallet if not in paper trading mode
@@ -330,6 +332,9 @@ class TradeExecutor:
             else:
                 logger.error("❌ FAILED TO LOAD LIVE WALLET. Falling back to paper trading.")
                 self.paper_trading_mode = True
+=======
+        self.ledger = TradeLedger()
+>>>>>>> 23899d5 (feat: integrate trade ledger into orchestrator loop #45)
 
         logger.info("Trade Executor initialized.")
         if self.wallet:
@@ -419,10 +424,19 @@ class TradeExecutor:
 
     async def run_autonomous_audit(self):
         """Single pass audit for autonomous loop."""
+<<<<<<< HEAD
         # 0. Check global safety lock
         if Path(FORCE_STOP_FILE).exists():
             logger.warning("⚠️ Autonomous audit halted: Force-stop lock file present.")
             return
+=======
+        # 0. Recover state from ledger
+        open_positions = self.ledger.get_open_positions()
+        if open_positions:
+            logger.info(f"--> Found {len(open_positions)} open positions in ledger. Resuming monitoring...")
+            for pos in open_positions:
+                logger.info(f"    - Monitoring Trade ID {pos['id']}: {pos['symbol']} at {pos['entry_price']}")
+>>>>>>> 23899d5 (feat: integrate trade ledger into orchestrator loop #45)
 
         # 1. Calibrate Volatility Scryer (Simplified for V1)
         # In V2, this will use recent price variance. For now, we assume NORMAL.
@@ -1128,6 +1142,16 @@ class TradeExecutor:
             sim_tx_hash = f"sim_tx_{int(datetime.datetime.now().timestamp())}"
             logger.info(f"--> [PAPER TRADING] Trade simulated. Tx Hash: {sim_tx_hash}")
             log_telemetry("PAPER_TRADE_EXECUTED", {"action": "execute_trade", "tx_hash": sim_tx_hash, "details": trade_details})
+            
+            # Record entry in ledger
+            self.ledger.record_entry(
+                symbol=trade_details.get("pair", "UNKNOWN"),
+                mint="SIM_MINT",
+                price=trade_details.get("price", 0.0),
+                amount=proposed_amount,
+                metadata={"tx_hash": sim_tx_hash, "paper": True}
+            )
+            
             trade_status = {"status": "success", "tx_hash": sim_tx_hash, "paper_trade": True}
         else:
             trade_status = {"status": "pending", "tx_hash": None}
