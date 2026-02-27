@@ -337,6 +337,45 @@ class TradeExecutor:
         else:
             logger.warning("-> Wallet not loaded (read-only mode). Open/Close LP positions will not function.")
 
+    async def claim_rewards(self):
+        """
+        Triggers the orchestrator to claim fees from all of a user's Meteora DLMM positions.
+        """
+        logger.info("Triggering claim for all rewards...")
+        if not self.wallet:
+            logger.error("Cannot claim rewards: Wallet not loaded.")
+            return
+        await self.claim_all_rewards_for_all_positions(owner=self.wallet)
+
+    async def reinvest_rewards(self):
+        """
+        Triggers the orchestrator to reinvest all available balances back into their
+        corresponding Meteora DLMM positions.
+        """
+        logger.info("Triggering reinvestment for all rewards...")
+        if not self.wallet:
+            logger.error("Cannot reinvest rewards: Wallet not loaded.")
+            return
+        await self.reinvest_all_claimed_fees(owner=self.wallet)
+
+    def heart_attack_strategy(self, current_price):
+        """
+        Implements the 'Heart Attack Strategy' for DEGEN mode.
+        A defensive maneuver for sharp downward price movements.
+        """
+        logger.warning(f"HEART ATTACK STRATEGY TRIGGERED at price {current_price}")
+        # TODO: Implement the two-stage hold and close/reopen logic
+        pass
+
+    def bid_ask_upward_strategy(self, current_price):
+        """
+        Implements the 'BID ASK upward' strategy.
+        An offensive re-entry and profit-taking strategy for upward trends.
+        """
+        logger.info(f"BID ASK UPWARD STRATEGY TRIGGERED at price {current_price}")
+        # TODO: Implement re-entry and profit-taking logic
+        pass
+
     async def simulate_rebalance(self, position_data: Dict[str, Any], new_range: Dict[str, int]) -> Dict[str, Any]:
         """Simulates a rebalance to provide a structured Flight Record."""
         logger.info(f"--- [FLIGHT RECORDER: SIMULATED REBALANCE] ---")
@@ -470,6 +509,23 @@ class TradeExecutor:
             logger.error(f"--> Error fetching token balance for {token_account_pubkey}: {e}")
             return 0.0
 
+    async def get_mint_decimals(self, mint_pubkey: Pubkey) -> int:
+        """Fetches the decimal precision for a given token mint."""
+        try:
+            mint_info = await self.client.get_account_info(mint_pubkey)
+            if mint_info.value:
+                # The decimals value is at a specific byte offset in the mint account data
+                # For SPL Token Mints, this is typically the first byte of the account data.
+                decimals = mint_info.value.data[44]
+                logger.info(f"--> Decimals for mint {mint_pubkey}: {decimals}")
+                return decimals
+            else:
+                logger.warning(f"--> Could not retrieve mint info for {mint_pubkey}.")
+                return 6 # Default to 6 if not found
+        except Exception as e:
+            logger.error(f"--> Error fetching mint decimals for {mint_pubkey}: {e}")
+            return 6 # Default to 6 on error
+
     async def get_quote(self, input_mint: str, output_mint: str, amount: int) -> Optional[Dict[str, Any]]:
         """Fetches a quote from Jupiter v6 API for a given swap."""
         logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter v6")
@@ -552,6 +608,10 @@ class TradeExecutor:
                     token_x_mint = pool_state["tokenXMint"]
                     token_y_mint = pool_state["tokenYMint"]
 
+                    # Get token decimals
+                    token_x_decimals = await self.get_mint_decimals(token_x_mint)
+                    token_y_decimals = await self.get_mint_decimals(token_y_mint)
+
                     owner_token_x_ata = Pubkey.find_program_address(
                         [owner_pubkey.to_bytes(), TOKEN_PROGRAM_ID.to_bytes(), token_x_mint.to_bytes()],
                         ASSOCIATED_TOKEN_PROGRAM_ID
@@ -570,6 +630,8 @@ class TradeExecutor:
                         "pool": decoded_account.pool,
                         "tokenXMint": token_x_mint,
                         "tokenYMint": token_y_mint,
+                        "tokenXDecimals": token_x_decimals,
+                        "tokenYDecimals": token_y_decimals,
                         "ownerTokenXBalance": token_x_balance,
                         "ownerTokenYBalance": token_y_balance,
                         "lowerBinId": decoded_account.lower_bin_id,
@@ -789,6 +851,85 @@ class TradeExecutor:
         except Exception as e:
             logger.error(f"--> Error claiming fees: {e}")
             return None
+
+    async def claim_all_rewards_for_all_positions(self, owner: Keypair):
+        """
+        Orchestrator to claim fees from all of a user's Meteora DLMM positions.
+        """
+        logger.info(f"Initiating claim for all rewards for owner {owner.pubkey()}...")
+        
+        # 1. Get all LP positions for the owner
+        lp_positions = await self.get_meteora_lp_positions(owner.pubkey())
+        
+        if not lp_positions:
+            logger.info("No active LP positions found to claim fees from.")
+            return
+            
+        # 2. Iterate and claim for each position
+        claimed_count = 0
+        for position in lp_positions:
+            logger.info(f"Attempting to claim fees for position {position['pubkey']}...")
+            tx_hash = await self.claim_meteora_fees(
+                position_pubkey=position['pubkey'],
+                pool_pubkey=position['pool'],
+                token_x_mint=position['tokenXMint'],
+                token_y_mint=position['tokenYMint'],
+                owner=owner
+            )
+            if tx_hash:
+                claimed_count += 1
+                logger.info(f"Successfully sent claim transaction for position {position['pubkey']}: {tx_hash}")
+            else:
+                logger.error(f"Failed to claim fees for position {position['pubkey']}.")
+                
+        logger.info(f"Completed fee claiming process. Successfully initiated claims for {claimed_count}/{len(lp_positions)} positions.")
+
+    async def reinvest_all_claimed_fees(self, owner: Keypair):
+        """
+        Orchestrator to reinvest all available balances from a user's token accounts
+        back into their corresponding Meteora DLMM positions.
+        """
+        logger.info(f"Initiating reinvestment for all positions for owner {owner.pubkey()}...")
+        
+        # 1. Get all LP positions for the owner (now with decimal info)
+        lp_positions = await self.get_meteora_lp_positions(owner.pubkey())
+        
+        if not lp_positions:
+            logger.info("No active LP positions found to reinvest into.")
+            return
+
+        reinvested_count = 0
+        for position in lp_positions:
+            logger.info(f"Attempting to reinvest fees for position {position['pubkey']}...")
+
+            # 2. Convert UI token balances back to base units using the fetched decimals
+            amount_x = int(position['ownerTokenXBalance'] * (10**position['tokenXDecimals']))
+            amount_y = int(position['ownerTokenYBalance'] * (10**position['tokenYDecimals']))
+
+            if amount_x == 0 and amount_y == 0:
+                logger.info(f"Skipping reinvestment for {position['pubkey']}: No token balance to reinvest.")
+                continue
+
+            # 3. Call the compounding function
+            tx_hash = await self.compound_meteora_fees(
+                position_pubkey=position['pubkey'],
+                pool_pubkey=position['pool'],
+                token_x_mint=position['tokenXMint'],
+                token_y_mint=position['tokenYMint'],
+                amount_x=amount_x,
+                amount_y=amount_y,
+                lower_bin_id=position['lowerBinId'],
+                upper_bin_id=position['upperBinId'],
+                owner=owner
+            )
+            
+            if tx_hash:
+                reinvested_count += 1
+                logger.info(f"Successfully sent reinvestment transaction for position {position['pubkey']}: {tx_hash}")
+            else:
+                logger.error(f"Failed to reinvest fees for position {position['pubkey']}.")
+
+        logger.info(f"Completed reinvestment process. Successfully initiated compounding for {reinvested_count}/{len(lp_positions)} positions.")
 
     async def compound_meteora_fees(
         self, 
