@@ -24,6 +24,7 @@ import logging
 import datetime
 import threading
 from health_server import start_health_server, stop_health_server
+from models.keys import KeyManager
 
 # Configure logging
 logging.basicConfig(
@@ -295,6 +296,18 @@ class TradeExecutor:
         )
         self.risk_manager = RiskManager()
         self.rebalance_strategy = RebalanceStrategy()
+        self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
+        
+        # Load live wallet if not in paper trading mode
+        if not self.paper_trading_mode:
+            self.wallet = self.key_manager.load_keypair()
+            if self.wallet:
+                self.jupiter_client.keypair = self.wallet
+                self.provider.wallet = Wallet(self.wallet)
+                logger.info(f"✅ LIVE WALLET LOADED: {self.wallet.pubkey()}")
+            else:
+                logger.error("❌ FAILED TO LOAD LIVE WALLET. Falling back to paper trading.")
+                self.paper_trading_mode = True
 
         logger.info("Trade Executor initialized.")
         if self.wallet:
