@@ -81,7 +81,7 @@
   ],
   "accounts": [
     {
-      "name": "LbPair",
+      "name": "Pool",
       "type": {
         "kind": "struct",
         "fields": [
