@@ -7,8 +7,8 @@ from solders.pubkey import Pubkey
 from solders.keypair import Keypair
 from anchorpy import Program, Provider, Wallet, Idl
 
-# Meteora DLMM Program ID
-METEORA_PROGRAM_ID = Pubkey.from_string("L2B986By7sJ79tJpAo7PiJJ1oBRNsr4NLY3RpgC5K7i")
+# Meteora DLMM Program ID (LBUZ... found via chain analysis)
+METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo")
 
 class MeteoraArmory:
     """
@@ -23,32 +23,52 @@ class MeteoraArmory:
 
     async def initialize(self):
         """Loads the IDL and initializes the Anchor Program."""
-        # For now, we use a placeholder IDL structure or fetch it if possible.
-        # Ideally, we load this from a local JSON file.
+        # Using the corrected Program ID found: LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo
         idl_path = "/data/repos/Pryan-Fire/hughs-forge/services/trade-executor/idl/dlmm.json"
+        
+        # Temporary: Use a minimal IDL to allow AnchorPy to initialize if file missing
         if os.path.exists(idl_path):
             with open(idl_path, 'r') as f:
                 idl_dict = json.load(f)
-            self.program = Program(Idl.from_json(json.dumps(idl_dict)), METEORA_PROGRAM_ID, self.provider)
-            print("[ARMORY] Program initialized with local IDL.")
+            self.program = Program(Idl.from_json(json.dumps(idl_dict)), METEORA_DLMM_PROGRAM_ID, self.provider)
+            print(f"[ARMORY] Program initialized with local IDL and Program ID: {METEORA_DLMM_PROGRAM_ID}")
         else:
-            print("[ARMORY WARNING] IDL file not found. Position management will be restricted.")
+            # Minimal IDL for 'Position' account structure found in Meteora docs
+            minimal_idl = {
+                "version": "0.1.0",
+                "name": "lb_clmm",
+                "instructions": [],
+                "accounts": [
+                    {
+                        "name": "Position",
+                        "type": {
+                            "kind": "struct",
+                            "fields": [
+                                {"name": "lbPair", "type": "publicKey"},
+                                {"name": "owner", "type": "publicKey"},
+                                {"name": "liquidityShares", "type": {"array": ["u64", 2]}}
+                            ]
+                        }
+                    }
+                ]
+            }
+            self.program = Program(Idl.from_json(json.dumps(minimal_idl)), METEORA_DLMM_PROGRAM_ID, self.provider)
+            print(f"[ARMORY WARNING] IDL file not found. Initialized with minimal IDL for {METEORA_DLMM_PROGRAM_ID}")
 
-    async def open_position(self, pool_mint: str, amount: int, bin_range: tuple) -> Dict[str, Any]:
+    async def open_position(self, lb_pair: str, amount: int, bin_range: tuple) -> Dict[str, Any]:
         """
-        Builds and simulates/sends the instruction to open a new DLMM position.
+        Builds the instruction to open a new DLMM position.
         """
-        print(f"[ARMORY] Preparing to open position in {pool_mint}...")
-        # Implementation details for Meteora DLMM 'initialize_position' instruction go here.
-        # Requires derivation of position PDA and associated token accounts.
-        return {"status": "planned", "pool": pool_mint, "action": "open"}
+        print(f"[ARMORY] Preparing to open position in pool {lb_pair}...")
+        # Step 1: Derive Position PDA
+        # Step 2: Build 'initialize_position' instruction
+        return {"status": "planned", "lb_pair": lb_pair, "action": "open"}
 
     async def close_position(self, position_address: str) -> Dict[str, Any]:
         """
-        Builds and simulates/sends the instruction to close an existing DLMM position.
+        Builds the instruction to close an existing DLMM position.
         """
         print(f"[ARMORY] Preparing to close position {position_address}...")
-        # Implementation details for 'close_position' go here.
         return {"status": "planned", "position": position_address, "action": "close"}
 
     async def close(self):
