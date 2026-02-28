@@ -1,86 +1,68 @@
-import aiohttp
-import asyncio
 import logging
 from typing import Dict, Any, Optional
+from src.services.dex_screener import DexScreenerClient
 
 logger = logging.getLogger("MomentumScanner")
 
 class MomentumScanner:
     """
     The Mind of the Patryn Trader (Phase 5).
-    Queries DEX Screener to validate momentum, volume, and paid boosts.
+    Evaluates market momentum using live data from DEX Screener.
     """
     def __init__(self):
-        self.base_url = "https://api.dexscreener.com/latest/dex/pairs/solana/"
-        self.session: Optional[aiohttp.ClientSession] = None
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
-        return self.session
+        self.client = DexScreenerClient()
 
     async def validate_momentum(self, mint: str) -> Dict[str, Any]:
         """
         Polls DEX Screener for the given mint to check for 'The Heartbeat'.
         """
-        session = await self._get_session()
-        url = f"{self.base_url}{mint}"
+        pair_data = await self.client.fetch_pair_data(mint)
         
-        try:
-            async with session.get(url) as response:
-                if response.status != 200:
-                    return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": [f"API Error: {response.status}"]}
-                
-                data = await response.json()
-                pairs = data.get("pairs", [])
-                
-                if not pairs:
-                    return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": ["No pairs found (Too early or low liquidity)"]}
-                
-                # Analyze the primary pair (usually the one with highest liquidity)
-                primary_pair = pairs[0]
-                
-                metrics = {
-                    "liquidity": float(primary_pair.get("liquidity", {}).get("usd", 0)),
-                    "volume_24h": float(primary_pair.get("volume", {}).get("h24", 0)),
-                    "price_change_5m": float(primary_pair.get("priceChange", {}).get("m5", 0)),
-                    "price_change_1h": float(primary_pair.get("priceChange", {}).get("h1", 0)),
-                    "price_change_6h": float(primary_pair.get("priceChange", {}).get("h6", 0)),
-                    "price_change_24h": float(primary_pair.get("priceChange", {}).get("h24", 0)),
-                    "fdv": float(primary_pair.get("fdv", 0))
-                }
-                
-                return self._apply_leash(metrics)
+        if not pair_data:
+            return {
+                "passed": False, 
+                "momentum_signal": "NEGATIVE", 
+                "reasons": ["No pair data found (Too early or low liquidity)"]
+            }
 
-        except Exception as e:
-            logger.error(f"DEX Screener fetch failed: {e}")
-            return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": [f"Fetch error: {str(e)}"]}
+        metrics = {
+            "liquidity": float(pair_data.get("liquidity", {}).get("usd", 0)),
+            "volume_24h": float(pair_data.get("volume", {}).get("h24", 0)),
+            "price_change_5m": float(pair_data.get("priceChange", {}).get("m5", 0)),
+            "price_change_1h": float(pair_data.get("priceChange", {}).get("h1", 0)),
+            "price_change_6h": float(pair_data.get("priceChange", {}).get("h6", 0)),
+            "price_change_24h": float(pair_data.get("priceChange", {}).get("h24", 0)),
+            "fdv": float(pair_data.get("fdv", 0))
+        }
+        
+        return self._apply_leash(metrics)
 
     def _apply_leash(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         """
         The MomentumLeash (Phase 5a).
-        Enforces minimum floors for trading quality within the Main Portfolio Engine.
+        Enforces minimum floors for trading quality.
         """
         reasons = []
         
-        # 1. Liquidity Floor (MVP Standard)
-        if metrics["liquidity"] < 10000:  # Raised for safer main-bag trading
-            reasons.append(f"Liquidity too thin for portfolio entry (${metrics['liquidity']})")
+        # 1. Liquidity Floor ($10k for MVP)
+        if metrics["liquidity"] < 10000:
+            reasons.append(f"Liquidity too thin (${metrics['liquidity']})")
             
-        # 2. 24h Volume Floor
-        if metrics["volume_24h"] < 5000: # Minimum 24h volume for consideration
+        # 2. 24h Volume Floor ($5k)
+        if metrics["volume_24h"] < 5000:
             reasons.append(f"24h Volume too low (${metrics['volume_24h']})")
 
-        # 3. Market Cap/FDV Floor
+        # 3. Market Cap/FDV Floor ($10k)
         if metrics["fdv"] < 10000:
             reasons.append(f"Market Cap too low (${metrics['fdv']})")
 
         # 4. Price Change Momentum (1-hour)
+        # Thresholds: >5% is POSITIVE, <-5% is NEGATIVE (Block)
         momentum_score = 0
-        if metrics["price_change_1h"] < -5: # Significant 1-hour drop
+        if metrics["price_change_1h"] < -5:
             reasons.append(f"Significant 1-hour price drop ({metrics['price_change_1h']:.2f}%)")
             momentum_score -= 1
-        elif metrics["price_change_1h"] > 5: # Significant 1-hour gain
+        elif metrics["price_change_1h"] > 5:
             momentum_score += 1
 
         # Determine overall momentum signal
@@ -99,5 +81,4 @@ class MomentumScanner:
         }
 
     async def close(self):
-        if self.session:
-            await self.session.close()
+        await self.client.close()
