@@ -1,6 +1,9 @@
 import asyncio
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
+from solana.transaction import Transaction
+from solders.instruction import Instruction
+from solders.keypair import Keypair
 from meteora_armory import MeteoraArmory
 
 class TradeOrchestrator:
@@ -11,7 +14,7 @@ class TradeOrchestrator:
     Supporting Issue #45: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/45
     Supporting Issue #47: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/47 (Failsafe)
     """
-    def __init__(self, rpc_url: str, wallet_keypair: Any, risk_limit_usd: float = 250.0):
+    def __init__(self, rpc_url: str, wallet_keypair: Optional[Keypair] = None, risk_limit_usd: float = 250.0):
         self.armory = MeteoraArmory(rpc_url, wallet_keypair)
         self.risk_limit_usd = risk_limit_usd
         self.current_exposure_usd = 0.0
@@ -19,6 +22,33 @@ class TradeOrchestrator:
     async def initialize(self):
         await self.armory.initialize()
         print(f"[ORCHESTRATOR] Initialized with Risk Limit: ${self.risk_limit_usd}")
+
+    async def execute_open_strike(self, pool: str, amount_x: int, amount_y: int, bin_arrays: List[int], lower_bin_id: int, width: int):
+        """
+        Sequences the 'Initialize -> Add Liquidity' strike.
+        Issue #45: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/45
+        """
+        print(f"[ORCHESTRATOR] Sequencing OPEN strike on {pool}...")
+        
+        # 1. Initialize Position Instruction
+        init_ix = await self.armory.build_initialize_position_ix(pool, lower_bin_id, width)
+        
+        # 2. Add Liquidity Instruction
+        # We derive the position PDA again for the context mapping
+        lb_pair_pub = self.armory.program.account["LbPair"].fetch(pool).token_x_mint # Simple fetch for derivation
+        pos_pda = self.armory.derive_position_pda(
+            Pubkey.from_string(pool), 
+            self.armory.wallet.public_key, 
+            lower_bin_id, 
+            width
+        )
+        
+        add_ix = await self.armory.build_add_liquidity_ix(
+            pool, str(pos_pda), amount_x, amount_y, bin_arrays
+        )
+        
+        # In Phase 3: Bundle and broadcast via TransactionCore
+        return [init_ix, add_ix]
 
     async def process_signal(self, signal: Dict[str, Any]):
         """
@@ -28,6 +58,7 @@ class TradeOrchestrator:
         pool = signal.get('pool')
         action = signal.get('action')
         amount = signal.get('amount_usd', 0.0)
+        params = signal.get('params', {})
 
         print(f"[ORCHESTRATOR] Received {action} signal for pool {pool} (Amount: ${amount})")
 
@@ -40,16 +71,19 @@ class TradeOrchestrator:
         # Execution Logic
         try:
             if action == 'OPEN':
-                # 1. Initialize Position
-                # 2. Add Liquidity
-                print(f"[ORCHESTRATOR] Executing OPEN strike on {pool}...")
-                # Logic to be implemented in Phase 2
+                ixs = await self.execute_open_strike(
+                    pool, 
+                    params.get('amount_x', 0), 
+                    params.get('amount_y', 0), 
+                    params.get('bin_arrays', [0]),
+                    params.get('lower_bin_id', 0),
+                    params.get('width', 1)
+                )
+                print(f"[ORCHESTRATOR] OPEN strike instructions generated: {len(ixs)}")
                 self.current_exposure_usd += amount
-                return {"status": "SUCCESS", "action": "OPEN"}
+                return {"status": "SUCCESS", "action": "OPEN", "ix_count": len(ixs)}
             
             elif action == 'CLOSE':
-                # 1. Remove Liquidity
-                # 2. Close Position
                 print(f"[ORCHESTRATOR] Executing CLOSE strike on {pool}...")
                 self.current_exposure_usd -= amount
                 return {"status": "SUCCESS", "action": "CLOSE"}
@@ -65,7 +99,6 @@ if __name__ == "__main__":
     async def test_orch():
         orch = TradeOrchestrator("https://api.mainnet-beta.solana.com", None)
         await orch.initialize()
-        # Test Risk Failsafe
-        await orch.process_signal({'pool': '8Pm2k...', 'action': 'OPEN', 'amount_usd': 300.0})
+        await orch.process_signal({'pool': '8Pm2k...', 'action': 'OPEN', 'amount_usd': 100.0, 'params': {'amount_x': 1000, 'amount_y': 1000, 'bin_arrays': [0]}})
         await orch.shutdown()
     asyncio.run(test_orch())
