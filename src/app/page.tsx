@@ -1,65 +1,98 @@
-import Image from "next/image";
+
+'use client';
+
+import { useEffect, useState } from 'react';
+
+interface Signal {
+  action: string;
+  amount: number;
+  pair: string;
+  reason: string;
+  price_change: number;
+  timestamp: string;
+}
 
 export default function Home() {
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/logs')
+      .then(res => res.json())
+      .then(data => {
+        setSignals(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-8 font-mono">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12 border-b border-slate-800 pb-4 flex justify-between items-end">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tighter text-blue-400">ARIANUS-SKY</h1>
+            <p className="text-slate-500 mt-2">Tactical Market Intelligence Dashboard (Phase 8)</p>
+          </div>
+          <div className="text-right">
+            <span className="text-xs text-slate-600 uppercase tracking-widest">Linked Issue</span><br/>
+            <a href="https://github.com/The-Nexus-Decoded/Arianus-Sky/issues/1" className="text-blue-500 hover:underline">#1 Integration</a>
+          </div>
+        </header>
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-xl">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase mb-2">Total Signals</h3>
+            <p className="text-3xl font-bold text-white">{loading ? '...' : signals.length}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-xl">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase mb-2">Execution Engine</h3>
+            <p className="text-3xl font-bold text-green-400">DRY_RUN</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-xl">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase mb-2">Status</h3>
+            <p className="text-3xl font-bold text-blue-400 animate-pulse">STABLE</p>
+          </div>
+        </section>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-2xl">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">Timestamp</th>
+                <th className="p-4 font-semibold">Action</th>
+                <th className="p-4 font-semibold">Pair</th>
+                <th className="p-4 font-semibold">Amount</th>
+                <th className="p-4 font-semibold">Price Δ</th>
+                <th className="p-4 font-semibold">Reason</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {loading ? (
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Retrieving intelligence...</td></tr>
+              ) : signals.slice().reverse().map((s, i) => (
+                <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="p-4 text-xs text-slate-500">{s.timestamp}</td>
+                  <td className="p-4 font-bold">
+                    <span className={s.action === 'BUY' ? 'text-green-400' : 'text-red-400'}>
+                      {s.action}
+                    </span>
+                  </td>
+                  <td className="p-4">{s.pair}</td>
+                  <td className="p-4">{s.amount}</td>
+                  <td className={`p-4 ${s.price_change > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {(s.price_change * 100).toFixed(2)}%
+                  </td>
+                  <td className="p-4 text-xs text-slate-400">{s.reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
