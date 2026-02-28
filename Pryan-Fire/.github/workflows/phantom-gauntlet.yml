@@ -37,7 +37,7 @@ jobs:
           # The Trial by Fire: Execute the core logic and enforce a successful exit code.
           # We use a timeout to bound the trial to exactly 1 hour as Zifnab commanded.
           # Any non-zero exit from the Orchestrator or Trader will fail the entire Job.
-          timeout 3600 python3 services/trade-orchestrator/src/TradeOrchestrator.py --config config/testnet/orchestrator_config.json || {
+          timeout 3600 python3 hughs-forge/services/trade-orchestrator/src/TradeOrchestrator.py --config hughs-forge/config/testnet/orchestrator_config.json || {
             echo "❌ THE SENTINEL HAS FALLEN. Trial failed with exit code $?."
             exit 1
           }
