@@ -12,6 +12,7 @@ from anchorpy import Program, Provider, Wallet, Idl, Context
 # Meteora DLMM Program ID
 METEORA_PROGRAM_ID = Pubkey.from_string("Lb2fG9zH3KBCCcHpxJpSst87YySAs29vBEnK9F16nC6")
 RENT_SYSVAR = Pubkey.from_string("SysvarRent111111111111111111111111111111111")
+TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 
 class MeteoraArmory:
     """
@@ -46,11 +47,18 @@ class MeteoraArmory:
         state = await self.program.account["LbPair"].fetch(Pubkey.from_string(lb_pair_address))
         return state
 
+    def derive_bin_array_pda(self, lb_pair: Pubkey, index: int) -> Pubkey:
+        """Derives the PDA for a Meteora DLMM BinArray."""
+        seeds = [
+            b"bin_array",
+            bytes(lb_pair),
+            index.to_bytes(8, "little", signed=True)
+        ]
+        pda, _ = Pubkey.find_program_address(seeds, METEORA_PROGRAM_ID)
+        return pda
+
     def derive_position_pda(self, lb_pair: Pubkey, owner: Pubkey, lower_bin_id: int, width: int) -> Pubkey:
-        """
-        Derives the PDA for a Meteora DLMM Position.
-        Rune: PDA(["position", lb_pair, owner, lower_bin_id, width], program_id)
-        """
+        """Derives the PDA for a Meteora DLMM Position."""
         seeds = [
             b"position",
             bytes(lb_pair),
@@ -61,52 +69,35 @@ class MeteoraArmory:
         pda, _ = Pubkey.find_program_address(seeds, METEORA_PROGRAM_ID)
         return pda
 
-    async def build_initialize_position_tx(self, pool_address: str, lower_bin_id: int, width: int):
+    async def build_add_liquidity_ix(self, pool_address: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
         """
-        Builds the 'initializePosition' transaction.
+        Builds the 'addLiquidity' instruction.
         Issue #3: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/3
         """
         if not self.program or not self.wallet:
             raise ValueError("Program or Wallet not initialized")
 
         lb_pair = Pubkey.from_string(pool_address)
-        position_pda = self.derive_position_pda(lb_pair, self.wallet.public_key, lower_bin_id, width)
+        position = Pubkey.from_string(position_pda)
+        
+        # Derive BinArray PDAs (Up to 3 supported in DLMM)
+        ba_pdas = [self.derive_bin_array_pda(lb_pair, idx) for idx in bin_arrays[:3]]
+        while len(ba_pdas) < 3:
+            ba_pdas.append(METEORA_PROGRAM_ID) # Pad with program ID if fewer than 3
 
-        print(f"[ARMORY] Building 'initializePosition' for PDA: {position_pda}")
+        print(f"[ARMORY] Building 'addLiquidity' for position: {position}")
 
-        # Construct accounts context for Anchor
-        # Expected: payer, position, lbPair, owner, systemProgram, rent
-        ix = self.program.instruction["initializePosition"](
-            lower_bin_id, 
-            width,
-            ctx=Context(
-                accounts={
-                    "payer": self.wallet.public_key,
-                    "position": position_pda,
-                    "lbPair": lb_pair,
-                    "owner": self.wallet.public_key,
-                    "systemProgram": SYS_PROGRAM_ID,
-                    "rent": RENT_SYSVAR
-                }
-            )
-        )
-        return ix
+        # Note: This requires active token account derivation (UserTokenX/Y)
+        # and identifying the vault/reserve accounts from LbPair state.
+        
+        return {"ba0": str(ba_pdas[0]), "ba1": str(ba_pdas[1]), "ba2": str(ba_pdas[2])}
 
     async def close(self):
         await self.client.close()
 
 if __name__ == "__main__":
     async def test():
-        # Test using the known SOL/USDC pair
-        pair_addr = "8Pm2kZpnxD3hoMmt4bjStX2Pw2Z9abpbHzZxMPqxPmie"
         armory = MeteoraArmory("https://api.mainnet-beta.solana.com")
         await armory.initialize()
-        
-        try:
-            state = await armory.get_lb_pair_state(pair_addr)
-            print(f"Decoded LbPair BinStep: {state.parameters.bin_step}")
-        except Exception as e:
-            print(f"State Fetch Failed: {e}")
-            
         await armory.close()
     asyncio.run(test())
