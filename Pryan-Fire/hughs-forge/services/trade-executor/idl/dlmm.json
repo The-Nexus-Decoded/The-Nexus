@@ -1,7 +1,68 @@
 {
-  "version": "0.1.0",
+  "version": "0.9.1",
   "name": "lb_clmm",
   "instructions": [
+    {
+      "name": "add_liquidity",
+      "accounts": [
+        {"name": "position", "isMut": true, "isSigner": false},
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "user_token_x", "isMut": true, "isSigner": false},
+        {"name": "user_token_y", "isMut": true, "isSigner": false},
+        {"name": "reserve_x", "isMut": true, "isSigner": false},
+        {"name": "reserve_y", "isMut": true, "isSigner": false},
+        {"name": "token_x_mint", "isMut": false, "isSigner": false},
+        {"name": "token_y_mint", "isMut": false, "isSigner": false},
+        {"name": "bin_array_lower", "isMut": true, "isSigner": false},
+        {"name": "bin_array_upper", "isMut": true, "isSigner": false},
+        {"name": "sender", "isMut": false, "isSigner": true},
+        {"name": "token_x_program", "isMut": false, "isSigner": false},
+        {"name": "token_y_program", "isMut": false, "isSigner": false},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
+        {"name": "program", "isMut": false, "isSigner": false}
+      ],
+      "args": [
+        {"name": "liquidity_parameter", "type": {"defined": "LiquidityParameter"}}
+      ]
+    },
+    {
+      "name": "claim_fee",
+      "accounts": [
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "position", "isMut": true, "isSigner": false},
+        {"name": "bin_array_lower", "isMut": false, "isSigner": false},
+        {"name": "bin_array_upper", "isMut": false, "isSigner": false},
+        {"name": "sender", "isMut": false, "isSigner": true},
+        {"name": "reserve_x", "isMut": true, "isSigner": false},
+        {"name": "reserve_y", "isMut": true, "isSigner": false},
+        {"name": "user_token_x", "isMut": true, "isSigner": false},
+        {"name": "user_token_y", "isMut": true, "isSigner": false},
+        {"name": "token_x_mint", "isMut": false, "isSigner": false},
+        {"name": "token_y_mint", "isMut": false, "isSigner": false},
+        {"name": "token_program", "isMut": false, "isSigner": false},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
+        {"name": "program", "isMut": false, "isSigner": false}
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_reward",
+      "accounts": [
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "position", "isMut": true, "isSigner": false},
+        {"name": "bin_array_lower", "isMut": false, "isSigner": false},
+        {"name": "bin_array_upper", "isMut": false, "isSigner": false},
+        {"name": "sender", "isMut": false, "isSigner": true},
+        {"name": "reward_vault", "isMut": true, "isSigner": false},
+        {"name": "reward_mint", "isMut": false, "isSigner": false},
+        {"name": "user_token_account", "isMut": true, "isSigner": false},
+        {"name": "token_program", "isMut": false, "isSigner": false},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
+        {"name": "program", "isMut": false, "isSigner": false}
+      ],
+      "args": [{"name": "reward_index", "type": "u64"}]
+    },
     {
       "name": "initialize_position",
       "accounts": [
@@ -18,31 +79,6 @@
       ]
     },
     {
-      "name": "add_liquidity",
-      "accounts": [
-        {"name": "position", "isMut": true, "isSigner": false},
-        {"name": "lb_pair", "isMut": true, "isSigner": false},
-        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
-        {"name": "user_token_x", "isMut": true, "isSigner": false},
-        {"name": "user_token_y", "isMut": true, "isSigner": false},
-        {"name": "reserve_x", "isMut": true, "isSigner": false},
-        {"name": "reserve_y", "isMut": true, "isSigner": false},
-        {"name": "token_x_mint", "isMut": false, "isSigner": false},
-        {"name": "token_y_mint", "isMut": false, "isSigner": false},
-        {"name": "bin_array_0", "isMut": true, "isSigner": false},
-        {"name": "bin_array_1", "isMut": true, "isSigner": false},
-        {"name": "bin_array_2", "isMut": true, "isSigner": false},
-        {"name": "oracle", "isMut": false, "isSigner": false},
-        {"name": "host_fee_in", "isMut": true, "isSigner": false, "isOptional": true},
-        {"name": "token_program", "isMut": false, "isSigner": false},
-        {"name": "event_authority", "isMut": false, "isSigner": false},
-        {"name": "program", "isMut": false, "isSigner": false}
-      ],
-      "args": [
-        {"name": "liquidity_parameter", "type": {"defined": "LiquidityParameter"}}
-      ]
-    },
-    {
       "name": "remove_liquidity",
       "accounts": [
         {"name": "position", "isMut": true, "isSigner": false},
@@ -54,11 +90,11 @@
         {"name": "reserve_y", "isMut": true, "isSigner": false},
         {"name": "token_x_mint", "isMut": false, "isSigner": false},
         {"name": "token_y_mint", "isMut": false, "isSigner": false},
-        {"name": "bin_array_0", "isMut": true, "isSigner": false},
-        {"name": "bin_array_1", "isMut": true, "isSigner": false},
-        {"name": "bin_array_2", "isMut": true, "isSigner": false},
-        {"name": "oracle", "isMut": false, "isSigner": false},
-        {"name": "token_program", "isMut": false, "isSigner": false},
+        {"name": "bin_array_lower", "isMut": true, "isSigner": false},
+        {"name": "bin_array_upper", "isMut": true, "isSigner": false},
+        {"name": "sender", "isMut": false, "isSigner": true},
+        {"name": "token_x_program", "isMut": false, "isSigner": false},
+        {"name": "token_y_program", "isMut": false, "isSigner": false},
         {"name": "event_authority", "isMut": false, "isSigner": false},
         {"name": "program", "isMut": false, "isSigner": false}
       ],
@@ -69,10 +105,12 @@
     {
       "name": "close_position",
       "accounts": [
-        {"name": "receiver", "isMut": true, "isSigner": false},
         {"name": "position", "isMut": true, "isSigner": false},
-        {"name": "lb_pair", "isMut": false, "isSigner": false},
-        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "bin_array_lower", "isMut": true, "isSigner": false},
+        {"name": "bin_array_upper", "isMut": true, "isSigner": false},
+        {"name": "sender", "isMut": false, "isSigner": true},
+        {"name": "rent_receiver", "isMut": true, "isSigner": false},
         {"name": "event_authority", "isMut": false, "isSigner": false},
         {"name": "program", "isMut": false, "isSigner": false}
       ],
