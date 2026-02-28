@@ -3,68 +3,80 @@
   "name": "lb_clmm",
   "instructions": [
     {
-      "name": "initializePosition",
+      "name": "initialize_position",
       "accounts": [
         {"name": "payer", "isMut": true, "isSigner": true},
         {"name": "position", "isMut": true, "isSigner": true},
-        {"name": "lbPair", "isMut": false, "isSigner": false},
+        {"name": "lb_pair", "isMut": false, "isSigner": false},
         {"name": "owner", "isMut": false, "isSigner": false},
-        {"name": "systemProgram", "isMut": false, "isSigner": false},
+        {"name": "system_program", "isMut": false, "isSigner": false},
         {"name": "rent", "isMut": false, "isSigner": false}
       ],
       "args": [
-        {"name": "lowerBinId", "type": "i32"},
+        {"name": "lower_bin_id", "type": "i32"},
         {"name": "width", "type": "i32"}
       ]
     },
     {
-      "name": "addLiquidity",
+      "name": "add_liquidity",
       "accounts": [
         {"name": "position", "isMut": true, "isSigner": false},
-        {"name": "lbPair", "isMut": true, "isSigner": false},
-        {"name": "binArrayBitmapExtension", "isMut": true, "isSigner": false, "isOptional": true},
-        {"name": "userTokenX", "isMut": true, "isSigner": false},
-        {"name": "userTokenY", "isMut": true, "isSigner": false},
-        {"name": "reserveX", "isMut": true, "isSigner": false},
-        {"name": "reserveY", "isMut": true, "isSigner": false},
-        {"name": "tokenXMint", "isMut": false, "isSigner": false},
-        {"name": "tokenYMint", "isMut": false, "isSigner": false},
-        {"name": "binArray0", "isMut": true, "isSigner": false},
-        {"name": "binArray1", "isMut": true, "isSigner": false},
-        {"name": "binArray2", "isMut": true, "isSigner": false},
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "user_token_x", "isMut": true, "isSigner": false},
+        {"name": "user_token_y", "isMut": true, "isSigner": false},
+        {"name": "reserve_x", "isMut": true, "isSigner": false},
+        {"name": "reserve_y", "isMut": true, "isSigner": false},
+        {"name": "token_x_mint", "isMut": false, "isSigner": false},
+        {"name": "token_y_mint", "isMut": false, "isSigner": false},
+        {"name": "bin_array_0", "isMut": true, "isSigner": false},
+        {"name": "bin_array_1", "isMut": true, "isSigner": false},
+        {"name": "bin_array_2", "isMut": true, "isSigner": false},
         {"name": "oracle", "isMut": false, "isSigner": false},
-        {"name": "hostFeeIn", "isMut": true, "isSigner": false, "isOptional": true},
-        {"name": "tokenProgram", "isMut": false, "isSigner": false},
-        {"name": "eventAuthority", "isMut": false, "isSigner": false},
+        {"name": "host_fee_in", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "token_program", "isMut": false, "isSigner": false},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
         {"name": "program", "isMut": false, "isSigner": false}
       ],
       "args": [
-        {"name": "liquidityParameter", "type": {"defined": "LiquidityParameter"}}
+        {"name": "liquidity_parameter", "type": {"defined": "LiquidityParameter"}}
       ]
     },
     {
-      "name": "removeLiquidity",
+      "name": "remove_liquidity",
       "accounts": [
         {"name": "position", "isMut": true, "isSigner": false},
-        {"name": "lbPair", "isMut": true, "isSigner": false},
-        {"name": "binArrayBitmapExtension", "isMut": true, "isSigner": false, "isOptional": true},
-        {"name": "userTokenX", "isMut": true, "isSigner": false},
-        {"name": "userTokenY", "isMut": true, "isSigner": false},
-        {"name": "reserveX", "isMut": true, "isSigner": false},
-        {"name": "reserveY", "isMut": true, "isSigner": false},
-        {"name": "tokenXMint", "isMut": false, "isSigner": false},
-        {"name": "tokenYMint", "isMut": false, "isSigner": false},
-        {"name": "binArray0", "isMut": true, "isSigner": false},
-        {"name": "binArray1", "isMut": true, "isSigner": false},
-        {"name": "binArray2", "isMut": true, "isSigner": false},
+        {"name": "lb_pair", "isMut": true, "isSigner": false},
+        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "user_token_x", "isMut": true, "isSigner": false},
+        {"name": "user_token_y", "isMut": true, "isSigner": false},
+        {"name": "reserve_x", "isMut": true, "isSigner": false},
+        {"name": "reserve_y", "isMut": true, "isSigner": false},
+        {"name": "token_x_mint", "isMut": false, "isSigner": false},
+        {"name": "token_y_mint", "isMut": false, "isSigner": false},
+        {"name": "bin_array_0", "isMut": true, "isSigner": false},
+        {"name": "bin_array_1", "isMut": true, "isSigner": false},
+        {"name": "bin_array_2", "isMut": true, "isSigner": false},
         {"name": "oracle", "isMut": false, "isSigner": false},
-        {"name": "tokenProgram", "isMut": false, "isSigner": false},
-        {"name": "eventAuthority", "isMut": false, "isSigner": false},
+        {"name": "token_program", "isMut": false, "isSigner": false},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
         {"name": "program", "isMut": false, "isSigner": false}
       ],
       "args": [
-        {"name": "liquidityParameter", "type": {"defined": "LiquidityParameter"}}
+        {"name": "liquidity_parameter", "type": {"defined": "LiquidityParameter"}}
       ]
+    },
+    {
+      "name": "close_position",
+      "accounts": [
+        {"name": "receiver", "isMut": true, "isSigner": false},
+        {"name": "position", "isMut": true, "isSigner": false},
+        {"name": "lb_pair", "isMut": false, "isSigner": false},
+        {"name": "bin_array_bitmap_extension", "isMut": true, "isSigner": false, "isOptional": true},
+        {"name": "event_authority", "isMut": false, "isSigner": false},
+        {"name": "program", "isMut": false, "isSigner": false}
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -74,15 +86,15 @@
         "kind": "struct",
         "fields": [
           {"name": "parameters", "type": {"defined": "StaticParameters"}},
-          {"name": "vParameters", "type": {"defined": "VariableParameters"}},
-          {"name": "bumpSeed", "type": {"array": ["u8", 1]}},
-          {"name": "binStepSeed", "type": {"array": ["u8", 2]}},
-          {"name": "tokenXMint", "type": "publicKey"},
-          {"name": "tokenYMint", "type": "publicKey"},
-          {"name": "reserveX", "type": "publicKey"},
-          {"name": "reserveY", "type": "publicKey"},
-          {"name": "protocolFee", "type": {"defined": "ProtocolFee"}},
-          {"name": "feeOwner", "type": "publicKey"}
+          {"name": "v_parameters", "type": {"defined": "VariableParameters"}},
+          {"name": "bump_seed", "type": {"array": ["u8", 1]}},
+          {"name": "bin_step_seed", "type": {"array": ["u8", 2]}},
+          {"name": "token_x_mint", "type": "publicKey"},
+          {"name": "token_y_mint", "type": "publicKey"},
+          {"name": "reserve_x", "type": "publicKey"},
+          {"name": "reserve_y", "type": "publicKey"},
+          {"name": "protocol_fee", "type": {"defined": "ProtocolFee"}},
+          {"name": "fee_owner", "type": "publicKey"}
         ]
       }
     },
@@ -91,14 +103,14 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "lbPair", "type": "publicKey"},
+          {"name": "lb_pair", "type": "publicKey"},
           {"name": "owner", "type": "publicKey"},
-          {"name": "liquidityShares", "type": {"array": ["u64", 1]}},
-          {"name": "rewardInfos", "type": {"array": [{"defined": "UserRewardInfo"}, 3]}},
-          {"name": "feeInfos", "type": {"array": [{"defined": "FeeInfo"}, 2]}},
-          {"name": "lowerBinId", "type": "i32"},
-          {"name": "upperBinId", "type": "i32"},
-          {"name": "lastUpdatedAt", "type": "i64"},
+          {"name": "liquidity_shares", "type": {"array": ["u64", 1]}},
+          {"name": "reward_infos", "type": {"array": [{"defined": "UserRewardInfo"}, 3]}},
+          {"name": "fee_infos", "type": {"array": [{"defined": "FeeInfo"}, 2]}},
+          {"name": "lower_bin_id", "type": "i32"},
+          {"name": "upper_bin_id", "type": "i32"},
+          {"name": "last_updated_at", "type": "i64"},
           {"name": "padding", "type": {"array": ["u8", 64]}}
         ]
       }
@@ -110,9 +122,9 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "amountX", "type": "u64"},
-          {"name": "amountY", "type": "u64"},
-          {"name": "binArrays", "type": {"array": ["i64", 3]}}
+          {"name": "amount_x", "type": "u64"},
+          {"name": "amount_y", "type": "u64"},
+          {"name": "bin_arrays", "type": {"array": ["i64", 3]}}
         ]
       }
     },
@@ -121,7 +133,7 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "binStep", "type": "u16"}
+          {"name": "bin_step", "type": "u16"}
         ]
       }
     },
@@ -130,7 +142,7 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "volatilityAccumulator", "type": "u32"}
+          {"name": "volatility_accumulator", "type": "u32"}
         ]
       }
     },
@@ -139,8 +151,8 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "amountX", "type": "u64"},
-          {"name": "amountY", "type": "u64"}
+          {"name": "amount_x", "type": "u64"},
+          {"name": "amount_y", "type": "u64"}
         ]
       }
     },
@@ -149,7 +161,7 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "rewardIndex", "type": "u8"}
+          {"name": "reward_index", "type": "u8"}
         ]
       }
     },
@@ -158,7 +170,7 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {"name": "feeIndex", "type": "u8"}
+          {"name": "fee_index", "type": "u8"}
         ]
       }
     }

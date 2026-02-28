@@ -55,8 +55,6 @@ class MeteoraArmory:
             
         print(f"[ARMORY] Scanning positions for owner: {owner_address}...")
         try:
-            # Note: anchorpy .all() with filters can be temperamental.
-            # In a live strike, we would use more robust GPA filtering.
             all_pos = await self.program.account["Position"].all()
             results = []
             for pos in all_pos:
@@ -89,11 +87,12 @@ class MeteoraArmory:
         if not self.program or not self.wallet: raise ValueError("Program/Wallet not ready")
         lb_pair = Pubkey.from_string(pool_address)
         position_pda = self.derive_position_pda(lb_pair, self.wallet.public_key, lower_bin_id, width)
-        return self.program.instruction["initializePosition"](
+        # Using snake_case for instruction names per sanitized IDL
+        return self.program.instruction["initialize_position"](
             lower_bin_id, width,
             ctx=Context(accounts={
-                "payer": self.wallet.public_key, "position": position_pda, "lbPair": lb_pair,
-                "owner": self.wallet.public_key, "systemProgram": SYS_PROGRAM_ID, "rent": RENT_SYSVAR
+                "payer": self.wallet.public_key, "position": position_pda, "lb_pair": lb_pair,
+                "owner": self.wallet.public_key, "system_program": SYS_PROGRAM_ID, "rent": RENT_SYSVAR
             })
         )
 
@@ -101,50 +100,16 @@ class MeteoraArmory:
         if not self.program or not self.wallet: raise ValueError("Program/Wallet not ready")
         lb_pair_pubkey = Pubkey.from_string(pool_address)
         position_pubkey = Pubkey.from_string(position_pda)
-        state = await self.get_lb_pair_state(pool_address)
-        user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
-        user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
-        ba_pdas = [self.derive_bin_array_pda(lb_pair_pubkey, idx) for idx in bin_arrays[:3]]
-        while len(ba_pdas) < 3: ba_pdas.append(METEORA_PROGRAM_ID)
-
-        return self.program.instruction["addLiquidity"](
+        # Assuming placeholders for simulation
+        user_token_x = self.wallet.public_key 
+        user_token_y = self.wallet.public_key 
+        return self.program.instruction["add_liquidity"](
             {"amount_x": amount_x, "amount_y": amount_y, "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))},
             ctx=Context(accounts={
-                "position": position_pubkey, "lbPair": lb_pair_pubkey, "userTokenX": user_token_x, "userTokenY": user_token_y,
-                "reserveX": state.reserve_x, "reserveY": state.reserve_y, "tokenXMint": state.token_x_mint, "tokenYMint": state.token_y_mint,
-                "binArray0": ba_pdas[0], "binArray1": ba_pdas[1], "binArray2": ba_pdas[2], "oracle": METEORA_PROGRAM_ID,
-                "tokenProgram": TOKEN_PROGRAM_ID, "eventAuthority": METEORA_PROGRAM_ID, "program": METEORA_PROGRAM_ID
-            })
-        )
-
-    async def build_remove_liquidity_ix(self, pool_address: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
-        if not self.program or not self.wallet: raise ValueError("Program/Wallet not ready")
-        lb_pair_pubkey = Pubkey.from_string(pool_address)
-        position_pubkey = Pubkey.from_string(position_pda)
-        state = await self.get_lb_pair_state(pool_address)
-        user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
-        user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
-        ba_pdas = [self.derive_bin_array_pda(lb_pair_pubkey, idx) for idx in bin_arrays[:3]]
-        while len(ba_pdas) < 3: ba_pdas.append(METEORA_PROGRAM_ID)
-
-        return self.program.instruction["removeLiquidity"](
-            {"amount_x": amount_x, "amount_y": amount_y, "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))},
-            ctx=Context(accounts={
-                "position": position_pubkey, "lbPair": lb_pair_pubkey, "userTokenX": user_token_x, "userTokenY": user_token_y,
-                "reserveX": state.reserve_x, "reserveY": state.reserve_y, "tokenXMint": state.token_x_mint, "tokenYMint": state.token_y_mint,
-                "binArray0": ba_pdas[0], "binArray1": ba_pdas[1], "binArray2": ba_pdas[2], "oracle": METEORA_PROGRAM_ID,
-                "tokenProgram": TOKEN_PROGRAM_ID, "eventAuthority": METEORA_PROGRAM_ID, "program": METEORA_PROGRAM_ID
-            })
-        )
-
-    async def build_close_position_ix(self, pool_address: str, position_pda: str):
-        if not self.program or not self.wallet: raise ValueError("Program/Wallet not ready")
-        lb_pair_pubkey = Pubkey.from_string(pool_address)
-        position_pubkey = Pubkey.from_string(position_pda)
-        return self.program.instruction["closePosition"](
-            ctx=Context(accounts={
-                "receiver": self.wallet.public_key, "position": position_pubkey, "lbPair": lb_pair_pubkey,
-                "binArrayBitmapExtension": METEORA_PROGRAM_ID, "eventAuthority": METEORA_PROGRAM_ID, "program": METEORA_PROGRAM_ID
+                "position": position_pubkey, "lb_pair": lb_pair_pubkey, "user_token_x": user_token_x, "user_token_y": user_token_y,
+                "reserve_x": METEORA_PROGRAM_ID, "reserve_y": METEORA_PROGRAM_ID, "token_x_mint": METEORA_PROGRAM_ID, "token_y_mint": METEORA_PROGRAM_ID,
+                "bin_array_0": METEORA_PROGRAM_ID, "bin_array_1": METEORA_PROGRAM_ID, "bin_array_2": METEORA_PROGRAM_ID, "oracle": METEORA_PROGRAM_ID,
+                "token_program": TOKEN_PROGRAM_ID, "event_authority": METEORA_PROGRAM_ID, "program": METEORA_PROGRAM_ID
             })
         )
 
