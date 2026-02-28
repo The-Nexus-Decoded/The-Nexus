@@ -102,15 +102,36 @@ class MeteoraArmory:
             ba_pdas.append(METEORA_PROGRAM_ID)
 
         print(f"[ARMORY] Building 'addLiquidity' for position: {position_pubkey}")
-        # Next: Finalize instruction call with LiquidityParameter encoding
-        
-        return {
-            "user_token_x": str(user_token_x),
-            "user_token_y": str(user_token_y),
-            "reserve_x": str(state.reserve_x),
-            "reserve_y": str(state.reserve_y),
-            "bin_arrays": [str(p) for p in ba_pdas]
-        }
+
+        # Construct instruction with encoded LiquidityParameter
+        # bin_arrays args expects list of i64
+        ix = self.program.instruction["addLiquidity"](
+            {
+                "amount_x": amount_x,
+                "amount_y": amount_y,
+                "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))
+            },
+            ctx=Context(
+                accounts={
+                    "position": position_pubkey,
+                    "lbPair": lb_pair_pubkey,
+                    "userTokenX": user_token_x,
+                    "userTokenY": user_token_y,
+                    "reserveX": state.reserve_x,
+                    "reserveY": state.reserve_y,
+                    "tokenXMint": state.token_x_mint,
+                    "tokenYMint": state.token_y_mint,
+                    "binArray0": ba_pdas[0],
+                    "binArray1": ba_pdas[1],
+                    "binArray2": ba_pdas[2],
+                    "oracle": METEORA_PROGRAM_ID, # Placeholder if optional/unused
+                    "tokenProgram": TOKEN_PROGRAM_ID,
+                    "eventAuthority": METEORA_PROGRAM_ID, # Placeholder
+                    "program": METEORA_PROGRAM_ID
+                }
+            )
+        )
+        return ix
 
     async def close(self):
         await self.client.close()
