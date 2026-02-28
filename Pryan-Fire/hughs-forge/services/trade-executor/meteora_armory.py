@@ -13,6 +13,7 @@ from anchorpy import Program, Provider, Wallet, Idl, Context
 METEORA_PROGRAM_ID = Pubkey.from_string("Lb2fG9zH3KBCCcHpxJpSst87YySAs29vBEnK9F16nC6")
 RENT_SYSVAR = Pubkey.from_string("SysvarRent111111111111111111111111111111111")
 TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdQxrVca29as98E2kE53v5w5b3T97ArJC7y")
 
 class MeteoraArmory:
     """
@@ -69,6 +70,14 @@ class MeteoraArmory:
         pda, _ = Pubkey.find_program_address(seeds, METEORA_PROGRAM_ID)
         return pda
 
+    def derive_ata(self, owner: Pubkey, mint: Pubkey) -> Pubkey:
+        """Derives the Associated Token Account (ATA) for a mint."""
+        ata, _ = Pubkey.find_program_address(
+            [bytes(owner), bytes(TOKEN_PROGRAM_ID), bytes(mint)],
+            ASSOCIATED_TOKEN_PROGRAM_ID
+        )
+        return ata
+
     async def build_add_liquidity_ix(self, pool_address: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
         """
         Builds the 'addLiquidity' instruction.
@@ -77,20 +86,31 @@ class MeteoraArmory:
         if not self.program or not self.wallet:
             raise ValueError("Program or Wallet not initialized")
 
-        lb_pair = Pubkey.from_string(pool_address)
-        position = Pubkey.from_string(position_pda)
+        lb_pair_pubkey = Pubkey.from_string(pool_address)
+        position_pubkey = Pubkey.from_string(position_pda)
         
-        # Derive BinArray PDAs (Up to 3 supported in DLMM)
-        ba_pdas = [self.derive_bin_array_pda(lb_pair, idx) for idx in bin_arrays[:3]]
+        # Fetch LbPair state for reserve addresses
+        state = await self.get_lb_pair_state(pool_address)
+        
+        # Derive ATAs for the bot wallet
+        user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
+        user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
+        
+        # Derive BinArray PDAs
+        ba_pdas = [self.derive_bin_array_pda(lb_pair_pubkey, idx) for idx in bin_arrays[:3]]
         while len(ba_pdas) < 3:
-            ba_pdas.append(METEORA_PROGRAM_ID) # Pad with program ID if fewer than 3
+            ba_pdas.append(METEORA_PROGRAM_ID)
 
-        print(f"[ARMORY] Building 'addLiquidity' for position: {position}")
-
-        # Note: This requires active token account derivation (UserTokenX/Y)
-        # and identifying the vault/reserve accounts from LbPair state.
+        print(f"[ARMORY] Building 'addLiquidity' for position: {position_pubkey}")
+        # Next: Finalize instruction call with LiquidityParameter encoding
         
-        return {"ba0": str(ba_pdas[0]), "ba1": str(ba_pdas[1]), "ba2": str(ba_pdas[2])}
+        return {
+            "user_token_x": str(user_token_x),
+            "user_token_y": str(user_token_y),
+            "reserve_x": str(state.reserve_x),
+            "reserve_y": str(state.reserve_y),
+            "bin_arrays": [str(p) for p in ba_pdas]
+        }
 
     async def close(self):
         await self.client.close()
