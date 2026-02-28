@@ -3,6 +3,7 @@ import json
 from typing import Dict, Any, List, Optional
 from solana.transaction import Transaction
 from solders.instruction import Instruction
+from solders.pubkey import Pubkey
 from solders.keypair import Keypair
 from meteora_armory import MeteoraArmory
 
@@ -33,22 +34,38 @@ class TradeOrchestrator:
         # 1. Initialize Position Instruction
         init_ix = await self.armory.build_initialize_position_ix(pool, lower_bin_id, width)
         
-        # 2. Add Liquidity Instruction
-        # We derive the position PDA again for the context mapping
-        lb_pair_pub = self.armory.program.account["LbPair"].fetch(pool).token_x_mint # Simple fetch for derivation
+        # 2. Derive Position PDA for context mapping
+        lb_pair_pub = Pubkey.from_string(pool)
         pos_pda = self.armory.derive_position_pda(
-            Pubkey.from_string(pool), 
+            lb_pair_pub, 
             self.armory.wallet.public_key, 
             lower_bin_id, 
             width
         )
         
+        # 3. Add Liquidity Instruction
         add_ix = await self.armory.build_add_liquidity_ix(
             pool, str(pos_pda), amount_x, amount_y, bin_arrays
         )
         
-        # In Phase 3: Bundle and broadcast via TransactionCore
         return [init_ix, add_ix]
+
+    async def execute_close_strike(self, pool: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
+        """
+        Sequences the 'Remove Liquidity -> Close Position' strike.
+        Issue #45: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/45
+        """
+        print(f"[ORCHESTRATOR] Sequencing CLOSE strike for position {position_pda} on {pool}...")
+        
+        # 1. Remove Liquidity Instruction
+        remove_ix = await self.armory.build_remove_liquidity_ix(
+            pool, position_pda, amount_x, amount_y, bin_arrays
+        )
+        
+        # 2. Close Position Instruction (Rent Recovery)
+        close_ix = await self.armory.build_close_position_ix(pool, position_pda)
+        
+        return [remove_ix, close_ix]
 
     async def process_signal(self, signal: Dict[str, Any]):
         """
@@ -84,9 +101,16 @@ class TradeOrchestrator:
                 return {"status": "SUCCESS", "action": "OPEN", "ix_count": len(ixs)}
             
             elif action == 'CLOSE':
-                print(f"[ORCHESTRATOR] Executing CLOSE strike on {pool}...")
+                ixs = await self.execute_close_strike(
+                    pool,
+                    params.get('position_pda'),
+                    params.get('amount_x', 0),
+                    params.get('amount_y', 0),
+                    params.get('bin_arrays', [0])
+                )
+                print(f"[ORCHESTRATOR] CLOSE strike instructions generated: {len(ixs)}")
                 self.current_exposure_usd -= amount
-                return {"status": "SUCCESS", "action": "CLOSE"}
+                return {"status": "SUCCESS", "action": "CLOSE", "ix_count": len(ixs)}
 
         except Exception as e:
             print(f"[ORCHESTRATOR ERROR] Execution failed: {e}")
@@ -99,6 +123,16 @@ if __name__ == "__main__":
     async def test_orch():
         orch = TradeOrchestrator("https://api.mainnet-beta.solana.com", None)
         await orch.initialize()
-        await orch.process_signal({'pool': '8Pm2k...', 'action': 'OPEN', 'amount_usd': 100.0, 'params': {'amount_x': 1000, 'amount_y': 1000, 'bin_arrays': [0]}})
+        await orch.process_signal({
+            'pool': '8Pm2k...', 
+            'action': 'CLOSE', 
+            'amount_usd': 50.0, 
+            'params': {
+                'position_pda': 'BSS8E...', 
+                'amount_x': 1000, 
+                'amount_y': 1000, 
+                'bin_arrays': [0]
+            }
+        })
         await orch.shutdown()
     asyncio.run(test_orch())
