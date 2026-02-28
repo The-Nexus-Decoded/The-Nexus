@@ -153,14 +153,16 @@ class TradeExecutor:
         # 2. Watchlist Parallel Monitoring (Phase 6)
         logger.info("--- [WATCHLIST SCAN] ---")
         watchlist_tokens = self.watchlist_monitor.get_tokens()
-        for mint in watchlist_tokens:
-            if mint in held_mints: continue # Already handled in portfolio scan
-            
+        
+        async def scan_token(mint):
+            if mint in held_mints: return
             momentum_check = await self.momentum_scanner.validate_momentum(mint)
-            if momentum_check["momentum_signal"] == "POSITIVE":
+            if momentum_check["momentum_signal"] == "POSITIVE": 
                 logger.warning(f"BREAKOUT_SIGNAL: Positive momentum detected on {mint}! Potential entry detected.")
             else:
                 logger.info(f"    -> Watchlist token {mint} momentum: {momentum_check['momentum_signal']}")
+
+        await asyncio.gather(*(scan_token(m) for m in watchlist_tokens))
 
     async def get_meteora_lp_positions(self, owner_pubkey: Pubkey) -> List[Dict[str, Any]]:
         return []
