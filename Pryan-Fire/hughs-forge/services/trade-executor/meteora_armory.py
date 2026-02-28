@@ -78,9 +78,9 @@ class MeteoraArmory:
         )
         return ata
 
-    async def build_add_liquidity_ix(self, pool_address: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
+    async def build_remove_liquidity_ix(self, pool_address: str, position_pda: str, amount_x: int, amount_y: int, bin_arrays: List[int]):
         """
-        Builds the 'addLiquidity' instruction.
+        Builds the 'removeLiquidity' instruction.
         Issue #3: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/3
         """
         if not self.program or not self.wallet:
@@ -89,23 +89,17 @@ class MeteoraArmory:
         lb_pair_pubkey = Pubkey.from_string(pool_address)
         position_pubkey = Pubkey.from_string(position_pda)
         
-        # Fetch LbPair state for reserve addresses
         state = await self.get_lb_pair_state(pool_address)
-        
-        # Derive ATAs for the bot wallet
         user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
         user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
         
-        # Derive BinArray PDAs
         ba_pdas = [self.derive_bin_array_pda(lb_pair_pubkey, idx) for idx in bin_arrays[:3]]
         while len(ba_pdas) < 3:
             ba_pdas.append(METEORA_PROGRAM_ID)
 
-        print(f"[ARMORY] Building 'addLiquidity' for position: {position_pubkey}")
+        print(f"[ARMORY] Building 'removeLiquidity' for position: {position_pubkey}")
 
-        # Construct instruction with encoded LiquidityParameter
-        # bin_arrays args expects list of i64
-        ix = self.program.instruction["addLiquidity"](
+        ix = self.program.instruction["removeLiquidity"](
             {
                 "amount_x": amount_x,
                 "amount_y": amount_y,
@@ -124,9 +118,9 @@ class MeteoraArmory:
                     "binArray0": ba_pdas[0],
                     "binArray1": ba_pdas[1],
                     "binArray2": ba_pdas[2],
-                    "oracle": METEORA_PROGRAM_ID, # Placeholder if optional/unused
+                    "oracle": METEORA_PROGRAM_ID,
                     "tokenProgram": TOKEN_PROGRAM_ID,
-                    "eventAuthority": METEORA_PROGRAM_ID, # Placeholder
+                    "eventAuthority": METEORA_PROGRAM_ID,
                     "program": METEORA_PROGRAM_ID
                 }
             )
