@@ -48,3 +48,4 @@ build/
 Thumbs.db
 *.swp
 *.swo
+/hughs-forge/services/trade-executor/.venv/

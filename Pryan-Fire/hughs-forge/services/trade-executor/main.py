@@ -1,4 +1,8 @@
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+
 # main.py for the Trade Executor service
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
@@ -815,6 +819,14 @@ class TradeExecutor:
             logger.error(f"--> Error fetching Pyth price via Hermes: {e}")
             return None
 
+    async def close(self):
+        """Gracefully close all network sessions."""
+        logger.info("Closing Trade Executor network sessions...")
+        if self.momentum_scanner:
+            await self.momentum_scanner.close()
+        await self.client.close()
+        logger.info("All network sessions closed.")
+
     def execute_trade(self, trade_details: dict) -> Dict[str, Any]:
         """
         Connects to the DEX and executes a swap.
@@ -1064,8 +1076,8 @@ if __name__ == "__main__":
             logger.info(f"Trade result after deactivation: {trade_result_deactivated}")
 
         finally:
-            if executor and executor.momentum_scanner:
-                await executor.momentum_scanner.close()
+            if 'executor' in locals() and executor:
+                await executor.close()
             stop_health_server()
             logger.info("Main async function finished, health server stopped.")
     asyncio.run(main_async())
