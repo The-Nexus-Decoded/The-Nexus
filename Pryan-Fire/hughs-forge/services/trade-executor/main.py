@@ -269,6 +269,8 @@ class TradeExecutor:
         )
         self.risk_manager = RiskManager()
         self.rebalance_strategy = RebalanceStrategy()
+        from src.signals.dex_screener import MomentumScanner # Local import
+        self.momentum_scanner = MomentumScanner()
 
         logger.info("Trade Executor initialized.")
         if self.wallet:
@@ -331,7 +333,16 @@ class TradeExecutor:
         for pos in lp_positions:
             active_id = pos.get("activeId")
             if active_id is None: continue
-            
+
+            # Phase 5: Momentum Scan - Validate the token via DEX Screener
+            token_x_mint = pos.get("tokenXMint")
+            if token_x_mint:
+                momentum_check = await self.momentum_scanner.validate_momentum(str(token_x_mint))
+                if not momentum_check["passed"]:
+                    logger.info(f"    -> Momentum check FAILED for {token_x_mint}: {momentum_check["reason"]}. Skipping rebalance consideration.")
+                    continue
+                logger.info(f"    -> Momentum check PASSED for {token_x_mint}.")
+
             if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
                 new_range = self.rebalance_strategy.calculate_new_range(active_id)
                 report = await self.simulate_rebalance(pos, new_range)
@@ -856,11 +867,91 @@ if __name__ == "__main__":
             if quote:
                 logger.info(f"Successfully fetched a quote. Out amount: {quote.get('outAmount')}")
 
+            # --- MOCK LP POSITIONS FOR TESTING MOMENTUMSCANNER (TEMPORARY) ---
+            lp_positions = [
+                {
+                    "pubkey": Pubkey.new_unique(),
+                    "owner": bot_pubkey,
+                    "pool": Pubkey.new_unique(),
+                    "tokenXMint": Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), # USDC Mint
+                    "tokenYMint": Pubkey.new_unique(),
+                    "ownerTokenXBalance": 0.0,
+                    "ownerTokenYBalance": 0.0,
+                    "lowerBinId": -10,
+                    "upperBinId": 10,
+                    "activeId": 0,
+                    "poolPrice": 1.0,
+                    "liquidity": 1000,
+                    "totalFeeX": 0,
+                    "totalFeeY": 0,
+                    "lastUpdatedAt": 0,
+                },
+                {
+                    "pubkey": Pubkey.new_unique(),
+                    "owner": bot_pubkey,
+                    "pool": Pubkey.new_unique(),
+                    "tokenXMint": Pubkey.from_string("So11111111111111111111111111111111111111112"), # SOL Mint
+                    "tokenYMint": Pubkey.new_unique(),
+                    "ownerTokenXBalance": 0.0,
+                    "ownerTokenYBalance": 0.0,
+                    "lowerBinId": -5,
+                    "upperBinId": 5,
+                    "activeId": 20, # Out of range to trigger rebalance check
+                    "poolPrice": 1.0,
+                    "liquidity": 500,
+                    "totalFeeX": 0,
+                    "totalFeeY": 0,
+                    "lastUpdatedAt": 0,
+                }
+            ]
             logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
             lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
-            
+
             if lp_positions:
                 logger.info("--> Found LP Positions:")
+
+                # For testing MomentumScanner, we will explicitly add some mock positions here
+                # These positions will be processed by the MomentumScanner logic
+                # and allow us to verify its filtering without live data.
+                # This is a temporary measure and will be removed once live integration is stable.
+                mock_lp_positions = [
+                    {
+                        "pubkey": Pubkey.new_unique(),
+                        "owner": bot_pubkey,
+                        "pool": Pubkey.new_unique(),
+                        "tokenXMint": Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), # USDC Mint
+                        "tokenYMint": Pubkey.new_unique(),
+                        "ownerTokenXBalance": 0.0,
+                        "ownerTokenYBalance": 0.0,
+                        "lowerBinId": -10,
+                        "upperBinId": 10,
+                        "activeId": 0,
+                        "poolPrice": 1.0,
+                        "liquidity": 1000,
+                        "totalFeeX": 0,
+                        "totalFeeY": 0,
+                        "lastUpdatedAt": 0,
+                    },
+                    {
+                        "pubkey": Pubkey.new_unique(),
+                        "owner": bot_pubkey,
+                        "pool": Pubkey.new_unique(),
+                        "tokenXMint": Pubkey.from_string("So11111111111111111111111111111111111111112"), # SOL Mint
+                        "tokenYMint": Pubkey.new_unique(),
+                        "ownerTokenXBalance": 0.0,
+                        "ownerTokenYBalance": 0.0,
+                        "lowerBinId": -5,
+                        "upperBinId": 5,
+                        "activeId": 20, # Out of range to trigger rebalance check
+                        "poolPrice": 1.0,
+                        "liquidity": 500,
+                        "totalFeeX": 0,
+                        "totalFeeY": 0,
+                        "lastUpdatedAt": 0,
+                    }
+                ]
+                lp_positions.extend(mock_lp_positions)
+                logger.info("--> Added MOCK LP Positions for MomentumScanner testing.")
                 for i, pos in enumerate(lp_positions):
                     logger.info(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
                     logger.info(f"        Owner: {pos['owner']}")
@@ -973,6 +1064,8 @@ if __name__ == "__main__":
             logger.info(f"Trade result after deactivation: {trade_result_deactivated}")
 
         finally:
+            if executor and executor.momentum_scanner:
+                await executor.momentum_scanner.close()
             stop_health_server()
             logger.info("Main async function finished, health server stopped.")
     asyncio.run(main_async())

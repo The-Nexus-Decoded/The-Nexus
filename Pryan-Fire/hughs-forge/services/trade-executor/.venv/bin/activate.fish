@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-executor/.venv
+set -gx VIRTUAL_ENV /data/repos/Pryan-Fire/hughs-forge/services/trade-executor/.venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

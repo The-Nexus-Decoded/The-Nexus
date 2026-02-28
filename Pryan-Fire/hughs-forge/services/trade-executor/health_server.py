@@ -23,6 +23,8 @@ class HealthHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode('utf-8'))
             logger.warning(f"Invalid path requested from {self.client_address[0]}: {self.path}. Status: 404 Not Found")
 
+httpd = None
+
 def start_health_server(port=8000):
     global httpd # Make httpd accessible for graceful shutdown
     Handler = HealthHandler
@@ -34,10 +36,12 @@ def start_health_server(port=8000):
         logger.error(f"Health server error: {e}")
 
 def stop_health_server():
+    global httpd
     if httpd:
         logger.info("Health server shutting down...")
         httpd.shutdown()
         httpd.server_close()
+        httpd = None
 
 if __name__ == '__main__':
     # For testing the health server independently
