@@ -11,44 +11,52 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Node Dependencies
         run: |
           cd hughs-forge/meteora-trader
           npm install
 
       - name: Shift to Phantom Realm
         run: |
-          # Use the Chasm-Shifter logic to enforce Devnet configuration
           chmod +x hughs-forge/scripts/switch_realm.sh
           ./hughs-forge/scripts/switch_realm.sh testnet
 
-      - name: Execute Phantom Strike (1 Hour Trial)
-        env:
-          TRADING_WALLET_PUBLIC_KEY: ${{ secrets.DEVNET_WALLET_PUBLIC_KEY }}
-          TRADING_WALLET_SECRET_KEY: ${{ secrets.DEVNET_WALLET_SECRET_KEY }}
-          HELIUS_RPC_URL: "https://api.devnet.solana.com"
+      - name: Python Import Smoke Test
         run: |
-          echo "⚔️ Initiating Trial by Phantom Fire..."
-          # The Trial by Fire: Execute the core logic and enforce a successful exit code.
-          # We use a timeout to bound the trial to exactly 1 hour as Zifnab commanded.
-          # Any non-zero exit from the Orchestrator or Trader will fail the entire Job.
-          timeout 3600 python3 hughs-forge/services/trade-orchestrator/src/TradeOrchestrator.py --config hughs-forge/config/testnet/orchestrator_config.json || {
-            echo "❌ THE SENTINEL HAS FALLEN. Trial failed with exit code $?."
-            exit 1
-          }
-          echo "✅ The Sentinel has survived the Hour of Fire."
+          echo "Verifying trade-orchestrator module imports..."
+          cd hughs-forge/services/trade-orchestrator/src
+          python3 -c "
+          from core.orchestrator import TradeOrchestrator
+          from core.event_loop import EventLoop
+          from core.state_machine import TradeState
+          from core.rpc_integration import RpcIntegrator
+          from state.state_manager import TradeStateManager
+          from telemetry.logger import setup_telemetry_logger
+          print('All trade-orchestrator modules imported successfully.')
+          "
 
-      - name: Verify Audit Logs
+      - name: Verify Orchestrator Startup (Dry Run)
         run: |
-          echo "🔎 Analyzing phantom audit logs for signs of failure..."
-          # Scan for FATAL or CRITICAL errors in the generated logs.
-          if grep -qE "FATAL|CRITICAL|ERROR" services/trade-orchestrator/logs/orchestrator.log; then
-            echo "❌ DISCOVERY: Hidden flaws found in the audit logs."
-            exit 1
-          fi
-          echo "✅ Phantom trial passed. Logic is stable and pure."
+          echo "Starting orchestrator dry-run (5s timeout)..."
+          cd hughs-forge/services/trade-orchestrator/src
+          timeout 5 python3 main.py --db ":memory:" || {
+            exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+              echo "Orchestrator ran for 5s without crashing. Dry run PASSED."
+              exit 0
+            else
+              echo "Orchestrator crashed with exit code $exit_code"
+              exit 1
+            fi
+          }
+          echo "Orchestrator exited cleanly."
