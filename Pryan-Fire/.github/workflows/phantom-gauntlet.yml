@@ -26,6 +26,11 @@ jobs:
           cd hughs-forge/meteora-trader
           npm install
 
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r hughs-forge/services/trade-executor/requirements.txt
+
       - name: Shift to Phantom Realm
         run: |
           chmod +x hughs-forge/scripts/switch_realm.sh
