@@ -33,11 +33,11 @@ async def fetch_solana_pools():
             )
             
             print(f"Fetched {len(pools)} total Solana-related pools.")
-            print(f"Found {len(filtered_pools)} '🚨 HIGH-MOMENTUM WHALES 🚨' matching Liq > $50k and Vol > $100k.")
+            print(f"Found {len(filtered_pools)} '🚨 HIGH-QUALITY MOMENTUM SIGNALS 🚨' matching Liq > $50k and Vol > $100k.")
 
             if sorted_pools:
                 print("=" * 45)
-                print("🚨 HIGH-MOMENTUM WHALES (Sorted by 24h Vol) 🚨")
+                print("🚨 HIGH-QUALITY MOMENTUM SIGNALS (Sorted by 24h Vol) 🚨")
                 print("=" * 45)
                 for pool in sorted_pools[:5]:
                     base = pool.get('baseToken', {}).get('symbol', 'N/A')
