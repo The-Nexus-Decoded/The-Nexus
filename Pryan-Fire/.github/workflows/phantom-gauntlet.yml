@@ -24,8 +24,8 @@ jobs:
       - name: Shift to Phantom Realm
         run: |
           # Use the Chasm-Shifter logic to enforce Devnet configuration
-          chmod +x scripts/switch_realm.sh
-          ./scripts/switch_realm.sh testnet
+          chmod +x hughs-forge/scripts/switch_realm.sh
+          ./hughs-forge/scripts/switch_realm.sh testnet
 
       - name: Execute Phantom Strike (1 Hour Trial)
         env:
