@@ -31,6 +31,13 @@ jobs:
           chmod +x hughs-forge/scripts/switch_realm.sh
           ./hughs-forge/scripts/switch_realm.sh testnet
 
+      - name: TypeScript Compile Check
+        run: |
+          echo "Compiling meteora-trader TypeScript (PositionManager + PythHermesClient)..."
+          cd hughs-forge/meteora-trader
+          npx tsc --noEmit
+          echo "TypeScript compilation passed."
+
       - name: Python Import Smoke Test
         run: |
           echo "Verifying trade-orchestrator module imports..."
@@ -44,6 +51,12 @@ jobs:
           from telemetry.logger import setup_telemetry_logger
           print('All trade-orchestrator modules imported successfully.')
           "
+
+      - name: Risk Manager Unit Tests
+        run: |
+          echo "Running RiskManager unit tests..."
+          cd hughs-forge/services/trade-executor
+          python3 -m pytest test_risk_manager.py -v 2>/dev/null || python3 -m unittest test_risk_manager -v
 
       - name: Verify Orchestrator Startup (Dry Run)
         run: |
@@ -60,3 +73,22 @@ jobs:
             fi
           }
           echo "Orchestrator exited cleanly."
+
+      - name: Devnet Wallet Verification
+        env:
+          TRADING_WALLET_PUBLIC_KEY: ${{ secrets.DEVNET_WALLET_PUBLIC_KEY }}
+        run: |
+          echo "Verifying devnet wallet connectivity..."
+          if [ -z "$TRADING_WALLET_PUBLIC_KEY" ]; then
+            echo "DEVNET_WALLET_PUBLIC_KEY secret not set, skipping."
+            exit 0
+          fi
+          RESPONSE=$(curl -s -X POST https://api.devnet.solana.com \
+            -H "Content-Type: application/json" \
+            -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getBalance\",\"params\":[\"$TRADING_WALLET_PUBLIC_KEY\"]}")
+          echo "RPC Response: $RESPONSE"
+          if echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'result' in d; print(f'Wallet balance: {d[\"result\"][\"value\"] / 1e9:.4f} SOL')"; then
+            echo "Devnet wallet verified."
+          else
+            echo "WARNING: Could not verify wallet (devnet may be down). Non-blocking."
+          fi
