@@ -21,6 +21,7 @@ class TradeOrchestrator:
     Supporting Issue #8: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/8 (Audit Logging)
     Supporting Issue #14: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/14 (P&L Tracking)
     Supporting Issue #5: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/5 (P&L Tracking)
+    Supporting Issue #4: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/4 (Fee Claiming & Compounding)
     """
     def __init__(self, rpc_url: str, wallet_keypair: Optional[Keypair] = None, risk_limit_usd: float = 250.0):
         self.armory = MeteoraArmory(rpc_url, wallet_keypair)
@@ -63,6 +64,36 @@ class TradeOrchestrator:
         """
         print(f"[ORCHESTRATOR] Sequencing CLOSE strike for position {position_pda} on {pool} (STUBBED FOR LOGGING & P&L TEST)...")
         return {"ix_count": 2, "position_pda": position_pda}
+
+    async def process_claim_fees(self, pool: str, position_pda: str) -> Dict[str, Any]:
+        """
+        Processes a 'CLAIM_FEES' signal, orchestrating fee and reward claiming.
+        Supporting Issue #4.
+        """
+        print(f"[ORCHESTRATOR] Processing CLAIM_FEES for position {position_pda} on {pool}...")
+        
+        # Build claim fee instruction (stubbed amounts for simulation)
+        claim_fee_ix = await self.armory.build_claim_fee_ix(pool, position_pda)
+        # Build claim reward instruction (stubbed amounts for simulation)
+        claim_reward_ix = await self.armory.build_claim_reward_ix(pool, position_pda)
+        
+        # In a real scenario, we'd execute these and parse the transaction logs for actual claimed amounts.
+        # For simulation, we'll use dummy values.
+        claimed_x_usd = 1.50
+        claimed_y_usd = 0.75
+        claimed_reward_usd = 0.25
+        ix_count = 2 # Assuming two instructions: claim_fee and claim_reward
+
+        self.logger.log_fee_claimed(position_pda, pool, claimed_x_usd, claimed_y_usd, 1) # Log fee claim
+        self.logger.log_reward_claimed(position_pda, pool, claimed_reward_usd, 1) # Log reward claim
+        self.pnl_tracker.track_claimed_fees(position_pda, claimed_x_usd + claimed_y_usd) # Track claimed fees
+        self.pnl_tracker.track_claimed_rewards(position_pda, claimed_reward_usd) # Track claimed rewards
+
+        print(f"[ORCHESTRATOR] Fees claimed for {position_pda}: ${claimed_x_usd + claimed_y_usd:.2f} USD, Rewards: ${claimed_reward_usd:.2f} USD.")
+        
+        return {"status": "SUCCESS", "action": "CLAIM_FEES", "ix_count": ix_count, 
+                "claimed_fees_usd": claimed_x_usd + claimed_y_usd, "claimed_rewards_usd": claimed_reward_usd}
+
 
     async def process_signal(self, signal: Dict[str, Any]):
         """
@@ -136,6 +167,13 @@ class TradeOrchestrator:
                 self.pnl_tracker.track_gas_cost(position_pda, 0.005) # Simulate gas for close
 
                 return {"status": "SUCCESS", "action": "CLOSE", "ix_count": ix_count, "position_pda": position_pda}
+            
+            elif action == 'CLAIM_FEES':
+                position_pda = params.get('position_pda', '')
+                if not position_pda: raise ValueError("Position PDA missing for CLAIM_FEES signal")
+                
+                claim_result = await self.process_claim_fees(pool, position_pda)
+                return claim_result
 
         except Exception as e:
             reason = str(e)
@@ -170,6 +208,15 @@ if __name__ == "__main__":
         })
         opened_pda = open_res.get("position_pda", "")
         
+        print("\n--- TEST: Claim Fees (Should Approve) ---")
+        if opened_pda:
+            await orch.process_signal({
+                'pool': '8Pm2k...', 
+                'action': 'CLAIM_FEES', 
+                'amount_usd': 0.0, 
+                'params': {'position_pda': opened_pda}
+            })
+
         print("\n--- TEST: Valid CLOSE (Should Approve) ---")
         await orch.process_signal({
             'pool': '8Pm2k...', 

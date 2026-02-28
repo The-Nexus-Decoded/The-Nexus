@@ -7,6 +7,7 @@ class PnLTracker:
     Hugh's Accountant: Tracks Profit & Loss metrics for trading operations.
     Covers Issue #14: P&L tracking (fees - IL - gas)
     Covers Issue #5: P&L Tracking
+    Supporting Issue #4: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/4 (Fee Claiming)
     """
     def __init__(self, pnl_log_file: str = "pnl_audit.jsonl"):
         self.pnl_log_file = f"/data/repos/Pryan-Fire/hughs-forge/services/trade-executor/audit_logs/{pnl_log_file}"
@@ -36,6 +37,8 @@ class PnLTracker:
             "fees_earned": 0.0,
             "impermanent_loss": 0.0,
             "gas_costs": 0.0,
+            "claimed_fees_usd": 0.0, # New field for claimed fees
+            "claimed_rewards_usd": 0.0, # New field for claimed rewards
             "status": "OPEN"
         }
         self._log_pnl_event("position_opened", {
@@ -71,11 +74,30 @@ class PnLTracker:
                 "total_gas_costs": self.positions_pnl[position_pda]["gas_costs"]
             })
 
+    def track_claimed_fees(self, position_pda: str, claimed_usd_value: float):
+        if position_pda in self.positions_pnl:
+            self.positions_pnl[position_pda]["claimed_fees_usd"] += claimed_usd_value
+            self._log_pnl_event("fees_claimed_tracked", {
+                "position_pda": position_pda,
+                "claimed_usd_value": claimed_usd_value,
+                "total_claimed_fees_usd": self.positions_pnl[position_pda]["claimed_fees_usd"]
+            })
+
+    def track_claimed_rewards(self, position_pda: str, claimed_usd_value: float):
+        if position_pda in self.positions_pnl:
+            self.positions_pnl[position_pda]["claimed_rewards_usd"] += claimed_usd_value
+            self._log_pnl_event("rewards_claimed_tracked", {
+                "position_pda": position_pda,
+                "claimed_usd_value": claimed_usd_value,
+                "total_claimed_rewards_usd": self.positions_pnl[position_pda]["claimed_rewards_usd"]
+            })
+
     def track_close_position(self, position_pda: str, final_usd_value: float):
         if position_pda in self.positions_pnl:
             position_data = self.positions_pnl[position_pda]
             net_pnl = (final_usd_value - position_data["initial_usd_value"] +
-                       position_data["fees_earned"] - position_data["impermanent_loss"] -
+                       position_data["fees_earned"] + position_data["claimed_fees_usd"] +
+                       position_data["claimed_rewards_usd"] - position_data["impermanent_loss"] -
                        position_data["gas_costs"])
             position_data["status"] = "CLOSED"
             self._log_pnl_event("position_closed", {
@@ -84,6 +106,8 @@ class PnLTracker:
                 "initial_usd_value": position_data["initial_usd_value"],
                 "final_usd_value": final_usd_value,
                 "fees_earned": position_data["fees_earned"],
+                "claimed_fees_usd": position_data["claimed_fees_usd"],
+                "claimed_rewards_usd": position_data["claimed_rewards_usd"],
                 "impermanent_loss": position_data["impermanent_loss"],
                 "gas_costs": position_data["gas_costs"],
                 "net_pnl_usd": net_pnl
@@ -92,10 +116,12 @@ class PnLTracker:
 
     def get_overall_pnl(self) -> Dict[str, float]:
         total_fees = sum(p["fees_earned"] for p in self.positions_pnl.values())
+        total_claimed_fees = sum(p["claimed_fees_usd"] for p in self.positions_pnl.values())
+        total_claimed_rewards = sum(p["claimed_rewards_usd"] for p in self.positions_pnl.values())
         total_il = sum(p["impermanent_loss"] for p in self.positions_pnl.values())
         total_gas = sum(p["gas_costs"] for p in self.positions_pnl.values())
         # For active positions, we can't get final P&L without closing
-        return {"total_fees_earned": total_fees, "total_impermanent_loss": total_il, "total_gas_costs": total_gas}
+        return {"total_fees_earned": total_fees, "total_claimed_fees_usd": total_claimed_fees, "total_claimed_rewards_usd": total_claimed_rewards, "total_impermanent_loss": total_il, "total_gas_costs": total_gas}
 
     def get_position_pnl(self, position_pda: str) -> Optional[Dict[str, Any]]:
         return self.positions_pnl.get(position_pda)
@@ -116,6 +142,11 @@ if __name__ == "__main__":
 
         print("\n--- P&L Tracker Test: Track Impermanent Loss ---")
         tracker.track_impermanent_loss(position_id, 2.0)
+        print(f"Current P&L for {position_id}: {tracker.get_position_pnl(position_id)}")
+
+        print("\n--- P&L Tracker Test: Track Claimed Fees & Rewards ---")
+        tracker.track_claimed_fees(position_id, 3.0)
+        tracker.track_claimed_rewards(position_id, 1.0)
         print(f"Current P&L for {position_id}: {tracker.get_position_pnl(position_id)}")
 
         print("\n--- P&L Tracker Test: Close Position ---")
