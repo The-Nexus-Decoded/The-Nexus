@@ -1,12 +1,13 @@
 import json
 import datetime
-from typing import Dict, Any, Optional # Import Optional
+from typing import Dict, Any, Optional
 
 class AuditLogger:
     """
     Hugh's Chronicler: Logs all trade activities in structured JSONL format.
     Supporting Issue #17: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/17
     Supporting Issue #8: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/8
+    Supporting Issue #4: https://github.com/The-Nexus-Decoded/Pryan-Fire/issues/4 (Fee Claiming)
     """
     def __init__(self, log_file: str = "trade_audit.jsonl"):
         self.log_file = f"/data/repos/Pryan-Fire/hughs-forge/services/trade-executor/audit_logs/{log_file}"
@@ -41,12 +42,13 @@ class AuditLogger:
             "risk_limit_usd": risk_limit
         })
 
-    def log_trade_executed(self, action: str, pool: str, amount_usd: float, ix_count: int):
+    def log_trade_executed(self, action: str, pool: str, amount_usd: float, ix_count: int, transaction_id: Optional[str] = None):
         self._log("trade_executed", {
             "action": action,
             "pool": pool,
             "amount_usd": amount_usd,
-            "instruction_count": ix_count
+            "instruction_count": ix_count,
+            "transaction_id": transaction_id
         })
 
     def log_trade_failed(self, action: str, pool: str, reason: str):
@@ -54,6 +56,23 @@ class AuditLogger:
             "action": action,
             "pool": pool,
             "reason": reason
+        })
+
+    def log_fee_claimed(self, position_pda: str, pool: str, claimed_amount_x: float, claimed_amount_y: float, ix_count: int):
+        self._log("fee_claimed", {
+            "position_pda": position_pda,
+            "pool": pool,
+            "claimed_amount_x": claimed_amount_x,
+            "claimed_amount_y": claimed_amount_y,
+            "instruction_count": ix_count
+        })
+
+    def log_reward_claimed(self, position_pda: str, pool: str, claimed_amount_reward: float, ix_count: int):
+        self._log("reward_claimed", {
+            "position_pda": position_pda,
+            "pool": pool,
+            "claimed_amount_reward": claimed_amount_reward,
+            "instruction_count": ix_count
         })
 
 if __name__ == "__main__":
@@ -69,3 +88,5 @@ if __name__ == "__main__":
     )
     logger.log_trade_executed("OPEN", "SOL/USDC", 100.0, 2)
     logger.log_trade_failed("CLOSE", "SOL/USDC", "Insufficient funds")
+    logger.log_fee_claimed("test_position_pda", "SOL/USDC", 1.23, 0.45, 1)
+    logger.log_reward_claimed("test_position_pda", "SOL/USDC", 0.78, 1)
