@@ -95,14 +95,6 @@ class RiskManager:
         if amount > self.max_trade_size: return False
         return True
 
-    def activate_circuit_breaker(self):
-        self.circuit_breaker_active = True
-        logger.critical("🚨 CIRCUIT BREAKER ACTIVATED")
-
-    def deactivate_circuit_breaker(self):
-        self.circuit_breaker_active = False
-        logger.info("✅ CIRCUIT BREAKER DEACTIVATED")
-
 class RebalanceStrategy:
     def __init__(self, buffer_bins: int = 10, target_width: int = 20):
         self.buffer_bins = buffer_bins
@@ -111,10 +103,6 @@ class RebalanceStrategy:
 
     def should_rebalance(self, active_id: int, lower: int, upper: int) -> bool:
         return active_id < (lower - self.buffer_bins) or active_id > (upper + self.buffer_bins)
-
-    def calculate_new_range(self, active_id: int) -> Dict[str, int]:
-        half = self.target_width // 2
-        return {"lower": active_id - half, "upper": active_id + half}
 
 class TradeExecutor:
     def __init__(self, rpc_endpoint: str, private_key: str = None):
@@ -125,69 +113,62 @@ class TradeExecutor:
         self.risk_manager = RiskManager()
         self.rebalance_strategy = RebalanceStrategy()
         
-        # Load MomentumScanner (Modular Architecture)
+        # Load Modular Components
         from src.signals.dex_screener import MomentumScanner
+        from src.services.watchlist_monitor import WatchlistMonitor
         self.momentum_scanner = MomentumScanner()
-        logger.info("Trade Executor initialized (Modular Architecture).")
+        self.watchlist_monitor = WatchlistMonitor()
+        logger.info("Trade Executor initialized (Phase 6 Architecture).")
 
     async def run_autonomous_audit(self, positions: Optional[List[Dict[str, Any]]] = None):
         logger.info(f"--- [AUTONOMOUS AUDIT: {datetime.datetime.now()}] ---")
+        
+        # 1. Active Portfolio Scan
         lp_positions = positions
         if lp_positions is None:
             lp_positions = await self.get_meteora_lp_positions(Pubkey.from_string(BOT_WALLET_PUBKEY))
         
-        if not lp_positions:
-            logger.info("    -> No active positions found.")
-            return
+        held_mints = set()
+        if lp_positions:
+            for pos in lp_positions:
+                active_id = pos.get("activeId")
+                token_x_mint = pos.get("tokenXMint")
+                if active_id is None or not token_x_mint: continue
+                
+                held_mints.add(str(token_x_mint))
 
-        for pos in lp_positions:
-            active_id = pos.get("activeId")
-            token_x_mint = pos.get("tokenXMint")
-            if active_id is None or not token_x_mint: continue
+                # Portfolio Momentum Check
+                momentum_check = await self.momentum_scanner.validate_momentum(str(token_x_mint))
+                if momentum_check["momentum_signal"] == "NEGATIVE":
+                    logger.warning(f"MOMENTUM_BLOCK: Negative momentum on held token {token_x_mint}: {momentum_check['reasons']}")
+                    continue
+                
+                logger.info(f"    -> Portfolio momentum check PASSED for {token_x_mint}.")
 
-            # Momentum Verification Filter (Modular Client Usage)
-            momentum_check = await self.momentum_scanner.validate_momentum(str(token_x_mint))
-            if momentum_check["momentum_signal"] == "NEGATIVE":
-                logger.warning(f"MOMENTUM_BLOCK: Skipping rebalance due to negative momentum on {token_x_mint}: {momentum_check['reasons']}")
-                continue
+                if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
+                    logger.warning(f"🚨 [STRATEGY ALERT] Rebalance required for {pos['pubkey']}")
+        else:
+            logger.info("    -> No active positions found in portfolio.")
+
+        # 2. Watchlist Parallel Monitoring (Phase 6)
+        logger.info("--- [WATCHLIST SCAN] ---")
+        watchlist_tokens = self.watchlist_monitor.get_tokens()
+        for mint in watchlist_tokens:
+            if mint in held_mints: continue # Already handled in portfolio scan
             
-            logger.info(f"    -> Momentum check PASSED for {token_x_mint}. Signal: {momentum_check['momentum_signal']}")
-
-            if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
-                logger.warning(f"🚨 [STRATEGY ALERT] Rebalance required for {pos['pubkey']}")
+            momentum_check = await self.momentum_scanner.validate_momentum(mint)
+            if momentum_check["momentum_signal"] == "POSITIVE":
+                logger.warning(f"BREAKOUT_SIGNAL: Positive momentum detected on {mint}! Potential entry detected.")
+            else:
+                logger.info(f"    -> Watchlist token {mint} momentum: {momentum_check['momentum_signal']}")
 
     async def get_meteora_lp_positions(self, owner_pubkey: Pubkey) -> List[Dict[str, Any]]:
-        # Mocking for testing
         return []
-
-    async def get_sol_balance(self, pubkey_str: str) -> float:
-        try:
-            pubkey = Pubkey.from_string(pubkey_str)
-            res = await self.client.get_balance(pubkey)
-            return res.value / 1_000_000_000
-        except: return 0.0
-
-    async def get_pyth_price(self, feed_id: str) -> Optional[Dict[str, Any]]:
-        url = f"https://hermes.pyth.network/v2/updates/price/latest?ids[]={feed_id}"
-        async with httpx.AsyncClient() as client:
-            res = await client.get(url)
-            data = res.json()
-            if data and "parsed" in data:
-                return data["parsed"][0].get("price")
-        return None
 
     async def close(self):
         logger.info("Closing sessions...")
         await self.momentum_scanner.close()
         await self.client.close()
-
-    def execute_trade(self, trade_details: dict) -> Dict[str, Any]:
-        amount = trade_details.get("amount", 0.0)
-        if not self.risk_manager.check_trade(amount):
-            return {"status": "rejected"}
-        if not self.wallet:
-            return {"status": "error", "message": "Wallet not loaded"}
-        return {"status": "pending"}
 
 if __name__ == "__main__":
     async def main_async():
@@ -196,29 +177,8 @@ if __name__ == "__main__":
         
         executor = TradeExecutor(RPC_ENDPOINT)
         try:
-            # 1. Verification Run with a REAL mint address (SOL)
-            SOL_MINT = "So11111111111111111111111111111111111111112"
-            
-            # Create a mock position for SOL to test live scan
-            mock_positions = [{
-                "pubkey": Pubkey.new_unique(),
-                "tokenXMint": Pubkey.from_string(SOL_MINT),
-                "lowerBinId": -10,
-                "upperBinId": 10,
-                "activeId": 5, # In range
-                "liquidity": 1000,
-                "ownerTokenXBalance": 0,
-                "ownerTokenYBalance": 0
-            }]
-            
-            logger.info("\n--- LIVE PERFORMANCE AUDIT (SOL MINT) ---")
-            await executor.run_autonomous_audit(mock_positions)
-            
-            # 2. Test Risk Manager
-            logger.info("\n--- RISK MANAGER DEMO ---")
-            res = executor.execute_trade({"amount": 50.0})
-            logger.info(f"Trade result: {res}")
-
+            # Run audit including watchlist
+            await executor.run_autonomous_audit([])
         finally:
             await executor.close()
             stop_health_server()
