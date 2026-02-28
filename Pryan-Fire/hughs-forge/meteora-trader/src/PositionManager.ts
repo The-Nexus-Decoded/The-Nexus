@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import DLMM from "@meteora-ag/dlmm";
-import { PythHermesClient } from './pyth-hermes-client';
+import { PythHermesClient } from './pyth-hermes-client/index.js';
 
 export class PositionManager {
     private connection: Connection;
@@ -14,15 +14,15 @@ export class PositionManager {
     }
 
     async fetchActivePositions() {
-        const positions = await DLMM.getAllLbPairPositionsByUser(this.connection, this.owner);
+        const positions = await (DLMM as any).getAllLbPairPositionsByUser(this.connection, this.owner);
         return Array.from(positions.values());
     }
 
     async claimFees(poolAddress: string) {
-        const dlmmPool = await DLMM.create(this.connection, new PublicKey(poolAddress));
+        const dlmmPool = await (DLMM as any).create(this.connection, new PublicKey(poolAddress));
         const positions = await dlmmPool.getPositionsByUserAndLbPair(this.owner);
         const claimTxs = await Promise.all(
-            positions.userPositions.map(pos => dlmmPool.claimSwapFee({
+            positions.userPositions.map((pos: any) => dlmmPool.claimSwapFee({
                 owner: this.owner,
                 position: pos
             }))
@@ -33,10 +33,4 @@ export class PositionManager {
     async fetchSolanaPrice() {
         return this.pythHermesClient.fetchPrice('SOL/USD');
     }
-
-    // async getPoolBins(poolAddress: string) {
-    //     const dlmmPool = await DLMM.create(this.connection, new PublicKey(poolAddress));
-    //     const poolData = await dlmmPool.getLbPair();
-    //     return poolData.bins;
-    // }
 }
