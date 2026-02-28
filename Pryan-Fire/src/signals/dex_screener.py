@@ -42,10 +42,11 @@ class MomentumScanner:
                 
                 metrics = {
                     "liquidity": float(primary_pair.get("liquidity", {}).get("usd", 0)),
-                    "volume_5m": float(primary_pair.get("volume", {}).get("m5", 0)),
-                    "buys_5m": int(primary_pair.get("txns", {}).get("m5", {}).get("buys", 0)),
-                    "sells_5m": int(primary_pair.get("txns", {}).get("m5", {}).get("sells", 0)),
-                    "has_boosts": primary_pair.get("boosts", {}).get("active", 0) > 0,
+                    "volume_24h": float(primary_pair.get("volume", {}).get("h24", 0)),
+                    "price_change_5m": float(primary_pair.get("priceChange", {}).get("m5", 0)),
+                    "price_change_1h": float(primary_pair.get("priceChange", {}).get("h1", 0)),
+                    "price_change_6h": float(primary_pair.get("priceChange", {}).get("h6", 0)),
+                    "price_change_24h": float(primary_pair.get("priceChange", {}).get("h24", 0)),
                     "fdv": float(primary_pair.get("fdv", 0))
                 }
                 
@@ -66,20 +67,32 @@ class MomentumScanner:
         if metrics["liquidity"] < 10000:  # Raised for safer main-bag trading
             reasons.append(f"Liquidity too thin for portfolio entry (${metrics['liquidity']})")
             
-        # 2. Buy/Sell Ratio (Anti-Wash Guard - Initial Version)
-        total_tx = metrics["buys_5m"] + metrics["sells_5m"]
-        if total_tx > 0:
-            buy_ratio = metrics["buys_5m"] / total_tx
-            if buy_ratio > 0.95 or buy_ratio < 0.05:
-                reasons.append(f"Suspect volume distribution (Buy Ratio: {buy_ratio:.2f})")
+        # 2. 24h Volume Floor
+        if metrics["volume_24h"] < 5000: # Minimum 24h volume for consideration
+            reasons.append(f"24h Volume too low (${metrics['volume_24h']})")
 
         # 3. Market Cap/FDV Floor
         if metrics["fdv"] < 10000:
             reasons.append(f"Market Cap too low (${metrics['fdv']})")
 
-        momentum_signal = "POSITIVE" if len(reasons) == 0 else "NEGATIVE"
+        # 4. Price Change Momentum (1-hour)
+        momentum_score = 0
+        if metrics["price_change_1h"] < -5: # Significant 1-hour drop
+            reasons.append(f"Significant 1-hour price drop ({metrics['price_change_1h']:.2f}%)")
+            momentum_score -= 1
+        elif metrics["price_change_1h"] > 5: # Significant 1-hour gain
+            momentum_score += 1
+
+        # Determine overall momentum signal
+        if len(reasons) > 0:
+            momentum_signal = "NEGATIVE"
+        elif momentum_score > 0:
+            momentum_signal = "POSITIVE"
+        else:
+            momentum_signal = "NEUTRAL"
+            
         return {
-            "passed": len(reasons) == 0,
+            "passed": momentum_signal != "NEGATIVE",
             "momentum_signal": momentum_signal,
             "reasons": reasons,
             "metrics": metrics
