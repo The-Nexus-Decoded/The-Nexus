@@ -1,40 +1,54 @@
-name: Deploy Trade Executor to Trade Server
+name: Deploy Trade Executor (Issue #10)
 
 on:
   push:
     branches:
-      - main # Or 'dev', depending on the primary development branch
+      - main
+      - feat/trade-orchestrator-integration
 
 jobs:
-  deploy:
+  deploy-to-trade:
+    name: Deploy to Hugh (ola-claw-trade)
     runs-on: ubuntu-latest
+    if: github.repository == 'The-Nexus-Decoded/Pryan-Fire'
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4 # Updated to v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5 # Updated to v5
-      with:
-        python-version: '3.9' # Or appropriate Python version
+      - name: Install Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:github-actions
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r hughs-forge/services/trade-executor/requirements.txt # Ensure this path is correct
+      - name: Deploy via rsync over Tailscale
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 100.104.166.53 # Hugh's Tailscale IP
+          username: openclaw
+          key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+          script: |
+            echo "Striking ola-claw-trade..."
+            mkdir -p /data/repos/Pryan-Fire/hughs-forge/services/trade-executor/
+            
+      - name: Sync Forge to Trade Server
+        run: |
+          echo "${{ secrets.TRADE_SERVER_SSH_KEY }}" > deploy_key
+          chmod 600 deploy_key
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i deploy_key" \
+            hughs-forge/services/trade-executor/ \
+            openclaw@100.104.166.53:/data/repos/Pryan-Fire/hughs-forge/services/trade-executor/
+          rm deploy_key
 
-    - name: Deploy Trade Executor via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.TRADE_SERVER_HOST }}
-        username: ${{ secrets.TRADE_SERVER_USER }}
-        key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
-        script: |
-          # Create target directory if it doesn't exist
-          mkdir -p /data/openclaw/hughs-forge/services/trade-executor/
-          # Transfer files
-          rsync -avz --delete hughs-forge/services/trade-executor/               ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/data/openclaw/hughs-forge/services/trade-executor/
-          
-          # Restart the openclaw-gateway service on the trade server
-          ssh -o StrictHostKeyChecking=no ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}               "systemctl --user restart openclaw-gateway"
-          echo "Deployment complete and openclaw-gateway restarted on trade server."
+      - name: Restart Hugh's Gateway
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 100.104.166.53
+          username: openclaw
+          key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+          script: |
+            echo "Quenching the blade on ola-claw-trade..."
+            systemctl --user restart openclaw-gateway
+            echo "Hugh is back online with the latest forge."
