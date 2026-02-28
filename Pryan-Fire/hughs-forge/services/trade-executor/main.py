@@ -95,7 +95,7 @@ class TradeExecutor:
         try:
             res = await self.client.get_balance(Pubkey.from_string(pubkey_str))
             return res.value / 1_000_000_000
-        except: return 0.1 # Default for test
+        except: return 0.0
 
     async def close(self):
         logger.info("Closing sessions...")
