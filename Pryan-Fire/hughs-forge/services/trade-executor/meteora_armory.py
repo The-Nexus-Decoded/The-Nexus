@@ -41,7 +41,6 @@ class MeteoraArmory:
         """Fetches and decodes the state of a Pool."""
         if not self.program:
             await self.initialize()
-        # IDL updated from 'LbPair' to 'Pool' to match f19a6d0411b16dbc
         state = await self.program.account["Pool"].fetch(Pubkey.from_string(pool_address))
         return state
 
@@ -98,15 +97,11 @@ class MeteoraArmory:
         user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
         user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
         
-        # In anchorpy, struct args are often passed as kwargs directly if they are the only arg, or named explicitly
-        liquidity_parameter = {
-            "amount_x": amount_x, 
-            "amount_y": amount_y, 
-            "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))
-        }
-
+        # IDL 0.9.1: args are passed as dicts based on type
+        liquidity_parameter = {"amount_x": amount_x, "amount_y": amount_y, "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))}
+        
         return self.program.instruction["add_liquidity"](
-            liquidity_parameter, # Pass as positional arg mapped to the struct
+            liquidity_parameter,
             ctx=Context(accounts={
                 "position": position_pubkey, "lb_pair": lb_pair_pubkey, 
                 "bin_array_bitmap_extension": METEORA_PROGRAM_ID, 
@@ -128,12 +123,8 @@ class MeteoraArmory:
         state = await self.get_pool_state(pool_address) 
         user_token_x = self.derive_ata(self.wallet.public_key, state.token_x_mint)
         user_token_y = self.derive_ata(self.wallet.public_key, state.token_y_mint)
-        
-        liquidity_parameter = {
-            "amount_x": amount_x, 
-            "amount_y": amount_y, 
-            "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))
-        }
+
+        liquidity_parameter = {"amount_x": amount_x, "amount_y": amount_y, "bin_arrays": bin_arrays[:3] + [0] * (3 - len(bin_arrays))}
 
         return self.program.instruction["remove_liquidity"](
             liquidity_parameter,
@@ -210,6 +201,10 @@ if __name__ == "__main__":
             # SOL/USDC Pool
             state = await armory.get_pool_state("8Pm2kZpnxD3hoMmt4bjStX2Pw2Z9abpbHzZxMPqxPmie")
             print(f"SUCCESS! token_x_mint: {state.token_x_mint}")
+            
+            # Test Add Liquidity Builder
+            ix = await armory.build_add_liquidity_ix("8Pm2kZpnxD3hoMmt4bjStX2Pw2Z9abpbHzZxMPqxPmie", "Hix1UhC8d4vP9Qf6g7De68hEf3pJspRoz3qjN2jwBrqP", 1000, 1000, [0])
+            print("Successfully built add_liquidity ix.")
         except Exception as e:
             print(f"FAILED! issue: {e}")
         await armory.close()
