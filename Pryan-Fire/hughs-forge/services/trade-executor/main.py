@@ -317,17 +317,19 @@ class TradeExecutor:
         logger.info(f"----------------------------------------------")
         return report
 
-    async def run_autonomous_audit(self):
+    async def run_autonomous_audit(self, positions: Optional[List[Dict[str, Any]]] = None):
         """Single pass audit for autonomous loop."""
         # 0. Calibrate Volatility Scryer (Simplified for V1)
         # In V2, this will use recent price variance. For now, we assume NORMAL.
         current_volatility = "NORMAL"
         
         logger.info(f"--- [AUTONOMOUS AUDIT: {datetime.datetime.now()} | VOL: {current_volatility}] ---")
-        bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
         
         # 1. Scry Positions
-        lp_positions = await self.get_meteora_lp_positions(bot_pubkey)
+        lp_positions = positions
+        if lp_positions is None:
+            bot_pubkey = Pubkey.from_string(BOT_WALLET_PUBKEY)
+            lp_positions = await self.get_meteora_lp_positions(bot_pubkey)
         
         if not lp_positions:
             logger.info("    -> No active positions found. All is quiet.")
@@ -342,10 +344,10 @@ class TradeExecutor:
             token_x_mint = pos.get("tokenXMint")
             if token_x_mint:
                 momentum_check = await self.momentum_scanner.validate_momentum(str(token_x_mint))
-                if not momentum_check["passed"]:
-                    logger.info(f"    -> Momentum check FAILED for {token_x_mint}: {momentum_check["reason"]}. Skipping rebalance consideration.")
+                if momentum_check["momentum_signal"] == "NEGATIVE":
+                    logger.warning(f"MOMENTUM_BLOCK: Skipping rebalance due to negative momentum on {token_x_mint}: {momentum_check['reasons']}")
                     continue
-                logger.info(f"    -> Momentum check PASSED for {token_x_mint}.")
+                logger.info(f"    -> Momentum check PASSED for {token_x_mint}. Signal: {momentum_check['momentum_signal']}")
 
             if self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId']):
                 new_range = self.rebalance_strategy.calculate_new_range(active_id)
@@ -514,7 +516,7 @@ class TradeExecutor:
                         if self.rebalance_strategy.should_rebalance(active_id, decoded_account.lower_bin_id, decoded_account.upper_bin_id):
                             new_range = self.rebalance_strategy.calculate_new_range(active_id)
                             logger.info(f"    -> STRATEGY RECOMMENDATION: Rebalance to range {new_range}")
-                            await self.simulate_rebalance(pos, new_range)
+                            # await self.simulate_rebalance(pos, new_range)
                     logger.info(f"    -> Found LP Position {pubkey} in Pool {decoded_account.pool} (TokenX: {token_x_balance}, TokenY: {token_y_balance})")
 
             else:
@@ -880,7 +882,7 @@ if __name__ == "__main__":
                 logger.info(f"Successfully fetched a quote. Out amount: {quote.get('outAmount')}")
 
             # --- MOCK LP POSITIONS FOR TESTING MOMENTUMSCANNER (TEMPORARY) ---
-            lp_positions = [
+            mock_lp_positions = [
                 {
                     "pubkey": Pubkey.new_unique(),
                     "owner": bot_pubkey,
@@ -891,9 +893,9 @@ if __name__ == "__main__":
                     "ownerTokenYBalance": 0.0,
                     "lowerBinId": -10,
                     "upperBinId": 10,
-                    "activeId": 0,
+                    "activeId": 20, # Out of range to trigger rebalance check
                     "poolPrice": 1.0,
-                    "liquidity": 1000,
+                    "liquidity": 50, # Set low to trigger NEGATIVE momentum
                     "totalFeeX": 0,
                     "totalFeeY": 0,
                     "lastUpdatedAt": 0,
@@ -916,55 +918,29 @@ if __name__ == "__main__":
                     "lastUpdatedAt": 0,
                 }
             ]
+            logger.info("--> MOCK LP Positions prepared for MomentumScanner testing.")
+            # --- END MOCK ---
+
             logger.info(f"\nAttempting to fetch Meteora DLMM LP positions for {BOT_WALLET_PUBKEY}...")
-            lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
+            real_lp_positions = await executor.get_meteora_lp_positions(bot_pubkey)
 
-            if lp_positions:
-                logger.info("--> Found LP Positions:")
+            logger.info(f"\n--- [STARTING AUTONOMOUS AUDIT WITH MOCK AND REAL DATA] ---")
+            combined_lp_positions = []
+            if real_lp_positions:
+                logger.info("--> Found REAL LP Positions. Combining with mock data for audit.")
+                combined_lp_positions.extend(real_lp_positions)
+            else:
+                logger.info("--> No REAL LP positions found for the bot wallet.")
 
-                # For testing MomentumScanner, we will explicitly add some mock positions here
-                # These positions will be processed by the MomentumScanner logic
-                # and allow us to verify its filtering without live data.
-                # This is a temporary measure and will be removed once live integration is stable.
-                mock_lp_positions = [
-                    {
-                        "pubkey": Pubkey.new_unique(),
-                        "owner": bot_pubkey,
-                        "pool": Pubkey.new_unique(),
-                        "tokenXMint": Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), # USDC Mint
-                        "tokenYMint": Pubkey.new_unique(),
-                        "ownerTokenXBalance": 0.0,
-                        "ownerTokenYBalance": 0.0,
-                        "lowerBinId": -10,
-                        "upperBinId": 10,
-                        "activeId": 0,
-                        "poolPrice": 1.0,
-                        "liquidity": 1000,
-                        "totalFeeX": 0,
-                        "totalFeeY": 0,
-                        "lastUpdatedAt": 0,
-                    },
-                    {
-                        "pubkey": Pubkey.new_unique(),
-                        "owner": bot_pubkey,
-                        "pool": Pubkey.new_unique(),
-                        "tokenXMint": Pubkey.from_string("So11111111111111111111111111111111111111112"), # SOL Mint
-                        "tokenYMint": Pubkey.new_unique(),
-                        "ownerTokenXBalance": 0.0,
-                        "ownerTokenYBalance": 0.0,
-                        "lowerBinId": -5,
-                        "upperBinId": 5,
-                        "activeId": 20, # Out of range to trigger rebalance check
-                        "poolPrice": 1.0,
-                        "liquidity": 500,
-                        "totalFeeX": 0,
-                        "totalFeeY": 0,
-                        "lastUpdatedAt": 0,
-                    }
-                ]
-                lp_positions.extend(mock_lp_positions)
-                logger.info("--> Added MOCK LP Positions for MomentumScanner testing.")
-                for i, pos in enumerate(lp_positions):
+            combined_lp_positions.extend(mock_lp_positions)
+            await executor.run_autonomous_audit(combined_lp_positions)
+            logger.info(f"--- [AUTONOMOUS AUDIT COMPLETE] ---")
+
+            if combined_lp_positions: # Check if combined_lp_positions exists for further demonstrations
+                # The following sections are for demonstrations of P&L, claiming, compounding, etc.
+                # These will operate on the combined list.
+                logger.info("--> Running additional LP position demonstrations on combined data:")
+                for i, pos in enumerate(combined_lp_positions):
                     logger.info(f"    Position {i+1} (Pubkey: {pos['pubkey']}):")
                     logger.info(f"        Owner: {pos['owner']}")
                     logger.info(f"        Pool: {pos['pool']}")
@@ -981,9 +957,9 @@ if __name__ == "__main__":
                     logger.info(f"            Total Fees Earned: {pnl_results['total_fees_earned']}")
                     logger.info(f"            Total Current Value: {pnl_results['total_value']:.4f}")
 
-                if executor.wallet:
-                    first_position_pubkey = lp_positions[0]['pubkey']
-                    first_position_pool_pubkey = lp_positions[0]['pool']
+                if executor.wallet and combined_lp_positions: # Ensure there are positions to work with
+                    first_position_pubkey = combined_lp_positions[0]['pubkey']
+                    first_position_pool_pubkey = combined_lp_positions[0]['pool']
                     logger.info(f"\nAttempting to claim fees from LP position {first_position_pubkey}...")
                     DUMMY_TOKEN_X_MINT = Pubkey.new_unique()
                     DUMMY_TOKEN_Y_MINT = Pubkey.new_unique()
@@ -998,14 +974,14 @@ if __name__ == "__main__":
                     if tx_claim:
                         logger.info(f"Claim fees transaction sent: {tx_claim}")
                 else:
-                    logger.warning("Cannot claim fees: Wallet not loaded.")
+                    logger.warning("Cannot claim fees: Wallet not loaded or no LP positions to claim from.")
 
-                if executor.wallet:
+                if executor.wallet and combined_lp_positions:
                     logger.info(f"\nAttempting to compound fees back into LP position {first_position_pubkey}...")
                     COMPOUND_AMOUNT_X = 1000
                     COMPOUND_AMOUNT_Y = 500
-                    COMPOUND_LOWER_BIN = lp_positions[0]['lowerBinId']
-                    COMPOUND_UPPER_BIN = lp_positions[0]['upperBinId']
+                    COMPOUND_LOWER_BIN = combined_lp_positions[0]['lowerBinId']
+                    COMPOUND_UPPER_BIN = combined_lp_positions[0]['upperBinId']
 
                     tx_compound = await executor.compound_meteora_fees(
                         position_pubkey=first_position_pubkey,
@@ -1021,10 +997,10 @@ if __name__ == "__main__":
                     if tx_compound:
                         logger.info(f"Compound fees transaction sent: {tx_compound}")
                 else:
-                    logger.warning("Cannot compound fees: Wallet not loaded.")
+                    logger.warning("Cannot compound fees: Wallet not loaded or no LP positions to compound into.")
 
             else:
-                logger.info("--> No LP positions found for the bot wallet. Cannot demonstrate claiming or compounding.")
+                logger.info("--> No LP positions (real or mock) found to run demonstrations.")
 
             if executor.wallet:
                 DUMMY_POOL_PUBKEY = Pubkey.new_unique()

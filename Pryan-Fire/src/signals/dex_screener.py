@@ -29,13 +29,13 @@ class MomentumScanner:
         try:
             async with session.get(url) as response:
                 if response.status != 200:
-                    return {"passed": False, "reason": f"API Error: {response.status}"}
+                    return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": [f"API Error: {response.status}"]}
                 
                 data = await response.json()
                 pairs = data.get("pairs", [])
                 
                 if not pairs:
-                    return {"passed": False, "reason": "No pairs found (Too early or low liquidity)"}
+                    return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": ["No pairs found (Too early or low liquidity)"]}
                 
                 # Analyze the primary pair (usually the one with highest liquidity)
                 primary_pair = pairs[0]
@@ -53,7 +53,7 @@ class MomentumScanner:
 
         except Exception as e:
             logger.error(f"DEX Screener fetch failed: {e}")
-            return {"passed": False, "reason": f"Fetch error: {str(e)}"}
+            return {"passed": False, "momentum_signal": "NEGATIVE", "reasons": [f"Fetch error: {str(e)}"]}
 
     def _apply_leash(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -77,9 +77,10 @@ class MomentumScanner:
         if metrics["fdv"] < 10000:
             reasons.append(f"Market Cap too low (${metrics['fdv']})")
 
-        passed = len(reasons) == 0
+        momentum_signal = "POSITIVE" if len(reasons) == 0 else "NEGATIVE"
         return {
-            "passed": passed,
+            "passed": len(reasons) == 0,
+            "momentum_signal": momentum_signal,
             "reasons": reasons,
             "metrics": metrics
         }
