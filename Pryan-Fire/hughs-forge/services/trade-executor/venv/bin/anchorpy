@@ -1,6 +1,0 @@
-#!/data/repos/Pryan-Fire/hughs-forge/services/trade-executor/venv/bin/python
-import sys
-from anchorpy.cli import app
-if __name__ == '__main__':
-    sys.argv[0] = sys.argv[0].removesuffix('.exe')
-    sys.exit(app())
