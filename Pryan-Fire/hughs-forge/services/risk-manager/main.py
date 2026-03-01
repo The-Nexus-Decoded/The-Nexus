@@ -4,7 +4,7 @@ import uvicorn
 
 from fastapi import FastAPI
 
-from .logger import audit_logger
+from hughs_forge.services.risk_manager.logger import audit_logger
 
 
 # Configuration will be moved to a separate file later
