@@ -1,5 +1,6 @@
 # main.py for the Risk Manager service
 import time
+import datetime
 import uvicorn
 from typing import Dict, Any, Optional
 
@@ -19,6 +20,9 @@ RISK_CONFIG = {
     },
     "manual_approval_threshold_usd": 500.00 # Trades above this need manual approval
 }
+
+# Standard version for the fleet
+SERVICE_VERSION = "1.0.0"
 
 class TradeDetails(BaseModel):
     pair: str
@@ -109,9 +113,13 @@ risk_manager_instance = RiskManager(RISK_CONFIG)
 
 @app.get("/health")
 def health_check():
+    # Perform status check
+    is_healthy, _ = risk_manager_instance.check_circuit_breaker()
+    
     return {
-        "status": "ok",
-        "service": "RiskManager",
+        "status": "healthy" if is_healthy else "unhealthy",
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "version": SERVICE_VERSION,
         "consecutive_losses": risk_manager_instance.consecutive_losses,
         "open_positions": len(risk_manager_instance.open_positions),
         "circuit_breaker_tripped": risk_manager_instance.breaker_tripped_at > 0
