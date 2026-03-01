@@ -609,45 +609,45 @@ class TradeExecutor:
 
     async def get_meteora_dynamic_fees(self, pool_pubkey: Pubkey) -> Dict[str, Any]:
         """
-        [PLACEHOLDER] Fetches and estimates dynamic fees for a Meteora DLMM pool.
-        In a full implementation, this would involve querying detailed pool state
-        for parameters like current bin, total liquidity, volume, and potentially
-        simulating fee accumulation or querying a separate fees oracle/SDK.
+        [REFINED] Fetches and estimates dynamic fees for a Meteora DLMM pool based on available pool state.
+        This implementation uses bin_step for dynamic adjustment and includes a protocol fee.
         """
         logger.info(f"Estimating dynamic fees for Pool {pool_pubkey}...")
         try:
             pool_state = await self.get_meteora_pool_state(pool_pubkey)
             if not pool_state:
                 logger.warning(f"Could not fetch pool state for {pool_pubkey} to estimate fees.")
-                return {"base_fee_bps": 0, "dynamic_fee_bps": 0, "total_fee_bps": 0}
+                return {"base_fee_bps": 0, "dynamic_fee_bps": 0, "protocol_fee_bps": 0, "total_fee_bps": 0}
 
-            # --- Simplified Placeholder Logic for Dynamic Fees ---
-            # In a real scenario, these would be derived from:
-            # - `pool_state.bin_step`
-            # - `pool_state.protocol_fee_rate`
-            # - `pool_state.trade_volume_24h` (if available in an extended state)
-            # - `pool_state.utilization_rate` (if available)
+            # Common Protocol Fee (e.g., 0.01% - 0.05% for DLMMs)
+            protocol_fee_bps = 1 # 0.01% for example
 
-            base_fee_bps = 5  # Example: 0.05% base fee
-            dynamic_fee_bps = 0 # Placeholder for dynamic adjustment
+            # Dynamic fee adjustment based on bin_step
+            # A higher bin_step implies wider bins, potentially less liquidity density,
+            # or a pool designed for higher volatility, which might warrant higher fees.
+            bin_step = pool_state.get("binStep", 0)
+            dynamic_fee_bps = 0
 
-            # Simple dynamic adjustment based on pool activity/state (conceptual)
-            if pool_state.get("activeId") is not None and pool_state.get("binStep") is not None:
-                # Example: higher fees for more volatile or active pools
-                if pool_state["binStep"] > 50: # Arbitrary threshold
-                    dynamic_fee_bps = 2 # Add 0.02% for more volatile pools
+            if bin_step > 0:
+                # Example: scale dynamic fee with bin_step. This is a simplified model.
+                # Real DLMMs use more complex curves and utilization rates.
+                dynamic_fee_bps = int(bin_step / 10) # e.g., if bin_step is 100, dynamic_fee_bps is 10
 
-            total_fee_bps = base_fee_bps + dynamic_fee_bps
-            logger.info(f"--> Estimated Fees for {pool_pubkey}: Base {base_fee_bps} bps, Dynamic {dynamic_fee_bps} bps, Total {total_fee_bps} bps")
+            # Base trading fee (often configurable per pool, or a standard for the platform)
+            base_fee_bps = 5 # 0.05% base trading fee
+
+            total_fee_bps = base_fee_bps + dynamic_fee_bps + protocol_fee_bps
+            logger.info(f"--> Estimated Fees for {pool_pubkey}: Base {base_fee_bps} bps, Dynamic {dynamic_fee_bps} bps, Protocol {protocol_fee_bps} bps, Total {total_fee_bps} bps")
 
             return {
                 "base_fee_bps": base_fee_bps,
                 "dynamic_fee_bps": dynamic_fee_bps,
+                "protocol_fee_bps": protocol_fee_bps,
                 "total_fee_bps": total_fee_bps,
             }
         except Exception as e:
             logger.error(f"--> Error estimating dynamic fees for Pool {pool_pubkey}: {e}")
-            return {"base_fee_bps": 0, "dynamic_fee_bps": 0, "total_fee_bps": 0}
+            return {"base_fee_bps": 0, "dynamic_fee_bps": 0, "protocol_fee_bps": 0, "total_fee_bps": 0}
 
     async def get_meteora_lp_positions(self, owner_pubkey: Pubkey) -> List[Dict[str, Any]]:
         """Fetches Meteora DLMM LP positions for a given owner public key."""
