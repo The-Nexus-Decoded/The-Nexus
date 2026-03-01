@@ -5,16 +5,27 @@ import time
 from core.orchestrator import TradeOrchestrator
 from core.event_loop import EventLoop
 from telemetry.logger import setup_telemetry_logger
+from health_server import start_orchestrator_health_server
 
 def main():
     parser = argparse.ArgumentParser(description="Hugh's Trade Orchestrator Engine")
     parser.add_argument('--db', type=str, default="trades.db", help="Path to SQLite persistence database")
     parser.add_argument('--log', type=str, default="logs/orchestrator.jsonl", help="Path to JSONL telemetry log")
+    parser.add_argument('--health-port', type=int, default=8002, help="Port for the /health endpoint")
     args = parser.parse_args()
 
     # Initialize Telemetry
     logger = setup_telemetry_logger(log_file=args.log)
     logger.info("Initializing the Trade Orchestrator", extra={"payload": {"db_path": args.db, "version": "0.1.0"}})
+
+    # Start the health server in a daemon thread
+    health_thread = threading.Thread(
+        target=start_orchestrator_health_server, 
+        args=(args.health_port,), 
+        daemon=True, 
+        name="Orchestrator-Health"
+    )
+    health_thread.start()
 
     # Scaffold the engine components
     orchestrator = TradeOrchestrator(db_path=args.db)
