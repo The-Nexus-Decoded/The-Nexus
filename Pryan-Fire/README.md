@@ -5,6 +5,17 @@
 
 Core business logic, agent services, and operative tools for the OpenClaw homelab.
 
+## The Nexus Decoded
+
+<pre>
+The-Nexus-Decoded/
+├── <b>Pryan-Fire/</b>          — Business logic, agent services, tools           ◀ you are here
+├── Chelestra-Sea/       — Networking, communication, integration
+├── Arianus-Sky/         — UIs, dashboards, visualizations
+├── Abarrach-Stone/      — Data, schemas, storage
+└── Nexus-Vaults/        — Workspace snapshots, fleet docs
+</pre>
+
 ## Structure
 
 ```
@@ -30,7 +41,7 @@ Pryan-Fire/
 | `zifnabs-scriptorium/` | ola-claw-main (Zifnab) |
 | `hughs-forge/` | ola-claw-trade (Hugh) |
 
-## What's NOT tracked
+## What's NOT Tracked
 
 Per `.gitignore`:
 - `strategies/` — trading strategies are private
