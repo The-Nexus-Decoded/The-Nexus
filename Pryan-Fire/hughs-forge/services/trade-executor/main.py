@@ -91,7 +91,7 @@ TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5
 ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
 
 # Pyth Hermes REST API Endpoint
-PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/api/latest_price_feeds" # Example endpoint
+PYTH_HERMES_ENDPOINT = "https://hermes.pyth.network/v2/updates/price/latest"
 
 # Circuit breaker status
 CIRCUIT_BREAKER_ACTIVE = False
@@ -1089,34 +1089,59 @@ class TradeExecutor:
     async def get_pyth_price(self, price_feed_id: str, radar_price: Optional[float] = None) -> Optional[Dict[str, Any]]:
         """Fetches the latest Pyth price and compares it with internal Radar for sanity."""
         logger.info(f"Consulting the oracle for Pyth price feed {price_feed_id}...")
-        try:
-            url = f"https://hermes.pyth.network/v2/updates/price/latest?ids[]={price_feed_id}"
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                response.raise_for_status()
-                data = response.json()
-
-            if data and "parsed" in data and len(data["parsed"]) > 0:
-                price_data = data["parsed"][0].get("price", {})
-                price_val = float(price_data.get("price", 0)) * (10 ** price_data.get("expo", 0))
-                logger.info(f"--> Oracle Sight (V2): {price_val:.4f} +/- {float(price_data.get('conf', 0)) * (10 ** price_data.get('expo', 0)):.4f}")
+        
+        max_retries = 3
+        retry_delay = 2 # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                url = f"{PYTH_HERMES_ENDPOINT}?ids[]={price_feed_id}"
                 
-                # SIGHT MISMATCH LOGIC: Compare with internal Radar if provided
-                if radar_price is not None and radar_price > 0:
-                    divergence = abs(price_val - radar_price) / radar_price
-                    logger.info(f"    -> Sight Mismatch Check: {divergence*100:.2f}% divergence (Oracle: {price_val:.4f}, Radar: {radar_price:.4f})")
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=10.0)
                     
-                    if divergence > 0.02: # 2% threshold as commanded
-                        logger.critical(f"🚨 [CRITICAL] SIGHT MISMATCH DETECTED: Oracle ({price_val:.4f}) vs Radar ({radar_price:.4f}) | AUDIT HALTED.")
-                
-                return price_data
-            else:
-                logger.warning(f"--> No Pyth price data found for {price_feed_id} in V2 response.")
-                return None
-        except Exception as e:
-            logger.error(f"--> Error fetching Pyth price via Hermes: {e}")
-            return None
+                    if response.status_code == 429:
+                        logger.warning(f"Pyth rate limit hit (429). Attempt {attempt + 1}/{max_retries}. Retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2
+                        continue
+                        
+                    response.raise_for_status()
+                    data = response.json()
+
+                if data and "parsed" in data and len(data["parsed"]) > 0:
+                    price_data = data["parsed"][0].get("price", {})
+                    price_val = float(price_data.get("price", 0)) * (10 ** price_data.get("expo", 0))
+                    logger.info(f"--> Oracle Sight (V2): {price_val:.4f} +/- {float(price_data.get('conf', 0)) * (10 ** price_data.get('expo', 0)):.4f}")
+                    
+                    # SIGHT MISMATCH LOGIC: Compare with internal Radar if provided
+                    if radar_price is not None and radar_price > 0:
+                        divergence = abs(price_val - radar_price) / radar_price
+                        logger.info(f"    -> Sight Mismatch Check: {divergence*100:.2f}% divergence (Oracle: {price_val:.4f}, Radar: {radar_price:.4f})")
+                        
+                        if divergence > 0.02: # 2% threshold as commanded
+                            logger.critical(f"🚨 [CRITICAL] SIGHT MISMATCH DETECTED: Oracle ({price_val:.4f}) vs Radar ({radar_price:.4f}) | AUDIT HALTED.")
+                    
+                    return price_data
+                else:
+                    logger.warning(f"--> No Pyth price data found for {price_feed_id} in V2 response.")
+                    return None
+                    
+            except httpx.HTTPStatusError as e:
+                logger.error(f"--> HTTP error fetching Pyth price: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    return None
+            except Exception as e:
+                logger.error(f"--> Unexpected error fetching Pyth price via Hermes: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    return None
+        return None
 
     def execute_trade(self, trade_details: dict) -> Dict[str, Any]:
         """
