@@ -1,11 +1,13 @@
 # main.py for the Risk Manager service
 import time
 import uvicorn
+from typing import Dict, Any, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
+from pydantic import BaseModel
 
 from logger import audit_logger
-
+import discord_gate
 
 # Configuration will be moved to a separate file later
 RISK_CONFIG = {
@@ -14,8 +16,20 @@ RISK_CONFIG = {
     "circuit_breaker": {
         "max_consecutive_losses": 3,
         "cooldown_period_seconds": 300, # 5 minutes
-    }
+    },
+    "manual_approval_threshold_usd": 500.00 # Trades above this need manual approval
 }
+
+class TradeDetails(BaseModel):
+    pair: str
+    amount_usd: float
+    side: str
+    price: Optional[float] = None
+
+class Resolution(BaseModel):
+    trade_id: str
+    approved: bool
+    user: str
 
 class RiskManager:
     def __init__(self, config):
@@ -38,16 +52,19 @@ class RiskManager:
             self.consecutive_losses = 0
             audit_logger.info("Profit reported, resetting consecutive losses.", extra={'extra_info': {"pnl": pnl}})
 
-    def check_position_size(self, trade_details: dict) -> (bool, str):
-        # ... (implementation unchanged)
+    def check_position_size(self, trade_details: dict) -> tuple[bool, str]:
+        max_size = self.config.get("max_trade_size_usd", 1000.0)
+        if trade_details.get("amount_usd", 0) > max_size:
+            return False, f"Trade size exceeds limit of {max_size} USD."
         return True, "Position size is within limits."
 
-    def check_open_positions(self) -> (bool, str):
-        # ... (implementation unchanged)
+    def check_open_positions(self) -> tuple[bool, str]:
+        max_positions = self.config.get("max_open_positions", 5)
+        if len(self.open_positions) >= max_positions:
+            return False, f"Maximum open positions ({max_positions}) reached."
         return True, "Open positions within limit."
 
-    def check_circuit_breaker(self) -> (bool, str):
-        # ... (implementation unchanged)
+    def check_circuit_breaker(self) -> tuple[bool, str]:
         breaker_config = self.config.get("circuit_breaker", {})
         max_losses = breaker_config.get("max_consecutive_losses", 3)
         if self.consecutive_losses >= max_losses:
@@ -56,7 +73,7 @@ class RiskManager:
             return False, "CIRCUIT BREAKER TRIPPED."
         return True, "Circuit breaker is not tripped."
 
-    def check_trade(self, trade_details: dict) -> (bool, str):
+    def check_trade(self, trade_details: dict) -> tuple[bool, str]:
         log_context = {"trade": trade_details}
         audit_logger.info("Checking trade.", extra={'extra_info': log_context})
 
@@ -76,6 +93,12 @@ class RiskManager:
                 audit_logger.error("Trade REJECTED", extra={'extra_info': {"reason": reason, **log_context}})
                 return False, reason
         
+        # Manual approval check
+        threshold = self.config.get("manual_approval_threshold_usd", 500.00)
+        if trade_details.get("amount_usd", 0) >= threshold:
+            audit_logger.info("Trade requires MANUAL APPROVAL.", extra={'extra_info': log_context})
+            return False, "MANUAL_APPROVAL_REQUIRED"
+
         audit_logger.info("Trade APPROVED.", extra={'extra_info': log_context})
         if trade_details.get("side") == "buy": self._add_position(trade_details)
         return True, "Trade approved."
@@ -94,23 +117,31 @@ def health_check():
         "circuit_breaker_tripped": risk_manager_instance.breaker_tripped_at > 0
     }
 
-# This is a placeholder for the actual trade checking endpoint
 @app.post("/check_trade")
-def check_trade_endpoint(trade_details: dict):
-    is_approved, reason = risk_manager_instance.check_trade(trade_details)
+async def check_trade_endpoint(trade: TradeDetails):
+    trade_dict = trade.model_dump()
+    is_approved, reason = risk_manager_instance.check_trade(trade_dict)
+    
+    if not is_approved and reason == "MANUAL_APPROVAL_REQUIRED":
+        trade_id = discord_gate.request_approval(trade_dict)
+        # Note: In a real scenario, we'd trigger the discord message here.
+        # For this design, we'll return the trade_id so the caller knows it's pending.
+        return {"approved": False, "reason": reason, "trade_id": trade_id}
+        
     return {"approved": is_approved, "reason": reason}
 
-if __name__ == "__main__":
-    # The test suite is now replaced by running the server
-    # uvicorn.run(app, host="0.0.0.0", port=8000)
-    
-    # Keeping test suite for now for local validation
-    # Test Suite
-    manager = risk_manager_instance
-    manager.check_trade({"pair": "SOL/USDC", "amount_usd": 500, "side": "buy"})
-    # ... (rest of test suite)
+@app.post("/resolve_trade")
+def resolve_trade_endpoint(res: Resolution):
+    try:
+        discord_gate.resolve_trade(res.trade_id, res.approved, res.user)
+        return {"status": "success"}
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/check_status/{trade_id}")
+def check_status_endpoint(trade_id: str):
+    status, info = discord_gate.check_status(trade_id)
+    return {"status": status, "info": info}
 
 if __name__ == "__main__":
-    # Test suite remains, demonstrating the new logging
-    pass
-
+    uvicorn.run(app, host="0.0.0.0", port=8000)
