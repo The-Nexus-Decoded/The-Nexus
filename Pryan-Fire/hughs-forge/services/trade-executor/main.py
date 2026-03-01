@@ -325,6 +325,7 @@ class TradeExecutor:
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
         self.ledger = TradeLedger()
         self.health_update_lock = threading.Lock()
+        self.rebalance_locks: Dict[str, asyncio.Lock] = {}
         
         # Load live wallet if not in paper trading mode
         if not self.paper_trading_mode:
@@ -455,10 +456,17 @@ class TradeExecutor:
         for pos in lp_positions:
             active_id = pos.get("activeId")
             if active_id is None: continue
-            
-            action = self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId'])
-            
-            if action == "REBALANCE":
+
+            pubkey_str = str(pos['pubkey'])
+            lock = self.rebalance_locks.setdefault(pubkey_str, asyncio.Lock())
+            if lock.locked():
+                logger.info(f"Skipping audit for {pubkey_str}: Operation already in progress.")
+                continue
+
+            async with lock:
+                action = self.rebalance_strategy.should_rebalance(active_id, pos['lowerBinId'], pos['upperBinId'])
+                
+                if action == "REBALANCE":
                 new_range = self.rebalance_strategy.calculate_new_range(active_id)
                 
                 if self.risk_manager.circuit_breaker_active:
