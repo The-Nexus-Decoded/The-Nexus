@@ -11,7 +11,7 @@ on:
 
 jobs:
   deploy-to-trade-server:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, tailscale]
     name: Deploy to ola-claw-trade
 
     steps:
