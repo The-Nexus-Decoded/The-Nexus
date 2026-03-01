@@ -24,6 +24,7 @@ import json
 import logging
 import datetime
 import threading
+import health_server
 from health_server import start_health_server, stop_health_server
 from models.keys import KeyManager
 from models.ledger import TradeLedger
@@ -323,6 +324,7 @@ class TradeExecutor:
         self.rebalance_strategy = RebalanceStrategy()
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
         self.ledger = TradeLedger()
+        self.health_update_lock = threading.Lock()
         
         # Load live wallet if not in paper trading mode
         if not self.paper_trading_mode:
@@ -499,12 +501,16 @@ class TradeExecutor:
         try:
             pubkey = Pubkey.from_string(pubkey_str)
             balance_response = await self.client.get_balance(pubkey)
+            with self.health_update_lock:
+                health_server.HealthHandler.solana_healthy = True
             lamports = balance_response.value
             sol = lamports / 1_000_000_000
             logger.info(f"--> Balance for {pubkey_str}: {sol:.9f} SOL")
             return sol
         except Exception as e:
             logger.error(f"--> Error fetching balance for {pubkey_str}: {e}")
+            with self.health_update_lock:
+                health_server.HealthHandler.solana_healthy = False
             return 0.0
 
     async def get_token_balance(self, token_account_pubkey: Pubkey) -> float:
@@ -1102,6 +1108,8 @@ class TradeExecutor:
                     
                     if response.status_code == 429:
                         logger.warning(f"Pyth rate limit hit (429). Attempt {attempt + 1}/{max_retries}. Retrying in {retry_delay}s...")
+                        with self.health_update_lock:
+                            health_server.HealthHandler.pyth_healthy = False
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                         continue
@@ -1110,6 +1118,8 @@ class TradeExecutor:
                     data = response.json()
 
                 if data and "parsed" in data and len(data["parsed"]) > 0:
+                    with self.health_update_lock:
+                        health_server.HealthHandler.pyth_healthy = True
                     price_data = data["parsed"][0].get("price", {})
                     price_val = float(price_data.get("price", 0)) * (10 ** price_data.get("expo", 0))
                     logger.info(f"--> Oracle Sight (V2): {price_val:.4f} +/- {float(price_data.get('conf', 0)) * (10 ** price_data.get('expo', 0)):.4f}")
@@ -1129,6 +1139,8 @@ class TradeExecutor:
                     
             except httpx.HTTPStatusError as e:
                 logger.error(f"--> HTTP error fetching Pyth price: {e}")
+                with self.health_update_lock:
+                    health_server.HealthHandler.pyth_healthy = False
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
                     retry_delay *= 2

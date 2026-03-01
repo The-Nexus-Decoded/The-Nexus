@@ -10,18 +10,25 @@ logger = logging.getLogger(__name__)
 SERVICE_VERSION = "1.0.0"
 
 class HealthHandler(http.server.BaseHTTPRequestHandler):
-    # Dependency check placeholder
+    # Dependency check placeholders
     dependencies_healthy = True
+    pyth_healthy = True
+    solana_healthy = True
 
     def do_GET(self):
         if self.path == '/health':
-            self.send_response(200 if self.dependencies_healthy else 503)
+            overall_healthy = self.dependencies_healthy and self.pyth_healthy and self.solana_healthy
+            self.send_response(200 if overall_healthy else 503)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             response = {
-                "status": "healthy" if self.dependencies_healthy else "unhealthy",
+                "status": "healthy" if overall_healthy else "unhealthy",
                 "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-                "version": SERVICE_VERSION
+                "version": SERVICE_VERSION,
+                "checks": {
+                    "pyth_hermes": "ok" if self.pyth_healthy else "error",
+                    "solana_rpc": "ok" if self.solana_healthy else "error"
+                }
             }
             self.wfile.write(json.dumps(response).encode('utf-8'))
             logger.info(f"Health check from {self.client_address[0]}. Status: {response['status']}")
