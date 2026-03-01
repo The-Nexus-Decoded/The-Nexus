@@ -6,6 +6,7 @@ import os
 from typing import Dict, Any
 from AuditLogger import AuditLogger
 from RiskManager import RiskManager
+from market_intelligence import MomentumScanner
 
 # The Conciliator: Unified Master Process for the Patryn Trading Pipeline.
 # Inscribed by Haplo (ola-claw-dev) for Lord Xar.
@@ -16,6 +17,7 @@ class TradeOrchestrator:
         self.audit_logger = audit_logger
         self.config = self._load_config(config_path)
         self.logger = logging.getLogger("Orchestrator")
+        self.momentum_scanner = MomentumScanner(self.config.get("momentum_scanner_config"))
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         default_config = {

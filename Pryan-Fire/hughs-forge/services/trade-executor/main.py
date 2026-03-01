@@ -28,6 +28,7 @@ import health_server
 from health_server import start_health_server, stop_health_server
 from models.keys import KeyManager
 from models.ledger import TradeLedger
+from models.position_reader import PositionReader
 
 # Configure logging
 logging.basicConfig(
@@ -324,6 +325,7 @@ class TradeExecutor:
         self.rebalance_strategy = RebalanceStrategy()
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
         self.ledger = TradeLedger()
+        self.position_reader = PositionReader(self)
         self.health_update_lock = threading.Lock()
         
         # Load live wallet if not in paper trading mode
@@ -1229,6 +1231,11 @@ if __name__ == "__main__":
             USDC_MINT = Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
             
             amount_to_swap = 10_000_000
+
+            logger.info(f"\n[ISSUE-11] Testing PositionReader for {BOT_WALLET_PUBKEY}...")
+            enriched_audit = await executor.position_reader.get_detailed_positions(bot_pubkey)
+            if enriched_audit:
+                logger.info(f"Successfully audited {len(enriched_audit)} positions with telemetry linkage.")
 
             logger.info(f"\nAttempting to fetch a Jupiter quote for {amount_to_swap / 1_000_000_000} SOL to USDC...")
             quote = await executor.get_quote(str(SOL_MINT), str(USDC_MINT), amount_to_swap)
