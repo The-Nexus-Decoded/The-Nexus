@@ -1,2 +1,67 @@
+# === NEVER TRACK — PRIVATE DATA ===
 
+# Private keys and wallets
+keys/
+wallets/
+*.pem
+*.key
+*.p12
+*.enc
+
+# Environment and secrets
+.env
+.env.local
+.env.production
+*.secret
+
+# Agent workspace (SOUL.md has IPs, tokens, channel IDs)
+workspace/
+
+# OpenClaw config (has auth tokens)
+.openclaw/
+openclaw.json
+
+# Trading strategies and financial data
+strategies/
+# signals/  <-- Unlocked for discovery modules
+hughs-forge/strategies/
+
+# Logs and audit trails
+logs/
+*.log
+
+# Personal data
+personal/
+downloads/
+
+# Private scripts (hardcoded IPs/secrets)
+scripts/private/
+
+# === STANDARD IGNORES ===
+__pycache__/
+node_modules/
+dist/
+build/
+.cache/
+*.pyc
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+hughs-forge/services/risk-manager/discord_gate.py
+hughs-forge/config/testnet/.env.devnet
+hughs-forge/wallets/
+hughs-forge/services/trade-executor/testvenv2/
+hughs-forge/services/trade-executor/trade_telemetry.jsonl
+hughs-forge/clients/
+hughs-forge/services/risk-manager/venv/
+hughs-forge/services/trade-executor/.venv/
+hughs-forge/services/trade-executor/venv/
+hughs-forge/services/trade-executor/*.py
+hughs-forge/services/trade-executor/*.db
+hughs-forge/services/trade-executor/audit_logs/
+src/data/*.db
+src/signals/*.py
+haplos-workshop/signal-intel/
+workflows/
 .venv/

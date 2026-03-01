@@ -3,7 +3,7 @@ import uuid
 import time
 from typing import Dict, Any
 from .state_machine import TradeState
-from ..state.state_manager import TradeStateManager
+from state.state_manager import TradeStateManager
 from .rpc_integration import RpcIntegrator
 
 class TradeOrchestrator:
