@@ -64,3 +64,4 @@ src/data/*.db
 src/signals/*.py
 haplos-workshop/signal-intel/
 workflows/
+.venv/
