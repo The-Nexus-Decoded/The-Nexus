@@ -35,17 +35,24 @@ def main():
     print(f"Jupiter API Key: {'set' if os.getenv('JUPITER_API_KEY') else 'MISSING'}")
     print()
 
-    # Set wallet path: use TRADING_WALLET_PATH if set, else default based on host
-    wallet_path = os.getenv("TRADING_WALLET_PATH")
-    if not wallet_path:
-        # Default to common location on trade server
-        wallet_path = "/data/openclaw/keys/trading_wallet.json"
-        if not os.path.exists(wallet_path):
-            print(f"ERROR: Wallet not found at {wallet_path}")
-            print("Set TRADING_WALLET_PATH env var to correct location.")
+    # Set environment for wallet if not already
+    if "TRADING_WALLET_PATH" not in os.environ:
+        # Try common locations
+        possible_paths = [
+            "/data/openclaw/keys/trading_wallet.json",  # ola-claw-trade
+            "/data/openclaw/workspace/keys/trading_wallet.json",  # ola-claw-dev
+        ]
+        wallet_path = None
+        for p in possible_paths:
+            if os.path.exists(p):
+                wallet_path = p
+                break
+        if wallet_path:
+            os.environ["TRADING_WALLET_PATH"] = wallet_path
+            print(f"Using wallet at: {wallet_path}")
+        else:
+            print("ERROR: Wallet not found. Set TRADING_WALLET_PATH to the wallet JSON file.")
             sys.exit(1)
-        os.environ["TRADING_WALLET_PATH"] = wallet_path
-        print(f"Using wallet at: {wallet_path}")
 
     # Initialize RpcIntegrator
     try:
@@ -53,13 +60,11 @@ def main():
         print("RpcIntegrator initialized successfully")
     except Exception as e:
         print(f"ERROR initializing RpcIntegrator: {e}")
-        import traceback
-        traceback.print_exc()
         sys.exit(1)
 
     # Test quote and swap
-    # Using USDC as output (selling SOL for USDC)
-    input_mint = "So11111111111111111111111111111111111111112"  # WSOL (we sell this)
+    # Using WSOL as input, USDC as output
+    input_mint = "So11111111111111111111111111111111111111112"  # WSOL
     output_mint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"  # USDC
 
     print("\n1. Fetching quote from Jupiter...")
