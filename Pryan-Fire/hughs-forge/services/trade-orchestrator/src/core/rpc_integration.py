@@ -16,9 +16,7 @@ class RpcIntegrator:
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
         # Jupiter API endpoints: use v1 (api.jup.ag/swap/v1)
-        self.jupiter_endpoints = [
-            "https://api.jup.ag/swap/v1"
-        ]
+        self.jupiter_endpoints = ["https://api.jup.ag"]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
         # Fallback: read from /data/openclaw/keys/jupiter.env if not set
         if not self.jupiter_api_key:
