@@ -9,6 +9,7 @@ from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
 
+print("[INIT] rpc_integration.py loaded from:", __file__)
 logger = logging.getLogger("RpcIntegrator")
 
 class RpcIntegrator:
@@ -33,7 +34,7 @@ class RpcIntegrator:
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
         if not dry_run:
-            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
@@ -78,7 +79,8 @@ class RpcIntegrator:
             quote = self._fetch_quote(
                 input_mint=token_address,
                 output_mint="So11111111111111111111111111111111111111112",  # Wrapped SOL
-                amount=amount_lamports
+                amount=amount_lamports,
+                user_pubkey=str(self.wallet.pubkey())
             )
             if not quote:
                 self.logger.error("Failed to fetch Jupiter quote")
@@ -154,7 +156,7 @@ class RpcIntegrator:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
             return False
 
-    def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
+    def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         """Fetch quote from Jupiter (synchronous httpx)"""
         params = {
             "inputMint": input_mint,
@@ -162,7 +164,7 @@ class RpcIntegrator:
             "amount": str(amount),
             "slippageBps": slippage_bps,
             "onlyDirectRoutes": "false",
-            "maxAccounts": 0  # Force legacy transaction format (no address table lookups)
+            "userPublicKey": user_pubkey
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -191,7 +193,7 @@ class RpcIntegrator:
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
-            "maxAccounts": 0  # Force legacy transaction format
+
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -200,13 +202,19 @@ class RpcIntegrator:
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
-            url = f"{endpoint}/swap?maxAccounts=0"  # Also in URL to be safe
+            url = f"{endpoint}/quote"
+            print(f"[DEBUG] Swap endpoint URL: {url}")  # Force output
+            self.logger.info(f"[DEBUG] Swap endpoint URL: {url}")
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
-                    return data.get("swapTransaction")
+                    swap_tx_b64 = data.get("swapTransaction")
+                    if swap_tx_b64:
+                        print(f"!!!RAW BASE64: {swap_tx_b64}")  # Temporary debug
+                        self.logger.info(f"Raw swap transaction (base64, first 100 chars): {swap_tx_b64[:100]}...")
+                    return swap_tx_b64
                 else:
                     self.logger.warning(f"Swap endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
             except httpx.HTTPError as e:
