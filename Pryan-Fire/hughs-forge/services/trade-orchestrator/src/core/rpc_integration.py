@@ -1,7 +1,7 @@
 import logging
 import os
-import httpx
 import json
+import httpx
 from typing import Dict, Any, Optional
 from solders.keypair import Keypair
 from solana.rpc.api import Client
@@ -15,60 +15,29 @@ class RpcIntegrator:
     def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
-        # Jupiter API endpoints: use v1 (api.jup.ag/swap/v1)
-        self.jupiter_endpoints = ["https://api.jup.ag"]
+        self.jupiter_endpoints = ["https://api.jup.ag/swap/v1"]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
-        # Fallback: read from /data/openclaw/keys/jupiter.env if not set
-        if not self.jupiter_api_key:
-            env_path = "/data/openclaw/keys/jupiter.env"
-            try:
-                if os.path.exists(env_path):
-                    with open(env_path) as f:
-                        for line in f:
-                            line = line.strip()
-                            if line and not line.startswith("#"):
-                                k, v = line.split("=", 1)
-                                if k == "JUPITER_API_KEY":
-                                    self.jupiter_api_key = v
-                                    self.logger.info("Loaded JUPITER_API_KEY from jupiter.env")
-                                    break
-            except Exception as e:
-                self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
-        # Load trading wallet (skip if dry_run)
-        self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            if self.wallet:
-                self.logger.info(f"Loaded wallet public key: {self.wallet.pubkey()}")
-            # Solana RPC: default to mainnet for live trading
+            # Default to mainnet RPC for trading; override via SOLANA_RPC_URL if needed
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
         else:
+            # Dry-run mode: use devnet RPC for context (no actual sending)
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
         self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
-        """
-        Determines the best route for the trade.
-        For now, defaults to Meteora if applicable, else Jupiter.
-        """
         self.logger.info(f"Evaluating route for {token_address} (Amount: {amount})")
-        # In a real implementation, we would query both and compare quotes.
-        # For this mock integration, we assume Jupiter is the default fallback.
         route = "JUPITER"
         self.logger.info(f"Selected route: {route}")
         return route
 
     def execute_jupiter_trade(self, token_address: str, amount: float) -> bool:
-        """
-        Executes a trade via Jupiter aggregator.
-        Returns True on success, False on failure.
-        """
-        # Dry run: skip actual on-chain transaction
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
             return True
@@ -76,32 +45,26 @@ class RpcIntegrator:
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
 
-            # Convert amount to lamports (assuming token has 9 decimals for SOL/USDC etc)
-            # In production, fetch decimals from token mint
+            # Convert amount to lamports (assuming 9 decimals for SOL; token decimals should be fetched in production)
             decimals = 9
             amount_lamports = int(amount * (10 ** decimals))
 
-            # Step 1: Get quote
             quote = self._fetch_quote(
-                input_mint="So11111111111111111111111111111111111111112",  # Wrapped SOL
-                output_mint=token_address,
-                amount=amount_lamports,
-                user_public_key=str(self.wallet.pubkey())
+                input_mint=token_address,
+                output_mint="So11111111111111111111111111111111111111112",  # wSOL
+                amount=amount_lamports
             )
             if not quote:
                 self.logger.error("Failed to fetch Jupiter quote")
                 return False
 
-            # Step 2: Get swap transaction
             swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
             if not swap_tx_b64:
                 self.logger.error("Failed to fetch swap transaction from Jupiter")
                 return False
 
-            # Step 3: Deserialize, sign, and send
             raw_tx = base64.b64decode(swap_tx_b64)
-            self.logger.info(f"RAW_BASE64_LEN={len(swap_tx_b64)} FIRST100={swap_tx_b64[:100]}")
-            self.logger.info(f"Raw transaction length: {len(raw_tx)} bytes")
+            self.logger.debug(f"Raw transaction length: {len(raw_tx)} bytes")
 
             # Determine transaction format: versioned (magic 0x80/0x81) vs legacy
             use_versioned = False
@@ -116,7 +79,6 @@ class RpcIntegrator:
                 self.logger.warning(f"Versioned deserialization failed: {e}. Trying legacy Transaction.")
                 try:
                     tx = Transaction.from_bytes(raw_tx)
-                    self.logger.info(f"Legacy transaction account keys: {[str(pk) for pk in tx.message.account_keys]}")
                     self.logger.info("Deserialized as legacy Transaction")
                 except Exception as e2:
                     self.logger.error(f"Failed to deserialize transaction: {e2}")
@@ -144,7 +106,7 @@ class RpcIntegrator:
                     return False
                 signed_tx = VersionedTransaction.populate(msg, sigs)
 
-                # Log address table lookups if present
+                # Log address table lookups for transparency
                 if hasattr(msg, 'address_table_lookups') and msg.address_table_lookups:
                     lookups = msg.address_table_lookups
                     self.logger.info(f"Address table lookups: {len(lookups)} entries")
@@ -172,7 +134,7 @@ class RpcIntegrator:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
             return False
 
-    def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50, user_public_key: str = None) -> Optional[Dict[str, Any]]:
+    def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         """Fetch quote from Jupiter (synchronous httpx)"""
         params = {
             "inputMint": input_mint,
@@ -181,12 +143,7 @@ class RpcIntegrator:
             "slippageBps": slippage_bps,
             "onlyDirectRoutes": "false",
         }
-        if user_public_key:
-            params["userPublicKey"] = user_public_key
-        self.logger.debug(f"Jupiter quote params: {params}")
-        headers = {
-            "User-Agent": "OpenClaw-Haplo/1.0"
-        }
+        headers = {"User-Agent": "OpenClaw-Haplo/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
 
@@ -195,11 +152,8 @@ class RpcIntegrator:
             try:
                 resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
-                    quote = resp.json()
-                    self.logger.debug(f"Jupiter quote response: {json.dumps(quote)}")
-                    return quote
-                else:
-                    self.logger.warning(f"Quote endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
+                    return resp.json()
+                self.logger.warning(f"Quote endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
             except httpx.HTTPError as e:
                 self.logger.warning(f"Quote request {url} failed: {e}")
         return None
@@ -213,34 +167,36 @@ class RpcIntegrator:
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
         }
-        self.logger.debug(f"Jupiter swap payload: {json.dumps(payload)}")
-        headers = {
-            "User-Agent": "OpenClaw-Haplo/1.0"
-        }
+        # DEBUG: Log the exact payload being sent
+        self.logger.info(f"[DEBUG] Jupiter swap payload: {json.dumps(payload, separators=(',', ':'))}")
+
+        headers = {"User-Agent": "OpenClaw-Haplo/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
+            self.logger.info(f"[DEBUG] Posting to Jupiter endpoint: {url}")
             try:
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
-                    self.logger.debug(f"Jupiter swap response: {json.dumps(data)}")
-                    return data.get("swapTransaction")
-                else:
-                    self.logger.warning(f"Swap endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
+                    raw_tx = data.get("swapTransaction")
+                    if raw_tx:
+                        self.logger.info(f"Raw swapTransaction base64 length: {len(raw_tx)}, first 100 chars: {raw_tx[:100]}")
+                        # Also print directly to ensure it appears in test output
+                        print(f"RAW_TX_BASE64: len={len(raw_tx)} first100={raw_tx[:100]}")
+                    else:
+                        self.logger.error("swapTransaction not found in Jupiter response")
+                    return raw_tx
+                self.logger.warning(f"Swap endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
             except httpx.HTTPError as e:
                 self.logger.warning(f"Swap request {url} failed: {e}")
         return None
 
     def execute_meteora_trade(self, token_address: str, amount: float) -> bool:
-        """
-        Executes a trade via Meteora DLMM.
-        """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
             return True
         self.logger.info(f"Executing Meteora trade for {token_address}...")
-        # Placeholder for actual Meteora execution logic
         return True
