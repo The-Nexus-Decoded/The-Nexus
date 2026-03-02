@@ -24,7 +24,7 @@ class RpcIntegrator:
         with open(wallet_path, "r") as f:
             import json
             secret_key = json.load(f)
-        self.wallet = Keypair.from_secret_key(bytes(secret_key))
+        self.wallet = Keypair.from_bytes(bytes(secret_key))
         # Solana RPC (from env or default to devnet for testing)
         self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
         self.client = Client(self.solana_rpc)
