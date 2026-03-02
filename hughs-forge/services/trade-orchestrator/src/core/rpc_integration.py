@@ -36,7 +36,7 @@ class RpcIntegrator:
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
-                secret_key = json.load(f)
+                secret_key = json.load(f)["privateKey"]
             self.wallet = Keypair.from_bytes(bytes(secret_key))
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
@@ -202,9 +202,9 @@ class RpcIntegrator:
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
-            url = f"{endpoint}/quote"
-            print(f"[DEBUG] Swap endpoint URL: {url}")  # Force output
-            self.logger.info(f"[DEBUG] Swap endpoint URL: {url}")
+            url = f"{endpoint}/swap"
+            print(f"[DEBUG] Swap transaction endpoint URL: {url}")  # Force output
+            self.logger.info(f"[DEBUG] Swap transaction endpoint URL: {url}")
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
