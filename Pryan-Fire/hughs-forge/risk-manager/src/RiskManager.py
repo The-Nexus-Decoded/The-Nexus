@@ -12,13 +12,50 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Warden")
 
 class RiskManager:
-    def __init__(self, discord_token: str, channel_id: int):
-        self.token = discord_token
-        self.channel_id = int(channel_id)
-        self.bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+    def __init__(self, discord_token: str = None, channel_id: int = None):
+        if discord_token and channel_id:
+            self.token = discord_token
+            self.channel_id = int(channel_id)
+            self.bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+            self._discord_enabled = True
+            # Initialize bot event handlers if running
+            self._setup_bot()
+        else:
+            # Mock mode: RiskManager operates without Discord approvals
+            self.token = None
+            self.channel_id = None
+            self.bot = None
+            self._discord_enabled = False
+            logger.warning("RiskManager initialized in MOCK mode (no Discord credentials). All trades will be auto-approved.")
+        
         self.lock = asyncio.Lock()
         self.pending_trades: Dict[str, asyncio.Event] = {}
         self.trade_approvals: Dict[str, bool] = {}
+
+    def _setup_bot(self):
+        """Set up Discord bot event handlers."""
+        @self.bot.event
+        async def on_ready():
+            logger.info(f"Discord bot connected. Monitoring channel: {self.channel_id}")
+
+        @self.bot.event
+        async def on_reaction(reaction: discord.Reaction, user: discord.User):
+            if user.bot:
+                return
+            if "PATRYN STRIKE AUTHORIZATION" in reaction.message.content:
+                try:
+                    trade_id = reaction.message.content.split("**ID:** `")[1].split("`")[0]
+                except IndexError:
+                    return
+                if trade_id in self.pending_trades:
+                    if str(reaction.emoji) == "✅":
+                        self.trade_approvals[trade_id] = True
+                        self.pending_trades[trade_id].set()
+                        await reaction.message.channel.send(f"⚔️ Strike Authorized: `{trade_id}`")
+                    elif str(reaction.emoji) == "❌":
+                        self.trade_approvals[trade_id] = False
+                        self.pending_trades[trade_id].set()
+                        await reaction.message.channel.send(f"🛡️ Strike Aborted: `{trade_id}`")
 
     def _format_approval_message(self, trade_id: str, details: Dict[str, Any]) -> str:
         """
@@ -50,7 +87,13 @@ class RiskManager:
     async def check_trade(self, trade_id: str, trade_details: Dict[str, Any]) -> bool:
         """
         Gates a trade until human confirmation via Discord.
+        In mock mode (no Discord credentials), auto-approves all trades.
         """
+        # Mock mode: auto-approve
+        if not self._discord_enabled:
+            logger.info(f"Trade {trade_id} auto-approved (mock mode).")
+            return True
+            
         async with self.lock:
             logger.info(f"Checking trade: {trade_id}")
             
@@ -81,7 +124,8 @@ class RiskManager:
                 self.trade_approvals.pop(trade_id, None)
 
     async def on_reaction(self, reaction: discord.Reaction, user: discord.User):
-        if user.bot: return
+        if user.bot:
+            return
 
         if "PATRYN STRIKE AUTHORIZATION" in reaction.message.content:
             # Extract trade_id from the formatted block

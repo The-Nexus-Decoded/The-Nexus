@@ -109,7 +109,7 @@ async def main():
 
     # --- ZIFNAB'S RUNE OF BINDING ---
     config = {}
-    config_path = "/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src/orchestrator_config.json"
+    config_path = os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
     try:
         with open(config_path, 'r') as f:
             config = json.load(f)
@@ -127,8 +127,23 @@ async def main():
 
     # Initialize Core Components with bound config
     audit_logger = AuditLogger()
-    risk_manager = RiskManager()
-    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config=config)
+    
+    # Load Discord credentials from environment for RiskManager (optional)
+    discord_token = os.getenv("DISCORD_TOKEN")
+    channel_id_str = os.getenv("DISCORD_CHANNEL_ID")
+    if discord_token and channel_id_str:
+        try:
+            channel_id = int(channel_id_str)
+            risk_manager = RiskManager(discord_token, channel_id)
+            logging.info("RiskManager initialized with Discord gate (real mode).")
+        except ValueError:
+            logging.error("DISCORD_CHANNEL_ID must be an integer. Using MOCK RiskManager (auto-approve).")
+            risk_manager = RiskManager()  # Mock mode
+    else:
+        logging.warning("DISCORD_TOKEN or DISCORD_CHANNEL_ID not set. Using MOCK RiskManager (auto-approve).")
+        risk_manager = RiskManager()  # Mock mode
+    
+    orchestrator = TradeOrchestrator(risk_manager, audit_logger)
     
     orchestrator.logger.info("Orchestrator initialized and bound to stone law.")
 
