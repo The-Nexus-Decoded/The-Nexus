@@ -120,7 +120,7 @@ class RpcIntegrator:
             "quoteResponse": quote,
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
-            "useSharedAccounts": True,
+            "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto"
         }
         headers = {
