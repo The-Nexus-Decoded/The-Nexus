@@ -17,5 +17,6 @@
 - [ ] Fee Compounding Loop: Claim -> Reinvest logic.
 - [ ] P&L Engine: IL and gas cost subtraction.
 - [ ] Pyth Hermes Integration: Real-time price feeds.
+- [ ] Multi-Oracle Validation: Cross-check prices across Jupiter + 2-3 DEXs (Raydium/Orca/Saber) with tolerance band to prevent manipulation/stale quotes.
 - [ ] Systemd Service: Persistence on Trade server.
 
