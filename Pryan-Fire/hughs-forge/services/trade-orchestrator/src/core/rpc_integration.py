@@ -98,7 +98,6 @@ class RpcIntegrator:
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
         if self.jupiter_api_key:
-            headers["Authorization"] = f"Bearer {self.jupiter_api_key}"
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
@@ -127,7 +126,6 @@ class RpcIntegrator:
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
         if self.jupiter_api_key:
-            headers["Authorization"] = f"Bearer {self.jupiter_api_key}"
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
