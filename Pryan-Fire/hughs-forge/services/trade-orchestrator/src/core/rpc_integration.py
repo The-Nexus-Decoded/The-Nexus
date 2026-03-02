@@ -1,11 +1,12 @@
 import logging
 import os
+import json
 import httpx
 from typing import Dict, Any, Optional
 from solders.keypair import Keypair
 from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
-from solders.transaction import Transaction
+from solders.transaction import Transaction, VersionedTransaction
 import base64
 
 logger = logging.getLogger("RpcIntegrator")
@@ -14,12 +15,8 @@ class RpcIntegrator:
     def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
-        # Jupiter API endpoints
-        self.jupiter_endpoints = [
-            "https://api.jup.ag/swap/v1"
-        ]
+        self.jupiter_endpoints = ["https://api.jup.ag/swap/v1"]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
-        # Fallback: read from /data/openclaw/keys/jupiter.env if not set
         if not self.jupiter_api_key:
             env_path = "/data/openclaw/keys/jupiter.env"
             try:
@@ -35,22 +32,17 @@ class RpcIntegrator:
                                     break
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
-        self.logger.warning(f"Jupiter API key raw: {repr(self.jupiter_api_key)}")
-        # Load trading wallet (skip if dry_run)
-        self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
-                import json
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            # Solana RPC (from env or default to devnet for testing)
-            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
+            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
-        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run})")
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         """
@@ -74,7 +66,6 @@ class RpcIntegrator:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
             return True
 
-        self.logger.warning(f"Jupiter API key present: {bool(self.jupiter_api_key)}")
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
 
@@ -170,7 +161,8 @@ class RpcIntegrator:
             "outputMint": output_mint,
             "amount": str(amount),
             "slippageBps": slippage_bps,
-            "onlyDirectRoutes": "false"
+            "onlyDirectRoutes": "false",
+            "maxAccounts": 0  # Force legacy transaction format (no address table lookups)
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -182,9 +174,6 @@ class RpcIntegrator:
             url = f"{endpoint}/quote"
             try:
                 self.logger.info(f"Fetching quote from: {url}")
-                # Log headers with API key redacted
-                logged_headers = {k: ('***' if k.lower() == 'x-api-key' else v) for k, v in headers.items()}
-                self.logger.warning(f"Quote request headers: {logged_headers}")
                 resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     return resp.json()
@@ -201,7 +190,8 @@ class RpcIntegrator:
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto"
+            "prioritizationFeeLamports": "auto",
+            "maxAccounts": 0  # Force legacy transaction format
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -210,7 +200,7 @@ class RpcIntegrator:
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
-            url = f"{endpoint}/swap"
+            url = f"{endpoint}/swap?maxAccounts=0"  # Also in URL to be safe
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
