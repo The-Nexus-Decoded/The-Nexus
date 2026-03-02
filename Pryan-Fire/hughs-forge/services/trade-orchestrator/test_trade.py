@@ -1,22 +1,33 @@
 #!/usr/bin/env python3
 import sys, os
-import argparse
+import logging
 
-sys.path.insert(0, '/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src')
+# Configure logging to show INFO from all loggers
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+sys.path.insert(0, '/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/src')
 
 from core.orchestrator import TradeOrchestrator
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--dry-run', action='store_true', help='Skip on-chain execution')
-parser.add_argument('--amount', type=float, default=0.001, help='SOL amount to trade')
-args = parser.parse_args()
+from solders.keypair import Keypair
+import json
 
 DB = 'trades.db'
 TOKEN = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-AMOUNT = args.amount
+AMOUNT = 0.001  # 0.001 SOL for mainnet test
 
-print(f'[TEST] Initializing orchestrator (db={DB}, dry_run={args.dry_run})')
-orch = TradeOrchestrator(db_path=DB, dry_run=args.dry_run)
+# Load wallet to show pubkey
+wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+with open(wallet_path, "r") as f:
+    secret = json.load(f)
+kp = Keypair.from_bytes(bytes(secret))
+print(f"[TEST] Using wallet pubkey: {kp.pubkey()}")
+
+print(f'[TEST] Initializing orchestrator (db={DB})')
+orch = TradeOrchestrator(db_path=DB, dry_run=False)
 signal = {'token_address': TOKEN, 'amount': AMOUNT}
 print(f'[TEST] Sending signal: {signal}')
 state = orch.process_signal(signal)

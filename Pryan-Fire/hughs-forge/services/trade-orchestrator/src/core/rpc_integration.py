@@ -15,9 +15,9 @@ class RpcIntegrator:
     def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
-        # Jupiter API endpoints - use only v6 (api.jup.ag/v6)
+        # Jupiter API endpoints - use only v6
         self.jupiter_endpoints = [
-            "https://api.jup.ag/v6"
+            "https://quote-api.jup.ag/v6"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
         # Fallback: read from /data/openclaw/keys/jupiter.env if not set
@@ -185,7 +185,7 @@ class RpcIntegrator:
         }
         if user_public_key:
             params["userPublicKey"] = user_public_key
-        self.logger.debug(f"Jupiter quote params: {params}")
+        self.logger.info(f"Jupiter quote params: {params}")
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
@@ -194,11 +194,12 @@ class RpcIntegrator:
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/quote"
+            self.logger.info(f"Jupiter quote URL: {url}?{httpx.QueryParams(params)}")
             try:
                 resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     quote = resp.json()
-                    self.logger.debug(f"Jupiter quote response: {json.dumps(quote)}")
+                    self.logger.info(f"Jupiter quote response: {json.dumps(quote)}")
                     return quote
                 else:
                     self.logger.warning(f"Quote endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
@@ -215,7 +216,7 @@ class RpcIntegrator:
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
         }
-        self.logger.debug(f"Jupiter swap payload: {json.dumps(payload)}")
+        self.logger.info(f"Jupiter swap payload: {json.dumps(payload)}")
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
@@ -224,11 +225,13 @@ class RpcIntegrator:
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
+            self.logger.info(f"Jupiter swap URL: {url}")
+            self.logger.info(f"Jupiter swap payload: {json.dumps(payload)[:500]}")
             try:
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
-                    self.logger.debug(f"Jupiter swap response: {json.dumps(data)}")
+                    self.logger.info(f"Jupiter swap response: {json.dumps(data)}")
                     return data.get("swapTransaction")
                 else:
                     self.logger.warning(f"Swap endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
