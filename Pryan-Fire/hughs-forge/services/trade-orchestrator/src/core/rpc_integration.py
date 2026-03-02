@@ -65,7 +65,7 @@ class RpcIntegrator:
                 return False
 
             # Step 2: Get swap transaction
-            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.public_key))
+            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
             if not swap_tx_b64:
                 self.logger.error("Failed to fetch swap transaction from Jupiter")
                 return False
