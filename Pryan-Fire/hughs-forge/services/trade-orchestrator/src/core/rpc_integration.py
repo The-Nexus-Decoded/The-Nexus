@@ -15,8 +15,7 @@ class RpcIntegrator:
         self.logger = logging.getLogger("RpcIntegrator")
         # Jupiter API endpoints
         self.jupiter_endpoints = [
-            "https://api.jup.ag/swap/v1",
-            "https://quote-api.jup.ag/v6"
+            "https://api.jup.ag/swap/v1"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
         # Load trading wallet
