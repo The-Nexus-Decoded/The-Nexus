@@ -7,10 +7,11 @@ from state.state_manager import TradeStateManager
 from .rpc_integration import RpcIntegrator
 
 class TradeOrchestrator:
-    def __init__(self, db_path: str = "trades.db"):
+    def __init__(self, db_path: str = "trades.db", dry_run: bool = False):
         self.logger = logging.getLogger("TradeOrchestrator")
         self.state_manager = TradeStateManager(db_path)
-        self.rpc_integrator = RpcIntegrator()
+        self.dry_run = dry_run
+        self.rpc_integrator = RpcIntegrator(dry_run=dry_run)
         self.MAX_AUTO_TRADE_USD = 250.0
 
     def process_signal(self, signal_data: Dict[str, Any]) -> str:
