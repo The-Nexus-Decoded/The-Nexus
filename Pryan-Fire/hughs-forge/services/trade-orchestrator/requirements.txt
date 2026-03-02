@@ -1,6 +1,6 @@
-fastapi
-uvicorn[standard]
-httpx
-anchorpy
-solana
-solders
+# Trade Orchestrator dependencies
+discord.py>=2.0.0
+fastapi>=0.100.0
+uvicorn>=0.20.0
+pydantic>=2.0.0
+httpx>=0.24.0

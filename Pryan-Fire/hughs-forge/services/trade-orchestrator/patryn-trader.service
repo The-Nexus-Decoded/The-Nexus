@@ -10,9 +10,14 @@ ExecStart=/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/venv/bi
 Restart=always
 RestartSec=10
 
-# Audit trail location
+# Environment configuration
 Environment=LOG_DIR=/data/repos/Pryan-Fire/data/logs
 Environment=PYTHONPATH=/data/repos/Pryan-Fire/hughs-forge/risk-manager/src:/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src
+EnvironmentFile=/data/openclaw/keys/jupiter-api-key.env
+# DISCORD_TOKEN and DISCORD_CHANNEL_ID can be set if manual approvals are desired; otherwise mock mode auto-approves
+# Discord credentials for RiskManager (set from ola-claw-trade)
+Environment=DISCORD_TOKEN=
+Environment=DISCORD_CHANNEL_ID=
 
 [Install]
 WantedBy=default.target

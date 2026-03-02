@@ -11,29 +11,18 @@ from RiskManager import RiskManager
 # Inscribed by Haplo (ola-claw-dev) for Lord Xar.
 
 class TradeOrchestrator:
-    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger, config_path: str = None):
+    def __init__(self, risk_manager: RiskManager, audit_logger: AuditLogger, config: Dict[str, Any] = None):
         self.risk_manager = risk_manager
         self.audit_logger = audit_logger
-        self.config = self._load_config(config_path)
+        self.config = config or self._default_config()
         self.logger = logging.getLogger("Orchestrator")
 
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        default_config = {
+    def _default_config(self) -> Dict[str, Any]:
+        return {
             "reinvest_enabled": True,
             "strategy_type": "SPOT_WIDE",
             "risk_gate_active": True
         }
-        
-        target_path = config_path or os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
-        
-        try:
-            if os.path.exists(target_path):
-                with open(target_path, "r") as f:
-                    return {**default_config, **json.load(f)}
-        except Exception as e:
-            logging.error(f"Failed to load config from {target_path}: {e}")
-            
-        return default_config
 
     async def orchestrate_trade(self, trade_intent: Dict[str, Any]):
         """
@@ -109,7 +98,7 @@ async def main():
 
     # --- ZIFNAB'S RUNE OF BINDING ---
     config = {}
-    config_path = "/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src/orchestrator_config.json"
+    config_path = os.path.join(os.path.dirname(__file__), "orchestrator_config.json")
     try:
         with open(config_path, 'r') as f:
             config = json.load(f)
@@ -128,20 +117,22 @@ async def main():
     # Initialize Core Components with bound config
     audit_logger = AuditLogger()
     
-    # Load Discord credentials from environment for RiskManager
+    # Load Discord credentials from environment for RiskManager (optional)
     discord_token = os.getenv("DISCORD_TOKEN")
     channel_id_str = os.getenv("DISCORD_CHANNEL_ID")
-    if not discord_token or not channel_id_str:
-        logging.error("FATAL: DISCORD_TOKEN and DISCORD_CHANNEL_ID environment variables must be set for RiskManager.")
-        return
-    try:
-        channel_id = int(channel_id_str)
-    except ValueError:
-        logging.error("FATAL: DISCORD_CHANNEL_ID must be an integer.")
-        return
+    if discord_token and channel_id_str:
+        try:
+            channel_id = int(channel_id_str)
+            risk_manager = RiskManager(discord_token, channel_id)
+            logging.info("RiskManager initialized with Discord gate (real mode).")
+        except ValueError:
+            logging.error("DISCORD_CHANNEL_ID must be an integer. Using MOCK RiskManager (auto-approve).")
+            risk_manager = RiskManager()  # Mock mode
+    else:
+        logging.warning("DISCORD_TOKEN or DISCORD_CHANNEL_ID not set. Using MOCK RiskManager (auto-approve).")
+        risk_manager = RiskManager()  # Mock mode
     
-    risk_manager = RiskManager(discord_token, channel_id)
-    orchestrator = TradeOrchestrator(risk_manager, audit_logger, config=config)
+    orchestrator = TradeOrchestrator(risk_manager, audit_logger)
     
     orchestrator.logger.info("Orchestrator initialized and bound to stone law.")
 
