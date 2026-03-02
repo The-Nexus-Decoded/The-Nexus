@@ -1,11 +1,12 @@
 import logging
 import os
 import httpx
+import json
 from typing import Dict, Any, Optional
 from solders.keypair import Keypair
 from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
-from solders.transaction import Transaction
+from solders.transaction import Transaction, VersionedTransaction
 import base64
 
 logger = logging.getLogger("RpcIntegrator")
@@ -36,22 +37,20 @@ class RpcIntegrator:
                                     break
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
-        self.logger.warning(f"Jupiter API key raw: {repr(self.jupiter_api_key)}")
         # Load trading wallet (skip if dry_run)
         self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
-                import json
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            # Solana RPC (from env or default to devnet for testing)
-            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
+            # Solana RPC: default to mainnet for live trading
+            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
-        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run})")
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         """
@@ -75,7 +74,6 @@ class RpcIntegrator:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
             return True
 
-        self.logger.warning(f"Jupiter API key present: {bool(self.jupiter_api_key)}")
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
 
@@ -86,8 +84,8 @@ class RpcIntegrator:
 
             # Step 1: Get quote
             quote = self._fetch_quote(
-                input_mint=token_address,
-                output_mint="So11111111111111111111111111111111111111112",  # Wrapped SOL
+                input_mint="So11111111111111111111111111111111111111112",  # Wrapped SOL
+                output_mint=token_address,
                 amount=amount_lamports
             )
             if not quote:
@@ -102,63 +100,71 @@ class RpcIntegrator:
 
             # Step 3: Deserialize, sign, and send
             raw_tx = base64.b64decode(swap_tx_b64)
-            self.logger.debug(f"Raw transaction length: {len(raw_tx)}")
+            self.logger.debug(f"Raw transaction length: {len(raw_tx)} bytes")
 
-            # Try VersionedTransaction first (new Solana transaction format)
-            from solders.transaction import VersionedTransaction
-            from solders.signature import Signature
+            # Determine transaction format: versioned (magic 0x80/0x81) vs legacy
+            use_versioned = False
             try:
-                tx = VersionedTransaction.from_bytes(raw_tx)
-                self.logger.info("Deserialized as VersionedTransaction")
-                # Extract current signatures and message
+                if raw_tx[0] in (0x80, 0x81):
+                    tx = VersionedTransaction.from_bytes(raw_tx)
+                    use_versioned = True
+                    self.logger.info("Deserialized as VersionedTransaction")
+                else:
+                    raise ValueError("Not a versioned transaction")
+            except Exception as e:
+                self.logger.warning(f"Versioned deserialization failed: {e}. Trying legacy Transaction.")
+                try:
+                    tx = Transaction.from_bytes(raw_tx)
+                    self.logger.info("Deserialized as legacy Transaction")
+                except Exception as e2:
+                    self.logger.error(f"Failed to deserialize transaction: {e2}")
+                    return False
+
+            # Sign and send based on format
+            if use_versioned:
                 msg = tx.message
-                sigs = list(tx.signatures)
-                # Determine wallet index in account keys
-                account_keys = msg.account_keys
+                account_keys = list(msg.account_keys)
                 wallet_pubkey = self.wallet.pubkey()
                 try:
                     idx = account_keys.index(wallet_pubkey)
                 except ValueError:
                     self.logger.error("Wallet pubkey not found in transaction account keys")
+                    self.logger.debug(f"Account keys: {account_keys}")
                     return False
-                # Compute signature on the message
+
                 message_bytes = bytes(msg)
                 signature = self.wallet.sign_message(message_bytes)
-                # Replace placeholder with our signature
+                sigs = list(tx.signatures)
                 if idx < len(sigs):
                     sigs[idx] = signature
                 else:
                     self.logger.error(f"Signature index {idx} out of bounds (sigs length {len(sigs)})")
                     return False
-                # Build the signed VersionedTransaction using populate
                 signed_tx = VersionedTransaction.populate(msg, sigs)
-                # Send raw transaction
-                self.logger.info("Sending versioned transaction via send_raw_transaction")
-                result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
-                self.logger.info(f"Transaction send result: {result}")
-                return True
-            except Exception as ve:
-                self.logger.warning(f"VersionedTransaction handling failed: {ve}. Trying legacy Transaction.")
-                # Fallback to legacy Transaction (older format)
-                try:
-                    tx = Transaction.from_bytes(raw_tx)
-                    self.logger.info("Deserialized as legacy Transaction")
-                    # Fetch recent blockhash for signing
-                    try:
-                        blockhash_resp = self.client.get_latest_blockhash()
-                        recent_blockhash = blockhash_resp.value.blockhash
-                    except Exception as e:
-                        self.logger.error(f"Failed to fetch recent blockhash: {e}")
-                        return False
-                    # Sign transaction with wallet and blockhash
-                    tx.sign([self.wallet], recent_blockhash)
-                    self.logger.info("Sending legacy transaction via send_transaction")
-                    result = self.client.send_transaction(tx, opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
-                    self.logger.info(f"Transaction send result: {result}")
-                    return True
-                except Exception as le:
-                    self.logger.error(f"Legacy transaction handling also failed: {le}", exc_info=True)
-                    return False
+
+                # Log address table lookups if present
+                if hasattr(msg, 'address_table_lookups') and msg.address_table_lookups:
+                    lookups = msg.address_table_lookups
+                    self.logger.info(f"Address table lookups: {len(lookups)} entries")
+                    for i, lookup in enumerate(lookups):
+                        self.logger.debug(f"Lookup {i}: account_key={lookup.account_key}, writable={lookup.writable_indexes}, readonly={lookup.readonly_indexes}")
+
+                self.logger.info("Sending versioned transaction")
+                result = self.client.send_raw_transaction(
+                    bytes(signed_tx),
+                    opts=TxOpts(skip_confirmation=False, preflight_commitment="processed")
+                )
+            else:
+                recent_blockhash = self.client.get_latest_blockhash().value.blockhash
+                tx.sign([self.wallet], recent_blockhash)
+                self.logger.info("Sending legacy transaction")
+                result = self.client.send_transaction(
+                    tx,
+                    opts=TxOpts(skip_confirmation=False, preflight_commitment="processed")
+                )
+
+            self.logger.info(f"Transaction send result: {result}")
+            return True
 
         except Exception as e:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
@@ -171,7 +177,8 @@ class RpcIntegrator:
             "outputMint": output_mint,
             "amount": str(amount),
             "slippageBps": slippage_bps,
-            "onlyDirectRoutes": "false"
+            "onlyDirectRoutes": "false",
+            "maxAccounts": "0"  # Force legacy transaction format (no address table lookups)
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -182,10 +189,6 @@ class RpcIntegrator:
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/quote"
             try:
-                self.logger.info(f"Fetching quote from: {url}")
-                # Log headers with API key redacted
-                logged_headers = {k: ('***' if k.lower() == 'x-api-key' else v) for k, v in headers.items()}
-                self.logger.warning(f"Quote request headers: {logged_headers}")
                 resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     return resp.json()
@@ -202,7 +205,8 @@ class RpcIntegrator:
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto"
+            "prioritizationFeeLamports": "auto",
+            "maxAccounts": 0  # Force legacy transaction format (no address table lookups)
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
@@ -211,9 +215,8 @@ class RpcIntegrator:
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
-            url = f"{endpoint}/swap"
+            url = f"{endpoint}/swap?maxAccounts=0"
             try:
-                self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
