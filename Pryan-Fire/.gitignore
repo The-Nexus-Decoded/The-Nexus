@@ -65,3 +65,7 @@ src/signals/*.py
 haplos-workshop/signal-intel/
 workflows/
 .venv/
+*.pyc
+trade_ledger.jsonl
+package-lock.json
+*.backup
