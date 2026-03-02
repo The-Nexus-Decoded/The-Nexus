@@ -17,6 +17,9 @@
 - [ ] Fee Compounding Loop: Claim -> Reinvest logic.
 - [ ] P&L Engine: IL and gas cost subtraction.
 - [ ] Pyth Hermes Integration: Real-time price feeds.
-- [ ] Multi-Oracle Validation: Cross-check prices across Jupiter + 2-3 DEXs (Raydium/Orca/Saber) with tolerance band to prevent manipulation/stale quotes.
+- [ ] **Multi-Oracle Validation (OR-001):** (GitHub #160)
+  - Cross-check prices across Jupiter + 2-3 DEXs (Raydium/Orca/Saber) with tolerance band to prevent manipulation/stale quotes.
+- [ ] **Token Amount Display Bug (BUG-001):** (GitHub #161)
+  - Fix user-facing displays to show human-readable token amounts by applying decimal scaling (SOL: 9, USDC: 6, etc.)
 - [ ] Systemd Service: Persistence on Trade server.
 
