@@ -15,9 +15,9 @@ class RpcIntegrator:
     def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
-        # Jupiter API endpoints - use only v6
+        # Jupiter API endpoints - use only v6 (api.jup.ag/v6)
         self.jupiter_endpoints = [
-            "https://quote-api.jup.ag/v6"
+            "https://api.jup.ag/v6"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
         # Fallback: read from /data/openclaw/keys/jupiter.env if not set
