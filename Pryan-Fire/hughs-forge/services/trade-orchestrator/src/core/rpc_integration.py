@@ -100,20 +100,30 @@ class RpcIntegrator:
             from solders.transaction import VersionedTransaction
             try:
                 tx = VersionedTransaction.from_bytes(raw_tx)
-                print("[DEBUG] Deserialized as VersionedTransaction")
-                acct_keys = tx.message.account_keys
-                print(f"[DEBUG] Account keys ({len(acct_keys)}): {[str(k) for k in acct_keys]}")
+                self.logger.info("Deserialized as VersionedTransaction")
+                msg = tx.message
                 wallet_pubkey = self.wallet.pubkey()
-                print(f"[DEBUG] Wallet pubkey: {wallet_pubkey}")
-                if wallet_pubkey not in acct_keys:
-                    print("[ERROR] Wallet pubkey not found in transaction account keys")
+                account_keys = msg.account_keys
+                try:
+                    wallet_idx = account_keys.index(wallet_pubkey)
+                except ValueError:
+                    self.logger.error("Wallet pubkey not found in account keys")
                     return False
-                # Sign the transaction properly using solders built-in method
-                tx.sign([self.wallet])
-                print("[DEBUG] Transaction signed successfully")
-                # Send raw transaction
-                result = self.client.send_raw_transaction(bytes(tx), opts=TxOpts(skip_preflight=True, max_retries=3))
-                print(f"[DEBUG] Transaction send result: {result}")
+                if not msg.is_signer(wallet_idx):
+                    self.logger.error("Wallet account is not a signer")
+                    return False
+                message_bytes = bytes(msg)
+                signature = self.wallet.sign_message(message_bytes)
+                sigs = list(tx.signatures)
+                if wallet_idx < len(sigs):
+                    sigs[wallet_idx] = signature
+                else:
+                    self.logger.error(f"Signature index {wallet_idx} out of range (len={len(sigs)})")
+                    return False
+                signed_tx = VersionedTransaction.populate(msg, sigs)
+                self.logger.info("Sending versioned transaction via send_raw_transaction")
+                result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_preflight=True, max_retries=3))
+                self.logger.info(f"Transaction send result: {result}")
                 return True
             except Exception as ve:
                 self.logger.warning(f"VersionedTransaction handling failed: {ve}. Trying legacy Transaction.")
@@ -179,7 +189,7 @@ class RpcIntegrator:
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
-            "dynamicComputeUnitLimit": 1400000,
+            "dynamicComputeUnitLimit": True,
             "restrictIntermediateTokens": True
         }
         headers = {
