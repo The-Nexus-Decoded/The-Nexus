@@ -81,7 +81,7 @@ class CombinedRunner:
         self.dry_run = dry_run
         self.rpc_url = rpc_url or "https://api.devnet.solana.com"
         self.health_port = health_port
-        self.enable_meteora = meteora
+        self.enable_meteora = meteora or os.getenv("METEORA_ENABLED", "").lower() == "true"
         self.orchestrator = None
         self.event_loop = None
         self.momentum_scanner = None
@@ -126,10 +126,10 @@ class CombinedRunner:
         self.loop_thread.start()
         logger.info("Orchestrator EventLoop started")
 
-        # Start health server in daemon thread (pass event_loop for signal endpoint)
+        # Start health server in daemon thread
         self.health_thread = threading.Thread(
             target=start_orchestrator_health_server,
-            args=(self.health_port, self.event_loop),
+            args=(self.health_port,),
             daemon=True,
             name="HealthServer"
         )
