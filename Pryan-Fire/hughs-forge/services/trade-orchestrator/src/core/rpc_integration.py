@@ -83,15 +83,64 @@ class RpcIntegrator:
                 return False
 
             # Step 3: Deserialize, sign, and send
-            tx = Transaction.deserialize(base64.b64decode(swap_tx_b64))
-            tx.sign(self.wallet)
-            self.logger.info(f"Transaction prepared, sending to Solana RPC: {self.solana_rpc}")
-            result = self.client.send_transaction(
-                tx,
-                opts=TxOpts(skip_confirmation=False, preflight_commitment="processed")
-            )
-            self.logger.info(f"Transaction sent: {result}")
-            return True
+            raw_tx = base64.b64decode(swap_tx_b64)
+            self.logger.debug(f"Raw transaction length: {len(raw_tx)}")
+
+            # Try VersionedTransaction first (new Solana transaction format)
+            from solders.transaction import VersionedTransaction
+            from solders.signature import Signature
+            try:
+                tx = VersionedTransaction.from_bytes(raw_tx)
+                self.logger.info("Deserialized as VersionedTransaction")
+                # Extract current signatures and message
+                msg = tx.message
+                sigs = list(tx.signatures)
+                # Determine wallet index in account keys
+                account_keys = msg.account_keys
+                wallet_pubkey = self.wallet.pubkey()
+                try:
+                    idx = account_keys.index(wallet_pubkey)
+                except ValueError:
+                    self.logger.error("Wallet pubkey not found in transaction account keys")
+                    return False
+                # Compute signature on the message
+                message_bytes = bytes(msg)
+                signature = self.wallet.sign_message(message_bytes)
+                # Replace placeholder with our signature
+                if idx < len(sigs):
+                    sigs[idx] = signature
+                else:
+                    self.logger.error(f"Signature index {idx} out of bounds (sigs length {len(sigs)})")
+                    return False
+                # Build the signed VersionedTransaction using populate
+                signed_tx = VersionedTransaction.populate(msg, sigs)
+                # Send raw transaction
+                self.logger.info("Sending versioned transaction via send_raw_transaction")
+                result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
+                self.logger.info(f"Transaction send result: {result}")
+                return True
+            except Exception as ve:
+                self.logger.warning(f"VersionedTransaction handling failed: {ve}. Trying legacy Transaction.")
+                # Fallback to legacy Transaction (older format)
+                try:
+                    tx = Transaction.from_bytes(raw_tx)
+                    self.logger.info("Deserialized as legacy Transaction")
+                    # Fetch recent blockhash for signing
+                    try:
+                        blockhash_resp = self.client.get_latest_blockhash()
+                        recent_blockhash = blockhash_resp.value.blockhash
+                    except Exception as e:
+                        self.logger.error(f"Failed to fetch recent blockhash: {e}")
+                        return False
+                    # Sign transaction with wallet and blockhash
+                    tx.sign([self.wallet], recent_blockhash)
+                    self.logger.info("Sending legacy transaction via send_transaction")
+                    result = self.client.send_transaction(tx, opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
+                    self.logger.info(f"Transaction send result: {result}")
+                    return True
+                except Exception as le:
+                    self.logger.error(f"Legacy transaction handling also failed: {le}", exc_info=True)
+                    return False
 
         except Exception as e:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
