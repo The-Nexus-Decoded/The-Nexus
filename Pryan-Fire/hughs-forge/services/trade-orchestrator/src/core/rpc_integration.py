@@ -20,6 +20,23 @@ class RpcIntegrator:
             "https://quote-api.jup.ag/v6"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
+        # Fallback: read from /data/openclaw/keys/jupiter.env if not set
+        if not self.jupiter_api_key:
+            env_path = "/data/openclaw/keys/jupiter.env"
+            try:
+                if os.path.exists(env_path):
+                    with open(env_path) as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith("#"):
+                                k, v = line.split("=", 1)
+                                if k == "JUPITER_API_KEY":
+                                    self.jupiter_api_key = v
+                                    self.logger.info("Loaded JUPITER_API_KEY from jupiter.env")
+                                    break
+            except Exception as e:
+                self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
+        self.logger.warning(f"Jupiter API key raw: {repr(self.jupiter_api_key)}")
         # Load trading wallet (skip if dry_run)
         self.wallet = None
         if not dry_run:
@@ -58,6 +75,7 @@ class RpcIntegrator:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
             return True
 
+        self.logger.warning(f"Jupiter API key present: {bool(self.jupiter_api_key)}")
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
 
@@ -159,13 +177,15 @@ class RpcIntegrator:
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
         if self.jupiter_api_key:
-            headers["Authorization"] = f"Bearer {self.jupiter_api_key}"
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/quote"
             try:
                 self.logger.info(f"Fetching quote from: {url}")
+                # Log headers with API key redacted
+                logged_headers = {k: ('***' if k.lower() == 'x-api-key' else v) for k, v in headers.items()}
+                self.logger.warning(f"Quote request headers: {logged_headers}")
                 resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     return resp.json()
@@ -181,14 +201,13 @@ class RpcIntegrator:
             "quoteResponse": quote,
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
-            "useSharedAccounts": True,
+            "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto"
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
         if self.jupiter_api_key:
-            headers["Authorization"] = f"Bearer {self.jupiter_api_key}"
             headers["x-api-key"] = self.jupiter_api_key
 
         for endpoint in self.jupiter_endpoints:
