@@ -457,7 +457,6 @@ class TradeExecutor:
         })
         
         return report, is_profitable
-        })
         
         logger.info(f"    ESTIMATED_REBALANCE_COST: {report['ESTIMATED_REBALANCE_COST']}")
         logger.info(f"    EXPECTED_FEE_CAPTURE: {report['EXPECTED_FEE_CAPTURE']}")
