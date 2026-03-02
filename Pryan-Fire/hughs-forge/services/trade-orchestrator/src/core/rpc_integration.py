@@ -11,24 +11,30 @@ import base64
 logger = logging.getLogger("RpcIntegrator")
 
 class RpcIntegrator:
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
+        self.dry_run = dry_run
         # Jupiter API endpoints
         self.jupiter_endpoints = [
             "https://api.jup.ag/swap/v1",
             "https://quote-api.jup.ag/v6"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
-        # Load trading wallet
-        wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
-        with open(wallet_path, "r") as f:
-            import json
-            secret_key = json.load(f)
-        self.wallet = Keypair.from_bytes(bytes(secret_key))
-        # Solana RPC (from env or default to devnet for testing)
-        self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
-        self.client = Client(self.solana_rpc)
-        self.logger.info("RpcIntegrator initialized with Jupiter and wallet.")
+        # Load trading wallet (skip if dry_run)
+        self.wallet = None
+        if not dry_run:
+            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            with open(wallet_path, "r") as f:
+                import json
+                secret_key = json.load(f)
+            self.wallet = Keypair.from_bytes(bytes(secret_key))
+            # Solana RPC (from env or default to devnet for testing)
+            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
+            self.client = Client(self.solana_rpc)
+        else:
+            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
+            self.client = None
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run})")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         """
@@ -47,8 +53,14 @@ class RpcIntegrator:
         Executes a trade via Jupiter aggregator.
         Returns True on success, False on failure.
         """
+        # Dry run: skip actual on-chain transaction
+        if self.dry_run:
+            self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
+            return True
+
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
+
             # Convert amount to lamports (assuming token has 9 decimals for SOL/USDC etc)
             # In production, fetch decimals from token mint
             decimals = 9
@@ -148,6 +160,9 @@ class RpcIntegrator:
         """
         Executes a trade via Meteora DLMM.
         """
+        if self.dry_run:
+            self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
+            return True
         self.logger.info(f"Executing Meteora trade for {token_address}...")
         # Placeholder for actual Meteora execution logic
         return True
