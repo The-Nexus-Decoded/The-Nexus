@@ -6,18 +6,11 @@ After=network.target
 Type=simple
 User=openclaw
 WorkingDirectory=/data/repos/Pryan-Fire
-ExecStart=/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/venv/bin/python3 hughs-forge/services/trade-orchestrator/src/TradeOrchestrator.py
+ExecStart=/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/start-patryn-trader.sh
 Restart=always
 RestartSec=10
-
-# Environment configuration
-Environment=LOG_DIR=/data/repos/Pryan-Fire/data/logs
-Environment=PYTHONPATH=/data/repos/Pryan-Fire/hughs-forge/risk-manager/src:/data/repos/Pryan-Fire/hughs-forge/services/trade-orchestrator/src
-EnvironmentFile=/data/openclaw/keys/jupiter-api-key.env
-# DISCORD_TOKEN and DISCORD_CHANNEL_ID can be set if manual approvals are desired; otherwise mock mode auto-approves
-# Discord credentials for RiskManager (set from ola-claw-trade)
-Environment=DISCORD_TOKEN=
-Environment=DISCORD_CHANNEL_ID=
+StandardOutput=append:/var/log/patryn-trader.log
+StandardError=append:/var/log/patryn-trader.log
 
 [Install]
 WantedBy=default.target
