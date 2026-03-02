@@ -13,7 +13,7 @@ if RISK_MANAGER_SRC not in sys.path:
 from core.orchestrator import TradeOrchestrator
 from core.event_loop import EventLoop
 from telemetry.logger import setup_telemetry_logger
-from health_server import start_orchestrator_health_server
+from health_server import start_orchestrator_health_server, set_orchestrator
 
 def main(dry_run=False):
     parser = argparse.ArgumentParser(description="Hugh's Trade Orchestrator Engine")
@@ -38,6 +38,10 @@ def main(dry_run=False):
 
     # Scaffold the engine components
     orchestrator = TradeOrchestrator(db_path=args.db, dry_run=args.dry_run)
+
+    # Bind orchestrator to the signal endpoint
+    set_orchestrator(orchestrator)
+
     event_loop = EventLoop(orchestrator)
 
     # Start the event loop in a daemon thread
