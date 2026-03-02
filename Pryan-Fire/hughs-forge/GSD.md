@@ -10,12 +10,12 @@
 
 ## Phase 2: Jupiter Integration & Execution (IN PROGRESS)
 - [x] Jupiter v6 → v1 endpoint migration (`api.jup.ag/swap/v1`) — old `quote-api.jup.ag` is dead (Chelestra-Sea #71)
-- [x] Transaction signing fix: uses `msg.is_signer(i)` for robust signature placement (solders 0.27.1 compatible)
-- [ ] Skip preflight: `skip_preflight=True` — Jupiter already simulates the tx
-- [ ] Dynamic compute units: `dynamicComputeUnitLimit: true` in swap requests
+- [x] Transaction signing fix: uses `tx.sign([self.wallet])` (solders built-in method)
+- [x] Skip preflight: `skip_preflight=True` — Jupiter already simulates the tx
+- [x] Dynamic compute units: `dynamicComputeUnitLimit: 1400000` in swap requests
 - [x] Priority fees: `prioritizationFeeLamports: "auto"` in swap requests
 - [ ] Async confirmation: poll `getSignatureStatuses` instead of blocking
-- [ ] Restrict intermediate tokens: `restrictIntermediateTokens: true`
+- [x] Restrict intermediate tokens: `restrictIntermediateTokens: true`
 - [x] Wallet provisioned at `/data/openclaw/keys/trading_wallet.json`
 - [x] Jupiter API key rotated and deployed fleet-wide
 - [ ] Fix false-positive trade status (code returns True on failure) — GitHub #164

@@ -3,60 +3,88 @@ import os
 import json
 import httpx
 import base64
+from solders.keypair import Keypair
+from solders.transaction import VersionedTransaction
+
+# Load wallet
+wallet_path = '/data/openclaw/keys/trading_wallet.json'
+with open(wallet_path) as f:
+    secret = json.load(f)
+wallet = Keypair.from_bytes(bytes(secret))
+user_pubkey = str(wallet.pubkey())
+print('Wallet pubkey:', user_pubkey)
+
+# Load Jupiter API key from env or jupiter.env
+JUPITER_API_KEY = os.getenv("JUPITER_API_KEY")
+if not JUPITER_API_KEY:
+    env_path = "/data/openclaw/keys/jupiter.env"
+    try:
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        k, v = line.split("=", 1)
+                        if k == "JUPITER_API_KEY":
+                            JUPITER_API_KEY = v
+                            print("Loaded JUPITER_API_KEY from jupiter.env")
+                            break
+    except Exception as e:
+        print(f"Failed to read JUPITER_API_KEY: {e}")
 
 JUPITER_ENDPOINTS = ["https://api.jup.ag/swap/v1"]
-JUPITER_API_KEY = os.getenv("JUPITER_API_KEY")
 
-def fetch_swap_transaction(user_pubkey: str):
-    """Request a swap transaction from Jupiter"""
-    payload = {
-        "quoteResponse": {
-            "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            "inAmount": "1000000",  # 0.001 SOL in lamports
-            "outputMint": "So11111111111111111111111111111111111111112",
-            "outAmount": "46400000",
-            "otherAmountThreshold": "45792000",
-            "slippageBps": 50,
-            "platformFee": 0,
-            "userPublicKey": user_pubkey,
-            "wrapAndUnwrapSol": True,
-            "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto"
-        },
-        "userPublicKey": user_pubkey,
-        "wrapAndUnwrapSol": True,
-        "useSharedAccounts": False,
-        "prioritizationFeeLamports": "auto"
+def fetch_quote(user_pubkey: str):
+    params = {
+        'inputMint': 'So11111111111111111111111111111111111111112',
+        'outputMint': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+        'amount': '1000000',
+        'slippageBps': 50,
+        'userPublicKey': user_pubkey
     }
-
-    headers = {"Content-Type": "application/json"}
+    headers = {}
     if JUPITER_API_KEY:
-        headers["x-api-key"] = JUPITER_API_KEY
+        headers['x-api-key'] = JUPITER_API_KEY
+    resp = httpx.get('https://api.jup.ag/swap/v1/quote', params=params, headers=headers, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
 
-    for endpoint in JUPITER_ENDPOINTS:
-        url = f"{endpoint}/swap"
-        print(f"Fetching swap transaction from {url}")
-        try:
-            resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
-            print(f"Status: {resp.status_code}")
-            if resp.status_code == 200:
-                data = resp.json()
-                print("Response keys:", list(data.keys()))
-                swap_tx = data.get("swapTransaction")
-                if swap_tx:
-                    print(f"swapTransaction length: {len(swap_tx)} chars")
-                    raw = base64.b64decode(swap_tx)
-                    print(f"Raw bytes length: {len(raw)}")
-                    print("First 20 bytes (hex):", raw[:20].hex())
-                    return swap_tx, raw
-                else:
-                    print("No swapTransaction in response")
-                    print("Full response:", json.dumps(data, indent=2)[:500])
-            else:
-                print(f"Error response: {resp.text[:500]}")
-        except Exception as e:
-            print(f"Request failed: {e}")
+def fetch_swap_transaction(quote: dict, user_pubkey: str):
+    payload = {
+        'quoteResponse': quote,
+        'userPublicKey': user_pubkey,
+        'wrapAndUnwrapSol': True,
+        'useSharedAccounts': False,
+        'prioritizationFeeLamports': 'auto',
+    }
+    headers = {}
+    if JUPITER_API_KEY:
+        headers['x-api-key'] = JUPITER_API_KEY
+    resp = httpx.post('https://api.jup.ag/swap/v1/swap', json=payload, headers=headers, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get('swapTransaction')
 
-if __name__ == "__main__":
-    user_pubkey = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x"
-    fetch_swap_transaction(user_pubkey)
+quote = fetch_quote(user_pubkey)
+print('Quote outAmount:', quote.get('outAmount'))
+
+swap_b64 = fetch_swap_transaction(quote, user_pubkey)
+print('swapTransaction length:', len(swap_b64) if swap_b64 else None)
+
+if swap_b64:
+    raw = base64.b64decode(swap_b64)
+    print('Raw bytes length:', len(raw))
+    try:
+        vt = VersionedTransaction.from_bytes(raw)
+        print('Deserialized as VersionedTransaction')
+        accts = vt.message.account_keys
+        print('Account keys count:', len(accts))
+        present = wallet.pubkey() in accts
+        print('Wallet in account keys?', present)
+        if present:
+            idx = accts.index(wallet.pubkey())
+            print('Wallet index:', idx)
+            print('Number of signature slots:', len(vt.signatures))
+            print('Is our signature slot already filled?', bool(vt.signatures[idx]))
+    except Exception as e:
+        print('Failed to deserialize:', e)

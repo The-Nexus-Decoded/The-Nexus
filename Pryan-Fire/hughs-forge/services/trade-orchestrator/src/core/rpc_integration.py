@@ -179,7 +179,8 @@ class RpcIntegrator:
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
-
+            "dynamicComputeUnitLimit": 1400000,
+            "restrictIntermediateTokens": True
         }
         headers = {
             "User-Agent": "OpenClaw-Haplo/1.0"
