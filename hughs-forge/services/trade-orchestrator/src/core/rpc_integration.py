@@ -36,7 +36,7 @@ class RpcIntegrator:
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
-                secret_key = json.load(f)["privateKey"]
+                secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
