@@ -127,7 +127,20 @@ async def main():
 
     # Initialize Core Components with bound config
     audit_logger = AuditLogger()
-    risk_manager = RiskManager()
+    
+    # Load Discord credentials from environment for RiskManager
+    discord_token = os.getenv("DISCORD_TOKEN")
+    channel_id_str = os.getenv("DISCORD_CHANNEL_ID")
+    if not discord_token or not channel_id_str:
+        logging.error("FATAL: DISCORD_TOKEN and DISCORD_CHANNEL_ID environment variables must be set for RiskManager.")
+        return
+    try:
+        channel_id = int(channel_id_str)
+    except ValueError:
+        logging.error("FATAL: DISCORD_CHANNEL_ID must be an integer.")
+        return
+    
+    risk_manager = RiskManager(discord_token, channel_id)
     orchestrator = TradeOrchestrator(risk_manager, audit_logger, config=config)
     
     orchestrator.logger.info("Orchestrator initialized and bound to stone law.")
