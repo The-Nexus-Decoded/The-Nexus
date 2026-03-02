@@ -11,24 +11,27 @@ import base64
 logger = logging.getLogger("RpcIntegrator")
 
 class RpcIntegrator:
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
         self.logger = logging.getLogger("RpcIntegrator")
+        self.dry_run = dry_run
         # Jupiter API endpoints
         self.jupiter_endpoints = [
             "https://api.jup.ag/swap/v1",
             "https://quote-api.jup.ag/v6"
         ]
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
-        # Load trading wallet
-        wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
-        with open(wallet_path, "r") as f:
-            import json
-            secret_key = json.load(f)
-        self.wallet = Keypair.from_bytes(bytes(secret_key))
+        # Load trading wallet only if not dry_run
+        self.wallet = None
+        if not dry_run:
+            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            with open(wallet_path, "r") as f:
+                import json
+                secret_key = json.load(f)
+            self.wallet = Keypair.from_bytes(bytes(secret_key))
         # Solana RPC (from env or default to devnet for testing)
         self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
         self.client = Client(self.solana_rpc)
-        self.logger.info("RpcIntegrator initialized with Jupiter and wallet.")
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run})")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         """
@@ -65,7 +68,7 @@ class RpcIntegrator:
                 return False
 
             # Step 2: Get swap transaction
-            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.public_key))
+            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
             if not swap_tx_b64:
                 self.logger.error("Failed to fetch swap transaction from Jupiter")
                 return False
