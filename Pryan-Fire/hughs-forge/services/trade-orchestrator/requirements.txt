@@ -1,0 +1,4 @@
+# Trade Orchestrator dependencies
+httpx>=0.24.0
+solana>=0.36.11
+solders
