@@ -12,7 +12,6 @@ class JupiterService:
     # Try public failover first, fallback to standard
     ENDPOINTS = [
         "https://api.jup.ag/swap/v1",
-        "https://quote-api.jup.ag/v6",
     ]
 
     def __init__(self, timeout: int = 10, api_key: Optional[str] = None):
