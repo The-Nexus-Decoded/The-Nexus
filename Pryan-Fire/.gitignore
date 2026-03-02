@@ -58,6 +58,7 @@ hughs-forge/services/risk-manager/venv/
 hughs-forge/services/trade-executor/.venv/
 hughs-forge/services/trade-executor/venv/
 hughs-forge/services/trade-executor/*.py
+!hughs-forge/services/trade-executor/jupiter_solana.py
 hughs-forge/services/trade-executor/*.db
 hughs-forge/services/trade-executor/audit_logs/
 src/data/*.db
