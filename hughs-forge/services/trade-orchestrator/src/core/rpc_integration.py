@@ -112,7 +112,7 @@ class RpcIntegrator:
                 tx.sign([self.wallet])
                 print("[DEBUG] Transaction signed successfully")
                 # Send raw transaction
-                result = self.client.send_raw_transaction(bytes(tx), opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
+                result = self.client.send_raw_transaction(bytes(tx), opts=TxOpts(skip_preflight=True, max_retries=3))
                 print(f"[DEBUG] Transaction send result: {result}")
                 return True
             except Exception as ve:
@@ -131,7 +131,7 @@ class RpcIntegrator:
                     # Sign transaction with wallet and blockhash
                     tx.sign([self.wallet], recent_blockhash)
                     self.logger.info("Sending legacy transaction via send_transaction")
-                    result = self.client.send_transaction(tx, opts=TxOpts(skip_confirmation=False, preflight_commitment="processed"))
+                    result = self.client.send_transaction(tx, opts=TxOpts(skip_preflight=True, max_retries=3))
                     self.logger.info(f"Transaction send result: {result}")
                     return True
                 except Exception as le:
