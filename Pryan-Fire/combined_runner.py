@@ -125,9 +125,16 @@ class CombinedRunner:
         from src.signals.dex_screener import MomentumScanner
         from src.signals.pump_fun_stream import PumpFunSignal
         from src.signals.meteora_dlmm_scanner import MeteoraDLMMScanner
+        from src.signals.rugcheck import RugcheckScanner
 
         self.momentum_scanner = MomentumScanner()
         g_momentum_scanner = self.momentum_scanner
+        self.rugcheck_scanner = RugcheckScanner()
+        if self.rugcheck_scanner.enabled:
+            logger.info("Rugcheck scanner enabled (max_score=%d, min_liq=$%s)",
+                        self.rugcheck_scanner.max_score, self.rugcheck_scanner.min_liquidity_usd)
+        else:
+            logger.info("Rugcheck scanner DISABLED (SCAN_RUGCHECK_ENABLED=false)")
 
         logger.info("Scanner components initialized")
 
@@ -167,6 +174,25 @@ class CombinedRunner:
                     "reason": f"Validation error: {str(e)[:200]}",
                 })
                 return
+
+            # Rugcheck security filter
+            try:
+                dex_liq = intel.get("metrics", {}).get("liquidity", 0)
+                safety = await self.rugcheck_scanner.check_token(mint, dex_liquidity=dex_liq)
+                if not safety["safe"]:
+                    logger.info(f"Token {symbol} failed rugcheck: {safety['reason']}")
+                    self.broadcaster.broadcast_scanner_rejected({
+                        "mint": mint,
+                        "symbol": symbol,
+                        "reason": f"Rugcheck: {safety['reason']}",
+                        "reasons": [f"Rugcheck: {safety['reason']}"],
+                        "metrics": intel.get("metrics", {}),
+                    })
+                    return
+                if not safety.get("skipped"):
+                    logger.info(f"Token {symbol} passed rugcheck (score={safety['score']}, lp={safety['lp_locked_pct']:.1f}%)")
+            except Exception as e:
+                logger.warning(f"Rugcheck error for {mint}: {e} — allowing trade (fail-open)")
 
             # Enqueue signal to orchestrator
             amount = 10.0  # Fixed $10 for testing
