@@ -39,7 +39,13 @@ class RpcIntegrator:
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+            helius_key = os.getenv("HELIUS_API_KEY", "")
+            if helius_key:
+                self.solana_rpc = os.getenv("SOLANA_RPC_URL", f"https://mainnet.helius-rpc.com/?api-key={helius_key}")
+                self.logger.info("Using Helius RPC for better tx landing")
+            else:
+                self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+                self.logger.warning("No HELIUS_API_KEY — using public RPC (txs may drop)")
             self.client = Client(self.solana_rpc)
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
