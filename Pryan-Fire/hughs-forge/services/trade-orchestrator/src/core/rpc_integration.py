@@ -9,7 +9,6 @@ from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
 
-print("[INIT] rpc_integration.py loaded from:", __file__)
 logger = logging.getLogger("RpcIntegrator")
 
 class RpcIntegrator:
@@ -33,6 +32,7 @@ class RpcIntegrator:
                                     break
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
+        self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
@@ -121,6 +121,12 @@ class RpcIntegrator:
                     self.logger.error(f"Signature index {wallet_idx} out of range (len={len(sigs)})")
                     return False
                 signed_tx = VersionedTransaction.populate(msg, sigs)
+                # Log address table lookups for debugging
+                if hasattr(msg, 'address_table_lookups') and msg.address_table_lookups:
+                    lookups = msg.address_table_lookups
+                    self.logger.info(f"Address table lookups: {len(lookups)} entries")
+                    for i, lookup in enumerate(lookups):
+                        self.logger.debug(f"Lookup {i}: account_key={lookup.account_key}")
                 self.logger.info("Sending versioned transaction via send_raw_transaction")
                 result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_preflight=True, max_retries=3))
                 self.logger.info(f"Transaction send result: {result}")
@@ -172,7 +178,7 @@ class RpcIntegrator:
             url = f"{endpoint}/quote"
             try:
                 self.logger.info(f"Fetching quote from: {url}")
-                resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
+                resp = httpx.get(url, params=params, headers=headers, timeout=10.0, follow_redirects=True)
                 if resp.status_code == 200:
                     return resp.json()
                 else:
@@ -200,16 +206,14 @@ class RpcIntegrator:
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
-            print(f"[DEBUG] Swap transaction endpoint URL: {url}")  # Force output
             self.logger.info(f"[DEBUG] Swap transaction endpoint URL: {url}")
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
-                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
+                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0, follow_redirects=True)
                 if resp.status_code == 200:
                     data = resp.json()
                     swap_tx_b64 = data.get("swapTransaction")
                     if swap_tx_b64:
-                        print(f"!!!RAW BASE64: {swap_tx_b64}")  # Temporary debug
                         self.logger.info(f"Raw swap transaction (base64, first 100 chars): {swap_tx_b64[:100]}...")
                     return swap_tx_b64
                 else:
