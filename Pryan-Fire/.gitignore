@@ -63,6 +63,7 @@ hughs-forge/services/trade-executor/*.db
 hughs-forge/services/trade-executor/audit_logs/
 src/data/*.db
 src/signals/*.py
+!src/signals/meteora_dlmm_scanner.py
 haplos-workshop/signal-intel/
 .venv/
 *.pyc
