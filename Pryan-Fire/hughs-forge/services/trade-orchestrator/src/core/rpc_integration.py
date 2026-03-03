@@ -2,13 +2,14 @@ import logging
 import os
 import json
 import httpx
+import time
+from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List
 from solders.keypair import Keypair
 from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
-from datetime import datetime
 
 logger = logging.getLogger("RpcIntegrator")
 
@@ -33,23 +34,35 @@ class RpcIntegrator:
                                     break
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
+        self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+            helius_key = os.getenv("HELIUS_API_KEY", "")
+            if helius_key:
+                self.solana_rpc = os.getenv("SOLANA_RPC_URL", f"https://mainnet.helius-rpc.com/?api-key={helius_key}")
+                self.logger.info("Using Helius RPC for better tx landing")
+            else:
+                self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+                self.logger.warning("No HELIUS_API_KEY — using public RPC (txs may drop)")
             self.client = Client(self.solana_rpc)
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
-        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
+        # Meteora integration toggle (controlled via METEORA_ENABLED env var)
+        self.meteora_enabled = os.getenv("METEORA_ENABLED", "false").lower() == "true"
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc} meteora_enabled={self.meteora_enabled}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         self.logger.info(f"Evaluating route for {token_address} (Amount: {amount})")
-        route = "JUPITER"
-        self.logger.info(f"Selected Route: {route}")
-        return route
+        if self.meteora_enabled:
+            self.logger.info("Meteora enabled via configuration; routing to Meteora")
+            return "METEORA"
+        else:
+            self.logger.info("Meteora disabled; routing to Jupiter")
+            return "JUPITER"
 
     def execute_jupiter_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
         if self.dry_run:
@@ -115,14 +128,18 @@ class RpcIntegrator:
                 opts = TxOpts(skip_preflight=True, max_retries=3, address_lookup_table_addresses=address_lookup_table_addresses)
                 result = self.client.send_raw_transaction(bytes(signed_tx), opts=opts)
                 self.logger.info(f"Transaction send result: {result}")
-
                 tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                confirmed = self._confirm_transaction(tx_signature)
+                if not confirmed:
+                    self.logger.error(f"Trade DROPPED — not confirmed: {tx_signature}")
+                    return {"success": False, "error": "Transaction not confirmed"}
                 entry_price = self._estimate_entry_price(quote, amount_lamports)
+                slippage_bps = self._compute_slippage_bps(quote, amount_lamports)
                 return {
                     "success": True,
                     "tx_signature": tx_signature,
                     "entry_price": entry_price,
-                    "slippage_bps": self._compute_slippage_bps(quote, amount_lamports),
+                    "slippage_bps": slippage_bps,
                     "fee_lamports": None,
                     "executed_at": datetime.utcnow().isoformat() + "Z",
                     "error": None
@@ -141,14 +158,19 @@ class RpcIntegrator:
                     tx.sign([self.wallet], recent_blockhash)
                     self.logger.info("Sending legacy transaction via send_transaction")
                     result = self.client.send_transaction(tx, opts=TxOpts(skip_preflight=True, max_retries=3))
-                    self.logger.info(f"Transaction send result: {result}")
-                    tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                    sig_str = str(result.value)
+                    self.logger.info(f"Transaction submitted: {sig_str}")
+                    confirmed = self._confirm_transaction(sig_str)
+                    if not confirmed:
+                        self.logger.error(f"Trade DROPPED — not confirmed: {sig_str}")
+                        return {"success": False, "error": "Transaction not confirmed"}
                     entry_price = self._estimate_entry_price(quote, amount_lamports)
+                    slippage_bps = self._compute_slippage_bps(quote, amount_lamports)
                     return {
                         "success": True,
-                        "tx_signature": tx_signature,
+                        "tx_signature": sig_str,
                         "entry_price": entry_price,
-                        "slippage_bps": self._compute_slippage_bps(quote, amount_lamports),
+                        "slippage_bps": slippage_bps,
                         "fee_lamports": None,
                         "executed_at": datetime.utcnow().isoformat() + "Z",
                         "error": None
@@ -183,28 +205,29 @@ class RpcIntegrator:
             pass
         return None
 
-    def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
-        if self.dry_run:
-            self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
-            return {
-                "success": True,
-                "tx_signature": "dry_run_mock_signature",
-                "entry_price": None,
-                "slippage_bps": 0,
-                "fee_lamports": 0,
-                "executed_at": datetime.utcnow().isoformat() + "Z",
-                "error": None
-            }
-        self.logger.info(f"Executing Meteora trade for {token_address}...")
-        return {
-            "success": True,
-            "tx_signature": None,
-            "entry_price": None,
-            "slippage_bps": None,
-            "fee_lamports": None,
-            "executed_at": datetime.utcnow().isoformat() + "Z",
-            "error": None
-        }
+    def _confirm_transaction(self, signature_str: str, timeout: int = 30) -> bool:
+        """Poll for transaction confirmation. Returns True if confirmed, False if expired/failed."""
+        from solders.signature import Signature
+        sig = Signature.from_string(signature_str)
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                resp = self.client.get_signature_statuses([sig])
+                statuses = resp.value
+                if statuses and statuses[0] is not None:
+                    status = statuses[0]
+                    if status.err:
+                        self.logger.error(f"Transaction failed on-chain: {status.err}")
+                        return False
+                    conf = status.confirmation_status
+                    self.logger.info(f"Transaction status: {conf}")
+                    if str(conf) in ("confirmed", "finalized") or "Confirmed" in str(conf) or "Finalized" in str(conf):
+                        return True
+            except Exception as e:
+                self.logger.warning(f"Status check error: {e}")
+            time.sleep(2)
+        self.logger.error(f"Transaction not confirmed after {timeout}s — likely dropped")
+        return False
 
     def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         params = {
@@ -223,7 +246,7 @@ class RpcIntegrator:
             url = f"{endpoint}/quote"
             try:
                 self.logger.info(f"Fetching quote from: {url}")
-                resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
+                resp = httpx.get(url, params=params, headers=headers, timeout=10.0, follow_redirects=True)
                 if resp.status_code == 200:
                     return resp.json()
                 else:
@@ -245,11 +268,12 @@ class RpcIntegrator:
         headers = {"User-Agent": "OpenClaw-Haplo/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
+
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
-                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
+                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0, follow_redirects=True)
                 if resp.status_code == 200:
                     data = resp.json()
                     swap_tx_b64 = data.get("swapTransaction")
@@ -264,3 +288,27 @@ class RpcIntegrator:
             except httpx.HTTPError as e:
                 self.logger.warning(f"Swap request {url} failed: {e}")
         return None, []
+
+    def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
+        if self.dry_run:
+            self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
+            return {
+                "success": True,
+                "tx_signature": "dry_run_mock_signature",
+                "entry_price": None,
+                "slippage_bps": 0,
+                "fee_lamports": 0,
+                "executed_at": datetime.utcnow().isoformat() + "Z",
+                "error": None
+            }
+        self.logger.info(f"Executing Meteora trade for {token_address}...")
+        # Placeholder - actual execution would go here
+        return {
+            "success": True,
+            "tx_signature": None,
+            "entry_price": None,
+            "slippage_bps": None,
+            "fee_lamports": None,
+            "executed_at": datetime.utcnow().isoformat() + "Z",
+            "error": None
+        }
