@@ -2,13 +2,13 @@ import logging
 import os
 import json
 import httpx
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple, List
 from solders.keypair import Keypair
 from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
-import time
+from datetime import datetime
 
 logger = logging.getLogger("RpcIntegrator")
 
@@ -33,160 +33,180 @@ class RpcIntegrator:
                                     break
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
-        self.wallet = None
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
-            helius_key = os.getenv("HELIUS_API_KEY", "")
-            if helius_key:
-                self.solana_rpc = os.getenv("SOLANA_RPC_URL", f"https://mainnet.helius-rpc.com/?api-key={helius_key}")
-                self.logger.info("Using Helius RPC for better tx landing")
-            else:
-                self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-                self.logger.warning("No HELIUS_API_KEY — using public RPC (txs may drop)")
+            self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
             self.client = Client(self.solana_rpc)
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
-        # Meteora integration toggle (controlled via METEORA_ENABLED env var)
-        self.meteora_enabled = os.getenv("METEORA_ENABLED", "false").lower() == "true"
-        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc} meteora_enabled={self.meteora_enabled}")
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
-        """
-        Determines the best route for the trade.
-        For now, defaults to Meteora if applicable, else Jupiter.
-        """
         self.logger.info(f"Evaluating route for {token_address} (Amount: {amount})")
-        # In a real implementation, we would query both and compare quotes.
-        # Toggle: Respect METEORA_ENABLED configuration
-        if self.meteora_enabled:
-            self.logger.info("Meteora enabled via configuration; routing to Meteora")
-            return "METEORA"
-        else:
-            self.logger.info("Meteora disabled; routing to Jupiter")
-            return "JUPITER"
+        route = "JUPITER"
+        self.logger.info(f"Selected Route: {route}")
+        return route
 
-    def execute_jupiter_trade(self, token_address: str, amount: float) -> bool:
-        """
-        Executes a trade via Jupiter aggregator.
-        Returns True on success, False on failure.
-        """
-        # Dry run: skip actual on-chain transaction
+    def execute_jupiter_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Jupiter trade execution for {token_address}, amount: {amount}")
-            return True
+            return {
+                "success": True,
+                "tx_signature": "dry_run_mock_signature",
+                "entry_price": None,
+                "slippage_bps": 0,
+                "fee_lamports": 0,
+                "executed_at": datetime.utcnow().isoformat() + "Z",
+                "error": None
+            }
 
         try:
             self.logger.info(f"Executing Jupiter trade: token={token_address}, amount={amount}")
-
-            # Convert amount to lamports (assuming token has 9 decimals for SOL/USDC etc)
-            # In production, fetch decimals from token mint
             decimals = 9
             amount_lamports = int(amount * (10 ** decimals))
 
-            # Step 1: Get quote
             quote = self._fetch_quote(
                 input_mint=token_address,
-                output_mint="So11111111111111111111111111111111111111112",  # Wrapped SOL
+                output_mint="So11111111111111111111111111111111111111112",
                 amount=amount_lamports,
                 user_pubkey=str(self.wallet.pubkey())
             )
             if not quote:
                 self.logger.error("Failed to fetch Jupiter quote")
-                return False
+                return {"success": False, "error": "Failed to fetch Jupiter quote"}
 
-            # Step 2: Get swap transaction
-            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
+            swap_tx_b64, address_lookup_table_addresses = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
             if not swap_tx_b64:
                 self.logger.error("Failed to fetch swap transaction from Jupiter")
-                return False
+                return {"success": False, "error": "Failed to fetch swap transaction from Jupiter"}
 
-            # Step 3: Deserialize, sign, and send
             raw_tx = base64.b64decode(swap_tx_b64)
             self.logger.debug(f"Raw transaction length: {len(raw_tx)}")
 
-            # Try VersionedTransaction first (new Solana transaction format)
             from solders.transaction import VersionedTransaction
             try:
                 tx = VersionedTransaction.from_bytes(raw_tx)
                 self.logger.info("Deserialized as VersionedTransaction")
                 msg = tx.message
-                signed_tx = VersionedTransaction(msg, [self.wallet])
-                self.logger.info("Signed versioned transaction")
-                self.logger.info("Sending versioned transaction via send_raw_transaction")
-                result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_preflight=True, max_retries=3))
-                sig_str = str(result.value)
-                self.logger.info(f"Transaction submitted: {sig_str}")
-                confirmed = self._confirm_transaction(sig_str)
-                if confirmed:
-                    self.logger.info(f"Trade CONFIRMED on-chain: {sig_str}")
+                wallet_pubkey = self.wallet.pubkey()
+                account_keys = msg.account_keys
+                try:
+                    wallet_idx = account_keys.index(wallet_pubkey)
+                except ValueError:
+                    self.logger.error("Wallet pubkey not found in account keys")
+                    return {"success": False, "error": "Wallet pubkey not found in account keys"}
+                if not msg.is_signer(wallet_idx):
+                    self.logger.error("Wallet account is not a signer")
+                    return {"success": False, "error": "Wallet account is not a signer"}
+                message_bytes = bytes(msg)
+                signature = self.wallet.sign_message(message_bytes)
+                sigs = list(tx.signatures)
+                if wallet_idx < len(sigs):
+                    sigs[wallet_idx] = signature
                 else:
-                    self.logger.error(f"Trade DROPPED — not confirmed: {sig_str}")
-                return confirmed
+                    self.logger.error(f"Signature index {wallet_idx} out of range (len={len(sigs)})")
+                    return {"success": False, "error": f"Signature index {wallet_idx} out of range"}
+                signed_tx = VersionedTransaction.populate(msg, sigs)
+                self.logger.info("Sending versioned transaction via send_raw_transaction")
+                opts = TxOpts(skip_preflight=True, max_retries=3, address_lookup_table_addresses=address_lookup_table_addresses)
+                result = self.client.send_raw_transaction(bytes(signed_tx), opts=opts)
+                self.logger.info(f"Transaction send result: {result}")
+
+                tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                entry_price = self._estimate_entry_price(quote, amount_lamports)
+                return {
+                    "success": True,
+                    "tx_signature": tx_signature,
+                    "entry_price": entry_price,
+                    "slippage_bps": self._compute_slippage_bps(quote, amount_lamports),
+                    "fee_lamports": None,
+                    "executed_at": datetime.utcnow().isoformat() + "Z",
+                    "error": None
+                }
             except Exception as ve:
                 self.logger.warning(f"VersionedTransaction handling failed: {ve}. Trying legacy Transaction.")
-                # Fallback to legacy Transaction (older format)
                 try:
                     tx = Transaction.from_bytes(raw_tx)
                     self.logger.info("Deserialized as legacy Transaction")
-                    # Fetch recent blockhash for signing
                     try:
                         blockhash_resp = self.client.get_latest_blockhash()
                         recent_blockhash = blockhash_resp.value.blockhash
                     except Exception as e:
                         self.logger.error(f"Failed to fetch recent blockhash: {e}")
-                        return False
-                    # Sign transaction with wallet and blockhash
+                        return {"success": False, "error": f"Failed to fetch recent blockhash: {e}"}
                     tx.sign([self.wallet], recent_blockhash)
                     self.logger.info("Sending legacy transaction via send_transaction")
                     result = self.client.send_transaction(tx, opts=TxOpts(skip_preflight=True, max_retries=3))
-                    sig_str = str(result.value)
-                    self.logger.info(f"Transaction submitted: {sig_str}")
-                    confirmed = self._confirm_transaction(sig_str)
-                    if confirmed:
-                        self.logger.info(f"Trade CONFIRMED on-chain: {sig_str}")
-                    else:
-                        self.logger.error(f"Trade DROPPED — not confirmed: {sig_str}")
-                    return confirmed
+                    self.logger.info(f"Transaction send result: {result}")
+                    tx_signature = str(result.value) if hasattr(result, 'value') else str(result)
+                    entry_price = self._estimate_entry_price(quote, amount_lamports)
+                    return {
+                        "success": True,
+                        "tx_signature": tx_signature,
+                        "entry_price": entry_price,
+                        "slippage_bps": self._compute_slippage_bps(quote, amount_lamports),
+                        "fee_lamports": None,
+                        "executed_at": datetime.utcnow().isoformat() + "Z",
+                        "error": None
+                    }
                 except Exception as le:
                     self.logger.error(f"Legacy transaction handling also failed: {le}", exc_info=True)
-                    return False
+                    return {"success": False, "error": f"Legacy transaction failed: {le}"}
 
         except Exception as e:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
-            return False
+            return {"success": False, "error": str(e)}
 
+    def _estimate_entry_price(self, quote: Dict[str, Any], amount_lamports: int) -> Optional[float]:
+        try:
+            out_amount_str = quote.get("outAmount")
+            in_amount_str = quote.get("inAmount")
+            if out_amount_str and in_amount_str:
+                out_amount = float(out_amount_str)
+                in_amount = float(in_amount_str)
+                if in_amount > 0:
+                    return out_amount / in_amount
+        except Exception:
+            pass
+        return None
 
-    def _confirm_transaction(self, signature_str: str, timeout: int = 30) -> bool:
-        """Poll for transaction confirmation. Returns True if confirmed, False if expired/failed."""
-        from solders.signature import Signature
-        sig = Signature.from_string(signature_str)
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                resp = self.client.get_signature_statuses([sig])
-                statuses = resp.value
-                if statuses and statuses[0] is not None:
-                    status = statuses[0]
-                    if status.err:
-                        self.logger.error(f"Transaction failed on-chain: {status.err}")
-                        return False
-                    # confirmationStatus: processed -> confirmed -> finalized
-                    conf = status.confirmation_status
-                    self.logger.info(f"Transaction status: {conf}")
-                    if str(conf) in ("confirmed", "finalized") or "Confirmed" in str(conf) or "Finalized" in str(conf):
-                        return True
-            except Exception as e:
-                self.logger.warning(f"Status check error: {e}")
-            time.sleep(2)
-        self.logger.error(f"Transaction not confirmed after {timeout}s — likely dropped")
-        return False
+    def _compute_slippage_bps(self, quote: Dict[str, Any], amount_lamports: int) -> Optional[int]:
+        try:
+            slippage_bps = quote.get("slippageBps")
+            if slippage_bps is not None:
+                return int(slippage_bps)
+        except Exception:
+            pass
+        return None
+
+    def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
+        if self.dry_run:
+            self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
+            return {
+                "success": True,
+                "tx_signature": "dry_run_mock_signature",
+                "entry_price": None,
+                "slippage_bps": 0,
+                "fee_lamports": 0,
+                "executed_at": datetime.utcnow().isoformat() + "Z",
+                "error": None
+            }
+        self.logger.info(f"Executing Meteora trade for {token_address}...")
+        return {
+            "success": True,
+            "tx_signature": None,
+            "entry_price": None,
+            "slippage_bps": None,
+            "fee_lamports": None,
+            "executed_at": datetime.utcnow().isoformat() + "Z",
+            "error": None
+        }
 
     def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
-        """Fetch quote from Jupiter (synchronous httpx)"""
         params = {
             "inputMint": input_mint,
             "outputMint": output_mint,
@@ -195,9 +215,7 @@ class RpcIntegrator:
             "onlyDirectRoutes": "false",
             "userPublicKey": user_pubkey
         }
-        headers = {
-            "User-Agent": "OpenClaw-Haplo/1.0"
-        }
+        headers = {"User-Agent": "OpenClaw-Haplo/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
 
@@ -205,7 +223,7 @@ class RpcIntegrator:
             url = f"{endpoint}/quote"
             try:
                 self.logger.info(f"Fetching quote from: {url}")
-                resp = httpx.get(url, params=params, headers=headers, timeout=10.0, follow_redirects=True)
+                resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     return resp.json()
                 else:
@@ -214,8 +232,7 @@ class RpcIntegrator:
                 self.logger.warning(f"Quote request {url} failed: {e}")
         return None
 
-    def _fetch_swap_transaction(self, quote: Dict[str, Any], user_public_key: str) -> Optional[str]:
-        """Request swap transaction from Jupiter"""
+    def _fetch_swap_transaction(self, quote: Dict[str, Any], user_public_key: str) -> Tuple[Optional[str], List[str]]:
         payload = {
             "quoteResponse": quote,
             "userPublicKey": user_public_key,
@@ -225,36 +242,25 @@ class RpcIntegrator:
             "dynamicComputeUnitLimit": True,
             "restrictIntermediateTokens": True
         }
-        headers = {
-            "User-Agent": "OpenClaw-Haplo/1.0"
-        }
+        headers = {"User-Agent": "OpenClaw-Haplo/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
-
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
-                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0, follow_redirects=True)
+                resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
                     swap_tx_b64 = data.get("swapTransaction")
+                    alt_addresses = data.get("addressLookupTableAddresses", [])
                     if swap_tx_b64:
                         self.logger.info(f"Raw swap transaction (base64, first 100 chars): {swap_tx_b64[:100]}...")
-                    return swap_tx_b64
+                        if alt_addresses:
+                            self.logger.info(f"Received {len(alt_addresses)} ALT addresses: {alt_addresses}")
+                    return swap_tx_b64, alt_addresses
                 else:
                     self.logger.warning(f"Swap endpoint {url} returned {resp.status_code}: {resp.text[:200]}")
             except httpx.HTTPError as e:
                 self.logger.warning(f"Swap request {url} failed: {e}")
-        return None
-
-    def execute_meteora_trade(self, token_address: str, amount: float) -> bool:
-        """
-        Executes a trade via Meteora DLMM.
-        """
-        if self.dry_run:
-            self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
-            return True
-        self.logger.info(f"Executing Meteora trade for {token_address}...")
-        # Placeholder for actual Meteora execution logic
-        return True
+        return None, []

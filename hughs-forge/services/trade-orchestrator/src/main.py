@@ -14,6 +14,8 @@ from core.orchestrator import TradeOrchestrator
 from core.event_loop import EventLoop
 from telemetry.logger import setup_telemetry_logger
 from health_server import start_orchestrator_health_server
+from feed.discord_broadcaster import DiscordBroadcaster
+from feed.stats_tracker import StatsTracker
 
 def main(dry_run=False):
     parser = argparse.ArgumentParser(description="Hugh's Trade Orchestrator Engine")
@@ -36,8 +38,15 @@ def main(dry_run=False):
     )
     health_thread.start()
 
+    # Initialize Assassins Ledger components
+    discord_broadcaster = DiscordBroadcaster()
+    stats_tracker = StatsTracker(db_path=args.db, output_path="feed_stats.json")
+    stats_tracker.start()
+
     # Scaffold the engine components
     orchestrator = TradeOrchestrator(db_path=args.db, dry_run=args.dry_run)
+    # Inject broadcaster into orchestrator (or broadcast via event hooks)
+    orchestrator.discord_broadcaster = discord_broadcaster  # type: ignore
     event_loop = EventLoop(orchestrator)
 
     # Start the event loop in a daemon thread
@@ -52,6 +61,7 @@ def main(dry_run=False):
             time.sleep(30)
     except KeyboardInterrupt:
         logger.info("Shutting down...")
+        stats_tracker.stop()
         orchestrator.stop()
 
 if __name__ == "__main__":
