@@ -1,6 +1,8 @@
+import os
 import aiohttp
 import asyncio
 import logging
+from datetime import datetime
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger("MomentumScanner")
@@ -90,6 +92,42 @@ class MomentumScanner:
         # 3. Market Cap/FDV Floor
         if metrics["fdv"] < 10000:
             reasons.append(f"Market Cap too low (${metrics['fdv']})")
+
+        # 4. Min 5m Volume in SOL (Turbocharger #24)
+        min_vol_5m_sol = float(os.getenv("LEASH_MIN_VOL_5M_SOL", "7"))
+        try:
+            price_native = float(metrics["price_native"])
+            price_usd = float(metrics["price_usd"])
+            if price_native > 0 and price_usd > 0:
+                sol_price_usd = price_usd / price_native
+                volume_5m_sol = metrics["volume_5m"] / sol_price_usd if sol_price_usd > 0 else 0
+            else:
+                sol_price_usd = float(os.getenv("SOL_PRICE_USD", "130"))
+                volume_5m_sol = metrics["volume_5m"] / sol_price_usd
+        except (ValueError, ZeroDivisionError):
+            sol_price_usd = float(os.getenv("SOL_PRICE_USD", "130"))
+            volume_5m_sol = metrics["volume_5m"] / sol_price_usd
+        if volume_5m_sol < min_vol_5m_sol:
+            reasons.append(f"5m volume too low ({volume_5m_sol:.1f} SOL < {min_vol_5m_sol} SOL)")
+
+        # 5. Min 1h Buyers (Turbocharger #25)
+        min_buyers_1h = int(os.getenv("LEASH_MIN_BUYERS_1H", "50"))
+        if metrics["buys_1h"] < min_buyers_1h:
+            reasons.append(f"1h buyers too low ({metrics['buys_1h']} < {min_buyers_1h})")
+
+        # 6. Min Unique Buyers Per 5m, Scaling With Age (Turbocharger #17)
+        min_buyers_per_5m = int(os.getenv("LEASH_MIN_BUYERS_PER_5M", "10"))
+        if metrics.get("pair_created_at"):
+            try:
+                age_seconds = (datetime.utcnow() - datetime.utcfromtimestamp(metrics["pair_created_at"] / 1000)).total_seconds()
+                age_minutes = max(age_seconds / 60, 1)
+                periods = age_minutes / 5
+                min_expected = int(min_buyers_per_5m * periods)
+                actual_buyers = metrics["buys_1h"]
+                if actual_buyers < min_expected:
+                    reasons.append(f"Buyer rate too low ({actual_buyers} buys in {age_minutes:.0f}m, need {min_expected})")
+            except Exception:
+                pass  # Skip age-based check if timestamp parsing fails
 
         passed = len(reasons) == 0
         return {
