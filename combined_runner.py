@@ -149,7 +149,9 @@ class CombinedRunner:
 
             # Heartbeat every 50 tokens so journal shows the callback is alive
             if _callback_count % 50 == 0:
-                logger.info(f"[HEARTBEAT] Processed {_callback_count} tokens ({_callback_drop_count} no-data drops)")
+                print(f"[HEARTBEAT] Processed {_callback_count} tokens ({_callback_drop_count} no-data drops)")
+            if _callback_count == 1:
+                print(f"[HEARTBEAT] Callback alive — first token: {symbol}")
 
             try:
                 intel = await self.momentum_scanner.validate_momentum(mint)
