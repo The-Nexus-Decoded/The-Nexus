@@ -135,25 +135,28 @@ class CombinedRunner:
         async def on_token_discovered_local(mint: str, metadata: dict):
             """Callback for Pump.fun scanner: validates momentum then enqueues to orchestrator."""
             symbol = metadata.get('symbol', 'UNKNOWN')
-            logger.info(f"Scanner discovered token: {symbol} ({mint})")
+            logger.debug(f"Scanner discovered token: {symbol} ({mint})")
             try:
                 intel = await self.momentum_scanner.validate_momentum(mint)
                 if not intel.get("passed"):
                     reason = intel.get("reason", "Unknown")
                     reasons_list = intel.get("reasons", [])
+                    metrics = intel.get("metrics", {})
+
+                    # Skip boring/fake tokens entirely (no DEX Screener data)
+                    if not metrics:
+                        return
+
                     if reasons_list:
                         reason = " | ".join(reasons_list)
-                    logger.warning(f"Token {symbol} failed momentum check: {reason}")
-                    # Only broadcast rejections that have actual metrics (skip 'No pairs found' noise)
-                    metrics = intel.get("metrics", {})
-                    if metrics:
-                        self.broadcaster.broadcast_scanner_rejected({
-                            "mint": mint,
-                            "symbol": symbol,
-                            "reason": reason,
-                            "reasons": intel.get("reasons", []),
-                            "metrics": metrics,
-                        })
+                    logger.info(f"Token {symbol} rejected: {reason}")
+                    self.broadcaster.broadcast_scanner_rejected({
+                        "mint": mint,
+                        "symbol": symbol,
+                        "reason": reason,
+                        "reasons": intel.get("reasons", []),
+                        "metrics": metrics,
+                    })
                     return
                 logger.info(f"Token {symbol} passed momentum validation")
             except Exception as e:
