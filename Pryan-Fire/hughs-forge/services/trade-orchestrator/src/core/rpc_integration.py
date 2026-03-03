@@ -34,6 +34,8 @@ class RpcIntegrator:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
         if not dry_run:
             wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            if not os.path.exists(wallet_path):
+                raise FileNotFoundError(f"Trading wallet not found at {wallet_path}. Set TRADING_WALLET_PATH env var to correct location.")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
@@ -221,6 +223,4 @@ class RpcIntegrator:
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
             return True
-        self.logger.info(f"Executing Meteora trade for {token_address}...")
-        # Placeholder for actual Meteora execution logic
-        return True
+        raise NotImplementedError("Meteora trade execution not implemented. Keep METEORA_EXECUTION_ENABLED=false or implement execute_meteora_trade.")

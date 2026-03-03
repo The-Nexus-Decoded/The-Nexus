@@ -54,7 +54,11 @@ class TradeOrchestrator:
         if route == "JUPITER":
             success = self.rpc_integrator.execute_jupiter_trade(token_address, amount)
         elif route == "METEORA":
-            success = self.rpc_integrator.execute_meteora_trade(token_address, amount)
+            try:
+                success = self.rpc_integrator.execute_meteora_trade(token_address, amount)
+            except NotImplementedError as e:
+                self.logger.warning(f"[{trade_id}] Meteora execution not available: {e}")
+                success = False
             
         # Post-Execution Phase
         if success:
