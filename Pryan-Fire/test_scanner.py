@@ -12,16 +12,21 @@ async def test_anti_rug():
     res = await scanner.scan_token("CLEAN_MINT_123")
     print(f"Result: {res}")
 
-    # Test 2: "Rug" Pattern: High Concentration + Low Fee Ratio
-    print("\n[TEST] Pattern: Rug Hazard (Bundled + High Concentration + Low Fees)")
+    # Test 2: "Rug" Pattern: Freeze Authority + LP not burned + Bundle + Concentration + Wash trades
+    print("\n[TEST] Pattern: Rug Hazard (Multiple Red Flags)")
 
-    async def mock_bad_security(mint):
-        return {"is_mintable": False, "is_freezable": True, "is_lp_burned": False, "is_bundled": True, "top_10_holders_share": 45.0}
-    async def mock_bad_market(mint):
-        return {"volume_24h": 5000000.0, "total_fees": 500.0} # 0.01% ratio
+    async def mock_bad_baseline(mint):
+        return {"is_mintable": False, "is_freezable": True, "is_lp_burned": False, "rugcheck_score": 50}  # triggers freeze, lp_not_burned
+    async def mock_bad_advanced(mint):
+        return {
+            "is_bundled": True,
+            "top_10_holders_share": 45.0,  # exceeds 25%
+            "volume_24h": 5000000.0,
+            "total_fees": 500.0  # 0.01% ratio, below 0.1%
+        }
 
-    scanner._fetch_gmgn_security = mock_bad_security
-    scanner._fetch_gmgn_market = mock_bad_market
+    scanner._fetch_rugcheck_baseline = mock_bad_baseline
+    scanner._fetch_gmgn_advanced = mock_bad_advanced
 
     res = await scanner.scan_token("RUG_MINT_456")
     print(f"Outcome: {'PASSED' if res['passed'] else 'REJECTED'}")

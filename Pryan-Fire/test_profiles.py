@@ -10,11 +10,11 @@ async def test_profiles():
     print("\n[TEST] Profile: SAFE")
     safe_scanner = AntiRugScanner(config["profiles"]["SafeSentinel"])
 
-    # Mocking a "bundled" but otherwise clean token
+    # Mocking a "bundled" token
     async def mock_bundled(mint):
-        return {"is_mintable": False, "is_freezable": False, "is_lp_burned": True, "is_bundled": True, "top_10_holders_share": 10.0}
+        return {"is_bundled": True, "top_10_holders_share": 10.0, "volume_24h": 1000000.0, "total_fees": 1000.0}
 
-    safe_scanner._fetch_gmgn_security = mock_bundled
+    safe_scanner._fetch_gmgn_advanced = mock_bundled
     res = await safe_scanner.scan_token("BUNDLED_TOKEN")
     print(f"Safe Outcome: {'PASSED' if res['passed'] else 'REJECTED'}")
     print(f"Reasons: {res['reasons']}")
@@ -22,7 +22,7 @@ async def test_profiles():
     # 2. Test "Aggressive" Profile
     print("\n[TEST] Profile: AGGRESSIVE")
     aggr_scanner = AntiRugScanner(config["profiles"]["AggressiveLabyrinth"])
-    aggr_scanner._fetch_gmgn_security = mock_bundled
+    aggr_scanner._fetch_gmgn_advanced = mock_bundled
     res = await aggr_scanner.scan_token("BUNDLED_TOKEN")
     print(f"Aggressive Outcome: {'PASSED' if res['passed'] else 'REJECTED'}")
     print(f"Reasons: {res['reasons']}")
