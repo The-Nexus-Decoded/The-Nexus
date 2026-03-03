@@ -34,7 +34,9 @@ class RpcIntegrator:
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
         if not dry_run:
-            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
+            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            if not os.path.exists(wallet_path):
+                raise FileNotFoundError(f"Trading wallet not found at {wallet_path}. Set TRADING_WALLET_PATH env var to correct location.")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
@@ -183,28 +185,11 @@ class RpcIntegrator:
             pass
         return None
 
-    def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
+    def execute_meteora_trade(self, token_address: str, amount: float) -> bool:
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
-            return {
-                "success": True,
-                "tx_signature": "dry_run_mock_signature",
-                "entry_price": None,
-                "slippage_bps": 0,
-                "fee_lamports": 0,
-                "executed_at": datetime.utcnow().isoformat() + "Z",
-                "error": None
-            }
-        self.logger.info(f"Executing Meteora trade for {token_address}...")
-        return {
-            "success": True,
-            "tx_signature": None,
-            "entry_price": None,
-            "slippage_bps": None,
-            "fee_lamports": None,
-            "executed_at": datetime.utcnow().isoformat() + "Z",
-            "error": None
-        }
+            return True
+        raise NotImplementedError("Meteora trade execution not implemented. Keep METEORA_EXECUTION_ENABLED=false or implement execute_meteora_trade.")
 
     def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         params = {
