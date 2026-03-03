@@ -177,7 +177,7 @@ class RpcIntegrator:
                     # confirmationStatus: processed -> confirmed -> finalized
                     conf = status.confirmation_status
                     self.logger.info(f"Transaction status: {conf}")
-                    if conf in ("confirmed", "finalized"):
+                    if str(conf) in ("confirmed", "finalized") or "Confirmed" in str(conf) or "Finalized" in str(conf):
                         return True
             except Exception as e:
                 self.logger.warning(f"Status check error: {e}")
