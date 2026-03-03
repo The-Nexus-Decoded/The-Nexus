@@ -39,6 +39,8 @@ logger = logging.getLogger("CombinedRunner")
 # ============ GLOBAL FOR CALLBACK ============
 g_event_loop = None
 g_momentum_scanner = None
+_callback_count = 0
+_callback_drop_count = 0
 
 # ============ RUNNER CLASS ============
 class CombinedRunner:
@@ -141,8 +143,14 @@ class CombinedRunner:
         # Define Pump.fun token callback
         async def on_token_discovered_local(mint: str, metadata: dict):
             """Callback for Pump.fun scanner: validates momentum then enqueues to orchestrator."""
+            global _callback_count, _callback_drop_count
+            _callback_count += 1
             symbol = metadata.get('symbol', 'UNKNOWN')
-            logger.debug(f"Scanner discovered token: {symbol} ({mint})")
+
+            # Heartbeat every 50 tokens so journal shows the callback is alive
+            if _callback_count % 50 == 0:
+                logger.info(f"[HEARTBEAT] Processed {_callback_count} tokens ({_callback_drop_count} no-data drops)")
+
             try:
                 intel = await self.momentum_scanner.validate_momentum(mint)
                 if not intel.get("passed"):
@@ -150,8 +158,10 @@ class CombinedRunner:
                     reasons_list = intel.get("reasons", [])
                     metrics = intel.get("metrics", {})
 
-                    # Skip boring/fake tokens entirely (no DEX Screener data)
+                    # Skip tokens with no DEX Screener data but LOG it
                     if not metrics:
+                        _callback_drop_count += 1
+                        logger.debug(f"Token {symbol} skipped (no DEX data)")
                         return
 
                     if reasons_list:
