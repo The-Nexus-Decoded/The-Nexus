@@ -144,14 +144,16 @@ class CombinedRunner:
                     if reasons_list:
                         reason = " | ".join(reasons_list)
                     logger.warning(f"Token {symbol} failed momentum check: {reason}")
-                    # Broadcast scanner rejection to kill feed
-                    self.broadcaster.broadcast_scanner_rejected({
-                        "mint": mint,
-                        "symbol": symbol,
-                        "reason": reason,
-                        "reasons": intel.get("reasons", []),
-                        "metrics": intel.get("metrics", {}),
-                    })
+                    # Only broadcast rejections that have actual metrics (skip 'No pairs found' noise)
+                    metrics = intel.get("metrics", {})
+                    if metrics:
+                        self.broadcaster.broadcast_scanner_rejected({
+                            "mint": mint,
+                            "symbol": symbol,
+                            "reason": reason,
+                            "reasons": intel.get("reasons", []),
+                            "metrics": metrics,
+                        })
                     return
                 logger.info(f"Token {symbol} passed momentum validation")
             except Exception as e:
