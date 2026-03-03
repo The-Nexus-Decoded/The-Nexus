@@ -43,7 +43,9 @@ class RpcIntegrator:
         else:
             self.solana_rpc = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
             self.client = None
-        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc}")
+        # Meteora integration toggle (controlled via METEORA_ENABLED env var)
+        self.meteora_enabled = os.getenv("METEORA_ENABLED", "false").lower() == "true"
+        self.logger.info(f"RpcIntegrator initialized (dry_run={dry_run}) network={self.solana_rpc} meteora_enabled={self.meteora_enabled}")
 
     def route_trade(self, token_address: str, amount: float) -> str:
         """
@@ -52,10 +54,13 @@ class RpcIntegrator:
         """
         self.logger.info(f"Evaluating route for {token_address} (Amount: {amount})")
         # In a real implementation, we would query both and compare quotes.
-        # For this mock integration, we assume Jupiter is the default fallback.
-        route = "JUPITER"
-        self.logger.info(f"Selected route: {route}")
-        return route
+        # Toggle: Respect METEORA_ENABLED configuration
+        if self.meteora_enabled:
+            self.logger.info("Meteora enabled via configuration; routing to Meteora")
+            return "METEORA"
+        else:
+            self.logger.info("Meteora disabled; routing to Jupiter")
+            return "JUPITER"
 
     def execute_jupiter_trade(self, token_address: str, amount: float) -> bool:
         """
