@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Combined Scanner + Orchestrator for Devnet Testing
+Combined Scanner + Orchestrator for Patryn Trader
 
 Runs both the Pump.fun scanner and TradeOrchestrator in one process.
 Signals from scanner are enqueued directly to orchestrator's event loop.
+Includes Discord feed broadcasting and wallet balance monitoring.
 """
 
 import asyncio
@@ -39,42 +40,6 @@ logger = logging.getLogger("CombinedRunner")
 g_event_loop = None
 g_momentum_scanner = None
 
-# ============ SIGNAL CALLBACK ============
-async def on_token_discovered(mint: str, metadata: dict):
-    """
-    Called by PumpFunSignal when a new token is detected.
-    Validates momentum, then enqueues to orchestrator.
-    """
-    global g_event_loop, g_momentum_scanner
-    symbol = metadata.get('symbol', 'UNKNOWN')
-    logger.info(f"Token discovered: {symbol} ({mint})")
-
-    # 1. Validate momentum via DEX Screener
-    try:
-        intel = await g_momentum_scanner.validate_momentum(mint)
-        if not intel.get("passed"):
-            reason = intel.get("reason", "Unknown")
-            logger.warning(f"Token {symbol} failed momentum check: {reason}")
-            return
-        logger.info(f"Token {symbol} passed momentum validation")
-    except Exception as e:
-        logger.error(f"Momentum validation error for {mint}: {e}")
-        return
-
-    # 2. Enqueue signal to orchestrator
-    signal = {
-        "token_address": mint,
-        "amount": 0.1,  # Fixed 0.1 SOL for dry-run testing
-        "symbol": symbol,
-        "metadata": metadata,
-        "intel": intel
-    }
-    try:
-        g_event_loop.enqueue_signal(signal)
-        logger.info(f"Signal enqueued for {symbol}")
-    except Exception as e:
-        logger.error(f"Failed to enqueue signal: {e}")
-
 # ============ RUNNER CLASS ============
 class CombinedRunner:
     def __init__(self, dry_run: bool = False, rpc_url: str = None, health_port: int = 8002, meteora: bool = False):
@@ -87,10 +52,13 @@ class CombinedRunner:
         self.momentum_scanner = None
         self.pump_scanner = None
         self.meteora_scanner = None
+        self.broadcaster = None
+        self.stats_tracker = None
         self.pump_thread = None
         self.meteora_thread = None
         self.health_thread = None
         self.loop_thread = None
+        self.balance_thread = None
 
     def start(self):
         global g_event_loop, g_momentum_scanner
@@ -107,13 +75,30 @@ class CombinedRunner:
         from core.event_loop import EventLoop
         from telemetry.logger import setup_telemetry_logger
         from health_server import start_orchestrator_health_server
+        from feed.discord_broadcaster import DiscordBroadcaster
+        from feed.stats_tracker import StatsTracker
 
         # Initialize Telemetry
         logger_telemetry = setup_telemetry_logger(log_file="logs/orchestrator.jsonl")
-        logger_telemetry.info("CombinedRunner starting", extra={"version": "0.1.0"})
+        logger_telemetry.info("CombinedRunner starting", extra={"version": "0.2.0"})
+
+        # Initialize Assassins Ledger components
+        self.broadcaster = DiscordBroadcaster()
+        if self.broadcaster.webhook_url:
+            logger.info("Discord broadcaster initialized (webhook configured)")
+        else:
+            logger.warning("Discord broadcaster has NO webhook URL -- broadcasts will be skipped")
+
+        self.stats_tracker = StatsTracker(db_path="trades.db", output_path="feed_stats.json")
+        self.stats_tracker.start()
+        logger.info("Stats tracker started")
 
         # Initialize Orchestrator
         self.orchestrator = TradeOrchestrator(db_path="trades.db", dry_run=self.dry_run)
+        # Inject broadcaster into orchestrator so it can broadcast trade events
+        self.orchestrator.discord_broadcaster = self.broadcaster
+        logger.info("Broadcaster injected into orchestrator")
+
         self.event_loop = EventLoop(self.orchestrator)
         g_event_loop = self.event_loop
 
@@ -155,11 +140,27 @@ class CombinedRunner:
                 intel = await self.momentum_scanner.validate_momentum(mint)
                 if not intel.get("passed"):
                     reason = intel.get("reason", "Unknown")
+                    reasons_list = intel.get("reasons", [])
+                    if reasons_list:
+                        reason = " | ".join(reasons_list)
                     logger.warning(f"Token {symbol} failed momentum check: {reason}")
+                    # Broadcast scanner rejection to kill feed
+                    self.broadcaster.broadcast_scanner_rejected({
+                        "mint": mint,
+                        "symbol": symbol,
+                        "reason": reason,
+                        "reasons": intel.get("reasons", []),
+                        "metrics": intel.get("metrics", {}),
+                    })
                     return
                 logger.info(f"Token {symbol} passed momentum validation")
             except Exception as e:
                 logger.error(f"Momentum validation error for {mint}: {e}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": f"Validation error: {str(e)[:200]}",
+                })
                 return
 
             # Enqueue signal to orchestrator
@@ -217,6 +218,10 @@ class CombinedRunner:
         else:
             logger.info("Meteora scanner disabled (use --meteora to enable)")
 
+        # Start balance monitor (only in live mode)
+        if not self.dry_run:
+            self._start_balance_monitor()
+
         # Graceful shutdown
         try:
             logger.info("All components running. Press Ctrl+C to stop.")
@@ -227,11 +232,58 @@ class CombinedRunner:
             stop_pump_scanner()
             if self.enable_meteora:
                 stop_meteora_scanner()
+            self.stats_tracker.stop()
             self.orchestrator.stop()
             logger.info("Shutdown complete")
 
+    def _check_balance(self):
+        """Check SOL balance of trading wallet. Returns balance in SOL or None on error."""
+        try:
+            rpc = self.orchestrator.rpc_integrator
+            if not rpc.client or not hasattr(rpc, 'wallet'):
+                return None
+            result = rpc.client.get_balance(rpc.wallet.pubkey())
+            return result.value / 1e9
+        except Exception as e:
+            logger.error(f"Balance check failed: {e}")
+            return None
+
+    def _start_balance_monitor(self):
+        """Start periodic balance monitoring thread."""
+        low_threshold = float(os.getenv("BALANCE_ALERT_LOW_SOL", "0.1"))
+        high_threshold = float(os.getenv("BALANCE_ALERT_HIGH_SOL", "20.0"))
+        check_interval = int(os.getenv("BALANCE_CHECK_INTERVAL_SECONDS", "300"))  # 5 min
+
+        def monitor():
+            last_alert_type = None  # Prevent repeated alerts
+            # Wait for orchestrator to fully initialize
+            time.sleep(30)
+            logger.info(f"Balance monitor active (low={low_threshold} SOL, high={high_threshold} SOL, interval={check_interval}s)")
+
+            while True:
+                sol = self._check_balance()
+                if sol is not None:
+                    logger.info(f"Wallet balance: {sol:.4f} SOL")
+                    if sol < low_threshold and last_alert_type != "low":
+                        self.broadcaster.broadcast_balance_alert(sol, "low", low_threshold)
+                        last_alert_type = "low"
+                        logger.warning(f"LOW BALANCE ALERT: {sol:.4f} SOL")
+                    elif sol > high_threshold and last_alert_type != "high":
+                        self.broadcaster.broadcast_balance_alert(sol, "high", high_threshold)
+                        last_alert_type = "high"
+                        logger.info(f"HIGH BALANCE ALERT: {sol:.4f} SOL")
+                    elif low_threshold <= sol <= high_threshold:
+                        last_alert_type = None  # Reset when back in normal range
+
+                time.sleep(check_interval)
+
+        self.balance_thread = threading.Thread(target=monitor, daemon=True, name="BalanceMonitor")
+        self.balance_thread.start()
+        logger.info("Balance monitor thread started")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Combined Pump.fun Scanner + TradeOrchestrator for Devnet")
+    parser = argparse.ArgumentParser(description="Combined Pump.fun Scanner + TradeOrchestrator")
     parser.add_argument('--dry-run', action='store_true', help='Run without real transactions')
     parser.add_argument('--rpc', default='https://api.devnet.solana.com', help='Solana RPC URL')
     parser.add_argument('--health-port', type=int, default=8002, help='Health check port')
@@ -240,6 +292,7 @@ def main():
 
     runner = CombinedRunner(dry_run=args.dry_run, rpc_url=args.rpc, health_port=args.health_port, meteora=args.meteora)
     runner.start()
+
 
 if __name__ == "__main__":
     main()
