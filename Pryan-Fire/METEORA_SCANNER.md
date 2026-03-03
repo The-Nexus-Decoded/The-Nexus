@@ -26,13 +26,14 @@ Environment variables (all optional):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `METORRA_POLL_INTERVAL` | `30` | Polling interval in seconds |
-| `METORRA_MIN_LIQUIDITY` | `5000` | Minimum liquidity in USD |
-| `METORRA_MIN_VOLUME` | `5000` | Minimum 24h volume in USD |
-| `METORRA_MIN_APY` | `50.0` | Minimum APY in percent |
-| `METORRA_FEE_TIER_CUTOFF` | `0.5` | Maximum fee tier (percent) |
-| `METORRA_VOLUME_SPIKE_MULTIPLIER` | `2.0` | Spike multiplier (e.g., 2.0 = 2x) |
-| `METORRA_VOLUME_SPIKE_WINDOW` | `300` | Spike window in seconds |
+| `METEORA_POLL_INTERVAL` | `30` | Polling interval in seconds |
+| `METEORA_MIN_LIQUIDITY` | `5000` | Minimum liquidity in USD |
+| `METEORA_MIN_VOLUME` | `5000` | Minimum 24h volume in USD |
+| `METEORA_MIN_APY` | `50.0` | Minimum APY in percent |
+| `METEORA_FEE_TIER_CUTOFF` | `0.5` | Maximum fee tier (percent) |
+| `METEORA_VOLUME_SPIKE_MULTIPLIER` | `2.0` | Spike multiplier (e.g., 2.0 = 2x) |
+| `METEORA_VOLUME_SPIKE_WINDOW` | `300` | Spike window in seconds |
+| `METEORA_TRADE_AMOUNT` | `0.1` | Trade amount in token native units (e.g., SOL) |
 | `SOLANA_RPC_URL` | `https://api.devnet.solana.com` | Solana RPC endpoint |
 | `DRY_RUN` | `true` | If true, orchestrator won't sign real transactions |
 
@@ -85,7 +86,7 @@ Signals sent to orchestrator are dictionaries with these keys:
 ```python
 {
     "token_address": "MINT_ADDRESS",      # Base mint of the pool
-    "amount": 10.0,                       # Suggested amount in USD
+    "amount": 0.1,                        # Trade amount in token native units (e.g., SOL)
     "trade_id": "meteora-abcdefg",        # Unique ID for tracking
     "source": "meteora_dlmm",
     "signal_type": "new_pool",            # or volume_spike, fee_arbitrage, generic_opportunity

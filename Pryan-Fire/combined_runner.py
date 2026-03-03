@@ -193,7 +193,9 @@ class CombinedRunner:
                 logger.info("Pump.fun scanner stopped")
 
         def start_meteora_scanner():
-            self.meteora_scanner = MeteoraDLMMScanner(orchestrator=self.orchestrator, devnet=not self.dry_run)
+            # Derive devnet from RPC URL to ensure scanner matches network
+            devnet = "devnet" in self.rpc_url.lower() or "testnet" in self.rpc_url.lower()
+            self.meteora_scanner = MeteoraDLMMScanner(orchestrator=self.orchestrator, devnet=devnet)
             def run_meteora():
                 try:
                     asyncio.run(self.meteora_scanner.run())

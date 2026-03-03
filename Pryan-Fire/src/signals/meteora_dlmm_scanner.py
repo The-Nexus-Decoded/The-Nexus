@@ -2,13 +2,14 @@
 Meteora DLMM Scanner — polls devnet/mainnet pools and feeds trade signals to orchestrator.
 
 Accepts configuration via environment:
-- METORRA_POLL_INTERVAL=30 (seconds)
-- METORRA_MIN_LIQUIDITY=5000 (USD)
-- METORRA_MIN_VOLUME=5000 (24h USD)
-- METORRA_MIN_APY=50.0 (percent)
-- METORRA_FEE_TIER_CUTOFF=0.5 (percent)
-- METORRA_VOLUME_SPIKE_MULTIPLIER=2.0
-- METORRA_VOLUME_SPIKE_WINDOW=300 (seconds)
+- METEORA_POLL_INTERVAL=30 (seconds)
+- METEORA_MIN_LIQUIDITY=5000 (USD)
+- METEORA_MIN_VOLUME=5000 (24h USD)
+- METEORA_MIN_APY=50.0 (percent)
+- METEORA_FEE_TIER_CUTOFF=0.5 (percent)
+- METEORA_VOLUME_SPIKE_MULTIPLIER=2.0
+- METEORA_VOLUME_SPIKE_WINDOW=300 (seconds)
+- METEORA_TRADE_AMOUNT=0.1 (token native units, e.g., SOL)
 """
 import os
 import asyncio
@@ -16,7 +17,7 @@ import json
 import logging
 import aiohttp
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -35,13 +36,15 @@ class MeteoraDLMMScanner:
         self.orchestrator = orchestrator
         self.devnet = devnet
         self.running = False
-        self.poll_interval = int(os.getenv("METORRA_POLL_INTERVAL", "30"))
-        self.min_liquidity_usd = float(os.getenv("METORRA_MIN_LIQUIDITY", "5000"))
-        self.min_volume_24h_usd = float(os.getenv("METORRA_MIN_VOLUME", "5000"))
-        self.min_apy = float(os.getenv("METORRA_MIN_APY", "50.0"))
-        self.fee_tier_cutoff_percent = float(os.getenv("METORRA_FEE_TIER_CUTOFF", "0.5"))
-        self.volume_spike_multiplier = float(os.getenv("METORRA_VOLUME_SPIKE_MULTIPLIER", "2.0"))
-        self.volume_spike_window_seconds = int(os.getenv("METORRA_VOLUME_SPIKE_WINDOW", "300"))
+        self.poll_interval = int(os.getenv("METEORA_POLL_INTERVAL", "30"))
+        self.min_liquidity_usd = float(os.getenv("METEORA_MIN_LIQUIDITY", "5000"))
+        self.min_volume_24h_usd = float(os.getenv("METEORA_MIN_VOLUME", "5000"))
+        self.min_apy = float(os.getenv("METEORA_MIN_APY", "50.0"))
+        self.fee_tier_cutoff_percent = float(os.getenv("METEORA_FEE_TIER_CUTOFF", "0.5"))
+        self.volume_spike_multiplier = float(os.getenv("METEORA_VOLUME_SPIKE_MULTIPLIER", "2.0"))
+        self.volume_spike_window_seconds = int(os.getenv("METEORA_VOLUME_SPIKE_WINDOW", "300"))
+        # Trade amount in token native units (e.g., SOL). Not USD.
+        self.trade_amount = float(os.getenv("METEORA_TRADE_AMOUNT", "0.1"))
 
         # Meteora public GraphQL endpoint
         self.graphql_url = "https://api.meteora.ag/v1/graphql"
@@ -120,7 +123,7 @@ class MeteoraDLMMScanner:
 
     def _cleanup_old_history(self, max_age_seconds: int = 600):
         """Remove history entries older than max_age_seconds to bound memory."""
-        cutoff = datetime.utcnow() - timedelta(seconds=max_age_seconds)
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
         to_remove = []
         for pool_addr, hist in self._pool_history.items():
             # Keep only entries >= cutoff
@@ -136,7 +139,7 @@ class MeteoraDLMMScanner:
         """Detect if current volume is > volume_spike_multiplier times the average over recent window."""
         pool_addr = pool["address"]
         current_volume = float(pool.get("volume24h", 0))
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Add current measurement to history
         self._pool_history[pool_addr].append({"timestamp": now, "volume_24h": current_volume})
@@ -220,13 +223,12 @@ class MeteoraDLMMScanner:
         Expected keys: token_address, amount, trade_id (optional), metadata (optional)
         """
         token_mint = pool["baseMint"]
-        # Fixed amount for dry-run testing; could be dynamic based on confidence or liquidity
-        suggested_amount = 10.0  # USD equivalent
+        # Use configured token amount (native units)
         trade_id = f"meteora-{pool['address'][:8]}"
 
         return {
             "token_address": token_mint,
-            "amount": suggested_amount,
+            "amount": self.trade_amount,  # token native units (e.g., SOL)
             "trade_id": trade_id,
             "source": "meteora_dlmm",
             "signal_type": signal_type,

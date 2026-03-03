@@ -9,7 +9,6 @@ from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
 
-print("[INIT] rpc_integration.py loaded from:", __file__)
 logger = logging.getLogger("RpcIntegrator")
 
 class RpcIntegrator:
@@ -34,7 +33,7 @@ class RpcIntegrator:
             except Exception as e:
                 self.logger.warning(f"Failed to read JUPITER_API_KEY from {env_path}: {e}")
         if not dry_run:
-            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/keys/trading_wallet.json")
+            wallet_path = os.getenv("TRADING_WALLET_PATH", "/data/openclaw/workspace/keys/trading_wallet.json")
             with open(wallet_path, "r") as f:
                 secret_key = json.load(f)
             self.wallet = Keypair.from_bytes(bytes(secret_key))
@@ -200,8 +199,6 @@ class RpcIntegrator:
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
-            print(f"[DEBUG] Swap transaction endpoint URL: {url}")  # Force output
-            self.logger.info(f"[DEBUG] Swap transaction endpoint URL: {url}")
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
@@ -209,7 +206,6 @@ class RpcIntegrator:
                     data = resp.json()
                     swap_tx_b64 = data.get("swapTransaction")
                     if swap_tx_b64:
-                        print(f"!!!RAW BASE64: {swap_tx_b64}")  # Temporary debug
                         self.logger.info(f"Raw swap transaction (base64, first 100 chars): {swap_tx_b64[:100]}...")
                     return swap_tx_b64
                 else:
