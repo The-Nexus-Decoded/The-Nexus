@@ -147,45 +147,48 @@ class CombinedRunner:
             _callback_count += 1
             symbol = metadata.get('symbol', 'UNKNOWN')
 
-            # Heartbeat every 50 tokens so journal shows the callback is alive
-            if _callback_count % 50 == 0:
-                print(f"[HEARTBEAT] Processed {_callback_count} tokens ({_callback_drop_count} no-data drops)")
-            if _callback_count == 1:
-                print(f"[HEARTBEAT] Callback alive — first token: {symbol}")
+            # === DEBUG BLOCK (remove after diagnosis) ===
+            if _callback_count <= 3 or _callback_count % 50 == 0:
+                print(f"[DEBUG-CB] #{_callback_count} enter callback: {symbol} ({mint[:12]}...)", flush=True)
 
             try:
+                if _callback_count == 1:
+                    print(f"[DEBUG-CB] momentum_scanner type: {type(self.momentum_scanner)}", flush=True)
                 intel = await self.momentum_scanner.validate_momentum(mint)
-                if not intel.get("passed"):
-                    reason = intel.get("reason", "Unknown")
-                    reasons_list = intel.get("reasons", [])
-                    metrics = intel.get("metrics", {})
-
-                    # Skip tokens with no DEX Screener data but LOG it
-                    if not metrics:
-                        _callback_drop_count += 1
-                        logger.debug(f"Token {symbol} skipped (no DEX data)")
-                        return
-
-                    if reasons_list:
-                        reason = " | ".join(reasons_list)
-                    logger.info(f"Token {symbol} rejected: {reason}")
-                    self.broadcaster.broadcast_scanner_rejected({
-                        "mint": mint,
-                        "symbol": symbol,
-                        "reason": reason,
-                        "reasons": intel.get("reasons", []),
-                        "metrics": metrics,
-                    })
-                    return
-                logger.info(f"Token {symbol} passed momentum validation")
+                if _callback_count <= 3:
+                    print(f"[DEBUG-CB] #{_callback_count} validate_momentum returned: passed={intel.get('passed')}, has_metrics={bool(intel.get('metrics', {}))}, reason={intel.get('reason', 'N/A')[:60]}", flush=True)
             except Exception as e:
-                logger.error(f"Momentum validation error for {mint}: {e}")
+                print(f"[DEBUG-CB] #{_callback_count} validate_momentum EXCEPTION: {type(e).__name__}: {e}", flush=True)
                 self.broadcaster.broadcast_scanner_rejected({
                     "mint": mint,
                     "symbol": symbol,
                     "reason": f"Validation error: {str(e)[:200]}",
                 })
                 return
+            # === END DEBUG BLOCK ===
+
+            if not intel.get("passed"):
+                reason = intel.get("reason", "Unknown")
+                reasons_list = intel.get("reasons", [])
+                metrics = intel.get("metrics", {})
+
+                # Skip tokens with no DEX Screener data but LOG it
+                if not metrics:
+                    _callback_drop_count += 1
+                    return
+
+                if reasons_list:
+                    reason = " | ".join(reasons_list)
+                logger.info(f"Token {symbol} rejected: {reason}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": reason,
+                    "reasons": intel.get("reasons", []),
+                    "metrics": metrics,
+                })
+                return
+            logger.info(f"Token {symbol} passed momentum validation")
 
             # Rugcheck security filter
             try:
