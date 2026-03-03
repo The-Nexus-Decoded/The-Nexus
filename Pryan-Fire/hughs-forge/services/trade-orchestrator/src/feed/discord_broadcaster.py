@@ -186,6 +186,7 @@ class DiscordBroadcaster:
 
     def _build_scanner_rejected_embed(self, token_data: Dict[str, Any], skipped: int) -> Dict[str, Any]:
         reason = token_data.get("reason", "Unknown")
+        # Handle both "reason" (string) and "reasons" (list) from momentum scanner
         reasons_list = token_data.get("reasons", [])
         if reasons_list:
             reason = " | ".join(reasons_list)
@@ -259,6 +260,7 @@ class DiscordBroadcaster:
         return {
             "title": title,
             "description": desc,
+
             "color": 16744448,  # orange
             "timestamp": datetime.utcnow().isoformat(),
             "fields": fields
