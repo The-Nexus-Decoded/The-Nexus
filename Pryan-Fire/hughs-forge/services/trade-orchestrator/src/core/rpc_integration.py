@@ -8,6 +8,7 @@ from solana.rpc.api import Client
 from solana.rpc.types import TxOpts
 from solders.transaction import Transaction, VersionedTransaction
 import base64
+import time
 
 logger = logging.getLogger("RpcIntegrator")
 
@@ -134,8 +135,14 @@ class RpcIntegrator:
                         self.logger.debug(f"Lookup {i}: account_key={lookup.account_key}")
                 self.logger.info("Sending versioned transaction via send_raw_transaction")
                 result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_preflight=True, max_retries=3))
-                self.logger.info(f"Transaction send result: {result}")
-                return True
+                sig_str = str(result.value)
+                self.logger.info(f"Transaction submitted: {sig_str}")
+                confirmed = self._confirm_transaction(sig_str)
+                if confirmed:
+                    self.logger.info(f"Trade CONFIRMED on-chain: {sig_str}")
+                else:
+                    self.logger.error(f"Trade DROPPED — not confirmed: {sig_str}")
+                return confirmed
             except Exception as ve:
                 self.logger.warning(f"VersionedTransaction handling failed: {ve}. Trying legacy Transaction.")
                 # Fallback to legacy Transaction (older format)
@@ -153,8 +160,14 @@ class RpcIntegrator:
                     tx.sign([self.wallet], recent_blockhash)
                     self.logger.info("Sending legacy transaction via send_transaction")
                     result = self.client.send_transaction(tx, opts=TxOpts(skip_preflight=True, max_retries=3))
-                    self.logger.info(f"Transaction send result: {result}")
-                    return True
+                    sig_str = str(result.value)
+                    self.logger.info(f"Transaction submitted: {sig_str}")
+                    confirmed = self._confirm_transaction(sig_str)
+                    if confirmed:
+                        self.logger.info(f"Trade CONFIRMED on-chain: {sig_str}")
+                    else:
+                        self.logger.error(f"Trade DROPPED — not confirmed: {sig_str}")
+                    return confirmed
                 except Exception as le:
                     self.logger.error(f"Legacy transaction handling also failed: {le}", exc_info=True)
                     return False
@@ -162,6 +175,32 @@ class RpcIntegrator:
         except Exception as e:
             self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
             return False
+
+
+    def _confirm_transaction(self, signature_str: str, timeout: int = 30) -> bool:
+        """Poll for transaction confirmation. Returns True if confirmed, False if expired/failed."""
+        from solders.signature import Signature
+        sig = Signature.from_string(signature_str)
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                resp = self.client.get_signature_statuses([sig])
+                statuses = resp.value
+                if statuses and statuses[0] is not None:
+                    status = statuses[0]
+                    if status.err:
+                        self.logger.error(f"Transaction failed on-chain: {status.err}")
+                        return False
+                    # confirmationStatus: processed -> confirmed -> finalized
+                    conf = status.confirmation_status
+                    self.logger.info(f"Transaction status: {conf}")
+                    if conf in ("confirmed", "finalized"):
+                        return True
+            except Exception as e:
+                self.logger.warning(f"Status check error: {e}")
+            time.sleep(2)
+        self.logger.error(f"Transaction not confirmed after {timeout}s — likely dropped")
+        return False
 
     def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         """Fetch quote from Jupiter (synchronous httpx)"""
@@ -211,7 +250,6 @@ class RpcIntegrator:
 
         for endpoint in self.jupiter_endpoints:
             url = f"{endpoint}/swap"
-            self.logger.info(f"[DEBUG] Swap transaction endpoint URL: {url}")
             try:
                 self.logger.info(f"Requesting swap transaction from: {url}")
                 resp = httpx.post(url, json=payload, headers=headers, timeout=10.0, follow_redirects=True)
