@@ -114,31 +114,8 @@ class RpcIntegrator:
                 tx = VersionedTransaction.from_bytes(raw_tx)
                 self.logger.info("Deserialized as VersionedTransaction")
                 msg = tx.message
-                wallet_pubkey = self.wallet.pubkey()
-                account_keys = msg.account_keys
-                try:
-                    wallet_idx = account_keys.index(wallet_pubkey)
-                except ValueError:
-                    self.logger.error("Wallet pubkey not found in account keys")
-                    return False
-                if not msg.is_signer(wallet_idx):
-                    self.logger.error("Wallet account is not a signer")
-                    return False
-                message_bytes = bytes(msg)
-                signature = self.wallet.sign_message(message_bytes)
-                sigs = list(tx.signatures)
-                if wallet_idx < len(sigs):
-                    sigs[wallet_idx] = signature
-                else:
-                    self.logger.error(f"Signature index {wallet_idx} out of range (len={len(sigs)})")
-                    return False
-                signed_tx = VersionedTransaction.populate(msg, sigs)
-                # Log address table lookups for debugging
-                if hasattr(msg, 'address_table_lookups') and msg.address_table_lookups:
-                    lookups = msg.address_table_lookups
-                    self.logger.info(f"Address table lookups: {len(lookups)} entries")
-                    for i, lookup in enumerate(lookups):
-                        self.logger.debug(f"Lookup {i}: account_key={lookup.account_key}")
+                signed_tx = VersionedTransaction(msg, [self.wallet])
+                self.logger.info("Signed versioned transaction")
                 self.logger.info("Sending versioned transaction via send_raw_transaction")
                 result = self.client.send_raw_transaction(bytes(signed_tx), opts=TxOpts(skip_preflight=True, max_retries=3))
                 sig_str = str(result.value)
