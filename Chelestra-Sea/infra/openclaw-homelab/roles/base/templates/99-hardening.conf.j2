@@ -1,0 +1,30 @@
+# /etc/ssh/sshd_config.d/99-hardening.conf
+# Managed by Ansible — do not edit manually
+# OpenClaw Homelab: SSH hardened with LAN fallback + Tailscale access
+
+# Default: disable password authentication — key-only
+PasswordAuthentication no
+PermitEmptyPasswords no
+
+# Disable root login
+PermitRootLogin no
+
+# Require public key authentication
+PubkeyAuthentication yes
+
+# Limit auth attempts and connection window
+MaxAuthTries 3
+LoginGraceTime 30
+
+# Keep connections alive, disconnect idle after ~10 minutes (300s * 2 checks)
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Allow SSH from both LAN (192.168.1.0/24) and Tailscale CGNAT (100.64.0.0/10)
+# LAN access is the emergency fallback if Tailscale is down
+AllowUsers *@{{ lan_cidr }} *@100.64.0.0/10
+
+# Allow password auth from LAN — emergency fallback so you don't get locked out
+# when running with --connection=local (the server deploys its own key, not your Windows key)
+Match Address {{ lan_cidr }}
+    PasswordAuthentication yes

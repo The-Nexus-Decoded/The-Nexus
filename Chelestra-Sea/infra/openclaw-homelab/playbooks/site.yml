@@ -1,0 +1,86 @@
+---
+# =============================================================================
+# OpenClaw Homelab — Master Playbook
+# Provisions and hardens all 3 servers in a single run
+#
+# Usage:
+#   ansible-playbook playbooks/site.yml
+#
+# First-time bootstrap (disable host key checking for fresh installs):
+#   ansible-playbook playbooks/site.yml -e 'ansible_ssh_extra_args="-o StrictHostKeyChecking=no"'
+#
+# Prerequisites:
+#   1. .vault_pass file in repo root with your vault password
+#   2. ansible-vault encrypt vault/secrets.yml (if not already encrypted)
+#   3. inventory/hosts.yml updated with actual LAN IPs (before first run)
+#   4. SSH access to all 3 servers (initial bootstrap via LAN IP)
+#
+# ROLE ORDER MATTERS:
+#   kernel-params → networking → tailscale → base → nvidia →
+#   data-drive → openclaw → ollama → notifications
+# =============================================================================
+
+- name: Provision and harden all OpenClaw servers
+  hosts: all
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vault/secrets.yml"
+
+  pre_tasks:
+    - name: Verify target OS is Ubuntu 24.04
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: >
+          This playbook targets Ubuntu 24.04 LTS.
+          Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}.
+          Abort.
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Display provisioning target
+      ansible.builtin.debug:
+        msg: >
+          Provisioning {{ inventory_hostname }} ({{ ansible_host }})
+          Role: {{ server_role | default('unset') }}
+
+  roles:
+    - kernel-params   # FIRST: set GRUB params for GPU stability
+    - networking      # SECOND: MAC-based NIC config (survives PCIe renumbering)
+    - tailscale       # THIRD: VPN tunnel (needed before UFW lockdown)
+    - base            # FOURTH: hardening (UFW, SSH, fail2ban, user setup)
+    - nvidia          # FIFTH: GPU drivers (needs kernel params active)
+    - data-drive      # SIXTH: mount NVMe at /data
+    - openclaw        # SEVENTH: install app (needs /data mounted)
+    - ollama          # EIGHTH: local LLM (needs GPU drivers)
+    - notifications   # NINTH: Discord + alerts (needs OpenClaw running)
+
+  post_tasks:
+    # Save Tailscale IP to local file for automated inventory update
+    - name: Save Tailscale IP to tailscale-ips.yml on controller
+      ansible.builtin.lineinfile:
+        path: "{{ playbook_dir }}/../tailscale-ips.yml"
+        line: "{{ inventory_hostname }}: \"{{ tailscale_ip.stdout }}\""
+        regexp: "^{{ inventory_hostname }}:"
+        create: true
+      delegate_to: localhost
+      become: false
+      when: tailscale_ip.stdout is defined and tailscale_ip.stdout | length > 0
+
+    - name: Display provisioning complete summary
+      ansible.builtin.debug:
+        msg: |
+          ======================================================
+          Provisioning complete: {{ inventory_hostname }}
+          ======================================================
+          Tailscale IP: {{ tailscale_ip.stdout | default('check tailscale ip -4') }}
+          Server role: {{ server_role | default('unset') }}
+          UFW status: Enabled (if Tailscale connected)
+          SSH: Key-only, LAN + Tailscale access
+          NVIDIA: {{ 'Installed' if nvidia_install | default(true) else 'Skipped' }}
+          Ollama: {{ 'Installed' if ollama_install | default(true) else 'Skipped' }}
+
+          Tailscale IP saved to tailscale-ips.yml.
+          Run: .\scripts\update-inventory-tailscale.ps1
+          Then: ansible-playbook playbooks/reboot-verify.yml
+          ======================================================

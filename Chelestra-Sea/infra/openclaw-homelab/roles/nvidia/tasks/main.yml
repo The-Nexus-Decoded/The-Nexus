@@ -1,0 +1,173 @@
+---
+# =============================================================================
+# Role: nvidia — Install NVIDIA GPU drivers and configure for stability
+# Supports GTX 1070, future RTX 5090, and other NVIDIA GPUs
+# =============================================================================
+
+- name: Skip NVIDIA setup (nvidia_install is false)
+  ansible.builtin.debug:
+    msg: "Skipping NVIDIA driver installation (nvidia_install={{ nvidia_install }})"
+  when: not nvidia_install
+
+- name: NVIDIA driver installation
+  when: nvidia_install
+  block:
+    # --- Blacklist nouveau (open-source driver conflicts with NVIDIA proprietary) ---
+
+    - name: Blacklist nouveau driver
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/blacklist-nouveau.conf
+        content: |
+          # Managed by Ansible — do not edit manually
+          # Nouveau must be disabled for NVIDIA proprietary drivers
+          blacklist nouveau
+          options nouveau modeset=0
+        owner: root
+        group: root
+        mode: "0644"
+      register: nouveau_blacklist
+
+    - name: Update initramfs after nouveau blacklist
+      ansible.builtin.command: update-initramfs -u
+      when: nouveau_blacklist.changed
+
+    # --- Install NVIDIA drivers ---
+    # Skip installation if nvidia-smi already works (prevents driver version conflicts)
+
+    - name: Check if NVIDIA driver is already working
+      ansible.builtin.command: nvidia-smi --query-gpu=name --format=csv,noheader
+      register: nvidia_already_working
+      changed_when: false
+      ignore_errors: true
+
+    - name: Install ubuntu-drivers-common
+      ansible.builtin.apt:
+        name: ubuntu-drivers-common
+        state: present
+        update_cache: true
+      when: nvidia_already_working.rc != 0
+
+    - name: Install NVIDIA driver (auto-detects correct version)
+      ansible.builtin.command: ubuntu-drivers install --gpgpu
+      register: nvidia_driver_install
+      changed_when: "'is already installed' not in nvidia_driver_install.stdout | default('')"
+      when: nvidia_already_working.rc != 0
+
+    # Detect installed driver version for nvidia-utils package
+    - name: Detect installed NVIDIA driver package version
+      ansible.builtin.shell: >
+        dpkg -l | grep 'nvidia-headless-no-dkms' | grep '^ii' |
+        awk '{print $2}' | sed 's/nvidia-headless-no-dkms-//' | head -1
+      register: nvidia_pkg_version
+      changed_when: false
+
+    # Install nvidia-utils (provides nvidia-smi) — not included in --gpgpu install
+    - name: Install nvidia-utils (provides nvidia-smi)
+      ansible.builtin.apt:
+        name: "nvidia-utils-{{ nvidia_pkg_version.stdout }}"
+        state: present
+      when:
+        - nvidia_pkg_version.stdout | length > 0
+        - nvidia_already_working.rc != 0
+
+    - name: Install NVIDIA CUDA toolkit
+      ansible.builtin.apt:
+        name: nvidia-cuda-toolkit
+        state: present
+      when: nvidia_install_cuda_toolkit
+
+    # --- Kernel module load order ---
+
+    - name: Ensure NVIDIA kernel modules load at boot
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/nvidia.conf
+        content: |
+          # Managed by Ansible — load NVIDIA modules at boot
+          nvidia
+          nvidia_uvm
+          nvidia_drm
+          nvidia_modeset
+        owner: root
+        group: root
+        mode: "0644"
+
+    # Load nvidia module now if not already loaded (avoid needing reboot)
+    - name: Check if nvidia module is loaded
+      ansible.builtin.shell: lsmod | grep -q '^nvidia '
+      register: nvidia_module_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Load nvidia kernel module
+      ansible.builtin.command: modprobe nvidia
+      when: nvidia_module_check.rc != 0
+      register: nvidia_modprobe
+
+    - name: Load nvidia_uvm kernel module
+      ansible.builtin.command: modprobe nvidia_uvm
+      when: nvidia_module_check.rc != 0
+
+    # Wait for /dev/nvidia* devices to appear
+    - name: Wait for NVIDIA device files
+      ansible.builtin.wait_for:
+        path: /dev/nvidia0
+        timeout: 15
+      ignore_errors: true
+
+    # --- Persistence daemon (keeps GPUs initialized) ---
+
+    - name: Enable nvidia-persistenced service
+      ansible.builtin.systemd:
+        name: nvidia-persistenced
+        state: started
+        enabled: true
+        daemon_reload: true
+      when: nvidia_persistence_mode
+      register: nvidia_persist_result
+      ignore_errors: true
+
+    - name: Warn if nvidia-persistenced failed (driver may need reboot)
+      ansible.builtin.debug:
+        msg: >
+          nvidia-persistenced failed to start. This usually means the NVIDIA kernel
+          module version doesn't match the userspace library. A reboot should fix this.
+      when:
+        - nvidia_persistence_mode
+        - nvidia_persist_result is defined
+        - nvidia_persist_result is failed
+
+    # --- Blacklist NVIDIA from unattended-upgrades ---
+
+    - name: Blacklist NVIDIA packages from unattended-upgrades
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades-nvidia
+        content: |
+          // Managed by Ansible — prevent NVIDIA driver/kernel mismatch
+          Unattended-Upgrade::Package-Blacklist {
+              "nvidia-";
+              "libnvidia-";
+              "cuda-";
+          };
+        owner: root
+        group: root
+        mode: "0644"
+      when: nvidia_blacklist_from_autoupgrade
+
+    # --- Verification ---
+
+    - name: Verify NVIDIA GPUs visible via nvidia-smi
+      ansible.builtin.command: nvidia-smi --query-gpu=name,uuid --format=csv,noheader
+      register: nvidia_smi_output
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display detected GPUs
+      ansible.builtin.debug:
+        msg: "Detected GPUs: {{ nvidia_smi_output.stdout_lines | default(['nvidia-smi not available — reboot needed']) }}"
+
+    - name: Warn if nvidia-smi failed (reboot needed)
+      ansible.builtin.debug:
+        msg: >
+          nvidia-smi could not query GPUs. This is expected on first install before reboot.
+          The driver and modules are installed. Reboot the server, then verify with: nvidia-smi
+      when: nvidia_smi_output.rc != 0

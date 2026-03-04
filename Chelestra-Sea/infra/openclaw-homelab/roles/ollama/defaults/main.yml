@@ -1,0 +1,19 @@
+---
+# =============================================================================
+# Role: ollama — Default variables
+# =============================================================================
+
+# Set to false to skip Ollama installation
+ollama_install: true
+
+# Default model to pull after installation
+ollama_model: "qwen2.5-coder:7b-instruct-q4_K_M"
+
+# Ollama server port
+ollama_port: 11434
+
+# Context window size
+ollama_num_ctx: 4096
+
+# Bind address
+ollama_host: "0.0.0.0:11434"

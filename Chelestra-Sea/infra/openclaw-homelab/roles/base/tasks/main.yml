@@ -1,0 +1,241 @@
+---
+# =============================================================================
+# Role: base — OS hardening (SSH, UFW, Fail2ban, user setup, auto-updates)
+# MUST run AFTER 'tailscale' role (needs tailscale0 interface for UFW rules)
+# =============================================================================
+
+# --- Anti-lockout safeguard ---
+# Verify tailscale0 interface exists before applying restrictive UFW rules.
+# If Tailscale failed to connect, we skip UFW to avoid locking ourselves out.
+
+- name: Check if tailscale0 interface exists
+  ansible.builtin.command: ip link show tailscale0
+  register: tailscale0_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Warn if tailscale0 interface not found
+  ansible.builtin.debug:
+    msg: >
+      WARNING: tailscale0 interface not found on {{ inventory_hostname }}.
+      UFW rules will be applied WITHOUT Tailscale restrictions.
+      Ensure Tailscale is running before re-running this playbook.
+      DO NOT enable UFW until Tailscale is connected to avoid SSH lockout.
+  when: tailscale0_check.rc != 0
+
+# --- Package installation ---
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600  # Only update if cache is older than 1 hour
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - curl
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - logrotate
+    state: present
+
+# --- Set timezone ---
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+# --- User setup ---
+
+- name: Create openclaw user
+  ansible.builtin.user:
+    name: "{{ server_user }}"
+    shell: /bin/bash
+    createhome: true
+    groups: sudo
+    append: true
+    state: present
+
+- name: Add openclaw user to sudoers (no-password sudo for automation)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/openclaw
+    content: "{{ server_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+# --- SSH key setup (fail hard if no keys available before disabling password auth) ---
+
+- name: Check if server user SSH public key exists
+  ansible.builtin.stat:
+    path: "/home/{{ server_user }}/.ssh/id_ed25519.pub"
+  register: ssh_key_file
+
+- name: Deploy server user's SSH key as authorized_key
+  ansible.posix.authorized_key:
+    user: "{{ server_user }}"
+    state: present
+    key: "{{ lookup('file', '/home/' + server_user + '/.ssh/id_ed25519.pub') }}"
+  when: ssh_key_file.stat.exists
+
+# Deploy extra authorized keys (e.g., Windows dev machine, CI/CD)
+# Set authorized_keys_extra as a list of public key strings in group_vars or host_vars
+- name: Deploy extra authorized keys
+  ansible.posix.authorized_key:
+    user: "{{ server_user }}"
+    state: present
+    key: "{{ item }}"
+  loop: "{{ authorized_keys_extra }}"
+  when: authorized_keys_extra | length > 0
+  no_log: false
+
+# Check that at least one key is in authorized_keys before disabling password auth
+- name: Check authorized_keys has at least one key
+  ansible.builtin.shell: wc -l < /home/{{ server_user }}/.ssh/authorized_keys
+  register: auth_keys_count
+  changed_when: false
+
+- name: Warn if no SSH keys deployed
+  ansible.builtin.debug:
+    msg: >
+      WARNING: No SSH keys in authorized_keys for {{ server_user }}.
+      LAN password auth is still enabled as fallback (Match Address {{ lan_cidr }}).
+      For key-only access over Tailscale, add your Windows SSH public key to
+      authorized_keys_extra in host_vars.
+  when: (auth_keys_count.stdout | int) < 1
+
+# --- SSH hardening ---
+
+- name: Deploy SSH hardening config
+  ansible.builtin.template:
+    src: 99-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: ssh_config_deployed
+  notify: restart ssh
+
+- name: Fix cloud-init SSH config permissions (if present)
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    mode: "0644"
+  ignore_errors: true
+
+- name: Validate full SSH configuration
+  ansible.builtin.command: sshd -t
+  changed_when: false
+
+# --- UFW firewall ---
+
+- name: Set UFW default incoming policy to deny
+  community.general.ufw:
+    default: deny
+    direction: incoming
+
+- name: Set UFW default outgoing policy to allow
+  community.general.ufw:
+    default: allow
+    direction: outgoing
+
+# LAN SSH fallback — emergency access if Tailscale breaks
+- name: Allow SSH from LAN (emergency fallback)
+  community.general.ufw:
+    rule: allow
+    src: "{{ lan_cidr }}"
+    port: "22"
+    proto: tcp
+    comment: "LAN SSH fallback — emergency access if Tailscale is down"
+
+- name: Allow all traffic on tailscale0 interface (when Tailscale is running)
+  community.general.ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+    comment: "Allow all Tailscale VPN traffic (SSH + OpenClaw + inter-server)"
+  when: tailscale0_check.rc == 0
+
+- name: Allow Tailscale control plane port (WireGuard UDP)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ ufw_allowed_ports }}"
+
+- name: Allow per-server extra ports (from group_vars)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    comment: "{{ item.comment | default('Per-server port') }}"
+  loop: "{{ ufw_extra_ports }}"
+  when: ufw_extra_ports | length > 0
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  when: tailscale0_check.rc == 0
+  notify: reload ufw
+
+- name: Skip UFW enable (tailscale0 not found — would lock out SSH)
+  ansible.builtin.debug:
+    msg: >
+      UFW NOT enabled. Connect Tailscale first, then re-run to enable UFW.
+  when: tailscale0_check.rc != 0
+
+# --- Fail2ban ---
+
+- name: Deploy Fail2ban jail config
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart fail2ban
+
+- name: Enable and start Fail2ban service
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+
+# --- Unattended upgrades (automatic security patches) ---
+
+- name: Enable unattended-upgrades for security patches
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+
+- name: Configure unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Logrotate for OpenClaw logs ---
+
+- name: Deploy logrotate config for OpenClaw logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/openclaw
+    content: |
+      /data/openclaw/logs/*.log {
+          daily
+          missingok
+          rotate 14
+          compress
+          delaycompress
+          notifempty
+          create 0644 {{ server_user }} {{ server_user }}
+      }
+    owner: root
+    group: root
+    mode: "0644"

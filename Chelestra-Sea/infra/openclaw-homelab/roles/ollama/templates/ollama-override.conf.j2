@@ -1,0 +1,12 @@
+# /etc/systemd/system/ollama.service.d/override.conf
+# Managed by Ansible — do not edit manually
+
+[Unit]
+After=nvidia-persistenced.service
+Wants=nvidia-persistenced.service
+
+[Service]
+Environment="CUDA_VISIBLE_DEVICES=0,1"
+Environment="CUDA_DEVICE_ORDER=PCI_BUS_ID"
+Environment="OLLAMA_HOST={{ ollama_host }}"
+Environment="OLLAMA_NUM_CTX={{ ollama_num_ctx }}"

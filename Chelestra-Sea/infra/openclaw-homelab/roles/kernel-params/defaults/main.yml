@@ -1,0 +1,11 @@
+---
+# =============================================================================
+# Role: kernel-params — Default variables
+# =============================================================================
+
+# Kernel boot parameters for GPU stability and PCIe reliability
+kernel_params:
+  - amd_iommu=on
+  - iommu=pt
+  - pcie_aspm=off
+  - pci=realloc

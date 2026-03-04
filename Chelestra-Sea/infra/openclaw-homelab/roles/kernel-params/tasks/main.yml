@@ -1,0 +1,87 @@
+---
+# =============================================================================
+# Role: kernel-params — Set GRUB kernel parameters for GPU/PCIe stability
+# SHOULD run before nvidia role to ensure params are active
+# Auto-reboots on first run when GRUB config changes
+# =============================================================================
+
+- name: Deploy GRUB kernel parameters config
+  ansible.builtin.template:
+    src: grub-openclaw.j2
+    dest: /etc/default/grub.d/openclaw.cfg
+    owner: root
+    group: root
+    mode: "0644"
+  register: grub_config
+
+- name: Update GRUB configuration
+  ansible.builtin.command: update-grub
+  when: grub_config.changed
+
+# --- Check if params are already active ---
+
+- name: Read current kernel command line
+  ansible.builtin.slurp:
+    src: /proc/cmdline
+  register: cmdline_raw
+
+- name: Set kernel cmdline fact
+  ansible.builtin.set_fact:
+    kernel_cmdline: "{{ cmdline_raw.content | b64decode }}"
+    kernel_params_missing: "{{ kernel_params | reject('search', cmdline_raw.content | b64decode) | list }}"
+
+# --- Reboot handling ---
+# ansible.builtin.reboot does NOT work with --connection=local (kills the ansible process).
+# For local runs, we flag that a reboot is needed and the provisioning script handles it.
+# For remote runs (SSH), reboot works normally.
+
+- name: Check if running with local connection
+  ansible.builtin.set_fact:
+    is_local_connection: "{{ ansible_connection | default('ssh') == 'local' }}"
+
+- name: Reboot to apply kernel parameters (remote connection)
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Ansible: rebooting to apply kernel parameters ({{ kernel_params_missing | join(', ') }})"
+  when:
+    - grub_config.changed
+    - kernel_params_missing | length > 0
+    - not is_local_connection
+
+- name: Wait for SSH after reboot (remote connection)
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 120
+  when:
+    - grub_config.changed
+    - kernel_params_missing | length > 0
+    - not is_local_connection
+
+- name: Flag reboot needed (local connection)
+  ansible.builtin.debug:
+    msg: >
+      REBOOT REQUIRED: Kernel parameters have been updated but are not yet active.
+      Missing params: {{ kernel_params_missing | join(', ') }}
+      Please reboot the server manually and re-run the playbook.
+  when:
+    - grub_config.changed
+    - kernel_params_missing | length > 0
+    - is_local_connection
+
+# --- Verify params are active after reboot ---
+
+- name: Re-read kernel command line after reboot
+  ansible.builtin.slurp:
+    src: /proc/cmdline
+  register: cmdline_raw_post
+  when:
+    - grub_config.changed
+    - not is_local_connection
+
+- name: Update kernel cmdline fact
+  ansible.builtin.set_fact:
+    kernel_cmdline: "{{ (cmdline_raw_post.content | default(cmdline_raw.content)) | b64decode }}"
+
+- name: Display current kernel parameters
+  ansible.builtin.debug:
+    msg: "Kernel cmdline: {{ kernel_cmdline }}"

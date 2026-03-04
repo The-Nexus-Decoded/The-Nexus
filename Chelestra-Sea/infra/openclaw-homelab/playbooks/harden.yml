@@ -1,0 +1,21 @@
+---
+# =============================================================================
+# OpenClaw Homelab — Hardening Playbook (run independently)
+# Re-applies SSH, UFW, and Fail2ban configuration to all servers
+# Run this after any changes to hardening config, or periodically to ensure
+# servers haven't drifted from the desired state.
+#
+# Usage:
+#   ansible-playbook playbooks/harden.yml
+#   ansible-playbook playbooks/harden.yml --limit ola_claw_main
+#
+# NOTE: Tailscale must already be installed and running before using this.
+# If Tailscale is not running, UFW will not be enabled (anti-lockout safeguard).
+# =============================================================================
+
+- name: Harden SSH, UFW, and Fail2ban on OpenClaw servers
+  hosts: all
+  become: true
+
+  roles:
+    - base

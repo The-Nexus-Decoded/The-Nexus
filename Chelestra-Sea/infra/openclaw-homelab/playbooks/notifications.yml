@@ -1,0 +1,17 @@
+---
+# =============================================================================
+# OpenClaw Homelab — Notifications-only Playbook
+# Configures Discord and critical alert channels without re-running other roles
+#
+# Usage:
+#   ansible-playbook playbooks/notifications.yml
+#   ansible-playbook playbooks/notifications.yml --limit ola-claw-dev
+# =============================================================================
+
+- name: Configure notification channels
+  hosts: all
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vault/secrets.yml"
+  roles:
+    - notifications
