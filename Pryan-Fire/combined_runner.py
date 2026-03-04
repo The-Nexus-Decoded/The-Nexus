@@ -384,15 +384,27 @@ class CombinedRunner:
     async def _run_retries(self, tokens):
         """Process a batch of retry tokens. Returns list of mints to remove from queue."""
         processed = []
+        tasks = []
+        mints_in_order = []
         for mint, entry in tokens:
             entry["retries"] += 1
-            try:
-                done = await self._process_retry_token(mint, entry)
-                if done:
-                    processed.append(mint)
-            except Exception as e:
-                logger.warning(f"Retry error for {entry['symbol']}: {e}")
+            mints_in_order.append(mint)
+            tasks.append(asyncio.ensure_future(self._safe_retry(mint, entry)))
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for mint, result in zip(mints_in_order, results):
+            if isinstance(result, Exception):
+                logger.warning(f"Retry task error for {mint[:8]}: {result}")
+            elif result:
+                processed.append(mint)
         return processed
+
+    async def _safe_retry(self, mint: str, entry: dict) -> bool:
+        """Wrapper that runs retry inside a proper Task context (required by aiohttp)."""
+        try:
+            return await self._process_retry_token(mint, entry)
+        except Exception as e:
+            logger.warning(f"Retry error for {entry['symbol']}: {e}")
+            return False
 
     def _check_balance(self):
         """Check SOL balance of trading wallet. Returns balance in SOL or None on error."""
