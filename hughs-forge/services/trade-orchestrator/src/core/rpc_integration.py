@@ -89,7 +89,6 @@ class RpcIntegrator:
             raw_tx = base64.b64decode(swap_tx_b64)
             self.logger.debug(f"Raw transaction length: {len(raw_tx)}")
 
-            from solders.transaction import VersionedTransaction
             try:
                 tx = VersionedTransaction.from_bytes(raw_tx)
                 self.logger.info("Deserialized as VersionedTransaction")
@@ -185,10 +184,18 @@ class RpcIntegrator:
             pass
         return None
 
-    def execute_meteora_trade(self, token_address: str, amount: float) -> bool:
+    def execute_meteora_trade(self, token_address: str, amount: float) -> Dict[str, Any]:
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Skipping Meteora trade execution for {token_address}, amount: {amount}")
-            return True
+            return {
+                "success": True,
+                "tx_signature": "dry_run_mock_signature",
+                "entry_price": None,
+                "slippage_bps": 0,
+                "fee_lamports": 0,
+                "executed_at": datetime.utcnow().isoformat() + "Z",
+                "error": None
+            }
         raise NotImplementedError("Meteora trade execution not implemented. Keep METEORA_EXECUTION_ENABLED=false or implement execute_meteora_trade.")
 
     def _fetch_quote(self, input_mint: str, output_mint: str, amount: int, user_pubkey: str, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
@@ -223,7 +230,6 @@ class RpcIntegrator:
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto",
             "dynamicComputeUnitLimit": True,
             "restrictIntermediateTokens": True
         }
