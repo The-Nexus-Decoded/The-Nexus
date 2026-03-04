@@ -146,7 +146,7 @@ class DiscordBroadcaster:
             "color": 0x5865F2,  # blurple
             "timestamp": datetime.utcnow().isoformat(),
             "fields": [
-                {"name": "Status", "value": "No pairs on DEX Screener yet — will retry every 30s for up to 15 min", "inline": False},
+                {"name": "Status", "value": "No pairs on DEX Screener yet — watching for up to 24h (checks back off as token ages)", "inline": False},
                 {"name": "Queue Size", "value": str(queue_size), "inline": True},
             ]
         }
