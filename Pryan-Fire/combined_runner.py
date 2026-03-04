@@ -16,6 +16,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from collections import OrderedDict
 
 # ============ PATH CONFIGURATION ============
 WORKSPACE = "/data/openclaw/workspace/Pryan-Fire"
@@ -44,6 +45,11 @@ _callback_drop_count = 0
 
 # ============ RUNNER CLASS ============
 class CombinedRunner:
+    # Retry queue config
+    RETRY_INTERVAL_S = int(os.getenv("SNIPER_RETRY_INTERVAL_S", "30"))
+    RETRY_MAX_AGE_S = int(os.getenv("SNIPER_RETRY_MAX_AGE_S", "900"))  # 15 minutes
+    SNIPE_AMOUNT_SOL = float(os.getenv("SNIPE_AMOUNT_SOL", "0.01"))
+
     def __init__(self, dry_run: bool = False, rpc_url: str = None, health_port: int = 8002, meteora: bool = False):
         self.dry_run = dry_run
         self.rpc_url = rpc_url or "https://api.devnet.solana.com"
@@ -61,6 +67,10 @@ class CombinedRunner:
         self.health_thread = None
         self.loop_thread = None
         self.balance_thread = None
+        self.retry_thread = None
+        # Retry queue: mint -> {symbol, metadata, queued_at, retries}
+        self._retry_queue = OrderedDict()
+        self._retry_lock = threading.Lock()
 
     def start(self):
         global g_event_loop, g_momentum_scanner
@@ -147,80 +157,67 @@ class CombinedRunner:
             _callback_count += 1
             symbol = metadata.get('symbol', 'UNKNOWN')
 
-            # === DEBUG BLOCK (remove after diagnosis) ===
-            if _callback_count <= 3 or _callback_count % 50 == 0:
-                print(f"[DEBUG-CB] #{_callback_count} enter callback: {symbol} ({mint[:12]}...)", flush=True)
-
             try:
-                if _callback_count == 1:
-                    print(f"[DEBUG-CB] momentum_scanner type: {type(self.momentum_scanner)}", flush=True)
                 intel = await self.momentum_scanner.validate_momentum(mint)
-                if _callback_count <= 3:
-                    print(f"[DEBUG-CB] #{_callback_count} validate_momentum returned: passed={intel.get('passed')}, has_metrics={bool(intel.get('metrics', {}))}, reason={intel.get('reason', 'N/A')[:60]}", flush=True)
             except Exception as e:
-                print(f"[DEBUG-CB] #{_callback_count} validate_momentum EXCEPTION: {type(e).__name__}: {e}", flush=True)
-                self.broadcaster.broadcast_scanner_rejected({
-                    "mint": mint,
-                    "symbol": symbol,
-                    "reason": f"Validation error: {str(e)[:200]}",
-                })
+                logger.warning(f"Validation error for {symbol}: {e}")
                 return
-            # === END DEBUG BLOCK ===
 
             if not intel.get("passed"):
-                reason = intel.get("reason", "Unknown")
-                reasons_list = intel.get("reasons", [])
                 metrics = intel.get("metrics", {})
 
-                # Skip tokens with no DEX Screener data but LOG it
+                # No DEX data yet — queue for retry instead of dropping
                 if not metrics:
-                    _callback_drop_count += 1
+                    self._enqueue_retry(mint, metadata)
                     return
 
-                if reasons_list:
-                    reason = " | ".join(reasons_list)
+                reasons_list = intel.get("reasons", [])
+                reason = " | ".join(reasons_list) if reasons_list else intel.get("reason", "Unknown")
                 logger.info(f"Token {symbol} rejected: {reason}")
                 self.broadcaster.broadcast_scanner_rejected({
                     "mint": mint,
                     "symbol": symbol,
                     "reason": reason,
-                    "reasons": intel.get("reasons", []),
+                    "reasons": reasons_list,
                     "metrics": metrics,
                 })
                 return
-            logger.info(f"Token {symbol} passed momentum validation")
 
-            # Rugcheck security filter
-            try:
-                dex_liq = intel.get("metrics", {}).get("liquidity", 0)
-                safety = await self.rugcheck_scanner.check_token(mint, dex_liquidity=dex_liq)
-                if not safety["safe"]:
-                    logger.info(f"Token {symbol} failed rugcheck: {safety['reason']}")
-                    self.broadcaster.broadcast_scanner_rejected({
-                        "mint": mint,
-                        "symbol": symbol,
-                        "reason": f"Rugcheck: {safety['reason']}",
-                        "reasons": [f"Rugcheck: {safety['reason']}"],
-                        "metrics": intel.get("metrics", {}),
-                    })
-                    return
-                if not safety.get("skipped"):
-                    logger.info(f"Token {symbol} passed rugcheck (score={safety['score']}, lp={safety['lp_locked_pct']:.1f}%)")
-            except Exception as e:
-                logger.warning(f"Rugcheck error for {mint}: {e} — allowing trade (fail-open)")
+            # Token has data AND passed momentum — run full pipeline
+            await self._process_validated_token(mint, symbol, intel)
 
-            # Enqueue signal to orchestrator
-            amount = 10.0  # Fixed $10 for testing
-            signal = {
-                "token_address": mint,
-                "amount": amount,
-                "trade_id": f"scan-{mint[:8]}"
-            }
+        async def process_retry_token(mint: str, entry: dict):
+            """Re-check a queued token. Called from retry loop."""
+            symbol = entry["symbol"]
             try:
-                self.event_loop.enqueue_signal(signal)
-                logger.info(f"Signal enqueued for {symbol} (${amount})")
+                intel = await self.momentum_scanner.validate_momentum(mint)
             except Exception as e:
-                logger.error(f"Failed to enqueue signal: {e}")
+                logger.warning(f"Retry validation error for {symbol}: {e}")
+                return False  # keep in queue
+
+            metrics = intel.get("metrics", {})
+            if not metrics:
+                return False  # still no data, keep in queue
+
+            # Data appeared — remove from queue and process
+            if not intel.get("passed"):
+                reasons_list = intel.get("reasons", [])
+                reason = " | ".join(reasons_list) if reasons_list else intel.get("reason", "Unknown")
+                logger.info(f"Token {symbol} rejected on retry: {reason}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": reason,
+                    "reasons": reasons_list,
+                    "metrics": metrics,
+                })
+                return True  # processed, remove from queue
+
+            await self._process_validated_token(mint, symbol, intel)
+            return True  # processed, remove from queue
+
+        # Store callback ref for retry loop
+        self._process_retry_token = process_retry_token
 
         # Scanner start/stop functions
         def start_pump_scanner():
@@ -264,6 +261,9 @@ class CombinedRunner:
         else:
             logger.info("Meteora scanner disabled (use --meteora to enable)")
 
+        # Start retry queue processor
+        self._start_retry_loop()
+
         # Start balance monitor (only in live mode)
         if not self.dry_run:
             self._start_balance_monitor()
@@ -281,6 +281,118 @@ class CombinedRunner:
             self.stats_tracker.stop()
             self.orchestrator.stop()
             logger.info("Shutdown complete")
+
+    async def _process_validated_token(self, mint: str, symbol: str, intel: dict):
+        """Run rugcheck + enqueue buy for a token that passed momentum validation."""
+        # Rugcheck security filter
+        try:
+            dex_liq = intel.get("metrics", {}).get("liquidity", 0)
+            safety = await self.rugcheck_scanner.check_token(mint, dex_liquidity=dex_liq)
+            if not safety["safe"]:
+                logger.info(f"Token {symbol} failed rugcheck: {safety['reason']}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": f"Rugcheck: {safety['reason']}",
+                    "reasons": [f"Rugcheck: {safety['reason']}"],
+                    "metrics": intel.get("metrics", {}),
+                })
+                return
+            if not safety.get("skipped"):
+                logger.info(f"Token {symbol} passed rugcheck (score={safety['score']}, lp={safety['lp_locked_pct']:.1f}%)")
+        except Exception as e:
+            logger.warning(f"Rugcheck error for {mint}: {e} — allowing trade (fail-open)")
+
+        # Enqueue signal to orchestrator
+        amount = self.SNIPE_AMOUNT_SOL
+        signal = {
+            "token_address": mint,
+            "amount": amount,
+            "trade_id": f"snipe-{mint[:8]}"
+        }
+        try:
+            self.event_loop.enqueue_signal(signal)
+            logger.info(f"Signal enqueued for {symbol} ({amount} SOL)")
+        except Exception as e:
+            logger.error(f"Failed to enqueue signal for {symbol}: {e}")
+
+    def _enqueue_retry(self, mint: str, metadata: dict):
+        """Add a token to the retry queue for periodic re-checking."""
+        with self._retry_lock:
+            if mint in self._retry_queue:
+                return  # already queued
+            self._retry_queue[mint] = {
+                "symbol": metadata.get("symbol", "UNKNOWN"),
+                "metadata": metadata,
+                "queued_at": time.time(),
+                "retries": 0,
+            }
+            qsize = len(self._retry_queue)
+        logger.info(f"Token {metadata.get('symbol', 'UNKNOWN')} queued for retry (queue={qsize})")
+
+    def _start_retry_loop(self):
+        """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
+        def retry_loop():
+            logger.info(f"Retry queue active (interval={self.RETRY_INTERVAL_S}s, max_age={self.RETRY_MAX_AGE_S}s)")
+            while True:
+                time.sleep(self.RETRY_INTERVAL_S)
+                with self._retry_lock:
+                    if not self._retry_queue:
+                        continue
+                    snapshot = list(self._retry_queue.items())
+
+                now = time.time()
+                expired = []
+                to_process = []
+
+                for mint, entry in snapshot:
+                    age = now - entry["queued_at"]
+                    if age > self.RETRY_MAX_AGE_S:
+                        expired.append(mint)
+                    else:
+                        to_process.append((mint, entry))
+
+                # Drop expired tokens
+                if expired:
+                    with self._retry_lock:
+                        for mint in expired:
+                            self._retry_queue.pop(mint, None)
+                    logger.info(f"Retry queue: dropped {len(expired)} expired tokens")
+
+                if not to_process:
+                    continue
+
+                # Process retries in a fresh async loop
+                loop = asyncio.new_event_loop()
+                try:
+                    processed = loop.run_until_complete(self._run_retries(to_process))
+                finally:
+                    loop.close()
+
+                with self._retry_lock:
+                    for mint in processed:
+                        self._retry_queue.pop(mint, None)
+                    remaining = len(self._retry_queue)
+
+                if processed or remaining:
+                    logger.info(f"Retry queue: processed={len(processed)}, remaining={remaining}")
+
+        self.retry_thread = threading.Thread(target=retry_loop, daemon=True, name="RetryQueue")
+        self.retry_thread.start()
+        logger.info("Retry queue thread started")
+
+    async def _run_retries(self, tokens):
+        """Process a batch of retry tokens. Returns list of mints to remove from queue."""
+        processed = []
+        for mint, entry in tokens:
+            entry["retries"] += 1
+            try:
+                done = await self._process_retry_token(mint, entry)
+                if done:
+                    processed.append(mint)
+            except Exception as e:
+                logger.warning(f"Retry error for {entry['symbol']}: {e}")
+        return processed
 
     def _check_balance(self):
         """Check SOL balance of trading wallet. Returns balance in SOL or None on error."""

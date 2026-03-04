@@ -75,26 +75,31 @@ class MomentumScanner:
         """
         The MomentumLeash (Phase 5a).
         Enforces minimum floors for trading quality within the Main Portfolio Engine.
+        All thresholds env-configurable for tuning without code changes.
         """
         reasons = []
 
-        # 1. Liquidity Floor (MVP Standard)
-        if metrics["liquidity"] < 10000:  # Raised for safer main-bag trading
-            reasons.append(f"Liquidity too thin for portfolio entry (${metrics['liquidity']})")
+        # 1. Liquidity Floor
+        min_liquidity = float(os.getenv("LEASH_MIN_LIQUIDITY_USD", "2000"))
+        if metrics["liquidity"] < min_liquidity:
+            reasons.append(f"Liquidity too thin (${metrics['liquidity']:.0f} < ${min_liquidity:.0f})")
 
-        # 2. Buy/Sell Ratio (Anti-Wash Guard - Initial Version)
+        # 2. Buy/Sell Ratio (Anti-Wash Guard)
+        buy_ratio_high = float(os.getenv("LEASH_BUY_RATIO_HIGH", "0.95"))
+        buy_ratio_low = float(os.getenv("LEASH_BUY_RATIO_LOW", "0.05"))
         total_tx = metrics["buys_5m"] + metrics["sells_5m"]
         if total_tx > 0:
             buy_ratio = metrics["buys_5m"] / total_tx
-            if buy_ratio > 0.95 or buy_ratio < 0.05:
+            if buy_ratio > buy_ratio_high or buy_ratio < buy_ratio_low:
                 reasons.append(f"Suspect volume distribution (Buy Ratio: {buy_ratio:.2f})")
 
         # 3. Market Cap/FDV Floor
-        if metrics["fdv"] < 10000:
-            reasons.append(f"Market Cap too low (${metrics['fdv']})")
+        min_fdv = float(os.getenv("LEASH_MIN_FDV_USD", "5000"))
+        if metrics["fdv"] < min_fdv:
+            reasons.append(f"Market Cap too low (${metrics['fdv']:.0f} < ${min_fdv:.0f})")
 
-        # 4. Min 5m Volume in SOL (Turbocharger #24)
-        min_vol_5m_sol = float(os.getenv("LEASH_MIN_VOL_5M_SOL", "7"))
+        # 4. Min 5m Volume in SOL
+        min_vol_5m_sol = float(os.getenv("LEASH_MIN_VOL_5M_SOL", "2"))
         try:
             price_native = float(metrics["price_native"])
             price_usd = float(metrics["price_usd"])
@@ -110,13 +115,13 @@ class MomentumScanner:
         if volume_5m_sol < min_vol_5m_sol:
             reasons.append(f"5m volume too low ({volume_5m_sol:.1f} SOL < {min_vol_5m_sol} SOL)")
 
-        # 5. Min 1h Buyers (Turbocharger #25)
-        min_buyers_1h = int(os.getenv("LEASH_MIN_BUYERS_1H", "50"))
+        # 5. Min 1h Buyers
+        min_buyers_1h = int(os.getenv("LEASH_MIN_BUYERS_1H", "10"))
         if metrics["buys_1h"] < min_buyers_1h:
             reasons.append(f"1h buyers too low ({metrics['buys_1h']} < {min_buyers_1h})")
 
-        # 6. Min Unique Buyers Per 5m, Scaling With Age (Turbocharger #17)
-        min_buyers_per_5m = int(os.getenv("LEASH_MIN_BUYERS_PER_5M", "10"))
+        # 6. Min Unique Buyers Per 5m, Scaling With Age
+        min_buyers_per_5m = int(os.getenv("LEASH_MIN_BUYERS_PER_5M", "3"))
         if metrics.get("pair_created_at"):
             try:
                 age_seconds = (datetime.utcnow() - datetime.utcfromtimestamp(metrics["pair_created_at"] / 1000)).total_seconds()
