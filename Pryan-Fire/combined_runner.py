@@ -186,11 +186,12 @@ class CombinedRunner:
             # Token has data AND passed momentum — run full pipeline
             await self._process_validated_token(mint, symbol, intel)
 
-        async def process_retry_token(mint: str, entry: dict):
+        async def process_retry_token(mint: str, entry: dict, scanner=None):
             """Re-check a queued token. Called from retry loop."""
             symbol = entry["symbol"]
+            active_scanner = scanner or self.momentum_scanner
             try:
-                intel = await self.momentum_scanner.validate_momentum(mint)
+                intel = await active_scanner.validate_momentum(mint)
             except Exception as e:
                 logger.warning(f"Retry validation error for {symbol}: {e}")
                 return False  # keep in queue
@@ -333,9 +334,11 @@ class CombinedRunner:
     def _start_retry_loop(self):
         """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
         def retry_loop():
-            # One persistent event loop for the lifetime of this thread.
-            # aiohttp ClientSession is tied to the loop it was created in — recreating
-            # a new loop each batch orphans the cached session and breaks timeouts.
+            # Dedicated event loop + scanner for this thread.
+            # self.momentum_scanner's session is created in the pump scanner's loop;
+            # reusing it here (a different loop) causes aiohttp timeout errors.
+            from src.signals.dex_screener import MomentumScanner
+            retry_scanner = MomentumScanner()
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             logger.info(f"Retry queue active (interval={self.RETRY_INTERVAL_S}s, max_age={self.RETRY_MAX_AGE_S}s)")
@@ -368,7 +371,7 @@ class CombinedRunner:
                     if not to_process:
                         continue
 
-                    processed = loop.run_until_complete(self._run_retries(to_process))
+                    processed = loop.run_until_complete(self._run_retries(to_process, retry_scanner))
 
                     with self._retry_lock:
                         for mint in processed:
@@ -378,21 +381,21 @@ class CombinedRunner:
                     if processed or remaining:
                         logger.info(f"Retry queue: processed={len(processed)}, remaining={remaining}")
             finally:
-                loop.run_until_complete(self.momentum_scanner.close())
+                loop.run_until_complete(retry_scanner.close())
                 loop.close()
 
         self.retry_thread = threading.Thread(target=retry_loop, daemon=True, name="RetryQueue")
         self.retry_thread.start()
         logger.info("Retry queue thread started")
 
-    async def _run_retries(self, tokens):
+    async def _run_retries(self, tokens, scanner=None):
         """Process a batch of retry tokens. Returns list of mints to remove from queue."""
         mints = []
         coros = []
         for mint, entry in tokens:
             entry["retries"] += 1
             mints.append(mint)
-            coros.append(self._safe_retry(mint, entry))
+            coros.append(self._safe_retry(mint, entry, scanner=scanner))
         results = await asyncio.gather(*coros, return_exceptions=True)
         processed = []
         for mint, result in zip(mints, results):
@@ -402,9 +405,9 @@ class CombinedRunner:
                 processed.append(mint)
         return processed
 
-    async def _safe_retry(self, mint: str, entry: dict) -> bool:
+    async def _safe_retry(self, mint: str, entry: dict, scanner=None) -> bool:
         try:
-            return await self._process_retry_token(mint, entry)
+            return await self._process_retry_token(mint, entry, scanner=scanner)
         except Exception as e:
             logger.warning(f"Retry error for {entry['symbol']}: {e}")
             return False
