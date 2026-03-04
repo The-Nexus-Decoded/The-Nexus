@@ -458,7 +458,7 @@ class CombinedRunner:
 def main():
     parser = argparse.ArgumentParser(description="Combined Pump.fun Scanner + TradeOrchestrator")
     parser.add_argument('--dry-run', action='store_true', help='Run without real transactions')
-    parser.add_argument('--rpc', default='https://api.devnet.solana.com', help='Solana RPC URL')
+    parser.add_argument('--rpc', default=os.getenv('SOLANA_RPC_URL', 'https://api.devnet.solana.com'), help='Solana RPC URL')
     parser.add_argument('--health-port', type=int, default=8002, help='Health check port')
     parser.add_argument('--meteora', action='store_true', help='Enable Meteora DLMM scanner')
     args = parser.parse_args()
