@@ -1,0 +1,83 @@
+# =============================================================================
+# OpenClaw Homelab — Shared Variables (all servers)
+# =============================================================================
+
+# Dedicated non-root user for OpenClaw on all servers
+server_user: openclaw
+
+# SSH configuration
+ssh_port: 22
+
+# System timezone
+timezone: "America/Chicago"
+
+# LAN CIDR for SSH fallback access
+lan_cidr: "192.168.1.0/24"
+
+# UFW — ports allowed on all servers
+# 41641/udp is the Tailscale control plane port (WireGuard)
+ufw_allowed_ports:
+  - port: 41641
+    proto: udp
+    comment: "Tailscale WireGuard control plane"
+
+# Extra UFW ports (per-server overrides in host_vars)
+ufw_extra_ports: []
+
+# Extra SSH authorized keys to deploy (public key strings)
+# Use this to add your Windows workstation key for SSH access after hardening
+authorized_keys_extra: []
+
+# Fail2ban defaults (applied to all servers)
+fail2ban_maxretry: 5
+fail2ban_bantime: 3600  # 1 hour in seconds
+
+# --- Kernel parameters (kernel-params role) ---
+# GPU stability and PCIe reliability params applied via GRUB
+kernel_params:
+  - amd_iommu=on
+  - iommu=pt
+  - pcie_aspm=off
+  - pci=realloc
+
+# --- Networking (networking role) ---
+network_static_fallback_ip: ""  # Set per-server in host_vars if needed
+network_gateway: "192.168.1.1"
+network_dns:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
+# --- NVIDIA GPU (nvidia role) ---
+nvidia_install: true
+nvidia_install_cuda_toolkit: false
+nvidia_persistence_mode: true
+nvidia_blacklist_from_autoupgrade: true
+
+# --- Data drive (data-drive role) ---
+data_mount_point: /data
+data_filesystem: ext4
+
+# --- Ollama local LLM (ollama role) ---
+ollama_install: true
+ollama_model: "qwen2.5-coder:7b-instruct-q4_K_M"
+ollama_port: 11434
+ollama_host: "0.0.0.0:11434"
+ollama_num_ctx: 4096
+
+# --- Discord notification config (openclaw + notifications roles) ---
+discord_guild_id: "1475082873777426494"
+discord_guild_slug: "olaclaw-homelab"
+discord_require_mention: true
+discord_history_limit: 20
+discord_text_chunk_limit: 2000
+
+# Discord channel IDs per server role:
+#   crypto: 1475082964156157972
+#   jarvis: 1475082997027049584
+#   coding: 1475083038810443878
+# Set per-server in host_vars (defaults to coding for dev)
+discord_channel_id: "1475083038810443878"
+
+# --- Critical alerts via ntfy.sh ---
+ntfy_server: "https://ntfy.sh"
+ntfy_topic: "olaclaw-alerts"

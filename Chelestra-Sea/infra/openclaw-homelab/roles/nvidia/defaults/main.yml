@@ -1,0 +1,16 @@
+---
+# =============================================================================
+# Role: nvidia — Default variables
+# =============================================================================
+
+# Set to false to skip NVIDIA driver installation (e.g., servers without GPUs)
+nvidia_install: true
+
+# Keep GPUs initialized to prevent cold-start latency
+nvidia_persistence_mode: true
+
+# Prevent unattended-upgrades from upgrading NVIDIA packages (kernel/driver mismatch risk)
+nvidia_blacklist_from_autoupgrade: true
+
+# Install CUDA toolkit (set false if only driver is needed)
+nvidia_install_cuda_toolkit: false

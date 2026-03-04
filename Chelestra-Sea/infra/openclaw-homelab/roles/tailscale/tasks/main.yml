@@ -1,0 +1,87 @@
+---
+# =============================================================================
+# Role: tailscale — Install and connect Tailscale VPN on all servers
+# MUST run before 'base' role (UFW needs tailscale0 interface to exist first)
+# =============================================================================
+
+- name: Install Tailscale via official install script
+  ansible.builtin.shell: |
+    curl -fsSL https://tailscale.com/install.sh | sh
+  args:
+    creates: /usr/bin/tailscale  # Skip if tailscale binary already exists (idempotent)
+
+- name: Enable and start tailscaled service
+  ansible.builtin.systemd:
+    name: tailscaled
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# --- Wait for tailscaled socket before running any CLI commands ---
+
+- name: Wait for tailscaled socket to be ready
+  ansible.builtin.wait_for:
+    path: /var/run/tailscale/tailscaled.sock
+    timeout: 30
+
+# --- Check actual backend state ---
+
+- name: Check Tailscale backend state
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_json
+  ignore_errors: true
+  changed_when: false
+
+- name: Parse Tailscale backend state
+  ansible.builtin.set_fact:
+    tailscale_backend_state: "{{ (tailscale_status_json.stdout | from_json).BackendState | default('NoState') }}"
+  when: tailscale_status_json.rc == 0
+
+- name: Connect Tailscale with auth key
+  ansible.builtin.command: >
+    tailscale up
+    --authkey={{ tailscale_auth_key }}
+    --hostname={{ inventory_hostname }}
+    --accept-dns=false
+  register: tailscale_up_result
+  changed_when: "'already running' not in tailscale_up_result.stderr | default('')"
+  no_log: true  # Don't log the auth key to console
+  when: >
+    tailscale_status_json.rc != 0 or
+    tailscale_backend_state | default('NoState') != 'Running'
+
+- name: Wait for Tailscale IP to be assigned
+  ansible.builtin.shell: tailscale ip -4
+  register: tailscale_ip
+  retries: 12
+  delay: 5
+  until: tailscale_ip.rc == 0 and tailscale_ip.stdout | length > 0
+  changed_when: false
+
+# --- Persistence verification ---
+
+- name: Assert tailscaled is enabled at boot
+  ansible.builtin.command: systemctl is-enabled tailscaled
+  register: tailscaled_enabled
+  changed_when: false
+  failed_when: tailscaled_enabled.stdout != 'enabled'
+
+- name: Assert Tailscale state file exists (reboot persistence)
+  ansible.builtin.stat:
+    path: /var/lib/tailscale/tailscaled.state
+  register: tailscale_state_file
+
+- name: Fail if Tailscale state file missing
+  ansible.builtin.assert:
+    that:
+      - tailscale_state_file.stat.exists
+    fail_msg: >
+      Tailscale state file not found at /var/lib/tailscale/tailscaled.state.
+      Tailscale may not survive a reboot. Investigate tailscaled configuration.
+    success_msg: "Tailscale state file present — will persist across reboots."
+
+- name: Display assigned Tailscale IP
+  ansible.builtin.debug:
+    msg: >
+      Server {{ inventory_hostname }} Tailscale IP: {{ tailscale_ip.stdout }}
+      NOTE: Update inventory/hosts.yml to use this Tailscale IP for all future runs.

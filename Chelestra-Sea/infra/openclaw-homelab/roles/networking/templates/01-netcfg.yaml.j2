@@ -1,0 +1,26 @@
+# /etc/netplan/01-netcfg.yaml
+# Managed by Ansible — do not edit manually
+# Uses MAC-based matching to survive PCIe bus renumbering (NIC name changes)
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    primary:
+      match:
+        macaddress: "{{ primary_nic_mac }}"
+      set-name: eth0
+      dhcp4: true
+{% if network_static_fallback_ip | length > 0 %}
+      addresses:
+        - "{{ network_static_fallback_ip }}"
+      routes:
+        - to: default
+          via: "{{ network_gateway }}"
+          metric: 200
+{% endif %}
+      nameservers:
+        addresses:
+{% for dns in network_dns %}
+          - "{{ dns }}"
+{% endfor %}

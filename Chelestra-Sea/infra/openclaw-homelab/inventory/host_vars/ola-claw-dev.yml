@@ -1,0 +1,9 @@
+# =============================================================================
+# Host Variables: ola-claw-dev (Development server)
+# =============================================================================
+
+# Server role determines which SOUL.md gets deployed
+server_role: coding
+
+# Static fallback IP for Netplan (DHCP primary, this is the fallback)
+network_static_fallback_ip: "192.168.1.211/24"

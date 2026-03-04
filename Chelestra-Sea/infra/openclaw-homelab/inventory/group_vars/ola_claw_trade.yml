@@ -1,0 +1,15 @@
+# =============================================================================
+# OpenClaw Homelab — ola-claw-trade server vars
+# Role: Crypto trading (Meteora LP, DefiTuna leveraged LP, Hyperliquid
+#   spot/perps). Executes trades, manages risk, monitors positions.
+# LAN IP: 192.168.1.X (update to Tailscale IP after install)
+# =============================================================================
+
+server_role: crypto
+server_hostname: ola-claw-trade
+
+# Per-server UFW port overrides (added to ufw_allowed_ports from all.yml)
+ufw_extra_ports: []
+
+# Discord channel ID for this server's OpenClaw agent
+discord_channel_id: "1475082964156157972"

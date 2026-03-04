@@ -1,0 +1,16 @@
+---
+# =============================================================================
+# Role: networking — Default variables
+# =============================================================================
+
+# Static fallback IP (set per server in host_vars or group_vars)
+# Leave empty to use DHCP only
+network_static_fallback_ip: ""
+
+# Default gateway
+network_gateway: "192.168.1.1"
+
+# DNS servers
+network_dns:
+  - "1.1.1.1"
+  - "8.8.8.8"

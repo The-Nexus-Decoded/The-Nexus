@@ -1,0 +1,10 @@
+---
+# =============================================================================
+# Role: data-drive — Default variables
+# =============================================================================
+
+# Mount point for the NVMe data drive
+data_mount_point: /data
+
+# Filesystem type for the data drive
+data_filesystem: ext4

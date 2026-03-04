@@ -20,6 +20,7 @@ The-Nexus-Decoded/
 
 ```
 Arianus-Sky/
+├── intelligence-feeds/     # Python package: Discord broadcaster, stats tracker
 ├── src/
 │   └── app/                # Next.js app router
 │       ├── api/            # API routes
