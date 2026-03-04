@@ -130,6 +130,28 @@ class DiscordBroadcaster:
         embed = self._build_scanner_rejected_embed(token_data, skipped)
         self._send(embed)
 
+    def broadcast_queued_for_retry(self, token_data: Dict[str, Any]):
+        """Send an embed when a token is queued for retry (no DEX data yet)."""
+        if not self.webhook_url:
+            return
+        if not self._consume_scanner_token():
+            return
+        mint = token_data.get("mint", "")
+        symbol = token_data.get("symbol", "UNKNOWN")
+        queue_size = token_data.get("queue_size", "?")
+        desc = f"**{symbol}**\n`{mint}`"
+        embed = {
+            "title": "Queued — Waiting for DEX Data",
+            "description": desc,
+            "color": 0x5865F2,  # blurple
+            "timestamp": datetime.utcnow().isoformat(),
+            "fields": [
+                {"name": "Status", "value": "No pairs on DEX Screener yet — will retry every 30s for up to 15 min", "inline": False},
+                {"name": "Queue Size", "value": str(queue_size), "inline": True},
+            ]
+        }
+        self._send(embed)
+
     def broadcast_balance_alert(self, balance_sol: float, alert_type: str, threshold: float):
         """Send balance alert (low or high)."""
         if not self.webhook_url:
