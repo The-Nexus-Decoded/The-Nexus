@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=openclaw
-WorkingDirectory=/data/repos/Pryan-Fire
+WorkingDirectory=/data/repos/The-Nexus/Pryan-Fire
 ExecStart=/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/start-patryn-trader.sh
 Restart=always
 RestartSec=10

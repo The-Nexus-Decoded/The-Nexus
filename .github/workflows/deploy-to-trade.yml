@@ -19,5 +19,5 @@ jobs:
           username: ${{ secrets.TRADE_SERVER_USER }}
           key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
           script: |
-            cd /data/repos/Pryan-Fire/hughs-forge
+            cd /data/repos/The-Nexus/Pryan-Fire/hughs-forge
             ./deploy.sh

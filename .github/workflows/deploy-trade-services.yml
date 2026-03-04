@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'hughs-forge/**'
+      - 'Pryan-Fire/hughs-forge/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Deploy services to trade server
         run: |
-          rsync -avz --delete hughs-forge/services/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/opt/the-nexus/hughs-forge/
+          rsync -avz --delete Pryan-Fire/hughs-forge/services/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/opt/the-nexus/hughs-forge/
 
       - name: Restart Trade Orchestrator service
         run: |

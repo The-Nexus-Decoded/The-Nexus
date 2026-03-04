@@ -7,9 +7,15 @@ on:
 jobs:
   phantom-trial:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Pryan-Fire
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          # Ensure full history for tests
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

@@ -26,12 +26,13 @@ jobs:
         key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
         script: |
           # 1. Prepare Target Environment
-          mkdir -p /data/repos/Pryan-Fire
-          mkdir -p /data/repos/Pryan-Fire/data
+          mkdir -p /data/repos/The-Nexus
+          mkdir -p /data/repos/The-Nexus/Pryan-Fire/data
           
           # 2. Sync Codebase
-          cd /data/repos/Pryan-Fire
-          git pull origin main || (git clone https://github.com/The-Nexus-Decoded/Pryan-Fire.git . && git checkout main)
+          cd /data/repos/The-Nexus
+          git pull origin main || git clone https://github.com/The-Nexus-Decoded/The-Nexus.git .
+          cd Pryan-Fire
           
           # 3. Process Management
           if [ ! -d "venv" ]; then

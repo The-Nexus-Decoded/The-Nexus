@@ -3,7 +3,7 @@ name: Deploy Trade Executor to Trade Server
 on:
   push:
     paths:
-      - 'hughs-forge/services/trade-executor/**'
+      - 'Pryan-Fire/hughs-forge/services/trade-executor/**'
     branches:
       - main
 
@@ -25,7 +25,7 @@ jobs:
     - name: Deploy Trade Executor via rsync
       run: |
         rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-          hughs-forge/services/trade-executor/ \
+          Pryan-Fire/hughs-forge/services/trade-executor/ \
           ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/data/openclaw/hughs-forge/services/trade-executor/
 
     - name: Restart Gateway
