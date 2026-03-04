@@ -4,7 +4,7 @@
 # Use: ./switch_realm.sh [testnet|mainnet]
 
 REALM=$1
-WORKSHOP_ROOT="/data/openclaw/workspace/Pryan-Fire/hughs-forge"
+WORKSHOP_ROOT="/data/repos/The-Nexus/Pryan-Fire/hughs-forge"
 TARGET_CONFIG="$WORKSHOP_ROOT/services/trade-orchestrator/src/orchestrator_config.json"
 
 if [ "$REALM" == "testnet" ]; then

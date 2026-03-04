@@ -12,26 +12,12 @@ class JupiterService:
     # Try public failover first, fallback to standard
     ENDPOINTS = [
         "https://api.jup.ag/swap/v1",
+        "https://quote-api.jup.ag/v6",
     ]
 
     def __init__(self, timeout: int = 10, api_key: Optional[str] = None):
         self.timeout = aiohttp.ClientTimeout(total=timeout)
         self.api_key = api_key or os.getenv("JUPITER_API_KEY")
-        # Fallback: read from /data/openclaw/keys/jupiter.env if not set
-        if not self.api_key:
-            env_path = "/data/openclaw/keys/jupiter.env"
-            try:
-                if os.path.exists(env_path):
-                    with open(env_path) as f:
-                        for line in f:
-                            line = line.strip()
-                            if line and not line.startswith("#"):
-                                k, v = line.split("=", 1)
-                                if k == "JUPITER_API_KEY":
-                                    self.api_key = v
-                                    break
-            except Exception:
-                pass
 
     async def get_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50) -> Optional[Dict[str, Any]]:
         """
@@ -53,6 +39,7 @@ class JupiterService:
         }
         
         if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
             headers["x-api-key"] = self.api_key
 
         async with aiohttp.ClientSession(timeout=self.timeout) as session:
@@ -89,6 +76,7 @@ class JupiterService:
             "User-Agent": "OpenClaw-Haplo/1.0"
         }
         if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
             headers["x-api-key"] = self.api_key
 
         async with aiohttp.ClientSession(timeout=self.timeout) as session:

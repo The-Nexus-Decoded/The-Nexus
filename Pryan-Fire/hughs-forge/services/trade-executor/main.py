@@ -457,6 +457,7 @@ class TradeExecutor:
         })
         
         return report, is_profitable
+        })
         
         logger.info(f"    ESTIMATED_REBALANCE_COST: {report['ESTIMATED_REBALANCE_COST']}")
         logger.info(f"    EXPECTED_FEE_CAPTURE: {report['EXPECTED_FEE_CAPTURE']}")
@@ -660,7 +661,7 @@ class TradeExecutor:
         """Fetches a quote from Jupiter v6 API for a given swap."""
         logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter v6")
         try:
-            url = "https://api.jup.ag/swap/v1/quote"
+            url = "https://quote-api.jup.ag/v6/quote"
             params = {
                 "inputMint": input_mint,
                 "outputMint": output_mint,

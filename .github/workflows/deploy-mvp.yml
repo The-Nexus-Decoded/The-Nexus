@@ -1,0 +1,49 @@
+name: Deploy Patryn Trader MVP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, tailscale]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Deploy Core Engine via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.TRADE_SERVER_HOST }}
+        username: ${{ secrets.TRADE_SERVER_USER }}
+        key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+        script: |
+          # 1. Prepare Target Environment
+          mkdir -p /data/repos/The-Nexus
+          mkdir -p /data/repos/The-Nexus/Pryan-Fire/data
+          
+          # 2. Sync Codebase
+          cd /data/repos/The-Nexus
+          git pull origin main || git clone https://github.com/The-Nexus-Decoded/The-Nexus.git .
+          cd Pryan-Fire
+          
+          # 3. Process Management
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          
+          # Install dependencies
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install aiohttp websockets base58 solders solana
+          
+          # Restart via systemd (if configured)
+          systemctl --user restart patryn-trader || echo "Systemd service not found"
+          
+          echo "MVP Deployment Complete."
