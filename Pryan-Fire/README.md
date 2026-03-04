@@ -8,7 +8,7 @@ Core business logic, agent services, and operative tools for the OpenClaw homela
 ## The Nexus Decoded
 
 <pre>
-The-Nexus
+The-Nexus-Decoded/
 ├── <b>Pryan-Fire/</b>          — Business logic, agent services, tools           ◀ you are here
 ├── Chelestra-Sea/       — Networking, communication, integration
 ├── Arianus-Sky/         — UIs, dashboards, visualizations

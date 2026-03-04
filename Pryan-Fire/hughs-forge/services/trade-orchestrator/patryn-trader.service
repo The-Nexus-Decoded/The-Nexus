@@ -4,12 +4,13 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/data/openclaw/workspace/Pryan-Fire
+User=openclaw
+WorkingDirectory=/data/repos/Pryan-Fire
 ExecStart=/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/start-patryn-trader.sh
 Restart=always
 RestartSec=10
-StandardOutput=journal
-StandardError=journal
+StandardOutput=append:/var/log/patryn-trader.log
+StandardError=append:/var/log/patryn-trader.log
 
 [Install]
 WantedBy=default.target
