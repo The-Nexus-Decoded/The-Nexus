@@ -47,7 +47,7 @@ _callback_drop_count = 0
 class CombinedRunner:
     # Retry queue config
     RETRY_INTERVAL_S = int(os.getenv("SNIPER_RETRY_INTERVAL_S", "30"))
-    RETRY_MAX_AGE_S = int(os.getenv("SNIPER_RETRY_MAX_AGE_S", "900"))  # 15 minutes
+    RETRY_MAX_AGE_S = int(os.getenv("SNIPER_RETRY_MAX_AGE_S", "86400"))  # 24 hours
     SNIPE_AMOUNT_SOL = float(os.getenv("SNIPE_AMOUNT_SOL", "0.01"))
 
     def __init__(self, dry_run: bool = False, rpc_url: str = None, health_port: int = 8002, meteora: bool = False):
@@ -198,24 +198,22 @@ class CombinedRunner:
 
             metrics = intel.get("metrics", {})
             if not metrics:
-                return False  # still no data, keep in queue
+                return False  # still no data, keep watching
 
-            # Data appeared — remove from queue and process
+            # Has DEX data — check momentum
             if not intel.get("passed"):
                 reasons_list = intel.get("reasons", [])
                 reason = " | ".join(reasons_list) if reasons_list else intel.get("reason", "Unknown")
-                logger.info(f"Token {symbol} rejected on retry: {reason}")
-                self.broadcaster.broadcast_scanner_rejected({
-                    "mint": mint,
-                    "symbol": symbol,
-                    "reason": reason,
-                    "reasons": reasons_list,
-                    "metrics": metrics,
-                })
-                return True  # processed, remove from queue
+                # Log first time we see data (transition from no-data to weak)
+                if not entry.get("had_data"):
+                    entry["had_data"] = True
+                    age_min = int((time.time() - entry["queued_at"]) / 60)
+                    logger.info(f"Token {symbol} has data at {age_min}m but weak — still watching: {reason}")
+                return False  # keep watching — momentum may develop
 
+            # Passed — buy it
             await self._process_validated_token(mint, symbol, intel)
-            return True  # processed, remove from queue
+            return True  # remove from queue
 
         # Store callback ref for retry loop
         self._process_retry_token = process_retry_token
@@ -338,6 +336,18 @@ class CombinedRunner:
                 "queue_size": qsize,
             })
 
+    @staticmethod
+    def _get_retry_interval(age_seconds: float) -> int:
+        """Adaptive check interval: frequent when young, backs off as token ages."""
+        if age_seconds < 300:      # 0–5 min:   every 30s
+            return 30
+        elif age_seconds < 1800:   # 5–30 min:  every 2 min
+            return 120
+        elif age_seconds < 21600:  # 30 min–6h: every 10 min
+            return 600
+        else:                      # 6h–24h:    every 30 min
+            return 1800
+
     def _start_retry_loop(self):
         """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
         def retry_loop():
@@ -348,10 +358,10 @@ class CombinedRunner:
             retry_scanner = MomentumScanner()
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            logger.info(f"Retry queue active (interval={self.RETRY_INTERVAL_S}s, max_age={self.RETRY_MAX_AGE_S}s)")
+            logger.info(f"Retry queue active (max_age={self.RETRY_MAX_AGE_S}s, adaptive intervals)")
             try:
                 while True:
-                    time.sleep(self.RETRY_INTERVAL_S)
+                    time.sleep(10)  # base poll — per-token intervals decide actual check rate
                     with self._retry_lock:
                         if not self._retry_queue:
                             continue
@@ -365,15 +375,19 @@ class CombinedRunner:
                         age = now - entry["queued_at"]
                         if age > self.RETRY_MAX_AGE_S:
                             expired.append(mint)
-                        else:
+                            continue
+                        interval = self._get_retry_interval(age)
+                        last_checked = entry.get("last_checked_at", 0)
+                        if (now - last_checked) >= interval:
+                            entry["last_checked_at"] = now
                             to_process.append((mint, entry))
 
-                    # Drop expired tokens
+                    # Drop expired tokens (24h, never developed momentum)
                     if expired:
                         with self._retry_lock:
                             for mint in expired:
                                 self._retry_queue.pop(mint, None)
-                        logger.info(f"Retry queue: dropped {len(expired)} expired tokens")
+                        logger.info(f"Retry queue: dropped {len(expired)} expired (24h) tokens")
 
                     if not to_process:
                         continue
