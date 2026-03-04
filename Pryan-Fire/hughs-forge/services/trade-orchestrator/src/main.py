@@ -1,0 +1,68 @@
+import argparse
+import sys
+import threading
+import time
+import os
+import json
+
+# Add risk-manager src to Python path for direct imports (temporary unblock)
+RISK_MANAGER_SRC = "/data/openclaw/workspace/Pryan-Fire/hughs-forge/risk-manager/src"
+if RISK_MANAGER_SRC not in sys.path:
+    sys.path.insert(0, RISK_MANAGER_SRC)
+
+from core.orchestrator import TradeOrchestrator
+from core.event_loop import EventLoop
+from telemetry.logger import setup_telemetry_logger
+from health_server import start_orchestrator_health_server
+from feed.discord_broadcaster import DiscordBroadcaster
+from feed.stats_tracker import StatsTracker
+
+def main(dry_run=False):
+    parser = argparse.ArgumentParser(description="Hugh's Trade Orchestrator Engine")
+    parser.add_argument('--db', type=str, default="trades.db", help="Path to SQLite persistence database")
+    parser.add_argument('--log', type=str, default="logs/orchestrator.jsonl", help="Path to JSONL telemetry log")
+    parser.add_argument('--health-port', type=int, default=8002, help="Port for the /health endpoint")
+    parser.add_argument('--dry-run', action='store_true', help="Run without loading wallet keys")
+    args = parser.parse_args()
+
+    # Initialize Telemetry
+    logger = setup_telemetry_logger(log_file=args.log)
+    logger.info("Initializing the Trade Orchestrator", extra={"payload": {"db_path": args.db, "version": "0.1.0"}})
+
+    # Start the health server in a daemon thread
+    health_thread = threading.Thread(
+        target=start_orchestrator_health_server, 
+        args=(args.health_port,), 
+        daemon=True, 
+        name="Orchestrator-Health"
+    )
+    health_thread.start()
+
+    # Initialize Assassins Ledger components
+    discord_broadcaster = DiscordBroadcaster()
+    stats_tracker = StatsTracker(db_path=args.db, output_path="feed_stats.json")
+    stats_tracker.start()
+
+    # Scaffold the engine components
+    orchestrator = TradeOrchestrator(db_path=args.db, dry_run=args.dry_run)
+    # Inject broadcaster into orchestrator (or broadcast via event hooks)
+    orchestrator.discord_broadcaster = discord_broadcaster  # type: ignore
+    event_loop = EventLoop(orchestrator)
+
+    # Start the event loop in a daemon thread
+    loop_thread = threading.Thread(target=event_loop.run, daemon=True, name="Orchestrator-Loop")
+    loop_thread.start()
+    
+    logger.info("Trade Orchestrator is running. Waiting for signals (Ctrl+C to exit).")
+
+    try:
+        # Main thread simply sleeps and watches the world burn (or listens to Hugh's signals)
+        while True:
+            time.sleep(30)
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
+        stats_tracker.stop()
+        orchestrator.stop()
+
+if __name__ == "__main__":
+    main()
