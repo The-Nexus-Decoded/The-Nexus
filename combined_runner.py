@@ -333,49 +333,53 @@ class CombinedRunner:
     def _start_retry_loop(self):
         """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
         def retry_loop():
+            # One persistent event loop for the lifetime of this thread.
+            # aiohttp ClientSession is tied to the loop it was created in — recreating
+            # a new loop each batch orphans the cached session and breaks timeouts.
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             logger.info(f"Retry queue active (interval={self.RETRY_INTERVAL_S}s, max_age={self.RETRY_MAX_AGE_S}s)")
-            while True:
-                time.sleep(self.RETRY_INTERVAL_S)
-                with self._retry_lock:
-                    if not self._retry_queue:
-                        continue
-                    snapshot = list(self._retry_queue.items())
-
-                now = time.time()
-                expired = []
-                to_process = []
-
-                for mint, entry in snapshot:
-                    age = now - entry["queued_at"]
-                    if age > self.RETRY_MAX_AGE_S:
-                        expired.append(mint)
-                    else:
-                        to_process.append((mint, entry))
-
-                # Drop expired tokens
-                if expired:
+            try:
+                while True:
+                    time.sleep(self.RETRY_INTERVAL_S)
                     with self._retry_lock:
-                        for mint in expired:
-                            self._retry_queue.pop(mint, None)
-                    logger.info(f"Retry queue: dropped {len(expired)} expired tokens")
+                        if not self._retry_queue:
+                            continue
+                        snapshot = list(self._retry_queue.items())
 
-                if not to_process:
-                    continue
+                    now = time.time()
+                    expired = []
+                    to_process = []
 
-                # Process retries in a fresh async loop
-                loop = asyncio.new_event_loop()
-                try:
+                    for mint, entry in snapshot:
+                        age = now - entry["queued_at"]
+                        if age > self.RETRY_MAX_AGE_S:
+                            expired.append(mint)
+                        else:
+                            to_process.append((mint, entry))
+
+                    # Drop expired tokens
+                    if expired:
+                        with self._retry_lock:
+                            for mint in expired:
+                                self._retry_queue.pop(mint, None)
+                        logger.info(f"Retry queue: dropped {len(expired)} expired tokens")
+
+                    if not to_process:
+                        continue
+
                     processed = loop.run_until_complete(self._run_retries(to_process))
-                finally:
-                    loop.close()
 
-                with self._retry_lock:
-                    for mint in processed:
-                        self._retry_queue.pop(mint, None)
-                    remaining = len(self._retry_queue)
+                    with self._retry_lock:
+                        for mint in processed:
+                            self._retry_queue.pop(mint, None)
+                        remaining = len(self._retry_queue)
 
-                if processed or remaining:
-                    logger.info(f"Retry queue: processed={len(processed)}, remaining={remaining}")
+                    if processed or remaining:
+                        logger.info(f"Retry queue: processed={len(processed)}, remaining={remaining}")
+            finally:
+                loop.run_until_complete(self.momentum_scanner.close())
+                loop.close()
 
         self.retry_thread = threading.Thread(target=retry_loop, daemon=True, name="RetryQueue")
         self.retry_thread.start()
@@ -383,15 +387,15 @@ class CombinedRunner:
 
     async def _run_retries(self, tokens):
         """Process a batch of retry tokens. Returns list of mints to remove from queue."""
-        processed = []
-        tasks = []
-        mints_in_order = []
+        mints = []
+        coros = []
         for mint, entry in tokens:
             entry["retries"] += 1
-            mints_in_order.append(mint)
-            tasks.append(asyncio.ensure_future(self._safe_retry(mint, entry)))
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for mint, result in zip(mints_in_order, results):
+            mints.append(mint)
+            coros.append(self._safe_retry(mint, entry))
+        results = await asyncio.gather(*coros, return_exceptions=True)
+        processed = []
+        for mint, result in zip(mints, results):
             if isinstance(result, Exception):
                 logger.warning(f"Retry task error for {mint[:8]}: {result}")
             elif result:
@@ -399,7 +403,6 @@ class CombinedRunner:
         return processed
 
     async def _safe_retry(self, mint: str, entry: dict) -> bool:
-        """Wrapper that runs retry inside a proper Task context (required by aiohttp)."""
         try:
             return await self._process_retry_token(mint, entry)
         except Exception as e:
