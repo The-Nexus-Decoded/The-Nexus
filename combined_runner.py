@@ -329,7 +329,14 @@ class CombinedRunner:
                 "retries": 0,
             }
             qsize = len(self._retry_queue)
-        logger.info(f"Token {metadata.get('symbol', 'UNKNOWN')} queued for retry (queue={qsize})")
+        symbol = metadata.get("symbol", "UNKNOWN")
+        logger.info(f"Token {symbol} queued for retry (queue={qsize})")
+        if self.broadcaster:
+            self.broadcaster.broadcast_queued_for_retry({
+                "mint": mint,
+                "symbol": symbol,
+                "queue_size": qsize,
+            })
 
     def _start_retry_loop(self):
         """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
