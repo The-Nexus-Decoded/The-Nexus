@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Combined Scanner + Orchestrator for Devnet Testing
+Combined Scanner + Orchestrator for Patryn Trader
 
 Runs both the Pump.fun scanner and TradeOrchestrator in one process.
 Signals from scanner are enqueued directly to orchestrator's event loop.
+Includes Discord feed broadcasting and wallet balance monitoring.
 """
 
 import asyncio
@@ -15,6 +16,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from collections import OrderedDict
 
 # ============ PATH CONFIGURATION ============
 WORKSPACE = "/data/openclaw/workspace/Pryan-Fire"
@@ -38,45 +40,16 @@ logger = logging.getLogger("CombinedRunner")
 # ============ GLOBAL FOR CALLBACK ============
 g_event_loop = None
 g_momentum_scanner = None
-
-# ============ SIGNAL CALLBACK ============
-async def on_token_discovered(mint: str, metadata: dict):
-    """
-    Called by PumpFunSignal when a new token is detected.
-    Validates momentum, then enqueues to orchestrator.
-    """
-    global g_event_loop, g_momentum_scanner
-    symbol = metadata.get('symbol', 'UNKNOWN')
-    logger.info(f"Token discovered: {symbol} ({mint})")
-
-    # 1. Validate momentum via DEX Screener
-    try:
-        intel = await g_momentum_scanner.validate_momentum(mint)
-        if not intel.get("passed"):
-            reason = intel.get("reason", "Unknown")
-            logger.warning(f"Token {symbol} failed momentum check: {reason}")
-            return
-        logger.info(f"Token {symbol} passed momentum validation")
-    except Exception as e:
-        logger.error(f"Momentum validation error for {mint}: {e}")
-        return
-
-    # 2. Enqueue signal to orchestrator
-    signal = {
-        "token_address": mint,
-        "amount": 0.1,  # Fixed 0.1 SOL for dry-run testing
-        "symbol": symbol,
-        "metadata": metadata,
-        "intel": intel
-    }
-    try:
-        g_event_loop.enqueue_signal(signal)
-        logger.info(f"Signal enqueued for {symbol}")
-    except Exception as e:
-        logger.error(f"Failed to enqueue signal: {e}")
+_callback_count = 0
+_callback_drop_count = 0
 
 # ============ RUNNER CLASS ============
 class CombinedRunner:
+    # Retry queue config
+    RETRY_INTERVAL_S = int(os.getenv("SNIPER_RETRY_INTERVAL_S", "30"))
+    RETRY_MAX_AGE_S = int(os.getenv("SNIPER_RETRY_MAX_AGE_S", "900"))  # 15 minutes
+    SNIPE_AMOUNT_SOL = float(os.getenv("SNIPE_AMOUNT_SOL", "0.01"))
+
     def __init__(self, dry_run: bool = False, rpc_url: str = None, health_port: int = 8002, meteora: bool = False):
         self.dry_run = dry_run
         self.rpc_url = rpc_url or "https://api.devnet.solana.com"
@@ -87,10 +60,17 @@ class CombinedRunner:
         self.momentum_scanner = None
         self.pump_scanner = None
         self.meteora_scanner = None
+        self.broadcaster = None
+        self.stats_tracker = None
         self.pump_thread = None
         self.meteora_thread = None
         self.health_thread = None
         self.loop_thread = None
+        self.balance_thread = None
+        self.retry_thread = None
+        # Retry queue: mint -> {symbol, metadata, queued_at, retries}
+        self._retry_queue = OrderedDict()
+        self._retry_lock = threading.Lock()
 
     def start(self):
         global g_event_loop, g_momentum_scanner
@@ -107,13 +87,30 @@ class CombinedRunner:
         from core.event_loop import EventLoop
         from telemetry.logger import setup_telemetry_logger
         from health_server import start_orchestrator_health_server
+        from feed.discord_broadcaster import DiscordBroadcaster
+        from feed.stats_tracker import StatsTracker
 
         # Initialize Telemetry
         logger_telemetry = setup_telemetry_logger(log_file="logs/orchestrator.jsonl")
-        logger_telemetry.info("CombinedRunner starting", extra={"version": "0.1.0"})
+        logger_telemetry.info("CombinedRunner starting", extra={"version": "0.2.0"})
+
+        # Initialize Assassins Ledger components
+        self.broadcaster = DiscordBroadcaster()
+        if self.broadcaster.webhook_url:
+            logger.info("Discord broadcaster initialized (webhook configured)")
+        else:
+            logger.warning("Discord broadcaster has NO webhook URL -- broadcasts will be skipped")
+
+        self.stats_tracker = StatsTracker(db_path="trades.db", output_path="feed_stats.json")
+        self.stats_tracker.start()
+        logger.info("Stats tracker started")
 
         # Initialize Orchestrator
         self.orchestrator = TradeOrchestrator(db_path="trades.db", dry_run=self.dry_run)
+        # Inject broadcaster into orchestrator so it can broadcast trade events
+        self.orchestrator.discord_broadcaster = self.broadcaster
+        logger.info("Broadcaster injected into orchestrator")
+
         self.event_loop = EventLoop(self.orchestrator)
         g_event_loop = self.event_loop
 
@@ -140,40 +137,87 @@ class CombinedRunner:
         from src.signals.dex_screener import MomentumScanner
         from src.signals.pump_fun_stream import PumpFunSignal
         from src.signals.meteora_dlmm_scanner import MeteoraDLMMScanner
+        from src.signals.rugcheck import RugcheckScanner
 
         self.momentum_scanner = MomentumScanner()
         g_momentum_scanner = self.momentum_scanner
+        self.rugcheck_scanner = RugcheckScanner()
+        if self.rugcheck_scanner.enabled:
+            logger.info("Rugcheck scanner enabled (max_score=%d, min_liq=$%s)",
+                        self.rugcheck_scanner.max_score, self.rugcheck_scanner.min_liquidity_usd)
+        else:
+            logger.info("Rugcheck scanner DISABLED (SCAN_RUGCHECK_ENABLED=false)")
 
         logger.info("Scanner components initialized")
 
         # Define Pump.fun token callback
         async def on_token_discovered_local(mint: str, metadata: dict):
             """Callback for Pump.fun scanner: validates momentum then enqueues to orchestrator."""
+            global _callback_count, _callback_drop_count
+            _callback_count += 1
             symbol = metadata.get('symbol', 'UNKNOWN')
-            logger.info(f"Scanner discovered token: {symbol} ({mint})")
+
             try:
                 intel = await self.momentum_scanner.validate_momentum(mint)
-                if not intel.get("passed"):
-                    reason = intel.get("reason", "Unknown")
-                    logger.warning(f"Token {symbol} failed momentum check: {reason}")
-                    return
-                logger.info(f"Token {symbol} passed momentum validation")
             except Exception as e:
-                logger.error(f"Momentum validation error for {mint}: {e}")
+                logger.warning(f"Validation error for {symbol}: {e}")
                 return
 
-            # Enqueue signal to orchestrator
-            amount = 10.0  # Fixed $10 for testing
-            signal = {
-                "token_address": mint,
-                "amount": amount,
-                "trade_id": f"scan-{mint[:8]}"
-            }
+            if not intel.get("passed"):
+                metrics = intel.get("metrics", {})
+
+                # No DEX data yet — queue for retry instead of dropping
+                if not metrics:
+                    self._enqueue_retry(mint, metadata)
+                    return
+
+                reasons_list = intel.get("reasons", [])
+                reason = " | ".join(reasons_list) if reasons_list else intel.get("reason", "Unknown")
+                logger.info(f"Token {symbol} rejected: {reason}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": reason,
+                    "reasons": reasons_list,
+                    "metrics": metrics,
+                })
+                return
+
+            # Token has data AND passed momentum — run full pipeline
+            await self._process_validated_token(mint, symbol, intel)
+
+        async def process_retry_token(mint: str, entry: dict):
+            """Re-check a queued token. Called from retry loop."""
+            symbol = entry["symbol"]
             try:
-                self.event_loop.enqueue_signal(signal)
-                logger.info(f"Signal enqueued for {symbol} (${amount})")
+                intel = await self.momentum_scanner.validate_momentum(mint)
             except Exception as e:
-                logger.error(f"Failed to enqueue signal: {e}")
+                logger.warning(f"Retry validation error for {symbol}: {e}")
+                return False  # keep in queue
+
+            metrics = intel.get("metrics", {})
+            if not metrics:
+                return False  # still no data, keep in queue
+
+            # Data appeared — remove from queue and process
+            if not intel.get("passed"):
+                reasons_list = intel.get("reasons", [])
+                reason = " | ".join(reasons_list) if reasons_list else intel.get("reason", "Unknown")
+                logger.info(f"Token {symbol} rejected on retry: {reason}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": reason,
+                    "reasons": reasons_list,
+                    "metrics": metrics,
+                })
+                return True  # processed, remove from queue
+
+            await self._process_validated_token(mint, symbol, intel)
+            return True  # processed, remove from queue
+
+        # Store callback ref for retry loop
+        self._process_retry_token = process_retry_token
 
         # Scanner start/stop functions
         def start_pump_scanner():
@@ -217,6 +261,13 @@ class CombinedRunner:
         else:
             logger.info("Meteora scanner disabled (use --meteora to enable)")
 
+        # Start retry queue processor
+        self._start_retry_loop()
+
+        # Start balance monitor (only in live mode)
+        if not self.dry_run:
+            self._start_balance_monitor()
+
         # Graceful shutdown
         try:
             logger.info("All components running. Press Ctrl+C to stop.")
@@ -227,11 +278,170 @@ class CombinedRunner:
             stop_pump_scanner()
             if self.enable_meteora:
                 stop_meteora_scanner()
+            self.stats_tracker.stop()
             self.orchestrator.stop()
             logger.info("Shutdown complete")
 
+    async def _process_validated_token(self, mint: str, symbol: str, intel: dict):
+        """Run rugcheck + enqueue buy for a token that passed momentum validation."""
+        # Rugcheck security filter
+        try:
+            dex_liq = intel.get("metrics", {}).get("liquidity", 0)
+            safety = await self.rugcheck_scanner.check_token(mint, dex_liquidity=dex_liq)
+            if not safety["safe"]:
+                logger.info(f"Token {symbol} failed rugcheck: {safety['reason']}")
+                self.broadcaster.broadcast_scanner_rejected({
+                    "mint": mint,
+                    "symbol": symbol,
+                    "reason": f"Rugcheck: {safety['reason']}",
+                    "reasons": [f"Rugcheck: {safety['reason']}"],
+                    "metrics": intel.get("metrics", {}),
+                })
+                return
+            if not safety.get("skipped"):
+                logger.info(f"Token {symbol} passed rugcheck (score={safety['score']}, lp={safety['lp_locked_pct']:.1f}%)")
+        except Exception as e:
+            logger.warning(f"Rugcheck error for {mint}: {e} — allowing trade (fail-open)")
+
+        # Enqueue signal to orchestrator
+        amount = self.SNIPE_AMOUNT_SOL
+        signal = {
+            "token_address": mint,
+            "amount": amount,
+            "trade_id": f"snipe-{mint[:8]}"
+        }
+        try:
+            self.event_loop.enqueue_signal(signal)
+            logger.info(f"Signal enqueued for {symbol} ({amount} SOL)")
+        except Exception as e:
+            logger.error(f"Failed to enqueue signal for {symbol}: {e}")
+
+    def _enqueue_retry(self, mint: str, metadata: dict):
+        """Add a token to the retry queue for periodic re-checking."""
+        with self._retry_lock:
+            if mint in self._retry_queue:
+                return  # already queued
+            self._retry_queue[mint] = {
+                "symbol": metadata.get("symbol", "UNKNOWN"),
+                "metadata": metadata,
+                "queued_at": time.time(),
+                "retries": 0,
+            }
+            qsize = len(self._retry_queue)
+        logger.info(f"Token {metadata.get('symbol', 'UNKNOWN')} queued for retry (queue={qsize})")
+
+    def _start_retry_loop(self):
+        """Background thread that re-checks queued tokens every RETRY_INTERVAL_S seconds."""
+        def retry_loop():
+            logger.info(f"Retry queue active (interval={self.RETRY_INTERVAL_S}s, max_age={self.RETRY_MAX_AGE_S}s)")
+            while True:
+                time.sleep(self.RETRY_INTERVAL_S)
+                with self._retry_lock:
+                    if not self._retry_queue:
+                        continue
+                    snapshot = list(self._retry_queue.items())
+
+                now = time.time()
+                expired = []
+                to_process = []
+
+                for mint, entry in snapshot:
+                    age = now - entry["queued_at"]
+                    if age > self.RETRY_MAX_AGE_S:
+                        expired.append(mint)
+                    else:
+                        to_process.append((mint, entry))
+
+                # Drop expired tokens
+                if expired:
+                    with self._retry_lock:
+                        for mint in expired:
+                            self._retry_queue.pop(mint, None)
+                    logger.info(f"Retry queue: dropped {len(expired)} expired tokens")
+
+                if not to_process:
+                    continue
+
+                # Process retries in a fresh async loop
+                loop = asyncio.new_event_loop()
+                try:
+                    processed = loop.run_until_complete(self._run_retries(to_process))
+                finally:
+                    loop.close()
+
+                with self._retry_lock:
+                    for mint in processed:
+                        self._retry_queue.pop(mint, None)
+                    remaining = len(self._retry_queue)
+
+                if processed or remaining:
+                    logger.info(f"Retry queue: processed={len(processed)}, remaining={remaining}")
+
+        self.retry_thread = threading.Thread(target=retry_loop, daemon=True, name="RetryQueue")
+        self.retry_thread.start()
+        logger.info("Retry queue thread started")
+
+    async def _run_retries(self, tokens):
+        """Process a batch of retry tokens. Returns list of mints to remove from queue."""
+        processed = []
+        for mint, entry in tokens:
+            entry["retries"] += 1
+            try:
+                done = await self._process_retry_token(mint, entry)
+                if done:
+                    processed.append(mint)
+            except Exception as e:
+                logger.warning(f"Retry error for {entry['symbol']}: {e}")
+        return processed
+
+    def _check_balance(self):
+        """Check SOL balance of trading wallet. Returns balance in SOL or None on error."""
+        try:
+            rpc = self.orchestrator.rpc_integrator
+            if not rpc.client or not hasattr(rpc, 'wallet'):
+                return None
+            result = rpc.client.get_balance(rpc.wallet.pubkey())
+            return result.value / 1e9
+        except Exception as e:
+            logger.error(f"Balance check failed: {e}")
+            return None
+
+    def _start_balance_monitor(self):
+        """Start periodic balance monitoring thread."""
+        low_threshold = float(os.getenv("BALANCE_ALERT_LOW_SOL", "0.1"))
+        high_threshold = float(os.getenv("BALANCE_ALERT_HIGH_SOL", "20.0"))
+        check_interval = int(os.getenv("BALANCE_CHECK_INTERVAL_SECONDS", "300"))  # 5 min
+
+        def monitor():
+            last_alert_type = None  # Prevent repeated alerts
+            # Wait for orchestrator to fully initialize
+            time.sleep(30)
+            logger.info(f"Balance monitor active (low={low_threshold} SOL, high={high_threshold} SOL, interval={check_interval}s)")
+
+            while True:
+                sol = self._check_balance()
+                if sol is not None:
+                    logger.info(f"Wallet balance: {sol:.4f} SOL")
+                    if sol < low_threshold and last_alert_type != "low":
+                        self.broadcaster.broadcast_balance_alert(sol, "low", low_threshold)
+                        last_alert_type = "low"
+                        logger.warning(f"LOW BALANCE ALERT: {sol:.4f} SOL")
+                    elif sol > high_threshold and last_alert_type != "high":
+                        self.broadcaster.broadcast_balance_alert(sol, "high", high_threshold)
+                        last_alert_type = "high"
+                        logger.info(f"HIGH BALANCE ALERT: {sol:.4f} SOL")
+                    elif low_threshold <= sol <= high_threshold:
+                        last_alert_type = None  # Reset when back in normal range
+
+                time.sleep(check_interval)
+
+        self.balance_thread = threading.Thread(target=monitor, daemon=True, name="BalanceMonitor")
+        self.balance_thread.start()
+        logger.info("Balance monitor thread started")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Combined Pump.fun Scanner + TradeOrchestrator for Devnet")
+    parser = argparse.ArgumentParser(description="Combined Pump.fun Scanner + TradeOrchestrator")
     parser.add_argument('--dry-run', action='store_true', help='Run without real transactions')
     parser.add_argument('--rpc', default='https://api.devnet.solana.com', help='Solana RPC URL')
     parser.add_argument('--health-port', type=int, default=8002, help='Health check port')
@@ -240,6 +450,7 @@ def main():
 
     runner = CombinedRunner(dry_run=args.dry_run, rpc_url=args.rpc, health_port=args.health_port, meteora=args.meteora)
     runner.start()
+
 
 if __name__ == "__main__":
     main()

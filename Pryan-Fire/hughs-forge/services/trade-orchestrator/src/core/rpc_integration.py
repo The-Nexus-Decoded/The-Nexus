@@ -89,7 +89,6 @@ class RpcIntegrator:
             raw_tx = base64.b64decode(swap_tx_b64)
             self.logger.debug(f"Raw transaction length: {len(raw_tx)}")
 
-            from solders.transaction import VersionedTransaction
             try:
                 tx = VersionedTransaction.from_bytes(raw_tx)
                 self.logger.info("Deserialized as VersionedTransaction")
@@ -231,7 +230,6 @@ class RpcIntegrator:
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto",
             "dynamicComputeUnitLimit": True,
             "restrictIntermediateTokens": True
         }
