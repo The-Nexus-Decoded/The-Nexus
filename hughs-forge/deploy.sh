@@ -19,13 +19,7 @@ if [ ! -d "venv" ]; then
   python3 -m venv venv
 fi
 source venv/bin/activate
-
-# Install dependencies for both services (each has its own requirements.txt)
-echo "--- Installing trade-executor dependencies ---"
-pip install -r services/trade-executor/requirements.txt
-
-echo "--- Installing trade-orchestrator dependencies ---"
-pip install -r services/trade-orchestrator/requirements.txt
+pip install -r requirements.txt
 
 # 4. Run the main application as a smoke test
 # This is expected to fail if the .env file is not present, but it confirms setup.
