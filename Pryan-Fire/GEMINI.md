@@ -6,6 +6,35 @@
 
 ---
 
+---
+
+## 0. Handoff Loop — How to Switch Between Gemini and Claude
+
+This project goes back and forth between Gemini CLI (when Claude credits run out) and Claude Code (when credits are restored). Here is how each handoff works.
+
+### Handing back to Claude
+
+When your Gemini credits run out or the owner wants to switch back to Claude Code, do this before ending your session:
+
+1. Commit any updates you made to `.gemini/memory/` files so Claude gets your changes
+2. Update the relevant Chelestra-Sea issue with what you did, what's pending, and any decisions made
+3. Tell the owner: "Resume from Chelestra-Sea #91 and PR #204" (update issue/PR numbers if they have changed)
+
+Claude will reconstruct context from the issue and PR, re-read the memory files from the repo, and continue from the pending work queue.
+
+### Handing back to Gemini
+
+When Claude's context runs out or the owner switches to Gemini, Claude will:
+
+1. Update this GEMINI.md with the latest session summary at the top
+2. Update `.gemini/memory/` files with any new discoveries
+3. Commit and push everything to the repo
+4. Tell the owner the PR number and issue number to reference
+
+### Memory file sync rule
+
+**Whichever AI is active owns the memory files.** If you learn something new — a bug, a bad idea, a config gotcha — write it to the relevant `.gemini/memory/` file and commit it. That is how the other AI picks it up next session. Do not leave discoveries only in chat.
+
 ## 1. What Gemini CLI Has Instead of Claude MCPs
 
 Claude Code had these MCPs — you will need SSH instead:
