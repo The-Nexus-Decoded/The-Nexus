@@ -29,6 +29,18 @@ DOCUMENT_EXTENSIONS = {'.pdf', '.docx', '.xlsx', '.doc', '.xls'}
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif'}
 # Binary extensions - metadata only
 BINARY_EXTENSIONS = {'.dll', '.exe', '.assetbundle', '.rom', '.mp3', '.mp4', '.wav', '.zip', '.tar', '.gz'}
+# Skip these - not documents (code, game assets, etc)
+SKIP_EXTENSIONS = {
+    '.js', '.ts', '.mjs', '.cjs', '.jsx', '.tsx',
+    '.py', '.pyw', '.pyc',
+    '.map', '.d.ts',
+    '.lua', '.cs', '.java', '.go', '.rs', '.rb', '.php',
+    '.dds', '.cts', '.asset', '.prefab', '.mat', '.anim',
+    '.mp3', '.wav', '.ogg', '.flac',  # Audio - skip
+    '.mp4', '.mkv', '.avi', '.mov', '.webm',  # Video - skip
+    '.css', '.scss', '.sass', '.less',
+    '.sql', '.sh', '.bash', '.zsh',
+}
 
 
 def get_file_hash(filepath: str) -> str:
@@ -90,10 +102,14 @@ def extract_text_from_image(filepath: str) -> str:
         return f"[OCR ERROR: {e}]"
 
 
-def process_file(filepath: str, relative_path: str) -> dict:
-    """Process a single file and return document record."""
+def process_file(filepath: str, relative_path: str) -> dict | None:
+    """Process a single file and return document record. Returns None if skipped."""
     stat = os.stat(filepath)
     ext = Path(filepath).suffix.lower()
+    
+    # Skip non-document files
+    if ext in SKIP_EXTENSIONS:
+        return None
     
     record = {
         "path": relative_path,
@@ -180,11 +196,13 @@ def main():
             
             try:
                 record = process_file(filepath, relative_path)
+                if record is None:
+                    continue  # Skip non-document files
                 outfile.write(json.dumps(record) + '\n')
                 processed += 1
                 
                 if processed % 100 == 0:
-                    print(f"Processed {processed} files...")
+                    print(f"Processed {processed} documents...")
                     
             except Exception as e:
                 errors += 1
