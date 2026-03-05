@@ -34,8 +34,9 @@
 - #coding: 1475083038810443878 (Haplo + Zifnab)
 - #trading: 1475082964156157972 (Hugh)
 - #the-Nexus: 1475082874234343621 (all bots, requireMention: true)
-- Bot IDs: Zifnab=1475077203044601987, Haplo=1475655386026479678, Hugh=1475665881726980269, Alfred=1478214532324393010
-- Alfred is a TEAM MEMBER (not just a proxy). Role: 1478217446300323917
+- #alfred: 1478214532324393010 (Alfred's channel - USE THIS for Alfred)
+- Bot IDs: Zifnab=1475077203044601987, Haplo=1475655386026479678, Hugh=1475665881726980269
+- Alfred: 1478214532324393010 (team member), role=1478217446300323917
 
 ## Discord MCP Behavior
 - MCP uses Alfred's bot token — sends AS Alfred (team member, not proxy)
