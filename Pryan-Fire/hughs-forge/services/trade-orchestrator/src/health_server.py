@@ -4,12 +4,13 @@ import logging
 import os
 import asyncio
 import requests
+import json
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.2.0"
+SERVICE_VERSION = "1.3.0"
 
 app = FastAPI()
 
@@ -17,16 +18,61 @@ app = FastAPI()
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 DLMM_PROGRAM_ID = "DLMMx4jLqB2HqEi5djXq55Up5EMhYWDDfGqZq3iSpUW"
 
-# Scanner configuration (mirrors meteora_dlmm_scanner.py)
-SCANNER_CONFIG = {
-    "min_liquidity": float(os.getenv("METEORA_MIN_LIQUIDITY", "1000")),
-    "min_volume_24h_usd": float(os.getenv("METEORA_MIN_VOLUME", "1000")),
-    "min_apy": float(os.getenv("METEORA_MIN_APY", "10.0")),
-    "fee_tier_cutoff_percent": float(os.getenv("METEORA_FEE_TIER_CUTOFF", "0.5")),
-    "poll_interval_seconds": int(os.getenv("METEORA_POLL_INTERVAL", "30")),
-    "max_pools": int(os.getenv("METEORA_MAX_POOLS", "500")),
-    "devnet": os.getenv("METEORA_DEVNET", "false").lower() == "true",
-}
+
+def load_scanner_config() -> Dict[str, Any]:
+    """Load scanner config from JSON file, with env var override."""
+    config = {
+        "enabled": True,
+        "min_apy": 20.0,
+        "min_liquidity": 5000,
+        "min_volume_24h": 1000,
+        "fee_tier_cutoff": 0.5,
+        "poll_interval_seconds": 30,
+        "max_pools": 500,
+        "devnet": False,
+    }
+    
+    default_paths = [
+        "/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+        "/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+        "Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+        "/opt/openclaw/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+        "./hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+    ]
+    
+    for path in default_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    json_config = json.load(f)
+                    if "meteora_scanner" in json_config:
+                        config.update(json_config["meteora_scanner"])
+                        logger.info(f"Loaded scanner config from {path}")
+            except Exception as e:
+                logger.warning(f"Failed to load config from {path}: {e}")
+            break
+    
+    # Override with env vars
+    if os.getenv("METEORA_MIN_APY"):
+        config["min_apy"] = float(os.getenv("METEORA_MIN_APY"))
+    if os.getenv("METEORA_MIN_LIQUIDITY"):
+        config["min_liquidity"] = float(os.getenv("METEORA_MIN_LIQUIDITY"))
+    if os.getenv("METEORA_MIN_VOLUME"):
+        config["min_volume_24h"] = float(os.getenv("METEORA_MIN_VOLUME"))
+    if os.getenv("METEORA_FEE_TIER_CUTOFF"):
+        config["fee_tier_cutoff"] = float(os.getenv("METEORA_FEE_TIER_CUTOFF"))
+    if os.getenv("METEORA_POLL_INTERVAL"):
+        config["poll_interval_seconds"] = int(os.getenv("METEORA_POLL_INTERVAL"))
+    if os.getenv("METEORA_MAX_POOLS"):
+        config["max_pools"] = int(os.getenv("METEORA_MAX_POOLS"))
+    if os.getenv("METEORA_DEVNET"):
+        config["devnet"] = os.getenv("METEORA_DEVNET").lower() == "true"
+    
+    return config
+
+
+# Load scanner configuration
+SCANNER_CONFIG = load_scanner_config()
 
 # Scanner state (updated by scanner when running)
 _scanner_state = {

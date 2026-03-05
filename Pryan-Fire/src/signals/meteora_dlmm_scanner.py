@@ -1,14 +1,20 @@
 """
 Meteora DLMM Scanner — polls devnet/mainnet pools and feeds trade signals to orchestrator.
 
-Accepts configuration via environment:
+Configuration priority:
+1. Environment variables (override)
+2. JSON config file (orchestrator_config.json)
+3. Hardcoded defaults
+
+Environment:
 - METEORA_POLL_INTERVAL=30 (seconds)
 - METEORA_MIN_LIQUIDITY=1000 (pool tokens - raw, not USD)
 - METEORA_MIN_VOLUME=1000 (24h USD)
-- METEORA_MIN_APY=10.0 (percent)
+- METEORA_MIN_APY=20.0 (percent) - default changed from 10.0
 - METEORA_FEE_TIER_CUTOFF=0.5 (percent)
 - METEORA_VOLUME_SPIKE_MULTIPLIER=2.0
 - METEORA_VOLUME_SPIKE_WINDOW=300 (seconds)
+- METEORA_CONFIG_PATH=/path/to/orchestrator_config.json
 """
 import os
 import asyncio
@@ -22,6 +28,69 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
+
+def load_scanner_config() -> Dict[str, Any]:
+    """
+    Load scanner config from JSON file, with env var override.
+    Priority: env vars > JSON config > defaults
+    """
+    # Default config
+    config = {
+        "enabled": True,
+        "min_apy": 20.0,
+        "min_liquidity": 5000,
+        "min_volume_24h": 1000,
+        "fee_tier_cutoff": 0.5,
+        "poll_interval_seconds": 30,
+        "max_pools": 500,
+        "devnet": False,
+    }
+    
+    # Try to load from JSON config
+    config_path = os.getenv("METEORA_CONFIG_PATH")
+    if not config_path:
+        # Default paths to check (relative to common deployment locations)
+        default_paths = [
+            "/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+            "/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+            "Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+            "/opt/openclaw/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+            "./hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
+        ]
+        for path in default_paths:
+            if os.path.exists(path):
+                config_path = path
+                break
+    
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                json_config = json.load(f)
+                if "meteora_scanner" in json_config:
+                    config.update(json_config["meteora_scanner"])
+                    logger.info(f"Loaded scanner config from {config_path}")
+        except Exception as e:
+            logger.warning(f"Failed to load config from {config_path}: {e}")
+    
+    # Override with env vars if set
+    if os.getenv("METEORA_MIN_APY"):
+        config["min_apy"] = float(os.getenv("METEORA_MIN_APY"))
+    if os.getenv("METEORA_MIN_LIQUIDITY"):
+        config["min_liquidity"] = float(os.getenv("METEORA_MIN_LIQUIDITY"))
+    if os.getenv("METEORA_MIN_VOLUME"):
+        config["min_volume_24h"] = float(os.getenv("METEORA_MIN_VOLUME"))
+    if os.getenv("METEORA_FEE_TIER_CUTOFF"):
+        config["fee_tier_cutoff"] = float(os.getenv("METEORA_FEE_TIER_CUTOFF"))
+    if os.getenv("METEORA_POLL_INTERVAL"):
+        config["poll_interval_seconds"] = int(os.getenv("METEORA_POLL_INTERVAL"))
+    if os.getenv("METEORA_MAX_POOLS"):
+        config["max_pools"] = int(os.getenv("METEORA_MAX_POOLS"))
+    if os.getenv("METEORA_DEVNET"):
+        config["devnet"] = os.getenv("METEORA_DEVNET").lower() == "true"
+    
+    return config
+
+
 class MeteoraDLMMScanner:
     """
     The Meteora Watcher — detects DLMM pool opportunities on Solana.
@@ -31,18 +100,27 @@ class MeteoraDLMMScanner:
         """
         Args:
             orchestrator: TradeOrchestrator instance to receive signals (can be None for standalone)
-            devnet: if True, query devnet pools; else mainnet
+            devnet: if True, query devnet pools; else mainnet (can be overridden by config)
         """
+        # Load config
+        config = load_scanner_config()
+        
+        # Allow devnet param to override config
+        if devnet:
+            config["devnet"] = True
+        
         self.orchestrator = orchestrator
-        self.devnet = devnet
+        self.devnet = config["devnet"]
         self.running = False
-        self.poll_interval = int(os.getenv("METEORA_POLL_INTERVAL", "30"))
-        self.min_liquidity = float(os.getenv("METEORA_MIN_LIQUIDITY", "1000"))
-        self.min_volume_24h_usd = float(os.getenv("METEORA_MIN_VOLUME", "1000"))
-        self.min_apy = float(os.getenv("METEORA_MIN_APY", "10.0"))
-        self.fee_tier_cutoff_percent = float(os.getenv("METEORA_FEE_TIER_CUTOFF", "0.5"))
+        self.poll_interval = config["poll_interval_seconds"]
+        self.min_liquidity = config["min_liquidity"]
+        self.min_volume_24h_usd = config["min_volume_24h"]
+        self.min_apy = config["min_apy"]
+        self.fee_tier_cutoff_percent = config["fee_tier_cutoff"]
         self.volume_spike_multiplier = float(os.getenv("METEORA_VOLUME_SPIKE_MULTIPLIER", "2.0"))
         self.volume_spike_window_seconds = int(os.getenv("METEORA_VOLUME_SPIKE_WINDOW", "300"))
+        
+        logger.info(f"Scanner config: min_apy={self.min_apy}%, min_liquidity={self.min_liquidity}, min_volume={self.min_volume_24h_usd}")
 
         # Meteora public REST API endpoint (updated from GraphQL)
         # Old (broken): https://api.meteora.ag/v1/graphql

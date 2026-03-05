@@ -5,5 +5,15 @@
   "bin_step_padding": 2,
   "slippage_bps": 50,
   "discord_alerts_enabled": true,
-  "fail_closed_timeout_seconds": 300
+  "fail_closed_timeout_seconds": 300,
+  "meteora_scanner": {
+    "enabled": true,
+    "min_apy": 20.0,
+    "min_liquidity": 5000,
+    "min_volume_24h": 1000,
+    "fee_tier_cutoff": 0.5,
+    "poll_interval_seconds": 30,
+    "max_pools": 500,
+    "devnet": false
+  }
 }
