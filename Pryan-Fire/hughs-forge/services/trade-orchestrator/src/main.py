@@ -53,6 +53,9 @@ def main(dry_run=False):
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         orchestrator.stop()
+        event_loop.stop()
+        loop_thread.join(timeout=5)
+        logger.info("Shutdown complete.")
 
 if __name__ == "__main__":
     main()
