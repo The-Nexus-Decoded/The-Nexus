@@ -24,7 +24,7 @@ def load_scanner_config() -> Dict[str, Any]:
     config = {
         "enabled": True,
         "min_apy": 20.0,
-        "min_liquidity": 1000,
+        "min_liquidity": 5000,
         "min_volume_24h": 1000,
         "fee_tier_cutoff": 0.5,
         "poll_interval_seconds": 30,
