@@ -78,6 +78,8 @@ class RpcIntegrator:
                 tx,
                 opts=TxOpts(skip_confirmation=False, preflight_commitment="processed")
             )
+            sig = result.value
+            self.logger.info(f"Transaction signature: https://solscan.io/tx/{sig}")
             self.logger.info(f"Transaction sent: {result}")
             return True
 
