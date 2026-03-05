@@ -168,9 +168,8 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
     Query params:
     - limit: max pools to return (default 100)
     - min_apy: filter by minimum APY (default from config)
-    - min_liquidity: filter by minimum liquidity (default from config)
+    - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
-    import aiohttp
     
     min_apy = min_apy or SCANNER_CONFIG["min_apy"]
     min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
@@ -186,24 +185,56 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
         
-        # Apply filters
+        # Apply filters - calculate USD liquidity
         filtered = []
-        for pool in pools[:limit]:
+        for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-                pool_liquidity = float(pool.get("liquidity", 0))
                 
-                if pool_apy >= min_apy and pool_liquidity >= min_liquidity:
+                # Calculate USD liquidity from reserves
+                reserve_x = float(pool.get("reserve_x_amount", 0))
+                reserve_y = float(pool.get("reserve_y_amount", 0))
+                mint_x = pool.get("mint_x", "")
+                mint_y = pool.get("mint_y", "")
+                
+                # Estimate USD value
+                # USDC mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+                USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+                
+                usd_liquidity = 0.0
+                
+                if mint_y == USDC_MINT:
+                    # mint_y is USDC - reserve_y is in USDC (6 decimals)
+                    usd_liquidity = reserve_y / 1_000_000
+                    # Add estimate for mint_x using current_price
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_x * current_price) / 1e9
+                elif mint_x == USDC_MINT:
+                    # mint_x is USDC
+                    usd_liquidity = reserve_x / 1_000_000
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_y * current_price) / 1e9
+                else:
+                    # No USDC pair - use cumulative fee volume as proxy
+                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
+                
+                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     filtered.append({
                         "address": pool.get("address"),
-                        "mint_x": pool.get("mint_x"),
-                        "mint_y": pool.get("mint_y"),
-                        "liquidity": pool_liquidity,
+                        "name": pool.get("name"),
+                        "mint_x": mint_x,
+                        "mint_y": mint_y,
+                        "liquidity_usd": round(usd_liquidity, 2),
                         "apy": pool_apy,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
-            except (ValueTypeError, TypeError):
+                    
+                    if len(filtered) >= limit:
+                        break
+            except (ValueTypeError, TypeError, ZeroDivisionError):
                 continue
         
         return {
@@ -211,7 +242,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             "count": len(filtered),
             "filters": {
                 "min_apy": min_apy,
-                "min_liquidity": min_liquidity
+                "min_liquidity_usd": min_liquidity
             },
             "total_available": len(pools)
         }
