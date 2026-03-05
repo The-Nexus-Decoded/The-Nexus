@@ -1,0 +1,13 @@
+[Unit]
+Description=Kill Feed Discord Poster - Posts new Meteora DLMM pools to Discord
+
+[Service]
+Type=oneshot
+WorkingDirectory=/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/scripts
+ExecStart=/usr/bin/python3 /data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/scripts/killfeed_discord_poster.py
+Environment="PYTHONPATH=/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/scripts"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
