@@ -3,9 +3,9 @@ Meteora DLMM Scanner — polls devnet/mainnet pools and feeds trade signals to o
 
 Accepts configuration via environment:
 - METEORA_POLL_INTERVAL=30 (seconds)
-- METEORA_MIN_LIQUIDITY=5000 (USD)
-- METEORA_MIN_VOLUME=5000 (24h USD)
-- METEORA_MIN_APY=50.0 (percent)
+- METEORA_MIN_LIQUIDITY=1000 (pool tokens - raw, not USD)
+- METEORA_MIN_VOLUME=1000 (24h USD)
+- METEORA_MIN_APY=10.0 (percent)
 - METEORA_FEE_TIER_CUTOFF=0.5 (percent)
 - METEORA_VOLUME_SPIKE_MULTIPLIER=2.0
 - METEORA_VOLUME_SPIKE_WINDOW=300 (seconds)
@@ -37,9 +37,9 @@ class MeteoraDLMMScanner:
         self.devnet = devnet
         self.running = False
         self.poll_interval = int(os.getenv("METEORA_POLL_INTERVAL", "30"))
-        self.min_liquidity_usd = float(os.getenv("METEORA_MIN_LIQUIDITY", "5000"))
-        self.min_volume_24h_usd = float(os.getenv("METEORA_MIN_VOLUME", "5000"))
-        self.min_apy = float(os.getenv("METEORA_MIN_APY", "50.0"))
+        self.min_liquidity = float(os.getenv("METEORA_MIN_LIQUIDITY", "1000"))
+        self.min_volume_24h_usd = float(os.getenv("METEORA_MIN_VOLUME", "1000"))
+        self.min_apy = float(os.getenv("METEORA_MIN_APY", "10.0"))
         self.fee_tier_cutoff_percent = float(os.getenv("METEORA_FEE_TIER_CUTOFF", "0.5"))
         self.volume_spike_multiplier = float(os.getenv("METEORA_VOLUME_SPIKE_MULTIPLIER", "2.0"))
         self.volume_spike_window_seconds = int(os.getenv("METEORA_VOLUME_SPIKE_WINDOW", "300"))
@@ -172,10 +172,9 @@ class MeteoraDLMMScanner:
             logger.warning(f"Failed to parse pool metrics: {e}")
             return False
 
-        # Use fee_tvl_ratio as a proxy for liquidity if available (fees_24h / liquidity)
-        # For now, use raw liquidity threshold (liquidity is in pool tokens)
-        # A better approach would be to calculate USD value from reserves
-        if liquidity < 100:  # Very low liquidity filter
+        # Use raw liquidity (pool tokens) with configurable threshold
+        # Note: This is NOT USD value - just pool token count
+        if liquidity < self.min_liquidity:
             return False
         if volume < self.min_volume_24h_usd:
             return False
@@ -300,7 +299,7 @@ class MeteoraDLMMScanner:
         """Main loop: poll continuously with configured interval."""
         self.running = True
         logger.info(f"Meteora DLMM scanner started (devnet={self.devnet}, interval={self.poll_interval}s)")
-        logger.info(f"Filters: min_liquidity=${self.min_liquidity_usd}, min_volume_24h=${self.min_volume_24h_usd}, min_apy={self.min_apy}%, fee_tier<={self.fee_tier_cutoff_percent}%")
+        logger.info(f"Filters: min_liquidity={self.min_liquidity} tokens, min_volume_24h=${self.min_volume_24h_usd}, min_apy={self.min_apy}%, fee_tier<={self.fee_tier_cutoff_percent}%")
         
         while self.running:
             try:
