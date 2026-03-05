@@ -222,13 +222,15 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
                         "mint_x": mint_x,
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
-                        "apy": pool_apy,
+                        "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
@@ -313,13 +315,15 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
                         "mint_x": mint_x,
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
-                        "apy": round(pool_apy, 2),
+                        "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
                         "reserve_x": int(reserve_x),
