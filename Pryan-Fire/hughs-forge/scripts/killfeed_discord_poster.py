@@ -35,8 +35,8 @@ def load_seen_pools() -> Set[str]:
     """Load previously seen pool addresses from state file with locking."""
     if os.path.exists(STATE_FILE):
         try:
-            with open(STATE_FILE, 'r+') as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            with open(STATE_FILE, 'r') as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     data = json.load(f)
                     return set(data.get('seen_pools', []))
@@ -76,7 +76,6 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Fetch attempt {attempt + 1}/{retries} failed: {e}")
             if attempt < retries - 1:
-                import time
                 time.sleep(2 ** attempt)  # Exponential backoff
     
     logger.error(f"Failed to fetch killfeed after {retries} attempts")
@@ -90,14 +89,18 @@ def get_pool_url(address: str) -> str:
 
 def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     """Format pool data for Discord embed - DIFFERENT from raw API."""
-    # Calculate additional metrics not in raw API
-    apy = pool.get('apy', 0)
-    liquidity = pool.get('liquidity_usd', 0)
-    volume = pool.get('volume_24h', 0)
+    # Calculate additional metrics not in raw API - handle NaN/None safely
+    try:
+        apy = float(pool.get('apy', 0)) if pool.get('apy') not in (None, 'N/A', '') else 0
+        liquidity = float(pool.get('liquidity_usd', 0)) if pool.get('liquidity_usd') not in (None, 'N/A', '') else 0
+        volume = float(pool.get('volume_24h', 0)) if pool.get('volume_24h') not in (None, 'N/A', '') else 0
+    except (ValueError, TypeError):
+        apy = liquidity = volume = 0
+    
     fee = pool.get('fee', '0')
     
     # Format values
-    apy_str = f"{apy:,.1f}%" if apy else "N/A"
+    apy_str = f"{apy:,.1f}%" if apy and apy > 0 else "N/A"
     liquidity_str = f"${liquidity:,.0f}" if liquidity else "$0"
     volume_str = f"${volume:,.0f}" if volume else "$0"
     
