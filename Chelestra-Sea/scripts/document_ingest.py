@@ -93,9 +93,13 @@ def extract_text_from_image(filepath: str) -> str:
     try:
         result = subprocess.run(
             ['tesseract', filepath, 'stdout'],
-            capture_output=True, text=True, timeout=120
+            capture_output=True, text=True, timeout=30  # 30s timeout
         )
-        return result.stdout if result.returncode == 0 else ""
+        if result.returncode != 0:
+            return f"[OCR FAILED: {result.stderr[:100]}]"
+        return result.stdout[:50000] if result.stdout else ""
+    except subprocess.TimeoutExpired:
+        return "[OCR TIMEOUT - image too complex]"
     except FileNotFoundError:
         return "[OCR NOT INSTALLED: tesseract]"
     except Exception as e:
@@ -148,10 +152,10 @@ def process_file(filepath: str, relative_path: str) -> dict | None:
         record['content'] = "[Excel not supported - metadata only]"
         record['content_type'] = 'excel'
     
-    # Images - OCR
+    # Images - OCR (skip for now - too slow, process separately)
     elif ext in IMAGE_EXTENSIONS:
-        record['content'] = extract_text_from_image(filepath)[:50000]
-        record['content_type'] = 'image_ocr'
+        record['content'] = "[Image - OCR disabled for performance]"
+        record['content_type'] = 'image_pending'
     
     # Binary - metadata only
     else:
