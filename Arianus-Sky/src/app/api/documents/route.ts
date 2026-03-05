@@ -1,58 +1,67 @@
-import { promises as fs } from 'fs';
+import sqlite3 from 'sqlite3';
 
-export async function GET(request: Request) {
+const dbPath = '/data/openclaw/document-db/documents.db';
+
+export async function GET(request: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q')?.toLowerCase() || '';
     const type = searchParams.get('type') || '';
     const limit = parseInt(searchParams.get('limit') || '100');
     
-    const docFilePath = '/data/openclaw/document-db/ingested.jsonl';
-    const fileContent = await fs.readFile(docFilePath, 'utf-8');
+    const db = new sqlite3.Database(dbPath);
     
-    const documents = fileContent.split('\n')
-      .filter(line => line.trim())
-      .map(line => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      })
-      .filter(doc => doc !== null);
-    
-    // Filter by search query and type
-    let filtered = documents;
+    // Build query
+    let sql = "SELECT id, filename, filepath, category, parsed_text, file_type, file_size, created_at FROM documents WHERE 1=1";
+    const params: (string | number)[] = [];
     
     if (type) {
-      filtered = filtered.filter(doc => doc.content_type === type);
+      sql += " AND category = ?";
+      params.push(type);
     }
     
     if (query) {
-      filtered = filtered.filter(doc => 
-        doc.filename?.toLowerCase().includes(query) ||
-        doc.path?.toLowerCase().includes(query) ||
-        doc.content?.toLowerCase().includes(query)
-      );
+      sql += " AND (filename LIKE ? OR filepath LIKE ? OR parsed_text LIKE ?)";
+      const q = `%${query}%`;
+      params.push(q, q, q);
     }
     
-    // Limit results
-    const results = filtered.slice(0, limit);
+    sql += " LIMIT ?";
+    params.push(limit);
     
-    // Get unique content types for filters
-    const contentTypes = [...new Set(documents.map(d => d.content_type))];
-    
-    return new Response(JSON.stringify({ 
-      documents: results,
-      total: filtered.length,
-      contentTypes 
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    return new Promise<Response>((resolve) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) {
+          db.close();
+          resolve(new Response(JSON.stringify({ error: err.message }), { status: 500 }));
+          return;
+        }
+        
+        // Get category counts
+        db.all("SELECT category, COUNT(*) as count FROM documents GROUP BY category", (err2, counts) => {
+          db.close();
+          if (err2) {
+            resolve(new Response(JSON.stringify({ error: err2.message }), { status: 500 }));
+            return;
+          }
+          
+          const contentTypes = (counts as {category: string}[]).map(c => c.category);
+          const total = (counts as {count: number}[]).reduce((acc, c) => acc + c.count, 0);
+          
+          resolve(new Response(JSON.stringify({ 
+            documents: rows,
+            total,
+            contentTypes 
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }));
+        });
+      });
     });
   } catch (error) {
-    console.error('Error reading documents:', error);
-    return new Response(JSON.stringify({ error: 'Failed to read documents' }), {
+    console.error('Error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to query database' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
