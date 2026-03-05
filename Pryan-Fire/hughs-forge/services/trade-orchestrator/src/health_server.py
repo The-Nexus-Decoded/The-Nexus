@@ -185,33 +185,48 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
         
-        # Apply filters - calculate USD liquidity from raw tokens
+        # Apply filters - calculate USD liquidity
         filtered = []
         for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
                 
                 # Calculate USD liquidity from reserves
-                # reserve_x and reserve_y are raw token amounts
-                # current_price is the price of tokenY in terms of tokenX
                 reserve_x = float(pool.get("reserve_x_amount", 0))
                 reserve_y = float(pool.get("reserve_y_amount", 0))
-                current_price = float(pool.get("current_price", 0))
+                mint_x = pool.get("mint_x", "")
+                mint_y = pool.get("mint_y", "")
                 
-                # USD value: reserve_x * price_of_x_in_usd + reserve_y * price_of_y_in_usd
-                # For SOL pools, we need to estimate USD value
-                # Using current_price which is typically Y/X (e.g., USDC/SOL)
-                # So USD ≈ reserve_y (USDC) + reserve_x * current_price (USDC)
-                usd_liquidity = reserve_y + (reserve_x * current_price)
+                # Estimate USD value
+                # USDC mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+                USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+                
+                usd_liquidity = 0.0
+                
+                if mint_y == USDC_MINT:
+                    # mint_y is USDC - reserve_y is in USDC (6 decimals)
+                    usd_liquidity = reserve_y / 1_000_000
+                    # Add estimate for mint_x using current_price
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_x * current_price) / 1e9
+                elif mint_x == USDC_MINT:
+                    # mint_x is USDC
+                    usd_liquidity = reserve_x / 1_000_000
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_y * current_price) / 1e9
+                else:
+                    # No USDC pair - use cumulative fee volume as proxy
+                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
-                        "mint_x": pool.get("mint_x"),
-                        "mint_y": pool.get("mint_y"),
+                        "mint_x": mint_x,
+                        "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
-                        "liquidity_raw": pool.get("liquidity"),
                         "apy": pool_apy,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
