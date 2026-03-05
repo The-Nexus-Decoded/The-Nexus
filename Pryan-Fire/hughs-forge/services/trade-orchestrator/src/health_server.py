@@ -168,9 +168,8 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
     Query params:
     - limit: max pools to return (default 100)
     - min_apy: filter by minimum APY (default from config)
-    - min_liquidity: filter by minimum liquidity (default from config)
+    - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
-    import aiohttp
     
     min_apy = min_apy or SCANNER_CONFIG["min_apy"]
     min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
@@ -186,24 +185,41 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
         
-        # Apply filters
+        # Apply filters - calculate USD liquidity from raw tokens
         filtered = []
-        for pool in pools[:limit]:
+        for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-                pool_liquidity = float(pool.get("liquidity", 0))
                 
-                if pool_apy >= min_apy and pool_liquidity >= min_liquidity:
+                # Calculate USD liquidity from reserves
+                # reserve_x and reserve_y are raw token amounts
+                # current_price is the price of tokenY in terms of tokenX
+                reserve_x = float(pool.get("reserve_x_amount", 0))
+                reserve_y = float(pool.get("reserve_y_amount", 0))
+                current_price = float(pool.get("current_price", 0))
+                
+                # USD value: reserve_x * price_of_x_in_usd + reserve_y * price_of_y_in_usd
+                # For SOL pools, we need to estimate USD value
+                # Using current_price which is typically Y/X (e.g., USDC/SOL)
+                # So USD ≈ reserve_y (USDC) + reserve_x * current_price (USDC)
+                usd_liquidity = reserve_y + (reserve_x * current_price)
+                
+                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     filtered.append({
                         "address": pool.get("address"),
+                        "name": pool.get("name"),
                         "mint_x": pool.get("mint_x"),
                         "mint_y": pool.get("mint_y"),
-                        "liquidity": pool_liquidity,
+                        "liquidity_usd": round(usd_liquidity, 2),
+                        "liquidity_raw": pool.get("liquidity"),
                         "apy": pool_apy,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
-            except (ValueTypeError, TypeError):
+                    
+                    if len(filtered) >= limit:
+                        break
+            except (ValueTypeError, TypeError, ZeroDivisionError):
                 continue
         
         return {
@@ -211,7 +227,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             "count": len(filtered),
             "filters": {
                 "min_apy": min_apy,
-                "min_liquidity": min_liquidity
+                "min_liquidity_usd": min_liquidity
             },
             "total_available": len(pools)
         }
