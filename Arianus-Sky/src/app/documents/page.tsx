@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 interface Document {
   path: string;
@@ -19,12 +19,38 @@ export default function DocumentsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [viewMode, setViewModeState] = useState<'table' | 'cards'>('cards');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Default to cards on mobile, table on desktop
+      const stored = localStorage.getItem('viewMode');
+      if (!stored) {
+        setViewModeState(mobile ? 'cards' : 'table');
+      } else {
+        setViewModeState(stored as 'table' | 'cards');
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const setViewMode = (mode: 'table' | 'cards') => {
+    localStorage.setItem('viewMode', mode);
+    setViewModeState(mode);
+  };
 
   useEffect(() => {
     fetchDocuments();
-  }, [search, typeFilter]);
+  }, [search, typeFilter, page]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -32,7 +58,8 @@ export default function DocumentsPage() {
       const params = new URLSearchParams();
       if (search) params.set('q', search);
       if (typeFilter) params.set('type', typeFilter);
-      params.set('limit', '100');
+      params.set('limit', String(pageSize));
+      params.set('offset', String(page * pageSize));
       
       const res = await fetch(`/api/documents?${params}`);
       const data = await res.json();
@@ -61,6 +88,18 @@ export default function DocumentsPage() {
       'image_pending': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     };
     return colors[type] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+  };
+
+  const getCategoryLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'pdf': 'PDF',
+      'docx': 'Word',
+      'text': 'Text',
+      'excel': 'Excel',
+      'binary_metadata': 'Code & Assets',
+      'image_pending': 'Images',
+    };
+    return labels[type] || type;
   };
 
   return (
@@ -95,27 +134,53 @@ export default function DocumentsPage() {
             type="text"
             placeholder="Search documents..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             className="flex-1 min-w-64 bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500"
           />
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }}
             className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-100 focus:outline-none focus:border-purple-500"
           >
             <option value="">All Types</option>
             {contentTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
+              <option key={type} value={type}>{getCategoryLabel(type)}</option>
             ))}
           </select>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center mb-4 text-sm">
+          <div className="text-slate-400">
+            Showing {page * pageSize + 1}-{Math.min((page + 1) * pageSize, total)} of {total.toLocaleString()}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1 rounded bg-slate-800 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <span className="px-3 py-1 text-slate-400">
+              Page {page + 1} of {Math.ceil(total / pageSize)}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={(page + 1) * pageSize >= total}
+              className="px-3 py-1 rounded bg-slate-800 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          </div>
         </div>
 
         {/* Results */}
         {loading ? (
           <div className="text-center py-12 text-slate-500">Loading documents...</div>
         ) : viewMode === 'table' ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-            <table className="w-full text-left">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto">
+            <table className="w-full text-left min-w-[600px]">
               <thead>
                 <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase">
                   <th className="p-4 font-semibold">Filename</th>
@@ -131,6 +196,7 @@ export default function DocumentsPage() {
                     key={i} 
                     className="hover:bg-slate-800/30 transition-colors cursor-pointer"
                     onClick={() => setSelectedDoc(doc)}
+                    onTouchEnd={() => setSelectedDoc(doc)}
                   >
                     <td className="p-4">
                       <div className="font-medium text-slate-200">{doc.filename}</div>
@@ -138,7 +204,7 @@ export default function DocumentsPage() {
                     </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs border ${getTypeColor(doc.content_type)}`}>
-                        {doc.content_type}
+                        {getCategoryLabel(doc.content_type)}
                       </span>
                     </td>
                     <td className="p-4 text-slate-400">{formatSize(doc.size_bytes)}</td>
@@ -156,11 +222,12 @@ export default function DocumentsPage() {
                 key={i} 
                 className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-purple-500/50 transition-colors cursor-pointer"
                 onClick={() => setSelectedDoc(doc)}
+                onTouchEnd={() => setSelectedDoc(doc)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium text-slate-200 truncate flex-1">{doc.filename}</h3>
                   <span className={`px-2 py-0.5 rounded text-xs border ${getTypeColor(doc.content_type)}`}>
-                    {doc.content_type}
+                    {getCategoryLabel(doc.content_type)}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mb-2">{doc.path}</p>
