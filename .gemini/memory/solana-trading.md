@@ -1,5 +1,12 @@
 # Solana Trading Notes
 
+## Key Rotation (2026-03-05)
+- Exposed key `7660549c-d001-4a1b-b319-335952359738` deleted from GitHub issue #211
+- New key deployed to both:
+  - Haplo (dev): `/data/openclaw/keys/jupiter_api.key`
+  - Hugh (trade): `/data/openclaw/keys/jupiter_api.key`
+- Exposed key was test key on dev only
+
 ## Helius API
 - Free tier key: in vault/secrets.yml (DO NOT store in memory)
 - Free tier: 10 RPS, 1M credits/month
