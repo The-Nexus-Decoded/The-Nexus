@@ -185,9 +185,13 @@ def main():
         logger.warning("No pools fetched, exiting")
         return
     
+    # Validate and filter pools - require address and name
+    valid_pools = [p for p in pools if p.get('address') and p.get('name')]
+    logger.info(f"Validated {len(valid_pools)} pools with required fields")
+    
     # Find NEW pools (not in seen set)
-    current_addresses = {pool['address'] for pool in pools}
-    new_pools = [pool for pool in pools if pool['address'] not in seen_pools]
+    current_addresses = {pool['address'] for pool in valid_pools}
+    new_pools = [pool for pool in valid_pools if pool['address'] not in seen_pools]
     
     logger.info(f"Found {len(new_pools)} NEW pools")
     
