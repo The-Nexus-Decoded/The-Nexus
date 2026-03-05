@@ -8,6 +8,8 @@ import requests
 import json
 import os
 import logging
+import fcntl
+import time
 from datetime import datetime
 from typing import Set, Dict, Any, List
 
@@ -21,46 +23,64 @@ logger = logging.getLogger(__name__)
 # Default to Hugh's trade server (ola-claw-trade)
 KILLFEED_URL = os.getenv("KILLFEED_URL", "http://100.104.166.53:8002/killfeed")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_KILLFEED_WEBHOOK")
-STATE_FILE = "/data/openclaw/workspace/.killfeed_state.json"
+STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.json")
 MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "20"))
 MIN_LIQUIDITY = float(os.getenv("KILLFEED_MIN_LIQUIDITY", "5000"))
 
+# Ensure state directory exists
+os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+
 
 def load_seen_pools() -> Set[str]:
-    """Load previously seen pool addresses from state file."""
+    """Load previously seen pool addresses from state file with locking."""
     if os.path.exists(STATE_FILE):
         try:
-            with open(STATE_FILE, 'r') as f:
-                data = json.load(f)
-                return set(data.get('seen_pools', []))
+            with open(STATE_FILE, 'r+') as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+                try:
+                    data = json.load(f)
+                    return set(data.get('seen_pools', []))
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except Exception as e:
             logger.warning(f"Failed to load state: {e}")
     return set()
 
 
 def save_seen_pools(seen: Set[str]):
-    """Save seen pool addresses to state file."""
+    """Save seen pool addresses to state file with locking."""
     try:
         with open(STATE_FILE, 'w') as f:
-            json.dump({'seen_pools': list(seen)}, f)
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                json.dump({'seen_pools': list(seen)}, f)
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
     except Exception as e:
         logger.error(f"Failed to save state: {e}")
 
 
-def fetch_killfeed() -> List[Dict[str, Any]]:
-    """Fetch pools from killfeed endpoint."""
-    try:
-        params = {
-            'min_apy': MIN_APY,
-            'min_liquidity': MIN_LIQUIDITY
-        }
-        response = requests.get(KILLFEED_URL, params=params, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-        return data.get('killfeed', [])
-    except Exception as e:
-        logger.error(f"Failed to fetch killfeed: {e}")
-        return []
+def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
+    """Fetch pools from killfeed endpoint with retry logic."""
+    params = {
+        'min_apy': MIN_APY,
+        'min_liquidity': MIN_LIQUIDITY
+    }
+    
+    for attempt in range(retries):
+        try:
+            response = requests.get(KILLFEED_URL, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get('killfeed', [])
+        except Exception as e:
+            logger.warning(f"Fetch attempt {attempt + 1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                import time
+                time.sleep(2 ** attempt)  # Exponential backoff
+    
+    logger.error(f"Failed to fetch killfeed after {retries} attempts")
+    return []
 
 
 def get_pool_url(address: str) -> str:
@@ -86,7 +106,6 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     mint_y = pool.get('mint_y', '')[:8] + '...' if len(pool.get('mint_y', '')) > 8 else pool.get('mint_y', '')
     
     return [
-        {"name": "🔗 Pool", "value": f"[View on Meteora]({get_pool_url(pool['address'])})", "inline": True},
         {"name": "💧 Liquidity", "value": liquidity_str, "inline": True},
         {"name": "📈 APY", "value": apy_str, "inline": True},
         {"name": "📊 24h Volume", "value": volume_str, "inline": True},
