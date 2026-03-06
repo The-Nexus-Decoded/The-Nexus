@@ -6,6 +6,7 @@ import os
 import asyncio
 import requests
 import json
+import math
 import struct
 from typing import Optional, List, Dict, Any
 
@@ -202,8 +203,9 @@ def _parse_position(raw: Dict[str, Any]) -> Dict[str, Any]:
     data = base64.b64decode(raw["account"]["data"][0])
     lb_pair = _bytes_to_base58(data[8:40])
     # Bin range from position binary data (DLMM V2 PositionV2 struct)
-    lower_bin_id = struct.unpack_from("<i", data, 72)[0]
-    upper_bin_id = struct.unpack_from("<i", data, 76)[0]
+    # Offsets 7912/7916 confirmed via on-chain struct scan (POSITION_MIN_SIZE=8112, bin_data array ends at 8112)
+    lower_bin_id = struct.unpack_from("<i", data, 7912)[0] if len(data) > 7916 else 0
+    upper_bin_id = struct.unpack_from("<i", data, 7916)[0] if len(data) > 7920 else 0
     return {"position": pubkey, "lb_pair": lb_pair, "lower_bin_id": lower_bin_id, "upper_bin_id": upper_bin_id}
 
 
@@ -222,30 +224,61 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Meteora API error for {pair_addr}: {e}")
 
+    # Fetch per-position data (fee_apy_24h, total_fee_usd_claimed)
+    position_cache: Dict[str, Dict[str, Any]] = {}
+    for p in parsed:
+        try:
+            resp = requests.get(
+                f"https://dlmm-api.meteora.ag/position/{p['position']}", timeout=10
+            )
+            if resp.status_code == 200:
+                position_cache[p["position"]] = resp.json()
+        except Exception as e:
+            logger.warning(f"Meteora position API error for {p['position']}: {e}")
+
     enriched = []
     for p in parsed:
         pool = pool_cache.get(p["lb_pair"], {})
-        active_bin_id = int(pool.get("active_id", 0))
+        pos_data = position_cache.get(p["position"], {})
+
+        # Calculate active_bin_id from current_price and bin_step
+        # Formula: bin_id = log(price) / log(1 + bin_step/10000)
+        current_price = float(pool.get("current_price", 0))
+        bin_step = int(pool.get("bin_step", 0))
+        if current_price > 0 and bin_step > 0:
+            try:
+                active_bin_id = int(math.log(current_price) / math.log(1 + bin_step / 10000))
+            except (ValueError, ZeroDivisionError):
+                active_bin_id = 0
+        else:
+            active_bin_id = 0
+
         lower_bin = p.get("lower_bin_id", 0)
         upper_bin = p.get("upper_bin_id", 0)
+
+        # Per-position APY from Meteora position endpoint
+        fee_apy_24h = float(pos_data.get("fee_apy_24h", 0))
+        fees_claimed_usd = float(pos_data.get("total_fee_usd_claimed", 0))
+
         enriched.append({
             "position": p["position"],
             "lb_pair": p["lb_pair"],
             "pool_name": pool.get("name", "Unknown"),
-            "apy": round(float(pool.get("apy", 0)), 2),
+            "apy": round(fee_apy_24h, 2),          # per-position 24h APY
+            "pool_apy": round(float(pool.get("apy", 0)), 2),  # pool-level APY
+            "fees_claimed_usd": round(fees_claimed_usd, 2),   # historical claimed fees
+            "fees_24h": round(float(pool.get("today_fees", 0)), 2),  # pool-level (TODO: per-position)
             "base_fee": pool.get("base_fee_percentage", "?"),
             "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
             "liquidity_usd": round(_calculate_usd_liquidity(pool), 2) if pool else 0,
             "mint_x": pool.get("mint_x", ""),
             "mint_y": pool.get("mint_y", ""),
             "meteora_url": f"https://app.meteora.ag/dlmm/{p['lb_pair']}",
-            # New fields from Meteora API
             "active_bin_id": active_bin_id,
-            "bin_step": int(pool.get("bin_step", 0)),
-            "current_price": float(pool.get("current_price", 0)),
-            "fees_24h": float(pool.get("today_fees", 0)),
+            "bin_step": bin_step,
+            "current_price": current_price,
             "cumulative_fee_volume": float(pool.get("cumulative_fee_volume", 0)),
-            # Bin range from position data
+            # Bin range from position on-chain data
             "lower_bin_id": lower_bin,
             "upper_bin_id": upper_bin,
             "in_range": lower_bin <= active_bin_id <= upper_bin,
