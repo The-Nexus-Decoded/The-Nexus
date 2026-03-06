@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.3.0"
+SERVICE_VERSION = "1.4.0"
 
 app = FastAPI()
 
@@ -18,6 +18,10 @@ app = FastAPI()
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 # Updated: Meteora DLMM program ID (as of 2025)
 DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+
+# Shyft API for position queries (free tier)
+SHYFT_API_KEY = os.getenv("SHYFT_API_KEY", "")
+SHYFT_GRAPHQL_URL = "https://programs.shyft.to/v0/graphql/accounts"
 
 
 def load_scanner_config() -> Dict[str, Any]:
@@ -119,53 +123,88 @@ def get_dashboard():
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
         "config": SCANNER_CONFIG,
         "scanner_state": _scanner_state,
-        "trading_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "NOT_CONFIGURED"),
+        "trading_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "DkEwend5Cjiz4edwMKSfgQtNBqzSF4iAzFNJhVrGcxBh"),
         "positions_endpoint": "/positions/{wallet_address}",
         "pools_endpoint": "/pools",
-        "note": "Use /positions/{wallet_address} to check DLMM positions"
+        "note": "Use /positions/{wallet_address} to check DLMM positions",
+        "shyft_api_configured": bool(SHYFT_API_KEY),
+        "api_note": "Position queries require SHYFT_API_KEY. Get free key at https://shyft.to"
     }
 
 @app.get("/positions/{wallet_address}")
 def get_positions(wallet_address: str):
     """
-    Get DLMM positions for a specific wallet via Solana RPC.
+    Get DLMM positions for a specific wallet via Shyft API.
     
-    Fetches all Position accounts owned by the given wallet from the DLMM program.
-    Uses Meteora DLMM account structure:
-    - Account discriminator (4 bytes) at offset 0
-    - Owner field (32 bytes) at offset 8+32 = 40
+    Uses Shyft's GraphQL API to query Meteora DLMM positions.
+    Requires SHYFT_API_KEY env var to be set.
     """
-    # Decode the positionV2 discriminator: [117, 176, 212, 199] -> base58
-    # Precomputed base58 for the discriminator
-    pos_v2_discriminator = "8vR6HAsQBCXY2GPvTXcxkeHHPsyCZYqZ6WsymwyDyycs"
-    
-    # Build filters: discriminator at offset 0 + owner at offset 40
-    filters = [
-        {"memcmp": {"offset": 0, "bytes": pos_v2_discriminator}},
-        {"memcmp": {"offset": 40, "bytes": wallet_address}}
-    ]
-    
-    result = _rpc_call("getProgramAccounts", [
-        DLMM_PROGRAM_ID,
-        {"filters": filters}
-    ])
-    
-    if not result or "result" not in result:
+    if not SHYFT_API_KEY:
         return {
             "wallet": wallet_address,
             "positions": [],
             "count": 0,
-            "error": result.get("error", {}).get("message") if result else "RPC call failed"
+            "error": "SHYFT_API_KEY not configured. Set SHYFT_API_KEY env var.",
+            "solution": "Get free API key at https://shyft.to"
         }
     
-    positions = result["result"]
-    return {
-        "wallet": wallet_address,
-        "positions": positions,
-        "count": len(positions),
-        "dlmm_program": DLMM_PROGRAM_ID,
-        "note": "Raw positions returned. Decode using Meteora DLMM SDK for detailed info."
-    }
+    try:
+        # Query positions via Shyft GraphQL
+        query = """
+        query MyQuery {
+            meteora_dlmm_PositionV2(
+                where: {owner: {_eq: "%s"}}
+            ) {
+                upperBinId
+                lowerBinId
+                totalClaimedFeeYAmount
+                totalClaimedFeeXAmount
+                lbPair
+                owner
+            }
+            meteora_dlmm_Position(
+                where: {owner: {_eq: "%s"}}
+            ) {
+                lbPair
+                lowerBinId
+                upperBinId
+                totalClaimedFeeYAmount
+                totalClaimedFeeXAmount
+                owner
+            }
+        }
+        """ % (wallet_address, wallet_address)
+        
+        response = requests.get(
+            f"{SHYFT_GRAPHQL_URL}?api_key={SHYFT_API_KEY}&network=mainnet-beta",
+            json={"query": query},
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        data = response.json()
+        
+        positions_v2 = data.get("data", {}).get("meteora_dlmm_PositionV2", [])
+        positions_v1 = data.get("data", {}).get("meteora_dlmm_Position", [])
+        
+        all_positions = positions_v2 + positions_v1
+        
+        return {
+            "wallet": wallet_address,
+            "positions": all_positions,
+            "count": len(all_positions),
+            "position_v2_count": len(positions_v2),
+            "position_v1_count": len(positions_v1),
+            "source": "Shyft API"
+        }
+        
+    except Exception as e:
+        return {
+            "wallet": wallet_address,
+            "positions": [],
+            "count": 0,
+            "error": str(e)
+        }
 
 @app.get("/pools")
 def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None):
