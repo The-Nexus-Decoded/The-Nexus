@@ -36,10 +36,16 @@ STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.js
 MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "50"))  # Baseline: 50%
 MIN_LIQUIDITY = float(os.getenv("KILLFEED_MIN_LIQUIDITY", "5000"))
 
-# APY thresholds for tiers
+# APY thresholds for tiers (fallback only)
 APY_EXTREME = 200  # 200%+
 APY_KILLER = 100   # 100-200%
 APY_ALPHA = 50     # 50-100%
+
+# Fee/TVL ratio thresholds (daily ratio — primary tier signal)
+# 0.5% daily = ~182% annualized, 0.25% = ~91%, 0.1% = ~36%
+FEE_TVL_EXTREME = 0.005   # 0.5%+ daily fee/tvl ratio
+FEE_TVL_KILLER = 0.0025   # 0.25-0.5%
+FEE_TVL_ALPHA = 0.001     # 0.1-0.25%
 
 os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
 
@@ -131,14 +137,28 @@ def get_dexscreener_url(mint_address: str) -> str:
     return f"https://dexscreener.com/solana/{mint_address}"
 
 
-def get_tier(apy: float) -> str:
-    """Determine APY tier for a pool."""
+def get_tier(pool: Dict[str, Any]) -> str:
+    """Determine tier for a pool using fee/TVL ratio (primary) with APY fallback."""
+    fee_tvl = float(pool.get('fee_tvl_ratio', 0))
+
+    if fee_tvl > 0:
+        if fee_tvl >= FEE_TVL_EXTREME:
+            return "extreme"
+        elif fee_tvl >= FEE_TVL_KILLER:
+            return "killer"
+        else:
+            return "alpha"
+
+    # Fallback to APY if fee_tvl_ratio not available
+    try:
+        apy = float(pool.get('apy', 0)) if pool.get('apy') not in (None, 'N/A', '') else 0
+    except (ValueError, TypeError):
+        apy = 0
     if apy >= APY_EXTREME:
         return "extreme"
     elif apy >= APY_KILLER:
         return "killer"
-    else:
-        return "alpha"
+    return "alpha"
 
 
 def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -153,22 +173,31 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     fee = pool.get('fee', '0')
     
     APY_CAP = 500
+    is_spike = pool.get('apy_spike', False) or apy > APY_CAP
     if apy > APY_CAP:
-        apy_str = f"500%+"
+        apy_str = "500%+ SPIKE" if is_spike else "500%+"
     else:
         apy_str = f"{apy:,.1f}%" if apy and apy > 0 else "N/A"
-    
+
+    fee_tvl = float(pool.get('fee_tvl_ratio', 0))
+    fee_tvl_str = f"{fee_tvl * 100:.2f}%/day" if fee_tvl > 0 else "N/A"
+
+    fees_24h = float(pool.get('fees_24h', 0))
+    fees_str = f"${fees_24h:,.0f}" if fees_24h else "$0"
+
     liquidity_str = f"${liquidity:,.0f}" if liquidity else "$0"
     volume_str = f"${volume:,.0f}" if volume else "$0"
-    
+
     mint_x = pool.get('mint_x', '')[:8] + '...' if len(pool.get('mint_x', '')) > 8 else pool.get('mint_x', '')
     mint_y = pool.get('mint_y', '')[:8] + '...' if len(pool.get('mint_y', '')) > 8 else pool.get('mint_y', '')
-    
+
     return [
         {"name": "💧 Liquidity", "value": liquidity_str, "inline": True},
         {"name": "📈 APY", "value": apy_str, "inline": True},
-        {"name": "📊 24h", "value": volume_str, "inline": True},
-        {"name": "💰 Fee", "value": f"{fee}%", "inline": True},
+        {"name": "📊 Fee/TVL", "value": fee_tvl_str, "inline": True},
+        {"name": "💰 Fees (24h)", "value": fees_str, "inline": True},
+        {"name": "📊 Vol (24h)", "value": volume_str, "inline": True},
+        {"name": "💰 Base Fee", "value": f"{fee}%", "inline": True},
         {"name": "🪙 Tokens", "value": f"{mint_x} / {mint_y}", "inline": False},
         {"name": "🔗 Meteora", "value": get_pool_url(pool.get('address', '')), "inline": False},
         {"name": "📈 DexScreener", "value": get_dexscreener_url(pool.get('mint_x', '')), "inline": False},
@@ -196,7 +225,7 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
     if not pools:
         return
     
-    pools_sorted = sorted(pools, key=lambda x: x.get('apy', 0), reverse=True)
+    pools_sorted = sorted(pools, key=lambda x: x.get('fee_tvl_ratio', 0), reverse=True)
     top_pools = pools_sorted[:5]
     
     embeds = []
@@ -309,12 +338,7 @@ def main():
     tiers = {"extreme": [], "killer": [], "alpha": []}
     
     for pool in valid_pools:
-        try:
-            apy = float(pool.get('apy', 0)) if pool.get('apy') not in (None, 'N/A', '') else 0
-        except (ValueError, TypeError):
-            apy = 0
-        
-        tier = get_tier(apy)
+        tier = get_tier(pool)
         tiers[tier].append(pool)
     
     # Log tier counts

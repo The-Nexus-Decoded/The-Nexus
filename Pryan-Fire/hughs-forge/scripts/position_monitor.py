@@ -208,7 +208,7 @@ def build_wallet_embed(wallet_name: str, wallet_config: Dict[str, Any], wallet_d
     
     # Calculate totals
     total_value = sum(p.get("liquidity_usd", 0) for p in positions)
-    total_fees = sum(p.get("fees_24h", 0) for p in positions)
+    total_fees_claimed = sum(p.get("fees_claimed_usd", 0) for p in positions)
     
     # Calculate total PnL
     total_pnl = 0
@@ -231,8 +231,8 @@ def build_wallet_embed(wallet_name: str, wallet_config: Dict[str, Any], wallet_d
         "fields": [
             {"name": "SOL Balance", "value": f"{sol_balance:.4f} SOL", "inline": True},
             {"name": "Positions", "value": str(len(positions)), "inline": True},
-            {"name": "Total Value", "value": f"${total_value:,.2f}", "inline": True},
-            {"name": "Total Fees (24h)", "value": f"${total_fees:,.2f}", "inline": True},
+            {"name": "Pool TVL (all)", "value": f"${total_value:,.2f}", "inline": True},
+            {"name": "Fees Claimed", "value": f"${total_fees_claimed:,.2f}", "inline": True},
             {"name": "Total PnL", "value": f"${total_pnl:,.2f} ({total_pnl_pct:.1f}%)", "inline": True},
         ],
         "footer": {"text": f"Position Monitor | {wallet_name}"},
@@ -266,19 +266,21 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
     # Only set URL if it's valid (Discord rejects empty strings)
     embed_url = meteora_url if meteora_url and meteora_url.strip() else None
     
+    fees_claimed = position.get("fees_claimed_usd", 0)
+
     embed = {
         "title": pool_name,
         "url": embed_url,
         "color": color,
         "fields": [
-            {"name": "APR", "value": f"{apy:.1f}%", "inline": True},
+            {"name": "Fee APY (24h)", "value": f"{apy:.1f}%", "inline": True},
             {"name": "Status", "value": status, "inline": True},
+            {"name": "Fees Claimed", "value": f"${fees_claimed:,.2f}", "inline": True},
             {"name": "PnL", "value": f"${pnl.get('pnl_usd', 0):,.2f} ({pnl.get('pnl_pct', 0):.1f}%)", "inline": True},
             {"name": "Entry Value", "value": f"${pnl.get('entry_value_usd', 0):,.2f}", "inline": True},
             {"name": "Current Value", "value": f"${pnl.get('current_value_usd', 0):,.2f}", "inline": True},
             {"name": "24h PnL", "value": f"${pnl.get('pnl_24h', 0):,.2f}", "inline": True},
-            {"name": "Fees (24h)", "value": f"${position.get('fees_24h', 0):,.2f}", "inline": True},
-            {"name": "Liquidity", "value": f"${position.get('liquidity_usd', 0):,.2f}", "inline": True},
+            {"name": "Pool TVL", "value": f"${position.get('liquidity_usd', 0):,.2f}", "inline": True},
             {"name": "Volume (24h)", "value": f"${position.get('volume_24h', 0):,.2f}", "inline": True},
             {"name": "Bin Range", "value": f"{lower_bin}-{upper_bin} (Active: {active_bin})", "inline": False},
             {"name": "Links", "value": f"[Meteora]({meteora_url}) | [DexScreener]({get_dexscreener_url(mint_x)})", "inline": False},
