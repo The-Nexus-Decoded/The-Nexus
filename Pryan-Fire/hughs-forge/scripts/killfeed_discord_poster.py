@@ -168,8 +168,8 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
         {"name": "📊 24h", "value": volume_str, "inline": True},
         {"name": "💰 Fee", "value": f"{fee}%", "inline": True},
         {"name": "🪙 Tokens", "value": f"{mint_x} / {mint_y}", "inline": False},
-        {"name": "🔗 Meteora", "value": f"[Pool]({get_pool_url(pool.get('address', ''))})", "inline": True},
-        {"name": "📈 DexScreener", "value": f"[Chart]({get_dexscreener_url(pool.get('mint_x', ''))})", "inline": True},
+        {"name": "🔗 Meteora", "value": get_pool_url(pool.get('address', '')), "inline": False},
+        {"name": "📈 DexScreener", "value": get_dexscreener_url(pool.get('mint_x', '')), "inline": False},
     ]
 
 
