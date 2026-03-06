@@ -10,59 +10,20 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.5.0"
+SERVICE_VERSION = "1.3.0"
 
 app = FastAPI()
 
 # Solana RPC config
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-# Updated: Meteora DLMM program ID (as of 2025)
-DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
-
-# Shyft API for position queries (free tier)
-SHYFT_API_KEY = os.getenv("SHYFT_API_KEY", "")
-SHYFT_GRAPHQL_URL = "https://programs.shyft.to/v0/graphql/accounts"
-
-# Wallet-specific profit rules (configured per Lord Xar's request)
-# Each wallet can have different take-profit %, stop-loss %, alert thresholds
-WALLET_RULES = {
-    "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb": {  # Owner wallet
-        "name": "owner",
-        "take_profit_pct": 50.0,      # Close at 50% profit
-        "stop_loss_pct": -10.0,       # Close at -10% loss
-        "alert_at_pct": 30.0,         # Alert at 30% profit
-        "rebalance_at_pct": 75.0,     # Rebalance/harvest at 75%
-    },
-    "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x": {  # Bot wallet
-        "name": "bot",
-        "take_profit_pct": 20.0,      # Close at 20% profit (aggressive)
-        "stop_loss_pct": -5.0,        # Tight stop-loss
-        "alert_at_pct": 10.0,         # Alert early
-        "rebalance_at_pct": 25.0,     # Harvest frequently
-    },
-}
-
-def load_wallet_rules() -> Dict[str, Dict]:
-    """Load wallet rules from env var JSON override."""
-    rules_json = os.getenv("WALLET_RULES_JSON", "")
-    if rules_json:
-        try:
-            custom_rules = json.loads(rules_json)
-            WALLET_RULES.update(custom_rules)
-            logger.info(f"Loaded custom wallet rules: {list(custom_rules.keys())}")
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse WALLET_RULES_JSON: {e}")
-    return WALLET_RULES
-
-# Load any custom rules at startup
-load_wallet_rules()
+DLMM_PROGRAM_ID = "DLMMx4jLqB2HqEi5djXq55Up5EMhYWDDfGqZq3iSpUW"
 
 
 def load_scanner_config() -> Dict[str, Any]:
     """Load scanner config from JSON file, with env var override."""
     config = {
         "enabled": True,
-        "min_apy": 20.0,
+        "min_apy": 100.0,
         "min_liquidity": 5000,
         "min_volume_24h": 1000,
         "fee_tier_cutoff": 0.5,
@@ -157,301 +118,46 @@ def get_dashboard():
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
         "config": SCANNER_CONFIG,
         "scanner_state": _scanner_state,
-        "owner_wallet": os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb"),
-        "bot_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x"),
-        "wallet_rules": {
-            "owner": {
-                "take_profit_pct": 50.0,
-                "stop_loss_pct": -10.0,
-                "alert_at_pct": 30.0,
-                "rebalance_at_pct": 75.0,
-            },
-            "bot": {
-                "take_profit_pct": 20.0,
-                "stop_loss_pct": -5.0,
-                "alert_at_pct": 10.0,
-                "rebalance_at_pct": 25.0,
-            }
-        },
-        "endpoints": {
-            "owner_positions": "/positions/owner",
-            "bot_positions": "/positions/bot",
-            "all_positions": "/positions",
-            "monitored": "/monitor/positions",
-            "rules": "/monitor/rules",
-            "pools": "/pools",
-            "killfeed": "/killfeed",
-        },
-        "note": "Configure custom rules per wallet via WALLET_RULES_JSON env var",
-        "shyft_api_configured": bool(SHYFT_API_KEY),
+        "trading_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "NOT_CONFIGURED"),
+        "positions_endpoint": "/positions/{wallet_address}",
+        "pools_endpoint": "/pools",
+        "note": "Use /positions/{wallet_address} to check DLMM positions"
     }
-
-@app.get("/positions/owner")
-def get_owner_positions():
-    """
-    Get DLMM positions for the owner wallet.
-    Owner wallet holds the main Meteora positions.
-    """
-    owner_wallet = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
-    result = get_positions_internal(owner_wallet)
-    result["wallet_type"] = "owner"
-    return result
-
-@app.get("/positions/bot")
-def get_bot_positions():
-    """
-    Get DLMM positions for the bot/trading wallet.
-    Bot wallet holds active trading positions.
-    """
-    bot_wallet = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
-    result = get_positions_internal(bot_wallet)
-    result["wallet_type"] = "bot"
-    return result
-
-def get_positions_internal(wallet_address: str):
-    """
-    Get DLMM positions for a specific wallet via Solana RPC.
-    
-    Uses getProgramAccounts with proper Meteora DLMM position filters.
-    """
-    import requests
-    
-    SOLANA_RPC = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-    DLMM_PROGRAM = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
-    
-    try:
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "getProgramAccounts",
-            "params": [
-                DLMM_PROGRAM,
-                {
-                    "encoding": "base64",
-                    "filters": [
-                        {
-                            "memcmp": {
-                                "offset": 40,
-                                "bytes": wallet_address
-                            }
-                        },
-                        {
-                            "memcmp": {
-                                "offset": 0,
-                                "bytes": "LgkNAEYaVX3"  # V2 discriminator
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-        
-        resp = requests.post(SOLANA_RPC, json=payload, timeout=30)
-        data = resp.json()
-        accounts = data.get("result", [])
-        
-        return {
-            "wallet": wallet_address,
-            "positions": [{"pubkey": a["pubkey"], "data": a["account"]["data"][0]} for a in accounts],
-            "count": len(accounts),
-            "source": "Solana RPC (Meteora DLMM)"
-        }
-        
-    except Exception as e:
-        logger.error(f"Position fetch error: {e}")
-        return {
-            "wallet": wallet_address,
-            "positions": [],
-            "count": 0,
-            "error": str(e)
-        }
-
-
-def get_positions_via_shyft(wallet_address: str):
-    """
-    Fallback: Get DLMM positions via Shyft GraphQL API.
-    """
-    if not SHYFT_API_KEY:
-        return {
-            "wallet": wallet_address,
-            "positions": [],
-            "count": 0,
-            "error": "SHYFT_API_KEY not configured. Set SHYFT_API_KEY env var.",
-            "solution": "Get free API key at https://shyft.to"
-        }
-    
-    try:
-        # Query positions via Shyft GraphQL
-        query = """
-        query MyQuery {
-            meteora_dlmm_PositionV2(
-                where: {owner: {_eq: "%s"}}
-            ) {
-                upperBinId
-                lowerBinId
-                totalClaimedFeeYAmount
-                totalClaimedFeeXAmount
-                lbPair
-                owner
-            }
-            meteora_dlmm_Position(
-                where: {owner: {_eq: "%s"}}
-            ) {
-                lbPair
-                lowerBinId
-                upperBinId
-                totalClaimedFeeYAmount
-                totalClaimedFeeXAmount
-                owner
-            }
-        }
-        """ % (wallet_address, wallet_address)
-        
-        response = requests.get(
-            f"{SHYFT_GRAPHQL_URL}?api_key={SHYFT_API_KEY}&network=mainnet-beta",
-            json={"query": query},
-            headers={"Content-Type": "application/json"},
-            timeout=30
-        )
-        
-        data = response.json()
-        
-        positions_v2 = data.get("data", {}).get("meteora_dlmm_PositionV2", [])
-        positions_v1 = data.get("data", {}).get("meteora_dlmm_Position", [])
-        
-        all_positions = positions_v2 + positions_v1
-        
-        return {
-            "wallet": wallet_address,
-            "positions": all_positions,
-            "count": len(all_positions),
-            "position_v2_count": len(positions_v2),
-            "position_v1_count": len(positions_v1),
-            "source": "Shyft API"
-        }
-        
-    except Exception as e:
-        return {
-            "wallet": wallet_address,
-            "positions": [],
-            "count": 0,
-            "error": str(e)
-        }
 
 @app.get("/positions/{wallet_address}")
 def get_positions(wallet_address: str):
-    """Get positions for a specific wallet address."""
-    return get_positions_internal(wallet_address)
-
-@app.get("/positions")
-def get_all_positions():
     """
-    Get DLMM positions for both owner and bot wallets.
-    Returns combined position data for monitoring.
+    Get DLMM positions for a specific wallet via Solana RPC.
+    
+    Fetches all Position accounts owned by the given wallet from the DLMM program.
     """
-    owner_wallet = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
-    bot_wallet = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
-    
-    owner_result = get_positions_internal(owner_wallet)
-    bot_result = get_positions_internal(bot_wallet)
-    
-    return {
-        "owner_wallet": owner_wallet,
-        "bot_wallet": bot_wallet,
-        "owner_positions": owner_result.get("positions", []),
-        "owner_count": owner_result.get("count", 0),
-        "bot_positions": bot_result.get("positions", []),
-        "bot_count": bot_result.get("count", 0),
-        "total_positions": owner_result.get("count", 0) + bot_result.get("count", 0),
-        "shyft_configured": bool(SHYFT_API_KEY)
-    }
-
-@app.get("/monitor/positions")
-def get_monitored_positions():
-    """
-    Get positions with profit rule analysis per wallet.
-    Shows which positions are hitting profit/loss thresholds based on each wallet's rules.
-    
-    Each wallet has configurable rules:
-    - take_profit_pct: Close position at this profit %
-    - stop_loss_pct: Close position at this loss %
-    - alert_at_pct: Send alert when profit reaches this %
-    - rebalance_at_pct: Harvest/rebalance when profit reaches this %
-    
-    Override via WALLET_RULES_JSON env var.
-    """
-    owner_wallet = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
-    bot_wallet = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
-    
-    owner_result = get_positions_internal(owner_wallet)
-    bot_result = get_positions_internal(bot_wallet)
-    
-    # Get rules for each wallet
-    owner_rules = WALLET_RULES.get(owner_wallet, {"name": "owner", "take_profit_pct": 50.0})
-    bot_rules = WALLET_RULES.get(bot_wallet, {"name": "bot", "take_profit_pct": 20.0})
-    
-    def analyze_positions(positions: List, rules: Dict, wallet_type: str) -> List[Dict]:
-        """Analyze positions against rules - returns simulated PnL (requires entry price tracking)."""
-        analyzed = []
-        for pos in positions:
-            # Note: Real implementation needs entry price from position history
-            # Here we show the rules that WOULD apply
-            analyzed.append({
-                "position": pos,
-                "rules": rules,
-                "wallet_type": wallet_type,
-                "note": "Entry price required for actual PnL calculation",
-                "would_trigger": {
-                    "take_profit": rules.get("take_profit_pct"),
-                    "stop_loss": rules.get("stop_loss_pct"),
-                    "alert_at": rules.get("alert_at_pct"),
-                    "rebalance_at": rules.get("rebalance_at_pct"),
-                }
-            })
-        return analyzed
-    
-    return {
-        "wallets": {
-            owner_wallet: {
-                "name": "owner",
-                "rules": owner_rules,
-                "positions": analyze_positions(owner_result.get("positions", []), owner_rules, "owner"),
-                "position_count": owner_result.get("count", 0),
-            },
-            bot_wallet: {
-                "name": "bot", 
-                "rules": bot_rules,
-                "positions": analyze_positions(bot_result.get("positions", []), bot_rules, "bot"),
-                "position_count": bot_result.get("count", 0),
-            }
-        },
-        "configure_rules": "Set WALLET_RULES_JSON env var with custom rules per wallet",
-        "example_rules": {
-            "take_profit_pct": 50.0,
-            "stop_loss_pct": -10.0,
-            "alert_at_pct": 30.0,
-            "rebalance_at_pct": 75.0
-        }
-    }
-
-@app.get("/monitor/rules")
-def get_wallet_rules():
-    """
-    Get all configured wallet rules.
-    Use this to see what rules are active for each wallet.
-    """
-    return {
-        "configured_wallets": WALLET_RULES,
-        "override_instructions": "Set WALLET_RULES_JSON env var as JSON to override defaults",
-        "example": {
-            "wallet_address": {
-                "name": "custom",
-                "take_profit_pct": 100.0,
-                "stop_loss_pct": -15.0,
-                "alert_at_pct": 50.0,
-                "rebalance_at_pct": 80.0
+    # Get all position accounts for this owner
+    result = _rpc_call("getProgramAccounts", [
+        DLMM_PROGRAM_ID,
+        {
+            "dataSize": 358,  # Position account size
+            "memcmp": {
+                "offset": 8,  # Owner field starts at offset 8
+                "bytes": wallet_address
             }
         }
+    ])
+    
+    if not result or "result" not in result:
+        return {
+            "wallet": wallet_address,
+            "positions": [],
+            "count": 0,
+            "error": result.get("error", {}).get("message") if result else "RPC call failed"
+        }
+    
+    positions = result["result"]
+    return {
+        "wallet": wallet_address,
+        "positions": positions,
+        "count": len(positions),
+        "dlmm_program": DLMM_PROGRAM_ID,
+        "note": "Raw positions returned. Decode using Meteora DLMM SDK for detailed info."
     }
 
 @app.get("/pools")
@@ -515,9 +221,9 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     # No USDC pair - use cumulative fee volume as proxy
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
-                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 10000.0)
+                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -608,9 +314,9 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                 else:
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
-                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 10000.0)
+                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),

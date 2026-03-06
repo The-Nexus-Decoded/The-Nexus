@@ -22,8 +22,8 @@ class RpcIntegrator:
         self.logger = logging.getLogger("RpcIntegrator")
         self.dry_run = dry_run
 
-        # Jupiter API endpoint
-        self.jupiter_endpoint = "https://api.jup.ag/swap/v1"
+        # Jupiter API endpoint (Ultra v1)
+        self.jupiter_endpoint = "https://api.jup.ag/ultra/v1"
         self.jupiter_api_key = os.getenv("JUPITER_API_KEY")
 
         # Load trading wallet (skip in dry_run mode)
@@ -65,7 +65,7 @@ class RpcIntegrator:
         slippage_bps: int = 50,
     ) -> Dict[str, Any]:
         """
-        Executes a trade via Jupiter aggregator.
+        Executes a trade via Jupiter Ultra API.
 
         Returns dict with:
           - success: bool
@@ -82,22 +82,23 @@ class RpcIntegrator:
 
         try:
             self.logger.info(
-                f"Jupiter trade: input={input_mint}, output={output_mint}, "
+                f"Jupiter Ultra trade: input={input_mint}, output={output_mint}, "
                 f"amount={amount}, decimals={decimals}, slippage={slippage_bps}bps"
             )
             amount_raw = int(amount * (10 ** decimals))
 
-            # Step 1: Get quote
-            quote = self._fetch_quote(input_mint, output_mint, amount_raw, slippage_bps)
-            if not quote:
-                return {"success": False, "signature": None, "error": "quote_failed"}
+            # Step 1: Get swap transaction via Ultra API (combines quote + swap)
+            order_response = self._fetch_ultra_order(input_mint, output_mint, amount_raw, slippage_bps, str(self.wallet.pubkey()))
+            if not order_response:
+                return {"success": False, "signature": None, "error": "order_failed"}
 
-            # Step 2: Get swap transaction
-            swap_tx_b64 = self._fetch_swap_transaction(quote, str(self.wallet.pubkey()))
-            if not swap_tx_b64:
-                return {"success": False, "signature": None, "error": "swap_tx_failed"}
+            swap_tx_b64 = order_response.get("swapTransaction")
+            request_id = order_response.get("requestId")
+            if not swap_tx_b64 or not request_id:
+                self.logger.error(f"Missing swapTransaction or requestId: {order_response}")
+                return {"success": False, "signature": None, "error": "invalid_order_response"}
 
-            # Step 3: Deserialize as VersionedTransaction (Jupiter v6 format)
+            # Step 2: Deserialize as VersionedTransaction
             tx_bytes = base64.b64decode(swap_tx_b64)
             try:
                 tx = VersionedTransaction.from_bytes(tx_bytes)
@@ -108,41 +109,27 @@ class RpcIntegrator:
                 tx = LegacyTransaction.from_bytes(tx_bytes)
                 self.logger.info("Deserialized as legacy Transaction.")
 
-            # Step 4: Sign the transaction
+            # Step 3: Sign the transaction
             signed_tx = VersionedTransaction(tx.message, [self.wallet])
 
-            # Step 5: Send
-            self.logger.info(f"Sending transaction to {self.solana_rpc}...")
-            send_result = self.client.send_raw_transaction(
-                bytes(signed_tx),
-                opts=TxOpts(skip_preflight=False, preflight_commitment="processed"),
-            )
+            # Step 4: Execute via Ultra API
+            exec_result = self._execute_ultra_order(signed_tx, request_id)
+            if not exec_result:
+                return {"success": False, "signature": None, "error": "execute_failed"}
 
-            # Extract signature
-            sig_str = str(send_result.value)
-            self.logger.info(f"Tx sent. Signature: {sig_str}")
-
-            # Step 6: Confirm on-chain
-            self.logger.info(f"Waiting for confirmation (timeout={TX_CONFIRM_TIMEOUT}s)...")
-            confirm_result = self.client.confirm_transaction(
-                Signature.from_string(sig_str),
-                commitment="confirmed",
-                sleep_seconds=1,
-                last_valid_block_height=None,
-            )
-
-            # Check confirmation
-            if confirm_result.value and len(confirm_result.value) > 0:
-                conf = confirm_result.value[0]
-                if hasattr(conf, "err") and conf.err is not None:
-                    self.logger.error(f"Tx confirmed but FAILED on-chain: {conf.err}")
-                    return {"success": False, "signature": sig_str, "error": f"on_chain_error: {conf.err}"}
-
-            self.logger.info(f"Tx CONFIRMED: {sig_str}")
-            return {"success": True, "signature": sig_str, "error": None}
+            # Check execution status
+            status = exec_result.get("status")
+            if status == "Success":
+                sig_str = exec_result.get("signature")
+                self.logger.info(f"Ultra execution SUCCESS: {sig_str}")
+                return {"success": True, "signature": sig_str, "error": None}
+            else:
+                error = exec_result.get("error", "Unknown error")
+                self.logger.error(f"Ultra execution FAILED: {error}")
+                return {"success": False, "signature": None, "error": error}
 
         except Exception as e:
-            self.logger.error(f"Jupiter trade failed: {e}", exc_info=True)
+            self.logger.error(f"Jupiter Ultra trade failed: {e}", exc_info=True)
             return {"success": False, "signature": None, "error": str(e)}
 
     def _fetch_quote(
@@ -155,6 +142,7 @@ class RpcIntegrator:
             "amount": str(amount),
             "slippageBps": slippage_bps,
             "onlyDirectRoutes": "false",
+            "instructionVersion": "V2",  # Enable V2 instructions for v2 pool support
         }
         headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
         if self.jupiter_api_key:
@@ -181,6 +169,8 @@ class RpcIntegrator:
             "wrapAndUnwrapSol": True,
             "useSharedAccounts": False,
             "prioritizationFeeLamports": "auto",
+            "dynamicComputeUnitLimit": True,  # Auto-adjust compute units
+            "dynamicSlippage": True,  # Enable dynamic slippage for v2 pools
         }
         headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
         if self.jupiter_api_key:
@@ -195,6 +185,53 @@ class RpcIntegrator:
             self.logger.warning(f"Swap returned {resp.status_code}: {resp.text[:200]}")
         except httpx.HTTPError as e:
             self.logger.warning(f"Swap request failed: {e}")
+        return None
+
+    def _fetch_ultra_order(
+        self, input_mint: str, output_mint: str, amount: int, slippage_bps: int, taker: str
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch swap transaction from Jupiter Ultra API."""
+        params = {
+            "inputMint": input_mint,
+            "outputMint": output_mint,
+            "amount": str(amount),
+            "slippageBps": slippage_bps,
+            "taker": taker,
+        }
+        headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
+        if self.jupiter_api_key:
+            headers["x-api-key"] = self.jupiter_api_key
+
+        url = f"{self.jupiter_endpoint}/order"
+        try:
+            self.logger.info(f"Fetching Ultra order from: {url}")
+            resp = httpx.get(url, params=params, headers=headers, timeout=15.0)
+            if resp.status_code == 200:
+                return resp.json()
+            self.logger.warning(f"Ultra order returned {resp.status_code}: {resp.text[:500]}")
+        except httpx.HTTPError as e:
+            self.logger.warning(f"Ultra order request failed: {e}")
+        return None
+
+    def _execute_ultra_order(self, signed_tx: VersionedTransaction, request_id: str) -> Optional[Dict[str, Any]]:
+        """Execute signed transaction via Jupiter Ultra API."""
+        payload = {
+            "signedTransaction": base64.b64encode(bytes(signed_tx)).decode(),
+            "requestId": request_id,
+        }
+        headers = {"User-Agent": "OpenClaw-Hugh/1.0", "Content-Type": "application/json"}
+        if self.jupiter_api_key:
+            headers["x-api-key"] = self.jupiter_api_key
+
+        url = f"{self.jupiter_endpoint}/execute"
+        try:
+            self.logger.info(f"Executing Ultra order: {url}")
+            resp = httpx.post(url, json=payload, headers=headers, timeout=15.0)
+            if resp.status_code == 200:
+                return resp.json()
+            self.logger.warning(f"Ultra execute returned {resp.status_code}: {resp.text[:500]}")
+        except httpx.HTTPError as e:
+            self.logger.warning(f"Ultra execute request failed: {e}")
         return None
 
     def execute_meteora_trade(self, token_address: str, amount: float) -> bool:
