@@ -59,6 +59,7 @@ def load_scanner_config() -> Dict[str, Any]:
         "poll_interval_seconds": 30,
         "max_pools": 500,
         "devnet": False,
+        "allowed_bin_steps": [20, 80, 100],
     }
     
     default_paths = [
@@ -391,9 +392,13 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
 
+        allowed_bins = set(SCANNER_CONFIG.get("allowed_bin_steps", []))
         filtered = []
         for pool in pools:
             try:
+                bin_step = int(pool.get("bin_step", 0))
+                if allowed_bins and bin_step not in allowed_bins:
+                    continue
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
                 volume_24h = float(pool.get("trade_volume_24h", 0))
@@ -409,6 +414,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "name": pool.get("name"),
                         "mint_x": pool.get("mint_x"),
                         "mint_y": pool.get("mint_y"),
+                        "bin_step": bin_step,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "apy_spike": pool_apy > 500,
@@ -465,6 +471,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
         min_liquidity = SCANNER_CONFIG["min_liquidity"]
     if min_volume_24h is None:
         min_volume_24h = SCANNER_CONFIG["min_volume_24h"]
+    allowed_bins = set(SCANNER_CONFIG.get("allowed_bin_steps", []))
 
     try:
         response = requests.get(
@@ -479,6 +486,9 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
         filtered = []
         for pool in pools:
             try:
+                bin_step = int(pool.get("bin_step", 0))
+                if allowed_bins and bin_step not in allowed_bins:
+                    continue
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
 
@@ -494,6 +504,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
                         "name": pool.get("name"),
                         "mint_x": pool.get("mint_x"),
                         "mint_y": pool.get("mint_y"),
+                        "bin_step": bin_step,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "apy_spike": pool_apy > 500,
@@ -549,9 +560,13 @@ def get_toppools(limit: int = 20, min_liquidity: float = None, min_apy: float = 
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
 
+        allowed_bins = set(SCANNER_CONFIG.get("allowed_bin_steps", []))
         filtered = []
         for pool in pools:
             try:
+                bin_step = int(pool.get("bin_step", 0))
+                if allowed_bins and bin_step not in allowed_bins:
+                    continue
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
                 volume_24h = float(pool.get("trade_volume_24h", 0))
@@ -565,6 +580,7 @@ def get_toppools(limit: int = 20, min_liquidity: float = None, min_apy: float = 
                         "name": pool.get("name"),
                         "mint_x": pool.get("mint_x"),
                         "mint_y": pool.get("mint_y"),
+                        "bin_step": bin_step,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "apy_spike": pool_apy > 500,
