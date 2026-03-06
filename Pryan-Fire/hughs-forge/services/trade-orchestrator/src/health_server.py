@@ -70,7 +70,7 @@ def load_scanner_config() -> Dict[str, Any]:
     """Load scanner config from JSON file, with env var override."""
     config = {
         "enabled": True,
-        "min_apy": 20.0,
+        "min_apy": 100.0,
         "min_liquidity": 5000,
         "min_volume_24h": 1000,
         "fee_tier_cutoff": 0.5,
@@ -469,7 +469,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
                     is_capped = pool_apy > 10000.0
-                    display_apy = min(pool_apy, 10000.0)
+                    display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -566,7 +566,7 @@ def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
                     is_capped = pool_apy > 10000.0
-                    display_apy = min(pool_apy, 10000.0)
+                    display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -657,7 +657,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
                     is_capped = pool_apy > 10000.0
-                    display_apy = min(pool_apy, 10000.0)
+                    display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
