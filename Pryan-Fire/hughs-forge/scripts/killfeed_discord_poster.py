@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-Kill Feed Discord Poster — TIERED VERSION
-Posts NEW high-APY Meteora DLMM pools to Discord automatically.
-Routes to different channels based on APY tier:
-- 50-100% APY → kill-feed-50
-- 100-200% APY → kill-feed-100  
-- 200%+ APY → killfeed-extreme
+Kill Feed Discord Poster — LIVE FEED
+Posts top Meteora DLMM pools to Discord every cycle, ranked by fee/TVL ratio.
+No dedup — the deck reshuffles every run. Whatever's hot right now gets posted.
+Routes to different channels based on fee/TVL tier:
+- Extreme: 0.5%+/day fee/TVL
+- Killer: 0.25-0.5%/day
+- Alpha: 0.1-0.25%/day
 """
 import requests
-import json
 import os
 import logging
-import fcntl
 import time
 from datetime import datetime
-from typing import Set, Dict, Any, List
+from typing import Dict, Any, List
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,56 +26,21 @@ KILLFEED_URL = os.getenv("KILLFEED_URL", "http://100.104.166.53:8002/killfeed")
 TOPPOOLS_URL = os.getenv("TOPPOOLS_URL", "http://100.104.166.53:8002/toppools")
 
 # Tiered Discord webhooks
-WEBHOOK_EXTREME = os.getenv("DISCORD_WEBHOOK_EXTREME")   # 200%+
-WEBHOOK_KILLER = os.getenv("DISCORD_WEBHOOK_KILLER")     # 100-200%
-WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")       # 50-100%
+WEBHOOK_EXTREME = os.getenv("DISCORD_WEBHOOK_EXTREME")   # 0.5%+/day
+WEBHOOK_KILLER = os.getenv("DISCORD_WEBHOOK_KILLER")     # 0.25-0.5%/day
+WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")       # 0.1-0.25%/day
 WEBHOOK_TOPPOOLS = os.getenv("DISCORD_WEBHOOK_TOPPOOLS") # Top by liquidity
 
-STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.json")
-MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "50"))  # Baseline: 50%
+MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "50"))
 MIN_LIQUIDITY = float(os.getenv("KILLFEED_MIN_LIQUIDITY", "5000"))
 
-# APY thresholds for tiers (fallback only)
-APY_EXTREME = 200  # 200%+
-APY_KILLER = 100   # 100-200%
-APY_ALPHA = 50     # 50-100%
-
 # Fee/TVL ratio thresholds (daily ratio — primary tier signal)
-# 0.5% daily = ~182% annualized, 0.25% = ~91%, 0.1% = ~36%
 FEE_TVL_EXTREME = 0.005   # 0.5%+ daily fee/tvl ratio
 FEE_TVL_KILLER = 0.0025   # 0.25-0.5%
 FEE_TVL_ALPHA = 0.001     # 0.1-0.25%
 
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-
-def load_seen_pools() -> Set[str]:
-    """Load previously seen pool addresses from state file with locking."""
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, 'r') as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                try:
-                    data = json.load(f)
-                    return set(data.get('seen_pools', []))
-                finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        except Exception as e:
-            logger.warning(f"Failed to load state: {e}")
-    return set()
-
-
-def save_seen_pools(seen: Set[str]):
-    """Save seen pool addresses to state file with locking."""
-    try:
-        with open(STATE_FILE, 'w') as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            try:
-                json.dump({'seen_pools': list(seen)}, f)
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-    except Exception as e:
-        logger.error(f"Failed to save state: {e}")
+# Max embeds per tier per cycle
+MAX_EMBEDS_PER_TIER = int(os.getenv("KILLFEED_MAX_EMBEDS", "5"))
 
 
 def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
@@ -85,7 +49,7 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
         'min_apy': MIN_APY,
         'min_liquidity': MIN_LIQUIDITY
     }
-    
+
     for attempt in range(retries):
         try:
             response = requests.get(KILLFEED_URL, params=params, timeout=30)
@@ -96,7 +60,7 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
             logger.warning(f"Fetch attempt {attempt + 1}/{retries} failed: {e}")
             if attempt < retries - 1:
                 time.sleep(2 ** attempt)
-    
+
     logger.error(f"Failed to fetch killfeed after {retries} attempts")
     return []
 
@@ -114,17 +78,17 @@ def get_dexscreener_url(mint_address: str) -> str:
     """Get DexScreener URL for token via API."""
     if not mint_address:
         return "N/A"
-    
+
     if mint_address in DEXSCREENER_CACHE:
         return DEXSCREENER_CACHE[mint_address]
-    
+
     try:
         response = requests.get(
             f"https://api.dexscreener.com/latest/dex/tokens/{mint_address}",
             timeout=5
         )
         data = response.json()
-        
+
         pairs = data.get("pairs", [])
         if pairs and len(pairs) > 0:
             url = pairs[0].get("url", "")
@@ -133,7 +97,7 @@ def get_dexscreener_url(mint_address: str) -> str:
                 return url
     except Exception as e:
         logger.debug(f"DexScreener API error for {mint_address}: {e}")
-    
+
     return f"https://dexscreener.com/solana/{mint_address}"
 
 
@@ -154,9 +118,9 @@ def get_tier(pool: Dict[str, Any]) -> str:
         apy = float(pool.get('apy', 0)) if pool.get('apy') not in (None, 'N/A', '') else 0
     except (ValueError, TypeError):
         apy = 0
-    if apy >= APY_EXTREME:
+    if apy >= 200:
         return "extreme"
-    elif apy >= APY_KILLER:
+    elif apy >= 100:
         return "killer"
     return "alpha"
 
@@ -169,9 +133,9 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
         volume = float(pool.get('volume_24h', 0)) if pool.get('volume_24h') not in (None, 'N/A', '') else 0
     except (ValueError, TypeError):
         apy = liquidity = volume = 0
-    
+
     fee = pool.get('fee', '0')
-    
+
     APY_CAP = 500
     is_spike = pool.get('apy_spike', False) or apy > APY_CAP
     if apy > APY_CAP:
@@ -210,29 +174,29 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
 
 
 def post_to_discord(pools: List[Dict[str, Any]], tier: str):
-    """Post new pools to the appropriate tier channel."""
+    """Post top pools for a tier to the appropriate Discord channel."""
     webhook_url = {
         "extreme": WEBHOOK_EXTREME,
         "killer": WEBHOOK_KILLER,
         "alpha": WEBHOOK_ALPHA,
     }.get(tier)
-    
+
     if not webhook_url:
         logger.warning(f"No webhook configured for tier: {tier}")
         return
-    
+
     tier_names = {
-        "extreme": "⚡ EXTREME (200%+)",
-        "killer": "🗡️ KILLER (100-200%)", 
-        "alpha": "📈 ALPHA (50-100%)"
+        "extreme": "⚡ EXTREME",
+        "killer": "🗡️ KILLER",
+        "alpha": "📈 ALPHA"
     }
-    
+
     if not pools:
         return
-    
-    pools_sorted = sorted(pools, key=lambda x: x.get('fee_tvl_ratio', 0), reverse=True)
-    top_pools = pools_sorted[:5]
-    
+
+    # Already sorted by fee_tvl_ratio desc from main — take top N
+    top_pools = pools[:MAX_EMBEDS_PER_TIER]
+
     embeds = []
     for pool in top_pools:
         embed = {
@@ -240,25 +204,20 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
             "url": get_pool_url(pool['address']),
             "color": {"extreme": 0xFF0000, "killer": 0xFF6600, "alpha": 0x00FF00}.get(tier, 0x00FF00),
             "fields": format_pool_fields(pool),
-            "footer": {"text": f"Haplo Kill Feed | Min APY: {MIN_APY}%"},
+            "footer": {"text": f"Hugh Kill Feed | {datetime.utcnow().strftime('%H:%M UTC')}"},
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
         embeds.append(embed)
-    
-    description = f"**+{len(pools) - 5} more**" if len(pools) > 5 else f"**{len(pools)} pool(s)**"
-    
+
     payload = {
-        "content": f"{tier_names.get(tier, 'KILL FEED')} — {len(pools)} new pool(s)!",
+        "content": f"{tier_names.get(tier, 'KILL FEED')} — Top {len(top_pools)} by fees",
         "embeds": embeds
     }
-    
-    if len(pools) > 5:
-        payload["content"] += f"\n_{description}_"
-    
+
     try:
         response = requests.post(webhook_url, json=payload, timeout=10)
         response.raise_for_status()
-        logger.info(f"Posted {len(pools)} pools to {tier} channel")
+        logger.info(f"Posted {len(top_pools)} pools to {tier} channel")
     except Exception as e:
         logger.error(f"Failed to post to {tier} channel: {e}")
 
@@ -298,7 +257,7 @@ def post_toppools_to_discord(pools: List[Dict[str, Any]]):
             "url": get_pool_url(pool.get("address", "")),
             "color": 0x0099FF,
             "fields": format_pool_fields(pool),
-            "footer": {"text": f"Hugh Top Pools | Min Liquidity: ${MIN_LIQUIDITY:,.0f}"},
+            "footer": {"text": f"Hugh Top Pools | {datetime.utcnow().strftime('%H:%M UTC')}"},
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
         embeds.append(embed)
@@ -319,62 +278,46 @@ def post_toppools_to_discord(pools: List[Dict[str, Any]]):
 
 
 def main():
-    """Main loop - check for new pools and post to tiered Discord channels."""
-    logger.info("Kill Feed Discord Poster (TIERED) starting...")
-    
-    # Validate webhooks configured
+    """Main — fetch current pools, rank by fees, post top per tier."""
+    logger.info("Kill Feed Discord Poster (LIVE FEED) starting...")
+
     if not any([WEBHOOK_EXTREME, WEBHOOK_KILLER, WEBHOOK_ALPHA, WEBHOOK_TOPPOOLS]):
         logger.warning("No Discord webhooks configured! Set DISCORD_WEBHOOK_EXTREME/KILLER/ALPHA/TOPPOOLS")
         return
-    
-    seen_pools = load_seen_pools()
-    logger.info(f"Loaded {len(seen_pools)} previously seen pools")
-    
+
     pools = fetch_killfeed()
     logger.info(f"Fetched {len(pools)} pools from killfeed")
-    
+
     if not pools:
         logger.warning("No pools fetched, exiting")
         return
-    
+
     valid_pools = [p for p in pools if p.get('address') and p.get('name')]
-    
-    # Group pools by tier
-    tiers = {"extreme": [], "killer": [], "alpha": []}
-    
+
+    # Sort all pools by fee_tvl_ratio descending — the deck shuffle
+    valid_pools.sort(key=lambda x: float(x.get('fee_tvl_ratio', 0)), reverse=True)
+
+    # Group into tiers
+    tiers: Dict[str, List[Dict[str, Any]]] = {"extreme": [], "killer": [], "alpha": []}
+
     for pool in valid_pools:
         tier = get_tier(pool)
         tiers[tier].append(pool)
-    
-    # Log tier counts
-    for t, pool_list in tiers.items():
-        if pool_list:
-            logger.info(f"Tier {t}: {len(pool_list)} pools")
-    
-    current_addresses = {pool['address'] for pool in valid_pools}
-    
-    # Process each tier
+
+    # Log and post each tier
     for tier, tier_pools in tiers.items():
-        new_pools = [p for p in tier_pools if p['address'] not in seen_pools]
-        
-        if new_pools:
-            logger.info(f"Found {len(new_pools)} NEW pools in {tier} tier")
-            post_to_discord(new_pools, tier)
-        else:
-            logger.info(f"No new pools in {tier} tier")
-    
-    # Post toppools (always, not deduped — it's a snapshot)
+        logger.info(f"Tier {tier}: {len(tier_pools)} pools")
+        if tier_pools:
+            post_to_discord(tier_pools, tier)
+
+    # Post toppools snapshot
     if WEBHOOK_TOPPOOLS:
         top_pools = fetch_toppools(limit=20)
         if top_pools:
             logger.info(f"Fetched {len(top_pools)} top pools by liquidity")
             post_toppools_to_discord(top_pools)
 
-    # Update seen pools
-    if current_addresses:
-        seen_pools.update(current_addresses)
-        save_seen_pools(seen_pools)
-        logger.info(f"Updated state with {len(seen_pools)} total seen pools")
+    logger.info("Kill Feed cycle complete.")
 
 
 if __name__ == "__main__":
