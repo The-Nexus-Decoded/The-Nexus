@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 KILLFEED_URL = os.getenv("KILLFEED_URL", "http://100.104.166.53:8002/killfeed")
+TOPPOOLS_URL = os.getenv("TOPPOOLS_URL", "http://100.104.166.53:8002/toppools")
 
 # Tiered Discord webhooks
-WEBHOOK_EXTREME = os.getenv("DISCORD_WEBHOOK_EXTREME")  # 200%+
-WEBHOOK_KILLER = os.getenv("DISCORD_WEBHOOK_KILLER")    # 100-200%
-WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")      # 50-100%
+WEBHOOK_EXTREME = os.getenv("DISCORD_WEBHOOK_EXTREME")   # 200%+
+WEBHOOK_KILLER = os.getenv("DISCORD_WEBHOOK_KILLER")     # 100-200%
+WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")       # 50-100%
+WEBHOOK_TOPPOOLS = os.getenv("DISCORD_WEBHOOK_TOPPOOLS") # Top by liquidity
 
 STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.json")
 MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "50"))  # Baseline: 50%
@@ -227,13 +229,68 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
         logger.error(f"Failed to post to {tier} channel: {e}")
 
 
+def fetch_toppools(limit: int = 20) -> List[Dict[str, Any]]:
+    """Fetch top pools by liquidity from /toppools endpoint."""
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                TOPPOOLS_URL,
+                params={"limit": limit},
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("pools", [])
+        except Exception as e:
+            logger.warning(f"Toppools fetch attempt {attempt + 1}/3 failed: {e}")
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    logger.error("Failed to fetch toppools after 3 attempts")
+    return []
+
+
+def post_toppools_to_discord(pools: List[Dict[str, Any]]):
+    """Post top pools by liquidity to the toppools channel."""
+    if not WEBHOOK_TOPPOOLS:
+        logger.warning("No webhook configured for toppools (DISCORD_WEBHOOK_TOPPOOLS)")
+        return
+    if not pools:
+        return
+
+    embeds = []
+    for pool in pools[:10]:
+        embed = {
+            "title": f"💧 {pool.get('name', 'Unknown')}",
+            "url": get_pool_url(pool.get("address", "")),
+            "color": 0x0099FF,
+            "fields": format_pool_fields(pool),
+            "footer": {"text": f"Hugh Top Pools | Min Liquidity: ${MIN_LIQUIDITY:,.0f}"},
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        embeds.append(embed)
+
+    payload = {
+        "content": f"💧 **TOP POOLS by Liquidity** — {len(pools)} pools",
+        "embeds": embeds
+    }
+    if len(pools) > 10:
+        payload["content"] += f"\n_+{len(pools) - 10} more_"
+
+    try:
+        response = requests.post(WEBHOOK_TOPPOOLS, json=payload, timeout=10)
+        response.raise_for_status()
+        logger.info(f"Posted {len(pools)} toppools to toppools channel")
+    except Exception as e:
+        logger.error(f"Failed to post to toppools channel: {e}")
+
+
 def main():
     """Main loop - check for new pools and post to tiered Discord channels."""
     logger.info("Kill Feed Discord Poster (TIERED) starting...")
     
     # Validate webhooks configured
-    if not any([WEBHOOK_EXTREME, WEBHOOK_KILLER, WEBHOOK_ALPHA]):
-        logger.warning("No Discord webhooks configured! Set DISCORD_WEBHOOK_EXTREME/KILL/ALPHA")
+    if not any([WEBHOOK_EXTREME, WEBHOOK_KILLER, WEBHOOK_ALPHA, WEBHOOK_TOPPOOLS]):
+        logger.warning("No Discord webhooks configured! Set DISCORD_WEBHOOK_EXTREME/KILLER/ALPHA/TOPPOOLS")
         return
     
     seen_pools = load_seen_pools()
@@ -277,6 +334,13 @@ def main():
         else:
             logger.info(f"No new pools in {tier} tier")
     
+    # Post toppools (always, not deduped — it's a snapshot)
+    if WEBHOOK_TOPPOOLS:
+        top_pools = fetch_toppools(limit=20)
+        if top_pools:
+            logger.info(f"Fetched {len(top_pools)} top pools by liquidity")
+            post_toppools_to_discord(top_pools)
+
     # Update seen pools
     if current_addresses:
         seen_pools.update(current_addresses)
