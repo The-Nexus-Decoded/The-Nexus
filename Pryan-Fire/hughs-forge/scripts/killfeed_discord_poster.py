@@ -134,10 +134,10 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     fee = pool.get('fee', '0')
     
     # Format values
-    # Cap APY at 200% for display (Sterol's call)
-    APY_CAP = 200
+    # Cap APY at 500% for display (Sterol's call)
+    APY_CAP = 500
     if apy > APY_CAP:
-        apy_str = f"200%+"
+        apy_str = f"500%+"
     else:
         apy_str = f"{apy:,.1f}%" if apy and apy > 0 else "N/A"
     liquidity_str = f"${liquidity:,.0f}" if liquidity else "$0"
