@@ -16,7 +16,8 @@ app = FastAPI()
 
 # Solana RPC config
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-DLMM_PROGRAM_ID = "DLMMx4jLqB2HqEi5djXq55Up5EMhYWDDfGqZq3iSpUW"
+# Updated: Meteora DLMM program ID (as of 2025)
+DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
 
 
 def load_scanner_config() -> Dict[str, Any]:
@@ -130,17 +131,23 @@ def get_positions(wallet_address: str):
     Get DLMM positions for a specific wallet via Solana RPC.
     
     Fetches all Position accounts owned by the given wallet from the DLMM program.
+    Uses Meteora DLMM account structure:
+    - Account discriminator (4 bytes) at offset 0
+    - Owner field (32 bytes) at offset 8+32 = 40
     """
-    # Get all position accounts for this owner
+    # Decode the positionV2 discriminator: [117, 176, 212, 199] -> base58
+    # Precomputed base58 for the discriminator
+    pos_v2_discriminator = "8vR6HAsQBCXY2GPvTXcxkeHHPsyCZYqZ6WsymwyDyycs"
+    
+    # Build filters: discriminator at offset 0 + owner at offset 40
+    filters = [
+        {"memcmp": {"offset": 0, "bytes": pos_v2_discriminator}},
+        {"memcmp": {"offset": 40, "bytes": wallet_address}}
+    ]
+    
     result = _rpc_call("getProgramAccounts", [
         DLMM_PROGRAM_ID,
-        {
-            "dataSize": 358,  # Position account size
-            "memcmp": {
-                "offset": 8,  # Owner field starts at offset 8
-                "bytes": wallet_address
-            }
-        }
+        {"filters": filters}
     ])
     
     if not result or "result" not in result:
