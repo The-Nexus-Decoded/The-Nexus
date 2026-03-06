@@ -84,7 +84,7 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
 
 def get_pool_url(address: str) -> str:
     """Get clickable Meteora URL for pool."""
-    return f"https://www.meteora.ag/pools/{address}"
+    return f"https://www.meteora.ag/dlmm/{address}"
 
 
 # Cache for DexScreener URLs (avoid repeated API calls)
