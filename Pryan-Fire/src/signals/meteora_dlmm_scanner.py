@@ -179,11 +179,29 @@ class MeteoraDLMMScanner:
                 return []
             data = resp.json()
             pools = data if isinstance(data, list) else data.get("data", [])
+            
+            # Filter for DLMM v2 pools only (exclude DAMM v1)
+            # v2 pools DON'T have program_id field, v1 pools DO have it
+            v2_pools = []
+            for pool in pools:
+                pool_program_id = pool.get("program_id", "")
+                # v2 pools have no program_id field (or it's empty) - these are DLMM v2
+                # v1 pools have a program_id field pointing to old DAMM program
+                if not pool_program_id:
+                    v2_pools.append(pool)
+                # Also keep pools that explicitly use the DLMM program
+                elif pool_program_id == self.dlmm_program_id:
+                    v2_pools.append(pool)
+            
+            self._stats["v1_filtered"] = len(pools) - len(v2_pools)
+            if self._stats.get("v1_filtered", 0) > 0:
+                logger.info(f"Filtered out {self._stats['v1_filtered']} v1 pools, keeping {len(v2_pools)} v2 pools")
+            
             # Slice to max_pools to avoid processing all 136k
-            pools = pools[:self.max_pools]
-            self._stats["pools_fetched"] += len(pools)
-            logger.info(f"Fetched {len(pools)} DLMM pools from Meteora (capped from {len(data)})")
-            return pools
+            v2_pools = v2_pools[:self.max_pools]
+            self._stats["pools_fetched"] += len(v2_pools)
+            logger.info(f"Fetched {len(v2_pools)} DLMM pools from Meteora (capped from {len(data)})")
+            return v2_pools
         except requests.Timeout:
             logger.error("Meteora API request timed out")
             self._stats["errors"] += 1

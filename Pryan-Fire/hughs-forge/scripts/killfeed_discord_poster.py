@@ -84,7 +84,7 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
 
 def get_pool_url(address: str) -> str:
     """Get clickable Meteora URL for pool."""
-    return f"https://www.meteora.ag/dlmm/{address}"
+    return f"https://app.meteora.ag/dlmm/{address}?referrer=portfolio"
 
 
 # Cache for DexScreener URLs (avoid repeated API calls)
@@ -134,7 +134,12 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     fee = pool.get('fee', '0')
     
     # Format values
-    apy_str = f"{apy:,.1f}%" if apy and apy > 0 else "N/A"
+    # Cap APY at 200% for display (Sterol's call)
+    APY_CAP = 200
+    if apy > APY_CAP:
+        apy_str = f"200%+"
+    else:
+        apy_str = f"{apy:,.1f}%" if apy and apy > 0 else "N/A"
     liquidity_str = f"${liquidity:,.0f}" if liquidity else "$0"
     volume_str = f"${volume:,.0f}" if volume else "$0"
     

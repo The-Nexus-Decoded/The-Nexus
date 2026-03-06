@@ -9,9 +9,9 @@ class JupiterService:
     Isolated Jupiter Service Wrapper.
     Uses Jupiter V6 API for routing to avoid dependency conflicts.
     """
-    # Try public failover first, fallback to standard
+    # Ultra v1 endpoint (v1 deprecated)
     ENDPOINTS = [
-        "https://api.jup.ag/swap/v1",
+        "https://api.jup.ag/ultra/v1",
         "https://quote-api.jup.ag/v6",
     ]
 
