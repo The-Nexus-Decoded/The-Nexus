@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.4.0"
+SERVICE_VERSION = "1.5.1"
 
 app = FastAPI()
 
@@ -22,6 +22,10 @@ DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
 # Shyft API for position queries (free tier)
 SHYFT_API_KEY = os.getenv("SHYFT_API_KEY", "")
 SHYFT_GRAPHQL_URL = "https://programs.shyft.to/v0/graphql/accounts"
+
+# Position cache to avoid hitting Shyft rate limits (free tier: 1 req/sec)
+_position_cache: Dict[str, Dict[str, Any]] = {}
+POSITION_CACHE_TTL_SECONDS = 60  # Cache for 60 seconds
 
 
 def load_scanner_config() -> Dict[str, Any]:
@@ -154,13 +158,24 @@ def get_bot_positions():
     result["wallet_type"] = "bot"
     return result
 
-def get_positions_internal(wallet_address: str):
+def get_positions_internal(wallet_address: str, use_cache: bool = True):
     """
     Get DLMM positions for a specific wallet via Shyft API.
     
     Uses Shyft's GraphQL API to query Meteora DLMM positions.
     Requires SHYFT_API_KEY env var to be set.
+    Implements caching to avoid hitting free tier rate limits (1 req/sec).
     """
+    # Check cache first
+    cache_key = f"positions_{wallet_address}"
+    if use_cache and cache_key in _position_cache:
+        cached = _position_cache[cache_key]
+        age = (datetime.datetime.utcnow() - cached["cached_at"]).total_seconds()
+        if age < POSITION_CACHE_TTL_SECONDS:
+            cached["data"]["cached"] = True
+            cached["data"]["cache_age_seconds"] = int(age)
+            return cached["data"]
+    
     if not SHYFT_API_KEY:
         return {
             "wallet": wallet_address,
@@ -211,14 +226,24 @@ def get_positions_internal(wallet_address: str):
         
         all_positions = positions_v2 + positions_v1
         
-        return {
+        result = {
             "wallet": wallet_address,
             "positions": all_positions,
             "count": len(all_positions),
             "position_v2_count": len(positions_v2),
             "position_v1_count": len(positions_v1),
-            "source": "Shyft API"
+            "source": "Shyft API",
+            "cached": False,
+            "cache_age_seconds": 0
         }
+        
+        # Cache the result
+        _position_cache[cache_key] = {
+            "data": result,
+            "cached_at": datetime.datetime.utcnow()
+        }
+        
+        return result
         
     except Exception as e:
         return {
