@@ -83,6 +83,30 @@ _scanner_state = {
     "errors": 0,
 }
 
+def _calculate_usd_liquidity(pool: Dict[str, Any]) -> float:
+    """Calculate USD liquidity for a pool from reserve amounts."""
+    USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    reserve_x = float(pool.get("reserve_x_amount", 0))
+    reserve_y = float(pool.get("reserve_y_amount", 0))
+    mint_x = pool.get("mint_x", "")
+    mint_y = pool.get("mint_y", "")
+
+    if mint_y == USDC_MINT:
+        usd = reserve_y / 1_000_000
+        current_price = float(pool.get("current_price", 0))
+        if current_price > 0:
+            usd += (reserve_x * current_price) / 1e9
+        return usd
+    elif mint_x == USDC_MINT:
+        usd = reserve_x / 1_000_000
+        current_price = float(pool.get("current_price", 0))
+        if current_price > 0:
+            usd += (reserve_y * current_price) / 1e9
+        return usd
+    else:
+        return float(pool.get("cumulative_fee_volume", 0))
+
+
 def _rpc_call(method: str, params: List[Any]) -> Optional[Dict]:
     """Make a Solana RPC call."""
     try:
@@ -171,10 +195,12 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
     - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
     
-    min_apy = min_apy or SCANNER_CONFIG["min_apy"]
-    min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
+    if min_apy is None:
+        min_apy = SCANNER_CONFIG["min_apy"]
+    if min_liquidity is None:
+        min_liquidity = SCANNER_CONFIG["min_liquidity"]
     limit = min(limit, 500)  # Cap at 500
-    
+
     try:
         # Fetch from Meteora API
         response = requests.get(
@@ -182,59 +208,29 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             timeout=30
         )
         pools = response.json()
-        
+
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
-        
-        # Apply filters - calculate USD liquidity
+
         filtered = []
         for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-                
-                # Calculate USD liquidity from reserves
-                reserve_x = float(pool.get("reserve_x_amount", 0))
-                reserve_y = float(pool.get("reserve_y_amount", 0))
-                mint_x = pool.get("mint_x", "")
-                mint_y = pool.get("mint_y", "")
-                
-                # Estimate USD value
-                # USDC mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
-                USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-                
-                usd_liquidity = 0.0
-                
-                if mint_y == USDC_MINT:
-                    # mint_y is USDC - reserve_y is in USDC (6 decimals)
-                    usd_liquidity = reserve_y / 1_000_000
-                    # Add estimate for mint_x using current_price
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_x * current_price) / 1e9
-                elif mint_x == USDC_MINT:
-                    # mint_x is USDC
-                    usd_liquidity = reserve_x / 1_000_000
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_y * current_price) / 1e9
-                else:
-                    # No USDC pair - use cumulative fee volume as proxy
-                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
-                
+                usd_liquidity = _calculate_usd_liquidity(pool)
+
                 if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
-                    # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
+                    display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
-                        "mint_x": mint_x,
-                        "mint_y": mint_y,
+                        "mint_x": pool.get("mint_x"),
+                        "mint_y": pool.get("mint_y"),
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
-                    
+
                     if len(filtered) >= limit:
                         break
             except (ValueError, TypeError, ZeroDivisionError):
@@ -274,67 +270,47 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
     - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
     
-    min_apy = min_apy or SCANNER_CONFIG["min_apy"]
-    min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
-    
+    if min_apy is None:
+        min_apy = SCANNER_CONFIG["min_apy"]
+    if min_liquidity is None:
+        min_liquidity = SCANNER_CONFIG["min_liquidity"]
+
     try:
         response = requests.get(
             "https://dlmm-api.meteora.ag/pair/all",
             timeout=30
         )
         pools = response.json()
-        
+
         if not isinstance(pools, list):
-            return {"error": "Invalid API response", "pools": []}
-        
-        USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-        
+            return {"error": "Invalid API response", "killfeed": []}
+
         filtered = []
         for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-                
-                reserve_x = float(pool.get("reserve_x_amount", 0))
-                reserve_y = float(pool.get("reserve_y_amount", 0))
-                mint_x = pool.get("mint_x", "")
-                mint_y = pool.get("mint_y", "")
-                
-                usd_liquidity = 0.0
-                
-                if mint_y == USDC_MINT:
-                    usd_liquidity = reserve_y / 1_000_000
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_x * current_price) / 1e9
-                elif mint_x == USDC_MINT:
-                    usd_liquidity = reserve_x / 1_000_000
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_y * current_price) / 1e9
-                else:
-                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
-                
+                usd_liquidity = _calculate_usd_liquidity(pool)
+
                 if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
-                    # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
+                    display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
-                        "mint_x": mint_x,
-                        "mint_y": mint_y,
+                        "mint_x": pool.get("mint_x"),
+                        "mint_y": pool.get("mint_y"),
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
-                        "reserve_x": int(reserve_x),
-                        "reserve_y": int(reserve_y),
+                        "reserve_x": int(float(pool.get("reserve_x_amount", 0))),
+                        "reserve_y": int(float(pool.get("reserve_y_amount", 0))),
                     })
             except (ValueError, TypeError, ZeroDivisionError):
                 continue
-        
+
         # Sort by APY descending
         filtered.sort(key=lambda x: x["apy"], reverse=True)
-        
+
         return {
             "killfeed": filtered,
             "count": len(filtered),
@@ -346,6 +322,70 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
         }
     except Exception as e:
         return {"error": str(e), "killfeed": []}
+
+@app.get("/toppools")
+def get_toppools(limit: int = 20, min_liquidity: float = None, min_apy: float = None):
+    """
+    Top Pools - sorted by USD liquidity descending.
+
+    Query params:
+    - limit: max pools to return (default 20, max 100)
+    - min_liquidity: minimum liquidity in USD (default from config)
+    - min_apy: minimum APY filter (default 0 — all pools)
+    """
+    if min_liquidity is None:
+        min_liquidity = SCANNER_CONFIG["min_liquidity"]
+    if min_apy is None:
+        min_apy = 0.0
+    limit = min(limit, 100)
+
+    try:
+        response = requests.get(
+            "https://dlmm-api.meteora.ag/pair/all",
+            timeout=30
+        )
+        pools = response.json()
+
+        if not isinstance(pools, list):
+            return {"error": "Invalid API response", "pools": []}
+
+        filtered = []
+        for pool in pools:
+            try:
+                pool_apy = float(pool.get("apy", 0))
+                usd_liquidity = _calculate_usd_liquidity(pool)
+
+                if usd_liquidity >= min_liquidity and pool_apy >= min_apy and pool_apy < 1000:
+                    display_apy = min(pool_apy, 500.0)
+                    filtered.append({
+                        "address": pool.get("address"),
+                        "name": pool.get("name"),
+                        "mint_x": pool.get("mint_x"),
+                        "mint_y": pool.get("mint_y"),
+                        "liquidity_usd": round(usd_liquidity, 2),
+                        "apy": round(display_apy, 2),
+                        "fee": pool.get("base_fee_percentage"),
+                        "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
+                    })
+            except (ValueError, TypeError, ZeroDivisionError):
+                continue
+
+        # Sort by liquidity descending
+        filtered.sort(key=lambda x: x["liquidity_usd"], reverse=True)
+
+        return {
+            "pools": filtered[:limit],
+            "count": min(len(filtered), limit),
+            "total_matched": len(filtered),
+            "filters": {
+                "min_liquidity_usd": min_liquidity,
+                "min_apy": min_apy,
+            },
+            "total_pools_scanned": len(pools)
+        }
+    except Exception as e:
+        return {"error": str(e), "pools": []}
+
 
 def start_orchestrator_health_server(port=8002):
     """Starts the health server using uvicorn."""
