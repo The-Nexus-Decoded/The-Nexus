@@ -242,7 +242,7 @@ def build_wallet_embed(wallet_name: str, wallet_config: Dict[str, Any], wallet_d
     return embed
 
 
-def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[str, float]) -> Dict[str, Any]:
+def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[str, float], include_buttons: bool = True) -> Dict[str, Any]:
     """Build embed for a single position."""
     pool_name = position.get("pool_name", "Unknown")
     meteora_url = position.get("meteora_url", "")
@@ -252,6 +252,7 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
     upper_bin = position.get("upper_bin_id", 0)
     active_bin = position.get("active_bin_id", 0)
     mint_x = position.get("mint_x", "")
+    position_addr = position.get("position", "")
     
     # Color based on PnL
     color = 0x00FF00 if pnl.get("pnl_usd", 0) >= 0 else 0xFF0000
@@ -267,7 +268,7 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
     embed_url = meteora_url if meteora_url and meteora_url.strip() else None
     
     embed = {
-        "title": pool_name,
+        "title": f"{pool_name}",
         "url": embed_url,
         "color": color,
         "fields": [
@@ -283,8 +284,43 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
             {"name": "Bin Range", "value": f"{lower_bin}-{upper_bin} (Active: {active_bin})", "inline": False},
             {"name": "Links", "value": f"[Meteora]({meteora_url}) | [DexScreener]({get_dexscreener_url(mint_x)})", "inline": False},
             {"name": "Automation", "value": automation_str, "inline": False},
+            {"name": "Position", "value": f"`{position_addr[:8]}...{position_addr[-6:]}`", "inline": False},
         ],
     }
+    
+    # Add action buttons for SL/TP management if requested
+    if include_buttons and position_addr:
+        embed["components"] = [
+            {
+                "type": 1,  # Action Row
+                "components": [
+                    {
+                        "type": 2,  # Button
+                        "style": 1,  # Primary
+                        "label": "Set SL",
+                        "custom_id": f"sl_set_{position_addr}",
+                    },
+                    {
+                        "type": 2,
+                        "style": 1,
+                        "label": "Set TP",
+                        "custom_id": f"tp_set_{position_addr}",
+                    },
+                    {
+                        "type": 2,
+                        "style": 2,  # Secondary
+                        "label": "Close",
+                        "custom_id": f"pos_close_{position_addr}",
+                    },
+                    {
+                        "type": 2,
+                        "style": 2,
+                        "label": "Rebalance",
+                        "custom_id": f"pos_rebalance_{position_addr}",
+                    },
+                ]
+            }
+        ]
     
     return embed
 
@@ -357,7 +393,38 @@ def post_embeds_to_discord(webhook_url: str, embeds: List[Dict[str, Any]]) -> Li
     return message_ids
 
 
-def process_wallet(wallet_name: str, wallet_config: Dict[str, Any], wallet_data: Dict[str, Any], state: Dict[str, Any]) -> List[Dict[str, Any]]:
+def post_single_position_to_discord(webhook_url: str, embed: Dict[str, Any]) -> Optional[str]:
+    """Post a single position embed to Discord with buttons, return message ID."""
+    if not webhook_url:
+        logger.warning("No Discord webhook URL configured")
+        return None
+    
+    # Append wait=true to get message ID back
+    webhook_url = webhook_url.strip()
+    if "?" not in webhook_url:
+        webhook_url += "?wait=true"
+    elif "wait=" not in webhook_url:
+        webhook_url += "&wait=true"
+    
+    payload = {"embeds": [embed]}
+    
+    try:
+        response = requests.post(webhook_url, json=payload, timeout=10)
+        response.raise_for_status()
+        
+        # Extract message ID from response
+        if response.json():
+            msg_id = response.json().get("id")
+            if msg_id:
+                logger.info(f"Posted single position embed, message ID: {msg_id}")
+                return str(msg_id)
+    except Exception as e:
+        logger.error(f"Failed to post single position embed to Discord: {e}")
+    
+    return None
+
+
+def process_wallet(wallet_name: str, wallet_config: Dict[str, Any], wallet_data: Dict[str, Any], state: Dict[str, Any], separate_positions: bool = False) -> List[Dict[str, Any]]:
     """Process a single wallet and return embeds."""
     positions = wallet_data.get("positions", [])
     
@@ -427,6 +494,10 @@ def main():
     total_embeds = 0
     total_messages = 0
 
+    # Check config for separate position posting mode
+    monitor_config = config.get("monitor", {})
+    separate_positions = monitor_config.get("post_each_position_separately", False)
+
     # Process each configured wallet — each posts to its own webhook/channel
     for wallet_name, wallet_config in config_wallets.items():
         wallet_address = wallet_config.get("address", "")
@@ -454,9 +525,15 @@ def main():
         for pos in wallet_data.get("positions", []):
             pos["automation"] = automation
 
-        # Process wallet → embeds
-        embeds = process_wallet(wallet_name, wallet_config, wallet_data, state)
-        logger.info(f"Wallet {wallet_name}: {len(wallet_data.get('positions', []))} positions, {len(embeds)} embeds")
+        # Get or create wallet state
+        state_wallet = state.setdefault("wallets", {}).setdefault(wallet_name, {"positions": {}})
+
+        # Calculate PnL for all positions first
+        positions = wallet_data.get("positions", [])
+        for pos in positions:
+            position_addr = pos.get("position", "")
+            pnl = calculate_pnl(state_wallet, position_addr, pos)
+            pos["pnl"] = pnl
 
         # Delete previous messages for this wallet's channel
         if delete_prev:
@@ -464,11 +541,43 @@ def main():
             if prev_ids:
                 delete_previous_messages(webhook_url, prev_ids)
 
-        # Post to this wallet's channel
-        new_ids = post_embeds_to_discord(webhook_url, embeds)
-        state.setdefault("wallets", {}).setdefault(wallet_name, {})["last_message_ids"] = new_ids
+        new_ids = []
 
-        total_embeds += len(embeds)
+        if separate_positions:
+            # Mode: Each position gets its own message with action buttons
+            
+            # First post a summary embed
+            summary_embed = build_wallet_embed(wallet_name, wallet_config, wallet_data)
+            summary_msg_id = post_single_position_to_discord(webhook_url, summary_embed)
+            if summary_msg_id:
+                new_ids.append(summary_msg_id)
+                total_embeds += 1
+
+            # Then post each position as its own message with buttons
+            for pos in positions:
+                try:
+                    pnl = pos.get("pnl", {})
+                    # Include buttons for SL/TP management
+                    pos_embed = build_position_embed(wallet_name, pos, pnl, include_buttons=True)
+                    msg_id = post_single_position_to_discord(webhook_url, pos_embed)
+                    if msg_id:
+                        new_ids.append(msg_id)
+                        total_embeds += 1
+                except Exception as e:
+                    logger.error(f"Failed to build/post embed for position {pos.get('position', 'unknown')}: {e}")
+                    continue
+
+            logger.info(f"Wallet {wallet_name}: {len(positions)} positions posted separately with action buttons")
+        else:
+            # Mode: Original batched embeds (no buttons due to Discord embed limit)
+            embeds = process_wallet(wallet_name, wallet_config, wallet_data, state)
+            logger.info(f"Wallet {wallet_name}: {len(positions)} positions, {len(embeds)} embeds")
+
+            # Post to this wallet's channel
+            new_ids = post_embeds_to_discord(webhook_url, embeds)
+            total_embeds += len(embeds)
+
+        state.setdefault("wallets", {}).setdefault(wallet_name, {})["last_message_ids"] = new_ids
         total_messages += len(new_ids)
 
     # Run automation checks (SL/TP)

@@ -1,10 +1,11 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "monitor": {
     "enabled": true,
     "interval_minutes": 15,
     "health_server_url": "http://127.0.0.1:8002",
-    "state_file": "/data/openclaw/.position_monitor_state.json"
+    "state_file": "/data/openclaw/.position_monitor_state.json",
+    "post_each_position_separately": true
   },
   "discord": {
     "delete_previous_messages": true
@@ -21,7 +22,8 @@
         "notification_mode": "alert_owner",
         "alert_count": 3,
         "alert_interval_seconds": 60,
-        "auto_execute_after_alerts": true
+        "auto_execute_after_alerts": true,
+        "position_overrides": {}
       }
     },
     "bot": {
@@ -35,7 +37,8 @@
         "notification_mode": "auto_execute",
         "alert_count": 3,
         "alert_interval_seconds": 60,
-        "auto_execute_after_alerts": true
+        "auto_execute_after_alerts": true,
+        "position_overrides": {}
       }
     }
   },
