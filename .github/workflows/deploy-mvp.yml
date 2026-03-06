@@ -31,7 +31,9 @@ jobs:
 
           # 2. Sync Codebase
           cd /data/repos/The-Nexus
-          git pull origin main || git clone https://github.com/The-Nexus-Decoded/The-Nexus.git .
+          git fetch origin
+          git checkout main
+          git reset --hard origin/main
           cd Pryan-Fire
 
           # 3. Venv + Dependencies
