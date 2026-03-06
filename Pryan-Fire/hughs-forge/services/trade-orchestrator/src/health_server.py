@@ -327,6 +327,8 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -335,6 +337,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
@@ -421,6 +424,7 @@ def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int 
                 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -429,6 +433,7 @@ def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int 
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
                         "reserve_x": int(reserve_x),
@@ -509,6 +514,8 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -517,6 +524,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
                         "reserve_x": int(reserve_x),
