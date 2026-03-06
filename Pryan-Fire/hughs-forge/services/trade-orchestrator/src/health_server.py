@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import datetime
 import logging
 import os
-import time
+import asyncio
 import requests
 import json
 from typing import Optional, List, Dict, Any
@@ -10,60 +10,13 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.5.0"
+SERVICE_VERSION = "1.3.0"
 
 app = FastAPI()
 
 # Solana RPC config
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-# Meteora DLMM program ID
-DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
-
-# Shyft API for position queries (fallback)
-SHYFT_API_KEY = os.getenv("SHYFT_API_KEY", "")
-SHYFT_GRAPHQL_URL = "https://programs.shyft.to/v0/graphql/accounts"
-
-# Wallet config
-OWNER_WALLET = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
-BOT_WALLET = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
-
-# Rate limiter for external API calls (Shyft free tier: 1 req/sec)
-_last_shyft_call = 0.0
-SHYFT_MIN_INTERVAL = 1.0  # seconds between calls
-
-# Wallet-specific profit rules (configured per Lord Xar's request)
-# Each wallet can have different take-profit %, stop-loss %, alert thresholds
-WALLET_RULES = {
-    "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb": {  # Owner wallet
-        "name": "owner",
-        "take_profit_pct": 50.0,      # Close at 50% profit
-        "stop_loss_pct": -10.0,       # Close at -10% loss
-        "alert_at_pct": 30.0,         # Alert at 30% profit
-        "rebalance_at_pct": 75.0,     # Rebalance/harvest at 75%
-    },
-    "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x": {  # Bot wallet
-        "name": "bot",
-        "take_profit_pct": 20.0,      # Close at 20% profit (aggressive)
-        "stop_loss_pct": -5.0,        # Tight stop-loss
-        "alert_at_pct": 10.0,         # Alert early
-        "rebalance_at_pct": 25.0,     # Harvest frequently
-    },
-}
-
-def load_wallet_rules() -> Dict[str, Dict]:
-    """Load wallet rules from env var JSON override."""
-    rules_json = os.getenv("WALLET_RULES_JSON", "")
-    if rules_json:
-        try:
-            custom_rules = json.loads(rules_json)
-            WALLET_RULES.update(custom_rules)
-            logger.info(f"Loaded custom wallet rules: {list(custom_rules.keys())}")
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse WALLET_RULES_JSON: {e}")
-    return WALLET_RULES
-
-# Load any custom rules at startup
-load_wallet_rules()
+DLMM_PROGRAM_ID = "DLMMx4jLqB2HqEi5djXq55Up5EMhYWDDfGqZq3iSpUW"
 
 
 def load_scanner_config() -> Dict[str, Any]:
@@ -78,7 +31,7 @@ def load_scanner_config() -> Dict[str, Any]:
         "max_pools": 500,
         "devnet": False,
     }
-
+    
     default_paths = [
         "/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
         "/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
@@ -86,7 +39,7 @@ def load_scanner_config() -> Dict[str, Any]:
         "/opt/openclaw/hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
         "./hughs-forge/services/trade-orchestrator/config/orchestrator_config.json",
     ]
-
+    
     for path in default_paths:
         if os.path.exists(path):
             try:
@@ -98,7 +51,7 @@ def load_scanner_config() -> Dict[str, Any]:
             except Exception as e:
                 logger.warning(f"Failed to load config from {path}: {e}")
             break
-
+    
     # Override with env vars
     if os.getenv("METEORA_MIN_APY"):
         config["min_apy"] = float(os.getenv("METEORA_MIN_APY"))
@@ -114,7 +67,7 @@ def load_scanner_config() -> Dict[str, Any]:
         config["max_pools"] = int(os.getenv("METEORA_MAX_POOLS"))
     if os.getenv("METEORA_DEVNET"):
         config["devnet"] = os.getenv("METEORA_DEVNET").lower() == "true"
-
+    
     return config
 
 
@@ -144,113 +97,6 @@ def _rpc_call(method: str, params: List[Any]) -> Optional[Dict]:
         logger.error(f"RPC call failed: {e}")
         return None
 
-
-def _query_positions_helius(wallet_address: str) -> Optional[List]:
-    """Try to get positions via Helius/Solana RPC (getProgramAccounts)."""
-    pos_v2_discriminator = "LgkNAEYaVX3"
-    filters = [
-        {"memcmp": {"offset": 0, "bytes": pos_v2_discriminator}},
-        {"memcmp": {"offset": 40, "bytes": wallet_address}}
-    ]
-    result = _rpc_call("getProgramAccounts", [
-        DLMM_PROGRAM_ID,
-        {"filters": filters}
-    ])
-    if result and "result" in result and len(result["result"]) > 0:
-        return result["result"]
-    return None
-
-
-def _query_positions_shyft(wallet_address: str) -> Optional[List]:
-    """Try to get positions via Shyft GraphQL API (fallback)."""
-    global _last_shyft_call
-
-    if not SHYFT_API_KEY:
-        return None
-
-    # Rate limit: 1 req/sec for free tier
-    now = time.time()
-    elapsed = now - _last_shyft_call
-    if elapsed < SHYFT_MIN_INTERVAL:
-        time.sleep(SHYFT_MIN_INTERVAL - elapsed)
-
-    query = """
-    query GetPositions($wallet: String!) {
-        meteora_dlmm_PositionV2(
-            where: {owner: {_eq: $wallet}}
-        ) {
-            upperBinId
-            lowerBinId
-            totalClaimedFeeYAmount
-            totalClaimedFeeXAmount
-            lbPair
-            owner
-        }
-        meteora_dlmm_Position(
-            where: {owner: {_eq: $wallet}}
-        ) {
-            lbPair
-            lowerBinId
-            upperBinId
-            totalClaimedFeeYAmount
-            totalClaimedFeeXAmount
-            owner
-        }
-    }
-    """
-    variables = {"wallet": wallet_address}
-
-    try:
-        _last_shyft_call = time.time()
-        response = requests.post(
-            f"{SHYFT_GRAPHQL_URL}?network=mainnet-beta",
-            json={"query": query, "variables": variables},
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": SHYFT_API_KEY,
-            },
-            timeout=30
-        )
-        data = response.json()
-        positions_v2 = data.get("data", {}).get("meteora_dlmm_PositionV2", [])
-        positions_v1 = data.get("data", {}).get("meteora_dlmm_Position", [])
-        return positions_v2 + positions_v1
-    except Exception as e:
-        logger.error(f"Shyft API call failed: {e}")
-        return None
-
-
-def _get_positions_for_wallet(wallet_address: str) -> Dict:
-    """Get positions for a wallet. Tries Helius first, falls back to Shyft."""
-    # Try Helius RPC first
-    positions = _query_positions_helius(wallet_address)
-    if positions is not None:
-        return {
-            "wallet": wallet_address,
-            "positions": positions,
-            "count": len(positions),
-            "source": "Helius RPC",
-        }
-
-    # Fall back to Shyft
-    positions = _query_positions_shyft(wallet_address)
-    if positions is not None:
-        return {
-            "wallet": wallet_address,
-            "positions": positions,
-            "count": len(positions),
-            "source": "Shyft API",
-        }
-
-    # Both failed
-    return {
-        "wallet": wallet_address,
-        "positions": [],
-        "count": 0,
-        "error": "Both Helius RPC and Shyft API failed. Check SOLANA_RPC_URL and SHYFT_API_KEY.",
-    }
-
-
 @app.get("/health")
 def health_check():
     """Standardized health endpoint for fleet monitoring."""
@@ -263,171 +109,72 @@ def health_check():
 
 @app.get("/dashboard")
 def get_dashboard():
-    """DLMM Scanner Dashboard - returns scanner config, status, and position info."""
+    """
+    DLMM Scanner Dashboard - returns scanner config, status, and position info.
+    """
     return {
         "service": "Meteora DLMM Scanner",
         "version": SERVICE_VERSION,
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
         "config": SCANNER_CONFIG,
         "scanner_state": _scanner_state,
-        "owner_wallet": OWNER_WALLET,
-        "bot_wallet": BOT_WALLET,
-        "wallet_rules": WALLET_RULES,
-        "endpoints": {
-            "owner_positions": "/positions/owner",
-            "bot_positions": "/positions/bot",
-            "all_positions": "/positions",
-            "monitored": "/monitor/positions",
-            "rules": "/monitor/rules",
-            "pools": "/pools",
-        },
-        "note": "Configure custom rules per wallet via WALLET_RULES_JSON env var",
-        "shyft_api_configured": bool(SHYFT_API_KEY),
+        "trading_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "NOT_CONFIGURED"),
+        "positions_endpoint": "/positions/{wallet_address}",
+        "pools_endpoint": "/pools",
+        "note": "Use /positions/{wallet_address} to check DLMM positions"
     }
-
-@app.get("/positions/owner")
-def get_owner_positions():
-    """Get DLMM positions for the owner wallet."""
-    result = _get_positions_for_wallet(OWNER_WALLET)
-    result["wallet_type"] = "owner"
-    return result
-
-@app.get("/positions/bot")
-def get_bot_positions():
-    """Get DLMM positions for the bot/trading wallet."""
-    result = _get_positions_for_wallet(BOT_WALLET)
-    result["wallet_type"] = "bot"
-    return result
-
-
-
-
 
 @app.get("/positions/{wallet_address}")
 def get_positions(wallet_address: str):
-    """Get DLMM positions for any wallet address."""
-    return _get_positions_for_wallet(wallet_address)
-
-@app.get("/positions")
-def get_all_positions():
     """
-    Get DLMM positions for both owner and bot wallets.
-    Returns combined position data for monitoring.
-    """
-    owner_result = _get_positions_for_wallet(OWNER_WALLET)
-    bot_result = _get_positions_for_wallet(BOT_WALLET)
-
-    return {
-        "owner_wallet": OWNER_WALLET,
-        "bot_wallet": BOT_WALLET,
-        "owner_positions": owner_result.get("positions", []),
-        "owner_count": owner_result.get("count", 0),
-        "bot_positions": bot_result.get("positions", []),
-        "bot_count": bot_result.get("count", 0),
-        "total_positions": owner_result.get("count", 0) + bot_result.get("count", 0),
-        "shyft_configured": bool(SHYFT_API_KEY)
-    }
-
-@app.get("/monitor/positions")
-def get_monitored_positions():
-    """
-    Get positions with profit rule analysis per wallet.
-    Shows which positions are hitting profit/loss thresholds based on each wallet's rules.
+    Get DLMM positions for a specific wallet via Solana RPC.
     
-    Each wallet has configurable rules:
-    - take_profit_pct: Close position at this profit %
-    - stop_loss_pct: Close position at this loss %
-    - alert_at_pct: Send alert when profit reaches this %
-    - rebalance_at_pct: Harvest/rebalance when profit reaches this %
-    
-    Override via WALLET_RULES_JSON env var.
+    Fetches all Position accounts owned by the given wallet from the DLMM program.
     """
-    owner_result = _get_positions_for_wallet(OWNER_WALLET)
-    bot_result = _get_positions_for_wallet(BOT_WALLET)
-
-    # Get rules for each wallet
-    owner_rules = WALLET_RULES.get(OWNER_WALLET, {"name": "owner", "take_profit_pct": 50.0})
-    bot_rules = WALLET_RULES.get(BOT_WALLET, {"name": "bot", "take_profit_pct": 20.0})
-    
-    def analyze_positions(positions: List, rules: Dict, wallet_type: str) -> List[Dict]:
-        """Analyze positions against rules - returns simulated PnL (requires entry price tracking)."""
-        analyzed = []
-        for pos in positions:
-            # Note: Real implementation needs entry price from position history
-            # Here we show the rules that WOULD apply
-            analyzed.append({
-                "position": pos,
-                "rules": rules,
-                "wallet_type": wallet_type,
-                "note": "Entry price required for actual PnL calculation",
-                "would_trigger": {
-                    "take_profit": rules.get("take_profit_pct"),
-                    "stop_loss": rules.get("stop_loss_pct"),
-                    "alert_at": rules.get("alert_at_pct"),
-                    "rebalance_at": rules.get("rebalance_at_pct"),
-                }
-            })
-        return analyzed
-    
-    return {
-        "wallets": {
-            OWNER_WALLET: {
-                "name": "owner",
-                "rules": owner_rules,
-                "positions": analyze_positions(owner_result.get("positions", []), owner_rules, "owner"),
-                "position_count": owner_result.get("count", 0),
-            },
-            BOT_WALLET: {
-                "name": "bot",
-                "rules": bot_rules,
-                "positions": analyze_positions(bot_result.get("positions", []), bot_rules, "bot"),
-                "position_count": bot_result.get("count", 0),
-            }
-        },
-        "configure_rules": "Set WALLET_RULES_JSON env var with custom rules per wallet",
-        "example_rules": {
-            "take_profit_pct": 50.0,
-            "stop_loss_pct": -10.0,
-            "alert_at_pct": 30.0,
-            "rebalance_at_pct": 75.0
-        }
-    }
-
-@app.get("/monitor/rules")
-def get_wallet_rules():
-    """
-    Get all configured wallet rules.
-    Use this to see what rules are active for each wallet.
-    """
-    return {
-        "configured_wallets": WALLET_RULES,
-        "override_instructions": "Set WALLET_RULES_JSON env var as JSON to override defaults",
-        "example": {
-            "wallet_address": {
-                "name": "custom",
-                "take_profit_pct": 100.0,
-                "stop_loss_pct": -15.0,
-                "alert_at_pct": 50.0,
-                "rebalance_at_pct": 80.0
+    # Get all position accounts for this owner
+    result = _rpc_call("getProgramAccounts", [
+        DLMM_PROGRAM_ID,
+        {
+            "dataSize": 358,  # Position account size
+            "memcmp": {
+                "offset": 8,  # Owner field starts at offset 8
+                "bytes": wallet_address
             }
         }
+    ])
+    
+    if not result or "result" not in result:
+        return {
+            "wallet": wallet_address,
+            "positions": [],
+            "count": 0,
+            "error": result.get("error", {}).get("message") if result else "RPC call failed"
+        }
+    
+    positions = result["result"]
+    return {
+        "wallet": wallet_address,
+        "positions": positions,
+        "count": len(positions),
+        "dlmm_program": DLMM_PROGRAM_ID,
+        "note": "Raw positions returned. Decode using Meteora DLMM SDK for detailed info."
     }
 
 @app.get("/pools")
 def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None):
     """
     Get pools from Meteora DLMM API with optional filters.
-
+    
     Query params:
     - limit: max pools to return (default 100, max 500)
     - min_apy: filter by minimum APY (default from config)
     - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
-
+    
     min_apy = min_apy or SCANNER_CONFIG["min_apy"]
     min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
     limit = min(limit, 500)  # Cap at 500
-
+    
     try:
         # Fetch from Meteora API
         response = requests.get(
@@ -435,40 +182,47 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             timeout=30
         )
         pools = response.json()
-
+        
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
-
+        
         # Apply filters - calculate USD liquidity
         filtered = []
-        USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
         for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-
+                
+                # Calculate USD liquidity from reserves
                 reserve_x = float(pool.get("reserve_x_amount", 0))
                 reserve_y = float(pool.get("reserve_y_amount", 0))
                 mint_x = pool.get("mint_x", "")
                 mint_y = pool.get("mint_y", "")
-
+                
+                # Estimate USD value
+                # USDC mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+                USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+                
                 usd_liquidity = 0.0
-
+                
                 if mint_y == USDC_MINT:
+                    # mint_y is USDC - reserve_y is in USDC (6 decimals)
                     usd_liquidity = reserve_y / 1_000_000
+                    # Add estimate for mint_x using current_price
                     current_price = float(pool.get("current_price", 0))
                     if current_price > 0:
                         usd_liquidity += (reserve_x * current_price) / 1e9
                 elif mint_x == USDC_MINT:
+                    # mint_x is USDC
                     usd_liquidity = reserve_x / 1_000_000
                     current_price = float(pool.get("current_price", 0))
                     if current_price > 0:
                         usd_liquidity += (reserve_y * current_price) / 1e9
                 else:
+                    # No USDC pair - use cumulative fee volume as proxy
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
-
+                
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -477,16 +231,15 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
-                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
-
+                    
                     if len(filtered) >= limit:
                         break
-            except (ValueError, TypeError, ZeroDivisionError):
+            except (ValueTypeError, TypeError, ZeroDivisionError):
                 continue
-
+        
         return {
             "pools": filtered,
             "count": len(filtered),
@@ -510,137 +263,44 @@ def update_scanner_state(running: bool, last_poll: str = None, pools_fetched: in
         "errors": errors,
     }
 
-@app.get("/toppools")
-def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int = 20):
-    """
-    Top Pools - High-yield pools sorted by liquidity (descending).
-    Shows pools with the highest liquidity that also meet APY threshold.
-    
-    Query params:
-    - min_apy: filter by minimum APY (default from config)
-    - min_liquidity: filter by minimum liquidity in USD (default from config)
-    - limit: max number of pools to return (default 20)
-    """
-    
-    min_apy = min_apy or SCANNER_CONFIG["min_apy"]
-    min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
-    limit = min(limit, 500)  # Cap at 500
-    
-    try:
-        response = requests.get(
-            "https://dlmm-api.meteora.ag/pair/all",
-            timeout=30
-        )
-        pools = response.json()
-        
-        if not isinstance(pools, list):
-            return {"error": "Invalid API response", "pools": []}
-        
-        USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-        
-        filtered = []
-        for pool in pools:
-            try:
-                pool_apy = float(pool.get("apy", 0))
-                
-                reserve_x = float(pool.get("reserve_x_amount", 0))
-                reserve_y = float(pool.get("reserve_y_amount", 0))
-                mint_x = pool.get("mint_x", "")
-                mint_y = pool.get("mint_y", "")
-                
-                usd_liquidity = 0.0
-                
-                if mint_y == USDC_MINT:
-                    usd_liquidity = reserve_y / 1_000_000
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_x * current_price) / 1e9
-                elif mint_x == USDC_MINT:
-                    usd_liquidity = reserve_x / 1_000_000
-                    current_price = float(pool.get("current_price", 0))
-                    if current_price > 0:
-                        usd_liquidity += (reserve_y * current_price) / 1e9
-                else:
-                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
-                
-                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
-                    # Cap APY at 10000% to filter out API data errors
-                    is_capped = pool_apy > 10000.0
-                    display_apy = min(pool_apy, 500.0)
-                    filtered.append({
-                        "address": pool.get("address"),
-                        "name": pool.get("name"),
-                        "mint_x": mint_x,
-                        "mint_y": mint_y,
-                        "liquidity_usd": round(usd_liquidity, 2),
-                        "apy": round(display_apy, 2),
-                        "apy_capped": is_capped,
-                        "fee": pool.get("base_fee_percentage"),
-                        "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
-                        "reserve_x": int(reserve_x),
-                        "reserve_y": int(reserve_y),
-                    })
-            except (ValueError, TypeError, ZeroDivisionError):
-                continue
-        
-        # Sort by liquidity descending (largest first)
-        filtered.sort(key=lambda x: x["liquidity_usd"], reverse=True)
-        
-        # Apply limit
-        limited = filtered[:limit]
-        
-        return {
-            "toppools": limited,
-            "count": len(limited),
-            "filters": {
-                "min_apy": min_apy,
-                "min_liquidity_usd": min_liquidity
-            },
-            "total_pools_scanned": len(pools),
-            "total_matching": len(filtered)
-        }
-    except Exception as e:
-        return {"error": str(e), "toppools": []}
-
-
 @app.get("/killfeed")
 def get_killfeed(min_apy: float = None, min_liquidity: float = None):
     """
-    DEPRECATED: Use /toppools instead.
     Kill Feed - ALL pools matching threshold with full details.
-
+    Shows every pool that passes the filter criteria.
+    
     Query params:
     - min_apy: filter by minimum APY (default from config)
     - min_liquidity: filter by minimum liquidity in USD (default from config)
     """
-
+    
     min_apy = min_apy or SCANNER_CONFIG["min_apy"]
     min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
-
+    
     try:
         response = requests.get(
             "https://dlmm-api.meteora.ag/pair/all",
             timeout=30
         )
         pools = response.json()
-
+        
         if not isinstance(pools, list):
             return {"error": "Invalid API response", "pools": []}
-
+        
         USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-
+        
         filtered = []
         for pool in pools:
             try:
                 pool_apy = float(pool.get("apy", 0))
-
+                
                 reserve_x = float(pool.get("reserve_x_amount", 0))
                 reserve_y = float(pool.get("reserve_y_amount", 0))
                 mint_x = pool.get("mint_x", "")
                 mint_y = pool.get("mint_y", "")
-
+                
                 usd_liquidity = 0.0
-
+                
                 if mint_y == USDC_MINT:
                     usd_liquidity = reserve_y / 1_000_000
                     current_price = float(pool.get("current_price", 0))
@@ -653,10 +313,9 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         usd_liquidity += (reserve_y * current_price) / 1e9
                 else:
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
-
+                
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -665,18 +324,17 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
-                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
                         "reserve_x": int(reserve_x),
                         "reserve_y": int(reserve_y),
                     })
-            except (ValueError, TypeError, ZeroDivisionError):
+            except (ValueTypeError, TypeError, ZeroDivisionError):
                 continue
-
+        
         # Sort by APY descending
         filtered.sort(key=lambda x: x["apy"], reverse=True)
-
+        
         return {
             "killfeed": filtered,
             "count": len(filtered),
