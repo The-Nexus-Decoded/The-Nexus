@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.5.1"
+SERVICE_VERSION = "1.5.2"
 
 app = FastAPI()
 
@@ -22,6 +22,34 @@ DLMM_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
 # Shyft API for position queries (free tier)
 SHYFT_API_KEY = os.getenv("SHYFT_API_KEY", "")
 SHYFT_GRAPHQL_URL = "https://programs.shyft.to/v0/graphql/accounts"
+
+# Rate limiting for Shyft API (free tier: 1 req/sec, Build: 10 req/sec)
+# Track requests in sliding window
+from collections import deque
+import time
+
+_shyft_request_timestamps: deque = deque()
+SHYFT_MAX_REQUESTS_PER_SECOND = 1  # Free tier
+SHYFT_RATE_LIMIT_BUFFER = 0.1  # 10% buffer for safety
+
+def _check_rate_limit() -> bool:
+    """Check if we're within rate limit. Returns True if we can make a request."""
+    now = time.time()
+    window = 1.0  # 1 second window
+    
+    # Remove old timestamps outside the window
+    while _shyft_request_timestamps and now - _shyft_request_timestamps[0] > window:
+        _shyft_request_timestamps.popleft()
+    
+    # Check if we're at the limit
+    max_allowed = SHYFT_MAX_REQUESTS_PER_SECOND * (1 + SHYFT_RATE_LIMIT_BUFFER)
+    if len(_shyft_request_timestamps) >= max_allowed:
+        logger.warning(f"Shyft rate limit reached: {len(_shyft_request_timestamps)} req/s")
+        return False
+    
+    # Add current timestamp
+    _shyft_request_timestamps.append(now)
+    return True
 
 # Position cache to avoid hitting Shyft rate limits (free tier: 1 req/sec)
 _position_cache: Dict[str, Dict[str, Any]] = {}
@@ -183,6 +211,24 @@ def get_positions_internal(wallet_address: str, use_cache: bool = True):
             "count": 0,
             "error": "SHYFT_API_KEY not configured. Set SHYFT_API_KEY env var.",
             "solution": "Get free API key at https://shyft.to"
+        }
+    
+    # Check rate limit before making request
+    if not _check_rate_limit():
+        # Try to return cached data even if expired
+        if cache_key in _position_cache:
+            cached = _position_cache[cache_key]
+            cached["data"]["cached"] = True
+            cached["data"]["cache_age_seconds"] = int((datetime.datetime.utcnow() - cached["cached_at"]).total_seconds())
+            cached["data"]["rate_limited"] = True
+            logger.warning(f"Returning stale cache due to rate limit for {wallet_address}")
+            return cached["data"]
+        return {
+            "wallet": wallet_address,
+            "positions": [],
+            "count": 0,
+            "error": "Shyft API rate limit exceeded. Try again later.",
+            "solution": f"Free tier limited to {SHYFT_MAX_REQUESTS_PER_SECOND} req/sec"
         }
     
     try:
