@@ -27,8 +27,8 @@ KILLFEED_URL = os.getenv("KILLFEED_URL", "http://100.104.166.53:8002/killfeed")
 
 # Tiered Discord webhooks
 WEBHOOK_EXTREME = os.getenv("DISCORD_WEBHOOK_EXTREME")  # 200%+
-WEBHOOK_KILL = os.getenv("DISCORD_WEBHOOK_KILL")         # 100-200%
-WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")       # 50-100%
+WEBHOOK_KILLER = os.getenv("DISCORD_WEBHOOK_KILLER")    # 100-200%
+WEBHOOK_ALPHA = os.getenv("DISCORD_WEBHOOK_ALPHA")      # 50-100%
 
 STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.json")
 MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "50"))  # Baseline: 50%
@@ -36,7 +36,7 @@ MIN_LIQUIDITY = float(os.getenv("KILLFEED_MIN_LIQUIDITY", "5000"))
 
 # APY thresholds for tiers
 APY_EXTREME = 200  # 200%+
-APY_KILL = 100     # 100-200%
+APY_KILLER = 100   # 100-200%
 APY_ALPHA = 50     # 50-100%
 
 os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
@@ -133,8 +133,8 @@ def get_tier(apy: float) -> str:
     """Determine APY tier for a pool."""
     if apy >= APY_EXTREME:
         return "extreme"
-    elif apy >= APY_KILL:
-        return "kill"
+    elif apy >= APY_KILLER:
+        return "killer"
     else:
         return "alpha"
 
@@ -177,7 +177,7 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
     """Post new pools to the appropriate tier channel."""
     webhook_url = {
         "extreme": WEBHOOK_EXTREME,
-        "kill": WEBHOOK_KILL,
+        "killer": WEBHOOK_KILLER,
         "alpha": WEBHOOK_ALPHA,
     }.get(tier)
     
@@ -187,7 +187,7 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
     
     tier_names = {
         "extreme": "⚡ EXTREME (200%+)",
-        "kill": "🗡️ KILL (100-200%)", 
+        "killer": "🗡️ KILLER (100-200%)", 
         "alpha": "📈 ALPHA (50-100%)"
     }
     
@@ -202,7 +202,7 @@ def post_to_discord(pools: List[Dict[str, Any]], tier: str):
         embed = {
             "title": f"🚀 {pool.get('name', 'Unknown')}",
             "url": get_pool_url(pool['address']),
-            "color": {"extreme": 0xFF0000, "kill": 0xFF6600, "alpha": 0x00FF00}.get(tier, 0x00FF00),
+            "color": {"extreme": 0xFF0000, "killer": 0xFF6600, "alpha": 0x00FF00}.get(tier, 0x00FF00),
             "fields": format_pool_fields(pool),
             "footer": {"text": f"Haplo Kill Feed | Min APY: {MIN_APY}%"},
             "timestamp": datetime.utcnow().isoformat() + "Z"
@@ -232,7 +232,7 @@ def main():
     logger.info("Kill Feed Discord Poster (TIERED) starting...")
     
     # Validate webhooks configured
-    if not any([WEBHOOK_EXTREME, WEBHOOK_KILL, WEBHOOK_ALPHA]):
+    if not any([WEBHOOK_EXTREME, WEBHOOK_KILLER, WEBHOOK_ALPHA]):
         logger.warning("No Discord webhooks configured! Set DISCORD_WEBHOOK_EXTREME/KILL/ALPHA")
         return
     
@@ -249,7 +249,7 @@ def main():
     valid_pools = [p for p in pools if p.get('address') and p.get('name')]
     
     # Group pools by tier
-    tiers = {"extreme": [], "kill": [], "alpha": []}
+    tiers = {"extreme": [], "killer": [], "alpha": []}
     
     for pool in valid_pools:
         try:
