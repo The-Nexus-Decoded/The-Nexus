@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "monitor": {
+    "enabled": true,
+    "interval_minutes": 15,
+    "health_server_url": "http://127.0.0.1:8002",
+    "state_file": "/data/openclaw/.position_monitor_state.json"
+  },
+  "discord": {
+    "delete_previous_messages": true
+  },
+  "wallets": {
+    "owner": {
+      "address": "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb",
+      "label": "Lord Xar (Owner)",
+      "automation": {
+        "enabled": false,
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 50.0,
+        "notification_mode": "alert_owner"
+      }
+    },
+    "bot": {
+      "address": "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x",
+      "label": "Hugh (Bot)",
+      "automation": {
+        "enabled": false,
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 50.0,
+        "notification_mode": "auto_execute"
+      }
+    }
+  }
+}

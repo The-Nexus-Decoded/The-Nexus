@@ -47,6 +47,12 @@ jobs:
           cp ${TRADE_DIR}/patryn-trader.service ~/.config/systemd/user/patryn-trader.service
           systemctl --user daemon-reload
 
+          # Install position monitor timer
+          cp hughs-forge/scripts/position-monitor.service ~/.config/systemd/user/position-monitor.service
+          cp hughs-forge/scripts/position-monitor.timer ~/.config/systemd/user/position-monitor.timer
+          systemctl --user daemon-reload
+          systemctl --user enable --now position-monitor.timer || echo "Position monitor timer not enabled"
+
           # 5. Restart service
           systemctl --user restart patryn-trader || echo "Systemd service not found"
           systemctl --user status patryn-trader --no-pager || true

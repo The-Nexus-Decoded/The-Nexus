@@ -201,7 +201,10 @@ def _parse_position(raw: Dict[str, Any]) -> Dict[str, Any]:
     pubkey = raw["pubkey"]
     data = base64.b64decode(raw["account"]["data"][0])
     lb_pair = _bytes_to_base58(data[8:40])
-    return {"position": pubkey, "lb_pair": lb_pair}
+    # Bin range from position binary data (DLMM V2 PositionV2 struct)
+    lower_bin_id = struct.unpack_from("<i", data, 72)[0]
+    upper_bin_id = struct.unpack_from("<i", data, 76)[0]
+    return {"position": pubkey, "lb_pair": lb_pair, "lower_bin_id": lower_bin_id, "upper_bin_id": upper_bin_id}
 
 
 def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -222,6 +225,9 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     enriched = []
     for p in parsed:
         pool = pool_cache.get(p["lb_pair"], {})
+        active_bin_id = int(pool.get("active_id", 0))
+        lower_bin = p.get("lower_bin_id", 0)
+        upper_bin = p.get("upper_bin_id", 0)
         enriched.append({
             "position": p["position"],
             "lb_pair": p["lb_pair"],
@@ -233,6 +239,16 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "mint_x": pool.get("mint_x", ""),
             "mint_y": pool.get("mint_y", ""),
             "meteora_url": f"https://app.meteora.ag/dlmm/{p['lb_pair']}",
+            # New fields from Meteora API
+            "active_bin_id": active_bin_id,
+            "bin_step": int(pool.get("bin_step", 0)),
+            "current_price": float(pool.get("current_price", 0)),
+            "fees_24h": float(pool.get("today_fees", 0)),
+            "cumulative_fee_volume": float(pool.get("cumulative_fee_volume", 0)),
+            # Bin range from position data
+            "lower_bin_id": lower_bin,
+            "upper_bin_id": upper_bin,
+            "in_range": lower_bin <= active_bin_id <= upper_bin,
         })
     return enriched
 
