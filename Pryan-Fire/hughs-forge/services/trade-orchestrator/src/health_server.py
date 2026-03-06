@@ -123,7 +123,8 @@ def get_dashboard():
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
         "config": SCANNER_CONFIG,
         "scanner_state": _scanner_state,
-        "trading_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "DkEwend5Cjiz4edwMKSfgQtNBqzSF4iAzFNJhVrGcxBh"),
+        "owner_wallet": os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb"),
+        "bot_wallet": os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x"),
         "positions_endpoint": "/positions/{wallet_address}",
         "pools_endpoint": "/pools",
         "note": "Use /positions/{wallet_address} to check DLMM positions",
@@ -131,8 +132,29 @@ def get_dashboard():
         "api_note": "Position queries require SHYFT_API_KEY. Get free key at https://shyft.to"
     }
 
-@app.get("/positions/{wallet_address}")
-def get_positions(wallet_address: str):
+@app.get("/positions/owner")
+def get_owner_positions():
+    """
+    Get DLMM positions for the owner wallet.
+    Owner wallet holds the main Meteora positions.
+    """
+    owner_wallet = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
+    result = get_positions_internal(owner_wallet)
+    result["wallet_type"] = "owner"
+    return result
+
+@app.get("/positions/bot")
+def get_bot_positions():
+    """
+    Get DLMM positions for the bot/trading wallet.
+    Bot wallet holds active trading positions.
+    """
+    bot_wallet = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
+    result = get_positions_internal(bot_wallet)
+    result["wallet_type"] = "bot"
+    return result
+
+def get_positions_internal(wallet_address: str):
     """
     Get DLMM positions for a specific wallet via Shyft API.
     
@@ -205,6 +227,34 @@ def get_positions(wallet_address: str):
             "count": 0,
             "error": str(e)
         }
+
+@app.get("/positions/{wallet_address}")
+def get_positions(wallet_address: str):
+    """Get positions for a specific wallet address."""
+    return get_positions_internal(wallet_address)
+
+@app.get("/positions")
+def get_all_positions():
+    """
+    Get DLMM positions for both owner and bot wallets.
+    Returns combined position data for monitoring.
+    """
+    owner_wallet = os.getenv("OWNER_WALLET_PUBLIC_KEY", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb")
+    bot_wallet = os.getenv("TRADING_WALLET_PUBLIC_KEY", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
+    
+    owner_result = get_positions_internal(owner_wallet)
+    bot_result = get_positions_internal(bot_wallet)
+    
+    return {
+        "owner_wallet": owner_wallet,
+        "bot_wallet": bot_wallet,
+        "owner_positions": owner_result.get("positions", []),
+        "owner_count": owner_result.get("count", 0),
+        "bot_positions": bot_result.get("positions", []),
+        "bot_count": bot_result.get("count", 0),
+        "total_positions": owner_result.get("count", 0) + bot_result.get("count", 0),
+        "shyft_configured": bool(SHYFT_API_KEY)
+    }
 
 @app.get("/pools")
 def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None):
@@ -283,7 +333,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     
                     if len(filtered) >= limit:
                         break
-            except (ValueTypeError, TypeError, ZeroDivisionError):
+            except (ValueError, TypeError, ZeroDivisionError):
                 continue
         
         return {
@@ -375,7 +425,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "reserve_x": int(reserve_x),
                         "reserve_y": int(reserve_y),
                     })
-            except (ValueTypeError, TypeError, ZeroDivisionError):
+            except (ValueError, TypeError, ZeroDivisionError):
                 continue
         
         # Sort by APY descending
