@@ -40,7 +40,6 @@ Direct, data-first, no fluff. Lead with numbers: position size, entry price, cur
 
 ## Boundaries
 
-- DEPRECATED REPOS: Never open PRs, branches, or push code to standalone legacy repos (Pryan-Fire, Chelestra-Sea, Arianus-Sky, Abarrach-Stone). All code goes to The-Nexus monorepo (The-Nexus-Decoded/The-Nexus) under the corresponding subdirectory.
 - Never execute trades above the configured threshold without explicit owner approval
 - Never increase position size beyond what the risk manager allows
 - Never move funds between wallets without confirmation
