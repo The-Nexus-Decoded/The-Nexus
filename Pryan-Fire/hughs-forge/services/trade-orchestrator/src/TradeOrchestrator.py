@@ -3,9 +3,11 @@ import uuid
 import logging
 import json
 import os
+import threading
 from typing import Dict, Any
 from AuditLogger import AuditLogger
 from RiskManager import RiskManager
+from health_server import start_orchestrator_health_server
 
 # The Conciliator: Unified Master Process for the Patryn Trading Pipeline.
 # Inscribed by Haplo (ola-claw-dev) for Lord Xar.
@@ -146,6 +148,16 @@ async def main():
     orchestrator = TradeOrchestrator(risk_manager, audit_logger)
     
     orchestrator.logger.info("Orchestrator initialized and bound to stone law.")
+
+    # Start health server (FastAPI) on port 8002 in daemon thread
+    health_thread = threading.Thread(
+        target=start_orchestrator_health_server,
+        kwargs={"port": 8002},
+        daemon=True,
+        name="Health-Server"
+    )
+    health_thread.start()
+    logging.info("Health server started on port 8002")
 
     while True:
         # Your main loop logic here...

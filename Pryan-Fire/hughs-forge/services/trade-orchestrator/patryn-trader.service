@@ -1,16 +1,16 @@
 [Unit]
-Description=Patryn Trade Orchestrator
-After=network.target
+Description=Hugh's Trade Orchestrator
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-User=openclaw
 WorkingDirectory=/data/repos/The-Nexus/Pryan-Fire
 ExecStart=/data/repos/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/start-patryn-trader.sh
 Restart=always
 RestartSec=10
-StandardOutput=append:/var/log/patryn-trader.log
-StandardError=append:/var/log/patryn-trader.log
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target
