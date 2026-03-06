@@ -6,7 +6,6 @@ import os
 import asyncio
 import requests
 import json
-import math
 import struct
 from typing import Optional, List, Dict, Any
 
@@ -224,6 +223,18 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Meteora API error for {pair_addr}: {e}")
 
+    # Fetch active_bin_id from lb_pair on-chain account (offset 76 confirmed via binary scan)
+    lb_pair_active_ids: Dict[str, int] = {}
+    for pair_addr in lb_pairs:
+        try:
+            res = _rpc_call("getAccountInfo", [pair_addr, {"encoding": "base64"}])
+            if res and res.get("result", {}).get("value"):
+                lp_data = base64.b64decode(res["result"]["value"]["data"][0])
+                if len(lp_data) > 80:
+                    lb_pair_active_ids[pair_addr] = struct.unpack_from("<i", lp_data, 76)[0]
+        except Exception as e:
+            logger.warning(f"lb_pair active_id fetch failed for {pair_addr}: {e}")
+
     # Fetch per-position data (fee_apy_24h, total_fee_usd_claimed)
     position_cache: Dict[str, Dict[str, Any]] = {}
     for p in parsed:
@@ -241,17 +252,10 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         pool = pool_cache.get(p["lb_pair"], {})
         pos_data = position_cache.get(p["position"], {})
 
-        # Calculate active_bin_id from current_price and bin_step
-        # Formula: bin_id = log(price) / log(1 + bin_step/10000)
+        # active_bin_id from on-chain lb_pair account (offset 76, confirmed via binary scan)
         current_price = float(pool.get("current_price", 0))
         bin_step = int(pool.get("bin_step", 0))
-        if current_price > 0 and bin_step > 0:
-            try:
-                active_bin_id = int(math.log(current_price) / math.log(1 + bin_step / 10000))
-            except (ValueError, ZeroDivisionError):
-                active_bin_id = 0
-        else:
-            active_bin_id = 0
+        active_bin_id = lb_pair_active_ids.get(p["lb_pair"], 0)
 
         lower_bin = p.get("lower_bin_id", 0)
         upper_bin = p.get("upper_bin_id", 0)
