@@ -4,3 +4,4 @@ solders
 httpx
 fastapi
 uvicorn[standard]
+requests

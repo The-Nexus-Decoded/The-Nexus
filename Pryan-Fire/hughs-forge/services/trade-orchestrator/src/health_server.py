@@ -327,6 +327,8 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -335,6 +337,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": pool.get("trade_volume_24h"),
                     })
@@ -367,9 +370,103 @@ def update_scanner_state(running: bool, last_poll: str = None, pools_fetched: in
         "errors": errors,
     }
 
+@app.get("/toppools")
+def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int = 20):
+    """
+    Top Pools - High-yield pools sorted by liquidity (descending).
+    Shows pools with the highest liquidity that also meet APY threshold.
+    
+    Query params:
+    - min_apy: filter by minimum APY (default from config)
+    - min_liquidity: filter by minimum liquidity in USD (default from config)
+    - limit: max number of pools to return (default 20)
+    """
+    
+    min_apy = min_apy or SCANNER_CONFIG["min_apy"]
+    min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
+    limit = min(limit, 500)  # Cap at 500
+    
+    try:
+        response = requests.get(
+            "https://dlmm-api.meteora.ag/pair/all",
+            timeout=30
+        )
+        pools = response.json()
+        
+        if not isinstance(pools, list):
+            return {"error": "Invalid API response", "pools": []}
+        
+        USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        
+        filtered = []
+        for pool in pools:
+            try:
+                pool_apy = float(pool.get("apy", 0))
+                
+                reserve_x = float(pool.get("reserve_x_amount", 0))
+                reserve_y = float(pool.get("reserve_y_amount", 0))
+                mint_x = pool.get("mint_x", "")
+                mint_y = pool.get("mint_y", "")
+                
+                usd_liquidity = 0.0
+                
+                if mint_y == USDC_MINT:
+                    usd_liquidity = reserve_y / 1_000_000
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_x * current_price) / 1e9
+                elif mint_x == USDC_MINT:
+                    usd_liquidity = reserve_x / 1_000_000
+                    current_price = float(pool.get("current_price", 0))
+                    if current_price > 0:
+                        usd_liquidity += (reserve_y * current_price) / 1e9
+                else:
+                    usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
+                
+                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
+                    display_apy = min(pool_apy, 10000.0)
+                    filtered.append({
+                        "address": pool.get("address"),
+                        "name": pool.get("name"),
+                        "mint_x": mint_x,
+                        "mint_y": mint_y,
+                        "liquidity_usd": round(usd_liquidity, 2),
+                        "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
+                        "fee": pool.get("base_fee_percentage"),
+                        "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
+                        "reserve_x": int(reserve_x),
+                        "reserve_y": int(reserve_y),
+                    })
+            except (ValueError, TypeError, ZeroDivisionError):
+                continue
+        
+        # Sort by liquidity descending (largest first)
+        filtered.sort(key=lambda x: x["liquidity_usd"], reverse=True)
+        
+        # Apply limit
+        limited = filtered[:limit]
+        
+        return {
+            "toppools": limited,
+            "count": len(limited),
+            "filters": {
+                "min_apy": min_apy,
+                "min_liquidity_usd": min_liquidity
+            },
+            "total_pools_scanned": len(pools),
+            "total_matching": len(filtered)
+        }
+    except Exception as e:
+        return {"error": str(e), "toppools": []}
+
+
 @app.get("/killfeed")
 def get_killfeed(min_apy: float = None, min_liquidity: float = None):
     """
+    DEPRECATED: Use /toppools instead.
     Kill Feed - ALL pools matching threshold with full details.
 
     Query params:
@@ -418,6 +515,8 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
 
                 if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                    # Cap APY at 10000% to filter out API data errors
+                    is_capped = pool_apy > 10000.0
                     display_apy = min(pool_apy, 10000.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -426,6 +525,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "mint_y": mint_y,
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_capped": is_capped,
                         "fee": pool.get("base_fee_percentage"),
                         "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
                         "reserve_x": int(reserve_x),
