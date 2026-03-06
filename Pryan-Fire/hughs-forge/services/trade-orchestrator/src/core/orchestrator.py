@@ -11,7 +11,7 @@ class TradeOrchestrator:
         self.logger = logging.getLogger("TradeOrchestrator")
         self.dry_run = dry_run
         self.state_manager = TradeStateManager(db_path)
-        self.rpc_integrator = RpcIntegrator()
+        self.rpc_integrator = RpcIntegrator(dry_run=dry_run)
         self.MAX_AUTO_TRADE_USD = 250.0
 
     def process_signal(self, signal_data: Dict[str, Any]) -> str:
