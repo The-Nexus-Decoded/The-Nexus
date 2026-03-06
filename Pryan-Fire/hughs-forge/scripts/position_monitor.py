@@ -37,8 +37,6 @@ HEALTH_SERVER_URL = os.getenv("HEALTH_SERVER_URL", "http://127.0.0.1:8002")
 MAX_HISTORY = 96  # 24 hours of 15-min intervals
 DISCORD_MAX_EMBEDS = 10
 
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
 
 def load_config() -> Optional[Dict[str, Any]]:
     """Load config from one of the known paths."""
@@ -60,7 +58,7 @@ def load_state() -> Dict[str, Any]:
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, 'r') as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
                 try:
                     data = json.load(f)
                     return data
@@ -365,19 +363,19 @@ def process_wallet(wallet_name: str, wallet_config: Dict[str, Any], wallet_data:
     
     embeds = []
     
-    # First embed is summary
+    # First, calculate PnL for ALL positions (so summary can access it)
+    for pos in positions:
+        position_addr = pos.get("position", "")
+        pnl = calculate_pnl(state_wallet, position_addr, pos)
+        pos["pnl"] = pnl
+    
+    # Now build summary embed (PnL is now populated in positions)
     summary_embed = build_wallet_embed(wallet_name, wallet_config, wallet_data)
     embeds.append(summary_embed)
     
     # Then individual position embeds
     for pos in positions:
-        position_addr = pos.get("position", "")
-        
-        # Calculate PnL
-        pnl = calculate_pnl(state_wallet, position_addr, pos)
-        pos["pnl"] = pnl
-        
-        # Build position embed
+        pnl = pos.get("pnl", {})
         pos_embed = build_position_embed(wallet_name, pos, pnl)
         embeds.append(pos_embed)
     
@@ -387,6 +385,9 @@ def process_wallet(wallet_name: str, wallet_config: Dict[str, Any], wallet_data:
 def main():
     """Main function."""
     logger.info("Position Monitor starting...")
+    
+    # Ensure state directory exists
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
     
     # Check if enabled
     enabled = os.getenv("POSITION_MONITOR_ENABLED", "true").lower() == "true"
@@ -447,21 +448,17 @@ def main():
         
         logger.info(f"Wallet {wallet_name}: {len(wallet_data.get('positions', []))} positions")
     
-    # Delete previous messages
+    # Delete previous messages (stored at global level since all wallets share same channel)
     if config.get("discord", {}).get("delete_previous_messages", True):
-        for wallet_name in config_wallets.keys():
-            prev_ids = state.get("wallets", {}).get(wallet_name, {}).get("last_message_ids", [])
-            if prev_ids:
-                delete_previous_messages(webhook_url, prev_ids)
+        prev_ids = state.get("last_message_ids", [])
+        if prev_ids:
+            delete_previous_messages(webhook_url, prev_ids)
     
     # Post new embeds
     new_message_ids = post_embeds_to_discord(webhook_url, all_embeds)
     
-    # Update state with new message IDs
-    for wallet_name in config_wallets.keys():
-        if wallet_name not in state.setdefault("wallets", {}):
-            state["wallets"][wallet_name] = {}
-        state["wallets"][wallet_name]["last_message_ids"] = new_message_ids
+    # Update state with new message IDs (at global level)
+    state["last_message_ids"] = new_message_ids
     
     # Save state
     save_state(state)
