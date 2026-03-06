@@ -1,22 +1,51 @@
 from fastapi import FastAPI
+import base64
 import datetime
 import logging
 import os
 import asyncio
 import requests
 import json
+import struct
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 # Standard version for the fleet
-SERVICE_VERSION = "1.3.0"
+SERVICE_VERSION = "1.4.0"
 
 app = FastAPI()
 
 # Solana RPC config
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
-DLMM_PROGRAM_ID = "DLMMx4jLqB2HqEi5djXq55Up5EMhYWDDfGqZq3iSpUW"
+
+# DLMM program IDs
+DLMM_V2_PROGRAM_ID = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+POSITION_V2_DATA_SIZE = 8120
+POSITION_V2_OWNER_OFFSET = 40
+
+# Known wallets for fee display
+TRACKED_WALLETS = {
+    "owner": os.getenv("WALLET_OWNER", "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb"),
+    "bot": os.getenv("WALLET_BOT", "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x"),
+}
+
+_B58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def _bytes_to_base58(data: bytes) -> str:
+    """Convert raw bytes to base58 string."""
+    n = int.from_bytes(data, "big")
+    result = b""
+    while n > 0:
+        n, r = divmod(n, 58)
+        result = _B58_ALPHABET[r : r + 1] + result
+    for byte in data:
+        if byte == 0:
+            result = b"1" + result
+        else:
+            break
+    return result.decode()
 
 
 def load_scanner_config() -> Dict[str, Any]:
@@ -148,41 +177,137 @@ def get_dashboard():
         "note": "Use /positions/{wallet_address} to check DLMM positions"
     }
 
+def _find_dlmm_positions(wallet_address: str) -> List[Dict[str, Any]]:
+    """Find all DLMM V2 position accounts for a wallet."""
+    result = _rpc_call("getProgramAccounts", [
+        DLMM_V2_PROGRAM_ID,
+        {
+            "encoding": "base64",
+            "filters": [
+                {"dataSize": POSITION_V2_DATA_SIZE},
+                {"memcmp": {"offset": POSITION_V2_OWNER_OFFSET, "bytes": wallet_address}},
+            ],
+        },
+    ])
+    if not result or "result" not in result:
+        error = result.get("error", {}).get("message") if result else "RPC call failed"
+        logger.warning(f"Position lookup failed for {wallet_address}: {error}")
+        return []
+    return result["result"]
+
+
+def _parse_position(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse a raw DLMM V2 position account into a summary."""
+    pubkey = raw["pubkey"]
+    data = base64.b64decode(raw["account"]["data"][0])
+    lb_pair = _bytes_to_base58(data[8:40])
+    return {"position": pubkey, "lb_pair": lb_pair}
+
+
+def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Enrich parsed positions with pool info from Meteora API."""
+    # Dedupe lb_pairs to minimize API calls
+    lb_pairs = {p["lb_pair"] for p in parsed}
+    pool_cache: Dict[str, Dict[str, Any]] = {}
+    for pair_addr in lb_pairs:
+        try:
+            resp = requests.get(
+                f"https://dlmm-api.meteora.ag/pair/{pair_addr}", timeout=10
+            )
+            if resp.status_code == 200:
+                pool_cache[pair_addr] = resp.json()
+        except Exception as e:
+            logger.warning(f"Meteora API error for {pair_addr}: {e}")
+
+    enriched = []
+    for p in parsed:
+        pool = pool_cache.get(p["lb_pair"], {})
+        enriched.append({
+            "position": p["position"],
+            "lb_pair": p["lb_pair"],
+            "pool_name": pool.get("name", "Unknown"),
+            "apy": round(float(pool.get("apy", 0)), 2),
+            "base_fee": pool.get("base_fee_percentage", "?"),
+            "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
+            "liquidity_usd": round(_calculate_usd_liquidity(pool), 2) if pool else 0,
+            "mint_x": pool.get("mint_x", ""),
+            "mint_y": pool.get("mint_y", ""),
+            "meteora_url": f"https://app.meteora.ag/dlmm/{p['lb_pair']}",
+        })
+    return enriched
+
+
 @app.get("/positions/{wallet_address}")
 def get_positions(wallet_address: str):
     """
-    Get DLMM positions for a specific wallet via Solana RPC.
-    
-    Fetches all Position accounts owned by the given wallet from the DLMM program.
+    Get DLMM V2 positions for a wallet with pool info.
     """
-    # Get all position accounts for this owner
-    result = _rpc_call("getProgramAccounts", [
-        DLMM_PROGRAM_ID,
-        {
-            "dataSize": 358,  # Position account size
-            "memcmp": {
-                "offset": 8,  # Owner field starts at offset 8
-                "bytes": wallet_address
-            }
-        }
-    ])
-    
-    if not result or "result" not in result:
+    raw_positions = _find_dlmm_positions(wallet_address)
+    if not raw_positions:
         return {
             "wallet": wallet_address,
             "positions": [],
             "count": 0,
-            "error": result.get("error", {}).get("message") if result else "RPC call failed"
+            "dlmm_program": DLMM_V2_PROGRAM_ID,
         }
-    
-    positions = result["result"]
+
+    parsed = [_parse_position(r) for r in raw_positions]
+    enriched = _enrich_positions(parsed)
+
     return {
         "wallet": wallet_address,
-        "positions": positions,
-        "count": len(positions),
-        "dlmm_program": DLMM_PROGRAM_ID,
-        "note": "Raw positions returned. Decode using Meteora DLMM SDK for detailed info."
+        "positions": enriched,
+        "count": len(enriched),
+        "dlmm_program": DLMM_V2_PROGRAM_ID,
     }
+
+
+@app.get("/wallet-fees")
+def get_wallet_fees():
+    """
+    Read-only fee display for tracked wallets (owner + bot).
+
+    Shows DLMM positions, pool info, and current APY/volume for each wallet.
+    No management — display only.
+    """
+    timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+    wallets = {}
+
+    for name, address in TRACKED_WALLETS.items():
+        raw_positions = _find_dlmm_positions(address)
+        if not raw_positions:
+            wallets[name] = {
+                "wallet": address,
+                "positions": [],
+                "count": 0,
+                "sol_balance": _get_sol_balance(address),
+            }
+            continue
+
+        parsed = [_parse_position(r) for r in raw_positions]
+        enriched = _enrich_positions(parsed)
+
+        wallets[name] = {
+            "wallet": address,
+            "positions": enriched,
+            "count": len(enriched),
+            "sol_balance": _get_sol_balance(address),
+        }
+
+    return {
+        "timestamp": timestamp,
+        "wallets": wallets,
+        "version": SERVICE_VERSION,
+    }
+
+
+def _get_sol_balance(wallet: str) -> float:
+    """Get SOL balance for a wallet in SOL (not lamports)."""
+    result = _rpc_call("getBalance", [wallet])
+    if result and "result" in result:
+        lamports = result["result"].get("value", 0)
+        return round(lamports / 1e9, 6)
+    return 0.0
 
 @app.get("/pools")
 def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None, min_volume_24h: float = None):
