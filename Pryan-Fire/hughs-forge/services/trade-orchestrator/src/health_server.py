@@ -221,9 +221,9 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     # No USDC pair - use cumulative fee volume as proxy
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
-                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 500.0)
+                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -314,9 +314,9 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                 else:
                     usd_liquidity = float(pool.get("cumulative_fee_volume", 0))
                 
-                if pool_apy >= min_apy and usd_liquidity >= min_liquidity:
+                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
                     # Cap APY at 10000% to filter out API data errors
-                    display_apy = min(pool_apy, 500.0)
+                    display_apy = min(pool_apy, 500.0) if pool_apy < 1000 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
