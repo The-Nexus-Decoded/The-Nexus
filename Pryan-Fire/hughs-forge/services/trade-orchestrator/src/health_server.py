@@ -185,24 +185,26 @@ def get_positions(wallet_address: str):
     }
 
 @app.get("/pools")
-def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None):
+def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = None, min_volume_24h: float = None):
     """
     Get pools from Meteora DLMM API with optional filters.
-    
+
     Query params:
     - limit: max pools to return (default 100, max 500)
     - min_apy: filter by minimum APY (default from config)
     - min_liquidity: filter by minimum liquidity in USD (default from config)
+    - min_volume_24h: filter by minimum 24h volume in USD (default from config)
     """
-    
+
     if min_apy is None:
         min_apy = SCANNER_CONFIG["min_apy"]
     if min_liquidity is None:
         min_liquidity = SCANNER_CONFIG["min_liquidity"]
-    limit = min(limit, 500)  # Cap at 500
+    if min_volume_24h is None:
+        min_volume_24h = SCANNER_CONFIG["min_volume_24h"]
+    limit = min(limit, 500)
 
     try:
-        # Fetch from Meteora API
         response = requests.get(
             "https://dlmm-api.meteora.ag/pair/all",
             timeout=30
@@ -217,8 +219,11 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             try:
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
+                volume_24h = float(pool.get("trade_volume_24h", 0))
 
-                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
+                if (pool_apy >= min_apy and pool_apy < 1000
+                        and usd_liquidity >= min_liquidity
+                        and volume_24h >= min_volume_24h):
                     display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -228,7 +233,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
-                        "volume_24h": pool.get("trade_volume_24h"),
+                        "volume_24h": round(volume_24h, 2),
                     })
 
                     if len(filtered) >= limit:
@@ -241,7 +246,8 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
             "count": len(filtered),
             "filters": {
                 "min_apy": min_apy,
-                "min_liquidity_usd": min_liquidity
+                "min_liquidity_usd": min_liquidity,
+                "min_volume_24h": min_volume_24h,
             },
             "total_available": len(pools)
         }
@@ -260,20 +266,23 @@ def update_scanner_state(running: bool, last_poll: str = None, pools_fetched: in
     }
 
 @app.get("/killfeed")
-def get_killfeed(min_apy: float = None, min_liquidity: float = None):
+def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_24h: float = None):
     """
     Kill Feed - ALL pools matching threshold with full details.
     Shows every pool that passes the filter criteria.
-    
+
     Query params:
     - min_apy: filter by minimum APY (default from config)
     - min_liquidity: filter by minimum liquidity in USD (default from config)
+    - min_volume_24h: filter by minimum 24h volume in USD (default from config) — kills stale APY spikes
     """
-    
+
     if min_apy is None:
         min_apy = SCANNER_CONFIG["min_apy"]
     if min_liquidity is None:
         min_liquidity = SCANNER_CONFIG["min_liquidity"]
+    if min_volume_24h is None:
+        min_volume_24h = SCANNER_CONFIG["min_volume_24h"]
 
     try:
         response = requests.get(
@@ -291,7 +300,10 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
 
-                if pool_apy >= min_apy and pool_apy < 1000 and usd_liquidity >= min_liquidity:
+                volume_24h = float(pool.get("trade_volume_24h", 0))
+                if (pool_apy >= min_apy and pool_apy < 1000
+                        and usd_liquidity >= min_liquidity
+                        and volume_24h >= min_volume_24h):
                     display_apy = min(pool_apy, 500.0)
                     filtered.append({
                         "address": pool.get("address"),
@@ -301,7 +313,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
                         "fee": pool.get("base_fee_percentage"),
-                        "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
+                        "volume_24h": round(volume_24h, 2),
                         "reserve_x": int(float(pool.get("reserve_x_amount", 0))),
                         "reserve_y": int(float(pool.get("reserve_y_amount", 0))),
                     })
@@ -316,7 +328,8 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
             "count": len(filtered),
             "filters": {
                 "min_apy": min_apy,
-                "min_liquidity_usd": min_liquidity
+                "min_liquidity_usd": min_liquidity,
+                "min_volume_24h": min_volume_24h,
             },
             "total_pools_scanned": len(pools)
         }
