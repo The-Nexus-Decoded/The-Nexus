@@ -384,6 +384,7 @@ def get_toppools(min_apy: float = None, min_liquidity: float = None, limit: int 
     
     min_apy = min_apy or SCANNER_CONFIG["min_apy"]
     min_liquidity = min_liquidity or SCANNER_CONFIG["min_liquidity"]
+    limit = min(limit, 500)  # Cap at 500
     
     try:
         response = requests.get(
