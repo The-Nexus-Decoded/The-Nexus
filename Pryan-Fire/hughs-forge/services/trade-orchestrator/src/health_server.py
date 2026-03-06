@@ -283,7 +283,7 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                     
                     if len(filtered) >= limit:
                         break
-            except (ValueTypeError, TypeError, ZeroDivisionError):
+            except (ValueError, TypeError, ZeroDivisionError):
                 continue
         
         return {
@@ -375,7 +375,7 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None):
                         "reserve_x": int(reserve_x),
                         "reserve_y": int(reserve_y),
                     })
-            except (ValueTypeError, TypeError, ZeroDivisionError):
+            except (ValueError, TypeError, ZeroDivisionError):
                 continue
         
         # Sort by APY descending
