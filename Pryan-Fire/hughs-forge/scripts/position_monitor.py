@@ -263,9 +263,12 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
     automation = position.get("automation", {})
     automation_str = format_automation(automation)
     
+    # Only set URL if it's valid (Discord rejects empty strings)
+    embed_url = meteora_url if meteora_url and meteora_url.strip() else None
+    
     embed = {
         "title": pool_name,
-        "url": meteora_url,
+        "url": embed_url,
         "color": color,
         "fields": [
             {"name": "APR", "value": f"{apy:.1f}%", "inline": True},
@@ -378,9 +381,13 @@ def process_wallet(wallet_name: str, wallet_config: Dict[str, Any], wallet_data:
     
     # Then individual position embeds
     for pos in positions:
-        pnl = pos.get("pnl", {})
-        pos_embed = build_position_embed(wallet_name, pos, pnl)
-        embeds.append(pos_embed)
+        try:
+            pnl = pos.get("pnl", {})
+            pos_embed = build_position_embed(wallet_name, pos, pnl)
+            embeds.append(pos_embed)
+        except Exception as e:
+            logger.error(f"Failed to build embed for position {pos.get('position', 'unknown')}: {e}")
+            continue
     
     return embeds
 
