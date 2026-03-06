@@ -401,69 +401,70 @@ def main():
         logger.error("No config found, exiting")
         return
     
-    # Get Discord webhook
-    webhook_url = DISCORD_WEBHOOK_URL
-    if not webhook_url:
-        logger.error("DISCORD_WEBHOOK_POSITIONS not set!")
-        return
-    
     # Load state
     state = load_state()
-    
+
     # Fetch data
     data = fetch_wallet_fees()
     if not data:
         logger.error("Failed to fetch wallet-fees data")
         return
-    
+
     wallets = data.get("wallets", {})
     config_wallets = config.get("wallets", {})
-    
-    all_embeds = []
-    message_ids = []
-    
-    # Process each configured wallet
+    delete_prev = config.get("discord", {}).get("delete_previous_messages", True)
+
+    total_embeds = 0
+    total_messages = 0
+
+    # Process each configured wallet — each posts to its own webhook/channel
     for wallet_name, wallet_config in config_wallets.items():
         wallet_address = wallet_config.get("address", "")
-        
+
+        # Resolve per-wallet webhook URL
+        webhook_env = wallet_config.get("webhook_env", "DISCORD_WEBHOOK_POSITIONS")
+        webhook_url = os.getenv(webhook_env)
+        if not webhook_url:
+            logger.error(f"Webhook env var {webhook_env} not set for wallet {wallet_name} — skipping")
+            continue
+
         # Find matching wallet in API response
         wallet_data = None
         for api_wallet_name, api_wallet_data in wallets.items():
             if api_wallet_data.get("wallet", "").lower() == wallet_address.lower():
                 wallet_data = api_wallet_data
                 break
-        
+
         if not wallet_data:
             logger.warning(f"No data found for wallet {wallet_name} ({wallet_address})")
             continue
-        
+
         # Add automation config to positions for display
         automation = wallet_config.get("automation", {})
         for pos in wallet_data.get("positions", []):
             pos["automation"] = automation
-        
-        # Process wallet
+
+        # Process wallet → embeds
         embeds = process_wallet(wallet_name, wallet_config, wallet_data, state)
-        all_embeds.extend(embeds)
-        
-        logger.info(f"Wallet {wallet_name}: {len(wallet_data.get('positions', []))} positions")
-    
-    # Delete previous messages (stored at global level since all wallets share same channel)
-    if config.get("discord", {}).get("delete_previous_messages", True):
-        prev_ids = state.get("last_message_ids", [])
-        if prev_ids:
-            delete_previous_messages(webhook_url, prev_ids)
-    
-    # Post new embeds
-    new_message_ids = post_embeds_to_discord(webhook_url, all_embeds)
-    
-    # Update state with new message IDs (at global level)
-    state["last_message_ids"] = new_message_ids
-    
+        logger.info(f"Wallet {wallet_name}: {len(wallet_data.get('positions', []))} positions, {len(embeds)} embeds")
+
+        # Delete previous messages for this wallet's channel
+        if delete_prev:
+            prev_ids = state.get("wallets", {}).get(wallet_name, {}).get("last_message_ids", [])
+            if prev_ids:
+                delete_previous_messages(webhook_url, prev_ids)
+
+        # Post to this wallet's channel
+        new_ids = post_embeds_to_discord(webhook_url, embeds)
+        state.setdefault("wallets", {}).setdefault(wallet_name, {})["last_message_ids"] = new_ids
+
+        total_embeds += len(embeds)
+        total_messages += len(new_ids)
+
     # Save state
     save_state(state)
-    
-    logger.info(f"Position monitor complete. Posted {len(all_embeds)} embeds, {len(new_message_ids)} messages")
+
+    logger.info(f"Position monitor complete. Posted {total_embeds} embeds across {total_messages} messages")
 
 
 if __name__ == "__main__":

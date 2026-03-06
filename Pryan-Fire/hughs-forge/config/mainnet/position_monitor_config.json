@@ -13,6 +13,7 @@
     "owner": {
       "address": "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb",
       "label": "Lord Xar (Owner)",
+      "webhook_env": "DISCORD_WEBHOOK_POSITIONS_OWNER",
       "automation": {
         "enabled": false,
         "stop_loss_pct": 10.0,
@@ -23,6 +24,7 @@
     "bot": {
       "address": "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x",
       "label": "Hugh (Bot)",
+      "webhook_env": "DISCORD_WEBHOOK_POSITIONS_BOT",
       "automation": {
         "enabled": false,
         "stop_loss_pct": 10.0,
