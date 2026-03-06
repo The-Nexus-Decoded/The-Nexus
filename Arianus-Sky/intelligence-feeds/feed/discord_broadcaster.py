@@ -163,9 +163,17 @@ class DiscordBroadcaster:
         embed = self._build_balance_embed(balance_sol, alert_type, threshold)
         self._send(embed)
 
+    def _get_dexscreener_url(self, token_address: str) -> str:
+        """Build DexScreener URL for token."""
+        if not token_address or token_address == "N/A":
+            return ""
+        return f"https://dexscreener.com/solana/{token_address}"
+
     def _build_executed_embed(self, trade_data: Dict[str, Any]) -> Dict[str, Any]:
+        token_address = trade_data.get("token_address", "")
         return {
             "title": "Trade Executed",
+            "url": self._get_dexscreener_url(token_address),
             "color": 65280,  # green
             "timestamp": datetime.utcnow().isoformat(),
             "fields": [
@@ -180,8 +188,10 @@ class DiscordBroadcaster:
         }
 
     def _build_failed_embed(self, trade_data: Dict[str, Any]) -> Dict[str, Any]:
+        token_address = trade_data.get("token_address", "")
         return {
             "title": "Trade Failed",
+            "url": self._get_dexscreener_url(token_address),
             "color": 16711680,  # red
             "timestamp": datetime.utcnow().isoformat(),
             "fields": [
@@ -194,8 +204,10 @@ class DiscordBroadcaster:
         }
 
     def _build_rejected_embed(self, trade_data: Dict[str, Any]) -> Dict[str, Any]:
+        token_address = trade_data.get("token_address", "")
         return {
             "title": "Trade Rejected (Filter)",
+            "url": self._get_dexscreener_url(token_address),
             "color": 16776960,  # yellow
             "timestamp": datetime.utcnow().isoformat(),
             "fields": [
@@ -282,7 +294,7 @@ class DiscordBroadcaster:
         return {
             "title": title,
             "description": desc,
-
+            "url": url if url else self._get_dexscreener_url(mint),
             "color": 16744448,  # orange
             "timestamp": datetime.utcnow().isoformat(),
             "fields": fields

@@ -84,7 +84,41 @@ def fetch_killfeed(retries: int = 3) -> List[Dict[str, Any]]:
 
 def get_pool_url(address: str) -> str:
     """Get clickable Meteora URL for pool."""
-    return f"https://dlmm.meteora.ag/{address}"
+    return f"https://www.meteora.ag/pools/{address}"
+
+
+# Cache for DexScreener URLs (avoid repeated API calls)
+DEXSCREENER_CACHE: Dict[str, str] = {}
+DEXSCREENER_CACHE_TTL = 300  # 5 minutes
+
+
+def get_dexscreener_url(mint_address: str) -> str:
+    """Get DexScreener URL for token via API (returns working link)."""
+    if not mint_address:
+        return "N/A"
+    
+    # Check cache first
+    if mint_address in DEXSCREENER_CACHE:
+        return DEXSCREENER_CACHE[mint_address]
+    
+    try:
+        response = requests.get(
+            f"https://api.dexscreener.com/latest/dex/tokens/{mint_address}",
+            timeout=5
+        )
+        data = response.json()
+        
+        pairs = data.get("pairs", [])
+        if pairs and len(pairs) > 0:
+            url = pairs[0].get("url", "")
+            if url:
+                DEXSCREENER_CACHE[mint_address] = url
+                return url
+    except Exception as e:
+        logger.debug(f"DexScreener API error for {mint_address}: {e}")
+    
+    # Fallback to direct URL (likely blocked)
+    return f"https://dexscreener.com/solana/{mint_address}"
 
 
 def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -114,6 +148,7 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
         {"name": "📊 24h Volume", "value": volume_str, "inline": True},
         {"name": "💰 Fee", "value": f"{fee}%", "inline": True},
         {"name": "🪙 Tokens", "value": f"{mint_x} / {mint_y}", "inline": False},
+        {"name": "📱 Chart", "value": f"[DexScreener]({get_dexscreener_url(pool.get('mint_x', ''))})", "inline": True},
     ]
 
 
