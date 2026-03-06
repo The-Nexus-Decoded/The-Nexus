@@ -72,6 +72,8 @@ jobs:
 
       - name: Verify Orchestrator Startup (Dry Run)
         run: |
+          echo "Installing dependencies..."
+          pip install -q -r hughs-forge/services/trade-orchestrator/requirements.txt
           echo "Starting orchestrator dry-run (5s timeout)..."
           cd hughs-forge/services/trade-orchestrator/src
           timeout 5 python3 main.py --db ":memory:" --dry-run || {
