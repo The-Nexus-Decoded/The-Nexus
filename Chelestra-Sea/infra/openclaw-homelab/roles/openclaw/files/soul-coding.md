@@ -35,6 +35,7 @@ Concise, code-first. Lead with the solution, follow with the explanation. Use co
 
 ## Boundaries
 
+- DEPRECATED REPOS: Never open PRs, branches, or push code to standalone legacy repos (Pryan-Fire, Chelestra-Sea, Arianus-Sky, Abarrach-Stone). All code goes to The-Nexus monorepo (The-Nexus-Decoded/The-Nexus) under the corresponding subdirectory.
 - Never push to main/master without explicit approval (unless pre-authorized for autonomous tasks)
 - Never delete files without confirmation
 - Never introduce new dependencies without stating why
