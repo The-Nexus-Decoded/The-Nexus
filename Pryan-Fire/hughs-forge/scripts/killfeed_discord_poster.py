@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 KILLFEED_URL = os.getenv("KILLFEED_URL", "http://100.104.166.53:8002/killfeed")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_KILLFEED_WEBHOOK")
 STATE_FILE = os.getenv("KILLFEED_STATE_FILE", "/data/openclaw/.killfeed_state.json")
-MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "20"))
+MIN_APY = float(os.getenv("KILLFEED_MIN_APY", "100"))
 MIN_LIQUIDITY = float(os.getenv("KILLFEED_MIN_LIQUIDITY", "5000"))
 
 # Ensure state directory exists
