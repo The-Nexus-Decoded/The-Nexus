@@ -13,6 +13,9 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from copy import deepcopy
 
+# Import automation engine
+from automation_engine import run_automation_checks
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -463,6 +466,25 @@ def main():
 
     # Save state
     save_state(state)
+
+    # Run automation checks (SL/TP)
+    for wallet_name, wallet_config in config_wallets.items():
+        wallet_address = wallet_config.get("address", "")
+        wallet_data = wallets.get(wallet_address.lower()) or wallets.get(wallet_address)
+        if not wallet_data:
+            # Try matching by address in wallets dict
+            for api_wallet_name, api_wallet_data in wallets.items():
+                if api_wallet_data.get("wallet", "").lower() == wallet_address.lower():
+                    wallet_data = api_wallet_data
+                    break
+        
+        if wallet_data:
+            run_automation_checks(
+                {wallet_name: wallet_config},
+                {wallet_name: wallet_data},
+                state,
+                config
+            )
 
     logger.info(f"Position monitor complete. Posted {total_embeds} embeds across {total_messages} messages")
 
