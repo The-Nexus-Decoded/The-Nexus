@@ -464,9 +464,6 @@ def main():
         total_embeds += len(embeds)
         total_messages += len(new_ids)
 
-    # Save state
-    save_state(state)
-
     # Run automation checks (SL/TP)
     for wallet_name, wallet_config in config_wallets.items():
         wallet_address = wallet_config.get("address", "")
@@ -485,6 +482,9 @@ def main():
                 state,
                 config
             )
+
+    # Save state (AFTER automation so escalation state persists)
+    save_state(state)
 
     logger.info(f"Position monitor complete. Posted {total_embeds} embeds across {total_messages} messages")
 
