@@ -143,13 +143,13 @@ def format_pool_fields(pool: Dict[str, Any]) -> List[Dict[str, str]]:
     mint_y = pool.get('mint_y', '')[:8] + '...' if len(pool.get('mint_y', '')) > 8 else pool.get('mint_y', '')
     
     return [
-        {"name": "💧 Liquidity", "value": liquidity_str, "inline": true},
-        {"name": "📈 APY", "value": apy_str, "inline": true},
-        {"name": "📊 24h Volume", "value": volume_str, "inline": true},
-        {"name": "💰 Fee", "value": f"{fee}%", "inline": true},
-        {"name": "🪙 Tokens", "value": f"{mint_x} / {mint_y}", "inline": false},
-        {"name": "🔗 Meteora", "value": f"[Pool]({get_pool_url(pool.get('address', ''))})", "inline": true},
-        {"name": "📈 DexScreener", "value": f"[Chart]({get_dexscreener_url(pool.get('mint_x', ''))})", "inline": true},
+        {"name": "💧 Liquidity", "value": liquidity_str, "inline": True},
+        {"name": "📈 APY", "value": apy_str, "inline": True},
+        {"name": "📊 24h Volume", "value": volume_str, "inline": True},
+        {"name": "💰 Fee", "value": f"{fee}%", "inline": True},
+        {"name": "🪙 Tokens", "value": f"{mint_x} / {mint_y}", "inline": False},
+        {"name": "🔗 Meteora", "value": f"[Pool]({get_pool_url(pool.get('address', ''))})", "inline": True},
+        {"name": "📈 DexScreener", "value": f"[Chart]({get_dexscreener_url(pool.get('mint_x', ''))})", "inline": True},
     ]
 
 
