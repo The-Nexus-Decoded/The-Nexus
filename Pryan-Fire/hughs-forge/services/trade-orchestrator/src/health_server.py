@@ -210,68 +210,53 @@ def get_bot_positions():
 
 def get_positions_internal(wallet_address: str):
     """
-    Get DLMM positions for a specific wallet via Meteora SDK (Node.js).
+    Get DLMM positions for a specific wallet via Solana RPC.
     
-    Uses @meteora-ag/dlmm SDK to query positions with proper filters.
-    Falls back to Shyft API if SDK fails.
+    Uses getProgramAccounts with proper Meteora DLMM position filters.
     """
-    import subprocess
-    import json
+    import requests
     
-    # Path to the Node.js position fetcher script
-    script_path = os.path.join(
-        os.path.dirname(__file__), 
-        "scripts", "meteora-positions.js"
-    )
-    
-    # Also check workspace path
-    if not os.path.exists(script_path):
-        script_path = "/data/openclaw/workspace/Pryan-Fire/hughs-forge/services/trade-orchestrator/scripts/meteora-positions.js"
-    if not os.path.exists(script_path):
-        script_path = "/data/openclaw/workspace/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/scripts/meteora-positions.js"
-    
-    if not os.path.exists(script_path):
-        return {
-            "wallet": wallet_address,
-            "positions": [],
-            "count": 0,
-            "error": "Meteora SDK script not found",
-            "solution": "Deploy meteora-positions.js to trade server"
-        }
+    SOLANA_RPC = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+    DLMM_PROGRAM = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
     
     try:
-        # Run Node.js script to get positions
-        env = os.environ.copy()
-        env["NODE_PATH"] = "/data/openclaw/workspace/node_modules"
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "getProgramAccounts",
+            "params": [
+                DLMM_PROGRAM,
+                {
+                    "encoding": "base64",
+                    "filters": [
+                        {
+                            "memcmp": {
+                                "offset": 40,
+                                "bytes": wallet_address
+                            }
+                        },
+                        {
+                            "memcmp": {
+                                "offset": 0,
+                                "bytes": "LgkNAEYaVX3"  # V2 discriminator
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
         
-        result = subprocess.run(
-            ["node", script_path, wallet_address],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env
-        )
+        resp = requests.post(SOLANA_RPC, json=payload, timeout=30)
+        data = resp.json()
+        accounts = data.get("result", [])
         
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            return {
-                "wallet": wallet_address,
-                "positions": data.get("positions", []),
-                "count": data.get("count", 0),
-                "source": "Meteora SDK"
-            }
-        else:
-            # Fallback to Shyft if Node.js fails
-            logger.warning(f"Node.js position fetcher failed: {result.stderr}")
-            return get_positions_via_shyft(wallet_address)
-            
-    except subprocess.TimeoutExpired:
         return {
             "wallet": wallet_address,
-            "positions": [],
-            "count": 0,
-            "error": "Timeout fetching positions"
+            "positions": [{"pubkey": a["pubkey"], "data": a["account"]["data"][0]} for a in accounts],
+            "count": len(accounts),
+            "source": "Solana RPC (Meteora DLMM)"
         }
+        
     except Exception as e:
         logger.error(f"Position fetch error: {e}")
         return {
