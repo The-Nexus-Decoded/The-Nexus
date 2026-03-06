@@ -269,9 +269,8 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "lb_pair": p["lb_pair"],
             "pool_name": pool.get("name", "Unknown"),
             "apy": round(fee_apy_24h, 2),          # per-position 24h APY
-            "pool_apy": round(float(pool.get("apy", 0)), 2),  # pool-level APY
-            "fees_claimed_usd": round(fees_claimed_usd, 2),   # historical claimed fees
-            "fees_24h": round(float(pool.get("today_fees", 0)), 2),  # pool-level (TODO: per-position)
+            "fees_claimed_usd": round(fees_claimed_usd, 2),   # historical claimed fees per position
+            "fees_24h": round(float(pool.get("today_fees", 0)), 2),  # pool-level total
             "base_fee": pool.get("base_fee_percentage", "?"),
             "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
             "liquidity_usd": round(_calculate_usd_liquidity(pool), 2) if pool else 0,
@@ -399,10 +398,12 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                 usd_liquidity = _calculate_usd_liquidity(pool)
                 volume_24h = float(pool.get("trade_volume_24h", 0))
 
+                fees_24h = float(pool.get("today_fees", 0))
                 if (pool_apy >= min_apy and pool_apy < 1000
                         and usd_liquidity >= min_liquidity
                         and volume_24h >= min_volume_24h):
                     display_apy = min(pool_apy, 500.0)
+                    fee_tvl_ratio = round(fees_24h / usd_liquidity, 6) if usd_liquidity > 0 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -410,7 +411,10 @@ def get_pools(limit: int = 100, min_apy: float = None, min_liquidity: float = No
                         "mint_y": pool.get("mint_y"),
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_spike": pool_apy > 500,
                         "fee": pool.get("base_fee_percentage"),
+                        "fees_24h": round(fees_24h, 2),
+                        "fee_tvl_ratio": fee_tvl_ratio,
                         "volume_24h": round(volume_24h, 2),
                     })
 
@@ -479,10 +483,12 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
                 usd_liquidity = _calculate_usd_liquidity(pool)
 
                 volume_24h = float(pool.get("trade_volume_24h", 0))
+                fees_24h = float(pool.get("today_fees", 0))
                 if (pool_apy >= min_apy and pool_apy < 1000
                         and usd_liquidity >= min_liquidity
                         and volume_24h >= min_volume_24h):
                     display_apy = min(pool_apy, 500.0)
+                    fee_tvl_ratio = round(fees_24h / usd_liquidity, 6) if usd_liquidity > 0 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -490,7 +496,10 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
                         "mint_y": pool.get("mint_y"),
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_spike": pool_apy > 500,
                         "fee": pool.get("base_fee_percentage"),
+                        "fees_24h": round(fees_24h, 2),
+                        "fee_tvl_ratio": fee_tvl_ratio,
                         "volume_24h": round(volume_24h, 2),
                         "reserve_x": int(float(pool.get("reserve_x_amount", 0))),
                         "reserve_y": int(float(pool.get("reserve_y_amount", 0))),
@@ -498,8 +507,8 @@ def get_killfeed(min_apy: float = None, min_liquidity: float = None, min_volume_
             except (ValueError, TypeError, ZeroDivisionError):
                 continue
 
-        # Sort by APY descending
-        filtered.sort(key=lambda x: x["apy"], reverse=True)
+        # Sort by fee/TVL ratio descending (more reliable than raw APY)
+        filtered.sort(key=lambda x: x["fee_tvl_ratio"], reverse=True)
 
         return {
             "killfeed": filtered,
@@ -545,9 +554,12 @@ def get_toppools(limit: int = 20, min_liquidity: float = None, min_apy: float = 
             try:
                 pool_apy = float(pool.get("apy", 0))
                 usd_liquidity = _calculate_usd_liquidity(pool)
+                volume_24h = float(pool.get("trade_volume_24h", 0))
+                fees_24h = float(pool.get("today_fees", 0))
 
                 if usd_liquidity >= min_liquidity and pool_apy >= min_apy and pool_apy < 1000:
                     display_apy = min(pool_apy, 500.0)
+                    fee_tvl_ratio = round(fees_24h / usd_liquidity, 6) if usd_liquidity > 0 else 0
                     filtered.append({
                         "address": pool.get("address"),
                         "name": pool.get("name"),
@@ -555,14 +567,17 @@ def get_toppools(limit: int = 20, min_liquidity: float = None, min_apy: float = 
                         "mint_y": pool.get("mint_y"),
                         "liquidity_usd": round(usd_liquidity, 2),
                         "apy": round(display_apy, 2),
+                        "apy_spike": pool_apy > 500,
                         "fee": pool.get("base_fee_percentage"),
-                        "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
+                        "fees_24h": round(fees_24h, 2),
+                        "fee_tvl_ratio": fee_tvl_ratio,
+                        "volume_24h": round(volume_24h, 2),
                     })
             except (ValueError, TypeError, ZeroDivisionError):
                 continue
 
-        # Sort by liquidity descending
-        filtered.sort(key=lambda x: x["liquidity_usd"], reverse=True)
+        # Sort by fee/TVL ratio descending (more reliable than liquidity alone)
+        filtered.sort(key=lambda x: x["fee_tvl_ratio"], reverse=True)
 
         return {
             "pools": filtered[:limit],
