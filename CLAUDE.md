@@ -4,6 +4,12 @@
 - **Archivist (Alfred/Claude):** Keeper of the memory, branch runner, and CI supervisor.
 - **High Councillor (Samah/Gemini):** Master of infrastructure, Ansible runes, and cross-realm orchestration.
 
+## 🚫 File Protection Rules
+- **NEVER delete .md files** — not on servers, not in workspaces, not in the repo. No exceptions.
+- **NEVER remove agent workspace files** — SOUL.md, TEAM.md, AGENTS.md, OPERATIONS.md, DISCORD-RULES.md, GIT-RULES.md, REPO-MAP.md, SECURITY.md, TOOLS.md, IDENTITY.md, HEARTBEAT.md, USER.md, BOOTSTRAP.md are ALL intentional.
+- If something seems like bloat, **ask the user first**. If context overflows, fix the model config — don't trim content.
+- Agent workspace originals are in `agentstructure/` — that's the restore source, not a delete target.
+
 ## 🏛️ Source of Truth (Post-Migration)
 All agent code, workflows, and configuration now reside in the consolidated monorepo:
 `/data/openclaw/workspace/The-Nexus/`

@@ -87,6 +87,68 @@ All issues are tagged with standardized labels:
 
 ---
 
+## 🤖 Agent Fleet & Workspace Structure
+
+### The Ten Agents
+
+| Agent | Server | Role | Port | Discord Channels |
+|-------|--------|------|------|-----------------|
+| **Haplo** | ola-claw-dev | Patryn Runemaster / Builder | 18789 | #coding, #the-nexus, #crypto |
+| **Alfred** | ola-claw-dev | Sartan Archivist / Code Review | 18810 | #coding, #the-nexus, #crypto |
+| **Marit** | ola-claw-dev | QA & Testing Lead | 18811 | #coding, #the-nexus, #design |
+| **Paithan** | ola-claw-dev | Mobile & Cross-Platform Dev | 18820 | #coding, #the-nexus, #design, #sales |
+| **Orla** | ola-claw-dev | UI/UX Designer | 18830 | #coding, #the-nexus, #design, #sales |
+| **Zifnab** | ola-claw-main | Ancient Wizard / Coordinator | 18789 | All channels |
+| **Rega** | ola-claw-main | Content & Growth | 18811 | #the-nexus |
+| **Sang-drax** | ola-claw-main | Sales & Business Intel | 18812 | #coding, #the-nexus, #crypto |
+| **Hugh** | ola-claw-trade | Assassin / Trader | 18789 | #coding, #the-nexus, #crypto |
+| **Samah** | ola-claw-trade | XR/Spatial & Game Dev | 18811 | #games-vr |
+
+### Agent Workspace Files
+
+Each agent has a dedicated workspace at `~/.openclaw/workspace-{name}/` containing curated profile files split from a single large profile into focused documents:
+
+| File | Purpose | Unique Per Agent? |
+|------|---------|:-:|
+| `SOUL.md` | Death Gate Cycle character identity | Yes |
+| `AGENTS.md` | Team hierarchy understanding | Yes |
+| `TEAM.md` | Full team roster with roles & specialties | Shared template |
+| `OPERATIONS.md` | Role-specific domain expertise & responsibilities | **Yes — most important** |
+| `DISCORD-RULES.md` | Discord output rules, loop detection | Shared template |
+| `GIT-RULES.md` | Branch discipline, PR rules | Shared template |
+| `REPO-MAP.md` | Monorepo structure rules | Shared template |
+| `SECURITY.md` | Never expose secrets/keys/tokens | Shared template |
+
+### Agent Structure Repository
+
+All workspace file originals are stored in this repo at:
+
+```
+agentstructure/
+├── haplo/      (9 files — includes REFERENCE-LIBRARY.md)
+├── zifnab/     (8 files)
+├── hugh/       (8 files)
+├── alfred/     (8 files)
+├── marit/      (8 files)
+├── paithan/    (8 files)
+├── orla/       (8 files)
+├── rega/       (8 files)
+├── sangdrax/   (8 files)
+└── samah/      (8 files)
+```
+
+**80 files total.** This is the source of truth for all agent workspace deployments. To restore an agent's workspace, copy from `agentstructure/{name}/` to the server.
+
+### LLM Backend
+
+| Server | Backend | Model | Speed |
+|--------|---------|-------|-------|
+| ola-claw-main (Zifnab) | vLLM v0.16.1 | Qwen3.5-9B-AWQ | ~19 tok/s |
+| ola-claw-dev (Haplo) | Ollama | Qwen3.5-9B-GGUF (Q4_K_M) | ~24 tok/s |
+| ola-claw-trade (Hugh) | Ollama | qwen3.5:4b GGUF | ~30 tok/s |
+
+---
+
 ## 👥 Supervision
 
 - **Lord Xar** — Owner, final authority
@@ -96,4 +158,4 @@ All issues are tagged with standardized labels:
 
 ---
 
-*Last updated: 2026-03-04 — Migration complete, librarian phase aligning final structure.*
+*Last updated: 2026-03-09 — Multi-agent fleet deployed, workspace structure documented.*
