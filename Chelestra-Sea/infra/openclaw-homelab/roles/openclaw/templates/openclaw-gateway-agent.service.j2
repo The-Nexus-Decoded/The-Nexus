@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Gateway - {{ item.name }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/openclaw gateway start --foreground --profile {{ item.name }}
+Environment=OPENCLAW_STATE_DIR=/home/{{ server_user }}/.openclaw-{{ item.name }}
+Environment=OPENCLAW_CONFIG_PATH=/home/{{ server_user }}/.openclaw-{{ item.name }}/openclaw.json
+Environment=XDG_RUNTIME_DIR=/run/user/{{ server_user_uid }}
+Environment=NODE_ENV=production
+Restart=always
+RestartSec=10
+StandardOutput=append:/data/openclaw/logs/{{ item.name }}.log
+StandardError=append:/data/openclaw/logs/{{ item.name }}.log
+
+[Install]
+WantedBy=default.target
