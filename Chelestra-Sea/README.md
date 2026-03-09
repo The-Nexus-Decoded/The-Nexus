@@ -16,6 +16,14 @@ The-Nexus-Decoded/
 └── Nexus-Vaults/        — Workspace snapshots, fleet docs
 </pre>
 
+## Realm-to-Team Mapping
+
+| Sub-Domain | Project Folder | Lead Agent | Scope |
+|---|---|---|---|
+| Fleet & Infrastructure | `projects/fleet/` | Zifnab | Fleet orchestration, deployment, monitoring, CI/CD |
+| Growth & Marketing | `projects/growth/` | Rega | Content strategy, social media, community, distribution |
+| Sales & Business Intel | `projects/sales/` | Sang-drax | Sales strategy, market analysis, business intelligence |
+
 ## Structure
 
 ```
@@ -34,7 +42,11 @@ Chelestra-Sea/
 │   └── ...                 # Agent-specific wrappers
 ├── fleet/                  # Fleet CLI extensions, cross-server tooling
 ├── integrations/           # Discord bots, webhooks, API bridges
-└── docs/                   # Integration specs, protocol docs
+├── docs/                   # Integration specs, protocol docs
+└── projects/               # Project specs and plans (not code)
+    ├── fleet/              # Zifnab — infrastructure projects
+    ├── growth/             # Rega — marketing/content projects
+    └── sales/              # Sang-drax — sales/biz intel projects
 ```
 
 ## Lobster Workflows

@@ -1,0 +1,29 @@
+# Secrets and config backups (contain API keys)
+Nexus-Vaults/reinstall-backups/**/*.tgz
+openclaw.json
+
+# Duplicate/working directories (canonical locations exist elsewhere)
+/agents/
+/new-souls/
+
+# Temp files and artifacts
+_nul
+errors.log
+catch-up.html
+*.tmp
+
+# IDE and local settings
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

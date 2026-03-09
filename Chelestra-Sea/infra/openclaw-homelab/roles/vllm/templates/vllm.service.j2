@@ -1,0 +1,23 @@
+[Unit]
+Description=vLLM OpenAI-Compatible Server ({{ vllm_model_name }})
+After=network.target nvidia-persistenced.service
+
+[Service]
+Type=simple
+User={{ vllm_user }}
+Group={{ vllm_user }}
+WorkingDirectory=/home/{{ vllm_user }}
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/local/bin/vllm serve {{ vllm_model_path }} \
+    --host {{ vllm_host }} \
+    --port {{ vllm_port }} \
+    --tensor-parallel-size {{ vllm_tensor_parallel_size }} \
+    --gpu-memory-utilization {{ vllm_gpu_memory_utilization }} \
+    --max-model-len {{ vllm_max_model_len }} \
+    --enforce-eager \
+    --swap-space {{ vllm_swap_space }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

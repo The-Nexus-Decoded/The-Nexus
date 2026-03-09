@@ -88,8 +88,8 @@
 - CRITICAL BUG: when ALL models fail (FailoverError), agent spams cached response in loop. Mitigated by rate-guard.
 
 ## Ollama (local 7B fallback)
-- main: RTX 2080 (8GB), qwen2.5-coder:7b, 1075 tok/s prompt
-- trade: GTX 1070 Ti (8GB), qwen2.5-coder:7b, 475 tok/s prompt
+- main: RTX 2070 Super + RTX 2080 (16GB), qwen2.5-coder:7b, 1075 tok/s prompt
+- trade: GTX 1070 + GTX 1070 Ti (16GB), qwen2.5-coder:7b, 475 tok/s prompt
 - dev: GTX 1070 + GTX 1070 Ti (16GB), qwen2.5-coder:7b + 32b + qwen3:30b + llama3.1:8b
 - IMPORTANT: Ollama 7b CANNOT do tool use — hallucinates results
 

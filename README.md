@@ -16,6 +16,25 @@ Each subdirectory in this repository represents a distinct "Realm" with its own 
 | **Abarrach-Stone** | `Abarrach-Stone/` | Persistence, Schemas, Historical Logs | Zifnab |
 | **Nexus-Vaults** | `Nexus-Vaults/` | Memory, Governance, Security, Roadmap | Lord Xar |
 
+### Realm-to-Team Mapping
+
+Each realm contains a `projects/` folder with sub-domains assigned to specific agents. Agents create project specs within their assigned sub-domain only.
+
+| Realm | Sub-Domain | Folder | Lead Agent |
+|-------|-----------|--------|------------|
+| **Pryan-Fire** | Backend Services | `projects/backend/` | Haplo |
+| **Pryan-Fire** | Trading & Execution | `projects/trading/` | Hugh |
+| **Arianus-Sky** | UI/UX Design | `projects/design/` | Orla |
+| **Arianus-Sky** | Mobile Development | `projects/mobile/` | Paithan |
+| **Arianus-Sky** | Games & XR | `projects/games-xr/` | Samah |
+| **Chelestra-Sea** | Fleet & Infrastructure | `projects/fleet/` | Zifnab |
+| **Chelestra-Sea** | Growth & Marketing | `projects/growth/` | Rega |
+| **Chelestra-Sea** | Sales & Business Intel | `projects/sales/` | Sang-drax |
+| **Abarrach-Stone** | Analytics & Data | `projects/analytics/` | (cross-team) |
+| **Nexus-Vaults** | Quality Assurance | `projects/qa/` | Marit |
+
+**Rules:** Project specs and plans go in `projects/` folders. Source code stays in realm code directories. Agents must only create projects within their assigned sub-domain.
+
 ---
 
 ## 🏗️ Architecture & Redistribution
