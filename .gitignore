@@ -1,5 +1,4 @@
 # Secrets and config backups (contain API keys)
-Nexus-Vaults/reinstall-backups/**/*.tgz
 openclaw.json
 
 # Duplicate/working directories (canonical locations exist elsewhere)
