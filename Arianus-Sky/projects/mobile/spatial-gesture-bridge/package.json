@@ -1,0 +1,25 @@
+{
+  "name": "@nexus/xr",
+  "version": "1.0.0",
+  "description": "Mobile ↔ XR Interface - gesture-haptic bridge and WebSocket state machine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "keywords": [
+    "xr",
+    "vr",
+    "mobile",
+    "haptics",
+    "gestures"
+  ],
+  "license": "MIT"
+}
