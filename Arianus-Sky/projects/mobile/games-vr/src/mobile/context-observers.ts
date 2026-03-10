@@ -457,48 +457,77 @@ export class GradientObserver {
 }
 
 // ============================================================================
-// ACK TIMEOUT MANAGER (150ms timeout with returnToken correlation)
 // ============================================================================
+// ACK TIMEOUT MANAGER (latency bands with returnToken correlation)
+// ============================================================================
+
+export interface LatencyBand {
+  minConfidence: number;
+  timeoutMs: number;
+}
+
+export const LATENCY_BANDS: LatencyBand[] = [
+  { minConfidence: 0.85, timeoutMs: 100 },  // High confidence: fast commit
+  { minConfidence: 0.60, timeoutMs: 200 },  // Medium: VR override window
+  { minConfidence: 0.00, timeoutMs: 350 },  // Low: extended timeout
+];
+
+export function getTimeoutForConfidence(confidence: number): number {
+  for (const band of LATENCY_BANDS) {
+    if (confidence >= band.minConfidence) {
+      return band.timeoutMs;
+    }
+  }
+  return LATENCY_BANDS[LATENCY_BANDS.length - 1].timeoutMs;
+}
 
 export interface PendingIntent {
   token: string;
   timestamp: number;
   onAck: () => void;
   onTimeout: () => void;
+  confidence: number;
 }
 
 export class AckTimeoutManager {
   private pending: Map<string, PendingIntent> = new Map();
-  private timeout: number = 150; // 150ms per spec
+  private defaultTimeout: number = 150;
   private cleanupInterval: number | null = null;
 
   constructor(timeoutMs: number = 150) {
-    this.timeout = timeoutMs;
+    this.defaultTimeout = timeoutMs;
     this.startCleanup();
   }
 
   /**
    * Register a pending intent with returnToken
+   * @param token - Unique token for correlation
+   * @param onAck - Callback when ACK received
+   * @param onTimeout - Callback when timeout expires
+   * @param confidence - Gesture confidence (0-1), defaults to 1.0
    */
-  register(token: string, onAck: () => void, onTimeout: () => void): void {
+  register(token: string, onAck: () => void, onTimeout: () => void, confidence: number = 1.0): void {
     // Clear any existing with same token
     if (this.pending.has(token)) {
-      clearTimeout(this.pending.get(token)!.timestamp as any);
+      clearTimeout((this.pending.get(token) as any).timerId);
     }
 
+    const timeoutMs = getTimeoutForConfidence(confidence);
+    
     const entry: PendingIntent = {
       token,
       timestamp: Date.now(),
       onAck,
-      onTimeout
+      onTimeout,
+      confidence
     };
 
     this.pending.set(token, entry);
 
-    // Set timeout
+    // Set timeout based on latency band
     const timerId = window.setTimeout(() => {
       this.handleTimeout(token);
-    }, this.timeout);
+    }, timeoutMs);
 
     // Store timer ID (TypeScript workaround)
     (entry as any).timerId = timerId;
@@ -525,11 +554,12 @@ export class AckTimeoutManager {
   }
 
   private startCleanup(): void {
-    // Periodic cleanup of stuck entries
+    // Periodic cleanup of stuck entries (use latency band timeout * 2)
     this.cleanupInterval = window.setInterval(() => {
       const now = Date.now();
       this.pending.forEach((entry, token) => {
-        if (now - entry.timestamp > this.timeout * 2) {
+        const timeoutMs = getTimeoutForConfidence(entry.confidence);
+        if (now - entry.timestamp > timeoutMs * 2) {
           this.handleTimeout(token);
         }
       });
