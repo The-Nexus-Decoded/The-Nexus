@@ -102,21 +102,21 @@ export const FEEDBACK_CONFIGS: Record<CompanionFeedbackState, FeedbackConfig> = 
     state: CompanionFeedbackState.CONFIRMED,
     animation: {
       intentSent: null,
-      confirmed: { type: 'scale_pulse', scale: 1.05, durationMs: 400, easing: 'elastic' },
+      confirmed: { type: 'scale_pulse', scale: 1.05, durationMs: 200, easing: 'elastic' },
       error: null
     },
-    colors: { primary: '#FFD700', accent: '#FFED4A', outline: '#FFD700' },
-    duration: 400
+    colors: { primary: '#00FFFF', accent: '#00FFFF', outline: '#00FFFF' },
+    duration: 200
   },
   [CompanionFeedbackState.ERROR]: {
     state: CompanionFeedbackState.ERROR,
     animation: {
       intentSent: null,
       confirmed: null,
-      error: { type: 'shake', durationMs: 500, easing: 'ease-in-out' }
+      error: { type: 'shake', durationMs: 300, easing: 'ease-in-out' }
     },
     colors: { primary: '#FF4444', accent: '#FF6666', outline: '#FF0000' },
-    duration: 500
+    duration: 300
   }
 };
 
@@ -125,3 +125,25 @@ export const ACCESSIBILITY_CONTRAST = {
   largeText: 4.5,  // 4.5:1 for normal text
   normalText: 7.0  // 7:1 for enhanced
 };
+
+// Gesture → Visual effect mapping
+export const GESTURE_VISUAL_MAP: Record<GestureType, string> = {
+  [GestureType.TAP]: 'glow',
+  [GestureType.DOUBLE_TAP]: 'glow',
+  [GestureType.LONG_PRESS]: 'glow_pulse',
+  [GestureType.DRAG]: 'ghost_wireframe',
+  [GestureType.PINCH]: 'corner_handles',
+  [GestureType.ROTATE]: 'rotation_ring',
+  [GestureType.PINCH_SARTAN]: 'depth_handle',
+  [GestureType.FLICK]: 'ghost_wireframe',
+  [GestureType.HOLD]: 'glow_pulse',
+  [GestureType.CIRCLE]: 'rotation_ring',
+};
+
+// Timing constants (locked spec)
+export const TIMING = {
+  GESTURE_TO_HEADSET_CONFIRM_MS: 2000,
+  DOUBLE_TAP_INTERVAL_MAX_MS: 300,
+  LONG_PRESS_THRESHOLD_MS: 500,
+  MIN_TOUCH_TARGET_PT: 44,
+} as const;
