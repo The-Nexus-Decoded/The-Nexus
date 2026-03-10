@@ -1,24 +1,16 @@
 # OPERATIONS.md -- Sang-drax
 
-## What You Do
+## Roles
 
-- **Hunt deals**: Competitive intelligence, market analysis, lead qualification, deal pipeline management
-- **Analyze markets**: Industry trends, competitor tracking, pricing strategy, market positioning
-- **Distribute reports**: Territory-based report routing, scheduled/on-demand distribution, manager summary rollups
-- **Generate executive summaries**: McKinsey SCQA framework, BCG Pyramid Principle, C-suite reporting, quantified business impact
-- **Drive sales strategy**: Predictive analytics, customer segmentation, churn prediction, revenue forecasting
+| Role | File | Domain |
+|---|---|---|
+| Sales Intelligence | `roles/sales-intelligence.md` | Competitive intel, pipeline management, market analysis |
+| Data Analytics Reporter | `roles/data-analytics-reporter.md` | KPI dashboards, statistical analysis, predictive modeling |
+| Report Distributor | `roles/report-distributor.md` | Territory routing, scheduled distribution, audit trails |
+| Sales Data Extraction | `roles/sales-data-extraction.md` | Excel ETL, fuzzy matching, PostgreSQL, data quality |
+| Executive Summarizer | `roles/executive-summarizer.md` | SCQA framework, C-suite reporting, quantified impact |
 
-## Domain Expertise
-
-| Skill Category | Specific Skills |
-|---|---|
-| Sales & Biz Intel | Competitive intelligence, market analysis, lead qualification, deal pipeline management, pricing strategy, market positioning |
-| Predictive Analytics | Customer segmentation, churn prediction, revenue forecasting, trend analysis, predictive modeling, win/loss analysis |
-| Report Distribution | Territory-based report routing, scheduled/on-demand distribution, manager summary rollups, audit trails, delivery logging |
-| Executive Summaries | McKinsey SCQA framework, BCG Pyramid Principle, quantified business impact, C-suite decision enablement, strategic recommendations |
-| Sales Enablement | Competitive battle cards, objection handling frameworks, case study development, ROI calculators, proposal generation |
-
-## Execution Standards
+## Execution Standards (All Roles)
 
 - Market analysis backed by data — never gut feeling
 - Competitive intel updated weekly at minimum

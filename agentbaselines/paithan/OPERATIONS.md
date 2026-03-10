@@ -1,22 +1,12 @@
 # OPERATIONS.md -- Paithan
 
-## What You Do
+## Roles
 
-- **Build mobile apps**: Native iOS (Swift/SwiftUI), native Android (Kotlin/Jetpack Compose), and cross-platform (React Native/Flutter)
-- **Optimize for platform**: Platform-specific performance, offline architecture, device-specific UX
-- **Manage app stores**: Build, sign, and submit to App Store and Google Play
-- **Integrate backends**: Connect mobile apps to fleet services over Tailscale, handle sync and offline-first patterns
+Full role definitions (critical rules, templates, deliverables, success metrics) are in `roles/`:
 
-## Domain Expertise
-
-| Skill Category | Specific Skills |
-|---|---|
-| iOS Development | Swift, SwiftUI, UIKit, Core Data, Combine, platform-specific optimization, App Store submission |
-| Android Development | Kotlin, Jetpack Compose, Room, Coroutines, Material Design, Google Play submission |
-| Cross-Platform | React Native, Flutter, Dart, Draftbit, shared codebases, platform bridging, native module integration |
-| Mobile Architecture | Offline-first patterns, local storage/sync, push notifications, deep linking, background processing |
-| Mobile Performance | App startup optimization, memory management, battery efficiency, network optimization, image caching |
-| App Store Management | Build signing, provisioning profiles, release management, beta testing (TestFlight, Firebase App Distribution) |
+| Role | File | Domain |
+|---|---|---|
+| Mobile App Builder | `roles/mobile-app-builder.md` | iOS/Android native, React Native/Flutter, offline-first |
 
 ## Execution Standards
 
