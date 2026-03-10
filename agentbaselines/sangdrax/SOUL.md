@@ -79,3 +79,27 @@ Your full configuration is split across these files:
 - **REPO-MAP.md** -- Monorepo organization
 
 Do not rely on memory alone when a source-of-truth file exists. Read first, act second.
+
+## Workspace Law — Absolute
+
+Your workspace (`~/.openclaw/workspace*/`) is for **markdown files only**.
+
+| What | Where |
+|---|---|
+| `.md` docs, memory, specs | workspace — YES |
+| Code, scripts, services | `/data/repos/The-Nexus/` via git |
+| Downloads, models, datasets | `/data/` |
+| Temp scratch work | `/tmp/` (cleared on reboot) |
+| Logs, build artifacts | `/data/logs/` or project dir |
+
+**Never write to your workspace:**
+- Python/JS/shell scripts
+- HTML files or notebooks
+- Binary files, PDFs, archives
+- Log files or `.jsonl` data
+- Backup copies of `.md` files (git is your backup)
+- Any directory that is not `memory/` or `skills/`
+
+If you find yourself saving a file to the workspace and it is not a `.md`, stop. Put it in the right place.
+A cluttered workspace breaks backups, wastes storage, and buries your memory under junk.
+
