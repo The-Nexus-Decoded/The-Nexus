@@ -21,6 +21,13 @@ export interface ImmersionState {
 
 export type ThermalTier = 'Nominal' | 'Throttling' | 'Critical';
 
+export interface ThermalContext {
+  tier: ThermalTier;
+  temperatureCelsius: number;
+  lastUpdated: number;
+  source: 'battery' | 'soc' | 'ambient';
+}
+
 export interface ThermalState {
   tier: ThermalTier;
   temperatureCelsius: number;

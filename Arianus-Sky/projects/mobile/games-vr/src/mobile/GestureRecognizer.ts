@@ -19,6 +19,7 @@ export interface GestureConfig {
   rotationThreshold: number;   // 15 degrees
   flickVelocityThreshold: number; // px/ms
   pinchDistanceThreshold: number; // px
+  swipeDistanceThreshold: number; // px for swipe detection
 }
 
 export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
@@ -26,6 +27,7 @@ export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
   rotationThreshold: 15,
   flickVelocityThreshold: 0.5,
   pinchDistanceThreshold: 50,
+  swipeDistanceThreshold: 60,
 };
 
 export class GestureRecognizer {
@@ -105,11 +107,41 @@ export class GestureRecognizer {
     const { x: ex, y: ey } = this.touchCurrent;
     const distance = this.distance(sx, sy, ex, ey);
     const velocity = distance / Math.max(duration, 1);
+    const deltaX = ex - sx;
+    const deltaY = ey - sy;
 
     let gesture: GestureEvent | null = null;
 
+    // Swipe detection (Patryn mode)
+    const swipeThreshold = this.config.swipeDistanceThreshold;
+    if (distance >= swipeThreshold && duration < 300) {
+      // Determine swipe direction
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Horizontal swipe
+        if (deltaX > 0) {
+          gesture = {
+            type: 'swipe_right',
+            timestamp: Date.now(),
+            confidence: Math.min(distance / 150, 1.0),
+          };
+        } else {
+          gesture = {
+            type: 'swipe_left',
+            timestamp: Date.now(),
+            confidence: Math.min(distance / 150, 1.0),
+          };
+        }
+      } else {
+        // Vertical swipe - map to generic swipe
+        gesture = {
+          type: 'swipe',
+          timestamp: Date.now(),
+          confidence: Math.min(distance / 150, 1.0),
+        };
+      }
+    }
     // Long press detection
-    if (duration >= TIMING.longPressThreshold) {
+    else if (duration >= TIMING.longPressThreshold) {
       gesture = {
         type: 'long_press',
         timestamp: Date.now(),

@@ -57,6 +57,7 @@ export interface IntentBridgeConfig {
   enableGazeConfirm: boolean;
   gazeThresholdDistance: number;  // meters
   intentTimeout: number;           // ms
+  sessionExpiredTimeout: number;  // ms - 3s after leaving near zone
 }
 
 export const DEFAULT_INTENT_BRIDGE_CONFIG: IntentBridgeConfig = {
@@ -67,6 +68,7 @@ export const DEFAULT_INTENT_BRIDGE_CONFIG: IntentBridgeConfig = {
   enableGazeConfirm: true,
   gazeThresholdDistance: 1.5,
   intentTimeout: TIMING.gestureToHeadsetConfirm,
+  sessionExpiredTimeout: 3000,  // 3 seconds
 };
 
 // ==================== Intent Bridge State ====================
@@ -78,6 +80,8 @@ export interface IntentBridgeState {
   currentIntent: GestureIntent | null;
   pendingConfirmation: boolean;
   lastError: string | null;
+  isInNearZone: boolean;
+  sessionExpired: boolean;
 }
 
 // ==================== Intent Bridge ====================
@@ -97,7 +101,12 @@ export class IntentBridge {
     currentIntent: null,
     pendingConfirmation: false,
     lastError: null,
+    isInNearZone: true,
+    sessionExpired: false,
   };
+  
+  // Session management
+  private sessionExpiryTimer: ReturnType<typeof setTimeout> | null = null;
   
   // Callbacks
   private onIntentCreated: ((intent: GestureIntent) => void) | null = null;
@@ -419,6 +428,72 @@ export class IntentBridge {
    */
   setPresentationMode(mode: PresentationMode): void {
     this.wsClient.sendState(mode);
+  }
+
+  /**
+   * Update proximity state - call when user enters/exits near zone
+   * Triggers SESSION_EXPIRED after 3s outside near zone
+   */
+  setProximityState(isNear: boolean): void {
+    const wasInNearZone = this.state.isInNearZone;
+    this.state.isInNearZone = isNear;
+    
+    if (!isNear && wasInNearZone) {
+      // User left near zone - start expiry timer
+      this.startSessionExpiryTimer();
+    } else if (isNear && !wasInNearZone) {
+      // User returned to near zone - cancel expiry
+      this.cancelSessionExpiryTimer();
+      this.state.sessionExpired = false;
+      this.updateState({ sessionExpired: false });
+    }
+  }
+
+  /**
+   * Start session expiry timer (3s timeout)
+   */
+  private startSessionExpiryTimer(): void {
+    this.cancelSessionExpiryTimer(); // Clear any existing
+    
+    this.sessionExpiryTimer = setTimeout(() => {
+      this.handleSessionExpired();
+    }, this.config.sessionExpiredTimeout);
+  }
+
+  /**
+   * Cancel session expiry timer
+   */
+  private cancelSessionExpiryTimer(): void {
+    if (this.sessionExpiryTimer) {
+      clearTimeout(this.sessionExpiryTimer);
+      this.sessionExpiryTimer = null;
+    }
+  }
+
+  /**
+   * Handle session expired - fade to ambient mode
+   */
+  private handleSessionExpired(): void {
+    this.state.sessionExpired = true;
+    
+    // Transition to ambient mode
+    this.setPresentationMode('ambient');
+    
+    // Update state
+    this.updateState({ 
+      bridgeState: 'idle',
+      sessionExpired: true 
+    });
+    
+    // Notify listeners
+    console.log('[IntentBridge] SESSION_EXPIRED - faded to ambient mode');
+  }
+
+  /**
+   * Check if session is expired
+   */
+  isSessionExpired(): boolean {
+    return this.state.sessionExpired;
   }
 }
 

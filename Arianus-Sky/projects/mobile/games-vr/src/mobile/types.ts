@@ -3,7 +3,20 @@
 
 export type PresentationMode = 'full' | 'ambient' | 'silent';
 
-export type GestureType = 'double_tap' | 'rotate' | 'long_press' | 'mode_toggle';
+export type GestureType = 
+  // Sartan gestures
+  | 'double_tap' 
+  | 'rotate' 
+  | 'long_press' 
+  | 'mode_toggle'
+  // Patryn gestures
+  | 'tap'
+  | 'swipe'
+  | 'swipe_left'
+  | 'swipe_right'
+  | 'hold';
+
+export type GestureFaction = 'sartan' | 'patryn';
 
 export type IntentAction = 'move' | 'rotate' | 'scale';
 
@@ -33,6 +46,7 @@ export interface HapticPattern {
 }
 
 export const GESTURE_HAPTIC_MAP: Record<GestureType, HapticPattern> = {
+  // Sartan gestures
   double_tap: {
     pulses: [35],
     gaps: [],
@@ -52,6 +66,32 @@ export const GESTURE_HAPTIC_MAP: Record<GestureType, HapticPattern> = {
     pulses: [50],
     gaps: [],
     intensity: 'medium',
+  },
+  // Patryn gestures
+  tap: {
+    pulses: [25],
+    gaps: [],
+    intensity: 'low',
+  },
+  swipe: {
+    pulses: [30, 30],
+    gaps: [40],
+    intensity: 'medium',
+  },
+  swipe_left: {
+    pulses: [25, 25],
+    gaps: [30],
+    intensity: 'medium',
+  },
+  swipe_right: {
+    pulses: [25, 25],
+    gaps: [30],
+    intensity: 'medium',
+  },
+  hold: {
+    pulses: [45, 45],
+    gaps: [60, 60],
+    intensity: 'high',
   },
 };
 
