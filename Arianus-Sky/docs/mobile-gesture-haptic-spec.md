@@ -173,3 +173,13 @@ Per Paithan's mobile implementation spec:
 ### XY-Gesture Bridge
 - **Rung 2 → 3**: XY-gesture entry point
 - Enables transition from exploration to manipulation
+
+---
+
+## Component: SpatialHintRenderer
+- **Purpose**: Renders contextual hints in 3D space
+- **Input**: Hint map + current gesture state
+- **Output**: Visual feedback (glow, pulse, fade)
+
+### Hint Map Structure
+(TBD - pending full spec)
