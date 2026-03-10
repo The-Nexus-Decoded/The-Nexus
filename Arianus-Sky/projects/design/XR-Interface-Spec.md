@@ -148,6 +148,23 @@
 
 ## Mobile ↔ Spatial Contract (v1.0)
 
+### Virtual Display Plane (V1)
+- **Distance:** 1m from camera (fixed)
+- **Width:** 0.8m (80cm virtual display)
+- **Coordinate mapping:** Mobile 0-1 maps directly to UV on virtual plane
+- **Aspect ratio:** Handled via letterbox with configurable padding (no stretch)
+- **Mobile responsibility:** Send normalized UV coordinates only
+- **Headset responsibility:** Projection, letterboxing, rendering
+
+### HUD Angle Adjustment
+- Store offset in user prefs (degrees from default)
+- Calibrate on first session via quick tap-where-you-look
+
+### Frame Drop / Undo Recovery
+- Headset maintains gesture history ring buffer (last 3s)
+- If visual confirmation lags >2 frames: ghost overlay shows "reverting" state until catch-up
+- Maintains gesture continuity during latency spikes
+
 ### Error Codes
 | Code | Meaning |
 | ---- | ------- |
