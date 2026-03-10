@@ -6,8 +6,10 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 
 export const colors = {
   background: 'rgba(10, 10, 15, 0.85)',
-  primary: '#00D9FF',
+  primary: '#00D4FF',  // cyan
   secondary: '#FF3366',
+  error: '#FF3B30',    // iOS system red
+  committed: '#FFD60A', // gold
   text: '#E8E8F0',
   muted: '#8892A0',
 };
