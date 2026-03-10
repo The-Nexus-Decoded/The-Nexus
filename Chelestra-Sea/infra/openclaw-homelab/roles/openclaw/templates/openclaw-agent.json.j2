@@ -1,0 +1,39 @@
+{
+  "gateway": {
+    "mode": "local",
+    "port": {{ item.port }},
+    "bind": "loopback"
+  },
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "token": "{{ item.discord_bot_token }}",
+      "guilds": {
+        "{{ discord_guild_id }}": {
+          "slug": "{{ discord_guild_slug }}",
+          "channels": {
+{% for channel_id, channel_config in item.discord_channels.items() %}
+            "{{ channel_id }}": {
+              "allow": {{ channel_config.allow | default(true) | lower }},
+              "requireMention": {{ channel_config.requireMention | default(true) | lower }}
+            }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+          }
+        }
+      },
+      "historyLimit": {{ discord_history_limit }},
+      "textChunkLimit": {{ discord_text_chunk_limit }}
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/home/{{ server_user }}/.openclaw/workspace-{{ item.name }}"
+    }
+  },
+  "providers": {{ item.providers | default({}) | to_nice_json }},
+  "logging": {
+    "level": "info",
+    "file": "/data/openclaw/logs/{{ item.name }}.log"
+  }
+}

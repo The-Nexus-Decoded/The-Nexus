@@ -16,11 +16,19 @@ The-Nexus-Decoded/
 └── Nexus-Vaults/        — Workspace snapshots, fleet docs
 </pre>
 
+## Realm-to-Team Mapping
+
+| Sub-Domain | Project Folder | Lead Agent | Scope |
+|---|---|---|---|
+| Analytics & Data | `projects/analytics/` | (cross-team) | Data models, reporting, analytics pipelines, schema design |
+
 ## Structure
 
 ```
 Abarrach-Stone/
 ├── schemas/                # Data models, JSON schemas, migrations
 ├── pipelines/              # ETL, data processing pipelines
-└── archives/               # Historical data, snapshots
+├── archives/               # Historical data, snapshots
+└── projects/               # Project specs and plans (not code)
+    └── analytics/          # Data modeling & analytics projects
 ```
