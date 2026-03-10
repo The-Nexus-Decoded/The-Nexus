@@ -143,3 +143,46 @@
 
 ## Character Matrix
 - **Status:** On hold until Sterol
+
+---
+
+## Mobile ↔ Spatial Contract (v1.0)
+
+### Error Codes
+| Code | Meaning |
+| ---- | ------- |
+| `object_not_found` | Target object doesn't exist in scene |
+| `out_of_bounds` | Target outside allowed manipulation bounds |
+| `confidence_too_low` | Gesture confidence below 80% threshold |
+| `timeout` | VR didn't respond within latency budget |
+| `invalid_transition` | State transition not allowed |
+
+### Latency Budget
+- **Max round-trip:** 100ms
+- Mobile must timeout and reject if exceeded
+
+### Cache TTL
+- State broadcasts include `ttl_ms` for cache expiration
+- Mobile discards stale state after ttlMs
+
+### Bounds Rejection
+- Out-of-bounds targets return `out_of_bounds` error
+- Includes distance/direction info for user feedback
+
+### Charge Events (Cast)
+| State | Meaning |
+| ----- | ------- |
+| `start` | Cast/charge initiated |
+| `stop` | Cast/charge released |
+
+### Error Response Schema
+```json
+{
+  "intentId": "uuid",
+  "status": "rejected",
+  "error": {
+    "code": "out_of_bounds",
+    "message": "Target outside manipulation bounds"
+  }
+}
+```
