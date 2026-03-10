@@ -876,13 +876,22 @@ export class StateReconciliation {
 // ============================================================================
 // Z-DEPTH SYNC (last_writer_wins, max 0.5m/s)
 // ============================================================================
+// Z-DEPTH SYNC (ARKit convention: Z+ = toward user, world meters)
+// ============================================================================
 
 export class ZDepthSync {
-  private currentZ: number = -1.0; // Default 1m in front
+  private currentZ: number = 0; // Default at device (Z+ = toward user per ARKit)
   private lastUpdateTime: number = 0;
   private maxDeltaPerSecond: number = 0.5;
   private authority: 'mobile' | 'vr' = 'vr';
   private listeners: Set<(z: number) => void> = new Set();
+
+  /**
+   * ARKit coordinate convention:
+   * - Origin: device/session start
+   * - Z+ = toward user (standard ARKit)
+   * - Y+ = up, X+ = right
+   * Units: world meters
 
   /**
    * Update Z from mobile gesture
