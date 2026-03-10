@@ -59,6 +59,14 @@ export interface CachedContext {
   expiresAt: number;
 }
 
+// State broadcast with TTL (from VR → Mobile)
+export interface StateBroadcast {
+  state: any;
+  ttlMs: number;          // Cache TTL in ms
+  timestamp: number;
+  source: 'vr' | 'mobile';
+}
+
 // Factory
 export function createGestureIntent(
   type: GestureType,
@@ -120,7 +128,7 @@ function getSessionId(): string {
 
 // Helper: Check if Sartan gesture meets confidence threshold (80%)
 export function isSartanGestureValid(gesture: GestureIntent): boolean {
-  const sartanGestures: GestureType[] = ['flick', 'hold', 'circle', 'pinch_sartan'];
+  const sartanGestures: GestureType[] = [GestureType.FLICK, GestureType.HOLD, GestureType.CIRCLE, GestureType.PINCH_SARTAN];
   if (!sartanGestures.includes(gesture.type)) {
     return true; // Non-Sartan gestures always valid
   }
@@ -131,6 +139,29 @@ export function isSartanGestureValid(gesture: GestureIntent): boolean {
 export function getRotationDelta(degrees: number): number {
   const discreteSteps = Math.floor(degrees / 15);
   return discreteSteps * 15;
+}
+
+// ============================================================================
+// ERROR CODES (Contract-locked)
+// ============================================================================
+
+export enum ErrorCode {
+  OBJECT_NOT_FOUND = 'object_not_found',
+  OUT_OF_BOUNDS = 'out_of_bounds',
+  CONFIDENCE_TOO_LOW = 'confidence_too_low',
+  TIMEOUT = 'timeout',
+  INVALID_TRANSITION = 'invalid_transition'
+}
+
+// Latency budget: 100ms max round-trip
+export const LATENCY_BUDGET_MS = 100;
+
+// Cast/Charge discrete events
+export type ChargeState = 'start' | 'stop';
+export interface ChargeEvent {
+  intentId: string;
+  state: ChargeState;
+  timestamp: number;
 }
 
 // ============================================================================
@@ -163,10 +194,10 @@ export interface IntentResolution {
   };
 }
 
-// Factory: Create rejection response
+// Factory: Create rejection response (uses ErrorCode enum)
 export function createRejection(
   intentId: string,
-  code: string,
+  code: ErrorCode,
   message: string
 ): IntentResolution {
   return {
@@ -188,5 +219,17 @@ export function createConfirmation(
     status,
     timestamp: Date.now(),
     transform
+  };
+}
+
+// Factory: Create charge event (cast/charge = start/stop discrete)
+export function createChargeEvent(
+  intentId: string,
+  state: ChargeState
+): ChargeEvent {
+  return {
+    intentId,
+    state,
+    timestamp: Date.now()
   };
 }
