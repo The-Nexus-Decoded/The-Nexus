@@ -159,3 +159,17 @@ Per Paithan's mobile implementation spec:
 | full     | 100%       | visible | hover glow, real-time preview |
 | ambient  | 40%        | ghosted | pulse on focus |
 | silent   | 0%         | none    | tap-to-reveal (3s fade) |
+
+---
+
+## Adoption Curve
+
+| Rung | Name          | Description              |
+| ---- | ------------- | ------------------------ |
+| 1    | Passive       | observe                  |
+| 2    | Exploratory   | move/inspect             |
+| 3    | Manipulative  | reshape/create           |
+
+### XY-Gesture Bridge
+- **Rung 2 → 3**: XY-gesture entry point
+- Enables transition from exploration to manipulation
