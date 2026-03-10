@@ -1,0 +1,69 @@
+---
+# =============================================================================
+# Role: vllm — Install vLLM and serve Qwen 3.5 models
+# MUST run AFTER 'nvidia' role (needs GPU drivers)
+# =============================================================================
+
+- name: Skip vLLM setup (vllm_install is false)
+  ansible.builtin.debug:
+    msg: "Skipping vLLM installation (vllm_install={{ vllm_install }})"
+  when: not vllm_install
+
+- name: vLLM installation and configuration
+  when: vllm_install
+  block:
+    # --- Install vLLM ---
+    # Using --break-system-packages to bypass PEP 668 on Ubuntu 24.04
+    - name: Install vLLM via pip
+      ansible.builtin.pip:
+        name: vllm
+        state: present
+        executable: pip3
+        extra_args: "--break-system-packages"
+
+    # --- Deploy systemd service ---
+
+    - name: Deploy vLLM systemd service
+      ansible.builtin.template:
+        src: vllm.service.j2
+        dest: /etc/systemd/system/vllm.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart vllm
+
+    # --- Enable and start vLLM ---
+
+    - name: Enable and start vLLM service
+      ansible.builtin.systemd:
+        name: vllm
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    # --- UFW rule: allow vLLM on Tailscale only ---
+
+    - name: Allow vLLM port on tailscale0 only
+      community.general.ufw:
+        rule: allow
+        interface: tailscale0
+        direction: in
+        port: "{{ vllm_port | string }}"
+        proto: tcp
+        comment: "vLLM API — Tailscale only"
+
+    # --- Health check ---
+
+    - name: Wait for vLLM to be healthy
+      ansible.builtin.uri:
+        url: "http://localhost:{{ vllm_port }}/v1/models"
+        method: GET
+        status_code: 200
+      register: vllm_health
+      retries: 24  # Large models can take minutes to load
+      delay: 15
+      until: vllm_health.status == 200
+
+    - name: Display vLLM status
+      ansible.builtin.debug:
+        msg: "vLLM is running. Serving model from: {{ vllm_model_path }}"

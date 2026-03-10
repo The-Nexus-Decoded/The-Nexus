@@ -16,6 +16,13 @@ The-Nexus-Decoded/
 └── Nexus-Vaults/        — Workspace snapshots, fleet docs
 </pre>
 
+## Realm-to-Team Mapping
+
+| Sub-Domain | Project Folder | Lead Agent | Scope |
+|---|---|---|---|
+| Backend Services | `projects/backend/` | Haplo | APIs, backend logic, CI/CD tooling, process supervisors |
+| Trading & Execution | `projects/trading/` | Hugh | Trading algorithms, financial connectors, risk management |
+
 ## Structure
 
 ```
@@ -28,9 +35,12 @@ Pryan-Fire/
 │   ├── scripts/            # Orchestration scripts
 │   ├── monitoring/         # Health checks, quota monitor, alerts
 │   └── coordination/       # Delegation, agent coordination logic
-└── hughs-forge/            # Hugh's domain — trading algos, financial connectors
-    ├── services/           # Trading services (Meteora SDK, risk manager, etc.)
-    └── config/             # Service configuration templates
+├── hughs-forge/            # Hugh's domain — trading algos, financial connectors
+│   ├── services/           # Trading services (Meteora SDK, risk manager, etc.)
+│   └── config/             # Service configuration templates
+└── projects/               # Project specs and plans (not code)
+    ├── backend/            # Haplo — backend service projects
+    └── trading/            # Hugh — trading & execution projects
 ```
 
 ## Deployment Targets
