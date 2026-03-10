@@ -139,3 +139,23 @@ Per Paithan's mobile implementation spec:
 | drag_x/y   | >30px       | translate X/Y | soft   |
 | drag_z     | 0.85 conf   | translate Z   | medium |
 | pinch      | scale delta | scale         | medium |
+
+---
+
+## V0.2 Spec Lock
+
+### Rotate
+- **Gesture**: two-finger twist >15°
+- **Output**: rotate Z
+- **Haptic**: medium
+
+### Confidence Threshold
+- **0.85** → commit action
+- **<0.85** → queue for split decision
+
+### Ambient Modes
+| Mode     | Visibility | Handles | Behavior |
+| -------- | ---------- | ------- | -------- |
+| full     | 100%       | visible | hover glow, real-time preview |
+| ambient  | 40%        | ghosted | pulse on focus |
+| silent   | 0%         | none    | tap-to-reveal (3s fade) |
