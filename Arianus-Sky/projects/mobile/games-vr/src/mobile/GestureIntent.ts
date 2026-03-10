@@ -7,6 +7,21 @@ import { GestureType, TIMING } from './types';
 // Sartan confidence threshold (80%)
 const SARTAN_CONFIDENCE_THRESHOLD = 0.8;
 
+// Patryn gesture → action mapping
+export const PATRYN_GESTURE_ACTIONS: Record<string, string> = {
+  'tap': 'menu',
+  'swipe': 'navigate',
+  'hold': 'back'
+};
+
+// Sartan gesture → action mapping  
+export const SARTAN_GESTURE_ACTIONS: Record<string, string> = {
+  'double_tap': 'select',
+  'rotate': 'rotate',
+  'long_press': 'grab',
+  'mode_toggle': 'mode_toggle'
+};
+
 export interface GestureIntent {
   id: string;
   type: GestureType;
@@ -119,6 +134,29 @@ function generateReturnToken(): string {
 function getSessionId(): string {
   // Session ID would be managed by app state
   return 'session_default';
+}
+
+// Patryn gesture types
+const PATRYN_GESTURES: GestureType[] = ['tap', 'swipe', 'hold'];
+
+// Helper: Determine gesture faction (Patryn vs Sartan)
+export function getGestureFaction(type: GestureType): 'patryn' | 'sartan' {
+  return PATRYN_GESTURES.includes(type) ? 'patryn' : 'sartan';
+}
+
+// Helper: Get visual skin based on faction
+// Patryn = menu skin, Sartan = default skin
+export function getVisualSkinForFaction(faction: 'patryn' | 'sartan'): 'menu' | 'default' {
+  return faction === 'patryn' ? 'menu' : 'default';
+}
+
+// Helper: Get action for gesture (menu/navigate/back for Patryn)
+export function getGestureAction(type: GestureType): string {
+  const faction = getGestureFaction(type);
+  if (faction === 'patryn') {
+    return PATRYN_GESTURE_ACTIONS[type] || 'unknown';
+  }
+  return SARTAN_GESTURE_ACTIONS[type] || 'unknown';
 }
 
 // Helper: Check if Sartan gesture meets confidence threshold (80%)
