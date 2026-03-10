@@ -126,3 +126,16 @@ Per Paithan's mobile implementation spec:
 | Fade-in | 200ms | ease-out |
 | Hover glow | #00D9FF @60% | +15% scale |
 | Commit | 300ms ease-in-out | full opacity |
+
+---
+
+## Sartan Gesture Map
+
+| Gesture    | Threshold   | Output        | Haptic |
+| ---------- | ----------- | ------------- | ------ |
+| tap        | <200ms      | select        | light  |
+| double_tap | gap <300ms  | confirm       | double |
+| long_press | >500ms      | context menu  | heavy  |
+| drag_x/y   | >30px       | translate X/Y | soft   |
+| drag_z     | 0.85 conf   | translate Z   | medium |
+| pinch      | scale delta | scale         | medium |
