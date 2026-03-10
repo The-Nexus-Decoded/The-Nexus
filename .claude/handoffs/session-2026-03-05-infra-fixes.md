@@ -93,7 +93,7 @@ systemctl --user status openclaw-gateway
 
 ### Fallback: OpenRouter (free models via Rate Guard proxy)
 - **Proxy URL**: `http://localhost:8788/v1` (Rate Guard v2 budget proxy running on each server)
-- **API Key**: `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`
+- **API Key**: `[REDACTED — rotate this key]`
 - **Free models available**:
   - `stepfun/step-3.5-flash:free`
   - `arcee-ai/trinity-mini:free`
@@ -224,7 +224,7 @@ OpenClaw Gateway (port 18789)
 - **Budget tracking**: `/data/openclaw/rate-guard-v2/openrouter-budget.json`
 - **What it does**: Reverse proxy for OpenRouter with per-model daily spend caps ($5/day per model), balance checking, and budget enforcement
 - **OpenClaw config**: Set OpenRouter provider `baseUrl` to `http://localhost:8788/v1`
-- **API key**: `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` (stored in openrouter-limits.json)
+- **API key**: `[REDACTED — rotate this key]` (stored in openrouter-limits.json)
 - **Balance guard**: Polls OpenRouter credits, blocks paid models when balance drops below $6
 - **Analytics**: Logs to `rate-guard-analytics.db` (SQLite) for fleet reporting
 

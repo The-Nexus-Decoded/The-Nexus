@@ -33,7 +33,7 @@ Leave #jarvis (`1475082997027049584`) unchanged.
 Replace entire file with ONLY:
 ```
 [Service]
-Environment="GEMINI_API_KEY=AIzaSyCByvtJUxWRbmQ23TJG266jq0tyq8PsbJc"
+Environment="GEMINI_API_KEY=[REDACTED — rotate this key]"
 ```
 Then: `systemctl --user daemon-reload && systemctl --user restart openclaw-gateway.service`
 

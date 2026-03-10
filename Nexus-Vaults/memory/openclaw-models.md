@@ -3,14 +3,14 @@
 ## API Accounts
 - Google Paid Tier 1 account — $300 free credits (~$80 used)
 - SEPARATE Google Cloud projects per server (FIXED 2026-02-26):
-  - ola-claw-main: project `ola-claw-main`, key `AIzaSyDd...FSN3os`
-  - ola-claw-trade: project `ola-claw-trade`, key `AIzaSyCy...Kzz9s`
-  - ola-claw-dev: project `ola-claw-dev`, key `AIzaSyCO...a4Nvg`
+  - ola-claw-main: project `ola-claw-main`, key `[REDACTED]`
+  - ola-claw-trade: project `ola-claw-trade`, key `[REDACTED]`
+  - ola-claw-dev: project `ola-claw-dev`, key `[REDACTED]`
 - Each server gets own 1M TPM quota (3M total vs old shared 1M)
 - TPM limit: ~1M per PROJECT on Tier 1 (rate limits are PER PROJECT, not per key!)
 - Google API rate limits are PER PROJECT. Multiple projects = multiplied quota.
 - Auth-profiles path: `/data/openclaw/agents/main/agent/auth-profiles.json`
-- OpenRouter key: `sk-or-v1-ad8eb96b...` — $9 added 2026-03-01. Now PRIMARY provider via budget proxy.
+- OpenRouter key: `[REDACTED]` — $9 added 2026-03-01. Now PRIMARY provider via budget proxy.
 - Budget proxy at localhost:8788 enforces $5/day per model hard cap
 - DO NOT put claude-sonnet on any fallback chain — expensive and unnecessary
 
