@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Soul Drifter | Death Gate Cycle XR</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Opening the Death Gate...</p>
+    </div>
+    
+    <div id="enter-vr" style="display: none;">
+      <h1>Soul Drifter</h1>
+      <p>Enter the Death Gate Cycle</p>
+      <button id="vr-button">Enter XR</button>
+      <button id="ar-button">Enter AR</button>
+    </div>
+    
+    <canvas id="xr-canvas"></canvas>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
