@@ -208,3 +208,52 @@ export interface OptimisticUIConfig {
 // === Connection Status ===
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting' | 'warning';
+
+// === XRPC Error Codes (per XRPC-SPEC.md) ===
+
+export type XRpcErrorCode = 
+  | 'OBJECT_NOT_FOUND' 
+  | 'OUT_OF_BOUNDS' 
+  | 'RESOLUTION_FAILED' 
+  | 'TIMEOUT' 
+  | 'THERMAL_THROTTLE' 
+  | 'SESSION_EXPIRED'
+  | 'INVALID_GESTURE'
+  | 'STATE_CONFLICT'
+  | 'INTERNAL_ERROR';
+
+export interface XRpcError {
+  code: XRpcErrorCode;
+  message: string;
+  recoverable: boolean;
+  retryAfter?: number;
+  details?: Record<string, unknown>;
+}
+
+// === Cache TTL Strategy (per XRPC-SPEC.md) ===
+
+export type CacheContext = 'foreground' | 'background' | 'handoff';
+
+export interface CacheTTLConfig {
+  foreground: number;  // No cache = 0
+  background: number;  // 30s
+  handoff: number;    // 60s (full clear)
+}
+
+// === Latency Budget (per XRPC-SPEC.md) ===
+
+export const LATENCY_BUDGET_MS = 500;
+export const RESOLVE_TIMEOUT_MS = 500;
+export const ROUNDTRIP_TIMEOUT_MS = 2000;
+export const ACTIONABLE_THRESHOLD_MS = 1500;
+
+// === Spatial Intent (per SPEC.md) ===
+
+export type SpatialIntentAction = 'charge' | 'cast' | 'move' | 'menu' | 'combat' | 'trade' | 'social';
+
+export interface SpatialIntent {
+  action: SpatialIntentAction;
+  gesture: GestureType;
+  params: Record<string, unknown>;
+  progress?: number; // For cast wind-up animations
+}
