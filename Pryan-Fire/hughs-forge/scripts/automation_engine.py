@@ -166,6 +166,9 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
                        (f" — Auto-close in {remaining} more alert{'s' if remaining > 1 else ''} if no response." if remaining > 0 else " — FINAL WARNING!"),
         }
         
+        
+        # Log what would be sent (for verification)
+        logger.info(f"[{wallet_name}] ALERT WOULD BE SENT: {trigger_type.upper()} {pool_name} PnL={pnl_pct:+.1f}% (alert {alert_num}/{alert_count})")
         if _post_to_discord_alerts(msg):
             alert["alerts_sent"] += 1
             alert["last_alert_at"] = datetime.utcnow().isoformat() + "Z"
