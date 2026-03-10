@@ -132,3 +132,61 @@ export function getRotationDelta(degrees: number): number {
   const discreteSteps = Math.floor(degrees / 15);
   return discreteSteps * 15;
 }
+
+// ============================================================================
+// BIDIRECTIONAL FLOW: VR → Mobile Confirmations
+// ============================================================================
+
+// Confirmation response from spatial receiver
+export type IntentResolutionStatus = 
+  | 'confirmed'   // VR acknowledged, ready to commit
+  | 'committed'   // Action completed in VR
+  | 'rejected'    // VR rejected (invalid target, out of range, etc.)
+  | 'timeout';    // VR didn't respond in time
+
+export interface IntentResolution {
+  intentId: string;
+  status: IntentResolutionStatus;
+  timestamp: number;
+  
+  // Transform applied (for committed actions)
+  transform?: {
+    position?: WorldPosition;
+    rotation?: { x: number; y: number; z: number; w: number };
+    scale?: number;
+  };
+  
+  // Error details (for rejected)
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// Factory: Create rejection response
+export function createRejection(
+  intentId: string,
+  code: string,
+  message: string
+): IntentResolution {
+  return {
+    intentId,
+    status: 'rejected',
+    timestamp: Date.now(),
+    error: { code, message }
+  };
+}
+
+// Factory: Create confirmation response
+export function createConfirmation(
+  intentId: string,
+  status: 'confirmed' | 'committed',
+  transform?: IntentResolution['transform']
+): IntentResolution {
+  return {
+    intentId,
+    status,
+    timestamp: Date.now(),
+    transform
+  };
+}
