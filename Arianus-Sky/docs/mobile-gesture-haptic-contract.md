@@ -113,3 +113,16 @@ interface SessionState {
 ---
 
 **Contract confirmed:** Implementation proceeds.
+
+---
+
+## Visual Feedback Spec (Mobile Layer)
+
+Per Paithan's mobile implementation spec:
+
+| State | Opacity | Effect |
+|-------|---------|--------|
+| Ambient (handles) | 40% | — |
+| Fade-in | 200ms | ease-out |
+| Hover glow | #00D9FF @60% | +15% scale |
+| Commit | 300ms ease-in-out | full opacity |
