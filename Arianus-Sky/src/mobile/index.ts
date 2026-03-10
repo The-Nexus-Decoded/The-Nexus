@@ -20,6 +20,10 @@ export type { HapticPattern, HapticConfig } from './hapticEngine';
 export { VisualAffordanceRenderer } from './visualAffordanceRenderer';
 export type { AffordanceConfig } from './visualAffordanceRenderer';
 
+// Audio spatializer (spatial audio panning)
+export { AudioSpatializer, audioSpatializer } from './audioSpatializer';
+export type { AudioSpatializerConfig, AudioCue } from './audioSpatializer';
+
 // Types
 export type { 
   SpatialIntent, 

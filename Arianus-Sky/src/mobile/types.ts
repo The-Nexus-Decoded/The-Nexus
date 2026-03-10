@@ -4,7 +4,7 @@
 
 export type IntentAction = 'SELECT' | 'TRANSLATE' | 'SCALE' | 'ROTATE' | 'GRAB' | 'RELEASE';
 
-export type GestureType = 'tap' | 'drag' | 'pinch' | 'twist' | 'long_press' | 'unknown';
+export type GestureType = 'tap' | 'double_tap' | 'drag' | 'pinch' | 'rotate' | 'twist' | 'long_press' | 'unknown';
 export type GestureState = 'began' | 'recognized' | 'changed' | 'ended' | 'cancelled';
 
 export interface ScreenPoint {
@@ -23,6 +23,8 @@ export interface Gesture {
   startPoint: ScreenPoint;
   currentPoint: ScreenPoint;
   startTime: number;
+  lastMoveTime: number;
+  velocity: number; // pixels per ms
   type: GestureType;
   state: GestureState;
   targetId?: string;

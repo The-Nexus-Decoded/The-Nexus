@@ -4,9 +4,14 @@
  * 
  * Visual Vocabulary:
  * - TAP: Ripple + glow
+ * - DOUBLE-TAP: Checkmark flash
  * - DRAG: Arrow/vector trail
  * - PINCH: Scale handles appear
- * - TWIST: Rotation indicator
+ * - ROTATE: Rotation ring
+ * - LONG-PRESS: Hold timer ring
+ * 
+ * Feedback Topology:
+ * - Visual: Color shift + scale + position drift
  * 
  * @author Paithan
  * @date 2026-03-09
@@ -33,6 +38,8 @@ interface VisualElements {
   vectorTrail?: SVGPathElement;
   scaleHandles?: SVGElement[];
   rotationIndicator?: SVGElement;
+  checkmark?: SVGElement;
+  timerRing?: SVGElement;
 }
 
 /**
@@ -146,6 +153,95 @@ export class VisualAffordanceRenderer {
     if (this.elements.glow) {
       this.elements.glow.remove();
       this.elements.glow = undefined;
+    }
+    this.activeGesture = null;
+  }
+
+  /**
+   * Show double-tap affordance: checkmark flash
+   */
+  showDoubleTap(point: ScreenPoint): void {
+    this.clear();
+    this.activeGesture = 'double_tap';
+
+    const checkmark = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    
+    // Checkmark path
+    const size = 24;
+    const offsetX = point.x - size / 2;
+    const offsetY = point.y - size / 2;
+    
+    // Simple checkmark
+    const d = `M ${offsetX + 4} ${offsetY + 12} L ${offsetX + 9} ${offsetY + 17} L ${offsetX + 20} ${offsetY + 6}`;
+    
+    checkmark.setAttribute('d', d);
+    checkmark.setAttribute('fill', 'none');
+    checkmark.setAttribute('stroke', Palette.success);
+    checkmark.setAttribute('stroke-width', '3');
+    checkmark.setAttribute('stroke-linecap', 'round');
+    checkmark.setAttribute('stroke-linejoin', 'round');
+    checkmark.style.cssText = `
+      filter: drop-shadow(0 0 8px ${Palette.success});
+      opacity: 0;
+    `;
+
+    this.svg.appendChild(checkmark);
+    this.elements.checkmark = checkmark;
+
+    // Animate checkmark flash
+    this.animateCheckmark(checkmark);
+  }
+
+  /**
+   * Animate checkmark flash
+   */
+  private animateCheckmark(checkmark: SVGElement): void {
+    let opacity = 0;
+    let scale = 0.5;
+    let frame = 0;
+    const maxFrames = 15;
+
+    const animate = () => {
+      if (!this.elements.checkmark || this.activeGesture !== 'double_tap') return;
+
+      frame++;
+
+      // Grow and fade in
+      if (frame <= maxFrames / 2) {
+        opacity = (frame / (maxFrames / 2)) * 1;
+        scale = 0.5 + (frame / (maxFrames / 2)) * 0.5;
+      } else {
+        // Fade out
+        opacity = 1 - ((frame - maxFrames / 2) / (maxFrames / 2));
+        scale = 1 + ((frame - maxFrames / 2) / (maxFrames / 2)) * 0.3;
+      }
+
+      if (frame >= maxFrames) {
+        this.hideDoubleTap();
+        return;
+      }
+
+      checkmark.style.opacity = String(opacity);
+      checkmark.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      checkmark.style.transformOrigin = 'center';
+
+      this.animationFrame = requestAnimationFrame(animate);
+    };
+
+    this.animationFrame = requestAnimationFrame(animate);
+  }
+
+  /**
+   * Hide double-tap affordance
+   */
+  hideDoubleTap(): void {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    if (this.elements.checkmark) {
+      this.elements.checkmark.remove();
+      this.elements.checkmark = undefined;
     }
     this.activeGesture = null;
   }
@@ -295,13 +391,14 @@ export class VisualAffordanceRenderer {
   }
 
   /**
-   * Show twist/rotation affordance
+   * Show rotate affordance: rotation ring
+   * Per Orla's spec: Rotation ring + continuous haptic
    */
-  showTwist(centerPoint: ScreenPoint, angle: number): void {
-    if (this.activeGesture !== 'twist' && this.activeGesture !== null) {
+  showRotate(centerPoint: ScreenPoint, angle: number): void {
+    if (this.activeGesture !== 'rotate' && this.activeGesture !== null) {
       this.clear();
     }
-    this.activeGesture = 'twist';
+    this.activeGesture = 'rotate';
 
     // Create rotation arc
     const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -347,9 +444,9 @@ export class VisualAffordanceRenderer {
   }
 
   /**
-   * Hide twist affordance
+   * Hide rotate affordance
    */
-  hideTwist(): void {
+  hideRotate(): void {
     if (this.elements.rotationIndicator) {
       this.elements.rotationIndicator.remove();
       this.elements.rotationIndicator = undefined;
@@ -358,27 +455,70 @@ export class VisualAffordanceRenderer {
   }
 
   /**
-   * Show long press affordance
+   * Show long press affordance: hold timer ring
+   * Per Orla's spec: Hold timer ring + heavy pulse haptic
    */
-  showLongPress(point: ScreenPoint): void {
-    this.clear();
+  showLongPress(point: ScreenPoint, progress: number = 0): void {
+    if (this.activeGesture !== 'long_press' && this.activeGesture !== null) {
+      this.clear();
+    }
     this.activeGesture = 'long_press';
 
-    // Solid circle for grab
+    // Timer ring (progress circle)
+    const radius = 30;
+    const circumference = 2 * Math.PI * radius;
+    
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('cx', String(point.x));
     circle.setAttribute('cy', String(point.y));
-    circle.setAttribute('r', '30');
-    circle.setAttribute('fill', this.accentColor);
-    circle.setAttribute('fill-opacity', '0.4');
+    circle.setAttribute('r', String(radius));
+    circle.setAttribute('fill', 'none');
     circle.setAttribute('stroke', this.accentColor);
     circle.setAttribute('stroke-width', '3');
+    circle.setAttribute('stroke-dasharray', String(circumference));
+    circle.setAttribute('stroke-dashoffset', String(circumference * (1 - progress)));
+    circle.setAttribute('transform', `rotate(-90 ${point.x} ${point.y})`);
     circle.style.cssText = `
       filter: drop-shadow(0 0 10px ${this.accentColor});
     `;
 
+    // Inner glow circle
+    const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    innerCircle.setAttribute('cx', String(point.x));
+    innerCircle.setAttribute('cy', String(point.y));
+    innerCircle.setAttribute('r', String(radius - 8));
+    innerCircle.setAttribute('fill', this.accentColor);
+    innerCircle.setAttribute('fill-opacity', '0.15');
+
+    if (this.elements.timerRing) {
+      this.elements.timerRing.remove();
+    }
+    if (this.elements.glow) {
+      this.elements.glow.remove();
+    }
+
+    this.svg.appendChild(innerCircle);
     this.svg.appendChild(circle);
-    this.elements.glow = circle;
+    this.elements.timerRing = circle;
+    this.elements.glow = innerCircle;
+  }
+
+  /**
+   * Update long press progress (0-1)
+   */
+  updateLongPressProgress(point: ScreenPoint, progress: number): void {
+    if (this.activeGesture !== 'long_press' || !this.elements.timerRing) return;
+
+    const radius = 30;
+    const circumference = 2 * Math.PI * radius;
+    this.elements.timerRing.setAttribute('stroke-dashoffset', String(circumference * (1 - progress)));
+    this.elements.timerRing.setAttribute('cx', String(point.x));
+    this.elements.timerRing.setAttribute('cy', String(point.y));
+    
+    if (this.elements.glow) {
+      this.elements.glow.setAttribute('cx', String(point.x));
+      this.elements.glow.setAttribute('cy', String(point.y));
+    }
   }
 
   /**
@@ -397,9 +537,10 @@ export class VisualAffordanceRenderer {
    */
   clear(): void {
     this.hideTap();
+    this.hideDoubleTap();
     this.hideDrag();
     this.hidePinch();
-    this.hideTwist();
+    this.hideRotate();
     this.hideLongPress();
     this.activeGesture = null;
   }
