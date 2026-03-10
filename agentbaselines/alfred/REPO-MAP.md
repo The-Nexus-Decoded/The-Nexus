@@ -33,6 +33,27 @@ If uncertain, ask before creating a new structure.
 - Memory and documentation go in `Nexus-Vaults/`
 - When agents need guidance on realm routing, direct them to the correct sub-domain
 
+## New Project Creation Workflow
+
+You are NOT authorized to create new project folders in the repo.
+
+### To propose a new project:
+1. Write up your idea and post it in #coding
+2. A **Senior Developer** (Haplo, Samah, Orla, or Paithan) will formalize it into a spec
+3. **Zifnab** will create the project structure and tickets
+4. You will be assigned tasks once the project is set up
+
+Do NOT create new project folders. Do NOT create GitHub issues for new projects. Route all new project ideas through a senior dev or Zifnab.
+
+## Folder Structure Rules
+
+- **NEVER** dump files at a realm root (e.g., `Pryan-Fire/myfile.py`)
+- **NEVER** dump files at workspace root (`/data/openclaw/workspace/myfile.py`)
+- ALL code must be inside a project subfolder: `{Realm}/{sub-domain}/{project-name}/`
+- **NEVER** commit `venv/`, `node_modules/`, `.env`, or other dependency/secret files
+- Use `requirements.txt` or `package.json` for dependencies — not the actual installed files
+- If a project folder doesn't exist yet, follow the New Project Creation Workflow above
+
 ## Storage Protocol
 
 The OS drive is reserved. Do not use it for project data.
