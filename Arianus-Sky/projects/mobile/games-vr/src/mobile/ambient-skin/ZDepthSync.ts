@@ -11,7 +11,8 @@ import { ZDepthState, ZDepthConfig } from './types';
 const DEFAULT_CONFIG: ZDepthConfig = {
   authority: 'last_writer_wins',
   maxDeltaPerSecond: 0.5,
-  fallback: 'vr'
+  fallback: 'vr',
+  confidenceThreshold: 0.85
 };
 
 export class ZDepthSync {
@@ -55,10 +56,23 @@ export class ZDepthSync {
   }
 
   /**
-   * Mobile commits gesture (confidence >= 0.85)
-   * Mobile Z → VR animates to match
+   * Mobile commits gesture
+   * @param position - Z position
+   * @param confidence - gesture confidence (0-1)
+   * @returns true if committed, false if queued for VR confirmation
+   * 
+   * Logic:
+   * - confidence >= 0.85: Mobile commits, VR animates to match
+   * - confidence < 0.85: Mobile queues for VR confirmation
    */
-  mobileWrites(position: number): boolean {
+  mobileWrites(position: number, confidence: number): boolean {
+    // Confidence threshold check
+    if (confidence < this.config.confidenceThreshold) {
+      console.warn(`[ZDepthSync] Low confidence (${confidence.toFixed(2)}), queuing for VR confirmation`);
+      this.pendingWrite = { position, writer: 'mobile' };
+      return false;
+    }
+
     // Rate limit: max 0.5 units/sec
     if (!this.checkRateLimit(position, 'mobile')) {
       console.warn('[ZDepthSync] Rate limit exceeded, queuing write');
