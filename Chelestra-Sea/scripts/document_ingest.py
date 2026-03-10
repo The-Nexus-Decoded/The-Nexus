@@ -10,15 +10,29 @@ Supported formats:
 - Binary: stores metadata only
 
 Output: JSONL file with one document per line
+
+Optimization (Nexus-Vaults#23):
+- OCR for images can be enabled with --ocr (disabled by default for backward compatibility)
+- Parallel OCR using thread pool (--ocr-workers)
+- Image preprocessing: resize and grayscale (--max-image-size, --preprocess)
 """
 
 import os
 import json
 import hashlib
 import subprocess
+import argparse
+import concurrent.futures
 from pathlib import Path
 from datetime import datetime
-import argparse
+from threading import Lock
+
+# Import PIL for image preprocessing if needed
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 STAGING_DIR = "/data/openclaw/staging"
 OUTPUT_FILE = "/data/openclaw/document-db/ingested.jsonl"
@@ -41,6 +55,16 @@ SKIP_EXTENSIONS = {
     '.css', '.scss', '.sass', '.less',
     '.sql', '.sh', '.bash', '.zsh',
 }
+
+# Global flags for OCR (set in main)
+OCR_ENABLED = False
+OCR_WORKERS = 4
+MAX_IMAGE_SIZE = 3000
+PREPROCESS = True
+
+# Thread safety locks
+print_lock = Lock()
+processed_lock = Lock()
 
 
 def get_file_hash(filepath: str) -> str:
@@ -88,33 +112,69 @@ def extract_text_from_rtf(filepath: str) -> str:
         return f"[RTF PARSE ERROR: {e}]"
 
 
-def extract_text_from_image(filepath: str) -> str:
-    """Extract text from image using tesseract OCR."""
+def extract_text_from_image(filepath: str, max_size: int = 3000, preprocess: bool = True) -> str:
+    """Extract text from image using tesseract OCR with optional preprocessing."""
+    temp_path = None
     try:
+        input_path = filepath
+        if preprocess:
+            if not PIL_AVAILABLE:
+                return "[OCR PREPROCESS SKIPPED: PIL not available]"
+            try:
+                img = Image.open(filepath)
+                # Convert to grayscale
+                if img.mode != 'L':
+                    img = img.convert('L')
+                # Resize if too large
+                if max(img.size) > max_size:
+                    ratio = max_size / max(img.size)
+                    new_size = (int(img.width * ratio), int(img.height * ratio))
+                    img = img.resize(new_size, Image.LANCZOS)
+                # Save to temporary PNG
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                    img.save(tmp.name, 'PNG')
+                    temp_path = tmp.name
+                input_path = temp_path
+            except Exception as e:
+                return f"[OCR PREPROCESS ERROR: {e}]"
+
+        # Run tesseract
         result = subprocess.run(
-            ['tesseract', filepath, 'stdout'],
-            capture_output=True, text=True, timeout=30  # 30s timeout
+            ['tesseract', input_path, 'stdout'],
+            capture_output=True, text=True, timeout=60
         )
         if result.returncode != 0:
             return f"[OCR FAILED: {result.stderr[:100]}]"
-        return result.stdout[:50000] if result.stdout else ""
+        text = result.stdout
+        return text[:50000] if text else ""
     except subprocess.TimeoutExpired:
         return "[OCR TIMEOUT - image too complex]"
     except FileNotFoundError:
         return "[OCR NOT INSTALLED: tesseract]"
     except Exception as e:
         return f"[OCR ERROR: {e}]"
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
 
 
 def process_file(filepath: str, relative_path: str) -> dict | None:
     """Process a single file and return document record. Returns None if skipped."""
-    stat = os.stat(filepath)
-    ext = Path(filepath).suffix.lower()
-    
+    global OCR_ENABLED, MAX_IMAGE_SIZE, PREPROCESS
+    try:
+        stat = os.stat(filepath)
+        ext = Path(filepath).suffix.lower()
+    except Exception:
+        return None
+
     # Skip non-document files
     if ext in SKIP_EXTENSIONS:
         return None
-    
+
     record = {
         "path": relative_path,
         "filename": os.path.basename(filepath),
@@ -125,7 +185,7 @@ def process_file(filepath: str, relative_path: str) -> dict | None:
         "content": "",
         "content_type": "unknown"
     }
-    
+
     # Text files
     if ext in TEXT_EXTENSIONS:
         try:
@@ -135,33 +195,37 @@ def process_file(filepath: str, relative_path: str) -> dict | None:
         except Exception as e:
             record['content'] = f"[TEXT ERROR: {e}]"
             record['content_type'] = 'text_error'
-    
+
     # Documents
     elif ext == '.pdf':
         record['content'] = extract_text_from_pdf(filepath)[:50000]
         record['content_type'] = 'pdf'
-    
+
     elif ext in {'.docx', '.doc'}:
         if ext == '.docx':
             record['content'] = extract_text_from_docx(filepath)[:50000]
         else:
             record['content'] = "[DOC format not supported - convert to DOCX]"
         record['content_type'] = 'docx'
-    
+
     elif ext in {'.xlsx', '.xls'}:
         record['content'] = "[Excel not supported - metadata only]"
         record['content_type'] = 'excel'
-    
-    # Images - OCR (skip for now - too slow, process separately)
+
+    # Images - OCR (if enabled)
     elif ext in IMAGE_EXTENSIONS:
-        record['content'] = "[Image - OCR disabled for performance]"
-        record['content_type'] = 'image_pending'
-    
+        if OCR_ENABLED:
+            record['content'] = extract_text_from_image(filepath, MAX_IMAGE_SIZE, PREPROCESS)[:50000]
+            record['content_type'] = 'image'
+        else:
+            record['content'] = "[Image - OCR disabled for performance]"
+            record['content_type'] = 'image_pending'
+
     # Binary - metadata only
     else:
         record['content'] = "[Binary file - metadata only]"
         record['content_type'] = 'binary_metadata'
-    
+
     return record
 
 
@@ -177,41 +241,80 @@ def scan_staging_directory(staging_dir: str) -> list:
 
 
 def main():
+    global OCR_ENABLED, OCR_WORKERS, MAX_IMAGE_SIZE, PREPROCESS
+
     parser = argparse.ArgumentParser(description='Document ingestion pipeline')
     parser.add_argument('--staging', default=STAGING_DIR, help='Staging directory')
     parser.add_argument('--output', default=OUTPUT_FILE, help='Output JSONL file')
     parser.add_argument('--limit', type=int, default=None, help='Limit number of files')
+    parser.add_argument('--ocr', action='store_true', help='Enable OCR for images')
+    parser.add_argument('--ocr-workers', type=int, default=os.cpu_count() or 4,
+                        help='Number of concurrent OCR workers (default: CPU count)')
+    parser.add_argument('--max-image-size', type=int, default=3000,
+                        help='Maximum dimension for image preprocessing (pixels)')
+    parser.add_argument('--no-preprocess', dest='preprocess', action='store_false',
+                        help='Disable image preprocessing (resize/grayscale)')
     args = parser.parse_args()
-    
+
+    # Set global OCR flags
+    OCR_ENABLED = args.ocr
+    OCR_WORKERS = args.ocr_workers
+    MAX_IMAGE_SIZE = args.max_image_size
+    PREPROCESS = args.preprocess
+
     print(f"Scanning {args.staging}...")
     files = scan_staging_directory(args.staging)
     print(f"Found {len(files)} files")
-    
+
     # Ensure output directory exists
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    
+
     processed = 0
     errors = 0
-    
-    with open(args.output, 'w') as outfile:
-        for i, (filepath, relative_path) in enumerate(files):
-            if args.limit and i >= args.limit:
-                break
-            
-            try:
-                record = process_file(filepath, relative_path)
-                if record is None:
-                    continue  # Skip non-document files
-                outfile.write(json.dumps(record) + '\n')
-                processed += 1
-                
-                if processed % 100 == 0:
-                    print(f"Processed {processed} documents...")
-                    
-            except Exception as e:
-                errors += 1
-                print(f"Error processing {filepath}: {e}")
-    
+
+    if OCR_ENABLED:
+        print(f"OCR enabled: {OCR_WORKERS} workers, max_image_size={MAX_IMAGE_SIZE}, preprocess={PREPROCESS}")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=OCR_WORKERS) as executor:
+            futures = {}
+            # Submit all file processing tasks
+            for i, (filepath, relative_path) in enumerate(files):
+                if args.limit and i >= args.limit:
+                    break
+                future = executor.submit(process_file, filepath, relative_path)
+                futures[future] = relative_path
+
+            with open(args.output, 'w') as outfile:
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        record = future.result()
+                        if record is not None:
+                            outfile.write(json.dumps(record) + '\n')
+                            with processed_lock:
+                                processed += 1
+                                if processed % 100 == 0:
+                                    with print_lock:
+                                        print(f"Processed {processed} documents...")
+                    except Exception as e:
+                        errors += 1
+                        with print_lock:
+                            print(f"Error in worker: {e}")
+    else:
+        # Sequential processing (original behavior)
+        with open(args.output, 'w') as outfile:
+            for i, (filepath, relative_path) in enumerate(files):
+                if args.limit and i >= args.limit:
+                    break
+                try:
+                    record = process_file(filepath, relative_path)
+                    if record is not None:
+                        outfile.write(json.dumps(record) + '\n')
+                        processed += 1
+                        if processed % 100 == 0:
+                            print(f"Processed {processed} documents...")
+                except Exception as e:
+                    errors += 1
+                    print(f"Error processing {filepath}: {e}")
+
     print(f"\nComplete!")
     print(f"Processed: {processed}")
     print(f"Errors: {errors}")

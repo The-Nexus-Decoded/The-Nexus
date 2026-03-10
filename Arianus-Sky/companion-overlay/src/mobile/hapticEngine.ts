@@ -18,27 +18,9 @@
 import { GestureType } from './types';
 
 /**
- * Feedback states per Samah's spec
- */
-export type FeedbackState = 'IDLE' | 'INTENT_SENT' | 'CONFIRMED' | 'ERROR';
-
-/**
  * Haptic feedback patterns
  */
 export type HapticPattern = 'light' | 'medium' | 'heavy' | 'softPulse' | 'heavyPulse' | 'doubleTap' | 'continuous' | 'none';
-
-/**
- * Specific feedback patterns per spec (lines 82-85):
- * | Event                       | Pattern                      | Intensity |
- * | --------------------------- | ---------------------------- | --------- |
- * | intent sent (double-tap)    | single 35ms pulse            | medium    |
- * | confirmed (rotate complete) | double 50ms pulse, 80ms gap  | high      |
- * | error (long-press)          | triple 40ms pulse, 50ms gaps | high      |
- */
-export type FeedbackHapticPattern = 
-  | 'intentSent'    // single 35ms pulse, medium
-  | 'confirmed'    // double 50ms pulse, 80ms gap, high
-  | 'error';       // triple 40ms pulse, 50ms gaps, high
 
 /**
  * Haptic engine configuration
@@ -245,61 +227,6 @@ export class HapticEngine {
    */
   getLastVelocity(): number {
     return this.lastVelocity;
-  }
-
-  // =========================================================================
-  // FEEDBACK STATE PATTERNS (per Orla spec lines 82-85)
-  // =========================================================================
-
-  /**
-   * Trigger haptic for feedback state
-   * @param state Feedback state per Samah's spec
-   * - INTENT_SENT: single 35ms pulse, medium intensity
-   * - CONFIRMED: double 50ms pulse, 80ms gap, high intensity  
-   * - ERROR: triple 40ms pulse, 50ms gaps, high intensity
-   */
-  triggerFeedbackState(state: FeedbackState): void {
-    if (!this.config.enabled || !this.vibrationController) return;
-
-    switch (state) {
-      case 'INTENT_SENT':
-        // Single 35ms pulse, medium intensity
-        this.vibrationController(35);
-        break;
-      
-      case 'CONFIRMED':
-        // Double 50ms pulse, 80ms gap, high intensity
-        this.vibrationController([50, 80, 50]);
-        break;
-      
-      case 'ERROR':
-        // Triple 40ms pulse, 50ms gaps, high intensity
-        this.vibrationController([40, 50, 40, 50, 40]);
-        break;
-    }
-  }
-
-  /**
-   * Trigger visual + haptic combo (for glow/scale pulse etc, mobile handles haptics)
-   * Returns the pattern for visual layer to match
-   */
-  getVisualPatternForState(state: FeedbackState): {
-    glow: boolean;
-    scalePulse: boolean;
-    goldRim: boolean;
-    redRim: boolean;
-    shake: boolean;
-  } {
-    switch (state) {
-      case 'INTENT_SENT':
-        return { glow: true, scalePulse: false, goldRim: false, redRim: false, shake: false };
-      case 'CONFIRMED':
-        return { glow: false, scalePulse: true, goldRim: true, redRim: false, shake: false };
-      case 'ERROR':
-        return { glow: false, scalePulse: false, goldRim: false, redRim: true, shake: true };
-      default:
-        return { glow: false, scalePulse: false, goldRim: false, redRim: false, shake: false };
-    }
   }
 }
 
