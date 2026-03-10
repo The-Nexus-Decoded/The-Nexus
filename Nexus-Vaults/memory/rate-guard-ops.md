@@ -155,9 +155,9 @@ To fully remove a model from the fleet, you must clean ALL of these locations on
 ### Primary Keys (existing, per-server)
 | Server  | Project        | Key Prefix       |
 |---------|---------------|------------------|
-| Zifnab  | ola-claw-main | AIzaSyDd...FSN3os |
-| Hugh    | ola-claw-trade| AIzaSyCy...Kzz9s |
-| Haplo   | ola-claw-dev  | AIzaSyCO...a4Nvg |
+| Zifnab  | ola-claw-main | [REDACTED] |
+| Hugh    | ola-claw-trade| [REDACTED] |
+| Haplo   | ola-claw-dev  | [REDACTED] |
 
 ### Cascade Design (UPDATED 2026-02-28 — per-model key rotation)
 Each rate guard has ALL keys. Router tries ALL keys for each model before falling to next model:

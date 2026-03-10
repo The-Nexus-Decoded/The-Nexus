@@ -35,7 +35,7 @@
 
 ## Google API Key Location
 - Stored in: `/home/openclaw/.openclaw/agents/main/agent/auth-profiles.json`
-- Key prefix: `AIzaSyAy...`
+- Key prefix: `[REDACTED]`
 - This is a PAID Tier 1 Google account
 
 ## Ollama (on ola-claw-dev)
