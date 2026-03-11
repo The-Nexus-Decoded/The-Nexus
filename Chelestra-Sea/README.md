@@ -28,18 +28,9 @@ The-Nexus-Decoded/
 
 ```
 Chelestra-Sea/
-├── workflows/              # Lobster workflow files (.lobster)
-│   ├── seventh-gate        # Safe gateway restart
-│   ├── pryan-forge         # PR review monitor
-│   ├── nexus-bridge        # Full PR lifecycle
-│   ├── chelestra-tide      # Post-update patch reapply
-│   ├── labyrinth-watch     # Issue triage dashboard
-│   ├── abarrach-seal       # Stale branch cleanup
-│   ├── sartan-cipher       # Workspace sync
-│   ├── chelestra-current   # Fleet maintenance
-│   ├── abarrach-stone      # Memory consolidation
-│   ├── patryn-workhorse    # CI pipeline (build + test)
-│   └── ...                 # Agent-specific wrappers
+├── workflows/              # Active Lobster workflows + archive policy
+│   ├── archive/legacy/     # Archived legacy workflows, retained for reference only
+│   └── README.md           # Rebuild rules for new workflows
 ├── fleet/                  # Fleet CLI extensions, cross-server tooling
 ├── integrations/           # Discord bots, webhooks, API bridges
 ├── docs/                   # Integration specs, protocol docs
@@ -51,15 +42,4 @@ Chelestra-Sea/
 
 ## Lobster Workflows
 
-| Workflow | What | Used by |
-|----------|------|---------|
-| seventh-gate | Safe gateway restart | All agents |
-| pryan-forge | PR scan + report | Zifnab |
-| nexus-bridge | Full PR lifecycle (branch, commit, push, create, merge) | Haplo |
-| chelestra-tide | Post-update patch reapply | Zifnab |
-| labyrinth-watch | Issue triage dashboard | Zifnab |
-| abarrach-seal | Stale branch cleanup | Zifnab |
-| sartan-cipher | Workspace vault sync | Zifnab |
-| chelestra-current | Fleet maintenance report | Zifnab |
-| abarrach-stone | Memory consolidation review | Zifnab |
-| patryn-workhorse | Build + test runner | Haplo |
+The checked-in legacy workflows have been archived. New Lobster workflows should be rebuilt from current OpenClaw docs and created case by case against the current fleet architecture.
