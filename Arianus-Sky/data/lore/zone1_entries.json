@@ -1,0 +1,65 @@
+{
+  "$schema": "./lore_entry.schema.json",
+  "entries": [
+    {
+      "id": "zone1_thermal_core",
+      "title": "Thermal Core Discovery",
+      "zone": 1,
+      "location": "Thermal Core",
+      "unlock_trigger": "discovered_thermal",
+      "text": "The air here rises in visible waves, heat rising from cracks in the stone. You've found the Thermal Core — a vent of ancient Sartan magic, still pulsing with warmth after all these centuries. The Aerians used these vents to navigate the sky-realm, reading the thermals like maps. Now the wind patterns shift unpredictably, and the Core flickers like a dying candle.",
+      "faction": "Aerian",
+      "tier": 1,
+      "required_for_completion": false,
+      "links": ["zone1_wind_direction"]
+    },
+    {
+      "id": "zone1_wind_direction",
+      "title": "Wind Direction",
+      "zone": 1,
+      "location": "Thermal Core",
+      "unlock_trigger": "read_wind_compass",
+      "text": "The wind speaks, if you know how to listen. Each gust carries whispers of the realms beyond — Chelestra's distant salinity, Pryan's faded ember-heat, Abarrach's cold silence. The cardinal winds were once controlled by Aerian Wind Walkers, but since the Death Gate shattered, they've become chaotic, wild. You can feel which direction leads to safety... and which leads to the void.",
+      "faction": "Aerian",
+      "tier": 1,
+      "required_for_completion": false,
+      "links": ["zone1_thermal_core", "zone1_sunderings_cost"]
+    },
+    {
+      "id": "zone1_sunderings_cost",
+      "title": "Sundering's Cost",
+      "zone": 1,
+      "location": "Post-Combat Reward",
+      "unlock_trigger": "defeated_windshear_stalker",
+      "text": "The creature falls, and with its last breath, you hear it speak — not in words, but in memories. The Sundering was not just the separation of worlds... it was a wound. The Sartan who tore reality apart paid with their immortality. Their scattered souls now drift through the realms, some corrupted into the Naga, others waiting to be found. Every enemy you face once served a purpose. The question is: can you find a way to restore what was lost?",
+      "faction": "Sartan",
+      "tier": 2,
+      "required_for_completion": false,
+      "links": ["zone1_wind_direction", "zone1_updraft"]
+    },
+    {
+      "id": "zone1_updraft",
+      "title": "The Updraft",
+      "zone": 1,
+      "location": "Zone Gate",
+      "unlock_trigger": "reached_zone_gate",
+      "text": "The updraft carries you upward, the taste of salt and ash mixing on your tongue. This is the transition point — the membrane between dying Arianus and whatever lies beyond. The gate hums with dormant power, waiting for enough soul energy to activate. The Aerians called these updrafts 'breath of the realm.' Now they're the last pulse of a world that refuses to die.",
+      "faction": "Neutral",
+      "tier": 2,
+      "required_for_completion": true,
+      "links": ["zone1_thermal_core"]
+    },
+    {
+      "id": "zone1_naga_corruption",
+      "title": "Signs of Corruption",
+      "zone": 1,
+      "location": "Combat Zone",
+      "unlock_trigger": "first_combat",
+      "text": "The creature's veins glow with black ichor — not natural to this realm. The Naga have been seeding entropy into Arianus, corrupting the wind itself. What you thought was natural decay is actually infection. The sky isn't dying of old age. It's being poisoned from within.",
+      "faction": "Naga",
+      "tier": 1,
+      "required_for_completion": false,
+      "links": ["zone1_sunderings_cost"]
+    }
+  ]
+}
