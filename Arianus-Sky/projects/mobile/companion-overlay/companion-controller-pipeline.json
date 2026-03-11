@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompanionControllerPipeline",
+  "description": "Mobile state contract for VR-to-mobile intent passthrough",
+  "version": "1.0.0",
+  "type": "object",
+  "components": {
+    "intent": {
+      "description": "VR → Mobile intent payload",
+      "type": "object",
+      "required": ["id", "action", "timestamp"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "action": { "type": "string", "enum": ["activate", "deactivate", "trigger", "configure"] },
+        "payload": { "type": "object" },
+        "priority": { "type": "integer", "minimum": 0, "maximum": 10, "default": 5 },
+        "timestamp": { "type": "integer" },
+        "source": { "type": "string", "const": "vr" }
+      }
+    },
+    "feedback": {
+      "description": "Mobile → VR feedback payload",
+      "type": "object",
+      "required": ["intentId", "status", "timestamp"],
+      "properties": {
+        "intentId": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["received", "processing", "completed", "failed", "timeout"]
+        },
+        "latencyMs": { "type": "integer", "minimum": 0 },
+        "error": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "target": { "type": "string", "const": "vr" }
+      }
+    },
+    "stateMachine": {
+      "description": "State transitions with timeout thresholds",
+      "states": ["IDLE", "OUTGOING_PUSH", "PENDING_ACK", "CONFIRMED", "FAILED"],
+      "transitions": [
+        { "from": "IDLE", "to": "OUTGOING_PUSH", "trigger": "intent_received" },
+        { "from": "OUTGOING_PUSH", "to": "PENDING_ACK", "trigger": "push_success" },
+        { "from": "PENDING_ACK", "to": "CONFIRMED", "trigger": "ack_received", "maxLatencyMs": 100 },
+        { "from": "PENDING_ACK", "to": "FAILED", "trigger": "timeout", "timeoutMs": 150 }
+      ],
+      "timeouts": {
+        "OUTGOING_PUSH": { "warnMs": 50, "failMs": 100 },
+        "PENDING_ACK": { "warnMs": 100, "failMs": 150 }
+      }
+    }
+  }
+}
