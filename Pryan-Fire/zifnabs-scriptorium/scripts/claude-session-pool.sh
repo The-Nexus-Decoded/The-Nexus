@@ -2,7 +2,7 @@
 ################################################################################
 # Claude Session Pool Manager
 #
-# Spawns multiple Claude Code sessions concurrently using xargs.
+# Spawns multiple Claude Code sessions concurrently using controlled background jobs.
 # Each task is executed via the claude-session-orchestrator.lobster workflow.
 #
 # Usage:
@@ -42,7 +42,7 @@ fi
 if [[ ! -f "$TASKS_FILE" ]]; then
   echo "Error: Tasks file not found: $TASKS_FILE"
   exit 1
-  fi
+fi
 
 # Resolve repo root (assume script lives in .../zifnabs-scriptorium/scripts/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,8 +89,9 @@ run_task() {
     echo "Args JSON: $args_json"
     echo "Running workflow..."
 
-    # Execute the workflow
-    if lobster run --pipeline "$WORKFLOW" --argsJson "$args_json"; then
+    # Execute the workflow using lobster CLI
+    # Use --mode tool for scripted integration (JSON output)
+    if lobster run --mode tool --file "$WORKFLOW" --args-json "$args_json"; then
       echo "Task completed successfully."
       exit 0
     else
@@ -99,22 +100,66 @@ run_task() {
     fi
   } &> "$logfile"
 
-  # Also echo to stdout/stderr so xargs can capture
+  # Also echo to stdout/stderr so we can see progress
   cat "$logfile"
 
   return ${PIPESTATUS[0]}
 }
 
-export REPO_ROOT WORKFLOW LOGDIR
+# Read all tasks into an array (avoid subshell issues)
+if ! mapfile -t task_list < <(grep -v '^\s*$' "$TASKS_FILE" | grep -v '^\s*#'); then
+  # Fallback for systems without mapfile (shouldn't happen on modern bash)
+  task_list=()
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    task_list+=("$line")
+  done < "$TASKS_FILE"
+fi
 
-# Use xargs to manage concurrency
-# Read tasks line by line; empty lines and lines starting with # are ignored
+if (( ${#task_list[@]} == 0 )); then
+  echo "No tasks to process."
+  exit 0
+fi
+
+echo "Total tasks to process: ${#task_list[@]}"
+echo ""
+
+# Track background job PIDs and their status
+pids=()
 failures=0
-cat "$TASKS_FILE" | \
-  grep -v '^\s*$' | \
-  grep -v '^\s*#' | \
-  xargs -n1 -P "$MAX_CONCURRENT" -I {} bash -c 'run_task "$1"' _ {} || failures=$?
 
+# Function to wait for an available concurrency slot
+wait_for_slot() {
+  while (( $(jobs -rp 2>/dev/null | wc -l) >= MAX_CONCURRENT )); do
+    sleep 0.5
+  done
+}
+
+# Process all tasks
+for task_json in "${task_list[@]}"; do
+  wait_for_slot
+  
+  echo "Spawning task: $task_json"
+  
+  # Run the task in background
+  run_task "$task_json" &
+  pids+=("$!")
+done
+
+# Wait for all background jobs to finish
+echo ""
+echo "Waiting for all tasks to complete..."
+wait
+
+# Collect exit status of each background job
+for pid in "${pids[@]}"; do
+  if ! wait "$pid" 2>/dev/null; then
+    ((failures++))
+  fi
+done
+
+# Report and exit with appropriate code
 if [[ $failures -gt 0 ]]; then
   echo "Pool completed with $failures failed task(s)."
   exit 1

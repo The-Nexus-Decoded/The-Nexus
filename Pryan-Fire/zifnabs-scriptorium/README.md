@@ -44,9 +44,9 @@ Run many Claude Code tasks concurrently with controlled parallelism.
 **How it works:**
 - The workflow writes the tasks array to a temporary file (one task per line).
 - Calls `claude-session-pool.sh` with the tasks file and max concurrency.
-- The shell script uses `xargs -P` to run N tasks in parallel, each invoking `claude-session-orchestrator.lobster` via `lobster run`.
+- The shell script uses a controlled background job pool: it spawns tasks up to `max_concurrent`, then waits for a slot using a short sleep loop before spawning more. This avoids the limitations of `xargs` and ensures accurate concurrency control.
 - Each task logs to `logs/task-<timestamp>-<pid>.log`.
-- The pool waits for all tasks to complete and reports a summary.
+- The pool waits for all tasks to complete and reports a summary, including any failures.
 
 **Usage example:**
 
@@ -54,10 +54,10 @@ Run many Claude Code tasks concurrently with controlled parallelism.
 # Create a JSON array of tasks
 tasks='["Task A", "Task B", "Task C"]'
 
-# Run via lobster
-lobster run \
-  --pipeline /data/repos/The-Nexus/Pryan-Fire/zifnabs-scriptorium/workflows/claude-session-pool.lobster \
-  --argsJson "$(jq -n --argjson tasks "$tasks" '{tasks: $tasks, max_concurrent: 2}')"
+# Run via lobster in tool mode (produces JSON output)
+lobster run --mode tool \
+  --file /data/repos/The-Nexus/Pryan-Fire/zifnabs-scriptorium/workflows/claude-session-pool.lobster \
+  --args-json "$(jq -n --argjson tasks "$tasks" '{tasks: $tasks, max_concurrent: 2}')"
 ```
 
 **Notes:**
