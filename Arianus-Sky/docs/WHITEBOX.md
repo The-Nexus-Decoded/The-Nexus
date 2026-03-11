@@ -42,6 +42,22 @@
 
 ---
 
+## Lore Anchor Mapping (For Iridal)
+
+| Location | Distance | Lore Fragment | Trigger |
+|----------|----------|--------------|---------|
+| Thermal Core | ~40m | Wind Direction | Discovery (player finds it) |
+| Post-Combat | ~70m | Wind Direction reward | Combat complete |
+| Zone Gate 1 | ~120m | — | 30 souls collected |
+
+### Iridal's Hand-Off Spec
+
+- **Zone 1 Lore:** Wind Direction — "Why flight matters"
+- **Placement:** At Thermal Core discovery point
+- **Unlock:** Automatic on discovery interaction
+
+---
+
 ## Zone 2: Up Draft
 
 ### Spatial Layout
