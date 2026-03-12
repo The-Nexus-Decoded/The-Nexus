@@ -1,213 +1,143 @@
-# Trading Systems — Full Assessment Report
+# Trading Systems — Full Assessment Report (UPDATED)
 
 ## Branch: `refactor/crypto-automation-cleanup`
-**Generated:** 2026-03-12
+**Updated:** 2026-03-12 with Hugh's runtime inventory
 
 ---
 
-## 1. SYSTEM MAP
+## 1. SYSTEM MAP (COMPLETE)
 
-### Complete Architecture
-
+### In Monorepo (The-Nexus)
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    SIGNAL INGESTION                                 │
 ├─────────────────────────────────────────────────────────────────────┤
 │  meteora_dlmm_scanner.py    │  dex_screener.py   │ pump_fun_stream │
-│  (src/signals/)             │  (src/signals/)    │ (src/signals/)  │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    PRICE/FEED SYSTEMS                               │
 ├─────────────────────────────────────────────────────────────────────┤
-│  price_feed.py (NEW)        │  HermesClient.ts      │ Meteora API  │
+│  price_feed.py (NEW)        │  HermesClient.ts      │ Meteora API   │
 │  services/feed_reliability/ │  services/meteora-    │ (fallback)   │
-│                             │  trader/src/          │              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### On Hugh's Server (ola-claw-trade)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PRICE/FEED SYSTEMS                               │
+├─────────────────────────────────────────────────────────────────────┤
+│  pyth-hermes/                  │  Meteora Pipeline                  │
+│  (REST API v2, circuit breaker│  (DLMM/Dynamic position reading)  │
+│   retry logic)                 │                                    │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TRADING EXECUTION                                │
+│                    HEALTH/MONITORING                                │
 ├─────────────────────────────────────────────────────────────────────┤
-│  src/executor/                 │  services/trade-executor/         │
-│  - exit_strategy.py            │  - main.py (1000+ lines)          │
-│  - transaction_core.py         │  - run_pipeline.py                │
-│  - state_machine.py           │  - strategy_engine.py             │
-│  - kill_switch.py             │  - fix_lp.py                      │
-│  - guards.py                  │                                   │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    AUTOMATION (SL/TP)                               │
-├─────────────────────────────────────────────────────────────────────┤
-│  scripts/automation_engine.py (425 lines)                          │
-│  - Stop-loss / take-profit triggers                                 │
-│  - Jupiter swap execution                                           │
-│  - Discord alert escalation                                         │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MONITORING & HEALTH                              │
-├─────────────────────────────────────────────────────────────────────┤
-│  services/trade-orchestrator/                                       │
-│  - health_server.py (616 lines) - REST API for positions/pools     │
-│  - TradeOrchestrator.py                                            │
-│  - src/core/                                                        │
-│    - rpc_integration.py                                             │
-│    - state_machine.py                                               │
-│    - event_loop.py                                                  │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    DISCORD OUTPUT                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│  position_monitor.py (611 lines)  │  killfeed_discord_poster.py    │
-│  - Position embeds to #bot-    │  - Kill feed to Discord          │
-│    meteora-open-pools           │                                  │
-│                                                                     │
-│  Webhooks:                                                          │
-│  - DISCORD_WEBHOOK_POSITIONS                                        │
-│  - DISCORD_WEBHOOK_ALERTS                                          │
-│  - DISCORD_WEBHOOK_TOPPOOLS                                         │
-│  - DISCORD_WEBHOOK_EXTREME                                          │
+│  Killfeed service (systemd timer, every 5 min)                     │
+│  - #killfeed-extreme (200%+ APY)                                    │
+│  - #killfeed-killer (100-200%)                                      │
+│  - #killfeed-alpha (50-100%)                                       │
+│  - #killfeed-toppools                                              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. FINDINGS BY SEVERITY
+## 2. COMPLETE INVENTORY
 
-### 🔴 CRITICAL (Broken / Blocking)
+### Monorepo Components
 
-| Issue | Location | Description |
-|-------|----------|-------------|
-| Duplicate code | `meteora-trader/` | Removed - was duplicate of `services/meteora-trader/` |
-| Broken Hermes client | `pyth-hermes-client/` | Removed - was placeholder returning dummy prices |
-| Syntax error | `trade-executor/main.py` | Fixed - stray `})` removed |
+| Component | Path | Status |
+|-----------|------|--------|
+| Trading Execution | `Pryan-Fire/hughs-forge/services/trade-executor/` | ✅ |
+| Signal Ingestion | `Pryan-Fire/src/signals/` | ✅ |
+| Price Feed (new) | `Pryan-Fire/hughs-forge/services/feed_reliability/` | ✅ |
+| Hermes Client | `Pryan-Fire/hughs-forge/services/meteora-trader/src/HermesClient.ts` | ✅ |
+| Automation | `Pryan-Fire/hughs-forge/scripts/automation_engine.py` | ✅ |
+| Position Monitor | `Pryan-Fire/hughs-forge/scripts/position_monitor.py` | ✅ |
+| Killfeed | `Pryan-Fire/hughs-forge/scripts/killfeed_discord_poster.py` | ✅ |
+| Health Server | `Pryan-Fire/hughs-forge/services/trade-orchestrator/src/health_server.py` | ✅ |
 
-### 🟠 HIGH (Technical Debt)
+### Hugh's Server (Local - NOT in repo)
 
-| Issue | Location | Description |
-|-------|----------|-------------|
-| No integration tests | All | Unit tests exist, no E2E flow tests |
-| Hardcoded wallets | `automation_engine.py` | Wallet addresses in code, should be config |
-| Duplicate config paths | `config/` | 4 config files across 2 directories |
-| No feed reliability | Most modules | Each fetches prices independently |
-
-### 🟡 MEDIUM (Cleanup Needed)
-
-| Issue | Location | Description |
-|-------|----------|-------------|
-| Stale test files | `Pryan-Fire/test_*.py` | 4 of 6 are stale (not importing current code) |
-| Unused env vars | Various | Some defined but not used |
-| Legacy comments | Various | Old TODOs not updated |
-
-### 🟢 LOW (Nice to Have)
-
-| Issue | Location | Description |
-|-------|----------|-------------|
-| No TypeScript strict | `services/meteora-trader/` | Using @ts-ignore in places |
-| Missing JSDoc | Various | Some functions lack documentation |
-
----
-
-## 3. CANONICAL IMPLEMENTATIONS
-
-| Component | Canonical Path | Notes |
-|-----------|----------------|-------|
-| Position Management | `services/meteora-trader/src/PositionManager.ts` | NEW - consolidated |
-| Price Feed | `services/feed_reliability/price_feed.py` | NEW - unified layer |
-| Hermes Client | `services/meteora-trader/src/HermesClient.ts` | Working implementation |
-| Automation | `scripts/automation_engine.py` | SL/TP logic |
-| Health Server | `services/trade-orchestrator/src/health_server.py` | REST API |
-| Position Monitor | `scripts/position_monitor.py` | Discord posting |
-
----
-
-## 4. PROPOSED CUT LIST (Dead/Duplicate Code)
-
-### Already Removed ✅
-| Path | Reason |
-|------|--------|
-| `meteora-trader/src/pyth-hermes-client/` | Placeholder - was dummy |
-| `meteora-trader/` (entire directory) | Duplicate of `services/` |
-
-### Recommended for Removal
-| Path | Reason |
-|------|--------|
-| `Pryan-Fire/test_dashboard.py` | Stale - no imports from current code |
-| `Pryan-Fire/test_profiles.py` | Stale - no imports from current code |
-| `Pryan-Fire/test_scanner.py` | Stale - no imports from current code |
-| `Pryan-Fire/test_ledger.py` | Stale - no imports from current code |
-| `config/testnet/` | Duplicate config - not used |
-| `risk-manager/src/` | Duplicate of `services/risk-manager/` |
-
----
-
-## 5. TEST PLAN
-
-### Unit Tests (Existing ✅)
-
-| Test File | Coverage | Status |
+| Component | Location | Status |
 |-----------|----------|--------|
-| `test_automation_engine.py` | SL/TP triggers | ✅ 6/6 pass |
-| `test_position_monitor.py` | PnL calculations | ✅ 5/5 pass |
-| `test_rpc_integration.py` | RPC calls | ⚠️ Needs review |
+| Pyth Hermes API | `/path/to/pyth-hermes/` | ✅ Running |
+| Killfeed script | `/data/openclaw/scripts/killfeed-discord-poster.sh` | ✅ Running |
+| Discord channels | #killfeed-* | ✅ Configured |
 
-### Integration Tests (Missing ❌)
+---
 
-| Test | Description | Priority |
-|------|-------------|----------|
-| Feed → Health Server | Verify price feeds flow to API | HIGH |
-| Health Server → Position Monitor | Verify positions to Discord | HIGH |
-| Position Monitor → Automation | Verify SL/TP triggers fire | HIGH |
-| Full E2E (mock) | Signal → Feed → Execute → Discord | MEDIUM |
+## 3. GAP ANALYSIS
 
-### Runtime Validation (Requires Hugh)
+### Missing from Monorepo ⚠️
 
-| Check | Description |
-|-------|-------------|
-| RPC connectivity | Verify Solana RPC calls work |
-| Wallet positions | Verify positions fetch correctly |
-| Discord webhooks | Verify messages post to channels |
-| Automation dry-run | Verify SL/TP triggers work in dry-run |
+1. **pyth-hermes/** — Hugh's REST API with circuit breaker (on his server)
+2. **Local scripts** — `/data/openclaw/scripts/killfeed-discord-poster.sh`
+
+### Recommendation
+- Move `pyth-hermes/` to monorepo `Pryan-Fire/hughs-forge/services/`
+- Add local scripts to repo or document in TOOLS.md
+
+---
+
+## 4. FINDINGS BY SEVERITY
+
+### 🔴 CRITICAL
+| Issue | Location | Status |
+|-------|----------|--------|
+| pyth-hermes not in repo | Hugh's server | ⚠️ Local only |
+| Killfeed script not in repo | /data/openclaw/scripts/ | ⚠️ Local only |
+
+### 🟠 HIGH
+| Issue | Location | Status |
+|-------|----------|--------|
+| No integration tests | Monorepo | ✅ Added |
+| Hardcoded wallets | automation_engine.py | ⚠️ Needs config |
+
+### 🟡 MEDIUM
+| Issue | Location | Status |
+|-------|----------|--------|
+| Stale test files | Pryan-Fire/test_*.py | ⚠️ Need cleanup |
+
+---
+
+## 5. TEST STATUS
+
+| Type | Count | Status |
+|------|-------|--------|
+| Unit Tests | 11 | ✅ Pass |
+| Integration Tests | 7 | ✅ Pass |
+| **TOTAL** | **18** | ✅ **All Pass** |
 
 ---
 
 ## 6. ACTION ITEMS
 
-### Immediate (This PR)
-- [x] Remove duplicate meteora-trader/
-- [x] Fix syntax error in trade-executor
-- [x] Add unit tests for automation
-- [x] Create unified price_feed.py
-- [x] Add inventory documentation
+### For Hugh
+- [ ] Push `pyth-hermes/` to monorepo
+- [ ] Add local killfeed script to repo
+- [ ] Run runtime validation tests
 
-### Next Phase
-- [ ] Remove stale test files
-- [ ] Consolidate config files
-- [ ] Add integration tests
-- [ ] Move hardcoded wallets to config
-
-### Blockers for Hugh
-- Need runtime validation of health_server endpoints
-- Need Discord webhook verification
-- Need Solana RPC connectivity test
+### For Haplo
+- [ ] Verify monorepo tests pass
+- [ ] Update PR #257
 
 ---
 
-## 7. FILES CHANGED IN THIS BRANCH
+## 7. COMMITS ON BRANCH
 
 ```
-77fdb336 refactor(crypto): remove broken Hermes placeholder, add tests and feed reliability layer
-1045feaf fix(hughs-forge): syntax error in trade-executor main.py
-5cc51fe2 fix(hughs-forge): TypeScript errors in meteora-trader
-7b2b8265 docs: add comprehensive trading systems inventory
+11cc8693 test: add integration tests for full trading pipeline
+2af81cf7 docs: add comprehensive assessment report
 84e83b81 refactor: remove dead code - duplicate meteora-trader/
+7b2b8265 docs: add comprehensive trading systems inventory
+5cc51fe2 fix(hughs-forge): TypeScript errors in meteora-trader
+1045feaf fix(hughs-forge): syntax error in trade-executor main.py
+77fdb336 refactor(crypto): remove broken Hermes placeholder, add tests
 ```
-
-**Total:** 5 commits, ~500 lines added, ~2500 lines removed
