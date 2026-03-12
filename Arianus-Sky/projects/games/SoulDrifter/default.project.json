@@ -1,0 +1,54 @@
+{
+  "name": "SoulDrifter",
+  "version": "0.1.0",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "RemoteEvents": {
+        "$className": "RemoteEvent",
+        "$path": "src/Server/RemoteEvents.server.lua"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Main": {
+        "$path": "src/Server/Main.server.lua"
+      },
+      "ZoneGeometry": {
+        "$path": "src/Server/ZoneGeometry.server.lua"
+      },
+      "ZoneStateMachine": {
+        "$path": "src/Server/ZoneStateMachine.server.lua"
+      },
+      "SoulTracker": {
+        "$path": "src/Server/SoulTracker.server.lua"
+      },
+      "DataStoreManager": {
+        "$path": "src/Server/DataStoreManager.server.lua"
+      },
+      "EnemyAI": {
+        "$path": "src/Server/EnemyAI.server.lua"
+      },
+      "RemoteEventMap": {
+        "$path": "src/Server/RemoteEventMap.server.lua"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Main": {
+          "$path": "src/Client/Main.client.lua"
+        }
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "Zones": {
+        "$className": "Folder",
+        "$path": "src/Shared/Zones"
+      }
+    }
+  }
+}
