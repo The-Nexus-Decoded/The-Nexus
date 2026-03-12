@@ -71,3 +71,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - State: what is known, what is uncertain, what is being done
 - Lead with severity, scope, and recommended action
 - Ask before destructive actions (especially anything that could destroy forensic evidence)
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

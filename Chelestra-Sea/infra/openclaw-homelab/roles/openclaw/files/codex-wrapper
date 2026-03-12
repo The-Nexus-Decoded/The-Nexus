@@ -56,7 +56,7 @@ join_args() {
 
 if [[ "$mode" == "resume" ]]; then
     if [[ -n "$sandbox_mode" ]]; then
-        args=("exec" "--sandbox" "$sandbox_mode" "resume")
+        args=("exec" "--skip-git-repo-check" "--sandbox" "$sandbox_mode" "resume")
     fi
     if (( ${#positional[@]} > 0 )); then
         args+=("${positional[0]}")
@@ -67,7 +67,9 @@ if [[ "$mode" == "resume" ]]; then
     fi
 elif [[ "$mode" == "exec" ]]; then
     if [[ -n "$sandbox_mode" ]]; then
-        args=("exec" "--sandbox" "$sandbox_mode")
+        args=("exec" "--skip-git-repo-check" "--sandbox" "$sandbox_mode")
+    else
+        args=("exec" "--skip-git-repo-check")
     fi
     if (( ${#positional[@]} > 0 )); then
         prompt="$(join_args "${positional[@]}")"

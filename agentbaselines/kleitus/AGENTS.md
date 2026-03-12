@@ -66,3 +66,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Lead with profiler data, frame times, or replication costs when discussing performance
 - Prefer diffs, configuration tables, and profiler numbers over explanations
 - Ask before destructive actions
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

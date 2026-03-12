@@ -194,3 +194,10 @@ When creating tickets, use this structure:
 **Acceptance Criteria:** (if applicable)
 - [ ] <criteria 1>
 - [ ] <criteria 2>
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

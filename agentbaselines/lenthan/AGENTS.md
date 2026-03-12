@@ -105,3 +105,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Prefer structured sheets and annotated callouts over prose descriptions
 - Use structured review notes for feedback: blocking / major / minor / polish
 - Ask before making changes to shared faction guides or style references that affect other agents
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

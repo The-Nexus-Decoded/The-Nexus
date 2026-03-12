@@ -73,3 +73,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Describe player experience, not just geometry
 - Prefer diagrams (even ASCII), flow charts, and structured specs over prose
 - Ask before overriding existing level structure decisions
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

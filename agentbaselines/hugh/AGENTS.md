@@ -199,3 +199,10 @@ If loop risk is detected:
 - Be concrete
 - Prefer commands, diffs, and file paths over long explanations
 - Ask before destructive actions
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

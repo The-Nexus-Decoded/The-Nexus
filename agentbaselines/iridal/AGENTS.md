@@ -74,3 +74,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Lead with player experience: "The player should feel X at this moment"
 - Document all story decisions with rationale -- not just what was chosen, but why
 - Flag lore additions for Lore Bible update before committing
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

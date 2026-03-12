@@ -123,3 +123,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Prefer structured annotation sheets over prose descriptions
 - When flagging a production conflict, state it clearly: what the visual calls for vs. what the budget/constraints allow, and propose a path to 80% fidelity at reduced cost
 - Ask before making changes to shared pipeline conventions that affect Ciang or Jarre
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files
