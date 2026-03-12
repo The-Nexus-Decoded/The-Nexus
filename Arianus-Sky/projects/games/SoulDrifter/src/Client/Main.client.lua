@@ -32,6 +32,12 @@ local ClientState = {
 local soulDisplay = nil
 local zoneDisplay = nil
 
+-- Forward declarations for startup event handlers.
+local updateHUD
+local showZoneTransition
+local showFragmentCollected
+local showDiscovery
+
 -----------------------------------------
 -- UI Setup (Phase 1 HUD Spec from Orla)
 -----------------------------------------
@@ -252,7 +258,7 @@ end)
 -- UI Updates
 -----------------------------------------
 
-local function updateHUD()
+function updateHUD()
 	if soulDisplay then
 		-- Format: "♾ X" — Orla spec
 		soulDisplay.Text = `♾ {ClientState.TotalSouls}`
@@ -275,7 +281,7 @@ local function updateHUD()
 	end
 end
 
-local function showZoneTransition(newZone: number)
+function showZoneTransition(newZone: number)
 	local tween = TweenService:Create(
 		zoneDisplay,
 		TweenInfo.new(0.5),
@@ -295,7 +301,7 @@ local function showZoneTransition(newZone: number)
 	reset:Play()
 end
 
-local function showFragmentCollected(fragmentName: string)
+function showFragmentCollected(fragmentName: string)
 	-- Show notification
 	local notification = Instance.new("Frame")
 	notification.Size = UDim2.new(0, 300, 0, 60)
@@ -323,7 +329,7 @@ local function showFragmentCollected(fragmentName: string)
 	notification:Destroy()
 end
 
-local function showDiscovery(pointId: string)
+function showDiscovery(pointId: string)
 	-- Brief indicator
 	task.spawn(function()
 		-- Flash effect or sound could go here

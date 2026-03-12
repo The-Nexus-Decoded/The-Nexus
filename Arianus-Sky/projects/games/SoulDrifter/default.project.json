@@ -1,13 +1,65 @@
 {
   "name": "SoulDrifter",
-  "version": "0.1.0",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "RemoteEvents": {
-        "$className": "RemoteEvent",
-        "$path": "src/Server/RemoteEvents.server.lua"
+        "$className": "Folder",
+        "Zone": {
+          "$className": "Folder",
+          "InitialState": {
+            "$className": "RemoteEvent"
+          },
+          "DiscoverPoint": {
+            "$className": "RemoteEvent"
+          },
+          "DiscoveryComplete": {
+            "$className": "RemoteEvent"
+          },
+          "RequestState": {
+            "$className": "RemoteEvent"
+          },
+          "StateUpdate": {
+            "$className": "RemoteEvent"
+          },
+          "UpdatePosition": {
+            "$className": "RemoteEvent"
+          }
+        },
+        "Soul": {
+          "$className": "Folder",
+          "CollectSoul": {
+            "$className": "RemoteEvent"
+          },
+          "SoulUpdated": {
+            "$className": "RemoteEvent"
+          },
+          "CollectFragment": {
+            "$className": "RemoteEvent"
+          },
+          "FragmentCollected": {
+            "$className": "RemoteEvent"
+          }
+        },
+        "Combat": {
+          "$className": "Folder",
+          "EnemyDefeated": {
+            "$className": "RemoteEvent"
+          },
+          "BossPhaseComplete": {
+            "$className": "RemoteEvent"
+          },
+          "BossPhaseUpdate": {
+            "$className": "RemoteEvent"
+          },
+          "HealthUpdated": {
+            "$className": "RemoteEvent"
+          },
+          "PlayerDied": {
+            "$className": "RemoteEvent"
+          }
+        }
       }
     },
     "ServerScriptService": {
@@ -16,22 +68,22 @@
         "$path": "src/Server/Main.server.lua"
       },
       "ZoneGeometry": {
-        "$path": "src/Server/ZoneGeometry.server.lua"
+        "$path": "src/Server/ZoneGeometry.lua"
       },
       "ZoneStateMachine": {
-        "$path": "src/Server/ZoneStateMachine.server.lua"
+        "$path": "src/Server/ZoneStateMachine.lua"
       },
       "SoulTracker": {
-        "$path": "src/Server/SoulTracker.server.lua"
+        "$path": "src/Server/SoulTracker.lua"
       },
       "DataStoreManager": {
-        "$path": "src/Server/DataStoreManager.server.lua"
+        "$path": "src/Server/DataStoreManager.lua"
       },
       "EnemyAI": {
-        "$path": "src/Server/EnemyAI.server.lua"
+        "$path": "src/Server/EnemyAI.lua"
       },
       "RemoteEventMap": {
-        "$path": "src/Server/RemoteEventMap.server.lua"
+        "$path": "src/Server/RemoteEventMap.lua"
       }
     },
     "StarterPlayer": {
@@ -41,13 +93,6 @@
         "Main": {
           "$path": "src/Client/Main.client.lua"
         }
-      }
-    },
-    "Workspace": {
-      "$className": "Workspace",
-      "Zones": {
-        "$className": "Folder",
-        "$path": "src/Shared/Zones"
       }
     }
   }

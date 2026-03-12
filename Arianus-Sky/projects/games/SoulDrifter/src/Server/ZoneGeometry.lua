@@ -74,7 +74,7 @@ function ZoneGeometry:CreateZoneA()
 	platform.Position = pos + Vector3.new(0, 0, 0)
 	platform.Anchored = true
 	platform.BrickColor = BrickColor.new("Medium stone grey")
-	platform.Material = Enum.Material.Slate
+	platform.Material = Enum.Material.Stone
 	platform.Parent = workspace
 	
 	-- Central spawn platform (for thermal trigger)
@@ -97,6 +97,8 @@ function ZoneGeometry:CreateZoneA()
 	thermalTrigger.Transparency = 1
 	thermalTrigger.CanCollide = false
 	
+	local touch = Instance.new("TouchInterest")
+	touch.Parent = thermalTrigger
 	thermalTrigger.Parent = workspace
 	
 	-- Glowing runes on walls (decorative)
@@ -138,7 +140,7 @@ function ZoneGeometry:CreateZoneB()
 	floor.Position = pos + Vector3.new(0, -0.25, 0)
 	floor.Anchored = true
 	floor.BrickColor = BrickColor.new("Dark stone grey")
-	floor.Material = Enum.Material.Slate
+	floor.Material = Enum.Material.Stone
 	floor.Parent = workspace
 	
 	-- Ambient glow strips
@@ -183,7 +185,7 @@ function ZoneGeometry:CreateZoneC()
 	arena.Position = pos + Vector3.new(0, -0.5, 0)
 	arena.Anchored = true
 	arena.BrickColor = BrickColor.new("Stone")
-	arena.Material = Enum.Material.Slate
+	arena.Material = Enum.Material.Stone
 	arena.Parent = workspace
 	
 	-- Dummy platforms (3 dummies at 3m radius, 120° spacing)
