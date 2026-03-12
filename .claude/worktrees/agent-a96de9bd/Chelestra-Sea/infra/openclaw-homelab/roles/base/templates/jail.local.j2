@@ -1,0 +1,14 @@
+# /etc/fail2ban/jail.local
+# Managed by Ansible — do not edit manually
+# OpenClaw Homelab: Fail2ban SSH jail configuration
+
+[DEFAULT]
+# Ban duration and retry settings from group_vars/all.yml
+bantime = {{ fail2ban_bantime }}
+maxretry = {{ fail2ban_maxretry }}
+
+[sshd]
+enabled = true
+port = {{ ssh_port }}
+maxretry = {{ fail2ban_maxretry }}
+bantime = {{ fail2ban_bantime }}

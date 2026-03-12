@@ -1,0 +1,151 @@
+---
+# =============================================================================
+# OpenClaw Homelab — Reboot and Verify Playbook
+# Reboots servers and verifies all services survive the reboot
+#
+# Usage:
+#   ansible-playbook playbooks/reboot-verify.yml
+#
+# Run against a single host:
+#   ansible-playbook playbooks/reboot-verify.yml -l ola-claw-dev
+# =============================================================================
+
+- name: Reboot and verify all OpenClaw servers
+  hosts: all
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vault/secrets.yml"
+  serial: 1  # Reboot one server at a time
+
+  tasks:
+    # --- Reboot ---
+
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        connect_timeout: 30
+        msg: "Ansible reboot-verify: rebooting {{ inventory_hostname }}"
+
+    - name: Wait for SSH to come back
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 120
+
+    # --- Verify Tailscale ---
+
+    - name: Verify Tailscale is connected
+      ansible.builtin.command: tailscale ip -4
+      register: ts_ip
+      changed_when: false
+      failed_when: ts_ip.rc != 0 or ts_ip.stdout | length == 0
+
+    - name: Set Tailscale verification result
+      ansible.builtin.set_fact:
+        verify_tailscale: "PASS — {{ ts_ip.stdout }}"
+
+    # --- Verify NVIDIA GPUs ---
+
+    - name: Verify NVIDIA GPUs visible
+      ansible.builtin.command: nvidia-smi --query-gpu=name --format=csv,noheader
+      register: gpu_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Set GPU verification result
+      ansible.builtin.set_fact:
+        verify_gpu: "{{ 'PASS — ' ~ gpu_check.stdout_lines | join(', ') if gpu_check.rc == 0 else 'SKIP — no NVIDIA driver or GPU' }}"
+
+    # --- Verify Ollama ---
+
+    - name: Verify Ollama is running and responsive
+      ansible.builtin.uri:
+        url: "http://localhost:{{ ollama_port | default(11434) }}/api/tags"
+        method: GET
+        status_code: 200
+      register: ollama_check
+      ignore_errors: true
+
+    - name: Set Ollama verification result
+      ansible.builtin.set_fact:
+        verify_ollama: "{{ 'PASS' if ollama_check.status | default(0) == 200 else 'FAIL — Ollama not responding on port ' ~ ollama_port | default(11434) }}"
+
+    # --- Verify OpenClaw Gateway ---
+
+    - name: Verify OpenClaw gateway health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:18789/health"
+        method: GET
+        status_code: 200
+      register: gateway_check
+      ignore_errors: true
+
+    - name: Set gateway verification result
+      ansible.builtin.set_fact:
+        verify_gateway: "{{ 'PASS' if gateway_check.status | default(0) == 200 else 'FAIL — gateway not responding on port 18789' }}"
+
+    # --- Verify /data mount ---
+
+    - name: Verify /data is mounted
+      ansible.builtin.command: mountpoint -q /data
+      register: data_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Set /data verification result
+      ansible.builtin.set_fact:
+        verify_data: "{{ 'PASS' if data_check.rc == 0 else 'FAIL — /data is not mounted' }}"
+
+    # --- Verify UFW ---
+
+    - name: Verify UFW is active
+      ansible.builtin.command: ufw status
+      register: ufw_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Set UFW verification result
+      ansible.builtin.set_fact:
+        verify_ufw: "{{ 'PASS' if 'Status: active' in ufw_check.stdout | default('') else 'FAIL — UFW is not active' }}"
+
+    # --- Verify Fail2ban ---
+
+    - name: Verify Fail2ban is running
+      ansible.builtin.command: systemctl is-active fail2ban
+      register: f2b_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Set Fail2ban verification result
+      ansible.builtin.set_fact:
+        verify_fail2ban: "{{ 'PASS' if f2b_check.stdout | default('') == 'active' else 'FAIL — fail2ban is not active' }}"
+
+    # --- Summary ---
+
+    - name: Display reboot verification summary
+      ansible.builtin.debug:
+        msg: |
+          ======================================================
+          REBOOT VERIFICATION: {{ inventory_hostname }}
+          ======================================================
+          Tailscale:  {{ verify_tailscale }}
+          NVIDIA GPU: {{ verify_gpu }}
+          Ollama:     {{ verify_ollama }}
+          Gateway:    {{ verify_gateway }}
+          /data:      {{ verify_data }}
+          UFW:        {{ verify_ufw }}
+          Fail2ban:   {{ verify_fail2ban }}
+          ======================================================
+
+    # --- Fail the play if critical services are down ---
+
+    - name: Assert critical services are running
+      ansible.builtin.assert:
+        that:
+          - "'PASS' in verify_tailscale"
+          - "'PASS' in verify_data"
+          - "'PASS' in verify_ufw"
+          - "'PASS' in verify_fail2ban"
+        fail_msg: >
+          CRITICAL: One or more essential services failed verification after reboot.
+          Check the summary above and investigate.
+        success_msg: "All critical services verified after reboot."

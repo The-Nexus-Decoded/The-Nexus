@@ -1,0 +1,52 @@
+# =============================================================================
+# OpenClaw Homelab — .gitignore
+# =============================================================================
+
+# Ansible vault password file — NEVER commit this
+.vault_pass
+
+# Ansible retry files
+*.retry
+
+# Temporary provisioning scripts (contain credentials)
+scripts/_*.py
+
+# Temporary playbooks (generated during provisioning)
+playbooks/_*.yml
+
+# Auto-generated Tailscale IP mapping (machine-specific)
+tailscale-ips.yml
+
+# Ansible fact caching
+.ansible/
+
+# vault/secrets.yml is intentionally tracked in git (encrypted with ansible-vault)
+# To exclude it from git entirely, uncomment the line below:
+# vault/secrets.yml
+
+# SSH keys — never commit private keys
+*.pem
+id_rsa
+id_ed25519
+id_ecdsa
+*.key
+
+# Environment files
+.env
+.env.local
+*.env
+
+# API keys and secrets — NEVER commit these
+secrets/
+*.secret
+*credentials*
+*api_key*
+*apikey*
+auth-profiles.json
+
+# macOS junk
+.DS_Store
+
+# Windows junk
+Thumbs.db
+desktop.ini

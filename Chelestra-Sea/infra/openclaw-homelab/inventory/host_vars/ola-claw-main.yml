@@ -51,3 +51,28 @@ extra_agents:
         enabled: true
         base_url: "http://localhost:8000/v1"
         model: "qwen3.5-9b"
+
+  # --- Specialist cluster (ports 18820–18840) ---
+  # 10-port spacing to avoid port+2/port+3 side-channel collisions
+  # Discord disabled — tokens to be registered in developer portal
+
+  - name: ramu
+    port: 18820
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: alake
+    port: 18830
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: drugar
+    port: 18840
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}

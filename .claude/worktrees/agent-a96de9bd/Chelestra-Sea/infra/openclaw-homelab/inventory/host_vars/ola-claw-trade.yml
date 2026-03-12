@@ -1,0 +1,41 @@
+# =============================================================================
+# Host Variables: ola-claw-trade (Hugh — Trade server)
+# Hardware: i7-6800K (6c/12t), 24GB RAM, GTX 1070 + GTX 1070 Ti (16GB VRAM)
+# GPU: CC 6.1 — requires GGUF (Ollama), NOT AWQ (needs CC >= 7.5)
+# =============================================================================
+
+# Server role determines which SOUL.md gets deployed
+server_role: crypto
+
+# Hugh uses Tailscale primarily — no static LAN fallback needed
+# network_static_fallback_ip: ""
+
+# GPU: GTX 1070 + GTX 1070 Ti (16GB total VRAM, CC 6.1)
+nvidia_install: true
+
+# Local LLM via Ollama (GGUF models — AWQ requires CC >= 7.5)
+ollama_install: true
+
+# --- Extra agent gateways deployed on this server ---
+# Discord channel IDs:
+#   #the-nexus: 1475082874234343621
+#   #coding:    1475083038810443878
+#   #crypto:    1475082964156157972
+#   #jarvis:    1475082997027049584
+
+extra_agents:
+  - name: samah
+    port: 18811
+    discord_bot_token: "{{ vault_samah_discord_token }}"
+    discord_channels:
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"

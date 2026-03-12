@@ -1,0 +1,129 @@
+:root {
+  --realm-arianus: #4a9eff;
+  --realm-pryan: #ff6b35;
+  --realm-chelestra: #00d4aa;
+  --realm-abarrach: #9b59b6;
+  --bg-void: #0a0a0f;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-void);
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--realm-arianus);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#loading p {
+  color: rgba(255,255,255,0.6);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+#enter-vr {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 100;
+}
+
+#enter-vr h1 {
+  font-size: 3rem;
+  font-weight: 300;
+  letter-spacing: 8px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, var(--realm-arianus), var(--realm-pryan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#enter-vr p {
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 40px;
+  letter-spacing: 3px;
+}
+
+#vr-button, #ar-button {
+  display: block;
+  width: 200px;
+  padding: 15px 30px;
+  margin: 10px auto;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#vr-button {
+  background: linear-gradient(135deg, var(--realm-pryan), #ff8f5a);
+  color: #fff;
+}
+
+#vr-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+}
+
+#ar-button {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+#ar-button:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+#xr-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Realm-specific glow effects */
+.realm-arianus { box-shadow: 0 0 30px var(--realm-arianus); }
+.realm-pryan { box-shadow: 0 0 30px var(--realm-pryan); }
+.realm-chelestra { box-shadow: 0 0 30px var(--realm-chelestra); }
+.realm-abarrach { box-shadow: 0 0 30px var(--realm-abarrach); }

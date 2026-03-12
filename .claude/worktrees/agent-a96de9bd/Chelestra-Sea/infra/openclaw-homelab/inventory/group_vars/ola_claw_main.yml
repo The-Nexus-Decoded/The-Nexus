@@ -1,0 +1,16 @@
+# =============================================================================
+# OpenClaw Homelab — ola-claw-main server vars
+# Role: Jarvis — central brain and personal intelligence hub. Orchestrates
+#   the other servers, ingests owner's files/emails/messages, delivers
+#   proactive briefings, context-aware suggestions, and job scanning.
+# LAN IP: 192.168.1.X (update to Tailscale IP after install)
+# =============================================================================
+
+server_role: jarvis
+server_hostname: ola-claw-main
+
+# Per-server UFW port overrides (added to ufw_allowed_ports from all.yml)
+ufw_extra_ports: []
+
+# Discord channel ID for this server's OpenClaw agent
+discord_channel_id: "1475082997027049584"
