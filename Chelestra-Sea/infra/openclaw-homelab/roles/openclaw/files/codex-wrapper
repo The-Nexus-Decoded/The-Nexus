@@ -40,10 +40,6 @@ for arg in "$@"; do
     esac
 done
 
-if [[ -n "$sandbox_mode" ]]; then
-    args+=("--sandbox" "$sandbox_mode")
-fi
-
 join_args() {
     local out=""
     local first=true
@@ -59,6 +55,9 @@ join_args() {
 }
 
 if [[ "$mode" == "resume" ]]; then
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("exec" "--sandbox" "$sandbox_mode" "resume")
+    fi
     if (( ${#positional[@]} > 0 )); then
         args+=("${positional[0]}")
     fi
@@ -67,11 +66,17 @@ if [[ "$mode" == "resume" ]]; then
         args+=("$prompt")
     fi
 elif [[ "$mode" == "exec" ]]; then
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("exec" "--sandbox" "$sandbox_mode")
+    fi
     if (( ${#positional[@]} > 0 )); then
         prompt="$(join_args "${positional[@]}")"
         args+=("$prompt")
     fi
 else
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("--sandbox" "$sandbox_mode")
+    fi
     args+=("${positional[@]}")
 fi
 
