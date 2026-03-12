@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Import our systems
+local ZoneGeometry = require(script.Parent.ZoneGeometry)
 local ZoneStateMachine = require(script.Parent.ZoneStateMachine)
 local SoulTracker = require(script.Parent.SoulTracker)
 local RemoteEventMap = require(script.Parent.RemoteEventMap)
@@ -23,9 +24,31 @@ local zoneMachine = ZoneStateMachine.new()
 local soulTracker = SoulTracker.new()
 local remoteMap = RemoteEventMap.new()
 local dataStore = DataStoreManager.new()
+local zoneGeometry = ZoneGeometry.new()
+
+-- Build Zone 1 geometry on server start
+zoneGeometry:BuildZone1()
 
 -- RemoteEvents setup
 local remoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+
+-- Create RemoteEvents if they don't exist
+if not remoteEvents:FindFirstChild("Zone") then
+	local zone = Instance.new("RemoteEvent")
+	zone.Name = "Zone"
+	zone.Parent = remoteEvents
+end
+if not remoteEvents:FindFirstChild("Soul") then
+	local soul = Instance.new("RemoteEvent")
+	soul.Name = "Soul"
+	soul.Parent = remoteEvents
+end
+if not remoteEvents:FindFirstChild("Combat") then
+	local combat = Instance.new("RemoteEvent")
+	combat.Name = "Combat"
+	combat.Parent = remoteEvents
+end
+
 local zoneEvents = remoteEvents:WaitForChild("Zone")
 local soulEvents = remoteEvents:WaitForChild("Soul")
 local combatEvents = remoteEvents:WaitForChild("Combat")
