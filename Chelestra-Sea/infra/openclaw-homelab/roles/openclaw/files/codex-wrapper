@@ -1,0 +1,67 @@
+#!/bin/bash
+# Normalize OpenClaw CLI backend invocations for Codex.
+# OpenClaw may pass prompt text as many argv segments; Codex expects one prompt arg.
+
+args=()
+positional=()
+mode=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --dangerously-bypass-approvals-and-sandbox|--yolo|--full-auto)
+            args+=("$arg")
+            ;;
+        --*)
+            # Strip unknown long flags that Codex does not accept in this environment.
+            continue
+            ;;
+        exec)
+            mode="exec"
+            args+=("$arg")
+            ;;
+        resume)
+            mode="resume"
+            args+=("$arg")
+            ;;
+        workspace-write|workspace-read|workspace-*)
+            # Strip OpenClaw workspace mode tokens.
+            continue
+            ;;
+        *)
+            positional+=("$arg")
+            ;;
+    esac
+done
+
+join_args() {
+    local out=""
+    local first=true
+    for part in "$@"; do
+        if $first; then
+            out="$part"
+            first=false
+        else
+            out+=" $part"
+        fi
+    done
+    printf "%s" "$out"
+}
+
+if [[ "$mode" == "resume" ]]; then
+    if (( ${#positional[@]} > 0 )); then
+        args+=("${positional[0]}")
+    fi
+    if (( ${#positional[@]} > 1 )); then
+        prompt="$(join_args "${positional[@]:1}")"
+        args+=("$prompt")
+    fi
+elif [[ "$mode" == "exec" ]]; then
+    if (( ${#positional[@]} > 0 )); then
+        prompt="$(join_args "${positional[@]}")"
+        args+=("$prompt")
+    fi
+else
+    args+=("${positional[@]}")
+fi
+
+exec /usr/bin/codex "${args[@]}"

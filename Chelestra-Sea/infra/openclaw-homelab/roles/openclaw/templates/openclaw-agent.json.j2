@@ -28,7 +28,9 @@
   },
   "agents": {
     "defaults": {
-      "workspace": "/home/{{ server_user }}/.openclaw/workspace-{{ item.name }}"
+      "workspace": "/home/{{ server_user }}/.openclaw/workspace-{{ item.name }}"{% if item.model is defined and item.model %},
+      "model": {{ item.model | to_nice_json | indent(6, true) }}{% endif %}{% if item.cliBackends is defined and item.cliBackends %},
+      "cliBackends": {{ item.cliBackends | to_nice_json | indent(6, true) }}{% endif %}
     }
   },
   "providers": {{ item.providers | default({}) | to_nice_json }},
