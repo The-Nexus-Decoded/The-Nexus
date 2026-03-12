@@ -67,32 +67,84 @@ function ZoneGeometry:CreateZoneA()
 	local zone = self.Zones.A
 	local pos = self.ZonePositions.A
 	
-	-- Octagonal spawn platform (approximated with 8-sided cylinder)
-	local platform = Instance.new("Part")
-	platform.Name = "ZoneA_SpawnChamber"
-	platform.Size = Vector3.new(zone.Dimensions.X, 1, zone.Dimensions.Z)
-	platform.Position = pos + Vector3.new(0, 0, 0)
-	platform.Anchored = true
-	platform.BrickColor = BrickColor.new("Medium stone grey")
-	platform.Material = Enum.Material.Slate
-	platform.Parent = workspace
+	-- Create folder for zone
+	local zoneFolder = Instance.new("Folder")
+	zoneFolder.Name = "ZoneA_SpawnChamber"
+	zoneFolder.Parent = workspace
 	
-	-- Central spawn platform (for thermal trigger)
+	-- Floor: 8x8 stone platform
+	local floor = Instance.new("Part")
+	floor.Name = "Floor"
+	floor.Size = Vector3.new(8, 0.5, 8)
+	floor.Position = pos + Vector3.new(0, -0.25, 0)
+	floor.Anchored = true
+	floor.BrickColor = BrickColor.new("Dark stone grey")
+	floor.Material = Enum.Material.Stone
+	floor.Parent = zoneFolder
+	table.insert(self.CreatedParts, floor)
+	
+	-- 8 corner pillars (octagonal approximation)
+	for i = 1, 8 do
+		local angle = (i / 8) * math.pi * 2
+		local radius = 3.5
+		local pillar = Instance.new("Part")
+		pillar.Name = "Pillar_" .. i
+		pillar.Size = Vector3.new(1, 6, 1)
+		pillar.Position = pos + Vector3.new(math.cos(angle) * radius, 3, math.sin(angle) * radius)
+		pillar.Anchored = true
+		pillar.BrickColor = BrickColor.new("Stone grey")
+		pillar.Material = Enum.Material.Stone
+		pillar.Parent = zoneFolder
+		table.insert(self.CreatedParts, pillar)
+	end
+	
+	-- Ceiling
+	local ceiling = Instance.new("Part")
+	ceiling.Name = "Ceiling"
+	ceiling.Size = Vector3.new(8, 0.5, 8)
+	ceiling.Position = pos + Vector3.new(0, 6, 0)
+	ceiling.Anchored = true
+	ceiling.BrickColor = BrickColor.new("Dark stone grey")
+	ceiling.Material = Enum.Material.Stone
+	ceiling.Parent = zoneFolder
+	table.insert(self.CreatedParts, ceiling)
+	
+	-- Central spawn platform (thermal trigger area)
 	local centerPlatform = Instance.new("Part")
 	centerPlatform.Name = "SpawnCenter"
-	centerPlatform.Size = Vector3.new(2, 0.5, 2)
-	centerPlatform.Position = pos + zone.ThermalPosition + Vector3.new(0, 0.5, 0)
+	centerPlatform.Size = Vector3.new(2, 0.3, 2)
+	centerPlatform.Position = pos + Vector3.new(0, 0.15, 0)
 	centerPlatform.Anchored = true
 	centerPlatform.BrickColor = BrickColor.new("Neon green")
 	centerPlatform.Material = Enum.Material.Neon
-	centerPlatform.Transparency = 0.3
-	centerPlatform.Parent = workspace
+	centerPlatform.Transparency = 0.2
+	centerPlatform.Parent = zoneFolder
+	table.insert(self.CreatedParts, centerPlatform)
+	
+	-- Zone label
+	local zoneLabel = Instance.new("Part")
+	zoneLabel.Name = "ZoneLabel"
+	zoneLabel.Size = Vector3.new(3, 0.5, 0.2)
+	zoneLabel.Position = pos + Vector3.new(0, 4, -3.8)
+	zoneLabel.Anchored = true
+	zoneLabel.BrickColor = BrickColor.new("White")
+	zoneLabel.Material = Enum.Material.Neon
+	zoneLabel.Parent = zoneFolder
+	table.insert(self.CreatedParts, zoneLabel)
 	
 	-- Thermal discovery trigger (2m proximity)
 	local thermalTrigger = Instance.new("Part")
-	thermalTrigger.Name = "ThermalTrigger_ZoneA"
-	thermalTrigger.Size = Vector3.new(zone.ThermalProximity * 2, zone.ThermalProximity * 2, zone.ThermalProximity * 2)
-	thermalTrigger.Position = pos + zone.ThermalPosition
+	thermalTrigger.Name = "ThermalTrigger"
+	thermalTrigger.Size = Vector3.new(4, 4, 4)
+	thermalTrigger.Position = pos + Vector3.new(0, 3, 0)
+	thermalTrigger.Anchored = true
+	thermalTrigger.Transparency = 1
+	thermalTrigger.CanCollide = false
+	thermalTrigger.Parent = zoneFolder
+	table.insert(self.CreatedParts, thermalTrigger)
+	
+	return zoneFolder
+end
 	thermalTrigger.Anchored = true
 	thermalTrigger.Transparency = 1
 	thermalTrigger.CanCollide = false
@@ -131,44 +183,83 @@ function ZoneGeometry:CreateZoneB()
 	local zone = self.Zones.B
 	local pos = self.ZonePositions.B
 	
-	-- Corridor floor
+	-- Create folder for zone
+	local zoneFolder = Instance.new("Folder")
+	zoneFolder.Name = "ZoneB_EntryCorridor"
+	zoneFolder.Parent = workspace
+	
+	-- Floor
 	local floor = Instance.new("Part")
-	floor.Name = "ZoneB_EntryCorridor"
-	floor.Size = Vector3.new(zone.Dimensions.X, 0.5, zone.Dimensions.Z)
+	floor.Name = "Floor"
+	floor.Size = Vector3.new(10, 0.5, 4)
 	floor.Position = pos + Vector3.new(0, -0.25, 0)
 	floor.Anchored = true
 	floor.BrickColor = BrickColor.new("Dark stone grey")
-	floor.Material = Enum.Material.Slate
-	floor.Parent = workspace
+	floor.Material = Enum.Material.Stone
+	floor.Parent = zoneFolder
+	table.insert(self.CreatedParts, floor)
 	
-	-- Ambient glow strips
+	-- Ceiling
+	local ceiling = Instance.new("Part")
+	ceiling.Name = "Ceiling"
+	ceiling.Size = Vector3.new(10, 0.5, 4)
+	ceiling.Position = pos + Vector3.new(0, 4, 0)
+	ceiling.Anchored = true
+	ceiling.BrickColor = BrickColor.new("Dark stone grey")
+	ceiling.Material = Enum.Material.Stone
+	ceiling.Parent = zoneFolder
+	table.insert(self.CreatedParts, ceiling)
+	
+	-- Walls (left and right)
+	for side = -1, 1, 2 do
+		local wall = Instance.new("Part")
+		wall.Name = "Wall_" .. (side == -1 and "Left" or "Right")
+		wall.Size = Vector3.new(10, 4, 0.5)
+		wall.Position = pos + Vector3.new(0, 2, side * 1.75)
+		wall.Anchored = true
+		wall.BrickColor = BrickColor.new("Stone grey")
+		wall.Material = Enum.Material.Stone
+		wall.Parent = zoneFolder
+		table.insert(self.CreatedParts, wall)
+	end
+	
+	-- Ambient glow strips on walls
 	for side = -1, 1, 2 do
 		local strip = Instance.new("Part")
 		strip.Name = "GlowStrip"
-		strip.Size = Vector3.new(zone.Dimensions.X - 1, 0.2, 0.2)
-		strip.Position = pos + Vector3.new(0, 3.5, side * (zone.Dimensions.Z / 2 - 0.5))
+		strip.Size = Vector3.new(8, 0.2, 0.1)
+		strip.Position = pos + Vector3.new(0, 3.5, side * 1.5)
 		strip.Anchored = true
 		strip.BrickColor = BrickColor.new("Neon blue")
 		strip.Material = Enum.Material.Neon
 		strip.Transparency = 0.3
-		strip.Parent = workspace
+		strip.Parent = zoneFolder
 		table.insert(self.CreatedParts, strip)
 	end
+	
+	-- Zone label
+	local zoneLabel = Instance.new("Part")
+	zoneLabel.Name = "ZoneLabel"
+	zoneLabel.Size = Vector3.new(4, 0.5, 0.2)
+	zoneLabel.Position = pos + Vector3.new(0, 3.5, 0)
+	zoneLabel.Anchored = true
+	zoneLabel.BrickColor = BrickColor.new("White")
+	zoneLabel.Material = Enum.Material.Neon
+	zoneLabel.Parent = zoneFolder
+	table.insert(self.CreatedParts, zoneLabel)
 	
 	-- Auto-trigger transition (A → B)
 	local trigger = Instance.new("Part")
 	trigger.Name = "ZoneTransition_A_to_B"
 	trigger.Size = Vector3.new(3, 4, 1)
-	trigger.Position = pos + Vector3.new(0, 2, zone.Dimensions.Z / 2)
+	trigger.Position = pos + Vector3.new(0, 2, -2)
 	trigger.Anchored = true
 	trigger.Transparency = 1
 	trigger.CanCollide = false
-	trigger.Parent = workspace
-	
-	table.insert(self.CreatedParts, floor)
+	trigger.Parent = zoneFolder
 	table.insert(self.CreatedParts, trigger)
 	
-	return floor, trigger
+	return zoneFolder
 end
 
 -- Zone C: Training Arena
@@ -176,18 +267,62 @@ function ZoneGeometry:CreateZoneC()
 	local zone = self.Zones.C
 	local pos = self.ZonePositions.C
 	
-	-- Circular arena floor (approximated with cylinder)
+	-- Create folder for zone
+	local zoneFolder = Instance.new("Folder")
+	zoneFolder.Name = "ZoneC_TrainingArena"
+	zoneFolder.Parent = workspace
+	
+	-- Circular arena floor (cylinder)
 	local arena = Instance.new("Part")
-	arena.Name = "ZoneC_TrainingArena"
-	arena.Size = Vector3.new(zone.Dimensions.X, 1, zone.Dimensions.Z)
+	arena.Name = "Floor"
+	arena.Size = Vector3.new(12, 1, 12)
 	arena.Position = pos + Vector3.new(0, -0.5, 0)
 	arena.Anchored = true
 	arena.BrickColor = BrickColor.new("Stone")
-	arena.Material = Enum.Material.Slate
-	arena.Parent = workspace
+	arena.Material = Enum.Material.Stone
+	arena.Shape = Enum.PartType.Cylinder
+	arena.Parent = zoneFolder
+	table.insert(self.CreatedParts, arena)
+	
+	-- Arena walls (8 pillars around perimeter)
+	for i = 1, 8 do
+		local angle = (i / 8) * math.pi * 2
+		local radius = 5.5
+		local pillar = Instance.new("Part")
+		pillar.Name = "ArenaPillar_" .. i
+		pillar.Size = Vector3.new(1, 15, 1)
+		pillar.Position = pos + Vector3.new(math.cos(angle) * radius, 7.5, math.sin(angle) * radius)
+		pillar.Anchored = true
+		pillar.BrickColor = BrickColor.new("Stone grey")
+		pillar.Material = Enum.Material.Stone
+		pillar.Parent = zoneFolder
+		table.insert(self.CreatedParts, pillar)
+	end
+	
+	-- Ceiling
+	local ceiling = Instance.new("Part")
+	ceiling.Name = "Ceiling"
+	ceiling.Size = Vector3.new(12, 0.5, 12)
+	ceiling.Position = pos + Vector3.new(0, 15, 0)
+	ceiling.Anchored = true
+	ceiling.BrickColor = BrickColor.new("Dark stone grey")
+	ceiling.Material = Enum.Material.Stone
+	ceiling.Shape = Enum.PartType.Cylinder
+	ceiling.Parent = zoneFolder
+	table.insert(self.CreatedParts, ceiling)
+	
+	-- Zone label
+	local zoneLabel = Instance.new("Part")
+	zoneLabel.Name = "ZoneLabel"
+	zoneLabel.Size = Vector3.new(4, 0.5, 0.2)
+	zoneLabel.Position = pos + Vector3.new(0, 12, -5)
+	zoneLabel.Anchored = true
+	zoneLabel.BrickColor = BrickColor.new("White")
+	zoneLabel.Material = Enum.Material.Neon
+	zoneLabel.Parent = zoneFolder
+	table.insert(self.CreatedParts, zoneLabel)
 	
 	-- Dummy platforms (3 dummies at 3m radius, 120° spacing)
-	local dummyPlatforms = {}
 	for _, dummy in ipairs(zone.Dummies) do
 		local plat = Instance.new("Part")
 		plat.Name = dummy.Name .. "_Platform"
@@ -196,7 +331,8 @@ function ZoneGeometry:CreateZoneC()
 		plat.Anchored = true
 		plat.BrickColor = BrickColor.new("Brown")
 		plat.Material = Enum.Material.Wood
-		plat.Parent = workspace
+		plat.Parent = zoneFolder
+		table.insert(self.CreatedParts, plat)
 		
 		-- Training dummy
 		local dummyPart = Instance.new("Part")
@@ -206,7 +342,7 @@ function ZoneGeometry:CreateZoneC()
 		dummyPart.Anchored = true
 		dummyPart.BrickColor = BrickColor.new("Bright red")
 		dummyPart.Material = Enum.Material.Fabric
-		dummyPart.Parent = workspace
+		dummyPart.Parent = zoneFolder
 		
 		-- Dummy health (for soul collection)
 		local attributes = Instance.new("Folder")
@@ -224,14 +360,13 @@ function ZoneGeometry:CreateZoneC()
 		soulValue.Parent = attributes
 		
 		table.insert(self.CreatedParts, dummyPart)
-		table.insert(dummyPlatforms, plat)
 	end
 	
-	-- Zone gate trigger (C →, requires 30 souls)
+	-- Zone gate trigger (C → D, requires 30 souls)
 	local gateTrigger = Instance.new("Part")
 	gateTrigger.Name = "ZoneGate_C_to_D"
 	gateTrigger.Size = Vector3.new(8, 10, 2)
-	gateTrigger.Position = pos + Vector3.new(0, 5, zone.Dimensions.Z / 2)
+	gateTrigger.Position = pos + Vector3.new(0, 5, 6)
 	gateTrigger.Anchored = true
 	gateTrigger.Transparency = 0.7
 	gateTrigger.BrickColor = BrickColor.new("Gold")
