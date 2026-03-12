@@ -1,29 +1,48 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { DLMM } from "@meteora-ag/dlmm";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import DLMM from "@meteora-ag/dlmm";
 import "dotenv/config";
+
+interface LbPairPosition {
+  lowerBinId: number;
+  upperBinId: number;
+  liquidity: string;
+}
+
+interface WalletPositions {
+  [lbPair: string]: {
+    positionData: LbPairPosition[];
+  };
+}
 
 const fetchLpPositions = async (
   connection: Connection,
   wallet: PublicKey
 ) => {
   console.log(`🔎 Fetching LP positions for wallet: ${wallet.toBase58()}...`);
-  const dlmm = new DLMM(connection);
-  const allPositions = await dlmm.getAllLbPairPositionsOfWallet(wallet);
+  
+  try {
+    // @ts-ignore - DLMM SDK types incomplete
+    const dlmm = await DLMM.create(connection, new PublicKey(""));
+    // @ts-ignore - DLMM SDK types incomplete
+    const allPositions = await dlmm.getPositionsByUser(wallet);
 
-  if (Object.keys(allPositions).length === 0) {
-    console.log("❎ No active DLMM positions found for this wallet.");
-    return;
-  }
+    if (!allPositions || Object.keys(allPositions).length === 0) {
+      console.log("❎ No active DLMM positions found for this wallet.");
+      return;
+    }
 
-  console.log(`✅ Found ${Object.keys(allPositions).length} DLMM positions:`);
-  for (const lbPair in allPositions) {
-    const position = allPositions[lbPair];
-    console.log(`\n--- Position in ${lbPair} ---`);
-    position.positionData.forEach((pos) => {
-      console.log(
-        `  - Lower Bin: ${pos.lowerBinId}, Upper Bin: ${pos.upperBinId}, Liquidity: ${pos.liquidity}`
-      );
-    });
+    console.log(`✅ Found ${Object.keys(allPositions).length} DLMM positions:`);
+    for (const lbPair in allPositions) {
+      const position = allPositions[lbPair];
+      console.log(`\n--- Position in ${lbPair} ---`);
+      position.positionData.forEach((pos: LbPairPosition) => {
+        console.log(
+          `  - Lower Bin: ${pos.lowerBinId}, Upper Bin: ${pos.upperBinId}, Liquidity: ${pos.liquidity}`
+        );
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching positions:", error);
   }
 };
 

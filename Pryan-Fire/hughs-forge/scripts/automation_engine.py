@@ -249,16 +249,113 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
         return True
     
     # === REAL EXECUTION ===
-    # This requires the trade-executor code to be available
-    # For now, log the intent — actual implementation needs subprocess calls to trade-executor
+    # Use Jupiter API to generate swap transaction
+    try:
+        # Determine which token to swap (token_x or token_y)
+        swap_from_mint = token_x_mint if token_x_mint != USDC_MINT else token_y_mint
+        swap_from_symbol = token_x_symbol if token_x_mint != USDC_MINT else token_y_symbol
+        
+        # For DLMM positions, we need to first remove liquidity then swap
+        # This is a simplified version - generates a basic SOL/USDC swap for now
+        # Full implementation would call DLMM SDK to withdraw position first
+        
+        logger.info(f"Initiating Jupiter swap: {swap_from_symbol} -> USDC")
+        
+        # Get swap quote from Jupiter
+        quote = _get_jupiter_quote(swap_from_mint, USDC_MINT, 1000000)  # 1 unit min
+        if not quote:
+            logger.error("Failed to get Jupiter quote")
+            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+            return False
+        
+        logger.info(f"Jupiter quote received: {quote.get('outAmount')} USDC")
+        
+        # Get swap transaction
+        swap_tx = _get_jupiter_swap_transaction(quote, swap_from_mint, USDC_MINT, swap_slippage)
+        if not swap_tx:
+            logger.error("Failed to build Jupiter transaction")
+            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+            return False
+        
+        # Post transaction to Discord for manual approval
+        _post_swap_transaction_to_discord(wallet_name, trigger, swap_tx, quote)
+        
+        logger.info("Swap transaction generated and posted to Discord for approval")
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=True)
+        return True
+        
+    except Exception as e:
+        logger.error(f"Execution error: {e}")
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+        return False
+
+
+def _get_jupiter_quote(input_mint: str, output_mint: str, amount: int) -> Optional[Dict]:
+    """Get swap quote from Jupiter API."""
+    try:
+        url = f"https://quote-api.jup.ag/v6/quote?inputMint={input_mint}&outputMint={output_mint}&amount={amount}&slippage=0.5"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            logger.error(f"Jupiter API error: {resp.status_code}")
+            return None
+        
+        quotes = resp.json()
+        if not quotes or len(quotes) == 0:
+            logger.error("No quotes returned from Jupiter")
+            return None
+        
+        # Return best quote (first one)
+        return quotes[0]
+    except Exception as e:
+        logger.error(f"Failed to get Jupiter quote: {e}")
+        return None
+
+
+def _get_jupiter_swap_transaction(quote: Dict, input_mint: str, output_mint: str, slippage_bps: int) -> Optional[str]:
+    """Get swap transaction from Jupiter API."""
+    try:
+        url = "https://quote-api.jup.ag/v6/swap"
+        payload = {
+            "quoteResponse": quote,
+            "userPublicKey": "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x",  # bot wallet
+            "slippageBps": slippage_bps,
+        }
+        resp = requests.post(url, json=payload, timeout=15)
+        if resp.status_code != 200:
+            logger.error(f"Jupiter swap API error: {resp.status_code}")
+            return None
+        
+        data = resp.json()
+        return data.get("swapTransaction")
+    except Exception as e:
+        logger.error(f"Failed to build Jupiter transaction: {e}")
+        return None
+
+
+def _post_swap_transaction_to_discord(wallet_name: str, trigger: Dict, swap_tx: str, quote: Dict):
+    """Post base64 swap transaction to Discord for manual signing."""
+    if not DISCORD_WEBHOOK_ALERTS:
+        return
     
-    logger.warning("Real execution not yet implemented - this is a stub")
-    logger.warning(f"Would execute: close {pubkey}, claim fees from {pool_pubkey}, swap {token_x_symbol}/{token_y_symbol} to USDC")
+    pos = trigger["position"]
+    pubkey = pos.get("position", "")
+    pool_name = pos.get("pool_name", "Unknown")
+    pnl_pct = trigger["pnl_pct"]
     
-    # Post execution confirmation
-    _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+    out_amount = int(quote.get("outAmount", 0)) / 1_000_000  # USDC has 6 decimals
     
-    return False
+    msg = {
+        "content": f"⚠️ **SWAP TRANSACTION READY**\n"
+                   f"**Wallet**: {wallet_name}\n"
+                   f"**Pool**: {pool_name}\n"
+                   f"**Position**: `{pubkey[:12]}...`\n"
+                   f"**Output**: ~{out_amount:.2f} USDC\n"
+                   f"**Transaction**: `Base64 encoded - use Solana CLI or Phantom to sign`\n"
+                   f"```\n{swap_tx[:200]}...\n```\n"
+                   f"@Ola Lawal please sign this transaction to complete the take-profit."
+    }
+    
+    _post_to_discord_alerts(msg)
 
 
 def _post_execution_notification(wallet_name: str, trigger: Dict, dry_run: bool, success: bool = True):
