@@ -5,6 +5,7 @@
 args=()
 positional=()
 mode=""
+sandbox_mode=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -23,8 +24,14 @@ for arg in "$@"; do
             mode="resume"
             args+=("$arg")
             ;;
+        read-only|workspace-write|danger-full-access)
+            sandbox_mode="$arg"
+            ;;
+        workspace-read)
+            sandbox_mode="read-only"
+            ;;
         workspace-write|workspace-read|workspace-*)
-            # Strip OpenClaw workspace mode tokens.
+            # Strip unknown workspace tokens we do not know how to translate.
             continue
             ;;
         *)
@@ -32,6 +39,10 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+if [[ -n "$sandbox_mode" ]]; then
+    args+=("--sandbox" "$sandbox_mode")
+fi
 
 join_args() {
     local out=""
