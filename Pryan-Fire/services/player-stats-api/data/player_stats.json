@@ -1,0 +1,78 @@
+{
+  "players": {
+    "player_001": {
+      "player_id": "player_001",
+      "name": "ShadowWeaver",
+      "race": "Voidborn",
+      "class": "SoulBlade",
+      "level": 12,
+      "stats": {
+        "health": 1450,
+        "mana": 890,
+        "stamina": 720,
+        "strength": 45,
+        "intelligence": 38,
+        "dexterity": 52,
+        "wisdom": 31
+      },
+      "perks": [
+        "SoulHarvest",
+        "ShadowStep",
+        "BladeFury"
+      ],
+      "current_zone": "thermal_spire",
+      "souls_collected": 2450,
+      "playtime_hours": 18.5,
+      "last_seen": "2026-03-11T23:30:00Z"
+    },
+    "player_002": {
+      "player_id": "player_002",
+      "name": "IronWill",
+      "race": "Stoneborn",
+      "class": "Guardian",
+      "level": 15,
+      "stats": {
+        "health": 2100,
+        "mana": 450,
+        "stamina": 980,
+        "strength": 68,
+        "intelligence": 22,
+        "dexterity": 28,
+        "wisdom": 35
+      },
+      "perks": [
+        "StoneSkin",
+        "MountainResolve",
+        "TauntingAura"
+      ],
+      "current_zone": "combat_arena",
+      "souls_collected": 3200,
+      "playtime_hours": 24.2,
+      "last_seen": "2026-03-11T22:45:00Z"
+    },
+    "player_003": {
+      "player_id": "player_003",
+      "name": "MysticEcho",
+      "race": "Aetherborn",
+      "class": "ArcaneWeaver",
+      "level": 8,
+      "stats": {
+        "health": 920,
+        "mana": 1500,
+        "stamina": 410,
+        "strength": 18,
+        "intelligence": 62,
+        "dexterity": 29,
+        "wisdom": 48
+      },
+      "perks": [
+        "ManaSurge",
+        "ArcaneShield"
+      ],
+      "current_zone": "entry_cavern",
+      "souls_collected": 890,
+      "playtime_hours": 6.3,
+      "last_seen": "2026-03-11T20:15:00Z"
+    }
+  }
+}

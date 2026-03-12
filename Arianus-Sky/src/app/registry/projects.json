@@ -1,0 +1,32 @@
+{
+  "projects": [
+    {
+      "name": "Arianus-Sky",
+      "description": "Tactical Market Intelligence Dashboard",
+      "url": "http://100.94.203.10:3000",
+      "status": "live",
+      "realm": "Arianus-Sky"
+    },
+    {
+      "name": "Festival Guard Wallet",
+      "description": "Wallet demo with Vue.js",
+      "url": "http://100.94.203.10:8888",
+      "status": "live",
+      "realm": "Pryan-Fire"
+    },
+    {
+      "name": "Soul Drifter VR",
+      "description": "VR interface POC - not deployed",
+      "url": null,
+      "status": "dev",
+      "realm": "Arianus-Sky"
+    },
+    {
+      "name": "Gesture Bridge",
+      "description": "Flutter-to-native gesture resolver - not deployed",
+      "url": null,
+      "status": "dev",
+      "realm": "Pryan-Fire"
+    }
+  ]
+}
