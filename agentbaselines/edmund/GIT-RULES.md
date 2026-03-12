@@ -1,4 +1,4 @@
-# GIT-RULES.md -- Edmund
+# GIT-RULES.md
 
 ## Git Discipline -- Mandatory Before Any Code Change
 

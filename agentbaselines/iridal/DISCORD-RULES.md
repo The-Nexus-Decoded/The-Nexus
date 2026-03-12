@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Iridal
+# DISCORD-RULES.md
 
 ## Discord Output Rule -- Absolute
 

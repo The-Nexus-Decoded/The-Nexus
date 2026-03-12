@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Edmund
+# DISCORD-RULES.md
 
 ## Discord Output Rule -- Absolute
 

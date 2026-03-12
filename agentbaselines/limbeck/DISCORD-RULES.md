@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Limbeck
+# DISCORD-RULES.md
 
 ## Discord Output Rule — Absolute
 

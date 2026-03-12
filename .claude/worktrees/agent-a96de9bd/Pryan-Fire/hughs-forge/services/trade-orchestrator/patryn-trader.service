@@ -1,0 +1,16 @@
+[Unit]
+Description=Hugh's Trade Orchestrator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/data/repos/The-Nexus/Pryan-Fire
+ExecStart=/data/repos/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator/start-patryn-trader.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Vasu
+# DISCORD-RULES.md
 
 ## Discord Output Rule — Absolute
 

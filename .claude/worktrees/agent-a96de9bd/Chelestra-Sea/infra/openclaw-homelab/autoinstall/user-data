@@ -1,0 +1,124 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+
+  # --- Target the 240GB SSD (smallest disk) for OS, wipe NVMe for clean slate ---
+  storage:
+    config:
+      # Wipe the 2TB NVMe — clears old partitions/boot remnants
+      # The data-drive Ansible role will partition and format it later
+      - id: nvme-disk
+        type: disk
+        match:
+          size: largest
+        ptable: gpt
+        wipe: superblock-recursive
+        grub_device: false
+
+      - id: smallest-disk
+        type: disk
+        match:
+          size: smallest
+        ptable: gpt
+        wipe: superblock-recursive
+        grub_device: true
+
+      # ESP partition (512MB)
+      - id: esp-part
+        type: partition
+        device: smallest-disk
+        size: 512M
+        flag: boot
+        grub_device: true
+
+      - id: esp-fs
+        type: format
+        volume: esp-part
+        fstype: fat32
+
+      - id: esp-mount
+        type: mount
+        device: esp-fs
+        path: /boot/efi
+
+      # /boot partition (1GB)
+      - id: boot-part
+        type: partition
+        device: smallest-disk
+        size: 1G
+
+      - id: boot-fs
+        type: format
+        volume: boot-part
+        fstype: ext4
+
+      - id: boot-mount
+        type: mount
+        device: boot-fs
+        path: /boot
+
+      # Swap partition (4GB)
+      - id: swap-part
+        type: partition
+        device: smallest-disk
+        size: 4G
+
+      - id: swap-fs
+        type: format
+        volume: swap-part
+        fstype: swap
+
+      - id: swap-mount
+        type: mount
+        device: swap-fs
+        path: none
+
+      # Root partition (remaining ~234GB)
+      - id: root-part
+        type: partition
+        device: smallest-disk
+        size: -1
+
+      - id: root-fs
+        type: format
+        volume: root-part
+        fstype: ext4
+
+      - id: root-mount
+        type: mount
+        device: root-fs
+        path: /
+
+  # --- User setup ---
+  identity:
+    # EDIT THIS HOSTNAME for each server before install:
+    #   ola-claw-main, ola-claw-trade, or ola-claw-dev
+    hostname: ola-claw-dev
+    username: openclaw
+    # Password: "openclaw" — Ansible disables password auth after deploying SSH keys
+    password: "$6$M4drwEHYhdBBUK24$svnr0uQAvRrZCvRQpqnPpsW74pkGazqX5XEafruVhb.CY0T0jmVKPYURkZP03f/Iux7bN4x8F/vF3FcPd/AYX1"
+
+  # --- SSH ---
+  ssh:
+    install-server: true
+    allow-pw: true  # Ansible will disable password auth after key setup
+
+  # --- Packages ---
+  packages:
+    - openssh-server
+    - curl
+    - build-essential
+
+  # --- Late commands: minimal — Ansible handles the rest ---
+  late-commands:
+    # Enable passwordless sudo for openclaw user
+    - echo 'openclaw ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/openclaw
+    - chmod 0440 /target/etc/sudoers.d/openclaw
+    # Ensure SSH is enabled on first boot
+    - curtin in-target --target=/target -- systemctl enable ssh
+
+  # Reboot after install completes
+  shutdown: reboot

@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Jarre
+# DISCORD-RULES.md
 
 ## Discord Output Rule -- Absolute
 

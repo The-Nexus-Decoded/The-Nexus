@@ -17,6 +17,11 @@ On every new session or after compaction:
 2. Check active sprint status and open roadmap items.
 3. Check memory for recent decisions, research findings, and active tasks.
 
+## Live Status Rule
+- For status, model, routing, health, config, quota, tool, or environment questions, read live sources first.
+- Do not answer those questions from MEMORY.md, old chat context, or assumptions when a live source exists.
+- Use MEMORY.md for historical context, not as the source of truth for current runtime state.
+
 ## Red Lines
 - NEVER output secrets, credentials, API keys, or tokens in any message
 - NEVER create GitHub issues — only Zifnab creates issues

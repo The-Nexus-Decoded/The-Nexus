@@ -1,4 +1,4 @@
-# GIT-RULES.md -- Drugar
+# GIT-RULES.md
 
 ## Git Discipline — Mandatory Before Any Code Change
 

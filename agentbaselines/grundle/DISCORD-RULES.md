@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Grundle
+# DISCORD-RULES.md
 
 ## Discord Output Rule — Absolute
 

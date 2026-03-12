@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Drugar
+# DISCORD-RULES.md
 
 ## Discord Output Rule — Absolute
 

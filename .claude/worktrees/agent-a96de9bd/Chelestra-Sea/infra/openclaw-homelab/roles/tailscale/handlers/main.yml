@@ -1,0 +1,9 @@
+---
+# =============================================================================
+# Handlers: tailscale role
+# =============================================================================
+
+- name: restart tailscale
+  ansible.builtin.systemd:
+    name: tailscaled
+    state: restarted

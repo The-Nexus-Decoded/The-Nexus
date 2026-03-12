@@ -54,6 +54,14 @@
     mode: "0755"
   become: true
 
+- name: Fix OpenClaw extensions ownership for agent user
+  ansible.builtin.file:
+    path: /usr/lib/node_modules/openclaw/extensions/
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    recurse: true
+  become: true
+
 # --- Headless systemd fix ---
 
 - name: Look up UID for {{ server_user }}

@@ -1,4 +1,4 @@
-# DISCORD-RULES.md -- Ramu
+# DISCORD-RULES.md
 
 ## Discord Output Rule — Absolute
 

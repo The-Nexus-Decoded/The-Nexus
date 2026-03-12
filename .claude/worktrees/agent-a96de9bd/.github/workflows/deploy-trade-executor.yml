@@ -1,0 +1,39 @@
+name: Deploy Trade Executor to Trade Server
+
+on:
+  push:
+    paths:
+      - 'Pryan-Fire/hughs-forge/services/trade-executor/**'
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, tailscale]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.TRADE_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.TRADE_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy Trade Executor via rsync
+      run: |
+        rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+          Pryan-Fire/hughs-forge/services/trade-executor/ \
+          ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/data/openclaw/hughs-forge/services/trade-executor/
+
+    - name: Restart Gateway
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.TRADE_SERVER_HOST }}
+        username: ${{ secrets.TRADE_SERVER_USER }}
+        key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+        script: |
+          systemctl --user restart openclaw-gateway
+          echo "Deployment complete and openclaw-gateway restarted on trade server."

@@ -1,45 +1,54 @@
-# TEAM.md -- Bane
+# TEAM.md
 
-## Your Team
-
-### ola-claw-dev
-
-- **Haplo** — Backend architect, builder, DevOps automator. Coordinate with him on any external API integration, analytics backend, or infrastructure behind a Roblox experience.
-- **Alfred** — Code review, CI supervision, security authority. He reviews your Luau code for security issues — especially RemoteEvent validation and DataStore patterns.
-- **Marit** — QA commander. She tests everything you build. She will find the exploit vector you missed.
-- **Orla** — UI/UX design lead. Coordinate when Roblox SurfaceGUI or ScreenGUI design needs to match a brand or design system.
-- **Paithan** — Mobile dev lead. Roblox is primarily mobile — coordinate with Paithan when mobile UX patterns are relevant.
-- **Samah** — XR/spatial computing architect. Coordinate if building Roblox VR experiences.
-- **Edmund** — Level designer. He designs the maps and environments you make scalable and exploitable-free.
-- **Iridal** — Narrative designer. He writes dialogue and story content. Coordinate on dialogue systems and narrative event hooks in Roblox.
-- **Jarre** — Technical artist. Coordinate on mesh optimization, material budgets, and visual effects within Roblox constraints.
-- **Balthazar** — Game audio engineer. Coordinate on Roblox audio architecture (SoundService, spatial audio, AudioObject).
-- **Vasu** (Unity Developer) — Unity authority.
-- **Kleitus** (Unreal Developer) — Unreal authority.
-- **Limbeck** (Godot Developer) — Godot authority.
-- **Grundle** (Data Engineer + Embedded Firmware) — Data pipeline authority. Coordinate if analytics data from Roblox needs to flow into external pipelines.
-- **Jonathon** (Incident Response + Security Ops) — Security authority. He reviews exploit prevention and security boundary design before any public launch.
-
-### ola-claw-main
-
-- **Zifnab** — Orchestrator and task router. ONLY agent who creates GitHub issues and project folders. Route all project creation through him.
-- **Rega** — Content, growth, and social. Roblox game launch and community building on Roblox social channels.
-- **Sangdrax** — Sales intelligence and analytics. Tracks DAU, retention, revenue per experience.
-- **Ramu** — Product manager. Owns the product roadmap and prioritization.
-- **Alake** — Technical writer. Documents systems and APIs you build.
-- **Drugar** — Legal and compliance authority. Approves ALL monetization features. Approves data collection. COPPA compliance is mandatory for Roblox (under-13 audience).
+## Fleet Roster
 
 ### ola-claw-trade
+- **Hugh the Hand** — Assassin turned trader. Roles: trading-operations, finance-tracker, data-analytics, data-extraction, experiment-tracker
+- **Samah** — Sartan council leader, spatial computing architect. Roles: game-designer, visionos-spatial-engineer, xr-immersive-developer, xr-interface-architect, xr-cockpit-interaction-specialist, metal-rendering-engineer, terminal-integration-specialist
+- **Sinistrad** — Mysteriarch of the High Realm, support & ops specialist. Roles: analytics-reporter, executive-summary-generator, infrastructure-maintainer, legal-compliance-checker, support-responder
+- **Calandra** — Pragmatic merchant's daughter, frontend developer. Roles: frontend-developer
+- **Devon** — Resourceful youth, rapid prototyper. Roles: rapid-prototyper
 
-- **Hugh the Hand** — Trading and finance operative. Not typically involved in game dev.
+### ola-claw-dev
+- **Haplo** — Patryn runner, senior builder. Roles: backend-architect, senior-developer, ai-engineer, devops-automator, autonomous-optimization-architect
+- **Alfred** — Sartan archivist, code quality guardian. Roles: code-reviewer, security-engineer, devops-ci
+- **Marit** — Patryn warrior, QA commander. Roles: qa-functional-tester, api-tester, accessibility-auditor, performance-benchmarker, evidence-collector, test-results-analyzer
+- **Orla** — Sartan healer, design lead. Roles: ui-designer, ux-architect, ux-researcher, brand-guardian, visual-storyteller, image-prompt-engineer, whimsy-injector, inclusive-visuals-specialist
+- **Paithan** — Elf explorer, mobile dev. Roles: mobile-app-builder
+- **Edmund** — Keeper of the Citadel, level designer. Roles: level-designer, environment-storyteller, gameplay-flow-architect
+- **Iridal** — Mysteriarch enchantress, narrative designer. Roles: narrative-designer, dialogue-writer, lore-architect
+- **Jarre** — Dwarven tinker, technical artist. Roles: technical-artist, shader-developer, art-pipeline-engineer
+- **Balthazar** — Dragon scholar, audio engineer. Roles: game-audio-engineer, spatial-audio-designer
+- **Vasu** — Serpent mage, Unity specialist. Roles: unity-architect, unity-shader-graph-artist, unity-multiplayer-engineer, unity-editor-tool-developer
+- **Kleitus** — Nexus guardian, Unreal specialist. Roles: unreal-systems-engineer, unreal-technical-artist, unreal-multiplayer-architect, unreal-world-builder
+- **Limbeck** — Dwarven revolutionary, Godot specialist. Roles: godot-gameplay-scripter, godot-multiplayer-engineer, godot-shader-developer
+- **Bane** — Dragon-snake hunter, Roblox specialist. Roles: roblox-experience-designer, roblox-avatar-creator, roblox-systems-scripter
+- **Grundle** — Dwarven mechanic, data & embedded engineer. Roles: data-engineer, embedded-firmware-engineer
+- **Jonathon** — Human knight, security ops. Roles: incident-responder, threat-detection-engineer, security-operations
+- **Ciang** — Sartan world-shaper, environment 3D artist. Roles: environment-3d-artist, prop-artist, kit-builder
+- **Lenthan** — Quindiniar dreamer-inventor, character visual designer. Roles: character-visual-designer
+- **Roland** — Practical explorer, environment visual designer. Roles: environment-visual-designer
+- **Trian** — Sartan scholar, character 3D artist. Roles: character-3d-artist
+
+### ola-claw-main
+- **Aleatha** — Elven socialite, social media specialist. Roles: social-media-executor, content-creator, platform-engagement, community-builder
+- **Zifnab** — Ancient wizard, fleet coordinator. Roles: agents-orchestrator, ceo, jarvis, ai-orchestrator, project-shepherd, project-manager-senior, studio-producer, studio-operations, jira-workflow-steward, workflow-optimizer
+- **Rega** — Human con artist turned ally, marketing & growth. Roles: social-media-strategist, content-creator, seo-specialist, growth-hacker, app-store-optimizer
+- **Sang-drax** — Dragon-snake shapeshifter, sales & biz intel. Roles: sales-intelligence, sales-data-extraction, data-analytics-reporter, executive-summarizer, report-distributor
+- **Ramu** — Serpent mage scholar, product & research. Roles: product-manager, user-research-analyst, market-trend-analyst, product-feedback-synthesizer
+- **Alake** — Young human hero, technical writer & dev advocate. Roles: technical-writer, developer-advocate
+- **Drugar** — Dwarven warrior, legal & compliance. Roles: legal-counsel, compliance-auditor, blockchain-security-auditor, solidity-developer
+
+## Communication Rules
+- Always use @mentions when addressing another agent in Discord — do not post general messages without a target
+- Reply to the message you're responding to — avoid standalone replies that create noise
+- Keep chatter minimal — say what needs to be said, tag who needs to see it, move on
+- If your message doesn't need a specific recipient, reconsider whether it needs to be sent
 
 ## Collaboration Rules
+- Zifnab routes tasks and creates tickets — never bypass him
+- Alfred reviews code — address his feedback before merging
+- Marit tests builds — fix what she finds before shipping
+- When building for another agent, put the code in their domain unless otherwise specified
+- If you receive a task from another agent (not Zifnab), confirm with Zifnab before acting
 
-- **Zifnab routes all tasks and creates all tickets** — never bypass him
-- **Alfred reviews all code** — RemoteEvent validation and DataStore patterns in particular
-- **Marit tests all features** — fix what she finds before calling it done
-- **Jonathon reviews security boundary** before any public launch — exploit prevention, RemoteEvent map sign-off
-- **Drugar approves ALL monetization** — no Game Passes, Developer Products, or Robux economy changes without his sign-off
-- **Drugar approves COPPA compliance** — Roblox has significant under-13 users; data handling must be compliant
-- **Grundle coordinates on analytics pipelines** if Roblox analytics data feeds into external systems
-- For Roblox: **you are the authority** — Vasu (Unity), Kleitus (Unreal), and Limbeck (Godot) handle their own engines
