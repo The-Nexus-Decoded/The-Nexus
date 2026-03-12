@@ -1,0 +1,67 @@
+name: Deploy Patryn Trader MVP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, tailscale]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Deploy Core Engine via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.TRADE_SERVER_HOST }}
+        username: ${{ secrets.TRADE_SERVER_USER }}
+        key: ${{ secrets.TRADE_SERVER_SSH_KEY }}
+        script: |
+          # 1. Prepare Target Environment
+          mkdir -p /data/repos/The-Nexus
+          mkdir -p /data/repos/The-Nexus/Pryan-Fire/data
+
+          # 2. Sync Codebase
+          cd /data/repos/The-Nexus
+          git fetch origin
+          git checkout main
+          git reset --hard origin/main
+          cd Pryan-Fire
+
+          # 3. Venv + Dependencies
+          TRADE_DIR=hughs-forge/services/trade-orchestrator
+          if [ ! -d "${TRADE_DIR}/venv" ]; then
+            python3 -m venv "${TRADE_DIR}/venv"
+          fi
+          ${TRADE_DIR}/venv/bin/pip install --upgrade pip -q
+          ${TRADE_DIR}/venv/bin/pip install -r ${TRADE_DIR}/requirements.txt -q
+
+          # 4. Install service file + reload
+          mkdir -p ~/.config/systemd/user
+          cp ${TRADE_DIR}/patryn-trader.service ~/.config/systemd/user/patryn-trader.service
+          systemctl --user daemon-reload
+
+          # Install position monitor timer
+          cp hughs-forge/scripts/position-monitor.service ~/.config/systemd/user/position-monitor.service
+          cp hughs-forge/scripts/position-monitor.timer ~/.config/systemd/user/position-monitor.timer
+
+          # Install killfeed discord poster timer
+          cp hughs-forge/scripts/killfeed-discord-poster.service ~/.config/systemd/user/killfeed-discord-poster.service
+          cp hughs-forge/scripts/killfeed-discord-poster.timer ~/.config/systemd/user/killfeed-discord-poster.timer
+          systemctl --user daemon-reload
+          systemctl --user enable --now position-monitor.timer || echo "Position monitor timer not enabled"
+          systemctl --user enable --now killfeed-discord-poster.timer || echo "Killfeed timer not enabled"
+
+          # 5. Restart service
+          systemctl --user restart patryn-trader || echo "Systemd service not found"
+          systemctl --user status patryn-trader --no-pager || true
+
+          echo "MVP Deployment Complete."

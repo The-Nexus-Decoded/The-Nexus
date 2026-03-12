@@ -39,3 +39,9 @@
 
 ## Key Reminder
 - NO KEYS IN FILES - only env vars or configs
+
+## Working Rule
+- For bigger implementation changes, create or switch to a ticket-linked git branch before continuing work.
+- Reason: keep rollback simple, isolate experimental changes, and land the work as a clean PR.
+- For tracked implementation work, do not ad hoc copy files to servers when those files should arrive through the repo branch and normal sync/deploy path.
+- Validate server behavior from the synced branch copy, not from one-off manual uploads, unless the user explicitly approves a temporary hotfix path.

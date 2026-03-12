@@ -25,7 +25,9 @@
   },
   "agents": {
     "defaults": {
-      "workspace": "/data/openclaw/workspace"
+      "workspace": "/data/openclaw/workspace"{% if openclaw_default_model is defined and openclaw_default_model %},
+      "model": {{ openclaw_default_model | to_nice_json | indent(6, true) }}{% endif %}{% if openclaw_cli_backends is defined and openclaw_cli_backends %},
+      "cliBackends": {{ openclaw_cli_backends | to_nice_json | indent(6, true) }}{% endif %}
     }
   },
   "logging": {

@@ -1,0 +1,43 @@
+{
+  "gateway": {
+    "mode": "local",
+    "port": {{ item.port }},
+    "bind": "loopback"
+  },
+  "channels": {
+    "discord": {
+      "enabled": {{ item.discord_enabled | default(true) | lower }},
+      "token": "{{ item.discord_bot_token | default('') }}",
+      "guilds": {
+        "{{ discord_guild_id }}": {
+          "slug": "{{ discord_guild_slug }}",
+          "channels": {
+{% for channel_id, channel_config in item.discord_channels.items() %}
+            "{{ channel_id }}": {
+              "allow": {{ channel_config.allow | default(true) | lower }},
+              "requireMention": {{ channel_config.requireMention | default(true) | lower }}
+            }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+          }
+        }
+      },
+      "historyLimit": {{ discord_history_limit }},
+      "textChunkLimit": {{ discord_text_chunk_limit }}
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/home/{{ server_user }}/.openclaw/workspace-{{ item.name }}",
+      "bootstrapMaxChars": {{ openclaw_bootstrap_max_chars }},
+      "bootstrapTotalMaxChars": {{ openclaw_bootstrap_total_max_chars }}{% if item.model is defined and item.model %},
+      "model": {{ item.model | to_nice_json | indent(6, true) }}{% endif %}{% if item.cliBackends is defined and item.cliBackends %},
+      "cliBackends": {{ item.cliBackends | to_nice_json | indent(6, true) }}{% endif %}
+    }
+  },
+  "providers": {{ item.providers | default({}) | to_nice_json }},
+  "logging": {
+    "level": "info",
+    "file": "/data/openclaw/logs/{{ item.name }}.log"
+  }
+}

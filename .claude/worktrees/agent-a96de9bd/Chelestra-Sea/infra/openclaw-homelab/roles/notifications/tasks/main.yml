@@ -1,0 +1,37 @@
+---
+# =============================================================================
+# Role: notifications — Configure Discord and critical alert channels
+# MUST run AFTER 'openclaw' role (needs OpenClaw installed and gateway running)
+# =============================================================================
+
+# --- Use server_user_uid from openclaw role (avoid duplicate lookup) ---
+
+- name: Ensure server_user_uid is set
+  ansible.builtin.command: id -u {{ server_user }}
+  register: server_user_id_fallback
+  changed_when: false
+  when: server_user_uid is not defined
+
+- name: Set server_user_uid fact (if not already set by openclaw role)
+  ansible.builtin.set_fact:
+    server_user_uid: "{{ server_user_id_fallback.stdout }}"
+  when: server_user_uid is not defined
+
+# --- Deploy ntfy.sh critical alert script ---
+
+- name: Deploy ntfy critical alert script
+  ansible.builtin.template:
+    src: notify-critical.sh.j2
+    dest: /data/openclaw/scripts/notify-critical.sh
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    mode: '0755'
+  register: notify_script
+
+# --- Restart gateway only when config changed (use handler) ---
+
+- name: Notify gateway restart if alert script changed
+  ansible.builtin.debug:
+    msg: "Alert script updated — gateway restart will be triggered via handler."
+  changed_when: notify_script.changed
+  notify: restart openclaw gateway

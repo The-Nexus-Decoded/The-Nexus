@@ -1,0 +1,7 @@
+anchorpy
+solana
+solders
+httpx
+fastapi
+uvicorn[standard]
+requests

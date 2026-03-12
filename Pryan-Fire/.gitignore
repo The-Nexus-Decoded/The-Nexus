@@ -54,7 +54,7 @@ hughs-forge/wallets/
 hughs-forge/services/trade-executor/testvenv2/
 hughs-forge/services/trade-executor/trade_telemetry.jsonl
 hughs-forge/clients/
-hughs-forge/services/risk-manager/venv/
+hughs-forge/risk-manager/venv/
 hughs-forge/services/trade-executor/.venv/
 hughs-forge/services/trade-executor/venv/
 hughs-forge/services/trade-executor/*.py

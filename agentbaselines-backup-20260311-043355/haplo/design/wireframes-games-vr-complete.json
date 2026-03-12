@@ -1,0 +1,454 @@
+{
+  "project": "DEATH GATE CYCLE - Games-VR Interface Wireframes",
+  "version": "1.0-sprint-1",
+  "status": "Draft Ready for Review",
+  "createdBy": "Orla, UI/UX Design Lead",
+  "domain": "Spatial Computing → AR/VR/XR",
+  "scopeAssigned": {
+    "manipulationUI": "Orla (primary)",
+    "gestureSystems": "Marit (accessibility audit compliance)"
+  },
+  "approvalPath": "Zifnab (coordination) → Haplo/Paithan (implementation handoff)",
+  
+  "designPhilosophy": {
+    "guidingPrinciple": "Match-3 foundation validates gesture UI for all Death Gate realms",
+    "accessibilityFirst": true,
+    "mobileResponsive": true,
+    "webXRCompatible": true,
+    "futureExpansionPath": "Four realms where gravity flips in each realm, Match-3 mechanics adapt"
+  },
+
+  "section1_hudLayout2DPlane": {
+    "description": "Desktop → Mobile adaptation with consistent spatial positioning",
+    
+    "desktopLandscapeMode": {
+      "viewportSize": "1920×1080px (baseline) / scalable to ultrawide",
+      "layoutStructure": {
+        "gameGridPosition": {
+          "position": "center-left viewport (60% width)",
+          "zAxisDepth": "0m (ground plane, eye level)",
+          "tileCountMobile": "6×6",
+          "tileCountDesktop": "8×8"
+        },
+        "scoreHUDPosition": {
+          "position": "bottom-right corner (320×120px)",
+          "zAxisDepth": "+3m elevation",
+          "content": ["Score counter", "Match timer bar", "Special tile preview"],
+          "touchTargetMinSize": "60×60px per element"
+        },
+        "realmIndicatorPosition": {
+          "position": "top-right corner (floating)",
+          "zAxisDepth": "+8m sky-space elevation",
+          "content": ["Current realm icon + label"],
+          "colorPerRealm": {
+            "normal": "#4f86f7",    /* Arianus - Baseline */
+            "invertedY": "#ff5252",   /* Pryan - Gravity flip */
+            "lightMode": "#00e676",    /* Chelestra - Light vision */
+            "soundMode": "#d500f9"    /* Abarrach - Sound patterns */
+          }
+        },
+        "catchZoneIndicatorPosition": {
+          "position": "bottom-center overlay",
+          "zAxisDepth": "-1m below grid (ground plane)",
+          "content": ["Dynamic glow radius around valid drop targets"],
+          "behavior": {
+            "idle": "Soft pulse 200ms cycle",
+            "approaching": "Expand ring on drag start (scale: 1→1.5 over 300ms)",
+            "readyToCatch": "Bright glow + directional arrow",
+            "collected": "Pulse inward then vanish (100ms fade)"
+          }
+        }
+      },
+      
+      "adaptiveFeatures": {
+        "responsiveGridScaling": true,
+        "breakpointThresholds": [
+          {"maxWidth": 1920, "tileCount": "8×8"},
+          {"maxWidth": 1366, "tileCount": "7×7"},
+          {"maxWidth": 1024, "tileCount": "6×6"}
+        ],
+        "minimumTileSize": "48×48px (desktop)",
+        "dynamicReflowEnabled": true
+      }
+    },
+
+    "mobilePortraitMode": {
+      "viewportSize": "390×844px (iPhone 15 Pro) / scalable to any mobile",
+      "layoutStructure": {
+        "gameGridPosition": {
+          "position": "center viewport (60% width, 70% height)",
+          "zAxisDepth": "0m (ground plane)",
+          "tileCount": "6×6 fixed",
+          "responsivePadding": "top: 80px, bottom: 240px"
+        },
+        "scoreHUDPosition": {
+          "position": "top-center floating overlay",
+          "zAxisDepth": "+2m sky-space elevation",
+          "content": ["Score bar (horizontal)", "Match timer countdown"],
+          "touchTargetMinSize": "44×44px per element (WCAG 2.2 minimum)"
+        },
+        "realmIndicatorPosition": {
+          "position": "top-right corner (60×60px)",
+          "zAxisDepth": "+4m sky-space elevation",
+          "content": ["Realm icon + emoji label"],
+          "behavior": "Non-blocking, visible but not intrusive"
+        },
+        "catchZoneIndicatorPosition": {
+          "position": "bottom-center edge overlay",
+          "zAxisDepth": "-0.5m below grid (minimal obstruction)",
+          "content": ["Drag-to-drop glow radius"],
+          "behavior": {
+            "idle": "Soft blue pulse (200ms cycle)",
+            "approaching": "Expand outward ring on drag start",
+            "readyToCatch": "Bright glow + directional arrow toward drop slot"
+          }
+        },
+        "controlBarPosition": {
+          "position": "bottom 30% of viewport",
+          "content": ["Pause button (🎮)", "Settings (⚙️)", "Help/Guide (❓)"],
+          "behavior": "Fixed positioning, touch targets ≥48×48px"
+        }
+      },
+      
+      "mobileSpecificOptimizations": {
+        "one-handedAccessSupport": true,
+        "touchTargetMinimums": {"primary": 60, "secondary": 48},
+        "gesturePreventionEnabled": true, /* Prevents accidental page scrolls */
+        "hapticFeedbackEnabled": true,
+        "portraitOrientationLock": true
+      }
+    },
+
+    "tabletLandscapeMode": {
+      "viewportSize": "768×1024px (iPad standard)",
+      "layoutStrategy": "Hybrid between desktop & mobile",
+      "features": {
+        "gridTileCount": "8×8",
+        "scoreHUDPosition": "Right side panel (not corner, more space)",
+        "controlBarPosition": "Bottom edge (similar to mobile)",
+        "catchZoneBehavior": "Expandable ring with visual arrow indicators"
+      }
+    },
+
+    "webXRBrowserFallbackMode": {
+      "description": "Portrait mode interface for phone-only/WebXR browser testing",
+      "viewportOrientation": "Single column portrait layout",
+      "layoutStructure": {
+        "gameGridPosition": "Center of viewport (full height, 120% width)",
+        "scoreHUDPosition": "Top 10% overlay (compact horizontal bar)",
+        "catchZoneBehavior": "Bottom edge glow zone with touch feedback",
+        "controlsPosition": "Bottom 40% (large touch targets for browser testing)"
+      },
+      "optimizedForDevices": ["Chrome mobile", "Samsung Internet", "Firefox VR"],
+      "performanceTarget": "<300ms gesture response time"
+    }
+  },
+
+  "section2_manipulationMappingMouseTouch": {
+    "description": "Consistent gesture system across mouse, touch, and VR controllers",
+    
+    "gestureUnificationTable": {
+      "| Action              | Mouse           | Touch (Mobile)   | VR Controller        | Accessibility Alternative     |",
+      "|------|---------||----|---------||--------|"
+    },
+
+    "primaryInteractionGestures": {
+      
+      "1_tileDragAndDrop": {
+        "description": "Physically grounded tile pickup and placement (core Match-3 mechanic)",
+        
+        "mouseVariant": {
+          "grab": "Left-click + hold on tile edge",
+          "midDrag": "Continuous movement with cursor trail",
+          "snapThreshold": "5px radius → Magnetic pull to grid slot",
+          "release": "L-click drops at position or catch zone"
+        },
+
+        "touchVariant": {
+          "grab": "Tap-hold on tile (800ms dwell time)",
+          "midDrag": "Finger drag with 0.5m snap threshold",
+          "visualFeedback": "Tile lifts slightly + glow color shift to grab state",
+          "hapticFeedback": "Light pulse (30ms, magnitude: 0.2) on grab confirm"
+        },
+
+        "vrControllerVariant": {
+          "grab": "Pinch gesture on tile edge → Instant visual pickup",
+          "midDrag": "Thumbstick drag + collision raycast validation",
+          "visualFeedback": "Raycast line from tile center to catch zone endpoint (#ff9100 orange)",
+          "hapticFeedback": "Medium pulse (50ms, magnitude: 0.4) on snap success"
+        },
+
+        "accessibilityAlternative": {
+          "autoDragMode": true, /* Tile moves to cursor location without manual drag */
+          "extendedGrabTime": "800ms hold-down instead of instant pickup",
+          "keyboardNavigation": "Arrow keys move tile; Space drops at position"
+        }
+      },
+
+      "2_matchAndClear": {
+        "description": "Visual confirmation when 3+ tiles match for clearing",
+        
+        "feedbackSystem": {
+          "visual": {
+            "matchIndicator": "3-second countdown before match clears (prevents confusion)",
+            "particleEffect": "Explosion burst expands over 200ms → Debris particles scatter",
+            "colorShift": "#4f86f7 (blue) → #ffffff (white flash) for all matching tiles"
+          },
+          "haptic": {
+            "mobile": "Strong pulse (75ms, magnitude: 0.5)",
+            "desktopVR": "Haptic controller vibration (same pattern)"
+          },
+          "audio": {
+            "frequencySweep": "800Hz → 1200Hz rising chime",
+            "volumeLevel": "-6dB relative to master"
+          }
+        }
+      },
+
+      "3_specialTileActivation": {
+        "description": "Line clear, explosion, and bomb tile mechanics",
+        
+        "lineClearGesture": {
+          "mouse": "Right-click 4 tiles in row/column → Line particles burst outward",
+          "touch": "Long-press (1200ms) on matched line → Rising chime + expansion effect",
+          "vr": "Double-tap two endpoint tiles → Wave pattern expands"
+        },
+
+        "explosionGesture": {
+          "mouse": "Middle-click 5 tiles in T/L shape → Radial explosion clearing adjacent",
+          "touch": "Tap-hold (1500ms) on grouped tiles → Crackling burst + debris scatter",
+          "vr": "Pinch-expand gesture on pattern → Heavy vibration sequence (3x pulses)"
+        },
+
+        "bombTileGesture": {
+          "mouse": "Click bomb icon → 3×3 area clears with delayed boom effect",
+          "touch": "Tap bomb symbol → Loud boom sound + sustained vibration (200ms)",
+          "vr": "Pull trigger button on bomb tile → Explosion particles radial burst"
+        }
+      },
+
+      "4_pauseAndMenuAccess": {
+        "description": "Non-intrusive pause and settings menu activation",
+        
+        "mouseVariant": {
+          "trigger": "Press ESC key + hold 500ms dwell time",
+          "alternative": "Click dedicated pause button in top-right corner"
+        },
+
+        "touchVariant": {
+          "gestureDetail": "Wave hand above shoulder ≥2m OR head shake (motor impairment)",
+          "dwellTimeRequirement": "300ms to prevent accidental triggers",
+          "palmOrientation": "Must face camera for wave gesture",
+          "visualFeedback": "Pause menu overlay fades in over entire screen with semi-transparent backdrop"
+        },
+
+        "vrControllerVariant": {
+          "gestureDetail": "Open hand gesture + 500ms dwell time OR controller pause button",
+          "visualFeedback": "UI fade-in animation (500ms ease-out)",
+          "audioFeedback": "Soft chime (frequency: 500Hz)"
+        }
+      },
+
+      "5_realmSwitchExpansion": {
+        "description": "Future expansion gesture for toggling between Death Gate realms",
+        
+        "mouseVariant": "Click realm switch button in settings panel",
+        
+        "touchVariant": "Tap + hold realm indicator (60×60px) → Cycle through available realms",
+        
+        "vrControllerVariant": "Wave hand upward → Toggle normal/inverted Y gravity mode",
+        
+        "accessibilityAlternative": "Voice command: 'Switch to Pryan realm' / 'Enable light vision'"
+      }
+    },
+
+    "crossPlatformGestureConsistencyRules": {
+      "1_velocityPreservation": "Drag motion maintains velocity vector + gravity influence across all platforms",
+      
+      "2_snapThresholdStandardization": "0.5m radius on touch/VB, 5px on desktop mouse (equivalent physical distance)",
+      
+      "3_visualFeedbackParity": "All interactions must show visual state change regardless of platform",
+      
+      "4_hapticFallbacks": "Haptics enhance but don't enable — all mechanics must work without them"
+    }
+  },
+
+  "section3_progressionUI": {
+    "description": "Level select, difficulty scaling, and achievement tracking interfaces",
+    
+    "levelSelectInterface": {
+      "mobileLayout": {
+        "viewType": "Horizontal scroll list with locked/unlocked indicators",
+        "unlockedLevels": {
+          "displayStyle": "Green border + active icon glow",
+          "touchTargetSize": "Minimum 80×48px per level entry"
+        },
+        "lockedLevels": {
+          "displayStyle": "Grayed out + lock icon overlay",
+          "unlockHint": "Small tooltip: 'Complete previous level' (optional expand)"
+        },
+        "positioning": "Vertical stack, 10 levels visible per screen"
+      },
+
+      "desktopLayout": {
+        "viewType": "Grid layout with expanded thumbnail previews",
+        "levelThumbnailSize": "Minimum 200×200px per grid cell",
+        "progressionIndicators": ["Stars earned / Total available", "Best time cleared"]
+      },
+
+      "realmBadgeIntegration": {
+        "description": "Visual indicator showing which realm level belongs to (future expansion)",
+        "positioning": "Top-left corner of level card, 48×48px badge",
+        "badges": {
+          "normalRealm": "Blue icon (Arianus - baseline)",
+          "gravityFlip": "Red inverted Y icon (Pryan)",
+          "lightVision": "Green light bulb icon (Chelestra)",
+          "soundPatterns": "Purple sound waves icon (Abarrach)"
+        }
+      }
+    },
+
+    "difficultyScalingInterface": {
+      "mobileLayout": {
+        "sliderType": "Horizontal bar with difficulty tiers",
+        "tierLabels": ["Easy ⭐⭐", "Normal ⭐⭐⭐", "Hard ⭐⭐⭐⭐⭐"],
+        "positioning": "Below level select, 44px minimum touch target"
+      },
+
+      "desktopLayout": {
+        "sliderType": "Range slider with tooltip values",
+        "precisionLevel": "0.1 increments allowed (vs. 0.5 for mobile)",
+        "rangeIndicators": ["Tile size", "Time limit", "Hint frequency"]
+      },
+
+      "accessibilityFeatures": {
+        "keyboardNavigation": "Arrow keys adjust difficulty, Enter confirms selection",
+        "voiceCommandSupport": "'Set difficulty to hard' / 'Reset to normal'",
+        "screenReaderAnnouncements": "'Difficulty adjusted to [tier]' on state change"
+      }
+    },
+
+    "achievementTrackingInterface": {
+      "mobileLayout": {
+        "viewType": "Circular icon badges with unlock animation",
+        "positioning": "Top-right corner (non-blocking), 56×56px each",
+        "unlockedAchievements": {
+          "visualState": "Gold border + glow pulse on tap/tap-tap effect",
+          "tapBehavior": "Expand modal showing achievement name/description"
+        }
+      },
+
+      "desktopLayout": {
+        "viewType": "Achievement list with expandable details per entry",
+        "positioning": "Right sidebar (30% width, collapsible)",
+        "progressIndicator": "Ring progress bar showing completion percentage"
+      },
+
+      "achievementTypes": [
+        {"id": "first_match_3", "name": "Beginner's Luck", "trigger": "Complete first 3-match combo"},
+        {"id": "line_clear_master", "name": "Line Clearing Master", "trigger": "Clear entire row/column without matches"},
+        {"id": "explosion_combo", "name": "Bombastic!", "trigger": "Trigger 10 consecutive special explosions"},
+        {"id": "speed_runner", "name": "Lightning Fast", "trigger": "Complete level in under 30 seconds"}
+      ]
+    }
+  },
+
+  "section4_accessibilityComplianceNotes": {
+    "wcagStandard": "WCAG 2.2 AA (required minimum)",
+    
+    "colorBlindAccessibilityFeatures": {
+      "description": "All critical information must be perceivable without relying on color alone",
+      "implementationDetails": [
+        "Distinct tile textures + patterns (not just colors)",
+        "Tested against Deuteranopia, Protanopia, Tritanopia simulations",
+        "High contrast mode adds 30% luminance difference to all elements"
+      ]
+    },
+
+    "motorImpairmentAccommodations": {
+      "alternatives": [
+        {"feature": "Auto-drag mode", "description": "Tile moves to cursor location without manual drag"},
+        {"feature": "Extended grab time", "description": "800ms hold-down instead of instant pickup (default 300ms)"},
+        {"feature": "Simplified movement", "description": "Grid navigation via arrow keys (desktop mode)"}
+      ]
+    },
+
+    "highContrastModeSettings": {
+      "colorPaletteChanges": {
+        "background": "#0a0a12 → #000000",
+        "tileBorders": "#4f86f7 → #ffff00",
+        "specialTiles": "All colors shift to high-contrast variants"
+      },
+      "positioning": "Settings toggle in top-right corner, 60×60px touch target"
+    },
+
+    "voiceCommandSupport": {
+      "enabledCommands": [
+        "Drag tile [color] to catch zone",
+        "Drop tile here",
+        "Show controls guide",
+        "Toggle realm physics mode",
+        "Switch to easy/normal/hard difficulty"
+      ],
+      "activationMethod": "Hold 'voice key' button (desktop) or wave hand twice (mobile)"
+    },
+
+    "screenReaderCompatibility": {
+      "ariaImplementation": [
+        "<div role='grid' aria-label='Match-3 game grid, 64 points possible'>",
+        "<button aria-live='polite'>Score updated: +100 points</button>",
+        "<aria-live='assertive'>Match complete! Line cleared.</aria-live>"
+      ],
+      "focusOrder": {
+        "numberedSequence": true,
+        "logicalFlow": "Grid first → Score HUD → Controls → Settings"
+      }
+    },
+
+    "maritAuditChecklist": {
+      "requiredTests": [
+        {"test": "Keyboard navigation only (no mouse)", "status": "Pending Marit audit"},
+        {"test": "Voice command activation", "status": "Pending Marit audit"},
+        {"test": "Screen reader compatibility (NVDA/VoiceOver/JAWS)", "status": "Pending Marit audit"},
+        {"test": "Color-blind palette simulation", "status": "Wireframe ready for validation"}
+      ]
+    }
+  },
+
+  "section5_deliveryAndHandoff": {
+    "designSpecsLocation": "/data/openclaw/workspace/design/wireframes-games-vr-complete.json",
+    "figmaMockupsStatus": "Pending creation (next step after Zifnab review)",
+    
+    "handoffPaths": {
+      "haploWebImplementation": {
+        "assetDelivery": "Design tokens + component libraries from Arianus-Sky/",
+        "specDocumentation": "Wireframe specs shared with Haplo team",
+        "implementationTeam": "patryn-runemaster (web designs)"
+      },
+      "paithanMobileImplementation": {
+        "assetDelivery": "Platform-specific specs (iOS HIG / Android Material Design)",
+        "specDocumentation": "Gesture mapping matrix + mobile optimization notes",
+        "implementationTeam": "Paithan (mobile architecture lead)"
+      }
+    },
+
+    "deliverablesTimeline": {
+      "day1": [
+        "Complete wireframe specification document ✅ (This file)",
+        "Figma design mockups (mobile + desktop views) - Pending",
+        "Gesture mapping matrix documentation - In progress",
+        "Accessibility compliance checklist - Drafted above"
+      ],
+      "day2": [
+        "Unity tile physics module scaffolding (Haplo)",
+        "Mobile touch shell integration with raycast collision (Paithan)",
+        "WebXR compatibility baseline tests - Pending"
+      ],
+      "day3": [
+        "First integration demo with core Match-3 mechanics",
+        "Marit accessibility audit + fixes - Scheduled",
+        "User testing session (5 participants, 15 min each)"
+      ]
+    }
+  }
+}

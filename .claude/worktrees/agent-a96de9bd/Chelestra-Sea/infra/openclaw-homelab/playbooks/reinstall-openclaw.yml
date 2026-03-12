@@ -1,0 +1,421 @@
+---
+# =============================================================================
+# OpenClaw Homelab — Reinstall Playbook
+# Backs up, uninstalls, reinstalls, and restores OpenClaw on target servers.
+# Skips the setup wizard by restoring the existing openclaw.json.
+#
+# Usage:
+#   ansible-playbook playbooks/reinstall-openclaw.yml --limit ola-claw-trade
+#   ansible-playbook playbooks/reinstall-openclaw.yml --limit ola-claw-dev
+#   ansible-playbook playbooks/reinstall-openclaw.yml  # ALL servers (careful!)
+#
+# Tags:
+#   backup   — only run the backup step
+#   teardown — stop + uninstall only
+#   install  — fresh install + restore only
+#   verify   — doctor + health check only
+#
+# Variables (override with -e):
+#   backup_dir: ~/backups/YYYY-MM-DD  (auto-generated)
+#   skip_backup: false                (set true to skip backup)
+#   openclaw_version: latest          (pin a specific version)
+# =============================================================================
+
+- name: Reinstall OpenClaw (backup → uninstall → install → restore → verify)
+  hosts: all
+  become: true
+  vars:
+    backup_timestamp: "{{ ansible_date_time.date }}"
+    backup_dir: "/home/{{ server_user }}/backups/{{ backup_timestamp }}"
+    skip_backup: false
+    openclaw_version: "latest"
+    openclaw_home: "/home/{{ server_user }}/.openclaw"
+    openclaw_data: "/data/openclaw"
+
+  pre_tasks:
+    - name: Look up UID for {{ server_user }}
+      ansible.builtin.command: id -u {{ server_user }}
+      register: server_user_id_result
+      changed_when: false
+
+    - name: Set server_user_uid fact
+      ansible.builtin.set_fact:
+        server_user_uid: "{{ server_user_id_result.stdout }}"
+
+    - name: Resolve openclaw home (follow symlink)
+      ansible.builtin.stat:
+        path: "{{ openclaw_home }}"
+      register: openclaw_home_stat
+
+    - name: Set resolved openclaw path
+      ansible.builtin.set_fact:
+        openclaw_resolved: "{{ openclaw_home_stat.stat.lnk_target | default(openclaw_home) }}"
+
+    - name: Record pre-reinstall OpenClaw version
+      ansible.builtin.command: openclaw --version
+      register: pre_version
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display pre-reinstall version
+      ansible.builtin.debug:
+        msg: "Current OpenClaw version: {{ pre_version.stdout | default('not installed') }}"
+
+  tasks:
+    # =========================================================================
+    # PHASE 1: BACKUP
+    # =========================================================================
+
+    - name: Create backup directory
+      ansible.builtin.file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: "{{ server_user }}"
+        group: "{{ server_user }}"
+        mode: "0755"
+      when: not skip_backup
+      tags: [backup]
+
+    - name: Backup openclaw.json
+      ansible.builtin.copy:
+        src: "{{ openclaw_resolved }}/openclaw.json"
+        dest: "{{ backup_dir }}/openclaw.json.bak"
+        remote_src: true
+        owner: "{{ server_user }}"
+        group: "{{ server_user }}"
+        mode: "0600"
+      when: not skip_backup
+      tags: [backup]
+
+    - name: Backup workspace .md files
+      ansible.builtin.shell: |
+        cd {{ openclaw_resolved }}/workspace && \
+        tar czf {{ backup_dir }}/workspace-md.tgz *.md 2>/dev/null || true
+      become_user: "{{ server_user }}"
+      when: not skip_backup
+      tags: [backup]
+      args:
+        warn: false
+
+    - name: Backup memory directory
+      ansible.builtin.shell: |
+        tar czf {{ backup_dir }}/memory.tgz -C {{ openclaw_resolved }} memory 2>/dev/null || true
+      become_user: "{{ server_user }}"
+      when: not skip_backup
+      tags: [backup]
+      args:
+        warn: false
+
+    - name: Backup systemd user services
+      ansible.builtin.shell: |
+        tar czf {{ backup_dir }}/systemd-user.tgz -C /home/{{ server_user }}/.config/systemd/user . 2>/dev/null || true
+      become_user: "{{ server_user }}"
+      when: not skip_backup
+      tags: [backup]
+      args:
+        warn: false
+
+    - name: List backup contents
+      ansible.builtin.command: ls -lh {{ backup_dir }}
+      register: backup_listing
+      changed_when: false
+      when: not skip_backup
+      tags: [backup]
+
+    - name: Display backup listing
+      ansible.builtin.debug:
+        msg: "{{ backup_listing.stdout_lines }}"
+      when: not skip_backup
+      tags: [backup]
+
+    # =========================================================================
+    # PHASE 2: STOP AND UNINSTALL
+    # =========================================================================
+
+    - name: Stop OpenClaw gateway service
+      ansible.builtin.command: openclaw gateway stop
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      ignore_errors: true
+      changed_when: true
+      tags: [teardown]
+
+    - name: Stop extra agent gateway services
+      ansible.builtin.shell: |
+        for svc in $(systemctl --user list-units --plain --no-legend 'openclaw-gateway-*.service' | awk '{print $1}'); do
+          systemctl --user stop "$svc" 2>/dev/null || true
+        done
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      ignore_errors: true
+      changed_when: true
+      tags: [teardown]
+
+    - name: Wait for gateway to stop
+      ansible.builtin.pause:
+        seconds: 3
+      tags: [teardown]
+
+    - name: Verify gateway is stopped
+      ansible.builtin.command: systemctl --user is-active openclaw-gateway
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      register: gateway_stopped
+      ignore_errors: true
+      changed_when: false
+      tags: [teardown]
+
+    - name: Confirm gateway stopped
+      ansible.builtin.debug:
+        msg: "Gateway status: {{ gateway_stopped.stdout | default('not found') }}"
+      tags: [teardown]
+
+    - name: Uninstall OpenClaw globally
+      community.general.npm:
+        name: openclaw
+        global: true
+        state: absent
+      tags: [teardown]
+
+    - name: Verify OpenClaw uninstalled
+      ansible.builtin.command: which openclaw
+      register: openclaw_which
+      ignore_errors: true
+      changed_when: false
+      tags: [teardown]
+
+    - name: Confirm uninstall
+      ansible.builtin.debug:
+        msg: "{{ 'OpenClaw removed successfully' if openclaw_which.rc != 0 else 'WARNING: openclaw still found at ' + openclaw_which.stdout }}"
+      tags: [teardown]
+
+    # =========================================================================
+    # PHASE 3: CLEAN ORPHANS (preserve config, workspace .md, memory)
+    # =========================================================================
+
+    - name: Count orphan session files in workspace
+      ansible.builtin.shell: |
+        find {{ openclaw_resolved }}/workspace -name "*.jsonl" -o -name "*.session" 2>/dev/null | wc -l
+      register: orphan_count
+      changed_when: false
+      tags: [install]
+      args:
+        warn: false
+
+    - name: Display orphan count
+      ansible.builtin.debug:
+        msg: "Found {{ orphan_count.stdout }} orphan session files to clean"
+      tags: [install]
+
+    - name: Remove orphan session files from workspace
+      ansible.builtin.shell: |
+        find {{ openclaw_resolved }}/workspace -name "*.jsonl" -delete 2>/dev/null || true
+        find {{ openclaw_resolved }}/workspace -name "*.session" -delete 2>/dev/null || true
+      become_user: "{{ server_user }}"
+      when: orphan_count.stdout | int > 0
+      tags: [install]
+      args:
+        warn: false
+
+    - name: Remove stale openclaw.json.bak files (keep only current config)
+      ansible.builtin.shell: |
+        find {{ openclaw_resolved }} -maxdepth 1 -name "openclaw.json.bak*" -delete 2>/dev/null || true
+      become_user: "{{ server_user }}"
+      tags: [install]
+      args:
+        warn: false
+
+    # =========================================================================
+    # PHASE 4: FRESH INSTALL
+    # =========================================================================
+
+    - name: Install OpenClaw (fresh)
+      community.general.npm:
+        name: "openclaw{% if openclaw_version != 'latest' %}@{{ openclaw_version }}{% endif %}"
+        global: true
+        state: present
+      tags: [install]
+
+    - name: Verify new OpenClaw version
+      ansible.builtin.command: openclaw --version
+      register: post_version
+      changed_when: false
+      tags: [install]
+
+    - name: Display version change
+      ansible.builtin.debug:
+        msg: "OpenClaw: {{ pre_version.stdout | default('unknown') }} → {{ post_version.stdout }}"
+      tags: [install]
+
+    # =========================================================================
+    # PHASE 5: RESTORE CONFIG
+    # =========================================================================
+
+    - name: Restore openclaw.json from backup
+      ansible.builtin.copy:
+        src: "{{ backup_dir }}/openclaw.json.bak"
+        dest: "{{ openclaw_resolved }}/openclaw.json"
+        remote_src: true
+        owner: "{{ server_user }}"
+        group: "{{ server_user }}"
+        mode: "0600"
+      tags: [install]
+
+    - name: Ensure workspace directory exists
+      ansible.builtin.file:
+        path: "{{ openclaw_resolved }}/workspace"
+        state: directory
+        owner: "{{ server_user }}"
+        group: "{{ server_user }}"
+        mode: "0755"
+      tags: [install]
+
+    - name: Ensure logs directory exists
+      ansible.builtin.file:
+        path: "{{ openclaw_resolved }}/logs"
+        state: directory
+        owner: "{{ server_user }}"
+        group: "{{ server_user }}"
+        mode: "0755"
+      tags: [install]
+
+    # =========================================================================
+    # PHASE 6: FIX PERMISSIONS (extensions bug)
+    # =========================================================================
+
+    - name: Fix openclaw extensions permissions
+      ansible.builtin.shell: |
+        OPENCLAW_PATH=$(npm root -g)/openclaw/extensions 2>/dev/null
+        if [ -d "$OPENCLAW_PATH" ]; then
+          chown -R {{ server_user }}:{{ server_user }} "$OPENCLAW_PATH"
+          echo "Fixed: $OPENCLAW_PATH"
+        else
+          echo "No extensions dir found (OK for fresh install)"
+        fi
+      register: extensions_fix
+      changed_when: "'Fixed' in extensions_fix.stdout"
+      tags: [install]
+
+    - name: Display extensions fix result
+      ansible.builtin.debug:
+        msg: "{{ extensions_fix.stdout }}"
+      tags: [install]
+
+    # =========================================================================
+    # PHASE 7: GATEWAY SETUP AND START
+    # =========================================================================
+
+    - name: Set gateway mode to local
+      ansible.builtin.command: openclaw config set gateway.mode local
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      changed_when: false
+      tags: [install]
+
+    - name: Install OpenClaw gateway systemd service
+      ansible.builtin.command: openclaw gateway install
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      register: gateway_install_result
+      changed_when: "'already' not in gateway_install_result.stdout | default('')"
+      tags: [install]
+
+    - name: Enable loginctl linger
+      ansible.builtin.command: loginctl enable-linger {{ server_user }}
+      changed_when: false
+      tags: [install]
+
+    - name: Start OpenClaw gateway
+      ansible.builtin.command: openclaw gateway start
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      changed_when: true
+      tags: [install]
+
+    - name: Restart extra agent gateway services
+      ansible.builtin.shell: |
+        for svc in $(systemctl --user list-units --plain --no-legend 'openclaw-gateway-*.service' | awk '{print $1}'); do
+          systemctl --user restart "$svc" 2>/dev/null || true
+        done
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      ignore_errors: true
+      changed_when: true
+      tags: [install]
+
+    # =========================================================================
+    # PHASE 8: VERIFY
+    # =========================================================================
+
+    - name: Run openclaw doctor
+      ansible.builtin.command: openclaw doctor
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      register: doctor_output
+      changed_when: false
+      ignore_errors: true
+      tags: [verify]
+
+    - name: Display doctor output
+      ansible.builtin.debug:
+        msg: "{{ doctor_output.stdout_lines | default([]) }}"
+      tags: [verify]
+
+    - name: Rebuild memory index
+      ansible.builtin.command: openclaw memory index
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      register: memory_index
+      changed_when: false
+      ignore_errors: true
+      tags: [verify]
+
+    - name: Check gateway health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ openclaw_gateway_port | default(18789) }}/health"
+        method: GET
+        status_code: 200
+      register: gateway_health
+      retries: 6
+      delay: 5
+      until: gateway_health.status | default(0) == 200
+      ignore_errors: true
+      tags: [verify]
+
+    - name: Check gateway service status
+      ansible.builtin.command: systemctl --user is-active openclaw-gateway
+      become_user: "{{ server_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ server_user_uid }}"
+      register: gateway_final_status
+      ignore_errors: true
+      changed_when: false
+      tags: [verify]
+
+    # =========================================================================
+    # SUMMARY
+    # =========================================================================
+
+    - name: Reinstall summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          OPENCLAW REINSTALL COMPLETE
+          ============================================
+          Server:     {{ inventory_hostname }}
+          Version:    {{ pre_version.stdout | default('unknown') }} → {{ post_version.stdout | default('unknown') }}
+          Backup:     {{ backup_dir }}
+          Gateway:    {{ gateway_final_status.stdout | default('unknown') }}
+          Health:     {{ 'HEALTHY' if gateway_health.status | default(0) == 200 else 'NOT RESPONDING' }}
+          Doctor:     {{ 'PASS' if doctor_output.rc | default(1) == 0 else 'ISSUES FOUND — check output above' }}
+          ============================================
+      tags: [verify]

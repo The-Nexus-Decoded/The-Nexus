@@ -1,5 +1,6 @@
 # =============================================================================
-# Host Variables: ola-claw-main (Jarvis — Central Coordinator)
+# Host Variables: ola-claw-main (Zifnab — Central Coordinator)
+# Hardware: i7-6800K (6c/12t), 24GB RAM, RTX 2070 Super + RTX 2080 (16GB VRAM)
 # =============================================================================
 
 # Server role determines which SOUL.md gets deployed
@@ -8,8 +9,70 @@ server_role: jarvis
 # Static fallback IP for Netplan (DHCP primary, this is the fallback)
 network_static_fallback_ip: "192.168.1.127/24"
 
-# No GPU compute needed — Jarvis uses Gemini API, not local inference
-nvidia_install: false
-
-# No local LLM needed
+# No local Ollama — Zifnab uses vLLM (qwen3.5-9b at port 8000)
 ollama_install: false
+
+# --- Extra agent gateways deployed on this server ---
+# Discord channel IDs:
+#   #the-nexus: 1475082874234343621
+#   #coding:    1475083038810443878
+#   #crypto:    1475082964156157972
+#   #jarvis:    1475082997027049584
+
+extra_agents:
+  - name: rega
+    port: 18811
+    discord_bot_token: "{{ vault_rega_discord_token }}"
+    discord_channels:
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+    providers:
+      openai-compatible:
+        enabled: true
+        base_url: "http://localhost:8000/v1"
+        model: "qwen3.5-9b"
+
+  - name: sangdrax
+    port: 18812
+    discord_bot_token: "{{ vault_sangdrax_discord_token }}"
+    discord_channels:
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+      "1475082964156157972":  # #crypto
+        allow: true
+        requireMention: true
+    providers:
+      openai-compatible:
+        enabled: true
+        base_url: "http://localhost:8000/v1"
+        model: "qwen3.5-9b"
+
+  # --- Specialist cluster (ports 18820–18840) ---
+  # 10-port spacing to avoid port+2/port+3 side-channel collisions
+  # Discord disabled — tokens to be registered in developer portal
+
+  - name: ramu
+    port: 18820
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: alake
+    port: 18830
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: drugar
+    port: 18840
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}

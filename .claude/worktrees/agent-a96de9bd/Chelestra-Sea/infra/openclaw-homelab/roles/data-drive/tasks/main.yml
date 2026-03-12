@@ -1,0 +1,95 @@
+---
+# =============================================================================
+# Role: data-drive — Detect, partition, format, and mount NVMe at /data
+# Leaves the OS disk (240GB SSD) untouched
+# =============================================================================
+
+# --- Detect NVMe device ---
+
+- name: Detect NVMe block devices
+  ansible.builtin.shell: lsblk -nd -o NAME,SIZE,TYPE | grep nvme | head -1 | awk '{print $1}'
+  register: nvme_detect
+  changed_when: false
+  failed_when: nvme_detect.stdout | length == 0
+
+- name: Set NVMe device fact
+  ansible.builtin.set_fact:
+    nvme_device: "/dev/{{ nvme_detect.stdout }}"
+
+- name: Display detected NVMe device
+  ansible.builtin.debug:
+    msg: "Detected NVMe device: {{ nvme_device }}"
+
+# --- Check if already mounted ---
+
+- name: Check if {{ data_mount_point }} is already a mount point
+  ansible.builtin.command: mountpoint -q {{ data_mount_point }}
+  register: data_mounted
+  ignore_errors: true
+  changed_when: false
+
+# --- Partition and format if not mounted ---
+
+- name: Partition and format NVMe drive
+  when: data_mounted.rc != 0
+  block:
+    - name: Check if NVMe has existing partitions
+      ansible.builtin.shell: lsblk -n -o NAME {{ nvme_device }} | wc -l
+      register: nvme_partitions
+      changed_when: false
+
+    - name: Create GPT partition table on NVMe
+      ansible.builtin.command: parted -s {{ nvme_device }} mklabel gpt
+      when: nvme_partitions.stdout | int <= 1
+
+    - name: Create single partition spanning entire NVMe
+      ansible.builtin.command: parted -s {{ nvme_device }} mkpart primary {{ data_filesystem }} 0% 100%
+      when: nvme_partitions.stdout | int <= 1
+
+    - name: Wait for partition device to appear
+      ansible.builtin.wait_for:
+        path: "{{ nvme_device }}p1"
+        timeout: 10
+
+    - name: Format NVMe partition as {{ data_filesystem }}
+      community.general.filesystem:
+        dev: "{{ nvme_device }}p1"
+        fstype: "{{ data_filesystem }}"
+
+# --- Mount at /data ---
+
+- name: Create mount point directory
+  ansible.builtin.file:
+    path: "{{ data_mount_point }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Get UUID of NVMe partition
+  ansible.builtin.command: blkid -s UUID -o value {{ nvme_device }}p1
+  register: nvme_uuid
+  changed_when: false
+
+- name: Mount NVMe at {{ data_mount_point }} via fstab (UUID-based)
+  ansible.posix.mount:
+    path: "{{ data_mount_point }}"
+    src: "UUID={{ nvme_uuid.stdout }}"
+    fstype: "{{ data_filesystem }}"
+    opts: noatime,discard
+    state: mounted
+
+# --- Verify ---
+
+- name: Verify {{ data_mount_point }} is mounted
+  ansible.builtin.command: mountpoint -q {{ data_mount_point }}
+  changed_when: false
+
+- name: Display mount info
+  ansible.builtin.command: df -h {{ data_mount_point }}
+  register: data_df
+  changed_when: false
+
+- name: Show data drive status
+  ansible.builtin.debug:
+    msg: "{{ data_df.stdout }}"

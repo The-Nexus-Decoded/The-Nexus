@@ -1,0 +1,20 @@
+---
+# =============================================================================
+# Role: vllm — Defaults
+# =============================================================================
+
+vllm_install: true
+vllm_user: "{{ server_user }}"
+vllm_port: 8000
+vllm_host: "0.0.0.0"
+
+# Model configuration
+vllm_model_name: "Qwen3.5-4B"
+vllm_model_path: "/data/repos/{{ vllm_model_name }}"
+
+# Hardware acceleration defaults
+vllm_tensor_parallel_size: 1
+vllm_gpu_memory_utilization: 0.9
+vllm_max_model_len: 262144
+vllm_enforce_eager: true
+vllm_swap_space: 4

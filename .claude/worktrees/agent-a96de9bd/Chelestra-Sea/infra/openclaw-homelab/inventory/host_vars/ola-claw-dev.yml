@@ -1,0 +1,86 @@
+# =============================================================================
+# Host Variables: ola-claw-dev (Haplo — Development server)
+# Hardware: Ryzen 9 3900X (12c/24t), 64GB RAM, 2x GTX 1070/Ti (16GB VRAM)
+# =============================================================================
+
+# Server role determines which SOUL.md gets deployed
+server_role: coding
+
+# Static fallback IP for Netplan (DHCP primary, this is the fallback)
+network_static_fallback_ip: "192.168.1.211/24"
+
+# --- Extra agent gateways deployed on this server ---
+# Discord channel IDs:
+#   #the-nexus: 1475082874234343621
+#   #coding:    1475083038810443878
+#   #crypto:    1475082964156157972
+#   #jarvis:    1475082997027049584
+
+extra_agents:
+  - name: alfred
+    port: 18810
+    discord_bot_token: "{{ vault_alfred_discord_token }}"
+    discord_channels:
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+      "1475082964156157972":  # #crypto
+        allow: true
+        requireMention: true
+    providers:
+      minimax:
+        enabled: true
+      gemini:
+        enabled: true
+        model: "gemini-2.5-flash"
+
+  - name: marit
+    port: 18811
+    discord_bot_token: "{{ vault_marit_discord_token }}"
+    discord_channels:
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"
+
+  - name: paithan
+    port: 18812
+    discord_bot_token: "{{ vault_paithan_discord_token }}"
+    discord_channels:
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"
+
+  - name: orla
+    port: 18813
+    discord_bot_token: "{{ vault_orla_discord_token }}"
+    discord_channels:
+      "1475083038810443878":  # #coding
+        allow: true
+        requireMention: true
+      "1475082874234343621":  # #the-nexus
+        allow: true
+        requireMention: true
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"

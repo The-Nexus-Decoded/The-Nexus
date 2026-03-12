@@ -45,6 +45,23 @@
   register: openclaw_version_output
   changed_when: false
 
+- name: Install codex wrapper for CLI backend agents
+  ansible.builtin.copy:
+    src: codex-wrapper
+    dest: /usr/local/bin/codex-wrapper
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Fix OpenClaw extensions ownership for agent user
+  ansible.builtin.file:
+    path: /usr/lib/node_modules/openclaw/extensions/
+    owner: "{{ server_user }}"
+    group: "{{ server_user }}"
+    recurse: true
+  become: true
+
 # --- Headless systemd fix ---
 
 - name: Look up UID for {{ server_user }}
