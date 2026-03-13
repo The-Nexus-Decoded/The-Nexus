@@ -29,7 +29,7 @@ jobs:
 
       - name: Install Node Dependencies
         run: |
-          cd hughs-forge/meteora-trader
+          cd hughs-forge/services/meteora-trader
           npm install
 
       - name: Install Python Dependencies
@@ -45,7 +45,7 @@ jobs:
       - name: TypeScript Compile Check
         run: |
           echo "Compiling meteora-trader TypeScript (PositionManager + PythHermesClient)..."
-          cd hughs-forge/meteora-trader
+          cd hughs-forge/services/meteora-trader
           npx tsc --noEmit
           echo "TypeScript compilation passed."
 
