@@ -1,0 +1,5 @@
+# DAILY_TASK: Devnet SOL Accumulation
+- Target: 7YjVFZjQtEaRSepkjJ4JJwpupkeYvb31D4XNNDXioL9k
+- Action: Request maximum daily allowance (2 SOL) from the Solana Devnet faucet.
+- Purpose: Build a robust reserve for the Phantom Gauntlet and future shadow-trials.
+- Threshold: Stop accumulation once reserves exceed 50 SOL (Review monthly).

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spatial Gesture Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a12;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    
+    h1 {
+      font-size: 1.2rem;
+      color: #00D9FF;
+      margin-bottom: 8px;
+      font-weight: 400;
+      letter-spacing: 2px;
+    }
+    
+    .subtitle {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    
+    #preview-container {
+      position: relative;
+      border: 1px solid #00D9FF33;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.1);
+    }
+    
+    #preview-canvas {
+      display: block;
+      touch-action: none;
+    }
+    
+    .instructions {
+      margin-top: 20px;
+      font-size: 0.7rem;
+      color: #555;
+      text-align: center;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    
+    .instructions span {
+      color: #00D9FF;
+    }
+  </style>
+</head>
+<body>
+  <h1>SPATIAL PREVIEW</h1>
+  <p class="subtitle">Mobile Gesture → VR Intent Renderer</p>
+  
+  <div id="preview-container">
+    <canvas id="preview-canvas" width="360" height="600"></canvas>
+  </div>
+  
+  <p class="instructions">
+    <span>Tap</span> to emit tap intent<br>
+    <span>Hold</span> (500ms+) to emit hold intent<br>
+    <span>Drag</span> to emit swipe intent<br><br>
+    Intents are logged and sent via postMessage to parent
+  </p>
+  
+  <script type="module">
+    import { SpatialPreviewRenderer, GestureCapture } from './spatial-preview.ts';
+    
+    // Wait for DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('preview-canvas');
+      
+      // Initialize preview renderer
+      const renderer = new SpatialPreviewRenderer(canvas);
+      
+      // Also attach gesture capture to canvas
+      const capture = new GestureCapture({
+        coordinateSystem: 'normalized',
+        targetUrl: '*',
+      });
+      
+      capture.attach(canvas);
+      
+      // Log intents
+      capture.onIntent((intent) => {
+        console.log('SpatialIntent:', intent);
+      });
+      
+      // Expose for debugging
+      window.__spatialPreview = { renderer, capture };
+    });
+  </script>
+</body>
+</html>

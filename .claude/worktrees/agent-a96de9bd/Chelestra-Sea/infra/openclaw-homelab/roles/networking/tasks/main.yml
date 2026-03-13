@@ -1,0 +1,75 @@
+---
+# =============================================================================
+# Role: networking — MAC-based NIC config that survives PCIe bus renumbering
+# MUST run early (before tailscale) to ensure network is stable
+# =============================================================================
+
+# --- Detect NIC MAC address ---
+
+- name: Get default route interface
+  ansible.builtin.shell: ip route show default | awk '{print $5}' | head -1
+  register: default_nic
+  changed_when: false
+
+- name: Get MAC address of primary NIC
+  ansible.builtin.shell: ip link show {{ default_nic.stdout }} | awk '/link\/ether/{print $2}'
+  register: nic_mac
+  changed_when: false
+
+- name: Set NIC facts
+  ansible.builtin.set_fact:
+    primary_nic_name: "{{ default_nic.stdout }}"
+    primary_nic_mac: "{{ nic_mac.stdout }}"
+
+- name: Display detected NIC info
+  ansible.builtin.debug:
+    msg: "Primary NIC: {{ primary_nic_name }} (MAC: {{ primary_nic_mac }})"
+
+# --- Deploy Netplan config with MAC-based matching ---
+
+- name: Deploy Netplan configuration (MAC-based matching)
+  ansible.builtin.template:
+    src: 01-netcfg.yaml.j2
+    dest: /etc/netplan/01-netcfg.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  register: netplan_config
+
+# --- Remove default cloud-init netplan if it exists ---
+
+- name: Remove cloud-init default netplan (conflicts with ours)
+  ansible.builtin.file:
+    path: /etc/netplan/50-cloud-init.yaml
+    state: absent
+  register: cloud_init_netplan
+
+# --- Reduce systemd-networkd-wait-online timeout ---
+
+- name: Create systemd-networkd-wait-online override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-networkd-wait-online.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Reduce systemd-networkd-wait-online timeout
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
+    content: |
+      # Managed by Ansible — do not edit manually
+      # Reduced timeout: don't block boot waiting for all interfaces
+      [Service]
+      ExecStart=
+      ExecStart=/usr/lib/systemd/systemd-networkd-wait-online --timeout=10 --any
+    owner: root
+    group: root
+    mode: "0644"
+  notify: daemon reload
+
+# --- Apply netplan ---
+
+- name: Apply Netplan configuration
+  ansible.builtin.command: netplan apply
+  when: netplan_config.changed or cloud_init_netplan.changed

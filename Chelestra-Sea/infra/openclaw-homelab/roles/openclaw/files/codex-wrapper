@@ -1,0 +1,85 @@
+#!/bin/bash
+# Normalize OpenClaw CLI backend invocations for Codex.
+# OpenClaw may pass prompt text as many argv segments; Codex expects one prompt arg.
+
+args=()
+positional=()
+mode=""
+sandbox_mode=""
+
+for arg in "$@"; do
+    case "$arg" in
+        --dangerously-bypass-approvals-and-sandbox|--yolo|--full-auto)
+            args+=("$arg")
+            ;;
+        --*)
+            # Strip unknown long flags that Codex does not accept in this environment.
+            continue
+            ;;
+        exec)
+            mode="exec"
+            args+=("$arg")
+            ;;
+        resume)
+            mode="resume"
+            args+=("$arg")
+            ;;
+        read-only|workspace-write|danger-full-access)
+            sandbox_mode="$arg"
+            ;;
+        workspace-read)
+            sandbox_mode="read-only"
+            ;;
+        workspace-write|workspace-read|workspace-*)
+            # Strip unknown workspace tokens we do not know how to translate.
+            continue
+            ;;
+        *)
+            positional+=("$arg")
+            ;;
+    esac
+done
+
+join_args() {
+    local out=""
+    local first=true
+    for part in "$@"; do
+        if $first; then
+            out="$part"
+            first=false
+        else
+            out+=" $part"
+        fi
+    done
+    printf "%s" "$out"
+}
+
+if [[ "$mode" == "resume" ]]; then
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("exec" "--skip-git-repo-check" "--sandbox" "$sandbox_mode" "resume")
+    fi
+    if (( ${#positional[@]} > 0 )); then
+        args+=("${positional[0]}")
+    fi
+    if (( ${#positional[@]} > 1 )); then
+        prompt="$(join_args "${positional[@]:1}")"
+        args+=("$prompt")
+    fi
+elif [[ "$mode" == "exec" ]]; then
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("exec" "--skip-git-repo-check" "--sandbox" "$sandbox_mode")
+    else
+        args=("exec" "--skip-git-repo-check")
+    fi
+    if (( ${#positional[@]} > 0 )); then
+        prompt="$(join_args "${positional[@]}")"
+        args+=("$prompt")
+    fi
+else
+    if [[ -n "$sandbox_mode" ]]; then
+        args=("--sandbox" "$sandbox_mode")
+    fi
+    args+=("${positional[@]}")
+fi
+
+exec /usr/bin/codex "${args[@]}"

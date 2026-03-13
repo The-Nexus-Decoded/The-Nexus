@@ -54,7 +54,7 @@ extra_agents:
         model: "qwen3.5:9b"
 
   - name: paithan
-    port: 18812
+    port: 18820
     discord_bot_token: "{{ vault_paithan_discord_token }}"
     discord_channels:
       "1475083038810443878":  # #coding
@@ -70,7 +70,7 @@ extra_agents:
         model: "qwen3.5:9b"
 
   - name: orla
-    port: 18813
+    port: 18830
     discord_bot_token: "{{ vault_orla_discord_token }}"
     discord_channels:
       "1475083038810443878":  # #coding
@@ -84,3 +84,77 @@ extra_agents:
         enabled: true
         host: "http://localhost:11434"
         model: "qwen3.5:9b"
+
+  # --- Game & Creative cluster (ports 18840–18849) ---
+  # Discord disabled — tokens to be registered in developer portal
+  # Channels to assign when ready: #games-vr (1480483545431412877), #coding, #the-nexus
+
+  - name: edmund
+    port: 18840
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: iridal
+    port: 18841
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: jarre
+    port: 18842
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: balthazar
+    port: 18843
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: vasu
+    port: 18844
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: kleitus
+    port: 18845
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: limbeck
+    port: 18846
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: bane
+    port: 18847
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: grundle
+    port: 18848
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}
+
+  - name: jonathon
+    port: 18849
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers: {}

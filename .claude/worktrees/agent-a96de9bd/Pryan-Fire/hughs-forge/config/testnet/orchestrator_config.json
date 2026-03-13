@@ -1,0 +1,10 @@
+{
+    "reinvest_enabled": true,
+    "strategy_type": "SPOT_WIDE",
+    "risk_gate_active": false,
+    "cluster": "devnet",
+    "rpc_url": "https://api.devnet.solana.com",
+    "swap_on_entry": false,
+    "bin_step_padding": 10,
+    "note": "PHANTOM FORGE: Testnet configuration for Lord Xar's dry run."
+}

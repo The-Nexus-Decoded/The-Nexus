@@ -1,0 +1,10 @@
+# /etc/default/grub.d/openclaw.cfg
+# Managed by Ansible — do not edit manually
+#
+# Kernel parameters for GPU stability and PCIe reliability:
+#   amd_iommu=on  — Enable AMD IOMMU for device isolation
+#   iommu=pt      — IOMMU passthrough mode (better GPU perf)
+#   pcie_aspm=off  — Disable PCIe Active State Power Management (prevents link drops)
+#   pci=realloc   — Allow kernel to reallocate PCIe resources (multi-GPU stability)
+
+GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} {{ kernel_params | join(' ') }}"

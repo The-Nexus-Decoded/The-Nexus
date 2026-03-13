@@ -1,0 +1,49 @@
+{
+  "classes": [
+    {"name": "Warrior", "chance": 30, "skill": "Berserker", "unlock": "all"},
+    {"name": "Mage", "chance": 30, "skill": "Meteor Swarm", "unlock": "all"},
+    {"name": "Priest", "chance": 12.5, "skill": "Holy Arrow", "unlock": "all"},
+    {"name": "Sharpshooter", "chance": 12.5, "skill": "Multishot", "unlock": "all"},
+    {"name": "Summoner", "chance": 5, "skill": "Summon Minion", "unlock": "all"},
+    {"name": "Paladin", "chance": 5, "skill": "Thor's Hammer", "unlock": "all"},
+    {"name": "Asura", "chance": 2.5, "skill": "Mindburn", "unlock": "all"},
+    {"name": "Slayer", "chance": 2.5, "skill": "Backstab", "unlock": "all"}
+  ],
+  "unlockableClasses": [
+    {"name": "Lightbearer", "chance": 0, "skill": "Holy Arrow", "theme": "Sartan light", "unlock": "Sartan"},
+    {"name": "Beastlord", "chance": 0, "skill": "Summon Minion", "theme": "Patryn beasts", "unlock": "Patryn"}
+  ],
+  "initialRaces": [
+    {"name": "Elf", "realms": ["Arianus-Sky"], "professions": ["Conjuring"], "perk": "Potion of Swiftness"},
+    {"name": "Dwarf", "realms": ["Arianus-Sky", "Pryan-Fire"], "professions": ["Mechanic"], "perk": "Spear of Fire"},
+    {"name": "Human", "realms": ["Arianus-Sky"], "professions": ["Conjuring"], "perk": "Potion of Swiftness"},
+    {"name": "Durnai", "realms": ["Chelestra-Sea"], "professions": ["Thievery"], "perk": "Shadow Walk"},
+    {"name": "Titan", "realms": ["Pryan-Fire"], "professions": ["Mechanic"], "perk": "Spear of Fire"}
+  ],
+  "advancedRaces": [
+    {"name": "Patryn", "realms": ["Labyrinth"], "professions": ["Beast Tamer", "Gardening"], "perk": "Summon Brown Bear", "unlock": "later"},
+    {"name": "Sartan", "realms": ["all"], "professions": ["Light Magic"], "perk": "Radiant Blessing", "unlock": "later"}
+  ],
+  "realms": [
+    {"name": "Arianus-Sky", "element": "Air", "races": ["Elf", "Dwarf", "Human"]},
+    {"name": "Chelestra-Sea", "element": "Water", "races": ["Durnai"]},
+    {"name": "Pryan-Fire", "element": "Fire", "races": ["Dwarf", "Titan"]},
+    {"name": "Abarrach-Earth", "element": "Stone", "races": []},
+    {"name": "Labyrinth", "element": null, "races": ["Patryn"]}
+  ],
+  "realmDrops": {
+    "Arianus-Sky": {"profession": "Conjuring", "drops": {"common": "Potion of Swiftness", "uncommon": "Potion of Recovery", "rare": "Potion of Gluttony"}},
+    "Chelestra-Sea": {"profession": "Thievery", "drops": {"common": "Shadow Walk", "uncommon": "Shadow Assault", "rare": "Shadow Overlord"}},
+    "Pryan-Fire": {"profession": "Mechanic", "drops": {"common": "Spear of Fire", "uncommon": "Spear of Flame", "rare": "Spear of Inferno"}},
+    "Abarrach-Earth": {"profession": "Dark Magic", "drops": {"common": "Demonic Blast", "uncommon": "Demonic Wave", "rare": "Demonic Nova"}},
+    "Labyrinth": {"profession": "Beast Tamer", "drops": {"common": "Summon Brown Bear", "uncommon": "Summon Lesser Daemon", "rare": "Summon Ancient Wyrm"}}
+  },
+  "rules": {
+    "race_class_restrictions": false,
+    "advanced_unlock": "Sartan, Patryn",
+    "bosses": {
+      "can_use_higher_magic": true,
+      "naga_ability": "remove_runes"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@arianus-sky/spatial-hints-web",
+  "version": "0.1.0",
+  "description": "Web-based spatial hints renderer for VR experiences - consumed by mobile XR bridge",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@arianus-sky/xr-mobile-bridge": "workspace:*"
+  }
+}

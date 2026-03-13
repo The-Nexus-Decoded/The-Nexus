@@ -1,0 +1,10 @@
+---
+# =============================================================================
+# Handlers: ollama role
+# =============================================================================
+
+- name: restart ollama
+  ansible.builtin.systemd:
+    name: ollama
+    state: restarted
+    daemon_reload: true

@@ -39,3 +39,36 @@ extra_agents:
         enabled: true
         host: "http://localhost:11434"
         model: "qwen3.5:9b"
+
+  - name: sinistrad
+    port: 18820
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"
+
+  - name: calandra
+    port: 18830
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"
+
+  - name: devon
+    port: 18840
+    discord_enabled: false
+    discord_bot_token: ""
+    discord_channels: {}
+    providers:
+      ollama:
+        enabled: true
+        host: "http://localhost:11434"
+        model: "qwen3.5:9b"
