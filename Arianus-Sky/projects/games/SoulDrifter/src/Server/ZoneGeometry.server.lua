@@ -145,38 +145,6 @@ function ZoneGeometry:CreateZoneA()
 	
 	return zoneFolder
 end
-	thermalTrigger.Anchored = true
-	thermalTrigger.Transparency = 1
-	thermalTrigger.CanCollide = false
-	
-	thermalTrigger.Parent = workspace
-	
-	-- Glowing runes on walls (decorative)
-	for i = 1, 8 do
-		local angle = (i / 8) * math.pi * 2
-		local runePos = pos + Vector3.new(
-			math.cos(angle) * 3.5,
-			2,
-			math.sin(angle) * 3.5
-		)
-		local rune = Instance.new("Part")
-		rune.Name = `Rune{i}`
-		rune.Size = Vector3.new(0.5, 1, 0.1)
-		rune.Position = runePos
-		rune.Anchored = true
-		rune.BrickColor = BrickColor.new("Cyan")
-		rune.Material = Enum.Material.Neon
-		rune.Transparency = 0.5
-		rune.Parent = workspace
-		table.insert(self.CreatedParts, rune)
-	end
-	
-	table.insert(self.CreatedParts, platform)
-	table.insert(self.CreatedParts, centerPlatform)
-	table.insert(self.CreatedParts, thermalTrigger)
-	
-	return platform, thermalTrigger
-end
 
 -- Zone B: Entry Corridor
 function ZoneGeometry:CreateZoneB()

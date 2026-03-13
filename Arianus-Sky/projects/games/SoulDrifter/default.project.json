@@ -68,22 +68,22 @@
         "$path": "src/Server/Main.server.lua"
       },
       "ZoneGeometry": {
-        "$path": "src/Server/ZoneGeometry.server.lua"
+        "$path": "src/Server/ZoneGeometry.lua"
       },
       "ZoneStateMachine": {
-        "$path": "src/Server/ZoneStateMachine.server.lua"
+        "$path": "src/Server/ZoneStateMachine.lua"
       },
       "SoulTracker": {
-        "$path": "src/Server/SoulTracker.server.lua"
+        "$path": "src/Server/SoulTracker.lua"
       },
       "DataStoreManager": {
-        "$path": "src/Server/DataStoreManager.server.lua"
+        "$path": "src/Server/DataStoreManager.lua"
       },
       "EnemyAI": {
-        "$path": "src/Server/EnemyAI.server.lua"
+        "$path": "src/Server/EnemyAI.lua"
       },
       "RemoteEventMap": {
-        "$path": "src/Server/RemoteEventMap.server.lua"
+        "$path": "src/Server/RemoteEventMap.lua"
       }
     },
     "StarterPlayer": {
