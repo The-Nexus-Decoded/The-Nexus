@@ -79,7 +79,7 @@ function ZoneGeometry:CreateZoneA()
 	floor.Position = pos + Vector3.new(0, -0.25, 0)
 	floor.Anchored = true
 	floor.BrickColor = BrickColor.new("Dark stone grey")
-	floor.Material = Enum.Material.Stone
+	floor.Material = Enum.Material.Slate
 	floor.Parent = zoneFolder
 	table.insert(self.CreatedParts, floor)
 	
@@ -93,7 +93,7 @@ function ZoneGeometry:CreateZoneA()
 		pillar.Position = pos + Vector3.new(math.cos(angle) * radius, 3, math.sin(angle) * radius)
 		pillar.Anchored = true
 		pillar.BrickColor = BrickColor.new("Stone grey")
-		pillar.Material = Enum.Material.Stone
+		pillar.Material = Enum.Material.Slate
 		pillar.Parent = zoneFolder
 		table.insert(self.CreatedParts, pillar)
 	end
@@ -105,7 +105,7 @@ function ZoneGeometry:CreateZoneA()
 	ceiling.Position = pos + Vector3.new(0, 6, 0)
 	ceiling.Anchored = true
 	ceiling.BrickColor = BrickColor.new("Dark stone grey")
-	ceiling.Material = Enum.Material.Stone
+	ceiling.Material = Enum.Material.Slate
 	ceiling.Parent = zoneFolder
 	table.insert(self.CreatedParts, ceiling)
 	
@@ -195,7 +195,7 @@ function ZoneGeometry:CreateZoneB()
 	floor.Position = pos + Vector3.new(0, -0.25, 0)
 	floor.Anchored = true
 	floor.BrickColor = BrickColor.new("Dark stone grey")
-	floor.Material = Enum.Material.Stone
+	floor.Material = Enum.Material.Slate
 	floor.Parent = zoneFolder
 	table.insert(self.CreatedParts, floor)
 	
@@ -206,7 +206,7 @@ function ZoneGeometry:CreateZoneB()
 	ceiling.Position = pos + Vector3.new(0, 4, 0)
 	ceiling.Anchored = true
 	ceiling.BrickColor = BrickColor.new("Dark stone grey")
-	ceiling.Material = Enum.Material.Stone
+	ceiling.Material = Enum.Material.Slate
 	ceiling.Parent = zoneFolder
 	table.insert(self.CreatedParts, ceiling)
 	
@@ -218,7 +218,7 @@ function ZoneGeometry:CreateZoneB()
 		wall.Position = pos + Vector3.new(0, 2, side * 1.75)
 		wall.Anchored = true
 		wall.BrickColor = BrickColor.new("Stone grey")
-		wall.Material = Enum.Material.Stone
+		wall.Material = Enum.Material.Slate
 		wall.Parent = zoneFolder
 		table.insert(self.CreatedParts, wall)
 	end
@@ -279,7 +279,7 @@ function ZoneGeometry:CreateZoneC()
 	arena.Position = pos + Vector3.new(0, -0.5, 0)
 	arena.Anchored = true
 	arena.BrickColor = BrickColor.new("Stone")
-	arena.Material = Enum.Material.Stone
+	arena.Material = Enum.Material.Slate
 	arena.Shape = Enum.PartType.Cylinder
 	arena.Parent = zoneFolder
 	table.insert(self.CreatedParts, arena)
@@ -294,7 +294,7 @@ function ZoneGeometry:CreateZoneC()
 		pillar.Position = pos + Vector3.new(math.cos(angle) * radius, 7.5, math.sin(angle) * radius)
 		pillar.Anchored = true
 		pillar.BrickColor = BrickColor.new("Stone grey")
-		pillar.Material = Enum.Material.Stone
+		pillar.Material = Enum.Material.Slate
 		pillar.Parent = zoneFolder
 		table.insert(self.CreatedParts, pillar)
 	end
@@ -306,7 +306,7 @@ function ZoneGeometry:CreateZoneC()
 	ceiling.Position = pos + Vector3.new(0, 15, 0)
 	ceiling.Anchored = true
 	ceiling.BrickColor = BrickColor.new("Dark stone grey")
-	ceiling.Material = Enum.Material.Stone
+	ceiling.Material = Enum.Material.Slate
 	ceiling.Shape = Enum.PartType.Cylinder
 	ceiling.Parent = zoneFolder
 	table.insert(self.CreatedParts, ceiling)
