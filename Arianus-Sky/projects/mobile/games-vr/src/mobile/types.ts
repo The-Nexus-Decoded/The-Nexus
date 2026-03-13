@@ -1,6 +1,9 @@
 // XR Interface Types v1.0
 // Derived from XR-Interface-Spec.md
 
+export * from './ambient-skin/types';
+export * from './gesture';
+
 export type PresentationMode = 'full' | 'ambient' | 'silent';
 
 export type GestureType = 
@@ -21,6 +24,30 @@ export type GestureFaction = 'sartan' | 'patryn';
 export type IntentAction = 'move' | 'rotate' | 'scale';
 
 export type PreviewType = 'ghost_wireframe' | 'rotation_ring' | 'corner_handles';
+
+// 2D fallback mappings for devices without 3D rendering
+export type PreviewType2D = 'dashed_border_pulse' | 'circular_progress' | 'corner_indicators';
+
+export const PREVIEW_2D_FALLBACK: Record<PreviewType, PreviewType2D> = {
+  ghost_wireframe: 'dashed_border_pulse',
+  rotation_ring: 'circular_progress',
+  corner_handles: 'corner_indicators',
+};
+
+// Connection handshake - device capabilities
+export interface ConnectionHandshake {
+  type: 'handshake';
+  clientId: string;
+  supports3D: boolean;
+  platform: 'ios' | 'android' | 'web';
+  sdkVersion: string;
+}
+
+export interface HandshakeResponse {
+  type: 'handshake_ack';
+  serverVersion: string;
+  latencyBudget: number;
+}
 
 export type TrustTier = 1 | 2 | 3;
 
@@ -135,7 +162,26 @@ export const MANIPULATION_MATRIX: Record<IntentAction, ManipulationIntent['previ
 
 // ==================== Mobile ↔ XR Protocol ====================
 
-export interface XRStateMessage {
+export type GestureContext = 'mobile' | 'xr_controller';
+
+export interface RenderPayload {
+  type: 'render';
+  preview_type: PreviewType;
+  position?: { x: number; y: number };
+  rotation?: number;
+  scale?: number;
+  confidence: number;
+  spatial_hint?: SpatialHint;  // XR environment context for mobile rendering
+  supports3D?: boolean;        // Device capability for preview type selection
+}
+
+export interface GesturePayload {
+  type: 'gesture';
+  gesture: GestureEvent;
+  context: GestureContext;    // 'mobile' = screen space, 'xr_controller' = 3D world space
+  haptics_applied: boolean;
+  spatial_hint?: SpatialHint;
+}
   type: 'state';
   state: PresentationMode;
   timestamp: number;
@@ -346,12 +392,14 @@ export interface ProximityConfig {
   enabled: boolean;
   useMotionFallback: boolean;
   wakeThresholdMs: number;
+  debounceMs: number;  // Debounce after first wake before counting timeouts
 }
 
 export const PROXIMITY_CONFIG: ProximityConfig = {
   enabled: true,
   useMotionFallback: true,
   wakeThresholdMs: 5000,
+  debounceMs: 500,  // Samah recommendation: 500ms debounce after first wake
 };
 
 // ==================== Circular Rotation ====================

@@ -153,6 +153,7 @@ export interface ZDepthConfig {
   authority: 'last_writer_wins';
   maxDeltaPerSecond: number;
   fallback: 'vr';
+  confidenceThreshold: number; // >= threshold = mobile commits, < threshold = queue for VR
 }
 
 // === Gesture Types (from existing) ===
