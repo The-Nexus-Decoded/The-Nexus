@@ -1,0 +1,29 @@
+{
+  "name": "@nexus/xr-spatial-resolver",
+  "version": "1.0.0",
+  "description": "XR Spatial Resolver V1 - Core spatial mathematics for XR experiences",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "xr",
+    "spatial",
+    "resolver",
+    "hit-test",
+    "raycast",
+    "vr",
+    "ar",
+    "webxr"
+  ],
+  "license": "MIT"
+}
