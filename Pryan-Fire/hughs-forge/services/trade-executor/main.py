@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 # Discord Alerting (Telemetry Phase 48)
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_TRADE_ALERTS_WEBHOOK")
+JUPITER_API_KEY = os.environ.get("JUPITER_API_KEY")
 
 def send_discord_alert(content: str, color: int = 3447003):
     """Sends a structured alert to the Discord webhook."""
@@ -658,18 +659,21 @@ class TradeExecutor:
             return 6 # Default to 6 on error
 
     async def get_quote(self, input_mint: str, output_mint: str, amount: int) -> Optional[Dict[str, Any]]:
-        """Fetches a quote from Jupiter v6 API for a given swap."""
-        logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter v6")
+        """Fetches a quote from Jupiter API for a given swap."""
+        logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter")
         try:
-            url = "https://quote-api.jup.ag/v6/quote"
+            url = "https://api.jup.ag/swap/v1/quote"
             params = {
                 "inputMint": input_mint,
                 "outputMint": output_mint,
                 "amount": str(amount),
                 "slippageBps": 50,
             }
+            headers = {}
+            if JUPITER_API_KEY:
+                headers["x-api-key"] = JUPITER_API_KEY
             async with httpx.AsyncClient() as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=headers)
                 response.raise_for_status()
                 quote_data = response.json()
                 

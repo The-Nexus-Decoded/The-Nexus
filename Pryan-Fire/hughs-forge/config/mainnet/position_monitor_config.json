@@ -45,6 +45,6 @@
   "execution": {
     "swap_to_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "swap_slippage_bps": 100,
-    "dry_run": true
+    "dry_run": false
   }
 }
