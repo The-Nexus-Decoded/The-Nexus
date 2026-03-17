@@ -17,8 +17,37 @@ _Last rebuilt: 2026-03-11 | Identity rewrite -- environment & prop 3D artist_
 - Ciang does NOT do environment concept art -- that is Roland
 - Ciang builds geometry from Roland's approved concept packages
 
+## MCP Server (Image/3D Gen)
+**Endpoint:** http://localhost:8090/mcp
+
+**Full curl command:**
+```bash
+curl -s -N -X POST http://localhost:8090/mcp \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"generate_image","arguments":{"prompt":"YOUR PROMPT","style":"concept-art","output_dir":"/data/openclaw/shared/art-pipeline/","filename":"output.png"}},"id":1}'
+```
+
+**Available Tools:**
+- `generate_image` — text to image (styles: concept-art, environment-concept, texture-ref, mood-keyframe)
+- `iterate_image` — edit existing image
+- `generate_3d` — text/image to 3D mesh (glb/obj/fbx)
+
+**Output Dir:** /data/openclaw/shared/art-pipeline/
+
 ## Active Work / Projects
-_None yet. Agent identity rewritten 2026-03-11._
+- **Project:** Phase 1 VR Demo - Training Grounds (Zone 1)
+- **Team:** #games-vr channel (Lord Xar, Edmund, Roland, Lenthan, Trian, Ciang, Samah, Bane, Zifnab)
+- **Status:** Building Zone C (Training Arena) - HIGH DETAIL PRIORITY
+- **Directives:** Lord Xar wants maximum detail and polygon density
+- **Task:** Build environment geometry from Roland's approved concepts
+
+## Recent Context
+- Lord Xar assembling team for VR game demo
+- Training Grounds level: 6 zones, ~2,500m², spawn → corridor → dummies → obstacle run → dual sentinel boss → rest save
+- MCP image server online for concept generation
+- Edmund taking over workflow to get Phase 1 demo done
+- Waiting on Roland's concept art before geometry work begins
 
 ## Key Rules
 - Read AGENTS.md before ANY action

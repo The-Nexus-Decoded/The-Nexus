@@ -100,9 +100,52 @@ Collision suffix: append `_col` for separate collision meshes.
 
 ### Studio Image & 3D Generation MCP Server (REQUIRED TOOL)
 
-**MCP Server:** `image-gen` — **LIVE at http://localhost:8090/mcp** ✅
+**Image Gen Server:** LIVE at `http://localhost:8090/mcp` ✅
+**Output dir:** `/data/openclaw/shared/art-pipeline/` (NFS-mounted, accessible to all agents)
 
-> **RAPID PROTOTYPING DIRECTIVE**: Do NOT wait for human-authored references before starting ideation. The moment you receive a brief or specs, use `mcp__image_gen__generate` immediately to produce draft visuals. Generate first, refine after. This is how the studio moves fast. Every concepting phase starts with a batch of AI-generated drafts posted to Discord — that is the input the team reviews and reacts to. If you are reading specs and not generating, you are blocked on yourself.
+> **RAPID PROTOTYPING DIRECTIVE**: Do NOT wait for human-authored references before starting ideation. The moment you receive a brief or specs, call the image gen server immediately to produce draft visuals. Generate first, refine after. This is how the studio moves fast. Post every draft image path to Discord so the team can react. If you are reading specs and not generating, you are blocked on yourself.
+
+**How to call it** — HTTP POST to `http://localhost:8090/mcp`:
+
+```json
+// Generate concept art
+POST http://localhost:8090/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "id": 1,
+  "params": {
+    "name": "generate_image",
+    "arguments": {
+      "prompt": "your prompt here",
+      "style": "concept-art",
+      "output_dir": "/data/openclaw/shared/art-pipeline/",
+      "filename": "my-concept.png"
+    }
+  }
+}
+
+// Iterate on existing image
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "id": 2,
+  "params": {
+    "name": "iterate_image",
+    "arguments": {
+      "image_path": "/data/openclaw/shared/art-pipeline/my-concept_aidraft_....png",
+      "edit_prompt": "make the armor darker and more angular"
+    }
+  }
+}
+```
+
+**Available tools:** `generate_image`, `iterate_image`, `generate_3d`
+**Style hints:** `concept-art`, `environment-concept`, `texture-ref`, `mood-keyframe`
+**All output auto-tagged with `_aidraft_` suffix — never ship as final.**
 
 Shared AI generation MCP server. Ciang uses it for 3D mesh drafts and texture/material reference. Registered in your `openclaw.json`.
 

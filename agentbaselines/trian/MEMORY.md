@@ -13,7 +13,31 @@ _Last rebuilt: 2026-03-11 | Fresh install_
 - **Principle:** Concept fidelity. Budget from first vertex. Deformation validates topology. Clean handoffs.
 
 ## Active Work / Projects
-_None yet. Agent freshly initialized._
+- **Project:** Phase 1 VR Demo (Training Grounds level)
+- **Team:** Roland (2D-EnvDesign), Lenthan (2D-Design), Trian (3D-Characters), Ciang (3D-enviroments), Edmund (Game Design), Samah (VR-Gaming)
+- **Status:** Waiting on design hand-off from 2D artists
+- **Blockers:** Awaiting concept packages from Lenthan before 3D character work can begin
+
+## MCP Image Server
+- **Endpoint:** `http://localhost:8090/mcp`
+- **Tools:**
+  - `generate_image` — text to image (concept-art, environment-concept, texture-ref, mood-keyframe)
+  - `iterate_image` — edit existing image
+  - `generate_3d` — text/image to 3D mesh (glb/obj/fbx)
+- **Output dir:** `/data/openclaw/shared/art-pipeline/`
+- **Usage:** `curl -s -N -X POST http://localhost:8090/mcp -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"generate_image","arguments":{"prompt":"YOUR PROMPT HERE","style":"concept-art","output_dir":"/data/openclaw/shared/art-pipeline/","filename":"warrior.png"}},"id":1}'`
+
+## 10 Classes (Phase 1)
+1. Warrior
+2. Rogue
+3. Ranger
+4. Mage
+5. Cleric
+6. Paladin
+7. Berserker
+8. Asura (Necromancer/Lich)
+9. Sharpshooter
+10. Druid
 
 ## Key Rules
 - Read AGENTS.md before ANY action
