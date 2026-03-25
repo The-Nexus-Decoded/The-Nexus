@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+ProjectSettings:
+  m_EditorVersions:
+    m_EditorVersion: 2022.3.0f1
+    m_EditorVersionWithRevision: 2022.3.0f1 (c9e2d0cbe9a9)
+  m_ProjectName: Soul Drifter VR
+  m_CompanyName: The-Nexus
+  m_ProductName: Soul Drifter VR
+  m_DefaultIsNativeDynamicBatching: 1
+  m_DefaultIsStaticBatching: 0
+  m_BuildTargetPlatform: 46
+  m_BuildTargetPlatformForAnalytics: 46
+  m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
+  m_EditorTestPlatformMapping:
+    - WebGL: 20
+    - Android: 18
+    - iOS: 14
+    - DedicatedServer: 34
+    - PS4: 25
+    - XboxOne: 28
+    - tvOS: 33
+    - Switch: 31
+    - Lumin: 35
+  m_Id: 5a6b8c9d0e1f2a3b4c5d6e7f8a9b0c1d
+  m_WhiteboardBackgroundColor: {r: 0.7058824, g: 0.7058824, b: 0.7058824, a: 1}
