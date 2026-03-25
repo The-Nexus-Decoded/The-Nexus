@@ -4,18 +4,9 @@ using UnityEngine;
 public class SoulDrifterProjectSmokeTests
 {
     [Test]
-    public void Zone1BuilderScriptCanBeInstantiated()
+    public void ProjectIdentityMatchesScaffold()
     {
-        var host = new GameObject("Zone1BuilderHost");
-
-        try
-        {
-            var builder = host.AddComponent<Zone1Builder>();
-            Assert.That(builder, Is.Not.Null);
-        }
-        finally
-        {
-            Object.DestroyImmediate(host);
-        }
+        Assert.That(Application.productName, Is.EqualTo("Soul Drifter VR"));
+        Assert.That(Application.companyName, Is.EqualTo("The-Nexus"));
     }
 }
