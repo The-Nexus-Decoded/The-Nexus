@@ -1,6 +1,8 @@
 {
   "name": "SoulDrifterProjectSmokeTests",
-  "references": [],
+  "references": [
+    "SoulDrifterVR.Runtime"
+  ],
   "includePlatforms": [
     "Editor"
   ],
