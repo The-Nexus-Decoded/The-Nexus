@@ -3,7 +3,12 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Player
+  - Environment
+  - Interactive
+  - VFX
+  - VR
   layers:
   - Default
   - TransparentFX
@@ -13,12 +18,12 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Player
+  - Ground
+  - Environment
+  - Interactive
+  - VFX
+  - VR
   - 
   - 
   - 
