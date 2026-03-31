@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 26
+  productGUID: 2e2a5bbca1d744688ab53b70b4377dd1
+  AndroidProfiler: 0
+  AndroidFilterTouchesWhenObscured: 0
+  AndroidEnableSustainedPerformanceMode: 0
+  defaultScreenOrientation: 4
+  targetDevice: 2
+  accelerometerFrequency: 60
+  companyName: The Nexus Decoded
+  productName: Soul Drifter VR
+  defaultCursor: {fileID: 0}
+  cursorHotspot: {x: 0, y: 0}
+  defaultScreenWidth: 1024
+  defaultScreenHeight: 768
+  defaultScreenWidthWeb: 960
+  defaultScreenHeightWeb: 600
+  m_StereoRenderingPath: 0
+  m_ActiveColorSpace: 1
+  m_MTRendering: 1
+  androidStartInFullscreen: 1
+  androidResizableWindow: 0
+  defaultIsNativeResolution: 1
+  runInBackground: 1
+  fullscreenMode: 1
+  gpuSkinning: 1
+  bundleVersion: 0.1.0
+  preloadedAssets: []
+  applicationIdentifier:
+    Android: com.thenexusdecoded.souldriftervr
+    Standalone: com.thenexusdecoded.souldriftervr
+  buildNumber:
+    Standalone: 0
+    VisionOS: 0
+    iPhone: 0
+    tvOS: 0
+  overrideDefaultApplicationIdentifier: 1
+  AndroidBundleVersionCode: 1
+  AndroidMinSdkVersion: 29
+  AndroidTargetSdkVersion: 0
+  AndroidPreferredInstallLocation: 1
+  stripEngineCode: 1
+  templatePackageId: com.unity.template.vr
+  templateDefaultScene:
+  AndroidTargetArchitectures: 2
+  AndroidTargetDevices: 0
