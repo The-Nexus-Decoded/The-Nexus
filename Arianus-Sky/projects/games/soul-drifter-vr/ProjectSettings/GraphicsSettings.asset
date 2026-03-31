@@ -1,174 +1,59 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &1
+--- !u!30 &1
 GraphicsSettings:
-  m_AlwaysSelected: 0
-  m_ColorGamuts: []
-  m_SRPBatcher:
-    m_Enabled: 1
-  m_RenderPipeline: {fileID: 0}
-  m_DefaultRenderingPath: -1
-  m_DefaultMobileRenderingPath: -1
-  m_StereoRenderingPath: 1
-  m_UseScriptableRenderPipelineBatching: 1
+  m_ObjectHideFlags: 0
+  serializedVersion: 13
+  m_Deferred:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_DeferredReflections:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_ScreenSpaceShadows:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_LegacyDeferred:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_DepthNormals:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_MotionVectors:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_LightHalo:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_LensFlare:
+    m_Mode: 1
+    m_Shader: {fileID: 0}
+  m_AlwaysIncludedShaders: []
+  m_PreloadedShaders: []
+  m_PreloadShadersBatchTimeLimit: -1
+  m_SpritesDefaultMaterial: {fileID: 0}
   m_CustomRenderPipeline: {fileID: 0}
-  m_UseGraphicsJobs: 1
-  m_UseGraphicsJobsOnGpu: 0
-  m_EnableGraphicsAPIValidation: 0
-  m_UseTextureStreamingAlgorithm: 0
-  m_MaxExcellentQualityTexturesCount: 4
-  m_ExcellentQualityTextureCount: 0
-  m_GoodTheresholdForExcellents: 10
-  m_BatchCullingNoDistanceCulling: 0
-  m_UseRadialPrecomputedOcclusion: 0
-  m_ShadowDistance: 15
-  m_ShadowCascadeCount: 2
-  m_ShadowCascade2Split: {x: 0.06666667, y: 0.2, z: 0, w: 0}
-  m_ShadowCascade4Split: {x: 0.06666667, y: 0.2, z: 0.46666673, w: 0}
-  m_ShadowmaskUseCulling: 0
-  m_LightProbeUseInPostProcessing: 0
-  m_DefaultReflectionMode: 1
-  m_DefaultReflectionResolution: 128
-  m_UseScreenSpaceAmbientOcclusion: 0
-  m_ScreenSpaceAmbientOcclusionQuality: 0
-  m_ScreenSpaceAmbientOcclusionRadiusInPixels: 150
-  m_ScreenSpaceAmbientOcclusionAntiFlicker: 1
-  m_MotionVectorAmplitudeForOcclusion: 1
-  m_UseRadianceCacheGI: 0
-  m_RadianceCacheResolution: 1
-  m_RadianceCacheBounces: 1
-  m_RadianceCacheApproxIndirectRatio: 0.1
-  m_RadianceCacheGKickStartThreshold: 0.2
-  m_RadianceCacheNormalTolerance: 0.5
-  m_RadianceCacheBorderTaskSize: 0
-  m_RadianceCacheOversampling: 1
-  m_RadianceCacheRowsPerTask: 2
-  m_UseRealTimeLightmaps: 0
-  m_UseAsyncReadbackForLightProbes: 1
-  m_UseTerrainBaselineMap: 0
-  m_UseAssetPipelineV2: 1
-  m_UseSRPFrameSettings: 1
-  m_UseHDRPFrameSettings: 1
-  m_ColorSpace: 1
-  m_UseDOTSPlasticimu: 0
-  m_DisableBuiltinCompatibilityChecks: 0
-  m_DisableBuiltinLightmapping: 1
-  m_DisableBuiltinProbeLoader: 1
-  m_DisableBuiltinLightCulling: 1
-  m_DisableBuiltinReflectionProbeCulling: 1
-  m_DisableBuiltinShadowCulling: 1
-  m_DisableBuiltinRenderPassCulling: 1
-  m_DisableEz : 0
-  m_CurveDownsample: 1
-  m_OpaqueDownsample: 1
-  m_TAA FP20: 0
-  m_TransparentDownsample: 1
-  m_ShaderQuality: 1
-  m_QualityLevelShaders: []
-  m_CurrentQualityLevelShaders: []
-  m_UseDOTSCulling: 1
-  m_UseDOTSCullingForEditor: 1
-  m_EnableCustomRenderPipeline: 0
-  m_OpaqueDownsampleSetting: 1
-  m_TAA Downsample: 0
-  m_TransparentDownsampleSetting: 1
-  m_Downsample: 1
-  m_DynamicBatchesEnabled: 1
-  m_CPUUsageEnabled: 0
-  m_SRPBatcherLateMaterialCreation: 1
-  m_SRPBatcherStripList Gods: 1
-  m_StripAllImpact: 0
-  m_StripAllComponents: 0
-  m_StripAllGuIComponents: 0
-  m_StripAllPhysicsComponents: 0
-  m_StripAllAudioComponents: 0
-  m_StripAllVideoComponents: 0
-  m_StripAllAnimationComponents: 0
-  m_StripAllDOPEComponents: 0
-  m_MainLightShadowsAllowed: 1
-  m_MainLightShadowCascadesAllowed: 1
-  m_MainLightShadowResolutionAllowed: 1
-  m_AdditionalLightsAllowed: 1
-  m_AdditionalLightShadowsAllowed: 1
-  m_AdditionalLightShadowResolutionAllowed: 1
-  m_ReflectionProbesAllowed: 1
-  m_ReflectionProbeCullingAllowed: 1
-  m_LightProbeBakedAllowed: 1
-  m_LightProbeRealtimeAllowed: 1
-  m_AllowHDR: 1
-  m_AllowDynamicGI: 1
-  m_LightEmitterLayer: 0
-  m_LightCullerMask: 4294967295
-  m_ShadowSettings:
-    m_ShadowQuality: 2
-    m_ShadowResolution: 1
-    m_ShadowProjection: 1
-    m_CascadeCount: 2
-    m_Cascade2Split: {x: 0.06666667, y: 0.2, z: 0, w: 0}
-    m_Cascade4Split: {x: 0.06666667, y: 0.2, z: 0.46666673, w: 0}
-    m_ShadowDistance: 50
-    m_ShadowNearPlaneOffset: 3
-    m_ShadowmaskUseCulling: 0
-  m_LightmapsSettings: {}
-  m_PostProcessingSettings:
-    m_AllowBloom: 1
-    m_AllowDepthOfField: 0
-    m_AllowMotionBlur: 0
-    m_AllowPaniniProjection: 0
-    m_AllowSSAO: 1
-    m_AllowSSR: 0
-    m_BloomIntensity: 1
-    m_DepthOfFieldMaxFar: 500
-    m_DepthOfFieldAperture: 11.5
-    m_DepthOfFieldFocalLength: 50
-    m_ChromaticAberrationIntensity: 0.1
-    m_ChromaticAberrationQuality: 0
-  m_UseRadialCache: 0
-  m_RadianceCacheRowsPerTask: 2
-  m_UseAsyncReadbackForLightProbes: 1
-  m_UseTerrainBaselineMap: 0
-  m_InputSystem:
-    m_ActiveInputHandler: 2
-    m_CompileHaloTexture: 0
-    m_CompileSkyboxTexture: 0
-    m_CompileCubemapTexture: 0
-    m_CompileLDRCubemapTexture: 0
-    m_EnableVirtualTextures: 0
-    m_DeferStripTheListOfCullingComponents: 0
-    m_AlwaysStripUIRenderer: 0
-    m_AlwaysStripTMP: 0
-    m_AlwaysStripLegacyAudio: 0
-    m_AlwaysStripLegacyVideo: 0
-    m_AlwaysStripLegacyAnimation: 0
-    m_AlwaysStripLegacyDOPE: 0
-    m_AlwaysStripLegacyPhysics: 0
-    m_AlwaysStripLegacyGUI: 0
-    m_AlwaysStripLegacyUI: 0
-    m_AlwaysStripLegacyDOTween: 0
-    m_AlwaysStripLegacyTextMeshPro: 0
-    m_StripUnityEngineModule: 0
-    m_AlwaysStripAdobe: 0
-    m_AlwaysStripGameActivity: 0
-    m_AlwaysStripGameplayJavaScript: 0
-    m_AlwaysStripAzurePlayFab: 0
-    m_AlwaysStripGooglePlayGames: 0
-    m_AlwaysStripSteamworks: 0
-    m_AlwaysStripSoftwareCursor: 0
-    m_AlwaysStripLegacySplashScreen: 0
-    m_AlwaysStripLegacyOrientation: 0
-    m_AlwaysStripLegacyScreen: 0
-    m_AlwaysStripLegacyAccelerometer: 0
-    m_AlwaysStripLegacyGeoLocation: 0
-    m_AlwaysStripLegacyNetwork: 0
-    m_AlwaysStripLegacyWebCam: 0
-    m_AlwaysStripLegacyPurchase: 0
-    m_AlwaysStripLegacyStore: 0
-    m_AlwaysStripLegacySocial: 0
-    m_AlwaysStripLegacyNotification: 0
-    m_AlwaysStripLegacyGameKit: 0
-    m_AlwaysStripLegacyCloudServices: 0
-    m_AlwaysStripLegacyUnityConnect: 0
-    m_AlwaysStripLegacyProfiling: 0
-    m_AlwaysStripLegactground: 0
-    m_AlwaysStripLegactlocation: 0
-    m_AlwaysStripLegactNetwork: 0
+  m_TransparencySortMode: 0
+  m_TransparencySortAxis: {x: 0, y: 0, z: 1}
+  m_DefaultRenderingPath: 1
+  m_DefaultMobileRenderingPath: 1
+  m_TierSettings: []
+  m_LightmapStripping: 0
+  m_FogStripping: 0
+  m_InstancingStripping: 0
+  m_BrgStripping: 0
+  m_LightmapKeepPlain: 1
+  m_LightmapKeepDirCombined: 1
+  m_LightmapKeepDynamicPlain: 1
+  m_LightmapKeepDynamicDirCombined: 1
+  m_LightmapKeepShadowMask: 1
+  m_LightmapKeepSubtractive: 1
+  m_FogKeepLinear: 1
+  m_FogKeepExp: 1
+  m_FogKeepExp2: 1
+  m_AlbedoSwatchInfos: []
+  m_LightsUseLinearIntensity: 1
+  m_LightsUseColorTemperature: 1
+  m_LogWhenShaderIsCompiled: 0
+  m_CameraRelativeLightCulling: 0
+  m_CameraRelativeShadowCulling: 0

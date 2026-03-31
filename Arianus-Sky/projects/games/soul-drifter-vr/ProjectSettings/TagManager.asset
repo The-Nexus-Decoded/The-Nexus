@@ -1,55 +1,48 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!47 &1
+--- !u!78 &1
 TagManager:
-  m_Tags:
-  - Default
-  - Respawn
-  - EditorOnly
+  serializedVersion: 2
+  tags:
   - Player
   - Environment
-  - UI
   - Interactive
   - VFX
-  - IgnoreRaycast
-  - Ground
-  - TransparentFX
   - VR
-  m_LayerDefinitions:
-  - m_Name: Default
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 0
-  - m_Name: TransparentFX
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 1
-  - m_Name: IgnoreRaycast
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 2
-  - m_Name: Water
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 4
-  - m_Name: UI
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 5
-  - m_Name: Player
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 8
-  - m_Name: Ground
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 9
-  - m_Name: Environment
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 10
-  - m_Name: Interactive
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 11
-  - m_Name: VFX
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 12
-  - m_Name: VR
-    m_SerializedVersion: 2
-    m_BuiltinLayerIndex: 13
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - Player
+  - Ground
+  - Environment
+  - Interactive
+  - VFX
+  - VR
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
   m_SortingLayers:
-  - m_Name: Default
-    m_UniqueID: 0
-    m_SerializedVersion: 2
+  - name: Default
+    uniqueID: 0
+    locked: 0

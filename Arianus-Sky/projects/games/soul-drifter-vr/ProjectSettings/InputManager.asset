@@ -1,178 +1,71 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!50 &1
+--- !u!13 &1
 InputManager:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_EditorSettings:
-    m_DefaultInputAxis1: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis2: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis3: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis4: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis5: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis6: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis7: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_JoyNum: 0}
-    m_DefaultInputAxis8: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis9: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis10: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis11: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis12: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis13: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis14: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis15: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis16: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis17: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis18: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis19: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_DefaultInputAxis20: {m_Name: "", m_DescriptiveName: "", m_NegativeButton: "", m_PositiveButton: "", m_AltNegativeButton: "", m_AltPositiveButton: "", m_Gravity: 3, m_Dead: 0.19, m_Sensitivity: 1, m_Type: 0, m_Axis: 0, m_Joystick: 0}
-    m_NaAds: 0
-    m_DPI: 0
   m_Axes:
   - serializedVersion: 3
     m_Name: Horizontal
-    m_DescriptiveName: ""
-    m_NegativeButton: "left"
-    m_PositiveButton: "right"
-    m_AltNegativeButton: "a"
-    m_AltPositiveButton: "d"
-    m_Gravity: 3
-    m_Dead: 0.19
-    m_Sensitivity: 1
-    m_Type: 0
-    m_Axis: 0
-    m_Joystick: 0
-    m_DefaultPositiveLast: 0
-    m_DefaultNegativeLast: 0
-    m_DefaultBothPositive: 0
-    m_DefaultBothNegative: 0
-    m_DefaultBothPositive2: 0
-    m_DefaultBothNegative2: 0
-    m_DefaultBothPositive3: 0
-    m_DefaultBothNegative3: 0
-    m_DefaultBothPositive4: 0
-    m_DefaultBothNegative4: 0
-    m_GravitySettingForFirstCombined: 0
-    m_GravitySettingForSecondCombined: 0
-    m_GravitySettingForThirdCombined: 0
-    m_GravitySettingForFourthCombined: 0
-    m_DeadSettingForFirstCombi1: 0
-    m_DeadSettingForSecondCombi2: 0
-    m_DeadSettingForThirdCombi3: 0
-    m_DeadSettingForFourthCombined: 0
-    m_SensitivitySettingForFirst1: 0
-    m_SensitivitySettingForSecondC2: 0
-    m_SensitivitySettingForThirdComb3: 0
-    m_SensitivitySettingForFourthCombi4: 0
-    m_Snap: 0
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: left
+    positiveButton: right
+    altNegativeButton: a
+    altPositiveButton: d
+    gravity: 3
+    dead: 0.19
+    sensitivity: 3
+    snap: 1
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
   - serializedVersion: 3
     m_Name: Vertical
-    m_DescriptiveName: ""
-    m_NegativeButton: "down"
-    m_PositiveButton: "up"
-    m_AltNegativeButton: "s"
-    m_AltPositiveButton: "w"
-    m_Gravity: 3
-    m_Dead: 0.19
-    m_Sensitivity: 1
-    m_Type: 0
-    m_Axis: 1
-    m_Joystick: 0
-    m_DefaultPositiveLast: 0
-    m_DefaultNegativeLast: 0
-    m_DefaultBothPositive: 0
-    m_DefaultBothNegative: 0
-    m_DefaultBothPositive2: 0
-    m_DefaultBothNegative2: 0
-    m_DefaultBothPositive3: 0
-    m_DefaultBothNegative3: 0
-    m_DefaultBothPositive4: 0
-    m_DefaultBothNegative4: 0
-    m_GravitySettingForFirstCombined: 0
-    m_GravitySettingForSecondCombined: 0
-    m_GravitySettingForThirdCombined: 0
-    m_GravitySettingForFourthCombined: 0
-    m_DeadSettingForFirstCombi1: 0
-    m_DeadSettingForSecondCombi2: 0
-    m_DeadSettingForThirdCombi3: 0
-    m_DeadSettingForFourthCombined: 0
-    m_SensitivitySettingForFirst1: 0
-    m_SensitivitySettingForSecondC2: 0
-    m_SensitivitySettingForThirdComb3: 0
-    m_SensitivitySettingForFourthCombi4: 0
-    m_Snap: 0
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: down
+    positiveButton: up
+    altNegativeButton: s
+    altPositiveButton: w
+    gravity: 3
+    dead: 0.19
+    sensitivity: 3
+    snap: 1
+    invert: 0
+    type: 0
+    axis: 1
+    joyNum: 0
   - serializedVersion: 3
-    m_Name: Fire1
-    m_DescriptiveName: ""
-    m_NegativeButton: ""
-    m_PositiveButton: "fire1"
-    m_AltNegativeButton: ""
-    m_AltPositiveButton: "mouse0"
-    m_Gravity: 1000
-    m_Dead: 0.001
-    m_Sensitivity: 1000
-    m_Type: 1
-    m_Axis: 0
-    m_Joystick: 0
-    m_DefaultPositiveLast: 1
-    m_DefaultNegativeLast: 0
-    m_DefaultBothPositive: 0
-    m_DefaultBothNegative: 0
-    m_DefaultBothPositive2: 0
-    m_DefaultBothNegative2: 0
-    m_DefaultBothPositive3: 0
-    m_DefaultBothNegative3: 0
-    m_DefaultBothPositive4: 0
-    m_DefaultBothNegative4: 0
-    m_GravitySettingForFirstCombined: 0
-    m_GravitySettingForSecondCombined: 0
-    m_GravitySettingForThirdCombined: 0
-    m_GravitySettingForFourthCombined: 0
-    m_DeadSettingForFirstCombi1: 0
-    m_DeadSettingForSecondCombi2: 0
-    m_DeadSettingForThirdCombi3: 0
-    m_DeadSettingForFourthCombined: 0
-    m_SensitivitySettingForFirst1: 0
-    m_SensitivitySettingForSecondC2: 0
-    m_SensitivitySettingForThirdComb3: 0
-    m_SensitivitySettingForFourthCombi4: 0
-    m_Snap: 0
+    m_Name: Submit
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: return
+    altNegativeButton: 
+    altPositiveButton: joystick button 0
+    gravity: 1000
+    dead: 0.001
+    sensitivity: 1000
+    snap: 0
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
   - serializedVersion: 3
-    m_Name: Fire2
-    m_DescriptiveName: ""
-    m_NegativeButton: ""
-    m_PositiveButton: "fire2"
-    m_AltNegativeButton: ""
-    m_AltPositiveButton: "mouse1"
-    m_Gravity: 1000
-    m_Dead: 0.001
-    m_Sensitivity: 1000
-    m_Type: 1
-    m_Axis: 0
-    m_Joystick: 0
-    m_DefaultPositiveLast: 1
-    m_DefaultNegativeLast: 0
-    m_DefaultBothPositive: 0
-    m_DefaultBothNegative: 0
-    m_DefaultBothPositive2: 0
-    m_DefaultBothNegative2: 0
-    m_DefaultBothPositive3: 0
-    m_DefaultBothNegative3: 0
-    m_DefaultBothPositive4: 0
-    m_DefaultBothNegative4: 0
-    m_GravitySettingForFirstCombined: 0
-    m_GravitySettingForSecondCombined: 0
-    m_GravitySettingForThirdCombined: 0
-    m_GravitySettingForFourthCombined: 0
-    m_DeadSettingForFirstCombi1: 0
-    m_DeadSettingForSecondCombi2: 0
-    m_DeadSettingForThirdCombi3: 0
-    m_DeadSettingForFourthCombined: 0
-    m_SensitivitySettingForFirst1: 0
-    m_SensitivitySettingForSecondC2: 0
-    m_SensitivitySettingForThirdComb3: 0
-    m_SensitivitySettingForFourthCombi4: 0
-    m_Snap: 0
-  m_LastAdjustedType: 0
-  m_AdjustedValuesForControllerTypes:
-  - m_Type: 0
-    m_Values: []
+    m_Name: Cancel
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: escape
+    altNegativeButton: 
+    altPositiveButton: joystick button 1
+    gravity: 1000
+    dead: 0.001
+    sensitivity: 1000
+    snap: 0
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
