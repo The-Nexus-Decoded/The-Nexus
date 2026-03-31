@@ -4,7 +4,8 @@ Logs/
 obj/
 Build/
 Builds/
-UserSettings/
+UserSettings/*
+!UserSettings/EditorUserSettings.asset
 .vs/
 *.csproj
 *.sln
