@@ -7,6 +7,7 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 | Role | File | Domain |
 |---|---|---|
 | Mobile App Builder | `mobile-app-builder.md` | React Native/Flutter, mobile development, app deployment |
+| Frontend Developer | `frontend-developer.md` | React/Vue/Angular, UI implementation, performance, accessibility |
 
 ## Execution Standards (All Roles)
 

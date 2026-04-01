@@ -108,3 +108,9 @@ Is there anything speci...
 - Monorepo workspace: /data/openclaw/workspace/The-Nexus/
 - Monorepo git ops: /data/repos/The-Nexus/
 - Agent baselines: The-Nexus/agentbaselines/alfred/
+## Shared Storage
+- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
+- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
+- `shared/email-triage/` — email triage project files
+- Use this for cross-agent handoffs, shared specs, and project docs
+- Never put secrets or credentials here

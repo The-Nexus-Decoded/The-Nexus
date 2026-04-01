@@ -39,8 +39,11 @@
 - Private keys are on this server only. NEVER share them.
 
 ## MODEL CONFIGURATION
-- **Primary:** Gemini 2.5 Flash (direct to Google API)
-- **Fallbacks:** OpenRouter free models, ollama local
+- **Primary:** minimax/MiniMax-M2.5
+- **Fallback 1:** google/gemini-3.1-pro-preview
+- **Fallback 2:** google/gemini-3-flash-preview
+- **Fallback 3:** google/gemini-2.5-flash
+- **Fallback 4:** ollama/qwen2.5-coder:7b (local on RTX 2080)
 - Rate Guard: DISABLED fleet-wide (2026-03-06)
 
 ## DISCORD
@@ -86,3 +89,10 @@
 - Track current work in ACTIVE-TASKS.md, NOT in this file
 - Track current phase per project (multiple projects run simultaneously)
 - NEVER create cron jobs that rewrite MEMORY.md or workspace files in isolated mode
+
+## Shared Storage
+- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
+- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
+- `shared/email-triage/` — email triage project files
+- Use this for cross-agent handoffs, shared specs, and project docs
+- Never put secrets or credentials here

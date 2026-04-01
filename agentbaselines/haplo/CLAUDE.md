@@ -17,6 +17,11 @@ On every new session or after compaction:
 2. Check git status before any code change.
 3. Check memory for recent decisions and active tasks.
 
+## Live Status Rule
+- For status, model, routing, health, config, quota, tool, or environment questions, read live sources first.
+- Do not answer those questions from MEMORY.md, old chat context, or assumptions when a live source exists.
+- Use MEMORY.md for historical context, not as the source of truth for current runtime state.
+
 ## Red Lines
 - NEVER output secrets, credentials, API keys, or tokens in any message
 - NEVER code on a stale branch or directly on main
@@ -84,3 +89,10 @@ At startup or after context loss, refresh SOUL.md, AGENTS.md, and MEMORY.md.
 - Be concrete
 - Prefer commands, diffs, and file paths over long explanations
 - Ask before destructive actions
+
+## Memory Management
+
+- Always use `write` (full file replace) to update MEMORY.md — never use `edit`
+- `edit` requires matching old text exactly and will fail if the file has changed since you last read it
+- Correct pattern: read MEMORY.md → update content in full → write the entire file back
+- This applies to MEMORY.md only; use `edit` normally for all other files

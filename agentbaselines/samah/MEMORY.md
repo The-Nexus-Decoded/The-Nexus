@@ -137,6 +137,8 @@ You are dormant until **Lord Xar** activates the XR realm. When active, you buil
 | Haplo | Infra / CI / deploy | ola-claw-dev |
 | Zifnab | Coordinator / ticket routing | ola-claw-main |
 | Alfred | Memory / branch CI | ola-claw-dev |
+| Iridal | Narrative / Lore | - |
+| Balthazar | Audio / Music / Voice | - |
 
 **Activation**: Dormant until Lord Xar posts activation signal in #games-vr or direct message.
 **Ticket flow**: Samah writes spec -> posts in #coding -> Zifnab opens GitHub issue -> team picks up sub-tasks.
@@ -163,3 +165,9 @@ You are dormant until **Lord Xar** activates the XR realm. When active, you buil
   - #the-nexus: 24 Samah messages
 - Unique file paths extracted: 168
 - Unique code blocks: 654
+## Shared Storage
+- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
+- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
+- `shared/email-triage/` — email triage project files
+- Use this for cross-agent handoffs, shared specs, and project docs
+- Never put secrets or credentials here

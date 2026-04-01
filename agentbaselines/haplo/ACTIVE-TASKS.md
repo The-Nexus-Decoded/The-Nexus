@@ -50,10 +50,11 @@ Last Updated: 2026-03-01
 
 ## Fleet Protocol: Multi-Session Claude Code Orchestration (Nexus-Vaults #11)
 Status: In progress. MVP Lobster workflow (`claude-session-mvp.lobster`) for single-session management designed and created in `Pryan-Fire/zifnabs-scriptorium/`. **Expanded to session pool manager:**
-- Created `scripts/claude-session-pool.sh` — concurrency-managed task execution using xargs, safe JSON args, per-task logging.
-- Created `workflows/claude-session-pool.lobster` — wrapper accepting tasks array, managing temp file, driving pool script, reporting summary.
-Next: Testing, documentation in zifnabs-scriptorium/README.md, integration with job queues.
-Last Updated: 2026-03-08
+- Created and debugged `scripts/claude-session-pool.sh` — concurrency-managed task execution using xargs, safe JSON args, per-task logging, and now accepts JSON array directly.
+- Created and debugged `workflows/claude-session-pool.lobster` — wrapper accepting tasks array, now passes JSON array directly to the pool script.
+- `claude-session-pool.lobster` executed successfully with test tasks (no actual Claude sessions spawned yet as `claude-session-orchestrator.lobster` is missing).
+Next: Create `claude-session-orchestrator.lobster` workflow, documentation in zifnabs-scriptorium/README.md, integration with job queues.
+Last Updated: 2026-03-14
 
 ## Created Lobster Templates for Token Reduction (Nexus-Vaults #9)
 Status: COMPLETED. All 6 templates implemented and pushed to Nexus-Vaults main:
@@ -164,12 +165,7 @@ Last Updated: 2026-03-06
 Status: COMPLETED. PR #5 merged successfully. All monorepo reorganization has been completed.
 Last Updated: 2026-03-06
 
-## 24h Fee per TCL for Rebalance (Pryan-Fire #234)
-Status: PR OPEN (#233). 
-- Issue: #234
-- Branch: `fix/fee-tvl-ratio-24h`
-- PR: https://github.com/The-Nexus-Decoded/Pryan-Fire/pull/233
-- Changes: Added `get_meteora_pool_fee_data()` to fetch `fee_tvl_ratio.hour_24` from Meteora REST API, updated `simulate_rebalance()` to use actual 24h fee % instead of hardcoded 100%/25%
-- Fetches ALL positions for bot wallet (no pool filtering)
-- Awaiting review and merge.
+## Jupiter Swap Execution for Automation Engine
+Status: MERGED. PR #255 merged successfully. Changes deployed to `The-Nexus-Decoded/The-Nexus`.
+Last Updated: 2026-03-13
 

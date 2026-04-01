@@ -120,3 +120,9 @@ Marit, Patryn warrior of the Labyrinth. Survived the death-maze not by strength 
 - Test realm: Pryan-Fire/ services
 - Run tests: cd Pryan-Fire/<service> && pytest && npm run lint
 - Monorepo: /data/openclaw/workspace/The-Nexus/
+## Shared Storage
+- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
+- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
+- `shared/email-triage/` — email triage project files
+- Use this for cross-agent handoffs, shared specs, and project docs
+- Never put secrets or credentials here

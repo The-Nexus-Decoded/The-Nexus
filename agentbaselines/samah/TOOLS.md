@@ -273,10 +273,11 @@ For quick checks, use fleet CLI directly via the `exec` tool instead of lobster 
 
 
 
-- **Primary:** google/gemini-3.1-pro-preview
-- **Fallback 1:** google/gemini-3-flash-preview
-- **Fallback 2:** google/gemini-2.5-flash
-- **Fallback 3:** ollama/qwen2.5-coder:7b (LOCAL on RTX 2080, localhost:11434)
+- **Primary:** minimax/MiniMax-M2.5
+- **Fallback 1:** google/gemini-3.1-pro-preview
+- **Fallback 2:** google/gemini-3-flash-preview
+- **Fallback 3:** google/gemini-2.5-flash
+- **Fallback 4:** ollama/qwen2.5-coder:7b (LOCAL on RTX 2080, localhost:11434)
 - OpenRouter REMOVED -- too expensive
 - Each server has its own Google Cloud project = own 1M TPM quota
 

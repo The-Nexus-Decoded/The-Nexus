@@ -58,10 +58,11 @@ Application-level dev work is fine — code, packages, dependencies, OpenClaw cr
 - `exec` and `read` tools work on ANY path. Only `edit` and `write` are restricted.
 
 ## MODEL CONFIGURATION
-- **Primary:** MiniMax M2.5
+- **Primary:** codex-cli/gpt-5.4 (current session runtime)
+- **Configured default:** MiniMax M2.5
 - **Fallbacks:** Gemini 2.5 Flash, OpenRouter free models, ollama/qwen2.5-coder:7b (local)
 - Rate Guard: disabled fleet-wide (2026-03-06)
-- OpenClaw version: v2026.3.2
+- OpenClaw version: v2026.3.8
 
 ## ANTI-LOOP & DEBOUNCE (MANDATORY — Deployed 2026-02-28)
 - **Global debounce:** 5 seconds between messages.
@@ -155,3 +156,10 @@ Application-level dev work is fine — code, packages, dependencies, OpenClaw cr
 - Do NOT respond to messages in #the-Nexus unless @mentioned
 - Do NOT create hourly reports — Lord Xar disabled those
 - Do NOT try to use tools you haven't verified are installed — check first
+
+## Shared Storage
+- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
+- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
+- `shared/email-triage/` — email triage project files
+- Use this for cross-agent handoffs, shared specs, and project docs
+- Never put secrets or credentials here
