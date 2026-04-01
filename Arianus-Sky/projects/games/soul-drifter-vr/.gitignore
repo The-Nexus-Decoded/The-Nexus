@@ -8,5 +8,3 @@ UserSettings/
 .vs/
 *.csproj
 *.sln
-!UserSettings/
-!UserSettings/EditorUserSettings.asset
