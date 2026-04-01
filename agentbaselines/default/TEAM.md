@@ -3,7 +3,7 @@
 ## Fleet Roster (20 Agents — Consolidated 2026-03-17)
 
 ### ola-claw-trade
-- **Hugh the Hand** — Assassin turned trader. Roles: trading-operations, finance-tracker, data-analytics, data-extraction, experiment-tracker, frontend-developer (absorbed Calandra)
+- **Hugh the Hand** — Assassin turned trader. Roles: trading-operations, finance-tracker, data-analytics, data-extraction, experiment-tracker
 - **Samah** — Sartan council leader, spatial computing architect. Roles: game-designer, visionos-spatial-engineer, xr-immersive-developer, xr-interface-architect, xr-cockpit-interaction-specialist, metal-rendering-engineer, terminal-integration-specialist
 - **Devon** — Resourceful youth, rapid prototyper. Roles: rapid-prototyper
 
@@ -11,7 +11,7 @@
 - **Haplo** — Patryn runner, senior builder. Roles: backend-architect, senior-developer, ai-engineer, devops-automator, autonomous-optimization-architect
 - **Alfred** — Sartan archivist, **Co-Coordinator** (equal to Zifnab). Roles: code-reviewer, security-engineer, devops-ci, data-engineer, embedded-firmware-engineer (absorbed Grundle)
 - **Marit** — Patryn warrior, QA commander. Roles: qa-functional-tester, api-tester, accessibility-auditor, performance-benchmarker, evidence-collector, test-results-analyzer
-- **Paithan** — Elf explorer, mobile & UI/UX lead. Roles: mobile-app-builder, ui-designer, ux-architect (absorbed Orla)
+- **Paithan** — Elf explorer, mobile & UI/UX lead. Roles: mobile-app-builder, ui-designer, ux-architect, frontend-developer (absorbed Orla and Calandra)
 - **Edmund** — Keeper of the Citadel, level designer. Roles: level-designer, environment-storyteller, gameplay-flow-architect
 - **Iridal** — Mysteriarch enchantress, narrative designer. Roles: narrative-designer, dialogue-writer, lore-architect
 - **Balthazar** — Dragon scholar, audio & technical art lead. Roles: game-audio-engineer, spatial-audio-designer, technical-artist, art-pipeline-engineer, shader-developer (absorbed Jarre)
