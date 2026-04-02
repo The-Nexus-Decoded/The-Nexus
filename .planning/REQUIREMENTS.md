@@ -81,38 +81,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STAB-01 | — | Pending |
-| STAB-02 | — | Pending |
-| STAB-03 | — | Pending |
-| STAB-04 | — | Pending |
-| STAB-05 | — | Pending |
-| STAB-06 | — | Pending |
-| STAB-07 | — | Pending |
-| STAB-08 | — | Pending |
-| STAB-09 | — | Pending |
-| STAB-10 | — | Pending |
-| HLTH-01 | — | Pending |
-| HLTH-02 | — | Pending |
-| HLTH-03 | — | Pending |
-| HLTH-04 | — | Pending |
-| HLTH-05 | — | Pending |
-| CONF-01 | — | Pending |
-| CONF-02 | — | Pending |
-| CONF-03 | — | Pending |
-| CONF-04 | — | Pending |
-| TOOL-01 | — | Pending |
-| TOOL-02 | — | Pending |
-| TOOL-03 | — | Pending |
-| TOOL-04 | — | Pending |
-| COORD-01 | — | Pending |
-| COORD-02 | — | Pending |
-| COORD-03 | — | Pending |
+| STAB-01 | Phase 1 | Pending |
+| STAB-02 | Phase 1 | Pending |
+| STAB-03 | Phase 1 | Pending |
+| STAB-04 | Phase 1 | Pending |
+| STAB-05 | Phase 1 | Pending |
+| STAB-06 | Phase 2 | Pending |
+| STAB-07 | Phase 2 | Pending |
+| STAB-08 | Phase 2 | Pending |
+| STAB-09 | Phase 2 | Pending |
+| STAB-10 | Phase 2 | Pending |
+| HLTH-01 | Phase 3 | Pending |
+| HLTH-02 | Phase 3 | Pending |
+| HLTH-03 | Phase 3 | Pending |
+| HLTH-04 | Phase 3 | Pending |
+| HLTH-05 | Phase 3 | Pending |
+| CONF-01 | Phase 4 | Pending |
+| CONF-02 | Phase 4 | Pending |
+| CONF-03 | Phase 4 | Pending |
+| CONF-04 | Phase 4 | Pending |
+| TOOL-01 | Phase 5 | Pending |
+| TOOL-02 | Phase 5 | Pending |
+| TOOL-03 | Phase 5 | Pending |
+| TOOL-04 | Phase 5 | Pending |
+| COORD-01 | Phase 6 | Pending |
+| COORD-02 | Phase 6 | Pending |
+| COORD-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation*
