@@ -58,44 +58,42 @@ All 20 agents running perfectly, doing their assigned jobs with minimal issues �
 ## Context
 
 **Infrastructure:**
-- 3 Ubuntu servers on Tailscale mesh network
-- ola-claw-main (Zifnab): coordinator, 100.103.189.117
-- ola-claw-dev (Haplo): coder, 100.94.203.10 — hosts 19 agents
-- ola-claw-trade (Hugh): trader, 100.104.166.53
-- SSH user: `openclaw`, key: `C:/Users/olawal/.ssh/id_ed25519`
-- All agents use profile-specific roots: `~/.openclaw-{name}/`
+- 3 Ubuntu servers on Tailscale mesh network (coordinator, coder, trader)
+- 20 agents across 3 servers using profile-specific roots (`~/.openclaw-{name}/`)
+- Server details, IPs, SSH config, and tokens are in private memory files only (public repo)
 
 **Current State (2026-04-02):**
-- 18/20 agents running (Zifnab + Hugh stopped)
+- 18/20 agents running (2 stopped — channel access + reasoning loop)
 - OpenClaw 2026.4.1 across all servers
 - Multiple post-upgrade issues from hasty config merge
 - PR #275 open with agentbaseline deletions (owner handling)
 
 **Communication:**
 - Discord guild with domain-specific channels
-- Alfred bot (ID: 1478214532324393010) used for cross-agent coordination
-- MCP discord tool sends AS Alfred
-- XAR prefix required so bots know message is from owner
+- Alfred bot used for cross-agent coordination via MCP
+- Agent details, bot IDs, and channel IDs are in private memory files only
 
-**Agent Roles:**
-| Profile | Agents |
+**Agent Roles (7 profile tiers, 20 agents):**
+| Profile | Count |
 |---|---|
-| Lead Orchestrator | Zifnab |
-| Assistant Orchestrator | Alfred, Jonathon, Sinistrad |
-| Architect Dev Coder | Haplo, Vasu, Samah |
-| Senior Dev Coder | Marit, Paithan, Limbeck, Balthazar, Drugar, Devon |
-| Standard Companion | Iridal, Edmund, Rega |
-| Standard Work Agent | Ciang, Trian, Ramu |
-| Capital-Risk Operator | Hugh |
+| Lead Orchestrator | 1 |
+| Assistant Orchestrator | 3 |
+| Architect Dev Coder | 3 |
+| Senior Dev Coder | 6 |
+| Standard Companion | 3 |
+| Standard Work Agent | 3 |
+| Capital-Risk Operator | 1 |
 
 ## Constraints
 
+- **Public repo — NO SECRETS**: This repo is public. NEVER commit IPs, tokens, API keys, bot IDs, SSH paths, Tailscale addresses, wallet addresses, or any information that could compromise security. All sensitive details live in memory files and vault only.
+- **Monorepo silo discipline**: All deliverables from this project go into `Chelestra-Sea/` (infrastructure realm). GSD's `.planning/` at root is internal tracking only — scripts, configs, runbooks, dashboards go in the correct realm folder (`Chelestra-Sea/infra/` for fleet ops, `Arianus-Sky/` for dashboards).
 - **Infrastructure ownership**: All systemd, crontabs, scripts, firewall changes via owner's Claude CLI only — never delegated to agents
 - **Config safety**: NEVER rewrite full openclaw.json — always targeted JSON patches with backups
 - **Server access**: SSH MCP tools available for reads/checks; owner runs destructive operations
-- **Discord rules**: PLAIN TEXT only, include "This is Lord Xar", requireMention: true on all channels except #jarvis
+- **Discord rules**: PLAIN TEXT only, requireMention: true on all channels except monitoring channel
 - **Pipeline discipline**: No manual deploys for Pryan-Fire — always use Actions pipeline
-- **Budget**: OpenRouter $5/day hard cap per model, free-tier primary models preferred
+- **Budget**: Free-tier primary models preferred, hard daily cap per model enforced by budget proxy
 
 ## Key Decisions
 

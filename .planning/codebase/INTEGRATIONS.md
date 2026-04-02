@@ -143,7 +143,7 @@
 
 - Health/monitoring endpoints
   - Internal endpoints for position and position monitoring
-  - Endpoint: `http://100.104.166.53:8002/killfeed`, `http://100.104.166.53:8002/toppools`
+  - Endpoint: `http://<trade-server>:8002/killfeed`, `http://<trade-server>:8002/toppools`
 
 **Outgoing:**
 - Discord webhooks (alerts and telemetry)
