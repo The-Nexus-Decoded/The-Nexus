@@ -1,0 +1,70 @@
+import asyncio
+from solders.pubkey import Pubkey
+from solana.rpc.api import Client
+from anchorpy import Program, Provider, Wallet, Idl
+import json
+
+# Meteora DLMM Program ID
+METEORA_DLMM_PROGRAM_ID = Pubkey.from_string("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo")
+BOT_WALLET_PUBKEY = Pubkey.from_string("74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x")
+RPC_ENDPOINT = "https://api.mainnet-beta.solana.com" # Public mainnet just for testing
+
+METEORA_IDL_DICT = {
+    "version": "0.1.0",
+    "name": "dlmm",
+    "instructions": [],
+    "accounts": [
+        {
+            "name": "Position",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {"name": "owner", "type": "publicKey"},
+                    {"name": "pool", "type": "publicKey"},
+                    {"name": "lowerBinId", "type": "i64"},
+                    {"name": "upperBinId", "type": "i64"},
+                    {"name": "liquidity", "type": "u64"},
+                    {"name": "feeOwner", "type": "u64"},
+                    {"name": "feeProtocol", "type": "u64"},
+                    {"name": "lastUpdatedAt", "type": "i64"},
+                    {"name": "feeGrowthInsideX", "type": "u128"},
+                    {"name": "feeGrowthInsideY", "type": "u128"}
+                ],
+            },
+        }
+    ],
+}
+METEORA_IDL = Idl.from_json(json.dumps(METEORA_IDL_DICT))
+
+async def test():
+    client = Client(RPC_ENDPOINT)
+    provider = Provider(client, Wallet.dummy())
+    program = Program(METEORA_IDL, METEORA_DLMM_PROGRAM_ID, provider)
+    
+    print(f"Fetching accounts for owner {BOT_WALLET_PUBKEY}...")
+    try:
+        # Use a raw dictionary filter to avoid MemcmpOpts type conflicts
+        memcmp_filter = {
+            "memcmp": {
+                "offset": 8,
+                "bytes": str(BOT_WALLET_PUBKEY),
+            }
+        }
+        
+        # We need to fetch via the provider/program to get the decoded accounts directly
+        accounts = await program.account["Position"].all([memcmp_filter])
+        
+        print(f"Found {len(accounts)} Position accounts.")
+        for account in accounts:
+            print(f"Position Pubkey: {account.public_key}")
+            print(f"  Owner: {account.account.owner}")
+            print(f"  Pool: {account.account.pool}")
+            print(f"  Liquidity: {account.account.liquidity}")
+            
+    except Exception as e:
+        import traceback
+        print(f"Error: {e}")
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    asyncio.run(test())

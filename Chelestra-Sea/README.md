@@ -22,7 +22,7 @@ The-Nexus-Decoded/
 |---|---|---|---|
 | Fleet & Infrastructure | `projects/fleet/` | Zifnab | Fleet orchestration, deployment, monitoring, CI/CD |
 | Growth & Marketing | `projects/growth/` | Rega | Content strategy, social media, community, distribution |
-| Sales & Business Intel | `projects/sales/` | Sang-drax | Sales strategy, market analysis, business intelligence |
+| Sales & Business Intel | `projects/sales/` | Sinistrad | Sales strategy, market analysis, business intelligence |
 
 ## Structure
 
@@ -37,7 +37,7 @@ Chelestra-Sea/
 └── projects/               # Project specs and plans (not code)
     ├── fleet/              # Zifnab — infrastructure projects
     ├── growth/             # Rega — marketing/content projects
-    └── sales/              # Sang-drax — sales/biz intel projects
+    └── sales/              # Sinistrad — sales/biz intel projects
 ```
 
 ## Lobster Workflows

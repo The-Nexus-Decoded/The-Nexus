@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Fleet Normalization — 7 Profiles, 20 Agents</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; background: #0d1117; color: #c9d1d9; padding: 24px; max-width: 1400px; margin: 0 auto; }
+h1 { color: #58a6ff; font-size: 28px; margin-bottom: 8px; }
+h2 { color: #f0883e; font-size: 20px; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+h3 { color: #d2a8ff; font-size: 16px; margin-top: 20px; margin-bottom: 8px; }
+.sub { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+p { color: #c9d1d9; line-height: 1.6; margin-bottom: 12px; }
+.highlight { color: #7ee787; font-weight: 600; }
+.warn { color: #f85149; }
+.info { color: #58a6ff; }
+
+table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
+th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; font-size: 14px; }
+th { background: #161b22; color: #8b949e; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+td { vertical-align: top; }
+td.agent { color: #d2a8ff; font-weight: 500; }
+td.profile { font-weight: 600; }
+td.val { font-family: 'Cascadia Code', monospace; font-size: 13px; }
+
+.profile-lead { background: #1a0d2e; color: #a855f7; }
+.profile-assist { background: #1a1a2e; color: #818cf8; }
+.profile-architect { background: #0d2818; color: #34d399; }
+.profile-senior { background: #1a2d1a; color: #7ee787; }
+.profile-companion { background: #2d1a1a; color: #f97316; }
+.profile-work { background: #1a2d2d; color: #22d3ee; }
+.profile-capital { background: #2d0d0d; color: #f85149; }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin: 2px; }
+.tag-lead { background: #1a0d2e; color: #a855f7; border: 1px solid #a855f7; }
+.tag-assist { background: #1a1a2e; color: #818cf8; border: 1px solid #818cf8; }
+.tag-architect { background: #0d2818; color: #34d399; border: 1px solid #34d399; }
+.tag-senior { background: #1a2d1a; color: #7ee787; border: 1px solid #7ee787; }
+.tag-companion { background: #2d1a1a; color: #f97316; border: 1px solid #f97316; }
+.tag-work { background: #1a2d2d; color: #22d3ee; border: 1px solid #22d3ee; }
+.tag-capital { background: #2d0d0d; color: #f85149; border: 1px solid #f85149; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
+.stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+.stat-card .num { font-size: 32px; font-weight: 700; color: #58a6ff; }
+.stat-card .label { color: #8b949e; font-size: 13px; margin-top: 4px; }
+
+.section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+
+tr:hover td { background: #1c2128 !important; }
+
+.footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #30363d; color: #484848; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>OpenClaw Fleet Normalization</h1>
+<div class="sub">20 AI agents, 3 servers, 7 role-based profiles, 56 explicit settings each — zero hidden defaults</div>
+
+<div class="stat-grid">
+<div class="stat-card"><div class="num">20</div><div class="label">Active Agents</div></div>
+<div class="stat-card"><div class="num">7</div><div class="label">Profile Types</div></div>
+<div class="stat-card"><div class="num">56</div><div class="label">Settings Per Agent</div></div>
+<div class="stat-card"><div class="num">3</div><div class="label">Servers</div></div>
+<div class="stat-card"><div class="num">0</div><div class="label">Hidden Defaults</div></div>
+<div class="stat-card"><div class="num">$0</div><div class="label">Memory API Cost (QMD)</div></div>
+</div>
+
+<h2>The Problem</h2>
+<div class="section">
+<p>After consolidating from 31 to 20 agents, we discovered the fleet was running with <span class="warn">inconsistent configs</span> — different memory backends, different sandbox modes, different exec permissions, different compaction strategies. Some agents had GB-sized memory databases from unchecked session indexing. Others were burning tokens on Gemini embeddings. The "default root" config that should have been the source of truth wasn't being used by any running agent.</p>
+<p>The fleet didn't have one memory strategy. It had <span class="warn">several accidental ones</span>.</p>
+</div>
+
+<h2>The Solution: 7 Role-Based Profiles</h2>
+<div class="section">
+<p>Instead of making every agent equally powerful (expensive and risky), or manually tuning each of 20 agents (unmaintainable), we designed <span class="highlight">7 profile types</span> based on what agents actually do:</p>
+</div>
+
+<table>
+<tr><th>Profile</th><th>Purpose</th><th>Agents</th><th>Key Differences</th></tr>
+<tr>
+<td class="profile profile-lead">Lead Orchestrator</td>
+<td>Top-level coordination, task routing, fleet supervision</td>
+<td class="agent">Zifnab</td>
+<td class="val">acp.dispatch: true, sessionMemory: true, cron: true, streaming: progress</td>
+</tr>
+<tr>
+<td class="profile profile-assist">Assistant Orchestrator</td>
+<td>Light coordination, status watching, workflow support</td>
+<td class="agent">Alfred, Jonathon, Sinistrad</td>
+<td class="val">thinkingDefault: medium, tools.profile: full (overrides), cron: true</td>
+</tr>
+<tr>
+<td class="profile profile-architect">Architect Dev Coder</td>
+<td>System design, architecture, technical planning</td>
+<td class="agent">Haplo, Vasu, Samah</td>
+<td class="val">sessionMemory: true, exec: full, elevated: true, subagents: 5</td>
+</tr>
+<tr>
+<td class="profile profile-senior">Senior Dev Coder</td>
+<td>Implementation, debugging, practical dev work</td>
+<td class="agent">Marit, Paithan, Limbeck, Balthazar, Drugar, Devon</td>
+<td class="val">sessionMemory: false, exec: full, pruning: 1h, textWeight: 0.40</td>
+</tr>
+<tr>
+<td class="profile profile-companion">Standard Companion</td>
+<td>Long-running work, continuity, relationship support</td>
+<td class="agent">Iridal, Edmund, Rega</td>
+<td class="val">sessionMemory: true, sandbox: all, exec: allowlist, pruning: 3h</td>
+</tr>
+<tr>
+<td class="profile profile-work">Standard Work Agent</td>
+<td>Routine work, planning, documentation</td>
+<td class="agent">Ciang, Trian, Ramu</td>
+<td class="val">sessionMemory: false, sandbox: all, exec: allowlist, lightest profile</td>
+</tr>
+<tr>
+<td class="profile profile-capital">Capital-Risk Operator</td>
+<td>Live trading, real capital, financial operations</td>
+<td class="agent">Hugh</td>
+<td class="val">subagents: 1/1/1, restart: false, a2a: false, threadAcp: false, decay: 14d</td>
+</tr>
+</table>
+
+<h2>Full Agent Roster</h2>
+<table>
+<tr><th>#</th><th>Agent</th><th>Server</th><th>Profile</th><th>Character</th><th>Role</th><th>Sandbox</th><th>Exec</th><th>Logging</th></tr>
+<tr><td>1</td><td class="agent">Zifnab</td><td>main</td><td><span class="tag tag-lead">Lead Orch</span></td><td>Ancient wizard who sees the whole chessboard</td><td>Fleet coordinator</td><td class="val">non-main</td><td class="val">allowlist</td><td class="val">debug</td></tr>
+<tr><td>2</td><td class="agent">Alfred</td><td>dev</td><td><span class="tag tag-assist">Assist Orch</span></td><td>Last Sartan archivist, indispensable to all</td><td>Co-coordinator, code reviewer, CI</td><td class="val">non-main</td><td class="val">allowlist</td><td class="val">debug</td></tr>
+<tr><td>3</td><td class="agent">Jonathon</td><td>dev</td><td><span class="tag tag-assist">Assist Orch</span></td><td>The watcher who never sleeps</td><td>Security operations</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>4</td><td class="agent">Sinistrad</td><td>trade</td><td><span class="tag tag-assist">Assist Orch</span></td><td>High Wizard who held the Kicksey-Winsey in his mind</td><td>Intelligence &amp; business ops</td><td class="val">non-main</td><td class="val">allowlist</td><td class="val">debug</td></tr>
+<tr><td>5</td><td class="agent">Haplo</td><td>dev</td><td><span class="tag tag-architect">Architect</span></td><td>Patryn runemaster who survived the Labyrinth</td><td>Lead engineer</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>6</td><td class="agent">Vasu</td><td>dev</td><td><span class="tag tag-architect">Architect</span></td><td>Multi-engine dev, the profiler is his instrument</td><td>Unity + Unreal dev</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>7</td><td class="agent">Samah</td><td>trade</td><td><span class="tag tag-architect">Architect</span></td><td>Leader who orchestrated the Sundering</td><td>XR/spatial/game architect</td><td class="val">non-main</td><td class="val">full</td><td class="val">info</td></tr>
+<tr><td>8</td><td class="agent">Marit</td><td>dev</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Patryn warrior who never let her guard down</td><td>QA commander</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>9</td><td class="agent">Paithan</td><td>dev</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Elf explorer who functioned in all environments</td><td>Mobile &amp; UI/UX lead</td><td class="val">non-main</td><td class="val">full</td><td class="val">info</td></tr>
+<tr><td>10</td><td class="agent">Limbeck</td><td>dev</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Gnome inventor who refused to gatekeep knowledge</td><td>Godot &amp; Roblox lead</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>11</td><td class="agent">Balthazar</td><td>dev</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Dragon scholar, bridge between art and engineering</td><td>Audio &amp; technical art</td><td class="val">non-main</td><td class="val">full</td><td class="val">info</td></tr>
+<tr><td>12</td><td class="agent">Drugar</td><td>main</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Dwarven King, immovable on matters of law</td><td>Legal &amp; compliance</td><td class="val">non-main</td><td class="val">full</td><td class="val">debug</td></tr>
+<tr><td>13</td><td class="agent">Devon</td><td>trade</td><td><span class="tag tag-senior">Senior Dev</span></td><td>Scrappy kid with a 60% plan that's 100% functional</td><td>Rapid prototyper</td><td class="val">non-main</td><td class="val">full</td><td class="val">info</td></tr>
+<tr><td>14</td><td class="agent">Iridal</td><td>dev</td><td><span class="tag tag-companion">Companion</span></td><td>Enchantress who learned stories can deceive and reveal</td><td>Narrative designer</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>15</td><td class="agent">Edmund</td><td>dev</td><td><span class="tag tag-companion">Companion</span></td><td>World-architect who designs spaces players move through</td><td>Level designer</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>16</td><td class="agent">Rega</td><td>main</td><td><span class="tag tag-companion">Companion</span></td><td>Con artist turned marketer who reads people</td><td>Marketing &amp; social media</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>17</td><td class="agent">Ciang</td><td>dev</td><td><span class="tag tag-work">Work Agent</span></td><td>Sartan world-shaper who carved physical geometry</td><td>Environment art lead</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>18</td><td class="agent">Trian</td><td>dev</td><td><span class="tag tag-work">Work Agent</span></td><td>Sartan craftsperson with geometric precision</td><td>Character art lead</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>19</td><td class="agent">Ramu</td><td>main</td><td><span class="tag tag-work">Work Agent</span></td><td>Sartan who believes order separates loved products from feature piles</td><td>Product &amp; docs lead</td><td class="val">all</td><td class="val">allowlist</td><td class="val">info</td></tr>
+<tr><td>20</td><td class="agent">Hugh</td><td>trade</td><td><span class="tag tag-capital">Capital-Risk</span></td><td>Legendary assassin whose marks are now trades</td><td>Trading operative</td><td class="val">non-main</td><td class="val">allowlist</td><td class="val">debug</td></tr>
+</table>
+
+<h2>Key Design Decisions</h2>
+<div class="section">
+<h3>Memory: QMD Fleet-Wide</h3>
+<p>All 20 agents moved to <span class="highlight">QMD local memory</span> with local embeddings. Zero API cost for memory search. The old builtin memory system was using Gemini embeddings ($$$) and creating multi-GB sqlite databases from session indexing.</p>
+
+<h3>Sandbox: Tiered by Role</h3>
+<p>Not every agent needs full filesystem and network access. Art agents (Ciang, Trian) and documentation agents (Ramu) run in <span class="info">sandbox: all</span>. Coders and orchestrators run in <span class="info">sandbox: non-main</span> (sandbox subagents only). Hugh (Capital-Risk) is locked down with <span class="warn">subagents: 1/1/1, restart: false, agentToAgent: false</span>.</p>
+
+<h3>Session Memory: Selective</h3>
+<p>Not every agent needs to index conversation history. Architects and orchestrators get <span class="highlight">sessionMemory: true</span> for cross-session recall. Standard workers and senior devs get <span class="info">sessionMemory: false</span> — they work on current context, not history.</p>
+
+<h3>No Hidden Defaults</h3>
+<p>Every profile explicitly sets all 56 configuration fields. No relying on inherited defaults, no guessing what "unset" means, no accidental drift.</p>
+</div>
+
+<h2>Before vs After</h2>
+<table>
+<tr><th>Metric</th><th>Before</th><th>After</th></tr>
+<tr><td>Config consistency</td><td class="warn">Mixed — 3+ accidental tiers</td><td class="highlight">7 deliberate profiles</td></tr>
+<tr><td>Memory backend</td><td class="warn">Mixed builtin + unset</td><td class="highlight">QMD fleet-wide (local, free)</td></tr>
+<tr><td>Embedding cost</td><td class="warn">Gemini API per query</td><td class="highlight">$0 (local embeddings)</td></tr>
+<tr><td>Session memory DBs</td><td class="warn">Up to 3.9GB per agent</td><td class="highlight">Selective by role</td></tr>
+<tr><td>Sandbox mode</td><td class="warn">Mostly "off" everywhere</td><td class="highlight">Tiered: all / non-main by role</td></tr>
+<tr><td>thinkingDefault</td><td class="warn">Only 1 of 20 agents had it set</td><td class="highlight">Explicit on all 20</td></tr>
+<tr><td>Default root symlink</td><td class="warn">Active — caused config confusion</td><td class="highlight">Removed on all servers</td></tr>
+<tr><td>Settings per agent</td><td class="warn">6-15 (rest inherited/unknown)</td><td class="highlight">56 explicit per agent</td></tr>
+</table>
+
+<div class="footer">
+OpenClaw Fleet Normalization — The-Nexus-Decoded | Generated 2026-04-02
+</div>
+
+</body>
+</html>

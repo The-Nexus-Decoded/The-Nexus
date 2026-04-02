@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Fleet Config Matrix</title>
+<style>
+body { font-family: monospace; font-size: 11px; background: #1e1e1e; color: #d4d4d4; padding: 10px; }
+h1 { color: #569cd6; }
+h2 { color: #ce9178; border-bottom: 1px solid #444; padding-bottom: 4px; margin-top: 30px; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+th, td { border: 1px solid #444; padding: 3px 6px; text-align: center; white-space: nowrap; }
+th { background: #2d2d2d; color: #9cdcfe; position: sticky; top: 0; z-index: 10; }
+th.setting { text-align: left; min-width: 200px; }
+th.desc { text-align: left; min-width: 250px; color: #808080; }
+td.setting { text-align: left; font-weight: bold; color: #dcdcaa; }
+td.desc { text-align: left; color: #808080; font-size: 10px; }
+td.target { background: #1a3a1a !important; }
+.critical { background: #3a1a1a !important; }
+.critical td.setting { color: #f44747; }
+.set { background: #264f78; color: #9cdcfe; }
+.unset { background: #2d2d2d; color: #555; }
+.bare { background: #3c2415; }
+.light { background: #2a2a3a; }
+.full { background: #1a3a2a; }
+tr:hover { background: #333 !important; }
+input[type="text"] { background: #1a3a1a; border: 1px solid #4ec9b0; color: #4ec9b0; width: 80px; padding: 2px; font-family: monospace; font-size: 11px; }
+.legend { margin: 10px 0; padding: 10px; background: #2d2d2d; border-radius: 4px; }
+.legend span { margin-right: 20px; }
+.leg-critical { color: #f44747; font-weight: bold; }
+.leg-set { color: #9cdcfe; }
+.leg-unset { color: #555; }
+.leg-target { color: #4ec9b0; }
+select { background: #1a3a1a; border: 1px solid #4ec9b0; color: #4ec9b0; font-family: monospace; font-size: 11px; padding: 1px; }
+</style>
+</head>
+<body>
+<h1>Fleet Config Decision Matrix</h1>
+<div class="legend">
+<span class="leg-critical">RED ROW = CRITICAL (token spend/stability)</span>
+<span class="leg-set">BLUE = Currently SET</span>
+<span class="leg-unset">GRAY = Not set</span>
+<span class="leg-target">GREEN = TARGET (fill in)</span>
+</div>
+
+<h2>CRITICAL — Token Spend & Stability</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Options</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+<th class="bare">haplo</th>
+<th class="bare">zifnab</th>
+<th class="bare">hugh</th>
+<th class="light">marit</th>
+<th class="light">paithan</th>
+<th class="light">drugar</th>
+<th class="light">ramu</th>
+<th class="light">rega</th>
+<th class="light">devon</th>
+<th class="light">samah</th>
+<th class="light">sinistrad</th>
+<th class="full">alfred</th>
+<th class="full">balthazar</th>
+<th class="full">ciang</th>
+<th class="full">edmund</th>
+<th class="full">iridal</th>
+<th class="full">jonathon</th>
+<th class="full">limbeck</th>
+<th class="full">trian</th>
+<th class="full">vasu</th>
+</tr>
+<tr class="critical">
+<td class="setting">thinkingDefault</td>
+<td class="desc">Reasoning depth. Higher=more tokens burned</td>
+<td>off/minimal/low/med/high/xhigh/adaptive</td>
+<td>model decides</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="set">off</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td>
+</tr>
+<tr class="critical">
+<td class="setting">reasoningDefault</td>
+<td class="desc">Show thinking in Discord? Always billed regardless</td>
+<td>on/off/stream</td>
+<td>off</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td>
+</tr>
+<tr class="critical">
+<td class="setting">memory.backend</td>
+<td class="desc">Memory system. QMD=local/free. Builtin=needs API</td>
+<td>builtin/qmd/honcho</td>
+<td>builtin</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td><td class="set">builtin</td>
+</tr>
+<tr class="critical">
+<td class="setting">memorySearch.provider</td>
+<td class="desc">Embedding API. gemini=$$$. local=free CPU. ollama=free GPU</td>
+<td>gemini/openai/ollama/local</td>
+<td>auto-detect</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td><td class="set">gemini</td>
+</tr>
+<tr class="critical">
+<td class="setting">sessionMemory</td>
+<td class="desc">Index sessions into DB. Creates GIGABYTE databases!</td>
+<td>true/false</td>
+<td>false</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td>
+</tr>
+<tr class="critical">
+<td class="setting">compaction.mode</td>
+<td class="desc">Session compression. safeguard=preserves IDs/red lines</td>
+<td>default/safeguard</td>
+<td>default</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">safe</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td><td class="set">default</td>
+</tr>
+<tr class="critical">
+<td class="setting">memoryFlush.enabled</td>
+<td class="desc">Auto-save memories before compaction. Uses tokens for flush</td>
+<td>true/false</td>
+<td>true</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td>
+</tr>
+<tr>
+<td class="setting">streaming</td>
+<td class="desc">Stream responses to Discord</td>
+<td>on/off</td>
+<td>off</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td><td class="set">off</td>
+</tr>
+<tr>
+<td class="setting">historyLimit</td>
+<td class="desc">Discord messages loaded for context</td>
+<td>number</td>
+<td>25</td>
+<td class="target"><input type="text" placeholder="___"></td>
+<td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td><td class="set">25</td>
+</tr>
+</table>
+
+<h2>QMD Settings (if backend = qmd)</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Options</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+</tr>
+<tr><td class="setting">qmd.searchMode</td><td class="desc">Search type. vsearch=vector only. query=natural language</td><td>search/vsearch/query</td><td>search</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.includeDefaultMemory</td><td class="desc">Auto-index MEMORY.md + memory/*.md</td><td>true/false</td><td>true</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.sessions.enabled</td><td class="desc">Index session transcripts (local, no API cost with QMD)</td><td>true/false</td><td>false</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.sessions.retentionDays</td><td class="desc">Keep transcripts for N days</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.update.interval</td><td class="desc">Re-index interval</td><td>time string</td><td>5m</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.update.debounceMs</td><td class="desc">Debounce file changes</td><td>ms</td><td>15000</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.update.onBoot</td><td class="desc">Re-index on gateway start</td><td>true/false</td><td>true</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.update.waitForBootSync</td><td class="desc">Block startup until indexed</td><td>true/false</td><td>false</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.limits.maxResults</td><td class="desc">Max search results returned</td><td>number</td><td>6</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">qmd.limits.timeoutMs</td><td class="desc">Search timeout</td><td>ms</td><td>4000</td><td class="target"><input type="text" placeholder="___"></td></tr>
+<tr><td class="setting">memory.citations</td><td class="desc">Source footer in search results</td><td>auto/on/off</td><td>auto</td><td class="target"><input type="text" placeholder="___"></td></tr>
+</table>
+
+<h2>Compaction & Context</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Options</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+<th class="bare">haplo</th>
+<th class="bare">zifnab</th>
+<th class="bare">hugh</th>
+<th class="light">LIGHT(8)</th>
+<th class="full">FULL(9)</th>
+</tr>
+<tr><td class="setting">compaction.reserveTokensFloor</td><td class="desc">Min tokens kept after compaction</td><td>number</td><td>24000</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">20000</td></tr>
+<tr><td class="setting">compaction.identifierPolicy</td><td class="desc">Preserve IDs during compaction</td><td>strict/off/custom</td><td>strict</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td></tr>
+<tr><td class="setting">compaction.model</td><td class="desc">Use cheaper model for compaction</td><td>model ID</td><td>primary</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td></tr>
+<tr><td class="setting">memoryFlush.softThresholdTokens</td><td class="desc">Token count triggering memory flush</td><td>number</td><td>6000</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">40000</td></tr>
+<tr><td class="setting">contextPruning.mode</td><td class="desc">Drop old context by time</td><td>cache-ttl</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">cache-ttl</td></tr>
+<tr><td class="setting">contextPruning.ttl</td><td class="desc">How long context lives</td><td>time (e.g. 6h)</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">6h</td></tr>
+<tr><td class="setting">contextPruning.keepLastAssistants</td><td class="desc">Always keep N recent responses</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">3</td></tr>
+</table>
+
+<h2>Agent Capabilities</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Options</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+<th class="bare">haplo</th>
+<th class="bare">zifnab</th>
+<th class="bare">hugh</th>
+<th class="light">LIGHT(8)</th>
+<th class="full">FULL(9)</th>
+</tr>
+<tr><td class="setting">acp.enabled</td><td class="desc">Codex/Claude/Gemini backends</td><td>true/false</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td></tr>
+<tr><td class="setting">acp.allowedAgents</td><td class="desc">Which ACP backends</td><td>string[]</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">[pi,claude,codex,opencode,gemini]</td></tr>
+<tr><td class="setting">acp.maxConcurrentSessions</td><td class="desc">Max concurrent ACP sessions</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">8</td></tr>
+<tr><td class="setting">subagents.maxConcurrent</td><td class="desc">Parallel subagents</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">8</td></tr>
+<tr><td class="setting">subagents.maxSpawnDepth</td><td class="desc">Nesting depth</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">2</td></tr>
+<tr><td class="setting">subagents.maxChildrenPerAgent</td><td class="desc">Children per parent</td><td>number</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">5</td></tr>
+<tr><td class="setting">subagents.model</td><td class="desc">Cheaper model for subagents</td><td>model ID</td><td>primary</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td></tr>
+<tr><td class="setting">browser.enabled</td><td class="desc">Headless Chrome</td><td>true/false</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td></tr>
+<tr><td class="setting">tools.exec.security</td><td class="desc">Exec security level</td><td>full/ask/off</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="set">full</td><td class="set">full</td><td class="set">full</td><td class="unset">-</td><td class="unset">-</td></tr>
+<tr><td class="setting">tools.profile</td><td class="desc">Tool access level</td><td>full/coding/minimal</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">full</td><td class="set">full</td></tr>
+<tr><td class="setting">tools.elevated.enabled</td><td class="desc">Elevated tool access</td><td>true/false</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td><td class="set">true</td></tr>
+<tr><td class="setting">tools.agentToAgent.enabled</td><td class="desc">Cross-agent communication</td><td>true/false</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true</td></tr>
+<tr><td class="setting">sandbox.mode</td><td class="desc">Execution sandbox</td><td>off/non-main/all</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">off</td><td class="set">off</td></tr>
+</table>
+
+<h2>Discord & Networking</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+<th class="bare">haplo</th>
+<th class="bare">zifnab</th>
+<th class="bare">hugh</th>
+<th class="light">LIGHT(8)</th>
+<th class="full">FULL(9)</th>
+</tr>
+<tr><td class="setting">textChunkLimit</td><td class="desc">Max chars per Discord message</td><td>2000</td><td class="target"><input type="text" placeholder="___"></td><td class="set">2000</td><td class="unset">-</td><td class="set">2000</td><td class="set">2000</td><td class="set">2000 (missing 2)</td></tr>
+<tr><td class="setting">retry.attempts</td><td class="desc">Retry failed messages</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="set">1</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">1 (missing 3)</td></tr>
+<tr><td class="setting">threadBindings.spawnAcpSessions</td><td class="desc">ACP sessions in threads</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="set">true</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">true (missing 3)</td></tr>
+<tr><td class="setting">allowBots</td><td class="desc">Accept messages from other bots</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true</td><td class="set">true (missing 2)</td></tr>
+<tr><td class="setting">gateway.bind</td><td class="desc">Network interface</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">loopback</td><td class="set">loopback</td></tr>
+<tr><td class="setting">logging.level</td><td class="desc">Log verbosity</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">info</td><td class="set">info</td></tr>
+<tr><td class="setting">logging.file</td><td class="desc">Per-agent log file</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">set</td><td class="set">set</td></tr>
+</table>
+
+<h2>Bootstrap & Other</h2>
+<table>
+<tr>
+<th class="setting">Setting</th>
+<th class="desc">Description</th>
+<th>Default</th>
+<th style="background:#1a3a1a;color:#4ec9b0">TARGET</th>
+<th class="bare">haplo</th>
+<th class="bare">zifnab</th>
+<th class="bare">hugh</th>
+<th class="light">LIGHT(8)</th>
+<th class="full">FULL(9)</th>
+</tr>
+<tr><td class="setting">bootstrapMaxChars</td><td class="desc">Max chars per bootstrap file</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">30000</td><td class="unset">-</td></tr>
+<tr><td class="setting">bootstrapTotalMaxChars</td><td class="desc">Total bootstrap chars limit</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">180000</td><td class="unset">-</td></tr>
+<tr><td class="setting">cron.enabled</td><td class="desc">Agent cron jobs</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">false</td></tr>
+<tr><td class="setting">plugins.allow</td><td class="desc">Enabled plugins</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">[acpx,discord]</td><td class="set">[acpx,discord]</td></tr>
+<tr><td class="setting">env keys in config</td><td class="desc">API keys in openclaw.json vs systemd env</td><td>-</td><td class="target"><input type="text" placeholder="___"></td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="unset">-</td><td class="set">GEMINI+MINIMAX</td></tr>
+</table>
+
+<h2>QMD Deployment Status</h2>
+<table>
+<tr><th>Server</th><th>Bun</th><th>QMD binary</th><th>Symlink /usr/local/bin</th><th>Model cached</th><th>Status</th></tr>
+<tr><td>Haplo (dev)</td><td class="set">v1.3.10</td><td class="set">v2.0.1</td><td style="background:#3a1a1a">NEEDS SUDO</td><td class="set">340MB</td><td>PARTIAL</td></tr>
+<tr><td>Zifnab (main)</td><td class="set">v1.3.11</td><td class="set">v2.0.1</td><td style="background:#3a1a1a">NEEDS SUDO</td><td class="unset">not cached</td><td>NEEDS SYMLINK+WARMUP</td></tr>
+<tr><td>Hugh (trade)</td><td class="set">v1.3.11</td><td class="set">v2.0.1</td><td style="background:#3a1a1a">NEEDS SUDO</td><td class="unset">not cached</td><td>NEEDS SYMLINK+WARMUP</td></tr>
+</table>
+
+<h2>Agent-Specific Overrides</h2>
+<table>
+<tr><th>Agent</th><th>Setting</th><th>Current Value</th><th>Reason</th></tr>
+<tr><td>vasu</td><td>codex-cli args</td><td class="set">danger-full-access</td><td>MCP network for Unity</td></tr>
+<tr><td>limbeck</td><td>codex-cli args</td><td class="set">danger-full-access</td><td>MCP network for Roblox</td></tr>
+<tr><td>sinistrad</td><td>browser.profiles</td><td class="set">CDP attach 127.0.0.1:9222</td><td>Specific browser setup</td></tr>
+<tr><td>haplo</td><td>thinkingDefault</td><td class="set">off</td><td>Token waste prevention</td></tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iridal - Agent Config Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    background: #0d1117;
+    color: #c9d1d9;
+    padding: 24px 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { color: #58a6ff; font-size: 28px; margin-bottom: 4px; }
+  .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+  .subtitle span { color: #f0883e; font-weight: 600; }
+
+  .section {
+    margin-bottom: 28px;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .section-header {
+    background: #161b22;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f0883e;
+    border-bottom: 1px solid #30363d;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-header:hover { background: #1c2128; }
+  .section-header .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge-critical { background: #da3633; color: #fff; }
+  .badge-info { background: #1f6feb; color: #fff; }
+
+  .section-body { padding: 0; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 260px 1fr 200px;
+    border-bottom: 1px solid #21262d;
+    align-items: center;
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: #161b22; }
+  .row.unset { opacity: 0.6; }
+  .row.unset:hover { opacity: 1; }
+
+  .row-key {
+    padding: 10px 16px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+    color: #d2a8ff;
+    font-weight: 500;
+  }
+  .row-value {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-value .current {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+    color: #7ee787;
+  }
+  .row-value .default-tag {
+    font-size: 11px;
+    color: #8b949e;
+    background: #21262d;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .row-value .desc {
+    color: #8b949e;
+    font-size: 12px;
+  }
+  .row-edit {
+    padding: 8px 16px 8px 8px;
+    text-align: right;
+  }
+  .row-edit input, .row-edit select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+    width: 100%;
+    max-width: 180px;
+  }
+  .row-edit input:focus, .row-edit select:focus {
+    border-color: #58a6ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.2);
+  }
+  .row-edit input.changed {
+    border-color: #f0883e;
+    background: #1a1208;
+  }
+
+  .actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+  }
+  .btn {
+    padding: 10px 20px;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .btn-primary { background: #238636; border-color: #238636; color: #fff; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-secondary { background: #21262d; color: #c9d1d9; }
+  .btn-secondary:hover { background: #30363d; }
+
+  #output {
+    margin-top: 16px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    display: none;
+    max-height: 500px;
+    overflow-y: auto;
+    color: #7ee787;
+  }
+
+  .add-row {
+    padding: 8px 16px;
+    border-top: 1px solid #21262d;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .add-row input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+  }
+  .add-row button {
+    background: #1f6feb;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .add-row button:hover { background: #388bfd; }
+
+  .server-info {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #8b949e;
+  }
+  .server-info span { color: #58a6ff; }
+</style>
+</head>
+<body>
+
+<h1>Iridal</h1>
+<div class="subtitle">Agent Config Editor &mdash; Server: <span>ola-claw-dev (Haplo)</span></div>
+<div class="server-info">
+  <div>Port: <span>18841</span></div>
+  <div>Workspace: <span>/home/openclaw/.openclaw/workspace-iridal</span></div>
+  <div>Primary: <span>codex-cli/gpt-5.3-codex-spark</span></div>
+  <div>OpenClaw: <span>2026.3.8</span></div>
+</div>
+
+<!-- CRITICAL: Memory & Token Spend -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Memory & Token Spend <span class="badge badge-critical">CRITICAL</span>
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">memory.backend</div>
+      <div class="row-value"><span class="current">builtin</span> <span class="desc">builtin/qmd/honcho</span></div>
+      <div class="row-edit"><select data-key="memory.backend" data-orig="builtin" onchange="markChanged(this)">
+        <option value="builtin" selected>builtin</option>
+        <option value="qmd">qmd</option>
+        <option value="honcho">honcho</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">memorySearch.provider</div>
+      <div class="row-value"><span class="current">gemini</span> <span class="desc">gemini=$$$, local=free CPU, ollama=free GPU</span></div>
+      <div class="row-edit"><select data-key="memorySearch.provider" data-orig="gemini" onchange="markChanged(this)">
+        <option value="gemini" selected>gemini</option>
+        <option value="local">local</option>
+        <option value="ollama">ollama</option>
+        <option value="openai">openai</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">memorySearch.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="memorySearch.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">sessionMemory</div>
+      <div class="row-value"><span class="current">true</span> <span class="desc">Creates GB-sized DBs!</span></div>
+      <div class="row-edit"><select data-key="memorySearch.experimental.sessionMemory" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">memorySearch.sources</div>
+      <div class="row-value"><span class="current">["memory","sessions"]</span></div>
+      <div class="row-edit"><input type="text" data-key="memorySearch.sources" data-orig='["memory","sessions"]' value='["memory","sessions"]' onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">memoryFlush.enabled</div>
+      <div class="row-value"><span class="current">true</span> <span class="desc">Auto-save before compaction, burns tokens</span></div>
+      <div class="row-edit"><select data-key="compaction.memoryFlush.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">memoryFlush.softThresholdTokens</div>
+      <div class="row-value"><span class="current">40000</span> <span class="default-tag">default: 6000</span></div>
+      <div class="row-edit"><input type="number" data-key="compaction.memoryFlush.softThresholdTokens" data-orig="40000" value="40000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">thinkingDefault</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: model decides</span></div>
+      <div class="row-edit"><select data-key="thinkingDefault" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="off">off</option>
+        <option value="minimal">minimal</option>
+        <option value="low">low</option>
+        <option value="medium">medium</option>
+        <option value="high">high</option>
+        <option value="xhigh">xhigh</option>
+        <option value="adaptive">adaptive</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">reasoningDefault</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: off</span></div>
+      <div class="row-edit"><select data-key="reasoningDefault" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="on">on</option>
+        <option value="off">off</option>
+        <option value="stream">stream</option>
+      </select></div>
+    </div>
+  </div>
+</div>
+
+<!-- Memory Search Tuning -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Memory Search Tuning <span class="badge badge-info">HYBRID</span>
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">hybrid.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="memorySearch.query.hybrid.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">hybrid.vectorWeight</div>
+      <div class="row-value"><span class="current">0.7</span></div>
+      <div class="row-edit"><input type="number" step="0.1" min="0" max="1" data-key="memorySearch.query.hybrid.vectorWeight" data-orig="0.7" value="0.7" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">hybrid.textWeight</div>
+      <div class="row-value"><span class="current">0.3</span></div>
+      <div class="row-edit"><input type="number" step="0.1" min="0" max="1" data-key="memorySearch.query.hybrid.textWeight" data-orig="0.3" value="0.3" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">mmr.enabled</div>
+      <div class="row-value"><span class="current">true</span> <span class="desc">Result diversity</span></div>
+      <div class="row-edit"><select data-key="memorySearch.query.hybrid.mmr.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">mmr.lambda</div>
+      <div class="row-value"><span class="current">0.7</span> <span class="desc">0=diverse, 1=relevant</span></div>
+      <div class="row-edit"><input type="number" step="0.1" min="0" max="1" data-key="memorySearch.query.hybrid.mmr.lambda" data-orig="0.7" value="0.7" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">temporalDecay.enabled</div>
+      <div class="row-value"><span class="current">true</span> <span class="desc">Prefer recent memories</span></div>
+      <div class="row-edit"><select data-key="memorySearch.query.hybrid.temporalDecay.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">temporalDecay.halfLifeDays</div>
+      <div class="row-value"><span class="current">30</span></div>
+      <div class="row-edit"><input type="number" data-key="memorySearch.query.hybrid.temporalDecay.halfLifeDays" data-orig="30" value="30" onchange="markChanged(this)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- QMD Settings (shown if backend switched to qmd) -->
+<div class="section" id="qmd-section">
+  <div class="section-header" onclick="toggle(this)">
+    QMD Settings <span class="badge badge-info">if backend = qmd</span>
+  </div>
+  <div class="section-body">
+    <div class="row unset">
+      <div class="row-key">qmd.searchMode</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: search</span></div>
+      <div class="row-edit"><select data-key="qmd.searchMode" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="search">search</option>
+        <option value="vsearch">vsearch</option>
+        <option value="query">query</option>
+      </select></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.includeDefaultMemory</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: true</span></div>
+      <div class="row-edit"><select data-key="qmd.includeDefaultMemory" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.sessions.enabled</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: false</span></div>
+      <div class="row-edit"><select data-key="qmd.sessions.enabled" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.sessions.retentionDays</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span></div>
+      <div class="row-edit"><input type="number" data-key="qmd.sessions.retentionDays" data-orig="" value="" placeholder="days" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.update.interval</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: 5m</span></div>
+      <div class="row-edit"><input type="text" data-key="qmd.update.interval" data-orig="" value="" placeholder="5m" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.update.debounceMs</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: 15000</span></div>
+      <div class="row-edit"><input type="number" data-key="qmd.update.debounceMs" data-orig="" value="" placeholder="15000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.update.onBoot</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: true</span></div>
+      <div class="row-edit"><select data-key="qmd.update.onBoot" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.limits.maxResults</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: 6</span></div>
+      <div class="row-edit"><input type="number" data-key="qmd.limits.maxResults" data-orig="" value="" placeholder="6" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">qmd.limits.timeoutMs</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: 4000</span></div>
+      <div class="row-edit"><input type="number" data-key="qmd.limits.timeoutMs" data-orig="" value="" placeholder="4000" onchange="markChanged(this)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Compaction & Context -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Compaction & Context
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">compaction.mode</div>
+      <div class="row-value"><span class="current">default</span> <span class="desc">safeguard preserves IDs/red lines</span></div>
+      <div class="row-edit"><select data-key="compaction.mode" data-orig="default" onchange="markChanged(this)">
+        <option value="default" selected>default</option>
+        <option value="safeguard">safeguard</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">compaction.reserveTokensFloor</div>
+      <div class="row-value"><span class="current">20000</span> <span class="default-tag">default: 24000</span></div>
+      <div class="row-edit"><input type="number" data-key="compaction.reserveTokensFloor" data-orig="20000" value="20000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">contextPruning.mode</div>
+      <div class="row-value"><span class="current">cache-ttl</span></div>
+      <div class="row-edit"><select data-key="contextPruning.mode" data-orig="cache-ttl" onchange="markChanged(this)">
+        <option value="cache-ttl" selected>cache-ttl</option>
+        <option value="">not set</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">contextPruning.ttl</div>
+      <div class="row-value"><span class="current">6h</span></div>
+      <div class="row-edit"><input type="text" data-key="contextPruning.ttl" data-orig="6h" value="6h" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">contextPruning.keepLastAssistants</div>
+      <div class="row-value"><span class="current">3</span></div>
+      <div class="row-edit"><input type="number" data-key="contextPruning.keepLastAssistants" data-orig="3" value="3" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row unset">
+      <div class="row-key">compaction.identifierPolicy</div>
+      <div class="row-value"><span class="current" style="color:#8b949e">NOT SET</span> <span class="default-tag">default: strict</span></div>
+      <div class="row-edit"><select data-key="compaction.identifierPolicy" data-orig="" onchange="markChanged(this)">
+        <option value="" selected>not set</option>
+        <option value="strict">strict</option>
+        <option value="off">off</option>
+        <option value="custom">custom</option>
+      </select></div>
+    </div>
+  </div>
+</div>
+
+<!-- Agent Capabilities -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Agent Capabilities
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">acp.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="acp.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">acp.maxConcurrentSessions</div>
+      <div class="row-value"><span class="current">8</span></div>
+      <div class="row-edit"><input type="number" data-key="acp.maxConcurrentSessions" data-orig="8" value="8" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">subagents.maxConcurrent</div>
+      <div class="row-value"><span class="current">8</span></div>
+      <div class="row-edit"><input type="number" data-key="subagents.maxConcurrent" data-orig="8" value="8" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">subagents.maxSpawnDepth</div>
+      <div class="row-value"><span class="current">2</span></div>
+      <div class="row-edit"><input type="number" data-key="subagents.maxSpawnDepth" data-orig="2" value="2" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">subagents.maxChildrenPerAgent</div>
+      <div class="row-value"><span class="current">5</span></div>
+      <div class="row-edit"><input type="number" data-key="subagents.maxChildrenPerAgent" data-orig="5" value="5" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">browser.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="browser.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">tools.profile</div>
+      <div class="row-value"><span class="current">full</span></div>
+      <div class="row-edit"><select data-key="tools.profile" data-orig="full" onchange="markChanged(this)">
+        <option value="full" selected>full</option>
+        <option value="coding">coding</option>
+        <option value="minimal">minimal</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">tools.elevated.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="tools.elevated.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">tools.agentToAgent.enabled</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="tools.agentToAgent.enabled" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">tools.exec.security</div>
+      <div class="row-value"><span class="current">full</span></div>
+      <div class="row-edit"><select data-key="tools.exec.security" data-orig="full" onchange="markChanged(this)">
+        <option value="full" selected>full</option>
+        <option value="ask">ask</option>
+        <option value="off">off</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">sandbox.mode</div>
+      <div class="row-value"><span class="current">off</span></div>
+      <div class="row-edit"><select data-key="sandbox.mode" data-orig="off" onchange="markChanged(this)">
+        <option value="off" selected>off</option>
+        <option value="non-main">non-main</option>
+        <option value="all">all</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">cron.enabled</div>
+      <div class="row-value"><span class="current">false</span></div>
+      <div class="row-edit"><select data-key="cron.enabled" data-orig="false" onchange="markChanged(this)">
+        <option value="false" selected>false</option>
+        <option value="true">true</option>
+      </select></div>
+    </div>
+  </div>
+</div>
+
+<!-- Discord & Networking -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Discord & Networking
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">streaming</div>
+      <div class="row-value"><span class="current">off</span></div>
+      <div class="row-edit"><select data-key="streaming" data-orig="off" onchange="markChanged(this)">
+        <option value="off" selected>off</option>
+        <option value="on">on</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">historyLimit</div>
+      <div class="row-value"><span class="current">25</span></div>
+      <div class="row-edit"><input type="number" data-key="historyLimit" data-orig="25" value="25" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">textChunkLimit</div>
+      <div class="row-value"><span class="current">2000</span></div>
+      <div class="row-edit"><input type="number" data-key="textChunkLimit" data-orig="2000" value="2000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">allowBots</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="allowBots" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">retry.attempts</div>
+      <div class="row-value"><span class="current">1</span></div>
+      <div class="row-edit"><input type="number" data-key="retry.attempts" data-orig="1" value="1" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">retry.minDelayMs</div>
+      <div class="row-value"><span class="current">1000</span></div>
+      <div class="row-edit"><input type="number" data-key="retry.minDelayMs" data-orig="1000" value="1000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">retry.maxDelayMs</div>
+      <div class="row-value"><span class="current">60000</span></div>
+      <div class="row-edit"><input type="number" data-key="retry.maxDelayMs" data-orig="60000" value="60000" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">threadBindings.spawnAcpSessions</div>
+      <div class="row-value"><span class="current">true</span></div>
+      <div class="row-edit"><select data-key="threadBindings.spawnAcpSessions" data-orig="true" onchange="markChanged(this)">
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">gateway.bind</div>
+      <div class="row-value"><span class="current">loopback</span></div>
+      <div class="row-edit"><select data-key="gateway.bind" data-orig="loopback" onchange="markChanged(this)">
+        <option value="loopback" selected>loopback</option>
+        <option value="lan">lan</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="row-key">gateway.port</div>
+      <div class="row-value"><span class="current">18841</span></div>
+      <div class="row-edit"><input type="number" data-key="gateway.port" data-orig="18841" value="18841" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">logging.level</div>
+      <div class="row-value"><span class="current">info</span></div>
+      <div class="row-edit"><select data-key="logging.level" data-orig="info" onchange="markChanged(this)">
+        <option value="info" selected>info</option>
+        <option value="debug">debug</option>
+        <option value="warn">warn</option>
+        <option value="error">error</option>
+      </select></div>
+    </div>
+  </div>
+</div>
+
+<!-- Model Chain -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    Model Chain
+  </div>
+  <div class="section-body">
+    <div class="row">
+      <div class="row-key">model.primary</div>
+      <div class="row-value"><span class="current">codex-cli/gpt-5.3-codex-spark</span></div>
+      <div class="row-edit"><input type="text" data-key="model.primary" data-orig="codex-cli/gpt-5.3-codex-spark" value="codex-cli/gpt-5.3-codex-spark" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">model.fallbacks[0]</div>
+      <div class="row-value"><span class="current">minimax/MiniMax-M2.7</span></div>
+      <div class="row-edit"><input type="text" data-key="model.fallbacks.0" data-orig="minimax/MiniMax-M2.7" value="minimax/MiniMax-M2.7" onchange="markChanged(this)"></div>
+    </div>
+    <div class="row">
+      <div class="row-key">model.fallbacks[1]</div>
+      <div class="row-value"><span class="current">google/gemini-2.5-flash</span></div>
+      <div class="row-edit"><input type="text" data-key="model.fallbacks.1" data-orig="google/gemini-2.5-flash" value="google/gemini-2.5-flash" onchange="markChanged(this)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Custom Setting -->
+<div class="section">
+  <div class="section-header">Add Custom Setting</div>
+  <div class="section-body">
+    <div class="add-row" style="padding: 12px 16px;">
+      <input type="text" id="custom-key" placeholder="setting.key.path" style="flex:1">
+      <input type="text" id="custom-value" placeholder="value" style="flex:1">
+      <button onclick="addCustom()">+ Add</button>
+    </div>
+    <div id="custom-rows"></div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="actions">
+  <button class="btn btn-primary" onclick="showDiff()">Show Changes (JSON patch)</button>
+  <button class="btn btn-secondary" onclick="resetAll()">Reset All</button>
+  <button class="btn btn-secondary" onclick="copyDiff()">Copy to Clipboard</button>
+</div>
+
+<div id="output"></div>
+
+<script>
+function markChanged(el) {
+  const orig = el.getAttribute('data-orig');
+  const val = el.value;
+  if (val !== orig) {
+    el.classList.add('changed');
+  } else {
+    el.classList.remove('changed');
+  }
+}
+
+function toggle(header) {
+  const body = header.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+function addCustom() {
+  const key = document.getElementById('custom-key').value.trim();
+  const value = document.getElementById('custom-value').value.trim();
+  if (!key) return;
+  const container = document.getElementById('custom-rows');
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div class="row-key">${key}</div>
+    <div class="row-value"><span class="current" style="color:#f0883e">NEW</span></div>
+    <div class="row-edit"><input type="text" class="changed" data-key="${key}" data-orig="" value="${value}" onchange="markChanged(this)"></div>
+  `;
+  container.appendChild(row);
+  document.getElementById('custom-key').value = '';
+  document.getElementById('custom-value').value = '';
+}
+
+function getChanges() {
+  const changes = {};
+  document.querySelectorAll('[data-key]').forEach(el => {
+    const key = el.getAttribute('data-key');
+    const orig = el.getAttribute('data-orig');
+    const val = el.value;
+    if (val !== orig && val !== '') {
+      changes[key] = val;
+    }
+  });
+  return changes;
+}
+
+function showDiff() {
+  const changes = getChanges();
+  const output = document.getElementById('output');
+  if (Object.keys(changes).length === 0) {
+    output.style.display = 'block';
+    output.textContent = '// No changes made';
+    return;
+  }
+  output.style.display = 'block';
+  output.textContent = JSON.stringify(changes, null, 2);
+}
+
+function copyDiff() {
+  const changes = getChanges();
+  const text = JSON.stringify(changes, null, 2);
+  navigator.clipboard.writeText(text).then(() => {
+    const output = document.getElementById('output');
+    output.style.display = 'block';
+    output.textContent = '// Copied to clipboard!\n' + text;
+  });
+}
+
+function resetAll() {
+  document.querySelectorAll('[data-key]').forEach(el => {
+    el.value = el.getAttribute('data-orig');
+    el.classList.remove('changed');
+  });
+  document.getElementById('output').style.display = 'none';
+  document.getElementById('custom-rows').innerHTML = '';
+}
+</script>
+
+</body>
+</html>

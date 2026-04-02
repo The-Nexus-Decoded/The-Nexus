@@ -1,0 +1,82 @@
+[
+  {
+    "engine": "tesseract",
+    "image": "gw001.jpg",
+    "elapsed_sec": 0.379,
+    "success": true,
+    "text_length": 184,
+    "error": null
+  },
+  {
+    "engine": "tesseract",
+    "image": "1daXKWn.jpg",
+    "elapsed_sec": 30.0,
+    "success": false,
+    "text_length": 0,
+    "error": "TIMEOUT"
+  },
+  {
+    "engine": "tesseract",
+    "image": "IMG_8523.jpg",
+    "elapsed_sec": 0.446,
+    "success": false,
+    "text_length": 0,
+    "error": "'str' object has no attribute 'decode'"
+  },
+  {
+    "engine": "tesseract",
+    "image": "Screenshot 2026-01-20 085856.png",
+    "elapsed_sec": 0.572,
+    "success": true,
+    "text_length": 1276,
+    "error": null
+  },
+  {
+    "engine": "tesseract",
+    "image": "IMG_1317.jpg",
+    "elapsed_sec": 0.438,
+    "success": false,
+    "text_length": 0,
+    "error": "'str' object has no attribute 'decode'"
+  },
+  {
+    "engine": "easyocr",
+    "image": "gw001.jpg",
+    "elapsed_sec": 0,
+    "success": false,
+    "text_length": 0,
+    "error": "EasyOCR not installed"
+  },
+  {
+    "engine": "easyocr",
+    "image": "1daXKWn.jpg",
+    "elapsed_sec": 0,
+    "success": false,
+    "text_length": 0,
+    "error": "EasyOCR not installed"
+  },
+  {
+    "engine": "easyocr",
+    "image": "IMG_8523.jpg",
+    "elapsed_sec": 0,
+    "success": false,
+    "text_length": 0,
+    "error": "EasyOCR not installed"
+  },
+  {
+    "engine": "easyocr",
+    "image": "Screenshot 2026-01-20 085856.png",
+    "elapsed_sec": 0,
+    "success": false,
+    "text_length": 0,
+    "error": "EasyOCR not installed"
+  },
+  {
+    "engine": "easyocr",
+    "image": "IMG_1317.jpg",
+    "elapsed_sec": 0,
+    "success": false,
+    "text_length": 0,
+    "error": "EasyOCR not installed"
+  }
+]

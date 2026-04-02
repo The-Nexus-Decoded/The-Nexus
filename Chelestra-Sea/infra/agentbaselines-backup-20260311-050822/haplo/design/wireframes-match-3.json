@@ -1,0 +1,518 @@
+{
+  "project": "DEATH GATE CYCLE - Match-3 Foundation Prototype",
+  "version": "0.1",
+  "status": "Sprint 1 - Primary Concept Approved",
+  "createdBy": "Orla, UI/UX Design Lead",
+  "approvalDate": "2026-03-09",
+  "approvedBy": "Zifnab (Coordinating Authority)",
+  
+  "designPhilosophy": {
+    "guidingPrinciple": "Match-3 tests the pipeline for all systems we're building. Expandable to Death Gate realms.",
+    "accessibilityFirst": true,
+    "mobileResponsive": true,
+    "webXRCompatible": true,
+    "futureExpansionPath": "Four realms where gravity flips in each realm, Match-3 mechanics adapt"
+  },
+
+  "coreMechanics": {
+    "match3Rules": {
+      "gridSize": "8×8 tiles (mobile: scale to 6×6)",
+      "matchThreshold": "3+ matching tiles",
+      "specialTiles": [
+        {"type": "Line Clear", "trigger": "4 in a row"},
+        {"type": "Explosion", "trigger": "5 in shape"},
+        {"type": "Bomb", "trigger": "6 in L/T shape"}
+      ],
+      "physicsMode": "Physically grounded drag-to-catch (not magical floating)",
+      "collisionDetection": "Proper raycasts between tiles and catch zones"
+    },
+
+    "spatialExpansionReadiness": {
+      "realmArianus": "Normal gravity (baseline Match-3)",
+      "realmPryan": "Inverted Y-axis gravity",
+      "realmChelestra": "Light-based tile visibility",
+      "realmAbarrach": "Sound-wave matching patterns"
+    }
+  },
+
+  "hudLayouts": {
+    "primaryGameInterface": {
+      "description": "Mobile-first Match-3 grid with spatial drag mechanics",
+      "viewportOrientation": "Portrait mobile, Landscape VR/WebXR",
+      
+      "elements": [
+        {
+          "name": "Grid Container",
+          "position": "center of viewport",
+          "behavior": {
+            "displayType": "8×8 tile grid with parallax depth (tile Z-axis varies by level)",
+            "physicsMode": "Physically grounded interactions (not magical floating)",
+            "tileBehavior": "Each tile has physical properties: weight, velocity, rotation inertia",
+            "dragMechanics": {
+              "initialGrab": "Pinch or touch-down on tile edge → Instant visual pickup",
+              "midDrag": "Tile maintains velocity vector + drag offset → Shows gravity influence",
+              "snapThreshold": "0.5m radius around target position → Magnetic snap effect",
+              "releaseBehavior": "Drop at release point OR place in designated catch zone"
+            }
+          },
+          "specs": {
+            "gridSizeMobile": "640×720px (portrait)",
+            "gridSizeDesktop": "1280×960px (landscape)",
+            "tileSizeMin": "48×48px (mobile) / 60×60px (desktop)"
+          }
+        },
+        {
+          "name": "Collision Detection Overlay",
+          "position": "behind grid (render layer order: bottom)",
+          "behavior": {
+            "displayType": "Debug mode toggle + visual raycasts when interactable",
+            "raycastBehavior": {
+              "activation": "On drag start → Show raycast line from tile center to catch zone",
+              "color": "#ff9100 (warning orange) during active grab",
+              "lineWidth": 4,
+              "lengthMax": "Full screen diagonal for placement validation",
+              "feedback": "Raycast endpoint glows when tile can snap to that position"
+            },
+            "collisionTypes": [
+              {"type": "Tile-to-Grid", "description": "Prevents tile from being dropped outside grid bounds"},
+              {"type": "Tile-to-CatchZone", "description": "Validates drop position within designated zones"},
+              {"type": "Tile-vs-Particle", "description": "Collision with special effect particles (line clear, explosions)"}
+            ],
+            "purpose": "Ensures physics grounded interactions, prevents placement errors"
+          },
+          "specs": {
+            "raycastUpdateRate": 60, /* Hz - real-time validation */
+            "renderMode": "Debug toggleable / hidden in production",
+            "performanceCost": "<5% frame budget when active"
+          }
+        },
+        {
+          "name": "Score & Match Indicators",
+          "position": "bottom-center (ground plane, 3m below eye level)",
+          "behavior": {
+            "displayType": "Progressive bar with particle burst effects",
+            "scoreLogic": {"match3": "+100", "lineClear": "+500", "explosion": "+1500"},
+            "animation": "Score bar fills from left → Particle explosion at full score",
+            "matchPreview": "3-second countdown before match clears (prevents visual confusion)",
+            "thresholds": {
+              "warning": "80% match timer → Warning pulse begins",
+              "ready": "50% match timer → Strong pulse + haptic notification"
+            }
+          },
+          "specs": {
+            "minHeight": 48,
+            "touchTarget": 60,
+            "barColor": "#00e676 (success green)",
+            "backgroundColor": "#1a1a2e",
+            "scoreFont": 24,
+            "timerAnimationDuration": 3000
+          }
+        },
+        {
+          "name": "Catch Zone Indicators",
+          "position": "below grid (ground plane interface)",
+          "behavior": {
+            "displayType": "Radii + colored glow zones where tiles can be caught/placed",
+            "states": {
+              "idle": "Soft blue pulse (200ms cycle)",
+              "approaching": "Expand outward ring on drag start (scale: 1→1.5 over 300ms)",
+              "readyToCatch": "Bright glow + directional arrow (tile ready to snap here)",
+              "collected": "Pulse inward then vanish (100ms fade)"
+            },
+            "physicsIntegration": {
+              "catchZoneRadius": "8-12cm on mobile touch surface / 50m in VR space",
+              "snapBehavior": "Magnetic pull to nearest valid grid position within catch zone",
+              "collisionPrevention": "Raycast ensures tile won't clip through other tiles when dropped"
+            },
+            "purpose": "Makes spatial interaction discoverable & precise, guides player placement"
+          },
+          "specs": {
+            "radiusBase": 20,
+            "radiusMaxExpand": 60,
+            "glowColorIdle": "#4f86f7",
+            "glowColorActive": "#ff9100",
+            "snapThresholdRadius": 5
+          }
+        },
+        {
+          "name": "Realm Indicator (Future Expansion)",
+          "position": "top-left (sky-space at 8m elevation when realms enabled)",
+          "behavior": {
+            "displayType": "Floating icon with gravity indicator",
+            "colorPerRealm": {
+              "normal": "#4f86f7",   /* Baseline (Arianus) */
+              "invertedY": "#ff5252",  /* Pryan - Gravity flip */
+              "lightMode": "#00e676",  /* Chelestra - Light tiles */
+              "soundMode": "#d500f9"  /* Abarrach - Sound patterns */
+            },
+            "iconLabel": {
+              "normal": "🌬️ Normal Gravity",
+              "invertedY": "⬆️ Inverted Y-axis",
+              "lightMode": "✨ Light Vision",
+              "soundMode": "🔊 Sound Match"
+            },
+            "purpose": "Shows current realm physics state without HUD clutter (for future 4-realms)"
+          },
+          "specs": {
+            "minSize": "48×48px",
+            "touchTarget": "60×60px",
+            "fontSize": 20,
+            "iconSize": 24
+          }
+        }
+      ]
+    },
+
+    "pauseMenuOverlay": {
+      "triggerConditions": [
+        "Wave hand above shoulder ≥2m (soft pause)",
+        "Head shake (motor impairment alternative)",
+        "Voice command: 'Pause' + hold 500ms"
+      ],
+      
+      "overlayLayout": {
+        "backgroundColor": "rgba(10,10,18,0.7)",   /* Semi-transparent void */
+        "backdropBlur": 8,
+        "animation": "slow fade in (500ms ease-out)",
+        
+        "elements": [
+          {
+            "name": "Primary CTA: Resume",
+            "position": "center, vertically centered",
+            "size": "44px height × variable width (min 200px)",
+            "behavior": "High contrast button with haptic confirmation on press",
+            "accessibility": {
+              "focusOrder": 1,
+              "keyboardAction": "Space/Enter to resume"
+            }
+          },
+          {
+            "name": "Secondary Actions Column",
+            "position": "below Primary CTA",
+            "elements": [
+              "Controls Guide (🎮)",
+              "Tutorials (📜)",
+              "Settings (⚙️)",
+              "Audio Settings (🎵)",
+              "Save/Load (💾)",
+              "Realm Switch (Future) - 4 realms toggle"
+            ],
+            "behavior": "Tap to open sub-panel, no modal blocking",
+            "accessibility": {
+              "voiceCommands": [
+                "Show controls",
+                "View tutorials",
+                "Open settings",
+                "Toggle audio"
+              ]
+            }
+          },
+          {
+            "name": "Quit to Title Screen",
+            "position": "bottom-center, red accent background",
+            "behavior": "Confirmed action required (prevent accidental exit)",
+            "accessibility": {
+              "focusOrder": 6,
+              "confirmationDialog": true
+            }
+          }
+        ]
+      }
+    },
+
+    "mobileFallbackMode": {
+      "description": "Portrait mode interface for phone-only/WebXR browser testing",
+      "layout": "Single column, controls at bottom 40% of screen",
+      
+      "elements": [
+        {
+          "name": "Simplified Drag Controls",
+          "position": "bottom 30%",
+          "controls": [
+            {
+              "type": "tap-drag-drop on grid tiles",
+              "label": "📱 Grid Interaction",
+              "targetSize": "Full grid width × height"
+            },
+            {
+              "type": "catch zone indicator (bottom edge)",
+              "label": "🎯 Catch Zone Glow",
+              "behavior": "Expands on drag start, snaps when dropped within radius"
+            },
+            {
+              "type": "realm toggle button (future expansion)",
+              "label": "🔄 Realm Switch",
+              "position": "top-right corner",
+              "targetSize": "60×60px"
+            }
+          ],
+          "behavior": "Touch targets ≥44×44px per WCAG 2.2",
+          "hapticsEnabled": true
+        },
+        {
+          "name": "Simplified HUD",
+          "position": "top 10% of screen",
+          "elements": [
+            {
+              "type": "Score bar (horizontal)",
+              "label": "💎 Score + Timer"
+            },
+            {
+              "type": "Match preview indicator",
+              "label": "🔥 Special tile count"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "interactionGestures": {
+    "primaryMovement": {
+      "mobile": "Pinch-to-drag tiles (physically grounded, not magical)",
+      "desktopVR": "Thumbstick drag + collision raycast validation",
+      "webXR": "Tap-hold-drag sequence with visual grab feedback"
+    },
+
+    "matchMechanics": {
+      "dragToCatch": {
+        "description": "Physically grounded tile dragging with proper raycast collision",
+        "steps": [
+          {"step": 1, "action": "Touch/pinch-down on tile edge → Instant visual pickup"},
+          {"step": 2, "action": "Drag maintains velocity + gravity influence vector → Shows physics mode (normal/inverted)"},
+          {"step": 3, "action": "Raycast validates catch zone position → Endpoint glows when valid placement available"},
+          {"step": 4, "action": "Release within snap threshold (0.5m) → Magnetic pull to grid slot OR designated catch zone"}
+        ],
+        "feedbackSystems": {
+          "visual": {
+            "grabState": "Tile lifts slightly off grid surface + glow color shift",
+            "dragState": "Trail particles follow velocity vector, show gravity influence (normal/inverted Y)",
+            "snapPreview": "Ghost tile preview in catch zone → Success checkmark on release"
+          },
+          "haptic": {
+            "grabConfirm": "Light pulse (duration: 30ms, magnitude: 0.2)",
+            "snapSuccess": "Medium pulse (duration: 50ms, magnitude: 0.4)",
+            "collisionBlock": "Reject vibration pattern (vibrate 10ms, pause 100ms)"
+          },
+          "audio": {
+            "grab": "Soft chime (frequency: 600Hz)",
+            "drag": "Humming ambient (frequency follows velocity)",
+            "snapSuccess": "Satisfying pop sound (frequency: 800-1200Hz sweep)"
+          }
+        }
+      },
+
+      "collisionDetection": {
+        "description": "Proper raycast validation between tiles and catch zones (prevents physics glitches)",
+        "types": [
+          {"type": "Tile-to-GridBounds", "raycastPurpose": "Prevents tile from being dropped outside grid container"},
+          {"type": "Tile-to-CatchZone", "raycastPurpose": "Validates drop position within designated zone radius"},
+          {"type": "Tile-vs-ParticleEffects", "raycastPurpose": "Collision with special effect particles (line clear, explosions)"}
+        ],
+        "activationConditions": {
+          "alwaysActiveDebug": "Raycast lines visible in debug mode / test builds",
+          "onInteraction": "Raycast activates only during active drag → Optimizes frame budget",
+          "performanceBudget": "<5% frame budget when raycasts active"
+        },
+        "visualFeedback": {
+          "activeDrag": "#ff9100 (warning orange) line from tile center to catch zone endpoint",
+          "validPosition": "Endpoint glows bright → Shows where tile will snap on release",
+          "invalidPosition": "Raycast line fades out immediately when outside valid range"
+        }
+      },
+
+      "specialMechanics": {
+        "lineClear": {
+          "description": "4+ tiles in row or column → Line particles burst outward",
+          "animation": "Particle wave expands 100ms, grid slots clear with fade",
+          "feedback": "Audio: Rising chime (800Hz → 1200Hz), Haptic: Strong pulse (75ms, magnitude: 0.5)"
+        },
+        "explosion": {
+          "description": "5+ tiles in T/L shape → Radial explosion clearing all adjacent",
+          "animation": "Explosion burst expands over 200ms → Debris particles scatter outward",
+          "feedback": "Audio: Crackling burst (noise + rising pitch), Haptic: Heavy vibration sequence (3x pulses)"
+        },
+        "bombTile": {
+          "description": "6+ tiles in L/T shape → Bomb activates clearing 3×3 area",
+          "activationVisual": "Bomb icon appears on center tile → Glows for 1s before detonation",
+          "feedback": "Audio: Loud boom sound, Haptic: Sustained vibration (200ms)"
+        }
+      },
+
+      "pauseInteraction": {
+        "gestureDetail": "Wave hand above shoulder ≥2m OR head shake (motor impairment)",
+        "dwellTimeRequirement": 300,  /* ms to prevent accidental triggers */
+        "palmOrientation": "Must face camera for wave gesture",
+        "feedback": {
+          "visual": "Pause menu overlay fades in over entire screen",
+          "audio": "Soft chime (frequency: 500Hz)"
+        }
+      }
+    },
+
+    "futureRealmExpansionGestures": {
+      "realmArianusNormalGravity": {
+        "defaultPhysics": "Standard drag mechanics apply",
+        "gestureChanges": "None - baseline mode"
+      },
+      "realmPryanInvertedY": {
+        "physicsOverride": "Tile gravity flips (drag upward → tiles fall up)",
+        "gestureChanges": "Visual indicator added to HUD → Shows inverted Y-axis active"
+      },
+      "realmChelestraLightVision": {
+        "physicsOverride": "Only matching tiles visible → Light beam highlights matches",
+        "gestureChanges": "Hold gesture activates light mode, release returns to normal vision"
+      },
+      "realmAbarrachSoundPatterns": {
+        "physicsOverride": "Audio frequency-based tile identification",
+        "gestureChanges": "Wave direction determines sound type → Different frequencies for each color"
+      }
+    }
+  },
+
+  "accessibilityCompliance": {
+    "wcagStandard": "WCAG 2.2 AA",
+    "features": [
+      {
+        "feature": "Color-Blind Accessibility",
+        "implementation": "Distinct tile textures + patterns (not just colors)",
+        "testedAgainst": ["Deuteranopia", "Protanopia", "Tritanopia"]
+      },
+      {
+        "feature": "Motor Impairment Accommodation",
+        "alternatives": [
+          "Auto-drag mode: Tile moves to cursor location without manual drag",
+          "Extended grab time: 800ms hold-down instead of instant pickup",
+          "Simplified movement: Grid navigation via arrow keys (desktop mode)"
+        ]
+      },
+      {
+        "feature": "High Contrast Mode",
+        "colorPaletteChanges": {
+          "background": "#0a0a12 → #000000",
+          "tileBorders": "#4f86f7 → #ffff00",
+          "specialTiles": All colors shift to high-contrast variants (+30% luminance difference)
+        }
+      },
+      {
+        "feature": "Voice Command Support",
+        "commands": [
+          "Drag tile [color] to catch zone",
+          "Drop tile here",
+          "Show controls guide",
+          "Toggle realm physics mode"
+        ]
+      },
+      {
+        "feature": "Screen Reader Compatibility",
+        "ariaImplementation": [
+          "<div role='grid' aria-label='Match-3 game grid, 64 points possible'>",
+          "<button aria-live='polite'>Score updated: +100 points</button>",
+          "<aria-live='assertive'>Match complete! Line cleared.</aria-live>"
+        ]
+      }
+    ]
+  },
+
+  "technicalSpecs": {
+    "unityIntegration": {
+      "coreModule": "Tile Physics System",
+      "assetPathStructure": "/data/openclaw/workspace/assets/match-3/",
+      "physicsEngine": "Unity Physics with Raycast validation layer",
+      "raycastPerformance": "<5ms per drag operation (target: <10ms)"
+    },
+
+    "threejsIntegration": {
+      "componentLibrary": [
+        "GridLayoutManager",
+        "RaycastCollisionSystem",
+        "CatchZoneRenderer",
+        "TileDragComponent",
+        "ParticleEffectEngine"
+      ],
+      "responsiveBreakpoints": {
+        "mobile": "<768px",
+        "tablet": "768-1024px", 
+        "desktop": ">1024px"
+      }
+    },
+
+    "performanceTargets": {
+      "frameRate": 60,
+      "gestureLatency": "<300ms (target: <200ms)",
+      "tileCollectionResponseTime": "<50ms",
+      "raycastValidationTime": "<10ms per drag operation",
+      "memoryBudget": {
+        "iOS": "<2GB RAM total",
+        "Android": "<1GB VRAM for rendering"
+      }
+    },
+
+    "mobileOptimizations": {
+      "ios": {
+        "touchActionSetting": "none (prevents scroll conflicts during drag)",
+        "hapticFeedbackAPI": "UIImpactFeedbackStyleMediumLight()",
+        "minimumTouchTarget": 44
+      },
+      "android": {
+        "gestureRecognition": "onGestureEvent() callbacks",
+        "hapticFeedbackAPI": "vibrator.vibrate([30, 50, 75])",
+        "safeZonePadding": "120px top (realm indicator), 80px bottom"
+      }
+    }
+  },
+
+  "deliverables": {
+    "day1": [
+      "Complete wireframe specification document ✅ (This file)",
+      "Figma design mockups (mobile + desktop views)",
+      "Gesture mapping matrix documentation",
+      "Accessibility compliance checklist"
+    ],
+    "day2": [
+      "Unity tile physics module scaffolding (Haplo)",
+      "Mobile touch shell integration with raycast collision (Paithan)",
+      "WebXR compatibility baseline tests",
+      "Initial gesture latency measurements"
+    ],
+    "day3": [
+      "First integration demo with core match-3 mechanics",
+      "Marit accessibility audit + fixes",
+      "User testing session (5 participants, 15 min each)"
+    ],
+    "futureExpansion": {
+      "realmAdditionDay7": "Gravity inversion in Pryan realm",
+      "realmAdditionDay9": "Light vision mode in Chelestra realm",
+      "realmAdditionDay10": "Sound patterns in Abarrach realm"
+    }
+  },
+
+  "deathGateExpansionPath": {
+    "phase1FoundationDays3_5": {
+      "focus": "Match-3 core mechanics + collision detection + raycast validation",
+      "deliverable": "Validated pipeline for particle effects, drag physics, grid UI"
+    },
+    "phase2RealmIntegrationDays6_10": {
+      "phase2aPryanGravityFlip": {
+        "mechanics": "Invert Y-axis gravity → Tiles fall upward instead of down",
+        "uiUpdates": "Add realm indicator + visual physics mode toggle",
+        "gestureAdjustments": "Drag direction feedback changes (drag up = tiles fall up)"
+      },
+      "phase2bChelestraLightVision": {
+        "mechanics": "Only matching tiles visible → Light beam highlights valid matches",
+        "uiUpdates": "Add light mode toggle + visual overlay effects",
+        "gestureAdjustments": "Hold gesture to activate light vision"
+      },
+      "phase2cAbarrachSoundPatterns": {
+        "mechanics": "Audio frequency-based tile identification → Each color has unique sound profile",
+        "uiUpdates": "Add audio toggle + sound visualization particles",
+        "gestureAdjustments": "Wave direction determines sound type"
+      },
+      "phase2dArianusNormalGravity": {
+        "mechanics": "Baseline physics (no special modifications)",
+        "uiUpdates": "Default realm indicator shows normal gravity icon",
+        "note": "Already implemented in phase 1 foundation"
+      }
+    }
+  }
+}

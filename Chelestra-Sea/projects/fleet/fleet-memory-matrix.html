@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Memory Config Matrix — Live from Servers 2026-04-01</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 20px;
+}
+h1 { color: #58a6ff; font-size: 22px; margin-bottom: 4px; }
+.sub { color: #8b949e; font-size: 12px; margin-bottom: 16px; }
+.sub b { color: #f0883e; }
+
+table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
+th, td { border: 1px solid #30363d; padding: 6px 8px; text-align: center; font-size: 13px; }
+th { background: #161b22; color: #8b949e; position: sticky; top: 0; z-index: 10; font-weight: 600; }
+th.setting { text-align: left; min-width: 200px; color: #d2a8ff; }
+th.srv-haplo { background: #1a2d1a; color: #7ee787; }
+th.srv-zifnab { background: #2d2d1a; color: #e3b341; }
+th.srv-hugh { background: #2d1a1a; color: #f78166; }
+
+td.setting { text-align: left; font-family: 'Cascadia Code', monospace; font-size: 12px; color: #d2a8ff; font-weight: 500; }
+td.val { font-family: 'Cascadia Code', monospace; font-size: 12px; }
+td.has { background: #122117; color: #7ee787; }
+td.none { background: #1a1215; color: #f85149; }
+td.gold { background: #1a2d1a; color: #3fb950; font-weight: 700; }
+
+.section-label {
+  background: #161b22;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0883e;
+  border: 1px solid #30363d;
+  border-bottom: none;
+  margin-top: 20px;
+}
+.legend {
+  display: flex; gap: 20px; margin-bottom: 16px; font-size: 12px;
+  background: #161b22; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d;
+}
+.legend span { display: flex; align-items: center; gap: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.dot-gold { background: #3fb950; }
+.dot-has { background: #7ee787; }
+.dot-none { background: #f85149; }
+
+tr:hover td { background: #1c2128 !important; }
+tr:hover td.gold { background: #1a3a1a !important; }
+tr:hover td.has { background: #1a2d1a !important; }
+tr:hover td.none { background: #2d1215 !important; }
+</style>
+</head>
+<body>
+
+<h1>Fleet Memory Config Matrix</h1>
+<div class="sub">Live data pulled from all 3 servers — <b>2026-04-01</b> | Config paths: <code>~/.openclaw/openclaw.json</code> (primaries) / <code>~/.openclaw-{name}/openclaw.json</code> (secondaries)</div>
+
+<div class="legend">
+  <span><span class="dot dot-gold"></span> GOLD = Haplo standard (target)</span>
+  <span><span class="dot dot-has"></span> SET = has value</span>
+  <span><span class="dot dot-none"></span> NONE = missing, needs adding</span>
+</div>
+
+<div class="section-label">Memory Backend & Search (CRITICAL — token spend)</div>
+<table>
+<tr>
+  <th class="setting">Setting</th>
+  <th class="srv-haplo">haplo</th>
+  <th class="srv-haplo">iridal</th>
+  <th class="srv-haplo">alfred</th>
+  <th class="srv-haplo">balthazar</th>
+  <th class="srv-haplo">ciang</th>
+  <th class="srv-haplo">edmund</th>
+  <th class="srv-haplo">jonathon</th>
+  <th class="srv-haplo">limbeck</th>
+  <th class="srv-haplo">trian</th>
+  <th class="srv-haplo">vasu</th>
+  <th class="srv-haplo">marit</th>
+  <th class="srv-haplo">paithan</th>
+  <th class="srv-zifnab">zifnab</th>
+  <th class="srv-zifnab">drugar</th>
+  <th class="srv-zifnab">ramu</th>
+  <th class="srv-zifnab">rega</th>
+  <th class="srv-hugh">hugh</th>
+  <th class="srv-hugh">devon</th>
+  <th class="srv-hugh">samah</th>
+  <th class="srv-hugh">sinistrad</th>
+</tr>
+<tr>
+  <td class="setting">memory.backend</td>
+  <td class="gold">qmd</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">qmd.command</td>
+  <td class="gold">~/.bun/bin/qmd</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">qmd.searchMode</td>
+  <td class="gold">search</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.provider</td>
+  <td class="gold">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="has">gemini</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">gemini</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">gemini</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">sessionMemory</td>
+  <td class="gold">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="has">true</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+  <td class="none">-</td>
+</tr>
+</table>
+
+<div class="section-label">Hybrid Search Tuning</div>
+<table>
+<tr>
+  <th class="setting">Setting</th>
+  <th class="srv-haplo">haplo</th>
+  <th class="srv-haplo">iridal</th>
+  <th class="srv-haplo">alfred</th>
+  <th class="srv-haplo">balthazar</th>
+  <th class="srv-haplo">ciang</th>
+  <th class="srv-haplo">edmund</th>
+  <th class="srv-haplo">jonathon</th>
+  <th class="srv-haplo">limbeck</th>
+  <th class="srv-haplo">trian</th>
+  <th class="srv-haplo">vasu</th>
+  <th class="srv-haplo">marit</th>
+  <th class="srv-haplo">paithan</th>
+  <th class="srv-zifnab">zifnab</th>
+  <th class="srv-zifnab">drugar</th>
+  <th class="srv-zifnab">ramu</th>
+  <th class="srv-zifnab">rega</th>
+  <th class="srv-hugh">hugh</th>
+  <th class="srv-hugh">devon</th>
+  <th class="srv-hugh">samah</th>
+  <th class="srv-hugh">sinistrad</th>
+</tr>
+<tr>
+  <td class="setting">hybrid.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">hybrid.vectorWeight</td>
+  <td class="gold">0.7</td>
+  <td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">0.7</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">0.7</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">hybrid.textWeight</td>
+  <td class="gold">0.3</td>
+  <td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td><td class="has">0.3</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">0.3</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">0.3</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">mmr.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">mmr.lambda</td>
+  <td class="gold">0.7</td>
+  <td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td><td class="has">0.7</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">0.7</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">0.7</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">temporalDecay.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">temporalDecay.halfLifeDays</td>
+  <td class="gold">30</td>
+  <td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td><td class="has">30</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">30</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">30</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+</table>
+
+<div class="section-label">Compaction & Context Pruning</div>
+<table>
+<tr>
+  <th class="setting">Setting</th>
+  <th class="srv-haplo">haplo</th>
+  <th class="srv-haplo">iridal</th>
+  <th class="srv-haplo">alfred</th>
+  <th class="srv-haplo">balthazar</th>
+  <th class="srv-haplo">ciang</th>
+  <th class="srv-haplo">edmund</th>
+  <th class="srv-haplo">jonathon</th>
+  <th class="srv-haplo">limbeck</th>
+  <th class="srv-haplo">trian</th>
+  <th class="srv-haplo">vasu</th>
+  <th class="srv-haplo">marit</th>
+  <th class="srv-haplo">paithan</th>
+  <th class="srv-zifnab">zifnab</th>
+  <th class="srv-zifnab">drugar</th>
+  <th class="srv-zifnab">ramu</th>
+  <th class="srv-zifnab">rega</th>
+  <th class="srv-hugh">hugh</th>
+  <th class="srv-hugh">devon</th>
+  <th class="srv-hugh">samah</th>
+  <th class="srv-hugh">sinistrad</th>
+</tr>
+<tr>
+  <td class="setting">compaction.mode</td>
+  <td class="gold">default</td>
+  <td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td><td class="has">default</td>
+  <td class="has">safeguard</td><td class="has">safeguard</td>
+  <td class="has">default</td><td class="has">safeguard</td><td class="has">safeguard</td><td class="has">safeguard</td>
+  <td class="has">default</td><td class="has">safeguard</td><td class="has">safeguard</td><td class="has">safeguard</td>
+</tr>
+<tr>
+  <td class="setting">compaction.reserveTokensFloor</td>
+  <td class="gold">20000</td>
+  <td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td><td class="has">20000</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">20000</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">20000</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">memoryFlush.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">memoryFlush.softThreshold</td>
+  <td class="gold">40000</td>
+  <td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td><td class="has">40000</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">40000</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">40000</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.mode</td>
+  <td class="gold">cache-ttl</td>
+  <td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td><td class="has">cache-ttl</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">cache-ttl</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.ttl</td>
+  <td class="gold">6h</td>
+  <td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td><td class="has">6h</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">6h</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.keepLast</td>
+  <td class="gold">3</td>
+  <td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td><td class="has">3</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">3</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+</table>
+
+<div class="section-label">Agent Capabilities & Other</div>
+<table>
+<tr>
+  <th class="setting">Setting</th>
+  <th class="srv-haplo">haplo</th>
+  <th class="srv-haplo">iridal</th>
+  <th class="srv-haplo">alfred</th>
+  <th class="srv-haplo">balthazar</th>
+  <th class="srv-haplo">ciang</th>
+  <th class="srv-haplo">edmund</th>
+  <th class="srv-haplo">jonathon</th>
+  <th class="srv-haplo">limbeck</th>
+  <th class="srv-haplo">trian</th>
+  <th class="srv-haplo">vasu</th>
+  <th class="srv-haplo">marit</th>
+  <th class="srv-haplo">paithan</th>
+  <th class="srv-zifnab">zifnab</th>
+  <th class="srv-zifnab">drugar</th>
+  <th class="srv-zifnab">ramu</th>
+  <th class="srv-zifnab">rega</th>
+  <th class="srv-hugh">hugh</th>
+  <th class="srv-hugh">devon</th>
+  <th class="srv-hugh">samah</th>
+  <th class="srv-hugh">sinistrad</th>
+</tr>
+<tr>
+  <td class="setting">thinkingDefault</td>
+  <td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">subagents.maxConcurrent</td>
+  <td class="gold">8</td>
+  <td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td><td class="has">8</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">8</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">sandbox.mode</td>
+  <td class="gold">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+</tr>
+<tr>
+  <td class="setting">bootstrapMaxChars</td>
+  <td class="gold">30000</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">30000</td><td class="has">30000</td>
+  <td class="has">30000</td><td class="has">30000</td><td class="has">30000</td><td class="has">30000</td>
+  <td class="has">30000</td><td class="has">30000</td><td class="has">30000</td><td class="has">30000</td>
+</tr>
+<tr>
+  <td class="setting">bootstrapTotalMaxChars</td>
+  <td class="gold">180000</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">180000</td><td class="has">180000</td>
+  <td class="has">180000</td><td class="has">180000</td><td class="has">180000</td><td class="has">180000</td>
+  <td class="has">180000</td><td class="has">180000</td><td class="has">180000</td><td class="has">180000</td>
+</tr>
+<tr>
+  <td class="setting">streaming</td>
+  <td class="gold">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+  <td class="has">off</td><td class="has">off</td><td class="has">off</td><td class="has">off</td>
+</tr>
+<tr>
+  <td class="setting">historyLimit</td>
+  <td class="gold">25</td>
+  <td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td>
+  <td class="has">25</td><td class="has">25</td>
+  <td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td>
+  <td class="has">25</td><td class="has">25</td><td class="has">25</td><td class="has">25</td>
+</tr>
+<tr>
+  <td class="setting">allowBots</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="none">-</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="none">-</td><td class="has">true</td>
+  <td class="has">true</td><td class="has">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+</tr>
+<tr>
+  <td class="setting">cron.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td><td class="has">false</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">tools.exec.security</td>
+  <td class="none">-</td>
+  <td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td>
+  <td class="has">full</td><td class="has">full</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="none">-</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+<tr>
+  <td class="setting">tools.profile</td>
+  <td class="gold">full</td>
+  <td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td>
+  <td class="has">full</td><td class="has">full</td>
+  <td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td>
+  <td class="has">full</td><td class="has">full</td><td class="has">full</td><td class="has">full</td>
+</tr>
+<tr>
+  <td class="setting">browser.enabled</td>
+  <td class="gold">true</td>
+  <td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td><td class="has">true</td>
+  <td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+  <td class="has">true</td><td class="none">-</td><td class="none">-</td><td class="none">-</td>
+</tr>
+</table>
+
+<div style="margin-top:20px; padding:16px; background:#161b22; border:1px solid #30363d; border-radius:8px; font-size:13px; color:#8b949e;">
+  <b style="color:#f0883e;">Summary of gaps (agents missing ALL memory/search/compaction settings):</b><br><br>
+  <b style="color:#f85149;">LIGHT tier (completely bare memory):</b> marit, paithan, drugar, ramu, rega, devon, samah, sinistrad<br>
+  <b style="color:#e3b341;">Partial gaps:</b> zifnab (missing contextPruning), ciang+trian (missing allowBots), iridal thru vasu (missing QMD + bootstrapMaxChars)<br>
+  <b style="color:#3fb950;">Gold standard:</b> haplo (only agent with QMD backend)<br><br>
+  <b style="color:#8b949e;">Config file locations:</b><br>
+  Haplo: <code>/home/openclaw/.openclaw/openclaw.json</code> (primary)<br>
+  Secondaries on same server: <code>/home/openclaw/.openclaw-{name}/openclaw.json</code><br>
+  Zifnab: <code>/home/openclaw/.openclaw/openclaw.json</code> (primary)<br>
+  Hugh: <code>/home/openclaw/.openclaw/openclaw.json</code> (primary)
+</div>
+
+</body>
+</html>
