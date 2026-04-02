@@ -16,6 +16,15 @@ All agent code, workflows, and configuration now reside in the consolidated mono
 
 Legacy standalone repositories (e.g., `/data/openclaw/workspace/Pryan-Fire/`) are deprecated. Never write to them directly.
 
+## OpenClaw CLI Profile Rule (MANDATORY)
+
+**ALWAYS use `--profile <name>` when running any `openclaw` CLI command on servers.** Every agent runs from its own profile-specific root at `~/.openclaw-<name>/`. The default root (`~/.openclaw`) is NOT any agent — running CLI commands without `--profile` hits the wrong config and can break things.
+
+- Agent configs live at: `~/.openclaw-<name>/openclaw.json`
+- Agent state lives at: `~/.openclaw-<name>/`
+- **NEVER read or edit `/data/openclaw/openclaw.json`** — that is the old default root, not a live agent config.
+- **NEVER assume `~/.openclaw` is the right path** — it is a legacy symlink to `/data/openclaw/` and is not used by any running gateway.
+
 ---
 
 ## Branch Discipline (MANDATORY — NO EXCEPTIONS)
@@ -166,6 +175,41 @@ All workflow files remain at:
 `/data/openclaw/workspace/workflows/*.lobster`
 
 They reference The-Nexus paths in their arguments.
+
+---
+
+## MCP Servers (Live — 2026-03-24)
+
+Two MCP servers run on Lord Xar's Windows machine and are forwarded to ola-claw-dev via socat.
+
+| MCP | Windows Port | Dev Local Port | Agent | mcporter name |
+|---|---|---|---|---|
+| Unity (CoplayDev/unity-mcp) | 8080 | 18080 | Vasu | `unity-mcp` |
+| Roblox (boshyxd/robloxstudio-mcp) | 8090 | 18090 | Limbeck | `roblox-mcp` |
+
+**Architecture:**
+```
+Agent (danger-full-access sandbox) → Tailscale → 100.90.155.49:8080/8090 (Windows)
+```
+
+**Windows startup (must be running for MCP to work):**
+```bash
+# Unity MCP (HTTP transport, port 8080)
+uvx --from mcpforunityserver mcp-for-unity --transport http --http-host 0.0.0.0 --http-port 8080
+
+# Roblox MCP (stdio wrapped via supergateway as streamable HTTP, port 8090)
+npx -y supergateway --stdio "npx -y robloxstudio-mcp@latest" --port 8090 --outputTransport streamableHttp --cors
+```
+
+**mcporter config:** `/home/openclaw/config/mcporter.json` — shared by all agents on dev. Points to `100.90.155.49` (Windows Tailscale IP).
+
+**Sandbox override (Vasu + Limbeck only):**
+OpenClaw gateway hardcodes `--sandbox workspace-write` for codex-cli backends (in `discord-CcCLMjHw.js`). This blocks network access. Vasu and Limbeck have a config override at `agents.defaults.cliBackends.codex-cli` in their `openclaw.json` that sets `--sandbox danger-full-access` to allow MCP network calls. No other agents are affected.
+
+**Unity Editor plugin:** Window > Package Manager > + > Add from git URL:
+`https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main`
+
+**Roblox Studio plugin:** Install from `boshyxd/robloxstudio-mcp` releases. Enable "Allow HTTP Requests" in Experience Settings > Security.
 
 ---
 

@@ -1,0 +1,71 @@
+# GSD Project: Assassins Ledger (Trading Intelligence Feed)
+
+**Project Board:** https://github.com/orgs/The-Nexus-Decoded/projects/11
+**Owner:** Alfred (supervision), Zifnab (coordination)
+**Agent:** Haplo
+**Repo:** Pryan-Fire (hughs-forge) + Abarrach-Stone (schema)
+
+## Milestones
+
+1. **M1: Database Schema Migration** (Abarrach-Stone#3)
+   - Add columns: entry_price, exit_price, rejection_reason, route, tx_signature, slippage_bps, fee_lamports, executed_at
+   - Backfill existing 564 records (if any) from JSON `data` field where available
+   - Migration script: Python + SQLite ALTER TABLE
+
+2. **M2: Enhanced Trade Data Capture** (Pryan-Fire#184)
+   - Modify `RpcIntegrator.execute_jupiter_trade()` to return structured dict (not bool) with:
+     - success: bool
+     - tx_signature: Optional[str]
+     - entry_price: float
+     - slippage_bps: Optional[int]
+     - fee_lamports: Optional[int]
+     - error: Optional[str]
+   - Modify `TradeOrchestrator.process_signal()` to use new return format and populate enriched DB fields
+   - Capture rejection reasons at validation stage
+
+3. **M3: Discord Webhook Broadcaster** (Pryan-Fire#185)
+   - Create `services/trade-orchestrator/src/feed/discord_broadcaster.py`
+   - Rate limiting: max 5 messages/min using token bucket
+   - Embed format: color-coded (success/error/warning), includes trade_id, token, amount, route, tx_signature, rejection_reason
+   - Config: webhook URL from env var `DISCORD_TRADE_ALERTS_WEBHOOK`
+   - Functions: `broadcast_trade_executed(trade_data)`, `broadcast_trade_failed(trade_data)`, `broadcast_trade_rejected(trade_data)`
+
+4. **M4: Hourly Stats Tracker** (Pryan-Fire#186)
+   - Create `services/trade-orchestrator/src/feed/stats_tracker.py`
+   - Background thread that runs hourly, aggregates trades from last hour
+   - Output to `feed_stats.json` with keys:
+     - timestamp (ISO)
+     - trades_count
+     - total_volume_usd
+     - avg_trade_size_usd
+     - success_rate
+     - total_fees_lamports
+     - route_distribution: { "JUPITER": count, "METEORA": count }
+     - top_tokens: [ {mint, count}, ... ]
+   - In-memory cache refreshed hourly; persists to disk
+
+5. **M5: Integration & Testing**
+   - Update `main.py` to initialize and start stats tracker thread
+   - Inject Discord broadcaster into orchestrator
+   - Unit tests for rate limiting, stats aggregation, DB migration
+   - Dry-run end-to-end test with mock Jupiter API
+   - PR with verification steps
+
+## Dependencies
+
+- **DB migration** must precede code changes that write new columns
+- **RpcIntegrator** return type change is breaking; update all callers
+- **Discord webhook URL** provided by Xar via `/data/openclaw/config/discord-webhook.url`
+- Rate limiting: use existing token bucket pattern from codebase if available
+
+## Acceptance Criteria
+
+- All 4 GitHub issues meet their definition of done
+- PR includes: code changes, migration SQL, unit tests, verification script
+- Deployment: PR merged -> GitHub Actions deploy to ola-claw-trade
+- Alfred sign-off required before merge
+
+## Status
+
+- Not started
+- Blockers: None

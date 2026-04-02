@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fleet Config Decision Matrix — Haplo vs Iridal</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; background: #0d1117; color: #c9d1d9; padding: 20px; }
+h1 { color: #58a6ff; font-size: 24px; margin-bottom: 8px; }
+.sub { color: #8b949e; font-size: 13px; margin-bottom: 20px; }
+.sub b { color: #f0883e; }
+
+.section-label {
+  background: #161b22; padding: 12px 16px; font-size: 17px; font-weight: 600;
+  color: #f0883e; border: 1px solid #30363d; border-bottom: none; margin-top: 28px;
+  cursor: pointer; user-select: none;
+}
+.section-label:hover { background: #1c2128; }
+
+table { border-collapse: collapse; width: 100%; margin-bottom: 0; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; font-size: 14px; vertical-align: top; }
+th { background: #161b22; color: #8b949e; position: sticky; top: 0; z-index: 10; font-weight: 600; }
+th.setting { min-width: 260px; color: #d2a8ff; }
+th.desc { min-width: 280px; }
+th.options { min-width: 200px; color: #f0883e; }
+th.haplo { min-width: 160px; background: #1a2d1a; color: #7ee787; }
+th.iridal { min-width: 160px; background: #1a1a2d; color: #a5b4fc; }
+th.power { min-width: 180px; background: #2d1a1a; color: #f97316; }
+th.base { min-width: 180px; background: #1a2d2d; color: #22d3ee; }
+
+td.setting { font-family: 'Cascadia Code', monospace; font-size: 13px; color: #d2a8ff; font-weight: 500; }
+td.desc { color: #8b949e; font-size: 13px; }
+td.options { font-family: 'Cascadia Code', monospace; font-size: 12px; color: #f0883e; }
+td.val { font-family: 'Cascadia Code', monospace; font-size: 13px; }
+td.has { background: #122117; color: #7ee787; }
+td.none { background: #1a1215; color: #484848; font-style: italic; }
+td.iridal-has { background: #12121f; color: #a5b4fc; }
+td.iridal-none { background: #1a1215; color: #484848; font-style: italic; }
+
+input[type="text"], select {
+  background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 8px;
+  border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: 13px; width: 100%;
+}
+input:focus, select:focus { border-color: #58a6ff; outline: none; box-shadow: 0 0 0 2px rgba(88,166,255,0.2); }
+input.changed, select.changed { border-color: #f0883e; background: #1a1208; }
+
+.legend { display: flex; gap: 20px; margin-bottom: 16px; font-size: 13px; background: #161b22; padding: 10px 14px; border-radius: 6px; border: 1px solid #30363d; flex-wrap: wrap; }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.dot-haplo { background: #7ee787; }
+.dot-iridal { background: #a5b4fc; }
+.dot-power { background: #f97316; }
+.dot-base { background: #22d3ee; }
+.dot-none { background: #484848; }
+
+tr:hover td { background: #1c2128 !important; }
+
+.actions { margin: 20px 0; display: flex; gap: 12px; }
+.btn { padding: 10px 20px; border: 1px solid #30363d; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 500; }
+.btn-primary { background: #238636; border-color: #238636; color: #fff; }
+.btn-primary:hover { background: #2ea043; }
+.btn-secondary { background: #21262d; color: #c9d1d9; }
+.btn-secondary:hover { background: #30363d; }
+
+#output { margin-top: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-family: 'Cascadia Code', monospace; font-size: 13px; white-space: pre-wrap; display: none; max-height: 600px; overflow-y: auto; color: #7ee787; }
+</style>
+</head>
+<body>
+
+<h1>Fleet Config Decision Matrix</h1>
+<div class="sub">Haplo (GOLD standard) vs Iridal (review target) — <b>2026-04-01</b> | Power Agent = coders/admins | Base Agent = restricted roles</div>
+
+<div class="legend">
+  <span><span class="dot dot-haplo"></span> Haplo (gold standard)</span>
+  <span><span class="dot dot-iridal"></span> Iridal (review target)</span>
+  <span><span class="dot dot-power"></span> Power Agent (editable)</span>
+  <span><span class="dot dot-base"></span> Base Agent (editable)</span>
+  <span><span class="dot dot-none"></span> Not set</span>
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" onclick="exportJSON()">Export Power + Base as JSON</button>
+  <button class="btn btn-secondary" onclick="copyPower()">Copy Power Agent JSON</button>
+  <button class="btn btn-secondary" onclick="copyBase()">Copy Base Agent JSON</button>
+  <button class="btn btn-secondary" onclick="resetAll()">Reset to Iridal defaults</button>
+</div>
+<div id="output"></div>
+
+<!-- AGENT DEFAULTS -->
+<div class="section-label">Agent Defaults &amp; Model Chain</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">agents.defaults.thinkingDefault</td>
+  <td class="desc">Reasoning depth. Higher = more tokens burned</td>
+  <td class="options">off, minimal, low, medium, high, xhigh, adaptive</td>
+  <td class="val has">off</td>
+  <td class="val iridal-none">unset</td>
+  <td><select data-key="agents.defaults.thinkingDefault" data-tier="power" onchange="mark(this)"><option value="">unset</option><option value="off" selected>off</option><option value="minimal">minimal</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option><option value="adaptive">adaptive</option></select></td>
+  <td><select data-key="agents.defaults.thinkingDefault" data-tier="base" onchange="mark(this)"><option value="">unset</option><option value="off" selected>off</option><option value="minimal">minimal</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option><option value="adaptive">adaptive</option></select></td>
+</tr>
+<tr>
+  <td class="setting">agents.defaults.sandbox.mode</td>
+  <td class="desc">Execution sandboxing. "off"=unrestricted, "non-main"=sandbox subagents, "all"=sandbox everything</td>
+  <td class="options">off, non-main, all</td>
+  <td class="val has">off</td>
+  <td class="val iridal-has">off</td>
+  <td><select data-key="agents.defaults.sandbox.mode" data-tier="power" onchange="mark(this)"><option value="off" selected>off</option><option value="non-main">non-main</option><option value="all">all</option></select></td>
+  <td><select data-key="agents.defaults.sandbox.mode" data-tier="base" onchange="mark(this)"><option value="off">off</option><option value="non-main">non-main</option><option value="all" selected>all</option></select></td>
+</tr>
+<tr>
+  <td class="setting">agents.defaults.bootstrapMaxChars</td>
+  <td class="desc">Max chars per bootstrap file loaded at session start</td>
+  <td class="options">number (positive integer)</td>
+  <td class="val has">30000</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="agents.defaults.bootstrapMaxChars" data-tier="power" value="30000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="agents.defaults.bootstrapMaxChars" data-tier="base" value="30000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">agents.defaults.bootstrapTotalMaxChars</td>
+  <td class="desc">Total bootstrap chars limit across all files</td>
+  <td class="options">number (positive integer)</td>
+  <td class="val has">180000</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="agents.defaults.bootstrapTotalMaxChars" data-tier="power" value="180000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="agents.defaults.bootstrapTotalMaxChars" data-tier="base" value="180000" onchange="mark(this)"></td>
+</tr>
+</table>
+
+<!-- MEMORY -->
+<div class="section-label">Memory Backend &amp; Search</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">memory.backend</td>
+  <td class="desc">Memory system backend. QMD = local/free. Builtin = needs embedding API</td>
+  <td class="options">builtin, qmd, honcho</td>
+  <td class="val has">qmd</td>
+  <td class="val iridal-none">unset (builtin)</td>
+  <td><select data-key="memory.backend" data-tier="power" onchange="mark(this)"><option value="">unset</option><option value="builtin">builtin</option><option value="qmd" selected>qmd</option><option value="honcho">honcho</option></select></td>
+  <td><select data-key="memory.backend" data-tier="base" onchange="mark(this)"><option value="">unset</option><option value="builtin">builtin</option><option value="qmd" selected>qmd</option><option value="honcho">honcho</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memory.citations</td>
+  <td class="desc">Show source attribution in memory search results</td>
+  <td class="options">auto, on, off</td>
+  <td class="val has">auto</td>
+  <td class="val iridal-none">unset</td>
+  <td><select data-key="memory.citations" data-tier="power" onchange="mark(this)"><option value="">unset</option><option value="auto" selected>auto</option><option value="on">on</option><option value="off">off</option></select></td>
+  <td><select data-key="memory.citations" data-tier="base" onchange="mark(this)"><option value="">unset</option><option value="auto" selected>auto</option><option value="on">on</option><option value="off">off</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.command</td>
+  <td class="desc">Path to QMD binary</td>
+  <td class="options">string (file path)</td>
+  <td class="val has">~/.bun/bin/qmd</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="memory.qmd.command" data-tier="power" value="/home/openclaw/.bun/bin/qmd" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memory.qmd.command" data-tier="base" value="/home/openclaw/.bun/bin/qmd" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.searchMode</td>
+  <td class="desc">QMD search type. search=hybrid, vsearch=vector only, query=natural language</td>
+  <td class="options">search, vsearch, query</td>
+  <td class="val has">search</td>
+  <td class="val iridal-none">unset</td>
+  <td><select data-key="memory.qmd.searchMode" data-tier="power" onchange="mark(this)"><option value="">unset</option><option value="search" selected>search</option><option value="vsearch">vsearch</option><option value="query">query</option></select></td>
+  <td><select data-key="memory.qmd.searchMode" data-tier="base" onchange="mark(this)"><option value="">unset</option><option value="search" selected>search</option><option value="vsearch">vsearch</option><option value="query">query</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.includeDefaultMemory</td>
+  <td class="desc">Auto-index MEMORY.md + memory/*.md files</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-none">unset</td>
+  <td><select data-key="memory.qmd.includeDefaultMemory" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memory.qmd.includeDefaultMemory" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.update.interval</td>
+  <td class="desc">How often QMD re-indexes memory files</td>
+  <td class="options">duration string (e.g. "5m")</td>
+  <td class="val has">5m</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="memory.qmd.update.interval" data-tier="power" value="5m" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memory.qmd.update.interval" data-tier="base" value="5m" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.update.debounceMs</td>
+  <td class="desc">Debounce file changes before re-indexing</td>
+  <td class="options">number (ms)</td>
+  <td class="val has">15000</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="memory.qmd.update.debounceMs" data-tier="power" value="15000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memory.qmd.update.debounceMs" data-tier="base" value="15000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.limits.maxResults</td>
+  <td class="desc">Max search results returned by QMD</td>
+  <td class="options">number (integer)</td>
+  <td class="val has">6</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="memory.qmd.limits.maxResults" data-tier="power" value="6" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memory.qmd.limits.maxResults" data-tier="base" value="6" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memory.qmd.limits.timeoutMs</td>
+  <td class="desc">QMD search timeout</td>
+  <td class="options">number (ms)</td>
+  <td class="val has">4000</td>
+  <td class="val iridal-none">unset</td>
+  <td><input type="text" data-key="memory.qmd.limits.timeoutMs" data-tier="power" value="4000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memory.qmd.limits.timeoutMs" data-tier="base" value="4000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.enabled</td>
+  <td class="desc">Master toggle for semantic memory search</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-has">true</td>
+  <td><select data-key="memorySearch.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memorySearch.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.provider</td>
+  <td class="desc">Embedding provider for vectorizing. gemini=$$$, local=free CPU, ollama=free GPU</td>
+  <td class="options">openai, gemini, voyage, mistral, ollama, local</td>
+  <td class="val has">gemini</td>
+  <td class="val iridal-has">gemini</td>
+  <td><select data-key="memorySearch.provider" data-tier="power" onchange="mark(this)"><option value="">auto</option><option value="gemini" selected>gemini</option><option value="openai">openai</option><option value="local">local</option><option value="ollama">ollama</option><option value="voyage">voyage</option><option value="mistral">mistral</option></select></td>
+  <td><select data-key="memorySearch.provider" data-tier="base" onchange="mark(this)"><option value="">auto</option><option value="gemini" selected>gemini</option><option value="openai">openai</option><option value="local">local</option><option value="ollama">ollama</option><option value="voyage">voyage</option><option value="mistral">mistral</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.experimental.sessionMemory</td>
+  <td class="desc">Index session transcripts for cross-session recall. Creates GB-sized DBs!</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-has">true</td>
+  <td><select data-key="memorySearch.experimental.sessionMemory" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memorySearch.experimental.sessionMemory" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.enabled</td>
+  <td class="desc">Combined vector + keyword search for better recall</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-has">true</td>
+  <td><select data-key="memorySearch.query.hybrid.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memorySearch.query.hybrid.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.vectorWeight</td>
+  <td class="desc">Semantic similarity weight in hybrid ranking (0-1)</td>
+  <td class="options">number 0-1</td>
+  <td class="val has">0.7</td>
+  <td class="val iridal-has">0.7</td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.vectorWeight" data-tier="power" value="0.7" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.vectorWeight" data-tier="base" value="0.7" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.textWeight</td>
+  <td class="desc">Keyword relevance weight in hybrid ranking (0-1)</td>
+  <td class="options">number 0-1</td>
+  <td class="val has">0.3</td>
+  <td class="val iridal-has">0.3</td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.textWeight" data-tier="power" value="0.3" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.textWeight" data-tier="base" value="0.3" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.mmr.enabled</td>
+  <td class="desc">Maximal Marginal Relevance — reduces redundant results, surfaces diverse topics</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-has">true</td>
+  <td><select data-key="memorySearch.query.hybrid.mmr.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memorySearch.query.hybrid.mmr.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.mmr.lambda</td>
+  <td class="desc">Diversity vs relevance. 0=max diverse, 1=max relevant</td>
+  <td class="options">number 0-1</td>
+  <td class="val has">0.7</td>
+  <td class="val iridal-has">0.7</td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.mmr.lambda" data-tier="power" value="0.7" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.mmr.lambda" data-tier="base" value="0.7" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.temporalDecay.enabled</td>
+  <td class="desc">Recency boost — older notes lose weight over time</td>
+  <td class="options">true, false</td>
+  <td class="val has">true</td>
+  <td class="val iridal-has">true</td>
+  <td><select data-key="memorySearch.query.hybrid.temporalDecay.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="memorySearch.query.hybrid.temporalDecay.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">memorySearch.query.hybrid.temporalDecay.halfLifeDays</td>
+  <td class="desc">Days for ranking weight to halve</td>
+  <td class="options">number (positive integer)</td>
+  <td class="val has">30</td>
+  <td class="val iridal-has">30</td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.temporalDecay.halfLifeDays" data-tier="power" value="30" onchange="mark(this)"></td>
+  <td><input type="text" data-key="memorySearch.query.hybrid.temporalDecay.halfLifeDays" data-tier="base" value="30" onchange="mark(this)"></td>
+</tr>
+</table>
+
+<!-- COMPACTION -->
+<div class="section-label">Compaction &amp; Context Pruning</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">compaction.mode</td><td class="desc">Auto-compaction strategy for context compression</td><td class="options">default, safeguard</td>
+  <td class="val has">default</td><td class="val iridal-has">default</td>
+  <td><select data-key="compaction.mode" data-tier="power" onchange="mark(this)"><option value="default" selected>default</option><option value="safeguard">safeguard</option></select></td>
+  <td><select data-key="compaction.mode" data-tier="base" onchange="mark(this)"><option value="default" selected>default</option><option value="safeguard">safeguard</option></select></td>
+</tr>
+<tr>
+  <td class="setting">compaction.reserveTokensFloor</td><td class="desc">Hard token reserve before compaction triggers</td><td class="options">number (default: 20000)</td>
+  <td class="val has">20000</td><td class="val iridal-has">20000</td>
+  <td><input type="text" data-key="compaction.reserveTokensFloor" data-tier="power" value="20000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="compaction.reserveTokensFloor" data-tier="base" value="20000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">compaction.memoryFlush.enabled</td><td class="desc">Silent turn before compaction to write durable memories</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="compaction.memoryFlush.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="compaction.memoryFlush.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">compaction.memoryFlush.softThresholdTokens</td><td class="desc">Early warning buffer — flush triggers at this distance before reserve floor</td><td class="options">number (default: 4000)</td>
+  <td class="val has">40000</td><td class="val iridal-has">40000</td>
+  <td><input type="text" data-key="compaction.memoryFlush.softThresholdTokens" data-tier="power" value="40000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="compaction.memoryFlush.softThresholdTokens" data-tier="base" value="40000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.mode</td><td class="desc">How old tool results are pruned from context</td><td class="options">cache-ttl, off</td>
+  <td class="val has">cache-ttl</td><td class="val iridal-has">cache-ttl</td>
+  <td><select data-key="contextPruning.mode" data-tier="power" onchange="mark(this)"><option value="cache-ttl" selected>cache-ttl</option><option value="off">off</option></select></td>
+  <td><select data-key="contextPruning.mode" data-tier="base" onchange="mark(this)"><option value="cache-ttl" selected>cache-ttl</option><option value="off">off</option></select></td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.ttl</td><td class="desc">How long tool results live in context before pruning</td><td class="options">duration (e.g. "5m", "1h", "6h")</td>
+  <td class="val has">6h</td><td class="val iridal-has">6h</td>
+  <td><input type="text" data-key="contextPruning.ttl" data-tier="power" value="6h" onchange="mark(this)"></td>
+  <td><input type="text" data-key="contextPruning.ttl" data-tier="base" value="6h" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">contextPruning.keepLastAssistants</td><td class="desc">Protect N recent assistant turns from pruning</td><td class="options">number (integer)</td>
+  <td class="val has">3</td><td class="val iridal-has">3</td>
+  <td><input type="text" data-key="contextPruning.keepLastAssistants" data-tier="power" value="3" onchange="mark(this)"></td>
+  <td><input type="text" data-key="contextPruning.keepLastAssistants" data-tier="base" value="3" onchange="mark(this)"></td>
+</tr>
+</table>
+
+<!-- TOOLS -->
+<div class="section-label">Tools &amp; Security</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">tools.exec.security</td><td class="desc">Shell command execution enforcement</td><td class="options">deny, allowlist, full</td>
+  <td class="val has">full</td><td class="val iridal-has">full</td>
+  <td><select data-key="tools.exec.security" data-tier="power" onchange="mark(this)"><option value="deny">deny</option><option value="allowlist">allowlist</option><option value="full" selected>full</option></select></td>
+  <td><select data-key="tools.exec.security" data-tier="base" onchange="mark(this)"><option value="deny">deny</option><option value="allowlist" selected>allowlist</option><option value="full">full</option></select></td>
+</tr>
+<tr>
+  <td class="setting">tools.profile</td><td class="desc">Base tool allowlist level</td><td class="options">full, coding, messaging, minimal</td>
+  <td class="val has">full</td><td class="val iridal-has">full</td>
+  <td><select data-key="tools.profile" data-tier="power" onchange="mark(this)"><option value="full" selected>full</option><option value="coding">coding</option><option value="messaging">messaging</option><option value="minimal">minimal</option></select></td>
+  <td><select data-key="tools.profile" data-tier="base" onchange="mark(this)"><option value="full">full</option><option value="coding" selected>coding</option><option value="messaging">messaging</option><option value="minimal">minimal</option></select></td>
+</tr>
+<tr>
+  <td class="setting">tools.sessions.visibility</td><td class="desc">Which sessions the session tools can target</td><td class="options">self, tree, agent, all</td>
+  <td class="val has">agent</td><td class="val iridal-has">agent</td>
+  <td><select data-key="tools.sessions.visibility" data-tier="power" onchange="mark(this)"><option value="self">self</option><option value="tree">tree</option><option value="agent" selected>agent</option><option value="all">all</option></select></td>
+  <td><select data-key="tools.sessions.visibility" data-tier="base" onchange="mark(this)"><option value="self" selected>self</option><option value="tree">tree</option><option value="agent">agent</option><option value="all">all</option></select></td>
+</tr>
+<tr>
+  <td class="setting">tools.agentToAgent.enabled</td><td class="desc">Direct communication between agents</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="tools.agentToAgent.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="tools.agentToAgent.enabled" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">tools.elevated.enabled</td><td class="desc">Access to elevated/dangerous tools</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="tools.elevated.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="tools.elevated.enabled" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+</table>
+
+<!-- ACP & SUBAGENTS -->
+<div class="section-label">ACP &amp; Subagents</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">acp.enabled</td><td class="desc">Agent Communication Protocol — spawn external CLI backends</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="acp.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="acp.enabled" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">acp.maxConcurrentSessions</td><td class="desc">Max parallel ACP sessions</td><td class="options">number (integer)</td>
+  <td class="val has">8</td><td class="val iridal-has">8</td>
+  <td><input type="text" data-key="acp.maxConcurrentSessions" data-tier="power" value="8" onchange="mark(this)"></td>
+  <td><input type="text" data-key="acp.maxConcurrentSessions" data-tier="base" value="4" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">subagents.maxConcurrent</td><td class="desc">Max parallel sub-agent sessions</td><td class="options">number (4-8 typical)</td>
+  <td class="val has">8</td><td class="val iridal-has">8</td>
+  <td><input type="text" data-key="subagents.maxConcurrent" data-tier="power" value="8" onchange="mark(this)"></td>
+  <td><input type="text" data-key="subagents.maxConcurrent" data-tier="base" value="4" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">subagents.maxSpawnDepth</td><td class="desc">How deeply sub-agents can nest</td><td class="options">number (1-5)</td>
+  <td class="val has">2</td><td class="val iridal-has">2</td>
+  <td><input type="text" data-key="subagents.maxSpawnDepth" data-tier="power" value="2" onchange="mark(this)"></td>
+  <td><input type="text" data-key="subagents.maxSpawnDepth" data-tier="base" value="1" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">subagents.maxChildrenPerAgent</td><td class="desc">Max child sub-agents per parent</td><td class="options">number (1-20)</td>
+  <td class="val has">5</td><td class="val iridal-has">5</td>
+  <td><input type="text" data-key="subagents.maxChildrenPerAgent" data-tier="power" value="5" onchange="mark(this)"></td>
+  <td><input type="text" data-key="subagents.maxChildrenPerAgent" data-tier="base" value="3" onchange="mark(this)"></td>
+</tr>
+</table>
+
+<!-- DISCORD -->
+<div class="section-label">Discord</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">discord.historyLimit</td><td class="desc">Recent guild messages loaded as context</td><td class="options">number (0+)</td>
+  <td class="val has">25</td><td class="val iridal-has">25</td>
+  <td><input type="text" data-key="discord.historyLimit" data-tier="power" value="25" onchange="mark(this)"></td>
+  <td><input type="text" data-key="discord.historyLimit" data-tier="base" value="25" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">discord.textChunkLimit</td><td class="desc">Max chars per Discord message before splitting</td><td class="options">number (max 2000)</td>
+  <td class="val has">2000</td><td class="val iridal-has">2000</td>
+  <td><input type="text" data-key="discord.textChunkLimit" data-tier="power" value="2000" onchange="mark(this)"></td>
+  <td><input type="text" data-key="discord.textChunkLimit" data-tier="base" value="2000" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">discord.streaming</td><td class="desc">Live response streaming mode</td><td class="options">off, partial, block, progress</td>
+  <td class="val has">off</td><td class="val iridal-has">off</td>
+  <td><select data-key="discord.streaming" data-tier="power" onchange="mark(this)"><option value="off" selected>off</option><option value="partial">partial</option><option value="block">block</option><option value="progress">progress</option></select></td>
+  <td><select data-key="discord.streaming" data-tier="base" onchange="mark(this)"><option value="off" selected>off</option><option value="partial">partial</option><option value="block">block</option><option value="progress">progress</option></select></td>
+</tr>
+<tr>
+  <td class="setting">discord.retry.attempts</td><td class="desc">Max retries for failed Discord API calls</td><td class="options">number</td>
+  <td class="val has">1</td><td class="val iridal-has">1</td>
+  <td><input type="text" data-key="discord.retry.attempts" data-tier="power" value="1" onchange="mark(this)"></td>
+  <td><input type="text" data-key="discord.retry.attempts" data-tier="base" value="1" onchange="mark(this)"></td>
+</tr>
+<tr>
+  <td class="setting">discord.threadBindings.spawnAcpSessions</td><td class="desc">Allow ACP session creation in Discord threads</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="discord.threadBindings.spawnAcpSessions" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="discord.threadBindings.spawnAcpSessions" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+</table>
+
+<!-- BROWSER & LOGGING -->
+<div class="section-label">Browser, Logging &amp; Cron</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">browser.enabled</td><td class="desc">Headless browser for web_browse/screenshot tools</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="browser.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="browser.enabled" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">logging.level</td><td class="desc">Min log severity written to file</td><td class="options">debug, info, warn, error</td>
+  <td class="val has">info</td><td class="val iridal-has">info</td>
+  <td><select data-key="logging.level" data-tier="power" onchange="mark(this)"><option value="debug">debug</option><option value="info" selected>info</option><option value="warn">warn</option><option value="error">error</option></select></td>
+  <td><select data-key="logging.level" data-tier="base" onchange="mark(this)"><option value="debug">debug</option><option value="info" selected>info</option><option value="warn">warn</option><option value="error">error</option></select></td>
+</tr>
+<tr>
+  <td class="setting">cron.enabled</td><td class="desc">Built-in cron scheduler for scheduled agent jobs</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">false</td>
+  <td><select data-key="cron.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="cron.enabled" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+</table>
+
+<!-- HOOKS -->
+<div class="section-label">Hooks &amp; Commands</div>
+<table>
+<tr><th class="setting">Setting</th><th class="desc">Description</th><th class="options">Options</th><th class="haplo">Haplo</th><th class="iridal">Iridal</th><th class="power">Power Agent</th><th class="base">Base Agent</th></tr>
+<tr>
+  <td class="setting">hooks.internal.enabled</td><td class="desc">Master toggle for internal hooks</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="hooks.internal.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="hooks.internal.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">hooks.session-memory.enabled</td><td class="desc">Auto-save context on /new or /reset</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="hooks.session-memory.enabled" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="hooks.session-memory.enabled" data-tier="base" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+</tr>
+<tr>
+  <td class="setting">commands.restart</td><td class="desc">Enable /restart command from chat</td><td class="options">true, false</td>
+  <td class="val has">true</td><td class="val iridal-has">true</td>
+  <td><select data-key="commands.restart" data-tier="power" onchange="mark(this)"><option value="true" selected>true</option><option value="false">false</option></select></td>
+  <td><select data-key="commands.restart" data-tier="base" onchange="mark(this)"><option value="true">true</option><option value="false" selected>false</option></select></td>
+</tr>
+</table>
+
+<script>
+function mark(el) { el.classList.add('changed'); }
+
+function collectTier(tier) {
+  const obj = {};
+  document.querySelectorAll(`[data-tier="${tier}"]`).forEach(el => {
+    const key = el.dataset.key;
+    let val = el.value;
+    if (val === '' || val === 'unset') return;
+    if (val === 'true') val = true;
+    else if (val === 'false') val = false;
+    else if (!isNaN(val) && val !== '') val = Number(val);
+    // Build nested object from dot path
+    const parts = key.split('.');
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!cur[parts[i]]) cur[parts[i]] = {};
+      cur = cur[parts[i]];
+    }
+    cur[parts[parts.length - 1]] = val;
+  });
+  return obj;
+}
+
+function exportJSON() {
+  const power = collectTier('power');
+  const base = collectTier('base');
+  const out = { powerAgent: power, baseAgent: base, exportedAt: new Date().toISOString() };
+  const el = document.getElementById('output');
+  el.style.display = 'block';
+  el.textContent = JSON.stringify(out, null, 2);
+}
+
+function copyPower() {
+  const power = collectTier('power');
+  navigator.clipboard.writeText(JSON.stringify(power, null, 2));
+  alert('Power Agent JSON copied to clipboard');
+}
+
+function copyBase() {
+  const base = collectTier('base');
+  navigator.clipboard.writeText(JSON.stringify(base, null, 2));
+  alert('Base Agent JSON copied to clipboard');
+}
+
+function resetAll() {
+  document.querySelectorAll('input, select').forEach(el => { el.classList.remove('changed'); });
+  alert('Visual reset done. Reload page to reset values.');
+}
+</script>
+
+</body>
+</html>

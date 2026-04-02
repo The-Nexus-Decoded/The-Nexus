@@ -1,0 +1,169 @@
+{
+  "project": {
+    "name": "Soul Drifters - Arianus: Sky Drifter",
+    "engine": "Unity",
+    "realm": "Arianus (Fire realm)",
+    "version": "0.1.0",
+    "status": "wireframes",
+    "created": "2026-03-09"
+  },
+  "coreMechanics": {
+    "flightPhysics": {
+      "description": "4D sky space movement with altitude, speed, bank, and rotational inertia",
+      "controls": {
+        "leftThumbstick": "Forward/backward thrust + lateral strafe",
+        "rightThumbstick": "Pitch (up/down) + roll (left/right)",
+        "triggerA": "Ascend / dive up",
+        "triggerB": "Dive / accelerate downward",
+        "buttonDpadUp": "Brake / slow descent",
+        "buttonDpadDown": "Boost / rapid ascent",
+        "buttonStart": "Pause menu",
+        "buttonSelect": "Toggle HUD layers"
+      },
+      "physicsProfile": {
+        "liftCurve": "sigmoid-based with stall warnings at low speed",
+        "dragCoefficient": "variable by wing configuration",
+        "rotationalInertia": "momentum-based, 3-second decay default",
+        "altitudeCeiling": "50,000ft (adjustable based on performance)",
+        "speedRange": {
+          "min": "40kt",
+          "max": "600kt"
+        }
+      },
+      "weatherInteractions": [
+        {
+          "type": "thermalUpdrafts",
+          "visual": "rising heat shimmer + particle streamers",
+          "effect": "+15% lift when flying through column center"
+        },
+        {
+          "type": "upwardJetStreams",
+          "visual": "horizontal wind shear layers",
+          "effect": "drag increase at 30,000ft+, crosswind banking required"
+        },
+        {
+          "type": "turbulenceCells",
+          "visual": "irregular eddies visible through canopy fog",
+          "effect": "minor rotation input required to stabilize"
+        }
+      ]
+    },
+    "fourDimensionalSpace": {
+      "description": "Arianus exists in time-space where weather patterns are both location AND temporal events",
+      "layers": [
+        {
+          "name": "Current Sky Layer",
+          "accessibility": "primary view",
+          "interactions": ["fly through clouds", "observe thermal formation"]
+        },
+        {
+          "name": "Weather Timeline",
+          "accessibility": "time manipulation ability",
+          "controls": "hold button to slow/fast forward weather progression",
+          "effect": "predict and intercept storm systems before they form"
+        },
+        {
+          "name": "Star Trails Layer",
+          "accessibility": "night cycle only",
+          "interactions": "align flight path with celestial navigation markers"
+        },
+        {
+          "name": "Memory Echoes",
+          "accessibility": "rare boss encounter zones",
+          "effect": "faded versions of past flights appear as ghost trails"
+        }
+      ]
+    }
+  },
+  "uiWireframes": {
+    "hud_primary": {
+      "enabled_by_default": true,
+      "elements": [
+        {
+          "position": "bottom-left",
+          "content": "Altitude + Speed indicators (large numerals)",
+          "style": "floating digital gauges with heat distortion overlay"
+        },
+        {
+          "position": "top-center",
+          "content": "Weather layer status (thermal updraft, turbulence, jet stream proximity)",
+          "style": "pulsing ring icon that changes color based on activity level"
+        },
+        {
+          "position": "right-side vertical",
+          "content": "Flight stability meter + rotational inertia feedback",
+          "style": "three concentric arcs showing current vs ideal orientation"
+        }
+      ],
+      "customizable": true,
+      "toggleable": true
+    },
+    "pause_menu": {
+      "elements": [
+        {
+          "section": "flight_status",
+          "contents": ["current altitude", "speed range active", "weather layer state"]
+        },
+        {
+          "section": "inventory",
+          "contents": ["wing configurations (3 slots)", "special abilities (2 slots)"]
+        },
+        {
+          "section": "navigation",
+          "contents": ["waypoint markers", "destination selection", "map view toggle"]
+        }
+      ],
+      "background_effect": "semi-transparent sky parallax scroll"
+    }
+  },
+  "assetReferences": {
+    "flight_vehicle": {
+      "description": "The Sky Drifter - modular aircraft with interchangeable wings/engines",
+      "base_platforms": [
+        "Cessna-style light aircraft (visual reference)",
+        "P-51 Mustang silhouette (inspiration for elegance)"
+      ],
+      "modularity": {
+        "wingConfigs": 4,
+        "engineOptions": 3,
+        "canopyStyles": 2
+      }
+    },
+    "environment_assets_needed": [
+      "volumetric cloud layers",
+      "heat distortion shaders",
+      "wind shear visualization particles",
+      "star field background (night cycle)",
+      "terrain silhouettes for reference points"
+    ]
+  },
+  "implementationPhases": {
+    "day3": [
+      "Basic flight physics loop",
+      "Altitude and speed controls",
+      "Simple cloud occlusion test",
+      "Flight controller script v1.0"
+    ],
+    "day4": [
+      "Weather layer integration",
+      "Thermal updraft system",
+      "HUD elements with real feedback",
+      "Rotational inertia implementation"
+    ],
+    "day5": [
+      "Weather timeline manipulation",
+      "All 4D layers functional",
+      "Polish flight feel tweaks",
+      "Initial gameplay loop demo"
+    ]
+  },
+  "notes": {
+    "priority_mechanics": ["flight_physics_stability", "weather_layer_integration"],
+    "risk_factors": ["complexity of 4D layer manipulation may need simplification"],
+    "qa_test_points": [
+      "can player fly through all weather layers smoothly?",
+      "is time manipulation intuitive during active flight?",
+      "does rotational inertia feel realistic vs arcade-y?"
+    ]
+  }
+}
