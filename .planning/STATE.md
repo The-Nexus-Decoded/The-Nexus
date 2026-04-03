@@ -59,6 +59,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02
-Stopped at: Roadmap created, ready to plan Phase 1
-Resume file: None
+Last session: 2026-04-03 (session 4)
+Stopped at: Diagnosed inbound relay failure (--channels flag not reaching session despite bash alias). Patched all 3 launcher shims (bash/cmd/ps1) at C:/nvm4w/nodejs/ to auto-inject --channels. Needs session restart to verify. Then: test inbound (DM Grundel), continue bootstrap (Iridal next, sonnet). 4/20 agents done, 14 remaining.
+Resume file: .planning/phases/01-critical-stabilization/.continue-here.md
+Handoff file: .planning/HANDOFF.json

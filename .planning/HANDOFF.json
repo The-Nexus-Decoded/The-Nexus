@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-03T08:44:36.740Z",
+  "timestamp": "2026-04-03T21:30:00.000Z",
   "phase": "1",
   "phase_name": "critical-stabilization",
   "phase_dir": ".planning/phases/01-critical-stabilization",
@@ -12,33 +12,38 @@
     {"id": "STAB-01", "name": "Fix Zifnab channel access + restart", "status": "done"},
     {"id": "STAB-02", "name": "Fix Hugh channel access + restart", "status": "done"},
     {"id": "STAB-03", "name": "Fix codex-cli model registration", "status": "done"},
-    {"id": "STAB-08", "name": "Deploy real SOULs to agent workspaces (4 of 20)", "status": "in_progress", "progress": "Balthazar, Ciang, Edmund, Alfred done. 14 remaining."}
+    {"id": "STAB-08-partial", "name": "Deploy real SOULs (4 of 20)", "status": "in_progress", "progress": "Balthazar, Ciang, Edmund, Alfred done. 14 remaining. Next: Iridal (sonnet)."},
+    {"id": "DISCORD-RELAY", "name": "Discord relay setup", "status": "in_progress", "progress": "Pairing COMPLETE. Outbound works. Inbound untested -- shims patched with --channels flag, needs session restart to verify."},
+    {"id": "DISCORD-FIX", "name": "Fix Discord MCP tools disappearing", "status": "done"},
+    {"id": "SHIM-PATCH", "name": "Patch claude launcher shims with --channels flag", "status": "done", "progress": "All 3 shims (bash, cmd, ps1) at C:/nvm4w/nodejs/ patched. --channels auto-injected on every launch. WARNING: npm update overwrites shims."}
   ],
   "remaining_tasks": [
+    {"id": "DISCORD-INBOUND-TEST", "name": "Test Discord inbound relay", "status": "not_started", "details": "Session must be restarted first (shims now patched). DM Grundel from phone. Message should arrive as CLI prompt."},
     {"id": "STAB-04", "name": "ACPX permissions fix", "status": "not_started"},
     {"id": "STAB-05", "name": "Sandbox Docker requirement", "status": "not_started"},
-    {"id": "STAB-06", "name": "Workspace path consistency", "status": "in_progress", "progress": "Convention decided, some cleaned up"},
+    {"id": "STAB-06", "name": "Workspace path consistency", "status": "in_progress", "progress": "Convention decided (workspace-{name}), some cleaned up"},
     {"id": "STAB-07", "name": "Clean model chains", "status": "in_progress", "progress": "Models set but need fleet verification"},
-    {"id": "STAB-08", "name": "Deploy real SOULs (14 remaining)", "status": "in_progress"},
+    {"id": "STAB-08", "name": "Deploy real SOULs (14 remaining)", "status": "in_progress", "details": "Next: Iridal. Use sonnet model."},
     {"id": "STAB-09", "name": "Archive old default root", "status": "not_started"},
     {"id": "STAB-10", "name": "Remove orphan service dirs", "status": "not_started"}
   ],
   "blockers": [
-    {"description": "Discord MCP plugin not loading in Claude Code sessions", "type": "technical", "workaround": "Use bot API via SSH to read/delete messages"},
-    {"description": "BOOTSTRAP.md disappears on gateway restart", "type": "technical", "workaround": "Always verify and re-copy after restart"},
-    {"description": "Gateway auto-creates blank IDENTITY/USER templates", "type": "technical", "workaround": "Delete after restart before bootstrap"}
+    {"description": "BOOTSTRAP.md disappears on gateway restart", "type": "technical", "workaround": "Re-copy after restart"},
+    {"description": "Gateway auto-creates blank IDENTITY/USER templates", "type": "technical", "workaround": "Delete before bootstrap"}
   ],
   "human_actions_pending": [
-    {"action": "Fix Discord MCP plugin loading", "context": "Plugin installed but tools not available in session", "blocking": false},
-    {"action": "Alfred needs bootstrap conversation", "context": "Files updated, needs user to talk to him on Discord", "blocking": false}
+    {"action": "Restart Claude Code session to activate --channels flag", "context": "Shims patched. Just type 'claude' in terminal -- flag is baked in now.", "blocking": true},
+    {"action": "DM Grundel to test inbound relay", "context": "After restart, DM Grundel from phone to verify inbound works.", "blocking": true}
   ],
   "decisions": [
-    {"decision": "Sonnet best for bootstrap", "rationale": "Best character adoption + competence vs codex (bland) and minimax (good character, less competent)", "phase": "1"},
-    {"decision": "Use default workspace paths", "rationale": "OpenClaw auto-creates and expects ~/.openclaw/workspace-{name}/", "phase": "1"},
-    {"decision": "All deliverables in Chelestra-Sea/", "rationale": "Infra project, public repo silo discipline", "phase": "1"},
-    {"decision": "Memory DB >30MB requires pause", "rationale": "Too much learned context to clear without review", "phase": "1"}
+    {"decision": "Sonnet best for bootstrap", "rationale": "Best character adoption + competence"},
+    {"decision": "Workspace paths: ~/.openclaw/workspace-{name}/", "rationale": "OpenClaw default"},
+    {"decision": "All deliverables in Chelestra-Sea/", "rationale": "Infra project, public repo silo discipline"},
+    {"decision": "Grundle = Claude Code Discord persona", "rationale": "Death Gate dwarf. Authority: Lord Xar > Grundle > Zifnab + Alfred (peers) > all others"},
+    {"decision": "--channels flag baked into launcher shims", "rationale": "User doesn't want to remember flags. Patched all 3 shims (bash, cmd, ps1) at C:/nvm4w/nodejs/. Must re-patch after npm update."},
+    {"decision": "mcpServers discord entry = outbound tools, channel plugin = inbound relay", "rationale": "Previous session wrongly removed mcpServers entry thinking it was duplicate. NEVER remove it."}
   ],
-  "uncommitted_files": [],
-  "next_action": "Fix Discord MCP plugin, then continue agent bootstrapping starting with Iridal using sonnet model",
-  "context_notes": "Long session, owner exhausted. Runbook is solid. Bootstrap process proven. 14 agents remain. Each needs: Death Gate research, SOUL writing, file diffs, push, full reset, Discord clear, bootstrap, verify."
+  "uncommitted_files": ["STATE.md", ".continue-here.md", "agentbaseline edits", "Grundle SOUL.md", "FLEET-ORG-CHART.md"],
+  "next_action": "Restart session (shims patched), test Discord inbound (DM Grundel), then continue agent bootstrapping (Iridal next, sonnet model).",
+  "context_notes": "This session (4) confirmed outbound MCP works, diagnosed inbound failure (--channels flag missing despite bash alias being loaded -- VS Code launches bypass aliases). Fixed by patching all 3 launcher shims directly. Memory updated. Git state unchanged from session 3."
 }
