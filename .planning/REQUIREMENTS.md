@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | STAB-01 | Phase 1 | Pending |
 | STAB-02 | Phase 1 | Pending |
-| STAB-03 | Phase 1 | Pending |
+| STAB-03 | Phase 1 | Complete |
 | STAB-04 | Phase 1 | Pending |
 | STAB-05 | Phase 1 | Pending |
 | STAB-06 | Phase 2 | Pending |
