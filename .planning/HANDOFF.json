@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-03T08:44:36.740Z",
+  "phase": "1",
+  "phase_name": "critical-stabilization",
+  "phase_dir": ".planning/phases/01-critical-stabilization",
+  "plan": 1,
+  "task": 0,
+  "total_tasks": 26,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "STAB-01", "name": "Fix Zifnab channel access + restart", "status": "done"},
+    {"id": "STAB-02", "name": "Fix Hugh channel access + restart", "status": "done"},
+    {"id": "STAB-03", "name": "Fix codex-cli model registration", "status": "done"},
+    {"id": "STAB-08", "name": "Deploy real SOULs to agent workspaces (4 of 20)", "status": "in_progress", "progress": "Balthazar, Ciang, Edmund, Alfred done. 14 remaining."}
+  ],
+  "remaining_tasks": [
+    {"id": "STAB-04", "name": "ACPX permissions fix", "status": "not_started"},
+    {"id": "STAB-05", "name": "Sandbox Docker requirement", "status": "not_started"},
+    {"id": "STAB-06", "name": "Workspace path consistency", "status": "in_progress", "progress": "Convention decided, some cleaned up"},
+    {"id": "STAB-07", "name": "Clean model chains", "status": "in_progress", "progress": "Models set but need fleet verification"},
+    {"id": "STAB-08", "name": "Deploy real SOULs (14 remaining)", "status": "in_progress"},
+    {"id": "STAB-09", "name": "Archive old default root", "status": "not_started"},
+    {"id": "STAB-10", "name": "Remove orphan service dirs", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Discord MCP plugin not loading in Claude Code sessions", "type": "technical", "workaround": "Use bot API via SSH to read/delete messages"},
+    {"description": "BOOTSTRAP.md disappears on gateway restart", "type": "technical", "workaround": "Always verify and re-copy after restart"},
+    {"description": "Gateway auto-creates blank IDENTITY/USER templates", "type": "technical", "workaround": "Delete after restart before bootstrap"}
+  ],
+  "human_actions_pending": [
+    {"action": "Fix Discord MCP plugin loading", "context": "Plugin installed but tools not available in session", "blocking": false},
+    {"action": "Alfred needs bootstrap conversation", "context": "Files updated, needs user to talk to him on Discord", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Sonnet best for bootstrap", "rationale": "Best character adoption + competence vs codex (bland) and minimax (good character, less competent)", "phase": "1"},
+    {"decision": "Use default workspace paths", "rationale": "OpenClaw auto-creates and expects ~/.openclaw/workspace-{name}/", "phase": "1"},
+    {"decision": "All deliverables in Chelestra-Sea/", "rationale": "Infra project, public repo silo discipline", "phase": "1"},
+    {"decision": "Memory DB >30MB requires pause", "rationale": "Too much learned context to clear without review", "phase": "1"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Fix Discord MCP plugin, then continue agent bootstrapping starting with Iridal using sonnet model",
+  "context_notes": "Long session, owner exhausted. Runbook is solid. Bootstrap process proven. 14 agents remain. Each needs: Death Gate research, SOUL writing, file diffs, push, full reset, Discord clear, bootstrap, verify."
+}
