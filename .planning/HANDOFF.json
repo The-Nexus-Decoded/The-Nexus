@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-03T21:30:00.000Z",
+  "timestamp": "2026-04-04T06:06:04.249Z",
   "phase": "1",
   "phase_name": "critical-stabilization",
   "phase_dir": ".planning/phases/01-critical-stabilization",
-  "plan": 1,
+  "plan": 0,
   "task": 0,
   "total_tasks": 26,
   "status": "paused",
@@ -12,38 +12,46 @@
     {"id": "STAB-01", "name": "Fix Zifnab channel access + restart", "status": "done"},
     {"id": "STAB-02", "name": "Fix Hugh channel access + restart", "status": "done"},
     {"id": "STAB-03", "name": "Fix codex-cli model registration", "status": "done"},
-    {"id": "STAB-08-partial", "name": "Deploy real SOULs (4 of 20)", "status": "in_progress", "progress": "Balthazar, Ciang, Edmund, Alfred done. 14 remaining. Next: Iridal (sonnet)."},
-    {"id": "DISCORD-RELAY", "name": "Discord relay setup", "status": "in_progress", "progress": "Pairing COMPLETE. Outbound works. Inbound untested -- shims patched with --channels flag, needs session restart to verify."},
+    {"id": "STAB-08-partial", "name": "Deploy real SOULs (4 of 20)", "status": "done", "progress": "Balthazar, Ciang, Edmund, Alfred done."},
+    {"id": "DISCORD-INBOUND-TEST", "name": "Test Discord inbound relay", "status": "done"},
+    {"id": "FORGE-CHANNEL", "name": "Create #the-forge channel", "status": "done", "details": "Channel 1489774242319958177, no-mention, dedicated infra ops."},
+    {"id": "DISCORD-RELAY", "name": "Discord relay setup", "status": "done", "progress": "COMPLETE. Inbound via --channels plugin, outbound via mcp__discord__* tools."},
     {"id": "DISCORD-FIX", "name": "Fix Discord MCP tools disappearing", "status": "done"},
-    {"id": "SHIM-PATCH", "name": "Patch claude launcher shims with --channels flag", "status": "done", "progress": "All 3 shims (bash, cmd, ps1) at C:/nvm4w/nodejs/ patched. --channels auto-injected on every launch. WARNING: npm update overwrites shims."}
+    {"id": "SHIM-PATCH", "name": "Patch claude launcher shims with --channels flag", "status": "done", "progress": "All 3 shims (bash, cmd, ps1) at C:/nvm4w/nodejs/ patched. WARNING: npm update overwrites shims."}
   ],
   "remaining_tasks": [
-    {"id": "DISCORD-INBOUND-TEST", "name": "Test Discord inbound relay", "status": "not_started", "details": "Session must be restarted first (shims now patched). DM Grundel from phone. Message should arrive as CLI prompt."},
     {"id": "STAB-04", "name": "ACPX permissions fix", "status": "not_started"},
     {"id": "STAB-05", "name": "Sandbox Docker requirement", "status": "not_started"},
     {"id": "STAB-06", "name": "Workspace path consistency", "status": "in_progress", "progress": "Convention decided (workspace-{name}), some cleaned up"},
     {"id": "STAB-07", "name": "Clean model chains", "status": "in_progress", "progress": "Models set but need fleet verification"},
-    {"id": "STAB-08", "name": "Deploy real SOULs (14 remaining)", "status": "in_progress", "details": "Next: Iridal. Use sonnet model."},
+    {"id": "STAB-08", "name": "Deploy real SOULs (14 remaining)", "status": "in_progress", "details": "Next: Iridal (sonnet). Then: Jarre, Limbeck, Vasu, Kleitus, Jonathon, Marit, Orla, Paithan, Devon, Sinistrad, Calandra, Drugar, Ramu"},
     {"id": "STAB-09", "name": "Archive old default root", "status": "not_started"},
     {"id": "STAB-10", "name": "Remove orphan service dirs", "status": "not_started"}
   ],
   "blockers": [
     {"description": "BOOTSTRAP.md disappears on gateway restart", "type": "technical", "workaround": "Re-copy after restart"},
-    {"description": "Gateway auto-creates blank IDENTITY/USER templates", "type": "technical", "workaround": "Delete before bootstrap"}
+    {"description": "Gateway auto-creates blank IDENTITY/USER templates", "type": "technical", "workaround": "Delete before bootstrap"},
+    {"description": "Branch 1 commit behind main (PR #275 merge)", "type": "technical", "workaround": "Rebase before next PR"}
   ],
-  "human_actions_pending": [
-    {"action": "Restart Claude Code session to activate --channels flag", "context": "Shims patched. Just type 'claude' in terminal -- flag is baked in now.", "blocking": true},
-    {"action": "DM Grundel to test inbound relay", "context": "After restart, DM Grundel from phone to verify inbound works.", "blocking": true}
-  ],
+  "human_actions_pending": [],
   "decisions": [
     {"decision": "Sonnet best for bootstrap", "rationale": "Best character adoption + competence"},
     {"decision": "Workspace paths: ~/.openclaw/workspace-{name}/", "rationale": "OpenClaw default"},
     {"decision": "All deliverables in Chelestra-Sea/", "rationale": "Infra project, public repo silo discipline"},
     {"decision": "Grundle = Claude Code Discord persona", "rationale": "Death Gate dwarf. Authority: Lord Xar > Grundle > Zifnab + Alfred (peers) > all others"},
-    {"decision": "--channels flag baked into launcher shims", "rationale": "User doesn't want to remember flags. Patched all 3 shims (bash, cmd, ps1) at C:/nvm4w/nodejs/. Must re-patch after npm update."},
-    {"decision": "mcpServers discord entry = outbound tools, channel plugin = inbound relay", "rationale": "Previous session wrongly removed mcpServers entry thinking it was duplicate. NEVER remove it."}
+    {"decision": "--channels flag baked into launcher shims", "rationale": "Must re-patch after npm update. Shims at C:/nvm4w/nodejs/"},
+    {"decision": "mcpServers discord = outbound tools, channel plugin = inbound relay", "rationale": "NEVER remove mcpServers entry"}
   ],
-  "uncommitted_files": ["STATE.md", ".continue-here.md", "agentbaseline edits", "Grundle SOUL.md", "FLEET-ORG-CHART.md"],
-  "next_action": "Restart session (shims patched), test Discord inbound (DM Grundel), then continue agent bootstrapping (Iridal next, sonnet model).",
-  "context_notes": "This session (4) confirmed outbound MCP works, diagnosed inbound failure (--channels flag missing despite bash alias being loaded -- VS Code launches bypass aliases). Fixed by patching all 3 launcher shims directly. Memory updated. Git state unchanged from session 3."
+  "uncommitted_files": [
+    ".planning/HANDOFF.json",
+    ".planning/STATE.md",
+    ".planning/phases/01-critical-stabilization/.continue-here.md",
+    "Chelestra-Sea/infra/agentbaselines-backup-* (minor edits)",
+    "Chelestra-Sea/infra/agentbaselines/grundle/SOUL.md",
+    "Nexus-Vaults/FLEET-ORG-CHART.md",
+    "Nexus-Vaults/memory/agent-consolidation-v2.md",
+    "agentbaselines/_archived/* (bulk deletion — moved to Chelestra-Sea)"
+  ],
+  "next_action": "Rebase on origin/main (PR #275 merge), then continue agent bootstrapping (Iridal next with sonnet model). After bootstrapping all 14 remaining agents: ACPX, sandbox, workspace paths, model chains, archive old root, orphan dirs.",
+  "context_notes": "Session 6 (pause-only). No new work done — capturing state from sessions 1-5. Large uncommitted diff (1044 files, mostly agentbaseline archive deletions). Branch is 1 behind main due to PR #275 merge. Discord relay fully operational. 14 of 20 agents still need SOUL bootstrapping."
 }
