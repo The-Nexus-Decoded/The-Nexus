@@ -1,0 +1,23 @@
+{
+  "talk": {
+    "providers": {
+      "minimax": {
+        "voiceId": "English_ConfidentWoman",
+        "speed": 1.1,
+        "pitch": 1
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "verboseLogging": false
+          }
+        }
+      }
+    }
+  }
+}

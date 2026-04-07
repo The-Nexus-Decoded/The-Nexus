@@ -1,0 +1,23 @@
+{
+  "talk": {
+    "providers": {
+      "minimax": {
+        "voiceId": "English_Strong-WilledBoy",
+        "speed": 0.95,
+        "pitch": -1
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "verboseLogging": false
+          }
+        }
+      }
+    }
+  }
+}

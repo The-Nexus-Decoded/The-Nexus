@@ -1,0 +1,23 @@
+{
+  "talk": {
+    "providers": {
+      "minimax": {
+        "voiceId": "English_DecentYoungMan",
+        "speed": 1.05,
+        "pitch": 2
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "verboseLogging": false
+          }
+        }
+      }
+    }
+  }
+}

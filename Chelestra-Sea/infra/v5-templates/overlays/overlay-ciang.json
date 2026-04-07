@@ -1,0 +1,23 @@
+{
+  "talk": {
+    "providers": {
+      "minimax": {
+        "voiceId": "English_Wiselady",
+        "speed": 0.85,
+        "pitch": -1
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "verboseLogging": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "talk": {
+    "providers": {
+      "minimax": {
+        "voiceId": "English_MatureBoss",
+        "speed": 1.0,
+        "pitch": -2
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "verboseLogging": false
+          }
+        }
+      }
+    }
+  }
+}

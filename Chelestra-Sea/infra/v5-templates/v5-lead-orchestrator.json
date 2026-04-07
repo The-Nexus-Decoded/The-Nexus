@@ -432,7 +432,37 @@
         "enabled": true
       },
       "memory-core": {
-        "config": {}
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "frequency": "0 3 * * *",
+            "timezone": "America/Chicago",
+            "verboseLogging": false,
+            "storage": {
+              "mode": "both",
+              "separateReports": true
+            },
+            "execution": {
+              "defaults": {
+                "speed": "balanced",
+                "thinking": "medium",
+                "budget": "medium",
+                "model": "minimax/MiniMax-M2.7"
+              }
+            },
+            "phases": {
+              "light": {
+                "enabled": true
+              },
+              "deep": {
+                "enabled": true
+              },
+              "rem": {
+                "enabled": true
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -478,5 +508,16 @@
     "lastRunVersion": "2026.4.5",
     "lastRunCommand": "doctor",
     "lastRunMode": "local"
+  },
+  "talk": {
+    "provider": "minimax",
+    "providers": {
+      "minimax": {
+        "apiKey": "${MINIMAX_API_KEY}",
+        "model": "speech-2.8-hd"
+      }
+    },
+    "interruptOnSpeech": true,
+    "silenceTimeoutMs": 1500
   }
 }
