@@ -146,10 +146,12 @@ All support:
 ### MiniMax Music Generation
 ```json
 "agents.defaults.musicGenerationModel": {
-  "primary": "minimax/music-2.5+"
+  "primary": "minimax/music-2.5+",
+  "fallbacks": ["minimax/music-2.5", "minimax/music-2.0"]
 }
 ```
 - API model ID: `music-2.5+` (source: extensions/minimax/music-generation-provider.ts)
+- Fallbacks: `music-2.5` (previous gen), `music-2.0` (oldest)
 - Base URL: `https://api.minimax.io`
 - Async: returns task_id, poll for completion
 - Daily limit: 4 tracks/day
@@ -170,8 +172,10 @@ All support:
 ### MiniMax Text-to-Speech
 ```json
 "talk.provider": "minimax",
-"talk.providers.minimax.apiKey": "${MINIMAX_API_KEY}"
+"talk.providers.minimax.apiKey": "${MINIMAX_API_KEY}",
+"talk.providers.minimax.model": "speech-2.8-hd"
 ```
+- TTS model ID: `speech-2.8-hd` (from Zifnab/OpenClaw docs)
 - API endpoint: `https://api.minimax.io/v1/t2a_v2`
 - Config: voiceId (pick a voice), speed, volume, pitch
 - Daily limit: 11,000 TTS HD calls/day
