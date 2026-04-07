@@ -408,73 +408,7 @@
         "enabled": true
       },
       "memory-core": {
-        "config": {
-          "dreaming": {
-            "enabled": false,
-            "frequency": "0 3 * * *",
-            "timezone": "America/Chicago",
-            "verboseLogging": true,
-            "storage": {
-              "mode": "both",
-              "separateReports": true
-            },
-            "execution": {
-              "defaults": {
-                "speed": "balanced",
-                "thinking": "medium",
-                "budget": "medium",
-                "model": "minimax/MiniMax-M2.7"
-              }
-            },
-            "phases": {
-              "light": {
-                "enabled": true,
-                "cron": "0 */6 * * *",
-                "lookbackDays": 2,
-                "limit": 100,
-                "dedupeSimilarity": 0.9,
-                "sources": [
-                  "daily",
-                  "sessions",
-                  "recall"
-                ]
-              },
-              "deep": {
-                "enabled": true,
-                "cron": "0 3 * * *",
-                "limit": 10,
-                "minScore": 0.8,
-                "minRecallCount": 3,
-                "minUniqueQueries": 3,
-                "recencyHalfLifeDays": 14,
-                "maxAgeDays": 30,
-                "sources": [
-                  "daily",
-                  "memory",
-                  "sessions",
-                  "logs",
-                  "recall"
-                ],
-                "recovery": {
-                  "enabled": true,
-                  "triggerBelowHealth": 0.35
-                }
-              },
-              "rem": {
-                "enabled": true,
-                "cron": "0 5 * * 0",
-                "lookbackDays": 7,
-                "limit": 10,
-                "minPatternStrength": 0.75,
-                "sources": [
-                  "memory",
-                  "daily",
-                  "deep"
-                ]
-              }
-            }
-          }
-        }
+        "config": {}
       }
     }
   },
