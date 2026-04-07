@@ -4,7 +4,8 @@
       "minimax": {
         "voiceId": "English_MatureBoss",
         "speed": 1.0,
-        "pitch": -2
+        "pitch": -2,
+        "emotion": "angry"
       }
     }
   },

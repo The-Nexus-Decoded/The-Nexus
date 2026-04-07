@@ -4,7 +4,8 @@
       "minimax": {
         "voiceId": "English_Wiselady",
         "speed": 0.85,
-        "pitch": -1
+        "pitch": -1,
+        "emotion": "calm"
       }
     }
   },

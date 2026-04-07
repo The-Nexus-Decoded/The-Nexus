@@ -353,7 +353,7 @@
     }
   },
   "gateway": {
-    "port": 18853,
+    "port": "{AGENT_PORT}",
     "mode": "local",
     "bind": "loopback",
     "auth": {

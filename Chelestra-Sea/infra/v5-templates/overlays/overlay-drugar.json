@@ -4,7 +4,8 @@
       "minimax": {
         "voiceId": "English_ImposingManner",
         "speed": 0.8,
-        "pitch": -6
+        "pitch": -6,
+        "emotion": "angry"
       }
     }
   },
