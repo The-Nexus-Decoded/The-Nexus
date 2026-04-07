@@ -305,6 +305,13 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 5. **Verify files were created**: check workspace for filled-in IDENTITY.md and USER.md
 6. **Test agent responds correctly** — ask who they are, verify Death Gate character
 
+## Phase 7.5: Knowledge Onboarding
+
+1. **Verify channel exports are current** — check dates on files in `/data/openclaw/shared/channel-exports/`. If older than 7 days, refresh the exports before proceeding.
+2. **Tell agent to read relevant channel exports** — message the agent with instructions to read the channel export files relevant to their role from `/data/openclaw/shared/channel-exports/`. For Trian: #games-vr, #the-nexus.
+3. **Agent saves role-relevant context to MEMORY.md** — agent reads the exports and saves only information relevant to their role (active projects, team decisions, design direction, etc.). Do NOT copy raw chat logs.
+4. **Verify MEMORY.md was updated** — check the agent's MEMORY.md has new entries from the channel context.
+
 ## Phase 8: Test & Verify
 
 1. **Check SOUL.md** — still has Death Gate lore (not overwritten)
@@ -315,6 +322,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 6. **Check gateway logs** — `journalctl --user -u openclaw-gateway-{agent} --no-pager -n 20` — no errors, no crash loops
 7. **Verify port** — confirm unit file port and config port still match
 8. **Test a real task** — ask agent to do something within their role domain, verify competence
+9. **Switch model back to gpt-5.4** — bootstrap is done, switch primary back to `openai-codex/gpt-5.4` for normal operations. Restart gateway after config change.
 
 ## Phase 9: Archive & Cleanup
 
