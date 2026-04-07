@@ -576,5 +576,19 @@
         "url": "https://www.answeroverflow.com/mcp"
       }
     }
+  },
+  "talk": {
+    "provider": "minimax",
+    "providers": {
+      "minimax": {
+        "apiKey": "${MINIMAX_API_KEY}",
+        "model": "speech-2.8-hd",
+        "voiceId": "English_MaturePartner",
+        "speed": 0.9,
+        "pitch": -2
+      }
+    },
+    "interruptOnSpeech": true,
+    "silenceTimeoutMs": 1500
   }
 }

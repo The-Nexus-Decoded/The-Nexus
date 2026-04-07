@@ -544,5 +544,19 @@
     "lastRunVersion": "2026.4.5",
     "lastRunCommand": "doctor",
     "lastRunMode": "local"
+  },
+  "talk": {
+    "provider": "minimax",
+    "providers": {
+      "minimax": {
+        "apiKey": "${MINIMAX_API_KEY}",
+        "model": "speech-2.8-hd",
+        "voiceId": "English_CaptivatingStoryteller",
+        "speed": 1.3,
+        "pitch": 2
+      }
+    },
+    "interruptOnSpeech": true,
+    "silenceTimeoutMs": 1500
   }
 }

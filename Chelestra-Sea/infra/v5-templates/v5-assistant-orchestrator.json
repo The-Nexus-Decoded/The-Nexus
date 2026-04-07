@@ -520,5 +520,19 @@
     "lastRunVersion": "2026.4.5",
     "lastRunCommand": "doctor",
     "lastRunMode": "local"
+  },
+  "talk": {
+    "provider": "minimax",
+    "providers": {
+      "minimax": {
+        "apiKey": "${MINIMAX_API_KEY}",
+        "model": "speech-2.8-hd",
+        "voiceId": "English_Trustworth_Man",
+        "speed": 1.0,
+        "pitch": 0
+      }
+    },
+    "interruptOnSpeech": true,
+    "silenceTimeoutMs": 1500
   }
 }
