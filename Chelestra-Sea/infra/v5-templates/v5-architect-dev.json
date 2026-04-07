@@ -510,16 +510,5 @@
         "url": "https://www.answeroverflow.com/mcp"
       }
     }
-  },
-  "talk": {
-    "provider": "minimax",
-    "providers": {
-      "minimax": {
-        "apiKey": "${MINIMAX_API_KEY}",
-        "model": "speech-2.8-hd"
-      }
-    },
-    "interruptOnSpeech": true,
-    "silenceTimeoutMs": 1500
   }
 }

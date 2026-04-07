@@ -456,16 +456,5 @@
       "gemini"
     ],
     "maxConcurrentSessions": 1
-  },
-  "talk": {
-    "provider": "minimax",
-    "providers": {
-      "minimax": {
-        "apiKey": "${MINIMAX_API_KEY}",
-        "model": "speech-2.8-hd"
-      }
-    },
-    "interruptOnSpeech": true,
-    "silenceTimeoutMs": 1500
   }
 }
