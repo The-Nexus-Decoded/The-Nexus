@@ -465,10 +465,7 @@
     "providers": {
       "minimax": {
         "apiKey": "${MINIMAX_API_KEY}",
-        "model": "speech-2.8-hd",
-        "voiceId": "English_ConfidentWoman",
-        "speed": 0.95,
-        "pitch": -2
+        "model": "speech-2.8-hd"
       }
     },
     "interruptOnSpeech": true,

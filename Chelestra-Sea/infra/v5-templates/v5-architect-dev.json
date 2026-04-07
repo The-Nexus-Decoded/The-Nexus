@@ -582,10 +582,7 @@
     "providers": {
       "minimax": {
         "apiKey": "${MINIMAX_API_KEY}",
-        "model": "speech-2.8-hd",
-        "voiceId": "English_MaturePartner",
-        "speed": 0.9,
-        "pitch": -2
+        "model": "speech-2.8-hd"
       }
     },
     "interruptOnSpeech": true,
