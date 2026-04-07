@@ -1,27 +1,30 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-07T05:00:00.000Z",
+  "timestamp": "2026-04-07T08:24:09.160Z",
   "phase": "1",
   "phase_name": "critical-stabilization",
   "phase_dir": ".planning/phases/01-critical-stabilization",
   "plan": 0,
   "task": 0,
   "total_tasks": 26,
-  "status": "in_progress",
+  "status": "paused",
   "completed_tasks": [
-    {"id": "RUNBOOKS-6", "name": "6 agent runbooks complete (Zifnab, Drugar, Iridal, Sinistrad, Ramu, Rega)", "status": "done"},
-    {"id": "TRIAN-RUNBOOK", "name": "Trian runbook COMPLETE — 7th agent done", "status": "done", "details": "Full 9-phase runbook. DG research, SOUL rewrite (fictional influences, Cognitive Calibration), PERSONALITYLAYERS built, all files pushed, bootstrapped on Opus 4.6, knowledge onboarding (all 8 channel exports), tested and verified, archived."},
-    {"id": "FLEET-FIXES", "name": "Fleet-wide fixes (session 11+12)", "status": "done", "details": "File Structure + Workspace Law moved from SOUL to AGENTS STORAGE PROTOCOL (7 agents). Task Domain Routing moved from AGENTS to OPERATIONS (7 agents). Stale eliminated agent names fixed in role files. Zifnab+Ramu PERSONALITYLAYERS customized. GPT-5.4 overlay patched to all 7 agents."},
-    {"id": "NEW-ROLES", "name": "New roles assigned + role files created", "status": "done"},
-    {"id": "CONFIG-BACKUPS", "name": "Config backups for completed agents", "status": "done"},
-    {"id": "LAYER1-UPDATE", "name": "Layer 1 Voice template updated with execution overlay", "status": "done"},
-    {"id": "THINKING-XHIGH-RESTORED", "name": "Thinking levels restored", "status": "done"}
+    {"id": "RUNBOOKS-7", "name": "7 agent runbooks complete (Zifnab, Drugar, Iridal, Sinistrad, Ramu, Rega, Trian)", "status": "done"},
+    {"id": "FLEET-FIXES", "name": "Fleet-wide fixes (sessions 11-12)", "status": "done", "details": "SOUL/AGENTS/OPERATIONS restructured (7 agents). Stale agent names fixed in role files. GPT-5.4 overlay patched. groupPolicy open."},
+    {"id": "UPGRADE-4.5", "name": "OpenClaw v2026.4.5 upgrade COMPLETE both servers", "status": "done", "details": "Doctor ran on all 20 agents. allow->enabled, streaming fixed, cliBackends fixed, Brave key migrated."},
+    {"id": "V5-TEMPLATES", "name": "v5 profile templates created", "status": "done", "details": "7 tier templates (clean defaults) + 20 per-agent overlays (voice+dreaming). Handoff doc at Chelestra-Sea/projects/fleet/openclaw_agent_settings_handoff_v5.md"},
+    {"id": "VOICE-DEPLOY", "name": "Voice configs deployed to all 20 agents", "status": "done", "details": "Unique Death Gate voices. speech-2.8-hd model. voiceId+pitch+speed+emotion per agent."},
+    {"id": "DREAMING-DEPLOY", "name": "Dreaming deployed to 4 test agents", "status": "done", "details": "Zifnab, Haplo, Hugh, Sinistrad enabled. MiniMax M2.7 model. All 3 phases. 16 others have config with enabled:false."},
+    {"id": "SCHEMA-DOCS", "name": "Full v2026.4.5 config schema documented", "status": "done", "details": "600+ keys. openclaw-v5-config-schema.md, openclaw-v5-new-settings.md, openclaw-v5-voice-profiles.md"},
+    {"id": "ZIFNAB-ENFORCER", "name": "Zifnab onboarded as checklist enforcer", "status": "done"}
   ],
   "remaining_tasks": [
     {"id": "REMAINING-13", "name": "13 remaining agent runbooks", "status": "not_started", "details": "Dev: Limbeck, Vasu, Jonathon, Marit, Paithan, Edmund, Ciang, Balthazar. Trade: Devon, Samah. Plus Hugh, Alfred, Haplo separate."},
+    {"id": "V5-DEPLOY", "name": "Deploy v5 templates to fleet", "status": "not_started", "details": "Templates approved. Deploy via merge/patch (not blind overwrite). Template first, then overlay per agent."},
+    {"id": "TEAMS-RESEARCH", "name": "Microsoft Teams integration research", "status": "not_started"},
+    {"id": "CODEX-DISCORD", "name": "Codex CLI Discord bot setup (Jarre)", "status": "not_started", "details": "Chelestra-Sea #118. Guide at CODEX-DISCORD-SETUP.md."},
     {"id": "LEARNING-MD", "name": "LEARNING.md for Haplo, Alfred, Devon", "status": "not_started"},
-    {"id": "OPENCLAW-UPGRADE", "name": "OpenClaw v2026.4.5 upgrade", "status": "planned", "details": "Plan ready. Blocker: cliBackends removal affects 14 profiles. Order: dev canary -> Haplo -> remaining dev -> Zifnab -> Hugh last."},
-    {"id": "CODEX-DISCORD", "name": "Codex CLI Discord bot setup (Jarre)", "status": "planned", "details": "Chelestra-Sea #118. Guide at CODEX-DISCORD-SETUP.md. Need new bot token."}
+    {"id": "V5-HANDOFF-FIXES", "name": "Fix v5 handoff doc to match cleaned templates", "status": "not_started", "details": "The 3483-line handoff doc still has old template content with voice/dreaming baked in. Needs updating to match the clean template+overlay structure."}
   ],
   "blockers": [],
   "human_actions_pending": [],
@@ -29,11 +32,13 @@
     {"decision": "EVERY checklist step must be followed for EVERY agent. No skipping.", "rationale": "Owner frustrated by repeated step-skipping."},
     {"decision": "Opus 4.6 for bootstrap, gpt-5.4 for normal ops", "rationale": "Opus produces better identity/personality output."},
     {"decision": "Three-way accountability: owner drives, Grundel executes, Zifnab verifies", "rationale": "Prevents checklist step-skipping."},
-    {"decision": "Consolidation briefing before knowledge onboarding", "rationale": "Agents try to contact eliminated agents without it."},
-    {"decision": "Agent reads ALL channel exports not just primary domain", "rationale": "Fleet-wide context needed."},
-    {"decision": "Model chain: gpt-5.4 -> MiniMax M2.7 -> Gemini Flash. Opus for bootstrap only.", "rationale": "Save Opus tokens."},
-    {"decision": "Rate guard REMOVED from fleet — all references stale", "rationale": "Owner confirmed."}
+    {"decision": "Voice+dreaming are per-agent OVERLAYS, not in tier templates", "rationale": "Templates are shared tier defaults. Overlays customize per agent."},
+    {"decision": "Emotion baked into voice config per Lord Xar override", "rationale": "Ship and fix if broken, dont defer and forget."},
+    {"decision": "Zifnab thinking set to medium (was xhigh, too slow)", "rationale": "xhigh causing loops and slowness."},
+    {"decision": "Rate guard REMOVED from fleet — all references stale", "rationale": "Owner confirmed."},
+    {"decision": "MiniMax M2.7 for dreaming model", "rationale": "Free on $50 plan, reasoning capable."},
+    {"decision": "Deploy v5 via merge/patch only, never blind overwrite", "rationale": "Templates have placeholders for agent-specific fields."}
   ],
-  "next_action": "Continue remaining 13 agent runbooks. Zifnab monitors as checklist enforcer. Follow the AGENT-RESET-RUNBOOK.md exactly. Also: solve cliBackends blocker for v2026.4.5 upgrade, create Jarre Discord bot for Codex CLI.",
-  "context_notes": "Session 12. Trian COMPLETE (7th agent). Runbook updated with Opus bootstrap, consolidation briefing, knowledge onboarding improvements. OpenClaw v2026.4.5 deep dive done — upgrade plan ready. Codex Discord setup guide written (Chelestra-Sea #118). Zifnab onboarded as checklist enforcer."
+  "next_action": "Review v5 handoff doc errors (Zifnab flagged issues). Deploy v5 templates via merge/patch. Teams integration research. Continue remaining 13 agent runbooks. Dreaming analytics meeting at 12pm CDT April 7.",
+  "context_notes": "Marathon session 12. Trian complete, both servers upgraded to v2026.4.5, v5 templates+overlays finalized, voice+dreaming deployed. Zifnab caught template errors (agent-specific fields, dreaming/voice in templates) — all fixed. 3 agents were on wrong models (Opus/Sonnet) — fixed via restart. Config vs runtime state lesson learned."
 }
