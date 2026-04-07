@@ -1,0 +1,497 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.4.5",
+    "lastTouchedAt": "2026-04-07T05:25:50.473Z"
+  },
+  "env": {
+    "MINIMAX_API_KEY": "REDACTED",
+    "GEMINI_API_KEY": "REDACTED"
+  },
+  "logging": {
+    "level": "debug",
+    "file": "/data/openclaw/logs/zifnab.log"
+  },
+  "browser": {
+    "enabled": true,
+    "executablePath": "/usr/bin/chromium-browser",
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw"
+  },
+  "acp": {
+    "enabled": true,
+    "dispatch": {
+      "enabled": true
+    },
+    "backend": "acpx",
+    "allowedAgents": [
+      "claude",
+      "codex",
+      "gemini",
+      "opencode"
+    ],
+    "maxConcurrentSessions": 4
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "google": {
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "apiKey": "REDACTED",
+        "models": [
+          {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          }
+        ]
+      },
+      "minimax": {
+        "baseUrl": "https://api.minimax.io/anthropic",
+        "apiKey": "${MINIMAX_API_KEY}",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "MiniMax-M2.7",
+            "name": "MiniMax M2.5",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0.3,
+              "output": 1.2,
+              "cacheRead": 0.03,
+              "cacheWrite": 0.12
+            },
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "MiniMax-M2.7-highspeed",
+            "name": "MiniMax M2.5 Highspeed",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0.3,
+              "output": 1.2,
+              "cacheRead": 0.03,
+              "cacheWrite": 0.12
+            },
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          }
+        ]
+      },
+      "anthropic": {
+        "baseUrl": "https://api.anthropic.com",
+        "apiKey": "",
+        "auth": "oauth",
+        "models": [
+          {
+            "id": "claude-opus-4-6",
+            "name": "Claude Opus 4.6"
+          },
+          {
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          }
+        ]
+      },
+      "openrouter": {
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "apiKey": "REDACTED",
+        "models": [
+          {
+            "id": "stepfun/step-3.5-flash:free",
+            "name": "Step 3.5 Flash (Free)"
+          },
+          {
+            "id": "z-ai/glm-4.5-air:free",
+            "name": "GLM 4.5 Air (Free)"
+          },
+          {
+            "id": "qwen/qwen3-vl-235b-a22b-thinking",
+            "name": "Qwen3 VL 235B Thinking (Free)"
+          },
+          {
+            "id": "arcee-ai/trinity-large-preview:free",
+            "name": "Trinity Large Preview (Free)"
+          },
+          {
+            "id": "qwen/qwen3-4b:free",
+            "name": "Qwen3 4B (Free)"
+          },
+          {
+            "id": "deepseek/deepseek-v3.2",
+            "name": "DeepSeek V3.2"
+          },
+          {
+            "id": "x-ai/grok-4.1-fast",
+            "name": "Grok 4.1 Fast"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "thinkingDefault": "xhigh",
+      "sandbox": {
+        "mode": "off"
+      },
+      "bootstrapMaxChars": 50000,
+      "bootstrapTotalMaxChars": 300000,
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "anthropic/claude-sonnet-4-6",
+          "openai-codex/gpt-5.4"
+        ]
+      },
+      "workspace": "/home/openclaw/.openclaw-zifnab/workspace",
+      "memorySearch": {
+        "enabled": true,
+        "provider": "local",
+        "experimental": {
+          "sessionMemory": true
+        },
+        "sources": [
+          "memory",
+          "sessions"
+        ],
+        "query": {
+          "hybrid": {
+            "enabled": true,
+            "vectorWeight": 0.7,
+            "textWeight": 0.3,
+            "mmr": {
+              "enabled": true,
+              "lambda": 0.7
+            },
+            "temporalDecay": {
+              "enabled": true,
+              "halfLifeDays": 21
+            }
+          }
+        }
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h",
+        "keepLastAssistants": 4
+      },
+      "compaction": {
+        "mode": "default",
+        "reserveTokensFloor": 20000,
+        "memoryFlush": {
+          "enabled": true,
+          "softThresholdTokens": 40000,
+          "prompt": "Before compaction, save only durable coordination knowledge:\n- who is handling what\n- current status\n- blocked items\n- dependencies\n- routing notes that matter later\nDo not save implementation debris, repetitive summaries, or short-lived chatter.",
+          "systemPrompt": "You are performing a pre-compaction memory flush.\nSave concise routing and coordination facts only."
+        }
+      },
+      "subagents": {
+        "maxConcurrent": 4,
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 3
+      },
+      "models": {
+        "openrouter/stepfun/step-3.5-flash:free": {},
+        "openrouter/z-ai/glm-4.5-air:free": {},
+        "openrouter/qwen/qwen3-vl-235b-a22b-thinking": {},
+        "openrouter/arcee-ai/trinity-large-preview:free": {},
+        "openrouter/qwen/qwen3-4b:free": {},
+        "google/gemini-2.5-flash": {},
+        "openrouter/deepseek/deepseek-v3.2": {},
+        "openrouter/x-ai/grok-4.1-fast": {},
+        "ollama/qwen2.5-coder:7b": {},
+        "minimax/MiniMax-M2": {},
+        "openai-codex/gpt-5.4": {}
+      }
+    }
+  },
+  "tools": {
+    "exec": {
+      "security": "full"
+    },
+    "profile": "full",
+    "alsoAllow": [
+      "lobster"
+    ],
+    "web": {
+      "search": {}
+    },
+    "sessions": {
+      "visibility": "agent"
+    },
+    "agentToAgent": {
+      "enabled": true
+    },
+    "elevated": {
+      "enabled": false
+    }
+  },
+  "messages": {
+    "groupChat": {
+      "mentionPatterns": [
+        "\\b@?Zifnab\\b"
+      ]
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "cron": {
+    "enabled": true
+  },
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "token": "REDACTED",
+      "allowBots": true,
+      "groupPolicy": "open",
+      "historyLimit": 25,
+      "textChunkLimit": 2000,
+      "streaming": "partial",
+      "guilds": {
+        "1475082873777426494": {
+          "slug": "olaclaw-homelab",
+          "channels": {
+            "1475082874234343621": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1475082997027049584": {
+              "requireMention": false,
+              "enabled": true
+            },
+            "1475083038810443878": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1475082964156157972": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1480481255303676087": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1480482379838525500": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1480483545431412877": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1481316823982149634": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1481316829803843616": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1481316827014365388": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1489774242319958177": {
+              "requireMention": true,
+              "enabled": true
+            }
+          }
+        }
+      },
+      "retry": {
+        "attempts": 2,
+        "minDelayMs": 1000,
+        "maxDelayMs": 60000
+      }
+    }
+  },
+  "gateway": {
+    "port": 18850,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "REDACTED"
+    }
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
+  },
+  "plugins": {
+    "allow": [
+      "acpx",
+      "discord",
+      "browser",
+      "minimax",
+      "openai",
+      "anthropic",
+      "openrouter",
+      "google",
+      "ollama"
+    ],
+    "entries": {
+      "discord": {
+        "enabled": true
+      },
+      "lobster": {
+        "enabled": true
+      },
+      "acpx": {
+        "enabled": true
+      },
+      "browser": {
+        "enabled": true
+      },
+      "minimax": {
+        "enabled": true
+      },
+      "brave": {
+        "config": {
+          "webSearch": {
+            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+          }
+        }
+      },
+      "openai": {
+        "enabled": true
+      },
+      "anthropic": {
+        "enabled": true
+      },
+      "openrouter": {
+        "enabled": true
+      },
+      "google": {
+        "enabled": true
+      },
+      "ollama": {
+        "enabled": true
+      },
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": true,
+            "frequency": "0 3 * * *",
+            "timezone": "America/Chicago",
+            "verboseLogging": true,
+            "storage": {
+              "mode": "both",
+              "separateReports": true
+            },
+            "execution": {
+              "defaults": {
+                "speed": "balanced",
+                "thinking": "medium",
+                "budget": "medium",
+                "model": "minimax/MiniMax-M2.7"
+              }
+            },
+            "phases": {
+              "light": {
+                "enabled": true,
+                "cron": "0 */6 * * *",
+                "lookbackDays": 2,
+                "limit": 100,
+                "dedupeSimilarity": 0.9,
+                "sources": [
+                  "daily",
+                  "sessions",
+                  "recall"
+                ]
+              },
+              "deep": {
+                "enabled": true,
+                "cron": "0 3 * * *",
+                "limit": 10,
+                "minScore": 0.8,
+                "minRecallCount": 3,
+                "minUniqueQueries": 3,
+                "recencyHalfLifeDays": 14,
+                "maxAgeDays": 30,
+                "sources": [
+                  "daily",
+                  "memory",
+                  "sessions",
+                  "logs",
+                  "recall"
+                ],
+                "recovery": {
+                  "enabled": true,
+                  "triggerBelowHealth": 0.35
+                }
+              },
+              "rem": {
+                "enabled": true,
+                "cron": "0 5 * * 0",
+                "lookbackDays": 7,
+                "limit": 10,
+                "minPatternStrength": 0.75,
+                "sources": [
+                  "memory",
+                  "daily",
+                  "deep"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "session-memory": {
+          "enabled": true
+        },
+        "bootstrap-extra-files": {
+          "enabled": true,
+          "paths": [
+            "OPERATIONS.md",
+            "TEAM.md",
+            "OWNER-OVERRIDE.md",
+            "DISCORD-RULES.md",
+            "PERSONALITYLAYERS.md"
+          ]
+        }
+      }
+    }
+  },
+  "memory": {
+    "backend": "qmd",
+    "citations": "auto",
+    "qmd": {
+      "command": "/home/openclaw/.bun/bin/qmd",
+      "searchMode": "search",
+      "includeDefaultMemory": true,
+      "update": {
+        "interval": "15m",
+        "debounceMs": 30000
+      },
+      "limits": {
+        "maxResults": 6,
+        "timeoutMs": 5000
+      }
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-07T05:25:50.366Z",
+    "lastRunVersion": "2026.4.5",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  }
+}
