@@ -1,0 +1,463 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.4.5",
+    "lastTouchedAt": "2026-04-07T05:31:51.808Z"
+  },
+  "env": {
+    "MINIMAX_API_KEY": "REDACTED",
+    "GEMINI_API_KEY": "REDACTED"
+  },
+  "logging": {
+    "level": "debug",
+    "file": "/data/openclaw/logs/marit.log"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "minimax": {
+        "baseUrl": "https://api.minimax.io/anthropic",
+        "apiKey": "${MINIMAX_API_KEY}",
+        "api": "anthropic-messages",
+        "authHeader": true,
+        "models": [
+          {
+            "id": "MiniMax-M2.7",
+            "name": "MiniMax M2.5",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          }
+        ]
+      },
+      "google": {
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "models": [
+          {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          }
+        ]
+      },
+      "openrouter": {
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "apiKey": "REDACTED",
+        "models": [
+          {
+            "id": "stepfun/step-3.5-flash:free",
+            "name": "stepfun/step-3.5-flash:free"
+          },
+          {
+            "id": "qwen/qwen3-4b:free",
+            "name": "qwen/qwen3-4b:free"
+          }
+        ]
+      },
+      "anthropic": {
+        "baseUrl": "https://api.anthropic.com",
+        "apiKey": "",
+        "auth": "oauth",
+        "models": [
+          {
+            "id": "claude-opus-4-6",
+            "name": "Claude Opus 4.6"
+          },
+          {
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "thinkingDefault": "high",
+      "sandbox": {
+        "mode": "off"
+      },
+      "bootstrapMaxChars": 50000,
+      "bootstrapTotalMaxChars": 300000,
+      "bootstrapPromptTruncationWarning": "once",
+      "contextInjection": "continuation-skip",
+      "model": {
+        "primary": "minimax/MiniMax-M2.7",
+        "fallbacks": [
+          "google/gemini-2.5-flash"
+        ]
+      },
+      "workspace": "/home/openclaw/.openclaw-marit/workspace",
+      "memorySearch": {
+        "enabled": true,
+        "provider": "local",
+        "experimental": {
+          "sessionMemory": false
+        },
+        "sources": [
+          "memory"
+        ],
+        "query": {
+          "hybrid": {
+            "enabled": true,
+            "vectorWeight": 0.6,
+            "textWeight": 0.4,
+            "mmr": {
+              "enabled": true,
+              "lambda": 0.75
+            },
+            "temporalDecay": {
+              "enabled": true,
+              "halfLifeDays": 30
+            }
+          }
+        }
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h",
+        "keepLastAssistants": 3
+      },
+      "compaction": {
+        "mode": "default",
+        "model": "minimax/MiniMax-M2.7",
+        "notifyUser": false,
+        "truncateAfterCompaction": true,
+        "postIndexSync": "async",
+        "reserveTokensFloor": 20000,
+        "memoryFlush": {
+          "enabled": true,
+          "softThresholdTokens": 40000,
+          "prompt": "Before compaction, save only durable implementation knowledge:\n- architecture decisions\n- file locations\n- APIs used\n- unresolved bugs\n- active constraints\nDo not save transient chatter, raw logs, or duplicate summaries.",
+          "systemPrompt": "You are performing a pre-compaction memory flush.\nWrite concise, structured, non-duplicative durable notes only."
+        }
+      },
+      "heartbeat": {
+        "isolatedSession": true
+      },
+      "imageGenerationModel": {
+        "primary": "minimax/image-01"
+      },
+      "videoGenerationModel": {
+        "primary": "minimax/MiniMax-Hailuo-2.3-Fast",
+        "fallbacks": [
+          "minimax/MiniMax-Hailuo-2.3"
+        ]
+      },
+      "musicGenerationModel": {
+        "primary": "minimax/music-2.5+",
+        "fallbacks": [
+          "minimax/music-2.5",
+          "minimax/music-2.0"
+        ]
+      },
+      "subagents": {
+        "maxConcurrent": 4,
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 3
+      },
+      "models": {
+        "openai-codex/gpt-5.4": {},
+        "openai-codex/gpt-5.3-codex-spark": {},
+        "minimax/MiniMax-M2.7": {}
+      }
+    }
+  },
+  "tools": {
+    "exec": {
+      "security": "full"
+    },
+    "profile": "full",
+    "alsoAllow": [
+      "lobster"
+    ],
+    "web": {
+      "search": {}
+    },
+    "sessions": {
+      "visibility": "tree"
+    },
+    "agentToAgent": {
+      "enabled": true
+    },
+    "elevated": {
+      "enabled": true
+    },
+    "loopDetection": {
+      "enabled": true,
+      "warningThreshold": 10,
+      "criticalThreshold": 20,
+      "globalCircuitBreakerThreshold": 30
+    }
+  },
+  "session": {
+    "agentToAgent": {
+      "maxPingPongTurns": 5
+    }
+  },
+  "messages": {
+    "groupChat": {}
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "discovery": {
+    "mdns": {
+      "mode": "off"
+    }
+  },
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "token": "REDACTED",
+      "allowBots": true,
+      "groupPolicy": "open",
+      "historyLimit": 25,
+      "textChunkLimit": 2000,
+      "streaming": "partial",
+      "contextVisibility": "all",
+      "autoPresence": {
+        "enabled": true,
+        "healthyText": "Online",
+        "degradedText": "Degraded",
+        "exhaustedText": "Credits exhausted"
+      },
+      "agentComponents": {
+        "enabled": true
+      },
+      "retry": {
+        "attempts": 1,
+        "minDelayMs": 1000,
+        "maxDelayMs": 60000
+      },
+      "guilds": {
+        "1475082873777426494": {
+          "slug": "olaclaw-homelab",
+          "channels": {
+            "1475083038810443878": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1475082874234343621": {
+              "requireMention": true,
+              "enabled": true
+            },
+            "1480482379838525500": {
+              "requireMention": false,
+              "enabled": true
+            },
+            "1480483545431412877": {
+              "requireMention": true,
+              "enabled": true
+            }
+          }
+        }
+      },
+      "threadBindings": {
+        "spawnAcpSessions": true
+      }
+    }
+  },
+  "gateway": {
+    "port": 18811,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "REDACTED"
+    }
+  },
+  "plugins": {
+    "allow": [
+      "acpx",
+      "discord",
+      "browser",
+      "minimax",
+      "google",
+      "openai"
+    ],
+    "entries": {
+      "discord": {
+        "enabled": true
+      },
+      "lobster": {
+        "enabled": true
+      },
+      "acpx": {
+        "enabled": true
+      },
+      "browser": {
+        "enabled": true
+      },
+      "minimax": {
+        "enabled": true
+      },
+      "brave": {
+        "config": {
+          "webSearch": {
+            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+          }
+        },
+        "enabled": true
+      },
+      "google": {
+        "enabled": true
+      },
+      "openai": {
+        "enabled": true
+      },
+      "memory-core": {
+        "config": {
+          "dreaming": {
+            "enabled": false,
+            "frequency": "0 3 * * *",
+            "timezone": "America/Chicago",
+            "verboseLogging": true,
+            "storage": {
+              "mode": "both",
+              "separateReports": true
+            },
+            "execution": {
+              "defaults": {
+                "speed": "balanced",
+                "thinking": "medium",
+                "budget": "medium",
+                "model": "minimax/MiniMax-M2.7"
+              }
+            },
+            "phases": {
+              "light": {
+                "enabled": true,
+                "cron": "0 */6 * * *",
+                "lookbackDays": 2,
+                "limit": 100,
+                "dedupeSimilarity": 0.9,
+                "sources": [
+                  "daily",
+                  "sessions",
+                  "recall"
+                ]
+              },
+              "deep": {
+                "enabled": true,
+                "cron": "0 3 * * *",
+                "limit": 10,
+                "minScore": 0.8,
+                "minRecallCount": 3,
+                "minUniqueQueries": 3,
+                "recencyHalfLifeDays": 14,
+                "maxAgeDays": 30,
+                "sources": [
+                  "daily",
+                  "memory",
+                  "sessions",
+                  "logs",
+                  "recall"
+                ],
+                "recovery": {
+                  "enabled": true,
+                  "triggerBelowHealth": 0.35
+                }
+              },
+              "rem": {
+                "enabled": true,
+                "cron": "0 5 * * 0",
+                "lookbackDays": 7,
+                "limit": 10,
+                "minPatternStrength": 0.75,
+                "sources": [
+                  "memory",
+                  "daily",
+                  "deep"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "session-memory": {
+          "enabled": true
+        },
+        "bootstrap-extra-files": {
+          "enabled": true,
+          "paths": [
+            "OPERATIONS.md",
+            "TEAM.md",
+            "OWNER-OVERRIDE.md",
+            "DISCORD-RULES.md",
+            "PERSONALITYLAYERS.md"
+          ]
+        }
+      }
+    }
+  },
+  "memory": {
+    "backend": "qmd",
+    "citations": "auto",
+    "qmd": {
+      "command": "/home/openclaw/.bun/bin/qmd",
+      "searchMode": "search",
+      "includeDefaultMemory": true,
+      "update": {
+        "interval": "10m",
+        "debounceMs": 30000
+      },
+      "limits": {
+        "maxResults": 5,
+        "timeoutMs": 5000
+      }
+    }
+  },
+  "acp": {
+    "enabled": true,
+    "dispatch": {
+      "enabled": false
+    },
+    "backend": "acpx",
+    "allowedAgents": [
+      "claude",
+      "codex",
+      "gemini",
+      "opencode"
+    ],
+    "maxConcurrentSessions": 4
+  },
+  "browser": {
+    "enabled": true,
+    "executablePath": "/usr/bin/chromium-browser",
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw"
+  },
+  "cron": {
+    "enabled": false
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
+  },
+  "mcp": {
+    "servers": {
+      "answeroverflow": {
+        "url": "https://www.answeroverflow.com/mcp"
+      }
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-04-07T05:31:51.692Z",
+    "lastRunVersion": "2026.4.5",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  }
+}
