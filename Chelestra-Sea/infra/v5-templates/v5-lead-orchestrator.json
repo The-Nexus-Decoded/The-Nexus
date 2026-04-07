@@ -9,7 +9,7 @@
   },
   "logging": {
     "level": "debug",
-    "file": "/data/openclaw/logs/zifnab.log"
+    "file": "/data/openclaw/logs/{AGENT}.log"
   },
   "browser": {
     "enabled": true,
@@ -152,7 +152,7 @@
           "openai-codex/gpt-5.4"
         ]
       },
-      "workspace": "/home/openclaw/.openclaw-zifnab/workspace",
+      "workspace": "/home/openclaw/.openclaw-{AGENT}/workspace",
       "memorySearch": {
         "enabled": true,
         "provider": "local",
@@ -272,7 +272,7 @@
   "messages": {
     "groupChat": {
       "mentionPatterns": [
-        "\\b@?Zifnab\\b"
+        "\b@?{AGENT}\b"
       ]
     }
   },
@@ -412,7 +412,7 @@
       "brave": {
         "config": {
           "webSearch": {
-            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+            "apiKey": "REDACTED"
           }
         }
       },
@@ -434,7 +434,7 @@
       "memory-core": {
         "config": {
           "dreaming": {
-            "enabled": true,
+            "enabled": false,
             "frequency": "0 3 * * *",
             "timezone": "America/Chicago",
             "verboseLogging": true,

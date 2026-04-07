@@ -15,7 +15,7 @@
   },
   "logging": {
     "level": "debug",
-    "file": "/data/openclaw/logs/haplo.log"
+    "file": "/data/openclaw/logs/{AGENT}.log"
   },
   "browser": {
     "enabled": true,
@@ -205,7 +205,7 @@
           "google/gemini-2.5-flash"
         ]
       },
-      "workspace": "/home/openclaw/.openclaw-haplo/workspace",
+      "workspace": "/home/openclaw/.openclaw-{AGENT}/workspace",
       "memorySearch": {
         "enabled": true,
         "provider": "local",
@@ -329,7 +329,7 @@
   "messages": {
     "groupChat": {
       "mentionPatterns": [
-        "\b@?Haplo\b"
+        "\b@?{AGENT}\b"
       ]
     }
   },
@@ -482,7 +482,7 @@
       "brave": {
         "config": {
           "webSearch": {
-            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+            "apiKey": "REDACTED"
           }
         },
         "enabled": true
@@ -502,7 +502,7 @@
       "memory-core": {
         "config": {
           "dreaming": {
-            "enabled": true,
+            "enabled": false,
             "frequency": "0 3 * * *",
             "timezone": "America/Chicago",
             "verboseLogging": true,

@@ -8,7 +8,7 @@
   },
   "logging": {
     "level": "info",
-    "file": "/data/openclaw/logs/samah.log"
+    "file": "/data/openclaw/logs/{AGENT}.log"
   },
   "models": {
     "mode": "merge",
@@ -129,7 +129,7 @@
           "google/gemini-2.5-flash"
         ]
       },
-      "workspace": "/home/openclaw/.openclaw-samah/workspace",
+      "workspace": "/home/openclaw/.openclaw-{AGENT}/workspace",
       "memorySearch": {
         "enabled": true,
         "provider": "local",
@@ -294,7 +294,7 @@
       "brave": {
         "config": {
           "webSearch": {
-            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+            "apiKey": "REDACTED"
           }
         },
         "enabled": true

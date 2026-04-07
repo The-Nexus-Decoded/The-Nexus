@@ -15,7 +15,7 @@
   },
   "logging": {
     "level": "info",
-    "file": "/data/openclaw/logs/trian.log"
+    "file": "/data/openclaw/logs/{AGENT}.log"
   },
   "browser": {
     "enabled": true,
@@ -172,7 +172,7 @@
           "google/gemini-2.5-flash"
         ]
       },
-      "workspace": "/home/openclaw/.openclaw-trian/workspace",
+      "workspace": "/home/openclaw/.openclaw-{AGENT}/workspace",
       "memorySearch": {
         "enabled": true,
         "provider": "local",
@@ -291,7 +291,7 @@
   "messages": {
     "groupChat": {
       "mentionPatterns": [
-        "\\b@?Trian\\b"
+        "\b@?{AGENT}\b"
       ]
     }
   },
@@ -396,7 +396,7 @@
       "brave": {
         "config": {
           "webSearch": {
-            "apiKey": "BSADmdNLoq4K3LcdJFXCvNX1FCIc-yq"
+            "apiKey": "REDACTED"
           }
         },
         "enabled": true
