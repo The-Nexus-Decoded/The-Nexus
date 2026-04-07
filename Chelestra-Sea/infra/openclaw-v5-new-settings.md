@@ -118,25 +118,31 @@ Warns once if bootstrap files are truncated. Not every turn.
 
 ---
 
-## MINIMAX MEDIA (your subscription includes these)
+## MINIMAX MEDIA ($50/month Max Plan — all included)
 
 ### MiniMax Video Generation
 ```json
 "agents.defaults.videoGenerationModel": {
-  "primary": "minimax/Hailuo-2.3-Fast-768P"
+  "primary": "minimax/MiniMax-Hailuo-2.3"
 }
 ```
-Models available on your MiniMax sub:
-- Hailuo-2.3-Fast-768P 6s (2 per day)
-- Hailuo-2.3-768P 6s (2 per day)
+- API model ID: `MiniMax-Hailuo-2.3` (source: extensions/minimax/video-generation-provider.ts)
+- Also supports: `MiniMax-Hailuo-02`
+- Allowed durations: 6s, 10s
+- Base URL: `https://api.minimax.io`
+- Async: polls every 10s, max 90 attempts (15 min timeout)
+- Daily limit: 2 fast + 2 standard = 4 videos/day
 
 ### MiniMax Music Generation
 ```json
 "agents.defaults.musicGenerationModel": {
-  "primary": "minimax/music-2.5"
+  "primary": "minimax/music-2.5+"
 }
 ```
-4 per day on your subscription.
+- API model ID: `music-2.5+` (source: extensions/minimax/music-generation-provider.ts)
+- Base URL: `https://api.minimax.io`
+- Async: returns task_id, poll for completion
+- Daily limit: 4 tracks/day
 
 ### MiniMax Image Generation
 ```json
@@ -144,25 +150,56 @@ Models available on your MiniMax sub:
   "primary": "minimax/image-01"
 }
 ```
-120 per day on your subscription.
+- API model ID: `image-01` (source: extensions/minimax/image-generation-provider.ts)
+- Base URL: `https://api.minimax.io`
+- Supported aspect ratios: 1:1, 16:9, 4:3, 3:2, 2:3, 3:4, 9:16, 21:9
+- Supports image-to-image editing (pass reference image)
+- Output: PNG base64
+- Daily limit: 120 images/day
 
 ### MiniMax Text-to-Speech
 ```json
 "talk.provider": "minimax",
 "talk.providers.minimax.apiKey": "${MINIMAX_API_KEY}"
 ```
-11,000 TTS HD calls per day. Enables voice mode for agents.
+- API endpoint: `https://api.minimax.io/v1/t2a_v2`
+- Config: voiceId (pick a voice), speed, volume, pitch
+- Daily limit: 11,000 TTS HD calls/day
+- Enables voice conversations in Discord voice channels
 
-### MiniMax Models to Add to providers section
+### MiniMax Web Search
 ```json
-"models.providers.minimax.models": [
-  {"id": "MiniMax-M2.7", "name": "MiniMax M2.7", "reasoning": true, "contextWindow": 200000, "maxTokens": 8192},
-  {"id": "Hailuo-2.3-Fast-768P", "name": "Hailuo Video Fast", "input": ["text", "image"]},
-  {"id": "Hailuo-2.3-768P", "name": "Hailuo Video Standard", "input": ["text", "image"]},
-  {"id": "music-2.5", "name": "MiniMax Music 2.5"},
-  {"id": "image-01", "name": "MiniMax Image Gen"}
-]
+"tools.web.search.provider": "minimax"
 ```
+- Built-in MiniMax search provider (included in Max plan)
+- Alternative to Brave search
+
+### MiniMax Image Understanding
+Already configured — MiniMax-M2.7 supports image input natively. Agents can see and analyze images when using M2.7.
+
+### All MiniMax API Auth
+All MiniMax media APIs use the same MINIMAX_API_KEY. Set it once in env:
+```json
+"env": {
+  "MINIMAX_API_KEY": "sk-cp-..."
+}
+```
+All providers (text, image, video, music, TTS, search) resolve from this key automatically.
+
+### MiniMax Models Summary (add to providers section if not auto-discovered)
+```json
+"models.providers.minimax": {
+  "baseUrl": "https://api.minimax.io/anthropic",
+  "apiKey": "${MINIMAX_API_KEY}",
+  "api": "anthropic-messages",
+  "authHeader": true,
+  "models": [
+    {"id": "MiniMax-M2.7", "name": "MiniMax M2.7", "reasoning": true, "input": ["text", "image"], "contextWindow": 204800, "maxTokens": 131072, "cost": {"input": 0.3, "output": 1.2, "cacheRead": 0.06, "cacheWrite": 0.375}},
+    {"id": "MiniMax-M2.7-highspeed", "name": "MiniMax M2.7 Highspeed", "reasoning": true, "input": ["text", "image"], "contextWindow": 204800, "maxTokens": 131072, "cost": {"input": 0.6, "output": 2.4, "cacheRead": 0.06, "cacheWrite": 0.375}}
+  ]
+}
+```
+Note: Video (MiniMax-Hailuo-2.3), Music (music-2.5+), Image (image-01), and TTS are separate API endpoints on the same base URL. They are registered as media providers by the bundled MiniMax plugin, not as chat models.
 
 ---
 
