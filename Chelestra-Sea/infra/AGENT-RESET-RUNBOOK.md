@@ -285,16 +285,17 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 7. **Check memory DB size**: `ls -lh ~/.openclaw-{agent}/memory/main.sqlite` — if larger than 30MB, STOP and decide with owner whether to clear or manually bootstrap. Large DB = lots of learned context that will be lost.
 8. **Backup memory DB**: `cp ~/.openclaw-{agent}/memory/main.sqlite ~/.openclaw-{agent}/memory/main.sqlite.bak-{date}`
 9. **Clear memory DB**: `rm ~/.openclaw-{agent}/memory/main.sqlite`
-10. **Start gateway**: `systemctl --user start openclaw-gateway-{agent}`
-11. **Verify health**: `curl -s http://127.0.0.1:{port}/health`
-12. **Immediately delete IDENTITY.md and USER.md again** — gateway recreates blank templates on start, delete them while running before messaging the agent
-13. **VERIFY ALL FILES EXIST** — run `ls ~/.openclaw-{agent}/workspace/*.md` and confirm EVERY file is there, especially BOOTSTRAP.md which keeps disappearing. Do NOT hand off to owner until verified.
+10. **Switch model to Opus 4.6 for bootstrap**: Set `anthropic/claude-opus-4-6` as primary in openclaw.json. Backup config first. This ensures the bootstrap conversation uses Opus for better identity/personality generation.
+11. **Start gateway**: `systemctl --user start openclaw-gateway-{agent}`
+12. **Verify health**: `curl -s http://127.0.0.1:{port}/health`
+13. **Immediately delete IDENTITY.md and USER.md again** — gateway recreates blank templates on start, delete them while running before messaging the agent
+14. **VERIFY ALL FILES EXIST** — run `ls ~/.openclaw-{agent}/workspace/*.md` and confirm EVERY file is there, especially BOOTSTRAP.md which keeps disappearing. Do NOT hand off to owner until verified.
 
 **WHY THIS ORDER:** If IDENTITY.md and USER.md exist (even as blank templates) when the agent gets its first message, it thinks it's already set up and skips bootstrap. They must be absent when the agent first reads its workspace.
 
 ## Phase 7: Bootstrap
 
-1. **Set model to MiniMax for bootstrap** — Anthropic credits exhausted, MiniMax is free and available
+1. **Set model to Opus 4.6 for bootstrap** — Opus produces better identity/personality output than MiniMax. Set `anthropic/claude-opus-4-6` as primary in openclaw.json before starting gateway. Fallbacks: gpt-5.4, MiniMax, Gemini Flash. After bootstrap is complete, switch primary back to gpt-5.4 for normal operations.
 2. **Write fantasy bootstrap message** — Death Gate flavored, must include ALL of these instructions:
    - Tell them to read PERSONALITYLAYERS.md alongside SOUL.md FIRST — it defines their voice, emotional intelligence, and personality. Internalize it before doing anything else.
    - Then read BOOTSTRAP.md and follow its instructions to create IDENTITY.md and USER.md
