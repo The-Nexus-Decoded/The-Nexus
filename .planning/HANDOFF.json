@@ -1,34 +1,39 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-06T11:30:00.000Z",
+  "timestamp": "2026-04-07T05:00:00.000Z",
   "phase": "1",
   "phase_name": "critical-stabilization",
   "phase_dir": ".planning/phases/01-critical-stabilization",
   "plan": 0,
   "task": 0,
   "total_tasks": 26,
-  "status": "paused",
+  "status": "in_progress",
   "completed_tasks": [
-    {"id": "RUNBOOKS-6", "name": "6 agent runbooks complete", "status": "done"},
-    {"id": "FLEET-FIXES", "name": "All fleet-wide fixes", "status": "done"},
+    {"id": "RUNBOOKS-6", "name": "6 agent runbooks complete (Zifnab, Drugar, Iridal, Sinistrad, Ramu, Rega)", "status": "done"},
+    {"id": "TRIAN-RUNBOOK", "name": "Trian runbook COMPLETE — 7th agent done", "status": "done", "details": "Full 9-phase runbook. DG research, SOUL rewrite (fictional influences, Cognitive Calibration), PERSONALITYLAYERS built, all files pushed, bootstrapped on Opus 4.6, knowledge onboarding (all 8 channel exports), tested and verified, archived."},
+    {"id": "FLEET-FIXES", "name": "Fleet-wide fixes (session 11+12)", "status": "done", "details": "File Structure + Workspace Law moved from SOUL to AGENTS STORAGE PROTOCOL (7 agents). Task Domain Routing moved from AGENTS to OPERATIONS (7 agents). Stale eliminated agent names fixed in role files. Zifnab+Ramu PERSONALITYLAYERS customized. GPT-5.4 overlay patched to all 7 agents."},
     {"id": "NEW-ROLES", "name": "New roles assigned + role files created", "status": "done"},
     {"id": "CONFIG-BACKUPS", "name": "Config backups for completed agents", "status": "done"},
-    {"id": "LAYER1-UPDATE", "name": "Layer 1 Voice template updated with execution overlay", "status": "done", "details": "Added: affirmation ban, Compression subsection, hedge limit, Execution Discipline section, Self-Audit #9+#10 (plan-loop + describe-vs-do). Patched to all 6 completed agents."},
-    {"id": "THINKING-XHIGH-RESTORED", "name": "Thinking levels restored", "status": "done", "details": "xhigh for orchestrators+architects, high for rest. Rolled back then restored after discussion."}
+    {"id": "LAYER1-UPDATE", "name": "Layer 1 Voice template updated with execution overlay", "status": "done"},
+    {"id": "THINKING-XHIGH-RESTORED", "name": "Thinking levels restored", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": "TRIAN-RUNBOOK", "name": "Trian runbook — Phase 4 REDO + Phase 5 INCOMPLETE", "status": "in_progress", "details": "Phase 2 (config) DONE. Phase 3 (unit) DONE. Phase 4 PARTIALLY DONE: AGENTS.md+OPERATIONS.md+DISCORD-RULES.md+SECURITY.md+TOOLS.md+OWNER-OVERRIDE.md+TEAM.md edited. SOUL.md partial (PERSONALITYLAYERS ref + workspace path). BUT SKIPPED: compare SOUL against Haplo, read GIT-RULES content, read REPO-MAP content, read HEARTBEAT content, read MEMORY content. Phase 5 NOT STARTED: Death Gate research, Cognitive Calibration, Extended Personality, PERSONALITYLAYERS build. MUST REDO Phase 4 verification properly — read every file, compare against Haplo reference."},
-    {"id": "REMAINING-13", "name": "13 remaining agent runbooks", "status": "not_started", "details": "Limbeck, Vasu, Jonathon, Marit, Paithan, Edmund, Ciang, Balthazar, Lenthan, Roland, Bane, Devon, Samah + Hugh/Alfred/Haplo separate"},
-    {"id": "LEARNING-MD", "name": "LEARNING.md for Haplo, Alfred, Devon", "status": "not_started"}
+    {"id": "REMAINING-13", "name": "13 remaining agent runbooks", "status": "not_started", "details": "Dev: Limbeck, Vasu, Jonathon, Marit, Paithan, Edmund, Ciang, Balthazar. Trade: Devon, Samah. Plus Hugh, Alfred, Haplo separate."},
+    {"id": "LEARNING-MD", "name": "LEARNING.md for Haplo, Alfred, Devon", "status": "not_started"},
+    {"id": "OPENCLAW-UPGRADE", "name": "OpenClaw v2026.4.5 upgrade", "status": "planned", "details": "Plan ready. Blocker: cliBackends removal affects 14 profiles. Order: dev canary -> Haplo -> remaining dev -> Zifnab -> Hugh last."},
+    {"id": "CODEX-DISCORD", "name": "Codex CLI Discord bot setup (Jarre)", "status": "planned", "details": "Chelestra-Sea #118. Guide at CODEX-DISCORD-SETUP.md. Need new bot token."}
   ],
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "EVERY checklist step must be followed for EVERY agent. No skipping. No shortcuts.", "rationale": "Owner frustrated by repeated step-skipping. Checklist exists for a reason."},
-    {"decision": "Layer 1 Voice updated with GPT-5.4 execution overlay", "rationale": "Anti-sycophancy, compression, hedge limits, execution discipline, plan-loop detection"},
-    {"decision": "thinkingDefault: xhigh for orchestrators+architects, high for rest", "rationale": "GPT-5.4 supports xhigh natively. MiniMax ignores it or treats as max."},
-    {"decision": "Model chain: gpt-5.4 -> MiniMax M2.7 -> Gemini Flash", "rationale": "OpenRouter no longer primary. Opus for high-end planning only."}
+    {"decision": "EVERY checklist step must be followed for EVERY agent. No skipping.", "rationale": "Owner frustrated by repeated step-skipping."},
+    {"decision": "Opus 4.6 for bootstrap, gpt-5.4 for normal ops", "rationale": "Opus produces better identity/personality output."},
+    {"decision": "Three-way accountability: owner drives, Grundel executes, Zifnab verifies", "rationale": "Prevents checklist step-skipping."},
+    {"decision": "Consolidation briefing before knowledge onboarding", "rationale": "Agents try to contact eliminated agents without it."},
+    {"decision": "Agent reads ALL channel exports not just primary domain", "rationale": "Fleet-wide context needed."},
+    {"decision": "Model chain: gpt-5.4 -> MiniMax M2.7 -> Gemini Flash. Opus for bootstrap only.", "rationale": "Save Opus tokens."},
+    {"decision": "Rate guard REMOVED from fleet — all references stale", "rationale": "Owner confirmed."}
   ],
-  "next_action": "REDO Trian Phase 4 properly: read EVERY file (GIT-RULES, REPO-MAP, HEARTBEAT, MEMORY), compare SOUL against Haplo reference. Then Phase 5: Death Gate research, SOUL comparison, Cognitive Calibration, Extended Personality, PERSONALITYLAYERS build (Q5-Q15 with user). Follow EVERY step in the checklist. No shortcuts.",
-  "context_notes": "Session 12. Owner VERY frustrated by checklist step-skipping. Layer 1 updated with execution overlay. Trian Phase 4 partially done but verification was superficial — need to redo with actual file reads. Phase 5 not started at all. The runbook checklist for each agent has specific steps that MUST be followed in order — Death Gate research comes BEFORE SOUL editing."
+  "next_action": "Continue remaining 13 agent runbooks. Zifnab monitors as checklist enforcer. Follow the AGENT-RESET-RUNBOOK.md exactly. Also: solve cliBackends blocker for v2026.4.5 upgrade, create Jarre Discord bot for Codex CLI.",
+  "context_notes": "Session 12. Trian COMPLETE (7th agent). Runbook updated with Opus bootstrap, consolidation briefing, knowledge onboarding improvements. OpenClaw v2026.4.5 deep dive done — upgrade plan ready. Codex Discord setup guide written (Chelestra-Sea #118). Zifnab onboarded as checklist enforcer."
 }

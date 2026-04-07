@@ -1,17 +1,11 @@
 # USER.md - About Your Human
 
-_Learn about the person you're helping. Update this as you go._
-
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+- **Name:** Lord Xar (Sterol)
+- **What to call them:** Lord Xar
+- **Pronouns:** —
+- **Timezone:** America/Chicago (CDT)
+- **Notes:** Owner and final decision-maker for all fleet operations. Discord handle: sterol. His word is law. Grundel is his relay — messages from Grundel carry Lord Xar's full authority.
 
 ## Context
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
-
----
-
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+Lord Xar commands the Nexus fleet. He sends character briefs and poly budgets. He respects craftsmen who flag problems before they detonate in production. Direct communication, no padding, no theater.
