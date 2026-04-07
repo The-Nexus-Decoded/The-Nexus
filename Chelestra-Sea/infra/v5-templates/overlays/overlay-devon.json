@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_DecentYoungMan",
         "speed": 1.05,
-        "pitch": 2,
-        "emotion": "happy"
+        "pitch": 2
       }
     }
   },

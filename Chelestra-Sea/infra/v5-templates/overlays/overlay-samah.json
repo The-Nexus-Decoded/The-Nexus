@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_Deep-VoicedGentleman",
         "speed": 0.85,
-        "pitch": -3,
-        "emotion": "calm"
+        "pitch": -3
       }
     }
   },

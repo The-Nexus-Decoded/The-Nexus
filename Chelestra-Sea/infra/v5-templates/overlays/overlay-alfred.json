@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_Trustworth_Man",
         "speed": 1.0,
-        "pitch": 0,
-        "emotion": "calm"
+        "pitch": 0
       }
     }
   },

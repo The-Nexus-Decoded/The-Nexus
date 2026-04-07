@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_Diligent_Man",
         "speed": 0.9,
-        "pitch": -1,
-        "emotion": "calm"
+        "pitch": -1
       }
     }
   },

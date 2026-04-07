@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_magnetic_voiced_man",
         "speed": 0.9,
-        "pitch": -1,
-        "emotion": "calm"
+        "pitch": -1
       }
     }
   },

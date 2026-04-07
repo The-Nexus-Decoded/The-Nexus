@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_WiseScholar",
         "speed": 0.9,
-        "pitch": -1,
-        "emotion": "calm"
+        "pitch": -1
       }
     }
   },

@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_Jovialman",
         "speed": 1.15,
-        "pitch": 1,
-        "emotion": "happy"
+        "pitch": 1
       }
     }
   },

@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_compelling_lady1",
         "speed": 0.95,
-        "pitch": 0,
-        "emotion": "calm"
+        "pitch": 0
       }
     }
   },

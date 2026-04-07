@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_MaturePartner",
         "speed": 0.9,
-        "pitch": -2,
-        "emotion": "calm"
+        "pitch": -2
       }
     }
   },

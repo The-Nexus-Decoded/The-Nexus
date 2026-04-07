@@ -4,8 +4,7 @@
       "minimax": {
         "voiceId": "English_Strong-WilledBoy",
         "speed": 0.95,
-        "pitch": -1,
-        "emotion": "calm"
+        "pitch": -1
       }
     }
   },
