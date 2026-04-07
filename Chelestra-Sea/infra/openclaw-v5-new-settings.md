@@ -123,15 +123,25 @@ Warns once if bootstrap files are truncated. Not every turn.
 ### MiniMax Video Generation
 ```json
 "agents.defaults.videoGenerationModel": {
-  "primary": "minimax/MiniMax-Hailuo-2.3"
+  "primary": "minimax/MiniMax-Hailuo-2.3-Fast",
+  "fallbacks": ["minimax/MiniMax-Hailuo-2.3"]
 }
 ```
-- API model ID: `MiniMax-Hailuo-2.3` (source: extensions/minimax/video-generation-provider.ts)
-- Also supports: `MiniMax-Hailuo-02`
-- Allowed durations: 6s, 10s
-- Base URL: `https://api.minimax.io`
+Available models (from extensions/minimax/video-generation-provider.ts):
+- `MiniMax-Hailuo-2.3-Fast` — fast mode, 768P (2/day on your plan)
+- `MiniMax-Hailuo-2.3` — standard quality, 768P (2/day on your plan)
+- `MiniMax-Hailuo-02` — older model
+- `I2V-01-Director` — image-to-video, director mode
+- `I2V-01-live` — image-to-video, live mode
+- `I2V-01` — image-to-video, standard
+
+All support:
+- Durations: 6s, 10s
+- Custom resolution (supportsResolution: true)
+- Image-to-video: pass a reference first_frame_image
+- Base URL: `https://api.minimax.io/v1/video_generation`
 - Async: polls every 10s, max 90 attempts (15 min timeout)
-- Daily limit: 2 fast + 2 standard = 4 videos/day
+- Daily limit: 2 fast + 2 standard = 4 videos/day total
 
 ### MiniMax Music Generation
 ```json
