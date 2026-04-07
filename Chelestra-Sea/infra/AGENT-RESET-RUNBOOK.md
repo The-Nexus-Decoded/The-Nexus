@@ -307,10 +307,13 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 
 ## Phase 7.5: Knowledge Onboarding
 
-1. **Verify channel exports are current** — check dates on files in `/data/openclaw/shared/channel-exports/`. If older than 7 days, refresh the exports before proceeding.
-2. **Tell agent to read relevant channel exports** — message the agent with instructions to read the channel export files relevant to their role from `/data/openclaw/shared/channel-exports/`. For Trian: #games-vr, #the-nexus.
-3. **Agent saves role-relevant context to MEMORY.md** — agent reads the exports and saves only information relevant to their role (active projects, team decisions, design direction, etc.). Do NOT copy raw chat logs.
-4. **Verify MEMORY.md was updated** — check the agent's MEMORY.md has new entries from the channel context.
+1. **Consolidation briefing** — BEFORE the agent reads old chat history, message them with the fleet consolidation context. Tell them: which agents were eliminated, who absorbed whom, and specifically which eliminated agents' roles they now own. This prevents the agent from trying to contact dead agents. Reference TEAM.md Eliminated Agents section. Highlight any absorbed agents that directly affect this agent's workflow (e.g., Trian absorbed Lenthan — no separate concept artist exists).
+2. **Verify channel exports are current** — check dates on files in `/data/openclaw/shared/channel-exports/`. If older than 7 days, refresh the exports before proceeding.
+3. **Tell agent to read ALL channel exports** — message the agent in their Discord channel with instructions to read ALL export files from `/data/openclaw/shared/channel-exports/`. Not just their primary domain — all of them. They focus on their domain but need fleet-wide context.
+4. **Verify agent received and is acting** — do NOT mark this step done until the agent responds in the channel confirming they are reading. If no response within 2 minutes, the message did not land. Re-tag or escalate.
+5. **Agent saves role-relevant context to MEMORY.md** — agent reads the exports and saves only information relevant to their role (active projects, team decisions, design direction, etc.). Do NOT copy raw chat logs.
+6. **Agent posts status report** — agent posts back in the channel with: what they found, what they think, status update for Lord Xar, and any questions about their role and how they fit into the team.
+7. **Verify MEMORY.md was updated** — check the agent's MEMORY.md has new entries from the channel context.
 
 ## Phase 8: Test & Verify
 
