@@ -20,5 +20,9 @@
         }
       }
     }
+  },
+  "dreaming": {
+    "enabled": true,
+    "frequency": "0 3 * * *"
   }
 }

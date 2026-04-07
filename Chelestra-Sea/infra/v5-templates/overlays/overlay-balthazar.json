@@ -20,5 +20,8 @@
         }
       }
     }
+  },
+  "dreaming": {
+    "enabled": false
   }
 }
