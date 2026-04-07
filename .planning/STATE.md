@@ -11,10 +11,10 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 
 Phase: 1 of 6 (Critical Stabilization)
 Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-04-02 — Roadmap created, 26 requirements mapped to 6 phases
+Status: In progress (agent runbooks — 6/20 complete, Trian in progress, 13 remaining)
+Last activity: 2026-04-06 session 12 — Layer 1 Voice updated with GPT-5.4 execution overlay (patched to 6 agents). Thinking levels restored (xhigh/high). Trian runbook started: Phase 2+3 done, Phase 4 partial (files edited but verification skipped), Phase 5 not started. Owner frustrated by step-skipping.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 32%
 
 ## Performance Metrics
 
@@ -45,21 +45,27 @@ Recent decisions affecting current work:
 - [Roadmap]: 6 phases derived from 26 requirements -- stabilize first, then cleanup, verify, build processes, build tools, enable coordination
 - [Roadmap]: Phases 4 and 5 can potentially run in parallel (both depend on Phase 3, not each other)
 - [Roadmap]: PR #275 (agentbaseline deletions) handled separately by owner -- not included in roadmap
+- [Session 9]: MiniMax for bootstrap — Anthropic credits exhausted
+- [Session 9]: PERSONALITYLAYERS.md is standard for all agents (3-layer: Voice, EQ, Personality)
+- [Session 9]: Zifnab's BOOTSTRAP.md is new template (includes USER.md step)
+- [Session 9]: tools.web.search.apiKey is correct Brave config path (webSearch crashes gateway)
+- [Session 9]: auth-profiles.json must be manually copied for new profiles
+- [Session 9]: Port verification mandatory (unit file + config must match)
 
 ### Pending Todos
 
-None yet.
+- Deploy Anthropic Skills to fleet agents (Chelestra-Sea #117) — after all runbooks complete
 
 ### Blockers/Concerns
 
-- Zifnab and Hugh are STOPPED right now -- Phase 1 is urgent
-- codex-cli/gpt-5.4 model unknown in OpenClaw 2026.4.1 -- may need research
-- Sandbox Docker requirement is a workaround (disabled) -- needs real resolution
-- ACPX permissions system is new and not well understood
+- Anthropic API credits exhausted — Opus and Sonnet fail, all agents fall back to codex/MiniMax
+- 12 agents still need full runbook treatment
+- 4 agents need SOUL rewrite circle-back (Balthazar, Ciang, Edmund, Alfred)
 
 ## Session Continuity
 
-Last session: 2026-04-03 (session 4)
-Stopped at: Diagnosed inbound relay failure (--channels flag not reaching session despite bash alias). Patched all 3 launcher shims (bash/cmd/ps1) at C:/nvm4w/nodejs/ to auto-inject --channels. Needs session restart to verify. Then: test inbound (DM Grundel), continue bootstrap (Iridal next, sonnet). 4/20 agents done, 14 remaining.
+Last session: 2026-04-06 (session 12)
+Stopped at: Trian runbook mid-Phase 4. Phase 4 files edited but verification was superficial (didn't read file contents, didn't compare SOUL against Haplo). Phase 5 (Death Gate research, Cognitive Calibration, PERSONALITYLAYERS) not started. Layer 1 Voice template updated with GPT-5.4 execution overlay and patched to all 6 completed agents. Thinking levels restored to xhigh/high split.
+CRITICAL: Owner demands EVERY checklist step followed for EVERY agent. No shortcuts. Read files, don't just check existence. Do Death Gate research BEFORE editing SOUL. Follow the runbook order exactly.
 Resume file: .planning/phases/01-critical-stabilization/.continue-here.md
 Handoff file: .planning/HANDOFF.json

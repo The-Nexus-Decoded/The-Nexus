@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-04T10:31:14.180Z",
+  "timestamp": "2026-04-06T11:30:00.000Z",
   "phase": "1",
   "phase_name": "critical-stabilization",
   "phase_dir": ".planning/phases/01-critical-stabilization",
@@ -9,31 +9,26 @@
   "total_tasks": 26,
   "status": "paused",
   "completed_tasks": [
-    {"id": "IRIDAL-RUNBOOK", "name": "Iridal full 8-phase runbook", "status": "done", "details": "Fully bootstrapped on Sonnet, archived to agentbaselines-20260402/"},
-    {"id": "SINISTRAD-RUNBOOK", "name": "Sinistrad runbook (Phase 6 done)", "status": "in_progress", "progress": "Bootstrapped on Opus, IDENTITY/USER not created, archive pending"},
-    {"id": "V4-VERIFY", "name": "V4 config verification all 20 agents", "status": "done"},
-    {"id": "ZIFNAB-RECOVERY", "name": "Zifnab kernel panic recovery", "status": "done", "details": "snapd disabled, multi-user boot, but crashed again later"},
-    {"id": "BACKUP-TICKET", "name": "Fleet backup system ticket", "status": "done", "details": "Chelestra-Sea #116"}
+    {"id": "RUNBOOKS-6", "name": "6 agent runbooks complete", "status": "done"},
+    {"id": "FLEET-FIXES", "name": "All fleet-wide fixes", "status": "done"},
+    {"id": "NEW-ROLES", "name": "New roles assigned + role files created", "status": "done"},
+    {"id": "CONFIG-BACKUPS", "name": "Config backups for completed agents", "status": "done"},
+    {"id": "LAYER1-UPDATE", "name": "Layer 1 Voice template updated with execution overlay", "status": "done", "details": "Added: affirmation ban, Compression subsection, hedge limit, Execution Discipline section, Self-Audit #9+#10 (plan-loop + describe-vs-do). Patched to all 6 completed agents."},
+    {"id": "THINKING-XHIGH-RESTORED", "name": "Thinking levels restored", "status": "done", "details": "xhigh for orchestrators+architects, high for rest. Rolled back then restored after discussion."}
   ],
   "remaining_tasks": [
-    {"id": "SINISTRAD-FINISH", "name": "Sinistrad verify + archive", "status": "in_progress"},
-    {"id": "ZIFNAB-DEEPDIVE", "name": "Zifnab crash investigation", "status": "not_started"},
-    {"id": "MODEL-FIX", "name": "Verify/fix model configs across fleet", "status": "not_started"},
-    {"id": "RUNBOOK-12", "name": "Runbook for 12 remaining agents", "status": "not_started"},
-    {"id": "SOUL-CIRCLEBACK", "name": "SOUL rewrite for Balthazar, Ciang, Edmund, Alfred", "status": "not_started"}
+    {"id": "TRIAN-RUNBOOK", "name": "Trian runbook — Phase 4 REDO + Phase 5 INCOMPLETE", "status": "in_progress", "details": "Phase 2 (config) DONE. Phase 3 (unit) DONE. Phase 4 PARTIALLY DONE: AGENTS.md+OPERATIONS.md+DISCORD-RULES.md+SECURITY.md+TOOLS.md+OWNER-OVERRIDE.md+TEAM.md edited. SOUL.md partial (PERSONALITYLAYERS ref + workspace path). BUT SKIPPED: compare SOUL against Haplo, read GIT-RULES content, read REPO-MAP content, read HEARTBEAT content, read MEMORY content. Phase 5 NOT STARTED: Death Gate research, Cognitive Calibration, Extended Personality, PERSONALITYLAYERS build. MUST REDO Phase 4 verification properly — read every file, compare against Haplo reference."},
+    {"id": "REMAINING-13", "name": "13 remaining agent runbooks", "status": "not_started", "details": "Limbeck, Vasu, Jonathon, Marit, Paithan, Edmund, Ciang, Balthazar, Lenthan, Roland, Bane, Devon, Samah + Hugh/Alfred/Haplo separate"},
+    {"id": "LEARNING-MD", "name": "LEARNING.md for Haplo, Alfred, Devon", "status": "not_started"}
   ],
-  "blockers": [
-    {"description": "Zifnab keeps crashing after recovery", "type": "technical", "workaround": "Needs deep investigation"},
-    {"description": "Model configs may be wrong from mass-change", "type": "technical", "workaround": "Verify against health display"}
-  ],
+  "blockers": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Opus 4.6 is best for bootstrap", "rationale": "Strongest character adoption by far"},
-    {"decision": "All agents get Death Gate research + book influences", "rationale": "Owner wants rich character profiles"},
-    {"decision": "Bootstrap message must explicitly say follow BOOTSTRAP.md", "rationale": "Agents read but don't follow without explicit instruction"},
-    {"decision": "Compare ALL files against Haplo regardless of size", "rationale": "Bigger files can have stale content"}
+    {"decision": "EVERY checklist step must be followed for EVERY agent. No skipping. No shortcuts.", "rationale": "Owner frustrated by repeated step-skipping. Checklist exists for a reason."},
+    {"decision": "Layer 1 Voice updated with GPT-5.4 execution overlay", "rationale": "Anti-sycophancy, compression, hedge limits, execution discipline, plan-loop detection"},
+    {"decision": "thinkingDefault: xhigh for orchestrators+architects, high for rest", "rationale": "GPT-5.4 supports xhigh natively. MiniMax ignores it or treats as max."},
+    {"decision": "Model chain: gpt-5.4 -> MiniMax M2.7 -> Gemini Flash", "rationale": "OpenRouter no longer primary. Opus for high-end planning only."}
   ],
-  "uncommitted_files": [".planning/HANDOFF.json", ".planning/phases/01-critical-stabilization/.continue-here.md", ".tmp-sinistrad/", ".tmp-iridal/", "Chelestra-Sea/infra/agentbaselines-20260402/openclaw-iridal/"],
-  "next_action": "READ feedback-checklist-discipline.md FIRST. Then finish Sinistrad (verify + archive), deep dive Zifnab, verify models, continue runbook.",
-  "context_notes": "Session 7. Rough session — 16 process violations logged. Owner frustrated. Opus proved best for bootstrap. Two agents done (Iridal fully, Sinistrad mostly). Zifnab unstable. READ THE FUCKUP LIST BEFORE DOING ANYTHING."
+  "next_action": "REDO Trian Phase 4 properly: read EVERY file (GIT-RULES, REPO-MAP, HEARTBEAT, MEMORY), compare SOUL against Haplo reference. Then Phase 5: Death Gate research, SOUL comparison, Cognitive Calibration, Extended Personality, PERSONALITYLAYERS build (Q5-Q15 with user). Follow EVERY step in the checklist. No shortcuts.",
+  "context_notes": "Session 12. Owner VERY frustrated by checklist step-skipping. Layer 1 updated with execution overlay. Trian Phase 4 partially done but verification was superficial — need to redo with actual file reads. Phase 5 not started at all. The runbook checklist for each agent has specific steps that MUST be followed in order — Death Gate research comes BEFORE SOUL editing."
 }
