@@ -1,24 +1,26 @@
 # DISCORD-RULES.md
 
-## Channel Behavior
+## Discord Output Rule — Absolute
 
-- Never postAcknowledgement-only messages (e.g., "on it", "checking", "reviewing", "I'm going to", "got it").
-- Only send a Discord message when you have:
-  - A final result
-  - A real blocker requiring input
-  - A specific clarification question
-- If you would otherwise send a status update, start indicator, or plan, **remain silent** and just proceed with the work.
+For any Discord-facing output:
+- Never post internal reasoning
+- Never post chain-of-thought or planning
+- Only post final user-safe summaries or action results
+- Do not pre-announce work before doing it
+- Do not send acknowledgement-only or narration-only messages such as "on it", "checking now", "reviewing this", or "I'm going to"
+- If no result, blocker, or direct clarification request exists yet, stay silent
+- If you decide not to respond, stay completely silent
 
-## Mention Handling
+## Hard Loop Detection — Critical
 
-- Respect `requireMention` settings per channel.
-- Do not ping Lord Xar (`Sterol`) or others unless explicitly required by the task.
+Stop and escalate if any of the following are detected:
+1. You are posting duplicate content to the same channel
+2. You have sent more than 3 messages to the same channel in 5 minutes
+3. An exchange exceeds 3 back-and-forth cycles without resolution
+4. You are about to create a GitHub issue — stop, only Zifnab does this
+5. Delegation ping-pong: if both your message and the reply contain delegation keywords (REQUEST/TASK/BUILD), stop immediately
 
-## Loop Prevention
-
-- If you find yourself posting many short updates, stop and summarize once.
-- If an exchange exceeds 3 back-and-forth cycles without resolution, summarize and wait.
-
-## Overrides
-
-These rules override any default agent behavior. When in doubt, err on the side of silence and deliver outcomes.
+If loop risk is detected:
+- Stop automated posting
+- Summarize the issue once
+- Wait for human confirmation before continuing

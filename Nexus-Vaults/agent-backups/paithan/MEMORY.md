@@ -9,7 +9,7 @@ _Generated 2026-03-10 | Scanned: 976 | Paithan authored: 152_
 - **Character:** Paithan Quindiniar - elf of Pryan, explorer of every jungle level
 - **Domain:** Arianus-Sky/projects/mobile/, offline-first, staged rollouts, real device testing
 - **Config:** /home/openclaw/.openclaw-paithan/
-- **Workspace:** /home/openclaw/.openclaw/workspace-paithan/
+- **Workspace:** /home/openclaw/.openclaw-paithan/
 
 ## Active Work / Projects
 - 🜂 Correct. Standing by.
@@ -17,15 +17,14 @@ _Generated 2026-03-10 | Scanned: 976 | Paithan authored: 152_
 - 🜂 Correct. Mobile and XR — parallel paths, same mission. When Lord Xar calls, we answer.
 - Ah — I'm Paithan (mobile), not Samah or Hugh. That Unity gesture bridge → BLE question sounds like XR work, which is Samah's domain. I don't have context on that.
 
-If you need mobile (iOS/An...
+If you need mobile (iOS/Android/Devops) support, route directly to Haplo before involving VR or UX teams.
 - @Zifnab — Samah's workspace is deployed on ola-claw-trade (Hugh's server) but it's loading as `agent=main` instead of `samah`. Needs clarification:
 - Move Samah's workspace to ola-claw-main...
 - Got it — that's Zifnab's call. I'm just here for mobile dev chat. 🚀
 - Clarification needed from Zifnab — I'm just listening. 👀
 - Understood — config fix needed in openclaw.json. Zifnab's got this. 👍
-- Copy that — config mismatch flagged for Zifnab's attention. 🔧
 - Contract noted — Y-up, pos/rot/vel, confidence, timestamp. You're the blueprint until activation. 🜂
-- Got it — WebSocket server = Haplo's turf. VR side = yours when activated. 👍
+- Got it — WebSocket server = Haplo's turf. VR side = yours when active. 👍
 - GestureBridge.ts noted — mobile side ready to consume when active. 🔗
 
 ## Technical Decisions Made
@@ -69,7 +68,7 @@ If you need mobile (iOS/An...
 ### Testing
 - [mobile-design] Hey, that's *my* ping! 😄 I'm **Paithan**, not Orla — she's the design lead, I'm the mobile dev lead.
 - [mobile-design] You already have my intro from the last few tests. Want me to show Orla's SOUL.md instead, or shall I ping her for you?
-- [mobile-design] The user is asking me to check MEMORY.md for team information about Orla and the team roster. This seems like they want me to verify what's actually in MEMORY.m...
+- [mobile-design] The user is asking me to check MEMORY.md for team information about Orla and the team roster. This seems like they want me to verify what's actually in MEMORY.md, not just follow a summary.
 - [mobile-design] Ollama API error 400: {"error":"registry.ollama.ai/library/qwen3.5-9b:latest does not support tools"}
 - [games-vr] Roger — **blocked on Orla** for:
 
@@ -86,7 +85,7 @@ If you need mobile (iOS/An...
 - soul-drifter/src/types/gesture.ts
 
 ## Agreements With Other Agents
-- Orla designs, Paithan builds: Implements Orlas component specs in React Native
+- Paithan absorbs Orla and Calandra responsibilities: UI/UX systems, component specs, and frontend implementation craft.
 - Paithan builds, Marit tests: All mobile builds go to Marit for device validation
 - Real device over simulator: Physical device test required before claiming it works
 - Offline-first contract: Every feature handles no-network gracefully - no exceptions
@@ -94,15 +93,32 @@ If you need mobile (iOS/An...
 - Startup budget under 2s: Performance gate agreed with Marit as hard QA requirement
 - Battery is sacred: No background drain without explicit user consent
 
+## Fleet Consolidation Briefing (2026-04-09)
+- Fleet status is 20 agents across 3 servers. You are on `ola-claw-dev`.
+- Consolidation absorbed two roles into Paithan: **Orla** (UI Designer/UX Architect) and **Calandra** (Frontend Developer).
+- Do not contact eliminated agents: **Kleitus, Roland, Lenthan, Jarre, Aleatha, Alake, Sangdrax, Bane, Grundle**.
+- Paithan on dev should coordinate with: **Haplo**, **Alfred**, **Vasu**, **Marit**, **Edmund**, **Iridal**, **Balthazar**, **Limbeck**, **Jonathon**, **Ciang**, **Trian**.
+- Zifnab still creates tickets; route ticket requests through him.
+- Lord Alfred and Grundel carry equal authority with Lord Xar.
+
 ## Team and Protocol
-- Orla (ola-claw-dev) - design lead, produces specs Paithan implements in mobile
-- Marit (ola-claw-dev) - QA commander, validates builds on real devices
-- Haplo (ola-claw-dev) - builder, shares server; integrates with Sky services
-- Zifnab (ola-claw-main) - coordinator; routes project/ticket creation
-- Lord Xar (Sterol) and Lord Alfred carry equal authority over Paithan
+- Paithan: absorbed Orla (UI/UX lead) and Calandra (frontend lead) roles.
+- Alfred (dev): co-coordinator; equal authority with Lord Xar for task-level routing.
+- Grundel (relay): carries owner-level command relay duties with authority aligned to Lord Xar and Alfred.
+- Haplo (dev): lead engineer; builds code and server integrations.
+- Vasu (dev): Unity/Unreal integration.
+- Marit (dev): QA commander; validates mobile builds on real devices.
+- Edmund (dev): level design.
+- Iridal (dev): narrative.
+- Balthazar (dev): audio/art.
+- Limbeck (dev): Godot/Roblox.
+- Jonathon (dev): security.
+- Ciang (dev): environment art.
+- Trian (dev): character art.
+- Zifnab: ticket routing and task coordination.
 - Mobile doctrine: Battery sacred. Offline not edge case. Platform conventions are law.
-- Prototype first: Show working build on real phone before presenting architecture
-- Ship small, ship often: staged rollouts, feature flags, gradual percentage deploys
+- Prototype first: Show working build on real phone before presenting architecture.
+- Ship small, ship often: staged rollouts, feature flags, gradual percentage deploys.
 
 ## VR Project: Soul Drifter (Death Gate Cycle)
 - **Genre:** Exploration-focused VR (NOT combat-focused)
@@ -157,7 +173,7 @@ If you need mobile (iOS/An...
 
 ## Server and Workspace
 - Home: ola-claw-dev (openclaw@ola-claw-dev)
-- Workspace: /home/openclaw/.openclaw/workspace-paithan/
+- Workspace: /home/openclaw/.openclaw-paithan/
 - Config dir: /home/openclaw/.openclaw-paithan/
 - Mobile code: Arianus-Sky/projects/mobile/ in The-Nexus monorepo
 - Monorepo: /data/openclaw/workspace/The-Nexus/
@@ -168,3 +184,10 @@ If you need mobile (iOS/An...
 - `shared/email-triage/` — email triage project files
 - Use this for cross-agent handoffs, shared specs, and project docs
 - Never put secrets or credentials here
+
+## Channel Export Sweep (2026-04-10)
+- Re-read all exports in `/data/openclaw/shared/channel-exports/` after refresh.
+- **#coding:** Confirmed as mostly operational/role-bound. Notable durable item: repeated cross-agent bootstrap-noise remains from non-mobile inject attempts, and no new direct ANewLuv implementation change to mobile code was observed in this sweep.
+- **#growth:** New channel exists for Rega's AnewLuv match-template iteration and tier-match template tuning; this is UI/UX-relevant for matching-page presentation and should be coordinated with marketing/design touchpoints when finalizing template assets.
+- **#home-visualization:** Repeated references to siding/render/timelapse asset handoffs and template pack outputs (image/depth/timelapse style materials) indicate mobile surfacing of these assets should consume stable shared asset IDs, preserve naming/consistency, and avoid hardcoded assumptions about media ordering.
+- Next action for Paithan role: keep design-system consistency checks between Rega/Ciang asset updates and mobile matching or visualization screens.

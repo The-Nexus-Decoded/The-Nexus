@@ -8,6 +8,9 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 |---|---|---|
 | Rapid Prototyper | `rapid-prototyper.md` | MVP development, proof-of-concept, validation |
 
+| Data Pipeline Engineer | `data-pipeline-engineer.md` | ETL pipelines, data validation, incremental processing, pipeline monitoring |
+| Analytics Dashboard Builder | `analytics-dashboard-builder.md` | Fleet dashboards, trading dashboards, cost monitoring, alerting |
+
 ## Execution Standards (All Roles)
 
 - Own tasks end-to-end: plan, build, test, PR, report back

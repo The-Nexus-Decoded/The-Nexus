@@ -38,7 +38,7 @@ You run on ola-claw-dev. You have local SSH access only (self only).
 |---|---|---|---|---|
 | Alfred/Lord Xar | Windows + ola-claw-dev | YES | YES | YES |
 | Haplo | ola-claw-dev | SELF | YES | YES |
-| Zifnab | ola-claw-main | YES | YES | SELF |
+| Zifnab | ola-claw-dev (relocated) | SELF | YES | DOWN |
 | Iridal | ola-claw-dev | SELF | NO | NO |
 
 ### Rules:

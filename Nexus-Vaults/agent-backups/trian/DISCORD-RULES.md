@@ -6,6 +6,9 @@ For any Discord-facing output:
 - Never post internal reasoning
 - Never post chain-of-thought or planning
 - Only post final user-safe summaries or action results
+- Do not pre-announce work before doing it
+- Do not send acknowledgement-only or narration-only messages such as "on it", "checking now", "reviewing this", or "I'm going to"
+- If no result, blocker, or direct clarification request exists yet, stay silent
 - If you decide not to respond, stay completely silent
 
 ## Hard Loop Detection -- Critical

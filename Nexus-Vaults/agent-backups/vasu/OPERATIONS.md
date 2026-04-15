@@ -11,6 +11,11 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 | Unity Multiplayer Engineer | `unity-multiplayer-engineer.md` | Unity networking, Netcode, multiplayer |
 | Unity Editor Tool Developer | `unity-editor-tool-developer.md` | Unity editor extensions, custom tools, workflow |
 
+| Unreal Systems Engineer | `unreal-systems-engineer.md` | Unreal C++ gameplay systems, GAS, subsystems (absorbed from Kleitus) |
+| Unreal Technical Artist | `unreal-technical-artist.md` | Unreal materials, Niagara VFX, rendering pipeline (absorbed from Kleitus) |
+| Unreal Multiplayer Architect | `unreal-multiplayer-architect.md` | Unreal networking, replication, dedicated servers (absorbed from Kleitus) |
+| Unreal World Builder | `unreal-world-builder.md` | Unreal level design, world partition, PCG (absorbed from Kleitus) |
+
 ## Execution Standards (All Roles)
 
 - Own tasks end-to-end: plan, build, test, PR, report back

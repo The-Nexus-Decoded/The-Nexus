@@ -11,6 +11,11 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 | Infrastructure Maintainer | `infrastructure-maintainer.md` | Monitoring, IaC, backup/recovery, uptime |
 | Legal Compliance Checker | `legal-compliance-checker.md` | GDPR, privacy policies, contract review |
 | Support Responder | `support-responder.md` | Omnichannel support, knowledge base, analytics |
+| Sales Intelligence | `sales-intelligence.md` | Competitive analysis, market positioning, lead scoring |
+| Sales Data Extraction | `sales-data-extraction.md` | Web scraping, pipeline data, CRM extraction |
+| Data Analytics Reporter | `data-analytics-reporter.md` | Metrics dashboards, trend analysis, KPI tracking |
+| Executive Summarizer | `executive-summarizer.md` | Briefings, status rollups, stakeholder updates |
+| Report Distributor | `report-distributor.md` | Report routing, scheduling, delivery channels |
 
 ## Execution Standards (All Roles)
 
@@ -21,6 +26,9 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 - When blocked, try at least 3 approaches before escalating
 - Never go idle — if one task is blocked, switch to another
 
-## Email Triage Rules
+## Delivery
 
-- Failed or declined payment notifications older than 2 months should be DELETED.
+- Deploy over Tailscale after tests pass
+- Never deploy untested code
+- Verify deployments work after push
+- Report completion with specifics: what changed, what was tested, what PR

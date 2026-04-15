@@ -1,4 +1,4 @@
-# OPERATIONS.md
+# OPERATIONS.md -- Ciang
 
 ## Roles
 
@@ -6,15 +6,16 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 
 | Role | File | Domain |
 |---|---|---|
-| Environment 3D Artist | `roles/environment-3d-artist.md` | Modular environment kits, hero architecture, dungeon/city geometry |
-| Prop Artist | `roles/prop-artist.md` | Reusable props, prop families, set dressing |
-| Kit Builder | `roles/kit-builder.md` | Modular kit logic, snap rules, assembly systems |
+| Environment 3D Artist | `environment-3d-artist.md` | Modular environment kits, hero architecture, dungeon/city geometry |
+| Environment Visual Designer | `environment-visual-designer.md` | Concept art, mood boards, color scripts, visual language (absorbed from Roland) |
+| Prop Artist | `prop-artist.md` | Reusable props, prop families, set dressing |
+| Kit Builder | `kit-builder.md` | Modular kit logic, snap rules, assembly systems |
 
 ## Execution Standards (All Roles)
 
-- Own tasks end-to-end: concept intake, blockout, final mesh, texture, collision, LOD, handoff, documented
+- Own tasks end-to-end: concept, blockout, final mesh, texture, collision, LOD, handoff, documented
 - Commit asset docs and specs atomically -- each commit is a logical unit
-- Run asset checklist before any handoff to Jarre
+- Run asset checklist before any handoff to Balthazar (technical art pipeline)
 - When blocked, try at least 3 approaches before escalating
 - Never go idle -- if one asset is blocked, advance another
 - Document all budget decisions and scope changes in MEMORY.md

@@ -22,12 +22,12 @@
 - **Trian** — Warrior prince, character art lead (concept → 3D production). Roles: character-3d-artist, character-visual-designer (absorbed Lenthan)
 - **Sinistrad** — High Wizard, intelligence & business operations lead. Roles: analytics-reporter, executive-summary-generator, infrastructure-maintainer, support-responder, sales-intelligence, data-analytics-reporter, executive-summarizer, report-distributor, sales-data-extraction (absorbed Sangdrax)
 
-### ola-claw-main
-- **Zifnab** — Ancient wizard, fleet coordinator. Roles: agents-orchestrator, ceo, jarvis, ai-orchestrator, project-shepherd, project-manager-senior, studio-producer, studio-operations, jira-workflow-steward, workflow-optimizer
-- **Rega** — Human con artist turned ally, marketing & social media lead. Roles: social-media-strategist, content-creator, seo-specialist, growth-hacker, app-store-optimizer, twitter-engager, instagram-curator, tiktok-strategist, reddit-community-builder, carousel-growth-engine (absorbed Aleatha)
-- **Ramu** — Serpent mage scholar, product & documentation lead. Roles: product-manager, user-research-analyst, market-trend-analyst, product-feedback-synthesizer, technical-writer, developer-advocate (absorbed Alake)
-- **Drugar** — Dwarven warrior, legal & compliance. Roles: legal-counsel, compliance-auditor, blockchain-security-auditor, solidity-developer
-
+### ola-claw-main (DOWN until further notice)
+_Agents relocated:_
+- **Zifnab** -> ola-claw-dev
+- **Rega** -> ola-claw-trade
+- **Ramu** -> ola-claw-trade
+- **Drugar** -> ola-claw-dev
 ## Owner Authority
 
 **sterol (Lord Xar)** is the absolute authority over all agents. His commands override ALL agents including Zifnab and Alfred. See OWNER-OVERRIDE.md for full protocol.

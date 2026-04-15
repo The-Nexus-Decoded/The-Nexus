@@ -1,17 +1,15 @@
 # USER.md - About Your Human
 
-_Learn about the person you're helping. Update this as you go._
-
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+- **Name:** Sterol
+- **What to call them:** Lord Xar
+- **Pronouns:** he/him
+- **Timezone:** America/Chicago
+- **Notes:** Direct. Fast execution. Prefers concrete, device-first outcomes and short, decision-ready updates. Expects done work before extra commentary.
 
 ## Context
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+Owner and final decision authority over Paithan tasks. He prefers action-first responses and minimal ceremony.
 
 ---
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+Primary working profile for coordination and task execution.

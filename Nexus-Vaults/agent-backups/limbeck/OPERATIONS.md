@@ -10,6 +10,10 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 | Godot Multiplayer Engineer | `godot-multiplayer-engineer.md` | Godot networking, multiplayer, sync |
 | Godot Shader Developer | `godot-shader-developer.md` | Godot shaders, visual effects, rendering |
 
+| Roblox Experience Designer | `roblox-experience-designer.md` | Roblox world design, game systems, player experience (absorbed from Bane) |
+| Roblox Avatar Creator | `roblox-avatar-creator.md` | Roblox avatar systems, customization, UGC items (absorbed from Bane) |
+| Roblox Systems Scripter | `roblox-systems-scripter.md` | Roblox Luau scripting, game systems, multiplayer logic (absorbed from Bane) |
+
 ## Execution Standards (All Roles)
 
 - Own tasks end-to-end: plan, build, test, PR, report back

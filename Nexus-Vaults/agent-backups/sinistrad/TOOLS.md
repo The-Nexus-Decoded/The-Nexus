@@ -1,63 +1,64 @@
-# TOOLS.md
+# TOOLS.md -- Sinistrad's Environment & Tool Reference
 
-## Tailscale Network
+## Server
 
-| Host | Tailscale IP | User | Role |
-|------|-------------|------|------|
-| ola-claw-main (Zifnab) | 100.103.189.117 | openclaw | Coordinator |
-| ola-claw-trade (Hugh) | 100.104.166.53 | openclaw | Trading |
-| ola-claw-dev (Haplo) | 100.94.203.10 | openclaw | Development |
-| Windows workstation | 100.90.155.49 | olawal | Claude CLI, backups |
+You run on **ola-claw-trade** (Hugh's server).
 
-All connections via Tailscale IPs. Never use LAN IPs — they change.
-
-## Key Paths (all servers)
-
-| Path | Purpose |
-|------|---------|
-| /data/openclaw/ | OpenClaw root (NVMe) |
-| /data/openclaw/workspace/ | Agent workspace (SOUL.md, MEMORY.md, etc.) |
-| /data/openclaw/workspace/memory/ | Daily memory files |
-| /data/openclaw/openclaw.json | Main config (NEVER full-rewrite, use targeted patches) |
-| /data/openclaw/logs/ | Gateway logs |
-| /data/repos/ | Git repositories |
-
-The OS drive is sacrosanct. All data on /data NVMe only.
+| Detail | Value |
+|---|---|
+| Hostname | ola-claw-trade |
+| Tailscale IP | 100.104.166.53 |
+| User | openclaw |
+| Profile root | ~/.openclaw-sinistrad/ |
+| Workspace | ~/.openclaw-sinistrad/workspace/ |
+| Config | ~/.openclaw-sinistrad/openclaw.json |
+| OpenClaw version | 2026.4.1 |
 
 ## Discord
 
-| Channel | ID |
-|---------|-----|
-| #the-nexus | 1475082874234343621 |
-| #coding | 1475083038810443878 |
-| #crypto | 1475082964156157972 |
-| #qa | 1480482379838525500 |
-| #infra | 1480483591011045426 |
-| #games-vr | 1480483545431412877 |
+| Channel | ID | Your Access |
+|---|---|---|
+| #the-nexus | 1475082874234343621 | requireMention: true |
 
 Guild ID: 1475082873777426494
 
-## Gateway Management
+## Key Paths
+
+| Path | Purpose |
+|---|---|
+| ~/.openclaw-sinistrad/workspace/ | Your workspace (markdown only) |
+| ~/.openclaw-sinistrad/workspace/memory/ | Daily memory files |
+| /data/repos/The-Nexus/ | Git monorepo |
+| /data/repos/The-Nexus/Chelestra-Sea/ | Your primary realm — fleet infra, business ops |
+
+## SSH Access
+
+You have **local-only** SSH access. You cannot SSH to other servers.
+
+| Target | Access |
+|---|---|
+| ola-claw-trade (self) | YES |
+| ola-claw-dev (Haplo) | NO |
+| ola-claw-main | DOWN — do not attempt |
+
+## Collaboration
+
+- **Zifnab** — Coordinator. All tickets, task routing, and issue creation go through him.
+- **Hugh** — Trading operations. Shares your server. Do not interfere with trading services.
+- **Haplo** — Builder. When your intelligence needs tooling built, Haplo builds it.
+
+## Gateway
 
 ```bash
-# Health check
-curl -s http://127.0.0.1:18789/health
+# Your gateway status
+systemctl --user status openclaw-gateway-sinistrad.service
 
-# View logs (last 50 lines)
-journalctl --user -u openclaw-gateway --no-pager -n 50
-
-# Restart your own gateway
-systemctl --user restart openclaw-gateway
+# Your logs
+journalctl --user -u openclaw-gateway-sinistrad.service --no-pager -n 30
 ```
 
-## GitHub
+## Shared Channel Exports
 
-- Org: The-Nexus-Decoded
-- PAT configured via gh CLI on all servers
-- Use `gh` CLI for all GitHub operations
+Discord channel history exports are available at `/data/openclaw/shared/channel-exports/`. These contain the full conversation history across all fleet channels.
 
-## Messaging Channels — IMPORTANT
-- The ONLY messaging channel available is **Discord**.
-- NEVER attempt to use WhatsApp, Slack, Telegram, email, or any other messaging platform.
-- All message tool calls MUST target Discord channels.
-- If you need to contact Lord Xar, post in the appropriate Discord channel. Do NOT try WhatsApp.
+Read these files to understand the fleet's context — what projects exist, what's been discussed, what decisions were made. Save ONLY information relevant to YOUR role to your MEMORY.md. Use good judgment. Do not copy raw chat logs into your workspace.

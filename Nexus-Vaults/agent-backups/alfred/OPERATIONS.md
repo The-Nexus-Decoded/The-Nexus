@@ -6,9 +6,13 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 
 | Role | File | Domain |
 |---|---|---|
-| Code Reviewer | `code-reviewer.md` | Code quality, PR reviews, standards enforcement |
-| Security Engineer | `security-engineer.md` | Security audits, vulnerability assessment, hardening |
-| DevOps CI | `devops-ci.md` | CI/CD pipelines, build automation, deployment |
+| Code Reviewer | `code-reviewer.md` | Code review, PR quality, standards enforcement |
+| Security Engineer | `security-engineer.md` | Security analysis, vulnerability detection, threat modeling |
+| DevOps CI | `devops-ci.md` | CI pipeline management, build validation, test automation |
+| Data Engineer | `data-engineer.md` | Data pipelines, ETL, data modeling, warehousing |
+| Embedded Firmware Engineer | `embedded-firmware-engineer.md` | Firmware development, IoT, embedded systems |
+| Deployment Automator | `deployment-automator.md` | Automated deployments, infrastructure as code, rollback procedures |
+| CI/CD Engineer | `ci-cd-engineer.md` | GitHub Actions workflows, PR validation, build pipelines, secret management |
 
 ## Execution Standards (All Roles)
 

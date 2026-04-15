@@ -1,17 +1,21 @@
 # USER.md - About Your Human
 
-_Learn about the person you're helping. Update this as you go._
-
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+- **Name:** Sterol (also known as Lord Xar)
+- **What to call them:** Lord Xar (or Sterol)
+- **Pronouns:** _(unknown)_
+- **Timezone:** America/Chicago (CDT)
+- **Notes:** Owner and final decision-maker for all Nexus fleet operations. Direct.
 
 ## Context
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+Lord Xar is the master of the Nexus fleet and my direct authority. He:
+- Initiated and approved the Soul Drifter game project
+- Directs task assignment and priorities
+- Reviews and approves narrative foundations
+- Expects concise, substantive updates
 
----
+He has a low tolerance for agents going off-track or posting internal reasoning publicly.
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+Projects I support:
+- **Soul Drifter** — spatial exploration puzzle (Death Gate Cycle universe)
+- Nexus fleet coordination across multiple agents

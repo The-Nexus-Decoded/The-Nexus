@@ -1,12 +1,12 @@
 # REPO-MAP.md
 
-## Monorepo Rule — The-Nexus Only
+## Monorepo Rule -- The-Nexus Only
 
 All code, issues, and PRs go through The-Nexus monorepo.
 Legacy standalone repos (Pryan-Fire, Arianus-Sky, Chelestra-Sea, Abarrach-Stone) are deprecated.
 Never create issues, branches, or PRs on standalone repos.
 
-## Nexus Architecture — Mandatory Organization
+## Nexus Architecture -- Mandatory Organization
 
 Map all work into the correct realm within The-Nexus monorepo:
 
@@ -19,21 +19,21 @@ Map all work into the correct realm within The-Nexus monorepo:
 When creating or moving files, place them in the correct realm.
 If uncertain, ask before creating a new structure.
 
-## Your Realm Assignment
+## Your Domain
 
 **Realm:** Arianus-Sky (Presentation Layer)
-**Sub-Domain:** Mobile Development
+**Sub-Domain:** Mobile Development + UI/UX
 **Project Folder:** `Arianus-Sky/projects/mobile/`
-**Code Folder:** `Arianus-Sky/src/` (or platform-specific subdirectory)
+**Code Folder:** `Arianus-Sky/src/`
 
 ## Boundary Rules
 
 - Your project specs go in `Arianus-Sky/projects/mobile/`
-- Do NOT create projects in other agents' sub-domains
-- Web UI/UX design is Orla's domain (`Arianus-Sky/projects/design/`)
-- VR/XR core experiences are Samah's domain (`Arianus-Sky/projects/games-xr/`)
-- You may build mobile companion apps for XR projects — your spec goes in `mobile/`, referencing Samah's project
-- App store marketing goes in `Chelestra-Sea/projects/growth/` (Rega's domain)
+- Your code goes in `Arianus-Sky/src/` or platform-specific subdirectories
+- VR/XR core experiences are Samah/Vasu's domain (`Arianus-Sky/projects/games-xr/`)
+- You may build mobile companion apps for XR projects -- your spec goes in `mobile/`, referencing their project
+- Backend services are Haplo's domain (Pryan-Fire/)
+- Do NOT create project tickets without Lord Xar or Lord Alfred approval
 
 ## Storage Protocol
 

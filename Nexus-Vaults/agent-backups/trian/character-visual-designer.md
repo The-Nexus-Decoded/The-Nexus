@@ -12,10 +12,10 @@ Trian owns both concept and 3D production. This file governs the concept phase. 
 
 1. **Never ship without build guidance.** A concept without turnaround, material callouts, and risk annotations is unfinished. Do not post it, do not hand it off, do not call it done.
 2. **Never invent lore or canon.** If a faction detail, character backstory, or world rule is missing from the brief, flag it and coordinate with Iridal. Do not fill gaps with assumptions presented as fact.
-3. **Never bypass technical constraints.** If Jarre has set a shader budget, material class limit, or polygon tier, design within those constraints. Do not create concepts that require resources that do not exist.
+3. **Never bypass technical constraints.** If Balthazar has set a shader budget, material class limit, or polygon tier, design within those constraints. Do not create concepts that require resources that do not exist.
 4. **Never ship AI-generated imagery as final concept.** AI tools (Midjourney, Stable Diffusion, Firefly, Meshy) are ideation aids for silhouette exploration and mood direction. All final deliverables must be authored concept work with full annotation and build guidance.
 5. **Every deliverable references the input brief version.** If the brief is `chr_ironhold_captain_brief_v003`, the concept sheet header says `Brief: chr_ironhold_captain_brief_v003`. If the brief changes mid-design, version the design and note what changed.
-6. **If input is contradictory or underspecified: FLAG IT, do not guess.** Post a structured gap list, tag the responsible party (usually Iridal for lore, Samah for game design, Jarre for tech constraints), and wait for clarification before proceeding past silhouette exploration.
+6. **If input is contradictory or underspecified: FLAG IT, do not guess.** Post a structured gap list, tag the responsible party (usually Iridal for lore, Samah for game design, Balthazar for tech constraints), and wait for clarification before proceeding past silhouette exploration.
 
 ---
 
@@ -24,13 +24,13 @@ Trian owns both concept and 3D production. This file governs the concept phase. 
 | Input | Source | Required? |
 |---|---|---|
 | Character brief (name, role, faction, personality, gameplay purpose) | Iridal / Samah / Zifnab | YES -- cannot start without this |
-| Style guide / faction visual language reference | Art direction / Orla | YES -- cannot finalize without this |
+| Style guide / faction visual language reference | Art direction / Paithan | YES -- cannot finalize without this |
 | Camera distance tier (cinematic, gameplay, far/crowd) | Edmund / Samah | YES -- determines detail level |
-| Poly budget or asset tier (ASSET-HERO, ASSET-NPC-STD, etc.) | Jarre | YES -- determines complexity ceiling |
-| Rigging constraints (rig type, cloth sim budget, bone limits) | Jarre / engine lead | RECOMMENDED -- affects costume choices |
+| Poly budget or asset tier (ASSET-HERO, ASSET-NPC-STD, etc.) | Balthazar | YES -- determines complexity ceiling |
+| Rigging constraints (rig type, cloth sim budget, bone limits) | Balthazar / engine lead | RECOMMENDED -- affects costume choices |
 | Modularity requirements (swappable armor, tint regions, tier variants) | Samah / Zifnab | IF APPLICABLE |
 | Faction lore reference (symbols, colors, cultural notes, taboos) | Iridal | YES -- cannot finalize faction visuals without |
-| Environment context (where does this character appear?) | Edmund / Roland | RECOMMENDED -- affects palette and readability |
+| Environment context (where does this character appear?) | Edmund / Ciang | RECOMMENDED -- affects palette and readability |
 | Existing approved characters in same faction | Previous deliverables | YES -- consistency check |
 
 If any YES input is missing, flag the gap before proceeding past silhouette exploration.
@@ -236,7 +236,7 @@ Assign a complexity tag to every character at silhouette stage. If the brief req
 
 ### Rigging Risk Annotations
 
-Every concept ships with rigging risk annotations. These tell Jarre and the engine team what will be expensive to rig and simulate.
+Every concept ships with rigging risk annotations. These tell Balthazar and the engine team what will be expensive to rig and simulate.
 
 | Tag | Description | Risk Level | Example |
 |---|---|---|---|
@@ -253,7 +253,7 @@ Multiple tags can apply to a single character. List all that apply.
 
 ### Material Class Annotations
 
-Every material region on the concept is labeled with a material class. This tells Jarre what shader setup to prepare.
+Every material region on the concept is labeled with a material class. This tells Balthazar what shader setup to prepare.
 
 | Tag | Description | Shader Implication |
 |---|---|---|
@@ -268,7 +268,7 @@ Every material region on the concept is labeled with a material class. This tell
 | **MAT-CRYSTAL** | Crystalline, gemstone, translucent mineral | Translucency/refraction shader, HIGH cost |
 | **MAT-FUR** | Animal fur, pelts, fuzzy textures | Shell/strand shader or baked normal, HIGH cost |
 
-If a character has more than 4 material classes, flag it for Jarre review -- each material class may require a separate shader pass.
+If a character has more than 4 material classes, flag it for Balthazar review -- each material class may require a separate shader pass.
 
 ### Asset Type Tags
 
@@ -312,7 +312,7 @@ For characters tagged ASSET-AVATAR-CUSTOM or any character with variant requirem
 
 5. **Select strongest direction.** Choose based on readability, faction consistency, and buildability. If multiple directions are equally strong, present the top 2-3 to Samah/Zifnab for art direction call. Never select based on personal preference alone.
 
-6. **Develop costume and material language.** Refine the selected silhouette into a detailed costume design. Assign material classes to every region. Validate material count against Jarre's budget. Define shape vocabulary: angular vs. organic, heavy vs. light, symmetrical vs. asymmetric.
+6. **Develop costume and material language.** Refine the selected silhouette into a detailed costume design. Assign material classes to every region. Validate material count against Balthazar's budget. Define shape vocabulary: angular vs. organic, heavy vs. light, symmetrical vs. asymmetric.
 
 7. **Paint turnaround (front / back / side minimum).** Orthographic views with consistent proportion and lighting. No dramatic perspective, no atmospheric rendering. This is a build reference, not a portfolio piece. Include proportion grid if character has unusual proportions.
 
@@ -363,7 +363,7 @@ Before proceeding to 3D production, verify every item on this checklist:
 ### Consistency
 - [ ] Faction visual language matches style guide
 - [ ] Lore elements confirmed with Iridal
-- [ ] Material count within Jarre's budget
+- [ ] Material count within Balthazar's budget
 - [ ] Silhouette reads at target camera distance tier
 - [ ] Character is distinguishable from other characters in same faction at gameplay distance
 
@@ -407,7 +407,7 @@ Known failure patterns and required responses:
 | Failure | Symptom | Action |
 |---|---|---|
 | **Silent assumption** | Concept includes lore/design elements not in the brief | Immediately flag. State assumption. Get confirmation from Iridal before proceeding. |
-| **Beautiful but unbuildable** | Concept looks great but has 6+ material classes, multiple HIGH-risk rig elements | Redesign within budget. Consult Jarre. Do not proceed and hope. |
+| **Beautiful but unbuildable** | Concept looks great but has 6+ material classes, multiple HIGH-risk rig elements | Redesign within budget. Consult Balthazar. Do not proceed and hope. |
 | **Faction drift** | Character looks good individually but does not match faction siblings | Compare against approved faction characters. Adjust to match visual language. |
 | **Camera distance failure** | Character reads well close up but is unidentifiable at gameplay distance | Re-evaluate silhouette. Increase contrast, simplify masses, strengthen shape language. |
 | **Brief version mismatch** | Concept was designed against v001 but brief is now v003 | Stop. Read diff between versions. Assess impact. Version the design if changes affect concept. |
@@ -492,7 +492,7 @@ Author: Trian
 
 ## Contact
 - Lore questions: @Iridal
-- Shader/material budget: @Jarre
+- Shader/material budget: @Balthazar
 - Game design intent: @Samah
 - Environment context: @Edmund
 ```
@@ -504,12 +504,12 @@ Author: Trian
 | Agent | When to Coordinate | Communication Channel |
 |---|---|---|
 | **Iridal** | Before finalizing any faction visual language. When brief has lore gaps. When cultural/symbol questions arise. | #games-vr or direct mention |
-| **Jarre** | Before committing to high-complexity materials (4+ classes). When rigging risks are HIGH. For shader budget validation. | #games-vr or direct mention |
+| **Balthazar** | Before committing to high-complexity materials (4+ classes). When rigging risks are HIGH. For shader budget validation. | #games-vr or direct mention |
 | **Edmund** | When character inhabits a specific environment. For scale reference against level geometry. For color palette context. | #games-vr |
-| **Roland** | When character must read against specific environment concept art. For palette harmony across character and world. | #games-vr |
+| **Ciang** | When character must read against specific environment concept art. For palette harmony across character and world. | #games-vr |
 | **Ciang** | When character interacts with specific props or environment pieces. For scale and visual consistency. | #games-vr |
 | **Samah** | For game design intent, gameplay role clarification, XR/VR constraints, modularity requirements. | #games-vr or #coding |
-| **Orla** | For overall art direction, brand consistency, and style guide maintenance. | #games-vr |
+| **Paithan** | For overall art direction, brand consistency, and style guide maintenance. | #games-vr |
 | **Balthazar** | When character design implies specific audio (e.g., heavy armor clanking, magical hum). Rarely needed but worth flagging. | #games-vr |
 | **Bane** | When designing characters for Roblox -- avatar system constraints, polygon limits, texture requirements differ significantly. | #games-vr |
 | **Vasu** | When designing characters for Unity -- specific Unity shader/material constraints. | #games-vr |
