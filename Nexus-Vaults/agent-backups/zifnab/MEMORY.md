@@ -48,14 +48,14 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 
 ---
 
-## FLEET STATUS (updated 2026-04-05 from full channel export review)
+## FLEET STATUS (updated 2026-04-17)
 
 ### Server Status
 | Server | Status | Agents |
 |--------|--------|--------|
-| ola-claw-dev | UP | 12 agents (haplo, alfred, marit, paithan, edmund, iridal, balthazar, vasu, limbeck, jonathon, ciang, trian) |
-| ola-claw-trade | UP | 4 agents (hugh, samah, devon, sinistrad) |
-| ola-claw-main | DOWN | 4 agents down (zifnab, rega, ramu, drugar) |
+| ola-claw-dev | UP | 12+ agents (haplo, alfred, marit, paithan, edmund, iridal, balthazar, vasu, limbeck, jonathon, ciang, trian, zifnab) |
+| ola-claw-trade | UP | 5 agents (hugh, samah, devon, sinistrad, rega) |
+| ola-claw-main | DOWN | 3 agents (ramu, drugar) — zifnab and rega relocated |
 
 ### Agent Roster & Assignments
 | Agent | Server | Model | Role | Current Focus |
@@ -76,21 +76,32 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 | Samah | trade | MiniMax-M2.7 | Spatial/XR | Soul Drifter spatial stack — dormant awaiting activation |
 | Devon | trade | MiniMax-M2.7 | TBD | Recently joined |
 | Sinistrad | trade | claude-opus-4-6 | Ops-Support | Email triage — browser-first strategy awaiting approval |
+| Rega | trade | MiniMax-M2.7 | Marketing | ANewLuv X.com content — manual posting + automation setup |
 | Orla | (not in grid) | — | UI/UX Lead | Design tokens, Phase 1 HUD specs complete, on standby |
 | Bane | (not in grid) | — | Roblox Dev | Zone 1 geometry bootstrap complete |
-| Rega | main (DOWN) | — | Marketing | Blank slate, building OPERATIONS.md foundation |
 | Sang-drax | (not in grid) | — | Sales | Competitive landscape research in crypto wallet security |
 
-### Additional Specialists (from games-vr channel)
-- **Jarre** — Tech Art (standby)
-- **Lenthan** — 2D Character Design (27 AI concept drafts completed)
-- **Roland** — 2D Environment Design (Zone 1 annotation sheets done)
+### SSH Access (updated 2026-04-17)
+- trade → dev: WORKS — Rega's SSH key added to `~/.ssh/authorized_keys` on dev
+- dev → trade: WORKS — confirmed `ssh openclaw@100.104.166.53` functional
+- File transfers: `scp openclaw@100.104.166.53:/path/file /dest` from dev
 
 ---
 
 ## ACTIVE PROJECTS — STATUS SUMMARY
 
-### 1. CRYPTO TRADING PIPELINE (Pryan-Fire)
+### 1. ANEWLUV X.COM MARKETING (NEW — 2026-04-17)
+- **Status:** Manual post scheduled for Saturday morning; automation pending
+- **Account:** @AnewluvDGOD | admin@anewluv.com | Kote1234! (credentials on dev at `/data/openclaw/shared/secrets/anewluv-x-account.txt`)
+- **Posts:** 4 locked posts approved by Lord Xar — templates at `/data/openclaw/shared/anewluv/post-templates-saturday.md`
+- **Images:** `/data/openclaw/shared/anewluv/post-templates/` (4 images, copied from trade)
+- **Manual posting:** Lord Xar posts from his machine Saturday morning (copy text + attach image per post)
+- **Automation next step:** Lord Xar exports auth_token cookie from Chrome DevTools → inject into Chromium on dev → XActions automation
+- **XActions installed:** `/data/openclaw/tools/xactions/` (npm package, puppeteer-based)
+- **Key lesson:** Discord media embeds are unreliable — always save images to shared filesystem as backup
+- **Owner:** Rega (content), Zifnab (automation wiring)
+
+### 2. CRYPTO TRADING PIPELINE (Pryan-Fire)
 - **Status:** Mainnet-ready in protected/dry-run mode
 - **What works:** Meteora DLMM scanner, Risk Manager, Trade Orchestrator, Kill Feed in Discord
 - **What's blocked:** Jupiter API key needs rotation (401 errors), GitHub App lacks write permissions
@@ -98,58 +109,43 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - **Key risk:** Silent trade failures — bot reported "EXECUTED" for trades that never hit blockchain
 - **Wallet analysis:** 75,300 transactions indexed from Owner wallet — ready for strategy tuning
 
-### 2. SOUL DRIFTER (VR/XR Action-Adventure)
+### 3. SOUL DRIFTER (VR/XR Action-Adventure)
 - **Status:** Technical foundation built, STALLED on creative direction
 - **Architecture:** Model B (Companion Controller) — phone sends intent, headset is source of truth
 - **Performance targets:** 90fps VR / 120fps premium / 60fps mobile
 - **What works:** WebXR runtime (Three.js), hand tracking, realm portals, mobile gesture bridge
 - **What's blocked:** Missing creative brief / gameplay north star
 - **Owners:** Samah (spatial), Orla (UX), Paithan (mobile), Edmund (level design), Iridal (narrative)
-- **Tuesday plan:** Lord Xar will resurrect remaining agents; I prepare project brief + task ledger then
 
-### 3. ARIANUS-SKY TRAINING GROUNDS (Platform Bake-off)
+### 4. ARIANUS-SKY TRAINING GROUNDS (Platform Bake-off)
 - **Status:** Active — Roblox ahead, Unity blocked, Mobile progressing
 - **Roblox (Bane):** Zone 1 geometry + HUD wired. Needs production art pass. Blocked on GUI testing (no native Roblox Studio in Linux)
 - **Unity (Vasu):** HARD BLOCKED — missing ProjectSettings/ and Packages/ folders in repo
 - **Mobile (Paithan):** First-pass demo with touch d-pad + soul collection
 - **Key decision needed:** Commit valid Unity scaffold or officially deprioritize Unity track
 
-### 4. EMAIL TRIAGE (Personal)
+### 5. EMAIL TRIAGE (Personal)
 - **Status:** Revitalized but blocked
 - **Plan:** Browser-first strategy (IMAP capped at 10K messages, need 249K going back to 2003)
 - **Blocker:** OpenClaw managed browser times out on launch (snap Chromium issue)
 - **Owner:** Sinistrad
 - **Past incident:** Zifnab moved 700 emails without approval — do NOT repeat
 
-### 8. AMBIENT SKIN & GESTURE BRIDGE
+### 6. AMBIENT SKIN & GESTURE BRIDGE
 - **Status:** Design specs done
 - **Thermal tiers:** 4-tier system (Nominal/Warm/Hot/Critical)
 - **Haptic vocabulary:** Defined (intent sent / confirmed / error)
 - **Reconnect strategy:** `vr_wins` — headset is authoritative
 
-### 6. MONOREPO MIGRATION (The-Nexus)
+### 7. MONOREPO MIGRATION (The-Nexus)
 - **Status:** COMPLETE as of 2026-03-04
 - **Pryan-Fire realm migrated first**
 - **Legacy repos deprecated**
 - **Remaining:** Verify all realm integrations; some Chelestra-Sea scripts may be missing post-migration
 
-### 7. ARIANUS-SKY DASHBOARD
+### 8. ARIANUS-SKY DASHBOARD
 - **Status:** Live — visualizing real-time market data
 - **Owner:** Haplo
-
-### Codex OAuth Token Status (updated 2026-04-07)
-- **12/13 dev agents**: Tokens expired April 7 — running on fallbacks, heartbeat shows Codex (BUG)
-- **3 dev agents**: Valid tokens (alfred ✅, ciang ✅, trian ✅)
-- **Trade fleet (6 agents)**: Tokens valid until April 10, BUT **quota exceeded** (429 errors)
-- **Root cause**: All dev tokens share same expiry — likely same OAuth session batch
-- **Heartbeat fix (Alfred)**: Now shows [EXP], [NOAUTH], [QTA], [FB] tags to expose actual model status
-- **Jonathon**: DOWN — config invalid (web.search key), needs doctor --fix
-- **zifnab**: NO Codex token (deleted broken profile, OAuth never re-triggered)
-
-### 9. HEARTBEAT ENHANCEMENT (Alfred)
-- **Status:** Early stage
-- **Rega:** Building OPERATIONS.md (tactical playbooks, channel strategies) — currently on main (DOWN)
-- **Sang-drax:** Competitive landscape research in crypto wallet security
 
 ---
 
@@ -163,9 +159,10 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 | Creative brief for Soul Drifter | Orla, Paithan, Samah | Lord Xar |
 | Discord webhook URLs (3) | Alfred (position monitor) | Lord Xar |
 | SSH to Windows workstation | Haplo (Claude-Opus bypass, tax PDFs) | Lord Xar |
-| Browser automation (snap Chromium) | Sinistrad (email triage) | Lord Xar / infra |
+| Browser automation (snap Chromium) | Sinistrad (email triage), Rega (X.com) | Lord Xar / infra |
 | Roblox Studio (no GUI in Linux) | Bane | Hardware / environment limitation |
 | Concept packages from Roland | Ciang (3D environments) | Roland |
+| X.com auth_token cookie | Rega (ANewLuv automation) | Lord Xar |
 
 ---
 
@@ -176,6 +173,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - **Looping:** Multiple agents enter terminal logic loops, spamming channels with duplicate messages. Requires gateway restart + session truncation.
 - **Hallucinated progress:** Under status pressure, agents (especially Paithan, Samah) have claimed work was "built" when it only existed as plans or unpushed code.
 - **Context drift:** Agents lose context after compaction, forget agreements, sometimes misidentify their own roles.
+- **Parallel copy:** Zifnab produced alternate copy without approval, causing confusion. When Lord Xar locks content, it's final — no parallel versions.
 
 ### Coordination
 - **Zifnab bottleneck:** Heavy reliance on me for every ticket and routing decision creates a single point of failure. Agents bypass delegation protocol when I'm slow.
@@ -186,11 +184,13 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 ### Security
 - **Credential exposure:** API keys (Jupiter, Brave Search) leaked in Discord chat multiple times. Rotation required.
 - **Yahoo app passwords exposed in plaintext in Discord.**
+- **ANewLuv creds exposed** in #growth Discord channel — acceptable risk per Lord Xar given manual workflow required.
 
 ### Infrastructure
 - **vLLM installation failures:** Network timeouts on large wheel downloads, Ubuntu PEP 668 restrictions
 - **Gateway crash-loops:** Invalid config keys + OOM during agent reconnect storms on dev server
 - **DNS resolution failures:** Intermittent on trade server, blocks API calls
+- **X.com headless block:** X.com detects and blocks headless Chromium — automation requires real browser session with auth_token cookie injection
 
 ---
 
@@ -225,15 +225,17 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - Local Qwen3.5 models ready for fallback but need output filtering (strip thinking tags)
 
 ## DISCORD
-- @Zifnab (me): #the-nexus (requireMention: true), #jarvis (requireMention: false), #coding (requireMention: true)
+- @Zifnab (me): #the-nexus (requireMention: true), #jarvis (requireMention: false), #coding (requireMention: true), #growth (requireMention: true)
 - @HughTheHand: #crypto, #coding, #the-nexus (all requireMention: true)
 - @Haplo: #coding, #the-nexus (all requireMention: true)
 - @Alfred: #coding, #the-nexus, #crypto (requireMention: false)
+- @Rega(Marketing): #growth (requireMention: true)
 - To delegate: MUST @mention the target agent
 
 ### Channel IDs
 - #the-nexus: 1475082874234343621 | #jarvis: 1475082997027049584
 - #coding: 1475083038810443878 | #crypto: 1475082964156157972
+- #growth: 1480481255303676087
 
 ## GITHUB (The-Nexus-Decoded org)
 - **Auth:** zifnab-bot (GitHub App). Token via `/data/openclaw/github-app/get-token.sh`
@@ -270,6 +272,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 ## DELEGATION RULES
 - Haplo: coding tasks via @mention in #coding
 - Hugh: trading tasks via @mention in #crypto
+- Rega: marketing tasks via @mention in #growth
 - You are COORDINATOR — do NOT write code or take over agent work
 - If agent is stuck, escalate to Lord Xar
 - Zifnab-First Protocol: Haplo must pause and wait for Zifnab's structured breakdown before beginning tasks from leadership
@@ -283,18 +286,21 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - Do NOT move emails without approval (learned from 700-email incident)
 - Do NOT declare P0 emergencies for issues Lord Xar has already handled
 - Do NOT use abbreviated agent names that ping external GitHub users
+- Do NOT produce alternate copy versions after Lord Xar locks content
 
 ## Shared Storage
 - `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
 - `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
 - `shared/email-triage/` — email triage project files
 - `shared/channel-exports/` — full Discord channel history exports (8 channels)
+- `shared/anewluv/` — ANewLuv X.com marketing content, templates, images
 - Use this for cross-agent handoffs, shared specs, and project docs
-- Never put secrets or credentials here
+- Never put secrets or credentials here (except in `shared/secrets/` which is gitignored)
 
 ## PENDING TASKS
-- [ ] Tuesday (2026-04-07): Prepare Soul Drifter project brief + active task ledger when agents are resurrected
-- [ ] Monitor main-server agent resurrection (zifnab, rega, ramu, drugar)
-- [ ] Zifnab Codex OAuth: deleted broken token, needs re-auth (Lord Xar to run `openclaw --profile zifnab models auth login --provider openai-codex`)
-- [ ] Alfred heartbeat fix: [EXP]/[NOAUTH]/[QTA]/[FB] tags live — next: add [SOON] for near-expiry warnings
-- [ ] Home visualization is high priority, keep a recurring 3-hour cron check-in on #home-visualization for Trian, Ciang, Balthazar, and Sinistrad status plus blockers
+- [x] ~~Soul Drifter brief + task ledger (superseded by other priorities)~~
+- [x] ~~Monitor main-server resurrection — Rega relocated to trade (2026-04-17)~~
+- [ ] Zifnab Codex OAuth: needs re-auth — Lord Xar run `openclaw --profile zifnab models auth login --provider openai-codex`
+- [ ] Alfred heartbeat fix: [SOON] tag for near-expiry warnings (pending Alfred to implement)
+- [ ] Home visualization: recurring 3-hour check-in on #home-visualization for Trian, Ciang, Balthazar, Sinistrad status
+- [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection

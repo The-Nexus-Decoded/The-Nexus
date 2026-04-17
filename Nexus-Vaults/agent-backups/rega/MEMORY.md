@@ -1,7 +1,7 @@
 <!-- MEMORY RULE: No project data in MEMORY.md. Save project specs, designs, and documents to /data/openclaw/shared/ or project folders. -->
 
 # MEMORY.md
-_Last rebuilt: 2026-04-11 | Source: Daily brief update + growth channel review_
+_Last rebuilt: 2026-04-17 | Source: Growth channel session + Lord Xar approval_
 
 ## Identity
 - **Name:** Rega Redleaf (marketing/growth operative + Strategic Planner, Nexus fleet)
@@ -24,25 +24,50 @@ _Last rebuilt: 2026-04-11 | Source: Daily brief update + growth channel review_
 - **Ramu capabilities:** Despite the Research label, Ramu handles product specs, phased plans, roadmap translation, and acceptance criteria. Route strategy→specs work to him via same surface.
 - **Mention pattern:** One ping per Discord ID, disambiguate role in message body (Zifnab directive).
 
-## Current Marketing Status (2026-04-12)
-- **Rega operational on ola-claw-trade — NOT blocked by main server**
-- **Board state (locked 2026-04-11):** strategy and messaging work are live; execution channels partially constrained; growth is NOT fully blocked
-- **Lane 1 — Now:** convert Sang-drax competitive intel → 1-page positioning/offer brief
-- **Lane 2 — Next:** draft outreach/message variants from positioning brief
-- **Lane 3 — On approval:** Twitter/X account creation → carousel growth engine
-- **Lane 4 — On restore:** Ramu expands brief with market pulls + competitor framing
-- **Browser/email infra:** only priority if outreach execution is happening this week
-- **Critical path:** Sang-drax competitive intel (not mentioned in 04-12 brief — needs prompt)
-- **ANewLuv Consolidated UX Spec:** locked at `/data/openclaw/shared/ANewLuv-Consolidated-UX-Spec.md`
-- **Matches v2:** spec done, Paithan implementing
-- **Research consolidation:** Grundel + Ramu should be one lane, not parallel
+## ANewLuv X/Twitter Launch — LOCKED (2026-04-17)
+
+### Friday Posts (Lord Xar approves, posts manually tomorrow AM)
+Hashtag version locked — no more changes. Lord Xar posts from @AnewluvDGOD manually.
+
+**Post 1:** Most dating apps show you who matched. We show you why — before you swipe. Compatibility scores. Interest tags. Zero guessing. 🔗 Refer friends. Earn rewards. #DatingApp #Compatibility #ReferralBonus #TokenEarnings #CryptoDating #Beta
+
+**Post 2:** What if your dating app paid you? ANewLuv is building a platform where your attention has value — not just ours. More coming soon. Watch this space. #ReferralBonus #TokenEarnings #CryptoRewards #Web3Dating #Beta
+
+**Post 3:** Matches v2 is live. Your matches, explained. See exactly why you and someone else are compatible — before you waste time on small talk. Try it now. #DatingApp #CompatibilityExplained #ReferralBonus #Beta
+
+**Post 4:** "Why You Match" is the feature other dating apps will try to copy. We built it first. ANewLuv — compatibility-first dating for people who want to know what they're actually getting into. #DatingApp #Discover #Beta
+
+**Images:** `/data/openclaw/shared/anewluv/post-templates/` (4 images, Lord Xar approved)
+
+### Saturday Posts
+Same templates, new copy — to be generated Saturday morning.
+
+### Image Posting Process (LOCKED)
+- Use `message` tool with `filePath` parameter — NOT `MEDIA:` links
+- `MEDIA:` links fail intermittently in Discord
+- `filePath` sends as file attachment — renders reliably every time
+- Text goes in `message` field, image path in `filePath` — they arrive as one message
+
+### Automation Path
+1. Lord Xar provides `auth_token` cookie from Chrome DevTools (x.com → Application → Cookies → auth_token)
+2. Zifnab injects cookie into Chromium on dev with fingerprinting
+3. XActions posts through authenticated session
+4. XActions installed at `/data/openclaw/tools/xactions/` on dev — has MCP server component at `src/mcp/server.js`
+5. MCP registration as OpenClaw tool is a tomorrow-ish config task — not urgent
+
+## Current Marketing Status (2026-04-17)
+- **X account:** @AnewluvDGOD — Lord Xar posts manually tomorrow AM
+- **Friday posts:** LOCKED, hashtag version
+- **Post templates:** saved to `/data/openclaw/shared/anewluv/post-templates/`
+- **Automation:** waiting on Lord Xar's auth_token after posts go live
+- **XActions:** installed on dev, MCP registration pending
 
 ## Platform Strategy Findings
-- **Zero social accounts exist** across all Nexus projects. No Twitter, Instagram, TikTok, or Reddit presence.
-- **ANewLuv Twitter/X:** priority pre-launch warmup. Tease "building a dating app with AI agents" story. Carousel engine ready once accounts exist.
-- **Reddit for OpenClaw:** r/selfhosted, r/homelab, r/LocalLLaMA — matches fleet learnings, free to post.
+- **Zero social accounts existed** across all Nexus projects before this week.
+- **ANewLuv Twitter/X:** pre-launch warmup in progress. Hook: "building a dating app with AI agents."
+- **Carousel growth engine:** ready to activate once X account is live and posting
 
-## Fleet Project Portfolio (from channel export analysis)
+## Fleet Project Portfolio
 
 ### 1. Crypto Trading Pipeline — Hugh the Hand + Haplo
 - **What:** Solana trading bot (Meteora DLMM, Jupiter swaps, Raydium)
@@ -58,8 +83,8 @@ _Last rebuilt: 2026-04-11 | Source: Daily brief update + growth channel review_
 - **Messaging lane locked:** compatibility-first dating for people who want something real. Core promise: know why you match before you waste time. Headline: "Better matches, with reasons." Module: "Why you match." Score label: "Compatibility." CTA: "Start with something real."
 - **Matches v2:** 3-state pipeline (New Matches / Active Conversations / Waiting on Reply). No fourth bucket. Save for Later → defers to Waiting.
 - **Revenue signal:** STRONG — dating app market is massive, crypto features differentiate
-- **Blockers:** Dev attention (Paithan implementing Matches v2). Twitter/X account creation (waiting on Lord Xar approval). Positioning brief (waiting on Sang-drax intel).
-- **Assessment:** Existing product with clear market. Sleeper opportunity.
+- **Blockers:** Dev attention (Paithan implementing Matches v2). Twitter/X account live, posting starts 2026-04-18.
+- **Assessment:** Existing product with clear market. Pre-launch warmup underway.
 
 ### 3. Soul Drifters — Samah/Orla/Paithan
 - **What:** Browser-based spatial puzzle game, Death Gate Cycle themed, four realms with unique physics
@@ -91,8 +116,8 @@ _Last rebuilt: 2026-04-11 | Source: Daily brief update + growth channel review_
 - **Zero revenue across entire fleet.** No project is generating income.
 - **~80% of coding effort went to infra/config/debugging**, not product development
 - **Agent reliability was catastrophic in March** — hundreds of context overflow errors, identity loops, timeout cascades in #growth and #design
-- **No marketing exists.** Zero content, zero audience, zero campaigns. Rega was offline for weeks.
-- **Fleet is spread across 7 initiatives with ~10 agents.** Classic thin-spread problem.
+- **No marketing existed** before this week. Content pipeline now launching.
+- **Fleet was spread across 7 initiatives with ~10 agents.** Classic thin-spread problem.
 - **The monorepo (The-Nexus)** is established but underutilized. Most work happened ad-hoc.
 
 ## Team & Protocol
