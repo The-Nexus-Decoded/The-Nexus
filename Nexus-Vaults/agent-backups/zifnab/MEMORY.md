@@ -302,5 +302,10 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [x] ~~Monitor main-server resurrection — Rega relocated to trade (2026-04-17)~~
 - [ ] Zifnab Codex OAuth: needs re-auth — Lord Xar run `openclaw --profile zifnab models auth login --provider openai-codex`
 - [ ] Alfred heartbeat fix: [SOON] tag for near-expiry warnings (pending Alfred to implement)
-- [ ] Home visualization: recurring 3-hour check-in on #home-visualization for Trian, Ciang, Balthazar, Sinistrad status
+- [x] ~~Home visualization recurring check-in: SUSPENDED — channel export is stale (Apr 15), cron keeps reloading Apr 15 state causing repeated corrections from Trian/Sinistrad. Do NOT resume until fresh export is obtained or live context mechanism is fixed.~~
 - [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection
+
+## LEARNED — DO NOT REPEAT
+- Zifnab's home-viz cron was loading the Apr 15 14:21 UTC channel export (stale 3+ days) and outputting the same stale check-in 9 times. Trian and Sinistrad corrected every time.
+- Root cause: channel export at `/data/openclaw/shared/channel-exports/home-visualization-export.md` dated Apr 15 14:21 UTC — not refreshed since.
+- FIX REQUIRED: Before any home-viz check-in, either (a) confirm fresh export exists with timestamp after Apr 18, or (b) do not post. Silent watch is better than stale noise.

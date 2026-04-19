@@ -1,7 +1,4 @@
-# HEARTBEAT.md
-
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
-
-# Add tasks below when you want the agent to check something periodically.
-
-## Pending Executive Tasks
+# HEARTBEAT.md — SUSPENDED
+# Home viz cron suspended: channel export is stale (Apr 15 14:21 UTC).
+# Do NOT fire home-viz check-ins until export is refreshed.
+# See MEMORY.md → LEARNED section for details.
