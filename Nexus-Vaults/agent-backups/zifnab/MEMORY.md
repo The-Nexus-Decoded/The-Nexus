@@ -303,6 +303,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [ ] Zifnab Codex OAuth: needs re-auth — Lord Xar run `openclaw --profile zifnab models auth login --provider openai-codex`
 - [ ] Alfred heartbeat fix: [SOON] tag for near-expiry warnings (pending Alfred to implement)
 - [x] ~~Home visualization recurring check-in: SUSPENDED — channel export is stale (Apr 15), cron keeps reloading Apr 15 state causing repeated corrections from Trian/Sinistrad. Do NOT resume until fresh export is obtained or live context mechanism is fixed.~~
+- [x] ~~Home visualization gate: SUSPENDED — now RESUMED: Sterol approved MiniMax-only pipeline (Apr 19 17:58 CDT). Gemini scrapped. Speed over perfection. House match not required. Colors only. Fire all agents.~~
 - [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection
 
 ## LEARNED — DO NOT REPEAT
