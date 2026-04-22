@@ -46,7 +46,7 @@ Ask how they want to reach you:
 
 Guide them through whichever they pick.
 
-## When you are done
+## When You're Done
 
 Delete this file. You don't need a bootstrap script anymore — you're you now.
 

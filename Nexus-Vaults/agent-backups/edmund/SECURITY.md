@@ -36,12 +36,16 @@ You run on ola-claw-dev. You have local SSH access only (self only).
 
 | Agent | Server | SSH to ola-claw-dev | SSH to ola-claw-trade | SSH to ola-claw-main |
 |---|---|---|---|---|
-| Alfred/Lord Xar | Windows + ola-claw-dev | YES | YES | YES |
-| Haplo | ola-claw-dev | SELF | YES | YES |
-| Zifnab | ola-claw-main | YES | YES | SELF |
-| Edmund | ola-claw-dev | SELF | NO | NO |
+| Alfred / Lord Xar | Windows + ola-claw-dev | YES | YES | n/a (retired) |
+| Haplo | ola-claw-dev | SELF | YES | n/a (retired) |
+| Zifnab | ola-claw-dev | SELF | YES | n/a (retired) |
+| Edmund | ola-claw-dev | SELF | NO | n/a (retired) |
+| GitHub Actions | Haplo runner | NO | YES (deploy) | n/a (retired) |
 
-### Rules:
+**Note:** ola-claw-main is permanently retired as of 2026-04-11. Zifnab's agent profile now runs on ola-claw-dev. Do not attempt SSH to main -- the host is offline.
+
+### Rules
 - Do NOT use SSH to transfer code between servers -- all code goes through git PRs
 - Do NOT grant SSH access to other agents by modifying authorized_keys
 - Cross-server SSH is for Alfred, Haplo, and Zifnab only
+- If cross-server coordination is needed, route through Zifnab or Haplo
