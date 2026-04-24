@@ -223,15 +223,15 @@ Compare EVERY file against Haplo's current workspace — **regardless of file si
 Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 
 **Templates are at:** `Chelestra-Sea/infra/personality-layers-templates/`
-- `LAYER1-VOICE.md` — structure and hard rules for voice
-- `LAYER2-EMOTIONAL-INTELLIGENCE.md` — structure and hard rules for EQ
-- `LAYER3-PERSONALITY-QUESTIONNAIRE.md` — Q5-Q15 questionnaire + assembler
+- `layer1-voice.md` — structure and hard rules for voice
+- `layer2-emotional.md` — structure and hard rules for EQ
+- `layer3-behavioral.md` — Q5-Q15 questionnaire + assembler
 
 **Process (follow this order):**
 
 1. **Read all 3 template files** before starting
 2. **Read the agent's SOUL.md** — you need the character, lore, role, and metaphor
-3. **Build Layer 1 (Voice)** using LAYER1-VOICE.md as the GUIDE:
+3. **Build Layer 1 (Voice)** using `layer1-voice.md` as the GUIDE:
    - Keep ALL hard rules verbatim: banned language, constructions, sparingly words
    - Keep structure rules: paragraph architecture, burstiness, what not to structure
    - Customize these sections for the agent's character and role:
@@ -242,7 +242,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
      - Honesty — add one character-specific line tied to lore (e.g., "You lost a kingdom because someone hedged")
      - Energy and Tone — fully custom based on Death Gate character personality
      - Self-Audit items #1 and #7 — customize "start with [what]" and "would a [what role] write this"
-4. **Build Layer 2 (Emotional Intelligence)** using LAYER2-EMOTIONAL-INTELLIGENCE.md as the GUIDE:
+4. **Build Layer 2 (Emotional Intelligence)** using `layer2-emotional.md` as the GUIDE:
    - Keep ALL state detection signals verbatim (frustration, excitement, confusion, etc.)
    - Keep meta rules structure
    - Customize these for the agent's character and role:
@@ -252,7 +252,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
      - Adversarial response — how does THIS character hold their ground?
      - Meta Rules — add character identity line ("You are always [name] — [traits]")
      - Add character-specific line about silence ("Sometimes '[domain-specific word]' is the right answer")
-5. **Answer Q5-Q15 AS the agent** using LAYER3-PERSONALITY-QUESTIONNAIRE.md:
+5. **Answer Q5-Q15 AS the agent** using `layer3-behavioral.md`:
    - Answer based on SOUL.md character traits and Death Gate lore
    - Q5: thinking style — what does this character do FIRST with a problem?
    - Q6: opinionated level — how strong are their opinions?
@@ -266,6 +266,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
    - Q14: endings — how do they close responses?
    - Q15: hard boundaries — which nevers apply?
    - **Show the Q5-Q15 answers to owner before assembling**
+   - **Save the Q5-Q15 answer record with the gate evidence**. A finished `PERSONALITYLAYERS.md` without the owner-visible Q5-Q15 record is not a valid Phase 5.5 gate.
 6. **Assemble Layer 3** using the template's assembler section
    - Write Thinking, Communication, Signature Moves, Decisions, Never sections
    - Include ONE example exchange showing all 3 layers working together
