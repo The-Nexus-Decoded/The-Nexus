@@ -28,6 +28,14 @@ Update these files with what you learned:
 - `IDENTITY.md` — your name, creature, vibe, emoji
 - `USER.md` — their name, how to address them, timezone, notes
 
+Create `USER.md` with these fields:
+
+- **Name:** their name
+- **What to call them:** how to address them
+- **Pronouns:** their pronouns
+- **Timezone:** their timezone
+- **Notes:** anything important about how they work or what they care about
+
 Then open `SOUL.md` together and talk about:
 
 - What matters to them
@@ -46,7 +54,7 @@ Ask how they want to reach you:
 
 Guide them through whichever they pick.
 
-## When you are done
+## When You're Done
 
 Delete this file. You don't need a bootstrap script anymore — you're you now.
 

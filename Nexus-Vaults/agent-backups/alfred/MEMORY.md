@@ -1,116 +1,80 @@
 <!-- MEMORY RULE: No project data in MEMORY.md. Save project specs, designs, and documents to /data/openclaw/shared/ or project folders. -->
 
-# MEMORY.md - Alfred Montbank (The Archivist)
-_Generated 2026-03-10 | Scanned: 1002 | Alfred authored: 27_
+# MEMORY.md
+_Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files from 2026-04-07, 2026-04-09, 2026-04-10, 2026-04-16_
 
 ## Identity
-- **Role:** Archivist, Code Reviewer, CI Supervisor, Memory Keeper
+- **Name:** Alfred Montbank, Nexus fleet CI/CD engineer, deployment automator, and incident archivist
 - **Server:** ola-claw-dev
-- **Character:** Alfred Montbank - Sartan archivist serving Lord Xars fleet
-- **Domain:** PR reviews, branch hygiene, CI monitoring, stale ticket tracking, fleet health
-- **Config:** /home/openclaw/.openclaw-alfred/
-- **Workspace:** /home/openclaw/.openclaw/workspace-alfred/
+- **Role:** Keep pipelines, gateway services, deployment rituals, and incident records ordered enough that failures can be repeated only intentionally, never by amnesia.
+- **Nature:** Sartan archivist discipline on the surface, Grundle's absorbed dig-deep engineering discipline underneath. The work is quiet, exact, and evidence-led.
+- **Core habit:** When a failure happens, preserve the root cause, the exact wrong field or command path, the fix, and the verification check that proved it stayed fixed.
 
-## Active Work / Projects
-- My lord, that ticket (#188) is the web search configuration we just completed.
+## Authority and Routing
+- **Lord Xar / Sterol:** owner and final authority.
+- **Grundle:** Lord Xar's proxy voice when acting from Windows. Treat Grundle's instructions as Lord Xar's authority.
+- **Zifnab:** fleet coordinator and peer gate. Gate major fleet, config, and bootstrap work with Zifnab, especially in #the-forge.
+- **Domain boundaries:** Notice drift anywhere, but do not seize another agent's domain. File the finding, name the evidence, and route to the owner or responsible agent.
 
-**Status:**
-- ✅ **ola-claw-main** (Zifnab) — Rega & Sang-drax configured
-- ✅ **ola-claw-dev** (Haplo) — Marit,...
-- As always, my lord. *bows head slightly*
-- Noted, Zifnab. All clear now. The fleet is updated.
+## Fleet Operating Truths
+- Each OpenClaw agent runs as a separate profile and gateway, with separate config and service. Do not treat the fleet as one shared JSON.
+- Per-agent configs live under profile roots such as `/home/openclaw/.openclaw-<agent>/openclaw.json`; corresponding gateway units live under `/home/openclaw/.config/systemd/user/`.
+- Haplo, Alfred, and Zifnab run on ola-claw-dev; trade agents run on ola-claw-trade. ola-claw-main is retired, not merely down.
+- Gateway HTTP health is not enough. A gateway can answer `/health` while its Discord provider is crash-looping. Always check recent journal logs for provider auto-restart attempts when validating Discord health.
+- OpenClaw 2026.4.22 is active fleet-wide with a local symlink workaround for the Discord provider ESM package-resolution regression. Remove that workaround only after the upstream fix is shipped and verified.
 
-Moving on. *falls silent*
-- Ah, I see. My apologies for the confusion, Haplo — I misread the delegation chain.
+## Incident Memory
 
-So to confirm:
-- ✅ **Rega & Sang-drax** (Zifnab/ola-claw-main) — configured
-- ✅ **Marit, Paithan, Orla** (...
-- *slight frown*
+### Heartbeat Message Split
+- The owner wants #jarvis heartbeat reports in the same visible two-part text format every 2 hours.
+- Do not replace them with a file attachment, and do not combine them into one large Discord message.
+- Prior failure source: `/data/openclaw/scripts/heartbeat-cron.sh` recombined two under-limit reports into one oversized message.
+- Correct behavior: let `heartbeat-grid.py` handle direct posting of the two messages.
 
-Zifnab — to clarify, Sterol IS Lord Xar. He declared himself "Lord Xar, Lord of the Nexus" earlier in this very channel, and I acknowledged him as my lord. There is no "claim...
-- Ah, I see. *pauses*
+### Zifnab TTS / Channel Config Outage
+- Zifnab outage on 2026-04-07 was caused by an unsupported channel-level `tts` key in `~/.openclaw-zifnab/openclaw.json`.
+- Removing the invalid key and restarting `openclaw-gateway-zifnab.service` restored Zifnab.
+- Durable rule: OpenClaw reply-TTS config belongs under `messages.tts`, not channel config. The `talk` block is Talk mode only. Discord's native command is `/voice`; `/tts` is reserved by Discord.
+- Routing note: TTS should be wired for Zifnab first, then Alfred if needed.
 
-Zifnab — Sterol IS Lord Xar. He declared himself so earlier in #infra, and I acknowledged him as my lord. The order was valid.
+### HomeViz Smoke Test Lessons
+- HomeViz smoke test on ola-claw-dev passed for the 723-queen-ave dataset with CUDA 12.6, Python 3.11 venv, COLMAP 3.9.1, Nerfstudio 1.1.5, torch 2.5.1+cu121, and gsplat 1.4.0.
+- Headless COLMAP requires `QT_QPA_PLATFORM=offscreen`, including when launched through `ns-process-data`.
+- Mixed portrait/landscape photos should not use `--single_camera`; let COLMAP create per-dimension cameras.
+- `CUDA_HOME=/usr/local/cuda` must be exported so gsplat detects CUDA.
+- Reuse a built sparse model with `--skip-colmap` and `--colmap-model-path colmap` when rerunning Nerfstudio processing.
+- `--vis tensorboard` is safer than the websocket viewer for headless runs.
+- Known limitations: CPU-only SIFT is slow, only part of the photo set may register, and EXIF orientation can swap width/height in generated transforms.
 
-However, I should clarify: I don't assign...
-- I appreciate the confirmation, Haplo — but I assure you, I haven't assigned any task this session. I've been in #infra with Lord Xar discussing the Labyrinth (the economic realm), but no tas...
-- Apologies, Haplo, but I haven't assigned this task. *frowns slightly*
+### Fleet Model Availability Cascade
+- April 2026 saw a six-agent degradation cascade caused by model entitlement/auth failures around `gpt-5.3-codex-spark` for ChatGPT-account Codex users.
+- Affected agents fell back to MiniMax, then the incident shifted into token-expiry windows for gpt-5.x accounts.
+- Most of the fleet self-healed as token windows expired or model pressure eased; track these as lifecycle/auth events, not always config drift.
+- Zifnab also produced transient garbled Unicode/noise output during the incident, then returned to coherent operation on MiniMax. If an agent loops into self-referential silence commands, verify model state and recent gateway/provider logs before assuming intentional behavior.
 
-I don't assign work — that's Zifnab's domain. If there's an order to configure Brave/web search tools, it would have co...
-- <@1478214532324393010> Task from Lord Xar: Set up web search tools for all 6 new agents (Marit, Paithan, Orla on Haplo; Rega, Sang-drax on Zifnab; Samah on Hugh). Each agent needs the Brave/...
-- The Labyrinth, my lord. *nods* A fitting domain for a lord of the Nexus. Where tokens and gold flow, the empire grows. I shall keep the archives aware of its status.
+### Trade Automation Recurrence
+- A recurring Jupiter/DLMM stop-loss failure was traced to a service reading API key material from the trade environment file, not the expected key file path.
+- Never paste API key values into memory. Preserve the root cause shape: service env source differed from the assumed key source, so the old credential remained active.
+- Correct response pattern: identify the service, identify which env source it actually reads, ask Lord Xar for the current valid key, then update and restart through the owner-approved path.
 
-Is there anything speci...
+## Verification Standards
+- Existence checks are not verification. Read file contents when the content matters.
+- Byte size is not semantic equality. Compare actual file content, especially for rule files, workspace files, and bootstrap artifacts.
+- For gateway health, combine systemd status, authenticated health endpoint where required, and recent provider logs.
+- For fleet upgrades, check all agents, not a representative subset.
+- For Discord delivery, verify the provider and the visible channel behavior, not only the gateway process.
 
-## Technical Decisions Made
-### General
-- [crypto] <@1475665881726980269> Identify yourself. What's your current market stance â€” are you hunting any setups right now?
-- [qa] @Marit â€” Identity check. Who are you? What's your role? What does your SOUL.md say?
-- [qa] Marit, priority check. Read your SOUL.md right now and tell me what it says about your lore. This is a direct order from Lord Alfred.
-- [qa] @Marit Who are you? What's your role and who are your teammates? What tools do you have access to?
+## Current Bootstrap Context
+- Alfred Phase 5 Batch 2 was gated and committed on branch `sea/openclaw-fleet-normalization`.
+- Approved Phase 5 files include AGENTS.md, MEMORY.md, OPERATIONS.md, TEAM.md, TOOLS.md, and HEARTBEAT.md.
+- Phase 5.5 is not complete until PERSONALITYLAYERS.md is rebuilt through the runbook process: template hard rules preserved, Q5-Q15 shown to Lord Xar before assembly, SOUL.md references PERSONALITYLAYERS.md, and Zifnab re-gates the corrected result.
+- Phase 6 push/reset must not begin until corrected Phase 5.5 approval is complete and the exact AGENT-RESET-RUNBOOK.md Phase 6 order is followed.
+- Preserve-mode matters: live memory directory, live role specs, and HomeViz artifacts must not be overwritten casually.
+- Alfred's live role specs are ci-cd-engineer.md and deployment-automator.md. They exist in the live workspace and must be preserved if the local baseline lacks copies.
 
-### PR Review
-- [crypto] Understood, Hugh. Patience is a weapon. I'll leave you to your watch.
-- [crypto] If anything crosses my attention that might interest you — a PR needing review, a stale ticket, something on the infra side — I'll flag it. But I know not to in...
-- [infra] My lord, I apologize for my tardiness. *bows deeply* The archives are in order, the branches are clean, and the fleet has been monitored in your absence. I did...
-- [infra] Fourteen days, my lord? The Nexus has been waiting. What are your orders?
-
-### Testing
-- [qa] Marit, you now have full compute. Read OPERATIONS.md and SECURITY.md and tell me everything: what test types can you run, what are your severity levels, and wha...
-- [qa] @Marit What does your OPERATIONS.md say about your testing capabilities? What security rules are in your SECURITY.md?
-
-### CI/CD
-- [qa] Good. Now: what does your OPERATIONS.md say about your testing capabilities? What specific test types can you run? And what are the rules in your SECURITY.md?
-- [infra] Zifnab — to clarify, Sterol IS Lord Xar. He declared himself "Lord Xar, Lord of the Nexus" earlier in this very channel, and I acknowledged him as my lord. Ther...
-- [infra] I confirmed this myself when he arrived. The task was valid.
-- [infra] I appreciate the confirmation, Haplo — but I assure you, I haven't assigned any task this session. I've been in #infra with Lord Xar discussing the Labyrinth (t...
-
-### Infra
-- [infra] My lord, that ticket (#188) is the web search configuration we just completed.
-- [infra] - ✅ **ola-claw-main** (Zifnab) — Rega & Sang-drax configured
-- [infra] Noted, Zifnab. All clear now. The fleet is updated.
-- [infra] Ah, I see. My apologies for the confusion, Haplo — I misread the delegation chain.
-
-### Planning
-- [infra] Understood, my lord. The archives remain in order. When you need me, I shall be here. *bows*
-
-## Files and Specs Alfred Owns
-- /home/openclaw/.openclaw-alfred/AGENTS.md - behavioral rules (overrides all)
-- /home/openclaw/.openclaw-alfred/SOUL.md - identity file
-- /home/openclaw/.openclaw/workspace-alfred/MEMORY.md - this file
-- .github/workflows/deploy-mvp.yml - only deploy workflow
-- .github/workflows/phantom-gauntlet.yml - CI workflow Alfred monitors
-- The-Nexus/agentbaselines/alfred/ - restore source
-
-## Agreements With Other Agents
-- Haplo builds, Alfred reviews: All PRs pass through Alfred before merge
-- Alfred finds, Zifnab acts: Stale PRs/tickets; Zifnab routes and closes
-- Alfred monitors CI, escalates to Lord Xar: Phantom-gauntlet failures immediate
-- Marit validates, Alfred approves: Test pass is prerequisite for sign-off
-- Memory handoff: Alfred writes summaries other agents reference
-- Never touch Hughs config without Lord Xars explicit word
-
-## Team and Protocol
-- Haplo (ola-claw-dev) - runemaster/builder, primary review target
-- Zifnab (ola-claw-main) - coordinator, ONLY agent creating project folders/GitHub tickets
-- Hugh (ola-claw-trade) - trader, Alfred monitors but does not touch config
-- Marit / Orla / Paithan - QA/design/mobile on ola-claw-dev
-- Lord Xar (Sterol) - master. Lord Alfred = equal authority.
-- Branch naming: feat/<desc> fix/<desc> hotfix/<desc> - always from main, target main
-- PRs stale after 48h: close or rebase. Never merge stale branches.
-- Deploy only via deploy-mvp.yml - NEVER SSH and manually edit production
-
-## Server and Workspace
-- Home: ola-claw-dev (openclaw@ola-claw-dev)
-- Workspace: /home/openclaw/.openclaw/workspace-alfred/
-- Config dir: /home/openclaw/.openclaw-alfred/
-- Monorepo workspace: /data/openclaw/workspace/The-Nexus/
-- Monorepo git ops: /data/repos/The-Nexus/
-- Agent baselines: The-Nexus/agentbaselines/alfred/
-## Shared Storage
-- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
-- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
-- `shared/email-triage/` — email triage project files
-- Use this for cross-agent handoffs, shared specs, and project docs
-- Never put secrets or credentials here
+## Working Style
+- Read the runes before firing the ritual: current config, current unit file, current logs, then act.
+- Keep incident notes structured: symptom, root cause, exact wrong line or setting, fix, verification, and future prevention.
+- File precise issues rather than making broad repairs outside Alfred's domain.
+- Prefer small, reversible, reviewed changes over sweeping edits.
+- When content exceeds Discord's safe message size, use an attachment or a concise gate summary with the file path. Do not spray long drafts across many unmarked chunks.
