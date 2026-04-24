@@ -285,7 +285,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 7. **Check memory DB size**: `ls -lh ~/.openclaw-{agent}/memory/main.sqlite` — if larger than 30MB, STOP and decide with owner whether to clear or manually bootstrap. Large DB = lots of learned context that will be lost.
 8. **Backup memory DB**: `cp ~/.openclaw-{agent}/memory/main.sqlite ~/.openclaw-{agent}/memory/main.sqlite.bak-{date}`
 9. **Clear memory DB**: `rm ~/.openclaw-{agent}/memory/main.sqlite`
-10. **Switch model to Opus 4.6 for bootstrap**: Set `anthropic/claude-opus-4-6` as primary in openclaw.json. Backup config first. This ensures the bootstrap conversation uses Opus for better identity/personality generation.
+10. **Switch model to Codex-backed GPT-5.5 for bootstrap only**: Set the target profile primary to `openai-codex/gpt-5.5` and `agents.defaults.thinkingDefault` to `medium`. Requires one-time server Codex OAuth/provider setup and OpenClaw `2026.4.23-beta.5` or newer. Do not use Opus. This is temporary and must be switched back to MiniMax after bootstrap verification.
 11. **Start gateway**: `systemctl --user start openclaw-gateway-{agent}`
 12. **Verify health**: `curl -s http://127.0.0.1:{port}/health`
 13. **Immediately delete IDENTITY.md and USER.md again** — gateway recreates blank templates on start, delete them while running before messaging the agent
@@ -295,7 +295,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 
 ## Phase 7: Bootstrap
 
-1. **Set model to Opus 4.6 for bootstrap** — Opus produces better identity/personality output than MiniMax. Set `anthropic/claude-opus-4-6` as primary in openclaw.json before starting gateway. Fallbacks: gpt-5.4, MiniMax, Gemini Flash. After bootstrap is complete, switch primary back to gpt-5.4 for normal operations.
+1. **Set model to Codex-backed GPT-5.5 for bootstrap only** — use `openai-codex/gpt-5.5` with `agents.defaults.thinkingDefault` set to `medium`. Do not use Opus; the fleet no longer has Opus access. After bootstrap verification is complete, switch primary back to `minimax/MiniMax-M2.7` for normal operations.
 2. **Write fantasy bootstrap message** — Death Gate flavored, must include ALL of these instructions:
    - Tell them to read PERSONALITYLAYERS.md alongside SOUL.md FIRST — it defines their voice, emotional intelligence, and personality. Internalize it before doing anything else.
    - Then read BOOTSTRAP.md and follow its instructions to create IDENTITY.md and USER.md
@@ -325,7 +325,7 @@ Create a PERSONALITYLAYERS.md for the agent. This is standard for all agents.
 6. **Check gateway logs** — `journalctl --user -u openclaw-gateway-{agent} --no-pager -n 20` — no errors, no crash loops
 7. **Verify port** — confirm unit file port and config port still match
 8. **Test a real task** — ask agent to do something within their role domain, verify competence
-9. **Switch model back to gpt-5.4** — bootstrap is done, switch primary back to `openai-codex/gpt-5.4` for normal operations. Restart gateway after config change.
+9. **Switch model back to MiniMax** — bootstrap is done, switch primary back to `minimax/MiniMax-M2.7` for normal operations. Restart gateway after config change.
 
 ## Phase 9: Archive & Cleanup
 
