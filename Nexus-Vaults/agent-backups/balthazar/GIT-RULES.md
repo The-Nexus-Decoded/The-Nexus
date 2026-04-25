@@ -1,4 +1,4 @@
-# GIT-RULES.md
+# GIT-RULES.md -- Balthazar
 
 ## Git Discipline -- Mandatory Before Any Code Change
 

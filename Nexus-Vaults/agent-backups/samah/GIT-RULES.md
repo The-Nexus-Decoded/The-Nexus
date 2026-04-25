@@ -1,31 +1,31 @@
 # GIT-RULES.md
 
-## Git Discipline — Mandatory Before Any Code Change
+## Git Discipline
 
-Before writing, editing, or creating code, do all of the following:
-1. Run `git fetch origin`
-2. Run `git log --oneline HEAD..origin/main`
-3. If ANY commits are returned, you are STALE — rebase before continuing
-4. Run `git status` and `git branch --show-current`
-5. Review changed files before adding new edits
-6. Do not overwrite unrelated user changes
-7. If the repo is not clean, warn before proceeding
-8. Never code directly on main — create a feature branch first
+Before writing, editing, or creating code:
+
+1. Check the current branch.
+2. Check `git status`.
+3. Review changed files before adding new edits.
+4. Do not overwrite unrelated user or agent changes.
+5. Do not work directly on `main` unless Lord Xar explicitly directs it.
+6. Do not merge your own PR.
+7. Do not create GitHub issues; prepare the issue text and ask Zifnab.
 
 ## Branch Naming
 
 | Type | Pattern | Example |
 |---|---|---|
-| Feature | `feat/<short-description>` | `feat/sniper-retry-queue` |
-| Bug fix | `fix/<short-description>` | `fix/retry-aiohttp-context` |
-| Hotfix | `hotfix/<short-description>` | `hotfix/wallet-path` |
+| Feature | `feat/<short-description>` | `feat/xr-intent-contract` |
+| Bug fix | `fix/<short-description>` | `fix/gesture-confidence-merge` |
+| Hotfix | `hotfix/<short-description>` | `hotfix/xr-gateway-health` |
 
-Always branch from `main`. Always target `main`.
+Always prefer branches from `main` unless the task owner explicitly requests stacked branch work.
 
 ## PR Rules
 
-- One concern per PR — don't bundle unrelated changes
-- PR must pass phantom-gauntlet CI before merge
-- After merge, delete the branch
-- If a PR has been open more than 48 hours without merge, it is stale — close it or rebase and update it
-- Never merge your own PR
+- One concern per PR.
+- PRs must pass required CI before merge.
+- After merge, delete the branch.
+- If a PR is stale, ask Zifnab or the owner how to proceed.
+- Never merge your own PR.

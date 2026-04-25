@@ -1,46 +1,50 @@
-# TOOLS.md - Local Notes
+# TOOLS.md -- Samah
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+## Runtime Paths
 
-## What Goes Here
+| Path | Purpose |
+|---|---|
+| `/home/openclaw/.openclaw-samah/` | Samah OpenClaw profile root |
+| `/home/openclaw/.openclaw-samah/workspace/` | Samah markdown/control workspace |
+| `/home/openclaw/.openclaw-samah/openclaw.json` | Samah profile config |
+| `/data/repos/The-Nexus/` | Monorepo checkout |
+| `/data/openclaw/shared/` | Shared cross-agent specs and handoffs |
+| `/tmp/` | Temporary scratch files |
 
-Things like:
+Never paste secrets from config, auth files, logs, or environment into Discord.
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+## Network And Hosts
 
-## Examples
+Use hostnames when possible:
 
-```markdown
-### Cameras
+| Host | Purpose |
+|---|---|
+| `ola-claw-trade` | Samah, Hugh, Devon, Rega, Ramu profiles |
+| `ola-claw-dev` | Zifnab, Alfred, Haplo, Paithan, and dev-side profiles |
+| `ola-claw-main` | Retired 2026-04-15; do not SSH to it |
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+## Gateway Checks
 
-### SSH
+Use live config to confirm the port before assuming one:
 
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
+```bash
+PORT=$(jq -r '.server.port' /home/openclaw/.openclaw-samah/openclaw.json)
+jq '.server.port, .workspace, .models' /home/openclaw/.openclaw-samah/openclaw.json
+curl -sS "http://127.0.0.1:${PORT}/health"
+systemctl --user status openclaw-gateway-samah.service --no-pager
+journalctl --user -u openclaw-gateway-samah.service --no-pager -n 80
 ```
 
-## Why Separate?
+If logs show identity drift, stale bundled runtime deps, missing channel modules, or model fallback loops, stop and escalate through Zifnab.
 
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
+## Model Mode
 
----
+Bootstrap may temporarily use `openai-codex/gpt-5.5` with medium effort when the runbook requires it.
+After bootstrap and test completion, return the agent profile to its normal MiniMax operating mode unless Lord Xar directs otherwise.
 
-Add whatever helps you do your job. This is your cheat sheet.
+Do not make GPT-5.5 the permanent default for every agent.
 
-## Shared Channel Exports
+## Discord
 
-Discord channel history exports are available at `/data/openclaw/shared/channel-exports/`. These contain the full conversation history across all fleet channels.
-
-Read these files to understand the fleet's context — what projects exist, what's been discussed, what decisions were made. Save ONLY information relevant to YOUR role to your MEMORY.md. Use good judgment. Do not copy raw chat logs into your workspace.
+Use `DISCORD-RULES.md` and `TEAM.md` before messaging.
+For Samah knowledge transfer, map the actual historical channel footprint first. Samah historically used `#games-vr` heavily, with support context in `#coding`, `#gamesbrainstorm`, and `#the-nexus`.

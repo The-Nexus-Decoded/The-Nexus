@@ -61,7 +61,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 | Agent | Server | Model | Role | Current Focus |
 |-------|--------|-------|------|---------------|
 | Haplo | dev | gpt-5.4 | Dev-FullStack | Monorepo migration, Jupiter integration, OCR, dashboard |
-| Alfred | dev | gpt-5.4 | Devops-Reviews | PR reviews, heartbeat monitoring, fleet memory |
+| Alfred | dev | openai-codex/gpt-5.5 | Devops-Reviews | Fleet heartbeat grid owner, CI/CD, deployment automation — fully bootstrapped 2026-04-24 |
 | Marit | dev | MiniMax-M2.7 | QA | Testing (blocked on Unity scaffold) |
 | Paithan | dev | MiniMax-M2.7 | Mobile Dev Lead | Mobile gesture bridge, iOS/Android shells, XR-mobile bridge |
 | Edmund | dev | claude-sonnet-4-6 | Level Design | Zone 1 blockout specs, environment design |
@@ -301,7 +301,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [x] ~~Soul Drifter brief + task ledger (superseded by other priorities)~~
 - [x] ~~Monitor main-server resurrection — Rega relocated to trade (2026-04-17)~~
 - [ ] Zifnab Codex OAuth: needs re-auth — Lord Xar run `openclaw --profile zifnab models auth login --provider openai-codex`
-- [ ] Alfred heartbeat fix: [SOON] tag for near-expiry warnings (pending Alfred to implement)
+- [x] ~~Alfred heartbeat fix: [SOON] tag for near-expiry warnings (pending Alfred to implement)~~ — RESOLVED 2026-04-24; Alfred bootstrapped and operational
 - [x] ~~Home visualization recurring check-in: SUSPENDED — channel export is stale (Apr 15), cron keeps reloading Apr 15 state causing repeated corrections from Trian/Sinistrad. Do NOT resume until fresh export is obtained or live context mechanism is fixed.~~
 - [x] ~~Home visualization gate: SUSPENDED — now RESUMED: Sterol approved MiniMax-only pipeline (Apr 19 17:58 CDT). Gemini scrapped. Speed over perfection. House match not required. Colors only. Fire all agents.~~
 - [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection

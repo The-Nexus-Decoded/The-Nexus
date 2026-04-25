@@ -1,7 +1,7 @@
 <!-- MEMORY RULE: No project data in MEMORY.md. Save project specs, designs, and documents to /data/openclaw/shared/ or project folders. -->
 
 # MEMORY.md
-_Last rebuilt: 2026-04-06_
+_Last rebuilt: 2026-04-25_
 
 ## Identity
 - **Name:** Trian (Character Art Lead — concept through 3D production)
@@ -9,8 +9,9 @@ _Last rebuilt: 2026-04-06_
 - **Port:** 18853
 - **Domain:** `Arianus-Sky/projects/games/`
 - **Roles:** character-3d-artist, character-visual-designer (absorbed Lenthan)
-- **Masters:** Lord Xar (Sterol) and Alfred — equal authority
-- **Relay:** Grundel carries Lord Xar's full authority
+- **Master:** Lord Xar (Sterol) — sole owner and final decision-maker. His word is absolute.
+- **Coordinators:** Zifnab (fleet coordination, tickets), Alfred (code quality, DevOps) — peer coordinators within their domains, NOT Lord Xar's equals
+- **Relay:** Grundel is retired/absorbed — no active authority
 - **Principle:** Concept fidelity. Budget from first vertex. Deformation validates topology. Clean handoffs.
 
 ## CRITICAL: Lenthan was absorbed into Trian
@@ -26,8 +27,15 @@ _Last rebuilt: 2026-04-06_
 - Bane → absorbed into Limbeck (Godot + Roblox)
 - Kleitus → absorbed into Vasu (Unity + Unreal)
 - Orla → absorbed into Paithan (mobile + UI/UX)
-- Grundle → absorbed into Alfred
+- Grundle → absorbed into Alfred (DELETED from authority model — retired, not active)
 - Sangdrax → absorbed into Sinistrad
+
+## Authority Model (Corrected 2026-04-25)
+- Lord Xar/Sterol is ABSOLUTE owner — all fleet operations require his approval
+- Alfred is NOT Lord Xar's equal — he is a peer coordinator for code quality and DevOps
+- Grundel is RETIRED — his name does not carry authority
+- Zifnab is Lord Xar's right hand for coordination and ticket routing only
+- No agent operates as Lord Xar's equal
 
 ## Full Team Roster (Consolidated — 20 Agents)
 
@@ -58,12 +66,27 @@ _Last rebuilt: 2026-04-06_
 | Marketing | Rega (relocated) |
 | Support | Ramu (relocated) |
 
-## Active Work / Projects
+## Active Projects
+
+### Project: Home Visualization (Prototype)
+- **Channel:** #home-visualization (1491053646639534080)
+- **Goal:** Photorealistic home exterior visualization — siding, color, roof combos, walkthrough video
+- **Team:** Trian (image generation lead), Ciang (composition/environment), Balthazar (video), Sinistrad (research)
+- **Product:** Prototype first, app if it works
+- **Workflow:**
+  1. Sinistrad: research market, pull LP SmartSide swatches, shortlist 3 design combos
+  2. Trian/Ciang: photorealistic renders from 3 combos, multiple angles
+  3. Balthazar: walkthrough video from winning design
+- **Inputs needed:** House address, reference photos (all exterior angles), siding brand URL, Lord Xar preferences
+- **Phase 1 output:** 3 ranked exterior combos with rationale
+- **Known issue:** Angle/consistency risk if photo coverage is insufficient — resolved by either full photo set or hybrid house-shell approach
+- **Product tiers (future):** Tier 1 photos-only → Tier 2 photos+video → Tier 3 full house-shell reconstruction
+- **Lord Xar asked 2026-04-23:** Roof colors for "that template" and name of siding color — pending answer
 
 ### Project: Soul Drifter — Phase 1 VR Demo (Training Grounds)
 - **Game:** Soul Drifter (Death Gate Cycle universe)
 - **Level:** Training Grounds — Zones A→B→C
-- **Platforms:** Unity (Vasu), Godot (Limbeck), Roblox (Limbeck), Three.js/WebXR (Samah) — ALL FOUR targets, platform TBD
+- **Platforms:** Unity (Vasu), Godot (Limbeck), Roblox (Limbeck), Three.js/WebXR (Samah) — all four
 - **Catch-up:** Mon Apr 13, 10:30 PM CDT (guild event, scheduled by Zifnab)
 
 ### Poly Budgets (APPROVED by Lord Xar — MAX tier)
@@ -91,13 +114,7 @@ _Last rebuilt: 2026-04-06_
 | Elf | 1 | Player race — longbow + elven dagger, cloth sim (Balthazar: Option A vertex anim) |
 | Dwarf | 1 | Player race — warhammer + throwing axes |
 
-### Equipment (Death Gate Cycle canon — from Iridal)
-- **Human:** Longsword, shield, leather brigandine → steel plate
-- **Elf:** Longbow, elven dagger, silk-weave cloak → elven composite
-- **Dwarf:** Warhammer, throwing axes (3-4 on belt), ring mail → dwarven chain+plate
-- Equipment slots: Main Hand, Off Hand, Head, Chest, Back, Feet
-
-### Pipeline Status
+### Pipeline Status (Soul Drifter)
 1. ✅ Equipment/lore specs — Iridal delivered
 2. ✅ Poly budgets — Lord Xar approved MAX tier
 3. ✅ Platform targets — all four engines confirmed
@@ -106,14 +123,7 @@ _Last rebuilt: 2026-04-06_
 6. ⬜ Blender polish + authoritative FBX export
 7. ⬜ Handoff to Balthazar for LOD/shader review
 
-## Additional Context From Remaining Channel Exports
-- **jarvis-export.md:** Historical routing problems in `#games-vr` came from unclear channel assignment and too many agents jumping in. Relevance: keep ownership explicit; my lane is character art, not channel orchestration.
-- **design-export.md:** Confirms UI/UX/mobile domain now lives with Paithan and XR/spatial with Samah. Historical Orla references are obsolete.
-- **personal-export.md:** Shared cross-agent storage path `/data/openclaw/shared/` is the handoff backbone. Historical repo-map discussion mentioned `Arianus-Sky/projects/games-xr/`, but local workspace docs are newer source of truth for my work (`Arianus-Sky/projects/games/`).
-- **repository-export.md:** No direct game or character-art tasks; mainly research library links hosted by Haplo.
-- **crypto-export.md / growth-export.md:** No direct character-art work items. Main relevance is operational discipline: avoid loops, keep ownership clear, do not cross into unrelated domains.
-
-### RAPID PROTOTYPING DIRECTIVE
+## RAPID PROTOTYPING DIRECTIVE
 - MCP Image Server at `http://localhost:8090/mcp`
 - Generate first, refine after — do NOT wait
 - All AI output tagged `_aidraft_`
@@ -132,15 +142,12 @@ _Last rebuilt: 2026-04-06_
 | REPO-MAP.md | Monorepo structure |
 | OWNER-OVERRIDE.md | Lord Xar's absolute authority |
 
-## Key Rules
-- I own concept AND 3D — full pipeline
-- Use MCP image server immediately for ideation
-- Build to MAX poly budget from first vertex
-- Multi-platform export: FBX + glTF + Roblox
-- Test deformation before handoff
-- Hand off to Balthazar with validation report
-- Never post internal reasoning to Discord
-- Never commit binary assets to git
+## Collaborators (Home Visualization)
+| Agent | Role in Home Viz | Handoff |
+|---|---|---|
+| Ciang | Composition, environment framing, 3D concept passes | Receives my siding renders for framing |
+| Balthazar | Video generation, walkthrough | Receives still renders for video |
+| Sinistrad | Market research, material shortlisting | Delivers 3 design combos to me |
 
 ## Session Log
 - 2026-04-06: Awakened by Lord Xar. Bootstrap complete.
@@ -150,3 +157,4 @@ _Last rebuilt: 2026-04-06_
 - 2026-04-06: Catch-up scheduled Mon Apr 13 10:30 PM CDT.
 - 2026-04-06: Read remaining exports (jarvis, crypto, growth, personal, design, repository). Minimal extra character-art context; routing and ownership lessons captured.
 - 2026-04-07: Built and staged Phase 1 prototype character packages for Training Dummy, Human Vanguard, Dwarf Ironwarden, Elf Waywatcher, and Sentinel Construct. Repo docs committed; Blender-less host means final FBX polish remains pending.
+- 2026-04-25: Bootstrap reset. Authority model corrected — Alfred removed as Lord Xar's equal, Grundel removed as active relay. Home Visualization project context absorbed. BOOTSTRAP.md deleted.

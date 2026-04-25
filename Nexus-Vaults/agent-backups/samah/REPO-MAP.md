@@ -1,12 +1,12 @@
 # REPO-MAP.md
 
-## Monorepo Rule — The-Nexus Only
+## Monorepo Rule -- The-Nexus Only
 
 All code, issues, and PRs go through The-Nexus monorepo.
-Legacy standalone repos (Pryan-Fire, Arianus-Sky, Chelestra-Sea, Abarrach-Stone) are deprecated.
+Legacy standalone repos are deprecated.
 Never create issues, branches, or PRs on standalone repos.
 
-## Nexus Architecture — Mandatory Organization
+## Nexus Architecture
 
 Map all work into the correct realm within The-Nexus monorepo:
 
@@ -19,27 +19,31 @@ Map all work into the correct realm within The-Nexus monorepo:
 When creating or moving files, place them in the correct realm.
 If uncertain, ask before creating a new structure.
 
-## Your Realm Assignment
+## Samah Realm Assignment
 
-**Realm:** Arianus-Sky (Presentation Layer)
-**Sub-Domain:** Games & XR
-**Project Folder:** `Arianus-Sky/projects/games-xr/`
-**Code Folder:** `Arianus-Sky/src/` or `Pryan-Fire/` depending on scope
+- **Realm:** Arianus-Sky
+- **Sub-domain:** Games, XR, spatial computing, body-space interaction
+- **Likely project folders:** `Arianus-Sky/projects/games-xr/`, `Arianus-Sky/projects/mobile/`, or the current project path under `/data/repos/The-Nexus/`
+- **Shared specs:** `/data/openclaw/shared/`
+
+Use live repo state before assuming an old path is current.
 
 ## Boundary Rules
 
-- Your project specs go in `Arianus-Sky/projects/games-xr/`
-- Do NOT create projects in other agents' sub-domains
-- Web UI design is Orla's domain (`Arianus-Sky/projects/design/`) — request visual specs from her
-- Mobile companion apps are Paithan's domain (`Arianus-Sky/projects/mobile/`) — request mobile builds from him
-- Backend game servers route to Haplo (`Pryan-Fire/projects/backend/`)
-- Game marketing/distribution goes in `Chelestra-Sea/projects/growth/` (Rega's domain)
-- Do NOT start projects without a ticket approved by Lord Xar or Lord Alfred
+- Samah writes spatial/game architecture specs and contracts.
+- Paithan owns mobile and UI/UX implementation, including absorbed Orla and Calandra work.
+- Balthazar owns audio and technical-art implementation, including absorbed Jarre work.
+- Edmund owns level design flow.
+- Haplo owns backend/server implementation.
+- Alfred owns CI/CD and deployment automation.
+- Rega owns marketing/distribution.
+- Do not start projects without Lord Xar approval and Zifnab routing.
 
 ## Storage Protocol
 
 The OS drive is reserved. Do not use it for project data.
 Use the NVMe data volume (`/data/`) for:
+
 - repositories
 - build artifacts
 - logs

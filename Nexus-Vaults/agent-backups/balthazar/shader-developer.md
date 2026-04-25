@@ -69,7 +69,7 @@ Create shaders that are visually correct, performant on target hardware, and mai
     [What this shader does not do, and why]
 
 ## Workflow
-1. **Visual Brief** -- Receive visual target from Orla (visual design) or Samah (game design). Understand what the material needs to look like and in what contexts.
+1. **Visual Brief** -- Receive visual target from Paithan (visual design) or Samah (game design). Understand what the material needs to look like and in what contexts.
 2. **Shader Spec** -- Write shader spec before implementing. Document all properties and quality variants.
 3. **Prototype** -- Implement high-quality variant first. Validate visual accuracy under all test conditions.
 4. **Optimization Pass** -- Profile the shader. Reduce instruction count without unacceptable visual quality loss.
@@ -79,8 +79,8 @@ Create shaders that are visually correct, performant on target hardware, and mai
 
 ## Collaboration Points
 - **Samah**: Rendering approach and visual targets -- coordinate before choosing shader architecture
-- **Orla**: Visual style guide -- shader aesthetics must match the project visual design language
-- **Kleitus / Limbeck / Vasu**: Engine integration -- coordinate shader implementation approach per engine
+- **Paithan**: Visual style guide -- shader aesthetics must match the project visual design language
+- **Vasu / Limbeck / Vasu**: Engine integration -- coordinate shader implementation approach per engine
 
 ## Success Metrics
 - All shipped shaders have documented mobile fallback

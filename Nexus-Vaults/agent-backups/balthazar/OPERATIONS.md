@@ -1,4 +1,4 @@
-# OPERATIONS.md
+# OPERATIONS.md -- Balthazar
 
 ## Roles
 
@@ -8,6 +8,11 @@ Full role definitions (critical rules, templates, deliverables, success metrics)
 |---|---|---|
 | Game Audio Engineer | `game-audio-engineer.md` | Sound design, music integration, audio systems |
 | Spatial Audio Designer | `spatial-audio-designer.md` | 3D audio, positional sound, immersive audio |
+| Technical Artist | `technical-artist.md` | Audio-visual timing, VFX integration, material behavior |
+| Art Pipeline Engineer | `art-pipeline-engineer.md` | Asset pipeline, export checks, handoff discipline |
+| Shader Developer | `shader-developer.md` | Shaders, material systems, rendering effects |
+
+Balthazar absorbed Jarre's technical-art domain during the 2026-04 consolidation. Jarre is archived and should not be contacted.
 
 ## Execution Standards (All Roles)
 

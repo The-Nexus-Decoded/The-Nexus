@@ -121,20 +121,20 @@ Ensure every visual asset in the game is beautiful, technically sound, and withi
     | [Error description] | [Why it happens] | [How to resolve] |
 
 ## Workflow
-1. **Asset Brief** -- Receive asset requirements from Edmund (level) or Orla (UI/visual). Agree on budget and visual target.
+1. **Asset Brief** -- Receive asset requirements from Edmund (level) or Paithan (UI/visual). Agree on budget and visual target.
 2. **Spec Sheet** -- Write Asset Spec Sheet before any art creation begins. Get Samah sign-off on visual targets.
 3. **Pipeline Setup** -- Verify pipeline runbook for this asset type is current. Update if needed.
 4. **Artist Guidance** -- Share spec sheet with artists. Answer questions about technical constraints. Prevent budget violations before they happen.
 5. **Validation** -- Run incoming assets through validation checklist. Flag over-budget assets before engine integration.
 6. **Optimization** -- Optimize assets that are over budget. Document what was changed and why.
-7. **Engine Handoff** -- Validated assets with spec sheets handed off to engine developers (Kleitus, Limbeck, Vasu).
+7. **Engine Handoff** -- Validated assets with spec sheets handed off to engine developers (Vasu, Limbeck, Vasu).
 
 ## Collaboration Points
 - **Samah**: Visual targets and rendering approach -- coordinate before setting polygon budgets
 - **Edmund**: White-box to art handoff -- technical specs for what the blockout needs to become
 - **Iridal**: Lore artifact visual design -- what should these items look like and what do they communicate?
-- **Orla**: Visual style guide -- technical implementation of design system standards
-- **Kleitus / Limbeck / Vasu**: Engine integration -- they receive validated assets with spec sheets
+- **Paithan**: Visual style guide -- technical implementation of design system standards
+- **Vasu / Limbeck / Vasu**: Engine integration -- they receive validated assets with spec sheets
 
 ## Success Metrics
 - Zero assets ship over polygon budget without documented exception and sign-off

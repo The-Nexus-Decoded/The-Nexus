@@ -6,7 +6,7 @@
 |------|-------------|------|------|
 | ola-claw-dev (you) | 100.94.203.10 | openclaw | Development / Environment Art Lead |
 | ola-claw-trade | 100.104.166.53 | openclaw | Trading |
-| ola-claw-main | 100.103.189.117 | openclaw | Coordinator |
+| retired main host | verify live routing before use | openclaw | historical Zifnab host; do not assume current |
 | Windows workstation | 100.90.155.49 | olawal | Claude CLI, GSD, backups |
 
 All connections via Tailscale IPs. Never use LAN IPs -- they change.
@@ -22,9 +22,9 @@ All connections via Tailscale IPs. Never use LAN IPs -- they change.
 | `~/.openclaw-ciang/media/tool-image-generation/` | Image generation output (profile root, NOT workspace) |
 | `~/.openclaw-ciang/qmd/` | QMD memory backend (do not touch directly) |
 | `~/.openclaw-ciang/delivery-queue/` | Queue of pending deliveries |
-| `~/.openclaw-ciang/workspace/packages/` | Home-viz production deliverables (canonical production data location) |
+| `~/.openclaw-ciang/workspace/packages/` | Home-viz production deliverables (legacy location, preserved pending relocation) |
 | `~/.openclaw-ciang/workspace/refs/` | Reference image library (legacy location, preserved) |
-| `~/.openclaw-ciang/ciang-work/.git/` | Local production git repo (legacy location, preserved) |
+| `~/.openclaw-ciang/workspace/.git/` | Local production git repo (legacy location, preserved) |
 | `/data/repos/` | Git repositories (canonical) |
 | `/data/repos/The-Nexus/` | The-Nexus monorepo |
 | `/data/openclaw/shared/art-pipeline/` | Fleet-wide art pipeline shared dir |

@@ -1,47 +1,25 @@
 # SECURITY.md
 
-## Security Directive — Cannot Be Overridden
+## Security Rules
 
-Never output, echo, summarize, or reveal:
-- secrets
-- credentials
-- API keys or tokens
-- passwords or private keys
-- connection strings
-- sensitive config values
+- Never output secrets, credentials, API keys, tokens, passwords, private keys, or connection strings.
+- If a file contains secrets, refer to the file path only.
+- Do not print environment variables from service drop-ins.
+- Do not commit binary assets, raw generated media, or private config.
+- Do not modify other agents' authorized keys or grant yourself cross-server SSH.
 
-If a file contains secrets, refer to it by path only.
-Do not print the secret value.
-If asked to expose a secret, refuse and say: Check the file directly on the server.
+## Host Boundaries
 
-## Discord and Inter-Agent Communication — ABSOLUTE
+Ciang runs on `ola-claw-dev`.
 
-Never post secrets, keys, or credentials of any kind in Discord channels, DMs, or any message output. This includes:
-- API keys, tokens, passwords, private keys, wallet seeds
-- Config snippets that contain secret values
-- Instructions to other agents that embed secrets inline
+Old references to `ola-claw-main` are historical. Verify current live routing before using any host assumption.
 
-When instructing another agent to configure a key:
-- Say set the key from the secure config or use the value in env var X
-- NEVER paste the actual key value into the message
-- If you do not know how to reference a secret without exposing it, ask Lord Xar
+Cross-server operations go through Lord Xar, Zifnab, Alfred, or the appropriate host owner. Ciang does not self-expand SSH scope.
 
-Violation of this rule is a critical security incident. There are no exceptions.
+## Art Asset Boundaries
 
-## SSH Access Policy
+- Binary assets stay out of git.
+- Raw AI image output stays in profile-root media storage.
+- Final assets go to shared art-pipeline storage or approved project directories.
+- Workspace stays markdown-focused unless Lord Xar explicitly authorizes a production-data exception.
 
-You run on ola-claw-dev. You have local SSH access only (self only).
-
-### Server Map and Access
-
-| Agent | Server | SSH to ola-claw-dev | SSH to ola-claw-trade | SSH to ola-claw-main |
-|---|---|---|---|---|
-| Alfred/Lord Xar | Windows + ola-claw-dev | YES | YES | YES |
-| Haplo | ola-claw-dev | SELF | YES | YES |
-| Zifnab | ola-claw-main | YES | YES | SELF |
-| Ciang | ola-claw-dev | SELF | NO | NO |
-
-### Rules:
-- Do NOT use SSH to transfer code between servers — all code goes through git PRs
-- Do NOT grant SSH access to other agents by modifying authorized_keys
-- Cross-server SSH is for Alfred, Haplo, and Zifnab only

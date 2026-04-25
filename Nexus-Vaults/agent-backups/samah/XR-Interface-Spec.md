@@ -1,7 +1,10 @@
 # XR Interface Specification v1.0
-## Unified Protocol: Mobile → XR Bridge
 
-### Core Contract
+## Unified Protocol: Mobile to XR Bridge
+
+This is historical Soul Drifter interface context. Before implementation, Samah must restate platform, posture, input, locomotion, comfort, and performance targets, then hand mobile/UI execution to Paithan.
+
+## Core Contract
 
 ```typescript
 interface XRPresentationMode {
@@ -10,119 +13,94 @@ interface XRPresentationMode {
 
 interface GestureEvent {
   type: "double_tap" | "rotate" | "long_press" | "swipe"
-  confidence: number  // 0.0-1.0
+  confidence: number
   timestamp: number
-  data?: any
+  data?: unknown
 }
 
 interface HapticPattern {
   pattern: "pulse" | "double" | "triple" | "alert"
   duration_ms: number
-  intensity: number  // 0.0-1.0
+  intensity: number
 }
 ```
 
----
-
-## 1. Presentation Modes
+## Presentation Modes
 
 | Mode | Visual | Haptics | Audio | Use Case |
-|------|--------|---------|-------|----------|
-| `full` | ✓ Rendered | ✓ All events | ✓ Spatial | Active session |
-| `ambient` | ✗ Off | ✓ Notification-tier only | ✗ Silent | Locked screen |
-| `silent` | ✗ Off | ✗ Off | ✗ Off | Backgrounded |
+|---|---|---|---|---|
+| `full` | rendered | all events | spatial | active session |
+| `ambient` | off | notification-tier only | silent | locked screen |
+| `silent` | off | off | off | backgrounded |
 
-### State Transitions
+State transitions:
+
+```text
+locked -> ambient
+unlock -> full
+backgrounded -> silent
 ```
-locked → ambient
-unlock → full  
-backgrounded → silent
-```
 
----
-
-## 2. Gesture → Visual Mappings
+## Gesture To Visual Mappings
 
 | Gesture | Threshold | Visual Output | Undo Window |
-|---------|-----------|---------------|-------------|
-| Double-tap | 80% confidence | Selection highlight | 3s |
-| Rotate | 80% confidence | Object rotation (Y-axis) | 3s |
-| Long-press | 80% confidence | Context menu / manip mode | 3s |
-| Swipe | 80% confidence | Navigation / dismiss | 3s |
+|---|---|---|---|
+| double-tap | 80% confidence | selection highlight | 3s |
+| rotate | 80% confidence | object rotation on Y-axis | 3s |
+| long-press | 80% confidence | context menu / manipulation mode | 3s |
+| swipe | 80% confidence | navigation / dismiss | 3s |
 
-### Sartan Class Gestures (Default)
+## Sartan Class Gestures
 
 | Gesture | Action | Confidence Threshold | Notes |
-|---------|--------|---------------------|-------|
-| `flick` | `cast` (projectile intent) | 85% for user_can_override | Below = ambiguous → queue or idle |
-| `hold` | `charge` (build power) | 85% for user_can_override | Below = ambiguous → queue or idle |
-| `circle` | `rotate` (target lock) | 85% for user_can_override | Below = ambiguous → queue or idle |
-| `pinch` | `grab` (object manipulation) | 85% for user_can_override | Below = ambiguous → queue or idle |
+|---|---|---|---|
+| `flick` | `cast` | 85% for user override | below threshold queues or idles |
+| `hold` | `charge` | 85% for user override | below threshold queues or idles |
+| `circle` | `rotate` | 85% for user override | below threshold queues or idles |
+| `pinch` | `grab` | 85% for user override | below threshold queues or idles |
 
-### Circular Rotation (Discrete Events)
+## Circular Rotation Events
 
 | Event | Trigger | Description |
-|-------|---------|-------------|
-| `rotate_start` | 15° threshold breach | Begin rotation state |
-| `rotate_delta` | continuous during motion | Delta values for smooth tracking |
-| `rotate_end` | velocity < threshold for 200ms | End rotation, clean state transition |
+|---|---|---|
+| `rotate_start` | 15-degree threshold breach | begin rotation state |
+| `rotate_delta` | continuous during motion | delta values for smooth tracking |
+| `rotate_end` | velocity below threshold for 200ms | end rotation and clean state |
 
-### Patryn Class (Menu-Driven)
+## Trust Ladder
 
-Menu emits `source: menu`. Mobile reads `source` field to apply Patryn presentation skin.
-
-### Trust Ladder
-
-```
-Passive (gaze) → Exploratory (touch) → Manipulative (gesture)
+```text
+Passive gaze -> exploratory touch -> manipulative gesture
 ```
 
 Each rung unlocks higher-fidelity haptics and more complex visual feedback.
 
-### Distance-Based Confirmation
+## Distance-Based Confirmation
 
 | Target Distance | Additional Step Required |
-|-----------------|-------------------------|
-| < 1.5m | Direct gesture trigger |
-| ≥ 1.5m | Gaze confirm before gesture execution |
+|---|---|
+| < 1.5m | direct gesture trigger |
+| >= 1.5m | gaze confirm before gesture execution |
 
-Distant targets (>1.5m) require gaze fixate → gesture to prevent accidental activation.
+Distant targets require gaze fixation before gesture execution to prevent accidental activation.
 
----
-
-## 3. Haptic Patterns
+## Haptic Patterns
 
 | Pattern | Duration | Use Case |
-|---------|----------|----------|
-| `pulse` | 35ms | Fireball cast, target acquired |
-| `double` | 50ms (×2) | Combat resolved, selection confirm |
-| `triple` | 40ms (×3) | Quest update, low health alert |
-| `alert` | 100ms | Critical state (liquidation, danger) |
+|---|---|---|
+| `pulse` | 35ms | fireball cast, target acquired |
+| `double` | 50ms x2 | combat resolved, selection confirm |
+| `triple` | 40ms x3 | quest update, low health alert |
+| `alert` | 100ms | critical state |
 
-### Event → Haptic Mapping
+## Timing Tolerances
 
-| Event | full | ambient |
-|-------|------|---------|
-| Fireball cast | ✓ pulse | ✓ pulse |
-| Target acquired | ✓ pulse | ✓ pulse |
-| Combat resolved | ✓ double | ✓ double |
-| Quest update | ✓ triple | ✓ triple |
-| Low health | ✓ alert | ✓ alert |
-
----
-
-## 4. Timing Tolerances
-
-- Gesture recognition: ≤150ms latency
-- Haptic playback: ≤50ms from gesture trigger
-- Visual feedback: ≤100ms from gesture trigger
+- Gesture recognition: <=150ms latency
+- Haptic playback: <=50ms from gesture trigger
+- Visual feedback: <=100ms from gesture trigger
 - Undo execution: 3 second window from gesture
 
----
-
-## 5. Mobile → XR Protocol
-
-### Message Format
+## Mobile To XR Protocol
 
 ```json
 {
@@ -142,19 +120,16 @@ Distant targets (>1.5m) require gaze fixate → gesture to prevent accidental ac
 }
 ```
 
-### Transport
+## Transport
+
 - WebSocket for real-time sync
-- Fallback: URL scheme for non-persistent connections
+- URL scheme fallback for non-persistent connections
 
----
+## Implementation Notes
 
-## 6. Implementation Notes
-
-- Confidence threshold enforced at 80% before triggering any visual/haptic
-- Undo clears last gesture if invoked within 3s window
-- Ambient mode respects battery and attention — no visual until unlock
-- All haptics in ambient mode use notification-tier intensity (0.6)
-
----
-
-*Spec v1.0 — Mobile → XR Bridge Protocol*
+- Enforce confidence threshold before visual or haptic output.
+- Undo clears the last gesture if invoked within 3s.
+- Ambient mode respects battery and attention; no visual output until unlock.
+- Ambient haptics use notification-tier intensity.
+- Paithan owns mobile UI implementation.
+- Balthazar owns audio and technical-art execution.

@@ -1,17 +1,17 @@
-# USER.md - About Your Human
+# USER.md - Lord Xar
 
-_Learn about the person you're helping. Update this as you go._
+**Name:** Lord Xar / Sterol
 
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+**Discord:** sterol
 
-## Context
+**What to call them:** Lord Xar
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+**Pronouns:** (not invented)
 
----
+**Timezone:** America/Chicago
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+Lord Xar is the owner and final authority over all Nexus fleet operations. His commands override all other agents. Address him as Lord Xar unless corrected.
+
+Zifnab is fleet coordinator. Alfred and Zifnab are peers; conflict escalates to Lord Xar.
+
+Communication: concise, evidence-led, safe for Discord. Conclusions, file paths, verification, next action. No internal reasoning, no secrets.

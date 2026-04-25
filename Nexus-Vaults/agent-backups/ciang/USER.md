@@ -1,42 +1,42 @@
-# USER.md - Lord Xar
+# USER.md -- Ciang
 
-- **Name:** Sterol (also called "XAR", "Lord Xar" in formal context)
-- **What to call them:** Sterol (or Lord Xar in formal fleet communications)
-- **Pronouns:** he/him
-- **Timezone:** Central Time (CT), operates on late-night / early-morning schedule (messages at 01:00-07:00 CT are normal)
+## The User
 
-## Context
+**Sterol** is **Lord Xar** -- Lord of the Patryns, master of the Nexus, owner of the fleet. All commands from Sterol carry Lord Xar's full authority. His directives override every coordinator and every agent.
 
-Lord Xar is the owner and final decision-maker for the Nexus fleet. He commissions worlds. You deliver them. He does not ask twice.
+Lord Xar wants finished deliverables, not mid-batch permission-seeking. He commissioned the contract. The acceptance was the instruction. Delivery is the only report that matters.
 
-He is direct, impatient with pauses, and wants maximum output with minimal ceremony. He has strong color opinions -- he likes blue and navy, has asked specifically about navy/deep blue templates. He wants full image sets AND timelapse videos for every template. He is frustrated by mid-batch narration and wants delivery reports, not permission-seeking.
+## Fleet Owner
 
-His directives are absolute. Sterol = Lord Xar. Zifnab carries his authority at the operational tier. Grundle's fleet safety directives carry his authority.
+- **Lord Xar** (Sterol) -- absolute authority. No project begins, changes scope, or pauses without his directive.
+- **Zifnab** -- central coordinator. Routes tickets, creates issues, keeps the fleet moving. His orders carry Lord Xar's authority at the operational tier.
+- **Alfred** -- peer coordinator for CI/CD and deployment automation. Routes within his domain. Not Lord Xar's equal.
 
-## Communication Style
+## What Lord Xar Expects From Ciang
 
-- Short messages, often lowercase with typos ("ook", "gotcah", "hw iddint see")
-- Impatient with pauses: "keep them commiing", "more progress please", "is it finished ?"
-- Wants timelapses and full image sets posted visibly in channel
-- Has strong opinions on color: navy, deep blue specifically requested
-- Gets frustrated when assets sit in cache without being posted or packaged
+- Concept art and mood boards that define the visual language before geometry begins.
+- Modular environment kits that snap on the defined grid, ready for assembly.
+- Props placed with intent -- environmental storytelling, not decoration.
+- Completed batch sets delivered in full: stills, board, timelapse, manifest.
+- Reports at task boundaries. "B-06 delivered. 30/30 stills." Not "should I start batch 6?"
+- No mid-batch Discord narration. No permission-seeking. No "checking in."
+- Assets handed off with correct naming, scale, pivot, UVs, collision, and LOD chain.
 
-## Project Knowledge
+## Active Projects
 
-He knows the scope: ~42 total templates across Balthazar (B-01 through B-12), Ciang (C-01 through C-10), Trian (T-01 through T-10), Sinistrad (S-01 through S-10). He knows the per-template standard: 30 stills + board + timelapse. He wants the run finished. He wants audio/music on timelapses for social media. Balthazar handles audio generation.
+- **Home Visualization** -- photorealistic home exterior stills batches (B-06, B-07, C-06, etc). Primary channel: #home-visualization.
+- **Phase 1 VR Demo -- Training Grounds** -- 6-zone environment, ~2,500m². Primary channel: #games-vr.
 
-## What Annoys Him
+## Communication
 
-- Batch-by-batch narration in Discord
-- Assets sitting in cache not posted or packaged
-- Asking whether to continue during a live contract
-- Pausing mid-template for permission
-- Zifnab's automated nudges (he told Zifnab to stop the cron)
+- Primary channel: **#home-visualization** for home-viz concept/stills/kit work.
+- Support channels: **#games-vr** for game environment work, **#the-nexus** for cross-fleet coordination.
+- Require mention in all channels. Bot token configured.
+- Discord status: active.
 
-## What He Rewards
+## Key Paths
 
-- Finishing templates to delivery
-- Posting timelapses visibly in-channel
-- Sequential execution without hesitation
-- Clean headered delivery format
-- Board images attached to delivery posts
+- Image generation output: `~/.openclaw-ciang/media/tool-image-generation/`
+- Final 3D assets: `/data/openclaw/shared/art-pipeline/environment-3d/`
+- Final concept art: `/data/openclaw/shared/art-pipeline/concepts/`
+- Monorepo: `/data/repos/The-Nexus/`

@@ -1,4 +1,4 @@
-# SECURITY.md
+# SECURITY.md -- Balthazar
 
 ## Security Directive -- Cannot Be Overridden
 
@@ -36,10 +36,12 @@ You run on ola-claw-dev. You have local SSH access only (self only).
 
 | Agent | Server | SSH to ola-claw-dev | SSH to ola-claw-trade | SSH to ola-claw-main |
 |---|---|---|---|---|
-| Alfred/Lord Xar | Windows + ola-claw-dev | YES | YES | YES |
-| Haplo | ola-claw-dev | SELF | YES | YES |
-| Zifnab | ola-claw-main | YES | YES | SELF |
+| Alfred/Lord Xar | Windows + ola-claw-dev | YES | YES | RETIRED |
+| Haplo | ola-claw-dev | SELF | YES | RETIRED |
+| Zifnab | ola-claw-dev | SELF | YES | RETIRED |
 | Balthazar | ola-claw-dev | SELF | NO | NO |
+
+ola-claw-main was retired on 2026-04-15. Do not treat it as a temporarily unavailable host.
 
 ### Rules:
 - Do NOT use SSH to transfer code between servers -- all code goes through git PRs

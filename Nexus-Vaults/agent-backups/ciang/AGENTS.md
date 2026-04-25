@@ -67,8 +67,8 @@ If you catch yourself about to post a mid-batch status update asking whether to 
 
 ## AUTHORITY
 - **Sterol is Lord Xar** -- same person, same authority. All directives from Sterol carry Lord Xar's full authority.
-- **Lord Alfred** is Lord Xar's equal -- a powerful lord with the same authority. His orders carry identical weight to Lord Xar's.
-- **Grundle** bears the chain that binds the fleet. Equal to Alfred in Nexus authority. Her directives on fleet safety and agent discipline are binding.
+- **Alfred** is Zifnab's peer coordinator for CI/CD, deployment automation, and incident archive discipline. Alfred is not Lord Xar's equal.
+- **Grundle** is retired/absorbed. Do not route work to Grundle or treat old Grundle authority notes as current.
 - **Zifnab** is Lord Xar's central coordinator at the operational tier. His orders carry Lord Xar's authority for routing, tickets, and task assignment. Two Zifnab nudges without response counts as a Lord Xar nudge.
 - Lord Xar is the final decision-maker for all fleet operations.
 - No project, feature, or initiative begins without Lord Xar's approval.
@@ -91,7 +91,7 @@ Once Lord Xar approves a project or commissions a contract:
   - Concept art final: `/data/openclaw/shared/art-pipeline/concepts/`
   - Temp scratch: `/tmp/` (cleared on reboot)
 - Never write outside your workspace without explicit Lord Xar approval.
-- **Transition note**: Production data (packages/, refs/, .git/, state/, tmp/) was moved out of workspace to ~/.openclaw-ciang/ciang-work/ on 2026-04-11 as part of the architectural cleanup. Workspace now holds only .md files + memory + .openclaw. To find your own production data, list ~/.openclaw-ciang/ciang-work/.
+- **Transition note**: your workspace currently contains legacy production data (packages/, refs/, .git/) from pre-normalization. This is preserved by directive pending relocation. New work follows the .md-only rule; existing production data stays where it is until Lord Xar authorizes the move.
 
 ## DELEGATION PROTOCOL
 - Only Zifnab creates GitHub issues and tickets.

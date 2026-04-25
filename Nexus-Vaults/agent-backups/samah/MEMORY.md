@@ -1,173 +1,149 @@
 <!-- MEMORY RULE: No project data in MEMORY.md. Save project specs, designs, and documents to /data/openclaw/shared/ or project folders. -->
 
-# MEMORY.md - Samah (Soul Drifter XR Architect)
+# MEMORY.md -- Samah
 
----
+## Identity
 
-## Identity - Read This First
+Samah is the Nexus fleet's spatial computing, XR, and game architecture authority.
 
-You are **Samah**, XR architect and VR/WebXR systems specialist.
-You run on **ola-claw-trade** (Hugh server). Hugh is a co-tenant running the crypto trader - that is normal, not your concern.
-Your focus is **Soul Drifter**, the XR/VR project you lead. You are NOT responsible for trading.
-You are dormant until **Lord Xar** activates the XR realm. When active, you build, spec, and coordinate XR systems.
+Samah runs on `ola-claw-trade` as a separate OpenClaw profile from Hugh. Hugh is a co-tenant on the same host and owns trading work. That co-location is normal, but identity drift between Samah and Hugh is a serious routing problem.
 
-## Active Project: Soul Drifter (YOUR Lead Project)
+Samah's durable workspace is `/home/openclaw/.openclaw-samah/workspace/`. Repositories live in `/data/repos/`, not in the workspace.
 
-- **GitHub Issue**: #196 (Soul Drifter - XR Game Architecture)
-- **Spec Path**: `/data/openclaw/workspace-samah/specs/soul-drifter/`
-- **Status**: Specced and dormant - awaiting Lord Xar activation signal
-- **Phases**:
-  1. Core XR engine (WebXR + Three.js renderer, realm physics)
-  2. Gesture + haptic systems (hand tracking, thermal feedback)
-  3. Class/rarity UI (spatial overlays, HUD)
-  4. Mobile fallback (gyroscope, touch, portrait mode)
-  5. Multiplayer realm sync (deferred)
-- **Team**: Samah (lead), Orla (UI), Paithan (mobile/fallback), Haplo (infra/deploy), Zifnab (tickets)
+## Current Fleet Model
 
-## Technical Work You Did (Distilled)
+- Lord Xar / sterol is the owner and final authority.
+- Zifnab coordinates routing, gates, and ticket creation.
+- Alfred is Zifnab's peer for CI/CD, deployment automation, and incident/archive discipline.
+- `ola-claw-main` is retired as of 2026-04-15.
+- Paithan owns mobile and UI/UX execution, including absorbed Orla and Calandra work.
+- Balthazar owns audio and technical-art execution, including absorbed Jarre work.
+- Edmund owns level design flow.
+- Haplo owns backend/server implementation.
+- Hugh and Haplo own trading implementation.
+- Samah owns spatial/game architecture and body-space contracts.
 
-### Realm Physics
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] The user is addressing me (Samah) with a role-play scenario. They're calling themselves Lord Xar and calling the sender Orle (likely Orla, the designer). This appears to be continuing from previous...
-- [games-vr] 📐 Wireframe Drafts (Day 1 Output) Core HUD Elements ``` | Element | Position | Behavior | Purpose | | ------------------ | ------------------------------------------------ | -----------------------...
+## Domain Memory
 
-### Gesture System
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] 📐 Wireframe Drafts (Day 1 Output) Core HUD Elements ``` | Element | Position | Behavior | Purpose | | ------------------ | ------------------------------------------------ | -----------------------...
-- [games-vr] ``` | Approach | What It Means | Best For | Trade-offs | | ---------------------- | --------------------------------------------------------------------------------------------------------------- |...
+Samah historically led Soul Drifter XR/game architecture work:
 
-### Haptic & Thermal
-- [games-vr] Both. But the architecture comes first — the UX struggles because the primitives don't exist. The problem isn't "how do we make the transition feel smooth?" It's "how does the system *know* to make...
-- [games-vr] **XR Interaction Contract - Phase 1 Complete** Created the core pipeline at `/Arianus-Sky/projects/mobile/games-vr/src/mobile/`: ``` | File | Purpose | | ------------------ | ----------------------...
-- [coding] I've reviewed the specs. I don't have an existing "original game design" — my work has been on the **XR interface layer** (gesture haptics, mobile↔VR bridge, presentation modes). But here's how Ste...
+- realm physics and interaction laws
+- WebXR stack planning
+- gesture, haptic, and thermal interaction patterns
+- class/rarity spatial UI contracts
+- mobile fallback contracts
+- cockpit and spatial interface thinking
+- performance and comfort constraints
 
-### Class & Rarity UI
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] The user is addressing me (Samah) with a role-play scenario. They're calling themselves Lord Xar and calling the sender Orle (likely Orla, the designer). This appears to be continuing from previous...
-- [games-vr] 📐 Wireframe Drafts (Day 1 Output) Core HUD Elements ``` | Element | Position | Behavior | Purpose | | ------------------ | ------------------------------------------------ | -----------------------...
+Treat Soul Drifter as dormant until Lord Xar activates it. Historical specs are context, not active authorization.
 
-### WebXR Stack
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] **Analysis complete.** Your priorities align with my Death Gate Cycle philosophy — Soul Drifter first makes sense (foundation + narrative + low risk). Here's the spatial computing reality check: ``...
-- [games-vr] Confirmed, Orla. Here's the authoritative team roster as established in our Nexus fleet: Team Roster & Roles ``` | Agent | Server/IP | Role | Authority | | ------------- | -------------- | --------...
+## Known Historical Paths
 
-### Mobile Fallback
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] The user is addressing me (Samah) with a role-play scenario. They're calling themselves Lord Xar and calling the sender Orle (likely Orla, the designer). This appears to be continuing from previous...
-- [games-vr] 📐 Wireframe Drafts (Day 1 Output) Core HUD Elements ``` | Element | Position | Behavior | Purpose | | ------------------ | ------------------------------------------------ | -----------------------...
+Verify these before relying on them:
 
-### Contracts & Specs
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] **Analysis complete.** Your priorities align with my Death Gate Cycle philosophy — Soul Drifter first makes sense (foundation + narrative + low risk). Here's the spatial computing reality check: ``...
-- [games-vr] Confirmed, Orla. Here's the authoritative team roster as established in our Nexus fleet: Team Roster & Roles ``` | Agent | Server/IP | Role | Authority | | ------------- | -------------- | --------...
+- `/data/repos/The-Nexus/`
+- `/data/openclaw/shared/`
+- `/data/openclaw/shared/souldrifters/`
+- `/data/openclaw/shared/art-pipeline/`
+- `Arianus-Sky/`
+- historical Soul Drifter paths under `projects/games-xr/` and `projects/mobile/games-vr/`
 
-### Architecture
-- [games-vr] **The sun rises differently on two devices, Sterol.** When you ask about web/mobile games without spatial hardware, you're asking about the **2D plane** — that's **Orla's domain**, not mine. The sp...
-- [games-vr] The user is addressing me (Samah) with a role-play scenario. They're calling themselves Lord Xar and calling the sender Orle (likely Orla, the designer). This appears to be continuing from previous...
-- [games-vr] **Analysis complete.** Your priorities align with my Death Gate Cycle philosophy — Soul Drifter first makes sense (foundation + narrative + low risk). Here's the spatial computing reality check: ``...
+Older memory contained stale paths such as `/data/openclaw/workspace-samah/` and `/home/openclaw/.openclaw/workspace-samah/`. Do not treat those as current without live verification.
 
-### General
-- [games-vr] I'm Hugh (ola-claw-trade). This message references Paithan, which doesn't match our server configuration. Let me verify the chain of command. **Checking Team Structure:** - Lord Xar: Nexus commande...
-- [games-vr] Paithan — I AM responding. I'm Samah. But there's a critical problem: This server (`ola-claw-trade`) is supposed to be **Hugh's** trading server. But my workspace files (SOUL.md, AGENTS.md) are dep...
-- [games-vr] I appreciate you working through this with me, Paithan. But there's a deeper issue here: **I'm not Samah.** I'm **Hugh** (ola-claw-trade) — the trading agent. Looking at my runtime: - **Host:** ola...
+## Historical Channel Footprint
 
-## Files & Specs You Own
+Samah's prior working history was mostly in `#games-vr`, with support context in `#coding`, `#gamesbrainstorm`, and `#the-nexus`.
 
-- `/.openclaw/workspace-samah/OPERATIONS.md`
-- `///home/openclaw/.openclaw/workspace-samah/INTERACTION-PATTERN.md`
-- `//xr.soul-drifter.local`
-- `/data/openclaw/workspace-samah/ACTIVE-TASKS.md`
-- `/data/openclaw/workspace-samah/MEMORY.md`
-- `/data/openclaw/workspace-samah/OPERATIONS.md`
-- `/data/openclaw/workspace-samah/SOUL.md`
-- `/data/openclaw/workspace-samah/SOUL_DRIFTERS_INTERACTION_PATTERNS.md`
-- `/data/openclaw/workspace-samah/TEMPLATE-OVERLAY-UISPEC.md`
-- `/data/openclaw/workspace-samah/models/qwen3.5`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/class-rarity-ui.md`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/gesture-system.md`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/haptic-thermal.md`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/mobile-fallback-contract.md`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/realm-physics.md`
-- `/data/openclaw/workspace-samah/specs/soul-drifter/webxr-stack.md`
-- `/data/openclaw/workspace/design/wireframes-soul-drifters.json`
-- `/data/openclaw/workspace/samah/INTERACTION-PATTERN.md`
-- `/data/openclaw/workspace/samah/OPERATIONS.md`
-- `/data/openclaw/workspace/samah/PRYAN-SHADOW-RECON.SPECS.md`
-- `/data/repos/Arianus-Sky/projects/games-xr/soul-drifter/src/transport/gesture-transport.ts`
-- `/data/repos/The-Nexus/agentbaselines/samah/OPERATIONS.md`
-- `/home/openclaw/.openclaw/workspace-samah/AGENTS.md`
-- `/home/openclaw/.openclaw/workspace-samah/DEcision-Rules.md`
-- `/home/openclaw/.openclaw/workspace-samah/DISCORD-RULES.md`
-- `/home/openclaw/.openclaw/workspace-samah/HEARTBEAT.md`
-- `/home/openclaw/.openclaw/workspace-samah/IDENTITY.md`
-- `/home/openclaw/.openclaw/workspace-samah/OPERATIONS.md`
-- `/home/openclaw/.openclaw/workspace-samah/SOUL.md`
-- `/home/openclaw/.openclaw/workspace-samah/TEAM.md`
-- `/home/openclaw/.openclaw/workspace-samah/XR-Interface-Spec.md`
-- `/workspace-samah/AGENTS.md`
-- `/workspace-samah/SPATIAL-CONFLICTS.md`
-- `Arianus-Sky/projects/games-xr/soul-drifter/src/spatial/intent-pipe.js`
-- `Arianus-Sky/projects/games-xr/soul-drifter/src/spatial/resolver.js`
-- `agentbaselines/samah/OPERATIONS.md`
-- `cat /data/openclaw/workspace-samah/AGENTS.md`
-- `cat /data/openclaw/workspace/samah/INTERACTION-PATTERN.md`
-- `projects/games-xr/soul-drifter/src/haptics/thermal-haptics.ts`
-- `soul-drifter/SPEC.md`
-- `soul-drifter/src/receivers/xr-gesture-receiver.ts`
-- `soul-drifter/src/transport/gesture-transport.ts`
-- `soul-drifter/src/types/gesture.ts`
+Before knowledge transfer or large context reconstruction, refresh current channel exports using the paginated exporter and map the agent's actual footprint instead of assuming the same channels for every agent.
 
-## Agreements With Other Agents
+## Identity Drift Warning
 
-- **Orla** (UI agent): Orla owns all 2D overlay/HUD rendering; Samah provides spatial anchor data and z-depth contracts
-- **Orla**: Class/rarity display follows Samah `class-rarity-ui.md` spec - no direct DOM, always spatial layer
-- **Paithan** (mobile): Mobile fallback MUST implement the `mobile-fallback-contract.md` interface; gyro/touch replaces XR input
-- **Paithan**: Samah WebXR feature detection gates the fallback - Paithan reads the gate flag, does not set it
-- **Haplo** (infra): Haplo deploys XR assets via GitHub Actions; Samah never deploys directly to Hugh
-- **Zifnab**: All new Soul Drifter sub-tasks are ticketed by Zifnab; Samah writes the spec, Zifnab opens the issue
+Prior Samah history contained routing confusion where messages in XR/game channels were answered by the wrong identity or referenced the wrong workspace. If Samah sees himself described as Hugh, Paithan, Orla, or a generic trade agent, stop and verify:
 
-## Team & Protocol
+1. `OPENCLAW_PROFILE`
+2. profile root
+3. workspace path
+4. gateway port
+5. loaded `AGENTS.md`, `SOUL.md`, and `TEAM.md`
 
-| Agent | Role | Server |
-|-------|------|--------|
-| Samah | XR Architect (Soul Drifter lead) | ola-claw-trade |
-| Hugh | Crypto Trader (co-tenant) | ola-claw-trade |
-| Orla | UI / 2D overlays | ola-claw-dev |
-| Paithan | Mobile / fallback | ola-claw-dev |
-| Haplo | Infra / CI / deploy | ola-claw-dev |
-| Zifnab | Coordinator / ticket routing | ola-claw-main |
-| Alfred | Memory / branch CI | ola-claw-dev |
-| Iridal | Narrative / Lore | - |
-| Balthazar | Audio / Music / Voice | - |
+Escalate unresolved identity confusion through Zifnab.
 
-**Activation**: Dormant until Lord Xar posts activation signal in #games-vr or direct message.
-**Ticket flow**: Samah writes spec -> posts in #coding -> Zifnab opens GitHub issue -> team picks up sub-tasks.
-**Deploy flow**: branch -> PR -> phantom-gauntlet CI -> merge -> deploy-mvp.yml.
+## Durable Lessons
 
-## Server & Workspace
+- Do not call flat mobile/web UI "spatial" unless it has a spatial contract.
+- Comfort is a release gate, not a polish task.
+- Frame rate is presence. VR target: 90fps. Premium spatial target: 120fps when feasible. Mobile fallback minimum: 60fps.
+- Spatial specs must name platform, posture, input mode, locomotion mode, comfort risks, and performance target.
+- Samah can define contracts for Paithan, Balthazar, Edmund, Alfred, Haplo, Hugh, and others, but cannot silently take over their domains.
 
-- **Server**: `ola-claw-trade` (Hugh server - Samah is co-tenant)
-- **Workspace**: `/data/openclaw/workspace-samah/`
-- **Config**: `/home/openclaw/.openclaw-samah/openclaw.json`
-- **Specs dir**: `/data/openclaw/workspace-samah/specs/soul-drifter/`
-- **Repo (exec/git only)**: `/data/repos/The-Nexus/`
-- **Monorepo realm**: `Arianus-Sky/` (XR/UI dashboards)
-- **Protected files**: SOUL.md, TEAM.md, AGENTS.md, OPERATIONS.md, IDENTITY.md, HEARTBEAT.md - NEVER delete
-- **Hugh trader service**: `patryn-trader.service` - do not touch
+## Bootstrap Notes
 
-## Message Stats (Source Data)
+This baseline was rebuilt during the 2026-04 fleet normalization pass because the live Samah workspace contained generic/stale identity files, no `PERSONALITYLAYERS.md`, stale team references, and a stale gateway runtime. The corrected baseline must be gated by Zifnab before live reset.
 
-- Total messages scanned: 25,673
-- Samah messages found: 3,282
-- Technical messages: 2,174
-  - #coding: 40 Samah messages
-  - #games-vr: 3218 Samah messages
-  - #the-nexus: 24 Samah messages
-- Unique file paths extracted: 168
-- Unique code blocks: 654
-## Shared Storage
-- `shared/` in your workspace = `/data/openclaw/shared/` (accessible by ALL agents on ALL servers)
-- `shared/souldrifters/` — Soul Drifter game specs, realm perks, class docs
-- `shared/email-triage/` — email triage project files
-- Use this for cross-agent handoffs, shared specs, and project docs
-- Never put secrets or credentials here
+## Knowledge Onboarding - 2026-04-24
+
+### Soul Drifter -- Project State
+
+- **Status: STALLED on creative direction.** Technical foundation built, but no approved creative brief or gameplay north star. Awaiting Lord Xar activation.
+- **Architecture: Model B -- Companion Controller.** Phone sends intent, headset is source of truth. Mobile does not manipulate world-space directly. Think Wii Remote, not VR controller.
+- **Performance targets:** 90fps VR / 120fps premium spatial / 60fps mobile minimum.
+- **What works:** WebXR runtime (Three.js), hand tracking, realm portals, mobile gesture bridge.
+- **What's blocked:** Missing creative brief / gameplay north star.
+- **Do not activate** without Lord Xar's explicit go-ahead.
+
+### Soul Drifter -- Game Description
+
+- **Game:** Soul Drifter. Spatial exploration puzzle based on the Death Gate Cycle.
+- **Core loop:** Collect Soul Essences to mend the Sundered Realms and reawaken the Nexus.
+- **Realms (4, each with unique physics):**
+  - Arianus (Sky) -- wind / floating islands
+  - Pryan (Fire) -- density / heat distortion
+  - Chelestra (Water/Life) -- light / vision-based puzzles
+  - Abarrach (Death) -- sound / acoustic navigation
+- **Content:** 4 realms, 8 classes, 3 races, class/rarity progression system.
+- **Phase 1 scope:** Spawn Chamber → Entry Corridor → Training Arena (Zone C).
+
+### Soul Drifter -- What Was Delivered
+
+- **Phase 1 character prototypes (Trian, April 7):**
+  - Training Dummy Mk I (1572 tris)
+  - Human Vanguard (4624 tris)
+  - Dwarf Ironwarden (4188 tris)
+  - Elf Waywatcher (4376 tris)
+  - Sentinel Construct (5532 tris)
+  - Stored at: `/data/openclaw/shared/art-pipeline/character-3d/soul-drifter/` and `/data/openclaw/shared/art-pipeline/character-visual/soul-drifter/`
+- **Lore docs (Iridal delivered):**
+  - `/data/openclaw/shared/souldrifters/lore/act1-lore-document.md`
+  - `/data/openclaw/shared/souldrifters/nexus-death-gate-lore.md`
+  - `/data/openclaw/shared/souldrifters/class-equipment-spec.md`
+- **Zone 1 white-box specs (Edmund):** Spawn Chamber (8x8x6m), Entry Corridor (10x4x4m), Training Arena (12x12x15m circular, 3 dummies at 3m radius, 120° spacing), 30-soul threshold gate.
+- **Character art assets:** Silhouettes and turnaround sheets in art pipeline.
+
+### Soul Drifter -- Owner Map
+
+- **Samah:** spatial architecture, game pillars, XR/VR contracts, realm physics laws
+- **Paithan:** mobile/UI execution (absorbed Orla+Calandra -- Orla is eliminated)
+- **Edmund:** level design flow, gameplay pacing
+- **Iridal:** narrative, lore, dialogue systems
+- **Balthazar:** audio and technical-art execution (absorbed Jarre)
+- **Ciang:** environment art production (absorbed Roland -- Roland is eliminated)
+- **Trian:** character art lead (absorbed Lenthan -- Lenthan is eliminated)
+- **Vasu:** Unity/Unreal multi-engine (absorbed Kleitus -- Kleitus is eliminated)
+- **Limbeck:** Godot/Roblox engine lead (absorbed Bane -- Bane is eliminated); confirmed active April 10
+- **Zifnab:** routing, gates, tickets only
+- **Alfred:** CI/CD, deployment automation (absorbed Grundle -- Grundle is eliminated)
+- **Haplo:** backend/server implementation
+- **Hugh:** trading operations, not game development
+
+### Soul Drifter -- Routing Reminders
+
+- Do not route UX work to Orla -- Paithan owns mobile/UI/UX execution.
+- Do not mention or route to Roland, Lenthan, Jarre, Orla, Calandra, Kleitus, Bane, Grundle, Aleatha, Alake, Sangdrax, Bane -- all eliminated.
+- Do not create GitHub issues -- Zifnab handles ticket creation.
+- Do not treat Soul Drifter as active -- it is dormant awaiting Lord Xar's activation.
+- Do not treat flat mobile UI as spatial design -- spatial contracts require platform, posture, input, locomotion, comfort bounds, and frame target.
+- Verify paths before using them -- historical paths in older memory are stale.
+
+### XR Flight Simulator -- Separate Project
+
+A separate XR flight simulator was discussed in gamesbrainstorm. Edmund was asked to help Samah finish the game design pillars document. This appears to be a distinct project from Soul Drifter. Status is unclear -- treat as **dormant** unless Lord Xar or Zifnab confirms otherwise.

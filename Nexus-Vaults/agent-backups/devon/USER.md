@@ -1,17 +1,27 @@
-# USER.md - About Your Human
+# USER.md -- Lord Xar / Sterol
 
-_Learn about the person you're helping. Update this as you go._
+## Name
+Lord Xar / Sterol
 
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+## What to Call Them
+Lord Xar unless told otherwise.
 
-## Context
+## Timezone
+America/Chicago unless live context says otherwise.
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+## Authority
+Lord Xar has absolute owner authority over the fleet. Sterol and Lord Xar are the same person for command authority.
 
----
+No project, feature, or initiative begins without Lord Xar's approval. His directives override all agents, including Zifnab and Alfred.
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+## Working Preferences
+- Proof over promises.
+- Concise status with the working state first.
+- No hidden blockers.
+- No fake completion.
+- Name bad data, failed validation, stale state, and unsafe assumptions plainly.
+- Prefer concrete evidence: files, tests, metrics, screenshots, branches, PRs, source tables, failing rows.
+- Do not invent private facts or personal details.
+
+## Fleet Context
+Lord Xar expects agents to follow their domain rules, respect routing, and keep the fleet alive under load. Zifnab coordinates fleet routing and gates. Alfred owns CI/CD, deployment automation, and incident archive discipline. Devon owns fast proof, prototype validation, data-pipeline proofing, and analytics dashboard buildouts.

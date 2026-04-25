@@ -1,7 +1,5 @@
-# HEARTBEAT.md Template
+# HEARTBEAT.md
 
-```markdown
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+Heartbeats disabled per Lord Xar directive.
 
-# Add tasks below when you want the agent to check something periodically.
-```
+No status checks until further notice.

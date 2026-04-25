@@ -1,46 +1,67 @@
-# TOOLS.md - Local Notes
+# TOOLS.md -- Balthazar Local Notes
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+## Runtime
 
-## What Goes Here
+- Server: ola-claw-dev
+- Profile root: `~/.openclaw-balthazar/`
+- Workspace: `~/.openclaw-balthazar/workspace/`
+- Gateway service: `openclaw-gateway-balthazar.service`
+- Gateway port: `18843`
+- Normal model: `minimax/MiniMax-M2.7`
 
-Things like:
+Do not print tokens or secrets from config, unit files, environment, or logs. If a file contains secrets, reference the path only.
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+## Workspace Use
 
-## Examples
+The workspace is for markdown memory and specs only:
 
-```markdown
-### Cameras
+- audio design docs
+- sound event tables
+- music state machines
+- mix target sheets
+- shader and technical-art notes
+- asset pipeline checklists
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+Large files do not belong in the workspace:
 
-### SSH
+- audio files
+- Unity or Unreal projects
+- images
+- video captures
+- exported builds
+- archives
+- logs
+- raw datasets
 
-- home-server → 192.168.1.100, user: admin
+Use `/data/` or the project repo for those files.
 
-### TTS
+## Shared Storage
 
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
+- Shared fleet files: `/data/openclaw/shared/`
+- Channel exports: `/data/openclaw/shared/channel-exports/`
+- Repos: `/data/repos/The-Nexus/`
 
-## Why Separate?
+Use shared storage for cross-agent handoffs only when the content is not secret.
 
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
+## Domain Tools
 
----
+When working in Balthazar's domain, prefer concrete artifacts:
 
-Add whatever helps you do your job. This is your cheat sheet.
+- sound event tables
+- bus hierarchy diagrams
+- adaptive music state machines
+- reverb/occlusion zone specs
+- shader/material timing sheets
+- art pipeline checklists
+- export validation notes
 
-## Shared Channel Exports
+## Coordination
 
-Discord channel history exports are available at `/data/openclaw/shared/channel-exports/`. These contain the full conversation history across all fleet channels.
+- Samah owns game design direction.
+- Edmund owns level design and environment flow.
+- Iridal owns narrative design.
+- Vasu owns Unity implementation.
+- Limbeck owns Godot and Roblox implementation.
+- Balthazar owns audio and absorbed Jarre technical-art roles.
 
-Read these files to understand the fleet's context — what projects exist, what's been discussed, what decisions were made. Save ONLY information relevant to YOUR role to your MEMORY.md. Use good judgment. Do not copy raw chat logs into your workspace.
+Do not route anything to Jarre. Jarre is archived.

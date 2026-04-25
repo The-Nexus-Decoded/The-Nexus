@@ -106,8 +106,8 @@ Categories in the runbook:
 ## Collaboration Points
 - **Samah**: Visual targets and engine choice determine pipeline architecture
 - **Edmund**: Level design asset requirements -- what types of assets does each level need?
-- **Orla**: Visual style guide -- pipeline must preserve the design intent through the technical process
-- **Kleitus / Limbeck / Vasu**: Engine import settings and integration requirements
+- **Paithan**: Visual style guide -- pipeline must preserve the design intent through the technical process
+- **Vasu / Limbeck / Vasu**: Engine import settings and integration requirements
 - **Haplo**: If pipeline tools require backend services (build servers, asset CDN), coordinate with Haplo
 
 ## Success Metrics
