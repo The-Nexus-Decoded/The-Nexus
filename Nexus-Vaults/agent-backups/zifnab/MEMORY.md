@@ -48,7 +48,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 
 ---
 
-## FLEET STATUS (updated 2026-04-17)
+## FLEET STATUS (updated 2026-04-25)
 
 ### Server Status
 | Server | Status | Agents |
@@ -163,6 +163,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 | Roblox Studio (no GUI in Linux) | Bane | Hardware / environment limitation |
 | Concept packages from Roland | Ciang (3D environments) | Roland |
 | X.com auth_token cookie | Rega (ANewLuv automation) | Lord Xar |
+| **Media tools paused fleet-wide** | All agents needing image/video/TTS | Roland (re-enable) |
 
 ---
 
@@ -191,6 +192,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - **Gateway crash-loops:** Invalid config keys + OOM during agent reconnect storms on dev server
 - **DNS resolution failures:** Intermittent on trade server, blocks API calls
 - **X.com headless block:** X.com detects and blocks headless Chromium — automation requires real browser session with auth_token cookie injection
+- **Media provider instability (2026-04-25):** OpenAI image (Codex OAuth → gpt-image-2) has intermittent server errors; Gemini/image-gen MCP and MiniMax image are quota-exhausted. Fleet-wide media pause in effect until Roland re-enables after smoke test.
 
 ---
 
@@ -224,10 +226,15 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - Rate Guard: DISABLED fleet-wide (2026-03-06)
 - Local Qwen3.5 models ready for fallback but need output filtering (strip thinking tags)
 
+## MODEL RESTRICTIONS (2026-04-25)
+- **GPT-5.5/Codex OAuth:** NOT approved as live chat default. Treat as manual/operator-only until OAuth/token-refresh strategy is verified.
+- **Active agents:** Back on `minimax/MiniMax-M2.7` for chat.
+- **Media tools:** PAUSED fleet-wide. See `/data/openclaw/shared/infra-notices/2026-04-25-media-pause.md`
+
 ## DISCORD
 - @Zifnab (me): #the-nexus (requireMention: true), #jarvis (requireMention: false), #coding (requireMention: true), #growth (requireMention: true)
 - @HughTheHand: #crypto, #coding, #the-nexus (all requireMention: true)
-- @Haplo: #coding, #the-nexus (all requireMention: true)
+- @Haplo: #coding, #the-nexus (requireMention: true)
 - @Alfred: #coding, #the-nexus, #crypto (requireMention: false)
 - @Rega(Marketing): #growth (requireMention: true)
 - To delegate: MUST @mention the target agent
@@ -294,6 +301,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - `shared/email-triage/` — email triage project files
 - `shared/channel-exports/` — full Discord channel history exports (8 channels)
 - `shared/anewluv/` — ANewLuv X.com marketing content, templates, images
+- `shared/infra-notices/` — fleet-wide infrastructure directives (media pause, model changes, etc.)
 - Use this for cross-agent handoffs, shared specs, and project docs
 - Never put secrets or credentials here (except in `shared/secrets/` which is gitignored)
 
@@ -305,6 +313,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [x] ~~Home visualization recurring check-in: SUSPENDED — channel export is stale (Apr 15), cron keeps reloading Apr 15 state causing repeated corrections from Trian/Sinistrad. Do NOT resume until fresh export is obtained or live context mechanism is fixed.~~
 - [x] ~~Home visualization gate: SUSPENDED — now RESUMED: Sterol approved MiniMax-only pipeline (Apr 19 17:58 CDT). Gemini scrapped. Speed over perfection. House match not required. Colors only. Fire all agents.~~
 - [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection
+- [ ] Media tools fleet-wide pause (2026-04-25): Enforce until Roland re-enables after smoke test. Gate agents requesting image work — tell them paused, not broken per-agent.
 
 ## LEARNED — DO NOT REPEAT
 - Zifnab's home-viz cron was loading the Apr 15 14:21 UTC channel export (stale 3+ days) and outputting the same stale check-in 9 times. Trian and Sinistrad corrected every time.

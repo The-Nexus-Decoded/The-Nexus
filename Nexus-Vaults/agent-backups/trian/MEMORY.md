@@ -70,18 +70,20 @@ _Last rebuilt: 2026-04-25_
 
 ### Project: Home Visualization (Prototype)
 - **Channel:** #home-visualization (1491053646639534080)
+- **House:** 723 Queen Ave N, Minneapolis MN
 - **Goal:** Photorealistic home exterior visualization — siding, color, roof combos, walkthrough video
-- **Team:** Trian (image generation lead), Ciang (composition/environment), Balthazar (video), Sinistrad (research)
+- **Team:** Trian (image generation lead), Ciang (composition/environment, executing all 20 templates), Balthazar (video), Sinistrad (research)
 - **Product:** Prototype first, app if it works
-- **Workflow:**
-  1. Sinistrad: research market, pull LP SmartSide swatches, shortlist 3 design combos
-  2. Trian/Ciang: photorealistic renders from 3 combos, multiple angles
-  3. Balthazar: walkthrough video from winning design
-- **Inputs needed:** House address, reference photos (all exterior angles), siding brand URL, Lord Xar preferences
-- **Phase 1 output:** 3 ranked exterior combos with rationale
-- **Known issue:** Angle/consistency risk if photo coverage is insufficient — resolved by either full photo set or hybrid house-shell approach
-- **Product tiers (future):** Tier 1 photos-only → Tier 2 photos+video → Tier 3 full house-shell reconstruction
-- **Lord Xar asked 2026-04-23:** Roof colors for "that template" and name of siding color — pending answer
+- **Current directive (2026-04-25):** Lord Xar confirmed all 20 templates with full variation suites
+  - Shake = upper gable/accent sections only (NOT full body)
+  - 5 shake variants per template: white/light+blue body, white/light+slate-blue, cream+Cypress/sage, Pearl+Stone Harbor, warm tan+Smoky Ash
+  - 5 door colors per template (harmony-selected, not random): Classic Black, Navy Blue, Forest Green, Warm Walnut, Classic Red
+  - 10-shot watermarked boards minimum per template
+  - Organized folder structure for gallery tool construction
+- **Shake clarification confirmed:** Top gable/accent sections only — accent color for upper portion of house
+- **Output structure:** boards/C-02 through C-11, each with shake+door variation subfolders
+- **Lord Xar asked 2026-04-24:** Roof colors for "that template" and name of siding color — answered
+- **Gallery format TBD:** Waiting for Lord Xar to confirm folder hierarchy preference (template-first vs variation-first)
 
 ### Project: Soul Drifter — Phase 1 VR Demo (Training Grounds)
 - **Game:** Soul Drifter (Death Gate Cycle universe)
@@ -145,9 +147,9 @@ _Last rebuilt: 2026-04-25_
 ## Collaborators (Home Visualization)
 | Agent | Role in Home Viz | Handoff |
 |---|---|---|
-| Ciang | Composition, environment framing, 3D concept passes | Receives my siding renders for framing |
+| Ciang | Execute all 20 templates + shake/door variations; post specs in format above | Receives template specs and settings from me; I coordinate overall spec framework |
 | Balthazar | Video generation, walkthrough | Receives still renders for video |
-| Sinistrad | Market research, material shortlisting | Delivers 3 design combos to me |
+| Sinistrad | Market research, material shortlisting | Delivers research-driven color guidance |
 
 ## Session Log
 - 2026-04-06: Awakened by Lord Xar. Bootstrap complete.
@@ -157,4 +159,4 @@ _Last rebuilt: 2026-04-25_
 - 2026-04-06: Catch-up scheduled Mon Apr 13 10:30 PM CDT.
 - 2026-04-06: Read remaining exports (jarvis, crypto, growth, personal, design, repository). Minimal extra character-art context; routing and ownership lessons captured.
 - 2026-04-07: Built and staged Phase 1 prototype character packages for Training Dummy, Human Vanguard, Dwarf Ironwarden, Elf Waywatcher, and Sentinel Construct. Repo docs committed; Blender-less host means final FBX polish remains pending.
-- 2026-04-25: Bootstrap reset. Authority model corrected — Alfred removed as Lord Xar's equal, Grundel removed as active relay. Home Visualization project context absorbed. BOOTSTRAP.md deleted.
+- 2026-04-25: Bootstrap reset. Authority model corrected. Home visualization full directive issued: 20 templates with shake + door variations. Shake confirmed as top gable/accent sections only. Spec framework sent to Ciang. @everyone broadcast sent.
