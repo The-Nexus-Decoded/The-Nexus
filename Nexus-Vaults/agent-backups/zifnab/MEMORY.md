@@ -306,6 +306,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - Never put secrets or credentials here (except in `shared/secrets/` which is gitignored)
 
 ## PENDING TASKS
+- [ ] Gallery app (ciang-images viewer): systemd service running on port 5191 (active since 2026-04-27 18:08). Auto-restarts. Code at /data/repos/The-Nexus/Arianus-Sky/projects/gallery-app/. Lord Xar directed Zifnab to own the fix.
 - [x] ~~Soul Drifter brief + task ledger (superseded by other priorities)~~
 - [x] ~~Monitor main-server resurrection — Rega relocated to trade (2026-04-17)~~
 - [ ] Zifnab Codex OAuth: needs re-auth — Lord Xar run `openclaw --profile zifnab models auth login --provider openai-codex`
