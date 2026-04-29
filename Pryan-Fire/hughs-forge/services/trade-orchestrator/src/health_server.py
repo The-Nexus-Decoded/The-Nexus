@@ -7,6 +7,7 @@ import asyncio
 import requests
 import json
 import struct
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -363,6 +364,28 @@ def get_positions(wallet_address: str):
     }
 
 
+def _wallet_fees_payload(address: str) -> Dict[str, Any]:
+    """Build /wallet-fees payload for one tracked wallet."""
+    raw_positions = _find_dlmm_positions(address)
+    if not raw_positions:
+        return {
+            "wallet": address,
+            "positions": [],
+            "count": 0,
+            "sol_balance": _get_sol_balance(address),
+        }
+
+    parsed = [_parse_position(r) for r in raw_positions]
+    enriched = _enrich_positions(parsed)
+
+    return {
+        "wallet": address,
+        "positions": enriched,
+        "count": len(enriched),
+        "sol_balance": _get_sol_balance(address),
+    }
+
+
 @app.get("/wallet-fees")
 def get_wallet_fees():
     """
@@ -372,28 +395,27 @@ def get_wallet_fees():
     No management — display only.
     """
     timestamp = datetime.datetime.utcnow().isoformat() + "Z"
-    wallets = {}
+    wallets: Dict[str, Dict[str, Any]] = {}
 
-    for name, address in TRACKED_WALLETS.items():
-        raw_positions = _find_dlmm_positions(address)
-        if not raw_positions:
-            wallets[name] = {
-                "wallet": address,
-                "positions": [],
-                "count": 0,
-                "sol_balance": _get_sol_balance(address),
-            }
-            continue
-
-        parsed = [_parse_position(r) for r in raw_positions]
-        enriched = _enrich_positions(parsed)
-
-        wallets[name] = {
-            "wallet": address,
-            "positions": enriched,
-            "count": len(enriched),
-            "sol_balance": _get_sol_balance(address),
+    max_workers = max(1, min(len(TRACKED_WALLETS), int(os.getenv("WALLET_FEES_WORKERS", "4"))))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_wallet_fees_payload, address): name
+            for name, address in TRACKED_WALLETS.items()
         }
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                wallets[name] = future.result()
+            except Exception as e:
+                logger.error(f"Wallet fee payload failed for {name}: {e}")
+                wallets[name] = {
+                    "wallet": TRACKED_WALLETS[name],
+                    "positions": [],
+                    "count": 0,
+                    "sol_balance": 0.0,
+                    "error": str(e),
+                }
 
     return {
         "timestamp": timestamp,
