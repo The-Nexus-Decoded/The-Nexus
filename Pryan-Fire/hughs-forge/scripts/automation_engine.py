@@ -9,7 +9,7 @@ import os
 import logging
 import subprocess
 import shlex
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
@@ -45,9 +45,12 @@ def _parse_utc(value: Any) -> Optional[datetime]:
     if not value or not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(value.rstrip("Z"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (TypeError, ValueError):
         return None
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 def _approval_scope(wallet_name: str, trigger: Dict[str, Any]) -> Dict[str, str]:

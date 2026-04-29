@@ -2,7 +2,7 @@
 """Tests for automation_engine.py - SL/TP automation and close boundaries."""
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -14,7 +14,7 @@ def _live_config(tmp_path):
     return {"execution": {"dry_run": False, "kill_switch_file": str(tmp_path / "trade_stop.lock")}}
 
 
-def _approval_state(wallet_name, trigger, *, expires_delta=300, status="approved", authenticated=True, scope_override=None):
+def _approval_state(wallet_name, trigger, *, expires_delta=300, expires_at=None, status="approved", authenticated=True, scope_override=None):
     approval_id = automation_engine._risk_approval_id(wallet_name, trigger)
     scope = automation_engine._approval_scope(wallet_name, trigger)
     if scope_override:
@@ -26,7 +26,7 @@ def _approval_state(wallet_name, trigger, *, expires_delta=300, status="approved
         "approved_by_id": "316308517520801793",
         "auth_method": "discord_operator",
         "approved_at": datetime.utcnow().isoformat() + "Z",
-        "expires_at": (datetime.utcnow() + timedelta(seconds=expires_delta)).isoformat() + "Z",
+        "expires_at": expires_at or (datetime.utcnow() + timedelta(seconds=expires_delta)).isoformat() + "Z",
         "scope": scope,
     }
     if not authenticated:
@@ -115,6 +115,53 @@ def test_execute_position_close_live_rejects_expired_approval(monkeypatch, tmp_p
     state = _approval_state("bot", trigger, expires_delta=-1)
     assert execute_position_close("bot", trigger, _live_config(tmp_path), state) is False
     assert trigger["_execution_result"]["error"] == "risk_approval_expired"
+
+
+def test_execute_position_close_live_accepts_timezone_aware_approval(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    monkeypatch.setattr(automation_engine, "_run_dlmm_close_command", lambda *_: {"success": True})
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "SOL-USDC"},
+    }
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    state = _approval_state("bot", trigger, expires_at=expires_at)
+
+    assert execute_position_close("bot", trigger, _live_config(tmp_path), state) is True
+    assert trigger["_execution_result"]["approval"]["state"] == "approved"
+
+
+def test_execute_position_close_live_accepts_zulu_approval(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    monkeypatch.setattr(automation_engine, "_run_dlmm_close_command", lambda *_: {"success": True})
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "SOL-USDC"},
+    }
+    expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat() + "Z"
+    state = _approval_state("bot", trigger, expires_at=expires_at)
+
+    assert execute_position_close("bot", trigger, _live_config(tmp_path), state) is True
+    assert trigger["_execution_result"]["approval"]["state"] == "approved"
+
+
+def test_execute_position_close_live_rejects_malformed_approval_expiry(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    called = {"close": False}
+    monkeypatch.setattr(automation_engine, "_run_dlmm_close_command", lambda *_: called.update(close=True) or {"success": True})
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "SOL-USDC"},
+    }
+    state = _approval_state("bot", trigger, expires_at="not-a-timestamp")
+
+    assert execute_position_close("bot", trigger, _live_config(tmp_path), state) is False
+    assert trigger["_execution_result"]["error"] == "risk_approval_expired"
+    assert trigger["_execution_result"]["approval"]["state"] == "expired"
+    assert called["close"] is False
 
 
 def test_execute_position_close_live_rejects_unauthenticated_approval(monkeypatch, tmp_path):
