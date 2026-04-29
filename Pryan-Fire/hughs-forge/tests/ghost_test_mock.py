@@ -15,8 +15,12 @@ class MockJupiterService:
             "swapMode": "ExactIn",
             "slippageBps": slippage_bps,
             "platformFee": None,
-            "priceImpactPct": "0.01"
+            "priceImpactPct": "0.01",
+            "transaction": "mock_unsigned_transaction",
         }
+
+    async def get_swap_transaction(self, quote, user_public_key):
+        return quote.get("transaction")
 
 async def ghost_run_mock():
     print("--- INITIATING MOCKED GHOST EXECUTION TEST ---")
