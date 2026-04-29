@@ -71,3 +71,48 @@ def test_enrich_positions_does_not_fallback_to_pool_tvl_for_position_value(monke
     assert result["liquidity_value_source"] == "unavailable"
     assert result["pnl_value_unavailable"] is True
     assert result["pool_liquidity_usd"] > 50_000
+
+
+def test_wallet_fees_processes_wallets_concurrently(monkeypatch):
+    calls = []
+    monkeypatch.setattr(health_server, "TRACKED_WALLETS", {"owner": "owner_addr", "bot": "bot_addr"})
+
+    def fake_payload(address):
+        calls.append(address)
+        return {"wallet": address, "positions": [], "count": 0, "sol_balance": 1.0}
+
+    class ImmediateFuture:
+        def __init__(self, result):
+            self._result = result
+
+        def result(self):
+            return self._result
+
+    class FakeExecutor:
+        def __init__(self, max_workers):
+            self.max_workers = max_workers
+            self.futures = []
+
+        def __enter__(self):
+            created["executor"] = self
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        def submit(self, fn, address):
+            future = ImmediateFuture(fn(address))
+            self.futures.append(future)
+            return future
+
+    created = {}
+    monkeypatch.setattr(health_server, "_wallet_fees_payload", fake_payload)
+    monkeypatch.setattr(health_server, "ThreadPoolExecutor", FakeExecutor)
+    monkeypatch.setattr(health_server, "as_completed", lambda futures: list(futures))
+
+    response = health_server.get_wallet_fees()
+
+    assert created["executor"].max_workers == 2
+    assert set(calls) == {"owner_addr", "bot_addr"}
+    assert response["wallets"]["owner"]["wallet"] == "owner_addr"
+    assert response["wallets"]["bot"]["wallet"] == "bot_addr"
