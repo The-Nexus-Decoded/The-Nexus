@@ -1,6 +1,6 @@
 # Pryan Fire Crypto Ops Dashboard
 
-Mobile-first Vue/PWA operator dashboard for the Pryan-Fire crypto tools requested in issue #296.
+Responsive Vue/PWA operator dashboard for the Pryan-Fire crypto tools requested in issue #296. Phone-friendly first, but not phone-only: tablet and desktop layouts are first-class.
 
 ## Scope
 
@@ -8,7 +8,7 @@ This first cut is intentionally read-only / dry-run by default. It gives Hugh an
 
 Surfaced modules:
 
-- Portfolio overview: equity, PnL, exposure, risk posture
+- Responsive overview: equity, PnL, exposure, risk posture
 - DLMM manager: positions, pool IDs, close state, fees, tx status
 - Position monitor / SLTP: #277 validation chain evidence
 - Sniper tool: scanner status, candidates, rejected reasons

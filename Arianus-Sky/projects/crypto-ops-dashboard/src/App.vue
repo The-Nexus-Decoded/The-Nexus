@@ -49,7 +49,7 @@ async function recordValidationEvidence() {
       <div>
         <p class="eyebrow">Pryan-Fire / Arianus-Sky</p>
         <h1>Crypto Ops Dashboard</h1>
-        <p class="subtle">One mobile-first control surface for DLMM, positions, sniper, top pools, kill feeds, and Hugh validation.</p>
+        <p class="subtle">Responsive operator cockpit for DLMM, positions, sniper, top pools, kill feeds, and Hugh validation — phone-friendly, tablet-ready, desktop-comfortable.</p>
       </div>
       <div class="mode-card" :class="liveAllowed ? 'danger' : 'safe'">
         <span>{{ dashboard.mode }}</span>
@@ -57,7 +57,17 @@ async function recordValidationEvidence() {
       </div>
     </section>
 
-    <section class="grid cards-4">
+    <nav class="quick-nav panel" aria-label="Dashboard sections">
+      <a href="#overview">Overview</a>
+      <a href="#positions">Positions</a>
+      <a href="#monitor">Monitor</a>
+      <a href="#sniper">Sniper</a>
+      <a href="#pools">Pools</a>
+      <a href="#risk-feed">Risk feed</a>
+      <a href="#validation">Validation</a>
+    </nav>
+
+    <section id="overview" class="grid cards-4">
       <article class="panel metric">
         <span>Portfolio</span>
         <strong>{{ preciseMoney.format(dashboard.portfolio.equityUsd) }}</strong>
@@ -80,8 +90,8 @@ async function recordValidationEvidence() {
       </article>
     </section>
 
-    <section class="grid two-col">
-      <article class="panel">
+    <section id="positions" class="grid two-col split-wide">
+      <article class="panel span-7">
         <div class="section-title">
           <h2>DLMM manager</h2>
           <span>close state / fees / tx</span>
@@ -101,7 +111,7 @@ async function recordValidationEvidence() {
         </div>
       </article>
 
-      <article class="panel">
+      <article class="panel span-5">
         <div class="section-title">
           <h2>Risk gates</h2>
           <span>live controls locked by default</span>
@@ -114,8 +124,8 @@ async function recordValidationEvidence() {
       </article>
     </section>
 
-    <section class="grid two-col">
-      <article class="panel">
+    <section class="grid two-col split-wide">
+      <article id="monitor" class="panel span-6">
         <div class="section-title">
           <h2>Position monitor / SLTP</h2>
           <span>{{ dashboard.stopLossTakeProfit.issue }} · {{ dashboard.stopLossTakeProfit.status }}</span>
@@ -129,7 +139,7 @@ async function recordValidationEvidence() {
         <p class="evidence">{{ dashboard.stopLossTakeProfit.latestEvidence }}</p>
       </article>
 
-      <article class="panel">
+      <article id="sniper" class="panel span-6">
         <div class="section-title">
           <h2>Sniper tool</h2>
           <span>{{ dashboard.sniper.status }}</span>
@@ -148,8 +158,8 @@ async function recordValidationEvidence() {
       </article>
     </section>
 
-    <section class="grid two-col">
-      <article class="panel">
+    <section class="grid two-col split-wide">
+      <article id="pools" class="panel span-6">
         <div class="section-title">
           <h2>Top pools</h2>
           <span>liquidity / volume / risk</span>
@@ -161,7 +171,7 @@ async function recordValidationEvidence() {
         </div>
       </article>
 
-      <article class="panel">
+      <article id="risk-feed" class="panel span-6">
         <div class="section-title">
           <h2>Kill feed / alerts</h2>
           <span>tx submitted vs none submitted</span>
@@ -173,7 +183,7 @@ async function recordValidationEvidence() {
       </article>
     </section>
 
-    <section class="panel">
+    <section id="validation" class="panel validation-panel">
       <div class="section-title">
         <h2>Hugh validation</h2>
         <span>PR evidence checklist</span>
