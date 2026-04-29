@@ -52,3 +52,17 @@ def test_build_position_embed_keeps_full_position(monkeypatch):
     )
     position_field = next(field for field in embed["fields"] if field["name"] == "Position")
     assert position_field["value"] == f"`{position_addr}`"
+
+
+def test_calculate_pnl_value_unavailable_does_not_initialize_or_trigger_loss():
+    state_wallet = {"positions": {}}
+    result = calculate_pnl(
+        state_wallet,
+        "pos_missing_value",
+        {"liquidity_usd": 0, "liquidity_value_source": "unavailable", "pool_liquidity_usd": 250000},
+    )
+    assert result["stale"] is True
+    assert result["value_unavailable"] is True
+    assert result["pnl_usd"] == 0.0
+    assert result["pnl_pct"] == 0.0
+    assert "pos_missing_value" not in state_wallet["positions"]
