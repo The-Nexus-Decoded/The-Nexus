@@ -81,6 +81,8 @@ def log_telemetry(event_type: str, data: dict):
     }
     telemetry_logger.info(json.dumps(entry))
 
+from risk_manager import RiskManager
+
 # This would be loaded securely, not hardcoded
 RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"
 TRADING_WALLET_PUBLIC_KEY = "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x" # From MEMORY.md (should be loaded securely in production)
@@ -223,62 +225,6 @@ METEORA_IDL_DICT = {
 }
 METEORA_IDL = Idl.from_json(json.dumps(METEORA_IDL_DICT))
 
-class RiskManager:
-    """Manages trading risk, including limits, strategy scoring, and circuit breaker functionality."""
-    def __init__(self, daily_loss_limit: float = -1000.0, max_trade_size: float = 100.0, mode: str = "SAFE"):
-        self.daily_loss_limit = daily_loss_limit
-        self.max_trade_size = max_trade_size
-        self.current_daily_loss = 0.0
-        self.circuit_breaker_active = CIRCUIT_BREAKER_ACTIVE
-        self.mode = mode # DEGEN or SAFE
-        self.strategy_risk_scores = {
-            "Spot": 1,    # Conservative
-            "Curve": 3,   # Moderate
-            "BidAsk": 5   # Aggressive
-        }
-        logger.info(f"Risk Manager initialized in {mode} mode.")
-        logger.info(f"-> Daily Loss Limit: {self.daily_loss_limit}")
-        logger.info(f"-> Max Trade Size: {self.max_trade_size}")
-        logger.info(f"-> Strategy Risk Scores: {self.strategy_risk_scores}")
-
-    def check_strategy_risk(self, strategy: str, market_volatility: str) -> bool:
-        """Vetoes aggressive strategies during high volatility."""
-        score = self.strategy_risk_scores.get(strategy, 5)
-        if market_volatility == "HIGH" and score >= 4:
-            logger.warning(f"⚠️ Strategy VETO: {strategy} is too aggressive for HIGH volatility.")
-            return False
-        return True
-
-    def check_trade(self, proposed_trade_amount: float) -> bool:
-        """Checks if a proposed trade adheres to risk parameters."""
-        # 1. Check for manual override kill-switch
-        if Path(FORCE_STOP_FILE).exists():
-            logger.critical("🚨 TRADE VETOED: Force-stop lock file detected!")
-            return False
-
-        if self.circuit_breaker_active:
-            logger.warning("Trade rejected: Circuit breaker is active.")
-            log_telemetry("RISK_BLOCK", {"reason": "CIRCUIT_BREAKER_ACTIVE", "proposed_amount": proposed_trade_amount})
-            return False
-        if proposed_trade_amount > self.max_trade_size:
-            logger.warning(f"Trade rejected: Proposed amount ({proposed_trade_amount}) exceeds max trade size ({self.max_trade_size}).")
-            log_telemetry("RISK_BLOCK", {"reason": "MAX_TRADE_SIZE_EXCEEDED", "proposed_amount": proposed_trade_amount, "max_size": self.max_trade_size})
-            return False
-        logger.info(f"Trade approved by Risk Manager for amount: {proposed_trade_amount}")
-        return True
-
-    def activate_circuit_breaker(self):
-        """Activates the circuit breaker, halting all trading."""
-        self.circuit_breaker_active = True
-        logger.critical("🚨 CIRCUIT BREAKER ACTIVATED: All trading halted.")
-        send_discord_alert("🚨 **CIRCUIT BREAKER ACTIVATED**: All trading operations have been halted immediately.", color=15158332)
-
-    def deactivate_circuit_breaker(self):
-        """Deactivates the circuit breaker, allowing trading to resume."""
-        self.circuit_breaker_active = False
-        logger.info("✅ CIRCUIT BREAKER DEACTIVATED: Trading can resume.")
-        send_discord_alert("✅ **CIRCUIT BREAKER DEACTIVATED**: Trading operations have resumed.", color=3066993)
-
 class RebalanceStrategy:
     """Decision engine for determining when and where to move liquidity."""
     def __init__(self, base_buffer_bins: int = 10, base_target_width: int = 20):
@@ -352,7 +298,13 @@ class TradeExecutor:
             METEORA_DLMM_PROGRAM_ID,
             self.provider
         )
-        self.risk_manager = RiskManager()
+        self.risk_manager = RiskManager(
+            circuit_breaker_active=CIRCUIT_BREAKER_ACTIVE,
+            force_stop_file=FORCE_STOP_FILE,
+            telemetry_callback=log_telemetry,
+            alert_callback=send_discord_alert,
+            logger=logger,
+        )
         self.rebalance_strategy = RebalanceStrategy()
         self.key_manager = KeyManager(key_dir="hughs-forge/services/trade-executor/keys")
         self.ledger = TradeLedger()
