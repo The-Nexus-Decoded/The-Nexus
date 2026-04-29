@@ -190,3 +190,15 @@ def test_execution_failure_notification_includes_full_context(monkeypatch):
     assert "**PnL**: -100.0% ($1,000.00 → $0.00)" in content
     assert "**Error**: `jupiter_401`" in content
     assert "**Tx**: none submitted" in content
+
+
+def test_evaluate_triggers_skips_value_unavailable_position():
+    wallet_config = {"automation": {"enabled": True, "stop_loss_pct": 10.0, "take_profit_pct": 50.0}}
+    positions = [{
+        "position": "unknown_value",
+        "liquidity_usd": 0,
+        "liquidity_value_source": "unavailable",
+        "pool_liquidity_usd": 250000,
+    }]
+    state = {"wallets": {"test_wallet": {"positions": {"unknown_value": {"entry_value_usd": 1000}}}}}
+    assert evaluate_triggers("test_wallet", positions, wallet_config, state) == []

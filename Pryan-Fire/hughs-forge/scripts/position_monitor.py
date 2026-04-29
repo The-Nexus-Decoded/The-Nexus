@@ -143,6 +143,24 @@ def calculate_pnl(state_wallet: Dict[str, Any], position_addr: str, current_data
     """Calculate PnL for a position."""
     current_liquidity = float(current_data.get("liquidity_usd", 0) or 0)
     fees = _position_fee_value(current_data)
+    value_unavailable = bool(
+        current_data.get("pnl_value_unavailable")
+        or current_data.get("liquidity_value_source") == "unavailable"
+    )
+
+    if value_unavailable:
+        pos_state = state_wallet.get("positions", {}).get(position_addr, {})
+        entry_value = pos_state.get("entry_value_usd", 0.0)
+        return {
+            "pnl_usd": 0.0,
+            "pnl_pct": 0.0,
+            "pnl_24h": 0.0,
+            "entry_value_usd": entry_value,
+            "current_value_usd": 0.0,
+            "stale": True,
+            "value_unavailable": True,
+            "last_known_value_usd": pos_state.get("last_known_value_usd", entry_value),
+        }
     
     # Initialize if first time seeing this position
     if position_addr not in state_wallet.get("positions", {}):
@@ -226,8 +244,10 @@ def build_wallet_embed(wallet_name: str, wallet_config: Dict[str, Any], wallet_d
     positions = wallet_data.get("positions", [])
     sol_balance = wallet_data.get("sol_balance", 0)
     
-    # Calculate totals
+    # Calculate totals. liquidity_usd is per-position value; pool_liquidity_usd
+    # is displayed separately for context and must not feed PnL math.
     total_value = sum(p.get("liquidity_usd", 0) for p in positions)
+    total_pool_tvl = sum(p.get("pool_liquidity_usd", 0) for p in positions)
     total_fees_claimed = sum(p.get("fees_claimed_usd", 0) for p in positions)
     
     # Calculate total PnL
@@ -251,7 +271,8 @@ def build_wallet_embed(wallet_name: str, wallet_config: Dict[str, Any], wallet_d
         "fields": [
             {"name": "SOL Balance", "value": f"{sol_balance:.4f} SOL", "inline": True},
             {"name": "Positions", "value": str(len(positions)), "inline": True},
-            {"name": "Pool TVL (all)", "value": f"${total_value:,.2f}", "inline": True},
+            {"name": "Position Value", "value": f"${total_value:,.2f}", "inline": True},
+            {"name": "Pool TVL", "value": f"${total_pool_tvl:,.2f}", "inline": True},
             {"name": "Fees Claimed", "value": f"${total_fees_claimed:,.2f}", "inline": True},
             {"name": "Total PnL", "value": f"${total_pnl:,.2f} ({total_pnl_pct:.1f}%)", "inline": True},
         ],
@@ -301,7 +322,7 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
             {"name": "Entry Value", "value": f"${pnl.get('entry_value_usd', 0):,.2f}", "inline": True},
             {"name": "Current Value", "value": f"${pnl.get('current_value_usd', 0):,.2f}", "inline": True},
             {"name": "24h PnL", "value": f"${pnl.get('pnl_24h', 0):,.2f}", "inline": True},
-            {"name": "Pool TVL", "value": f"${position.get('liquidity_usd', 0):,.2f}", "inline": True},
+            {"name": "Pool TVL", "value": f"${position.get('pool_liquidity_usd', 0):,.2f}", "inline": True},
             {"name": "Volume (24h)", "value": f"${position.get('volume_24h', 0):,.2f}", "inline": True},
             {"name": "Bin Range", "value": f"{lower_bin}-{upper_bin} (Active: {active_bin})", "inline": False},
             {"name": "Links", "value": f"[Meteora]({meteora_url}) | [DexScreener]({get_dexscreener_url(mint_x)})", "inline": False},

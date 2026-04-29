@@ -137,6 +137,48 @@ def _calculate_usd_liquidity(pool: Dict[str, Any]) -> float:
         return float(pool.get("cumulative_fee_volume", 0))
 
 
+POSITION_VALUE_FIELDS = (
+    "position_value_usd",
+    "current_value_usd",
+    "liquidity_usd",
+    "total_value_usd",
+    "total_position_value_usd",
+    "value_usd",
+    "usd_value",
+)
+
+
+def _coerce_positive_float(value: Any) -> Optional[float]:
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError):
+        return None
+    return coerced if coerced >= 0 else None
+
+
+def _position_liquidity_usd(pos_data: Dict[str, Any]) -> tuple[float, str]:
+    """Return per-position current USD value and source.
+
+    Pool TVL is deliberately excluded here. Using pool liquidity as a wallet
+    position value creates impossible PnL spikes (for example SOL-USDC +81%)
+    and can falsely trigger SL/TP automation.
+    """
+    for field in POSITION_VALUE_FIELDS:
+        value = _coerce_positive_float(pos_data.get(field))
+        if value is not None:
+            return value, field
+
+    for container_key in ("position", "liquidity", "value"):
+        nested = pos_data.get(container_key)
+        if isinstance(nested, dict):
+            for field in ("usd", "usd_value", "value_usd", "liquidity_usd"):
+                value = _coerce_positive_float(nested.get(field))
+                if value is not None:
+                    return value, f"{container_key}.{field}"
+
+    return 0.0, "unavailable"
+
+
 def _rpc_call(method: str, params: List[Any]) -> Optional[Dict]:
     """Make a Solana RPC call."""
     try:
@@ -261,9 +303,12 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         lower_bin = p.get("lower_bin_id", 0)
         upper_bin = p.get("upper_bin_id", 0)
 
-        # Per-position APY from Meteora position endpoint
+        # Per-position APY/value from Meteora position endpoint. Pool TVL is
+        # exposed separately and must not be used as the wallet position value.
         fee_apy_24h = float(pos_data.get("fee_apy_24h", 0))
         fees_claimed_usd = float(pos_data.get("total_fee_usd_claimed", 0))
+        position_liquidity_usd, liquidity_value_source = _position_liquidity_usd(pos_data)
+        pool_liquidity_usd = round(_calculate_usd_liquidity(pool), 2) if pool else 0
 
         enriched.append({
             "position": p["position"],
@@ -274,7 +319,10 @@ def _enrich_positions(parsed: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "fees_24h": round(float(pool.get("today_fees", 0)), 2),  # pool-level total
             "base_fee": pool.get("base_fee_percentage", "?"),
             "volume_24h": round(float(pool.get("trade_volume_24h", 0)), 2),
-            "liquidity_usd": round(_calculate_usd_liquidity(pool), 2) if pool else 0,
+            "liquidity_usd": round(position_liquidity_usd, 2),
+            "liquidity_value_source": liquidity_value_source,
+            "pnl_value_unavailable": liquidity_value_source == "unavailable",
+            "pool_liquidity_usd": pool_liquidity_usd,
             "mint_x": pool.get("mint_x", ""),
             "mint_y": pool.get("mint_y", ""),
             "meteora_url": f"https://app.meteora.ag/dlmm/{p['lb_pair']}",

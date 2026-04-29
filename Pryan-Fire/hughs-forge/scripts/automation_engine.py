@@ -72,8 +72,13 @@ def evaluate_triggers(wallet_name: str, positions: List[Dict], wallet_config: Di
         # zero value alone: a live position can collapse to zero and still needs
         # stop-loss handling. Upstream must mark closed/stale explicitly.
         is_stale = bool(pos.get("stale") or pos.get("closed") or pos.get("pnl", {}).get("stale"))
-        if is_stale:
-            logger.debug(f"[{wallet_name}] Skipping stale position {pubkey}")
+        value_unavailable = bool(
+            pos.get("pnl_value_unavailable")
+            or pos.get("liquidity_value_source") == "unavailable"
+            or pos.get("pnl", {}).get("value_unavailable")
+        )
+        if is_stale or value_unavailable:
+            logger.debug(f"[{wallet_name}] Skipping stale/value-unavailable position {pubkey}")
             continue
         
         # Get entry value from state
