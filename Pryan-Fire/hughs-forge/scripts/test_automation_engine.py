@@ -176,6 +176,25 @@ def test_execute_position_close_live_rejects_unauthenticated_approval(monkeypatc
     assert trigger["_execution_result"]["error"] == "risk_approval_unauthenticated"
 
 
+def test_execute_position_close_live_rejects_non_mapping_approval_scope(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    called = {"close": False}
+    monkeypatch.setattr(automation_engine, "_run_dlmm_close_command", lambda *_: called.update(close=True) or {"success": True})
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "SOL-USDC"},
+    }
+    state = _approval_state("bot", trigger)
+    next(iter(state["risk_approvals"].values()))["scope"] = None
+
+    assert execute_position_close("bot", trigger, _live_config(tmp_path), state) is False
+    assert trigger["_execution_result"]["error"] == "risk_approval_scope_mismatch"
+    assert trigger["_execution_result"]["approval"]["state"] == "scope_mismatch"
+    assert trigger["_execution_result"]["approval"]["scope_key"] == "scope"
+    assert called["close"] is False
+
+
 def test_execute_position_close_live_uses_dlmm_command(monkeypatch, tmp_path):
     monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
     called = {}

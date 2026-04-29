@@ -166,6 +166,16 @@ def _check_live_risk_approval(
 
     expected_scope = _approval_scope(wallet_name, trigger)
     record_scope = record.get("scope", {})
+    if not isinstance(record_scope, dict):
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "scope_mismatch",
+            "source": source,
+            "approved_by": approved_by,
+            "reason": "risk_approval_scope_mismatch",
+            "scope_key": "scope",
+        }
     for key, expected_value in expected_scope.items():
         if str(record_scope.get(key, "")) != str(expected_value):
             return {
