@@ -17,7 +17,7 @@ class TransactionCore:
 
     async def build_from_jupiter(self, swap_transaction_b64: str) -> Optional[VersionedTransaction]:
         """
-        Deserializes the Jupiter base64 swapTransaction.
+        Deserializes the Jupiter Ultra base64 transaction.
         Ensures ALTs and VersionedTransaction structure are preserved.
         """
         try:
