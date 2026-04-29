@@ -258,12 +258,15 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
         alert["last_alert_at"] = datetime.utcnow().isoformat() + "Z"
         
         success = execute_position_close(wallet_name, trigger, config)
+        execution_result = trigger.get("_execution_result", {})
         
         if success:
             alert["escalation_state"] = "executed"
             alert["executed_at"] = datetime.utcnow().isoformat() + "Z"
+            alert["execution_result"] = execution_result
         else:
             alert["escalation_state"] = "alerting"
+            alert["last_error"] = execution_result.get("error", "close_failed")
             logger.warning(f"[{wallet_name}] Auto-close attempt {alert['execute_attempts']}/{MAX_EXECUTE_RETRIES} FAILED for {pubkey}")
         
         return True
@@ -338,10 +341,30 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
     tracker["attempts"] = attempt_num
     tracker["last_attempt_at"] = datetime.utcnow().isoformat() + "Z"
     success = execute_position_close(wallet_name, trigger, config)
+    execution_result = trigger.get("_execution_result", {})
     if success:
+        automation_state.setdefault("executions", {})[pubkey] = {
+            "status": "executed",
+            "executed_at": datetime.utcnow().isoformat() + "Z",
+            "trigger_type": trigger_type,
+            "pnl_pct": pnl_pct,
+            "pool_name": pool_name,
+            "signatures": execution_result.get("signatures", []),
+            "dry_run": execution_result.get("dry_run", False),
+        }
         tracker["executed_at"] = datetime.utcnow().isoformat() + "Z"
         del exec_tracker[pubkey]
+    else:
+        tracker["last_status"] = "failed"
+        tracker["last_error"] = execution_result.get("error", "close_failed")
+        tracker["pool_name"] = pool_name
     return success
+
+
+def _set_execution_result(trigger: Dict, **result: Any) -> Dict[str, Any]:
+    """Attach the latest executor result to the trigger for state persistence."""
+    trigger["_execution_result"] = result
+    return result
 
 
 def _default_dlmm_close_command() -> Optional[List[str]]:
@@ -444,11 +467,13 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
     
     if dry_run:
         logger.info(f"DRY RUN: Would close position {pubkey}, claim fees, swap tokens to USDC")
+        _set_execution_result(trigger, success=True, dry_run=True, signatures=[])
         _post_execution_notification(wallet_name, trigger, dry_run=True)
         return True
 
     if not pool_pubkey:
         logger.error(f"Cannot close DLMM position {pubkey}: missing pool/lb_pair")
+        _set_execution_result(trigger, success=False, dry_run=False, error="missing_pool", signatures=[])
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error="missing_pool")
         return False
     
@@ -460,6 +485,14 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
         if not close_result.get("success"):
             error = close_result.get("error", "dlmm_close_failed")
             logger.error(f"DLMM close failed for {pubkey}: {error}")
+            _set_execution_result(
+                trigger,
+                success=False,
+                dry_run=False,
+                error=error,
+                signatures=close_result.get("signatures", []),
+                raw_result=close_result,
+            )
             _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=error)
             return False
 
@@ -469,11 +502,13 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
         if execution.get("swap_after_close", False):
             logger.warning("swap_after_close is configured but not implemented in automation_engine; DLMM close succeeded, swap skipped")
 
+        _set_execution_result(trigger, success=True, dry_run=False, signatures=signatures, raw_result=close_result)
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=True, signatures=signatures)
         return True
         
     except Exception as e:
         logger.error(f"Execution error: {e}")
+        _set_execution_result(trigger, success=False, dry_run=False, error=str(e), signatures=[])
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=str(e))
         return False
 
@@ -569,8 +604,14 @@ def _post_execution_notification(
     pos = trigger["position"]
     pubkey = pos.get("position", "")
     pool_name = pos.get("pool_name", "Unknown")
+    pool_pubkey = pos.get("pool") or pos.get("lb_pair", "")
+    token_x = pos.get("token_x_symbol", pos.get("mint_x", "?")[:8])
+    token_y = pos.get("token_y_symbol", pos.get("mint_y", "?")[:8])
     trigger_type = trigger["trigger_type"]
     pnl_pct = trigger["pnl_pct"]
+    entry_val = trigger.get("entry_value", 0)
+    current_val = trigger.get("current_value", 0)
+    fees_val = trigger.get("fees", 0)
     
     emoji = "🔴" if trigger_type == "stop_loss" else "🟢"
     status = "DRY RUN" if dry_run else ("SUCCESS" if success else "FAILED")
@@ -578,13 +619,17 @@ def _post_execution_notification(
     content = (
         f"{emoji} **AUTOMATION {status}**\n"
         f"**Wallet**: {wallet_name}\n"
-        f"**Pool**: {pool_name}\n"
+        f"**Pool**: {pool_name} ({token_x}/{token_y})\n"
+        f"**Pool ID**: `{pool_pubkey or 'unavailable'}`\n"
         f"**Position**: `{pubkey}`\n"
         f"**Trigger**: {trigger_type.upper().replace('_', ' ')}\n"
-        f"**PnL**: {pnl_pct:+.1f}%"
+        f"**PnL**: {pnl_pct:+.1f}% (${entry_val:,.2f} → ${current_val:,.2f})\n"
+        f"**Fees**: ${fees_val:,.2f}"
     )
     if error:
         content += f"\n**Error**: `{error}`"
+    if not dry_run and not success:
+        content += "\n**Tx**: none submitted"
     if signatures:
         content += "\n**Tx**: " + ", ".join(f"`{sig}`" for sig in signatures[:3])
 
