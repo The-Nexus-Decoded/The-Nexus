@@ -9,7 +9,7 @@ import os
 import logging
 import subprocess
 import shlex
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
@@ -34,6 +34,171 @@ MAX_EXECUTE_RETRIES = 3
 BACKOFF_MULTIPLIER = 2.0
 MAX_ALERT_INTERVAL = 3600
 COOLDOWN_DURATION_SECONDS = 7200
+DEFAULT_KILL_SWITCH_FILE = "/data/openclaw/trade_stop.lock"
+
+
+def _utcnow() -> datetime:
+    return datetime.utcnow()
+
+
+def _parse_utc(value: Any) -> Optional[datetime]:
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _approval_scope(wallet_name: str, trigger: Dict[str, Any]) -> Dict[str, str]:
+    pos = trigger.get("position", {})
+    return {
+        "action": "dlmm_close",
+        "wallet_name": wallet_name,
+        "position": pos.get("position", ""),
+        "pool": pos.get("pool") or pos.get("lb_pair", ""),
+        "trigger_type": trigger.get("trigger_type", ""),
+    }
+
+
+def _risk_approval_id(wallet_name: str, trigger: Dict[str, Any]) -> str:
+    scope = _approval_scope(wallet_name, trigger)
+    return ":".join([
+        scope["action"],
+        scope["wallet_name"],
+        scope["position"],
+        scope["pool"],
+        scope["trigger_type"],
+    ])
+
+
+def _get_risk_approval_record(wallet_name: str, approval_id: str, state: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not state:
+        return None
+    approvals = state.get("risk_approvals", {})
+    if approval_id in approvals:
+        return approvals[approval_id]
+    wallet_approvals = state.get("automation", {}).get(wallet_name, {}).get("risk_approvals", {})
+    return wallet_approvals.get(approval_id)
+
+
+def _check_live_risk_approval(
+    wallet_name: str,
+    trigger: Dict[str, Any],
+    config: Dict[str, Any],
+    state: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Fail-closed live-money approval gate for DLMM closes.
+
+    Dry runs are always allowed. Live closes require an explicit, scoped,
+    unexpired approval record written by the risk/approval layer. This keeps
+    legacy mock RiskManager behavior from silently authorizing real money.
+    """
+    execution = config.get("execution", {})
+    dry_run = execution.get("dry_run", AUTOMATION_DRY_RUN)
+    approval_id = _risk_approval_id(wallet_name, trigger)
+
+    if dry_run:
+        return {
+            "approved": True,
+            "approval_id": approval_id,
+            "state": "dry_run",
+            "source": "dry_run",
+            "approved_by": "not_required",
+        }
+
+    kill_switch_file = execution.get("kill_switch_file", DEFAULT_KILL_SWITCH_FILE)
+    if kill_switch_file and Path(kill_switch_file).exists():
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "denied",
+            "source": "kill_switch",
+            "reason": "kill_switch_active",
+        }
+
+    record = _get_risk_approval_record(wallet_name, approval_id, state)
+    if not record:
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "missing",
+            "source": "none",
+            "reason": "risk_approval_required",
+        }
+
+    source = str(record.get("source") or record.get("approval_source") or "unknown")
+    status = str(record.get("status") or record.get("state") or "").lower()
+    if status != "approved":
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": status or "not_approved",
+            "source": source,
+            "reason": "risk_approval_not_approved",
+        }
+
+    approved_by = record.get("approved_by") or record.get("operator")
+    approved_by_id = record.get("approved_by_id") or record.get("operator_id")
+    auth_method = record.get("auth_method") or record.get("authentication")
+    if not approved_by or not approved_by_id or not auth_method:
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "unauthenticated",
+            "source": source,
+            "reason": "risk_approval_unauthenticated",
+        }
+
+    expires_at = _parse_utc(record.get("expires_at"))
+    if not expires_at or expires_at <= _utcnow():
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "expired",
+            "source": source,
+            "approved_by": approved_by,
+            "reason": "risk_approval_expired",
+        }
+
+    expected_scope = _approval_scope(wallet_name, trigger)
+    record_scope = record.get("scope", {})
+    if not isinstance(record_scope, dict):
+        return {
+            "approved": False,
+            "approval_id": approval_id,
+            "state": "scope_mismatch",
+            "source": source,
+            "approved_by": approved_by,
+            "reason": "risk_approval_scope_mismatch",
+            "scope_key": "scope",
+        }
+    for key, expected_value in expected_scope.items():
+        if str(record_scope.get(key, "")) != str(expected_value):
+            return {
+                "approved": False,
+                "approval_id": approval_id,
+                "state": "scope_mismatch",
+                "source": source,
+                "approved_by": approved_by,
+                "reason": "risk_approval_scope_mismatch",
+                "scope_key": key,
+            }
+
+    return {
+        "approved": True,
+        "approval_id": approval_id,
+        "state": "approved",
+        "source": source,
+        "approved_by": approved_by,
+        "approved_by_id": str(approved_by_id),
+        "auth_method": str(auth_method),
+        "expires_at": record.get("expires_at"),
+    }
+
 
 
 def _position_fee_value(pos: Dict[str, Any]) -> float:
@@ -262,7 +427,7 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
         alert["execute_attempts"] = execute_attempts + 1
         alert["last_alert_at"] = datetime.utcnow().isoformat() + "Z"
         
-        success = execute_position_close(wallet_name, trigger, config)
+        success = execute_position_close(wallet_name, trigger, config, state)
         execution_result = trigger.get("_execution_result", {})
         
         if success:
@@ -345,7 +510,7 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
     
     tracker["attempts"] = attempt_num
     tracker["last_attempt_at"] = datetime.utcnow().isoformat() + "Z"
-    success = execute_position_close(wallet_name, trigger, config)
+    success = execute_position_close(wallet_name, trigger, config, state)
     execution_result = trigger.get("_execution_result", {})
     if success:
         automation_state.setdefault("executions", {})[pubkey] = {
@@ -444,7 +609,7 @@ def _run_dlmm_close_command(wallet_name: str, trigger: Dict, config: Dict, pool_
     return result
 
 
-def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> bool:
+def execute_position_close(wallet_name: str, trigger: Dict, config: Dict, state: Optional[Dict[str, Any]] = None) -> bool:
     """
     Full execution flow:
     1. Claim unclaimed fees
@@ -472,13 +637,22 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
     
     if dry_run:
         logger.info(f"DRY RUN: Would close position {pubkey}, claim fees, swap tokens to USDC")
-        _set_execution_result(trigger, success=True, dry_run=True, signatures=[])
+        approval = _check_live_risk_approval(wallet_name, trigger, config, state)
+        _set_execution_result(trigger, success=True, dry_run=True, signatures=[], approval=approval)
         _post_execution_notification(wallet_name, trigger, dry_run=True)
         return True
 
+    approval = _check_live_risk_approval(wallet_name, trigger, config, state)
+    if not approval.get("approved"):
+        reason = approval.get("reason", "risk_approval_required")
+        logger.error(f"Live DLMM close denied for {pubkey}: {reason} ({approval.get('state')} via {approval.get('source')})")
+        _set_execution_result(trigger, success=False, dry_run=False, error=reason, signatures=[], approval=approval)
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=reason)
+        return False
+
     if not pool_pubkey:
         logger.error(f"Cannot close DLMM position {pubkey}: missing pool/lb_pair")
-        _set_execution_result(trigger, success=False, dry_run=False, error="missing_pool", signatures=[])
+        _set_execution_result(trigger, success=False, dry_run=False, error="missing_pool", signatures=[], approval=approval)
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error="missing_pool")
         return False
     
@@ -497,6 +671,7 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
                 error=error,
                 signatures=close_result.get("signatures", []),
                 raw_result=close_result,
+                approval=approval,
             )
             _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=error)
             return False
@@ -507,13 +682,13 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
         if execution.get("swap_after_close", False):
             logger.warning("swap_after_close is configured but not implemented in automation_engine; DLMM close succeeded, swap skipped")
 
-        _set_execution_result(trigger, success=True, dry_run=False, signatures=signatures, raw_result=close_result)
+        _set_execution_result(trigger, success=True, dry_run=False, signatures=signatures, raw_result=close_result, approval=approval)
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=True, signatures=signatures)
         return True
         
     except Exception as e:
         logger.error(f"Execution error: {e}")
-        _set_execution_result(trigger, success=False, dry_run=False, error=str(e), signatures=[])
+        _set_execution_result(trigger, success=False, dry_run=False, error=str(e), signatures=[], approval=approval)
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=str(e))
         return False
 
@@ -633,6 +808,15 @@ def _post_execution_notification(
     )
     if error:
         content += f"\n**Error**: `{error}`"
+    execution_result = trigger.get("_execution_result", {})
+    approval = execution_result.get("approval") or {}
+    if approval:
+        approval_source = approval.get("source", "unknown")
+        approval_state = approval.get("state", "unknown")
+        approved_by = approval.get("approved_by")
+        content += f"\n**Approval**: `{approval_source}` / `{approval_state}`"
+        if approved_by and approved_by != "not_required":
+            content += f" by `{approved_by}`"
     if not dry_run and not success:
         content += "\n**Tx**: none submitted"
     if signatures:
