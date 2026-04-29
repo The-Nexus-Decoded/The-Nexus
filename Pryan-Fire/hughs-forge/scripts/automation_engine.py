@@ -68,10 +68,12 @@ def evaluate_triggers(wallet_name: str, positions: List[Dict], wallet_config: Di
         current_value = float(pos.get("liquidity_usd", 0) or 0)
         fees = _position_fee_value(pos)
 
-        # If the upstream feed reports a dead/empty position, do not turn that
-        # into a fake -100% stop-loss. Closed/stale positions should not fire.
-        if current_value <= 0 and fees <= 0:
-            logger.debug(f"[{wallet_name}] Skipping stale position {pubkey} (zero liquidity + zero fees)")
+        # Closed/stale positions should not fire. Do not infer staleness from
+        # zero value alone: a live position can collapse to zero and still needs
+        # stop-loss handling. Upstream must mark closed/stale explicitly.
+        is_stale = bool(pos.get("stale") or pos.get("closed") or pos.get("pnl", {}).get("stale"))
+        if is_stale:
+            logger.debug(f"[{wallet_name}] Skipping stale position {pubkey}")
             continue
         
         # Get entry value from state
@@ -284,18 +286,24 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
     token_x = pos.get("token_x_symbol", pos.get("mint_x", "?")[:8])
     token_y = pos.get("token_y_symbol", pos.get("mint_y", "?")[:8])
     automation_state = state.setdefault("automation", {}).setdefault(wallet_name, {})
+    blacklist = automation_state.setdefault("blacklist", {})
+    if pubkey in blacklist:
+        logger.info(f"[{wallet_name}] Position {pubkey} is blacklisted — skipping auto-execute")
+        return False
+
     exec_tracker = automation_state.setdefault("exec_attempts", {})
     tracker = exec_tracker.setdefault(pubkey, {"attempts": 0, "first_attempt_at": datetime.utcnow().isoformat() + "Z"})
 
     if tracker["attempts"] >= MAX_EXECUTE_RETRIES:
         logger.warning(f"[{wallet_name}] Position {pubkey} failed {tracker['attempts']} auto-execute attempts — blacklisting")
-        automation_state.setdefault("blacklist", {})[pubkey] = {
+        blacklist[pubkey] = {
             "blacklisted_at": datetime.utcnow().isoformat() + "Z",
             "reason": f"Failed {tracker['attempts']} auto-execute attempts",
             "trigger_type": trigger_type,
             "pnl_pct": pnl_pct,
             "pool_name": pool_name,
         }
+        exec_tracker.pop(pubkey, None)
         _post_to_discord_alerts({
             "content": f"⚠️ Auto-execute blacklisted a position after {tracker['attempts']} failures.\n"
                        f"**Pool**: {pool_name} ({token_x}/{token_y})\n"
