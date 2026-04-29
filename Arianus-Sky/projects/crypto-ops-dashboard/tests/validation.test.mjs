@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { composeDashboardFromApiPayloads, hasLiveActionPermission, sampleDashboard, validationSummary } from '../src/data/cryptoOps.js'
+import { composeDashboardFromApiPayloads, hasLiveActionPermission, sampleDashboard, submitValidationResult, validationResultEndpoint, validationSummary } from '../src/data/cryptoOps.js'
 
 assert.equal(hasLiveActionPermission(sampleDashboard), false, 'live actions must be disabled in sample safe mode')
 assert.equal(sampleDashboard.risk.liveTrading, false, 'sample dashboard must not imply live trading is active')
@@ -26,6 +26,30 @@ const apiDashboard = composeDashboardFromApiPayloads({
 })
 assert.equal(apiDashboard.mode, 'read-only-fixture')
 assert.equal(hasLiveActionPermission(apiDashboard), false, 'API-composed dashboard must stay read-only by default')
+
+
+assert.equal(validationResultEndpoint('#296'), '/api/crypto/validation/296/result')
+
+const originalFetch = globalThis.fetch
+globalThis.fetch = async (path, options) => {
+  assert.equal(path, '/api/crypto/validation/296/result')
+  assert.equal(options.method, 'POST')
+  const payload = JSON.parse(options.body)
+  assert.deepEqual(Object.keys(payload).sort(), ['evidence', 'result', 'tester'])
+  assert.equal(payload.result, 'blocked')
+  assert.equal(payload.evidence, 'needs runtime screenshot')
+  return { ok: true, json: async () => ({ ok: true, record: { id: '296', liveExecution: 'disabled' } }) }
+}
+const validationPost = await submitValidationResult('#296', {
+  result: 'blocked',
+  evidence: 'needs runtime screenshot',
+  tester: 'Haplo',
+  trade: 'must not pass through',
+})
+assert.equal(validationPost.record.liveExecution, 'disabled')
+globalThis.fetch = originalFetch
+
+await assert.rejects(() => submitValidationResult('#296', { result: 'passed' }), /evidence/)
 
 const liveCandidate = structuredClone(sampleDashboard)
 liveCandidate.risk.liveTrading = true

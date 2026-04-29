@@ -1,11 +1,20 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { hasLiveActionPermission, loadDashboard, validationSummary } from './data/cryptoOps.js'
+import { hasLiveActionPermission, loadDashboard, submitValidationResult, validationSummary } from './data/cryptoOps.js'
 
 const dashboard = ref(null)
+const validationSelection = ref('#296')
+const validationResult = ref('passed')
+const validationEvidence = ref('')
+const validationTester = ref('Hugh')
+const validationScreen = ref('Validation')
+const validationRiskNotes = ref('No live-money controls exercised.')
+const validationSubmitState = ref('idle')
+const validationSubmitMessage = ref('')
 
 onMounted(async () => {
   dashboard.value = await loadDashboard()
+  validationSelection.value = dashboard.value?.prValidation?.find((item) => item.result === 'pending')?.issue ?? dashboard.value?.prValidation?.[0]?.issue ?? '#296'
 })
 
 const liveAllowed = computed(() => hasLiveActionPermission(dashboard.value))
@@ -13,6 +22,25 @@ const chainSummary = computed(() => validationSummary(dashboard.value))
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const preciseMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+async function recordValidationEvidence() {
+  validationSubmitState.value = 'saving'
+  validationSubmitMessage.value = ''
+  try {
+    const response = await submitValidationResult(validationSelection.value, {
+      result: validationResult.value,
+      evidence: validationEvidence.value,
+      tester: validationTester.value,
+      screen: validationScreen.value,
+      riskNotes: validationRiskNotes.value,
+    })
+    validationSubmitState.value = 'saved'
+    validationSubmitMessage.value = `Evidence recorded for ${response.record.id}; live execution remains disabled.`
+  } catch (error) {
+    validationSubmitState.value = 'error'
+    validationSubmitMessage.value = error.message
+  }
+}
 </script>
 
 <template>
@@ -157,6 +185,49 @@ const preciseMoney = new Intl.NumberFormat('en-US', { style: 'currency', currenc
           <small>{{ item.evidence }}</small>
         </div>
       </div>
+
+      <form class="validation-form" @submit.prevent="recordValidationEvidence">
+        <div class="section-title compact">
+          <h3>Record validation evidence</h3>
+          <span>evidence only · no trading action</span>
+        </div>
+        <div class="form-grid">
+          <label>
+            PR / ticket
+            <select v-model="validationSelection">
+              <option v-for="item in dashboard.prValidation" :key="item.issue" :value="item.issue">{{ item.pr }} / {{ item.issue }}</option>
+            </select>
+          </label>
+          <label>
+            Result
+            <select v-model="validationResult">
+              <option value="passed">passed</option>
+              <option value="failed">failed</option>
+              <option value="blocked">blocked</option>
+            </select>
+          </label>
+          <label>
+            Tester
+            <input v-model="validationTester" autocomplete="off" />
+          </label>
+          <label>
+            Screen inspected
+            <input v-model="validationScreen" autocomplete="off" />
+          </label>
+        </div>
+        <label>
+          Evidence
+          <textarea v-model="validationEvidence" placeholder="What was inspected, expected behavior, actual behavior, links or log excerpt paths." required></textarea>
+        </label>
+        <label>
+          Risk notes
+          <textarea v-model="validationRiskNotes"></textarea>
+        </label>
+        <button class="evidence-action" :disabled="validationSubmitState === 'saving'">
+          {{ validationSubmitState === 'saving' ? 'Recording…' : 'Record evidence only' }}
+        </button>
+        <p v-if="validationSubmitMessage" class="form-message" :class="validationSubmitState">{{ validationSubmitMessage }}</p>
+      </form>
     </section>
   </main>
 </template>

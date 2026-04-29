@@ -119,6 +119,13 @@ def create_handler(results_path: str = DEFAULT_RESULTS_PATH) -> type[BaseHTTPReq
             self.end_headers()
             self.wfile.write(body)
 
+        def do_OPTIONS(self) -> None:  # noqa: N802 - stdlib method name
+            self.send_response(HTTPStatus.NO_CONTENT.value)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "content-type")
+            self.end_headers()
+
         def do_GET(self) -> None:  # noqa: N802 - stdlib method name
             path = urlparse(self.path).path.rstrip("/") or "/"
             payloads = payloads_factory()

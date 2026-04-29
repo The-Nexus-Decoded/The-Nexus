@@ -149,6 +149,34 @@ export function composeDashboardFromApiPayloads(payloads = {}) {
   }
 }
 
+
+const validationResultFields = ['result', 'evidence', 'riskNotes', 'tester', 'screen', 'blockedReason']
+
+export function validationResultEndpoint(id) {
+  return `/api/crypto/validation/${encodeURIComponent(String(id).replace(/^#/, ''))}/result`
+}
+
+export async function submitValidationResult(id, result) {
+  const payload = Object.fromEntries(
+    validationResultFields
+      .filter((field) => result?.[field] !== undefined && result?.[field] !== '')
+      .map((field) => [field, result[field]]),
+  )
+
+  if (!payload.result || !payload.evidence) {
+    throw new Error('validation result and evidence are required')
+  }
+
+  const response = await fetch(validationResultEndpoint(id), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error ?? 'validation result failed')
+  return body
+}
+
 export async function loadDashboard() {
   try {
     const entries = await Promise.all(

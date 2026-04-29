@@ -35,7 +35,9 @@ npm run build
 
 The UI first tries the read-only Pryan-Fire API facade endpoints under `/api/crypto/*`, then falls back to `/api/crypto-ops/summary.json`, then to safe fixture data.
 
-A fixture-backed stdlib facade lives at `Pryan-Fire/haplos-workshop/crypto-ops-api/` for Phase 2 validation.
+A fixture-backed stdlib facade lives at `Pryan-Fire/haplos-workshop/crypto-ops-api/` for Phase 2 validation. Run it on port 8787 while using Vite dev server; `vite.config.js` proxies `/api/crypto*` to the facade.
+
+Validation evidence posts to `POST /api/crypto/validation/:id/result` and accepts evidence fields only. Trading/tx fields are rejected server-side.
 
 Live actions are disabled unless every gate is explicit:
 
