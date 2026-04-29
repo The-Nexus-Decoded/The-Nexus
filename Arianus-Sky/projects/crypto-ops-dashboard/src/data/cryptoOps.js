@@ -105,12 +105,63 @@ export function validationSummary(dashboard = sampleDashboard) {
   }
 }
 
+export const apiEndpoints = {
+  health: '/api/crypto/health',
+  portfolio: '/api/crypto/portfolio',
+  positions: '/api/crypto/positions/dlmm',
+  monitor: '/api/crypto/positions/monitor',
+  closeState: '/api/crypto/close/state',
+  sniperStatus: '/api/crypto/sniper/status',
+  sniperCandidates: '/api/crypto/sniper/candidates',
+  topPools: '/api/crypto/pools/top',
+  riskFeed: '/api/crypto/risk/feed',
+  killSwitch: '/api/crypto/kill-switch',
+  validation: '/api/crypto/validation/prs',
+}
+
+async function fetchJson(path) {
+  const response = await fetch(path, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`API request failed: ${path}`)
+  return response.json()
+}
+
+export function composeDashboardFromApiPayloads(payloads = {}) {
+  return {
+    generatedAt: payloads.health?.generatedAt ?? sampleDashboard.generatedAt,
+    mode: payloads.health?.mode ?? 'read-only-api',
+    portfolio: payloads.portfolio ?? sampleDashboard.portfolio,
+    risk: {
+      killSwitch: payloads.killSwitch?.state ?? sampleDashboard.risk.killSwitch,
+      liveTrading: payloads.killSwitch?.liveTrading ?? false,
+      walletAuth: payloads.killSwitch?.walletAuth ?? 'not-connected',
+      gates: payloads.killSwitch?.gates ?? sampleDashboard.risk.gates,
+    },
+    dlmmPositions: payloads.positions?.positions ?? sampleDashboard.dlmmPositions,
+    stopLossTakeProfit: payloads.monitor ?? sampleDashboard.stopLossTakeProfit,
+    sniper: {
+      status: payloads.sniperStatus?.status ?? sampleDashboard.sniper.status,
+      candidates: payloads.sniperCandidates?.candidates ?? sampleDashboard.sniper.candidates,
+      rejected: payloads.sniperStatus?.rejected ?? sampleDashboard.sniper.rejected,
+    },
+    topPools: payloads.topPools?.pools ?? sampleDashboard.topPools,
+    killFeed: payloads.riskFeed?.events ?? sampleDashboard.killFeed,
+    prValidation: payloads.validation?.records ?? sampleDashboard.prValidation,
+  }
+}
+
 export async function loadDashboard() {
   try {
-    const response = await fetch('/api/crypto-ops/summary.json', { cache: 'no-store' })
-    if (!response.ok) return sampleDashboard
-    return await response.json()
+    const entries = await Promise.all(
+      Object.entries(apiEndpoints).map(async ([key, path]) => [key, await fetchJson(path)]),
+    )
+    return composeDashboardFromApiPayloads(Object.fromEntries(entries))
   } catch {
-    return sampleDashboard
+    try {
+      const response = await fetch('/api/crypto-ops/summary.json', { cache: 'no-store' })
+      if (!response.ok) return sampleDashboard
+      return await response.json()
+    } catch {
+      return sampleDashboard
+    }
   }
 }

@@ -33,7 +33,9 @@ npm run build
 
 ## Data integration contract
 
-The UI tries to load `/api/crypto-ops/summary.json` and falls back to safe fixture data. The backend/API facade should provide the same shape as `src/data/cryptoOps.js`.
+The UI first tries the read-only Pryan-Fire API facade endpoints under `/api/crypto/*`, then falls back to `/api/crypto-ops/summary.json`, then to safe fixture data.
+
+A fixture-backed stdlib facade lives at `Pryan-Fire/haplos-workshop/crypto-ops-api/` for Phase 2 validation.
 
 Live actions are disabled unless every gate is explicit:
 
