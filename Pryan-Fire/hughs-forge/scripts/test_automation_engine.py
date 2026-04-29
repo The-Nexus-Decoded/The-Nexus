@@ -111,3 +111,82 @@ def test_handle_auto_execute_blacklist_is_idempotent(monkeypatch):
     assert len(posted) == 1
     assert handle_auto_execute("bot", trigger, {"execution": {"dry_run": False}}, state) is False
     assert len(posted) == 1
+
+
+def test_handle_auto_execute_records_success_signatures(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+
+    def fake_execute(_wallet_name, trigger, _config):
+        trigger["_execution_result"] = {"success": True, "dry_run": False, "signatures": ["sig123"]}
+        return True
+
+    monkeypatch.setattr(automation_engine, "execute_position_close", fake_execute)
+    state = {}
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "entry_value": 1000,
+        "current_value": 850,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "SOL-USDC"},
+    }
+    assert handle_auto_execute("bot", trigger, {"execution": {"dry_run": False}}, state) is True
+    execution = state["automation"]["bot"]["executions"]["pos123"]
+    assert execution["status"] == "executed"
+    assert execution["signatures"] == ["sig123"]
+    assert "pos123" not in state["automation"]["bot"].get("exec_attempts", {})
+
+
+def test_handle_auto_execute_records_failure_error(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+
+    def fake_execute(_wallet_name, trigger, _config):
+        trigger["_execution_result"] = {"success": False, "dry_run": False, "error": "missing_pool"}
+        return False
+
+    monkeypatch.setattr(automation_engine, "execute_position_close", fake_execute)
+    state = {}
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -12.0,
+        "entry_value": 1000,
+        "current_value": 850,
+        "position": {"position": "pos123", "pool_name": "Unknown"},
+    }
+    assert handle_auto_execute("bot", trigger, {"execution": {"dry_run": False}}, state) is False
+    tracker = state["automation"]["bot"]["exec_attempts"]["pos123"]
+    assert tracker["attempts"] == 1
+    assert tracker["last_status"] == "failed"
+    assert tracker["last_error"] == "missing_pool"
+
+
+def test_execution_failure_notification_includes_full_context(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", "https://discord.invalid/webhook")
+    posted = []
+    monkeypatch.setattr(automation_engine, "_post_to_discord_alerts", lambda msg: posted.append(msg) or True)
+    position_addr = "Position111111111111111111111111111111111111111"
+    trigger = {
+        "trigger_type": "stop_loss",
+        "pnl_pct": -100.0,
+        "entry_value": 1000,
+        "current_value": 0,
+        "fees": 0,
+        "position": {
+            "position": position_addr,
+            "pool_name": "Unknown",
+            "mint_x": "So11111111111111111111111111111111111111112",
+            "mint_y": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        },
+    }
+    automation_engine._post_execution_notification(
+        "bot",
+        trigger,
+        dry_run=False,
+        success=False,
+        error="jupiter_401",
+    )
+    content = posted[0]["content"]
+    assert position_addr in content
+    assert "**Pool ID**: `unavailable`" in content
+    assert "**PnL**: -100.0% ($1,000.00 → $0.00)" in content
+    assert "**Error**: `jupiter_401`" in content
+    assert "**Tx**: none submitted" in content
