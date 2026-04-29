@@ -607,29 +607,33 @@ class TradeExecutor:
             return 6 # Default to 6 on error
 
     async def get_quote(self, input_mint: str, output_mint: str, amount: int) -> Optional[Dict[str, Any]]:
-        """Fetches a quote from Jupiter v6 API for a given swap."""
-        logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter v6")
+        """Fetches a non-executing Jupiter Ultra order preview for a given swap."""
+        logger.info(f"Scrying market whispers for: {amount} of {input_mint} to {output_mint} via Jupiter Ultra")
         try:
-            url = "https://quote-api.jup.ag/v6/quote"
+            endpoint = os.getenv("JUPITER_ULTRA_ENDPOINT", "https://api.jup.ag/ultra/v1")
+            url = f"{endpoint}/order"
             params = {
                 "inputMint": input_mint,
                 "outputMint": output_mint,
                 "amount": str(amount),
-                "slippageBps": 50,
             }
+            headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
+            api_key = os.getenv("JUPITER_API_KEY")
+            if api_key:
+                headers["x-api-key"] = api_key
             async with httpx.AsyncClient() as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=headers)
                 response.raise_for_status()
                 quote_data = response.json()
                 
                 if quote_data:
-                    logger.info(f"--> Jupiter Quote Received. Out Amount: {quote_data.get('outAmount')}, Price Impact: {quote_data.get('priceImpactPct')}%")
+                    logger.info(f"--> Jupiter Ultra Order Preview Received. Out Amount: {quote_data.get('outAmount')}, Price Impact: {quote_data.get('priceImpactPct')}%")
                     return quote_data
                 else:
-                    logger.warning("--> No Jupiter quotes found.")
+                    logger.warning("--> No Jupiter Ultra order preview returned.")
                     return None
         except Exception as e:
-            logger.error(f"--> Error fetching Jupiter quote: {e}")
+            logger.error(f"--> Error fetching Jupiter Ultra order preview: {e}")
             return None
 
     async def get_meteora_pool_state(self, pool_pubkey: Pubkey) -> Optional[Dict[str, Any]]:

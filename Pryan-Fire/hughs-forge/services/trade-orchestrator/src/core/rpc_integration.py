@@ -87,30 +87,27 @@ class RpcIntegrator:
             )
             amount_raw = int(amount * (10 ** decimals))
 
-            # Step 1: Get swap transaction via Ultra API (combines quote + swap)
+            # Step 1: Get an unsigned executable order from Ultra.
             order_response = self._fetch_ultra_order(input_mint, output_mint, amount_raw, slippage_bps, str(self.wallet.pubkey()))
             if not order_response:
                 return {"success": False, "signature": None, "error": "order_failed"}
 
-            swap_tx_b64 = order_response.get("swapTransaction")
-            request_id = order_response.get("requestId")
-            if not swap_tx_b64 or not request_id:
-                self.logger.error(f"Missing swapTransaction or requestId: {order_response}")
-                return {"success": False, "signature": None, "error": "invalid_order_response"}
+            parsed_order = self._parse_ultra_order(order_response)
+            if not parsed_order["ok"]:
+                return {"success": False, "signature": None, "error": parsed_order["error"]}
 
-            # Step 2: Deserialize as VersionedTransaction
-            tx_bytes = base64.b64decode(swap_tx_b64)
+            # Step 2: Deserialize the unsigned VersionedTransaction.
             try:
+                tx_bytes = base64.b64decode(parsed_order["transaction"], validate=True)
                 tx = VersionedTransaction.from_bytes(tx_bytes)
-                self.logger.info("Deserialized as VersionedTransaction.")
+                self.logger.info("Deserialized Ultra order transaction.")
             except Exception as e:
-                self.logger.warning(f"VersionedTransaction failed ({e}), trying legacy Transaction.")
-                from solders.transaction import Transaction as LegacyTransaction
-                tx = LegacyTransaction.from_bytes(tx_bytes)
-                self.logger.info("Deserialized as legacy Transaction.")
+                self.logger.error(f"Invalid Ultra transaction payload: {e}")
+                return {"success": False, "signature": None, "error": "invalid_order_transaction"}
 
             # Step 3: Sign the transaction
             signed_tx = VersionedTransaction(tx.message, [self.wallet])
+            request_id = parsed_order["request_id"]
 
             # Step 4: Execute via Ultra API
             exec_result = self._execute_ultra_order(signed_tx, request_id)
@@ -132,60 +129,57 @@ class RpcIntegrator:
             self.logger.error(f"Jupiter Ultra trade failed: {e}", exc_info=True)
             return {"success": False, "signature": None, "error": str(e)}
 
+
+    def _parse_ultra_order(self, order_response: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate the minimum executable Ultra order shape.
+
+        Jupiter Ultra /order returns `transaction` + `requestId`. Missing or
+        malformed values fail closed; callers must not sign or execute partial
+        responses.
+        """
+        transaction = order_response.get("transaction")
+        request_id = order_response.get("requestId")
+        if not isinstance(transaction, str) or not transaction.strip():
+            self.logger.error(f"Ultra order missing transaction: {order_response}")
+            return {"ok": False, "error": "invalid_order_response"}
+        if not isinstance(request_id, str) or not request_id.strip():
+            self.logger.error(f"Ultra order missing requestId: {order_response}")
+            return {"ok": False, "error": "invalid_order_response"}
+        return {"ok": True, "transaction": transaction, "request_id": request_id}
+
     def _fetch_quote(
         self, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50
     ) -> Optional[Dict[str, Any]]:
-        """Fetch quote from Jupiter."""
+        """Fetch a non-executing Jupiter Ultra order preview."""
         params = {
             "inputMint": input_mint,
             "outputMint": output_mint,
             "amount": str(amount),
             "slippageBps": slippage_bps,
-            "onlyDirectRoutes": "false",
-            "instructionVersion": "V2",  # Enable V2 instructions for v2 pool support
         }
         headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
         if self.jupiter_api_key:
             headers["x-api-key"] = self.jupiter_api_key
 
-        url = f"{self.jupiter_endpoint}/quote"
+        url = f"{self.jupiter_endpoint}/order"
         try:
-            self.logger.info(f"Fetching quote from: {url}")
+            self.logger.info(f"Fetching Ultra order preview from: {url}")
             resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
             if resp.status_code == 200:
                 return resp.json()
-            self.logger.warning(f"Quote returned {resp.status_code}: {resp.text[:200]}")
+            self.logger.warning(f"Ultra order preview returned {resp.status_code}: {resp.text[:200]}")
         except httpx.HTTPError as e:
-            self.logger.warning(f"Quote request failed: {e}")
+            self.logger.warning(f"Ultra order preview request failed: {e}")
         return None
 
     def _fetch_swap_transaction(
         self, quote: Dict[str, Any], user_public_key: str
     ) -> Optional[str]:
-        """Request swap transaction from Jupiter."""
-        payload = {
-            "quoteResponse": quote,
-            "userPublicKey": user_public_key,
-            "wrapAndUnwrapSol": True,
-            "useSharedAccounts": False,
-            "prioritizationFeeLamports": "auto",
-            "dynamicComputeUnitLimit": True,  # Auto-adjust compute units
-            "dynamicSlippage": True,  # Enable dynamic slippage for v2 pools
-        }
-        headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
-        if self.jupiter_api_key:
-            headers["x-api-key"] = self.jupiter_api_key
-
-        url = f"{self.jupiter_endpoint}/swap"
-        try:
-            self.logger.info(f"Requesting swap tx from: {url}")
-            resp = httpx.post(url, json=payload, headers=headers, timeout=10.0)
-            if resp.status_code == 200:
-                return resp.json().get("swapTransaction")
-            self.logger.warning(f"Swap returned {resp.status_code}: {resp.text[:200]}")
-        except httpx.HTTPError as e:
-            self.logger.warning(f"Swap request failed: {e}")
-        return None
+        """Return a validated Ultra transaction from an existing order response."""
+        parsed = self._parse_ultra_order(quote)
+        if not parsed["ok"]:
+            return None
+        return parsed["transaction"]
 
     def _fetch_ultra_order(
         self, input_mint: str, output_mint: str, amount: int, slippage_bps: int, taker: str

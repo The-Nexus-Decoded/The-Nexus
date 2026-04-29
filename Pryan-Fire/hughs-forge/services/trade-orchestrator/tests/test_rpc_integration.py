@@ -31,6 +31,7 @@ sys.modules.setdefault("solana.rpc.commitment", MagicMock())
 
 # Now safe to import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+import core.rpc_integration as rpc_module
 from core.rpc_integration import RpcIntegrator, TX_CONFIRM_TIMEOUT
 
 
@@ -52,6 +53,30 @@ class TestDryRunMode:
         assert result["success"] is False
         assert result["error"] == "dry_run"
         assert result["signature"] is None
+
+    @patch("core.rpc_integration.httpx")
+    def test_dry_run_never_signs_or_executes(self, mock_httpx, monkeypatch):
+        signed = {"called": False}
+
+        class FailIfUsedTransaction:
+            @staticmethod
+            def from_bytes(_tx_bytes):
+                signed["called"] = True
+                raise AssertionError("dry-run must not deserialize/sign transactions")
+
+        monkeypatch.setattr(rpc_module, "VersionedTransaction", FailIfUsedTransaction)
+        rpc = RpcIntegrator(dry_run=True)
+
+        result = rpc.execute_jupiter_trade(
+            input_mint="So11111111111111111111111111111111111111112",
+            output_mint="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            amount=1.0,
+        )
+
+        assert result == {"success": False, "signature": None, "error": "dry_run"}
+        assert signed["called"] is False
+        assert mock_httpx.get.called is False
+        assert mock_httpx.post.called is False
 
 
 class TestWalletLoading:
@@ -118,6 +143,69 @@ class TestExecuteJupiterTrade:
         )
         assert result["success"] is False
         assert result["error"] == "invalid_order_response"
+
+    def test_ultra_order_missing_transaction_fails_closed(self, monkeypatch):
+        self.rpc._fetch_ultra_order = lambda *_: {"requestId": "req-123"}
+        self.rpc._execute_ultra_order = lambda *_: pytest.fail("must not execute malformed Ultra order")
+
+        result = self.rpc.execute_jupiter_trade("A", "B", 1.0)
+
+        assert result["success"] is False
+        assert result["error"] == "invalid_order_response"
+
+    def test_ultra_order_missing_request_id_fails_closed(self, monkeypatch):
+        tx_b64 = base64.b64encode(b"unsigned-tx").decode()
+        self.rpc._fetch_ultra_order = lambda *_: {"transaction": tx_b64}
+        self.rpc._execute_ultra_order = lambda *_: pytest.fail("must not execute malformed Ultra order")
+
+        result = self.rpc.execute_jupiter_trade("A", "B", 1.0)
+
+        assert result["success"] is False
+        assert result["error"] == "invalid_order_response"
+
+    def test_ultra_order_malformed_transaction_fails_closed(self, monkeypatch):
+        self.rpc._fetch_ultra_order = lambda *_: {"transaction": "not-base64!!!", "requestId": "req-123"}
+        self.rpc._execute_ultra_order = lambda *_: pytest.fail("must not execute malformed Ultra transaction")
+
+        result = self.rpc.execute_jupiter_trade("A", "B", 1.0)
+
+        assert result["success"] is False
+        assert result["error"] == "invalid_order_transaction"
+
+    def test_ultra_execute_uses_signed_transaction_and_request_id(self, monkeypatch):
+        calls = {}
+
+        class FakeUnsignedTransaction:
+            message = "message-to-sign"
+
+        class FakeVersionedTransaction:
+            def __init__(self, message=None, signers=None):
+                self.message = message
+                self.signers = signers
+
+            @staticmethod
+            def from_bytes(tx_bytes):
+                calls["decoded"] = tx_bytes
+                return FakeUnsignedTransaction()
+
+        tx_b64 = base64.b64encode(b"unsigned-tx").decode()
+        monkeypatch.setattr(rpc_module, "VersionedTransaction", FakeVersionedTransaction)
+        self.rpc._fetch_ultra_order = lambda *_: {"transaction": tx_b64, "requestId": "req-123"}
+
+        def fake_execute(signed_tx, request_id):
+            calls["signed_tx"] = signed_tx
+            calls["request_id"] = request_id
+            return {"status": "Success", "signature": "sig123"}
+
+        self.rpc._execute_ultra_order = fake_execute
+
+        result = self.rpc.execute_jupiter_trade("A", "B", 1.0)
+
+        assert result == {"success": True, "signature": "sig123", "error": None}
+        assert calls["decoded"] == b"unsigned-tx"
+        assert calls["request_id"] == "req-123"
+        assert calls["signed_tx"].message == "message-to-sign"
+        assert calls["signed_tx"].signers == [mock_keypair]
 
 
 class TestReturnSignature:
