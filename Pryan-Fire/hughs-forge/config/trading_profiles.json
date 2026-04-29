@@ -1,0 +1,32 @@
+{
+  "profiles": {
+    "safe": {
+      "enabled": true,
+      "check_bundled": true,
+      "require_lp_burned": true,
+      "max_top_10_holders_share": 25.0,
+      "min_fee_volume_ratio": 0.0005
+    },
+    "aggressive": {
+      "enabled": true,
+      "check_bundled": false,
+      "require_lp_burned": false,
+      "max_top_10_holders_share": 50.0,
+      "min_fee_volume_ratio": 0.0001
+    },
+    "SafeSentinel": {
+      "enabled": true,
+      "check_bundled": true,
+      "require_lp_burned": true,
+      "max_top_10_holders_share": 25.0,
+      "min_fee_volume_ratio": 0.0005
+    },
+    "SniperDegen": {
+      "enabled": false,
+      "check_bundled": false,
+      "require_lp_burned": false,
+      "max_top_10_holders_share": 75.0,
+      "min_fee_volume_ratio": 0.0
+    }
+  }
+}

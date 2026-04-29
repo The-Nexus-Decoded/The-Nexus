@@ -1,3 +1,9 @@
+import os
+import pytest
+
+if os.getenv("HUGH_LIVE_RPC_TESTS") != "1":
+    pytest.skip("live RPC dependency probe; set HUGH_LIVE_RPC_TESTS=1 to run", allow_module_level=True)
+
 from solana.rpc.types import MemcmpOpts
 from solders.pubkey import Pubkey
 

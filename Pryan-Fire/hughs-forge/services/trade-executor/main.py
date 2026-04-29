@@ -456,16 +456,13 @@ class TradeExecutor:
             "status": "APPROVED" if is_profitable else "VETOED"
         })
         
-        return report, is_profitable
-        })
-        
         logger.info(f"    ESTIMATED_REBALANCE_COST: {report['ESTIMATED_REBALANCE_COST']}")
         logger.info(f"    EXPECTED_FEE_CAPTURE: {report['EXPECTED_FEE_CAPTURE']}")
         logger.info(f"    PROJECTED_FEE_CAPTURE_INCREASE: {report['PROJECTED_FEE_CAPTURE_INCREASE']}")
         logger.info(f"    DUST_RESIDUE_ESTIMATE: {report['DUST_RESIDUE_ESTIMATE']}")
         logger.info(f"    RISK_MANAGER_STATUS: {report['RISK_MANAGER_STATUS']}")
         logger.info(f"----------------------------------------------")
-        return report
+        return report, is_profitable
 
     async def _determine_market_volatility(self) -> str:
         """

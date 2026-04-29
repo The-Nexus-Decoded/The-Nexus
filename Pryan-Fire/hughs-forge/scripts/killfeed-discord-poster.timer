@@ -3,7 +3,8 @@ Description=Kill Feed Discord Poster Timer - Runs every 5 minutes
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=10min
+OnCalendar=*:0/5
+AccuracySec=1min
 Persistent=true
 
 [Install]
