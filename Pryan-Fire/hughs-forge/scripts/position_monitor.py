@@ -134,10 +134,15 @@ def get_dexscreener_url(mint_address: str) -> str:
     return f"https://dexscreener.com/solana/{mint_address}"
 
 
+def _position_fee_value(current_data: Dict[str, Any]) -> float:
+    """Return the best per-position fee value available for PnL math."""
+    return float(current_data.get("fees_claimed_usd", current_data.get("fees_24h", 0)) or 0)
+
+
 def calculate_pnl(state_wallet: Dict[str, Any], position_addr: str, current_data: Dict[str, Any]) -> Dict[str, float]:
     """Calculate PnL for a position."""
-    current_liquidity = current_data.get("liquidity_usd", 0)
-    fees_24h = current_data.get("fees_24h", 0)
+    current_liquidity = float(current_data.get("liquidity_usd", 0) or 0)
+    fees = _position_fee_value(current_data)
     
     # Initialize if first time seeing this position
     if position_addr not in state_wallet.get("positions", {}):
@@ -148,9 +153,22 @@ def calculate_pnl(state_wallet: Dict[str, Any], position_addr: str, current_data
     
     pos_state = state_wallet["positions"][position_addr]
     entry_value = pos_state.get("entry_value_usd", current_liquidity)
+
+    # Guard closed/stale positions. A zero-liquidity/zero-fee read should not
+    # display as a fresh -100% loss or fire stop-loss automation.
+    if current_liquidity <= 0 and fees <= 0:
+        return {
+            "pnl_usd": 0.0,
+            "pnl_pct": 0.0,
+            "pnl_24h": 0.0,
+            "entry_value_usd": entry_value,
+            "current_value_usd": 0.0,
+            "stale": True,
+            "last_known_value_usd": pos_state.get("last_known_value_usd", entry_value),
+        }
     
-    # Calculate total PnL
-    pnl_usd = (current_liquidity + fees_24h) - entry_value
+    # Calculate total PnL using per-position claimed fees when available.
+    pnl_usd = (current_liquidity + fees) - entry_value
     pnl_pct = (pnl_usd / entry_value * 100) if entry_value > 0 else 0
     
     # Update history (rolling 24h buffer)
@@ -173,6 +191,7 @@ def calculate_pnl(state_wallet: Dict[str, Any], position_addr: str, current_data
     
     # Update state
     pos_state["entry_value_usd"] = entry_value  # Keep original entry
+    pos_state["last_known_value_usd"] = current_liquidity
     pos_state["history"] = history
     
     return {
@@ -181,6 +200,7 @@ def calculate_pnl(state_wallet: Dict[str, Any], position_addr: str, current_data
         "pnl_24h": round(pnl_24h, 2),
         "entry_value_usd": entry_value,
         "current_value_usd": current_liquidity,
+        "stale": False,
     }
 
 
@@ -286,7 +306,7 @@ def build_position_embed(wallet_name: str, position: Dict[str, Any], pnl: Dict[s
             {"name": "Bin Range", "value": f"{lower_bin}-{upper_bin} (Active: {active_bin})", "inline": False},
             {"name": "Links", "value": f"[Meteora]({meteora_url}) | [DexScreener]({get_dexscreener_url(mint_x)})", "inline": False},
             {"name": "Automation", "value": automation_str, "inline": False},
-            {"name": "Position", "value": f"`{position_addr[:8]}...{position_addr[-6:]}`", "inline": False},
+            {"name": "Position", "value": f"`{position_addr}`", "inline": False},
         ],
     }
     

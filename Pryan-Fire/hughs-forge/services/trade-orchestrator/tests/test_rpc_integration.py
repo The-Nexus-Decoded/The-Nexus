@@ -88,7 +88,7 @@ class TestExecuteJupiterTrade:
         assert result["error"] == "no_wallet"
 
     @patch("core.rpc_integration.httpx")
-    def test_quote_failure_returns_error(self, mock_httpx):
+    def test_ultra_order_failure_returns_error(self, mock_httpx):
         mock_resp = MagicMock()
         mock_resp.status_code = 500
         mock_resp.text = "Internal Server Error"
@@ -100,22 +100,16 @@ class TestExecuteJupiterTrade:
             1.0,
         )
         assert result["success"] is False
-        assert result["error"] == "quote_failed"
+        assert result["error"] == "order_failed"
 
     @patch("core.rpc_integration.httpx")
-    def test_swap_tx_failure_returns_error(self, mock_httpx):
-        # Quote succeeds
-        quote_resp = MagicMock()
-        quote_resp.status_code = 200
-        quote_resp.json.return_value = {"routes": []}
+    def test_invalid_ultra_order_returns_error(self, mock_httpx):
+        # Ultra order succeeds but is malformed
+        order_resp = MagicMock()
+        order_resp.status_code = 200
+        order_resp.json.return_value = {"routes": []}
 
-        # Swap fails
-        swap_resp = MagicMock()
-        swap_resp.status_code = 500
-        swap_resp.text = "Swap error"
-
-        mock_httpx.get.return_value = quote_resp
-        mock_httpx.post.return_value = swap_resp
+        mock_httpx.get.return_value = order_resp
 
         result = self.rpc.execute_jupiter_trade(
             "So11111111111111111111111111111111111111112",
@@ -123,7 +117,7 @@ class TestExecuteJupiterTrade:
             1.0,
         )
         assert result["success"] is False
-        assert result["error"] == "swap_tx_failed"
+        assert result["error"] == "invalid_order_response"
 
 
 class TestReturnSignature:

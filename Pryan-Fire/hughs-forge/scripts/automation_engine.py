@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
 Automation Engine — SL/TP automation for DLMM positions
-Evaluates triggers and executes close/swap actions based on wallet config.
+Evaluates triggers and executes close actions based on wallet config.
 """
 import requests
 import json
 import os
 import logging
 import subprocess
+import shlex
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 logging.basicConfig(
@@ -25,6 +27,20 @@ AUTOMATION_DRY_RUN = os.getenv("AUTOMATION_DRY_RUN", "true").lower() == "true"
 # Constants
 USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 SOL_MINT = "So11111111111111111111111111111111111111112"
+
+# Retry / cooldown constants. These keep a bad live close from hammering the
+# wallet, RPC, or Discord forever after an SL/TP trigger.
+MAX_EXECUTE_RETRIES = 3
+BACKOFF_MULTIPLIER = 2.0
+MAX_ALERT_INTERVAL = 3600
+COOLDOWN_DURATION_SECONDS = 7200
+
+
+def _position_fee_value(pos: Dict[str, Any]) -> float:
+    """Return the best per-position fee value available for PnL math."""
+    # fees_claimed_usd is per-position from Meteora. fees_24h is currently
+    # pool-level in health_server, so only use it as legacy fallback.
+    return float(pos.get("fees_claimed_usd", pos.get("fees_24h", 0)) or 0)
 
 
 def evaluate_triggers(wallet_name: str, positions: List[Dict], wallet_config: Dict, state: Dict) -> List[Dict]:
@@ -48,6 +64,15 @@ def evaluate_triggers(wallet_name: str, positions: List[Dict], wallet_config: Di
         pubkey = pos.get("position", "")
         if not pubkey:
             continue
+
+        current_value = float(pos.get("liquidity_usd", 0) or 0)
+        fees = _position_fee_value(pos)
+
+        # If the upstream feed reports a dead/empty position, do not turn that
+        # into a fake -100% stop-loss. Closed/stale positions should not fire.
+        if current_value <= 0 and fees <= 0:
+            logger.debug(f"[{wallet_name}] Skipping stale position {pubkey} (zero liquidity + zero fees)")
+            continue
         
         # Get entry value from state
         pos_state = state_positions.get(pubkey, {})
@@ -55,9 +80,6 @@ def evaluate_triggers(wallet_name: str, positions: List[Dict], wallet_config: Di
         
         if entry_value <= 0:
             continue  # No entry value recorded yet, skip
-        
-        current_value = pos.get("liquidity_usd", 0)
-        fees = pos.get("fees_24h", 0)
         
         # Calculate PnL percentage
         pnl_usd = (current_value + fees) - entry_value
@@ -125,6 +147,24 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
     # Get or create alerts state for this wallet
     automation_state = state.setdefault("automation", {}).setdefault(wallet_name, {})
     active_alerts = automation_state.setdefault("active_alerts", {})
+
+    # Failed live closes enter cooldown instead of spamming retries forever.
+    cooldowns = automation_state.get("cooldowns", {})
+    if pubkey in cooldowns:
+        cooldown_info = cooldowns[pubkey]
+        cooldown_until = cooldown_info.get("cooldown_until", "")
+        if cooldown_until:
+            try:
+                until = datetime.fromisoformat(cooldown_until.rstrip("Z"))
+                if datetime.utcnow() < until:
+                    remaining = (until - datetime.utcnow()).total_seconds()
+                    logger.info(f"[{wallet_name}] Position {pubkey} in cooldown ({remaining:.0f}s remaining) — skipping")
+                    return False
+                logger.info(f"[{wallet_name}] Position {pubkey} cooldown expired — resuming alerts")
+                del cooldowns[pubkey]
+                active_alerts.pop(pubkey, None)
+            except (ValueError, TypeError):
+                del cooldowns[pubkey]
     
     if pubkey not in active_alerts:
         # First time seeing this trigger
@@ -132,6 +172,7 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
             "trigger_type": trigger_type,
             "trigger_pnl_pct": pnl_pct,
             "alerts_sent": 0,
+            "execute_attempts": 0,
             "first_alert_at": datetime.utcnow().isoformat() + "Z",
             "last_alert_at": None,
             "escalation_state": "alerting",
@@ -140,12 +181,18 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
     
     alert = active_alerts[pubkey]
     
-    # Check if enough time has passed since last alert
+    # Check if enough time has passed since last alert. After failed execution
+    # attempts, back off before the next alert/attempt.
+    effective_interval = alert_interval
+    execute_attempts = alert.get("execute_attempts", 0)
+    if execute_attempts > 0:
+        effective_interval = min(alert_interval * (BACKOFF_MULTIPLIER ** execute_attempts), MAX_ALERT_INTERVAL)
+
     if alert.get("last_alert_at"):
         last = datetime.fromisoformat(alert["last_alert_at"].rstrip("Z"))
         elapsed = (datetime.utcnow() - last).total_seconds()
-        if elapsed < alert_interval:
-            logger.debug(f"Alert for {pubkey[:12]}... not due yet (elapsed: {elapsed:.0f}s < {alert_interval}s)")
+        if elapsed < effective_interval:
+            logger.debug(f"Alert for {pubkey} not due yet (elapsed: {elapsed:.0f}s < {effective_interval:.0f}s)")
             return False
     
     if alert["alerts_sent"] < alert_count:
@@ -156,64 +203,209 @@ def handle_alert_owner(wallet_name: str, trigger: Dict, config: Dict, state: Dic
         alert_num = alert["alerts_sent"] + 1
         
         remaining = alert_count - alert_num
+        entry_val = trigger.get("entry_value", 0)
+        current_val = trigger.get("current_value", 0)
+        fees_val = trigger.get("fees", 0)
+        token_x = pos.get("token_x_symbol", pos.get("mint_x", "?")[:8])
+        token_y = pos.get("token_y_symbol", pos.get("mint_y", "?")[:8])
         
         msg = {
             "content": f"{emoji} <@{sterol_id}> **{trigger_type.upper().replace('_', ' ')}** triggered!\n"
-                       f"**Pool**: {pool_name}\n"
-                       f"**Position**: `{pubkey[:12]}...`\n"
-                       f"**PnL**: {pnl_pct:+.1f}%\n"
+                       f"**Pool**: {pool_name} ({token_x}/{token_y})\n"
+                       f"**Position**: `{pubkey}`\n"
+                       f"**PnL**: {pnl_pct:+.1f}% (${entry_val:,.2f} → ${current_val:,.2f})\n"
+                       f"**Fees**: ${fees_val:,.2f}\n"
                        f"Alert {alert_num}/{alert_count}" +
                        (f" — Auto-close in {remaining} more alert{'s' if remaining > 1 else ''} if no response." if remaining > 0 else " — FINAL WARNING!"),
         }
         
-        
-        # Log what would be sent (for verification)
-        logger.info(f"[{wallet_name}] ALERT WOULD BE SENT: {trigger_type.upper()} {pool_name} PnL={pnl_pct:+.1f}% (alert {alert_num}/{alert_count})")
+        logger.info(f"[{wallet_name}] ALERT: {trigger_type.upper()} {pool_name} Position={pubkey} PnL={pnl_pct:+.1f}% (alert {alert_num}/{alert_count})")
         if _post_to_discord_alerts(msg):
             alert["alerts_sent"] += 1
             alert["last_alert_at"] = datetime.utcnow().isoformat() + "Z"
             return True
     
     elif auto_execute_after and alert.get("escalation_state") == "alerting":
-        # All alerts sent, no response — auto execute
-        logger.info(f"[{wallet_name}] All {alert_count} alerts sent for {pubkey[:12]}... — executing auto-close")
+        # All alerts sent, no response — auto execute with bounded retries.
+        execute_attempts = alert.get("execute_attempts", 0)
+        if execute_attempts >= MAX_EXECUTE_RETRIES:
+            cooldown_until = datetime.utcnow().timestamp() + COOLDOWN_DURATION_SECONDS
+            cooldown_until_iso = datetime.utcfromtimestamp(cooldown_until).isoformat() + "Z"
+            automation_state.setdefault("cooldowns", {})[pubkey] = {
+                "cooldown_at": datetime.utcnow().isoformat() + "Z",
+                "cooldown_until": cooldown_until_iso,
+                "reason": f"Failed {execute_attempts} auto-close attempts",
+                "trigger_type": trigger_type,
+                "pnl_pct": pnl_pct,
+                "pool_name": pool_name,
+            }
+            alert["escalation_state"] = "cooldown"
+            sterol_id = DISCORD_STEROL_USER_ID or "Sterol"
+            _post_to_discord_alerts({
+                "content": f"⏸️ <@{sterol_id}> Position entering cooldown after {execute_attempts} failed auto-close attempts.\n"
+                           f"**Pool**: {pool_name}\n"
+                           f"**Position**: `{pubkey}`\n"
+                           f"**PnL**: {pnl_pct:+.1f}%\n"
+                           f"Manual close recommended; alerts resume after cooldown."
+            })
+            return True
+
+        logger.info(f"[{wallet_name}] All {alert_count} alerts sent for {pubkey} — executing auto-close (attempt {execute_attempts + 1}/{MAX_EXECUTE_RETRIES})")
         alert["escalation_state"] = "executing"
+        alert["execute_attempts"] = execute_attempts + 1
+        alert["last_alert_at"] = datetime.utcnow().isoformat() + "Z"
         
         success = execute_position_close(wallet_name, trigger, config)
         
-        alert["escalation_state"] = "executed" if success else "failed"
-        alert["executed_at"] = datetime.utcnow().isoformat() + "Z"
+        if success:
+            alert["escalation_state"] = "executed"
+            alert["executed_at"] = datetime.utcnow().isoformat() + "Z"
+        else:
+            alert["escalation_state"] = "alerting"
+            logger.warning(f"[{wallet_name}] Auto-close attempt {alert['execute_attempts']}/{MAX_EXECUTE_RETRIES} FAILED for {pubkey}")
         
         return True
     
     return False
 
 
-def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict) -> bool:
+def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Dict) -> bool:
     """
     Immediately close position and swap to USDC.
-    No human notification required.
+    Tracks retries and fails closed after repeated execution failures.
     """
     pos = trigger["position"]
     pubkey = pos.get("position", "")
     pool_name = pos.get("pool_name", "Unknown")
     trigger_type = trigger["trigger_type"]
     pnl_pct = trigger["pnl_pct"]
+    entry_val = trigger.get("entry_value", 0)
+    current_val = trigger.get("current_value", 0)
+    token_x = pos.get("token_x_symbol", pos.get("mint_x", "?")[:8])
+    token_y = pos.get("token_y_symbol", pos.get("mint_y", "?")[:8])
+    automation_state = state.setdefault("automation", {}).setdefault(wallet_name, {})
+    exec_tracker = automation_state.setdefault("exec_attempts", {})
+    tracker = exec_tracker.setdefault(pubkey, {"attempts": 0, "first_attempt_at": datetime.utcnow().isoformat() + "Z"})
+
+    if tracker["attempts"] >= MAX_EXECUTE_RETRIES:
+        logger.warning(f"[{wallet_name}] Position {pubkey} failed {tracker['attempts']} auto-execute attempts — blacklisting")
+        automation_state.setdefault("blacklist", {})[pubkey] = {
+            "blacklisted_at": datetime.utcnow().isoformat() + "Z",
+            "reason": f"Failed {tracker['attempts']} auto-execute attempts",
+            "trigger_type": trigger_type,
+            "pnl_pct": pnl_pct,
+            "pool_name": pool_name,
+        }
+        _post_to_discord_alerts({
+            "content": f"⚠️ Auto-execute blacklisted a position after {tracker['attempts']} failures.\n"
+                       f"**Pool**: {pool_name} ({token_x}/{token_y})\n"
+                       f"**Position**: `{pubkey}`\n"
+                       f"**PnL**: {pnl_pct:+.1f}%\n"
+                       f"Manual intervention required."
+        })
+        return True
+
+    if tracker.get("last_attempt_at"):
+        last = datetime.fromisoformat(tracker["last_attempt_at"].rstrip("Z"))
+        backoff_secs = min(60 * (BACKOFF_MULTIPLIER ** tracker["attempts"]), MAX_ALERT_INTERVAL)
+        elapsed = (datetime.utcnow() - last).total_seconds()
+        if elapsed < backoff_secs:
+            logger.debug(f"[{wallet_name}] Auto-execute backoff for {pubkey}: {elapsed:.0f}s < {backoff_secs:.0f}s")
+            return False
     
     emoji = "🔴" if trigger_type == "stop_loss" else "🟢"
+    attempt_num = tracker["attempts"] + 1
     
     # Post notification (non-blocking, just info)
     if DISCORD_WEBHOOK_ALERTS:
         msg = {
             "content": f"{emoji} **[AUTO-EXECUTE]** {trigger_type.upper().replace('_', ' ')} triggered!\n"
-                       f"**Pool**: {pool_name}\n"
-                       f"**Position**: `{pubkey[:12]}...`\n"
-                       f"**PnL**: {pnl_pct:+.1f}%\n"
-                       f"Closing position and swapping to USDC...",
+                       f"**Pool**: {pool_name} ({token_x}/{token_y})\n"
+                       f"**Position**: `{pubkey}`\n"
+                       f"**PnL**: {pnl_pct:+.1f}% (${entry_val:,.2f} → ${current_val:,.2f})\n"
+                       f"Attempt {attempt_num}/{MAX_EXECUTE_RETRIES} — closing DLMM position...",
         }
         _post_to_discord_alerts(msg)
     
-    return execute_position_close(wallet_name, trigger, config)
+    tracker["attempts"] = attempt_num
+    tracker["last_attempt_at"] = datetime.utcnow().isoformat() + "Z"
+    success = execute_position_close(wallet_name, trigger, config)
+    if success:
+        tracker["executed_at"] = datetime.utcnow().isoformat() + "Z"
+        del exec_tracker[pubkey]
+    return success
+
+
+def _default_dlmm_close_command() -> Optional[List[str]]:
+    script_path = Path(__file__).resolve().parents[1] / "services" / "meteora-trader" / "scripts" / "close-position.mjs"
+    if script_path.exists():
+        return ["node", str(script_path)]
+    return None
+
+
+def _resolve_dlmm_close_command(execution: Dict[str, Any]) -> Optional[List[str]]:
+    command = execution.get("dlmm_close_command") or os.getenv("DLMM_CLOSE_COMMAND")
+    if isinstance(command, list):
+        return [str(part) for part in command]
+    if isinstance(command, str) and command.strip():
+        return shlex.split(command)
+    return _default_dlmm_close_command()
+
+
+def _run_dlmm_close_command(wallet_name: str, trigger: Dict, config: Dict, pool_pubkey: str) -> Dict[str, Any]:
+    """Run the configured DLMM close executor and return its JSON result."""
+    execution = config.get("execution", {})
+    command = _resolve_dlmm_close_command(execution)
+    if not command:
+        return {"success": False, "error": "dlmm_close_command_not_configured"}
+
+    payload = {
+        "wallet_name": wallet_name,
+        "wallet": config.get("wallets", {}).get(wallet_name, {}),
+        "trigger": trigger,
+        "position": trigger.get("position", {}),
+        "pool": pool_pubkey,
+        "execution": execution,
+    }
+    payload_json = json.dumps(payload)
+    env = os.environ.copy()
+    env["DLMM_CLOSE_PAYLOAD"] = payload_json
+    timeout = int(execution.get("close_timeout_seconds", 180))
+
+    try:
+        completed = subprocess.run(
+            command,
+            input=payload_json,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            env=env,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "dlmm_close_timeout"}
+    except Exception as exc:
+        return {"success": False, "error": "dlmm_close_command_error", "message": str(exc)}
+
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    result: Dict[str, Any] = {}
+    if stdout:
+        try:
+            result = json.loads(stdout.splitlines()[-1])
+        except json.JSONDecodeError:
+            result = {"success": False, "error": "dlmm_close_invalid_json", "stdout": stdout[-500:]}
+
+    if completed.returncode != 0:
+        result.setdefault("success", False)
+        result.setdefault("error", "dlmm_close_command_failed")
+        if stderr:
+            result["stderr"] = stderr[-500:]
+        return result
+
+    if not result:
+        result = {"success": False, "error": "dlmm_close_no_result"}
+    return result
 
 
 def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> bool:
@@ -222,13 +414,13 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
     1. Claim unclaimed fees
     2. Remove all liquidity
     3. Close the position
-    4. Swap non-USDC/SOL tokens to USDC via Jupiter
+    4. Optionally hand off post-close swaps to a configured executor
     5. Post confirmation to Discord
     """
     pos = trigger["position"]
     pubkey = pos.get("position", "")
     pool_name = pos.get("pool_name", "Unknown")
-    pool_pubkey = pos.get("pool", "")
+    pool_pubkey = pos.get("pool") or pos.get("lb_pair", "")
     token_x_mint = pos.get("mint_x", "")
     token_y_mint = pos.get("mint_y", "")
     token_x_symbol = pos.get("token_x_symbol", "X")
@@ -239,7 +431,6 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
     # Get execution config
     execution = config.get("execution", {})
     dry_run = execution.get("dry_run", AUTOMATION_DRY_RUN)
-    swap_slippage = execution.get("swap_slippage_bps", 100)
     
     logger.info(f"{'[DRY RUN] ' if dry_run else ''}Executing position close: {pubkey} ({pool_name})")
     
@@ -247,79 +438,75 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict) -> boo
         logger.info(f"DRY RUN: Would close position {pubkey}, claim fees, swap tokens to USDC")
         _post_execution_notification(wallet_name, trigger, dry_run=True)
         return True
+
+    if not pool_pubkey:
+        logger.error(f"Cannot close DLMM position {pubkey}: missing pool/lb_pair")
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error="missing_pool")
+        return False
     
     # === REAL EXECUTION ===
-    # Use Jupiter API to generate swap transaction
+    # Close the DLMM position first. Previous code skipped this and jumped
+    # directly to Jupiter, creating a dangerous false-success path.
     try:
-        # Determine which token to swap (token_x or token_y)
-        swap_from_mint = token_x_mint if token_x_mint != USDC_MINT else token_y_mint
-        swap_from_symbol = token_x_symbol if token_x_mint != USDC_MINT else token_y_symbol
-        
-        # For DLMM positions, we need to first remove liquidity then swap
-        # This is a simplified version - generates a basic SOL/USDC swap for now
-        # Full implementation would call DLMM SDK to withdraw position first
-        
-        logger.info(f"Initiating Jupiter swap: {swap_from_symbol} -> USDC")
-        
-        # Get swap quote from Jupiter
-        quote = _get_jupiter_quote(swap_from_mint, USDC_MINT, 1000000)  # 1 unit min
-        if not quote:
-            logger.error("Failed to get Jupiter quote")
-            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+        close_result = _run_dlmm_close_command(wallet_name, trigger, config, pool_pubkey)
+        if not close_result.get("success"):
+            error = close_result.get("error", "dlmm_close_failed")
+            logger.error(f"DLMM close failed for {pubkey}: {error}")
+            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=error)
             return False
-        
-        logger.info(f"Jupiter quote received: {quote.get('outAmount')} USDC")
-        
-        # Get swap transaction
-        swap_tx = _get_jupiter_swap_transaction(quote, swap_from_mint, USDC_MINT, swap_slippage)
-        if not swap_tx:
-            logger.error("Failed to build Jupiter transaction")
-            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
-            return False
-        
-        # Post transaction to Discord for manual approval
-        _post_swap_transaction_to_discord(wallet_name, trigger, swap_tx, quote)
-        
-        logger.info("Swap transaction generated and posted to Discord for approval")
-        _post_execution_notification(wallet_name, trigger, dry_run=False, success=True)
+
+        signatures = close_result.get("signatures", [])
+        logger.info(f"DLMM close completed for {pubkey}: {signatures}")
+
+        if execution.get("swap_after_close", False):
+            logger.warning("swap_after_close is configured but not implemented in automation_engine; DLMM close succeeded, swap skipped")
+
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=True, signatures=signatures)
         return True
         
     except Exception as e:
         logger.error(f"Execution error: {e}")
-        _post_execution_notification(wallet_name, trigger, dry_run=False, success=False)
+        _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=str(e))
         return False
 
 
 def _get_jupiter_quote(input_mint: str, output_mint: str, amount: int) -> Optional[Dict]:
-    """Get swap quote from Jupiter API."""
+    """Get swap quote from Jupiter v6 API."""
     try:
-        url = f"https://quote-api.jup.ag/v6/quote?inputMint={input_mint}&outputMint={output_mint}&amount={amount}&slippage=0.5"
-        resp = requests.get(url, timeout=10)
+        params = {
+            "inputMint": input_mint,
+            "outputMint": output_mint,
+            "amount": str(amount),
+            "slippageBps": 50,
+        }
+        resp = requests.get("https://quote-api.jup.ag/v6/quote", params=params, timeout=10)
         if resp.status_code != 200:
             logger.error(f"Jupiter API error: {resp.status_code}")
             return None
         
-        quotes = resp.json()
-        if not quotes or len(quotes) == 0:
+        quote = resp.json()
+        if not quote:
             logger.error("No quotes returned from Jupiter")
             return None
         
-        # Return best quote (first one)
-        return quotes[0]
+        return quote
     except Exception as e:
         logger.error(f"Failed to get Jupiter quote: {e}")
         return None
 
 
-def _get_jupiter_swap_transaction(quote: Dict, input_mint: str, output_mint: str, slippage_bps: int) -> Optional[str]:
+def _get_jupiter_swap_transaction(quote: Dict, input_mint: str, output_mint: str, slippage_bps: int, user_public_key: Optional[str] = None) -> Optional[str]:
     """Get swap transaction from Jupiter API."""
     try:
         url = "https://quote-api.jup.ag/v6/swap"
         payload = {
             "quoteResponse": quote,
-            "userPublicKey": "74QXtqTiM9w1D9WM8ArPEggHPRVUWggeQn3KxvR4ku5x",  # bot wallet
+            "userPublicKey": user_public_key or os.getenv("TRADING_WALLET_PUBLIC_KEY", ""),
             "slippageBps": slippage_bps,
         }
+        if not payload["userPublicKey"]:
+            logger.error("No user public key configured for Jupiter swap transaction")
+            return None
         resp = requests.post(url, json=payload, timeout=15)
         if resp.status_code != 200:
             logger.error(f"Jupiter swap API error: {resp.status_code}")
@@ -343,22 +530,30 @@ def _post_swap_transaction_to_discord(wallet_name: str, trigger: Dict, swap_tx: 
     pnl_pct = trigger["pnl_pct"]
     
     out_amount = int(quote.get("outAmount", 0)) / 1_000_000  # USDC has 6 decimals
+    sterol_id = DISCORD_STEROL_USER_ID or "Sterol"
     
     msg = {
         "content": f"⚠️ **SWAP TRANSACTION READY**\n"
                    f"**Wallet**: {wallet_name}\n"
                    f"**Pool**: {pool_name}\n"
-                   f"**Position**: `{pubkey[:12]}...`\n"
+                   f"**Position**: `{pubkey}`\n"
                    f"**Output**: ~{out_amount:.2f} USDC\n"
                    f"**Transaction**: `Base64 encoded - use Solana CLI or Phantom to sign`\n"
                    f"```\n{swap_tx[:200]}...\n```\n"
-                   f"@Ola Lawal please sign this transaction to complete the take-profit."
+                   f"<@{sterol_id}> please sign this transaction to complete the take-profit."
     }
     
     _post_to_discord_alerts(msg)
 
 
-def _post_execution_notification(wallet_name: str, trigger: Dict, dry_run: bool, success: bool = True):
+def _post_execution_notification(
+    wallet_name: str,
+    trigger: Dict,
+    dry_run: bool,
+    success: bool = True,
+    error: Optional[str] = None,
+    signatures: Optional[List[str]] = None,
+):
     """Post execution notification to Discord."""
     if not DISCORD_WEBHOOK_ALERTS:
         return
@@ -372,16 +567,20 @@ def _post_execution_notification(wallet_name: str, trigger: Dict, dry_run: bool,
     emoji = "🔴" if trigger_type == "stop_loss" else "🟢"
     status = "DRY RUN" if dry_run else ("SUCCESS" if success else "FAILED")
     
-    msg = {
-        "content": f"{emoji} **AUTOMATION {status}**\n"
-                   f"**Wallet**: {wallet_name}\n"
-                   f"**Pool**: {pool_name}\n"
-                   f"**Position**: `{pubkey[:12]}...`\n"
-                   f"**Trigger**: {trigger_type.upper().replace('_', ' ')}\n"
-                   f"**PnL**: {pnl_pct:+.1f}%",
-    }
-    
-    _post_to_discord_alerts(msg)
+    content = (
+        f"{emoji} **AUTOMATION {status}**\n"
+        f"**Wallet**: {wallet_name}\n"
+        f"**Pool**: {pool_name}\n"
+        f"**Position**: `{pubkey}`\n"
+        f"**Trigger**: {trigger_type.upper().replace('_', ' ')}\n"
+        f"**PnL**: {pnl_pct:+.1f}%"
+    )
+    if error:
+        content += f"\n**Error**: `{error}`"
+    if signatures:
+        content += "\n**Tx**: " + ", ".join(f"`{sig}`" for sig in signatures[:3])
+
+    _post_to_discord_alerts({"content": content})
 
 
 def run_automation_checks(wallets_config: Dict, wallets_data: Dict, state: Dict, config: Dict):
@@ -421,7 +620,7 @@ def run_automation_checks(wallets_config: Dict, wallets_data: Dict, state: Dict,
         
         for trigger in triggers:
             if notification_mode == "auto_execute":
-                handle_auto_execute(wallet_name, trigger, config)
+                handle_auto_execute(wallet_name, trigger, config, state)
             elif notification_mode == "alert_owner":
                 handle_alert_owner(wallet_name, trigger, config, state)
             else:

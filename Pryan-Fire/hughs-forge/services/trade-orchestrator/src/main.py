@@ -4,11 +4,14 @@ import threading
 import time
 import os
 import json
+from pathlib import Path
 
-# Add risk-manager src to Python path for direct imports (temporary unblock)
-RISK_MANAGER_SRC = "/data/openclaw/workspace/Pryan-Fire/hughs-forge/risk-manager/src"
-if RISK_MANAGER_SRC not in sys.path:
-    sys.path.insert(0, RISK_MANAGER_SRC)
+# Add risk-manager src to Python path for direct imports (temporary unblock).
+# Resolve from this file so the service does not depend on an old workspace path.
+HUGHS_FORGE_ROOT = Path(__file__).resolve().parents[3]
+RISK_MANAGER_SRC = HUGHS_FORGE_ROOT / "risk-manager" / "src"
+if str(RISK_MANAGER_SRC) not in sys.path:
+    sys.path.insert(0, str(RISK_MANAGER_SRC))
 
 from core.orchestrator import TradeOrchestrator
 from core.event_loop import EventLoop
