@@ -1,5 +1,6 @@
 import unittest
-from main import RiskManager
+
+from risk_manager import RiskManager
 
 class TestRiskManager(unittest.TestCase):
     def setUp(self):
