@@ -8,6 +8,19 @@ from pathlib import Path
 from .queue import load_queue
 from .runner import run_once
 
+MODEL_PROVIDER_CHOICES = (
+    "mock",
+    "codex-openai-image",
+    "codex-openai",
+    "openclaw-codex-openai",
+    "primary",
+    "openai-moderations",
+    "minimax-cli",
+    "minimax-fallback",
+    "minimax-vl",
+    "openrouter-multimodal",
+)
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -35,6 +48,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to a mock model response manifest JSON file.",
     )
+    parser.add_argument(
+        "--provider",
+        choices=MODEL_PROVIDER_CHOICES,
+        default=None,
+        help="Live/model provider to use. codex-openai-image is primary; minimax-cli/minimax-vl is fallback only.",
+    )
+    parser.add_argument(
+        "--model-adapter",
+        choices=MODEL_PROVIDER_CHOICES,
+        default="mock",
+        help="Deprecated alias for --provider. Kept for existing smoke scripts.",
+    )
     return parser
 
 
@@ -46,13 +71,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     queue = load_queue(args.queue_fixture)
-    result = run_once(
-        queue,
-        limit=args.limit,
-        photo_id=args.photo_id,
-        dry_run=True,
-        force=bool(args.force),
-        model_fixture=args.model_fixture,
-    )
+    provider = args.provider or args.model_adapter
+    try:
+        result = run_once(
+            queue,
+            limit=args.limit,
+            photo_id=args.photo_id,
+            dry_run=True,
+            force=bool(args.force),
+            model_fixture=args.model_fixture,
+            model_adapter=provider,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

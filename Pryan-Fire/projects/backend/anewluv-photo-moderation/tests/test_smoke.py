@@ -2,33 +2,44 @@ import json
 import subprocess
 import sys
 import unittest
+from unittest import mock
 
+from photo_sweeper.model import (
+    CodexOpenAIAdapter,
+    MiniMaxCLIAdapter,
+    _codex_request_payload,
+    _image_path_to_data_url,
+    _redact_provider_error_body,
+    normalize_minimax_description,
+    normalize_model_result,
+)
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
 
-def run_cli(*args):
+def run_cli(*args, check=True):
     proc = subprocess.run(
         [sys.executable, "-m", "photo_sweeper", *args],
-        check=True,
+        check=check,
         text=True,
         capture_output=True,
     )
-    return proc.stdout
+    return proc
 
 
 class PhotoSweeperSmokeTests(unittest.TestCase):
     def test_cli_limit_works_and_redacts_email(self):
-        output = run_cli("--once", "--dry-run", "--limit", "2")
+        output = run_cli("--once", "--dry-run", "--limit", "2").stdout
         payload = json.loads(output)
 
         self.assertIs(payload["dry_run"], True)
         self.assertIs(payload["write_enabled"], False)
         self.assertEqual(payload["photos_scanned"], 2)
         self.assertNotIn("user_email", output)
+        self.assertNotIn("user_id", output)
 
     def test_photo_id_force_does_not_enable_writes(self):
-        output = run_cli("--once", "--photo-id", "101", "--force")
+        output = run_cli("--once", "--photo-id", "101", "--force").stdout
         payload = json.loads(output)
 
         self.assertIs(payload["force_requested"], True)
@@ -48,7 +59,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         ]
 
         self.assertEqual({item["planned_action"] for item in explicit}, {"escalate"})
-        self.assertEqual({item["recommended_decision"] for item in explicit}, {"reject"})
+        self.assertEqual({item["recommended_decision"] for item in explicit}, {"reject_recommendation"})
         self.assertTrue(all(item["would_finalize_decision"] is False for item in explicit))
         self.assertTrue(all(item["would_write_recommendation"] is False for item in explicit))
 
@@ -76,7 +87,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertTrue(all(item["would_write_recommendation"] is False for item in result["photos"]))
 
     def test_api_failure_fallback_becomes_manual_review_without_writes(self):
-        output = run_cli("--once", "--photo-id", "110", "--dry-run")
+        output = run_cli("--once", "--photo-id", "110", "--dry-run").stdout
         payload = json.loads(output)
         photo = payload["photos"][0]
 
@@ -88,15 +99,150 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIs(photo["would_finalize_decision"], False)
 
     def test_clean_fixture_can_recommend_approve_without_final_decision_or_write(self):
-        output = run_cli("--once", "--photo-id", "101", "--dry-run")
+        output = run_cli("--once", "--photo-id", "101", "--dry-run").stdout
         payload = json.loads(output)
         photo = payload["photos"][0]
 
-        self.assertEqual(photo["normalized_result"]["verdict"], "approved")
-        self.assertEqual(photo["recommended_decision"], "approve")
+        self.assertEqual(photo["normalized_result"]["verdict"], "approve_recommendation")
+        self.assertEqual(photo["recommended_decision"], "approve_recommendation")
         self.assertEqual(photo["planned_action"], "report_only")
         self.assertIs(photo["would_write_recommendation"], False)
         self.assertIs(photo["would_finalize_decision"], False)
+
+    def test_normalizer_only_reject_side_final_terms_are_normalized(self):
+        approved = normalize_model_result({"verdict": "approved"}, default_model="fixture")
+        approve = normalize_model_result({"verdict": "approve"}, default_model="fixture")
+        reject = normalize_model_result({"verdict": "reject"}, default_model="fixture")
+        unknown = normalize_model_result({"verdict": "ship_it"}, default_model="fixture")
+
+        self.assertEqual(approved["validator"], "fail")
+        self.assertEqual(approved["verdict"], "review")
+        self.assertEqual(approved["normalization_applied"], "no")
+        self.assertEqual(approve["validator"], "fail")
+        self.assertEqual(approve["verdict"], "review")
+        self.assertEqual(approve["normalization_applied"], "no")
+        self.assertEqual(reject["verdict"], "reject_recommendation")
+        self.assertEqual(reject["normalization_applied"], "yes")
+        self.assertEqual(reject["validator"], "pass")
+        self.assertEqual(unknown["validator"], "fail")
+        self.assertEqual(unknown["verdict"], "review")
+
+    def test_codex_provider_report_fields_are_zero_write_text_json(self):
+        queue = load_queue()
+        with mock.patch.dict("os.environ", {"CODEX_OPENAI_API_KEY": "", "OPENAI_API_KEY": ""}, clear=False):
+            result = run_once(queue, limit=1, photo_id=None, dry_run=True, force=False, model_fixture=None, model_adapter="codex-openai-image")
+
+        self.assertEqual(result["provider"], "codex-openai-image")
+        self.assertEqual(result["model_route"], "gpt-5.5 + gpt-image-2 configured image route")
+        self.assertEqual(result["image_generation_events"], 0)
+        self.assertEqual(result["output_type"], "text_json")
+        self.assertIs(result["writes"], False)
+        self.assertEqual(result["/photos/decide"], "not called")
+        self.assertIs(result["write_enabled"], False)
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "api_auth_unavailable")
+
+    def test_provider_error_redaction_removes_tokens_sessions_and_signed_urls(self):
+        signed_marker = "X-Amz-" + "Signature"
+        body = (
+            "Authorization: Bearer secret-token session=abc oauth=value "
+            + "https://"
+            + "cdn.example/image.jpg?"
+            + signed_marker
+            + "=leak"
+        )
+        redacted = _redact_provider_error_body(body)
+
+        self.assertNotIn("secret-token", redacted)
+        self.assertNotIn("abc", redacted)
+        self.assertNotIn("oauth=value", redacted)
+        self.assertNotIn(signed_marker, redacted)
+        self.assertIn("[redacted-url]", redacted)
+
+    def test_provider_order_names_are_accepted_or_fail_closed_without_live_calls(self):
+        self.assertEqual(json.loads(run_cli("--once", "--provider", "mock", "--limit", "1").stdout)["provider"], "mock")
+
+        proc = run_cli("--once", "--provider", "openai-moderations", "--limit", "1", check=False)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not available", proc.stderr)
+
+        proc = run_cli("--once", "--provider", "openrouter-multimodal", "--limit", "1", check=False)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not available", proc.stderr)
+
+    def test_codex_payload_has_instructions_and_no_image_generation_request(self):
+        payload = _codex_request_payload("gpt-5.5", "data:image/png;base64,abc")
+        self.assertIn("instructions", payload)
+        self.assertEqual(payload["model"], "gpt-5.5")
+        dumped = json.dumps(payload)
+        self.assertIn("input_image", dumped)
+        self.assertNotIn("image_generation", dumped.lower())
+
+    def test_ppm_fixture_converts_to_png_data_url(self):
+        queue = load_queue()
+        ppm = queue[0]["local_fixture_path"]
+        data_url = _image_path_to_data_url(__import__("pathlib").Path(ppm))
+        self.assertTrue(data_url.startswith("data:image/png;base64,"))
+
+    def test_codex_adapter_parses_mocked_provider_without_printing_auth(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "output_text": json.dumps(
+                            {
+                                "verdict": "reject",
+                                "confidence": 0.91,
+                                "reason_code": "sexual_content",
+                                "unsafe_categories": ["sexual_content"],
+                            }
+                        )
+                    }
+                ).encode("utf-8")
+
+        seen = {}
+
+        def fake_urlopen(request, timeout):
+            seen["authorization"] = request.headers.get("Authorization")
+            seen["body"] = request.data.decode("utf-8")
+            return FakeResponse()
+
+        queue = load_queue()
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = CodexOpenAIAdapter(api_key="unit_test_key").review(queue[0], {})
+
+        self.assertEqual(result["verdict"], "reject_recommendation")
+        self.assertEqual(result["normalization_applied"], "yes")
+        self.assertEqual(result["validator"], "pass")
+        self.assertTrue(seen["authorization"].startswith("Bearer "))
+        self.assertIn('"instructions"', seen["body"])
+        self.assertNotIn("unit_test_key", json.dumps(result))
+
+    def test_minimax_parser_outputs_recommendation_language(self):
+        result = normalize_minimax_description("A clear portrait of a person smiling outdoors.")
+
+        self.assertEqual(result["verdict"], "approve_recommendation")
+        self.assertEqual(result["reason_code"], "clean_profile_style")
+        self.assertIn("+ parser", result["vision_model_used"])
+
+    def test_minimax_cli_adapter_parses_subprocess_output_without_raw_dump(self):
+        completed = subprocess.CompletedProcess(
+            args=["openclaw"],
+            returncode=0,
+            stdout=json.dumps({"description": "A blurry dark image where the person is not visible."}),
+            stderr="",
+        )
+        with mock.patch("subprocess.run", return_value=completed):
+            result = MiniMaxCLIAdapter().review({"local_fixture_path": "/tmp/fake.jpg"}, {})
+
+        self.assertEqual(result["verdict"], "review")
+        self.assertEqual(result["reason_code"], "low_quality_or_unusable")
+        self.assertEqual(result["vision_model_used"], "minimax/MiniMax-VL-01 + parser")
 
 
 if __name__ == "__main__":
