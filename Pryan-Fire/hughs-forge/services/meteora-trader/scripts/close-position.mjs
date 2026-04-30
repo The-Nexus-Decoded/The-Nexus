@@ -11,7 +11,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 function loadSolanaDeps() {
   const { Connection, Keypair, PublicKey, sendAndConfirmTransaction } = require('@solana/web3.js');
@@ -74,11 +73,11 @@ async function tokenBalanceAtoms(connection, owner, mintAddress, PublicKey) {
 async function snapshotBalances(connection, owner, assets, PublicKey) {
   const balances = {};
   for (const asset of assets) {
-    if (asset.mint === SOL_MINT) {
-      balances[asset.mint] = BigInt(await connection.getBalance(owner, 'confirmed'));
-    } else {
-      balances[asset.mint] = await tokenBalanceAtoms(connection, owner, asset.mint, PublicKey);
-    }
+    // DLMM positions use SPL token accounts. The SOL_MINT address represents
+    // wrapped SOL (WSOL), not native lamports; native wallet balance includes
+    // rent refunds, fees, and unrelated SOL movement, so it must not feed the
+    // post-close swap amount.
+    balances[asset.mint] = await tokenBalanceAtoms(connection, owner, asset.mint, PublicKey);
   }
   return balances;
 }
