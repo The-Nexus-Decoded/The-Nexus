@@ -22,8 +22,9 @@ This is a worker/tool proof lane, not a production-ready declaration. Production
 ## Active guardrails
 
 - Xano is additive-only for this work: never delete Xano data, records, tables, fields, endpoints, functions, tasks, or branches.
-- If functionality does not exist, propose/create new additive Xano objects on an approved branch; do not replace or remove existing ones.
-- Do not mutate production Xano schema/API without approval.
+- Anewluv Xano work is effectively on `v1`; assume any Xano endpoint/table/schema change is live-impacting unless Lord Xar explicitly says otherwise.
+- If functionality does not exist, map existing `v1` objects first and propose the smallest additive change only after approval; do not replace or remove existing ones.
+- Do not mutate Xano schema/API or execute provisional endpoints without approval.
 - Do not print or commit secrets.
 - Do not delete photos.
 - Do not approve uncertain photos.
@@ -47,3 +48,9 @@ Gate 1 discovery has been completed from Xano MCP and documented in:
 - repo note: `docs/schema-discovery-2026-04-30.md`
 
 Implementation is blocked from write-capable behavior until the endpoint contract mismatches and missing write paths are resolved.
+
+Key reconciliation docs:
+
+- `docs/existing-photo-moderation-schema-sweep-2026-04-30.md`
+- `docs/existing-path-ai-behavior-gap-map-2026-04-30.md`
+- `docs/xano-branch-only-verification-2026-04-30.md`
