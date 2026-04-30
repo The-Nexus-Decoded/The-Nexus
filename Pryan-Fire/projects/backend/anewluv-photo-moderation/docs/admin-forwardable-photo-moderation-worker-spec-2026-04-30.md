@@ -687,3 +687,16 @@ Prompt output requirement:
 ```
 
 Do not allow the prompt to emit only worker-local codes. `reason_code` must always be canonicalized.
+
+
+Provider prompt canonical output field:
+
+```json
+{
+  "detected_category": "specific visual category",
+  "canonical_reason_code": "existing Xano-compatible reason",
+  "verdict": "approve_recommendation | reject_recommendation | review | escalate"
+}
+```
+
+Adapter normalization accepts provider `canonical_reason_code` and maps it into internal `reason_code` for existing policy/report compatibility.

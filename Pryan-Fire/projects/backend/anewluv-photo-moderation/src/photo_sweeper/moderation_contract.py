@@ -297,10 +297,10 @@ def provider_instructions() -> str:
 
 Return ONLY JSON with this exact shape:
 {
-  "verdict": "approve_recommendation" | "reject_recommendation" | "review" | "escalate",
+  "detected_category": "specific visual category",
+  "canonical_reason_code": "existing Xano-compatible reason",
+  "verdict": "approve_recommendation | reject_recommendation | review | escalate",
   "confidence": 0.0-1.0,
-  "detected_category": "<one detailed AI/image classification from the image type or detailed flag lists>",
-  "reason_code": "<one canonical Xano-compatible moderation reason; never worker-local only>",
   "note": "brief reason"
 }
 
@@ -342,7 +342,7 @@ Prompt instruction: First classify the image type. Then evaluate safety/policy c
 
 Final output layers:
 - detected_category = detailed AI/image classification
-- reason_code = canonical Xano-compatible moderation reason
+- canonical_reason_code = canonical Xano-compatible moderation reason
 
 Detailed flags to inspect:
 - sexual_content: porn, sexual acts, genital content
@@ -374,7 +374,7 @@ Detailed flags to inspect:
 - hate_or_harassment: slurs, hate symbols, threats, harassment; reject/escalate
 - bot_or_scam: scam graphics, fake verification, suspicious template; review/reject
 
-CANONICAL reason_code output only:
+CANONICAL canonical_reason_code output only:
 - clean_profile_style -> no rejection code / approve_recommendation
 - sexual_content -> sexual_content
 - nudity -> sexual_content
@@ -402,13 +402,13 @@ APPROVE ONLY:
 - clean_profile_style: real human face, profile-style selfie/photo, no issues
 
 RULES:
-- Final reason_code must be one canonical Xano-compatible code from the CANONICAL list above; never emit only worker-local detected_category codes
-- If unsure, return "review" or "escalate" with reason_code "manual_admin_decision" — never approve uncertain
-- Reject AI-generated people with reason_code "fake_profile"
-- Reject books/objects/artwork with reason_code "fake_profile"
-- Reject images with contact info with reason_code "off_platform_contact" unless it is clearly spam/ad-only, then use "spam"
+- Final canonical_reason_code must be one canonical Xano-compatible code from the CANONICAL list above; never emit only worker-local detected_category codes
+- If unsure, return "review" or "escalate" with canonical_reason_code "manual_admin_decision" — never approve uncertain
+- Reject AI-generated people with canonical_reason_code "fake_profile"
+- Reject books/objects/artwork with canonical_reason_code "fake_profile"
+- Reject images with contact info with canonical_reason_code "off_platform_contact" unless it is clearly spam/ad-only, then use "spam"
 - Escalate sexual content, nudity, porn, and underage immediately
-- Confidence below 0.6 should be "review" or "escalate" with reason_code "manual_admin_decision"
+- Confidence below 0.6 should be "review" or "escalate" with canonical_reason_code "manual_admin_decision"
 - Existing admin/photo moderation paths are final authority; this worker only produces normalized recommendations
 - Do not make final moderation decisions. Do not generate or edit images.
 """

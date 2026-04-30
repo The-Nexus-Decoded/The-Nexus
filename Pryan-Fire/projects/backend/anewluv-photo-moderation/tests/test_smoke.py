@@ -204,6 +204,12 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             },
         )
 
+    def test_provider_canonical_reason_code_is_accepted(self):
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "fake_profile", "detected_category": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+
+        self.assertEqual(result["detected_category"], "ai_generated_image")
+        self.assertEqual(result["reason_code"], "fake_profile")
+
     def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
         result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
 
@@ -341,6 +347,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         instructions = payload["instructions"]
         self.assertIn("You are an ANewLuv photo moderator", instructions)
         self.assertIn("Return ONLY JSON with this exact shape", instructions)
+        self.assertIn('"canonical_reason_code": "existing Xano-compatible reason"', instructions)
+        self.assertIn('"detected_category": "specific visual category"', instructions)
         self.assertIn("detected_category", instructions)
         self.assertIn("Identify which type of image this is", instructions)
         for image_type in {
@@ -382,13 +390,13 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("First classify the image type. Then evaluate safety/policy checks", instructions)
         self.assertIn("not clearly a usable profile photo of a real person, do not approve", instructions)
         self.assertIn("detected_category = detailed AI/image classification", instructions)
-        self.assertIn("reason_code = canonical Xano-compatible moderation reason", instructions)
+        self.assertIn("canonical_reason_code = canonical Xano-compatible moderation reason", instructions)
         self.assertIn("detected_category", instructions)
-        self.assertIn("reason_code", instructions)
-        self.assertIn("never worker-local only", instructions)
+        self.assertIn("canonical_reason_code", instructions)
+        self.assertIn("never emit only worker-local", instructions)
         self.assertNotIn("- is_meme_or_screenshot:", instructions)
         self.assertIn("Detailed flags to inspect", instructions)
-        self.assertIn("CANONICAL reason_code output only", instructions)
+        self.assertIn("CANONICAL canonical_reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
         self.assertIn("If unsure", instructions)
         self.assertIn("Confidence below 0.6", instructions)

@@ -16,6 +16,8 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     normalized = dict(result)
     if "verdict" not in normalized and "recommendation" in normalized:
         normalized["verdict"] = normalized.get("recommendation")
+    if "reason_code" not in normalized and "canonical_reason_code" in normalized:
+        normalized["reason_code"] = normalized.get("canonical_reason_code")
     if "reason_code" not in normalized and "reason" in normalized:
         normalized["reason_code"] = normalized.get("reason")
 
