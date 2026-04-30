@@ -5,7 +5,9 @@ Approval: Lord Xar approved proactive additive Xano changes and said not to wait
 Constraint: Xano additive-only. No deletes, no destructive replacements.
 Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive-global-table posture. Continue only docs, acceptance criteria, branch-safe/non-schema work, and endpoint/function logic using already-approved objects.
 Design correction from Lord Xar: the long-term target should be **one generic photo moderation ledger**, not separate AI-vs-human truth stores. AI, human admin, system, and any future user/community moderation paths should write/check the same data shape; source is distinguished by actor/source fields, not by separate moderation databases.
-Preferred path correction from Zifnab: review existing photo/photo-management tables first. New tables are acceptable only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Created tables remain inert until that review completes.
+Preferred path correction from Zifnab/Lord Xar: review existing photo/photo-management/manual moderation tables first. New tables are acceptable only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Created tables remain inert until that review completes.
+
+Follow-up schema sweep correction: existing manual moderation structures are substantial. `photo_review_type` already has `Agent`/`Human`, `/photos/decide` already handles `reject_reason_code` and `admin_notes`, and reason-code infrastructure already exists through moderation validation/keyword tables. Do not treat the provisional AI-named table as the default target.
 
 ## Branch / production state
 
@@ -290,7 +292,8 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] All five new endpoints exist and are visible in moderation API listing/OpenAPI.
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
-- [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
+- [ ] Preferred path reviewed first: existing photo/photo-management/manual moderation tables before using newly-created tables.
+- [ ] Existing manual moderation contract reviewed: `photo_review_type`, `/photos/decide`, `admin_notes`, `moderation/validate_reason_code`, and `moderation_keywords`.
 - [ ] New tables are used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
 - [ ] Created tables remain inert until that review is complete.
 - [ ] Long-term contract is **unified moderation history**, not an AI-only table or conceptual lane; the current AI-named table is provisional until reconciliation.
