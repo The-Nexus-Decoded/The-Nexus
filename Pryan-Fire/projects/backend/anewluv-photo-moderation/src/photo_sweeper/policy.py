@@ -71,6 +71,7 @@ def _profile_clean(flags: dict) -> bool:
         and not flags.get("has_contact_info")
         and not flags.get("meme_or_screenshot")
         and not flags.get("is_meme_or_screenshot")
+        and not flags.get("blank_or_unusable")
         and not flags.get("is_blank_or_unusable")
         and not flags.get("is_ai_generated")
         and not flags.get("needs_human_review")

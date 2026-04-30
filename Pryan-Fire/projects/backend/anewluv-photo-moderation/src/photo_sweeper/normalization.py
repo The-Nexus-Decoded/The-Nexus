@@ -5,6 +5,11 @@ from .validators import is_valid_normalized_result
 
 AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD = 0.80
 DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
+DETECTED_CATEGORY_ALIASES = {
+    "ai_generated_image": "ai_generated_or_synthetic",
+    "ai_generated_or_avatar": "ai_generated_or_synthetic",
+    "is_blank_or_unusable": "blank_or_unusable",
+}
 
 FINAL_TO_RECOMMENDATION_VERDICTS = {
     "rejected": "reject_recommendation",
@@ -27,7 +32,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
 
     normalized.setdefault("confidence", 0.0)
     raw_reason_code = str(normalized.get("reason_code", "manual_review_needed")).lower()
-    if raw_reason_code == "ai_generated_image" and float(normalized.get("confidence") or 0.0) < AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
+    if raw_reason_code in {"ai_generated_or_synthetic", "ai_generated_image", "ai_generated_or_avatar"} and float(normalized.get("confidence") or 0.0) < AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
         normalized["reason_code"] = "manual_admin_decision"
         normalized["verdict"] = "review"
     else:
@@ -35,7 +40,8 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     if normalized["reason_code"] != raw_reason_code:
         normalized["raw_reason_code"] = raw_reason_code
 
-    normalized.setdefault("detected_category", normalized.get("raw_reason_code", normalized["reason_code"]))
+    detected_category = str(normalized.get("detected_category") or normalized.get("raw_reason_code") or normalized["reason_code"]).lower()
+    normalized["detected_category"] = DETECTED_CATEGORY_ALIASES.get(detected_category, detected_category)
     normalized.setdefault("note", safe_note_for_reason(normalized["reason_code"]))
     normalized.setdefault("unsafe_categories", [])
     normalized.setdefault("moderation_api_used", False)
@@ -76,9 +82,9 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
         confidence = 0.88
         unsafe_categories = ["sexual_content"]
     elif any(term in text for term in ["ai-generated", "ai generated", "generated image", "illustration", "cartoon", "anime", "drawing", "rendered"]):
-        reason_code = "ai_generated_image"
+        reason_code = "ai_generated_or_synthetic"
         confidence = 0.78
-        unsafe_categories = ["ai_generated_image"]
+        unsafe_categories = ["ai_generated_or_synthetic"]
         checks["is_ai_generated"] = True
     elif any(term in text for term in ["screenshot", "meme", "advertisement", "phone number", "email", "social media handle", "qr code"]):
         reason_code = "contact_info_or_ad"
@@ -90,7 +96,7 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
         reason_code = "low_quality_or_unusable"
         confidence = 0.68
         unsafe_categories = ["low_quality_or_unusable"]
-        checks["is_blank_or_unusable"] = True
+        checks["blank_or_unusable"] = True
     elif any(term in text for term in ["person", "people", "man", "woman", "face", "portrait", "selfie", "individual", "subject"]):
         verdict = "approve_recommendation"
         reason_code = "clean_profile_style"

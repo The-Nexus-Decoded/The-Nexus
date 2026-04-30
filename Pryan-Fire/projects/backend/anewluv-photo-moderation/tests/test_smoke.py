@@ -82,7 +82,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         queue = load_queue()
         result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=False, model_fixture=None)
         raw_reasons = {
-            item["normalized_result"].get("raw_reason_code", item["normalized_result"]["reason_code"])
+            item["normalized_result"]["detected_category"]
             for item in result["photos"]
         }
         canonical_reasons = {item["normalized_result"]["reason_code"] for item in result["photos"]}
@@ -91,7 +91,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             raw_reasons,
             {
                 "clean_profile_style",
-                "ai_generated_image",
+                "ai_generated_or_synthetic",
                 "sexual_content",
                 "nudity",
                 "inappropriate_photos",
@@ -163,7 +163,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             WORKER_MODEL_CATEGORIES,
             {
                 "clean_profile_style",
-                "ai_generated_image",
+                "ai_generated_or_synthetic",
                 "sexual_content",
                 "nudity",
                 "pornographic_explicit",
@@ -194,7 +194,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "qr_code",
                 "object_or_landscape_only",
                 "celebrity_or_stock_photo",
-                "ai_generated_or_avatar",
+                "ai_generated_or_synthetic",
                 "explicit_adult_image",
                 "low_quality_or_unusable",
                 "underage_concern",
@@ -205,15 +205,15 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         )
 
     def test_provider_canonical_reason_code_is_accepted(self):
-        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "fake_profile", "detected_category": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "fake_profile", "detected_category": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
-        self.assertEqual(result["detected_category"], "ai_generated_image")
+        self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(result["reason_code"], "fake_profile")
 
     def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
-        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
-        self.assertEqual(result["detected_category"], "ai_generated_image")
+        self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(result["reason_code"], "fake_profile")
 
     def test_policy_falls_back_before_future_write_eligibility(self):
@@ -251,13 +251,13 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             },
         )
 
-    def test_ai_generated_image_requires_high_confidence_for_fake_profile(self):
-        high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
-        uncertain = normalize_model_result({"verdict": "review", "confidence": 0.79, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+    def test_ai_generated_or_synthetic_requires_high_confidence_for_fake_profile(self):
+        high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
+        uncertain = normalize_model_result({"verdict": "review", "confidence": 0.79, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
-        self.assertEqual(high["detected_category"], "ai_generated_image")
+        self.assertEqual(high["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(high["reason_code"], "fake_profile")
-        self.assertEqual(uncertain["detected_category"], "ai_generated_image")
+        self.assertEqual(uncertain["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(uncertain["reason_code"], "manual_admin_decision")
         self.assertEqual(uncertain["verdict"], "review")
 
@@ -363,7 +363,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "qr_code",
             "object_or_landscape_only",
             "celebrity_or_stock_photo",
-            "ai_generated_or_avatar",
+            "ai_generated_or_synthetic",
             "explicit_adult_image",
             "low_quality_or_unusable",
             "underage_concern",
@@ -378,7 +378,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review",
             "object_or_landscape_only -> reject_recommendation/review",
             "celebrity_or_stock_photo -> fake_profile/review",
-            "ai_generated_or_avatar -> fake_profile/review",
+            "ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision",
             "explicit_adult_image -> reject/escalate",
             "low_quality_or_unusable -> review/reject",
             "underage_concern -> never approve; escalate/review",
@@ -405,13 +405,13 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "nudity",
             "pornographic_explicit",
             "inappropriate_photos",
-            "ai_generated_image",
+            "ai_generated_or_synthetic",
             "contact_info_or_ad",
             "contact_info_text_only_ad",
             "not_a_profile_photo",
             "low_quality_or_unusable",
             "meme_or_screenshot",
-            "is_blank_or_unusable",
+            "blank_or_unusable",
             "fake_profile",
             "underage",
             "money_request",

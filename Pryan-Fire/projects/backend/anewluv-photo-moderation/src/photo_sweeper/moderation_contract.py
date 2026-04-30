@@ -5,7 +5,7 @@ VALID_VERDICTS = {"approve_recommendation", "reject_recommendation", "review", "
 EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
 APPROVE_ONLY_REASONS = {"clean_profile_style"}
 MANUAL_REVIEW_REASONS = {
-    "ai_generated_image",
+    "ai_generated_or_synthetic",
     "contact_info_or_ad",
     "contact_info_text_only_ad",
     "low_quality_or_unusable",
@@ -15,7 +15,7 @@ MANUAL_REVIEW_REASONS = {
     "api_auth_unavailable",
     "missing_image_reference",
     "meme_or_screenshot",
-    "is_blank_or_unusable",
+    "blank_or_unusable",
     "is_ai_generated",
 }
 
@@ -39,7 +39,7 @@ PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "un
 
 WORKER_MODEL_CATEGORIES = {
     "clean_profile_style",
-    "ai_generated_image",
+    "ai_generated_or_synthetic",
     "sexual_content",
     "nudity",
     "pornographic_explicit",
@@ -66,7 +66,7 @@ IMAGE_TYPE_CLASSIFICATIONS = {
     "qr_code",
     "object_or_landscape_only",
     "celebrity_or_stock_photo",
-    "ai_generated_or_avatar",
+    "ai_generated_or_synthetic",
     "explicit_adult_image",
     "low_quality_or_unusable",
     "underage_concern",
@@ -81,6 +81,7 @@ CANONICAL_REASON_MAP = {
     "nudity": "sexual_content",
     "pornographic_explicit": "sexual_content",
     "inappropriate_photos": "inappropriate_photos",
+    "ai_generated_or_synthetic": "fake_profile",
     "ai_generated_image": "fake_profile",
     "ai_generated_or_avatar": "fake_profile",
     "not_a_profile_photo": "fake_profile",
@@ -105,6 +106,7 @@ CANONICAL_REASON_MAP = {
     "low_quality_or_unusable": "inappropriate_photos",
     "meme_or_screenshot": "inappropriate_photos",
     "is_meme_or_screenshot": "inappropriate_photos",
+    "blank_or_unusable": "inappropriate_photos",
     "is_blank_or_unusable": "inappropriate_photos",
     "manual_review_needed": "manual_admin_decision",
     "api_failure_fallback": "manual_admin_decision",
@@ -274,7 +276,7 @@ DEFAULT_PROFILE_CHECKS = {
     "is_profile_style_photo": False,
     "has_contact_info": False,
     "meme_or_screenshot": False,
-    "is_blank_or_unusable": False,
+    "blank_or_unusable": False,
     "is_ai_generated": False,
     "needs_human_review": True,
 }
@@ -316,7 +318,7 @@ Identify which type of image this is:
 - qr_code
 - object_or_landscape_only
 - celebrity_or_stock_photo
-- ai_generated_or_avatar
+- ai_generated_or_synthetic
 - explicit_adult_image
 - low_quality_or_unusable
 - underage_concern
@@ -330,7 +332,7 @@ Image type mapping:
 - meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
 - object_or_landscape_only -> reject_recommendation/review
 - celebrity_or_stock_photo -> fake_profile/review
-- ai_generated_or_avatar -> fake_profile/review
+- ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision
 - explicit_adult_image -> reject/escalate
 - low_quality_or_unusable -> review/reject
 - underage_concern -> never approve; escalate/review
@@ -349,13 +351,13 @@ Detailed flags to inspect:
 - nudity: partial or full nudity
 - pornographic_explicit: hard porn, explicit sexual material
 - inappropriate_photos: other inappropriate content
-- ai_generated_image: AI-generated, synthetic, or digitally created people
+- ai_generated_or_synthetic: AI-generated, synthetic, or digitally created people
 - contact_info_or_ad: phone/email/social handles, promotional content
 - contact_info_text_only_ad: text-only image with handles, numbers, or ads
 - not_a_profile_photo: book, object, illustration, artwork, animal, scenery
 - low_quality_or_unusable: blurry, dark, obscured, grainy, unwatchable
 - meme_or_screenshot: memes, screenshots, copied/pasted images
-- is_blank_or_unusable: solid color, blank, fully black/white images
+- blank_or_unusable: solid color, blank, fully black/white images
 - fake_profile: stock photos, celebrity images, catfishing
 - underage: any signs of minors (young-looking, school photos, minors present)
 - money_request: CashApp/Venmo/PayPal, “send money,” “sugar,” paid companionship solicitation
@@ -381,7 +383,7 @@ CANONICAL canonical_reason_code output only:
 - pornographic_explicit -> sexual_content
 - inappropriate_photos -> inappropriate_photos
 - low_quality_or_unusable -> inappropriate_photos
-- ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
+- ai_generated_or_synthetic -> fake_profile only if high confidence; otherwise manual_admin_decision/review
 - not_a_profile_photo -> subtype required: meme_or_screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos; object/landscape/group unclear -> inappropriate_photos or review; celebrity/stock/stolen-looking -> fake_profile
 - celebrity_or_stock_photo -> fake_profile
 - object_or_landscape_only -> fake_profile

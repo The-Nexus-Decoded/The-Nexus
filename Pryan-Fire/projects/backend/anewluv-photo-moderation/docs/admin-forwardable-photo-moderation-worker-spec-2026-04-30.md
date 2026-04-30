@@ -405,7 +405,7 @@ Do not include markdown, prose, or extra keys in provider output.
 
 ## 9. Final output policy / normalization split
 
-Final `reason_code` output should be canonical Xano-compatible wherever possible. Detailed prompt flags may still identify `nudity`, `ai_generated_image`, `api_failure_fallback`, etc., but normalized worker output must map them before policy handling.
+Final `reason_code` output should be canonical Xano-compatible wherever possible. Detailed prompt flags may still identify `nudity`, `ai_generated_or_synthetic`, `api_failure_fallback`, etc., but normalized worker output must map them before policy handling.
 
 Required final-output mappings:
 
@@ -447,7 +447,7 @@ Add these image types to the classification block:
 ```txt
 - object_or_landscape_only
 - celebrity_or_stock_photo
-- ai_generated_or_avatar
+- ai_generated_or_synthetic
 - explicit_adult_image
 - low_quality_or_unusable
 ```
@@ -460,7 +460,7 @@ group_photo/unclear_subject -> review
 meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
 object_or_landscape_only -> reject_recommendation/review
 celebrity_or_stock_photo -> fake_profile/review
-ai_generated_or_avatar -> fake_profile/review
+ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision
 explicit_adult_image -> reject/escalate
 low_quality_or_unusable -> review/reject
 ```
@@ -505,7 +505,7 @@ These are the detailed worker/model categories currently covered before canonica
 
 ```txt
 clean_profile_style
-ai_generated_image
+ai_generated_or_synthetic
 sexual_content
 nudity
 pornographic_explicit
@@ -542,7 +542,7 @@ Add these extended image-type classifications to the locked detail layer:
 ```txt
 object_or_landscape_only
 celebrity_or_stock_photo
-ai_generated_or_avatar
+ai_generated_or_synthetic
 explicit_adult_image
 low_quality_or_unusable
 ```
@@ -566,7 +566,7 @@ pornographic_explicit -> sexual_content
 inappropriate_photos -> inappropriate_photos
 low_quality_or_unusable -> inappropriate_photos
 
-ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
+ai_generated_or_synthetic -> fake_profile only if high confidence; otherwise manual_admin_decision/review
 not_a_profile_photo -> fake_profile
 celebrity_or_stock_photo -> fake_profile
 object_or_landscape_only -> fake_profile
@@ -610,8 +610,8 @@ model.py
 AI-generated policy call:
 
 ```txt
-ai_generated_image -> fake_profile only if high confidence
-ai_generated_image -> manual_admin_decision/review if uncertain
+ai_generated_or_synthetic -> fake_profile only if high confidence
+ai_generated_or_synthetic -> manual_admin_decision/review if uncertain
 ```
 
 Module ownership split, locked for the next integration pass:
