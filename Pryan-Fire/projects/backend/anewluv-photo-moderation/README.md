@@ -107,10 +107,12 @@ Mock model categories covered by fixture manifests:
 - `ai_generated_image`
 - `sexual_content`
 - `nudity`
+- `pornographic_explicit`
 - `inappropriate_photos`
 - `contact_info_or_ad`
 - `low_quality_or_unusable`
 - `manual_review_needed`
+- `api_failure_fallback`
 
 Controlled adult-only manual validation, if approved later, must happen outside git. See `docs/adult-manual-validation-outside-git.md`.
 
@@ -125,7 +127,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 Result:
 
 ```text
-Ran 5 tests
+Ran 6 tests
 
 OK
 ```

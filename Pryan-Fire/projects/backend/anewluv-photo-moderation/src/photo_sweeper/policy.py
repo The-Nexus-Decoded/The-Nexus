@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-EXPLICIT_REASONS = {"sexual_content", "nudity", "inappropriate_photos"}
+EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
 REPORT_ONLY_REASONS = {"clean_profile_style"}
 
 
