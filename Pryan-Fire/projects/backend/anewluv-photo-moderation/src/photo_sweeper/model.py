@@ -237,11 +237,17 @@ def _image_path_to_data_url(path: Path) -> str:
     if not path.exists():
         raise FileNotFoundError(str(path))
     send_path = path
+    converted_path: Path | None = None
     mime = mimetypes.guess_type(path.name)[0]
     if path.suffix.lower() == ".ppm" or mime not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
         send_path = _convert_to_png(path)
+        converted_path = send_path
         mime = "image/png"
-    encoded = base64.b64encode(send_path.read_bytes()).decode("ascii")
+    try:
+        encoded = base64.b64encode(send_path.read_bytes()).decode("ascii")
+    finally:
+        if converted_path is not None:
+            converted_path.unlink(missing_ok=True)
     return f"data:{mime};base64,{encoded}"
 
 
@@ -257,7 +263,7 @@ def _convert_to_png(path: Path) -> Path:
 
 
 def _extract_provider_json(payload: dict) -> dict:
-    text = payload.get("output_text") or "\n".join(_strings(payload))
+    text = _extract_provider_text(payload)
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
@@ -266,6 +272,24 @@ def _extract_provider_json(payload: dict) -> dict:
         parsed.setdefault("vision_model_used", DEFAULT_CODEX_MODEL_ROUTE)
         return parsed
     return {"verdict": "review", "reason_code": "manual_review_needed", "vision_model_used": DEFAULT_CODEX_MODEL_ROUTE}
+
+
+def _extract_provider_text(payload: dict) -> str:
+    output_text = payload.get("output_text")
+    if isinstance(output_text, str):
+        return output_text
+
+    text_parts: list[str] = []
+    for item in payload.get("output") or []:
+        if not isinstance(item, dict):
+            continue
+        for content in item.get("content") or []:
+            if not isinstance(content, dict):
+                continue
+            if content.get("type") in {"output_text", "text"} and isinstance(content.get("text"), str):
+                text_parts.append(content["text"])
+
+    return "\n".join(text_parts)
 
 
 def _manual_failure(reason_code: str, model: str, note: str, *, fallback: str | None = None) -> dict:
