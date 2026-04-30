@@ -211,13 +211,13 @@ Prompt instruction: Approve recommendation only when this is a clean profile pho
 
 Reason code: `clean_profile_style`
 
-6. Not a profile photo
+6. Not a real profile photo
 
-Description: Book, object, illustration, artwork, pet-only image, logo, landscape, food, vehicle, room, or unrelated image.
+Description: Meme, screenshot, celebrity/photo of someone else, object-only image, landscape, cartoon, group image with unclear owner.
 
-Prompt instruction: Recommend rejection/review if the image is not a real profile-style photo of a person.
+Prompt instruction: Manual review or reject recommendation depending severity.
 
-Reason code: `inappropriate_photos`
+Reason code: `fake_profile or inappropriate_photos`
 
 7. Fake / AI-generated image
 
@@ -227,13 +227,13 @@ Prompt instruction: Manual review unless policy says reject.
 
 Reason code: `fake_profile`
 
-8. Contact info or advertisement
+8. Contact info / off-platform solicitation
 
-Description: Phone number, email, social handle, QR code, external username, promo flyer, sales content, watermark/contact bait, or ad-like image.
+Description: Phone number, email, Snapchat/Instagram/Telegram/WhatsApp handle, QR code, URL, “text me,” “add me.”
 
-Prompt instruction: Recommend rejection/review when contact info or ad content is visible.
+Prompt instruction: Reject/escalate if visible.
 
-Reason code: `off_platform_contact or spam`
+Reason code: `off_platform_contact`
 
 9. Text-only contact/ad image
 
@@ -283,11 +283,11 @@ Prompt instruction: Recommend rejection/review when the image appears fake, stoc
 
 Reason code: `fake_profile`
 
-15. Spam or bulk-uploaded content
+15. Advertisement / spam
 
-Description: Spam graphic, repeated/template content, sales pitch, bulk promo image, solicitation, or obviously non-personal upload.
+Description: Flyer, business promo, paid service ad, crypto/financial pitch, repeated text overlay, marketing graphic.
 
-Prompt instruction: Recommend rejection if the image appears to be spam or bulk promotional content.
+Prompt instruction: Reject/escalate if the image is promotional/spam.
 
 Reason code: `spam`
 

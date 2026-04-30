@@ -68,10 +68,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Approve recommendation only when this is a clean profile photo and every other check passes.",
     },
     {
-        "name": "Not a profile photo",
-        "reason_code": "inappropriate_photos",
-        "description": "Book, object, illustration, artwork, pet-only image, logo, landscape, food, vehicle, room, or unrelated image.",
-        "prompt_instruction": "Recommend rejection/review if the image is not a real profile-style photo of a person.",
+        "name": "Not a real profile photo",
+        "reason_code": "fake_profile or inappropriate_photos",
+        "description": "Meme, screenshot, celebrity/photo of someone else, object-only image, landscape, cartoon, group image with unclear owner.",
+        "prompt_instruction": "Manual review or reject recommendation depending severity.",
     },
     {
         "name": "Fake / AI-generated image",
@@ -80,10 +80,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Manual review unless policy says reject.",
     },
     {
-        "name": "Contact info or advertisement",
-        "reason_code": "off_platform_contact or spam",
-        "description": "Phone number, email, social handle, QR code, external username, promo flyer, sales content, watermark/contact bait, or ad-like image.",
-        "prompt_instruction": "Recommend rejection/review when contact info or ad content is visible.",
+        "name": "Contact info / off-platform solicitation",
+        "reason_code": "off_platform_contact",
+        "description": "Phone number, email, Snapchat/Instagram/Telegram/WhatsApp handle, QR code, URL, “text me,” “add me.”",
+        "prompt_instruction": "Reject/escalate if visible.",
     },
     {
         "name": "Text-only contact/ad image",
@@ -122,10 +122,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Recommend rejection/review when the image appears fake, stock, celebrity, or impersonating someone.",
     },
     {
-        "name": "Spam or bulk-uploaded content",
+        "name": "Advertisement / spam",
         "reason_code": "spam",
-        "description": "Spam graphic, repeated/template content, sales pitch, bulk promo image, solicitation, or obviously non-personal upload.",
-        "prompt_instruction": "Recommend rejection if the image appears to be spam or bulk promotional content.",
+        "description": "Flyer, business promo, paid service ad, crypto/financial pitch, repeated text overlay, marketing graphic.",
+        "prompt_instruction": "Reject/escalate if the image is promotional/spam.",
     },
     {
         "name": "Bot-style content",
