@@ -90,7 +90,7 @@ Resolution options:
 
 Approval needed before writing recommendation values.
 
-## Blocker 4 — AI audit detail path is missing/narrow
+## Blocker 4 — unified moderation history path is missing/narrow
 
 Existing `moderation_audit_log` captures endpoint-level audit:
 
@@ -101,34 +101,26 @@ Existing `moderation_audit_log` captures endpoint-level audit:
 - `response_status`
 - `target_user_id`
 
-Required assignment audit includes:
+Required unified moderation history includes:
 
 - photo id
 - user id
-- image URL reviewed
-- queue source
-- broad moderation model used
-- image/vision model used
-- fallback model used
-- deterministic checks used
-- moderation API summary
-- image/vision summary
-- final verdict
-- confidence
-- reason code
-- note
-- actor type
+- actor type: `ai_agent`, `admin`, `user`, or `system`
+- actor identity fields where available
+- shared decision/action/reason/note/outcome fields
 - timestamp
+- nullable AI metadata for AI rows: model, confidence, fallback path, checks, model summaries, dry-run/error data
+- AI metadata null for human/admin/system rows when not applicable
 
 Impact:
 
-- Required audit evidence cannot be stored in the current audit table without schema/API changes or a separate table.
+- Required moderation history cannot be stored in the current endpoint-level audit table without schema/API changes, a compatible existing photo/photo-management table, or a reconciled generic history table.
 
 Resolution options:
 
-1. Xano branch change: create `photo_ai_moderation_audit` table + write endpoint.
-2. Xano branch change: extend existing audit table carefully.
-3. Store minimal endpoint audit now and defer detailed audit, but this fails assignment acceptance until resolved.
+1. Preferred path: reuse/extend existing photo/photo-management tables if they can support unified moderation history without destructive changes.
+2. Xano branch change: create or reconcile a generic `photo_moderation_history` table/contract only if existing structures cannot support the lifecycle safely.
+3. Store minimal endpoint audit now and defer detailed moderation history, but this fails assignment acceptance until resolved.
 
 Approval needed before non-dry-run review actions.
 
@@ -239,7 +231,7 @@ Before write-capable code, approve or resolve:
 
 1. `ai_agent` final decision contract.
 2. Dedicated AI recommendation write path.
-3. AI audit detail storage.
+3. Unified moderation history storage.
 4. Escalation queue/ack route.
 5. Backend-mediated email/notification route.
 6. Auth source for direct queue dry-run.

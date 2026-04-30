@@ -29,7 +29,7 @@ Production `v1` was not set live again or replaced by Devon in this step. No del
 
 Xano table id: `162`
 
-Purpose: structured AI photo moderation evidence. Stores normalized evidence and final/planned action state without raw model output or secrets.
+Purpose: provisional moderation-history storage. The table name is AI-specific because it was created before Lord Xar corrected the architecture; conceptually, the accepted target is unified photo moderation history for all actor types.
 
 Functional requirement clarified by Lord Xar/Zifnab: **every moderated photo action should be tracked in a shared moderation ledger format**. AI-reviewed photos must always be tracked, and human/admin/user moderation should use the same record shape where possible. AI-specific evidence is optional/nullable and distinguished by `actor_type` / model fields, not a separate source of truth. `Photos` remains the current-state source of truth; the moderation ledger is the historical motivation/evidence trail.
 
@@ -66,7 +66,7 @@ Fields verified after creation:
 
 Xano table id: `163`
 
-Purpose: AI photo moderation escalation queue and acknowledgement state.
+Purpose: provisional photo moderation escalation queue and acknowledgement state for unified moderation history workflows.
 
 Fields verified after creation:
 
@@ -114,7 +114,7 @@ Contract:
 - requires caller user to be admin;
 - allows `ai_agent`, `system`, or `admin` actor types;
 - creates an open escalation row;
-- writes an AI audit row with `verdict=escalate` and `final_action=escalation_opened`.
+- writes a unified moderation history row with `actor_type` and `final_action=escalation_opened`.
 
 ### `GET /photos/escalations`
 
@@ -184,8 +184,8 @@ Contract:
 - rejects missing/deleted photos;
 - writes only AI recommendation fields on `Photos` and `review_type_id=1`;
 - does not update `photostatus_id`;
-- writes structured AI audit evidence;
-- acceptance gate: every successful call must create exactly one audit row for the AI review/recommendation attempt, and the endpoint must not silently update `Photos` if audit persistence fails.
+- writes a unified moderation history row;
+- acceptance gate: every successful call must create exactly one moderation history row for the review/recommendation attempt, and the endpoint must not silently update `Photos` if history persistence fails.
 
 ### `POST /photos/ai_decide`
 
@@ -214,8 +214,8 @@ Contract:
 - requires an existing AI recommendation before final decision;
 - updates `Photos.photostatus_id` to approved/rejected status and `review_type_id=1`;
 - writes `admin_notes` when rejected or note present;
-- writes structured AI audit evidence;
-- acceptance gate: final approve/reject must not proceed unless audit persistence succeeds or the final action is explicitly recorded in the same audit transaction/path.
+- writes a unified moderation history row;
+- acceptance gate: final approve/reject must not proceed unless moderation-history persistence succeeds or the final action is explicitly recorded in the same history transaction/path.
 
 ## Shared moderation ledger rule
 
