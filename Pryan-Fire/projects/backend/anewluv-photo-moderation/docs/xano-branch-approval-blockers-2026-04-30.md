@@ -5,7 +5,7 @@ Mode: blocker register only. No production mutation.
 
 ## Absolute Xano non-deletion gate
 
-Lord Xar's Xano rule for this workflow: never delete Xano data, records, tables, fields, indexes, endpoints, functions, tasks, triggers, branches, or files. If functionality does not exist, propose/create new additive Xano objects on an approved branch. Do not destructively replace existing behavior.
+Lord Xar's Xano rule for this workflow: never delete Xano data, records, tables, fields, indexes, endpoints, functions, tasks, triggers, branches, or files. Anewluv normally works on Xano `v1`; do not create new Xano branches by default because branch testing requires client/API URL changes and Lord Xar merge handling. If functionality does not exist, propose additive use of existing `v1` objects first and create new objects only with explicit Lord Xar approval. Do not destructively replace existing behavior.
 
 ## Blocker 1 — `/photos/decide` rejects `ai_agent`
 
@@ -28,7 +28,7 @@ Impact:
 
 Resolution options:
 
-1. Xano branch change: allow `actor_type == "ai_agent"` for this endpoint when service key and admin/service-account auth are valid, with audit showing AI actor.
+1. Xano `v1` additive change proposal, only after Lord Xar approval: allow `actor_type == "ai_agent"` for this endpoint when service key and admin/service-account auth are valid, with audit showing AI actor.
 2. Add a separate AI final-decision endpoint with narrower policy checks and stronger audit.
 3. Keep AI as recommendation-only and require human/admin final decision.
 
@@ -52,7 +52,7 @@ Impact:
 Resolution options:
 
 1. Inspect and approve existing generic `PATCH /photos/{photos_id}` if it safely permits only the needed AI fields under correct auth.
-2. Xano branch change: add dedicated `POST /photos/ai_recommendation` or equivalent endpoint.
+2. Xano `v1` additive change proposal, only after Lord Xar approval: add dedicated `POST /photos/ai_recommendation` or equivalent endpoint.
 
 Endpoint should:
 
@@ -119,7 +119,7 @@ Impact:
 Resolution options:
 
 1. Preferred path: reuse/extend existing photo/photo-management tables if they can support unified moderation history without destructive changes.
-2. Xano branch change: create or reconcile a generic `photo_moderation_history` table/contract only if existing structures cannot support the lifecycle safely.
+2. Xano `v1` additive change proposal, only after Lord Xar approval: create or reconcile a generic `photo_moderation_history` table/contract only if existing structures cannot support the lifecycle safely.
 3. Store minimal endpoint audit now and defer detailed moderation history, but this fails assignment acceptance until resolved.
 
 Approval needed before non-dry-run review actions.
@@ -147,7 +147,7 @@ Impact:
 
 Resolution options:
 
-1. Xano branch change: create dedicated `photo_moderation_escalations` table + endpoints.
+1. Xano `v1` additive change proposal, only after Lord Xar approval: create dedicated `photo_moderation_escalations` table + endpoints.
 2. Reuse an existing moderation queue table only if exact semantics are confirmed and approved.
 3. Defer escalation writes and keep all uncertain photos as `review`, but this fails assignment escalation requirements.
 

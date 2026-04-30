@@ -1,7 +1,7 @@
 # Anewluv Photo Moderation — Xano Branch Creation Evidence
 
 Date: 2026-04-30  
-Mode: branch creation only; no tables/endpoints/functions created in this step.
+Mode: historical branch creation evidence only; no tables/endpoints/functions created in this step. Superseding clarification from Lord Xar: Anewluv normally works on Xano `v1`; do not create new Xano branches by default because branch testing requires client/API URL changes and Lord Xar merge handling.
 
 ## Branch created
 
@@ -36,16 +36,16 @@ v1
 
 ## Tooling note
 
-The available Xano MCP tools expose branch-targeted creation for API groups, APIs, and functions, but the `addTable` tool schema observed in this session does **not** expose a `branch` argument. Because Xano is additive-only and production `v1` must not be mutated directly, Devon must not create new tables through that tool until a branch-safe table creation path is confirmed.
+The available Xano MCP tools expose branch-targeted creation for API groups, APIs, and functions, but the `addTable` tool schema observed in this session does **not** expose a `branch` argument. Later Lord Xar clarification says Anewluv works on `v1` and Xano branch testing is not the default path. Therefore Devon must not create new tables through that tool unless Lord Xar explicitly approves the `v1` additive change.
 
 Safe next steps:
 
 - create branch-targeted functions/API stubs only if needed and clearly branch-scoped;
-- find a branch-safe table creation path before adding `photo_ai_moderation_audit` or `photo_moderation_escalations`;
-- alternatively ask Zifnab/Lord Xar for Xano UI/API assistance to create tables on the branch.
+- do not add `photo_ai_moderation_audit` or `photo_moderation_escalations` unless Lord Xar explicitly approves the `v1` additive change after existing-schema review;
+- ask Zifnab/Lord Xar before any Xano schema movement; branch creation is not the default workflow.
 
 Unsafe next steps:
 
-- do not call `addTable` without confirmed branch targeting;
+- do not call `addTable` without explicit Lord Xar approval for `v1` additive schema movement;
 - do not use destructive delete/update/replace tools;
 - do not set branch live.
