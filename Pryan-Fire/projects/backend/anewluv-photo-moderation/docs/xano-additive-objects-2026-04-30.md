@@ -264,6 +264,7 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] All five new endpoints exist and are visible in moderation API listing/OpenAPI.
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
+- [ ] Every moderated photo action is recorded in the same moderation history format, regardless of actor type.
 - [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
 - [ ] Shared ledger contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
 - [ ] Every AI-moderated photo writes at least one moderation ledger row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
