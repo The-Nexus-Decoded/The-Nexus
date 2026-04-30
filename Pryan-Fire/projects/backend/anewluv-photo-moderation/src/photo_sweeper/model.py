@@ -68,7 +68,8 @@ class CodexOpenAIAdapter:
         model: str = DEFAULT_CODEX_MODEL,
         timeout_seconds: int = 120,
     ) -> None:
-        self.api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        raw_api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        self.api_key = raw_api_key.strip() if raw_api_key else None
         self.endpoint = endpoint
         self.model = model
         self.timeout_seconds = timeout_seconds
