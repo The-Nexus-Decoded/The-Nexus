@@ -10,6 +10,9 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+
 function loadSolanaDeps() {
   const { Connection, Keypair, PublicKey, sendAndConfirmTransaction } = require('@solana/web3.js');
   const { BN } = require('@coral-xyz/anchor');
@@ -39,6 +42,63 @@ function asTxArray(txs) {
   return Array.isArray(txs) ? txs : [txs];
 }
 
+function tokenMetadata(positionData) {
+  const candidates = [
+    {
+      mint: positionData.mint_x,
+      symbol: positionData.token_x_symbol || positionData.symbol_x || 'X',
+      decimals: Number(positionData.decimals_x ?? positionData.token_x_decimals ?? (positionData.mint_x === USDC_MINT ? 6 : 9)),
+    },
+    {
+      mint: positionData.mint_y,
+      symbol: positionData.token_y_symbol || positionData.symbol_y || 'Y',
+      decimals: Number(positionData.decimals_y ?? positionData.token_y_decimals ?? (positionData.mint_y === USDC_MINT ? 6 : 9)),
+    },
+  ];
+  const seen = new Set();
+  return candidates.filter((asset) => {
+    if (!asset.mint || seen.has(asset.mint)) return false;
+    seen.add(asset.mint);
+    return true;
+  });
+}
+
+async function tokenBalanceAtoms(connection, owner, mintAddress, PublicKey) {
+  const accounts = await connection.getParsedTokenAccountsByOwner(owner, { mint: new PublicKey(mintAddress) }, 'confirmed');
+  return accounts.value.reduce((total, account) => {
+    const amount = account.account.data?.parsed?.info?.tokenAmount?.amount || '0';
+    return total + BigInt(amount);
+  }, 0n);
+}
+
+async function snapshotBalances(connection, owner, assets, PublicKey) {
+  const balances = {};
+  for (const asset of assets) {
+    if (asset.mint === SOL_MINT) {
+      balances[asset.mint] = BigInt(await connection.getBalance(owner, 'confirmed'));
+    } else {
+      balances[asset.mint] = await tokenBalanceAtoms(connection, owner, asset.mint, PublicKey);
+    }
+  }
+  return balances;
+}
+
+function postCloseAssets(assets, beforeBalances, afterBalances) {
+  return assets.map((asset) => {
+    const before = beforeBalances[asset.mint] ?? 0n;
+    const after = afterBalances[asset.mint] ?? 0n;
+    const delta = after - before;
+    return {
+      mint: asset.mint,
+      symbol: asset.symbol,
+      decimals: Number.isFinite(asset.decimals) ? asset.decimals : (asset.mint === USDC_MINT ? 6 : 9),
+      before_atoms: before.toString(),
+      after_atoms: after.toString(),
+      delta_atoms: delta > 0n ? delta.toString() : '0',
+    };
+  }).filter((asset) => asset.delta_atoms !== '0');
+}
+
 try {
   const payload = readPayload();
   const positionData = payload.position || payload.trigger?.position || {};
@@ -61,6 +121,9 @@ try {
   if (expectedOwner && expectedOwner !== String(wallet.publicKey)) {
     throw new Error(`wallet_owner_mismatch:${wallet.publicKey}`);
   }
+
+  const trackedAssets = tokenMetadata(positionData);
+  const beforeBalances = await snapshotBalances(connection, wallet.publicKey, trackedAssets, PublicKey);
 
   const dlmmPool = await DLMM.create(connection, new PublicKey(poolAddress));
   const positions = await dlmmPool.getPositionsByUserAndLbPair(wallet.publicKey);
@@ -99,12 +162,15 @@ try {
     signatures.push(signature);
   }
 
+  const afterBalances = await snapshotBalances(connection, wallet.publicKey, trackedAssets, PublicKey);
+
   writeResult({
     success: true,
     position: positionAddress,
     pool: poolAddress,
     wallet: String(wallet.publicKey),
     signatures,
+    post_close_assets: postCloseAssets(trackedAssets, beforeBalances, afterBalances),
   });
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
