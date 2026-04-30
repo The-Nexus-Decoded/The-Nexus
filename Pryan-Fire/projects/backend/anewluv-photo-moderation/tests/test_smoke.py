@@ -371,6 +371,9 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("not clearly a usable profile photo of a real person, do not approve", instructions)
         self.assertIn("detected_category = detailed AI/image classification", instructions)
         self.assertIn("reason_code = canonical Xano-compatible moderation reason", instructions)
+        self.assertIn("detected_category", instructions)
+        self.assertIn("reason_code", instructions)
+        self.assertNotIn("- is_meme_or_screenshot:", instructions)
         self.assertIn("Detailed flags to inspect", instructions)
         self.assertIn("CANONICAL reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
@@ -386,7 +389,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "contact_info_text_only_ad",
             "not_a_profile_photo",
             "low_quality_or_unusable",
-            "is_meme_or_screenshot",
+            "meme_or_screenshot",
             "is_blank_or_unusable",
             "fake_profile",
             "underage",

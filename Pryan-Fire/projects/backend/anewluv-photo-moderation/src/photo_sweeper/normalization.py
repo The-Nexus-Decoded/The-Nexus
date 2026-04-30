@@ -83,7 +83,7 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
         confidence = 0.74
         unsafe_categories = ["contact_info_or_ad"]
         checks["has_contact_info"] = True
-        checks["is_meme_or_screenshot"] = True
+        checks["meme_or_screenshot"] = True
     elif any(term in text for term in ["blurry", "dark", "unclear", "obscured", "low quality", "not visible"]):
         reason_code = "low_quality_or_unusable"
         confidence = 0.68

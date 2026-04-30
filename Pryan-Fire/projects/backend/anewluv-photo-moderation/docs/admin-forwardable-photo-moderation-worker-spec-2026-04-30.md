@@ -649,3 +649,16 @@ meme/screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photo
 object/landscape/group unclear -> inappropriate_photos or review
 celebrity/stock/stolen-looking -> fake_profile
 ```
+
+Prompt label cleanup:
+
+```txt
+is_meme_or_screenshot -> meme_or_screenshot
+```
+
+Output layering example:
+
+```txt
+detected_category = meme_or_screenshot
+reason_code = inappropriate_photos / fake_profile / manual_admin_decision
+```

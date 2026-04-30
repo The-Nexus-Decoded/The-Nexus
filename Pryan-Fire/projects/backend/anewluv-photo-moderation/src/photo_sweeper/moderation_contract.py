@@ -14,7 +14,7 @@ MANUAL_REVIEW_REASONS = {
     "api_failure_fallback",
     "api_auth_unavailable",
     "missing_image_reference",
-    "is_meme_or_screenshot",
+    "meme_or_screenshot",
     "is_blank_or_unusable",
     "is_ai_generated",
 }
@@ -99,6 +99,7 @@ CANONICAL_REASON_MAP = {
     "underage": "underage",
     "minor_targeting": "minor_targeting",
     "low_quality_or_unusable": "inappropriate_photos",
+    "meme_or_screenshot": "inappropriate_photos",
     "is_meme_or_screenshot": "inappropriate_photos",
     "is_blank_or_unusable": "inappropriate_photos",
     "manual_review_needed": "manual_admin_decision",
@@ -268,7 +269,7 @@ REASON_PROMPT_ROWS = tuple(
 DEFAULT_PROFILE_CHECKS = {
     "is_profile_style_photo": False,
     "has_contact_info": False,
-    "is_meme_or_screenshot": False,
+    "meme_or_screenshot": False,
     "is_blank_or_unusable": False,
     "is_ai_generated": False,
     "needs_human_review": True,
@@ -341,7 +342,7 @@ Detailed flags to inspect:
 - contact_info_text_only_ad: text-only image with handles, numbers, or ads
 - not_a_profile_photo: book, object, illustration, artwork, animal, scenery
 - low_quality_or_unusable: blurry, dark, obscured, grainy, unwatchable
-- is_meme_or_screenshot: memes, screenshots, copied/pasted images
+- meme_or_screenshot: memes, screenshots, copied/pasted images
 - is_blank_or_unusable: solid color, blank, fully black/white images
 - fake_profile: stock photos, celebrity images, catfishing
 - underage: any signs of minors (young-looking, school photos, minors present)
@@ -360,7 +361,7 @@ CANONICAL reason_code output only:
 - inappropriate_photos -> inappropriate_photos
 - low_quality_or_unusable -> inappropriate_photos
 - ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
-- not_a_profile_photo -> subtype required: meme/screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos; object/landscape/group unclear -> inappropriate_photos or review; celebrity/stock/stolen-looking -> fake_profile
+- not_a_profile_photo -> subtype required: meme_or_screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos; object/landscape/group unclear -> inappropriate_photos or review; celebrity/stock/stolen-looking -> fake_profile
 - celebrity_or_stock_photo -> fake_profile
 - object_or_landscape_only -> fake_profile
 - contact_info_or_ad -> off_platform_contact or spam

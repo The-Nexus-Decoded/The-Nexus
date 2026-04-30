@@ -69,6 +69,7 @@ def _profile_clean(flags: dict) -> bool:
     return (
         flags.get("is_profile_style_photo") is True
         and not flags.get("has_contact_info")
+        and not flags.get("meme_or_screenshot")
         and not flags.get("is_meme_or_screenshot")
         and not flags.get("is_blank_or_unusable")
         and not flags.get("is_ai_generated")
