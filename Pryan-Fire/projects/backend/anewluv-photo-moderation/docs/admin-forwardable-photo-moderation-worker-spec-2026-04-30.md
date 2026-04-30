@@ -291,13 +291,13 @@ Prompt instruction: Reject/escalate if the image is promotional/spam.
 
 Reason code: `spam`
 
-16. Bot-style content
+16. Bot/scam signal
 
-Description: Bot-like promo image, automation artifact, repetitive template, machine-posted style, or suspicious non-human profile content.
+Description: Scammy text, fake verification graphic, reused model/stock-photo style, suspicious overlay.
 
-Prompt instruction: Recommend rejection/review if the image suggests bot behavior.
+Prompt instruction: Manual review or reject recommendation.
 
-Reason code: `bot_behavior`
+Reason code: `bot_behavior or fake_profile`
 
 17. Off-platform contact attempt
 
@@ -307,27 +307,27 @@ Prompt instruction: Recommend rejection if the image asks or hints for off-platf
 
 Reason code: `off_platform_contact`
 
-18. Harassment or bullying
+18. Hate / harassment / threats
 
-Description: Harassing, bullying, threatening, degrading, or targeted abusive text/image content.
+Description: Hate symbols, slurs, violent threats, targeted harassment.
 
-Prompt instruction: Escalate if harassment, bullying, or threats are present.
+Prompt instruction: Reject/escalate.
 
-Reason code: `harassment`
+Reason code: `hate_speech or harassment`
 
 19. Hate speech or hateful symbols
 
-Description: Hate symbols, slurs, extremist imagery, or hateful/dehumanizing content targeting protected groups.
+Description: Additional hate-symbol or hateful/dehumanizing content signal if not captured by the combined hate/harassment/threats item.
 
-Prompt instruction: Escalate if hate speech or hateful symbols are present.
+Prompt instruction: Reject/escalate if hateful content is present.
 
 Reason code: `hate_speech`
 
-20. Money request or scam signal
+20. Money request / transactional dating signal
 
-Description: CashApp/Venmo/crypto/payment request, sugar/scam solicitation, money demand, donation ask, or financial bait in the image.
+Description: CashApp/Venmo/PayPal handle, “send money,” “sugar,” explicit paid companionship solicitation.
 
-Prompt instruction: Recommend rejection if payment or money-solicitation content appears.
+Prompt instruction: Reject/escalate.
 
 Reason code: `money_request`
 
