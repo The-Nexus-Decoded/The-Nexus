@@ -15,7 +15,6 @@ from photo_sweeper.model import (
     normalize_minimax_description,
     normalize_model_result,
 )
-from photo_sweeper.moderation_contract import REVIEW_ITEMS, XANO_CANONICAL_REASON_CODES
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -183,15 +182,37 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("image_generation", dumped.lower())
 
         instructions = payload["instructions"]
-        self.assertIn("Only approve clean_profile_style when all other checks pass", instructions)
-        self.assertIn("Photo moderation review items", instructions)
-        for item in REVIEW_ITEMS:
-            self.assertIn(item["name"], instructions)
-            self.assertIn(item["reason_code"], instructions)
-            self.assertIn(item["description"], instructions)
-            self.assertIn(item["prompt_instruction"], instructions)
-        for reason_code in XANO_CANONICAL_REASON_CODES:
+        self.assertIn("You are an ANewLuv photo moderator", instructions)
+        self.assertIn("Return ONLY JSON with this exact shape", instructions)
+        self.assertIn("REJECTION CATEGORIES", instructions)
+        self.assertIn("APPROVE ONLY", instructions)
+        self.assertIn("If unsure", instructions)
+        self.assertIn("Confidence below 0.6", instructions)
+        for reason_code in {
+            "sexual_content",
+            "nudity",
+            "pornographic_explicit",
+            "inappropriate_photos",
+            "ai_generated_image",
+            "contact_info_or_ad",
+            "contact_info_text_only_ad",
+            "not_a_profile_photo",
+            "low_quality_or_unusable",
+            "is_meme_or_screenshot",
+            "is_blank_or_unusable",
+            "fake_profile",
+            "underage",
+            "money_request",
+            "hate_speech",
+            "spam",
+            "bot_behavior",
+            "off_platform_contact",
+            "harassment",
+            "clean_profile_style",
+        }:
             self.assertIn(reason_code, instructions)
+        self.assertIn("final authority", instructions)
+        self.assertNotIn("Photo moderation review items", instructions)
 
     def test_ppm_fixture_converts_to_png_data_url(self):
         queue = load_queue()
