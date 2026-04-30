@@ -54,10 +54,10 @@ class TradeStateMachine:
             self.transition(ExecutorState.IDLE)
             return
 
-        quote = await self.jupiter.get_quote(input_mint, output_mint, amount_atoms)
+        quote = await self.jupiter.get_quote(input_mint, output_mint, amount_atoms, taker=self.user_pubkey)
         
         if not quote:
-            print("[ROUTING ERROR] Failed to fetch Jupiter quote.")
+            print("[ROUTING ERROR] Failed to fetch Jupiter Ultra quote.")
             self.transition(ExecutorState.IDLE)
             return
 
@@ -93,7 +93,7 @@ class TradeStateMachine:
         self.transition(ExecutorState.EXECUTING)
         try:
             # 1. Fetch the swap transaction
-            print("[TX] Requesting swap transaction from Jupiter...")
+            print("[TX] Reading Ultra order transaction from Jupiter...")
             swap_b64 = await self.jupiter.get_swap_transaction(
                 self.current_trade["quote"], 
                 self.user_pubkey

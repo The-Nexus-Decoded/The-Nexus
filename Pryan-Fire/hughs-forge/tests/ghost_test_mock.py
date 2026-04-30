@@ -4,7 +4,7 @@ from src.executor.state_machine import TradeStateMachine, ExecutorState
 from src.executor.kill_switch import KILL_SWITCH
 
 class MockJupiterService:
-    async def get_quote(self, input_mint, output_mint, amount, slippage_bps=50):
+    async def get_quote(self, input_mint, output_mint, amount, slippage_bps=50, taker=None):
         # Mocking a successful quote for 0.1 SOL -> ~15 USDC
         return {
             "inputMint": input_mint,
@@ -15,8 +15,13 @@ class MockJupiterService:
             "swapMode": "ExactIn",
             "slippageBps": slippage_bps,
             "platformFee": None,
-            "priceImpactPct": "0.01"
+            "priceImpactPct": "0.01",
+            "transaction": "mock_unsigned_transaction",
+            "requestId": "mock-request-id",
         }
+
+    async def get_swap_transaction(self, quote, user_public_key):
+        return quote.get("transaction")
 
 async def ghost_run_mock():
     print("--- INITIATING MOCKED GHOST EXECUTION TEST ---")
@@ -44,10 +49,10 @@ async def ghost_run_mock():
         "description": "Large Trade Test"
     }
     # Update mock for large amount
-    executor.jupiter.get_quote = lambda i, o, a: asyncio.Future()
+    executor.jupiter.get_quote = lambda i, o, a, **kwargs: asyncio.Future()
     f = asyncio.Future()
     f.set_result({"outAmount": "1500000000"}) # $1500
-    executor.jupiter.get_quote = lambda i, o, a: f
+    executor.jupiter.get_quote = lambda i, o, a, **kwargs: f
     
     await executor.process_opportunity(large_op)
     

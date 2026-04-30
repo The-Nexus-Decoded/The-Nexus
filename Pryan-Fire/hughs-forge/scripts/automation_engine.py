@@ -693,53 +693,95 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict, state:
         return False
 
 
+JUPITER_ULTRA_ENDPOINT = os.getenv("JUPITER_ULTRA_ENDPOINT", "https://api.jup.ag/ultra/v1")
+
+
+def _jupiter_headers() -> Dict[str, str]:
+    headers = {"User-Agent": "OpenClaw-Hugh/1.0"}
+    api_key = os.getenv("JUPITER_API_KEY")
+    if api_key:
+        headers["x-api-key"] = api_key
+    return headers
+
+
 def _get_jupiter_quote(input_mint: str, output_mint: str, amount: int) -> Optional[Dict]:
-    """Get swap quote from Jupiter v6 API."""
+    """Get an unsigned Jupiter Ultra order preview/transaction.
+
+    Kept under the historical helper name for compatibility. This no longer
+    calls legacy quote-api v6; with a configured taker it returns an Ultra
+    order containing `transaction` and `requestId` for manual signing.
+    """
+    return _get_jupiter_ultra_order(input_mint, output_mint, amount, 50)
+
+
+def _get_jupiter_ultra_order(
+    input_mint: str,
+    output_mint: str,
+    amount: int,
+    slippage_bps: int,
+    user_public_key: Optional[str] = None,
+) -> Optional[Dict]:
+    """Request a Jupiter Ultra order and fail closed on malformed responses."""
+    taker = user_public_key or os.getenv("TRADING_WALLET_PUBLIC_KEY", "")
+    if not taker:
+        logger.error("No user public key configured for Jupiter Ultra order")
+        return None
+
+    params = {
+        "inputMint": input_mint,
+        "outputMint": output_mint,
+        "amount": str(amount),
+        "slippageBps": slippage_bps,
+        "taker": taker,
+    }
     try:
-        params = {
-            "inputMint": input_mint,
-            "outputMint": output_mint,
-            "amount": str(amount),
-            "slippageBps": 50,
-        }
-        resp = requests.get("https://quote-api.jup.ag/v6/quote", params=params, timeout=10)
+        resp = requests.get(f"{JUPITER_ULTRA_ENDPOINT}/order", params=params, headers=_jupiter_headers(), timeout=15)
         if resp.status_code != 200:
-            logger.error(f"Jupiter API error: {resp.status_code}")
+            logger.error(f"Jupiter Ultra order API error: {resp.status_code}")
             return None
-        
-        quote = resp.json()
-        if not quote:
-            logger.error("No quotes returned from Jupiter")
+
+        order = resp.json()
+        if not isinstance(order, dict):
+            logger.error("Jupiter Ultra order response was not an object")
             return None
-        
-        return quote
+        if not isinstance(order.get("transaction"), str) or not order.get("transaction", "").strip():
+            logger.error("Jupiter Ultra order missing transaction")
+            return None
+        if not isinstance(order.get("requestId"), str) or not order.get("requestId", "").strip():
+            logger.error("Jupiter Ultra order missing requestId")
+            return None
+        return order
     except Exception as e:
-        logger.error(f"Failed to get Jupiter quote: {e}")
+        logger.error(f"Failed to get Jupiter Ultra order: {e}")
         return None
 
 
 def _get_jupiter_swap_transaction(quote: Dict, input_mint: str, output_mint: str, slippage_bps: int, user_public_key: Optional[str] = None) -> Optional[str]:
-    """Get swap transaction from Jupiter API."""
-    try:
-        url = "https://quote-api.jup.ag/v6/swap"
-        payload = {
-            "quoteResponse": quote,
-            "userPublicKey": user_public_key or os.getenv("TRADING_WALLET_PUBLIC_KEY", ""),
-            "slippageBps": slippage_bps,
-        }
-        if not payload["userPublicKey"]:
-            logger.error("No user public key configured for Jupiter swap transaction")
+    """Return the unsigned Ultra transaction from a validated order.
+
+    `quote` is accepted for backward compatibility. If it is already an Ultra
+    order, use it; otherwise request a fresh Ultra order. No legacy v6 swap API
+    is used here.
+    """
+    order = quote if isinstance(quote, dict) and "transaction" in quote else None
+    if order is None:
+        amount = int((quote or {}).get("inAmount") or (quote or {}).get("amount") or 0)
+        if amount <= 0:
+            logger.error("Cannot build Jupiter Ultra transaction without input amount")
             return None
-        resp = requests.post(url, json=payload, timeout=15)
-        if resp.status_code != 200:
-            logger.error(f"Jupiter swap API error: {resp.status_code}")
-            return None
-        
-        data = resp.json()
-        return data.get("swapTransaction")
-    except Exception as e:
-        logger.error(f"Failed to build Jupiter transaction: {e}")
+        order = _get_jupiter_ultra_order(input_mint, output_mint, amount, slippage_bps, user_public_key)
+
+    if not isinstance(order, dict):
         return None
+    transaction = order.get("transaction")
+    request_id = order.get("requestId")
+    if not isinstance(transaction, str) or not transaction.strip():
+        logger.error("Jupiter Ultra order missing transaction")
+        return None
+    if not isinstance(request_id, str) or not request_id.strip():
+        logger.error("Jupiter Ultra order missing requestId")
+        return None
+    return transaction
 
 
 def _post_swap_transaction_to_discord(wallet_name: str, trigger: Dict, swap_tx: str, quote: Dict):

@@ -357,3 +357,55 @@ def test_execution_notification_includes_approval_source(monkeypatch):
     content = posted[0]["content"]
     assert "**Approval**: `risk-manager` / `approved` by `Lord Xar`" in content
     assert "**Tx**: `sig123`" in content
+
+def test_jupiter_ultra_order_rejects_missing_transaction(monkeypatch):
+    monkeypatch.setenv("TRADING_WALLET_PUBLIC_KEY", "Wallet111111111111111111111111111111111111111")
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {"requestId": "req-123"}
+
+    monkeypatch.setattr(automation_engine.requests, "get", lambda *_, **__: Resp())
+
+    assert automation_engine._get_jupiter_ultra_order("A", "B", 100, 50) is None
+
+
+def test_jupiter_ultra_order_rejects_missing_request_id(monkeypatch):
+    monkeypatch.setenv("TRADING_WALLET_PUBLIC_KEY", "Wallet111111111111111111111111111111111111111")
+
+    class Resp:
+        status_code = 200
+        def json(self):
+            return {"transaction": "base64tx"}
+
+    monkeypatch.setattr(automation_engine.requests, "get", lambda *_, **__: Resp())
+
+    assert automation_engine._get_jupiter_ultra_order("A", "B", 100, 50) is None
+
+
+def test_jupiter_swap_transaction_uses_ultra_order_not_legacy_swap(monkeypatch):
+    called = {}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        called["url"] = url
+        called["params"] = params
+        class Resp:
+            status_code = 200
+            def json(self):
+                return {"transaction": "base64tx", "requestId": "req-123", "outAmount": "99"}
+        return Resp()
+
+    def fail_post(*_args, **_kwargs):
+        raise AssertionError("legacy Jupiter swap POST must not be used")
+
+    monkeypatch.setenv("TRADING_WALLET_PUBLIC_KEY", "Wallet111111111111111111111111111111111111111")
+    monkeypatch.setattr(automation_engine.requests, "get", fake_get)
+    monkeypatch.setattr(automation_engine.requests, "post", fail_post)
+
+    tx = automation_engine._get_jupiter_swap_transaction({"inAmount": "100"}, "A", "B", 50)
+
+    assert tx == "base64tx"
+    assert called["url"].endswith("/order")
+    assert called["url"].startswith("https://api.jup.ag/ultra/v1")
+    assert called["params"]["taker"] == "Wallet111111111111111111111111111111111111111"
