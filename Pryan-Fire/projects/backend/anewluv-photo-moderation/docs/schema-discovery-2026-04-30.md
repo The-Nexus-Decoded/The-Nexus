@@ -167,6 +167,22 @@ Relevant fields:
 
 No dedicated photo escalation queue table, user rejection email queue table, or AI photo audit detail table was confirmed in this pass.
 
+Follow-up full table-name sweep on 2026-04-30 found 124 workspace tables and did not find a separate table literally named `photo_rejection_reasons` / `photo_reason`. However, existing reason-code infrastructure does exist through `moderation/validate_reason_code`, `moderation_keywords`, `/photos/decide` `reject_reason_code`, and manual moderation tables (`user_warnings`, `user_suspensions`, `user_bans`, etc.). Treat existing moderation structures as the preferred integration path before using any new table.
+
+## Existing moderation schema correction
+
+Lord Xar correctly flagged that the manual moderation system already exists and that new photo AI work must not rebuild it blindly.
+
+Evidence from the broader schema sweep:
+
+- `photo_review_type` already distinguishes `Agent` and `Human` review source.
+- `Photos` already contains AI current-state fields.
+- `/photos/decide` already handles photo final decision, `reject_reason_code`, and `admin_notes` for `target_type = user_photo`.
+- `moderation_keywords` is keyed by existing reason codes.
+- User moderation tables already use append-only/current-state reason patterns.
+
+Implication: before worker writes, inspect/reuse the current manual photo moderation contract. The provisional tables `162` and `163` remain inert unless existing structures cannot satisfy the unified history/escalation requirements without destructive changes.
+
 ## Existing moderation API group
 
 API group: `moderation`, id `162`, base group identifier shown by Swagger as `/api:S8LKJE3D`.
