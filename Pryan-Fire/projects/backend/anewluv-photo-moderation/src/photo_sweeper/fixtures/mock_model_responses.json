@@ -1,0 +1,122 @@
+{
+  "clean_profile_style": {
+    "verdict": "approved",
+    "confidence": 0.93,
+    "reason_code": "clean_profile_style",
+    "note": "Mock clean profile-style image; recommendation only.",
+    "unsafe_categories": [],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": true,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": false
+    }
+  },
+  "ai_generated_image": {
+    "verdict": "review",
+    "confidence": 0.82,
+    "reason_code": "ai_generated_image",
+    "note": "Mock AI-generated signal; human moderator must decide.",
+    "unsafe_categories": ["ai_generated_image"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": true,
+      "needs_human_review": true
+    }
+  },
+  "sexual_content": {
+    "verdict": "rejected",
+    "confidence": 0.9,
+    "reason_code": "sexual_content",
+    "note": "Mock sexual-content category; reject recommendation only.",
+    "unsafe_categories": ["sexual_content"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  },
+  "nudity": {
+    "verdict": "rejected",
+    "confidence": 0.9,
+    "reason_code": "nudity",
+    "note": "Mock nudity category; reject recommendation only.",
+    "unsafe_categories": ["nudity"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  },
+  "inappropriate_photos": {
+    "verdict": "rejected",
+    "confidence": 0.88,
+    "reason_code": "inappropriate_photos",
+    "note": "Mock inappropriate-photo category; reject recommendation only.",
+    "unsafe_categories": ["inappropriate_photos"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  },
+  "contact_info_or_ad": {
+    "verdict": "rejected",
+    "confidence": 0.84,
+    "reason_code": "contact_info_or_ad",
+    "note": "Mock contact info or ad signal; reject recommendation only.",
+    "unsafe_categories": ["contact_info_or_ad"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": true,
+      "is_meme_or_screenshot": true,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  },
+  "low_quality_or_unusable": {
+    "verdict": "rejected",
+    "confidence": 0.8,
+    "reason_code": "low_quality_or_unusable",
+    "note": "Mock low-quality or unusable signal; reject recommendation only.",
+    "unsafe_categories": ["low_quality_or_unusable"],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": true,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  },
+  "manual_review_needed": {
+    "verdict": "review",
+    "confidence": 0.4,
+    "reason_code": "manual_review_needed",
+    "note": "Mock uncertain case; manual moderator must decide.",
+    "unsafe_categories": [],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "is_ai_generated": false,
+      "needs_human_review": true
+    }
+  }
+}

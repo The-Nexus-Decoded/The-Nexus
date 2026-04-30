@@ -56,3 +56,78 @@ Key reconciliation docs:
 - `docs/existing-photo-moderation-schema-sweep-2026-04-30.md`
 - `docs/existing-path-ai-behavior-gap-map-2026-04-30.md`
 - `docs/xano-branch-only-verification-2026-04-30.md`
+
+## First executable dry-run
+
+This repo now contains a small Python package and CLI named `photo-sweeper`.
+
+The implementation is deliberately recommendation-only:
+
+- AI output is evidence and recommendation only.
+- Manual moderation remains final.
+- `Profiles.is_ai` is not used or created.
+- No Xano schema movement is performed.
+- The worker does not write, even when `--force` is passed.
+- Provisional `162/163` paths remain inert.
+- Fixtures are safe synthetic files and mock JSON responses only.
+
+Install for local CLI use:
+
+```bash
+python3 -m pip install -e . --no-build-isolation
+```
+
+Optional local test/image extras:
+
+```bash
+python3 -m pip install -e '.[test,image]' --no-build-isolation
+```
+
+Dry-run commands compatible with the locked docs:
+
+```bash
+photo-sweeper --once --dry-run --limit 10
+photo-sweeper --once --photo-id <id> --dry-run
+photo-sweeper --once --photo-id <id> --force
+```
+
+Without installing, use:
+
+```bash
+PYTHONPATH=src python3 -m photo_sweeper --once --dry-run --limit 10
+PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --dry-run
+PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --force
+```
+
+The default queue source is `src/photo_sweeper/fixtures/queue_redacted.json`. Queue items are normalized before output, and `user_email` is omitted from CLI output.
+
+Mock model categories covered by fixture manifests:
+
+- `clean_profile_style`
+- `ai_generated_image`
+- `sexual_content`
+- `nudity`
+- `inappropriate_photos`
+- `contact_info_or_ad`
+- `low_quality_or_unusable`
+- `manual_review_needed`
+
+Controlled adult-only manual validation, if approved later, must happen outside git. See `docs/adult-manual-validation-outside-git.md`.
+
+## Test Results
+
+Verified in this worktree on 2026-04-30:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+Result:
+
+```text
+Ran 5 tests
+
+OK
+```
+
+`pytest` was not installed in the execution environment, so the smoke tests are written as `unittest.TestCase` tests that pytest can also collect when `.[test]` is installed.
