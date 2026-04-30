@@ -15,7 +15,7 @@ from photo_sweeper.model import (
     normalize_minimax_description,
     normalize_model_result,
 )
-from photo_sweeper.moderation_contract import WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
+from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -163,6 +163,23 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "manual_review_needed",
                 "api_failure_fallback",
                 "missing_image_reference",
+                "api_auth_unavailable",
+            },
+        )
+
+    def test_image_type_classification_set_is_locked(self):
+        self.assertEqual(
+            IMAGE_TYPE_CLASSIFICATIONS,
+            {
+                "real_person_profile_photo",
+                "selfie",
+                "group_photo",
+                "unclear_subject",
+                "meme_or_screenshot",
+                "text_only_image",
+                "advertisement_or_flyer",
+                "contact_card_or_social_handle",
+                "qr_code",
             },
         )
 

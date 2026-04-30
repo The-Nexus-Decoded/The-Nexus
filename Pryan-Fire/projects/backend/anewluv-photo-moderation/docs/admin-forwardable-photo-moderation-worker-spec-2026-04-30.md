@@ -517,6 +517,22 @@ not_a_profile_photo
 manual_review_needed
 api_failure_fallback
 missing_image_reference
+api_auth_unavailable
 ```
 
 These are not all final `reason_code` outputs. The validator maps detailed categories into the locked canonical Xano-compatible set before policy handling.
+
+
+Lord Xar requested image-type classifications covered in the prompt:
+
+```txt
+real_person_profile_photo
+selfie
+group_photo
+unclear_subject
+meme_or_screenshot
+text_only_image
+advertisement_or_flyer
+contact_card_or_social_handle
+qr_code
+```

@@ -51,6 +51,19 @@ WORKER_MODEL_CATEGORIES = {
     "manual_review_needed",
     "api_failure_fallback",
     "missing_image_reference",
+    "api_auth_unavailable",
+}
+
+IMAGE_TYPE_CLASSIFICATIONS = {
+    "real_person_profile_photo",
+    "selfie",
+    "group_photo",
+    "unclear_subject",
+    "meme_or_screenshot",
+    "text_only_image",
+    "advertisement_or_flyer",
+    "contact_card_or_social_handle",
+    "qr_code",
 }
 
 CANONICAL_REASON_MAP = {
