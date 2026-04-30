@@ -88,7 +88,7 @@ def _provider_report(model_adapter: str) -> dict:
     normalized = model_adapter.strip().lower()
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
         provider = "codex-openai-image"
-        model_route = "gpt-5.5 + gpt-image-2 configured image route"
+        model_route = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
     elif normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
         provider = "openai-moderations"
         model_route = "openai-moderations"

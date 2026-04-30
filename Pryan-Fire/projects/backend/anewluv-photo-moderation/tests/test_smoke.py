@@ -9,7 +9,7 @@ from unittest import mock
 from photo_sweeper.model import (
     CodexOpenAIAdapter,
     MiniMaxCLIAdapter,
-    _codex_request_payload,
+    _codex_oauth_request_payload,
     _image_path_to_data_url,
     _redact_provider_error_body,
     normalize_minimax_description,
@@ -131,11 +131,11 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
     def test_codex_provider_report_fields_are_zero_write_text_json(self):
         queue = load_queue()
-        with mock.patch.dict("os.environ", {"CODEX_OPENAI_API_KEY": "", "OPENAI_API_KEY": ""}, clear=False):
+        with mock.patch.dict("os.environ", {"CODEX_OPENAI_API_KEY": "", "OPENAI_API_KEY": "", "CODEX_AUTH_PATH": "/tmp/does-not-exist-codex-auth.json"}, clear=False):
             result = run_once(queue, limit=1, photo_id=None, dry_run=True, force=False, model_fixture=None, model_adapter="codex-openai-image")
 
         self.assertEqual(result["provider"], "codex-openai-image")
-        self.assertEqual(result["model_route"], "gpt-5.5 + gpt-image-2 configured image route")
+        self.assertEqual(result["model_route"], "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route")
         self.assertEqual(result["image_generation_events"], 0)
         self.assertEqual(result["output_type"], "text_json")
         self.assertIs(result["writes"], False)
@@ -171,13 +171,15 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 2)
         self.assertIn("not available", proc.stderr)
 
-    def test_codex_payload_has_instructions_and_no_image_generation_request(self):
-        payload = _codex_request_payload("gpt-5.5", "data:image/png;base64,abc")
+    def test_codex_oauth_payload_has_required_route_shape(self):
+        payload = _codex_oauth_request_payload("gpt-5.5", "data:image/png;base64,abc")
         self.assertIn("instructions", payload)
         self.assertEqual(payload["model"], "gpt-5.5")
+        self.assertIs(payload["store"], False)
+        self.assertIs(payload["stream"], True)
         dumped = json.dumps(payload)
         self.assertIn("input_image", dumped)
-        self.assertNotIn("image_generation", dumped.lower())
+        self.assertIn("image_generation", dumped.lower())
 
     def test_ppm_fixture_converts_to_png_data_url(self):
         queue = load_queue()
@@ -221,7 +223,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         queue = load_queue()
         with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            result = CodexOpenAIAdapter(api_key="unit_test_key").review(queue[0], {})
+            result = CodexOpenAIAdapter(api_key="unit_test_key", codex_auth_path=Path("/tmp/does-not-exist-codex-auth.json")).review(queue[0], {})
 
         self.assertEqual(result["verdict"], "reject_recommendation")
         self.assertEqual(result["normalization_applied"], "yes")
@@ -265,7 +267,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 ).encode("utf-8")
 
         with mock.patch("urllib.request.urlopen", return_value=FakeResponse()):
-            result = CodexOpenAIAdapter(api_key="unit_test_key").review(load_queue()[0], {})
+            result = CodexOpenAIAdapter(api_key="unit_test_key", codex_auth_path=Path("/tmp/does-not-exist-codex-auth.json")).review(load_queue()[0], {})
 
         self.assertEqual(result["verdict"], "approve_recommendation")
         self.assertEqual(result["reason_code"], "clean_profile_style")

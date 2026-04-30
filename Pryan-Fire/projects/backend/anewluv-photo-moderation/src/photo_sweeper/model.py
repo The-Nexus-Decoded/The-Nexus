@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
-DEFAULT_CODEX_MODEL_ROUTE = "gpt-5.5 + gpt-image-2 configured image route"
+DEFAULT_CODEX_MODEL_ROUTE = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
 DEFAULT_CODEX_MODEL = "gpt-5.5"
-DEFAULT_CODEX_ENDPOINT = "https://api.openai.com/v1/responses"
+DEFAULT_CODEX_OAUTH_ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
+DEFAULT_PUBLIC_OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
 
 FINAL_TO_RECOMMENDATION_VERDICTS = {
@@ -53,8 +54,10 @@ class CodexOpenAIAdapter:
     """Primary text-json image moderation adapter.
 
     This sends image input for analysis only. It does not call Xano, does not call
-    /photos/decide, and does not generate images. Auth material is read from the
-    process environment and is never returned in reports.
+    /photos/decide, and does not write final moderation decisions. Provider order
+    is Codex OAuth/OpenClaw first, then public OpenAI only if API-key auth exists.
+    Auth material is read from approved local/env paths and is never returned in
+    reports.
     """
 
     provider = "codex-openai-image"
@@ -64,43 +67,68 @@ class CodexOpenAIAdapter:
         self,
         *,
         api_key: str | None = None,
-        endpoint: str = DEFAULT_CODEX_ENDPOINT,
+        endpoint: str | None = None,
         model: str = DEFAULT_CODEX_MODEL,
         timeout_seconds: int = 120,
+        codex_auth_path: Path | None = None,
     ) -> None:
         raw_api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
         self.api_key = raw_api_key.strip() if raw_api_key else None
         self.endpoint = endpoint
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.codex_auth_path = codex_auth_path or Path(os.environ.get("CODEX_AUTH_PATH", Path.home() / ".codex" / "auth.json"))
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         image_path = item.get("resolved_image_path") or item.get("local_fixture_path")
         if not image_path:
             return _manual_failure("missing_image_reference", DEFAULT_CODEX_MODEL_ROUTE, "No local image path was available for Codex/OpenAI review.")
-        if not self.api_key:
-            return _manual_failure("api_auth_unavailable", DEFAULT_CODEX_MODEL_ROUTE, "Codex/OpenAI auth was not available; manual review required.")
-
         try:
             image_url = _image_path_to_data_url(Path(image_path))
-            body = json.dumps(_codex_request_payload(self.model, image_url)).encode("utf-8")
-            request = urllib.request.Request(
-                self.endpoint,
-                data=body,
-                method="POST",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-            )
+            request = self._build_request(image_url)
             with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                payload = _read_provider_payload(response)
         except urllib.error.HTTPError as exc:
             return _manual_failure("api_failure_fallback", DEFAULT_CODEX_MODEL_ROUTE, _safe_http_error_note(exc))
+        except RuntimeError as exc:
+            return _manual_failure("api_auth_unavailable", DEFAULT_CODEX_MODEL_ROUTE, f"{exc}; manual review required.")
         except Exception as exc:  # pragma: no cover - network/provider dependent
             return _manual_failure("api_failure_fallback", DEFAULT_CODEX_MODEL_ROUTE, f"Codex/OpenAI route failed with {exc.__class__.__name__}; manual review required.")
 
         return normalize_model_result(_extract_provider_json(payload), default_model=DEFAULT_CODEX_MODEL_ROUTE)
+
+    def _build_request(self, image_url: str) -> urllib.request.Request:
+        oauth = _load_codex_oauth(self.codex_auth_path)
+        if oauth:
+            token, account_id = oauth
+            body = json.dumps(_codex_oauth_request_payload(self.model, image_url)).encode("utf-8")
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream, application/json",
+            }
+            if account_id:
+                headers["ChatGPT-Account-ID"] = account_id
+            return urllib.request.Request(
+                self.endpoint or DEFAULT_CODEX_OAUTH_ENDPOINT,
+                data=body,
+                method="POST",
+                headers=headers,
+            )
+
+        if not self.api_key:
+            raise RuntimeError("Codex OAuth/OpenAI auth was not available")
+
+        body = json.dumps(_public_openai_request_payload(self.model, image_url)).encode("utf-8")
+        return urllib.request.Request(
+            self.endpoint or DEFAULT_PUBLIC_OPENAI_ENDPOINT,
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+        )
 
 
 class MiniMaxCLIAdapter:
@@ -185,6 +213,10 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
 
 def normalize_model_result(result: dict, *, default_model: str) -> dict:
     normalized = dict(result)
+    if "verdict" not in normalized and "recommendation" in normalized:
+        normalized["verdict"] = normalized.get("recommendation")
+    if "reason_code" not in normalized and "reason" in normalized:
+        normalized["reason_code"] = normalized.get("reason")
     raw_verdict = str(normalized.get("verdict", "review")).lower()
     normalized["verdict"] = FINAL_TO_RECOMMENDATION_VERDICTS.get(raw_verdict, raw_verdict)
     normalized["normalization_applied"] = "yes" if normalized["verdict"] != raw_verdict else "no"
@@ -212,15 +244,38 @@ def _is_valid_normalized_result(result: dict) -> bool:
     return result.get("verdict") in VALID_VERDICTS and isinstance(result.get("unsafe_categories"), list)
 
 
-def _codex_request_payload(model: str, image_url: str) -> dict:
-    instructions = (
+def _provider_instructions() -> str:
+    return (
         "Return only compact JSON for Anewluv profile photo moderation. "
         "Use recommendation language only: approve_recommendation, reject_recommendation, review, or escalate. "
         "Do not make final moderation decisions. Do not generate or edit images."
     )
+
+
+def _codex_oauth_request_payload(model: str, image_url: str) -> dict:
     return {
         "model": model,
-        "instructions": instructions,
+        "store": False,
+        "stream": True,
+        "instructions": _provider_instructions(),
+        "input": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": "Classify this profile photo candidate and return strict JSON."},
+                    {"type": "input_image", "image_url": image_url},
+                ],
+            }
+        ],
+        "tools": [{"type": "image_generation", "model": "gpt-image-2"}],
+        "text": {"format": {"type": "json_object"}},
+    }
+
+
+def _public_openai_request_payload(model: str, image_url: str) -> dict:
+    return {
+        "model": model,
+        "instructions": _provider_instructions(),
         "input": [
             {
                 "role": "user",
@@ -252,6 +307,23 @@ def _image_path_to_data_url(path: Path) -> str:
     return f"data:{mime};base64,{encoded}"
 
 
+def _load_codex_oauth(path: Path) -> tuple[str, str | None] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    tokens = payload.get("tokens") if isinstance(payload, dict) else None
+    if not isinstance(tokens, dict):
+        return None
+    token = tokens.get("access_token")
+    if not isinstance(token, str) or not token.strip():
+        return None
+    account_id = tokens.get("account_id")
+    return token.strip(), account_id.strip() if isinstance(account_id, str) and account_id.strip() else None
+
+
 def _convert_to_png(path: Path) -> Path:
     from PIL import Image
 
@@ -273,6 +345,48 @@ def _extract_provider_json(payload: dict) -> dict:
         parsed.setdefault("vision_model_used", DEFAULT_CODEX_MODEL_ROUTE)
         return parsed
     return {"verdict": "review", "reason_code": "manual_review_needed", "vision_model_used": DEFAULT_CODEX_MODEL_ROUTE}
+
+
+def _read_provider_payload(response: Any) -> dict:
+    raw = response.read().decode("utf-8", errors="replace")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return _parse_sse_payload(raw)
+
+
+def _parse_sse_payload(raw: str) -> dict:
+    events: list[dict] = []
+    text_parts: list[str] = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line.startswith("data:"):
+            continue
+        data = line.removeprefix("data:").strip()
+        if not data or data == "[DONE]":
+            continue
+        try:
+            event = json.loads(data)
+        except json.JSONDecodeError:
+            continue
+        events.append(event)
+        extracted = _extract_provider_text(event)
+        if not extracted and isinstance(event.get("text"), str):
+            extracted = event["text"]
+        if not extracted and isinstance(event.get("delta"), str):
+            text_parts.append(event["delta"])
+            continue
+        if extracted:
+            text_parts.append(extracted)
+    for event in reversed(events):
+        extracted = _extract_provider_text(event)
+        if not extracted and isinstance(event.get("text"), str):
+            extracted = event["text"]
+        if extracted:
+            return {"output_text": extracted}
+    if text_parts:
+        return {"output_text": "\n".join(text_parts)}
+    return {"events": events, "output_text": ""}
 
 
 def _extract_provider_text(payload: dict) -> str:
