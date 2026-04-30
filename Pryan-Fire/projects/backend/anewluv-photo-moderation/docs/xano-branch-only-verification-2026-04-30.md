@@ -8,7 +8,7 @@ Scope: created Xano objects from additive moderation work
 
 **Branch-only verification failed / unresolved leaning live-visible.**
 
-The target branch exists and production live branch remains `v1`, but the new API endpoints are visible in the live `v1` moderation API group listing/OpenAPI metadata without a branch label. The Xano metadata returned `branch: null` for the created endpoints.
+The target branch exists and production live branch remains `v1`, but Lord Xar clarified Anewluv normally works on Xano `v1` and does not use new Xano branches by default. Separately, the new API endpoints are visible in the live `v1` moderation API group listing/OpenAPI metadata without a branch label. The Xano metadata returned `branch: null` for the created endpoints.
 
 Follow-up API evidence on 2026-04-30 showed the target endpoints in live workspace OpenAPI and live moderation API group id `162`, but not in the branch-scoped workspace OpenAPI and not in the branch moderation API group id `185`. This means Devon cannot truthfully claim the endpoints are branch-only from observed API metadata. Treat them as live-visible/inert until Xano UI or authoritative Xano support confirms otherwise.
 
@@ -90,7 +90,7 @@ The following tables exist as global database additions:
 - `photo_ai_moderation_audit` — id `162`
 - `photo_moderation_escalations` — id `163`
 
-This matches Xano's branch model expectation that branches are business-logic copies while database tables are workspace/global data schema.
+This matches Xano's branch model expectation that branches are business-logic copies while database tables are workspace/global data schema. Lord Xar's operational clarification supersedes the earlier branch-first assumption: use `v1` as the normal working branch, but keep all unapproved endpoints/tables inert.
 
 ## Architecture correction: unified moderation history
 
@@ -126,6 +126,7 @@ Forbidden remediation paths:
 - No destructive replacement was used.
 - Existing `POST /photos/decide` was not edited.
 - Production branch was not set live or changed by `setBranchLive`.
+- Lord Xar clarified that Anewluv normally works on `v1`; new Xano branches are not the default because testing requires changed client/API URLs and Lord Xar merge handling.
 - New work was documented with object IDs and acceptance criteria.
 
 ## Risk / blocker
@@ -138,7 +139,7 @@ Evidence-only guardrail: no endpoint execution, worker write enablement, schema/
 
 ## Required next decisions
 
-- Confirm in Xano UI or with authoritative Xano documentation/support whether Xano MCP `createAPI(branch=...)` can create live-visible endpoints when the live API group id is supplied instead of the branch API group id.
+- Treat the branch-scoping question as historical evidence. Current Lord Xar direction is `v1`-first with explicit approval gates, not new Xano branches by default.
 - Because API metadata currently shows live-visible behavior, decide whether to leave endpoints inert behind auth/service-key gates until review, disable/remove only through an approved non-destructive/live-safe plan, or recreate contracts through a proven branch-safe path.
 - Review existing photo/photo-management tables first and decide whether they can support unified moderation history plus escalation lifecycle without destructive changes.
 - Decide the non-destructive remediation for `photo_ai_moderation_audit` id `162`: branch-safe rename, documented generic usage despite historical name, or leave inert and use a reconciled generic moderation audit contract elsewhere.
@@ -151,7 +152,7 @@ Evidence-only guardrail: no endpoint execution, worker write enablement, schema/
 - [x] Branch existence verified.
 - [x] Live branch remains `v1`.
 - [x] Metadata visibility checked.
-- [ ] Branch-only isolation proven. **Failed / unresolved; API evidence currently indicates live-visible, not branch-scoped.**
+- [x] Xano branch policy clarified by Lord Xar: Anewluv normally works on `v1`; branch-only isolation is not the expected development path unless explicitly requested.
 - [ ] Xano UI or authoritative metadata confirms endpoint branch scope or confirms live visibility.
 - [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
 - [ ] New tables used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.

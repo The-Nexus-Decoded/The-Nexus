@@ -9,7 +9,7 @@ This plan lists the minimum Xano changes needed before Devon can implement write
 
 ## Branch requirement
 
-All schema/API changes must happen on a Xano branch first. Production `v1` must not be mutated directly for this workflow.
+Correction from Lord Xar on 2026-04-30: Anewluv normally works directly on the Xano `v1` branch. Do **not** create new Xano branches by default; branch testing is hard because client/API URLs must change, and any Xano branch merge requires Lord Xar. For this workflow, treat `v1` as the operational branch but keep all worker writes/schema movement stopped until Lord Xar approves the reconciled existing-schema plan.
 
 ## Non-deletion gate
 
@@ -18,14 +18,16 @@ Lord Xar's Xano rule for this work is absolute:
 - never delete Xano data or records;
 - never delete Xano tables, fields, indexes, endpoints, functions, tasks, triggers, branches, or files;
 - do not replace an existing endpoint/function destructively;
-- if functionality does not exist, create new additive objects on an approved Xano branch;
+- if functionality does not exist, propose additive use of existing `v1` objects first; create new Xano objects only with explicit Lord Xar approval;
 - existing objects may only be extended compatibly after approval, and the safer default is a new endpoint/table/function.
 
-Suggested branch name:
+Historical branch-attempt name, now superseded by Lord Xar branch policy clarification:
 
 ```text
 photo-ai-moderation-worker
 ```
+
+This branch should not be treated as the normal test/development path. Anewluv works from `v1` unless Lord Xar explicitly directs otherwise.
 
 ## Change 1 — dedicated AI recommendation endpoint
 
@@ -297,7 +299,7 @@ Recommendation:
 
 Before Devon writes implementation code that can mutate state, confirm:
 
-- [ ] Xano branch name and owner.
+- [x] Xano branch posture clarified by Lord Xar: default work branch is `v1`; no new Xano branches by default.
 - [ ] Recommendation endpoint strategy.
 - [ ] Final decision strategy for `ai_agent`.
 - [ ] Unified moderation history storage design.
