@@ -35,6 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to a mock model response manifest JSON file.",
     )
+    parser.add_argument(
+        "--model-adapter",
+        choices=("mock", "minimax-cli"),
+        default="mock",
+        help="Model adapter to use. minimax-cli calls OpenClaw CLI on local files only.",
+    )
     return parser
 
 
@@ -53,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=True,
         force=bool(args.force),
         model_fixture=args.model_fixture,
+        model_adapter=args.model_adapter,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 import os
+import urllib.error
+import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -32,7 +34,7 @@ def inspect_image(item: dict) -> dict:
     if parsed.scheme:
         checks["supported_reference"] = parsed.scheme in SUPPORTED_SCHEMES
         if parsed.scheme in {"http", "https"}:
-            checks["warnings"].append("remote_fetch_disabled_for_dry_run")
+            _probe_remote_image(ref, checks)
             return checks
         path = Path(parsed.path)
     else:
@@ -98,3 +100,45 @@ def _edge_score(pixels) -> float:
     horizontal = abs(pixels[:, 1:] - pixels[:, :-1]).mean()
     score = math.sqrt(float(vertical + horizontal)) / 16.0
     return round(max(0.0, min(1.0, score)), 4)
+
+
+def _probe_remote_image(ref: str, checks: dict) -> None:
+    """Read-only remote probe using GET Range, never HEAD.
+
+    Xano vault URLs observed for Anewluv reject HEAD with 405, while
+    GET with a small Range proves fetchability without downloading or
+    logging image content.
+    """
+    request = urllib.request.Request(
+        ref,
+        headers={
+            "Range": "bytes=0-31",
+            "User-Agent": "photo-sweeper-readonly-probe",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            chunk = response.read(32)
+            checks["exists"] = bool(chunk)
+            checks["file_size_bytes"] = _content_length(response)
+            checks["remote_probe_status"] = getattr(response, "status", None)
+            checks["remote_probe_method"] = "GET_RANGE"
+    except urllib.error.HTTPError as exc:
+        checks["exists"] = False
+        checks["remote_probe_status"] = exc.code
+        checks["remote_probe_method"] = "GET_RANGE"
+        checks["warnings"].append(f"remote_fetch_http_error:{exc.code}")
+    except Exception as exc:  # pragma: no cover - environment dependent
+        checks["exists"] = False
+        checks["remote_probe_method"] = "GET_RANGE"
+        checks["warnings"].append(f"remote_fetch_error:{exc.__class__.__name__}")
+
+
+def _content_length(response) -> int | None:
+    value = response.headers.get("Content-Range")
+    if value and "/" in value:
+        total = value.rsplit("/", 1)[-1]
+        if total.isdigit():
+            return int(total)
+    value = response.headers.get("Content-Length")
+    return int(value) if value and value.isdigit() else None
