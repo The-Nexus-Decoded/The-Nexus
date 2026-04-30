@@ -218,6 +218,23 @@ Contract:
 
 ## Shared moderation ledger rule
 
+Target shared ledger fields, subject to approved schema path:
+
+- `photo_id`
+- `user_id`
+- `actor_type`: `user | admin | ai_agent | system`
+- `actor_id` / `actor_label`
+- `is_ai` boolean, or derive from `actor_type == "ai_agent"`
+- `decision`: e.g. `approved | rejected | review | escalate`
+- `reason_code`
+- `note`
+- `confidence` nullable
+- `model` / `moderation_model` nullable
+- `action` / `final_action`
+- `created_at`
+
+AI-specific data must be nullable metadata in the same ledger shape, not a separate moderation silo.
+
 Minimum behavior for moderation tracking:
 
 - AI reviews a photo → write a moderation ledger row.
@@ -248,6 +265,7 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
 - [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
+- [ ] Shared ledger contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
 - [ ] Every AI-moderated photo writes at least one moderation ledger row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
 - [ ] Human/admin moderation can be represented in the same ledger shape without AI flags/model fields being required.
 - [ ] No AI final approve/reject occurs if ledger/audit persistence fails.
