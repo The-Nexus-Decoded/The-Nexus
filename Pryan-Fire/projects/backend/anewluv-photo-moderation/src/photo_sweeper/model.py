@@ -249,7 +249,9 @@ def _extract_provider_json(payload: dict) -> dict:
     except json.JSONDecodeError:
         return {"verdict": "review", "reason_code": "manual_review_needed", "note": "Provider returned non-JSON text; manual review required.", "vision_model_used": DEFAULT_CODEX_MODEL_ROUTE}
     if isinstance(parsed, dict):
+        raw_model_response = dict(parsed)
         parsed.setdefault("vision_model_used", DEFAULT_CODEX_MODEL_ROUTE)
+        parsed.setdefault("raw_model_response", raw_model_response)
         return parsed
     return {"verdict": "review", "reason_code": "manual_review_needed", "vision_model_used": DEFAULT_CODEX_MODEL_ROUTE}
 

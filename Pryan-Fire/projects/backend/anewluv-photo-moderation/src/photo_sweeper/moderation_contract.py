@@ -4,6 +4,16 @@ VALID_VERDICTS = {"approve_recommendation", "reject_recommendation", "review", "
 
 EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
 APPROVE_ONLY_REASONS = {"clean_profile_style"}
+BUSINESS_REJECT_REASONS = {"not_person_photo", "policy_violation", "too_blurry_or_blank", "explicit_content", "unsafe_content"}
+HARD_SAFETY_HUMAN_ONLY_REASONS = {
+    "sexual_content",
+    "explicit_content",
+    "unsafe_content",
+    "underage",
+    "minor_targeting",
+    "hate_speech",
+    "harassment",
+}
 MANUAL_REVIEW_REASONS = {
     "ai_generated_or_synthetic",
     "contact_info_or_ad",
@@ -82,7 +92,7 @@ CANONICAL_REASON_MAP = {
     "pornographic_explicit": "sexual_content",
     "inappropriate_photos": "inappropriate_photos",
     "ai_generated_or_synthetic": "fake_profile",
-    "not_a_profile_photo": "fake_profile",
+    "not_a_profile_photo": "not_person_photo",
     "celebrity_or_stock_photo": "fake_profile",
     "object_or_landscape_only": "fake_profile",
     "fake_profile": "fake_profile",
@@ -111,6 +121,13 @@ CANONICAL_REASON_MAP = {
     "api_auth_unavailable": "manual_admin_decision",
     "missing_image_reference": "manual_admin_decision",
     "manual_admin_decision": "manual_admin_decision",
+    "uncertain": "manual_admin_decision",
+    "ok": "clean_profile_style",
+    "not_person_photo": "not_person_photo",
+    "policy_violation": "inappropriate_photos",
+    "explicit_content": "explicit_content",
+    "unsafe_content": "unsafe_content",
+    "too_blurry_or_blank": "too_blurry_or_blank",
 }
 
 REVIEW_ITEMS = (

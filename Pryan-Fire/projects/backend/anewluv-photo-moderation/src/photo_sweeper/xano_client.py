@@ -123,15 +123,22 @@ class XanoModerationClient:
         self.timeout_seconds = timeout_seconds
         self.token_cache = token_cache or TokenCache()
 
-    def queue(self, *, limit: int | None = None) -> dict[str, Any]:
+    def queue(self, *, page: int = 1, per_page: int | None = None, limit: int | None = None) -> dict[str, Any]:
         query = self._actor_params()
-        if limit is not None:
-            query["limit"] = str(limit)
+        query["page"] = str(page)
+        if per_page is not None:
+            query["per_page"] = str(per_page)
+        elif limit is not None:
+            query["per_page"] = str(limit)
         return self._request("GET", "/photos/queue", query=query)
 
     def ai_decide(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = {**payload, **self._actor_params()}
         return self._request("POST", "/photos/ai_decide", body=body)
+
+    def escalation_open(self, payload: dict[str, Any]) -> dict[str, Any]:
+        body = {**payload, **self._actor_params()}
+        return self._request("POST", "/photos/escalations/open", body=body)
 
     def _actor_params(self) -> dict[str, str]:
         return {"actor_key": self.config.actor_key, "actor_type": self.config.actor_type}

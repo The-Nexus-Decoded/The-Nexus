@@ -18,6 +18,7 @@ from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
+from photo_sweeper.xano_client import TokenCache, XanoConfig, XanoModerationClient
 
 
 def run_cli(*args, check=True):
@@ -58,11 +59,11 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             item
             for item in result["photos"]
             if item["normalized_result"].get("raw_reason_code", item["normalized_result"]["reason_code"])
-            in {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
+            in {"sexual_content", "nudity", "pornographic_explicit"}
         ]
 
-        self.assertEqual({item["planned_action"] for item in explicit}, {"escalate"})
-        self.assertEqual({item["recommended_decision"] for item in explicit}, {"reject_recommendation"})
+        self.assertEqual({item["planned_action"] for item in explicit}, {"human_admin_review"})
+        self.assertEqual({item["recommended_decision"] for item in explicit}, {None})
         self.assertTrue(all(item["would_finalize_decision"] is False for item in explicit))
         self.assertTrue(all(item["would_write_recommendation"] is False for item in explicit))
 
@@ -111,6 +112,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "inappropriate_photos",
                 "off_platform_contact",
                 "manual_admin_decision",
+                "not_person_photo",
             },
         )
         self.assertTrue(all(item["would_finalize_decision"] is False for item in result["photos"]))
@@ -123,7 +125,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         self.assertEqual(photo["normalized_result"]["raw_reason_code"], "api_failure_fallback")
         self.assertEqual(photo["normalized_result"]["reason_code"], "manual_admin_decision")
-        self.assertEqual(photo["planned_action"], "manual_review")
+        self.assertEqual(photo["planned_action"], "agent_review")
         self.assertEqual(photo["model_path"]["vision_model_used"], "unavailable")
         self.assertEqual(photo["model_path"]["fallback_model"], "mock_failure_fallback")
         self.assertIs(photo["would_write_recommendation"], False)
@@ -228,9 +230,119 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         result = combine(item, checks, model_result, dry_run=True, force=False)
 
-        self.assertEqual(result["planned_action"], "manual_review")
+        self.assertEqual(result["planned_action"], "agent_review")
         self.assertEqual(result["would_write_recommendation"], False)
         self.assertEqual(result["would_finalize_decision"], False)
+
+    def test_category_agnostic_person_gate_rejects_high_confidence_non_person(self):
+        item = {"photo_id": 13286}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        model_result = normalize_model_result(
+            {
+                "is_person_photo": False,
+                "decision": "reject",
+                "reason": "not_person_photo",
+                "confidence": 0.98,
+                "evidence": "screenshot/card; no real person profile photo",
+                "unsafe_categories": ["meme_or_screenshot"],
+            },
+            default_model="fixture",
+        )
+
+        result = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(model_result["validator"], "pass")
+        self.assertEqual(model_result["reason_code"], "not_person_photo")
+        self.assertEqual(result["planned_action"], "auto_reject")
+        self.assertEqual(result["recommended_decision"], "reject_recommendation")
+        self.assertIs(result["would_escalate"], False)
+
+    def test_category_agnostic_person_gate_approves_clean_person_photo(self):
+        item = {"photo_id": 101}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        model_result = normalize_model_result(
+            {
+                "is_person_photo": True,
+                "decision": "approve",
+                "reason": "ok",
+                "confidence": 0.91,
+                "evidence": "usable person profile photo",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+
+        result = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(result["planned_action"], "report_only")
+        self.assertEqual(result["recommended_decision"], "approve_recommendation")
+
+    def test_category_agnostic_person_gate_uncertain_is_no_write_review(self):
+        item = {"photo_id": 999}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        model_result = normalize_model_result(
+            {
+                "is_person_photo": "uncertain",
+                "decision": "review",
+                "reason": "uncertain",
+                "confidence": 0.54,
+                "evidence": "person/profile fit cannot be confirmed",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+
+        result = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(result["planned_action"], "agent_review")
+        self.assertIsNone(result["recommended_decision"])
+        self.assertIs(result["would_escalate"], False)
+
+    def test_explicit_or_unsafe_content_routes_human_admin_not_write(self):
+        item = {"photo_id": 222}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        for reason in {"explicit_content", "unsafe_content"}:
+            with self.subTest(reason=reason):
+                model_result = normalize_model_result(
+                    {
+                        "is_person_photo": True,
+                        "decision": "reject",
+                        "reason": reason,
+                        "confidence": 0.96,
+                        "evidence": "hard safety content",
+                        "unsafe_categories": [reason],
+                    },
+                    default_model="fixture",
+                )
+
+                result = combine(item, checks, model_result, dry_run=True, force=False)
+
+                self.assertEqual(model_result["validator"], "pass")
+                self.assertEqual(result["planned_action"], "human_admin_review")
+                self.assertIsNone(result["recommended_decision"])
+                self.assertIs(result["would_escalate"], True)
+
+    def test_too_blurry_or_blank_can_auto_reject_without_human_safety_route(self):
+        item = {"photo_id": 333}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        model_result = normalize_model_result(
+            {
+                "is_person_photo": False,
+                "decision": "reject",
+                "reason": "too_blurry_or_blank",
+                "confidence": 0.93,
+                "evidence": "blank/unusable image",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+
+        result = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(model_result["validator"], "pass")
+        self.assertEqual(model_result["reason_code"], "not_person_photo")
+        self.assertEqual(result["planned_action"], "auto_reject")
+        self.assertIs(result["would_escalate"], False)
 
     def test_xano_canonical_reason_code_set_is_locked(self):
         self.assertEqual(
@@ -268,7 +380,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "api_auth_unavailable": "manual_admin_decision",
             "nudity": "sexual_content",
             "pornographic_explicit": "sexual_content",
-            "not_a_profile_photo": "fake_profile",
+            "not_a_profile_photo": "not_person_photo",
             "celebrity_or_stock_photo": "fake_profile",
             "object_or_landscape_only": "fake_profile",
             "contact_info_or_ad": "off_platform_contact",
@@ -574,14 +686,67 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
 
 class XanoPhaseOneTests(unittest.TestCase):
+    def test_xano_client_logs_in_caches_jwt_and_uses_page_per_page_queue_contract(self):
+        class FakeResponse:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(self.payload).encode("utf-8")
+
+        seen = []
+
+        def fake_urlopen(request, timeout):
+            seen.append(
+                {
+                    "url": request.full_url,
+                    "method": request.get_method(),
+                    "authorization": request.headers.get("Authorization"),
+                    "body": json.loads(request.data.decode("utf-8")) if request.data else None,
+                }
+            )
+            if request.full_url.endswith("/auth/login"):
+                return FakeResponse({"authToken": "unit-test-jwt"})
+            return FakeResponse({"items": [], "settings": {}})
+
+        config = XanoConfig(
+            api_base_url="https://example.invalid/api:moderation",
+            auth_api_base_url="https://example.invalid/api:auth",
+            actor_key="unit-test-actor",
+            worker_email="devon@example.invalid",
+            worker_password="unit-test-password",
+        )
+        client = XanoModerationClient(config, token_cache=TokenCache())
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            client.queue(page=2, per_page=25)
+            client.queue(page=3, per_page=5)
+
+        login_calls = [item for item in seen if item["url"].endswith("/auth/login")]
+        queue_calls = [item for item in seen if "/photos/queue?" in item["url"]]
+        self.assertEqual(len(login_calls), 1)
+        self.assertEqual(login_calls[0]["body"], {"email": "devon@example.invalid", "password": "unit-test-password"})
+        self.assertIn("actor_type=ai_agent", queue_calls[0]["url"])
+        self.assertIn("actor_key=unit-test-actor", queue_calls[0]["url"])
+        self.assertIn("page=2", queue_calls[0]["url"])
+        self.assertIn("per_page=25", queue_calls[0]["url"])
+        self.assertEqual(queue_calls[0]["authorization"], "Bearer unit-test-jwt")
+        self.assertEqual(queue_calls[1]["authorization"], "Bearer unit-test-jwt")
+
     def test_live_phase_one_posts_ai_decide_with_run_id_idempotency_and_actor_type(self):
         class FakeClient:
             def __init__(self):
                 self.queue_calls = []
                 self.decisions = []
 
-            def queue(self, *, limit=None):
-                self.queue_calls.append(limit)
+            def queue(self, *, page=1, per_page=None, limit=None):
+                self.queue_calls.append((page, per_page, limit))
                 item = dict(load_queue()[0])
                 item["user_id"] = 9
                 return {
@@ -596,7 +761,7 @@ class XanoPhaseOneTests(unittest.TestCase):
         fake = FakeClient()
         result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
 
-        self.assertEqual(fake.queue_calls, [1])
+        self.assertEqual(fake.queue_calls, [(1, 1, None)])
         self.assertEqual(len(fake.decisions), 1)
         payload = fake.decisions[0]
         self.assertEqual(payload["decision"], "approved")
@@ -613,7 +778,7 @@ class XanoPhaseOneTests(unittest.TestCase):
             def __init__(self):
                 self.decisions = []
 
-            def queue(self, *, limit=None):
+            def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
                     "items": load_queue()[:3],
@@ -631,12 +796,144 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(result["photos_scanned"], 1)
         self.assertEqual(len(fake.decisions), 1)
 
-    def test_live_phase_one_settings_force_escalation_before_post(self):
+    def test_live_phase_one_noops_unresolved_manual_review_results(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0])
+                item["model_fixture_key"] = "manual_review_needed"
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 7}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        payload = fake.escalations[0]
+        self.assertEqual(payload["route"], "agent_review")
+        self.assertEqual(payload["expected_current_status"], 1)
+        self.assertEqual(payload["idempotency_key"], f"{payload['run_id']}:101:escalation")
+        self.assertNotIn("decision", payload)
+        self.assertNotIn("gallery", payload)
+        self.assertNotIn("deleted", payload)
+        self.assertEqual(result["decision_calls"][0]["status"], "escalated")
+        self.assertEqual(result["decision_calls"][0]["route"], "agent_review")
+        self.assertIsNone(result["decision_calls"][0]["decision"])
+
+    def test_live_phase_one_escalation_note_includes_provider_failure_detail(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0])
+                item["model_fixture_key"] = "api_failure_fallback"
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 7}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        note = fake.escalations[0]["note"]
+        self.assertIn("category=api_failure_fallback", note)
+        self.assertIn("detail=Mock API failure; fallback requires manual moderation.", note)
+        self.assertEqual(result["decision_calls"][0]["payload"]["note"], note)
+        self.assertIn("model_path_json", result["decision_calls"][0]["payload"])
+
+    def test_live_phase_one_human_admin_escalation_uses_escalations_endpoint_not_ai_decide(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[2], photostatus_id=1, deleted=False, gallery=True)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 9}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "human_admin_review")
+        self.assertEqual(fake.escalations[0]["severity"], "high")
+        self.assertNotIn("decision", fake.escalations[0])
+        self.assertNotIn("gallery", fake.escalations[0])
+        self.assertNotIn("deleted", fake.escalations[0])
+        self.assertEqual(result["decision_calls"][0]["status"], "escalated")
+        self.assertEqual(result["decision_calls"][0]["route"], "human_admin_review")
+
+    def test_live_phase_one_filters_to_uploaded_not_deleted_only(self):
         class FakeClient:
             def __init__(self):
                 self.decisions = []
 
-            def queue(self, *, limit=None):
+            def queue(self, *, page=1, per_page=None, limit=None):
+                uploaded = dict(load_queue()[0], photostatus_id=1, deleted=False)
+                approved = dict(load_queue()[1], photostatus_id=2, deleted=False)
+                escalated = dict(load_queue()[2], photostatus_id=4, deleted=False)
+                deleted = dict(load_queue()[3], photostatus_id=1, deleted=True)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [approved, escalated, deleted, uploaded],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(result["queue_fetched"], 4)
+        self.assertEqual(result["photos_scanned"], 1)
+        self.assertEqual(fake.decisions[0]["photo_id"], 101)
+
+    def test_live_phase_one_settings_force_escalation_before_post(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": False, "ai_escalate_below_confidence": 0.9},
                     "items": [load_queue()[0]],
@@ -646,16 +943,25 @@ class XanoPhaseOneTests(unittest.TestCase):
                 self.decisions.append(payload)
                 return {"coerced": True}
 
-        fake = FakeClient()
-        run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 8}
 
-        self.assertEqual(fake.decisions[0]["decision"], "escalated")
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "agent_review")
+        self.assertNotIn("decision", fake.escalations[0])
+        self.assertEqual(result["decision_calls"][0]["status"], "escalated")
+        self.assertEqual(result["decision_calls"][0]["reason"], "auto_decide_disabled")
 
     def test_live_phase_one_409_race_is_skip_not_failure(self):
         from photo_sweeper.xano_client import XanoRaceSkip
 
         class FakeClient:
-            def queue(self, *, limit=None):
+            def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
                     "items": [load_queue()[0]],

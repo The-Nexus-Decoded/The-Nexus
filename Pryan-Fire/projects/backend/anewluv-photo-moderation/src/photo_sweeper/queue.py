@@ -25,6 +25,7 @@ def normalize_item(raw: dict) -> dict:
         "image_url_present": bool(raw.get("photo_url") or local_path),
         "queue_source": raw.get("queue_source", "local_redacted_fixture"),
         "photostatus_id": raw.get("photostatus_id"),
+        "deleted": raw.get("deleted"),
         "gallery": raw.get("gallery"),
         "created_at": raw.get("created_at"),
         "model_fixture_key": raw.get("model_fixture_key", "manual_review_needed"),

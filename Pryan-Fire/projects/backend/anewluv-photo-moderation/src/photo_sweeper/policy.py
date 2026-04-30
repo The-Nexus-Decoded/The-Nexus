@@ -1,37 +1,44 @@
 from __future__ import annotations
 
-from .moderation_contract import APPROVE_ONLY_REASONS, EXPLICIT_REASONS, XANO_CANONICAL_REASON_CODES
+from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS, XANO_CANONICAL_REASON_CODES
 
 
 def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, force: bool) -> dict:
     reason = model_result.get("reason_code", "manual_admin_decision")
-    if reason not in XANO_CANONICAL_REASON_CODES and reason not in APPROVE_ONLY_REASONS:
+    if reason not in XANO_CANONICAL_REASON_CODES and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
         reason = "manual_admin_decision"
     verdict = model_result.get("verdict", "review")
     flags = model_result.get("app_profile_photo_checks", {})
     warnings = checks.get("warnings") or []
 
-    planned_action = "manual_review"
+    planned_action = "agent_review"
     recommended_decision = None
 
     if model_result.get("validator") == "fail":
-        planned_action = "manual_review"
-    elif not checks.get("image_reference_present") or checks.get("exists") is False:
-        planned_action = "leave_pending"
+        planned_action = "agent_review"
+    elif not _checks_pass(checks):
+        planned_action = "diagnostic_no_write"
         recommended_decision = None
-    elif verdict == "approve_recommendation" and reason in APPROVE_ONLY_REASONS and _checks_pass(checks) and _profile_clean(flags):
+    elif verdict == "escalate" or reason in HARD_SAFETY_HUMAN_ONLY_REASONS:
+        planned_action = "human_admin_review"
+        recommended_decision = None
+    elif verdict == "approve_recommendation" and reason in APPROVE_ONLY_REASONS and _profile_clean(flags):
         planned_action = "report_only"
         recommended_decision = "approve_recommendation"
+    elif verdict == "reject_recommendation" and reason in BUSINESS_REJECT_REASONS:
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
-        planned_action = "escalate"
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation" and reason in XANO_CANONICAL_REASON_CODES and reason != "manual_admin_decision":
+        planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation":
-        planned_action = "manual_review"
-        recommended_decision = "reject_recommendation"
-    elif verdict == "escalate" or reason in EXPLICIT_REASONS:
-        planned_action = "escalate"
+        planned_action = "agent_review"
+        recommended_decision = None
     elif verdict == "review" or warnings:
-        planned_action = "manual_review"
+        planned_action = "agent_review"
 
     return {
         "photo_id": item["photo_id"],
@@ -51,7 +58,7 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
         "recommended_decision": recommended_decision,
         "would_write_recommendation": False,
         "would_finalize_decision": False,
-        "would_escalate": planned_action == "escalate",
+        "would_escalate": planned_action == "human_admin_review",
     }
 
 

@@ -213,9 +213,9 @@ Reason code: `clean_profile_style`
 
 6. Not a real profile photo
 
-Description: Meme, screenshot, celebrity/photo of someone else, object-only image, landscape, cartoon, group image with unclear owner.
+Description: Meme, screenshot, trading card/game screenshot, celebrity/photo of someone else, object-only image, logo, landscape, cartoon, group image with unclear owner, or any image that is clearly not a real person dating-profile photo.
 
-Prompt instruction: Manual review or reject recommendation depending severity.
+Prompt instruction: Reject recommendation when the image is clearly not a real person/profile photo. Use review only when the model genuinely cannot determine whether a real person/profile photo is present.
 
 Reason code: `fake_profile or inappropriate_photos`
 
@@ -251,13 +251,13 @@ Prompt instruction: Manual review/reject recommendation.
 
 Reason code: `inappropriate_photos`
 
-11. Meme, screenshot, or copied content
+11. Meme, screenshot, trading card, or copied content
 
-Description: Screenshot, meme, app screen, copied/reposted content, quote card, reaction image, or non-original social-media-style image.
+Description: Screenshot, meme, app screen, trading card/game screenshot, copied/reposted content, quote card, reaction image, or non-original social-media-style image.
 
-Prompt instruction: Recommend review/rejection if it appears to be a meme, screenshot, or copied content instead of a profile photo.
+Prompt instruction: Recommend rejection if it is clearly a meme, screenshot, trading card/game screenshot, or copied content instead of a real person dating-profile photo. Use review only when the image cannot be classified confidently.
 
-Reason code: `inappropriate_photos or manual_review_needed`
+Reason code: `inappropriate_photos`
 
 12. Blank or unusable image
 
@@ -456,19 +456,22 @@ Image type mapping:
 
 ```txt
 real_person_profile_photo/selfie -> possible approve_recommendation if all safety checks pass
-group_photo/unclear_subject -> review
-meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
-object_or_landscape_only -> reject_recommendation/review
-celebrity_or_stock_photo -> fake_profile/review
+group_photo/unclear_subject -> review unless the primary user is clear
+meme_or_screenshot/text_only/ad/contact/qr/trading_card_or_game_screenshot -> reject_recommendation when clearly not a profile photo
+object_or_landscape_only/logo_only -> reject_recommendation when no person/profile subject is visible
+celebrity_or_stock_photo -> fake_profile/review or reject depending confidence
 ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision
-explicit_adult_image -> reject/escalate
-low_quality_or_unusable -> review/reject
+explicit_adult_image -> direct human escalation with category preserved
+underage_concern/minor_context -> direct human escalation with category preserved
+hate_or_harassment/violence_or_self_harm/illegal_content -> direct human escalation with category preserved
+low_quality_or_unusable -> reject if blank/corrupt/unreadable; review if person may be present but confidence is low
+inclusive_person_variation -> approve if otherwise clean, or review if low-confidence; never reject solely for gender presentation, disability/medical devices, cultural/religious clothing, nontraditional pose, alt aesthetic, queer-coded presentation, modest dress, or other protected/identity-adjacent presentation
 ```
 
 Prompt instruction:
 
 ```txt
-First classify the image type. Then evaluate safety/policy checks. If the image is not clearly a usable profile photo of a real person, do not approve it.
+First classify the image type. Then evaluate safety/policy checks. The core approval gate is binary: is this a usable dating-profile photo of a real person, and is it outside banned/disallowed categories? If yes, approve. If it is clearly not a real person/profile photo, reject. If it is high-risk policy content, route to human escalation. If uncertainty is ordinary and not high-risk, route to fleet-agent review before human admin. Do not reject unusual-but-valid person photos for style, identity presentation, assistive devices, cultural/religious clothing, modesty, pose, or aesthetics.
 ```
 
 ## 11. Locked canonical reason-code set
@@ -567,9 +570,12 @@ inappropriate_photos -> inappropriate_photos
 low_quality_or_unusable -> inappropriate_photos
 
 ai_generated_or_synthetic -> fake_profile only if high confidence; otherwise manual_admin_decision/review
-not_a_profile_photo -> fake_profile
+not_a_profile_photo -> inappropriate_photos or fake_profile depending subtype
+meme_or_screenshot -> inappropriate_photos
+trading_card_or_game_screenshot -> inappropriate_photos
 celebrity_or_stock_photo -> fake_profile
-object_or_landscape_only -> fake_profile
+object_or_landscape_only -> inappropriate_photos
+logo_only -> inappropriate_photos
 
 contact_info_or_ad -> off_platform_contact or spam
 contact_info_text_only_ad -> off_platform_contact or spam
@@ -581,19 +587,22 @@ hate_or_harassment -> hate_speech or harassment
 bot_or_scam -> bot_behavior
 underage_concern -> underage or minor_targeting
 
-manual_review_needed -> manual_admin_decision
-api_failure_fallback -> manual_admin_decision
-missing_image_reference -> manual_admin_decision
-api_auth_unavailable -> manual_admin_decision
+manual_review_needed -> manual_admin_decision / fleet_agent_review first unless high-risk category applies
+api_failure_fallback -> manual_admin_decision / no_write; do not fabricate a decision
+missing_image_reference -> manual_admin_decision / no_write; do not fabricate a decision
+api_auth_unavailable -> manual_admin_decision / no_write; do not fabricate a decision
 ```
 
 Future write-path eligibility rule:
 
 ```txt
 Prompt may produce detailed detection.
+Business normalization happens before strict validator rejection: correct specific wording such as "trading card/game screenshot/no real person" must normalize to an allowed reject decision/reason instead of failing into ambiguity.
 Validator must preserve detail as detected_category.
 Policy must normalize to canonical Xano reason_code before anything is ever eligible for a future write path.
-Non-canonical reason_code at policy time falls back to manual_admin_decision/manual_review.
+Non-canonical reason_code after business normalization falls back to no_write + fleet-agent review, not a fabricated escalation/write.
+/photos/ai_decide is called only for explicit valid approve/reject decisions.
+Gallery/deleted are never included in worker payloads.
 ```
 
 
@@ -693,13 +702,38 @@ Provider prompt canonical output field:
 
 ```json
 {
-  "detected_category": "specific visual category",
-  "canonical_reason_code": "existing Xano-compatible reason",
-  "verdict": "approve_recommendation | reject_recommendation | review | escalate"
+  "is_person_photo": true | false | "uncertain",
+  "decision": "approve | reject | review",
+  "reason": "ok | not_person_photo | policy_violation | uncertain",
+  "evidence": "brief visual evidence"
 }
 ```
 
-Adapter normalization accepts provider `canonical_reason_code` and maps it into internal `reason_code` for existing policy/report compatibility.
+Adapter normalization treats category labels as evidence/audit flags only. The moderation decision is driven by the business gate: judge the image's suitability as a profile photo, never the person. Ask: does this image reasonably appear to be a real usable person profile photo? Do not require full face + body; close-up selfies, cropped portraits, wheelchair photos, cultural/religious clothing, modest dress, and other legitimate person photos can pass.
+
+Pre-model validation means technical viability only: unsupported MIME, corrupt/unreadable, too small/too large, blank/near-blank. It is not content moderation and must not perform heuristic content rejects before vision. Content labels such as screenshot, meme, trading card, logo, fake/impersonation, explicit sexual content, hate/violence/illegal, minor-risk, spam/contact info, etc. come from visual/content classification and are stored as audit flags/evidence, not routing enums.
+
+Mapping:
+
+```txt
+is_person_photo=false -> decision=reject, reason=not_person_photo
+is_person_photo=true -> continue normal moderation and safety checks; approve only when those pass
+is_person_photo="uncertain" -> decision=review, reason=uncertain, no_write/fleet-agent review unless high-risk category applies
+policy violation detected -> decision=reject or direct human escalation by risk level; reason=policy_violation or explicit_content; record audit flag such as sexual_explicit/spam_contact/hate_violence_illegal/minor_risk
+```
+
+Example for photo `13286`:
+
+```json
+{
+  "is_person_photo": false,
+  "decision": "reject",
+  "reason": "not_person_photo",
+  "evidence": "no real person profile photo"
+}
+```
+
+Adapter normalization maps the small model reason into the canonical Xano-compatible `reason_code` for existing policy/report compatibility. If Xano's endpoint names the platform reject path differently, use the endpoint's actual value internally, but preserve the business decision as reject/fail, not manual review.
 
 Photo-review refinements:
 
@@ -718,9 +752,13 @@ money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money/payment 
 hate_speech | Hate symbols, slurs, protected-class attacks | Hate speech — escalate
 ```
 
-Core approval rule:
+Core approval and escalation rule:
 
 ```txt
-Only approve clean_profile_style when all other checks pass.
-If uncertain, choose review/escalate. Never approve uncertainty.
+Approve when: real person dating-profile photo + no banned/disallowed category + no technical/model uncertainty.
+Reject when: clearly not a real person/profile photo, blank/corrupt/unusable, meme/screenshot/trading card/object/logo/ad/contact/spam, or other clearly disallowed non-high-risk content.
+Direct human escalation when: minors/children, explicit sexual/X-rated content, hate/extremism, violence/self-harm, illegal content, or other legally/safety-sensitive content.
+Fleet-agent review when: ordinary uncertainty, low-confidence person/profile detection, ambiguity that could create biased rejection, or model output that cannot be normalized safely.
+Human admin review when: fleet agent still cannot decide, or high-risk direct-human category applies.
+Never reject solely for ambiguous gender presentation, disability/medical devices, cultural/religious clothing, nontraditional poses/aesthetics, queer-coded presentation, modest dress, or other protected/identity-adjacent presentation.
 ```

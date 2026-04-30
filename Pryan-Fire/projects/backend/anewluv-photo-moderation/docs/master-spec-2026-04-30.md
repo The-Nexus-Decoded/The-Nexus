@@ -326,20 +326,24 @@ Same as above, for review items. Worker calls this on every run start.
 3. If queue empty: log, exit clean.
 4. For each photo:
    a. Generate run_id (uuid).
-   b. Fetch /moderation/review_items?applies_to=photo (cached 5 min).
-   c. Assemble prompt from review_items rows by display_order.
-   d. Call provider chain (primary → fallback). Existing CodexOpenAIAdapter / MiniMaxAdapter.
-   e. Parse response → confidence + per-item results + suggested reason codes.
-   f. Determine decision:
-      - If !ai_auto_decide_enabled → escalated
-      - If confidence < ai_escalate_below_confidence → escalated
-      - If any review_item with auto_reject_threshold returns 'fail' AND confidence ≥ that threshold → rejected
-      - If all "must-pass" items pass AND confidence ≥ ai_escalate_below_confidence → approved
-      - Else → escalated
-   g. POST /photos/ai_decide with idempotency_key = run_id:photo_id and expected_current_status='Uploaded'.
-   h. On 409: log, skip.
-   i. On 5xx: retry exponential backoff up to 3x, then defer to next run.
-5. Emit run summary: counts by decision, total duration, model breakdown.
+   b. Run pre-model technical viability checks only: missing reference, unsupported MIME, corrupt/unreadable file, too small/too large, blank/near-blank image. Pre-model is not content moderation; do not use brittle heuristics to reject unusual person photos or classify content before vision.
+   c. Fetch /moderation/review_items?applies_to=photo (cached 5 min).
+   d. Assemble prompt from review_items rows by display_order.
+   e. Call provider chain (primary → fallback). Existing CodexOpenAIAdapter / MiniMaxAdapter.
+   f. Parse response → confidence + detailed detected_category + suggested canonical reason codes.
+   g. Business-normalize before strict validation:
+      - reasonably appears to be a real usable person profile photo + no banned/disallowed category → approved
+      - clearly not a person/profile photo → rejected with `not_person_photo`; category labels are audit evidence only
+      - policy violation such as explicit sexual content/spam/contact/hate/violence/illegal/minor-risk → reject or direct human escalation by risk level, with audit flag preserved
+      - ordinary uncertainty/low confidence/bias-sensitive ambiguity → fleet-agent review before human admin
+   h. Strict validator accepts only normalized allowed decisions/reasons.
+   i. Determine submit action:
+      - explicit valid approved/rejected → POST /photos/ai_decide with idempotency_key = run_id:photo_id and expected_current_status='Uploaded'
+      - fleet-agent review or unresolved/manual_review/validator fail → no_write and route to this Discord channel for an AI agent to decide
+      - direct human escalation categories → human escalation path; do not route through fleet-agent review
+   j. On 409: log, skip.
+   k. On 5xx: retry exponential backoff up to 3x, then defer to next run.
+5. Emit run summary: counts by decision, fleet-agent review, direct human escalation, no_write, total duration, model breakdown.
 ```
 
 ### 6.2 Prompt assembly (deterministic, DB-driven)
@@ -351,7 +355,7 @@ Then give an overall confidence score (0.0-1.0) that your assessment is correct.
 Items:
 {for each enabled review_item row by display_order: "- {code}: {prompt_hint}"}
 
-Respond as JSON: {"items": {"code": "pass|fail|unsure"}, "confidence": 0.92, "reason_codes": ["..."], "notes": "..."}
+Respond as JSON: {"is_person_photo": true|false|"uncertain", "decision": "approve|reject|review", "reason": "ok|not_person_photo|policy_violation|uncertain", "evidence": "brief visual evidence", "confidence": 0.92}
 ```
 
 Adding a new item is `INSERT INTO review_items` followed by a worker run with no code change.
@@ -366,9 +370,12 @@ Adding a new item is `INSERT INTO review_items` followed by a worker run with no
 
 ### 6.4 What the worker writes
 
-- Always: `photo_ai_moderation_audit` row (server-side fanout from `/photos/ai_decide`).
-- If decision is `Approved` or `Dissaproved`: `Photos.PhotoStatus`.
-- If decision is `Escalated`: `photo_moderation_escalations` row + `Photos.PhotoStatus = Escalated`.
+- `/photos/ai_decide` is called only for explicit valid `approved` or `rejected` decisions after business normalization and strict validation.
+- Always for `/photos/ai_decide`: server-side fanout writes a `photo_ai_moderation_audit` row.
+- If decision is `Approved` or `Dissaproved`: server updates `Photos.PhotoStatus` only.
+- `Gallery`, `deleted`, and `deleted_on` are never included in worker payloads and are never mutated by this AI path.
+- `manual_review`, `leave_pending`, validator fail, provider failure, missing image, or non-canonical output after normalization returns `no_write` and routes ordinary ambiguity to fleet-agent review.
+- Direct human escalation is reserved for high-risk categories: minors/children, explicit sexual/X-rated, hate/extremism, violence/self-harm, illegal/safety-sensitive content, or a fleet agent that still cannot decide.
 
 Humans never write `photo_ai_moderation_audit`. AI never writes `photo_moderation_escalations.resolved_*`.
 
@@ -416,8 +423,13 @@ The worker is currently dry-run / emit-only. The cutover is "wire up to existing
 ### Phase 3 — Settings honoring
 - Honor `ai_auto_decide_enabled`, `ai_grace_period_minutes`, `ai_escalate_below_confidence`, `ai_max_decisions_per_run` on every run start. No caching across runs.
 
-### Phase 4 — Escalation path
-- Add `Escalated` to the worker's decision tree. On low confidence or kill switch, post `/photos/escalations/open` with `escalation_reason='low_confidence'` or `'kill_switch'`.
+### Phase 4 — Review/escalation path
+- Add a fleet-agent review layer before human admin for ordinary uncertainty.
+- On low confidence, ambiguous person/profile detection, or normalized-but-not-final model output, return `no_write` and post the image + trace to this Discord channel for a fleet agent decision.
+- If the fleet agent returns an explicit valid approve/reject, call `/photos/ai_decide` with the agent decision and canonical reason.
+- If the fleet agent cannot decide, escalate to human admin.
+- Bypass fleet-agent review and escalate directly to human admin for high-risk categories: minors/children, explicit sexual/X-rated content, hate/extremism, violence/self-harm, illegal/safety-sensitive content.
+- Kill switch still prevents auto-decisions; it may route all cases to fleet-agent review or human escalation by owner setting.
 
 ### Phase 5 — Cleanup
 - Delete `XANO_CANONICAL_REASON_CODES`, `REVIEW_ITEMS`, and the parallel verdict mapping from `moderation_contract.py`.

@@ -36,6 +36,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Call the live Xano moderation endpoints. Use only after owner confirms the run is safe.",
     )
     parser.add_argument("--limit", type=int, default=None, help="Maximum queue items to inspect.")
+    parser.add_argument("--page", type=int, default=1, help="Live Xano queue page to request.")
+    parser.add_argument("--per-page", type=int, default=None, help="Live Xano queue page size to request.")
     parser.add_argument("--photo-id", type=str, default=None, help="Inspect one photo id from the fixture queue.")
     parser.add_argument(
         "--force",
@@ -85,6 +87,8 @@ def main(argv: list[str] | None = None) -> int:
             queue,
             limit=args.limit,
             photo_id=args.photo_id,
+            page=args.page,
+            per_page=args.per_page,
             dry_run=not live_write,
             force=bool(args.force),
             model_fixture=args.model_fixture,

@@ -14,6 +14,16 @@ FINAL_TO_RECOMMENDATION_VERDICTS = {
     "reject": "reject_recommendation",
 }
 
+DECISION_TO_RECOMMENDATION_VERDICTS = {
+    "approve": "approve_recommendation",
+    "approved": "approve_recommendation",
+    "reject": "reject_recommendation",
+    "rejected": "reject_recommendation",
+    "review": "review",
+}
+
+HIGH_CONFIDENCE_PERSON_GATE_THRESHOLD = 0.80
+
 
 def normalize_model_result(result: dict, *, default_model: str) -> dict:
     normalized = dict(result)
@@ -23,6 +33,10 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
         normalized["reason_code"] = normalized.get("canonical_reason_code")
     if "reason_code" not in normalized and "reason" in normalized:
         normalized["reason_code"] = normalized.get("reason")
+    if "verdict" not in normalized and "decision" in normalized:
+        normalized["verdict"] = DECISION_TO_RECOMMENDATION_VERDICTS.get(str(normalized.get("decision")).lower(), normalized.get("decision"))
+
+    normalized = _apply_person_photo_business_gate(normalized)
 
     raw_verdict = str(normalized.get("verdict", "review")).lower()
     normalized["verdict"] = FINAL_TO_RECOMMENDATION_VERDICTS.get(raw_verdict, raw_verdict)
@@ -58,6 +72,68 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
         normalized["note"] = "Model output failed strict validation; manual review required."
         normalized["validator"] = "fail"
     return normalized
+
+
+def _apply_person_photo_business_gate(normalized: dict) -> dict:
+    confidence = _safe_confidence(normalized.get("confidence"))
+    checks = dict(normalized.get("app_profile_photo_checks") or default_profile_checks(needs_human_review=True))
+    is_person_photo = normalized.get("is_person_photo")
+    if is_person_photo is None:
+        is_person_photo = normalized.get("is_photo_of_person")
+    if is_person_photo is None and "is_real_person_profile_photo" in normalized:
+        legacy_value = str(normalized.get("is_real_person_profile_photo")).lower()
+        is_person_photo = {"yes": True, "no": False, "uncertain": "uncertain"}.get(legacy_value, normalized.get("is_real_person_profile_photo"))
+
+    if is_person_photo is True:
+        checks["is_profile_style_photo"] = True
+        checks["needs_human_review"] = False
+        if str(normalized.get("reason_code", "")).lower() == "ok":
+            normalized["reason_code"] = "clean_profile_style"
+    elif is_person_photo is False:
+        checks["is_profile_style_photo"] = False
+        checks["needs_human_review"] = False
+        normalized["verdict"] = "reject_recommendation"
+        normalized["reason_code"] = "not_person_photo"
+        normalized.setdefault("detected_category", str(normalized.get("evidence") or "not_person_photo"))
+    elif str(is_person_photo).lower() == "uncertain":
+        checks["needs_human_review"] = True
+        normalized["verdict"] = "review"
+        normalized["reason_code"] = "manual_review_needed"
+
+    raw_reason_hint = str(normalized.get("reason_code") or "").lower()
+    if raw_reason_hint in {"explicit_content", "unsafe_content"}:
+        checks["needs_human_review"] = True
+        normalized["verdict"] = "escalate"
+        normalized["reason_code"] = raw_reason_hint
+    elif raw_reason_hint in {"too_blurry_or_blank", "blank_or_unusable", "low_quality_or_unusable"} and str(normalized.get("verdict", "")).lower() == "reject_recommendation":
+        checks["needs_human_review"] = False
+        normalized["reason_code"] = "too_blurry_or_blank"
+
+    detected_text = " ".join(
+        str(normalized.get(key, ""))
+        for key in ("detected_category", "evidence", "note", "raw_reason_code")
+    ).lower()
+    if (
+        is_person_photo is None
+        and confidence >= HIGH_CONFIDENCE_PERSON_GATE_THRESHOLD
+        and checks.get("is_profile_style_photo") is False
+        and any(marker in detected_text for marker in ("no real person", "not a real person", "no person", "not a person", "not profile photo", "no visible person"))
+    ):
+        checks["needs_human_review"] = False
+        normalized["verdict"] = "reject_recommendation"
+        normalized["reason_code"] = "not_person_photo"
+
+    if "screenshot" in detected_text or "meme" in detected_text or "trading card" in detected_text:
+        checks["meme_or_screenshot"] = True
+    normalized["app_profile_photo_checks"] = checks
+    return normalized
+
+
+def _safe_confidence(value: object) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def default_profile_checks(*, needs_human_review: bool) -> dict:
