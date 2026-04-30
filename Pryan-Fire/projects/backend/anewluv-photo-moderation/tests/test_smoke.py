@@ -15,7 +15,7 @@ from photo_sweeper.model import (
     normalize_minimax_description,
     normalize_model_result,
 )
-from photo_sweeper.moderation_contract import REASON_PROMPT_ROWS, XANO_CANONICAL_REASON_CODES
+from photo_sweeper.moderation_contract import REVIEW_ITEMS, XANO_CANONICAL_REASON_CODES
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -184,10 +184,12 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         instructions = payload["instructions"]
         self.assertIn("Only approve clean_profile_style when all other checks pass", instructions)
-        for reason_code, what_we_check, prompt_description in REASON_PROMPT_ROWS:
-            self.assertIn(reason_code, instructions)
-            self.assertIn(what_we_check, instructions)
-            self.assertIn(prompt_description, instructions)
+        self.assertIn("Photo moderation review items", instructions)
+        for item in REVIEW_ITEMS:
+            self.assertIn(item["name"], instructions)
+            self.assertIn(item["reason_code"], instructions)
+            self.assertIn(item["description"], instructions)
+            self.assertIn(item["prompt_instruction"], instructions)
         for reason_code in XANO_CANONICAL_REASON_CODES:
             self.assertIn(reason_code, instructions)
 

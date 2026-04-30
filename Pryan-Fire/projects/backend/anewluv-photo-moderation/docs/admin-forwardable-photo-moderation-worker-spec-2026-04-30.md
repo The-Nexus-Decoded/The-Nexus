@@ -163,7 +163,7 @@ then run GET /photos/queue only with redacted output
 
 Existing admin approval tools remain the final moderation interface; this worker only produces AI recommendations until Lord Xar explicitly opens the write/decision gate.
 
-## 8. Prompt checklist / image-type review
+## 8. Photo moderation review items
 
 Core prompt rule:
 
@@ -171,29 +171,202 @@ Core prompt rule:
 Only approve clean_profile_style where all other checks pass. Anything uncertain escalates or goes to manual review.
 ```
 
-| Reason Code | What We Check | Prompt Description |
-|---|---|---|
-| `clean_profile_style` | Real human, profile-style photo, no issues | Real person, profile photo — approve |
-| `not_a_profile_photo` | Book, object, illustration, artwork, pet-only, logo, landscape, or unrelated image | Not a real person/profile photo — reject/review |
-| `ai_generated_image` | AI-generated, synthetic, illustrated, cartoon, anime, rendered, or avatar-style imagery | AI/synthetic image — reject/review |
-| `sexual_content` | Explicit sexual content or sexualized framing | Sexual content — escalate |
-| `nudity` | Partial or full nudity | Nudity — escalate |
-| `pornographic_explicit` | Hard porn or explicit adult material | Explicit porn — escalate |
-| `inappropriate_photos` | Other inappropriate image content that does not fit a narrower reason | Inappropriate — escalate |
-| `contact_info_or_ad` | Phone, email, social handle, QR code, or ad/promo content in the image | Contact info/ad — reject/review |
-| `contact_info_text_only_ad` | Text-only image with handle, phone, email, promo, or contact bait | Text/ad — reject |
-| `low_quality_or_unusable` | Blurry, dark, obscured, unreadable, too small, or no visible subject | Low quality — review |
-| `is_meme_or_screenshot` | Screenshot, meme, copied content, app screen, or repost-like image | Meme/screenshot — review |
-| `is_blank_or_unusable` | Blank, solid color, corrupted, or otherwise unusable image | Blank/unusable — reject |
-| `is_ai_generated` | Flagged as AI/synthetic by image features or metadata-like clues | AI flagged — review |
-| `underage` | Signs the person may be a minor or age-risk uncertainty | Minor — escalate |
-| `fake_profile` | Stock photo, celebrity, impersonation, or fake identity signal | Fake profile — reject |
-| `spam` | Spam, bulk-uploaded, sales, solicitation, or repetitive promo content | Spam — reject |
-| `manual_review_needed` | Model uncertainty, ambiguous image, edge case, or conflicting signals | Uncertain — manual review |
-| `bot_behavior` | Bot-style uploaded content, templated promo image, or automation artifact | Bot behavior — reject |
-| `off_platform_contact` | Off-platform contact attempt or contact bait | Contact bait — reject |
-| `harassment` | Harassment, bullying, threatening, or abusive content | Harassment — escalate |
-| `hate_speech` | Hate symbols, slurs, or hateful content | Hate speech — escalate |
-| `money_request` | Payment request, crypto/CashApp, scam, sugar/money solicitation | Money request — reject |
-| `minor_targeting` | Minor-targeting or minor-safety risk beyond age uncertainty | Minor safety risk — escalate |
-| `manual_admin_decision` | Existing admin-only final decision reason; the worker must not assign this as its own final action | Admin-only final decision — do not write |
+1. Sexual content
+
+Description: Sexually suggestive pose, lingerie/underwear focus, explicit sexual framing, fetish/sexualized presentation.
+
+Prompt instruction: Reject/escalate if the image appears sexually explicit or primarily sexual.
+
+Reason code: `sexual_content`
+
+2. Nudity
+
+Description: Exposed genitals, breasts/nipples, buttocks, transparent clothing, or implied nudity.
+
+Prompt instruction: Reject/escalate if nudity or likely nudity is present.
+
+Reason code: `sexual_content or inappropriate_photos`
+
+3. Pornographic explicit content
+
+Description: Hard porn, explicit adult material, visible sexual acts, genital focus, intercourse, masturbation, or pornographic framing.
+
+Prompt instruction: Escalate and recommend rejection if explicit pornographic content is present.
+
+Reason code: `sexual_content`
+
+4. Other inappropriate photo content
+
+Description: Image content that is inappropriate for a dating profile but does not fit a narrower reason.
+
+Prompt instruction: Reject/escalate when the image is inappropriate and no narrower reason applies.
+
+Reason code: `inappropriate_photos`
+
+5. Clean profile-style photo
+
+Description: Real human, profile-style photo, visible subject/face or acceptable portrait framing, no policy issue found.
+
+Prompt instruction: Approve recommendation only when this is a clean profile photo and every other check passes.
+
+Reason code: `clean_profile_style`
+
+6. Not a profile photo
+
+Description: Book, object, illustration, artwork, pet-only image, logo, landscape, food, vehicle, room, or unrelated image.
+
+Prompt instruction: Recommend rejection/review if the image is not a real profile-style photo of a person.
+
+Reason code: `inappropriate_photos`
+
+7. AI-generated or synthetic image
+
+Description: AI-generated face, synthetic person, rendered avatar, cartoon/anime style, illustration, drawing, or obviously artificial profile image.
+
+Prompt instruction: Recommend rejection/review for synthetic identity imagery; use manual review if uncertain.
+
+Reason code: `fake_profile or manual_review_needed`
+
+8. Contact info or advertisement
+
+Description: Phone number, email, social handle, QR code, external username, promo flyer, sales content, watermark/contact bait, or ad-like image.
+
+Prompt instruction: Recommend rejection/review when contact info or ad content is visible.
+
+Reason code: `off_platform_contact or spam`
+
+9. Text-only contact/ad image
+
+Description: Text-only or mostly-text image containing a handle, phone, email, external link, promo, or contact bait.
+
+Prompt instruction: Recommend rejection when the image is text/ad content rather than a profile photo.
+
+Reason code: `off_platform_contact or spam`
+
+10. Low quality or unusable image
+
+Description: Blurry, dark, obscured, unreadable, too small, cropped beyond usefulness, subject not visible, or otherwise unusable.
+
+Prompt instruction: Send to manual review or recommend rejection if the image cannot be evaluated as a profile photo.
+
+Reason code: `inappropriate_photos or manual_review_needed`
+
+11. Meme, screenshot, or copied content
+
+Description: Screenshot, meme, app screen, copied/reposted content, quote card, reaction image, or non-original social-media-style image.
+
+Prompt instruction: Recommend review/rejection if it appears to be a meme, screenshot, or copied content instead of a profile photo.
+
+Reason code: `inappropriate_photos or manual_review_needed`
+
+12. Blank or unusable image
+
+Description: Blank image, solid color, corrupted image, empty frame, no discernible subject, or non-viewable upload.
+
+Prompt instruction: Recommend rejection if the image is blank or unusable.
+
+Reason code: `inappropriate_photos`
+
+13. Underage or minor risk
+
+Description: Subject appears to be a minor, age is ambiguous with childlike presentation, or content raises minor-safety concerns.
+
+Prompt instruction: Escalate if the person may be underage or if any minor-safety risk is present.
+
+Reason code: `underage or minor_targeting`
+
+14. Fake profile or impersonation
+
+Description: Stock photo, celebrity image, influencer/public-figure image, impersonation signal, stolen-looking professional image, or fake identity cue.
+
+Prompt instruction: Recommend rejection/review when the image appears fake, stock, celebrity, or impersonating someone.
+
+Reason code: `fake_profile`
+
+15. Spam or bulk-uploaded content
+
+Description: Spam graphic, repeated/template content, sales pitch, bulk promo image, solicitation, or obviously non-personal upload.
+
+Prompt instruction: Recommend rejection if the image appears to be spam or bulk promotional content.
+
+Reason code: `spam`
+
+16. Bot-style content
+
+Description: Bot-like promo image, automation artifact, repetitive template, machine-posted style, or suspicious non-human profile content.
+
+Prompt instruction: Recommend rejection/review if the image suggests bot behavior.
+
+Reason code: `bot_behavior`
+
+17. Off-platform contact attempt
+
+Description: Attempt to move users to another platform through visible handles, QR codes, phone numbers, emails, links, or contact bait.
+
+Prompt instruction: Recommend rejection if the image asks or hints for off-platform contact.
+
+Reason code: `off_platform_contact`
+
+18. Harassment or bullying
+
+Description: Harassing, bullying, threatening, degrading, or targeted abusive text/image content.
+
+Prompt instruction: Escalate if harassment, bullying, or threats are present.
+
+Reason code: `harassment`
+
+19. Hate speech or hateful symbols
+
+Description: Hate symbols, slurs, extremist imagery, or hateful/dehumanizing content targeting protected groups.
+
+Prompt instruction: Escalate if hate speech or hateful symbols are present.
+
+Reason code: `hate_speech`
+
+20. Money request or scam signal
+
+Description: CashApp/Venmo/crypto/payment request, sugar/scam solicitation, money demand, donation ask, or financial bait in the image.
+
+Prompt instruction: Recommend rejection if payment or money-solicitation content appears.
+
+Reason code: `money_request`
+
+21. Manual review uncertainty
+
+Description: Model uncertainty, ambiguous image, conflicting signals, borderline content, partial evidence, or any case not clearly covered.
+
+Prompt instruction: Choose review/manual_review_needed when uncertain; do not approve uncertain images.
+
+Reason code: `manual_review_needed`
+
+22. Missing image reference
+
+Description: Queue item lacks a usable image URL/path/reference for analysis.
+
+Prompt instruction: Return review/manual_review_needed because the image cannot be evaluated.
+
+Reason code: `missing_image_reference`
+
+23. Provider auth unavailable
+
+Description: The image-analysis provider cannot run because auth/env is missing.
+
+Prompt instruction: Return review/manual_review_needed; do not fabricate an image decision.
+
+Reason code: `api_auth_unavailable`
+
+24. Provider/API failure fallback
+
+Description: The provider failed, returned unusable output, timed out, or could not parse a valid response.
+
+Prompt instruction: Return review/manual_review_needed; do not approve or reject from failed provider output.
+
+Reason code: `api_failure_fallback`
+
+25. Admin-only final decision
+
+Description: Existing admin-only final decision reason; this worker must not assign final approval/rejection authority to itself.
+
+Prompt instruction: Do not write this as a worker decision. Existing admin tools remain final.
+
+Reason code: `manual_admin_decision`
