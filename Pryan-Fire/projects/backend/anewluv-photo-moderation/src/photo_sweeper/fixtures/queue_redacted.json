@@ -1,0 +1,100 @@
+{
+  "items": [
+    {
+      "id": 101,
+      "users_id": 501,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": false,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 101",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "clean_profile_style"
+    },
+    {
+      "id": 102,
+      "users_id": 502,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": false,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 102",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "ai_generated_image"
+    },
+    {
+      "id": 103,
+      "users_id": 503,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 103",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "sexual_content"
+    },
+    {
+      "id": 104,
+      "users_id": 504,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 104",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "nudity"
+    },
+    {
+      "id": 105,
+      "users_id": 505,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 105",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "inappropriate_photos"
+    },
+    {
+      "id": 106,
+      "users_id": 506,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 106",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "contact_info_or_ad"
+    },
+    {
+      "id": 107,
+      "users_id": 507,
+      "photo_url": null,
+      "local_fixture_path": "images/solid.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 107",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "low_quality_or_unusable"
+    },
+    {
+      "id": 108,
+      "users_id": 508,
+      "photo_url": null,
+      "local_fixture_path": "images/profile_clean.ppm",
+      "photostatus_id": 1,
+      "gallery": true,
+      "created_at": "2026-04-30T00:00:00Z",
+      "user_name": "Fixture User 108",
+      "user_email": "redacted@example.invalid",
+      "model_fixture_key": "manual_review_needed"
+    }
+  ]
+}
