@@ -12,9 +12,8 @@ from photo_sweeper.model import (
     _codex_oauth_request_payload,
     _image_path_to_data_url,
     _redact_provider_error_body,
-    normalize_minimax_description,
-    normalize_model_result,
 )
+from photo_sweeper.normalization import normalize_minimax_description, normalize_model_result
 from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue

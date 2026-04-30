@@ -613,3 +613,25 @@ AI-generated policy call:
 ai_generated_image -> fake_profile only if high confidence
 ai_generated_image -> manual_admin_decision/review if uncertain
 ```
+
+Module ownership split, locked for the next integration pass:
+
+```txt
+normalization.py
+- detected_category enum/defaulting
+- canonical Xano reason mapping
+- safe note generation
+- reject/review/approve recommendation normalization
+- MiniMax text classification fallback parser
+
+validators.py
+- strict normalized JSON schema validation
+- enum validation
+- confidence bounds
+- required keys
+
+policy.py
+- planned_action
+- recommended_decision
+- future write-path eligibility guard
+```

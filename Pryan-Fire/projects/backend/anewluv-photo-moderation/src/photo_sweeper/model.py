@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .moderation_contract import provider_instructions
-from .validators import default_profile_checks, normalize_minimax_description, normalize_model_result
+from .normalization import default_profile_checks, normalize_minimax_description, normalize_model_result
 
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
 DEFAULT_CODEX_MODEL_ROUTE = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
