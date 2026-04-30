@@ -3,6 +3,10 @@
 Date: 2026-04-30  
 Mode: blocker register only. No production mutation.
 
+## Absolute Xano non-deletion gate
+
+Lord Xar's Xano rule for this workflow: never delete Xano data, records, tables, fields, indexes, endpoints, functions, tasks, triggers, branches, or files. If functionality does not exist, propose/create new additive Xano objects on an approved branch. Do not destructively replace existing behavior.
+
 ## Blocker 1 — `/photos/decide` rejects `ai_agent`
 
 Assignment contract:
