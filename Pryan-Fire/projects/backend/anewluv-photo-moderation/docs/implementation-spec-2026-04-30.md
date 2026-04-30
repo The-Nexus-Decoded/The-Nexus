@@ -130,13 +130,16 @@ Do not invent `x-actor-key` unless Xano docs or implementation prove support for
 Tiny dry-run remains read-only:
 
 ```txt
-GET /photos/queue only after auth env exists
-POST Codex OAuth provider analysis allowed
-no ai_recommendation writes
-no /photos/ai_recommendation
-no /photos/ai_decide
-no /photos/decide
-no final decisions
+Existing admin approval tools remain final.
+The worker is dry-run/recommendation-only.
+It reads queue data only after auth/env gate exists.
+POST Codex OAuth provider analysis allowed.
+It does not write ai_recommendation fields.
+It does not call /photos/ai_recommendation.
+It does not call /photos/ai_decide.
+It does not call /photos/decide.
+It does not call /admin/decision/*.
+It makes no final decisions.
 redacted output only
 ```
 
@@ -223,7 +226,9 @@ real queue: blocked until service-account/JWT/actor_key env exists
 The worker is not proposing a replacement for existing admin photo approval. It is a read-only AI recommendation proof. The admin should onboard Devon against the existing queue and final approval workflow, with this boundary:
 
 ```txt
-AI reads pending photos -> AI returns normalized recommendation -> human/admin existing tools make final decision
+This is a recommendation-only worker spec; existing admin approval tools remain the final moderation interface until Lord Xar opens the write/decision gate.
+AI reads pending photos -> AI returns normalized recommendation -> human/admin existing tools make final decision.
+The worker does not call /photos/decide or /admin/decision/*.
 ```
 
 No final approval/rejection write path is open yet.

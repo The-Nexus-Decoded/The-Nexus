@@ -63,8 +63,13 @@ This repo now contains a small Python package and CLI named `photo-sweeper`.
 
 The implementation is deliberately recommendation-only:
 
+- Existing admin approval tools remain final.
 - AI output is evidence and recommendation only.
 - Manual moderation remains final.
+- It reads queue data only after the auth/env gate exists.
+- It does not write `ai_recommendation` fields or any other Xano state.
+- It does not call `/photos/decide`.
+- It does not call `/admin/decision/*`.
 - `Profiles.is_ai` is not used or created.
 - No Xano schema movement is performed.
 - The worker does not write, even when `--force` is passed.
