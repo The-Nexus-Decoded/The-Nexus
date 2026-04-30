@@ -6,11 +6,11 @@ Scope: created Xano objects from additive moderation work
 
 ## Result
 
-**Branch-only verification did not pass.**
+**Branch-only verification failed / unresolved leaning live-visible.**
 
-The target branch exists and production live branch remains `v1`, but the new API endpoints are visible in the moderation API listing/OpenAPI metadata without a branch label. The Xano metadata returned `branch: null` for the created endpoints.
+The target branch exists and production live branch remains `v1`, but the new API endpoints are visible in the live `v1` moderation API group listing/OpenAPI metadata without a branch label. The Xano metadata returned `branch: null` for the created endpoints.
 
-This means Devon cannot truthfully claim the endpoints are branch-only from the observed metadata.
+Follow-up API evidence on 2026-04-30 showed the target endpoints in live workspace OpenAPI and live moderation API group id `162`, but not in the branch-scoped workspace OpenAPI and not in the branch moderation API group id `185`. This means Devon cannot truthfully claim the endpoints are branch-only from observed API metadata. Treat them as live-visible/inert until Xano UI or authoritative Xano support confirms otherwise.
 
 ## Confirmed branch state
 
@@ -24,6 +24,18 @@ Target branch exists:
 
 ```text
 photo-ai-moderation-worker
+```
+
+Branch-specific moderation API group observed by `listAPIGroups(branch=photo-ai-moderation-worker)`:
+
+```text
+moderation — id 185 — branch photo-ai-moderation-worker
+```
+
+Live moderation API group observed by default/live `listAPIGroups`:
+
+```text
+moderation — id 162 — branch v1
 ```
 
 ## Created object visibility
@@ -54,13 +66,22 @@ OpenAPI server shown by metadata:
 http://backend/api:S8LKJE3D
 ```
 
-OpenAPI paths found:
+OpenAPI paths found in API group swagger for live moderation group id `162`:
 
 - `/photos/ai_recommendation`
 - `/photos/ai_decide`
 - `/photos/escalations/open`
 - `/photos/escalations`
 - `/photos/escalations/ack`
+
+Additional 2026-04-30 API evidence:
+
+- `getWorkspaceOpenApi(workspace_id=1)` default/live contains the target endpoints under `/api:S8LKJE3D/...`.
+- `getWorkspaceOpenApi(workspace_id=1, branch=photo-ai-moderation-worker)` does **not** contain the target endpoints.
+- `listAPIs(apigroup_id=162)` live/default contains API ids `2827–2831` with `branch: null`.
+- `listAPIs(apigroup_id=185)` branch moderation group contains none of API ids `2827–2831` / target paths.
+- `getApiGroupSwagger(apigroup_id=162)` contains the target paths.
+- `getApiGroupSwagger(apigroup_id=185)` does not contain the target paths.
 
 ## Created table visibility
 
@@ -109,14 +130,16 @@ Forbidden remediation paths:
 
 ## Risk / blocker
 
-The created API endpoints appear visible in the canonical moderation API metadata, not clearly isolated to `photo-ai-moderation-worker`. Before any worker uses them for writes or before any go-live claim, this needs review by Zifnab/Lord Xar and/or Xano UI verification.
+The created API endpoints appear visible in the live/default moderation API group id `162`, not isolated to the branch moderation group id `185`. Before any worker uses them for writes or before any go-live claim, this needs review by Zifnab/Lord Xar and/or Xano UI verification.
 
 The created audit table name is AI-specific while the corrected requirement is generic moderation history. That mismatch must be reconciled before worker writes or mobile/admin surfaces depend on it.
 
+Evidence-only guardrail: no endpoint execution, worker write enablement, schema/table changes, second audit table, or production branch switch was performed during this follow-up check.
+
 ## Required next decisions
 
-- Confirm whether Xano MCP `createAPI(branch=...)` is expected to show `branch:null` in metadata while still being branch-scoped, or whether these endpoints were created on the live API group.
-- If they are live-visible, decide whether to leave them inert behind auth/service-key gates until review, or move/recreate contracts through a proven branch-safe path.
+- Confirm in Xano UI or with authoritative Xano documentation/support whether Xano MCP `createAPI(branch=...)` can create live-visible endpoints when the live API group id is supplied instead of the branch API group id.
+- Because API metadata currently shows live-visible behavior, decide whether to leave endpoints inert behind auth/service-key gates until review, disable/remove only through an approved non-destructive/live-safe plan, or recreate contracts through a proven branch-safe path.
 - Review existing photo/photo-management tables first and decide whether they can support unified moderation history plus escalation lifecycle without destructive changes.
 - Decide the non-destructive remediation for `photo_ai_moderation_audit` id `162`: branch-safe rename, documented generic usage despite historical name, or leave inert and use a reconciled generic moderation audit contract elsewhere.
 - Keep `photo_ai_moderation_audit` id `162` and `photo_moderation_escalations` id `163` inert until that review is complete.
@@ -128,8 +151,8 @@ The created audit table name is AI-specific while the corrected requirement is g
 - [x] Branch existence verified.
 - [x] Live branch remains `v1`.
 - [x] Metadata visibility checked.
-- [ ] Branch-only isolation proven. **Failed / unresolved.**
-- [ ] Xano UI or authoritative metadata confirms endpoint branch scope.
+- [ ] Branch-only isolation proven. **Failed / unresolved; API evidence currently indicates live-visible, not branch-scoped.**
+- [ ] Xano UI or authoritative metadata confirms endpoint branch scope or confirms live visibility.
 - [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
 - [ ] New tables used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
 - [ ] Created tables remain inert until that review is complete.
