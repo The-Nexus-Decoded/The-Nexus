@@ -423,3 +423,21 @@ validators.py = strict schema/enum validation and reason-code normalization
 model.py = provider calls, provider payloads, provider parsing only
 policy.py = maps validated model output -> recommendation/reason/planned_action
 ```
+
+## 10. Image classification block
+
+The provider prompt must identify the image type separately from the canonical final `reason_code` mapping.
+
+```txt
+Identify which type of image this is:
+
+- real_person_profile_photo
+- selfie
+- group_photo
+- unclear_subject
+- meme_or_screenshot
+- text_only_image
+- advertisement_or_flyer
+- contact_card_or_social_handle
+- qr_code
+```

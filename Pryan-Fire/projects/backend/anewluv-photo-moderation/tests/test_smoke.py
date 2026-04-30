@@ -224,6 +224,19 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         instructions = payload["instructions"]
         self.assertIn("You are an ANewLuv photo moderator", instructions)
         self.assertIn("Return ONLY JSON with this exact shape", instructions)
+        self.assertIn("Identify which type of image this is", instructions)
+        for image_type in {
+            "real_person_profile_photo",
+            "selfie",
+            "group_photo",
+            "unclear_subject",
+            "meme_or_screenshot",
+            "text_only_image",
+            "advertisement_or_flyer",
+            "contact_card_or_social_handle",
+            "qr_code",
+        }:
+            self.assertIn(image_type, instructions)
         self.assertIn("Detailed flags to inspect", instructions)
         self.assertIn("CANONICAL reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)

@@ -255,6 +255,17 @@ Return ONLY JSON with this exact shape:
   "note": "brief reason"
 }
 
+Identify which type of image this is:
+- real_person_profile_photo
+- selfie
+- group_photo
+- unclear_subject
+- meme_or_screenshot
+- text_only_image
+- advertisement_or_flyer
+- contact_card_or_social_handle
+- qr_code
+
 Detailed flags to inspect:
 - sexual_content: porn, sexual acts, genital content
 - nudity: partial or full nudity
