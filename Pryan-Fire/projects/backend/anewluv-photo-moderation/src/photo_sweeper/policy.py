@@ -4,7 +4,7 @@ from .moderation_contract import APPROVE_ONLY_REASONS, EXPLICIT_REASONS
 
 
 def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, force: bool) -> dict:
-    reason = model_result.get("reason_code", "manual_review_needed")
+    reason = model_result.get("reason_code", "manual_admin_decision")
     verdict = model_result.get("verdict", "review")
     flags = model_result.get("app_profile_photo_checks", {})
     warnings = checks.get("warnings") or []

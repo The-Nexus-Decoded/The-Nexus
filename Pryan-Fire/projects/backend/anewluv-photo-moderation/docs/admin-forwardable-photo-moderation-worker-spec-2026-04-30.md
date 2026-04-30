@@ -421,4 +421,5 @@ Code ownership split:
 ```txt
 validators.py = strict schema/enum validation and reason-code normalization
 model.py = provider calls, provider payloads, provider parsing only
+policy.py = maps validated model output -> recommendation/reason/planned_action
 ```
