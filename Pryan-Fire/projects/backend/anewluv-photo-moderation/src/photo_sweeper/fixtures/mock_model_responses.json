@@ -1,6 +1,6 @@
 {
   "clean_profile_style": {
-    "verdict": "approved",
+    "verdict": "approve_recommendation",
     "confidence": 0.93,
     "reason_code": "clean_profile_style",
     "note": "Mock clean profile-style image; recommendation only.",

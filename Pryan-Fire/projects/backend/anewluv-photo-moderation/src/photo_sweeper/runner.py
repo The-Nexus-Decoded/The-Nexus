@@ -3,8 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from .deterministic import inspect_image
-from .model import MockModelAdapter
+from .model import CodexOpenAIAdapter, MiniMaxCLIAdapter, MockModelAdapter
 from .policy import combine
+
+CODEX_OPENAI_ADAPTER_NAMES = {"codex-openai-image", "codex-openai", "openclaw-codex-openai", "primary"}
+OPENAI_MODERATIONS_ADAPTER_NAMES = {"openai-moderations"}
+MINIMAX_FALLBACK_ADAPTER_NAMES = {"minimax-cli", "minimax-fallback", "minimax-vl"}
+OPENROUTER_ADAPTER_NAMES = {"openrouter-multimodal"}
 
 
 def run_once(
@@ -15,9 +20,10 @@ def run_once(
     dry_run: bool,
     force: bool,
     model_fixture: Path | None,
+    model_adapter: str = "mock",
 ) -> dict:
     selected = _select(queue, limit=limit, photo_id=photo_id)
-    adapter = MockModelAdapter(model_fixture)
+    adapter = _build_adapter(model_adapter, model_fixture)
     photos = []
 
     for item in selected:
@@ -29,6 +35,7 @@ def run_once(
         "dry_run": True,
         "write_enabled": False,
         "force_requested": force,
+        **_provider_report(model_adapter),
         "photos_scanned": len(photos),
         "photos": photos,
         "summary": _summary(photos),
@@ -55,8 +62,50 @@ def _summary(photos: list[dict]) -> dict:
         "report_only": sum(1 for item in photos if item["planned_action"] == "report_only"),
         "leave_pending": sum(1 for item in photos if item["planned_action"] == "leave_pending"),
         "failures": [],
-        "model_api_path_used": ["mock_fixture"] if photos else [],
-        "fallback_usage": 0,
+        "model_api_path_used": sorted({item["model_path"]["vision_model_used"] for item in photos}) if photos else [],
+        "fallback_usage": sum(1 for item in photos if item["model_path"].get("fallback_model")),
         "next_scheduled_run": None,
         "unresolved_escalations": sum(1 for item in photos if item["planned_action"] == "escalate"),
+    }
+
+
+def _build_adapter(model_adapter: str, model_fixture: Path | None):
+    normalized = model_adapter.strip().lower()
+    if normalized == "mock":
+        return MockModelAdapter(model_fixture)
+    if normalized in CODEX_OPENAI_ADAPTER_NAMES:
+        return CodexOpenAIAdapter()
+    if normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
+        raise ValueError("openai-moderations adapter is not available in this checkout")
+    if normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:
+        return MiniMaxCLIAdapter()
+    if normalized in OPENROUTER_ADAPTER_NAMES:
+        raise ValueError("openrouter-multimodal adapter is not available in this checkout")
+    raise ValueError(f"unsupported model_adapter: {model_adapter}")
+
+
+def _provider_report(model_adapter: str) -> dict:
+    normalized = model_adapter.strip().lower()
+    if normalized in CODEX_OPENAI_ADAPTER_NAMES:
+        provider = "codex-openai-image"
+        model_route = "gpt-5.5 + gpt-image-2 configured image route"
+    elif normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
+        provider = "openai-moderations"
+        model_route = "openai-moderations"
+    elif normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:
+        provider = "minimax-cli"
+        model_route = "minimax-vl"
+    elif normalized in OPENROUTER_ADAPTER_NAMES:
+        provider = "openrouter-multimodal"
+        model_route = "openrouter-multimodal"
+    else:
+        provider = "mock"
+        model_route = "mock_fixture"
+    return {
+        "provider": provider,
+        "model_route": model_route,
+        "image_generation_events": 0,
+        "output_type": "text_json",
+        "writes": False,
+        "/photos/decide": "not called",
     }

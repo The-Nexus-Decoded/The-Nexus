@@ -99,6 +99,15 @@ Local dependency state at design time:
 - available: Python, Pillow, Numpy, `file` binary;
 - unavailable: OpenCV, pyzbar/zbar, zxing, tesseract binary.
 
+### Provider order
+
+```txt
+1. OpenClaw/Codex OpenAI image-input route
+2. OpenAI Moderations API supplement
+3. MiniMax VL / image-analysis fallback
+4. OpenRouter multimodal fallback
+```
+
 ### Phase 4 — broad safety moderation
 
 Optional OpenAI Moderations adapter:
@@ -121,7 +130,25 @@ Dry-run behavior if unavailable:
 
 ### Phase 5 — primary image/vision review
 
-The vision adapter is the main app-specific reviewer.
+The vision adapter is the main app-specific reviewer. The primary path is `codex-openai-image`; `omni-moderation-latest` is only a broad safety supplement, MiniMax VL is the tertiary fallback after its endpoint/request/response contract is verified, and OpenRouter multimodal fallback is last-resort only.
+
+Pinned provider path:
+
+```txt
+codex-openai-image
+model_route: gpt-5.5 + gpt-image-2 configured image route
+input_text + input_image
+image_generation_events=0
+output_type=text_json
+```
+
+Implementation lesson:
+
+```txt
+gpt-image-2 route can analyze existing image input
+```
+
+Adapter output must be strictly JSON-validated before normalization or report inclusion.
 
 Must produce strict normalized result:
 
