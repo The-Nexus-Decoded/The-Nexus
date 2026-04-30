@@ -359,7 +359,7 @@ CANONICAL reason_code output only:
 - pornographic_explicit -> sexual_content
 - inappropriate_photos -> inappropriate_photos
 - low_quality_or_unusable -> inappropriate_photos
-- ai_generated_image -> fake_profile
+- ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
 - not_a_profile_photo -> fake_profile
 - celebrity_or_stock_photo -> fake_profile
 - object_or_landscape_only -> fake_profile

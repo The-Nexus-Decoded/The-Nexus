@@ -566,7 +566,7 @@ pornographic_explicit -> sexual_content
 inappropriate_photos -> inappropriate_photos
 low_quality_or_unusable -> inappropriate_photos
 
-ai_generated_image -> fake_profile
+ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
 not_a_profile_photo -> fake_profile
 celebrity_or_stock_photo -> fake_profile
 object_or_landscape_only -> fake_profile
@@ -594,4 +594,22 @@ Prompt may produce detailed detection.
 Validator must preserve detail as detected_category.
 Policy must normalize to canonical Xano reason_code before anything is ever eligible for a future write path.
 Non-canonical reason_code at policy time falls back to manual_admin_decision/manual_review.
+```
+
+
+Model/provider split rule:
+
+```txt
+model.py
+- provider calls only
+- Codex request/response adapter
+- MiniMax request/response adapter
+- no policy mapping
+```
+
+AI-generated policy call:
+
+```txt
+ai_generated_image -> fake_profile only if high confidence
+ai_generated_image -> manual_admin_decision/review if uncertain
 ```

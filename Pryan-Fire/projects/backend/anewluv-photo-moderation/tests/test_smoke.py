@@ -190,7 +190,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         )
 
     def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
-        result = normalize_model_result({"verdict": "review", "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(result["detected_category"], "ai_generated_image")
         self.assertEqual(result["reason_code"], "fake_profile")
@@ -230,6 +230,16 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             },
         )
 
+    def test_ai_generated_image_requires_high_confidence_for_fake_profile(self):
+        high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+        uncertain = normalize_model_result({"verdict": "review", "confidence": 0.79, "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+
+        self.assertEqual(high["detected_category"], "ai_generated_image")
+        self.assertEqual(high["reason_code"], "fake_profile")
+        self.assertEqual(uncertain["detected_category"], "ai_generated_image")
+        self.assertEqual(uncertain["reason_code"], "manual_admin_decision")
+        self.assertEqual(uncertain["verdict"], "review")
+
     def test_reason_codes_are_canonicalized_before_policy(self):
         cases = {
             "api_failure_fallback": "manual_admin_decision",
@@ -237,7 +247,6 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "api_auth_unavailable": "manual_admin_decision",
             "nudity": "sexual_content",
             "pornographic_explicit": "sexual_content",
-            "ai_generated_image": "fake_profile",
             "not_a_profile_photo": "fake_profile",
             "celebrity_or_stock_photo": "fake_profile",
             "object_or_landscape_only": "fake_profile",

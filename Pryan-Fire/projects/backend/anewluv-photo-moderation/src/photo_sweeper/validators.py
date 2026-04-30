@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from .moderation_contract import CANONICAL_REASON_MAP, DEFAULT_PROFILE_CHECKS, VALID_VERDICTS
 
+AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD = 0.80
+DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
+
 FINAL_TO_RECOMMENDATION_VERDICTS = {
     "rejected": "reject_recommendation",
     "reject": "reject_recommendation",
@@ -21,7 +24,11 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
 
     normalized.setdefault("confidence", 0.0)
     raw_reason_code = str(normalized.get("reason_code", "manual_review_needed")).lower()
-    normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
+    if raw_reason_code == "ai_generated_image" and float(normalized.get("confidence") or 0.0) < AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
+        normalized["reason_code"] = "manual_admin_decision"
+        normalized["verdict"] = "review"
+    else:
+        normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
     if normalized["reason_code"] != raw_reason_code:
         normalized["raw_reason_code"] = raw_reason_code
 
@@ -60,6 +67,61 @@ def default_profile_checks(*, needs_human_review: bool) -> dict:
     checks = dict(DEFAULT_PROFILE_CHECKS)
     checks["needs_human_review"] = needs_human_review
     return checks
+
+
+def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINIMAX_MODEL) -> dict:
+    text = description.lower()
+    checks = default_profile_checks(needs_human_review=True)
+    unsafe_categories: list[str] = []
+    verdict = "review"
+    reason_code = "manual_review_needed"
+    confidence = 0.55
+
+    if any(term in text for term in ["porn", "pornographic", "explicit", "genital", "sexual act", "intercourse", "masturbat", "nude", "nudity"]):
+        verdict = "reject_recommendation"
+        reason_code = "sexual_content"
+        confidence = 0.88
+        unsafe_categories = ["sexual_content"]
+    elif any(term in text for term in ["ai-generated", "ai generated", "generated image", "illustration", "cartoon", "anime", "drawing", "rendered"]):
+        reason_code = "ai_generated_image"
+        confidence = 0.78
+        unsafe_categories = ["ai_generated_image"]
+        checks["is_ai_generated"] = True
+    elif any(term in text for term in ["screenshot", "meme", "advertisement", "phone number", "email", "social media handle", "qr code"]):
+        reason_code = "contact_info_or_ad"
+        confidence = 0.74
+        unsafe_categories = ["contact_info_or_ad"]
+        checks["has_contact_info"] = True
+        checks["is_meme_or_screenshot"] = True
+    elif any(term in text for term in ["blurry", "dark", "unclear", "obscured", "low quality", "not visible"]):
+        reason_code = "low_quality_or_unusable"
+        confidence = 0.68
+        unsafe_categories = ["low_quality_or_unusable"]
+        checks["is_blank_or_unusable"] = True
+    elif any(term in text for term in ["person", "people", "man", "woman", "face", "portrait", "selfie", "individual", "subject"]):
+        verdict = "approve_recommendation"
+        reason_code = "clean_profile_style"
+        confidence = 0.82
+        checks["is_profile_style_photo"] = True
+        checks["needs_human_review"] = False
+    else:
+        reason_code = "not_a_profile_photo"
+        confidence = 0.62
+        unsafe_categories = ["not_a_profile_photo"]
+
+    return normalize_model_result(
+        {
+            "verdict": verdict,
+            "confidence": confidence,
+            "reason_code": reason_code,
+            "note": safe_note_for_reason(reason_code),
+            "unsafe_categories": unsafe_categories,
+            "vision_model_used": f"{model} + parser",
+            "fallback_model": None,
+            "app_profile_photo_checks": checks,
+        },
+        default_model=f"{model} + parser",
+    )
 
 
 def safe_note_for_reason(reason_code: str) -> str:
