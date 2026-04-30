@@ -5,7 +5,7 @@ Status: recommendation-only / dry-run worker spec. Scope is unchanged.
 Forwarding line:
 
 ```txt
-This is a recommendation-only worker spec; existing admin approval tools remain the final moderation interface until Lord Xar opens the write/decision gate.
+Existing admin approval tools remain the final moderation interface; this worker only produces AI recommendations until Lord Xar explicitly opens the write/decision gate.
 ```
 
 ## 1. What this worker does
@@ -113,3 +113,52 @@ image converted to PNG/JPEG/WEBP, never raw .ppm
 ```
 
 Public OpenAI `/v1/responses` is fallback only and must not block the primary Codex OAuth path.
+
+## 6. Dry-run output shape
+
+Dry-run output is redacted and recommendation-only. It must prove the seal without exposing private image/user data or calling decision endpoints.
+
+Expected shape:
+
+```json
+{
+  "endpoint_used": "https://chatgpt.com/backend-api/codex/responses",
+  "provider": "codex-openai-image",
+  "model_route": "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route",
+  "writes": false,
+  "/photos/decide": "not called",
+  "/admin/decision/*": "not called",
+  "image_generation_events": 0,
+  "normalized_verdict_enum": "review",
+  "validator": "pass",
+  "queue_source": "local_redacted_fixture"
+}
+```
+
+Live queue dry-run, once auth/env exists, must remain the same shape but with queue source summarized/redacted. It must not include raw user identifiers, raw image URLs, tokens, actor keys, or Authorization headers.
+
+## 7. Current status / remaining gate
+
+Current status:
+
+```txt
+code gate: clear
+provider route: Codex OAuth primary
+fixture smoke: accepted
+writes: false
+/photos/decide: not called
+/admin/decision/*: not called
+real queue: blocked until service-account/JWT/actor_key env exists
+```
+
+Remaining gate before real queue dry-run:
+
+```txt
+provision ANEWLUV_API_BASE_URL
+provision ANEWLUV_AUTH_API_BASE_URL
+provision ANEWLUV_ACTOR_KEY
+provision ANEWLUV_WORKER_JWT or ANEWLUV_WORKER_TOKEN
+then run GET /photos/queue only with redacted output
+```
+
+Existing admin approval tools remain the final moderation interface; this worker only produces AI recommendations until Lord Xar explicitly opens the write/decision gate.
