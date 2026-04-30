@@ -5,6 +5,7 @@ Approval: Lord Xar approved proactive additive Xano changes and said not to wait
 Constraint: Xano additive-only. No deletes, no destructive replacements.
 Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive-global-table posture. Continue only docs, acceptance criteria, branch-safe/non-schema work, and endpoint/function logic using already-approved objects.
 Design correction from Lord Xar: the long-term target should be **one generic photo moderation ledger**, not separate AI-vs-human truth stores. AI, human admin, system, and any future user/community moderation paths should write/check the same data shape; source is distinguished by actor/source fields, not by separate moderation databases.
+Preferred path correction from Zifnab: review existing photo/photo-management tables first. New tables are acceptable only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Created tables remain inert until that review completes.
 
 ## Branch / production state
 
@@ -248,7 +249,7 @@ Minimum behavior for moderation tracking:
 
 ## Schema freeze note
 
-No additional tables, fields, or global schema changes are approved after this point without explicit Lord Xar confirmation. Existing new tables are treated as provisional/supporting objects already created; all further work must use documented objects or remain branch-safe/non-schema.
+No additional tables, fields, or global schema changes are approved after this point without explicit Lord Xar confirmation. Existing new tables are treated as provisional/supporting objects already created and must remain inert until review confirms they are required. Preferred implementation must check existing photo/photo-management tables first; new-table usage is allowed only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
 
 ## Syntax/creation notes
 
@@ -259,11 +260,14 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] Xano branch `photo-ai-moderation-worker` exists and production `v1` is not replaced without separate approval.
 - [ ] No Xano delete/truncate/drop/destructive-replace actions were used.
 - [ ] Existing `POST /photos/decide` remains untouched.
-- [ ] `photo_ai_moderation_audit` table exists with the fields listed above.
-- [ ] `photo_moderation_escalations` table exists with the fields listed above.
+- [ ] `photo_ai_moderation_audit` table exists with the fields listed above, but remains inert until review confirms whether it should be reused, renamed, deprecated, or replaced by existing table usage.
+- [ ] `photo_moderation_escalations` table exists with the fields listed above, but remains inert until review confirms whether existing photo/photo-management tables cannot support escalation lifecycle without destructive changes.
 - [ ] All five new endpoints exist and are visible in moderation API listing/OpenAPI.
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
+- [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
+- [ ] New tables are used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
+- [ ] Created tables remain inert until that review is complete.
 - [ ] Every moderated photo action is recorded in the same moderation history format, regardless of actor type.
 - [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
 - [ ] Shared ledger contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
