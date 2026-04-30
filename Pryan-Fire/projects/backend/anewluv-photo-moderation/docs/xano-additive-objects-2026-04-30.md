@@ -3,6 +3,7 @@
 Date: 2026-04-30  
 Approval: Lord Xar approved proactive additive Xano changes and said not to wait for later adds; document changes and acceptance criteria for later review.  
 Constraint: Xano additive-only. No deletes, no destructive replacements.
+Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive-global-table posture. Continue only docs, acceptance criteria, branch-safe/non-schema work, and endpoint/function logic using already-approved objects.
 
 ## Branch / production state
 
@@ -27,6 +28,8 @@ Production `v1` was not set live again or replaced by Devon in this step. No del
 Xano table id: `162`
 
 Purpose: structured AI photo moderation evidence. Stores normalized evidence and final/planned action state without raw model output or secrets.
+
+Functional requirement clarified by Lord Xar/Zifnab: **every photo the AI moderates must be tracked here**. This includes approvals, rejections, review/escalation recommendations, dry-runs, retries, fallback-model runs, skips, low-confidence outcomes, and errors. `Photos` remains the current-state source of truth; this table is the historical motivation/evidence ledger.
 
 Fields verified after creation:
 
@@ -177,7 +180,8 @@ Contract:
 - rejects missing/deleted photos;
 - writes only AI recommendation fields on `Photos` and `review_type_id=1`;
 - does not update `photostatus_id`;
-- writes structured AI audit evidence.
+- writes structured AI audit evidence;
+- acceptance gate: every successful call must create exactly one audit row for the AI review/recommendation attempt, and the endpoint must not silently update `Photos` if audit persistence fails.
 
 ### `POST /photos/ai_decide`
 
@@ -206,7 +210,22 @@ Contract:
 - requires an existing AI recommendation before final decision;
 - updates `Photos.photostatus_id` to approved/rejected status and `review_type_id=1`;
 - writes `admin_notes` when rejected or note present;
-- writes structured AI audit evidence.
+- writes structured AI audit evidence;
+- acceptance gate: final approve/reject must not proceed unless audit persistence succeeds or the final action is explicitly recorded in the same audit transaction/path.
+
+## Audit coverage rule
+
+Minimum audit behavior for any AI moderation worker:
+
+- AI reviews a photo → write `photo_ai_moderation_audit` row.
+- AI recommends `approved`, `rejected`, `review`, or `escalate` → write audit row.
+- AI finalizes approve/reject later → write audit row containing `final_action`, or link to the earlier recommendation row once a link field is approved.
+- AI errors, skips, cannot fetch image, hits low confidence, or uses fallback model → write audit row with `error_code` / `error_note` or the appropriate reason fields.
+- No photo may be silently changed by AI without a corresponding audit row.
+
+## Schema freeze note
+
+No additional tables, fields, or global schema changes are approved after this point without explicit Lord Xar confirmation. Existing new tables are treated as provisional/supporting objects already created; all further work must use documented objects or remain branch-safe/non-schema.
 
 ## Syntax/creation notes
 
@@ -222,6 +241,8 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] All five new endpoints exist and are visible in moderation API listing/OpenAPI.
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
+- [ ] Every AI-moderated photo writes at least one `photo_ai_moderation_audit` row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
+- [ ] No AI final approve/reject occurs if audit persistence fails.
 - [ ] Recommendation endpoint does not change `photostatus_id`.
 - [ ] Final decision endpoint requires prior recommendation and `actor_type=ai_agent`.
 - [ ] Escalation endpoints support open/list/ack flow.
@@ -229,6 +250,7 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 
 ## Remaining validation before worker writes
 
+- Further table/schema/field changes are paused pending explicit Lord Xar confirmation of additive-global-table posture.
 - Need a safe worker auth/JWT/service-account path.
 - Need test photo ids approved for branch validation.
 - Need model/vision contract verification.
