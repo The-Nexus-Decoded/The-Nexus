@@ -114,3 +114,8 @@
 - Browser: infrastructure done on both servers, verify in next session
 - Cost: minimize token usage, run cheaper models, stop unnecessary chat
 - #personal channel: decision-only, shut up unless you have something NEW
+
+## Promoted From Short-Term Memory (2026-04-30)
+
+<!-- openclaw-memory-promotion:memory:memory/2026-04-25.md:18:18 -->
+- `/data/openclaw/shared/home-visualization/723-queen-ave-n/MASTER-MANIFEST.md` [score=0.854 recalls=0 avg=0.620 source=memory/2026-04-25.md:18-18]

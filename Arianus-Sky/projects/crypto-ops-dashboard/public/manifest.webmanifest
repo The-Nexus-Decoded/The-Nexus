@@ -1,0 +1,10 @@
+{
+  "name": "Pryan Fire Crypto Ops",
+  "short_name": "Crypto Ops",
+  "description": "Mobile operator dashboard for Pryan-Fire crypto tooling.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "icons": []
+}

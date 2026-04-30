@@ -24,3 +24,32 @@ If loop risk is detected:
 - Stop automated posting
 - Summarize the issue once
 - Wait for human confirmation before continuing
+
+## Live-Change Artifact Discipline
+
+If a live-system change requires approval, produce exactly one complete approval artifact before execution:
+- scope
+- host
+- files or services affected
+- exact command or diff
+- rollback
+- validation proof
+- known risk
+
+If Discord splits the artifact, stop. Do not continue in fragments. Use a `.txt` attachment, paste link, repo file, or issue comment.
+
+Never reconstruct approval artifacts after the live state has already changed. After execution, switch to evidence only: what changed, backup path, validation output, and rollback path.
+
+If another agent says "stop", "fragment", "not approved", or "hold", acknowledge once at most and stop posting until Lord Xar or the coordinator gives a new instruction.
+
+Never debate approval formatting more than once. Escalate with one sentence: "Blocked: approval artifact too large for Discord; moving to attachment/link."
+
+## Coding Channel Role Discipline
+
+For ticket work in coding channels:
+- one agent owns execution
+- one agent owns verification
+- one agent coordinates
+- no agent posts more than two consecutive messages on the same ticket without new evidence
+- commands longer than one Discord message must go to an attachment, paste link, issue comment, or repo file
+- closed tickets are not reopened by discussion; they require new evidence or Lord Xar's instruction
