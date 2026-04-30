@@ -1,0 +1,136 @@
+{
+  "table_162": {
+    "id": 162,
+    "name": "photo_ai_moderation_audit",
+    "schema_fields": [
+      "id",
+      "created_at",
+      "photo_id",
+      "user_id",
+      "image_url_hash",
+      "queue_source",
+      "actor_type",
+      "run_id",
+      "dry_run",
+      "moderation_api_used",
+      "moderation_model",
+      "moderation_summary_json",
+      "vision_model_used",
+      "fallback_model",
+      "vision_summary_json",
+      "deterministic_checks_json",
+      "verdict",
+      "confidence",
+      "reason_code",
+      "note",
+      "planned_action",
+      "final_action",
+      "error_code",
+      "error_note"
+    ]
+  },
+  "table_163": {
+    "id": 163,
+    "name": "photo_moderation_escalations",
+    "schema_fields": [
+      "id",
+      "created_at",
+      "updated_at",
+      "photo_id",
+      "user_id",
+      "reason_code",
+      "note",
+      "severity",
+      "status",
+      "model_path_json",
+      "next_reminder_at",
+      "reminder_count",
+      "acknowledged_at",
+      "acknowledged_by",
+      "acknowledged_by_type",
+      "run_id"
+    ]
+  },
+  "api_2827": {
+    "id": 2827,
+    "name": "photos/escalations/open",
+    "verb": "POST",
+    "branch": null,
+    "auth": 1,
+    "inputs": [
+      "actor_key",
+      "actor_type",
+      "photo_id",
+      "user_id",
+      "reason_code",
+      "note",
+      "severity",
+      "model_path_json",
+      "run_id"
+    ]
+  },
+  "api_2828": {
+    "id": 2828,
+    "name": "photos/escalations",
+    "verb": "GET",
+    "branch": null,
+    "auth": 1,
+    "inputs": [
+      "actor_key",
+      "actor_type",
+      "status"
+    ]
+  },
+  "api_2829": {
+    "id": 2829,
+    "name": "photos/escalations/ack",
+    "verb": "POST",
+    "branch": null,
+    "auth": 1,
+    "inputs": [
+      "actor_key",
+      "actor_type",
+      "escalation_id",
+      "status",
+      "note"
+    ]
+  },
+  "api_2830": {
+    "id": 2830,
+    "name": "photos/ai_recommendation",
+    "verb": "POST",
+    "branch": null,
+    "auth": 1,
+    "inputs": [
+      "actor_key",
+      "actor_type",
+      "photo_id",
+      "ai_verdict",
+      "ai_confidence",
+      "ai_reason_code",
+      "ai_note",
+      "run_id",
+      "moderation_model",
+      "vision_model_used",
+      "fallback_model",
+      "deterministic_checks_json"
+    ]
+  },
+  "api_2831": {
+    "id": 2831,
+    "name": "photos/ai_decide",
+    "verb": "POST",
+    "branch": null,
+    "auth": 1,
+    "inputs": [
+      "actor_key",
+      "actor_type",
+      "photo_id",
+      "decision",
+      "reason_code",
+      "note",
+      "confidence",
+      "run_id"
+    ]
+  }
+}
