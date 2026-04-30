@@ -64,8 +64,8 @@ REVIEW_ITEMS = (
     {
         "name": "Clean profile-style photo",
         "reason_code": "clean_profile_style",
-        "description": "Real human, profile-style photo, visible subject/face or acceptable portrait framing, no policy issue found.",
-        "prompt_instruction": "Approve recommendation only when this is a clean profile photo and every other check passes.",
+        "description": "Real person, non-explicit, usable, no contact info, no spam, no obvious AI/fake indicators.",
+        "prompt_instruction": "Approve recommendation only; human/admin remains final.",
     },
     {
         "name": "Not a real profile photo",
@@ -92,10 +92,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Recommend rejection when the image is text/ad content rather than a profile photo.",
     },
     {
-        "name": "Low quality or unusable image",
-        "reason_code": "inappropriate_photos or manual_review_needed",
-        "description": "Blurry, dark, obscured, unreadable, too small, cropped beyond usefulness, subject not visible, or otherwise unusable.",
-        "prompt_instruction": "Send to manual review or recommend rejection if the image cannot be evaluated as a profile photo.",
+        "name": "Low-quality or unusable",
+        "reason_code": "inappropriate_photos",
+        "description": "Blank image, solid color, too dark, too blurry, corrupted, no visible person.",
+        "prompt_instruction": "Manual review/reject recommendation.",
     },
     {
         "name": "Meme, screenshot, or copied content",
@@ -224,7 +224,14 @@ def provider_instructions() -> str:
         "Only approve clean_profile_style when all other checks pass. Anything uncertain escalates or goes to manual review. "
         "Review the image against these Photo moderation review items:\n"
         f"{review_items_text()}\n"
-        "Return JSON with keys: verdict, reason_code, confidence, image_type, description, note, unsafe_categories, app_profile_photo_checks. "
-        "app_profile_photo_checks must include is_profile_style_photo, has_contact_info, is_meme_or_screenshot, "
-        "is_blank_or_unusable, is_ai_generated, and needs_human_review."
+        "Return strict JSON in exactly this shape: "
+        "{\"verdict\":\"approve_recommendation|reject_recommendation|review|escalate\","
+        "\"reason_code\":\"one allowed reason code from the review item mapping\","
+        "\"confidence\":0.0,"
+        "\"image_type\":\"profile_photo|not_profile_photo|ai_generated|explicit_adult|contact_or_ad|spam|low_quality|minor_risk|fake_profile|bot_or_scam|uncertain\","
+        "\"description\":\"short factual image description\","
+        "\"note\":\"short admin-facing explanation\","
+        "\"unsafe_categories\":[],"
+        "\"app_profile_photo_checks\":{\"is_profile_style_photo\":false,\"has_contact_info\":false,\"is_meme_or_screenshot\":false,\"is_blank_or_unusable\":false,\"is_ai_generated\":false,\"needs_human_review\":true}}. "
+        "Do not include markdown, prose, or extra keys."
     )

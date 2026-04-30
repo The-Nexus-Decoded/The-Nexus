@@ -205,9 +205,9 @@ Reason code: `inappropriate_photos`
 
 5. Clean profile-style photo
 
-Description: Real human, profile-style photo, visible subject/face or acceptable portrait framing, no policy issue found.
+Description: Real person, non-explicit, usable, no contact info, no spam, no obvious AI/fake indicators.
 
-Prompt instruction: Approve recommendation only when this is a clean profile photo and every other check passes.
+Prompt instruction: Approve recommendation only; human/admin remains final.
 
 Reason code: `clean_profile_style`
 
@@ -243,13 +243,13 @@ Prompt instruction: Recommend rejection when the image is text/ad content rather
 
 Reason code: `off_platform_contact or spam`
 
-10. Low quality or unusable image
+10. Low-quality or unusable
 
-Description: Blurry, dark, obscured, unreadable, too small, cropped beyond usefulness, subject not visible, or otherwise unusable.
+Description: Blank image, solid color, too dark, too blurry, corrupted, no visible person.
 
-Prompt instruction: Send to manual review or recommend rejection if the image cannot be evaluated as a profile photo.
+Prompt instruction: Manual review/reject recommendation.
 
-Reason code: `inappropriate_photos or manual_review_needed`
+Reason code: `inappropriate_photos`
 
 11. Meme, screenshot, or copied content
 
@@ -370,3 +370,27 @@ Description: Existing admin-only final decision reason; this worker must not ass
 Prompt instruction: Do not write this as a worker decision. Existing admin tools remain final.
 
 Reason code: `manual_admin_decision`
+
+Forced output shape:
+
+```json
+{
+  "verdict": "approve_recommendation|reject_recommendation|review|escalate",
+  "reason_code": "one allowed reason code from the review item mapping",
+  "confidence": 0.0,
+  "image_type": "profile_photo|not_profile_photo|ai_generated|explicit_adult|contact_or_ad|spam|low_quality|minor_risk|fake_profile|bot_or_scam|uncertain",
+  "description": "short factual image description",
+  "note": "short admin-facing explanation",
+  "unsafe_categories": [],
+  "app_profile_photo_checks": {
+    "is_profile_style_photo": false,
+    "has_contact_info": false,
+    "is_meme_or_screenshot": false,
+    "is_blank_or_unusable": false,
+    "is_ai_generated": false,
+    "needs_human_review": true
+  }
+}
+```
+
+Do not include markdown, prose, or extra keys in provider output.
