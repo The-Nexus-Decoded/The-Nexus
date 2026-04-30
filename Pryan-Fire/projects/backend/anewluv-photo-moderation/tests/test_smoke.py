@@ -573,5 +573,105 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["vision_model_used"], "minimax/MiniMax-VL-01 + parser")
 
 
+class XanoPhaseOneTests(unittest.TestCase):
+    def test_live_phase_one_posts_ai_decide_with_run_id_idempotency_and_actor_type(self):
+        class FakeClient:
+            def __init__(self):
+                self.queue_calls = []
+                self.decisions = []
+
+            def queue(self, *, limit=None):
+                self.queue_calls.append(limit)
+                item = dict(load_queue()[0])
+                item["user_id"] = 9
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.queue_calls, [1])
+        self.assertEqual(len(fake.decisions), 1)
+        payload = fake.decisions[0]
+        self.assertEqual(payload["decision"], "approved")
+        self.assertEqual(payload["expected_current_status"], 1)
+        self.assertEqual(payload["idempotency_key"], f"{payload['run_id']}:101")
+        self.assertEqual(result["decision_calls"][0]["run_id"], payload["run_id"])
+        self.assertIs(result["decision_calls"][0]["coerced"], False)
+        dumped = json.dumps(result)
+        self.assertNotIn("actor_key", dumped)
+        self.assertNotIn("Authorization", dumped)
+
+    def test_live_phase_one_applies_client_side_limit_even_if_server_ignores_it(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": load_queue()[:3],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(result["queue_fetched"], 3)
+        self.assertEqual(result["local_cap"], 1)
+        self.assertEqual(result["photos_scanned"], 1)
+        self.assertEqual(len(fake.decisions), 1)
+
+    def test_live_phase_one_settings_force_escalation_before_post(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": False, "ai_escalate_below_confidence": 0.9},
+                    "items": [load_queue()[0]],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": True}
+
+        fake = FakeClient()
+        run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions[0]["decision"], "escalated")
+
+    def test_live_phase_one_409_race_is_skip_not_failure(self):
+        from photo_sweeper.xano_client import XanoRaceSkip
+
+        class FakeClient:
+            def queue(self, *, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [load_queue()[0]],
+                }
+
+            def ai_decide(self, payload):
+                raise XanoRaceSkip("expected_current_status mismatch")
+
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=FakeClient())
+
+        call = result["decision_calls"][0]
+        self.assertEqual(call["status"], "race_skip")
+        self.assertIs(call["skipped"], True)
+        self.assertEqual(result["summary"]["race_skips"], 1)
+        self.assertEqual(result["summary"]["failures"], [{"photo_id": 101, "status": "race_skip"}])
+
+
 if __name__ == "__main__":
     unittest.main()

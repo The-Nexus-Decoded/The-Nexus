@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .queue import load_queue
 from .runner import run_once
+from .xano_client import XanoConfig, XanoModerationClient
 
 MODEL_PROVIDER_CHOICES = (
     "mock",
@@ -29,6 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--once", action="store_true", help="Run one dry-run sweep.")
     parser.add_argument("--dry-run", action="store_true", help="Emit recommendations without writes.")
+    parser.add_argument(
+        "--live-write",
+        action="store_true",
+        help="Call the live Xano moderation endpoints. Use only after owner confirms the run is safe.",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Maximum queue items to inspect.")
     parser.add_argument("--photo-id", type=str, default=None, help="Inspect one photo id from the fixture queue.")
     parser.add_argument(
@@ -70,17 +76,20 @@ def main(argv: list[str] | None = None) -> int:
         print("photo-sweeper currently supports --once only.", file=sys.stderr)
         return 2
 
-    queue = load_queue(args.queue_fixture)
+    live_write = bool(args.live_write)
+    queue = [] if live_write else load_queue(args.queue_fixture)
     provider = args.provider or args.model_adapter
+    client = XanoModerationClient(XanoConfig.from_env()) if live_write else None
     try:
         result = run_once(
             queue,
             limit=args.limit,
             photo_id=args.photo_id,
-            dry_run=True,
+            dry_run=not live_write,
             force=bool(args.force),
             model_fixture=args.model_fixture,
             model_adapter=provider,
+            xano_client=client,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

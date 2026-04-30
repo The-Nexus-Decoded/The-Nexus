@@ -79,10 +79,11 @@ class CodexOpenAIAdapter:
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         image_path = item.get("resolved_image_path") or item.get("local_fixture_path")
-        if not image_path:
-            return _manual_failure("missing_image_reference", DEFAULT_CODEX_MODEL_ROUTE, "No local image path was available for Codex/OpenAI review.")
+        remote_image_url = item.get("photo_url") if isinstance(item.get("photo_url"), str) else None
+        if not image_path and not remote_image_url:
+            return _manual_failure("missing_image_reference", DEFAULT_CODEX_MODEL_ROUTE, "No image reference was available for Codex/OpenAI review.")
         try:
-            image_url = _image_path_to_data_url(Path(image_path))
+            image_url = remote_image_url or _image_path_to_data_url(Path(image_path))
             request = self._build_request(image_url)
             with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                 payload = _read_provider_payload(response)

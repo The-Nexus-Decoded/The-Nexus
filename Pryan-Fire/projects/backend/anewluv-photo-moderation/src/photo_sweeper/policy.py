@@ -36,9 +36,9 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
     return {
         "photo_id": item["photo_id"],
         "queue_source": item.get("queue_source", "local_redacted_fixture"),
-        "dry_run": True,
+        "dry_run": dry_run,
         "force_requested": force,
-        "write_enabled": False,
+        "write_enabled": not dry_run,
         "model_path": {
             "moderation_api_used": model_result.get("moderation_api_used", False),
             "moderation_model": model_result.get("moderation_model"),
