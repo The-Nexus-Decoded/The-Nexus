@@ -1,7 +1,9 @@
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from photo_sweeper.model import (
@@ -222,6 +224,60 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertTrue(seen["authorization"].startswith("Bearer "))
         self.assertIn('"instructions"', seen["body"])
         self.assertNotIn("unit_test_key", json.dumps(result))
+
+    def test_codex_openai_adapter_parses_raw_responses_output_items(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "id": "resp_noise_that_must_not_be_parsed",
+                        "status": "completed",
+                        "output": [
+                            {
+                                "type": "message",
+                                "content": [
+                                    {
+                                        "type": "output_text",
+                                        "text": json.dumps(
+                                            {
+                                                "verdict": "approve_recommendation",
+                                                "confidence": 0.88,
+                                                "reason_code": "clean_profile_style",
+                                                "unsafe_categories": [],
+                                            }
+                                        ),
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ).encode("utf-8")
+
+        with mock.patch("urllib.request.urlopen", return_value=FakeResponse()):
+            result = CodexOpenAIAdapter(api_key="unit_test_key").review(load_queue()[0], {})
+
+        self.assertEqual(result["verdict"], "approve_recommendation")
+        self.assertEqual(result["reason_code"], "clean_profile_style")
+        self.assertEqual(result["validator"], "pass")
+
+    def test_image_data_url_removes_converted_temp_png(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "source.ppm"
+            source.write_text("P3\n1 1\n255\n255 255 255\n", encoding="utf-8")
+            converted = Path(tmpdir) / "converted.png"
+            converted.write_bytes(b"png-bytes")
+
+            with mock.patch("photo_sweeper.model._convert_to_png", return_value=converted):
+                data_url = _image_path_to_data_url(source)
+
+            self.assertTrue(data_url.startswith("data:image/png;base64,"))
+            self.assertFalse(converted.exists())
 
     def test_minimax_parser_outputs_recommendation_language(self):
         result = normalize_minimax_description("A clear portrait of a person smiling outdoors.")
