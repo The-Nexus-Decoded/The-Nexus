@@ -4,6 +4,7 @@ Date: 2026-04-30
 Approval: Lord Xar approved proactive additive Xano changes and said not to wait for later adds; document changes and acceptance criteria for later review.  
 Constraint: Xano additive-only. No deletes, no destructive replacements.
 Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive-global-table posture. Continue only docs, acceptance criteria, branch-safe/non-schema work, and endpoint/function logic using already-approved objects.
+Design correction from Lord Xar: the long-term target should be **one generic photo moderation ledger**, not separate AI-vs-human truth stores. AI, human admin, system, and any future user/community moderation paths should write/check the same data shape; source is distinguished by actor/source fields, not by separate moderation databases.
 
 ## Branch / production state
 
@@ -29,7 +30,9 @@ Xano table id: `162`
 
 Purpose: structured AI photo moderation evidence. Stores normalized evidence and final/planned action state without raw model output or secrets.
 
-Functional requirement clarified by Lord Xar/Zifnab: **every photo the AI moderates must be tracked here**. This includes approvals, rejections, review/escalation recommendations, dry-runs, retries, fallback-model runs, skips, low-confidence outcomes, and errors. `Photos` remains the current-state source of truth; this table is the historical motivation/evidence ledger.
+Functional requirement clarified by Lord Xar/Zifnab: **every moderated photo action should be tracked in a shared moderation ledger format**. AI-reviewed photos must always be tracked, and human/admin/user moderation should use the same record shape where possible. AI-specific evidence is optional/nullable and distinguished by `actor_type` / model fields, not a separate source of truth. `Photos` remains the current-state source of truth; the moderation ledger is the historical motivation/evidence trail.
+
+Naming note: the currently-created table is named `photo_ai_moderation_audit`, but the desired contract is generic. Do not add another table yet. Treat this object as provisional until review decides whether to reuse it generically, map it into an existing moderation table, or create/rename through an approved schema path later.
 
 Fields verified after creation:
 
@@ -213,15 +216,18 @@ Contract:
 - writes structured AI audit evidence;
 - acceptance gate: final approve/reject must not proceed unless audit persistence succeeds or the final action is explicitly recorded in the same audit transaction/path.
 
-## Audit coverage rule
+## Shared moderation ledger rule
 
-Minimum audit behavior for any AI moderation worker:
+Minimum behavior for moderation tracking:
 
-- AI reviews a photo → write `photo_ai_moderation_audit` row.
-- AI recommends `approved`, `rejected`, `review`, or `escalate` → write audit row.
-- AI finalizes approve/reject later → write audit row containing `final_action`, or link to the earlier recommendation row once a link field is approved.
-- AI errors, skips, cannot fetch image, hits low confidence, or uses fallback model → write audit row with `error_code` / `error_note` or the appropriate reason fields.
-- No photo may be silently changed by AI without a corresponding audit row.
+- AI reviews a photo → write a moderation ledger row.
+- Human/admin moderates a photo → write the same style of moderation ledger row, with non-AI fields/model fields empty and `actor_type=admin` or the appropriate human/source type.
+- Future user/community moderation, if added, should use the same record format instead of a separate truth store.
+- AI recommends `approved`, `rejected`, `review`, or `escalate` → write ledger row.
+- AI finalizes approve/reject later → write ledger row containing `final_action`, or link to the earlier recommendation row once a link field is approved.
+- AI errors, skips, cannot fetch image, hits low confidence, or uses fallback model → write ledger row with `error_code` / `error_note` or the appropriate reason fields.
+- No photo may be silently changed by AI without a corresponding ledger row.
+- Review/query surfaces should prefer the shared ledger view/format so Lord Xar can inspect AI and human moderation in one place.
 
 ## Schema freeze note
 
@@ -241,8 +247,10 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] All five new endpoints exist and are visible in moderation API listing/OpenAPI.
 - [ ] New endpoints require users auth and moderation service key.
 - [ ] New endpoints do not expose raw model output or secrets.
-- [ ] Every AI-moderated photo writes at least one `photo_ai_moderation_audit` row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
-- [ ] No AI final approve/reject occurs if audit persistence fails.
+- [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
+- [ ] Every AI-moderated photo writes at least one moderation ledger row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
+- [ ] Human/admin moderation can be represented in the same ledger shape without AI flags/model fields being required.
+- [ ] No AI final approve/reject occurs if ledger/audit persistence fails.
 - [ ] Recommendation endpoint does not change `photostatus_id`.
 - [ ] Final decision endpoint requires prior recommendation and `actor_type=ai_agent`.
 - [ ] Escalation endpoints support open/list/ack flow.
