@@ -54,7 +54,7 @@ class TradeStateMachine:
             self.transition(ExecutorState.IDLE)
             return
 
-        quote = await self.jupiter.get_quote(input_mint, output_mint, amount_atoms)
+        quote = await self.jupiter.get_quote(input_mint, output_mint, amount_atoms, taker=self.user_pubkey)
         
         if not quote:
             print("[ROUTING ERROR] Failed to fetch Jupiter Ultra quote.")

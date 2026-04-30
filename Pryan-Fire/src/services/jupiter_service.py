@@ -56,6 +56,7 @@ class JupiterService:
         input_mint: str,
         output_mint: str,
         amount: int,
+        slippage_bps: int = 50,
         taker: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """Fetch a Jupiter Ultra order preview, including transaction when taker is provided."""
@@ -63,6 +64,7 @@ class JupiterService:
             "inputMint": input_mint,
             "outputMint": output_mint,
             "amount": str(amount),
+            "slippageBps": slippage_bps,
         }
         if taker:
             params["taker"] = taker
@@ -74,29 +76,22 @@ class JupiterService:
         output_mint: str,
         amount: int,
         slippage_bps: int = 50,
+        taker: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Compatibility wrapper: Ultra /order without taker is the quote view."""
-        _ = slippage_bps  # Ultra /order does not accept legacy slippageBps.
-        return await self.get_order(input_mint, output_mint, amount)
+        """Compatibility wrapper: Ultra /order is the quote view."""
+        return await self.get_order(input_mint, output_mint, amount, slippage_bps=slippage_bps, taker=taker)
 
     async def get_swap_transaction(self, quote: Dict[str, Any], user_public_key: str) -> Optional[str]:
+        """Return the already validated unsigned base64 transaction from Ultra /order.
+
+        Execution must not re-fetch /order: the transaction signed here must be
+        the same route/threshold response that earlier guard logic evaluated.
         """
-        Return the unsigned base64 transaction from Jupiter Ultra /order.
-
-        If the supplied quote was fetched without a taker, fetch a taker-bound
-        order using the same mints/amount. This replaces the old /swap endpoint.
-        """
-        transaction = quote.get("transaction")
-        if transaction:
-            return transaction
-
-        input_mint = quote.get("inputMint")
-        output_mint = quote.get("outputMint")
-        amount = quote.get("inAmount") or quote.get("amount")
-        if not (input_mint and output_mint and amount and user_public_key):
+        _ = user_public_key  # kept for call-site compatibility; taker-bound order is required upstream.
+        transaction = quote.get("transaction") if isinstance(quote, dict) else None
+        request_id = quote.get("requestId") if isinstance(quote, dict) else None
+        if not isinstance(transaction, str) or not transaction.strip():
             return None
-
-        taker_order = await self.get_order(input_mint, output_mint, int(amount), taker=user_public_key)
-        if not taker_order:
+        if not isinstance(request_id, str) or not request_id.strip():
             return None
-        return taker_order.get("transaction")
+        return transaction
