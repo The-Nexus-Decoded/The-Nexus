@@ -78,16 +78,24 @@ CANONICAL_REASON_MAP = {
     "pornographic_explicit": "sexual_content",
     "inappropriate_photos": "inappropriate_photos",
     "ai_generated_image": "fake_profile",
+    "ai_generated_or_avatar": "fake_profile",
     "not_a_profile_photo": "fake_profile",
+    "celebrity_or_stock_photo": "fake_profile",
+    "object_or_landscape_only": "fake_profile",
     "fake_profile": "fake_profile",
     "contact_info_or_ad": "off_platform_contact",
     "contact_info_text_only_ad": "off_platform_contact",
+    "qr_code": "off_platform_contact",
     "off_platform_contact": "off_platform_contact",
+    "advertisement_or_flyer": "spam",
     "spam": "spam",
     "money_request": "money_request",
+    "hate_or_harassment": "harassment",
     "hate_speech": "hate_speech",
     "harassment": "harassment",
+    "bot_or_scam": "bot_behavior",
     "bot_behavior": "bot_behavior",
+    "underage_concern": "underage",
     "underage": "underage",
     "minor_targeting": "minor_targeting",
     "low_quality_or_unusable": "inappropriate_photos",
@@ -345,18 +353,28 @@ Detailed flags to inspect:
 - harassment: bullying, threatening, or targeting content
 
 CANONICAL reason_code output only:
-- sexual_content: use for sexual_content, nudity, or pornographic_explicit flags
-- inappropriate_photos: use for inappropriate_photos, low_quality_or_unusable, is_meme_or_screenshot, or is_blank_or_unusable flags
-- fake_profile: use for ai_generated_image, not_a_profile_photo, fake_profile, or catfishing flags
-- off_platform_contact: use for contact_info_or_ad, contact_info_text_only_ad, off-platform handles, URLs, QR codes, or contact bait
-- spam: use for promotional/ad/bulk-upload/spam content when it is not primarily contact bait
-- money_request: use for CashApp/Venmo/PayPal, “send money,” “sugar,” or paid companionship solicitation
-- hate_speech: use for hate symbols, slurs, extremist or hateful content
-- harassment: use for bullying, threatening, or targeting content
-- bot_behavior: use for auto-uploaded style, template-looking images, scammy overlays, or fake verification graphics
-- underage: use for minors or young-looking/school-photo age concern
-- minor_targeting: use for minor-safety targeting concerns
-- manual_admin_decision: use for manual_review_needed, missing image reference, auth/API failure, uncertainty, or any unmapped case
+- clean_profile_style -> no rejection code / approve_recommendation
+- sexual_content -> sexual_content
+- nudity -> sexual_content
+- pornographic_explicit -> sexual_content
+- inappropriate_photos -> inappropriate_photos
+- low_quality_or_unusable -> inappropriate_photos
+- ai_generated_image -> fake_profile
+- not_a_profile_photo -> fake_profile
+- celebrity_or_stock_photo -> fake_profile
+- object_or_landscape_only -> fake_profile
+- contact_info_or_ad -> off_platform_contact or spam
+- contact_info_text_only_ad -> off_platform_contact or spam
+- qr_code -> off_platform_contact or spam
+- advertisement_or_flyer -> spam
+- money_request -> money_request
+- hate_or_harassment -> hate_speech or harassment
+- bot_or_scam -> bot_behavior
+- underage_concern -> underage or minor_targeting
+- manual_review_needed -> manual_admin_decision
+- api_failure_fallback -> manual_admin_decision
+- missing_image_reference -> manual_admin_decision
+- api_auth_unavailable -> manual_admin_decision
 
 APPROVE ONLY:
 - clean_profile_style: real human face, profile-style selfie/photo, no issues

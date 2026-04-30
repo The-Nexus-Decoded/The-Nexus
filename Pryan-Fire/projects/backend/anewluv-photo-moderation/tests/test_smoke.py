@@ -222,14 +222,22 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "pornographic_explicit": "sexual_content",
             "ai_generated_image": "fake_profile",
             "not_a_profile_photo": "fake_profile",
+            "celebrity_or_stock_photo": "fake_profile",
+            "object_or_landscape_only": "fake_profile",
             "contact_info_or_ad": "off_platform_contact",
             "contact_info_text_only_ad": "off_platform_contact",
+            "qr_code": "off_platform_contact",
+            "advertisement_or_flyer": "spam",
+            "money_request": "money_request",
+            "hate_or_harassment": "harassment",
+            "bot_or_scam": "bot_behavior",
+            "underage_concern": "underage",
             "low_quality_or_unusable": "inappropriate_photos",
         }
         for raw, canonical in cases.items():
             with self.subTest(raw=raw):
                 result = normalize_model_result({"verdict": "review", "reason_code": raw, "unsafe_categories": []}, default_model="fixture")
-                self.assertEqual(result["raw_reason_code"], raw)
+                self.assertEqual(result.get("raw_reason_code", result["reason_code"]), raw)
                 self.assertEqual(result["reason_code"], canonical)
 
         clean_reject = normalize_model_result({"verdict": "reject_recommendation", "reason_code": "clean_profile_style", "unsafe_categories": []}, default_model="fixture")

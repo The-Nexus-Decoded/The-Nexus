@@ -553,3 +553,36 @@ Final output keeps two layers:
 detected_category = detailed AI/image classification
 reason_code = canonical Xano-compatible moderation reason
 ```
+
+Explicit canonical mapping table:
+
+```txt
+clean_profile_style -> no rejection code / approve_recommendation
+
+sexual_content -> sexual_content
+nudity -> sexual_content
+pornographic_explicit -> sexual_content
+
+inappropriate_photos -> inappropriate_photos
+low_quality_or_unusable -> inappropriate_photos
+
+ai_generated_image -> fake_profile
+not_a_profile_photo -> fake_profile
+celebrity_or_stock_photo -> fake_profile
+object_or_landscape_only -> fake_profile
+
+contact_info_or_ad -> off_platform_contact or spam
+contact_info_text_only_ad -> off_platform_contact or spam
+qr_code -> off_platform_contact or spam
+advertisement_or_flyer -> spam
+
+money_request -> money_request
+hate_or_harassment -> hate_speech or harassment
+bot_or_scam -> bot_behavior
+underage_concern -> underage or minor_targeting
+
+manual_review_needed -> manual_admin_decision
+api_failure_fallback -> manual_admin_decision
+missing_image_reference -> manual_admin_decision
+api_auth_unavailable -> manual_admin_decision
+```
