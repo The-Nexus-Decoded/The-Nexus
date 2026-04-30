@@ -11,13 +11,11 @@ Build a photo moderation worker and agent-facing tool path for Anewluv that can:
 
 - read pending profile/gallery photos from Xano;
 - run deterministic checks plus a verified vision model path;
-- write AI recommendation fields;
-- finalize safe approve/reject decisions only when policy allows;
-- leave uncertain cases pending as review/escalation;
-- write audit evidence for every AI action;
-- report summaries and unresolved escalations to Jarvis/Discord owner channels.
+- produce AI recommendations without making final moderation decisions;
+- leave manual moderation as the final approve/reject path;
+- report summaries and unresolved cases to Jarvis/Discord owner channels.
 
-This is a worker/tool proof lane, not a production-ready declaration. Production writes stay behind explicit gates.
+This is a worker/tool proof lane, not a production-ready declaration. Production writes are locked out under the approved contract.
 
 ## Active guardrails
 
@@ -25,6 +23,10 @@ This is a worker/tool proof lane, not a production-ready declaration. Production
 - Anewluv Xano work is effectively on `v1`; assume any Xano endpoint/table/schema change is live-impacting unless Lord Xar explicitly says otherwise.
 - If functionality does not exist, map existing `v1` objects first and propose the smallest additive change only after approval; do not replace or remove existing ones.
 - Do not mutate Xano schema/API or execute provisional endpoints without approval.
+- Do not create `Profiles.is_ai` or any profile-level AI marker.
+- Do not move Xano schema.
+- Do not allow worker writes.
+- Keep provisional `162/163` inert unless a proven gap is approved later.
 - Do not print or commit secrets.
 - Do not delete photos.
 - Do not approve uncertain photos.
@@ -47,7 +49,7 @@ Gate 1 discovery has been completed from Xano MCP and documented in:
 - shared note: `/data/openclaw/shared/anewluv/photo-moderation-schema-discovery-2026-04-30.md`
 - repo note: `docs/schema-discovery-2026-04-30.md`
 
-Implementation is blocked from write-capable behavior until the endpoint contract mismatches and missing write paths are resolved.
+Implementation is locked to recommendation-only behavior: AI may recommend, manual moderation remains final, and worker writes stay disabled.
 
 Key reconciliation docs:
 
