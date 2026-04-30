@@ -402,3 +402,23 @@ If uncertain, choose review/escalate — never approve.
 ```
 
 Do not include markdown, prose, or extra keys in provider output.
+
+## 9. Final output policy / normalization split
+
+Final `reason_code` output should be canonical Xano-compatible wherever possible. Detailed prompt flags may still identify `nudity`, `ai_generated_image`, `api_failure_fallback`, etc., but normalized worker output must map them before policy handling.
+
+Required final-output mappings:
+
+```txt
+api_failure_fallback -> manual_admin_decision
+missing_image_reference -> manual_admin_decision
+api_auth_unavailable -> manual_admin_decision
+clean_profile_style -> approve_recommendation only, no reject code
+```
+
+Code ownership split:
+
+```txt
+validators.py = strict schema/enum validation and reason-code normalization
+model.py = provider calls, provider payloads, provider parsing only
+```

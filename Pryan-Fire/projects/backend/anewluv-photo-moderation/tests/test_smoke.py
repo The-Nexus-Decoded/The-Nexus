@@ -145,6 +145,29 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(unknown["validator"], "fail")
         self.assertEqual(unknown["verdict"], "review")
 
+    def test_reason_codes_are_canonicalized_before_policy(self):
+        cases = {
+            "api_failure_fallback": "manual_admin_decision",
+            "missing_image_reference": "manual_admin_decision",
+            "api_auth_unavailable": "manual_admin_decision",
+            "nudity": "sexual_content",
+            "pornographic_explicit": "sexual_content",
+            "ai_generated_image": "fake_profile",
+            "not_a_profile_photo": "fake_profile",
+            "contact_info_or_ad": "off_platform_contact",
+            "contact_info_text_only_ad": "off_platform_contact",
+            "low_quality_or_unusable": "inappropriate_photos",
+        }
+        for raw, canonical in cases.items():
+            with self.subTest(raw=raw):
+                result = normalize_model_result({"verdict": "review", "reason_code": raw, "unsafe_categories": []}, default_model="fixture")
+                self.assertEqual(result["raw_reason_code"], raw)
+                self.assertEqual(result["reason_code"], canonical)
+
+        clean_reject = normalize_model_result({"verdict": "reject_recommendation", "reason_code": "clean_profile_style", "unsafe_categories": []}, default_model="fixture")
+        self.assertEqual(clean_reject["validator"], "fail")
+        self.assertEqual(clean_reject["reason_code"], "manual_admin_decision")
+
     def test_codex_provider_report_fields_are_zero_write_text_json(self):
         queue = load_queue()
         with mock.patch.dict("os.environ", {"CODEX_OPENAI_API_KEY": "", "OPENAI_API_KEY": "", "CODEX_AUTH_PATH": "/tmp/does-not-exist-codex-auth.json"}, clear=False):

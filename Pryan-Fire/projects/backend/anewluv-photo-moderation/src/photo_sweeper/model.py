@@ -12,7 +12,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from .moderation_contract import CANONICAL_REASON_MAP, DEFAULT_PROFILE_CHECKS, VALID_VERDICTS, provider_instructions
+from .moderation_contract import provider_instructions
+from .validators import default_profile_checks, normalize_model_result, safe_note_for_reason
 
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
 DEFAULT_CODEX_MODEL_ROUTE = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
@@ -21,10 +22,6 @@ DEFAULT_CODEX_OAUTH_ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 DEFAULT_PUBLIC_OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
 
-FINAL_TO_RECOMMENDATION_VERDICTS = {
-    "rejected": "reject_recommendation",
-    "reject": "reject_recommendation",
-}
 
 
 class MockModelAdapter:
@@ -159,7 +156,7 @@ class MiniMaxCLIAdapter:
 
 def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINIMAX_MODEL) -> dict:
     text = description.lower()
-    checks = _default_profile_checks(needs_human_review=True)
+    checks = default_profile_checks(needs_human_review=True)
     unsafe_categories: list[str] = []
     verdict = "review"
     reason_code = "manual_review_needed"
@@ -202,7 +199,7 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
             "verdict": verdict,
             "confidence": confidence,
             "reason_code": reason_code,
-            "note": _safe_note_for_reason(reason_code),
+            "note": safe_note_for_reason(reason_code),
             "unsafe_categories": unsafe_categories,
             "vision_model_used": f"{model} + parser",
             "fallback_model": None,
@@ -210,43 +207,6 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
         },
         default_model=f"{model} + parser",
     )
-
-
-def normalize_model_result(result: dict, *, default_model: str) -> dict:
-    normalized = dict(result)
-    if "verdict" not in normalized and "recommendation" in normalized:
-        normalized["verdict"] = normalized.get("recommendation")
-    if "reason_code" not in normalized and "reason" in normalized:
-        normalized["reason_code"] = normalized.get("reason")
-    raw_verdict = str(normalized.get("verdict", "review")).lower()
-    normalized["verdict"] = FINAL_TO_RECOMMENDATION_VERDICTS.get(raw_verdict, raw_verdict)
-    normalized["normalization_applied"] = "yes" if normalized["verdict"] != raw_verdict else "no"
-    normalized.setdefault("confidence", 0.0)
-    raw_reason_code = str(normalized.get("reason_code", "manual_review_needed")).lower()
-    normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
-    if normalized["reason_code"] != raw_reason_code:
-        normalized["raw_reason_code"] = raw_reason_code
-    normalized.setdefault("note", _safe_note_for_reason(normalized["reason_code"]))
-    normalized.setdefault("unsafe_categories", [])
-    normalized.setdefault("moderation_api_used", False)
-    normalized.setdefault("moderation_model", None)
-    normalized.setdefault("vision_model_used", default_model)
-    normalized.setdefault("fallback_model", None)
-    normalized.setdefault("image_generation_events", 0)
-    normalized.setdefault("output_type", "text_json")
-    normalized.setdefault("app_profile_photo_checks", _default_profile_checks(needs_human_review=True))
-    normalized["validator"] = "pass" if _is_valid_normalized_result(normalized) else "fail"
-    if normalized["validator"] == "fail":
-        normalized["verdict"] = "review"
-        normalized["reason_code"] = CANONICAL_REASON_MAP["manual_review_needed"]
-        normalized["raw_reason_code"] = "manual_review_needed"
-        normalized["note"] = "Model output failed strict validation; manual review required."
-        normalized["validator"] = "fail"
-    return normalized
-
-
-def _is_valid_normalized_result(result: dict) -> bool:
-    return result.get("verdict") in VALID_VERDICTS and isinstance(result.get("unsafe_categories"), list)
 
 
 def _provider_instructions() -> str:
@@ -418,7 +378,7 @@ def _manual_failure(reason_code: str, model: str, note: str, *, fallback: str | 
             "unsafe_categories": [],
             "vision_model_used": model,
             "fallback_model": fallback,
-            "app_profile_photo_checks": _default_profile_checks(needs_human_review=True),
+            "app_profile_photo_checks": default_profile_checks(needs_human_review=True),
         },
         default_model=model,
     )
@@ -463,25 +423,3 @@ def _strings(value: Any):
             yield from _strings(child)
 
 
-def _default_profile_checks(*, needs_human_review: bool) -> dict:
-    checks = dict(DEFAULT_PROFILE_CHECKS)
-    checks["needs_human_review"] = needs_human_review
-    return checks
-
-
-def _safe_note_for_reason(reason_code: str) -> str:
-    notes = {
-        "clean_profile_style": "AI recommends approval as profile-style image; human/admin workflow remains final.",
-        "sexual_content": "AI recommends rejection/escalation for possible sexual content; human/admin workflow remains final.",
-        "nudity": "AI recommends rejection/escalation for possible nudity; human/admin workflow remains final.",
-        "pornographic_explicit": "AI recommends rejection/escalation for possible explicit content; human/admin workflow remains final.",
-        "inappropriate_photos": "AI recommends rejection/escalation for possible inappropriate photo content; human/admin workflow remains final.",
-        "ai_generated_image": "AI recommends manual review for possible AI-generated image.",
-        "contact_info_or_ad": "AI recommends manual review for possible contact info, screenshot, or advertisement.",
-        "low_quality_or_unusable": "AI recommends manual review for low-quality or unusable image.",
-        "not_a_profile_photo": "AI recommends manual review because the image may not be a profile photo.",
-        "api_failure_fallback": "Vision path failed; manual review required.",
-        "api_auth_unavailable": "Vision auth unavailable; manual review required.",
-        "missing_image_reference": "Image reference missing; manual review required.",
-    }
-    return notes.get(reason_code, "AI recommends manual review; human/admin workflow remains final.")
