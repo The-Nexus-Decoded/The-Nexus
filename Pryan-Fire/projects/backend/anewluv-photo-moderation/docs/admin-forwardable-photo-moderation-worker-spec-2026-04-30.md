@@ -461,6 +461,12 @@ meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
 object_or_landscape_only -> reject_recommendation/review
 celebrity_or_stock_photo -> fake_profile/review
 ai_generated_or_avatar -> fake_profile/review
-explicit_adult_image -> escalate with sexual_content
-low_quality_or_unusable -> review or reject_recommendation with inappropriate_photos
+explicit_adult_image -> reject/escalate
+low_quality_or_unusable -> review/reject
+```
+
+Prompt instruction:
+
+```txt
+First classify the image type. Then evaluate safety/policy checks. If the image is not clearly a usable profile photo of a real person, do not approve it.
 ```

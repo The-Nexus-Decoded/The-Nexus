@@ -248,8 +248,13 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review",
             "object_or_landscape_only -> reject_recommendation/review",
             "celebrity_or_stock_photo -> fake_profile/review",
+            "ai_generated_or_avatar -> fake_profile/review",
+            "explicit_adult_image -> reject/escalate",
+            "low_quality_or_unusable -> review/reject",
         }:
             self.assertIn(mapping, instructions)
+        self.assertIn("First classify the image type. Then evaluate safety/policy checks", instructions)
+        self.assertIn("not clearly a usable profile photo of a real person, do not approve", instructions)
         self.assertIn("Detailed flags to inspect", instructions)
         self.assertIn("CANONICAL reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
