@@ -403,6 +403,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("CANONICAL canonical_reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
         self.assertIn("If unsure", instructions)
+        self.assertIn("Only approve clean_profile_style when all other checks pass", instructions)
+        self.assertIn("If uncertain, choose review/escalate. Never approve uncertainty", instructions)
         self.assertIn("Confidence below 0.6", instructions)
         self.assertIn("underage: use when the image subject appears under 18", instructions)
         self.assertIn("minor_targeting: use when content appears to target minors or sexualizes youth context", instructions)

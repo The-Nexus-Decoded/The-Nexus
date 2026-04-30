@@ -717,3 +717,10 @@ Additional check wording:
 money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money/payment solicitation — reject/escalate
 hate_speech | Hate symbols, slurs, protected-class attacks | Hate speech — escalate
 ```
+
+Core approval rule:
+
+```txt
+Only approve clean_profile_style when all other checks pass.
+If uncertain, choose review/escalate. Never approve uncertainty.
+```

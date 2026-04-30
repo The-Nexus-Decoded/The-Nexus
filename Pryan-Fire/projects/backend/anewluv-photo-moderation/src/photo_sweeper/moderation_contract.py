@@ -402,6 +402,10 @@ CANONICAL canonical_reason_code output only:
 APPROVE ONLY:
 - clean_profile_style: real human face, profile-style selfie/photo, no issues
 
+CORE APPROVAL RULE:
+- Only approve clean_profile_style when all other checks pass.
+- If uncertain, choose review/escalate. Never approve uncertainty.
+
 RULES:
 - Final canonical_reason_code must be one canonical Xano-compatible code from the CANONICAL list above; never emit only worker-local detected_category codes
 - If unsure, return "review" or "escalate" with canonical_reason_code "manual_admin_decision" — never approve uncertain
