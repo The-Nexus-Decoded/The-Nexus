@@ -470,3 +470,31 @@ Prompt instruction:
 ```txt
 First classify the image type. Then evaluate safety/policy checks. If the image is not clearly a usable profile photo of a real person, do not approve it.
 ```
+
+## 11. Locked canonical reason-code set
+
+Final normalized `reason_code` values must stay within the existing Xano-compatible moderation set. `clean_profile_style` is approve-only guidance, not a reject/final reason code.
+
+```txt
+spam
+off_platform_contact
+harassment
+fake_profile
+inappropriate_photos
+money_request
+hate_speech
+bot_behavior
+sexual_content
+minor_targeting
+underage
+manual_admin_decision
+```
+
+Gate remains locked:
+
+```txt
+writes: false
+/photos/decide: not called
+/admin/decision/*: not called
+no decision endpoints
+```

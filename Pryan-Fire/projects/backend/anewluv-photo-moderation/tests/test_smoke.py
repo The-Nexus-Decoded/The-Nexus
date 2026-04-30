@@ -15,6 +15,7 @@ from photo_sweeper.model import (
     normalize_minimax_description,
     normalize_model_result,
 )
+from photo_sweeper.moderation_contract import XANO_CANONICAL_REASON_CODES
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -144,6 +145,25 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(reject["validator"], "pass")
         self.assertEqual(unknown["validator"], "fail")
         self.assertEqual(unknown["verdict"], "review")
+
+    def test_xano_canonical_reason_code_set_is_locked(self):
+        self.assertEqual(
+            XANO_CANONICAL_REASON_CODES,
+            {
+                "spam",
+                "off_platform_contact",
+                "harassment",
+                "fake_profile",
+                "inappropriate_photos",
+                "money_request",
+                "hate_speech",
+                "bot_behavior",
+                "sexual_content",
+                "minor_targeting",
+                "underage",
+                "manual_admin_decision",
+            },
+        )
 
     def test_reason_codes_are_canonicalized_before_policy(self):
         cases = {
