@@ -498,3 +498,25 @@ writes: false
 /admin/decision/*: not called
 no decision endpoints
 ```
+
+## 12. Worker/model category coverage
+
+These are the detailed worker/model categories currently covered before canonical Xano normalization:
+
+```txt
+clean_profile_style
+ai_generated_image
+sexual_content
+nudity
+pornographic_explicit
+inappropriate_photos
+contact_info_or_ad
+contact_info_text_only_ad
+low_quality_or_unusable
+not_a_profile_photo
+manual_review_needed
+api_failure_fallback
+missing_image_reference
+```
+
+These are not all final `reason_code` outputs. The validator maps detailed categories into the locked canonical Xano-compatible set before policy handling.

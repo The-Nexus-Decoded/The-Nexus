@@ -36,6 +36,23 @@ XANO_CANONICAL_REASON_CODES = {
 
 PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "underage", "sexual_content"}
 
+
+WORKER_MODEL_CATEGORIES = {
+    "clean_profile_style",
+    "ai_generated_image",
+    "sexual_content",
+    "nudity",
+    "pornographic_explicit",
+    "inappropriate_photos",
+    "contact_info_or_ad",
+    "contact_info_text_only_ad",
+    "low_quality_or_unusable",
+    "not_a_profile_photo",
+    "manual_review_needed",
+    "api_failure_fallback",
+    "missing_image_reference",
+}
+
 CANONICAL_REASON_MAP = {
     "clean_profile_style": "clean_profile_style",
     "sexual_content": "sexual_content",

@@ -15,7 +15,7 @@ from photo_sweeper.model import (
     normalize_minimax_description,
     normalize_model_result,
 )
-from photo_sweeper.moderation_contract import XANO_CANONICAL_REASON_CODES
+from photo_sweeper.moderation_contract import WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -145,6 +145,26 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(reject["validator"], "pass")
         self.assertEqual(unknown["validator"], "fail")
         self.assertEqual(unknown["verdict"], "review")
+
+    def test_worker_model_category_coverage_is_locked(self):
+        self.assertEqual(
+            WORKER_MODEL_CATEGORIES,
+            {
+                "clean_profile_style",
+                "ai_generated_image",
+                "sexual_content",
+                "nudity",
+                "pornographic_explicit",
+                "inappropriate_photos",
+                "contact_info_or_ad",
+                "contact_info_text_only_ad",
+                "low_quality_or_unusable",
+                "not_a_profile_photo",
+                "manual_review_needed",
+                "api_failure_fallback",
+                "missing_image_reference",
+            },
+        )
 
     def test_xano_canonical_reason_code_set_is_locked(self):
         self.assertEqual(
