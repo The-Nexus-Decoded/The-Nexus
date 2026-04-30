@@ -232,12 +232,14 @@ Existing `POST /photos/decide` also accepts `reject_reason_code` and `note`; whe
 
 Required behavior once writes are enabled:
 
-- `Photos` remains the current-state snapshot.
-- Unified moderation history remains the immutable ledger.
+- `Photos` remains the current-state snapshot for user/admin-facing status and current reason fields.
+- Unified moderation history remains the immutable ledger copy of the same decision plus evidence.
+- One source of truth per field: current app state belongs on `Photos`/existing admin-visible paths; model path, checks, retries, fallback, confidence context, and audit evidence belong in moderation history.
 - A rejection/review reason must not live only in history if the current UI/admin flow expects it on `Photos` or `admin_notes`.
 - AI recommendation writes must keep `Photos.ai_reason_code` / `Photos.ai_note` aligned with the corresponding moderation-history row.
-- Final rejection writes must pass the canonical `reject_reason_code` into the final decision path and ensure the same reason appears in unified moderation history.
+- Final rejection writes must pass the canonical `reject_reason_code` into the final decision path and ensure the same normalized reason code appears in unified moderation history.
 - If final decision uses existing `/photos/decide`, it must preserve the current `reject_reason_code` → `admin_notes` behavior.
+- If a dedicated current-state rejection-reason field is found later, inspect and prefer that field as the canonical current-state location before adding or using another structure.
 - No current-state update may succeed if the required moderation-history row fails, and no history-only rejection should leave `Photos`/admin-visible reason fields stale.
 
 ## Shared moderation ledger rule
@@ -292,7 +294,8 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] New tables are used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
 - [ ] Created tables remain inert until that review is complete.
 - [ ] Every moderated photo action is recorded in the same moderation history format, regardless of actor type.
-- [ ] Current-state fields are kept in sync: AI recommendations populate `Photos.ai_reason_code`/`ai_note` where applicable, final rejections pass canonical `reject_reason_code` through the final decision path, and the same reason/action is recorded in moderation history.
+- [ ] Current-state fields are kept in sync: AI recommendations populate `Photos.ai_reason_code`/`ai_note` where applicable, final rejections pass canonical `reject_reason_code` through the final decision path, and the same normalized reason code/action is recorded in moderation history.
+- [ ] One source of truth per field: `Photos`/existing admin-visible paths own current state; moderation history owns immutable evidence and ledger context.
 - [ ] Existing `/photos/decide` `reject_reason_code` → `admin_notes` behavior is preserved if that endpoint remains in the final decision path.
 - [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
 - [ ] Shared ledger contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
