@@ -54,7 +54,7 @@ Behavior:
 - reject already approved/rejected photos unless an explicit approved `force` mode is added later;
 - update only recommendation fields;
 - do not update `photostatus_id`;
-- write structured AI audit detail;
+- write a unified moderation history row;
 - return `{ success, photo_id, ai_verdict }`.
 
 Open decision:
@@ -85,7 +85,7 @@ Allow `actor_type == ai_agent` only when:
 - service key is valid;
 - auth identity is an approved admin/service account;
 - `ai_confidence` and recommendation state already exist;
-- structured AI audit write succeeds.
+- unified moderation history write succeeds.
 
 Pros:
 
@@ -95,7 +95,7 @@ Cons:
 
 - changes existing endpoint semantics; higher regression risk.
 
-### Option B — add AI-only finalization endpoint
+### Option B — add AI-agent finalization endpoint
 
 Add:
 
@@ -137,13 +137,15 @@ Cons:
 
 Recommendation: Option B unless Lord Xar wants the existing admin endpoint to become the single finalization path.
 
-## Change 3 — structured AI audit table/path
+## Change 3 — unified moderation history table/contract
 
-Add table, e.g.:
+Preferred path: review existing photo/photo-management tables first. Use a new table only if existing structures cannot support unified moderation history without destructive changes. If a new/reconciled table is approved, use a generic moderation-history contract, e.g.:
 
 ```text
-photo_ai_moderation_audit
+photo_moderation_history
 ```
+
+Historical note: `photo_ai_moderation_audit` was created additively before Lord Xar corrected the architecture. It must remain inert until reconciliation, or be remediated non-destructively.
 
 Suggested fields:
 
@@ -175,14 +177,19 @@ Suggested fields:
 Endpoint options:
 
 ```text
-POST /photos/ai_audit
+POST /photos/moderation_history
 ```
 
-or embedded audit writes inside recommendation/finalization endpoints.
+or embedded history writes inside recommendation/finalization/human-admin endpoints.
 
 Requirement:
 
-- final approve/reject must not occur if audit write fails.
+- every moderated photo action gets a row in the same audit/history format;
+- `actor_type` distinguishes `ai_agent`, `admin`, `user`, or `system`;
+- AI rows include nullable AI metadata: model, confidence, fallback path, checks, errors;
+- human/admin rows use the same fields where applicable, with AI fields null;
+- `Photos` remains current state; moderation history remains the ledger;
+- final approve/reject must not occur if history write fails.
 
 ## Change 4 — escalation queue + ack route
 
@@ -293,7 +300,7 @@ Before Devon writes implementation code that can mutate state, confirm:
 - [ ] Xano branch name and owner.
 - [ ] Recommendation endpoint strategy.
 - [ ] Final decision strategy for `ai_agent`.
-- [ ] Structured audit storage design.
+- [ ] Unified moderation history storage design.
 - [ ] Escalation queue/ack storage design.
 - [ ] Backend email/provider decision.
 - [ ] Worker auth/service-account path.

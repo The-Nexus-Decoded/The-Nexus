@@ -27,7 +27,7 @@ Pryan-Fire/projects/backend/anewluv-photo-moderation/docs/xano-branch-change-pla
 
 - AI recommendation endpoint/path.
 - AI-safe final decision path resolving the `ai_agent` actor conflict.
-- Structured AI audit table/path.
+- Unified photo moderation history table/contract; AI metadata nullable, not a separate AI-vs-human lane.
 - Escalation queue and acknowledgement path.
 - Backend-mediated email/notification path.
 - Worker auth/service account path.

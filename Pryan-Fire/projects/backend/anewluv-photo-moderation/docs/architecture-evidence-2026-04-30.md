@@ -35,8 +35,8 @@ Observed write fields:
 Architecture use:
 
 - usable as endpoint-level attempt audit;
-- not enough for AI photo review evidence;
-- should remain a shared low-level audit hook even if a new photo AI audit table is added.
+- not enough for unified photo moderation history;
+- should remain a shared low-level endpoint-attempt audit hook, separate from the moderation-history ledger.
 
 ### `moderation/validate_reason_code`
 
@@ -181,7 +181,7 @@ photo-sweeper CLI / cron
   └─ write adapters (disabled until gates open)
        ├─ recommendation writer
        ├─ final decision writer
-       ├─ AI audit writer
+       ├─ unified moderation history writer
        ├─ escalation writer/ack tracker
        └─ backend email/Jarvis reporter
 ```
@@ -230,7 +230,7 @@ Reporting/email, unresolved:
 - #308: queue reader design; implementation waits on safe auth or fixture strategy.
 - #314: recommendation write endpoint design; implementation waits on Xano endpoint/branch approval.
 - #315: final decision path; implementation waits on `ai_agent` actor conflict resolution.
-- #316: structured AI audit; implementation waits on schema/API approval.
+- #316: unified moderation history; implementation waits on schema/API approval/reconciliation.
 
 ## Architecture decision records
 
@@ -238,6 +238,6 @@ Reporting/email, unresolved:
 2. **Dry-run first:** default execution mode remains dry-run until explicit write gates are implemented and approved.
 3. **No admin impersonation:** final decisions cannot fake `admin` to bypass current `/photos/decide` restrictions.
 4. **Recommendation before decision:** every reviewed photo should get a recommendation record before finalization, once a safe endpoint exists.
-5. **Structured audit separate from notes:** `admin_notes` may supplement admin visibility but must not be the only AI audit record.
+5. **Unified moderation history separate from notes:** `admin_notes` may supplement admin visibility but must not be the ledger. Every moderated photo action should be recorded in the same history format regardless of `actor_type`; AI metadata is nullable for human/admin/system rows.
 6. **Unverified vision means no approve/reject:** if model path fails or is unavailable, planned action is review/escalate only.
 7. **Reason-code mapper required:** assignment reason codes and Xano canonical codes differ; mapper must be explicit and tested.
