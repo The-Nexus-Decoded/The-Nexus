@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .deterministic import inspect_image
-from .model import MockModelAdapter
+from .model import MiniMaxCLIAdapter, MockModelAdapter
 from .policy import combine
 
 
@@ -15,9 +15,10 @@ def run_once(
     dry_run: bool,
     force: bool,
     model_fixture: Path | None,
+    model_adapter: str = "mock",
 ) -> dict:
     selected = _select(queue, limit=limit, photo_id=photo_id)
-    adapter = MockModelAdapter(model_fixture)
+    adapter = _build_adapter(model_adapter, model_fixture)
     photos = []
 
     for item in selected:
@@ -55,8 +56,16 @@ def _summary(photos: list[dict]) -> dict:
         "report_only": sum(1 for item in photos if item["planned_action"] == "report_only"),
         "leave_pending": sum(1 for item in photos if item["planned_action"] == "leave_pending"),
         "failures": [],
-        "model_api_path_used": ["mock_fixture"] if photos else [],
+        "model_api_path_used": sorted({item["model_path"]["vision_model_used"] for item in photos}) if photos else [],
         "fallback_usage": 0,
         "next_scheduled_run": None,
         "unresolved_escalations": sum(1 for item in photos if item["planned_action"] == "escalate"),
     }
+
+
+def _build_adapter(model_adapter: str, model_fixture: Path | None):
+    if model_adapter == "mock":
+        return MockModelAdapter(model_fixture)
+    if model_adapter == "minimax-cli":
+        return MiniMaxCLIAdapter()
+    raise ValueError(f"unsupported model_adapter: {model_adapter}")

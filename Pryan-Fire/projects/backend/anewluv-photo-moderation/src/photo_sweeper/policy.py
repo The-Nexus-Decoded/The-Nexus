@@ -16,15 +16,15 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
     if not checks.get("image_reference_present") or checks.get("exists") is False:
         planned_action = "leave_pending"
         recommended_decision = None
-    elif verdict == "approved" and reason in REPORT_ONLY_REASONS and _checks_pass(checks) and _profile_clean(flags):
+    elif verdict == "approve_recommendation" and reason in REPORT_ONLY_REASONS and _checks_pass(checks) and _profile_clean(flags):
         planned_action = "report_only"
-        recommended_decision = "approve"
-    elif verdict == "rejected" and reason in EXPLICIT_REASONS:
+        recommended_decision = "approve_recommendation"
+    elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
         planned_action = "escalate"
-        recommended_decision = "reject"
-    elif verdict == "rejected":
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation":
         planned_action = "manual_review"
-        recommended_decision = "reject"
+        recommended_decision = "reject_recommendation"
     elif verdict == "escalate" or reason in EXPLICIT_REASONS:
         planned_action = "escalate"
     elif verdict == "review" or warnings:
@@ -32,8 +32,9 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
 
     return {
         "photo_id": item["photo_id"],
-        "user_id": item.get("user_id"),
         "queue_source": item.get("queue_source", "local_redacted_fixture"),
+        "source_field": item.get("source_field"),
+        "has_photo_url": item.get("has_photo_url"),
         "dry_run": True,
         "force_requested": force,
         "write_enabled": False,

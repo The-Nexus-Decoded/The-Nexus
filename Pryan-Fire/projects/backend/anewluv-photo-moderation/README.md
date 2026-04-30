@@ -101,6 +101,14 @@ PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --force
 
 The default queue source is `src/photo_sweeper/fixtures/queue_redacted.json`. Queue items are normalized before output, and `user_email` is omitted from CLI output.
 
+Current adapter safeguards:
+
+- Normalized AI verdicts are recommendation language only: `approve_recommendation`, `review`, `reject_recommendation`, `escalate`.
+- Final-state terms from model fixtures or provider text are remapped: `approved` → `approve_recommendation`, `rejected` → `reject_recommendation`.
+- Queue normalization prefers `PhotoData.url`, falls back to `PhotoUrl`, and omits `user_name`, `user_email`, and raw user ids from worker output.
+- Remote image probes use `GET` with `Range: bytes=0-31`; do not use `HEAD` because Xano vault URLs return `405`.
+- `--model-adapter minimax-cli` calls `openclaw infer image describe --model minimax/MiniMax-VL-01 --file <local-file> --json` for local files only.
+
 Mock model categories covered by fixture manifests:
 
 - `clean_profile_style`
@@ -127,7 +135,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 Result:
 
 ```text
-Ran 6 tests
+Ran 11 tests
 
 OK
 ```
