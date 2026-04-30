@@ -189,9 +189,9 @@ Reason code: `sexual_content or inappropriate_photos`
 
 3. Pornographic explicit content
 
-Description: Hard porn, explicit adult material, visible sexual acts, genital focus, intercourse, masturbation, or pornographic framing.
+Description: Sex acts, explicit adult content, pornography, masturbation, or graphic sexual imagery.
 
-Prompt instruction: Escalate and recommend rejection if explicit pornographic content is present.
+Prompt instruction: Reject/escalate immediately.
 
 Reason code: `sexual_content`
 
@@ -219,13 +219,13 @@ Prompt instruction: Recommend rejection/review if the image is not a real profil
 
 Reason code: `inappropriate_photos`
 
-7. AI-generated or synthetic image
+7. Fake / AI-generated image
 
-Description: AI-generated face, synthetic person, rendered avatar, cartoon/anime style, illustration, drawing, or obviously artificial profile image.
+Description: Synthetic face/body, obvious AI artifacting, unrealistic skin/eyes/hands, heavily generated avatar.
 
-Prompt instruction: Recommend rejection/review for synthetic identity imagery; use manual review if uncertain.
+Prompt instruction: Manual review unless policy says reject.
 
-Reason code: `fake_profile or manual_review_needed`
+Reason code: `fake_profile`
 
 8. Contact info or advertisement
 
@@ -267,11 +267,11 @@ Prompt instruction: Recommend rejection if the image is blank or unusable.
 
 Reason code: `inappropriate_photos`
 
-13. Underage or minor risk
+13. Underage / minor concern
 
-Description: Subject appears to be a minor, age is ambiguous with childlike presentation, or content raises minor-safety concerns.
+Description: Person appears under 18, school-age child/teen, or age is ambiguous in a sexual/flirt/dating context.
 
-Prompt instruction: Escalate if the person may be underage or if any minor-safety risk is present.
+Prompt instruction: Never approve; escalate for human review.
 
 Reason code: `underage or minor_targeting`
 

@@ -52,8 +52,8 @@ REVIEW_ITEMS = (
     {
         "name": "Pornographic explicit content",
         "reason_code": "sexual_content",
-        "description": "Hard porn, explicit adult material, visible sexual acts, genital focus, intercourse, masturbation, or pornographic framing.",
-        "prompt_instruction": "Escalate and recommend rejection if explicit pornographic content is present.",
+        "description": "Sex acts, explicit adult content, pornography, masturbation, or graphic sexual imagery.",
+        "prompt_instruction": "Reject/escalate immediately.",
     },
     {
         "name": "Other inappropriate photo content",
@@ -74,10 +74,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Recommend rejection/review if the image is not a real profile-style photo of a person.",
     },
     {
-        "name": "AI-generated or synthetic image",
-        "reason_code": "fake_profile or manual_review_needed",
-        "description": "AI-generated face, synthetic person, rendered avatar, cartoon/anime style, illustration, drawing, or obviously artificial profile image.",
-        "prompt_instruction": "Recommend rejection/review for synthetic identity imagery; use manual review if uncertain.",
+        "name": "Fake / AI-generated image",
+        "reason_code": "fake_profile",
+        "description": "Synthetic face/body, obvious AI artifacting, unrealistic skin/eyes/hands, heavily generated avatar.",
+        "prompt_instruction": "Manual review unless policy says reject.",
     },
     {
         "name": "Contact info or advertisement",
@@ -110,10 +110,10 @@ REVIEW_ITEMS = (
         "prompt_instruction": "Recommend rejection if the image is blank or unusable.",
     },
     {
-        "name": "Underage or minor risk",
+        "name": "Underage / minor concern",
         "reason_code": "underage or minor_targeting",
-        "description": "Subject appears to be a minor, age is ambiguous with childlike presentation, or content raises minor-safety concerns.",
-        "prompt_instruction": "Escalate if the person may be underage or if any minor-safety risk is present.",
+        "description": "Person appears under 18, school-age child/teen, or age is ambiguous in a sexual/flirt/dating context.",
+        "prompt_instruction": "Never approve; escalate for human review.",
     },
     {
         "name": "Fake profile or impersonation",
