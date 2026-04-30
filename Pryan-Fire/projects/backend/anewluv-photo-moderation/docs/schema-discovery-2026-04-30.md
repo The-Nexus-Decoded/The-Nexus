@@ -87,6 +87,8 @@ Relevant fields:
 - `ai_note` text
 - `review_type_id` int — FK to `photo_review_type`; null until decision recorded
 
+Lord Xar correction, 2026-04-30: moderation-history writes are not enough by themselves. `Photos` is the current-state table, so write paths must keep these current-state fields aligned with the unified moderation-history ledger. A generic `Photos.rejection_reason` column was not present in this schema view; the confirmed current-state reason fields are `ai_reason_code` / `ai_note`, and the final-decision endpoint carries `reject_reason_code` into `admin_notes` for rejected or noted decisions.
+
 ### `PhotoStatus` table
 
 Xano table: `PhotoStatus`, id `22`.
@@ -247,6 +249,8 @@ XanoScript behavior:
   - `target_id = photo_id`
   - `note_text = reject_reason_code ~ ": " ~ note`
 - response: `{ success: true, photo_id, new_status: decision }`
+
+Current-state/history sync requirement: final rejection must preserve this canonical `reject_reason_code` handling and must also write the same reason/action into the unified moderation-history format. If a future branch-safe AI finalization endpoint is used instead of `/photos/decide`, it must still populate the current-state/admin-visible rejection reason path expected by the product.
 
 Blocking mismatch: assignment says use `actor_type: ai_agent` for final approve/reject, but real endpoint currently refuses anything except `admin`. This must be resolved before implementing an AI final-decision write path.
 
