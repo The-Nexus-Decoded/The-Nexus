@@ -22,7 +22,7 @@
       "created_at": "2026-04-30T00:00:00Z",
       "user_name": "Fixture User 102",
       "user_email": "redacted@example.invalid",
-      "model_fixture_key": "ai_generated_image"
+      "model_fixture_key": "ai_generated_or_synthetic"
     },
     {
       "id": 103,

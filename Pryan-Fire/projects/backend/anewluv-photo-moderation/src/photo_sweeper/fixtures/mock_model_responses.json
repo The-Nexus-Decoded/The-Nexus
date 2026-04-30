@@ -10,24 +10,24 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": false
     }
   },
-  "ai_generated_image": {
+  "ai_generated_or_synthetic": {
     "verdict": "review",
     "confidence": 0.82,
-    "reason_code": "ai_generated_image",
+    "reason_code": "ai_generated_or_synthetic",
     "note": "Mock AI-generated signal; human moderator must decide.",
     "unsafe_categories": [
-      "ai_generated_image"
+      "ai_generated_or_synthetic"
     ],
     "app_profile_photo_checks": {
       "is_profile_style_photo": false,
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": true,
+      "ai_generated_or_synthetic": true,
       "needs_human_review": true
     }
   },
@@ -44,7 +44,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -61,7 +61,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -79,7 +79,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -96,7 +96,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -113,7 +113,7 @@
       "has_contact_info": true,
       "is_meme_or_screenshot": true,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -130,7 +130,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": true,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -145,7 +145,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   },
@@ -164,7 +164,7 @@
       "has_contact_info": false,
       "is_meme_or_screenshot": false,
       "is_blank_or_unusable": false,
-      "is_ai_generated": false,
+      "ai_generated_or_synthetic": false,
       "needs_human_review": true
     }
   }

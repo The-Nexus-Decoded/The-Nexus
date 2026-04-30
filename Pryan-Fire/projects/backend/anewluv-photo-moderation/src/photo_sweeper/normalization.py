@@ -6,8 +6,6 @@ from .validators import is_valid_normalized_result
 AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD = 0.80
 DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
 DETECTED_CATEGORY_ALIASES = {
-    "ai_generated_image": "ai_generated_or_synthetic",
-    "ai_generated_or_avatar": "ai_generated_or_synthetic",
     "is_blank_or_unusable": "blank_or_unusable",
 }
 
@@ -32,7 +30,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
 
     normalized.setdefault("confidence", 0.0)
     raw_reason_code = str(normalized.get("reason_code", "manual_review_needed")).lower()
-    if raw_reason_code in {"ai_generated_or_synthetic", "ai_generated_image", "ai_generated_or_avatar"} and float(normalized.get("confidence") or 0.0) < AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
+    if raw_reason_code == "ai_generated_or_synthetic" and float(normalized.get("confidence") or 0.0) < AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
         normalized["reason_code"] = "manual_admin_decision"
         normalized["verdict"] = "review"
     else:
@@ -85,7 +83,7 @@ def normalize_minimax_description(description: str, *, model: str = DEFAULT_MINI
         reason_code = "ai_generated_or_synthetic"
         confidence = 0.78
         unsafe_categories = ["ai_generated_or_synthetic"]
-        checks["is_ai_generated"] = True
+        checks["ai_generated_or_synthetic"] = True
     elif any(term in text for term in ["screenshot", "meme", "advertisement", "phone number", "email", "social media handle", "qr code"]):
         reason_code = "contact_info_or_ad"
         confidence = 0.74

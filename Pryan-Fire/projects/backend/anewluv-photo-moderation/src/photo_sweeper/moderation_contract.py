@@ -16,7 +16,7 @@ MANUAL_REVIEW_REASONS = {
     "missing_image_reference",
     "meme_or_screenshot",
     "blank_or_unusable",
-    "is_ai_generated",
+    "ai_generated_or_synthetic",
 }
 
 XANO_CANONICAL_REASON_CODES = {
@@ -82,8 +82,6 @@ CANONICAL_REASON_MAP = {
     "pornographic_explicit": "sexual_content",
     "inappropriate_photos": "inappropriate_photos",
     "ai_generated_or_synthetic": "fake_profile",
-    "ai_generated_image": "fake_profile",
-    "ai_generated_or_avatar": "fake_profile",
     "not_a_profile_photo": "fake_profile",
     "celebrity_or_stock_photo": "fake_profile",
     "object_or_landscape_only": "fake_profile",
@@ -277,7 +275,7 @@ DEFAULT_PROFILE_CHECKS = {
     "has_contact_info": False,
     "meme_or_screenshot": False,
     "blank_or_unusable": False,
-    "is_ai_generated": False,
+    "ai_generated_or_synthetic": False,
     "needs_human_review": True,
 }
 
