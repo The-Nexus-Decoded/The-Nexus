@@ -409,3 +409,215 @@ def test_jupiter_swap_transaction_uses_ultra_order_not_legacy_swap(monkeypatch):
     assert called["url"].endswith("/order")
     assert called["url"].startswith("https://api.jup.ag/ultra/v1")
     assert called["params"]["taker"] == "Wallet111111111111111111111111111111111111111"
+
+
+def test_execute_position_close_dry_run_records_post_close_swap_plan(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "post_close_assets": [{"mint": "TokenMint111", "symbol": "TOK", "delta_atoms": "12345", "decimals": 6}],
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+
+    config = {"execution": {"dry_run": True, "swap_after_close": True}}
+    assert execute_position_close("bot", trigger, config, {}) is True
+    result = trigger["_execution_result"]
+    assert result["dry_run"] is True
+    assert result["post_close_swap"]["status"] == "dry_run"
+    assert result["post_close_swap"]["swaps"][0]["asset"]["mint"] == "TokenMint111"
+    assert result["swap_signatures"] == []
+
+
+def test_post_close_swap_failure_preserves_unswapped_assets(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    monkeypatch.setattr(
+        automation_engine,
+        "_run_dlmm_close_command",
+        lambda *_: {
+            "success": True,
+            "signatures": ["close_sig"],
+            "wallet": "Wallet111111111111111111111111111111111111111",
+            "post_close_assets": [{"mint": "TokenMint111", "symbol": "TOK", "delta_atoms": "12345", "decimals": 6}],
+        },
+    )
+    monkeypatch.setattr(
+        automation_engine,
+        "_get_jupiter_ultra_order",
+        lambda *_: {"transaction": "base64tx", "requestId": "req-123", "outAmount": "1000"},
+    )
+
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+    config = _live_config(tmp_path)
+    config["execution"]["swap_after_close"] = True
+    state = _approval_state("bot", trigger)
+
+    assert execute_position_close("bot", trigger, config, state) is False
+    result = trigger["_execution_result"]
+    assert result["error"] == "post_close_swap_failed"
+    assert result["close_signatures"] == ["close_sig"]
+    assert result["post_close_swap"]["status"] == "failed"
+    assert result["post_close_swap"]["unswapped_assets"][0]["mint"] == "TokenMint111"
+
+
+def test_post_close_swap_success_persists_close_and_swap_signatures(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    monkeypatch.setattr(
+        automation_engine,
+        "_run_dlmm_close_command",
+        lambda *_: {
+            "success": True,
+            "signatures": ["close_sig"],
+            "wallet": "Wallet111111111111111111111111111111111111111",
+            "post_close_assets": [{"mint": "TokenMint111", "symbol": "TOK", "delta_atoms": "12345", "decimals": 6}],
+        },
+    )
+    monkeypatch.setattr(
+        automation_engine,
+        "_execute_single_post_close_swap",
+        lambda *_: {"success": True, "asset": {"mint": "TokenMint111", "amount_atoms": 12345}, "signatures": ["swap_sig"]},
+    )
+
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+    config = _live_config(tmp_path)
+    config["execution"]["swap_after_close"] = True
+    state = _approval_state("bot", trigger)
+
+    assert execute_position_close("bot", trigger, config, state) is True
+    result = trigger["_execution_result"]
+    assert result["signatures"] == ["close_sig", "swap_sig"]
+    assert result["close_signatures"] == ["close_sig"]
+    assert result["swap_signatures"] == ["swap_sig"]
+    assert result["post_close_swap"]["status"] == "success"
+
+
+def test_handle_auto_execute_persists_post_close_swap_outcome(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+
+    def fake_execute(_wallet_name, trigger, _config, *_args):
+        trigger["_execution_result"] = {
+            "success": True,
+            "dry_run": False,
+            "signatures": ["close_sig", "swap_sig"],
+            "close_signatures": ["close_sig"],
+            "swap_signatures": ["swap_sig"],
+            "post_close_swap": {"status": "success", "swaps": [{"signatures": ["swap_sig"]}]},
+        }
+        return True
+
+    monkeypatch.setattr(automation_engine, "execute_position_close", fake_execute)
+    state = {}
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "entry_value": 1000,
+        "current_value": 1600,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+
+    assert handle_auto_execute("bot", trigger, {"execution": {"dry_run": False}}, state) is True
+    execution = state["automation"]["bot"]["executions"]["pos123"]
+    assert execution["close_signatures"] == ["close_sig"]
+    assert execution["swap_signatures"] == ["swap_sig"]
+    assert execution["post_close_swap"]["status"] == "success"
+
+
+def test_execution_notification_includes_close_swap_and_unswapped(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", "https://discord.invalid/webhook")
+    posted = []
+    monkeypatch.setattr(automation_engine, "_post_to_discord_alerts", lambda msg: posted.append(msg) or True)
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "entry_value": 1000,
+        "current_value": 1600,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+        "_execution_result": {
+            "close_signatures": ["close_sig"],
+            "swap_signatures": ["swap_sig"],
+            "post_close_swap": {
+                "status": "partial",
+                "unswapped_assets": [{"symbol": "TOK", "amount_atoms": 12345}],
+            },
+        },
+    }
+
+    automation_engine._post_execution_notification("bot", trigger, dry_run=False, success=False, error="post_close_swap_failed", signatures=["close_sig", "swap_sig"])
+    content = posted[0]["content"]
+    assert "**Post-close swap**: `partial`" in content
+    assert "**Unswapped assets**: `12345 atoms TOK`" in content
+    assert "**Close Tx**: `close_sig`" in content
+    assert "**Swap Tx**: `swap_sig`" in content
+
+
+def test_post_close_swap_enabled_fails_closed_without_asset_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+    monkeypatch.setattr(
+        automation_engine,
+        "_run_dlmm_close_command",
+        lambda *_: {"success": True, "signatures": ["close_sig"], "wallet": "Wallet111111111111111111111111111111111111111"},
+    )
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+    config = _live_config(tmp_path)
+    config["execution"]["swap_after_close"] = True
+    state = _approval_state("bot", trigger)
+
+    assert execute_position_close("bot", trigger, config, state) is False
+    assert trigger["_execution_result"]["error"] == "post_close_swap_failed"
+    assert trigger["_execution_result"]["post_close_swap"]["error"] == "missing_post_close_assets"
+
+
+def test_default_post_close_swap_command_points_to_ultra_swap_script():
+    command = automation_engine._default_post_close_swap_command()
+    assert command is not None
+    assert command[0] == "node"
+    assert command[1].endswith("services/meteora-trader/scripts/ultra-swap.mjs")
+
+
+def test_handle_auto_execute_persists_failed_post_close_swap_artifacts(monkeypatch):
+    monkeypatch.setattr(automation_engine, "DISCORD_WEBHOOK_ALERTS", None)
+
+    def fake_execute(_wallet_name, trigger, _config, *_args):
+        trigger["_execution_result"] = {
+            "success": False,
+            "dry_run": False,
+            "error": "post_close_swap_failed",
+            "signatures": ["close_sig"],
+            "close_signatures": ["close_sig"],
+            "swap_signatures": [],
+            "post_close_swap": {
+                "status": "failed",
+                "unswapped_assets": [{"mint": "TokenMint111", "amount_atoms": 12345}],
+            },
+        }
+        return False
+
+    monkeypatch.setattr(automation_engine, "execute_position_close", fake_execute)
+    state = {}
+    trigger = {
+        "trigger_type": "take_profit",
+        "pnl_pct": 55.0,
+        "entry_value": 1000,
+        "current_value": 1600,
+        "position": {"position": "pos123", "lb_pair": "pool123", "pool_name": "TOK-USDC"},
+    }
+
+    assert handle_auto_execute("bot", trigger, {"execution": {"dry_run": False}}, state) is False
+    execution = state["automation"]["bot"]["executions"]["pos123"]
+    assert execution["status"] == "failed"
+    assert execution["error"] == "post_close_swap_failed"
+    assert execution["close_signatures"] == ["close_sig"]
+    assert execution["post_close_swap"]["unswapped_assets"][0]["mint"] == "TokenMint111"
+    assert state["automation"]["bot"]["exec_attempts"]["pos123"]["last_error"] == "post_close_swap_failed"
