@@ -185,6 +185,11 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         data_url = _image_path_to_data_url(__import__("pathlib").Path(ppm))
         self.assertTrue(data_url.startswith("data:image/png;base64,"))
 
+    def test_codex_openai_adapter_strips_env_key_whitespace(self):
+        adapter = CodexOpenAIAdapter(api_key=" unit_test_key\r\n")
+
+        self.assertEqual(adapter.api_key, "unit_test_key")
+
     def test_codex_adapter_parses_mocked_provider_without_printing_auth(self):
         class FakeResponse:
             def __enter__(self):
