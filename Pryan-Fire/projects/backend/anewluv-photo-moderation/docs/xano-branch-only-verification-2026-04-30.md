@@ -85,7 +85,7 @@ Target contract:
 - AI metadata such as model, confidence, summary, dry-run, fallback, and error data is nullable when the actor is not AI.
 - Do not build separate AI-vs-human moderation trails.
 
-Because `photo_ai_moderation_audit` already exists globally, remediation must remain additive/non-destructive.
+Because `photo_ai_moderation_audit` and `photo_moderation_escalations` already exist globally, remediation must remain additive/non-destructive. Preferred path is to review existing photo/photo-management tables first; new table usage is allowed only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Until that review completes, the created tables must remain inert.
 
 Allowed remediation paths:
 
@@ -117,7 +117,9 @@ The created audit table name is AI-specific while the corrected requirement is g
 
 - Confirm whether Xano MCP `createAPI(branch=...)` is expected to show `branch:null` in metadata while still being branch-scoped, or whether these endpoints were created on the live API group.
 - If they are live-visible, decide whether to leave them inert behind auth/service-key gates until review, or move/recreate contracts through a proven branch-safe path.
+- Review existing photo/photo-management tables first and decide whether they can support unified moderation history plus escalation lifecycle without destructive changes.
 - Decide the non-destructive remediation for `photo_ai_moderation_audit` id `162`: branch-safe rename, documented generic usage despite historical name, or leave inert and use a reconciled generic moderation audit contract elsewhere.
+- Keep `photo_ai_moderation_audit` id `162` and `photo_moderation_escalations` id `163` inert until that review is complete.
 - No worker write gate should be enabled until this is resolved.
 
 ## Acceptance criteria update
@@ -128,6 +130,9 @@ The created audit table name is AI-specific while the corrected requirement is g
 - [x] Metadata visibility checked.
 - [ ] Branch-only isolation proven. **Failed / unresolved.**
 - [ ] Xano UI or authoritative metadata confirms endpoint branch scope.
+- [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
+- [ ] New tables used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
+- [ ] Created tables remain inert until that review is complete.
 - [ ] Unified moderation history contract reconciled: same format for all actor types, nullable AI metadata, no AI-only audit silo.
 - [ ] Non-destructive remediation selected for `photo_ai_moderation_audit` id `162`.
 - [ ] Worker write path remains disabled until verification passes.
