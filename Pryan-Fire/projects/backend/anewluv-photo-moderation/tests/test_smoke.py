@@ -56,7 +56,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         explicit = [
             item
             for item in result["photos"]
-            if item["normalized_result"]["reason_code"]
+            if item["normalized_result"].get("raw_reason_code", item["normalized_result"]["reason_code"])
             in {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
         ]
 
@@ -68,10 +68,14 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
     def test_mock_manifest_covers_required_categories_offline(self):
         queue = load_queue()
         result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=False, model_fixture=None)
-        reasons = {item["normalized_result"]["reason_code"] for item in result["photos"]}
+        raw_reasons = {
+            item["normalized_result"].get("raw_reason_code", item["normalized_result"]["reason_code"])
+            for item in result["photos"]
+        }
+        canonical_reasons = {item["normalized_result"]["reason_code"] for item in result["photos"]}
 
         self.assertGreaterEqual(
-            reasons,
+            raw_reasons,
             {
                 "clean_profile_style",
                 "ai_generated_image",
@@ -85,6 +89,17 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "api_failure_fallback",
             },
         )
+        self.assertLessEqual(
+            canonical_reasons,
+            {
+                "clean_profile_style",
+                "fake_profile",
+                "sexual_content",
+                "inappropriate_photos",
+                "off_platform_contact",
+                "manual_admin_decision",
+            },
+        )
         self.assertTrue(all(item["would_finalize_decision"] is False for item in result["photos"]))
         self.assertTrue(all(item["would_write_recommendation"] is False for item in result["photos"]))
 
@@ -93,7 +108,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         payload = json.loads(output)
         photo = payload["photos"][0]
 
-        self.assertEqual(photo["normalized_result"]["reason_code"], "api_failure_fallback")
+        self.assertEqual(photo["normalized_result"]["raw_reason_code"], "api_failure_fallback")
+        self.assertEqual(photo["normalized_result"]["reason_code"], "manual_admin_decision")
         self.assertEqual(photo["planned_action"], "manual_review")
         self.assertEqual(photo["model_path"]["vision_model_used"], "unavailable")
         self.assertEqual(photo["model_path"]["fallback_model"], "mock_failure_fallback")
@@ -141,7 +157,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIs(result["writes"], False)
         self.assertEqual(result["/photos/decide"], "not called")
         self.assertIs(result["write_enabled"], False)
-        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "api_auth_unavailable")
+        self.assertEqual(result["photos"][0]["normalized_result"]["raw_reason_code"], "api_auth_unavailable")
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "manual_admin_decision")
 
     def test_provider_error_redaction_removes_tokens_sessions_and_signed_urls(self):
         signed_marker = "X-Amz-" + "Signature"
@@ -184,7 +201,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         instructions = payload["instructions"]
         self.assertIn("You are an ANewLuv photo moderator", instructions)
         self.assertIn("Return ONLY JSON with this exact shape", instructions)
-        self.assertIn("REJECTION CATEGORIES", instructions)
+        self.assertIn("Detailed flags to inspect", instructions)
+        self.assertIn("CANONICAL reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
         self.assertIn("If unsure", instructions)
         self.assertIn("Confidence below 0.6", instructions)
@@ -337,7 +355,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             result = MiniMaxCLIAdapter().review({"local_fixture_path": "/tmp/fake.jpg"}, {})
 
         self.assertEqual(result["verdict"], "review")
-        self.assertEqual(result["reason_code"], "low_quality_or_unusable")
+        self.assertEqual(result["raw_reason_code"], "low_quality_or_unusable")
+        self.assertEqual(result["reason_code"], "inappropriate_photos")
         self.assertEqual(result["vision_model_used"], "minimax/MiniMax-VL-01 + parser")
 
 

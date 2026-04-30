@@ -36,6 +36,35 @@ XANO_CANONICAL_REASON_CODES = {
 
 PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "underage", "sexual_content"}
 
+CANONICAL_REASON_MAP = {
+    "clean_profile_style": "clean_profile_style",
+    "sexual_content": "sexual_content",
+    "nudity": "sexual_content",
+    "pornographic_explicit": "sexual_content",
+    "inappropriate_photos": "inappropriate_photos",
+    "ai_generated_image": "fake_profile",
+    "not_a_profile_photo": "fake_profile",
+    "fake_profile": "fake_profile",
+    "contact_info_or_ad": "off_platform_contact",
+    "contact_info_text_only_ad": "off_platform_contact",
+    "off_platform_contact": "off_platform_contact",
+    "spam": "spam",
+    "money_request": "money_request",
+    "hate_speech": "hate_speech",
+    "harassment": "harassment",
+    "bot_behavior": "bot_behavior",
+    "underage": "underage",
+    "minor_targeting": "minor_targeting",
+    "low_quality_or_unusable": "inappropriate_photos",
+    "is_meme_or_screenshot": "inappropriate_photos",
+    "is_blank_or_unusable": "inappropriate_photos",
+    "manual_review_needed": "manual_admin_decision",
+    "api_failure_fallback": "manual_admin_decision",
+    "api_auth_unavailable": "manual_admin_decision",
+    "missing_image_reference": "manual_admin_decision",
+    "manual_admin_decision": "manual_admin_decision",
+}
+
 REVIEW_ITEMS = (
     {
         "name": "Sexual content",
@@ -222,11 +251,11 @@ Return ONLY JSON with this exact shape:
 {
   "verdict": "approve_recommendation" | "reject_recommendation" | "review" | "escalate",
   "confidence": 0.0-1.0,
-  "reason_code": "<one of the codes below>",
+  "reason_code": "<one canonical Xano-compatible code>",
   "note": "brief reason"
 }
 
-REJECTION CATEGORIES — identify these:
+Detailed flags to inspect:
 - sexual_content: porn, sexual acts, genital content
 - nudity: partial or full nudity
 - pornographic_explicit: hard porn, explicit sexual material
@@ -247,16 +276,31 @@ REJECTION CATEGORIES — identify these:
 - off_platform_contact: "DM me on X/insta/snap" or similar contact bait
 - harassment: bullying, threatening, or targeting content
 
+CANONICAL reason_code output only:
+- sexual_content: use for sexual_content, nudity, or pornographic_explicit flags
+- inappropriate_photos: use for inappropriate_photos, low_quality_or_unusable, is_meme_or_screenshot, or is_blank_or_unusable flags
+- fake_profile: use for ai_generated_image, not_a_profile_photo, fake_profile, or catfishing flags
+- off_platform_contact: use for contact_info_or_ad, contact_info_text_only_ad, off-platform handles, URLs, QR codes, or contact bait
+- spam: use for promotional/ad/bulk-upload/spam content when it is not primarily contact bait
+- money_request: use for CashApp/Venmo/PayPal, “send money,” “sugar,” or paid companionship solicitation
+- hate_speech: use for hate symbols, slurs, extremist or hateful content
+- harassment: use for bullying, threatening, or targeting content
+- bot_behavior: use for auto-uploaded style, template-looking images, scammy overlays, or fake verification graphics
+- underage: use for minors or young-looking/school-photo age concern
+- minor_targeting: use for minor-safety targeting concerns
+- manual_admin_decision: use for manual_review_needed, missing image reference, auth/API failure, uncertainty, or any unmapped case
+
 APPROVE ONLY:
 - clean_profile_style: real human face, profile-style selfie/photo, no issues
 
 RULES:
-- If unsure, return "review" or "escalate" — never approve uncertain
-- Reject AI-generated people as "ai_generated_image"
-- Reject books/objects/artwork as "not_a_profile_photo"
-- Reject images with contact info as "contact_info_or_ad"
+- Final reason_code must be one canonical Xano-compatible code from the CANONICAL list above
+- If unsure, return "review" or "escalate" with reason_code "manual_admin_decision" — never approve uncertain
+- Reject AI-generated people with reason_code "fake_profile"
+- Reject books/objects/artwork with reason_code "fake_profile"
+- Reject images with contact info with reason_code "off_platform_contact" unless it is clearly spam/ad-only, then use "spam"
 - Escalate sexual content, nudity, porn, and underage immediately
-- Confidence below 0.6 should be "review" or "escalate"
+- Confidence below 0.6 should be "review" or "escalate" with reason_code "manual_admin_decision"
 - Existing admin/photo moderation paths are final authority; this worker only produces normalized recommendations
 - Do not make final moderation decisions. Do not generate or edit images.
 """

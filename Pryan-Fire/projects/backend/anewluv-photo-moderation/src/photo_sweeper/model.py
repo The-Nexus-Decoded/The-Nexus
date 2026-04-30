@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from .moderation_contract import DEFAULT_PROFILE_CHECKS, VALID_VERDICTS, provider_instructions
+from .moderation_contract import CANONICAL_REASON_MAP, DEFAULT_PROFILE_CHECKS, VALID_VERDICTS, provider_instructions
 
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
 DEFAULT_CODEX_MODEL_ROUTE = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
@@ -222,7 +222,10 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     normalized["verdict"] = FINAL_TO_RECOMMENDATION_VERDICTS.get(raw_verdict, raw_verdict)
     normalized["normalization_applied"] = "yes" if normalized["verdict"] != raw_verdict else "no"
     normalized.setdefault("confidence", 0.0)
-    normalized.setdefault("reason_code", "manual_review_needed")
+    raw_reason_code = str(normalized.get("reason_code", "manual_review_needed")).lower()
+    normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
+    if normalized["reason_code"] != raw_reason_code:
+        normalized["raw_reason_code"] = raw_reason_code
     normalized.setdefault("note", _safe_note_for_reason(normalized["reason_code"]))
     normalized.setdefault("unsafe_categories", [])
     normalized.setdefault("moderation_api_used", False)
@@ -235,7 +238,8 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     normalized["validator"] = "pass" if _is_valid_normalized_result(normalized) else "fail"
     if normalized["validator"] == "fail":
         normalized["verdict"] = "review"
-        normalized["reason_code"] = "manual_review_needed"
+        normalized["reason_code"] = CANONICAL_REASON_MAP["manual_review_needed"]
+        normalized["raw_reason_code"] = "manual_review_needed"
         normalized["note"] = "Model output failed strict validation; manual review required."
         normalized["validator"] = "fail"
     return normalized
