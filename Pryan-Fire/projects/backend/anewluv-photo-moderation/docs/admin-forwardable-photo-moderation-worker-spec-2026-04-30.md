@@ -536,3 +536,20 @@ advertisement_or_flyer
 contact_card_or_social_handle
 qr_code
 ```
+
+Add these extended image-type classifications to the locked detail layer:
+
+```txt
+object_or_landscape_only
+celebrity_or_stock_photo
+ai_generated_or_avatar
+explicit_adult_image
+low_quality_or_unusable
+```
+
+Final output keeps two layers:
+
+```txt
+detected_category = detailed AI/image classification
+reason_code = canonical Xano-compatible moderation reason
+```

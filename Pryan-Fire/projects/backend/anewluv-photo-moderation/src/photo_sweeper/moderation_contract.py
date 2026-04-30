@@ -64,6 +64,11 @@ IMAGE_TYPE_CLASSIFICATIONS = {
     "advertisement_or_flyer",
     "contact_card_or_social_handle",
     "qr_code",
+    "object_or_landscape_only",
+    "celebrity_or_stock_photo",
+    "ai_generated_or_avatar",
+    "explicit_adult_image",
+    "low_quality_or_unusable",
 }
 
 CANONICAL_REASON_MAP = {
@@ -281,7 +286,8 @@ Return ONLY JSON with this exact shape:
 {
   "verdict": "approve_recommendation" | "reject_recommendation" | "review" | "escalate",
   "confidence": 0.0-1.0,
-  "reason_code": "<one canonical Xano-compatible code>",
+  "detected_category": "<one detailed AI/image classification from the image type or detailed flag lists>",
+  "reason_code": "<one canonical Xano-compatible moderation reason>",
   "note": "brief reason"
 }
 
@@ -312,6 +318,10 @@ Image type mapping:
 - low_quality_or_unusable -> review/reject
 
 Prompt instruction: First classify the image type. Then evaluate safety/policy checks. If the image is not clearly a usable profile photo of a real person, do not approve it.
+
+Final output layers:
+- detected_category = detailed AI/image classification
+- reason_code = canonical Xano-compatible moderation reason
 
 Detailed flags to inspect:
 - sexual_content: porn, sexual acts, genital content

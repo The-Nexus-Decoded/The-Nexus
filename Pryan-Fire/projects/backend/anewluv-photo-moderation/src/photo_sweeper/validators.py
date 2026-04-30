@@ -25,6 +25,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     if normalized["reason_code"] != raw_reason_code:
         normalized["raw_reason_code"] = raw_reason_code
 
+    normalized.setdefault("detected_category", normalized.get("raw_reason_code", normalized["reason_code"]))
     normalized.setdefault("note", safe_note_for_reason(normalized["reason_code"]))
     normalized.setdefault("unsafe_categories", [])
     normalized.setdefault("moderation_api_used", False)

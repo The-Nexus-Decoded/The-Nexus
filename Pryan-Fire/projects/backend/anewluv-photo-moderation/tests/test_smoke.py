@@ -180,8 +180,19 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "advertisement_or_flyer",
                 "contact_card_or_social_handle",
                 "qr_code",
+                "object_or_landscape_only",
+                "celebrity_or_stock_photo",
+                "ai_generated_or_avatar",
+                "explicit_adult_image",
+                "low_quality_or_unusable",
             },
         )
+
+    def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
+        result = normalize_model_result({"verdict": "review", "reason_code": "ai_generated_image", "unsafe_categories": []}, default_model="fixture")
+
+        self.assertEqual(result["detected_category"], "ai_generated_image")
+        self.assertEqual(result["reason_code"], "fake_profile")
 
     def test_xano_canonical_reason_code_set_is_locked(self):
         self.assertEqual(
@@ -281,6 +292,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         instructions = payload["instructions"]
         self.assertIn("You are an ANewLuv photo moderator", instructions)
         self.assertIn("Return ONLY JSON with this exact shape", instructions)
+        self.assertIn("detected_category", instructions)
         self.assertIn("Identify which type of image this is", instructions)
         for image_type in {
             "real_person_profile_photo",
@@ -312,6 +324,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             self.assertIn(mapping, instructions)
         self.assertIn("First classify the image type. Then evaluate safety/policy checks", instructions)
         self.assertIn("not clearly a usable profile photo of a real person, do not approve", instructions)
+        self.assertIn("detected_category = detailed AI/image classification", instructions)
+        self.assertIn("reason_code = canonical Xano-compatible moderation reason", instructions)
         self.assertIn("Detailed flags to inspect", instructions)
         self.assertIn("CANONICAL reason_code output only", instructions)
         self.assertIn("APPROVE ONLY", instructions)
