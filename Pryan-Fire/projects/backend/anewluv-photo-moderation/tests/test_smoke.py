@@ -16,6 +16,7 @@ from photo_sweeper.model import (
     normalize_model_result,
 )
 from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
+from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 
@@ -193,6 +194,22 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         self.assertEqual(result["detected_category"], "ai_generated_image")
         self.assertEqual(result["reason_code"], "fake_profile")
+
+    def test_policy_falls_back_before_future_write_eligibility(self):
+        item = {"photo_id": 1}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        model_result = {
+            "validator": "pass",
+            "verdict": "reject_recommendation",
+            "reason_code": "api_failure_fallback",
+            "app_profile_photo_checks": {},
+        }
+
+        result = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(result["planned_action"], "manual_review")
+        self.assertEqual(result["would_write_recommendation"], False)
+        self.assertEqual(result["would_finalize_decision"], False)
 
     def test_xano_canonical_reason_code_set_is_locked(self):
         self.assertEqual(

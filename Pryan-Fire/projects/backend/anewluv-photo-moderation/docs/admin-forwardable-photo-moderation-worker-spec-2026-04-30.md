@@ -586,3 +586,12 @@ api_failure_fallback -> manual_admin_decision
 missing_image_reference -> manual_admin_decision
 api_auth_unavailable -> manual_admin_decision
 ```
+
+Future write-path eligibility rule:
+
+```txt
+Prompt may produce detailed detection.
+Validator must preserve detail as detected_category.
+Policy must normalize to canonical Xano reason_code before anything is ever eligible for a future write path.
+Non-canonical reason_code at policy time falls back to manual_admin_decision/manual_review.
+```
