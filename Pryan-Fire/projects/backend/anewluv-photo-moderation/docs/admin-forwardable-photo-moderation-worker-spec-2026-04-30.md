@@ -635,3 +635,17 @@ policy.py
 - recommended_decision
 - future write-path eligibility guard
 ```
+
+Write gate invariant:
+
+```txt
+write gates always false
+```
+
+`not_a_profile_photo` subtype mapping:
+
+```txt
+meme/screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos depending subtype
+object/landscape/group unclear -> inappropriate_photos or review
+celebrity/stock/stolen-looking -> fake_profile
+```

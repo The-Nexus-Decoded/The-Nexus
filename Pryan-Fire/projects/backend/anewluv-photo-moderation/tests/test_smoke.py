@@ -66,6 +66,18 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertTrue(all(item["would_finalize_decision"] is False for item in explicit))
         self.assertTrue(all(item["would_write_recommendation"] is False for item in explicit))
 
+    def test_write_gates_are_always_false_for_all_fixtures(self):
+        queue = load_queue()
+        result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=True, model_fixture=None)
+
+        self.assertIs(result["write_enabled"], False)
+        self.assertIs(result["writes"], False)
+        self.assertEqual(result["/photos/decide"], "not called")
+        for item in result["photos"]:
+            self.assertIs(item["write_enabled"], False)
+            self.assertIs(item["would_write_recommendation"], False)
+            self.assertIs(item["would_finalize_decision"], False)
+
     def test_mock_manifest_covers_required_categories_offline(self):
         queue = load_queue()
         result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=False, model_fixture=None)

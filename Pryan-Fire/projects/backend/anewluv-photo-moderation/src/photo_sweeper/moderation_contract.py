@@ -360,7 +360,7 @@ CANONICAL reason_code output only:
 - inappropriate_photos -> inappropriate_photos
 - low_quality_or_unusable -> inappropriate_photos
 - ai_generated_image -> fake_profile only if high confidence; otherwise manual_admin_decision/review
-- not_a_profile_photo -> fake_profile
+- not_a_profile_photo -> subtype required: meme/screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos; object/landscape/group unclear -> inappropriate_photos or review; celebrity/stock/stolen-looking -> fake_profile
 - celebrity_or_stock_photo -> fake_profile
 - object_or_landscape_only -> fake_profile
 - contact_info_or_ad -> off_platform_contact or spam
