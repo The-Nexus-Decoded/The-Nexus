@@ -12,6 +12,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from .moderation_contract import DEFAULT_PROFILE_CHECKS, VALID_VERDICTS, provider_instructions
+
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
 DEFAULT_CODEX_MODEL_ROUTE = "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route"
 DEFAULT_CODEX_MODEL = "gpt-5.5"
@@ -23,7 +25,6 @@ FINAL_TO_RECOMMENDATION_VERDICTS = {
     "rejected": "reject_recommendation",
     "reject": "reject_recommendation",
 }
-VALID_VERDICTS = {"approve_recommendation", "reject_recommendation", "review", "escalate"}
 
 
 class MockModelAdapter:
@@ -245,11 +246,7 @@ def _is_valid_normalized_result(result: dict) -> bool:
 
 
 def _provider_instructions() -> str:
-    return (
-        "Return only compact JSON for Anewluv profile photo moderation. "
-        "Use recommendation language only: approve_recommendation, reject_recommendation, review, or escalate. "
-        "Do not make final moderation decisions. Do not generate or edit images."
-    )
+    return provider_instructions()
 
 
 def _codex_oauth_request_payload(model: str, image_url: str) -> dict:
@@ -463,14 +460,9 @@ def _strings(value: Any):
 
 
 def _default_profile_checks(*, needs_human_review: bool) -> dict:
-    return {
-        "is_profile_style_photo": False,
-        "has_contact_info": False,
-        "is_meme_or_screenshot": False,
-        "is_blank_or_unusable": False,
-        "is_ai_generated": False,
-        "needs_human_review": needs_human_review,
-    }
+    checks = dict(DEFAULT_PROFILE_CHECKS)
+    checks["needs_human_review"] = needs_human_review
+    return checks
 
 
 def _safe_note_for_reason(reason_code: str) -> str:

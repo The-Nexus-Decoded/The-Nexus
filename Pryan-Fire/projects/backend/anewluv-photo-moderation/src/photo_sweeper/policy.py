@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
-REPORT_ONLY_REASONS = {"clean_profile_style"}
+from .moderation_contract import APPROVE_ONLY_REASONS, EXPLICIT_REASONS
 
 
 def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, force: bool) -> dict:
@@ -18,7 +17,7 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
     elif not checks.get("image_reference_present") or checks.get("exists") is False:
         planned_action = "leave_pending"
         recommended_decision = None
-    elif verdict == "approve_recommendation" and reason in REPORT_ONLY_REASONS and _checks_pass(checks) and _profile_clean(flags):
+    elif verdict == "approve_recommendation" and reason in APPROVE_ONLY_REASONS and _checks_pass(checks) and _profile_clean(flags):
         planned_action = "report_only"
         recommended_decision = "approve_recommendation"
     elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
