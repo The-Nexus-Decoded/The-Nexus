@@ -20,6 +20,7 @@ Confirmed existing structures include:
 - `moderation_audit_log` table id `149` for endpoint-level moderation audit.
 - `moderation_keywords` table id `161` for reason-code-keyed moderation evidence scanning.
 - Existing user moderation append-only tables with reason fields: `user_warnings`, `user_suspensions`, `user_bans`, `user_appeals`, `pending_ban_decisions`, `banned_emails`, `rejected_reports`.
+- Existing AI/service-account tracking on `users.is_ai_agent`; `Profiles.user_id` links profiles to that user flag.
 
 No separate table literally named `photo_rejection_reasons` / `photo_reason` was found in the 124-table workspace list. That does **not** mean reason handling is absent: reason codes exist in endpoint contracts/functions and in moderation-related tables.
 
@@ -54,6 +55,30 @@ Rows:
 - `2` = `Human`
 
 This already supports Lord Xar's point that the product distinguishes AI/agent-originated photo review from human review without needing a separate moderation truth store.
+
+## Existing AI profile / service-account tracking
+
+Lord Xar also flagged that some profiles are AI and already tracked. Follow-up read-only schema check found:
+
+### `users` — id `1`
+
+Relevant fields:
+
+- `is_ai_agent` — description: metadata flag for any AI/bot service-account user; informational only and does **not** grant admin endpoint access; intended for audit logs / rate-limit policies / feature gating.
+- `is_seed` — seed/decoy account flag for cold-start seed accounts and metric/quota exclusions.
+- `is_admin` — admin route gate; separate from `is_ai_agent`.
+- `moderation_state` — `active|warned|suspended|banned`.
+
+### `Profiles` — id `2`
+
+Relevant fields:
+
+- `user_id` → `users` id `1`
+- `ProfilePicture_id` → `Photos` id `12`
+- `ethnicity_id` description says it can be set by photo generation to match the generated image.
+- `application_id` → `Application` id `21`
+
+No separate `Profiles.is_ai` field was found in the inspected schema. The AI/profile flag appears to live on the linked `users` row as `users.is_ai_agent`, with profiles joining through `Profiles.user_id`.
 
 ## Existing manual/admin moderation path
 
