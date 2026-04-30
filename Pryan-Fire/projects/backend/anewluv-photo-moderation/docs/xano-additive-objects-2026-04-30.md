@@ -293,15 +293,17 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 - [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
 - [ ] New tables are used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
 - [ ] Created tables remain inert until that review is complete.
-- [ ] Every moderated photo action is recorded in the same moderation history format, regardless of actor type.
+- [ ] Long-term contract is **unified moderation history**, not an AI-only table or conceptual lane; the current AI-named table is provisional until reconciliation.
+- [ ] Every AI-moderated photo action is recorded in moderation history, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
+- [ ] Human/admin/system moderation should use the same moderation-history format.
+- [ ] `actor_type` distinguishes AI vs human/system actors: `ai_agent`, `admin`, `user`, or `system`.
+- [ ] `Photos` remains the current-state source, including rejection reason/admin-visible reason fields if present.
+- [ ] Reason codes match between `Photos` current state/admin-visible path and the moderation-history row where both are written.
 - [ ] Current-state fields are kept in sync: AI recommendations populate `Photos.ai_reason_code`/`ai_note` where applicable, final rejections pass canonical `reject_reason_code` through the final decision path, and the same normalized reason code/action is recorded in moderation history.
 - [ ] One source of truth per field: `Photos`/existing admin-visible paths own current state; moderation history owns immutable evidence and ledger context.
 - [ ] Existing `/photos/decide` `reject_reason_code` → `admin_notes` behavior is preserved if that endpoint remains in the final decision path.
-- [ ] Moderation evidence uses one shared ledger format for AI and human/admin/user moderation; actor/source fields distinguish who/what made the decision.
-- [ ] Shared ledger contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
-- [ ] Every AI-moderated photo writes at least one moderation ledger row, including approve/reject/review/escalate, dry-run, retry, skip, low-confidence, fallback, and error paths.
-- [ ] Human/admin moderation can be represented in the same ledger shape without AI flags/model fields being required.
-- [ ] No AI final approve/reject occurs if ledger/audit persistence fails.
+- [ ] Shared moderation-history contract includes common fields for `photo_id`, `user_id`, `actor_type`, `actor_id`/`actor_label`, `decision`, `reason_code`, `note`, nullable `confidence`, nullable `model`, `action`/`final_action`, and `created_at`.
+- [ ] No AI final approve/reject occurs if moderation-history persistence fails.
 - [ ] Recommendation endpoint does not change `photostatus_id`.
 - [ ] Final decision endpoint requires prior recommendation and `actor_type=ai_agent`.
 - [ ] Escalation endpoints support open/list/ack flow.
