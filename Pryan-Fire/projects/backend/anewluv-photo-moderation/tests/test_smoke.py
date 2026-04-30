@@ -37,14 +37,14 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIs(payload["photos"][0]["would_write_recommendation"], False)
         self.assertIs(payload["photos"][0]["would_finalize_decision"], False)
 
-    def test_explicit_categories_are_recommendations_not_final_decisions(self):
+    def test_nudity_sexual_and_explicit_categories_are_recommendations_not_final_decisions(self):
         queue = load_queue()
         result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=False, model_fixture=None)
         explicit = [
             item
             for item in result["photos"]
             if item["normalized_result"]["reason_code"]
-            in {"sexual_content", "nudity", "inappropriate_photos"}
+            in {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
         ]
 
         self.assertEqual({item["planned_action"] for item in explicit}, {"escalate"})
@@ -65,13 +65,27 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "sexual_content",
                 "nudity",
                 "inappropriate_photos",
+                "pornographic_explicit",
                 "contact_info_or_ad",
                 "low_quality_or_unusable",
                 "manual_review_needed",
+                "api_failure_fallback",
             },
         )
         self.assertTrue(all(item["would_finalize_decision"] is False for item in result["photos"]))
         self.assertTrue(all(item["would_write_recommendation"] is False for item in result["photos"]))
+
+    def test_api_failure_fallback_becomes_manual_review_without_writes(self):
+        output = run_cli("--once", "--photo-id", "110", "--dry-run")
+        payload = json.loads(output)
+        photo = payload["photos"][0]
+
+        self.assertEqual(photo["normalized_result"]["reason_code"], "api_failure_fallback")
+        self.assertEqual(photo["planned_action"], "manual_review")
+        self.assertEqual(photo["model_path"]["vision_model_used"], "unavailable")
+        self.assertEqual(photo["model_path"]["fallback_model"], "mock_failure_fallback")
+        self.assertIs(photo["would_write_recommendation"], False)
+        self.assertIs(photo["would_finalize_decision"], False)
 
     def test_clean_fixture_can_recommend_approve_without_final_decision_or_write(self):
         output = run_cli("--once", "--photo-id", "101", "--dry-run")
