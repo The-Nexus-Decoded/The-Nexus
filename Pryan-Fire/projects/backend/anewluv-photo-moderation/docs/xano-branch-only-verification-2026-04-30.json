@@ -1,0 +1,149 @@
+{
+  "branches": [
+    {
+      "created_at": "2025-02-14 04:58:15+0000",
+      "label": "v1",
+      "backup": false,
+      "live": true
+    },
+    {
+      "created_at": "2026-04-30 07:26:28+0000",
+      "label": "photo-ai-moderation-worker",
+      "backup": false
+    },
+    {
+      "created_at": "2026-04-23 04:03:56+0000",
+      "label": "v1-2ur4z-",
+      "backup": true
+    },
+    {
+      "created_at": "2026-04-22 06:04:33+0000",
+      "label": "feat-x-oauth-rotate-creds",
+      "backup": false
+    },
+    {
+      "created_at": "2026-04-21 08:40:19+0000",
+      "label": "v1-f6lQ0b",
+      "backup": true
+    },
+    {
+      "created_at": "2026-04-08 15:14:19+0000",
+      "label": "feat-discover-screen-swipe",
+      "backup": false
+    },
+    {
+      "created_at": "2026-04-08 15:12:55+0000",
+      "label": "v1-J3XGsu",
+      "backup": true
+    },
+    {
+      "created_at": "2026-04-05 02:57:14+0000",
+      "label": "feat-issue-x-social-auth-provider",
+      "backup": false
+    },
+    {
+      "created_at": "2026-04-02 03:00:18+0000",
+      "label": "social-auth-provider-contract",
+      "backup": false
+    }
+  ],
+  "live_branch": [
+    {
+      "created_at": "2025-02-14 04:58:15+0000",
+      "label": "v1",
+      "backup": false,
+      "live": true
+    }
+  ],
+  "target_branch_present": true,
+  "listAPIs_contains_new": {
+    "photos/ai_recommendation": true,
+    "photos/ai_decide": true,
+    "photos/escalations/open": true,
+    "photos/escalations": true,
+    "photos/escalations/ack": true
+  },
+  "getApiGroupSwagger_contains_new": {
+    "photos/ai_recommendation": true,
+    "photos/ai_decide": true,
+    "photos/escalations/open": true,
+    "photos/escalations": true,
+    "photos/escalations/ack": true
+  },
+  "swagger_server_urls": [
+    "http://backend/api:S8LKJE3D"
+  ],
+  "swagger_paths_matching_new": {
+    "photos/ai_recommendation": [
+      "/photos/ai_recommendation"
+    ],
+    "photos/ai_decide": [
+      "/photos/ai_decide"
+    ],
+    "photos/escalations/open": [
+      "/photos/escalations/open"
+    ],
+    "photos/escalations": [
+      "/photos/escalations/ack",
+      "/photos/escalations/open",
+      "/photos/escalations"
+    ],
+    "photos/escalations/ack": [
+      "/photos/escalations/ack"
+    ]
+  },
+  "objects": {
+    "table_162": {
+      "id": 162,
+      "name": "photo_ai_moderation_audit",
+      "created_at": "2026-04-30 07:32:16+0000",
+      "updated_at": "2026-04-30 07:32:16+0000"
+    },
+    "table_163": {
+      "id": 163,
+      "name": "photo_moderation_escalations",
+      "created_at": "2026-04-30 07:32:18+0000",
+      "updated_at": "2026-04-30 07:32:18+0000"
+    },
+    "api_2827": {
+      "id": 2827,
+      "name": "photos/escalations/open",
+      "verb": "POST",
+      "branch": null,
+      "created_at": "2026-04-30 07:34:13+0000",
+      "updated_at": "2026-04-30 07:34:13+0000"
+    },
+    "api_2828": {
+      "id": 2828,
+      "name": "photos/escalations",
+      "verb": "GET",
+      "branch": null,
+      "created_at": "2026-04-30 07:34:16+0000",
+      "updated_at": "2026-04-30 07:34:16+0000"
+    },
+    "api_2829": {
+      "id": 2829,
+      "name": "photos/escalations/ack",
+      "verb": "POST",
+      "branch": null,
+      "created_at": "2026-04-30 07:34:17+0000",
+      "updated_at": "2026-04-30 07:34:17+0000"
+    },
+    "api_2830": {
+      "id": 2830,
+      "name": "photos/ai_recommendation",
+      "verb": "POST",
+      "branch": null,
+      "created_at": "2026-04-30 07:34:52+0000",
+      "updated_at": "2026-04-30 07:34:52+0000"
+    },
+    "api_2831": {
+      "id": 2831,
+      "name": "photos/ai_decide",
+      "verb": "POST",
+      "branch": null,
+      "created_at": "2026-04-30 07:34:53+0000",
+      "updated_at": "2026-04-30 07:34:53+0000"
+    }
+  }
+}
