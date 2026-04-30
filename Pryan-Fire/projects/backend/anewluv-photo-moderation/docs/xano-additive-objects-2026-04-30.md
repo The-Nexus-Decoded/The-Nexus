@@ -3,13 +3,13 @@
 Date: 2026-04-30  
 Approval: Lord Xar approved proactive additive Xano changes and said not to wait for later adds; document changes and acceptance criteria for later review.  
 Constraint: Xano additive-only. No deletes, no destructive replacements.
-Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive-global-table posture. Continue only docs, acceptance criteria, branch-safe/non-schema work, and endpoint/function logic using already-approved objects.
+Current schema posture: pause all further table/schema/field additions until Lord Xar explicitly confirms additive `v1` posture. Continue only docs, acceptance criteria, read-only discovery, and non-write implementation planning. Lord Xar clarified Anewluv normally works on Xano `v1`; do not create new Xano branches by default.
 Design correction from Lord Xar: the long-term target should be **one generic photo moderation ledger**, not separate AI-vs-human truth stores. AI, human admin, system, and any future user/community moderation paths should write/check the same data shape; source is distinguished by actor/source fields, not by separate moderation databases.
 Preferred path correction from Zifnab/Lord Xar: review existing photo/photo-management/manual moderation tables first. New tables are acceptable only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Created tables remain inert until that review completes.
 
 Follow-up schema sweep correction: existing manual moderation structures are substantial. `photo_review_type` already has `Agent`/`Human`, `/photos/decide` already handles `reject_reason_code` and `admin_notes`, and reason-code infrastructure already exists through moderation validation/keyword tables. Do not treat the provisional AI-named table as the default target.
 
-## Branch / production state
+## Xano branch / production state
 
 Branch created:
 
@@ -23,7 +23,7 @@ Source branch:
 v1
 ```
 
-Production `v1` was not set live again or replaced by Devon in this step. No delete/truncate/drop tools were used.
+Production `v1` was not set live again or replaced by Devon in this step. No delete/truncate/drop tools were used. Lord Xar later clarified that Anewluv normally works on `v1`; new Xano branches are not the default testing/development path.
 
 ## Added tables
 
@@ -284,7 +284,7 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 
 ## Acceptance criteria for later review
 
-- [ ] Xano branch `photo-ai-moderation-worker` exists and production `v1` is not replaced without separate approval.
+- [x] Xano branch posture clarified by Lord Xar: Anewluv normally works on `v1`; no new Xano branches by default.
 - [ ] No Xano delete/truncate/drop/destructive-replace actions were used.
 - [ ] Existing `POST /photos/decide` remains untouched.
 - [ ] `photo_ai_moderation_audit` table exists with the fields listed above, but remains inert until review confirms whether it should be reused, renamed, deprecated, or replaced by existing table usage.
@@ -316,7 +316,7 @@ Initial create attempts for `photos/ai_recommendation` and `photos/ai_decide` fa
 
 - Further table/schema/field changes are paused pending explicit Lord Xar confirmation of additive-global-table posture.
 - Need a safe worker auth/JWT/service-account path.
-- Need test photo ids approved for branch validation.
+- Need test photo ids approved for `v1` validation if Lord Xar approves any non-dry-run path.
 - Need model/vision contract verification.
-- Need live request/response validation on branch endpoints with redacted evidence.
-- Need acceptance decision before publishing branch live or enabling worker write gates.
+- Need live request/response validation on approved `v1` endpoints with redacted evidence.
+- Need acceptance decision before enabling worker write gates; branch publishing is not the normal Anewluv path unless Lord Xar explicitly requests it.
