@@ -520,6 +520,9 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
             "pnl_pct": pnl_pct,
             "pool_name": pool_name,
             "signatures": execution_result.get("signatures", []),
+            "close_signatures": execution_result.get("close_signatures", []),
+            "swap_signatures": execution_result.get("swap_signatures", []),
+            "post_close_swap": execution_result.get("post_close_swap"),
             "dry_run": execution_result.get("dry_run", False),
         }
         tracker["executed_at"] = datetime.utcnow().isoformat() + "Z"
@@ -528,6 +531,20 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
         tracker["last_status"] = "failed"
         tracker["last_error"] = execution_result.get("error", "close_failed")
         tracker["pool_name"] = pool_name
+        if execution_result.get("close_signatures") or execution_result.get("post_close_swap"):
+            automation_state.setdefault("executions", {})[pubkey] = {
+                "status": "failed",
+                "failed_at": datetime.utcnow().isoformat() + "Z",
+                "trigger_type": trigger_type,
+                "pnl_pct": pnl_pct,
+                "pool_name": pool_name,
+                "error": execution_result.get("error", "close_failed"),
+                "signatures": execution_result.get("signatures", []),
+                "close_signatures": execution_result.get("close_signatures", []),
+                "swap_signatures": execution_result.get("swap_signatures", []),
+                "post_close_swap": execution_result.get("post_close_swap"),
+                "dry_run": execution_result.get("dry_run", False),
+            }
     return success
 
 
@@ -609,6 +626,237 @@ def _run_dlmm_close_command(wallet_name: str, trigger: Dict, config: Dict, pool_
     return result
 
 
+
+def _int_amount(value: Any) -> int:
+    try:
+        if value is None or value == "":
+            return 0
+        return max(0, int(str(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _normalize_post_close_assets(close_result: Dict[str, Any], trigger: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return candidate post-close assets in raw atoms.
+
+    The DLMM close executor reports wallet balance deltas as `post_close_assets`.
+    Tests and dry-run probes may also provide the same structure on the trigger.
+    """
+    raw_assets = close_result.get("post_close_assets") or close_result.get("unswapped_assets") or trigger.get("post_close_assets") or []
+    normalized: List[Dict[str, Any]] = []
+    if not isinstance(raw_assets, list):
+        return normalized
+
+    for asset in raw_assets:
+        if not isinstance(asset, dict):
+            continue
+        mint = str(asset.get("mint") or asset.get("input_mint") or "").strip()
+        amount_atoms = _int_amount(asset.get("delta_atoms") or asset.get("amount_atoms") or asset.get("raw_amount") or asset.get("amount"))
+        if not mint or amount_atoms <= 0:
+            continue
+        normalized.append({
+            "mint": mint,
+            "symbol": asset.get("symbol") or asset.get("token_symbol") or mint[:8],
+            "decimals": int(asset.get("decimals", 9) or 9),
+            "amount_atoms": amount_atoms,
+            "before_atoms": str(asset.get("before_atoms", "")),
+            "after_atoms": str(asset.get("after_atoms", "")),
+        })
+    return normalized
+
+
+def _post_close_swap_plan(close_result: Dict[str, Any], trigger: Dict[str, Any], execution: Dict[str, Any]) -> Dict[str, Any]:
+    output_mint = execution.get("swap_to_mint", USDC_MINT)
+    assets_reported = (
+        "post_close_assets" in close_result
+        or "unswapped_assets" in close_result
+        or "post_close_assets" in trigger
+    )
+    assets = _normalize_post_close_assets(close_result, trigger)
+    swappable = [asset for asset in assets if asset["mint"] != output_mint and asset["amount_atoms"] > 0]
+    skipped = [asset for asset in assets if asset["mint"] == output_mint]
+    return {
+        "enabled": bool(execution.get("swap_after_close", False)),
+        "output_mint": output_mint,
+        "slippage_bps": int(execution.get("swap_slippage_bps", 100) or 100),
+        "assets": swappable,
+        "skipped_assets": skipped,
+        "assets_reported": assets_reported,
+    }
+
+
+def _default_post_close_swap_command() -> Optional[List[str]]:
+    script_path = Path(__file__).resolve().parents[1] / "services" / "meteora-trader" / "scripts" / "ultra-swap.mjs"
+    if script_path.exists():
+        return ["node", str(script_path)]
+    return None
+
+
+def _resolve_post_close_swap_command(execution: Dict[str, Any]) -> Optional[List[str]]:
+    command = execution.get("post_close_swap_command") or os.getenv("POST_CLOSE_SWAP_COMMAND")
+    if isinstance(command, list):
+        return [str(part) for part in command]
+    if isinstance(command, str) and command.strip():
+        return shlex.split(command)
+    return _default_post_close_swap_command()
+
+
+def _order_summary(order: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "request_id": order.get("requestId"),
+        "out_amount": order.get("outAmount"),
+        "transaction_present": bool(order.get("transaction")),
+    }
+
+
+def _run_post_close_swap_command(
+    wallet_name: str,
+    trigger: Dict[str, Any],
+    config: Dict[str, Any],
+    close_result: Dict[str, Any],
+    asset: Dict[str, Any],
+    order: Dict[str, Any],
+) -> Dict[str, Any]:
+    execution = config.get("execution", {})
+    command = _resolve_post_close_swap_command(execution)
+    if not command:
+        return {"success": False, "error": "post_close_swap_command_not_configured"}
+
+    payload = {
+        "wallet_name": wallet_name,
+        "wallet": config.get("wallets", {}).get(wallet_name, {}),
+        "trigger": trigger,
+        "position": trigger.get("position", {}),
+        "execution": execution,
+        "close_result": close_result,
+        "asset": asset,
+        "ultra_order": order,
+    }
+    payload_json = json.dumps(payload)
+    env = os.environ.copy()
+    env["POST_CLOSE_SWAP_PAYLOAD"] = payload_json
+    timeout = int(execution.get("post_close_swap_timeout_seconds", 180))
+
+    try:
+        completed = subprocess.run(
+            command,
+            input=payload_json,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            env=env,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "post_close_swap_timeout"}
+    except Exception as exc:
+        return {"success": False, "error": "post_close_swap_command_error", "message": str(exc)}
+
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    result: Dict[str, Any] = {}
+    if stdout:
+        try:
+            result = json.loads(stdout.splitlines()[-1])
+        except json.JSONDecodeError:
+            result = {"success": False, "error": "post_close_swap_invalid_json", "stdout": stdout[-500:]}
+
+    if completed.returncode != 0:
+        result.setdefault("success", False)
+        result.setdefault("error", "post_close_swap_command_failed")
+        if stderr:
+            result["stderr"] = stderr[-500:]
+        return result
+
+    if not result:
+        result = {"success": False, "error": "post_close_swap_no_result"}
+    return result
+
+
+def _execute_single_post_close_swap(
+    wallet_name: str,
+    trigger: Dict[str, Any],
+    config: Dict[str, Any],
+    close_result: Dict[str, Any],
+    asset: Dict[str, Any],
+    output_mint: str,
+    slippage_bps: int,
+) -> Dict[str, Any]:
+    user_public_key = close_result.get("wallet") or config.get("wallets", {}).get(wallet_name, {}).get("address")
+    order = _get_jupiter_ultra_order(asset["mint"], output_mint, asset["amount_atoms"], slippage_bps, user_public_key)
+    if not order:
+        return {"success": False, "error": "post_close_swap_order_failed", "asset": asset}
+
+    command_result = _run_post_close_swap_command(wallet_name, trigger, config, close_result, asset, order)
+    signatures = command_result.get("signatures") or ([command_result.get("signature")] if command_result.get("signature") else [])
+    return {
+        "success": bool(command_result.get("success")),
+        "error": command_result.get("error"),
+        "asset": asset,
+        "order": _order_summary(order),
+        "signatures": signatures,
+        "raw_result": command_result,
+    }
+
+
+def _execute_post_close_swaps(
+    wallet_name: str,
+    trigger: Dict[str, Any],
+    config: Dict[str, Any],
+    close_result: Dict[str, Any],
+    dry_run: bool,
+) -> Dict[str, Any]:
+    execution = config.get("execution", {})
+    plan = _post_close_swap_plan(close_result, trigger, execution)
+    if not plan["enabled"]:
+        return {"success": True, "status": "disabled", "output_mint": plan["output_mint"], "swaps": [], "unswapped_assets": []}
+
+    if not plan["assets"]:
+        if not plan.get("assets_reported") and not dry_run:
+            return {
+                "success": False,
+                "status": "failed",
+                "error": "missing_post_close_assets",
+                "output_mint": plan["output_mint"],
+                "swaps": [],
+                "unswapped_assets": [],
+                "skipped_assets": plan["skipped_assets"],
+            }
+        return {
+            "success": True,
+            "status": "no_assets",
+            "output_mint": plan["output_mint"],
+            "swaps": [],
+            "unswapped_assets": [],
+            "skipped_assets": plan["skipped_assets"],
+        }
+
+    if dry_run:
+        return {
+            "success": True,
+            "status": "dry_run",
+            "output_mint": plan["output_mint"],
+            "slippage_bps": plan["slippage_bps"],
+            "swaps": [{"success": True, "dry_run": True, "asset": asset, "signatures": []} for asset in plan["assets"]],
+            "unswapped_assets": plan["assets"],
+            "skipped_assets": plan["skipped_assets"],
+        }
+
+    swaps = [
+        _execute_single_post_close_swap(wallet_name, trigger, config, close_result, asset, plan["output_mint"], plan["slippage_bps"])
+        for asset in plan["assets"]
+    ]
+    failed = [swap for swap in swaps if not swap.get("success")]
+    return {
+        "success": not failed,
+        "status": "success" if not failed else ("partial" if len(failed) < len(swaps) else "failed"),
+        "output_mint": plan["output_mint"],
+        "slippage_bps": plan["slippage_bps"],
+        "swaps": swaps,
+        "unswapped_assets": [swap.get("asset") for swap in failed if swap.get("asset")],
+        "skipped_assets": plan["skipped_assets"],
+    }
+
 def execute_position_close(wallet_name: str, trigger: Dict, config: Dict, state: Optional[Dict[str, Any]] = None) -> bool:
     """
     Full execution flow:
@@ -638,7 +886,17 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict, state:
     if dry_run:
         logger.info(f"DRY RUN: Would close position {pubkey}, claim fees, swap tokens to USDC")
         approval = _check_live_risk_approval(wallet_name, trigger, config, state)
-        _set_execution_result(trigger, success=True, dry_run=True, signatures=[], approval=approval)
+        post_close_swap = _execute_post_close_swaps(wallet_name, trigger, config, {}, dry_run=True)
+        _set_execution_result(
+            trigger,
+            success=True,
+            dry_run=True,
+            signatures=[],
+            close_signatures=[],
+            swap_signatures=[],
+            post_close_swap=post_close_swap,
+            approval=approval,
+        )
         _post_execution_notification(wallet_name, trigger, dry_run=True)
         return True
 
@@ -676,13 +934,47 @@ def execute_position_close(wallet_name: str, trigger: Dict, config: Dict, state:
             _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=error)
             return False
 
-        signatures = close_result.get("signatures", [])
-        logger.info(f"DLMM close completed for {pubkey}: {signatures}")
+        close_signatures = close_result.get("signatures", [])
+        logger.info(f"DLMM close completed for {pubkey}: {close_signatures}")
 
-        if execution.get("swap_after_close", False):
-            logger.warning("swap_after_close is configured but not implemented in automation_engine; DLMM close succeeded, swap skipped")
+        post_close_swap = _execute_post_close_swaps(wallet_name, trigger, config, close_result, dry_run=False)
+        swap_signatures = [
+            signature
+            for swap in post_close_swap.get("swaps", [])
+            for signature in (swap.get("signatures") or [])
+            if signature
+        ]
+        signatures = close_signatures + swap_signatures
 
-        _set_execution_result(trigger, success=True, dry_run=False, signatures=signatures, raw_result=close_result, approval=approval)
+        if not post_close_swap.get("success", True):
+            error = "post_close_swap_failed"
+            logger.error(f"Post-close swap failed for {pubkey}; unswapped assets preserved: {post_close_swap.get('unswapped_assets', [])}")
+            _set_execution_result(
+                trigger,
+                success=False,
+                dry_run=False,
+                error=error,
+                signatures=signatures,
+                close_signatures=close_signatures,
+                swap_signatures=swap_signatures,
+                raw_result=close_result,
+                post_close_swap=post_close_swap,
+                approval=approval,
+            )
+            _post_execution_notification(wallet_name, trigger, dry_run=False, success=False, error=error, signatures=signatures)
+            return False
+
+        _set_execution_result(
+            trigger,
+            success=True,
+            dry_run=False,
+            signatures=signatures,
+            close_signatures=close_signatures,
+            swap_signatures=swap_signatures,
+            raw_result=close_result,
+            post_close_swap=post_close_swap,
+            approval=approval,
+        )
         _post_execution_notification(wallet_name, trigger, dry_run=False, success=True, signatures=signatures)
         return True
         
@@ -859,10 +1151,24 @@ def _post_execution_notification(
         content += f"\n**Approval**: `{approval_source}` / `{approval_state}`"
         if approved_by and approved_by != "not_required":
             content += f" by `{approved_by}`"
-    if not dry_run and not success:
-        content += "\n**Tx**: none submitted"
-    if signatures:
+
+    post_close_swap = execution_result.get("post_close_swap") or {}
+    close_signatures = execution_result.get("close_signatures") or []
+    swap_signatures = execution_result.get("swap_signatures") or []
+    if post_close_swap:
+        content += f"\n**Post-close swap**: `{post_close_swap.get('status', 'unknown')}`"
+        unswapped = post_close_swap.get("unswapped_assets") or []
+        if unswapped:
+            asset_labels = [f"{asset.get('amount_atoms')} atoms {asset.get('symbol') or asset.get('mint', '')[:8]}" for asset in unswapped[:3]]
+            content += "\n**Unswapped assets**: " + ", ".join(f"`{label}`" for label in asset_labels)
+    if close_signatures:
+        content += "\n**Close Tx**: " + ", ".join(f"`{sig}`" for sig in close_signatures[:3])
+    if swap_signatures:
+        content += "\n**Swap Tx**: " + ", ".join(f"`{sig}`" for sig in swap_signatures[:3])
+    elif signatures and not close_signatures:
         content += "\n**Tx**: " + ", ".join(f"`{sig}`" for sig in signatures[:3])
+    if not dry_run and not success and not (signatures or close_signatures or swap_signatures):
+        content += "\n**Tx**: none submitted"
 
     _post_to_discord_alerts({"content": content})
 
