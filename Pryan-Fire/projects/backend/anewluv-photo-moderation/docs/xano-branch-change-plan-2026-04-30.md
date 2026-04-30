@@ -11,6 +11,16 @@ This plan lists the minimum Xano changes needed before Devon can implement write
 
 All schema/API changes must happen on a Xano branch first. Production `v1` must not be mutated directly for this workflow.
 
+## Non-deletion gate
+
+Lord Xar's Xano rule for this work is absolute:
+
+- never delete Xano data or records;
+- never delete Xano tables, fields, indexes, endpoints, functions, tasks, triggers, branches, or files;
+- do not replace an existing endpoint/function destructively;
+- if functionality does not exist, create new additive objects on an approved Xano branch;
+- existing objects may only be extended compatibly after approval, and the safer default is a new endpoint/table/function.
+
 Suggested branch name:
 
 ```text
