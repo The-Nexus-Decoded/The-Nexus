@@ -662,3 +662,28 @@ Output layering example:
 detected_category = meme_or_screenshot
 reason_code = inappropriate_photos / fake_profile / manual_admin_decision
 ```
+
+Additional photo-review detected-category checks:
+
+```txt
+underage_concern | Appears under 18 or age-ambiguous in dating context | Never approve — escalate/review
+group_photo | Multiple people, primary user unclear | Review
+unclear_subject | Face/person not clearly identifiable | Review
+celebrity_or_stock_photo | Celebrity, stock/model image, stolen-looking | Fake profile — review/reject
+object_or_landscape_only | No person visible | Not profile photo — review/reject
+qr_code | QR code visible | Off-platform/spam — reject/review
+money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money request — reject/escalate
+hate_or_harassment | Slurs, hate symbols, threats, harassment | Reject/escalate
+bot_or_scam | Scam graphics, fake verification, suspicious template | Review/reject
+```
+
+Prompt output requirement:
+
+```json
+{
+  "detected_category": "<detailed worker/image category>",
+  "reason_code": "<canonical Xano-compatible moderation reason>"
+}
+```
+
+Do not allow the prompt to emit only worker-local codes. `reason_code` must always be canonicalized.

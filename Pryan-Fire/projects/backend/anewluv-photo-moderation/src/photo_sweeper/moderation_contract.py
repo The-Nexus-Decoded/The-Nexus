@@ -69,6 +69,10 @@ IMAGE_TYPE_CLASSIFICATIONS = {
     "ai_generated_or_avatar",
     "explicit_adult_image",
     "low_quality_or_unusable",
+    "underage_concern",
+    "money_request",
+    "hate_or_harassment",
+    "bot_or_scam",
 }
 
 CANONICAL_REASON_MAP = {
@@ -296,7 +300,7 @@ Return ONLY JSON with this exact shape:
   "verdict": "approve_recommendation" | "reject_recommendation" | "review" | "escalate",
   "confidence": 0.0-1.0,
   "detected_category": "<one detailed AI/image classification from the image type or detailed flag lists>",
-  "reason_code": "<one canonical Xano-compatible moderation reason>",
+  "reason_code": "<one canonical Xano-compatible moderation reason; never worker-local only>",
   "note": "brief reason"
 }
 
@@ -315,6 +319,10 @@ Identify which type of image this is:
 - ai_generated_or_avatar
 - explicit_adult_image
 - low_quality_or_unusable
+- underage_concern
+- money_request
+- hate_or_harassment
+- bot_or_scam
 
 Image type mapping:
 - real_person_profile_photo/selfie -> possible approve_recommendation if all safety checks pass
@@ -325,6 +333,10 @@ Image type mapping:
 - ai_generated_or_avatar -> fake_profile/review
 - explicit_adult_image -> reject/escalate
 - low_quality_or_unusable -> review/reject
+- underage_concern -> never approve; escalate/review
+- money_request -> reject/escalate
+- hate_or_harassment -> reject/escalate
+- bot_or_scam -> review/reject
 
 Prompt instruction: First classify the image type. Then evaluate safety/policy checks. If the image is not clearly a usable profile photo of a real person, do not approve it.
 
@@ -352,6 +364,15 @@ Detailed flags to inspect:
 - bot_behavior: auto-uploaded style, template-looking images
 - off_platform_contact: "DM me on X/insta/snap" or similar contact bait
 - harassment: bullying, threatening, or targeting content
+- underage_concern: appears under 18 or age-ambiguous in dating context; never approve — escalate/review
+- group_photo: multiple people, primary user unclear; review
+- unclear_subject: face/person not clearly identifiable; review
+- celebrity_or_stock_photo: celebrity, stock/model image, stolen-looking; fake profile — review/reject
+- object_or_landscape_only: no person visible; not profile photo — review/reject
+- qr_code: QR code visible; off-platform/spam — reject/review
+- money_request: CashApp/Venmo/PayPal/sugar/payment solicitation; money request — reject/escalate
+- hate_or_harassment: slurs, hate symbols, threats, harassment; reject/escalate
+- bot_or_scam: scam graphics, fake verification, suspicious template; review/reject
 
 CANONICAL reason_code output only:
 - clean_profile_style -> no rejection code / approve_recommendation
@@ -381,7 +402,7 @@ APPROVE ONLY:
 - clean_profile_style: real human face, profile-style selfie/photo, no issues
 
 RULES:
-- Final reason_code must be one canonical Xano-compatible code from the CANONICAL list above
+- Final reason_code must be one canonical Xano-compatible code from the CANONICAL list above; never emit only worker-local detected_category codes
 - If unsure, return "review" or "escalate" with reason_code "manual_admin_decision" — never approve uncertain
 - Reject AI-generated people with reason_code "fake_profile"
 - Reject books/objects/artwork with reason_code "fake_profile"

@@ -197,6 +197,10 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "ai_generated_or_avatar",
                 "explicit_adult_image",
                 "low_quality_or_unusable",
+                "underage_concern",
+                "money_request",
+                "hate_or_harassment",
+                "bot_or_scam",
             },
         )
 
@@ -354,6 +358,10 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "ai_generated_or_avatar",
             "explicit_adult_image",
             "low_quality_or_unusable",
+            "underage_concern",
+            "money_request",
+            "hate_or_harassment",
+            "bot_or_scam",
         }:
             self.assertIn(image_type, instructions)
         for mapping in {
@@ -365,6 +373,10 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "ai_generated_or_avatar -> fake_profile/review",
             "explicit_adult_image -> reject/escalate",
             "low_quality_or_unusable -> review/reject",
+            "underage_concern -> never approve; escalate/review",
+            "money_request -> reject/escalate",
+            "hate_or_harassment -> reject/escalate",
+            "bot_or_scam -> review/reject",
         }:
             self.assertIn(mapping, instructions)
         self.assertIn("First classify the image type. Then evaluate safety/policy checks", instructions)
@@ -373,6 +385,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("reason_code = canonical Xano-compatible moderation reason", instructions)
         self.assertIn("detected_category", instructions)
         self.assertIn("reason_code", instructions)
+        self.assertIn("never worker-local only", instructions)
         self.assertNotIn("- is_meme_or_screenshot:", instructions)
         self.assertIn("Detailed flags to inspect", instructions)
         self.assertIn("CANONICAL reason_code output only", instructions)
@@ -400,6 +413,14 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "off_platform_contact",
             "harassment",
             "clean_profile_style",
+            "underage_concern",
+            "group_photo",
+            "unclear_subject",
+            "celebrity_or_stock_photo",
+            "object_or_landscape_only",
+            "qr_code",
+            "hate_or_harassment",
+            "bot_or_scam",
         }:
             self.assertIn(reason_code, instructions)
         self.assertIn("final authority", instructions)
