@@ -189,7 +189,7 @@ REVIEW_ITEMS = (
     {
         "name": "Underage / minor concern",
         "reason_code": "underage or minor_targeting",
-        "description": "Person appears under 18, school-age child/teen, or age is ambiguous in a sexual/flirt/dating context.",
+        "description": "Use underage when the image subject appears under 18. Use minor_targeting when content appears to target minors or sexualizes youth context.",
         "prompt_instruction": "Never approve; escalate for human review.",
     },
     {
@@ -219,20 +219,20 @@ REVIEW_ITEMS = (
     {
         "name": "Hate / harassment / threats",
         "reason_code": "hate_speech or harassment",
-        "description": "Hate symbols, slurs, violent threats, targeted harassment.",
-        "prompt_instruction": "Reject/escalate.",
+        "description": "Hate symbols, slurs, protected-class attacks, violent threats, targeted harassment.",
+        "prompt_instruction": "Reject/escalate; use hate_speech for hate symbols, slurs, or protected-class attacks and harassment for threats/targeting.",
     },
     {
         "name": "Hate speech or hateful symbols",
         "reason_code": "hate_speech",
-        "description": "Additional hate-symbol or hateful/dehumanizing content signal if not captured by the combined hate/harassment/threats item.",
-        "prompt_instruction": "Reject/escalate if hateful content is present.",
+        "description": "Hate symbols, slurs, protected-class attacks.",
+        "prompt_instruction": "Hate speech — escalate.",
     },
     {
         "name": "Money request / transactional dating signal",
         "reason_code": "money_request",
-        "description": "CashApp/Venmo/PayPal handle, “send money,” “sugar,” explicit paid companionship solicitation.",
-        "prompt_instruction": "Reject/escalate.",
+        "description": "CashApp/Venmo/PayPal/sugar/payment solicitation.",
+        "prompt_instruction": "Money/payment solicitation — reject/escalate.",
     },
     {
         "name": "Manual review uncertainty",
@@ -357,21 +357,22 @@ Detailed flags to inspect:
 - meme_or_screenshot: memes, screenshots, copied/pasted images
 - blank_or_unusable: solid color, blank, fully black/white images
 - fake_profile: stock photos, celebrity images, catfishing
-- underage: any signs of minors (young-looking, school photos, minors present)
-- money_request: CashApp/Venmo/PayPal, “send money,” “sugar,” paid companionship solicitation
-- hate_speech: hate symbols, slurs, extremist or hateful content
+- underage: use when the image subject appears under 18
+- minor_targeting: use when content appears to target minors or sexualizes youth context
+- money_request: CashApp/Venmo/PayPal/sugar/payment solicitation; money/payment solicitation — reject/escalate
+- hate_speech: hate symbols, slurs, protected-class attacks; hate speech — escalate
 - spam: bulk-uploaded, repetitive, obvious spam
 - bot_behavior: auto-uploaded style, template-looking images
 - off_platform_contact: "DM me on X/insta/snap" or similar contact bait
 - harassment: bullying, threatening, or targeting content
-- underage_concern: appears under 18 or age-ambiguous in dating context; never approve — escalate/review
+- underage_concern: appears under 18 or age-ambiguous in dating context; map to underage when the subject appears under 18, or minor_targeting when content targets minors/sexualizes youth context; never approve — escalate/review
 - group_photo: multiple people, primary user unclear; review
 - unclear_subject: face/person not clearly identifiable; review
 - celebrity_or_stock_photo: celebrity, stock/model image, stolen-looking; fake profile — review/reject
 - object_or_landscape_only: no person visible; not profile photo — review/reject
 - qr_code: QR code visible; off-platform/spam — reject/review
-- money_request: CashApp/Venmo/PayPal/sugar/payment solicitation; money request — reject/escalate
-- hate_or_harassment: slurs, hate symbols, threats, harassment; reject/escalate
+- money_request: CashApp/Venmo/PayPal/sugar/payment solicitation; money/payment solicitation — reject/escalate
+- hate_or_harassment: slurs, hate symbols, protected-class attacks, threats, harassment; use hate_speech for hate symbols/slurs/protected-class attacks and harassment for threats/targeting; reject/escalate
 - bot_or_scam: scam graphics, fake verification, suspicious template; review/reject
 
 CANONICAL canonical_reason_code output only:
@@ -392,7 +393,7 @@ CANONICAL canonical_reason_code output only:
 - money_request -> money_request
 - hate_or_harassment -> hate_speech or harassment
 - bot_or_scam -> bot_behavior
-- underage_concern -> underage or minor_targeting
+- underage_concern -> underage when the image subject appears under 18; minor_targeting when content targets minors or sexualizes youth context
 - manual_review_needed -> manual_admin_decision
 - api_failure_fallback -> manual_admin_decision
 - missing_image_reference -> manual_admin_decision

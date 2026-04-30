@@ -384,6 +384,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "underage_concern -> never approve; escalate/review",
             "money_request -> reject/escalate",
             "hate_or_harassment -> reject/escalate",
+            "underage_concern -> underage when the image subject appears under 18; minor_targeting when content targets minors or sexualizes youth context",
             "bot_or_scam -> review/reject",
         }:
             self.assertIn(mapping, instructions)
@@ -403,6 +404,11 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIn("APPROVE ONLY", instructions)
         self.assertIn("If unsure", instructions)
         self.assertIn("Confidence below 0.6", instructions)
+        self.assertIn("underage: use when the image subject appears under 18", instructions)
+        self.assertIn("minor_targeting: use when content appears to target minors or sexualizes youth context", instructions)
+        self.assertIn("money/payment solicitation — reject/escalate", instructions)
+        self.assertIn("hate symbols, slurs, protected-class attacks", instructions)
+        self.assertIn("hate speech — escalate", instructions)
         for reason_code in {
             "sexual_content",
             "nudity",

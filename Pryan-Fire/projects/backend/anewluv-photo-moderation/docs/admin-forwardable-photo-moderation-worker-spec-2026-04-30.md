@@ -700,3 +700,20 @@ Provider prompt canonical output field:
 ```
 
 Adapter normalization accepts provider `canonical_reason_code` and maps it into internal `reason_code` for existing policy/report compatibility.
+
+Photo-review refinements:
+
+```txt
+underage -> underage or minor_targeting
+```
+
+Use:
+- `underage` when the image subject appears under 18.
+- `minor_targeting` when the content appears to target minors or sexualizes youth context.
+
+Additional check wording:
+
+```txt
+money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money/payment solicitation — reject/escalate
+hate_speech | Hate symbols, slurs, protected-class attacks | Hate speech — escalate
+```
