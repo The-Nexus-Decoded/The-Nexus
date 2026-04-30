@@ -265,6 +265,21 @@ Identify which type of image this is:
 - advertisement_or_flyer
 - contact_card_or_social_handle
 - qr_code
+- object_or_landscape_only
+- celebrity_or_stock_photo
+- ai_generated_or_avatar
+- explicit_adult_image
+- low_quality_or_unusable
+
+Image type mapping:
+- real_person_profile_photo/selfie -> possible approve_recommendation if all safety checks pass
+- group_photo/unclear_subject -> review
+- meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
+- object_or_landscape_only -> reject_recommendation/review
+- celebrity_or_stock_photo -> fake_profile/review
+- ai_generated_or_avatar -> fake_profile/review
+- explicit_adult_image -> escalate with sexual_content
+- low_quality_or_unusable -> review or reject_recommendation with inappropriate_photos
 
 Detailed flags to inspect:
 - sexual_content: porn, sexual acts, genital content
