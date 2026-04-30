@@ -21,6 +21,8 @@ This is a worker/tool proof lane, not a production-ready declaration. Production
 
 ## Active guardrails
 
+- Xano is append-only for this work: never delete Xano data, records, tables, fields, endpoints, functions, tasks, or branches.
+- If functionality does not exist, propose/create new additive Xano objects on an approved branch; do not replace or remove existing ones.
 - Do not mutate production Xano schema/API without approval.
 - Do not print or commit secrets.
 - Do not delete photos.
