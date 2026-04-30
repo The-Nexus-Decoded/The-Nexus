@@ -168,7 +168,7 @@ Existing admin approval tools remain the final moderation interface; this worker
 Core prompt rule:
 
 ```txt
-Only approve clean_profile_style where all other checks pass. Anything uncertain escalates or goes to manual review.
+Only approve clean_profile_style where all other checks pass. If uncertain, choose review/escalate — never approve.
 ```
 
 1. Sexual content
@@ -375,22 +375,30 @@ Forced output shape:
 
 ```json
 {
-  "verdict": "approve_recommendation|reject_recommendation|review|escalate",
-  "reason_code": "one allowed reason code from the review item mapping",
+  "verdict": "approve_recommendation | reject_recommendation | review | escalate",
+  "reason_code": "one canonical code",
   "confidence": 0.0,
-  "image_type": "profile_photo|not_profile_photo|ai_generated|explicit_adult|contact_or_ad|spam|low_quality|minor_risk|fake_profile|bot_or_scam|uncertain",
-  "description": "short factual image description",
-  "note": "short admin-facing explanation",
-  "unsafe_categories": [],
-  "app_profile_photo_checks": {
-    "is_profile_style_photo": false,
-    "has_contact_info": false,
-    "is_meme_or_screenshot": false,
-    "is_blank_or_unusable": false,
-    "is_ai_generated": false,
-    "needs_human_review": true
-  }
+  "checks": {
+    "sexual_content": false,
+    "nudity": false,
+    "underage_concern": false,
+    "ai_generated_or_fake": false,
+    "contact_info": false,
+    "spam_or_ad": false,
+    "money_request": false,
+    "hate_or_harassment": false,
+    "bot_or_scam": false,
+    "low_quality_or_unusable": false,
+    "clean_profile_style": false
+  },
+  "note": "short admin-readable explanation"
 }
+```
+
+Hard rule:
+
+```txt
+If uncertain, choose review/escalate — never approve.
 ```
 
 Do not include markdown, prose, or extra keys in provider output.
