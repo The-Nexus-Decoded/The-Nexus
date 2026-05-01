@@ -1,0 +1,766 @@
+# Admin-Forwardable Photo Moderation Worker Spec — 2026-04-30
+
+Status: recommendation-only / dry-run worker spec. Scope is unchanged.
+
+Forwarding line:
+
+```txt
+Existing admin approval tools remain the final moderation interface; this worker only produces AI recommendations until Lord Xar explicitly opens the write/decision gate.
+```
+
+## 1. What this worker does
+
+- Reads queued photo data only after the auth/env gate exists.
+- Runs deterministic checks plus the approved image-analysis provider route.
+- Produces normalized AI recommendations only.
+- Emits redacted dry-run output for review.
+- Keeps manual/admin moderation as the final approval or rejection path.
+
+Normalized recommendation enum:
+
+```txt
+approve_recommendation
+reject_recommendation
+review
+escalate
+```
+
+Accepted fixture proof state:
+
+```txt
+writes: false
+/photos/decide: not called
+image_generation_events: 0
+validator: pass
+queue_source: local_redacted_fixture
+```
+
+## 2. What it explicitly does NOT do
+
+- It does not approve photos.
+- It does not reject photos.
+- It does not make final moderation decisions.
+- It does not write `ai_recommendation` fields.
+- It does not write any Xano state.
+- It does not call `/photos/decide`.
+- It does not call `/admin/decision/*`.
+- It does not call `/photos/ai_recommendation`.
+- It does not call `/photos/ai_decide`.
+- It does not impersonate an admin.
+- It does not bypass existing admin approval tools.
+- It does not use or create `Profiles.is_ai`.
+
+## 3. How it fits existing admin approval tools
+
+Existing admin approval tools remain final.
+
+The intended lane is:
+
+```txt
+AI reads pending photos -> AI returns normalized recommendation -> human/admin existing tools make final decision
+```
+
+Admin-visible/manual paths remain canonical for final moderation state, including the existing final approval/rejection interface and its rejection reason/note behavior.
+
+The worker only supplies recommendation evidence. If an admin tool list includes approval or rejection endpoints such as `/admin/decision/*`, those remain outside this worker's dry-run scope. The worker must not call them unless Lord Xar explicitly opens a future write/decision gate.
+
+## 4. Auth/env gate
+
+Real queue access is still blocked until service-account/JWT/actor_key env is provisioned.
+
+Required env contract:
+
+```txt
+ANEWLUV_API_BASE_URL
+ANEWLUV_AUTH_API_BASE_URL
+ANEWLUV_ACTOR_KEY
+ANEWLUV_WORKER_JWT or ANEWLUV_WORKER_TOKEN
+```
+
+Allowed first live proof after env exists:
+
+```txt
+GET /photos/queue only
+users JWT / worker token
+actor_key
+actor_type=ai_agent
+small limit
+redacted output
+zero writes
+```
+
+Do not print secrets or token material. Do not invent `x-actor-key` unless Xano docs or implementation prove support for it. Current accepted queue contract uses `actor_key` input/query transport.
+
+## 5. Provider route
+
+Primary provider route is Codex OAuth / OpenClaw route:
+
+```http
+POST https://chatgpt.com/backend-api/codex/responses
+Authorization: Bearer <~/.codex/auth.json access_token>
+```
+
+Required request properties:
+
+```txt
+model: gpt-5.5
+store: false
+stream: true
+instructions field present
+tools: [{type: image_generation, model: gpt-image-2}]
+input_text + input_image
+image converted to PNG/JPEG/WEBP, never raw .ppm
+```
+
+Public OpenAI `/v1/responses` is fallback only and must not block the primary Codex OAuth path.
+
+## 6. Dry-run output shape
+
+Dry-run output is redacted and recommendation-only. It must prove the seal without exposing private image/user data or calling decision endpoints.
+
+Expected shape:
+
+```json
+{
+  "endpoint_used": "https://chatgpt.com/backend-api/codex/responses",
+  "provider": "codex-openai-image",
+  "model_route": "Codex OAuth/OpenClaw gpt-5.5 + gpt-image-2 configured image route",
+  "writes": false,
+  "/photos/decide": "not called",
+  "/admin/decision/*": "not called",
+  "image_generation_events": 0,
+  "normalized_verdict_enum": "review",
+  "validator": "pass",
+  "queue_source": "local_redacted_fixture"
+}
+```
+
+Live queue dry-run, once auth/env exists, must remain the same shape but with queue source summarized/redacted. It must not include raw user identifiers, raw image URLs, tokens, actor keys, or Authorization headers.
+
+2026-04-30 endpoint-update note for #339: `/photos/queue` remains unchanged by the later Xano endpoint updates. The new AI grace-period enforcement applies to `/photos/escalations/ack` for the #346 escalator path, not to this #339 polling/decision worker. #339 acceptance only needs one fresh non-mutating `/photos/queue` round trip before any owner-approved live write.
+
+## 7. Current status / remaining gate
+
+Current status:
+
+```txt
+code gate: clear
+provider route: Codex OAuth primary
+fixture smoke: accepted
+writes: false
+/photos/decide: not called
+/admin/decision/*: not called
+real queue: blocked until service-account/JWT/actor_key env exists
+```
+
+Remaining gate before real queue dry-run:
+
+```txt
+provision ANEWLUV_API_BASE_URL
+provision ANEWLUV_AUTH_API_BASE_URL
+provision ANEWLUV_ACTOR_KEY
+provision ANEWLUV_WORKER_JWT or ANEWLUV_WORKER_TOKEN
+then run GET /photos/queue only with redacted output
+```
+
+Existing admin approval tools remain the final moderation interface; this worker only produces AI recommendations until Lord Xar explicitly opens the write/decision gate.
+
+## 8. Photo moderation review items
+
+Core prompt rule:
+
+```txt
+Only approve clean_profile_style where all other checks pass. If uncertain, choose review/escalate — never approve.
+```
+
+1. Sexual content
+
+Description: Sexually suggestive pose, lingerie/underwear focus, explicit sexual framing, fetish/sexualized presentation.
+
+Prompt instruction: Reject/escalate if the image appears sexually explicit or primarily sexual.
+
+Reason code: `sexual_content`
+
+2. Nudity
+
+Description: Exposed genitals, breasts/nipples, buttocks, transparent clothing, or implied nudity.
+
+Prompt instruction: Reject/escalate if nudity or likely nudity is present.
+
+Reason code: `sexual_content or inappropriate_photos`
+
+3. Pornographic explicit content
+
+Description: Sex acts, explicit adult content, pornography, masturbation, or graphic sexual imagery.
+
+Prompt instruction: Reject/escalate immediately.
+
+Reason code: `sexual_content`
+
+4. Other inappropriate photo content
+
+Description: Image content that is inappropriate for a dating profile but does not fit a narrower reason.
+
+Prompt instruction: Reject/escalate when the image is inappropriate and no narrower reason applies.
+
+Reason code: `inappropriate_photos`
+
+5. Clean profile-style photo
+
+Description: Real person, non-explicit, usable, no contact info, no spam, no obvious AI/fake indicators.
+
+Prompt instruction: Approve recommendation only; human/admin remains final.
+
+Reason code: `clean_profile_style`
+
+6. Not a real profile photo
+
+Description: Meme, screenshot, trading card/game screenshot, celebrity/photo of someone else, object-only image, logo, landscape, cartoon, group image with unclear owner, or any image that is clearly not a real person dating-profile photo.
+
+Prompt instruction: Reject recommendation when the image is clearly not a real person/profile photo. Use review only when the model genuinely cannot determine whether a real person/profile photo is present.
+
+Reason code: `fake_profile or inappropriate_photos`
+
+7. Fake / AI-generated image
+
+Description: Synthetic face/body, obvious AI artifacting, unrealistic skin/eyes/hands, heavily generated avatar.
+
+Prompt instruction: Manual review unless policy says reject.
+
+Reason code: `fake_profile`
+
+8. Contact info / off-platform solicitation
+
+Description: Phone number, email, Snapchat/Instagram/Telegram/WhatsApp handle, QR code, URL, “text me,” “add me.”
+
+Prompt instruction: Reject/escalate if visible.
+
+Reason code: `off_platform_contact`
+
+9. Text-only contact/ad image
+
+Description: Text-only or mostly-text image containing a handle, phone, email, external link, promo, or contact bait.
+
+Prompt instruction: Recommend rejection when the image is text/ad content rather than a profile photo.
+
+Reason code: `off_platform_contact or spam`
+
+10. Low-quality or unusable
+
+Description: Blank image, solid color, too dark, too blurry, corrupted, no visible person.
+
+Prompt instruction: Manual review/reject recommendation.
+
+Reason code: `inappropriate_photos`
+
+11. Meme, screenshot, trading card, or copied content
+
+Description: Screenshot, meme, app screen, trading card/game screenshot, copied/reposted content, quote card, reaction image, or non-original social-media-style image.
+
+Prompt instruction: Recommend rejection if it is clearly a meme, screenshot, trading card/game screenshot, or copied content instead of a real person dating-profile photo. Use review only when the image cannot be classified confidently.
+
+Reason code: `inappropriate_photos`
+
+12. Blank or unusable image
+
+Description: Blank image, solid color, corrupted image, empty frame, no discernible subject, or non-viewable upload.
+
+Prompt instruction: Recommend rejection if the image is blank or unusable.
+
+Reason code: `inappropriate_photos`
+
+13. Underage / minor concern
+
+Description: Person appears under 18, school-age child/teen, or age is ambiguous in a sexual/flirt/dating context.
+
+Prompt instruction: Never approve; escalate for human review.
+
+Reason code: `underage or minor_targeting`
+
+14. Fake profile or impersonation
+
+Description: Stock photo, celebrity image, influencer/public-figure image, impersonation signal, stolen-looking professional image, or fake identity cue.
+
+Prompt instruction: Recommend rejection/review when the image appears fake, stock, celebrity, or impersonating someone.
+
+Reason code: `fake_profile`
+
+15. Advertisement / spam
+
+Description: Flyer, business promo, paid service ad, crypto/financial pitch, repeated text overlay, marketing graphic.
+
+Prompt instruction: Reject/escalate if the image is promotional/spam.
+
+Reason code: `spam`
+
+16. Bot/scam signal
+
+Description: Scammy text, fake verification graphic, reused model/stock-photo style, suspicious overlay.
+
+Prompt instruction: Manual review or reject recommendation.
+
+Reason code: `bot_behavior or fake_profile`
+
+17. Off-platform contact attempt
+
+Description: Attempt to move users to another platform through visible handles, QR codes, phone numbers, emails, links, or contact bait.
+
+Prompt instruction: Recommend rejection if the image asks or hints for off-platform contact.
+
+Reason code: `off_platform_contact`
+
+18. Hate / harassment / threats
+
+Description: Hate symbols, slurs, violent threats, targeted harassment.
+
+Prompt instruction: Reject/escalate.
+
+Reason code: `hate_speech or harassment`
+
+19. Hate speech or hateful symbols
+
+Description: Additional hate-symbol or hateful/dehumanizing content signal if not captured by the combined hate/harassment/threats item.
+
+Prompt instruction: Reject/escalate if hateful content is present.
+
+Reason code: `hate_speech`
+
+20. Money request / transactional dating signal
+
+Description: CashApp/Venmo/PayPal handle, “send money,” “sugar,” explicit paid companionship solicitation.
+
+Prompt instruction: Reject/escalate.
+
+Reason code: `money_request`
+
+21. Manual review uncertainty
+
+Description: Model uncertainty, ambiguous image, conflicting signals, borderline content, partial evidence, or any case not clearly covered.
+
+Prompt instruction: Choose review/manual_review_needed when uncertain; do not approve uncertain images.
+
+Reason code: `manual_review_needed`
+
+22. Missing image reference
+
+Description: Queue item lacks a usable image URL/path/reference for analysis.
+
+Prompt instruction: Return review/manual_review_needed because the image cannot be evaluated.
+
+Reason code: `missing_image_reference`
+
+23. Provider auth unavailable
+
+Description: The image-analysis provider cannot run because auth/env is missing.
+
+Prompt instruction: Return review/manual_review_needed; do not fabricate an image decision.
+
+Reason code: `api_auth_unavailable`
+
+24. Provider/API failure fallback
+
+Description: The provider failed, returned unusable output, timed out, or could not parse a valid response.
+
+Prompt instruction: Return review/manual_review_needed; do not approve or reject from failed provider output.
+
+Reason code: `api_failure_fallback`
+
+25. Admin-only final decision
+
+Description: Existing admin-only final decision reason; this worker must not assign final approval/rejection authority to itself.
+
+Prompt instruction: Do not write this as a worker decision. Existing admin tools remain final.
+
+Reason code: `manual_admin_decision`
+
+Forced output shape:
+
+```json
+{
+  "verdict": "approve_recommendation | reject_recommendation | review | escalate",
+  "reason_code": "one canonical code",
+  "confidence": 0.0,
+  "checks": {
+    "sexual_content": false,
+    "nudity": false,
+    "underage_concern": false,
+    "ai_generated_or_fake": false,
+    "contact_info": false,
+    "spam_or_ad": false,
+    "money_request": false,
+    "hate_or_harassment": false,
+    "bot_or_scam": false,
+    "low_quality_or_unusable": false,
+    "clean_profile_style": false
+  },
+  "note": "short admin-readable explanation"
+}
+```
+
+Hard rule:
+
+```txt
+If uncertain, choose review/escalate — never approve.
+```
+
+Do not include markdown, prose, or extra keys in provider output.
+
+## 9. Final output policy / normalization split
+
+Final `reason_code` output should be canonical Xano-compatible wherever possible. Detailed prompt flags may still identify `nudity`, `ai_generated_or_synthetic`, `api_failure_fallback`, etc., but normalized worker output must map them before policy handling.
+
+Required final-output mappings:
+
+```txt
+api_failure_fallback -> manual_admin_decision
+missing_image_reference -> manual_admin_decision
+api_auth_unavailable -> manual_admin_decision
+clean_profile_style -> approve_recommendation only, no reject code
+```
+
+Code ownership split:
+
+```txt
+validators.py = strict schema/enum validation and reason-code normalization
+model.py = provider calls, provider payloads, provider parsing only
+policy.py = maps validated model output -> recommendation/reason/planned_action
+```
+
+## 10. Image classification block
+
+The provider prompt must identify the image type separately from the canonical final `reason_code` mapping.
+
+```txt
+Identify which type of image this is:
+
+- real_person_profile_photo
+- selfie
+- group_photo
+- unclear_subject
+- meme_or_screenshot
+- text_only_image
+- advertisement_or_flyer
+- contact_card_or_social_handle
+- qr_code
+```
+
+Add these image types to the classification block:
+
+```txt
+- object_or_landscape_only
+- celebrity_or_stock_photo
+- ai_generated_or_synthetic
+- explicit_adult_image
+- low_quality_or_unusable
+```
+
+Image type mapping:
+
+```txt
+real_person_profile_photo/selfie -> possible approve_recommendation if all safety checks pass
+group_photo/unclear_subject -> review unless the primary user is clear
+meme_or_screenshot/text_only/ad/contact/qr/trading_card_or_game_screenshot -> reject_recommendation when clearly not a profile photo
+object_or_landscape_only/logo_only -> reject_recommendation when no person/profile subject is visible
+celebrity_or_stock_photo -> fake_profile/review or reject depending confidence
+ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision
+explicit_adult_image -> direct human escalation with category preserved
+underage_concern/minor_context -> direct human escalation with category preserved
+hate_or_harassment/violence_or_self_harm/illegal_content -> direct human escalation with category preserved
+low_quality_or_unusable -> reject if blank/corrupt/unreadable; review if person may be present but confidence is low
+inclusive_person_variation -> approve if otherwise clean, or review if low-confidence; never reject solely for gender presentation, disability/medical devices, cultural/religious clothing, nontraditional pose, alt aesthetic, queer-coded presentation, modest dress, or other protected/identity-adjacent presentation
+```
+
+Prompt instruction:
+
+```txt
+First classify the image type. Then evaluate safety/policy checks. The core approval gate is binary: is this a usable dating-profile photo of a real person, and is it outside banned/disallowed categories? If yes, approve. If it is clearly not a real person/profile photo, reject. If it is high-risk policy content, route to human escalation. If uncertainty is ordinary and not high-risk, route to fleet-agent review before human admin. Do not reject unusual-but-valid person photos for style, identity presentation, assistive devices, cultural/religious clothing, modesty, pose, or aesthetics.
+```
+
+## 11. Locked canonical reason-code set
+
+Final normalized `reason_code` values must stay within the existing Xano-compatible moderation set. `clean_profile_style` is approve-only guidance, not a reject/final reason code.
+
+```txt
+spam
+off_platform_contact
+harassment
+fake_profile
+inappropriate_photos
+money_request
+hate_speech
+bot_behavior
+sexual_content
+minor_targeting
+underage
+manual_admin_decision
+```
+
+Gate remains locked:
+
+```txt
+writes: false
+/photos/decide: not called
+/admin/decision/*: not called
+no decision endpoints
+```
+
+## 12. Worker/model category coverage
+
+These are the detailed worker/model categories currently covered before canonical Xano normalization:
+
+```txt
+clean_profile_style
+ai_generated_or_synthetic
+sexual_content
+nudity
+pornographic_explicit
+inappropriate_photos
+contact_info_or_ad
+contact_info_text_only_ad
+low_quality_or_unusable
+not_a_profile_photo
+manual_review_needed
+api_failure_fallback
+missing_image_reference
+api_auth_unavailable
+```
+
+These are not all final `reason_code` outputs. The validator maps detailed categories into the locked canonical Xano-compatible set before policy handling.
+
+
+Lord Xar requested image-type classifications covered in the prompt:
+
+```txt
+real_person_profile_photo
+selfie
+group_photo
+unclear_subject
+meme_or_screenshot
+text_only_image
+advertisement_or_flyer
+contact_card_or_social_handle
+qr_code
+```
+
+Add these extended image-type classifications to the locked detail layer:
+
+```txt
+object_or_landscape_only
+celebrity_or_stock_photo
+ai_generated_or_synthetic
+explicit_adult_image
+low_quality_or_unusable
+```
+
+Final output keeps two layers:
+
+```txt
+detected_category = detailed AI/image classification
+reason_code = canonical Xano-compatible moderation reason
+```
+
+Explicit canonical mapping table:
+
+```txt
+clean_profile_style -> no rejection code / approve_recommendation
+
+sexual_content -> sexual_content
+nudity -> sexual_content
+pornographic_explicit -> sexual_content
+
+inappropriate_photos -> inappropriate_photos
+low_quality_or_unusable -> inappropriate_photos
+
+ai_generated_or_synthetic -> fake_profile only if high confidence; otherwise manual_admin_decision/review
+not_a_profile_photo -> inappropriate_photos or fake_profile depending subtype
+meme_or_screenshot -> inappropriate_photos
+trading_card_or_game_screenshot -> inappropriate_photos
+celebrity_or_stock_photo -> fake_profile
+object_or_landscape_only -> inappropriate_photos
+logo_only -> inappropriate_photos
+
+contact_info_or_ad -> off_platform_contact or spam
+contact_info_text_only_ad -> off_platform_contact or spam
+qr_code -> off_platform_contact or spam
+advertisement_or_flyer -> spam
+
+money_request -> money_request
+hate_or_harassment -> hate_speech or harassment
+bot_or_scam -> bot_behavior
+underage_concern -> underage or minor_targeting
+
+manual_review_needed -> manual_admin_decision / fleet_agent_review first unless high-risk category applies
+api_failure_fallback -> manual_admin_decision / no_write; do not fabricate a decision
+missing_image_reference -> manual_admin_decision / no_write; do not fabricate a decision
+api_auth_unavailable -> manual_admin_decision / no_write; do not fabricate a decision
+```
+
+Future write-path eligibility rule:
+
+```txt
+Prompt may produce detailed detection.
+Business normalization happens before strict validator rejection: correct specific wording such as "trading card/game screenshot/no real person" must normalize to an allowed reject decision/reason instead of failing into ambiguity.
+Validator must preserve detail as detected_category.
+Policy must normalize to canonical Xano reason_code before anything is ever eligible for a future write path.
+Non-canonical reason_code after business normalization falls back to no_write + fleet-agent review, not a fabricated escalation/write.
+/photos/ai_decide is called only for explicit valid approve/reject decisions.
+Gallery/deleted are never included in worker payloads.
+```
+
+
+Model/provider split rule:
+
+```txt
+model.py
+- provider calls only
+- Codex request/response adapter
+- MiniMax request/response adapter
+- no policy mapping
+```
+
+AI-generated policy call:
+
+```txt
+ai_generated_or_synthetic -> fake_profile only if high confidence
+ai_generated_or_synthetic -> manual_admin_decision/review if uncertain
+```
+
+Module ownership split, locked for the next integration pass:
+
+```txt
+normalization.py
+- detected_category enum/defaulting
+- canonical Xano reason mapping
+- safe note generation
+- reject/review/approve recommendation normalization
+- MiniMax text classification fallback parser
+
+validators.py
+- strict normalized JSON schema validation
+- enum validation
+- confidence bounds
+- required keys
+
+policy.py
+- planned_action
+- recommended_decision
+- future write-path eligibility guard
+```
+
+Write gate invariant:
+
+```txt
+write gates always false
+```
+
+`not_a_profile_photo` subtype mapping:
+
+```txt
+meme/screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos depending subtype
+object/landscape/group unclear -> inappropriate_photos or review
+celebrity/stock/stolen-looking -> fake_profile
+```
+
+Prompt label cleanup:
+
+```txt
+is_meme_or_screenshot -> meme_or_screenshot
+```
+
+Output layering example:
+
+```txt
+detected_category = meme_or_screenshot
+reason_code = inappropriate_photos / fake_profile / manual_admin_decision
+```
+
+Additional photo-review detected-category checks:
+
+```txt
+underage_concern | Appears under 18 or age-ambiguous in dating context | Never approve — escalate/review
+group_photo | Multiple people, primary user unclear | Review
+unclear_subject | Face/person not clearly identifiable | Review
+celebrity_or_stock_photo | Celebrity, stock/model image, stolen-looking | Fake profile — review/reject
+object_or_landscape_only | No person visible | Not profile photo — review/reject
+qr_code | QR code visible | Off-platform/spam — reject/review
+money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money request — reject/escalate
+hate_or_harassment | Slurs, hate symbols, threats, harassment | Reject/escalate
+bot_or_scam | Scam graphics, fake verification, suspicious template | Review/reject
+```
+
+Prompt output requirement:
+
+```json
+{
+  "detected_category": "<detailed worker/image category>",
+  "reason_code": "<canonical Xano-compatible moderation reason>"
+}
+```
+
+Do not allow the prompt to emit only worker-local codes. `reason_code` must always be canonicalized.
+
+
+Provider prompt canonical output field:
+
+```json
+{
+  "is_person_photo": true | false | "uncertain",
+  "decision": "approve | reject | review",
+  "reason": "ok | not_person_photo | policy_violation | uncertain",
+  "evidence": "brief visual evidence"
+}
+```
+
+Adapter normalization treats category labels as evidence/audit flags only. The moderation decision is driven by the business gate: judge the image's suitability as a profile photo, never the person. Ask: does this image reasonably appear to be a real usable person profile photo? Do not require full face + body; close-up selfies, cropped portraits, wheelchair photos, cultural/religious clothing, modest dress, and other legitimate person photos can pass.
+
+Pre-model validation means technical viability only: unsupported MIME, corrupt/unreadable, too small/too large, blank/near-blank. It is not content moderation and must not perform heuristic content rejects before vision. Content labels such as screenshot, meme, trading card, logo, fake/impersonation, explicit sexual content, hate/violence/illegal, minor-risk, spam/contact info, etc. come from visual/content classification and are stored as audit flags/evidence, not routing enums.
+
+Mapping:
+
+```txt
+is_person_photo=false -> decision=reject, reason=not_person_photo
+is_person_photo=true -> continue normal moderation and safety checks; approve only when those pass
+is_person_photo="uncertain" -> decision=review, reason=uncertain, no_write/fleet-agent review unless high-risk category applies
+policy violation detected -> decision=reject or direct human escalation by risk level; reason=policy_violation or explicit_content; record audit flag such as sexual_explicit/spam_contact/hate_violence_illegal/minor_risk
+```
+
+Example for photo `13286`:
+
+```json
+{
+  "is_person_photo": false,
+  "decision": "reject",
+  "reason": "not_person_photo",
+  "evidence": "no real person profile photo"
+}
+```
+
+Adapter normalization maps the small model reason into the canonical Xano-compatible `reason_code` for existing policy/report compatibility. If Xano's endpoint names the platform reject path differently, use the endpoint's actual value internally, but preserve the business decision as reject/fail, not manual review.
+
+Photo-review refinements:
+
+```txt
+underage -> underage or minor_targeting
+```
+
+Use:
+- `underage` when the image subject appears under 18.
+- `minor_targeting` when the content appears to target minors or sexualizes youth context.
+
+Additional check wording:
+
+```txt
+money_request | CashApp/Venmo/PayPal/sugar/payment solicitation | Money/payment solicitation — reject/escalate
+hate_speech | Hate symbols, slurs, protected-class attacks | Hate speech — escalate
+```
+
+Core approval and escalation rule:
+
+```txt
+Approve when: real person dating-profile photo + no banned/disallowed category + no technical/model uncertainty.
+Reject when: clearly not a real person/profile photo, blank/corrupt/unusable, meme/screenshot/trading card/object/logo/ad/contact/spam, or other clearly disallowed non-high-risk content.
+Direct human escalation when: minors/children, explicit sexual/X-rated content, hate/extremism, violence/self-harm, illegal content, or other legally/safety-sensitive content.
+Fleet-agent review when: ordinary uncertainty, low-confidence person/profile detection, ambiguity that could create biased rejection, or model output that cannot be normalized safely.
+Human admin review when: fleet agent still cannot decide, or high-risk direct-human category applies.
+Never reject solely for ambiguous gender presentation, disability/medical devices, cultural/religious clothing, nontraditional poses/aesthetics, queer-coded presentation, modest dress, or other protected/identity-adjacent presentation.
+```
