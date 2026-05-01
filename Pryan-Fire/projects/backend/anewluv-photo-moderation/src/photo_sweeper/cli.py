@@ -8,6 +8,7 @@ from pathlib import Path
 from .agent_review import run_agent_review_once
 from .lock import LockHeld, RunLock
 from .queue import load_queue
+from .reporting import maybe_report_run
 from .runner import run_once
 from .xano_client import XanoConfig, XanoModerationClient
 
@@ -87,6 +88,16 @@ def build_parser() -> argparse.ArgumentParser:
         default="mock",
         help="Deprecated alias for --provider. Kept for existing smoke scripts.",
     )
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="Post a sanitized Jarvis/Discord status summary after the run. Routine posts are opt-in to avoid spam.",
+    )
+    parser.add_argument(
+        "--report-channel",
+        default=None,
+        help="Discord channel id for Jarvis/status reporting. Defaults to JARVIS_REPORT_CHANNEL or DISCORD_REPORT_CHANNEL.",
+    )
     return parser
 
 
@@ -147,5 +158,8 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+
+    report_kind = "agent_review" if args.agent_review else "initial_sweeper"
+    result["jarvis_report"] = maybe_report_run(report_kind, result, enabled=args.report, channel_id=args.report_channel)
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

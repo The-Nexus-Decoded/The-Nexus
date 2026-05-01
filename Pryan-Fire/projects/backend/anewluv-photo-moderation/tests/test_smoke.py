@@ -21,6 +21,7 @@ from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
 from photo_sweeper.agent_review import run_agent_review_once
+from photo_sweeper.reporting import format_report, maybe_report_run
 from photo_sweeper.runner import run_once
 from photo_sweeper.xano_client import TokenCache, XanoClientError, XanoConfig, XanoModerationClient
 
@@ -1954,6 +1955,109 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertIs(call["skipped"], True)
         self.assertEqual(result["summary"]["race_skips"], 1)
         self.assertEqual(result["summary"]["failures"], [{"photo_id": 101, "status": "race_skip"}])
+
+
+class JarvisReportingTests(unittest.TestCase):
+    def test_initial_sweeper_report_formats_required_stats_without_photo_payloads(self):
+        result = run_once(load_queue(), limit=5, photo_id=None, dry_run=True, force=False, model_fixture=None)
+
+        message = format_report("initial_sweeper", result)
+
+        self.assertIn("initial sweeper STATUS", message)
+        self.assertIn("photos_scanned=5", message)
+        self.assertIn("auto_approved=0", message)
+        self.assertIn("auto_rejected=0", message)
+        self.assertIn("agent_review=1", message)
+        self.assertIn("human_admin_review=3", message)
+        self.assertIn("fallback_usage=0", message)
+        self.assertIn("next_scheduled_run=unknown", message)
+        self.assertNotIn("user_email", message)
+        self.assertNotIn("selected_photo_ids", message)
+
+    def test_routine_report_is_suppressed_without_opt_in(self):
+        posts = []
+        result = run_once(load_queue(), limit=1, photo_id=None, dry_run=True, force=False, model_fixture=None)
+
+        report = maybe_report_run("initial_sweeper", result, env={"JARVIS_REPORT_CHANNEL": "148"}, poster=lambda channel, message: posts.append((channel, message)))
+
+        self.assertEqual(report["reason"], "routine_suppressed")
+        self.assertEqual(posts, [])
+
+    def test_report_posts_when_enabled(self):
+        posts = []
+        result = run_once(load_queue(), limit=1, photo_id=None, dry_run=True, force=False, model_fixture=None)
+
+        report = maybe_report_run("initial_sweeper", result, enabled=True, env={"JARVIS_REPORT_CHANNEL": "148"}, poster=lambda channel, message: posts.append((channel, message)))
+
+        self.assertTrue(report["posted"])
+        self.assertEqual(posts[0][0], "148")
+        self.assertIn("photos_scanned=1", posts[0][1])
+
+    def test_escalation_or_failure_posts_as_urgent_without_routine_opt_in(self):
+        posts = []
+        result = {"summary": {"dry_run": False, "photos_scanned": 1, "escalations_opened": 1, "failures": [], "write_counts": {}}}
+
+        report = maybe_report_run("initial_sweeper", result, env={"JARVIS_REPORT_CHANNEL": "148"}, poster=lambda channel, message: posts.append((channel, message)))
+
+        self.assertTrue(report["posted"])
+        self.assertTrue(report["urgent"])
+        self.assertIn("initial sweeper ALERT", posts[0][1])
+        self.assertIn("escalations_opened=1", posts[0][1])
+
+    def test_agent_review_report_includes_polling_and_decision_stats(self):
+        summary = {
+            "run_id": "run-7",
+            "route": "agent_review",
+            "polled": 3,
+            "acked": 2,
+            "race_skips": 0,
+            "deferred": 1,
+            "decisions": [{"decision": "approved"}, {"decision": "rejected"}, {"status": "deferred"}],
+            "audit": {"posted": True},
+        }
+
+        message = format_report("agent_review", summary, urgent=True)
+
+        self.assertIn("agent-review sweeper ALERT", message)
+        self.assertIn("polled=3", message)
+        self.assertIn("acked=2", message)
+        self.assertIn("deferred=1", message)
+        self.assertIn("approved:1", message)
+        self.assertIn("rejected:1", message)
+        self.assertIn("audit_posted=true", message)
+
+    def test_agent_review_audit_failure_is_urgent(self):
+        posts = []
+        summary = {
+            "run_id": "run-8",
+            "route": "agent_review",
+            "polled": 5,
+            "acked": 0,
+            "race_skips": 0,
+            "deferred": 0,
+            "decisions": [],
+            "audit": {"posted": False, "failed": True, "error": "HTTPError"},
+        }
+        report = maybe_report_run(
+            "agent_review", summary,
+            env={"JARVIS_REPORT_CHANNEL": "148"},
+            poster=lambda channel, message: posts.append((channel, message)),
+        )
+        self.assertTrue(report["posted"])
+        self.assertTrue(report["urgent"])
+        self.assertIn("ALERT", posts[0][1])
+
+    def test_empty_env_dict_is_not_replaced_by_host_env(self):
+        posts = []
+        result = {"summary": {"dry_run": False, "photos_scanned": 1, "escalations_opened": 0, "failures": [], "write_counts": {}}}
+        # pass empty env — destination lookup must not fall back to os.environ
+        report = maybe_report_run(
+            "initial_sweeper", result,
+            env={},
+            poster=lambda channel, message: posts.append((channel, message)),
+        )
+        self.assertEqual(report["reason"], "destination_not_configured")
+        self.assertEqual(posts, [])
 
 
 class AgentReviewLoopTests(unittest.TestCase):
