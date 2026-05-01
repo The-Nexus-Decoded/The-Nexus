@@ -522,6 +522,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
     def test_provider_order_names_are_accepted_or_fail_closed_without_live_calls(self):
         self.assertEqual(json.loads(run_cli("--once", "--provider", "mock", "--limit", "1").stdout)["provider"], "mock")
+        self.assertEqual(json.loads(run_cli("--once", "--provider", "provider-chain", "--limit", "1").stdout)["provider"], "provider-chain")
+        self.assertEqual(json.loads(run_cli("--once", "--provider", "vision-llm-only", "--limit", "1").stdout)["provider"], "vision-llm-only")
 
         proc = run_cli("--once", "--provider", "openai-moderations", "--limit", "1", check=False)
         self.assertEqual(proc.returncode, 2)
@@ -790,6 +792,199 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["reason_code"], "manual_admin_decision")
         self.assertEqual(result["fallback_model"], "manual_review")
         self.assertIn("timed out", result["note"])
+
+
+class ProviderChainPhaseFourTests(unittest.TestCase):
+    def _run_chain_case(self, stage1_key, stage2_key, *, dry_run=True, xano_client=None, fixture_extra=None):
+        fixture = {
+            "clean_profile_style": {
+                "verdict": "approve_recommendation",
+                "confidence": 0.93,
+                "reason_code": "clean_profile_style",
+                "note": "clean",
+                "unsafe_categories": [],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": True,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            "sexual_content": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "sexual_content",
+                "note": "hard safety",
+                "unsafe_categories": ["sexual_content"],
+            },
+            "not_person_photo": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.94,
+                "reason_code": "not_person_photo",
+                "note": "no person",
+                "unsafe_categories": ["not_person_photo"],
+                "app_profile_photo_checks": {"needs_human_review": False},
+            },
+            "manual_review_needed": {
+                "verdict": "review",
+                "confidence": 0.42,
+                "reason_code": "manual_review_needed",
+                "note": "inconclusive",
+                "unsafe_categories": [],
+            },
+            "api_failure_fallback": {
+                "verdict": "review",
+                "confidence": 0.0,
+                "reason_code": "api_failure_fallback",
+                "note": "provider unavailable",
+                "unsafe_categories": [],
+                "fallback_model": "mock_failure_fallback",
+            },
+            "ai_generated": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.95,
+                "reason_code": "ai_generated",
+                "note": "synthetic person",
+                "unsafe_categories": ["ai_generated_or_synthetic"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": True,
+                    "needs_human_review": False,
+                },
+            },
+        }
+        if fixture_extra:
+            fixture.update(fixture_extra)
+        queue_item = dict(load_queue()[0], photostatus_id=1, deleted=False, moderation_fixture_key=stage1_key, model_fixture_key=stage2_key)
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as handle:
+            json.dump(fixture, handle)
+            handle.flush()
+            if xano_client is not None:
+                xano_client.queue_item = queue_item
+            return run_once([queue_item], limit=1, photo_id=None, dry_run=dry_run, force=False, model_fixture=Path(handle.name), model_adapter="provider-chain", xano_client=xano_client)
+
+    def test_stage1_clean_approval_short_circuits_without_stage2(self):
+        result = self._run_chain_case("clean_profile_style", "sexual_content")
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["planned_action"], "report_only")
+        self.assertEqual(photo["recommended_decision"], "approve_recommendation")
+        self.assertEqual(photo["model_path"]["moderation_model"], "mock_moderation_api")
+        self.assertEqual(photo["model_path"]["vision_model_used"], "not_called")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_short_circuit")
+
+    def test_stage1_hard_safety_short_circuits_to_human_without_stage2(self):
+        result = self._run_chain_case("sexual_content", "clean_profile_style")
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["planned_action"], "human_admin_review")
+        self.assertIsNone(photo["recommended_decision"])
+        self.assertEqual(photo["model_path"]["vision_model_used"], "not_called")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_short_circuit")
+
+    def test_stage1_clear_non_safety_reject_short_circuits(self):
+        result = self._run_chain_case("not_person_photo", "clean_profile_style")
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_short_circuit")
+        self.assertEqual(photo["model_path"]["vision_model_used"], "not_called")
+        self.assertEqual(photo["normalized_result"]["verdict"], "reject_recommendation")
+
+    def test_stage1_inconclusive_falls_through_to_stage2_vision_llm(self):
+        result = self._run_chain_case("manual_review_needed", "clean_profile_style")
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["planned_action"], "report_only")
+        self.assertEqual(photo["model_path"]["moderation_model"], "mock_moderation_api")
+        self.assertEqual(photo["model_path"]["vision_model_used"], "mock_vision_llm")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_fallthrough")
+        self.assertEqual(photo["normalized_result"]["stage1_result"]["reason_code"], "manual_admin_decision")
+
+    def test_stage1_failure_falls_through_to_stage2_vision_llm(self):
+        result = self._run_chain_case("api_failure_fallback", "clean_profile_style")
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["planned_action"], "report_only")
+        self.assertEqual(photo["model_path"]["vision_model_used"], "mock_vision_llm")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_fallthrough")
+        self.assertEqual(photo["normalized_result"]["stage1_result"]["raw_reason_code"], "api_failure_fallback")
+
+    def test_both_providers_failed_escalates_with_provider_chain_failed_reason(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+                self.queue_item = None
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [self.queue_item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 342}
+
+        fake = FakeClient()
+        result = self._run_chain_case("api_failure_fallback", "api_failure_fallback", dry_run=False, xano_client=fake)
+        photo = result["photos"][0]
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "agent_review")
+        self.assertEqual(result["decision_calls"][0]["reason"], "provider_chain_failed")
+        self.assertEqual(photo["planned_action"], "agent_review")
+        self.assertEqual(photo["normalized_result"]["raw_reason_code"], "provider_chain_failed")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "provider_chain_failed")
+
+    def test_vision_only_chain_never_auto_rejects_clean_approval_still_allowed(self):
+        class FakeClient:
+            def __init__(self, key):
+                self.key = key
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False, model_fixture_key=self.key)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 343}
+
+        clean_client = FakeClient("clean_profile_style")
+        clean = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, model_adapter="vision-llm-only", xano_client=clean_client)
+        self.assertEqual(clean_client.decisions[0]["decision"], "approved")
+        self.assertEqual(clean["photos"][0]["normalized_result"]["provider_chain_stage"], "vision_llm_only")
+
+        reject_client = FakeClient("ai_generated_or_synthetic")
+        reject = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, model_adapter="vision-llm-only", xano_client=reject_client)
+        self.assertEqual(reject_client.decisions, [])
+        self.assertEqual(len(reject_client.escalations), 1)
+        self.assertEqual(reject_client.escalations[0]["route"], "agent_review")
+        self.assertEqual(reject["photos"][0]["planned_action"], "agent_review")
+        self.assertNotEqual(reject["photos"][0]["planned_action"], "auto_reject")
 
 
 class XanoPhaseOneTests(unittest.TestCase):
