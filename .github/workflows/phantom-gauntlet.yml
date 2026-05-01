@@ -3,6 +3,9 @@ name: Phantom Gauntlet Trial
 on:
   pull_request:
     branches: [ master, main ]
+    paths:
+      - 'Pryan-Fire/hughs-forge/**'
+      - '.github/workflows/phantom-gauntlet.yml'
 
 jobs:
   phantom-trial:

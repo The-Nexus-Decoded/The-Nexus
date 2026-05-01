@@ -5,12 +5,14 @@ on:
     branches:
       - main
     paths:
-      - 'hughs-forge/services/trade-executor/**'
+      - 'Pryan-Fire/hughs-forge/services/trade-executor/**'
+      - '.github/workflows/trade-executor-ci.yml'
   pull_request:
     branches:
       - main
     paths:
-      - 'hughs-forge/services/trade-executor/**'
+      - 'Pryan-Fire/hughs-forge/services/trade-executor/**'
+      - '.github/workflows/trade-executor-ci.yml'
 
 jobs:
   build-and-test:
@@ -29,10 +31,10 @@ jobs:
         python3 -m venv .venv
         source .venv/bin/activate
         pip install -r requirements.txt
-      working-directory: hughs-forge/services/trade-executor/
+      working-directory: Pryan-Fire/hughs-forge/services/trade-executor/
 
     - name: Run tests (placeholder)
       run: echo "No tests implemented yet for trade-executor."
-      working-directory: hughs-forge/services/trade-executor/
+      working-directory: Pryan-Fire/hughs-forge/services/trade-executor/
 
     # Future steps will include actual unit tests, linting, etc.
