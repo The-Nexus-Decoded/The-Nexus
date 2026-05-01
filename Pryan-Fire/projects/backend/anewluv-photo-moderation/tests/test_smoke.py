@@ -2026,6 +2026,39 @@ class JarvisReportingTests(unittest.TestCase):
         self.assertIn("rejected:1", message)
         self.assertIn("audit_posted=true", message)
 
+    def test_agent_review_audit_failure_is_urgent(self):
+        posts = []
+        summary = {
+            "run_id": "run-8",
+            "route": "agent_review",
+            "polled": 5,
+            "acked": 0,
+            "race_skips": 0,
+            "deferred": 0,
+            "decisions": [],
+            "audit": {"posted": False, "failed": True, "error": "HTTPError"},
+        }
+        report = maybe_report_run(
+            "agent_review", summary,
+            env={"JARVIS_REPORT_CHANNEL": "148"},
+            poster=lambda channel, message: posts.append((channel, message)),
+        )
+        self.assertTrue(report["posted"])
+        self.assertTrue(report["urgent"])
+        self.assertIn("ALERT", posts[0][1])
+
+    def test_empty_env_dict_is_not_replaced_by_host_env(self):
+        posts = []
+        result = {"summary": {"dry_run": False, "photos_scanned": 1, "escalations_opened": 0, "failures": [], "write_counts": {}}}
+        # pass empty env — destination lookup must not fall back to os.environ
+        report = maybe_report_run(
+            "initial_sweeper", result,
+            env={},
+            poster=lambda channel, message: posts.append((channel, message)),
+        )
+        self.assertEqual(report["reason"], "destination_not_configured")
+        self.assertEqual(posts, [])
+
 
 class AgentReviewLoopTests(unittest.TestCase):
     def test_agent_review_polls_agent_review_route_and_acks_with_idempotency(self):
