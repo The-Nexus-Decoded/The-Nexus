@@ -28,7 +28,8 @@ def maybe_report_run(
     Routine reports are opt-in via --report or ANEWLUV_PHOTO_REPORT_ROUTINE=1.
     Failure/escalation reports still post promptly when a destination is configured.
     """
-    env = env or os.environ
+    if env is None:
+        env = os.environ
     destination = _destination(channel_id=channel_id, env=env)
     if not destination:
         return {"posted": False, "reason": "destination_not_configured"}
@@ -108,7 +109,8 @@ def _format_agent_review_report(result: Mapping[str, Any], *, urgent: bool) -> s
 
 def _is_urgent(kind: str, result: Mapping[str, Any]) -> bool:
     if kind == "agent_review":
-        return _int(result.get("deferred")) > 0 or _int(result.get("race_skips")) > 0
+        audit = _mapping(result.get("audit"))
+        return bool(audit.get("failed")) or _int(result.get("deferred")) > 0 or _int(result.get("race_skips")) > 0
     summary = _mapping(result.get("summary"))
     return bool(_list(summary.get("failures"))) or _int(summary.get("escalations_opened")) > 0 or _int(summary.get("unresolved_escalations")) > 0
 
