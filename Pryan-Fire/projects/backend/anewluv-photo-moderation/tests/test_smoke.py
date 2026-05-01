@@ -248,6 +248,60 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["would_write_recommendation"], False)
         self.assertEqual(result["would_finalize_decision"], False)
 
+    def test_qr_or_contact_reject_requires_explicit_visible_evidence(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "real_person_profile_photo",
+                "note": "Person smiling against a plain wall.",
+                "unsafe_categories": [],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": True,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        item = {"photo_id": 13317}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        combined = combine(item, checks, result, dry_run=True, force=False)
+
+        self.assertEqual(result["verdict"], "review")
+        self.assertEqual(result["reason_code"], "manual_admin_decision")
+        self.assertEqual(combined["planned_action"], "agent_review")
+        self.assertIsNone(combined["recommended_decision"])
+
+    def test_qr_reject_with_explicit_evidence_still_maps_to_off_platform_contact(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "qr_code_visible_on_profile_photo",
+                "note": "Visible QR code printed in the image.",
+                "unsafe_categories": ["qr_code"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": True,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        self.assertEqual(result["verdict"], "reject_recommendation")
+        self.assertEqual(result["reason_code"], "off_platform_contact")
+
     def test_category_agnostic_person_gate_rejects_high_confidence_non_person(self):
         item = {"photo_id": 13286}
         checks = {"image_reference_present": True, "exists": True, "supported_reference": True}

@@ -33,6 +33,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
         normalized["reason_code"] = normalized.get("canonical_reason_code")
     if "reason_code" not in normalized and "reason" in normalized:
         normalized["reason_code"] = normalized.get("reason")
+    original_reason_hint = str(normalized.get("reason_code", "manual_review_needed")).lower()
     if "verdict" not in normalized and "decision" in normalized:
         normalized["verdict"] = DECISION_TO_RECOMMENDATION_VERDICTS.get(str(normalized.get("decision")).lower(), normalized.get("decision"))
 
@@ -50,7 +51,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     else:
         normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
     if normalized["reason_code"] != raw_reason_code:
-        normalized["raw_reason_code"] = raw_reason_code
+        normalized.setdefault("raw_reason_code", raw_reason_code)
 
     detected_category = str(normalized.get("detected_category") or normalized.get("raw_reason_code") or normalized["reason_code"]).lower()
     normalized["detected_category"] = DETECTED_CATEGORY_ALIASES.get(detected_category, detected_category)
@@ -68,7 +69,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     if normalized["validator"] == "fail":
         normalized["verdict"] = "review"
         normalized["reason_code"] = CANONICAL_REASON_MAP["manual_review_needed"]
-        normalized["raw_reason_code"] = "manual_review_needed"
+        normalized["raw_reason_code"] = original_reason_hint
         normalized["note"] = "Model output failed strict validation; manual review required."
         normalized["validator"] = "fail"
     return normalized
@@ -123,10 +124,48 @@ def _apply_person_photo_business_gate(normalized: dict) -> dict:
         normalized["verdict"] = "reject_recommendation"
         normalized["reason_code"] = "not_person_photo"
 
+    if normalized.get("verdict") == "reject_recommendation" and _off_platform_contact_without_evidence(raw_reason_hint, detected_text, checks):
+        checks["needs_human_review"] = True
+        normalized["verdict"] = "review"
+        normalized["reason_code"] = "manual_review_needed"
+        normalized["raw_reason_code"] = raw_reason_hint
+        normalized["note"] = _append_note(
+            normalized.get("note"),
+            "Off-platform contact/QR reason lacked explicit visible QR/contact evidence; routed to review instead of auto-reject.",
+        )
+
     if "screenshot" in detected_text or "meme" in detected_text or "trading card" in detected_text:
         checks["meme_or_screenshot"] = True
     normalized["app_profile_photo_checks"] = checks
     return normalized
+
+
+def _off_platform_contact_without_evidence(raw_reason_hint: str, detected_text: str, checks: dict) -> bool:
+    if raw_reason_hint not in {"qr_code", "contact_info_or_ad", "contact_info_text_only_ad", "off_platform_contact"}:
+        return False
+    evidence_terms = {
+        "qr code",
+        "qrcode",
+        "qr-code",
+        "barcode",
+        "phone number",
+        "email",
+        "social handle",
+        "social media handle",
+        "instagram",
+        "snapchat",
+        "telegram",
+        "whatsapp",
+        "@",
+    }
+    has_text_evidence = any(term in detected_text for term in evidence_terms)
+    has_flag_evidence = checks.get("has_contact_info") is True
+    return not (has_text_evidence or has_flag_evidence)
+
+
+def _append_note(existing: object, addition: str) -> str:
+    text = str(existing or "").strip()
+    return f"{text} {addition}".strip()
 
 
 def _safe_confidence(value: object) -> float:
