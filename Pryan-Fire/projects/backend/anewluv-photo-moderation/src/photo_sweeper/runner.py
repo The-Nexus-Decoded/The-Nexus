@@ -140,9 +140,13 @@ def _runtime_contract_from_live_payload(live_payload: dict[str, Any], *, xano_cl
     if not contract.settings:
         contract = contract.with_payload(_optional_client_call(xano_client, "moderation_settings"))
     if not contract.db_reason_codes_present:
-        contract = contract.with_payload(_optional_client_call(xano_client, "reason_codes", surface="photo"))
+        reason_payload = _optional_client_call(xano_client, "reason_codes", surface="photo")
+        if reason_payload is not None:
+            contract = contract.with_payload({"reason_codes": reason_payload})
     if not contract.db_review_items_present:
-        contract = contract.with_payload(_optional_client_call(xano_client, "review_items", applies_to="photo"))
+        review_payload = _optional_client_call(xano_client, "review_items", applies_to="photo")
+        if review_payload is not None:
+            contract = contract.with_payload({"review_items": review_payload})
     return contract
 
 

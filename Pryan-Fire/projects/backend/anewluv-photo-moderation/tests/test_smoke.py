@@ -1058,6 +1058,35 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(fake.escalations[0]["route"], "human_admin_review")
         self.assertEqual(result["photos"][0]["planned_action"], "human_admin_review")
 
+
+    def test_live_runtime_contract_marks_direct_lookup_endpoint_payloads_present(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [load_queue()[0]],
+                }
+
+            def reason_codes(self, *, surface="photo"):
+                return {"items": PHOTO_REASON_CODES}
+
+            def review_items(self, *, applies_to="photo"):
+                return {"items": PHOTO_FALLBACK_REVIEW_ITEMS}
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertTrue(result["db_reason_codes_present"])
+        self.assertTrue(result["db_review_items_present"])
+        self.assertEqual(len(fake.decisions), 1)
+
     def test_live_run_omitting_db_reason_codes_fails_closed_to_escalation(self):
         class FakeClient:
             def __init__(self):
