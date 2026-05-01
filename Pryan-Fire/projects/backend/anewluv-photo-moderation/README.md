@@ -108,6 +108,22 @@ PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --force
 
 Cron cadence for live capped execution is documented as `*/30 * * * *` after owner approval.
 
+Jarvis/Discord status reporting is opt-in for routine runs so the worker does not spam the lane:
+
+```bash
+JARVIS_REPORT_CHANNEL=<discord-channel-id> photo-sweeper --once --live-write --limit 5 --report
+JARVIS_REPORT_CHANNEL=<discord-channel-id> photo-sweeper --once --live-write --agent-review --limit 5 --report
+```
+
+Supported reporting config names only:
+
+- `JARVIS_REPORT_CHANNEL` — preferred Discord channel id for Jarvis/status summaries.
+- `DISCORD_REPORT_CHANNEL` — fallback Discord channel id.
+- `DISCORD_WEBHOOK_URL` — fallback webhook destination if channel posting is not available.
+- `ANEWLUV_PHOTO_REPORT_ROUTINE=1` — enables routine reports without passing `--report`.
+
+Failure or escalation summaries post promptly when a destination is configured. Routine success summaries require `--report` or `ANEWLUV_PHOTO_REPORT_ROUTINE=1`. Reports include counts, model path, fallback usage, write counts, unresolved escalations, and next scheduled run when known; they do not include raw queue payloads, user email, or user id.
+
 The default queue source is `src/photo_sweeper/fixtures/queue_redacted.json`. Queue items are normalized before output, and `user_email` is omitted from CLI output.
 
 Mock model categories covered by fixture manifests:
@@ -136,7 +152,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 Result:
 
 ```text
-Ran 6 tests
+Ran 84 tests
 
 OK
 ```
