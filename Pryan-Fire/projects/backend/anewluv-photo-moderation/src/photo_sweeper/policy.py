@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS, FALLBACK_XANO_CANONICAL_REASON_CODES
+from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, CANONICAL_REASON_MAP, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS
 from .runtime_contract import RuntimeContract
 
 
@@ -15,7 +15,7 @@ def combine(
     server_reason_code: str | None = None,
 ) -> dict:
     reason = model_result.get("reason_code", "manual_admin_decision")
-    if reason not in FALLBACK_XANO_CANONICAL_REASON_CODES and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
+    if reason not in set(CANONICAL_REASON_MAP.values()) and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
         reason = "manual_admin_decision"
     verdict = model_result.get("verdict", "review")
     flags = model_result.get("app_profile_photo_checks", {})
@@ -41,7 +41,7 @@ def combine(
     elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
-    elif verdict == "reject_recommendation" and reason in FALLBACK_XANO_CANONICAL_REASON_CODES and reason != "manual_admin_decision":
+    elif verdict == "reject_recommendation" and reason in set(CANONICAL_REASON_MAP.values()) and reason != "manual_admin_decision":
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation":

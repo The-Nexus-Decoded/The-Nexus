@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-VALID_VERDICTS = {"approve_recommendation", "reject_recommendation", "review", "escalate"}
-
 EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
 APPROVE_ONLY_REASONS = {"clean_profile_style"}
 BUSINESS_REJECT_REASONS = {"not_person_photo", "policy_violation", "too_blurry_or_blank", "explicit_content", "unsafe_content"}
@@ -27,21 +25,6 @@ MANUAL_REVIEW_REASONS = {
     "meme_or_screenshot",
     "blank_or_unusable",
     "ai_generated_or_synthetic",
-}
-
-FALLBACK_XANO_CANONICAL_REASON_CODES = {
-    "spam",
-    "off_platform_contact",
-    "harassment",
-    "fake_profile",
-    "inappropriate_photos",
-    "money_request",
-    "hate_speech",
-    "bot_behavior",
-    "sexual_content",
-    "minor_targeting",
-    "underage",
-    "manual_admin_decision",
 }
 
 PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "underage", "sexual_content"}
@@ -130,162 +113,8 @@ CANONICAL_REASON_MAP = {
     "too_blurry_or_blank": "too_blurry_or_blank",
 }
 
-FALLBACK_REVIEW_ITEMS = (
-    {
-        "name": "Sexual content",
-        "reason_code": "sexual_content",
-        "description": "Sexually suggestive pose, lingerie/underwear focus, explicit sexual framing, fetish/sexualized presentation.",
-        "prompt_instruction": "Reject/escalate if the image appears sexually explicit or primarily sexual.",
-    },
-    {
-        "name": "Nudity",
-        "reason_code": "sexual_content or inappropriate_photos",
-        "description": "Exposed genitals, breasts/nipples, buttocks, transparent clothing, or implied nudity.",
-        "prompt_instruction": "Reject/escalate if nudity or likely nudity is present.",
-    },
-    {
-        "name": "Pornographic explicit content",
-        "reason_code": "sexual_content",
-        "description": "Sex acts, explicit adult content, pornography, masturbation, or graphic sexual imagery.",
-        "prompt_instruction": "Reject/escalate immediately.",
-    },
-    {
-        "name": "Other inappropriate photo content",
-        "reason_code": "inappropriate_photos",
-        "description": "Image content that is inappropriate for a dating profile but does not fit a narrower reason.",
-        "prompt_instruction": "Reject/escalate when the image is inappropriate and no narrower reason applies.",
-    },
-    {
-        "name": "Clean profile-style photo",
-        "reason_code": "clean_profile_style",
-        "description": "Real person, non-explicit, usable, no contact info, no spam, no obvious AI/fake indicators.",
-        "prompt_instruction": "Approve recommendation only; human/admin remains final.",
-    },
-    {
-        "name": "Not a real profile photo",
-        "reason_code": "fake_profile or inappropriate_photos",
-        "description": "Meme, screenshot, celebrity/photo of someone else, object-only image, landscape, cartoon, group image with unclear owner.",
-        "prompt_instruction": "Manual review or reject recommendation depending severity.",
-    },
-    {
-        "name": "Fake / AI-generated image",
-        "reason_code": "fake_profile",
-        "description": "Synthetic face/body, obvious AI artifacting, unrealistic skin/eyes/hands, heavily generated avatar.",
-        "prompt_instruction": "Manual review unless policy says reject.",
-    },
-    {
-        "name": "Contact info / off-platform solicitation",
-        "reason_code": "off_platform_contact",
-        "description": "Phone number, email, Snapchat/Instagram/Telegram/WhatsApp handle, QR code, URL, “text me,” “add me.”",
-        "prompt_instruction": "Reject/escalate if visible.",
-    },
-    {
-        "name": "Text-only contact/ad image",
-        "reason_code": "off_platform_contact or spam",
-        "description": "Text-only or mostly-text image containing a handle, phone, email, external link, promo, or contact bait.",
-        "prompt_instruction": "Recommend rejection when the image is text/ad content rather than a profile photo.",
-    },
-    {
-        "name": "Low-quality or unusable",
-        "reason_code": "inappropriate_photos",
-        "description": "Blank image, solid color, too dark, too blurry, corrupted, no visible person.",
-        "prompt_instruction": "Manual review/reject recommendation.",
-    },
-    {
-        "name": "Meme, screenshot, or copied content",
-        "reason_code": "inappropriate_photos or manual_review_needed",
-        "description": "Screenshot, meme, app screen, copied/reposted content, quote card, reaction image, or non-original social-media-style image.",
-        "prompt_instruction": "Recommend review/rejection if it appears to be a meme, screenshot, or copied content instead of a profile photo.",
-    },
-    {
-        "name": "Blank or unusable image",
-        "reason_code": "inappropriate_photos",
-        "description": "Blank image, solid color, corrupted image, empty frame, no discernible subject, or non-viewable upload.",
-        "prompt_instruction": "Recommend rejection if the image is blank or unusable.",
-    },
-    {
-        "name": "Underage / minor concern",
-        "reason_code": "underage or minor_targeting",
-        "description": "Use underage when the image subject appears under 18. Use minor_targeting when content appears to target minors or sexualizes youth context.",
-        "prompt_instruction": "Never approve; escalate for human review.",
-    },
-    {
-        "name": "Fake profile or impersonation",
-        "reason_code": "fake_profile",
-        "description": "Stock photo, celebrity image, influencer/public-figure image, impersonation signal, stolen-looking professional image, or fake identity cue.",
-        "prompt_instruction": "Recommend rejection/review when the image appears fake, stock, celebrity, or impersonating someone.",
-    },
-    {
-        "name": "Advertisement / spam",
-        "reason_code": "spam",
-        "description": "Flyer, business promo, paid service ad, crypto/financial pitch, repeated text overlay, marketing graphic.",
-        "prompt_instruction": "Reject/escalate if the image is promotional/spam.",
-    },
-    {
-        "name": "Bot/scam signal",
-        "reason_code": "bot_behavior or fake_profile",
-        "description": "Scammy text, fake verification graphic, reused model/stock-photo style, suspicious overlay.",
-        "prompt_instruction": "Manual review or reject recommendation.",
-    },
-    {
-        "name": "Off-platform contact attempt",
-        "reason_code": "off_platform_contact",
-        "description": "Attempt to move users to another platform through visible handles, QR codes, phone numbers, emails, links, or contact bait.",
-        "prompt_instruction": "Recommend rejection if the image asks or hints for off-platform contact.",
-    },
-    {
-        "name": "Hate / harassment / threats",
-        "reason_code": "hate_speech or harassment",
-        "description": "Hate symbols, slurs, protected-class attacks, violent threats, targeted harassment.",
-        "prompt_instruction": "Reject/escalate; use hate_speech for hate symbols, slurs, or protected-class attacks and harassment for threats/targeting.",
-    },
-    {
-        "name": "Hate speech or hateful symbols",
-        "reason_code": "hate_speech",
-        "description": "Hate symbols, slurs, protected-class attacks.",
-        "prompt_instruction": "Hate speech — escalate.",
-    },
-    {
-        "name": "Money request / transactional dating signal",
-        "reason_code": "money_request",
-        "description": "CashApp/Venmo/PayPal/sugar/payment solicitation.",
-        "prompt_instruction": "Money/payment solicitation — reject/escalate.",
-    },
-    {
-        "name": "Manual review uncertainty",
-        "reason_code": "manual_review_needed",
-        "description": "Model uncertainty, ambiguous image, conflicting signals, borderline content, partial evidence, or any case not clearly covered.",
-        "prompt_instruction": "Choose review/manual_review_needed when uncertain; do not approve uncertain images.",
-    },
-    {
-        "name": "Missing image reference",
-        "reason_code": "missing_image_reference",
-        "description": "Queue item lacks a usable image URL/path/reference for analysis.",
-        "prompt_instruction": "Return review/manual_review_needed because the image cannot be evaluated.",
-    },
-    {
-        "name": "Provider auth unavailable",
-        "reason_code": "api_auth_unavailable",
-        "description": "The image-analysis provider cannot run because auth/env is missing.",
-        "prompt_instruction": "Return review/manual_review_needed; do not fabricate an image decision.",
-    },
-    {
-        "name": "Provider/API failure fallback",
-        "reason_code": "api_failure_fallback",
-        "description": "The provider failed, returned unusable output, timed out, or could not parse a valid response.",
-        "prompt_instruction": "Return review/manual_review_needed; do not approve or reject from failed provider output.",
-    },
-    {
-        "name": "Admin-only final decision",
-        "reason_code": "manual_admin_decision",
-        "description": "Existing admin-only final decision reason; this worker must not assign final approval/rejection authority to itself.",
-        "prompt_instruction": "Do not write this as a worker decision. Existing admin tools remain final.",
-    },
-)
+DEFAULT_REVIEW_PROMPT_TEXT = "No DB review_items rows were returned for this run. Fail closed to review/escalation instead of inventing local policy vocabulary."
 
-FALLBACK_REASON_PROMPT_ROWS = tuple(
-    (item["reason_code"], item["description"], item["prompt_instruction"]) for item in FALLBACK_REVIEW_ITEMS
-)
 
 DEFAULT_PROFILE_CHECKS = {
     "is_profile_style_photo": False,
@@ -297,20 +126,8 @@ DEFAULT_PROFILE_CHECKS = {
 }
 
 
-def review_items_text() -> str:
-    blocks = []
-    for index, item in enumerate(FALLBACK_REVIEW_ITEMS, start=1):
-        blocks.append(
-            f"{index}. {item['name']}\n"
-            f"Description: {item['description']}\n"
-            f"Prompt instruction: {item['prompt_instruction']}\n"
-            f"Reason code: {item['reason_code']}"
-        )
-    return "\n\n".join(blocks)
-
-
 def provider_instructions(review_items_text_override: str | None = None) -> str:
-    review_text = review_items_text_override or review_items_text()
+    review_text = review_items_text_override or DEFAULT_REVIEW_PROMPT_TEXT
     return """You are an ANewLuv photo moderator. Classify profile photo candidates.
 
 Return ONLY JSON with this exact shape:
@@ -394,7 +211,7 @@ Detailed flags to inspect:
 - bot_or_scam: scam graphics, fake verification, suspicious template; review/reject
 
 DB-provided review checks for this run:
-__FALLBACK_REVIEW_ITEMS_TEXT__
+__DB_REVIEW_CHECKS_TEXT__
 
 CANONICAL canonical_reason_code output only:
 - clean_profile_style -> no rejection code / approve_recommendation
@@ -437,4 +254,4 @@ RULES:
 - Confidence below 0.6 should be "review" or "escalate" with canonical_reason_code "manual_admin_decision"
 - Existing admin/photo moderation paths are final authority; this worker only produces normalized recommendations
 - Do not make final moderation decisions. Do not generate or edit images.
-""".replace("__FALLBACK_REVIEW_ITEMS_TEXT__", review_text)
+""".replace("__DB_REVIEW_CHECKS_TEXT__", review_text)

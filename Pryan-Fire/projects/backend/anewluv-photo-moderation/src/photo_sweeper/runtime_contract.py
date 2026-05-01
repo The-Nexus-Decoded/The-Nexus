@@ -4,10 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from .moderation_contract import FALLBACK_REVIEW_ITEMS
-
-
-FALLBACK_REASON_ROWS = (
+COMPAT_REASON_ROWS = (
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
     {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
     {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
@@ -21,15 +18,6 @@ FALLBACK_REASON_ROWS = (
     {"code": "minor_in_photo", "auto_reject_threshold": 0.80, "severity": "high"},
 )
 
-FALLBACK_REVIEW_ROWS = tuple(
-    {
-        "code": item["reason_code"],
-        "label": item["name"],
-        "prompt_hint": item["prompt_instruction"],
-        "description": item["description"],
-    }
-    for item in FALLBACK_REVIEW_ITEMS
-)
 
 
 @dataclass(frozen=True)
@@ -55,9 +43,7 @@ class RuntimeContract:
         db_reason_codes_present = bool(reason_rows)
         db_review_items_present = bool(review_rows)
         if not reason_rows and fallback_allowed:
-            reason_rows = list(FALLBACK_REASON_ROWS)
-        if not review_rows and fallback_allowed:
-            review_rows = list(FALLBACK_REVIEW_ROWS)
+            reason_rows = list(COMPAT_REASON_ROWS)
 
         return cls(
             settings=settings,

@@ -14,7 +14,7 @@ from photo_sweeper.model import (
     _redact_provider_error_body,
 )
 from photo_sweeper.normalization import normalize_minimax_description, normalize_model_result
-from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, FALLBACK_XANO_CANONICAL_REASON_CODES
+from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
@@ -355,25 +355,6 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(model_result["reason_code"], "not_person_photo")
         self.assertEqual(result["planned_action"], "auto_reject")
         self.assertIs(result["would_escalate"], False)
-
-    def test_xano_canonical_reason_code_set_is_locked(self):
-        self.assertEqual(
-            FALLBACK_XANO_CANONICAL_REASON_CODES,
-            {
-                "spam",
-                "off_platform_contact",
-                "harassment",
-                "fake_profile",
-                "inappropriate_photos",
-                "money_request",
-                "hate_speech",
-                "bot_behavior",
-                "sexual_content",
-                "minor_targeting",
-                "underage",
-                "manual_admin_decision",
-            },
-        )
 
     def test_ai_generated_or_synthetic_requires_high_confidence_for_fake_profile(self):
         high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
