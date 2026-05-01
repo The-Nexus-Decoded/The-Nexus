@@ -29,4 +29,12 @@ def normalize_item(raw: dict) -> dict:
         "gallery": raw.get("gallery"),
         "created_at": raw.get("created_at"),
         "model_fixture_key": raw.get("model_fixture_key", "manual_review_needed"),
+        "ai_processed": raw.get("ai_processed"),
+        "already_ai_processed": raw.get("already_ai_processed"),
+        "ai_reason_code": raw.get("ai_reason_code"),
+        "ai_verdict": raw.get("ai_verdict"),
+        "ai_status": raw.get("ai_status"),
+        "last_ai_assessment_id": raw.get("last_ai_assessment_id"),
+        "ai_assessment_id": raw.get("ai_assessment_id"),
+        "moderation_run_id": raw.get("moderation_run_id"),
     }

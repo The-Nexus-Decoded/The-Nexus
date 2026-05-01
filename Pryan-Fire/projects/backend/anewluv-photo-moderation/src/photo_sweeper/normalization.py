@@ -25,14 +25,18 @@ DECISION_TO_RECOMMENDATION_VERDICTS = {
 HIGH_CONFIDENCE_PERSON_GATE_THRESHOLD = 0.80
 
 
-def normalize_model_result(result: dict, *, default_model: str) -> dict:
+def normalize_model_result(result: dict, *, default_model: str, allowed_reason_codes: set[str] | None = None) -> dict:
     normalized = dict(result)
+    allowed_reason_codes = {str(code).strip() for code in (allowed_reason_codes or set()) if str(code).strip()}
+    if allowed_reason_codes:
+        normalized["allowed_reason_codes"] = sorted(allowed_reason_codes)
     if "verdict" not in normalized and "recommendation" in normalized:
         normalized["verdict"] = normalized.get("recommendation")
     if "reason_code" not in normalized and "canonical_reason_code" in normalized:
         normalized["reason_code"] = normalized.get("canonical_reason_code")
     if "reason_code" not in normalized and "reason" in normalized:
         normalized["reason_code"] = normalized.get("reason")
+    original_reason_hint = str(normalized.get("reason_code", "manual_review_needed")).lower()
     if "verdict" not in normalized and "decision" in normalized:
         normalized["verdict"] = DECISION_TO_RECOMMENDATION_VERDICTS.get(str(normalized.get("decision")).lower(), normalized.get("decision"))
 
@@ -48,9 +52,12 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
         normalized["reason_code"] = "manual_admin_decision"
         normalized["verdict"] = "review"
     else:
-        normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
+        mapped_reason = CANONICAL_REASON_MAP.get(raw_reason_code)
+        if mapped_reason is None and raw_reason_code in allowed_reason_codes:
+            mapped_reason = raw_reason_code
+        normalized["reason_code"] = mapped_reason or "manual_admin_decision"
     if normalized["reason_code"] != raw_reason_code:
-        normalized["raw_reason_code"] = raw_reason_code
+        normalized.setdefault("raw_reason_code", raw_reason_code)
 
     detected_category = str(normalized.get("detected_category") or normalized.get("raw_reason_code") or normalized["reason_code"]).lower()
     normalized["detected_category"] = DETECTED_CATEGORY_ALIASES.get(detected_category, detected_category)
@@ -68,7 +75,7 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
     if normalized["validator"] == "fail":
         normalized["verdict"] = "review"
         normalized["reason_code"] = CANONICAL_REASON_MAP["manual_review_needed"]
-        normalized["raw_reason_code"] = "manual_review_needed"
+        normalized["raw_reason_code"] = original_reason_hint
         normalized["note"] = "Model output failed strict validation; manual review required."
         normalized["validator"] = "fail"
     return normalized
@@ -123,10 +130,77 @@ def _apply_person_photo_business_gate(normalized: dict) -> dict:
         normalized["verdict"] = "reject_recommendation"
         normalized["reason_code"] = "not_person_photo"
 
+    if _looks_ai_generated(detected_text, checks):
+        checks["ai_generated_or_synthetic"] = True
+        if confidence >= AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
+            checks["needs_human_review"] = False
+            normalized["verdict"] = "reject_recommendation"
+            normalized["reason_code"] = "ai_generated"
+            normalized.setdefault("raw_reason_code", raw_reason_hint or "ai_generated_or_synthetic")
+            raw_reason_hint = "ai_generated"
+        else:
+            checks["needs_human_review"] = True
+            normalized["verdict"] = "review"
+            normalized["reason_code"] = "manual_review_needed"
+            normalized.setdefault("raw_reason_code", raw_reason_hint or "ai_generated_or_synthetic")
+            raw_reason_hint = "manual_review_needed"
+
+    if normalized.get("verdict") == "reject_recommendation" and _off_platform_contact_without_evidence(raw_reason_hint, detected_text, checks):
+        checks["needs_human_review"] = True
+        normalized["verdict"] = "review"
+        normalized["reason_code"] = "manual_review_needed"
+        normalized["raw_reason_code"] = raw_reason_hint
+        normalized["note"] = _append_note(
+            normalized.get("note"),
+            "Off-platform contact/QR reason lacked explicit visible QR/contact evidence; routed to review instead of auto-reject.",
+        )
+
     if "screenshot" in detected_text or "meme" in detected_text or "trading card" in detected_text:
         checks["meme_or_screenshot"] = True
     normalized["app_profile_photo_checks"] = checks
     return normalized
+
+
+def _looks_ai_generated(detected_text: str, checks: dict) -> bool:
+    return checks.get("ai_generated_or_synthetic") is True or any(
+        marker in detected_text
+        for marker in (
+            "ai_generated_or_synthetic",
+            "ai generated",
+            "ai-generated",
+            "synthetic",
+            "generated image",
+            "digitally created",
+        )
+    )
+
+
+def _off_platform_contact_without_evidence(raw_reason_hint: str, detected_text: str, checks: dict) -> bool:
+    if raw_reason_hint not in {"qr_code", "contact_info_or_ad", "contact_info_text_only_ad", "off_platform_contact"}:
+        return False
+    evidence_terms = {
+        "qr code",
+        "qrcode",
+        "qr-code",
+        "barcode",
+        "phone number",
+        "email",
+        "social handle",
+        "social media handle",
+        "instagram",
+        "snapchat",
+        "telegram",
+        "whatsapp",
+        "@",
+    }
+    has_text_evidence = any(term in detected_text for term in evidence_terms)
+    has_flag_evidence = checks.get("has_contact_info") is True
+    return not (has_text_evidence or has_flag_evidence)
+
+
+def _append_note(existing: object, addition: str) -> str:
+    text = str(existing or "").strip()
+    return f"{text} {addition}".strip()
 
 
 def _safe_confidence(value: object) -> float:
@@ -202,7 +276,8 @@ def safe_note_for_reason(reason_code: str) -> str:
         "clean_profile_style": "AI recommends approval as profile-style image; human/admin workflow remains final.",
         "sexual_content": "AI recommends rejection/escalation for possible sexual content; human/admin workflow remains final.",
         "inappropriate_photos": "AI recommends rejection/escalation for possible inappropriate photo content; human/admin workflow remains final.",
-        "fake_profile": "AI recommends rejection/review for possible fake, non-profile, or AI-generated image.",
+        "fake_profile": "AI recommends rejection/review for possible fake or stolen-looking profile image.",
+        "ai_generated": "AI recommends rejection/review for possible AI-generated or synthetic profile image.",
         "off_platform_contact": "AI recommends rejection/review for possible off-platform contact or contact bait.",
         "spam": "AI recommends rejection/review for possible spam or advertisement content.",
         "money_request": "AI recommends rejection/review for possible money request or transactional dating signal.",

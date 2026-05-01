@@ -33,7 +33,12 @@ def _valid_reason_code(result: dict) -> bool:
     reason_code = result.get("reason_code")
     if reason_code == "clean_profile_style":
         return result.get("verdict") == "approve_recommendation"
-    return reason_code in set(CANONICAL_REASON_MAP.values()) or reason_code in BUSINESS_REJECT_REASONS
+    allowed_reason_codes = {
+        str(code).strip()
+        for code in result.get("allowed_reason_codes", [])
+        if str(code).strip()
+    }
+    return reason_code in set(CANONICAL_REASON_MAP.values()) or reason_code in BUSINESS_REJECT_REASONS or reason_code in allowed_reason_codes
 
 
 def _valid_detected_category(value: object) -> bool:

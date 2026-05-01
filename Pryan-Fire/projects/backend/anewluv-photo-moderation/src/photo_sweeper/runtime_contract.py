@@ -7,6 +7,7 @@ from typing import Any
 COMPAT_REASON_ROWS = (
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
     {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
+    {"code": "ai_generated", "auto_reject_threshold": 0.90, "severity": "medium"},
     {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
     {"code": "qr_code", "auto_reject_threshold": 0.85, "severity": "medium"},
     {"code": "money_request", "auto_reject_threshold": 0.80, "severity": "medium"},

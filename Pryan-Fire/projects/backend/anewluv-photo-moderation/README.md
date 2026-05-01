@@ -96,6 +96,8 @@ photo-sweeper --once --photo-id <id> --dry-run
 photo-sweeper --once --photo-id <id> --force
 ```
 
+Live-write cron runs must use the overlap lock and capped limit. The default live lock is `/tmp/anewluv-photo-sweeper.lock`; do not pass `--no-lock` outside tests. Cron install and rollback notes for #319 are in `docs/cron-lock-idempotency-2026-05-01.md`.
+
 Without installing, use:
 
 ```bash
@@ -103,6 +105,8 @@ PYTHONPATH=src python3 -m photo_sweeper --once --dry-run --limit 10
 PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --dry-run
 PYTHONPATH=src python3 -m photo_sweeper --once --photo-id 101 --force
 ```
+
+Cron cadence for live capped execution is documented as `*/30 * * * *` after owner approval.
 
 The default queue source is `src/photo_sweeper/fixtures/queue_redacted.json`. Queue items are normalized before output, and `user_email` is omitted from CLI output.
 

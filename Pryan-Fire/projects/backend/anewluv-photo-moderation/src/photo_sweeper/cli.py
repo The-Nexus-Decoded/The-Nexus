@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from .lock import LockHeld, RunLock
 from .queue import load_queue
 from .runner import run_once
 from .xano_client import XanoConfig, XanoModerationClient
@@ -39,6 +40,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--page", type=int, default=1, help="Live Xano queue page to request.")
     parser.add_argument("--per-page", type=int, default=None, help="Live Xano queue page size to request.")
     parser.add_argument("--photo-id", type=str, default=None, help="Inspect one photo id from the fixture queue.")
+    parser.add_argument(
+        "--lock-file",
+        type=Path,
+        default=Path("/tmp/anewluv-photo-sweeper.lock"),
+        help="Nonblocking live-write lock path. Cron should keep the default unless multiple environments share a host.",
+    )
+    parser.add_argument(
+        "--no-lock",
+        action="store_true",
+        help="Disable the live-write overlap lock. Intended for unit tests only; do not use from cron.",
+    )
     parser.add_argument(
         "--force",
         action="store_true",
@@ -82,19 +94,38 @@ def main(argv: list[str] | None = None) -> int:
     queue = [] if live_write else load_queue(args.queue_fixture)
     provider = args.provider or args.model_adapter
     client = XanoModerationClient(XanoConfig.from_env()) if live_write else None
+    lock_context = RunLock(args.lock_file) if live_write and not args.no_lock else None
     try:
-        result = run_once(
-            queue,
-            limit=args.limit,
-            photo_id=args.photo_id,
-            page=args.page,
-            per_page=args.per_page,
-            dry_run=not live_write,
-            force=bool(args.force),
-            model_fixture=args.model_fixture,
-            model_adapter=provider,
-            xano_client=client,
-        )
+        if lock_context is None:
+            result = run_once(
+                queue,
+                limit=args.limit,
+                photo_id=args.photo_id,
+                page=args.page,
+                per_page=args.per_page,
+                dry_run=not live_write,
+                force=bool(args.force),
+                model_fixture=args.model_fixture,
+                model_adapter=provider,
+                xano_client=client,
+            )
+        else:
+            with lock_context:
+                result = run_once(
+                    queue,
+                    limit=args.limit,
+                    photo_id=args.photo_id,
+                    page=args.page,
+                    per_page=args.per_page,
+                    dry_run=not live_write,
+                    force=bool(args.force),
+                    model_fixture=args.model_fixture,
+                    model_adapter=provider,
+                    xano_client=client,
+                )
+    except LockHeld as exc:
+        print(str(exc), file=sys.stderr)
+        return 75
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
