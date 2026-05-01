@@ -1,0 +1,44 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  lane-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed lanes
+        id: lanes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            photo:
+              - 'Pryan-Fire/projects/backend/anewluv-photo-moderation/**'
+            trading:
+              - 'Pryan-Fire/hughs-forge/**'
+              - 'Pryan-Fire/hughs-forge/services/trade-executor/**'
+            wallet:
+              - 'Pryan-Fire/hughs-forge/**/wallet*'
+              - 'Pryan-Fire/hughs-forge/**/*wallet*'
+            shared:
+              - '.github/workflows/**'
+
+      - name: Evaluate gate
+        run: |
+          echo "photo=${{ steps.lanes.outputs.photo }}"
+          echo "trading=${{ steps.lanes.outputs.trading }}"
+          echo "wallet=${{ steps.lanes.outputs.wallet }}"
+          echo "shared=${{ steps.lanes.outputs.shared }}"
+
+          if [ "${{ steps.lanes.outputs.photo }}" != "true" ] && \
+             [ "${{ steps.lanes.outputs.trading }}" != "true" ] && \
+             [ "${{ steps.lanes.outputs.wallet }}" != "true" ] && \
+             [ "${{ steps.lanes.outputs.shared }}" != "true" ]; then
+            echo "No lane-scoped paths changed; PR Gate passes as non-lane change."
+          else
+            echo "Lane changes detected; scoped workflows should match these lanes."
+          fi

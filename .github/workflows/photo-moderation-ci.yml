@@ -1,0 +1,51 @@
+name: Photo Moderation CI
+
+on:
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'Pryan-Fire/projects/backend/anewluv-photo-moderation/**'
+      - '.github/workflows/photo-moderation-ci.yml'
+
+jobs:
+  photo-moderation-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify runtime path exists
+        id: photo_path
+        run: |
+          if [ -d Pryan-Fire/projects/backend/anewluv-photo-moderation ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Photo moderation path missing on this branch; no-op pass."
+          fi
+
+      - name: Install dependencies
+        if: steps.photo_path.outputs.exists == 'true'
+        run: |
+          cd Pryan-Fire/projects/backend/anewluv-photo-moderation
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
+
+      - name: Run unit tests
+        if: steps.photo_path.outputs.exists == 'true'
+        run: |
+          cd Pryan-Fire/projects/backend/anewluv-photo-moderation
+          PYTHONPATH=src python3 -m unittest discover -s tests -v
+
+      - name: Run dry-run smoke
+        if: steps.photo_path.outputs.exists == 'true'
+        run: |
+          cd Pryan-Fire/projects/backend/anewluv-photo-moderation
+          PYTHONPATH=src python3 -m photo_sweeper --once --dry-run --limit 5
