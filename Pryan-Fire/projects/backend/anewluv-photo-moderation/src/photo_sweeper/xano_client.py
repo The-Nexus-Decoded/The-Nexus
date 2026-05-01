@@ -16,7 +16,9 @@ TOKEN_TTL_SECONDS = 24 * 60 * 60
 
 
 class XanoClientError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class XanoRaceSkip(XanoClientError):
@@ -219,7 +221,7 @@ class XanoModerationClient:
             body = _read_error_body(exc)
             if exc.code == 409 or "expected_current_status" in body:
                 raise XanoRaceSkip("expected_current_status mismatch") from exc
-            raise XanoClientError(f"Xano {method} {urllib.parse.urlparse(url).path} returned HTTP {exc.code}") from exc
+            raise XanoClientError(f"Xano {method} {urllib.parse.urlparse(url).path} returned HTTP {exc.code}", status_code=exc.code) from exc
         except urllib.error.URLError as exc:
             raise XanoClientError(f"Xano {method} {urllib.parse.urlparse(url).path} failed: {exc.__class__.__name__}") from exc
 

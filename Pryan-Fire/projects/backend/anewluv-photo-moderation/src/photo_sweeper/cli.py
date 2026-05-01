@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from .agent_review import run_agent_review_once
 from .lock import LockHeld, RunLock
 from .queue import load_queue
 from .runner import run_once
@@ -35,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Dry-run Anewluv photo moderation recommendation worker.",
     )
     parser.add_argument("--once", action="store_true", help="Run one dry-run sweep.")
+    parser.add_argument("--agent-review", action="store_true", help="Run one autonomous agent-review escalation sweep.")
     parser.add_argument("--dry-run", action="store_true", help="Emit recommendations without writes.")
     parser.add_argument(
         "--live-write",
@@ -104,20 +106,12 @@ def main(argv: list[str] | None = None) -> int:
     lock_context = RunLock(args.lock_file) if live_write and not args.no_lock else None
     try:
         if lock_context is None:
-            result = run_once(
-                queue,
-                limit=args.limit,
-                photo_id=args.photo_id,
-                page=args.page,
-                per_page=args.per_page,
-                dry_run=not live_write,
-                force=bool(args.force),
-                model_fixture=args.model_fixture,
-                model_adapter=provider,
-                xano_client=XanoModerationClient(XanoConfig.from_env()) if live_write else None,
-            )
-        else:
-            with lock_context:
+            if args.agent_review:
+                if not live_write:
+                    print("--agent-review requires --live-write.", file=sys.stderr)
+                    return 2
+                result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
+            else:
                 result = run_once(
                     queue,
                     limit=args.limit,
@@ -128,8 +122,25 @@ def main(argv: list[str] | None = None) -> int:
                     force=bool(args.force),
                     model_fixture=args.model_fixture,
                     model_adapter=provider,
-                    xano_client=XanoModerationClient(XanoConfig.from_env()),
+                    xano_client=XanoModerationClient(XanoConfig.from_env()) if live_write else None,
                 )
+        else:
+            with lock_context:
+                if args.agent_review:
+                    result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
+                else:
+                    result = run_once(
+                        queue,
+                        limit=args.limit,
+                        photo_id=args.photo_id,
+                        page=args.page,
+                        per_page=args.per_page,
+                        dry_run=not live_write,
+                        force=bool(args.force),
+                        model_fixture=args.model_fixture,
+                        model_adapter=provider,
+                        xano_client=XanoModerationClient(XanoConfig.from_env()),
+                    )
     except LockHeld as exc:
         print(str(exc), file=sys.stderr)
         return 75
