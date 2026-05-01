@@ -98,18 +98,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     live_write = bool(args.live_write)
-    if args.agent_review:
-        if not live_write:
-            print("--agent-review requires --live-write.", file=sys.stderr)
-            return 2
-        try:
-            result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-        print(json.dumps(result, indent=2, sort_keys=True))
-        return 0
-
     provider = args.provider or args.model_adapter
     if live_write and provider in {"provider-chain", "anewluv-provider-chain", "mock-provider-chain", "vision-llm-only", "mock-vision-llm-only"}:
         print(f"{provider} uses mock provider-chain adapters and is blocked for --live-write; use --dry-run or a real provider adapter.", file=sys.stderr)
@@ -118,20 +106,12 @@ def main(argv: list[str] | None = None) -> int:
     lock_context = RunLock(args.lock_file) if live_write and not args.no_lock else None
     try:
         if lock_context is None:
-            result = run_once(
-                queue,
-                limit=args.limit,
-                photo_id=args.photo_id,
-                page=args.page,
-                per_page=args.per_page,
-                dry_run=not live_write,
-                force=bool(args.force),
-                model_fixture=args.model_fixture,
-                model_adapter=provider,
-                xano_client=XanoModerationClient(XanoConfig.from_env()) if live_write else None,
-            )
-        else:
-            with lock_context:
+            if args.agent_review:
+                if not live_write:
+                    print("--agent-review requires --live-write.", file=sys.stderr)
+                    return 2
+                result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
+            else:
                 result = run_once(
                     queue,
                     limit=args.limit,
@@ -142,8 +122,25 @@ def main(argv: list[str] | None = None) -> int:
                     force=bool(args.force),
                     model_fixture=args.model_fixture,
                     model_adapter=provider,
-                    xano_client=XanoModerationClient(XanoConfig.from_env()),
+                    xano_client=XanoModerationClient(XanoConfig.from_env()) if live_write else None,
                 )
+        else:
+            with lock_context:
+                if args.agent_review:
+                    result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
+                else:
+                    result = run_once(
+                        queue,
+                        limit=args.limit,
+                        photo_id=args.photo_id,
+                        page=args.page,
+                        per_page=args.per_page,
+                        dry_run=not live_write,
+                        force=bool(args.force),
+                        model_fixture=args.model_fixture,
+                        model_adapter=provider,
+                        xano_client=XanoModerationClient(XanoConfig.from_env()),
+                    )
     except LockHeld as exc:
         print(str(exc), file=sys.stderr)
         return 75

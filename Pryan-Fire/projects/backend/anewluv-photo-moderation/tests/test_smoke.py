@@ -2023,6 +2023,15 @@ class AgentReviewLoopTests(unittest.TestCase):
         self.assertEqual(sleeps, [1, 2, 4])
         self.assertEqual(len(fake.acks), 4)
 
+    def test_cli_agent_review_lock_held_returns_tempfail_before_xano_env(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = Path(tmpdir) / "photo-sweeper-agent-review.lock"
+            with RunLock(lock_path):
+                proc = run_cli("--once", "--live-write", "--agent-review", "--lock-file", str(lock_path), "--limit", "1", check=False)
+
+        self.assertEqual(proc.returncode, 75)
+        self.assertIn("lock already held", proc.stderr)
+
 
 class FakeAgentReviewClient:
     def __init__(self, rows, *, settings=None, race_skip=False, server_errors=0):
