@@ -31,7 +31,7 @@ This lane has moved from recommendation-only proof into the AI-primary worker st
 - Do not mutate Xano schema/API or execute provisional endpoints without approval.
 - Do not create `Profiles.is_ai` or any profile-level AI marker.
 - Do not move Xano schema.
-- Do not allow worker writes.
+- Do not allow worker writes outside the approved decision and escalation paths. The canonical write paths are `/photos/ai_decide` (standard AI decisions) and `/photos/escalations/open` (escalations only). See `docs/photo-moderation-system.md` for the full policy. This guardrail conflicts with the older "do not allow worker writes" language in older branch notes; this doc is the current source.
 - Keep provisional `162/163` inert unless a proven gap is approved later.
 - Do not print or commit secrets.
 - Do not delete photos.
