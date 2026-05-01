@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import uuid
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -24,6 +25,7 @@ from photo_sweeper.xano_client import TokenCache, XanoConfig, XanoModerationClie
 PHOTO_REASON_CODES = [
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
     {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
+    {"code": "ai_generated", "auto_reject_threshold": 0.90, "severity": "medium"},
     {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
     {"code": "nudity_explicit", "auto_reject_threshold": 0.85, "severity": "high"},
     {"code": "low_quality", "auto_reject_threshold": None, "severity": "low"},
@@ -121,6 +123,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             {
                 "clean_profile_style",
                 "fake_profile",
+                "ai_generated",
                 "sexual_content",
                 "inappropriate_photos",
                 "off_platform_contact",
@@ -220,16 +223,16 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         )
 
     def test_provider_canonical_reason_code_is_accepted(self):
-        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "fake_profile", "detected_category": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "ai_generated", "detected_category": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(result["reason_code"], "fake_profile")
+        self.assertEqual(result["reason_code"], "ai_generated")
 
     def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
         result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(result["reason_code"], "fake_profile")
+        self.assertEqual(result["reason_code"], "ai_generated")
 
     def test_policy_falls_back_before_future_write_eligibility(self):
         item = {"photo_id": 1}
@@ -246,6 +249,91 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["planned_action"], "agent_review")
         self.assertEqual(result["would_write_recommendation"], False)
         self.assertEqual(result["would_finalize_decision"], False)
+
+    def test_qr_or_contact_reject_requires_explicit_visible_evidence(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "real_person_profile_photo",
+                "note": "Person smiling against a plain wall.",
+                "unsafe_categories": [],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": True,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        item = {"photo_id": 13317}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        combined = combine(item, checks, result, dry_run=True, force=False)
+
+        self.assertEqual(result["verdict"], "review")
+        self.assertEqual(result["reason_code"], "manual_admin_decision")
+        self.assertEqual(combined["planned_action"], "agent_review")
+        self.assertIsNone(combined["recommended_decision"])
+
+    def test_ai_generated_evidence_overrides_hallucinated_qr_reason(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "ai_generated_or_synthetic",
+                "note": "AI-generated looking woman pointing against a wall; no visible QR code.",
+                "unsafe_categories": ["ai_generated_or_synthetic"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": True,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        item = {"photo_id": 13317}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        combined = combine(item, checks, result, dry_run=False, force=False)
+
+        self.assertEqual(result["verdict"], "reject_recommendation")
+        self.assertEqual(result["reason_code"], "ai_generated")
+        self.assertEqual(result.get("raw_reason_code"), "qr_code")
+        self.assertEqual(combined["planned_action"], "auto_reject")
+        self.assertEqual(combined["recommended_decision"], "reject_recommendation")
+
+    def test_qr_reject_with_explicit_evidence_still_maps_to_off_platform_contact(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "qr_code_visible_on_profile_photo",
+                "note": "Visible QR code printed in the image.",
+                "unsafe_categories": ["qr_code"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": True,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        self.assertEqual(result["verdict"], "reject_recommendation")
+        self.assertEqual(result["reason_code"], "off_platform_contact")
 
     def test_category_agnostic_person_gate_rejects_high_confidence_non_person(self):
         item = {"photo_id": 13286}
@@ -357,12 +445,12 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["planned_action"], "auto_reject")
         self.assertIs(result["would_escalate"], False)
 
-    def test_ai_generated_or_synthetic_requires_high_confidence_for_fake_profile(self):
+    def test_ai_generated_or_synthetic_requires_high_confidence_for_ai_generated(self):
         high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
         uncertain = normalize_model_result({"verdict": "review", "confidence": 0.79, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(high["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(high["reason_code"], "fake_profile")
+        self.assertEqual(high["reason_code"], "ai_generated")
         self.assertEqual(uncertain["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(uncertain["reason_code"], "manual_admin_decision")
         self.assertEqual(uncertain["verdict"], "review")
@@ -377,6 +465,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "not_a_profile_photo": "not_person_photo",
             "celebrity_or_stock_photo": "fake_profile",
             "object_or_landscape_only": "fake_profile",
+            "ai_generated_or_synthetic": "manual_admin_decision",
+            "ai_generated": "ai_generated",
             "contact_info_or_ad": "off_platform_contact",
             "contact_info_text_only_ad": "off_platform_contact",
             "qr_code": "off_platform_contact",
@@ -484,7 +574,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review",
             "object_or_landscape_only -> reject_recommendation/review",
             "celebrity_or_stock_photo -> fake_profile/review",
-            "ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision",
+            "ai_generated_or_synthetic -> ai_generated if high confidence, otherwise review/manual_admin_decision",
             "explicit_adult_image -> reject/escalate",
             "low_quality_or_unusable -> review/reject",
             "underage_concern -> never approve; escalate/review",
@@ -523,6 +613,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "pornographic_explicit",
             "inappropriate_photos",
             "ai_generated_or_synthetic",
+            "ai_generated",
             "contact_info_or_ad",
             "contact_info_text_only_ad",
             "not_a_profile_photo",
@@ -923,6 +1014,8 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(payload["route"], "agent_review")
         self.assertEqual(payload["expected_current_status"], 1)
         self.assertEqual(payload["idempotency_key"], f"{payload['run_id']}:101:escalation")
+        self.assertIsInstance(payload["model_path_json"], str)
+        self.assertEqual(json.loads(payload["model_path_json"]), result["photos"][0]["model_path"])
         self.assertNotIn("decision", payload)
         self.assertNotIn("gallery", payload)
         self.assertNotIn("deleted", payload)
@@ -964,6 +1057,70 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertIn("detail=Mock API failure; fallback requires manual moderation.", note)
         self.assertEqual(result["decision_calls"][0]["payload"]["note"], note)
         self.assertIn("model_path_json", result["decision_calls"][0]["payload"])
+        self.assertIsInstance(result["decision_calls"][0]["payload"]["model_path_json"], str)
+
+    def test_xano_client_lists_and_acks_escalations_with_actor_params_and_idempotency(self):
+        class FakeResponse:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(self.payload).encode("utf-8")
+
+        seen = []
+
+        def fake_urlopen(request, timeout):
+            seen.append(
+                {
+                    "url": request.full_url,
+                    "method": request.get_method(),
+                    "body": json.loads(request.data.decode("utf-8")) if request.data else None,
+                }
+            )
+            if request.full_url.endswith("/auth/login"):
+                return FakeResponse({"authToken": "unit-test-jwt"})
+            if "/photos/escalations?" in request.full_url:
+                return FakeResponse({"items": []})
+            return FakeResponse({"status": "acknowledged"})
+
+        config = XanoConfig(
+            api_base_url="https://example.invalid/api:moderation",
+            auth_api_base_url="https://example.invalid/api:auth",
+            actor_key="unit-test-actor",
+            worker_email="devon@example.invalid",
+            worker_password="unit-test-password",
+        )
+        client = XanoModerationClient(config, token_cache=TokenCache())
+        ack_key = f"{uuid.uuid4()}:7:ack"
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            client.escalations(status="open", route="agent_review")
+            client.escalation_ack(
+                {
+                    "escalation_id": 7,
+                    "status": "acknowledged",
+                    "expected_current_status": "open",
+                    "expected_route": "agent_review",
+                    "idempotency_key": ack_key,
+                    "note": "owner ack unit test",
+                }
+            )
+
+        list_call = next(item for item in seen if "/photos/escalations?" in item["url"])
+        ack_call = next(item for item in seen if item["url"].endswith("/photos/escalations/ack"))
+        self.assertIn("status=open", list_call["url"])
+        self.assertIn("route=agent_review", list_call["url"])
+        self.assertIn("actor_key=unit-test-actor", list_call["url"])
+        self.assertEqual(ack_call["body"]["idempotency_key"], ack_key)
+        self.assertEqual(ack_call["body"]["expected_current_status"], "open")
+        self.assertEqual(ack_call["body"]["expected_route"], "agent_review")
+        self.assertEqual(ack_call["body"]["actor_type"], "ai_agent")
 
     def test_live_phase_one_human_admin_escalation_uses_escalations_endpoint_not_ai_decide(self):
         class FakeClient:
@@ -1100,6 +1257,67 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(allowed.decisions[0]["reason_code"], "qr_code")
         self.assertEqual(allowed.escalations, [])
         self.assertEqual(allowed_result["summary"]["write_counts"]["ai_decide"], 1)
+
+    def test_live_db_reason_code_added_without_code_change_can_auto_reject(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False, model_fixture_key="drug_use")
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": [
+                        {"code": "drug_use", "auto_reject_threshold": 0.80, "severity": "medium"},
+                    ],
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 21}
+
+        fixture = {
+            "drug_use": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "drug_use",
+                "note": "DB-defined reason code fixture.",
+                "unsafe_categories": ["drug_use"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            "manual_review_needed": {
+                "verdict": "review",
+                "confidence": 0.4,
+                "reason_code": "manual_review_needed",
+                "note": "fallback",
+                "unsafe_categories": [],
+            },
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as handle:
+            json.dump(fixture, handle)
+            handle.flush()
+            fake = FakeClient()
+            result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=Path(handle.name), xano_client=fake)
+
+        self.assertEqual(fake.escalations, [])
+        self.assertEqual(len(fake.decisions), 1)
+        self.assertEqual(fake.decisions[0]["decision"], "rejected")
+        self.assertEqual(fake.decisions[0]["reason_code"], "drug_use")
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "drug_use")
 
     def test_agent_review_disabled_routes_ordinary_uncertainty_to_human_admin(self):
         class FakeClient:

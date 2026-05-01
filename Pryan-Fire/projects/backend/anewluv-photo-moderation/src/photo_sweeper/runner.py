@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import urllib.parse
 import uuid
+import json
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ OPENROUTER_ADAPTER_NAMES = {"openrouter-multimodal"}
 SERVER_REASON_CODE_MAP = {
     "clean_profile_style": "unclear_subject",
     "fake_profile": "celebrity_or_stock_photo",
+    "ai_generated": "ai_generated",
     "sexual_content": "nudity_explicit",
     "inappropriate_photos": "low_quality",
     "off_platform_contact": "qr_code",
@@ -80,7 +82,7 @@ def run_once(
     for item in selected:
         checks = inspect_image(item)
         model_result = adapter.review(item, checks)
-        server_reason = _server_reason_code_from_model_result(model_result)
+        server_reason = _server_reason_code_from_model_result(model_result, runtime_contract=runtime_contract)
         photo = combine(
             item,
             checks,
@@ -222,7 +224,7 @@ def _submit_escalation(client: XanoModerationClient, photo: dict, *, user_id: in
         "reason_code": _server_reason_code(photo),
         "note": _note(photo),
         "severity": _escalation_severity(route),
-        "model_path_json": photo.get("model_path", {}),
+        "model_path_json": _json_string(photo.get("model_path", {})),
         "run_id": run_id,
         "idempotency_key": idempotency_key,
         "expected_current_status": 1,
@@ -276,6 +278,10 @@ def _xano_decision(photo: dict, *, runtime_contract: RuntimeContract) -> str | N
     return None
 
 
+def _json_string(value: Any) -> str:
+    return json.dumps(value if value is not None else {}, sort_keys=True, separators=(",", ":"))
+
+
 def _escalation_route(photo: dict) -> str:
     if photo.get("planned_action") == "human_admin_review":
         return "human_admin_review"
@@ -307,12 +313,17 @@ def _confidence(photo: dict) -> float:
 
 
 def _server_reason_code(photo: dict) -> str:
-    return _server_reason_code_from_model_result(photo.get("normalized_result", {}))
+    return str(photo.get("server_reason_code") or _server_reason_code_from_model_result(photo.get("normalized_result", {})))
 
 
-def _server_reason_code_from_model_result(normalized: dict) -> str:
-    reason = normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision"
-    return SERVER_REASON_CODE_MAP.get(reason, "unclear_subject")
+def _server_reason_code_from_model_result(normalized: dict, *, runtime_contract: RuntimeContract | None = None) -> str:
+    reason = str(normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision").strip()
+    if runtime_contract is not None and reason in runtime_contract.reason_codes:
+        return reason
+    mapped = SERVER_REASON_CODE_MAP.get(reason)
+    if mapped and (runtime_contract is None or mapped in runtime_contract.reason_codes or not runtime_contract.db_reason_codes_present):
+        return mapped
+    return "unclear_subject"
 
 
 def _note(photo: dict) -> str:
@@ -401,15 +412,16 @@ def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None =
 
 def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_contract: RuntimeContract):
     normalized = model_adapter.strip().lower()
+    allowed_reason_codes = set(runtime_contract.reason_codes)
     if normalized == "mock":
-        return MockModelAdapter(model_fixture)
+        return MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes)
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
         instructions = None
         if runtime_contract.review_items:
             from .moderation_contract import provider_instructions
 
             instructions = provider_instructions(review_items_prompt_text(runtime_contract.review_items))
-        return CodexOpenAIAdapter(instructions=instructions)
+        return CodexOpenAIAdapter(instructions=instructions, allowed_reason_codes=allowed_reason_codes)
     if normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
         raise ValueError("openai-moderations adapter is not available in this checkout")
     if normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:

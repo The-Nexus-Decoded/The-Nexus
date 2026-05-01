@@ -15,7 +15,8 @@ def combine(
     server_reason_code: str | None = None,
 ) -> dict:
     reason = model_result.get("reason_code", "manual_admin_decision")
-    if reason not in set(CANONICAL_REASON_MAP.values()) and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
+    live_reason_allowed = runtime_contract is not None and server_reason_code in runtime_contract.reason_codes
+    if reason not in set(CANONICAL_REASON_MAP.values()) and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS and not live_reason_allowed:
         reason = "manual_admin_decision"
     verdict = model_result.get("verdict", "review")
     flags = model_result.get("app_profile_photo_checks", {})
@@ -42,6 +43,9 @@ def combine(
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation" and reason in set(CANONICAL_REASON_MAP.values()) and reason != "manual_admin_decision":
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation" and live_reason_allowed:
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation":

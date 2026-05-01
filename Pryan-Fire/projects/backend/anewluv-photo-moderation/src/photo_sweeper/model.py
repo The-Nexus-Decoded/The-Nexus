@@ -25,9 +25,10 @@ DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
 
 
 class MockModelAdapter:
-    def __init__(self, manifest_path: Path | None = None) -> None:
+    def __init__(self, manifest_path: Path | None = None, *, allowed_reason_codes: set[str] | None = None) -> None:
         with (manifest_path or DEFAULT_MODEL_FIXTURE).open("r", encoding="utf-8") as handle:
             self._responses = json.load(handle)
+        self.allowed_reason_codes = allowed_reason_codes or set()
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         key = item.get("model_fixture_key") or "manual_review_needed"
@@ -45,7 +46,7 @@ class MockModelAdapter:
             "darkness_score",
             "sharpness_edge_score",
         ]
-        return normalize_model_result(response, default_model=response["vision_model_used"])
+        return normalize_model_result(response, default_model=response["vision_model_used"], allowed_reason_codes=self.allowed_reason_codes)
 
 
 class CodexOpenAIAdapter:
@@ -70,6 +71,7 @@ class CodexOpenAIAdapter:
         timeout_seconds: int = 120,
         codex_auth_path: Path | None = None,
         instructions: str | None = None,
+        allowed_reason_codes: set[str] | None = None,
     ) -> None:
         raw_api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
         self.api_key = raw_api_key.strip() if raw_api_key else None
@@ -78,6 +80,7 @@ class CodexOpenAIAdapter:
         self.timeout_seconds = timeout_seconds
         self.codex_auth_path = codex_auth_path or Path(os.environ.get("CODEX_AUTH_PATH", Path.home() / ".codex" / "auth.json"))
         self.instructions = instructions
+        self.allowed_reason_codes = allowed_reason_codes or set()
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         image_path = item.get("resolved_image_path") or item.get("local_fixture_path")
@@ -96,7 +99,7 @@ class CodexOpenAIAdapter:
         except Exception as exc:  # pragma: no cover - network/provider dependent
             return _manual_failure("api_failure_fallback", DEFAULT_CODEX_MODEL_ROUTE, f"Codex/OpenAI route failed with {exc.__class__.__name__}; manual review required.")
 
-        return normalize_model_result(_extract_provider_json(payload), default_model=DEFAULT_CODEX_MODEL_ROUTE)
+        return normalize_model_result(_extract_provider_json(payload), default_model=DEFAULT_CODEX_MODEL_ROUTE, allowed_reason_codes=self.allowed_reason_codes)
 
     def _build_request(self, image_url: str) -> urllib.request.Request:
         oauth = _load_codex_oauth(self.codex_auth_path)
