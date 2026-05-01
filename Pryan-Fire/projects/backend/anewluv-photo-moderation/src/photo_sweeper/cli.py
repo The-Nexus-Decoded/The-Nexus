@@ -96,9 +96,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     live_write = bool(args.live_write)
-    queue = [] if live_write else load_queue(args.queue_fixture)
     provider = args.provider or args.model_adapter
-    client = XanoModerationClient(XanoConfig.from_env()) if live_write else None
+    if live_write and provider in {"provider-chain", "anewluv-provider-chain", "mock-provider-chain", "vision-llm-only", "mock-vision-llm-only"}:
+        print(f"{provider} uses mock provider-chain adapters and is blocked for --live-write; use --dry-run or a real provider adapter.", file=sys.stderr)
+        return 2
+    queue = [] if live_write else load_queue(args.queue_fixture)
     lock_context = RunLock(args.lock_file) if live_write and not args.no_lock else None
     try:
         if lock_context is None:
@@ -112,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
                 force=bool(args.force),
                 model_fixture=args.model_fixture,
                 model_adapter=provider,
-                xano_client=client,
+                xano_client=XanoModerationClient(XanoConfig.from_env()) if live_write else None,
             )
         else:
             with lock_context:
@@ -126,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
                     force=bool(args.force),
                     model_fixture=args.model_fixture,
                     model_adapter=provider,
-                    xano_client=client,
+                    xano_client=XanoModerationClient(XanoConfig.from_env()),
                 )
     except LockHeld as exc:
         print(str(exc), file=sys.stderr)

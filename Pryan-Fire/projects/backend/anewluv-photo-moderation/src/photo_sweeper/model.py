@@ -445,6 +445,7 @@ def _provider_chain_failed(stage1_result: dict, stage2_result: dict) -> dict:
             "verdict": "review",
             "confidence": 0.0,
             "reason_code": "provider_chain_failed",
+            "raw_reason_code": "provider_chain_failed",
             "note": "Moderation API and vision LLM providers were both unavailable; routed to agent review.",
             "unsafe_categories": [],
             "moderation_api_used": bool(stage1_result.get("moderation_api_used")),
@@ -458,6 +459,7 @@ def _provider_chain_failed(stage1_result: dict, stage2_result: dict) -> dict:
             "app_profile_photo_checks": default_profile_checks(needs_human_review=True),
         },
         default_model=stage2_result.get("vision_model_used") or "unavailable",
+        allowed_reason_codes={"provider_chain_failed"},
     )
 
 

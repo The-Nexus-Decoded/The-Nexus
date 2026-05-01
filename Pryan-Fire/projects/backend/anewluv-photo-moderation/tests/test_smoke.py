@@ -68,6 +68,12 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertIs(payload["photos"][0]["would_write_recommendation"], False)
         self.assertIs(payload["photos"][0]["would_finalize_decision"], False)
 
+    def test_cli_blocks_mock_provider_chain_for_live_write(self):
+        proc = run_cli("--once", "--live-write", "--provider", "provider-chain", check=False)
+
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("blocked for --live-write", proc.stderr)
+
     def test_nudity_sexual_and_explicit_categories_are_recommendations_not_final_decisions(self):
         queue = load_queue()
         result = run_once(queue, limit=None, photo_id=None, dry_run=True, force=False, model_fixture=None)
@@ -945,7 +951,10 @@ class ProviderChainPhaseFourTests(unittest.TestCase):
         self.assertEqual(len(fake.escalations), 1)
         self.assertEqual(fake.escalations[0]["route"], "agent_review")
         self.assertEqual(result["decision_calls"][0]["reason"], "provider_chain_failed")
+        self.assertEqual(fake.escalations[0]["reason_code"], "provider_chain_failed")
         self.assertEqual(photo["planned_action"], "agent_review")
+        self.assertEqual(photo["server_reason_code"], "provider_chain_failed")
+        self.assertEqual(photo["normalized_result"]["reason_code"], "provider_chain_failed")
         self.assertEqual(photo["normalized_result"]["raw_reason_code"], "provider_chain_failed")
         self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "provider_chain_failed")
 
