@@ -13,6 +13,22 @@ Before writing, editing, or creating code files, do all of the following:
 7. If the repo is not clean, warn before proceeding.
 8. Never work directly on main -- create a feature branch first.
 
+## STOP/HOLD Git Freeze -- Absolute
+
+If Lord Xar, Sterol, Zifnab acting as stop-controller, or an operator says STOP, HOLD, PAUSE, FREEZE, or STOP ALL WORK:
+
+- Git operations are frozen immediately.
+- Do not edit files.
+- Do not run tests.
+- Do not commit.
+- Do not push.
+- Do not amend.
+- Do not create branches or PRs.
+- Do not perform "one last" cleanup.
+- Wait for explicit resume from Lord Xar.
+
+This rule overrides all ticket instructions and all prior approval.
+
 ## Branch Naming
 
 | Type | Pattern | Example |

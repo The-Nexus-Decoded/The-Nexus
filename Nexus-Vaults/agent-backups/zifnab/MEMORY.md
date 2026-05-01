@@ -315,6 +315,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [x] ~~Home visualization gate: SUSPENDED — now RESUMED: Sterol approved MiniMax-only pipeline (Apr 19 17:58 CDT). Gemini scrapped. Speed over perfection. House match not required. Colors only. Fire all agents.~~
 - [ ] ANewLuv X.com automation: Lord Xar exports auth_token from Chrome DevTools → Zifnab wires XActions on dev with cookie injection
 - [ ] Media tools fleet-wide pause (2026-04-25): Enforce until Roland re-enables after smoke test. Gate agents requesting image work — tell them paused, not broken per-agent.
+- [ ] ANewLuv photo moderation worker: backend is done/shipped by Lord Xar; remaining work is worker code only in The-Nexus branch `feat/anewluv-photo-moderation-worker`, path `Pryan-Fire/projects/backend/anewluv-photo-moderation/`. Canonical handoff is GitHub issue #345 comment `4356630657`; if local docs disagree, that comment wins. Execute phase tickets in order: #339, #340, #341, #342, #346, #343. Zifnab reviews via API/tool path; Discord is one-way status/results audit log only. No secrets in Discord/GitHub; worker account credentials are in Lord Xar's secure handoff.
 
 ## LEARNED — DO NOT REPEAT
 - Zifnab's home-viz cron was loading the Apr 15 14:21 UTC channel export (stale 3+ days) and outputting the same stale check-in 9 times. Trian and Sinistrad corrected every time.

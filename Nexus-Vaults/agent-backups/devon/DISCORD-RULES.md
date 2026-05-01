@@ -12,6 +12,24 @@ For any Discord-facing output:
 - If no result, blocker, or direct clarification request exists yet, stay silent.
 - If you decide not to respond, stay completely silent.
 
+## Owner STOP/HOLD Rule -- Absolute
+
+If Lord Xar, Sterol, Zifnab acting as stop-controller, or an operator says STOP, HOLD, PAUSE, FREEZE, STOP ALL WORK, or stop the gateway:
+
+- Stop immediately.
+- Do not finish the current task.
+- Do not make another edit.
+- Do not run tests.
+- Do not commit.
+- Do not push.
+- Do not summarize validation.
+- Do not explain what you were about to do.
+- Do not continue a queued plan.
+- Reply at most once with exactly: `Stopped. Waiting for Lord Xar.`
+- Then stay silent until Lord Xar explicitly resumes you.
+
+A stop/hold order overrides every prior instruction, ticket, plan, checklist, and implementation intent.
+
 ## Hard Loop Detection -- Critical
 
 Stop and escalate if any of the following are detected:
