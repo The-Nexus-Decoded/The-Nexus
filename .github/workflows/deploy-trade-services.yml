@@ -10,13 +10,43 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-to-trade-server:
-    runs-on: [self-hosted, linux, tailscale]
-    name: Deploy to ola-claw-trade
+  build-artifact:
+    runs-on: ubuntu-latest
+    name: Build trading services artifact
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Package trading services
+        run: |
+          tar -czf trading-services.tar.gz -C Pryan-Fire/hughs-forge services
+
+      - name: Upload trading services artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-services
+          path: trading-services.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-to-trade-server:
+    runs-on: [self-hosted, linux, tailscale]
+    name: Deploy to ola-claw-trade
+    needs: build-artifact
+
+    env:
+      TRADE_SERVER_HOST: ${{ secrets.TRADE_SERVER_HOST }}
+      TRADE_SERVER_USER: ${{ secrets.TRADE_SERVER_USER }}
+      LIVE_SERVICES_DIR: /data/repos/The-Nexus/Pryan-Fire/hughs-forge/services
+      TRADE_SERVICE_NAME: patryn-trader.service
+
+    steps:
+      - name: Validate deploy target configuration
+        run: |
+          test -n "$TRADE_SERVER_HOST" || { echo "TRADE_SERVER_HOST is not configured"; exit 1; }
+          test -n "$TRADE_SERVER_USER" || { echo "TRADE_SERVER_USER is not configured"; exit 1; }
+          test -n "${{ secrets.TRADE_SERVER_SSH_KEY }}" || { echo "TRADE_SERVER_SSH_KEY is not configured"; exit 1; }
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -25,21 +55,41 @@ jobs:
 
       - name: Check network connectivity to trade server
         run: |
-          ping -c 4 ${{ secrets.TRADE_SERVER_HOST }}
+          ping -c 4 "$TRADE_SERVER_HOST"
 
       - name: Add trade server to known_hosts
         run: |
-          ssh-keyscan -p 22 -H ${{ secrets.TRADE_SERVER_HOST }} >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 22 -H "$TRADE_SERVER_HOST" >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory on trade server
-        run: |
-          ssh ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }} "sudo mkdir -p /opt/the-nexus/hughs-forge && sudo chown -R ${{ secrets.TRADE_SERVER_USER }}:${{ secrets.TRADE_SERVER_USER }} /opt/the-nexus"
+      - name: Download trading services artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: trading-services
 
-      - name: Deploy services to trade server
+      - name: Deploy artifact to live services directory
         run: |
-          rsync -avz --delete Pryan-Fire/hughs-forge/services/ ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }}:/opt/the-nexus/hughs-forge/
+          ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "mkdir -p '$LIVE_SERVICES_DIR' /tmp/the-nexus-trading-services"
+          scp trading-services.tar.gz "$TRADE_SERVER_USER@$TRADE_SERVER_HOST:/tmp/the-nexus-trading-services/trading-services.tar.gz"
+          ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "set -euo pipefail
+            rm -rf /tmp/the-nexus-trading-services/extract
+            mkdir -p /tmp/the-nexus-trading-services/extract
+            tar -xzf /tmp/the-nexus-trading-services/trading-services.tar.gz -C /tmp/the-nexus-trading-services/extract
+            rsync -a --delete /tmp/the-nexus-trading-services/extract/services/ '$LIVE_SERVICES_DIR'/
+          "
 
-      - name: Restart Trade Orchestrator service
+      - name: Restart live trading user service
         run: |
-          echo "Attempting to restart trade-orchestrator..."
-          ssh ${{ secrets.TRADE_SERVER_USER }}@${{ secrets.TRADE_SERVER_HOST }} "sudo systemctl restart trade-orchestrator.service || echo 'Service not found, continuing...'"
+          ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "set -euo pipefail
+            uid=\$(id -u)
+            XDG_RUNTIME_DIR=/run/user/\$uid systemctl --user restart '$TRADE_SERVICE_NAME'
+            sleep 2
+            XDG_RUNTIME_DIR=/run/user/\$uid systemctl --user is-active --quiet '$TRADE_SERVICE_NAME'
+          "
+
+      - name: Confirm live trading process restarted
+        run: |
+          ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "set -euo pipefail
+            pgrep -af TradeOrchestrator.py
+            XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user status '$TRADE_SERVICE_NAME' --no-pager -n 5
+          "
