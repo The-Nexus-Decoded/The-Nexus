@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .moderation_contract import BUSINESS_REJECT_REASONS, CANONICAL_REASON_MAP, IMAGE_TYPE_CLASSIFICATIONS, VALID_VERDICTS, WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
+from .moderation_contract import BUSINESS_REJECT_REASONS, CANONICAL_REASON_MAP, IMAGE_TYPE_CLASSIFICATIONS, VALID_VERDICTS, WORKER_MODEL_CATEGORIES, FALLBACK_XANO_CANONICAL_REASON_CODES
 
 REQUIRED_NORMALIZED_KEYS = {"verdict", "confidence", "reason_code", "detected_category", "note", "unsafe_categories"}
 
@@ -33,7 +33,7 @@ def _valid_reason_code(result: dict) -> bool:
     reason_code = result.get("reason_code")
     if reason_code == "clean_profile_style":
         return result.get("verdict") == "approve_recommendation"
-    return reason_code in XANO_CANONICAL_REASON_CODES or reason_code in BUSINESS_REJECT_REASONS
+    return reason_code in FALLBACK_XANO_CANONICAL_REASON_CODES or reason_code in BUSINESS_REJECT_REASONS
 
 
 def _valid_detected_category(value: object) -> bool:

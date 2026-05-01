@@ -14,11 +14,23 @@ from photo_sweeper.model import (
     _redact_provider_error_body,
 )
 from photo_sweeper.normalization import normalize_minimax_description, normalize_model_result
-from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, XANO_CANONICAL_REASON_CODES
+from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES, FALLBACK_XANO_CANONICAL_REASON_CODES
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
 from photo_sweeper.runner import run_once
 from photo_sweeper.xano_client import TokenCache, XanoConfig, XanoModerationClient
+
+PHOTO_REASON_CODES = [
+    {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
+    {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
+    {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
+    {"code": "nudity_explicit", "auto_reject_threshold": 0.85, "severity": "high"},
+    {"code": "low_quality", "auto_reject_threshold": None, "severity": "low"},
+]
+
+PHOTO_FALLBACK_REVIEW_ITEMS = [
+    {"code": "object_or_landscape_only", "label": "Contains a person", "prompt_hint": "Does the photo contain a person?"},
+]
 
 
 def run_cli(*args, check=True):
@@ -346,7 +358,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
     def test_xano_canonical_reason_code_set_is_locked(self):
         self.assertEqual(
-            XANO_CANONICAL_REASON_CODES,
+            FALLBACK_XANO_CANONICAL_REASON_CODES,
             {
                 "spam",
                 "off_platform_contact",
@@ -751,6 +763,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 item["user_id"] = 9
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [item],
                 }
 
@@ -781,6 +795,8 @@ class XanoPhaseOneTests(unittest.TestCase):
             def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": load_queue()[:3],
                 }
 
@@ -807,6 +823,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 item = dict(load_queue()[0], photo_url="/vault/redacted/file.png", local_fixture_path=None, photostatus_id=1, deleted=False)
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [item],
                 }
 
@@ -828,6 +846,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 item["model_fixture_key"] = "manual_review_needed"
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [item],
                 }
 
@@ -866,6 +886,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 item["model_fixture_key"] = "api_failure_fallback"
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [item],
                 }
 
@@ -898,6 +920,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 item = dict(load_queue()[2], photostatus_id=1, deleted=False, gallery=True)
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [item],
                 }
 
@@ -934,6 +958,8 @@ class XanoPhaseOneTests(unittest.TestCase):
                 deleted = dict(load_queue()[3], photostatus_id=1, deleted=True)
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [approved, escalated, deleted, uploaded],
                 }
 
@@ -957,6 +983,8 @@ class XanoPhaseOneTests(unittest.TestCase):
             def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": False, "ai_escalate_below_confidence": 0.9},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [load_queue()[0]],
                 }
 
@@ -978,6 +1006,105 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(result["decision_calls"][0]["status"], "escalated")
         self.assertEqual(result["decision_calls"][0]["reason"], "auto_decide_disabled")
 
+    def test_db_reason_code_threshold_controls_auto_reject(self):
+        class FakeClient:
+            def __init__(self, threshold):
+                self.threshold = threshold
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[6], photostatus_id=1, deleted=False)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": [
+                        {"code": "qr_code", "auto_reject_threshold": self.threshold, "severity": "medium"},
+                    ],
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 18}
+
+        below = FakeClient(0.85)
+        below_result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=below)
+        self.assertEqual(below.decisions, [])
+        self.assertEqual(len(below.escalations), 1)
+        self.assertEqual(below_result["decision_calls"][0]["route"], "agent_review")
+
+        allowed = FakeClient(0.80)
+        allowed_result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=allowed)
+        self.assertEqual(len(allowed.decisions), 1)
+        self.assertEqual(allowed.decisions[0]["decision"], "rejected")
+        self.assertEqual(allowed.decisions[0]["reason_code"], "qr_code")
+        self.assertEqual(allowed.escalations, [])
+        self.assertEqual(allowed_result["summary"]["write_counts"]["ai_decide"], 1)
+
+    def test_agent_review_disabled_routes_ordinary_uncertainty_to_human_admin(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[8], photostatus_id=1, deleted=False)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7, "agent_review_enabled": False},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 19}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "human_admin_review")
+        self.assertEqual(result["photos"][0]["planned_action"], "human_admin_review")
+
+    def test_live_run_omitting_db_reason_codes_fails_closed_to_escalation(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [load_queue()[0]],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 20}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertFalse(result["db_reason_codes_present"])
+        self.assertEqual(result["decision_calls"][0]["status"], "escalated")
+
     def test_live_phase_one_409_race_is_skip_not_failure(self):
         from photo_sweeper.xano_client import XanoRaceSkip
 
@@ -985,6 +1112,8 @@ class XanoPhaseOneTests(unittest.TestCase):
             def queue(self, *, page=1, per_page=None, limit=None):
                 return {
                     "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
                     "items": [load_queue()[0]],
                 }
 

@@ -69,6 +69,7 @@ class CodexOpenAIAdapter:
         model: str = DEFAULT_CODEX_MODEL,
         timeout_seconds: int = 120,
         codex_auth_path: Path | None = None,
+        instructions: str | None = None,
     ) -> None:
         raw_api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
         self.api_key = raw_api_key.strip() if raw_api_key else None
@@ -76,6 +77,7 @@ class CodexOpenAIAdapter:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.codex_auth_path = codex_auth_path or Path(os.environ.get("CODEX_AUTH_PATH", Path.home() / ".codex" / "auth.json"))
+        self.instructions = instructions
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         image_path = item.get("resolved_image_path") or item.get("local_fixture_path")
@@ -100,7 +102,7 @@ class CodexOpenAIAdapter:
         oauth = _load_codex_oauth(self.codex_auth_path)
         if oauth:
             token, account_id = oauth
-            body = json.dumps(_codex_oauth_request_payload(self.model, image_url)).encode("utf-8")
+            body = json.dumps(_codex_oauth_request_payload(self.model, image_url, instructions=self.instructions)).encode("utf-8")
             headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
@@ -118,7 +120,7 @@ class CodexOpenAIAdapter:
         if not self.api_key:
             raise RuntimeError("Codex OAuth/OpenAI auth was not available")
 
-        body = json.dumps(_public_openai_request_payload(self.model, image_url)).encode("utf-8")
+        body = json.dumps(_public_openai_request_payload(self.model, image_url, instructions=self.instructions)).encode("utf-8")
         return urllib.request.Request(
             self.endpoint or DEFAULT_PUBLIC_OPENAI_ENDPOINT,
             data=body,
@@ -155,16 +157,16 @@ class MiniMaxCLIAdapter:
         return normalize_minimax_description(_extract_text(proc.stdout), model=self.model)
 
 
-def _provider_instructions() -> str:
-    return provider_instructions()
+def _provider_instructions(instructions: str | None = None) -> str:
+    return instructions or provider_instructions()
 
 
-def _codex_oauth_request_payload(model: str, image_url: str) -> dict:
+def _codex_oauth_request_payload(model: str, image_url: str, *, instructions: str | None = None) -> dict:
     return {
         "model": model,
         "store": False,
         "stream": True,
-        "instructions": _provider_instructions(),
+        "instructions": _provider_instructions(instructions),
         "input": [
             {
                 "role": "user",
@@ -179,10 +181,10 @@ def _codex_oauth_request_payload(model: str, image_url: str) -> dict:
     }
 
 
-def _public_openai_request_payload(model: str, image_url: str) -> dict:
+def _public_openai_request_payload(model: str, image_url: str, *, instructions: str | None = None) -> dict:
     return {
         "model": model,
-        "instructions": _provider_instructions(),
+        "instructions": _provider_instructions(instructions),
         "input": [
             {
                 "role": "user",
@@ -369,5 +371,4 @@ def _strings(value: Any):
     elif isinstance(value, list):
         for child in value:
             yield from _strings(child)
-
 

@@ -29,7 +29,7 @@ MANUAL_REVIEW_REASONS = {
     "ai_generated_or_synthetic",
 }
 
-XANO_CANONICAL_REASON_CODES = {
+FALLBACK_XANO_CANONICAL_REASON_CODES = {
     "spam",
     "off_platform_contact",
     "harassment",
@@ -130,7 +130,7 @@ CANONICAL_REASON_MAP = {
     "too_blurry_or_blank": "too_blurry_or_blank",
 }
 
-REVIEW_ITEMS = (
+FALLBACK_REVIEW_ITEMS = (
     {
         "name": "Sexual content",
         "reason_code": "sexual_content",
@@ -283,8 +283,8 @@ REVIEW_ITEMS = (
     },
 )
 
-REASON_PROMPT_ROWS = tuple(
-    (item["reason_code"], item["description"], item["prompt_instruction"]) for item in REVIEW_ITEMS
+FALLBACK_REASON_PROMPT_ROWS = tuple(
+    (item["reason_code"], item["description"], item["prompt_instruction"]) for item in FALLBACK_REVIEW_ITEMS
 )
 
 DEFAULT_PROFILE_CHECKS = {
@@ -299,7 +299,7 @@ DEFAULT_PROFILE_CHECKS = {
 
 def review_items_text() -> str:
     blocks = []
-    for index, item in enumerate(REVIEW_ITEMS, start=1):
+    for index, item in enumerate(FALLBACK_REVIEW_ITEMS, start=1):
         blocks.append(
             f"{index}. {item['name']}\n"
             f"Description: {item['description']}\n"
@@ -309,7 +309,8 @@ def review_items_text() -> str:
     return "\n\n".join(blocks)
 
 
-def provider_instructions() -> str:
+def provider_instructions(review_items_text_override: str | None = None) -> str:
+    review_text = review_items_text_override or review_items_text()
     return """You are an ANewLuv photo moderator. Classify profile photo candidates.
 
 Return ONLY JSON with this exact shape:
@@ -392,6 +393,9 @@ Detailed flags to inspect:
 - hate_or_harassment: slurs, hate symbols, protected-class attacks, threats, harassment; use hate_speech for hate symbols/slurs/protected-class attacks and harassment for threats/targeting; reject/escalate
 - bot_or_scam: scam graphics, fake verification, suspicious template; review/reject
 
+DB-provided review checks for this run:
+__FALLBACK_REVIEW_ITEMS_TEXT__
+
 CANONICAL canonical_reason_code output only:
 - clean_profile_style -> no rejection code / approve_recommendation
 - sexual_content -> sexual_content
@@ -433,4 +437,4 @@ RULES:
 - Confidence below 0.6 should be "review" or "escalate" with canonical_reason_code "manual_admin_decision"
 - Existing admin/photo moderation paths are final authority; this worker only produces normalized recommendations
 - Do not make final moderation decisions. Do not generate or edit images.
-"""
+""".replace("__FALLBACK_REVIEW_ITEMS_TEXT__", review_text)

@@ -9,6 +9,7 @@ from .deterministic import inspect_image
 from .model import CodexOpenAIAdapter, MiniMaxCLIAdapter, MockModelAdapter
 from .policy import combine
 from .queue import normalize_item
+from .runtime_contract import RuntimeContract, is_within_grace_period, review_items_prompt_text
 from .xano_client import XanoModerationClient, XanoRaceSkip
 
 CODEX_OPENAI_ADAPTER_NAMES = {"codex-openai-image", "codex-openai", "openclaw-codex-openai", "primary"}
@@ -54,14 +55,23 @@ def run_once(
     fetched_count = len(queue)
     if xano_client is not None and photo_id is None:
         live_payload = xano_client.queue(page=page, per_page=per_page or limit)
+        runtime_contract = _runtime_contract_from_live_payload(live_payload, xano_client=xano_client)
         raw_items = live_payload.get("items", [])
         fetched_count = len(raw_items)
-        queue = [_normalize_live_item(item, xano_client=xano_client) for item in raw_items if _is_live_uploaded_candidate(item)]
-        settings = live_payload.get("settings") if isinstance(live_payload.get("settings"), dict) else {}
+        queue = [
+            _normalize_live_item(item, xano_client=xano_client)
+            for item in raw_items
+            if _is_live_uploaded_candidate(item)
+            and not is_within_grace_period(
+                item.get("created_at"),
+                runtime_contract.settings.get("ai_grace_period_minutes"),
+            )
+        ]
     else:
-        settings = {}
-    selected = _select(queue, limit=limit, photo_id=photo_id)
-    adapter = _build_adapter(model_adapter, model_fixture)
+        runtime_contract = RuntimeContract.from_payload({}, fallback_allowed=True)
+    effective_limit = _effective_limit(limit, runtime_contract.settings)
+    selected = _select(queue, limit=effective_limit, photo_id=photo_id)
+    adapter = _build_adapter(model_adapter, model_fixture, runtime_contract=runtime_contract)
     photos = []
     failures = []
     decision_calls = []
@@ -69,11 +79,21 @@ def run_once(
     for item in selected:
         checks = inspect_image(item)
         model_result = adapter.review(item, checks)
-        photo = combine(item, checks, model_result, dry_run=dry_run, force=force)
+        server_reason = _server_reason_code_from_model_result(model_result)
+        photo = combine(
+            item,
+            checks,
+            model_result,
+            dry_run=dry_run,
+            force=force,
+            runtime_contract=runtime_contract,
+            server_reason_code=server_reason,
+        )
+        photo["server_reason_code"] = server_reason
         if not dry_run:
             if xano_client is None:
                 raise ValueError("xano_client is required when dry_run is false")
-            call = _submit_ai_decision(xano_client, photo, user_id=item.get("user_id"), settings=settings)
+            call = _submit_ai_decision(xano_client, photo, user_id=item.get("user_id"), runtime_contract=runtime_contract)
             photo["xano_decision"] = call
             decision_calls.append(call)
             if call.get("status") == "race_skip":
@@ -85,11 +105,13 @@ def run_once(
         "write_enabled": not dry_run,
         "force_requested": force,
         **_provider_report(model_adapter, dry_run=dry_run),
-        "settings_echo_present": bool(settings),
+        "settings_echo_present": bool(runtime_contract.settings),
+        "db_reason_codes_present": runtime_contract.db_reason_codes_present,
+        "db_review_items_present": runtime_contract.db_review_items_present,
         "queue_fetched": fetched_count,
         "page": page,
         "per_page": per_page or limit,
-        "local_cap": limit,
+        "local_cap": effective_limit,
         "photos_scanned": len(photos),
         "photos": photos,
         "decision_calls": decision_calls,
@@ -113,11 +135,43 @@ def _normalize_live_item(item: dict, *, xano_client: XanoModerationClient) -> di
     return normalized
 
 
-def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: int | str | None, settings: dict[str, Any]) -> dict:
+def _runtime_contract_from_live_payload(live_payload: dict[str, Any], *, xano_client: XanoModerationClient) -> RuntimeContract:
+    contract = RuntimeContract.from_payload(live_payload, fallback_allowed=False)
+    if not contract.settings:
+        contract = contract.with_payload(_optional_client_call(xano_client, "moderation_settings"))
+    if not contract.db_reason_codes_present:
+        contract = contract.with_payload(_optional_client_call(xano_client, "reason_codes", surface="photo"))
+    if not contract.db_review_items_present:
+        contract = contract.with_payload(_optional_client_call(xano_client, "review_items", applies_to="photo"))
+    return contract
+
+
+def _optional_client_call(client: XanoModerationClient, method_name: str, **kwargs: Any) -> dict[str, Any] | None:
+    method = getattr(client, method_name, None)
+    if not callable(method):
+        return None
+    try:
+        return method(**kwargs)
+    except Exception:
+        return None
+
+
+def _effective_limit(limit: int | None, settings: dict[str, Any]) -> int | None:
+    cap = settings.get("ai_max_decisions_per_run")
+    try:
+        parsed_cap = int(cap)
+    except (TypeError, ValueError):
+        return limit
+    if parsed_cap < 0:
+        parsed_cap = 0
+    return parsed_cap if limit is None else min(limit, parsed_cap)
+
+
+def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: int | str | None, runtime_contract: RuntimeContract) -> dict:
     run_id = str(uuid.uuid4())
-    decision = _xano_decision(photo, settings=settings)
+    decision = _xano_decision(photo, runtime_contract=runtime_contract)
     if decision is None:
-        return _submit_escalation(client, photo, user_id=user_id, settings=settings, run_id=run_id)
+        return _submit_escalation(client, photo, user_id=user_id, settings=runtime_contract.settings, run_id=run_id)
     payload = {
         "photo_id": photo["photo_id"],
         "decision": decision,
@@ -195,10 +249,13 @@ def _submit_escalation(client: XanoModerationClient, photo: dict, *, user_id: in
     }
 
 
-def _xano_decision(photo: dict, *, settings: dict[str, Any]) -> str | None:
+def _xano_decision(photo: dict, *, runtime_contract: RuntimeContract) -> str | None:
+    settings = runtime_contract.settings
     if photo.get("planned_action") in {"leave_pending", "manual_review", "agent_review", "human_admin_review", "diagnostic_no_write"}:
         return None
     if photo.get("normalized_result", {}).get("validator") == "fail":
+        return None
+    if not runtime_contract.db_reason_codes_present:
         return None
 
     confidence = _confidence(photo)
@@ -245,7 +302,10 @@ def _confidence(photo: dict) -> float:
 
 
 def _server_reason_code(photo: dict) -> str:
-    normalized = photo.get("normalized_result", {})
+    return _server_reason_code_from_model_result(photo.get("normalized_result", {}))
+
+
+def _server_reason_code_from_model_result(normalized: dict) -> str:
     reason = normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision"
     return SERVER_REASON_CODE_MAP.get(reason, "unclear_subject")
 
@@ -284,6 +344,7 @@ def _select(queue: list[dict], *, limit: int | None, photo_id: str | None) -> li
 
 
 def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None = None) -> dict:
+    decision_calls = [item.get("xano_decision", {}) for item in photos]
     return {
         "dry_run": dry_run,
         "photos_scanned": len(photos),
@@ -303,15 +364,27 @@ def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None =
         "fallback_usage": sum(1 for item in photos if item["model_path"].get("fallback_model")),
         "next_scheduled_run": None,
         "unresolved_escalations": sum(1 for item in photos if item.get("xano_decision", {}).get("status") == "escalated"),
+        "selected_photo_ids": [item.get("photo_id") for item in photos],
+        "escalation_ids": [call.get("escalation_id") for call in decision_calls if call.get("escalation_id") is not None],
+        "write_counts": {
+            "ai_decide": sum(1 for call in decision_calls if call.get("status") == "submitted"),
+            "escalations_open": sum(1 for call in decision_calls if call.get("status") == "escalated"),
+            "race_skip": sum(1 for call in decision_calls if call.get("status") == "race_skip"),
+        },
     }
 
 
-def _build_adapter(model_adapter: str, model_fixture: Path | None):
+def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_contract: RuntimeContract):
     normalized = model_adapter.strip().lower()
     if normalized == "mock":
         return MockModelAdapter(model_fixture)
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
-        return CodexOpenAIAdapter()
+        instructions = None
+        if runtime_contract.review_items:
+            from .moderation_contract import provider_instructions
+
+            instructions = provider_instructions(review_items_prompt_text(runtime_contract.review_items))
+        return CodexOpenAIAdapter(instructions=instructions)
     if normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
         raise ValueError("openai-moderations adapter is not available in this checkout")
     if normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:

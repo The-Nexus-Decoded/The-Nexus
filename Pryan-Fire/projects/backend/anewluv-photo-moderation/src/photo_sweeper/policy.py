@@ -1,11 +1,21 @@
 from __future__ import annotations
 
-from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS, XANO_CANONICAL_REASON_CODES
+from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS, FALLBACK_XANO_CANONICAL_REASON_CODES
+from .runtime_contract import RuntimeContract
 
 
-def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, force: bool) -> dict:
+def combine(
+    item: dict,
+    checks: dict,
+    model_result: dict,
+    *,
+    dry_run: bool,
+    force: bool,
+    runtime_contract: RuntimeContract | None = None,
+    server_reason_code: str | None = None,
+) -> dict:
     reason = model_result.get("reason_code", "manual_admin_decision")
-    if reason not in XANO_CANONICAL_REASON_CODES and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
+    if reason not in FALLBACK_XANO_CANONICAL_REASON_CODES and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS:
         reason = "manual_admin_decision"
     verdict = model_result.get("verdict", "review")
     flags = model_result.get("app_profile_photo_checks", {})
@@ -31,7 +41,7 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
     elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
-    elif verdict == "reject_recommendation" and reason in XANO_CANONICAL_REASON_CODES and reason != "manual_admin_decision":
+    elif verdict == "reject_recommendation" and reason in FALLBACK_XANO_CANONICAL_REASON_CODES and reason != "manual_admin_decision":
         planned_action = "auto_reject"
         recommended_decision = "reject_recommendation"
     elif verdict == "reject_recommendation":
@@ -39,6 +49,16 @@ def combine(item: dict, checks: dict, model_result: dict, *, dry_run: bool, forc
         recommended_decision = None
     elif verdict == "review" or warnings:
         planned_action = "agent_review"
+
+    if planned_action == "auto_reject" and runtime_contract is not None:
+        confidence = _confidence(model_result)
+        if not runtime_contract.auto_reject_allowed(server_reason_code or reason, confidence):
+            planned_action = "agent_review"
+            recommended_decision = None
+
+    settings = runtime_contract.settings if runtime_contract is not None else {}
+    if planned_action == "agent_review" and settings.get("agent_review_enabled") is False:
+        planned_action = "human_admin_review"
 
     return {
         "photo_id": item["photo_id"],
@@ -83,3 +103,10 @@ def _profile_clean(flags: dict) -> bool:
         and not flags.get("ai_generated_or_synthetic")
         and not flags.get("needs_human_review")
     )
+
+
+def _confidence(model_result: dict) -> float:
+    try:
+        return min(1.0, max(0.0, float(model_result.get("confidence", 0.0))))
+    except (TypeError, ValueError):
+        return 0.0

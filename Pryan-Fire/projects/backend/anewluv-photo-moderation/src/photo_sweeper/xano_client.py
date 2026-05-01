@@ -132,6 +132,19 @@ class XanoModerationClient:
             query["per_page"] = str(limit)
         return self._request("GET", "/photos/queue", query=query)
 
+    def moderation_settings(self) -> dict[str, Any]:
+        return self._request("GET", "/moderation/settings", query=self._actor_params())
+
+    def reason_codes(self, *, surface: str = "photo") -> dict[str, Any]:
+        query = self._actor_params()
+        query["surface"] = surface
+        return self._request("GET", "/moderation/reason_codes", query=query)
+
+    def review_items(self, *, applies_to: str = "photo") -> dict[str, Any]:
+        query = self._actor_params()
+        query["applies_to"] = applies_to
+        return self._request("GET", "/moderation/review_items", query=query)
+
     def ai_decide(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = {**payload, **self._actor_params()}
         return self._request("POST", "/photos/ai_decide", body=body)
