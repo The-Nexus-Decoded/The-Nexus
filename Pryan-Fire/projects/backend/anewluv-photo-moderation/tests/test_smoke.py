@@ -1319,6 +1319,119 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(fake.decisions[0]["reason_code"], "drug_use")
         self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "drug_use")
 
+    def test_live_ai_generated_missing_from_db_fails_closed_to_review(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False, model_fixture_key="ai_generated")
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": [
+                        {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
+                    ],
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 22}
+
+        fixture = {
+            "ai_generated": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.95,
+                "reason_code": "ai_generated",
+                "note": "Synthetic image fixture.",
+                "unsafe_categories": ["ai_generated_or_synthetic"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": True,
+                    "needs_human_review": False,
+                },
+            },
+            "manual_review_needed": {"verdict": "review", "confidence": 0.4, "reason_code": "manual_review_needed", "note": "fallback", "unsafe_categories": []},
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as handle:
+            json.dump(fixture, handle)
+            handle.flush()
+            fake = FakeClient()
+            result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=Path(handle.name), xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "agent_review")
+        self.assertEqual(fake.escalations[0]["reason_code"], "unclear_subject")
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "ai_generated")
+        self.assertEqual(result["photos"][0]["planned_action"], "agent_review")
+
+    def test_live_unknown_reason_missing_from_db_fails_closed_to_review(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False, model_fixture_key="unseeded_reason")
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": [
+                        {"code": "qr_code", "auto_reject_threshold": 0.85, "severity": "medium"},
+                    ],
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 23}
+
+        fixture = {
+            "unseeded_reason": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.96,
+                "reason_code": "new_unseeded_code",
+                "note": "Provider emitted a reason absent from live Xano reason_codes.",
+                "unsafe_categories": ["new_unseeded_code"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            "manual_review_needed": {"verdict": "review", "confidence": 0.4, "reason_code": "manual_review_needed", "note": "fallback", "unsafe_categories": []},
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as handle:
+            json.dump(fixture, handle)
+            handle.flush()
+            fake = FakeClient()
+            result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=Path(handle.name), xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "agent_review")
+        self.assertEqual(fake.escalations[0]["reason_code"], "unclear_subject")
+        self.assertEqual(result["photos"][0]["normalized_result"]["raw_reason_code"], "new_unseeded_code")
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "manual_admin_decision")
+        self.assertEqual(result["photos"][0]["planned_action"], "agent_review")
+
     def test_agent_review_disabled_routes_ordinary_uncertainty_to_human_admin(self):
         class FakeClient:
             def __init__(self):
