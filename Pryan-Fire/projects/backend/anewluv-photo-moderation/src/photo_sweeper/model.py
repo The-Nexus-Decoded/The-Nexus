@@ -147,13 +147,18 @@ class MiniMaxCLIAdapter:
         if not image_path:
             return _manual_failure("missing_image_reference", self.model, "No local image path was available for MiniMax CLI review.")
 
-        proc = subprocess.run(
-            ["openclaw", "infer", "image", "describe", "--model", self.model, "--file", str(image_path), "--json"],
-            check=False,
-            text=True,
-            capture_output=True,
-            timeout=self.timeout_seconds,
-        )
+        try:
+            proc = subprocess.run(
+                ["openclaw", "infer", "image", "describe", "--model", self.model, "--file", str(image_path), "--json"],
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=self.timeout_seconds,
+            )
+        except FileNotFoundError:
+            return _manual_failure("api_failure_fallback", self.model, "MiniMax CLI dependency was not available; manual review required.", fallback="manual_review")
+        except subprocess.TimeoutExpired:
+            return _manual_failure("api_failure_fallback", self.model, "MiniMax CLI timed out; manual review required.", fallback="manual_review")
         if proc.returncode != 0:
             return _manual_failure("api_failure_fallback", self.model, f"MiniMax CLI exited with status {proc.returncode}; manual review required.", fallback="manual_review")
 

@@ -769,6 +769,27 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["reason_code"], "inappropriate_photos")
         self.assertEqual(result["vision_model_used"], "minimax/MiniMax-VL-01 + parser")
 
+    def test_minimax_cli_adapter_missing_binary_fails_closed_to_manual_review(self):
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError("openclaw")):
+            result = MiniMaxCLIAdapter().review({"local_fixture_path": "/tmp/fake.jpg"}, {})
+
+        self.assertEqual(result["verdict"], "review")
+        self.assertEqual(result["raw_reason_code"], "api_failure_fallback")
+        self.assertEqual(result["reason_code"], "manual_admin_decision")
+        self.assertEqual(result["fallback_model"], "manual_review")
+        self.assertIn("dependency was not available", result["note"])
+
+    def test_minimax_cli_adapter_timeout_fails_closed_to_manual_review(self):
+        timeout = subprocess.TimeoutExpired(cmd=["openclaw"], timeout=1)
+        with mock.patch("subprocess.run", side_effect=timeout):
+            result = MiniMaxCLIAdapter().review({"local_fixture_path": "/tmp/fake.jpg"}, {})
+
+        self.assertEqual(result["verdict"], "review")
+        self.assertEqual(result["raw_reason_code"], "api_failure_fallback")
+        self.assertEqual(result["reason_code"], "manual_admin_decision")
+        self.assertEqual(result["fallback_model"], "manual_review")
+        self.assertIn("timed out", result["note"])
+
 
 class XanoPhaseOneTests(unittest.TestCase):
     def test_xano_client_logs_in_caches_jwt_and_uses_page_per_page_queue_contract(self):
