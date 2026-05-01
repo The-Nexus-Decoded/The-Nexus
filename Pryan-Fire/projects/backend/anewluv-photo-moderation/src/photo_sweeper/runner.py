@@ -73,14 +73,31 @@ def run_once(
         runtime_contract = RuntimeContract.from_payload({}, fallback_allowed=True)
     effective_limit = _effective_limit(limit, runtime_contract.settings)
     selected = _select(queue, limit=effective_limit, photo_id=photo_id, force=force)
-    adapter = _build_adapter(model_adapter, model_fixture, runtime_contract=runtime_contract)
+    auto_decide_disabled = runtime_contract.settings.get("ai_auto_decide_enabled") is False
+    adapter = None if auto_decide_disabled else _build_adapter(model_adapter, model_fixture, runtime_contract=runtime_contract)
     run_id = str(uuid.uuid4())
     photos = []
     failures = []
     decision_calls = []
 
     for item in selected:
+        if auto_decide_disabled:
+            photo = _settings_disabled_photo(item, dry_run=dry_run, force=force)
+            photo["server_reason_code"] = _server_reason_code(photo)
+            if not dry_run:
+                if xano_client is None:
+                    raise ValueError("xano_client is required when dry_run is false")
+                call = _submit_escalation(xano_client, photo, user_id=item.get("user_id"), settings=runtime_contract.settings, run_id=run_id)
+                photo["xano_decision"] = call
+                decision_calls.append(call)
+                if call.get("status") == "race_skip":
+                    failures.append({"photo_id": photo["photo_id"], "status": "race_skip"})
+            photos.append(photo)
+            continue
+
         checks = inspect_image(item)
+        if adapter is None:
+            raise ValueError("model adapter is required when ai_auto_decide_enabled is true")
         model_result = adapter.review(item, checks)
         server_reason = _server_reason_code_from_model_result(model_result, runtime_contract=runtime_contract)
         photo = combine(
@@ -109,6 +126,7 @@ def run_once(
         "force_requested": force,
         **_provider_report(model_adapter, dry_run=dry_run),
         "settings_echo_present": bool(runtime_contract.settings),
+        "settings_echo": runtime_contract.settings,
         "db_reason_codes_present": runtime_contract.db_reason_codes_present,
         "db_review_items_present": runtime_contract.db_review_items_present,
         "queue_fetched": fetched_count,
@@ -210,6 +228,43 @@ def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: i
         "expected_current_status": 1,
         "coerced": response.get("coerced"),
         "payload": payload,
+    }
+
+
+def _settings_disabled_photo(item: dict, *, dry_run: bool, force: bool) -> dict:
+    model_result = {
+        "verdict": "review",
+        "confidence": 0.0,
+        "reason_code": "manual_admin_decision",
+        "raw_reason_code": "auto_decide_disabled",
+        "note": "ai_auto_decide_enabled is false; skipped model call and routed to escalation.",
+        "unsafe_categories": [],
+        "moderation_api_used": False,
+        "moderation_model": None,
+        "vision_model_used": "settings_precheck",
+        "fallback_model": "manual_review",
+        "validator": "pass",
+        "app_profile_photo_checks": {"needs_human_review": True},
+    }
+    return {
+        "photo_id": item["photo_id"],
+        "queue_source": item.get("queue_source", "GET /photos/queue"),
+        "dry_run": dry_run,
+        "force_requested": force,
+        "write_enabled": not dry_run,
+        "model_path": {
+            "moderation_api_used": False,
+            "moderation_model": None,
+            "vision_model_used": "settings_precheck",
+            "fallback_model": "manual_review",
+        },
+        "deterministic_checks": {"skipped": True, "reason": "ai_auto_decide_enabled"},
+        "normalized_result": model_result,
+        "planned_action": "agent_review",
+        "recommended_decision": None,
+        "would_write_recommendation": False,
+        "would_finalize_decision": False,
+        "would_escalate": True,
     }
 
 
@@ -357,6 +412,8 @@ def _select(queue: list[dict], *, limit: int | None, photo_id: str | None, force
     selected = []
     seen_photo_ids = set()
     for item in items:
+        if limit is not None and len(selected) >= max(0, limit):
+            break
         current_id = item.get("photo_id")
         if current_id in seen_photo_ids:
             continue
@@ -364,8 +421,6 @@ def _select(queue: list[dict], *, limit: int | None, photo_id: str | None, force
             continue
         seen_photo_ids.add(current_id)
         selected.append(item)
-        if limit is not None and len(selected) >= max(0, limit):
-            break
     return selected
 
 
