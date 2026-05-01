@@ -153,6 +153,18 @@ class XanoModerationClient:
         body = {**payload, **self._actor_params()}
         return self._request("POST", "/photos/escalations/open", body=body)
 
+    def escalations(self, *, status: str = "open", route: str | None = None) -> dict[str, Any]:
+        query = self._actor_params()
+        if status:
+            query["status"] = status
+        if route:
+            query["route"] = route
+        return self._request("GET", "/photos/escalations", query=query)
+
+    def escalation_ack(self, payload: dict[str, Any]) -> dict[str, Any]:
+        body = {**payload, **self._actor_params()}
+        return self._request("POST", "/photos/escalations/ack", body=body)
+
     def _actor_params(self) -> dict[str, str]:
         return {"actor_key": self.config.actor_key, "actor_type": self.config.actor_type}
 

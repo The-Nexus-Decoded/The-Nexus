@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import uuid
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -923,6 +924,8 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(payload["route"], "agent_review")
         self.assertEqual(payload["expected_current_status"], 1)
         self.assertEqual(payload["idempotency_key"], f"{payload['run_id']}:101:escalation")
+        self.assertIsInstance(payload["model_path_json"], str)
+        self.assertEqual(json.loads(payload["model_path_json"]), result["photos"][0]["model_path"])
         self.assertNotIn("decision", payload)
         self.assertNotIn("gallery", payload)
         self.assertNotIn("deleted", payload)
@@ -964,6 +967,70 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertIn("detail=Mock API failure; fallback requires manual moderation.", note)
         self.assertEqual(result["decision_calls"][0]["payload"]["note"], note)
         self.assertIn("model_path_json", result["decision_calls"][0]["payload"])
+        self.assertIsInstance(result["decision_calls"][0]["payload"]["model_path_json"], str)
+
+    def test_xano_client_lists_and_acks_escalations_with_actor_params_and_idempotency(self):
+        class FakeResponse:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(self.payload).encode("utf-8")
+
+        seen = []
+
+        def fake_urlopen(request, timeout):
+            seen.append(
+                {
+                    "url": request.full_url,
+                    "method": request.get_method(),
+                    "body": json.loads(request.data.decode("utf-8")) if request.data else None,
+                }
+            )
+            if request.full_url.endswith("/auth/login"):
+                return FakeResponse({"authToken": "unit-test-jwt"})
+            if "/photos/escalations?" in request.full_url:
+                return FakeResponse({"items": []})
+            return FakeResponse({"status": "acknowledged"})
+
+        config = XanoConfig(
+            api_base_url="https://example.invalid/api:moderation",
+            auth_api_base_url="https://example.invalid/api:auth",
+            actor_key="unit-test-actor",
+            worker_email="devon@example.invalid",
+            worker_password="unit-test-password",
+        )
+        client = XanoModerationClient(config, token_cache=TokenCache())
+        ack_key = f"{uuid.uuid4()}:7:ack"
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            client.escalations(status="open", route="agent_review")
+            client.escalation_ack(
+                {
+                    "escalation_id": 7,
+                    "status": "acknowledged",
+                    "expected_current_status": "open",
+                    "expected_route": "agent_review",
+                    "idempotency_key": ack_key,
+                    "note": "owner ack unit test",
+                }
+            )
+
+        list_call = next(item for item in seen if "/photos/escalations?" in item["url"])
+        ack_call = next(item for item in seen if item["url"].endswith("/photos/escalations/ack"))
+        self.assertIn("status=open", list_call["url"])
+        self.assertIn("route=agent_review", list_call["url"])
+        self.assertIn("actor_key=unit-test-actor", list_call["url"])
+        self.assertEqual(ack_call["body"]["idempotency_key"], ack_key)
+        self.assertEqual(ack_call["body"]["expected_current_status"], "open")
+        self.assertEqual(ack_call["body"]["expected_route"], "agent_review")
+        self.assertEqual(ack_call["body"]["actor_type"], "ai_agent")
 
     def test_live_phase_one_human_admin_escalation_uses_escalations_endpoint_not_ai_decide(self):
         class FakeClient:

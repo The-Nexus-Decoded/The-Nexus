@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import urllib.parse
 import uuid
+import json
 from pathlib import Path
 from typing import Any
 
@@ -222,7 +223,7 @@ def _submit_escalation(client: XanoModerationClient, photo: dict, *, user_id: in
         "reason_code": _server_reason_code(photo),
         "note": _note(photo),
         "severity": _escalation_severity(route),
-        "model_path_json": photo.get("model_path", {}),
+        "model_path_json": _json_string(photo.get("model_path", {})),
         "run_id": run_id,
         "idempotency_key": idempotency_key,
         "expected_current_status": 1,
@@ -274,6 +275,10 @@ def _xano_decision(photo: dict, *, runtime_contract: RuntimeContract) -> str | N
     if photo.get("recommended_decision") == "reject_recommendation" and photo.get("planned_action") == "auto_reject":
         return "rejected"
     return None
+
+
+def _json_string(value: Any) -> str:
+    return json.dumps(value if value is not None else {}, sort_keys=True, separators=(",", ":"))
 
 
 def _escalation_route(photo: dict) -> str:
