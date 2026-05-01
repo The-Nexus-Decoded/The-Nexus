@@ -5,17 +5,23 @@ Execution owner: Devon(Dev-Rapid)
 Coordinator: Zifnab  
 Primary issues: #304–#323
 
+> **Current canonical system doc:** see `docs/photo-moderation-system.md`.
+>
+> This README was originally written during the recommendation-only proof lane. Lord Xar later resolved #337 in favor of the AI-primary path: AI handles standard reviews and escalates serious/uncertain cases. The system doc is the current source for the full moderation flow, settings, provider chain, escalation routing, and phase-ticket map.
+
+
 ## Purpose
 
 Build a photo moderation worker and agent-facing tool path for Anewluv that can:
 
 - read pending profile/gallery photos from Xano;
-- run deterministic checks plus a verified vision model path;
-- produce AI recommendations without making final moderation decisions;
-- leave manual moderation as the final approve/reject path;
-- report summaries and unresolved cases to Jarvis/Discord owner channels.
+- read live moderation settings, review items, and reason codes each run;
+- run deterministic checks plus verified provider review;
+- auto-decide standard photo cases when settings, confidence, vocabulary, and provider output allow it;
+- escalate serious, uncertain, low-confidence, or provider-failed cases;
+- leave audit evidence for decisions, fallbacks, and escalations.
 
-This is a worker/tool proof lane, not a production-ready declaration. Production writes are locked out under the approved contract.
+This lane has moved from recommendation-only proof into the AI-primary worker stack. Serious and uncertain cases still fail closed into escalation.
 
 ## Active guardrails
 
@@ -25,7 +31,7 @@ This is a worker/tool proof lane, not a production-ready declaration. Production
 - Do not mutate Xano schema/API or execute provisional endpoints without approval.
 - Do not create `Profiles.is_ai` or any profile-level AI marker.
 - Do not move Xano schema.
-- Do not allow worker writes.
+- Do not allow worker writes outside the approved decision and escalation paths. The canonical write paths are `/photos/ai_decide` (standard AI decisions) and `/photos/escalations/open` (escalations only). See `docs/photo-moderation-system.md` for the full policy. This guardrail conflicts with the older "do not allow worker writes" language in older branch notes; this doc is the current source.
 - Keep provisional `162/163` inert unless a proven gap is approved later.
 - Do not print or commit secrets.
 - Do not delete photos.
@@ -49,7 +55,7 @@ Gate 1 discovery has been completed from Xano MCP and documented in:
 - shared note: `/data/openclaw/shared/anewluv/photo-moderation-schema-discovery-2026-04-30.md`
 - repo note: `docs/schema-discovery-2026-04-30.md`
 
-Implementation is locked to recommendation-only behavior: AI may recommend, manual moderation remains final, and worker writes stay disabled.
+Current implementation state is governed by `docs/photo-moderation-system.md`: #341 live settings enforcement is merged, #342 provider-chain fail-closed work is active, #343 removes stale duplicate vocabulary constants, and #346 adds Zifnab's autonomous review loop.
 
 Key reconciliation docs:
 
@@ -61,19 +67,16 @@ Key reconciliation docs:
 
 This repo now contains a small Python package and CLI named `photo-sweeper`.
 
-The implementation is deliberately recommendation-only:
+The implementation now supports the AI-primary direction while preserving safety rails:
 
-- Existing admin approval tools remain final.
-- AI output is evidence and recommendation only.
-- Manual moderation remains final.
-- It reads queue data only after the auth/env gate exists.
-- It does not write `ai_recommendation` fields or any other Xano state.
-- It does not call `/photos/decide`.
+- AI decisions go through `/photos/ai_decide`; human decisions keep the existing human flow.
+- Escalations go through `/photos/escalations/open`; escalation is not encoded as a fake decision value.
+- Live settings can disable AI decisions, cap a run, enforce grace period, and route low-confidence output to escalation.
+- DB `review_items` and `reason_codes` are the source of truth for prompt assembly and output validation.
+- It does not call `/photos/decide` as the worker.
 - It does not call `/admin/decision/*`.
 - `Profiles.is_ai` is not used or created.
 - No Xano schema movement is performed.
-- The worker does not write, even when `--force` is passed.
-- Provisional `162/163` paths remain inert.
 - Fixtures are safe synthetic files and mock JSON responses only.
 
 Install for local CLI use:
