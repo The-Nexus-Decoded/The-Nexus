@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .deterministic import inspect_image
-from .model import CodexOpenAIAdapter, MiniMaxCLIAdapter, MockModelAdapter
+from .model import CodexOpenAIAdapter, MiniMaxCLIAdapter, MockModelAdapter, ProviderChainAdapter
 from .policy import combine
 from .queue import normalize_item
 from .runtime_contract import RuntimeContract, is_within_grace_period, review_items_prompt_text
@@ -17,6 +17,8 @@ CODEX_OPENAI_ADAPTER_NAMES = {"codex-openai-image", "codex-openai", "openclaw-co
 OPENAI_MODERATIONS_ADAPTER_NAMES = {"openai-moderations"}
 MINIMAX_FALLBACK_ADAPTER_NAMES = {"minimax-cli", "minimax-fallback", "minimax-vl"}
 OPENROUTER_ADAPTER_NAMES = {"openrouter-multimodal"}
+PROVIDER_CHAIN_ADAPTER_NAMES = {"provider-chain", "anewluv-provider-chain", "mock-provider-chain"}
+VISION_ONLY_CHAIN_ADAPTER_NAMES = {"vision-llm-only", "mock-vision-llm-only"}
 
 SERVER_REASON_CODE_MAP = {
     "clean_profile_style": "unclear_subject",
@@ -344,10 +346,13 @@ def _escalation_route(photo: dict) -> str:
 
 
 def _escalation_reason(photo: dict, *, settings: dict[str, Any]) -> str:
+    normalized = photo.get("normalized_result", {})
     confidence = _confidence(photo)
     floor = settings.get("ai_escalate_below_confidence")
     if settings.get("ai_auto_decide_enabled") is False:
         return "auto_decide_disabled"
+    if normalized.get("provider_chain_decision") == "provider_chain_failed" or normalized.get("raw_reason_code") == "provider_chain_failed":
+        return "provider_chain_failed"
     if isinstance(floor, (int, float)) and confidence < float(floor):
         return "confidence_below_floor"
     if photo.get("planned_action") == "human_admin_review":
@@ -470,6 +475,27 @@ def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_co
     allowed_reason_codes = set(runtime_contract.reason_codes)
     if normalized == "mock":
         return MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes)
+    if normalized in PROVIDER_CHAIN_ADAPTER_NAMES:
+        return ProviderChainAdapter(
+            stage1=MockModelAdapter(
+                model_fixture,
+                allowed_reason_codes=allowed_reason_codes,
+                key_field="moderation_fixture_key",
+                default_model="mock_moderation_api",
+                provider_defaults={
+                    "moderation_api_used": True,
+                    "moderation_model": "mock_moderation_api",
+                    "vision_model_used": "not_called",
+                },
+            ),
+            stage2=MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes, default_model="mock_vision_llm"),
+        )
+    if normalized in VISION_ONLY_CHAIN_ADAPTER_NAMES:
+        return ProviderChainAdapter(
+            stage1=None,
+            stage2=MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes, default_model="mock_vision_llm"),
+            vision_only=True,
+        )
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
         instructions = None
         if runtime_contract.review_items:
@@ -500,6 +526,12 @@ def _provider_report(model_adapter: str, *, dry_run: bool) -> dict:
     elif normalized in OPENROUTER_ADAPTER_NAMES:
         provider = "openrouter-multimodal"
         model_route = "openrouter-multimodal"
+    elif normalized in PROVIDER_CHAIN_ADAPTER_NAMES:
+        provider = "provider-chain"
+        model_route = "mock_moderation_api -> mock_vision_llm"
+    elif normalized in VISION_ONLY_CHAIN_ADAPTER_NAMES:
+        provider = "vision-llm-only"
+        model_route = "mock_vision_llm"
     else:
         provider = "mock"
         model_route = "mock_fixture"

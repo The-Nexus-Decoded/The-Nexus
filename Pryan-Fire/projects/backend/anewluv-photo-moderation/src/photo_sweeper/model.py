@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from .moderation_contract import provider_instructions
+from .moderation_contract import HARD_SAFETY_HUMAN_ONLY_REASONS, provider_instructions
 from .normalization import default_profile_checks, normalize_minimax_description, normalize_model_result
 
 DEFAULT_MODEL_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "mock_model_responses.json"
@@ -24,18 +24,41 @@ DEFAULT_MINIMAX_MODEL = "minimax/MiniMax-VL-01"
 
 
 
+PROVIDER_UNAVAILABLE_REASONS = {"api_failure_fallback", "api_auth_unavailable", "missing_image_reference", "provider_chain_failed"}
+STAGE1_INCONCLUSIVE_REASONS = {"manual_admin_decision", "manual_review_needed"}
+STAGE1_HARD_SAFETY_REASONS = HARD_SAFETY_HUMAN_ONLY_REASONS | {
+    "nudity",
+    "pornographic_explicit",
+    "underage_concern",
+    "hate_or_harassment",
+}
+
+
 class MockModelAdapter:
-    def __init__(self, manifest_path: Path | None = None, *, allowed_reason_codes: set[str] | None = None) -> None:
+    def __init__(
+        self,
+        manifest_path: Path | None = None,
+        *,
+        allowed_reason_codes: set[str] | None = None,
+        key_field: str = "model_fixture_key",
+        default_model: str = "mock_fixture",
+        provider_defaults: dict[str, Any] | None = None,
+    ) -> None:
         with (manifest_path or DEFAULT_MODEL_FIXTURE).open("r", encoding="utf-8") as handle:
             self._responses = json.load(handle)
         self.allowed_reason_codes = allowed_reason_codes or set()
+        self.key_field = key_field
+        self.default_model = default_model
+        self.provider_defaults = provider_defaults or {}
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
-        key = item.get("model_fixture_key") or "manual_review_needed"
+        key = item.get(self.key_field) or item.get("model_fixture_key") or "manual_review_needed"
         response = dict(self._responses.get(key, self._responses["manual_review_needed"]))
+        for field, value in self.provider_defaults.items():
+            response.setdefault(field, value)
         response.setdefault("moderation_api_used", False)
         response.setdefault("moderation_model", None)
-        response.setdefault("vision_model_used", "mock_fixture")
+        response.setdefault("vision_model_used", self.default_model)
         response.setdefault("fallback_model", None)
         response["deterministic_checks_used"] = [
             "image_reference_present",
@@ -46,7 +69,37 @@ class MockModelAdapter:
             "darkness_score",
             "sharpness_edge_score",
         ]
-        return normalize_model_result(response, default_model=response["vision_model_used"], allowed_reason_codes=self.allowed_reason_codes)
+        return normalize_model_result(response, default_model=self.default_model, allowed_reason_codes=self.allowed_reason_codes)
+
+
+class ProviderChainAdapter:
+    """Two-stage moderation chain: cheap moderation API, then vision LLM fallback."""
+
+    def __init__(self, *, stage1: Any | None, stage2: Any, vision_only: bool = False) -> None:
+        self.stage1 = stage1
+        self.stage2 = stage2
+        self.vision_only = vision_only
+
+    def review(self, item: dict, deterministic_checks: dict) -> dict:
+        if self.vision_only or self.stage1 is None:
+            return _guard_vision_only_result(self.stage2.review(item, deterministic_checks))
+
+        stage1_result = self.stage1.review(item, deterministic_checks)
+        if _stage1_can_short_circuit(stage1_result):
+            stage1_result["provider_chain_stage"] = "stage1_moderation_api"
+            stage1_result["provider_chain_decision"] = "stage1_short_circuit"
+            return stage1_result
+
+        stage2_result = self.stage2.review(item, deterministic_checks)
+        if _provider_unavailable(stage1_result) and _provider_unavailable(stage2_result):
+            return _provider_chain_failed(stage1_result, stage2_result)
+
+        stage2_result["moderation_api_used"] = bool(stage1_result.get("moderation_api_used"))
+        stage2_result["moderation_model"] = stage1_result.get("moderation_model")
+        stage2_result["provider_chain_stage"] = "stage2_vision_llm"
+        stage2_result["provider_chain_decision"] = "stage1_fallthrough"
+        stage2_result["stage1_result"] = _provider_result_summary(stage1_result)
+        return stage2_result
 
 
 class CodexOpenAIAdapter:
@@ -342,6 +395,89 @@ def _manual_failure(reason_code: str, model: str, note: str, *, fallback: str | 
     )
 
 
+def _stage1_can_short_circuit(result: dict) -> bool:
+    if result.get("validator") == "fail" or _provider_unavailable(result):
+        return False
+    verdict = result.get("verdict")
+    reason = str(result.get("reason_code") or result.get("raw_reason_code") or "").lower()
+    raw_reason = str(result.get("raw_reason_code") or reason).lower()
+    if verdict == "approve_recommendation" and reason == "clean_profile_style":
+        return True
+    if verdict == "escalate" or reason in HARD_SAFETY_HUMAN_ONLY_REASONS or raw_reason in STAGE1_HARD_SAFETY_REASONS:
+        return True
+    if verdict == "reject_recommendation" and reason not in STAGE1_INCONCLUSIVE_REASONS and raw_reason not in STAGE1_HARD_SAFETY_REASONS:
+        return True
+    return False
+
+
+def _provider_unavailable(result: dict) -> bool:
+    reason = str(result.get("reason_code") or "").lower()
+    raw_reason = str(result.get("raw_reason_code") or reason).lower()
+    return result.get("validator") == "fail" or reason in PROVIDER_UNAVAILABLE_REASONS or raw_reason in PROVIDER_UNAVAILABLE_REASONS
+
+
+def _guard_vision_only_result(result: dict) -> dict:
+    guarded = dict(result)
+    if guarded.get("verdict") in {"approve_recommendation", "review"}:
+        guarded["provider_chain_stage"] = "vision_llm_only"
+        return guarded
+
+    reason = str(guarded.get("reason_code") or guarded.get("raw_reason_code") or "manual_admin_decision").lower()
+    raw_reason = str(guarded.get("raw_reason_code") or reason).lower()
+    guarded.setdefault("raw_reason_code", raw_reason)
+    guarded["provider_chain_stage"] = "vision_llm_only"
+    guarded["provider_chain_decision"] = "vision_only_reject_escalated"
+    guarded["note"] = _append_note(
+        guarded.get("note"),
+        "Vision-only chain does not auto-reject; routed to escalation.",
+    )
+    if reason in HARD_SAFETY_HUMAN_ONLY_REASONS or raw_reason in STAGE1_HARD_SAFETY_REASONS:
+        guarded["verdict"] = "escalate"
+    else:
+        guarded["verdict"] = "review"
+        guarded["reason_code"] = "manual_admin_decision"
+    return guarded
+
+
+def _provider_chain_failed(stage1_result: dict, stage2_result: dict) -> dict:
+    return normalize_model_result(
+        {
+            "verdict": "review",
+            "confidence": 0.0,
+            "reason_code": "provider_chain_failed",
+            "note": "Moderation API and vision LLM providers were both unavailable; routed to agent review.",
+            "unsafe_categories": [],
+            "moderation_api_used": bool(stage1_result.get("moderation_api_used")),
+            "moderation_model": stage1_result.get("moderation_model"),
+            "vision_model_used": stage2_result.get("vision_model_used") or "unavailable",
+            "fallback_model": "provider_chain_failed",
+            "provider_chain_stage": "provider_chain_failed",
+            "provider_chain_decision": "provider_chain_failed",
+            "stage1_result": _provider_result_summary(stage1_result),
+            "stage2_result": _provider_result_summary(stage2_result),
+            "app_profile_photo_checks": default_profile_checks(needs_human_review=True),
+        },
+        default_model=stage2_result.get("vision_model_used") or "unavailable",
+    )
+
+
+def _provider_result_summary(result: dict) -> dict:
+    return {
+        "verdict": result.get("verdict"),
+        "reason_code": result.get("reason_code"),
+        "raw_reason_code": result.get("raw_reason_code"),
+        "validator": result.get("validator"),
+        "confidence": result.get("confidence"),
+        "moderation_model": result.get("moderation_model"),
+        "vision_model_used": result.get("vision_model_used"),
+    }
+
+
+def _append_note(existing: object, addition: str) -> str:
+    text = str(existing or "").strip()
+    return f"{text} {addition}".strip()
+
+
 def _safe_http_error_note(exc: urllib.error.HTTPError) -> str:
     try:
         body = exc.read(512).decode("utf-8", errors="replace")
@@ -379,4 +515,3 @@ def _strings(value: Any):
     elif isinstance(value, list):
         for child in value:
             yield from _strings(child)
-

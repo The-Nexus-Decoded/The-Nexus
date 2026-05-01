@@ -12,6 +12,11 @@ from .xano_client import XanoConfig, XanoModerationClient
 
 MODEL_PROVIDER_CHOICES = (
     "mock",
+    "provider-chain",
+    "anewluv-provider-chain",
+    "mock-provider-chain",
+    "vision-llm-only",
+    "mock-vision-llm-only",
     "codex-openai-image",
     "codex-openai",
     "openclaw-codex-openai",
