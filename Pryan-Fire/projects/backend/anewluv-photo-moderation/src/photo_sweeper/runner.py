@@ -82,7 +82,7 @@ def run_once(
     for item in selected:
         checks = inspect_image(item)
         model_result = adapter.review(item, checks)
-        server_reason = _server_reason_code_from_model_result(model_result)
+        server_reason = _server_reason_code_from_model_result(model_result, runtime_contract=runtime_contract)
         photo = combine(
             item,
             checks,
@@ -313,12 +313,17 @@ def _confidence(photo: dict) -> float:
 
 
 def _server_reason_code(photo: dict) -> str:
-    return _server_reason_code_from_model_result(photo.get("normalized_result", {}))
+    return str(photo.get("server_reason_code") or _server_reason_code_from_model_result(photo.get("normalized_result", {})))
 
 
-def _server_reason_code_from_model_result(normalized: dict) -> str:
-    reason = normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision"
-    return SERVER_REASON_CODE_MAP.get(reason, "unclear_subject")
+def _server_reason_code_from_model_result(normalized: dict, *, runtime_contract: RuntimeContract | None = None) -> str:
+    reason = str(normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision").strip()
+    if runtime_contract is not None and reason in runtime_contract.reason_codes:
+        return reason
+    mapped = SERVER_REASON_CODE_MAP.get(reason)
+    if mapped and (runtime_contract is None or mapped in runtime_contract.reason_codes or not runtime_contract.db_reason_codes_present):
+        return mapped
+    return "unclear_subject"
 
 
 def _note(photo: dict) -> str:
@@ -407,15 +412,16 @@ def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None =
 
 def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_contract: RuntimeContract):
     normalized = model_adapter.strip().lower()
+    allowed_reason_codes = set(runtime_contract.reason_codes)
     if normalized == "mock":
-        return MockModelAdapter(model_fixture)
+        return MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes)
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
         instructions = None
         if runtime_contract.review_items:
             from .moderation_contract import provider_instructions
 
             instructions = provider_instructions(review_items_prompt_text(runtime_contract.review_items))
-        return CodexOpenAIAdapter(instructions=instructions)
+        return CodexOpenAIAdapter(instructions=instructions, allowed_reason_codes=allowed_reason_codes)
     if normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
         raise ValueError("openai-moderations adapter is not available in this checkout")
     if normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:

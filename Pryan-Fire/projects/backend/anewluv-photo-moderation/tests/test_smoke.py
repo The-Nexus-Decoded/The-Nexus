@@ -1258,6 +1258,67 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(allowed.escalations, [])
         self.assertEqual(allowed_result["summary"]["write_counts"]["ai_decide"], 1)
 
+    def test_live_db_reason_code_added_without_code_change_can_auto_reject(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False, model_fixture_key="drug_use")
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": [
+                        {"code": "drug_use", "auto_reject_threshold": 0.80, "severity": "medium"},
+                    ],
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 21}
+
+        fixture = {
+            "drug_use": {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "drug_use",
+                "note": "DB-defined reason code fixture.",
+                "unsafe_categories": ["drug_use"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": False,
+                    "needs_human_review": False,
+                },
+            },
+            "manual_review_needed": {
+                "verdict": "review",
+                "confidence": 0.4,
+                "reason_code": "manual_review_needed",
+                "note": "fallback",
+                "unsafe_categories": [],
+            },
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as handle:
+            json.dump(fixture, handle)
+            handle.flush()
+            fake = FakeClient()
+            result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=Path(handle.name), xano_client=fake)
+
+        self.assertEqual(fake.escalations, [])
+        self.assertEqual(len(fake.decisions), 1)
+        self.assertEqual(fake.decisions[0]["decision"], "rejected")
+        self.assertEqual(fake.decisions[0]["reason_code"], "drug_use")
+        self.assertEqual(result["photos"][0]["normalized_result"]["reason_code"], "drug_use")
+
     def test_agent_review_disabled_routes_ordinary_uncertainty_to_human_admin(self):
         class FakeClient:
             def __init__(self):

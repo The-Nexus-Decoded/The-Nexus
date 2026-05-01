@@ -25,8 +25,11 @@ DECISION_TO_RECOMMENDATION_VERDICTS = {
 HIGH_CONFIDENCE_PERSON_GATE_THRESHOLD = 0.80
 
 
-def normalize_model_result(result: dict, *, default_model: str) -> dict:
+def normalize_model_result(result: dict, *, default_model: str, allowed_reason_codes: set[str] | None = None) -> dict:
     normalized = dict(result)
+    allowed_reason_codes = {str(code).strip() for code in (allowed_reason_codes or set()) if str(code).strip()}
+    if allowed_reason_codes:
+        normalized["allowed_reason_codes"] = sorted(allowed_reason_codes)
     if "verdict" not in normalized and "recommendation" in normalized:
         normalized["verdict"] = normalized.get("recommendation")
     if "reason_code" not in normalized and "canonical_reason_code" in normalized:
@@ -49,7 +52,10 @@ def normalize_model_result(result: dict, *, default_model: str) -> dict:
         normalized["reason_code"] = "manual_admin_decision"
         normalized["verdict"] = "review"
     else:
-        normalized["reason_code"] = CANONICAL_REASON_MAP.get(raw_reason_code, "manual_admin_decision")
+        mapped_reason = CANONICAL_REASON_MAP.get(raw_reason_code)
+        if mapped_reason is None and raw_reason_code in allowed_reason_codes:
+            mapped_reason = raw_reason_code
+        normalized["reason_code"] = mapped_reason or "manual_admin_decision"
     if normalized["reason_code"] != raw_reason_code:
         normalized.setdefault("raw_reason_code", raw_reason_code)
 
