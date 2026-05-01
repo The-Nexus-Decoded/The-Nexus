@@ -20,13 +20,17 @@ jobs:
           python-version: '3.12'
 
       - name: Verify runtime path exists
+        id: photo_path
         run: |
-          if [ ! -d Pryan-Fire/projects/backend/anewluv-photo-moderation ]; then
-            echo "Photo moderation path missing on this branch; skip."
-            exit 0
+          if [ -d Pryan-Fire/projects/backend/anewluv-photo-moderation ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Photo moderation path missing on this branch; no-op pass."
           fi
 
       - name: Install dependencies
+        if: steps.photo_path.outputs.exists == 'true'
         run: |
           cd Pryan-Fire/projects/backend/anewluv-photo-moderation
           python -m pip install --upgrade pip
@@ -35,11 +39,13 @@ jobs:
           fi
 
       - name: Run unit tests
+        if: steps.photo_path.outputs.exists == 'true'
         run: |
           cd Pryan-Fire/projects/backend/anewluv-photo-moderation
           PYTHONPATH=src python3 -m unittest discover -s tests -v
 
       - name: Run dry-run smoke
+        if: steps.photo_path.outputs.exists == 'true'
         run: |
           cd Pryan-Fire/projects/backend/anewluv-photo-moderation
           PYTHONPATH=src python3 -m photo_sweeper --once --dry-run --limit 5
