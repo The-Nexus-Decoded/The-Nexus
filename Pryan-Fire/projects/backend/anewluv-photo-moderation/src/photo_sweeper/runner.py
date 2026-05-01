@@ -377,6 +377,8 @@ def _server_reason_code(photo: dict) -> str:
 
 
 def _server_reason_code_from_model_result(normalized: dict, *, runtime_contract: RuntimeContract | None = None) -> str:
+    if normalized.get("provider_chain_decision") == "provider_chain_failed" or normalized.get("raw_reason_code") == "provider_chain_failed":
+        return "provider_chain_failed"
     reason = str(normalized.get("reason_code") or normalized.get("raw_reason_code") or "manual_admin_decision").strip()
     if runtime_contract is not None and reason in runtime_contract.reason_codes:
         return reason
