@@ -4,23 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-COMPAT_REASON_ROWS = (
-    {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
-    {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
-    {"code": "ai_generated", "auto_reject_threshold": 0.90, "severity": "medium"},
-    {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
-    {"code": "qr_code", "auto_reject_threshold": 0.85, "severity": "medium"},
-    {"code": "money_request", "auto_reject_threshold": 0.80, "severity": "medium"},
-    {"code": "hate_or_harassment", "auto_reject_threshold": 0.85, "severity": "high"},
-    {"code": "bot_or_scam", "auto_reject_threshold": 0.85, "severity": "high"},
-    {"code": "low_quality", "auto_reject_threshold": None, "severity": "low"},
-    {"code": "nudity_explicit", "auto_reject_threshold": 0.85, "severity": "high"},
-    {"code": "underage_concern", "auto_reject_threshold": 0.75, "severity": "high"},
-    {"code": "minor_in_photo", "auto_reject_threshold": 0.80, "severity": "high"},
-)
-
-
-
 @dataclass(frozen=True)
 class RuntimeContract:
     settings: dict[str, Any]
@@ -43,9 +26,6 @@ class RuntimeContract:
 
         db_reason_codes_present = bool(reason_rows)
         db_review_items_present = bool(review_rows)
-        if not reason_rows and fallback_allowed:
-            reason_rows = list(COMPAT_REASON_ROWS)
-
         return cls(
             settings=settings,
             reason_codes={str(row.get("code", "")).strip(): row for row in reason_rows if str(row.get("code", "")).strip()},
