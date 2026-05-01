@@ -317,6 +317,13 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [ ] Media tools fleet-wide pause (2026-04-25): Enforce until Roland re-enables after smoke test. Gate agents requesting image work — tell them paused, not broken per-agent.
 - [ ] ANewLuv photo moderation worker: backend is done/shipped by Lord Xar; remaining work is worker code only in The-Nexus branch `feat/anewluv-photo-moderation-worker`, path `Pryan-Fire/projects/backend/anewluv-photo-moderation/`. Canonical handoff is GitHub issue #345 comment `4356630657`; if local docs disagree, that comment wins. Execute phase tickets in order: #339, #340, #341, #342, #346, #343. Zifnab reviews via API/tool path; Discord is one-way status/results audit log only. No secrets in Discord/GitHub; worker account credentials are in Lord Xar's secure handoff.
 
+
+## CI LANE CONTRACT (2026-05-01)
+- Lord Xar approved lane-scoped monorepo CI as standard: per-lane workflows with `on.pull_request.paths`, plus an always-on PR Gate required check.
+- Artifact/cache isolation is mandatory per lane: unique artifact names per lane/run, lane-prefixed cache keys with lockfile hash, and lane-only artifact downloads.
+- Repo-wide workflows should be limited to shared/core paths and must not publish lane-specific artifacts.
+- Reference rollout: issue #363 and PR #364 in The-Nexus.
+
 ## LEARNED — DO NOT REPEAT
 - Zifnab's home-viz cron was loading the Apr 15 14:21 UTC channel export (stale 3+ days) and outputting the same stale check-in 9 times. Trian and Sinistrad corrected every time.
 - Root cause: channel export at `/data/openclaw/shared/channel-exports/home-visualization-export.md` dated Apr 15 14:21 UTC — not refreshed since.

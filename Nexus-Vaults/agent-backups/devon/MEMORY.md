@@ -20,3 +20,32 @@
 - Supported projects/areas: Arianus-Sky tactical/market dashboard and command-and-control views only where the work is dashboard/prototype/pipeline validation; fleet health/cost/activity dashboards; Soul Drifter only when work intersects prototype instrumentation, dashboard views, or data/feedback pipeline proofing.
 - Route away: CI/CD, deployment automation, production hardening, and incident archive discipline to Alfred; trading execution/strategy implementation to Hugh/Haplo; mobile/UI ownership to Paithan; social/growth to Rega; issue creation and cross-agent routing to Zifnab.
 - Open questions/blockers: confirm any current repo path, branch, live URL, service status, or model/config from live sources before answering or changing anything; old exports contain retired host and absorbed-role references that must be reconciled against `TEAM.md` first.
+
+## ANewLuv Quick Facts (corrected by Zifnab 2026-05-01)
+
+- #340 is **closed** — landed via PR **#349**, not via #344
+- #344 is the umbrella draft branch to `main`, not a remaining blocker
+- Active gates (as of 2026-05-01):
+  1. **#360** Jarvis reporting — Zifnab-verified, mergeable
+  2. **#351** docs-only — mergeable
+  3. **#357–#359** runtime deploy/verify — assigned to Alfred, no evidence posted yet
+- Implementation phases #339–#343 + #346 are all **closed**
+- Current real gate: Alfred's runtime verification, not code implementation
+
+## Durable CI Pattern — Monorepo Lane Isolation (2026-05-01)
+
+- Standard pattern for multi-project monorepo CI: path-scoped lane workflows + always-on PR Gate.
+- Each lane workflow must use path filters, lane-specific cache namespaces, lane-specific artifact naming, and lane-specific concurrency groups.
+- Keep one required always-on check (`PR Gate / lane-gate`) on `main`; lane jobs stay scoped and are validated by gate logic.
+- Artifact naming convention: `<lane>-${sha}-${run_id}`; cache key convention: `<os>-<lane>-<lockfile-hash>`.
+- Goal: prevent cross-lane CI/artifact/cache bleed while preserving fast, targeted checks.
+
+## ANewLuv Jarvis Status Contract (2026-05-01)
+
+- Jarvis must publish **two separate job statuses**, not a single combined status:
+  1. `anewluv-photo-sweeper-initial` (moderation)
+  2. `anewluv-photo-sweeper-agent-review` (escalation)
+- Day-one per-job fields: last run timestamp, last run status, next scheduled run, 24h run count + success rate, run duration, and last error summary (only on failure).
+- Moderation status should include photo decision counts: approved, rejected, escalated.
+- Escalation status should include escalation-run counts (polled/acked/deferred/unresolved).
+- “Crons live” celebration gate: only after #362 and #364 merge, #357/#358 are enabled, and first-run proof is posted.
