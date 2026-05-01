@@ -11,6 +11,16 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_ENV_PATH = Path("/data/Workspace/Anewluv/.env")
+ALT_ENV_PATHS = (
+    # Canonical shared secret path on dev runtime.
+    Path("/data/openclaw/shared/secrets/anewluv-worker.env"),
+    # Legacy shared fallbacks.
+    Path("/data/openclaw/shared/anewluv/Anewluv.env"),
+    Path("/data/openclaw/shared/anewluv/.env"),
+    # Historical casing/dir variants.
+    Path("/data/workspace/Anewluv/.env"),
+    Path("/data/Workspace/ANewluv/.env"),
+)
 AI_ACTOR_TYPE = "ai_agent"
 TOKEN_TTL_SECONDS = 24 * 60 * 60
 
@@ -34,15 +44,23 @@ class XanoConfig:
     worker_email: str | None = None
     worker_password: str | None = None
     actor_type: str = AI_ACTOR_TYPE
+    escalation_ack_actor_type: str = "system"
+    escalation_ack_actor_key: str | None = None
     env_path: Path = DEFAULT_ENV_PATH
 
     @classmethod
     def from_env(cls, env_path: Path = DEFAULT_ENV_PATH) -> "XanoConfig":
-        env = load_env_file(env_path)
+        resolved_env_path = resolve_env_path(env_path)
+        env = load_env_file(resolved_env_path)
         merged = {**env, **os.environ}
         actor_type = (merged.get("ANEWLUV_MODERATION_ACTOR_TYPE") or AI_ACTOR_TYPE).strip()
         if actor_type != AI_ACTOR_TYPE:
             raise XanoClientError(f"ANEWLUV_MODERATION_ACTOR_TYPE must be {AI_ACTOR_TYPE!r}")
+        escalation_ack_actor_type = (merged.get("ANEWLUV_ESCALATION_ACK_ACTOR_TYPE") or "system").strip()
+        allowed_ack_actor_types = {"system", "admin", "lord_xar", AI_ACTOR_TYPE}
+        if escalation_ack_actor_type not in allowed_ack_actor_types:
+            allowed = ", ".join(sorted(allowed_ack_actor_types))
+            raise XanoClientError(f"ANEWLUV_ESCALATION_ACK_ACTOR_TYPE must be one of: {allowed}")
         api_base_url = _require(merged, "ANEWLUV_API_BASE_URL").rstrip("/")
         actor_key = _first_present(
             merged,
@@ -62,8 +80,22 @@ class XanoConfig:
             worker_email=_first_present(merged, "ANEWLUV_WORKER_EMAIL", "DEVON_AGENT_EMAIL"),
             worker_password=_first_present(merged, "ANEWLUV_WORKER_PASSWORD", "DEVON_AGENT_PASSWORD"),
             actor_type=actor_type,
-            env_path=env_path,
+            escalation_ack_actor_type=escalation_ack_actor_type,
+            escalation_ack_actor_key=_first_present(merged, "ANEWLUV_ESCALATION_ACK_ACTOR_KEY") or actor_key,
+            env_path=resolved_env_path,
         )
+
+
+def resolve_env_path(default_env_path: Path = DEFAULT_ENV_PATH) -> Path:
+    explicit = (os.environ.get("ANEWLUV_ENV_PATH") or "").strip()
+    if explicit:
+        return Path(explicit)
+    if default_env_path.exists():
+        return default_env_path
+    for alt in ALT_ENV_PATHS:
+        if alt.exists():
+            return alt
+    return default_env_path
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -164,11 +196,17 @@ class XanoModerationClient:
         return self._request("GET", "/photos/escalations", query=query)
 
     def escalation_ack(self, payload: dict[str, Any]) -> dict[str, Any]:
-        body = {**payload, **self._actor_params()}
+        body = {**payload, **self._escalation_ack_actor_params()}
         return self._request("POST", "/photos/escalations/ack", body=body)
 
     def _actor_params(self) -> dict[str, str]:
         return {"actor_key": self.config.actor_key, "actor_type": self.config.actor_type}
+
+    def _escalation_ack_actor_params(self) -> dict[str, str]:
+        return {
+            "actor_key": self.config.escalation_ack_actor_key or self.config.actor_key,
+            "actor_type": self.config.escalation_ack_actor_type,
+        }
 
     def _jwt(self) -> str:
         cached = self.token_cache.get()

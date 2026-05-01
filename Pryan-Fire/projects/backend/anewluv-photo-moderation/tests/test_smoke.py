@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -23,7 +24,7 @@ from photo_sweeper.queue import load_queue
 from photo_sweeper.agent_review import run_agent_review_once
 from photo_sweeper.reporting import format_report, maybe_report_run
 from photo_sweeper.runner import run_once
-from photo_sweeper.xano_client import TokenCache, XanoClientError, XanoConfig, XanoModerationClient
+from photo_sweeper.xano_client import TokenCache, XanoClientError, XanoConfig, XanoModerationClient, resolve_env_path
 
 PHOTO_REASON_CODES = [
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
@@ -1044,6 +1045,78 @@ class ProviderChainPhaseFourTests(unittest.TestCase):
         self.assertNotEqual(reject["photos"][0]["planned_action"], "auto_reject")
 
 
+class XanoEnvPathTests(unittest.TestCase):
+    def test_resolve_env_path_prefers_explicit_override(self):
+        with mock.patch.dict(os.environ, {"ANEWLUV_ENV_PATH": "/tmp/unit-override.env"}, clear=True):
+            resolved = resolve_env_path(Path("/tmp/default.env"))
+
+        self.assertEqual(resolved, Path("/tmp/unit-override.env"))
+
+    def test_from_env_uses_fallback_env_path_when_default_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            default_missing = Path(tmpdir) / "missing.env"
+            fallback = Path(tmpdir) / "fallback.env"
+            fallback.write_text(
+                "\n".join(
+                    [
+                        "ANEWLUV_API_BASE_URL=https://example.invalid/api:moderation",
+                        "ANEWLUV_MODERATION_ACTOR_KEY=unit-test-actor",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                mock.patch("photo_sweeper.xano_client.ALT_ENV_PATHS", (fallback,)),
+                mock.patch.dict(os.environ, {}, clear=True),
+            ):
+                config = XanoConfig.from_env(env_path=default_missing)
+
+        self.assertEqual(config.env_path, fallback)
+        self.assertEqual(config.api_base_url, "https://example.invalid/api:moderation")
+        self.assertEqual(config.actor_key, "unit-test-actor")
+
+    def test_from_env_defaults_escalation_ack_actor_type_to_system(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_file = Path(tmpdir) / "worker.env"
+            env_file.write_text(
+                "\n".join(
+                    [
+                        "ANEWLUV_API_BASE_URL=https://example.invalid/api:moderation",
+                        "ANEWLUV_MODERATION_ACTOR_KEY=unit-test-actor",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(os.environ, {}, clear=True):
+                config = XanoConfig.from_env(env_path=env_file)
+
+        self.assertEqual(config.escalation_ack_actor_type, "system")
+        self.assertEqual(config.escalation_ack_actor_key, "unit-test-actor")
+
+    def test_from_env_accepts_explicit_escalation_ack_actor_type(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_file = Path(tmpdir) / "worker.env"
+            env_file.write_text(
+                "\n".join(
+                    [
+                        "ANEWLUV_API_BASE_URL=https://example.invalid/api:moderation",
+                        "ANEWLUV_MODERATION_ACTOR_KEY=unit-test-actor",
+                        "ANEWLUV_ESCALATION_ACK_ACTOR_TYPE=lord_xar",
+                        "ANEWLUV_ESCALATION_ACK_ACTOR_KEY=unit-test-ack-key",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(os.environ, {}, clear=True):
+                config = XanoConfig.from_env(env_path=env_file)
+
+        self.assertEqual(config.escalation_ack_actor_type, "lord_xar")
+        self.assertEqual(config.escalation_ack_actor_key, "unit-test-ack-key")
+
+
 class XanoPhaseOneTests(unittest.TestCase):
     def test_xano_client_logs_in_caches_jwt_and_uses_page_per_page_queue_contract(self):
         class FakeResponse:
@@ -1394,7 +1467,7 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(ack_call["body"]["idempotency_key"], ack_key)
         self.assertEqual(ack_call["body"]["expected_current_status"], "open")
         self.assertEqual(ack_call["body"]["expected_route"], "agent_review")
-        self.assertEqual(ack_call["body"]["actor_type"], "ai_agent")
+        self.assertEqual(ack_call["body"]["actor_type"], "system")
 
     def test_live_phase_one_human_admin_escalation_uses_escalations_endpoint_not_ai_decide(self):
         class FakeClient:
