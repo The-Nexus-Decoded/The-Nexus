@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from .agent_review import run_agent_review_once
 from .lock import LockHeld, RunLock
 from .queue import load_queue
 from .runner import run_once
@@ -35,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Dry-run Anewluv photo moderation recommendation worker.",
     )
     parser.add_argument("--once", action="store_true", help="Run one dry-run sweep.")
+    parser.add_argument("--agent-review", action="store_true", help="Run one autonomous agent-review escalation sweep.")
     parser.add_argument("--dry-run", action="store_true", help="Emit recommendations without writes.")
     parser.add_argument(
         "--live-write",
@@ -96,6 +98,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     live_write = bool(args.live_write)
+    if args.agent_review:
+        if not live_write:
+            print("--agent-review requires --live-write.", file=sys.stderr)
+            return 2
+        try:
+            result = run_agent_review_once(XanoModerationClient(XanoConfig.from_env()), limit=args.limit)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+
     provider = args.provider or args.model_adapter
     if live_write and provider in {"provider-chain", "anewluv-provider-chain", "mock-provider-chain", "vision-llm-only", "mock-vision-llm-only"}:
         print(f"{provider} uses mock provider-chain adapters and is blocked for --live-write; use --dry-run or a real provider adapter.", file=sys.stderr)

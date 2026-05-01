@@ -20,8 +20,9 @@ from photo_sweeper.normalization import normalize_minimax_description, normalize
 from photo_sweeper.moderation_contract import IMAGE_TYPE_CLASSIFICATIONS, WORKER_MODEL_CATEGORIES
 from photo_sweeper.policy import combine
 from photo_sweeper.queue import load_queue
+from photo_sweeper.agent_review import run_agent_review_once
 from photo_sweeper.runner import run_once
-from photo_sweeper.xano_client import TokenCache, XanoConfig, XanoModerationClient
+from photo_sweeper.xano_client import TokenCache, XanoClientError, XanoConfig, XanoModerationClient
 
 PHOTO_REASON_CODES = [
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
@@ -1953,6 +1954,101 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertIs(call["skipped"], True)
         self.assertEqual(result["summary"]["race_skips"], 1)
         self.assertEqual(result["summary"]["failures"], [{"photo_id": 101, "status": "race_skip"}])
+
+
+class AgentReviewLoopTests(unittest.TestCase):
+    def test_agent_review_polls_agent_review_route_and_acks_with_idempotency(self):
+        fake = FakeAgentReviewClient([
+            {
+                "id": 501,
+                "photo_id": 101,
+                "reason_code": "unclear_subject",
+                "last_ai_assessment": {"recommended_decision": "approve_recommendation", "confidence": 0.91, "reason_code": "unclear_subject"},
+            }
+        ])
+
+        result = run_agent_review_once(fake, run_id="run-1")
+
+        self.assertEqual(fake.polls, [{"status": "open", "route": "agent_review"}])
+        self.assertEqual(result["acked"], 1)
+        self.assertEqual(fake.acks[0]["status"], "approved")
+        self.assertEqual(fake.acks[0]["expected_current_status"], "open")
+        self.assertEqual(fake.acks[0]["expected_route"], "agent_review")
+        self.assertEqual(fake.acks[0]["idempotency_key"], "run-1:501")
+
+    def test_agent_review_409_is_skip_not_error(self):
+        fake = FakeAgentReviewClient([{"id": 502, "photo_id": 102}], race_skip=True)
+
+        result = run_agent_review_once(fake, run_id="run-2")
+
+        self.assertEqual(result["race_skips"], 1)
+        self.assertEqual(result["decisions"][0]["status"], "race_skip")
+        self.assertIs(result["decisions"][0]["skipped"], True)
+
+    def test_agent_review_empty_discord_channel_still_acks_without_post(self):
+        fake = FakeAgentReviewClient([{"id": 503, "photo_id": 103}], settings={"agent_review_discord_channel_id": ""})
+        posts = []
+
+        result = run_agent_review_once(fake, run_id="run-3", audit_poster=lambda channel, message: posts.append((channel, message)))
+
+        self.assertEqual(result["acked"], 1)
+        self.assertEqual(posts, [])
+        self.assertEqual(result["audit"], {"posted": False, "reason": "channel_not_configured"})
+
+    def test_agent_review_discord_failure_does_not_rollback_ack(self):
+        fake = FakeAgentReviewClient([{"id": 504, "photo_id": 104}], settings={"agent_review_discord_channel_id": "148"})
+
+        result = run_agent_review_once(fake, run_id="run-4", audit_poster=lambda channel, message: (_ for _ in ()).throw(RuntimeError("discord down")))
+
+        self.assertEqual(len(fake.acks), 1)
+        self.assertEqual(result["acked"], 1)
+        self.assertTrue(result["audit"]["failed"])
+
+    def test_agent_review_disabled_does_not_poll_queue(self):
+        fake = FakeAgentReviewClient([{"id": 505, "photo_id": 105}], settings={"agent_review_enabled": False})
+
+        result = run_agent_review_once(fake, run_id="run-5")
+
+        self.assertEqual(result["polled"], 0)
+        self.assertEqual(fake.polls, [])
+        self.assertEqual(fake.acks, [])
+
+    def test_agent_review_5xx_retries_then_defers(self):
+        fake = FakeAgentReviewClient([{"id": 506, "photo_id": 106}], server_errors=4)
+        sleeps = []
+
+        result = run_agent_review_once(fake, run_id="run-6", sleeper=sleeps.append)
+
+        self.assertEqual(result["deferred"], 1)
+        self.assertEqual(sleeps, [1, 2, 4])
+        self.assertEqual(len(fake.acks), 4)
+
+
+class FakeAgentReviewClient:
+    def __init__(self, rows, *, settings=None, race_skip=False, server_errors=0):
+        self.rows = rows
+        self.settings = {"agent_review_enabled": True, **(settings or {})}
+        self.race_skip = race_skip
+        self.server_errors = server_errors
+        self.polls = []
+        self.acks = []
+
+    def moderation_settings(self):
+        return {"settings": self.settings}
+
+    def escalations(self, *, status="open", route=None):
+        self.polls.append({"status": status, "route": route})
+        return {"items": self.rows}
+
+    def escalation_ack(self, payload):
+        self.acks.append(payload)
+        if self.race_skip:
+            from photo_sweeper.xano_client import XanoRaceSkip
+
+            raise XanoRaceSkip("expected_current_status mismatch")
+        if len(self.acks) <= self.server_errors:
+            raise XanoClientError("Xano POST /photos/escalations/ack returned HTTP 500", status_code=500)
+        return {"ok": True}
 
 
 if __name__ == "__main__":
