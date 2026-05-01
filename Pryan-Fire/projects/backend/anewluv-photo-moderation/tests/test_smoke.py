@@ -4,6 +4,7 @@ import sys
 import tempfile
 import uuid
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -1238,6 +1239,145 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertNotIn("decision", fake.escalations[0])
         self.assertEqual(result["decision_calls"][0]["status"], "escalated")
         self.assertEqual(result["decision_calls"][0]["reason"], "auto_decide_disabled")
+
+    def test_live_settings_auto_decide_disabled_skips_model_and_escalates_all(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": False, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [dict(load_queue()[0], photostatus_id=1, deleted=False), dict(load_queue()[1], photostatus_id=1, deleted=False)],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": len(self.escalations)}
+
+        fake = FakeClient()
+        with mock.patch("photo_sweeper.model.MockModelAdapter.review", side_effect=AssertionError("model call should be skipped")):
+            result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 2)
+        self.assertEqual([call["reason"] for call in result["decision_calls"]], ["auto_decide_disabled", "auto_decide_disabled"])
+        self.assertEqual(result["photos_scanned"], 2)
+        self.assertEqual(result["photos"][0]["model_path"]["vision_model_used"], "settings_precheck")
+
+    def test_live_settings_max_decisions_cap_and_zero_are_honored(self):
+        class FakeClient:
+            def __init__(self, cap):
+                self.cap = cap
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7, "ai_max_decisions_per_run": self.cap},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [dict(item, photostatus_id=1, deleted=False) for item in load_queue()[:3]],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": len(self.escalations)}
+
+        capped = FakeClient(2)
+        capped_result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=capped)
+        self.assertEqual(capped_result["local_cap"], 2)
+        self.assertEqual(capped_result["photos_scanned"], 2)
+
+        zero = FakeClient(0)
+        zero_result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=zero)
+        self.assertEqual(zero_result["local_cap"], 0)
+        self.assertEqual(zero_result["photos_scanned"], 0)
+        self.assertEqual(zero.decisions, [])
+
+    def test_live_settings_grace_period_filters_client_side(self):
+        now = datetime.now(timezone.utc)
+        old_item = dict(load_queue()[0], photostatus_id=1, deleted=False, created_at=(now - timedelta(minutes=45)).isoformat())
+        fresh_item = dict(load_queue()[1], photostatus_id=1, deleted=False, created_at=(now - timedelta(minutes=5)).isoformat())
+
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7, "ai_grace_period_minutes": 30},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [fresh_item, old_item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(result["queue_fetched"], 2)
+        self.assertEqual(result["photos_scanned"], 1)
+        self.assertEqual(result["photos"][0]["photo_id"], old_item["photo_id"])
+
+    def test_live_settings_echo_is_reported_at_run_start(self):
+        class FakeClient:
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7, "agent_review_discord_channel_id": ""},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [],
+                }
+
+        result = run_once([], limit=None, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=FakeClient())
+
+        self.assertTrue(result["settings_echo_present"])
+        self.assertEqual(result["settings_echo"]["ai_escalate_below_confidence"], 0.7)
+        self.assertIn("agent_review_discord_channel_id", result["settings_echo"])
+
+    def test_live_settings_confidence_floor_routes_to_escalation_before_ai_decide(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.99},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [dict(load_queue()[0], photostatus_id=1, deleted=False)],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 9}
+
+        fake = FakeClient()
+        result = run_once([], limit=1, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(result["decision_calls"][0]["reason"], "confidence_below_floor")
 
     def test_db_reason_code_threshold_controls_auto_reject(self):
         class FakeClient:
