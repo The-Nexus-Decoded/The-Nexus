@@ -25,6 +25,7 @@ from photo_sweeper.xano_client import TokenCache, XanoConfig, XanoModerationClie
 PHOTO_REASON_CODES = [
     {"code": "unclear_subject", "auto_reject_threshold": None, "severity": "low"},
     {"code": "celebrity_or_stock_photo", "auto_reject_threshold": None, "severity": "medium"},
+    {"code": "ai_generated", "auto_reject_threshold": 0.90, "severity": "medium"},
     {"code": "object_or_landscape_only", "auto_reject_threshold": 0.90, "severity": "low"},
     {"code": "nudity_explicit", "auto_reject_threshold": 0.85, "severity": "high"},
     {"code": "low_quality", "auto_reject_threshold": None, "severity": "low"},
@@ -122,6 +123,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             {
                 "clean_profile_style",
                 "fake_profile",
+                "ai_generated",
                 "sexual_content",
                 "inappropriate_photos",
                 "off_platform_contact",
@@ -221,16 +223,16 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         )
 
     def test_provider_canonical_reason_code_is_accepted(self):
-        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "fake_profile", "detected_category": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
+        result = normalize_model_result({"verdict": "review", "confidence": 0.91, "canonical_reason_code": "ai_generated", "detected_category": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(result["reason_code"], "fake_profile")
+        self.assertEqual(result["reason_code"], "ai_generated")
 
     def test_normalized_output_keeps_detected_category_and_canonical_reason(self):
         result = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(result["reason_code"], "fake_profile")
+        self.assertEqual(result["reason_code"], "ai_generated")
 
     def test_policy_falls_back_before_future_write_eligibility(self):
         item = {"photo_id": 1}
@@ -277,6 +279,37 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["reason_code"], "manual_admin_decision")
         self.assertEqual(combined["planned_action"], "agent_review")
         self.assertIsNone(combined["recommended_decision"])
+
+    def test_ai_generated_evidence_overrides_hallucinated_qr_reason(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.91,
+                "reason_code": "qr_code",
+                "detected_category": "ai_generated_or_synthetic",
+                "note": "AI-generated looking woman pointing against a wall; no visible QR code.",
+                "unsafe_categories": ["ai_generated_or_synthetic"],
+                "app_profile_photo_checks": {
+                    "is_profile_style_photo": False,
+                    "has_contact_info": False,
+                    "is_meme_or_screenshot": False,
+                    "is_blank_or_unusable": False,
+                    "ai_generated_or_synthetic": True,
+                    "needs_human_review": False,
+                },
+            },
+            default_model="fixture",
+        )
+
+        item = {"photo_id": 13317}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        combined = combine(item, checks, result, dry_run=False, force=False)
+
+        self.assertEqual(result["verdict"], "reject_recommendation")
+        self.assertEqual(result["reason_code"], "ai_generated")
+        self.assertEqual(result.get("raw_reason_code"), "qr_code")
+        self.assertEqual(combined["planned_action"], "auto_reject")
+        self.assertEqual(combined["recommended_decision"], "reject_recommendation")
 
     def test_qr_reject_with_explicit_evidence_still_maps_to_off_platform_contact(self):
         result = normalize_model_result(
@@ -412,12 +445,12 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(result["planned_action"], "auto_reject")
         self.assertIs(result["would_escalate"], False)
 
-    def test_ai_generated_or_synthetic_requires_high_confidence_for_fake_profile(self):
+    def test_ai_generated_or_synthetic_requires_high_confidence_for_ai_generated(self):
         high = normalize_model_result({"verdict": "review", "confidence": 0.91, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
         uncertain = normalize_model_result({"verdict": "review", "confidence": 0.79, "reason_code": "ai_generated_or_synthetic", "unsafe_categories": []}, default_model="fixture")
 
         self.assertEqual(high["detected_category"], "ai_generated_or_synthetic")
-        self.assertEqual(high["reason_code"], "fake_profile")
+        self.assertEqual(high["reason_code"], "ai_generated")
         self.assertEqual(uncertain["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(uncertain["reason_code"], "manual_admin_decision")
         self.assertEqual(uncertain["verdict"], "review")
@@ -432,6 +465,8 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "not_a_profile_photo": "not_person_photo",
             "celebrity_or_stock_photo": "fake_profile",
             "object_or_landscape_only": "fake_profile",
+            "ai_generated_or_synthetic": "manual_admin_decision",
+            "ai_generated": "ai_generated",
             "contact_info_or_ad": "off_platform_contact",
             "contact_info_text_only_ad": "off_platform_contact",
             "qr_code": "off_platform_contact",
@@ -539,7 +574,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review",
             "object_or_landscape_only -> reject_recommendation/review",
             "celebrity_or_stock_photo -> fake_profile/review",
-            "ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision",
+            "ai_generated_or_synthetic -> ai_generated if high confidence, otherwise review/manual_admin_decision",
             "explicit_adult_image -> reject/escalate",
             "low_quality_or_unusable -> review/reject",
             "underage_concern -> never approve; escalate/review",
@@ -578,6 +613,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "pornographic_explicit",
             "inappropriate_photos",
             "ai_generated_or_synthetic",
+            "ai_generated",
             "contact_info_or_ad",
             "contact_info_text_only_ad",
             "not_a_profile_photo",

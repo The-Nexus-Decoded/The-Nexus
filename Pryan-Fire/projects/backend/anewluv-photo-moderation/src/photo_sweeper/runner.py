@@ -21,6 +21,7 @@ OPENROUTER_ADAPTER_NAMES = {"openrouter-multimodal"}
 SERVER_REASON_CODE_MAP = {
     "clean_profile_style": "unclear_subject",
     "fake_profile": "celebrity_or_stock_photo",
+    "ai_generated": "ai_generated",
     "sexual_content": "nudity_explicit",
     "inappropriate_photos": "low_quality",
     "off_platform_contact": "qr_code",

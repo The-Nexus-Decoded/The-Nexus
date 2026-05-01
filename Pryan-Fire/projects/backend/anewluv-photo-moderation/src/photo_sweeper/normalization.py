@@ -124,6 +124,21 @@ def _apply_person_photo_business_gate(normalized: dict) -> dict:
         normalized["verdict"] = "reject_recommendation"
         normalized["reason_code"] = "not_person_photo"
 
+    if _looks_ai_generated(detected_text, checks):
+        checks["ai_generated_or_synthetic"] = True
+        if confidence >= AI_GENERATED_HIGH_CONFIDENCE_THRESHOLD:
+            checks["needs_human_review"] = False
+            normalized["verdict"] = "reject_recommendation"
+            normalized["reason_code"] = "ai_generated"
+            normalized.setdefault("raw_reason_code", raw_reason_hint or "ai_generated_or_synthetic")
+            raw_reason_hint = "ai_generated"
+        else:
+            checks["needs_human_review"] = True
+            normalized["verdict"] = "review"
+            normalized["reason_code"] = "manual_review_needed"
+            normalized.setdefault("raw_reason_code", raw_reason_hint or "ai_generated_or_synthetic")
+            raw_reason_hint = "manual_review_needed"
+
     if normalized.get("verdict") == "reject_recommendation" and _off_platform_contact_without_evidence(raw_reason_hint, detected_text, checks):
         checks["needs_human_review"] = True
         normalized["verdict"] = "review"
@@ -138,6 +153,20 @@ def _apply_person_photo_business_gate(normalized: dict) -> dict:
         checks["meme_or_screenshot"] = True
     normalized["app_profile_photo_checks"] = checks
     return normalized
+
+
+def _looks_ai_generated(detected_text: str, checks: dict) -> bool:
+    return checks.get("ai_generated_or_synthetic") is True or any(
+        marker in detected_text
+        for marker in (
+            "ai_generated_or_synthetic",
+            "ai generated",
+            "ai-generated",
+            "synthetic",
+            "generated image",
+            "digitally created",
+        )
+    )
 
 
 def _off_platform_contact_without_evidence(raw_reason_hint: str, detected_text: str, checks: dict) -> bool:
@@ -241,7 +270,8 @@ def safe_note_for_reason(reason_code: str) -> str:
         "clean_profile_style": "AI recommends approval as profile-style image; human/admin workflow remains final.",
         "sexual_content": "AI recommends rejection/escalation for possible sexual content; human/admin workflow remains final.",
         "inappropriate_photos": "AI recommends rejection/escalation for possible inappropriate photo content; human/admin workflow remains final.",
-        "fake_profile": "AI recommends rejection/review for possible fake, non-profile, or AI-generated image.",
+        "fake_profile": "AI recommends rejection/review for possible fake or stolen-looking profile image.",
+        "ai_generated": "AI recommends rejection/review for possible AI-generated or synthetic profile image.",
         "off_platform_contact": "AI recommends rejection/review for possible off-platform contact or contact bait.",
         "spam": "AI recommends rejection/review for possible spam or advertisement content.",
         "money_request": "AI recommends rejection/review for possible money request or transactional dating signal.",

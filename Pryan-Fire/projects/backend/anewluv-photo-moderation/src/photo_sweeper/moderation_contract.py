@@ -2,7 +2,7 @@ from __future__ import annotations
 
 EXPLICIT_REASONS = {"sexual_content", "nudity", "pornographic_explicit", "inappropriate_photos"}
 APPROVE_ONLY_REASONS = {"clean_profile_style"}
-BUSINESS_REJECT_REASONS = {"not_person_photo", "policy_violation", "too_blurry_or_blank", "explicit_content", "unsafe_content"}
+BUSINESS_REJECT_REASONS = {"not_person_photo", "policy_violation", "too_blurry_or_blank", "explicit_content", "unsafe_content", "ai_generated"}
 HARD_SAFETY_HUMAN_ONLY_REASONS = {
     "sexual_content",
     "explicit_content",
@@ -27,7 +27,7 @@ MANUAL_REVIEW_REASONS = {
     "ai_generated_or_synthetic",
 }
 
-PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "underage", "sexual_content"}
+PHOTO_FINAL_DECISION_REASON_CODES = {"inappropriate_photos", "fake_profile", "underage", "sexual_content", "ai_generated"}
 
 
 WORKER_MODEL_CATEGORIES = {
@@ -74,7 +74,10 @@ CANONICAL_REASON_MAP = {
     "nudity": "sexual_content",
     "pornographic_explicit": "sexual_content",
     "inappropriate_photos": "inappropriate_photos",
-    "ai_generated_or_synthetic": "fake_profile",
+    "ai_generated_or_synthetic": "ai_generated",
+    "ai_generated": "ai_generated",
+    "ai_generated_image": "ai_generated",
+    "synthetic_person": "ai_generated",
     "not_a_profile_photo": "not_person_photo",
     "celebrity_or_stock_photo": "fake_profile",
     "object_or_landscape_only": "fake_profile",
@@ -165,7 +168,7 @@ Image type mapping:
 - meme_or_screenshot/text_only/ad/contact/qr -> reject_recommendation or review
 - object_or_landscape_only -> reject_recommendation/review
 - celebrity_or_stock_photo -> fake_profile/review
-- ai_generated_or_synthetic -> fake_profile if high confidence, otherwise review/manual_admin_decision
+- ai_generated_or_synthetic -> ai_generated if high confidence, otherwise review/manual_admin_decision
 - explicit_adult_image -> reject/escalate
 - low_quality_or_unusable -> review/reject
 - underage_concern -> never approve; escalate/review
@@ -220,7 +223,7 @@ CANONICAL canonical_reason_code output only:
 - pornographic_explicit -> sexual_content
 - inappropriate_photos -> inappropriate_photos
 - low_quality_or_unusable -> inappropriate_photos
-- ai_generated_or_synthetic -> fake_profile only if high confidence; otherwise manual_admin_decision/review
+- ai_generated_or_synthetic -> ai_generated only if high confidence; otherwise manual_admin_decision/review
 - not_a_profile_photo -> subtype required: meme_or_screenshot/text/ad/contact -> spam/off_platform_contact/inappropriate_photos; object/landscape/group unclear -> inappropriate_photos or review; celebrity/stock/stolen-looking -> fake_profile
 - celebrity_or_stock_photo -> fake_profile
 - object_or_landscape_only -> fake_profile
@@ -247,7 +250,7 @@ CORE APPROVAL RULE:
 RULES:
 - Final canonical_reason_code must be one canonical Xano-compatible code from the CANONICAL list above; never emit only worker-local detected_category codes
 - If unsure, return "review" or "escalate" with canonical_reason_code "manual_admin_decision" — never approve uncertain
-- Reject AI-generated people with canonical_reason_code "fake_profile"
+- Reject AI-generated people with canonical_reason_code "ai_generated"
 - Reject books/objects/artwork with canonical_reason_code "fake_profile"
 - Reject images with contact info with canonical_reason_code "off_platform_contact" unless it is clearly spam/ad-only, then use "spam"
 - Escalate sexual content, nudity, porn, and underage immediately
