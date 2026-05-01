@@ -512,39 +512,29 @@ def handle_auto_execute(wallet_name: str, trigger: Dict, config: Dict, state: Di
     tracker["last_attempt_at"] = datetime.utcnow().isoformat() + "Z"
     success = execute_position_close(wallet_name, trigger, config, state)
     execution_result = trigger.get("_execution_result", {})
+    execution_record = {
+        "status": "executed" if success else "failed",
+        "trigger_type": trigger_type,
+        "pnl_pct": pnl_pct,
+        "pool_name": pool_name,
+        "signatures": execution_result.get("signatures", []),
+        "close_signatures": execution_result.get("close_signatures", []),
+        "swap_signatures": execution_result.get("swap_signatures", []),
+        "post_close_swap": execution_result.get("post_close_swap"),
+        "dry_run": execution_result.get("dry_run", False),
+    }
     if success:
-        automation_state.setdefault("executions", {})[pubkey] = {
-            "status": "executed",
-            "executed_at": datetime.utcnow().isoformat() + "Z",
-            "trigger_type": trigger_type,
-            "pnl_pct": pnl_pct,
-            "pool_name": pool_name,
-            "signatures": execution_result.get("signatures", []),
-            "close_signatures": execution_result.get("close_signatures", []),
-            "swap_signatures": execution_result.get("swap_signatures", []),
-            "post_close_swap": execution_result.get("post_close_swap"),
-            "dry_run": execution_result.get("dry_run", False),
-        }
-        tracker["executed_at"] = datetime.utcnow().isoformat() + "Z"
+        execution_record["executed_at"] = datetime.utcnow().isoformat() + "Z"
+        automation_state.setdefault("executions", {})[pubkey] = execution_record
+        tracker["executed_at"] = execution_record["executed_at"]
         del exec_tracker[pubkey]
     else:
+        execution_record["failed_at"] = datetime.utcnow().isoformat() + "Z"
+        execution_record["error"] = execution_result.get("error", "close_failed")
+        automation_state.setdefault("executions", {})[pubkey] = execution_record
         tracker["last_status"] = "failed"
-        tracker["last_error"] = execution_result.get("error", "close_failed")
+        tracker["last_error"] = execution_record["error"]
         tracker["pool_name"] = pool_name
-        if execution_result.get("close_signatures") or execution_result.get("post_close_swap"):
-            automation_state.setdefault("executions", {})[pubkey] = {
-                "status": "failed",
-                "failed_at": datetime.utcnow().isoformat() + "Z",
-                "trigger_type": trigger_type,
-                "pnl_pct": pnl_pct,
-                "pool_name": pool_name,
-                "error": execution_result.get("error", "close_failed"),
-                "signatures": execution_result.get("signatures", []),
-                "close_signatures": execution_result.get("close_signatures", []),
-                "swap_signatures": execution_result.get("swap_signatures", []),
-                "post_close_swap": execution_result.get("post_close_swap"),
-                "dry_run": execution_result.get("dry_run", False),
-            }
     return success
 
 
