@@ -796,6 +796,27 @@ class XanoPhaseOneTests(unittest.TestCase):
         self.assertEqual(result["photos_scanned"], 1)
         self.assertEqual(len(fake.decisions), 1)
 
+    def test_live_phase_one_expands_relative_xano_vault_photo_urls(self):
+        class Config:
+            api_base_url = "https://example.xano.io/api:S8LKJE3D"
+
+        class FakeClient:
+            config = Config()
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photo_url="/vault/redacted/file.png", local_fixture_path=None, photostatus_id=1, deleted=False)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "items": [item],
+                }
+
+        result = run_once([], limit=1, photo_id=None, dry_run=True, force=False, model_fixture=None, xano_client=FakeClient())
+        photo = result["photos"][0]
+
+        self.assertEqual(photo["queue_source"], "GET /photos/queue")
+        self.assertEqual(photo["deterministic_checks"]["exists"], None)
+        self.assertEqual(photo["deterministic_checks"]["warnings"], ["remote_fetch_disabled_for_dry_run"])
+
     def test_live_phase_one_noops_unresolved_manual_review_results(self):
         class FakeClient:
             def __init__(self):

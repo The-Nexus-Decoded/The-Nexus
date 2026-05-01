@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import urllib.parse
 import uuid
 from pathlib import Path
 from typing import Any
@@ -55,7 +56,7 @@ def run_once(
         live_payload = xano_client.queue(page=page, per_page=per_page or limit)
         raw_items = live_payload.get("items", [])
         fetched_count = len(raw_items)
-        queue = [normalize_item(item) for item in raw_items if _is_live_uploaded_candidate(item)]
+        queue = [_normalize_live_item(item, xano_client=xano_client) for item in raw_items if _is_live_uploaded_candidate(item)]
         settings = live_payload.get("settings") if isinstance(live_payload.get("settings"), dict) else {}
     else:
         settings = {}
@@ -98,6 +99,18 @@ def run_once(
 
 def _is_live_uploaded_candidate(item: dict) -> bool:
     return item.get("photostatus_id") == 1 and item.get("deleted") is not True
+
+
+def _normalize_live_item(item: dict, *, xano_client: XanoModerationClient) -> dict:
+    normalized = normalize_item({**item, "queue_source": "GET /photos/queue"})
+    photo_url = normalized.get("photo_url")
+    if isinstance(photo_url, str) and photo_url.startswith("/"):
+        api_base = getattr(getattr(xano_client, "config", None), "api_base_url", None)
+        if isinstance(api_base, str) and api_base:
+            parsed = urllib.parse.urlparse(api_base)
+            origin = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+            normalized["photo_url"] = urllib.parse.urljoin(f"{origin}/", photo_url.lstrip("/"))
+    return normalized
 
 
 def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: int | str | None, settings: dict[str, Any]) -> dict:
