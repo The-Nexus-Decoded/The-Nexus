@@ -1,0 +1,162 @@
+# Anewluv Photo Moderation — Xano Branch-Only Verification
+
+Date: 2026-04-30  
+Verifier: Devon  
+Scope: created Xano objects from additive moderation work
+
+## Result
+
+**Branch-only verification failed / unresolved leaning live-visible.**
+
+The target branch exists and production live branch remains `v1`, but Lord Xar clarified Anewluv normally works on Xano `v1` and does not use new Xano branches by default. Separately, the new API endpoints are visible in the live `v1` moderation API group listing/OpenAPI metadata without a branch label. The Xano metadata returned `branch: null` for the created endpoints.
+
+Follow-up API evidence on 2026-04-30 showed the target endpoints in live workspace OpenAPI and live moderation API group id `162`, but not in the branch-scoped workspace OpenAPI and not in the branch moderation API group id `185`. This means Devon cannot truthfully claim the endpoints are branch-only from observed API metadata. Treat them as live-visible/inert until Xano UI or authoritative Xano support confirms otherwise.
+
+## Confirmed branch state
+
+Live branch remains:
+
+```json
+[{"label":"v1","live":true}]
+```
+
+Target branch exists:
+
+```text
+photo-ai-moderation-worker
+```
+
+Branch-specific moderation API group observed by `listAPIGroups(branch=photo-ai-moderation-worker)`:
+
+```text
+moderation — id 185 — branch photo-ai-moderation-worker
+```
+
+Live moderation API group observed by default/live `listAPIGroups`:
+
+```text
+moderation — id 162 — branch v1
+```
+
+## Created object visibility
+
+The following new endpoints were found in `listAPIs` and `getApiGroupSwagger`:
+
+- `POST /photos/escalations/open` — id `2827`
+- `GET /photos/escalations` — id `2828`
+- `POST /photos/escalations/ack` — id `2829`
+- `POST /photos/ai_recommendation` — id `2830`
+- `POST /photos/ai_decide` — id `2831`
+
+Observed endpoint metadata:
+
+```json
+{
+  "api_2827": {"name":"photos/escalations/open","verb":"POST","branch":null},
+  "api_2828": {"name":"photos/escalations","verb":"GET","branch":null},
+  "api_2829": {"name":"photos/escalations/ack","verb":"POST","branch":null},
+  "api_2830": {"name":"photos/ai_recommendation","verb":"POST","branch":null},
+  "api_2831": {"name":"photos/ai_decide","verb":"POST","branch":null}
+}
+```
+
+OpenAPI server shown by metadata:
+
+```text
+http://backend/api:S8LKJE3D
+```
+
+OpenAPI paths found in API group swagger for live moderation group id `162`:
+
+- `/photos/ai_recommendation`
+- `/photos/ai_decide`
+- `/photos/escalations/open`
+- `/photos/escalations`
+- `/photos/escalations/ack`
+
+Additional 2026-04-30 API evidence:
+
+- `getWorkspaceOpenApi(workspace_id=1)` default/live contains the target endpoints under `/api:S8LKJE3D/...`.
+- `getWorkspaceOpenApi(workspace_id=1, branch=photo-ai-moderation-worker)` does **not** contain the target endpoints.
+- `listAPIs(apigroup_id=162)` live/default contains API ids `2827–2831` with `branch: null`.
+- `listAPIs(apigroup_id=185)` branch moderation group contains none of API ids `2827–2831` / target paths.
+- `getApiGroupSwagger(apigroup_id=162)` contains the target paths.
+- `getApiGroupSwagger(apigroup_id=185)` does not contain the target paths.
+
+## Created table visibility
+
+The following tables exist as global database additions:
+
+- `photo_ai_moderation_audit` — id `162`
+- `photo_moderation_escalations` — id `163`
+
+This matches Xano's branch model expectation that branches are business-logic copies while database tables are workspace/global data schema. Lord Xar's operational clarification supersedes the earlier branch-first assumption: use `v1` as the normal working branch, but keep all unapproved endpoints/tables inert.
+
+## Architecture correction: unified moderation history
+
+Lord Xar corrected the audit architecture after these global table additions: moderation history must be **unified**, not AI-only.
+
+Target contract:
+
+- Every moderated photo action is recorded in the same moderation history format, regardless of actor type.
+- Human admin, normal moderator/user if applicable, AI agent, and system actions use the same audit/ledger contract.
+- `actor_type` distinguishes source: `user | admin | ai_agent | system`.
+- Actor identity fields carry the human/user/system/AI identity where available.
+- Shared fields carry decision/action/reason/note/outcome.
+- AI metadata such as model, confidence, summary, dry-run, fallback, and error data is nullable when the actor is not AI.
+- Do not build separate AI-vs-human moderation trails.
+
+Because `photo_ai_moderation_audit` and `photo_moderation_escalations` already exist globally, remediation must remain additive/non-destructive. Preferred path is to review existing photo/photo-management tables first; new table usage is allowed only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes. Until that review completes, the created tables must remain inert.
+
+Allowed remediation paths:
+
+1. **Rename if branch-safe and explicitly approved.** Rename `photo_ai_moderation_audit` to a generic name such as `photo_moderation_audit` only if Xano confirms the rename is branch-safe or Lord Xar/Zifnab approve the global rename.
+2. **Deprecate by docs if rename is not safe.** Leave table id `162` in place, mark its AI-specific name as historical/provisional, and document that usage must follow the generic moderation-history contract.
+3. **Replace usage with a generic contract without deleting.** Prefer existing/generic moderation table or endpoint contract for new usage, while leaving the already-created table inert/unused if it is not the accepted target.
+
+Forbidden remediation paths:
+
+- No delete/drop/truncate of the already-created table.
+- No destructive replacement.
+- No second audit table unless explicitly approved after reconciliation.
+
+## Guardrails held
+
+- No delete/truncate/drop tools were used.
+- No destructive replacement was used.
+- Existing `POST /photos/decide` was not edited.
+- Production branch was not set live or changed by `setBranchLive`.
+- Lord Xar clarified that Anewluv normally works on `v1`; new Xano branches are not the default because testing requires changed client/API URLs and Lord Xar merge handling.
+- New work was documented with object IDs and acceptance criteria.
+
+## Risk / blocker
+
+The created API endpoints appear visible in the live/default moderation API group id `162`, not isolated to the branch moderation group id `185`. Before any worker uses them for writes or before any go-live claim, this needs review by Zifnab/Lord Xar and/or Xano UI verification.
+
+The created audit table name is AI-specific while the corrected requirement is generic moderation history. That mismatch must be reconciled before worker writes or mobile/admin surfaces depend on it.
+
+Evidence-only guardrail: no endpoint execution, worker write enablement, schema/table changes, second audit table, or production branch switch was performed during this follow-up check.
+
+## Required next decisions
+
+- Treat the branch-scoping question as historical evidence. Current Lord Xar direction is `v1`-first with explicit approval gates, not new Xano branches by default.
+- Because API metadata currently shows live-visible behavior, decide whether to leave endpoints inert behind auth/service-key gates until review, disable/remove only through an approved non-destructive/live-safe plan, or recreate contracts through a proven branch-safe path.
+- Review existing photo/photo-management tables first and decide whether they can support unified moderation history plus escalation lifecycle without destructive changes.
+- Decide the non-destructive remediation for `photo_ai_moderation_audit` id `162`: branch-safe rename, documented generic usage despite historical name, or leave inert and use a reconciled generic moderation audit contract elsewhere.
+- Keep `photo_ai_moderation_audit` id `162` and `photo_moderation_escalations` id `163` inert until that review is complete.
+- No worker write gate should be enabled until this is resolved.
+
+## Acceptance criteria update
+
+- [x] Created object IDs/contracts documented.
+- [x] Branch existence verified.
+- [x] Live branch remains `v1`.
+- [x] Metadata visibility checked.
+- [x] Xano branch policy clarified by Lord Xar: Anewluv normally works on `v1`; branch-only isolation is not the expected development path unless explicitly requested.
+- [ ] Xano UI or authoritative metadata confirms endpoint branch scope or confirms live visibility.
+- [ ] Preferred path reviewed first: existing photo/photo-management tables before using newly-created tables.
+- [ ] New tables used only if existing structures cannot support unified moderation history plus escalation lifecycle without destructive changes.
+- [ ] Created tables remain inert until that review is complete.
+- [ ] Unified moderation history contract reconciled: same format for all actor types, nullable AI metadata, no AI-only audit silo.
+- [ ] Non-destructive remediation selected for `photo_ai_moderation_audit` id `162`.
+- [ ] Worker write path remains disabled until verification passes.
