@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "com.unity.inputsystem": "1.7.0",
+    "com.unity.test-framework": "1.1.33",
+    "com.unity.xr.management": "4.4.0",
+    "com.unity.xr.openxr": "1.8.2"
+  }
+}
