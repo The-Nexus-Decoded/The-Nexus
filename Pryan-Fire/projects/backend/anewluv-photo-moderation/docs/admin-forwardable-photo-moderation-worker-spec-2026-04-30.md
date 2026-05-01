@@ -137,6 +137,8 @@ Expected shape:
 
 Live queue dry-run, once auth/env exists, must remain the same shape but with queue source summarized/redacted. It must not include raw user identifiers, raw image URLs, tokens, actor keys, or Authorization headers.
 
+2026-04-30 endpoint-update note for #339: `/photos/queue` remains unchanged by the later Xano endpoint updates. The new AI grace-period enforcement applies to `/photos/escalations/ack` for the #346 escalator path, not to this #339 polling/decision worker. #339 acceptance only needs one fresh non-mutating `/photos/queue` round trip before any owner-approved live write.
+
 ## 7. Current status / remaining gate
 
 Current status:
