@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from photo_sweeper.lock import LockHeld, RunLock
 from photo_sweeper.model import (
     CodexOpenAIAdapter,
     MiniMaxCLIAdapter,
@@ -767,6 +768,79 @@ class XanoPhaseOneTests(unittest.TestCase):
         dumped = json.dumps(result)
         self.assertNotIn("actor_key", dumped)
         self.assertNotIn("Authorization", dumped)
+
+    def test_live_phase_one_uses_one_run_id_and_dedupes_duplicate_photos(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                item = dict(load_queue()[0], photostatus_id=1, deleted=False)
+                duplicate = dict(item)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [item, duplicate],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        fake = FakeClient()
+        result = run_once([], limit=25, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=fake)
+
+        self.assertEqual(result["photos_scanned"], 1)
+        self.assertEqual(len(fake.decisions), 1)
+        self.assertEqual(fake.decisions[0]["run_id"], result["run_id"])
+        self.assertEqual(fake.decisions[0]["idempotency_key"], f"{result['run_id']}:101")
+
+    def test_live_phase_one_skips_already_ai_processed_unless_force(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                processed = dict(load_queue()[0], photostatus_id=1, deleted=False, ai_reason_code="not_person_photo")
+                fresh = dict(load_queue()[0], photo_id=201, photostatus_id=1, deleted=False)
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [processed, fresh],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+        no_force = FakeClient()
+        no_force_result = run_once([], limit=25, photo_id=None, dry_run=False, force=False, model_fixture=None, xano_client=no_force)
+        self.assertEqual(no_force_result["summary"]["selected_photo_ids"], [201])
+        self.assertEqual([payload["photo_id"] for payload in no_force.decisions], [201])
+
+        forced = FakeClient()
+        forced_result = run_once([], limit=25, photo_id=None, dry_run=False, force=True, model_fixture=None, xano_client=forced)
+        self.assertEqual(forced_result["summary"]["selected_photo_ids"], [101, 201])
+        self.assertEqual([payload["photo_id"] for payload in forced.decisions], [101, 201])
+
+    def test_run_lock_rejects_overlap(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = Path(tmpdir) / "photo-sweeper.lock"
+            with RunLock(lock_path):
+                with self.assertRaises(LockHeld):
+                    with RunLock(lock_path):
+                        pass
+
+    def test_cli_live_write_lock_held_returns_tempfail(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = Path(tmpdir) / "photo-sweeper.lock"
+            with RunLock(lock_path):
+                proc = run_cli("--once", "--live-write", "--lock-file", str(lock_path), "--limit", "1", check=False)
+
+        self.assertEqual(proc.returncode, 75)
+        self.assertIn("lock already held", proc.stderr)
 
     def test_live_phase_one_applies_client_side_limit_even_if_server_ignores_it(self):
         class FakeClient:

@@ -70,8 +70,9 @@ def run_once(
     else:
         runtime_contract = RuntimeContract.from_payload({}, fallback_allowed=True)
     effective_limit = _effective_limit(limit, runtime_contract.settings)
-    selected = _select(queue, limit=effective_limit, photo_id=photo_id)
+    selected = _select(queue, limit=effective_limit, photo_id=photo_id, force=force)
     adapter = _build_adapter(model_adapter, model_fixture, runtime_contract=runtime_contract)
+    run_id = str(uuid.uuid4())
     photos = []
     failures = []
     decision_calls = []
@@ -93,7 +94,7 @@ def run_once(
         if not dry_run:
             if xano_client is None:
                 raise ValueError("xano_client is required when dry_run is false")
-            call = _submit_ai_decision(xano_client, photo, user_id=item.get("user_id"), runtime_contract=runtime_contract)
+            call = _submit_ai_decision(xano_client, photo, user_id=item.get("user_id"), runtime_contract=runtime_contract, run_id=run_id)
             photo["xano_decision"] = call
             decision_calls.append(call)
             if call.get("status") == "race_skip":
@@ -112,6 +113,7 @@ def run_once(
         "page": page,
         "per_page": per_page or limit,
         "local_cap": effective_limit,
+        "run_id": run_id,
         "photos_scanned": len(photos),
         "photos": photos,
         "decision_calls": decision_calls,
@@ -171,8 +173,7 @@ def _effective_limit(limit: int | None, settings: dict[str, Any]) -> int | None:
     return parsed_cap if limit is None else min(limit, parsed_cap)
 
 
-def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: int | str | None, runtime_contract: RuntimeContract) -> dict:
-    run_id = str(uuid.uuid4())
+def _submit_ai_decision(client: XanoModerationClient, photo: dict, *, user_id: int | str | None, runtime_contract: RuntimeContract, run_id: str) -> dict:
     decision = _xano_decision(photo, runtime_contract=runtime_contract)
     if decision is None:
         return _submit_escalation(client, photo, user_id=user_id, settings=runtime_contract.settings, run_id=run_id)
@@ -338,13 +339,33 @@ def _compact_note_detail(value: Any) -> str | None:
     return detail[:900]
 
 
-def _select(queue: list[dict], *, limit: int | None, photo_id: str | None) -> list[dict]:
+def _select(queue: list[dict], *, limit: int | None, photo_id: str | None, force: bool = False) -> list[dict]:
     items = queue
     if photo_id is not None:
         items = [item for item in items if str(item.get("photo_id")) == str(photo_id)]
-    if limit is not None:
-        items = items[: max(0, limit)]
-    return items
+    selected = []
+    seen_photo_ids = set()
+    for item in items:
+        current_id = item.get("photo_id")
+        if current_id in seen_photo_ids:
+            continue
+        if not force and _already_ai_processed(item):
+            continue
+        seen_photo_ids.add(current_id)
+        selected.append(item)
+        if limit is not None and len(selected) >= max(0, limit):
+            break
+    return selected
+
+
+def _already_ai_processed(item: dict) -> bool:
+    if item.get("ai_processed") is True or item.get("already_ai_processed") is True:
+        return True
+    for key in ("ai_reason_code", "ai_verdict", "ai_status", "last_ai_assessment_id", "ai_assessment_id", "moderation_run_id"):
+        value = item.get(key)
+        if value not in (None, ""):
+            return True
+    return False
 
 
 def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None = None) -> dict:
