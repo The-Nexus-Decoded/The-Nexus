@@ -75,7 +75,15 @@ jobs:
             rm -rf /tmp/the-nexus-trading-services/extract
             mkdir -p /tmp/the-nexus-trading-services/extract
             tar -xzf /tmp/the-nexus-trading-services/trading-services.tar.gz -C /tmp/the-nexus-trading-services/extract
-            rsync -a --delete /tmp/the-nexus-trading-services/extract/services/ '$LIVE_SERVICES_DIR'/
+            rsync -a --delete --exclude 'trade-orchestrator/venv/' --exclude '__pycache__/' --exclude '*.pyc' /tmp/the-nexus-trading-services/extract/services/ '$LIVE_SERVICES_DIR'/
+          "
+
+      - name: Ensure trade orchestrator runtime dependencies
+        run: |
+          ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "set -euo pipefail
+            cd /data/repos/The-Nexus/Pryan-Fire/hughs-forge/services/trade-orchestrator
+            python3 -m venv venv
+            ./venv/bin/python -m pip install -r requirements.txt
           "
 
       - name: Restart live trading user service
@@ -83,7 +91,7 @@ jobs:
           ssh "$TRADE_SERVER_USER@$TRADE_SERVER_HOST" "set -euo pipefail
             uid=\$(id -u)
             XDG_RUNTIME_DIR=/run/user/\$uid systemctl --user restart '$TRADE_SERVICE_NAME'
-            sleep 2
+            sleep 4
             XDG_RUNTIME_DIR=/run/user/\$uid systemctl --user is-active --quiet '$TRADE_SERVICE_NAME'
           "
 
