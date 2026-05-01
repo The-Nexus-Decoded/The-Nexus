@@ -949,6 +949,52 @@ class ProviderChainPhaseFourTests(unittest.TestCase):
         self.assertEqual(photo["normalized_result"]["raw_reason_code"], "provider_chain_failed")
         self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "provider_chain_failed")
 
+    def test_stage2_invalid_missing_provider_output_escalates_without_decision(self):
+        class FakeClient:
+            def __init__(self):
+                self.decisions = []
+                self.escalations = []
+                self.queue_item = None
+
+            def queue(self, *, page=1, per_page=None, limit=None):
+                return {
+                    "settings": {"ai_auto_decide_enabled": True, "ai_escalate_below_confidence": 0.7},
+                    "reason_codes": PHOTO_REASON_CODES,
+                    "review_items": PHOTO_FALLBACK_REVIEW_ITEMS,
+                    "items": [self.queue_item],
+                }
+
+            def ai_decide(self, payload):
+                self.decisions.append(payload)
+                return {"coerced": False}
+
+            def escalation_open(self, payload):
+                self.escalations.append(payload)
+                return {"escalation_id": 344}
+
+        fake = FakeClient()
+        result = self._run_chain_case(
+            "manual_review_needed",
+            "invalid_missing_reason",
+            dry_run=False,
+            xano_client=fake,
+            fixture_extra={
+                "invalid_missing_reason": {
+                    "verdict": "reject_recommendation",
+                    "confidence": 0.95,
+                    "note": "provider omitted reason code",
+                    "unsafe_categories": ["unknown"],
+                }
+            },
+        )
+        photo = result["photos"][0]
+
+        self.assertEqual(fake.decisions, [])
+        self.assertEqual(len(fake.escalations), 1)
+        self.assertEqual(fake.escalations[0]["route"], "agent_review")
+        self.assertEqual(photo["planned_action"], "agent_review")
+        self.assertEqual(photo["normalized_result"]["provider_chain_decision"], "stage1_fallthrough")
+
     def test_vision_only_chain_never_auto_rejects_clean_approval_still_allowed(self):
         class FakeClient:
             def __init__(self, key):
