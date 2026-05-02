@@ -3,6 +3,7 @@ from __future__ import annotations
 import urllib.parse
 import uuid
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -472,16 +473,78 @@ def _summary(photos: list[dict], *, dry_run: bool, failures: list[dict] | None =
     }
 
 
+def _build_reason_vocabulary(runtime_contract: RuntimeContract) -> tuple[dict[str, Any], ...]:
+    vocab_rows: list[dict[str, Any]] = []
+
+    for code, row in sorted(runtime_contract.reason_codes.items()):
+        if not isinstance(row, dict):
+            continue
+        entry = dict(row)
+        entry.setdefault("code", code)
+        vocab_rows.append(entry)
+
+    for row in runtime_contract.review_items:
+        if not isinstance(row, dict):
+            continue
+        code = str(row.get("reason_code") or row.get("code") or "").strip()
+        if not code:
+            continue
+        entry = dict(row)
+        entry.setdefault("code", code)
+        vocab_rows.append(entry)
+
+    vocab_rows.extend(_load_reason_vocab_supplement())
+    return tuple(vocab_rows)
+
+
+def _load_reason_vocab_supplement() -> list[dict[str, Any]]:
+    path = os.environ.get("ANEWLUV_REASON_MATCH_CONFIG_PATH") or os.environ.get("ANEWLUV_REASON_MATCH_CONFIG")
+    if not path:
+        return []
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    if isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict):
+                rows.append(dict(item))
+        return rows
+
+    if not isinstance(payload, dict):
+        return []
+
+    for key in ("items", "rows", "reason_vocabulary", "aliases"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    rows.append(dict(item))
+
+    mapping = payload.get("reason_alias_map")
+    if isinstance(mapping, dict):
+        for code, aliases in mapping.items():
+            if not code:
+                continue
+            rows.append({"code": str(code), "aliases": aliases})
+
+    return rows
+
+
 def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_contract: RuntimeContract):
     normalized = model_adapter.strip().lower()
     allowed_reason_codes = set(runtime_contract.reason_codes)
+    reason_vocabulary = _build_reason_vocabulary(runtime_contract)
     if normalized == "mock":
-        return MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes)
+        return MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes, reason_vocabulary=reason_vocabulary)
     if normalized in PROVIDER_CHAIN_ADAPTER_NAMES:
         return ProviderChainAdapter(
             stage1=MockModelAdapter(
                 model_fixture,
                 allowed_reason_codes=allowed_reason_codes,
+                reason_vocabulary=reason_vocabulary,
                 key_field="moderation_fixture_key",
                 default_model="mock_moderation_api",
                 provider_defaults={
@@ -490,12 +553,22 @@ def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_co
                     "vision_model_used": "not_called",
                 },
             ),
-            stage2=MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes, default_model="mock_vision_llm"),
+            stage2=MockModelAdapter(
+                model_fixture,
+                allowed_reason_codes=allowed_reason_codes,
+                reason_vocabulary=reason_vocabulary,
+                default_model="mock_vision_llm",
+            ),
         )
     if normalized in VISION_ONLY_CHAIN_ADAPTER_NAMES:
         return ProviderChainAdapter(
             stage1=None,
-            stage2=MockModelAdapter(model_fixture, allowed_reason_codes=allowed_reason_codes, default_model="mock_vision_llm"),
+            stage2=MockModelAdapter(
+                model_fixture,
+                allowed_reason_codes=allowed_reason_codes,
+                reason_vocabulary=reason_vocabulary,
+                default_model="mock_vision_llm",
+            ),
             vision_only=True,
         )
     if normalized in CODEX_OPENAI_ADAPTER_NAMES:
@@ -504,7 +577,11 @@ def _build_adapter(model_adapter: str, model_fixture: Path | None, *, runtime_co
             from .moderation_contract import provider_instructions
 
             instructions = provider_instructions(review_items_prompt_text(runtime_contract.review_items))
-        return CodexOpenAIAdapter(instructions=instructions, allowed_reason_codes=allowed_reason_codes)
+        return CodexOpenAIAdapter(
+            instructions=instructions,
+            allowed_reason_codes=allowed_reason_codes,
+            reason_vocabulary=reason_vocabulary,
+        )
     if normalized in OPENAI_MODERATIONS_ADAPTER_NAMES:
         raise ValueError("openai-moderations adapter is not available in this checkout")
     if normalized in MINIMAX_FALLBACK_ADAPTER_NAMES:

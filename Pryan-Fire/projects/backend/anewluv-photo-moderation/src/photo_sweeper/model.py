@@ -40,6 +40,7 @@ class MockModelAdapter:
         manifest_path: Path | None = None,
         *,
         allowed_reason_codes: set[str] | None = None,
+        reason_vocabulary: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
         key_field: str = "model_fixture_key",
         default_model: str = "mock_fixture",
         provider_defaults: dict[str, Any] | None = None,
@@ -47,6 +48,7 @@ class MockModelAdapter:
         with (manifest_path or DEFAULT_MODEL_FIXTURE).open("r", encoding="utf-8") as handle:
             self._responses = json.load(handle)
         self.allowed_reason_codes = allowed_reason_codes or set()
+        self.reason_vocabulary = tuple(reason_vocabulary or ())
         self.key_field = key_field
         self.default_model = default_model
         self.provider_defaults = provider_defaults or {}
@@ -69,7 +71,12 @@ class MockModelAdapter:
             "darkness_score",
             "sharpness_edge_score",
         ]
-        return normalize_model_result(response, default_model=self.default_model, allowed_reason_codes=self.allowed_reason_codes)
+        return normalize_model_result(
+            response,
+            default_model=self.default_model,
+            allowed_reason_codes=self.allowed_reason_codes,
+            reason_vocabulary=self.reason_vocabulary,
+        )
 
 
 class ProviderChainAdapter:
@@ -125,6 +132,7 @@ class CodexOpenAIAdapter:
         codex_auth_path: Path | None = None,
         instructions: str | None = None,
         allowed_reason_codes: set[str] | None = None,
+        reason_vocabulary: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
     ) -> None:
         raw_api_key = api_key or os.environ.get("CODEX_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
         self.api_key = raw_api_key.strip() if raw_api_key else None
@@ -134,6 +142,7 @@ class CodexOpenAIAdapter:
         self.codex_auth_path = codex_auth_path or Path(os.environ.get("CODEX_AUTH_PATH", Path.home() / ".codex" / "auth.json"))
         self.instructions = instructions
         self.allowed_reason_codes = allowed_reason_codes or set()
+        self.reason_vocabulary = tuple(reason_vocabulary or ())
 
     def review(self, item: dict, deterministic_checks: dict) -> dict:
         image_path = item.get("resolved_image_path") or item.get("local_fixture_path")
@@ -152,7 +161,12 @@ class CodexOpenAIAdapter:
         except Exception as exc:  # pragma: no cover - network/provider dependent
             return _manual_failure("api_failure_fallback", DEFAULT_CODEX_MODEL_ROUTE, f"Codex/OpenAI route failed with {exc.__class__.__name__}; manual review required.")
 
-        return normalize_model_result(_extract_provider_json(payload), default_model=DEFAULT_CODEX_MODEL_ROUTE, allowed_reason_codes=self.allowed_reason_codes)
+        return normalize_model_result(
+            _extract_provider_json(payload),
+            default_model=DEFAULT_CODEX_MODEL_ROUTE,
+            allowed_reason_codes=self.allowed_reason_codes,
+            reason_vocabulary=self.reason_vocabulary,
+        )
 
     def _build_request(self, image_url: str) -> urllib.request.Request:
         oauth = _load_codex_oauth(self.codex_auth_path)

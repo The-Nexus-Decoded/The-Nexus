@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from .moderation_contract import CANONICAL_REASON_MAP, DEFAULT_PROFILE_CHECKS
 from .validators import is_valid_normalized_result
@@ -44,30 +45,42 @@ DERIVED_CONFIDENCE_BY_REASON = {
     "too_blurry_or_blank": 0.74,
 }
 
-FUZZY_REASON_MARKERS = (
-    ("underage_concern", ("under age", "underage", "minor", "child", "teen", "youth")),
-    ("minor_targeting", ("targets minors", "targeting minors", "minor targeting", "sexualizes youth")),
-    ("pornographic_explicit", ("pornographic", "hard porn", "explicit porn", "sexual act", "intercourse")),
-    ("sexual_content", ("sexual content", "nudity", "nude", "genital", "masturbat")),
-    ("hate_or_harassment", ("hate speech", "slur", "harassment", "threat", "bullying", "abuse")),
-    ("money_request", ("cashapp", "venmo", "paypal", "money request", "sugar")),
-    ("qr_code", ("qr code", "qrcode", "qr-code", "barcode")),
-    ("contact_info_or_ad", ("phone number", "email", "instagram", "snapchat", "telegram", "whatsapp", "social handle", "off platform")),
-    ("ai_generated_or_synthetic", ("ai generated", "ai-generated", "synthetic", "digitally created", "rendered", "generated image")),
-    ("celebrity_or_stock_photo", ("stock photo", "celebrity", "stolen photo", "model image")),
-    ("meme_or_screenshot", ("screenshot", "meme")),
-    ("low_quality_or_unusable", ("blurry", "blurred", "low quality", "dark", "obscured", "not visible", "unusable")),
-    ("not_a_profile_photo", ("not a profile photo", "no person", "not person", "object only", "landscape only")),
-    ("manual_review_needed", ("uncertain", "unclear", "ambiguous", "cannot determine", "not sure")),
-)
-
 REASON_TEXT_FIELDS = ("reason_code", "canonical_reason_code", "reason", "detected_category", "note")
 LEVENSHTEIN_SIMILARITY_THRESHOLD = 0.82
 LEVENSHTEIN_MAX_DISTANCE = 2
 SUBSTRING_MIN_TOKEN_LEN = 4
+FUZZY_MATCH_MIN_SCORE = 0.45
 
+REASON_VOCAB_ALIAS_FIELDS = (
+    "alias",
+    "aliases",
+    "synonym",
+    "synonyms",
+    "keyword",
+    "keywords",
+    "match_term",
+    "match_terms",
+    "prompt_hint",
+    "prompt_instruction",
+    "description",
+    "label",
+    "name",
+)
 
-def normalize_model_result(result: dict, *, default_model: str, allowed_reason_codes: set[str] | None = None) -> dict:
+REASON_VOCAB_WEIGHT_FIELDS = (
+    "keyword_weight",
+    "match_weight",
+    "confidence_weight",
+    "weight",
+)
+
+def normalize_model_result(
+    result: dict,
+    *,
+    default_model: str,
+    allowed_reason_codes: set[str] | None = None,
+    reason_vocabulary: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+) -> dict:
     normalized = dict(result)
     allowed_reason_codes = {str(code).strip() for code in (allowed_reason_codes or set()) if str(code).strip()}
     if allowed_reason_codes:
@@ -75,7 +88,11 @@ def normalize_model_result(result: dict, *, default_model: str, allowed_reason_c
     if "verdict" not in normalized and "recommendation" in normalized:
         normalized["verdict"] = normalized.get("recommendation")
 
-    resolved_raw_reason, reason_resolution = _resolve_reason_hint(normalized, allowed_reason_codes)
+    resolved_raw_reason, reason_resolution = _resolve_reason_hint(
+        normalized,
+        allowed_reason_codes,
+        reason_vocabulary=reason_vocabulary,
+    )
     if resolved_raw_reason:
         normalized["reason_code"] = resolved_raw_reason
     normalized["match_source"] = reason_resolution.get("mode")
@@ -161,62 +178,108 @@ def normalize_model_result(result: dict, *, default_model: str, allowed_reason_c
     return normalized
 
 
-def _resolve_reason_hint(normalized: dict, allowed_reason_codes: set[str]) -> tuple[str, dict]:
+def _resolve_reason_hint(
+    normalized: dict,
+    allowed_reason_codes: set[str],
+    *,
+    reason_vocabulary: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None,
+) -> tuple[str, dict]:
     canonical_values = set(CANONICAL_REASON_MAP.values())
+    reason_alias_map, db_vocab_present = _build_reason_alias_map(allowed_reason_codes, reason_vocabulary)
     candidate_tokens: list[tuple[str, str]] = []
     for field in ("reason_code", "canonical_reason_code", "reason", "detected_category"):
         normalized_token = _normalize_reason_token(normalized.get(field))
         if not normalized_token:
             continue
         candidate_tokens.append((field, normalized_token))
-        if normalized_token in CANONICAL_REASON_MAP or normalized_token in canonical_values or normalized_token in allowed_reason_codes:
+        # Provider's own canonical code should pass through unchanged
+        if normalized_token in CANONICAL_REASON_MAP:
             return normalized_token, {
                 "mode": "exact_normalized",
                 "field": field,
                 "token": normalized_token,
+                "score": 1.0,
+                "keyword_weight": 1.0,
+                "db_vocab_present": db_vocab_present,
+            }
+        if normalized_token in reason_alias_map:
+            alias = reason_alias_map[normalized_token]
+            return alias["code"], {
+                "mode": "db_exact_normalized",
+                "field": field,
+                "token": alias["code"],
+                "matched_alias": normalized_token,
+                "score": min(1.0, float(alias["weight"])),
+                "keyword_weight": alias["weight"],
+                "vocab_source": alias["source"],
+                "db_vocab_present": db_vocab_present,
+            }
+        if normalized_token in allowed_reason_codes:
+            return normalized_token, {
+                "mode": "allowed_reason_exact",
+                "field": field,
+                "token": normalized_token,
+                "score": 1.0,
+                "keyword_weight": 1.0,
+                "db_vocab_present": db_vocab_present,
+            }
+        if normalized_token in canonical_values:
+            return normalized_token, {
+                "mode": "exact_normalized",
+                "field": field,
+                "token": normalized_token,
+                "score": 1.0,
+                "keyword_weight": 1.0,
+                "db_vocab_present": db_vocab_present,
             }
 
-    reason_vocab = set(CANONICAL_REASON_MAP.keys()) | canonical_values | set(allowed_reason_codes)
+    reason_vocab = set(reason_alias_map.keys())
     substring_match = _best_substring_reason_match(candidate_tokens, reason_vocab)
     if substring_match is not None:
-        return substring_match[0], {
-            "mode": "normalized_substring",
+        alias = reason_alias_map[substring_match[0]]
+        weighted_score = min(1.0, substring_match[3] * float(alias["weight"]))
+        return alias["code"], {
+            "mode": "db_normalized_substring",
             "field": substring_match[1],
-            "token": substring_match[0],
+            "token": alias["code"],
+            "matched_alias": substring_match[0],
             "matched_fragment": substring_match[2],
-            "score": substring_match[3],
+            "score": weighted_score,
+            "raw_score": substring_match[3],
+            "keyword_weight": alias["weight"],
+            "vocab_source": alias["source"],
+            "db_vocab_present": db_vocab_present,
         }
 
     combined_text = " ".join(str(normalized.get(field, "")) for field in REASON_TEXT_FIELDS if normalized.get(field) is not None).lower()
-    marker_match = _marker_reason_from_text(combined_text)
-    if marker_match is not None:
-        return marker_match[0], {
-            "mode": "fuzzy_marker",
-            "field": marker_match[1],
-            "token": marker_match[0],
-            "matched_marker": marker_match[2],
-        }
-
-    fuzzy_vocab_match = _best_allowed_reason_match(combined_text, reason_vocab)
+    fuzzy_vocab_match = _best_allowed_reason_match(combined_text, reason_alias_map)
     if fuzzy_vocab_match is not None:
-        return fuzzy_vocab_match[0], {
-            "mode": "fuzzy_token",
+        alias = reason_alias_map[fuzzy_vocab_match[0]]
+        # Only accept fuzzy match if the matched code is meaningfully related
+        # (i.e., the provider's own reason code is unknown to the DB)
+        # If the provider's own reason code is NOT in allowed_reason_codes,
+        # never map it to a different code via fuzzy matching.
+        # Preserve the provider's raw reason and fail-closed.
+        explicit_provider_code = _normalize_reason_token(normalized.get("reason_code") or normalized.get("canonical_reason_code"))
+        if explicit_provider_code and explicit_provider_code not in allowed_reason_codes:
+            # Provider emitted an explicit reason_code unknown to DB; do not remap it
+            # to a fuzzy-matched different code. Preserve provider reason and fail closed.
+            fuzzy_vocab_match = None
+
+    if fuzzy_vocab_match is not None:
+        alias = reason_alias_map[fuzzy_vocab_match[0]]
+        return alias["code"], {
+            "mode": "db_fuzzy_token",
             "field": "text",
-            "token": fuzzy_vocab_match[0],
+            "token": alias["code"],
+            "matched_alias": fuzzy_vocab_match[0],
             "score": fuzzy_vocab_match[1],
+            "raw_score": fuzzy_vocab_match[4],
+            "keyword_weight": fuzzy_vocab_match[5],
             "matched_tokens": fuzzy_vocab_match[2],
             "token_matches": fuzzy_vocab_match[3],
-        }
-
-    allowed_match = _best_allowed_reason_match(combined_text, allowed_reason_codes)
-    if allowed_match is not None:
-        return allowed_match[0], {
-            "mode": "allowed_reason_fuzzy",
-            "field": "text",
-            "token": allowed_match[0],
-            "score": allowed_match[1],
-            "matched_tokens": allowed_match[2],
-            "token_matches": allowed_match[3],
+            "vocab_source": alias["source"],
+            "db_vocab_present": db_vocab_present,
         }
 
     fallback_token = _normalize_reason_token(normalized.get("reason_code") or normalized.get("canonical_reason_code") or normalized.get("reason"))
@@ -225,13 +288,111 @@ def _resolve_reason_hint(normalized: dict, allowed_reason_codes: set[str]) -> tu
             "mode": "fallback_token",
             "field": "reason_code",
             "token": fallback_token,
+            "db_vocab_present": db_vocab_present,
+            "fail_closed_reason": "db_vocab_unusable" if not db_vocab_present else "no_reason_match",
         }
 
     return "manual_review_needed", {
         "mode": "unresolved",
         "field": "none",
         "token": "manual_review_needed",
+        "db_vocab_present": db_vocab_present,
+        "fail_closed_reason": "db_vocab_unusable" if not db_vocab_present else "no_reason_match",
     }
+
+
+def _build_reason_alias_map(
+    allowed_reason_codes: set[str],
+    reason_vocabulary: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None,
+) -> tuple[dict[str, dict[str, Any]], bool]:
+    alias_map: dict[str, dict[str, Any]] = {}
+
+    for raw_code in sorted(allowed_reason_codes):
+        code = _normalize_reason_token(raw_code)
+        if not code:
+            continue
+        _upsert_reason_alias(alias_map, code, code, 1.0, "reason_codes.code")
+
+    for row in tuple(reason_vocabulary or ()):
+        if not isinstance(row, dict):
+            continue
+        code = _normalize_reason_token(row.get("code") or row.get("reason_code") or row.get("canonical_reason_code"))
+        if not code:
+            continue
+        weight = _reason_keyword_weight(row)
+        _upsert_reason_alias(alias_map, code, code, weight, "reason_vocabulary.code")
+        for field in REASON_VOCAB_ALIAS_FIELDS:
+            for raw_alias in _iter_alias_candidates(row.get(field)):
+                alias = _normalize_reason_token(raw_alias)
+                if not alias:
+                    continue
+                _upsert_reason_alias(alias_map, alias, code, weight, f"reason_vocabulary.{field}")
+
+    return alias_map, bool(alias_map)
+
+
+def _upsert_reason_alias(
+    alias_map: dict[str, dict[str, Any]],
+    alias: str,
+    code: str,
+    weight: float,
+    source: str,
+) -> None:
+    current = alias_map.get(alias)
+    if current is None:
+        alias_map[alias] = {
+            "code": code,
+            "weight": float(weight),
+            "source": source,
+        }
+        return
+    existing_weight = float(current.get("weight", 0.0))
+    # Only replace if new weight is strictly greater
+    # and don't replace a canonical code entry with an alias entry of equal weight
+    if float(weight) > existing_weight:
+        alias_map[alias] = {
+            "code": code,
+            "weight": float(weight),
+            "source": source,
+        }
+
+
+def _reason_keyword_weight(row: dict[str, Any]) -> float:
+    for field in REASON_VOCAB_WEIGHT_FIELDS:
+        value = row.get(field)
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0.0:
+            return min(1.5, max(0.2, parsed))
+    return 1.0
+
+
+def _iter_alias_candidates(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return []
+        parts = [text]
+        parts.extend(piece.strip() for piece in re.split(r"[\n,;|]+", text) if piece.strip())
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for part in parts:
+            key = part.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(part)
+        return deduped
+    if isinstance(value, (list, tuple, set)):
+        flattened: list[str] = []
+        for child in value:
+            flattened.extend(_iter_alias_candidates(child))
+        return flattened
+    return [str(value)]
 
 
 def _resolve_confidence(
@@ -273,11 +434,21 @@ def _resolve_confidence(
             "semantic_layer": "skipped_non_deterministic",
         }
 
-    return float(derived), "derived_reason_map", {
+    match_score = _normalize_confidence(reason_resolution.get("score"))
+    if match_score is None:
+        match_score = 1.0 if reason_resolution.get("mode") in {"db_exact_normalized", "exact_normalized"} else 0.7
+    keyword_weight = _safe_positive_float(reason_resolution.get("keyword_weight"), default=1.0)
+    quality_factor = min(1.0, max(0.35, match_score * min(1.25, keyword_weight)))
+    weighted = float(derived) * quality_factor
+
+    return float(weighted), "derived_reason_map", {
         "mode": "derived_reason_map",
         "reason_hint": reason_hint,
         "canonical_reason": canonical_reason,
         "reason_resolution": reason_resolution,
+        "match_score": match_score,
+        "keyword_weight": keyword_weight,
+        "quality_factor": quality_factor,
         "semantic_layer": "skipped_non_deterministic",
     }
 
@@ -294,6 +465,16 @@ def _normalize_confidence(value: object) -> float | None:
     return parsed
 
 
+def _safe_positive_float(value: object, *, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return float(default)
+    if parsed <= 0.0:
+        return float(default)
+    return float(parsed)
+
+
 def _normalize_reason_token(value: object) -> str:
     if value is None:
         return ""
@@ -302,15 +483,6 @@ def _normalize_reason_token(value: object) -> str:
         return ""
     text = re.sub(r"[^a-z0-9]+", "_", text)
     return text.strip("_")
-
-
-def _marker_reason_from_text(text: str) -> tuple[str, str, str] | None:
-    normalized_text = text.lower()
-    for reason, markers in FUZZY_REASON_MARKERS:
-        for marker in markers:
-            if _contains_marker(normalized_text, marker):
-                return reason, "text", marker
-    return None
 
 
 def _contains_marker(text: str, marker: str) -> bool:
@@ -346,8 +518,11 @@ def _best_substring_reason_match(
     return best
 
 
-def _best_allowed_reason_match(text: str, allowed_reason_codes: set[str]) -> tuple[str, float, list[str], list[dict[str, object]]] | None:
-    if not text or not allowed_reason_codes:
+def _best_allowed_reason_match(
+    text: str,
+    reason_alias_map: dict[str, dict[str, Any]],
+) -> tuple[str, float, list[str], list[dict[str, object]], float, float] | None:
+    if not text or not reason_alias_map:
         return None
     raw_tokens = re.findall(r"[a-z0-9]+", text.lower())
     text_tokens = set(raw_tokens)
@@ -355,9 +530,12 @@ def _best_allowed_reason_match(text: str, allowed_reason_codes: set[str]) -> tup
         joined = f"{raw_tokens[index]}{raw_tokens[index + 1]}"
         if len(joined) >= SUBSTRING_MIN_TOKEN_LEN:
             text_tokens.add(joined)
-    best: tuple[str, float, list[str], list[dict[str, object]]] | None = None
-    for code in sorted(allowed_reason_codes):
-        tokens = [token for token in _normalize_reason_token(code).split("_") if token]
+
+    best: tuple[str, float, list[str], list[dict[str, object]], float, float] | None = None
+    for alias in sorted(reason_alias_map):
+        meta = reason_alias_map[alias]
+        weight = _safe_positive_float(meta.get("weight"), default=1.0)
+        tokens = [token for token in _normalize_reason_token(alias).split("_") if token]
         if not tokens:
             continue
 
@@ -378,22 +556,23 @@ def _best_allowed_reason_match(text: str, allowed_reason_codes: set[str]) -> tup
             if fuzzy_match is not None:
                 fuzzy_matches.append({"expected": token, "observed": fuzzy_match, "similarity": round(fuzzy_score, 4)})
 
-        phrase_match = _contains_marker(text, code.replace("_", " "))
+        phrase_match = _contains_marker(text, alias.replace("_", " "))
         if phrase_match:
-            score = 1.0
+            raw_score = 1.0
         else:
             weighted = len(exact_matches) + (0.8 * len(fuzzy_matches))
-            score = weighted / len(tokens)
+            raw_score = weighted / len(tokens)
 
-        if score < 0.67 and not phrase_match:
+        if raw_score < FUZZY_MATCH_MIN_SCORE and not phrase_match:
             continue
 
+        weighted_score = min(1.0, raw_score * min(1.5, weight))
         matched_tokens = sorted(set(exact_matches + [item["expected"] for item in fuzzy_matches]))
-        candidate = (code, score, matched_tokens, fuzzy_matches)
+        candidate = (alias, weighted_score, matched_tokens, fuzzy_matches, raw_score, weight)
         if best is None:
             best = candidate
             continue
-        if (score, len(matched_tokens), len(code), code) > (best[1], len(best[2]), len(best[0]), best[0]):
+        if (weighted_score, raw_score, len(matched_tokens), len(alias), alias) > (best[1], best[4], len(best[2]), len(best[0]), best[0]):
             best = candidate
     return best
 

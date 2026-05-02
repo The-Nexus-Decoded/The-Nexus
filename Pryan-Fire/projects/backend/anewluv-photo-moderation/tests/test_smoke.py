@@ -254,12 +254,20 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "unsafe_categories": ["ai_generated_or_synthetic"],
             },
             default_model="fixture",
+            allowed_reason_codes={"ai_generated"},
+            reason_vocabulary=(
+                {
+                    "code": "ai_generated",
+                    "aliases": "ai generated|ai-generated|synthetic|digitally created|rendered|generated image",
+                    "keyword_weight": 1.0,
+                },
+            ),
         )
 
         self.assertGreater(result["confidence"], 0.0)
         self.assertEqual(result["confidence_source"], "derived_reason_map")
         self.assertEqual(result["reason_code"], "ai_generated")
-        self.assertIn(result["match_source"], {"normalized_substring", "fuzzy_marker", "fuzzy_token"})
+        self.assertIn(result["match_source"], {"db_normalized_substring", "db_fuzzy_token", "db_exact_normalized"})
         self.assertIn("match_evidence", result)
 
     def test_provider_confidence_is_preserved_when_valid(self):
@@ -285,6 +293,19 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
                 "unsafe_categories": [],
             },
             default_model="fixture",
+            allowed_reason_codes={"underage", "minor_targeting"},
+            reason_vocabulary=(
+                {
+                    "code": "underage",
+                    "aliases": "under age|underage|minor|child|teen|youth",
+                    "keyword_weight": 1.0,
+                },
+                {
+                    "code": "minor_targeting",
+                    "aliases": "targets minors|targeting minors|minor targeting|sexualizes youth",
+                    "keyword_weight": 1.0,
+                },
+            ),
         )
 
         self.assertIn(result["reason_code"], {"underage", "minor_targeting"})
