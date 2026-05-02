@@ -43,8 +43,9 @@
 ## ANewLuv Jarvis Status Contract (2026-05-01)
 
 - Jarvis must publish **two separate job statuses**, not a single combined status:
-  1. `anewluv-photo-sweeper-initial` (moderation)
-  2. `anewluv-photo-sweeper-agent-review` (escalation)
+  1. `anewluv-photo-sweeper-initial` (moderation run; this is the job that can open/escalate photos)
+  2. `anewluv-photo-sweeper-agent-review` (escalation queue follow-up run; resolves/acks/defer on existing escalations)
+- Escalation follow-up semantics (Lord Xar): the send/agent-review job handles escalated items by contacting Zifnab, and Zifnab handles the task.
 - Day-one per-job fields: last run timestamp, last run status, next scheduled run, 24h run count + success rate, run duration, and last error summary (only on failure).
 - Moderation status should include photo decision counts: approved, rejected, escalated.
 - Escalation status should include escalation-run counts (polled/acked/deferred/unresolved).

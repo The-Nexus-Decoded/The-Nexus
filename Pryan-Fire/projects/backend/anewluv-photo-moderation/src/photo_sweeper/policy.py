@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from .moderation_contract import APPROVE_ONLY_REASONS, BUSINESS_REJECT_REASONS, CANONICAL_REASON_MAP, EXPLICIT_REASONS, HARD_SAFETY_HUMAN_ONLY_REASONS
+from .runtime_contract import RuntimeContract
+
+
+def combine(
+    item: dict,
+    checks: dict,
+    model_result: dict,
+    *,
+    dry_run: bool,
+    force: bool,
+    runtime_contract: RuntimeContract | None = None,
+    server_reason_code: str | None = None,
+) -> dict:
+    reason = model_result.get("reason_code", "manual_admin_decision")
+    live_reason_allowed = runtime_contract is not None and server_reason_code in runtime_contract.reason_codes
+    if reason not in set(CANONICAL_REASON_MAP.values()) and reason not in APPROVE_ONLY_REASONS and reason not in BUSINESS_REJECT_REASONS and not live_reason_allowed:
+        reason = "manual_admin_decision"
+    verdict = model_result.get("verdict", "review")
+    flags = model_result.get("app_profile_photo_checks", {})
+    warnings = checks.get("warnings") or []
+
+    planned_action = "agent_review"
+    recommended_decision = None
+
+    if model_result.get("validator") == "fail":
+        planned_action = "agent_review"
+    elif not _checks_pass(checks):
+        planned_action = "diagnostic_no_write"
+        recommended_decision = None
+    elif verdict == "escalate" or reason in HARD_SAFETY_HUMAN_ONLY_REASONS:
+        planned_action = "human_admin_review"
+        recommended_decision = None
+    elif verdict == "approve_recommendation" and reason in APPROVE_ONLY_REASONS and _profile_clean(flags):
+        planned_action = "report_only"
+        recommended_decision = "approve_recommendation"
+    elif verdict == "reject_recommendation" and reason in BUSINESS_REJECT_REASONS:
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation" and reason in EXPLICIT_REASONS:
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation" and reason in set(CANONICAL_REASON_MAP.values()) and reason != "manual_admin_decision":
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation" and live_reason_allowed:
+        planned_action = "auto_reject"
+        recommended_decision = "reject_recommendation"
+    elif verdict == "reject_recommendation":
+        planned_action = "agent_review"
+        recommended_decision = None
+    elif verdict == "review" or warnings:
+        planned_action = "agent_review"
+
+    if planned_action == "auto_reject" and runtime_contract is not None:
+        confidence = _confidence(model_result)
+        if not runtime_contract.auto_reject_allowed(server_reason_code or reason, confidence):
+            planned_action = "agent_review"
+            recommended_decision = None
+
+    settings = runtime_contract.settings if runtime_contract is not None else {}
+    if planned_action == "agent_review" and settings.get("agent_review_enabled") is False:
+        planned_action = "human_admin_review"
+
+    return {
+        "photo_id": item["photo_id"],
+        "queue_source": item.get("queue_source", "local_redacted_fixture"),
+        "dry_run": dry_run,
+        "force_requested": force,
+        "write_enabled": not dry_run,
+        "model_path": {
+            "moderation_api_used": model_result.get("moderation_api_used", False),
+            "moderation_model": model_result.get("moderation_model"),
+            "vision_model_used": model_result.get("vision_model_used", "mock_fixture"),
+            "fallback_model": model_result.get("fallback_model"),
+        },
+        "deterministic_checks": checks,
+        "normalized_result": model_result,
+        "planned_action": planned_action,
+        "recommended_decision": recommended_decision,
+        "would_write_recommendation": False,
+        "would_finalize_decision": False,
+        "would_escalate": planned_action == "human_admin_review",
+    }
+
+
+def _checks_pass(checks: dict) -> bool:
+    if checks.get("exists") is False or not checks.get("supported_reference"):
+        return False
+    if checks.get("blank_solid_color_score") is not None and checks["blank_solid_color_score"] > 0.98:
+        return False
+    if checks.get("darkness_score") is not None and checks["darkness_score"] > 0.94:
+        return False
+    return True
+
+
+def _profile_clean(flags: dict) -> bool:
+    return (
+        flags.get("is_profile_style_photo") is True
+        and not flags.get("has_contact_info")
+        and not flags.get("meme_or_screenshot")
+        and not flags.get("is_meme_or_screenshot")
+        and not flags.get("blank_or_unusable")
+        and not flags.get("is_blank_or_unusable")
+        and not flags.get("ai_generated_or_synthetic")
+        and not flags.get("needs_human_review")
+    )
+
+
+def _confidence(model_result: dict) -> float:
+    try:
+        return min(1.0, max(0.0, float(model_result.get("confidence", 0.0))))
+    except (TypeError, ValueError):
+        return 0.0

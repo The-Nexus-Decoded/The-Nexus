@@ -1,0 +1,171 @@
+{
+  "clean_profile_style": {
+    "verdict": "approve_recommendation",
+    "confidence": 0.93,
+    "reason_code": "clean_profile_style",
+    "note": "Mock clean profile-style image; recommendation only.",
+    "unsafe_categories": [],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": true,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": false
+    }
+  },
+  "ai_generated_or_synthetic": {
+    "verdict": "review",
+    "confidence": 0.82,
+    "reason_code": "ai_generated_or_synthetic",
+    "note": "Mock AI-generated signal; human moderator must decide.",
+    "unsafe_categories": [
+      "ai_generated_or_synthetic"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": true,
+      "needs_human_review": true
+    }
+  },
+  "sexual_content": {
+    "verdict": "rejected",
+    "confidence": 0.9,
+    "reason_code": "sexual_content",
+    "note": "Mock sexual-content category; reject recommendation only.",
+    "unsafe_categories": [
+      "sexual_content"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "nudity": {
+    "verdict": "rejected",
+    "confidence": 0.9,
+    "reason_code": "nudity",
+    "note": "Mock nudity category; reject recommendation only.",
+    "unsafe_categories": [
+      "nudity"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "pornographic_explicit": {
+    "verdict": "rejected",
+    "confidence": 0.94,
+    "reason_code": "pornographic_explicit",
+    "note": "Mock explicit adult-content category; reject recommendation only.",
+    "unsafe_categories": [
+      "pornographic_explicit",
+      "sexual_content"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "inappropriate_photos": {
+    "verdict": "rejected",
+    "confidence": 0.88,
+    "reason_code": "inappropriate_photos",
+    "note": "Mock inappropriate-photo category; reject recommendation only.",
+    "unsafe_categories": [
+      "inappropriate_photos"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "contact_info_or_ad": {
+    "verdict": "rejected",
+    "confidence": 0.84,
+    "reason_code": "contact_info_or_ad",
+    "note": "Mock contact info or ad signal; reject recommendation only.",
+    "unsafe_categories": [
+      "contact_info_or_ad"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": true,
+      "is_meme_or_screenshot": true,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "low_quality_or_unusable": {
+    "verdict": "rejected",
+    "confidence": 0.8,
+    "reason_code": "low_quality_or_unusable",
+    "note": "Mock low-quality or unusable signal; reject recommendation only.",
+    "unsafe_categories": [
+      "low_quality_or_unusable"
+    ],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": true,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "manual_review_needed": {
+    "verdict": "review",
+    "confidence": 0.4,
+    "reason_code": "manual_review_needed",
+    "note": "Mock uncertain case; manual moderator must decide.",
+    "unsafe_categories": [],
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  },
+  "api_failure_fallback": {
+    "verdict": "review",
+    "confidence": 0.0,
+    "reason_code": "api_failure_fallback",
+    "note": "Mock API failure; fallback requires manual moderation.",
+    "unsafe_categories": [],
+    "moderation_api_used": false,
+    "moderation_model": null,
+    "vision_model_used": "unavailable",
+    "fallback_model": "mock_failure_fallback",
+    "app_profile_photo_checks": {
+      "is_profile_style_photo": false,
+      "has_contact_info": false,
+      "is_meme_or_screenshot": false,
+      "is_blank_or_unusable": false,
+      "ai_generated_or_synthetic": false,
+      "needs_human_review": true
+    }
+  }
+}
