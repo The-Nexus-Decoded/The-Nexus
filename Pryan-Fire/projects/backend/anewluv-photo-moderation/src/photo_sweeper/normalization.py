@@ -88,6 +88,9 @@ def normalize_model_result(
     if "verdict" not in normalized and "recommendation" in normalized:
         normalized["verdict"] = normalized.get("recommendation")
 
+    # Capture original provider reason BEFORE any normalization — used for audit trail only
+    original_provider_reason = str(normalized.get("reason_code") or normalized.get("canonical_reason_code") or normalized.get("reason") or "").strip()
+
     resolved_raw_reason, reason_resolution = _resolve_reason_hint(
         normalized,
         allowed_reason_codes,
@@ -127,8 +130,11 @@ def normalize_model_result(
         if mapped_reason is None and raw_reason_code in allowed_reason_codes:
             mapped_reason = raw_reason_code
         normalized["reason_code"] = mapped_reason or "manual_admin_decision"
+    # Always capture original provider reason as audit trail, for cases where canonical map changed reason_code
     if normalized["reason_code"] != raw_reason_code:
-        normalized.setdefault("raw_reason_code", raw_reason_code)
+        normalized.setdefault("raw_reason_code", original_provider_reason)
+    else:
+        normalized.setdefault("raw_reason_code", original_provider_reason)
 
     raw_reason_hint = str(normalized.get("raw_reason_code") or raw_reason_code).lower()
     if normalized.get("reason_code") in {"underage", "minor_targeting"} or raw_reason_hint in {"underage_concern", "underage", "minor_targeting"}:
