@@ -179,8 +179,9 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
         self.assertEqual(approve["validator"], "fail")
         self.assertEqual(approve["verdict"], "review")
         self.assertEqual(approve["normalization_applied"], "no")
-        self.assertEqual(reject["verdict"], "reject_recommendation")
-        self.assertEqual(reject["normalization_applied"], "yes")
+        self.assertEqual(reject["verdict"], "escalate")
+        self.assertEqual(reject["reason_code"], "manual_admin_decision")
+        self.assertEqual(reject.get("fail_closed_route"), "needs_human_admin")
         self.assertEqual(reject["validator"], "pass")
         self.assertEqual(unknown["validator"], "fail")
         self.assertEqual(unknown["verdict"], "review")
@@ -242,6 +243,88 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
 
         self.assertEqual(result["detected_category"], "ai_generated_or_synthetic")
         self.assertEqual(result["reason_code"], "ai_generated")
+
+    def test_missing_confidence_derives_non_zero_confidence_with_audit_fields(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "reason": "AI generated portrait with synthetic face",
+                "detected_category": "rendered profile",
+                "confidence": None,
+                "unsafe_categories": ["ai_generated_or_synthetic"],
+            },
+            default_model="fixture",
+        )
+
+        self.assertGreater(result["confidence"], 0.0)
+        self.assertEqual(result["confidence_source"], "derived_reason_map")
+        self.assertEqual(result["reason_code"], "ai_generated")
+        self.assertIn(result["match_source"], {"normalized_substring", "fuzzy_marker", "fuzzy_token"})
+        self.assertIn("match_evidence", result)
+
+    def test_provider_confidence_is_preserved_when_valid(self):
+        result = normalize_model_result(
+            {
+                "verdict": "reject_recommendation",
+                "confidence": 0.77,
+                "reason_code": "contact_info_or_ad",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+
+        self.assertEqual(result["confidence"], 0.77)
+        self.assertEqual(result["confidence_source"], "provider")
+
+    def test_levenshtein_fuzzy_match_maps_near_miss_reason_tokens(self):
+        result = normalize_model_result(
+            {
+                "verdict": "review",
+                "confidence": None,
+                "reason": "undr-age signal detected",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+
+        self.assertIn(result["reason_code"], {"underage", "minor_targeting"})
+        self.assertEqual(result["verdict"], "escalate")
+        self.assertIs(result.get("needs_human_admin"), True)
+
+    def test_missing_confidence_ambiguous_fails_closed_to_human_admin_path(self):
+        model_result = normalize_model_result(
+            {
+                "verdict": "review",
+                "confidence": "unknown",
+                "reason": "cannot determine",
+                "note": "ambiguous visual signal",
+                "unsafe_categories": [],
+            },
+            default_model="fixture",
+        )
+        item = {"photo_id": 7001}
+        checks = {"image_reference_present": True, "exists": True, "supported_reference": True}
+        combined = combine(item, checks, model_result, dry_run=True, force=False)
+
+        self.assertEqual(model_result["confidence_source"], "derived_ambiguous_fail_closed")
+        self.assertEqual(model_result["reason_code"], "manual_admin_decision")
+        self.assertEqual(model_result.get("fail_closed_route"), "needs_human_admin")
+        self.assertEqual(combined["planned_action"], "human_admin_review")
+
+    def test_same_input_produces_same_deterministic_mapping(self):
+        payload = {
+            "verdict": "reject_recommendation",
+            "confidence": None,
+            "reason": "undr-age signal detected",
+            "unsafe_categories": [],
+        }
+        left = normalize_model_result(payload, default_model="fixture")
+        right = normalize_model_result(payload, default_model="fixture")
+
+        self.assertEqual(left["reason_code"], right["reason_code"])
+        self.assertEqual(left["confidence"], right["confidence"])
+        self.assertEqual(left["confidence_source"], right["confidence_source"])
+        self.assertEqual(left["match_source"], right["match_source"])
 
     def test_policy_falls_back_before_future_write_eligibility(self):
         item = {"photo_id": 1}
@@ -474,7 +557,7 @@ class PhotoSweeperSmokeTests(unittest.TestCase):
             "not_a_profile_photo": "not_person_photo",
             "celebrity_or_stock_photo": "fake_profile",
             "object_or_landscape_only": "fake_profile",
-            "ai_generated_or_synthetic": "manual_admin_decision",
+            "ai_generated_or_synthetic": "ai_generated",
             "ai_generated": "ai_generated",
             "contact_info_or_ad": "off_platform_contact",
             "contact_info_text_only_ad": "off_platform_contact",
