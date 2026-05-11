@@ -29,11 +29,15 @@ python -m crypto_ops_api.facade --host 127.0.0.1 --port 8787
 - `GET /api/crypto/risk/feed`
 - `GET /api/crypto/kill-switch`
 - `GET /api/crypto/validation/prs`
+- `GET /api/crypto/revenue/strategies`
+- `GET /api/crypto/revenue/readiness`
+- `POST /api/crypto/revenue/plan` (dry-run planning only; rejects live trading fields)
 - `POST /api/crypto/validation/:id/result`
 - `GET /api/crypto-ops/summary.json` legacy aggregated payload for the dashboard shell
 
 Validation POST accepts evidence only: `result`, `evidence`, `riskNotes`, `tester`, `screen`, `blockedReason`.
-It rejects trading/action fields such as `trade`, `tx`, `submitTx`, `amount`, or wallet actions.
+Revenue plan POST accepts safe planning fields only: `strategyId`, `token`, `pair`, `amountUsd`, `profitTargetBps`, `stopLossBps`, `maxSlippageBps`, `source`.
+Both POST surfaces reject trading/action fields such as `trade`, `tx`, `submitTx`, `amount`, or wallet actions.
 
 ## Test
 

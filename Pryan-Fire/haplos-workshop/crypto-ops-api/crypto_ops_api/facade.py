@@ -16,6 +16,8 @@ from .fixture_data import fixture_summary, utc_now
 MAX_POST_BYTES = 32 * 1024
 DEFAULT_RESULTS_PATH = "/data/openclaw/crypto-ops/validation-results.jsonl"
 VALIDATION_FIELDS = {"result", "evidence", "riskNotes", "tester", "screen", "blockedReason"}
+REVENUE_PLAN_FIELDS = {"strategyId", "token", "pair", "amountUsd", "profitTargetBps", "stopLossBps", "maxSlippageBps", "source"}
+MAX_REVENUE_PLAN_USD = 25.0
 FORBIDDEN_VALIDATION_FIELDS = {
     "amount",
     "execute",
@@ -28,6 +30,67 @@ FORBIDDEN_VALIDATION_FIELDS = {
     "tx",
     "walletAction",
 }
+
+
+def build_revenue_plan(payload: dict) -> dict:
+    keys = set(payload)
+    forbidden = sorted(keys & FORBIDDEN_VALIDATION_FIELDS)
+    unknown = sorted(keys - REVENUE_PLAN_FIELDS)
+    if forbidden:
+        raise ValueError(f"revenue plan cannot include trading fields: {', '.join(forbidden)}")
+    if unknown:
+        raise ValueError(f"unsupported revenue plan fields: {', '.join(unknown)}")
+
+    try:
+        amount_usd = float(payload.get("amountUsd", 0))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("amountUsd must be numeric") from exc
+
+    if amount_usd <= 0:
+        raise ValueError("amountUsd must be greater than zero")
+
+    status = "DRY_RUN_PLAN_READY" if amount_usd <= MAX_REVENUE_PLAN_USD else "AWAITING_OWNER_APPROVAL"
+    return {
+        "status": status,
+        "liveExecution": "disabled",
+        "submitTransaction": False,
+        "strategyId": payload.get("strategyId", "capped-dlmm-volume-momentum"),
+        "signal": {
+            "token": payload.get("token", "candidate-redacted"),
+            "pair": payload.get("pair", "candidate/USDC"),
+            "amountUsd": amount_usd,
+            "source": payload.get("source", "operator-tool"),
+        },
+        "risk": {
+            "maxCappedLaneUsd": MAX_REVENUE_PLAN_USD,
+            "requiresOwnerApproval": amount_usd > MAX_REVENUE_PLAN_USD,
+            "reason": "below capped dry-run limit" if amount_usd <= MAX_REVENUE_PLAN_USD else "amountUsd exceeds capped dry-run limit",
+        },
+        "orderProbe": {
+            "endpoint": "/ultra/v1/order",
+            "mode": "non-executing probe/sim",
+            "requiresAuthorizedJupiterKey": True,
+        },
+        "executionPlan": {
+            "profitTargetBps": int(payload.get("profitTargetBps", 100)),
+            "stopLossBps": int(payload.get("stopLossBps", 300)),
+            "maxSlippageBps": int(payload.get("maxSlippageBps", 50)),
+            "hardRejects": [
+                "missing_exit_quote",
+                "stale_feed",
+                "rpc_read_failure",
+                "mock_approval_gate",
+                "unsafe_liquidity_profile",
+                "unreconciled_accounting",
+            ],
+        },
+        "accounting": {
+            "preTradeSnapshotRequired": True,
+            "postTradeSnapshotRequired": True,
+            "positionReconciliationRequired": True,
+            "pnlAsset": "USDC",
+        },
+    }
 
 
 def build_app_payloads() -> dict[str, dict | list]:
@@ -72,6 +135,8 @@ def build_app_payloads() -> dict[str, dict | list]:
             "source": "fixture",
         },
         "/api/crypto/validation/prs": {"records": summary["prValidation"], "source": "fixture"},
+        "/api/crypto/revenue/strategies": {"strategies": summary["revenueStrategies"], "source": "fixture"},
+        "/api/crypto/revenue/readiness": summary["revenueReadiness"] | {"source": "fixture"},
         "/api/crypto-ops/summary.json": summary | {"source": "fixture"},
     }
 
@@ -136,12 +201,6 @@ def create_handler(results_path: str = DEFAULT_RESULTS_PATH) -> type[BaseHTTPReq
 
         def do_POST(self) -> None:  # noqa: N802 - stdlib method name
             path = urlparse(self.path).path.rstrip("/")
-            prefix = "/api/crypto/validation/"
-            suffix = "/result"
-            if not (path.startswith(prefix) and path.endswith(suffix)):
-                self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown endpoint"})
-                return
-
             length = int(self.headers.get("Content-Length", "0") or "0")
             if length <= 0 or length > MAX_POST_BYTES:
                 self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "invalid payload size"})
@@ -151,13 +210,32 @@ def create_handler(results_path: str = DEFAULT_RESULTS_PATH) -> type[BaseHTTPReq
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
                 if not isinstance(payload, dict):
                     raise ValueError("payload must be an object")
-                validation_id = path[len(prefix) : -len(suffix)]
-                record = persist_validation_result(validation_id, payload, results_path)
             except (json.JSONDecodeError, ValueError) as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(exc)})
                 return
 
-            self._json(HTTPStatus.CREATED, {"ok": True, "record": record})
+            if path == "/api/crypto/revenue/plan":
+                try:
+                    plan = build_revenue_plan(payload)
+                except ValueError as exc:
+                    self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(exc)})
+                    return
+                self._json(HTTPStatus.OK, {"ok": True, "plan": plan})
+                return
+
+            prefix = "/api/crypto/validation/"
+            suffix = "/result"
+            if path.startswith(prefix) and path.endswith(suffix):
+                try:
+                    validation_id = path[len(prefix) : -len(suffix)]
+                    record = persist_validation_result(validation_id, payload, results_path)
+                except ValueError as exc:
+                    self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(exc)})
+                    return
+                self._json(HTTPStatus.CREATED, {"ok": True, "record": record})
+                return
+
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown endpoint"})
 
     return CryptoOpsHandler
 
