@@ -139,11 +139,11 @@ async def main():
             risk_manager = RiskManager(discord_token, channel_id)
             logging.info("RiskManager initialized with Discord gate (real mode).")
         except ValueError:
-            logging.error("DISCORD_CHANNEL_ID must be an integer. Using MOCK RiskManager (auto-approve).")
-            risk_manager = RiskManager()  # Mock mode
+            logging.error("DISCORD_CHANNEL_ID must be an integer. RiskManager will fail closed.")
+            risk_manager = RiskManager()  # fail-closed mode
     else:
-        logging.warning("DISCORD_TOKEN or DISCORD_CHANNEL_ID not set. Using MOCK RiskManager (auto-approve).")
-        risk_manager = RiskManager()  # Mock mode
+        logging.error("DISCORD_TOKEN or DISCORD_CHANNEL_ID not set. RiskManager will fail closed.")
+        risk_manager = RiskManager()  # fail-closed mode
     
     orchestrator = TradeOrchestrator(risk_manager, audit_logger)
     

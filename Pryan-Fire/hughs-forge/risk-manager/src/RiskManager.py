@@ -21,12 +21,12 @@ class RiskManager:
             # Initialize bot event handlers if running
             self._setup_bot()
         else:
-            # Mock mode: RiskManager operates without Discord approvals
+            # Fail-closed mode: missing Discord approvals must never auto-approve live money.
             self.token = None
             self.channel_id = None
             self.bot = None
             self._discord_enabled = False
-            logger.warning("RiskManager initialized in MOCK mode (no Discord credentials). All trades will be auto-approved.")
+            logger.error("RiskManager initialized in FAIL-CLOSED mode (no Discord credentials). Trades require explicit owner approval integration.")
         
         self.lock = asyncio.Lock()
         self.pending_trades: Dict[str, asyncio.Event] = {}
@@ -87,12 +87,12 @@ class RiskManager:
     async def check_trade(self, trade_id: str, trade_details: Dict[str, Any]) -> bool:
         """
         Gates a trade until human confirmation via Discord.
-        In mock mode (no Discord credentials), auto-approves all trades.
+        Without Discord credentials, fail closed. Missing approval plumbing must
+        never become implicit approval for live money.
         """
-        # Mock mode: auto-approve
         if not self._discord_enabled:
-            logger.info(f"Trade {trade_id} auto-approved (mock mode).")
-            return True
+            logger.error(f"Trade {trade_id} blocked: no owner approval gate configured.")
+            return False
             
         async with self.lock:
             logger.info(f"Checking trade: {trade_id}")

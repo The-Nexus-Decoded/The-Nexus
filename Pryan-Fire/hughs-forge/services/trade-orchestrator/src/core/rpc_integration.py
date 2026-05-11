@@ -56,6 +56,56 @@ class RpcIntegrator:
         self.logger.info(f"Selected route: {route}")
         return route
 
+    def fetch_order_preview(self, signal: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch or simulate a non-executing Jupiter Ultra order preview.
+
+        Dry-run defaults to simulation so the local lane can be tested without
+        Jupiter credentials. Set REVENUE_LANE_SIMULATE_ORDER=0 to force a real
+        non-executing /order probe.
+        """
+        if self.dry_run and os.getenv("REVENUE_LANE_SIMULATE_ORDER", "1") != "0":
+            return {
+                "ok": True,
+                "mode": "simulated",
+                "endpoint": "/ultra/v1/order",
+                "non_executing": True,
+                "requires_authorized_jupiter_key": True,
+                "request_id_present": True,
+                "transaction_present": True,
+            }
+
+        input_mint = signal.get("input_mint") or signal.get("token_address") or signal.get("mint")
+        output_mint = signal.get("output_mint")
+        amount_atoms = signal.get("amount_atoms")
+        taker = signal.get("taker") or os.getenv("TRADING_WALLET_PUBLIC_KEY")
+        decimals = int(signal.get("decimals", 9))
+        slippage_bps = int(signal.get("max_slippage_bps", signal.get("slippage_bps", 50)))
+
+        if not input_mint or not output_mint:
+            return {"ok": False, "reason": "missing_input_or_output_mint"}
+        if not amount_atoms:
+            amount_usd = float(signal.get("amount_usd", signal.get("amount", 0.0)) or 0.0)
+            amount_atoms = int(amount_usd * (10 ** decimals))
+        if not taker:
+            return {"ok": False, "reason": "missing_taker_public_key"}
+
+        order = self._fetch_ultra_order(str(input_mint), str(output_mint), int(amount_atoms), slippage_bps, str(taker))
+        if not order:
+            return {"ok": False, "reason": "jupiter_order_probe_failed"}
+
+        parsed = self._parse_ultra_order(order)
+        if not parsed["ok"]:
+            return {"ok": False, "reason": parsed["error"]}
+
+        return {
+            "ok": True,
+            "mode": "live_probe",
+            "endpoint": "/ultra/v1/order",
+            "non_executing": True,
+            "request_id_present": True,
+            "transaction_present": True,
+        }
+
     def execute_jupiter_trade(
         self,
         input_mint: str,
