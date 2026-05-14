@@ -1,7 +1,7 @@
 <!-- MEMORY RULE: No project data in MEMORY.md. Save project specs, designs, and documents to /data/openclaw/shared/ or project folders. -->
 
 # MEMORY.md
-_Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 targeted grep review (coding, jarvis, infra channel exports)_
+_Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 targeted grep review (coding, jarvis, infra channel exports) | Updated: 2026-05-13_
 
 ## Identity
 - **Name:** Alfred Montbank, Nexus fleet CI/CD engineer and deployment automator
@@ -58,6 +58,12 @@ _Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 ta
 - Most of the fleet self-healed as token windows expired or model pressure eased; track these as lifecycle/auth events, not always config drift.
 - Zifnab also produced transient garbled Unicode/noise output during the incident, then returned to coherent operation on MiniMax. If an agent loops into self-referential silence commands, verify model state and recent gateway/provider logs before assuming intentional behavior.
 
+### Codex `[SOON]` Watch Flag (2026-05-13)
+- Zifnab reported Zifnab and Drugar both live while showing `openai-codex/gpt-5.5 [SOON]` in the heartbeat grid.
+- `[SOON]` on Codex is a watch flag, not a restart trigger.
+- Leave Zifnab and Drugar alone while delivery is green; intervene only if the flag flips to `[EXP]`/`[AUTH]` or message delivery fails.
+- Durable rule: avoid unnecessary restarts for Codex `[SOON]`; treat it as lifecycle watch, not service failure.
+
 ### Trade Automation Recurrence
 - A recurring Jupiter/DLMM stop-loss failure was traced to a service reading API key material from the trade environment file, not the expected key file path.
 - Never paste API key values into memory. Preserve the root cause shape: service env source differed from the assumed key source, so the old credential remained active.
@@ -90,11 +96,13 @@ _Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 ta
 - Alfred originally received the task but correctly noted he does not assign work; Zifnab executed it.
 - Config paths: `~/.openclaw-<agent>/openclaw.json` on each server.
 
-### Haplo DOWN False Positive (2026-04-24)
-- Alfred's heartbeat grid showed Haplo DOWN, but direct health check on port 18789 returned `ok: true`.
-- Root cause: port mapping mismatch in Alfred's heartbeat monitor — gateway was running but on a different port than the monitor expected.
-- Resolution: confirmed with direct health check, not a real outage. Monitor port mapping needs review.
-- Durable rule: when Alfred's grid shows an unexpected DOWN, verify with direct health check on port 18789 before escalating.
+### Haplo DOWN False Positives / Supervision Drift
+- 2026-04-24: Alfred's heartbeat grid showed Haplo DOWN, but direct health check on port 18789 returned `ok: true`.
+- 2026-04-24 root cause: port mapping mismatch in Alfred's heartbeat monitor — gateway was running but on a different port than the monitor expected.
+- 2026-05-13 update from Zifnab: `127.0.0.1:18789/health` answered `live` while the Haplo systemd unit was failed because another Haplo gateway process already owned the port. Treat this as supervision drift, not a clean outage, while health and message delivery remain green. If Discord delivery stalls or queues climb while `/health` remains live, treat that as real trouble rather than maintenance backlog.
+- Maintenance fix for the 2026-05-13 shape: controlled stop/start so systemd owns the Haplo gateway process again; do not disturb it during a green health check unless authorized.
+- Safety rule: do not paste `systemctl cat` output for Haplo into Discord or memory; a unit drop-in can contain sensitive environment values.
+- Durable rule: when Alfred's grid shows Haplo DOWN, first verify direct health on `127.0.0.1:18789/health` and message delivery before escalating as a hard-down.
 
 ### Hugh DOWN — Config Crash (2026-04-24)
 - Hugh (trade server) was DOWN. Zifnab confirmed: config crash — `models.providers.openai-codex.models` had an invalid entry.
@@ -114,6 +122,8 @@ _Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 ta
 - For Discord delivery, verify the provider and the visible channel behavior, not only the gateway process.
 - For gh CLI failures: check `gh auth status`, token script, and `api.github.com` connectivity before escalating.
 - When Alfred's grid shows unexpected DOWN: verify with direct health check on port 18789 before treating as real outage.
+- When Haplo's grid row shows DOWN but `127.0.0.1:18789/health` answers `live`, classify it as false hard-down/supervision drift unless message delivery fails, queues climb, `/readyz` reports trouble, or recent delivery logs show stalls.
+- For Codex `[SOON]`, watch only; restart or escalate only if it becomes `[EXP]`/`[AUTH]` or delivery fails.
 - [EXP] status = token expired; treat as auth/lifecycle event, not config drift.
 
 ## Working Style
@@ -125,3 +135,6 @@ _Last rebuilt: 2026-04-24 | Source: Alfred preserved memory files + Phase 7.5 ta
 - On hard loop detection: one summary, then silence. Wait for `/reset`.
 - On gh CLI failures: check auth, token script, and connectivity before escalating.
 - On unexpected DOWN in heartbeat grid: verify with direct health check on port 18789 before escalating.
+- For Haplo specifically, never paste `systemctl cat` output into channel; summarize sanitized status only.
+- For Haplo `health=live` drift, maintenance backlog is the default; Discord delivery stalls, rising queues, readiness failures, or delivery-log errors make it real trouble.
+- For Codex `[SOON]` on Zifnab or Drugar, leave the service alone unless it flips to `[EXP]`/`[AUTH]` or delivery fails.
