@@ -242,7 +242,7 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 ### Channel IDs
 - #the-nexus: 1475082874234343621 | #jarvis: 1475082997027049584
 - #coding: 1475083038810443878 | #crypto: 1475082964156157972
-- #growth: 1480481255303676087
+- #growth: 1480481255303676087 | #anewluv-dev: 1481388131163963504
 
 ## GITHUB (The-Nexus-Decoded org)
 - **Auth:** zifnab-bot (GitHub App). Token via `/data/openclaw/github-app/get-token.sh`
@@ -321,6 +321,37 @@ Application-level dev work is fine — code, packages, OpenClaw crons.
 - [ ] Devon gateway correction (2026-05-06): Lord Xar clarified he did **not** disable Devon; he only intended Devon to stop chatting. Lord Xar explicitly ordered Devon re-enabled at 2026-05-06 03:16 CDT; Zifnab enabled and started `openclaw-gateway-devon.service` on ola-claw-trade. Verified state after action: `enabled/active`, health `{"ok":true,"status":"live"}` on port 18840. Prior 2026-05-05 01:09 CDT stop/disable provenance remains unknown; do not describe it as Lord Xar's stop order. If Lord Xar says "stop chatting", treat that as channel/message suppression only — not gateway shutdown or systemd disable.
 - [ ] ANewLuv Sweeper 1 deployment (2026-05-06): #248-#254 CLOSED/accepted. Legacy worker stopped; `/usr/bin/python3` selected; source snapshot installed at `/data/openclaw/anewluv`; canonical env `/data/openclaw/shared/secrets/anewluv-worker.env` (mode `0600`) uses existing aliases and worker JWT auth; dry-run and live capped run passed; `photo_id=13937` rejected as `ai_generated`; status files are `/data/openclaw/state/anewluv-sweeper-1-last-run.json` and `/data/openclaw/state/anewluv-sweeper-1-history.jsonl`. User systemd units installed: `/home/openclaw/.config/systemd/user/anewluv-sweeper-1.service` and `.timer`; service command exactly `/usr/bin/python3 scripts/moderation/sweeper.py --once --env-file /data/openclaw/shared/secrets/anewluv-worker.env`; timer enabled active/waiting, first trigger `2026-05-06 09:58:58 CDT`, first timer run empty queue with `processed=0 errors=0`. #255 is OPEN observation window from `2026-05-06 09:58:58 CDT` to about `2026-05-07 09:58:58 CDT`: observe timer cadence, service health, logs, and status files; stop/report if 2+ consecutive cycles fail or miss. #257 heartbeat-grid bridge CLOSED 2026-05-07 00:03 CDT after canonical #jarvis 00:00 heartbeat proved dedicated compact message live: dev grid `1501811171752280147`, trade/total+legend `1501811197031350313`, dedicated sweeper message `1501811219810484315` with 24h runs=86 processed=1 approved=0 rejected=1 escalated=0 errors=0; last run `2026-05-07T05:00:19Z` duration=0.4s; Sweeper-2 NOT DEPLOYED. Sweeper 2 remains on hold until #255 observation gate is green. Do not touch Aleatha/Alake configs. #256 GitHub access is Lord Xar-only.
 
+## ANEWLUV UI REDESIGN (2026-05-25)
+Live repo: `/data/repos/anewluvExpo` (has `.planning`, no `.git`)
+Test link Lord Xar uses: `#341test` — convention unknown, Lord Xar must provide directly
+
+### Ticket Map (Roland consolidated 2026-05-25)
+**olalawal/AnewluvExpo:**
+- #344 — Usage / Discover UI handoff (THE-Nexus: The-Nexus-Decoded/The-Nexus#402)
+- #345 — Landing CTA / translucency / signup visibility
+
+**The-Nexus (backend/broader umbrella):**
+- #391 — Checkout generic error / invalid email
+- #393 — Profile Details header / DOB / mobile scroll
+- #394 — Chat Details hearts/tier/quota/safety layout
+- #395 — Search / All Users missing back button
+- #396 — All Users grid contrast / photos
+- #397 — Push Notifications cannot close
+- #398 — Broad mobile UI umbrella (parent)
+- #402 — Discover Usage redesign (transparent frosted dropdown + expanded panel, a la carte chips with bag icon)
+- #403 — Profile tier-colored checkmark badge next to name (purple = VIP/paying)
+- #404 — Compatibility percentage moved to profile info area (near name/location, not top right)
+- #405 — Bottom nav count badges (circle indicators for new messages/notifications)
+- #406 — [P1] Checkout: Stripe hearts email/phone causes generic error (Haplo)
+
+### Discover Usage Spec (#402 — locked 2026-05-25)
+- Collapsed: `Usage 34/100 2 boosts ˅` — semi-transparent frosted pill, NOT solid white
+- Expanded: near-white frosted glass panel, 2-column allowance layout, a la carte chips with bag icon
+- Overlay items: 40-60% opacity so profile image shows through
+- Match button: breathing room from name above
+- All top buttons: 36×36, 18px radius, same size
+- Reference: Devon's near-white frosted Usage panel (not gray glass, not solid white, not tall receipt)
+- Handoff spec sent to Roland for annotated version
 
 ## CI LANE CONTRACT (2026-05-01)
 - Lord Xar approved lane-scoped monorepo CI as standard: per-lane workflows with `on.pull_request.paths`, plus an always-on PR Gate required check.
