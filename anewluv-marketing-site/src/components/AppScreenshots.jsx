@@ -38,16 +38,16 @@ export default function AppScreenshots() {
         </p>
         <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
           {screens.map((screen, i) => (
-            <div key={i} className="bg-anewluv-surface rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition">
-              <div className="phone-mockup" style={{maxWidth: '100%', padding: '8px', background: '#111', borderRadius: '28px', width: '100%'}}>
+            <div key={i} className="bg-anewluv-surface rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition flex flex-col">
+              <div className="phone-mockup" style={{maxWidth: '100%', padding: '8px', background: '#111', borderRadius: '28px', width: '100%', minHeight: '480px'}}>
                 <img 
                   src={`/images/${screen.image}`} 
                   alt={screen.title}
-                  className="rounded-2xl w-full"
+                  className="rounded-2xl w-full h-full object-cover"
                   onError={(e) => e.target.style.display = 'none'}
                 />
               </div>
-              <div className="p-3">
+              <div className="p-3 mt-auto">
                 <h3 className="font-bold text-anewluv-strong text-sm">{screen.title}</h3>
                 <p className="text-xs text-anewluv-medium mt-1">{screen.description}</p>
               </div>
