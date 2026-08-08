@@ -32,6 +32,7 @@ import type { CombatStyle, GridPoint, RuntimeState } from "./types";
 import { GameUI, type ActionName } from "./ui";
 import { buildSoulwellChamber } from "./environment/rooms/SoulwellChamber";
 import { createSoulwellMaterialLibrary, type SoulwellMaterialLibrary } from "./environment/MaterialLibrary";
+import { cameraPanBounds, cloneActorMaterial, sanitizeAttackClip, screenPanToWorld } from "./presentation";
 
 const TILE_SIZE = 1.75;
 const FLOOR_HEIGHT = 0.22;
@@ -50,6 +51,7 @@ const PLAYER_MODEL_PATHS: Record<string, string> = {
   slayer: "/assets/3d/characters/slayer.gltf",
   shadowknight: "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
 };
+const ATTACK_ANIMATION_NAMES = new Set(["swordslash", "siphoncleave", "shoot_onehanded", "punch"]);
 const NPC_MODEL_PATHS: Record<string, string> = {
   ilyra: "/assets/3d/characters/npc-ilyra.gltf",
   orren: "/assets/3d/characters/npc-orren.gltf",
@@ -240,6 +242,7 @@ export class World3D {
   private animationFrame = 0;
   private combatSpeed = 1;
   private cameraAzimuth = Math.atan2(-15.5, 19.5);
+  private readonly cameraPan = new THREE.Vector2();
   private movedThisTurn = false;
   private readonly openedObjects = new Set<string>();
   private npcDatabase!: NpcDatabase;
@@ -777,17 +780,7 @@ export class World3D {
         const materials: THREE.Material[] = hadMaterialArray
           ? [...child.material]
           : [child.material];
-        const customized = materials.map((source: THREE.Material) => {
-          const material = source.clone();
-          if (material instanceof THREE.MeshStandardMaterial) {
-            material.color.lerp(new THREE.Color(tint), id === "player" ? 0.14 : 0.08);
-            if (id === "player") material.color.offsetHSL(0, 0, 0.075);
-            material.roughness = Math.max(material.roughness, 0.48);
-            material.emissive.copy(material.color).multiplyScalar(0.09);
-            material.emissiveIntensity = 0.48;
-          }
-          return material;
-        });
+        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, id === "player"));
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
     });
@@ -819,7 +812,10 @@ export class World3D {
     label.position.y = desiredHeight + 0.43;
     root.add(label);
     const mixer = new THREE.AnimationMixer(model);
-    const clips = new Map(gltf.animations.map((clip) => [clip.name, clip]));
+    const clips = new Map(gltf.animations.map((clip) => [
+      clip.name,
+      ATTACK_ANIMATION_NAMES.has(clip.name.toLowerCase()) ? sanitizeAttackClip(clip) : clip,
+    ]));
     const actor: AnimatedActor = { id, root, model, mixer, clips, grid: { x: grid.x, y: grid.y }, label };
     this.playAnimation(actor, "Idle");
     return actor;
@@ -968,6 +964,11 @@ export class World3D {
         else if (control === "rotate-right") this.rotateCamera(Math.PI / 8);
         else if (control === "zoom-in") this.adjustCameraZoom(0.28);
         else if (control === "zoom-out") this.adjustCameraZoom(-0.28);
+        else if (control === "pan-left") this.panCamera(-1, 0);
+        else if (control === "pan-right") this.panCamera(1, 0);
+        else if (control === "pan-up") this.panCamera(0, 1);
+        else if (control === "pan-down") this.panCamera(0, -1);
+        else if (control === "pan-reset") this.resetCameraPan();
       });
     });
   }
@@ -989,6 +990,20 @@ export class World3D {
   private adjustCameraZoom(delta: number): void {
     this.camera.zoom = THREE.MathUtils.clamp(this.camera.zoom + delta, 0.55, 3);
     this.camera.updateProjectionMatrix();
+  }
+
+  private panCamera(horizontal: number, vertical: number): void {
+    if (this.currentRoom !== "training") return;
+    const training = this.dungeon.rooms.find((room) => room.id === "training")!;
+    const delta = screenPanToWorld(this.cameraAzimuth, horizontal * TILE_SIZE * 1.6, vertical * TILE_SIZE * 1.6);
+    const bounds = cameraPanBounds(training.width, training.height, TILE_SIZE, 2);
+    this.cameraPan.add(delta).clamp(bounds.clone().multiplyScalar(-1), bounds);
+    this.ui.setMessage("Camera panned. Use the arrow controls to inspect the room, or center the view on the player.");
+  }
+
+  private resetCameraPan(): void {
+    this.cameraPan.set(0, 0);
+    this.ui.setMessage("Camera centered on the player.");
   }
 
   private initializeHud(): void {
@@ -1076,6 +1091,7 @@ export class World3D {
     const nextRoom = tile.roomId;
     if (nextRoom !== this.currentRoom) {
       this.currentRoom = nextRoom;
+      this.cameraPan.set(0, 0);
       this.revealRoom(nextRoom, true);
     }
     const authoredRoom = this.dungeon.rooms.find((room) => room.id === nextRoom);
@@ -2319,7 +2335,7 @@ export class World3D {
         THREE.MathUtils.clamp((this.player.root.position.x - authoredCenter.x) * 0.30, -4.2, 4.2),
         0,
         THREE.MathUtils.clamp((this.player.root.position.z - authoredCenter.z) * 0.30, -3.4, 3.4),
-      ))
+      )).add(new THREE.Vector3(this.cameraPan.x, 0, this.cameraPan.y))
       : this.player.root.position.clone().setY(0.8);
     const horizontalDistance = Math.hypot(15.5, 19.5);
     const desired = target.clone().add(new THREE.Vector3(

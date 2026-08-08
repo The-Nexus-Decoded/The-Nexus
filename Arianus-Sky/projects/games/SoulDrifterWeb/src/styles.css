@@ -974,7 +974,7 @@ h3 {
   right: 10px;
   z-index: 13;
   display: grid;
-  grid-template-columns: repeat(2, 34px);
+  grid-template-columns: repeat(3, 34px);
   gap: 4px;
   padding: 5px;
   border: 1px solid rgba(197, 141, 71, 0.34);
@@ -1536,7 +1536,7 @@ h3 {
   .camera-controls {
     top: 8px;
     right: 7px;
-    grid-template-columns: repeat(2, 30px);
+    grid-template-columns: repeat(3, 30px);
     transform: none;
   }
   .camera-controls button { width: 30px; height: 30px; font-size: 17px; }
