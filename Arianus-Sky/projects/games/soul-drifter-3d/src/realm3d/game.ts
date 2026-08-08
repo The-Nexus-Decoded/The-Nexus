@@ -1,6 +1,7 @@
 import {
   Engine, Scene, ArcRotateCamera, HemisphericLight, DirectionalLight,
   ShadowGenerator, Vector3, Color3, Color4, PointerEventTypes, AbstractMesh,
+  Texture, StandardMaterial, MeshBuilder, Mesh,
 } from '@babylonjs/core';
 import { MAPS, getMapEntities, spawnMapEnemies } from '../soul-drifter/data/maps';
 import { REALMS } from '../soul-drifter/data/classes';
@@ -27,6 +28,7 @@ export class Game3D {
   private camera!: ArcRotateCamera;
   private shadowGen!: ShadowGenerator;
   private world: BuiltWorld | null = null;
+  private skyDome: Mesh | null = null;
   private map!: GameMap;
   private player!: PlayerController;
   private entityMeshes: AbstractMesh[] = [];
@@ -101,6 +103,23 @@ export class Game3D {
     this.scene.fogMode = Scene.FOGMODE_EXP2;
     this.scene.fogColor = Color3.FromHexString(shade(bg, -8));
     this.scene.fogDensity = map.realm === 'chelestra' ? 0.035 : map.realm === 'pryan' ? 0.028 : map.realm === 'abarrach' ? 0.04 : 0.018;
+
+    // realm sky dome (AI-generated panorama backdrop)
+    this.skyDome?.dispose();
+    const skyFile = map.realm === 'pryan' ? '/sky/pryan.jpg' : map.realm === 'chelestra' || map.realm === 'abarrach' ? '/sky/chelestra.jpg' : '/sky/arianus.jpg';
+    const dome = MeshBuilder.CreateSphere('skydome', { diameter: 140, segments: 16, sideOrientation: Mesh.BACKSIDE }, this.scene);
+    const domeMat = new StandardMaterial('skydome-mat', this.scene);
+    const skyTex = new Texture(skyFile, this.scene, true, true);
+    domeMat.emissiveTexture = skyTex;
+    domeMat.diffuseColor = Color3.Black();
+    domeMat.specularColor = Color3.Black();
+    domeMat.disableLighting = true;
+    domeMat.backFaceCulling = false;
+    dome.material = domeMat;
+    dome.infiniteDistance = true;
+    dome.isPickable = false;
+    dome.applyFog = false;
+    this.skyDome = dome;
 
     // lights (recreate per map so colors follow the realm)
     for (const l of [...this.scene.lights]) l.dispose();

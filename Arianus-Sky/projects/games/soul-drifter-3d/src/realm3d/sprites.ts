@@ -360,8 +360,32 @@ function monster(kind: string): string {
   return url;
 }
 
+/** AI-generated sprite art (public/sprites), with procedural fallbacks. */
+const GENERATED_NPCS: Record<string, string> = {
+  keeper: '/sprites/keeper.png',
+  scholar: '/sprites/scholar.png',
+  elder: '/sprites/elder.png',
+  merchant: '/sprites/merchant.png',
+  innkeeper: '/sprites/innkeeper.png',
+  priestess: '/sprites/priestess.png',
+};
+
+const GENERATED_ENEMIES: Record<string, string> = {
+  lurker: '/sprites/lurker.png',
+  acolyte: '/sprites/acolyte.png',
+  stalker: '/sprites/stalker.png',
+  warden: '/sprites/warden.png',
+  sentinel: '/sprites/sentinel.png',
+  imp: '/sprites/imp.png',
+  dummy: '/sprites/dummy.png',
+  dummy_red: '/sprites/dummy.png',
+  beetle: '/sprites/beetle.png',
+  golem: '/sprites/golem.png',
+};
+
 /** Sprite art for map entities and the player. */
 export function entitySpriteURL(sprite: string): string {
+  if (GENERATED_NPCS[sprite]) return GENERATED_NPCS[sprite];
   switch (sprite) {
     case 'keeper': return humanoid('#4a6a8e', '#c4d4e8', { glowOrb: '#00d4ff', staff: '#2e4a6e' });
     case 'scholar': return humanoid('#5a4a3a', '#c49a6c', { hat: '#2a1a0e' });
@@ -381,16 +405,12 @@ export function entitySpriteURL(sprite: string): string {
   }
 }
 
-/** Player sprite — class-tinted drifter. */
-export function playerSpriteURL(classId?: string): string {
-  const robes: Record<string, string> = {
-    warrior: '#a03434', mage: '#6e3a9e', priest: '#c0a038',
-    sharpshooter: '#2e7a4e', paladin: '#c06820',
-  };
-  return humanoid(robes[classId || ''] || '#3e5a8e', '#e8c4a0', { staff: classId === 'mage' ? '#5e3a1e' : undefined, glowOrb: classId === 'mage' ? '#a855f7' : undefined });
+/** Player sprite — AI-generated drifter art (class variants later). */
+export function playerSpriteURL(_classId?: string): string {
+  return '/sprites/player.png';
 }
 
 /** Enemy sprite art. */
 export function enemySpriteURL(sprite: string): string {
-  return monster(sprite);
+  return GENERATED_ENEMIES[sprite] || monster(sprite);
 }

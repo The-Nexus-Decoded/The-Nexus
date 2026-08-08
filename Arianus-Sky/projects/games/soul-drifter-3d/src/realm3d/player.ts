@@ -32,7 +32,7 @@ export function nameTag(scene: Scene, text: string, color = '#ffffff'): Mesh {
 }
 
 export function makeBillboard(scene: Scene, name: string, dataURL: string, width = 0.85, height = 1.15): Mesh {
-  const tex = new Texture(dataURL, scene, true, false, Texture.NEAREST_SAMPLINGMODE);
+  const tex = new Texture(dataURL, scene, true, true, Texture.TRILINEAR_SAMPLINGMODE);
   tex.hasAlpha = true;
   const mat = new StandardMaterial(`${name}-mat`, scene);
   mat.diffuseTexture = tex;

@@ -13,7 +13,20 @@ npm run dev      # dev server
 npm run build    # production build (verified clean)
 ```
 
-## What's in this milestone (v0.1)
+## What's in v0.2 (this milestone)
+
+- **AI-generated character art** (`public/sprites/`): 16 painted JRPG-style sprites —
+  player drifter, soul keeper, elder, priestess, scholar, merchant, innkeeper,
+  tide lurker, drowned acolyte, reef stalker, chapel warden, rune sentinel, fire imp,
+  magma beetle, basalt golem, training dummy. Transparent PNGs, watermark-stripped,
+  alpha-cleaned, trimmed and optimized.
+- **AI-generated realm sky domes** (`public/sky/`): painted panoramas for Arianus
+  (floating islands), Chelestra (bioluminescent deep), Pryan (lava basalt) rendered
+  as infinite-distance sky spheres.
+- **Fixed upside-down billboards** (`invertY` texture flag).
+- Procedural art remains as fallback for gates, essences, chests, memories.
+
+## What's in v0.1
 
 - **True 3D worlds** built from the shared map data (`src/soul-drifter/data/maps.ts`):
   all 8 maps — Arianus (spawn chamber, corridor, arena), Pryan (caldera),
