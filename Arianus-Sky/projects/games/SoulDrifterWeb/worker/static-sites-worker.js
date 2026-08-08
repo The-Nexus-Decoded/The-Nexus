@@ -117,6 +117,20 @@ async function handleLogin(request, env) {
   });
 }
 
+function protectedAssetResponse(response) {
+  const headers = new Headers(response.headers);
+  // The host's static layer otherwise marks HTML as publicly cacheable, which
+  // could leak a response fetched by an authorized tester to anonymous users.
+  headers.set("cache-control", "private, no-store, max-age=0");
+  headers.set("pragma", "no-cache");
+  headers.set("vary", "Cookie");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -143,13 +157,13 @@ const worker = {
     }
 
     const response = await env.ASSETS.fetch(request);
-    if (response.status !== 404 || request.method !== "GET") return response;
+    if (response.status !== 404 || request.method !== "GET") return protectedAssetResponse(response);
 
     const acceptsHtml = (request.headers.get("accept") ?? "").includes("text/html");
-    if (!acceptsHtml) return response;
+    if (!acceptsHtml) return protectedAssetResponse(response);
 
     const fallback = new Request(new URL("/index.html", request.url), request);
-    return env.ASSETS.fetch(fallback);
+    return protectedAssetResponse(await env.ASSETS.fetch(fallback));
   },
 };
 

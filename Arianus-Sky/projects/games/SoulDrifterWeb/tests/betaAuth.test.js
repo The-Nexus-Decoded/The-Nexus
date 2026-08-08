@@ -40,6 +40,8 @@ describe("beta password worker", () => {
       headers: { cookie: cookie.split(";")[0] },
     }), env);
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+    expect(response.headers.get("vary")).toBe("Cookie");
     expect(await response.text()).toBe("game asset");
   });
 });
