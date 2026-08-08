@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoulDrifter 3D — Death Gate Realms</title>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+
+  <div id="hud">
+    <div id="hud-player" class="gump-panel">
+      <div class="pname font-gump">Drifter</div>
+      <div class="bar hp"><div id="hp-fill"></div></div>
+      <div class="bar mp"><div id="mp-fill"></div></div>
+    </div>
+
+    <div id="hud-map" class="gump-panel">
+      <span id="map-name" class="font-gump"></span>
+      <span id="realm-name"></span>
+    </div>
+
+    <div id="hud-toast" class="gump-panel hidden"></div>
+
+    <div id="hud-hint" class="gump-panel">WASD / arrows to walk &nbsp;·&nbsp; click the world to move &nbsp;·&nbsp; click glowing figures &amp; gates &nbsp;·&nbsp; drag to orbit, wheel to zoom</div>
+
+    <div id="hud-objectives" class="gump-panel">
+      <div class="obj-title font-gump">Objectives</div>
+      <ul id="obj-list"></ul>
+    </div>
+
+    <div id="hud-dialog" class="gump-panel hidden">
+      <p id="dialog-text" class="font-dialog"></p>
+      <button id="dialog-close" class="sd-btn">Close</button>
+    </div>
+
+    <div id="fade"></div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
