@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Game animations */
+@keyframes damageFloat {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-30px) scale(1.2); opacity: 0.8; }
+  100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
+  50% { box-shadow: 0 0 15px currentColor, 0 0 30px currentColor; }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rune-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* SoulDrifter unit & world animations */
+@keyframes unitBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes lunge {
+  0% { transform: translate(0, 0); }
+  35% { transform: translate(0, -10px) scale(1.08); }
+  70% { transform: translate(0, 2px) scale(0.98); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes castPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(150, 200, 255, 0)); }
+  40% { transform: scale(1.12); filter: drop-shadow(0 0 12px rgba(150, 200, 255, 0.9)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(150, 200, 255, 0)); }
+}
+
+@keyframes hitFlinch {
+  0% { transform: translateX(0); filter: brightness(1); }
+  25% { transform: translateX(-4px); filter: brightness(2) saturate(2); }
+  50% { transform: translateX(4px); filter: brightness(1.6); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); filter: brightness(1); }
+}
+
+@keyframes particleRise {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-110vh); opacity: 0; }
+}
+
+@keyframes particleDrift {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 0.7; }
+  85% { opacity: 0.5; }
+  100% { transform: translate(40vw, -60vh); opacity: 0; }
+}
+
+.unit-bob {
+  animation: unitBob 2.4s ease-in-out infinite;
+}
+
+.anim-lunge {
+  animation: lunge 0.45s ease-out;
+}
+
+.anim-cast {
+  animation: castPulse 0.5s ease-out;
+}
+
+.anim-hit {
+  animation: hitFlinch 0.4s ease-in-out;
+}
+
+/* SoulDrifter styled buttons */
+.sd-btn {
+  position: relative;
+  border: 1px solid rgba(180, 150, 90, 0.55);
+  background: linear-gradient(180deg, rgba(60, 48, 32, 0.95) 0%, rgba(32, 24, 16, 0.95) 100%);
+  color: #e8d9b0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, 0.18), 0 2px 6px rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.sd-btn:hover:not(:disabled) {
+  border-color: rgba(230, 195, 120, 0.9);
+  background: linear-gradient(180deg, rgba(84, 66, 42, 0.95) 0%, rgba(44, 33, 21, 0.95) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, 0.3), 0 0 12px rgba(220, 180, 100, 0.35), 0 2px 6px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.sd-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.sd-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Custom scrollbar for combat log */
+.combat-log::-webkit-scrollbar {
+  width: 6px;
+}
+.combat-log::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+}
+.combat-log::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+.combat-log::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
