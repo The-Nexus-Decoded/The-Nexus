@@ -9,6 +9,8 @@ import type { GameMap, MapEntity, Vec2 } from '../soul-drifter/game/types';
 import { buildWorld, tileToWorld, worldToTile, type BuiltWorld } from './world';
 import { PlayerController, makeBillboard, nameTag, makeBlobShadow } from './player';
 import { entitySpriteURL, enemySpriteURL } from './sprites';
+import { decorateWorld, type Decor } from './props';
+import { runCreationFlow, touchProfile, type Profile } from '../ui/creation';
 import { shade } from './textures';
 
 const DIALOGS: Record<string, string> = {
@@ -21,6 +23,7 @@ const DIALOGS: Record<string, string> = {
 };
 
 const START_MAP = 'spawn_chamber';
+void START_MAP; // creation flow owns the start map now
 
 export class Game3D {
   private engine: Engine;
@@ -28,13 +31,17 @@ export class Game3D {
   private camera!: ArcRotateCamera;
   private shadowGen!: ShadowGenerator;
   private world: BuiltWorld | null = null;
+  private decor: Decor | null = null;
   private skyDome: Mesh | null = null;
   private map!: GameMap;
-  private player!: PlayerController;
+  private player: PlayerController | null = null;
+  private profile: Profile | null = null;
   private entityMeshes: AbstractMesh[] = [];
+  private idleMeshes: { mesh: AbstractMesh; baseY: number; phase: number }[] = [];
   private enemyTiles = new Set<string>();
   private completedObjectives = new Set<string>();
   private traveledOnce = false;
+  private animT = 0;
 
   // HUD refs
   private el = (id: string) => document.getElementById(id)!;
@@ -42,22 +49,48 @@ export class Game3D {
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true, { stencil: true }, true);
     this.createScene();
-    this.loadMap(START_MAP, true);
+
+    // character creation / profile select comes first; the world loads after
+    runCreationFlow((p) => {
+      this.profile = p;
+      this.loadMap(p.mapId, true);
+      const pname = document.querySelector('#hud-player .pname');
+      if (pname) pname.textContent = p.name;
+    });
 
     this.el('dialog-close').addEventListener('click', () => this.el('hud-dialog').classList.add('hidden'));
 
     this.engine.runRenderLoop(() => {
       const dt = Math.min(this.engine.getDeltaTime() / 1000, 0.1);
-      this.player.update(dt);
-      // camera follows player
-      const target = Vector3.Lerp(this.camera.target, this.player.worldPos, 1 - Math.pow(0.001, dt));
-      this.camera.target = target;
+      this.animT += dt;
+      if (this.player) {
+        this.player.update(dt);
+        // camera follows player
+        const target = Vector3.Lerp(this.camera.target, this.player.worldPos, 1 - Math.pow(0.001, dt));
+        this.camera.target = target;
+      }
       // animate water
       if (this.world) {
         for (const tex of this.world.waterTextures) {
           tex.uOffset += dt * 0.03;
           tex.vOffset += dt * 0.011;
         }
+      }
+      // torch flicker + flame wobble
+      if (this.decor) {
+        this.decor.torchLights.forEach((l, i) => {
+          l.intensity = 0.55 + Math.sin(this.animT * 11 + i * 1.7) * 0.07 + Math.sin(this.animT * 23 + i * 3.1) * 0.04;
+        });
+        this.decor.flames.forEach((f, i) => {
+          const s = 1 + Math.sin(this.animT * 9 + i * 2.3) * 0.12;
+          f.scaling.set(s, 1 + Math.sin(this.animT * 13 + i) * 0.15, 1);
+        });
+      }
+      // idle motion for NPCs & enemies (breathing bob)
+      for (const im of this.idleMeshes) {
+        im.mesh.position.y = im.baseY + Math.sin(this.animT * 1.6 + im.phase) * 0.02;
+        const s = 1 + Math.sin(this.animT * 2.1 + im.phase) * 0.015;
+        im.mesh.scaling.set(s, 1 / s, 1);
       }
       this.scene.render();
     });
@@ -87,7 +120,7 @@ export class Game3D {
       const md = mesh.metadata as { kind?: string; entityId?: string; tileX?: number; tileY?: number } | null;
       if (md?.kind === 'entity' && md.entityId) {
         this.interact(md.entityId);
-      } else if (md?.kind === 'ground' && pick.pickedPoint) {
+      } else if (md?.kind === 'ground' && pick.pickedPoint && this.player) {
         const t = worldToTile(this.map, pick.pickedPoint.x, pick.pickedPoint.z);
         this.player.goTo({ x: t.x, y: t.y });
         this.tickObjective('awaken');
@@ -149,18 +182,19 @@ export class Game3D {
 
     // clear old
     this.world?.dispose();
+    this.decor?.dispose();
+    this.decor = null;
     for (const m of this.entityMeshes) m.dispose();
     this.entityMeshes = [];
+    this.idleMeshes = [];
     this.enemyTiles.clear();
-    if (this.player && !first) {
-      // keep player meshes, teleport later
-    }
 
     this.applyRealmAmbience(map);
     this.world = buildWorld(this.scene, map, this.shadowGen);
 
     // entities (NPCs, gates, items) as billboards + invisible pick boxes
-    for (const e of getMapEntities(mapId)) {
+    const entities = getMapEntities(mapId);
+    for (const e of entities) {
       this.spawnEntity(e);
     }
 
@@ -174,13 +208,21 @@ export class Game3D {
       const sh = makeBlobShadow(this.scene, `esh-${u.id}`);
       sh.position = new Vector3(wp.x, 0.02, wp.z);
       this.entityMeshes.push(bb, tag, sh);
+      this.idleMeshes.push({ mesh: bb, baseY: 0.55, phase: Math.random() * Math.PI * 2 });
       this.enemyTiles.add(`${u.position.x},${u.position.y}`);
     }
+
+    // dungeon dressing: trim, pillars, arches, torches, rubble, coral
+    this.decor = decorateWorld(this.scene, map, entities, this.shadowGen);
 
     // player
     const start: Vec2 = map.spawnPoints[0] || { x: 1, y: 1 };
     if (!this.player) {
-      this.player = new PlayerController(this.scene, map, start, () => this.enemyTiles, 'mage', 'Drifter');
+      this.player = new PlayerController(
+        this.scene, map, start, () => this.enemyTiles,
+        this.profile?.classId || 'mage',
+        this.profile?.name || 'Drifter',
+      );
     } else {
       this.player.teleport(map, start);
     }
@@ -192,7 +234,11 @@ export class Game3D {
     this.el('realm-name').textContent = realm ? `${realm.name} · ${realm.law}` : map.realm;
     this.renderObjectives();
 
-    if (!first) this.toast(`You pass through the gate — ${map.name}.`);
+    if (!first) {
+      this.toast(`You pass through the gate — ${map.name}.`);
+      // persist where the drifter is, so a refresh resumes here
+      if (this.profile) touchProfile(this.profile.name, { mapId });
+    }
     if (this.traveledOnce) this.tickObjective('gate');
   }
 
@@ -217,6 +263,7 @@ export class Game3D {
     bb.metadata = { kind: 'entity', entityId: e.id };
     bb.isPickable = true;
     this.entityMeshes.push(bb, sh, tag, box);
+    if (e.type === 'npc') this.idleMeshes.push({ mesh: bb, baseY: bb.position.y, phase: Math.random() * Math.PI * 2 });
   }
 
   private interact(entityId: string) {

@@ -51,6 +51,7 @@ function groundMaterial(scene: Scene, terrain: string): { mat: StandardMaterial;
     mat = new StandardMaterial(`gm-${key}`, scene);
     mat.diffuseTexture = tex;
     mat.specularColor = Color3.Black();
+    mat.maxSimultaneousLights = 8;
     if (kind === 'water' || kind === 'deepwater') {
       mat.alpha = 0.88;
       mat.emissiveColor = Color3.FromHexString(detail).scale(0.12);
@@ -79,6 +80,7 @@ function wallMaterial(scene: Scene, terrain: string): StandardMaterial {
     mat = new StandardMaterial(`wm-${key}`, scene);
     mat.diffuseTexture = tex;
     mat.specularColor = Color3.Black();
+    mat.maxSimultaneousLights = 8;
     if (terrain === 'wall_rune') mat.emissiveColor = Color3.FromHexString('#a855f7').scale(0.08);
     if (terrain === 'wall_coral') mat.emissiveColor = Color3.FromHexString('#5eead4').scale(0.06);
     matCache.set(key, mat);

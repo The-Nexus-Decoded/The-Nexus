@@ -405,9 +405,57 @@ export function entitySpriteURL(sprite: string): string {
   }
 }
 
-/** Player sprite — AI-generated drifter art (class variants later). */
-export function playerSpriteURL(_classId?: string): string {
-  return '/sprites/player.png';
+/** Player sprite — AI-generated class art, drifter art as fallback. */
+const GENERATED_CLASSES: Record<string, string> = {
+  warrior: '/sprites/class_warrior.png',
+  priest: '/sprites/class_priest.png',
+  sharpshooter: '/sprites/class_sharpshooter.png',
+  paladin: '/sprites/class_paladin.png',
+  mage: '/sprites/player.png',
+};
+
+export function playerSpriteURL(classId?: string): string {
+  return (classId && GENERATED_CLASSES[classId]) || '/sprites/player.png';
+}
+
+/** Walk-cycle frames (base + two stride frames). */
+export function playerWalkURLs(classId?: string): string[] {
+  const base = playerSpriteURL(classId);
+  if (base !== '/sprites/player.png') return [base]; // class art has no walk frames yet
+  return ['/sprites/player.png', '/sprites/player_walk1.png', '/sprites/player_walk2.png'];
+}
+
+/** Torch flame — canvas-painted billboard texture. */
+export function flameURL(): string {
+  if (cache.has('flame')) return cache.get('flame')!;
+  const [c, ctx] = makeCanvas(64, 96);
+  const g = ctx.createRadialGradient(32, 62, 2, 32, 58, 40);
+  g.addColorStop(0, '#fff8dc');
+  g.addColorStop(0.25, '#ffd75e');
+  g.addColorStop(0.55, '#ff8c2a');
+  g.addColorStop(0.85, 'rgba(200,60,10,0.35)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  // teardrop flame shape
+  ctx.beginPath();
+  ctx.moveTo(32, 6);
+  ctx.quadraticCurveTo(52, 42, 46, 66);
+  ctx.quadraticCurveTo(42, 84, 32, 86);
+  ctx.quadraticCurveTo(22, 84, 18, 66);
+  ctx.quadraticCurveTo(12, 42, 32, 6);
+  ctx.fill();
+  // bright core
+  const g2 = ctx.createRadialGradient(32, 66, 1, 32, 66, 14);
+  g2.addColorStop(0, '#ffffff');
+  g2.addColorStop(0.6, '#ffe9a0');
+  g2.addColorStop(1, 'rgba(255,220,120,0)');
+  ctx.fillStyle = g2;
+  ctx.beginPath();
+  ctx.ellipse(32, 66, 11, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const url = c.toDataURL();
+  cache.set('flame', url);
+  return url;
 }
 
 /** Enemy sprite art. */

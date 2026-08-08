@@ -4,7 +4,7 @@ import {
 import type { GameMap, Vec2 } from '../soul-drifter/game/types';
 import { TERRAIN_DEFS } from '../soul-drifter/data/classes';
 import { tileToWorld } from './world';
-import { playerSpriteURL } from './sprites';
+import { playerSpriteURL, playerWalkURLs } from './sprites';
 
 export function nameTag(scene: Scene, text: string, color = '#ffffff'): Mesh {
   const tex = new DynamicTexture(`nt-${text}-${color}`, { width: 256, height: 56 }, scene, true);
@@ -125,6 +125,9 @@ export class PlayerController {
   private stepCooldown = 0;
   private stepDist = 1;
   private blocked: () => Set<string>;
+  private walkFrames: Texture[] = [];
+  private walkIdx = 0;
+  private walkTimer = 0;
 
   constructor(
     private scene: Scene,
@@ -137,6 +140,12 @@ export class PlayerController {
     this.tile = { ...start };
     this.blocked = blockedTiles;
     this.node = makeBillboard(scene, 'player', playerSpriteURL(classId), 0.8, 1.1);
+    // preload walk-cycle frames (single frame for class art without walk variants)
+    this.walkFrames = playerWalkURLs(classId).map(u => {
+      const t = new Texture(u, scene, true, true, Texture.TRILINEAR_SAMPLINGMODE);
+      t.hasAlpha = true;
+      return t;
+    });
     const wp = tileToWorld(map, start.x, start.y);
     this.node.position = new Vector3(wp.x, 0.55, wp.z);
     this.tag = nameTag(scene, playerName, '#e8f4ff');
@@ -184,6 +193,16 @@ export class PlayerController {
     this.stepDist = dist;
   }
 
+  private setFrame(i: number) {
+    if (!this.walkFrames.length) return;
+    this.walkIdx = i % this.walkFrames.length;
+    const mat = this.node.material as StandardMaterial | null;
+    if (mat) {
+      mat.diffuseTexture = this.walkFrames[this.walkIdx];
+      mat.emissiveTexture = this.walkFrames[this.walkIdx];
+    }
+  }
+
   update(dt: number) {
     // bob animation
     const bob = Math.sin(performance.now() / 320) * 0.03;
@@ -191,8 +210,17 @@ export class PlayerController {
     if (this.moving) {
       const dist = this.stepDist || 1;
       this.lerpT += (dt * MOVE_SPEED) / dist;
+      // walk-cycle frame swap (~7 fps)
+      if (this.walkFrames.length > 1) {
+        this.walkTimer += dt;
+        if (this.walkTimer >= 0.14) {
+          this.walkTimer = 0;
+          this.setFrame(this.walkIdx + 1);
+        }
+      }
       if (this.lerpT >= 1) {
         this.moving = false;
+        this.setFrame(0);
         this.node.position.set(this.toWorld.x, 0.55, this.toWorld.z);
         this.shadow.position.set(this.toWorld.x, 0.02, this.toWorld.z);
       } else {

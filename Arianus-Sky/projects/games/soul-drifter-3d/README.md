@@ -13,7 +13,25 @@ npm run dev      # dev server
 npm run build    # production build (verified clean)
 ```
 
-## What's in v0.2 (this milestone)
+## What's in v0.3 (this milestone)
+
+- **Character creation + profiles** (`src/ui/creation.ts`): full title → name →
+  race → class → memory flow in the gump style. Profiles persist in localStorage
+  (`souldrifter3d_profiles_v1`) with unique-name enforcement; returning drifters
+  resume at their last map on refresh. Class picks show the generated class art.
+- **4 AI-generated class sprites**: warrior, priest, sharpshooter, paladin
+  (`public/sprites/class_*.png`) — the player billboard now matches your class.
+- **Walk animation**: two AI-generated stride frames (`player_walk1/2.png`)
+  swapped at ~7 fps while moving for the mage/drifter art; class art gets
+  procedural hop + bob until its own frames are generated.
+- **Dungeon dressing** (`src/realm3d/props.ts`): wall cap trim, corner pillars,
+  stone arches with rune-glow lintels over every gate, wall torches with
+  flickering point lights (capped per map), rubble near cracked stone, coral
+  clusters and kelp strands in Chelestra.
+- **Idle motion**: NPCs and enemies breathe/bob in place instead of standing
+  as static cutouts.
+
+## What's in v0.2
 
 - **AI-generated character art** (`public/sprites/`): 16 painted JRPG-style sprites —
   player drifter, soul keeper, elder, priestess, scholar, merchant, innkeeper,

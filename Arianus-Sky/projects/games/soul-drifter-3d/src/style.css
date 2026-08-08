@@ -129,3 +129,65 @@ html, body {
   transition: opacity 0.45s ease;
 }
 #fade.on { opacity: 1; pointer-events: auto; }
+
+/* ===== Character creation / profile select ===== */
+#creation {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(88,60,140,0.35), transparent 60%),
+    radial-gradient(ellipse at 50% 90%, rgba(20,40,80,0.5), transparent 55%),
+    #07060e;
+  transition: opacity 0.45s ease;
+  overflow-y: auto;
+}
+#creation.closing { opacity: 0; pointer-events: none; }
+.cr-panel {
+  text-align: center; padding: 34px 42px; max-width: 560px; width: 92%;
+  background: rgba(16,12,24,0.92);
+  border: 1px solid rgba(200,170,110,0.4);
+  border-radius: 10px;
+  box-shadow: 0 0 60px rgba(120,80,200,0.25), inset 0 0 40px rgba(0,0,0,0.6);
+}
+.cr-panel.cr-wide { max-width: 900px; }
+.cr-logo {
+  font-family: Cinzel, Georgia, serif; font-size: 54px; margin: 0 0 4px;
+  letter-spacing: 4px; color: #e6c878;
+  text-shadow: 0 0 24px rgba(230,195,120,0.5), 0 2px 0 #2a1e08;
+}
+.cr-sub { color: #9a8ab8; font-style: italic; margin-bottom: 26px; }
+.cr-h { font-family: Cinzel, Georgia, serif; color: #e6c878; font-size: 26px; margin: 0 0 22px; }
+.cr-section { color: #8a7aa8; text-transform: uppercase; letter-spacing: 3px; font-size: 12px; margin: 18px 0 12px; }
+.cr-big { font-size: 17px; padding: 12px 30px; }
+.cr-row { display: flex; gap: 14px; justify-content: center; margin-top: 18px; }
+.cr-profiles { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.cr-profile {
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  padding: 8px 14px; border: 1px solid rgba(200,170,110,0.25); border-radius: 8px;
+  background: rgba(30,24,44,0.6); transition: all 0.15s;
+}
+.cr-profile:hover { border-color: rgba(230,195,120,0.8); background: rgba(50,38,70,0.7); }
+.cr-profile img { width: 44px; height: 56px; object-fit: contain; }
+.cr-pinfo { text-align: left; }
+.cr-pname { font-family: Cinzel, Georgia, serif; color: #f0e6cc; font-size: 18px; }
+.cr-pmeta { color: #9a8ab8; font-size: 13px; }
+#cr-name {
+  width: 320px; max-width: 80%; padding: 12px 16px; font-size: 18px; text-align: center;
+  font-family: 'IM Fell English', Georgia, serif; color: #f0e6cc;
+  background: rgba(8,6,14,0.8); border: 1px solid rgba(200,170,110,0.4); border-radius: 6px;
+  outline: none;
+}
+#cr-name:focus { border-color: rgba(230,195,120,0.9); box-shadow: 0 0 12px rgba(220,180,100,0.3); }
+.cr-err { color: #e06a5a; min-height: 22px; margin-top: 10px; font-style: italic; }
+.cr-cards { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.cr-card {
+  width: 200px; padding: 14px; cursor: pointer; border-radius: 8px;
+  border: 1px solid rgba(200,170,110,0.25); background: rgba(30,24,44,0.6);
+  transition: all 0.15s;
+}
+.cr-card:hover { border-color: rgba(230,195,120,0.8); transform: translateY(-3px); }
+.cr-card.sel { border-color: #e6c878; box-shadow: 0 0 18px rgba(230,195,120,0.4); background: rgba(60,46,84,0.8); }
+.cr-card-img { width: 100%; height: 150px; object-fit: contain; margin-bottom: 8px; }
+.cr-card-title { font-family: Cinzel, Georgia, serif; font-size: 17px; margin-bottom: 6px; }
+.cr-card-text { color: #b8aac8; font-size: 12.5px; line-height: 1.45; }
+.cr-card-trait { color: #8ad4b0; font-size: 11.5px; font-style: italic; margin-top: 8px; }
