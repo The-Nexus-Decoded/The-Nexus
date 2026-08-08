@@ -37,6 +37,56 @@ function shade(hex: string, amt: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
+// Terrain groups (Ultima-style transition logic)
+const WATER_T = new Set(['water_shallow', 'water_deep', 'current_lane']);
+const WALL_T = new Set(['wall_stone', 'wall_rune', 'wall_breach', 'wall_basalt', 'wall_coral']);
+const isWaterT = (t: string | null | undefined) => !!t && WATER_T.has(t);
+const isWallT = (t: string | null | undefined) => !!t && WALL_T.has(t);
+
+interface Nb { n: string | null; e: string | null; s: string | null; w: string | null }
+
+// ---------------- TERRAIN TRANSITIONS ----------------
+/**
+ * Ultima VI/VII-style edge transitions: shorelines get animated foam,
+ * land next to water gets a dark wet band along the shared edge.
+ */
+function EdgeTransitions({ terrain, nb, size = TILE_W }: { terrain: string; nb: Nb; size?: number }) {
+  const q = size / 4;
+  const h = size / 2;
+  const edges: { key: keyof Nb; seg: [number, number, number, number] }[] = [
+    { key: 'n', seg: [h, 0, size, q] },
+    { key: 'e', seg: [size, q, h, h] },
+    { key: 's', seg: [h, h, 0, q] },
+    { key: 'w', seg: [0, q, h, 0] },
+  ];
+  const water = isWaterT(terrain);
+  const parts: React.ReactNode[] = [];
+  edges.forEach(({ key, seg }) => {
+    const other = nb[key];
+    const [x1, y1, x2, y2] = seg;
+    if (water && other && !isWaterT(other)) {
+      parts.push(
+        <g key={key}>
+          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d9f2f7" strokeWidth="1.8" opacity="0.6">
+            <animate attributeName="opacity" values="0.35;0.75;0.35" dur="2.4s" repeatCount="indefinite" />
+          </line>
+          {[0.25, 0.5, 0.75].map((t, i) => (
+            <circle key={i} cx={x1 + (x2 - x1) * t} cy={y1 + (y2 - y1) * t} r={0.9 + (i % 2) * 0.5} fill="#eafcff" opacity="0.7">
+              <animate attributeName="opacity" values="0.4;0.85;0.4" dur={`${1.8 + i * 0.4}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+        </g>
+      );
+    } else if (!water && !isWallT(terrain) && isWaterT(other)) {
+      parts.push(
+        <line key={key} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#0a3048" strokeWidth="2.5" opacity="0.35" />
+      );
+    }
+  });
+  if (parts.length === 0) return null;
+  return <g>{parts}</g>;
+}
+
 interface IsoWorldProps {
   tiles: MapTile[][];
   units: Unit[];
@@ -62,7 +112,7 @@ interface IsoWorldProps {
 }
 
 // ---------------- TERRAIN RENDERER ----------------
-function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: number; ty: number; size?: number }) {
+function TerrainArt({ terrain, tx, ty, nb, size = TILE_W }: { terrain: string; tx: number; ty: number; nb: Nb; size?: number }) {
   const def = TERRAIN_DEFS[terrain];
   const base = def?.color || '#333';
   const detail = def?.detailColor || '#444';
@@ -71,15 +121,15 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
   const diamond = `${size / 2},0 ${size},${size / 4} ${size / 2},${size / 2} 0,${size / 4}`;
   const gid = `tg-${terrain}-${tx}-${ty}`;
 
-  // Deterministic texture speckles for floor-type tiles
-  const speckles = (
+  // VGA-style dither: flat base with scattered two-tone pixel patches (Ultima look)
+  const dither = (
     <g>
-      {[0, 1, 2].map(i => {
-        const px = size * (0.25 + hash01(tx, ty, i * 7 + 1) * 0.5);
-        const py = size * (0.12 + hash01(tx, ty, i * 7 + 2) * 0.26);
-        const r = 0.7 + hash01(tx, ty, i * 7 + 3) * 1.3;
-        const col = hash01(tx, ty, i * 7 + 4) > 0.5 ? detail : shade(detail, -14);
-        return <circle key={i} cx={px} cy={py} r={r} fill={col} opacity={0.3 + hash01(tx, ty, i * 7 + 5) * 0.3} />;
+      {[0, 1, 2, 3, 4, 5].map(i => {
+        const px = size * (0.15 + hash01(tx, ty, i * 13 + 1) * 0.7);
+        const py = size * (0.06 + hash01(tx, ty, i * 13 + 2) * 0.36);
+        const w = 2 + Math.floor(hash01(tx, ty, i * 13 + 3) * 3);
+        const tone = i % 2 === 0 ? light : dark;
+        return <rect key={i} x={px} y={py} width={w} height={Math.max(1, w - 1)} fill={tone} opacity={0.18 + hash01(tx, ty, i * 13 + 4) * 0.18} />;
       })}
       {hash01(tx, ty, 99) > 0.72 && (
         <path
@@ -91,117 +141,169 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
 
   const floorSvg = (extra?: React.ReactNode) => (
     <svg width={size} height={size / 2} viewBox={`0 0 ${size} ${size / 2}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={light} />
-          <stop offset="55%" stopColor={base} />
-          <stop offset="100%" stopColor={dark} />
-        </linearGradient>
-      </defs>
-      <polygon points={diamond} fill={`url(#${gid})`} stroke={dark} strokeWidth="1" />
-      {speckles}
+      <polygon points={diamond} fill={base} stroke={shade(base, -30)} strokeWidth="1" />
+      {dither}
       {extra}
-      {/* top edge catch-light */}
-      <polyline points={`${size * 0.08},${size / 4} ${size / 2},${size * 0.02} ${size * 0.92},${size / 4}`}
-        fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+      <EdgeTransitions terrain={terrain} nb={nb} size={size} />
     </svg>
   );
 
+  // Tall Ultima-style block wall: top face + two brick-coursed side faces + AO base
+  const WH = Math.round(size * 0.62); // wall face height
   const wallSvg = (extra?: React.ReactNode) => (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: 'absolute', top: -size / 4, left: 0 }}>
-      <defs>
-        <linearGradient id={`${gid}-top`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={light} />
-          <stop offset="100%" stopColor={base} />
-        </linearGradient>
-        <linearGradient id={`${gid}-front`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={detail} />
-          <stop offset="100%" stopColor={dark} />
-        </linearGradient>
-      </defs>
-      <polygon points={`0,${size / 4} ${size / 2},${size / 2} ${size / 2},${size * 0.75} 0,${size / 2}`} fill={`url(#${gid}-front)`} />
-      <polygon points={`${size / 2},${size / 2} ${size},${size / 4} ${size},${size / 2} ${size / 2},${size * 0.75}`} fill={shade(detail, -26)} />
-      <polygon points={diamond} fill={`url(#${gid}-top)`} stroke={shade(base, 34)} strokeWidth="1" />
-      {/* brick seams */}
-      <line x1={size * 0.12} y1={size * 0.4} x2={size * 0.42} y2={size * 0.55} stroke={dark} strokeWidth="0.7" opacity="0.6" />
-      <line x1={size * 0.58} y1={size * 0.55} x2={size * 0.88} y2={size * 0.4} stroke={shade(detail, -40)} strokeWidth="0.7" opacity="0.6" />
+    <svg width={size} height={size / 2 + WH} viewBox={`0 0 ${size} ${size / 2 + WH}`} style={{ position: 'absolute', top: -WH, left: 0 }}>
+      {/* left face */}
+      <polygon points={`0,${size / 4} ${size / 2},${size / 2} ${size / 2},${size / 2 + WH} 0,${size / 4 + WH}`} fill={shade(detail, -6)} />
+      {/* right face */}
+      <polygon points={`${size / 2},${size / 2} ${size},${size / 4} ${size},${size / 4 + WH} ${size / 2},${size / 2 + WH}`} fill={shade(detail, -30)} />
+      {/* brick courses */}
+      {[0.34, 0.67].map((f, i) => (
+        <g key={i}>
+          <line x1={0} y1={size / 4 + WH * f} x2={size / 2} y2={size / 2 + WH * f} stroke={shade(detail, -24)} strokeWidth="0.9" opacity="0.85" />
+          <line x1={size / 2} y1={size / 2 + WH * f} x2={size} y2={size / 4 + WH * f} stroke={shade(detail, -44)} strokeWidth="0.9" opacity="0.85" />
+        </g>
+      ))}
+      {/* staggered vertical joints */}
+      {[0.25, 0.75].map((t, i) => (
+        <g key={`j${i}`}>
+          <line x1={size / 2 * t} y1={size / 4 + (size / 4) * t + WH * 0.1} x2={size / 2 * t} y2={size / 4 + (size / 4) * t + WH * 0.3} stroke={shade(detail, -24)} strokeWidth="0.8" opacity="0.7" />
+          <line x1={size / 2 * t} y1={size / 4 + (size / 4) * t + WH * 0.45} x2={size / 2 * t} y2={size / 4 + (size / 4) * t + WH * 0.63} stroke={shade(detail, -24)} strokeWidth="0.8" opacity="0.7" />
+          <line x1={size / 2 * t} y1={size / 4 + (size / 4) * t + WH * 0.78} x2={size / 2 * t} y2={size / 4 + (size / 4) * t + WH * 0.95} stroke={shade(detail, -24)} strokeWidth="0.8" opacity="0.7" />
+          <line x1={size - size / 2 * t} y1={size / 4 + (size / 4) * t + WH * 0.28} x2={size - size / 2 * t} y2={size / 4 + (size / 4) * t + WH * 0.46} stroke={shade(detail, -46)} strokeWidth="0.8" opacity="0.7" />
+          <line x1={size - size / 2 * t} y1={size / 4 + (size / 4) * t + WH * 0.62} x2={size - size / 2 * t} y2={size / 4 + (size / 4) * t + WH * 0.8} stroke={shade(detail, -46)} strokeWidth="0.8" opacity="0.7" />
+        </g>
+      ))}
+      {/* ambient occlusion at base */}
+      <polygon points={`0,${size / 4 + WH - 5} ${size / 2},${size / 2 + WH - 5} ${size / 2},${size / 2 + WH} 0,${size / 4 + WH}`} fill="#000" opacity="0.22" />
+      <polygon points={`${size / 2},${size / 2 + WH - 5} ${size},${size / 4 + WH - 5} ${size},${size / 4 + WH} ${size / 2},${size / 2 + WH}`} fill="#000" opacity="0.3" />
+      {/* top face */}
+      <polygon points={diamond} fill={light} stroke={shade(base, 42)} strokeWidth="1" />
+      {dither}
       {extra}
     </svg>
+  );
+
+  const waterDrift = (
+    <animateTransform attributeName="transform" type="translate" values="-5 0; 5 0; -5 0" dur="4.6s" repeatCount="indefinite" />
   );
 
   switch (terrain) {
     case 'floor_soulwell':
       return floorSvg(
-        <circle cx={size / 2} cy={size / 4} r="4" fill="#00d4ff" opacity="0.35">
-          <animate attributeName="opacity" values="0.2;0.55;0.2" dur="2s" repeatCount="indefinite" />
-        </circle>
+        <g>
+          <polygon points={`${size * 0.3},${size * 0.125} ${size * 0.7},${size * 0.125} ${size * 0.5},${size * 0.375} ${size * 0.3},${size * 0.375}`} fill="none" stroke={dark} strokeWidth="0.8" opacity="0.6" />
+          <circle cx={size / 2} cy={size / 4} r="4" fill="#00d4ff" opacity="0.35">
+            <animate attributeName="opacity" values="0.2;0.55;0.2" dur="2s" repeatCount="indefinite" />
+          </circle>
+        </g>
       );
     case 'floor_stone':
     case 'floor_stone_cracked':
       return floorSvg(
-        terrain === 'floor_stone_cracked'
-          ? <path d={`M${size * 0.3} ${size * 0.2} L${size * 0.5} ${size * 0.15} L${size * 0.6} ${size * 0.3}`} stroke={shade(base, -34)} strokeWidth="0.9" fill="none" opacity="0.5" />
-          : undefined
+        <g>
+          {/* flagstone seams */}
+          <line x1={0} y1={size / 4} x2={size} y2={size / 4} stroke={shade(base, -28)} strokeWidth="0.9" opacity="0.8" />
+          <line x1={size / 2} y1={0} x2={size / 2} y2={size / 2} stroke={shade(base, -28)} strokeWidth="0.9" opacity="0.8" />
+          {terrain === 'floor_stone_cracked' && (
+            <path d={`M${size * 0.3} ${size * 0.2} L${size * 0.5} ${size * 0.15} L${size * 0.6} ${size * 0.3}`} stroke={shade(base, -40)} strokeWidth="1" fill="none" opacity="0.6" />
+          )}
+        </g>
       );
     case 'floor_grass':
       return floorSvg(
-        <g opacity="0.5">
-          {[0, 1, 2, 3].map(i => {
-            const px = size * (0.3 + hash01(tx, ty, i + 11) * 0.4);
-            const py = size * (0.12 + hash01(tx, ty, i + 21) * 0.2);
-            return <line key={i} x1={px} y1={py + 5} x2={px + 2} y2={py} stroke={shade(detail, 14)} strokeWidth="1" />;
+        <g>
+          {[0, 1, 2, 3, 4].map(i => {
+            const px = size * (0.28 + hash01(tx, ty, i + 11) * 0.44);
+            const py = size * (0.1 + hash01(tx, ty, i + 21) * 0.24);
+            return <line key={i} x1={px} y1={py + 5} x2={px + 2} y2={py} stroke={shade(detail, 14)} strokeWidth="1.1" opacity="0.75" />;
           })}
+          {hash01(tx, ty, 77) > 0.78 && (
+            <g>
+              <circle cx={size * 0.4} cy={size * 0.2} r="1.3" fill={hash01(tx, ty, 78) > 0.5 ? '#f5e663' : '#e8ecf1'} opacity="0.9" />
+              <circle cx={size * 0.4 + 2} cy={size * 0.2 + 1} r="0.7" fill={hash01(tx, ty, 78) > 0.5 ? '#f5e663' : '#e8ecf1'} opacity="0.7" />
+            </g>
+          )}
         </g>
       );
     case 'floor_dirt':
+      return floorSvg(
+        <g>
+          {[0, 1, 2].map(i => {
+            const px = size * (0.25 + hash01(tx, ty, i + 31) * 0.5);
+            const py = size * (0.1 + hash01(tx, ty, i + 41) * 0.24);
+            return <ellipse key={i} cx={px} cy={py} rx="2.2" ry="1.1" fill={shade(base, -16)} opacity="0.6" />;
+          })}
+        </g>
+      );
     case 'floor_wood':
+      return floorSvg(
+        <g stroke={shade(base, -26)} strokeWidth="0.9" opacity="0.8">
+          {[0, 1, 2].map(k => (
+            <line key={k} x1={size * (0.5 - 0.19 * (k + 1))} y1={size * (0.25 - 0.095 * (k + 1)) + size * 0.19} x2={size * (0.5 + 0.19 * (k + 1))} y2={size * (0.25 - 0.095 * (k + 1)) + size * 0.19} />
+          ))}
+          <line x1={size * 0.5} y1={size * 0.06} x2={size * 0.5} y2={size * 0.44} strokeDasharray="3 3" />
+        </g>
+      );
     case 'floor_sand':
       return floorSvg(
-        terrain === 'floor_sand'
-          ? <path d={`M${size * 0.2} ${size * 0.2} Q${size * 0.35} ${size * 0.15} ${size * 0.5} ${size * 0.2} M${size * 0.4} ${size * 0.3} Q${size * 0.55} ${size * 0.25} ${size * 0.7} ${size * 0.3}`} stroke={detail} strokeWidth="0.7" fill="none" opacity="0.35" />
-          : undefined
+        <g>
+          <path d={`M${size * 0.2} ${size * 0.2} Q${size * 0.35} ${size * 0.15} ${size * 0.5} ${size * 0.2} M${size * 0.4} ${size * 0.3} Q${size * 0.55} ${size * 0.25} ${size * 0.7} ${size * 0.3}`} stroke={detail} strokeWidth="0.8" fill="none" opacity="0.5" />
+          {[0, 1].map(i => (
+            <circle key={i} cx={size * (0.3 + hash01(tx, ty, i + 51) * 0.4)} cy={size * (0.12 + hash01(tx, ty, i + 61) * 0.2)} r="0.9" fill={shade(base, -18)} opacity="0.6" />
+          ))}
+        </g>
       );
     case 'floor_basalt':
       return floorSvg(
-        <path d={`M${size * 0.25} ${size * 0.2} L${size * 0.45} ${size * 0.22} L${size * 0.55} ${size * 0.3}`} stroke="#FF6B35" strokeWidth="0.6" fill="none" opacity="0.25" />
+        <g>
+          <path d={`M${size * 0.25} ${size * 0.2} L${size * 0.45} ${size * 0.22} L${size * 0.55} ${size * 0.3}`} stroke="#FF6B35" strokeWidth="0.7" fill="none" opacity="0.35" />
+          <polygon points={`${size * 0.35},${size * 0.1} ${size * 0.5},${size * 0.14} ${size * 0.42},${size * 0.22}`} fill={shade(base, -16)} opacity="0.7" />
+        </g>
       );
     case 'floor_obsidian':
       return floorSvg(
-        <polygon points={`${size * 0.35},${size * 0.12} ${size * 0.55},${size * 0.18} ${size * 0.4},${size * 0.28}`} fill="#4a2a5e" opacity="0.35" />
+        <g>
+          <polygon points={`${size * 0.35},${size * 0.12} ${size * 0.55},${size * 0.18} ${size * 0.4},${size * 0.28}`} fill="#4a2a5e" opacity="0.45" />
+          <line x1={size * 0.3} y1={size * 0.2} x2={size * 0.7} y2={size * 0.2} stroke={shade(base, 30)} strokeWidth="0.6" opacity="0.5" />
+        </g>
       );
     case 'floor_ash':
       return floorSvg(
-        <circle cx={size * 0.5} cy={size * 0.15} r="0.8" fill="#FF6B35" opacity="0.3" />
+        <g>
+          {[0, 1, 2].map(i => (
+            <ellipse key={i} cx={size * (0.28 + hash01(tx, ty, i + 71) * 0.44)} cy={size * (0.1 + hash01(tx, ty, i + 81) * 0.24)} rx="2.6" ry="1.2" fill={shade(base, 12)} opacity="0.5" />
+          ))}
+          <circle cx={size * 0.5} cy={size * 0.15} r="0.8" fill="#FF6B35" opacity="0.4" />
+        </g>
       );
     case 'floor_coral':
       return floorSvg(
-        <circle cx={size * 0.5} cy={size * 0.15} r="0.8" fill="#5eead4" opacity="0.4" />
+        <g>
+          <circle cx={size * 0.4} cy={size * 0.16} r="1.6" fill={shade(detail, 16)} opacity="0.6" />
+          <circle cx={size * 0.58} cy={size * 0.28} r="1.2" fill={shade(detail, -8)} opacity="0.6" />
+          <circle cx={size * 0.5} cy={size * 0.15} r="0.8" fill="#5eead4" opacity="0.5" />
+        </g>
       );
     case 'floor_kelp':
       return floorSvg(
-        <g opacity="0.65">
-          <path d={`M${size * 0.35} ${size * 0.3} Q${size * 0.32} ${size * 0.15} ${size * 0.38} ${size * 0.05}`} stroke="#2e7a4e" strokeWidth="1.2" fill="none" />
-          <path d={`M${size * 0.5} ${size * 0.32} Q${size * 0.48} ${size * 0.18} ${size * 0.54} ${size * 0.08}`} stroke="#3a9a5e" strokeWidth="1.2" fill="none" />
-          <path d={`M${size * 0.65} ${size * 0.28} Q${size * 0.62} ${size * 0.16} ${size * 0.68} ${size * 0.06}`} stroke="#2e7a4e" strokeWidth="1" fill="none" />
+        <g opacity="0.8">
+          <path d={`M${size * 0.35} ${size * 0.32} Q${size * 0.32} ${size * 0.15} ${size * 0.38} ${size * 0.04}`} stroke="#2e7a4e" strokeWidth="1.4" fill="none" />
+          <path d={`M${size * 0.5} ${size * 0.34} Q${size * 0.48} ${size * 0.18} ${size * 0.54} ${size * 0.07}`} stroke="#3a9a5e" strokeWidth="1.4" fill="none" />
+          <path d={`M${size * 0.65} ${size * 0.3} Q${size * 0.62} ${size * 0.16} ${size * 0.68} ${size * 0.05}`} stroke="#2e7a4e" strokeWidth="1.2" fill="none" />
+          <ellipse cx={size * 0.5} cy={size * 0.32} rx="7" ry="2" fill="#1e4a30" opacity="0.6" />
         </g>
       );
     case 'lava':
       return (
         <svg width={size} height={size / 2} viewBox={`0 0 ${size} ${size / 2}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-          <defs>
-            <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#a83a12" />
-              <stop offset="55%" stopColor={base} />
-              <stop offset="100%" stopColor="#5a1a06" />
-            </linearGradient>
-          </defs>
-          <polygon points={diamond} fill={`url(#${gid})`} stroke="#FF6B35" strokeWidth="1" />
+          <polygon points={diamond} fill={base} stroke="#FF6B35" strokeWidth="1" />
           <polygon points={`${size * 0.3},${size * 0.15} ${size * 0.6},${size * 0.2} ${size * 0.5},${size * 0.35} ${size * 0.25},${size * 0.3}`} fill="#FFB347" opacity="0.5">
             <animate attributeName="opacity" values="0.3;0.7;0.3" dur="1.8s" repeatCount="indefinite" />
           </polygon>
           <circle cx={size * 0.45} cy={size * 0.22} r="2" fill="#FFE29A" opacity="0.6">
             <animate attributeName="r" values="1.5;3;1.5" dur="1.4s" repeatCount="indefinite" />
           </circle>
+          <EdgeTransitions terrain={terrain} nb={nb} size={size} />
         </svg>
       );
     case 'wall_stone':
@@ -211,16 +313,27 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
     case 'wall_coral':
       return wallSvg(
         terrain === 'wall_coral' ? (
-          <g opacity="0.6">
-            <circle cx={size * 0.35} cy={size * 0.35} r="2" fill="#5eead4" opacity="0.4" />
-            <circle cx={size * 0.6} cy={size * 0.5} r="1.5" fill="#4682B4" opacity="0.5" />
+          <g opacity="0.7">
+            <circle cx={size * 0.35} cy={size * 0.12} r="2" fill="#5eead4" opacity="0.5" />
+            <circle cx={size * 0.6} cy={size * 0.2} r="1.5" fill="#4682B4" opacity="0.6" />
+            <circle cx={size * 0.5} cy={size * 0.08} r="1" fill="#f5a3c0" opacity="0.5" />
           </g>
         ) : terrain === 'wall_basalt' ? (
-          <line x1={size * 0.3} y1={size * 0.4} x2={size * 0.5} y2={size * 0.55} stroke="#FF6B35" strokeWidth="0.8" opacity="0.3" />
+          <g>
+            <line x1={size * 0.3} y1={size * 0.16} x2={size * 0.5} y2={size * 0.26} stroke="#FF6B35" strokeWidth="0.9" opacity="0.4" />
+            <line x1={size * 0.24} y1={size / 4 + WH * 0.4} x2={size * 0.38} y2={size / 4 + WH * 0.55} stroke="#FF6B35" strokeWidth="0.8" opacity="0.3" />
+          </g>
         ) : terrain === 'wall_rune' ? (
-          <circle cx={size / 2} cy={size * 0.3} r="3" fill="#a855f7" opacity="0.4">
-            <animate attributeName="opacity" values="0.25;0.55;0.25" dur="2.4s" repeatCount="indefinite" />
-          </circle>
+          <g>
+            <circle cx={size / 2} cy={size * 0.14} r="3" fill="#a855f7" opacity="0.5">
+              <animate attributeName="opacity" values="0.25;0.6;0.25" dur="2.4s" repeatCount="indefinite" />
+            </circle>
+            <rect x={size * 0.42} y={size / 4 + WH * 0.35} width={size * 0.1} height={WH * 0.22} rx="1" fill="none" stroke="#a855f7" strokeWidth="0.9" opacity="0.5">
+              <animate attributeName="opacity" values="0.3;0.65;0.3" dur="2.4s" repeatCount="indefinite" />
+            </rect>
+          </g>
+        ) : terrain === 'wall_breach' ? (
+          <path d={`M${size * 0.4} ${size / 4 + 2} L${size * 0.46} ${size / 4 + WH * 0.4} L${size * 0.38} ${size / 4 + WH * 0.7}`} stroke={shade(detail, -50)} strokeWidth="1.4" fill="none" opacity="0.8" />
         ) : undefined
       );
     case 'conduit_active':
@@ -238,9 +351,12 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
       );
     case 'hazard_wind_lane':
       return floorSvg(
-        <path d={`M${size * 0.2} ${size * 0.22} Q${size * 0.5} ${size * 0.18} ${size * 0.8} ${size * 0.22}`} stroke="#87CEEB" strokeWidth="1.2" fill="none" opacity="0.6">
-          <animate attributeName="opacity" values="0.35;0.75;0.35" dur="1.6s" repeatCount="indefinite" />
-        </path>
+        <g>
+          <path d={`M${size * 0.2} ${size * 0.22} Q${size * 0.5} ${size * 0.18} ${size * 0.8} ${size * 0.22}`} stroke="#87CEEB" strokeWidth="1.2" fill="none" opacity="0.6">
+            <animate attributeName="opacity" values="0.35;0.75;0.35" dur="1.6s" repeatCount="indefinite" />
+          </path>
+          <path d={`M${size * 0.3} ${size * 0.3} Q${size * 0.55} ${size * 0.26} ${size * 0.75} ${size * 0.3}`} stroke="#b8e2f2" strokeWidth="0.8" fill="none" opacity="0.4" />
+        </g>
       );
     case 'hazard_heat':
       return floorSvg(
@@ -256,15 +372,18 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
         <svg width={size} height={size / 2} viewBox={`0 0 ${size} ${size / 2}`} style={{ position: 'absolute', top: 0, left: 0 }}>
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1e5a7e" />
-              <stop offset="100%" stopColor="#0e2e4a" />
+              <stop offset="0%" stopColor="#2a6e96" />
+              <stop offset="100%" stopColor="#123a58" />
             </linearGradient>
           </defs>
           <polygon points={diamond} fill={`url(#${gid})`} stroke={detail} strokeWidth="1" opacity="0.95" />
-          <path d={`M${size * 0.25} ${size * 0.2} Q${size * 0.4} ${size * 0.16} ${size * 0.55} ${size * 0.2}`} stroke="#7ec8e3" strokeWidth="1" fill="none" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.4s" repeatCount="indefinite" />
-          </path>
-          <path d={`M${size * 0.45} ${size * 0.3} Q${size * 0.6} ${size * 0.26} ${size * 0.75} ${size * 0.3}`} stroke="#5eead4" strokeWidth="0.8" fill="none" opacity="0.4" />
+          <g opacity="0.7">
+            {waterDrift}
+            <path d={`M${size * 0.2} ${size * 0.18} Q${size * 0.35} ${size * 0.14} ${size * 0.5} ${size * 0.18}`} stroke="#9adcf0" strokeWidth="1.1" fill="none" opacity="0.65" />
+            <path d={`M${size * 0.45} ${size * 0.3} Q${size * 0.6} ${size * 0.26} ${size * 0.78} ${size * 0.3}`} stroke="#5eead4" strokeWidth="0.9" fill="none" opacity="0.5" />
+            <path d={`M${size * 0.3} ${size * 0.36} Q${size * 0.45} ${size * 0.32} ${size * 0.62} ${size * 0.36}`} stroke="#7ec8e3" strokeWidth="0.7" fill="none" opacity="0.4" />
+          </g>
+          <EdgeTransitions terrain={terrain} nb={nb} size={size} />
         </svg>
       );
     case 'water_deep':
@@ -272,14 +391,20 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
         <svg width={size} height={size / 2} viewBox={`0 0 ${size} ${size / 2}`} style={{ position: 'absolute', top: 0, left: 0 }}>
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0e2e4a" />
-              <stop offset="100%" stopColor="#020810" />
+              <stop offset="0%" stopColor="#12395c" />
+              <stop offset="100%" stopColor="#030c16" />
             </linearGradient>
           </defs>
           <polygon points={diamond} fill={`url(#${gid})`} stroke={detail} strokeWidth="1" />
+          <g opacity="0.5">
+            {waterDrift}
+            <path d={`M${size * 0.25} ${size * 0.2} Q${size * 0.42} ${size * 0.16} ${size * 0.58} ${size * 0.2}`} stroke="#3e7ea6" strokeWidth="1" fill="none" opacity="0.55" />
+            <path d={`M${size * 0.5} ${size * 0.32} Q${size * 0.65} ${size * 0.28} ${size * 0.8} ${size * 0.32}`} stroke="#2e5e82" strokeWidth="0.8" fill="none" opacity="0.45" />
+          </g>
           <circle cx={size * 0.4} cy={size * 0.2} r="1.5" fill="#4682B4" opacity="0.3">
             <animate attributeName="cy" values={`${size * 0.25};${size * 0.15};${size * 0.25}`} dur="3s" repeatCount="indefinite" />
           </circle>
+          <EdgeTransitions terrain={terrain} nb={nb} size={size} />
         </svg>
       );
     case 'current_lane':
@@ -292,11 +417,14 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
             </linearGradient>
           </defs>
           <polygon points={diamond} fill={`url(#${gid})`} stroke={detail} strokeWidth="1" strokeDasharray="4 2" />
-          <g opacity="0.7">
-            <path d={`M${size * 0.7} ${size * 0.15} L${size * 0.4} ${size * 0.2} M${size * 0.5} ${size * 0.15} L${size * 0.4} ${size * 0.2} L${size * 0.5} ${size * 0.25}`} stroke="#5eead4" strokeWidth="1.2" fill="none">
+          <g opacity="0.8">
+            {waterDrift}
+            <path d={`M${size * 0.75} ${size * 0.14} L${size * 0.4} ${size * 0.2} M${size * 0.55} ${size * 0.14} L${size * 0.4} ${size * 0.2} L${size * 0.55} ${size * 0.26}`} stroke="#5eead4" strokeWidth="1.2" fill="none">
               <animate attributeName="opacity" values="0.3;0.9;0.3" dur="1.2s" repeatCount="indefinite" />
             </path>
+            <path d={`M${size * 0.7} ${size * 0.32} L${size * 0.42} ${size * 0.38} M${size * 0.55} ${size * 0.32} L${size * 0.42} ${size * 0.38} L${size * 0.55} ${size * 0.44}`} stroke="#9adcf0" strokeWidth="1" fill="none" opacity="0.6" />
           </g>
+          <EdgeTransitions terrain={terrain} nb={nb} size={size} />
         </svg>
       );
     case 'glow_coral':
@@ -309,6 +437,7 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
             </radialGradient>
           </defs>
           <polygon points={diamond} fill={`url(#${gid})`} stroke="#5eead4" strokeWidth="1.5" />
+          {dither}
           <circle cx={size / 2} cy={size / 4} r="5" fill="#5eead4" opacity="0.4">
             <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite" />
           </circle>
@@ -320,6 +449,7 @@ function TerrainArt({ terrain, tx, ty, size = TILE_W }: { terrain: string; tx: n
         <g>
           <rect x={size * 0.34} y={size * 0.02} width={size * 0.32} height={size * 0.3} rx="2" fill={shade(detail, 10)} stroke={shade(detail, -20)} strokeWidth="1" />
           <rect x={size * 0.38} y={size * 0.06} width={size * 0.24} height={size * 0.08} rx="1" fill={shade(detail, 30)} opacity="0.7" />
+          <line x1={size * 0.36} y1={size * 0.18} x2={size * 0.64} y2={size * 0.18} stroke={shade(detail, -24)} strokeWidth="0.8" opacity="0.8" />
         </g>
       );
     default:
@@ -360,7 +490,7 @@ function EnemyArt({ sprite }: { sprite: string }) {
             <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite" />
           </rect>
           <rect x="18" y="16" width="4" height="4" rx="1" fill="#ff4444" opacity="0.8">
-            <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" begin="0.5s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;0.5;1" dur="1s" begin="0.5s" repeatCount="indefinite" />
           </rect>
           <polygon points="16,2 24,12 8,12" fill="#2a2a3e" stroke="#5a5a8e" strokeWidth="1.5" />
           <rect x="6" y="20" width="4" height="12" rx="1" fill="#3a3a4e" />
@@ -558,6 +688,8 @@ function UnitSprite({ unit, isSelected, isActive, fx }: { unit: Unit; isSelected
   return (
     <div className={`absolute flex flex-col items-center ${fxClass}`}
       style={{ transform: 'translate(-50%, -85%)', zIndex: 10 }}>
+      {/* ground shadow (Ultima-style grounding) */}
+      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-10 h-3.5 rounded-[50%] bg-black/50 blur-[2px]" />
       {isSelected && (
         <div className={`absolute -bottom-1 w-10 h-5 rounded-full border-2 ${unit.isPlayer ? 'border-white/80' : 'border-red-400/80'} animate-pulse`}
           style={{ transform: 'rotateX(60deg)' }} />
@@ -712,6 +844,7 @@ function EntitySprite({ entity }: { entity: { sprite: string; name: string } }) 
 
   return (
     <div className="absolute flex flex-col items-center unit-bob" style={{ transform: 'translate(-50%, -70%)', zIndex: 5 }}>
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-7 h-2.5 rounded-[50%] bg-black/40 blur-[1.5px]" />
       {sprites[entity.sprite] || sprites['keeper']}
     </div>
   );
@@ -845,6 +978,12 @@ export default function IsoWorld({
             const inMove = moveSet.has(key);
             const inTarget = targetSet.has(key);
             const inAffected = affectedSet.has(key);
+            const nb: Nb = {
+              n: tiles[tile.y - 1]?.[tile.x]?.terrain ?? null,
+              s: tiles[tile.y + 1]?.[tile.x]?.terrain ?? null,
+              e: tiles[tile.y]?.[tile.x + 1]?.terrain ?? null,
+              w: tiles[tile.y]?.[tile.x - 1]?.terrain ?? null,
+            };
 
             return (
               <div
@@ -858,7 +997,7 @@ export default function IsoWorld({
                   zIndex: tile.x + tile.y,
                 }}
               >
-                <TerrainArt terrain={tile.terrain} tx={tile.x} ty={tile.y} />
+                <TerrainArt terrain={tile.terrain} tx={tile.x} ty={tile.y} nb={nb} />
 
                 {inMove && (
                   <div className="absolute inset-0 animate-pulse"
@@ -963,10 +1102,10 @@ export default function IsoWorld({
 
       {/* Tile info tooltip */}
       {hoveredTile && (
-        <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-2 border border-slate-600/50 text-xs z-20">
-          <div className="text-slate-400">Tile ({hoveredTile.x}, {hoveredTile.y})</div>
+        <div className="absolute bottom-4 left-4 gump-panel p-2 text-xs z-20">
+          <div className="text-amber-200/60">Tile ({hoveredTile.x}, {hoveredTile.y})</div>
           {tiles[hoveredTile.y]?.[hoveredTile.x] && (
-            <div className="text-slate-200 font-bold">
+            <div className="text-amber-100 font-bold font-gump">
               {TERRAIN_DEFS[tiles[hoveredTile.y][hoveredTile.x].terrain]?.label || 'Unknown'}
             </div>
           )}

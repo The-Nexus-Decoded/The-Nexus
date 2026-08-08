@@ -157,7 +157,7 @@ function TitleScreen() {
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative overflow-hidden">
         {bg}
         <div className="relative z-10 text-center max-w-2xl w-full px-4">
-          <h1 className="text-5xl font-bold mb-2 tracking-tight"
+          <h1 className="text-5xl font-bold mb-2 tracking-tight font-gump"
             style={{ textShadow: '0 0 30px rgba(168,85,247,0.5)' }}>
             <span className="text-purple-400">Soul</span>Drifter
           </h1>
@@ -176,7 +176,7 @@ function TitleScreen() {
               </button>
             )}
             {getProfiles().length > 0 && (
-              <div className="w-80 mt-2 bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-700/50 p-3 text-left">
+              <div className="w-80 mt-2 gump-panel p-3 text-left">
                 <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 text-center">Saved Souls</p>
                 <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto combat-log">
                   {getProfiles().map((p) => (
@@ -201,7 +201,7 @@ function TitleScreen() {
               </div>
             )}
           </div>
-          <p className="text-[10px] text-slate-600 mt-6">Vertical Slice v0.5 — The Sea Realm of Chelestra</p>
+          <p className="text-[10px] text-slate-600 mt-6">Vertical Slice v0.6 — Ultima VI/VII Visual Pass</p>
         </div>
       </div>
     );
@@ -217,7 +217,7 @@ function TitleScreen() {
             <h2 className="text-2xl font-bold">Who Are You?</h2>
             <p className="text-slate-400 text-sm">Your name echoes across both realities...</p>
           </div>
-          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 mb-6">
+          <div className="gump-panel p-6 mb-6">
             <input
               type="text"
               value={playerName}
@@ -246,7 +246,7 @@ function TitleScreen() {
             <h2 className="text-2xl font-bold">Choose Your Ancestry</h2>
             <p className="text-slate-400 text-sm">Race shapes your body and movement — never your class.</p>
           </div>
-          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 mb-4">
+          <div className="gump-panel p-4 mb-4">
             <div className="grid grid-cols-2 gap-2 mb-4">
               {Object.values(RACES).map(r => {
                 const isSelected = selectedRace === r.id;
@@ -293,7 +293,7 @@ function TitleScreen() {
             <h2 className="text-2xl font-bold">Choose Your Path</h2>
             <p className="text-slate-400 text-sm">Your soul remembers a craft from before the collision...</p>
           </div>
-          <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 mb-4">
+          <div className="gump-panel p-4 mb-4">
             <div className="grid grid-cols-2 gap-2 mb-4">
               {classList.map(c => {
                 const isSelected = selectedClass === c.id;
@@ -343,7 +343,7 @@ function TitleScreen() {
           </div>
         </div>
 
-        <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 mb-4">
+        <div className="gump-panel p-5 mb-4">
           <p className="text-sm text-slate-200 leading-relaxed mb-4 font-medium">{q.text}</p>
           <div className="space-y-2">
             {q.answers.map((ans, i) => (
@@ -362,7 +362,7 @@ function TitleScreen() {
         </div>
 
         {quizAnswers.length > 0 && (
-          <div className="bg-slate-900/60 backdrop-blur-sm rounded-lg p-3 border border-slate-700/30">
+          <div className="gump-panel p-3">
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Accumulated Essence</div>
             <div className="flex gap-3 text-xs">
               {accumulatedMods.hp > 0 && <span className="text-red-400">+{accumulatedMods.hp} HP</span>}
@@ -396,10 +396,10 @@ function PartyHUD() {
         return (
           <button key={member.id}
             onClick={() => selectUnit(member.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-left min-w-[220px] ${
+            className={`flex items-center gap-2 px-3 py-2 transition-all text-left min-w-[220px] ${
               isSelected
-                ? 'border-white/50 bg-slate-800/90 shadow-lg'
-                : 'border-slate-700/50 bg-slate-900/60 hover:border-slate-500'
+                ? 'gump-panel border-amber-200/70 shadow-lg'
+                : 'gump-panel opacity-80 hover:opacity-100'
             }`}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
               style={{ background: cls?.color + '33', border: `2px solid ${cls?.color}66`, color: cls?.color }}>
@@ -463,7 +463,7 @@ function TurnOrderStrip() {
 
   return (
     <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20">
-      <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-sm rounded-full px-3 py-1.5 border border-slate-700/50">
+      <div className="flex items-center gap-1.5 gump-panel rounded-full px-3 py-1.5">
         <Hourglass className="w-3 h-3 text-slate-400 mr-1" />
         <span className="text-[9px] text-slate-500 mr-1">R{combat.round}</span>
         {combat.turnOrder.map((id, i) => {
@@ -498,7 +498,7 @@ function CombatBar({ onOpenInventory }: { onOpenInventory: () => void }) {
   if (!unit) {
     return (
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-        <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-2 border border-red-900/50 text-xs text-red-300 animate-pulse">
+        <div className="gump-panel border-red-900/70 px-4 py-2 text-xs text-red-300 animate-pulse">
           Enemy is acting...
         </div>
       </div>
@@ -517,7 +517,7 @@ function CombatBar({ onOpenInventory }: { onOpenInventory: () => void }) {
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-      <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-3 border border-slate-700/50 flex flex-col gap-2 items-center">
+      <div className="gump-panel p-3 flex flex-col gap-2 items-center">
         <div className="text-[10px] text-slate-400 flex items-center gap-3">
           <span className="text-cyan-300 font-bold">{unit.name}'s turn</span>
           {!combat.movedThisTurn && <span className="flex items-center gap-1"><Move className="w-3 h-3 text-cyan-400" /> click a cyan tile to move</span>}
@@ -590,7 +590,7 @@ function CombatLog() {
 
   return (
     <div className="absolute right-4 top-24 z-20 w-64">
-      <div className="bg-slate-900/85 backdrop-blur-sm rounded-lg border border-slate-700/50 overflow-hidden">
+      <div className="gump-panel overflow-hidden">
         <div className="px-3 py-1.5 border-b border-slate-700/50 text-[10px] text-slate-400 uppercase tracking-wider">
           Combat Log
         </div>
@@ -667,7 +667,7 @@ function ReactionOverlay() {
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40" onClick={attempt}>
-      <div className="bg-slate-900/95 backdrop-blur-md rounded-xl p-6 border border-cyan-500/50 shadow-2xl w-[420px] animate-fade-in">
+      <div className="gump-panel p-6 shadow-2xl w-[420px] animate-fade-in">
         <div className="text-center mb-4">
           <div className="text-[10px] text-cyan-400 uppercase tracking-widest mb-1">Reaction — Block!</div>
           <div className="text-sm font-bold text-slate-200">
@@ -716,7 +716,7 @@ function InventoryPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 w-80">
-      <div className="bg-slate-900/95 backdrop-blur-md rounded-xl p-4 border border-slate-600/50 shadow-xl">
+      <div className="gump-panel p-4 shadow-xl">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
             <Backpack className="w-4 h-4 text-purple-400" /> Inventory
@@ -766,7 +766,7 @@ function CombatResultPanel() {
   if (combat.result === 'defeat') {
     return (
       <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70">
-        <div className="bg-slate-900/95 rounded-xl p-8 border border-red-900/50 shadow-2xl max-w-md w-full text-center animate-fade-in">
+        <div className="gump-panel p-8 shadow-2xl max-w-md w-full text-center animate-fade-in">
           <h2 className="text-2xl font-bold text-red-400 mb-2">Your Soul Fractures</h2>
           <p className="text-sm text-slate-400 mb-6">
             The drift takes you... but the Soul Well remembers your shape. You will reform, poorer but whole.
@@ -789,7 +789,7 @@ function CombatResultPanel() {
   const rewards = combat.rewards;
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="bg-slate-900/95 rounded-xl p-8 border border-amber-700/40 shadow-2xl max-w-md w-full text-center animate-fade-in">
+      <div className="gump-panel p-8 shadow-2xl max-w-md w-full text-center animate-fade-in">
         <h2 className="text-2xl font-bold text-amber-300 mb-1">Victory</h2>
         <p className="text-xs text-slate-500 mb-4">The battlefield falls silent. Essence rejoins the whole.</p>
         {rewards && (
@@ -832,7 +832,7 @@ function ExplorationBar({ onOpenInventory }: { onOpenInventory: () => void }) {
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-      <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700/50 flex items-center gap-4">
+      <div className="gump-panel px-4 py-2 flex items-center gap-4">
         <span className="text-[10px] text-slate-400 flex items-center gap-1">
           <Move className="w-3 h-3 text-cyan-400" /> WASD / arrows or click a tile to walk
         </span>
@@ -862,7 +862,7 @@ function ShopPanel() {
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50" onClick={closeShop}>
-      <div className="bg-slate-900/95 backdrop-blur-md rounded-xl p-6 border border-cyan-700/40 shadow-2xl w-[420px] animate-fade-in"
+      <div className="gump-panel p-6 shadow-2xl w-[420px] animate-fade-in"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-lg font-bold text-cyan-300">{shop.name}</h3>
@@ -916,13 +916,13 @@ function DialogBox() {
 
   return (
     <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 max-w-lg w-full px-4">
-      <div className="bg-slate-900/95 backdrop-blur-md rounded-xl p-4 border border-slate-600/50 shadow-xl">
+      <div className="gump-panel p-4 shadow-xl">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full gump-inset flex items-center justify-center shrink-0">
             <MessageCircle className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm text-slate-200 leading-relaxed">{state.dialog}</p>
+            <p className="text-sm text-amber-50 leading-relaxed font-dialog">{state.dialog}</p>
           </div>
           <button onClick={() => setDialog(null)}
             className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded hover:bg-slate-800 transition-colors shrink-0">
@@ -941,7 +941,7 @@ function MessageBar() {
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-      <div className="text-xs text-slate-300 bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/30 flex items-center gap-2">
+      <div className="text-xs gump-panel px-4 py-2 rounded-full flex items-center gap-2">
         <MapPin className="w-3 h-3 text-purple-400" />
         {state.message}
       </div>
@@ -955,7 +955,7 @@ function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="absolute top-4 right-4 z-30">
-      <div className="bg-slate-900/95 backdrop-blur-md rounded-xl p-4 border border-slate-700/50 shadow-xl w-64">
+      <div className="gump-panel p-4 shadow-xl w-64">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-200">Settings</h3>
           <button onClick={onClose} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
@@ -1204,7 +1204,7 @@ export default function Game() {
 
       {/* Objective tracker */}
       <div className="absolute right-4 bottom-4 z-20">
-        <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg p-3 border border-slate-700/50 w-52">
+        <div className="gump-panel p-3 w-52">
           <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Objectives</div>
           {state.currentMap.objectives.map(obj => (
             <div key={obj} className="flex items-center gap-2 text-xs text-slate-300 mb-1">

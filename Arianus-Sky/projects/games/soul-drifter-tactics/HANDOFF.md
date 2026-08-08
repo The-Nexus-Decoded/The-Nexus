@@ -13,7 +13,35 @@
 | **Stack** | React 19 + TypeScript + Vite + Tailwind CSS |
 | **Build Status** | ✅ Clean — `npm run build` passes |
 | **Dev Server** | `npm run dev` |
-| **Version** | v0.5 — Profiles, WASD & Visual Overhaul |
+| **Version** | v0.6 — Ultima VI/VII Visual Pass |
+
+---
+
+## What's New in v0.6 (this session)
+
+Art direction pass modeled on the Ultima VI decompiled source (`ergonomy-joe/u6-decompiled`) and the Ultima VII engine (Exult, `exult/exult`).
+
+### 1. Terrain — U7-style flat + dither
+- Floors dropped the smooth modern gradients for **flat base tones with deterministic VGA-style dither patches** (two-tone stipple), like the original 8×8 ground tiles.
+- Per-terrain detail: flagstone seams (floor_stone), plank lines (wood), grass blades + occasional flowers, sand ripples, kelp root mats, dirt/ash mounds.
+
+### 2. Terrain transitions (the big one)
+- New `EdgeTransitions` system: every tile inspects its 4 neighbors.
+- **Shorelines**: water tiles adjacent to land draw animated foam crests + bubbles along the shared edge.
+- **Wet band**: land next to water gets a dark soaked edge.
+
+### 3. Walls — tall block construction
+- Walls are now proper raised blocks: top face + two side faces (~40px tall), brick courses, staggered vertical joints, and ambient-occlusion shadow at the base. Rune walls get a glowing inset sigil; breached walls get a crack.
+
+### 4. Water animation
+- Drifting wave-crest groups (`animateTransform` translate) on all three water types, brighter shallow palette — the modern equivalent of U6's palette-cycled water (`_0e tile anim` flag / `GR_27` palette animation in the decompiled source).
+
+### 5. Grounding shadows
+- Elliptical blurred drop shadows under all units and entities — units now sit *on* the world instead of floating.
+
+### 6. Gump UI chrome + fonts
+- Cinzel (titles) + IM Fell English (dialog) via Google Fonts.
+- `.gump-panel` (dark wood/stone, double gold border, inset shadows) applied to dialog, combat log, party HUD, shop, inventory, settings, victory/defeat, tooltip, objective tracker, action bars.
 
 ---
 

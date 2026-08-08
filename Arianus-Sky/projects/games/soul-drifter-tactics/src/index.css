@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -207,6 +209,33 @@
 .sd-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Ultima-style gump panels & fonts */
+.font-gump {
+  font-family: 'Cinzel', 'Times New Roman', serif;
+}
+
+.font-dialog {
+  font-family: 'IM Fell English', Georgia, serif;
+}
+
+.gump-panel {
+  background: linear-gradient(180deg, #2b241c 0%, #1a1510 100%);
+  border: 2px solid #8a6d3b;
+  outline: 1px solid #120d08;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(230, 195, 120, 0.18),
+    0 4px 14px rgba(0, 0, 0, 0.6);
+  color: #e8d9b0;
+}
+
+.gump-inset {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #4a3a22;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
 }
 
 /* Custom scrollbar for combat log */
