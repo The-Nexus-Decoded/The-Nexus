@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SoulDrifter — an original browser-native isometric realm RPG."
+    />
+    <title>SoulDrifter — The First Breach</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <span class="brand-rune" aria-hidden="true">◇</span>
+          <div>
+            <p class="eyebrow">The First Breach</p>
+            <h1>SoulDrifter</h1>
+          </div>
+        </div>
+        <div class="realm-state">
+          <span class="realm-state__label">Realm pressure</span>
+          <div class="pressure-track" aria-label="Realm pressure: stable">
+            <span></span>
+          </div>
+          <strong id="realm-pressure">STABLE</strong>
+        </div>
+      </header>
+
+      <main class="play-layout">
+        <aside class="panel party-panel" aria-label="Party status">
+          <div class="portrait" aria-hidden="true">
+            <span class="portrait__rune">ᚱ</span>
+          </div>
+          <p class="eyebrow">Soul imprint 01</p>
+          <h2>Kael</h2>
+          <p class="class-name">Arianus Rune Warrior</p>
+
+          <dl class="vitals">
+            <div>
+              <dt>Vitality</dt>
+              <dd><span id="hp-value">32</span> / 32</dd>
+            </div>
+            <div>
+              <dt>Rune stability</dt>
+              <dd><span id="stability-value">100</span>%</dd>
+            </div>
+            <div>
+              <dt>Fury</dt>
+              <dd><span id="fury-value">0</span></dd>
+            </div>
+          </dl>
+
+          <div class="inventory-block">
+            <div class="section-heading">
+              <h3>Pack</h3>
+              <span id="inventory-count">0 / 8</span>
+            </div>
+            <ul id="inventory-list" class="inventory-list">
+              <li class="inventory-empty">Nothing carried</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="game-column" aria-label="SoulDrifter game">
+          <div class="viewport-frame">
+            <div id="game" aria-label="Isometric game viewport"></div>
+            <div class="viewport-vignette" aria-hidden="true"></div>
+            <div id="reaction-prompt" class="reaction-prompt" hidden>
+              <span class="reaction-prompt__key">SPACE</span>
+              <div>
+                <strong id="reaction-title">Brace</strong>
+                <span id="reaction-detail">Meet the impact</span>
+              </div>
+              <div class="reaction-timer"><span id="reaction-fill"></span></div>
+            </div>
+          </div>
+
+          <div id="combat-controls" class="combat-controls" hidden>
+            <button type="button" data-action="move"><span>M</span>Move</button>
+            <button type="button" data-action="rune-slash"><span>1</span>Rune Slash</button>
+            <button type="button" data-action="guard"><span>2</span>Anchor Guard</button>
+            <button type="button" data-action="wait"><span>3</span>Wait</button>
+          </div>
+
+          <div class="message-strip" role="status" aria-live="polite">
+            <span id="mode-indicator" class="mode-indicator">EXPLORATION</span>
+            <p id="message-text">Click a floor tile to move. Click nearby objects to inspect them.</p>
+          </div>
+        </section>
+
+        <aside class="panel journal-panel" aria-label="Quest journal">
+          <p class="eyebrow">Memory thread</p>
+          <h2>The First Breach</h2>
+          <p id="objective-text" class="objective">
+            Awaken at the Soul Well and recover your bearings.
+          </p>
+
+          <div class="divider-rune" aria-hidden="true">◇ ── ◇</div>
+
+          <div class="controls-card">
+            <h3>Controls</h3>
+            <label class="combat-style-label" for="combat-style">Combat style</label>
+            <select id="combat-style" class="combat-style-select">
+              <option value="turn-based">Tactical turns</option>
+              <option value="real-time">Real-time action bar</option>
+            </select>
+            <dl>
+              <div><dt>Move / inspect</dt><dd>Left click</dd></div>
+              <div><dt>Camera</dt><dd>Drag / wheel</dd></div>
+              <div><dt>Reaction</dt><dd>Space</dd></div>
+              <div><dt>Combat speed</dt><dd id="speed-value">1×</dd></div>
+            </dl>
+            <button id="speed-toggle" class="quiet-button" type="button">Toggle combat speed</button>
+          </div>
+
+          <div class="event-log-block">
+            <h3>World echoes</h3>
+            <ol id="event-log" class="event-log">
+              <li>The Soul Well remembers you.</li>
+            </ol>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="footer-note">
+        <span>Original prototype art • No Ultima assets included</span>
+        <span id="build-label">Browser vertical slice 0.1</span>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
