@@ -1,6 +1,9 @@
 import type { CombatStyle, RuntimeState } from "./types";
+import { STAT_KEYS, STAT_LABELS, callingById, type CharacterProfile, type Stats } from "./character";
+import type { DialogueChoice, DialogueScene } from "./npc";
+import type { ImprintOption, StarterImprintSelection } from "./tutorialChoices";
 
-export type ActionName = "move" | "rune-slash" | "guard" | "wait";
+export type ActionName = "move" | "basic" | "signature" | "guard" | "wait";
 
 interface StatSnapshot {
   hp: number;
@@ -28,13 +31,19 @@ export class GameUI {
   private readonly combatStyle = requiredElement<HTMLSelectElement>("combat-style");
   private readonly speedToggle = requiredElement<HTMLButtonElement>("speed-toggle");
   private readonly speedValue = requiredElement<HTMLElement>("speed-value");
+  private readonly voiceToggle = requiredElement<HTMLButtonElement>("voice-toggle");
   private readonly reactionPrompt = requiredElement<HTMLDivElement>("reaction-prompt");
   private readonly reactionTitle = requiredElement<HTMLElement>("reaction-title");
   private readonly reactionDetail = requiredElement<HTMLElement>("reaction-detail");
   private readonly reactionFill = requiredElement<HTMLElement>("reaction-fill");
+  private readonly mechanicTooltip = requiredElement<HTMLDivElement>("mechanic-tooltip");
   private actionHandler: ((action: ActionName) => void) | null = null;
   private speedHandler: ((speed: number) => void) | null = null;
+  private combatStyleHandler: ((style: CombatStyle) => void) | null = null;
   private combatSpeed = 1;
+  private dialogueVisible = false;
+  private imprintVisible = false;
+  private voiceEnabled = true;
 
   public constructor() {
     this.combatControls.querySelectorAll<HTMLButtonElement>("button[data-action]").forEach((button) => {
@@ -49,6 +58,32 @@ export class GameUI {
       this.speedValue.textContent = `${this.combatSpeed}×`;
       this.speedHandler?.(this.combatSpeed);
     });
+
+    this.combatStyle.addEventListener("change", () => {
+      this.combatStyleHandler?.(this.selectedCombatStyle());
+    });
+
+    this.voiceToggle.addEventListener("click", () => {
+      this.voiceEnabled = !this.voiceEnabled;
+      this.voiceToggle.textContent = `Voice-over: ${this.voiceEnabled ? "on" : "off"}`;
+      this.voiceToggle.setAttribute("aria-pressed", String(this.voiceEnabled));
+      if (!this.voiceEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-mechanic]").forEach((element) => {
+      element.setAttribute("aria-describedby", "mechanic-tooltip");
+      element.addEventListener("pointerenter", () => this.showMechanicTooltip(element));
+      element.addEventListener("pointerleave", () => this.hideMechanicTooltip());
+      element.addEventListener("focus", () => this.showMechanicTooltip(element));
+      element.addEventListener("blur", () => this.hideMechanicTooltip());
+      element.addEventListener("click", () => {
+        this.showMechanicTooltip(element);
+        window.setTimeout(() => this.hideMechanicTooltip(), 4200);
+      });
+    });
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") this.hideMechanicTooltip();
+    });
   }
 
   public onAction(handler: (action: ActionName) => void): void {
@@ -59,8 +94,305 @@ export class GameUI {
     this.speedHandler = handler;
   }
 
+  public onCombatStyleChange(handler: (style: CombatStyle) => void): void {
+    this.combatStyleHandler = handler;
+  }
+
+  public setCharacter(profile: CharacterProfile): void {
+    const calling = callingById(profile.callingId);
+    requiredElement<HTMLElement>("character-name").textContent = profile.name;
+    requiredElement<HTMLElement>("race-name").textContent = profile.raceName;
+    requiredElement<HTMLElement>("calling-name").textContent = calling.name;
+    requiredElement<HTMLElement>("portrait-rune").textContent = profile.raceGlyph;
+    requiredElement<HTMLImageElement>("portrait-image").src = profile.raceId === "elf" && profile.callingId === "shadowknight"
+      ? "/assets/3d/characters/elf-shadowknight/elf-shadowknight-preview-front.png"
+      : `/assets/generated/characters/${profile.raceId}-${profile.callingId}.png`;
+    requiredElement<HTMLElement>("hp-max").textContent = String(profile.maxHp);
+    requiredElement<HTMLElement>("resource-label").textContent = calling.resourceName;
+    const resourceStat = requiredElement<HTMLElement>("resource-stat");
+    const basicAction = requiredElement<HTMLElement>("basic-action");
+    const signatureAction = requiredElement<HTMLElement>("signature-action");
+    const defenseAction = requiredElement<HTMLElement>("defense-action");
+    signatureAction.querySelector("b")!.textContent = calling.signatureSkill;
+    defenseAction.querySelector("b")!.textContent = calling.defensiveSkill;
+    requiredElement<HTMLImageElement>("signature-icon").src = `/assets/generated/action-icons/${calling.id}-signature.png`;
+    requiredElement<HTMLImageElement>("defense-icon").src = `/assets/generated/action-icons/${calling.id}-defense.png`;
+    requiredElement<HTMLElement>("recover-action").querySelector("small")!.textContent = "2 recovery bands";
+    basicAction.dataset.mechanicHelp = "Weapon Strike is a one-tile mundane attack. It costs no Stability and generates or consumes no class resource, so it remains available when your powers are exhausted.";
+    if (calling.id === "shadowknight") {
+      resourceStat.dataset.mechanicHelp = "Gravefire is the Shadowknight's class resource. Successful life drains and guarded impacts generate it. Reinforced defenses and later Fire/Death skills spend it; dry casts generate none.";
+      signatureAction.querySelector("small")!.textContent = "12 Stability · +15 Gravefire";
+      signatureAction.dataset.mechanicHelp = `${calling.signatureSkill} is a ${calling.signatureRange}-tile life-draining weapon attack. A valid hit costs 12 Stability and generates 15 Gravefire. With no valid target or range, it still animates but costs nothing and deals no damage.`;
+      defenseAction.querySelector("small")!.textContent = "8 Stability · self buff";
+      defenseAction.dataset.mechanicHelp = `${calling.defensiveSkill} is a self-buff usable in or out of combat. It costs 8 Stability; if at least 20 Gravefire is stored, it spends 20 to reinforce the guard.`;
+    } else {
+      resourceStat.dataset.mechanicHelp = `${calling.resourceName} is the ${calling.name}'s class resource. Class actions generate it and stronger techniques spend it.`;
+      signatureAction.dataset.mechanicHelp = `${calling.signatureSkill} is the level-one signature action. A dry activation without a valid target plays its animation but spends no resource and causes no damage.`;
+      defenseAction.dataset.mechanicHelp = `${calling.defensiveSkill} is the level-one defensive action and may be used as a self-buff when its requirements are met.`;
+    }
+    requiredElement<HTMLElement>("recover-action").dataset.mechanicHelp = "Recover consumes a Woven Recovery Band when Vitality or Stability is missing. With no bands left, Center Soul slowly restores a smaller amount of Stability on cooldown.";
+
+    const skillList = requiredElement<HTMLUListElement>("skill-list");
+    skillList.replaceChildren();
+    profile.skills.forEach((skill) => {
+      const item = document.createElement("li");
+      item.textContent = skill;
+      skillList.append(item);
+    });
+  }
+
+  public setRunSeed(seed: number): void {
+    requiredElement<HTMLElement>("run-seed").textContent = seed.toString(16).toUpperCase().padStart(8, "0");
+  }
+
+  public setZone(name: string, kicker: string): void {
+    requiredElement<HTMLElement>("zone-name").textContent = name;
+    requiredElement<HTMLElement>("zone-kicker").textContent = kicker;
+  }
+
+  public setRealmPressure(value: number): void {
+    const pressure = Math.max(0, Math.min(100, Math.round(value)));
+    const state = pressure < 25 ? "STABLE" : pressure < 50 ? "STRAINED" : pressure < 75 ? "SEVERE" : "BREACHING";
+    const stateElement = requiredElement<HTMLElement>("realm-pressure");
+    const fill = requiredElement<HTMLElement>("pressure-fill");
+    const track = fill.parentElement;
+    stateElement.textContent = `${state} ${pressure}`;
+    fill.style.width = `${Math.max(4, pressure)}%`;
+    fill.style.background = pressure < 25
+      ? "linear-gradient(90deg, #246d68, #62e6db)"
+      : pressure < 50
+        ? "linear-gradient(90deg, #8a6b33, #e0b35d)"
+        : "linear-gradient(90deg, #8c342c, #ec694e)";
+    if (track) track.setAttribute("aria-label", `Realm pressure: ${state.toLowerCase()}, ${pressure} out of 100`);
+  }
+
+  public revealRoute(room: "training" | "skirmish" | "boss", label: string): void {
+    const ids = ["training", "skirmish", "boss"] as const;
+    const currentIndex = ids.indexOf(room);
+    ids.forEach((id, index) => {
+      const item = requiredElement<HTMLElement>(`route-${id}`);
+      item.classList.toggle("is-current", index === currentIndex);
+      item.classList.toggle("is-complete", index < currentIndex);
+      item.classList.toggle("is-hidden", index > currentIndex);
+      if (index === currentIndex) {
+        item.querySelector("strong")!.textContent = label;
+        item.querySelector("small")!.textContent = "Revealed";
+      } else if (index < currentIndex) {
+        item.querySelector("small")!.textContent = "Explored";
+      }
+    });
+  }
+
+  public setTarget(name: string, hp: number, maxHp: number, isBoss = false): void {
+    const frame = requiredElement<HTMLElement>("target-frame");
+    frame.hidden = false;
+    frame.classList.toggle("is-boss", isBoss);
+    requiredElement<HTMLElement>("target-name").textContent = name;
+    requiredElement<HTMLElement>("target-level").textContent = isBoss ? "Miniboss" : "Level 1";
+    requiredElement<HTMLElement>("target-health-text").textContent = `${hp} / ${maxHp}`;
+    requiredElement<HTMLElement>("target-health-fill").style.width = `${Math.max(0, hp / maxHp) * 100}%`;
+  }
+
+  public clearTarget(): void {
+    requiredElement<HTMLElement>("target-frame").hidden = true;
+  }
+
+  public setRecoveryCharges(charges: number): void {
+    requiredElement<HTMLElement>("recover-action").querySelector("small")!.textContent = charges > 0
+      ? `${charges} recovery band${charges === 1 ? "" : "s"}`
+      : "Restore stability";
+  }
+
+  public isDialogueOpen(): boolean {
+    return this.dialogueVisible || this.imprintVisible;
+  }
+
+  public openStarterImprint(
+    profile: CharacterProfile,
+    raceOptions: readonly ImprintOption[],
+    callingOptions: readonly ImprintOption[],
+    onConfirm: (selection: StarterImprintSelection) => void,
+  ): void {
+    const panel = requiredElement<HTMLElement>("imprint-panel");
+    const statGrid = requiredElement<HTMLElement>("imprint-stat-grid");
+    const raceGrid = requiredElement<HTMLElement>("imprint-race-options");
+    const callingGrid = requiredElement<HTMLElement>("imprint-calling-options");
+    const pointsLabel = requiredElement<HTMLElement>("imprint-points");
+    const error = requiredElement<HTMLElement>("imprint-error");
+    const confirm = requiredElement<HTMLButtonElement>("imprint-confirm");
+    const close = requiredElement<HTMLButtonElement>("imprint-close");
+    requiredElement<HTMLElement>("imprint-race-title").textContent = `${profile.raceName} ancestry boon`;
+    requiredElement<HTMLElement>("imprint-calling-title").textContent = `${profile.callingName} base discipline`;
+    const allocations: Partial<Stats> = Object.fromEntries(STAT_KEYS.map((key) => [key, 0])) as Partial<Stats>;
+    let raceBoonId = "";
+    let callingPerkId = "";
+
+    const modifierText = (option: ImprintOption): string => STAT_KEYS
+      .filter((key) => (option.modifiers[key] ?? 0) > 0)
+      .map((key) => `+${option.modifiers[key]} ${STAT_LABELS[key]}`)
+      .join(" · ");
+    const remaining = (): number => 3 - STAT_KEYS.reduce((total, key) => total + (allocations[key] ?? 0), 0);
+    const refreshConfirm = (): void => {
+      const points = remaining();
+      pointsLabel.textContent = `${points} point${points === 1 ? "" : "s"} remain`;
+      confirm.disabled = points !== 0 || !raceBoonId || !callingPerkId;
+    };
+    const renderStats = (): void => {
+      statGrid.replaceChildren();
+      for (const key of STAT_KEYS) {
+        const row = document.createElement("div");
+        row.className = "imprint-stat-row";
+        const label = document.createElement("span");
+        label.textContent = STAT_LABELS[key];
+        const subtract = document.createElement("button");
+        subtract.type = "button";
+        subtract.textContent = "−";
+        subtract.disabled = (allocations[key] ?? 0) === 0;
+        subtract.setAttribute("aria-label", `Remove one ${STAT_LABELS[key]} point`);
+        const value = document.createElement("strong");
+        value.textContent = `${profile.stats[key]} + ${allocations[key] ?? 0}`;
+        const add = document.createElement("button");
+        add.type = "button";
+        add.textContent = "+";
+        add.disabled = remaining() === 0;
+        add.setAttribute("aria-label", `Add one ${STAT_LABELS[key]} point`);
+        subtract.addEventListener("click", () => {
+          allocations[key] = Math.max(0, (allocations[key] ?? 0) - 1);
+          renderStats();
+        });
+        add.addEventListener("click", () => {
+          if (remaining() <= 0) return;
+          allocations[key] = (allocations[key] ?? 0) + 1;
+          renderStats();
+        });
+        row.append(label, subtract, value, add);
+        statGrid.append(row);
+      }
+      refreshConfirm();
+    };
+    const renderOptions = (
+      root: HTMLElement,
+      options: readonly ImprintOption[],
+      selected: () => string,
+      choose: (id: string) => void,
+    ): void => {
+      root.replaceChildren();
+      for (const option of options) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "imprint-option";
+        button.setAttribute("aria-pressed", String(selected() === option.id));
+        const name = document.createElement("strong");
+        name.textContent = option.name;
+        const description = document.createElement("span");
+        description.textContent = option.description;
+        const modifiers = document.createElement("small");
+        modifiers.textContent = modifierText(option);
+        button.append(name, description, modifiers);
+        button.addEventListener("click", () => {
+          choose(option.id);
+          renderOptions(root, options, selected, choose);
+          refreshConfirm();
+        });
+        root.append(button);
+      }
+    };
+    const dismiss = (): void => {
+      panel.hidden = true;
+      this.imprintVisible = false;
+    };
+    close.onclick = dismiss;
+    confirm.onclick = () => {
+      error.textContent = "";
+      try {
+        onConfirm({ allocations, raceBoonId, callingPerkId });
+        dismiss();
+      } catch (caught) {
+        error.textContent = caught instanceof Error ? caught.message : "The Soul Imprint would not hold.";
+      }
+    };
+    error.textContent = "";
+    renderStats();
+    renderOptions(raceGrid, raceOptions, () => raceBoonId, (id) => { raceBoonId = id; });
+    renderOptions(callingGrid, callingOptions, () => callingPerkId, (id) => { callingPerkId = id; });
+    this.imprintVisible = true;
+    panel.hidden = false;
+  }
+
+  public setTutorial(step: number, total: number, title: string, text: string): void {
+    requiredElement<HTMLElement>("tutorial-step").textContent = `${String(step).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+    requiredElement<HTMLElement>("tutorial-title").textContent = title;
+    requiredElement<HTMLElement>("tutorial-text").textContent = text;
+  }
+
+  public openDialogue(
+    scene: DialogueScene,
+    onChoice: (choice: DialogueChoice) => void,
+    onContinue?: (choice: DialogueChoice) => void,
+  ): void {
+    const panel = requiredElement<HTMLElement>("dialogue-panel");
+    const body = requiredElement<HTMLElement>("dialogue-body");
+    const choices = requiredElement<HTMLElement>("dialogue-choices");
+    requiredElement<HTMLImageElement>("dialogue-portrait").src = scene.sprite;
+    requiredElement<HTMLElement>("dialogue-speaker").textContent = scene.speaker;
+    requiredElement<HTMLElement>("dialogue-role").textContent = scene.role;
+    body.replaceChildren(...scene.lines.map((line) => {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = line;
+      return paragraph;
+    }));
+    choices.replaceChildren();
+    this.dialogueVisible = true;
+    panel.hidden = false;
+    this.speak(scene.lines.join(" "), scene.npcId);
+
+    scene.choices.forEach((choice) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = choice.label;
+      button.addEventListener("click", () => {
+        onChoice(choice);
+        body.replaceChildren();
+        const response = document.createElement("p");
+        response.textContent = choice.response;
+        body.append(response);
+        this.speak(choice.response, scene.npcId);
+        const continueButton = document.createElement("button");
+        continueButton.type = "button";
+        continueButton.textContent = "Continue";
+        continueButton.addEventListener("click", () => {
+          if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+          panel.hidden = true;
+          this.dialogueVisible = false;
+          onContinue?.(choice);
+        });
+        choices.replaceChildren(continueButton);
+      });
+      choices.append(button);
+    });
+  }
+
+  private speak(text: string, npcId: string): void {
+    if (!this.voiceEnabled || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const performance = npcId === "ilyra"
+      ? { rate: 0.88, pitch: 0.95 }
+      : npcId === "brannoc"
+        ? { rate: 0.84, pitch: 0.72 }
+        : { rate: 1, pitch: 1.02 };
+    utterance.rate = performance.rate;
+    utterance.pitch = performance.pitch;
+    utterance.volume = 0.86;
+    window.speechSynthesis.speak(utterance);
+  }
+
   public selectedCombatStyle(): CombatStyle {
     return this.combatStyle.value === "real-time" ? "real-time" : "turn-based";
+  }
+
+  public setSelectedCombatStyle(style: CombatStyle): void {
+    this.combatStyle.value = style;
   }
 
   public lockCombatStyle(locked: boolean): void {
@@ -126,6 +458,36 @@ export class GameUI {
   public setActionEnabled(action: ActionName, enabled: boolean): void {
     const button = this.combatControls.querySelector<HTMLButtonElement>(`button[data-action="${action}"]`);
     if (button) button.disabled = !enabled;
+  }
+
+  private showMechanicTooltip(source: HTMLElement): void {
+    const help = source.dataset.mechanicHelp;
+    if (!help) return;
+    this.mechanicTooltip.textContent = help;
+    this.mechanicTooltip.hidden = false;
+    this.mechanicTooltip.classList.add("is-visible");
+    const sourceRect = source.getBoundingClientRect();
+    const tooltipRect = this.mechanicTooltip.getBoundingClientRect();
+    const left = Math.max(10, Math.min(window.innerWidth - tooltipRect.width - 10, sourceRect.left + sourceRect.width / 2 - tooltipRect.width / 2));
+    const above = sourceRect.top - tooltipRect.height - 10;
+    const top = above >= 10 ? above : Math.min(window.innerHeight - tooltipRect.height - 10, sourceRect.bottom + 10);
+    this.mechanicTooltip.style.left = `${left}px`;
+    this.mechanicTooltip.style.top = `${Math.max(10, top)}px`;
+  }
+
+  private hideMechanicTooltip(): void {
+    this.mechanicTooltip.classList.remove("is-visible");
+    this.mechanicTooltip.hidden = true;
+  }
+
+  public animateAction(action: ActionName, durationMs: number): void {
+    const button = this.combatControls.querySelector<HTMLButtonElement>(`button[data-action="${action}"]`);
+    if (!button) return;
+    button.style.setProperty("--action-duration", `${durationMs}ms`);
+    button.classList.remove("is-triggered");
+    void button.offsetWidth;
+    button.classList.add("is-triggered");
+    window.setTimeout(() => button.classList.remove("is-triggered"), durationMs);
   }
 
   public async requestReaction(

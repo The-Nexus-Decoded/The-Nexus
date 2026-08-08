@@ -1,7 +1,35 @@
+@font-face {
+  font-family: "Soul Cinzel";
+  src: url("/assets/fonts/Cinzel-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400 900;
+}
+
+@font-face {
+  font-family: "Soul HUD";
+  src: url("/assets/fonts/Rajdhani-Regular.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Soul HUD";
+  src: url("/assets/fonts/Rajdhani-SemiBold.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 600 800;
+}
+
+@font-face {
+  font-family: "Soul Dialogue";
+  src: url("/assets/fonts/Alegreya-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400 900;
+}
+
 :root {
   color: #f1e5c5;
   background: #070a0d;
-  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-family: "Soul Dialogue", Georgia, serif;
   font-synthesis: none;
   --ink: #070a0d;
   --panel: rgba(18, 22, 24, 0.94);
@@ -44,27 +72,501 @@ body::before {
 
 button,
 select {
-  font: inherit;
+  font-family: "Soul HUD", sans-serif;
+}
+
+h1,
+h2,
+h3,
+.creation-brand strong,
+.choice-card__title,
+.imprint-seal strong,
+.zone-banner strong,
+.target-frame strong {
+  font-family: "Soul Cinzel", serif;
+}
+
+.eyebrow,
+.creation-progress,
+.creation-rail__footer,
+.vitals,
+.mode-indicator,
+.combat-controls,
+.tutorial-card__step,
+.controls-card,
+.footer-note,
+.run-seed,
+.dungeon-route,
+.target-frame {
+  font-family: "Soul HUD", sans-serif;
 }
 
 button {
   color: inherit;
 }
 
-.app-shell {
-  width: min(1920px, 100vw);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 18px 22px 10px;
+[hidden] {
+  display: none !important;
 }
+
+.creation-shell {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 310px minmax(0, 1fr);
+  overflow: hidden;
+  background:
+    linear-gradient(100deg, rgba(4, 8, 10, 0.98) 0 22%, rgba(5, 11, 13, 0.84) 49%, rgba(12, 9, 6, 0.94) 100%),
+    url("/assets/generated/first-breach-environment-v1.png") center / cover;
+}
+
+.creation-shell::after {
+  position: fixed;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 68% 45%, transparent 0 20%, rgba(0, 0, 0, 0.28) 68%),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, 0.018) 3px 4px);
+  mix-blend-mode: screen;
+}
+
+.creation-shell.is-dissolving {
+  animation: soul-dissolve 520ms ease-in forwards;
+}
+
+@keyframes soul-dissolve {
+  to { opacity: 0; filter: blur(8px) brightness(1.5); transform: scale(1.015); }
+}
+
+.creation-atmosphere {
+  position: fixed;
+  inset: -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 50%, rgba(64, 220, 213, 0.16), transparent 26%),
+    radial-gradient(circle at 78% 45%, rgba(197, 141, 71, 0.13), transparent 30%);
+  animation: atmosphere-breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes atmosphere-breathe {
+  to { opacity: 0.58; transform: translate3d(1.5%, -1%, 0) scale(1.025); }
+}
+
+.creation-rail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  padding: 34px 30px 24px;
+  border-right: 1px solid rgba(197, 141, 71, 0.45);
+  background:
+    linear-gradient(180deg, rgba(13, 18, 19, 0.95), rgba(5, 8, 9, 0.98)),
+    var(--panel);
+  box-shadow: 24px 0 80px rgba(0, 0, 0, 0.52), inset -1px 0 rgba(98, 230, 219, 0.08);
+}
+
+.creation-brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.creation-brand__seal {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid var(--bronze);
+  color: var(--soul);
+  font-size: 25px;
+  transform: rotate(45deg);
+  box-shadow: inset 0 0 24px rgba(98, 230, 219, 0.16), 0 0 24px rgba(98, 230, 219, 0.08);
+}
+
+.creation-brand strong {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.creation-rail blockquote {
+  margin: 64px 0 48px;
+  padding-left: 17px;
+  border-left: 1px solid var(--bronze-dim);
+  color: #9ca79e;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.75;
+}
+
+.creation-progress {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.creation-progress li {
+  position: relative;
+  display: flex;
+  min-height: 51px;
+  align-items: center;
+  gap: 15px;
+  color: #59635f;
+  font-family: "Soul HUD", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.creation-progress li::before {
+  position: absolute;
+  top: 36px;
+  bottom: -15px;
+  left: 14px;
+  width: 1px;
+  content: "";
+  background: #313a37;
+}
+
+.creation-progress li:last-child::before { display: none; }
+
+.creation-progress li span {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  place-items: center;
+  border: 1px solid #39423f;
+  background: #0a0e0f;
+  color: #69736e;
+  font-size: 9px;
+}
+
+.creation-progress li.is-current { color: var(--parchment); }
+.creation-progress li.is-current span { border-color: var(--soul); color: var(--soul); box-shadow: 0 0 16px rgba(98, 230, 219, 0.18); }
+.creation-progress li.is-complete { color: #9b8a6e; }
+.creation-progress li.is-complete span { border-color: var(--bronze-dim); color: var(--bronze); }
+
+.creation-rail__footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid rgba(197, 141, 71, 0.22);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.creation-rail__footer span { color: var(--muted); }
+.creation-rail__footer strong { color: var(--soul); }
+
+.creation-main {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: 46px clamp(36px, 6vw, 110px);
+}
+
+.creation-stage {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+  padding: 38px clamp(28px, 4vw, 60px);
+  border: 1px solid rgba(197, 141, 71, 0.46);
+  background:
+    linear-gradient(135deg, rgba(10, 16, 18, 0.96), rgba(20, 20, 17, 0.92)),
+    var(--panel);
+  box-shadow: 0 35px 100px rgba(0, 0, 0, 0.64), inset 0 0 70px rgba(98, 230, 219, 0.035);
+  scrollbar-color: var(--bronze-dim) #0b0f10;
+}
+
+.creation-heading {
+  max-width: 760px;
+  margin-bottom: 30px;
+}
+
+.creation-heading h2 {
+  margin-bottom: 10px;
+  font-size: clamp(31px, 4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+.creation-heading > p:last-child {
+  max-width: 660px;
+  margin-bottom: 0;
+  color: #9eaaa2;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.name-field {
+  display: grid;
+  max-width: 680px;
+  gap: 9px;
+  margin: 70px 0 100px;
+}
+
+.name-field span {
+  color: var(--bronze);
+  font-family: "Soul HUD", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.name-field input {
+  width: 100%;
+  border: solid rgba(98, 230, 219, 0.25);
+  border-width: 0 0 1px;
+  outline: 0;
+  color: var(--parchment);
+  background: transparent;
+  font: 500 clamp(36px, 5vw, 68px)/1.2 "Palatino Linotype", Georgia, serif;
+  letter-spacing: 0.025em;
+  text-shadow: 0 0 24px rgba(98, 230, 219, 0.12);
+}
+
+.name-field input:focus { border-color: var(--soul); }
+.name-field input::placeholder { color: #35403d; }
+
+.continue-character {
+  display: grid;
+  width: min(680px, 100%);
+  min-height: 92px;
+  grid-template-columns: 74px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin: -68px 0 78px;
+  padding: 8px 18px 8px 8px;
+  border: 1px solid rgba(98, 230, 219, 0.32);
+  color: var(--parchment);
+  text-align: left;
+  background: linear-gradient(90deg, rgba(25, 42, 42, 0.95), rgba(10, 15, 16, 0.88));
+  cursor: pointer;
+}
+
+.continue-character:hover { border-color: var(--soul); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.36); }
+.continue-character img { width: 74px; height: 74px; object-fit: contain; filter: drop-shadow(0 8px 8px #000); }
+.continue-character span { display: grid; gap: 2px; }
+.continue-character small,
+.continue-character em { color: #7f8f88; font: 700 9px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.continue-character strong { font-size: 23px; font-weight: 500; }
+.continue-character em { color: var(--bronze); font-style: normal; }
+.continue-character b { color: var(--soul); font: 700 10px/1 "Soul HUD", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.choice-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.choice-grid--races { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.choice-grid--callings { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.choice-card {
+  position: relative;
+  display: flex;
+  min-height: 360px;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid #3b3c34;
+  text-align: left;
+  background: linear-gradient(180deg, #171b1b, #0c1011);
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.choice-card:hover,
+.choice-card.is-selected {
+  z-index: 1;
+  border-color: var(--bronze);
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4), inset 0 0 35px rgba(197, 141, 71, 0.06);
+}
+
+.choice-card.is-selected { border-color: var(--soul); }
+.choice-card.is-selected::after {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  content: "BOUND";
+  color: var(--soul);
+  font: 700 8px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.15em;
+}
+
+.choice-card__portrait {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 13px 12px rgba(0, 0, 0, 0.55));
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.choice-card:hover .choice-card__portrait,
+.choice-card.is-selected .choice-card__portrait {
+  transform: scale(1.045);
+  filter: drop-shadow(0 16px 15px rgba(0, 0, 0, 0.68)) brightness(1.08);
+}
+
+.choice-card__glyph { color: var(--soul); font-size: 20px; }
+.choice-card__title { margin-top: 4px; color: var(--parchment); font-size: 20px; }
+.choice-card__body { margin-top: 8px; color: #8f9a93; font-size: 11px; line-height: 1.45; }
+.choice-card__affinity { margin-top: auto; padding-top: 12px; color: var(--bronze); font: 700 9px/1.35 "Soul HUD", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.choice-card__job { margin-top: 5px; color: #5f6c67; font: 8px/1.35 "Soul HUD", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.choice-card__difficulty { margin-top: 4px; color: #77847e; font: 700 8px/1.35 "Soul HUD", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.choice-card__resonance { width: calc(100% + 36px); margin: 10px -18px -18px; padding: 7px 10px; color: #c8ede7; background: rgba(98, 230, 219, 0.1); font: 700 8px/1.3 "Soul HUD", sans-serif; letter-spacing: 0.07em; text-align: center; text-transform: uppercase; }
+.choice-card.has-ancestry-bonus { box-shadow: inset 0 -2px rgba(98, 230, 219, 0.26); }
+
+.memory-number {
+  float: right;
+  color: rgba(98, 230, 219, 0.18);
+  font-size: clamp(60px, 8vw, 120px);
+  line-height: 0.75;
+}
+
+.creation-heading--memory { max-width: 850px; }
+
+.memory-answers {
+  display: grid;
+  gap: 10px;
+}
+
+.memory-answer {
+  display: grid;
+  min-height: 86px;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border: 1px solid #343c39;
+  background: rgba(9, 14, 15, 0.86);
+  cursor: pointer;
+  text-align: left;
+}
+
+.memory-answer:hover,
+.memory-answer.is-selected { border-color: var(--soul); background: rgba(24, 37, 37, 0.92); }
+.memory-answer > span { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--bronze-dim); color: var(--bronze); }
+.memory-answer strong { font-size: 14px; font-weight: 500; }
+.memory-answer small { max-width: 150px; color: #72807a; font: 9px/1.4 "Soul HUD", sans-serif; letter-spacing: 0.08em; text-align: right; text-transform: uppercase; }
+
+.creation-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(197, 141, 71, 0.18);
+}
+
+.creation-actions--end { justify-content: flex-end; }
+
+.curve-note,
+.resonance-note { display: grid; gap: 4px; margin: 12px 0 0; padding: 9px 10px; border-left: 2px solid var(--bronze); color: #79857f; background: rgba(0, 0, 0, 0.18); font: 9px/1.45 "Soul HUD", sans-serif; }
+.curve-note strong,
+.resonance-note strong { color: var(--bronze); letter-spacing: 0.06em; text-transform: uppercase; }
+.curve-note span { color: #8ea099; }
+.resonance-note { border-left-color: var(--soul); }
+
+.ritual-button {
+  min-height: 46px;
+  padding: 0 20px;
+  border: 1px solid #46504c;
+  background: rgba(10, 15, 16, 0.86);
+  cursor: pointer;
+  color: #99a69f;
+  font-family: "Soul HUD", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ritual-button:hover { border-color: var(--bronze); color: var(--parchment); }
+.ritual-button--primary { border-color: var(--bronze); color: var(--parchment); background: linear-gradient(135deg, #47331f, #171817); }
+.ritual-button--primary:hover { border-color: var(--soul); box-shadow: 0 0 28px rgba(98, 230, 219, 0.1); }
+.ritual-button span { margin-left: 12px; color: var(--soul); }
+
+.creation-error {
+  position: absolute;
+  right: clamp(36px, 6vw, 110px);
+  bottom: 18px;
+  margin: 0;
+  color: #f09a83;
+  font: 10px/1.4 "Soul HUD", sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.imprint-review {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.75fr) 1.2fr 1fr;
+  gap: 14px;
+}
+
+.imprint-review > section {
+  padding: 18px;
+  border: 1px solid rgba(197, 141, 71, 0.24);
+  background: rgba(4, 9, 10, 0.58);
+}
+
+.imprint-seal {
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+}
+
+.imprint-seal img { width: 100%; height: 285px; object-fit: contain; filter: drop-shadow(0 16px 14px rgba(0,0,0,.64)); }
+.imprint-seal > span { color: var(--soul); font-size: 25px; }
+.imprint-seal strong { margin-top: 5px; font-size: 22px; font-weight: 500; }
+.imprint-seal small { margin-top: 4px; color: var(--bronze); font: 9px/1 "Soul HUD", sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.stat-weave { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stat-weave div { display: flex; min-height: 51px; align-items: center; justify-content: space-between; padding: 8px 10px; border-left: 1px solid var(--bronze-dim); background: rgba(255,255,255,.025); }
+.stat-weave span { color: var(--muted); font: 8px/1 "Soul HUD", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.stat-weave strong { color: var(--soul); font-size: 19px; font-weight: 500; }
+.derived-vitals { display: flex; gap: 15px; margin-top: 12px; color: #7f8c85; font-size: 10px; }
+.derived-vitals strong { color: var(--parchment); }
+.imprint-skills ul,
+.memory-consequences ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.imprint-skills li { padding: 6px 8px; border-left: 2px solid var(--soul); background: rgba(98,230,219,.05); color: #c9d9d1; font-size: 11px; }
+.memory-consequences { grid-column: 2 / -1; }
+.memory-consequences li { position: relative; padding-left: 15px; color: #88968f; font-size: 10px; line-height: 1.35; }
+.memory-consequences li::before { position: absolute; left: 0; color: var(--bronze); content: "◇"; }
+
+.app-shell {
+  display: flex;
+  width: min(1920px, 100vw);
+  height: 100vh;
+  margin: 0 auto;
+  padding: 10px 12px 7px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body:has(.app-shell:not([hidden])) { overflow: hidden; }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 74px;
-  margin-bottom: 14px;
-  padding: 0 22px;
+  min-height: 58px;
+  margin-bottom: 8px;
+  padding: 0 16px;
   border: 1px solid rgba(197, 141, 71, 0.35);
   background: linear-gradient(90deg, rgba(11, 15, 17, 0.98), rgba(27, 31, 30, 0.93));
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32), inset 0 -1px rgba(98, 230, 219, 0.08);
@@ -78,12 +580,12 @@ button {
 
 .brand-rune {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border: 1px solid var(--bronze);
   color: var(--soul);
-  font-size: 30px;
+  font-size: 25px;
   transform: rotate(45deg);
   box-shadow: inset 0 0 18px rgba(98, 230, 219, 0.16);
 }
@@ -95,7 +597,7 @@ button {
 .eyebrow {
   margin: 0 0 4px;
   color: var(--bronze);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -111,7 +613,7 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(24px, 2vw, 35px);
+  font-size: clamp(21px, 1.8vw, 30px);
   font-weight: 500;
   letter-spacing: 0.075em;
 }
@@ -126,7 +628,7 @@ h2 {
 h3 {
   margin-bottom: 10px;
   color: var(--bronze);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 11px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -138,7 +640,7 @@ h3 {
   align-items: center;
   gap: 12px;
   color: var(--muted);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -161,22 +663,57 @@ h3 {
   height: 100%;
   background: linear-gradient(90deg, var(--soul-dim), var(--soul));
   box-shadow: 0 0 12px var(--soul);
+  transition: width 360ms ease, background 240ms ease, box-shadow 240ms ease;
 }
+
+[data-mechanic]:focus-visible {
+  outline: 1px solid var(--soul);
+  outline-offset: 3px;
+}
+
+.mechanic-tooltip {
+  position: fixed;
+  z-index: 220;
+  width: min(330px, calc(100vw - 28px));
+  padding: 11px 13px;
+  border: 1px solid rgba(197, 141, 71, 0.78);
+  color: #e6dec8;
+  background:
+    linear-gradient(135deg, rgba(98, 230, 219, 0.08), transparent 42%),
+    rgba(7, 11, 12, 0.98);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.72), inset 0 0 22px rgba(98, 230, 219, 0.04);
+  pointer-events: none;
+  font: 12px/1.55 "Soul Dialogue", serif;
+  letter-spacing: 0.015em;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.mechanic-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mechanic-tooltip[hidden] { display: none; }
 
 .play-layout {
   display: grid;
-  grid-template-columns: 220px minmax(640px, 1fr) 250px;
-  gap: 14px;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: clamp(172px, 16vw, 210px) minmax(0, 1fr) clamp(196px, 19vw, 238px);
+  gap: 9px;
   align-items: stretch;
 }
 
 .panel,
 .game-column {
-  min-height: calc(100vh - 130px);
+  min-height: 0;
 }
 
 .panel {
-  padding: 20px 18px;
+  overflow: auto;
+  padding: 14px 13px;
   border: 1px solid rgba(197, 141, 71, 0.3);
   background:
     linear-gradient(180deg, rgba(32, 36, 35, 0.96), rgba(13, 17, 18, 0.97)),
@@ -185,10 +722,11 @@ h3 {
 }
 
 .portrait {
+  position: relative;
   display: grid;
   width: 100%;
   aspect-ratio: 1.55;
-  margin-bottom: 18px;
+  margin-bottom: 11px;
   place-items: center;
   border: 1px solid var(--bronze-dim);
   background:
@@ -203,8 +741,23 @@ h3 {
   text-shadow: 0 0 20px rgba(98, 230, 219, 0.44);
 }
 
+.portrait__image {
+  position: absolute;
+  inset: 4px;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  object-fit: contain;
+  filter: drop-shadow(0 9px 8px rgba(0, 0, 0, 0.55));
+}
+
+.portrait:has(.portrait__image[src]) .portrait__rune { display: none; }
+
+.skill-block { margin-bottom: 22px; }
+.skill-list { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 0; padding: 0; list-style: none; }
+.skill-list li { padding: 5px 7px; border: 1px solid rgba(98, 230, 219, 0.2); color: #9fb6ae; background: rgba(98, 230, 219, 0.04); font-size: 9px; }
+
 .class-name {
-  margin-bottom: 20px;
+  margin-bottom: 11px;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
@@ -213,7 +766,7 @@ h3 {
 .vitals {
   display: grid;
   gap: 9px;
-  margin: 0 0 24px;
+  margin: 0 0 13px;
 }
 
 .vitals div,
@@ -227,7 +780,7 @@ h3 {
 .vitals dt,
 .controls-card dt {
   color: var(--muted);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 10px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -275,6 +828,7 @@ h3 {
 }
 
 .game-column {
+  position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -283,7 +837,7 @@ h3 {
 .viewport-frame {
   position: relative;
   flex: 1;
-  min-height: 620px;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(197, 141, 71, 0.42);
   background: #080c0e;
@@ -296,11 +850,285 @@ h3 {
   height: 100% !important;
 }
 
+#game canvas {
+  display: block;
+  cursor: crosshair;
+  outline: 0;
+}
+
+.zone-banner {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  z-index: 7;
+  display: grid;
+  min-width: 310px;
+  justify-items: center;
+  padding: 9px 30px 11px;
+  border-block: 1px solid rgba(197, 141, 71, 0.45);
+  background: linear-gradient(90deg, transparent, rgba(7, 11, 13, 0.82) 18% 82%, transparent);
+  text-shadow: 0 2px 9px #000;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.zone-banner span {
+  color: var(--soul);
+  font: 600 9px/1.2 "Soul HUD", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.zone-banner strong {
+  margin-top: 4px;
+  color: #f4e8ca;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.soul-imprint-panel {
+  position: absolute;
+  inset: 38px 44px 42px;
+  z-index: 40;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid rgba(197, 141, 71, 0.76);
+  color: #e7ddc3;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(98, 230, 219, 0.13), transparent 30%),
+    linear-gradient(145deg, rgba(8, 13, 15, 0.985), rgba(22, 21, 18, 0.985));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.86), inset 0 0 46px rgba(98, 230, 219, 0.035);
+  clip-path: polygon(0 16px, 16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+.soul-imprint-panel::before {
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(98, 230, 219, 0.12);
+  content: "";
+  pointer-events: none;
+}
+
+.soul-imprint-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(197, 141, 71, 0.3);
+}
+
+.soul-imprint-panel__header h2 { margin-bottom: 7px; font-size: 25px; }
+.soul-imprint-panel__header p:last-child { max-width: 680px; margin: 0; color: #a9b3aa; font-size: 13px; line-height: 1.45; }
+.imprint-close { width: 36px; height: 36px; border: 1px solid var(--bronze-dim); border-radius: 18px; color: var(--bronze); background: rgba(0,0,0,.28); cursor: pointer; font-size: 22px; }
+.imprint-ledger { display: grid; grid-template-columns: .86fr 1fr 1fr; gap: 12px; margin-top: 16px; }
+.imprint-section { padding: 13px; border: 1px solid rgba(197, 141, 71, 0.2); background: rgba(255,255,255,.018); }
+.imprint-stat-grid { display: grid; gap: 6px; margin-top: 10px; }
+.imprint-stat-row { display: grid; grid-template-columns: 1fr 28px 44px 28px; align-items: center; gap: 4px; min-height: 36px; padding: 4px 6px; border-left: 2px solid rgba(98,230,219,.46); background: rgba(98,230,219,.035); }
+.imprint-stat-row span { font: 600 10px/1 "Soul HUD", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.imprint-stat-row strong { color: var(--soul); text-align: center; }
+.imprint-stat-row button { width: 28px; height: 28px; border: 1px solid #5e4a34; border-radius: 14px; color: var(--parchment); background: #151918; cursor: pointer; }
+.imprint-stat-row button:disabled { opacity: .28; cursor: default; }
+.imprint-option-grid { display: grid; gap: 8px; margin-top: 10px; }
+.imprint-option {
+  min-height: 84px;
+  padding: 11px 12px;
+  border: 1px solid #514632;
+  color: #d4cbb4;
+  background: linear-gradient(135deg, rgba(63,64,55,.42), rgba(12,16,16,.86));
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+.imprint-option:hover { border-color: var(--bronze); transform: translateY(-2px); }
+.imprint-option[aria-pressed="true"] { border-color: var(--soul); background: linear-gradient(135deg, rgba(98,230,219,.13), rgba(12,16,16,.92)); box-shadow: inset 3px 0 var(--soul); }
+.imprint-option strong { display: block; color: var(--parchment); font: 600 13px/1.2 "Soul Cinzel", serif; }
+.imprint-option span { display: block; margin-top: 6px; color: #929f98; font-size: 11px; line-height: 1.35; }
+.imprint-option small { display: block; margin-top: 6px; color: var(--bronze); font: 9px/1.2 "Soul HUD", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.imprint-actions { display: flex; min-height: 52px; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 14px; }
+.imprint-actions p { margin: 0 auto 0 0; color: var(--danger); font-size: 12px; }
+.imprint-actions button { min-width: 190px; height: 46px; border: 1px solid var(--bronze); border-radius: 23px; color: #090d0e; background: linear-gradient(90deg, #c18a43, #69d8cf); cursor: pointer; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.imprint-actions button:disabled { cursor: default; filter: grayscale(1); opacity: .35; }
+
+.run-seed {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 7;
+  padding: 6px 8px;
+  border: 1px solid rgba(98, 230, 219, 0.24);
+  color: #798c86;
+  background: rgba(4, 8, 10, 0.72);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.run-seed span { color: var(--soul); }
+
+.camera-controls {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  z-index: 13;
+  display: grid;
+  grid-template-columns: repeat(2, 34px);
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(197, 141, 71, 0.34);
+  background: rgba(5, 9, 10, 0.52);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  transform: translateY(-50%);
+}
+
+.camera-controls button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(98, 230, 219, 0.26);
+  color: #d8e7df;
+  background: rgba(13, 21, 22, 0.66);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.camera-controls button:hover,
+.camera-controls button:focus-visible {
+  border-color: var(--soul);
+  color: var(--soul);
+  background: rgba(25, 45, 44, 0.82);
+}
+
+.target-frame {
+  position: absolute;
+  top: 82px;
+  left: 50%;
+  z-index: 8;
+  width: min(390px, calc(100% - 160px));
+  padding: 8px 10px 10px;
+  border: 1px solid rgba(220, 109, 85, 0.56);
+  background: linear-gradient(180deg, rgba(19, 14, 14, 0.94), rgba(7, 9, 10, 0.9));
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.54);
+  transform: translateX(-50%);
+}
+
+.target-frame > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.target-frame strong { color: #f1d2c4; font-size: 13px; letter-spacing: 0.05em; }
+.target-frame #target-level { color: #9d7b70; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+.target-frame.is-boss { border-color: var(--bronze); box-shadow: 0 14px 38px rgba(197, 91, 54, 0.2); }
+.target-health { position: relative; height: 12px; margin-top: 7px; overflow: hidden; background: #190b0b; box-shadow: inset 0 0 5px #000; }
+.target-health span { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #873528, #df6a4f); transition: width 180ms ease; }
+.target-health b { position: absolute; inset: 0; color: #fff0dc; font-size: 9px; line-height: 12px; letter-spacing: 0.08em; text-align: center; text-shadow: 0 1px 3px #000; }
+
 .viewport-vignette {
   position: absolute;
   inset: 0;
   border: 8px solid rgba(8, 10, 10, 0.44);
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.44);
+  pointer-events: none;
+}
+
+.dialogue-panel {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  z-index: 20;
+  display: grid;
+  min-height: 230px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--bronze);
+  background:
+    linear-gradient(100deg, rgba(11, 16, 17, 0.98), rgba(20, 20, 17, 0.97)),
+    var(--panel);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), inset 0 0 55px rgba(98, 230, 219, 0.04);
+  animation: dialogue-rise 180ms ease-out;
+}
+
+@keyframes dialogue-rise {
+  from { opacity: 0; transform: translateY(15px); }
+}
+
+.dialogue-panel > img {
+  width: 100%;
+  height: 100%;
+  max-height: 285px;
+  align-self: end;
+  object-fit: contain;
+  object-position: center bottom;
+  background: radial-gradient(circle at 50% 70%, rgba(98, 230, 219, 0.12), transparent 55%);
+  filter: drop-shadow(12px 10px 12px rgba(0, 0, 0, 0.7));
+}
+
+.dialogue-panel__content { padding: 22px 24px 18px; }
+.dialogue-panel__content h2 { margin-bottom: 10px; font-size: 25px; }
+.dialogue-body { color: #d1c8ad; font-size: 13px; line-height: 1.6; }
+.dialogue-body p { margin-bottom: 8px; }
+.dialogue-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.dialogue-choices button { min-height: 34px; padding: 5px 11px; border: 1px solid #4d5147; background: rgba(0, 0, 0, 0.25); cursor: pointer; color: #aeb9b0; font-size: 10px; }
+.dialogue-choices button:hover { border-color: var(--soul); color: var(--parchment); }
+
+.tutorial-card {
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border: 1px solid rgba(98, 230, 219, 0.35);
+  background:
+    linear-gradient(135deg, rgba(25, 55, 56, 0.25), rgba(8, 13, 14, 0.2)),
+    rgba(0, 0, 0, 0.22);
+  box-shadow: inset 3px 0 var(--soul-dim);
+}
+
+.tutorial-card__step { display: flex; justify-content: space-between; margin-bottom: 9px; color: #74817b; font: 8px/1 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.tutorial-card__step strong { color: var(--soul); }
+.tutorial-card h3 { margin-bottom: 6px; color: var(--parchment); }
+.tutorial-card p { margin: 0; color: #8e9b94; font-size: 10px; line-height: 1.45; }
+
+.dungeon-route {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid rgba(197, 141, 71, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dungeon-route ol { display: grid; gap: 5px; margin: 10px 0 0; padding: 0; list-style: none; }
+.dungeon-route li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 7px; min-height: 32px; padding: 5px 7px; border-left: 2px solid #38413e; color: #78837e; background: rgba(255, 255, 255, 0.018); }
+.dungeon-route li > span { color: #596660; font-size: 9px; }
+.dungeon-route li strong { font-size: 10px; font-weight: 600; }
+.dungeon-route li small { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
+.dungeon-route li.is-current { border-left-color: var(--soul); color: #dfe9dd; background: rgba(98, 230, 219, 0.065); }
+.dungeon-route li.is-current small { color: var(--soul); }
+.dungeon-route li.is-complete { border-left-color: var(--bronze); color: #aa9a7d; }
+.dungeon-route li.is-hidden { color: #49504d; filter: blur(0.15px); }
+
+.fatal-error {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-content: center;
+  gap: 8px;
+  padding: 30px;
+  color: #dcae9d;
+  background: radial-gradient(circle, #221415, #07090b 66%);
+  text-align: center;
+}
+
+.fatal-error strong { font: 600 24px "Soul Cinzel", serif; }
+.fatal-error span { font: 16px "Soul HUD", sans-serif; }
+
+.debug-command {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -326,7 +1154,7 @@ h3 {
   padding: 5px 8px;
   border: 1px solid var(--soul-dim);
   color: var(--soul);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -334,32 +1162,52 @@ h3 {
 }
 
 .combat-controls {
+  position: absolute;
+  bottom: 58px;
+  left: 50%;
+  z-index: 12;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 7px;
-  border: solid rgba(197, 141, 71, 0.32);
-  border-width: 0 1px;
-  background: rgba(9, 13, 14, 0.98);
+  width: min(560px, calc(100% - 30px));
+  grid-template-columns: 0.72fr 1fr 1fr 1fr 0.78fr;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(197, 141, 71, 0.48);
+  background: linear-gradient(180deg, rgba(24, 27, 25, 0.68), rgba(5, 9, 10, 0.58));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(98, 230, 219, 0.035);
+  backdrop-filter: blur(8px) saturate(1.05);
+  opacity: 0.88;
+  transform: translateX(-50%);
+  transition: opacity 140ms ease, background 140ms ease;
 }
+
+.combat-controls:hover,
+.combat-controls:focus-within { opacity: 0.98; }
 
 .combat-controls[hidden] {
   display: none;
 }
 
 .combat-controls button {
-  min-height: 48px;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  grid-template-rows: 40px auto auto;
+  place-items: center;
+  overflow: hidden;
+  padding: 4px 4px 5px;
   border: 1px solid #59442d;
-  background: linear-gradient(180deg, #2c2c27, #161917);
+  background: linear-gradient(180deg, rgba(37, 39, 34, 0.76), rgba(10, 15, 14, 0.7));
   cursor: pointer;
-  font-size: 12px;
-  transition: border-color 120ms ease, transform 120ms ease, color 120ms ease;
+  color: #d8cfb8;
+  transition: border-color 120ms ease, transform 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 .combat-controls button:hover:not(:disabled) {
   border-color: var(--soul);
   color: var(--soul);
-  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(98, 230, 219, 0.19);
+  transform: translateY(-3px);
 }
 
 .combat-controls button:disabled {
@@ -367,15 +1215,56 @@ h3 {
   opacity: 0.38;
 }
 
-.combat-controls button span {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  margin-right: 7px;
+.combat-controls button .action-hotkey {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  z-index: 3;
+  display: grid;
+  width: 18px;
+  height: 18px;
   place-items: center;
-  border: 1px solid var(--bronze-dim);
+  border: 1px solid rgba(197, 141, 71, 0.72);
   color: var(--bronze);
+  background: rgba(5, 7, 8, 0.9);
   font-size: 9px;
+}
+
+.combat-controls button img,
+.combat-controls .utility-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border: 1px solid #765536;
+  background: radial-gradient(circle, #273533, #080b0c 68%);
+  box-shadow: inset 0 0 12px #000, 0 3px 10px #000;
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+.combat-controls .utility-icon { display: grid; place-items: center; color: var(--soul); font-size: 22px; }
+.combat-controls button:hover:not(:disabled) img,
+.combat-controls button:hover:not(:disabled) .utility-icon { transform: scale(1.06); filter: brightness(1.14); }
+.combat-controls button b { max-width: 100%; overflow: hidden; font-size: 11px; font-weight: 700; line-height: 1.15; letter-spacing: 0.025em; text-overflow: ellipsis; white-space: nowrap; }
+.combat-controls button small { color: #8a9690; font: 8px/1.1 "Soul HUD", sans-serif; letter-spacing: 0.045em; text-transform: uppercase; }
+
+.combat-controls button.is-triggered::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: conic-gradient(from 0deg, rgba(4, 7, 8, 0.74), transparent 0);
+  animation: action-cooldown var(--action-duration, 650ms) linear forwards;
+}
+
+.combat-controls button.is-triggered img { animation: action-icon-pulse 240ms ease-out; }
+
+@keyframes action-cooldown {
+  from { clip-path: inset(0 0 0 0); opacity: 0.8; }
+  to { clip-path: inset(100% 0 0 0); opacity: 0; }
+}
+
+@keyframes action-icon-pulse {
+  50% { filter: brightness(1.55) saturate(1.25); transform: scale(1.08); }
 }
 
 .reaction-prompt {
@@ -404,7 +1293,7 @@ h3 {
   place-items: center;
   border: 1px solid var(--bronze);
   color: var(--parchment);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 10px;
   letter-spacing: 0.08em;
 }
@@ -459,11 +1348,29 @@ h3 {
   margin: 12px 0;
 }
 
+.interaction-legend {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 8px;
+  border: 1px solid rgba(98, 230, 219, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: #87968f;
+  font-size: 9px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.interaction-legend span { display: flex; align-items: center; gap: 7px; }
+.interaction-legend i { width: 9px; height: 9px; border: 1px solid currentColor; transform: rotate(45deg); }
+.interaction-legend__quest { color: var(--soul); box-shadow: 0 0 7px rgba(98, 230, 219, 0.7); }
+.interaction-legend__breakable { color: var(--bronze); box-shadow: 0 0 7px rgba(197, 141, 71, 0.54); }
+
 .combat-style-label {
   display: block;
   margin-bottom: 5px;
   color: var(--muted);
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -523,9 +1430,10 @@ h3 {
 .footer-note {
   display: flex;
   justify-content: space-between;
-  padding: 8px 4px 0;
+  min-height: 19px;
+  padding: 5px 4px 0;
   color: #69736e;
-  font-family: "Trebuchet MS", sans-serif;
+  font-family: "Soul HUD", sans-serif;
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -533,15 +1441,143 @@ h3 {
 
 @media (max-width: 1280px) {
   .app-shell {
-    padding-inline: 10px;
+    padding-inline: 8px;
   }
 
   .play-layout {
-    grid-template-columns: 190px minmax(620px, 1fr) 220px;
-    gap: 8px;
+    grid-template-columns: 178px minmax(0, 1fr) 208px;
+    gap: 7px;
   }
 
   .panel {
     padding-inline: 13px;
   }
+}
+
+@media (max-width: 1180px) {
+  .creation-shell { grid-template-columns: 240px minmax(0, 1fr); }
+  .creation-rail { padding-inline: 22px; }
+  .creation-main { padding-inline: 26px; }
+  .choice-grid--races,
+  .choice-grid--callings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 820px) {
+  html,
+  body {
+    min-width: 0;
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  .app-shell {
+    width: 100vw;
+    height: 100dvh;
+    padding: 4px;
+  }
+
+  .topbar {
+    min-height: 43px;
+    margin-bottom: 4px;
+    padding: 0 8px;
+  }
+
+  .brand-rune { width: 28px; height: 28px; font-size: 18px; }
+  .brand-lockup { gap: 8px; }
+  .brand-lockup .eyebrow { display: none; }
+  .brand-lockup h1 { font-size: 17px; }
+  .realm-state { grid-template-columns: 68px auto; gap: 6px; font-size: 8px; }
+  .realm-state__label { display: none; }
+  .pressure-track { width: 68px; }
+
+  .play-layout {
+    position: relative;
+    display: block;
+    min-height: 0;
+  }
+
+  .game-column { width: 100%; height: 100%; }
+  .journal-panel { display: none; }
+
+  .party-panel {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    z-index: 14;
+    width: 142px;
+    max-height: 112px;
+    overflow: hidden;
+    padding: 8px 9px;
+    border-color: rgba(197, 141, 71, 0.45);
+    background: rgba(8, 13, 14, 0.72);
+    backdrop-filter: blur(8px);
+  }
+
+  .party-panel .portrait,
+  .party-panel > .eyebrow,
+  .party-panel .class-name,
+  .party-panel .skill-block,
+  .party-panel .inventory-block { display: none; }
+  .party-panel h2 { margin-bottom: 6px; font-size: 14px; }
+  .party-panel .vitals { gap: 4px; margin: 0; }
+  .party-panel .vitals dt { font-size: 8px; }
+  .party-panel .vitals dd { font-size: 10px; }
+
+  .zone-banner {
+    top: 8px;
+    min-width: 0;
+    max-width: calc(100% - 310px);
+    padding: 6px 12px 7px;
+  }
+  .zone-banner span { font-size: 7px; }
+  .zone-banner strong { font-size: 11px; }
+  .run-seed { display: none; }
+
+  .camera-controls {
+    top: 8px;
+    right: 7px;
+    grid-template-columns: repeat(2, 30px);
+    transform: none;
+  }
+  .camera-controls button { width: 30px; height: 30px; font-size: 17px; }
+
+  .combat-controls {
+    bottom: 43px;
+    width: calc(100% - 10px);
+    gap: 2px;
+    padding: 3px;
+  }
+  .combat-controls button {
+    min-height: 58px;
+    grid-template-rows: 32px auto;
+    padding: 3px;
+  }
+  .combat-controls button img,
+  .combat-controls .utility-icon { width: 31px; height: 31px; }
+  .combat-controls button b { font-size: 9px; }
+  .combat-controls button small { display: none; }
+  .combat-controls button .action-hotkey { width: 15px; height: 15px; font-size: 7px; }
+
+  .message-strip { min-height: 39px; gap: 6px; padding: 5px 7px; }
+  .message-strip p { overflow: hidden; font-size: 10px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+  .mode-indicator { min-width: 72px; padding: 4px; font-size: 7px; }
+  .footer-note { display: none; }
+
+  .target-frame { top: 56px; width: min(330px, calc(100% - 20px)); }
+  .dialogue-panel { right: 6px; bottom: 6px; left: 6px; min-height: 0; grid-template-columns: 88px 1fr; }
+  .dialogue-panel__content { padding: 12px; }
+  .dialogue-body p { font-size: 12px; }
+  .soul-imprint-panel { inset: 6px; padding: 13px; }
+  .imprint-ledger { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
+  .creation-shell { display: block; min-height: 100dvh; overflow: auto; }
+  .creation-rail { min-height: auto; padding: 16px; border-right: 0; border-bottom: 1px solid rgba(197, 141, 71, 0.45); }
+  .creation-rail blockquote,
+  .creation-progress,
+  .creation-rail__footer { display: none; }
+  .creation-main { min-height: calc(100dvh - 86px); padding: 18px 14px; }
+  .choice-grid--races,
+  .choice-grid--callings { grid-template-columns: 1fr; }
 }

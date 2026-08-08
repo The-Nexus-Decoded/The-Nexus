@@ -31,12 +31,15 @@ for (const tile of tiles) {
 
 const objects: WorldObjectDefinition[] = [
   { id: "well", kind: "soul-well", name: "Soul Well", x: 3, y: 7, blocksMovement: true },
-  { id: "chamber-chest", kind: "chest", name: "Runebound Coffer", x: 5, y: 5, blocksMovement: true },
+  { id: "ilyra", kind: "npc", name: "Wellkeeper Ilyra", x: 2, y: 9, blocksMovement: true },
+  { id: "chamber-chest", kind: "chest", name: "Wayfarer's Coffer", x: 5, y: 5, blocksMovement: true },
   { id: "torch-west", kind: "torch", name: "Memory Brazier", x: 1, y: 5, blocksMovement: false },
   { id: "torch-east", kind: "torch", name: "Memory Brazier", x: 6, y: 9, blocksMovement: false },
   { id: "corridor-pillar-a", kind: "pillar", name: "Fractured Pillar", x: 8, y: 6, blocksMovement: true },
+  { id: "orren", kind: "npc", name: "Breach Scout Orren", x: 9, y: 8, blocksMovement: true },
   { id: "corridor-pillar-b", kind: "pillar", name: "Fractured Pillar", x: 10, y: 8, blocksMovement: true },
   { id: "threshold", kind: "threshold", name: "Arena Threshold", x: 11, y: 7, blocksMovement: false },
+  { id: "brannoc", kind: "npc", name: "Arena Warden Brannoc", x: 11, y: 6, blocksMovement: true },
   { id: "dummy-a", kind: "dummy", name: "Guard Dummy", x: 14, y: 4, blocksMovement: true },
   { id: "dummy-b", kind: "dummy", name: "Channel Dummy", x: 16, y: 4, blocksMovement: true },
   { id: "dummy-c", kind: "dummy", name: "Execution Dummy", x: 17, y: 10, blocksMovement: true },

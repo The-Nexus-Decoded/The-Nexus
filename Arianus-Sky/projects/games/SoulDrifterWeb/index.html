@@ -10,7 +10,30 @@
     <title>SoulDrifter — The First Breach</title>
   </head>
   <body>
-    <div class="app-shell">
+    <section id="character-creation" class="creation-shell" aria-label="SoulDrifter character creation">
+      <div class="creation-atmosphere" aria-hidden="true"></div>
+      <aside class="creation-rail">
+        <div class="creation-brand">
+          <span class="creation-brand__seal">◇</span>
+          <div>
+            <p class="eyebrow">SoulDrifter</p>
+            <strong>The Weaving</strong>
+          </div>
+        </div>
+        <blockquote>“The Well does not decide who you were. It reveals what your answers have made.”</blockquote>
+        <ol id="creation-progress" class="creation-progress"></ol>
+        <div class="creation-rail__footer">
+          <span>Realm pressure</span>
+          <strong>UNFORMED</strong>
+        </div>
+      </aside>
+      <main class="creation-main">
+        <div id="creation-stage" class="creation-stage"></div>
+        <p id="creation-error" class="creation-error" role="alert"></p>
+      </main>
+    </section>
+
+    <div id="app-shell" class="app-shell" hidden>
       <header class="topbar">
         <div class="brand-lockup">
           <span class="brand-rune" aria-hidden="true">◇</span>
@@ -19,10 +42,10 @@
             <h1>SoulDrifter</h1>
           </div>
         </div>
-        <div class="realm-state">
+        <div class="realm-state" data-mechanic tabindex="0" data-mechanic-help="Realm Pressure measures how violently the current realm resists stable reality. Stable areas impose no penalty; higher pressure slows Stability recovery and intensifies enemies and realm hazards.">
           <span class="realm-state__label">Realm pressure</span>
           <div class="pressure-track" aria-label="Realm pressure: stable">
-            <span></span>
+            <span id="pressure-fill"></span>
           </div>
           <strong id="realm-pressure">STABLE</strong>
         </div>
@@ -31,26 +54,32 @@
       <main class="play-layout">
         <aside class="panel party-panel" aria-label="Party status">
           <div class="portrait" aria-hidden="true">
-            <span class="portrait__rune">ᚱ</span>
+            <img id="portrait-image" class="portrait__image" alt="" />
+            <span id="portrait-rune" class="portrait__rune">ᚱ</span>
           </div>
           <p class="eyebrow">Soul imprint 01</p>
-          <h2>Kael</h2>
-          <p class="class-name">Arianus Rune Warrior</p>
+          <h2 id="character-name">Unformed</h2>
+          <p class="class-name"><span id="race-name">Unknown</span> <span id="calling-name">Drifter</span></p>
 
           <dl class="vitals">
-            <div>
+            <div data-mechanic tabindex="0" data-mechanic-help="Vitality is physical life. At zero, the current body collapses and the crawl is lost unless another system prevents defeat.">
               <dt>Vitality</dt>
-              <dd><span id="hp-value">32</span> / 32</dd>
+              <dd><span id="hp-value">0</span> / <span id="hp-max">0</span></dd>
             </div>
-            <div>
-              <dt>Rune stability</dt>
+            <div data-mechanic tabindex="0" data-mechanic-help="Stability is the finite control pool used by mortal magic and supernatural class skills. It recovers slowly outside combat and faster through Soulwells, recovery skills and consumables.">
+              <dt>Soul stability</dt>
               <dd><span id="stability-value">100</span>%</dd>
             </div>
-            <div>
-              <dt>Fury</dt>
+            <div id="resource-stat" data-mechanic tabindex="0" data-mechanic-help="Class resources are generated and spent differently by each calling.">
+              <dt id="resource-label">Resource</dt>
               <dd><span id="fury-value">0</span></dd>
             </div>
           </dl>
+
+          <div class="skill-block">
+            <div class="section-heading"><h3>Soul imprints</h3></div>
+            <ul id="skill-list" class="skill-list"></ul>
+          </div>
 
           <div class="inventory-block">
             <div class="section-heading">
@@ -65,8 +94,62 @@
 
         <section class="game-column" aria-label="SoulDrifter game">
           <div class="viewport-frame">
-            <div id="game" aria-label="Isometric game viewport"></div>
+            <div id="game" aria-label="Rendered 3D dungeon viewport"></div>
             <div class="viewport-vignette" aria-hidden="true"></div>
+            <div class="zone-banner" aria-live="polite">
+              <span id="zone-kicker">Soulwell depth I</span>
+              <strong id="zone-name">Soulwell Training Hall</strong>
+            </div>
+            <div class="run-seed" data-mechanic tabindex="0" data-mechanic-help="The run seed reproduces the same dungeon layout, encounters and seeded environmental variations for testing or sharing.">
+              Run <span id="run-seed">--------</span>
+            </div>
+            <nav class="camera-controls" aria-label="Camera controls">
+              <button type="button" data-camera-control="rotate-left" aria-label="Rotate camera left" title="Rotate left (Q)">↺</button>
+              <button type="button" data-camera-control="zoom-out" aria-label="Zoom camera out" title="Zoom out">−</button>
+              <button type="button" data-camera-control="zoom-in" aria-label="Zoom camera in" title="Zoom in">+</button>
+              <button type="button" data-camera-control="rotate-right" aria-label="Rotate camera right" title="Rotate right (E)">↻</button>
+            </nav>
+            <section id="imprint-panel" class="soul-imprint-panel" role="dialog" aria-modal="true" aria-labelledby="imprint-title" hidden>
+              <header class="soul-imprint-panel__header">
+                <div>
+                  <p class="eyebrow">Ilyra's reweaving</p>
+                  <h2 id="imprint-title">Seal Your Starter Imprint</h2>
+                  <p>Distribute three final points, then choose one ancestry boon and one base-calling discipline. Your ancestry and calling themselves are already woven.</p>
+                </div>
+                <button id="imprint-close" class="imprint-close" type="button" aria-label="Close Soul Imprint">×</button>
+              </header>
+              <div class="imprint-ledger">
+                <div class="imprint-section">
+                  <div class="section-heading"><h3>Final stat threads</h3><span id="imprint-points">3 points remain</span></div>
+                  <div id="imprint-stat-grid" class="imprint-stat-grid"></div>
+                </div>
+                <div class="imprint-section">
+                  <div class="section-heading"><h3 id="imprint-race-title">Ancestry boon</h3><span>Choose one</span></div>
+                  <div id="imprint-race-options" class="imprint-option-grid"></div>
+                </div>
+                <div class="imprint-section">
+                  <div class="section-heading"><h3 id="imprint-calling-title">Base-calling discipline</h3><span>Choose one</span></div>
+                  <div id="imprint-calling-options" class="imprint-option-grid"></div>
+                </div>
+              </div>
+              <footer class="imprint-actions">
+                <p id="imprint-error" role="alert"></p>
+                <button id="imprint-confirm" type="button" disabled>Seal the imprint</button>
+              </footer>
+            </section>
+            <div id="target-frame" class="target-frame" hidden>
+              <div><strong id="target-name">Breachling</strong><span id="target-level">Level 1</span></div>
+              <div class="target-health"><span id="target-health-fill"></span><b id="target-health-text">0 / 0</b></div>
+            </div>
+            <section id="dialogue-panel" class="dialogue-panel" aria-label="Conversation" hidden>
+              <img id="dialogue-portrait" alt="" />
+              <div class="dialogue-panel__content">
+                <p id="dialogue-role" class="eyebrow">Guide</p>
+                <h2 id="dialogue-speaker">Speaker</h2>
+                <div id="dialogue-body" class="dialogue-body"></div>
+                <div id="dialogue-choices" class="dialogue-choices"></div>
+              </div>
+            </section>
             <div id="reaction-prompt" class="reaction-prompt" hidden>
               <span class="reaction-prompt__key">SPACE</span>
               <div>
@@ -78,14 +161,15 @@
           </div>
 
           <div id="combat-controls" class="combat-controls" hidden>
-            <button type="button" data-action="move"><span>M</span>Move</button>
-            <button type="button" data-action="rune-slash"><span>1</span>Rune Slash</button>
-            <button type="button" data-action="guard"><span>2</span>Anchor Guard</button>
-            <button type="button" data-action="wait"><span>3</span>Wait</button>
+            <button type="button" data-action="move" data-mechanic data-mechanic-help="Move selects a reachable floor position. Collision, creatures, NPCs and large props block routes."><span class="action-hotkey">M</span><span class="utility-icon">➜</span><b>Move</b><small>Reposition</small></button>
+            <button id="basic-action" type="button" data-action="basic" data-mechanic><span class="action-hotkey">1</span><img src="/assets/generated/action-icons/basic-weapon-strike.svg" alt="" /><b>Weapon Strike</b><small>Free basic attack</small></button>
+            <button id="signature-action" type="button" data-action="signature" data-mechanic><span class="action-hotkey">2</span><img id="signature-icon" alt="" /><b>Signature</b><small>Starter power</small></button>
+            <button id="defense-action" type="button" data-action="guard" data-mechanic><span class="action-hotkey">3</span><img id="defense-icon" alt="" /><b>Guard</b><small>Active defense</small></button>
+            <button id="recover-action" type="button" data-action="wait" data-mechanic><span class="action-hotkey">4</span><span class="utility-icon">✦</span><b>Recover</b><small>Health + stability</small></button>
           </div>
 
           <div class="message-strip" role="status" aria-live="polite">
-            <span id="mode-indicator" class="mode-indicator">EXPLORATION</span>
+            <span id="mode-indicator" class="mode-indicator" data-mechanic tabindex="0" data-mechanic-help="The mode indicator shows whether the game is exploring, accepting tactical orders, resolving actions, running real-time combat, or displaying victory/defeat.">EXPLORATION</span>
             <p id="message-text">Click a floor tile to move. Click nearby objects to inspect them.</p>
           </div>
         </section>
@@ -99,20 +183,40 @@
 
           <div class="divider-rune" aria-hidden="true">◇ ── ◇</div>
 
+          <section id="tutorial-card" class="tutorial-card" aria-live="polite">
+            <div class="tutorial-card__step"><span>Dungeon guide</span><strong id="tutorial-step">01 / 09</strong></div>
+            <h3 id="tutorial-title">Find your footing</h3>
+            <p id="tutorial-text">Click a nearby floor area to move your newly woven character.</p>
+          </section>
+
+            <section class="dungeon-route" aria-label="Dungeon progress" data-mechanic tabindex="0" data-mechanic-help="Fog of war hides unvisited rooms, enemies and interactables. Entering a connected area reveals it permanently for the current crawl.">
+            <div class="section-heading"><h3>Soulwell descent</h3><span>Fog of war</span></div>
+            <ol>
+              <li id="route-training" class="is-current"><span>01</span><strong>Training Hall</strong><small>Revealed</small></li>
+              <li id="route-skirmish" class="is-hidden"><span>02</span><strong>Unknown Wing</strong><small>Unexplored</small></li>
+              <li id="route-boss" class="is-hidden"><span>03</span><strong>Sealed Depth</strong><small>Unexplored</small></li>
+            </ol>
+          </section>
+
           <div class="controls-card">
             <h3>Controls</h3>
             <label class="combat-style-label" for="combat-style">Combat style</label>
-            <select id="combat-style" class="combat-style-select">
+            <select id="combat-style" class="combat-style-select" data-mechanic data-mechanic-help="Tactical Turns pauses for orders and resolves one round at a time. Real-Time Action Bar keeps enemies acting while your abilities recover on cooldown.">
+              <option value="real-time" selected>Real-time action bar</option>
               <option value="turn-based">Tactical turns</option>
-              <option value="real-time">Real-time action bar</option>
             </select>
             <dl>
-              <div><dt>Move / inspect</dt><dd>Left click</dd></div>
-              <div><dt>Camera</dt><dd>Drag / wheel</dd></div>
+              <div><dt>Move / inspect</dt><dd>Click or WASD</dd></div>
+              <div><dt>Camera</dt><dd>Q / E · wheel · corner controls</dd></div>
               <div><dt>Reaction</dt><dd>Space</dd></div>
               <div><dt>Combat speed</dt><dd id="speed-value">1×</dd></div>
             </dl>
+            <div class="interaction-legend" aria-label="World marker legend">
+              <span><i class="interaction-legend__quest"></i>Interact / talk</span>
+              <span><i class="interaction-legend__breakable"></i>Breakable prop</span>
+            </div>
             <button id="speed-toggle" class="quiet-button" type="button">Toggle combat speed</button>
+            <button id="voice-toggle" class="quiet-button" type="button" aria-pressed="true">Voice-over: on</button>
           </div>
 
           <div class="event-log-block">
@@ -126,10 +230,12 @@
 
       <footer class="footer-note">
         <span>Original prototype art • No Ultima assets included</span>
-        <span id="build-label">Browser vertical slice 0.1</span>
+        <span id="build-label">3D Soulwell crawl 0.2</span>
       </footer>
     </div>
 
+    <div id="mechanic-tooltip" class="mechanic-tooltip" role="tooltip" hidden></div>
     <script type="module" src="/src/main.ts"></script>
+    <input id="debug-command" class="debug-command" aria-label="SoulDrifter debug command" tabindex="-1" autocomplete="off" />
   </body>
 </html>

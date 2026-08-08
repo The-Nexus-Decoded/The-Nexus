@@ -1,0 +1,575 @@
+{
+  "status": "built_and_exported",
+  "blender_version": "5.2.0 LTS",
+  "reference": {
+    "path": "H:\\Projects\\AI_Tools_And_Information\\The-Nexus-souldrifter-browser\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\public\\assets\\generated\\characters\\elf-shadowknight.png",
+    "sha256": "949CFF6680AF6AEA2E6C6D608E645370C24CB5A2099B8656E6E0F5A0522A578A"
+  },
+  "sources": [
+    {
+      "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\modular-character-outfits-fantasy-standard\\Modular Character Outfits - Fantasy[Standard]\\Exports\\glTF (Godot-Unreal)\\Outfits\\Male_Ranger.gltf",
+      "license": "CC0-1.0",
+      "publisher": "Quaternius",
+      "pack": "Modular Character Outfits - Fantasy Standard",
+      "role": "65-bone deformation rig and Ranger underlayer"
+    }
+  ],
+  "design_contract": {
+    "level_one_gear": true,
+    "adult_proportions": true,
+    "long_silver_hair": true,
+    "pointed_ears": true,
+    "pale_ashen_face": true,
+    "full_armor_set": false,
+    "visible_armor_pieces": 0,
+    "worn_leather_and_cloth": true,
+    "basic_unenchanted_longsword": true,
+    "runes": false,
+    "root_motion": "in_place"
+  },
+  "rig": {
+    "name": "ElfShadowknight_Armature",
+    "bone_count": 65,
+    "bone_names": [
+      "root",
+      "pelvis",
+      "spine_01",
+      "spine_02",
+      "spine_03",
+      "neck_01",
+      "Head",
+      "clavicle_l",
+      "upperarm_l",
+      "lowerarm_l",
+      "hand_l",
+      "index_01_l",
+      "index_02_l",
+      "index_03_l",
+      "index_04_leaf_l",
+      "middle_01_l",
+      "middle_02_l",
+      "middle_03_l",
+      "middle_04_leaf_l",
+      "pinky_01_l",
+      "pinky_02_l",
+      "pinky_03_l",
+      "pinky_04_leaf_l",
+      "ring_01_l",
+      "ring_02_l",
+      "ring_03_l",
+      "ring_04_leaf_l",
+      "thumb_01_l",
+      "thumb_02_l",
+      "thumb_03_l",
+      "thumb_04_leaf_l",
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r",
+      "index_04_leaf_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r",
+      "middle_04_leaf_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r",
+      "pinky_04_leaf_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r",
+      "ring_04_leaf_r",
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r",
+      "thumb_04_leaf_r",
+      "thigh_l",
+      "calf_l",
+      "foot_l",
+      "ball_l",
+      "ball_leaf_l",
+      "thigh_r",
+      "calf_r",
+      "foot_r",
+      "ball_r",
+      "ball_leaf_r"
+    ]
+  },
+  "geometry": {
+    "mesh_count": 31,
+    "triangles": 23866,
+    "bounds_meters": {
+      "min": [
+        -0.84491,
+        -0.35863,
+        -0.00397
+      ],
+      "max": [
+        0.55942,
+        0.20595,
+        1.87229
+      ]
+    },
+    "meshes": [
+      {
+        "name": "Male_Ranger_Arms",
+        "triangles": 4928,
+        "materials": [
+          "SK_faded_charcoal_cloth",
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "Male_Ranger_Body",
+        "triangles": 2998,
+        "materials": [
+          "SK_faded_charcoal_cloth"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "Male_Ranger_Body_Belt_1",
+        "triangles": 804,
+        "materials": [
+          "SK_cracked_brown_leather"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "Male_Ranger_Body_Belt_2",
+        "triangles": 804,
+        "materials": [
+          "SK_cracked_brown_leather"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "Male_Ranger_Feet_Boots",
+        "triangles": 9172,
+        "materials": [
+          "SK_cracked_brown_leather"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "Male_Ranger_Legs",
+        "triangles": 1128,
+        "materials": [
+          "SK_faded_charcoal_cloth"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "OBJECT",
+        "parent_bone": null,
+        "armature_modifiers": [
+          "ElfShadowknight_Armature"
+        ]
+      },
+      {
+        "name": "SK_ElfHead",
+        "triangles": 952,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_NarrowJaw",
+        "triangles": 108,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_AquilineNose",
+        "triangles": 108,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_PointEar_R",
+        "triangles": 110,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_DeepEyeSocket_R",
+        "triangles": 288,
+        "materials": [
+          "SK_eye_socket"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_EmberEye_R",
+        "triangles": 168,
+        "materials": [
+          "SK_faint_involuntary_ember"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_HardBrow_R",
+        "triangles": 108,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_PointEar_L",
+        "triangles": 110,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_DeepEyeSocket_L",
+        "triangles": 288,
+        "materials": [
+          "SK_eye_socket"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_EmberEye_L",
+        "triangles": 168,
+        "materials": [
+          "SK_faint_involuntary_ember"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_HardBrow_L",
+        "triangles": 108,
+        "materials": [
+          "SK_ashen_skin"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_01",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_02",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_03",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_04",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_05",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_06",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_SilverHairClump_07",
+        "triangles": 96,
+        "materials": [
+          "SK_tarnished_silver_hair"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "Head",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_WornChestStrap",
+        "triangles": 108,
+        "materials": [
+          "SK_cracked_brown_leather"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "spine_03",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_TornTunicStrip_L",
+        "triangles": 108,
+        "materials": [
+          "SK_faded_charcoal_cloth"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "pelvis",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_TornTunicStrip_R",
+        "triangles": 108,
+        "materials": [
+          "SK_faded_charcoal_cloth"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "pelvis",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_StarterLongsword_Blade",
+        "triangles": 104,
+        "materials": [
+          "SK_scavenged_dull_iron"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "hand_r",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_StarterLongsword_Guard",
+        "triangles": 108,
+        "materials": [
+          "SK_scavenged_dull_iron"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "hand_r",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_StarterLongsword_Grip",
+        "triangles": 140,
+        "materials": [
+          "SK_dirty_leather_wraps"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "hand_r",
+        "armature_modifiers": []
+      },
+      {
+        "name": "SK_StarterLongsword_Pommel",
+        "triangles": 168,
+        "materials": [
+          "SK_scavenged_dull_iron"
+        ],
+        "parent": "ElfShadowknight_Armature",
+        "parent_type": "BONE",
+        "parent_bone": "hand_r",
+        "armature_modifiers": []
+      }
+    ]
+  },
+  "animations": [
+    {
+      "name": "Idle",
+      "frame_start": 1,
+      "frame_end": 60,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Walk",
+      "frame_start": 1,
+      "frame_end": 33,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Run",
+      "frame_start": 1,
+      "frame_end": 25,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "SwordSlash",
+      "frame_start": 1,
+      "frame_end": 28,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "SiphonCleave",
+      "frame_start": 1,
+      "frame_end": 36,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "CinderGuard",
+      "frame_start": 1,
+      "frame_end": 32,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Cast",
+      "frame_start": 1,
+      "frame_end": 40,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Shoot_OneHanded",
+      "frame_start": 1,
+      "frame_end": 40,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "RecieveHit",
+      "frame_start": 1,
+      "frame_end": 20,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Death",
+      "frame_start": 1,
+      "frame_end": 52,
+      "fps": 24,
+      "root_motion": "in_place"
+    },
+    {
+      "name": "Victory",
+      "frame_start": 1,
+      "frame_end": 56,
+      "fps": 24,
+      "root_motion": "in_place"
+    }
+  ],
+  "outputs": {
+    "blend": {
+      "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-source.blend",
+      "bytes": 39751817,
+      "sha256": "E5E70F9C9134E7F990EC0310537313BB5D318F7AC88D8B7343FFDCAC345F45A5"
+    },
+    "glb": {
+      "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight.glb",
+      "bytes": 2116836,
+      "sha256": "9BC29DF68D1419F575F8F39AC90E508717E56038E7B904E0AAF19F36E14A6C14"
+    },
+    "preview_front": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-preview-front.png",
+    "preview_rear": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-preview-rear.png"
+  },
+  "notes": [
+    "Stock hood removed; authored hair and ears own the silhouette.",
+    "Stock pauldrons and armored bracers were removed; the Ranger base is regraded as faded travel clothing.",
+    "There are no chest plates, pauldrons, armored bracers, collars, greaves, or metal-capped tassets.",
+    "Class identity comes from a basic dull-iron longsword with no enchanted inset.",
+    "Custom starter details are bone-parented; stock garments remain skinned to the original 65-bone armature.",
+    "The starter sword stays close to the body and does not distort runtime character-height normalization.",
+    "All animation roots remain at origin; horizontal root motion is intentionally absent."
+  ]
+}

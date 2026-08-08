@@ -18,15 +18,15 @@ SoulDrifter owns the setting and game rules:
 - Soul Resonance, Soul Essence, runes, sigils, glyphs, and color-aligned magic
 - the existing SoulDrifter realms, classes, factions, lore, characters, and quests
 - object interaction, systemic environments, exploration, dialogue, and party play
-- player-selectable tactical turns or real-time action-bar combat
+- real-time action-bar combat by default, with player-selectable tactical turns
 
 ## Visual direction
 
-- Fixed elevated isometric camera with a dense, handcrafted tile world.
-- High-resolution painterly sprites and modular environment pieces, with strong silhouettes and more animation than the historical references.
+- Elevated orthographic three-quarter camera with close zoom, limited rotation, and a dense tile-authored 3D world.
+- Fully modeled real-time 3D characters, equipment, creatures, architecture, and modular environment pieces, with strong silhouettes and richer animation than the historical references.
 - Aged obsidian, dark iron, parchment, and restrained bronze frame the interface; soul-cyan and magic colors communicate supernatural state.
 - Modern lighting, particles, weather, ambient animation, screen-space highlights, and responsive sound add richness without sacrificing tile readability.
-- Characters use eight-direction movement and readable combat poses. Production sprites may be drawn directly or rendered from original Blender models into sprite frames.
+- Characters use skeletal eight-direction-compatible locomotion, grounded feet, auto-facing, readable combat poses, and equipment-reflective model layers. Blender/glTF remains the production interchange.
 - Every final environment, character, icon, effect, animation, and sound is original or explicitly licensed for this project.
 
 ## Magic is SoulDrifter magic
@@ -41,7 +41,7 @@ SoulDrifter abilities are assembled and learned through its own systems:
 - **Soul Resonance** governs attunement, risk, and access to deeper effects.
 - **Soul Essence** supports recovery, crafting, awakening, and selected progression costs.
 
-The first playable uses Rune Slash and Anchor Guard as small demonstrations. They are not UO spells and consume cooldown, focus, or action resources—not reagents.
+The first playable implements all nine calling signatures and defenses as small demonstrations. They are not UO spells and consume cooldown, focus, or action resources—not reagents.
 
 ## Dual combat contract
 
@@ -56,6 +56,7 @@ The player can choose a combat style without changing the world, story, characte
 
 ### Real-Time Action Bar
 
+- This is the default combat style.
 - Movement remains direct and enemies act continuously.
 - The same abilities appear on a cooldown-driven action bar.
 - Position, facing, range, interruption, and active defense matter.
@@ -69,15 +70,17 @@ Both modes use the same combatants, stats, ability definitions, damage rules, st
 
 The vertical slice begins in a ruined Soul Well complex:
 
-1. Awaken beside a damaged Soul Well.
-2. Learn click-to-move and inspect the environment.
-3. Open the Runebound Coffer and recover a starter sigil.
-4. Pass through a torch-lit hall into a sealed training arena.
-5. Choose Tactical Turns or Real-Time Action Bar.
-6. Defeat the Hollow Sentinel using Rune Slash, Anchor Guard, movement, and active block.
-7. Release the captive Soul Essence to complete the slice.
+1. Weave a named character from four ancestries, nine callings, and four remembered choices.
+2. Awaken in the enlarged Realm-Lock Vestibule beside a damaged, animated Soul Well.
+3. Hear ancestry/calling-specific lore from Wellkeeper Ilyra, then use the Memory Loom to place three final stat points, choose one ancestry boon, and choose one base-calling discipline.
+4. Open the Wayfarer's Coffer for battered C-tier gear and rehearse the illustrated signature, defense, and recovery actions on the training effigy.
+5. Choose the Wayfarer or Oathbreaker door after finishing Ilyra's questions, starter imprint, and coffer. Both voiced choices enter the same seeded three-to-five-chamber Fractured Galleries crawl and Ashen Lock miniboss room; the door changes encounter composition, Realm Pressure, and rewards.
+6. Learn the two combat schedulers from Breach Scout Orren and the level-one combat contract from Arena Warden Brannoc before crossing the encounter threshold.
+7. Defeat three standard Breachlings or five Oathbreaker variants, manage finite health/Stability/recovery resources, break the Cinderbound Warden, and claim the First Memory plus the selected trial reward.
 
-The level proves the camera, navigation, object interactions, inventory feedback, environmental effects, shared combat simulation, two schedulers, and SoulDrifter magic identity. It intentionally uses procedural original placeholder art until production sprites are approved.
+The level proves the camera, navigation, destructible/marked object interactions, inventory feedback, fog, environmental effects, shared combat simulation, two schedulers, SoulDrifter magic identity, branching NPC dialogue, starter character refinement, two difficulty presets on one randomized crawl, tutorial checkpoints, and local story persistence. The current Realm-Lock environment, 36 starter portraits, custom Elf Shadowknight model, three guides, Breachlings, and Warden are original prototype assets. Production-quality mocap retargeting and complete equipment layers remain separate work.
+
+Character, gear, dialogue, and persistence details are specified in `CHARACTER_AND_STORY_SYSTEM.md`.
 
 ## Multiplayer direction
 

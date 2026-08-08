@@ -6,12 +6,12 @@ SoulDrifter Web is an original browser RPG with the visual composition and world
 
 ## Browser Stack
 
-- Phaser 3.90 for WebGL/Canvas rendering, input, sound, tweens, and scene lifecycle
+- Three.js 0.185 for WebGL rendering, PBR materials, skeletal animation, ray picking, fog, lighting, effects, and scene lifecycle
 - TypeScript for game code and data contracts
 - Vite for local development and static production builds
-- Vitest for deterministic engine tests
-- Tiled for authored maps after the procedural first-level proof
-- Aseprite and optional Blender renders for production sprite sheets
+- Vitest for deterministic character, equipment, action, tutorial, and dungeon-generation tests
+- Blender/glTF for original characters, equipment, creatures, props, and animation interchange
+- HTML/CSS for accessible dialogue, character creation, tutorial, action-bar, and responsive phone UI
 
 ## Exult-Inspired Patterns Reimplemented for SoulDrifter
 
@@ -32,12 +32,12 @@ The first level uses a procedural data definition to prove the runtime before ad
 
 Core layers:
 
-1. isometric projection and picking
+1. orthographic three-quarter camera, ray picking, zoom, and limited rotation
 2. tile occupancy and pathfinding
 3. world objects and interactions
 4. actor visuals and animation
 5. exploration/combat state machine
-6. turn resolution and reactions
+6. shared combat simulation with real-time pulse and tactical-turn schedulers
 7. quest state and inventory
 8. UI bridge
 
@@ -53,14 +53,22 @@ Multiplayer is not required for the first level, but the client must avoid ownin
 
 ## Rendering Direction
 
-The production target is high-resolution, painterly isometric sprites with modern effects:
+The production target is an original real-time 3D isometric world with the density and object readability of classic immersive RPGs:
 
-- 2:1 isometric ground diamonds
-- eight-direction characters and creatures
-- layered equipment and paperdoll art
-- height/lift support for walls, roofs, bridges, and flying objects
-- dynamic tint, shadow, fog, weather, particles, and realm effects
-- readable silhouettes at gameplay scale
-- optional normal/depth maps for advanced lighting after the art pipeline is stable
+- orthographic three-quarter camera over a tile-authored navigation grid
+- fully modeled characters, creatures, clothing, equipment, architecture, and props
+- glTF skeletal animation with grounded feet, crossfades, auto-facing, and in-place locomotion synchronized to tile travel
+- PBR masonry and flagstones, height-aware occlusion, real shadows, fog, animated lights, particles, and realm effects
+- class/equipment silhouettes that remain readable at default zoom, with close inspection available
+- equipment data independent from the model so later visual layers can reflect every equipped item
 
-The prototype uses original vector-generated art so mechanics can be evaluated immediately.
+The first slice ships an original Elf Shadowknight GLB and original/CC0-derived environment materials. Motion-capture clips may be retargeted to the shared humanoid skeleton, but character proportions, starter gear, timing, contacts, and class-specific attack choreography remain SoulDrifter-authored.
+
+## Combat Scheduling Invariant
+
+Both combat styles read and write one authoritative encounter state: actor grid positions, hit points, Stability, class resource, cooldowns, targets, inventory, trial difficulty, and rewards.
+
+- Real-time is the default. Cooldown-ready player actions may resolve continuously while enemies advance on paced pulses. All active enemies can pursue, but only one adjacent standard enemy strikes per pulse.
+- Tactical Turns pauses hostile scheduling during orders and resolves the enemy round only after a committed player action.
+- Combat-style selection updates the world state immediately and is locked only while an encounter is active.
+- Invalid or out-of-range rehearsal animations never spend resources or deal damage.

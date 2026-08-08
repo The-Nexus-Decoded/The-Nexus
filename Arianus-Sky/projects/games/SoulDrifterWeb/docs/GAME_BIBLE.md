@@ -14,12 +14,13 @@ Default build interpretation:
 - real-time low-poly 3D world, characters, equipment, creatures, and effects
 - square-tile maps
 - free real-time exploration on tile-authored maps
-- animated turn-based tactical combat with initiative
-- short real-time reaction inputs during otherwise turn-based actions
+- real-time action-bar combat by default
+- optional tactical turns using the same actors, abilities, resources, and encounter state
+- short reaction inputs for readable blocks, counters, and boss telegraphs
 - party-based play
 - single-player first, with co-op left as a later option
 
-Combat direction is locked: exploration is real time, combat is turn based, and every selected action plays as a complete real-time 3D animation. Timed block, dodge, counter, aim, or stabilization inputs add involvement without turning party control into real-time micromanagement.
+Combat direction is locked: exploration is real time and combat defaults to a real-time action bar. Players may switch to Tactical Turns before an encounter; both schedulers operate on the same simulation and rewards. Every action plays as a complete 3D animation, and valid melee actions automatically face the target. Timed block, dodge, counter, aim, or stabilization inputs add involvement without replacing character statistics.
 
 ## Source Provenance
 
@@ -55,7 +56,7 @@ Preserve throughout implementation:
 - secondary professions, Zone 1, training characters, enemy concepts, quests, bosses, factions, progression, and hub systems
 - African-influenced visual culture and the originality/IP boundaries
 
-Only the delivery format is changed: classic isometric low-poly 3D, real-time exploration, and animated turn-based combat with real-time reaction inputs.
+Only the delivery format is changed: classic isometric low-poly 3D, real-time exploration, and animated hybrid combat with real-time and tactical scheduling options.
 
 ## High Concept
 
@@ -97,8 +98,8 @@ The player should be able to:
 6. **Original shipping identity**  
    Death Gate influence is structural inspiration only. Do not ship exact book names, characters, factions, rune diagrams, machines, or plot beats.
 
-7. **Animated tactics instead of static chess pieces**  
-   Combat decisions happen in turns, but characters remain alive through combat idles, facing, movement, reactions, weapon handling, spell channels, impacts, and environmental response.
+7. **Animated combat instead of static chess pieces**
+   Characters remain alive through grounded locomotion, combat idles, auto-facing, reactions, weapon handling, spell channels, impacts, and environmental response in either scheduler.
 
 ## Core Gameplay Loop
 
@@ -106,8 +107,8 @@ The player should be able to:
 2. Select a realm breach, story route, contract, or expedition.
 3. Build a four-character party and equip gear, runes, formulas, pet commands, vows, and consumables.
 4. Explore freely in real time, uncover fog, speak to survivors, collect lore, solve realm-law puzzles, and find optional paths.
-5. Enter animated turn-based combat seamlessly on the same map when enemies engage or a scripted encounter begins.
-6. Choose actions through initiative turns, then watch them resolve as real-time 3D movement, attacks, spells, reactions, and impacts.
+5. Enter combat seamlessly on the same map when enemies engage or a scripted encounter begins.
+6. Fight through the default real-time action bar or preselect Tactical Turns; both resolve the same movement, attacks, spells, reactions, and impacts.
 7. Manipulate tiles, elevation, line of sight, hazards, and enemy positioning.
 8. Recover Soul Essence, realm materials, memories, class imprints, and equipment.
 9. Decide which systems, settlements, factions, or realm conduits to stabilize.
@@ -129,17 +130,18 @@ The player should be able to:
 
 ### Combat State Model
 
-Combat uses three states:
+Combat uses three shared runtime states:
 
 1. `exploration`: the party and world move in real time.
-2. `orders`: combat time is stopped while the active unit selects movement, target, ability, item, stance, or command.
-3. `resolution`: the chosen action animates in real time while reaction opportunities may appear.
+2. `orders`: Tactical Turns pauses hostile scheduling while the active unit selects movement, target, ability, item, stance, or command.
+3. `resolution`: actions animate and hostile real-time pulses are scheduled while reaction opportunities may appear.
 
 State transitions:
 
-- Enemy detection, a hostile action, a trap, or a scripted encounter moves the game from `exploration` to `orders`.
+- Enemy detection, a hostile action, a trap, or a scripted encounter starts the selected combat scheduler.
 - All participants retain their visible world positions, then receive logical grid occupancy and initiative.
-- A unit completes `orders -> resolution`, then the next valid unit enters `orders`.
+- In Tactical Turns, a unit completes `orders -> resolution`, then the next valid unit enters `orders`.
+- In real time, cooldown-ready player actions and paced enemy pursuit pulses alternate without changing encounter data.
 - Victory, retreat, surrender, negotiation, or enemy disengagement returns the same map to `exploration`.
 - There is no separate random battle screen and no loading transition for normal encounters.
 
@@ -152,6 +154,15 @@ State transitions:
 - A player may preview path, facing, cover, line of sight, affected tiles, estimated outcome, and potential reactions before confirming.
 - After confirmation, the action resolves through an uninterrupted real-time animation sequence.
 - Reactions include active block, dodge, parry/counter, intercept, opportunity strike, pet intercept, ward response, counterspell, aim timing, and rune stabilization.
+
+### Real-Time Action Bar
+
+- Real-time is the default level-one combat style.
+- Enemies autonomously path toward the player, auto-face, and attack on a paced pulse.
+- A group may advance together, but only one adjacent standard creature attacks per pulse so animation locks do not create unavoidable pack burst.
+- `Weapon Strike` is a universal zero-resource basic action. Class signatures, defenses, recovery actions, and later item skills use their defined cooldowns and resources.
+- Selecting or clicking a nearby target auto-faces before contact. Out-of-range actions may still rehearse their animation but deal no damage and spend no Stability, mana, or class resource.
+- Combat style is chosen before an encounter and locked until the encounter resolves.
 
 ### Real-Time Reaction Layer
 
@@ -351,7 +362,285 @@ Final shipping names are not yet locked.
 | --- | --- | --- | --- | --- |
 | Warrior | Rune Slash | frontline, stagger, guard break | Fury + Rune Stability | anchors, impact lines, guard zones, physical rune circuits |
 | Mage | Meteor Swarm | color fields, burst, control | color channels / prepared formulas | paints and combines colored tile effects |
-| Priest | Holy Arrow…2326 tokens truncated… Specializations
+| Priest | Holy Arrow | heal, ward, cleanse, anti-dark | devotion / ward charge | safe zones, cleansed tiles, prevention lines |
+| Sharpshooter | Multishot | ranged focus, traps, pet commands | Focus + Pet Bond | marks, firing lanes, traps, companion positioning |
+| Paladin | Thor's Hammer | tank, stun, oath protection | oath charge / aura | protection auras, intercept zones, thunder impact |
+
+### Preserved Legacy Class Identities
+
+| Original Class | Starting Skill | Current Placement | Promise Preserved |
+| --- | --- | --- | --- |
+| Summoner | Summon Minion | Mage -> Blue Conjurer unless promoted | shaped or bound magical forms and battlefield control |
+| Asura | Mindburn | Mage -> Black/Asura unless promoted | mind pressure, curses, necromancy, dangerous backlash |
+| Slayer | Backstab | Warrior -> Slayer unless promoted | stealth, poison, flank, and execution |
+
+This structure keeps every original class idea while avoiding overlapping base identities.
+
+## Class Details
+
+### Warrior
+
+Fantasy:
+
+- physical fighter whose body, weapon, armor, charms, breath, and stance form one rune circuit
+- runes are mechanical, dangerous, and practical rather than decorative tattoos
+- makes direct contact with hostile realm laws
+
+Tile kit:
+
+- `Rune Slash`: cleaves a line or short arc; damages guard and activates a weapon-rune tile.
+- `Guard Split`: heavy hit that breaks armor or shield states.
+- `Anchor Step`: creates an adjacent protection zone and resists forced movement.
+- `Realm Rush`: moves through a line of tiles; rider changes by realm.
+- `Break Rhythm`: interrupts a spell, conduit, or active tile pattern.
+- `Berserker Window`: temporary overload for speed and damage at the cost of stability.
+
+Resource rules:
+
+- Fury rises from damage taken, perfect blocks, heavy hits, and hostile realm exposure.
+- Rune Stability falls when too many rune effects are chained.
+- At zero stability, active runes misfire and cause recoil or disabled gear channels.
+
+Gear:
+
+- blade-spear, heavy sword, axe-blade, impact spear, shield for defensive paths
+- medium/heavy segmented armor, wraps, leather, basalt/iron plates, asymmetric mantle
+- no generic knight plate, caster staff, firearm, or oversized anime sword
+
+### Mage
+
+Fantasy:
+
+- formula caster who creates behavior by combining disciplined color channels
+- base Mage shows all five channels without becoming rainbow noise
+
+Color grammar:
+
+| Color | Meaning | Tile Use |
+| --- | --- | --- |
+| White | light, reveal, precision, cleanse | reveal fog, cleanse corruption, precision beams |
+| Green | growth, earth, living matter | roots, cover, healing growth, terrain creation |
+| Red | war, fire, force | heat, burst, weapon ignition, armor pressure |
+| Blue | shaping, control, binding, displacement | barriers, pulls, cages, constructed forms |
+| Black | death, chaos, curses, Mindburn | corpse tiles, fear, links, backlash damage |
+
+Formula rule:
+
+- one color defines primary power
+- a second can define delivery shape
+- a third can define a rider effect
+
+Examples:
+
+- Red + Blue: burning containment ring
+- Green + Blue: root cage
+- White + Green: purification growth
+- Black + Red: burning curse
+- White + Blue: reveal-and-bind construct
+
+Gear:
+
+- prism, wand, spell disc, rings, short staff, layered wraps, channel bands
+- no heavy armor, giant melee weapon, hunter bow, or unstructured mixed effects
+
+### Priest
+
+Fantasy:
+
+- devotional White magic based on vows, care, spiritual authority, and protection
+- distinct from technical Mage White
+
+Tile kit:
+
+- `Holy Arrow`: radiant line attack with bonus pressure against corruption and undead.
+- `Ward Mend`: restores health and repairs a damaged ward tile.
+- `Clean Ground`: removes corruption, corpse pressure, or hostile glyphs.
+- `Vow of Shelter`: redirects part of an ally's incoming damage.
+- `Last Light`: prevents a fatal hit once, leaving the Priest exhausted.
+
+Gear:
+
+- ward cloth, holy bow, staff, bell, charm, or short mace
+- light/medium robes and ceremonial armor panels
+- no Paladin plate, necromantic kit, or random five-color formula gear
+
+### Sharpshooter
+
+Fantasy:
+
+- ranged hunter who controls distance, marks prey, sets traps, and fights with one persistent physical companion
+- the pet is trained and bonded, not summoned
+
+Tile kit:
+
+- `Multishot`: cone or fan attack that gains value against marked targets.
+- `Prey Mark`: exposes a weak point and shares priority information with allies.
+- `Command Pet`: harass, pin, interrupt, body-block, retrieve, or scout.
+- `Snare Trap`: creates a hidden or visible root tile.
+- `Killing Line`: high damage against staggered, rooted, isolated, or marked enemies.
+
+Companion examples:
+
+- Stalker: stealth pressure and interrupt
+- Ridgeback: pin and body-block
+- Skyhawk: scouting and mark extension
+- Ash Hound: chase and burn pressure
+
+Gear:
+
+- bow, crossbow, traps, quiver, travel armor, command whistle/token, pet harness
+- firearms only after the world's technology level is approved
+
+### Paladin
+
+Fantasy:
+
+- oath-armored protector who confronts corruption through martial action
+- not merely a Priest in heavier armor
+
+Tile kit:
+
+- `Thor's Hammer`: thunder strike on a target tile, with stun or shock spread.
+- `Oath Guard`: intercepts attacks aimed at nearby allies.
+- `Vow Field`: grants defense or condition resistance inside an aura.
+- `Cleanse Strike`: removes corruption through a weapon hit.
+- `Hold the Breach`: locks position and prevents enemies crossing adjacent tiles.
+
+Gear:
+
+- hammer, mace, shield, heavy spear, oath blade, warded plate
+- oath sigils and thunder/light channels
+- no stealth kit, necromantic focus, or generic crusader copy
+
+### Blue Conjurer / Summoner Path
+
+Fantasy:
+
+- names, shapes, binds, and maintains temporary pattern entities
+- uses command geometry rather than a physical hunter bond
+
+Resources:
+
+- Threads
+- Command Focus
+
+Rules:
+
+- maintain one powerful form or several weak forms
+- forms inherit realm modifiers
+- broken Command Focus makes forms weaken, destabilize, or become briefly hostile
+- other Mage colors can tint conjurations
+
+Examples:
+
+- durable brute form
+- ancient wyrm form
+- scouting pattern wisp
+- binding figure that holds one target
+
+### Asura / Black Path
+
+Fantasy:
+
+- forbidden mind, death, chaos, and curse magic whose power always has a visible cost
+
+Resources:
+
+- Dread
+- Instability
+
+Tile kit:
+
+- `Mindburn`: attacks focus and is strongest against casters or elites.
+- `Chaos Mark`: causes the next hostile action to misfire or splash.
+- `Black Thread`: links two enemies so pressure transfers between them.
+- `Panic Bloom`: fear and movement disruption around a tile.
+- `Backlash Bargain`: high damage in exchange for Instability.
+
+Rule:
+
+- high Instability increases power and self/friendly-fire risk
+- Priest and Paladin can stabilize the Asura without erasing the dark identity
+
+### Slayer Path
+
+Fantasy:
+
+- execution fighter who wins through positioning, stealth, poison, and priority kills
+
+Tile kit:
+
+- `Backstab`: major bonus from the rear or from concealment.
+- `Venom Cut`: delayed damage and healing reduction.
+- `Shadow Step`: crosses occupied or threatened tiles to reach a flank.
+- `Silence Wire`: disables reactions or casting.
+- `Reap the Opened`: finisher against wounded, staggered, or isolated targets.
+
+Gear:
+
+- daggers, short blades, poison vials, flexible wraps, climbing/entry tools
+- no heavy armor, spear identity, or giant fantasy blades
+
+## Subclass Matrix
+
+### Warrior Paths
+
+- Berserker: assault bruiser, rune overclock, burst at personal risk
+- Slayer: execution and anti-elite pressure
+- Rune Guard: ally protection and stance locks
+- Breaker: posture damage and boss interruption
+- Wind Strider: mobility, air steps, dodge counters
+
+### Mage Paths
+
+- Luminist: White reveal, cleanse, precision
+- Verdant: Green growth, roots, shields, terrain denial
+- Warcaster: Red fire, combat force, armor pressure
+- Conjurer: Blue shaping, barriers, grouping, temporary forms
+- Asura: Black curses, necromancy, Mindburn, instability
+- Prism Caster: planned two-color formulas and combo flexibility
+
+### Priest Paths
+
+- Lightbinder: stable healing and cleanse
+- Exorcist: anti-curse, anti-possession, anti-undead
+- Oracle: threat-line prediction and damage prevention
+- Martyr: transfers pain or corruption from allies
+- Sun Archer: Holy Arrow-focused backline offense
+
+### Sharpshooter Paths
+
+- Beastmaster: companion-centered control and damage
+- Deadeye: weak-point sniper
+- Trapper: snares, mines, and terrain control
+- Skirmisher: mobile ranged pressure
+- Warden: defensive pet and backline protection
+
+### Conjurer Specializations
+
+- Binder: cages and command patterns
+- Shaper: temporary bodies and utility constructs
+- Namecaller: costly elite conjurations
+- Wyrmkeeper: ancient beast-pattern forms
+- Threadweaver: support links between allies, terrain, and constructs
+
+### Paladin Paths
+
+- Oathguard: tank and ally protection
+- Thunderhand: stun and impact bruiser
+- Banneret: formation and morale support
+- Redeemer: cleanse through combat
+- Iron Saint: armored emergency healing
+
+### Asura Specializations
+
+- Mindburner: anti-caster and elite disruption
+- Necromancer: corpses, chill, life drain
+- Hexer: delayed curses and chaos marks
+- Void Howler: high-backlash burst
+- Grave Saint: forbidden support through death-price exchange
+
+### Slayer Specializations
 
 - Backstabber: classic flank assassin
 - Venomblade: poison and bleed
@@ -424,32 +713,47 @@ Secondary professions add utility and map interaction. They do not overwrite cla
 
 ## Tutorial and Zone 1 Adaptation
 
-Preserve the original flow:
+The browser vertical slice uses one connected dungeon crawl:
 
-1. Spawn Chamber
-2. Entry Corridor
-3. Training Arena
+1. The Realm-Lock Vestibule: character refinement, lore, equipment, and action rehearsal.
+2. A safe guide passage followed by one shared Fractured Galleries combat room.
+3. One shared Ashen Lock miniboss room and First Memory reward.
 
-### Spawn Chamber
+### Realm-Lock Vestibule
 
 - The player awakens beside the Soul Well with fragmented memories.
-- Teach tile selection, inspection, movement, facing, and interaction.
-- Let the player choose or confirm a starting class.
-- Present one unstable memory choice that foreshadows later branching.
+- Teach floor navigation, inspection, movement, facing, interaction, action icons, dry activation, out-of-combat buffs, cooldowns, and finite recovery.
+- Ancestry and base calling were already chosen in the Weaving. Wellkeeper Ilyra explains why that specific ancestry/calling returned.
+- At the Memory Loom, the player distributes exactly three final stat points, selects one ancestry boon, and selects one base-calling discipline.
+- The Wayfarer's Coffer grants worn C-tier equipment and two recovery bands.
+- A battered effigy supports safe signature/defense rehearsal.
+- The room must visibly function as a damaged trans-realm machine-temple: Soul Well, conduits, realm reliefs, pillars, shelves, cobwebs, braziers, rubble, coffers, ash, and unstable light.
 
-### Entry Corridor
+### Paired Trial Doors
 
-- Teach cover, height, line of sight, and realm hazards.
-- Introduce one broken conduit and one optional lore path.
-- Use environmental storytelling to show two realities fused together.
+- Wayfarer and Oathbreaker are difficulty presets, not separate maps.
+- Both physical doors converge on the same guide passage, combat room, and miniboss room.
+- Wayfarer activates three light enemies at standard health/damage/pressure.
+- Oathbreaker activates all five enemies, applies 1.55x health and 1.22x damage, raises Realm Pressure, upgrades gear, and adds a deterministic chance to awaken a calling-specific skill.
 
-### Training Arena
+### Guide Passage and Fractured Galleries
 
-- Approximate original physical idea as a 12x12 tactical map.
-- Include three training dummies with different defenses.
-- Introduce a Sentinel Construct as the final tutorial test.
-- Require the player to use the class signature skill and one terrain interaction.
-- End at a Soul Gate / breach threshold that opens the first realm route.
+- Breach Scout Orren teaches Tactical Turns versus Real-Time Action Bar.
+- Arena Warden Brannoc teaches the current calling's level-one signature, defense, and resource contract.
+- The passage is safe; combat begins only after crossing the authored room threshold.
+- The shared room randomizes dimensions, blockers, dressing, and enemy positions while preserving a completable navigation spine.
+- Health, Stability, class resource, cooldowns, and recovery charges carry forward.
+
+### Ashen Lock
+
+- The Cinderbound Warden is the shared miniboss for both paths.
+- Its seeded telegraph pattern teaches active defense and resource planning.
+- The selected door scales Warden health, damage, Realm Pressure, and the final cache.
+- Recovering the First Memory opens the route toward the outdoor starting realm.
+
+### Low-level magic rule
+
+Levels 1–19 use mortal weapon disciplines, human wizardry, practical necromancy, wards, color formulas, lesser bindings, and class resources. Sartan probability song, Patryn body/equipment runes, and mature Void/Dark/Death specialization begin around levels 20–30. No class may combine Sartan-specific and Patryn-specific skills.
 
 ## Enemy and Encounter Families
 
@@ -705,37 +1009,36 @@ The implementation should be data-driven.
 
 Build only this before expanding:
 
-- one 12x12 tutorial map using Spawn Chamber -> Corridor -> Training Arena
-- four playable starting classes: Warrior, Mage, Priest, Sharpshooter
-- one Human visual set first; ancestry data supports Elf and Dwarf later
-- one signature ability per class
+- one connected three-room crawl using Realm-Lock Vestibule -> shared Fractured Galleries -> shared Ashen Lock
+- four playable ancestries and nine playable base callings
+- 36 ancestry/calling starter portraits plus one authored animated Elf Shadowknight 3D test model
+- one signature ability and one defense per calling
+- three final stat points, one ancestry boon, and one base-calling discipline selected with Ilyra's Memory Loom
 - basic move, attack, defend, interact, and inspect
-- seamless real-time exploration to turn-based combat transition on the same map
+- player-selectable Tactical Turns or Real-Time Action Bar on the same simulation
 - continuously animated combat-ready characters during orders and resolution
 - at least one active block/dodge reaction and one class-specific reaction
-- Full Timing, Wide Timing, and Auto Resolve accessibility settings
 - 1x and 2x combat animation speeds
-- three dummy variants and one Sentinel Construct
-- one Arianus gravity/wind mechanic
-- one Soul Essence pickup
-- one short memory choice
-- one return-to-hub result screen
-- save/load for party, inventory, and cleared objectives
+- one safe training effigy, five Breachling actors, and one Cinderbound Warden
+- Wayfarer and Oathbreaker presets on one shared room and boss map
+- randomized room dimensions, props, enemy placement, Warden pattern, and run seed without breaking reachability
+- ancestry/calling-specific Ilyra lore, guide dialogue, checkpoints, voice-over toggle, and IndexedDB character/story persistence
+- one First Memory pickup and route-to-open-world hook
 
 Vertical-slice acceptance criteria:
 
-1. Every class reads differently without opening a lore panel.
-2. Winning requires at least one terrain or positioning interaction.
-3. The Warrior creates an opening another class can exploit.
-4. The Mage changes at least one tile.
-5. The Priest prevents or repairs a failure.
-6. The Sharpshooter uses a mark, trap, or companion command.
-7. Realm law changes the solution, not only the background art.
-8. The player recovers a Soul Essence and sees a story consequence.
-9. Exploration enters and exits combat without loading a separate battle scene.
-10. Every confirmed action resolves through readable real-time 3D animation.
-11. Timed reactions provide a bonus without invalidating stats, gear, or tactical choices.
-12. Combat remains playable with reaction timing automated.
+1. The first chamber reads as a populated 3D machine-temple rather than a flat or empty tile box.
+2. The player character is grounded, walks, and uses readable signature/defense animations.
+3. Ilyra's lore and character-refinement choices reflect the selected ancestry and calling.
+4. Low-level abilities use mortal techniques and resources, never borrowed Ultima reagents or spell circles.
+5. Both doors converge on one shared encounter map while producing visibly different opposition and rewards.
+6. Realm Pressure changes recovery and enemy danger rather than acting as decorative text.
+7. Exploration enters and exits combat without loading a separate battle scene.
+8. Tactical and real-time modes use the same simulation, combatants, abilities, resources, and rewards.
+9. Health, Stability, class resource, and recovery items remain finite across the gallery and miniboss.
+10. The player recovers a Soul Essence/First Memory and sees a story consequence.
+11. Every confirmed action resolves through readable real-time 3D animation.
+12. Random generation preserves a reachable route to every required actor, encounter, and reward.
 
 ## Recommended Build Order
 
@@ -807,4 +1110,3 @@ Vertical-slice acceptance criteria:
 ## Current Operational Status
 
 Lord Xar has directly authorized this design-document update and its tile-based, classic isometric low-poly 3D, animated-turn-based direction. This file is approved as build and design input for the parallel SoulDrifter version. Publishing, production deployment, paid asset-generation spending, and overwriting the separate third-person project remain distinct decisions requiring explicit owner authorization.
-

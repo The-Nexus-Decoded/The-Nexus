@@ -29,7 +29,8 @@ export type WorldObjectKind =
   | "dummy"
   | "sentinel"
   | "soul-essence"
-  | "threshold";
+  | "threshold"
+  | "npc";
 
 export interface WorldObjectDefinition extends GridPoint {
   id: string;

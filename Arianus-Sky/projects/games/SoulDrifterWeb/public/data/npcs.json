@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "npcs": {
+    "ilyra": {
+      "name": "Wellkeeper Ilyra",
+      "role": "Keeper of the First Well",
+      "room": "spawn-chamber",
+      "sprite": "/assets/generated/npcs/ilyra.png",
+      "scene": {
+        "id": "ilyra-first-awakening",
+        "opening": [
+          "Easy, {name}. Your body is newly woven, but your soul is older than this chamber.",
+          "There was once one world governed by many laws. The Architects feared a silence growing beneath it, so they performed the Sundering: one world became separated realms of wind, fire, water, stone, light, death, and memory.",
+          "The Soul Wells were built as locks between those realms. Now the locks are turning backward. Mountains remember oceans. Dead cities wake beneath green skies. Someone—or something—is forcing creation to become one world again."
+        ],
+        "raceLines": {
+          "human": "Human souls adapt by borrowing the shape of every realm they survive. Yours carries several incompatible echoes at once. That is why the Well chose you—and why ordinary gates can no longer keep you out.",
+          "elf": "Elven memory was meant to preserve a single unbroken thread. Yours contains a memory from before the Sundering, although no living Elf should possess it. You are here because the past is trying to remember itself through you.",
+          "dwarf": "Dwarven forge-clans anchored the realm locks with stone and bronze. When the western anchor failed, its missing keystone pattern burned itself into your soul. You are here because the broken machinery of creation recognizes you as one of its parts.",
+          "halfling": "Halfling wayfinders discovered paths the Architects never intended to leave open. You carried refugees along one of those hidden roads—and the road followed you back into the Well. You are here because every sealed realm now contains a path that remembers your feet."
+        },
+        "callingLines": {
+          "warrior": "Your rune circuit can touch hostile realm laws without immediately breaking. That gift will hurt before it saves anyone.",
+          "mage": "Your color channels can read the grammar shared by all realms. Do not mistake understanding a law for controlling it.",
+          "priest": "You can keep a soul coherent while realities argue over its shape. Many will need that mercy.",
+          "sharpshooter": "You see the lines along which a realm is about to move. The right shot can alter more than a battle.",
+          "paladin": "Your oaths create temporary law. In a collapsing world, a promise held long enough can become shelter.",
+          "summoner": "The shapes answering your commands are memories of creatures that might once have existed in the First World.",
+          "asura": "You hear the pressure beneath thought—the same black resonance the Architects tried to divide and bury. Use it without becoming its doorway.",
+          "slayer": "You recognize the weak seam in anything: armor, lies, even a realm boundary. Some seams must be cut; others must be guarded.",
+          "shadowknight": "A Fire-Realm ember keeps your half-dead soul from passing on. Steal only the life you need, or the hunger will decide what remains of you."
+        },
+          "choices": [
+            {
+              "id": "refine-imprint",
+              "label": "Help me shape my first strengths.",
+              "response": "Your ancestry and calling are already yours; I will not rewrite them. At the Memory Loom, place three final points into the qualities you trust most, choose one ancestry boon, and choose one mortal base discipline. This is level-one training—no Sartan probability song, Patryn body-runes, or higher void craft yet.",
+              "checkpoint": "starter-imprint-offered"
+            },
+            {
+            "id": "why-me",
+            "label": "Why did the Well choose me?",
+            "response": "It did not choose a hero. It chose a soul capable of remaining itself while carrying contradictory laws. Your answers in the Weaving proved that capacity.",
+            "checkpoint": "asked-why-chosen"
+          },
+          {
+            "id": "architects",
+            "label": "Who were the Architects?",
+            "response": "Mortals who learned to write commands into reality. They saved existence by breaking it, then taught each realm a different history so no one would try to reverse their work. Their surviving machines still call that betrayal mercy.",
+            "checkpoint": "asked-about-architects"
+          },
+          {
+            "id": "ready",
+            "label": "Tell me what to do first.",
+            "response": "Recover what the coffer kept from your last body. Then follow Orren's chalk marks through the breach. Brannoc waits at the arena threshold to test whether your new circuit can survive contact.",
+            "checkpoint": "ilyra-guidance-complete"
+          }
+        ]
+      }
+    },
+    "orren": {
+      "name": "Breach Scout Orren",
+      "role": "Cartographer of Unstable Paths",
+      "room": "entry-corridor",
+      "sprite": "/assets/generated/npcs/orren.png",
+      "scene": {
+        "id": "orren-corridor-lesson",
+        "opening": [
+          "The stones ahead belong to two different ruins. Watch the cyan seams: they mark where one set of physical laws gives way to another.",
+          "Choose how you want danger to move. Tactical Turns let you study every command. Real-Time keeps the same rules but lets the encounter flow continuously. Your character, skills, and rewards remain the same."
+        ],
+        "choices": [
+          {
+            "id": "mark-route",
+            "label": "Mark the safe route.",
+            "response": "I marked it, but routes drift. Trust the line only until the world gives you a reason not to.",
+            "checkpoint": "orren-route-marked"
+          },
+          {
+            "id": "continue",
+            "label": "I understand.",
+            "response": "Then speak with Brannoc before crossing the arena line. He has buried enough students to dislike surprises.",
+            "checkpoint": "orren-guidance-complete"
+          }
+        ]
+      }
+    },
+    "brannoc": {
+      "name": "Arena Warden Brannoc",
+      "role": "Keeper of the Sentinel Trial",
+      "room": "arena-threshold",
+      "sprite": "/assets/generated/npcs/brannoc.png",
+      "scene": {
+        "id": "brannoc-sentinel-lesson",
+        "opening": [
+          "That construct is old, angry, and honest. It will show its attack line before it strikes. Use {defensiveSkill} when you need to survive an impact.",
+          "Your first technique is {signatureSkill}. At this level the pattern is small and the effect is brief. Skill and equipment will add stronger shapes later; for now, timing matters more than spectacle."
+        ],
+        "choices": [
+          {
+            "id": "begin-trial",
+            "label": "Begin the Sentinel trial.",
+            "response": "Cross the cyan threshold when ready. Recover the Soul Essence after the construct falls—and do not let its memories convince you they are your own.",
+            "checkpoint": "brannoc-trial-authorized"
+          }
+        ]
+      }
+    }
+  }
+}
