@@ -20,8 +20,8 @@
   },
   "glb": {
     "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight.glb",
-    "bytes": 2116836,
-    "sha256": "9BC29DF68D1419F575F8F39AC90E508717E56038E7B904E0AAF19F36E14A6C14"
+    "bytes": 2115688,
+    "sha256": "078437EB4A9A9C25DACC8BAA0DDC2A9372C8E3FEF1CF1A1C152617E14BD34457"
   },
   "round_trip": {
     "armature_count": 1,
@@ -31,8 +31,8 @@
     "triangles": 23866,
     "bounds_meters": {
       "min": [
-        -0.84491,
-        -0.41334,
+        -0.85402,
+        -0.41575,
         -0.00397
       ],
       "max": [

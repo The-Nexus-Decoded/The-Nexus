@@ -103,8 +103,8 @@
     "triangles": 23866,
     "bounds_meters": {
       "min": [
-        -0.84491,
-        -0.35863,
+        -0.85402,
+        -0.36081,
         -0.00397
       ],
       "max": [
@@ -552,13 +552,13 @@
   "outputs": {
     "blend": {
       "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-source.blend",
-      "bytes": 39751817,
-      "sha256": "E5E70F9C9134E7F990EC0310537313BB5D318F7AC88D8B7343FFDCAC345F45A5"
+      "bytes": 39751479,
+      "sha256": "9A0933407F3951668A0C95842F877E6F31947E6BE9427609012A300BE581F6DC"
     },
     "glb": {
       "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight.glb",
-      "bytes": 2116836,
-      "sha256": "9BC29DF68D1419F575F8F39AC90E508717E56038E7B904E0AAF19F36E14A6C14"
+      "bytes": 2115688,
+      "sha256": "078437EB4A9A9C25DACC8BAA0DDC2A9372C8E3FEF1CF1A1C152617E14BD34457"
     },
     "preview_front": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-preview-front.png",
     "preview_rear": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-preview-rear.png"

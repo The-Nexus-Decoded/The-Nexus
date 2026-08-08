@@ -13,6 +13,8 @@ renders remain in the local production cache identified below.
 - `elf-shadowknight-preview-swordslash.png` - round-trip combat-pose proof rendered from the exported GLB.
 - `SOURCE.md` - provenance, limitations, and reproducible local rebuild commands.
 
+Current runtime GLB SHA-256: `078437EB4A9A9C25DACC8BAA0DDC2A9372C8E3FEF1CF1A1C152617E14BD34457`.
+
 ## Design read
 
 The stock Ranger hood, pauldrons, and armored bracers were removed. Authored visible
@@ -50,11 +52,14 @@ and `Victory`. `RecieveHit` intentionally preserves the spelling expected by the
 current runtime.
 
 These are procedural first-playable clips, not final mocap. The starter longsword is
-rigidly attached to `hand_r`; `SwordSlash` proves weapon follow-through. Walk/run and combat clips
-need in-engine crossfade, foot-slide, hit-timing, and mobile-frame review before a
-shipping animation lock. The many named custom pieces also produce more draw calls
-than a production atlas/join pass would; geometry remains within the agreed web
-triangle budget.
+rigidly attached to `hand_r`. `SwordSlash` and `SiphonCleave` use explicit
+anticipation, weapon-leading contact, follow-through, and recovery keys; the
+offhand stays compact instead of mirroring the weapon arm. The independent preview
+is a round-trip contact-pose check, not a substitute for in-engine phase and
+crossfade review. Walk/run and combat clips still need final mocap-quality
+foot-slide, hit-timing, and physical-mobile review before a shipping animation
+lock. The many named custom pieces also produce more draw calls than a production
+atlas/join pass would; geometry remains within the agreed web triangle budget.
 
 ## Provenance and licenses
 

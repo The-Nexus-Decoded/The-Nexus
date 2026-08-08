@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import {
+  cameraFollowStep,
   cameraPanBounds,
   cloneActorMaterial,
   screenPanToWorld,
@@ -28,7 +29,7 @@ describe("actor presentation boundaries", () => {
     expect(material.metalness).toBe(source.metalness);
   });
 
-  it("anchors the root, hips, and lower body in attack clips", () => {
+  it("anchors the root, hips, and lower body without discarding attack choreography", () => {
     const times = [0, 1];
     const positions = [0, 0, 0, 0.25, 0.1, -0.4];
     const clip = new THREE.AnimationClip("SiphonCleave", 1, [
@@ -38,6 +39,8 @@ describe("actor presentation boundaries", () => {
       new THREE.VectorKeyframeTrack("Hips.position", times, positions),
       new THREE.VectorKeyframeTrack("spine_01.position", times, positions),
       new THREE.QuaternionKeyframeTrack("spine_01.quaternion", times, [0, 0, 0, 1, 0.2, 0.2, 0, 0.96]),
+      new THREE.QuaternionKeyframeTrack("neck_01.quaternion", times, [0, 0, 0, 1, 0.1, 0, 0.1, 0.98]),
+      new THREE.QuaternionKeyframeTrack("Head.quaternion", times, [0, 0, 0, 1, 0, 0.1, 0.1, 0.98]),
       new THREE.QuaternionKeyframeTrack("upperarm_r.quaternion", times, [0, 0, 0, 1, 0.3, 0.1, 0, 0.94]),
       new THREE.QuaternionKeyframeTrack("root.quaternion", times, [0, 0, 0, 1, 0, 0.2, 0, 0.98]),
       new THREE.QuaternionKeyframeTrack("thigh_l.quaternion", times, [0, 0, 0, 1, 0.1, 0.2, 0, 0.97]),
@@ -47,8 +50,14 @@ describe("actor presentation boundaries", () => {
     const sanitized = sanitizeAttackClip(clip);
 
     expect(sanitized).not.toBe(clip);
-    expect(sanitized.tracks.map((track) => track.name)).toEqual(["upperarm_r.quaternion"]);
-    expect(clip.tracks).toHaveLength(10);
+    expect(sanitized.tracks.map((track) => track.name)).toEqual([
+      "spine_01.position",
+      "spine_01.quaternion",
+      "neck_01.quaternion",
+      "Head.quaternion",
+      "upperarm_r.quaternion",
+    ]);
+    expect(clip.tracks).toHaveLength(12);
   });
 });
 
@@ -72,5 +81,62 @@ describe("camera pan boundaries", () => {
     expect(bounds.y).toBeCloseTo(8.75);
     expect(new THREE.Vector2(99, -99).clamp(bounds.clone().multiplyScalar(-1), bounds).toArray())
       .toEqual([10.5, -8.75]);
+  });
+
+  it("soft-follows dead-zone overflow more tightly on compact viewports", () => {
+    const initial = {
+      center: new THREE.Vector2(0, 0),
+      lookAhead: new THREE.Vector2(),
+      manualOffset: new THREE.Vector2(),
+      manualIdleSeconds: 0,
+    };
+    const baseFrame = {
+      player: new THREE.Vector2(5, 0),
+      movement: new THREE.Vector2(0.2, 0),
+      cameraAzimuth: 0,
+      verticalSpan: 20,
+      aspect: 1,
+      zoom: 1,
+      deltaSeconds: 1 / 60,
+      roomCenter: new THREE.Vector2(),
+      roomBounds: new THREE.Vector2(8, 8),
+    };
+    let desktop = cameraFollowStep(initial, { ...baseFrame, compact: false });
+    let compact = cameraFollowStep(initial, { ...baseFrame, compact: true });
+    for (let frame = 1; frame < 90; frame += 1) {
+      desktop = cameraFollowStep(desktop, { ...baseFrame, compact: false });
+      compact = cameraFollowStep(compact, { ...baseFrame, compact: true });
+    }
+
+    expect(compact.deadZone.x).toBeLessThan(desktop.deadZone.x);
+    expect(compact.center.x).toBeGreaterThan(desktop.center.x);
+    expect(baseFrame.player.x - compact.center.x).toBeLessThanOrEqual(compact.deadZone.x + 0.01);
+  });
+
+  it("keeps manual look-around temporary and clamps the composed target to room bounds", () => {
+    const previous = {
+      center: new THREE.Vector2(4.8, 0),
+      lookAhead: new THREE.Vector2(),
+      manualOffset: new THREE.Vector2(4, 0),
+      manualIdleSeconds: 0,
+    };
+    const frame = {
+      player: new THREE.Vector2(5, 0),
+      movement: new THREE.Vector2(0.2, 0),
+      cameraAzimuth: 0,
+      verticalSpan: 20,
+      aspect: 1,
+      zoom: 1,
+      compact: false,
+      deltaSeconds: 0.1,
+      roomCenter: new THREE.Vector2(),
+      roomBounds: new THREE.Vector2(5, 5),
+    };
+
+    const next = cameraFollowStep(previous, frame);
+
+    expect(next.manualOffset.x).toBeLessThan(previous.manualOffset.x);
+    expect(next.lookAhead.x).toBeGreaterThan(0);
+    expect(next.target.x).toBe(5);
   });
 });

@@ -32,7 +32,14 @@ import type { CombatStyle, GridPoint, RuntimeState } from "./types";
 import { GameUI, type ActionName } from "./ui";
 import { buildSoulwellChamber } from "./environment/rooms/SoulwellChamber";
 import { createSoulwellMaterialLibrary, type SoulwellMaterialLibrary } from "./environment/MaterialLibrary";
-import { cameraPanBounds, cloneActorMaterial, sanitizeAttackClip, screenPanToWorld } from "./presentation";
+import {
+  cameraFollowStep,
+  cameraPanBounds,
+  cloneActorMaterial,
+  sanitizeAttackClip,
+  screenPanToWorld,
+  type CameraFollowState,
+} from "./presentation";
 
 const TILE_SIZE = 1.75;
 const FLOOR_HEIGHT = 0.22;
@@ -110,7 +117,16 @@ interface DebugSnapshot {
   trialDifficulty: TrialDifficulty | null;
   selectedTargetId: string | null;
   playerAnimation: string;
+  playerAnimationTime: number;
+  playerAnimationDuration: number;
   playerBounds: { minY: number; maxY: number; height: number };
+  camera: {
+    target: { x: number; z: number };
+    followCenter: { x: number; z: number };
+    lookAhead: { x: number; z: number };
+    manualOffset: { x: number; z: number };
+    playerNdc: { x: number; y: number };
+  };
   renderer: {
     calls: number;
     triangles: number;
@@ -129,6 +145,7 @@ interface DebugBridge {
   action(action: ActionName): Promise<void>;
   setCombatStyle(style: CombatStyle): void;
   activeBlock(): void;
+  pose(animation: string, normalizedTime: number): void;
 }
 
 declare global {
@@ -242,7 +259,15 @@ export class World3D {
   private animationFrame = 0;
   private combatSpeed = 1;
   private cameraAzimuth = Math.atan2(-15.5, 19.5);
-  private readonly cameraPan = new THREE.Vector2();
+  private cameraFollow: CameraFollowState = {
+    center: new THREE.Vector2(),
+    lookAhead: new THREE.Vector2(),
+    manualOffset: new THREE.Vector2(),
+    manualIdleSeconds: 0,
+  };
+  private cameraFollowInitialized = false;
+  private readonly lastCameraPlayerPosition = new THREE.Vector2();
+  private readonly cameraTarget = new THREE.Vector3();
   private movedThisTurn = false;
   private readonly openedObjects = new Set<string>();
   private npcDatabase!: NpcDatabase;
@@ -288,7 +313,7 @@ export class World3D {
     this.bindUI();
     this.revealRoom("training", false);
     this.resize();
-    this.updateCamera(true);
+    this.updateCamera(true, 0);
     this.initializeHud();
     this.installDebugBridge();
     this.animationFrame = requestAnimationFrame(() => this.render());
@@ -993,16 +1018,17 @@ export class World3D {
   }
 
   private panCamera(horizontal: number, vertical: number): void {
-    if (this.currentRoom !== "training") return;
-    const training = this.dungeon.rooms.find((room) => room.id === "training")!;
+    const room = this.dungeon.rooms.find((candidate) => candidate.id === this.currentRoom)!;
     const delta = screenPanToWorld(this.cameraAzimuth, horizontal * TILE_SIZE * 1.6, vertical * TILE_SIZE * 1.6);
-    const bounds = cameraPanBounds(training.width, training.height, TILE_SIZE, 2);
-    this.cameraPan.add(delta).clamp(bounds.clone().multiplyScalar(-1), bounds);
+    const bounds = cameraPanBounds(room.width, room.height, TILE_SIZE, 2);
+    this.cameraFollow.manualOffset.add(delta).clamp(bounds.clone().multiplyScalar(-1), bounds);
+    this.cameraFollow.manualIdleSeconds = 0;
     this.ui.setMessage("Camera panned. Use the arrow controls to inspect the room, or center the view on the player.");
   }
 
   private resetCameraPan(): void {
-    this.cameraPan.set(0, 0);
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.manualIdleSeconds = 0;
     this.ui.setMessage("Camera centered on the player.");
   }
 
@@ -1091,7 +1117,9 @@ export class World3D {
     const nextRoom = tile.roomId;
     if (nextRoom !== this.currentRoom) {
       this.currentRoom = nextRoom;
-      this.cameraPan.set(0, 0);
+      this.cameraFollow.manualOffset.set(0, 0);
+      this.cameraFollow.lookAhead.set(0, 0);
+      this.cameraFollowInitialized = false;
       this.revealRoom(nextRoom, true);
     }
     const authoredRoom = this.dungeon.rooms.find((room) => room.id === nextRoom);
@@ -2165,6 +2193,22 @@ export class World3D {
         const prompt = requiredElement<HTMLElement>("reaction-prompt");
         if (!prompt.hidden) prompt.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       },
+      pose: (animation, normalizedTime) => {
+        const clipName = [...this.player.clips.keys()]
+          .find((name) => name.toLowerCase() === animation.toLowerCase());
+        if (!clipName) throw new Error(`Unknown player animation: ${animation}`);
+        const clip = this.player.clips.get(clipName)!;
+        this.player.currentAction?.stop();
+        const action = this.player.mixer.clipAction(clip);
+        action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.play();
+        action.time = clip.duration * THREE.MathUtils.clamp(normalizedTime, 0, 1);
+        action.paused = true;
+        this.player.currentAction = action;
+        this.player.mixer.update(0);
+      },
     };
     window.__SOULDRIFTER_DEBUG__ = bridge;
     const publish = (): void => {
@@ -2254,10 +2298,22 @@ export class World3D {
       trialDifficulty: this.trialDifficulty,
       selectedTargetId: this.selectedTargetId,
       playerAnimation: this.player.currentAction?.getClip().name ?? "none",
+      playerAnimationTime: Number((this.player.currentAction?.time ?? 0).toFixed(3)),
+      playerAnimationDuration: Number((this.player.currentAction?.getClip().duration ?? 0).toFixed(3)),
       playerBounds: {
         minY: Number(bounds.min.y.toFixed(3)),
         maxY: Number(bounds.max.y.toFixed(3)),
         height: Number((bounds.max.y - bounds.min.y).toFixed(3)),
+      },
+      camera: {
+        target: { x: Number(this.cameraTarget.x.toFixed(3)), z: Number(this.cameraTarget.z.toFixed(3)) },
+        followCenter: { x: Number(this.cameraFollow.center.x.toFixed(3)), z: Number(this.cameraFollow.center.y.toFixed(3)) },
+        lookAhead: { x: Number(this.cameraFollow.lookAhead.x.toFixed(3)), z: Number(this.cameraFollow.lookAhead.y.toFixed(3)) },
+        manualOffset: { x: Number(this.cameraFollow.manualOffset.x.toFixed(3)), z: Number(this.cameraFollow.manualOffset.y.toFixed(3)) },
+        playerNdc: (() => {
+          const projected = this.player.root.position.clone().setY(1.08).project(this.camera);
+          return { x: Number(projected.x.toFixed(3)), y: Number(projected.y.toFixed(3)) };
+        })(),
       },
       renderer: {
         calls: this.renderer.info.render.calls,
@@ -2305,7 +2361,7 @@ export class World3D {
         void this.runEnemyRound();
       }
     }
-    this.updateCamera(false);
+    this.updateCamera(false, delta);
     this.updateOcclusion();
     this.renderer.render(this.scene, this.camera);
     this.animationFrame = requestAnimationFrame(() => this.render());
@@ -2326,17 +2382,46 @@ export class World3D {
     this.refreshStats();
   }
 
-  private updateCamera(immediate: boolean): void {
+  private updateCamera(immediate: boolean, deltaSeconds: number): void {
     if (!this.player) return;
-    const training = this.dungeon.rooms.find((room) => room.id === "training")!;
-    const authoredCenter = new THREE.Vector3(training.center.x * TILE_SIZE, 0.8, training.center.y * TILE_SIZE);
-    const target = this.currentRoom === "training"
-      ? authoredCenter.clone().add(new THREE.Vector3(
-        THREE.MathUtils.clamp((this.player.root.position.x - authoredCenter.x) * 0.30, -4.2, 4.2),
-        0,
-        THREE.MathUtils.clamp((this.player.root.position.z - authoredCenter.z) * 0.30, -3.4, 3.4),
-      )).add(new THREE.Vector3(this.cameraPan.x, 0, this.cameraPan.y))
-      : this.player.root.position.clone().setY(0.8);
+    const room = this.dungeon.rooms.find((candidate) => candidate.id === this.currentRoom)!;
+    const roomCenter = new THREE.Vector2(room.center.x * TILE_SIZE, room.center.y * TILE_SIZE);
+    const roomBounds = new THREE.Vector2(room.width * TILE_SIZE * 0.5, room.height * TILE_SIZE * 0.5);
+    const playerPosition = new THREE.Vector2(this.player.root.position.x, this.player.root.position.z);
+    if (!this.cameraFollowInitialized) {
+      this.cameraFollow.center.copy(this.currentRoom === "training" ? roomCenter : playerPosition);
+      this.cameraFollow.lookAhead.set(0, 0);
+      this.cameraFollow.manualOffset.set(0, 0);
+      this.cameraFollow.manualIdleSeconds = 0;
+      this.lastCameraPlayerPosition.copy(playerPosition);
+      this.cameraFollowInitialized = true;
+    }
+    const movement = immediate
+      ? new THREE.Vector2()
+      : playerPosition.clone().sub(this.lastCameraPlayerPosition);
+    this.lastCameraPlayerPosition.copy(playerPosition);
+    const verticalSpan = Math.max(1, this.camera.top - this.camera.bottom);
+    const aspect = Math.max(0.1, (this.camera.right - this.camera.left) / verticalSpan);
+    const follow = cameraFollowStep(this.cameraFollow, {
+      player: playerPosition,
+      movement,
+      cameraAzimuth: this.cameraAzimuth,
+      verticalSpan,
+      aspect,
+      zoom: this.camera.zoom,
+      compact: this.container.clientWidth <= 600,
+      deltaSeconds: immediate ? 0.1 : deltaSeconds,
+      roomCenter,
+      roomBounds,
+    });
+    this.cameraFollow = {
+      center: follow.center,
+      lookAhead: follow.lookAhead,
+      manualOffset: follow.manualOffset,
+      manualIdleSeconds: follow.manualIdleSeconds,
+    };
+    const target = new THREE.Vector3(follow.target.x, 0.8, follow.target.y);
+    this.cameraTarget.copy(target);
     const horizontalDistance = Math.hypot(15.5, 19.5);
     const desired = target.clone().add(new THREE.Vector3(
       Math.sin(this.cameraAzimuth) * horizontalDistance,
@@ -2344,7 +2429,7 @@ export class World3D {
       Math.cos(this.cameraAzimuth) * horizontalDistance,
     ));
     if (immediate) this.camera.position.copy(desired);
-    else this.camera.position.lerp(desired, 0.075);
+    else this.camera.position.lerp(desired, 1 - Math.exp(-8 * THREE.MathUtils.clamp(deltaSeconds, 0, 0.1)));
     this.camera.lookAt(target);
   }
 
