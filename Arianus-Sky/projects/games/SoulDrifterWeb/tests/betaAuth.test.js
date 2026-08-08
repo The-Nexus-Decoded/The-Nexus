@@ -35,6 +35,7 @@ describe("beta password worker", () => {
     const cookie = login.headers.get("set-cookie");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Secure");
+    expect(login.headers.get("location")).toBe("/play");
 
     const response = await worker.fetch(new Request("https://example.com/", {
       headers: { cookie: cookie.split(";")[0] },

@@ -2,6 +2,7 @@ const COOKIE_NAME = "souldrifter_beta";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
 const SESSION_PURPOSE = "souldrifter-beta-access-v1";
 const encoder = new TextEncoder();
+const EMBEDDED_GAME_HTML = null;
 
 function htmlResponse(body, status = 200, headers = {}) {
   return new Response(body, {
@@ -110,7 +111,7 @@ async function handleLogin(request, env) {
   return new Response(null, {
     status: 303,
     headers: {
-      location: "/",
+      location: "/play",
       "cache-control": "no-store",
       "set-cookie": `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE_SECONDS}`,
     },
@@ -128,6 +129,19 @@ function protectedAssetResponse(response) {
     status: response.status,
     statusText: response.statusText,
     headers,
+  });
+}
+
+function protectedGameResponse() {
+  if (!EMBEDDED_GAME_HTML) return null;
+  return new Response(EMBEDDED_GAME_HTML, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-store, max-age=0",
+      "pragma": "no-cache",
+      "vary": "Cookie",
+    },
   });
 }
 
@@ -150,7 +164,13 @@ const worker = {
 
     const authorized = await isAuthorized(request, env);
     if (!authorized) return htmlResponse(loginPage());
-    if (url.pathname === "/beta-login") return Response.redirect(new URL("/", request.url), 303);
+    if (url.pathname === "/beta-login") return Response.redirect(new URL("/play", request.url), 303);
+
+    const acceptsHtml = (request.headers.get("accept") ?? "").includes("text/html");
+    if (request.method === "GET" && (url.pathname === "/play" || acceptsHtml)) {
+      const game = protectedGameResponse();
+      if (game) return game;
+    }
 
     if (!env.ASSETS) {
       return new Response("SoulDrifter static asset binding is unavailable.", { status: 500 });
@@ -159,7 +179,6 @@ const worker = {
     const response = await env.ASSETS.fetch(request);
     if (response.status !== 404 || request.method !== "GET") return protectedAssetResponse(response);
 
-    const acceptsHtml = (request.headers.get("accept") ?? "").includes("text/html");
     if (!acceptsHtml) return protectedAssetResponse(response);
 
     const fallback = new Request(new URL("/index.html", request.url), request);
