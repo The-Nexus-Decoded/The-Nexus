@@ -7,7 +7,11 @@ const html = read("../index.html");
 const styles = read("../src/styles.css");
 const ui = read("../src/game/ui.ts");
 const world = read("../src/game/World3D.ts");
+const avatarIdentity = read("../src/game/avatarIdentity.ts");
 const tutorialChoices = read("../src/game/tutorialChoices.ts");
+const creation = read("../src/characterCreation.ts");
+const main = read("../src/main.ts");
+const persistence = read("../src/game/persistence.ts");
 
 describe("screen-space HUD and live paper-doll boundaries", () => {
   it("keeps combat controls in a dedicated screen-space layer outside the clipped viewport", () => {
@@ -20,6 +24,23 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(html).toContain('<canvas id="paper-doll-canvas"');
     expect(html).not.toContain('id="paper-doll-image"');
     expect(ui).not.toContain('requiredElement<HTMLImageElement>("paper-doll-image").src');
+  });
+
+  it("persists the live idle paper-doll snapshot for the saved-soul selector", () => {
+    expect(persistence).toContain('"avatarPreviews"');
+    expect(persistence).toContain("loadAvatarPreview()");
+    expect(persistence).toContain("saveAvatarPreview(dataUrl: string)");
+    expect(world).toContain("persistAvatarPreview");
+    expect(world).toMatch(/renderPaperDoll\(240, 320\)[\s\S]*toDataURL\("image\/webp"/s);
+    expect(main).toMatch(/loadAvatarPreview\(\)[\s\S]*new CharacterCreation\([\s\S]*savedAvatarPreview/s);
+    expect(creation).toMatch(/savedAvatarPreview[\s\S]*continue-character[\s\S]*savedAvatarPreview \?\? characterPortraitPath/s);
+  });
+
+  it("maps browser and in-app Back through the same character-creation history", () => {
+    expect(creation).toContain('window.addEventListener("popstate", this.onPopState)');
+    expect(creation).toContain('window.history.pushState(this.creationHistoryState()');
+    expect(creation).toMatch(/private navigate\([\s\S]*this\.render\(\)/s);
+    expect(creation).toMatch(/private navigateBack\([\s\S]*window\.history\.back\(\)/s);
   });
 
   it("provides a persistent, explained Auto/Walk/Run screen-space control", () => {
@@ -73,6 +94,13 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(styles).toMatch(/@media[^{}]*\(max-width:\s*820px\)[\s\S]*?\.hud-drawer:not\(\.is-open\)\s*\{[^}]*display:\s*none/s);
   });
 
+  it("publishes the ancestry boon as a passive buff and the class discipline as an action placeholder", () => {
+    expect(html).toContain('id="imprint-skill-action"');
+    expect(ui).toMatch(/callingPerkOptions\(profile\.callingId\)[\s\S]*imprintSkillAction\.hidden = !callingPerk/s);
+    expect(ui).toContain("skill-awakening placeholder");
+    expect(world).toMatch(/raceBoonOptions\(this\.profile\.raceId\)[\s\S]*duration: "passive"[\s\S]*Permanent ancestry boon sealed by Ilyra/s);
+  });
+
   it("keeps the drawer toggle strip above every open drawer", () => {
     expect(styles).toMatch(/\.screen-hud-layer\s*\{[^}]*z-index:\s*40/s);
     expect(styles).toMatch(/\.party-panel[\s\S]*z-index:\s*35/s);
@@ -82,8 +110,21 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(styles).toMatch(/\.dialogue-panel\s*\{[^}]*z-index:\s*60/s);
     expect(ui).toMatch(/openDialogue\([\s\S]*this\.setScreenHudInert\(true\)/s);
     expect(ui).toMatch(/continueButton\.addEventListener\("click"[\s\S]*this\.setScreenHudInert\(false\)/s);
+    expect(ui).toMatch(/openStorybook\([\s\S]*this\.storybookVisible = true;[\s\S]*this\.setScreenHudInert\(true\)/s);
+    expect(ui).toMatch(/openStarterImprint\([\s\S]*this\.imprintVisible = true;[\s\S]*this\.setScreenHudInert\(true\)/s);
+    expect(ui).toMatch(/const dismiss = \(\): void => \{[\s\S]*this\.imprintVisible = false;[\s\S]*this\.setScreenHudInert\(false\)/s);
     expect(ui).toMatch(/screenHud\.classList\.toggle\("is-modal-obscured",\s*inert\)/s);
     expect(styles).toMatch(/\.screen-hud-layer\.is-modal-obscured\s*\{[^}]*visibility:\s*hidden/s);
+  });
+
+  it("exposes a deterministic DEV imprint entry for mobile modal acceptance", () => {
+    expect(world).toMatch(/prepareImprint:\s*\(\) => \{[\s\S]*storybookCompleted: true[\s\S]*delete this\.profile\.starterImprint;[\s\S]*this\.openImprintRefinement\(\)/s);
+  });
+
+  it("shows the complete storyboard artwork above readable copy on mobile", () => {
+    expect(styles).toMatch(/@media[^{}]*\(max-width:\s*820px\)[\s\S]*?\.storybook-scene\s*\{[^}]*display:\s*grid[^}]*grid-template-rows:/s);
+    expect(styles).toMatch(/@media[^{}]*\(max-width:\s*820px\)[\s\S]*?\.storybook-scene\s*>\s*img\s*\{[^}]*object-fit:\s*contain[^}]*transform:\s*none/s);
+    expect(styles).toMatch(/@media[^{}]*\(max-width:\s*820px\)[\s\S]*?\.storybook-scene figcaption\s*\{[^}]*position:\s*relative[^}]*overflow-y:\s*auto/s);
   });
 
   it("routes the inventory keyboard shortcut and small bag button through the same panel writer", () => {
@@ -178,13 +219,35 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(world).toMatch(/probePlayerBone = \(name: string\)[\s\S]*this\.player\.model\.getObjectByName\(name\)[\s\S]*hand_r: probePlayerBone\("hand_r"\)/s);
   });
 
-  it("binds cached external animation packs at the shared actor clip boundary", () => {
-    expect(world).toContain("SIPHON_CLEAVE_PACK");
+  it("routes optional same-rig animation packs through the canonical avatar manifest", () => {
+    expect(avatarIdentity).toContain("SIPHON_CLEAVE_PACK");
+    expect(avatarIdentity).toContain("WEAPON_STRIKE_PACK");
+    expect(avatarIdentity).toContain("PLAYER_AVATAR_BY_IDENTITY");
     expect(world).toContain("animationPackCache");
-    expect(world).toMatch(/loadExternalAnimationPack[\s\S]*loadCachedAnimationPack[\s\S]*bindCompatibleAnimationClip/s);
+    expect(world).toMatch(/loadExternalAnimationPack[\s\S]*loadCachedAnimationPack[\s\S]*bindOptionalCompatibleAnimationClip/s);
     expect(world).toMatch(/normalizeAnimationPackRootMotion\(bound, spec\.rootNodeName\)/);
     expect(world).not.toMatch(/sanitizeAttackClip\(bound\)/);
-    expect(world).toMatch(/id === "player"[\s\S]*await this\.loadExternalAnimationPack\(SIPHON_CLEAVE_PACK, model\)[\s\S]*clips\.set\(externalClip\.name/s);
+    expect(world).toMatch(/resolvePlayerAvatarManifest\(this\.profile\)[\s\S]*playerAvatar\.animationPacks/s);
+    expect(world).toMatch(/Promise\.all\(animationPacks\.map\(async \(spec\)[\s\S]*await this\.loadExternalAnimationPack\(spec, model\)[\s\S]*if \(externalClip\) clips\.set\(externalClip\.name/s);
+  });
+
+  it("resolves every played clip through the versioned animation tuning boundary", () => {
+    expect(main).toMatch(/loadAnimationTuningDocument\(tuningUrl\)[\s\S]*animationTuningRegistry\.replace\(animationTuning\)/s);
+    expect(world).toMatch(/private playAnimation\([\s\S]*animationTuningRegistry\.resolve\(this\.combatSpeed \* speedMultiplier, tuningScope\)/s);
+  });
+
+  it("routes exposure, fog, shadows, and local lights through one versioned lighting profile", () => {
+    expect(main).toMatch(/loadLightingTuningDocument\(lightingUrl\)[\s\S]*lightingTuningRegistry\.replace\(lightingTuning\)/s);
+    expect(world).toContain("private readonly lighting = lightingTuningRegistry.snapshot()");
+    expect(world).toMatch(/toneMappingExposure = this\.lighting\.exposure/);
+    expect(world).toMatch(/new THREE\.FogExp2\(0x071015, this\.lighting\.fogDensity\)/);
+    expect(world).toMatch(/shadow\.mapSize\.set\(this\.lighting\.shadowMapSize, this\.lighting\.shadowMapSize\)/);
+    expect(world).toMatch(/roomOverrides\[roomId\][\s\S]*localLightMultiplier/s);
+  });
+
+  it("transitions weapon state before sword-channel and hands-free casting animations", () => {
+    expect(world).toMatch(/activateGuard\([\s\S]*ensurePlayerWeaponDrawn\(\)[\s\S]*playMotionArchetype\(this\.player, CINDER_GUARD_MOTION\)/s);
+    expect(world).toMatch(/recover\([\s\S]*ensurePlayerWeaponSheathed\(\)[\s\S]*playMotionArchetype\(this\.player, RECOVER_MOTION\)/s);
   });
 
   it("isolates one mixer action before sampling a visual-proof pose", () => {

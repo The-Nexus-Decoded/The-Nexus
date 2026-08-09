@@ -66,14 +66,14 @@ describe("motion archetype contracts", () => {
     expect(WEAPON_STRIKE_MOTION).toMatchObject({
       skillId: "weapon-strike",
       registryKey: "combat.basic.weapon-strike",
-      id: "thrust",
+      id: "stationary-horizontal-arc",
       weaponFamily: "sword",
       grip: "one-handed",
       handContacts: {
         dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
         support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
       },
-      playbackRate: 0.9,
+      playbackRate: 0.65,
       rootPolicy: "in-place",
       displacement: { tiles: 0, meters: 0 },
       facing: "auto-face-target",
@@ -137,6 +137,7 @@ describe("motion archetype contracts", () => {
     expect(MOTION_BY_SKILL_ID.recover.clipNames[0]).toBe("CastSummon");
     expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames[0]).toBe("WeaponStrikeBaseline");
     expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames).not.toContain("BasicThrust");
+    expect(MOTION_BY_SKILL_ID["weapon-strike"].playbackRate).toBe(0.65);
     expect(MOTION_BY_SKILL_ID["weapon-strike"].handContacts.support).toMatchObject({
       target: "free",
       intent: "balance-guard",
@@ -152,5 +153,7 @@ describe("motion archetype contracts", () => {
       intent: "channel",
     });
     expect(MOTION_BY_SKILL_ID["cinder-guard"].timing.event.kind).toBe("release");
+    expect(MOTION_BY_SKILL_ID["cinder-guard"].weaponState).toBe("drawn");
+    expect(MOTION_BY_SKILL_ID.recover.weaponState).toBe("sheathed");
   });
 });

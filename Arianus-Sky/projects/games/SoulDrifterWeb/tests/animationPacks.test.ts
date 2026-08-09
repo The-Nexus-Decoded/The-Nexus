@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { describe, expect, it, vi } from "vitest";
 import {
   SIPHON_CLEAVE_PACK,
+  WEAPON_STRIKE_PACK,
+  HUMANOID_ACTIVE_ANIMATION_PACKS,
+  bindOptionalCompatibleAnimationClip,
   bindCompatibleAnimationClip,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
@@ -41,6 +44,27 @@ describe("external animation packs", () => {
       sourceFrameWindow: [15, 31],
       sourceContactNormalizedTime: 0.46,
     });
+  });
+
+  it("declares the approved raw Mixamo basic-strike window and every active humanoid action", () => {
+    expect(WEAPON_STRIKE_PACK).toMatchObject({
+      semanticClipName: "WeaponStrikeBaseline",
+      sourceFrameWindow: [17, 36],
+      sourceContactNormalizedTime: 0.82,
+      rootPolicy: "in-place",
+    });
+    expect(new Set(HUMANOID_ACTIVE_ANIMATION_PACKS.map((pack) => pack.semanticClipName))).toEqual(new Set([
+      "IdleRelaxed", "WalkBaseline", "RunBaseline", "DrawSword", "SheatheSword",
+      "UnarmedPunch", "UnarmedKick", "CastWard", "CastSummon", "CastProjectile",
+      "DoorOpenInward", "DoorOpenOutward", "PickupWaist", "PickupGround", "PullLever",
+      "HitReactionMixamo", "DeathMixamo",
+    ]));
+  });
+
+  it("skips an incompatible optional presentation pack instead of crashing a saved avatar", () => {
+    const source = sourceClip();
+    source.tracks.push(new THREE.QuaternionKeyframeTrack("missing_weapon_hand.quaternion", [0, 1], [0, 0, 0, 1, 0, 0, 0, 1]));
+    expect(bindOptionalCompatibleAnimationClip(source, rig(), "Optional")).toBeNull();
   });
 
   it("binds exact and namespace-prefixed tracks without changing authored values", () => {

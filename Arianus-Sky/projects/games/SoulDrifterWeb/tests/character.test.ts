@@ -10,6 +10,7 @@ import {
   type CharacterDraft,
 } from "../src/game/character";
 import { buildDialogue, type NpcDatabase, type NpcStoryOverride } from "../src/game/npc";
+import { characterPortraitPath } from "../src/characterCreation";
 
 function completeDraft(raceId: string, callingId: string): CharacterDraft {
   const answers: Record<string, string> = {};
@@ -44,6 +45,14 @@ describe("character weaving", () => {
         expect(`/assets/generated/characters/${race.id}-${calling.id}.png`).toMatch(/\.png$/);
       }
     }
+  });
+
+  it("uses grave-plate greatsword art only for the high-level Shadowknight selection preview", () => {
+    expect(characterPortraitPath("human", "shadowknight")).toBe("/assets/generated/characters/human-shadowknight-highlevel.png");
+    expect(characterPortraitPath("elf", "shadowknight")).toBe("/assets/generated/characters/elf-shadowknight-highlevel.png");
+    expect(characterPortraitPath("dwarf", "shadowknight")).toBe("/assets/generated/characters/dwarf-shadowknight-highlevel.png");
+    expect(characterPortraitPath("halfling", "shadowknight")).toBe("/assets/generated/characters/halfling-shadowknight-highlevel.png");
+    expect(characterPortraitPath("elf", "mage")).toBe("/assets/generated/characters/elf-mage.png");
   });
 
   it("requires every remembered answer", () => {

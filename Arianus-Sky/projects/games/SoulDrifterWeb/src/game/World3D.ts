@@ -2,8 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
-  SIPHON_CLEAVE_PACK,
-  bindCompatibleAnimationClip,
+  bindOptionalCompatibleAnimationClip,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
   trimAnimationPackClipEnvelope,
@@ -88,6 +87,7 @@ import {
   createStarterLongswordPresentation,
   deathBodyTilt,
   applyModularAppearance,
+  raceAvatarShape,
   occlusionSampleHeights,
   resolvePointerHitIntent,
   sanitizeAttackClip,
@@ -97,12 +97,14 @@ import {
   type WeaponPresentation,
   type WeaponVisualState,
 } from "./presentation";
-import { resolvePlayerModelPath } from "./avatarIdentity";
+import { resolvePlayerAvatarManifest } from "./avatarIdentity";
 import {
   AvatarMotionController,
   type AvatarMotionDecision,
   type LocomotionPreference,
 } from "./avatarMotionController";
+import { animationTuningRegistry } from "./animationTuning";
+import { lightingTuningRegistry } from "./lightingTuning";
 
 const TILE_SIZE = 1.75;
 const FLOOR_HEIGHT = 0.22;
@@ -277,6 +279,7 @@ interface DebugBridge {
   weapon(state: WeaponVisualState): void;
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
   prepareTrialGate(): void;
+  prepareImprint(): void;
   requestInteraction(id: string): Promise<void>;
   confirmInteraction(): Promise<void>;
   prepareCorridor(): Promise<void>;
@@ -361,6 +364,7 @@ function nearestOpenAdjacent(
 export class World3D {
   private readonly ui = new GameUI();
   private readonly calling: ReturnType<typeof callingById>;
+  private readonly lighting = lightingTuningRegistry.snapshot();
   private readonly dungeon: GeneratedDungeon;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 320);
@@ -466,9 +470,9 @@ export class World3D {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMappingExposure = this.lighting.exposure;
+    this.renderer.shadowMap.enabled = this.lighting.shadowQuality !== "off";
+    this.renderer.shadowMap.type = this.shadowMapType();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.domElement.setAttribute("aria-label", "Soulwell dungeon rendered in three dimensions");
     this.renderer.domElement.tabIndex = 0;
@@ -482,14 +486,14 @@ export class World3D {
     });
     this.paperRenderer.outputColorSpace = THREE.SRGBColorSpace;
     this.paperRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.paperRenderer.toneMappingExposure = 1.18;
+    this.paperRenderer.toneMappingExposure = this.lighting.paperDollExposure;
     this.paperRenderer.setClearColor(0x000000, 0);
   }
 
   public async start(): Promise<void> {
     this.container.replaceChildren(this.renderer.domElement);
     this.scene.background = new THREE.Color(0x05090d);
-    this.scene.fog = new THREE.FogExp2(0x071015, 0.012);
+    this.scene.fog = new THREE.FogExp2(0x071015, this.lighting.fogDensity);
     this.configureLights();
     await this.buildDungeonGeometry();
     this.npcDatabase = await fetch("/data/npcs.json").then((response) => {
@@ -497,6 +501,7 @@ export class World3D {
       return response.json() as Promise<NpcDatabase>;
     });
     await this.buildActors();
+    this.applyLocalLightingProfile();
     this.bindInput();
     this.bindUI();
     this.revealRoom("training", false);
@@ -505,6 +510,7 @@ export class World3D {
     this.initializeHud();
     this.installDebugBridge();
     this.animationFrame = requestAnimationFrame(() => this.render());
+    window.setTimeout(() => { void this.persistAvatarPreview(); }, 320);
   }
 
   public destroy(): void {
@@ -521,17 +527,16 @@ export class World3D {
   }
 
   private configureLights(): void {
-    const hemisphere = new THREE.HemisphereLight(0x9fbeca, 0x17110f, 0.88);
-    const ambient = new THREE.AmbientLight(0x789092, 0.28);
+    const hemisphere = new THREE.HemisphereLight(0x9fbeca, 0x17110f, this.lighting.hemisphereIntensity);
+    const ambient = new THREE.AmbientLight(0x789092, this.lighting.ambientIntensity);
     hemisphere.layers.enable(1);
     ambient.layers.enable(1);
     this.scene.add(hemisphere);
     this.scene.add(ambient);
-    const key = new THREE.DirectionalLight(0xffe4bd, 2.6);
+    const key = new THREE.DirectionalLight(0xffe4bd, this.lighting.keyIntensity);
     key.position.set(-14, 24, 10);
-    key.intensity = 2.45;
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.castShadow = this.lighting.shadowQuality !== "off";
+    key.shadow.mapSize.set(this.lighting.shadowMapSize, this.lighting.shadowMapSize);
     key.shadow.camera.near = 1;
     key.shadow.camera.far = 110;
     key.shadow.camera.left = -32;
@@ -541,10 +546,36 @@ export class World3D {
     key.shadow.bias = -0.00045;
     key.layers.enable(1);
     this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0x47d4c8, 0.58);
+    const rim = new THREE.DirectionalLight(0x47d4c8, this.lighting.rimIntensity);
     rim.position.set(18, 12, -18);
     rim.layers.enable(1);
     this.scene.add(rim);
+  }
+
+  private shadowMapType(): THREE.ShadowMapType {
+    if (this.lighting.shadowQuality === "basic") return THREE.BasicShadowMap;
+    if (this.lighting.shadowQuality === "pcf-soft") return THREE.PCFSoftShadowMap;
+    return THREE.PCFShadowMap;
+  }
+
+  private applyLocalLightingProfile(): void {
+    this.scene.traverse((object) => {
+      if (!(object instanceof THREE.PointLight) || object.userData.lightingProfileApplied) return;
+      let ancestor: THREE.Object3D | null = object;
+      let roomId = "";
+      while (ancestor) {
+        if (ancestor.name.startsWith("zone-")) {
+          roomId = ancestor.name.slice("zone-".length).toLowerCase();
+          break;
+        }
+        ancestor = ancestor.parent;
+      }
+      const roomMultiplier = this.lighting.roomOverrides[roomId]?.localLightMultiplier ?? 1;
+      object.intensity *= this.lighting.localLightMultiplier * roomMultiplier;
+      object.castShadow = object.castShadow && this.lighting.shadowQuality !== "off";
+      if (object.castShadow) object.shadow.mapSize.set(this.lighting.shadowMapSize, this.lighting.shadowMapSize);
+      object.userData.lightingProfileApplied = true;
+    });
   }
 
   private async buildDungeonGeometry(): Promise<void> {
@@ -1004,13 +1035,15 @@ export class World3D {
     // architecture scale. Collision remains one logical tile; only the rendered
     // actor is enlarged so face, starter gear, and animation poses survive the camera.
     const raceScale: Record<string, number> = { human: 2.06, elf: 2.16, dwarf: 1.74, halfling: 1.52 };
+    const playerAvatar = resolvePlayerAvatarManifest(this.profile);
     this.player = await this.createActor(
       "player",
-      resolvePlayerModelPath(this.profile) ?? FALLBACK_WARRIOR_MODEL,
+      playerAvatar.modelPath ?? FALLBACK_WARRIOR_MODEL,
       this.dungeon.playerStart,
       raceScale[this.profile.raceId] ?? 1.7,
       this.calling.signatureColor,
       this.profile.name,
+      playerAvatar.animationPacks,
     );
     this.scene.add(this.player.root);
 
@@ -1058,6 +1091,7 @@ export class World3D {
     desiredHeight: number,
     tint: number,
     labelText: string,
+    animationPacks: readonly AnimationPackSpec[] = [],
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
@@ -1065,7 +1099,8 @@ export class World3D {
     const initialBox = actorBodyBounds(model);
     const sourceHeight = Math.max(0.01, initialBox.max.y - initialBox.min.y);
     const scale = desiredHeight / sourceHeight;
-    model.scale.setScalar(scale);
+    const raceShape = id === "player" ? raceAvatarShape(this.profile.raceId) : { width: 1, depth: 1 };
+    model.scale.set(scale * raceShape.width, scale, scale * raceShape.depth);
     model.updateMatrixWorld(true);
     const scaledBox = actorBodyBounds(model);
     model.position.y -= scaledBox.min.y;
@@ -1084,7 +1119,10 @@ export class World3D {
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
     });
-    if (id === "player") applyModularAppearance(model, { hairStyle: this.profile.appearance?.hairStyle ?? "shaved" });
+    if (id === "player") applyModularAppearance(model, {
+      hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
+      raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
+    });
     model.userData.actorBaseQuaternion = model.quaternion.clone();
 
     const root = new THREE.Group();
@@ -1118,10 +1156,17 @@ export class World3D {
       clip.name,
       IN_PLACE_ANIMATION_NAMES.has(clip.name.toLowerCase()) ? sanitizeAttackClip(clip) : clip,
     ]));
-    if (id === "player") {
-      const externalClip = await this.loadExternalAnimationPack(SIPHON_CLEAVE_PACK, model);
-      clips.set(externalClip.name, externalClip);
-    }
+    const externalClips = await Promise.all(animationPacks.map(async (spec) => {
+      try {
+        return await this.loadExternalAnimationPack(spec, model);
+      } catch (error) {
+        console.warn(`Optional animation pack ${spec.url} was skipped.`, error);
+        return null;
+      }
+    }));
+    externalClips.forEach((externalClip) => {
+      if (externalClip) clips.set(externalClip.name, externalClip);
+    });
     const deathBaselineSource = [...clips.entries()]
       .find(([name]) => name.toLowerCase() === "deathmixamo")?.[1];
     if (deathBaselineSource) {
@@ -1205,7 +1250,7 @@ export class World3D {
   private async loadExternalAnimationPack(
     spec: AnimationPackSpec,
     targetModel: THREE.Object3D,
-  ): Promise<THREE.AnimationClip> {
+  ): Promise<THREE.AnimationClip | null> {
     const clips = await loadCachedAnimationPack(this.animationPackCache, spec.url, async () => {
       const gltf = await this.loader.loadAsync(spec.url);
       return gltf.animations.map((clip) => clip.clone());
@@ -1214,7 +1259,8 @@ export class World3D {
     if (!source) {
       throw new Error(`Animation pack ${spec.url} does not contain ${spec.sourceClipName}`);
     }
-    const bound = bindCompatibleAnimationClip(source, targetModel, spec.semanticClipName);
+    const bound = bindOptionalCompatibleAnimationClip(source, targetModel, spec.semanticClipName);
+    if (!bound) return null;
     const normalized = spec.rootPolicy === "in-place"
       ? normalizeAnimationPackRootMotion(bound, spec.rootNodeName)
       : bound;
@@ -1245,7 +1291,17 @@ export class World3D {
     const clip = actor.clips.get(name) ?? actor.clips.get(name === "RecieveHit" ? "Defeat" : "Idle");
     if (!clip) return 0;
     const action = actor.mixer.clipAction(clip);
-    const effectiveSpeed = this.combatSpeed * speedMultiplier;
+    const tuningScope = actor.id === "player"
+      ? { clipName: clip.name, raceId: this.profile.raceId, callingId: this.profile.callingId }
+      : {
+          clipName: clip.name,
+          raceId: actor.id.includes("breachling") ? "breachling" : "npc",
+          callingId: actor.id.includes("warden") ? "paladin" : "unclassified",
+        };
+    // Shared playback boundary: base motion intent and combat style are resolved
+    // through one versioned document. Future admin/backend changes replace that
+    // document; models and Mixamo packs never need to be re-exported for speed.
+    const effectiveSpeed = animationTuningRegistry.resolve(this.combatSpeed * speedMultiplier, tuningScope);
     if (actor.currentAction === action && action.isRunning()) return (clip.duration * 1000) / effectiveSpeed;
     actor.currentAction?.fadeOut(blendSeconds);
     action.reset().fadeIn(blendSeconds).setEffectiveTimeScale(effectiveSpeed);
@@ -1356,6 +1412,12 @@ export class World3D {
     }
     await this.transitionWeapon(this.player, "drawn");
     return weapon.state === "drawn";
+  }
+
+  private async ensurePlayerWeaponSheathed(): Promise<void> {
+    const weapon = this.player.weapon;
+    if (!weapon || weapon.state === "hidden" || weapon.state === "sheathed") return;
+    await this.transitionWeapon(this.player, "sheathed");
   }
 
   private hasUsableWeapon(): boolean {
@@ -1576,6 +1638,7 @@ export class World3D {
       : `${item.name} moved to the backpack. Weapon-required skills update immediately.`);
     this.ui.addLog(`${item.name} ${equipping ? "equipped" : "unequipped"}.`);
     this.playActorIdle(this.player);
+    window.setTimeout(() => { void this.persistAvatarPreview(); }, 120);
   }
 
   private setCombatStylePreference(style: CombatStyle): void {
@@ -2693,6 +2756,7 @@ export class World3D {
       this.ui.setMessage(`${this.calling.defensiveSkill} needs ${GUARD_STABILITY_COST} Stability.`);
       return;
     }
+    if (!(await this.ensurePlayerWeaponDrawn())) return;
     this.stability = Math.max(0, this.stability - GUARD_STABILITY_COST);
     this.lastStabilitySpendAt = now;
     this.reinforcedGuard = this.resource >= 20;
@@ -2728,6 +2792,7 @@ export class World3D {
       this.ui.setMessage("Recovery is still on cooldown.");
       return;
     }
+    await this.ensurePlayerWeaponSheathed();
     const motion = this.playMotionArchetype(this.player, RECOVER_MOTION);
     this.recoverReadyAt = now + Math.max(5200, motion.durationMs);
     this.ui.animateAction("wait", Math.max(760, motion.durationMs));
@@ -3368,7 +3433,18 @@ export class World3D {
 
   private refreshStats(): void {
     this.ui.setStats({ hp: this.hp, stability: this.stability, fury: this.resource });
-    this.ui.setBuffs(this.playerGuard ? [{
+    const buffs = [];
+    const passiveBoon = this.profile.starterImprint
+      ? raceBoonOptions(this.profile.raceId).find((option) => option.id === this.profile.starterImprint?.raceBoonId)
+      : undefined;
+    if (passiveBoon) buffs.push({
+      id: `ancestry-${passiveBoon.id}`,
+      icon: "\u25c7",
+      label: passiveBoon.name,
+      duration: "passive",
+      help: `${passiveBoon.description} Permanent ancestry boon sealed by Ilyra.`,
+    });
+    if (this.playerGuard) buffs.push({
       id: "active-guard",
       icon: "\u25c8",
       label: this.calling.defensiveSkill,
@@ -3377,7 +3453,8 @@ export class World3D {
       help: this.reinforcedGuard
         ? `${this.calling.defensiveSkill} is reinforced: the next incoming hit is heavily reduced.`
         : `${this.calling.defensiveSkill} is active: the next incoming hit is reduced.`,
-    }] : []);
+    });
+    this.ui.setBuffs(buffs);
   }
 
   private refreshTarget(): void {
@@ -3546,6 +3623,8 @@ export class World3D {
           .find((name) => name.toLowerCase() === animation.toLowerCase());
         if (!clipName) throw new Error(`Unknown player animation: ${animation}`);
         const clip = this.player.clips.get(clipName)!;
+        if (clipName.toLowerCase() === "deathbaseline") this.player.motion.beginDeath();
+        else this.player.motion.complete();
         this.player.mixer.stopAllAction();
         const action = this.player.mixer.clipAction(clip);
         action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
@@ -3556,6 +3635,9 @@ export class World3D {
         this.player.mixer.setTime(clip.duration * THREE.MathUtils.clamp(normalizedTime, 0, 1));
         action.paused = true;
         this.player.currentAction = action;
+        this.updateActorDeathPresentation(this.player);
+        this.player.model.updateMatrixWorld(true);
+        this.groundActor(this.player);
       },
       weapon: (state) => this.setWeaponState(this.player, state),
       weaponSocket: (position, rotation) => {
@@ -3565,6 +3647,11 @@ export class World3D {
         this.player.weapon.hipSocket.updateMatrixWorld(true);
       },
       prepareTrialGate: () => this.prepareDebugTrialGate(),
+      prepareImprint: () => {
+        this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
+        delete this.profile.starterImprint;
+        this.openImprintRefinement();
+      },
       requestInteraction: async (id) => this.requestInteractionById(id),
       confirmInteraction: async () => this.confirmPendingInteraction(),
       prepareCorridor: async () => this.prepareDebugCorridor(),
@@ -3890,18 +3977,18 @@ export class World3D {
   }
 
   /** Renders the same live skinned player object and equipped sword through a portrait camera. */
-  private renderPaperDoll(): void {
-    if (!this.player) return;
+  private renderPaperDoll(widthOverride?: number, heightOverride?: number): boolean {
+    if (!this.player) return false;
     const canvas = this.paperRenderer.domElement;
-    const width = Math.max(1, Math.round(canvas.clientWidth));
-    const height = Math.max(1, Math.round(canvas.clientHeight));
+    const width = widthOverride ?? Math.max(1, Math.round(canvas.clientWidth));
+    const height = heightOverride ?? Math.max(1, Math.round(canvas.clientHeight));
     if (canvas.width !== width || canvas.height !== height) this.paperRenderer.setSize(width, height, false);
     this.paperCamera.aspect = width / height;
     this.paperCamera.updateProjectionMatrix();
 
     this.player.model.updateMatrixWorld(true);
     const bounds = actorBodyBounds(this.player.model);
-    if (bounds.isEmpty()) return;
+    if (bounds.isEmpty()) return false;
     const center = bounds.getCenter(new THREE.Vector3());
     const bodyHeight = Math.max(0.5, bounds.max.y - bounds.min.y);
     const distance = (bodyHeight / (2 * Math.tan(THREE.MathUtils.degToRad(this.paperCamera.fov * 0.5)))) * 1.16;
@@ -3916,6 +4003,18 @@ export class World3D {
     this.paperRenderer.render(this.scene, this.paperCamera);
     this.scene.background = background;
     this.scene.fog = fog;
+    return true;
+  }
+
+  private async persistAvatarPreview(): Promise<void> {
+    if (this.disposed || !this.player || !this.renderPaperDoll(240, 320)) return;
+    try {
+      const dataUrl = this.paperRenderer.domElement.toDataURL("image/webp", 0.86);
+      if (dataUrl.length > 64) await storyDatabase.saveAvatarPreview(dataUrl);
+    } catch {
+      // A thumbnail is optional presentation data; never interrupt gameplay if
+      // a browser refuses to read its WebGL canvas.
+    }
   }
 
   private updateStabilityRecovery(deltaSeconds: number): void {

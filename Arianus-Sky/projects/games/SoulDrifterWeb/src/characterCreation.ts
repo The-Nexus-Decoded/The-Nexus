@@ -14,13 +14,20 @@ import {
   type CharacterProfile,
 } from "./game/character";
 
-function characterPortraitPath(raceId: string, callingId: string): string {
-  return raceId === "elf" && callingId === "shadowknight"
-    ? "/assets/3d/characters/elf-shadowknight/elf-shadowknight-preview-front.png"
-    : `/assets/generated/characters/${raceId}-${callingId}.png`;
+export function characterPortraitPath(raceId: string, callingId: string): string {
+  if (callingId === "shadowknight") {
+    return `/assets/generated/characters/${raceId}-shadowknight-highlevel.png`;
+  }
+  return `/assets/generated/characters/${raceId}-${callingId}.png`;
 }
 
 type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
+
+interface CreationHistoryState {
+  souldrifterCreation: true;
+  step: CreationStep;
+  memoryIndex: number;
+}
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -47,11 +54,45 @@ export class CharacterCreation {
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
     private readonly savedProfile: CharacterProfile | null = null,
+    private readonly savedAvatarPreview: string | null = null,
   ) {
     window.addEventListener("souldrifter:edit-appearance", (event) => {
       const profile = (event as CustomEvent<{ profile?: CharacterProfile }>).detail?.profile;
       if (profile) this.editAppearance(profile);
     });
+    window.addEventListener("popstate", this.onPopState);
+    window.history.replaceState(this.creationHistoryState(), "");
+    this.render();
+  }
+
+  private creationHistoryState(): CreationHistoryState {
+    return { souldrifterCreation: true, step: this.step, memoryIndex: this.memoryIndex };
+  }
+
+  private readonly onPopState = (event: PopStateEvent): void => {
+    const state = event.state as Partial<CreationHistoryState> | null;
+    if (!state?.souldrifterCreation || this.root.hidden || !state.step) return;
+    this.step = state.step;
+    this.memoryIndex = Number.isInteger(state.memoryIndex) ? Math.max(0, state.memoryIndex ?? 0) : 0;
+    this.render();
+  };
+
+  private navigate(step: CreationStep, memoryIndex = this.memoryIndex): void {
+    this.step = step;
+    this.memoryIndex = memoryIndex;
+    window.history.pushState(this.creationHistoryState(), "");
+    this.render();
+  }
+
+  private navigateBack(fallbackStep: CreationStep, fallbackMemoryIndex = this.memoryIndex): void {
+    const current = window.history.state as Partial<CreationHistoryState> | null;
+    if (current?.souldrifterCreation) {
+      window.history.back();
+      return;
+    }
+    this.step = fallbackStep;
+    this.memoryIndex = fallbackMemoryIndex;
+    window.history.replaceState(this.creationHistoryState(), "");
     this.render();
   }
 
@@ -65,6 +106,7 @@ export class CharacterCreation {
     this.step = "appearance";
     this.root.classList.remove("is-dissolving");
     this.root.hidden = false;
+    window.history.pushState(this.creationHistoryState(), "");
     this.render();
   }
 
@@ -112,7 +154,7 @@ export class CharacterCreation {
       </label>
       ${this.savedProfile ? `
         <button class="continue-character" id="continue-character" type="button">
-          <img src="${characterPortraitPath(this.savedProfile.raceId, this.savedProfile.callingId)}" alt="" />
+          <img src="${this.savedAvatarPreview ?? characterPortraitPath(this.savedProfile.raceId, this.savedProfile.callingId)}" alt="Current in-game ${this.escape(this.savedProfile.raceName)} ${this.escape(this.savedProfile.callingName)}" />
           <span><small>Continue saved soul</small><strong>${this.escape(this.savedProfile.name)}</strong><em>${this.savedProfile.raceName} · ${this.savedProfile.callingName}</em></span>
           <b>Return →</b>
         </button>` : ""}
@@ -124,8 +166,7 @@ export class CharacterCreation {
     const advance = (): void => {
       this.draft.name = input.value.trim();
       if (this.draft.name.length < 2) return this.fail("The Well cannot hold a name shorter than two characters.");
-      this.step = "race";
-      this.render();
+      this.navigate("race");
     };
     requiredElement<HTMLButtonElement>("creation-next").addEventListener("click", advance);
     document.getElementById("continue-character")?.addEventListener("click", () => {
@@ -156,10 +197,9 @@ export class CharacterCreation {
       </div>
       ${this.navigation("Return to name", "Choose ancestry")}`;
     this.bindChoices("button[data-race]", "race", (id) => { this.draft.raceId = id; });
-    this.bindNavigation(() => { this.step = "name"; }, () => {
+    this.bindNavigation(() => this.navigateBack("name"), () => {
       if (!this.draft.raceId) return this.fail("Choose the ancestry carried by this soul.");
-      this.step = "appearance";
-      this.render();
+      this.navigate("appearance");
     });
   }
 
@@ -204,8 +244,7 @@ export class CharacterCreation {
         this.root.hidden = true;
         return;
       }
-      this.step = "race";
-      this.render();
+      this.navigateBack("race");
     }, () => {
       if (this.appearanceEditProfile) {
         const updated: CharacterProfile = {
@@ -217,8 +256,7 @@ export class CharacterCreation {
         this.complete(updated, true);
         return;
       }
-      this.step = "calling";
-      this.render();
+      this.navigate("calling");
     });
   }
 
@@ -247,11 +285,9 @@ export class CharacterCreation {
       </div>
       ${this.navigation("Return to appearance", "Enter the memories")}`;
     this.bindChoices("button[data-calling]", "calling", (id) => { this.draft.callingId = id; });
-    this.bindNavigation(() => { this.step = "appearance"; }, () => {
+    this.bindNavigation(() => this.navigateBack("appearance"), () => {
       if (!this.draft.callingId) return this.fail("Choose the calling that first answered the breach.");
-      this.memoryIndex = 0;
-      this.step = "memory";
-      this.render();
+      this.navigate("memory", 0);
     });
   }
 
@@ -277,14 +313,11 @@ export class CharacterCreation {
       ${this.navigation(this.memoryIndex === 0 ? "Return to calling" : "Previous memory", this.memoryIndex === MEMORY_QUESTIONS.length - 1 ? "Read the soul imprint" : "Accept this memory")}`;
     this.bindChoices("button[data-answer]", "answer", (id) => { this.draft.answers[question.id] = id; });
     this.bindNavigation(() => {
-      if (this.memoryIndex === 0) this.step = "calling";
-      else this.memoryIndex -= 1;
-      this.render();
+      this.navigateBack(this.memoryIndex === 0 ? "calling" : "memory", Math.max(0, this.memoryIndex - 1));
     }, () => {
       if (!this.draft.answers[question.id]) return this.fail("The Well waits for a truthful answer.");
-      if (this.memoryIndex < MEMORY_QUESTIONS.length - 1) this.memoryIndex += 1;
-      else this.step = "review";
-      this.render();
+      if (this.memoryIndex < MEMORY_QUESTIONS.length - 1) this.navigate("memory", this.memoryIndex + 1);
+      else this.navigate("review");
     });
   }
 
@@ -294,8 +327,7 @@ export class CharacterCreation {
       profile = deriveCharacter(this.draft);
     } catch (error) {
       this.fail(error instanceof Error ? error.message : "The soul imprint is incomplete.");
-      this.step = "name";
-      this.render();
+      this.navigate("name");
       return;
     }
     const calling = callingById(profile.callingId);
@@ -341,9 +373,7 @@ export class CharacterCreation {
         <button class="ritual-button ritual-button--primary" id="creation-confirm" type="button">Awaken at the Soul Well <span>◇</span></button>
       </div>`;
     requiredElement<HTMLButtonElement>("creation-back").addEventListener("click", () => {
-      this.memoryIndex = MEMORY_QUESTIONS.length - 1;
-      this.step = "memory";
-      this.render();
+      this.navigateBack("memory", MEMORY_QUESTIONS.length - 1);
     });
     requiredElement<HTMLButtonElement>("creation-confirm").addEventListener("click", () => {
       this.complete(profile);
@@ -355,6 +385,7 @@ export class CharacterCreation {
     this.root.classList.add("is-dissolving");
     window.setTimeout(() => {
       this.root.hidden = true;
+      window.removeEventListener("popstate", this.onPopState);
       this.onComplete(profile, resumeSavedSoul);
     }, 520);
   }

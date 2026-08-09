@@ -24,6 +24,72 @@ export const SIPHON_CLEAVE_PACK: AnimationPackSpec = {
   sourceContactNormalizedTime: 0.46,
 };
 
+/**
+ * The basic strike uses the same source-preserving route as Siphon Cleave:
+ * untouched Mixamo curves, a visually approved compact strike window, and no
+ * pelvis/foot reconstruction. Runtime crossfade supplies the idle recovery.
+ */
+export const WEAPON_STRIKE_PACK: AnimationPackSpec = {
+  url: "/assets/3d/animations/elf-shadowknight/weapon-strike-baseline.glb",
+  sourceClipName: "ElfShadowknight_Armature|mixamo.com|Layer0",
+  semanticClipName: "WeaponStrikeBaseline",
+  sourceSha256: "F22925A610BB55E4BF53CB6282B36BF30102D7CE00836CDB31FA9022EE4DB588",
+  rootPolicy: "in-place",
+  rootNodeName: "ElfShadowknight_Armature",
+  sourceFps: 30,
+  sourceFrameWindow: [17, 36],
+  sourceContactNormalizedTime: 0.82,
+};
+
+const RAW_MIXAMO_CLIP = "ElfShadowknight_Armature|mixamo.com|Layer0";
+const RAW_MIXAMO_ROOT = "ElfShadowknight_Armature";
+
+function rawHumanoidPack(
+  slug: string,
+  semanticClipName: string,
+  sourceSha256: string,
+  sourceFrameWindow: readonly [number, number],
+  sourceContactNormalizedTime = 0.5,
+): AnimationPackSpec {
+  return {
+    url: `/assets/3d/animations/elf-shadowknight/${slug}.glb`,
+    sourceClipName: RAW_MIXAMO_CLIP,
+    semanticClipName,
+    sourceSha256,
+    rootPolicy: "in-place",
+    rootNodeName: RAW_MIXAMO_ROOT,
+    sourceFps: 30,
+    sourceFrameWindow,
+    sourceContactNormalizedTime,
+  };
+}
+
+/**
+ * Every active humanoid action uses the same source-preserving boundary as
+ * Siphon Cleave: untouched Mixamo curves, an explicit frame envelope, and
+ * root-only X/Z normalization at runtime. Embedded clips remain fallbacks for
+ * non-compatible legacy rigs, not the authoritative Elf-rig animation path.
+ */
+export const HUMANOID_ACTIVE_ANIMATION_PACKS: readonly AnimationPackSpec[] = [
+  rawHumanoidPack("idle-relaxed", "IdleRelaxed", "2F31140DF1E7A47FFE8BBEE05E8800DE606344B12E1452F9E6194AB9B420E748", [12, 248]),
+  rawHumanoidPack("walk-baseline", "WalkBaseline", "2852200802C89584AB60DB7C2D4DB5D124C6D24844F4E119ECCC868ABB153C4D", [1, 33]),
+  rawHumanoidPack("run-baseline", "RunBaseline", "2B70727AF9E58D4415006BBAB4EF6BB3054E92EE24C62C7A34D64AA84989F0B1", [1, 23]),
+  rawHumanoidPack("draw-sword", "DrawSword", "181A9767F1B130EF06134BF978D932DA70BB0B590E65F41AD55D866C49485C3D", [1, 17]),
+  rawHumanoidPack("sheathe-sword", "SheatheSword", "C1A7880B3999F42D223193C944F70295BA182ADA79B9FF8ED6DED47F2465047F", [1, 52]),
+  rawHumanoidPack("unarmed-punch", "UnarmedPunch", "5144280CFA2B2EEF1F283133A91910B4A75FDA5D6E8104BFC5D8ACA1CD3FB1F1", [1, 62], 0.56),
+  rawHumanoidPack("unarmed-kick", "UnarmedKick", "568B7674F726F176F07D05A7816D2C4BF044856BD8EF801E793E43E5076CE984", [1, 50], 0.54),
+  rawHumanoidPack("cast-ward", "CastWard", "4783F42F0EA4BE6D96C9330F1D87E6BBD113728B2900114790F2A01CE912C1AA", [1, 67], 0.45),
+  rawHumanoidPack("cast-summon", "CastSummon", "22B823743C6C16537A0CED6E123621A15EBC45178320CDA5394A974EC1FE9004", [1, 128], 0.67),
+  rawHumanoidPack("cast-projectile", "CastProjectile", "E9E1E5116B47D0A167DB0F86021D2D12E44B0457B9911A92424F061A0460C515", [1, 71], 0.52),
+  rawHumanoidPack("door-open-inward", "DoorOpenInward", "C0D15B723C9F6AF190903B5BE77F5169BAB94D4DE09BFE4C33CB83D583D423D7", [1, 193], 0.55),
+  rawHumanoidPack("door-open-outward", "DoorOpenOutward", "3471B084998CA2C578C9D51FF9F6418F4195BA2827BCC8112B63FBC7EAE907F1", [1, 125], 0.55),
+  rawHumanoidPack("pickup-waist", "PickupWaist", "34CACBC2AB9E9D1BEE3F8AEA6688246632A69089BA99FE8E8C8752D47C3B241B", [1, 105], 0.58),
+  rawHumanoidPack("pickup-ground", "PickupGround", "B4500D749AB89CC13656391EF0935AD7E91EF797C190D3C89C13854139CCDCC4", [1, 289], 0.62),
+  rawHumanoidPack("pull-lever", "PullLever", "9E3FDBDCF8F5C776AAEDE7F234EDBB0F2353874165293593AD40D9AFCF19F5F7", [1, 190], 0.54),
+  rawHumanoidPack("hit-reaction", "HitReactionMixamo", "AD47D107972BE0A9AE805467B1B0C98EFDEF04E4C1E82C546A470A1FDFFD47AF", [1, 15], 0.42),
+  rawHumanoidPack("death", "DeathMixamo", "28079AB4327A9E6F179063F97E6EC758D469846DCC12E013897C1B83E3CF24D9", [1, 93], 0.408),
+];
+
 interface TrackBinding {
   track: THREE.KeyframeTrack;
   sourceNode: string;
@@ -91,6 +157,26 @@ export function bindCompatibleAnimationClip(
   if (!report.compatible) {
     throw new Error(`Animation pack ${source.name} is incompatible with the actor rig; missing nodes: ${report.missingNodes.join(", ")}`);
   }
+  const tracks = report.bindings.map(({ track, targetNode, property }) => {
+    const clone = track.clone();
+    clone.name = `${targetNode}.${property}`;
+    return clone;
+  });
+  return new THREE.AnimationClip(semanticName, source.duration, tracks, source.blendMode);
+}
+
+/**
+ * Optional presentation packs must never prevent an otherwise valid avatar
+ * from loading. Identity routing keeps known same-rig packs together, while
+ * this final compatibility boundary protects legacy saves and future models.
+ */
+export function bindOptionalCompatibleAnimationClip(
+  source: THREE.AnimationClip,
+  targetRoot: THREE.Object3D,
+  semanticName: string,
+): THREE.AnimationClip | null {
+  const report = validateAnimationClipCompatibility(source, targetRoot);
+  if (!report.compatible) return null;
   const tracks = report.bindings.map(({ track, targetNode, property }) => {
     const clone = track.clone();
     clone.name = `${targetNode}.${property}`;

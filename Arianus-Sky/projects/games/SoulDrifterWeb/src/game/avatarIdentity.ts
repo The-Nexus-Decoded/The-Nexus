@@ -1,4 +1,10 @@
 import { callingById, raceById, type CharacterProfile } from "./character";
+import {
+  SIPHON_CLEAVE_PACK,
+  WEAPON_STRIKE_PACK,
+  HUMANOID_ACTIVE_ANIMATION_PACKS,
+  type AnimationPackSpec,
+} from "./animationPacks";
 
 const PLAYER_MODEL_BY_CALLING: Readonly<Record<CharacterProfile["callingId"], string>> = {
   warrior: "/assets/3d/characters/warrior.gltf",
@@ -12,8 +18,25 @@ const PLAYER_MODEL_BY_CALLING: Readonly<Record<CharacterProfile["callingId"], st
   shadowknight: "/assets/3d/characters/shadowknight.gltf",
 };
 
-const PLAYER_MODEL_BY_IDENTITY: Readonly<Record<string, string>> = {
-  "elf:shadowknight": "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
+interface PlayerAvatarManifest {
+  modelPath: string;
+  animationPacks: readonly AnimationPackSpec[];
+}
+
+const HUMANOID_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
+  modelPath: "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
+  animationPacks: [
+    ...HUMANOID_ACTIVE_ANIMATION_PACKS,
+    SIPHON_CLEAVE_PACK,
+    WEAPON_STRIKE_PACK,
+  ],
+};
+
+const PLAYER_AVATAR_BY_IDENTITY: Readonly<Record<string, PlayerAvatarManifest>> = {
+  "human:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
+  "elf:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
+  "dwarf:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
+  "halfling:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
 };
 
 export function resolveCharacterIdentity(profile: Pick<CharacterProfile, "raceId" | "callingId">) {
@@ -28,8 +51,14 @@ export function resolveCharacterIdentity(profile: Pick<CharacterProfile, "raceId
   } as const;
 }
 
-export function resolvePlayerModelPath(profile: Pick<CharacterProfile, "raceId" | "callingId">): string {
+export function resolvePlayerAvatarManifest(
+  profile: Pick<CharacterProfile, "raceId" | "callingId">,
+): PlayerAvatarManifest {
   const identity = resolveCharacterIdentity(profile);
-  return PLAYER_MODEL_BY_IDENTITY[`${identity.raceId}:${identity.callingId}`]
-    ?? PLAYER_MODEL_BY_CALLING[identity.callingId];
+  return PLAYER_AVATAR_BY_IDENTITY[`${identity.raceId}:${identity.callingId}`]
+    ?? { modelPath: PLAYER_MODEL_BY_CALLING[identity.callingId], animationPacks: [] };
+}
+
+export function resolvePlayerModelPath(profile: Pick<CharacterProfile, "raceId" | "callingId">): string {
+  return resolvePlayerAvatarManifest(profile).modelPath;
 }

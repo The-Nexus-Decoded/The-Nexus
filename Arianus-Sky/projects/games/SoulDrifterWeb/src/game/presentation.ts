@@ -171,9 +171,22 @@ export function setWeaponVisualState(presentation: WeaponPresentation, state: We
 }
 
 export type HairStyleId = "shaved" | "cropped" | "silver-sweep";
+export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
   hairStyle: HairStyleId;
+  raceId: HumanoidRaceId;
+}
+
+const RACE_AVATAR_SHAPES: Readonly<Record<HumanoidRaceId, { width: number; depth: number }>> = {
+  human: { width: 1, depth: 1 },
+  elf: { width: 0.94, depth: 0.96 },
+  dwarf: { width: 1.22, depth: 1.15 },
+  halfling: { width: 1.08, depth: 1.04 },
+};
+
+export function raceAvatarShape(raceId: string): { width: number; depth: number } {
+  return RACE_AVATAR_SHAPES[raceId as HumanoidRaceId] ?? RACE_AVATAR_SHAPES.human;
 }
 
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
@@ -186,6 +199,13 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   hair.forEach((strand, index) => {
     strand.visible = appearance.hairStyle === "silver-sweep"
       || (appearance.hairStyle === "cropped" && index < 3);
+  });
+
+  // The animation rig is shared, but the visible ancestry is not. The custom
+  // Shadowknight mesh keeps ears as separate parts so a Human, Dwarf, or
+  // Halfling can never silently render with the Elf silhouette.
+  model.traverse((child) => {
+    if (/SK_PointEar_(?:L|R)/i.test(child.name)) child.visible = appearance.raceId === "elf";
   });
 }
 

@@ -2,7 +2,7 @@ import type { CharacterProfile } from "./character";
 import type { InventoryState } from "./equipment";
 
 const DATABASE_NAME = "souldrifter-story";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 interface NpcStateRecord {
   id: string;
@@ -30,6 +30,19 @@ class SoulDrifterDatabase {
 
   public async saveCharacter(profile: CharacterProfile): Promise<void> {
     await this.put("characters", { id: "active", profile, updatedAt: new Date().toISOString() });
+  }
+
+  public async loadAvatarPreview(): Promise<string | null> {
+    const record = await this.get<{ id: string; dataUrl: string }>("avatarPreviews", "active");
+    return record?.dataUrl ?? null;
+  }
+
+  public async saveAvatarPreview(dataUrl: string): Promise<void> {
+    await this.put("avatarPreviews", { id: "active", dataUrl, updatedAt: new Date().toISOString() });
+  }
+
+  public async clearAvatarPreview(): Promise<void> {
+    await this.delete("avatarPreviews", "active");
   }
 
   public async loadInventory(): Promise<InventoryState | null> {
@@ -95,6 +108,7 @@ class SoulDrifterDatabase {
         if (!db.objectStoreNames.contains("checkpoints")) db.createObjectStore("checkpoints", { keyPath: "id" });
         if (!db.objectStoreNames.contains("storyOverrides")) db.createObjectStore("storyOverrides", { keyPath: "id" });
         if (!db.objectStoreNames.contains("inventories")) db.createObjectStore("inventories", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("avatarPreviews")) db.createObjectStore("avatarPreviews", { keyPath: "id" });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error ?? new Error("Unable to open the SoulDrifter story database."));

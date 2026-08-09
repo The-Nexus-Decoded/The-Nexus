@@ -11,7 +11,7 @@ import {
 } from "./equipment";
 import type { DialogueChoice, DialogueScene } from "./npc";
 import { prologuePages } from "./prologue";
-import type { ImprintOption, StarterImprintSelection } from "./tutorialChoices";
+import { callingPerkOptions, type ImprintOption, type StarterImprintSelection } from "./tutorialChoices";
 import { resolveCharacterIdentity } from "./avatarIdentity";
 import type { LocomotionPreference } from "./avatarMotionController";
 
@@ -67,6 +67,7 @@ export class GameUI {
   private readonly locomotionPreference = requiredElement<HTMLElement>("locomotion-preference");
   private readonly eventLog = requiredElement<HTMLOListElement>("event-log");
   private readonly combatControls = requiredElement<HTMLDivElement>("combat-controls");
+  private readonly imprintSkillAction = requiredElement<HTMLButtonElement>("imprint-skill-action");
   private readonly combatStyle = requiredElement<HTMLSelectElement>("combat-style");
   private readonly speedToggle = requiredElement<HTMLButtonElement>("speed-toggle");
   private readonly speedValue = requiredElement<HTMLElement>("speed-value");
@@ -104,6 +105,10 @@ export class GameUI {
 
   public constructor() {
     this.setLocomotionPreference(this.locomotionMode, false);
+    this.imprintSkillAction.addEventListener("click", () => {
+      const name = requiredElement<HTMLElement>("imprint-skill-name").textContent || "This class discipline";
+      this.setMessage(`${name} is sealed into this character. Its dedicated active effect is a visible POC placeholder until the class skill pass.`);
+    });
     this.locomotionPreference.querySelectorAll<HTMLButtonElement>("button[data-locomotion-preference]").forEach((button) => {
       button.addEventListener("click", () => {
         const preference = button.dataset.locomotionPreference as LocomotionPreference | undefined;
@@ -230,9 +235,7 @@ export class GameUI {
     requiredElement<HTMLElement>("race-name").textContent = identity.raceName;
     requiredElement<HTMLElement>("calling-name").textContent = identity.callingName;
     requiredElement<HTMLElement>("portrait-rune").textContent = identity.raceGlyph;
-    requiredElement<HTMLImageElement>("portrait-image").src = identity.raceId === "elf" && identity.callingId === "shadowknight"
-      ? "/assets/3d/characters/elf-shadowknight/elf-shadowknight-preview-front.png"
-      : `/assets/generated/characters/${identity.raceId}-${identity.callingId}.png`;
+    requiredElement<HTMLImageElement>("portrait-image").src = `/assets/generated/characters/${identity.raceId}-${identity.callingId}.png`;
     requiredElement<HTMLElement>("paper-identity").textContent = `${identity.raceName} · ${identity.callingName}`;
     const paperStats = requiredElement<HTMLElement>("paper-stats");
     paperStats.replaceChildren(...STAT_KEYS.map((key) => {
@@ -252,6 +255,18 @@ export class GameUI {
       badge.textContent = trait;
       return badge;
     }));
+    const callingPerk = profile.starterImprint
+      ? callingPerkOptions(profile.callingId).find((option) => option.id === profile.starterImprint?.callingPerkId)
+      : undefined;
+    this.imprintSkillAction.hidden = !callingPerk;
+    this.combatControls.classList.toggle("has-imprint-skill", Boolean(callingPerk));
+    if (callingPerk) {
+      requiredElement<HTMLElement>("imprint-skill-name").textContent = callingPerk.name;
+      const help = `${callingPerk.description} This class-discipline action is displayed now as a POC skill-awakening placeholder; its authored combat effect is pending.`;
+      this.imprintSkillAction.dataset.mechanicHelp = help;
+      this.imprintSkillAction.title = help;
+      this.imprintSkillAction.setAttribute("aria-label", `${callingPerk.name}, skill awakening placeholder. ${callingPerk.description}`);
+    }
     requiredElement<HTMLElement>("hp-max").textContent = String(profile.maxHp);
     requiredElement<HTMLElement>("resource-label").textContent = calling.resourceName;
     const resourceStat = requiredElement<HTMLElement>("resource-stat");
@@ -401,6 +416,7 @@ export class GameUI {
       panel.hidden = true;
       this.storybookVisible = false;
       this.storybookCloseHandler = null;
+      this.setScreenHudInert(false);
     };
     const render = (): void => {
       const page = pages[pageIndex]!;
@@ -453,6 +469,7 @@ export class GameUI {
     close.onclick = dismiss;
     this.storybookCloseHandler = dismiss;
     this.storybookVisible = true;
+    this.setScreenHudInert(true);
     panel.hidden = false;
     render();
     next.focus();
@@ -551,6 +568,7 @@ export class GameUI {
     const dismiss = (): void => {
       panel.hidden = true;
       this.imprintVisible = false;
+      this.setScreenHudInert(false);
     };
     close.onclick = dismiss;
     confirm.onclick = () => {
@@ -567,6 +585,7 @@ export class GameUI {
     renderOptions(raceGrid, raceOptions, () => raceBoonId, (id) => { raceBoonId = id; });
     renderOptions(callingGrid, callingOptions, () => callingPerkId, (id) => { callingPerkId = id; });
     this.imprintVisible = true;
+    this.setScreenHudInert(true);
     panel.hidden = false;
   }
 
