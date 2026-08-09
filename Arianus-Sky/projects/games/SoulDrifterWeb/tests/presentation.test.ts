@@ -4,8 +4,10 @@ import {
   cameraFollowStep,
   cameraPanBounds,
   cloneActorMaterial,
+  createStarterLongswordPresentation,
   screenPanToWorld,
   sanitizeAttackClip,
+  setWeaponVisualState,
 } from "../src/game/presentation";
 
 describe("actor presentation boundaries", () => {
@@ -41,7 +43,10 @@ describe("actor presentation boundaries", () => {
       new THREE.QuaternionKeyframeTrack("spine_01.quaternion", times, [0, 0, 0, 1, 0.2, 0.2, 0, 0.96]),
       new THREE.QuaternionKeyframeTrack("neck_01.quaternion", times, [0, 0, 0, 1, 0.1, 0, 0.1, 0.98]),
       new THREE.QuaternionKeyframeTrack("Head.quaternion", times, [0, 0, 0, 1, 0, 0.1, 0.1, 0.98]),
+      new THREE.QuaternionKeyframeTrack("clavicle_r.quaternion", times, [0, 0, 0, 1, 0.1, 0.2, 0, 0.97]),
       new THREE.QuaternionKeyframeTrack("upperarm_r.quaternion", times, [0, 0, 0, 1, 0.3, 0.1, 0, 0.94]),
+      new THREE.QuaternionKeyframeTrack("lowerarm_r.quaternion", times, [0, 0, 0, 1, 0.2, 0.3, 0, 0.93]),
+      new THREE.QuaternionKeyframeTrack("hand_r.quaternion", times, [0, 0, 0, 1, 0.1, 0.1, 0.2, 0.96]),
       new THREE.QuaternionKeyframeTrack("root.quaternion", times, [0, 0, 0, 1, 0, 0.2, 0, 0.98]),
       new THREE.QuaternionKeyframeTrack("thigh_l.quaternion", times, [0, 0, 0, 1, 0.1, 0.2, 0, 0.97]),
       new THREE.QuaternionKeyframeTrack("foot_r.quaternion", times, [0, 0, 0, 1, 0.2, 0, 0, 0.98]),
@@ -51,13 +56,57 @@ describe("actor presentation boundaries", () => {
 
     expect(sanitized).not.toBe(clip);
     expect(sanitized.tracks.map((track) => track.name)).toEqual([
+      "root.position",
+      "pelvis.position",
+      "Hips.position",
       "spine_01.position",
       "spine_01.quaternion",
       "neck_01.quaternion",
       "Head.quaternion",
+      "clavicle_r.quaternion",
       "upperarm_r.quaternion",
+      "lowerarm_r.quaternion",
+      "hand_r.quaternion",
+      "thigh_l.quaternion",
+      "foot_r.quaternion",
     ]);
-    expect(clip.tracks).toHaveLength(12);
+    for (const name of ["root.position", "pelvis.position", "Hips.position"]) {
+      const track = sanitized.tracks.find((candidate) => candidate.name === name);
+      const values = Array.from(track?.values ?? []);
+      expect(values.slice(0, 4)).toEqual([0, 0, 0, 0]);
+      expect(values[4]).toBeCloseTo(0.1);
+      expect(values[5]).toBe(0);
+    }
+    expect(clip.tracks).toHaveLength(15);
+  });
+
+  it("moves one modular starter sword between hidden, hip, and hand states", () => {
+    const model = new THREE.Group();
+    const pelvis = new THREE.Bone();
+    pelvis.name = "pelvis";
+    const hand = new THREE.Bone();
+    hand.name = "hand_r";
+    model.add(pelvis, hand);
+    for (const part of ["Blade", "Grip", "Guard", "Pommel"]) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.05));
+      mesh.name = `SK_StarterLongsword_${part}`;
+      hand.add(mesh);
+    }
+
+    const weapon = createStarterLongswordPresentation(model);
+    expect(weapon).toBeDefined();
+    expect(weapon?.state).toBe("hidden");
+    expect(weapon?.handSocket.visible).toBe(false);
+    expect(weapon?.hipSocket.visible).toBe(false);
+
+    setWeaponVisualState(weapon!, "sheathed");
+    expect(weapon?.handSocket.visible).toBe(false);
+    expect(weapon?.hipSocket.visible).toBe(true);
+    expect(weapon?.hipSocket.parent?.name).toBe("pelvis");
+
+    setWeaponVisualState(weapon!, "drawn");
+    expect(weapon?.handSocket.visible).toBe(true);
+    expect(weapon?.hipSocket.visible).toBe(false);
   });
 });
 

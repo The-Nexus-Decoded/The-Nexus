@@ -30,14 +30,14 @@ Required visual language:
 Required interactions:
 
 1. Move on the real navigation floor.
-2. Speak with Wellkeeper Ilyra for ancestry- and calling-specific origin lore.
-3. Use the Memory Loom to distribute exactly three final stat points.
+2. Speak with Wellkeeper Ilyra and complete every page of the voiced Chronicle of Returning.
+3. Learn why this ancestry/calling returned, then use the Memory Loom to distribute exactly three final stat points.
 4. Choose one matching ancestry boon and one matching base-calling discipline.
-5. Open the Wayfarer's Coffer for the shared worn tunic/pants/boots outfit, one mundane class-readable starter weapon, a faded binding charm, and two recovery bands.
+5. Inspect the worn tunic/pants/boots and mundane class-readable starter weapon already equipped, then open the Wayfarer's Coffer for a faded binding charm and two recovery bands.
 6. Rehearse the signature, defense, and recovery actions on the effigy or in open space.
 7. Choose a trial door.
 
-The doors remain locked until the player has answered Ilyra, sealed the starter imprint, and opened the starter coffer. Touching either door then opens a voiced comparison containing both difficulty choices; touching a door never silently commits the player.
+The doors remain locked until the player has completed Ilyra's chronicle, answered Ilyra, sealed the starter imprint, opened the starter coffer, and equipped a usable main-hand weapon. Touching either door then opens a voiced comparison containing both difficulty choices; touching a door never silently commits the player.
 
 The character's ancestry and base calling were already selected in the Weaving. Ilyra refines the starter body; she does not replace those choices inside the room.
 
@@ -84,9 +84,9 @@ The Warden uses a seeded pattern—Cinder Sweep, Ash Call, or Soul Tax—with a 
 ## Nine-step tutorial
 
 1. Awaken and move.
-2. Ask Ilyra why this ancestry/calling returned.
-3. Seal three stat points, an ancestry boon, and a base discipline.
-4. Recover gear and rehearse level-one actions.
+2. Complete Ilyra's illustrated Chronicle of Returning and accept the shared SoulDrifter mission.
+3. Learn why this ancestry/calling returned, then seal three stat points, an ancestry boon, and a base discipline.
+4. Inspect equipped starter gear, recover supplies into the backpack, and rehearse level-one actions.
 5. Choose Wayfarer or Oathbreaker.
 6. Clear the selected encounter in the shared gallery.
 7. Recover and prepare without free resource resets.
@@ -99,15 +99,17 @@ The Warden uses a seeded pattern—Cinder Sweep, Ash Call, or Soul Tax—with a 
 - The starter chamber renders as a populated 3D environment, not flat art or a blank tile box.
 - Mouse floor clicks and WASD/arrow movement both traverse the real navigation grid; a successful move produces visible locomotion and immediate status feedback.
 - Every calling begins in the same humble clothing family with one mundane default implement. Any calling may later equip any weapon; proficiency and conditional item channels determine effectiveness instead of hard equip locks.
+- Every new soul has a separate 30-slot backpack. Equipped paper-doll items use no bag slot; loot, quest rewards, purchases, materials, consumables, and unequipped gear use the shared capacity-checked inventory path.
+- Backpack items and capacity persist with the locally saved soul. A full pack blocks collection or unequipping with an explicit message rather than silently deleting an item.
 - The authored Elf Shadowknight is grounded, readable, animated, and wearing starter-tier—not heroic—equipment.
-- Ilyra's dialogue opens the functional starter-imprint panel.
+- Ilyra's dialogue opens the required illustrated chronicle; completing its final page unlocks and opens the functional starter-imprint panel.
 - Exactly three final stat points, one matching ancestry boon, and one matching calling discipline can be sealed only once.
 - Both physical doors converge on the same next room and miniboss room.
 - Every run contains exactly three to five reachable gallery chambers with unique generated object IDs.
 - Wayfarer activates exactly three light enemies; Oathbreaker activates all five and scales health, damage, pressure, and rewards.
 - The guide passage remains safe until the actual combat-room threshold.
 - Skills can animate without a valid target; invalid dry activations cause no damage and spend no resource.
-- Weapon Strike is always available as the universal zero-resource basic attack.
+- Weapon Strike is the universal zero-resource basic attack when a usable main-hand weapon is equipped. It becomes Unarmed Strike when the weapon is unequipped, broken, or disarmed; weapon-required skills visibly lock and explain why.
 - Valid melee attacks automatically face a nearby target before the animation resolves.
 - In real time, enemies visibly pursue and damage the player; the scheduler prevents an entire adjacent pack from attacking during one animation lock.
 - Out-of-combat buffs, Stability costs, Gravefire generation/spending, recovery charges, cooldowns, and Realm Pressure are explained by hover help.

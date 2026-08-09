@@ -1,7 +1,8 @@
 import type { CharacterProfile } from "./character";
+import type { InventoryState } from "./equipment";
 
 const DATABASE_NAME = "souldrifter-story";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 interface NpcStateRecord {
   id: string;
@@ -29,6 +30,19 @@ class SoulDrifterDatabase {
 
   public async saveCharacter(profile: CharacterProfile): Promise<void> {
     await this.put("characters", { id: "active", profile, updatedAt: new Date().toISOString() });
+  }
+
+  public async loadInventory(): Promise<InventoryState | null> {
+    const record = await this.get<{ id: string; inventory: InventoryState }>("inventories", "active");
+    return record?.inventory ?? null;
+  }
+
+  public async saveInventory(inventory: InventoryState): Promise<void> {
+    await this.put("inventories", { id: "active", inventory, updatedAt: new Date().toISOString() });
+  }
+
+  public async clearInventory(): Promise<void> {
+    await this.delete("inventories", "active");
   }
 
   public async recordDialogue(
@@ -80,6 +94,7 @@ class SoulDrifterDatabase {
         if (!db.objectStoreNames.contains("dialogueEvents")) db.createObjectStore("dialogueEvents", { autoIncrement: true });
         if (!db.objectStoreNames.contains("checkpoints")) db.createObjectStore("checkpoints", { keyPath: "id" });
         if (!db.objectStoreNames.contains("storyOverrides")) db.createObjectStore("storyOverrides", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("inventories")) db.createObjectStore("inventories", { keyPath: "id" });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error ?? new Error("Unable to open the SoulDrifter story database."));
@@ -104,6 +119,12 @@ class SoulDrifterDatabase {
     const database = await this.open();
     const transaction = database.transaction(storeName, "readwrite");
     await requestResult(transaction.objectStore(storeName).add(value));
+  }
+
+  private async delete(storeName: string, key: IDBValidKey): Promise<void> {
+    const database = await this.open();
+    const transaction = database.transaction(storeName, "readwrite");
+    await requestResult(transaction.objectStore(storeName).delete(key));
   }
 }
 

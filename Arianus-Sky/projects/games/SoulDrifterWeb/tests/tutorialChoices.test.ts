@@ -7,6 +7,8 @@ import {
   deterministicTrialRoll,
   hardTrialSkillName,
   raceBoonOptions,
+  starterImprintLockReason,
+  starterTrialLockReason,
   statAllocationTotal,
 } from "../src/game/tutorialChoices";
 
@@ -15,6 +17,7 @@ function elfShadowknight() {
     name: "Vaelis",
     raceId: "elf",
     callingId: "shadowknight",
+    appearance: { hairStyle: "shaved", skinTone: "ashen" },
     answers: Object.fromEntries(MEMORY_QUESTIONS.map((question) => [question.id, question.answers[0]!.id])),
   });
 }
@@ -77,5 +80,26 @@ describe("shared-room trial presets", () => {
   it("uses a stable seed roll so the hard reward cannot be rerolled by reopening the cache", () => {
     expect(deterministicTrialRoll(4182)).toBe(deterministicTrialRoll(4182));
     expect(deterministicTrialRoll(4182)).not.toBe(deterministicTrialRoll(4183));
+  });
+});
+
+describe("required starter progression", () => {
+  it("locks the Loom behind the chronicle and the doors behind every shared invariant", () => {
+    const profile = elfShadowknight();
+    expect(starterImprintLockReason(profile)).toContain("Chronicle");
+    expect(starterTrialLockReason(profile, { cofferOpened: false, hasUsableWeapon: false })).toContain("Chronicle");
+
+    profile.onboarding = { storybookCompleted: true, ilyraAnswered: true };
+    expect(starterImprintLockReason(profile)).toBeNull();
+    expect(starterTrialLockReason(profile, { cofferOpened: false, hasUsableWeapon: true })).toContain("three stat threads");
+
+    applyStarterImprint(profile, {
+      allocations: { vitality: 3 },
+      raceBoonId: "elf-memory",
+      callingPerkId: "shadowknight-graveiron",
+    });
+    expect(starterTrialLockReason(profile, { cofferOpened: false, hasUsableWeapon: true })).toContain("Coffer");
+    expect(starterTrialLockReason(profile, { cofferOpened: true, hasUsableWeapon: false })).toContain("main-hand weapon");
+    expect(starterTrialLockReason(profile, { cofferOpened: true, hasUsableWeapon: true })).toBeNull();
   });
 });

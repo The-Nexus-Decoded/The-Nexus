@@ -21,6 +21,7 @@ function completeDraft(raceId: string, callingId: string): CharacterDraft {
     name: "Aster",
     raceId,
     callingId,
+    appearance: { hairStyle: "shaved", skinTone: "ashen" },
     answers,
   };
 }

@@ -111,6 +111,8 @@ The player should be able to:
 6. Fight through the default real-time action bar or preselect Tactical Turns; both resolve the same movement, attacks, spells, reactions, and impacts.
 7. Manipulate tiles, elevation, line of sight, hazards, and enemy positioning.
 8. Recover Soul Essence, realm materials, memories, class imprints, and equipment.
+
+Inventory uses a UO-inspired separation between equipped paper-doll slots and a carried backpack. Every new soul starts with 30 backpack slots. Equipped items consume no backpack slot; loot, quest rewards, vendor purchases, crafting results, consumables, materials, and unequipped equipment share one capacity-checked collection path. Capacity is expandable through earned slots and future backend-verified account entitlements; details are locked in `docs/INVENTORY_AND_EQUIPMENT_SYSTEM.md`.
 9. Decide which systems, settlements, factions, or realm conduits to stabilize.
 10. Use recovered memories to unlock skills, subclasses, crafting, and story branches.
 11. Re-enter the world with a changed party and altered realm state.
@@ -724,8 +726,9 @@ The browser vertical slice uses one connected dungeon crawl:
 - The player awakens beside the Soul Well with fragmented memories.
 - Teach floor navigation, inspection, movement, facing, interaction, action icons, dry activation, out-of-combat buffs, cooldowns, and finite recovery.
 - Ancestry and base calling were already chosen in the Weaving. Wellkeeper Ilyra explains why that specific ancestry/calling returned.
+- Ilyra presents the required illustrated Chronicle of Returning. Historical Death Gate events are labeled separately from the original SoulDrifter continuation, and the final page explains the player's shared mission among many resurrected SoulDrifters.
 - At the Memory Loom, the player distributes exactly three final stat points, selects one ancestry boon, and selects one base-calling discipline.
-- The Wayfarer's Coffer grants worn C-tier equipment and two recovery bands.
+- The returned body begins with worn C-tier clothing and a mundane calling weapon already equipped. The Wayfarer's Coffer grants a binding charm and two recovery bands.
 - A battered effigy supports safe signature/defense rehearsal.
 - The room must visibly function as a damaged trans-realm machine-temple: Soul Well, conduits, realm reliefs, pillars, shelves, cobwebs, braziers, rubble, coffers, ash, and unstable light.
 
@@ -754,6 +757,8 @@ The browser vertical slice uses one connected dungeon crawl:
 ### Low-level magic rule
 
 Levels 1–19 use mortal weapon disciplines, human wizardry, practical necromancy, wards, color formulas, lesser bindings, and class resources. Sartan probability song, Patryn body/equipment runes, and mature Void/Dark/Death specialization begin around levels 20–30. No class may combine Sartan-specific and Patryn-specific skills.
+
+The complete starter-perk review surface is `STARTER_PERK_VETTING_MATRIX.md`; unapproved 36-combination resonance proposals are documentation, not shipping balance data.
 
 ## Enemy and Encounter Families
 
@@ -829,6 +834,8 @@ Production interpretation:
 - Render characters, creatures, armor, weapons, props, terrain, buildings, and effects as real-time low-poly 3D.
 - Keep characters fully rigged and animated rather than converting them to sprites.
 - Required animation groups are idle, walk, run or urgent move, basic attack, signature skill, cast or channel, block or evade, hit reaction, downed, death, and interaction.
+- Every weapon action, spell, summon, buff, defense, recovery, and class/creature skill must pass the shared [`ANIMATION_PRODUCTION_PIPELINE.md`](ANIMATION_PRODUCTION_PIPELINE.md) gate. The skill owns one actor-agnostic motion/telegraph/event contract reused by compatible PCs, NPCs, enemies, summons, and PvP actors; race, gear, and power tier add layers without changing what the skill communicates before resolution.
+- Every weapon pose and action must first pass the source-backed stance and grip research gate in [`WEAPON_MOTION_REFERENCE_INDEX.md`](WEAPON_MOTION_REFERENCE_INDEX.md). Research is selected for the exact weapon subtype, hand count, skill tier, and action; convenient animation clips cannot redefine the class skill.
 - Keep movement and interactions on a logical square grid while rendering the floor and world in 3D.
 - Use modular 3D equipment anchors so weapons, armor, runes, and class gear remain visibly equipped.
 - Use simple baked or low-cost lighting, clear contact shadows, and restrained dynamic effects for magic, weather, hazards, and realm pressure.

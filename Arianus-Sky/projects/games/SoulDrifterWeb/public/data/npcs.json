@@ -10,8 +10,8 @@
         "id": "ilyra-first-awakening",
         "opening": [
           "Easy, {name}. Your body is newly woven, but your soul is older than this chamber.",
-          "There was once one world governed by many laws. The Architects feared a silence growing beneath it, so they performed the Sundering: one world became separated realms of wind, fire, water, stone, light, death, and memory.",
-          "The Soul Wells were built as locks between those realms. Now the locks are turning backward. Mountains remember oceans. Dead cities wake beneath green skies. Someone—or something—is forcing creation to become one world again."
+          "Before the Memory Loom tells you how this life will begin, you must understand why the Well returned you at all.",
+          "I will show you seven memories: Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four realm journey, the Seventh Gate, and the original SoulDrift that led to your return. Finish them, and then I will tell you what this soul has become."
         ],
         "raceLines": {
           "human": "Human souls adapt by borrowing the shape of every realm they survive. Yours carries several incompatible echoes at once. That is why the Well chose you—and why ordinary gates can no longer keep you out.",
@@ -20,7 +20,7 @@
           "halfling": "Halfling wayfinders discovered paths the Architects never intended to leave open. You carried refugees along one of those hidden roads—and the road followed you back into the Well. You are here because every sealed realm now contains a path that remembers your feet."
         },
         "callingLines": {
-          "warrior": "Your rune circuit can touch hostile realm laws without immediately breaking. That gift will hurt before it saves anyone.",
+          "warrior": "Your mortal weapon discipline can meet hostile realm pressure without immediately breaking. That gift will hurt before it saves anyone.",
           "mage": "Your color channels can read the grammar shared by all realms. Do not mistake understanding a law for controlling it.",
           "priest": "You can keep a soul coherent while realities argue over its shape. Many will need that mercy.",
           "sharpshooter": "You see the lines along which a realm is about to move. The right shot can alter more than a battle.",
@@ -33,26 +33,26 @@
           "choices": [
             {
               "id": "refine-imprint",
-              "label": "Help me shape my first strengths.",
-              "response": "Your ancestry and calling are already yours; I will not rewrite them. At the Memory Loom, place three final points into the qualities you trust most, choose one ancestry boon, and choose one mortal base discipline. This is level-one training—no Sartan probability song, Patryn body-runes, or higher void craft yet.",
+              "label": "Open the Chronicle of Returning.",
+              "response": "Pass through all seven boards once. You may advance past any individual narration immediately, and leaving only pauses your place. The final memory names the shared SoulDrifter task; only then will the Loom accept three stat threads, one ancestry boon, and one mortal base discipline.",
               "checkpoint": "starter-imprint-offered"
             },
             {
             "id": "why-me",
             "label": "Why did the Well choose me?",
-            "response": "It did not choose a hero. It chose a soul capable of remaining itself while carrying contradictory laws. Your answers in the Weaving proved that capacity.",
+            "response": "It did not choose one hero. It resurrected many souls capable of carrying contradictory laws. Finish the chronicle and you will see why your particular {race} {calling} pattern survived.",
             "checkpoint": "asked-why-chosen"
           },
           {
             "id": "architects",
             "label": "Who were the Architects?",
-            "response": "Mortals who learned to write commands into reality. They saved existence by breaking it, then taught each realm a different history so no one would try to reverse their work. Their surviving machines still call that betrayal mercy.",
+            "response": "The oldest chronicle names the Sartan who performed the Sundering and the Patryns they imprisoned. Our continuation names later builders Architects when the exact hand is unknown. The storybook keeps those histories separate.",
             "checkpoint": "asked-about-architects"
           },
           {
             "id": "ready",
             "label": "Tell me what to do first.",
-            "response": "Recover what the coffer kept from your last body. Then follow Orren's chalk marks through the breach. Brannoc waits at the arena threshold to test whether your new circuit can survive contact.",
+            "response": "First finish the chronicle and seal your starter imprint. Your worn clothing and mundane weapon are already equipped; the coffer holds the binding charm and recovery bands needed for the trial doors.",
             "checkpoint": "ilyra-guidance-complete"
           }
         ]

@@ -135,6 +135,7 @@ function buildCoffer(materials: SoulwellMaterialLibrary): THREE.Group {
   const base = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.72, 0.95, 3, 0.09), materials.oak);
   base.position.y = 0.4;
   const lid = new THREE.Mesh(new RoundedBoxGeometry(1.52, 0.44, 1.02, 4, 0.16), materials.oak);
+  lid.name = "coffer-lid";
   lid.position.y = 0.92;
   const bandGeometry = new RoundedBoxGeometry(0.16, 1.18, 1.06, 2, 0.025);
   const leftBand = new THREE.Mesh(bandGeometry, materials.darkIron);
@@ -508,6 +509,7 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
       blending: THREE.AdditiveBlending,
     });
     const doorVeil = new THREE.Mesh(new THREE.PlaneGeometry(1.52, 2.38, 18, 12), veilMaterial);
+    doorVeil.name = "trial-door-veil";
     doorVeil.rotation.y = Math.PI / 2;
     doorVeil.position.set((chamberWidth - 0.77) * tileSize, 1.43, gateProp.y * tileSize);
     const threshold = new THREE.Mesh(new THREE.RingGeometry(0.56, 0.7, 28, 1, 0, Math.PI), hard ? materials.bronze : materials.soulglass);

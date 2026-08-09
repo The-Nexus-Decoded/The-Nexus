@@ -5,12 +5,16 @@ import { createRunSeed } from "./game/dungeon";
 import { storyDatabase } from "./game/persistence";
 import { World3D } from "./game/World3D";
 
-async function launchGame(profile: CharacterProfile): Promise<void> {
+async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): Promise<void> {
   // Character shaping persists; a trial oath belongs only to the generated
   // crawl that created it. Reloading creates a new seed, so it must also ask
   // the player to choose Wayfarer or Oathbreaker again.
   delete profile.chosenTrial;
   setActiveCharacter(profile);
+  const savedInventory = resumeSavedSoul
+    ? await storyDatabase.loadInventory().catch(() => null)
+    : null;
+  if (!resumeSavedSoul) await storyDatabase.clearInventory().catch(() => undefined);
   await Promise.all([
     storyDatabase.saveCharacter(profile),
     storyDatabase.reachCheckpoint("character-created", "the-weaving"),
@@ -20,7 +24,7 @@ async function launchGame(profile: CharacterProfile): Promise<void> {
   if (!shell || !container) throw new Error("Missing SoulDrifter application shell.");
   shell.hidden = false;
 
-  const world = new World3D(container, profile, createRunSeed());
+  const world = new World3D(container, profile, createRunSeed(), savedInventory ?? undefined);
   try {
     await world.start();
   } catch (error) {
@@ -32,7 +36,7 @@ async function launchGame(profile: CharacterProfile): Promise<void> {
 
 async function bootstrap(): Promise<void> {
   const savedProfile = await storyDatabase.loadCharacter().catch(() => null);
-  new CharacterCreation((profile) => { void launchGame(profile); }, savedProfile);
+  new CharacterCreation((profile, resumeSavedSoul) => { void launchGame(profile, resumeSavedSoul); }, savedProfile);
 }
 
 void bootstrap();

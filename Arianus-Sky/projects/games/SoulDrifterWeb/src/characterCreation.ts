@@ -2,9 +2,11 @@ import {
   CALLINGS,
   callingById,
   deriveCharacter,
+  HAIR_STYLES,
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
+  SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
   type CharacterDraft,
@@ -17,7 +19,7 @@ function characterPortraitPath(raceId: string, callingId: string): string {
     : `/assets/generated/characters/${raceId}-${callingId}.png`;
 }
 
-type CreationStep = "name" | "race" | "calling" | "memory" | "review";
+type CreationStep = "name" | "race" | "appearance" | "calling" | "memory" | "review";
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -30,12 +32,18 @@ export class CharacterCreation {
   private readonly stage = requiredElement<HTMLElement>("creation-stage");
   private readonly progress = requiredElement<HTMLOListElement>("creation-progress");
   private readonly error = requiredElement<HTMLParagraphElement>("creation-error");
-  private readonly draft: CharacterDraft = { name: "", raceId: "", callingId: "", answers: {} };
+  private readonly draft: CharacterDraft = {
+    name: "",
+    raceId: "",
+    callingId: "",
+    appearance: { hairStyle: "shaved", skinTone: "ashen" },
+    answers: {},
+  };
   private step: CreationStep = "name";
   private memoryIndex = 0;
 
   public constructor(
-    private readonly onComplete: (profile: CharacterProfile) => void,
+    private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
     private readonly savedProfile: CharacterProfile | null = null,
   ) {
     this.render();
@@ -47,6 +55,7 @@ export class CharacterCreation {
 
     if (this.step === "name") this.renderName();
     else if (this.step === "race") this.renderRace();
+    else if (this.step === "appearance") this.renderAppearance();
     else if (this.step === "calling") this.renderCalling();
     else if (this.step === "memory") this.renderMemory();
     else this.renderReview();
@@ -56,6 +65,7 @@ export class CharacterCreation {
     const entries = [
       { id: "name", label: "Name" },
       { id: "race", label: "Ancestry" },
+      { id: "appearance", label: "Appearance" },
       { id: "calling", label: "Calling" },
       { id: "memory", label: `Memories ${this.memoryIndex + 1}/${MEMORY_QUESTIONS.length}` },
       { id: "review", label: "Soul imprint" },
@@ -100,7 +110,7 @@ export class CharacterCreation {
     };
     requiredElement<HTMLButtonElement>("creation-next").addEventListener("click", advance);
     document.getElementById("continue-character")?.addEventListener("click", () => {
-      if (this.savedProfile) this.complete(this.savedProfile);
+      if (this.savedProfile) this.complete(this.savedProfile, true);
     });
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") advance();
@@ -129,6 +139,47 @@ export class CharacterCreation {
     this.bindChoices("button[data-race]", "race", (id) => { this.draft.raceId = id; });
     this.bindNavigation(() => { this.step = "name"; }, () => {
       if (!this.draft.raceId) return this.fail("Choose the ancestry carried by this soul.");
+      this.step = "appearance";
+      this.render();
+    });
+  }
+
+  private renderAppearance(): void {
+    this.stage.innerHTML = `
+      <div class="creation-heading">
+        <p class="eyebrow">The returned body</p>
+        <h2>Which face did the Soul Well remember?</h2>
+        <p>Hair and skin are modular appearance choices. Armor and weapons attach to the same rig later.</p>
+      </div>
+      <div class="appearance-builder">
+        <section>
+          <h3>Skin tone</h3>
+          <div class="appearance-options appearance-options--skin">
+            ${Object.entries(SKIN_TONES).map(([id, tone]) => `
+              <button class="appearance-option ${this.draft.appearance.skinTone === id ? "is-selected" : ""}" data-skin-tone="${id}" type="button">
+                <span class="appearance-swatch" style="--swatch:#${tone.color.toString(16).padStart(6, "0")}"></span>
+                <strong>${tone.name}</strong>
+              </button>`).join("")}
+          </div>
+        </section>
+        <section>
+          <h3>Hair</h3>
+          <div class="appearance-options appearance-options--hair">
+            ${HAIR_STYLES.map((style) => `
+              <button class="appearance-option ${this.draft.appearance.hairStyle === style.id ? "is-selected" : ""}" data-hair-style="${style.id}" type="button">
+                <strong>${style.name}</strong><small>${style.description}</small>
+              </button>`).join("")}
+          </div>
+        </section>
+      </div>
+      ${this.navigation("Return to ancestry", "Choose calling")}`;
+    this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
+      this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
+    });
+    this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
+      this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
+    });
+    this.bindNavigation(() => { this.step = "race"; this.render(); }, () => {
       this.step = "calling";
       this.render();
     });
@@ -157,9 +208,9 @@ export class CharacterCreation {
           </button>`;
         }).join("")}
       </div>
-      ${this.navigation("Return to ancestry", "Enter the memories")}`;
+      ${this.navigation("Return to appearance", "Enter the memories")}`;
     this.bindChoices("button[data-calling]", "calling", (id) => { this.draft.callingId = id; });
-    this.bindNavigation(() => { this.step = "race"; }, () => {
+    this.bindNavigation(() => { this.step = "appearance"; }, () => {
       if (!this.draft.callingId) return this.fail("Choose the calling that first answered the breach.");
       this.memoryIndex = 0;
       this.step = "memory";
@@ -262,11 +313,12 @@ export class CharacterCreation {
     });
   }
 
-  private complete(profile: CharacterProfile): void {
+  private complete(profile: CharacterProfile, resumeSavedSoul = false): void {
+    profile.appearance ??= { hairStyle: "shaved", skinTone: "ashen" };
     this.root.classList.add("is-dissolving");
     window.setTimeout(() => {
       this.root.hidden = true;
-      this.onComplete(profile);
+      this.onComplete(profile, resumeSavedSoul);
     }, 520);
   }
 

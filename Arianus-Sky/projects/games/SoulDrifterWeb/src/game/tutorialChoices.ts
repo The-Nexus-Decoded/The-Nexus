@@ -188,3 +188,31 @@ export function deterministicTrialRoll(seed: number): number {
 export function statAllocationTotal(allocations: Partial<Record<StatKey, number>>): number {
   return STAT_KEYS.reduce((total, key) => total + (allocations[key] ?? 0), 0);
 }
+
+export function starterImprintLockReason(profile: CharacterProfile): string | null {
+  if (!profile.onboarding?.storybookCompleted) {
+    return "Finish Ilyra's Chronicle of Returning before the Memory Loom can reveal your starter traits and stat threads.";
+  }
+  if (!profile.onboarding.ilyraAnswered) {
+    return "Answer Wellkeeper Ilyra before the Memory Loom can shape this returned body.";
+  }
+  return null;
+}
+
+export function starterTrialLockReason(
+  profile: CharacterProfile,
+  state: { cofferOpened: boolean; hasUsableWeapon: boolean },
+): string | null {
+  const imprintLock = starterImprintLockReason(profile);
+  if (imprintLock) return imprintLock;
+  if (!profile.starterImprint) {
+    return "Seal your three stat threads, ancestry boon, and base-calling discipline at the Memory Loom first.";
+  }
+  if (!state.cofferOpened) {
+    return "Open the Wayfarer's Coffer and recover its binding charm and recovery supplies first.";
+  }
+  if (!state.hasUsableWeapon) {
+    return "Equip a usable main-hand weapon in the paper doll before entering the trial.";
+  }
+  return null;
+}

@@ -34,11 +34,15 @@ The four memory questions are diegetic stat and skill creation. Their answers mo
 
 The implementation supports all `4 × 9 = 36` ancestry/calling combinations. Each combination has its own original starter sprite.
 
+Monk is recorded as a planned tenth calling for a later class-design and asset pass. It is not yet part of the playable registry, the 36 current combinations, character creation, starter balance, or the production asset count.
+
 Favored ancestry/calling pairings grant a named resonance passive and one additional attribute point. They create meaningful optimization without locking any combination. The full progression ladder, mutually exclusive rune traditions, and specialization rules are in `CLASS_PROGRESSION_CODEX.md`.
 
 ### Ilyra's starter refinement
 
 The external Weaving chooses the character's name, ancestry, base calling, and four memory answers. The first room does not repeat or replace those decisions.
+
+Before the Memory Loom will answer, Ilyra opens the required **Chronicle of Returning**: seven concise illustrated boards covering Old Earth's Age of Dust, the rise of Sartan and Patryn, the Sundering, Xar and Haplo, the four-realm journey, the Seventh Gate, and the explicit boundary where SoulDrifter's original continuation begins. The final boards explain the Collision with the Book-of-Life reality, the weakening seals, the expected return of the old powers, and why many SoulDrifters have been resurrected to stabilize and prepare the mensch realms. Each board has readable text and temporary browser narration and is composed as a keyframe for a later animated opening. On the first run, all seven boards must be visited in order, but any individual voice segment may be skipped immediately. Closing early pauses and saves the current board without unlocking refinement. Recorded narration files can replace browser speech board-by-board without changing scripts or progression.
 
 Wellkeeper Ilyra introduces a final level-one refinement at the Memory Loom:
 
@@ -50,7 +54,21 @@ Wellkeeper Ilyra introduces a final level-one refinement at the Memory Loom:
 
 This gives the opening NPC dialogue mechanical weight while preserving free ancestry/calling combinations. It is mortal starter craft, not the later Sartan/Patryn specialization choice.
 
+The selectable options and all 36 proposed ancestry/calling resonances are tracked in `STARTER_PERK_VETTING_MATRIX.md`. New combination perks remain proposals until Lord Xar approves them.
+
 Level 1–19 characters do not use either advanced rune tradition. Their visible equipment and effects express mortal class craft; Aether-Scribed or Flesh-Forged layers are added only after the level-20 awakening choice.
+
+### Appearance customization
+
+Appearance is modular and does not change the character skeleton, calling, attributes, or animation library. Character creation exposes an ancestry-compatible set of:
+
+- skin-tone material presets, including deep, dark, brown, olive, tan, light, pale, and ancestry-specific fantasy ranges where the lore supports them;
+- hairstyles such as short crop, swept-back, shoulder-length, tied-back, braids, shaved, and bald, with additional ancestry-specific styles;
+- hair-color presets, facial-detail variants, and later cosmetic additions such as beards, scars, markings, and jewelry.
+
+Only one hairstyle occupies the hair slot at a time. Helmets either hide it or select an authored tucked-hair variant so hair never clips through armor. Hair, facial pieces, clothing, armor, weapons, sheaths, and harnesses remain separate equipment/presentation layers and never require the motion library to be downloaded again.
+
+A chest/back weapon harness is conditional equipment, not part of the base shirt. It is visible only when a compatible back-carried weapon or sheath is attached. Starter longswords default to a hip sheath; back harnesses are reserved for suitable greatswords, heavy axes, staves, and other large implements.
 
 ## Equipment and presentation ladder
 

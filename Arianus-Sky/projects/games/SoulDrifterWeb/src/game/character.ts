@@ -69,8 +69,30 @@ export interface CharacterDraft {
   name: string;
   raceId: string;
   callingId: string;
+  appearance: CharacterAppearance;
   answers: Record<string, string>;
 }
+
+export type HairStyleId = "shaved" | "cropped" | "silver-sweep";
+export type SkinToneId = "ashen" | "umber" | "copper" | "deep";
+
+export interface CharacterAppearance {
+  hairStyle: HairStyleId;
+  skinTone: SkinToneId;
+}
+
+export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: number }>> = {
+  ashen: { name: "Ashen", color: 0xa88476 },
+  umber: { name: "Umber", color: 0x765044 },
+  copper: { name: "Copper", color: 0xb87556 },
+  deep: { name: "Deep", color: 0x4a302a },
+};
+
+export const HAIR_STYLES: ReadonlyArray<{ id: HairStyleId; name: string; description: string }> = [
+  { id: "shaved", name: "Shaved", description: "Clean head silhouette; no helmet-like hair shell." },
+  { id: "cropped", name: "Close-cropped", description: "Short silver crown kept clear of collars and weapons." },
+  { id: "silver-sweep", name: "Silver sweep", description: "Longer Patryn-blooded sweep for an older soul." },
+];
 
 export interface CharacterProfile {
   name: string;
@@ -79,6 +101,7 @@ export interface CharacterProfile {
   raceGlyph: string;
   callingId: CallingId;
   callingName: string;
+  appearance: CharacterAppearance;
   stats: Stats;
   skills: string[];
   memoryConsequences: string[];
@@ -96,6 +119,8 @@ export interface CharacterProfile {
   chosenTrial?: "wayfarer" | "oathbreaker";
   onboarding?: {
     ilyraAnswered: boolean;
+    storybookCompleted?: boolean;
+    storybookPage?: number;
   };
 }
 
@@ -419,6 +444,7 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
     raceGlyph: race.glyph,
     callingId: calling.id,
     callingName: calling.name,
+    appearance: draft.appearance,
     stats,
     skills: [...new Set(skills)],
     memoryConsequences,

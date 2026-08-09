@@ -85,8 +85,9 @@
           <div class="inventory-block">
             <div class="section-heading">
               <h3>Pack</h3>
-              <span id="inventory-count">0 / 8</span>
+              <span id="inventory-count">0 / 30</span>
             </div>
+            <button id="equipment-toggle" class="equipment-toggle" type="button">Paper doll &amp; pack <span>I</span></button>
             <ul id="inventory-list" class="inventory-list">
               <li class="inventory-empty">Nothing carried</li>
             </ul>
@@ -115,6 +116,67 @@
               <button type="button" data-camera-control="pan-down" aria-label="Pan camera down" title="Pan down">↓</button>
               <button type="button" data-camera-control="zoom-in" aria-label="Zoom camera in" title="Zoom in">+</button>
             </nav>
+            <button id="equipment-toggle-mobile" class="equipment-toggle-mobile" type="button" aria-label="Open equipment and pack">Pack</button>
+            <section id="equipment-panel" class="equipment-panel" role="dialog" aria-modal="true" aria-labelledby="equipment-title" hidden>
+              <header class="equipment-panel__header">
+                <div>
+                  <p class="eyebrow">Returned possessions</p>
+                  <h2 id="equipment-title">Paper Doll &amp; Pack</h2>
+                  <p>Equipped items drive combat, armor, weapon sockets, and durability.</p>
+                </div>
+                <button id="equipment-close" class="equipment-close" type="button" aria-label="Close equipment">×</button>
+              </header>
+              <div class="equipment-panel__body">
+                <div class="paper-doll" aria-label="Equipped item paper doll">
+                  <div class="paper-doll__portrait"><img id="paper-doll-image" alt="" /></div>
+                  <div class="paper-doll__identity">
+                    <span id="paper-identity">Unformed soul</span>
+                    <div id="paper-stats" class="paper-stats"></div>
+                    <div id="paper-traits" class="paper-traits"></div>
+                  </div>
+                  <div id="slot-head" class="paper-slot paper-slot--head"><span>Head</span><strong>Empty</strong></div>
+                  <div id="slot-body" class="paper-slot paper-slot--body"><span>Body</span><strong>Empty</strong></div>
+                  <div id="slot-legs" class="paper-slot paper-slot--legs"><span>Legs</span><strong>Empty</strong></div>
+                  <div id="slot-feet" class="paper-slot paper-slot--feet"><span>Feet</span><strong>Empty</strong></div>
+                  <div id="slot-mainHand" class="paper-slot paper-slot--main"><span>Main hand</span><strong>Empty</strong></div>
+                  <div id="slot-offHand" class="paper-slot paper-slot--off"><span>Off hand</span><strong>Empty</strong></div>
+                </div>
+                <div class="paper-pack">
+                  <div class="section-heading"><h3>Backpack</h3><span id="paper-pack-count">0 / 30 slots</span></div>
+                  <ul id="paper-pack-list" class="paper-pack-list"></ul>
+                </div>
+              </div>
+            </section>
+            <section id="storybook-panel" class="storybook-panel" role="dialog" aria-modal="true" aria-labelledby="storybook-title" hidden>
+              <div class="storybook-shell">
+                <header class="storybook-header">
+                  <div>
+                    <p id="storybook-era" class="eyebrow">The Death Gate Cycle</p>
+                    <span id="storybook-kicker">Ilyra opens the Chronicle of Returning</span>
+                  </div>
+                  <button id="storybook-close" class="storybook-close" type="button" aria-label="Pause the chronicle">Pause Chronicle</button>
+                </header>
+                <figure class="storybook-scene">
+                  <img id="storybook-image" alt="" />
+                  <div class="storybook-scene__veil" aria-hidden="true"></div>
+                  <div class="storybook-ornament storybook-ornament--left" aria-hidden="true"></div>
+                  <div class="storybook-ornament storybook-ornament--right" aria-hidden="true"></div>
+                  <figcaption>
+                    <span id="storybook-number">I</span>
+                    <h2 id="storybook-title">The Sundering</h2>
+                    <div id="storybook-copy" class="storybook-copy"></div>
+                  </figcaption>
+                </figure>
+                <footer class="storybook-footer">
+                  <button id="storybook-back" type="button">Previous page</button>
+                  <div class="storybook-progress" aria-label="Chronicle progress">
+                    <span id="storybook-page-label">Board 1 of 7</span>
+                    <div><i id="storybook-progress-fill"></i></div>
+                  </div>
+                  <button id="storybook-next" class="storybook-next" type="button">Next board · skip voice</button>
+                </footer>
+              </div>
+            </section>
             <section id="imprint-panel" class="soul-imprint-panel" role="dialog" aria-modal="true" aria-labelledby="imprint-title" hidden>
               <header class="soul-imprint-panel__header">
                 <div>
@@ -164,14 +226,14 @@
               </div>
               <div class="reaction-timer"><span id="reaction-fill"></span></div>
             </div>
-          </div>
 
-          <div id="combat-controls" class="combat-controls" hidden>
-            <button type="button" data-action="move" data-mechanic data-mechanic-help="Move selects a reachable floor position. Collision, creatures, NPCs and large props block routes."><span class="action-hotkey">M</span><span class="utility-icon">➜</span><b>Move</b><small>Reposition</small></button>
-            <button id="basic-action" type="button" data-action="basic" data-mechanic><span class="action-hotkey">1</span><img src="/assets/generated/action-icons/basic-weapon-strike.svg" alt="" /><b>Weapon Strike</b><small>Free basic attack</small></button>
-            <button id="signature-action" type="button" data-action="signature" data-mechanic><span class="action-hotkey">2</span><img id="signature-icon" alt="" /><b>Signature</b><small>Starter power</small></button>
-            <button id="defense-action" type="button" data-action="guard" data-mechanic><span class="action-hotkey">3</span><img id="defense-icon" alt="" /><b>Guard</b><small>Active defense</small></button>
-            <button id="recover-action" type="button" data-action="wait" data-mechanic><span class="action-hotkey">4</span><span class="utility-icon">✦</span><b>Recover</b><small>Health + stability</small></button>
+            <div id="combat-controls" class="combat-controls" hidden>
+              <button type="button" data-action="move" data-mechanic data-mechanic-help="Move selects a reachable floor position. Collision, creatures, NPCs and large props block routes."><span class="action-hotkey">M</span><span class="utility-icon">➜</span><b>Move</b><small>Reposition</small></button>
+              <button id="basic-action" type="button" data-action="basic" data-mechanic><span class="action-hotkey">1</span><img src="/assets/generated/action-icons/basic-weapon-strike.svg" alt="" /><b>Weapon Strike</b><small>Free basic attack</small></button>
+              <button id="signature-action" type="button" data-action="signature" data-mechanic><span class="action-hotkey">2</span><img id="signature-icon" alt="" /><b>Signature</b><small>Starter power</small></button>
+              <button id="defense-action" type="button" data-action="guard" data-mechanic><span class="action-hotkey">3</span><img id="defense-icon" alt="" /><b>Guard</b><small>Active defense</small></button>
+              <button id="recover-action" type="button" data-action="wait" data-mechanic><span class="action-hotkey">4</span><span class="utility-icon">✦</span><b>Recover</b><small>Health + stability</small></button>
+            </div>
           </div>
 
           <div class="message-strip" role="status" aria-live="polite">
@@ -213,6 +275,7 @@
             </select>
             <dl>
               <div><dt>Move / inspect</dt><dd>Click or WASD</dd></div>
+              <div><dt>Draw / sheath</dt><dd>X</dd></div>
               <div><dt>Camera</dt><dd>Q / E · wheel · corner controls</dd></div>
               <div><dt>Reaction</dt><dd>Space</dd></div>
               <div><dt>Combat speed</dt><dd id="speed-value">1×</dd></div>

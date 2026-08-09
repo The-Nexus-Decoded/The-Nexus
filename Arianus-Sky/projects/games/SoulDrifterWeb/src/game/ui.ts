@@ -1,6 +1,16 @@
 import type { CombatStyle, RuntimeState } from "./types";
-import { STAT_KEYS, STAT_LABELS, callingById, type CharacterProfile, type Stats } from "./character";
+import { STAT_KEYS, STAT_LABELS, callingById, raceById, type CharacterProfile, type Stats } from "./character";
+import {
+  backpackItems,
+  backpackSlotsUsed,
+  equippedItem,
+  totalBackpackSlots,
+  type BackpackCapacity,
+  type EquipmentSlot,
+  type InventoryItem,
+} from "./equipment";
 import type { DialogueChoice, DialogueScene } from "./npc";
+import { prologuePages } from "./prologue";
 import type { ImprintOption, StarterImprintSelection } from "./tutorialChoices";
 
 export type ActionName = "move" | "basic" | "signature" | "guard" | "wait";
@@ -26,6 +36,9 @@ export class GameUI {
   private readonly fury = requiredElement<HTMLSpanElement>("fury-value");
   private readonly inventory = requiredElement<HTMLUListElement>("inventory-list");
   private readonly inventoryCount = requiredElement<HTMLSpanElement>("inventory-count");
+  private readonly paperPack = requiredElement<HTMLUListElement>("paper-pack-list");
+  private readonly paperPackCount = requiredElement<HTMLSpanElement>("paper-pack-count");
+  private readonly equipmentPanel = requiredElement<HTMLElement>("equipment-panel");
   private readonly eventLog = requiredElement<HTMLOListElement>("event-log");
   private readonly combatControls = requiredElement<HTMLDivElement>("combat-controls");
   private readonly combatStyle = requiredElement<HTMLSelectElement>("combat-style");
@@ -40,9 +53,14 @@ export class GameUI {
   private actionHandler: ((action: ActionName) => void) | null = null;
   private speedHandler: ((speed: number) => void) | null = null;
   private combatStyleHandler: ((style: CombatStyle) => void) | null = null;
+  private equipmentHandler: ((itemId: string) => void) | null = null;
+  private currentCallingId = "";
   private combatSpeed = 1;
   private dialogueVisible = false;
   private imprintVisible = false;
+  private equipmentVisible = false;
+  private storybookVisible = false;
+  private storybookCloseHandler: (() => void) | null = null;
   private voiceEnabled = true;
 
   public constructor() {
@@ -70,6 +88,22 @@ export class GameUI {
       if (!this.voiceEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
     });
 
+    const openEquipment = (): void => this.showEquipment(true);
+    requiredElement<HTMLButtonElement>("equipment-toggle").addEventListener("click", openEquipment);
+    requiredElement<HTMLButtonElement>("equipment-toggle-mobile").addEventListener("click", openEquipment);
+    requiredElement<HTMLButtonElement>("equipment-close").addEventListener("click", () => this.showEquipment(false));
+    this.equipmentPanel.addEventListener("click", (event) => {
+      const control = (event.target as HTMLElement).closest<HTMLElement>("[data-equipment-item]");
+      if (control?.dataset.equipmentItem) this.equipmentHandler?.(control.dataset.equipmentItem);
+    });
+    this.equipmentPanel.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const control = (event.target as HTMLElement).closest<HTMLElement>("[data-equipment-item]");
+      if (!control?.dataset.equipmentItem) return;
+      event.preventDefault();
+      this.equipmentHandler?.(control.dataset.equipmentItem);
+    });
+
     document.querySelectorAll<HTMLElement>("[data-mechanic]").forEach((element) => {
       element.setAttribute("aria-describedby", "mechanic-tooltip");
       element.addEventListener("pointerenter", () => this.showMechanicTooltip(element));
@@ -82,7 +116,13 @@ export class GameUI {
       });
     });
     window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") this.hideMechanicTooltip();
+      if (event.key === "Escape") {
+        this.hideMechanicTooltip();
+        if (this.storybookVisible) this.storybookCloseHandler?.();
+        else if (this.equipmentVisible) this.showEquipment(false);
+      } else if (event.key.toLowerCase() === "i" && !(event.target as HTMLElement | null)?.matches("input, textarea, select")) {
+        this.showEquipment(!this.equipmentVisible);
+      }
     });
   }
 
@@ -98,8 +138,14 @@ export class GameUI {
     this.combatStyleHandler = handler;
   }
 
+  public onEquipmentToggle(handler: (itemId: string) => void): void {
+    this.equipmentHandler = handler;
+  }
+
   public setCharacter(profile: CharacterProfile): void {
     const calling = callingById(profile.callingId);
+    const race = raceById(profile.raceId);
+    this.currentCallingId = calling.id;
     requiredElement<HTMLElement>("character-name").textContent = profile.name;
     requiredElement<HTMLElement>("race-name").textContent = profile.raceName;
     requiredElement<HTMLElement>("calling-name").textContent = calling.name;
@@ -107,6 +153,26 @@ export class GameUI {
     requiredElement<HTMLImageElement>("portrait-image").src = profile.raceId === "elf" && profile.callingId === "shadowknight"
       ? "/assets/3d/characters/elf-shadowknight/elf-shadowknight-preview-front.png"
       : `/assets/generated/characters/${profile.raceId}-${profile.callingId}.png`;
+    requiredElement<HTMLImageElement>("paper-doll-image").src = requiredElement<HTMLImageElement>("portrait-image").src;
+    requiredElement<HTMLElement>("paper-identity").textContent = `${profile.raceName} · ${calling.name}`;
+    const paperStats = requiredElement<HTMLElement>("paper-stats");
+    paperStats.replaceChildren(...STAT_KEYS.map((key) => {
+      const stat = document.createElement("span");
+      stat.innerHTML = `<small>${STAT_LABELS[key]}</small><strong>${profile.stats[key]}</strong>`;
+      return stat;
+    }));
+    const paperTraits = requiredElement<HTMLElement>("paper-traits");
+    const traits = [
+      race.talent,
+      profile.ancestryCallingBonus?.name,
+      profile.starterImprint?.raceBoonName,
+      profile.starterImprint?.callingPerkName,
+    ].filter((trait): trait is string => Boolean(trait));
+    paperTraits.replaceChildren(...traits.map((trait) => {
+      const badge = document.createElement("span");
+      badge.textContent = trait;
+      return badge;
+    }));
     requiredElement<HTMLElement>("hp-max").textContent = String(profile.maxHp);
     requiredElement<HTMLElement>("resource-label").textContent = calling.resourceName;
     const resourceStat = requiredElement<HTMLElement>("resource-stat");
@@ -204,7 +270,106 @@ export class GameUI {
   }
 
   public isDialogueOpen(): boolean {
-    return this.dialogueVisible || this.imprintVisible;
+    return this.dialogueVisible || this.imprintVisible || this.equipmentVisible || this.storybookVisible;
+  }
+
+  public openStorybook(
+    profile: CharacterProfile,
+    onProgress: (pageIndex: number) => void,
+    onComplete: () => void,
+  ): void {
+    const pages = prologuePages(profile);
+    const panel = requiredElement<HTMLElement>("storybook-panel");
+    const image = requiredElement<HTMLImageElement>("storybook-image");
+    const era = requiredElement<HTMLElement>("storybook-era");
+    const kicker = requiredElement<HTMLElement>("storybook-kicker");
+    const number = requiredElement<HTMLElement>("storybook-number");
+    const title = requiredElement<HTMLElement>("storybook-title");
+    const copy = requiredElement<HTMLElement>("storybook-copy");
+    const pageLabel = requiredElement<HTMLElement>("storybook-page-label");
+    const progress = requiredElement<HTMLElement>("storybook-progress-fill");
+    const back = requiredElement<HTMLButtonElement>("storybook-back");
+    const next = requiredElement<HTMLButtonElement>("storybook-next");
+    const close = requiredElement<HTMLButtonElement>("storybook-close");
+    let pageIndex = profile.onboarding?.storybookCompleted
+      ? 0
+      : Math.min(pages.length - 1, Math.max(0, profile.onboarding?.storybookPage ?? 0));
+    let recordedNarration: HTMLAudioElement | null = null;
+
+    const roman = (value: number): string => {
+      const numerals: Array<[number, string]> = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+      let result = "";
+      let remaining = value;
+      numerals.forEach(([amount, glyph]) => {
+        while (remaining >= amount) {
+          result += glyph;
+          remaining -= amount;
+        }
+      });
+      return result;
+    };
+    const dismiss = (): void => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      recordedNarration?.pause();
+      recordedNarration = null;
+      panel.hidden = true;
+      this.storybookVisible = false;
+      this.storybookCloseHandler = null;
+    };
+    const render = (): void => {
+      const page = pages[pageIndex]!;
+      panel.classList.remove("is-turning");
+      void panel.offsetWidth;
+      panel.classList.add("is-turning");
+      era.textContent = page.era;
+      era.dataset.era = page.era;
+      kicker.textContent = page.kicker;
+      number.textContent = roman(pageIndex + 1);
+      title.textContent = page.title;
+      image.src = page.image;
+      image.alt = page.alt;
+      image.style.objectPosition = page.imagePosition ?? "center";
+      copy.replaceChildren(...page.narration.map((line) => {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = line;
+        return paragraph;
+      }));
+      pageLabel.textContent = `Board ${pageIndex + 1} of ${pages.length}`;
+      progress.style.width = `${((pageIndex + 1) / pages.length) * 100}%`;
+      back.disabled = pageIndex === 0;
+      next.textContent = pageIndex === pages.length - 1 ? "Accept Ilyra's charge" : "Next board · skip voice";
+      close.textContent = profile.onboarding?.storybookCompleted ? "Close Chronicle" : "Pause Chronicle";
+      recordedNarration?.pause();
+      recordedNarration = null;
+      if (page.audioSrc) {
+        recordedNarration = new Audio(page.audioSrc);
+        recordedNarration.addEventListener("error", () => this.speak(`${page.title}. ${page.narration.join(" ")}`, "ilyra"), { once: true });
+        void recordedNarration.play().catch(() => this.speak(`${page.title}. ${page.narration.join(" ")}`, "ilyra"));
+      } else {
+        this.speak(`${page.title}. ${page.narration.join(" ")}`, "ilyra");
+      }
+      onProgress(pageIndex);
+    };
+    back.onclick = () => {
+      if (pageIndex === 0) return;
+      pageIndex -= 1;
+      render();
+    };
+    next.onclick = () => {
+      if (pageIndex < pages.length - 1) {
+        pageIndex += 1;
+        render();
+        return;
+      }
+      dismiss();
+      onComplete();
+    };
+    close.onclick = dismiss;
+    this.storybookCloseHandler = dismiss;
+    this.storybookVisible = true;
+    panel.hidden = false;
+    render();
+    next.focus();
   }
 
   public openStarterImprint(
@@ -424,22 +589,104 @@ export class GameUI {
     this.fury.textContent = String(snapshot.fury);
   }
 
-  public setInventory(items: string[]): void {
+  public setInventory(items: readonly InventoryItem[], capacity: BackpackCapacity): void {
     this.inventory.replaceChildren();
-    this.inventoryCount.textContent = `${items.length} / 8`;
-    if (items.length === 0) {
+    this.paperPack.replaceChildren();
+    const carriedItems = backpackItems(items);
+    const usedSlots = backpackSlotsUsed(items);
+    const totalSlots = totalBackpackSlots(capacity);
+    this.inventoryCount.textContent = `${usedSlots} / ${totalSlots}`;
+    this.paperPackCount.textContent = `${usedSlots} / ${totalSlots} slots`;
+    if (carriedItems.length === 0) {
       const empty = document.createElement("li");
       empty.className = "inventory-empty";
-      empty.textContent = "Nothing carried";
+      empty.textContent = "Pack empty · equipped gear is on the paper doll";
       this.inventory.append(empty);
-      return;
     }
 
-    for (const item of items) {
+    for (const item of carriedItems) {
+      const quantity = item.quantity ?? 1;
+      const quantityLabel = quantity > 1 ? ` ×${quantity}` : "";
       const listItem = document.createElement("li");
-      listItem.textContent = item;
+      listItem.textContent = `${item.name}${quantityLabel}`;
       this.inventory.append(listItem);
+
+      const packItem = document.createElement("li");
+      packItem.className = "paper-pack-item";
+      const copy = document.createElement("span");
+      const name = document.createElement("strong");
+      name.textContent = `${item.name}${quantityLabel}`;
+      const detail = document.createElement("small");
+      const durability = item.maxDurability === undefined
+        ? item.kind
+        : `${item.durability ?? 0} / ${item.maxDurability} durability`;
+      detail.textContent = durability;
+      copy.append(name, detail);
+      packItem.append(copy);
+      packItem.title = item.description;
+      if (item.slot) {
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.dataset.equipmentItem = item.id;
+        toggle.textContent = item.equipped ? "Unequip" : "Equip";
+        toggle.setAttribute("aria-label", `${toggle.textContent} ${item.name}`);
+        packItem.append(toggle);
+      }
+      this.paperPack.append(packItem);
     }
+
+    for (let index = usedSlots; index < totalSlots; index += 1) {
+      const emptySlot = document.createElement("li");
+      emptySlot.className = "paper-pack-slot-empty";
+      emptySlot.textContent = String(index + 1).padStart(2, "0");
+      emptySlot.setAttribute("aria-label", `Empty backpack slot ${index + 1}`);
+      this.paperPack.append(emptySlot);
+    }
+
+    const slots: EquipmentSlot[] = ["head", "body", "legs", "feet", "mainHand", "offHand"];
+    slots.forEach((slot) => {
+      const equipped = equippedItem(items, slot);
+      const container = requiredElement<HTMLElement>(`slot-${slot}`);
+      container.classList.toggle("is-equipped", Boolean(equipped));
+      container.querySelector("strong")!.textContent = equipped?.name ?? "Empty";
+      container.title = equipped?.description ?? `${slot} slot is empty`;
+      if (equipped) {
+        container.dataset.equipmentItem = equipped.id;
+        container.tabIndex = 0;
+        container.setAttribute("role", "button");
+        container.setAttribute("aria-label", `Unequip ${equipped.name} to the backpack`);
+      } else {
+        delete container.dataset.equipmentItem;
+        container.removeAttribute("tabindex");
+        container.removeAttribute("role");
+        container.removeAttribute("aria-label");
+      }
+    });
+  }
+
+  public setWeaponAvailability(weaponName: string | null): void {
+    const basic = requiredElement<HTMLButtonElement>("basic-action");
+    const signature = requiredElement<HTMLButtonElement>("signature-action");
+    basic.querySelector("b")!.textContent = weaponName ? "Weapon Strike" : "Unarmed Strike";
+    basic.querySelector("small")!.textContent = weaponName ? "Free basic attack" : "Punch / kick · free";
+    basic.dataset.mechanicHelp = weaponName
+      ? `${weaponName} is equipped. Weapon Strike costs no Stability and draws the equipped weapon automatically.`
+      : "No usable main-hand weapon is equipped. The free basic attack falls back to punch and kick motions.";
+    if (this.currentCallingId === "shadowknight") {
+      signature.dataset.equipmentLocked = String(!weaponName);
+      signature.disabled = !weaponName;
+      signature.classList.toggle("is-equipment-locked", !weaponName);
+      signature.dataset.mechanicHelp = weaponName
+        ? "Siphon Cleave requires the equipped sword, costs 12 Stability on a valid hit, generates Gravefire, and drains vitality."
+        : "Siphon Cleave requires a usable main-hand weapon. Equip one in the paper doll; broken or unequipped weapons disable this skill.";
+      signature.title = weaponName ? "" : "Requires an equipped weapon";
+    }
+  }
+
+  private showEquipment(visible: boolean): void {
+    this.equipmentVisible = visible;
+    this.equipmentPanel.hidden = !visible;
+    if (visible) requiredElement<HTMLButtonElement>("equipment-close").focus();
   }
 
   public addLog(text: string): void {
@@ -457,7 +704,7 @@ export class GameUI {
 
   public setActionEnabled(action: ActionName, enabled: boolean): void {
     const button = this.combatControls.querySelector<HTMLButtonElement>(`button[data-action="${action}"]`);
-    if (button) button.disabled = !enabled;
+    if (button) button.disabled = !enabled || button.dataset.equipmentLocked === "true";
   }
 
   private showMechanicTooltip(source: HTMLElement): void {

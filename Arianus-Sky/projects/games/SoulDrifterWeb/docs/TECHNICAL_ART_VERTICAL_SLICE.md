@@ -96,6 +96,10 @@ Animation transitions use crossfades and a clear state priority: death > hit > a
 
 ### Motion-capture and retargeting direction
 
+Every animation source, retarget, authored skill pass, runtime integration, visual review, and shipping decision must follow [`ANIMATION_PRODUCTION_PIPELINE.md`](ANIMATION_PRODUCTION_PIPELINE.md). That document is the binding gate for weapons, spells, summons, buffs, recoveries, class skills, race/body retargets, player characters, classed NPCs/enemies, monsters, bosses, and future PvP telegraphs.
+
+Before any weapon pose or motion is authored, its exact weapon subtype, grip, progression tier, stance, force path, and recovery must also be researched and logged through [`WEAPON_MOTION_REFERENCE_INDEX.md`](WEAPON_MOTION_REFERENCE_INDEX.md). The chosen reference must match the skill; an available dramatic mocap clip cannot redefine a beginner action.
+
 - Use Adobe Mixamo as the fast prototype library for humanoid idle, walk, run, turns, hit reactions, and common weapon foundations. Its clips are retargeted onto the SoulDrifter 65-bone deformation rig; Mixamo characters do not replace our custom models.
 - Keep Siphon Cleave, Cinder Guard, rune application, spell channels, boss tells, and other class-signature choreography project-authored. A generic mocap slash may supply body mechanics, but timing, hand contacts, weapon path, silhouette, and VFX synchronization are edited for the class.
 - Evaluate ActorCore and Rokoko libraries later for higher-fidelity locomotion and combat capture only after a per-pack license and redistribution review.

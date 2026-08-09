@@ -11,9 +11,18 @@ export function cloneActorMaterial(
   source: THREE.Material,
   tint: number,
   preserveAuthoredPalette: boolean,
+  skinTone?: number,
 ): THREE.Material {
   const material = source.clone();
-  if (preserveAuthoredPalette || !(material instanceof THREE.MeshStandardMaterial)) return material;
+  if (!(material instanceof THREE.MeshStandardMaterial)) return material;
+
+  if (preserveAuthoredPalette) {
+    if (skinTone !== undefined && /skin|face|ear|nose|brow|jaw|head/i.test(`${source.name} ${material.name}`)) {
+      material.color.lerp(new THREE.Color(skinTone), 0.62);
+      material.roughness = Math.max(material.roughness, 0.5);
+    }
+    return material;
+  }
 
   material.color.lerp(new THREE.Color(tint), 0.08);
   material.roughness = Math.max(material.roughness, 0.48);
@@ -22,16 +31,113 @@ export function cloneActorMaterial(
   return material;
 }
 
-export function sanitizeAttackClip(clip: THREE.AnimationClip): THREE.AnimationClip {
+/**
+ * Converts vendor-authored locomotion into an in-place clip. World3D owns grid
+ * displacement; clips own the planted feet, body weight, hands, and telegraph.
+ */
+export function sanitizeInPlaceClip(clip: THREE.AnimationClip): THREE.AnimationClip {
   const tracks = clip.tracks
-    .filter((track) => {
+    .flatMap((track) => {
       const separator = track.name.lastIndexOf(".");
-      if (separator < 0) return true;
+      if (separator < 0) return [track.clone()];
       const target = track.name.slice(0, separator).split(/[|/:]/).at(-1)?.toLowerCase();
-      return !target || !isGroundingAttackTarget(target);
+      if (!target) return [track.clone()];
+
+      const property = track.name.slice(separator + 1).toLowerCase();
+      const normalizedTarget = target.replace(/[^a-z0-9]/g, "");
+      if (normalizedTarget.endsWith("armature")) return [];
+
+      const isCore = ["root", "pelvis", "hips"].some((name) => normalizedTarget.endsWith(name));
+      if (isCore && property === "position" && track.getValueSize() >= 3) {
+        const anchored = track.clone();
+        const values = anchored.values;
+        const stride = anchored.getValueSize();
+        const anchorX = values[0] ?? 0;
+        const anchorZ = values[2] ?? 0;
+        for (let index = 0; index < values.length; index += stride) {
+          values[index] = anchorX;
+          values[index + 2] = anchorZ;
+        }
+        return [anchored];
+      }
+
+      if (normalizedTarget.endsWith("root")) return [];
+
+      return property !== "position" || !isGroundingAttackTarget(target) ? [track.clone()] : [];
     })
-    .map((track) => track.clone());
   return new THREE.AnimationClip(clip.name, clip.duration, tracks, clip.blendMode);
+}
+
+export const sanitizeAttackClip = sanitizeInPlaceClip;
+
+export type WeaponVisualState = "hidden" | "sheathed" | "drawn";
+
+export interface WeaponPresentation {
+  handSocket: THREE.Group;
+  hipSocket: THREE.Group;
+  state: WeaponVisualState;
+}
+
+const STARTER_LONGSWORD_PART = /^SK_StarterLongsword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
+
+/**
+ * Creates one visual copy for the hand and one for the left hip. Both are
+ * driven by the same skeleton, so armor/skin changes never require re-rigging
+ * the animation library.
+ */
+export function createStarterLongswordPresentation(model: THREE.Object3D): WeaponPresentation | undefined {
+  const parts: THREE.Object3D[] = [];
+  model.traverse((child) => {
+    if (STARTER_LONGSWORD_PART.test(child.name)) parts.push(child);
+  });
+  if (parts.length === 0) return undefined;
+
+  const handBone = model.getObjectByName("hand_r") ?? parts[0]!.parent;
+  const hipBone = model.getObjectByName("pelvis") ?? model.getObjectByName("spine_01");
+  if (!handBone || !hipBone) return undefined;
+
+  const handSocket = new THREE.Group();
+  handSocket.name = "weapon-socket-hand-r";
+  handBone.add(handSocket);
+  model.updateMatrixWorld(true);
+  parts.forEach((part) => handSocket.attach(part));
+
+  const hipSocket = handSocket.clone(true);
+  hipSocket.name = "weapon-socket-hip-l";
+  // Starter longswords live at the hip. Large weapon families can supply a
+  // separate back socket later; this avoids the disconnected chest harness.
+  hipSocket.position.set(0.19, -0.03, 0.11);
+  hipSocket.rotation.set(0.08, -0.12, 2.1);
+  hipBone.add(hipSocket);
+
+  const presentation: WeaponPresentation = { handSocket, hipSocket, state: "hidden" };
+  setWeaponVisualState(presentation, "hidden");
+  return presentation;
+}
+
+export function setWeaponVisualState(presentation: WeaponPresentation, state: WeaponVisualState): void {
+  presentation.state = state;
+  presentation.handSocket.visible = state === "drawn";
+  presentation.hipSocket.visible = state === "sheathed";
+}
+
+export type HairStyleId = "shaved" | "cropped" | "silver-sweep";
+
+export interface ModularAppearance {
+  hairStyle: HairStyleId;
+}
+
+export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
+  const hair = model.children.filter((child) => /SK_SilverHairClump/i.test(child.name));
+  if (hair.length === 0) {
+    model.traverse((child) => {
+      if (/SK_SilverHairClump/i.test(child.name)) hair.push(child);
+    });
+  }
+  hair.forEach((strand, index) => {
+    strand.visible = appearance.hairStyle === "silver-sweep"
+      || (appearance.hairStyle === "cropped" && index < 3);
+  });
 }
 
 export function screenPanToWorld(

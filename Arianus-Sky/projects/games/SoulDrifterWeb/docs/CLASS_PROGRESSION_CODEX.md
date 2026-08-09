@@ -84,6 +84,12 @@ Paladins are Aether-Scribed-only. Their oath orders treat writing coercive power
 
 Each class receives a separate skill-list and specialization pass before production balance is locked. The current proof implements only two starter actions per class so combat is playable while the full trees remain designable.
 
+### Planned expansion: Monk
+
+Monk is the planned tenth base class, not a replacement or rename for any current calling. Its working space is mortal body discipline, breath, footwork, unarmed/hand-wrap technique, simple staff use, counters, and mobile control. It must receive a dedicated class pass before implementation to define its original SoulDrifter identity, resources, two level-one proof skills, armor rules, weapon interactions, and later specializations without becoming a generic martial-arts stereotype.
+
+At levels 1-19, Monk uses learned mortal technique and does not begin with visible Aether-Scribed or Flesh-Forged runes. At the later awakening tier it may choose one compatible tradition, never both, under the same exclusivity rule as the other non-Paladin classes. Until that pass is approved, Monk is excluded from the current `4 x 9 = 36` ancestry/calling implementation and balance matrix.
+
 ## Shadowknight: Fire-Realm lich knight
 
 The Shadowknight is an ash-bound warrior whose body died but whose soul-coal still burns. It steals measured vitality to prevent that ember from going dark.
