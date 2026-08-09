@@ -31,7 +31,7 @@ export interface DungeonTile extends GridPoint {
 
 export interface DungeonProp extends GridPoint {
   id: string;
-  kind: "soul-well" | "chest" | "pillar" | "rubble" | "brazier" | "gate" | "essence" | "memory-loom" | "training-effigy";
+  kind: "soul-well" | "chest" | "pillar" | "rubble" | "brazier" | "crate" | "bench" | "chair" | "gate" | "essence" | "memory-loom" | "training-effigy";
   roomId: DungeonRoomKind;
   blocksMovement: boolean;
 }
@@ -160,6 +160,12 @@ export function createRunSeed(): number {
     return crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now();
   }
   return Date.now() >>> 0;
+}
+
+export function parseDebugRunSeed(raw: string | null): number | null {
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  const seed = Number(raw);
+  return Number.isSafeInteger(seed) && seed >= 0 && seed <= 0xffff_ffff ? seed : null;
 }
 
 export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
@@ -323,11 +329,11 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
     { id: "starter-coffer", kind: "chest", roomId: "training", blocksMovement: true, ...chestPoint },
     { id: "memory-loom", kind: "memory-loom", roomId: "training", blocksMovement: true, ...loomPoint },
     { id: "training-effigy", kind: "training-effigy", roomId: "training", blocksMovement: true, ...effigyPoint },
-    { id: "gate-wayfarer", kind: "gate", roomId: "training", blocksMovement: false, ...easyGatePoint },
-    { id: "gate-oathbreaker", kind: "gate", roomId: "training", blocksMovement: false, ...hardGatePoint },
+    { id: "gate-wayfarer", kind: "gate", roomId: "training", blocksMovement: true, ...easyGatePoint },
+    { id: "gate-oathbreaker", kind: "gate", roomId: "training", blocksMovement: true, ...hardGatePoint },
   ];
 
-  const decorationKinds = ["pillar", "rubble", "brazier"] as const;
+  const decorationKinds = ["pillar", "rubble", "brazier", "crate", "bench", "chair"] as const;
   const decorationRooms = [
     ...crawlSections.map((section) => ({ ...section, roomId: "skirmish" as const, propPrefix: section.id })),
     { ...boss, roomId: "boss" as const, propPrefix: "boss" },

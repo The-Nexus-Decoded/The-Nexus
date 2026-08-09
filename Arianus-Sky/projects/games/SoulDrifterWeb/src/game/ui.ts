@@ -12,13 +12,35 @@ import {
 import type { DialogueChoice, DialogueScene } from "./npc";
 import { prologuePages } from "./prologue";
 import type { ImprintOption, StarterImprintSelection } from "./tutorialChoices";
+import { resolveCharacterIdentity } from "./avatarIdentity";
+import type { LocomotionPreference } from "./avatarMotionController";
 
 export type ActionName = "move" | "basic" | "signature" | "guard" | "wait";
+
+export function nextHudDrawer(current: string | null, requested: string): string | null {
+  return current === requested ? null : requested;
+}
 
 interface StatSnapshot {
   hp: number;
   stability: number;
   fury: number;
+}
+
+export interface BuffSnapshot {
+  id: string;
+  icon: string;
+  label: string;
+  stacks?: number;
+  duration: string;
+  help: string;
+  tone?: "buff" | "debuff";
+}
+
+export interface InteractionPromptSnapshot {
+  label: string;
+  detail: string;
+  disabledReason?: string;
 }
 
 function requiredElement<T extends HTMLElement>(id: string): T {
@@ -39,6 +61,10 @@ export class GameUI {
   private readonly paperPack = requiredElement<HTMLUListElement>("paper-pack-list");
   private readonly paperPackCount = requiredElement<HTMLSpanElement>("paper-pack-count");
   private readonly equipmentPanel = requiredElement<HTMLElement>("equipment-panel");
+  private readonly buffStrip = requiredElement<HTMLElement>("buff-strip");
+  private readonly interactionPrompt = requiredElement<HTMLElement>("interaction-prompt");
+  private readonly interactionConfirm = requiredElement<HTMLButtonElement>("interaction-confirm");
+  private readonly locomotionPreference = requiredElement<HTMLElement>("locomotion-preference");
   private readonly eventLog = requiredElement<HTMLOListElement>("event-log");
   private readonly combatControls = requiredElement<HTMLDivElement>("combat-controls");
   private readonly combatStyle = requiredElement<HTMLSelectElement>("combat-style");
@@ -54,6 +80,10 @@ export class GameUI {
   private speedHandler: ((speed: number) => void) | null = null;
   private combatStyleHandler: ((style: CombatStyle) => void) | null = null;
   private equipmentHandler: ((itemId: string) => void) | null = null;
+  private equipmentVisibilityHandler: ((visible: boolean) => void) | null = null;
+  private locomotionPreferenceHandler: ((preference: LocomotionPreference) => void) | null = null;
+  private interactionConfirmHandler: (() => void) | null = null;
+  private activeReactionCancel: (() => void) | null = null;
   private currentCallingId = "";
   private combatSpeed = 1;
   private dialogueVisible = false;
@@ -62,8 +92,25 @@ export class GameUI {
   private storybookVisible = false;
   private storybookCloseHandler: (() => void) | null = null;
   private voiceEnabled = true;
+  private locomotionMode: LocomotionPreference = this.savedLocomotionPreference();
+  private currentProfile: CharacterProfile | null = null;
+
+  private setScreenHudInert(inert: boolean): void {
+    const screenHud = document.querySelector<HTMLElement>(".screen-hud-layer");
+    if (!screenHud) return;
+    screenHud.inert = inert;
+    screenHud.classList.toggle("is-modal-obscured", inert);
+  }
 
   public constructor() {
+    this.setLocomotionPreference(this.locomotionMode, false);
+    this.locomotionPreference.querySelectorAll<HTMLButtonElement>("button[data-locomotion-preference]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const preference = button.dataset.locomotionPreference as LocomotionPreference | undefined;
+        if (preference) this.setLocomotionPreference(preference);
+      });
+    });
+
     this.combatControls.querySelectorAll<HTMLButtonElement>("button[data-action]").forEach((button) => {
       button.addEventListener("click", () => {
         const action = button.dataset.action as ActionName | undefined;
@@ -92,6 +139,24 @@ export class GameUI {
     requiredElement<HTMLButtonElement>("equipment-toggle").addEventListener("click", openEquipment);
     requiredElement<HTMLButtonElement>("equipment-toggle-mobile").addEventListener("click", openEquipment);
     requiredElement<HTMLButtonElement>("equipment-close").addEventListener("click", () => this.showEquipment(false));
+    this.interactionConfirm.addEventListener("click", () => this.interactionConfirmHandler?.());
+    document.querySelectorAll<HTMLButtonElement>("[data-hud-drawer]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const requested = button.dataset.hudDrawer;
+        if (!requested) return;
+        const current = document.querySelector<HTMLElement>(".hud-drawer.is-open")?.id.replace("hud-drawer-", "") ?? null;
+        const next = nextHudDrawer(current, requested);
+        document.querySelectorAll<HTMLElement>(".hud-drawer.is-open").forEach((item) => item.classList.remove("is-open"));
+        document.querySelectorAll<HTMLButtonElement>("[data-hud-drawer]").forEach((item) => item.setAttribute("aria-expanded", "false"));
+        if (!next) return;
+        requiredElement<HTMLElement>(`hud-drawer-${next}`).classList.add("is-open");
+        button.setAttribute("aria-expanded", "true");
+      });
+    });
+    requiredElement<HTMLButtonElement>("appearance-edit").addEventListener("click", () => {
+      if (!this.currentProfile) return;
+      window.dispatchEvent(new CustomEvent("souldrifter:edit-appearance", { detail: { profile: this.currentProfile } }));
+    });
     this.equipmentPanel.addEventListener("click", (event) => {
       const control = (event.target as HTMLElement).closest<HTMLElement>("[data-equipment-item]");
       if (control?.dataset.equipmentItem) this.equipmentHandler?.(control.dataset.equipmentItem);
@@ -142,19 +207,33 @@ export class GameUI {
     this.equipmentHandler = handler;
   }
 
+  public onEquipmentVisibilityChange(handler: (visible: boolean) => void): void {
+    this.equipmentVisibilityHandler = handler;
+  }
+
+  public onLocomotionPreferenceChange(handler: (preference: LocomotionPreference) => void): void {
+    this.locomotionPreferenceHandler = handler;
+    handler(this.locomotionMode);
+  }
+
+  public onInteractionConfirm(handler: () => void): void {
+    this.interactionConfirmHandler = handler;
+  }
+
   public setCharacter(profile: CharacterProfile): void {
-    const calling = callingById(profile.callingId);
-    const race = raceById(profile.raceId);
+    this.currentProfile = profile;
+    const identity = resolveCharacterIdentity(profile);
+    const calling = callingById(identity.callingId);
+    const race = raceById(identity.raceId);
     this.currentCallingId = calling.id;
     requiredElement<HTMLElement>("character-name").textContent = profile.name;
-    requiredElement<HTMLElement>("race-name").textContent = profile.raceName;
-    requiredElement<HTMLElement>("calling-name").textContent = calling.name;
-    requiredElement<HTMLElement>("portrait-rune").textContent = profile.raceGlyph;
-    requiredElement<HTMLImageElement>("portrait-image").src = profile.raceId === "elf" && profile.callingId === "shadowknight"
+    requiredElement<HTMLElement>("race-name").textContent = identity.raceName;
+    requiredElement<HTMLElement>("calling-name").textContent = identity.callingName;
+    requiredElement<HTMLElement>("portrait-rune").textContent = identity.raceGlyph;
+    requiredElement<HTMLImageElement>("portrait-image").src = identity.raceId === "elf" && identity.callingId === "shadowknight"
       ? "/assets/3d/characters/elf-shadowknight/elf-shadowknight-preview-front.png"
-      : `/assets/generated/characters/${profile.raceId}-${profile.callingId}.png`;
-    requiredElement<HTMLImageElement>("paper-doll-image").src = requiredElement<HTMLImageElement>("portrait-image").src;
-    requiredElement<HTMLElement>("paper-identity").textContent = `${profile.raceName} · ${calling.name}`;
+      : `/assets/generated/characters/${identity.raceId}-${identity.callingId}.png`;
+    requiredElement<HTMLElement>("paper-identity").textContent = `${identity.raceName} · ${identity.callingName}`;
     const paperStats = requiredElement<HTMLElement>("paper-stats");
     paperStats.replaceChildren(...STAT_KEYS.map((key) => {
       const stat = document.createElement("span");
@@ -261,6 +340,13 @@ export class GameUI {
 
   public clearTarget(): void {
     requiredElement<HTMLElement>("target-frame").hidden = true;
+  }
+
+  public clearCombatPresentation(): void {
+    this.clearTarget();
+    this.activeReactionCancel?.();
+    this.activeReactionCancel = null;
+    this.reactionPrompt.hidden = true;
   }
 
   public setRecoveryCharges(charges: number): void {
@@ -508,6 +594,7 @@ export class GameUI {
     }));
     choices.replaceChildren();
     this.dialogueVisible = true;
+    this.setScreenHudInert(true);
     panel.hidden = false;
     this.speak(scene.lines.join(" "), scene.npcId);
 
@@ -529,6 +616,7 @@ export class GameUI {
           if ("speechSynthesis" in window) window.speechSynthesis.cancel();
           panel.hidden = true;
           this.dialogueVisible = false;
+          this.setScreenHudInert(false);
           onContinue?.(choice);
         });
         choices.replaceChildren(continueButton);
@@ -587,6 +675,43 @@ export class GameUI {
     this.hp.textContent = String(snapshot.hp);
     this.stability.textContent = String(snapshot.stability);
     this.fury.textContent = String(snapshot.fury);
+    requiredElement<HTMLElement>("compact-hp").textContent = String(snapshot.hp);
+    requiredElement<HTMLElement>("compact-stability").textContent = String(snapshot.stability);
+    requiredElement<HTMLElement>("compact-resource").textContent = String(snapshot.fury);
+  }
+
+  public setBuffs(buffs: readonly BuffSnapshot[]): void {
+    this.buffStrip.replaceChildren(...buffs.map((buff) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `buff-chip buff-chip--${buff.tone ?? "buff"}`;
+      item.dataset.mechanic = "";
+      item.dataset.mechanicHelp = buff.help;
+      item.title = buff.help;
+      item.setAttribute("aria-label", `${buff.label}${buff.stacks && buff.stacks > 1 ? `, ${buff.stacks} stacks` : ""}, ${buff.duration}. ${buff.help}`);
+      item.innerHTML = `<span aria-hidden="true">${buff.icon}</span><b>${buff.stacks && buff.stacks > 1 ? buff.stacks : ""}</b><small>${buff.duration}</small>`;
+      return item;
+    }));
+    this.buffStrip.hidden = buffs.length === 0;
+  }
+
+  public setInteractionPrompt(prompt: InteractionPromptSnapshot | null): void {
+    this.interactionPrompt.hidden = !prompt;
+    if (!prompt) return;
+    requiredElement<HTMLElement>("interaction-label").textContent = prompt.label;
+    requiredElement<HTMLElement>("interaction-detail").textContent = prompt.disabledReason ?? prompt.detail;
+    this.interactionConfirm.disabled = Boolean(prompt.disabledReason);
+    this.interactionConfirm.title = prompt.disabledReason ?? prompt.detail;
+  }
+
+  public setTrialGateGuidance(entries: ReadonlyArray<{ label: string; detail: string }> | null): void {
+    const guidance = requiredElement<HTMLElement>("trial-gate-guidance");
+    guidance.hidden = !entries?.length;
+    guidance.replaceChildren(...(entries ?? []).map((entry) => {
+      const item = document.createElement("span");
+      item.innerHTML = `<strong>${entry.label}</strong><small>${entry.detail}</small>`;
+      return item;
+    }));
   }
 
   public setInventory(items: readonly InventoryItem[], capacity: BackpackCapacity): void {
@@ -686,7 +811,35 @@ export class GameUI {
   private showEquipment(visible: boolean): void {
     this.equipmentVisible = visible;
     this.equipmentPanel.hidden = !visible;
+    this.equipmentVisibilityHandler?.(visible);
     if (visible) requiredElement<HTMLButtonElement>("equipment-close").focus();
+  }
+
+  private savedLocomotionPreference(): LocomotionPreference {
+    try {
+      const stored = localStorage.getItem("souldrifter-locomotion-preference");
+      if (stored === "walk" || stored === "run") return stored;
+    } catch {
+      // Privacy modes may reject storage; Auto remains a complete fallback.
+    }
+    return "auto";
+  }
+
+  private setLocomotionPreference(preference: LocomotionPreference, persist = true): void {
+    this.locomotionMode = preference;
+    this.locomotionPreference.querySelectorAll<HTMLButtonElement>("button[data-locomotion-preference]").forEach((button) => {
+      const selected = button.dataset.locomotionPreference === preference;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    if (persist) {
+      try {
+        localStorage.setItem("souldrifter-locomotion-preference", preference);
+      } catch {
+        // Keep the in-memory selection if persistent storage is unavailable.
+      }
+    }
+    this.locomotionPreferenceHandler?.(preference);
   }
 
   public addLog(text: string): void {
@@ -761,6 +914,7 @@ export class GameUI {
         window.removeEventListener("keydown", onKeyDown);
         this.reactionPrompt.removeEventListener("pointerdown", onPointerDown);
         this.reactionPrompt.hidden = true;
+        if (this.activeReactionCancel === cancel) this.activeReactionCancel = null;
         resolve(success);
       };
       const onKeyDown = (event: KeyboardEvent): void => {
@@ -771,6 +925,8 @@ export class GameUI {
       };
       const onPointerDown = (): void => finish(true);
       const timeout = window.setTimeout(() => finish(false), durationMs);
+      const cancel = (): void => finish(false);
+      this.activeReactionCancel = cancel;
 
       window.addEventListener("keydown", onKeyDown);
       this.reactionPrompt.addEventListener("pointerdown", onPointerDown, { once: true });

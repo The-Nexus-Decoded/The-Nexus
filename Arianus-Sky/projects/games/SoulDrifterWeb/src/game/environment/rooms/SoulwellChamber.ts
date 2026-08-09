@@ -512,6 +512,21 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
     doorVeil.name = "trial-door-veil";
     doorVeil.rotation.y = Math.PI / 2;
     doorVeil.position.set((chamberWidth - 0.77) * tileSize, 1.43, gateProp.y * tileSize);
+    const portcullis = new THREE.Group();
+    portcullis.name = "trial-portcullis";
+    portcullis.position.set((chamberWidth - 0.8) * tileSize, 1.35, gateProp.y * tileSize);
+    for (const offset of [-0.58, -0.29, 0, 0.29, 0.58]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.7, 0.12), materials.darkIron);
+      bar.position.z = offset;
+      bar.castShadow = true;
+      portcullis.add(bar);
+    }
+    for (const railY of [-0.86, 0.1, 0.86]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.13, 1.48), hard ? materials.bronze : materials.darkIron);
+      rail.position.y = railY;
+      rail.castShadow = true;
+      portcullis.add(rail);
+    }
     const threshold = new THREE.Mesh(new THREE.RingGeometry(0.56, 0.7, 28, 1, 0, Math.PI), hard ? materials.bronze : materials.soulglass);
     threshold.rotation.x = -Math.PI / 2;
     threshold.rotation.z = Math.PI / 2;
@@ -522,11 +537,12 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
     gateRoot.userData.animatedOrb = seal;
     addInteractId(exitArch, gateProp.id);
     addInteractId(doorVeil, gateProp.id);
+    addInteractId(portcullis, gateProp.id);
     addInteractId(threshold, gateProp.id);
     addInteractId(seal, gateProp.id);
     const doorLight = new THREE.PointLight(hard ? 0xe05a39 : 0x5de1d6, hard ? 2.2 : 1.7, 5.5, 2);
     doorLight.position.set((chamberWidth - 1.25) * tileSize, 2.1, gateProp.y * tileSize);
-    gateRoot.add(exitArch, doorVeil, threshold, seal, doorLight);
+    gateRoot.add(exitArch, doorVeil, portcullis, threshold, seal, doorLight);
     root.add(gateRoot);
     storyObjects.push({ id: gateProp.id, grid: { x: gateProp.x, y: gateProp.y }, root: gateRoot, kind: "gate" });
   });

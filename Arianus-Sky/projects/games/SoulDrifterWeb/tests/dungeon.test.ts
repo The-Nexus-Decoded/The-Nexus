@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dungeonTileKey, generateSoulwellDungeon, roomContains } from "../src/game/dungeon";
+import { dungeonTileKey, generateSoulwellDungeon, parseDebugRunSeed, roomContains } from "../src/game/dungeon";
 
 function reachableTiles(dungeon: ReturnType<typeof generateSoulwellDungeon>): Set<string> {
   const floor = new Set(dungeon.tiles.map(dungeonTileKey));
@@ -36,6 +36,16 @@ function hasReachableAdjacent(point: { x: number; y: number }, reachable: Set<st
 }
 
 describe("Soulwell dungeon generation", () => {
+  it("accepts only explicit unsigned debug seeds for deterministic visual fixtures", () => {
+    expect(parseDebugRunSeed("2215682322")).toBe(2215682322);
+    expect(parseDebugRunSeed("0")).toBe(0);
+    expect(parseDebugRunSeed("4294967295")).toBe(4294967295);
+    expect(parseDebugRunSeed(null)).toBeNull();
+    expect(parseDebugRunSeed("-1")).toBeNull();
+    expect(parseDebugRunSeed("4294967296")).toBeNull();
+    expect(parseDebugRunSeed("not-a-seed")).toBeNull();
+  });
+
   it("is deterministic for a recorded run seed", () => {
     expect(generateSoulwellDungeon(4182)).toEqual(generateSoulwellDungeon(4182));
   });

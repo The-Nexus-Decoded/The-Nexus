@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/assets/generated/action-icons/basic-weapon-strike.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="souldrifter-build" content="beta-password-gate-v2" />
     <meta
@@ -53,7 +54,7 @@
       </header>
 
       <main class="play-layout">
-        <aside class="panel party-panel" aria-label="Party status">
+        <aside id="hud-drawer-status" class="panel party-panel hud-drawer" aria-label="Character details">
           <div class="portrait" aria-hidden="true">
             <img id="portrait-image" class="portrait__image" alt="" />
             <span id="portrait-rune" class="portrait__rune">ᚱ</span>
@@ -105,7 +106,7 @@
             <div class="run-seed" data-mechanic tabindex="0" data-mechanic-help="The run seed reproduces the same dungeon layout, encounters and seeded environmental variations for testing or sharing.">
               Run <span id="run-seed">--------</span>
             </div>
-            <nav class="camera-controls" aria-label="Camera controls">
+            <nav id="hud-drawer-camera" class="camera-controls hud-drawer" aria-label="Camera controls">
               <button type="button" data-camera-control="rotate-left" aria-label="Rotate camera left" title="Rotate left (Q)">↺</button>
               <button type="button" data-camera-control="pan-up" aria-label="Pan camera up" title="Pan up">↑</button>
               <button type="button" data-camera-control="rotate-right" aria-label="Rotate camera right" title="Rotate right (E)">↻</button>
@@ -116,7 +117,7 @@
               <button type="button" data-camera-control="pan-down" aria-label="Pan camera down" title="Pan down">↓</button>
               <button type="button" data-camera-control="zoom-in" aria-label="Zoom camera in" title="Zoom in">+</button>
             </nav>
-            <button id="equipment-toggle-mobile" class="equipment-toggle-mobile" type="button" aria-label="Open equipment and pack">Pack</button>
+            <button id="equipment-toggle-mobile" class="equipment-toggle-mobile" type="button" aria-label="Open equipment and pack" title="Pack (I)">&#9672;</button>
             <section id="equipment-panel" class="equipment-panel" role="dialog" aria-modal="true" aria-labelledby="equipment-title" hidden>
               <header class="equipment-panel__header">
                 <div>
@@ -124,11 +125,14 @@
                   <h2 id="equipment-title">Paper Doll &amp; Pack</h2>
                   <p>Equipped items drive combat, armor, weapon sockets, and durability.</p>
                 </div>
-                <button id="equipment-close" class="equipment-close" type="button" aria-label="Close equipment">×</button>
+                <div class="equipment-panel__actions">
+                  <button id="appearance-edit" class="appearance-edit" type="button" title="Revisit hair and skin choices without replacing this saved soul">Appearance</button>
+                  <button id="equipment-close" class="equipment-close" type="button" aria-label="Close equipment">×</button>
+                </div>
               </header>
               <div class="equipment-panel__body">
                 <div class="paper-doll" aria-label="Equipped item paper doll">
-                  <div class="paper-doll__portrait"><img id="paper-doll-image" alt="" /></div>
+                  <div class="paper-doll__portrait"><canvas id="paper-doll-canvas" aria-label="Live equipped character preview"></canvas></div>
                   <div class="paper-doll__identity">
                     <span id="paper-identity">Unformed soul</span>
                     <div id="paper-stats" class="paper-stats"></div>
@@ -205,10 +209,6 @@
                 <button id="imprint-confirm" type="button" disabled>Seal the imprint</button>
               </footer>
             </section>
-            <div id="target-frame" class="target-frame" hidden>
-              <div><strong id="target-name">Breachling</strong><span id="target-level">Level 1</span></div>
-              <div class="target-health"><span id="target-health-fill"></span><b id="target-health-text">0 / 0</b></div>
-            </div>
             <section id="dialogue-panel" class="dialogue-panel" aria-label="Conversation" hidden>
               <img id="dialogue-portrait" alt="" />
               <div class="dialogue-panel__content">
@@ -218,6 +218,19 @@
                 <div id="dialogue-choices" class="dialogue-choices"></div>
               </div>
             </section>
+          </div>
+
+          <div class="screen-hud-layer" aria-label="Screen-space combat controls">
+            <div id="compact-status" class="compact-status" aria-label="Essential character status">
+              <span><b id="compact-hp">0</b> HP</span>
+              <span><b id="compact-stability">100</b> STB</span>
+              <span><b id="compact-resource">0</b> RES</span>
+            </div>
+            <div id="buff-strip" class="buff-strip" aria-label="Active buffs and debuffs"></div>
+            <div id="target-frame" class="target-frame" hidden>
+              <div><strong id="target-name">Breachling</strong><span id="target-level">Level 1</span></div>
+              <div class="target-health"><span id="target-health-fill"></span><b id="target-health-text">0 / 0</b></div>
+            </div>
             <div id="reaction-prompt" class="reaction-prompt" hidden>
               <span class="reaction-prompt__key">SPACE</span>
               <div>
@@ -226,7 +239,22 @@
               </div>
               <div class="reaction-timer"><span id="reaction-fill"></span></div>
             </div>
-
+            <div id="interaction-prompt" class="interaction-prompt" hidden>
+              <button id="interaction-confirm" type="button"><span id="interaction-key">F</span><strong id="interaction-label">Interact</strong><small id="interaction-detail">Confirm interaction</small></button>
+            </div>
+            <div id="trial-gate-guidance" class="trial-gate-guidance" hidden aria-live="polite"></div>
+            <nav class="hud-drawer-controls" aria-label="HUD drawers">
+              <button type="button" data-hud-drawer="status" aria-controls="hud-drawer-status" aria-expanded="false" aria-label="Character details" title="Character details">&#9671;</button>
+              <button type="button" data-hud-drawer="guide" aria-controls="hud-drawer-guide" aria-expanded="false" aria-label="Quest and guide" title="Quest and guide">?</button>
+              <button type="button" data-hud-drawer="controls" aria-controls="hud-drawer-controls" aria-expanded="false" aria-label="Controls" title="Controls">&#8984;</button>
+              <button type="button" data-hud-drawer="camera" aria-controls="hud-drawer-camera" aria-expanded="false" aria-label="Camera pad" title="Camera pad">&#9678;</button>
+            </nav>
+            <div id="locomotion-preference" class="locomotion-preference" role="group" aria-label="Movement pace" data-mechanic tabindex="0" data-mechanic-help="Auto walks one tile and runs longer routes. Walk keeps a measured pace. Run uses the fast gait whenever the selected path has room.">
+              <span>Pace</span>
+              <button type="button" data-locomotion-preference="auto" aria-pressed="true" title="Auto: walk one tile, run longer routes">Auto</button>
+              <button type="button" data-locomotion-preference="walk" aria-pressed="false" title="Walk: use the walking gait for every route">Walk</button>
+              <button type="button" data-locomotion-preference="run" aria-pressed="false" title="Run: use the running gait whenever movement is possible">Run</button>
+            </div>
             <div id="combat-controls" class="combat-controls" hidden>
               <button type="button" data-action="move" data-mechanic data-mechanic-help="Move selects a reachable floor position. Collision, creatures, NPCs and large props block routes."><span class="action-hotkey">M</span><span class="utility-icon">➜</span><b>Move</b><small>Reposition</small></button>
               <button id="basic-action" type="button" data-action="basic" data-mechanic><span class="action-hotkey">1</span><img src="/assets/generated/action-icons/basic-weapon-strike.svg" alt="" /><b>Weapon Strike</b><small>Free basic attack</small></button>
@@ -242,7 +270,7 @@
           </div>
         </section>
 
-        <aside class="panel journal-panel" aria-label="Quest journal">
+        <aside id="hud-drawer-guide" class="panel journal-panel hud-drawer" aria-label="Quest journal">
           <p class="eyebrow">Memory thread</p>
           <h2>The First Breach</h2>
           <p id="objective-text" class="objective">
@@ -266,7 +294,7 @@
             </ol>
           </section>
 
-          <div class="controls-card">
+          <div id="hud-drawer-controls" class="controls-card hud-drawer">
             <h3>Controls</h3>
             <label class="combat-style-label" for="combat-style">Combat style</label>
             <select id="combat-style" class="combat-style-select" data-mechanic data-mechanic-help="Tactical Turns pauses for orders and resolves one round at a time. Real-Time Action Bar keeps enemies acting while your abilities recover on cooldown.">

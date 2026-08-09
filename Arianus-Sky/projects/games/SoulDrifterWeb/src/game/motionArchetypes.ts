@@ -148,6 +148,8 @@ export type MotionEventKind = "contact" | "release";
 export type Hand = "left" | "right";
 export type HandContactTarget = "hilt" | "free";
 export type HandIntent = "weapon-control" | "balance-guard" | "ward" | "channel";
+export type ActionWeaponState = "hidden" | "sheathed" | "drawn";
+export type TorsoIntent = "attack-drive" | "attack-sweep" | "ward-cast" | "recovery-channel";
 
 export interface MotionArchetypeContract {
   skillId: MotionSkillId;
@@ -156,6 +158,8 @@ export interface MotionArchetypeContract {
   clipNames: readonly string[];
   weaponFamily: WeaponFamily;
   grip: Grip;
+  weaponState: ActionWeaponState;
+  torsoIntent: TorsoIntent;
   handContacts: {
     dominant: {
       hand: Hand;
@@ -216,14 +220,16 @@ export const WEAPON_STRIKE_MOTION: MotionArchetypeContract = {
   skillId: "weapon-strike",
   registryKey: "combat.basic.weapon-strike",
   id: "thrust",
-  clipNames: ["BasicThrust", "Punch"],
+  clipNames: ["WeaponStrikeBaseline", "Punch"],
   weaponFamily: "sword",
   grip: "one-handed",
+  weaponState: "drawn",
+  torsoIntent: "attack-drive",
   handContacts: {
     dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
   },
-  playbackRate: 1.1,
+  playbackRate: 0.9,
   blendSeconds: 0.06,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
@@ -252,11 +258,13 @@ export const UNARMED_PUNCH_MOTION: MotionArchetypeContract = {
   clipNames: ["UnarmedPunch"],
   weaponFamily: "unarmed",
   grip: "unarmed",
+  weaponState: "hidden",
+  torsoIntent: "attack-drive",
   handContacts: {
     dominant: { hand: "right", target: "free", intent: "weapon-control", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
   },
-  playbackRate: 1.8,
+  playbackRate: 1.05,
   blendSeconds: 0.06,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
@@ -282,11 +290,13 @@ export const UNARMED_KICK_MOTION: MotionArchetypeContract = {
   clipNames: ["UnarmedKick"],
   weaponFamily: "unarmed",
   grip: "unarmed",
+  weaponState: "hidden",
+  torsoIntent: "attack-drive",
   handContacts: {
     dominant: { hand: "right", target: "free", intent: "balance-guard", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
   },
-  playbackRate: 1.62,
+  playbackRate: 0.96,
   blendSeconds: 0.06,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
@@ -312,24 +322,26 @@ export const SIPHON_CLEAVE_MOTION: MotionArchetypeContract = {
   skillId: "siphon-cleave",
   registryKey: "combat.signature.siphon-cleave",
   id: "stationary-horizontal-arc",
-  clipNames: ["SiphonCleaveSource", "SiphonCleave", "SwordSlash"],
+  clipNames: ["SiphonCleaveBaseline", "SiphonCleave", "SwordSlash"],
   weaponFamily: "sword",
   grip: "one-handed",
+  weaponState: "drawn",
+  torsoIntent: "attack-sweep",
   handContacts: {
     dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "channel", continuity: "continuous" },
   },
-  playbackRate: 1.35,
+  playbackRate: 0.47,
   blendSeconds: 0.07,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
   facing: "auto-face-target",
   hit: { shape: "frontal-arc", reachTiles: 2 },
   timing: {
-    telegraph: [0, 0.34],
-    event: { kind: "contact", at: 0.62, marker: "siphon-cleave.contact" },
-    recovery: [0.62, 1],
-    cancelWindow: [0.82, 1],
+    telegraph: [0, 0.88],
+    event: { kind: "contact", at: 0.88, marker: "siphon-cleave.contact" },
+    recovery: [0.88, 1],
+    cancelWindow: [0.94, 1],
   },
   interruptibility: { telegraph: true, active: false, recovery: true },
   footContacts: groundedFeet,
@@ -340,6 +352,38 @@ export const SIPHON_CLEAVE_MOTION: MotionArchetypeContract = {
   styleLayers: { race: [], calling: ["shadowknight"] },
 };
 
+/** Shared hostile melee timing: visible anticipation, one contact marker, then recovery. */
+export const ENEMY_MELEE_MOTION: MotionArchetypeContract = {
+  skillId: "weapon-strike",
+  registryKey: "combat.enemy.melee",
+  id: "advancing-slash",
+  clipNames: ["SwordSlashOutward", "SwordSlash", "BasicThrust", "Punch"],
+  weaponFamily: "sword",
+  grip: "one-handed",
+  weaponState: "drawn",
+  torsoIntent: "attack-drive",
+  handContacts: {
+    dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
+    support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
+  },
+  playbackRate: 0.82,
+  blendSeconds: 0.08,
+  rootPolicy: "in-place",
+  displacement: { tiles: 0, meters: 0 },
+  facing: "auto-face-target",
+  hit: { shape: "frontal-arc", reachTiles: 1 },
+  timing: {
+    telegraph: [0, 0.34],
+    event: { kind: "contact", at: 0.56, marker: "enemy-melee.contact" },
+    recovery: [0.56, 1],
+    cancelWindow: [0.88, 1],
+  },
+  interruptibility: { telegraph: true, active: false, recovery: true },
+  footContacts: groundedFeet,
+  sockets: { vfx: ["weapon_tip", "weapon_contact"], sfx: ["enemy_whoosh", "enemy_contact"] },
+  styleLayers: { race: [], calling: [] },
+};
+
 export const CINDER_GUARD_MOTION: MotionArchetypeContract = {
   skillId: "cinder-guard",
   registryKey: "combat.defense.cinder-guard",
@@ -347,11 +391,13 @@ export const CINDER_GUARD_MOTION: MotionArchetypeContract = {
   clipNames: ["CastWard", "CinderGuard", "Cast", "Victory"],
   weaponFamily: "sword",
   grip: "one-handed",
+  weaponState: "drawn",
+  torsoIntent: "ward-cast",
   handContacts: {
     dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "ward", continuity: "phase-specific" },
   },
-  playbackRate: 1,
+  playbackRate: 0.9,
   blendSeconds: 0.08,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
@@ -379,11 +425,13 @@ export const RECOVER_MOTION: MotionArchetypeContract = {
   clipNames: ["CastSummon", "Recover", "PickupGround", "PickUp", "SitDown"],
   weaponFamily: "sword",
   grip: "one-handed",
+  weaponState: "sheathed",
+  torsoIntent: "recovery-channel",
   handContacts: {
-    dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
+    dominant: { hand: "right", target: "free", intent: "channel", continuity: "continuous" },
     support: { hand: "left", target: "free", intent: "channel", continuity: "phase-specific" },
   },
-  playbackRate: 1,
+  playbackRate: 0.9,
   blendSeconds: 0.08,
   rootPolicy: "in-place",
   displacement: { tiles: 0, meters: 0 },
@@ -422,10 +470,10 @@ export interface WorldInteractionMotionContract {
 
 /** One shared contract keeps every world interaction on the sheath -> act -> redraw path. */
 export const WORLD_INTERACTION_MOTIONS: Readonly<Record<WorldInteractionMotionId, WorldInteractionMotionContract>> = {
-  door: { clipNames: ["DoorOpenInward", "DoorOpenOutward"], playbackRate: 2.4, eventAt: 0.55, requiresEmptyHands: true },
-  chest: { clipNames: ["PickupWaist", "PickupGround"], playbackRate: 1.8, eventAt: 0.58, requiresEmptyHands: true },
-  pickup: { clipNames: ["PickupWaist", "PickupGround"], playbackRate: 1.8, eventAt: 0.62, requiresEmptyHands: true },
-  lever: { clipNames: ["PullLever", "PickupWaist"], playbackRate: 2, eventAt: 0.54, requiresEmptyHands: true },
-  "soul-well": { clipNames: ["CastWard", "CastProjectile", "Cast"], playbackRate: 1.35, eventAt: 0.52, requiresEmptyHands: true },
+  door: { clipNames: ["DoorOpenInward", "DoorOpenOutward"], playbackRate: 0.92, eventAt: 0.55, requiresEmptyHands: true },
+  chest: { clipNames: ["PickupWaist", "PickupGround"], playbackRate: 0.9, eventAt: 0.58, requiresEmptyHands: true },
+  pickup: { clipNames: ["PickupWaist", "PickupGround"], playbackRate: 0.9, eventAt: 0.62, requiresEmptyHands: true },
+  lever: { clipNames: ["PullLever", "PickupWaist"], playbackRate: 0.9, eventAt: 0.54, requiresEmptyHands: true },
+  "soul-well": { clipNames: ["CastWard", "CastProjectile", "Cast"], playbackRate: 0.86, eventAt: 0.52, requiresEmptyHands: true },
   conversation: { clipNames: ["Idle"], playbackRate: 1, eventAt: 0, requiresEmptyHands: true },
 };

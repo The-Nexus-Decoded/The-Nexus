@@ -3,14 +3,52 @@ import * as THREE from "three";
 import {
   cameraFollowStep,
   cameraPanBounds,
+  cameraTileEnvelope,
   cloneActorMaterial,
+  createTerminalDeathClip,
+  deathBodyTilt,
   createStarterLongswordPresentation,
+  occlusionSampleHeights,
+  resolvePointerHitIntent,
   screenPanToWorld,
   sanitizeAttackClip,
   setWeaponVisualState,
 } from "../src/game/presentation";
+import { generateSoulwellDungeon } from "../src/game/dungeon";
 
 describe("actor presentation boundaries", () => {
+  it("trims the malformed death recovery tail into a grounded semantic endpoint", () => {
+    const source = new THREE.AnimationClip("DeathMixamo", 3, [
+      new THREE.VectorKeyframeTrack("pelvis.position", [0, 0.6, 1.2, 1.8, 2.4, 3], [
+        0, 1, 0,
+        0, 0.7, 0,
+        0, 0.2, 0,
+        0, 0.8, 0,
+        0, 1, 0,
+        0, 1, 0,
+      ]),
+    ]);
+
+    const normalized = createTerminalDeathClip(source, 0.4);
+
+    expect(normalized.name).toBe("DeathBaseline");
+    expect(normalized.duration).toBeCloseTo(1.2);
+    const terminalTimes = Array.from(normalized.tracks[0]!.times);
+    expect(terminalTimes).toHaveLength(3);
+    expect(terminalTimes[0]).toBeCloseTo(0);
+    expect(terminalTimes[1]).toBeCloseTo(0.6);
+    expect(terminalTimes[2]).toBeCloseTo(1.2);
+    expect(source.duration).toBe(3);
+    expect(Array.from(source.tracks[0]!.times)).toHaveLength(6);
+  });
+
+  it("tips only the terminal death phase onto a horizontal support plane", () => {
+    expect(deathBodyTilt(0)).toBeCloseTo(0);
+    expect(deathBodyTilt(0.55)).toBeCloseTo(0);
+    expect(deathBodyTilt(0.775)).toBeLessThan(-0.5);
+    expect(deathBodyTilt(1)).toBeCloseTo(-Math.PI / 2);
+  });
+
   it("preserves authored player color and emissive channels on an isolated clone", () => {
     const source = new THREE.MeshStandardMaterial({
       color: 0x98959a,
@@ -187,5 +225,47 @@ describe("camera pan boundaries", () => {
     expect(next.manualOffset.x).toBeLessThan(previous.manualOffset.x);
     expect(next.lookAhead.x).toBeGreaterThan(0);
     expect(next.target.x).toBe(5);
+  });
+
+  it("contains every randomized crawl tile in the logical-room camera envelope", () => {
+    let authoredRoomMissesGeneratedTile = false;
+    for (let seed = 1; seed <= 24; seed += 1) {
+      const dungeon = generateSoulwellDungeon(seed);
+      const tiles = dungeon.tiles.filter((tile) => tile.roomId === "skirmish");
+      const envelope = cameraTileEnvelope(tiles, 1.75);
+      const minimum = envelope.center.clone().sub(envelope.bounds);
+      const maximum = envelope.center.clone().add(envelope.bounds);
+      for (const tile of tiles) {
+        const world = new THREE.Vector2(tile.x * 1.75, tile.y * 1.75);
+        expect(world.x).toBeGreaterThanOrEqual(minimum.x);
+        expect(world.x).toBeLessThanOrEqual(maximum.x);
+        expect(world.y).toBeGreaterThanOrEqual(minimum.y);
+        expect(world.y).toBeLessThanOrEqual(maximum.y);
+      }
+      const authored = dungeon.rooms.find((room) => room.id === "skirmish")!;
+      const authoredMinimumX = (authored.center.x - authored.width * 0.5) * 1.75;
+      const authoredMaximumX = (authored.center.x + authored.width * 0.5) * 1.75;
+      authoredRoomMissesGeneratedTile ||= tiles.some((tile) => tile.x * 1.75 < authoredMinimumX || tile.x * 1.75 > authoredMaximumX);
+    }
+    expect(authoredRoomMissesGeneratedTile).toBe(true);
+  });
+
+  it("prioritizes a semantic target over an earlier floor hit", () => {
+    const hits = [
+      {},
+      { tile: { x: 22, y: 2 } },
+      { enemyId: "breachling-1" },
+    ];
+
+    expect(resolvePointerHitIntent(hits)).toEqual({ kind: "enemy", id: "breachling-1" });
+    expect(resolvePointerHitIntent([{ tile: { x: 22, y: 2 } }])).toEqual({
+      kind: "ground",
+      tile: { x: 22, y: 2 },
+    });
+  });
+
+  it("samples both lower and upper body for camera occlusion", () => {
+    expect(occlusionSampleHeights(0.92)).toEqual([0.28, 0.92]);
+    expect(occlusionSampleHeights(0.78)).toEqual([0.28, 0.78]);
   });
 });

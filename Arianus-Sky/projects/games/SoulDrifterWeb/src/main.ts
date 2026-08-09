@@ -1,9 +1,11 @@
 import "./styles.css";
 import { CharacterCreation } from "./characterCreation";
-import { setActiveCharacter, type CharacterProfile } from "./game/character";
-import { createRunSeed } from "./game/dungeon";
+import { normalizeLegacyCharacterProfile, setActiveCharacter, type CharacterProfile } from "./game/character";
+import { createRunSeed, parseDebugRunSeed } from "./game/dungeon";
 import { storyDatabase } from "./game/persistence";
 import { World3D } from "./game/World3D";
+
+let activeWorld: World3D | null = null;
 
 async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): Promise<void> {
   // Character shaping persists; a trial oath belongs only to the generated
@@ -24,7 +26,12 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
   if (!shell || !container) throw new Error("Missing SoulDrifter application shell.");
   shell.hidden = false;
 
-  const world = new World3D(container, profile, createRunSeed(), savedInventory ?? undefined);
+  activeWorld?.destroy();
+  const requestedDebugSeed = import.meta.env.DEV
+    ? parseDebugRunSeed(new URL(window.location.href).searchParams.get("debugSeed"))
+    : null;
+  const world = new World3D(container, profile, requestedDebugSeed ?? createRunSeed(), savedInventory ?? undefined);
+  activeWorld = world;
   try {
     await world.start();
   } catch (error) {
@@ -35,7 +42,11 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
 }
 
 async function bootstrap(): Promise<void> {
-  const savedProfile = await storyDatabase.loadCharacter().catch(() => null);
+  const loadedProfile = await storyDatabase.loadCharacter().catch(() => null);
+  const savedProfile = loadedProfile ? normalizeLegacyCharacterProfile(loadedProfile) : null;
+  if (savedProfile && JSON.stringify(savedProfile) !== JSON.stringify(loadedProfile)) {
+    await storyDatabase.saveCharacter(savedProfile).catch(() => undefined);
+  }
   new CharacterCreation((profile, resumeSavedSoul) => { void launchGame(profile, resumeSavedSoul); }, savedProfile);
 }
 

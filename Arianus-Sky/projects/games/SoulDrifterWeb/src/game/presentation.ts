@@ -1,5 +1,29 @@
 import * as THREE from "three";
 
+export interface PointerHitCandidate<TTile> {
+  enemyId?: string;
+  interactId?: string;
+  tile?: TTile;
+}
+
+export type PointerHitIntent<TTile> =
+  | { kind: "enemy"; id: string }
+  | { kind: "interact"; id: string }
+  | { kind: "ground"; tile: TTile }
+  | null;
+
+export function resolvePointerHitIntent<TTile>(hits: readonly PointerHitCandidate<TTile>[]): PointerHitIntent<TTile> {
+  const semanticHit = hits.find((hit) => hit.enemyId !== undefined || hit.interactId !== undefined);
+  if (semanticHit?.enemyId !== undefined) return { kind: "enemy", id: semanticHit.enemyId };
+  if (semanticHit?.interactId !== undefined) return { kind: "interact", id: semanticHit.interactId };
+  const groundHit = hits.find((hit) => hit.tile !== undefined);
+  return groundHit?.tile === undefined ? null : { kind: "ground", tile: groundHit.tile };
+}
+
+export function occlusionSampleHeights(upperHeight: number): [number, number] {
+  return [Math.min(0.28, upperHeight), upperHeight];
+}
+
 function isGroundingAttackTarget(target: string): boolean {
   const normalized = target.toLowerCase().replace(/[^a-z0-9]/g, "");
   return ["root", "armature", "pelvis", "hips"].some((name) => normalized.endsWith(name))
@@ -69,6 +93,31 @@ export function sanitizeInPlaceClip(clip: THREE.AnimationClip): THREE.AnimationC
 }
 
 export const sanitizeAttackClip = sanitizeInPlaceClip;
+
+/**
+ * Normalizes the imported Mixamo death take into a semantic one-way fall.
+ * Its valid collapse is followed by an unintended stand-up tail.
+ */
+export function createTerminalDeathClip(
+  source: THREE.AnimationClip,
+  terminalNormalized = 0.408,
+): THREE.AnimationClip {
+  const terminalTime = source.duration * THREE.MathUtils.clamp(terminalNormalized, 0, 1);
+  const tracks = source.tracks.map((sourceTrack) => {
+    const track = sourceTrack.clone();
+    // KeyframeTrack.trim treats the upper bound as exclusive; preserve an
+    // authored sample that lands exactly on the semantic terminal.
+    track.trim(0, terminalTime + 1e-6);
+    return track;
+  });
+  return new THREE.AnimationClip("DeathBaseline", terminalTime, tracks, source.blendMode);
+}
+
+/** Progressively tips the collapsed rig onto its support plane. */
+export function deathBodyTilt(normalizedTime: number): number {
+  const progress = THREE.MathUtils.smoothstep(normalizedTime, 0.55, 1);
+  return -progress * Math.PI / 2;
+}
 
 export type WeaponVisualState = "hidden" | "sheathed" | "drawn";
 
@@ -191,6 +240,24 @@ export interface CameraFollowResult extends CameraFollowState {
 
 function dampingAlpha(lambda: number, deltaSeconds: number): number {
   return 1 - Math.exp(-lambda * THREE.MathUtils.clamp(deltaSeconds, 0, 0.1));
+}
+
+/** Bounds camera follow by every generated tile in a logical room, including crawl sections outside the authored room rectangle. */
+export function cameraTileEnvelope(
+  tiles: readonly { x: number; y: number }[],
+  tileSize: number,
+): { center: THREE.Vector2; bounds: THREE.Vector2 } {
+  if (tiles.length === 0) throw new Error("Camera tile envelope requires at least one tile.");
+  const xs = tiles.map((tile) => tile.x);
+  const ys = tiles.map((tile) => tile.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    center: new THREE.Vector2((minX + maxX) * 0.5 * tileSize, (minY + maxY) * 0.5 * tileSize),
+    bounds: new THREE.Vector2((maxX - minX + 1) * 0.5 * tileSize, (maxY - minY + 1) * 0.5 * tileSize),
+  };
 }
 
 export function cameraFollowStep(

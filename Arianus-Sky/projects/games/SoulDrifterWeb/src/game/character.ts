@@ -102,6 +102,7 @@ export interface CharacterProfile {
   callingId: CallingId;
   callingName: string;
   appearance: CharacterAppearance;
+  appearanceNeedsReview?: boolean;
   stats: Stats;
   skills: string[];
   memoryConsequences: string[];
@@ -454,6 +455,28 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
     ancestryCallingBonus: ancestryCallingBonus
       ? { name: ancestryCallingBonus.name, description: ancestryCallingBonus.description }
       : undefined,
+  };
+}
+
+/** Upgrades legacy saves by copy, preserving progression and inventory identity. */
+export function normalizeLegacyCharacterProfile(profile: CharacterProfile): CharacterProfile {
+  const race = raceById(profile.raceId);
+  const calling = callingById(profile.callingId);
+  const legacyAppearance = profile.appearance as Partial<CharacterAppearance> | undefined;
+  const hairStyle = legacyAppearance?.hairStyle && HAIR_STYLES.some((style) => style.id === legacyAppearance.hairStyle)
+    ? legacyAppearance.hairStyle
+    : "shaved";
+  const skinTone = legacyAppearance?.skinTone && legacyAppearance.skinTone in SKIN_TONES
+    ? legacyAppearance.skinTone
+    : "ashen";
+  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.skinTone;
+  return {
+    ...profile,
+    raceName: race.name,
+    raceGlyph: race.glyph,
+    callingName: calling.name,
+    appearance: { hairStyle, skinTone },
+    appearanceNeedsReview: profile.appearanceNeedsReview ?? usedAppearanceDefault,
   };
 }
 

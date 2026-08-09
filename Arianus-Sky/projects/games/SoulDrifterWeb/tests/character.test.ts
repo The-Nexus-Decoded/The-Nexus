@@ -6,6 +6,7 @@ import {
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
+  normalizeLegacyCharacterProfile,
   type CharacterDraft,
 } from "../src/game/character";
 import { buildDialogue, type NpcDatabase, type NpcStoryOverride } from "../src/game/npc";
@@ -68,6 +69,31 @@ describe("character weaving", () => {
     expect(dwarfShadowknight.skills).toContain("Ember Sepulcher");
     expect(elfShadowknight.callingName).toBe("Shadowknight");
     expect(elfShadowknight.ancestryCallingBonus).toBeUndefined();
+  });
+
+  it("non-destructively normalizes legacy identity and appearance without replacing the saved soul", () => {
+    const current = deriveCharacter(completeDraft("elf", "shadowknight"));
+    const legacy = {
+      ...current,
+      raceName: "Human",
+      callingName: "Warrior",
+      appearance: undefined,
+      onboarding: { ilyraAnswered: true, storybookCompleted: true, storybookPage: 7 },
+    } as unknown as typeof current;
+    const normalized = normalizeLegacyCharacterProfile(legacy);
+    expect(normalized).not.toBe(legacy);
+    expect(normalized).toMatchObject({
+      name: current.name,
+      raceId: "elf",
+      raceName: "Elf",
+      callingId: "shadowknight",
+      callingName: "Shadowknight",
+      appearance: { hairStyle: "shaved", skinTone: "ashen" },
+      appearanceNeedsReview: true,
+      onboarding: legacy.onboarding,
+    });
+    expect(legacy.appearance).toBeUndefined();
+    expect(normalized.skills).toEqual(current.skills);
   });
 });
 

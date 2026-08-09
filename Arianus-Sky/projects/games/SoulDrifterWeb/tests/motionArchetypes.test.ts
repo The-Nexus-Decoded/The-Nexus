@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ENEMY_MELEE_MOTION,
   MOTION_ARCHETYPE_IDS,
   MOTION_BY_SKILL_ID,
   MOTION_SKILL_IDS,
@@ -72,7 +73,7 @@ describe("motion archetype contracts", () => {
         dominant: { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" },
         support: { hand: "left", target: "free", intent: "balance-guard", continuity: "continuous" },
       },
-      playbackRate: 1.1,
+      playbackRate: 0.9,
       rootPolicy: "in-place",
       displacement: { tiles: 0, meters: 0 },
       facing: "auto-face-target",
@@ -89,6 +90,26 @@ describe("motion archetype contracts", () => {
     expect(WEAPON_STRIKE_MOTION.footContacts.map(({ foot }) => foot)).toEqual(["left", "right"]);
   });
 
+  it("gives enemy melee a readable wind-up, contact marker, and recovery at a clip-specific speed", () => {
+    expect(ENEMY_MELEE_MOTION.clipNames.length).toBeGreaterThan(0);
+    expect(ENEMY_MELEE_MOTION.playbackRate).toBeLessThanOrEqual(1);
+    expect(ENEMY_MELEE_MOTION.timing.telegraph[1]).toBeLessThan(ENEMY_MELEE_MOTION.timing.event.at);
+    expect(ENEMY_MELEE_MOTION.timing.event.at).toBe(ENEMY_MELEE_MOTION.timing.recovery[0]);
+    expect(ENEMY_MELEE_MOTION.timing.recovery[1] - ENEMY_MELEE_MOTION.timing.recovery[0]).toBeGreaterThanOrEqual(0.3);
+    expect(new Set([
+      WEAPON_STRIKE_MOTION.playbackRate,
+      UNARMED_PUNCH_MOTION.playbackRate,
+      UNARMED_KICK_MOTION.playbackRate,
+      ENEMY_MELEE_MOTION.playbackRate,
+    ]).size).toBeGreaterThan(1);
+    expect(Math.max(
+      WEAPON_STRIKE_MOTION.playbackRate,
+      UNARMED_PUNCH_MOTION.playbackRate,
+      UNARMED_KICK_MOTION.playbackRate,
+      ENEMY_MELEE_MOTION.playbackRate,
+    )).toBeLessThanOrEqual(1.1);
+  });
+
   it("registers the four current skills as actor-agnostic shared contracts", () => {
     expect(Object.keys(MOTION_BY_SKILL_ID)).toEqual(MOTION_SKILL_IDS);
     for (const skillId of MOTION_SKILL_IDS) {
@@ -96,12 +117,9 @@ describe("motion archetype contracts", () => {
       expect(contract.skillId).toBe(skillId);
       expect(contract.registryKey).toMatch(/^combat\./);
       expect(contract.clipNames.length).toBeGreaterThan(0);
-      expect(contract.handContacts.dominant).toMatchObject({
-        hand: "right",
-        target: "hilt",
-        intent: "weapon-control",
-        continuity: "continuous",
-      });
+      expect(contract.handContacts.dominant).toMatchObject(skillId === "recover"
+        ? { hand: "right", target: "free", intent: "channel", continuity: "continuous" }
+        : { hand: "right", target: "hilt", intent: "weapon-control", continuity: "continuous" });
       expect(contract.handContacts.support.hand).toBe("left");
       expect(contract.timing.telegraph[0]).toBeGreaterThanOrEqual(0);
       expect(contract.timing.telegraph[0]).toBeLessThanOrEqual(contract.timing.telegraph[1]);
@@ -117,14 +135,17 @@ describe("motion archetype contracts", () => {
       expect(contract).not.toHaveProperty("playerOnly");
     }
     expect(MOTION_BY_SKILL_ID.recover.clipNames[0]).toBe("CastSummon");
-    expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames[0]).toBe("BasicThrust");
-    expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames).not.toContain("SwordSlash");
+    expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames[0]).toBe("WeaponStrikeBaseline");
+    expect(MOTION_BY_SKILL_ID["weapon-strike"].clipNames).not.toContain("BasicThrust");
     expect(MOTION_BY_SKILL_ID["weapon-strike"].handContacts.support).toMatchObject({
       target: "free",
       intent: "balance-guard",
     });
     expect(MOTION_BY_SKILL_ID["siphon-cleave"].id).toBe("stationary-horizontal-arc");
-    expect(MOTION_BY_SKILL_ID["siphon-cleave"].clipNames[0]).toBe("SiphonCleaveSource");
+    expect(MOTION_BY_SKILL_ID["siphon-cleave"].clipNames[0]).toBe("SiphonCleaveBaseline");
+    expect(MOTION_BY_SKILL_ID["siphon-cleave"].clipNames).not.toContain("SiphonCleaveSource");
+    expect(MOTION_BY_SKILL_ID["siphon-cleave"].playbackRate).toBe(0.47);
+    expect(MOTION_BY_SKILL_ID["siphon-cleave"].timing.event.at).toBe(0.88);
     expect(MOTION_BY_SKILL_ID["siphon-cleave"].clipNames).not.toContain("SwordComboMixamo");
     expect(MOTION_BY_SKILL_ID["siphon-cleave"].handContacts.support).toMatchObject({
       target: "free",

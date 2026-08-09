@@ -4,6 +4,7 @@ import {
   deriveCharacter,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
+  normalizeLegacyCharacterProfile,
   RACES,
   raceCallingBonus,
   SKIN_TONES,
@@ -41,11 +42,29 @@ export class CharacterCreation {
   };
   private step: CreationStep = "name";
   private memoryIndex = 0;
+  private appearanceEditProfile: CharacterProfile | null = null;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
     private readonly savedProfile: CharacterProfile | null = null,
   ) {
+    window.addEventListener("souldrifter:edit-appearance", (event) => {
+      const profile = (event as CustomEvent<{ profile?: CharacterProfile }>).detail?.profile;
+      if (profile) this.editAppearance(profile);
+    });
+    this.render();
+  }
+
+  public editAppearance(profile: CharacterProfile): void {
+    const normalized = normalizeLegacyCharacterProfile(profile);
+    this.appearanceEditProfile = normalized;
+    this.draft.name = normalized.name;
+    this.draft.raceId = normalized.raceId;
+    this.draft.callingId = normalized.callingId;
+    this.draft.appearance = { ...normalized.appearance };
+    this.step = "appearance";
+    this.root.classList.remove("is-dissolving");
+    this.root.hidden = false;
     this.render();
   }
 
@@ -172,14 +191,32 @@ export class CharacterCreation {
           </div>
         </section>
       </div>
-      ${this.navigation("Return to ancestry", "Choose calling")}`;
+      ${this.navigation(this.appearanceEditProfile ? "Cancel" : "Return to ancestry", this.appearanceEditProfile ? "Save appearance" : "Choose calling")}`;
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
     });
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
       this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
     });
-    this.bindNavigation(() => { this.step = "race"; this.render(); }, () => {
+    this.bindNavigation(() => {
+      if (this.appearanceEditProfile) {
+        this.appearanceEditProfile = null;
+        this.root.hidden = true;
+        return;
+      }
+      this.step = "race";
+      this.render();
+    }, () => {
+      if (this.appearanceEditProfile) {
+        const updated: CharacterProfile = {
+          ...this.appearanceEditProfile,
+          appearance: { ...this.draft.appearance },
+          appearanceNeedsReview: false,
+        };
+        this.appearanceEditProfile = null;
+        this.complete(updated, true);
+        return;
+      }
       this.step = "calling";
       this.render();
     });

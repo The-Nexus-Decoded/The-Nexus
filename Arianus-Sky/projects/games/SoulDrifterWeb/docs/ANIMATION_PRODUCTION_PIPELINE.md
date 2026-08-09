@@ -15,7 +15,7 @@ The purpose of this pipeline is to prevent animation work from becoming a long s
 5. **Particles cannot rescue bad choreography.** Visual effects reinforce a readable motion; they do not replace anticipation, contact, release, follow-through, or recovery.
 6. **Gameplay distance is authoritative.** Close-up inspection is required, but a motion that disappears or merges into idle from the normal isometric camera fails.
 7. **Rejected work never becomes the shipping asset.** Candidates remain isolated until all visual, technical, runtime, and provenance gates pass.
-8. **Mixamo is a batch acquisition source, not a per-character production dependency.** Keep one acquisition session open long enough to collect the approved motion set. Upload only the canonical humanoid acquisition rig when a Mixamo preview requires it; do not upload every race/class/equipment combination. Download source motions once, record their provenance and hashes, store the approved working library outside the shipping tree, and retarget locally through Blender to the canonical SoulDrifter rig. Race, class, weapon, NPC, enemy, and equipment variants are produced from local retarget/style layers. Do not require the owner to repeat browser sign-in, native file-picker, upload, or download work for routine variants.
+8. **Mixamo is a batch acquisition source, not a per-character production dependency.** Keep one acquisition session open long enough to collect the approved motion set. Upload only the canonical humanoid acquisition rig when a Mixamo preview requires it; do not upload every race/class/equipment combination. Download source motions once, record their provenance and hashes, and store the untouched working library outside the shipping tree. When the returned clip has the same rig names and topology as the shipping character, ship it as a separate animation-only pack and bind it directly at runtime; do not retarget or merge it into the character GLB. Use Blender retargeting only for genuinely different rigs or for an explicitly approved authored post-pass. Race, class, weapon, NPC, enemy, and equipment variants reuse the runtime pack or a documented retarget/style layer. Do not require the owner to repeat browser sign-in, native file-picker, upload, or download work for routine variants.
 
 9. **World interactions require empty hands.** Door, chest, pickup, placement, dialogue, lever, switch, crafting, and similar clips fail if a weapon remains attached to either hand. An armed actor must sheath first, transfer the item to its hip/back socket on the authored event marker, perform the interaction, then optionally redraw. Previewing or downloading an interaction while the visible reference character still holds a weapon is not an acceptable visual gate.
 10. **Acquire coherent combat families, not random isolated attacks.** A weapon family must share a believable combat idle, guard, locomotion, basic attack, signature cuts, impact reactions, and recoveries. Do not combine unrelated mocap clips merely because each result contains the word `sword`.
@@ -30,10 +30,24 @@ Mixamo may accelerate the human-motion foundation, but it must not become a runt
 2. In one signed-in acquisition session, shortlist and preview coherent motion families by archetype: weapon-ready idle/locomotion, guard, thrust, horizontal cut, advancing slash, overhead chop, rising cut, dodge, hit reaction, death, cast, channel, ward, summon, recovery, and unarmed jab/kick/block. Prefer a consistent pack for the common stance and footwork, then add isolated clips only when they pass the same family-transition gate.
 3. Download each accepted source clip once using the permitted settings and preserve its source name, URL, license/terms note, download settings, file size, and SHA-256 hash.
 4. Keep the untouched acquired clip in the non-shipping provenance library. Never overwrite it with a retargeted or edited version.
-5. Retarget and post-process locally in Blender against the canonical SoulDrifter humanoid rig. Use per-body retarget profiles for Elf, Human, Dwarf, Drakkin, future Monk bodies, classed NPCs, and compatible enemies.
-6. Apply weapon-family grip, equipment sockets, class posture, race proportions, skill timing, and power-tier VFX as deterministic local layers.
-7. Validate every produced variant through the same numeric and visual gates in this document; shared motion does not waive race/body/equipment review.
+5. Compare the returned skeleton to the shipping actor before editing it. Same-name, same-topology clips take the direct animation-pack path below. Only different skeletons use Blender retargeting and a documented per-body profile for Elf, Human, Dwarf, Drakkin, future Monk bodies, classed NPCs, or compatible enemies.
+6. Apply weapon-family grip, equipment sockets, class posture, race proportions, skill timing, and power-tier VFX as deterministic runtime or authored layers. Never rebuild a same-rig clip merely to attach equipment; equipment remains socketed to the shipping actor.
+7. Validate every direct pack or retargeted variant through the same numeric and visual gates in this document; shared motion does not waive race/body/equipment review.
 8. Return to Mixamo only when the local library lacks a genuinely new motion archetype. A new character, costume, weapon skin, race/class pairing, or NPC is not by itself a reason to upload again.
+
+### Direct same-rig animation-pack path
+
+Use this path when Mixamo returns the uploaded SoulDrifter rig with matching bone names and topology:
+
+1. Convert the untouched returned FBX to a small animation-only GLB and prove the FBX-to-GLB bone trajectories remain equivalent before runtime integration.
+2. Keep the character, clothing, armor, hair, and weapon meshes in the stable character GLB. Load the animation-only GLB separately, validate every track target against the cloned actor, and bind the clip to that actor's existing bones.
+3. Cache only the downloaded pack promise. Clone and bind the `AnimationClip` per actor so player characters, classed NPCs, and compatible enemies share motion data without sharing mutable mixer state.
+4. For an in-place action, normalize only forbidden top-level armature travel. Preserve all skeletal arrays and any authored vertical compensation, orientation, or scale needed for planted feet.
+5. Trim unusable anticipation or recovery only by slicing the original keyframe envelope. Do not resample, reconstruct poses, or splice in another attack. The shared motion controller owns the crossfade from and back to the approved idle.
+6. Record the raw source hash, animation-pack hash, track count, frame window, FPS, playback rate, contact marker, root policy, and rendered evidence in the provenance sidecar.
+7. Test normal and zoomed presentation, no-target rehearsal, valid-target resource changes, weapon socket continuity, grounding, recovery, and the full frozen gameplay regression before promotion.
+
+Do not merge a same-rig Mixamo action into the multi-action character GLB. Blender action slots and first-action export selection can silently export an empty or wrong channel bag even when the preview looks correct. The external pack boundary avoids that failure and lets new approved motions be added without rebuilding the character asset.
 
 ### Armed-to-interaction transition contract
 
@@ -100,6 +114,7 @@ Before importing:
 
 ### 3. Retarget at the shared asset boundary
 
+- First test whether retargeting is required. A matching SoulDrifter/Mixamo skeleton uses the direct animation-pack path above; the following matrix-bake rules apply only when skeleton bases or topology differ, or when an approved authored edit explicitly requires Blender.
 - Use the canonical humanoid rig and documented bone map.
 - Apply source-rest-to-source-pose global rotation deltas onto target-rest bones; do not blindly copy local Euler values between unrelated bases.
 - When a Mixamo FBX round trip preserves SoulDrifter bone names/topology but changes rest-axis bases, bake each evaluated source `PoseBone.matrix` in armature space onto the matching target bone before keying target-local channels. Never copy `matrix_basis` in that case: it recreates the twisted torso, looping arm, and lifted-foot failure even though the source preview is correct.

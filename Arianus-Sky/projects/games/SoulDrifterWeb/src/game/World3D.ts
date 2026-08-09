@@ -1,6 +1,14 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import {
+  SIPHON_CLEAVE_PACK,
+  bindCompatibleAnimationClip,
+  loadCachedAnimationPack,
+  normalizeAnimationPackRootMotion,
+  trimAnimationPackClipEnvelope,
+  type AnimationPackSpec,
+} from "./animationPacks";
 import { callingById, SKIN_TONES, type CharacterProfile } from "./character";
 import {
   dungeonTileKey,
@@ -15,6 +23,21 @@ import {
 } from "./dungeon";
 import { buildDialogue, type DialogueScene, type NpcDatabase, type NpcStoryOverride } from "./npc";
 import { findPath } from "./pathfinding";
+import {
+  planPursuitPath,
+  planSoulwellRespawn,
+  resolveMeleeTarget,
+  shouldAdvanceRealTimeEnemies,
+  type SoulwellCheckpoint,
+} from "./combatFlow";
+import {
+  applyDestructibleHit,
+  interactionCapability,
+  planInteractionRequest,
+  portcullisFrame,
+  trialGatePresentation,
+  type InteractiveKind,
+} from "./interactionFlow";
 import { storyDatabase } from "./persistence";
 import {
   addInventoryItem as storeInventoryItem,
@@ -30,6 +53,7 @@ import {
 import { BASIC_ATTACK, basicAttackDamage } from "./combatActions";
 import {
   CINDER_GUARD_MOTION,
+  ENEMY_MELEE_MOTION,
   RECOVER_MOTION,
   SIPHON_CLEAVE_MOTION,
   UNARMED_KICK_MOTION,
@@ -58,9 +82,14 @@ import { createSoulwellMaterialLibrary, type SoulwellMaterialLibrary } from "./e
 import {
   cameraFollowStep,
   cameraPanBounds,
+  cameraTileEnvelope,
   cloneActorMaterial,
+  createTerminalDeathClip,
   createStarterLongswordPresentation,
+  deathBodyTilt,
   applyModularAppearance,
+  occlusionSampleHeights,
+  resolvePointerHitIntent,
   sanitizeAttackClip,
   setWeaponVisualState,
   screenPanToWorld,
@@ -68,6 +97,12 @@ import {
   type WeaponPresentation,
   type WeaponVisualState,
 } from "./presentation";
+import { resolvePlayerModelPath } from "./avatarIdentity";
+import {
+  AvatarMotionController,
+  type AvatarMotionDecision,
+  type LocomotionPreference,
+} from "./avatarMotionController";
 
 const TILE_SIZE = 1.75;
 const FLOOR_HEIGHT = 0.22;
@@ -75,23 +110,17 @@ const SIGNATURE_STABILITY_COST = 12;
 const GUARD_STABILITY_COST = 8;
 const STABILITY_REGEN_DELAY_MS = 4_500;
 const STABILITY_REGEN_INTERVAL_SECONDS = 1.5;
-const PLAYER_MODEL_PATHS: Record<string, string> = {
-  warrior: "/assets/3d/characters/warrior.gltf",
-  mage: "/assets/3d/characters/mage.gltf",
-  priest: "/assets/3d/characters/priest.gltf",
-  sharpshooter: "/assets/3d/characters/sharpshooter.gltf",
-  paladin: "/assets/3d/characters/paladin.gltf",
-  summoner: "/assets/3d/characters/summoner.gltf",
-  asura: "/assets/3d/characters/asura.gltf",
-  slayer: "/assets/3d/characters/slayer.gltf",
-  shadowknight: "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
-};
+const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
+const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
 const IN_PLACE_ANIMATION_NAMES = new Set([
+  "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
   "swordslashoutward", "swordslashinward", "runmixamo", "dooropeninward", "dooropenoutward",
   "pickupwaist", "pickupground", "pulllever", "drawsword", "sheathesword",
   "hitreactionmixamo", "deathmixamo", "castprojectile", "castward", "castsummon", "castarea",
   "unarmedpunch", "unarmedkick", "swordcombomixamo", "siphoncleavecandidate", "siphoncleavesource",
+  "weaponstrikebaseline", "swordshieldslashcandidate", "weaponstrikecontrolledcandidate", "weaponstrikecontrolledcandidatev2",
+  "siphoncleavebaselinecandidate", "siphoncleavebaseline",
 ]);
 const NPC_MODEL_PATHS: Record<string, string> = {
   ilyra: "/assets/3d/characters/npc-ilyra.gltf",
@@ -105,6 +134,7 @@ interface AnimatedActor {
   model: THREE.Object3D;
   mixer: THREE.AnimationMixer;
   clips: Map<string, THREE.AnimationClip>;
+  motion: AvatarMotionController;
   currentAction?: THREE.AnimationAction;
   weapon?: WeaponPresentation;
   groundingMeshes: THREE.Mesh[];
@@ -122,13 +152,26 @@ interface EnemyRuntime extends AnimatedActor {
   nextActionAt: number;
 }
 
+type EnemyAttackPhase = "telegraph" | "contact" | "recovery";
+
+interface EnemyAttackPhaseVisual {
+  enemyId: string;
+  phase: EnemyAttackPhase;
+  group: THREE.Group;
+  geometries: THREE.BufferGeometry[];
+  materials: THREE.Material[];
+  startedAt: number;
+}
+
 interface StoryObject {
   id: string;
   grid: GridPoint;
   root: THREE.Object3D;
-  kind: DungeonProp["kind"] | "npc";
+  kind: InteractiveKind;
   blocksMovement: boolean;
   destructible: boolean;
+  questCritical: boolean;
+  protectionReason?: string;
   hp: number;
   maxHp: number;
   destroyed: boolean;
@@ -142,9 +185,27 @@ interface DebugSnapshot {
   combatStyle: CombatStyle;
   combatState: RuntimeState;
   encounter: "none" | "skirmish" | "boss";
-  enemies: Array<GridPoint & { id: string; hp: number; alive: boolean; roomId: DungeonRoomKind }>;
+  enemies: Array<GridPoint & {
+    id: string;
+    hp: number;
+    alive: boolean;
+    roomId: DungeonRoomKind;
+    yaw: number;
+    animation: string;
+    animationTime: number;
+    screen: { x: number; y: number };
+  }>;
   npcs: Array<GridPoint & { id: string }>;
-  objects: Array<GridPoint & { id: string; kind: StoryObject["kind"] }>;
+  objects: Array<GridPoint & {
+    id: string;
+    kind: StoryObject["kind"];
+    hp: number;
+    maxHp: number;
+    destroyed: boolean;
+    blocksMovement: boolean;
+    visible: boolean;
+    portcullisY?: number;
+  }>;
   rooms: Array<{ id: DungeonRoomKind; center: GridPoint }>;
   revealedRooms: DungeonRoomKind[];
   inventory: Array<{ id: string; name: string; equipped: boolean; slot?: string; durability?: number }>;
@@ -152,6 +213,18 @@ interface DebugSnapshot {
   recoveryCharges: number;
   trialDifficulty: TrialDifficulty | null;
   selectedTargetId: string | null;
+  enemyAttackPhase: EnemyAttackPhase | null;
+  pendingInteractionId: string | null;
+  respawnGeneration: number;
+  playerYaw: number;
+  occlusion: {
+    fadedWalls: number;
+    fadedLowWalls: number;
+    minOpacity: number;
+    lowWallMinOpacity: number;
+    proofWall: string | null;
+    proofWallOpacity: number | null;
+  };
   playerAnimation: string;
   playerAnimationTime: number;
   playerAnimationDuration: number;
@@ -163,7 +236,17 @@ interface DebugSnapshot {
     children: number;
     bounds: { min: [number, number, number]; max: [number, number, number] };
   };
-  playerBounds: { minY: number; maxY: number; height: number };
+  playerHandSocket?: {
+    position: [number, number, number];
+    quaternion: [number, number, number, number];
+    visible: boolean;
+    bounds: { min: [number, number, number]; max: [number, number, number] };
+  };
+  playerRigProbe: Record<string, {
+    position: [number, number, number];
+    quaternion: [number, number, number, number];
+  } | null>;
+  playerBounds: { minY: number; maxY: number; height: number; width: number; depth: number; horizontalSpan: number };
   camera: {
     target: { x: number; z: number };
     followCenter: { x: number; z: number };
@@ -186,12 +269,24 @@ interface DebugBridge {
   moveTo(x: number, y: number): Promise<void>;
   interact(id: string): Promise<void>;
   target(id: string): Promise<void>;
+  clearTarget(): void;
   action(action: ActionName): Promise<void>;
   setCombatStyle(style: CombatStyle): void;
   activeBlock(): void;
   pose(animation: string, normalizedTime: number): void;
   weapon(state: WeaponVisualState): void;
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
+  prepareTrialGate(): void;
+  requestInteraction(id: string): Promise<void>;
+  confirmInteraction(): Promise<void>;
+  prepareCorridor(): Promise<void>;
+  prepareOcclusion(): string;
+  enemyRound(): Promise<void>;
+  enemyPose(id: string, phase: "telegraph" | "contact" | "recovery"): void;
+  gatePose(id: string, progress: number): void;
+  defeat(): Promise<void>;
+  defeatHold(): void;
+  respawn(): Promise<void>;
 }
 
 interface DebugCommand {
@@ -270,9 +365,12 @@ export class World3D {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 320);
   private readonly renderer: THREE.WebGLRenderer;
+  private readonly paperRenderer: THREE.WebGLRenderer;
+  private readonly paperCamera = new THREE.PerspectiveCamera(28, 0.72, 0.1, 80);
   private readonly clock = new THREE.Timer();
   private readonly loader = new GLTFLoader();
   private readonly modelCache = new Map<string, Promise<GLTF>>();
+  private readonly animationPackCache = new Map<string, Promise<readonly THREE.AnimationClip[]>>();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -297,6 +395,8 @@ export class World3D {
   private combatState: RuntimeState = "exploration";
   private selectedAction: ActionName | null = null;
   private selectedTargetId: string | null = null;
+  private selectedStoryObjectId: string | null = null;
+  private pendingInteractionId: string | null = null;
   private playerMoving = false;
   /** Single action lock for combat, world interactions, and equipment transitions. */
   private actionBusy = false;
@@ -321,6 +421,8 @@ export class World3D {
   private complete = false;
   private animationFrame = 0;
   private combatSpeed = 1;
+  private locomotionPreference: LocomotionPreference = "auto";
+  private paperDollVisible = false;
   private cameraAzimuth = Math.atan2(-15.5, 19.5);
   private cameraFollow: CameraFollowState = {
     center: new THREE.Vector2(),
@@ -338,6 +440,11 @@ export class World3D {
   private trialDifficulty: TrialDifficulty | null;
   private trialApplied = false;
   private trialRewardClaimed = false;
+  private readonly soulwellCheckpoint: SoulwellCheckpoint;
+  private respawnGeneration = 0;
+  private debugOcclusionProofWall: { label: string; mesh: THREE.Mesh } | null = null;
+  private debugCameraFocus: { first: AnimatedActor; second: AnimatedActor } | null = null;
+  private enemyAttackPhaseVisual: EnemyAttackPhaseVisual | null = null;
 
   public constructor(
     private readonly container: HTMLElement,
@@ -351,6 +458,7 @@ export class World3D {
       ? { ...savedInventory.capacity }
       : createStarterBackpackCapacity();
     this.dungeon = generateSoulwellDungeon(seed);
+    this.soulwellCheckpoint = { grid: { ...this.dungeon.playerStart }, room: "training" };
     this.tileMap = new Map(this.dungeon.tiles.map((tile) => [dungeonTileKey(tile), tile]));
     this.trialDifficulty = null;
     this.hp = profile.maxHp;
@@ -364,6 +472,18 @@ export class World3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.domElement.setAttribute("aria-label", "Soulwell dungeon rendered in three dimensions");
     this.renderer.domElement.tabIndex = 0;
+    this.camera.layers.enable(1);
+    this.paperCamera.layers.set(1);
+    this.paperRenderer = new THREE.WebGLRenderer({
+      canvas: requiredElement<HTMLCanvasElement>("paper-doll-canvas"),
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance",
+    });
+    this.paperRenderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.paperRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.paperRenderer.toneMappingExposure = 1.18;
+    this.paperRenderer.setClearColor(0x000000, 0);
   }
 
   public async start(): Promise<void> {
@@ -389,18 +509,24 @@ export class World3D {
 
   public destroy(): void {
     this.disposed = true;
+    this.clearEnemyAttackPhase();
     cancelAnimationFrame(this.animationFrame);
     window.removeEventListener("resize", this.resize);
     this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
     window.removeEventListener("keydown", this.onKeyDown);
     this.environmentDisposers.forEach((dispose) => dispose());
     this.renderer.dispose();
+    this.paperRenderer.dispose();
     if (window.__SOULDRIFTER_DEBUG__) delete window.__SOULDRIFTER_DEBUG__;
   }
 
   private configureLights(): void {
-    this.scene.add(new THREE.HemisphereLight(0x9fbeca, 0x17110f, 0.88));
-    this.scene.add(new THREE.AmbientLight(0x789092, 0.28));
+    const hemisphere = new THREE.HemisphereLight(0x9fbeca, 0x17110f, 0.88);
+    const ambient = new THREE.AmbientLight(0x789092, 0.28);
+    hemisphere.layers.enable(1);
+    ambient.layers.enable(1);
+    this.scene.add(hemisphere);
+    this.scene.add(ambient);
     const key = new THREE.DirectionalLight(0xffe4bd, 2.6);
     key.position.set(-14, 24, 10);
     key.intensity = 2.45;
@@ -413,9 +539,11 @@ export class World3D {
     key.shadow.camera.top = 32;
     key.shadow.camera.bottom = -32;
     key.shadow.bias = -0.00045;
+    key.layers.enable(1);
     this.scene.add(key);
     const rim = new THREE.DirectionalLight(0x47d4c8, 0.58);
     rim.position.set(18, 12, -18);
+    rim.layers.enable(1);
     this.scene.add(rim);
   }
 
@@ -439,15 +567,19 @@ export class World3D {
     this.floorMeshes.push(trainingChamber.floor);
     this.occluders.push(...trainingChamber.occluders);
     trainingChamber.storyObjects.forEach((object) => {
+      const capability = this.storyCapability(object.kind, object.id);
       const storyObject: StoryObject = {
         ...object,
         blocksMovement: true,
-        destructible: false,
-        hp: 0,
-        maxHp: 0,
+        destructible: capability.destructible,
+        questCritical: capability.questCritical,
+        protectionReason: capability.protectionReason,
+        hp: capability.maxHp,
+        maxHp: capability.maxHp,
         destroyed: false,
       };
       this.storyObjects.set(object.id, storyObject);
+      this.createSemanticProxy(storyObject.root, storyObject.root, "interactId", storyObject.id);
       this.addInteractionMarker(storyObject.root, 0x62e6db, false);
     });
     this.environmentAnimators.push(trainingChamber.animate);
@@ -530,8 +662,8 @@ export class World3D {
         );
         wall.castShadow = true;
         wall.receiveShadow = true;
-        wall.userData.occluder = boundaryHeight > 2;
-        if (boundaryHeight > 2) this.occluders.push(wall);
+        wall.userData.occluder = true;
+        this.occluders.push(wall);
         this.zoneGroups.get(tile.zoneId)!.add(wall);
 
         if (boundaryHeight > 2 && (tile.x + tile.y) % 4 === 0) {
@@ -611,6 +743,37 @@ export class World3D {
       const light = new THREE.PointLight(prop.roomId === "boss" ? 0xe86d4e : 0x55d8cf, 7.5, 10, 1.7);
       light.position.y = 1.75;
       root.add(light);
+    } else if (prop.kind === "crate") {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.92, 1.02), new THREE.MeshStandardMaterial({ color: 0x503521, roughness: 0.82 }));
+      body.position.y = 0.48;
+      const bandA = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.12, 1.08), bronze);
+      bandA.position.y = 0.2;
+      const bandB = bandA.clone();
+      bandB.position.y = 0.76;
+      root.add(body, bandA, bandB);
+    } else if (prop.kind === "bench") {
+      const wood = new THREE.MeshStandardMaterial({ color: 0x4b3020, roughness: 0.86 });
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.18, 0.58), wood);
+      seat.position.y = 0.72;
+      const back = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.66, 0.14), wood);
+      back.position.set(0, 1.05, 0.24);
+      const legA = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.72, 0.44), bronze);
+      legA.position.set(-0.62, 0.36, 0);
+      const legB = legA.clone();
+      legB.position.x = 0.62;
+      root.add(seat, back, legA, legB);
+    } else if (prop.kind === "chair") {
+      const wood = new THREE.MeshStandardMaterial({ color: 0x553521, roughness: 0.86 });
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.16, 0.75), wood);
+      seat.position.y = 0.68;
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.82, 0.14), wood);
+      back.position.set(0, 1.08, 0.3);
+      const legs = [-0.29, 0.29].flatMap((x) => [-0.26, 0.26].map((z) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.68, 0.12), bronze);
+        leg.position.set(x, 0.34, z);
+        return leg;
+      }));
+      root.add(seat, back, ...legs);
     } else if (prop.kind === "gate") {
       const left = new THREE.Mesh(new THREE.BoxGeometry(0.38, 3.4, 0.5), bronze);
       const right = left.clone();
@@ -640,21 +803,57 @@ export class World3D {
       }
     });
     this.zoneGroups.get(prop.roomId === "training" ? "training" : prop.roomId)!.add(root);
-    const destructible = prop.kind === "pillar" || prop.kind === "rubble" || prop.kind === "brazier";
-    const maxHp = prop.kind === "pillar" ? 14 : prop.kind === "brazier" ? 7 : destructible ? 5 : 0;
+    const capability = this.storyCapability(prop.kind, prop.id);
     const storyObject: StoryObject = {
       id: prop.id,
       grid: { x: prop.x, y: prop.y },
       root,
       kind: prop.kind,
       blocksMovement: prop.blocksMovement,
-      destructible,
-      hp: maxHp,
-      maxHp,
+      destructible: capability.destructible,
+      questCritical: capability.questCritical,
+      protectionReason: capability.protectionReason,
+      hp: capability.maxHp,
+      maxHp: capability.maxHp,
       destroyed: false,
     };
     this.storyObjects.set(prop.id, storyObject);
-    this.addInteractionMarker(root, destructible ? 0xc58d47 : 0x62e6db, destructible);
+    this.createSemanticProxy(root, root, "interactId", prop.id);
+    this.addInteractionMarker(root, capability.destructible ? 0xc58d47 : 0x62e6db, capability.destructible);
+  }
+
+  private storyCapability(kind: InteractiveKind, id: string): ReturnType<typeof interactionCapability> {
+    if (id === "starter-coffer") {
+      return {
+        destructible: false,
+        questCritical: true,
+        maxHp: 0,
+        protectionReason: "This quest coffer is anchored to the returning ritual and cannot be damaged.",
+      };
+    }
+    return interactionCapability(kind);
+  }
+
+  private createSemanticProxy(
+    root: THREE.Object3D,
+    visual: THREE.Object3D,
+    dataKey: "enemyId" | "interactId",
+    id: string,
+  ): THREE.Mesh {
+    visual.updateMatrixWorld(true);
+    const bounds = visual === root ? new THREE.Box3().setFromObject(visual, true) : actorBodyBounds(visual);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const proxy = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.max(0.9, size.x), Math.max(1.2, size.y), Math.max(0.9, size.z)),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }),
+    );
+    proxy.name = `semantic-proxy-${dataKey}-${id}`;
+    proxy.userData[dataKey] = id;
+    root.updateMatrixWorld(true);
+    proxy.position.copy(root.worldToLocal(center));
+    root.add(proxy);
+    return proxy;
   }
 
   private addInteractionMarker(root: THREE.Object3D, color: number, destructible: boolean): void {
@@ -679,9 +878,10 @@ export class World3D {
     const phase = this.environmentAnimators.length * 0.37;
     this.environmentAnimators.push((elapsed) => {
       if (!root.visible) return;
+      const highlighted = Boolean(root.userData.interactionHighlighted || root.userData.gateGuidance);
       beacon.position.y = (destructible ? 1.2 : 1.75) + Math.sin(elapsed * 2.1 + phase) * 0.12;
       beacon.rotation.y = elapsed * (destructible ? 0.8 : 1.25);
-      marker.scale.setScalar(0.96 + Math.sin(elapsed * 2.4 + phase) * 0.045);
+      marker.scale.setScalar((highlighted ? 1.18 : 0.96) + Math.sin(elapsed * (highlighted ? 4.2 : 2.4) + phase) * (highlighted ? 0.11 : 0.045));
     });
     this.environmentDisposers.push(() => {
       ring.geometry.dispose();
@@ -806,7 +1006,7 @@ export class World3D {
     const raceScale: Record<string, number> = { human: 2.06, elf: 2.16, dwarf: 1.74, halfling: 1.52 };
     this.player = await this.createActor(
       "player",
-      PLAYER_MODEL_PATHS[this.profile.callingId] ?? PLAYER_MODEL_PATHS.warrior!,
+      resolvePlayerModelPath(this.profile) ?? FALLBACK_WARRIOR_MODEL,
       this.dungeon.playerStart,
       raceScale[this.profile.raceId] ?? 1.7,
       this.calling.signatureColor,
@@ -819,6 +1019,7 @@ export class World3D {
     await Promise.all(this.dungeon.npcs.map(async (npc) => {
       const actor = await this.createActor(npc.id, NPC_MODEL_PATHS[npc.id]!, npc, npcHeights[npc.id]!, 0xc59b62, npcNames[npc.id] ?? npc.id);
       actor.root.traverse((child) => { child.userData.interactId = npc.id; });
+      this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
       this.addInteractionMarker(actor.root, 0x62e6db, false);
       this.npcs.set(npc.id, actor);
       const zoneId = this.tileMap.get(dungeonTileKey(npc))?.zoneId ?? "training";
@@ -829,7 +1030,7 @@ export class World3D {
       const isBoss = enemy.kind === "miniboss";
       const actor = await this.createActor(
         enemy.id,
-        isBoss ? PLAYER_MODEL_PATHS.paladin! : "/assets/3d/characters/enemy-breachling.gltf",
+        isBoss ? FALLBACK_PALADIN_MODEL : "/assets/3d/characters/enemy-breachling.gltf",
         enemy,
         isBoss ? 2.78 : 1.96,
         isBoss ? 0xe45d38 : 0x7849a2,
@@ -843,6 +1044,7 @@ export class World3D {
       actor.attackCount = 0;
       actor.nextActionAt = 0;
       actor.root.traverse((child) => { child.userData.enemyId = enemy.id; });
+      this.createSemanticProxy(actor.root, actor.model, "enemyId", enemy.id);
       actor.root.visible = false;
       this.enemies.set(enemy.id, actor);
       this.zoneGroups.get(enemy.roomId)!.add(actor.root);
@@ -883,6 +1085,7 @@ export class World3D {
       }
     });
     if (id === "player") applyModularAppearance(model, { hairStyle: this.profile.appearance?.hairStyle ?? "shaved" });
+    model.userData.actorBaseQuaternion = model.quaternion.clone();
 
     const root = new THREE.Group();
     root.name = id;
@@ -915,34 +1118,70 @@ export class World3D {
       clip.name,
       IN_PLACE_ANIMATION_NAMES.has(clip.name.toLowerCase()) ? sanitizeAttackClip(clip) : clip,
     ]));
+    if (id === "player") {
+      const externalClip = await this.loadExternalAnimationPack(SIPHON_CLEAVE_PACK, model);
+      clips.set(externalClip.name, externalClip);
+    }
+    const deathBaselineSource = [...clips.entries()]
+      .find(([name]) => name.toLowerCase() === "deathmixamo")?.[1];
+    if (deathBaselineSource) {
+      const deathBaseline = createTerminalDeathClip(deathBaselineSource);
+      clips.set("DeathBaseline", deathBaseline);
+    }
     const groundingMeshes: THREE.Mesh[] = [];
     model.traverse((child) => {
       if (child instanceof THREE.Mesh && /boot|feet|shoe/i.test(child.name)) groundingMeshes.push(child);
     });
     const weapon = id === "player" ? createStarterLongswordPresentation(model) : undefined;
     if (weapon) setWeaponVisualState(weapon, equippedUsableWeapon(this.inventory) ? "sheathed" : "hidden");
+    const motion = new AvatarMotionController();
+    motion.setWeapon(weapon?.state ?? "hidden");
     const actor: AnimatedActor = {
       id,
       root,
       model,
       mixer,
       clips,
+      motion,
       groundingMeshes,
       grid: { x: grid.x, y: grid.y },
       label,
       weapon,
     };
-    this.playAnimation(actor, "Idle");
+    this.playMotionDecision(actor, motion.idle());
+    if (id === "player") model.traverse((child) => child.layers.set(1));
     this.groundActor(actor);
     return actor;
   }
 
-  /** Keeps the lowest boot surface on the dungeon floor after retargeted clips move the rig. */
+  /** Converts the authored collapse into a readable horizontal corpse. */
+  private updateActorDeathPresentation(actor: AnimatedActor): void {
+    const baseQuaternion = actor.model.userData.actorBaseQuaternion as THREE.Quaternion | undefined;
+    if (!baseQuaternion) return;
+    if (actor.motion.current().phase !== "death") {
+      if (actor.model.userData.deathPresentationActive) {
+        actor.model.quaternion.copy(baseQuaternion);
+        actor.model.userData.deathPresentationActive = false;
+        actor.model.updateMatrixWorld(true);
+      }
+      return;
+    }
+    const action = actor.currentAction;
+    const duration = action?.getClip().duration ?? 0;
+    const normalized = duration > 0 ? THREE.MathUtils.clamp((action?.time ?? 0) / duration, 0, 1) : 1;
+    const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), deathBodyTilt(normalized));
+    actor.model.quaternion.copy(baseQuaternion).multiply(tilt);
+    actor.model.userData.deathPresentationActive = true;
+    actor.model.updateMatrixWorld(true);
+  }
+
+  /** Keeps living boots or the terminal corpse support hull on the dungeon floor. */
   private groundActor(actor: AnimatedActor): void {
     if (!actor.root.visible || !actor.model.visible) return;
     actor.root.updateMatrixWorld(true);
     const bounds = new THREE.Box3();
-    if (actor.groundingMeshes.length > 0) {
+    const useWholeBody = actor.motion.current().phase === "death";
+    if (!useWholeBody && actor.groundingMeshes.length > 0) {
       actor.groundingMeshes.forEach((mesh) => bounds.expandByObject(mesh, true));
     } else {
       bounds.copy(actorBodyBounds(actor.model));
@@ -960,6 +1199,26 @@ export class World3D {
     const promise = this.loader.loadAsync(path);
     this.modelCache.set(path, promise);
     return promise;
+  }
+
+  /** Loads raw same-rig clips once, then validates and binds them per cloned actor. */
+  private async loadExternalAnimationPack(
+    spec: AnimationPackSpec,
+    targetModel: THREE.Object3D,
+  ): Promise<THREE.AnimationClip> {
+    const clips = await loadCachedAnimationPack(this.animationPackCache, spec.url, async () => {
+      const gltf = await this.loader.loadAsync(spec.url);
+      return gltf.animations.map((clip) => clip.clone());
+    });
+    const source = THREE.AnimationClip.findByName([...clips], spec.sourceClipName);
+    if (!source) {
+      throw new Error(`Animation pack ${spec.url} does not contain ${spec.sourceClipName}`);
+    }
+    const bound = bindCompatibleAnimationClip(source, targetModel, spec.semanticClipName);
+    const normalized = spec.rootPolicy === "in-place"
+      ? normalizeAnimationPackRootMotion(bound, spec.rootNodeName)
+      : bound;
+    return trimAnimationPackClipEnvelope(normalized, spec.sourceFrameWindow, spec.sourceFps);
   }
 
   private makeLabel(text: string, color: number): THREE.Sprite {
@@ -1004,24 +1263,64 @@ export class World3D {
     return this.playAnimation(actor, match ?? "Idle", once, speedMultiplier, blendSeconds);
   }
 
+  private playMotionDecision(actor: AnimatedActor, decision: AvatarMotionDecision): number {
+    if (actor.weapon && actor.weapon.state !== decision.weapon) {
+      setWeaponVisualState(actor.weapon, decision.weapon);
+    }
+    return this.playFirstAvailableAnimation(
+      actor,
+      decision.clipNames,
+      decision.once,
+      decision.playbackRate,
+      decision.blendSeconds,
+    );
+  }
+
+  private playActorIdle(actor: AnimatedActor): number {
+    return this.playMotionDecision(actor, actor.motion.complete());
+  }
+
+  private playActorHit(actor: AnimatedActor): number {
+    return this.playMotionDecision(actor, actor.motion.beginHit());
+  }
+
+  private playActorDeath(actor: AnimatedActor): number {
+    return this.playMotionDecision(actor, actor.motion.beginDeath());
+  }
+
+  private playGenericActorAction(actor: AnimatedActor, clipNames: readonly string[], playbackRate = 1, blendSeconds = 0.1): number {
+    return this.playMotionDecision(actor, actor.motion.beginGenericAction(clipNames, playbackRate, blendSeconds));
+  }
+
   private hasAnimation(actor: AnimatedActor, names: readonly string[]): boolean {
     const available = new Set([...actor.clips.keys()].map((name) => name.toLowerCase()));
     return names.some((name) => available.has(name.toLowerCase()));
   }
 
   private playMotionArchetype(actor: AnimatedActor, contract: MotionArchetypeContract): { durationMs: number; eventMs: number } {
-    const durationMs = this.playFirstAvailableAnimation(
-      actor,
-      contract.clipNames,
-      true,
-      contract.playbackRate,
-      contract.blendSeconds,
-    );
+    const durationMs = this.playMotionDecision(actor, actor.motion.beginAction(contract));
     return { durationMs, eventMs: durationMs * contract.timing.event.at };
+  }
+
+  private poseActorForDebug(actor: AnimatedActor, clipNames: readonly string[], normalizedTime: number): void {
+    const clipName = [...actor.clips.keys()].find((name) => clipNames.some((candidate) => candidate.toLowerCase() === name.toLowerCase()));
+    if (!clipName) throw new Error(`Unknown debug animation for ${actor.id}: ${clipNames.join(", ")}`);
+    const clip = actor.clips.get(clipName)!;
+    actor.mixer.stopAllAction();
+    const action = actor.mixer.clipAction(clip);
+    action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    action.paused = false;
+    actor.mixer.setTime(clip.duration * THREE.MathUtils.clamp(normalizedTime, 0, 1));
+    action.paused = true;
+    actor.currentAction = action;
   }
 
   private setWeaponState(actor: AnimatedActor, state: WeaponVisualState): void {
     if (actor.weapon) setWeaponVisualState(actor.weapon, state);
+    actor.motion.setWeapon(state);
   }
 
   private async transitionWeapon(actor: AnimatedActor, target: "drawn" | "sheathed"): Promise<void> {
@@ -1037,7 +1336,7 @@ export class World3D {
       this.setWeaponState(actor, target);
       return;
     }
-    const durationMs = this.playFirstAvailableAnimation(actor, clipNames, true, target === "drawn" ? 1.2 : 1.65, 0.08);
+    const durationMs = this.playGenericActorAction(actor, clipNames, target === "drawn" ? 1.2 : 1.65, 0.08);
     const transferAt = target === "drawn" ? 0.58 : 0.64;
     await this.delay(durationMs * transferAt);
     this.setWeaponState(actor, target);
@@ -1089,6 +1388,7 @@ export class World3D {
     if (beganDrawn) await this.transitionWeapon(this.player, "sheathed");
 
     const hasClip = this.hasAnimation(this.player, contract.clipNames);
+    this.player.motion.beginInteraction(contract.clipNames);
     const durationMs = hasClip
       ? this.playFirstAvailableAnimation(this.player, contract.clipNames, true, contract.playbackRate, 0.1)
       : 0;
@@ -1098,7 +1398,7 @@ export class World3D {
     if (durationMs > eventMs) await this.delay(durationMs - eventMs);
 
     if (beganDrawn && redraw) await this.transitionWeapon(this.player, "drawn");
-    else this.playAnimation(this.player, "Idle");
+    else this.playActorIdle(this.player);
   }
 
   private bindInput(): void {
@@ -1119,6 +1419,7 @@ export class World3D {
     else if (key === "2") void this.handleAction("signature");
     else if (key === "3") void this.handleAction("guard");
     else if (key === "4") void this.handleAction("wait");
+    else if (key === "f" && this.pendingInteractionId) void this.confirmPendingInteraction();
     else if (key === "x") void this.togglePlayerWeapon();
     else if (key === "q") this.rotateCamera(-Math.PI / 8);
     else if (key === "e") this.rotateCamera(Math.PI / 8);
@@ -1146,7 +1447,7 @@ export class World3D {
       }
       const target = weapon.state === "drawn" ? "sheathed" : "drawn";
       await this.transitionWeapon(this.player, target);
-      this.playAnimation(this.player, "Idle");
+      this.playActorIdle(this.player);
       this.ui.setMessage(target === "drawn"
         ? "Weapon drawn. It remains ready until you sheath it or begin a hands-free interaction."
         : "Weapon sheathed.");
@@ -1162,22 +1463,24 @@ export class World3D {
     );
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(this.scene.children, true);
-    for (const hit of hits) {
-      const enemyId = this.findUserData<string>(hit.object, "enemyId");
-      if (enemyId) {
-        void this.targetEnemy(enemyId);
-        return;
-      }
-      const interactId = this.findUserData<string>(hit.object, "interactId");
-      if (interactId) {
-        void this.interactById(interactId);
-        return;
-      }
-      if (hit.object instanceof THREE.InstancedMesh && typeof hit.instanceId === "number") {
-        const tile = hit.object.userData.tileLookup?.[hit.instanceId] as GridPoint | undefined;
-        if (tile) void this.handleGroundClick(tile);
-        return;
-      }
+    const intent = resolvePointerHitIntent(hits.map((hit) => ({
+      enemyId: this.findUserData<string>(hit.object, "enemyId"),
+      interactId: this.findUserData<string>(hit.object, "interactId"),
+      tile: hit.object instanceof THREE.InstancedMesh && typeof hit.instanceId === "number"
+        ? hit.object.userData.tileLookup?.[hit.instanceId] as GridPoint | undefined
+        : undefined,
+    })));
+    if (intent?.kind === "enemy") {
+      void this.targetEnemy(intent.id);
+      return;
+    }
+    if (intent?.kind === "interact") {
+      void this.requestInteractionById(intent.id);
+      return;
+    }
+    if (intent?.kind === "ground") {
+      void this.handleGroundClick(intent.tile);
+      return;
     }
     // Some decorative meshes sit a few millimetres above the instanced floor.
     // If they consume the first ray hit, resolve the same pointer ray against the
@@ -1203,6 +1506,15 @@ export class World3D {
     this.ui.onEquipmentToggle((itemId) => {
       void this.runPlayerAction(() => this.toggleInventoryEquipment(itemId));
     });
+    this.ui.onEquipmentVisibilityChange((visible) => {
+      this.paperDollVisible = visible;
+      if (visible && !this.actionBusy && !this.playerMoving) this.playActorIdle(this.player);
+      if (visible) this.renderPaperDoll();
+    });
+    this.ui.onLocomotionPreferenceChange((preference) => {
+      this.locomotionPreference = preference;
+    });
+    this.ui.onInteractionConfirm(() => { void this.confirmPendingInteraction(); });
     this.ui.onSpeedChange((speed) => {
       this.combatSpeed = speed;
       this.ui.setMessage(`Animation and tactical resolution speed set to ${speed}×.`);
@@ -1263,7 +1575,7 @@ export class World3D {
       ? `${item.name} equipped in ${item.slot === "mainHand" ? "the main hand" : item.slot}.`
       : `${item.name} moved to the backpack. Weapon-required skills update immediately.`);
     this.ui.addLog(`${item.name} ${equipping ? "equipped" : "unequipped"}.`);
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
   }
 
   private setCombatStylePreference(style: CombatStyle): void {
@@ -1319,7 +1631,7 @@ export class World3D {
         ? "Use the Memory Loom to choose your starter traits and three final stat points."
         : !this.openedObjects.has("starter-coffer")
           ? "Inspect your equipped starter gear, then recover supplies from the Wayfarer's Coffer."
-          : "Rehearse an action and inspect the two trial doors.";
+          : "Rehearse an action and inspect the two trial gates.";
     this.ui.setObjective(objective);
     this.ui.setTutorial(1, 9, "Awaken inside the broken lock", "Move through the damaged machine-temple and speak with Ilyra. Her illustrated chronicle must reveal why you returned before the Memory Loom will shape your starter strengths.");
     this.ui.addLog(`Soulwell dungeon generated · Run ${this.seed.toString(16).toUpperCase().padStart(8, "0")}.`);
@@ -1354,10 +1666,13 @@ export class World3D {
       return;
     }
     const limited = path.slice(0, maxSteps);
-    const stepCount = limited.length;
     this.playerMoving = true;
-    await this.walkActor(this.player, limited, 285 / this.combatSpeed);
-    this.playerMoving = false;
+    let stepCount = 0;
+    try {
+      stepCount = await this.walkActor(this.player, limited, 285 / this.combatSpeed);
+    } finally {
+      this.playerMoving = false;
+    }
     if (this.tutorialStep === 1) {
       this.tutorialStep = 2;
       this.ui.setTutorial(2, 9, "Ask why you returned", "Speak with Wellkeeper Ilyra. Her account changes with your ancestry and calling.");
@@ -1368,23 +1683,27 @@ export class World3D {
       this.ui.setMessage(`Moved ${stepCount} tile${stepCount === 1 ? "" : "s"}. Click another floor tile or use WASD / arrow keys.`);
     }
     await this.checkRoomTransition();
+    this.updateNearbyInteractionPrompt();
   }
 
-  private async walkActor(actor: AnimatedActor, path: GridPoint[], durationPerStep: number): Promise<void> {
-    if (path.length === 0) return;
-    this.playFirstAvailableAnimation(
-      actor,
-      durationPerStep <= 220 ? ["RunMixamo", "Run", "Walk"] : ["Walk", "RunMixamo", "Run"],
-    );
+  private async walkActor(actor: AnimatedActor, path: GridPoint[], durationPerStep: number): Promise<number> {
+    if (path.length === 0) return 0;
+    const preference = actor.id === "player" ? this.locomotionPreference : "auto";
+    this.playMotionDecision(actor, actor.motion.beginLocomotion(path.length, preference));
+    let moved = 0;
     for (const step of path) {
+      if (actor.id === "player" && this.combatState === "defeat") break;
+      if (!this.isWalkable(step, actor.id)) break;
       const start = actor.root.position.clone();
       const end = gridToWorld(step);
       actor.root.rotation.y = Math.atan2(end.x - start.x, end.z - start.z);
       await this.tween(durationPerStep, (progress) => actor.root.position.lerpVectors(start, end, progress));
       actor.root.position.y = 0;
       actor.grid = { x: step.x, y: step.y };
+      moved += 1;
     }
-    this.playAnimation(actor, "Idle");
+    this.playActorIdle(actor);
+    return moved;
   }
 
   private async checkRoomTransition(): Promise<void> {
@@ -1443,6 +1762,119 @@ export class World3D {
     }
   }
 
+  private interactionRoot(id: string): THREE.Object3D | null {
+    return this.npcs.get(id)?.root ?? this.storyObjects.get(id)?.root ?? null;
+  }
+
+  private interactionGrid(id: string): GridPoint | null {
+    return this.npcs.get(id)?.grid ?? this.storyObjects.get(id)?.grid ?? null;
+  }
+
+  private interactionPromptFor(id: string): { label: string; detail: string } {
+    const npc = this.npcs.get(id);
+    if (npc) return { label: `Talk to ${npc.label?.name || id}`, detail: "Confirm conversation" };
+    const object = this.storyObjects.get(id);
+    if (!object) return { label: "Interact", detail: "Confirm interaction" };
+    if (object.kind === "gate") {
+      const difficulty = id.includes("oathbreaker") ? "oathbreaker" : "wayfarer";
+      const presentation = trialGatePresentation(difficulty);
+      return {
+        label: `${difficulty === "wayfarer" ? "Wayfarer" : "Oathbreaker"} gate · ${presentation.difficultyLabel}`,
+        detail: `${presentation.rewardLabel} · inspect and choose`,
+      };
+    }
+    if (object.destructible) return { label: `Target ${this.objectDisplayName(object)}`, detail: "Confirm target, then use Weapon Strike" };
+    if (object.kind === "chest") return { label: "Open Wayfarer's Coffer", detail: "Quest supplies · confirm" };
+    if (object.kind === "memory-loom") return { label: "Use Memory Loom", detail: "Shape starter traits · confirm" };
+    if (object.kind === "soul-well") return { label: "Touch Soulwell", detail: "Restore Vitality and Stability · confirm" };
+    return { label: "Interact", detail: "Confirm interaction" };
+  }
+
+  private setPendingInteraction(id: string | null, disabledReason?: string): void {
+    if (this.pendingInteractionId) {
+      const oldRoot = this.interactionRoot(this.pendingInteractionId);
+      if (oldRoot) oldRoot.userData.interactionHighlighted = false;
+    }
+    this.pendingInteractionId = id;
+    if (!id) {
+      this.ui.setInteractionPrompt(null);
+      return;
+    }
+    const root = this.interactionRoot(id);
+    if (root) root.userData.interactionHighlighted = true;
+    this.ui.setInteractionPrompt({ ...this.interactionPromptFor(id), disabledReason });
+  }
+
+  private selectStoryObjectTarget(id: string | null): void {
+    this.selectedStoryObjectId = id;
+    if (id) {
+      this.selectedTargetId = null;
+      this.refreshTarget();
+    }
+  }
+
+  private selectEnemyTarget(id: string | null): void {
+    this.selectedTargetId = id;
+    if (id) {
+      this.selectedStoryObjectId = null;
+      this.setPendingInteraction(null);
+    }
+    this.refreshTarget();
+  }
+
+  private async requestInteractionById(id: string): Promise<void> {
+    if (this.actionBusy || this.playerMoving || this.combatState === "defeat") return;
+    const target = this.interactionGrid(id);
+    if (!target) return;
+    const distance = manhattan(this.player.grid, target);
+    const destination = distance <= 1
+      ? this.player.grid
+      : nearestOpenAdjacent(this.player.grid, target, (point) => this.isWalkable(point, "player"));
+    const plan = planInteractionRequest({ distance, canApproach: Boolean(destination) });
+    if (plan.action === "disabled") {
+      this.setPendingInteraction(id, plan.reason);
+      this.ui.setMessage(plan.reason);
+      return;
+    }
+    if (plan.action === "approach") {
+      await this.approach(target);
+      if (manhattan(this.player.grid, target) > 1) {
+        this.setPendingInteraction(id, "No clear approach remains around that obstruction.");
+        return;
+      }
+    }
+    if (this.storyObjects.has(id)) this.selectStoryObjectTarget(id);
+    this.setPendingInteraction(id);
+    this.ui.setMessage(`${this.interactionPromptFor(id).label}. Confirm before committing.`);
+  }
+
+  private async confirmPendingInteraction(): Promise<void> {
+    const id = this.pendingInteractionId;
+    if (!id) return;
+    this.setPendingInteraction(null);
+    await this.interactById(id);
+  }
+
+  private updateNearbyInteractionPrompt(): void {
+    if (this.actionBusy || this.playerMoving || this.ui.isDialogueOpen()) return;
+    if (this.pendingInteractionId) {
+      const current = this.interactionGrid(this.pendingInteractionId);
+      if (current && manhattan(this.player.grid, current) <= 1) return;
+      this.setPendingInteraction(null);
+    }
+    const selectedObject = this.selectedStoryObjectId ? this.storyObjects.get(this.selectedStoryObjectId) : undefined;
+    if (selectedObject && manhattan(this.player.grid, selectedObject.grid) > 1) this.selectStoryObjectTarget(null);
+    const nearby = [
+      ...[...this.npcs.values()].map((actor) => ({ id: actor.id, grid: actor.grid })),
+      ...[...this.storyObjects.values()]
+        .filter((object) => !object.destroyed && object.root.visible)
+        .map((object) => ({ id: object.id, grid: object.grid })),
+    ]
+      .filter((candidate) => manhattan(this.player.grid, candidate.grid) <= 1)
+      .sort((a, b) => a.id.localeCompare(b.id))[0];
+    if (nearby) this.setPendingInteraction(nearby.id);
+  }
+
   private async interactById(id: string): Promise<void> {
     if (this.actionBusy || this.playerMoving) return;
     const npc = this.npcs.get(id);
@@ -1463,7 +1895,8 @@ export class World3D {
     if (!object) return;
     if (object.destroyed) return;
     if (object.destructible) {
-      await this.strikeDestructible(object);
+      this.selectStoryObjectTarget(object.id);
+      this.ui.setMessage(`${this.objectDisplayName(object)} targeted. Use Weapon Strike to damage it; quest-critical objects reject attacks with an explanation.`);
       return;
     }
     await this.approach(object.grid);
@@ -1472,7 +1905,6 @@ export class World3D {
     try {
     if (object.kind === "gate") {
       await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.door, async () => {
-        await this.animateGateResponse(object);
         this.openTrialChoice(id.includes("oathbreaker") ? "oathbreaker" : "wayfarer");
       }, false);
       return;
@@ -1496,7 +1928,7 @@ export class World3D {
         id: "faded-binding-charm",
         name: "Faded binding charm",
         kind: "quest",
-        description: "A worn Soul-Well charm that lets the paired trial doors recognize this returned body.",
+        description: "A worn Soul-Well charm that lets the paired trial gates recognize this returned body.",
       });
       this.addInventoryItem({
         id: "woven-recovery-bands",
@@ -1508,8 +1940,9 @@ export class World3D {
       });
       this.refreshEquipmentUi();
       this.tutorialStep = Math.max(this.tutorialStep, 5);
-      this.ui.setTutorial(5, 9, "Choose the door, not the destination", "Both doors enter the same combat-practice wing. Wayfarer teaches the basics; Oathbreaker changes the encounter and pressure for stronger rewards.");
-      this.ui.setObjective("Rehearse an action on the effigy, then choose the Wayfarer or Oathbreaker door.");
+      this.ui.setTutorial(5, 9, "Choose the gate, not the destination", "Both portcullises enter the same combat-practice wing. Wayfarer teaches the basics; Oathbreaker changes the encounter and pressure for stronger rewards.");
+      this.ui.setObjective("Choose a trial gate: Wayfarer (standard reward) or Oathbreaker (severe, stronger reward).");
+      this.showTrialGateGuidance();
       this.ui.setMessage("The coffer yields a binding charm and two recovery bands. Your worn C-tier clothing and starter weapon were already equipped when the Well returned you.");
       void storyDatabase.reachCheckpoint("starter-supplies-recovered", id);
       }, false);
@@ -1519,7 +1952,7 @@ export class World3D {
       this.tutorialStep = Math.max(this.tutorialStep, 4);
       this.ui.setTutorial(4, 9, "Rehearse without wasting power", `Use the action bar beside the battered effigy. ${this.calling.signatureSkill} may animate without a target and will spend nothing unless it lands.`);
       this.ui.setObjective(this.openedObjects.has("starter-coffer")
-        ? "Choose one of the two eastern trial doors when ready."
+        ? "Choose one of the two eastern trial gates when ready."
         : "Practice a skill, then recover the binding charm and recovery supplies from the Wayfarer's Coffer.");
       this.ui.setMessage(`Training effigy ready. Activate ${this.calling.signatureSkill}, ${this.calling.defensiveSkill}, or Recover from the illustrated action bar.`);
       void storyDatabase.reachCheckpoint("training-effigy-inspected", this.calling.id);
@@ -1564,14 +1997,44 @@ export class World3D {
     });
   }
 
-  private async animateGateResponse(object: StoryObject): Promise<void> {
-    const veil = object.root.getObjectByName("trial-door-veil") as THREE.Mesh | undefined;
-    const material = veil?.material as THREE.MeshBasicMaterial | undefined;
-    if (!material) return;
-    const start = material.opacity;
-    await this.tween(360, (progress) => {
-      material.opacity = THREE.MathUtils.lerp(start, Math.min(0.04, start), progress);
+  private showTrialGateGuidance(): void {
+    const entries = (["wayfarer", "oathbreaker"] as const).map((difficulty) => {
+      const presentation = trialGatePresentation(difficulty);
+      const gate = this.storyObjects.get(`gate-${difficulty}`);
+      if (gate) gate.root.userData.gateGuidance = true;
+      return {
+        label: `${difficulty === "wayfarer" ? "Wayfarer" : "Oathbreaker"} · ${presentation.difficultyLabel}`,
+        detail: presentation.rewardLabel,
+      };
     });
+    this.ui.setTrialGateGuidance(entries);
+  }
+
+  private clearTrialGateGuidance(): void {
+    for (const gate of this.storyObjects.values()) {
+      if (gate.kind === "gate") gate.root.userData.gateGuidance = false;
+    }
+    this.ui.setTrialGateGuidance(null);
+  }
+
+  private async liftTrialPortcullis(object: StoryObject): Promise<void> {
+    const portcullis = object.root.getObjectByName("trial-portcullis") as THREE.Group | undefined;
+    if (!portcullis) {
+      this.ui.setMessage("The grate is jammed. The Soulwell keeps the route sealed rather than moving the doorway sideways.");
+      return;
+    }
+    const closedY = portcullis.position.y;
+    portcullis.userData.closedY = closedY;
+    const veil = object.root.getObjectByName("trial-door-veil") as THREE.Mesh | undefined;
+    const veilMaterial = veil?.material as THREE.MeshBasicMaterial | undefined;
+    await this.tween(1_180, (progress) => {
+      const frame = portcullisFrame({ progress, closedY, liftHeight: 3.5 });
+      portcullis.position.y = frame.y;
+      object.blocksMovement = frame.blocksMovement;
+      if (veilMaterial) veilMaterial.opacity = THREE.MathUtils.lerp(veilMaterial.opacity, 0.025, progress);
+    });
+    object.blocksMovement = false;
+    object.root.userData.gateGuidance = false;
   }
 
   private async approach(target: GridPoint): Promise<void> {
@@ -1605,12 +2068,33 @@ export class World3D {
     await this.delay(motion.eventMs);
     const strikeEffect = this.playBasicStrikeEffectAt(impactPoint, !armed);
     const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
-    object.hp = Math.max(0, object.hp - damage);
+    const hit = applyDestructibleHit({
+      kind: object.kind,
+      hp: object.hp,
+      damage,
+      seed: this.seed + [...object.id].reduce((total, char) => total + char.charCodeAt(0), 0),
+    });
+    object.hp = hit.hp;
     await Promise.all([
       strikeEffect,
       this.delay(Math.max(0, motion.durationMs - motion.eventMs - 35)),
     ]);
-    if (object.hp === 0) await this.destroyStoryObject(object);
+    if (hit.destroyed) {
+      await this.destroyStoryObject(object);
+      if (hit.loot === "splintered-supply-cache") {
+        this.addInventoryItem({
+          id: `salvage-${object.id}`,
+          name: "Splintered Supply Cache",
+          kind: "consumable",
+          quantity: 1,
+          stackLimit: 10,
+          description: "Usable salvage shaken loose from an ordinary broken prop.",
+        });
+        this.refreshEquipmentUi();
+        this.ui.addLog(`${this.objectDisplayName(object)} drops a Splintered Supply Cache.`);
+      }
+      this.selectStoryObjectTarget(null);
+    }
     else {
       const startingRotation = object.root.rotation.z;
       await this.tween(180, (progress) => {
@@ -1619,18 +2103,28 @@ export class World3D {
       object.root.rotation.z = startingRotation;
       this.ui.setMessage(`${this.objectDisplayName(object)} takes ${damage} damage · ${object.hp} / ${object.maxHp} integrity.`);
     }
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
     this.actionBusy = false;
     if (this.encounter !== "none" && this.combatStyle === "turn-based") await this.finishPlayerTurn();
   }
 
   private objectDisplayName(object: StoryObject): string {
-    return object.kind === "pillar" ? "Cracked pillar" : object.kind === "brazier" ? "Realm brazier" : "Loose rubble";
+    const labels: Partial<Record<InteractiveKind, string>> = {
+      pillar: "Cracked pillar",
+      brazier: "Realm brazier",
+      rubble: "Loose rubble",
+      crate: "Supply crate",
+      bench: "Worn bench",
+      chair: "Worn chair",
+      chest: "Coffer",
+    };
+    return labels[object.kind] ?? "World object";
   }
 
   private async destroyStoryObject(object: StoryObject): Promise<void> {
     object.destroyed = true;
     object.blocksMovement = false;
+    this.spawnPropDebris(object);
     const startingY = object.root.position.y;
     const direction = (object.grid.x + object.grid.y + this.seed) % 2 === 0 ? 1 : -1;
     await this.tween(420, (progress) => {
@@ -1651,6 +2145,40 @@ export class World3D {
     this.ui.addLog(`${this.profile.name} destroys ${this.objectDisplayName(object).toLowerCase()}.`);
   }
 
+  private spawnPropDebris(object: StoryObject): void {
+    const group = new THREE.Group();
+    group.position.copy(object.root.getWorldPosition(new THREE.Vector3()));
+    const geometry = new THREE.BoxGeometry(0.18, 0.14, 0.16);
+    const material = new THREE.MeshStandardMaterial({ color: 0x5a4635, roughness: 0.92 });
+    const pieces = Array.from({ length: 7 }, (_, index) => {
+      const piece = new THREE.Mesh(geometry, material);
+      const angle = ((index + (this.seed % 5)) / 7) * Math.PI * 2;
+      piece.userData.velocity = new THREE.Vector3(Math.cos(angle) * (0.65 + index * 0.05), 1.2 + (index % 3) * 0.24, Math.sin(angle) * (0.65 + index * 0.05));
+      piece.position.y = 0.42 + (index % 2) * 0.18;
+      group.add(piece);
+      return piece;
+    });
+    this.scene.add(group);
+    void this.tween(720, (progress) => {
+      const seconds = progress * 0.72;
+      pieces.forEach((piece, index) => {
+        const velocity = piece.userData.velocity as THREE.Vector3;
+        piece.position.set(
+          velocity.x * seconds,
+          Math.max(0.05, 0.42 + velocity.y * seconds - 2.9 * seconds * seconds),
+          velocity.z * seconds,
+        );
+        piece.rotation.set(seconds * (index + 2), seconds * (index + 3), seconds * 1.7);
+      });
+      material.opacity = 1 - Math.max(0, progress - 0.7) / 0.3;
+      material.transparent = progress > 0.7;
+    }).then(() => {
+      group.removeFromParent();
+      geometry.dispose();
+      material.dispose();
+    });
+  }
+
   private async openNpcDialogue(npcId: string): Promise<void> {
     const override = await storyDatabase.getNpcStoryOverride<NpcStoryOverride>(npcId);
     const dialogue = buildDialogue(this.npcDatabase, npcId, this.profile, override);
@@ -1663,7 +2191,7 @@ export class World3D {
         this.ui.setObjective("Speak with Brannoc at the combat-room threshold, then choose a combat style.");
       } else if (npcId === "brannoc") {
         this.tutorialStep = Math.max(this.tutorialStep, 6);
-        this.ui.setTutorial(6, 9, "Enter the shared combat wing", `Use ${this.calling.signatureSkill}, ${this.calling.defensiveSkill}, and Recover. Your chosen door determines the enemies and Realm Pressure here.`);
+        this.ui.setTutorial(6, 9, "Enter the shared combat wing", `Use ${this.calling.signatureSkill}, ${this.calling.defensiveSkill}, and Recover. Your chosen gate determines the enemies and Realm Pressure here.`);
         this.ui.setObjective("Cross the threshold and clear the creatures waiting in the Fractured Galleries.");
       }
     }, (choice) => {
@@ -1702,7 +2230,7 @@ export class World3D {
     this.ui.setTutorial(3, 9, "Shape the soul that returned", "The Chronicle is complete. Place three final stat points, choose one ancestry boon, and choose one mortal base-calling discipline. Higher rune and probability arts remain locked.");
     this.ui.setObjective("Use the Memory Loom to choose your starter traits and three final stat points.");
     this.ui.setMessage("Ilyra closes the chronicle. Now that you know why you were returned, the Memory Loom answers your touch.");
-    this.ui.addLog("Chronicle of Returning completed · Ilyra's charge accepted.");
+    this.ui.addLog("Chronicle of Returning completed / Ilyra's charge accepted.");
     void storyDatabase.saveCharacter(this.profile);
     void storyDatabase.reachCheckpoint("chronicle-of-returning-complete", "ilyra");
     this.openImprintRefinement();
@@ -1732,7 +2260,7 @@ export class World3D {
         this.ui.setTutorial(4, 9, "Recover and rehearse", `Ilyra sealed ${imprint.raceBoonName} and ${imprint.callingPerkName}. Open the coffer and test your illustrated level-one actions on the effigy.`);
         this.ui.setObjective("Inspect your equipped starter gear, then recover supplies from the Wayfarer's Coffer.");
         this.ui.setMessage("The Memory Loom settles. Your ancestry and calling remain unchanged, but this new body finally feels like yours.");
-        this.ui.addLog(`Starter Soul Imprint sealed · ${imprint.raceBoonName} · ${imprint.callingPerkName}.`);
+        this.ui.addLog(`Starter Soul Imprint sealed / ${imprint.raceBoonName} / ${imprint.callingPerkName}.`);
         void storyDatabase.saveCharacter(this.profile);
         void storyDatabase.reachCheckpoint("starter-imprint-sealed", `${imprint.raceBoonId}:${imprint.callingPerkId}`);
       },
@@ -1753,7 +2281,7 @@ export class World3D {
     const scene: DialogueScene = {
       id: "twin-trial-doors",
       npcId: "trial-doors",
-      speaker: "The Twin Trial Doors",
+      speaker: "The Twin Trial Gates",
       role: "Realm-lock threshold",
       sprite: "/assets/generated/first-breach-environment-v1.png",
       lines: [
@@ -1762,18 +2290,18 @@ export class World3D {
         "Both paths enter the same shifting gallery crawl, but pressure, enemies, and rewards differ. Choose deliberately.",
       ],
       choices: [
-        { id: "choose-wayfarer", label: "Enter Wayfarer · standard", response: "The measured lock opens. The gallery will teach before it punishes.", checkpoint: "trial-wayfarer-confirmed" },
-        { id: "choose-oathbreaker", label: "Enter Oathbreaker · severe", response: "The harsher lock accepts your oath. The deeper pressure promises stronger spoils.", checkpoint: "trial-oathbreaker-confirmed" },
-        { id: "decline-trial", label: "Step away for now", response: "The paired doors quiet, but neither choice is lost.", checkpoint: "trial-declined" },
+        { id: "choose-wayfarer", label: "Enter Wayfarer / standard", response: "The measured lock opens. The gallery will teach before it punishes.", checkpoint: "trial-wayfarer-confirmed" },
+        { id: "choose-oathbreaker", label: "Enter Oathbreaker / severe", response: "The harsher lock accepts your oath. The deeper pressure promises stronger spoils.", checkpoint: "trial-oathbreaker-confirmed" },
+        { id: "decline-trial", label: "Step away for now", response: "The paired portcullises quiet, but neither choice is lost.", checkpoint: "trial-declined" },
       ],
     };
     this.ui.openDialogue(scene, (choice) => {
-      if (choice.id === "choose-wayfarer") this.selectTrial("wayfarer");
-      else if (choice.id === "choose-oathbreaker") this.selectTrial("oathbreaker");
+      if (choice.id === "choose-wayfarer") void this.selectTrial("wayfarer");
+      else if (choice.id === "choose-oathbreaker") void this.selectTrial("oathbreaker");
     });
   }
 
-  private selectTrial(difficulty: TrialDifficulty): void {
+  private async selectTrial(difficulty: TrialDifficulty): Promise<void> {
     const lockReason = starterTrialLockReason(this.profile, {
       cofferOpened: this.openedObjects.has("starter-coffer"),
       hasUsableWeapon: Boolean(equippedUsableWeapon(this.inventory)),
@@ -1783,7 +2311,7 @@ export class World3D {
       return;
     }
     if (this.trialDifficulty && this.trialDifficulty !== difficulty) {
-      this.ui.setMessage(`${TRIALS[this.trialDifficulty].name} already holds your oath for this crawl. The second door has gone dark.`);
+      this.ui.setMessage(`${TRIALS[this.trialDifficulty].name} already holds your oath for this crawl. The second gate has gone dark.`);
       return;
     }
     this.trialDifficulty = difficulty;
@@ -1791,16 +2319,19 @@ export class World3D {
     this.applyTrialToEnemies(difficulty);
     this.zoneGroups.get("passage-one")!.visible = true;
     const trial = TRIALS[difficulty];
+    const selectedGate = this.storyObjects.get(`gate-${difficulty}`);
     for (const [gateId, gate] of this.storyObjects) {
       if (gate.kind !== "gate") continue;
       const selected = gateId === `gate-${difficulty}`;
-      gate.root.scale.setScalar(selected ? 1.05 : 0.96);
+      gate.root.userData.gateGuidance = selected;
       gate.root.traverse((child) => {
         if (child instanceof THREE.PointLight) child.intensity *= selected ? 1.35 : 0.32;
       });
     }
+    if (selectedGate) await this.liftTrialPortcullis(selectedGate);
+    this.clearTrialGateGuidance();
     this.tutorialStep = Math.max(this.tutorialStep, 5);
-    this.ui.setTutorial(5, 9, trial.name, `${trial.description} Both doors converge on a shifting three-to-five-chamber gallery crawl before the miniboss lock.`);
+    this.ui.setTutorial(5, 9, trial.name, `${trial.description} Both gates converge on a shifting three-to-five-chamber gallery crawl before the miniboss lock.`);
     this.ui.setObjective(`Cross ${trial.name}, follow the branching corridors, and survive the Fractured Galleries.`);
     this.ui.setMessage(`${trial.name} accepts you. The fog parts onto a shifting three-to-five-chamber crawl.`);
     this.ui.addLog(`${trial.name} selected · ${trial.subtitle}.`);
@@ -1896,7 +2427,7 @@ export class World3D {
     this.ui.showCombatControls(true);
     this.ui.setMode(this.combatState, this.combatStyle);
     this.activeEnemies().forEach((enemy) => { enemy.root.visible = true; });
-    this.selectedTargetId = this.activeEnemies()[0]?.id ?? null;
+    this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
     this.refreshTarget();
     if (stage === "skirmish") {
       this.tutorialStep = 6;
@@ -1927,6 +2458,17 @@ export class World3D {
 
   private async handleAction(action: ActionName): Promise<void> {
     if (this.combatState === "defeat" || this.complete || this.actionBusy || this.playerMoving) return;
+    if (action === "basic" && this.selectedStoryObjectId) {
+      const object = this.storyObjects.get(this.selectedStoryObjectId);
+      if (object && !object.destroyed) {
+        if (object.questCritical || !object.destructible) {
+          this.ui.setMessage(object.protectionReason ?? "The Soulwell protects this quest-critical object from Weapon Strike.");
+          return;
+        }
+        await this.strikeDestructible(object);
+        return;
+      }
+    }
     if (this.encounter === "none") {
       if (action === "move") {
         this.selectedAction = "move";
@@ -1983,7 +2525,7 @@ export class World3D {
       this.delay(motion.eventMs).then(() => this.playBasicStrikeEffectAt(practicePoint, !armed)),
       this.delay(Math.max(420, motion.durationMs - 35)),
     ]);
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
     this.ui.setMessage(`${reason}: ${armed ? "Weapon" : "Unarmed"} Strike rehearses freely and consumes no Stability or class resource.`);
   }
 
@@ -1994,7 +2536,7 @@ export class World3D {
       ? this.playMotionArchetype(this.player, SIPHON_CLEAVE_MOTION)
       : null;
     const animationMs = shadowknightMotion?.durationMs
-      ?? this.playFirstAvailableAnimation(this.player, ["CastProjectile", "SwordSlashInward", "SwordSlash", "Punch"], true, 1.45);
+      ?? this.playGenericActorAction(this.player, ["CastProjectile", "SwordSlashInward", "SwordSlash", "Punch"], 1.45);
     const forward = aimAt
       ? aimAt.clone().sub(this.player.root.position).setY(0).normalize()
       : new THREE.Vector3(Math.sin(this.player.root.rotation.y), 0, Math.cos(this.player.root.rotation.y));
@@ -2005,7 +2547,7 @@ export class World3D {
       this.delay(shadowknightMotion?.eventMs ?? 0).then(() => this.playSignatureEffectAt(practicePoint, true)),
       this.delay(Math.max(560, animationMs - 40)),
     ]);
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
     this.ui.setMessage(`${reason}: ${this.calling.signatureSkill} activates, but causes no hit and consumes no Stability or class resource.`);
     this.ui.addLog(`${this.profile.name} rehearses ${this.calling.signatureSkill}.`);
   }
@@ -2013,7 +2555,7 @@ export class World3D {
   private async targetEnemy(enemyId: string): Promise<void> {
     const enemy = this.enemies.get(enemyId);
     if (!enemy?.alive || enemy.definition.roomId !== this.encounter) return;
-    this.selectedTargetId = enemyId;
+    this.selectEnemyTarget(enemyId);
     this.refreshTarget();
     this.faceActorTowards(this.player, enemy.root.position);
     if (this.selectedAction === "signature") await this.runPlayerAction(() => this.performSignature());
@@ -2022,13 +2564,16 @@ export class World3D {
   }
 
   private async performBasicAttack(): Promise<void> {
-    let target = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
-    if (!target?.alive || target.definition.roomId !== this.encounter) target = this.activeEnemies()[0];
+    const active = this.activeEnemies();
+    const selected = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
+    const selectedOrFirst = selected?.alive && selected.definition.roomId === this.encounter ? selected : active[0];
+    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, BASIC_ATTACK.range)
+      ?? selectedOrFirst;
     if (!target) {
       await this.previewBasicAttack();
       return;
     }
-    this.selectedTargetId = target.id;
+    this.selectEnemyTarget(target.id);
     this.faceActorTowards(this.player, target.root.position);
     if (manhattan(this.player.grid, target.grid) > BASIC_ATTACK.range) {
       await this.previewBasicAttack(target.root.position, "Out of range (1 tile required)");
@@ -2053,9 +2598,9 @@ export class World3D {
       strikeEffect,
       this.delay(Math.max(0, motion.durationMs - motion.eventMs - 35)),
     ]);
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
     if (target.hp === 0) await this.defeatEnemy(target);
-    else this.playFirstAvailableAnimation(target, ["HitReactionMixamo", "RecieveHit", "Defeat"], true);
+    else this.playActorHit(target);
     this.ui.addLog(`${armed ? "Weapon" : "Unarmed"} Strike hits ${target.definition.name} for ${damage}; no resource spent.`);
     this.refreshStats();
     this.refreshTarget();
@@ -2073,7 +2618,7 @@ export class World3D {
     let target = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
     if (!target?.alive || target.definition.roomId !== this.encounter) target = this.activeEnemies()[0];
     if (!target) return;
-    this.selectedTargetId = target.id;
+    this.selectEnemyTarget(target.id);
     this.faceActorTowards(this.player, target.root.position);
     if (manhattan(this.player.grid, target.grid) > this.calling.signatureRange) {
       await this.previewSignature(
@@ -2102,12 +2647,11 @@ export class World3D {
       ? this.playMotionArchetype(this.player, SIPHON_CLEAVE_MOTION)
       : null;
     const animationMs = shadowknightMotion?.durationMs
-      ?? this.playFirstAvailableAnimation(
+      ?? this.playGenericActorAction(
         this.player,
         this.calling.signatureRange > 2
           ? ["CastProjectile", "Shoot_OneHanded", "Cast"]
           : ["SwordSlashInward", "SwordSlash", "BasicThrust"],
-        true,
         1.35,
       );
     const eventMs = shadowknightMotion?.eventMs ?? 0;
@@ -2124,9 +2668,9 @@ export class World3D {
       signatureEffect,
       this.delay(Math.max(0, animationMs - eventMs - 40)),
     ]);
-    this.playAnimation(this.player, "Idle");
+    this.playActorIdle(this.player);
     if (target.hp === 0) await this.defeatEnemy(target);
-    else this.playFirstAvailableAnimation(target, ["HitReactionMixamo", "RecieveHit", "Defeat"], true);
+    else this.playActorHit(target);
     this.ui.addLog(`${this.calling.signatureSkill} hits ${target.definition.name} for ${damage}.`);
     this.refreshStats();
     this.refreshTarget();
@@ -2157,7 +2701,7 @@ export class World3D {
       ? this.playMotionArchetype(this.player, CINDER_GUARD_MOTION)
       : null;
     const animationMs = shadowknightMotion?.durationMs
-      ?? this.playFirstAvailableAnimation(this.player, ["Cast", "Victory"], true);
+      ?? this.playGenericActorAction(this.player, ["Cast", "Victory"]);
     const eventMs = shadowknightMotion?.eventMs ?? 0;
     this.ui.animateAction("guard", Math.max(1200, animationMs));
     this.guardReadyAt = now + Math.max(outOfCombat ? 4800 : 2600, animationMs);
@@ -2168,11 +2712,12 @@ export class World3D {
     this.ui.addLog(`${this.profile.name} invokes ${this.calling.defensiveSkill}.`);
     this.refreshStats();
     await this.delay(Math.max(0, animationMs - eventMs));
-    if (!this.playerMoving && this.combatState !== "defeat") this.playAnimation(this.player, "Idle");
+    if (!this.playerMoving && this.combatState !== "defeat") this.playActorIdle(this.player);
     if (outOfCombat || this.combatStyle === "real-time") {
       window.setTimeout(() => {
         this.playerGuard = false;
         this.reinforcedGuard = false;
+        this.refreshStats();
       }, outOfCombat ? 4000 : 1350);
     } else await this.finishPlayerTurn();
   }
@@ -2209,7 +2754,7 @@ export class World3D {
       ? `${healed > 0 ? `${healed} Vitality and ` : ""}${restored} Stability restored.`
       : "Vitality and Stability are already full; no recovery band was consumed.");
     await this.delay(Math.max(0, motion.durationMs - motion.eventMs));
-    if (!this.playerMoving && this.combatState !== "defeat") this.playAnimation(this.player, "Idle");
+    if (!this.playerMoving && this.combatState !== "defeat") this.playActorIdle(this.player);
     if (!outOfCombat && this.combatStyle === "turn-based") await this.finishPlayerTurn();
   }
 
@@ -2225,16 +2770,16 @@ export class World3D {
 
   private async runEnemyRound(): Promise<void> {
     this.actionBusy = true;
+    const startedRespawnGeneration = this.respawnGeneration;
     if (this.combatStyle === "real-time") {
       await this.runRealTimeEnemyPulse();
     } else {
       for (const enemy of this.activeEnemies()) {
         await this.enemyStep(enemy);
-        if (this.hp <= 0) break;
+        if (this.hp <= 0 || this.respawnGeneration !== startedRespawnGeneration) break;
       }
     }
     this.actionBusy = false;
-    if (this.hp <= 0) this.resolveDefeat();
   }
 
   private async runRealTimeEnemyPulse(): Promise<void> {
@@ -2246,10 +2791,9 @@ export class World3D {
     // character during the same animation lock.
     for (const enemy of enemies) {
       if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
-      const path = findPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id, true));
+      const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
       const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      const pathWithoutPlayer = path.filter((point) => !samePoint(point, this.player.grid)).slice(0, stepCount);
-      await this.walkActor(enemy, pathWithoutPlayer, 175 / this.combatSpeed);
+      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
     }
 
     const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);
@@ -2262,12 +2806,114 @@ export class World3D {
   private async enemyStep(enemy: EnemyRuntime): Promise<void> {
     const distance = manhattan(enemy.grid, this.player.grid);
     if (distance > 1) {
-      const path = findPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id, true));
+      const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
       const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      const pathWithoutPlayer = path.filter((point) => !samePoint(point, this.player.grid)).slice(0, stepCount);
-      await this.walkActor(enemy, pathWithoutPlayer, 175 / this.combatSpeed);
+      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
     }
     if (manhattan(enemy.grid, this.player.grid) === 1) await this.enemyAttack(enemy);
+  }
+
+  private clearEnemyAttackPhase(): void {
+    const visual = this.enemyAttackPhaseVisual;
+    if (!visual) return;
+    visual.group.removeFromParent();
+    visual.geometries.forEach((geometry) => geometry.dispose());
+    visual.materials.forEach((material) => material.dispose());
+    this.enemyAttackPhaseVisual = null;
+  }
+
+  private showEnemyAttackPhase(enemy: EnemyRuntime, phase: EnemyAttackPhase): void {
+    this.clearEnemyAttackPhase();
+    const group = new THREE.Group();
+    group.name = `enemy-attack-phase-${phase}`;
+    const geometries: THREE.BufferGeometry[] = [];
+    const materials: THREE.Material[] = [];
+    const material = (color: number, opacity: number, wireframe = false): THREE.MeshBasicMaterial => {
+      const value = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        depthTest: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        wireframe,
+      });
+      value.userData.baseOpacity = opacity;
+      materials.push(value);
+      return value;
+    };
+    const mesh = (name: string, geometry: THREE.BufferGeometry, value: THREE.Material): THREE.Mesh => {
+      geometries.push(geometry);
+      const item = new THREE.Mesh(geometry, value);
+      item.name = name;
+      item.renderOrder = 60;
+      group.add(item);
+      return item;
+    };
+
+    if (phase === "telegraph") {
+      const ring = mesh("enemy-telegraph-ring", new THREE.RingGeometry(0.62, 0.98, 40), material(0xff9b45, 0.82));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.035;
+      const arc = mesh("enemy-telegraph-arc", new THREE.TorusGeometry(0.78, 0.075, 8, 32, Math.PI * 1.45), material(0xffc15a, 0.9));
+      arc.position.y = 1.02;
+      arc.rotation.z = Math.PI * 0.78;
+      const warning = mesh("enemy-telegraph-pulse", new THREE.OctahedronGeometry(0.2, 0), material(0xff5b38, 0.94));
+      warning.position.y = 2.02;
+      enemy.root.add(group);
+    } else if (phase === "contact") {
+      const flash = mesh("enemy-contact-flash", new THREE.SphereGeometry(0.64, 18, 12), material(0xfff0c7, 0.92, true));
+      const shock = mesh("enemy-contact-shock", new THREE.TorusGeometry(0.72, 0.085, 8, 30), material(0xff4938, 0.88));
+      shock.rotation.x = Math.PI / 2;
+      const slashA = mesh("enemy-contact-slash-a", new THREE.BoxGeometry(1.18, 0.11, 0.08), material(0xffc06b, 0.96));
+      slashA.rotation.z = Math.PI * 0.22;
+      const slashB = mesh("enemy-contact-slash-b", new THREE.BoxGeometry(1.18, 0.11, 0.08), material(0xff6b4a, 0.9));
+      slashB.rotation.z = -Math.PI * 0.22;
+      const enemyPosition = enemy.root.getWorldPosition(new THREE.Vector3());
+      const playerPosition = this.player.root.getWorldPosition(new THREE.Vector3());
+      group.position.lerpVectors(enemyPosition, playerPosition, 0.72).add(new THREE.Vector3(0, 0.94, 0));
+      this.scene.add(group);
+      flash.scale.setScalar(0.82);
+    } else {
+      const ring = mesh("enemy-recovery-ring", new THREE.RingGeometry(0.58, 0.84, 36), material(0x5ee1d0, 0.72));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.04;
+      const guard = mesh("enemy-recovery-guard", new THREE.SphereGeometry(0.7, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.62), material(0x83f1df, 0.68, true));
+      guard.position.y = 0.96;
+      guard.rotation.x = Math.PI * 0.1;
+      const settle = mesh("enemy-recovery-settle", new THREE.TorusGeometry(0.48, 0.045, 7, 28), material(0x3caeab, 0.76));
+      settle.position.y = 1.02;
+      settle.rotation.x = Math.PI / 2;
+      enemy.root.add(group);
+    }
+
+    this.enemyAttackPhaseVisual = {
+      enemyId: enemy.id,
+      phase,
+      group,
+      geometries,
+      materials,
+      startedAt: this.clock.getElapsed(),
+    };
+  }
+
+  private updateEnemyAttackPhaseVisual(elapsed: number, delta: number): void {
+    const visual = this.enemyAttackPhaseVisual;
+    if (!visual) return;
+    const age = Math.max(0, elapsed - visual.startedAt);
+    const pulse = 0.5 + Math.sin(age * (visual.phase === "telegraph" ? 8.5 : 5.2)) * 0.5;
+    const scale = visual.phase === "contact"
+      ? 0.88 + pulse * 0.42
+      : visual.phase === "telegraph"
+        ? 0.94 + pulse * 0.14
+        : 0.97 + pulse * 0.06;
+    visual.group.scale.setScalar(scale);
+    visual.group.rotation.y += delta * (visual.phase === "telegraph" ? 1.8 : 0.7);
+    visual.materials.forEach((value) => {
+      const baseOpacity = Number(value.userData.baseOpacity ?? 0.8);
+      value.opacity = baseOpacity * (0.78 + pulse * 0.22);
+    });
   }
 
   private async enemyAttack(enemy: EnemyRuntime): Promise<void> {
@@ -2275,13 +2921,16 @@ export class World3D {
     const isBoss = enemy.definition.kind === "miniboss";
     const isHeavy = isBoss && enemy.attackCount % 3 === 0;
     this.faceActorTowards(enemy, this.player.root.position);
-    this.playFirstAvailableAnimation(enemy, ["SwordSlashOutward", "SwordSlash", "BasicThrust"], true, 1.35);
-    await this.animateLunge(enemy, this.player);
-    let reacted = false;
+    const motion = this.playMotionArchetype(enemy, ENEMY_MELEE_MOTION);
+    this.showEnemyAttackPhase(enemy, "telegraph");
+    this.ui.setMessage(`${enemy.definition.name} winds up a melee strike.`);
+    let reaction: Promise<boolean> | null = null;
     if (isHeavy) {
       const detail = this.dungeon.bossPattern === "soul-tax" ? "Block the life-and-Stability drain" : "Meet the Warden's crossing command";
-      reacted = await this.ui.requestReaction("Miniboss telegraph", detail, 1150);
+      reaction = this.ui.requestReaction("Miniboss telegraph", detail, Math.max(320, Math.min(900, motion.eventMs - 40)));
     }
+    await this.delay(motion.eventMs);
+    const reacted = reaction ? await reaction : false;
     const baseDamage = isBoss ? (isHeavy ? 13 : 9) : 6;
     const pressureMultiplier = this.realmPressure < 25 ? 1 : this.realmPressure < 50 ? 1.1 : this.realmPressure < 75 ? 1.2 : 1.35;
     const trialDamageMultiplier = TRIALS[this.trialDifficulty ?? "wayfarer"].enemyDamageMultiplier;
@@ -2296,21 +2945,34 @@ export class World3D {
     this.resource = Math.min(100, this.resource + (guarded ? 10 : 4));
     this.playerGuard = false;
     this.reinforcedGuard = false;
-    this.playAnimation(enemy, "Idle");
-    this.playFirstAvailableAnimation(this.player, ["HitReactionMixamo", "RecieveHit", "Defeat"], true);
+    this.showEnemyAttackPhase(enemy, "contact");
+    this.ui.setMessage(`${enemy.definition.name} connects for ${damage}${guarded ? " through your guard" : ""}.`);
     this.ui.addLog(`${enemy.definition.name} deals ${damage}${guarded ? " through your guard" : ""}.`);
     this.refreshStats();
-    await this.delay(180 / this.combatSpeed);
-    this.playAnimation(this.player, "Idle");
+    if (this.hp === 0) this.playActorDeath(this.player);
+    else this.playActorHit(this.player);
+    const recoveryDuration = Math.max(0, motion.durationMs - motion.eventMs);
+    const contactHold = Math.min(190, recoveryDuration * 0.32);
+    await this.delay(contactHold);
+    this.showEnemyAttackPhase(enemy, "recovery");
+    await this.delay(Math.max(0, recoveryDuration - contactHold));
+    this.playActorIdle(enemy);
+    this.ui.setMessage(`${enemy.definition.name} recovers its guard after contact.`);
+    this.clearEnemyAttackPhase();
+    if (this.hp === 0) {
+      await this.resolvePlayerDefeat();
+      return;
+    }
+    this.playActorIdle(this.player);
   }
 
   private async defeatEnemy(enemy: EnemyRuntime): Promise<void> {
     enemy.alive = false;
-    this.playFirstAvailableAnimation(enemy, ["DeathMixamo", "Death"], true);
+    this.playActorDeath(enemy);
     enemy.label?.material.opacity && (enemy.label.material.opacity = 0.35);
     await this.delay(420 / this.combatSpeed);
     enemy.root.visible = false;
-    if (this.selectedTargetId === enemy.id) this.selectedTargetId = this.activeEnemies()[0]?.id ?? null;
+    if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
   }
 
   private finishEncounter(): void {
@@ -2340,14 +3002,82 @@ export class World3D {
     }
   }
 
-  private resolveDefeat(): void {
+  private enterPlayerDefeatHold(): number | null {
+    if (this.combatState === "defeat") return null;
     this.combatState = "defeat";
+    this.playerMoving = false;
+    this.clearEnemyAttackPhase();
+    this.selectStoryObjectTarget(null);
+    this.selectEnemyTarget(null);
+    this.setPendingInteraction(null);
+    this.ui.clearCombatPresentation();
     this.ui.showCombatControls(false);
     this.ui.lockCombatStyle(false);
     this.ui.setMode("defeat", this.combatStyle);
-    this.ui.setObjective("Your body has fractured. Reload to generate another Soulwell crawl and awaken again.");
-    this.ui.setMessage("The Soul Well remembers your pattern. This run has ended.");
-    this.playFirstAvailableAnimation(this.player, ["DeathMixamo", "Death"], true);
+    this.ui.setObjective("The Soulwell is recalling this body to the last stable checkpoint.");
+    this.ui.setMessage("Vitality is gone. The grounded pattern holds while the Soulwell prepares recall.");
+    return this.playActorDeath(this.player);
+  }
+
+  private async resolvePlayerDefeat(): Promise<void> {
+    const deathDurationMs = this.enterPlayerDefeatHold();
+    if (deathDurationMs == null) return;
+    const action = this.player.currentAction;
+    const terminalSeconds = action?.getClip().duration ?? deathDurationMs / 1_000;
+    while (this.combatState === "defeat" && action && action.time < terminalSeconds - 0.02) {
+      await this.delay(40);
+    }
+    await this.delay(650);
+    if (this.combatState === "defeat") await this.respawnAtSoulwellCheckpoint();
+  }
+
+  private async respawnAtSoulwellCheckpoint(): Promise<void> {
+    this.clearEnemyAttackPhase();
+    this.debugCameraFocus = null;
+    const plan = planSoulwellRespawn({
+      checkpoint: this.soulwellCheckpoint,
+      maxHp: this.profile.maxHp,
+      maxStability: this.profile.maxStability,
+      resource: this.resource,
+      encounter: this.encounter,
+    });
+    this.hp = plan.hp;
+    this.stability = plan.stability;
+    this.resource = plan.resource;
+    this.currentRoom = plan.room;
+    this.player.grid = { ...plan.grid };
+    this.player.root.position.copy(gridToWorld(plan.grid));
+    this.player.root.position.y = 0;
+    this.selectStoryObjectTarget(null);
+    this.selectEnemyTarget(null);
+    this.setPendingInteraction(null);
+    this.ui.clearCombatPresentation();
+    this.setWeaponState(this.player, "sheathed");
+    this.playMotionDecision(this.player, this.player.motion.revive("sheathed"));
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollowInitialized = false;
+    this.revealRoom(plan.room, false);
+    this.updateCamera(true, 0);
+    this.realTimeTimer = 0;
+    this.respawnGeneration += 1;
+    this.selectedAction = null;
+    this.playerGuard = false;
+    this.reinforcedGuard = false;
+    this.ui.showCombatControls(true);
+    this.ui.lockCombatStyle(this.encounter !== "none");
+    (['move', 'basic', 'signature', 'guard', 'wait'] as ActionName[]).forEach((action) => this.ui.setActionEnabled(action, true));
+    this.refreshStats();
+    this.refreshTarget();
+    if (this.encounter !== "none" && this.combatStyle === "turn-based") this.preparePlayerTurn();
+    else {
+      this.combatState = this.encounter === "none" ? "exploration" : "resolution";
+      this.ui.setMode(this.combatState, this.combatStyle);
+    }
+    this.ui.setObjective(this.encounter === "none"
+      ? "Return to the Fractured Galleries when you are ready."
+      : "Re-enter the Fractured Galleries; the same run and surviving enemies remain.");
+    this.ui.setMessage("The Soulwell recalls the same pattern. This generated run, inventory, trial, and encounter state remain intact.");
   }
 
   private activeEnemies(): EnemyRuntime[] {
@@ -2636,16 +3366,18 @@ export class World3D {
     });
   }
 
-  private async animateLunge(attacker: AnimatedActor, target: AnimatedActor): Promise<void> {
-    const start = attacker.root.position.clone();
-    const direction = target.root.position.clone().sub(start).normalize();
-    const end = start.clone().add(direction.multiplyScalar(0.48));
-    await this.tween(170 / this.combatSpeed, (progress) => attacker.root.position.lerpVectors(start, end, Math.sin(progress * Math.PI)));
-    attacker.root.position.copy(start);
-  }
-
   private refreshStats(): void {
     this.ui.setStats({ hp: this.hp, stability: this.stability, fury: this.resource });
+    this.ui.setBuffs(this.playerGuard ? [{
+      id: "active-guard",
+      icon: "\u25c8",
+      label: this.calling.defensiveSkill,
+      stacks: this.reinforcedGuard ? 2 : 1,
+      duration: "next hit",
+      help: this.reinforcedGuard
+        ? `${this.calling.defensiveSkill} is reinforced: the next incoming hit is heavily reduced.`
+        : `${this.calling.defensiveSkill} is active: the next incoming hit is reduced.`,
+    }] : []);
   }
 
   private refreshTarget(): void {
@@ -2657,6 +3389,141 @@ export class World3D {
     this.ui.setTarget(target.definition.name, target.hp, target.maxHp, target.definition.kind === "miniboss");
   }
 
+  private prepareDebugTrialGate(): void {
+    this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
+    this.profile.starterImprint ??= {
+      allocations: { might: 1, finesse: 1, vitality: 1 },
+      raceBoonId: "elf-memory",
+      callingPerkId: "shadowknight-graveiron",
+      raceBoonName: "Unbroken Recollection",
+      callingPerkName: "Grave-Iron Discipline",
+    };
+    this.openedObjects.add("starter-coffer");
+    this.tutorialStep = Math.max(this.tutorialStep, 5);
+    this.ui.setTutorial(5, 9, "Choose the trial gate", "Both portcullises remain solid until a deliberate difficulty-and-reward choice is confirmed.");
+    this.ui.setObjective("Choose a trial gate: Wayfarer (standard reward) or Oathbreaker (severe, stronger reward).");
+    this.showTrialGateGuidance();
+    this.refreshEquipmentUi();
+  }
+
+  private async prepareDebugCorridor(): Promise<void> {
+    this.prepareDebugTrialGate();
+    if (!this.trialDifficulty) await this.selectTrial("wayfarer");
+    this.revealRoom("skirmish", false);
+    this.currentRoom = "skirmish";
+    const select = requiredElement<HTMLSelectElement>("combat-style");
+    if (!select.disabled) this.setCombatStylePreference("turn-based");
+    const enemy = [...this.enemies.values()].find((candidate) => candidate.alive && candidate.definition.roomId === "skirmish");
+    if (!enemy) throw new Error("No skirmish enemy available for frozen-scope debug proof.");
+    const destination = this.dungeon.tiles
+      .filter((tile) => tile.roomId === "skirmish" && manhattan(tile, enemy.grid) >= 3)
+      .filter((tile) => this.isWalkable(tile, "player"))
+      .map((tile) => ({
+        tile,
+        path: planPursuitPath(enemy.grid, tile, (point) => samePoint(point, tile) || this.isWalkable(point, enemy.id, true)),
+      }))
+      .filter((candidate) => candidate.path.length >= 3)
+      .sort((left, right) => left.path.length - right.path.length)[0]?.tile;
+    if (!destination) throw new Error("No valid corridor proof tile found for enemy pursuit.");
+    this.player.grid = { x: destination.x, y: destination.y };
+    this.player.root.position.copy(gridToWorld(destination));
+    this.player.root.position.y = 0;
+    this.clearTrialGateGuidance();
+    this.debugCameraFocus = null;
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollowInitialized = false;
+    this.updateCamera(true, 0);
+    await this.startEncounter("skirmish");
+  }
+
+  private positionDebugCameraOnActors(first: AnimatedActor, second: AnimatedActor): void {
+    const midpoint = first.root.position.clone().lerp(second.root.position, 0.5);
+    this.cameraFollow.center.set(first.root.position.x, first.root.position.z);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollow.manualOffset.set(
+      midpoint.x - first.root.position.x,
+      midpoint.z - first.root.position.z,
+    );
+    this.cameraFollow.manualIdleSeconds = 0;
+    this.lastCameraPlayerPosition.set(first.root.position.x, first.root.position.z);
+    this.cameraFollowInitialized = true;
+    this.cameraTarget.set(midpoint.x, 0.8, midpoint.z);
+    const horizontalDistance = Math.hypot(15.5, 19.5);
+    this.camera.position.set(
+      midpoint.x + Math.sin(this.cameraAzimuth) * horizontalDistance,
+      19.5,
+      midpoint.z + Math.cos(this.cameraAzimuth) * horizontalDistance,
+    );
+    this.camera.lookAt(this.cameraTarget);
+  }
+
+  private centerDebugCameraOnActors(first: AnimatedActor, second: AnimatedActor): void {
+    this.camera.zoom = 1;
+    this.camera.updateProjectionMatrix();
+    this.debugCameraFocus = { first, second };
+    this.positionDebugCameraOnActors(first, second);
+  }
+
+  private prepareDebugLowWallOcclusion(): string {
+    const enemy = this.activeEnemies()[0];
+    if (!enemy) throw new Error("No active enemy is available for the low-wall occlusion proof.");
+    const isVisible = (object: THREE.Object3D): boolean => {
+      let cursor: THREE.Object3D | null = object;
+      while (cursor) {
+        if (!cursor.visible) return false;
+        cursor = cursor.parent;
+      }
+      return true;
+    };
+    const placement = this.occluders.flatMap((wall) => {
+      const height = new THREE.Box3().setFromObject(wall).getSize(new THREE.Vector3()).y;
+      if (height > 1.8 || !isVisible(wall)) return [];
+      const wallPosition = wall.getWorldPosition(new THREE.Vector3());
+      return this.dungeon.tiles
+        .filter((tile) => tile.roomId === "skirmish")
+        .map((tile) => {
+          const offsetX = wallPosition.x / TILE_SIZE - tile.x;
+          const offsetY = wallPosition.z / TILE_SIZE - tile.y;
+          const onXBoundary = Math.abs(Math.abs(offsetX) - 0.5) < 0.08 && Math.abs(offsetY) < 0.08;
+          const onYBoundary = Math.abs(Math.abs(offsetY) - 0.5) < 0.08 && Math.abs(offsetX) < 0.08;
+          if (!onXBoundary && !onYBoundary) return null;
+          const outward = { x: onXBoundary ? Math.sign(offsetX) : 0, y: onYBoundary ? Math.sign(offsetY) : 0 };
+          const inner = { x: tile.x - outward.x, y: tile.y - outward.y };
+          if (!this.tileMap.has(dungeonTileKey(inner))) return null;
+          const occupied = [...this.enemies.values()].some((candidate) => candidate.alive && candidate.id !== enemy.id
+            && (samePoint(candidate.grid, tile) || samePoint(candidate.grid, inner)));
+          const blocked = [...this.storyObjects.values()].some((object) => !object.destroyed && object.blocksMovement
+            && (samePoint(object.grid, tile) || samePoint(object.grid, inner)));
+          if (occupied || blocked || [...this.npcs.values()].some((npc) => samePoint(npc.grid, tile) || samePoint(npc.grid, inner))) return null;
+          return { wall, wallPosition, tile, inner, outward };
+        })
+        .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
+    })[0];
+    if (!placement) throw new Error("No visible registered low wall has two clear proof tiles.");
+
+    this.player.grid = { x: placement.tile.x, y: placement.tile.y };
+    this.player.root.position.copy(gridToWorld(placement.tile));
+    this.player.root.position.y = 0;
+    enemy.grid = { ...placement.inner };
+    enemy.root.position.copy(gridToWorld(placement.inner));
+    enemy.root.position.y = 0;
+    if (this.player.label) this.player.label.visible = false;
+    this.npcs.forEach((npc) => { npc.root.visible = false; });
+    this.enemies.forEach((candidate) => { candidate.root.visible = candidate.id === enemy.id; });
+    this.currentRoom = "skirmish";
+    this.faceActorTowards(enemy, this.player.root.position);
+    this.faceActorTowards(this.player, enemy.root.position);
+    this.cameraAzimuth = Math.atan2(placement.outward.x, placement.outward.y);
+    this.centerDebugCameraOnActors(this.player, enemy);
+    this.selectEnemyTarget(null);
+    this.debugOcclusionProofWall = {
+      label: `low-wall@${placement.wallPosition.x.toFixed(2)},${placement.wallPosition.z.toFixed(2)}`,
+      mesh: placement.wall,
+    };
+    return enemy.id;
+  }
+
   private installDebugBridge(): void {
     if (!import.meta.env.DEV) return;
     const bridge: DebugBridge = {
@@ -2664,6 +3531,7 @@ export class World3D {
       moveTo: async (x, y) => this.handleGroundClick({ x, y }),
       interact: async (id) => this.interactById(id),
       target: async (id) => this.targetEnemy(id),
+      clearTarget: () => this.selectEnemyTarget(null),
       action: async (action) => this.handleAction(action),
       setCombatStyle: (style) => {
         const select = requiredElement<HTMLSelectElement>("combat-style");
@@ -2678,7 +3546,7 @@ export class World3D {
           .find((name) => name.toLowerCase() === animation.toLowerCase());
         if (!clipName) throw new Error(`Unknown player animation: ${animation}`);
         const clip = this.player.clips.get(clipName)!;
-        this.player.currentAction?.stop();
+        this.player.mixer.stopAllAction();
         const action = this.player.mixer.clipAction(clip);
         action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
         action.setLoop(THREE.LoopOnce, 1);
@@ -2696,6 +3564,47 @@ export class World3D {
         this.player.weapon.hipSocket.rotation.set(...rotation);
         this.player.weapon.hipSocket.updateMatrixWorld(true);
       },
+      prepareTrialGate: () => this.prepareDebugTrialGate(),
+      requestInteraction: async (id) => this.requestInteractionById(id),
+      confirmInteraction: async () => this.confirmPendingInteraction(),
+      prepareCorridor: async () => this.prepareDebugCorridor(),
+      prepareOcclusion: () => this.prepareDebugLowWallOcclusion(),
+      enemyRound: async () => this.runEnemyRound(),
+      enemyPose: (id, phase) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown enemy visual-proof target: ${id}`);
+        const normalized = phase === "telegraph" ? 0.2 : phase === "contact" ? 0.56 : 0.86;
+        this.faceActorTowards(enemy, this.player.root.position);
+        this.poseActorForDebug(enemy, ENEMY_MELEE_MOTION.clipNames, normalized);
+        this.showEnemyAttackPhase(enemy, phase);
+        if (phase === "contact") this.poseActorForDebug(this.player, ["HitReactionMixamo", "RecieveHit", "Defeat"], 0.42);
+        else this.playActorIdle(this.player);
+        this.ui.setMessage(phase === "telegraph"
+          ? `${enemy.definition.name} winds up a melee strike.`
+          : phase === "contact"
+            ? `${enemy.definition.name} reaches the contact marker.`
+            : `${enemy.definition.name} recovers its guard after contact.`);
+      },
+      gatePose: (id, progress) => {
+        const object = this.storyObjects.get(id);
+        const portcullis = object?.root.getObjectByName("trial-portcullis") as THREE.Group | undefined;
+        if (!object || object.kind !== "gate" || !portcullis) throw new Error(`Unknown trial portcullis: ${id}`);
+        const closedY = Number(portcullis.userData.closedY ?? portcullis.position.y);
+        const frame = portcullisFrame({ progress, closedY, liftHeight: 3.5 });
+        portcullis.position.y = frame.y;
+        object.blocksMovement = frame.blocksMovement;
+      },
+      defeat: async () => {
+        this.hp = 0;
+        this.refreshStats();
+        await this.resolvePlayerDefeat();
+      },
+      defeatHold: () => {
+        this.hp = 0;
+        this.refreshStats();
+        this.enterPlayerDefeatHold();
+      },
+      respawn: async () => this.respawnAtSoulwellCheckpoint(),
     };
     window.__SOULDRIFTER_DEBUG__ = bridge;
     const publish = (): void => {
@@ -2754,6 +3663,7 @@ export class World3D {
 
   private debugSnapshot(): DebugSnapshot {
     const bounds = actorBodyBounds(this.player.model);
+    const boundsSize = bounds.getSize(new THREE.Vector3());
     const materialSet = new Set<THREE.Material>();
     this.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Line)) return;
@@ -2765,7 +3675,23 @@ export class World3D {
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.forEach((material) => materialSet.add(material));
     });
+    const occluderStates = this.occluders.map((wall) => ({
+      opacity: (wall.material as THREE.MeshStandardMaterial).opacity,
+      height: new THREE.Box3().setFromObject(wall).getSize(new THREE.Vector3()).y,
+    }));
+    const occluderOpacities = occluderStates.map(({ opacity }) => opacity);
+    const lowWallOpacities = occluderStates.filter(({ height }) => height <= 1.8).map(({ opacity }) => opacity);
     const viewport = this.renderer.getSize(new THREE.Vector2());
+    const probePlayerBone = (name: string): DebugSnapshot["playerRigProbe"][string] => {
+      const bone = this.player.model.getObjectByName(name);
+      if (!bone) return null;
+      const position = bone.getWorldPosition(new THREE.Vector3());
+      const quaternion = bone.getWorldQuaternion(new THREE.Quaternion());
+      return {
+        position: [position.x, position.y, position.z],
+        quaternion: [quaternion.x, quaternion.y, quaternion.z, quaternion.w],
+      };
+    };
     return {
       seed: this.seed,
       realmPressure: this.realmPressure,
@@ -2774,15 +3700,34 @@ export class World3D {
       combatStyle: this.combatStyle,
       combatState: this.combatState,
       encounter: this.encounter,
-      enemies: [...this.enemies.values()].map((enemy) => ({
-        id: enemy.id,
-        ...enemy.grid,
-        hp: enemy.hp,
-        alive: enemy.alive,
-        roomId: enemy.definition.roomId,
-      })),
+      enemies: [...this.enemies.values()].map((enemy) => {
+        const screen = enemy.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.9, 0)).project(this.camera);
+        return {
+          id: enemy.id,
+          ...enemy.grid,
+          hp: enemy.hp,
+          alive: enemy.alive,
+          roomId: enemy.definition.roomId,
+          yaw: Number(enemy.root.rotation.y.toFixed(3)),
+          animation: enemy.currentAction?.getClip().name ?? "none",
+          animationTime: Number((enemy.currentAction?.time ?? 0).toFixed(3)),
+          screen: { x: Number(screen.x.toFixed(4)), y: Number(screen.y.toFixed(4)) },
+        };
+      }),
       npcs: [...this.npcs.values()].map((npc) => ({ id: npc.id, ...npc.grid })),
-      objects: [...this.storyObjects.values()].map((object) => ({ id: object.id, kind: object.kind, ...object.grid })),
+      objects: [...this.storyObjects.values()].map((object) => ({
+        id: object.id,
+        kind: object.kind,
+        ...object.grid,
+        hp: object.hp,
+        maxHp: object.maxHp,
+        destroyed: object.destroyed,
+        blocksMovement: object.blocksMovement,
+        visible: object.root.visible,
+        portcullisY: object.kind === "gate"
+          ? Number((object.root.getObjectByName("trial-portcullis")?.position.y ?? 0).toFixed(3))
+          : undefined,
+      })),
       rooms: this.dungeon.rooms.map((room) => ({ id: room.id, center: room.center })),
       revealedRooms: [...this.revealedRooms],
       inventory: [...this.inventory],
@@ -2790,10 +3735,33 @@ export class World3D {
       recoveryCharges: this.recoveryCharges,
       trialDifficulty: this.trialDifficulty,
       selectedTargetId: this.selectedTargetId,
+      enemyAttackPhase: this.enemyAttackPhaseVisual?.phase ?? null,
+      pendingInteractionId: this.pendingInteractionId,
+      respawnGeneration: this.respawnGeneration,
+      playerYaw: Number(this.player.root.rotation.y.toFixed(3)),
+      occlusion: {
+        fadedWalls: occluderOpacities.filter((opacity) => opacity < 0.55).length,
+        fadedLowWalls: lowWallOpacities.filter((opacity) => opacity < 0.55).length,
+        minOpacity: Number(Math.min(1, ...occluderOpacities).toFixed(3)),
+        lowWallMinOpacity: Number(Math.min(1, ...lowWallOpacities).toFixed(3)),
+        proofWall: this.debugOcclusionProofWall?.label ?? null,
+        proofWallOpacity: this.debugOcclusionProofWall
+          ? Number((this.debugOcclusionProofWall.mesh.material as THREE.MeshStandardMaterial).opacity.toFixed(3))
+          : null,
+      },
       playerAnimation: this.player.currentAction?.getClip().name ?? "none",
       playerAnimationTime: Number((this.player.currentAction?.time ?? 0).toFixed(3)),
       playerAnimationDuration: Number((this.player.currentAction?.getClip().duration ?? 0).toFixed(3)),
       playerWeaponState: this.player.weapon?.state ?? "none",
+      playerRigProbe: {
+        pelvis: probePlayerBone("pelvis"),
+        spine_01: probePlayerBone("spine_01"),
+        spine_03: probePlayerBone("spine_03"),
+        hand_l: probePlayerBone("hand_l"),
+        hand_r: probePlayerBone("hand_r"),
+        foot_l: probePlayerBone("foot_l"),
+        foot_r: probePlayerBone("foot_r"),
+      },
       playerHipSocket: this.player.weapon ? {
         position: [
           this.player.weapon.hipSocket.position.x,
@@ -2815,10 +3783,28 @@ export class World3D {
           };
         })(),
       } : undefined,
+      playerHandSocket: this.player.weapon ? (() => {
+        const handSocket = this.player.weapon!.handSocket;
+        const worldPosition = handSocket.getWorldPosition(new THREE.Vector3());
+        const worldQuaternion = handSocket.getWorldQuaternion(new THREE.Quaternion());
+        const socketBounds = new THREE.Box3().setFromObject(handSocket);
+        return {
+          position: [worldPosition.x, worldPosition.y, worldPosition.z] as [number, number, number],
+          quaternion: [worldQuaternion.x, worldQuaternion.y, worldQuaternion.z, worldQuaternion.w] as [number, number, number, number],
+          visible: handSocket.visible,
+          bounds: {
+            min: [socketBounds.min.x, socketBounds.min.y, socketBounds.min.z] as [number, number, number],
+            max: [socketBounds.max.x, socketBounds.max.y, socketBounds.max.z] as [number, number, number],
+          },
+        };
+      })() : undefined,
       playerBounds: {
         minY: Number(bounds.min.y.toFixed(3)),
         maxY: Number(bounds.max.y.toFixed(3)),
         height: Number((bounds.max.y - bounds.min.y).toFixed(3)),
+        width: Number(boundsSize.x.toFixed(3)),
+        depth: Number(boundsSize.z.toFixed(3)),
+        horizontalSpan: Number(Math.max(boundsSize.x, boundsSize.z).toFixed(3)),
       },
       camera: {
         target: { x: Number(this.cameraTarget.x.toFixed(3)), z: Number(this.cameraTarget.z.toFixed(3)) },
@@ -2848,16 +3834,24 @@ export class World3D {
   private render(): void {
     if (this.disposed) return;
     this.clock.update();
-    const delta = Math.min(this.clock.getDelta(), 0.05);
-    this.player?.mixer.update(delta);
-    this.npcs.forEach((actor) => actor.mixer.update(delta));
-    this.enemies.forEach((actor) => actor.mixer.update(delta));
+    // Action markers and recovery timers use wall-clock milliseconds. Preserve
+    // that same elapsed time for animation mixers even when rendering is slow;
+    // only clamp world simulation work that could otherwise make large jumps.
+    const animationDelta = this.clock.getDelta();
+    const delta = Math.min(animationDelta, 0.05);
+    this.player?.mixer.update(animationDelta);
+    this.npcs.forEach((actor) => actor.mixer.update(animationDelta));
+    this.enemies.forEach((actor) => actor.mixer.update(animationDelta));
+    if (this.player) this.updateActorDeathPresentation(this.player);
+    this.npcs.forEach((actor) => this.updateActorDeathPresentation(actor));
+    this.enemies.forEach((actor) => this.updateActorDeathPresentation(actor));
     if (this.player) this.groundActor(this.player);
     this.npcs.forEach((actor) => this.groundActor(actor));
     this.enemies.forEach((actor) => this.groundActor(actor));
     const elapsed = this.clock.getElapsed();
     this.updateStabilityRecovery(delta);
     this.environmentAnimators.forEach((animate) => animate(elapsed, delta));
+    this.updateEnemyAttackPhaseVisual(elapsed, delta);
     this.storyObjects.forEach((object) => {
       const animated = object.root.userData.animatedOrb as THREE.Object3D | undefined;
       if (animated) {
@@ -2873,8 +3867,17 @@ export class World3D {
       });
     });
     if (this.combatStyle === "real-time" && this.encounter !== "none" && this.combatState !== "defeat") {
-      if (!this.actionBusy && !this.playerMoving) this.realTimeTimer += delta * 1000;
-      if (this.realTimeTimer >= 1450 / this.combatSpeed && !this.actionBusy && !this.playerMoving) {
+      if (!this.actionBusy) this.realTimeTimer += delta * 1000;
+      const intervalMs = 1450 / this.combatSpeed;
+      if (shouldAdvanceRealTimeEnemies({
+        combatStyle: this.combatStyle,
+        encounter: this.encounter,
+        combatState: this.combatState,
+        actionBusy: this.actionBusy,
+        playerMoving: this.playerMoving,
+        elapsedMs: this.realTimeTimer,
+        intervalMs,
+      })) {
         this.realTimeTimer = 0;
         void this.runEnemyRound();
       }
@@ -2882,7 +3885,37 @@ export class World3D {
     this.updateCamera(false, delta);
     this.updateOcclusion();
     this.renderer.render(this.scene, this.camera);
+    if (this.paperDollVisible) this.renderPaperDoll();
     this.animationFrame = requestAnimationFrame(() => this.render());
+  }
+
+  /** Renders the same live skinned player object and equipped sword through a portrait camera. */
+  private renderPaperDoll(): void {
+    if (!this.player) return;
+    const canvas = this.paperRenderer.domElement;
+    const width = Math.max(1, Math.round(canvas.clientWidth));
+    const height = Math.max(1, Math.round(canvas.clientHeight));
+    if (canvas.width !== width || canvas.height !== height) this.paperRenderer.setSize(width, height, false);
+    this.paperCamera.aspect = width / height;
+    this.paperCamera.updateProjectionMatrix();
+
+    this.player.model.updateMatrixWorld(true);
+    const bounds = actorBodyBounds(this.player.model);
+    if (bounds.isEmpty()) return;
+    const center = bounds.getCenter(new THREE.Vector3());
+    const bodyHeight = Math.max(0.5, bounds.max.y - bounds.min.y);
+    const distance = (bodyHeight / (2 * Math.tan(THREE.MathUtils.degToRad(this.paperCamera.fov * 0.5)))) * 1.16;
+    const viewOffset = new THREE.Vector3(0, bodyHeight * 0.03, distance).applyQuaternion(this.player.root.quaternion);
+    this.paperCamera.position.copy(center).add(viewOffset);
+    this.paperCamera.lookAt(center.x, center.y + bodyHeight * 0.04, center.z);
+
+    const background = this.scene.background;
+    const fog = this.scene.fog;
+    this.scene.background = null;
+    this.scene.fog = null;
+    this.paperRenderer.render(this.scene, this.paperCamera);
+    this.scene.background = background;
+    this.scene.fog = fog;
   }
 
   private updateStabilityRecovery(deltaSeconds: number): void {
@@ -2902,9 +3935,16 @@ export class World3D {
 
   private updateCamera(immediate: boolean, deltaSeconds: number): void {
     if (!this.player) return;
-    const room = this.dungeon.rooms.find((candidate) => candidate.id === this.currentRoom)!;
-    const roomCenter = new THREE.Vector2(room.center.x * TILE_SIZE, room.center.y * TILE_SIZE);
-    const roomBounds = new THREE.Vector2(room.width * TILE_SIZE * 0.5, room.height * TILE_SIZE * 0.5);
+    if (this.debugCameraFocus) {
+      this.positionDebugCameraOnActors(this.debugCameraFocus.first, this.debugCameraFocus.second);
+      return;
+    }
+    const roomEnvelope = cameraTileEnvelope(
+      this.dungeon.tiles.filter((tile) => tile.roomId === this.currentRoom),
+      TILE_SIZE,
+    );
+    const roomCenter = roomEnvelope.center;
+    const roomBounds = roomEnvelope.bounds;
     const playerPosition = new THREE.Vector2(this.player.root.position.x, this.player.root.position.z);
     if (!this.cameraFollowInitialized) {
       this.cameraFollow.center.copy(this.currentRoom === "training" ? roomCenter : playerPosition);
@@ -2958,12 +3998,33 @@ export class World3D {
       material.opacity += (1 - material.opacity) * 0.22;
       material.depthWrite = material.opacity > 0.55;
     }
-    const direction = this.player.root.position.clone().sub(this.camera.position);
-    const distance = direction.length();
-    this.raycaster.set(this.camera.position, direction.normalize());
-    const hits = this.raycaster.intersectObjects(this.occluders, false).filter((hit) => hit.distance < distance);
-    for (const hit of hits) {
-      const material = (hit.object as THREE.Mesh).material as THREE.MeshStandardMaterial;
+    const occlusionTargets: Array<{ root: THREE.Object3D; height: number }> = [
+      { root: this.player.root, height: 0.92 },
+      ...[...this.enemies.values()]
+        .filter((actor) => actor.alive && actor.root.visible)
+        .map((actor) => ({ root: actor.root as THREE.Object3D, height: 0.78 })),
+      ...[...this.npcs.values()]
+        .filter((actor) => actor.root.visible && manhattan(this.player.grid, actor.grid) <= 7)
+        .map((actor) => ({ root: actor.root as THREE.Object3D, height: 0.92 })),
+      ...[...this.storyObjects.values()]
+        .filter((object) => !object.destroyed && object.root.visible && manhattan(this.player.grid, object.grid) <= 7)
+        .map((object) => ({ root: object.root, height: object.kind === "gate" ? 1.5 : 0.8 })),
+    ];
+    const occludingWalls = new Set<THREE.Mesh>();
+    for (const actor of occlusionTargets) {
+      for (const height of occlusionSampleHeights(actor.height)) {
+        const target = actor.root.getWorldPosition(new THREE.Vector3());
+        target.y += height;
+        const direction = target.sub(this.camera.position);
+        const distance = direction.length();
+        this.raycaster.set(this.camera.position, direction.normalize());
+        this.raycaster.intersectObjects(this.occluders, false)
+          .filter((hit) => hit.distance < distance)
+          .forEach((hit) => occludingWalls.add(hit.object as THREE.Mesh));
+      }
+    }
+    for (const wall of occludingWalls) {
+      const material = wall.material as THREE.MeshStandardMaterial;
       material.opacity += (0.1 - material.opacity) * 0.45;
       material.depthWrite = false;
     }

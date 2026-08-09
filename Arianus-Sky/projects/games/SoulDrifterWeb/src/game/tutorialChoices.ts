@@ -43,7 +43,7 @@ export interface TrialDefinition {
 export const TRIALS: Record<TrialDifficulty, TrialDefinition> = {
   wayfarer: {
     id: "wayfarer",
-    name: "Wayfarer Door",
+    name: "Wayfarer Gate",
     subtitle: "Guided trial · standard rewards",
     description: "A measured route for learning targeting, recovery, action timing, and the miniboss telegraph.",
     enemyHpMultiplier: 1,
@@ -55,7 +55,7 @@ export const TRIALS: Record<TrialDifficulty, TrialDefinition> = {
   },
   oathbreaker: {
     id: "oathbreaker",
-    name: "Oathbreaker Door",
+    name: "Oathbreaker Gate",
     subtitle: "Severe trial · improved rewards",
     description: "The same route under violent Realm Pressure: tougher enemies, fewer safe mistakes, improved gear, and a chance to awaken a new class skill.",
     enemyHpMultiplier: 1.55,
