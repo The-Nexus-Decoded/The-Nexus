@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "shippingAssets": [],
+  "researchReferences": [
+    {
+      "id": "exult-engine",
+      "name": "Exult",
+      "url": "https://github.com/exult/exult",
+      "usage": "architecture research only",
+      "license": "GPL-2.0-or-later",
+      "bundled": false,
+      "notes": "Original Ultima graphics and data are not reusable and are not included."
+    },
+    {
+      "id": "classicuo-desktop",
+      "name": "ClassicUO desktop client",
+      "url": "https://github.com/ClassicUO/ClassicUO",
+      "usage": "network and client architecture research only",
+      "license": "BSD-2-Clause",
+      "bundled": false,
+      "notes": "The separate browser client is closed source; Ultima client data is not included."
+    },
+    {
+      "id": "servuo",
+      "name": "ServUO",
+      "url": "https://github.com/ServUO/ServUO",
+      "usage": "authoritative multiplayer-server research only",
+      "license": "GPL-2.0",
+      "bundled": false,
+      "notes": "SoulDrifter will use an original protocol, data model, and content set."
+    }
+  ]
+}

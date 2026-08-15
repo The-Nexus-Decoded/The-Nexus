@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Class discipline awakening">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="60%"><stop stop-color="#244d49"/><stop offset="1" stop-color="#07100f"/></radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6d5aa"/><stop offset=".52" stop-color="#8c7452"/><stop offset="1" stop-color="#443324"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="7" fill="url(#bg)"/>
+  <path d="M32 7 47 20 41 48 32 57 23 48 17 20Z" fill="none" stroke="url(#steel)" stroke-width="3"/>
+  <path d="m32 14 6 13-6 8-6-8Zm0 21 7 12H25Z" fill="#72eadc" stroke="#d9c28e" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#b37a3d" stroke-dasharray="2 5" opacity=".7"/>
+</svg>

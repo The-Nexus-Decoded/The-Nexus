@@ -1,0 +1,23 @@
+{
+  "name": "souldrifter-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-native isometric SoulDrifter RPG prototype.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "node scripts/clean-build.mjs && tsc -b && vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc -b",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "typescript": "7.0.2",
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
