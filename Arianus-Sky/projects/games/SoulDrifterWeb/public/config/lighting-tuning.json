@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "revision": "poc-cinematic-2026-08-09",
+  "exposure": 1.04,
+  "paperDollExposure": 1.18,
+  "fogDensity": 0.0135,
+  "shadowQuality": "pcf-soft",
+  "shadowMapSize": 1024,
+  "hemisphereIntensity": 0.58,
+  "ambientIntensity": 0.14,
+  "keyIntensity": 3.1,
+  "rimIntensity": 0.82,
+  "localLightMultiplier": 0.74,
+  "roomOverrides": {
+    "training": { "localLightMultiplier": 0.82 },
+    "boss": { "localLightMultiplier": 1.08 }
+  }
+}

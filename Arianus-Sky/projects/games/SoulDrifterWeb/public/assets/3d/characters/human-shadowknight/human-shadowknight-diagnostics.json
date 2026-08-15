@@ -1,0 +1,165 @@
+{
+ "status": "built_v3",
+ "rig": {
+  "name": "HumanShadowknight_Armature",
+  "bones": 65
+ },
+ "triangles": 30769,
+ "meshes": [
+  {
+   "name": "Male_Ranger_Arms",
+   "tris": 4928,
+   "materials": [
+    "SK_faded_charcoal_cloth"
+   ]
+  },
+  {
+   "name": "Male_Ranger_Body",
+   "tris": 2998,
+   "materials": [
+    "SK_faded_charcoal_cloth"
+   ]
+  },
+  {
+   "name": "Male_Ranger_Body_Belt_1",
+   "tris": 804,
+   "materials": [
+    "SK_cracked_brown_leather"
+   ]
+  },
+  {
+   "name": "Male_Ranger_Body_Belt_2",
+   "tris": 804,
+   "materials": [
+    "SK_cracked_brown_leather"
+   ]
+  },
+  {
+   "name": "Male_Ranger_Feet_Boots",
+   "tris": 9172,
+   "materials": [
+    "SK_cracked_brown_leather"
+   ]
+  },
+  {
+   "name": "Male_Ranger_Legs",
+   "tris": 1128,
+   "materials": [
+    "SK_faded_charcoal_cloth"
+   ]
+  },
+  {
+   "name": "SK_Beard_Full",
+   "tris": 1034,
+   "materials": [
+    "MI_Hair_1.003"
+   ]
+  },
+  {
+   "name": "SK_Eyebrows",
+   "tris": 984,
+   "materials": [
+    "SK_hair_silver"
+   ]
+  },
+  {
+   "name": "SK_Eyes",
+   "tris": 768,
+   "materials": [
+    "SK_eye_brown"
+   ]
+  },
+  {
+   "name": "SK_Hair_Buzzed",
+   "tris": 830,
+   "materials": [
+    "MI_Hair_1.002"
+   ]
+  },
+  {
+   "name": "SK_Hair_Long",
+   "tris": 2906,
+   "materials": [
+    "MI_Hair_2"
+   ]
+  },
+  {
+   "name": "SK_Hair_Parted",
+   "tris": 1301,
+   "materials": [
+    "MI_Hair_1.001"
+   ]
+  },
+  {
+   "name": "SK_HumanHead",
+   "tris": 2592,
+   "materials": [
+    "SK_human_skin"
+   ]
+  },
+  {
+   "name": "SK_StarterShortsword_Blade",
+   "tris": 104,
+   "materials": [
+    "SK_scavenged_dull_iron"
+   ]
+  },
+  {
+   "name": "SK_StarterShortsword_Grip",
+   "tris": 140,
+   "materials": [
+    "SK_dirty_leather_wraps"
+   ]
+  },
+  {
+   "name": "SK_StarterShortsword_Guard",
+   "tris": 108,
+   "materials": [
+    "SK_scavenged_dull_iron"
+   ]
+  },
+  {
+   "name": "SK_StarterShortsword_Pommel",
+   "tris": 168,
+   "materials": [
+    "SK_scavenged_dull_iron"
+   ]
+  }
+ ],
+ "clips": [
+  "Cast",
+  "Cast.001",
+  "CinderGuard",
+  "CinderGuard.001",
+  "Death",
+  "Death.001",
+  "Idle",
+  "Idle.001",
+  "RecieveHit",
+  "RecieveHit.001",
+  "Run",
+  "Run.001",
+  "Shoot_OneHanded",
+  "Shoot_OneHanded.001",
+  "SiphonCleave",
+  "SiphonCleave.001",
+  "SwordSlash",
+  "SwordSlash.001",
+  "Victory",
+  "Victory.001",
+  "Walk",
+  "Walk.001"
+ ],
+ "notes": [
+  "ranger rig: 65 bones; kept 6 outfit meshes",
+  "head separated: 1427 verts",
+  "ranger head verts removed",
+  "hair+beard attached",
+  "sword: SK_StarterShortsword_Blade local_t=(-0.434, -0.265, 0.146)",
+  "sword: SK_StarterShortsword_Grip local_t=(-0.446, -0.258, 0.152)",
+  "sword: SK_StarterShortsword_Guard local_t=(-0.518, -0.217, 0.189)",
+  "sword: SK_StarterShortsword_Pommel local_t=(-0.367, -0.303, 0.111)",
+  "skin basecolor -> Light",
+  "clips: 22"
+ ]
+}

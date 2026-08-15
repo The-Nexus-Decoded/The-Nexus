@@ -1,0 +1,403 @@
+{
+  "status": "PASS",
+  "checks": {
+    "one_armature": true,
+    "bone_count_65": true,
+    "required_bones": true,
+    "all_required_actions": true,
+    "exact_action_count_11": true,
+    "root_motion_in_place": true,
+    "grounded_within_1cm": true,
+    "adult_height_1_75_to_2_05m": true,
+    "web_budget_under_55000_tris": true,
+    "has_skinned_common_clothing": true,
+    "has_elf_ears": true,
+    "has_silver_hair": true,
+    "has_starter_longsword": true,
+    "has_ember_material": true,
+    "no_rune_named_content": true,
+    "no_camera_or_light_in_glb": true
+  },
+  "glb": {
+    "path": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight.glb",
+    "bytes": 2115688,
+    "sha256": "078437EB4A9A9C25DACC8BAA0DDC2A9372C8E3FEF1CF1A1C152617E14BD34457"
+  },
+  "round_trip": {
+    "armature_count": 1,
+    "bone_count": 65,
+    "mesh_count": 31,
+    "skinned_mesh_count": 6,
+    "triangles": 23866,
+    "bounds_meters": {
+      "min": [
+        -0.85402,
+        -0.41575,
+        -0.00397
+      ],
+      "max": [
+        0.55942,
+        0.20595,
+        1.87132
+      ],
+      "height": 1.87529
+    },
+    "actions": [
+      {
+        "name": "Cast",
+        "frame_start": 1,
+        "frame_end": 40,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 20,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 40,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "CinderGuard",
+        "frame_start": 1,
+        "frame_end": 32,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 16,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 32,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Death",
+        "frame_start": 1,
+        "frame_end": 52,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 26,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 52,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Idle",
+        "frame_start": 1,
+        "frame_end": 60,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 30,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 60,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "RecieveHit",
+        "frame_start": 1,
+        "frame_end": 20,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 10,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 20,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Run",
+        "frame_start": 1,
+        "frame_end": 25,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 13,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 25,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Shoot_OneHanded",
+        "frame_start": 1,
+        "frame_end": 40,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 20,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 40,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "SiphonCleave",
+        "frame_start": 1,
+        "frame_end": 36,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 18,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 36,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "SwordSlash",
+        "frame_start": 1,
+        "frame_end": 28,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 14,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 28,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Victory",
+        "frame_start": 1,
+        "frame_end": 56,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 28,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 56,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Walk",
+        "frame_start": 1,
+        "frame_end": 33,
+        "root_samples": [
+          {
+            "frame": 1,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 17,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "frame": 33,
+            "root_location": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    ],
+    "materials": [
+      "SK_ashen_skin",
+      "SK_ashen_skin.001",
+      "SK_cracked_brown_leather",
+      "SK_cracked_brown_leather.001",
+      "SK_dirty_leather_wraps",
+      "SK_eye_socket",
+      "SK_faded_charcoal_cloth",
+      "SK_faded_charcoal_cloth.001",
+      "SK_faint_involuntary_ember",
+      "SK_scavenged_dull_iron",
+      "SK_tarnished_silver_hair"
+    ]
+  },
+  "action_preview": "C:\\Users\\olawal\\.codex\\cache\\souldrifter-3d-pipeline\\custom-elf-shadowknight\\elf-shadowknight-preview-swordslash.png"
+}

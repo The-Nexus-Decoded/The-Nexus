@@ -1,0 +1,155 @@
+{
+  "status": "local_visual_verification_passed",
+  "sourceBlend": ".planning/debug/artifacts/animation-baseline-source/controlled-sword/elf-shadowknight-controlled-sword-v3-approved.blend",
+  "sourceBlendSha256": "8137E9A90F6C0D9C6F0E9877609876453307C8B2A11EC3630E997C404CEB3026",
+  "archives": {
+    "basicLocomotionSha256": "195E5075E54A93DA4B483C4C0B0306C6FDA2277AC5F543865A07B3CB6602FB3B",
+    "actionAdventureSha256": "D48D1FA9D6D34B95577058BF40520915903B87C0AA6929D4481014B3E897295F"
+  },
+  "actions": [
+    {
+      "source": "basic-locomotion/idle.fbx",
+      "action": "IdleRelaxed",
+      "frameRange": [
+        1.0,
+        247.0
+      ],
+      "bytes": 762881,
+      "sha256": "5E6D613FEEC62B02A1809AFF5F62DE03B4D112025D6148709ED13168BD8F0F1D"
+    },
+    {
+      "source": "basic-locomotion/walking.fbx",
+      "action": "WalkBaseline",
+      "frameRange": [
+        1.0,
+        32.0
+      ],
+      "bytes": 414321,
+      "sha256": "193BFC0F0148669AB13AF7444565BA909458892EEF7421BBA78E5A2B343EB3A5"
+    },
+    {
+      "source": "action-adventure/running.fbx",
+      "action": "RunBaseline",
+      "frameRange": [
+        1.0,
+        22.0
+      ],
+      "bytes": 378001,
+      "sha256": "F55D34CD3D1BD12DBD1BF1A7E1284289B3D5BCBB5DE5FAFBEC6521A792403716"
+    },
+    {
+      "source": "Stable Sword Inward Slash.fbx",
+      "action": "WeaponStrikeBaseline",
+      "frameRange": [
+        1.0,
+        67.0
+      ],
+      "bytes": 458048,
+      "sha256": "94BF02085933908B26F1152A973F46715B2B42087EC7E8BE61E59056C6BDF21D",
+      "sourceAction": "SwordSlashInward",
+      "sourceNormalizedPhases": [
+        0.3,
+        0.52
+      ],
+      "controlledOutputFrames": [
+        1,
+        30
+      ],
+      "contactFrame": 17,
+      "supportArm": "IdleRelaxed upright endpoint",
+      "rootPolicy": "in-place"
+    },
+    {
+      "source": "Stable Sword Outward Slash.fbx",
+      "action": "SiphonCleaveBaseline",
+      "frameRange": [
+        1.0,
+        62.0
+      ],
+      "bytes": 444432,
+      "sha256": "38589E534D2C47F5F095BC08CDA0C4853607D3BB86F8EDABFC5802F9C3BF0DE9",
+      "sourceSha256": "38589E534D2C47F5F095BC08CDA0C4853607D3BB86F8EDABFC5802F9C3BF0DE9",
+      "sourceAction": "SwordSlashOutward",
+      "sourceNormalizedPhases": [
+        0.24,
+        0.46
+      ],
+      "sourceFrameWindow": [
+        15,
+        31
+      ],
+      "sourceFps": 30,
+      "trimmedDurationSeconds": 0.533333,
+      "trimSemantics": "THREE.AnimationUtils.subclip frame window [15,31); imported key timestamps retain 17 exact source samples without resampling",
+      "sourceTrackCount": 198,
+      "skeletalTrackCount": 195,
+      "pack": "assets/3d/animations/elf-shadowknight/siphon-cleave-baseline.glb",
+      "packSha256": "77C91BD70CD06D6B8BF452E0C66BF8A0B6CA200B21957B7E7A2A3ABC23C60BC5",
+      "sourceContactNormalizedTime": 0.46,
+      "contactNormalizedTime": 0.88,
+      "playbackRate": 0.47,
+      "rootPolicy": "in-place",
+      "rootNormalization": "anchor only top-level armature object position X/Z; preserve object Y/rotation/scale and all 195 skeletal track arrays",
+      "recovery": "AvatarMotionController crossfade to approved IdleRelaxed",
+      "visualEvidence": {
+        "zoomDense": ".planning/debug/artifacts/mobile-hud-avatar-regressions/siphon-external-contact-window-zoom",
+        "resourceSemantics": ".planning/debug/artifacts/mobile-hud-avatar-regressions/siphon-external-contact-window-resources/report.json"
+      }
+    },
+    {
+      "source": "Sword And Shield Slash.fbx",
+      "action": "SwordShieldSlashCandidate",
+      "frameRange": [
+        1.0,
+        52.0
+      ],
+      "bytes": 430128,
+      "sha256": "57ABAE6588F5431E9FAF1C84AF47D596D57CABF1A39CB9B019E2A90C1A8D60E0"
+    }
+  ],
+  "outputGlb": "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
+  "outputGlbBytes": 5898720,
+  "outputGlbSha256": "6E908F8A0E981B531F5D7D06F2BA14398A75A09BD000C9A8BD76C05B9A474EA7",
+  "actionNames": [
+    "Cast",
+    "CastArea",
+    "CastProjectile",
+    "CastSummon",
+    "CastWard",
+    "CinderGuard",
+    "Death",
+    "DeathMixamo",
+    "DoorOpenInward",
+    "DoorOpenOutward",
+    "DrawSword",
+    "HitReactionMixamo",
+    "Idle",
+    "IdleRelaxed",
+    "PickupGround",
+    "PickupWaist",
+    "PullLever",
+    "RecieveHit",
+    "Run",
+    "RunBaseline",
+    "RunMixamo",
+    "SheatheSword",
+    "Shoot_OneHanded",
+    "SiphonCleave",
+    "SiphonCleaveCandidate",
+    "SiphonCleaveSource",
+    "SwordComboMixamo",
+    "SwordShieldSlashCandidate",
+    "SwordSlash",
+    "SwordSlashInward",
+    "SwordSlashOutward",
+    "UnarmedKick",
+    "UnarmedPunch",
+    "Victory",
+    "Walk",
+    "WalkBaseline",
+    "WeaponStrikeBaseline",
+    "WeaponStrikeControlledCandidate",
+    "WeaponStrikeControlledCandidateV2",
+    "WeaponStrikeControlledCandidateV3"
+  ]
+}

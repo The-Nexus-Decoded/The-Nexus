@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Basic weapon strike">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="68%"><stop offset="0" stop-color="#263534"/><stop offset=".7" stop-color="#0a1112"/><stop offset="1" stop-color="#030607"/></radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f2e7c8"/><stop offset=".48" stop-color="#8fb6b2"/><stop offset="1" stop-color="#394b4b"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="128" height="128" rx="8" fill="url(#bg)"/>
+  <path d="M26 101 83 44l13-24 11 11-24 13-57 57Z" fill="url(#steel)" stroke="#d0a660" stroke-width="3" filter="url(#glow)"/>
+  <path d="m22 88 18 18M18 105l15 5 7-7-15-15Z" fill="#59412a" stroke="#c58d47" stroke-width="3"/>
+  <path d="M59 44c12-8 25-10 38-7M51 54c11-4 21-4 31-1" fill="none" stroke="#62e6db" stroke-width="3" stroke-linecap="round" opacity=".72"/>
+</svg>
