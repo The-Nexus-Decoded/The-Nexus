@@ -144,6 +144,16 @@ export class GameUI {
     requiredElement<HTMLButtonElement>("equipment-toggle").addEventListener("click", openEquipment);
     requiredElement<HTMLButtonElement>("equipment-toggle-mobile").addEventListener("click", openEquipment);
     requiredElement<HTMLButtonElement>("equipment-close").addEventListener("click", () => this.showEquipment(false));
+    const loreAtlasPanel = requiredElement<HTMLElement>("lore-atlas-panel");
+    const loreAtlasToggle = requiredElement<HTMLButtonElement>("lore-atlas-toggle");
+    let loreAtlasOpen = false;
+    const setLoreAtlas = (show: boolean): void => {
+      loreAtlasOpen = show;
+      loreAtlasPanel.hidden = !show;
+      loreAtlasToggle.setAttribute("aria-expanded", String(show));
+    };
+    loreAtlasToggle.addEventListener("click", () => setLoreAtlas(!loreAtlasOpen));
+    requiredElement<HTMLButtonElement>("lore-atlas-close").addEventListener("click", () => setLoreAtlas(false));
     this.interactionConfirm.addEventListener("click", () => this.interactionConfirmHandler?.());
     document.querySelectorAll<HTMLButtonElement>("[data-hud-drawer]").forEach((button) => {
       button.addEventListener("click", () => {

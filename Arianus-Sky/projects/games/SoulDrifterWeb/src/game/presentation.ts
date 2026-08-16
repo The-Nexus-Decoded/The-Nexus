@@ -127,7 +127,7 @@ export interface WeaponPresentation {
   state: WeaponVisualState;
 }
 
-const STARTER_LONGSWORD_PART = /^SK_StarterLongsword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
+const STARTER_LONGSWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
 
 /**
  * Creates one visual copy for the hand and one for the left hip. Both are
@@ -153,9 +153,10 @@ export function createStarterLongswordPresentation(model: THREE.Object3D): Weapo
 
   const hipSocket = handSocket.clone(true);
   hipSocket.name = "weapon-socket-hip-l";
-  // Starter longswords live at the hip. Large weapon families can supply a
-  // separate back socket later; this avoids the disconnected chest harness.
-  hipSocket.position.set(0.19, -0.03, 0.11);
+  // Short blades hang at the left side of the belt, clear of the thigh and
+  // the forward bend envelope. Large weapon families can supply a separate
+  // back socket later; this avoids the disconnected chest harness.
+  hipSocket.position.set(0.24, -0.05, 0.0);
   hipSocket.rotation.set(0.08, -0.12, 2.1);
   hipBone.add(hipSocket);
 
@@ -170,12 +171,14 @@ export function setWeaponVisualState(presentation: WeaponPresentation, state: We
   presentation.hipSocket.visible = state === "sheathed";
 }
 
-export type HairStyleId = "shaved" | "cropped" | "silver-sweep";
+export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
+export type FacialHairId = "none" | "full-beard";
 export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
   hairStyle: HairStyleId;
   raceId: HumanoidRaceId;
+  facialHair?: FacialHairId;
 }
 
 const RACE_AVATAR_SHAPES: Readonly<Record<HumanoidRaceId, { width: number; depth: number }>> = {
@@ -190,6 +193,7 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
 }
 
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
+  // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
   const hair = model.children.filter((child) => /SK_SilverHairClump/i.test(child.name));
   if (hair.length === 0) {
     model.traverse((child) => {
@@ -198,15 +202,23 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   }
   hair.forEach((strand, index) => {
     strand.visible = appearance.hairStyle === "silver-sweep"
-      || (appearance.hairStyle === "cropped" && index < 3);
+      || ((appearance.hairStyle === "cropped" || appearance.hairStyle === "parted") && index < 3);
   });
-
-  // The animation rig is shared, but the visible ancestry is not. The custom
-  // Shadowknight mesh keeps ears as separate parts so a Human, Dwarf, or
-  // Halfling can never silently render with the Elf silhouette.
   model.traverse((child) => {
     if (/SK_PointEar_(?:L|R)/i.test(child.name)) child.visible = appearance.raceId === "elf";
   });
+
+  // Human model: real hairstyle meshes, scalp underlay, and facial hair.
+  const show = (pattern: RegExp, visible: boolean): void => {
+    model.traverse((child) => {
+      if (pattern.test(child.name)) child.visible = visible;
+    });
+  };
+  show(/^SK_Hair_Long$/i, appearance.hairStyle === "silver-sweep");
+  show(/^SK_HairScalp$/i, appearance.hairStyle === "silver-sweep");
+  show(/^SK_Hair_Parted$/i, appearance.hairStyle === "parted");
+  show(/^SK_Hair_Buzzed$/i, appearance.hairStyle === "cropped");
+  show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
 }
 
 export function screenPanToWorld(

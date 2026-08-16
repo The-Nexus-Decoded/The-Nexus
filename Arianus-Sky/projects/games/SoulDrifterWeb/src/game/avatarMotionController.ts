@@ -89,7 +89,9 @@ export class AvatarMotionController {
 
   beginInteraction(clipNames: readonly string[]): AvatarMotionDecision {
     if (this.phase === "death") return this.active;
-    this.weapon = "sheathed";
+    // Never rewrite the persistent weapon state here: an interaction must not
+    // resurrect a sheathed blade after the player unequipped it. World3D hides
+    // the visual for the duration of the bend/reach and restores it after.
     this.phase = "interaction";
     this.active = { phase: "interaction", weapon: this.weapon, clipNames, once: true, playbackRate: 1, blendSeconds: 0.1 };
     return this.active;

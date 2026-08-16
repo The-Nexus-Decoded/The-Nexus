@@ -107,6 +107,7 @@ import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 
 const TILE_SIZE = 1.75;
+const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
 const FLOOR_HEIGHT = 0.22;
 const SIGNATURE_STABILITY_COST = 12;
 const GUARD_STABILITY_COST = 8;
@@ -427,6 +428,7 @@ export class World3D {
   private combatSpeed = 1;
   private locomotionPreference: LocomotionPreference = "auto";
   private paperDollVisible = false;
+  private paperDollYaw = 0;
   private cameraAzimuth = Math.atan2(-15.5, 19.5);
   private cameraFollow: CameraFollowState = {
     center: new THREE.Vector2(),
@@ -1122,6 +1124,7 @@ export class World3D {
     if (id === "player") applyModularAppearance(model, {
       hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
       raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
+      facialHair: this.profile.appearance?.facialHair ?? "none",
     });
     model.userData.actorBaseQuaternion = model.quaternion.clone();
 
@@ -1261,8 +1264,13 @@ export class World3D {
     }
     const bound = bindOptionalCompatibleAnimationClip(source, targetModel, spec.semanticClipName);
     if (!bound) return null;
+    // Root-motion normalization must target the node the armature track was
+    // actually bound to (it may have been remapped to this model's armature).
+    const boundRootNode = bound.tracks
+      .map((track) => track.name.slice(0, track.name.lastIndexOf(".")))
+      .find((node) => /armature$/i.test(node)) ?? spec.rootNodeName;
     const normalized = spec.rootPolicy === "in-place"
-      ? normalizeAnimationPackRootMotion(bound, spec.rootNodeName)
+      ? normalizeAnimationPackRootMotion(bound, boundRootNode)
       : bound;
     return trimAnimationPackClipEnvelope(normalized, spec.sourceFrameWindow, spec.sourceFps);
   }
@@ -1449,6 +1457,12 @@ export class World3D {
     const beganDrawn = this.player.weapon?.state === "drawn";
     if (beganDrawn) await this.transitionWeapon(this.player, "sheathed");
 
+    // Doors, pickups, and levers bend the torso far enough that a hip-sheathed
+    // blade sweeps through the legs. Hide the visual for the interaction only;
+    // the motion controller keeps the true equipped state for the recovery.
+    const hideForInteraction = Boolean(this.player.weapon && this.player.weapon.state === "sheathed");
+    if (this.player.weapon && hideForInteraction) setWeaponVisualState(this.player.weapon, "hidden");
+
     const hasClip = this.hasAnimation(this.player, contract.clipNames);
     this.player.motion.beginInteraction(contract.clipNames);
     const durationMs = hasClip
@@ -1459,6 +1473,7 @@ export class World3D {
     await onEvent();
     if (durationMs > eventMs) await this.delay(durationMs - eventMs);
 
+    if (this.player.weapon && hideForInteraction) setWeaponVisualState(this.player.weapon, "sheathed");
     if (beganDrawn && redraw) await this.transitionWeapon(this.player, "drawn");
     else this.playActorIdle(this.player);
   }
@@ -1573,6 +1588,8 @@ export class World3D {
       if (visible && !this.actionBusy && !this.playerMoving) this.playActorIdle(this.player);
       if (visible) this.renderPaperDoll();
     });
+    document.getElementById("paper-rotate-left")?.addEventListener("click", () => this.rotatePaperDoll(Math.PI / 4));
+    document.getElementById("paper-rotate-right")?.addEventListener("click", () => this.rotatePaperDoll(-Math.PI / 4));
     this.ui.onLocomotionPreferenceChange((preference) => {
       this.locomotionPreference = preference;
     });
@@ -1648,6 +1665,11 @@ export class World3D {
     this.ui.setMessage(style === "real-time"
       ? "Real-time combat selected. Enemies will advance and attack continuously."
       : "Tactical combat selected. Enemies act after each completed turn.");
+  }
+
+  private rotatePaperDoll(delta: number): void {
+    this.paperDollYaw = (this.paperDollYaw + delta) % (Math.PI * 2);
+    if (this.paperDollVisible) this.renderPaperDoll();
   }
 
   private rotateCamera(delta: number): void {
@@ -3992,7 +4014,9 @@ export class World3D {
     const center = bounds.getCenter(new THREE.Vector3());
     const bodyHeight = Math.max(0.5, bounds.max.y - bounds.min.y);
     const distance = (bodyHeight / (2 * Math.tan(THREE.MathUtils.degToRad(this.paperCamera.fov * 0.5)))) * 1.16;
-    const viewOffset = new THREE.Vector3(0, bodyHeight * 0.03, distance).applyQuaternion(this.player.root.quaternion);
+    const viewOffset = new THREE.Vector3(0, bodyHeight * 0.03, distance)
+      .applyQuaternion(this.player.root.quaternion)
+      .applyAxisAngle(PAPER_DOLL_UP, this.paperDollYaw);
     this.paperCamera.position.copy(center).add(viewOffset);
     this.paperCamera.lookAt(center.x, center.y + bodyHeight * 0.04, center.z);
 

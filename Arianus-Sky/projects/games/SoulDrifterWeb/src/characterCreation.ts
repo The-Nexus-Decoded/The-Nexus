@@ -2,6 +2,7 @@ import {
   CALLINGS,
   callingById,
   deriveCharacter,
+  FACIAL_HAIR_STYLES,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
   normalizeLegacyCharacterProfile,
@@ -13,6 +14,7 @@ import {
   type CharacterDraft,
   type CharacterProfile,
 } from "./game/character";
+import { CreationAvatarPreview } from "./creationPreview";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -44,12 +46,13 @@ export class CharacterCreation {
     name: "",
     raceId: "",
     callingId: "",
-    appearance: { hairStyle: "shaved", skinTone: "ashen" },
+    appearance: { hairStyle: "shaved", skinTone: "ashen", facialHair: "none" },
     answers: {},
   };
   private step: CreationStep = "name";
   private memoryIndex = 0;
   private appearanceEditProfile: CharacterProfile | null = null;
+  private appearancePreview: CreationAvatarPreview | null = null;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
@@ -112,6 +115,8 @@ export class CharacterCreation {
 
   private render(): void {
     this.error.textContent = "";
+    this.appearancePreview?.dispose();
+    this.appearancePreview = null;
     this.renderProgress();
 
     if (this.step === "name") this.renderName();
@@ -211,6 +216,11 @@ export class CharacterCreation {
         <p>Hair and skin are modular appearance choices. Armor and weapons attach to the same rig later.</p>
       </div>
       <div class="appearance-builder">
+        <div class="appearance-preview">
+          <canvas id="appearance-preview-canvas" aria-label="Live preview of your returned body. Drag to rotate."></canvas>
+          <small>Live preview · drag to turn</small>
+        </div>
+        <div class="appearance-builder__options">
         <section>
           <h3>Skin tone</h3>
           <div class="appearance-options appearance-options--skin">
@@ -230,13 +240,35 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
+        <section>
+          <h3>Facial hair</h3>
+          <div class="appearance-options appearance-options--beard">
+            ${FACIAL_HAIR_STYLES.map((style) => `
+              <button class="appearance-option ${(this.draft.appearance.facialHair ?? "none") === style.id ? "is-selected" : ""}" data-facial-hair="${style.id}" type="button">
+                <strong>${style.name}</strong><small>${style.description}</small>
+              </button>`).join("")}
+          </div>
+        </section>
+        </div>
       </div>
       ${this.navigation(this.appearanceEditProfile ? "Cancel" : "Return to ancestry", this.appearanceEditProfile ? "Save appearance" : "Choose calling")}`;
+    const previewCanvas = requiredElement<HTMLCanvasElement>("appearance-preview-canvas");
+    this.appearancePreview = new CreationAvatarPreview(previewCanvas, {
+      hairStyle: this.draft.appearance.hairStyle,
+      skinTone: this.draft.appearance.skinTone,
+      raceId: this.draft.raceId || "human",
+    });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
     });
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
       this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+    });
+    this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
+      this.draft.appearance.facialHair = id as CharacterDraft["appearance"]["facialHair"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
     });
     this.bindNavigation(() => {
       if (this.appearanceEditProfile) {

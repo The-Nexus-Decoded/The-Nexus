@@ -114,6 +114,15 @@ function targetNodeName(sourceNode: string, targetRoot: THREE.Object3D): string 
   if (targetRoot.getObjectByName(sourceNode)) return sourceNode;
   const unprefixed = sourceNode.split(/[|/:]/).at(-1) ?? sourceNode;
   if (targetRoot.getObjectByName(unprefixed)) return unprefixed;
+  // Armature-root tracks must follow the target model's own armature node so
+  // same-rig packs bind across rigs that do not share the source armature name.
+  if (/armature$/i.test(unprefixed)) {
+    let found: string | null = null;
+    targetRoot.traverse((node) => {
+      if (found === null && /armature$/i.test(node.name)) found = node.name;
+    });
+    if (found !== null) return found;
+  }
   return null;
 }
 

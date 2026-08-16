@@ -371,10 +371,30 @@ button {
 .choice-grid--races { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .choice-grid--callings { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-.appearance-builder { display: grid; gap: 24px; }
+.appearance-builder { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 24px; align-items: start; }
+.appearance-builder__options { display: grid; gap: 24px; }
+.appearance-preview {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.appearance-preview canvas {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(159, 247, 235, 0.22);
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(20, 42, 44, 0.85), rgba(6, 12, 13, 0.95));
+  cursor: grab;
+  touch-action: none;
+}
+.appearance-preview canvas:active { cursor: grabbing; }
+.appearance-preview small { color: var(--bronze, #b8935a); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
 .appearance-builder h3 { margin: 0 0 10px; color: var(--bronze); font: 700 10px/1 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .appearance-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.appearance-options--hair { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.appearance-options--hair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.appearance-options--beard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .appearance-option {
   display: grid;
   min-height: 74px;
@@ -983,6 +1003,34 @@ h3 {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.paper-doll__rotate {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+}
+
+.paper-doll__rotate button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(159, 247, 235, 0.35);
+  border-radius: 6px;
+  background: rgba(6, 14, 16, 0.72);
+  color: #9ff7eb;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.paper-doll__rotate button:hover,
+.paper-doll__rotate button:focus-visible {
+  background: rgba(159, 247, 235, 0.18);
+  outline: none;
 }
 
 .paper-slot {
@@ -2190,3 +2238,23 @@ h3 {
   .appearance-options,
   .appearance-options--hair { grid-template-columns: 1fr; }
 }
+
+/* Lore & Maps atlas overlay */
+.lore-atlas-panel {
+  position: fixed; inset: 2.5vh 2.5vw; z-index: 70;
+  display: flex; flex-direction: column;
+  background: #14100c; border: 1px solid #d9b45c; border-radius: 10px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.85);
+}
+.lore-atlas-panel[hidden] { display: none; }
+.lore-atlas-panel__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; border-bottom: 1px solid #4a3f2c; flex: none;
+}
+.lore-atlas-panel__header h2 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+.lore-atlas-close {
+  background: none; border: 1px solid #4a3f2c; color: #e8d9b0;
+  border-radius: 4px; font-size: 18px; width: 32px; height: 32px; cursor: pointer;
+}
+.lore-atlas-close:hover { border-color: #d9b45c; color: #d9b45c; }
+.lore-atlas-frame { flex: 1; border: 0; border-radius: 0 0 10px 10px; background: #14100c; width: 100%; }

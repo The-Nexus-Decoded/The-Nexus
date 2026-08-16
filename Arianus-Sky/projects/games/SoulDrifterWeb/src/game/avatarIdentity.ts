@@ -32,11 +32,20 @@ const HUMANOID_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
   ],
 };
 
+const HUMAN_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
+  modelPath: "/assets/3d/characters/human-shadowknight/human-shadowknight.glb",
+  animationPacks: [
+    ...HUMANOID_ACTIVE_ANIMATION_PACKS,
+    SIPHON_CLEAVE_PACK,
+    WEAPON_STRIKE_PACK,
+  ],
+};
+
 const PLAYER_AVATAR_BY_IDENTITY: Readonly<Record<string, PlayerAvatarManifest>> = {
-  "human:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
+  "human:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
   "elf:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
-  "dwarf:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
-  "halfling:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
+  "dwarf:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
+  "halfling:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
 };
 
 export function resolveCharacterIdentity(profile: Pick<CharacterProfile, "raceId" | "callingId">) {
