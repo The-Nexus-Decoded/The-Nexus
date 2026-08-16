@@ -24,7 +24,7 @@ interface PlayerAvatarManifest {
 }
 
 const HUMANOID_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
-  modelPath: "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
+  modelPath: "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
   animationPacks: [
     ...HUMANOID_ACTIVE_ANIMATION_PACKS,
     SIPHON_CLEAVE_PACK,
