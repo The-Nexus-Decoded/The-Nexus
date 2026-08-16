@@ -5,7 +5,7 @@ import { SKIN_TONES, type FacialHairId, type HairStyleId, type SkinToneId } from
 import { applyModularAppearance, cloneActorMaterial, raceAvatarShape } from "./game/presentation";
 
 const PREVIEW_MODEL_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
-const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb";
+const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
 const STARTER_SWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
 
 export interface CreationPreviewAppearance {
