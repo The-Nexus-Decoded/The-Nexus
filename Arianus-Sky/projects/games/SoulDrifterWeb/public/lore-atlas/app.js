@@ -470,6 +470,10 @@
     }, { passive: false });
     let drag = null, moved = 0;
     stage.addEventListener("pointerdown", e => {
+      // Interactive children (view toggle, markers, keys) must keep their
+      // clicks — capturing the pointer here would retarget the click to the
+      // stage and silently swallow it.
+      if (e.target.closest("button, a, input, select, textarea, .marker")) return;
       drag = { x: e.clientX - tx, y: e.clientY - ty }; moved = 0;
       stage.setPointerCapture(e.pointerId);
     });

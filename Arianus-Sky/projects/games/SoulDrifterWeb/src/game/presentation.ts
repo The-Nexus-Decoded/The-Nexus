@@ -181,6 +181,71 @@ export interface ModularAppearance {
   facialHair?: FacialHairId;
 }
 
+/**
+ * The head texture paints the crown silver so short styles read as stubble.
+ * For "shaved" that paint becomes a bald-cap, so we swap in a skin-toned scalp
+ * variant shipped next to the models. Shared by the human and elf GLBs (same
+ * head texture), and by every cloneActorMaterial copy (map is shared by
+ * reference, so we swap per material instance via userData).
+ */
+const SCALP_SKIN_URL = "/assets/3d/characters/human-shadowknight/T_Superhero_Male_Ligh_ScalpSkin.png";
+let scalpSkinTexture: THREE.Texture | null = null;
+let scalpSkinPromise: Promise<THREE.Texture | null> | null = null;
+
+function loadScalpSkinTexture(): Promise<THREE.Texture | null> {
+  scalpSkinPromise ??= new Promise((resolve) => {
+    new THREE.TextureLoader().load(
+      SCALP_SKIN_URL,
+      (texture) => {
+        texture.flipY = false;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        scalpSkinTexture = texture;
+        resolve(texture);
+      },
+      undefined,
+      () => resolve(null),
+    );
+  });
+  return scalpSkinPromise;
+}
+
+function swapScalpMaterial(material: THREE.Material, shaved: boolean, texture: THREE.Texture | null): void {
+  if (!(material instanceof THREE.MeshStandardMaterial)) return;
+  const map = material.map;
+  const isScalpSkin = /human_skin/i.test(material.name ?? "") || /ScalpSilver/i.test(map?.name ?? "");
+  const silver = material.userData.silverScalpMap as THREE.Texture | undefined;
+  if (!silver && map && isScalpSkin) material.userData.silverScalpMap = map;
+  const silverMap = material.userData.silverScalpMap as THREE.Texture | undefined;
+  if (!silverMap) return;
+  const next = shaved && texture ? texture : silverMap;
+  if (material.map !== next) {
+    material.map = next;
+    material.needsUpdate = true;
+  }
+}
+
+function applyScalpVariant(model: THREE.Object3D, hairStyle: HairStyleId): void {
+  const shaved = hairStyle === "shaved";
+  model.userData.scalpShaved = shaved;
+  const apply = (texture: THREE.Texture | null): void => {
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => swapScalpMaterial(material, shaved, texture));
+      }
+    });
+  };
+  if (!shaved) {
+    apply(scalpSkinTexture);
+    return;
+  }
+  if (scalpSkinTexture) apply(scalpSkinTexture);
+  else void loadScalpSkinTexture().then((texture) => {
+    // The player may have switched styles while the texture streamed in.
+    if (texture && model.userData.scalpShaved === true) apply(texture);
+  });
+}
+
 const RACE_AVATAR_SHAPES: Readonly<Record<HumanoidRaceId, { width: number; depth: number }>> = {
   human: { width: 1, depth: 1 },
   elf: { width: 0.94, depth: 0.96 },
@@ -219,6 +284,8 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   show(/^SK_Hair_Parted$/i, appearance.hairStyle === "parted");
   show(/^SK_Hair_Buzzed$/i, appearance.hairStyle === "cropped");
   show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
+
+  applyScalpVariant(model, appearance.hairStyle);
 }
 
 export function screenPanToWorld(
