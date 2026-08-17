@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "node scripts/clean-build.mjs && tsc -b && vite build && node scripts/prepare-sites-build.mjs",
+    "verify:release": "node scripts/verify-release-targets.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b",
     "test": "vitest run"
