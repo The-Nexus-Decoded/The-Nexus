@@ -59,6 +59,8 @@
     bindHeader();
   }
 
+  const embedded = window.self !== window.top;  // inside the game iframe: no review controls
+
   function headerHTML() {
     return `
       <div class="brand">
@@ -71,10 +73,11 @@
         ${tabBtn("book", "Lore Book")}
       </nav>
       <div class="header-actions">
+        ${embedded ? "" : `
         <label class="preview-toggle" title="Review build only — bypasses all locks and fog">
           <input type="checkbox" id="previewAll" ${previewAll ? "checked" : ""}> Preview All
         </label>
-        <button class="btn ghost" id="stateBtn">Game State</button>
+        <button class="btn ghost" id="stateBtn">Game State</button>`}
       </div>`;
   }
   function tabBtn(id, label) {
@@ -83,8 +86,8 @@
   function bindHeader() {
     app.querySelectorAll(".tab").forEach(b =>
       b.addEventListener("click", () => { currentTab = b.dataset.tab; selectedPoi = null; render(); }));
-    app.querySelector("#previewAll").addEventListener("change", e => { previewAll = e.target.checked; render(); });
-    app.querySelector("#stateBtn").addEventListener("click", () => {
+    app.querySelector("#previewAll")?.addEventListener("change", e => { previewAll = e.target.checked; render(); });
+    app.querySelector("#stateBtn")?.addEventListener("click", () => {
       document.querySelector(".state-drawer").classList.toggle("open");
     });
   }
@@ -216,14 +219,22 @@
     }).join("");
     chips.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
       const id = c.dataset.realm;
-      if (!realmUnlocked(id)) { toast("Sealed. Unlock this realm through the Soul Wells first."); return; }
+      // Sealed realms open too — their map shows, drowned under full fog (DIR-4/4a)
       currentRealm = id; selectedPoi = null; realmView = "lore"; render();
     }));
     wrap.appendChild(chips);
 
     if (locked) {
-      wrap.appendChild(el("div", "locked-panel",
-        `<h2>🔒 ${realm.name} is sealed</h2><p>The Soul Wells have not opened this road. Return when your journey unlocks it.</p>`));
+      const body = el("div", "map-body");
+      const stage = el("div", "map-stage");
+      const zoomer = el("div", "zoom-inner");
+      zoomer.innerHTML = `<img class="map-img game-toned" src="${realm.map}" alt="${realm.name} map (sealed)" draggable="false">`;
+      zoomer.appendChild(fogCanvas(realm, []));  // full fog, no holes — nothing charted yet
+      stage.appendChild(zoomer);
+      stage.appendChild(el("div", "sealed-overlay",
+        `<h2>🔒 ${realm.name} is sealed</h2><p>The Soul Wells have not opened this road. The land lies under the smoke — its roads and cities stay hidden until your journey unlocks it.</p>`));
+      body.appendChild(stage);
+      wrap.appendChild(body);
       return wrap;
     }
 
@@ -603,6 +614,12 @@
     importJSON: (str) => { state = JSON.parse(str); saveState(); render(); },
     reset: () => { state = JSON.parse(JSON.stringify(D.defaultState)); saveState(); render(); }
   };
+
+  /* The game writes exploration to the same localStorage key; when the atlas
+     panel is open in its iframe, refresh live on every write. */
+  window.addEventListener("storage", (event) => {
+    if (event.key === LS_KEY) { state = loadState(); render(); }
+  });
 
   /* deep links: #wheel · #maps · #maps:<realmId> · #book · #book:<page> */
   (function applyHash() {

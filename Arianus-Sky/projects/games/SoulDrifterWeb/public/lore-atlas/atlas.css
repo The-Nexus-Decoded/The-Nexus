@@ -252,3 +252,19 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   .book-toc { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--line); }
   .state-drawer { width: 320px; }
 }
+
+/* Sealed realm: painted map drowned under full fog, caption on top */
+.sealed-overlay {
+  position: absolute;
+  inset: auto 24px 24px 24px;
+  z-index: 5;
+  padding: 18px 22px;
+  border: 1px solid #4a3f2c;
+  border-radius: 10px;
+  background: rgba(10, 12, 14, 0.82);
+  backdrop-filter: blur(3px);
+  text-align: center;
+  pointer-events: none;
+}
+.sealed-overlay h2 { margin: 0 0 6px; color: var(--gold, #d9b45c); font-size: 20px; }
+.sealed-overlay p { margin: 0; color: var(--parchment-dim, #b9ac90); font-size: 13px; line-height: 1.5; }
