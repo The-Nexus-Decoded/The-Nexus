@@ -57,5 +57,5 @@ await writeFile(workerOutput, workerTemplate.replace(marker, `const EMBEDDED_GAM
 await writeFile(clientIndex, `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="cache-control" content="no-store"><title>SoulDrifter Beta</title>
-<script>location.replace("/play" + location.search + location.hash)</script></head>
+<meta http-equiv="refresh" content="0;url=/play"><link rel="canonical" href="/play"></head>
 <body><p><a href="/play">Enter SoulDrifter</a></p></body></html>`);

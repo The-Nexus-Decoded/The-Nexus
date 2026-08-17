@@ -18,9 +18,10 @@ function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-requireCondition(!pagesIndex.includes('location.replace("/play"'), "Pages index must open the game at root, not redirect to /play.");
+requireCondition(!pagesIndex.includes('url=/play'), "Pages index must open the game at root, not redirect to /play.");
 requireCondition(pagesIndex.includes("character-creation"), "Pages index does not contain the SoulDrifter game shell.");
-requireCondition(sitesIndex.includes('location.replace("/play"'), "Sites index must redirect authenticated traffic to /play.");
+requireCondition(sitesIndex.includes('http-equiv="refresh"') && sitesIndex.includes('url=/play'), "Sites index must redirect traffic to /play without inline JavaScript.");
+requireCondition(!sitesIndex.includes("<script"), "Sites redirect shell must remain compatible with the gate's strict CSP.");
 requireCondition(!sitesWorker.includes("const EMBEDDED_GAME_HTML = null;"), "Sites worker still contains the empty game-shell marker.");
 requireCondition(pagesRelease.sourceCommit === sitesRelease.sourceCommit, "Release artifacts do not identify the same source commit.");
 requireCondition(pagesRelease.releaseId === sitesRelease.releaseId, "Release artifacts do not identify the same release.");
