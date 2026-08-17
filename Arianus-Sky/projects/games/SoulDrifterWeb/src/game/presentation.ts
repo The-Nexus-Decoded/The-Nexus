@@ -257,7 +257,45 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
   return RACE_AVATAR_SHAPES[raceId as HumanoidRaceId] ?? RACE_AVATAR_SHAPES.human;
 }
 
+/**
+ * The authored buzzed/parted shells stop short of the nape and sit narrow on
+ * the skull, leaving a jagged bald patch on the lower back of the head. They
+ * are skinned meshes (node transforms are ignored), so coverage is fixed by
+ * expanding their bind-space vertices about the head center once per geometry
+ * (geometries are shared across SkeletonUtils clones).
+ */
+const HAIR_COVERAGE_FIT: Readonly<Record<string, { s: number; dy: number; dz: number }>> = {
+  SK_Hair_Buzzed: { s: 1.12, dy: -0.004, dz: -0.004 },
+  SK_Hair_Parted: { s: 1.10, dy: -0.004, dz: -0.005 },
+};
+
+function fitHairCoverage(model: THREE.Object3D): void {
+  const head = model.getObjectByName("SK_HumanHead") as THREE.Mesh | undefined;
+  if (!head?.geometry) return;
+  head.geometry.computeBoundingBox();
+  const center = head.geometry.boundingBox!.getCenter(new THREE.Vector3());
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const fit = HAIR_COVERAGE_FIT[child.name];
+    if (!fit || child.geometry.userData.coverageFit === 1) return;
+    child.geometry.userData.coverageFit = 1;
+    const pos = child.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+      pos.setXYZ(
+        i,
+        center.x + (pos.getX(i) - center.x) * fit.s,
+        center.y + (pos.getY(i) - center.y) * fit.s + fit.dy,
+        center.z + (pos.getZ(i) - center.z) * fit.s + fit.dz,
+      );
+    }
+    pos.needsUpdate = true;
+    child.geometry.computeBoundingBox();
+    child.geometry.computeBoundingSphere();
+  });
+}
+
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
+  fitHairCoverage(model);
   // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
   const hair = model.children.filter((child) => /SK_SilverHairClump/i.test(child.name));
   if (hair.length === 0) {
