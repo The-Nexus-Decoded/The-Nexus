@@ -105,6 +105,7 @@ import {
 } from "./avatarMotionController";
 import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
+import { markAtlasPoi } from "./atlasSync";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -507,6 +508,8 @@ export class World3D {
     this.bindInput();
     this.bindUI();
     this.revealRoom("training", false);
+    // The awakening itself charts the Soul Well on the Lore Atlas map.
+    markAtlasPoi("thalenyr", "soulwell", "explored");
     this.resize();
     this.updateCamera(true, 0);
     this.initializeHud();
