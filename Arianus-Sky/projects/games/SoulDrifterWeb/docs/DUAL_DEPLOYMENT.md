@@ -25,6 +25,7 @@ Both artifacts contain a `release.json`, including the source commit and release
 ## Branch and merge policy
 
 - Merging a PR into `qa` publishes a validated candidate to the gated ChatGPT Sites project. The QA Action runs on the resulting branch update and refuses to package the commit unless GitHub associates it with a merged PR whose base is `qa`; this lets the gate work before the workflow is promoted to the default branch.
+- PRs targeting `qa` run the same tests, typecheck, build, and release verification before merge once this workflow exists on the default branch. The initial workflow bootstrap must carry equivalent local verification evidence on its PR.
 - Merging a PR into `main` publishes a validated stable build to public GitHub Pages.
 - Opening, updating, or closing a PR without merging never deploys.
 - Feature-branch pushes and direct branch pushes do not satisfy the merge gate.

@@ -1,6 +1,9 @@
 name: SoulDrifter QA release
 
 on:
+  pull_request:
+    branches:
+      - qa
   push:
     branches:
       - qa
@@ -90,6 +93,7 @@ jobs:
         run: yarn verify:release
 
       - name: Upload gated Sites artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: souldrifter-sites-${{ steps.source.outputs.short_sha }}
