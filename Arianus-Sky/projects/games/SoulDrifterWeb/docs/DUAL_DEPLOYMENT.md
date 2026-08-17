@@ -24,11 +24,11 @@ Both artifacts contain a `release.json`, including the source commit and release
 
 ## Branch and merge policy
 
-- Merging a PR into `qa` publishes a validated candidate to the gated ChatGPT Sites project.
+- Merging a PR into `qa` publishes a validated candidate to the gated ChatGPT Sites project. The QA Action runs on the resulting branch update and refuses to package the commit unless GitHub associates it with a merged PR whose base is `qa`; this lets the gate work before the workflow is promoted to the default branch.
 - Merging a PR into `main` publishes a validated stable build to public GitHub Pages.
 - Opening, updating, or closing a PR without merging never deploys.
 - Feature-branch pushes and direct branch pushes do not satisfy the merge gate.
-- The hosting monitors poll because GitHub and ChatGPT Sites do not share a native cross-repository push event. Expect a merged PR to be detected within several minutes.
+- The Sites publication monitor polls because GitHub Actions and ChatGPT Sites do not share a native deployment event. Expect a successfully packaged QA merge to be detected within several minutes.
 
 ## GitHub Pages publication
 
