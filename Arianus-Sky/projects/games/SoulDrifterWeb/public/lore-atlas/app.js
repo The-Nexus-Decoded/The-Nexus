@@ -230,9 +230,18 @@
       const zoomer = el("div", "zoom-inner");
       zoomer.innerHTML = `<img class="map-img game-toned" src="${realm.map}" alt="${realm.name} map (sealed)" draggable="false">`;
       zoomer.appendChild(fogCanvas(realm, []));  // full fog, no holes — nothing charted yet
+      const resetBtn = el("button", "zoom-reset", "⟵ Whole realm");
+      resetBtn.type = "button";
+      resetBtn.hidden = true;
+      const ctl = attachZoomPan(stage, zoomer, resetBtn);
+      const landmasses = landmassLayer(realm, stage, ctl);
+      if (landmasses) zoomer.appendChild(landmasses);
       stage.appendChild(zoomer);
+      stage.appendChild(resetBtn);
+      if (landmasses) stage.appendChild(el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect"));
       stage.appendChild(el("div", "sealed-overlay",
         `<h2>🔒 ${realm.name} is sealed</h2><p>The Soul Wells have not opened this road. The land lies under the smoke — its roads and cities stay hidden until your journey unlocks it.</p>`));
+      resetBtn.addEventListener("click", () => ctl.reset());
       body.appendChild(stage);
       wrap.appendChild(body);
       return wrap;
@@ -251,6 +260,13 @@
       fogHoles = computeHoles(realm);
       zoomer.appendChild(fogCanvas(realm, fogHoles));
     }
+    // landmass zoom targets (both views — the rings ride under the pins)
+    const resetBtn = el("button", "zoom-reset", "⟵ Whole realm");
+    resetBtn.type = "button";
+    resetBtn.hidden = true;
+    const zoomCtl = attachZoomPan(stage, zoomer, resetBtn);
+    const landmasses = landmassLayer(realm, stage, zoomCtl);
+    if (landmasses) zoomer.appendChild(landmasses);
     // markers (explore view only — the lore map stays clean for the book)
     if (exploring) {
       const marks = el("div", "marker-layer");
@@ -269,10 +285,12 @@
       `<button class="vt-btn ${realmView === "lore" ? "active" : ""}" data-view="lore">📜 Lore Map</button>
        <button class="vt-btn ${exploring ? "active" : ""}" data-view="explore">🧭 Explore</button>`));
     if (exploring) stage.appendChild(mapKey());
+    stage.appendChild(resetBtn);
+    if (landmasses) stage.appendChild(el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect"));
     stage.querySelectorAll(".vt-btn").forEach(b => b.addEventListener("click", () => {
       realmView = b.dataset.view; selectedPoi = null; render();
     }));
-    attachZoomPan(stage, zoomer);
+    resetBtn.addEventListener("click", () => zoomCtl.reset());
     body.appendChild(stage);
 
     // --- side panel: realm info + poi list/detail
@@ -454,9 +472,15 @@
   }
 
   /* ---------------- zoom / pan ---------------- */
-  function attachZoomPan(stage, zoomer) {
+  function attachZoomPan(stage, zoomer, resetBtn) {
     let scale = 1, tx = 0, ty = 0;
-    const apply = () => { zoomer.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`; };
+    const updateReset = () => { if (resetBtn) resetBtn.hidden = scale <= 1.15; };
+    const apply = () => { zoomer.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`; updateReset(); };
+    const smooth = (fn) => {
+      zoomer.style.transition = "transform .45s ease";
+      fn();
+      setTimeout(() => { zoomer.style.transition = ""; }, 480);
+    };
     stage.addEventListener("wheel", e => {
       e.preventDefault();
       const rect = stage.getBoundingClientRect();
@@ -470,6 +494,10 @@
     }, { passive: false });
     let drag = null, moved = 0;
     stage.addEventListener("pointerdown", e => {
+      // Interactive children (view toggle, markers, keys) must keep their
+      // clicks — capturing the pointer here would retarget the click to the
+      // stage and silently swallow it.
+      if (e.target.closest("button, a, input, select, textarea, .marker")) return;
       drag = { x: e.clientX - tx, y: e.clientY - ty }; moved = 0;
       stage.setPointerCapture(e.pointerId);
     });
@@ -484,7 +512,48 @@
       stage._suppressClick = moved > 6;
       setTimeout(() => { stage._suppressClick = false; }, 0);
     });
-    stage.addEventListener("dblclick", () => { scale = 1; tx = 0; ty = 0; apply(); });
+    stage.addEventListener("dblclick", () => { smooth(() => { scale = 1; tx = 0; ty = 0; apply(); }); });
+    if (!stage._escBound) {
+      stage._escBound = true;
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && scale > 1 && stage.isConnected) smooth(() => { scale = 1; tx = 0; ty = 0; apply(); });
+      });
+    }
+    return {
+      /* Center a percent-coordinate point of the map at the given scale. */
+      zoomToPoint(xPct, yPct, target) {
+        const rect = stage.getBoundingClientRect();
+        smooth(() => {
+          scale = Math.min(5, Math.max(1, target));
+          tx = rect.width / 2 - scale * (xPct / 100) * rect.width;
+          ty = rect.height / 2 - scale * (yPct / 100) * rect.height;
+          apply();
+        });
+      },
+      reset() { smooth(() => { scale = 1; tx = 0; ty = 0; apply(); }); },
+    };
+  }
+
+  /* Clickable landmass rings — zoom a small isle / beast-city up to readable
+     size. Works under fog (look-but-don't-explore): POIs stay veiled. */
+  function landmassLayer(realm, stage, ctl) {
+    if (!realm.landmasses || !realm.landmasses.length) return null;
+    const layer = el("div", "landmass-layer");
+    realm.landmasses.forEach((lm) => {
+      const b = el("button", "landmass-hit");
+      b.type = "button";
+      b.style.left = lm.x + "%";
+      b.style.top = lm.y + "%";
+      b.style.width = (lm.r * 2) + "%";
+      b.innerHTML = `<span class="lm-ring"></span><span class="lm-name">${lm.name}</span>`;
+      b.title = `Inspect ${lm.name}`;
+      b.addEventListener("click", () => {
+        if (stage._suppressClick) return;
+        ctl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r));
+      });
+      layer.appendChild(b);
+    });
+    return layer;
   }
 
   /* ---------------- LORE BOOK ---------------- */

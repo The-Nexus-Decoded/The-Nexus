@@ -69,6 +69,19 @@ const ATLAS_DATA = {
       lawName: "The Law of Gravity & Flight",
       lawText: "Wind lanes, lift tiles, void edges, and gravity wells rule movement. The sky is a road — and a cliff.",
       blurb: "Floating continents above an endless Maelstrom. Water is scarce, precious, and monopolized; the isles drift, and below, the storm turns.",
+      landmasses: [
+        { id: "is-lirawen",    name: "Lirawen, the Crown Isle",     x: 50, y: 13, r: 9  },
+        { id: "is-brulithel",  name: "Bruli-Thel Skyport",          x: 23, y: 20, r: 8  },
+        { id: "is-aelorin",    name: "Aelorin, Spire of Winds",     x: 76, y: 18, r: 7  },
+        { id: "is-valeros",    name: "Valeros Sanctuary",           x: 76, y: 30, r: 7  },
+        { id: "is-glimmerhold",name: "Glimmerhold",                 x: 26, y: 41, r: 8  },
+        { id: "is-engine",     name: "The Great Engine Isle",       x: 53, y: 43, r: 9  },
+        { id: "is-skyreach",   name: "Skyreach",                    x: 74, y: 46, r: 7  },
+        { id: "is-granble",    name: "Granblectarf Barrens",        x: 34, y: 65, r: 8  },
+        { id: "is-kraggs",     name: "Kragg's Hold",                x: 16, y: 72, r: 7  },
+        { id: "is-underhung",  name: "The Underhung",               x: 82, y: 72, r: 7  },
+        { id: "is-maelstrom",  name: "The Maelstrom",               x: 52, y: 85, r: 10 }
+      ],
       lore: [
         "Arianus was engineered as the industrial world: continents of stone adrift in an endless sky, meant to be aligned and fed by a great machine. The machine never truly woke. The dwarves who serve it still tend its gears in faith, waiting for the day it turns.",
         "Water is the realm's currency of power. Those who control the reservoir-lakes rule the mid-realm, and the wars over water have never ended. Above, the high isles gleam; below, the Geg warrens cling to the undersides of the world.",
@@ -190,6 +203,19 @@ const ATLAS_DATA = {
       lawName: "The Law of Light & the Null",
       lawText: "The emulsion is breathable — and it unmakes rune-craft. Here, high magic drowns and only the deep powers swim.",
       blurb: "An ocean with no surface and no floor — a breathable emulsion lit by its own Seasun, where cities ride on living habitat-beasts.",
+      landmasses: [
+        { id: "lm-nerithis",  name: "Nerithis (eldest durnai)",   x: 25, y: 19, r: 12 },
+        { id: "lm-elendor",   name: "Elendor",                    x: 70, y: 20, r: 12 },
+        { id: "lm-velshire",  name: "Velshire",                   x: 15, y: 52, r: 12 },
+        { id: "lm-thalassir", name: "Thalassir",                  x: 80, y: 57, r: 11 },
+        { id: "lm-oythera",   name: "Oythera",                    x: 44, y: 80, r: 12 },
+        { id: "lm-seasun",    name: "The Seasun",                 x: 50, y: 49, r: 9  },
+        { id: "lm-gossamer",  name: "The Gossamer Shoals",        x: 53, y: 17, r: 5  },
+        { id: "lm-luminara",  name: "Luminara Drift-globe",       x: 83, y: 39, r: 5  },
+        { id: "lm-glasswreck",name: "The Glass Wreck",            x: 14, y: 34, r: 5  },
+        { id: "lm-murk",      name: "Murk Harbor flotilla",       x: 64, y: 64, r: 5  },
+        { id: "lm-spawn",     name: "The Spawnling Drifts",       x: 72, y: 82, r: 5  }
+      ],
       lore: [
         "Chelestra is a single world-spanning sea of fluid that is not water — breathable through lungs and gills alike, lit from within by the radiant Seasun at its heart. There is no surface. There is no floor. There is only flow.",
         "The great cities ride upon durnai — colossal habitat-beasts, cities on their backs, drifting the currents and recycling the detritus of all the worlds. Between them sail ships that swim rather than float, and drift-globes of glass mark the trade and pilgrims' routes.",

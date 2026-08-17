@@ -181,6 +181,71 @@ export interface ModularAppearance {
   facialHair?: FacialHairId;
 }
 
+/**
+ * The head texture paints the crown silver so short styles read as stubble.
+ * For "shaved" that paint becomes a bald-cap, so we swap in a skin-toned scalp
+ * variant shipped next to the models. Shared by the human and elf GLBs (same
+ * head texture), and by every cloneActorMaterial copy (map is shared by
+ * reference, so we swap per material instance via userData).
+ */
+const SCALP_SKIN_URL = "/assets/3d/characters/human-shadowknight/T_Superhero_Male_Ligh_ScalpSkin.png";
+let scalpSkinTexture: THREE.Texture | null = null;
+let scalpSkinPromise: Promise<THREE.Texture | null> | null = null;
+
+function loadScalpSkinTexture(): Promise<THREE.Texture | null> {
+  scalpSkinPromise ??= new Promise((resolve) => {
+    new THREE.TextureLoader().load(
+      SCALP_SKIN_URL,
+      (texture) => {
+        texture.flipY = false;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        scalpSkinTexture = texture;
+        resolve(texture);
+      },
+      undefined,
+      () => resolve(null),
+    );
+  });
+  return scalpSkinPromise;
+}
+
+function swapScalpMaterial(material: THREE.Material, shaved: boolean, texture: THREE.Texture | null): void {
+  if (!(material instanceof THREE.MeshStandardMaterial)) return;
+  const map = material.map;
+  const isScalpSkin = /human_skin/i.test(material.name ?? "") || /ScalpSilver/i.test(map?.name ?? "");
+  const silver = material.userData.silverScalpMap as THREE.Texture | undefined;
+  if (!silver && map && isScalpSkin) material.userData.silverScalpMap = map;
+  const silverMap = material.userData.silverScalpMap as THREE.Texture | undefined;
+  if (!silverMap) return;
+  const next = shaved && texture ? texture : silverMap;
+  if (material.map !== next) {
+    material.map = next;
+    material.needsUpdate = true;
+  }
+}
+
+function applyScalpVariant(model: THREE.Object3D, hairStyle: HairStyleId): void {
+  const shaved = hairStyle === "shaved";
+  model.userData.scalpShaved = shaved;
+  const apply = (texture: THREE.Texture | null): void => {
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => swapScalpMaterial(material, shaved, texture));
+      }
+    });
+  };
+  if (!shaved) {
+    apply(scalpSkinTexture);
+    return;
+  }
+  if (scalpSkinTexture) apply(scalpSkinTexture);
+  else void loadScalpSkinTexture().then((texture) => {
+    // The player may have switched styles while the texture streamed in.
+    if (texture && model.userData.scalpShaved === true) apply(texture);
+  });
+}
+
 const RACE_AVATAR_SHAPES: Readonly<Record<HumanoidRaceId, { width: number; depth: number }>> = {
   human: { width: 1, depth: 1 },
   elf: { width: 0.94, depth: 0.96 },
@@ -192,7 +257,45 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
   return RACE_AVATAR_SHAPES[raceId as HumanoidRaceId] ?? RACE_AVATAR_SHAPES.human;
 }
 
+/**
+ * The authored buzzed/parted shells stop short of the nape and sit narrow on
+ * the skull, leaving a jagged bald patch on the lower back of the head. They
+ * are skinned meshes (node transforms are ignored), so coverage is fixed by
+ * expanding their bind-space vertices about the head center once per geometry
+ * (geometries are shared across SkeletonUtils clones).
+ */
+const HAIR_COVERAGE_FIT: Readonly<Record<string, { s: number; dy: number; dz: number }>> = {
+  SK_Hair_Buzzed: { s: 1.12, dy: -0.004, dz: -0.004 },
+  SK_Hair_Parted: { s: 1.10, dy: -0.004, dz: -0.005 },
+};
+
+function fitHairCoverage(model: THREE.Object3D): void {
+  const head = model.getObjectByName("SK_HumanHead") as THREE.Mesh | undefined;
+  if (!head?.geometry) return;
+  head.geometry.computeBoundingBox();
+  const center = head.geometry.boundingBox!.getCenter(new THREE.Vector3());
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const fit = HAIR_COVERAGE_FIT[child.name];
+    if (!fit || child.geometry.userData.coverageFit === 1) return;
+    child.geometry.userData.coverageFit = 1;
+    const pos = child.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i += 1) {
+      pos.setXYZ(
+        i,
+        center.x + (pos.getX(i) - center.x) * fit.s,
+        center.y + (pos.getY(i) - center.y) * fit.s + fit.dy,
+        center.z + (pos.getZ(i) - center.z) * fit.s + fit.dz,
+      );
+    }
+    pos.needsUpdate = true;
+    child.geometry.computeBoundingBox();
+    child.geometry.computeBoundingSphere();
+  });
+}
+
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
+  fitHairCoverage(model);
   // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
   const hair = model.children.filter((child) => /SK_SilverHairClump/i.test(child.name));
   if (hair.length === 0) {
@@ -219,6 +322,8 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   show(/^SK_Hair_Parted$/i, appearance.hairStyle === "parted");
   show(/^SK_Hair_Buzzed$/i, appearance.hairStyle === "cropped");
   show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
+
+  applyScalpVariant(model, appearance.hairStyle);
 }
 
 export function screenPanToWorld(
