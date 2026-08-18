@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -1203,7 +1203,7 @@
           "generationPromptSha256": "EE5012A1AF67392B5E314C55BD0B7CF63C9EEA1C77D8A71E19BF93C9D83F8664"
         }
       ],
-      "status": "generated-rejected-cloud-source-preserved-replacement-source-set-in-progress",
+      "status": "generated-rejected-cloud-source-preserved-replacement-source-ready-conversion-blocked-by-credit-floor",
       "ownerReview": "rejected-two-head-back-mismatch-and-missing-live-core-flame",
       "untouchedExport": {
         "file": "sd-creature-cinderbound-warden-prism-multiview-task-445fd16b-untouched.glb",
@@ -1225,9 +1225,10 @@
         "decision": "retain-for-provenance-only-and-rebuild-the-source-set-before-any-rerun"
       },
       "replacementSourceSet": {
-        "status": "front-v2-and-true-rear-v2-generated-left-v2-and-right-v2-still-required",
+        "status": "corrected-front-left-rear-right-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
         "plannedConversionModel": "meshy-7-multi-image",
         "submissionAllowed": false,
+        "submissionBlockReason": "planned-conversion-would-cross-the-owner-hard-credit-floor",
         "sourceImages": [
           {
             "view": "front",
@@ -1237,7 +1238,19 @@
             "width": 1122,
             "height": 1402,
             "sha256": "F8B715117EBCABA4086520EB32F71EC010FB2F280854EAF7134F0707F0E0E703",
-            "generationPromptSha256": "0431C71A7F0B4C27C5D9AF8B5F067DED42AA0A350CEE97BD5B317674BE62B622"
+            "generationPromptSha256": "0431C71A7F0B4C27C5D9AF8B5F067DED42AA0A350CEE97BD5B317674BE62B622",
+            "anomalyGate": "passed-one-head-one-front-sensor-one-front-furnace-cavity-correct-left-palm-and-right-integrated-blade-asymmetry"
+          },
+          {
+            "view": "left",
+            "file": "sd-creature-cinderbound-warden-chatgpt-left-v3-true-profile-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1634342,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "CB1AF5F7482A007406F1DD5E05B531BC755A4C6A5476DC7F8799623ED797B955",
+            "promptParity": "complete-canonical-machine-identity-material-asymmetry-and-forbidden-trait-block-plus-left-profile-camera-gate",
+            "anomalyGate": "passed-exact-left-profile-front-furnace-hidden-to-edge-thickness-near-left-soul-tax-hand-and-far-right-blade-arm-separated"
           },
           {
             "view": "rear",
@@ -1249,12 +1262,47 @@
             "sha256": "891A38967BDB1A988F7984DFA3E3A4DE406D47CE466BD280EAE7086903B50EFE",
             "generationPromptSha256": "F00F6B7A05E022B3E35D216C516B27A845D9EA63F0F9CD38022CAFA1FDE20421",
             "rearGate": "passed-no-face-sensor-slit-palms-chest-core-kneecaps-front-shins-or-toe-top-cues"
+          },
+          {
+            "view": "right",
+            "file": "sd-creature-cinderbound-warden-chatgpt-right-v3-true-profile-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1752826,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "CB833B61F42839CD332EE27E9E1A5D5D04FE5A6097B7345B4AD62708525DFDC9",
+            "promptParity": "complete-canonical-machine-identity-material-asymmetry-and-forbidden-trait-block-plus-right-profile-camera-gate",
+            "anomalyGate": "passed-exact-right-profile-front-furnace-hidden-to-edge-thickness-near-right-integrated-blade-arm-and-far-left-hand-separated"
           }
         ],
-        "missingViews": [
-          "exact-ninety-degree-left-v2",
-          "exact-ninety-degree-right-v2"
-        ]
+        "viewOrderForProvider": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "missingViews": [],
+        "promptLineage": {
+          "fullCanonicalMachineIdentityBlockRepeatedForNewSideViews": true,
+          "sourceHashAndViewGateRecorded": true,
+          "exactNormalizedSidePromptHashesCaptured": false,
+          "automaticRegenerationAllowed": false
+        },
+        "asymmetryContract": {
+          "leftArm": "articulated-four-digit-hand-with-concentric-soul-tax-palm-mechanism",
+          "rightArm": "integrated-obsidian-sweep-blade-housing-with-compact-four-digit-maintenance-hand",
+          "bladeMirroringOrDuplicationAllowed": false,
+          "rearFrontDuplicationAllowed": false,
+          "headCount": 1,
+          "frontSensorCount": 1,
+          "rearSensorCount": 0
+        },
+        "conversionCreditGate": {
+          "balanceObserved": 819,
+          "hardFloor": 800,
+          "plannedTaskCredits": 45,
+          "submissionAllowed": false
+        }
       },
       "designOutcome": {
         "silhouette": "towering-broad-triangular-shoulders-small-masked-head-open-core-cage-and-load-bearing-feet",

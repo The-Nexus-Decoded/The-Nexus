@@ -492,7 +492,7 @@ describe("First Breach production model register", () => {
     expect(ravager.designOutcome.grownArmor).toContain("natural-horns");
   });
 
-  it("preserves and rejects the paid two-front Warden while preparing a gated replacement", () => {
+  it("preserves the rejected paid Warden and records a complete gated replacement source set", () => {
     const task = sourceTask("creature-cinderbound-warden-image-first-v001");
 
     expect(task).toMatchObject({
@@ -503,7 +503,7 @@ describe("First Breach production model register", () => {
       taskId: "445fd16b-4006-4c18-a54a-fed2a63da955",
       creditBalanceBeforeTask: 2392,
       creditBalanceAfterTask: 2347,
-      status: "generated-rejected-cloud-source-preserved-replacement-source-set-in-progress",
+      status: "generated-rejected-cloud-source-preserved-replacement-source-ready-conversion-blocked-by-credit-floor",
       ownerReview: "rejected-two-head-back-mismatch-and-missing-live-core-flame",
       runtimePromotionAllowed: false,
     });
@@ -522,9 +522,39 @@ describe("First Breach production model register", () => {
       ]),
     );
     expect(task.replacementSourceSet).toMatchObject({
+      status: "corrected-front-left-rear-right-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
       plannedConversionModel: "meshy-7-multi-image",
       submissionAllowed: false,
-      missingViews: ["exact-ninety-degree-left-v2", "exact-ninety-degree-right-v2"],
+      submissionBlockReason: "planned-conversion-would-cross-the-owner-hard-credit-floor",
+      missingViews: [],
+    });
+    expect(task.replacementSourceSet.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
+    expect(task.replacementSourceSet.sourceImages.map((source: any) => source.view)).toEqual([
+      "front",
+      "left",
+      "rear",
+      "right",
+    ]);
+    expect(task.replacementSourceSet.sourceImages.find((source: any) => source.view === "left")).toMatchObject({
+      file: "sd-creature-cinderbound-warden-chatgpt-left-v3-true-profile-source.png",
+      sha256: "CB1AF5F7482A007406F1DD5E05B531BC755A4C6A5476DC7F8799623ED797B955",
+    });
+    expect(task.replacementSourceSet.sourceImages.find((source: any) => source.view === "right")).toMatchObject({
+      file: "sd-creature-cinderbound-warden-chatgpt-right-v3-true-profile-source.png",
+      sha256: "CB833B61F42839CD332EE27E9E1A5D5D04FE5A6097B7345B4AD62708525DFDC9",
+    });
+    expect(task.replacementSourceSet.asymmetryContract).toMatchObject({
+      bladeMirroringOrDuplicationAllowed: false,
+      rearFrontDuplicationAllowed: false,
+      headCount: 1,
+      frontSensorCount: 1,
+      rearSensorCount: 0,
+    });
+    expect(task.replacementSourceSet.conversionCreditGate).toMatchObject({
+      balanceObserved: 819,
+      hardFloor: 800,
+      plannedTaskCredits: 45,
+      submissionAllowed: false,
     });
     expect(task.designOutcome).toMatchObject({
       coreVfxSocket: "VFX_CoreFlame",
