@@ -215,6 +215,49 @@ describe("First Breach production model register", () => {
     });
   });
 
+  it("registers the mechanical Warden front source without treating it as an armored humanoid", () => {
+    const task = modelRegister.sourceGenerationTasks.find(
+      (entry) => entry.assetId === "creature-cinderbound-warden-image-first-v001",
+    );
+
+    expect(task).toMatchObject({
+      operation: "chatgpt-reference-image-pending-multi-view-completion",
+      provider: "openai-imagegen",
+      plannedConversionProvider: "3d-ai-studio",
+      plannedConversionModel: "prism-3.1-multi-view",
+      plannedTextureQuality: "ultra",
+      expectedConversionCredits: 45,
+      maximumConversionCredits: 45,
+      status: "source-image-generated-pending-owner-review-and-three-matching-views",
+      ownerReview: "pending-front-source-shown-in-chat",
+      runtimePromotionAllowed: false,
+    });
+    expect(task?.sourceImage).toMatchObject({
+      view: "front",
+      file: "sd-creature-cinderbound-warden-chatgpt-front-v1-source.png",
+      bytes: 2262640,
+      width: 1122,
+      height: 1402,
+      sha256: "C2141DA746480FA72BAC0A4F90A37518F7E1AF3E8D20411DE42EA1CF44B4F1BB",
+      generationPromptSha256: "104F2FC5D24D1039A3D3B8B1F3D92FAC28D5ACF0C1D37A76CB24E9614C3262E5",
+    });
+    expect(task?.designOutcome).toMatchObject({
+      rightArm: "integrated-obsidian-sweep-blade-housing-with-no-handheld-weapon",
+      rigIntent: "rigid-mechanical-hierarchy-with-articulated-plates-pistons-rings-core-cage-and-shutdown-controls",
+    });
+    expect(task?.designOutcome?.requiredBossMechanisms).toEqual(
+      expect.arrayContaining([
+        "rotating-shoulder-rings-for-ash-call",
+        "opening-rib-plates-for-soul-tax",
+        "weighted-piston-locomotion",
+        "chest-core-defeat-shutdown",
+      ]),
+    );
+    expect(task?.designOutcome?.forbiddenRead).toEqual(
+      expect.arrayContaining(["armored-human", "knight", "paladin", "biological-monster"]),
+    );
+  });
+
   it("covers every current level surface that must be revalidated", () => {
     expect(modelRegister.validationSurfaces).toEqual(
       expect.arrayContaining([

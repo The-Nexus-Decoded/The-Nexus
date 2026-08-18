@@ -328,6 +328,53 @@
       "actualCredits": null,
       "ownerReview": "approved-huge-maw-four-view-source-set-shown-in-chat",
       "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-cinderbound-warden-image-first-v001",
+      "operation": "chatgpt-reference-image-pending-multi-view-completion",
+      "provider": "openai-imagegen",
+      "plannedConversionProvider": "3d-ai-studio",
+      "plannedConversionModel": "prism-3.1-multi-view",
+      "plannedTextureQuality": "ultra",
+      "expectedConversionCredits": 45,
+      "maximumConversionCredits": 45,
+      "sourceImage": {
+        "view": "front",
+        "file": "sd-creature-cinderbound-warden-chatgpt-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+        "bytes": 2262640,
+        "width": 1122,
+        "height": 1402,
+        "sha256": "C2141DA746480FA72BAC0A4F90A37518F7E1AF3E8D20411DE42EA1CF44B4F1BB",
+        "generationPromptSha256": "104F2FC5D24D1039A3D3B8B1F3D92FAC28D5ACF0C1D37A76CB24E9614C3262E5"
+      },
+      "status": "source-image-generated-pending-owner-review-and-three-matching-views",
+      "taskId": null,
+      "actualCredits": null,
+      "ownerReview": "pending-front-source-shown-in-chat",
+      "designOutcome": {
+        "silhouette": "towering-broad-triangular-shoulders-small-masked-head-open-core-cage-and-load-bearing-feet",
+        "construction": "separate-charred-basalt-plates-over-dark-iron-subframe-with-oxidized-bronze-hinges-rings-and-restraints",
+        "core": "contained-dim-ember-furnace-visible-through-opening-geometric-rib-plates",
+        "rightArm": "integrated-obsidian-sweep-blade-housing-with-no-handheld-weapon",
+        "leftHand": "four-digit-articulated-hand-with-concentric-soul-tax-palm-mechanism",
+        "rigIntent": "rigid-mechanical-hierarchy-with-articulated-plates-pistons-rings-core-cage-and-shutdown-controls",
+        "requiredBossMechanisms": [
+          "rotating-shoulder-rings-for-ash-call",
+          "opening-rib-plates-for-soul-tax",
+          "integrated-forearm-blade-sweep",
+          "weighted-piston-locomotion",
+          "chest-core-defeat-shutdown"
+        ],
+        "forbiddenRead": [
+          "armored-human",
+          "knight",
+          "paladin",
+          "biological-monster",
+          "handheld-sword"
+        ]
+      },
+      "runtimePromotionAllowed": false
     }
   ],
   "assetGroups": [
