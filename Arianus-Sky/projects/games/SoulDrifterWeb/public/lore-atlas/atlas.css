@@ -115,7 +115,8 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   pointer-events: none; z-index: 3;
 }
 /* landmass zoom targets — no ring at rest; the clickable section shows a
-   hard crisp outline and lights up only while hovered */
+   hard crisp outline and lights up only while hovered. Landmasses with a
+   traced `shape` light their true painted silhouette via the SVG layer. */
 .landmass-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .landmass-hit {
   position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1;
@@ -132,6 +133,15 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   background: radial-gradient(circle, rgba(255, 238, 196, 0.18) 0%, rgba(120, 200, 190, 0.09) 60%, transparent 75%);
   box-shadow: 0 0 0 1px rgba(40, 28, 12, 0.65), inset 0 0 0 1px rgba(40, 28, 12, 0.35), inset 0 0 30px rgba(255, 238, 196, 0.22);
   transform: scale(1.04);
+}
+/* traced silhouettes replace the circle entirely for shaped landmasses */
+.landmass-hit.has-shape .lm-ring { display: none; }
+.lm-shapes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.lm-shape polygon { fill: transparent; stroke: transparent; transition: stroke .2s, fill .2s; }
+.lm-shape.lit .lm-key { stroke: rgba(40, 28, 12, 0.8); stroke-width: 5px; }
+.lm-shape.lit .lm-edge {
+  stroke: rgba(240, 230, 200, 0.95); stroke-width: 2px;
+  fill: rgba(255, 238, 196, 0.14);
 }
 .lm-name {
   position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
