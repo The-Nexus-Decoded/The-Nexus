@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -968,50 +968,182 @@
     },
     {
       "assetId": "creature-oathbound-breachling-image-first-v001",
-      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
+      "operation": "chatgpt-four-view-source-set-complete-awaiting-conversion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
       "plannedConversionModel": "meshy-7-multi-image",
       "plannedTextureQuality": "standard",
       "expectedConversionCredits": 45,
-      "sourceImage": {
-        "view": "front",
+      "historicalDirectionSource": {
         "file": "sd-creature-breachling-oathbound-chatgpt-front-v2-source.png",
-        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-        "bytes": 1843248,
-        "width": 1254,
-        "height": 1254,
         "sha256": "2185E133A08F7FBB804CA072D7C54F3CC818CB623BCB2693871B397327387210",
-        "generationPromptSha256": "0C84A4AA5C1A6DA8C15878F0BA1643CD812568E87DDC7C2D3589DC1E4ED00F22"
+        "disposition": "visual-direction-liked-and-superseded-by-full-spec-tailed-four-view-v3-set"
       },
-      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
-      "ownerReview": "visual-direction-liked-not-production-approved",
-      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-oathbound-chatgpt-front-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1914544,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "74B990088E836F2A32CE129A4FCAE3E50016D763ED496ACCBC08108E129B1A1E",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-symmetric-low-hunch-one-head-two-arms-two-legs-four-total-digits-per-hand-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-oathbound-chatgpt-left-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1938091,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "48547804435FDC63FDA492DD6F756DFBE902234F59B82EEE6E2224402094DA58",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-left-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-left-profile-single-eye-low-crouch-clean-tail-root-grown-plates-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-oathbound-chatgpt-rear-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1883712,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "65C98BC39E7901EC8E30063BF805A6A94272E5F642C2E91084EE7872EBEBFBD8",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-sweeping-image-left-and-fully-in-frame",
+          "anomalyGate": "passed-true-rear-no-face-eyes-mouth-palms-front-chest-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-oathbound-chatgpt-right-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1756494,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "63FDE5D957795280C011AAF8B7914272EEAB83C5583122807F70258533FFAC3F",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-right-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-right-profile-single-eye-low-crouch-clean-tail-root-grown-plates-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedInEveryView": true,
+        "cameraAndOutputSuffixChangedPerView": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "third-breachling-tier-above-stalker-and-below-ravager",
+        "palette": "deep-moss-and-oxidized-verdigris-green-with-ochre-mineral-accents-near-black-ridge-and-claw-tips-and-amber-eyes",
+        "grownArmor": "thick-overlapping-keratin-scutes-and-mineralized-osteoderms-emerging-seamlessly-from-hide",
+        "silhouette": "heavier-chest-and-forearms-on-the-shared-low-hunched-tail-enabled-breachling-body"
+      },
+      "conversionCreditGate": {
+        "balanceObserved": 819,
+        "hardFloor": 800,
+        "plannedTaskCredits": 45,
+        "submissionAllowed": false,
+        "reason": "planned-conversion-would-cross-the-owner-hard-credit-floor"
+      },
+      "status": "four-view-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+      "ownerReview": "historical-direction-liked-final-four-view-v3-set-pending-owner-review",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
       "grownBiologicalArmorOnly": true,
       "manufacturedOrWornArmorAllowed": false,
       "runtimePromotionAllowed": false
     },
     {
       "assetId": "creature-breachling-ravager-image-first-v001",
-      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
+      "operation": "chatgpt-four-view-source-set-complete-awaiting-conversion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
       "plannedConversionModel": "meshy-7-multi-image",
       "plannedTextureQuality": "standard",
       "expectedConversionCredits": 45,
-      "sourceImage": {
-        "view": "front",
+      "historicalDirectionSource": {
         "file": "sd-creature-breachling-ravager-chatgpt-front-v2-source.png",
-        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-        "bytes": 1962263,
-        "width": 1254,
-        "height": 1254,
         "sha256": "8876E9D09831A7B57091F5121B279FE5713F288920CBFDC2263B724FA336C527",
-        "generationPromptSha256": "363B3B8E87D46EF0911B639DFFA54BA91D6F496DFF94EDFA5DBF7581E9A71574"
+        "disposition": "visual-direction-liked-and-superseded-by-full-spec-tailed-four-view-v3-set"
       },
-      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
-      "ownerReview": "visual-direction-liked-not-production-approved",
-      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-ravager-chatgpt-front-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1939203,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "A0D94206D460AEB2387127A48344C8CC0A38A63FAD9AC53A2883E886FD427655",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-symmetric-low-hunch-one-head-two-arms-two-legs-four-total-digits-per-hand-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-ravager-chatgpt-left-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2135795,
+          "width": 1536,
+          "height": 1024,
+          "sha256": "7ABF4F8FA0E5F2962DD3C06E83C23E4B39E9EC70C1D4438317082C0A4C3667EE",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-left-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-left-profile-single-eye-low-crouch-clean-tail-root-grown-spikes-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-ravager-chatgpt-rear-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1978591,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "7AD6EC124C6B87BA35658A2F1D900472C283C03EA35D9F9346A143D6BB286011",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-sweeping-image-left-and-fully-in-frame",
+          "anomalyGate": "passed-true-rear-no-face-eyes-mouth-palms-front-chest-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-ravager-chatgpt-right-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1973140,
+          "width": 1536,
+          "height": 1024,
+          "sha256": "B5DE882D02DD4F6039DFD74761349AAADCCBE225280D8EC56907722292173F2B",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-right-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-right-profile-single-eye-low-crouch-clean-tail-root-grown-spikes-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedInEveryView": true,
+        "cameraAndOutputSuffixChangedPerView": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "highest-breachling-family-tier",
+        "palette": "blackened-cinder-charcoal-and-obsidian-with-non-emissive-deep-ember-red-mineral-fissure-accents-oxblood-joints-and-ember-orange-eyes",
+        "grownArmor": "densest-family-pattern-of-volcanic-osteoderms-keratin-scutes-bone-ridges-natural-horns-and-backward-swept-spikes",
+        "silhouette": "deep-chest-and-heavily-conditioned-forearms-on-the-shared-low-hunched-tail-enabled-breachling-body"
+      },
+      "conversionCreditGate": {
+        "balanceObserved": 819,
+        "hardFloor": 800,
+        "plannedTaskCredits": 45,
+        "submissionAllowed": false,
+        "reason": "planned-conversion-would-cross-the-owner-hard-credit-floor"
+      },
+      "status": "four-view-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+      "ownerReview": "historical-direction-liked-final-four-view-v3-set-pending-owner-review",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
       "grownBiologicalArmorOnly": true,
       "manufacturedOrWornArmorAllowed": false,
       "runtimePromotionAllowed": false

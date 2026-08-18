@@ -440,23 +440,56 @@ describe("First Breach production model register", () => {
     );
   });
 
-  it("keeps the unconverted Oathbound and Ravager tier fronts provisional and biological", () => {
+  it("records conversion-ready Oathbound and Ravager four-view sources without crossing the credit floor", () => {
     for (const assetId of [
       "creature-oathbound-breachling-image-first-v001",
       "creature-breachling-ravager-image-first-v001",
     ]) {
       const task = sourceTask(assetId);
       expect(task).toMatchObject({
+        operation: "chatgpt-four-view-source-set-complete-awaiting-conversion",
         plannedConversionModel: "meshy-7-multi-image",
         plannedTextureQuality: "standard",
-        status: "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
-        ownerReview: "visual-direction-liked-not-production-approved",
-        sharedRigWith: "creature-breachling-base-image-first-v001",
+        status: "four-view-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+        ownerReview: "historical-direction-liked-final-four-view-v3-set-pending-owner-review",
+        sharedRigWith: "future-tail-enabled-breachling-family-rig-v1",
         grownBiologicalArmorOnly: true,
         manufacturedOrWornArmorAllowed: false,
         runtimePromotionAllowed: false,
       });
+      expect(task.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
+      expect(task.sourceImages.map((source: any) => source.view)).toEqual(["front", "left", "rear", "right"]);
+      for (const source of task.sourceImages) {
+        expect(source.anomalyGate).toContain("passed");
+        expect(source.tailEvidence).toContain("tail");
+      }
+      expect(task.promptLineage).toMatchObject({
+        finalSourcePromptParityVerified: true,
+        fullCanonicalIdentityBlockRepeatedInEveryView: true,
+        cameraAndOutputSuffixChangedPerView: true,
+      });
+      expect(task.conversionCreditGate).toMatchObject({
+        balanceObserved: 819,
+        hardFloor: 800,
+        plannedTaskCredits: 45,
+        submissionAllowed: false,
+        reason: "planned-conversion-would-cross-the-owner-hard-credit-floor",
+      });
     }
+
+    const oathbound = sourceTask("creature-oathbound-breachling-image-first-v001");
+    expect(oathbound.sourceImages.find((source: any) => source.view === "rear")).toMatchObject({
+      file: "sd-creature-breachling-oathbound-chatgpt-rear-v3-green-tail-canonical-source.png",
+      sha256: "65C98BC39E7901EC8E30063BF805A6A94272E5F642C2E91084EE7872EBEBFBD8",
+    });
+    expect(oathbound.designOutcome.grownArmor).toContain("mineralized-osteoderms");
+
+    const ravager = sourceTask("creature-breachling-ravager-image-first-v001");
+    expect(ravager.sourceImages.find((source: any) => source.view === "rear")).toMatchObject({
+      file: "sd-creature-breachling-ravager-chatgpt-rear-v3-cinder-tail-canonical-source.png",
+      sha256: "7AD6EC124C6B87BA35658A2F1D900472C283C03EA35D9F9346A143D6BB286011",
+    });
+    expect(ravager.designOutcome.grownArmor).toContain("natural-horns");
   });
 
   it("preserves and rejects the paid two-front Warden while preparing a gated replacement", () => {
