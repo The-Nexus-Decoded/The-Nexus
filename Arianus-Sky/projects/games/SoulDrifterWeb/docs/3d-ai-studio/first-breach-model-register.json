@@ -3,13 +3,30 @@
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
+    "sourceGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
     "status": "pre-generation",
     "paidOperationApproved": false
   },
+  "studioWorkspace": {
+    "project": "SoulDrifter",
+    "branch": "2026-08-17-codex-448-souldrifter-first-breach-models-5ddcf96b",
+    "status": "pending-connector",
+    "floatingLatestAllowed": false,
+    "requiredProvenance": [
+      "provider-and-model-version",
+      "task-id",
+      "credit-receipt",
+      "source-sheet-hash",
+      "untouched-export-hash",
+      "processed-export-hash",
+      "consuming-git-commit"
+    ]
+  },
   "scope": {
     "permanentFoundation": [
       "playable-humanoid-body-and-head-contract",
+      "slim-athletic-heavy-body-shape-profiles",
       "modular-character-appearance",
       "canonical-humanoid-rig-and-retarget-profiles",
       "equipment-and-weapon-sockets",
@@ -45,6 +62,13 @@
       "geometrySource": "3d-ai-studio",
       "status": "approval-required",
       "lifetime": "game-wide",
+      "bodyProfiles": [
+        "slim",
+        "athletic",
+        "heavy"
+      ],
+      "bodyProfileImplementation": "shared-compatible-topology-and-canonical-skeleton",
+      "bodyProfileGameplayImpact": "appearance-only",
       "items": [
         "human-masculine",
         "human-feminine",

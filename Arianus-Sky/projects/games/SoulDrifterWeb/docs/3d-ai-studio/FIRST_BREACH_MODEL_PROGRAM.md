@@ -37,6 +37,12 @@ Every new body, head source, hair geometry family, clothing/armor geometry famil
 7. animation, gameplay-camera, room, and performance acceptance;
 8. an approved shipping hash distinct from the untouched source hash.
 
+## 3D AI Studio project and branch provenance
+
+Production work for this program belongs to the 3D AI Studio project `SoulDrifter`. The first external branch is `2026-08-17-codex-448-souldrifter-first-breach-models-5ddcf96b`, anchored to Git branch `codex/448-souldrifter-first-breach-models`, issue #448, and starting commit `5ddcf96bba3e7393998de46a62ef51ee602c1f83`.
+
+The external branch is an asset workspace, not a replacement for Git review. Every accepted generation records its 3D AI Studio project/branch, provider and model version, task ID, credit receipt, source-sheet hash, untouched-export hash, processed-export hash, and the Git commit that consumed it. A floating or generic `latest` branch cannot supply production assets.
+
 ## Permanent playable-character foundation
 
 ### Body and head families
@@ -51,6 +57,20 @@ The Level 1 proof covers four playable ancestries with adult masculine and femin
 | Halfling | masculine and feminine | small adult proportions, readable hands/feet/face, never childlike or chibi; Mage and Shadowknight remain unavailable |
 
 The Human pilot establishes the canonical meter scale, ground plane, head seam, hair cap, material slots, face landmarks, ear/nose sockets, body coverage regions, and facial-rig contract. The remaining bodies conform to that game-wide contract or declare a versioned retarget/conform profile.
+
+### Character-creation body profiles
+
+Every compatible adult ancestry/presentation family supports three visibly distinct character-creation body profiles:
+
+| Profile | Silhouette contract |
+| --- | --- |
+| Slim | lean, narrow, wiry, and healthy; never frail, adolescent, or starved |
+| Athletic | balanced capable adventurer build; the initial Human topology and fit pilot |
+| Heavy | broad, substantial, and powerful with believable soft tissue; never comic relief or caricature |
+
+These are versioned shape/conform profiles on the same compatible topology and canonical skeleton, not unrelated rigs. Identity, animation names, sockets, facial controls, and saved-character IDs remain stable when the body profile changes. Armor and clothing must pass skinning, coverage, clipping, and locomotion QA on all three profiles before that item ships.
+
+Body profile is appearance-only in this program. It does not change ancestry statistics, calling eligibility, movement speed, hit boxes, or combat balance unless a later approved systems ticket explicitly adds such rules.
 
 ### Character-creation appearance library
 
