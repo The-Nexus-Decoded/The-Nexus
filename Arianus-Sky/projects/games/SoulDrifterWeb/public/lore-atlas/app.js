@@ -21,6 +21,18 @@
   /* ---------------- state ---------------- */
   let state = loadState();
   let previewAll = false;  // game build: locks and fog driven by SOULDRIFTER_ATLAS state
+  /* Owner review: persistent unseal for the project owner — clears locks AND
+     fog everywhere so the real painted detail can be inspected. Toggled from
+     the Game State drawer, or Shift+U (works inside the game iframe). */
+  let ownerReview = localStorage.getItem("souldrifter.atlasOwnerReview") === "1";
+  function bypass() { return previewAll || ownerReview; }
+  function setOwnerReview(on) {
+    ownerReview = on;
+    if (on) localStorage.setItem("souldrifter.atlasOwnerReview", "1");
+    else localStorage.removeItem("souldrifter.atlasOwnerReview");
+    render();
+    toast(on ? "Owner review ON — all realms unsealed, fog lifted." : "Owner review off.");
+  }
   let currentTab = "wheel";
   let currentRealm = "thalenyr";
   let realmView = "lore";   // "lore" = clean painted map · "explore" = pins + key + fog of war
@@ -41,7 +53,7 @@
     return (state.pois && state.pois[`${realmId}.${poiId}`]) || "unknown";
   }
   function realmUnlocked(id) {
-    return previewAll || (state.realms[id] && state.realms[id].unlocked);
+    return bypass() || (state.realms[id] && state.realms[id].unlocked);
   }
 
   /* ---------------- shell ---------------- */
@@ -73,6 +85,7 @@
         ${tabBtn("book", "Lore Book")}
       </nav>
       <div class="header-actions">
+        ${ownerReview ? `<span class="owner-badge" title="Owner review is on — locks and fog bypassed (Shift+U to toggle)">Owner view</span>` : ""}
         ${embedded ? "" : `
         <label class="preview-toggle" title="Review build only — bypasses all locks and fog">
           <input type="checkbox" id="previewAll" ${previewAll ? "checked" : ""}> Preview All
@@ -234,14 +247,20 @@
       resetBtn.type = "button";
       resetBtn.hidden = true;
       const ctl = attachZoomPan(stage, zoomer, resetBtn);
-      const landmasses = landmassLayer(realm, stage, ctl);
+      const hintEl = el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect");
+      const plateView = setupPlateView(stage, zoomer, resetBtn, hintEl);
+      const landmasses = landmassLayer(realm, stage, (lm) =>
+        lm.detail ? plateView.show(lm) : ctl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
       if (landmasses) zoomer.appendChild(landmasses);
       stage.appendChild(zoomer);
       stage.appendChild(resetBtn);
-      if (landmasses) stage.appendChild(el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect"));
+      if (landmasses) stage.appendChild(hintEl);
       stage.appendChild(el("div", "sealed-overlay",
         `<h2>🔒 ${realm.name} is sealed</h2><p>The Soul Wells have not opened this road. The land lies under the smoke — its roads and cities stay hidden until your journey unlocks it.</p>`));
-      resetBtn.addEventListener("click", () => ctl.reset());
+      resetBtn.addEventListener("click", () => { plateView.hide(); ctl.reset(); ctl.syncReset(); });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && plateView.isActive() && stage.isConnected) { plateView.hide(); ctl.syncReset(); }
+      });
       body.appendChild(stage);
       wrap.appendChild(body);
       return wrap;
@@ -251,12 +270,12 @@
     // --- map stage with zoom/pan; two views: lore (clean) / explore (pins+key+fog)
     const stage = el("div", "map-stage");
     const zoomer = el("div", "zoom-inner");
-    zoomer.innerHTML = `<img class="map-img ${previewAll ? "" : "game-toned"}" src="${realm.map}" alt="${realm.name} map" draggable="false">`;
+    zoomer.innerHTML = `<img class="map-img ${bypass() ? "" : "game-toned"}" src="${realm.map}" alt="${realm.name} map" draggable="false">`;
 
     const exploring = realmView === "explore";
     // fog-of-war smoke (explore view, all realms) — holes burned around discovered locations
     let fogHoles = null;
-    if (exploring && !previewAll) {
+    if (exploring && !bypass()) {
       fogHoles = computeHoles(realm);
       zoomer.appendChild(fogCanvas(realm, fogHoles));
     }
@@ -265,14 +284,17 @@
     resetBtn.type = "button";
     resetBtn.hidden = true;
     const zoomCtl = attachZoomPan(stage, zoomer, resetBtn);
-    const landmasses = landmassLayer(realm, stage, zoomCtl);
+    const hintEl = el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect");
+    const plateView = setupPlateView(stage, zoomer, resetBtn, hintEl);
+    const landmasses = landmassLayer(realm, stage, (lm) =>
+      lm.detail ? plateView.show(lm) : zoomCtl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
     if (landmasses) zoomer.appendChild(landmasses);
     // markers (explore view only — the lore map stays clean for the book)
     if (exploring) {
       const marks = el("div", "marker-layer");
       for (const p of realm.pois) {
-        let st = previewAll ? (poiStatus(realm.id, p.id) === "unknown" ? "explored" : poiStatus(realm.id, p.id)) : poiStatus(realm.id, p.id);
-        if (!previewAll && st === "unknown") {
+        let st = bypass() ? (poiStatus(realm.id, p.id) === "unknown" ? "explored" : poiStatus(realm.id, p.id)) : poiStatus(realm.id, p.id);
+        if (!bypass() && st === "unknown") {
           st = inHole(p, fogHoles) ? "uncharted" : "fogged";
         }
         marks.appendChild(markerEl(realm, p, st));
@@ -286,11 +308,14 @@
        <button class="vt-btn ${exploring ? "active" : ""}" data-view="explore">🧭 Explore</button>`));
     if (exploring) stage.appendChild(mapKey());
     stage.appendChild(resetBtn);
-    if (landmasses) stage.appendChild(el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect"));
+    if (landmasses) stage.appendChild(hintEl);
     stage.querySelectorAll(".vt-btn").forEach(b => b.addEventListener("click", () => {
       realmView = b.dataset.view; selectedPoi = null; render();
     }));
-    resetBtn.addEventListener("click", () => zoomCtl.reset());
+    resetBtn.addEventListener("click", () => { plateView.hide(); zoomCtl.reset(); zoomCtl.syncReset(); });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && plateView.isActive() && stage.isConnected) { plateView.hide(); zoomCtl.syncReset(); }
+    });
     body.appendChild(stage);
 
     // --- side panel: realm info + poi list/detail
@@ -321,15 +346,15 @@
       if (s === "completed") { ex++; co++; }
     });
     const pct = Math.round((ex / total) * 100);
-    return `<div class="progress-bar"><div class="fill" style="width:${previewAll ? 100 : pct}%"></div></div>
-            <span class="progress-text">${previewAll ? "Preview — all locations visible" : `${ex}/${total} discovered · ${co} completed`}</span>`;
+    return `<div class="progress-bar"><div class="fill" style="width:${bypass() ? 100 : pct}%"></div></div>
+            <span class="progress-text">${bypass() ? "Preview — all locations visible" : `${ex}/${total} discovered · ${co} completed`}</span>`;
   }
 
   function poiListHTML(realm) {
     return realm.pois.map(p => {
       const st = poiStatus(realm.id, p.id);
-      if (!previewAll && st === "unknown") return `<div class="poi-row hidden-row">??? — <em>uncharted</em></div>`;
-      const st2 = previewAll && st === "unknown" ? "explored" : st;
+      if (!bypass() && st === "unknown") return `<div class="poi-row hidden-row">??? — <em>uncharted</em></div>`;
+      const st2 = bypass() && st === "unknown" ? "explored" : st;
       return `<div class="poi-row" data-poi="${p.id}">
         <span class="poi-icon t-${p.type}">${iconFor(p.type)}</span>
         <span class="poi-name">${st2 === "rumored" ? p.name + " (rumor)" : p.name}</span>
@@ -531,12 +556,13 @@
         });
       },
       reset() { smooth(() => { scale = 1; tx = 0; ty = 0; apply(); }); },
+      syncReset: updateReset,
     };
   }
 
   /* Clickable landmass rings — zoom a small isle / beast-city up to readable
      size. Works under fog (look-but-don't-explore): POIs stay veiled. */
-  function landmassLayer(realm, stage, ctl) {
+  function landmassLayer(realm, stage, inspect) {
     if (!realm.landmasses || !realm.landmasses.length) return null;
     const layer = el("div", "landmass-layer");
     realm.landmasses.forEach((lm) => {
@@ -549,11 +575,40 @@
       b.title = `Inspect ${lm.name}`;
       b.addEventListener("click", () => {
         if (stage._suppressClick) return;
-        ctl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r));
+        inspect(lm);
       });
       layer.appendChild(b);
     });
     return layer;
+  }
+
+  /* Detail-plate view: landmasses with a painted `detail` plate crossfade to
+     the full 2K plate instead of just transform-zooming the realm map. The
+     plate sits above the base map but under the fog canvas, so sealed realms
+     keep their smoke over the plate. Reset ("Whole realm" / Escape) returns. */
+  function setupPlateView(stage, zoomer, resetBtn, hint) {
+    const plate = el("img", "map-plate");
+    plate.alt = "";
+    plate.draggable = false;
+    let active = null;
+    const show = (lm) => {
+      active = lm;
+      plate.src = lm.detail;
+      zoomer.appendChild(plate);
+      requestAnimationFrame(() => plate.classList.add("show"));
+      stage.classList.add("plate-active");
+      resetBtn.hidden = false;
+      if (hint) hint.textContent = lm.name;
+    };
+    const hide = () => {
+      if (!active) return;
+      active = null;
+      plate.classList.remove("show");
+      stage.classList.remove("plate-active");
+      setTimeout(() => plate.remove(), 500);
+      if (hint) hint.textContent = "Scroll to zoom · click a ringed landmass to inspect";
+    };
+    return { show, hide, isActive: () => Boolean(active) };
   }
 
   /* ---------------- LORE BOOK ---------------- */
@@ -611,6 +666,7 @@
     const dr = el("div", "state-drawer");
     dr.innerHTML = `
       <h3>Game State <span class="hint-inline">(what the game writes)</span></h3>
+      <label class="edit-toggle owner-toggle"><input type="checkbox" id="ownerReview" ${ownerReview ? "checked" : ""}> <strong>Owner review</strong> — unseal all realms, lift fog (persists; Shift+U anywhere)</label>
       <label class="edit-toggle"><input type="checkbox" id="editMode" ${editMode ? "checked" : ""}> Edit mode (set POI statuses on maps)</label>
       <h4>Realm access</h4>
       ${D.realms.map(r => `
@@ -621,6 +677,7 @@
         <button class="btn danger" id="resetBtn">Reset</button>
       </div>
       <textarea id="stateIO" placeholder="State JSON appears here for export/import"></textarea>`;
+    dr.querySelector("#ownerReview").addEventListener("change", e => { setOwnerReview(e.target.checked); document.querySelector(".state-drawer")?.classList.add("open"); });
     dr.querySelector("#editMode").addEventListener("change", e => { editMode = e.target.checked; render(); dr.classList.add("open"); });
     dr.querySelectorAll("[data-realm-toggle]").forEach(t => t.addEventListener("change", () => {
       const id = t.dataset.realmToggle;
@@ -723,6 +780,11 @@
     }
     return s;
   }
+
+  /* owner review shortcut — Shift+U toggles unseal anywhere (incl. game iframe) */
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "U" && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) setOwnerReview(!ownerReview);
+  });
 
   render();
 })();
