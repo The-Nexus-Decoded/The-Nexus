@@ -34,27 +34,32 @@ describe("canonical avatar identity", () => {
     });
   });
 
-  it("routes every supported humanoid Shadowknight race through one compatible rig", () => {
+  it("routes current and legacy Shadowknight identities through their compatible rigs", () => {
     const elf = elfShadowknight();
     const human = { ...elf, raceId: "human", raceName: "Human" };
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
     const halfling = { ...elf, raceId: "halfling", raceName: "Halfling" };
-    expect(resolvePlayerModelPath(elf)).toBe("/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb");
-    expect(resolvePlayerModelPath(human)).toBe(resolvePlayerModelPath(elf));
-    expect(resolvePlayerModelPath(dwarf)).toBe(resolvePlayerModelPath(elf));
-    expect(resolvePlayerModelPath(halfling)).toBe(resolvePlayerModelPath(elf));
+    expect(resolvePlayerModelPath(elf)).toBe("/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb");
+    expect(resolvePlayerModelPath(human)).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+    expect(resolvePlayerModelPath(dwarf)).toBe(resolvePlayerModelPath(human));
+    expect(resolvePlayerModelPath(halfling)).toBe(resolvePlayerModelPath(human));
   });
 
   it("keeps model and optional same-rig animation packs on one identity manifest", () => {
     const elf = elfShadowknight();
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
 
-    const expected = {
-      modelPath: "/assets/3d/characters/elf-shadowknight/elf-shadowknight.glb",
+    const animationPacks = [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK];
+    const elfExpected = {
+      modelPath: "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
+      animationPacks,
+    };
+    const legacyExpected = {
+      modelPath: "/assets/3d/characters/human-shadowknight/human-shadowknight.glb",
       animationPacks: [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK],
     };
-    expect(resolvePlayerAvatarManifest(elf)).toEqual(expected);
-    expect(resolvePlayerAvatarManifest(dwarf)).toEqual(expected);
+    expect(resolvePlayerAvatarManifest(elf)).toEqual(elfExpected);
+    expect(resolvePlayerAvatarManifest(dwarf)).toEqual(legacyExpected);
 
     const dwarfWarrior = { ...dwarf, callingId: "warrior" as const, callingName: "Warrior" };
     expect(resolvePlayerAvatarManifest(dwarfWarrior)).toEqual({

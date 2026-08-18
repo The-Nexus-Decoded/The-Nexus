@@ -92,6 +92,7 @@ describe("motion archetype contracts", () => {
 
   it("gives enemy melee a readable wind-up, contact marker, and recovery at a clip-specific speed", () => {
     expect(ENEMY_MELEE_MOTION.clipNames.length).toBeGreaterThan(0);
+    expect(ENEMY_MELEE_MOTION.clipNames.indexOf("SwordSlash")).toBeLessThan(ENEMY_MELEE_MOTION.clipNames.indexOf("Punch"));
     expect(ENEMY_MELEE_MOTION.playbackRate).toBeLessThanOrEqual(1);
     expect(ENEMY_MELEE_MOTION.timing.telegraph[1]).toBeLessThan(ENEMY_MELEE_MOTION.timing.event.at);
     expect(ENEMY_MELEE_MOTION.timing.event.at).toBe(ENEMY_MELEE_MOTION.timing.recovery[0]);
