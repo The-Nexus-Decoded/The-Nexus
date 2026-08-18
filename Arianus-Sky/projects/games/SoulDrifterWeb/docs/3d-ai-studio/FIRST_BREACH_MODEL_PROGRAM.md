@@ -1,7 +1,9 @@
 # First Breach Production Model Program
 
-Status: active requirements and pre-generation work under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)  
-Rollback baseline: `e0b3d9d8b6ef893373e7aab6253441b6f3da108a`  
+Status: active requirements and pre-generation work under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
+
+Rollback baseline: `e0b3d9d8b6ef893373e7aab6253441b6f3da108a`
+
 Branch: `codex/448-souldrifter-first-breach-models`
 
 ## Priority and boundary
