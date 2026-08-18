@@ -92,25 +92,48 @@ describe("Soulwell dungeon generation", () => {
     }
   });
 
-  it("uses the complete reusable 3D dungeon kit in a seeded, organic arrangement", () => {
+  it("uses the reusable kit through room-specific boundary sockets instead of room-center scatter", () => {
     const expectedAssets = new Set(DUNGEON_PROP_ASSET_IDS);
-    for (let seed = 1; seed <= 60; seed += 1) {
+    const observedAssets = new Set<string>();
+    const forbiddenTrainingAssets = new Set([
+      "guardian-statue",
+      "monster-egg-nest",
+      "cocooned-remains-web-mass",
+      "shed-chitin-pile",
+      "burrowed-wall-breach-plug",
+      "corruption-growth",
+      "ruined-altar",
+      "broken-stone-stair-dais",
+    ]);
+    for (let seed = 1; seed <= 160; seed += 1) {
       const dungeon = generateSoulwellDungeon(seed);
       const kitProps = dungeon.props.filter((prop) => prop.assetId !== undefined);
-      expect(new Set(kitProps.map((prop) => prop.assetId)), `seed ${seed}`).toEqual(expectedAssets);
-      expect(kitProps.length).toBeGreaterThanOrEqual(DUNGEON_PROP_ASSET_IDS.length);
+      const floor = new Set(dungeon.tiles.map(dungeonTileKey));
+      const well = dungeon.props.find((prop) => prop.kind === "soul-well")!;
+      expect(kitProps.length).toBeGreaterThanOrEqual(28);
       for (const prop of kitProps) {
         const spec = dungeonPropAssetSpec(prop.assetId!);
+        observedAssets.add(prop.assetId!);
         expect(prop.kind).toBe(spec.kind);
         expect(prop.blocksMovement).toBe(spec.blocksMovement);
         expect(Number.isFinite(prop.rotationY)).toBe(true);
-        if (spec.placement === "wall") {
-          expect(Math.abs(prop.offsetX ?? 0) + Math.abs(prop.offsetY ?? 0)).toBeGreaterThan(0);
+        const touchesBoundary = [
+          { x: prop.x + 1, y: prop.y },
+          { x: prop.x - 1, y: prop.y },
+          { x: prop.x, y: prop.y + 1 },
+          { x: prop.x, y: prop.y - 1 },
+        ].some((point) => !floor.has(dungeonTileKey(point)));
+        expect(touchesBoundary, `${prop.id}, seed ${seed}`).toBe(true);
+        expect(Math.abs(prop.offsetX ?? 0) + Math.abs(prop.offsetY ?? 0)).toBeGreaterThan(0);
+        if (prop.roomId === "training") {
+          expect(forbiddenTrainingAssets.has(prop.assetId!), `${prop.id}, seed ${seed}`).toBe(false);
+          expect(Math.abs(prop.x - well.x) + Math.abs(prop.y - well.y)).toBeGreaterThanOrEqual(5);
         }
       }
       const hanging = kitProps.find((prop) => prop.assetId === "hanging-brazier");
-      expect(hanging).toMatchObject({ kind: "brazier", blocksMovement: false });
+      if (hanging) expect(hanging).toMatchObject({ kind: "brazier", blocksMovement: false });
     }
+    expect(observedAssets).toEqual(expectedAssets);
   });
 
   it("keeps required actors and rewards on walkable generated tiles", () => {

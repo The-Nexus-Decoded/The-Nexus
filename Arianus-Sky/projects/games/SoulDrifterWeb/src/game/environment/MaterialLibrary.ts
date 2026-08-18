@@ -8,7 +8,6 @@ export interface SoulwellMaterialLibrary {
   oak: THREE.MeshStandardMaterial;
   darkIron: THREE.MeshStandardMaterial;
   soulglass: THREE.MeshPhysicalMaterial;
-  soulwater: THREE.MeshPhysicalMaterial;
   moss: THREE.MeshStandardMaterial;
   ash: THREE.MeshStandardMaterial;
   tomes: [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial];
@@ -153,18 +152,6 @@ export async function createSoulwellMaterialLibrary(seed: number): Promise<Soulw
     transparent: true,
     opacity: 0.88,
   });
-  const soulwater = new THREE.MeshPhysicalMaterial({
-    color: 0x2baba7,
-    emissive: 0x0a5554,
-    emissiveIntensity: 1.35,
-    roughness: 0.08,
-    metalness: 0,
-    transmission: 0.32,
-    transparent: true,
-    opacity: 0.8,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
   const moss = new THREE.MeshStandardMaterial({ map: mossMap, color: 0x738266, roughness: 1, transparent: true, opacity: 0.82, depthWrite: false });
   const ash = new THREE.MeshStandardMaterial({ color: 0x292b2a, roughness: 1, transparent: true, opacity: 0.76, depthWrite: false });
   const tomes: SoulwellMaterialLibrary["tomes"] = [
@@ -181,7 +168,6 @@ export async function createSoulwellMaterialLibrary(seed: number): Promise<Soulw
     oak,
     darkIron,
     soulglass,
-    soulwater,
     moss,
     ash,
     tomes,
@@ -189,7 +175,7 @@ export async function createSoulwellMaterialLibrary(seed: number): Promise<Soulw
     dispose: () => {
       [...Object.values(floorPbr), ...Object.values(wallPbr), ...proceduralTextures]
         .forEach((texture) => texture.dispose());
-      [flagstone, masonry, masonryOccluder, bronze, oak, darkIron, soulglass, soulwater, moss, ash, ...tomes, voidMaterial]
+      [flagstone, masonry, masonryOccluder, bronze, oak, darkIron, soulglass, moss, ash, ...tomes, voidMaterial]
         .forEach((material) => material.dispose());
     },
   };

@@ -1,11 +1,10 @@
 import type { GridPoint } from "./types";
 import {
-  DUNGEON_PROP_ASSET_IDS,
   dungeonPropAssetSpec,
   type DungeonPropAssetId,
   type DungeonPropPlacement,
   type EnvironmentPropKind,
-} from "./environment/DungeonPropCatalog";
+} from "./environment/DungeonPropCatalog.ts";
 
 export type DungeonRoomKind = "training" | "skirmish" | "boss";
 export type DungeonZoneId = "training" | "passage-one" | "skirmish" | "passage-two" | "boss";
@@ -179,50 +178,53 @@ interface PropPlacement extends GridPoint {
   rotationY: number;
 }
 
-function randomWallPoint(
-  random: RandomSource,
-  room: DungeonRoom,
-  reserved: Set<string>,
-): PropPlacement {
-  const candidates: PropPlacement[] = [];
-  for (let x = room.x + 1; x < room.x + room.width - 1; x += 1) {
-    candidates.push(
-      { x, y: room.y, offsetX: 0, offsetY: -0.38, rotationY: 0 },
-      { x, y: room.y + room.height - 1, offsetX: 0, offsetY: 0.38, rotationY: Math.PI },
-    );
-  }
-  for (let y = room.y + 1; y < room.y + room.height - 1; y += 1) {
-    candidates.push(
-      { x: room.x, y, offsetX: -0.38, offsetY: 0, rotationY: Math.PI / 2 },
-      { x: room.x + room.width - 1, y, offsetX: 0.38, offsetY: 0, rotationY: -Math.PI / 2 },
-    );
-  }
-  for (let attempt = 0; attempt < candidates.length * 2; attempt += 1) {
-    const candidate = random.pick(candidates);
-    if (reserved.has(tileKey(candidate))) continue;
-    reserved.add(tileKey(candidate));
-    return candidate;
-  }
-  const fallback = randomOpenPoint(random, room, reserved, 1);
-  return { ...fallback, offsetX: 0, offsetY: 0, rotationY: random.int(0, 3) * Math.PI / 2 };
+interface BoundaryCandidate extends GridPoint {
+  dx: number;
+  dy: number;
 }
 
-function randomPropPlacement(
+function boundaryCandidates(
+  points: readonly GridPoint[],
+  tileKeys: ReadonlySet<string>,
+): BoundaryCandidate[] {
+  const directions = [
+    { dx: -1, dy: 0 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: -1 },
+    { dx: 0, dy: 1 },
+  ];
+  return points.flatMap((point) => directions
+    .filter(({ dx, dy }) => !tileKeys.has(tileKey({ x: point.x + dx, y: point.y + dy })))
+    .map(({ dx, dy }) => ({ ...point, dx, dy })));
+}
+
+function boundaryRotation(dx: number, dy: number): number {
+  if (dx < 0) return Math.PI / 2;
+  if (dx > 0) return -Math.PI / 2;
+  return dy > 0 ? Math.PI : 0;
+}
+
+function randomBoundaryPlacement(
   random: RandomSource,
-  room: DungeonRoom,
+  candidates: BoundaryCandidate[],
   reserved: Set<string>,
   placement: DungeonPropPlacement,
-  margin: number,
 ): PropPlacement {
-  if (placement === "wall") return randomWallPoint(random, room, reserved);
-  const point = randomOpenPoint(random, room, reserved, margin);
-  const spread = placement === "ceiling" ? 0.14 : 0.28;
-  return {
-    ...point,
-    offsetX: (random.next() - 0.5) * spread,
-    offsetY: (random.next() - 0.5) * spread,
-    rotationY: random.int(0, 3) * Math.PI / 2 + (random.next() - 0.5) * 0.18,
-  };
+  while (candidates.length > 0) {
+    const index = random.int(0, candidates.length - 1);
+    const [candidate] = candidates.splice(index, 1);
+    if (!candidate || reserved.has(tileKey(candidate))) continue;
+    reserved.add(tileKey(candidate));
+    const edgeOffset = placement === "wall" ? 0.42 : placement === "ceiling" ? 0.12 : 0.28;
+    return {
+      x: candidate.x,
+      y: candidate.y,
+      offsetX: candidate.dx * edgeOffset,
+      offsetY: candidate.dy * edgeOffset,
+      rotationY: boundaryRotation(candidate.dx, candidate.dy) + (placement === "wall" ? 0 : (random.next() - 0.5) * 0.16),
+    };
+  }
+  throw new Error("Unable to place a semantic boundary prop without entering a traversal lane.");
 }
 
 export function createRunSeed(): number {
@@ -403,66 +405,133 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
     { id: "gate-oathbreaker", kind: "gate", roomId: "training", blocksMovement: true, ...hardGatePoint },
   ];
 
-  const trainingDecorationAssets: readonly DungeonPropAssetId[] = [
-    "broken-stone-stair-dais",
-    "iron-floor-grate",
-    "hanging-iron-cage",
+  const trainingArchiveAssets: readonly DungeonPropAssetId[] = [
+    "archive-bookshelf",
+    "archive-cupboard",
+    "empty-weapon-rack",
+    "reliquary-wall-alcove",
+  ];
+  const trainingFurnitureAssets: readonly DungeonPropAssetId[] = [
+    "trestle-table",
+    "heavy-bench",
+    "high-backed-chair",
+    "broken-handcart",
+    "weapon-armor-heap",
+  ];
+  const trainingLightAssets: readonly DungeonPropAssetId[] = [
+    "wall-torch-sconce",
+    "floor-brazier",
+    "hanging-brazier",
     "candelabra-cluster",
+  ];
+  const trainingStorageAssets: readonly DungeonPropAssetId[] = [
+    "storage-chest",
+    "reinforced-crate",
+    "storage-barrel",
+    "supply-pile",
+    "bottles-jugs-crockery-cluster",
+  ];
+  const trainingClutterAssets: readonly DungeonPropAssetId[] = [
+    "iron-floor-grate",
+    "weapon-armor-heap",
+    "broken-handcart",
+    "bottles-jugs-crockery-cluster",
+    "reinforced-crate",
+  ];
+  const skirmishDecorationAssets: readonly DungeonPropAssetId[] = [
+    "storage-chest",
+    "reinforced-crate",
+    "storage-barrel",
+    "trestle-table",
+    "heavy-bench",
+    "empty-weapon-rack",
+    "wall-torch-sconce",
+    "floor-brazier",
+    "hanging-brazier",
+    "cave-in-rubble",
+    "masonry-barricade",
+    "bone-pile",
+    "chain-shackle",
+    "heavy-door",
+    "false-wall-panel",
+    "supply-pile",
+    "corruption-growth",
+    "ruined-stone-archway",
+    "reliquary-wall-alcove",
+    "wooden-support-brace",
+    "rusted-portcullis",
+    "iron-floor-grate",
+    "collapsed-timber-masonry-pile",
+    "hanging-iron-cage",
     "bottles-jugs-crockery-cluster",
     "weapon-armor-heap",
     "broken-handcart",
     "monster-egg-nest",
+    "cocooned-remains-web-mass",
     "shed-chitin-pile",
+    "burrowed-wall-breach-plug",
+  ];
+  const bossDecorationAssets: readonly DungeonPropAssetId[] = [
+    "wall-torch-sconce",
+    "floor-brazier",
+    "hanging-brazier",
+    "cave-in-rubble",
+    "masonry-barricade",
+    "bone-pile",
+    "chain-shackle",
+    "ruined-altar",
+    "false-wall-panel",
+    "corruption-growth",
+    "guardian-statue",
+    "ruined-stone-archway",
+    "reliquary-wall-alcove",
+    "broken-stone-stair-dais",
+    "rusted-portcullis",
     "collapsed-timber-masonry-pile",
+    "hanging-iron-cage",
+    "candelabra-cluster",
+    "weapon-armor-heap",
+    "cocooned-remains-web-mass",
+    "shed-chitin-pile",
   ];
-  const trainingAssetStart = random.int(0, trainingDecorationAssets.length - 1);
-  const trainingDecorationCount = random.int(8, trainingDecorationAssets.length);
-  for (let index = 0; index < trainingDecorationCount; index += 1) {
-    const assetId = trainingDecorationAssets[(trainingAssetStart + index * 3) % trainingDecorationAssets.length]!;
-    const spec = dungeonPropAssetSpec(assetId);
-    const placement = randomPropPlacement(random, training, reserved, spec.placement, 2);
-    props.push({
-      id: `training-${assetId}-${index}`,
-      kind: spec.kind,
-      roomId: "training",
-      blocksMovement: spec.blocksMovement,
-      assetId,
-      ...placement,
-    });
-  }
 
-  const decorationRooms = [
-    ...crawlSections.map((section) => ({ ...section, roomId: "skirmish" as const, propPrefix: section.id })),
-    { ...boss, roomId: "boss" as const, propPrefix: "boss" },
-  ];
-  const assetStart = random.int(0, DUNGEON_PROP_ASSET_IDS.length - 1);
-  let assetOrdinal = 0;
-  for (const room of decorationRooms) {
-    const count = room.roomId === "boss" ? random.int(20, 24) : random.int(6, 8);
+  const allTileKeys = new Set(tileMap.keys());
+  const placeSemanticBoundarySet = (
+    points: readonly GridPoint[],
+    roomId: DungeonRoomKind,
+    prefix: string,
+    assets: readonly DungeonPropAssetId[],
+    count: number,
+  ): void => {
+    const candidates = boundaryCandidates(points, allTileKeys);
+    const assetStart = random.int(0, assets.length - 1);
     for (let index = 0; index < count; index += 1) {
-      // Stepping by five is coprime with the catalog length. Combined with the
-      // minimum 38 placements, every run uses the whole kit before any model
-      // repeats while the seed still changes order, rotation, room, and placement.
-      const assetId = DUNGEON_PROP_ASSET_IDS[(assetStart + assetOrdinal * 5) % DUNGEON_PROP_ASSET_IDS.length]!;
+      const assetId = assets[(assetStart + index * 7) % assets.length]!;
       const spec = dungeonPropAssetSpec(assetId);
-      const placement = randomPropPlacement(
-        random,
-        { ...room, id: room.roomId },
-        reserved,
-        spec.placement,
-        room.roomId === "boss" ? 2 : 1,
-      );
+      const placement = randomBoundaryPlacement(random, candidates, reserved, spec.placement);
       props.push({
-        id: `${room.propPrefix}-${assetId}-${index}`,
+        id: `${prefix}-${assetId}-${index}`,
         kind: spec.kind,
-        roomId: room.roomId,
+        roomId,
         blocksMovement: spec.blocksMovement,
         assetId,
         ...placement,
       });
-      assetOrdinal += 1;
     }
+  };
+
+  const trainingTiles = [...tileMap.values()].filter((tile) => tile.zoneId === "training");
+  placeSemanticBoundarySet(trainingTiles, "training", "training-archive", trainingArchiveAssets, 3);
+  placeSemanticBoundarySet(trainingTiles, "training", "training-furniture", trainingFurnitureAssets, 2);
+  placeSemanticBoundarySet(trainingTiles, "training", "training-light", trainingLightAssets, 2);
+  placeSemanticBoundarySet(trainingTiles, "training", "training-storage", trainingStorageAssets, 2);
+  placeSemanticBoundarySet(trainingTiles, "training", "training-clutter", trainingClutterAssets, 1);
+
+  for (const section of crawlSections) {
+    const sectionPoints = roomTiles({ ...section, id: "skirmish" });
+    placeSemanticBoundarySet(sectionPoints, "skirmish", section.id, skirmishDecorationAssets, random.int(4, 6));
   }
+  placeSemanticBoundarySet(roomTiles(boss), "boss", "boss", bossDecorationAssets, random.int(8, 10));
 
   props.push({ id: "first-memory", kind: "essence", roomId: "boss", blocksMovement: true, ...essencePoint });
 
