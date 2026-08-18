@@ -1350,15 +1350,16 @@ h3 {
 
 .target-frame {
   position: absolute;
-  top: 58px;
+  top: 76px;
   left: 50%;
   z-index: 8;
   width: min(390px, calc(100% - 160px));
   padding: 20px 13px 11px;
   border: 1px solid rgba(255, 157, 116, 0.88);
   background:
-    linear-gradient(135deg, rgba(86, 42, 36, 0.96), rgba(31, 38, 49, 0.96) 58%, rgba(44, 31, 28, 0.96));
-  box-shadow: 0 15px 38px rgba(3, 7, 13, 0.52), 0 0 0 2px rgba(239, 184, 95, 0.16), inset 0 1px rgba(255, 236, 198, 0.12);
+    linear-gradient(135deg, rgba(86, 42, 36, 0.78), rgba(31, 38, 49, 0.76) 58%, rgba(44, 31, 28, 0.78));
+  box-shadow: 0 12px 28px rgba(3, 7, 13, 0.38), 0 0 0 2px rgba(239, 184, 95, 0.13), inset 0 1px rgba(255, 236, 198, 0.12);
+  backdrop-filter: blur(6px) saturate(1.12);
   transform: translateX(-50%);
   clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
 }
@@ -1370,7 +1371,7 @@ h3 {
   padding: 2px 12px;
   border: 1px solid rgba(239, 184, 95, 0.78);
   color: #ffe1a8;
-  background: #3b2c27;
+  background: rgba(59, 44, 39, 0.82);
   content: "TARGET LOCK";
   font: 700 8px/1 "Soul HUD", sans-serif;
   letter-spacing: 0.16em;
@@ -1554,15 +1555,32 @@ h3 {
 
 .buff-strip {
   position: absolute;
-  top: 10px;
-  left: 50%;
+  top: 51px;
+  left: 10px;
+  z-index: 9;
   display: flex;
   gap: 4px;
-  max-width: min(420px, 45%);
-  transform: translateX(-50%);
+  max-width: min(420px, calc(100% - 420px));
+  padding: 3px;
+  border: 1px solid rgba(122, 244, 223, 0.44);
+  background: rgba(20, 34, 42, 0.76);
+  box-shadow: 0 9px 24px rgba(2, 8, 16, 0.34), inset 0 1px rgba(224, 255, 246, 0.08);
+  backdrop-filter: blur(7px);
   pointer-events: auto;
 }
 .buff-strip[hidden] { display: none; }
+.buff-strip::before {
+  display: grid;
+  min-width: 78px;
+  padding: 0 7px;
+  border-right: 1px solid rgba(122, 244, 223, 0.28);
+  place-items: center;
+  color: #c8fff3;
+  content: "STATUS EFFECTS";
+  font: 700 7px/1.25 "Soul HUD", sans-serif;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
 .buff-chip {
   position: relative;
   display: grid;
@@ -1572,7 +1590,7 @@ h3 {
   border: 1px solid rgba(98, 230, 219, 0.54);
   place-items: center;
   color: #dffff8;
-  background: rgba(6, 17, 18, 0.9);
+  background: rgba(14, 32, 36, 0.82);
   box-shadow: inset 0 0 12px rgba(98, 230, 219, 0.1);
 }
 .buff-chip--debuff { border-color: rgba(220, 109, 85, 0.64); color: #ffd9d0; }
@@ -2238,7 +2256,8 @@ h3 {
   .compact-status span { padding: 5px 4px; }
   .hud-drawer-controls { top: 5px; right: 5px; }
   .hud-drawer-controls button { width: 34px; min-width: 34px; height: 34px; }
-  .buff-strip { top: 46px; max-width: calc(100% - 12px); }
+  .buff-strip { top: 44px; left: 5px; max-width: calc(100% - 190px); }
+  .buff-strip::before { min-width: 58px; padding-inline: 4px; content: "STATUS"; }
   .buff-chip { width: 38px; height: 38px; }
   .trial-gate-guidance { top: 90px; width: calc(100% - 16px); justify-content: center; }
   .trial-gate-guidance span { min-width: 0; flex: 1; }
@@ -2265,7 +2284,7 @@ h3 {
   .mode-indicator { min-width: 72px; padding: 4px; font-size: 7px; }
   .footer-note { display: none; }
 
-  .target-frame { top: 90px; width: min(330px, calc(100% - 20px)); }
+  .target-frame { top: 82px; width: min(330px, calc(100% - 20px)); }
   .dialogue-panel { right: 6px; bottom: 6px; left: 6px; min-height: 0; grid-template-columns: 88px 1fr; }
   .dialogue-panel__content { padding: 12px; }
   .dialogue-body p { font-size: 12px; }
