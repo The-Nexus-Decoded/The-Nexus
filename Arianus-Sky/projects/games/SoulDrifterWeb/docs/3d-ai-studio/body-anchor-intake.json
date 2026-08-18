@@ -55,8 +55,26 @@
       41213872,
       43491896
     ],
+    "indexIntegrity": {
+      "duplicateIndexTriangles": 0,
+      "zeroAreaTriangles": 0,
+      "outOfRangeIndices": 0,
+      "unusedVertices": 0
+    },
+    "connectedComponentRange": [
+      73,
+      393
+    ],
+    "componentsUnder100TrianglesRange": [
+      2,
+      49
+    ],
+    "componentsUnder1000TrianglesRange": [
+      6,
+      237
+    ],
     "scaleFinding": "largest source extent is normalized to approximately 1.0 and centered at the origin; shipping meter scale, orientation, ground contact, and pivot are not established",
-    "topologyFinding": "single extremely dense fused source mesh; deformation topology, modular head seam, clothing fit, and game LODs are not established",
+    "topologyFinding": "single extremely dense fused source mesh with internally disconnected surfaces; the integrity scan found no invalid, duplicate-index, zero-area, or unused geometry, but Halfling sources contain 151-393 connected components and up to 237 sub-1000-triangle fragments, so component classification, cleanup, deformation topology, modular head seam, clothing fit, and game LODs are not established",
     "rigFinding": "no skin, skeleton, joints, or animation clips are present",
     "decision": "accepted-as-visual-source-only-awaiting-production-retopology-and-rig-gate"
   },
@@ -81,7 +99,10 @@
       },
       "diagnostics": {
         "vertices": 730452,
-        "triangles": 1430636
+        "triangles": 1430636,
+        "connectedComponents": 74,
+        "componentsUnder100Triangles": 5,
+        "componentsUnder1000Triangles": 7
       }
     },
     {
@@ -104,7 +125,10 @@
       },
       "diagnostics": {
         "vertices": 762065,
-        "triangles": 1493296
+        "triangles": 1493296,
+        "connectedComponents": 73,
+        "componentsUnder100Triangles": 2,
+        "componentsUnder1000Triangles": 6
       }
     },
     {
@@ -127,7 +151,10 @@
       },
       "diagnostics": {
         "vertices": 750895,
-        "triangles": 1470180
+        "triangles": 1470180,
+        "connectedComponents": 80,
+        "componentsUnder100Triangles": 2,
+        "componentsUnder1000Triangles": 7
       }
     },
     {
@@ -150,7 +177,10 @@
       },
       "diagnostics": {
         "vertices": 757232,
-        "triangles": 1483118
+        "triangles": 1483118,
+        "connectedComponents": 81,
+        "componentsUnder100Triangles": 5,
+        "componentsUnder1000Triangles": 11
       }
     },
     {
@@ -173,7 +203,10 @@
       },
       "diagnostics": {
         "vertices": 753325,
-        "triangles": 1476490
+        "triangles": 1476490,
+        "connectedComponents": 74,
+        "componentsUnder100Triangles": 4,
+        "componentsUnder1000Triangles": 9
       }
     },
     {
@@ -196,7 +229,10 @@
       },
       "diagnostics": {
         "vertices": 736121,
-        "triangles": 1434602
+        "triangles": 1434602,
+        "connectedComponents": 116,
+        "componentsUnder100Triangles": 7,
+        "componentsUnder1000Triangles": 16
       }
     },
     {
@@ -219,7 +255,10 @@
       },
       "diagnostics": {
         "vertices": 742591,
-        "triangles": 1429868
+        "triangles": 1429868,
+        "connectedComponents": 368,
+        "componentsUnder100Triangles": 19,
+        "componentsUnder1000Triangles": 182
       }
     },
     {
@@ -242,7 +281,10 @@
       },
       "diagnostics": {
         "vertices": 737417,
-        "triangles": 1430220
+        "triangles": 1430220,
+        "connectedComponents": 213,
+        "componentsUnder100Triangles": 27,
+        "componentsUnder1000Triangles": 72
       }
     },
     {
@@ -265,7 +307,10 @@
       },
       "diagnostics": {
         "vertices": 766722,
-        "triangles": 1491246
+        "triangles": 1491246,
+        "connectedComponents": 151,
+        "componentsUnder100Triangles": 10,
+        "componentsUnder1000Triangles": 31
       }
     },
     {
@@ -288,7 +333,10 @@
       },
       "diagnostics": {
         "vertices": 764828,
-        "triangles": 1474466
+        "triangles": 1474466,
+        "connectedComponents": 393,
+        "componentsUnder100Triangles": 49,
+        "componentsUnder1000Triangles": 237
       }
     },
     {
@@ -311,7 +359,10 @@
       },
       "diagnostics": {
         "vertices": 754723,
-        "triangles": 1458651
+        "triangles": 1458651,
+        "connectedComponents": 336,
+        "componentsUnder100Triangles": 37,
+        "componentsUnder1000Triangles": 197
       }
     },
     {
@@ -334,7 +385,10 @@
       },
       "diagnostics": {
         "vertices": 727171,
-        "triangles": 1414548
+        "triangles": 1414548,
+        "connectedComponents": 168,
+        "componentsUnder100Triangles": 12,
+        "componentsUnder1000Triangles": 65
       }
     }
   ]
