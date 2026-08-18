@@ -7,7 +7,11 @@
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
     "status": "text-to-3d-human-pilot-generated-awaiting-intake",
     "workflowDecision": "text-to-3d-default",
-    "paidOperationApproved": false
+    "paidOperationApproved": false,
+    "textTo3dGenerationApproved": true,
+    "textTo3dApprovalScope": "all-required-models-for-issue-448",
+    "imageTo3dApproved": false,
+    "notifyWhenCreditBalanceBelow": 1000
   },
   "studioWorkspace": {
     "project": "SoulDrifter",
@@ -108,9 +112,16 @@
     ]
   },
   "creditPolicy": {
-    "approval": "exact-operation-model-version-expected-cost-and-maximum-cost",
+    "approval": "phase-wide-required-text-to-3d-generation-for-issue-448",
     "batchApprovalImplied": false,
     "stopOnUnexpectedCost": true,
+    "notifyWhenCreditBalanceBelow": 1000,
+    "excludedOperations": [
+      "image-to-3d",
+      "remesh",
+      "rigging",
+      "paid-animation"
+    ],
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
     "currentCandidate": "text-to-3d-task-ef7a7258",
     "nextPaidPilot": "one-text-to-3d-breachling-base-candidate"

@@ -54,7 +54,7 @@ Codex then performs the technical verification:
 2. Run a read-only capability/listing call before any paid generation.
 3. Confirm which models and operations the connector actually exposes: image creation, image-to-3D, text-to-3D, remesh, texture, rig, export, and task status.
 4. Confirm whether the connector returns task IDs, credit estimates, seeds, model versions, and downloadable artifacts.
-5. Perform one deliberately small, disposable test only after the owner approves the expected credit charge.
+5. Perform paid generation only inside the current written owner authorization; otherwise obtain approval for the exact expected credit charge.
 6. Record the connector and model versions. Never assume the MCP exposes every operation available in the web dashboard or public REST API.
 
 If MCP is unavailable, the same pipeline may use the documented REST API or an owner-reviewed dashboard handoff. API credentials use bearer authentication and remain outside Git. The public API and MCP connector are separate integration paths and may expose different features.
@@ -70,7 +70,7 @@ If MCP is unavailable, the same pipeline may use the documented REST API or an o
 | 3 | Dwarf | compact adult body, broad grounded frame, non-cartoon proportions | generate after shared clothing proof |
 | 4 | Halfling | small adult body, readable hands/feet/face, never childlike or chibi | generate after small-body retarget proof |
 
-The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry, but only one owner-approved Human body is generated for the first paid rig proof. Its counterpart and later ancestry bodies require separate credit approvals after the skeleton, head seam, clothing, and animation gates pass.
+The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry. Under the 2026-08-17 phase authorization, the remaining seven base anchors may be generated before the shared rig proof; Slim and Heavy conform profiles, gear expansion, and runtime promotion still wait for topology, skeleton, head-seam, clothing, and animation gates.
 
 ### Modular head, skin, hair, and facial-detail contract
 
@@ -122,7 +122,7 @@ The owner approves one assembled calling view for each of the nine callings. Tho
 
 ## Text-to-3D prompt gate
 
-Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and obtain approval for the exact live settings and charge before every task. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
+Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized every text-to-3D model required by issue #448 and must be notified if the account balance drops below 1,000 credits. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
 
 This decision follows the approved 2026-08-17 Human athletic comparison:
 
@@ -181,12 +181,12 @@ is a conforming source for a separate game-equipment mesh, never fused character
 
 ## Generation and intake sequence
 
-### Phase 0: approve before spending credits
+### Phase 0: verify authorization before spending credits
 
 1. Lock the ticket, asset ID, ancestry/calling purpose, direct text-to-3D prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
 3. Save the prompt hash and any optional owner-review concept references in the intake ledger. Concept art is not a generation input unless the separately approved image-to-3D exception applies.
-4. Obtain owner approval of the exact prompt, operation, model/version, and expected charge.
+4. Confirm that the task is required text-to-3D generation inside the issue #448 phase authorization, record the exact prompt/settings/live charge, and monitor the 1,000-credit notification threshold. Image-to-3D and other paid operations still require separate approval.
 
 ### Phase 1: generate one source candidate
 
@@ -367,11 +367,11 @@ The first paid sequence is deliberately narrow:
 2. Before spending more credits, export and inspect the untouched text-to-3D candidate, preserving task and credit provenance.
 3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
-5. Produce one text-to-3D shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source under separate exact-cost approvals.
+5. Produce one text-to-3D shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source inside the phase authorization after the body-source queue is complete.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
 8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
-9. With a separate approval, prove the counterpart Human body family and shared appearance layers before expanding ancestry bodies.
+9. Prove the counterpart Human body family and shared appearance layers before expanding derived body profiles.
 10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
 11. Only after those gates pass, generate remaining ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
 
@@ -390,7 +390,7 @@ Stop and request owner review when:
 ## Approval checklist
 
 - [ ] Paid plan and MCP connection verified without exposing credentials.
-- [ ] Asset ticket, text-to-3D prompt, operation, model/version, and expected credits approved.
+- [ ] Asset ticket, text-to-3D prompt, operation, model/version, expected credits, and applicable phase authorization recorded.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.

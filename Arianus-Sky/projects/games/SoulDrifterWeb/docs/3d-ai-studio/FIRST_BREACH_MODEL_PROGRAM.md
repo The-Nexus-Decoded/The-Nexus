@@ -45,7 +45,7 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 ## Default generation operation
 
-Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price approval for each task. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per approved prompt. Image-to-3D is permitted only when the owner selects a specific pre-existing design to reproduce; it is never the automatic fallback for a failed text prompt and never the default batch operation.
+Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record for each task. On 2026-08-17 the owner authorized every text-to-3D model required to complete issue #448 and requested notification if the account balance drops below 1,000 credits. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per prompt. Image-to-3D remains outside that authorization and is permitted only when the owner selects a specific pre-existing design to reproduce.
 
 The approved 2026-08-17 comparison established the rule:
 
@@ -220,13 +220,13 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 ### Stage 2: creature pilot
 
 - Present the original Breachling base text-to-3D prompt and creature-motion brief.
-- After a separate exact approval, submit one isolated Breachling text-to-3D source candidate only.
+- Submit one isolated Breachling text-to-3D source candidate inside the phase authorization after its prompt is recorded.
 - Prove cleanup, creature rig, locomotion, attack, hit, death, terminal hold, and gameplay-camera readability.
 - Stop before variants or Warden generation if the creature boundary fails.
 
 ### Stage 3: controlled expansion
 
-After both pilots pass, separately approve:
+After both pilots pass, continue the authorized text-to-3D queue in this order:
 
 1. counterpart Human body and Human appearance library;
 2. Elf, Dwarf, and Halfling body pairs and fit profiles;
@@ -235,7 +235,7 @@ After both pilots pass, separately approve:
 5. Breachling variants, training construct, and Cinderbound Warden;
 6. final Level 1 animation/room integration.
 
-No stage implies approval for the next stage. A task that consumes an unexpected credit amount stops the batch immediately.
+The standing authorization covers required text-to-3D generation only. It does not approve image-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
 
 ## Rollback and promotion
 
@@ -243,14 +243,8 @@ The public baseline at `e0b3d9d8b6ef893373e7aab6253441b6f3da108a` remains indepe
 
 Runtime resolution must retain an explicit fallback manifest while the branch is in development. Promotion removes a placeholder only after its production replacement passes on every required surface. It never deletes the rollback release or rewrites old saved character identities silently.
 
-## Immediate next approval point
+## Current authorization and notification point
 
-The approved 85-credit Human workflow comparison is complete. No additional paid generation, variant, remesh, rig, or batch is currently approved. Before another paid 3D AI Studio call, the owner receives:
+The approved 85-credit Human comparison is complete. The owner has now authorized all additional text-to-3D models required by this issue without individual approval pauses. Before each submission, Codex still records the isolated-asset prompt, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 1,000 credits.
 
-- the exact isolated-asset text-to-3D prompt and exclusion list;
-- the exact connector operation and model/version;
-- the live expected and maximum credit cost;
-- the requested output formats;
-- the stop conditions and local intake destination.
-
-The Breachling pilot and every later asset group receive their own approval envelopes. An image-to-3D envelope is considered only for a specific owner-selected pre-existing design and must include four clean isolated identity-matched views.
+This authorization does not include image-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. An image-to-3D request remains a separate exception for a specific owner-selected pre-existing design with four clean isolated identity-matched views.
