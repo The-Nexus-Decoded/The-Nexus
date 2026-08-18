@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -165,8 +165,55 @@
       "geometrySource": "3d-ai-studio",
       "status": "approval-required",
       "lifetime": "game-wide",
+      "facialFeatureFamilies": [
+        {
+          "id": "african-diaspora-black",
+          "displayName": "African Diaspora / Black"
+        },
+        {
+          "id": "east-asian",
+          "displayName": "East Asian"
+        },
+        {
+          "id": "south-asian-indian",
+          "displayName": "South Asian / Indian"
+        },
+        {
+          "id": "european",
+          "displayName": "European"
+        }
+      ],
+      "availableAcrossAncestries": [
+        "human",
+        "elf",
+        "dwarf",
+        "halfling"
+      ],
+      "availableAcrossPresentations": [
+        "masculine",
+        "feminine"
+      ],
+      "availableAcrossBodyProfiles": [
+        "slim",
+        "athletic",
+        "heavy"
+      ],
+      "independentAppearanceAxes": [
+        "ancestry",
+        "facial-feature-family",
+        "skin-tone",
+        "hair",
+        "facial-hair",
+        "adornments",
+        "body-profile",
+        "presentation"
+      ],
+      "implementationContract": "reusable-versioned-head-variants-or-deformation-profiles-on-compatible-head-topologies-not-duplicated-full-bodies",
+      "ancestryMarkersLayeredIndependently": true,
+      "caricatureAllowed": false,
+      "gameplayImpact": "appearance-only",
       "items": [
-        "three-face-structure-families-per-compatible-topology",
+        "four-cross-ancestry-facial-feature-families-per-compatible-head-topology",
         "six-or-more-skin-material-families",
         "six-or-more-masculine-presenting-hair-families",
         "six-or-more-feminine-presenting-hair-families",

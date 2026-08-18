@@ -86,12 +86,16 @@ Body profile is appearance-only in this program. It does not change ancestry sta
 
 The current production minimum is:
 
-- three adult facial structure families per compatible head topology: soft/round, angular/high-cheek, and broad/strong;
+- four adult facial-feature families per compatible head topology: African diaspora/Black, East Asian, South Asian/Indian, and European;
 - at least six equally canonical skin-tone material families, including deep, dark, medium-deep, medium, tan/olive, and light/pale coverage;
 - at least six masculine-presenting and six feminine-presenting hair geometry families, with cross-presentation availability whenever fit QA passes;
 - modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings;
 - ancestry markers that remain readable without changing morality, class, rarity, or power;
 - locally rendered headshots from the exact approved runtime assembly.
+
+Every facial-feature family is available across Human, Elf, Dwarf, and Halfling character creation, and across masculine/feminine presentation and Slim/Athletic/Heavy body profiles. Fantasy ancestry remains a separate layer for features such as ear form, stature, and ancestry-specific proportions; it never determines the player's real-world facial-feature family. Skin tone, hair, facial hair, adornments, body profile, calling, and statistics are also independent selections. No family is the default, canonical, rare, morally coded, or mechanically advantaged choice.
+
+These are respectful reusable head variants or deformation profiles on compatible head topologies, not caricatures and not duplicated full-body models. Each family needs representative reference review, equivalent detail and material quality, identical facial-animation coverage, and fit validation with every supported ancestry marker before release. Character-creation data stores a stable `facialFeatureFamilyId` independently from `ancestryId`, `skinToneId`, `bodyProfileId`, and presentation.
 
 Character creation, gameplay, paper doll, saved profile, and headshot rendering must resolve the same asset IDs. A portrait cannot depict hair, skin, facial structure, adornment, armor, or weapon that the world actor does not have.
 
