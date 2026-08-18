@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import npcData from "../public/data/npcs.json";
 import {
   CALLINGS,
-  callingById,
   deriveCharacter,
   MEMORY_QUESTIONS,
   RACES,
@@ -12,7 +11,6 @@ import {
   type CharacterDraft,
 } from "../src/game/character";
 import { buildDialogue, type NpcDatabase, type NpcStoryOverride } from "../src/game/npc";
-import { resolvePlayerModelPath } from "../src/game/avatarIdentity";
 import { characterPortraitPath } from "../src/characterCreation";
 
 function completeDraft(raceId: string, callingId: string): CharacterDraft {
@@ -34,7 +32,7 @@ function completeDraft(raceId: string, callingId: string): CharacterDraft {
 describe("character weaving", () => {
   it("derives allowed and rare combinations while rejecting every forbidden matrix cell", () => {
     expect(RACES).toHaveLength(4);
-    expect(CALLINGS).toHaveLength(10);
+    expect(CALLINGS).toHaveLength(9);
 
     for (const race of RACES) {
       for (const calling of CALLINGS) {
@@ -49,7 +47,6 @@ describe("character weaving", () => {
         expect(profile.skills).toContain(race.talent);
         expect(profile.skills).toContain(calling.signatureSkill);
         expect(profile.skills).toContain(calling.defensiveSkill);
-        if (calling.utilitySkill) expect(profile.skills).toContain(calling.utilitySkill);
         expect(profile.memoryConsequences).toHaveLength(MEMORY_QUESTIONS.length);
         expect(`/assets/generated/characters/${race.id}-${calling.id}.png`).toMatch(/\.png$/);
       }
@@ -62,25 +59,7 @@ describe("character weaving", () => {
     expect(raceCallingEligibility("halfling", "mage").status).toBe("forbidden");
     expect(raceCallingEligibility("halfling", "shadowknight").status).toBe("forbidden");
     expect(raceCallingEligibility("dwarf", "sharpshooter").status).toBe("allowed");
-    expect(raceCallingEligibility("dwarf", "stalker").status).toBe("rare");
-    expect(raceCallingEligibility("halfling", "stalker").status).toBe("allowed");
     expect(raceCallingEligibility("elf", "shadowknight").status).toBe("rare");
-  });
-
-  it("defines Stalker as an infiltration class distinct from Slayer", () => {
-    const stalker = callingById("stalker");
-    const slayer = callingById("slayer");
-    const halflingStalker = deriveCharacter(completeDraft("halfling", "stalker"));
-    expect(stalker).toMatchObject({
-      resourceName: "Guile",
-      signatureSkill: "Ambush Cut",
-      defensiveSkill: "Slip Away",
-      utilitySkill: "Trap Sense",
-    });
-    expect(stalker.tacticalJob).toContain("locks");
-    expect(stalker.signatureSkill).not.toBe(slayer.signatureSkill);
-    expect(halflingStalker.skills).toContain("Hearthside Hands");
-    expect(resolvePlayerModelPath(halflingStalker)).toBe("/assets/3d/characters/slayer.gltf");
   });
 
   it("applies the approved ancestry baselines", () => {

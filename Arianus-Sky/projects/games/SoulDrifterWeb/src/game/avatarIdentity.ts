@@ -15,8 +15,6 @@ const PLAYER_MODEL_BY_CALLING: Readonly<Record<CharacterProfile["callingId"], st
   summoner: "/assets/3d/characters/summoner.gltf",
   asura: "/assets/3d/characters/asura.gltf",
   slayer: "/assets/3d/characters/slayer.gltf",
-  // Engineering fallback only until the approved modular Stalker body exists.
-  stalker: "/assets/3d/characters/slayer.gltf",
   shadowknight: "/assets/3d/characters/shadowknight.gltf",
 };
 

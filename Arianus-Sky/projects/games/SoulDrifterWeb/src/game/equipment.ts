@@ -132,7 +132,6 @@ export const STARTER_LOADOUTS: Readonly<Record<CallingId, StarterLoadout>> = {
   summoner: { outfit: COMMON_STARTER_OUTFIT, weapon: "Unadorned binding rod", weaponFamily: "focus" },
   asura: { outfit: COMMON_STARTER_OUTFIT, weapon: "Plain ritual knife", weaponFamily: "dagger" },
   slayer: { outfit: COMMON_STARTER_OUTFIT, weapon: "Pair of worn daggers", weaponFamily: "dagger" },
-  stalker: { outfit: COMMON_STARTER_OUTFIT, weapon: "Plain iron shortsword", weaponFamily: "sword", offhand: "Worn utility knife" },
   shadowknight: { outfit: COMMON_STARTER_OUTFIT, weapon: "Battered iron longsword", weaponFamily: "sword" },
 };
 
@@ -228,7 +227,6 @@ export const WEAPON_TRAINING: Readonly<Record<CallingId, Readonly<Partial<Record
   summoner: { staff: "trained", focus: "specialized", dagger: "trained" },
   asura: { dagger: "trained", focus: "specialized", staff: "trained" },
   slayer: { dagger: "specialized", sword: "trained", bow: "trained" },
-  stalker: { sword: "specialized", dagger: "trained", bow: "trained" },
   shadowknight: { sword: "specialized", axe: "trained", hammer: "trained", staff: "trained" },
 };
 

@@ -3,7 +3,7 @@ export const STAT_KEYS = ["might", "finesse", "insight", "will", "vitality", "re
 export type StatKey = (typeof STAT_KEYS)[number];
 export type Stats = Record<StatKey, number>;
 export type RaceId = "human" | "elf" | "dwarf" | "halfling";
-export type CallingId = "warrior" | "mage" | "priest" | "sharpshooter" | "paladin" | "summoner" | "asura" | "slayer" | "stalker" | "shadowknight";
+export type CallingId = "warrior" | "mage" | "priest" | "sharpshooter" | "paladin" | "summoner" | "asura" | "slayer" | "shadowknight";
 export type RaceCallingEligibilityStatus = "allowed" | "rare" | "forbidden";
 
 export interface RaceCallingEligibility {
@@ -39,7 +39,6 @@ export interface CallingDefinition {
   resourceName: string;
   signatureSkill: string;
   defensiveSkill: string;
-  utilitySkill?: string;
   signatureRange: number;
   signatureDamage: number;
   signatureColor: number;
@@ -326,25 +325,6 @@ export const CALLINGS: readonly CallingDefinition[] = [
     modifiers: { finesse: 3, might: 2 },
   },
   {
-    id: "stalker",
-    name: "Stalker",
-    glyph: "◑",
-    identity: "Scout hidden routes, read locks and traps, and shape an escape before danger closes in.",
-    tacticalJob: "Infiltration · locks · traps · scouting · escape",
-    resourceName: "Guile",
-    signatureSkill: "Ambush Cut",
-    defensiveSkill: "Slip Away",
-    utilitySkill: "Trap Sense",
-    signatureRange: 1,
-    signatureDamage: 9,
-    signatureColor: 0xc9b86a,
-    startingArmor: 0,
-    startingHpModifier: -1,
-    learningCurve: "Moderate",
-    lateGameCeiling: "High",
-    modifiers: { finesse: 3, insight: 2 },
-  },
-  {
     id: "shadowknight",
     name: "Shadowknight",
     glyph: "♜",
@@ -382,7 +362,6 @@ export const RACE_CALLING_RULES: Readonly<Record<RaceId, Readonly<Partial<Record
     summoner: { status: "rare", reason: "Dwarven binders can shape crafted vessels, but summoning is not a mainstream hold tradition." },
     asura: { status: "rare", reason: "Ancestor and tomb knowledge makes black-thread practice possible, though culturally dangerous." },
     slayer: { status: "rare", reason: "Dwarven execution specialists exist outside the protective forge-and-hold tradition." },
-    stalker: { status: "rare", reason: "Dwarven scouts and saboteurs exist, but lock-work and theft sit outside mainstream hold culture." },
     shadowknight: { status: "forbidden", reason: "Dwarven souls do not bind to the ash-lich Shadowknight path." },
   },
   halfling: {
@@ -404,7 +383,6 @@ export const RACE_CALLING_BONUSES: readonly RaceCallingBonus[] = [
   { raceId: "halfling", callingId: "sharpshooter", name: "Low Profile", description: "A smaller silhouette opens firing lanes others cannot use.", modifiers: { finesse: 1 } },
   { raceId: "halfling", callingId: "priest", name: "Hearth Mercy", description: "Halfling rescue traditions make protection immediate and practical.", modifiers: { will: 1 } },
   { raceId: "halfling", callingId: "slayer", name: "Hidden Knife", description: "Overlooked angles become precise execution routes.", modifiers: { finesse: 1 } },
-  { raceId: "halfling", callingId: "stalker", name: "Hearthside Hands", description: "Halfling patience and quick hands turn overlooked locks, traps, and routes into safe passage.", modifiers: { finesse: 1 } },
 ] as const;
 
 export const MEMORY_QUESTIONS: readonly MemoryQuestion[] = [
@@ -500,7 +478,6 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
   const ancestryCallingBonus = raceCallingBonus(race.id, calling.id);
   const stats = blankStats();
   const skills = [race.talent, calling.signatureSkill, calling.defensiveSkill];
-  if (calling.utilitySkill) skills.push(calling.utilitySkill);
   const memoryConsequences: string[] = [];
 
   applyModifiers(stats, race.modifiers);
