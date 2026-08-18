@@ -139,20 +139,20 @@ describe("First Breach production model register", () => {
     );
   });
 
-  it("registers exact identity-matched Breachling front and rear sources before conversion", () => {
+  it("registers four exact identity-matched Breachling views before conversion", () => {
     const task = modelRegister.sourceGenerationTasks.find(
       (entry) => entry.assetId === "creature-breachling-base-image-first-v001",
     );
 
     expect(task).toMatchObject({
-      operation: "image-to-3d-multi-view-two-image",
+      operation: "image-to-3d-multi-view-four-image",
       model: "prism-3.1-multi-view",
       textureQuality: "ultra",
       meshQuality: "standard",
       expectedCredits: 45,
       maximumCredits: 45,
       status: "approved-ready-to-submit",
-      ownerReview: "approved-huge-maw-front-and-matching-plated-rear-shown-in-chat",
+      ownerReview: "approved-huge-maw-four-view-source-set-shown-in-chat",
       runtimePromotionAllowed: false,
     });
     expect(task?.sourceImages).toEqual([
@@ -167,6 +167,15 @@ describe("First Breach production model register", () => {
         finalEditPromptSha256: "4FBB83BC367B54209367C391868CDA88BBE2A8810F86304DE07E030C420675DC",
       }),
       expect.objectContaining({
+        view: "left",
+        file: "sd-creature-breachling-base-chatgpt-left-v1-source.png",
+        bytes: 1740247,
+        width: 1122,
+        height: 1402,
+        sha256: "AF40B81BCD21FBA3B832A3323FDE1E2D2873C9C31F0DBCD3EE55CE66198B208D",
+        generationPromptSha256: "A32FD7027BD63099F1729D6BBCCA8C5DD288BB74DECFF2CB5D59567E75DB55CD",
+      }),
+      expect.objectContaining({
         view: "rear",
         file: "sd-creature-breachling-base-chatgpt-rear-v1-source.png",
         bytes: 1802881,
@@ -175,10 +184,19 @@ describe("First Breach production model register", () => {
         sha256: "50ABC07414B545277E0C2E5BC66A83DFCFCD53A9AA1A3F3CE35D2BA3A1A9AAE6",
         generationPromptSha256: "F139E2EF1087092BC066CF354FC340ED377CB524B20EFFAE4F93ED6C5658CFA9",
       }),
+      expect.objectContaining({
+        view: "right",
+        file: "sd-creature-breachling-base-chatgpt-right-v1-source.png",
+        bytes: 1692371,
+        width: 1122,
+        height: 1402,
+        sha256: "837748C86E1A9D70F273F2BE5D93092C649A4E7C13A438500132C0261F201E16",
+        generationPromptSha256: "36BF35DA40AD0CA2DAC58BFF9962ABD8B1CD40FB444C207426430511D49144D6",
+      }),
     ]);
     expect(task?.viewContract).toMatchObject({
-      mode: "two-clean-separate-identity-matched-files",
-      coverage: ["front", "rear"],
+      mode: "four-clean-separate-identity-matched-files",
+      coverage: ["front", "left", "rear", "right"],
       compositeSheetAllowed: false,
     });
     expect(task?.supersededSourceImages).toHaveLength(2);
