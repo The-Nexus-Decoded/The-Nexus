@@ -36,11 +36,13 @@
     ]
   },
   "generationPolicy": {
-    "defaultOperation": "chatgpt-reference-image-then-image-to-3d-single-image",
+    "defaultOperation": "chatgpt-reference-image-then-asset-appropriate-image-to-3d",
     "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
     "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
-    "heroCreatureOperation": "image-to-3d-four-view-after-front-side-rear-contradiction-gate",
+    "bespokeAsymmetricActorOperation": "four-separate-owner-reviewed-chatgpt-views-then-meshy-7-multi-image",
+    "heroCreatureOperation": "image-to-3d-four-view-meshy-7-after-front-side-rear-contradiction-gate",
     "defaultModel": "prism-3.1",
+    "selectedBespokeMultiViewModel": "meshy-7-multi-image",
     "approvedStartingTextureQuality": "ultra",
     "liveSettingsAndPriceApprovalRequiredPerTask": false,
     "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
@@ -88,6 +90,22 @@
         "cinderbound-warden"
       ],
       "multiViewSourceGate": {
+        "canonicalSourceGenerator": "chatgpt-built-in-imagegen-not-3d-ai-studio-image-generation",
+        "articulatedActorTurnaroundTool": "3d-ai-studio-character-sheet-generator-gpt-image-2-medium",
+        "articulatedActorTurnaroundUse": "fallback-for-simpler-humanoid-or-npc-proof-not-default-for-bespoke-monsters",
+        "bespokeMonsterPreferredSource": "four-separate-owner-reviewed-chatgpt-views-with-full-canonical-spec-parity",
+        "selectedBespokeMultiViewProviderModel": "meshy-7-multi-image",
+        "prismExternalCreatureMultiViewPolicy": "do-not-retry-after-policy-rejection-and-auto-refund",
+        "turnaroundMasterAllowedAsStagingOnly": true,
+        "turnaroundMasterAllowedAsImageTo3dInput": false,
+        "providerFixedSlotOrder": [
+          "front",
+          "left",
+          "back",
+          "right"
+        ],
+        "browserUploadExactApprovedFilesRequired": true,
+        "backgroundRemovalForConnectorAddressabilityAllowed": false,
         "appliesTo": [
           "humanoid",
           "biped-creature",
@@ -97,6 +115,14 @@
         ],
         "submissionBlockedUntilEveryViewPasses": true,
         "identityAndTopologyConsistencyRequired": true,
+        "crossViewConsistencyRequired": [
+          "same-subject-scale-and-ground-height",
+          "same-camera-distance-and-orthographic-framing",
+          "same-neutral-lighting-and-background",
+          "same-pose-and-joint-angles",
+          "same-colors-materials-and-surface-markings",
+          "same-appendage-count-and-asymmetric-side-placement"
+        ],
         "rearRequiredEvidence": [
           "back-of-skull-or-rear-head-shell",
           "spine-scapulae-or-rear-axial-structure",
@@ -124,7 +150,23 @@
           "palm-surface",
           "front-or-top-view-of-both-feet"
         ],
+        "completedModelInspection": [
+          "front",
+          "left",
+          "back",
+          "right",
+          "top",
+          "underside",
+          "duplicate-or-floating-geometry",
+          "material-seams-and-texture-projection"
+        ],
         "failureAction": "reject-source-view-regenerate-and-spend-zero-provider-credits"
+      },
+      "nonCharacterObjectRouting": {
+        "simpleSymmetricObject": "single-clean-three-quarter-image",
+        "complexAsymmetricObject": "four-view-object-turnaround-split-into-front-left-back-right",
+        "characterSheetGeneratorAllowed": false,
+        "canonicalFrontDefinedBy": "functional-facing-direction-or-documented-presentation-side"
       },
       "compositeSheetsAllowed": false,
       "automaticFallbackFromTextFailure": false,
@@ -298,11 +340,12 @@
     },
     {
       "assetId": "creature-breachling-base-image-first-v001",
-      "operation": "image-to-3d-multi-view-four-image",
+      "operation": "image-to-3d-multi-view-four-image-poc",
       "provider": "3d-ai-studio",
-      "model": "prism-3.1-multi-view",
-      "textureQuality": "ultra",
+      "model": "meshy-7-multi-image",
+      "textureQuality": "standard",
       "meshQuality": "standard",
+      "topologySetting": "quad",
       "expectedCredits": 45,
       "maximumCredits": 45,
       "sourceImages": [
@@ -446,10 +489,10 @@
           ]
         }
       },
-      "status": "replacement-four-view-source-set-owner-approved-ready-for-provider-submission",
-      "taskId": null,
-      "actualCredits": null,
-      "ownerReview": "replacement-four-view-source-set-approved-original-upright-set-rejected",
+      "status": "custom-four-view-meshy-poc-owner-preferred-source-candidate-awaiting-retopology-and-rig",
+      "taskId": "7ad8a98c-8984-4091-a71c-ed053295e156",
+      "actualCredits": 45,
+      "ownerReview": "custom-four-view-meshy-poc-preferred-over-auto-sheet-same-engine-comparison",
       "canonicalPromptPolicy": {
         "fullIdentityBlockRequiredVerbatimForEveryView": true,
         "shorthandOrReferenceOnlyPromptAllowed": false,
@@ -457,7 +500,7 @@
         "canonicalIdentityBlock": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall. It is not an upright humanoid, Dragonkin, Dragonborn, heroic biped, or player-character body with a monster head. Its permanent resting anatomy is a low stalking hunch: the wiry torso and spine hinge forward about forty degrees from the rear-set pelvis; the upper back forms a pronounced rounded predatory arch; the shoulder girdle sits clearly forward of and slightly higher than the hips; the neck projects forward; the large head hangs low and well ahead of the chest. It has disproportionately long weight-bearing-looking forearms ending in exactly four clawed fingers, with fingertips hanging below the knees and nearly reaching the ground; noticeably short powerful bent digitigrade legs; low hocks and Achilles; broad stable heel pads and feet; a narrow angular skull; swept-back ear fins; deep-set amber eyes; ash-gray scaled skin with muted teal fissure mottling; small bony shoulder and spine ridges; and a huge broad non-human hinged predator maw with a deep cavity, multiple layers of long irregular teeth, and a visible tongue. The source uses a neutral symmetric custom-rig stance while preserving the permanent crouch, with separated limbs, open hands off the floor, planted feet, and visible joints. No clothing, manufactured armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature."
       },
       "replacementSourceSet": {
-        "status": "canonical-four-view-v4-owner-approved-and-anomaly-gated",
+        "status": "canonical-four-view-v5-safe-rear-owner-approved-and-meshy-converted",
         "submissionAllowed": true,
         "ownerReview": "approved",
         "sourceImages": [
@@ -487,15 +530,15 @@
           },
           {
             "view": "rear",
-            "file": "sd-creature-breachling-base-chatgpt-rear-v4-canonical-source.png",
+            "file": "sd-creature-breachling-base-chatgpt-rear-v5-safe-source.png",
             "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-            "bytes": 1815966,
+            "bytes": 1873415,
             "width": 1254,
             "height": 1254,
-            "sha256": "8A29733921BC2A16A3FABA97B206C54868440F3AE86762A2A916AFEFC775E6EB",
-            "generationPromptSha256": "B623F0D155F1E91DAE765D52AA13DADC5A978F8C7DF1D5807D21A7635B11D4A8",
-            "promptParity": "full-canonical-identity-block-plus-rear-camera-suffix",
-            "anomalyGate": "passed-true-rear-with-spine-scapulae-rear-pelvis-knee-backs-hocks-achilles-and-heel-pads-no-face-or-front-cues"
+            "sha256": "5E41BD54732E216529D91F1680AF5BBB2C2FAA7846E9658821815CB84DC2F3F3",
+            "promptHashCaptureStatus": "exact-final-edit-prompt-hash-not-captured-at-generation-blocks-canonical-production-promotion-until-resolved",
+            "promptParity": "full-canonical-identity-block-plus-rear-camera-suffix-and-neutral-fused-reptilian-pelvic-carapace-safety-correction",
+            "anomalyGate": "passed-true-rear-neutral-fused-pelvic-carapace-spine-scapulae-knee-backs-hocks-achilles-and-heel-pads-no-face-front-cues-or-anatomically-ambiguous-central-fold"
           },
           {
             "view": "right",
@@ -518,6 +561,100 @@
         ],
         "missingViews": []
       },
+      "workflowComparison": {
+        "date": "2026-08-18",
+        "decision": "custom-four-view-meshy-wins-for-bespoke-monsters",
+        "ownerDecision": "ours-is-better-custom-four-view-meshy",
+        "prismCustomFourView": {
+          "status": "policy-rejected-and-auto-refunded",
+          "stableTaskIds": [
+            "1481daa5-3e18-4300-aa7d-737ee57b9c28",
+            "3f30f184-d016-4f73-ae29-c5908d61e135",
+            "11dffa1a-3fdb-49b5-bbb9-89bcd5a8f90e",
+            "c8df4f82-080a-4fa1-bd07-7dac95963787"
+          ],
+          "browserAttemptsWithoutStableTaskId": 2,
+          "correctedRearV5Retried": true,
+          "netCredits": 0,
+          "retryAllowed": false
+        },
+        "characterSheet": {
+          "taskId": "b3c21a78-3c79-442b-b383-ae3a7eb5bcd6-0",
+          "model": "gpt-image-2-medium",
+          "actualCredits": 6,
+          "status": "completed-and-mechanically-split-into-four-views",
+          "sourceSheetFile": "breachling-base-character-sheet-b3c21a78.jpeg",
+          "sourceSheetSha256": "EF12C1E03FDDD97784157869B59A4DE20B8C840AB7AF8071CFBAEC13F8253F06",
+          "decision": "fast-fallback-for-simpler-humanoid-or-npc-proof-not-bespoke-monster-default"
+        },
+        "characterSheetToPrism": {
+          "taskId": "1bea1354-38aa-45e1-a2b8-827d01ecdfb5",
+          "model": "prism-3.1-multi-view",
+          "actualCredits": 40,
+          "status": "completed-source-candidate-not-owner-selected",
+          "untouchedExportFile": "sd-creature-breachling-base-character-sheet-prism-task-1bea1354.glb",
+          "untouchedExportBytes": 42642648,
+          "untouchedExportSha256": "B86DC27CA90F4483F46F669694CF0FF7D3B1F7E977C2D9DF49DC9D000804E91D",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 760487,
+            "triangles": 1477224,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1, 0.9417218566, 0.7700154185]
+          }
+        },
+        "customFourViewToMeshy": {
+          "taskId": "7ad8a98c-8984-4091-a71c-ed053295e156",
+          "model": "meshy-7-multi-image",
+          "requestedTopology": "quad",
+          "actualCredits": 45,
+          "status": "completed-owner-preferred-source-candidate",
+          "untouchedExportFile": "sd-creature-breachling-base-custom-four-view-meshy-task-7ad8a98c.glb",
+          "untouchedExportBytes": 64256852,
+          "untouchedExportSha256": "2FE338B2F41C49784CB2EA05824E3AE27D5497F3695C03541F63CF0D429A3D0A",
+          "ownerPreferred": true,
+          "visualDecision": "best-preserves-lean-trunk-long-forearms-low-crouch-and-predator-threat-read",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 1046575,
+            "triangles": 1997824,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1.1903689504, 1.4572690129, 1.9004309773]
+          }
+        },
+        "characterSheetToMeshy": {
+          "taskId": "d16c2f59-1213-4339-8741-14ecdc3e01f3",
+          "model": "meshy-7-multi-image",
+          "requestedTopology": "quad",
+          "actualCredits": 45,
+          "status": "completed-same-engine-comparison-not-owner-selected",
+          "untouchedExportFile": "sd-creature-breachling-base-character-sheet-meshy-task-d16c2f59.glb",
+          "untouchedExportBytes": 63716704,
+          "untouchedExportSha256": "D12B8370B004F017B9749E7E59CC8E8B039AA61FB8785F9A4FFEC46041C85610",
+          "ownerPreferred": false,
+          "visualDecision": "bulkier-trunk-and-hips-shorter-rounder-silhouette-softened-bespoke-predator-proportions",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 1038247,
+            "triangles": 1999524,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1.4276419878, 1.7501109838, 1.9010099769]
+          }
+        },
+        "runtimeGate": "all-three-poc-glbs-are-high-poly-single-mesh-unrigged-and-not-runtime-ready-retopology-bake-rig-and-animation-proof-still-required"
+      },
       "runtimePromotionAllowed": false
     },
     {
@@ -525,8 +662,8 @@
       "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
-      "plannedConversionModel": "prism-3.1-multi-view",
-      "plannedTextureQuality": "ultra",
+      "plannedConversionModel": "meshy-7-multi-image",
+      "plannedTextureQuality": "standard",
       "expectedConversionCredits": 45,
       "sourceImage": {
         "view": "front",
@@ -550,8 +687,8 @@
       "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
-      "plannedConversionModel": "prism-3.1-multi-view",
-      "plannedTextureQuality": "ultra",
+      "plannedConversionModel": "meshy-7-multi-image",
+      "plannedTextureQuality": "standard",
       "expectedConversionCredits": 45,
       "sourceImage": {
         "view": "front",
@@ -575,8 +712,8 @@
       "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
-      "plannedConversionModel": "prism-3.1-multi-view",
-      "plannedTextureQuality": "ultra",
+      "plannedConversionModel": "meshy-7-multi-image",
+      "plannedTextureQuality": "standard",
       "expectedConversionCredits": 45,
       "sourceImage": {
         "view": "front",
@@ -673,6 +810,7 @@
       },
       "replacementSourceSet": {
         "status": "front-v2-and-true-rear-v2-generated-left-v2-and-right-v2-still-required",
+        "plannedConversionModel": "meshy-7-multi-image",
         "submissionAllowed": false,
         "sourceImages": [
           {

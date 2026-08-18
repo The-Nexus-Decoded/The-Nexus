@@ -69,6 +69,19 @@ describe("First Breach production model register", () => {
     const gate = modelRegister.generationPolicy.imageTo3dProduction.multiViewSourceGate;
 
     expect(gate.submissionBlockedUntilEveryViewPasses).toBe(true);
+    expect(gate).toMatchObject({
+      canonicalSourceGenerator: "chatgpt-built-in-imagegen-not-3d-ai-studio-image-generation",
+      articulatedActorTurnaroundTool: "3d-ai-studio-character-sheet-generator-gpt-image-2-medium",
+      articulatedActorTurnaroundUse: "fallback-for-simpler-humanoid-or-npc-proof-not-default-for-bespoke-monsters",
+      bespokeMonsterPreferredSource: "four-separate-owner-reviewed-chatgpt-views-with-full-canonical-spec-parity",
+      selectedBespokeMultiViewProviderModel: "meshy-7-multi-image",
+      prismExternalCreatureMultiViewPolicy: "do-not-retry-after-policy-rejection-and-auto-refund",
+      turnaroundMasterAllowedAsStagingOnly: true,
+      turnaroundMasterAllowedAsImageTo3dInput: false,
+      providerFixedSlotOrder: ["front", "left", "back", "right"],
+      browserUploadExactApprovedFilesRequired: true,
+      backgroundRemovalForConnectorAddressabilityAllowed: false,
+    });
     expect(gate.appliesTo).toEqual(
       expect.arrayContaining([
         "humanoid",
@@ -96,7 +109,24 @@ describe("First Breach production model register", () => {
     expect(gate.sideForbiddenCues).toEqual(
       expect.arrayContaining(["three-quarter-camera-angle", "second-eye-or-opposite-cheek", "palm-surface"]),
     );
+    expect(gate.crossViewConsistencyRequired).toEqual(
+      expect.arrayContaining([
+        "same-subject-scale-and-ground-height",
+        "same-camera-distance-and-orthographic-framing",
+        "same-appendage-count-and-asymmetric-side-placement",
+      ]),
+    );
+    expect(gate.completedModelInspection).toEqual(
+      expect.arrayContaining(["front", "left", "back", "right", "top", "underside"]),
+    );
     expect(gate.failureAction).toBe("reject-source-view-regenerate-and-spend-zero-provider-credits");
+
+    expect(modelRegister.generationPolicy.imageTo3dProduction.nonCharacterObjectRouting).toEqual({
+      simpleSymmetricObject: "single-clean-three-quarter-image",
+      complexAsymmetricObject: "four-view-object-turnaround-split-into-front-left-back-right",
+      characterSheetGeneratorAllowed: false,
+      canonicalFrontDefinedBy: "functional-facing-direction-or-documented-presentation-side",
+    });
   });
 
   it("defines the permanent humanoid foundation and only Level 1 production content", () => {
@@ -173,17 +203,20 @@ describe("First Breach production model register", () => {
     expect(task.generationOutcome.decision).toBe("retain-as-design-source-not-yet-a-rig-candidate");
   });
 
-  it("preserves the rejected upright Breachling set and approves the corrected four-view replacement", () => {
+  it("records the owner-selected custom-four-view Meshy Breachling POC winner", () => {
     const task = sourceTask("creature-breachling-base-image-first-v001");
 
     expect(task).toMatchObject({
-      operation: "image-to-3d-multi-view-four-image",
+      operation: "image-to-3d-multi-view-four-image-poc",
+      model: "meshy-7-multi-image",
+      textureQuality: "standard",
+      topologySetting: "quad",
       expectedCredits: 45,
       maximumCredits: 45,
-      status: "replacement-four-view-source-set-owner-approved-ready-for-provider-submission",
-      taskId: null,
-      actualCredits: null,
-      ownerReview: "replacement-four-view-source-set-approved-original-upright-set-rejected",
+      status: "custom-four-view-meshy-poc-owner-preferred-source-candidate-awaiting-retopology-and-rig",
+      taskId: "7ad8a98c-8984-4091-a71c-ed053295e156",
+      actualCredits: 45,
+      ownerReview: "custom-four-view-meshy-poc-preferred-over-auto-sheet-same-engine-comparison",
       runtimePromotionAllowed: false,
     });
     expect(task.viewContract).toMatchObject({
@@ -206,7 +239,7 @@ describe("First Breach production model register", () => {
     });
     expect(task.canonicalPromptPolicy.canonicalIdentityBlock).toContain("about forty degrees");
     expect(task.replacementSourceSet).toMatchObject({
-      status: "canonical-four-view-v4-owner-approved-and-anomaly-gated",
+      status: "canonical-four-view-v5-safe-rear-owner-approved-and-meshy-converted",
       submissionAllowed: true,
       ownerReview: "approved",
       missingViews: [],
@@ -222,6 +255,45 @@ describe("First Breach production model register", () => {
       expect(source.promptParity).toContain("full-canonical-identity-block-plus-");
       expect(source.anomalyGate).toContain("passed");
     }
+    expect(task.replacementSourceSet.sourceImages.find((source: any) => source.view === "rear")).toMatchObject({
+      file: "sd-creature-breachling-base-chatgpt-rear-v5-safe-source.png",
+      sha256: "5E41BD54732E216529D91F1680AF5BBB2C2FAA7846E9658821815CB84DC2F3F3",
+    });
+    expect(task.workflowComparison).toMatchObject({
+      decision: "custom-four-view-meshy-wins-for-bespoke-monsters",
+      ownerDecision: "ours-is-better-custom-four-view-meshy",
+      characterSheet: {
+        taskId: "b3c21a78-3c79-442b-b383-ae3a7eb5bcd6-0",
+        actualCredits: 6,
+      },
+      characterSheetToPrism: {
+        taskId: "1bea1354-38aa-45e1-a2b8-827d01ecdfb5",
+        actualCredits: 40,
+      },
+      customFourViewToMeshy: {
+        taskId: "7ad8a98c-8984-4091-a71c-ed053295e156",
+        actualCredits: 45,
+        ownerPreferred: true,
+      },
+      characterSheetToMeshy: {
+        taskId: "d16c2f59-1213-4339-8741-14ecdc3e01f3",
+        actualCredits: 45,
+        ownerPreferred: false,
+      },
+    });
+    expect(task.workflowComparison.prismCustomFourView).toMatchObject({
+      status: "policy-rejected-and-auto-refunded",
+      browserAttemptsWithoutStableTaskId: 2,
+      netCredits: 0,
+      retryAllowed: false,
+    });
+    expect(task.workflowComparison.customFourViewToMeshy.meshInspection).toMatchObject({
+      vertices: 1046575,
+      triangles: 1997824,
+      skins: 0,
+      animations: 0,
+    });
+    expect(task.workflowComparison.runtimeGate).toContain("not-runtime-ready");
   });
 
   it("keeps all three Breachling tier fronts provisional and biological", () => {
@@ -232,6 +304,8 @@ describe("First Breach production model register", () => {
     ]) {
       const task = sourceTask(assetId);
       expect(task).toMatchObject({
+        plannedConversionModel: "meshy-7-multi-image",
+        plannedTextureQuality: "standard",
         status: "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
         ownerReview: "visual-direction-liked-not-production-approved",
         sharedRigWith: "creature-breachling-base-image-first-v001",
@@ -272,6 +346,7 @@ describe("First Breach production model register", () => {
       ]),
     );
     expect(task.replacementSourceSet).toMatchObject({
+      plannedConversionModel: "meshy-7-multi-image",
       submissionAllowed: false,
       missingViews: ["exact-ninety-degree-left-v2", "exact-ninety-degree-right-v2"],
     });

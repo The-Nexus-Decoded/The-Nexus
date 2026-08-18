@@ -1,6 +1,6 @@
 # First Breach Production Model Program
 
-Status: active requirements; first paid workflow comparison complete under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
+Status: active production-source program; Breachling multi-view POC owner-selected under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
 
 Rollback baseline: `e0b3d9d8b6ef893373e7aab6253441b6f3da108a`
 
@@ -24,11 +24,11 @@ This batch does not generate open-world trees, grass, walls, terrain, buildings,
 
 ## Source and ownership rule
 
-Every new body, head source, hair geometry family, clothing/armor geometry family, weapon family, named NPC, creature, prop, and environment piece begins as an owner-reviewed ChatGPT reference image containing one complete isolated subject. That exact image is then submitted to 3D AI Studio Image-to-3D. Single-image is the default; owner-approved hero creatures may use four separate identity-matched views after the strict view gate below. Direct text-to-3D was retired for new production work after the Breachling/Warden comparison showed unacceptable style and identity drift. No production actor is accepted by renaming or recoloring a generic substitute.
+Every new body, head source, hair geometry family, clothing/armor geometry family, weapon family, named NPC, creature, prop, and environment piece begins as an owner-reviewed ChatGPT reference image containing one complete isolated subject. That approved source is then routed through the asset-appropriate 3D AI Studio Image-to-3D path. A clean single image remains suitable for simple or symmetric subjects. Bespoke monsters and other asymmetric hero actors use four separately art-directed, identity-matched ChatGPT views after the strict view gate below, with Meshy 7 Multi-image selected by the Breachling POC. Direct text-to-3D was retired for new production work after the Breachling/Warden comparison showed unacceptable style and identity drift. No production actor is accepted by renaming or recoloring a generic substitute.
 
 Beginning with the 2026-08-18 fidelity correction, every new source uses one complete canonical specification. The identity, silhouette, proportions, anatomy and joint logic, face, materials and palette, role/lore read, required details, and forbidden traits are copied verbatim into every ChatGPT generation. Only the camera or output suffix may change. Shorthand such as “same creature,” “preserve the reference,” or a delta-only edit prompt cannot replace the full specification. A reference image is supporting evidence, not permission to omit requirements.
 
-This rule is prospective. Existing paid outputs are preserved and judged by their actual owner-visible result and technical intake; missing retrospective prompt parity alone does not trigger a rebuild. A paid source is regenerated only for a concrete visual or technical blocker. The rejected two-headed Warden is one such blocker. The unconverted upright Breachling images cost no 3D Studio credits and are being corrected before submission.
+This rule is prospective. Existing paid outputs are preserved and judged by their actual owner-visible result and technical intake; missing retrospective prompt parity alone does not trigger a rebuild. A paid source is regenerated only for a concrete visual or technical blocker. The rejected two-headed Warden is one such blocker. The rejected upright Breachling images remain historical evidence; the corrected four-view v5 set and owner-preferred Meshy source candidate supersede them without deleting provenance.
 
 3D AI Studio is the source generator, not the last production step. Every accepted source still requires:
 
@@ -49,11 +49,28 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 ## Generation operation by asset type
 
-All production categories use the same image-first path. Most assets use one owner-reviewed ChatGPT image of one isolated subject on a clean plain background followed by one Prism 3.1 single-image conversion. Humanoid sources use a neutral front A- or T-pose with clear limbs and flat feet. Riggable creatures use a neutral custom-rig stance that preserves their canonical anatomy; forcing a hunched predator upright to imitate a humanoid A-pose is a source failure. Weapons, armor, clothing, props, and environment modules use a neutral unobstructed product orientation. A contact sheet, multiple figures, inset views, action pose, automatic multi-view crop, fused equipment set, or conflicting camera view is invalid input.
+All production categories use the same image-first principle, but not a single provider model. Simple and symmetric assets can use one owner-reviewed ChatGPT image followed by Prism 3.1 single-image conversion. Bespoke asymmetric monsters and hero actors use four separate owner-reviewed views followed by Meshy 7 Multi-image conversion. Humanoid sources use a neutral front A- or T-pose with clear limbs and flat feet. Riggable creatures use a neutral custom-rig stance that preserves their canonical anatomy; forcing a hunched predator upright to imitate a humanoid A-pose is a source failure. Weapons, armor, clothing, and ordinary props use a neutral unobstructed product orientation. A composite contact sheet, multiple figures, inset views, action pose, fused equipment set, or conflicting camera view is invalid provider input.
 
-The Breachling family and Cinderbound Warden have an explicit owner decision permitting four-view Prism 3.1 Multi-Image conversion. Front, exact 90-degree left, true rear, and exact 90-degree right must be four separate identity-matched files. A side view fails if it is three-quarter, exposes the opposite eye/cheek, front chest, palm, or the top/front of both feet. A rear view fails if it exposes any face, throat/chest/front core, palms, kneecaps/front shins, toe tops, or front-facing weapon surface. It must instead prove rear skull/head shell, spine/scapulae, rear pelvis/tail root, backs of limbs, and species-appropriate hamstrings, hocks, Achilles, heels, or paw anatomy. Any contradiction blocks submission and spends zero provider credits.
+The Breachling family and Cinderbound Warden have an explicit owner decision permitting four-view conversion. Front, exact 90-degree left, true rear, and exact 90-degree right must be four separate identity-matched files. A side view fails if it is three-quarter, exposes the opposite eye/cheek, front chest, palm, or the top/front of both feet. A rear view fails if it exposes any face, throat/chest/front core, palms, kneecaps/front shins, toe tops, or front-facing weapon surface. It must instead prove rear skull/head shell, spine/scapulae, rear pelvis/tail root, backs of limbs, and species-appropriate hamstrings, hocks, Achilles, heels, or paw anatomy. Any contradiction blocks submission. Prism rejected the external Breachling view set under provider policy even after the safer rear correction and automatically refunded those attempts, so that exact Prism route is not retried; the accepted bespoke path is Meshy 7 Multi-image.
 
-On 2026-08-17 the owner authorized all required issue #448 single-image conversions without per-task approval pauses and requested notification when the account balance falls below 2,000 credits. Every ChatGPT source is still shown in chat before conversion, and live settings, charge, task ID, receipt, and source hash are recorded for every task. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment are outside this authorization.
+### Multi-view source construction standard
+
+The supported multi-view paths follow the provider's [Image-to-3D fixed-view contract](https://docs.3daistudio.com/3d-generation/image-to-3d) and [Character Sheet workflow](https://docs.3daistudio.com/image-studio/character-sheet):
+
+1. Generate one full-resolution canonical actor image with ChatGPT in Codex. Do not purchase the canonical design image inside 3D AI Studio.
+2. Approve and hash that source before any paid provider operation.
+3. For a bespoke monster or asymmetric hero actor, create and approve four separate ChatGPT views from the same full canonical specification. The Breachling POC proved this preserves custom proportions better than asking the Character Sheet Generator to infer the other views from one image.
+4. For a simpler humanoid or NPC proof, the Character Sheet Generator with GPT Image 2 medium remains a fast fallback. Treat its generated sheet only as a staging master and inspect identity, proportions, anatomy, appendage count, asymmetric placement, materials, camera angle, and true-rear evidence before splitting it.
+5. Whether authored separately or split from a generated sheet, keep four separate high-resolution panels labelled `front`, `left`, `back`, and `right`. The composite sheet is never uploaded to Image-to-3D.
+6. Upload each panel into its matching multi-view slot. Meshy 7 Multi-image is the selected path for bespoke monsters; Prism remains an evaluated fallback only where its policy accepts the inputs. Left and right are character-relative, not viewer-relative guesses.
+7. Keep subject scale, framing, background, lighting, neutral pose, and ground height consistent across all four panels. The provider explicitly warns that inconsistent lighting, distance, or background confuses reconstruction.
+8. Generate the 3D model only after all four panels pass the contradiction gate. Rotate the completed mesh through front, both sides, back, top, and underside before accepting it.
+
+For an object with an obvious functional front, that front is the canonical zero-degree view: a chest uses its latch/front panel, a chair uses its seating/front direction, a weapon uses the readable presentation side, and a machine uses its control/front face. For a simple symmetric object with no meaningful hidden structure, one clean three-quarter source is preferred over an unnecessary four-view job. Complex asymmetric hard-surface objects may use fixed four-view reconstruction, but they use an object turnaround generated and split outside the character-specific tool. Wings, tails, blades, horns, handles, doors, lids, cables, and other asymmetric parts must remain on the same object-relative side in every panel.
+
+Clean white or transparent source backgrounds are uploaded directly. Background-removal credits are not spent merely to make a local file addressable to the connector; browser upload of the exact approved file is the required intake path.
+
+On 2026-08-17 the owner authorized all required issue #448 single-image conversions without per-task approval pauses. On 2026-08-18 the owner set a hard stop at 800 credits. Every ChatGPT source is still shown in chat before conversion, and live settings, charge, task ID, receipt, and source hash are recorded for every task. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment are outside this authorization.
 
 The historical 2026-08-17 comparison and subsequent Breachling/Warden tests established the rule:
 
@@ -61,6 +78,14 @@ The historical 2026-08-17 comparison and subsequent Breachling/Warden tests esta
 - multi-view image-to-3D task `304b62b1`: Prism 3.1 with Ultra texture quality, 45 credits, three unwanted figures caused by contaminated composite crops, rejected;
 - total comparison: 85 credits, account balance 3,557 to 3,472, with no remesh, rig, export promotion, or runtime replacement.
 - direct text-to-3D later produced one visually useful but incorrectly posed Breachling and one rejected armored-human Warden; these are provenance/style references only and cannot supply production geometry.
+
+The 2026-08-18 Breachling multi-view POC compared both source-construction methods and both accepted reconstruction paths:
+
+- Character Sheet task `b3c21a78-3c79-442b-b383-ae3a7eb5bcd6-0` generated four views from the approved front for 6 credits. Its side views inflated the torso/hip mass, so it is a fallback rather than the bespoke-monster default.
+- Character Sheet views to Prism task `1bea1354-38aa-45e1-a2b8-827d01ecdfb5` completed for 40 credits, but produced a 760,487-vertex, 1,477,224-triangle, unrigged source.
+- The corrected custom front/left/rear/right set to Meshy task `7ad8a98c-8984-4091-a71c-ed053295e156` completed for 45 credits. The owner selected it because it best preserved the lean trunk, long forearms, permanent low crouch, and predator threat read.
+- The Character Sheet views to the same Meshy 7 engine task `d16c2f59-1213-4339-8741-14ecdc3e01f3` completed for 45 credits, proving the source views—not merely the engine—caused the bulkier, rounder result.
+- Both Meshy outputs are approximately two million triangles and all three POC GLBs have zero skins and zero animations. The selected output is a source candidate only; retopology, bake, rig, animation, and gameplay acceptance remain mandatory.
 
 The later controlled body batch is recorded in [`body-anchor-intake.json`](./body-anchor-intake.json). Twelve accepted visual sources and their twelve owner-reviewed input images are preserved outside the shipping tree. They are grandfathered paid source candidates: their actual output is reviewed without automatically purchasing replacements. Each untouched GLB is a single unrigged mesh with roughly 727k-767k vertices and 1.41M-1.49M triangles, so none is eligible for direct runtime promotion. Account balance after the batch was 2,472 credits.
 
@@ -242,20 +267,25 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 ### Stage 2: creature pilot
 
 - Present the canonical low-hunched huge-maw Breachling source set and complete creature/rig brief.
-- Pass exact front, 90-degree left, true rear, and 90-degree right through the contradiction gate, then submit those four exact hashed files as one Prism 3.1 Multi-Image conversion inside the phase authorization.
-- Prove cleanup, creature rig, locomotion, attack, hit, death, terminal hold, and gameplay-camera readability.
-- Stop before variants or Warden generation if the creature boundary fails.
+- Pass exact front, 90-degree left, true rear, and 90-degree right through the contradiction gate, then submit those four exact hashed files as one Meshy 7 Multi-image conversion inside the phase authorization.
+- Preserve the owner-preferred task `7ad8a98c-8984-4091-a71c-ed053295e156` as the current source candidate; do not repeat the policy-blocked Prism path.
+- Treat the owner-selected source as proof of the source-construction path, not proof of runtime readiness. Continue the approved source-only queue while preserving the 800-credit floor.
+- Defer cleanup, creature rig, locomotion, attack, hit, death, terminal hold, and gameplay-camera proof to the technicalization gate after the required source library is complete.
 
 ### Stage 3: controlled expansion
 
-After both pilots pass, continue the authorized asset-type-specific queue in this order:
+After the source-construction pilots pass, continue the authorized source-only queue in this order:
 
 1. counterpart Human body and Human appearance library;
 2. Elf, Dwarf, and Halfling body pairs and fit profiles;
 3. starter clothing/calling layers and eight weapon packages;
 4. Ilyra, Orren, and Brannoc source models and facial-rig conforming;
 5. Breachling variants, training construct, and Cinderbound Warden;
-6. final Level 1 animation/room integration.
+6. source-library anomaly and provenance audit.
+
+### Stage 4: technicalization and runtime proof
+
+After the required source library is complete, obtain the separate authorization for retopology, bake, rigging, animation, and runtime integration. Prove the canonical humanoid rig first, then the shared Breachling rig and Warden mechanical hierarchy, then the named-NPC facial rig. Only after those gates pass may the branch replace a runtime placeholder and begin final Level 1 animation/room revalidation.
 
 The standing authorization covers the required owner-reviewed ChatGPT-source conversions for issue #448, including the owner-approved strict four-view Breachling and Warden conversions. It does not approve direct text-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
 
@@ -267,6 +297,6 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Current authorization and notification point
 
-The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete and preserved. The owner has authorized required issue #448 ChatGPT-image-to-3D source generation without individual approval pauses. Before each submission, Codex still shows the source image in chat and records its complete canonical prompt/edit hashes, exact file hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits; the last live-verified balance after the rejected 45-credit Warden task was 2,347.
+The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete and preserved. The owner has authorized required issue #448 ChatGPT-image-to-3D source generation without individual approval pauses. Before each submission, Codex still shows the source image in chat and records its complete canonical prompt/edit hashes, exact file hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex must stop before any task that would reduce the account below 800 credits.
 
-This authorization does not include direct text-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. Single-image mode requires exactly one isolated subject on a plain background; riggable actors require a neutral full-body stance with unobstructed limbs that preserves canonical anatomy. Multi-view requires a separate owner decision, four separate identity-matched files, and the strict side/rear contradiction gate. A contact sheet is never valid input.
+This authorization does not include direct text-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. Single-image mode requires exactly one isolated subject on a plain background; riggable actors require a neutral full-body stance with unobstructed limbs that preserves canonical anatomy. Multi-view requires a separate owner decision, four separately stored identity-matched files, and the strict side/rear contradiction gate. Separately art-directed ChatGPT views are preferred for bespoke monsters; a Character Sheet staging master is a fallback for simpler humanoid/NPC proof. A composite contact sheet is staging evidence only and is never valid Image-to-3D input.
