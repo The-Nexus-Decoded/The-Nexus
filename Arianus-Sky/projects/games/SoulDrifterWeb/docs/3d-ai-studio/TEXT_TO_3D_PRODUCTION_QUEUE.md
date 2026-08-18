@@ -2,13 +2,15 @@
 
 Status: active under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
 
-> Historical filename: direct text-to-3D is retired for new production assets. This file now tracks the owner-approved ChatGPT image -> 3D AI Studio single-image conversion queue plus historical task provenance.
+> Historical filename: direct text-to-3D is retired for new production assets. This file now tracks the owner-approved ChatGPT image -> 3D AI Studio conversion queue plus historical task provenance.
 
-Default operation: every body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module begins as one owner-reviewed ChatGPT image containing one complete isolated subject, then uses Prism 3.1 single-image conversion. Multi-view and direct text-to-3D are not default production paths.
+Default operation: every body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module begins as an owner-reviewed ChatGPT image containing one complete isolated subject, then uses Prism 3.1 single-image conversion. The Breachling family and Cinderbound Warden have a separate owner decision permitting four identity-matched views after the strict view gate. Direct text-to-3D is not a production path.
 
 Approved starting preset: Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record before every paid submission
 
-Authorization: all required issue #448 owner-reviewed ChatGPT-source single-image conversions may proceed without per-task approval pauses. Show every source image in chat and record its exact hash before conversion. Notify the owner if the account balance drops below 2,000 credits. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
+Authorization: all required issue #448 owner-reviewed ChatGPT-source conversions may proceed without per-task approval pauses. Show every source image in chat and record its exact hash before conversion. Notify the owner if the account balance drops below 2,000 credits. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
+
+Prospective full-spec rule: every new generation repeats the complete canonical identity, silhouette, scale/proportions, anatomy/joints, face, materials/palette, role/lore, required-detail, and forbidden-trait block verbatim. Only the camera or output suffix changes. Shorthand and reference-only delta prompts are prohibited. Existing paid models are preserved and judged by their actual visual/technical output; missing retrospective prompt parity does not automatically trigger another purchase.
 
 Machine-readable anchor batch: [`text-to-3d-anchor-batch.json`](text-to-3d-anchor-batch.json)
 
@@ -27,7 +29,7 @@ The eight anchors are ancestry/presentation topology and proportion sources, not
 
 ## Phase 1: base ancestry anchors
 
-Current accepted visual-source intake is authoritative in [`body-anchor-intake.json`](body-anchor-intake.json): twelve single-image conversions covering all six Halfling presentation/body-profile combinations plus the masculine/feminine Heavy replacements for Human, Elf, and Dwarf. Their exact twelve source images and twelve untouched GLBs are preserved outside the shipping tree. The GLBs contain roughly 727k-767k vertices and 1.41M-1.49M triangles each with no skeleton or animations, so all are visual source sculpts awaiting retopology and the canonical rig gate. The verified account balance after this batch is 2,472 credits.
+Current accepted visual-source intake is authoritative in [`body-anchor-intake.json`](body-anchor-intake.json): twelve single-image conversions covering all six Halfling presentation/body-profile combinations plus the masculine/feminine Heavy replacements for Human, Elf, and Dwarf. Their exact twelve source images and twelve untouched GLBs are preserved outside the shipping tree and are not automatically regenerated. The GLBs contain roughly 727k-767k vertices and 1.41M-1.49M triangles each with no skeleton or animations, so all are visual source sculpts awaiting retopology and the canonical rig gate. The verified account balance after this batch was 2,472 credits.
 
 The tables below retain the earlier text-to-3D exploration and rejected correction history. They are not the current shipping candidates.
 
@@ -122,19 +124,23 @@ The current level then receives original owner-reviewed ChatGPT image-first sour
 
 Ilyra, Orren, and Brannoc use the same approved identity for world actor and animated dialogue close-up. Creature sources receive anatomy-appropriate rigs but share the gameplay action, targeting, grounding, hit, death, terminal-state, VFX, and SFX contracts.
 
-The Breachling family is a single hunched-predator anatomy and rig with separate owner-reviewed tier renders: pale ash/grey base, darker slate/smoke Stalker, earth-brown/ochre bound Oathbound, and cinder-red/rust horned/spiked Ravager. Every render preserves the same joint layout while changing controlled silhouette attachments, proportions, palette, and materials. The approved base benchmark has a huge broad hinged non-human maw with deep cavity, layered teeth, visible tongue, and required `jaw-open`, `jaw-close`, and `snarl` controls.
+The Breachling family is a single compact roughly four-foot hunched-predator anatomy and rig with separate owner-reviewed tier renders. The permanent posture has a forward-hinged spine, rounded predatory arch, shoulders ahead of a rear-set pelvis, low forward head, long near-ground forearms, and short bent digitigrade legs. Upright humanoid, Dragonkin, Dragonborn, heroic-biped, and player-body-with-monster-head reads are forbidden. The base is pale ash/grey; the Stalker is darker slate/smoke; the Oathbound is earth-brown/ochre; and the Ravager is cinder-red/rust. Tier defenses are grown keratin scutes, osteoderms, mineralized bone, or volcanic dermal plating emerging from the hide—never worn metal, leather, straps, buckles, or rivets. The huge broad hinged non-human maw has a deep cavity, layered teeth, visible tongue, and required `jaw-open`, `jaw-close`, and `snarl` controls.
 
-The Cinderbound Warden is a distinct mechanical/golem boss family: articulated charred-basalt and oxidized-bronze plates around an ember core, faceless iron mask with a vertical sensor slit, left-palm soul-tax mechanism, and integrated right-forearm sweep blade. It must never read as a biological Breachling, armored human, knight, Paladin, or wielder of separate swords, and it uses a rigid mechanical hierarchy rather than humanoid skin deformation.
+The Cinderbound Warden is a distinct mechanical/golem boss family: articulated charred-basalt and oxidized-bronze plates around an ember core, faceless iron mask with a vertical sensor slit, left-palm soul-tax mechanism, and integrated right-forearm sweep blade. It must never read as a biological Breachling, armored human, knight, Paladin, or wielder of separate swords, and it uses a rigid mechanical hierarchy rather than humanoid skin deformation. Its model supplies a hollow furnace cage/core cavity and named `VFX_CoreFlame` socket; moving fire is a runtime effect.
+
+Prism Multi-Image task `445fd16b-4006-4c18-a54a-fed2a63da955` is a preserved rejected result: 45 credits, balance 2,392 to 2,347, duplicate two-head/two-front construction, contradictory back, and no convincing live core flame. Do not delete it without exact owner confirmation and do not rerun until its replacement front, exact sides, and true rear pass the source gates.
 
 Before any monster image is generated, its brief must define silhouette, anatomy/joint logic, locomotion, attack anatomy, jaw/facial controls, surface/material hierarchy, threat language, scale, palette, encounter role, rig controls, VFX/SFX sockets, tier/encounter variants, forbidden reads, and normal isometric-camera readability.
 
-## Single-image production workflow
+## Image-to-3D production workflow
 
-Every asset uses exactly one owner-reviewed, isolated ChatGPT source image on a plain background. Riggable humanoids and creatures use a front-facing full-body A- or T-pose with visible joints, clear limbs, and flat feet; objects use a neutral unobstructed production orientation. Prism multi-view mode is not used without a separate owner decision. Composite sheets, inset views, multiple figures, action poses, fused equipment sets, and a single image submitted to the multi-view model are prohibited.
+Single-image assets use exactly one owner-reviewed, isolated ChatGPT source image on a plain background. Riggable humanoids use a front-facing full-body A- or T-pose with visible joints, clear limbs, and flat feet. Creatures use a neutral custom-rig stance that preserves their canonical posture and anatomy. Objects use a neutral unobstructed production orientation. Composite sheets, inset views, multiple figures, action poses, fused equipment sets, and a single image submitted to the multi-view model are prohibited.
+
+For the owner-approved Breachling and Warden multi-view path, submit four separate identity-matched front/left/rear/right files. Left/right are exact 90-degree profiles, not three-quarter portraits. Rear proves rear skull/head shell, axial structure, rear pelvis, backs of limbs, and species-appropriate rear leg/foot anatomy while showing no face, chest/front core, palms, kneecaps/front shins, toe tops, or front weapon surface. Any contradiction rejects the source set before credits are spent.
 
 ## Batch and credit gates
 
-- No paid task runs unless its exact ChatGPT prompt/edit hashes, source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 single-image authorization.
+- No paid task runs unless its complete canonical ChatGPT prompt/edit hashes, source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 authorization.
 - Notify the owner when the account balance drops below 2,000 credits.
 - Phase authorization includes required source conversions and tier renders, but does not imply approval for remesh, rigging, paid animation, runtime promotion, or another project phase.
 - Stop the batch if the service reports a different total, a task duplicates, or the first result exposes a prompt-wide defect.

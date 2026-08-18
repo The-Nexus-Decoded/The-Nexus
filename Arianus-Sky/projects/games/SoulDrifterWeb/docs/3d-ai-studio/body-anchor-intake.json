@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "issue": 448,
   "branch": "codex/448-souldrifter-first-breach-models",
   "capturedAt": "2026-08-18",
@@ -20,6 +20,12 @@
   },
   "workflow": {
     "sourceRule": "one-owner-reviewed-front-facing-full-body-t-pose-on-a-plain-background",
+    "existingPaidSourceDisposition": "grandfathered-preserved-and-judged-by-owner-visible-output-plus-technical-intake-with-no-automatic-regeneration",
+    "prospectiveCanonicalFullSpecParityRequired": true,
+    "retrospectiveCompletePromptParityVerified": false,
+    "retrospectivePromptGapTriggersRebuild": false,
+    "prospectivePromptRule": "repeat-the-complete-canonical-identity-silhouette-proportion-anatomy-face-material-role-required-and-forbidden-block-verbatim-with-only-camera-or-output-suffix-changes",
+    "shorthandOrReferenceOnlyDeltaPromptsAllowedProspectively": false,
     "multiViewUsed": false,
     "contactSheetsAllowed": false,
     "directRuntimePromotionAllowed": false,

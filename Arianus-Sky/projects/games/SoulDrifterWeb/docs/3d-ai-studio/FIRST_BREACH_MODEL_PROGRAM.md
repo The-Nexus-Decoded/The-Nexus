@@ -24,7 +24,11 @@ This batch does not generate open-world trees, grass, walls, terrain, buildings,
 
 ## Source and ownership rule
 
-Every new body, head source, hair geometry family, clothing/armor geometry family, weapon family, named NPC, creature, prop, and environment piece begins as an owner-reviewed ChatGPT reference image containing one complete isolated subject. That exact image is then submitted to 3D AI Studio single-image Image-to-3D. Direct text-to-3D was retired for new production work after the Breachling/Warden comparison showed unacceptable style and identity drift. No production actor is accepted by renaming or recoloring a generic substitute.
+Every new body, head source, hair geometry family, clothing/armor geometry family, weapon family, named NPC, creature, prop, and environment piece begins as an owner-reviewed ChatGPT reference image containing one complete isolated subject. That exact image is then submitted to 3D AI Studio Image-to-3D. Single-image is the default; owner-approved hero creatures may use four separate identity-matched views after the strict view gate below. Direct text-to-3D was retired for new production work after the Breachling/Warden comparison showed unacceptable style and identity drift. No production actor is accepted by renaming or recoloring a generic substitute.
+
+Beginning with the 2026-08-18 fidelity correction, every new source uses one complete canonical specification. The identity, silhouette, proportions, anatomy and joint logic, face, materials and palette, role/lore read, required details, and forbidden traits are copied verbatim into every ChatGPT generation. Only the camera or output suffix may change. Shorthand such as “same creature,” “preserve the reference,” or a delta-only edit prompt cannot replace the full specification. A reference image is supporting evidence, not permission to omit requirements.
+
+This rule is prospective. Existing paid outputs are preserved and judged by their actual owner-visible result and technical intake; missing retrospective prompt parity alone does not trigger a rebuild. A paid source is regenerated only for a concrete visual or technical blocker. The rejected two-headed Warden is one such blocker. The unconverted upright Breachling images cost no 3D Studio credits and are being corrected before submission.
 
 3D AI Studio is the source generator, not the last production step. Every accepted source still requires:
 
@@ -45,7 +49,9 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 ## Generation operation by asset type
 
-All production categories use the same image-first path: one owner-reviewed ChatGPT image of one isolated subject on a clean plain background, followed by one Prism 3.1 single-image conversion. Humanoid and riggable creature sources use a neutral front A- or T-pose with clear limbs and flat feet. Weapons, armor, clothing, props, and environment modules use a neutral unobstructed product orientation. A contact sheet, multiple figures, inset views, action pose, automatic multi-view crop, fused equipment set, or conflicting camera view is invalid input.
+All production categories use the same image-first path. Most assets use one owner-reviewed ChatGPT image of one isolated subject on a clean plain background followed by one Prism 3.1 single-image conversion. Humanoid sources use a neutral front A- or T-pose with clear limbs and flat feet. Riggable creatures use a neutral custom-rig stance that preserves their canonical anatomy; forcing a hunched predator upright to imitate a humanoid A-pose is a source failure. Weapons, armor, clothing, props, and environment modules use a neutral unobstructed product orientation. A contact sheet, multiple figures, inset views, action pose, automatic multi-view crop, fused equipment set, or conflicting camera view is invalid input.
+
+The Breachling family and Cinderbound Warden have an explicit owner decision permitting four-view Prism 3.1 Multi-Image conversion. Front, exact 90-degree left, true rear, and exact 90-degree right must be four separate identity-matched files. A side view fails if it is three-quarter, exposes the opposite eye/cheek, front chest, palm, or the top/front of both feet. A rear view fails if it exposes any face, throat/chest/front core, palms, kneecaps/front shins, toe tops, or front-facing weapon surface. It must instead prove rear skull/head shell, spine/scapulae, rear pelvis/tail root, backs of limbs, and species-appropriate hamstrings, hocks, Achilles, heels, or paw anatomy. Any contradiction blocks submission and spends zero provider credits.
 
 On 2026-08-17 the owner authorized all required issue #448 single-image conversions without per-task approval pauses and requested notification when the account balance falls below 2,000 credits. Every ChatGPT source is still shown in chat before conversion, and live settings, charge, task ID, receipt, and source hash are recorded for every task. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment are outside this authorization.
 
@@ -56,7 +62,7 @@ The historical 2026-08-17 comparison and subsequent Breachling/Warden tests esta
 - total comparison: 85 credits, account balance 3,557 to 3,472, with no remesh, rig, export promotion, or runtime replacement.
 - direct text-to-3D later produced one visually useful but incorrectly posed Breachling and one rejected armored-human Warden; these are provenance/style references only and cannot supply production geometry.
 
-The later controlled body batch is recorded in [`body-anchor-intake.json`](./body-anchor-intake.json). Twelve accepted visual sources and their twelve owner-reviewed input images are preserved outside the shipping tree. Each untouched GLB is a single unrigged mesh with roughly 727k-767k vertices and 1.41M-1.49M triangles, so none is eligible for direct runtime promotion. Account balance after the batch is 2,472 credits.
+The later controlled body batch is recorded in [`body-anchor-intake.json`](./body-anchor-intake.json). Twelve accepted visual sources and their twelve owner-reviewed input images are preserved outside the shipping tree. They are grandfathered paid source candidates: their actual output is reviewed without automatically purchasing replacements. Each untouched GLB is a single unrigged mesh with roughly 727k-767k vertices and 1.41M-1.49M triangles, so none is eligible for direct runtime promotion. Account balance after the batch was 2,472 credits.
 
 ## Permanent playable-character foundation
 
@@ -165,7 +171,7 @@ The training effigy/Sentinel is a purpose-built construct with readable command 
 
 ### Breachling family
 
-The Breachling is an original Level 1 hunched-predator family, not a scaled player avatar. The owner-approved benchmark is the pale ash-grey source with a huge broad non-human hinged maw, deep mouth cavity, layered predatory teeth, visible tongue, wiry hunched torso, long four-clawed forearms, short digitigrade legs, broad stable feet, and swept ridges. The source remains a neutral A-pose even though the finished behavior is feral and aggressive. Its production face requires separate `jaw-open`, `jaw-close`, and `snarl` controls.
+The Breachling is an original Level 1 hunched-predator family, not a scaled player avatar, upright humanoid, Dragonkin, or Dragonborn. It is a compact roughly four-foot ambush predator. Its permanent resting anatomy is a low stalking hunch: the spine hinges forward about 40 degrees from a rear-set pelvis, the upper back forms a rounded predatory arch, shoulders sit ahead of the hips, the neck and large head project low and forward, the forearms are long and nearly reach the ground, and the short powerful legs remain bent and digitigrade with low hocks, Achilles, heel pads, and broad feet. The huge broad non-human hinged maw has a deep cavity, layered irregular teeth, and a visible tongue. Its production face requires separate `jaw-open`, `jaw-close`, and `snarl` controls. A neutral source stance must preserve this anatomy instead of straightening it into a humanoid rig pose.
 
 One approved base anatomy and creature rig supports the current encounter assemblies:
 
@@ -174,13 +180,15 @@ One approved base anatomy and creature rig supports the current encounter assemb
 - Oathbound Breachling;
 - Breachling Ravager.
 
-Every tier receives its own owner-reviewed render while preserving the same hunched anatomy, proportions, joint layout, skeleton, and shared animation set. The base is pale ash/grey with small ridges; the Stalker is darker slate/smoke, leaner, and longer-ridged; the Oathbound is earth-brown/ochre with bindings and heavier chest/forearms; the Ravager is cinder-red/rust with enlarged horns, spikes, bone ridges, and claws. Tier identity comes from controlled silhouette attachments, material/palette changes, and proportion envelopes rather than unrelated rigs. Required motion coverage is spawn/awaken, idle, locomotion, turn, selected-target reaction, jaw/snarl threat display, telegraph, normal attack, variant attack where present, hit, stagger, death/defeat, and terminal hold.
+Every tier receives its own owner-reviewed render while preserving the same hunched anatomy, proportions, joint layout, skeleton, and shared animation set. The base is pale ash/grey with small ridges; the Stalker is darker slate/smoke, leaner, and longer-ridged; the Oathbound is earth-brown/ochre with thicker overlapping grown keratin scutes and heavier chest/forearms; the Ravager is cinder-red/rust with the densest grown osteoderms, enlarged horns, spikes, bone ridges, and claws. All defensive plating grows biologically from the hide. Metal plates, straps, buckles, rivets, leather garments, and a knight/soldier read are forbidden. Required motion coverage is spawn/awaken, idle, locomotion, turn, selected-target reaction, jaw/snarl threat display, telegraph, normal attack, variant attack where present, hit, stagger, death/defeat, and terminal hold.
 
 Every creature design brief must be complete before image generation: silhouette; locomotor and attack anatomy; joint logic; facial and jaw mechanics; surface/material hierarchy; threat language; scale; palette; encounter role; rig controls; VFX/SFX sockets; variants; forbidden reads; and normal isometric-camera readability. A generic humanoid body with cosmetic monster parts is rejected.
 
 ### Cinderbound Warden
 
 The Cinderbound Warden is the unique mechanical/golem boss, not a biological monster, Breachling, armored human, knight, or Paladin. It is built from interlocking charred-basalt and oxidized-bronze plates around a visible ember core, with a towering triangular shoulder silhouette, a faceless iron mask and vertical amber sensor slit, heavy articulated hands, a circular soul-tax mechanism in the left palm, and an integrated obsidian sweep-blade in the right forearm. It uses a purpose-built rigid mechanical hierarchy with plate joints rather than humanoid skin deformation or a handheld sword. Its silhouette, scale, materials, weapon/limb logic, and three seeded pattern tells must read from the normal isometric camera. Required coverage includes idle pressure, locomotion, turn, normal attack, heavy telegraph, cinder sweep, ash call, soul tax, hit, stagger, defeat/death, and terminal hold.
+
+Prism multi-view task `445fd16b-4006-4c18-a54a-fed2a63da955` spent 45 credits and is rejected for production: the ambiguous rear reference repeated front-facing palm/core/limb cues, and the generated model produced a duplicate two-head/two-front silhouette with no convincing live furnace flame. Its untouched GLB remains preserved for provenance and must not be deleted without exact owner confirmation. The replacement source must model a hollow furnace cage and core cavity. Moving fire is a separate runtime effect attached to `VFX_CoreFlame`; it is not baked static provider geometry.
 
 Creature rigs do not need to share the humanoid skeleton when anatomy would suffer. They do need the same action-contract structure, event markers, grounding, target facing, VFX/SFX sockets, provenance, performance budgets, and visual-QA evidence.
 
@@ -218,7 +226,8 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 ### Stage 0: free preparation
 
 - Approve the exact Level 1 register and source hierarchy.
-- Prepare one complete ChatGPT single-image source brief per isolated asset and record every prompt/edit hash.
+- Prepare one complete canonical specification per isolated asset and record its full prompt/edit hash. Repeat the entire identity/anatomy/material/role/required/forbidden block in every generation; only the camera/output suffix may change.
+- Score the output against silhouette, proportions, anatomy/joints, face/identity, materials/palette, role/lore read, pose/view, required details, and forbidden traits before owner review.
 - Inspect the 3D AI Studio connector read-only and record currently exposed operations/models.
 - Obtain a live credit estimate for one task without submitting it, if the connector supports estimates.
 - Record the maximum approved cost separately for every paid task or tightly bounded batch.
@@ -232,8 +241,8 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 
 ### Stage 2: creature pilot
 
-- Present the approved huge-maw Breachling ChatGPT source image and complete creature/rig brief.
-- Submit that exact hashed image as one Prism 3.1 single-image conversion inside the phase authorization.
+- Present the canonical low-hunched huge-maw Breachling source set and complete creature/rig brief.
+- Pass exact front, 90-degree left, true rear, and 90-degree right through the contradiction gate, then submit those four exact hashed files as one Prism 3.1 Multi-Image conversion inside the phase authorization.
 - Prove cleanup, creature rig, locomotion, attack, hit, death, terminal hold, and gameplay-camera readability.
 - Stop before variants or Warden generation if the creature boundary fails.
 
@@ -248,7 +257,7 @@ After both pilots pass, continue the authorized asset-type-specific queue in thi
 5. Breachling variants, training construct, and Cinderbound Warden;
 6. final Level 1 animation/room integration.
 
-The standing authorization covers the required owner-reviewed ChatGPT-source single-image conversions for issue #448. It does not approve direct text-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
+The standing authorization covers the required owner-reviewed ChatGPT-source conversions for issue #448, including the owner-approved strict four-view Breachling and Warden conversions. It does not approve direct text-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
 
 ## Rollback and promotion
 
@@ -258,6 +267,6 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Current authorization and notification point
 
-The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete. The owner has authorized required issue #448 ChatGPT-image-to-3D source generation without individual approval pauses. Before each submission, Codex still shows the source image in chat and records its prompt/edit hashes, exact file hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits; the last live-verified post-anchor balance was 2,472, and later balances are labeled as calculated until reverified.
+The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete and preserved. The owner has authorized required issue #448 ChatGPT-image-to-3D source generation without individual approval pauses. Before each submission, Codex still shows the source image in chat and records its complete canonical prompt/edit hashes, exact file hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits; the last live-verified balance after the rejected 45-credit Warden task was 2,347.
 
-This authorization does not include direct text-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. Single-image mode requires exactly one isolated subject on a plain background; riggable actors require a neutral full-body pose with unobstructed limbs. Multi-view requires a separate owner decision and four separate identity-matched files. A contact sheet is never valid input.
+This authorization does not include direct text-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. Single-image mode requires exactly one isolated subject on a plain background; riggable actors require a neutral full-body stance with unobstructed limbs that preserves canonical anatomy. Multi-view requires a separate owner decision, four separate identity-matched files, and the strict side/rear contradiction gate. A contact sheet is never valid input.

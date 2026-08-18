@@ -1,18 +1,19 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
     "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
-    "status": "twelve-image-first-body-anchors-preserved-awaiting-retopology-gate",
-    "workflowDecision": "chatgpt-image-first-single-image-to-3d-for-all-new-production-sources",
-    "paidOperationApproved": false,
+    "status": "prospective-canonical-full-spec-gate-active-existing-paid-sources-preserved-for-output-qa",
+    "workflowDecision": "chatgpt-image-first-single-image-default-with-strict-four-view-for-owner-approved-hero-creatures",
+    "paidOperationApproved": true,
     "textTo3dGenerationApproved": false,
     "textTo3dWorkflowStatus": "retired-by-owner-after-breachling-and-warden-comparison",
     "imageTo3dApproved": true,
     "approvedImageTo3dScope": [
-      "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images"
+      "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images",
+      "strict-four-view-breachling-and-cinderbound-warden-source-conversions-after-view-gate"
     ],
     "notifyWhenCreditBalanceBelow": 2000
   },
@@ -38,12 +39,36 @@
     "defaultOperation": "chatgpt-reference-image-then-image-to-3d-single-image",
     "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
     "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
+    "heroCreatureOperation": "image-to-3d-four-view-after-front-side-rear-contradiction-gate",
     "defaultModel": "prism-3.1",
     "approvedStartingTextureQuality": "ultra",
     "liveSettingsAndPriceApprovalRequiredPerTask": false,
     "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
     "oneIsolatedSubjectPerTask": true,
     "batchBlockedUntilPilotPassesIntakeRigAndAnimationGates": true,
+    "canonicalSpecParityGate": {
+      "requiredForEveryGeneratedSource": true,
+      "appliesProspectivelyFromDecision": true,
+      "existingPaidOutputsGrandfatheredForVisualAndTechnicalQa": true,
+      "existingPaidOutputsRequireAutomaticRegeneration": false,
+      "shorthandPromptsAllowed": false,
+      "referenceOnlyDeltaPromptsAllowed": false,
+      "canonicalIdentityAndAnatomyBlockReusedVerbatim": true,
+      "onlyCameraOrOutputSuffixMayChangeBetweenViews": true,
+      "requiredReviewDimensions": [
+        "silhouette",
+        "scale-and-proportions",
+        "anatomy-and-joint-logic",
+        "face-and-identity",
+        "surface-material-and-color",
+        "role-and-lore-read",
+        "pose-and-camera-view",
+        "required-details",
+        "forbidden-traits"
+      ],
+      "ownerVisualReviewRequiredAfterChecklistPass": true,
+      "failureAction": "freeze-as-provisional-or-reject-regenerate-source-and-spend-zero-provider-credits"
+    },
     "imageTo3dProduction": {
       "allowed": true,
       "purpose": "convert-an-owner-reviewed-chatgpt-single-subject-production-reference",
@@ -58,6 +83,49 @@
         "no-insets-or-contact-sheet"
       ],
       "multiViewAllowedOnlyBySeparateOwnerDecision": true,
+      "multiViewOwnerDecisionRecordedFor": [
+        "breachling-family",
+        "cinderbound-warden"
+      ],
+      "multiViewSourceGate": {
+        "appliesTo": [
+          "humanoid",
+          "biped-creature",
+          "quadruped-creature",
+          "avian-creature",
+          "mechanical-creature"
+        ],
+        "submissionBlockedUntilEveryViewPasses": true,
+        "identityAndTopologyConsistencyRequired": true,
+        "rearRequiredEvidence": [
+          "back-of-skull-or-rear-head-shell",
+          "spine-scapulae-or-rear-axial-structure",
+          "rear-pelvis-and-tail-root-when-present",
+          "backs-of-hands-paws-wings-or-forelimbs",
+          "hamstrings-knee-backs-hocks-achilles-heels-or-species-equivalent"
+        ],
+        "rearForbiddenFrontCues": [
+          "eyes-nose-mouth-teeth-tongue-or-face",
+          "throat-chest-abdomen-front-rib-cage-or-front-core",
+          "palms-palm-mechanisms-or-anterior-paw-pads",
+          "kneecaps-front-shins-toe-tops-or-front-facing-claws",
+          "front-facing-weapon-surface-or-front-emblem"
+        ],
+        "sideRequiredEvidence": [
+          "exact-ninety-degree-orthographic-profile",
+          "only-the-camera-side-eye-and-cheek-visible",
+          "clean-snout-neck-torso-pelvis-knee-hock-achilles-and-heel-silhouette",
+          "camera-side-limbs-do-not-expose-palms-or-front-chest-plane"
+        ],
+        "sideForbiddenCues": [
+          "three-quarter-camera-angle",
+          "second-eye-or-opposite-cheek",
+          "symmetrical-front-chest-plane",
+          "palm-surface",
+          "front-or-top-view-of-both-feet"
+        ],
+        "failureAction": "reject-source-view-regenerate-and-spend-zero-provider-credits"
+      },
       "compositeSheetsAllowed": false,
       "automaticFallbackFromTextFailure": false,
       "textTo3dAllowedForNewProductionSources": false
@@ -66,11 +134,16 @@
   "bodyAnchorIntake": {
     "manifest": "./body-anchor-intake.json",
     "acceptedVisualSources": 12,
+    "preservedProvisionalVisualSources": 12,
+    "acceptedProductionSources": 0,
+    "canonicalPromptParityVerified": false,
+    "grandfatheredPaidSourcePolicy": "preserve-and-judge-the-existing-output-by-owner-visual-review-and-technical-intake-with-no-automatic-regeneration",
+    "promptAuditFinding": "the-image-to-3d-intake-records-source-hashes-but-not-every-complete-chatgpt-prompt-so-prospective-full-spec-parity-cannot-be-proven-retroactively-and-is-not-a-rebuild-trigger-by-itself",
     "untouchedGlbsPreserved": 12,
     "sourceImagesPreserved": 12,
     "creditBalanceAfterBatch": 2472,
     "directRuntimePromotionAllowed": false,
-    "nextGate": "offline-retopology-scale-orientation-head-seam-and-canonical-rig-proof"
+    "nextGate": "owner-output-review-then-offline-retopology-scale-orientation-head-seam-and-canonical-rig-proof"
   },
   "pilotComparison": {
     "date": "2026-08-17",
@@ -131,8 +204,8 @@
     ]
   },
   "creditPolicy": {
-    "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-single-image-generation-for-issue-448",
-    "batchApprovalImplied": false,
+    "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-source-generation-for-issue-448-including-approved-strict-four-view-hero-creatures",
+    "batchApprovalImplied": true,
     "stopOnUnexpectedCost": true,
     "notifyWhenCreditBalanceBelow": 2000,
     "excludedOperations": [
@@ -142,7 +215,14 @@
     ],
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
     "completedImageTo3dException": "twelve-preserved-body-anchors-in-body-anchor-intake-manifest",
-    "currentCandidate": "offline-retopology-pilot-selection-pending",
+    "latestPaidSourceTask": {
+      "assetId": "creature-cinderbound-warden-image-first-v001",
+      "taskId": "445fd16b-4006-4c18-a54a-fed2a63da955",
+      "credits": 45,
+      "creditBalanceAfterTask": 2347,
+      "outcome": "rejected-two-head-front-repeated-as-back-and-missing-live-core"
+    },
+    "currentCandidate": "breachling-four-view-source-set-corrected-before-first-submission",
     "nextPaidPilot": null
   },
   "sourceGenerationTasks": [
@@ -239,33 +319,33 @@
         },
         {
           "view": "left",
-          "file": "sd-creature-breachling-base-chatgpt-left-v1-source.png",
+          "file": "sd-creature-breachling-base-chatgpt-left-v2-source.png",
           "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-          "bytes": 1740247,
+          "bytes": 1738308,
           "width": 1122,
           "height": 1402,
-          "sha256": "AF40B81BCD21FBA3B832A3323FDE1E2D2873C9C31F0DBCD3EE55CE66198B208D",
-          "generationPromptSha256": "A32FD7027BD63099F1729D6BBCCA8C5DD288BB74DECFF2CB5D59567E75DB55CD"
+          "sha256": "187F42386728C2D0094C9A0EC46720806A991E8C09E4E047A883C3A11AAD3BC1",
+          "generationPromptSha256": "F6781CD6BD4C83383522172FA4C059AFCE715CDCB37F3A3E84AD7238C41875DC"
         },
         {
           "view": "rear",
-          "file": "sd-creature-breachling-base-chatgpt-rear-v1-source.png",
+          "file": "sd-creature-breachling-base-chatgpt-rear-v2-source.png",
           "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-          "bytes": 1802881,
+          "bytes": 1844187,
           "width": 1254,
           "height": 1254,
-          "sha256": "50ABC07414B545277E0C2E5BC66A83DFCFCD53A9AA1A3F3CE35D2BA3A1A9AAE6",
-          "generationPromptSha256": "F139E2EF1087092BC066CF354FC340ED377CB524B20EFFAE4F93ED6C5658CFA9"
+          "sha256": "A94BCE4A190376EE2A958978EFD5D1364E06ED9A396149A83A82CDCAD864B6CA",
+          "generationPromptSha256": "83740A02C908077828314AC78EC56D28887038C7A1792A1F6B8F6495EFA9BABD"
         },
         {
           "view": "right",
-          "file": "sd-creature-breachling-base-chatgpt-right-v1-source.png",
+          "file": "sd-creature-breachling-base-chatgpt-right-v2-source.png",
           "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-          "bytes": 1692371,
+          "bytes": 1744432,
           "width": 1122,
           "height": 1402,
-          "sha256": "837748C86E1A9D70F273F2BE5D93092C649A4E7C13A438500132C0261F201E16",
-          "generationPromptSha256": "36BF35DA40AD0CA2DAC58BFF9962ABD8B1CD40FB444C207426430511D49144D6"
+          "sha256": "866A42FC25F41A4B07768786AB1BCB6A20C1B590A020EBC8C7134F72563E137F",
+          "generationPromptSha256": "09E6BC74038DEFC8F4258FEE8186F63F3F233A507887751D2B173510EC1A83BF"
         }
       ],
       "viewContract": {
@@ -277,6 +357,9 @@
           "right"
         ],
         "rearPurpose": "lock-spine-plates-shoulder-ridges-scapulae-pelvis-and-digitigrade-achilles-instead-of-provider-inference",
+        "rearGate": "camera-anatomy-cues-pass-but-full-set-fails-the-permanent-hunched-body-identity",
+        "sideGate": "rejected-left-v2-and-right-v2-were-exact-profiles-but-upright-dragonkin-like-humanoids",
+        "sourceSetDecision": "rejected-before-provider-submission",
         "compositeSheetAllowed": false
       },
       "supersededSourceImages": [
@@ -289,13 +372,35 @@
           "file": "sd-creature-breachling-base-chatgpt-a-pose-v2-source.png",
           "sha256": "447F4FA51DD49DC8EAA5A097D0247F2462EE0A4A639231FD38FF698CD39C28D4",
           "reason": "predatory-jaw-still-not-large-or-threatening-enough"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-left-v1-source.png",
+          "sha256": "AF40B81BCD21FBA3B832A3323FDE1E2D2873C9C31F0DBCD3EE55CE66198B208D",
+          "reason": "three-quarter-front-view-exposed-front-chest-palm-and-toe-top-cues"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-rear-v1-source.png",
+          "sha256": "50ABC07414B545277E0C2E5BC66A83DFCFCD53A9AA1A3F3CE35D2BA3A1A9AAE6",
+          "reason": "rear-torso-passed-but-hands-were-ambiguous-and-front-toe-claws-were-visible"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-right-v1-source.png",
+          "sha256": "837748C86E1A9D70F273F2BE5D93092C649A4E7C13A438500132C0261F201E16",
+          "reason": "three-quarter-front-view-exposed-front-chest-palm-and-toe-top-cues"
         }
       ],
       "designContract": {
         "family": "breachling-hunched-predator",
         "sharedRigAcrossTiers": true,
-        "sourcePose": "neutral-symmetrical-a-pose-with-clear-limbs-and-flat-feet",
-        "anatomy": "wiry-hunched-torso-long-forearms-four-clawed-fingers-short-digitigrade-legs-and-broad-feet",
+        "sourcePose": "neutral-symmetrical-custom-rig-stance-that-preserves-the-permanent-low-stalking-crouch",
+        "anatomy": "compact-four-foot-predator-with-spine-hinged-forward-about-forty-degrees-rounded-upper-back-shoulders-ahead-of-rear-set-pelvis-low-forward-head-long-near-ground-four-fingered-forearms-short-bent-digitigrade-legs-low-hocks-achilles-and-broad-heel-pads",
+        "forbiddenBodyRead": [
+          "upright-humanoid",
+          "dragonkin",
+          "dragonborn",
+          "heroic-biped",
+          "player-character-body-with-monster-head"
+        ],
         "mouth": "huge-broad-non-human-hinged-predator-maw-with-deep-cavity-layered-teeth-and-visible-tongue",
         "requiredFacialControls": [
           "jaw-open",
@@ -319,43 +424,250 @@
         "tierVariants": {
           "base": "pale-ash-grey-level-one-with-small-ridges",
           "stalker": "darker-slate-smoke-leaner-with-longer-swept-ridges",
-          "oathbound": "earth-brown-ochre-bindings-heavier-chest-and-forearms",
-          "ravager": "cinder-red-rust-with-enlarged-horns-spikes-bone-ridges-and-claws"
+          "oathbound": "earth-brown-ochre-with-thicker-overlapping-grown-keratin-scutes-and-heavier-chest-and-forearms",
+          "ravager": "cinder-red-rust-with-the-densest-grown-osteoderms-enlarged-horns-spikes-bone-ridges-and-claws"
+        },
+        "tierArmorContract": {
+          "construction": "grown-biological-dermal-plating-emerging-from-the-hide",
+          "allowed": [
+            "keratin-scutes",
+            "osteoderms",
+            "mineralized-bone-shell",
+            "volcanic-dermal-plates"
+          ],
+          "manufacturedOrWornArmorAllowed": false,
+          "forbidden": [
+            "metal-plates",
+            "straps",
+            "buckles",
+            "rivets",
+            "leather-garments",
+            "knight-or-soldier-read"
+          ]
         }
       },
-      "status": "four-view-source-set-generated-pending-owner-review-and-authenticated-submission",
+      "status": "four-view-source-set-rejected-upright-dragonkin-read-canonical-hunched-rebuild-in-progress",
       "taskId": null,
       "actualCredits": null,
-      "ownerReview": "front-approved-rear-left-and-right-shown-in-chat-pending-set-approval",
+      "ownerReview": "rejected-upright-deformed-humanoid-or-dragonkin-read",
+      "canonicalPromptPolicy": {
+        "fullIdentityBlockRequiredVerbatimForEveryView": true,
+        "shorthandOrReferenceOnlyPromptAllowed": false,
+        "onlyCameraSuffixMayChange": true,
+        "canonicalIdentityBlock": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall. It is not an upright humanoid, Dragonkin, Dragonborn, heroic biped, or player-character body with a monster head. Its permanent resting anatomy is a low stalking hunch: the wiry torso and spine hinge forward about forty degrees from the rear-set pelvis; the upper back forms a pronounced rounded predatory arch; the shoulder girdle sits clearly forward of and slightly higher than the hips; the neck projects forward; the large head hangs low and well ahead of the chest. It has disproportionately long weight-bearing-looking forearms ending in exactly four clawed fingers, with fingertips hanging below the knees and nearly reaching the ground; noticeably short powerful bent digitigrade legs; low hocks and Achilles; broad stable heel pads and feet; a narrow angular skull; swept-back ear fins; deep-set amber eyes; ash-gray scaled skin with muted teal fissure mottling; small bony shoulder and spine ridges; and a huge broad non-human hinged predator maw with a deep cavity, multiple layers of long irregular teeth, and a visible tongue. The source uses a neutral symmetric custom-rig stance while preserving the permanent crouch, with separated limbs, open hands off the floor, planted feet, and visible joints. No clothing, manufactured armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature."
+      },
+      "replacementSourceSet": {
+        "status": "canonical-left-profile-v4-shown-pending-owner-review-three-matching-views-not-generated",
+        "submissionAllowed": false,
+        "sourceImages": [
+          {
+            "view": "left",
+            "file": "sd-creature-breachling-base-chatgpt-left-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1821273,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "2683727F0DA3ADAF6548F5001C79478083790DF4E8F71B98A39D4982615E4637",
+            "generationPromptSha256": "021C623B5A888B9FF141FDA82899D1714DD2C24789297161D4B56DD15C540D4E",
+            "promptParity": "full-canonical-identity-block-plus-left-camera-suffix"
+          }
+        ],
+        "missingViews": [
+          "front",
+          "rear",
+          "right"
+        ]
+      },
       "runtimePromotionAllowed": false
     },
     {
-      "assetId": "creature-cinderbound-warden-image-first-v001",
-      "operation": "chatgpt-reference-image-pending-multi-view-completion",
+      "assetId": "creature-breachling-stalker-image-first-v001",
+      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
       "provider": "openai-imagegen",
       "plannedConversionProvider": "3d-ai-studio",
       "plannedConversionModel": "prism-3.1-multi-view",
       "plannedTextureQuality": "ultra",
       "expectedConversionCredits": 45,
-      "maximumConversionCredits": 45,
       "sourceImage": {
         "view": "front",
-        "file": "sd-creature-cinderbound-warden-chatgpt-front-v1-source.png",
+        "file": "sd-creature-breachling-stalker-chatgpt-front-v2-source.png",
         "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-        "bytes": 2262640,
-        "width": 1122,
-        "height": 1402,
-        "sha256": "C2141DA746480FA72BAC0A4F90A37518F7E1AF3E8D20411DE42EA1CF44B4F1BB",
-        "generationPromptSha256": "104F2FC5D24D1039A3D3B8B1F3D92FAC28D5ACF0C1D37A76CB24E9614C3262E5"
+        "bytes": 1898657,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "CEE4FA862405763B9536B4E35D8D88251CA6292E21843D42E6524C27A343DE9E",
+        "generationPromptSha256": "8709ECA62BE126EBFE3CBFA322234A00399797DDB6D4BD362F60992ADC0C24ED"
       },
-      "status": "source-image-generated-pending-owner-review-and-three-matching-views",
-      "taskId": null,
-      "actualCredits": null,
-      "ownerReview": "pending-front-source-shown-in-chat",
+      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
+      "ownerReview": "visual-direction-liked-not-production-approved",
+      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-oathbound-breachling-image-first-v001",
+      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
+      "provider": "openai-imagegen",
+      "plannedConversionProvider": "3d-ai-studio",
+      "plannedConversionModel": "prism-3.1-multi-view",
+      "plannedTextureQuality": "ultra",
+      "expectedConversionCredits": 45,
+      "sourceImage": {
+        "view": "front",
+        "file": "sd-creature-breachling-oathbound-chatgpt-front-v2-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+        "bytes": 1843248,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "2185E133A08F7FBB804CA072D7C54F3CC818CB623BCB2693871B397327387210",
+        "generationPromptSha256": "0C84A4AA5C1A6DA8C15878F0BA1643CD812568E87DDC7C2D3589DC1E4ED00F22"
+      },
+      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
+      "ownerReview": "visual-direction-liked-not-production-approved",
+      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-ravager-image-first-v001",
+      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
+      "provider": "openai-imagegen",
+      "plannedConversionProvider": "3d-ai-studio",
+      "plannedConversionModel": "prism-3.1-multi-view",
+      "plannedTextureQuality": "ultra",
+      "expectedConversionCredits": 45,
+      "sourceImage": {
+        "view": "front",
+        "file": "sd-creature-breachling-ravager-chatgpt-front-v2-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+        "bytes": 1962263,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "8876E9D09831A7B57091F5121B279FE5713F288920CBFDC2263B724FA336C527",
+        "generationPromptSha256": "363B3B8E87D46EF0911B639DFFA54BA91D6F496DFF94EDFA5DBF7581E9A71574"
+      },
+      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
+      "ownerReview": "visual-direction-liked-not-production-approved",
+      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-cinderbound-warden-image-first-v001",
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1-multi-view",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "445fd16b-4006-4c18-a54a-fed2a63da955",
+      "creditBalanceBeforeTask": 2392,
+      "creditBalanceAfterTask": 2347,
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-cinderbound-warden-chatgpt-front-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2262640,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "C2141DA746480FA72BAC0A4F90A37518F7E1AF3E8D20411DE42EA1CF44B4F1BB",
+          "generationPromptSha256": "104F2FC5D24D1039A3D3B8B1F3D92FAC28D5ACF0C1D37A76CB24E9614C3262E5"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-cinderbound-warden-chatgpt-left-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1834969,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "5296331DA1F72363EC8E14FFBB53BD718B027658FFB817834444F75735BC9529",
+          "generationPromptSha256": "6624F77844D447878C6CC027471D06F80747C3419C6F915E9A046E160576DF67"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-cinderbound-warden-chatgpt-rear-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2192312,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "6FD872607B391926F87015A4A2E98A812D83D811BC74B4652C17F81B1C7D8F80",
+          "generationPromptSha256": "B4BAE1F25D8547BEE3E4234CC20965749065FB61A269E9D6FBEDF123D3E8BC47"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-cinderbound-warden-chatgpt-right-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1812192,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "8C8F9467AAA9A52D025C761DD71708D54187197B79B040791064FDE3608210EA",
+          "generationPromptSha256": "EE5012A1AF67392B5E314C55BD0B7CF63C9EEA1C77D8A71E19BF93C9D83F8664"
+        }
+      ],
+      "status": "generated-rejected-cloud-source-preserved-replacement-source-set-in-progress",
+      "ownerReview": "rejected-two-head-back-mismatch-and-missing-live-core-flame",
+      "untouchedExport": {
+        "file": "sd-creature-cinderbound-warden-prism-multiview-task-445fd16b-untouched.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 43863688,
+        "sha256": "11848C1BBEA857AF13DDA0653B7185FCF63D6DF2AC547CB5046805FE424E3666"
+      },
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": true,
+        "productionCandidateAccepted": false,
+        "fatalFindings": [
+          "duplicate-two-head-silhouette",
+          "rear-reference-repeated-front-facing-anatomy",
+          "front-and-back-became-the-same-body-surface",
+          "core-read-flat-and-did-not-provide-a-live-flame-cavity"
+        ],
+        "rootCause": "rear-v1-contained-front-facing-palm-core-emblem-and-limb-cues-so-the-provider-synthesized-a-second-front",
+        "decision": "retain-for-provenance-only-and-rebuild-the-source-set-before-any-rerun"
+      },
+      "replacementSourceSet": {
+        "status": "front-v2-and-true-rear-v2-generated-left-v2-and-right-v2-still-required",
+        "submissionAllowed": false,
+        "sourceImages": [
+          {
+            "view": "front",
+            "file": "sd-creature-cinderbound-warden-chatgpt-front-v2-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 2223581,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "F8B715117EBCABA4086520EB32F71EC010FB2F280854EAF7134F0707F0E0E703",
+            "generationPromptSha256": "0431C71A7F0B4C27C5D9AF8B5F067DED42AA0A350CEE97BD5B317674BE62B622"
+          },
+          {
+            "view": "rear",
+            "file": "sd-creature-cinderbound-warden-chatgpt-rear-v2-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 2208238,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "891A38967BDB1A988F7984DFA3E3A4DE406D47CE466BD280EAE7086903B50EFE",
+            "generationPromptSha256": "F00F6B7A05E022B3E35D216C516B27A845D9EA63F0F9CD38022CAFA1FDE20421",
+            "rearGate": "passed-no-face-sensor-slit-palms-chest-core-kneecaps-front-shins-or-toe-top-cues"
+          }
+        ],
+        "missingViews": [
+          "exact-ninety-degree-left-v2",
+          "exact-ninety-degree-right-v2"
+        ]
+      },
       "designOutcome": {
         "silhouette": "towering-broad-triangular-shoulders-small-masked-head-open-core-cage-and-load-bearing-feet",
         "construction": "separate-charred-basalt-plates-over-dark-iron-subframe-with-oxidized-bronze-hinges-rings-and-restraints",
         "core": "contained-dim-ember-furnace-visible-through-opening-geometric-rib-plates",
+        "coreVfxSocket": "VFX_CoreFlame",
+        "coreVfxRule": "model-a-hollow-furnace-cage-and-core-cavity-but-render-moving-flame-as-runtime-vfx-not-baked-provider-geometry",
         "rightArm": "integrated-obsidian-sweep-blade-housing-with-no-handheld-weapon",
         "leftHand": "four-digit-articulated-hand-with-concentric-soul-tax-palm-mechanism",
         "rigIntent": "rigid-mechanical-hierarchy-with-articulated-plates-pistons-rings-core-cage-and-shutdown-controls",
