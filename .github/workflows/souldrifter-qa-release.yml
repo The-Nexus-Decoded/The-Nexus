@@ -1,0 +1,103 @@
+name: SoulDrifter QA release
+
+on:
+  pull_request:
+    branches:
+      - qa
+  push:
+    branches:
+      - qa
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Reviewed qa branch, tag, or commit to package
+        required: false
+        default: qa
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: souldrifter-qa-release
+  cancel-in-progress: false
+
+jobs:
+  build-sites-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged QA source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Resolve source commit
+        id: source
+        shell: bash
+        run: |
+          source_sha="$(git rev-parse HEAD)"
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${source_sha:0:12}" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm source came from a merged QA pull request
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          merged_qa_prs="$(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/commits/${SOURCE_SHA}/pulls" \
+              --jq '[.[] | select(.merged_at != null and .base.ref == "qa")] | length'
+          )"
+
+          if [ "$merged_qa_prs" -lt 1 ]; then
+            echo "Refusing to package ${SOURCE_SHA}: it is not associated with a merged PR into qa."
+            exit 1
+          fi
+
+      - name: Enable Yarn 1
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+
+      - name: Install dependencies
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        run: yarn install --non-interactive --no-progress
+
+      - name: Run tests
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        run: yarn test
+
+      - name: Type-check
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        run: yarn typecheck
+
+      - name: Build QA and public artifacts
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        env:
+          SOULDRIFTER_SOURCE_COMMIT: ${{ steps.source.outputs.sha }}
+        run: yarn build
+
+      - name: Verify release target separation and provenance
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        run: yarn verify:release
+
+      - name: Upload gated Sites artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: souldrifter-sites-${{ steps.source.outputs.short_sha }}
+          path: Arianus-Sky/projects/games/SoulDrifterWeb/dist
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

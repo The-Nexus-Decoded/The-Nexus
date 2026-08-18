@@ -225,6 +225,7 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(avatarIdentity).toContain("PLAYER_AVATAR_BY_IDENTITY");
     expect(world).toContain("animationPackCache");
     expect(world).toMatch(/loadExternalAnimationPack[\s\S]*loadCachedAnimationPack[\s\S]*bindOptionalCompatibleAnimationClip/s);
+    expect(world).toMatch(/const boundRootNode = bound\.tracks[\s\S]*spec\.rootNodeName/);
     expect(world).toMatch(/normalizeAnimationPackRootMotion\(bound, boundRootNode\)/);
     expect(world).not.toMatch(/sanitizeAttackClip\(bound\)/);
     expect(world).toMatch(/resolvePlayerAvatarManifest\(this\.profile\)[\s\S]*playerAvatar\.animationPacks/s);
