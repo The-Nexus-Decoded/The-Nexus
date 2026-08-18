@@ -165,10 +165,20 @@
       "maximumCredits": 40,
       "prompt": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall with a wiry hunched torso, long forearms ending in four clawed fingers, short digitigrade legs, broad stable feet, a narrow angular skull, swept-back ear fins, deep-set amber eyes, ash-gray skin with muted teal fissure mottling, and small bony shoulder and spine ridges. Neutral symmetrical A-pose, arms clear of torso, hands open, feet flat, clean silhouette suitable for rigging. No clothing, armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature.",
       "promptSha256": "640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394",
-      "status": "approved-ready-to-submit",
-      "taskId": null,
-      "actualCredits": null,
+      "status": "generated-cloud-source-awaiting-owner-review-and-untouched-export",
+      "taskId": "82459e9b-e63b-4be1-a3be-cad264fedc44",
+      "actualCredits": 40,
+      "creditBalanceBeforeTask": 2472,
+      "creditBalanceAfterTask": 2432,
+      "creditBalanceAfterTaskVerification": "calculated-from-last-verified-balance-minus-live-charge-not-live-reverified",
       "ownerReview": "pending",
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": false,
+        "styleFinding": "strong-original-labyrinth-creature-silhouette-readable-at-isometric-camera",
+        "poseFinding": "requested-neutral-a-pose-generated-combat-crouch",
+        "decision": "retain-as-design-source-not-yet-a-rig-candidate"
+      },
       "runtimePromotionAllowed": false
     }
   ],

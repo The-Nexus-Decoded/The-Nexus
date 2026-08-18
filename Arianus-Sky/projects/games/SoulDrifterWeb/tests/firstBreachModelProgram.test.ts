@@ -65,7 +65,7 @@ describe("First Breach production model register", () => {
     );
   });
 
-  it("records the exact bounded Breachling source task before paid submission", () => {
+  it("records the exact bounded Breachling source task and its non-shipping result", () => {
     const task = modelRegister.sourceGenerationTasks.find((entry) => entry.assetId === "creature-breachling-base-v001");
 
     expect(task).toMatchObject({
@@ -76,11 +76,20 @@ describe("First Breach production model register", () => {
       materialType: "shaded",
       expectedCredits: 40,
       maximumCredits: 40,
-      status: "approved-ready-to-submit",
+      status: "generated-cloud-source-awaiting-owner-review-and-untouched-export",
+      taskId: "82459e9b-e63b-4be1-a3be-cad264fedc44",
+      actualCredits: 40,
+      creditBalanceAfterTask: 2432,
       runtimePromotionAllowed: false,
     });
     expect(task?.promptSha256).toBe("640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394");
     expect(task?.prompt).toContain("One complete isolated creature");
+    expect(task?.generationOutcome).toMatchObject({
+      cloudSourceRetained: true,
+      untouchedExportPreserved: false,
+      poseFinding: "requested-neutral-a-pose-generated-combat-crouch",
+      decision: "retain-as-design-source-not-yet-a-rig-candidate",
+    });
   });
 
   it("covers every current level surface that must be revalidated", () => {
