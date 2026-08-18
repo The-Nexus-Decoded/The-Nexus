@@ -27,21 +27,21 @@
 }
 
 :root {
-  color: #f1e5c5;
-  background: #070a0d;
+  color: #fff2d2;
+  background: #101726;
   font-family: "Soul Dialogue", Georgia, serif;
   font-synthesis: none;
-  --ink: #070a0d;
-  --panel: rgba(18, 22, 24, 0.94);
-  --panel-soft: rgba(28, 33, 34, 0.9);
-  --bronze: #c58d47;
-  --bronze-dim: #795330;
-  --parchment: #f1e5c5;
-  --muted: #9eaa9e;
-  --soul: #62e6db;
-  --soul-dim: #207b78;
-  --danger: #dc6d55;
-  --indigo: #344c76;
+  --ink: #101726;
+  --panel: rgba(31, 42, 54, 0.95);
+  --panel-soft: rgba(49, 61, 70, 0.92);
+  --bronze: #efb85f;
+  --bronze-dim: #a87535;
+  --parchment: #fff2d2;
+  --muted: #bdc8be;
+  --soul: #7af4df;
+  --soul-dim: #2b9c98;
+  --danger: #f07a62;
+  --indigo: #5b79b6;
 }
 
 * {
@@ -54,8 +54,9 @@ body {
   min-width: 1080px;
   min-height: 100%;
   background:
-    radial-gradient(circle at 50% -15%, rgba(59, 91, 102, 0.34), transparent 43rem),
-    linear-gradient(145deg, #10171a 0%, #07090b 48%, #11100d 100%);
+    radial-gradient(circle at 50% -15%, rgba(100, 155, 182, 0.42), transparent 43rem),
+    radial-gradient(circle at 92% 18%, rgba(239, 184, 95, 0.14), transparent 30rem),
+    linear-gradient(145deg, #1d2b3b 0%, #101726 52%, #282118 100%);
 }
 
 body::before {
@@ -605,6 +606,7 @@ button {
   padding: 10px 12px 7px;
   flex-direction: column;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(42, 62, 83, 0.45), rgba(16, 23, 38, 0.7));
 }
 
 body:has(.app-shell:not([hidden])) { overflow: hidden; }
@@ -616,9 +618,10 @@ body:has(.app-shell:not([hidden])) { overflow: hidden; }
   min-height: 58px;
   margin-bottom: 8px;
   padding: 0 16px;
-  border: 1px solid rgba(197, 141, 71, 0.35);
-  background: linear-gradient(90deg, rgba(11, 15, 17, 0.98), rgba(27, 31, 30, 0.93));
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32), inset 0 -1px rgba(98, 230, 219, 0.08);
+  border: 1px solid rgba(239, 184, 95, 0.62);
+  background:
+    linear-gradient(90deg, rgba(31, 47, 65, 0.98), rgba(52, 59, 61, 0.96) 55%, rgba(55, 43, 29, 0.96));
+  box-shadow: 0 16px 42px rgba(3, 9, 17, 0.38), inset 0 -2px rgba(122, 244, 223, 0.14), inset 0 1px rgba(255, 239, 198, 0.12);
 }
 
 .brand-lockup {
@@ -763,11 +766,11 @@ h3 {
 .panel {
   overflow: auto;
   padding: 14px 13px;
-  border: 1px solid rgba(197, 141, 71, 0.3);
+  border: 1px solid rgba(239, 184, 95, 0.5);
   background:
-    linear-gradient(180deg, rgba(32, 36, 35, 0.96), rgba(13, 17, 18, 0.97)),
+    linear-gradient(180deg, rgba(52, 65, 75, 0.97), rgba(25, 37, 49, 0.98)),
     var(--panel);
-  box-shadow: inset 0 0 36px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 14px 42px rgba(3, 9, 17, 0.38), inset 0 1px rgba(255, 244, 215, 0.09), inset 0 0 36px rgba(16, 29, 42, 0.3);
 }
 
 .portrait {
@@ -1351,26 +1354,42 @@ h3 {
   left: 50%;
   z-index: 8;
   width: min(390px, calc(100% - 160px));
-  padding: 8px 10px 10px;
-  border: 1px solid rgba(220, 109, 85, 0.56);
-  background: linear-gradient(180deg, rgba(19, 14, 14, 0.94), rgba(7, 9, 10, 0.9));
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.54);
+  padding: 20px 13px 11px;
+  border: 1px solid rgba(255, 157, 116, 0.88);
+  background:
+    linear-gradient(135deg, rgba(86, 42, 36, 0.96), rgba(31, 38, 49, 0.96) 58%, rgba(44, 31, 28, 0.96));
+  box-shadow: 0 15px 38px rgba(3, 7, 13, 0.52), 0 0 0 2px rgba(239, 184, 95, 0.16), inset 0 1px rgba(255, 236, 198, 0.12);
+  transform: translateX(-50%);
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
+}
+
+.target-frame::before {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  padding: 2px 12px;
+  border: 1px solid rgba(239, 184, 95, 0.78);
+  color: #ffe1a8;
+  background: #3b2c27;
+  content: "TARGET LOCK";
+  font: 700 8px/1 "Soul HUD", sans-serif;
+  letter-spacing: 0.16em;
   transform: translateX(-50%);
 }
 
 .target-frame > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.target-frame strong { color: #f1d2c4; font-size: 13px; letter-spacing: 0.05em; }
-.target-frame #target-level { color: #9d7b70; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+.target-frame strong { color: #fff0dd; font-size: 14px; letter-spacing: 0.05em; }
+.target-frame #target-level { color: #f1b999; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
 .target-frame.is-boss { border-color: var(--bronze); box-shadow: 0 14px 38px rgba(197, 91, 54, 0.2); }
-.target-health { position: relative; height: 12px; margin-top: 7px; overflow: hidden; background: #190b0b; box-shadow: inset 0 0 5px #000; }
-.target-health span { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #873528, #df6a4f); transition: width 180ms ease; }
+.target-health { position: relative; height: 13px; margin-top: 8px; overflow: hidden; border: 1px solid rgba(255, 207, 171, 0.26); background: #271313; box-shadow: inset 0 0 5px #000; }
+.target-health span { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #a84232, #f27a5d 72%, #ffb26f); box-shadow: 0 0 12px rgba(240, 122, 98, 0.42); transition: width 180ms ease; }
 .target-health b { position: absolute; inset: 0; color: #fff0dc; font-size: 9px; line-height: 12px; letter-spacing: 0.08em; text-align: center; text-shadow: 0 1px 3px #000; }
 
 .viewport-vignette {
   position: absolute;
   inset: 0;
-  border: 8px solid rgba(8, 10, 10, 0.44);
-  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.44);
+  border: 5px solid rgba(15, 25, 36, 0.24);
+  box-shadow: inset 0 0 56px rgba(4, 10, 17, 0.25);
   pointer-events: none;
 }
 
@@ -1386,9 +1405,9 @@ h3 {
   overflow: hidden;
   border: 1px solid var(--bronze);
   background:
-    linear-gradient(100deg, rgba(11, 16, 17, 0.98), rgba(20, 20, 17, 0.97)),
+    linear-gradient(100deg, rgba(31, 48, 61, 0.98), rgba(58, 52, 39, 0.98)),
     var(--panel);
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), inset 0 0 55px rgba(98, 230, 219, 0.04);
+  box-shadow: 0 25px 70px rgba(3, 8, 15, 0.62), inset 0 1px rgba(255, 243, 208, 0.12), inset 0 0 55px rgba(122, 244, 223, 0.06);
   animation: dialogue-rise 180ms ease-out;
 }
 
@@ -1409,11 +1428,11 @@ h3 {
 
 .dialogue-panel__content { padding: 22px 24px 18px; }
 .dialogue-panel__content h2 { margin-bottom: 10px; font-size: 25px; }
-.dialogue-body { color: #d1c8ad; font-size: 13px; line-height: 1.6; }
+.dialogue-body { color: #f0e6cb; font-size: 14px; line-height: 1.6; }
 .dialogue-body p { margin-bottom: 8px; }
 .dialogue-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
-.dialogue-choices button { min-height: 34px; padding: 5px 11px; border: 1px solid #4d5147; background: rgba(0, 0, 0, 0.25); cursor: pointer; color: #aeb9b0; font-size: 10px; }
-.dialogue-choices button:hover { border-color: var(--soul); color: var(--parchment); }
+.dialogue-choices button { min-height: 36px; padding: 6px 12px; border: 1px solid rgba(239, 184, 95, 0.56); background: linear-gradient(180deg, rgba(76, 79, 71, 0.62), rgba(33, 43, 49, 0.76)); cursor: pointer; color: #e5e9d7; font-size: 11px; }
+.dialogue-choices button:hover { border-color: var(--soul); color: #fff7df; box-shadow: 0 0 18px rgba(122, 244, 223, 0.16); }
 
 .tutorial-card {
   margin-bottom: 16px;
@@ -1480,14 +1499,14 @@ h3 {
   align-items: center;
   gap: 14px;
   padding: 10px 16px;
-  border: solid rgba(197, 141, 71, 0.32);
+  border: solid rgba(239, 184, 95, 0.5);
   border-width: 0 1px 1px;
-  background: rgba(17, 21, 22, 0.97);
+  background: linear-gradient(90deg, rgba(38, 54, 68, 0.98), rgba(50, 55, 52, 0.98), rgba(57, 44, 30, 0.98));
 }
 
 .message-strip p {
   margin: 0;
-  color: #d8d0b8;
+  color: #f5ead0;
   font-size: 13px;
 }
 
@@ -1521,16 +1540,17 @@ h3 {
   display: flex;
   gap: 4px;
   padding: 4px;
-  border: 1px solid rgba(197, 141, 71, 0.48);
-  background: rgba(7, 12, 13, 0.82);
+  border: 1px solid rgba(239, 184, 95, 0.72);
+  background: linear-gradient(135deg, rgba(43, 62, 79, 0.94), rgba(47, 42, 33, 0.94));
+  box-shadow: 0 10px 28px rgba(2, 8, 16, 0.42), inset 0 1px rgba(255, 239, 198, 0.12);
   backdrop-filter: blur(8px);
   pointer-events: auto;
   font: 700 8px/1 "Soul HUD", sans-serif;
   letter-spacing: 0.05em;
 }
 
-.compact-status span { padding: 6px 7px; color: #96a59e; }
-.compact-status b { color: #e7f7f1; }
+.compact-status span { padding: 6px 8px; color: #d4ddcf; }
+.compact-status b { color: #fff7df; text-shadow: 0 0 10px rgba(122, 244, 223, 0.25); }
 
 .buff-strip {
   position: absolute;
@@ -1575,10 +1595,11 @@ h3 {
   min-width: 36px;
   height: 36px;
   padding: 0;
-  border: 1px solid rgba(197, 141, 71, 0.52);
+  border: 1px solid rgba(239, 184, 95, 0.68);
   place-items: center;
   color: #e4d8bf;
-  background: rgba(8, 13, 14, 0.82);
+  background: linear-gradient(145deg, rgba(55, 70, 82, 0.94), rgba(38, 39, 34, 0.94));
+  box-shadow: inset 0 1px rgba(255, 240, 204, 0.12), 0 7px 18px rgba(2, 8, 16, 0.32);
   font: 700 13px/1 "Soul HUD", sans-serif;
 }
 .equipment-toggle-mobile {
@@ -1587,6 +1608,17 @@ h3 {
   right: 165px;
   z-index: 24;
   pointer-events: auto;
+}
+
+.hud-drawer-controls button:hover,
+.hud-drawer-controls button:focus-visible,
+.equipment-toggle-mobile:hover,
+.equipment-toggle-mobile:focus-visible {
+  border-color: var(--soul);
+  color: #fff6d9;
+  background: linear-gradient(145deg, rgba(60, 104, 111, 0.96), rgba(58, 48, 34, 0.96));
+  box-shadow: 0 0 18px rgba(122, 244, 223, 0.2);
+  outline: none;
 }
 
 .interaction-prompt {
@@ -1695,11 +1727,12 @@ h3 {
   grid-template-columns: 0.72fr 1fr 1fr 1fr 0.78fr;
   gap: 4px;
   padding: 5px;
-  border: 1px solid rgba(197, 141, 71, 0.48);
-  background: linear-gradient(180deg, rgba(24, 27, 25, 0.68), rgba(5, 9, 10, 0.58));
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(98, 230, 219, 0.035);
-  backdrop-filter: blur(8px) saturate(1.05);
-  opacity: 0.88;
+  border: 1px solid rgba(239, 184, 95, 0.78);
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(58, 70, 75, 0.94), rgba(25, 35, 46, 0.96));
+  box-shadow: 0 16px 38px rgba(2, 8, 16, 0.56), 0 0 0 2px rgba(72, 101, 121, 0.34), inset 0 1px rgba(255, 241, 207, 0.14);
+  backdrop-filter: blur(10px) saturate(1.18);
+  opacity: 0.98;
   transform: translateX(-50%);
   transition: opacity 140ms ease, background 140ms ease;
   pointer-events: auto;
@@ -1730,19 +1763,25 @@ h3 {
   place-items: center;
   overflow: hidden;
   padding: 4px 4px 5px;
-  border: 1px solid #59442d;
-  background: linear-gradient(180deg, rgba(37, 39, 34, 0.76), rgba(10, 15, 14, 0.7));
+  border: 1px solid #9b7443;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(70, 76, 71, 0.9), rgba(29, 39, 48, 0.94));
   cursor: pointer;
-  color: #d8cfb8;
+  color: #f8edd2;
   transition: border-color 120ms ease, transform 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 .combat-controls button:hover:not(:disabled) {
   border-color: var(--soul);
-  color: var(--soul);
-  box-shadow: 0 0 22px rgba(98, 230, 219, 0.19);
+  color: #fff8df;
+  box-shadow: 0 0 24px rgba(122, 244, 223, 0.24), inset 0 0 16px rgba(122, 244, 223, 0.08);
   transform: translateY(-3px);
 }
+
+#basic-action { border-color: rgba(239, 184, 95, 0.9); background: linear-gradient(180deg, rgba(104, 79, 44, 0.9), rgba(43, 43, 42, 0.95)); }
+#signature-action { border-color: rgba(122, 244, 223, 0.74); background: linear-gradient(180deg, rgba(43, 93, 98, 0.88), rgba(31, 46, 60, 0.95)); }
+#defense-action { border-color: rgba(120, 159, 224, 0.78); background: linear-gradient(180deg, rgba(57, 78, 121, 0.9), rgba(30, 42, 61, 0.95)); }
+#recover-action { border-color: rgba(148, 205, 133, 0.72); background: linear-gradient(180deg, rgba(58, 91, 70, 0.88), rgba(31, 46, 48, 0.95)); }
 
 .combat-controls button:disabled {
   cursor: not-allowed;
@@ -1783,7 +1822,7 @@ h3 {
   place-items: center;
   border: 1px solid rgba(197, 141, 71, 0.72);
   color: var(--bronze);
-  background: rgba(5, 7, 8, 0.9);
+  background: rgba(33, 39, 44, 0.96);
   font-size: 9px;
 }
 
@@ -1792,9 +1831,10 @@ h3 {
   width: 38px;
   height: 38px;
   object-fit: cover;
-  border: 1px solid #765536;
-  background: radial-gradient(circle, #273533, #080b0c 68%);
-  box-shadow: inset 0 0 12px #000, 0 3px 10px #000;
+  border: 1px solid #c19254;
+  border-radius: 5px;
+  background: radial-gradient(circle at 45% 35%, #49666a, #1c2b35 60%, #111821);
+  box-shadow: inset 0 0 10px rgba(4, 9, 15, 0.72), 0 4px 12px rgba(2, 8, 14, 0.52);
   transition: transform 130ms ease, filter 130ms ease;
 }
 
@@ -1802,7 +1842,7 @@ h3 {
 .combat-controls button:hover:not(:disabled) img,
 .combat-controls button:hover:not(:disabled) .utility-icon { transform: scale(1.06); filter: brightness(1.14); }
 .combat-controls button b { max-width: 100%; overflow: hidden; font-size: 11px; font-weight: 700; line-height: 1.15; letter-spacing: 0.025em; text-overflow: ellipsis; white-space: nowrap; }
-.combat-controls button small { color: #8a9690; font: 8px/1.1 "Soul HUD", sans-serif; letter-spacing: 0.045em; text-transform: uppercase; }
+.combat-controls button small { color: #bdc9bd; font: 8px/1.1 "Soul HUD", sans-serif; letter-spacing: 0.045em; text-transform: uppercase; }
 
 .combat-controls button.is-triggered::after {
   position: absolute;
@@ -2244,6 +2284,19 @@ h3 {
   .choice-grid--callings,
   .appearance-options,
   .appearance-options--hair { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .combat-controls button:hover:not(:disabled) { transform: none; }
 }
 
 /* Lore & Maps atlas overlay */
