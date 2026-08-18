@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
   bindOptionalCompatibleAnimationClip,
@@ -79,6 +80,8 @@ import type { CombatStyle, GridPoint, RuntimeState } from "./types";
 import { GameUI, type ActionName } from "./ui";
 import { buildSoulwellChamber } from "./environment/rooms/SoulwellChamber";
 import { createSoulwellMaterialLibrary, type SoulwellMaterialLibrary } from "./environment/MaterialLibrary";
+import { dungeonPropAssetSpec, type DungeonPropAssetId } from "./environment/DungeonPropCatalog";
+import { createDungeonFireEffect, instantiateDungeonProp } from "./environment/DungeonPropKit";
 import {
   cameraFollowStep,
   cameraPanBounds,
@@ -173,6 +176,7 @@ interface StoryObject {
   grid: GridPoint;
   root: THREE.Object3D;
   kind: InteractiveKind;
+  assetId?: DungeonPropAssetId;
   blocksMovement: boolean;
   destructible: boolean;
   questCritical: boolean;
@@ -286,6 +290,7 @@ interface DebugBridge {
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
   prepareTrialGate(): void;
   prepareImprint(): void;
+  focusProp(id: string): void;
   requestInteraction(id: string): Promise<void>;
   confirmInteraction(): Promise<void>;
   prepareCorridor(): Promise<void>;
@@ -379,7 +384,7 @@ export class World3D {
   private readonly paperRenderer: THREE.WebGLRenderer;
   private readonly paperCamera = new THREE.PerspectiveCamera(28, 0.72, 0.1, 80);
   private readonly clock = new THREE.Timer();
-  private readonly loader = new GLTFLoader();
+  private readonly loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   private readonly modelCache = new Map<string, Promise<GLTF>>();
   private readonly animationPackCache = new Map<string, Promise<readonly THREE.AnimationClip[]>>();
   private readonly raycaster = new THREE.Raycaster();
@@ -666,9 +671,11 @@ export class World3D {
     });
 
     this.buildBoundaryWalls();
-    this.dungeon.props
-      .filter((prop) => prop.roomId !== "training")
-      .forEach((prop) => this.buildProp(prop));
+    await Promise.all(
+      this.dungeon.props
+        .filter((prop) => prop.roomId !== "training")
+        .map((prop) => this.buildProp(prop)),
+    );
     this.addHostileRoomSetDressing();
     this.buildFogSeals();
     this.addDungeonAtmosphere();
@@ -720,15 +727,23 @@ export class World3D {
     }
   }
 
-  private buildProp(prop: DungeonProp): void {
+  private async buildProp(prop: DungeonProp): Promise<void> {
     const root = new THREE.Group();
     root.position.copy(gridToWorld(prop));
+    root.position.x += (prop.offsetX ?? 0) * TILE_SIZE;
+    root.position.z += (prop.offsetY ?? 0) * TILE_SIZE;
+    root.rotation.y = prop.rotationY ?? 0;
     root.name = prop.id;
     const stone = this.hostileMaterials.masonry;
     const bronze = this.hostileMaterials.bronze;
     const rune = this.hostileMaterials.soulglass;
+    const usesKitAsset = prop.assetId ? await this.buildCatalogProp(prop, root) : false;
 
-    if (prop.kind === "soul-well") {
+    if (usesKitAsset) {
+      // The imported model, derived hanging assembly, and optional fire VFX are
+      // installed by buildCatalogProp. The primitive branches remain a robust
+      // fallback for an unavailable network asset.
+    } else if (prop.kind === "soul-well") {
       const base = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.7, 0.65, 12), stone);
       base.position.y = 0.32;
       const rim = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.16, 8, 24), bronze);
@@ -784,6 +799,13 @@ export class World3D {
       const light = new THREE.PointLight(prop.roomId === "boss" ? 0xe86d4e : 0x55d8cf, 7.5, 10, 1.7);
       light.position.y = 1.75;
       root.add(light);
+      const setFireLit = (lit: boolean): void => {
+        root.userData.fireLit = lit;
+        flame.visible = lit;
+        light.visible = lit;
+      };
+      root.userData.setFireLit = setFireLit;
+      setFireLit(true);
     } else if (prop.kind === "crate") {
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.92, 1.02), new THREE.MeshStandardMaterial({ color: 0x503521, roughness: 0.82 }));
       body.position.y = 0.48;
@@ -850,6 +872,7 @@ export class World3D {
       grid: { x: prop.x, y: prop.y },
       root,
       kind: prop.kind,
+      assetId: prop.assetId,
       blocksMovement: prop.blocksMovement,
       destructible: capability.destructible,
       questCritical: capability.questCritical,
@@ -861,6 +884,51 @@ export class World3D {
     this.storyObjects.set(prop.id, storyObject);
     this.createSemanticProxy(root, root, "interactId", prop.id);
     this.addInteractionMarker(root, capability.destructible ? 0xc58d47 : 0x62e6db, capability.destructible);
+  }
+
+  private async buildCatalogProp(prop: DungeonProp, root: THREE.Group): Promise<boolean> {
+    if (!prop.assetId) return false;
+    const spec = dungeonPropAssetSpec(prop.assetId);
+    try {
+      const gltf = await this.loadModel(spec.sourceUrl);
+      const phase = (prop.x * 0.73 + prop.y * 0.41 + this.seed * 0.0001) % (Math.PI * 2);
+      const instance = instantiateDungeonProp(gltf.scene, spec, phase);
+      instance.root.position.y = spec.elevation ?? 0;
+      root.add(instance.root);
+
+      let disposeFire = (): void => undefined;
+      let animateFire = (_elapsed: number): void => undefined;
+      if (spec.fireAnchorY !== undefined) {
+        const fire = createDungeonFireEffect({
+          anchorY: spec.fireAnchorY,
+          color: spec.fireColor ?? "cinder",
+          castShadow: spec.fireCastsShadow ?? false,
+          phase,
+        });
+        instance.fireMount.add(fire.root);
+        const setFireLit = (lit: boolean): void => {
+          fire.setLit(lit);
+          root.userData.fireLit = lit;
+        };
+        root.userData.setFireLit = setFireLit;
+        setFireLit(((this.seed ^ (prop.x * 31) ^ (prop.y * 17)) & 3) !== 0);
+        animateFire = fire.animate;
+        disposeFire = fire.dispose;
+      }
+      this.environmentAnimators.push((elapsed) => {
+        if (!root.visible) return;
+        instance.animate(elapsed);
+        animateFire(elapsed);
+      });
+      this.environmentDisposers.push(() => {
+        disposeFire();
+        instance.dispose();
+      });
+      return true;
+    } catch (error) {
+      console.warn(`Dungeon prop ${prop.assetId} failed to load; using the gameplay-safe primitive fallback.`, error);
+      return false;
+    }
   }
 
   private storyCapability(kind: InteractiveKind, id: string): ReturnType<typeof interactionCapability> {
@@ -1893,6 +1961,13 @@ export class World3D {
         detail: `${presentation.rewardLabel} · inspect and choose`,
       };
     }
+    if (object.kind === "brazier") {
+      const lit = Boolean(object.root.userData.fireLit);
+      return {
+        label: `${lit ? "Extinguish" : "Light"} ${this.objectDisplayName(object)}`,
+        detail: "Confirm fire toggle · Weapon Strike can still break the fixture",
+      };
+    }
     if (object.destructible) return { label: `Target ${this.objectDisplayName(object)}`, detail: "Confirm target, then use Weapon Strike" };
     if (object.kind === "chest") return { label: "Open Wayfarer's Coffer", detail: "Quest supplies · confirm" };
     if (object.kind === "memory-loom") return { label: "Use Memory Loom", detail: "Shape starter traits · confirm" };
@@ -2009,7 +2084,7 @@ export class World3D {
     const object = this.storyObjects.get(id);
     if (!object) return;
     if (object.destroyed) return;
-    if (object.destructible) {
+    if (object.destructible && object.kind !== "brazier") {
       this.selectStoryObjectTarget(object.id);
       this.ui.setMessage(`${this.objectDisplayName(object)} targeted. Use Weapon Strike to damage it; quest-critical objects reject attacks with an explanation.`);
       return;
@@ -2031,6 +2106,21 @@ export class World3D {
         this.refreshStats();
         this.ui.setMessage("The Soul Well restores your body and mortal spell channels.");
       });
+    } else if (object.kind === "brazier") {
+      const setFireLit = object.root.userData.setFireLit;
+      if (typeof setFireLit !== "function") {
+        this.ui.setMessage("The brazier's fire channel is dormant.");
+        return;
+      }
+      const nextLit = !Boolean(object.root.userData.fireLit);
+      await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.lever, () => {
+        setFireLit(nextLit);
+        const name = this.objectDisplayName(object);
+        this.ui.setMessage(nextLit
+          ? `${name} catches with flame, embers, smoke, glow, and dynamic shadows.`
+          : `${name} goes dark; its fire, smoke, glow, light, and shadows shut off.`);
+        this.ui.addLog(`${this.profile.name} ${nextLit ? "lights" : "extinguishes"} ${name.toLowerCase()}.`);
+      }, false);
     } else if (object.kind === "chest") {
       if (this.openedObjects.has(id)) {
         this.ui.setMessage("The Wayfarer's Coffer is empty.");
@@ -2224,6 +2314,7 @@ export class World3D {
   }
 
   private objectDisplayName(object: StoryObject): string {
+    if (object.assetId) return dungeonPropAssetSpec(object.assetId).label;
     const labels: Partial<Record<InteractiveKind, string>> = {
       pillar: "Cracked pillar",
       brazier: "Realm brazier",
@@ -2239,6 +2330,8 @@ export class World3D {
   private async destroyStoryObject(object: StoryObject): Promise<void> {
     object.destroyed = true;
     object.blocksMovement = false;
+    const setFireLit = object.root.userData.setFireLit;
+    if (typeof setFireLit === "function") setFireLit(false);
     this.spawnPropDebris(object);
     const startingY = object.root.position.y;
     const direction = (object.grid.x + object.grid.y + this.seed) % 2 === 0 ? 1 : -1;
@@ -3631,6 +3724,29 @@ export class World3D {
     await this.startEncounter("skirmish");
   }
 
+  private focusDebugProp(id: string): void {
+    const object = this.storyObjects.get(id);
+    const definition = this.dungeon.props.find((prop) => prop.id === id);
+    if (!object || !definition) throw new Error(`Unknown dungeon prop visual-proof target: ${id}`);
+    this.revealRoom(definition.roomId, false);
+    this.currentRoom = definition.roomId;
+    const destination = [
+      { x: object.grid.x + 1, y: object.grid.y },
+      { x: object.grid.x - 1, y: object.grid.y },
+      { x: object.grid.x, y: object.grid.y + 1 },
+      { x: object.grid.x, y: object.grid.y - 1 },
+    ].find((point) => this.tileMap.has(dungeonTileKey(point)) && this.isWalkable(point, "player")) ?? object.grid;
+    this.player.grid = { ...destination };
+    this.player.root.position.copy(gridToWorld(destination));
+    this.player.root.position.y = 0;
+    this.debugCameraFocus = null;
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollowInitialized = false;
+    this.updateCamera(true, 0);
+    this.ui.setMessage(`Visual proof focused on ${this.objectDisplayName(object)}.`);
+  }
+
   private positionDebugCameraOnActors(first: AnimatedActor, second: AnimatedActor): void {
     const midpoint = first.root.position.clone().lerp(second.root.position, 0.5);
     this.cameraFollow.center.set(first.root.position.x, first.root.position.z);
@@ -3769,6 +3885,7 @@ export class World3D {
         delete this.profile.starterImprint;
         this.openImprintRefinement();
       },
+      focusProp: (id) => this.focusDebugProp(id),
       requestInteraction: async (id) => this.requestInteractionById(id),
       confirmInteraction: async () => this.confirmPendingInteraction(),
       prepareCorridor: async () => this.prepareDebugCorridor(),
@@ -3868,6 +3985,9 @@ export class World3D {
         bridge.weaponSocket(command.position, command.rotation);
         publish();
       }
+      else if (command.type === "prepare-corridor") void bridge.prepareCorridor().then(finish);
+      else if (command.type === "defeat-enemy" && command.id) { bridge.defeatEnemy(command.id); publish(); }
+      else if (command.type === "focus-prop" && command.id) { bridge.focusProp(command.id); publish(); }
   }
 
   private debugSnapshot(): DebugSnapshot {

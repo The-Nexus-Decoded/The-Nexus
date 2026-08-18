@@ -1,0 +1,288 @@
+export type EnvironmentPropKind = "pillar" | "rubble" | "brazier" | "crate" | "bench" | "chair";
+
+export type DungeonPropPlacement = "floor" | "wall" | "ceiling";
+
+export interface DungeonPropAssetSpec {
+  id: DungeonPropAssetId;
+  label: string;
+  sourceUrl: string;
+  kind: EnvironmentPropKind;
+  placement: DungeonPropPlacement;
+  blocksMovement: boolean;
+  targetHeight: number;
+  maxFootprint: number;
+  elevation?: number;
+  verticalScale?: number;
+  fireAnchorY?: number;
+  fireColor?: "soul" | "cinder";
+  fireCastsShadow?: boolean;
+}
+
+export const DUNGEON_PROP_ASSET_IDS = [
+  "archive-bookshelf",
+  "archive-cupboard",
+  "storage-chest",
+  "reinforced-crate",
+  "storage-barrel",
+  "trestle-table",
+  "heavy-bench",
+  "high-backed-chair",
+  "empty-weapon-rack",
+  "wall-torch-sconce",
+  "floor-brazier",
+  "hanging-brazier",
+  "cave-in-rubble",
+  "masonry-barricade",
+  "bone-pile",
+  "chain-shackle",
+  "ruined-altar",
+  "heavy-door",
+  "false-wall-panel",
+  "supply-pile",
+  "corruption-growth",
+  "guardian-statue",
+] as const;
+
+export type DungeonPropAssetId = typeof DUNGEON_PROP_ASSET_IDS[number];
+
+const KIT_ROOT = "/assets/3d/environment/dungeon-kit";
+
+export const DUNGEON_PROP_ASSETS: Record<DungeonPropAssetId, DungeonPropAssetSpec> = {
+  "archive-bookshelf": {
+    id: "archive-bookshelf",
+    label: "Ancient archive bookshelf",
+    sourceUrl: `${KIT_ROOT}/archive-bookshelf.glb`,
+    kind: "bench",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 2.75,
+    maxFootprint: 2.6,
+  },
+  "archive-cupboard": {
+    id: "archive-cupboard",
+    label: "Sealed archive cupboard",
+    sourceUrl: `${KIT_ROOT}/archive-cupboard.glb`,
+    kind: "bench",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 2.35,
+    maxFootprint: 2.35,
+  },
+  "storage-chest": {
+    id: "storage-chest",
+    label: "Iron-bound storage chest",
+    sourceUrl: `${KIT_ROOT}/storage-chest.glb`,
+    kind: "crate",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.05,
+    maxFootprint: 1.65,
+  },
+  "reinforced-crate": {
+    id: "reinforced-crate",
+    label: "Reinforced supply crate",
+    sourceUrl: `${KIT_ROOT}/reinforced-crate.glb`,
+    kind: "crate",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.08,
+    maxFootprint: 1.55,
+  },
+  "storage-barrel": {
+    id: "storage-barrel",
+    label: "Weathered storage barrel",
+    sourceUrl: `${KIT_ROOT}/storage-barrel.glb`,
+    kind: "crate",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.22,
+    maxFootprint: 1.4,
+  },
+  "trestle-table": {
+    id: "trestle-table",
+    label: "Abandoned trestle table",
+    sourceUrl: `${KIT_ROOT}/trestle-table.glb`,
+    kind: "bench",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 0.92,
+    maxFootprint: 2.8,
+  },
+  "heavy-bench": {
+    id: "heavy-bench",
+    label: "Heavy dungeon bench",
+    sourceUrl: `${KIT_ROOT}/heavy-bench.glb`,
+    kind: "bench",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 0.9,
+    maxFootprint: 2.35,
+  },
+  "high-backed-chair": {
+    id: "high-backed-chair",
+    label: "High-backed ruin chair",
+    sourceUrl: `${KIT_ROOT}/high-backed-chair.glb`,
+    kind: "chair",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.7,
+    maxFootprint: 1.35,
+  },
+  "empty-weapon-rack": {
+    id: "empty-weapon-rack",
+    label: "Empty weapon rack",
+    sourceUrl: `${KIT_ROOT}/empty-weapon-rack.glb`,
+    kind: "bench",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 2.05,
+    maxFootprint: 2.25,
+  },
+  "wall-torch-sconce": {
+    id: "wall-torch-sconce",
+    label: "Wall torch sconce",
+    sourceUrl: `${KIT_ROOT}/wall-torch-sconce.glb`,
+    kind: "brazier",
+    placement: "wall",
+    blocksMovement: false,
+    targetHeight: 1.5,
+    maxFootprint: 0.95,
+    elevation: 1.05,
+    fireAnchorY: 1.25,
+    fireColor: "cinder",
+  },
+  "floor-brazier": {
+    id: "floor-brazier",
+    label: "Floor brazier",
+    sourceUrl: `${KIT_ROOT}/floor-brazier.glb`,
+    kind: "brazier",
+    placement: "floor",
+    blocksMovement: false,
+    targetHeight: 1.38,
+    maxFootprint: 1.5,
+    fireAnchorY: 1.22,
+    fireColor: "cinder",
+    fireCastsShadow: true,
+  },
+  "hanging-brazier": {
+    id: "hanging-brazier",
+    label: "Hanging chain brazier",
+    // This zero-credit runtime variant reuses the approved floor-brazier mesh.
+    sourceUrl: `${KIT_ROOT}/floor-brazier.glb`,
+    kind: "brazier",
+    placement: "ceiling",
+    blocksMovement: false,
+    targetHeight: 1.35,
+    maxFootprint: 1.45,
+    elevation: 2.5,
+    verticalScale: 0.54,
+    fireAnchorY: 0.65,
+    fireColor: "cinder",
+    fireCastsShadow: true,
+  },
+  "cave-in-rubble": {
+    id: "cave-in-rubble",
+    label: "Cave-in rubble cluster",
+    sourceUrl: `${KIT_ROOT}/cave-in-rubble.glb`,
+    kind: "rubble",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.05,
+    maxFootprint: 2.55,
+  },
+  "masonry-barricade": {
+    id: "masonry-barricade",
+    label: "Broken masonry barricade",
+    sourceUrl: `${KIT_ROOT}/masonry-barricade.glb`,
+    kind: "rubble",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 1.55,
+    maxFootprint: 2.9,
+  },
+  "bone-pile": {
+    id: "bone-pile",
+    label: "Ancient bone pile",
+    sourceUrl: `${KIT_ROOT}/bone-pile.glb`,
+    kind: "rubble",
+    placement: "floor",
+    blocksMovement: false,
+    targetHeight: 0.72,
+    maxFootprint: 2.15,
+  },
+  "chain-shackle": {
+    id: "chain-shackle",
+    label: "Chain and shackle assembly",
+    sourceUrl: `${KIT_ROOT}/chain-shackle.glb`,
+    kind: "pillar",
+    placement: "wall",
+    blocksMovement: false,
+    targetHeight: 1.65,
+    maxFootprint: 1.6,
+    elevation: 1.15,
+  },
+  "ruined-altar": {
+    id: "ruined-altar",
+    label: "Ruined ritual altar",
+    sourceUrl: `${KIT_ROOT}/ruined-altar.glb`,
+    kind: "pillar",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.45,
+    maxFootprint: 2.25,
+  },
+  "heavy-door": {
+    id: "heavy-door",
+    label: "Heavy dungeon door",
+    sourceUrl: `${KIT_ROOT}/heavy-door.glb`,
+    kind: "pillar",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 3,
+    maxFootprint: 2.45,
+  },
+  "false-wall-panel": {
+    id: "false-wall-panel",
+    label: "Suspicious false wall",
+    sourceUrl: `${KIT_ROOT}/false-wall-panel.glb`,
+    kind: "rubble",
+    placement: "wall",
+    blocksMovement: true,
+    targetHeight: 2.9,
+    maxFootprint: 2.75,
+  },
+  "supply-pile": {
+    id: "supply-pile",
+    label: "Abandoned supply pile",
+    sourceUrl: `${KIT_ROOT}/supply-pile.glb`,
+    kind: "crate",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.35,
+    maxFootprint: 2.2,
+  },
+  "corruption-growth": {
+    id: "corruption-growth",
+    label: "Monster corruption growth",
+    sourceUrl: `${KIT_ROOT}/corruption-growth.glb`,
+    kind: "rubble",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 1.45,
+    maxFootprint: 2.3,
+  },
+  "guardian-statue": {
+    id: "guardian-statue",
+    label: "Weathered guardian statue",
+    sourceUrl: `${KIT_ROOT}/guardian-statue.glb`,
+    kind: "pillar",
+    placement: "floor",
+    blocksMovement: true,
+    targetHeight: 3.15,
+    maxFootprint: 1.75,
+  },
+};
+
+export function dungeonPropAssetSpec(id: DungeonPropAssetId): DungeonPropAssetSpec {
+  return DUNGEON_PROP_ASSETS[id];
+}

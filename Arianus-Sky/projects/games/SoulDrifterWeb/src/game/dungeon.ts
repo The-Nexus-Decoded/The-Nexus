@@ -1,8 +1,22 @@
 import type { GridPoint } from "./types";
+import {
+  DUNGEON_PROP_ASSET_IDS,
+  dungeonPropAssetSpec,
+  type DungeonPropAssetId,
+  type DungeonPropPlacement,
+  type EnvironmentPropKind,
+} from "./environment/DungeonPropCatalog";
 
 export type DungeonRoomKind = "training" | "skirmish" | "boss";
 export type DungeonZoneId = "training" | "passage-one" | "skirmish" | "passage-two" | "boss";
 export type BossPattern = "cinder-sweep" | "ash-call" | "soul-tax";
+export type DungeonPropKind = EnvironmentPropKind
+  | "soul-well"
+  | "chest"
+  | "gate"
+  | "essence"
+  | "memory-loom"
+  | "training-effigy";
 
 export interface DungeonRoom {
   id: DungeonRoomKind;
@@ -31,9 +45,13 @@ export interface DungeonTile extends GridPoint {
 
 export interface DungeonProp extends GridPoint {
   id: string;
-  kind: "soul-well" | "chest" | "pillar" | "rubble" | "brazier" | "crate" | "bench" | "chair" | "gate" | "essence" | "memory-loom" | "training-effigy";
+  kind: DungeonPropKind;
   roomId: DungeonRoomKind;
   blocksMovement: boolean;
+  assetId?: DungeonPropAssetId;
+  offsetX?: number;
+  offsetY?: number;
+  rotationY?: number;
 }
 
 export interface DungeonNpc extends GridPoint {
@@ -153,6 +171,58 @@ function randomOpenPoint(
     }
   }
   throw new Error(`Unable to place an object in ${room.id}.`);
+}
+
+interface PropPlacement extends GridPoint {
+  offsetX: number;
+  offsetY: number;
+  rotationY: number;
+}
+
+function randomWallPoint(
+  random: RandomSource,
+  room: DungeonRoom,
+  reserved: Set<string>,
+): PropPlacement {
+  const candidates: PropPlacement[] = [];
+  for (let x = room.x + 1; x < room.x + room.width - 1; x += 1) {
+    candidates.push(
+      { x, y: room.y, offsetX: 0, offsetY: -0.38, rotationY: 0 },
+      { x, y: room.y + room.height - 1, offsetX: 0, offsetY: 0.38, rotationY: Math.PI },
+    );
+  }
+  for (let y = room.y + 1; y < room.y + room.height - 1; y += 1) {
+    candidates.push(
+      { x: room.x, y, offsetX: -0.38, offsetY: 0, rotationY: Math.PI / 2 },
+      { x: room.x + room.width - 1, y, offsetX: 0.38, offsetY: 0, rotationY: -Math.PI / 2 },
+    );
+  }
+  for (let attempt = 0; attempt < candidates.length * 2; attempt += 1) {
+    const candidate = random.pick(candidates);
+    if (reserved.has(tileKey(candidate))) continue;
+    reserved.add(tileKey(candidate));
+    return candidate;
+  }
+  const fallback = randomOpenPoint(random, room, reserved, 1);
+  return { ...fallback, offsetX: 0, offsetY: 0, rotationY: random.int(0, 3) * Math.PI / 2 };
+}
+
+function randomPropPlacement(
+  random: RandomSource,
+  room: DungeonRoom,
+  reserved: Set<string>,
+  placement: DungeonPropPlacement,
+  margin: number,
+): PropPlacement {
+  if (placement === "wall") return randomWallPoint(random, room, reserved);
+  const point = randomOpenPoint(random, room, reserved, margin);
+  const spread = placement === "ceiling" ? 0.14 : 0.28;
+  return {
+    ...point,
+    offsetX: (random.next() - 0.5) * spread,
+    offsetY: (random.next() - 0.5) * spread,
+    rotationY: random.int(0, 3) * Math.PI / 2 + (random.next() - 0.5) * 0.18,
+  };
 }
 
 export function createRunSeed(): number {
@@ -333,23 +403,36 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
     { id: "gate-oathbreaker", kind: "gate", roomId: "training", blocksMovement: true, ...hardGatePoint },
   ];
 
-  const decorationKinds = ["pillar", "rubble", "brazier", "crate", "bench", "chair"] as const;
   const decorationRooms = [
     ...crawlSections.map((section) => ({ ...section, roomId: "skirmish" as const, propPrefix: section.id })),
     { ...boss, roomId: "boss" as const, propPrefix: "boss" },
   ];
+  const assetStart = random.int(0, DUNGEON_PROP_ASSET_IDS.length - 1);
+  let assetOrdinal = 0;
   for (const room of decorationRooms) {
-    const count = room.roomId === "boss" ? random.int(10, 15) : random.int(3, 5);
+    const count = room.roomId === "boss" ? random.int(12, 16) : random.int(4, 6);
     for (let index = 0; index < count; index += 1) {
-      const point = randomOpenPoint(random, { ...room, id: room.roomId }, reserved, room.roomId === "boss" ? 2 : 1);
-      const kind = random.pick(decorationKinds);
+      // Stepping by five (coprime with the 22-entry catalog) guarantees that
+      // every run uses the whole kit once before any model repeats, while the
+      // seed still changes order, rotation, room, and placement.
+      const assetId = DUNGEON_PROP_ASSET_IDS[(assetStart + assetOrdinal * 5) % DUNGEON_PROP_ASSET_IDS.length]!;
+      const spec = dungeonPropAssetSpec(assetId);
+      const placement = randomPropPlacement(
+        random,
+        { ...room, id: room.roomId },
+        reserved,
+        spec.placement,
+        room.roomId === "boss" ? 2 : 1,
+      );
       props.push({
-        id: `${room.propPrefix}-${kind}-${index}`,
-        kind,
+        id: `${room.propPrefix}-${assetId}-${index}`,
+        kind: spec.kind,
         roomId: room.roomId,
-        blocksMovement: kind !== "brazier",
-        ...point,
+        blocksMovement: spec.blocksMovement,
+        assetId,
+        ...placement,
       });
+      assetOrdinal += 1;
     }
   }
 

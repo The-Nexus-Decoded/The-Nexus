@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dungeonTileKey, generateSoulwellDungeon, parseDebugRunSeed, roomContains } from "../src/game/dungeon";
+import { DUNGEON_PROP_ASSET_IDS, dungeonPropAssetSpec } from "../src/game/environment/DungeonPropCatalog";
 
 function reachableTiles(dungeon: ReturnType<typeof generateSoulwellDungeon>): Set<string> {
   const floor = new Set(dungeon.tiles.map(dungeonTileKey));
@@ -88,6 +89,27 @@ describe("Soulwell dungeon generation", () => {
       expect(dungeon.props.filter((prop) => prop.kind === "gate").map((prop) => prop.id).sort()).toEqual(["gate-oathbreaker", "gate-wayfarer"]);
       expect(dungeon.props.some((prop) => prop.kind === "memory-loom")).toBe(true);
       expect(dungeon.props.some((prop) => prop.kind === "training-effigy")).toBe(true);
+    }
+  });
+
+  it("uses the complete reusable 3D dungeon kit in a seeded, organic arrangement", () => {
+    const expectedAssets = new Set(DUNGEON_PROP_ASSET_IDS);
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const dungeon = generateSoulwellDungeon(seed);
+      const kitProps = dungeon.props.filter((prop) => prop.assetId !== undefined);
+      expect(new Set(kitProps.map((prop) => prop.assetId)), `seed ${seed}`).toEqual(expectedAssets);
+      expect(kitProps.length).toBeGreaterThanOrEqual(DUNGEON_PROP_ASSET_IDS.length);
+      for (const prop of kitProps) {
+        const spec = dungeonPropAssetSpec(prop.assetId!);
+        expect(prop.kind).toBe(spec.kind);
+        expect(prop.blocksMovement).toBe(spec.blocksMovement);
+        expect(Number.isFinite(prop.rotationY)).toBe(true);
+        if (spec.placement === "wall") {
+          expect(Math.abs(prop.offsetX ?? 0) + Math.abs(prop.offsetY ?? 0)).toBeGreaterThan(0);
+        }
+      }
+      const hanging = kitProps.find((prop) => prop.assetId === "hanging-brazier");
+      expect(hanging).toMatchObject({ kind: "brazier", blocksMovement: false });
     }
   });
 
