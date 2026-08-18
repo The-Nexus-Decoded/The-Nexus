@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -674,6 +674,156 @@
         },
         "runtimeGate": "all-three-poc-glbs-are-high-poly-single-mesh-unrigged-and-not-runtime-ready-retopology-bake-rig-and-animation-proof-still-required"
       },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-base-tailed-image-first-v002",
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "meshy-7-multi-image",
+      "studioProject": "SoulDrifter",
+      "studioProjectId": 310153,
+      "textureQuality": "standard",
+      "topologySetting": "quad",
+      "texturesEnabled": true,
+      "pbrEnabled": true,
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "2897ca72-80fa-4872-ae65-98a088a7d63c",
+      "creditReceipt": {
+        "balanceBeforeSubmission": 1424,
+        "postCompletionObservedBalance": 819,
+        "postCompletionBalanceAttributableToThisTaskAlone": false,
+        "concurrentPaidTasksObservedFromParallelLevelAssetWork": true,
+        "hardFloor": 800,
+        "paidGenerationBlockedAfterThisTask": true
+      },
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-base-chatgpt-front-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1913280,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "55FDAD175A6F137F45FB2CA016DED6D02826ED4B891E439C5594399AD9869D49",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-front-camera-suffix",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-single-subject-symmetric-low-hunch-one-head-two-arms-two-legs-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-base-chatgpt-left-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1683811,
+          "width": 1278,
+          "height": 1231,
+          "sha256": "81D8C0B5772E5338456DA8330827DD26299D29754CF229F98D0ED2C2DA5EEB24",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-left-camera-suffix",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-left-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-left-profile-single-eye-low-crouch-clean-tail-root-and-taper-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-base-chatgpt-rear-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1842662,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "A317BAFD4F2DC71B284F63350969745ECEE2791E5410B0D4B9C0FAE35CF945FA",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-true-rear-camera-suffix",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+          "anomalyGate": "passed-true-rear-no-face-front-core-palms-kneecaps-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-base-chatgpt-right-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1851121,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "4D9DC0C6260675A608ADECDD6F838A9C15E042EEEFA7CC853A212338D8D7E28F",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-right-camera-suffix",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-right-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-right-profile-single-eye-low-crouch-clean-tail-root-and-taper-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedVerbatimInEveryView": true,
+        "onlyCameraSuffixChangedBetweenViews": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "level-one-base-breachling",
+        "palette": "pale-ash-grey-scaled-hide-with-restrained-muted-teal-fissure-mottling-charcoal-ridge-tips-and-amber-eyes",
+        "tail": "one-long-muscular-counterbalance-tail-continuous-with-the-sacrum-and-diminishing-dorsal-ridge",
+        "silhouette": "permanent-low-hunched-predator-with-long-forearms-folded-digitigrade-hind-legs-and-elongated-snarling-skull"
+      },
+      "untouchedExport": {
+        "file": "sd-creature-breachling-base-meshy7-multiview-ash-tail-source.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 52772424,
+        "sha256": "797419CC9E3D19575DD3A55F91A0CD199427CC3F9AA27E6DC59659AA2809FCD9"
+      },
+      "meshInspection": {
+        "nodes": 1,
+        "meshes": 1,
+        "primitives": 1,
+        "vertices": 859345,
+        "triangles": 1648748,
+        "skins": 0,
+        "animations": 0,
+        "morphTargets": 0,
+        "materials": 1,
+        "textures": 3,
+        "pbrTextureSlots": [
+          "base-color",
+          "metallic-roughness",
+          "normal"
+        ],
+        "boundsSize": [
+          0.7138429880142212,
+          0.8865230083465576,
+          1.9015780091285706
+        ]
+      },
+      "visualInspection": {
+        "renderedViews": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "passed": true,
+        "findings": [
+          "one-head-one-tail-two-arms-two-legs",
+          "tail-is-continuous-at-the-sacrum-cleanly-tapered-and-readable-from-both-profiles",
+          "no-mirrored-front-or-second-head-on-the-rear",
+          "permanent-low-hunting-posture-and-long-forearm-silhouette-preserved",
+          "jaw-teeth-claws-dorsal-ridge-and-pale-ash-material-remain-readable"
+        ],
+        "renderFiles": [
+          "sd-creature-breachling-base-meshy7-ash-tail-render-front.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-left.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-rear.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-right.png"
+        ]
+      },
+      "status": "generated-provisional-production-source-candidate-owner-final-review-pending-retopology-and-rig",
+      "ownerReview": "four-angle-source-and-glb-inspection-passed-owner-final-glb-review-pending",
+      "supersedesForProduction": "creature-breachling-base-image-first-v001",
+      "preservesHistoricalPoc": true,
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
       "runtimePromotionAllowed": false
     },
     {

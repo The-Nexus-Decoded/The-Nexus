@@ -304,6 +304,79 @@ describe("First Breach production model register", () => {
     expect(task.workflowComparison.runtimeGate).toContain("not-runtime-ready");
   });
 
+  it("records the inspected tail-corrected base as the provisional production source", () => {
+    const task = sourceTask("creature-breachling-base-tailed-image-first-v002");
+
+    expect(task).toMatchObject({
+      operation: "image-to-3d-multi-view-four-image",
+      model: "meshy-7-multi-image",
+      studioProject: "SoulDrifter",
+      studioProjectId: 310153,
+      textureQuality: "standard",
+      topologySetting: "quad",
+      texturesEnabled: true,
+      pbrEnabled: true,
+      taskId: "2897ca72-80fa-4872-ae65-98a088a7d63c",
+      actualCredits: 45,
+      status: "generated-provisional-production-source-candidate-owner-final-review-pending-retopology-and-rig",
+      supersedesForProduction: "creature-breachling-base-image-first-v001",
+      preservesHistoricalPoc: true,
+      sharedRigWith: "future-tail-enabled-breachling-family-rig-v1",
+      runtimePromotionAllowed: false,
+    });
+    expect(task.creditReceipt).toMatchObject({
+      balanceBeforeSubmission: 1424,
+      postCompletionObservedBalance: 819,
+      postCompletionBalanceAttributableToThisTaskAlone: false,
+      concurrentPaidTasksObservedFromParallelLevelAssetWork: true,
+      hardFloor: 800,
+      paidGenerationBlockedAfterThisTask: true,
+    });
+    expect(task.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
+    expect(task.sourceImages.map((source: any) => source.view)).toEqual(["front", "left", "rear", "right"]);
+    for (const source of task.sourceImages) {
+      expect(source.promptParity).toContain("full-canonical-identity-anatomy-material-and-forbidden-trait-block");
+      expect(source.anomalyGate).toContain("passed");
+    }
+    expect(task.sourceImages.find((source: any) => source.view === "rear")).toMatchObject({
+      file: "sd-creature-breachling-base-chatgpt-rear-v6-tail-canonical-source.png",
+      sha256: "A317BAFD4F2DC71B284F63350969745ECEE2791E5410B0D4B9C0FAE35CF945FA",
+      tailEvidence: "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+    });
+    expect(task.promptLineage).toMatchObject({
+      finalSourcePromptParityVerified: true,
+      fullCanonicalIdentityBlockRepeatedVerbatimInEveryView: true,
+      onlyCameraSuffixChangedBetweenViews: true,
+    });
+    expect(task.untouchedExport).toMatchObject({
+      file: "sd-creature-breachling-base-meshy7-multiview-ash-tail-source.glb",
+      bytes: 52772424,
+      sha256: "797419CC9E3D19575DD3A55F91A0CD199427CC3F9AA27E6DC59659AA2809FCD9",
+    });
+    expect(task.meshInspection).toMatchObject({
+      nodes: 1,
+      meshes: 1,
+      primitives: 1,
+      vertices: 859345,
+      triangles: 1648748,
+      skins: 0,
+      animations: 0,
+      morphTargets: 0,
+      materials: 1,
+      textures: 3,
+    });
+    expect(task.visualInspection).toMatchObject({
+      passed: true,
+      renderedViews: ["front", "left", "rear", "right"],
+    });
+    expect(task.visualInspection.findings).toEqual(
+      expect.arrayContaining([
+        "one-head-one-tail-two-arms-two-legs",
+        "no-mirrored-front-or-second-head-on-the-rear",
+      ]),
+    );
+  });
+
   it("records the inspected rust-red tailed Stalker as a provisional source candidate", () => {
     const task = sourceTask("creature-breachling-stalker-image-first-v001");
 
