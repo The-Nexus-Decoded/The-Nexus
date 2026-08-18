@@ -15,7 +15,8 @@ describe("First Breach production model register", () => {
     expect(modelRegister.creditPolicy.excludedOperations).toEqual(
       expect.arrayContaining(["remesh", "rigging", "paid-animation"]),
     );
-    expect(modelRegister.program.notifyWhenCreditBalanceBelow).toBe(2000);
+    expect(modelRegister.program.notifyWhenCreditBalanceBelow).toBe(800);
+    expect(modelRegister.creditPolicy.notifyWhenCreditBalanceBelow).toBe(800);
 
     for (const group of modelRegister.assetGroups) {
       expect(group.geometrySource).toBe("3d-ai-studio");
@@ -172,17 +173,17 @@ describe("First Breach production model register", () => {
     expect(task.generationOutcome.decision).toBe("retain-as-design-source-not-yet-a-rig-candidate");
   });
 
-  it("rejects the upright Breachling reconstruction set before any provider submission", () => {
+  it("preserves the rejected upright Breachling set and approves the corrected four-view replacement", () => {
     const task = sourceTask("creature-breachling-base-image-first-v001");
 
     expect(task).toMatchObject({
       operation: "image-to-3d-multi-view-four-image",
       expectedCredits: 45,
       maximumCredits: 45,
-      status: "four-view-source-set-rejected-upright-dragonkin-read-canonical-hunched-rebuild-in-progress",
+      status: "replacement-four-view-source-set-owner-approved-ready-for-provider-submission",
       taskId: null,
       actualCredits: null,
-      ownerReview: "rejected-upright-deformed-humanoid-or-dragonkin-read",
+      ownerReview: "replacement-four-view-source-set-approved-original-upright-set-rejected",
       runtimePromotionAllowed: false,
     });
     expect(task.viewContract).toMatchObject({
@@ -205,15 +206,22 @@ describe("First Breach production model register", () => {
     });
     expect(task.canonicalPromptPolicy.canonicalIdentityBlock).toContain("about forty degrees");
     expect(task.replacementSourceSet).toMatchObject({
-      submissionAllowed: false,
-      missingViews: ["front", "rear", "right"],
+      status: "canonical-four-view-v4-owner-approved-and-anomaly-gated",
+      submissionAllowed: true,
+      ownerReview: "approved",
+      missingViews: [],
     });
-    expect(task.replacementSourceSet.sourceImages[0]).toMatchObject({
-      view: "left",
-      file: "sd-creature-breachling-base-chatgpt-left-v4-canonical-source.png",
-      sha256: "2683727F0DA3ADAF6548F5001C79478083790DF4E8F71B98A39D4982615E4637",
-      promptParity: "full-canonical-identity-block-plus-left-camera-suffix",
-    });
+    expect(task.replacementSourceSet.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
+    expect(task.replacementSourceSet.sourceImages.map((source: any) => source.view)).toEqual([
+      "front",
+      "left",
+      "rear",
+      "right",
+    ]);
+    for (const source of task.replacementSourceSet.sourceImages) {
+      expect(source.promptParity).toContain("full-canonical-identity-block-plus-");
+      expect(source.anomalyGate).toContain("passed");
+    }
   });
 
   it("keeps all three Breachling tier fronts provisional and biological", () => {

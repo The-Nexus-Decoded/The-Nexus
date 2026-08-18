@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -15,7 +15,7 @@
       "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images",
       "strict-four-view-breachling-and-cinderbound-warden-source-conversions-after-view-gate"
     ],
-    "notifyWhenCreditBalanceBelow": 2000
+    "notifyWhenCreditBalanceBelow": 800
   },
   "studioWorkspace": {
     "project": "SoulDrifter",
@@ -207,7 +207,7 @@
     "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-source-generation-for-issue-448-including-approved-strict-four-view-hero-creatures",
     "batchApprovalImplied": true,
     "stopOnUnexpectedCost": true,
-    "notifyWhenCreditBalanceBelow": 2000,
+    "notifyWhenCreditBalanceBelow": 800,
     "excludedOperations": [
       "remesh",
       "rigging",
@@ -446,10 +446,10 @@
           ]
         }
       },
-      "status": "four-view-source-set-rejected-upright-dragonkin-read-canonical-hunched-rebuild-in-progress",
+      "status": "replacement-four-view-source-set-owner-approved-ready-for-provider-submission",
       "taskId": null,
       "actualCredits": null,
-      "ownerReview": "rejected-upright-deformed-humanoid-or-dragonkin-read",
+      "ownerReview": "replacement-four-view-source-set-approved-original-upright-set-rejected",
       "canonicalPromptPolicy": {
         "fullIdentityBlockRequiredVerbatimForEveryView": true,
         "shorthandOrReferenceOnlyPromptAllowed": false,
@@ -457,9 +457,22 @@
         "canonicalIdentityBlock": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall. It is not an upright humanoid, Dragonkin, Dragonborn, heroic biped, or player-character body with a monster head. Its permanent resting anatomy is a low stalking hunch: the wiry torso and spine hinge forward about forty degrees from the rear-set pelvis; the upper back forms a pronounced rounded predatory arch; the shoulder girdle sits clearly forward of and slightly higher than the hips; the neck projects forward; the large head hangs low and well ahead of the chest. It has disproportionately long weight-bearing-looking forearms ending in exactly four clawed fingers, with fingertips hanging below the knees and nearly reaching the ground; noticeably short powerful bent digitigrade legs; low hocks and Achilles; broad stable heel pads and feet; a narrow angular skull; swept-back ear fins; deep-set amber eyes; ash-gray scaled skin with muted teal fissure mottling; small bony shoulder and spine ridges; and a huge broad non-human hinged predator maw with a deep cavity, multiple layers of long irregular teeth, and a visible tongue. The source uses a neutral symmetric custom-rig stance while preserving the permanent crouch, with separated limbs, open hands off the floor, planted feet, and visible joints. No clothing, manufactured armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature."
       },
       "replacementSourceSet": {
-        "status": "canonical-left-profile-v4-shown-pending-owner-review-three-matching-views-not-generated",
-        "submissionAllowed": false,
+        "status": "canonical-four-view-v4-owner-approved-and-anomaly-gated",
+        "submissionAllowed": true,
+        "ownerReview": "approved",
         "sourceImages": [
+          {
+            "view": "front",
+            "file": "sd-creature-breachling-base-chatgpt-front-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1810157,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "3E1CF0CFBE43AA1222DCD857243E3E71C9A0B249515AF04A6B49C568B4D2C720",
+            "generationPromptSha256": "92EEA8C259759586B1544EE0E65CE02BF9FFA7A1AE2947E04CF023A3A7FCA7EF",
+            "promptParity": "full-canonical-identity-block-plus-front-camera-suffix",
+            "anomalyGate": "passed-single-subject-symmetric-low-hunch-four-fingered-hands-and-no-duplicate-anatomy"
+          },
           {
             "view": "left",
             "file": "sd-creature-breachling-base-chatgpt-left-v4-canonical-source.png",
@@ -469,14 +482,41 @@
             "height": 1254,
             "sha256": "2683727F0DA3ADAF6548F5001C79478083790DF4E8F71B98A39D4982615E4637",
             "generationPromptSha256": "021C623B5A888B9FF141FDA82899D1714DD2C24789297161D4B56DD15C540D4E",
-            "promptParity": "full-canonical-identity-block-plus-left-camera-suffix"
+            "promptParity": "full-canonical-identity-block-plus-left-camera-suffix",
+            "anomalyGate": "passed-exact-left-profile-low-hunch-single-eye-and-no-opposite-cheek-or-palm-cues"
+          },
+          {
+            "view": "rear",
+            "file": "sd-creature-breachling-base-chatgpt-rear-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1815966,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "8A29733921BC2A16A3FABA97B206C54868440F3AE86762A2A916AFEFC775E6EB",
+            "generationPromptSha256": "B623F0D155F1E91DAE765D52AA13DADC5A978F8C7DF1D5807D21A7635B11D4A8",
+            "promptParity": "full-canonical-identity-block-plus-rear-camera-suffix",
+            "anomalyGate": "passed-true-rear-with-spine-scapulae-rear-pelvis-knee-backs-hocks-achilles-and-heel-pads-no-face-or-front-cues"
+          },
+          {
+            "view": "right",
+            "file": "sd-creature-breachling-base-chatgpt-right-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1784823,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "6A189F0C204DCDD6CE3C030BB6B997149E8DBEC653BE7655FF355C16D6D89BFB",
+            "generationPromptSha256": "7C53BFD4543BD0238F3EE0953D49948F2C7E6834B5C5578337D7FD837266209F",
+            "promptParity": "full-canonical-identity-block-plus-right-camera-suffix",
+            "anomalyGate": "passed-exact-right-profile-low-hunch-single-eye-and-no-opposite-cheek-or-palm-cues"
           }
         ],
-        "missingViews": [
+        "viewOrderForProvider": [
           "front",
+          "left",
           "rear",
           "right"
-        ]
+        ],
+        "missingViews": []
       },
       "runtimePromotionAllowed": false
     },
