@@ -1,27 +1,33 @@
-# SoulDrifter Text-to-3D Production Queue
+# SoulDrifter 3D Studio Production Queue
 
 Status: active under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
 
-Default operation: 3D AI Studio text-to-3D
+Default operation: asset-type dependent. Humanoid body anchors use one owner-reviewed T-pose image with Prism 3.1 single-image conversion. Isolated creatures, gear, weapons, props, and environment pieces use text-to-3D unless a specific selected reference design requires single-image conversion.
 
 Approved starting preset: Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record before every paid submission
 
-Authorization: all text-to-3D models required by issue #448 are approved for generation. Notify the owner if the account balance drops below 2,000 credits. Image-to-3D and other paid processing remain outside this standing authorization except for explicitly owner-selected tests such as the single-pose Halfling candidate.
+Authorization: required issue #448 text-to-3D sources plus the approved single-image Halfling and Heavy body-anchor scope may proceed without per-task approval pauses. Notify the owner if the account balance drops below 2,000 credits. Remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
 
 Machine-readable anchor batch: [`text-to-3d-anchor-batch.json`](text-to-3d-anchor-batch.json)
+
+Accepted image-first intake: [`body-anchor-intake.json`](body-anchor-intake.json)
 
 ## Locked production order
 
 1. Complete the eight adult ancestry/presentation base anchors.
 2. Export, clean, retopologize, and normalize the accepted anchors to the canonical humanoid rig.
 3. Build the shared C-tier starter underlayer, calling layers, armor pieces, and separate weapon packages.
-4. Build the character-selection appearance library: three facial structures, six or more skin tones, hair families, facial hair, scars, tattoos/paint, piercings, sideburns, and runtime-matched headshots.
+4. Build the character-selection appearance library: four cross-ancestry facial-feature families, six or more skin tones, hair families, facial hair, scars, tattoos/paint, piercings, sideburns, and runtime-matched headshots.
 5. Build Ilyra, Orren, Brannoc, the reusable conversation-face rig, the training construct, the Breachling family, and the Cinderbound Warden.
 6. Revalidate animations, character creation, paper doll, dialogue, combat, defeat states, rooms, browser budgets, and the complete First Breach playthrough.
 
 The eight anchors are ancestry/presentation topology and proportion sources, not class-locked characters. Slim, Athletic, and Heavy are versioned shape/conform profiles on each compatible topology and canonical skeleton. Calling identity comes from modular clothing, armor, weapons, hair, materials, and effects rather than a fused race/calling body model.
 
 ## Phase 1: base ancestry anchors
+
+Current accepted visual-source intake is authoritative in [`body-anchor-intake.json`](body-anchor-intake.json): twelve single-image conversions covering all six Halfling presentation/body-profile combinations plus the masculine/feminine Heavy replacements for Human, Elf, and Dwarf. Their exact twelve source images and twelve untouched GLBs are preserved outside the shipping tree. The GLBs contain roughly 727k-767k vertices and 1.41M-1.49M triangles each with no skeleton or animations, so all are visual source sculpts awaiting retopology and the canonical rig gate. The verified account balance after this batch is 2,472 credits.
+
+The tables below retain the earlier text-to-3D exploration and rejected correction history. They are not the current shipping candidates.
 
 | Order | Asset ID | Anchor | Status | Paid task |
 | --- | --- | --- | --- | --- |
@@ -36,7 +42,7 @@ The eight anchors are ancestry/presentation topology and proportion sources, not
 
 The existing Human candidate establishes the first visual target but is not a shipping model. The seven remaining prompts deliberately use representative skin tones to test coverage; every accepted ancestry later supports the complete approved skin-tone palette.
 
-The seven-anchor batch completed at 40 credits per task, spending 280 credits and leaving a 3,192-credit balance. Two correction passes then spent 240 credits and left a 2,952-credit balance. Including the original 40-credit Human text pilot, total recorded text-to-3D spend for the anchor program is 560 credits. Image-to-3D tests spent 85 credits: 45 for the rejected multi-view comparison and 40 for the coherent single-pose Halfling exception. The current balance is 2,912 credits. Every candidate remains non-shipping until owner visual review and intake gates pass.
+The seven-anchor batch completed at 40 credits per task, spending 280 credits and leaving a 3,192-credit balance. Two correction passes then spent 240 credits and left a 2,952-credit balance. Including the original 40-credit Human text pilot, total recorded text-to-3D spend for the anchor program was 560 credits at that historical checkpoint. Image-to-3D tests had then spent 85 credits: 45 for the rejected multi-view comparison and 40 for the coherent single-pose Halfling exception. These balances are historical; the current verified balance is 2,472 credits. Every candidate remains non-shipping until owner visual review and intake gates pass.
 
 ### Correction pass
 
@@ -87,7 +93,7 @@ One text-to-3D prompt generates one isolated garment, armor piece, weapon, or ac
 
 For every compatible body/head contract:
 
-- three adult face structures: soft/round, angular/high-cheek, and broad/strong;
+- four adult facial-feature families: African diaspora/Black, East Asian, South Asian/Indian, and European;
 - at least six equally canonical skin-tone materials;
 - at least six masculine-presenting and six feminine-presenting hairstyle families, cross-presented wherever fit QA passes;
 - modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings;
@@ -95,6 +101,8 @@ For every compatible body/head contract:
 - local headshots rendered from the exact runtime head, skin, hair, adornment, clothing, and equipment assembly.
 
 Heads, hair, and adornments conform to the accepted body/head seam and expression landmarks. They do not create new unrelated skeletons.
+
+Every facial-feature family is available across Human, Elf, Dwarf, and Halfling and across masculine/feminine presentation and Slim/Athletic/Heavy body profiles. Ancestry markers, skin tone, hair, adornments, body profile, calling, and statistics remain independent selections. The implementation uses respectful reusable head variants or deformation profiles with equal facial-animation coverage, never caricatures or duplicated full bodies.
 
 ## Phase 5: First Breach NPCs and creatures
 
@@ -112,13 +120,13 @@ The current level then receives original text-to-3D sources for:
 
 Ilyra, Orren, and Brannoc use the same approved identity for world actor and animated dialogue close-up. Creature sources receive anatomy-appropriate rigs but share the gameplay action, targeting, grounding, hit, death, terminal-state, VFX, and SFX contracts.
 
-## Image-to-3D exception
+## Single-image body-anchor workflow
 
-Image-to-3D is not part of the normal queue. It is opened only when the owner selects a specific visual design that should be reproduced in SoulDrifter. Normal Prism single-image mode receives exactly one isolated full-body pose on a plain background. Prism multi-view mode receives four separate identity-matched front/left/back/right files. Composite sheets are prohibited in both modes, and a single image is never submitted while the multi-view model is selected.
+Humanoid body anchors in the approved Halfling and Heavy replacement scope use exactly one owner-reviewed, isolated, front-facing, full-body T-pose on a plain background. Prism multi-view mode is not used for this workflow. Composite sheets, inset views, multiple figures, action poses, and a single image submitted to the multi-view model are prohibited. Image-to-3D outside the approved scope remains an owner-selected exception.
 
 ## Batch and credit gates
 
-- No paid task runs unless its exact prompt, model, settings, and live cost are recorded and it falls inside the issue #448 text-to-3D authorization.
+- No paid task runs unless its exact prompt or source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 text-to-3D or approved single-image body-anchor authorization.
 - Notify the owner when the account balance drops below 2,000 credits.
 - Batch generation does not imply approval for remesh, rigging, variants, animation, or another batch.
 - Stop the batch if the service reports a different total, a task duplicates, or the first result exposes a prompt-wide defect.

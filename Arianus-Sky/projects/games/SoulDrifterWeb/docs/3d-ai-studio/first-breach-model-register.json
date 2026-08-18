@@ -1,18 +1,19 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
     "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
-    "status": "text-to-3d-human-pilot-generated-awaiting-intake",
-    "workflowDecision": "text-to-3d-default",
+    "status": "twelve-image-first-body-anchors-preserved-awaiting-retopology-gate",
+    "workflowDecision": "asset-type-dependent-with-image-first-humanoid-body-anchors",
     "paidOperationApproved": false,
     "textTo3dGenerationApproved": true,
     "textTo3dApprovalScope": "all-required-models-for-issue-448",
-    "imageTo3dApproved": false,
+    "imageTo3dApproved": true,
     "approvedImageTo3dExceptions": [
-      "single-pose-halfling-masculine-2026-08-17"
+      "all-six-halfling-body-anchors-single-image",
+      "all-eight-heavy-body-replacements-single-image"
     ],
     "notifyWhenCreditBalanceBelow": 2000
   },
@@ -35,16 +36,23 @@
     ]
   },
   "generationPolicy": {
-    "defaultOperation": "text-to-3d",
+    "defaultOperation": "asset-type-dependent",
+    "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
+    "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "text-to-3d-unless-a-specific-owner-selected-design-requires-single-image-input",
     "defaultModel": "prism-3.1",
     "approvedStartingTextureQuality": "ultra",
-    "liveSettingsAndPriceApprovalRequiredPerTask": true,
+    "liveSettingsAndPriceApprovalRequiredPerTask": false,
+    "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
     "oneIsolatedSubjectPerTask": true,
     "batchBlockedUntilPilotPassesIntakeRigAndAnimationGates": true,
     "imageTo3dException": {
       "allowed": true,
-      "purpose": "reproduce-a-specific-owner-selected-pre-existing-design",
-      "separateApprovalRequired": true,
+      "purpose": "reproduce-an-owner-reviewed-single-subject-design-in-the-approved-model-program",
+      "separateApprovalRequired": false,
+      "approvedScope": [
+        "all-halfling-body-anchors",
+        "all-heavy-body-replacements"
+      ],
       "singleImageRequirements": [
         "one-isolated-character",
         "one-front-facing-full-body-pose",
@@ -61,6 +69,15 @@
       "compositeSheetsAllowed": false,
       "automaticFallbackFromTextFailure": false
     }
+  },
+  "bodyAnchorIntake": {
+    "manifest": "./body-anchor-intake.json",
+    "acceptedVisualSources": 12,
+    "untouchedGlbsPreserved": 12,
+    "sourceImagesPreserved": 12,
+    "creditBalanceAfterBatch": 2472,
+    "directRuntimePromotionAllowed": false,
+    "nextGate": "offline-retopology-scale-orientation-head-seam-and-canonical-rig-proof"
   },
   "pilotComparison": {
     "date": "2026-08-17",
@@ -121,20 +138,19 @@
     ]
   },
   "creditPolicy": {
-    "approval": "phase-wide-required-text-to-3d-generation-for-issue-448",
+    "approval": "phase-wide-required-text-to-3d-plus-approved-single-image-body-anchor-generation-for-issue-448",
     "batchApprovalImplied": false,
     "stopOnUnexpectedCost": true,
     "notifyWhenCreditBalanceBelow": 2000,
     "excludedOperations": [
-      "image-to-3d",
       "remesh",
       "rigging",
       "paid-animation"
     ],
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
-    "completedImageTo3dException": "single-pose-halfling-masculine-task-d8897a78",
-    "currentCandidate": "image-to-3d-task-d8897a78",
-    "nextPaidPilot": "one-text-to-3d-breachling-base-candidate"
+    "completedImageTo3dException": "twelve-preserved-body-anchors-in-body-anchor-intake-manifest",
+    "currentCandidate": "offline-retopology-pilot-selection-pending",
+    "nextPaidPilot": null
   },
   "assetGroups": [
     {

@@ -183,20 +183,20 @@ is a conforming source for a separate game-equipment mesh, never fused character
 
 ### Phase 0: verify authorization before spending credits
 
-1. Lock the ticket, asset ID, ancestry/calling purpose, direct text-to-3D prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
+1. Lock the ticket, asset ID, ancestry/calling purpose, operation, direct text prompt or approved single-image source, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
-3. Save the prompt hash and any optional owner-review concept references in the intake ledger. Concept art is not a generation input unless the separately approved image-to-3D exception applies.
-4. Confirm that the task is required text-to-3D generation inside the issue #448 phase authorization, record the exact prompt/settings/live charge, and monitor the 2,000-credit notification threshold. Image-to-3D and other paid operations still require separate approval.
+3. Save the prompt hash or exact approved source-image hash in the intake ledger. Humanoid body anchors use one front-facing full-body T-pose on a plain background; contact sheets and automatic multi-view crops are invalid.
+4. Confirm that the task fits either required text-to-3D generation or the approved single-image Halfling/Heavy body-anchor scope, record the exact prompt or image/settings/live charge, and monitor the 2,000-credit notification threshold. Remesh, rigging, paid animation, and any other image-to-3D scope still require separate approval.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one text-to-3D task through MCP or the authenticated 3D AI Studio dashboard.
+1. Submit one isolated text-to-3D task or one approved single-image body-anchor task through MCP or the authenticated 3D AI Studio dashboard.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
 5. Reject duplicate subjects, extra limbs, fused fingers, closed armpits, unusable pose drift, missing back detail, melted facial features, intersecting geometry, fused equipment, and weapon-like fragments.
 6. Do not request variants until the defect is classified as a prompt problem, model limitation, or downstream cleanup problem.
-7. Do not switch to image-to-3D merely because the first text candidate fails. Reopen that exception only for a specific approved design with clean isolated views.
+7. Do not switch operations merely because the first candidate fails. Image-to-3D requires an approved specific design and clean isolated input; text-to-3D remains preferred for isolated creatures, gear, weapons, props, and environment pieces without a selected reference design.
 
 ### Phase 2: export to non-shipping intake
 
@@ -232,7 +232,7 @@ For the Human pilot:
 6. Do not replace the canonical skeleton or migrate the animation library as a side effect of asset generation. That requires a separate approved migration decision.
 7. Reject a rig that twists shoulders, collapses elbows, lifts feet, breaks fingers, changes height, or loses material/mesh bindings on round trip.
 
-No other ancestry body is generated until this gate passes or the owner explicitly approves the retarget cost.
+No additional body source is promoted or sent to paid rigging until this gate passes or the owner explicitly approves the retarget cost.
 
 ### Phase 5: modular clothing and armor
 
@@ -292,6 +292,7 @@ body-human-feminine-a-v001
 body-elf-masculine-a-v001
 body-elf-feminine-a-v001
 head-human-face-angular-v001
+head-elf-face-east-asian-v001
 material-skin-human-deep-v001
 hair-coils-short-fit-human-v001
 adornment-earring-hoop-small-left-v001
@@ -361,19 +362,19 @@ Every 3D AI Studio artifact records:
 
 ## Pilot stop-gates
 
-The first paid sequence is deliberately narrow:
+The current paid sequence is deliberately gated:
 
-1. Retain text-to-3D task `ef7a7258` as the sole current Human source candidate; reject multi-view task `304b62b1` and do not derive production assets from it.
-2. Before spending more credits, export and inspect the untouched text-to-3D candidate, preserving task and credit provenance.
-3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
+1. Preserve the twelve accepted single-image Halfling and Heavy body anchors in [`body-anchor-intake.json`](./body-anchor-intake.json); reject multi-view task `304b62b1` and do not derive production assets from it.
+2. Treat the 1.41M-1.49M-triangle untouched GLBs as visual source sculpts only; none may enter `public/assets` or a runtime manifest.
+3. Select one Human topology pilot, clean, retopologize, bake, and compare a resulting rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
 5. Produce one text-to-3D shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source inside the phase authorization after the body-source queue is complete.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
-8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
+8. Lock the neck seam, four cross-ancestry facial-feature families, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
 9. Prove the counterpart Human body family and shared appearance layers before expanding derived body profiles.
-10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
-11. Only after those gates pass, generate remaining ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
+10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before promoting any preserved Dwarf or Halfling source.
+11. Only after those gates pass, continue remaining body profiles, calling layers, and shared weapon packages in controlled batches.
 
 Stop and request owner review when:
 
@@ -390,11 +391,11 @@ Stop and request owner review when:
 ## Approval checklist
 
 - [ ] Paid plan and MCP connection verified without exposing credentials.
-- [ ] Asset ticket, text-to-3D prompt, operation, model/version, expected credits, and applicable phase authorization recorded.
+- [ ] Asset ticket, prompt or source-image hash, operation, model/version, expected credits, and applicable phase authorization recorded.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
-- [ ] Three facial structures share approved expression/deformation landmarks and the versioned neck seam.
+- [ ] African diaspora/Black, East Asian, South Asian/Indian, and European facial-feature families are available across Human, Elf, Dwarf, and Halfling and share approved expression/deformation landmarks and the versioned neck seam.
 - [ ] At least six skin tones render consistently and carry no stat, morality, rarity, or class meaning.
 - [ ] At least six masculine-presenting and six feminine-presenting hair fits pass skull, ear, shoulder, and helmet clipping checks.
 - [ ] Tattoos/paint use masks or decals; piercings and dimensional facial details use declared sockets; facial hair and sideburns remain modular.

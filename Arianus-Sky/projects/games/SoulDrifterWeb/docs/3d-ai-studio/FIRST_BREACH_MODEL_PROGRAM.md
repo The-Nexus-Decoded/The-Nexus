@@ -43,15 +43,19 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 3D AI Studio exposes automatic model/derivative lineage rather than a manually named Git-style asset branch. Git remains the reviewed source of truth. Every accepted generation records its 3D AI Studio project, provider operation and model version, task ID, credit receipt, prompt hash, automatic derivative lineage where applicable, untouched-export hash, processed-export hash, and the Git commit that consumed it. Source-image hashes are required only for an approved image-to-3D exception. A floating or generic `latest` reference cannot supply production assets.
 
-## Default generation operation
+## Generation operation by asset type
 
-Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record for each task. On 2026-08-17 the owner authorized every text-to-3D model required to complete issue #448 and requested notification if the account balance drops below 2,000 credits. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per prompt. Image-to-3D remains outside that standing authorization and is permitted only when the owner selects a specific visual design to reproduce.
+Humanoid body anchors use the validated image-first path: one owner-reviewed, front-facing, full-body T-pose on a plain background, followed by one Prism 3.1 single-image conversion. This is now the required path for all Halfling body anchors and every Heavy body replacement. A contact sheet, multiple figures, inset views, action pose, or automatic multi-view crop is invalid input.
+
+Text-to-3D remains the default for one isolated creature, garment, armor piece, weapon, prop, or environment piece unless the owner selects a specific reference design that needs the same single-image path. On 2026-08-17 the owner authorized the required issue #448 source-model program without per-task approval pauses and requested notification when the account balance falls below 2,000 credits. Live settings, charge, task ID, and receipt are still recorded for every task. Remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
 
 The approved 2026-08-17 comparison established the rule:
 
 - text-to-3D task `ef7a7258`: Prism 3.1 with Ultra texture quality, 40 credits, one coherent Human athletic source candidate, retained for non-shipping intake and downstream evaluation;
 - multi-view image-to-3D task `304b62b1`: Prism 3.1 with Ultra texture quality, 45 credits, three unwanted figures caused by contaminated composite crops, rejected;
 - total comparison: 85 credits, account balance 3,557 to 3,472, with no remesh, rig, export promotion, or runtime replacement.
+
+The later controlled body batch is recorded in [`body-anchor-intake.json`](./body-anchor-intake.json). Twelve accepted visual sources and their twelve owner-reviewed input images are preserved outside the shipping tree. Each untouched GLB is a single unrigged mesh with roughly 727k-767k vertices and 1.41M-1.49M triangles, so none is eligible for direct runtime promotion. Account balance after the batch is 2,472 credits.
 
 ## Permanent playable-character foundation
 
@@ -209,15 +213,15 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 ### Stage 0: free preparation
 
 - Approve the exact Level 1 register and source hierarchy.
-- Prepare one direct text-to-3D prompt and exclusion list per isolated asset.
+- Prepare either one direct text-to-3D prompt or one validated single-image source brief per isolated asset.
 - Inspect the 3D AI Studio connector read-only and record currently exposed operations/models.
 - Obtain a live credit estimate for one task without submitting it, if the connector supports estimates.
 - Record the maximum approved cost separately for every paid task or tightly bounded batch.
 
 ### Stage 1: humanoid pilot
 
-- Retain approved text-to-3D task `ef7a7258` as the sole current Human body/head/neutral-underlayer source candidate.
-- Preserve and inspect its untouched export before requesting another paid Human generation.
+- Preserve the twelve accepted image-first body anchors and their exact source images using [`body-anchor-intake.json`](./body-anchor-intake.json).
+- Retain text-to-3D task `ef7a7258` as a historical Human athletic comparison candidate until the topology pilot is selected.
 - Clean, retopologize, bake, compare Prism versus the current skeleton, and prove baseline locomotion/unarmed/facial deformation.
 - Stop if identity, topology, head seam, rig, hands, face, or animation economics fail.
 
@@ -230,7 +234,7 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 
 ### Stage 3: controlled expansion
 
-After both pilots pass, continue the authorized text-to-3D queue in this order:
+After both pilots pass, continue the authorized asset-type-specific queue in this order:
 
 1. counterpart Human body and Human appearance library;
 2. Elf, Dwarf, and Halfling body pairs and fit profiles;
@@ -239,7 +243,7 @@ After both pilots pass, continue the authorized text-to-3D queue in this order:
 5. Breachling variants, training construct, and Cinderbound Warden;
 6. final Level 1 animation/room integration.
 
-The standing authorization covers required text-to-3D generation only. It does not approve image-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
+The standing authorization covers required text-to-3D sources plus the approved single-image Halfling and Heavy body-anchor scope. It does not approve remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
 
 ## Rollback and promotion
 
@@ -249,6 +253,6 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Current authorization and notification point
 
-The approved 85-credit Human comparison is complete. The owner has now authorized all additional text-to-3D models required by this issue without individual approval pauses. Before each submission, Codex still records the isolated-asset prompt, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits.
+The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete. The owner has authorized required issue #448 source generation without individual approval pauses. Before each submission, Codex still records the isolated-asset prompt or source-image hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits; the verified post-batch balance is 2,472.
 
-This authorization does not include image-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. An image-to-3D request remains a separate owner-selected exception. Single-image mode requires exactly one isolated full-body pose on a plain background; multi-view mode requires four separate identity-matched front/left/back/right files. A contact sheet is never valid input.
+This authorization does not include remesh, rigging, animation purchases, QA merge, or deployment. Any future image-to-3D request outside the approved Halfling and Heavy body-anchor scope remains a separate owner-selected exception. Single-image mode requires exactly one isolated full-body pose on a plain background; multi-view mode requires four separate identity-matched front/left/back/right files. A contact sheet is never valid input.
