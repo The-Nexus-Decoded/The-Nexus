@@ -92,6 +92,26 @@ describe("First Breach production model register", () => {
     });
   });
 
+  it("records the bounded Cinderbound Warden source task before paid submission", () => {
+    const task = modelRegister.sourceGenerationTasks.find(
+      (entry) => entry.assetId === "creature-cinderbound-warden-v001",
+    );
+
+    expect(task).toMatchObject({
+      operation: "text-to-3d",
+      model: "prism-3.1",
+      textureQuality: "ultra",
+      meshQuality: "standard",
+      materialType: "shaded",
+      expectedCredits: 40,
+      maximumCredits: 40,
+      status: "approved-ready-to-submit",
+      runtimePromotionAllowed: false,
+    });
+    expect(task?.promptSha256).toBe("6E4FCE9519340D9DEA584F04B84D441B056D3EB7753983AC23AA537EEC34C829");
+    expect(task?.prompt).toContain("One complete isolated creature");
+  });
+
   it("covers every current level surface that must be revalidated", () => {
     expect(modelRegister.validationSurfaces).toEqual(
       expect.arrayContaining([

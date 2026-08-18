@@ -180,6 +180,24 @@
         "decision": "retain-as-design-source-not-yet-a-rig-candidate"
       },
       "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-cinderbound-warden-v001",
+      "operation": "text-to-3d",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "materialType": "shaded",
+      "expectedCredits": 40,
+      "maximumCredits": 40,
+      "prompt": "Original SoulDrifter Cinderbound Warden, the unique First Breach dungeon boss. Grounded realistic-fantasy style for a polished classic isometric action RPG. One towering seven-foot labyrinth jailer formed from interlocking charred basalt plates over a dim ember core, with a broad triangular shoulder silhouette, narrow waist, long powerful arms, heavy four-clawed hands, furnace-like rib cage, restrained orange cinder fissures, oxidized bronze binding bands, and a faceless iron mask with one vertical amber eye slit. The right forearm ends in a broad obsidian sweep-blade grown from the arm; the left palm bears a circular soul-tax seal. Neutral stable A-pose, limbs clear, feet planted, clean riggable silhouette. No Paladin, human knight, separate weapon, sword, shield, cape, wings, horns, skulls, gore, bright magic aura, particles, scenery, pedestal, text, duplicate, collage, or turntable. One complete isolated creature.",
+      "promptSha256": "6E4FCE9519340D9DEA584F04B84D441B056D3EB7753983AC23AA537EEC34C829",
+      "status": "approved-ready-to-submit",
+      "taskId": null,
+      "actualCredits": null,
+      "ownerReview": "pending",
+      "runtimePromotionAllowed": false
     }
   ],
   "assetGroups": [
