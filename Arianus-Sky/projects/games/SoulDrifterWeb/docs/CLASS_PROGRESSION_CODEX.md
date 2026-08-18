@@ -84,6 +84,20 @@ Paladins are Aether-Scribed-only. Their oath orders treat writing coercive power
 
 Each class receives a separate skill-list and specialization pass before production balance is locked. The current proof implements only two starter actions per class so combat is playable while the full trees remain designable.
 
+### Slayer advancement: Stalker
+
+Stalker is an advanced Slayer specialization, not a tenth base calling. Slayer remains the Lifepaper rogue/execution identity; Stalker trades some immediate Backstab and wounded-target burst for sustained pursuit, infiltration, scouting, locks/traps, and controlled escape.
+
+Working Stalker anchors:
+
+- `Quarry Mark`: identify one priority target and preserve pursuit pressure while it remains the quarry.
+- `Ghost Trail`: cross a threatened route with reduced detection and retain an escape line.
+- `Trap Sense`: reveal and disarm mechanisms or create an alternate route; Stalker utility must never be mandatory to finish solo content.
+- `Hamstring Cut`: trade execution damage for movement control and interruption.
+- `Relentless Pursuit`: reward staying on the same quarry without turning every fight into permanent stealth.
+
+Halflings are naturally strong Stalker candidates through high Finesse and hidden-route traditions, but the specialization is not ancestry-locked. Stalker uses the Slayer body, paired short-blade family, and animation foundation with later specialization-specific gear layered modularly; it does not require a separate base body or fused weapon model.
+
 ### Planned expansion: Monk
 
 Monk is the planned tenth base class, not a replacement or rename for any current calling. Its working space is mortal body discipline, breath, footwork, unarmed/hand-wrap technique, simple staff use, counters, and mobile control. It must receive a dedicated class pass before implementation to define its original SoulDrifter identity, resources, two level-one proof skills, armor rules, weapon interactions, and later specializations without becoming a generic martial-arts stereotype.

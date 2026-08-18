@@ -34,8 +34,8 @@ This handoff was synthesized from:
 Important source reconciliation:
 
 - The original Discord concept used eight classes and three races.
-- Later project decisions cleaned the playable taxonomy into five starting classes.
-- Summoner, Asura, and Slayer are not deleted; their fantasies remain as advanced class paths unless Lord Xar explicitly promotes them back to starting classes.
+- Lord Xar later restored all eight original classes as starting callings and added Shadowknight as the ninth starting calling.
+- Slayer is the original Lifepaper rogue/execution calling. Stalker is not a tenth base calling; it is an advanced Slayer specialization centered on pursuit, infiltration, scouting, traps, and escape.
 - Human, Elf, and Dwarf are the original race set. Halfling is a later documented extension.
 - The historical Discord channel ended with an on-hold instruction. Lord Xar's current direct instructions reactivate design-spec work for this parallel tile-based version; publishing, deployment, and paid production spending remain separate approvals.
 
@@ -358,7 +358,7 @@ Final shipping names are not yet locked.
 
 ## Playable Class Taxonomy
 
-### Starting Classes for the Clean V1 System
+### Starting Callings for the Current System
 
 | Starting Class | Starting Skill | Tactical Job | Primary Resource | Tile Identity |
 | --- | --- | --- | --- | --- |
@@ -367,16 +367,20 @@ Final shipping names are not yet locked.
 | Priest | Holy Arrow | heal, ward, cleanse, anti-dark | devotion / ward charge | safe zones, cleansed tiles, prevention lines |
 | Sharpshooter | Multishot | ranged focus, traps, pet commands | Focus + Pet Bond | marks, firing lanes, traps, companion positioning |
 | Paladin | Thor's Hammer | tank, stun, oath protection | oath charge / aura | protection auras, intercept zones, thunder impact |
+| Summoner | Summon Minion | shaped allies, binding, battlefield control | binding / command | shaped-form placement and command patterns |
+| Asura | Mindburn | mind pressure, curses, dangerous control | Instability | hostile links, curse zones, and backlash management |
+| Slayer | Backstab | stealth, poison, flank, execution | Edge | concealment routes, priority kills, and wounded-target finishers |
+| Shadowknight | Siphon Cleave | drain tank, curses, gravefire pressure | Soul Coal | life-drain arcs, ash wards, and attrition zones |
 
-### Preserved Legacy Class Identities
+### Source Reconciliation and Advancement Boundaries
 
-| Original Class | Starting Skill | Current Placement | Promise Preserved |
+| Original Class | Starting Skill | Current Placement | Advancement Boundary |
 | --- | --- | --- | --- |
-| Summoner | Summon Minion | Mage -> Blue Conjurer unless promoted | shaped or bound magical forms and battlefield control |
-| Asura | Mindburn | Mage -> Black/Asura unless promoted | mind pressure, curses, necromancy, dangerous backlash |
-| Slayer | Backstab | Warrior -> Slayer unless promoted | stealth, poison, flank, and execution |
+| Summoner | Summon Minion | starting calling | Blue Conjurer and other binding paths remain later specializations |
+| Asura | Mindburn | starting calling | Black, Void, curse, and Death paths remain later specializations |
+| Slayer | Backstab | starting calling | Stalker is a later pursuit/infiltration specialization, not a separate base calling |
 
-This structure keeps every original class idea while avoiding overlapping base identities.
+This structure preserves every original Lifepaper class while keeping advanced paths from duplicating the base roster.
 
 ## Class Details
 
@@ -483,7 +487,7 @@ Tile kit:
 
 Companion examples:
 
-- Stalker: stealth pressure and interrupt
+- Prowler: stealth pressure and interrupt
 - Ridgeback: pin and body-block
 - Skyhawk: scouting and mark extension
 - Ash Hound: chase and burn pressure
@@ -564,11 +568,13 @@ Rule:
 - high Instability increases power and self/friendly-fire risk
 - Priest and Paladin can stabilize the Asura without erasing the dark identity
 
-### Slayer Path
+### Slayer
 
 Fantasy:
 
 - execution fighter who wins through positioning, stealth, poison, and priority kills
+- base rogue/execution calling from the Lifepaper; it is not a Warrior subclass in the current roster
+- Stalker develops later from Slayer for tracking, infiltration, traps, pursuit, and escape rather than becoming a separate starting class
 
 Tile kit:
 
@@ -646,7 +652,7 @@ Gear:
 
 - Backstabber: classic flank assassin
 - Venomblade: poison and bleed
-- Shadowstepper: mobility and escape
+- Stalker: pursuit, infiltration, scouting, locks/traps, control, and escape with lower immediate execution burst
 - Duelist: single-target champion control
 - Reaper: wounded-target execution
 
@@ -1103,7 +1109,7 @@ Vertical-slice acceptance criteria:
 
 ## Open Decisions Requiring Lord Xar
 
-1. Are Summoner, Asura, and Slayer starting classes or advanced paths?
+1. Resolved: Summoner, Asura, and Slayer are starting callings; Stalker is an advanced Slayer specialization.
 2. Is Halfling included at launch or after Human/Elf/Dwarf?
 3. What are the original shipping names for the four realm traditions and the two major rune/shaping ancestry traditions?
 4. What is the first realm: Arianus-Sky is the current safest default.
