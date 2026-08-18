@@ -560,11 +560,39 @@
     };
   }
 
-  /* Clickable landmass rings — zoom a small isle / beast-city up to readable
-     size. Works under fog (look-but-don't-explore): POIs stay veiled. */
+  /* Clickable landmass targets — the circular button stays the hit zone, but
+     landmasses with a traced `shape` polygon light up their TRUE silhouette
+     (hard keyline + edge + fill) instead of any circle. Works under fog
+     (look-but-don't-explore): POIs stay veiled. */
   function landmassLayer(realm, stage, inspect) {
     if (!realm.landmasses || !realm.landmasses.length) return null;
     const layer = el("div", "landmass-layer");
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "lm-shapes");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    let hasShapes = false;
+    const polys = {};
+    realm.landmasses.forEach((lm) => {
+      if (!lm.shape) return;
+      hasShapes = true;
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "lm-shape");
+      const pts = lm.shape.map(p => p.join(",")).join(" ");
+      const key = document.createElementNS(NS, "polygon");
+      key.setAttribute("class", "lm-key");
+      key.setAttribute("points", pts);
+      key.setAttribute("vector-effect", "non-scaling-stroke");
+      const edge = document.createElementNS(NS, "polygon");
+      edge.setAttribute("class", "lm-edge");
+      edge.setAttribute("points", pts);
+      edge.setAttribute("vector-effect", "non-scaling-stroke");
+      g.appendChild(key); g.appendChild(edge);
+      svg.appendChild(g);
+      polys[lm.id] = g;
+    });
+    if (hasShapes) layer.appendChild(svg);
     realm.landmasses.forEach((lm) => {
       const b = el("button", "landmass-hit");
       b.type = "button";
@@ -573,6 +601,15 @@
       b.style.width = (lm.r * 2) + "%";
       b.innerHTML = `<span class="lm-ring"></span><span class="lm-name">${lm.name}</span>`;
       b.title = `Inspect ${lm.name}`;
+      const g = polys[lm.id];
+      if (g) {
+        b.classList.add("has-shape");
+        const lit = (on) => g.classList.toggle("lit", on);
+        b.addEventListener("pointerenter", () => lit(true));
+        b.addEventListener("pointerleave", () => lit(false));
+        b.addEventListener("focus", () => lit(true));
+        b.addEventListener("blur", () => lit(false));
+      }
       b.addEventListener("click", () => {
         if (stage._suppressClick) return;
         inspect(lm);
