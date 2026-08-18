@@ -574,7 +574,7 @@ Fantasy:
 
 - execution fighter who wins through positioning, stealth, poison, and priority kills
 - base rogue/execution calling from the Lifepaper; it is not a Warrior subclass in the current roster
-- Stalker develops later from Slayer for tracking, infiltration, traps, pursuit, and escape rather than becoming a separate starting class
+- Stalker is reserved as a later Slayer specialization rather than a separate starting class; its exact mechanics wait for the full class review
 
 Tile kit:
 
@@ -652,7 +652,7 @@ Gear:
 
 - Backstabber: classic flank assassin
 - Venomblade: poison and bleed
-- Stalker: pursuit, infiltration, scouting, locks/traps, control, and escape with lower immediate execution burst
+- Stalker: reserved Slayer specialization; exact role and kit pending the coordinated class review
 - Duelist: single-target champion control
 - Reaper: wounded-target execution
 

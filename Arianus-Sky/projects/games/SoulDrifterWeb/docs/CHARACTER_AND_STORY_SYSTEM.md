@@ -30,7 +30,7 @@ Every playable character is the combination of an ancestry, a calling, and four 
 | Slayer | Backstab | Shadowstep | flanks, poison, execution |
 | Shadowknight | Siphon Cleave | Cinder Guard | drain tank, curses, Fire-Realm lich survival |
 
-Slayer is the Lifepaper rogue/execution calling. Stalker is one of its advanced specializations, focused on pursuit, infiltration, scouting, locks/traps, and escape; it is not selectable as a separate base calling.
+Slayer is the Lifepaper rogue/execution calling. Stalker is reserved beneath it as a later specialization, but its mechanics remain undefined until the coordinated class review; it is not selectable as a separate base calling.
 
 The four memory questions are diegetic stat and skill creation. Their answers modify Might, Finesse, Insight, Will, Vitality, and Resonance; grant four remembered skills; and become story facts that later NPCs and quests can inspect.
 
