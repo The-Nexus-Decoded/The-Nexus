@@ -213,7 +213,7 @@ describe("First Breach production model register", () => {
       topologySetting: "quad",
       expectedCredits: 45,
       maximumCredits: 45,
-      status: "custom-four-view-meshy-poc-owner-preferred-source-candidate-awaiting-retopology-and-rig",
+      status: "custom-four-view-meshy-poc-owner-preferred-workflow-proof-superseded-for-production-by-beast-tail-rule",
       taskId: "7ad8a98c-8984-4091-a71c-ed053295e156",
       actualCredits: 45,
       ownerReview: "custom-four-view-meshy-poc-preferred-over-auto-sheet-same-engine-comparison",
@@ -231,6 +231,14 @@ describe("First Breach production model register", () => {
     expect(task.designContract.tierArmorContract).toMatchObject({
       construction: "grown-biological-dermal-plating-emerging-from-the-hide",
       manufacturedOrWornArmorAllowed: false,
+    });
+    expect(task.designContract.beastTailContract).toMatchObject({
+      requiredAcrossFamily: true,
+      sharedRigRequirement: "one-tail-enabled-breachling-family-rig-with-a-versioned-tail-chain-used-by-every-tier",
+    });
+    expect(task.tailPolicyOverride).toMatchObject({
+      decision: "all-breachling-beast-tiers-require-one-functional-tail",
+      supersedesHistoricalPromptTrait: "no-tail",
     });
     expect(task.canonicalPromptPolicy).toMatchObject({
       fullIdentityBlockRequiredVerbatimForEveryView: true,
@@ -296,9 +304,71 @@ describe("First Breach production model register", () => {
     expect(task.workflowComparison.runtimeGate).toContain("not-runtime-ready");
   });
 
-  it("keeps all three Breachling tier fronts provisional and biological", () => {
+  it("records the inspected rust-red tailed Stalker as a provisional source candidate", () => {
+    const task = sourceTask("creature-breachling-stalker-image-first-v001");
+
+    expect(task).toMatchObject({
+      operation: "image-to-3d-multi-view-four-image",
+      model: "meshy-7-multi-image",
+      studioProject: "SoulDrifter",
+      studioProjectId: 310153,
+      textureQuality: "standard",
+      topologySetting: "quad",
+      taskId: "4f473756-9660-48d1-a6f7-14d6de55524a",
+      actualCredits: 45,
+      status: "generated-provisional-source-candidate-owner-final-review-pending-retopology-and-rig",
+      sharedRigWith: "future-tail-enabled-breachling-family-rig-v1",
+      grownBiologicalArmorOnly: true,
+      manufacturedOrWornArmorAllowed: false,
+      runtimePromotionAllowed: false,
+    });
+    expect(task.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
+    expect(task.sourceImages.map((source: any) => source.view)).toEqual(["front", "left", "rear", "right"]);
+    expect(task.sourceImages.find((source: any) => source.view === "rear")).toMatchObject({
+      file: "sd-creature-breachling-stalker-chatgpt-rear-v4-rust-tail-canonical-source.png",
+      sha256: "73116E23ECB4CCA1F823140ED3D510B5E8BA21D8A810D02AEABB753A30CC27E3",
+      tailEvidence: "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+    });
+    expect(task.designOutcome).toMatchObject({
+      tier: "second-breachling-tier-above-base-and-below-oathbound-and-ravager",
+      palette:
+        "deep-rust-red-dark-crimson-living-scales-with-burgundy-joints-near-black-horns-claws-and-ridge-tips-and-amber-eyes",
+    });
+    expect(task.promptLineage).toMatchObject({
+      finalSourcePromptParityVerified: false,
+      automaticRegenerationAllowed: false,
+    });
+    expect(task.untouchedExport).toMatchObject({
+      file: "sd-creature-breachling-stalker-meshy7-multiview-rust-tail-source.glb",
+      bytes: 60994784,
+      sha256: "C167BDF8EF29BAB195B76656FED32FEC3909CF72353F3C8CB82A9E3EC19DC4E5",
+    });
+    expect(task.meshInspection).toMatchObject({
+      nodes: 1,
+      meshes: 1,
+      primitives: 1,
+      vertices: 1005742,
+      triangles: 1905366,
+      skins: 0,
+      animations: 0,
+      morphTargets: 0,
+      materials: 1,
+      textures: 3,
+    });
+    expect(task.visualInspection).toMatchObject({
+      passed: true,
+      renderedViews: ["front", "left", "rear", "right"],
+    });
+    expect(task.visualInspection.findings).toEqual(
+      expect.arrayContaining([
+        "one-head-one-tail-two-arms-two-legs",
+        "no-mirrored-front-or-second-head-on-the-rear",
+      ]),
+    );
+  });
+
+  it("keeps the unconverted Oathbound and Ravager tier fronts provisional and biological", () => {
     for (const assetId of [
-      "creature-breachling-stalker-image-first-v001",
       "creature-oathbound-breachling-image-first-v001",
       "creature-breachling-ravager-image-first-v001",
     ]) {

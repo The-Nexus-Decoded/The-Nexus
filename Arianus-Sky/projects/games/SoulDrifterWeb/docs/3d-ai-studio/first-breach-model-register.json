@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -258,13 +258,13 @@
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
     "completedImageTo3dException": "twelve-preserved-body-anchors-in-body-anchor-intake-manifest",
     "latestPaidSourceTask": {
-      "assetId": "creature-cinderbound-warden-image-first-v001",
-      "taskId": "445fd16b-4006-4c18-a54a-fed2a63da955",
+      "assetId": "creature-breachling-stalker-image-first-v001",
+      "taskId": "4f473756-9660-48d1-a6f7-14d6de55524a",
       "credits": 45,
-      "creditBalanceAfterTask": 2347,
-      "outcome": "rejected-two-head-front-repeated-as-back-and-missing-live-core"
+      "creditBalanceAfterTask": 1424,
+      "outcome": "completed-rust-red-tailed-source-candidate-four-angle-and-mesh-inspection-passed-owner-final-review-pending"
     },
-    "currentCandidate": "breachling-four-view-source-set-corrected-before-first-submission",
+    "currentCandidate": "breachling-stalker-rust-red-tailed-meshy-source-candidate",
     "nextPaidPilot": null
   },
   "sourceGenerationTasks": [
@@ -466,9 +466,22 @@
         "tierRenderPolicy": "each-tier-receives-owner-reviewed-chatgpt-render-but-retains-the-shared-anatomy-and-rig",
         "tierVariants": {
           "base": "pale-ash-grey-level-one-with-small-ridges",
-          "stalker": "darker-slate-smoke-leaner-with-longer-swept-ridges",
-          "oathbound": "earth-brown-ochre-with-thicker-overlapping-grown-keratin-scutes-and-heavier-chest-and-forearms",
-          "ravager": "cinder-red-rust-with-the-densest-grown-osteoderms-enlarged-horns-spikes-bone-ridges-and-claws"
+          "stalker": "deep-rust-red-dark-crimson-leaner-with-longer-swept-ridges-and-a-long-muscular-counterbalance-tail",
+          "oathbound": "deep-moss-verdigris-green-with-ochre-accents-thicker-overlapping-grown-keratin-scutes-and-heavier-chest-and-forearms",
+          "ravager": "blackened-cinder-obsidian-with-ember-red-accents-and-the-densest-grown-osteoderms-enlarged-horns-spikes-bone-ridges-and-claws"
+        },
+        "beastTailContract": {
+          "ownerDecisionDate": "2026-08-18",
+          "requiredAcrossFamily": true,
+          "appliesTo": [
+            "breachling-base",
+            "breachling-stalker",
+            "oathbound-breachling",
+            "breachling-ravager"
+          ],
+          "anatomy": "one-functional-muscular-counterbalance-tail-continuous-with-the-sacrum-thick-at-the-root-smoothly-tapered-and-never-fused-to-a-leg",
+          "sharedRigRequirement": "one-tail-enabled-breachling-family-rig-with-a-versioned-tail-chain-used-by-every-tier",
+          "historicalPocDisposition": "task-7ad8a98c-remains-the-owner-selected-source-construction-poc-but-its-tailless-anatomy-is-not-the-final-production-family-body"
         },
         "tierArmorContract": {
           "construction": "grown-biological-dermal-plating-emerging-from-the-hide",
@@ -489,7 +502,7 @@
           ]
         }
       },
-      "status": "custom-four-view-meshy-poc-owner-preferred-source-candidate-awaiting-retopology-and-rig",
+      "status": "custom-four-view-meshy-poc-owner-preferred-workflow-proof-superseded-for-production-by-beast-tail-rule",
       "taskId": "7ad8a98c-8984-4091-a71c-ed053295e156",
       "actualCredits": 45,
       "ownerReview": "custom-four-view-meshy-poc-preferred-over-auto-sheet-same-engine-comparison",
@@ -498,6 +511,12 @@
         "shorthandOrReferenceOnlyPromptAllowed": false,
         "onlyCameraSuffixMayChange": true,
         "canonicalIdentityBlock": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall. It is not an upright humanoid, Dragonkin, Dragonborn, heroic biped, or player-character body with a monster head. Its permanent resting anatomy is a low stalking hunch: the wiry torso and spine hinge forward about forty degrees from the rear-set pelvis; the upper back forms a pronounced rounded predatory arch; the shoulder girdle sits clearly forward of and slightly higher than the hips; the neck projects forward; the large head hangs low and well ahead of the chest. It has disproportionately long weight-bearing-looking forearms ending in exactly four clawed fingers, with fingertips hanging below the knees and nearly reaching the ground; noticeably short powerful bent digitigrade legs; low hocks and Achilles; broad stable heel pads and feet; a narrow angular skull; swept-back ear fins; deep-set amber eyes; ash-gray scaled skin with muted teal fissure mottling; small bony shoulder and spine ridges; and a huge broad non-human hinged predator maw with a deep cavity, multiple layers of long irregular teeth, and a visible tongue. The source uses a neutral symmetric custom-rig stance while preserving the permanent crouch, with separated limbs, open hands off the floor, planted feet, and visible joints. No clothing, manufactured armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature."
+      },
+      "tailPolicyOverride": {
+        "date": "2026-08-18",
+        "decision": "all-breachling-beast-tiers-require-one-functional-tail",
+        "supersedesHistoricalPromptTrait": "no-tail",
+        "productionEffect": "do-not-retopologize-or-rig-the-tailless-poc-as-the-final-family-body"
       },
       "replacementSourceSet": {
         "status": "canonical-four-view-v5-safe-rear-owner-approved-and-meshy-converted",
@@ -659,25 +678,140 @@
     },
     {
       "assetId": "creature-breachling-stalker-image-first-v001",
-      "operation": "chatgpt-reference-image-pending-strict-multi-view-completion",
-      "provider": "openai-imagegen",
-      "plannedConversionProvider": "3d-ai-studio",
-      "plannedConversionModel": "meshy-7-multi-image",
-      "plannedTextureQuality": "standard",
-      "expectedConversionCredits": 45,
-      "sourceImage": {
-        "view": "front",
-        "file": "sd-creature-breachling-stalker-chatgpt-front-v2-source.png",
-        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-        "bytes": 1898657,
-        "width": 1254,
-        "height": 1254,
-        "sha256": "CEE4FA862405763B9536B4E35D8D88251CA6292E21843D42E6524C27A343DE9E",
-        "generationPromptSha256": "8709ECA62BE126EBFE3CBFA322234A00399797DDB6D4BD362F60992ADC0C24ED"
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "meshy-7-multi-image",
+      "studioProject": "SoulDrifter",
+      "studioProjectId": 310153,
+      "textureQuality": "standard",
+      "topologySetting": "quad",
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "4f473756-9660-48d1-a6f7-14d6de55524a",
+      "creditBalanceBeforeTask": 1469,
+      "creditBalanceAfterTask": 1424,
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-stalker-chatgpt-front-v4-rust-tail-occluded-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1904964,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "DA95DDC504E48C47210855D713FB3B0C4813B9B37A0C9B5723054337E4FC1EC9",
+          "finalEditPromptNormalizedLfSha256": "1A15CC98B85DA4BD93654AF930D8153D0B46AB83B518C2C4EF25D948FE8CBDEA",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-one-head-two-arms-two-legs-four-main-digits-low-crouch-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-stalker-chatgpt-left-v5-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1797409,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "CD298EB431A92154E582AEE9A2919BC46094DC5C1C619257A5AFC83C5349F983",
+          "finalEditPromptNormalizedLfSha256": "123BE10FC371F4A75F71F112ECFE25A973F162A862E99162B045C16E6F844726",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-left-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-left-profile-single-eye-low-crouch-clean-tail-taper-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-stalker-chatgpt-rear-v4-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2004837,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "73116E23ECB4CCA1F823140ED3D510B5E8BA21D8A810D02AEABB753A30CC27E3",
+          "generationPromptNormalizedLfSha256": "A4795CAC8C598001CBFA7B77865860F8B0BB29FE8D331ED6BE2724674479DE79",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+          "anomalyGate": "passed-true-rear-no-face-front-core-palms-or-duplicate-head-and-neutral-armored-pelvic-carapace"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-stalker-chatgpt-right-v5-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1772476,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "770B1A6492ABCF0369675817008A202A7656787F31E88C7AD0AE78191597E5E1",
+          "finalEditPromptNormalizedLfSha256": "52C77A7E9B46EB0EB8006A747EB6F9B0ADA3345828FB46D1D8D025A3AE18072C",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-right-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-right-profile-single-eye-low-crouch-clean-tail-taper-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "designOutcome": {
+        "tier": "second-breachling-tier-above-base-and-below-oathbound-and-ravager",
+        "palette": "deep-rust-red-dark-crimson-living-scales-with-burgundy-joints-near-black-horns-claws-and-ridge-tips-and-amber-eyes",
+        "tail": "long-muscular-counterbalance-tail-continuous-with-the-sacrum-and-dorsal-ridge",
+        "silhouette": "permanent-low-hunched-predator-with-long-forearms-folded-digitigrade-hind-legs-and-elongated-snarling-skull"
       },
-      "status": "provisional-visual-direction-liked-but-frozen-pending-full-spec-parity-audit",
-      "ownerReview": "visual-direction-liked-not-production-approved",
-      "sharedRigWith": "creature-breachling-base-image-first-v001",
+      "promptLineage": {
+        "finalSourcePromptParityVerified": false,
+        "status": "structured-material-and-tail-edit-prompts-preserved-over-reviewed-structural-source-lineage-but-the-full-canonical-identity-block-was-not-repeated-verbatim-in-every-final-edit",
+        "productionDisposition": "retain-the-paid-output-as-a-provisional-source-candidate-and-require-explicit-owner-grandfathering-or-a-later-concrete-visual-or-technical-rebuild-decision-before-production-promotion",
+        "automaticRegenerationAllowed": false
+      },
+      "untouchedExport": {
+        "file": "sd-creature-breachling-stalker-meshy7-multiview-rust-tail-source.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 60994784,
+        "sha256": "C167BDF8EF29BAB195B76656FED32FEC3909CF72353F3C8CB82A9E3EC19DC4E5"
+      },
+      "meshInspection": {
+        "nodes": 1,
+        "meshes": 1,
+        "primitives": 1,
+        "vertices": 1005742,
+        "triangles": 1905366,
+        "skins": 0,
+        "animations": 0,
+        "morphTargets": 0,
+        "materials": 1,
+        "textures": 3,
+        "pbrTextureSlots": [
+          "base-color",
+          "metallic-roughness",
+          "normal"
+        ],
+        "boundsSize": [
+          0.8789780139923096,
+          0.7974209785461426,
+          1.9032229781150818
+        ]
+      },
+      "visualInspection": {
+        "renderedViews": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "passed": true,
+        "findings": [
+          "one-head-one-tail-two-arms-two-legs",
+          "tail-is-continuous-at-the-sacrum-and-readable-from-both-profiles",
+          "no-mirrored-front-or-second-head-on-the-rear",
+          "single-low-hanging-head-remains-partially-visible-through-the-crouch-from-rear-and-is-not-duplicate-geometry",
+          "jaw-teeth-claws-dorsal-ridge-and-rust-red-material-remain-readable"
+        ],
+        "renderFiles": [
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-front.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-left.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-rear.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-right.png"
+        ]
+      },
+      "status": "generated-provisional-source-candidate-owner-final-review-pending-retopology-and-rig",
+      "ownerReview": "owner-approved-the-silhouette-requested-the-tail-and-rust-red-distinction-final-glb-acceptance-still-pending",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
       "grownBiologicalArmorOnly": true,
       "manufacturedOrWornArmorAllowed": false,
       "runtimePromotionAllowed": false
