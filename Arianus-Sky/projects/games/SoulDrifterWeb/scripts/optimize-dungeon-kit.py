@@ -15,7 +15,10 @@ from PIL import Image
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIR = PROJECT_ROOT / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-kit"
+SOURCE_DIRS = (
+    PROJECT_ROOT / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-kit",
+    PROJECT_ROOT / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-completion-kit",
+)
 RUNTIME_DIR = PROJECT_ROOT / "public" / "assets" / "3d" / "environment" / "dungeon-kit"
 CLI_PATH = PROJECT_ROOT / "node_modules" / "@gltf-transform" / "cli" / "bin" / "cli.js"
 TEXTURE_SIZE = 256
@@ -128,9 +131,13 @@ def optimize_model(source: Path, output: Path, scratch: Path) -> None:
 def main() -> None:
     if not CLI_PATH.is_file():
         raise SystemExit("Install project dependencies before optimizing the dungeon kit.")
-    sources = sorted(SOURCE_DIR.glob("*.glb"))
+    sources = sorted(
+        source
+        for source_dir in SOURCE_DIRS
+        for source in source_dir.glob("*.glb")
+    )
     if not sources:
-        raise SystemExit(f"No source GLBs found under {SOURCE_DIR}")
+        raise SystemExit(f"No source GLBs found under {SOURCE_DIRS}")
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     source_bytes = sum(path.stat().st_size for path in sources)
     with tempfile.TemporaryDirectory(prefix="souldrifter-dungeon-kit-") as temp_dir:

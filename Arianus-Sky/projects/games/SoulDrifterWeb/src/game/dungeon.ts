@@ -403,6 +403,34 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
     { id: "gate-oathbreaker", kind: "gate", roomId: "training", blocksMovement: true, ...hardGatePoint },
   ];
 
+  const trainingDecorationAssets: readonly DungeonPropAssetId[] = [
+    "broken-stone-stair-dais",
+    "iron-floor-grate",
+    "hanging-iron-cage",
+    "candelabra-cluster",
+    "bottles-jugs-crockery-cluster",
+    "weapon-armor-heap",
+    "broken-handcart",
+    "monster-egg-nest",
+    "shed-chitin-pile",
+    "collapsed-timber-masonry-pile",
+  ];
+  const trainingAssetStart = random.int(0, trainingDecorationAssets.length - 1);
+  const trainingDecorationCount = random.int(8, trainingDecorationAssets.length);
+  for (let index = 0; index < trainingDecorationCount; index += 1) {
+    const assetId = trainingDecorationAssets[(trainingAssetStart + index * 3) % trainingDecorationAssets.length]!;
+    const spec = dungeonPropAssetSpec(assetId);
+    const placement = randomPropPlacement(random, training, reserved, spec.placement, 2);
+    props.push({
+      id: `training-${assetId}-${index}`,
+      kind: spec.kind,
+      roomId: "training",
+      blocksMovement: spec.blocksMovement,
+      assetId,
+      ...placement,
+    });
+  }
+
   const decorationRooms = [
     ...crawlSections.map((section) => ({ ...section, roomId: "skirmish" as const, propPrefix: section.id })),
     { ...boss, roomId: "boss" as const, propPrefix: "boss" },
@@ -410,11 +438,11 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
   const assetStart = random.int(0, DUNGEON_PROP_ASSET_IDS.length - 1);
   let assetOrdinal = 0;
   for (const room of decorationRooms) {
-    const count = room.roomId === "boss" ? random.int(12, 16) : random.int(4, 6);
+    const count = room.roomId === "boss" ? random.int(20, 24) : random.int(6, 8);
     for (let index = 0; index < count; index += 1) {
-      // Stepping by five (coprime with the 22-entry catalog) guarantees that
-      // every run uses the whole kit once before any model repeats, while the
-      // seed still changes order, rotation, room, and placement.
+      // Stepping by five is coprime with the catalog length. Combined with the
+      // minimum 38 placements, every run uses the whole kit before any model
+      // repeats while the seed still changes order, rotation, room, and placement.
       const assetId = DUNGEON_PROP_ASSET_IDS[(assetStart + assetOrdinal * 5) % DUNGEON_PROP_ASSET_IDS.length]!;
       const spec = dungeonPropAssetSpec(assetId);
       const placement = randomPropPlacement(

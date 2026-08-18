@@ -632,6 +632,11 @@ export class World3D {
     this.environmentDisposers.push(trainingChamber.dispose);
     this.hostileMaterials = await createSoulwellMaterialLibrary(this.seed ^ 0x51a7e);
     this.environmentDisposers.push(() => this.hostileMaterials.dispose());
+    await Promise.all(
+      this.dungeon.props
+        .filter((prop) => prop.roomId === "training" && prop.assetId)
+        .map((prop) => this.buildProp(prop)),
+    );
 
     for (const zoneId of zoneIds) {
       if (zoneId === "training") continue;
