@@ -11,11 +11,14 @@
   "pendingTaskCount": 0,
   "estimatedPendingCredits": 0,
   "batchCreditsSpent": 280,
-  "balanceAfterBatch": 3192,
+  "correctionCreditsSpent": 240,
+  "totalTextTo3dCreditsSpent": 560,
+  "comparisonImageTo3dCreditsSpent": 85,
+  "balanceAfterBatch": 2912,
   "livePriceRecheckRequired": true,
   "batchSubmissionApproved": true,
   "approvalScope": "all-required-text-to-3d-models-for-issue-448",
-  "notifyWhenCreditBalanceBelow": 1000,
+  "notifyWhenCreditBalanceBelow": 2000,
   "imageTo3dApproved": false,
   "sharedConstraints": {
     "pose": "neutral-relaxed-a-pose-arms-approximately-35-degrees-down-from-shoulders",
@@ -121,6 +124,77 @@
       "creditsSpent": 40,
       "preliminaryVisualQa": "coherent-small-adult; pose-and-proportion-review-required",
       "prompt": "Original SoulDrifter Halfling adult feminine athletic modular game-character base. Grounded realistic-fantasy style for a polished isometric action RPG. Neutral relaxed A-pose, small adult stature, agile balanced proportions, readable proportional adult hands and feet, light-olive skin, close-cropped dark wavy hair, and a mature symmetrical adult feminine face. This is an adult halfling adventurer, never a child or chibi figure. Fitted charcoal sleeveless training tunic and fitted above-knee shorts with visible knees and lower legs; bare feet. Separate readable fingers, arms approximately 35 degrees down from the shoulders and clear of the torso, and a clean continuous silhouette. No armor, weapon, shield, cape, robe, large hair, jewelry, scars, tattoos, piercings, particles, glow, pedestal, environment, childlike face, oversized head, caricature, exaggerated or sexualized anatomy, logos, text, duplicate figures, or turntable views. Single complete full-body character."
+    }
+  ],
+  "singlePoseHobbitAttempt": {
+    "assetId": "SD-BODY-HAL-M-A-IMG-V1",
+    "operation": "image-to-3d-single-image",
+    "model": "prism-3.1",
+    "textureQuality": "ultra",
+    "status": "generated-provisional-keep-awaiting-owner-review-and-intake",
+    "taskId": "d8897a78-33b5-4736-80c7-5af34146fb6e",
+    "creditsSpent": 40,
+    "balanceAfterTask": 2912,
+    "sourceImageSha256": "4674c9144c5d211dc210c71a5cf4785103bd44ac3f5e8369f58c77381ee68320",
+    "sourceImageLocalPath": "H:/CodexData/.codex/generated_images/01a00e96-3362-7d42-b3c8-38513e9d5a9a/exec-b67a3c56-3a1a-42dd-b71c-acbe588aa2c0.png",
+    "sourceImageContract": "one-stylized-prism-matched-front-facing-full-body-t-pose-on-plain-background",
+    "preliminaryVisualQa": "one-coherent-halfling; correct-ancestry-silhouette; no-multi-figure-contamination; suitable-for-rig-intake-review",
+    "textTo3dPromptPreparedButNotSubmitted": "One single original SoulDrifter Hobbit-like Halfling adult masculine game character, grounded realistic fantasy. Short four-foot adult with mature weathered face, curly dark hair, subtle pointed ears, compact stocky torso, shortened limbs, broad hairy bare feet, and believable adult hands. ONE character only, centered and front-facing in one symmetrical T-pose with both arms straight out horizontally, legs straight and uncrossed, feet flat. Simple fitted cream undershirt, plain brown waistcoat, knee-length dark breeches. Clean continuous silhouette for rigging. No child, chibi, cartoon, hero muscles, weapon, armor, cloak, bag, scenery, pedestal, text, duplicate, second figure, side view, back view, inset, collage, contact sheet, or turntable."
+  },
+  "corrections": [
+    {
+      "assetId": "SD-BODY-ELF-M-A-V2",
+      "supersedes": "SD-BODY-ELF-M-A-V1",
+      "status": "generated-provisional-keep-awaiting-owner-review-and-intake",
+      "taskId": "5661c814-089e-4fd1-b0b1-36b3cb3ee81d",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "lean-long-limbed-adult-with-readable-ears-and-stable-stance; pedestal-drift",
+      "prompt": "Original SoulDrifter Elf adult masculine athletic modular game-character base, grounded realistic fantasy for an isometric action RPG. Symmetrical A-pose: feet shoulder-width, legs straight and uncrossed, feet flat and parallel, arms 35 degrees down. Slender lean long-limbed adult with narrow shoulders and moderate natural muscle, never bulky. Tan-olive skin, very short dark hair above fully visible pointed ears, mature real face with high cheek structure. Fitted charcoal sleeveless tunic, fitted above-knee shorts, bare feet, proportional separated fingers. One full body only. No armor, weapon, cape, robe, jewelry, facial hair, scars, tattoos, piercings, effects, pedestal, environment, anime features, oversized ears, exaggerated muscles, text, or duplicate views."
+    },
+    {
+      "assetId": "SD-BODY-ELF-F-A-V2",
+      "supersedes": "SD-BODY-ELF-F-A-V1",
+      "status": "generated-awaiting-owner-review-and-intake",
+      "taskId": "2eb6bf89-a86d-4e08-b4d1-d0795e4832e8",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "stable-symmetrical-stance-and-readable-elf-silhouette; ears-oversized-and-pedestal-drift",
+      "prompt": "Original SoulDrifter Elf adult feminine athletic modular game-character base, grounded realistic fantasy for an isometric action RPG. Symmetrical A-pose: feet shoulder-width, legs straight and uncrossed, feet flat and parallel, arms 35 degrees down. Slender lean long-limbed adult with balanced natural anatomy. Dark-brown skin, cropped silver-black hair above fully visible pointed ears, mature real feminine face with high cheek structure. Fitted charcoal sleeveless tunic, fitted above-knee shorts, bare feet, proportional separated fingers. One full body only. No armor, weapon, cape, robe, jewelry, scars, tattoos, piercings, effects, pedestal, environment, anime features, oversized ears, crossed legs, contrapposto, sexualized anatomy, text, or duplicate views."
+    },
+    {
+      "assetId": "SD-BODY-HAL-M-A-V2",
+      "supersedes": "SD-BODY-HAL-M-A-V1",
+      "status": "generated-rejected-pre-rig",
+      "taskId": "c1720aad-df83-448a-9a99-45738af0f6cc",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "adult-read-improved; head-hands-feet-and-shoulders-still-oversized-plus-pedestal-drift",
+      "prompt": "Original SoulDrifter Halfling adult masculine athletic modular game-character base, grounded realistic fantasy for an isometric action RPG. Symmetrical A-pose: feet shoulder-width, legs straight and uncrossed, feet flat and parallel, arms 35 degrees down. Small adult stature with mature humanlike anatomy, about one head to six body lengths, proportional hands and feet, lean agile torso, warm tan skin, cropped dark curls, mature adult jaw and cheeks. Never childlike, chibi, toy-like, or cartoonish. Fitted charcoal sleeveless tunic, fitted above-knee shorts, bare feet, separated fingers. One full body only. No armor, weapon, cape, robe, jewelry, effects, pedestal, environment, oversized head, hands or feet, caricature, text, or duplicate views."
+    },
+    {
+      "assetId": "SD-BODY-HAL-F-A-V2",
+      "supersedes": "SD-BODY-HAL-F-A-V1",
+      "status": "generated-rejected-pre-rig",
+      "taskId": "037ecf8f-193e-42cb-a7e0-5e509c6ec652",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "stable-adult-pose; silhouette-reads-as-standard-human-rather-than-halfling-plus-pedestal-drift",
+      "prompt": "Original SoulDrifter Halfling adult feminine athletic modular game-character base, grounded realistic fantasy for an isometric action RPG. Symmetrical A-pose: feet shoulder-width, legs straight and uncrossed, feet flat and parallel, arms 35 degrees down. Small adult stature with mature humanlike anatomy, about one head to six body lengths, proportional hands and feet, lean agile torso, light-olive skin, short dark wavy hair above the ears, mature adult feminine jaw and cheeks. Never childlike, chibi, toy-like, or cartoonish. Fitted charcoal sleeveless tunic, fitted above-knee shorts, bare feet, separated fingers. One full body only. No armor, weapon, cape, robe, jewelry, effects, pedestal, environment, crossed legs, oversized head, hands or feet, caricature, sexualized anatomy, text, or duplicate views."
+    },
+    {
+      "assetId": "SD-BODY-HAL-M-A-V3",
+      "supersedes": "SD-BODY-HAL-M-A-V2",
+      "status": "generated-rejected-pre-rig",
+      "taskId": "f420ca56-0555-4870-adcc-15abbc3589aa",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "clean-mature-anatomy-and-proportional-extremities; reads-as-short-human-not-halfling-and-t-pose-drift",
+      "prompt": "Original SoulDrifter Halfling adult masculine modular game-character base, grounded realistic fantasy for a polished isometric action RPG. Physically mature short-statured adult, exactly 6.5 heads tall, normal adult head size, normal adult hands and feet, compact shortened arms and legs, narrow-to-average shoulders, lean agile torso, warm tan skin, short dark curls, mature real face. Symmetrical relaxed A-pose, straight uncrossed legs, flat parallel feet, arms 35 degrees down. Fitted charcoal sleeveless tunic and above-knee fitted shorts, bare feet, separated fingers. One full body only. No child, chibi, cartoon, toy, giant hands, giant feet, giant head, bodybuilder, armor, weapon, cape, robe, jewelry, effects, scenery, duplicate, or text."
+    },
+    {
+      "assetId": "SD-BODY-HAL-F-A-V3",
+      "supersedes": "SD-BODY-HAL-F-A-V2",
+      "status": "generated-rejected-pre-rig",
+      "taskId": "3ac13ff3-daa6-4cc8-95b6-e579834a6980",
+      "creditsSpent": 40,
+      "preliminaryVisualQa": "clean-mature-anatomy-and-proportional-extremities; reads-as-standard-human-not-halfling-and-t-pose-drift",
+      "prompt": "Original SoulDrifter Halfling adult feminine modular game-character base, grounded realistic fantasy for a polished isometric action RPG. Physically mature short-statured adult, exactly 6.5 heads tall, normal adult head size, normal adult hands and feet, compact shortened arms and legs, narrow-to-average shoulders, lean agile torso, light-olive skin, short dark wavy hair, mature real feminine face. Symmetrical relaxed A-pose, straight uncrossed legs, flat parallel feet, arms 35 degrees down. Fitted charcoal sleeveless tunic and above-knee fitted shorts, bare feet, separated fingers. One full body only. No child, chibi, cartoon, toy, giant hands, giant feet, giant head, standard-height human, sexualized body, armor, weapon, cape, robe, jewelry, effects, scenery, duplicate, or text."
     }
   ]
 }

@@ -11,7 +11,10 @@
     "textTo3dGenerationApproved": true,
     "textTo3dApprovalScope": "all-required-models-for-issue-448",
     "imageTo3dApproved": false,
-    "notifyWhenCreditBalanceBelow": 1000
+    "approvedImageTo3dExceptions": [
+      "single-pose-halfling-masculine-2026-08-17"
+    ],
+    "notifyWhenCreditBalanceBelow": 2000
   },
   "studioWorkspace": {
     "project": "SoulDrifter",
@@ -42,7 +45,13 @@
       "allowed": true,
       "purpose": "reproduce-a-specific-owner-selected-pre-existing-design",
       "separateApprovalRequired": true,
-      "requiredViews": [
+      "singleImageRequirements": [
+        "one-isolated-character",
+        "one-front-facing-full-body-pose",
+        "plain-background",
+        "no-insets-or-contact-sheet"
+      ],
+      "multiViewRequiredViews": [
         "front",
         "left",
         "back",
@@ -115,7 +124,7 @@
     "approval": "phase-wide-required-text-to-3d-generation-for-issue-448",
     "batchApprovalImplied": false,
     "stopOnUnexpectedCost": true,
-    "notifyWhenCreditBalanceBelow": 1000,
+    "notifyWhenCreditBalanceBelow": 2000,
     "excludedOperations": [
       "image-to-3d",
       "remesh",
@@ -123,7 +132,8 @@
       "paid-animation"
     ],
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
-    "currentCandidate": "text-to-3d-task-ef7a7258",
+    "completedImageTo3dException": "single-pose-halfling-masculine-task-d8897a78",
+    "currentCandidate": "image-to-3d-task-d8897a78",
     "nextPaidPilot": "one-text-to-3d-breachling-base-candidate"
   },
   "assetGroups": [

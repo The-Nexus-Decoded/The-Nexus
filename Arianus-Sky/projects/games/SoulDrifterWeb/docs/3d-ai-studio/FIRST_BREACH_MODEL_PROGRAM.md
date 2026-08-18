@@ -45,7 +45,7 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 ## Default generation operation
 
-Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record for each task. On 2026-08-17 the owner authorized every text-to-3D model required to complete issue #448 and requested notification if the account balance drops below 1,000 credits. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per prompt. Image-to-3D remains outside that authorization and is permitted only when the owner selects a specific pre-existing design to reproduce.
+Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record for each task. On 2026-08-17 the owner authorized every text-to-3D model required to complete issue #448 and requested notification if the account balance drops below 2,000 credits. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per prompt. Image-to-3D remains outside that standing authorization and is permitted only when the owner selects a specific visual design to reproduce.
 
 The approved 2026-08-17 comparison established the rule:
 
@@ -245,6 +245,6 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Current authorization and notification point
 
-The approved 85-credit Human comparison is complete. The owner has now authorized all additional text-to-3D models required by this issue without individual approval pauses. Before each submission, Codex still records the isolated-asset prompt, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 1,000 credits.
+The approved 85-credit Human comparison is complete. The owner has now authorized all additional text-to-3D models required by this issue without individual approval pauses. Before each submission, Codex still records the isolated-asset prompt, exclusion list, model/version, settings, live cost, task ID, and credit receipt. Codex notifies the owner when the account balance falls below 2,000 credits.
 
-This authorization does not include image-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. An image-to-3D request remains a separate exception for a specific owner-selected pre-existing design with four clean isolated identity-matched views.
+This authorization does not include image-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. An image-to-3D request remains a separate owner-selected exception. Single-image mode requires exactly one isolated full-body pose on a plain background; multi-view mode requires four separate identity-matched front/left/back/right files. A contact sheet is never valid input.

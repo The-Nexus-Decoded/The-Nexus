@@ -122,7 +122,7 @@ The owner approves one assembled calling view for each of the nine callings. Tho
 
 ## Text-to-3D prompt gate
 
-Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized every text-to-3D model required by issue #448 and must be notified if the account balance drops below 1,000 credits. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
+Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized every text-to-3D model required by issue #448 and must be notified if the account balance drops below 2,000 credits. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
 
 This decision follows the approved 2026-08-17 Human athletic comparison:
 
@@ -186,7 +186,7 @@ is a conforming source for a separate game-equipment mesh, never fused character
 1. Lock the ticket, asset ID, ancestry/calling purpose, direct text-to-3D prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
 3. Save the prompt hash and any optional owner-review concept references in the intake ledger. Concept art is not a generation input unless the separately approved image-to-3D exception applies.
-4. Confirm that the task is required text-to-3D generation inside the issue #448 phase authorization, record the exact prompt/settings/live charge, and monitor the 1,000-credit notification threshold. Image-to-3D and other paid operations still require separate approval.
+4. Confirm that the task is required text-to-3D generation inside the issue #448 phase authorization, record the exact prompt/settings/live charge, and monitor the 2,000-credit notification threshold. Image-to-3D and other paid operations still require separate approval.
 
 ### Phase 1: generate one source candidate
 
