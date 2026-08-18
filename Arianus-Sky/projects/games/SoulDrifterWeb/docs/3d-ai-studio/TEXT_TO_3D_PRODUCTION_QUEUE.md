@@ -2,11 +2,13 @@
 
 Status: active under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
 
-Default operation: asset-type dependent. Humanoid body anchors use one owner-reviewed T-pose image with Prism 3.1 single-image conversion. Isolated creatures, gear, weapons, props, and environment pieces use text-to-3D unless a specific selected reference design requires single-image conversion.
+> Historical filename: direct text-to-3D is retired for new production assets. This file now tracks the owner-approved ChatGPT image -> 3D AI Studio single-image conversion queue plus historical task provenance.
+
+Default operation: every body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module begins as one owner-reviewed ChatGPT image containing one complete isolated subject, then uses Prism 3.1 single-image conversion. Multi-view and direct text-to-3D are not default production paths.
 
 Approved starting preset: Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record before every paid submission
 
-Authorization: required issue #448 text-to-3D sources plus the approved single-image Halfling and Heavy body-anchor scope may proceed without per-task approval pauses. Notify the owner if the account balance drops below 2,000 credits. Remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
+Authorization: all required issue #448 owner-reviewed ChatGPT-source single-image conversions may proceed without per-task approval pauses. Show every source image in chat and record its exact hash before conversion. Notify the owner if the account balance drops below 2,000 credits. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
 
 Machine-readable anchor batch: [`text-to-3d-anchor-batch.json`](text-to-3d-anchor-batch.json)
 
@@ -87,7 +89,7 @@ All gear remains separate from the body:
 - Slayer paired daggers and sheaths;
 - modular bracers, mantles, stoles, sashes, pouches, guards, quivers, shields, sheaths, and harnesses.
 
-One text-to-3D prompt generates one isolated garment, armor piece, weapon, or accessory source. Bodies and equipment are never requested as one fused generation.
+One approved ChatGPT image and one single-image conversion produce one isolated garment, armor piece, weapon, or accessory source. Bodies and equipment are never requested as one fused generation.
 
 ## Phase 4: character-selection appearance library
 
@@ -106,7 +108,7 @@ Every facial-feature family is available across Human, Elf, Dwarf, and Halfling 
 
 ## Phase 5: First Breach NPCs and creatures
 
-The current level then receives original text-to-3D sources for:
+The current level then receives original owner-reviewed ChatGPT image-first sources for:
 
 - Wellkeeper Ilyra;
 - Breach Scout Orren;
@@ -120,14 +122,20 @@ The current level then receives original text-to-3D sources for:
 
 Ilyra, Orren, and Brannoc use the same approved identity for world actor and animated dialogue close-up. Creature sources receive anatomy-appropriate rigs but share the gameplay action, targeting, grounding, hit, death, terminal-state, VFX, and SFX contracts.
 
-## Single-image body-anchor workflow
+The Breachling family is a single hunched-predator anatomy and rig with separate owner-reviewed tier renders: pale ash/grey base, darker slate/smoke Stalker, earth-brown/ochre bound Oathbound, and cinder-red/rust horned/spiked Ravager. Every render preserves the same joint layout while changing controlled silhouette attachments, proportions, palette, and materials. The approved base benchmark has a huge broad hinged non-human maw with deep cavity, layered teeth, visible tongue, and required `jaw-open`, `jaw-close`, and `snarl` controls.
 
-Humanoid body anchors in the approved Halfling and Heavy replacement scope use exactly one owner-reviewed, isolated, front-facing, full-body T-pose on a plain background. Prism multi-view mode is not used for this workflow. Composite sheets, inset views, multiple figures, action poses, and a single image submitted to the multi-view model are prohibited. Image-to-3D outside the approved scope remains an owner-selected exception.
+The Cinderbound Warden is a distinct mechanical/golem boss family: articulated charred-basalt and oxidized-bronze plates around an ember core, faceless iron mask with a vertical sensor slit, left-palm soul-tax mechanism, and integrated right-forearm sweep blade. It must never read as a biological Breachling, armored human, knight, Paladin, or wielder of separate swords, and it uses a rigid mechanical hierarchy rather than humanoid skin deformation.
+
+Before any monster image is generated, its brief must define silhouette, anatomy/joint logic, locomotion, attack anatomy, jaw/facial controls, surface/material hierarchy, threat language, scale, palette, encounter role, rig controls, VFX/SFX sockets, tier/encounter variants, forbidden reads, and normal isometric-camera readability.
+
+## Single-image production workflow
+
+Every asset uses exactly one owner-reviewed, isolated ChatGPT source image on a plain background. Riggable humanoids and creatures use a front-facing full-body A- or T-pose with visible joints, clear limbs, and flat feet; objects use a neutral unobstructed production orientation. Prism multi-view mode is not used without a separate owner decision. Composite sheets, inset views, multiple figures, action poses, fused equipment sets, and a single image submitted to the multi-view model are prohibited.
 
 ## Batch and credit gates
 
-- No paid task runs unless its exact prompt or source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 text-to-3D or approved single-image body-anchor authorization.
+- No paid task runs unless its exact ChatGPT prompt/edit hashes, source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 single-image authorization.
 - Notify the owner when the account balance drops below 2,000 credits.
-- Batch generation does not imply approval for remesh, rigging, variants, animation, or another batch.
+- Phase authorization includes required source conversions and tier renders, but does not imply approval for remesh, rigging, paid animation, runtime promotion, or another project phase.
 - Stop the batch if the service reports a different total, a task duplicates, or the first result exposes a prompt-wide defect.
 - Every result remains outside `public/assets` until source provenance, cleanup, rig, animation, performance, and owner visual review pass.

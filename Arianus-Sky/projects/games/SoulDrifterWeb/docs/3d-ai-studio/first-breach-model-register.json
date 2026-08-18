@@ -1,19 +1,18 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
     "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
     "status": "twelve-image-first-body-anchors-preserved-awaiting-retopology-gate",
-    "workflowDecision": "asset-type-dependent-with-image-first-humanoid-body-anchors",
+    "workflowDecision": "chatgpt-image-first-single-image-to-3d-for-all-new-production-sources",
     "paidOperationApproved": false,
-    "textTo3dGenerationApproved": true,
-    "textTo3dApprovalScope": "all-required-models-for-issue-448",
+    "textTo3dGenerationApproved": false,
+    "textTo3dWorkflowStatus": "retired-by-owner-after-breachling-and-warden-comparison",
     "imageTo3dApproved": true,
-    "approvedImageTo3dExceptions": [
-      "all-six-halfling-body-anchors-single-image",
-      "all-eight-heavy-body-replacements-single-image"
+    "approvedImageTo3dScope": [
+      "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images"
     ],
     "notifyWhenCreditBalanceBelow": 2000
   },
@@ -36,22 +35,21 @@
     ]
   },
   "generationPolicy": {
-    "defaultOperation": "asset-type-dependent",
+    "defaultOperation": "chatgpt-reference-image-then-image-to-3d-single-image",
     "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
-    "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "text-to-3d-unless-a-specific-owner-selected-design-requires-single-image-input",
+    "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
     "defaultModel": "prism-3.1",
     "approvedStartingTextureQuality": "ultra",
     "liveSettingsAndPriceApprovalRequiredPerTask": false,
     "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
     "oneIsolatedSubjectPerTask": true,
     "batchBlockedUntilPilotPassesIntakeRigAndAnimationGates": true,
-    "imageTo3dException": {
+    "imageTo3dProduction": {
       "allowed": true,
-      "purpose": "reproduce-an-owner-reviewed-single-subject-design-in-the-approved-model-program",
+      "purpose": "convert-an-owner-reviewed-chatgpt-single-subject-production-reference",
       "separateApprovalRequired": false,
       "approvedScope": [
-        "all-halfling-body-anchors",
-        "all-heavy-body-replacements"
+        "all-required-model-sources-for-issue-448"
       ],
       "singleImageRequirements": [
         "one-isolated-character",
@@ -59,15 +57,10 @@
         "plain-background",
         "no-insets-or-contact-sheet"
       ],
-      "multiViewRequiredViews": [
-        "front",
-        "left",
-        "back",
-        "right"
-      ],
-      "cleanIsolatedIdentityMatchedViewsRequired": true,
+      "multiViewAllowedOnlyBySeparateOwnerDecision": true,
       "compositeSheetsAllowed": false,
-      "automaticFallbackFromTextFailure": false
+      "automaticFallbackFromTextFailure": false,
+      "textTo3dAllowedForNewProductionSources": false
     }
   },
   "bodyAnchorIntake": {
@@ -138,7 +131,7 @@
     ]
   },
   "creditPolicy": {
-    "approval": "phase-wide-required-text-to-3d-plus-approved-single-image-body-anchor-generation-for-issue-448",
+    "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-single-image-generation-for-issue-448",
     "batchApprovalImplied": false,
     "stopOnUnexpectedCost": true,
     "notifyWhenCreditBalanceBelow": 2000,
@@ -171,7 +164,7 @@
       "creditBalanceBeforeTask": 2472,
       "creditBalanceAfterTask": 2432,
       "creditBalanceAfterTaskVerification": "calculated-from-last-verified-balance-minus-live-charge-not-live-reverified",
-      "ownerReview": "pending",
+      "ownerReview": "approved-as-family-style-reference",
       "generationOutcome": {
         "cloudSourceRetained": true,
         "untouchedExportPreserved": false,
@@ -193,10 +186,103 @@
       "maximumCredits": 40,
       "prompt": "Original SoulDrifter Cinderbound Warden, the unique First Breach dungeon boss. Grounded realistic-fantasy style for a polished classic isometric action RPG. One towering seven-foot labyrinth jailer formed from interlocking charred basalt plates over a dim ember core, with a broad triangular shoulder silhouette, narrow waist, long powerful arms, heavy four-clawed hands, furnace-like rib cage, restrained orange cinder fissures, oxidized bronze binding bands, and a faceless iron mask with one vertical amber eye slit. The right forearm ends in a broad obsidian sweep-blade grown from the arm; the left palm bears a circular soul-tax seal. Neutral stable A-pose, limbs clear, feet planted, clean riggable silhouette. No Paladin, human knight, separate weapon, sword, shield, cape, wings, horns, skulls, gore, bright magic aura, particles, scenery, pedestal, text, duplicate, collage, or turntable. One complete isolated creature.",
       "promptSha256": "6E4FCE9519340D9DEA584F04B84D441B056D3EB7753983AC23AA537EEC34C829",
+      "status": "generated-rejected-cloud-source",
+      "taskId": "7260c2d1-6e50-4078-a667-535ffc4ab5f5",
+      "actualCredits": 40,
+      "creditBalanceBeforeTask": 2432,
+      "creditBalanceAfterTask": 2392,
+      "creditBalanceAfterTaskVerification": "calculated-from-last-verified-balance-minus-live-charges-not-live-reverified",
+      "ownerReview": "rejected",
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": false,
+        "failureFinding": "drifted-to-conventional-armored-human-with-pedestal-and-separate-swords",
+        "decision": "reject-and-replace-through-chatgpt-image-first-workflow"
+      },
+      "designContract": {
+        "family": "unique-cinderbound-mechanical-golem-boss",
+        "biology": "none",
+        "construction": "articulated-charred-basalt-and-oxidized-bronze-plates-around-an-ember-core",
+        "silhouette": "towering-broad-triangular-shoulders-narrow-waist-heavy-articulated-arms",
+        "face": "faceless-iron-mask-with-one-vertical-amber-sensor-slit",
+        "weaponLogic": "integrated-right-forearm-obsidian-sweep-blade-not-a-separate-sword",
+        "rig": "purpose-built-mechanical-hierarchy-with-rigid-plate-joints-not-humanoid-skin-deformation",
+        "forbiddenRead": [
+          "armored-human",
+          "paladin",
+          "biological-breachling",
+          "separate-handheld-swords"
+        ]
+      },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-base-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "expectedCredits": 40,
+      "maximumCredits": 40,
+      "sourceImage": {
+        "file": "sd-creature-breachling-base-chatgpt-a-pose-v3-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+        "bytes": 1727534,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "724B76297565E738189C29C9920C1473DFB88D46DAF349FD75E81FEE192A51CE",
+        "generationPromptSha256": "F66F00A06B98B8F4E85E77D8DED9195C737B85DC4F60537F11671345D5C8A944",
+        "finalEditPromptSha256": "4FBB83BC367B54209367C391868CDA88BBE2A8810F86304DE07E030C420675DC"
+      },
+      "supersededSourceImages": [
+        {
+          "file": "sd-creature-breachling-base-chatgpt-a-pose-v1-source.png",
+          "sha256": "343CFDD3DF4902655673C06D6B8B52C3E0CFAEA362670C8AED2D427F9D542028",
+          "reason": "mouth-read-too-small-closed-and-human"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-a-pose-v2-source.png",
+          "sha256": "447F4FA51DD49DC8EAA5A097D0247F2462EE0A4A639231FD38FF698CD39C28D4",
+          "reason": "predatory-jaw-still-not-large-or-threatening-enough"
+        }
+      ],
+      "designContract": {
+        "family": "breachling-hunched-predator",
+        "sharedRigAcrossTiers": true,
+        "sourcePose": "neutral-symmetrical-a-pose-with-clear-limbs-and-flat-feet",
+        "anatomy": "wiry-hunched-torso-long-forearms-four-clawed-fingers-short-digitigrade-legs-and-broad-feet",
+        "mouth": "huge-broad-non-human-hinged-predator-maw-with-deep-cavity-layered-teeth-and-visible-tongue",
+        "requiredFacialControls": [
+          "jaw-open",
+          "jaw-close",
+          "snarl"
+        ],
+        "requiredActionCoverage": [
+          "spawn-awaken",
+          "idle",
+          "locomotion",
+          "turn",
+          "telegraph",
+          "normal-attack",
+          "variant-attack",
+          "hit",
+          "stagger",
+          "death-defeat",
+          "terminal-hold"
+        ],
+        "tierRenderPolicy": "each-tier-receives-owner-reviewed-chatgpt-render-but-retains-the-shared-anatomy-and-rig",
+        "tierVariants": {
+          "base": "pale-ash-grey-level-one-with-small-ridges",
+          "stalker": "darker-slate-smoke-leaner-with-longer-swept-ridges",
+          "oathbound": "earth-brown-ochre-bindings-heavier-chest-and-forearms",
+          "ravager": "cinder-red-rust-with-enlarged-horns-spikes-bone-ridges-and-claws"
+        }
+      },
       "status": "approved-ready-to-submit",
       "taskId": null,
       "actualCredits": null,
-      "ownerReview": "pending",
+      "ownerReview": "approved-huge-maw-source-image-shown-in-chat",
       "runtimePromotionAllowed": false
     }
   ],
@@ -335,6 +421,16 @@
       "status": "approval-required",
       "lifetime": "first-breach",
       "placeholderReuseAllowedForProduction": false,
+      "designCompletenessRequired": [
+        "silhouette",
+        "anatomy-and-joint-logic",
+        "surface-and-material-hierarchy",
+        "threat-language-and-facial-anatomy",
+        "locomotion-and-attack-anatomy",
+        "rig-and-control-requirements",
+        "tier-or-encounter-variants",
+        "normal-isometric-camera-readability"
+      ],
       "items": [
         "training-effigy-sentinel",
         "breachling",

@@ -5,6 +5,10 @@ describe("First Breach production model register", () => {
   it("keeps every paid geometry group behind exact owner approval", () => {
     expect(modelRegister.program.issue).toBe(448);
     expect(modelRegister.program.paidOperationApproved).toBe(false);
+    expect(modelRegister.program.textTo3dGenerationApproved).toBe(false);
+    expect(modelRegister.generationPolicy.defaultOperation).toBe(
+      "chatgpt-reference-image-then-image-to-3d-single-image",
+    );
     expect(modelRegister.creditPolicy.batchApprovalImplied).toBe(false);
     expect(modelRegister.creditPolicy.stopOnUnexpectedCost).toBe(true);
 
@@ -53,6 +57,15 @@ describe("First Breach production model register", () => {
   it("forbids generic production substitutes for every First Breach creature assembly", () => {
     const creatureGroup = modelRegister.assetGroups.find((group) => group.id === "first-breach-creatures");
     expect(creatureGroup?.placeholderReuseAllowedForProduction).toBe(false);
+    expect(creatureGroup?.designCompletenessRequired).toEqual(
+      expect.arrayContaining([
+        "silhouette",
+        "anatomy-and-joint-logic",
+        "threat-language-and-facial-anatomy",
+        "rig-and-control-requirements",
+        "normal-isometric-camera-readability",
+      ]),
+    );
     expect(creatureGroup?.items).toEqual(
       expect.arrayContaining([
         "training-effigy-sentinel",
@@ -80,6 +93,7 @@ describe("First Breach production model register", () => {
       taskId: "82459e9b-e63b-4be1-a3be-cad264fedc44",
       actualCredits: 40,
       creditBalanceAfterTask: 2432,
+      ownerReview: "approved-as-family-style-reference",
       runtimePromotionAllowed: false,
     });
     expect(task?.promptSha256).toBe("640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394");
@@ -92,7 +106,7 @@ describe("First Breach production model register", () => {
     });
   });
 
-  it("records the bounded Cinderbound Warden source task before paid submission", () => {
+  it("records the rejected text-to-3D Warden before replacing it through image-first production", () => {
     const task = modelRegister.sourceGenerationTasks.find(
       (entry) => entry.assetId === "creature-cinderbound-warden-v001",
     );
@@ -105,11 +119,65 @@ describe("First Breach production model register", () => {
       materialType: "shaded",
       expectedCredits: 40,
       maximumCredits: 40,
-      status: "approved-ready-to-submit",
+      status: "generated-rejected-cloud-source",
+      taskId: "7260c2d1-6e50-4078-a667-535ffc4ab5f5",
+      actualCredits: 40,
+      creditBalanceAfterTask: 2392,
+      ownerReview: "rejected",
       runtimePromotionAllowed: false,
     });
     expect(task?.promptSha256).toBe("6E4FCE9519340D9DEA584F04B84D441B056D3EB7753983AC23AA537EEC34C829");
     expect(task?.prompt).toContain("One complete isolated creature");
+    expect(task?.generationOutcome?.decision).toBe("reject-and-replace-through-chatgpt-image-first-workflow");
+    expect(task?.designContract).toMatchObject({
+      family: "unique-cinderbound-mechanical-golem-boss",
+      biology: "none",
+      rig: "purpose-built-mechanical-hierarchy-with-rigid-plate-joints-not-humanoid-skin-deformation",
+    });
+    expect(task?.designContract?.forbiddenRead).toEqual(
+      expect.arrayContaining(["armored-human", "paladin", "biological-breachling"]),
+    );
+  });
+
+  it("registers the exact ChatGPT Breachling source before image-to-3D conversion", () => {
+    const task = modelRegister.sourceGenerationTasks.find(
+      (entry) => entry.assetId === "creature-breachling-base-image-first-v001",
+    );
+
+    expect(task).toMatchObject({
+      operation: "image-to-3d-single-image",
+      model: "prism-3.1",
+      textureQuality: "ultra",
+      meshQuality: "standard",
+      expectedCredits: 40,
+      maximumCredits: 40,
+      status: "approved-ready-to-submit",
+      ownerReview: "approved-huge-maw-source-image-shown-in-chat",
+      runtimePromotionAllowed: false,
+    });
+    expect(task?.sourceImage).toMatchObject({
+      file: "sd-creature-breachling-base-chatgpt-a-pose-v3-source.png",
+      bytes: 1727534,
+      width: 1254,
+      height: 1254,
+      sha256: "724B76297565E738189C29C9920C1473DFB88D46DAF349FD75E81FEE192A51CE",
+      generationPromptSha256: "F66F00A06B98B8F4E85E77D8DED9195C737B85DC4F60537F11671345D5C8A944",
+      finalEditPromptSha256: "4FBB83BC367B54209367C391868CDA88BBE2A8810F86304DE07E030C420675DC",
+    });
+    expect(task?.supersededSourceImages).toHaveLength(2);
+    expect(task?.designContract).toMatchObject({
+      family: "breachling-hunched-predator",
+      sharedRigAcrossTiers: true,
+      mouth: "huge-broad-non-human-hinged-predator-maw-with-deep-cavity-layered-teeth-and-visible-tongue",
+      tierRenderPolicy: "each-tier-receives-owner-reviewed-chatgpt-render-but-retains-the-shared-anatomy-and-rig",
+    });
+    expect(task?.designContract?.requiredFacialControls).toEqual(["jaw-open", "jaw-close", "snarl"]);
+    expect(task?.designContract?.tierVariants).toMatchObject({
+      base: expect.stringContaining("pale-ash-grey"),
+      stalker: expect.stringContaining("darker-slate-smoke"),
+      oathbound: expect.stringContaining("earth-brown-ochre"),
+      ravager: expect.stringContaining("cinder-red-rust"),
+    });
   });
 
   it("covers every current level surface that must be revalidated", () => {

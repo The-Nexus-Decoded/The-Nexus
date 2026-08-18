@@ -1,7 +1,7 @@
 # 3D AI Studio Character and Equipment Pipeline
 
 Status: production contract proposed under [The-Nexus #435](https://github.com/The-Nexus-Decoded/The-Nexus/issues/435)  
-Scope: paid 3D AI Studio intake, base ancestry bodies, starter calling kits, separate weapons, Blender cleanup, rig compatibility, animation reuse, browser export, provenance, and visual QA
+Scope: ChatGPT reference-image design, paid 3D AI Studio single-image intake, base ancestry bodies, starter calling kits, separate weapons, NPCs, creatures, Blender cleanup, rig compatibility, animation reuse, browser export, provenance, and visual QA
 
 This document defines how SoulDrifter uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
 
@@ -18,7 +18,7 @@ SoulDrifter does **not** purchase or maintain an independent model for every anc
 - one canonical humanoid animation contract plus documented race/body retarget profiles;
 - separate hair, facial-detail, sheath, harness, rune/sigil, and effect layers.
 
-Every production geometry family in the First Breach execution set starts from an approved 3D AI Studio source task. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
+Every production geometry family in the First Breach execution set starts from one owner-reviewed ChatGPT image containing one complete isolated subject, followed by an approved 3D AI Studio single-image conversion. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
 
 Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 
@@ -79,7 +79,7 @@ Appearance variety is assembled from reusable parts and materials. It must not m
 | Layer | Minimum production target | Boundary |
 | --- | --- | --- |
 | Adult body families | masculine and feminine for Human, Elf, Dwarf, and Halfling | same gameplay stats; anatomy and clothing-conform profiles remain separate assets |
-| Facial structures | three readable adult face families per compatible head topology | soft/round, angular/high-cheek, and broad/strong are shape guides, never personality, morality, or ethnicity labels |
+| Facial-feature families | four respectful adult families per compatible head topology | African diaspora/Black, East Asian, South Asian/Indian, and European; each is available across Human, Elf, Dwarf, and Halfling with equivalent detail and facial-animation coverage |
 | Skin tones | at least six equally canonical tones | deep, dark, medium-deep, medium, tan/olive, and light/pale coverage; implemented as approved texture/material variants, not duplicate body geometry |
 | Hair | at least six masculine-presenting and six feminine-presenting fitted styles | separate meshes; every style may be offered across presentation categories when head fit and clipping QA pass |
 | Facial details | modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings | texture masks/decals when flat; separate socketed meshes when dimensional; never baked permanently into the base head |
@@ -120,9 +120,9 @@ This creates eight initial weapon packages rather than nine unrelated weapons:
 
 The owner approves one assembled calling view for each of the nine callings. Those review assemblies may use representative ancestries for variety, but they do not create ancestry/calling restrictions.
 
-## Text-to-3D prompt gate
+## ChatGPT image-first source gate
 
-Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized every text-to-3D model required by issue #448 and must be notified if the account balance drops below 2,000 credits. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
+Every SoulDrifter body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module starts as one high-quality grounded-realistic ChatGPT reference image and is then submitted to 3D AI Studio Prism 3.1 single-image conversion. Direct text-to-3D is retired for new production sources after its Breachling and Warden results proved less controllable and more cartoon-prone. Ultra texture quality cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized all required issue #448 source conversions and must be notified if the account balance drops below 2,000 credits.
 
 This decision follows the approved 2026-08-17 Human athletic comparison:
 
@@ -130,17 +130,18 @@ This decision follows the approved 2026-08-17 Human athletic comparison:
 - Prism 3.1 multi-view image-to-3D task `304b62b1`, with Ultra texture quality, cost 45 credits and produced three unwanted figures because adjacent views remained visible in the cropped source frames. That candidate is rejected.
 - The bounded comparison cost 85 credits total, moving the account balance from 3,557 to 3,472. Neither candidate was remeshed, rigged, or promoted.
 
-Image-to-3D is now an exception path, not the default or batch path. Use it only when the owner identifies a specific pre-existing visual design that SoulDrifter should deliberately reproduce rather than originate through text-to-3D. It requires a separate owner approval and four clean files containing exactly one isolated, identity-matched subject each: front, left, back, and right. Composite sheets, adjacent limbs, duplicate figures, labels touching the subject, and mirrored substitutes with visible contamination are prohibited.
+The comparison history remains provenance, not current guidance. Single-image Image-to-3D is now the production default. Each source contains one isolated subject, plain background, unobstructed silhouette, and no duplicate views, labels, inset frames, scenery, or fused unrelated pieces. Riggable actors use a neutral front A- or T-pose with clear limbs and flat feet; objects use one neutral production orientation. Multi-view is allowed only by a separate owner decision with four clean identity-matched files.
 
-Before a paid text-to-3D request, lock:
+Before a paid single-image conversion, lock:
 
 - one asset category and internal asset ID;
-- one complete positive prompt and one explicit exclusion list;
+- one complete ChatGPT design prompt, edit history, and explicit exclusion list;
+- the exact owner-reviewed image filename, dimensions, bytes, and SHA-256;
 - the intended bind-pose family, silhouette, material boundary, and modularity boundary;
 - the exact provider model/version, expected cost, maximum cost, and stop conditions;
 - any lore, ancestry, calling, body-profile, or level constraints already approved by the owner.
 
-### Base-body prompt template
+### Base-body ChatGPT image template
 
 ```text
 Original SoulDrifter [ANCESTRY] adult [PRESENTATION] [BODY PROFILE] modular game-character
@@ -155,7 +156,7 @@ duplicate figures, or turntable views. Single complete full-body character.
 
 Append only ancestry-specific requirements that have already been approved. Do not place calling identity, morality, high-level magic, or advanced rune traditions into a base ancestry body.
 
-### Weapon prompt template
+### Weapon ChatGPT image template
 
 ```text
 Create one original low-level SoulDrifter [WEAPON] as an isolated game asset.
@@ -167,7 +168,7 @@ grip and a silhouette readable from an elevated isometric camera. Single complet
 no duplicate views, alternate versions, or fused accessories.
 ```
 
-### Clothing or armor prompt template
+### Clothing or armor ChatGPT image template
 
 ```text
 Create one original modular C-tier [GARMENT OR ARMOR PIECE] for the approved SoulDrifter
@@ -179,24 +180,50 @@ readable. Single complete garment or armor piece; no duplicate views or equipmen
 is a conforming source for a separate game-equipment mesh, never fused character geometry.
 ```
 
+### Monster ChatGPT image template
+
+```text
+Create one original SoulDrifter [MONSTER FAMILY AND TIER] as a complete isolated full-body
+game-model reference. Grounded realistic dark-fantasy rendering with the approved SoulDrifter
+material language, not cartoon art. Neutral symmetrical A-pose for rigging, limbs and joints
+clear, feet planted, plain background. Define its scale, silhouette, locomotor anatomy, attack
+anatomy, joint logic, surface/material hierarchy, palette, threat language, encounter role,
+and any family-preserving horns, spikes, plates, bindings, or ridges. The face must have
+anatomically credible predatory or mechanical function: [JAW / SENSOR / MASK CONTRACT].
+Preserve all required animation controls and VFX/SFX sockets. No human facial drift, generic
+humanoid costume, weapon-like debris, pedestal, scenery, duplicate, collage, turntable, gore,
+or cropped anatomy. One coherent subject only.
+```
+
+For a Breachling tier, preserve the shared hunched anatomy and rig. The pale ash/grey base,
+slate Stalker, ochre-bound Oathbound, and cinder-red horned/spiked Ravager each receive their
+own render but do not become unrelated species. The approved base benchmark uses a huge
+broad hinged non-human maw with deep cavity, layered teeth, visible tongue, and separate
+`jaw-open`, `jaw-close`, and `snarl` controls.
+
+The Cinderbound Warden is a separate mechanical/golem boss: articulated charred-basalt and
+oxidized-bronze plates around an ember core, faceless mask/sensor slit, left-palm soul-tax
+mechanism, and integrated right-forearm sweep blade. It is not biological, a Breachling,
+an armored human, a Paladin, or a wielder of separate swords.
+
 ## Generation and intake sequence
 
 ### Phase 0: verify authorization before spending credits
 
-1. Lock the ticket, asset ID, ancestry/calling purpose, operation, direct text prompt or approved single-image source, model/version, seed policy, target face count, material plan, and expected credit cost.
+1. Lock the ticket, asset ID, ancestry/calling/encounter purpose, ChatGPT image brief, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
-3. Save the prompt hash or exact approved source-image hash in the intake ledger. Humanoid body anchors use one front-facing full-body T-pose on a plain background; contact sheets and automatic multi-view crops are invalid.
-4. Confirm that the task fits either required text-to-3D generation or the approved single-image Halfling/Heavy body-anchor scope, record the exact prompt or image/settings/live charge, and monitor the 2,000-credit notification threshold. Remesh, rigging, paid animation, and any other image-to-3D scope still require separate approval.
+3. Generate and show exactly one ChatGPT source image in chat, then save every prompt/edit hash and the exact approved image hash in the intake ledger. Riggable actors use one front-facing full-body A- or T-pose on a plain background; contact sheets and automatic multi-view crops are invalid.
+4. Confirm that the task fits issue #448 single-image authorization, record the exact image/settings/live charge, and monitor the 2,000-credit notification threshold. Direct text-to-3D, remesh, rigging, and paid animation remain outside this authorization.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one isolated text-to-3D task or one approved single-image body-anchor task through MCP or the authenticated 3D AI Studio dashboard.
+1. Submit the exact approved single image through MCP or the authenticated 3D AI Studio dashboard.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
 5. Reject duplicate subjects, extra limbs, fused fingers, closed armpits, unusable pose drift, missing back detail, melted facial features, intersecting geometry, fused equipment, and weapon-like fragments.
 6. Do not request variants until the defect is classified as a prompt problem, model limitation, or downstream cleanup problem.
-7. Do not switch operations merely because the first candidate fails. Image-to-3D requires an approved specific design and clean isolated input; text-to-3D remains preferred for isolated creatures, gear, weapons, props, and environment pieces without a selected reference design.
+7. If conversion fails, classify whether the source image, model limitation, or downstream cleanup caused it. Correct the ChatGPT image first; do not switch to direct text-to-3D as an automatic fallback.
 
 ### Phase 2: export to non-shipping intake
 
@@ -350,7 +377,7 @@ Every 3D AI Studio artifact records:
 - task ID and dashboard project;
 - generation model/version and operation;
 - prompt, negative constraints, seed, and prompt hash;
-- source-image hashes only when the separately approved image-to-3D exception is used;
+- ChatGPT prompt/edit hashes and the exact approved source-image hash for every production artifact;
 - generation date, credit cost, owner account, and commercial-use status;
 - untouched source filename, format, byte size, and SHA-256;
 - Blender version and cleanup/retopo/bake notes;
@@ -368,7 +395,7 @@ The current paid sequence is deliberately gated:
 2. Treat the 1.41M-1.49M-triangle untouched GLBs as visual source sculpts only; none may enter `public/assets` or a runtime manifest.
 3. Select one Human topology pilot, clean, retopologize, bake, and compare a resulting rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
-5. Produce one text-to-3D shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source inside the phase authorization after the body-source queue is complete.
+5. Produce one ChatGPT-image-first shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source inside the phase authorization after the body-source queue is complete.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
 8. Lock the neck seam, four cross-ancestry facial-feature families, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
@@ -378,8 +405,8 @@ The current paid sequence is deliberately gated:
 
 Stop and request owner review when:
 
-- text-to-3D cannot produce one coherent isolated subject within the approved prompt envelope;
-- image-to-3D is proposed without a specific owner-selected design and four clean isolated identity-matched views;
+- the ChatGPT source cannot express one coherent isolated subject within the approved design envelope;
+- single-image conversion loses required anatomy, mechanical logic, identity, or silhouette;
 - a generation consumes an unexpected credit amount;
 - the generated topology cannot be retopologized economically;
 - the Prism rig is not compatible with the current animation plan;
@@ -416,8 +443,8 @@ No batch generation begins while any pilot-critical item remains unchecked.
 ## Vendor references
 
 - [3D AI Studio recommended workflow](https://docs.3daistudio.com/3d-generation/recommended-workflow)
-- [3D AI Studio text-to-3D guidance](https://docs.3daistudio.com/3d-generation/text-to-3d)
-- [3D AI Studio image-to-3D and multi-view guidance (exception path)](https://docs.3daistudio.com/3d-generation/image-to-3d)
+- [3D AI Studio text-to-3D guidance (historical comparison only)](https://docs.3daistudio.com/3d-generation/text-to-3d)
+- [3D AI Studio image-to-3D and multi-view guidance (production path)](https://docs.3daistudio.com/3d-generation/image-to-3d)
 - [3D AI Studio remesh guidance](https://docs.3daistudio.com/processing/remesh)
 - [3D AI Studio rigging and Mixamo-compatible export](https://docs.3daistudio.com/processing/rigging)
 - [3D AI Studio export formats](https://docs.3daistudio.com/export-formats)
