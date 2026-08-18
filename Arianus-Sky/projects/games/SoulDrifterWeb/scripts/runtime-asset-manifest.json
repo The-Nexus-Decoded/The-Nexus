@@ -1,0 +1,45 @@
+{
+  "maxBytes": 150000000,
+  "preferredMaxBytes": 140000000,
+  "excludeGlobs": [
+    "assets/generated/*-class-atlas-*-v1.png",
+    "assets/generated/*-starter-atlas-*-v1.png",
+    "assets/generated/sentinel-*-v1.png",
+    "assets/generated/sentinel.png",
+    "assets/generated/shadowknight-starter-*.png",
+    "assets/generated/tutorial-npcs-*-v1.png",
+    "assets/generated/action-icons/*-atlas.png",
+    "assets/generated/characters/advanced/**",
+    "lore-atlas/assets/P-*_painted.png",
+    "lore-atlas/assets/maps/*.svg"
+  ],
+  "protectedPaths": [
+    "assets/generated/first-breach-environment-v1.png",
+    "assets/generated/action-icons/basic-weapon-strike.svg",
+    "assets/generated/action-icons/imprint-discipline.svg",
+    "assets/generated/characters/elf-shadowknight-highlevel.png",
+    "assets/generated/characters/human-shadowknight-highlevel.png",
+    "assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
+    "assets/3d/characters/human-shadowknight/human-shadowknight.glb",
+    "assets/3d/characters/enemy-breachling.gltf",
+    "lore-atlas/assets/M-001_painted_cosmology.png",
+    "lore-atlas/assets/M-003_painted_atlas.png",
+    "lore-atlas/assets/maps/abarrach_painted.png",
+    "lore-atlas/assets/maps/arianus_painted.png",
+    "lore-atlas/assets/maps/chelestra_painted.png",
+    "lore-atlas/assets/maps/labyrinth_painted.png",
+    "lore-atlas/assets/maps/nexus_painted.png",
+    "lore-atlas/assets/maps/pryan_painted.png",
+    "lore-atlas/index.html"
+  ],
+  "targets": [
+    {
+      "assetRoot": "dist/client",
+      "budgetRoot": "dist"
+    },
+    {
+      "assetRoot": "dist-pages",
+      "budgetRoot": "dist-pages"
+    }
+  ]
+}
