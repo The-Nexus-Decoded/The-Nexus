@@ -2,7 +2,14 @@ export const STAT_KEYS = ["might", "finesse", "insight", "will", "vitality", "re
 
 export type StatKey = (typeof STAT_KEYS)[number];
 export type Stats = Record<StatKey, number>;
+export type RaceId = "human" | "elf" | "dwarf" | "halfling";
 export type CallingId = "warrior" | "mage" | "priest" | "sharpshooter" | "paladin" | "summoner" | "asura" | "slayer" | "shadowknight";
+export type RaceCallingEligibilityStatus = "allowed" | "rare" | "forbidden";
+
+export interface RaceCallingEligibility {
+  status: RaceCallingEligibilityStatus;
+  reason?: string;
+}
 
 export const STAT_LABELS: Record<StatKey, string> = {
   might: "Might",
@@ -140,8 +147,8 @@ export const RACES: readonly RaceDefinition[] = [
     glyph: "◇",
     identity: "Adaptable realm cultures carrying many ways of surviving the Drift.",
     affinity: "Flexible training and faster secondary-profession growth.",
-    talent: "Versatile Training",
-    modifiers: { insight: 1, will: 1 },
+    talent: "Adaptive Training",
+    modifiers: {},
   },
   {
     id: "elf",
@@ -157,9 +164,9 @@ export const RACES: readonly RaceDefinition[] = [
     name: "Dwarf",
     glyph: "⬙",
     identity: "Forge culture, compact strength, and mastery of stone and conduits.",
-    affinity: "Anchors, armor, crafting, and resistance to forced movement.",
+    affinity: "Wisdom, priestly devotion, protective oaths, and resistance to forced movement.",
     talent: "Stone Anchor",
-    modifiers: { might: 1, vitality: 2 },
+    modifiers: { will: 2, vitality: 1 },
   },
   {
     id: "halfling",
@@ -337,16 +344,42 @@ export const CALLINGS: readonly CallingDefinition[] = [
   },
 ] as const;
 
+const ALLOWED_CALLING: RaceCallingEligibility = Object.freeze({ status: "allowed" });
+
+/**
+ * Canonical exceptions to the normally allowed ancestry/calling matrix.
+ * Rare paths remain selectable with cultural context; forbidden paths fail closed.
+ */
+export const RACE_CALLING_RULES: Readonly<Record<RaceId, Readonly<Partial<Record<CallingId, RaceCallingEligibility>>>>> = {
+  human: {},
+  elf: {
+    paladin: { status: "rare", reason: "Elven oath-armored orders exist, but are uncommon beside long-memory and precision traditions." },
+    asura: { status: "rare", reason: "Elven long memory can sustain black-thread practice, but makes its psychological cost unusually dangerous." },
+    shadowknight: { status: "rare", reason: "An Elven soul can return ash-bound, but the lich-knight path remains an exceptional rupture." },
+  },
+  dwarf: {
+    mage: { status: "forbidden", reason: "Dwarven traditions channel power through faith, craft, and oath rather than the Mage calling." },
+    summoner: { status: "rare", reason: "Dwarven binders can shape crafted vessels, but summoning is not a mainstream hold tradition." },
+    asura: { status: "rare", reason: "Ancestor and tomb knowledge makes black-thread practice possible, though culturally dangerous." },
+    slayer: { status: "rare", reason: "Dwarven execution specialists exist outside the protective forge-and-hold tradition." },
+    shadowknight: { status: "forbidden", reason: "Dwarven souls do not bind to the ash-lich Shadowknight path." },
+  },
+  halfling: {
+    mage: { status: "forbidden", reason: "Halfling traditions favor practical and spiritual magic rather than the Mage calling." },
+    paladin: { status: "rare", reason: "Halfling courage supports protection, but formal armored oath orders remain uncommon." },
+    summoner: { status: "rare", reason: "Clever command fits Halflings, while formal magical binding remains unusual." },
+    asura: { status: "rare", reason: "Hostile-memory practice conflicts with Halfling community traditions, but rare outliers exist." },
+    shadowknight: { status: "forbidden", reason: "Halfling souls do not bind to the ash-lich Shadowknight path." },
+  },
+};
+
 export const RACE_CALLING_BONUSES: readonly RaceCallingBonus[] = [
-  { raceId: "human", callingId: "warrior", name: "Adaptive Drill", description: "Human martial traditions turn mixed experience into decisive force.", modifiers: { might: 1 } },
-  { raceId: "human", callingId: "priest", name: "Many Faiths", description: "A lifetime among competing beliefs strengthens devotional will.", modifiers: { will: 1 } },
-  { raceId: "human", callingId: "asura", name: "Contradictory Soul", description: "Human adaptability carries incompatible memories without immediate collapse.", modifiers: { resonance: 1 } },
   { raceId: "elf", callingId: "mage", name: "Formula Memory", description: "Long memory preserves exact color-channel relationships.", modifiers: { insight: 1 } },
   { raceId: "elf", callingId: "sharpshooter", name: "Long Sight", description: "Elven perception reads a firing line before it fully forms.", modifiers: { finesse: 1 } },
   { raceId: "elf", callingId: "summoner", name: "True Naming", description: "Ancient memory gives shaped allies a more stable identity.", modifiers: { resonance: 1 } },
   { raceId: "dwarf", callingId: "warrior", name: "Forge Circuit", description: "Dwarven bodies and tools carry physical pressure as one system.", modifiers: { might: 1 } },
-  { raceId: "dwarf", callingId: "paladin", name: "Stone Oath", description: "A Dwarven promise anchors allies as firmly as worked stone.", modifiers: { vitality: 1 } },
-  { raceId: "dwarf", callingId: "shadowknight", name: "Ember Sepulcher", description: "Dwarven heat discipline keeps stolen vitality banked in grave-iron.", modifiers: { vitality: 1 } },
+  { raceId: "dwarf", callingId: "priest", name: "Ancestor Litany", description: "Dwarven memory gives devotional wards the weight of an unbroken lineage.", modifiers: { will: 1 } },
+  { raceId: "dwarf", callingId: "paladin", name: "Stone Oath", description: "A Dwarven promise anchors allies as firmly as worked stone.", modifiers: { will: 1 } },
   { raceId: "halfling", callingId: "sharpshooter", name: "Low Profile", description: "A smaller silhouette opens firing lanes others cannot use.", modifiers: { finesse: 1 } },
   { raceId: "halfling", callingId: "priest", name: "Hearth Mercy", description: "Halfling rescue traditions make protection immediate and practical.", modifiers: { will: 1 } },
   { raceId: "halfling", callingId: "slayer", name: "Hidden Knife", description: "Overlooked angles become precise execution routes.", modifiers: { finesse: 1 } },
@@ -419,12 +452,29 @@ export function raceCallingBonus(raceId: string, callingId: string): RaceCalling
   return RACE_CALLING_BONUSES.find((bonus) => bonus.raceId === raceId && bonus.callingId === callingId);
 }
 
+export function raceCallingEligibility(raceId: string, callingId: string): RaceCallingEligibility {
+  const race = raceById(raceId);
+  const calling = callingById(callingId);
+  return RACE_CALLING_RULES[race.id as RaceId][calling.id] ?? ALLOWED_CALLING;
+}
+
+export function assertRaceCallingEligibility(raceId: string, callingId: string): RaceCallingEligibility {
+  const eligibility = raceCallingEligibility(raceId, callingId);
+  if (eligibility.status === "forbidden") {
+    const race = raceById(raceId);
+    const calling = callingById(callingId);
+    throw new Error(`${race.name} cannot become ${calling.name}. ${eligibility.reason ?? "Choose another calling."}`);
+  }
+  return eligibility;
+}
+
 export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
   const name = draft.name.trim();
   if (name.length < 2 || name.length > 24) throw new Error("Choose a name between 2 and 24 characters.");
 
   const race = raceById(draft.raceId);
   const calling = callingById(draft.callingId);
+  assertRaceCallingEligibility(race.id, calling.id);
   const ancestryCallingBonus = raceCallingBonus(race.id, calling.id);
   const stats = blankStats();
   const skills = [race.talent, calling.signatureSkill, calling.defensiveSkill];
@@ -470,6 +520,7 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
 export function normalizeLegacyCharacterProfile(profile: CharacterProfile): CharacterProfile {
   const race = raceById(profile.raceId);
   const calling = callingById(profile.callingId);
+  assertRaceCallingEligibility(race.id, calling.id);
   const legacyAppearance = profile.appearance as Partial<CharacterAppearance> | undefined;
   const hairStyle = legacyAppearance?.hairStyle && HAIR_STYLES.some((style) => style.id === legacyAppearance.hairStyle)
     ? legacyAppearance.hairStyle
