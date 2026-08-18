@@ -16,6 +16,9 @@ from mathutils import Vector
 
 TARGET_HEIGHT_METERS = 2.13
 
+EYE_EMISSION = (0.95, 0.002, 0.001, 1.0)
+EMBER_EMISSION = (1.0, 0.055, 0.002, 1.0)
+
 
 def arguments() -> argparse.Namespace:
     separator = sys.argv.index("--") if "--" in sys.argv else -1
@@ -203,6 +206,77 @@ def apply_mechanical_lod(item: bpy.types.Object, target_triangles: int) -> tuple
     return source_triangles, len(item.data.polygons)
 
 
+def create_emissive_material(
+    name: str,
+    color: tuple[float, float, float, float],
+    strength: float,
+) -> bpy.types.Material:
+    material = bpy.data.materials.new(name)
+    material.use_nodes = True
+    material.diffuse_color = color
+    material.surface_render_method = "DITHERED"
+    principled = next(
+        node
+        for node in material.node_tree.nodes
+        if node.type == "BSDF_PRINCIPLED"
+    )
+    principled.inputs["Base Color"].default_value = color
+    principled.inputs["Metallic"].default_value = 0.0
+    principled.inputs["Roughness"].default_value = 0.28
+    principled.inputs["Emission Color"].default_value = color
+    principled.inputs["Emission Strength"].default_value = strength
+    return material
+
+
+def add_emissive_semantics(warden: bpy.types.Object) -> list[str]:
+    """Add explicit eye and furnace meshes without inventing a second rear core."""
+
+    eye_material = create_emissive_material(
+        "Warden_EyeGlow_Red",
+        EYE_EMISSION,
+        18.0,
+    )
+    ember_material = create_emissive_material(
+        "Warden_CoreEmbers",
+        EMBER_EMISSION,
+        12.0,
+    )
+    specs = (
+        ("EyeGlow.L", (0.105, 0.026, 1.950), (0.008, 0.009, 0.006), eye_material, "head"),
+        ("EyeGlow.R", (0.105, -0.026, 1.950), (0.008, 0.009, 0.006), eye_material, "head"),
+        ("CoreEmber.Center", (0.050, 0.000, 1.410), (0.020, 0.028, 0.035), ember_material, "spine.upper"),
+        ("CoreEmber.Upper", (0.045, 0.020, 1.465), (0.014, 0.018, 0.024), ember_material, "spine.upper"),
+        ("CoreEmber.Lower", (0.045, -0.020, 1.355), (0.012, 0.016, 0.020), ember_material, "spine.upper"),
+    )
+    semantics = [name for name, *_ in specs]
+    semantic_parts: list[bpy.types.Object] = []
+    for name, location, scale, material, bone_name in specs:
+        bpy.ops.mesh.primitive_ico_sphere_add(
+            subdivisions=2,
+            radius=1.0,
+            location=location,
+        )
+        part = bpy.context.object
+        part.name = name
+        part.scale = scale
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        part.data.materials.append(material)
+        group = part.vertex_groups.new(name=bone_name)
+        group.add(range(len(part.data.vertices)), 1.0, "REPLACE")
+        semantic_parts.append(part)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    warden.select_set(True)
+    for part in semantic_parts:
+        part.select_set(True)
+    bpy.context.view_layer.objects.active = warden
+    bpy.ops.object.join()
+
+    warden["emissiveVisualSemantics"] = "|".join(semantics)
+    warden["weaponSemantics"] = "ClawBlade.Right|SoulTaxPalm.Left"
+    return semantics
+
+
 def main() -> None:
     args = arguments()
     source = args.input.resolve()
@@ -227,6 +301,8 @@ def main() -> None:
         warden,
         args.target_triangles,
     )
+    emissive_semantics = add_emissive_semantics(warden)
+    output_triangles = len(warden.data.polygons)
     modifier = warden.modifiers.new(name="WardenMechanicalRig", type="ARMATURE")
     modifier.object = rig
     warden.parent = rig
@@ -271,9 +347,11 @@ def main() -> None:
         "sourceTriangles": source_triangles,
         "targetTriangles": args.target_triangles,
         "outputTriangles": output_triangles,
+        "emissiveVisualSemantics": emissive_semantics,
+        "weaponSemantics": ["ClawBlade.Right", "SoulTaxPalm.Left"],
         "animation": "Warden_RigidProof",
         "animationFrameRange": [1, 30],
-        "status": "external-rigid-hierarchy-proof-retopology-material-vfx-and-gameplay-qa-pending",
+        "status": "external-rigid-hierarchy-emissive-proof-dynamic-core-vfx-and-gameplay-qa-pending",
         "runtimePromotionAllowed": False,
     }
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

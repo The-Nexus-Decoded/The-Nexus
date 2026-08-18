@@ -637,7 +637,8 @@ describe("First Breach production model register", () => {
       actualCredits: 45,
       creditBalanceBeforeTask: 694,
       creditBalanceAfterTask: 649,
-      status: "accepted-production-source-technicalization-pending",
+      status:
+        "accepted-production-source-rigid-emissive-pilot-proved-runtime-integration-pending",
     });
     expect(task.replacementSourceSet.supersedingConversion.untouchedExport).toMatchObject({
       file: "sd-creature-cinderbound-warden-prism-corrected-multiview-task-b249e29c-untouched.glb",
@@ -657,6 +658,45 @@ describe("First Breach production model register", () => {
         "true-armored-rear-with-no-face-or-duplicate-furnace",
       ]),
     );
+    expect(
+      task.replacementSourceSet.supersedingConversion.offlineTechnicalizationPilot,
+    ).toMatchObject({
+      blenderVersion: "4.5.12 LTS",
+      sourceSha256Verified: true,
+      sourceTopology: {
+        connectedComponents: 294,
+      },
+      rig: {
+        boneCount: 17,
+        deformBoneCount: 16,
+        assignedComponents: 294,
+        skinCount: 1,
+        proofAnimation: "Warden_RigidProof",
+        proofFrameRange: [1, 30],
+      },
+      lod0: {
+        file: "sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+        bytes: 6774664,
+        sha256: "57A73C1CBB8887F67679F6F962FDB1124378A20A42EBBC47957687F80294C836",
+        triangles: 80399,
+        targetHeightMeters: 2.13,
+        meshes: 1,
+        materials: 3,
+        skins: 1,
+        joints: 17,
+        animations: ["Warden_RigidProof"],
+      },
+      emissiveVisualSemantics: [
+        "EyeGlow.L",
+        "EyeGlow.R",
+        "CoreEmber.Center",
+        "CoreEmber.Upper",
+        "CoreEmber.Lower",
+      ],
+      weaponSemantics: ["ClawBlade.Right", "SoulTaxPalm.Left"],
+      status: "external-rigid-lod0-emissive-proof-runtime-promotion-pending",
+      runtimePromotionAllowed: false,
+    });
     expect(task.designOutcome).toMatchObject({
       coreVfxSocket: "VFX_CoreFlame",
       coreVfxRule:

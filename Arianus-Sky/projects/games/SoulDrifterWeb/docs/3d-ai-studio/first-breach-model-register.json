@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -1411,7 +1411,68 @@
               "gameplay-camera-and-animation-proof"
             ]
           },
-          "status": "accepted-production-source-technicalization-pending"
+          "offlineTechnicalizationPilot": {
+            "blenderVersion": "4.5.12 LTS",
+            "sourceSha256Verified": true,
+            "sourceTopology": {
+              "connectedComponents": 294,
+              "largestComponentPolygonShare": 0.031511
+            },
+            "rig": {
+              "boneCount": 17,
+              "deformBoneCount": 16,
+              "assignedComponents": 294,
+              "skinCount": 1,
+              "proofAnimation": "Warden_RigidProof",
+              "proofFrameRange": [
+                1,
+                30
+              ]
+            },
+            "lod0": {
+              "file": "sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+              "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/technicalized-pilots/warden-rigid-v006-emissive",
+              "bytes": 6774664,
+              "sha256": "57A73C1CBB8887F67679F6F962FDB1124378A20A42EBBC47957687F80294C836",
+              "triangles": 80399,
+              "targetHeightMeters": 2.13,
+              "meshes": 1,
+              "materials": 3,
+              "skins": 1,
+              "joints": 17,
+              "animations": [
+                "Warden_RigidProof"
+              ]
+            },
+            "emissiveVisualSemantics": [
+              "EyeGlow.L",
+              "EyeGlow.R",
+              "CoreEmber.Center",
+              "CoreEmber.Upper",
+              "CoreEmber.Lower"
+            ],
+            "weaponSemantics": [
+              "ClawBlade.Right",
+              "SoulTaxPalm.Left"
+            ],
+            "visualInspection": {
+              "passed": [
+                "rest-four-view-render",
+                "two-red-eyes-and-embedded-core-embers-preserved",
+                "right-claw-blade-and-left-soul-tax-palm-preserved",
+                "solid-rear-with-no-duplicate-face-or-furnace",
+                "rigid-components-move-without-soft-stone-deformation"
+              ],
+              "remaining": [
+                "dynamic-VFX_CoreFlame-runtime-effect",
+                "authored-boss-action-set-and-event-markers",
+                "gameplay-camera-clipping-and-performance-proof"
+              ]
+            },
+            "status": "external-rigid-lod0-emissive-proof-runtime-promotion-pending",
+            "runtimePromotionAllowed": false
+          },
+          "status": "accepted-production-source-rigid-emissive-pilot-proved-runtime-integration-pending"
         }
       },
       "designOutcome": {
