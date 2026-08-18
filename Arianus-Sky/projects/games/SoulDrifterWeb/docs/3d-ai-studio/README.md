@@ -18,7 +18,7 @@ SoulDrifter does **not** purchase or maintain an independent model for every anc
 - one canonical humanoid animation contract plus documented race/body retarget profiles;
 - separate hair, facial-detail, sheath, harness, rune/sigil, and effect layers.
 
-Every production geometry family in the First Breach execution set starts from one owner-reviewed ChatGPT image containing one complete isolated subject, followed by an approved 3D AI Studio single-image conversion. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
+Every production geometry family in the First Breach execution set starts from an owner-reviewed ChatGPT source containing one complete isolated subject. Simple assets use one approved image; bespoke asymmetric hero actors use four separately approved identity-matched views. The source is then routed through the 3D AI Studio model that best preserves that asset's required anatomy, topology budget, and materials. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
 
 Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 
@@ -122,7 +122,7 @@ The owner approves one assembled calling view for each of the nine callings. Tho
 
 ## ChatGPT image-first source gate
 
-Every SoulDrifter body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module starts as one high-quality grounded-realistic ChatGPT reference image and is then submitted to 3D AI Studio Prism 3.1 single-image conversion. Direct text-to-3D is retired for new production sources after its Breachling and Warden results proved less controllable and more cartoon-prone. Ultra texture quality cost 40 credits during the pilot; recheck and record the exact live settings and charge before every task. The owner has authorized all required issue #448 source conversions and must be notified if the account balance drops below 2,000 credits.
+Every SoulDrifter body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module starts from high-quality grounded-realistic ChatGPT reference art. Direct text-to-3D is retired for new production sources after its Breachling and Warden results proved less controllable and more cartoon-prone. Provider selection is asset-specific: Prism 3.1 remains the preferred hero-character and hero-creature path; Meshy 7 Multi-image is retained for the accepted Breachling reconstruction; corrected Prism 3.1 Multi-Image is required for the Cinderbound Warden; and simple modular hair, starter gear, and wearable sources use Meshy 7 Smart Topology low-poly conversion with 2K PBR textures. The owner has authorized the remaining bounded issue #448 source conversions without a standing credit floor. Record exact settings and charge for every task, and stop if the provider reports an unexpected amount.
 
 This decision follows the approved 2026-08-17 Human athletic comparison:
 
@@ -213,7 +213,7 @@ an armored human, a Paladin, or a wielder of separate swords.
 1. Lock the ticket, asset ID, ancestry/calling/encounter purpose, ChatGPT image brief, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
 3. Generate and show exactly one ChatGPT source image in chat, then save every prompt/edit hash and the exact approved image hash in the intake ledger. Riggable actors use one front-facing full-body A- or T-pose on a plain background; contact sheets and automatic multi-view crops are invalid.
-4. Confirm that the task fits issue #448 single-image authorization, record the exact image/settings/live charge, and monitor the 2,000-credit notification threshold. Direct text-to-3D, remesh, rigging, and paid animation remain outside this authorization.
+4. Confirm that the task fits the bounded issue #448 image-to-3D authorization and asset-specific provider route, then record the exact image/settings/live charge. Direct text-to-3D, remesh, rigging, and paid animation remain outside this authorization; an unexpected provider charge stops the batch.
 
 ### Phase 1: generate one source candidate
 
@@ -395,7 +395,7 @@ The current paid sequence is deliberately gated:
 2. Treat the 1.41M-1.49M-triangle untouched GLBs as visual source sculpts only; none may enter `public/assets` or a runtime manifest.
 3. Select one Human topology pilot, clean, retopologize, bake, and compare a resulting rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
-5. Produce one ChatGPT-image-first shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source inside the phase authorization after the body-source queue is complete.
+5. Preserve the registered ChatGPT-image-first starter weapon/off-hand and wearable source conversions, including the rejected split-blade ritual knife and its accepted worn-dagger fallback; do not promote them before part separation, conforming, sockets, coverage masks, and camera/clipping QA.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
 8. Lock the neck seam, four cross-ancestry facial-feature families, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.

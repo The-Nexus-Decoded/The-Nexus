@@ -665,6 +665,104 @@ describe("First Breach production model register", () => {
     });
   });
 
+  it("preserves four cross-ancestry facial families without multiplying paid head geometry", () => {
+    const library = modelRegister.appearanceReferenceLibrary as any;
+    const familyCounts = new Map<string, number>();
+
+    expect(library.runtimePromotionAllowed).toBe(false);
+    expect(library.facePolicy).toMatchObject({
+      availableAcrossAncestries: ["human", "elf", "dwarf", "halfling"],
+      availableAcrossBodyProfiles: ["slim", "athletic", "heavy"],
+      mechanicalImpact: "none",
+      paidStandaloneConversionRequired: false,
+    });
+    expect(library.faceReferences).toHaveLength(8);
+
+    for (const reference of library.faceReferences) {
+      familyCounts.set(reference.familyId, (familyCounts.get(reference.familyId) ?? 0) + 1);
+      expect(reference.file).toMatch(/^sd-face-.+-chatgpt-v1\.png$/);
+      expect(reference.sha256).toMatch(/^[A-F0-9]{64}$/);
+      expect(reference.bytes).toBeGreaterThan(0);
+    }
+
+    expect(Object.fromEntries(familyCounts)).toEqual({
+      "african-diaspora-black": 2,
+      "east-asian": 2,
+      "south-asian-indian": 2,
+      european: 2,
+    });
+    expect(library.faceReferences.filter((entry: any) => entry.presentation === "masculine")).toHaveLength(4);
+    expect(library.faceReferences.filter((entry: any) => entry.presentation === "feminine")).toHaveLength(4);
+  });
+
+  it("preserves the twelve-style hair library and records its provider conversion gate", () => {
+    const library = modelRegister.appearanceReferenceLibrary as any;
+    const conversions = modelRegister.modularSourceConversions as any;
+    const hairConversions = conversions.entries.filter((entry: any) => entry.category === "hair");
+
+    expect(library.hairReferences).toHaveLength(12);
+    expect(library.hairReferences.filter((entry: any) => entry.presentation === "masculine")).toHaveLength(6);
+    expect(library.hairReferences.filter((entry: any) => entry.presentation === "feminine")).toHaveLength(6);
+    expect(new Set(library.hairReferences.map((entry: any) => entry.assetId)).size).toBe(12);
+    expect(hairConversions).toHaveLength(12);
+    expect(hairConversions.filter((entry: any) => entry.taskId)).toHaveLength(12);
+    expect(hairConversions.filter((entry: any) => entry.status === "source-approved-awaiting-provider-upload-window")).toHaveLength(0);
+
+    for (const reference of library.hairReferences) {
+      expect(reference.sha256).toMatch(/^[A-F0-9]{64}$/);
+      expect(reference.bytes).toBeGreaterThan(0);
+    }
+  });
+
+  it("registers modular starter gear and wearables as source-only low-poly conversions", () => {
+    const conversions = modelRegister.modularSourceConversions as any;
+    const gear = conversions.entries.filter((entry: any) => entry.assetId.startsWith("gear-"));
+    const wearables = conversions.entries.filter((entry: any) => entry.category === "wearable");
+    const completed = conversions.entries.filter((entry: any) => entry.taskId);
+
+    expect(conversions).toMatchObject({
+      status: "source-conversion-batch-complete-no-runtime-promotion",
+      studioProject: "SoulDrifter",
+      studioProjectId: 310153,
+      provider: "3d-ai-studio",
+      model: "meshy-7-smart-topology-low-poly",
+      settings: {
+        singleImage: true,
+        lowPoly: true,
+        texture: true,
+        textureQuality: "2k",
+        pbr: true,
+        maximumPolygons: 15000,
+        expectedCreditsPerTask: 20,
+        generationRateLimitPerMinute: 3,
+        uploadRateLimitPerHour: 20,
+      },
+    });
+    expect(gear).toHaveLength(10);
+    expect(wearables).toHaveLength(4);
+    expect(completed).toHaveLength(26);
+
+    for (const entry of conversions.entries) {
+      expect(entry.sourceSha256).toMatch(/^[A-F0-9]{64}$/);
+      expect(entry.runtimePromotionAllowed).toBe(false);
+    }
+    for (const entry of completed) {
+      expect(entry.taskId).toMatch(/^[a-f0-9-]{36}$/);
+      expect(entry.exportFile).toMatch(/\.glb$/);
+      expect(entry.exportSha256).toMatch(/^[A-F0-9]{64}$/);
+      expect(entry.exportBytes).toBeGreaterThan(0);
+      expect(entry.triangles).toBeGreaterThan(0);
+      expect(entry.triangles).toBeLessThanOrEqual(15000);
+    }
+
+    const rejectedKnife = conversions.entries.find((entry: any) => entry.assetId === "gear-ritual-knife-starter-v001");
+    expect(rejectedKnife).toMatchObject({
+      status: "rejected-provider-invented-split-blade",
+      fallbackAssetId: "gear-worn-dagger-starter-v001",
+      runtimePromotionAllowed: false,
+    });
+  });
+
   it("covers every current level surface that must be revalidated", () => {
     expect(modelRegister.validationSurfaces).toEqual(
       expect.arrayContaining([
