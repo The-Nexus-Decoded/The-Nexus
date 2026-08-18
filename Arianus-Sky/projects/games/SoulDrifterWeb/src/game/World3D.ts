@@ -23,6 +23,7 @@ import {
 import { buildDialogue, type DialogueScene, type NpcDatabase, type NpcStoryOverride } from "./npc";
 import { findPath } from "./pathfinding";
 import {
+  enemyDefeatVisibilityMs,
   planPursuitPath,
   planSoulwellRespawn,
   resolveMeleeTarget,
@@ -193,6 +194,8 @@ interface DebugSnapshot {
     id: string;
     hp: number;
     alive: boolean;
+    visible: boolean;
+    targeted: boolean;
     roomId: DungeonRoomKind;
     yaw: number;
     animation: string;
@@ -233,6 +236,7 @@ interface DebugSnapshot {
   playerAnimationTime: number;
   playerAnimationDuration: number;
   playerWeaponState: WeaponVisualState | "none";
+  playerWeaponEnchantActive: boolean;
   playerHipSocket?: {
     position: [number, number, number];
     rotation: [number, number, number];
@@ -288,6 +292,7 @@ interface DebugBridge {
   prepareOcclusion(): string;
   enemyRound(): Promise<void>;
   enemyPose(id: string, phase: "telegraph" | "contact" | "recovery"): void;
+  defeatEnemy(id: string): void;
   gatePose(id: string, progress: number): void;
   defeat(): Promise<void>;
   defeatHold(): void;
@@ -1081,6 +1086,23 @@ export class World3D {
       actor.guard = false;
       actor.attackCount = 0;
       actor.nextActionAt = 0;
+      const targetRing = new THREE.Mesh(
+        new THREE.RingGeometry(isBoss ? 0.78 : 0.54, isBoss ? 0.94 : 0.68, 48),
+        new THREE.MeshBasicMaterial({
+          color: isBoss ? 0xff8a5b : 0xf3bd64,
+          transparent: true,
+          opacity: 0.86,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      targetRing.name = "selected-target-ring";
+      targetRing.rotation.x = -Math.PI / 2;
+      targetRing.position.y = 0.035;
+      targetRing.visible = false;
+      targetRing.renderOrder = 8;
+      actor.root.userData.targeted = false;
+      actor.root.add(targetRing);
       actor.root.traverse((child) => { child.userData.enemyId = enemy.id; });
       this.createSemanticProxy(actor.root, actor.model, "enemyId", enemy.id);
       actor.root.visible = false;
@@ -1895,17 +1917,22 @@ export class World3D {
 
   private selectStoryObjectTarget(id: string | null): void {
     this.selectedStoryObjectId = id;
-    if (id) {
-      this.selectedTargetId = null;
-      this.refreshTarget();
-    }
+    if (id) this.selectEnemyTarget(null);
   }
 
   private selectEnemyTarget(id: string | null): void {
-    this.selectedTargetId = id;
-    if (id) {
+    const selected = id ? this.enemies.get(id) : undefined;
+    this.selectedTargetId = selected?.alive ? selected.id : null;
+    this.enemies.forEach((enemy) => {
+      const targeted = enemy.id === this.selectedTargetId && enemy.alive;
+      enemy.root.userData.targeted = targeted;
+      const targetRing = enemy.root.getObjectByName("selected-target-ring");
+      if (targetRing) targetRing.visible = targeted;
+    });
+    if (this.selectedTargetId) {
       this.selectedStoryObjectId = null;
       this.setPendingInteraction(null);
+      this.faceActorTowards(this.player, selected!.root.position);
     }
     this.refreshTarget();
   }
@@ -3056,13 +3083,14 @@ export class World3D {
     this.playActorIdle(this.player);
   }
 
-  private async defeatEnemy(enemy: EnemyRuntime): Promise<void> {
+  private defeatEnemy(enemy: EnemyRuntime): void {
     enemy.alive = false;
-    this.playActorDeath(enemy);
+    const deathDurationMs = this.playActorDeath(enemy);
     enemy.label?.material.opacity && (enemy.label.material.opacity = 0.35);
-    await this.delay(420 / this.combatSpeed);
-    enemy.root.visible = false;
     if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
+    void this.delay(enemyDefeatVisibilityMs(deathDurationMs)).then(() => {
+      if (!enemy.alive && !this.disposed) enemy.root.visible = false;
+    });
   }
 
   private finishEncounter(): void {
@@ -3379,8 +3407,10 @@ export class World3D {
   }
 
   private playGuardEffect(durationMs: number): void {
+    const guardColor = this.calling.id === "shadowknight" ? 0x8f2f25 : this.calling.signatureColor;
+    const guardBright = this.calling.id === "shadowknight" ? 0xdf6749 : this.calling.signatureColor;
     const shellMaterial = new THREE.MeshBasicMaterial({
-      color: this.calling.id === "shadowknight" ? 0x8f2f25 : this.calling.signatureColor,
+      color: guardColor,
       transparent: true,
       opacity: 0.12,
       depthWrite: false,
@@ -3400,7 +3430,7 @@ export class World3D {
     const moteGeometry = new THREE.BufferGeometry();
     moteGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const moteMaterial = new THREE.PointsMaterial({
-      color: this.calling.id === "shadowknight" ? 0xdf6749 : this.calling.signatureColor,
+      color: guardBright,
       size: 0.075,
       transparent: true,
       opacity: 0.82,
@@ -3409,6 +3439,54 @@ export class World3D {
     });
     const motes = new THREE.Points(moteGeometry, moteMaterial);
     this.player.root.add(shell, motes);
+    const weaponSocket = this.player.weapon?.handSocket;
+    let weaponEnchant: THREE.Group | undefined;
+    let weaponAura: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> | undefined;
+    let weaponSparks: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial> | undefined;
+    let weaponAuraRadius = 0;
+    if (weaponSocket) {
+      weaponSocket.updateWorldMatrix(true, true);
+      const bounds = new THREE.Box3().setFromObject(weaponSocket);
+      const worldCenter = bounds.getCenter(new THREE.Vector3());
+      const worldSize = bounds.getSize(new THREE.Vector3());
+      const worldScale = weaponSocket.getWorldScale(new THREE.Vector3());
+      const parentScale = Math.max(Math.abs(worldScale.x), Math.abs(worldScale.y), Math.abs(worldScale.z), 0.001);
+      weaponAuraRadius = THREE.MathUtils.clamp(Math.max(worldSize.x, worldSize.y, worldSize.z) * 0.48, 0.24, 0.72) / parentScale;
+      weaponEnchant = new THREE.Group();
+      weaponEnchant.name = "cinder-guard-weapon-enchant";
+      weaponEnchant.position.copy(weaponSocket.worldToLocal(worldCenter));
+      const auraMaterial = new THREE.MeshBasicMaterial({
+        color: guardBright,
+        transparent: true,
+        opacity: 0.18,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        wireframe: true,
+      });
+      weaponAura = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8), auraMaterial);
+      const weaponSparkPositions = new Float32Array(18 * 3);
+      for (let index = 0; index < 18; index += 1) {
+        const angle = (index / 18) * Math.PI * 2;
+        const radius = weaponAuraRadius * (0.42 + (index % 4) * 0.12);
+        weaponSparkPositions[index * 3] = Math.cos(angle) * radius;
+        weaponSparkPositions[index * 3 + 1] = Math.sin(index * 1.7) * weaponAuraRadius * 0.65;
+        weaponSparkPositions[index * 3 + 2] = Math.sin(angle) * radius;
+      }
+      const weaponSparkGeometry = new THREE.BufferGeometry();
+      weaponSparkGeometry.setAttribute("position", new THREE.BufferAttribute(weaponSparkPositions, 3));
+      const weaponSparkMaterial = new THREE.PointsMaterial({
+        color: 0xffd58a,
+        size: 0.055,
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      weaponSparks = new THREE.Points(weaponSparkGeometry, weaponSparkMaterial);
+      const weaponLight = new THREE.PointLight(guardBright, 2.2, 2.6, 2);
+      weaponEnchant.add(weaponAura, weaponSparks, weaponLight);
+      weaponSocket.add(weaponEnchant);
+    }
     const startedAt = performance.now();
     const animate = (now: number): void => {
       const progress = Math.min(1, (now - startedAt) / durationMs);
@@ -3418,6 +3496,13 @@ export class World3D {
       const fade = Math.min(1, (1 - progress) * 3.5);
       shellMaterial.opacity = 0.12 * fade;
       moteMaterial.opacity = 0.82 * fade;
+      if (weaponEnchant && weaponAura && weaponSparks) {
+        weaponEnchant.rotation.y += 0.045;
+        weaponSparks.rotation.x += 0.022;
+        weaponAura.scale.setScalar(weaponAuraRadius * (0.92 + Math.sin(progress * Math.PI * 10) * 0.12));
+        weaponAura.material.opacity = 0.22 * fade;
+        weaponSparks.material.opacity = 0.92 * fade;
+      }
       if (progress < 1 && !this.disposed) requestAnimationFrame(animate);
       else {
         shell.removeFromParent();
@@ -3426,6 +3511,13 @@ export class World3D {
         shellMaterial.dispose();
         moteGeometry.dispose();
         moteMaterial.dispose();
+        if (weaponEnchant && weaponAura && weaponSparks) {
+          weaponEnchant.removeFromParent();
+          weaponAura.geometry.dispose();
+          weaponAura.material.dispose();
+          weaponSparks.geometry.dispose();
+          weaponSparks.material.dispose();
+        }
       }
     };
     requestAnimationFrame(animate);
@@ -3697,6 +3789,11 @@ export class World3D {
             ? `${enemy.definition.name} reaches the contact marker.`
             : `${enemy.definition.name} recovers its guard after contact.`);
       },
+      defeatEnemy: (id) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown living enemy visual-proof target: ${id}`);
+        this.defeatEnemy(enemy);
+      },
       gatePose: (id, progress) => {
         const object = this.storyObjects.get(id);
         const portcullis = object?.root.getObjectByName("trial-portcullis") as THREE.Group | undefined;
@@ -3819,6 +3916,8 @@ export class World3D {
           ...enemy.grid,
           hp: enemy.hp,
           alive: enemy.alive,
+          visible: enemy.root.visible,
+          targeted: Boolean(enemy.root.userData.targeted),
           roomId: enemy.definition.roomId,
           yaw: Number(enemy.root.rotation.y.toFixed(3)),
           animation: enemy.currentAction?.getClip().name ?? "none",
@@ -3865,6 +3964,7 @@ export class World3D {
       playerAnimationTime: Number((this.player.currentAction?.time ?? 0).toFixed(3)),
       playerAnimationDuration: Number((this.player.currentAction?.getClip().duration ?? 0).toFixed(3)),
       playerWeaponState: this.player.weapon?.state ?? "none",
+      playerWeaponEnchantActive: Boolean(this.player.weapon?.handSocket.getObjectByName("cinder-guard-weapon-enchant")),
       playerRigProbe: {
         pelvis: probePlayerBone("pelvis"),
         spine_01: probePlayerBone("spine_01"),
@@ -3961,6 +4061,17 @@ export class World3D {
     this.npcs.forEach((actor) => this.groundActor(actor));
     this.enemies.forEach((actor) => this.groundActor(actor));
     const elapsed = this.clock.getElapsed();
+    this.enemies.forEach((enemy) => {
+      const targetRing = enemy.root.getObjectByName("selected-target-ring") as THREE.Mesh | undefined;
+      if (!targetRing) return;
+      const targeted = Boolean(enemy.root.userData.targeted) && enemy.alive && enemy.root.visible;
+      targetRing.visible = targeted;
+      if (!targeted) return;
+      const pulse = 1 + Math.sin(elapsed * 6) * 0.08;
+      targetRing.scale.setScalar(pulse);
+      const material = targetRing.material as THREE.MeshBasicMaterial;
+      material.opacity = 0.74 + Math.sin(elapsed * 6) * 0.12;
+    });
     this.updateStabilityRecovery(delta);
     this.environmentAnimators.forEach((animate) => animate(elapsed, delta));
     this.updateEnemyAttackPhaseVisual(elapsed, delta);
