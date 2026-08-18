@@ -79,6 +79,37 @@ export const sampleDashboard = {
     { time: '00:13 CDT', severity: 'warn', message: 'Remote pytest unavailable on Hugh until pytest is installed.' },
     { time: '00:11 CDT', severity: 'safe', message: 'Live-money automation remains disabled.' },
   ],
+
+  revenueStrategies: [
+    {
+      id: 'capped-dlmm-volume-momentum',
+      name: 'Capped DLMM volume/momentum fee lane',
+      phase: 'first revenue lane after gates',
+      mode: 'strategy/sim-go-live-no-go',
+      entrySignals: ['sustained 5m/15m volume', 'safe liquidity and fee/TVL edge', 'quote-confirmed entry and exit'],
+      sizeCap: 'lower of Lord-Xar-approved cap, $25, or 0.25% verified bot-wallet trading equity',
+      exitRules: ['+1.0% net after costs', '+0.50% fees with weakening momentum', 'exit to stable/USDC route'],
+      stops: ['-3% net position value', '10% liquidity drain', 'exit impact >2%', 'two failed position reads'],
+    },
+    {
+      id: 'quote-only-route-spread',
+      name: 'Quote-only arbitrage / route-spread lane',
+      phase: 'scanner/sim first, live later',
+      mode: 'quote-only-no-submit',
+      entrySignals: ['positive spread persists across 3 quote samples', 'quote age <3s', 'expected net >=0.50%'],
+      sizeCap: '$0 quote phase, $100 paper sim default, live canary uses approved cap rule',
+      exitRules: ['immediate completion; arbitrage is not a hold', 'compare realized net to quote expectation'],
+      stops: ['spread <0.50%', 'quote stale', 'impact too high', 'mock/missing approval'],
+    },
+  ],
+  revenueReadiness: {
+    leadIssue: '#291',
+    compileGate: '#384',
+    liveExecution: 'NO-GO',
+    strategySimWork: 'GO',
+    recoveryOrder: ['auth', 'real approval gate', 'signer verification', 'feed/timers/RPC', 'full dry-run', 'approved capped canary'],
+    currentBlockers: ['Jupiter Ultra /order unauthorized', 'mock approval must fail closed', 'signer/feed/RPC gates pending'],
+  },
   prValidation: [
     { pr: '#295', issue: '#277', result: 'passed-safe-mode', evidence: '17 tests passed; fake executor success/failure persisted.' },
     { pr: 'next', issue: '#296', result: 'pending', evidence: 'Dashboard app shell and validation panel under construction.' },
@@ -117,6 +148,8 @@ export const apiEndpoints = {
   riskFeed: '/api/crypto/risk/feed',
   killSwitch: '/api/crypto/kill-switch',
   validation: '/api/crypto/validation/prs',
+  revenueStrategies: '/api/crypto/revenue/strategies',
+  revenueReadiness: '/api/crypto/revenue/readiness',
 }
 
 async function fetchJson(path) {
@@ -145,6 +178,8 @@ export function composeDashboardFromApiPayloads(payloads = {}) {
     },
     topPools: payloads.topPools?.pools ?? sampleDashboard.topPools,
     killFeed: payloads.riskFeed?.events ?? sampleDashboard.killFeed,
+    revenueStrategies: payloads.revenueStrategies?.strategies ?? sampleDashboard.revenueStrategies,
+    revenueReadiness: payloads.revenueReadiness ?? sampleDashboard.revenueReadiness,
     prValidation: payloads.validation?.records ?? sampleDashboard.prValidation,
   }
 }

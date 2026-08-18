@@ -16,6 +16,85 @@ VALIDATION_CHAIN = [
 ]
 
 
+REVENUE_STRATEGIES = [
+    {
+        "id": "capped-dlmm-volume-momentum",
+        "name": "Capped DLMM volume/momentum fee lane",
+        "phase": "first revenue lane after gates",
+        "mode": "strategy/sim-go-live-no-go",
+        "entrySignals": [
+            "sustained 5m/15m volume",
+            "safe liquidity and fee/TVL edge",
+            "clean token-risk profile",
+            "quote-confirmed entry and exit",
+            "readable DLMM position state",
+            "real owner approval gate",
+        ],
+        "sizeCap": "lower of Lord-Xar-approved cap, $25, or 0.25% verified bot-wallet trading equity",
+        "exitRules": [
+            "+1.0% net after costs",
+            "+0.50% fees with weakening momentum",
+            "exit to stable/USDC route",
+        ],
+        "stops": [
+            "-3% net position value",
+            "10% liquidity drain",
+            "50% volume collapse",
+            "exit impact >2%",
+            "two failed position reads",
+            "risk flag or 30min no-progress timer",
+        ],
+    },
+    {
+        "id": "quote-only-route-spread",
+        "name": "Quote-only arbitrage / route-spread lane",
+        "phase": "scanner/sim first, live later",
+        "mode": "quote-only-no-submit",
+        "entrySignals": [
+            "route spread survives fees, slippage, priority buffer, and latency",
+            "positive spread persists across 3 quote samples",
+            "quote age <3s",
+            "expected net >=0.50%",
+            "both legs confirmed",
+            "per-leg impact <0.80%",
+            "real owner approval gate",
+        ],
+        "sizeCap": "$0 quote phase, $100 paper sim default, live canary uses approved cap rule",
+        "exitRules": ["immediate completion; arbitrage is not a hold", "compare realized net to quote expectation"],
+        "stops": [
+            "spread <0.50%",
+            "quote stale",
+            "impact too high",
+            "route drift",
+            "inconsistent quote source",
+            "mock/missing approval",
+        ],
+    },
+]
+
+REVENUE_READINESS = {
+    "leadIssue": "#291",
+    "compileGate": "#384",
+    "liveExecution": "NO-GO",
+    "strategySimWork": "GO",
+    "recoveryOrder": [
+        "Jupiter Ultra auth entitlement",
+        "real Lord Xar approval gate",
+        "signer path verification without exposing key material",
+        "Meteora pool feed + timers + RPC/rate-limit repair",
+        "full dry-run/sim lane",
+        "capped canary only after explicit Lord Xar command",
+    ],
+    "currentBlockers": [
+        "Jupiter Ultra /order unauthorized",
+        "approval gate must fail closed; no mock auto-approve",
+        "signer path not live-verified",
+        "pool feed/timers/RPC still need repair",
+        "execution bridge needs dry-run proof before live canary",
+    ],
+}
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -95,8 +174,11 @@ def fixture_summary() -> dict:
             {"time": "00:13 CDT", "severity": "warn", "message": "Remote pytest unavailable on Hugh until pytest is installed."},
             {"time": "00:11 CDT", "severity": "safe", "message": "Live-money automation remains disabled."},
         ],
+        "revenueStrategies": REVENUE_STRATEGIES,
+        "revenueReadiness": REVENUE_READINESS,
         "prValidation": [
             {"pr": "#295", "issue": "#277", "result": "passed-safe-mode", "evidence": "17 tests passed; fake executor success/failure persisted."},
             {"pr": "#296", "issue": "#296", "result": "pending", "evidence": "Read-only dashboard and API facade under construction."},
+            {"pr": "#387", "issue": "#291", "result": "pending", "evidence": "Capped revenue-lane dry-run gate under review; no live tx."},
         ],
     }

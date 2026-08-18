@@ -64,6 +64,7 @@ async function recordValidationEvidence() {
       <a href="#sniper">Sniper</a>
       <a href="#pools">Pools</a>
       <a href="#risk-feed">Risk feed</a>
+      <a href="#revenue">Revenue lanes</a>
       <a href="#validation">Validation</a>
     </nav>
 
@@ -181,6 +182,28 @@ async function recordValidationEvidence() {
           <span>{{ event.message }}</span>
         </div>
       </article>
+    </section>
+
+
+    <section id="revenue" class="panel validation-panel">
+      <div class="section-title">
+        <h2>Revenue lane tools</h2>
+        <span>{{ dashboard.revenueReadiness.leadIssue }} · live {{ dashboard.revenueReadiness.liveExecution }} · sim {{ dashboard.revenueReadiness.strategySimWork }}</span>
+      </div>
+      <div class="validation-grid">
+        <div v-for="strategy in dashboard.revenueStrategies" :key="strategy.id" class="validation-card">
+          <strong>{{ strategy.name }}</strong>
+          <span>{{ strategy.phase }} · {{ strategy.mode }}</span>
+          <small>size: {{ strategy.sizeCap }}</small>
+          <small>entry: {{ strategy.entrySignals.slice(0, 3).join(' · ') }}</small>
+          <small>exit: {{ strategy.exitRules.slice(0, 2).join(' · ') }}</small>
+        </div>
+      </div>
+      <div class="gate" v-for="step in dashboard.revenueReadiness.recoveryOrder" :key="step">
+        <span>{{ step }}</span>
+        <strong>required before canary</strong>
+      </div>
+      <button class="disabled-action" disabled>Dry-run planning only · no wallet action exposed</button>
     </section>
 
     <section id="validation" class="panel validation-panel">

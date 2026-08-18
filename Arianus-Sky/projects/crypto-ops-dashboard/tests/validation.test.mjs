@@ -4,6 +4,8 @@ import { composeDashboardFromApiPayloads, hasLiveActionPermission, sampleDashboa
 assert.equal(hasLiveActionPermission(sampleDashboard), false, 'live actions must be disabled in sample safe mode')
 assert.equal(sampleDashboard.risk.liveTrading, false, 'sample dashboard must not imply live trading is active')
 assert.equal(sampleDashboard.dlmmPositions.every((position) => position.lastTx === 'none submitted'), true, 'safe sample positions must not claim submitted transactions')
+assert.equal(sampleDashboard.revenueReadiness.liveExecution, 'NO-GO', 'revenue surface must not imply live trading')
+assert.equal(sampleDashboard.revenueStrategies.length, 2, 'first two revenue strategies must be visible')
 
 const summary = validationSummary(sampleDashboard)
 assert.equal(summary.issue, '#277')
@@ -23,9 +25,12 @@ const apiDashboard = composeDashboardFromApiPayloads({
   topPools: { pools: sampleDashboard.topPools },
   riskFeed: { events: sampleDashboard.killFeed },
   validation: { records: sampleDashboard.prValidation },
+  revenueStrategies: { strategies: sampleDashboard.revenueStrategies },
+  revenueReadiness: sampleDashboard.revenueReadiness,
 })
 assert.equal(apiDashboard.mode, 'read-only-fixture')
 assert.equal(hasLiveActionPermission(apiDashboard), false, 'API-composed dashboard must stay read-only by default')
+assert.equal(apiDashboard.revenueReadiness.liveExecution, 'NO-GO')
 
 
 assert.equal(validationResultEndpoint('#296'), '/api/crypto/validation/296/result')
