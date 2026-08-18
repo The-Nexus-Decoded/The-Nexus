@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -1203,8 +1203,8 @@
           "generationPromptSha256": "EE5012A1AF67392B5E314C55BD0B7CF63C9EEA1C77D8A71E19BF93C9D83F8664"
         }
       ],
-      "status": "generated-rejected-cloud-source-preserved-replacement-source-ready-conversion-blocked-by-credit-floor",
-      "ownerReview": "rejected-two-head-back-mismatch-and-missing-live-core-flame",
+      "status": "rejected-prism-source-preserved-corrected-meshy-source-generated-provisional",
+      "ownerReview": "prism-rejected-corrected-meshy-source-passed-agent-anomaly-gate-owner-final-model-review-pending",
       "untouchedExport": {
         "file": "sd-creature-cinderbound-warden-prism-multiview-task-445fd16b-untouched.glb",
         "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
@@ -1225,10 +1225,9 @@
         "decision": "retain-for-provenance-only-and-rebuild-the-source-set-before-any-rerun"
       },
       "replacementSourceSet": {
-        "status": "corrected-front-left-rear-right-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+        "status": "corrected-meshy-multiview-source-generated-provisional-production-source-owner-final-review-pending",
         "plannedConversionModel": "meshy-7-multi-image",
-        "submissionAllowed": false,
-        "submissionBlockReason": "planned-conversion-would-cross-the-owner-hard-credit-floor",
+        "submissionAllowed": true,
         "sourceImages": [
           {
             "view": "front",
@@ -1301,7 +1300,63 @@
           "balanceObserved": 819,
           "hardFloor": 800,
           "plannedTaskCredits": 45,
-          "submissionAllowed": false
+          "hardFloorRemovedByOwner": true,
+          "submissionAllowed": true,
+          "balanceAfterTask": 774
+        },
+        "conversion": {
+          "provider": "3d-ai-studio",
+          "model": "meshy-7-multi-image",
+          "taskId": "ca97a8d6-2fc0-4c9a-8ed4-8cf7eb6d3764",
+          "projectId": 310153,
+          "actualCredits": 45,
+          "creditBalanceBeforeTask": 819,
+          "creditBalanceAfterTask": 774,
+          "topology": "quad",
+          "textureQuality": "2k",
+          "pbr": true,
+          "sourceUploadReferences": [
+            "upload:warden-corrected-front_4368878f13714974b331b8d0f1ad5e90.jpg",
+            "upload:warden-corrected-left_930d6b8adf40493d842ad4644ff331a9.jpg",
+            "upload:warden-corrected-rear_5a6c60a841d84241936db06b7d3f922d.jpg",
+            "upload:warden-corrected-right_9f2e34b6fbb24223a2769ffe0158f971.jpg"
+          ],
+          "untouchedExport": {
+            "file": "sd-creature-cinderbound-warden-meshy7-corrected-multiview-task-ca97a8d6-untouched.glb",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+            "bytes": 68660976,
+            "sha256": "13A4F16B158B2BE8A921D75AD0C0F89F3C41EED818FD9D323B23629BB44C5A5D"
+          },
+          "technicalInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "materials": 1,
+            "textures": 3,
+            "images": 3,
+            "triangles": 1985294,
+            "skins": 0,
+            "animations": 0,
+            "finding": "high-density-untouched-source-requires-later-retopology-mechanical-hierarchy-and-runtime-vfx"
+          },
+          "visualInspection": {
+            "passed": [
+              "one-head-and-one-front-mask",
+              "solid-rear-shell-with-no-second-front-or-core",
+              "left-soul-tax-palm-and-right-integrated-blade-remain-asymmetric",
+              "dark-open-caged-core-cavity-present-for-runtime-vfx",
+              "intact-hands-feet-and-load-bearing-silhouette",
+              "no-floating-duplicate-body"
+            ],
+            "deferred": [
+              "owner-final-interactive-review",
+              "retopology-and-part-segmentation",
+              "rigid-mechanical-rig",
+              "VFX_CoreFlame-runtime-effect",
+              "gameplay-camera-and-animation-proof"
+            ]
+          },
+          "status": "provisional-production-source-owner-final-review-and-technicalization-pending"
         }
       },
       "designOutcome": {

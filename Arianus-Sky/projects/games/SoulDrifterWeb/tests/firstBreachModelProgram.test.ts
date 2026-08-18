@@ -492,7 +492,7 @@ describe("First Breach production model register", () => {
     expect(ravager.designOutcome.grownArmor).toContain("natural-horns");
   });
 
-  it("preserves the rejected paid Warden and records a complete gated replacement source set", () => {
+  it("preserves the rejected paid Warden and records the corrected Meshy source", () => {
     const task = sourceTask("creature-cinderbound-warden-image-first-v001");
 
     expect(task).toMatchObject({
@@ -503,8 +503,8 @@ describe("First Breach production model register", () => {
       taskId: "445fd16b-4006-4c18-a54a-fed2a63da955",
       creditBalanceBeforeTask: 2392,
       creditBalanceAfterTask: 2347,
-      status: "generated-rejected-cloud-source-preserved-replacement-source-ready-conversion-blocked-by-credit-floor",
-      ownerReview: "rejected-two-head-back-mismatch-and-missing-live-core-flame",
+      status: "rejected-prism-source-preserved-corrected-meshy-source-generated-provisional",
+      ownerReview: "prism-rejected-corrected-meshy-source-passed-agent-anomaly-gate-owner-final-model-review-pending",
       runtimePromotionAllowed: false,
     });
     expect(task.sourceImages.map((source: any) => source.view)).toEqual(["front", "left", "rear", "right"]);
@@ -522,10 +522,9 @@ describe("First Breach production model register", () => {
       ]),
     );
     expect(task.replacementSourceSet).toMatchObject({
-      status: "corrected-front-left-rear-right-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+      status: "corrected-meshy-multiview-source-generated-provisional-production-source-owner-final-review-pending",
       plannedConversionModel: "meshy-7-multi-image",
-      submissionAllowed: false,
-      submissionBlockReason: "planned-conversion-would-cross-the-owner-hard-credit-floor",
+      submissionAllowed: true,
       missingViews: [],
     });
     expect(task.replacementSourceSet.viewOrderForProvider).toEqual(["front", "left", "rear", "right"]);
@@ -554,7 +553,32 @@ describe("First Breach production model register", () => {
       balanceObserved: 819,
       hardFloor: 800,
       plannedTaskCredits: 45,
-      submissionAllowed: false,
+      hardFloorRemovedByOwner: true,
+      submissionAllowed: true,
+      balanceAfterTask: 774,
+    });
+    expect(task.replacementSourceSet.conversion).toMatchObject({
+      provider: "3d-ai-studio",
+      model: "meshy-7-multi-image",
+      taskId: "ca97a8d6-2fc0-4c9a-8ed4-8cf7eb6d3764",
+      projectId: 310153,
+      actualCredits: 45,
+      creditBalanceBeforeTask: 819,
+      creditBalanceAfterTask: 774,
+      topology: "quad",
+      textureQuality: "2k",
+      pbr: true,
+      status: "provisional-production-source-owner-final-review-and-technicalization-pending",
+    });
+    expect(task.replacementSourceSet.conversion.untouchedExport).toMatchObject({
+      file: "sd-creature-cinderbound-warden-meshy7-corrected-multiview-task-ca97a8d6-untouched.glb",
+      bytes: 68660976,
+      sha256: "13A4F16B158B2BE8A921D75AD0C0F89F3C41EED818FD9D323B23629BB44C5A5D",
+    });
+    expect(task.replacementSourceSet.conversion.technicalInspection).toMatchObject({
+      triangles: 1985294,
+      skins: 0,
+      animations: 0,
     });
     expect(task.designOutcome).toMatchObject({
       coreVfxSocket: "VFX_CoreFlame",
