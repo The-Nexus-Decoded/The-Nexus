@@ -247,7 +247,7 @@
       resetBtn.type = "button";
       resetBtn.hidden = true;
       const ctl = attachZoomPan(stage, zoomer, resetBtn);
-      const hintEl = el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect");
+      const hintEl = el("div", "map-hint", "Scroll to zoom · hover a landmass, click to inspect");
       const plateView = setupPlateView(stage, zoomer, resetBtn, hintEl);
       const landmasses = landmassLayer(realm, stage, (lm) =>
         lm.detail ? plateView.show(lm) : ctl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
@@ -284,7 +284,7 @@
     resetBtn.type = "button";
     resetBtn.hidden = true;
     const zoomCtl = attachZoomPan(stage, zoomer, resetBtn);
-    const hintEl = el("div", "map-hint", "Scroll to zoom · click a ringed landmass to inspect");
+    const hintEl = el("div", "map-hint", "Scroll to zoom · hover a landmass, click to inspect");
     const plateView = setupPlateView(stage, zoomer, resetBtn, hintEl);
     const landmasses = landmassLayer(realm, stage, (lm) =>
       lm.detail ? plateView.show(lm) : zoomCtl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
@@ -606,7 +606,7 @@
       plate.classList.remove("show");
       stage.classList.remove("plate-active");
       setTimeout(() => plate.remove(), 500);
-      if (hint) hint.textContent = "Scroll to zoom · click a ringed landmass to inspect";
+      if (hint) hint.textContent = "Scroll to zoom · hover a landmass, click to inspect";
     };
     return { show, hide, isActive: () => Boolean(active) };
   }
