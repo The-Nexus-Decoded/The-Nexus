@@ -15,8 +15,10 @@ describe("First Breach production model register", () => {
     expect(modelRegister.creditPolicy.excludedOperations).toEqual(
       expect.arrayContaining(["remesh", "rigging", "paid-animation"]),
     );
-    expect(modelRegister.program.notifyWhenCreditBalanceBelow).toBe(800);
-    expect(modelRegister.creditPolicy.notifyWhenCreditBalanceBelow).toBe(800);
+    expect(modelRegister.program.creditFloorRemovedByOwner).toBe(true);
+    expect(modelRegister.creditPolicy.creditFloorRemovedByOwner).toBe(true);
+    expect(modelRegister.program.notifyWhenCreditBalanceBelow).toBeNull();
+    expect(modelRegister.creditPolicy.notifyWhenCreditBalanceBelow).toBeNull();
 
     for (const group of modelRegister.assetGroups) {
       expect(group.geometrySource).toBe("3d-ai-studio");
@@ -74,8 +76,8 @@ describe("First Breach production model register", () => {
       articulatedActorTurnaroundTool: "3d-ai-studio-character-sheet-generator-gpt-image-2-medium",
       articulatedActorTurnaroundUse: "fallback-for-simpler-humanoid-or-npc-proof-not-default-for-bespoke-monsters",
       bespokeMonsterPreferredSource: "four-separate-owner-reviewed-chatgpt-views-with-full-canonical-spec-parity",
-      selectedBespokeMultiViewProviderModel: "meshy-7-multi-image",
-      prismExternalCreatureMultiViewPolicy: "do-not-retry-after-policy-rejection-and-auto-refund",
+      selectedBespokeMultiViewProviderModel: "asset-specific-provider-selected-from-accepted-output-quality",
+      prismExternalBreachlingMultiViewPolicy: "do-not-retry-after-policy-rejection-and-auto-refund",
       turnaroundMasterAllowedAsStagingOnly: true,
       turnaroundMasterAllowedAsImageTo3dInput: false,
       providerFixedSlotOrder: ["front", "left", "back", "right"],
@@ -162,6 +164,51 @@ describe("First Breach production model register", () => {
     expect(modelRegister.conversationFace.requiredControls).toEqual(
       expect.arrayContaining(["blink", "gaze", "brows", "jaw", "speech-visemes", "expression-presets"]),
     );
+
+    const expectedSources = [
+      {
+        assetId: "npc-ilyra-image-first-v001",
+        taskId: "02c05b91-3da0-49bf-8337-f019bbedee33",
+        bodyFile: "sd-npc-ilyra-chatgpt-fullbody-front-v1-source.png",
+        faceFile: "sd-npc-ilyra-chatgpt-conversation-head-front-v1-source.png",
+        glbFile: "sd-npc-ilyra-prism-task-02c05b91-untouched.glb",
+      },
+      {
+        assetId: "npc-orren-image-first-v001",
+        taskId: "a00a1818-57cd-4953-90a5-b62ac934b30d",
+        bodyFile: "sd-npc-orren-chatgpt-fullbody-front-v1-source.png",
+        faceFile: "sd-npc-orren-chatgpt-conversation-head-front-v1-source.png",
+        glbFile: "sd-npc-orren-prism-task-a00a1818-untouched.glb",
+      },
+      {
+        assetId: "npc-brannoc-image-first-v001",
+        taskId: "74ff6706-6833-451d-b542-4c2e75ab007c",
+        bodyFile: "sd-npc-brannoc-chatgpt-fullbody-front-v1-source.png",
+        faceFile: "sd-npc-brannoc-chatgpt-conversation-head-front-v1-source.png",
+        glbFile: "sd-npc-brannoc-prism-task-74ff6706-untouched.glb",
+      },
+    ];
+
+    for (const expected of expectedSources) {
+      const task = sourceTask(expected.assetId);
+      expect(task).toMatchObject({
+        operation: "image-to-3d-single-image",
+        model: "prism-3.1",
+        status: "accepted-production-source-facial-conform-and-rigging-pending",
+        runtimePromotionAllowed: false,
+      });
+      expect(task.sourceImage.file).toBe(expected.bodyFile);
+      expect(task.conversationFaceSource.file).toBe(expected.faceFile);
+      expect(task.identityContract.sameIdentityAcrossWorldActorAndConversationFace).toBe(true);
+      expect(task.conversion).toMatchObject({
+        taskId: expected.taskId,
+        actualCredits: 40,
+        pbr: true,
+        faceLimit: 150000,
+      });
+      expect(task.conversion.untouchedExport.file).toBe(expected.glbFile);
+      expect(task.conversion.technicalInspection).toMatchObject({ skins: 0, animations: 0 });
+    }
   });
 
   it("forbids generic production substitutes for every First Breach creature assembly", () => {
@@ -492,7 +539,7 @@ describe("First Breach production model register", () => {
     expect(ravager.designOutcome.grownArmor).toContain("natural-horns");
   });
 
-  it("preserves the rejected paid Warden and records the corrected Meshy source", () => {
+  it("preserves rejected Warden provenance and accepts the corrected Prism source", () => {
     const task = sourceTask("creature-cinderbound-warden-image-first-v001");
 
     expect(task).toMatchObject({
@@ -503,8 +550,8 @@ describe("First Breach production model register", () => {
       taskId: "445fd16b-4006-4c18-a54a-fed2a63da955",
       creditBalanceBeforeTask: 2392,
       creditBalanceAfterTask: 2347,
-      status: "rejected-prism-source-preserved-corrected-meshy-source-generated-provisional",
-      ownerReview: "prism-rejected-corrected-meshy-source-passed-agent-anomaly-gate-owner-final-model-review-pending",
+      status: "rejected-original-prism-and-meshy-sources-preserved-corrected-prism-source-accepted-for-technicalization",
+      ownerReview: "corrected-prism-v3-passes-owner-specified-red-eye-furnace-claw-arm-and-true-rear-contract",
       runtimePromotionAllowed: false,
     });
     expect(task.sourceImages.map((source: any) => source.view)).toEqual(["front", "left", "rear", "right"]);
@@ -522,8 +569,8 @@ describe("First Breach production model register", () => {
       ]),
     );
     expect(task.replacementSourceSet).toMatchObject({
-      status: "corrected-meshy-multiview-source-generated-provisional-production-source-owner-final-review-pending",
-      plannedConversionModel: "meshy-7-multi-image",
+      status: "corrected-prism-v3-multiview-source-accepted-for-technicalization",
+      plannedConversionModel: "prism-3.1-multi-image",
       submissionAllowed: true,
       missingViews: [],
     });
@@ -542,12 +589,16 @@ describe("First Breach production model register", () => {
       file: "sd-creature-cinderbound-warden-chatgpt-right-v3-true-profile-source.png",
       sha256: "CB833B61F42839CD332EE27E9E1A5D5D04FE5A6097B7345B4AD62708525DFDC9",
     });
+    expect(task.replacementSourceSet.sourceImages.find((source: any) => source.view === "front")).toMatchObject({
+      file: "sd-creature-cinderbound-warden-chatgpt-front-v3-red-eyes-furnace-source.png",
+      sha256: "9131CD10BA794B3329FD89B25374C9540D5155DAF67826A1320DFBCE3FB046D6",
+    });
     expect(task.replacementSourceSet.asymmetryContract).toMatchObject({
       bladeMirroringOrDuplicationAllowed: false,
       rearFrontDuplicationAllowed: false,
       headCount: 1,
-      frontSensorCount: 1,
-      rearSensorCount: 0,
+      frontRedEyeCount: 2,
+      rearEyeCount: 0,
     });
     expect(task.replacementSourceSet.conversionCreditGate).toMatchObject({
       balanceObserved: 819,
@@ -568,7 +619,7 @@ describe("First Breach production model register", () => {
       topology: "quad",
       textureQuality: "2k",
       pbr: true,
-      status: "provisional-production-source-owner-final-review-and-technicalization-pending",
+      status: "superseded-by-corrected-prism-v3-retained-for-provenance",
     });
     expect(task.replacementSourceSet.conversion.untouchedExport).toMatchObject({
       file: "sd-creature-cinderbound-warden-meshy7-corrected-multiview-task-ca97a8d6-untouched.glb",
@@ -580,6 +631,32 @@ describe("First Breach production model register", () => {
       skins: 0,
       animations: 0,
     });
+    expect(task.replacementSourceSet.supersedingConversion).toMatchObject({
+      model: "prism-3.1-multi-image",
+      taskId: "b249e29c-7ead-45da-85f0-3f996eaf8f90",
+      actualCredits: 45,
+      creditBalanceBeforeTask: 694,
+      creditBalanceAfterTask: 649,
+      status: "accepted-production-source-technicalization-pending",
+    });
+    expect(task.replacementSourceSet.supersedingConversion.untouchedExport).toMatchObject({
+      file: "sd-creature-cinderbound-warden-prism-corrected-multiview-task-b249e29c-untouched.glb",
+      bytes: 8002660,
+      sha256: "165FDBAEC8176269BFB51FD0E7A21DA671459D635748A0147EBB554495626C6C",
+    });
+    expect(task.replacementSourceSet.supersedingConversion.technicalInspection).toMatchObject({
+      triangles: 144490,
+      skins: 0,
+      animations: 0,
+    });
+    expect(task.replacementSourceSet.supersedingConversion.visualInspection.passed).toEqual(
+      expect.arrayContaining([
+        "one-head-with-two-distinct-red-glowing-eyes",
+        "bright-ember-furnace-inside-open-ribbed-chest-cage",
+        "oversized-integrated-curved-claw-blade-and-separate-soul-tax-palm",
+        "true-armored-rear-with-no-face-or-duplicate-furnace",
+      ]),
+    );
     expect(task.designOutcome).toMatchObject({
       coreVfxSocket: "VFX_CoreFlame",
       coreVfxRule:

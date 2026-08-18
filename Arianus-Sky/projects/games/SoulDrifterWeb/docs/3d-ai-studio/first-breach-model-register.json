@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
@@ -15,7 +15,8 @@
       "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images",
       "strict-four-view-breachling-and-cinderbound-warden-source-conversions-after-view-gate"
     ],
-    "notifyWhenCreditBalanceBelow": 800
+    "creditFloorRemovedByOwner": true,
+    "notifyWhenCreditBalanceBelow": null
   },
   "studioWorkspace": {
     "project": "SoulDrifter",
@@ -39,10 +40,10 @@
     "defaultOperation": "chatgpt-reference-image-then-asset-appropriate-image-to-3d",
     "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
     "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
-    "bespokeAsymmetricActorOperation": "four-separate-owner-reviewed-chatgpt-views-then-meshy-7-multi-image",
-    "heroCreatureOperation": "image-to-3d-four-view-meshy-7-after-front-side-rear-contradiction-gate",
+    "bespokeAsymmetricActorOperation": "four-separate-owner-reviewed-chatgpt-views-then-asset-specific-multi-image-provider",
+    "heroCreatureOperation": "image-to-3d-four-view-after-front-side-rear-contradiction-gate-and-provider-fit-review",
     "defaultModel": "prism-3.1",
-    "selectedBespokeMultiViewModel": "meshy-7-multi-image",
+    "selectedBespokeMultiViewModel": "asset-specific-meshy-7-for-breachlings-prism-3.1-for-cinderbound-warden",
     "approvedStartingTextureQuality": "ultra",
     "liveSettingsAndPriceApprovalRequiredPerTask": false,
     "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
@@ -94,8 +95,8 @@
         "articulatedActorTurnaroundTool": "3d-ai-studio-character-sheet-generator-gpt-image-2-medium",
         "articulatedActorTurnaroundUse": "fallback-for-simpler-humanoid-or-npc-proof-not-default-for-bespoke-monsters",
         "bespokeMonsterPreferredSource": "four-separate-owner-reviewed-chatgpt-views-with-full-canonical-spec-parity",
-        "selectedBespokeMultiViewProviderModel": "meshy-7-multi-image",
-        "prismExternalCreatureMultiViewPolicy": "do-not-retry-after-policy-rejection-and-auto-refund",
+        "selectedBespokeMultiViewProviderModel": "asset-specific-provider-selected-from-accepted-output-quality",
+        "prismExternalBreachlingMultiViewPolicy": "do-not-retry-after-policy-rejection-and-auto-refund",
         "turnaroundMasterAllowedAsStagingOnly": true,
         "turnaroundMasterAllowedAsImageTo3dInput": false,
         "providerFixedSlotOrder": [
@@ -249,7 +250,8 @@
     "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-source-generation-for-issue-448-including-approved-strict-four-view-hero-creatures",
     "batchApprovalImplied": true,
     "stopOnUnexpectedCost": true,
-    "notifyWhenCreditBalanceBelow": 800,
+    "notifyWhenCreditBalanceBelow": null,
+    "creditFloorRemovedByOwner": true,
     "excludedOperations": [
       "remesh",
       "rigging",
@@ -258,13 +260,13 @@
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
     "completedImageTo3dException": "twelve-preserved-body-anchors-in-body-anchor-intake-manifest",
     "latestPaidSourceTask": {
-      "assetId": "creature-breachling-stalker-image-first-v001",
-      "taskId": "4f473756-9660-48d1-a6f7-14d6de55524a",
-      "credits": 45,
-      "creditBalanceAfterTask": 1424,
-      "outcome": "completed-rust-red-tailed-source-candidate-four-angle-and-mesh-inspection-passed-owner-final-review-pending"
+      "assetId": "npc-brannoc-image-first-v001",
+      "taskId": "74ff6706-6833-451d-b542-4c2e75ab007c",
+      "credits": 40,
+      "creditBalanceAfterTask": 609,
+      "outcome": "completed-single-image-prism-source-front-and-rear-anomaly-gates-passed"
     },
-    "currentCandidate": "breachling-stalker-rust-red-tailed-meshy-source-candidate",
+    "currentCandidate": "named-tutorial-npc-source-set-and-prism-cinderbound-warden",
     "nextPaidPilot": null
   },
   "sourceGenerationTasks": [
@@ -1203,8 +1205,8 @@
           "generationPromptSha256": "EE5012A1AF67392B5E314C55BD0B7CF63C9EEA1C77D8A71E19BF93C9D83F8664"
         }
       ],
-      "status": "rejected-prism-source-preserved-corrected-meshy-source-generated-provisional",
-      "ownerReview": "prism-rejected-corrected-meshy-source-passed-agent-anomaly-gate-owner-final-model-review-pending",
+      "status": "rejected-original-prism-and-meshy-sources-preserved-corrected-prism-source-accepted-for-technicalization",
+      "ownerReview": "corrected-prism-v3-passes-owner-specified-red-eye-furnace-claw-arm-and-true-rear-contract",
       "untouchedExport": {
         "file": "sd-creature-cinderbound-warden-prism-multiview-task-445fd16b-untouched.glb",
         "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
@@ -1225,20 +1227,20 @@
         "decision": "retain-for-provenance-only-and-rebuild-the-source-set-before-any-rerun"
       },
       "replacementSourceSet": {
-        "status": "corrected-meshy-multiview-source-generated-provisional-production-source-owner-final-review-pending",
-        "plannedConversionModel": "meshy-7-multi-image",
+        "status": "corrected-prism-v3-multiview-source-accepted-for-technicalization",
+        "plannedConversionModel": "prism-3.1-multi-image",
         "submissionAllowed": true,
         "sourceImages": [
           {
             "view": "front",
-            "file": "sd-creature-cinderbound-warden-chatgpt-front-v2-source.png",
+            "file": "sd-creature-cinderbound-warden-chatgpt-front-v3-red-eyes-furnace-source.png",
             "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
-            "bytes": 2223581,
-            "width": 1122,
+            "bytes": 2286989,
+            "width": 1402,
             "height": 1402,
-            "sha256": "F8B715117EBCABA4086520EB32F71EC010FB2F280854EAF7134F0707F0E0E703",
-            "generationPromptSha256": "0431C71A7F0B4C27C5D9AF8B5F067DED42AA0A350CEE97BD5B317674BE62B622",
-            "anomalyGate": "passed-one-head-one-front-sensor-one-front-furnace-cavity-correct-left-palm-and-right-integrated-blade-asymmetry"
+            "sha256": "9131CD10BA794B3329FD89B25374C9540D5155DAF67826A1320DFBCE3FB046D6",
+            "generationPromptSha256": "not-captured-imagegen-edit-source-and-result-hash-preserved",
+            "anomalyGate": "passed-one-head-two-distinct-red-eyes-bright-open-furnace-cavity-correct-palm-and-integrated-claw-blade-asymmetry"
           },
           {
             "view": "left",
@@ -1293,8 +1295,8 @@
           "bladeMirroringOrDuplicationAllowed": false,
           "rearFrontDuplicationAllowed": false,
           "headCount": 1,
-          "frontSensorCount": 1,
-          "rearSensorCount": 0
+          "frontRedEyeCount": 2,
+          "rearEyeCount": 0
         },
         "conversionCreditGate": {
           "balanceObserved": 819,
@@ -1356,7 +1358,60 @@
               "gameplay-camera-and-animation-proof"
             ]
           },
-          "status": "provisional-production-source-owner-final-review-and-technicalization-pending"
+          "status": "superseded-by-corrected-prism-v3-retained-for-provenance"
+        },
+        "supersedingConversion": {
+          "provider": "3d-ai-studio",
+          "model": "prism-3.1-multi-image",
+          "taskId": "b249e29c-7ead-45da-85f0-3f996eaf8f90",
+          "projectId": 310153,
+          "actualCredits": 45,
+          "creditBalanceBeforeTask": 694,
+          "creditBalanceAfterTask": 649,
+          "textureQuality": "detailed",
+          "pbr": true,
+          "faceLimit": 150000,
+          "sourceUploadReferences": [
+            "upload:warden-prism-front-v3_d9aece0213b8423981dc6114a179bcfd.jpg",
+            "upload:warden-prism-left-v3_d5f1492e01fb4ed69eb1688539cf826a.jpg",
+            "upload:warden-prism-rear-v2_c069a432f39b426a8b0f658f3674bbfd.jpg",
+            "upload:warden-prism-right-v3_77de187c11da4823b715b5b9303069e9.jpg"
+          ],
+          "untouchedExport": {
+            "file": "sd-creature-cinderbound-warden-prism-corrected-multiview-task-b249e29c-untouched.glb",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+            "bytes": 8002660,
+            "sha256": "165FDBAEC8176269BFB51FD0E7A21DA671459D635748A0147EBB554495626C6C"
+          },
+          "technicalInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "materials": 1,
+            "textures": 3,
+            "images": 3,
+            "triangles": 144490,
+            "skins": 0,
+            "animations": 0,
+            "finding": "accepted-untouched-source-requires-rigid-part-segmentation-retopology-emissive-materials-and-runtime-vfx"
+          },
+          "visualInspection": {
+            "passed": [
+              "one-head-with-two-distinct-red-glowing-eyes",
+              "bright-ember-furnace-inside-open-ribbed-chest-cage",
+              "oversized-integrated-curved-claw-blade-and-separate-soul-tax-palm",
+              "true-armored-rear-with-no-face-or-duplicate-furnace",
+              "intact-hands-feet-and-load-bearing-mechanical-silhouette",
+              "no-floating-or-duplicate-body-geometry"
+            ],
+            "deferred": [
+              "retopology-and-rigid-part-segmentation",
+              "rigid-mechanical-rig",
+              "emissive-red-eye-material-and-VFX_CoreFlame-runtime-effect",
+              "gameplay-camera-and-animation-proof"
+            ]
+          },
+          "status": "accepted-production-source-technicalization-pending"
         }
       },
       "designOutcome": {
@@ -1383,6 +1438,198 @@
           "handheld-sword"
         ]
       },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-ilyra-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "wellkeeper-and-first-chronicle-guide",
+      "sourceImage": {
+        "file": "sd-npc-ilyra-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2484981,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "F43F5B74DF9EE44CB99A30FE76973CFC5B2A6070E83107141C75958E6EFD1B89"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-ilyra-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2346556,
+        "width": 1402,
+        "height": 1122,
+        "sha256": "A31B47E193EA9083014C77505C7B64E1F54C67C3DA4284C9A995C32BCADD1997",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "mature-human-wellkeeper",
+          "silver-crown-braid-and-forward-braid",
+          "faded-blue-grey-pilgrim-robes",
+          "keys-and-pouch"
+        ]
+      },
+      "conversion": {
+        "taskId": "02c05b91-3da0-49bf-8337-f019bbedee33",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 774,
+        "creditBalanceAfterTask": 734,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:ilyra-approved-fullbody_5062327a071748869187eea12d3cea15.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-ilyra-prism-task-02c05b91-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 7247632,
+          "sha256": "63DB48E2555880D07FD579EFD8B3322B888E91682B727E0663892F2F2C9C7A6B"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 143028,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-braid-robe-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-orren-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "breach-scout-and-field-guide",
+      "sourceImage": {
+        "file": "sd-npc-orren-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2028962,
+        "width": 1023,
+        "height": 1537,
+        "sha256": "E5155DDA494FE1AC313DC3216C10931E05F4B9DEA7FB1CFC30603C6B523CCAAB"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-orren-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2586228,
+        "width": 1023,
+        "height": 1537,
+        "sha256": "A7ED1C53C33B0990DDF1C884BCDEAF94EB6ECD02A8F0C9183C3EED419A6A5F06",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "adult-male-elf-scout",
+          "medium-brown-skin-and-pointed-ears",
+          "near-black-topknot",
+          "green-scout-scarf-and-worn-leather-field-layers"
+        ]
+      },
+      "conversion": {
+        "taskId": "a00a1818-57cd-4953-90a5-b62ac934b30d",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 734,
+        "creditBalanceAfterTask": 694,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:orren-approved-fullbody_a53afda5a8714d8198faef2ef5f5ea5e.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-orren-prism-task-a00a1818-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 6886428,
+          "sha256": "D2DD62A5EB29C3C9E3C91795C198E33D1E220BFCC1B57CDB751182AF244438DF"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 146904,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-pointed-ears-topknot-layered-scout-kit-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-brannoc-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "arena-warden-and-combat-trainer",
+      "sourceImage": {
+        "file": "sd-npc-brannoc-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2569320,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "4C30D955A0EC05BDE37CFDBA9C0BCD176DD1F56BE3149A8D57A4A5646733D409"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-brannoc-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2743388,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "79567F3E8A05E984CE60E36726C3A5EE14B9B0B18F86B2B6F1B14740546706DA",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "mature-male-dwarf-arena-warden",
+          "swept-back-silver-hair",
+          "large-silver-multi-braided-beard",
+          "brown-leather-training-apron-and-faded-blue-grey-layers"
+        ]
+      },
+      "conversion": {
+        "taskId": "74ff6706-6833-451d-b542-4c2e75ab007c",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 649,
+        "creditBalanceAfterTask": 609,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:brannoc-approved-fullbody_b661c5cf477c4540897a28c899bf5023.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-brannoc-prism-task-74ff6706-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 7749400,
+          "sha256": "275851FEFC59F4CBAF18DD64A92DC141B45F9BB89FE1DD0049C00219F833BE20"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 148790,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-beard-natural-dwarf-arm-length-clothing-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
       "runtimePromotionAllowed": false
     }
   ],
