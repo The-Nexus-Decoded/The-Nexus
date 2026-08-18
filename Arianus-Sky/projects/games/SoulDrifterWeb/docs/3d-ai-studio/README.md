@@ -5,6 +5,8 @@ Scope: paid 3D AI Studio intake, base ancestry bodies, starter calling kits, sep
 
 This document defines how SoulDrifter uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
 
+The active production execution is [`FIRST_BREACH_MODEL_PROGRAM.md`](FIRST_BREACH_MODEL_PROGRAM.md), tracked by [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448). Its machine-readable scope gate is [`first-breach-model-register.json`](first-breach-model-register.json). It adds the permanent playable-humanoid foundation, matching animated conversation faces for Ilyra/Orren/Brannoc, and purpose-built First Breach creature models. Open-world environments, later-realm monsters, and higher-tier equipment are explicitly outside that first production batch.
+
 ## Locked production decision
 
 SoulDrifter does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
@@ -15,6 +17,8 @@ SoulDrifter does **not** purchase or maintain an independent model for every anc
 - a separate reusable weapon and off-hand library;
 - one canonical humanoid animation contract plus documented race/body retarget profiles;
 - separate hair, facial-detail, sheath, harness, rune/sigil, and effect layers.
+
+Every production geometry family in the First Breach execution set starts from an approved 3D AI Studio source task. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
 
 Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 

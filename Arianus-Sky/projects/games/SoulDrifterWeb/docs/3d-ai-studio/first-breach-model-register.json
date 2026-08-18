@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "program": {
+    "issue": 448,
+    "branch": "codex/448-souldrifter-first-breach-models",
+    "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
+    "status": "pre-generation",
+    "paidOperationApproved": false
+  },
+  "scope": {
+    "permanentFoundation": [
+      "playable-humanoid-body-and-head-contract",
+      "modular-character-appearance",
+      "canonical-humanoid-rig-and-retarget-profiles",
+      "equipment-and-weapon-sockets",
+      "animation-action-registry",
+      "npc-conversation-face-contract"
+    ],
+    "firstBreachOnly": [
+      "level-one-starter-calling-kits",
+      "level-one-starter-weapons",
+      "ilyra-orren-brannoc-production-models",
+      "training-construct",
+      "breachling-family",
+      "cinderbound-warden",
+      "first-breach-room-validation"
+    ],
+    "deferred": [
+      "open-world-trees-grass-walls-buildings-terrain-and-biome-kits",
+      "higher-level-weapons-armor-and-specialization-equipment",
+      "monsters-beyond-first-breach",
+      "broader-labyrinth-and-four-realm-bestiary"
+    ]
+  },
+  "creditPolicy": {
+    "approval": "exact-operation-model-version-expected-cost-and-maximum-cost",
+    "batchApprovalImplied": false,
+    "stopOnUnexpectedCost": true,
+    "firstPaidPilot": "one-owner-selected-human-body-candidate",
+    "secondPaidPilot": "one-breachling-base-candidate"
+  },
+  "assetGroups": [
+    {
+      "id": "playable-body-families",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "game-wide",
+      "items": [
+        "human-masculine",
+        "human-feminine",
+        "elf-masculine",
+        "elf-feminine",
+        "dwarf-masculine",
+        "dwarf-feminine",
+        "halfling-masculine",
+        "halfling-feminine"
+      ]
+    },
+    {
+      "id": "face-and-appearance-library",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "game-wide",
+      "items": [
+        "three-face-structure-families-per-compatible-topology",
+        "six-or-more-skin-material-families",
+        "six-or-more-masculine-presenting-hair-families",
+        "six-or-more-feminine-presenting-hair-families",
+        "modular-brows-facial-hair-sideburns-scars-tattoos-and-piercings"
+      ]
+    },
+    {
+      "id": "starter-calling-kits",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "first-breach",
+      "items": [
+        "warrior",
+        "mage",
+        "priest",
+        "sharpshooter",
+        "paladin",
+        "summoner",
+        "asura",
+        "slayer",
+        "shadowknight"
+      ]
+    },
+    {
+      "id": "starter-weapon-packages",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "first-breach",
+      "items": [
+        "longsword",
+        "practice-staff",
+        "wooden-mace",
+        "shortbow-arrow-quiver",
+        "shortsword-shield",
+        "binding-rod",
+        "ritual-knife",
+        "paired-daggers"
+      ]
+    },
+    {
+      "id": "named-tutorial-npcs",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "first-breach-poc-game-wide-contract",
+      "matchingConversationFaceRequired": true,
+      "items": [
+        "ilyra",
+        "orren",
+        "brannoc"
+      ]
+    },
+    {
+      "id": "first-breach-creatures",
+      "geometrySource": "3d-ai-studio",
+      "status": "approval-required",
+      "lifetime": "first-breach",
+      "placeholderReuseAllowedForProduction": false,
+      "items": [
+        "training-effigy-sentinel",
+        "breachling",
+        "breachling-stalker",
+        "oathbound-breachling",
+        "breachling-ravager",
+        "cinderbound-warden"
+      ]
+    }
+  ],
+  "conversationFace": {
+    "sameRuntimeIdentityAsWorldActor": true,
+    "recordedVoiceDrivesVisemes": true,
+    "captionsRemainAuthoritative": true,
+    "requiredControls": [
+      "blink",
+      "gaze",
+      "brows",
+      "jaw",
+      "speech-visemes",
+      "expression-presets"
+    ]
+  },
+  "validationSurfaces": [
+    "character-creation",
+    "paper-doll",
+    "realm-lock-vestibule",
+    "ilyra-conversation",
+    "starter-coffer-and-action-rehearsal",
+    "orren-conversation",
+    "brannoc-conversation",
+    "training-sentinel",
+    "fractured-galleries",
+    "ashen-lock",
+    "player-and-enemy-defeat",
+    "first-memory-completion"
+  ]
+}
