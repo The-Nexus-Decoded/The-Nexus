@@ -252,6 +252,7 @@
       const landmasses = landmassLayer(realm, stage, (lm) =>
         lm.detail ? plateView.show(lm) : ctl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
       if (landmasses) zoomer.appendChild(landmasses);
+      if (landmasses && landmasses._shapesSvg) zoomer.appendChild(landmasses._shapesSvg);
       stage.appendChild(zoomer);
       stage.appendChild(resetBtn);
       if (landmasses) stage.appendChild(hintEl);
@@ -289,6 +290,7 @@
     const landmasses = landmassLayer(realm, stage, (lm) =>
       lm.detail ? plateView.show(lm) : zoomCtl.zoomToPoint(lm.x, lm.y, Math.min(4.5, 38 / lm.r)));
     if (landmasses) zoomer.appendChild(landmasses);
+    if (landmasses && landmasses._shapesSvg) zoomer.appendChild(landmasses._shapesSvg);
     // markers (explore view only — the lore map stays clean for the book)
     if (exploring) {
       const marks = el("div", "marker-layer");
@@ -592,7 +594,7 @@
       svg.appendChild(g);
       polys[lm.id] = g;
     });
-    if (hasShapes) layer.appendChild(svg);
+    if (hasShapes) layer._shapesSvg = svg;
     realm.landmasses.forEach((lm) => {
       const b = el("button", "landmass-hit");
       b.type = "button";
