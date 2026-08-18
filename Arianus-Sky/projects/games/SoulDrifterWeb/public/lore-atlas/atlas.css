@@ -114,8 +114,8 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 3;
 }
-/* landmass zoom targets — faint dashed rings at rest (just perceptible over
-   the painted map), full highlight + name label on hover */
+/* landmass zoom targets — no ring at rest; the clickable section shows a
+   hard crisp outline and lights up only while hovered */
 .landmass-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .landmass-hit {
   position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1;
@@ -124,15 +124,13 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
 }
 .lm-ring {
   position: absolute; inset: 0; border-radius: 50%;
-  border: 2px dashed rgba(74, 54, 28, 0.55);
-  box-shadow: 0 0 0 1px rgba(240, 230, 200, 0.14), inset 0 0 0 1px rgba(240, 230, 200, 0.10);
-  background: radial-gradient(circle, rgba(255, 238, 196, 0.04) 0%, transparent 70%);
-  transition: border-color .25s, box-shadow .25s, background .25s, transform .25s;
+  border: 2px solid transparent;
+  transition: border-color .2s, box-shadow .2s, background .2s, transform .2s;
 }
 .landmass-hit:hover .lm-ring, .landmass-hit:focus-visible .lm-ring {
-  border-color: rgba(240, 230, 200, 0.75);
-  background: radial-gradient(circle, rgba(255, 238, 196, 0.16) 0%, rgba(120, 200, 190, 0.08) 60%, transparent 75%);
-  box-shadow: inset 0 0 30px rgba(255, 238, 196, 0.22);
+  border-color: rgba(240, 230, 200, 0.9);
+  background: radial-gradient(circle, rgba(255, 238, 196, 0.18) 0%, rgba(120, 200, 190, 0.09) 60%, transparent 75%);
+  box-shadow: 0 0 0 1px rgba(40, 28, 12, 0.65), inset 0 0 0 1px rgba(40, 28, 12, 0.35), inset 0 0 30px rgba(255, 238, 196, 0.22);
   transform: scale(1.04);
 }
 .lm-name {
