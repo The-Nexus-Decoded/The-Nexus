@@ -256,9 +256,17 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
   });
 
   it("keeps enemy and story-object targeting mutually exclusive at one shared boundary", () => {
-    expect(world).toMatch(/private selectStoryObjectTarget\(id: string \| null\)[\s\S]*this\.selectedStoryObjectId = id;[\s\S]*this\.selectedTargetId = null;/s);
-    expect(world).toMatch(/private selectEnemyTarget\(id: string \| null\)[\s\S]*this\.selectedTargetId = id;[\s\S]*this\.selectedStoryObjectId = null;/s);
+    expect(world).toMatch(/private selectStoryObjectTarget\(id: string \| null\)[\s\S]*this\.selectedStoryObjectId = id;[\s\S]*this\.selectEnemyTarget\(null\);/s);
+    expect(world).toMatch(/private selectEnemyTarget\(id: string \| null\)[\s\S]*this\.selectedTargetId = selected\?\.alive[\s\S]*this\.selectedStoryObjectId = null;/s);
     expect(world).toMatch(/updateNearbyInteractionPrompt\(\)[\s\S]*manhattan\(this\.player\.grid, selectedObject\.grid\) > 1[\s\S]*this\.selectStoryObjectTarget\(null\)/s);
+  });
+
+  it("keeps model-independent combat feedback attached to the shared runtime boundaries", () => {
+    expect(world).toMatch(/targetRing\.name = "selected-target-ring"[\s\S]*actor\.root\.userData\.targeted = false/s);
+    expect(world).toMatch(/private selectEnemyTarget\(id: string \| null\)[\s\S]*this\.faceActorTowards\(this\.player, selected!\.root\.position\)/s);
+    expect(world).toMatch(/const deathDurationMs = this\.playActorDeath\(enemy\)[\s\S]*enemyDefeatVisibilityMs\(deathDurationMs\)[\s\S]*enemy\.root\.visible = false/s);
+    expect(world).not.toContain("420 / this.combatSpeed");
+    expect(world).toMatch(/weaponEnchant\.name = "cinder-guard-weapon-enchant"[\s\S]*weaponSocket\.add\(weaponEnchant\)/s);
   });
 
   it("uses encoding-safe separators for trial and imprint copy", () => {

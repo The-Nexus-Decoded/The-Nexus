@@ -6,6 +6,7 @@ import {
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
+  raceCallingEligibility,
   normalizeLegacyCharacterProfile,
   type CharacterDraft,
 } from "../src/game/character";
@@ -29,12 +30,17 @@ function completeDraft(raceId: string, callingId: string): CharacterDraft {
 }
 
 describe("character weaving", () => {
-  it("derives every race and calling combination and ships its starter sprite", () => {
+  it("derives allowed and rare combinations while rejecting every forbidden matrix cell", () => {
     expect(RACES).toHaveLength(4);
     expect(CALLINGS).toHaveLength(9);
 
     for (const race of RACES) {
       for (const calling of CALLINGS) {
+        const eligibility = raceCallingEligibility(race.id, calling.id);
+        if (eligibility.status === "forbidden") {
+          expect(() => deriveCharacter(completeDraft(race.id, calling.id))).toThrow(`${race.name} cannot become ${calling.name}`);
+          continue;
+        }
         const profile = deriveCharacter(completeDraft(race.id, calling.id));
         expect(profile.raceName).toBe(race.name);
         expect(profile.callingName).toBe(calling.name);
@@ -45,6 +51,27 @@ describe("character weaving", () => {
         expect(`/assets/generated/characters/${race.id}-${calling.id}.png`).toMatch(/\.png$/);
       }
     }
+  });
+
+  it("locks the owner-approved forbidden and rare ancestry paths", () => {
+    expect(raceCallingEligibility("dwarf", "mage").status).toBe("forbidden");
+    expect(raceCallingEligibility("dwarf", "shadowknight").status).toBe("forbidden");
+    expect(raceCallingEligibility("halfling", "mage").status).toBe("forbidden");
+    expect(raceCallingEligibility("halfling", "shadowknight").status).toBe("forbidden");
+    expect(raceCallingEligibility("dwarf", "sharpshooter").status).toBe("allowed");
+    expect(raceCallingEligibility("elf", "shadowknight").status).toBe("rare");
+  });
+
+  it("applies the approved ancestry baselines", () => {
+    const human = deriveCharacter(completeDraft("human", "priest"));
+    const elf = deriveCharacter(completeDraft("elf", "priest"));
+    const dwarf = deriveCharacter(completeDraft("dwarf", "priest"));
+    const halfling = deriveCharacter(completeDraft("halfling", "priest"));
+    expect(human.skills).toContain("Adaptive Training");
+    expect(elf.stats.insight).toBe(human.stats.insight + 2);
+    expect(dwarf.stats.will).toBeGreaterThan(halfling.stats.will);
+    expect(dwarf.stats.vitality).toBe(human.stats.vitality + 1);
+    expect(halfling.stats.finesse).toBe(human.stats.finesse + 2);
   });
 
   it("uses grave-plate greatsword art only for the high-level Shadowknight selection preview", () => {
@@ -71,11 +98,11 @@ describe("character weaving", () => {
     expect(CALLINGS.find((calling) => calling.id === "paladin")?.learningCurve).toBe("Forgiving");
   });
 
-  it("applies favored ancestry and calling resonance without locking other builds", () => {
-    const dwarfShadowknight = deriveCharacter(completeDraft("dwarf", "shadowknight"));
+  it("applies favored ancestry resonance while rare builds remain viable", () => {
+    const dwarfPriest = deriveCharacter(completeDraft("dwarf", "priest"));
     const elfShadowknight = deriveCharacter(completeDraft("elf", "shadowknight"));
-    expect(raceCallingBonus("dwarf", "shadowknight")?.name).toBe("Ember Sepulcher");
-    expect(dwarfShadowknight.skills).toContain("Ember Sepulcher");
+    expect(raceCallingBonus("dwarf", "priest")?.name).toBe("Ancestor Litany");
+    expect(dwarfPriest.skills).toContain("Ancestor Litany");
     expect(elfShadowknight.callingName).toBe("Shadowknight");
     expect(elfShadowknight.ancestryCallingBonus).toBeUndefined();
   });
@@ -103,6 +130,13 @@ describe("character weaving", () => {
     });
     expect(legacy.appearance).toBeUndefined();
     expect(normalized.skills).toEqual(current.skills);
+  });
+
+  it("preserves but refuses to normalize a legacy forbidden pairing", () => {
+    const allowed = deriveCharacter(completeDraft("human", "shadowknight"));
+    const legacy = { ...allowed, raceId: "dwarf", raceName: "Dwarf" };
+    expect(() => normalizeLegacyCharacterProfile(legacy)).toThrow("Dwarf cannot become Shadowknight");
+    expect(legacy.callingId).toBe("shadowknight");
   });
 });
 

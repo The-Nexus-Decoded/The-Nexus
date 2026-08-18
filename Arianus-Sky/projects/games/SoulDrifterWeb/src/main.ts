@@ -67,7 +67,16 @@ async function bootstrap(): Promise<void> {
   ]);
   animationTuningRegistry.replace(animationTuning);
   lightingTuningRegistry.replace(lightingTuning);
-  const savedProfile = loadedProfile ? normalizeLegacyCharacterProfile(loadedProfile) : null;
+  let savedProfile: CharacterProfile | null = null;
+  let savedProfileError = "";
+  if (loadedProfile) {
+    try {
+      savedProfile = normalizeLegacyCharacterProfile(loadedProfile);
+    } catch (error) {
+      savedProfileError = error instanceof Error ? error.message : "The saved soul uses an unsupported ancestry and calling.";
+      console.warn("Saved SoulDrifter profile was preserved but cannot be resumed.", error);
+    }
+  }
   if (savedProfile && JSON.stringify(savedProfile) !== JSON.stringify(loadedProfile)) {
     await storyDatabase.saveCharacter(savedProfile).catch(() => undefined);
   }
@@ -76,6 +85,10 @@ async function bootstrap(): Promise<void> {
     savedProfile,
     savedAvatarPreview,
   );
+  if (savedProfileError) {
+    const creationError = document.getElementById("creation-error");
+    if (creationError) creationError.textContent = `${savedProfileError} The original save remains preserved; weave a permitted soul to continue.`;
+  }
 }
 
 void bootstrap();
