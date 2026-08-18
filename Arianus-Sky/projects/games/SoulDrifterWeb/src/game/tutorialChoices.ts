@@ -119,6 +119,10 @@ const CALLING_PERKS: Record<string, readonly ImprintOption[]> = {
     { id: "slayer-opening", name: "First Opening", description: "Exploit the first exposed flank in an encounter.", skill: "First Opening", modifiers: { finesse: 1, might: 1 } },
     { id: "slayer-escape", name: "Exit Wound", description: "Favor survival after committing to an attack.", skill: "Exit Wound", modifiers: { finesse: 1, will: 1 } },
   ],
+  stalker: [
+    { id: "stalker-trapreader", name: "Trap Reader", description: "Notice mechanisms, false floors, and disturbed routes before committing.", skill: "Trap Reader", modifiers: { finesse: 1, insight: 1 } },
+    { id: "stalker-quiet-exit", name: "Quiet Exit", description: "Preserve an escape route after locks, traps, or enemies expose the approach.", skill: "Quiet Exit", modifiers: { finesse: 1, will: 1 } },
+  ],
   shadowknight: [
     { id: "shadowknight-graveiron", name: "Grave-Iron Discipline", description: "Favor armor, restraint, and a longer-lived Cinder Guard.", skill: "Grave-Iron Discipline", modifiers: { vitality: 1, will: 1 } },
     { id: "shadowknight-hungry-ember", name: "Hungry Ember", description: "Feed the Fire-Realm soul-coal more aggressively through mortal life drain.", skill: "Hungry Ember", modifiers: { might: 1, resonance: 1 } },
@@ -173,6 +177,7 @@ export function hardTrialSkillName(callingId: string): string {
     summoner: "Echoed Companion",
     asura: "Black Resonance",
     slayer: "Sundering Execution",
+    stalker: "Ghost Key",
     shadowknight: "Gravefire Riposte",
   };
   return names[callingId] ?? "Breach-Hardened Technique";
