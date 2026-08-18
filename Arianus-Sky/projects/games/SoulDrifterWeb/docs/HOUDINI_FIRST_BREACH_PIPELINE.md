@@ -17,9 +17,15 @@ This branch provides a non-commercial Houdini Apprentice pilot for comparing a p
 
 The Houdini scene preserves the generated training room, galleries, connecting passages, boss arena, prop coordinates, player start, NPC positions, and enemy positions. Its visible model-reference subnet loads the current player, Ilyra, Orren, Brannoc, Breachlings, and Cinderbound Warden models. A hidden library subnet references all current calling and Shadowknight models without placing them into gameplay.
 
-## Visual-material pass
+## Owner-directed visual revision
 
-The comparison scene is not an untextured graybox. It reuses the game's established PBR sources rather than synthesizing a shared stone image: dark worn flagstone color, normal, and roughness maps are exclusive to the floor, while rough-cut masonry color, normal, and roughness maps are exclusive to walls and architectural stone. A procedural bevel pass softens exposed geometry edges so highlights and shadows respond more naturally. Seven Houdini materials cover floors, walls, stone props, aged bronze, aged wood, soul-glass, and embers; soul-glass and embers add emission.
+The initial generated-stone look was rejected because its floor and walls were too similar, too clean, and less convincing than the existing game room. The revised comparison scene reuses the game's established PBR sources rather than synthesizing a shared stone image: dark worn flagstone color, normal, and roughness maps are exclusive to the floor, while rough-cut masonry color, normal, and roughness maps are exclusive to staggered wall courses and architectural stone. Mortar backing, irregular block depth, buttresses, capstones, and a procedural bevel pass prevent the boundary walls from reading as repeated floor tiles.
+
+Eleven Houdini materials now separate floor, wall, stone prop, aged bronze, aged wood, dark iron, mortar, bone, moss, soul-glass, and ember surfaces. Emission is deliberately restrained so the Soulwell and rune accents remain localized light sources instead of neon debug geometry.
+
+The training room has an authored identity layer on top of the authoritative seeded layout: the Soulwell has a stepped basin and iron cradle, the back wall has an archive shrine and three realm reliefs, occupied-era shelves and broken furniture line the perimeter, columns show intact and fallen states, and grime, moss, fractures, and rubble break up the floor. The east wall contains two unmistakable separate exits: the cyan Wayfarer gate for the easier path and the ember Oathbreaker gate for the harder path. Their positions still come from `gate-wayfarer` and `gate-oathbreaker` in the generated dungeon payload.
+
+The boss room is staged as the Ashen Lock rather than a generic empty rectangle: a soot-dark ritual lock, bronze channels, damaged monoliths, perimeter columns, collapsed corners, a chained reliquary, bones, ash-stained stone, and controlled fire pools give the arena a distinct combat silhouette while leaving its navigation center readable.
 
 The scene also includes cool and warm directional lights, room-local Soulwell and Ashen Lock lights, controlled ambient fill, and three orthographic cameras:
 
@@ -40,7 +46,7 @@ The environment dressing is procedurally authored, not AI-generated and not fixe
 - Monster occupation: bone scatters, broken defenses, disturbed storage, and debris concentrated in skirmish and boss spaces.
 - Gameplay protection: the Houdini scatter rejects tiles close to the player start, NPCs, enemies, authored props, and blocked tiles, then favors walls and corners instead of navigation centers.
 
-The comparison artifact uses seed `2215682322`, but adjacent seed `2215682323` produced a different dungeon size and a different dressing fingerprint. Reusing a seed reproduces its exact dressing. Runtime collision remains unchanged in Phase 1; Phase 2 must classify accepted dressing as blocking or non-blocking before it can affect gameplay.
+The comparison artifact uses seed `2215682322`, but adjacent seed `2215682323` produced a different dungeon size and a different dressing fingerprint. Reusing a seed reproduces its exact dressing. Room identity pieces stay attached to their semantic room and authored prop coordinates, while incidental clutter varies with the seed. Runtime collision remains unchanged in Phase 1; Phase 2 must classify accepted dressing as blocking or non-blocking before it can affect gameplay.
 
 ## Regeneration
 
@@ -53,7 +59,7 @@ node --experimental-strip-types scripts/houdini/export-first-breach-layout.mjs 2
 & 'H:\Program Files\Side Effects Software\Houdini 22.0.368\bin\hython.exe' scripts/houdini/build-first-breach-apprentice.py $layout source-assets/houdini/first-breach-apprentice.hipnc $obj .
 ```
 
-Houdini Apprentice blocks its glTF exporter, so this non-commercial pilot uses Houdini's permitted OBJ output. The comparison OBJ remains outside the repository and `public/` so an unapproved 14 MB source artifact cannot consume the web deployment budget. Phase 2 may test it locally with Three.js `OBJLoader`; a future production pipeline should convert an approved commercial source through Houdini Indie or a Blender cleanup/export pass to an optimized GLB.
+Houdini Apprentice blocks its glTF exporter, so this non-commercial pilot uses Houdini's permitted OBJ output. The current comparison OBJ is roughly 58 MB and remains outside the repository and `public/` so an unapproved source artifact cannot consume the web deployment budget. Phase 2 may test it locally with Three.js `OBJLoader`; a future production pipeline should convert an approved commercial source through Houdini Indie or a Blender cleanup/export pass to an optimized GLB.
 
 The `.hipnc` scene is intentionally committed as a reproducible pilot source and references the existing game-owned PBR textures; the OBJ is regenerated on demand. Do not use Apprentice assets in a commercial release. They cannot be promoted into the commercial pipeline merely by opening them under another Houdini license.
 
