@@ -1,6 +1,6 @@
 # First Breach Production Model Program
 
-Status: active requirements and pre-generation work under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
+Status: active requirements; first paid workflow comparison complete under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448)
 
 Rollback baseline: `e0b3d9d8b6ef893373e7aab6253441b6f3da108a`
 
@@ -37,11 +37,21 @@ Every new body, head source, hair geometry family, clothing/armor geometry famil
 7. animation, gameplay-camera, room, and performance acceptance;
 8. an approved shipping hash distinct from the untouched source hash.
 
-## 3D AI Studio project and branch provenance
+## 3D AI Studio project and lineage provenance
 
-Production work for this program belongs to the 3D AI Studio project `SoulDrifter`. The first external branch is `2026-08-17-codex-448-souldrifter-first-breach-models-5ddcf96b`, anchored to Git branch `codex/448-souldrifter-first-breach-models`, issue #448, and starting commit `5ddcf96bba3e7393998de46a62ef51ee602c1f83`.
+Production work for this program belongs to the 3D AI Studio project `SoulDrifter`, Git branch `codex/448-souldrifter-first-breach-models`, issue #448, and starting commit `5ddcf96bba3e7393998de46a62ef51ee602c1f83`.
 
-The external branch is an asset workspace, not a replacement for Git review. Every accepted generation records its 3D AI Studio project/branch, provider and model version, task ID, credit receipt, source-sheet hash, untouched-export hash, processed-export hash, and the Git commit that consumed it. A floating or generic `latest` branch cannot supply production assets.
+3D AI Studio exposes automatic model/derivative lineage rather than a manually named Git-style asset branch. Git remains the reviewed source of truth. Every accepted generation records its 3D AI Studio project, provider operation and model version, task ID, credit receipt, prompt hash, automatic derivative lineage where applicable, untouched-export hash, processed-export hash, and the Git commit that consumed it. Source-image hashes are required only for an approved image-to-3D exception. A floating or generic `latest` reference cannot supply production assets.
+
+## Default generation operation
+
+Text-to-3D is the standard source-generation operation for every asset group in this program. The approved starting preset is Prism 3.1 with Ultra texture quality, subject to a fresh live-price approval for each task. Generate one isolated body, NPC, creature, garment, armor piece, weapon, prop, or environment piece per approved prompt. Image-to-3D is permitted only when the owner selects a specific pre-existing design to reproduce; it is never the automatic fallback for a failed text prompt and never the default batch operation.
+
+The approved 2026-08-17 comparison established the rule:
+
+- text-to-3D task `ef7a7258`: Prism 3.1 with Ultra texture quality, 40 credits, one coherent Human athletic source candidate, retained for non-shipping intake and downstream evaluation;
+- multi-view image-to-3D task `304b62b1`: Prism 3.1 with Ultra texture quality, 45 credits, three unwanted figures caused by contaminated composite crops, rejected;
+- total comparison: 85 credits, account balance 3,557 to 3,472, with no remesh, rig, export promotion, or runtime replacement.
 
 ## Permanent playable-character foundation
 
@@ -107,7 +117,7 @@ The weapon, sheath, off-hand, clothing, armor, hair, and body remain independent
 
 ### Named NPC source models
 
-Ilyra, Orren, and Brannoc each receive a new original 3D AI Studio source model based on the approved existing character direction and updated lore requirements. Their source sheets lock age range, ancestry/physiology, facial identity, body proportions, C-tier clothing, role silhouette, and permitted accessories before any paid task.
+Ilyra, Orren, and Brannoc each receive a new original text-to-3D source model based on the approved existing character direction and updated lore requirements. Their direct prompts lock age range, ancestry/physiology, facial identity, body proportions, C-tier clothing, role silhouette, and permitted accessories before any paid task. Existing art may guide owner review, but it becomes image-to-3D input only through the specific-design exception.
 
 The in-world actor and the conversation close-up must use the same approved body/head identity. A separate illustration may remain as loading or historical art, but it cannot silently replace the live character during dialogue.
 
@@ -195,22 +205,22 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 ### Stage 0: free preparation
 
 - Approve the exact Level 1 register and source hierarchy.
-- Prepare consistent multi-view source sheets and prompts.
+- Prepare one direct text-to-3D prompt and exclusion list per isolated asset.
 - Inspect the 3D AI Studio connector read-only and record currently exposed operations/models.
 - Obtain a live credit estimate for one task without submitting it, if the connector supports estimates.
 - Record the maximum approved cost separately for every paid task or tightly bounded batch.
 
 ### Stage 1: humanoid pilot
 
-- Present masculine and feminine Human source sheets for owner selection.
-- After exact approval, submit one Human body/head/neutral-underlayer candidate only.
+- Retain approved text-to-3D task `ef7a7258` as the sole current Human body/head/neutral-underlayer source candidate.
+- Preserve and inspect its untouched export before requesting another paid Human generation.
 - Clean, retopologize, bake, compare Prism versus the current skeleton, and prove baseline locomotion/unarmed/facial deformation.
 - Stop if identity, topology, head seam, rig, hands, face, or animation economics fail.
 
 ### Stage 2: creature pilot
 
-- Present the original Breachling base source sheet and creature-motion brief.
-- After a separate exact approval, submit one Breachling source candidate only.
+- Present the original Breachling base text-to-3D prompt and creature-motion brief.
+- After a separate exact approval, submit one isolated Breachling text-to-3D source candidate only.
 - Prove cleanup, creature rig, locomotion, attack, hit, death, terminal hold, and gameplay-camera readability.
 - Stop before variants or Warden generation if the creature boundary fails.
 
@@ -235,12 +245,12 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Immediate next approval point
 
-No paid operation is currently approved. Before the first 3D AI Studio call, the owner receives:
+The approved 85-credit Human workflow comparison is complete. No additional paid generation, variant, remesh, rig, or batch is currently approved. Before another paid 3D AI Studio call, the owner receives:
 
-- the exact Human pilot source sheet and prompt;
+- the exact isolated-asset text-to-3D prompt and exclusion list;
 - the exact connector operation and model/version;
 - the live expected and maximum credit cost;
 - the requested output formats;
 - the stop conditions and local intake destination.
 
-The Breachling pilot receives its own later approval envelope.
+The Breachling pilot and every later asset group receive their own approval envelopes. An image-to-3D envelope is considered only for a specific owner-selected pre-existing design and must include four clean isolated identity-matched views.

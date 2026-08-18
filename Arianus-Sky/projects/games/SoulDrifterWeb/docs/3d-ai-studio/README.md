@@ -120,32 +120,37 @@ This creates eight initial weapon packages rather than nine unrelated weapons:
 
 The owner approves one assembled calling view for each of the nine callings. Those review assemblies may use representative ancestries for variety, but they do not create ancestry/calling restrictions.
 
-## Source-image and prompt gate
+## Text-to-3D prompt gate
 
-Image-to-3D is the preferred character path. Text-to-3D may be used for rough props, but it is not the approval path for a hero body.
+Text-to-3D is the default 3D AI Studio source-generation operation for SoulDrifter bodies, creatures, NPCs, equipment, and environment assets. The approved starting preset is Prism 3.1 with Ultra texture quality, which cost 40 credits during the pilot; recheck and obtain approval for the exact live settings and charge before every task. Generate one isolated subject per task; do not ask the model to create a turntable, character lineup, equipment set, or multiple variations in one mesh.
 
-Before a paid 3D request, prepare a consistent multi-view sheet:
+This decision follows the approved 2026-08-17 Human athletic comparison:
 
-- front, left, back, and right orthographic-like views;
-- identical proportions, face, clothing boundary, and color across every view;
-- neutral A-pose or T-pose with fingers readable and limbs separated from the torso;
-- clean, high-contrast, plain background;
-- full body visible, centered, and not cropped;
-- no dramatic camera perspective, action pose, weapon, shield, cape, particles, floor props, or cast shadow hiding the silhouette;
-- no long loose hair during the rigging proof;
-- no labels or decorative borders touching the subject.
+- Prism 3.1 text-to-3D task `ef7a7258`, with Ultra texture quality, cost 40 credits and produced one coherent humanoid candidate. It drifted from the requested relaxed A-pose to a T-pose and interpreted knee-length pants as full-length pants, so it remains a non-shipping source pending export, topology, rig, and animation review.
+- Prism 3.1 multi-view image-to-3D task `304b62b1`, with Ultra texture quality, cost 45 credits and produced three unwanted figures because adjacent views remained visible in the cropped source frames. That candidate is rejected.
+- The bounded comparison cost 85 credits total, moving the account balance from 3,557 to 3,472. Neither candidate was remeshed, rigged, or promoted.
+
+Image-to-3D is now an exception path, not the default or batch path. Use it only when the owner identifies a specific pre-existing visual design that SoulDrifter should deliberately reproduce rather than originate through text-to-3D. It requires a separate owner approval and four clean files containing exactly one isolated, identity-matched subject each: front, left, back, and right. Composite sheets, adjacent limbs, duplicate figures, labels touching the subject, and mirrored substitutes with visible contamination are prohibited.
+
+Before a paid text-to-3D request, lock:
+
+- one asset category and internal asset ID;
+- one complete positive prompt and one explicit exclusion list;
+- the intended bind-pose family, silhouette, material boundary, and modularity boundary;
+- the exact provider model/version, expected cost, maximum cost, and stop conditions;
+- any lore, ancestry, calling, body-profile, or level constraints already approved by the owner.
 
 ### Base-body prompt template
 
 ```text
-Create a production reference sheet for an original SoulDrifter [ANCESTRY] adult humanoid.
-Show the exact same character from front, left, back, and right views in a neutral A-pose.
-Use grounded realistic-fantasy proportions and an adult face. The character wears a fitted,
-opaque, seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair,
-jewelry, particles, glow, text, pedestal, or environment. Keep both hands, all fingers, both
-feet, ears, and the complete silhouette clearly visible. Use a clean plain background and
-consistent neutral lighting. The views must agree exactly in anatomy, face, proportions,
-materials, and garment boundaries. This is a modular game-character base, not concept art.
+Original SoulDrifter [ANCESTRY] adult [PRESENTATION] [BODY PROFILE] modular game-character
+base. Grounded realistic-fantasy style for a polished isometric action RPG. Neutral relaxed
+A-pose, [APPROVED PROPORTIONS], [APPROVED SKIN TONE], [APPROVED HAIR BOUNDARY], and a
+strong symmetrical adult face. Fitted opaque seam-simple neutral underlayer; bare or
+seam-simple feet for the rig proof. Separate readable fingers, arms clear of the torso, and
+a clean continuous silhouette. No armor, weapon, shield, cape, robe, large hair, jewelry,
+particles, glow, pedestal, environment, exaggerated anatomy, facial hair, logos, text,
+duplicate figures, or turntable views. Single complete full-body character.
 ```
 
 Append only ancestry-specific requirements that have already been approved. Do not place calling identity, morality, high-level magic, or advanced rune traditions into a base ancestry body.
@@ -157,39 +162,41 @@ Create one original low-level SoulDrifter [WEAPON] as an isolated game asset.
 It is a worn C-tier mortal implement made from [MATERIALS], with believable construction,
 grip dimensions, thickness, and weight. No hand, character, sheath, floating particles,
 runes, relic glow, text, environment, or display stand. Center the entire object on a clean
-plain background and provide consistent front, side, and rear reference views. Preserve a
-clear unobstructed primary grip and a silhouette readable from an elevated isometric camera.
+plain background in a neutral production orientation. Preserve a clear unobstructed primary
+grip and a silhouette readable from an elevated isometric camera. Single complete object;
+no duplicate views, alternate versions, or fused accessories.
 ```
 
 ### Clothing or armor prompt template
 
 ```text
 Create one original modular C-tier [GARMENT OR ARMOR PIECE] for the approved SoulDrifter
-[BODY ARCHETYPE]. Show it fitted over the approved neutral body reference in front, left,
-back, and right views. The piece is worn, practical, low-level, and constructionally
-believable. No weapon, advanced rune language, relic glow, cape, unrelated accessories,
-body redesign, action pose, or environment. Keep seams, openings, thickness, attachment
-points, and body coverage clearly visible. This output is a conforming source for a separate
-game-equipment mesh, not a permanently fused character.
+[BODY ARCHETYPE] as one isolated game-equipment source. The piece is worn, practical,
+low-level, and constructionally believable. No visible character body, weapon, advanced
+rune language, relic glow, cape, unrelated accessories, body redesign, action pose, or
+environment. Keep seams, openings, thickness, attachment points, and body coverage clearly
+readable. Single complete garment or armor piece; no duplicate views or equipment set. This
+is a conforming source for a separate game-equipment mesh, never fused character geometry.
 ```
 
 ## Generation and intake sequence
 
 ### Phase 0: approve before spending credits
 
-1. Lock the ticket, asset ID, ancestry/calling purpose, concept sheet, prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
+1. Lock the ticket, asset ID, ancestry/calling purpose, direct text-to-3D prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
-3. Save the prompt and source-image hashes in the intake ledger.
-4. Obtain owner approval of the reference sheet and expected charge.
+3. Save the prompt hash and any optional owner-review concept references in the intake ledger. Concept art is not a generation input unless the separately approved image-to-3D exception applies.
+4. Obtain owner approval of the exact prompt, operation, model/version, and expected charge.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one image-to-3D task through MCP.
+1. Submit one text-to-3D task through MCP or the authenticated 3D AI Studio dashboard.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
-5. Reject extra limbs, fused fingers, closed armpits, asymmetric neutral poses, missing back detail, melted facial features, intersecting geometry, and weapon-like fragments.
-6. Do not request variants until the defect is classified as a prompt/reference problem or a generation problem.
+5. Reject duplicate subjects, extra limbs, fused fingers, closed armpits, unusable pose drift, missing back detail, melted facial features, intersecting geometry, fused equipment, and weapon-like fragments.
+6. Do not request variants until the defect is classified as a prompt problem, model limitation, or downstream cleanup problem.
+7. Do not switch to image-to-3D merely because the first text candidate fails. Reopen that exception only for a specific approved design with clean isolated views.
 
 ### Phase 2: export to non-shipping intake
 
@@ -341,7 +348,8 @@ Every 3D AI Studio artifact records:
 - GitHub ticket and calling/race purpose;
 - task ID and dashboard project;
 - generation model/version and operation;
-- prompt, negative constraints, seed, and source-image hashes;
+- prompt, negative constraints, seed, and prompt hash;
+- source-image hashes only when the separately approved image-to-3D exception is used;
 - generation date, credit cost, owner account, and commercial-use status;
 - untouched source filename, format, byte size, and SHA-256;
 - Blender version and cleanup/retopo/bake notes;
@@ -355,11 +363,11 @@ Every 3D AI Studio artifact records:
 
 The first paid sequence is deliberately narrow:
 
-1. Prepare and approve masculine and feminine Human multi-view source sheets without submitting either generation.
-2. With a separate exact-cost approval, generate one owner-selected Human body candidate only.
+1. Retain text-to-3D task `ef7a7258` as the sole current Human source candidate; reject multi-view task `304b62b1` and do not derive production assets from it.
+2. Before spending more credits, export and inspect the untouched text-to-3D candidate, preserving task and credit provenance.
 3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
-5. Produce one shared starter tunic, one modest rigid Warrior guard, and one separate starter longsword.
+5. Produce one text-to-3D shared starter tunic source, one modest rigid Warrior guard source, and one separate starter longsword source under separate exact-cost approvals.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
 8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
@@ -369,7 +377,8 @@ The first paid sequence is deliberately narrow:
 
 Stop and request owner review when:
 
-- the source sheet does not preserve identity across views;
+- text-to-3D cannot produce one coherent isolated subject within the approved prompt envelope;
+- image-to-3D is proposed without a specific owner-selected design and four clean isolated identity-matched views;
 - a generation consumes an unexpected credit amount;
 - the generated topology cannot be retopologized economically;
 - the Prism rig is not compatible with the current animation plan;
@@ -381,7 +390,7 @@ Stop and request owner review when:
 ## Approval checklist
 
 - [ ] Paid plan and MCP connection verified without exposing credentials.
-- [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
+- [ ] Asset ticket, text-to-3D prompt, operation, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
@@ -406,7 +415,8 @@ No batch generation begins while any pilot-critical item remains unchecked.
 ## Vendor references
 
 - [3D AI Studio recommended workflow](https://docs.3daistudio.com/3d-generation/recommended-workflow)
-- [3D AI Studio image-to-3D and multi-view guidance](https://docs.3daistudio.com/3d-generation/image-to-3d)
+- [3D AI Studio text-to-3D guidance](https://docs.3daistudio.com/3d-generation/text-to-3d)
+- [3D AI Studio image-to-3D and multi-view guidance (exception path)](https://docs.3daistudio.com/3d-generation/image-to-3d)
 - [3D AI Studio remesh guidance](https://docs.3daistudio.com/processing/remesh)
 - [3D AI Studio rigging and Mixamo-compatible export](https://docs.3daistudio.com/processing/rigging)
 - [3D AI Studio export formats](https://docs.3daistudio.com/export-formats)

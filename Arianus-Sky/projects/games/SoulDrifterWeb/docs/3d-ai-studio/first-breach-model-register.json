@@ -1,26 +1,84 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
-    "sourceGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
+    "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
-    "status": "pre-generation",
+    "status": "text-to-3d-human-pilot-generated-awaiting-intake",
+    "workflowDecision": "text-to-3d-default",
     "paidOperationApproved": false
   },
   "studioWorkspace": {
     "project": "SoulDrifter",
-    "branch": "2026-08-17-codex-448-souldrifter-first-breach-models-5ddcf96b",
-    "status": "pending-connector",
+    "lineageMode": "automatic-model-and-derivative-lineage",
+    "manualBranch": null,
+    "status": "connected-dashboard",
     "floatingLatestAllowed": false,
     "requiredProvenance": [
+      "operation",
       "provider-and-model-version",
       "task-id",
       "credit-receipt",
-      "source-sheet-hash",
+      "prompt-hash",
+      "automatic-derivative-lineage",
       "untouched-export-hash",
       "processed-export-hash",
       "consuming-git-commit"
+    ]
+  },
+  "generationPolicy": {
+    "defaultOperation": "text-to-3d",
+    "defaultModel": "prism-3.1",
+    "approvedStartingTextureQuality": "ultra",
+    "liveSettingsAndPriceApprovalRequiredPerTask": true,
+    "oneIsolatedSubjectPerTask": true,
+    "batchBlockedUntilPilotPassesIntakeRigAndAnimationGates": true,
+    "imageTo3dException": {
+      "allowed": true,
+      "purpose": "reproduce-a-specific-owner-selected-pre-existing-design",
+      "separateApprovalRequired": true,
+      "requiredViews": [
+        "front",
+        "left",
+        "back",
+        "right"
+      ],
+      "cleanIsolatedIdentityMatchedViewsRequired": true,
+      "compositeSheetsAllowed": false,
+      "automaticFallbackFromTextFailure": false
+    }
+  },
+  "pilotComparison": {
+    "date": "2026-08-17",
+    "startingCredits": 3557,
+    "endingCredits": 3472,
+    "totalCreditsSpent": 85,
+    "downstreamPaidOperationsPerformed": false,
+    "results": [
+      {
+        "operation": "text-to-3d",
+        "model": "prism-3.1",
+        "textureQuality": "ultra",
+        "taskId": "ef7a7258",
+        "credits": 40,
+        "status": "retained-non-shipping-source-candidate",
+        "decision": "workflow-winner",
+        "knownDrift": [
+          "requested-a-pose-generated-t-pose",
+          "requested-knee-length-pants-generated-full-length-pants"
+        ]
+      },
+      {
+        "operation": "image-to-3d-multi-view",
+        "model": "prism-3.1-multi-view",
+        "textureQuality": "ultra",
+        "taskId": "304b62b1",
+        "credits": 45,
+        "status": "rejected",
+        "decision": "not-for-production",
+        "rejectionReason": "contaminated-composite-crops-produced-three-unwanted-figures"
+      }
     ]
   },
   "scope": {
@@ -53,8 +111,9 @@
     "approval": "exact-operation-model-version-expected-cost-and-maximum-cost",
     "batchApprovalImplied": false,
     "stopOnUnexpectedCost": true,
-    "firstPaidPilot": "one-owner-selected-human-body-candidate",
-    "secondPaidPilot": "one-breachling-base-candidate"
+    "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
+    "currentCandidate": "text-to-3d-task-ef7a7258",
+    "nextPaidPilot": "one-text-to-3d-breachling-base-candidate"
   },
   "assetGroups": [
     {
