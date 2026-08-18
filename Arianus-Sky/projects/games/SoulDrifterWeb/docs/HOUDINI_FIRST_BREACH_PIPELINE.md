@@ -13,13 +13,13 @@ This branch provides a non-commercial Houdini Apprentice pilot for comparing a p
 - License: Apprentice / non-commercial
 - Source scene: `source-assets/houdini/first-breach-apprentice.hipnc`
 - Comparison OBJ: generated on demand outside the repository
-- Generated stone texture: `source-assets/houdini/first-breach-stone.png`
+- PBR sources: existing `public/assets/textures/environment/first-breach/flagstone-*` and `masonry-*` sets
 
 The Houdini scene preserves the generated training room, galleries, connecting passages, boss arena, prop coordinates, player start, NPC positions, and enemy positions. Its visible model-reference subnet loads the current player, Ilyra, Orren, Brannoc, Breachlings, and Cinderbound Warden models. A hidden library subnet references all current calling and Shadowknight models without placing them into gameplay.
 
 ## Visual-material pass
 
-The comparison scene is not an untextured graybox. The deterministic build now creates UVs and a seamless, seed-derived irregular flagstone surface with per-stone tonal variation, recessed joints, cracks, edge dirt, and restrained moss. A procedural bevel pass softens exposed geometry edges so highlights and shadows respond more naturally. Seven Houdini materials cover floors, walls, stone props, aged bronze, aged wood, soul-glass, and embers. Stone uses the generated image as both albedo variation and subtle bump input; soul-glass and embers add emission.
+The comparison scene is not an untextured graybox. It reuses the game's established PBR sources rather than synthesizing a shared stone image: dark worn flagstone color, normal, and roughness maps are exclusive to the floor, while rough-cut masonry color, normal, and roughness maps are exclusive to walls and architectural stone. A procedural bevel pass softens exposed geometry edges so highlights and shadows respond more naturally. Seven Houdini materials cover floors, walls, stone props, aged bronze, aged wood, soul-glass, and embers; soul-glass and embers add emission.
 
 The scene also includes cool and warm directional lights, room-local Soulwell and Ashen Lock lights, controlled ambient fill, and three orthographic cameras:
 
@@ -55,7 +55,7 @@ node --experimental-strip-types scripts/houdini/export-first-breach-layout.mjs 2
 
 Houdini Apprentice blocks its glTF exporter, so this non-commercial pilot uses Houdini's permitted OBJ output. The comparison OBJ remains outside the repository and `public/` so an unapproved 14 MB source artifact cannot consume the web deployment budget. Phase 2 may test it locally with Three.js `OBJLoader`; a future production pipeline should convert an approved commercial source through Houdini Indie or a Blender cleanup/export pass to an optimized GLB.
 
-The `.hipnc` scene and generated stone texture are intentionally committed as reproducible pilot sources; the OBJ is regenerated on demand. Do not use Apprentice assets in a commercial release. They cannot be promoted into the commercial pipeline merely by opening them under another Houdini license.
+The `.hipnc` scene is intentionally committed as a reproducible pilot source and references the existing game-owned PBR textures; the OBJ is regenerated on demand. Do not use Apprentice assets in a commercial release. They cannot be promoted into the commercial pipeline merely by opening them under another Houdini license.
 
 ## Phase boundary
 

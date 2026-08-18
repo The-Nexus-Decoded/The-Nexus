@@ -8,8 +8,6 @@ import json
 import math
 import os
 import re
-import struct
-import zlib
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -90,100 +88,13 @@ def material_path(color: Color, kind: str) -> str:
     return MATERIAL_PATHS["stone_prop"]
 
 
-def _png_chunk(kind: bytes, payload: bytes) -> bytes:
-    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
-
-
 def _hash2d(x: int, y: int, seed: int) -> int:
     value = (x * 0x1F123BB5) ^ (y * 0x5F356495) ^ seed
     value = ((value ^ (value >> 16)) * 0x45D9F3B) & 0xFFFFFFFF
     return value ^ (value >> 16)
 
 
-def create_stone_texture(path: Path, seed: int, size: int = 512) -> None:
-    """Create deterministic seamless irregular stone with wear, cracks, and moss."""
-    cell_size = 64
-    cell_count = size // cell_size
-    centers: dict[tuple[int, int], tuple[float, float, int]] = {}
-    for cell_y in range(cell_count):
-        for cell_x in range(cell_count):
-            cell_hash = _hash2d(cell_x, cell_y, seed)
-            jitter_x = (cell_hash % 31) - 15
-            jitter_y = ((cell_hash >> 8) % 31) - 15
-            centers[(cell_x, cell_y)] = (
-                (cell_x * cell_size + cell_size / 2 + jitter_x) % size,
-                (cell_y * cell_size + cell_size / 2 + jitter_y) % size,
-                cell_hash,
-            )
-
-    def signed_periodic_delta(value: float, center: float) -> float:
-        delta = value - center
-        if delta > size / 2:
-            delta -= size
-        elif delta < -size / 2:
-            delta += size
-        return delta
-
-    rows: list[bytes] = []
-    for y in range(size):
-        scanline = bytearray([0])
-        for x in range(size):
-            grid_x = x // cell_size
-            grid_y = y // cell_size
-            nearest: tuple[float, float, float, int] | None = None
-            second_distance = float("inf")
-            for offset_y in (-1, 0, 1):
-                for offset_x in (-1, 0, 1):
-                    candidate = centers[((grid_x + offset_x) % cell_count, (grid_y + offset_y) % cell_count)]
-                    delta_x = signed_periodic_delta(x, candidate[0])
-                    delta_y = signed_periodic_delta(y, candidate[1])
-                    distance = delta_x * delta_x + delta_y * delta_y
-                    if nearest is None or distance < nearest[0]:
-                        if nearest is not None:
-                            second_distance = nearest[0]
-                        nearest = (distance, delta_x, delta_y, candidate[2])
-                    elif distance < second_distance:
-                        second_distance = distance
-            assert nearest is not None
-            distance, delta_x, delta_y, cell_hash = nearest
-            edge_gap = math.sqrt(second_distance) - math.sqrt(distance)
-            grain = (_hash2d(x, y, seed ^ 0xA51CE) % 19) - 9
-            broad_noise = (
-                math.sin(math.tau * x / size * 5)
-                + math.cos(math.tau * y / size * 7)
-                + math.sin(math.tau * (x + y) / size * 3)
-            )
-            mortar = edge_gap < 4.2
-            angle = (cell_hash % 6283) / 1000
-            crack_distance = abs(-math.sin(angle) * delta_x + math.cos(angle) * delta_y + math.sin(delta_y * 0.12) * 1.6)
-            crack_length = abs(math.cos(angle) * delta_x + math.sin(angle) * delta_y)
-            crack = (cell_hash >> 5) % 4 == 0 and crack_distance < 1.05 and 7 < crack_length < 29
-            if mortar:
-                shade = int(broad_noise * 3) + grain // 3
-                red, green, blue = 39 + shade, 45 + shade, 43 + shade
-            elif crack:
-                red, green, blue = 31, 35, 34
-            else:
-                cell_tint = (cell_hash % 35) - 17
-                edge_occlusion = max(0, int((15 - edge_gap) * 0.72))
-                wave = int(broad_noise * 5)
-                red = 150 + cell_tint + grain + wave - edge_occlusion
-                green = 153 + cell_tint + grain + wave - edge_occlusion
-                blue = 145 + cell_tint + grain + wave - edge_occlusion
-                stain = math.sin(math.tau * x / size * 2) + math.cos(math.tau * y / size * 3)
-                if edge_gap < 13 and stain > 1.12:
-                    red -= 34
-                    green -= 2
-                    blue -= 28
-            scanline.extend(max(0, min(255, channel)) for channel in (red, green, blue))
-        rows.append(bytes(scanline))
-    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
-    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header) + _png_chunk(b"IDAT", zlib.compress(b"".join(rows), 9)) + _png_chunk(b"IEND", b"")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(png)
-
-
-def create_materials(texture_reference: str) -> None:
+def create_materials(texture_references: dict[str, dict[str, str]]) -> None:
     material_network = hou.node("/mat")
     if material_network is None:
         material_network = hou.node("/").createNode("matnet", "mat")
@@ -199,17 +110,25 @@ def create_materials(texture_reference: str) -> None:
         node.parm("metallic").set(metallic)
         return node
 
-    for name, roughness in (("FB_Stone_Floor", 0.76), ("FB_Stone_Wall", 0.88), ("FB_Stone_Prop", 0.82)):
+    for name, roughness, texture_set, normal_scale in (
+        ("FB_Stone_Floor", 0.94, "flagstone", 0.72),
+        ("FB_Stone_Wall", 0.98, "masonry", 1.05),
+        ("FB_Stone_Prop", 0.92, "masonry", 0.82),
+    ):
+        references = texture_references[texture_set]
         node = shader(name, (1.0, 1.0, 1.0), roughness)
         node.parm("basecolor_useTexture").set(1)
-        node.parm("basecolor_texture").set(texture_reference)
+        node.parm("basecolor_texture").set(references["color"])
         node.parm("basecolor_textureWrap").set("repeat")
+        node.parm("rough_useTexture").set(1)
+        node.parm("rough_texture").set(references["roughness"])
+        node.parm("rough_textureWrap").set("repeat")
         node.parm("baseBumpAndNormal_enable").set(1)
-        node.parm("baseBumpAndNormal_type").set("bump")
-        node.parm("baseBump_useTexture").set(1)
-        node.parm("baseBump_bumpTexture").set(texture_reference)
-        node.parm("baseBump_bumpScale").set(0.075 if name == "FB_Stone_Floor" else 0.11)
-        node.parm("baseBump_wrap").set("repeat")
+        node.parm("baseBumpAndNormal_type").set("normal")
+        node.parm("baseNormal_useTexture").set(1)
+        node.parm("baseNormal_texture").set(references["normal"])
+        node.parm("baseNormal_scale").set(normal_scale)
+        node.parm("baseNormal_wrap").set("repeat")
 
     shader("FB_Aged_Bronze", BRONZE, 0.34, 0.82)
     shader("FB_Aged_Wood", WOOD, 0.66)
@@ -814,13 +733,33 @@ def main() -> None:
     args.hip.parent.mkdir(parents=True, exist_ok=True)
     args.obj.parent.mkdir(parents=True, exist_ok=True)
     game_root = args.game_root.resolve()
-    texture_path = args.hip.resolve().with_name("first-breach-stone.png")
-    texture_reference = f"$HIP/{Path(os.path.relpath(texture_path, args.hip.resolve().parent)).as_posix()}"
+    texture_root = game_root / "public" / "assets" / "textures" / "environment" / "first-breach"
+    texture_files = {
+        texture_set: {
+            channel: texture_root / f"{texture_set}-{filename}"
+            for channel, filename in (
+                ("color", "color.jpg"),
+                ("normal", "normal-gl.jpg"),
+                ("roughness", "roughness.jpg"),
+            )
+        }
+        for texture_set in ("flagstone", "masonry")
+    }
+    for files in texture_files.values():
+        for texture_file in files.values():
+            if not texture_file.is_file():
+                raise FileNotFoundError(texture_file)
+    texture_references = {
+        texture_set: {
+            channel: f"$HIP/{Path(os.path.relpath(texture_file, args.hip.resolve().parent)).as_posix()}"
+            for channel, texture_file in files.items()
+        }
+        for texture_set, files in texture_files.items()
+    }
 
     hou.hipFile.clear(suppress_save_prompt=True)
     hou.setFps(30)
-    create_stone_texture(texture_path, int(payload["seed"]))
-    create_materials(texture_reference)
+    create_materials(texture_references)
     obj = hou.node("/obj")
     environment = obj.createNode("geo", "FIRST_BREACH_PROCEDURAL_ENVIRONMENT")
     for child in environment.children():
@@ -848,7 +787,7 @@ def main() -> None:
     metadata.setUserData("souldrifter_seed", str(payload["seed"]))
     metadata.setUserData("souldrifter_source", payload["source"])
     metadata.setUserData("souldrifter_license", hou.licenseCategory().name())
-    metadata.setUserData("souldrifter_texture", texture_reference)
+    metadata.setUserData("souldrifter_textures", json.dumps(texture_references, separators=(",", ":")))
     metadata.setUserData("souldrifter_model_diagnostics", json.dumps(diagnostics, separators=(",", ":")))
 
     obj.layoutChildren()
@@ -870,8 +809,7 @@ def main() -> None:
         "hipBytes": args.hip.stat().st_size,
         "obj": args.obj.resolve().as_posix(),
         "objBytes": args.obj.stat().st_size,
-        "texture": texture_path.as_posix(),
-        "textureBytes": texture_path.stat().st_size,
+        "textures": texture_references,
         "materials": len(MATERIAL_PATHS),
     }))
 
