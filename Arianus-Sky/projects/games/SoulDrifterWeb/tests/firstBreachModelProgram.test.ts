@@ -151,8 +151,8 @@ describe("First Breach production model register", () => {
       meshQuality: "standard",
       expectedCredits: 45,
       maximumCredits: 45,
-      status: "approved-ready-to-submit",
-      ownerReview: "approved-huge-maw-four-view-source-set-shown-in-chat",
+      status: "four-view-source-set-generated-pending-owner-review-and-authenticated-submission",
+      ownerReview: "front-approved-rear-left-and-right-shown-in-chat-pending-set-approval",
       runtimePromotionAllowed: false,
     });
     expect(task?.sourceImages).toEqual([
