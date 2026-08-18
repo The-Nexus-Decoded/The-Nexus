@@ -32,11 +32,17 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--label", required=True)
     parser.add_argument("--resolution", type=int, default=768)
     parser.add_argument("--front-axis", choices=("+X", "-X", "+Y", "-Y"), default="+X")
+    parser.add_argument("--frame", type=int, default=0)
     return parser.parse_args(sys.argv[separator + 1 :])
 
 
 def scene_meshes() -> list[bpy.types.Object]:
-    return [item for item in bpy.context.scene.objects if item.type == "MESH"]
+    return [
+        item
+        for item in bpy.context.scene.objects
+        if item.type == "MESH"
+        and not (item.name == "Icosphere" and len(item.data.polygons) <= 100)
+    ]
 
 
 def world_bounds(meshes: list[bpy.types.Object]) -> tuple[Vector, Vector]:
@@ -75,6 +81,8 @@ def main() -> None:
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(source))
+    if args.frame > 0:
+        bpy.context.scene.frame_set(args.frame)
     meshes = scene_meshes()
     if not meshes:
         raise RuntimeError(f"{source.name} imported without meshes")
@@ -162,6 +170,7 @@ def main() -> None:
         "skins": len([item for item in bpy.context.scene.objects if item.type == "ARMATURE"]),
         "renderEngine": scene.render.engine,
         "frontAxis": args.front_axis,
+        "frame": args.frame,
         "views": rendered,
         "sourceModified": False,
     }
