@@ -65,6 +65,24 @@ describe("First Breach production model register", () => {
     );
   });
 
+  it("records the exact bounded Breachling source task before paid submission", () => {
+    const task = modelRegister.sourceGenerationTasks.find((entry) => entry.assetId === "creature-breachling-base-v001");
+
+    expect(task).toMatchObject({
+      operation: "text-to-3d",
+      model: "prism-3.1",
+      textureQuality: "ultra",
+      meshQuality: "standard",
+      materialType: "shaded",
+      expectedCredits: 40,
+      maximumCredits: 40,
+      status: "approved-ready-to-submit",
+      runtimePromotionAllowed: false,
+    });
+    expect(task?.promptSha256).toBe("640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394");
+    expect(task?.prompt).toContain("One complete isolated creature");
+  });
+
   it("covers every current level surface that must be revalidated", () => {
     expect(modelRegister.validationSurfaces).toEqual(
       expect.arrayContaining([

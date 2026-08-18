@@ -152,6 +152,26 @@
     "currentCandidate": "offline-retopology-pilot-selection-pending",
     "nextPaidPilot": null
   },
+  "sourceGenerationTasks": [
+    {
+      "assetId": "creature-breachling-base-v001",
+      "operation": "text-to-3d",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "materialType": "shaded",
+      "expectedCredits": 40,
+      "maximumCredits": 40,
+      "prompt": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall with a wiry hunched torso, long forearms ending in four clawed fingers, short digitigrade legs, broad stable feet, a narrow angular skull, swept-back ear fins, deep-set amber eyes, ash-gray skin with muted teal fissure mottling, and small bony shoulder and spine ridges. Neutral symmetrical A-pose, arms clear of torso, hands open, feet flat, clean silhouette suitable for rigging. No clothing, armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature.",
+      "promptSha256": "640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394",
+      "status": "approved-ready-to-submit",
+      "taskId": null,
+      "actualCredits": null,
+      "ownerReview": "pending",
+      "runtimePromotionAllowed": false
+    }
+  ],
   "assetGroups": [
     {
       "id": "playable-body-families",
