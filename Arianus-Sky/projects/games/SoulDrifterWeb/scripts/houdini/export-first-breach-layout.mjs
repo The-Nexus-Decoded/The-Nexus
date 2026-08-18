@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { generateSoulwellDungeon } from "../../src/game/dungeon.ts";
+import { DUNGEON_PROP_ASSETS } from "../../src/game/environment/DungeonPropCatalog.ts";
 
 const DEFAULT_SEED = 2215682322;
 const seed = Number(process.argv[2] ?? DEFAULT_SEED);
@@ -49,6 +50,7 @@ const payload = {
   tileSize: 1.75,
   floorHeight: 0.22,
   dungeon: generateSoulwellDungeon(seed),
+  environmentAssets: DUNGEON_PROP_ASSETS,
   modelReferences,
 };
 
@@ -60,6 +62,7 @@ console.log(JSON.stringify({
   seed,
   tiles: payload.dungeon.tiles.length,
   props: payload.dungeon.props.length,
+  environmentAssets: Object.keys(payload.environmentAssets).length,
   npcs: payload.dungeon.npcs.length,
   enemies: payload.dungeon.enemies.length,
   libraryModels: Object.keys(modelReferences.library).length,

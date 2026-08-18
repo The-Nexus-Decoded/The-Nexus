@@ -817,6 +817,10 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
             add_masonry_wall_run(builder, orientation, fixed, start, end, zone, height, tile_size, int(payload["seed"]))
 
     for prop in dungeon["props"]:
+        if prop.get("assetId"):
+            # Approved GLB kit props are imported as authored geometry below.
+            # Keeping the primitive placeholder would create overlapping assets.
+            continue
         x = prop["x"] * tile_size
         z = prop["y"] * tile_size
         name = safe_name(prop["id"])
@@ -987,6 +991,11 @@ def create_model_reference(
     position: tuple[float, float],
     target_height: float,
     visible: bool,
+    *,
+    max_footprint: float | None = None,
+    elevation: float = 0.0,
+    rotation_y: float = 0.0,
+    vertical_scale: float = 1.0,
 ) -> dict:
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
@@ -1002,16 +1011,21 @@ def create_model_reference(
         raise RuntimeError(f"Houdini imported no geometry from {source_path}")
     bounds = geometry.boundingBox()
     source_height = max(bounds.sizevec()[1], 0.001)
+    source_footprint = max(bounds.sizevec()[0], bounds.sizevec()[2], 0.001)
     scale = target_height / source_height
+    if max_footprint is not None:
+        scale = min(scale, max_footprint / source_footprint)
     transform = container.createNode("xform", "NORMALIZE_AND_GROUND")
     transform.setInput(0, importer)
     transform.parm("scale").set(scale)
+    transform.parmTuple("s").set((1.0, vertical_scale, 1.0))
     transform.parm("tx").set(-bounds.center()[0] * scale)
     transform.parm("ty").set(-bounds.minvec()[1] * scale)
     transform.parm("tz").set(-bounds.center()[2] * scale)
     transform.setDisplayFlag(True)
     transform.setRenderFlag(True)
-    container.parmTuple("t").set((position[0], 0.0, position[1]))
+    container.parmTuple("t").set((position[0], elevation, position[1]))
+    container.parmTuple("r").set((0.0, math.degrees(rotation_y), 0.0))
     container.setDisplayFlag(visible)
     return {
         "name": name,
@@ -1019,8 +1033,59 @@ def create_model_reference(
         "points": len(geometry.points()),
         "primitives": len(geometry.prims()),
         "scale": scale,
+        "maxFootprint": max_footprint,
+        "elevation": elevation,
+        "rotationY": rotation_y,
+        "verticalScale": vertical_scale,
         "visible": visible,
     }
+
+
+def create_environment_prop_references(obj: hou.Node, payload: dict, game_root: Path) -> list[dict]:
+    tile_size = float(payload["tileSize"])
+    asset_specs = payload["environmentAssets"]
+    source_roots = (
+        game_root / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-completion-kit",
+        game_root / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-kit",
+    )
+    kit = obj.createNode("subnet", "APPROVED_DUNGEON_KIT")
+    diagnostics: list[dict] = []
+
+    def source_for(asset_id: str, source_url: str) -> Path:
+        filename = Path(source_url).name
+        for root in source_roots:
+            candidate = root / filename
+            if candidate.is_file():
+                return candidate
+        raise FileNotFoundError(f"No Houdini source GLB for {asset_id}: {filename}")
+
+    for prop in payload["dungeon"]["props"]:
+        asset_id = prop.get("assetId")
+        if not asset_id:
+            continue
+        spec = asset_specs[asset_id]
+        x = (float(prop["x"]) + float(prop.get("offsetX", 0.0))) * tile_size
+        z = (float(prop["y"]) + float(prop.get("offsetY", 0.0))) * tile_size
+        diagnostic = create_model_reference(
+            kit,
+            f"{prop['id']}_{asset_id}",
+            source_for(asset_id, spec["sourceUrl"]),
+            (x, z),
+            float(spec["targetHeight"]),
+            True,
+            max_footprint=float(spec["maxFootprint"]),
+            elevation=float(spec.get("elevation", 0.0)),
+            rotation_y=float(prop.get("rotationY", 0.0)),
+            vertical_scale=float(spec.get("verticalScale", 1.0)),
+        )
+        diagnostic["assetId"] = asset_id
+        diagnostic["roomId"] = prop["roomId"]
+        diagnostics.append(diagnostic)
+
+    kit.setUserData("souldrifter_seed", str(payload["seed"]))
+    kit.setUserData("souldrifter_semantic_placement", "true")
+    kit.moveToGoodPosition()
+    return diagnostics
 
 
 def create_actor_references(obj: hou.Node, payload: dict, game_root: Path) -> list[dict]:
@@ -1228,7 +1293,9 @@ def main() -> None:
     normal.setDisplayFlag(True)
     normal.setRenderFlag(True)
 
-    diagnostics = create_actor_references(obj, payload, game_root)
+    environment_diagnostics = create_environment_prop_references(obj, payload, game_root)
+    actor_diagnostics = create_actor_references(obj, payload, game_root)
+    diagnostics = [*environment_diagnostics, *actor_diagnostics]
     create_camera(obj, payload)
     create_lighting(obj, payload)
     create_review_renders(hou.node("/out"))
@@ -1239,6 +1306,7 @@ def main() -> None:
     metadata.setUserData("souldrifter_license", hou.licenseCategory().name())
     metadata.setUserData("souldrifter_textures", json.dumps(texture_references, separators=(",", ":")))
     metadata.setUserData("souldrifter_model_diagnostics", json.dumps(diagnostics, separators=(",", ":")))
+    metadata.setUserData("souldrifter_environment_models", json.dumps(environment_diagnostics, separators=(",", ":")))
 
     obj.layoutChildren()
     environment.layoutChildren()
@@ -1255,6 +1323,7 @@ def main() -> None:
         "environmentPoints": len(builder.geometry.points()),
         "environmentPrimitives": len(builder.geometry.prims()),
         "modelReferences": len(diagnostics),
+        "environmentModels": len(environment_diagnostics),
         "hip": args.hip.resolve().as_posix(),
         "hipBytes": args.hip.stat().st_size,
         "obj": args.obj.resolve().as_posix(),
