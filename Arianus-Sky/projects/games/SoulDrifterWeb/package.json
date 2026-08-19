@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "mp:dev": "node server/zone-server.mjs",
+    "mp:smoke": "node scripts/mp-smoke-test.mjs",
     "build": "node scripts/clean-build.mjs && tsc -b && vite build && node scripts/prepare-sites-build.mjs && node scripts/prune-runtime-assets.mjs",
     "verify:release": "node scripts/verify-release-targets.mjs",
     "preview": "vite preview --host 0.0.0.0",
@@ -14,9 +16,11 @@
   },
   "devDependencies": {
     "@types/three": "^0.185.4",
+    "@types/ws": "^8.18.1",
     "typescript": "7.0.2",
     "vite": "8.2.1",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "ws": "^8.21.3"
   },
   "dependencies": {
     "three": "^0.185.1"

@@ -395,6 +395,8 @@ export class World3D {
   private readonly enemies = new Map<string, EnemyRuntime>();
   private readonly environmentAnimators: Array<(elapsed: number, delta: number) => void> = [];
   private readonly environmentDisposers: Array<() => void> = [];
+  /** Multiplayer base layer: per-frame observers fired from render(). */
+  private readonly frameObservers: Array<(delta: number, elapsed: number) => void> = [];
   private readonly revealedRooms = new Set<DungeonRoomKind>();
   private readonly completedEncounters = new Set<"skirmish" | "boss">();
   private readonly inventory: InventoryItem[];
@@ -534,6 +536,33 @@ export class World3D {
     this.renderer.dispose();
     this.paperRenderer.dispose();
     if (window.__SOULDRIFTER_DEBUG__) delete window.__SOULDRIFTER_DEBUG__;
+  }
+
+  /**
+   * Multiplayer base layer bridge: read-only scene access, the local player's
+   * transform for this frame, and a per-frame observer hook. The net layer in
+   * src/game/net drives remote avatars through this without touching internals.
+   */
+  public multiplayerBridge(): {
+    scene: THREE.Scene;
+    localPlayerState(): { p: [number, number, number]; h: number; a: string };
+    onFrame(cb: (delta: number, elapsed: number) => void): () => void;
+  } {
+    return {
+      scene: this.scene,
+      localPlayerState: () => ({
+        p: [this.player.root.position.x, this.player.root.position.y, this.player.root.position.z],
+        h: this.player.root.rotation.y,
+        a: this.playerMoving ? "move" : this.playerGuard ? "guard" : "idle",
+      }),
+      onFrame: (cb) => {
+        this.frameObservers.push(cb);
+        return () => {
+          const index = this.frameObservers.indexOf(cb);
+          if (index >= 0) this.frameObservers.splice(index, 1);
+        };
+      },
+    };
   }
 
   private configureLights(): void {
@@ -4106,6 +4135,7 @@ export class World3D {
       }
     }
     this.updateCamera(false, delta);
+    for (const observer of this.frameObservers) observer(delta, elapsed);
     this.updateOcclusion();
     this.renderer.render(this.scene, this.camera);
     if (this.paperDollVisible) this.renderPaperDoll();
