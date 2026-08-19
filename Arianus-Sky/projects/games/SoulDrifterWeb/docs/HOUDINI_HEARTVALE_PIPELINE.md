@@ -53,6 +53,46 @@ node scripts/houdini/export-heartvale-soulwell-layout.mjs $layout
 
 Same conventions as the First Breach pilot: the `.hipnc` is committed as the reproducible source; the ~27 MB OBJ is regenerated on demand and stays outside the repository and `public/`. Built with Houdini Apprentice 22.0.368 — non-commercial; do not promote Apprentice artifacts into a commercial release. Runtime integration (Three.js-native re-implementation per runbook phases P0–P1) treats this scene as the look-dev and scale reference; the logical tiles remain authoritative for navigation and collision.
 
+## Realistic pass (`heartvale-realistic.hipnc`)
+
+A second, higher-fidelity scene builds the full living basin on top of the same locked scale — this is the look-dev target for the isometric outdoor world and the portable source for other engines.
+
+- **Terrain**: 200×200-quad grid (1.4 m resolution, shared points) with seeded fBm + domain warp, river carve with soft banks, road flattening, terrace pad blend, and the Erboug rise. Vertex colors are the biome splat (lush grass / dry grass / meadow / dirt road / riverbed / wet bank / terrace stone) driven by moisture and patch noise.
+- **Anwel river-town blockout**: five timber-framed houses (stone footings, plaster infill, thatch/slate prism roofs), the village well, a dock on the Anwel run, and split-rail fences — the settlement the player walks into after the terrace.
+- **Vegetation**: 150 trees scattered by grove noise (two-lobe octahedron canopies), 50 boulders, sedge clumps along the river banks, and 90 grass tufts ringing the terrace for the first-impression shot.
+- **Review set**: four orthographic cameras + OpenGL ROPs — `TERRACE_REVIEW_RENDER`, `ANWEL_REVIEW_RENDER`, `RIVER_REVIEW_RENDER`, `ZONE_REVIEW_RENDER`.
+
+Regeneration (from `SoulDrifterWeb`):
+
+```powershell
+$layout = Join-Path $env:TEMP 'heartvale-soulwell-layout.json'
+$out    = Join-Path $env:TEMP 'heartvale-realistic'
+node scripts/houdini/export-heartvale-soulwell-layout.mjs $layout
+& 'H:\Program Files\Side Effects Software\Houdini 22.0.368\bin\hython.exe' scripts/houdini/build-heartvale-realistic.py $layout source-assets/houdini/heartvale-realistic.hipnc $out
+```
+
+Headless OpenGL batch rendering segfaults on this driver (Vulkan, GR_PolyCurveVK), so each still is rendered in an isolated process:
+
+```powershell
+& '...\hython.exe' scripts/houdini/render-heartvale-still.py source-assets/houdini/heartvale-realistic.hipnc TERRACE_REVIEW_RENDER "$out\terrace_review_render.png"
+```
+
+Material note: geometry carries its color as point `Cd`; every Principled shader keeps a white base with `basecolor_usePointColor=1`, otherwise the OpenGL review pass multiplies base color × point color and everything reads near-black.
+
+## Portable terrain export (Unreal / Unity / Three.js)
+
+The realistic build also writes engine-agnostic terrain data next to the OBJ:
+
+| File | Format | Contents |
+| --- | --- | --- |
+| `heartvale-heightmap-f32.raw` | float32 little-endian, 200×200, row-major (Z rows, south→north) | terrain height in metres |
+| `heartvale-splat-u8.raw` | uint8, 200×200 | dominant biome index: 0 grass · 1 dry · 2 road · 3 riverbed · 4 wet · 5 stone |
+| `heartvale-terrain-export.json` | JSON | extents, sample count, scale constants, splat legend, import notes |
+
+- **Unreal**: Landscape → Import from Raw, 200×200, Z scale from the JSON `heightRange`; use the splat map as layer masks.
+- **Unity**: TerrainData heightmap via script (`SetHeights` from the float grid); splat map drives TerrainLayers.
+- **Three.js**: `PlaneGeometry` (199×199 segments) displaced by the float grid — matches the dungeon isometric pipeline's metre scale exactly, so the runtime loader can sample the same file for collision heights.
+
 ## Provenance
 
 Fully procedural, original work — no third-party or AI-generated assets, so no `third-party-assets.json` record is required. Reusing seed `318044611` reproduces the exact dressing fingerprint; adjacent seeds produce a different but equally valid basin.
