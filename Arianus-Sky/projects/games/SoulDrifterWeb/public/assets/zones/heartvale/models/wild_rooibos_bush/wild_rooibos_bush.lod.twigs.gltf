@@ -1,0 +1,98 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 726,
+      "min": [-0.252668828, -0.00207297294, -0.519268692],
+      "max": [0.333286017, 0.523771286, 0.211466864]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "type": "VEC2",
+      "count": 726
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 726
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 726
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "type": "SCALAR",
+      "count": 1662
+    }
+  ],
+  "asset": {
+    "generator": "SideFX Houdini",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 8712
+    },
+    {
+      "buffer": 0,
+      "byteLength": 8712,
+      "byteOffset": 8712
+    },
+    {
+      "buffer": 0,
+      "byteLength": 8712,
+      "byteOffset": 17424
+    },
+    {
+      "buffer": 0,
+      "byteLength": 8712,
+      "byteOffset": 26136
+    },
+    {
+      "buffer": 0,
+      "byteLength": 6648,
+      "byteOffset": 34848
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "wild_rooibos_bush.lod.twigs_data.bin",
+      "byteLength": 41496
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "indices": 4,
+          "attributes": {
+            "POSITION": 0,
+            "TEXCOORD_0": 1,
+            "NORMAL": 2,
+            "TANGENT": 3
+          }
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [ 0 ]
+    }
+  ]
+}

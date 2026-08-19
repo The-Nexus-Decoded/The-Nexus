@@ -32,7 +32,26 @@ TEXTURES = {
     "roof_slates_02": "Slate roofs (reeve hall, barn)",
     "brown_mud_leaves_01": "Tree-base soil blend discs",
     "forest_floor": "Well surround + dark forest ground patches",
+    # T3 ground splat channels (runtime terrain shader)
+    "aerial_grass_rock": "Splat channel 0: meadow grass (dominant Heartvale ground)",
+    "withered_grass": "Splat channel 1: dry/summer grass patches",
+    "muddy_tracks": "Splat channel 2: dirt roads and village lanes",
+    "dry_river_pebbles": "Splat channel 3: riverbed under water",
+    "brown_mud": "Splat channel 4: wet bank mud / shoreline",
 }
+
+# Splat channel id -> texture id (order matches heartvale-splat-weights-u8.raw)
+SPLAT_CHANNELS = {
+    "grass": "aerial_grass_rock",
+    "dry": "withered_grass",
+    "road": "muddy_tracks",
+    "riverbed": "dry_river_pebbles",
+    "wet": "brown_mud",
+    "stone": "mossy_cobblestone",
+    "forest": "forest_floor",
+}
+
+PUBLIC_TEX_ROOT = REPO / "public" / "assets" / "zones" / "heartvale" / "textures"
 
 MAPS = {"Diffuse": "diff", "nor_gl": "nor_gl", "Rough": "rough"}
 
@@ -91,6 +110,22 @@ def main() -> int:
         textures_log[tex_id] = {"use": use, "maps": saved, "license": "CC0-1.0"}
 
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    # Promote splat-channel diffuse/normal/rough maps into the runtime public dir
+    PUBLIC_TEX_ROOT.mkdir(parents=True, exist_ok=True)
+    promoted = 0
+    for channel, tex_id in SPLAT_CHANNELS.items():
+        src_dir = TEX_ROOT / tex_id
+        for tag in MAPS.values():
+            for ext in (".jpg", ".png"):
+                src = src_dir / f"{tex_id}_{tag}_1k{ext}"
+                if src.is_file():
+                    dest = PUBLIC_TEX_ROOT / f"ground-{channel}-{tag}{ext}"
+                    if not dest.is_file() or dest.stat().st_size != src.stat().st_size:
+                        dest.write_bytes(src.read_bytes())
+                        promoted += 1
+                    break
+    print(f"promoted {promoted} splat channel maps -> {PUBLIC_TEX_ROOT.relative_to(REPO)}")
 
     third_party = json.loads(THIRD_PARTY.read_text(encoding="utf-8")) if THIRD_PARTY.is_file() else {"shippingAssets": []}
     assets = third_party.setdefault("shippingAssets", [])

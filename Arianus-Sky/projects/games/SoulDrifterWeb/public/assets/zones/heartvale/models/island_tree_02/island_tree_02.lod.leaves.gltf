@@ -1,0 +1,98 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 70610,
+      "min": [-1.85513818, 1.25198865, -1.1157937],
+      "max": [1.97717273, 3.39084148, 2.95867085]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "type": "VEC2",
+      "count": 70610
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 70610
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 70610
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "type": "SCALAR",
+      "count": 83790
+    }
+  ],
+  "asset": {
+    "generator": "SideFX Houdini",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 847320
+    },
+    {
+      "buffer": 0,
+      "byteLength": 847320,
+      "byteOffset": 847320
+    },
+    {
+      "buffer": 0,
+      "byteLength": 847320,
+      "byteOffset": 1694640
+    },
+    {
+      "buffer": 0,
+      "byteLength": 847320,
+      "byteOffset": 2541960
+    },
+    {
+      "buffer": 0,
+      "byteLength": 335160,
+      "byteOffset": 3389280
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "island_tree_02.lod.leaves_data.bin",
+      "byteLength": 3724440
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "indices": 4,
+          "attributes": {
+            "POSITION": 0,
+            "TEXCOORD_0": 1,
+            "NORMAL": 2,
+            "TANGENT": 3
+          }
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [ 0 ]
+    }
+  ]
+}

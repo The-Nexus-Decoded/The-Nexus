@@ -367,6 +367,51 @@
         "rough": "forest_floor_rough_1k.jpg"
       },
       "license": "CC0-1.0"
+    },
+    "aerial_grass_rock": {
+      "use": "Splat channel 0: meadow grass (dominant Heartvale ground)",
+      "maps": {
+        "diff": "aerial_grass_rock_diff_1k.jpg",
+        "nor_gl": "aerial_grass_rock_nor_gl_1k.jpg",
+        "rough": "aerial_grass_rock_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "withered_grass": {
+      "use": "Splat channel 1: dry/summer grass patches",
+      "maps": {
+        "diff": "withered_grass_diff_1k.jpg",
+        "nor_gl": "withered_grass_nor_gl_1k.jpg",
+        "rough": "withered_grass_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "muddy_tracks": {
+      "use": "Splat channel 2: dirt roads and village lanes",
+      "maps": {
+        "diff": "muddy_tracks_diff_1k.jpg",
+        "nor_gl": "muddy_tracks_nor_gl_1k.jpg",
+        "rough": "muddy_tracks_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "dry_river_pebbles": {
+      "use": "Splat channel 3: riverbed under water",
+      "maps": {
+        "diff": "dry_river_pebbles_diff_1k.jpg",
+        "nor_gl": "dry_river_pebbles_nor_gl_1k.jpg",
+        "rough": "dry_river_pebbles_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "brown_mud": {
+      "use": "Splat channel 4: wet bank mud / shoreline",
+      "maps": {
+        "diff": "brown_mud_diff_1k.jpg",
+        "nor_gl": "brown_mud_nor_gl_1k.jpg",
+        "rough": "brown_mud_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
     }
   }
 }

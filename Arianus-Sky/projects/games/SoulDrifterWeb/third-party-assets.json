@@ -299,6 +299,41 @@
       "source": "https://polyhaven.com/a/forest_floor",
       "license": "CC0-1.0",
       "use": "Well surround + dark forest ground patches"
+    },
+    {
+      "id": "aerial_grass_rock",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/aerial_grass_rock",
+      "license": "CC0-1.0",
+      "use": "Splat channel 0: meadow grass (dominant Heartvale ground)"
+    },
+    {
+      "id": "withered_grass",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/withered_grass",
+      "license": "CC0-1.0",
+      "use": "Splat channel 1: dry/summer grass patches"
+    },
+    {
+      "id": "muddy_tracks",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/muddy_tracks",
+      "license": "CC0-1.0",
+      "use": "Splat channel 2: dirt roads and village lanes"
+    },
+    {
+      "id": "dry_river_pebbles",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/dry_river_pebbles",
+      "license": "CC0-1.0",
+      "use": "Splat channel 3: riverbed under water"
+    },
+    {
+      "id": "brown_mud",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/brown_mud",
+      "license": "CC0-1.0",
+      "use": "Splat channel 4: wet bank mud / shoreline"
     }
   ],
   "researchReferences": [
