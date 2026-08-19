@@ -95,6 +95,47 @@ in-browser yet; this review covers the Houdini look-dev scene, which is the
 current build output. The look-dev target going forward should be the
 runtime, fed by the existing heightmap/splat/layout exports.
 
+## Finding 8 — Known placeholders that must not ship as final
+
+The Anwel well is an untextured grey cylinder; NPC "scale mannequins" are
+untextured cylinder dummies; garden/fence/dock dressing is blockout
+geometry. Fine as measurement stand-ins — but they must be tracked as
+placeholders with a replacement ticket each, or they will silently become
+"the look." Every placeholder gets: final-asset source (original or
+CC0/Poly Haven per policy), a ticket id, and a removal condition.
+
+## Finding 9 — No stated art-direction anchor + dressing is sparse
+
+"Realistic isometric" was never anchored to a reference, so the scene
+drifted to default-Houdini look. **The anchor is the painted M-003 atlas
+itself**: warm harvest palette (golden meadows, olive forests, teal rivers),
+soft readable forms, painted texture feel — the same art direction as the
+approved flat travel maps. At the current dressing density the basin also
+reads empty: meadows need grass/flower breakup, road verges need ruts and
+stones, riverbanks need reeds and mud variation, and the treeline should
+mass toward the Thalholt/west wilds per the plate. Target: standing on the
+terrace, the world should read as the M-003 plate come to life in 3D.
+
+## Spec-conformance gaps (runbook alignment — non-visual, all required)
+
+From `ZONE_BUILD_RUNBOOK.md` §3–§5 and the v2 zone cut; none of these exist
+in the current build because it predates the frame:
+
+- [ ] World frame: origin = plate top-left, +x east, +z south, meters,
+      1 cell = 1500 m — replace the local "1 atlas % = 8.75 m" constant.
+- [ ] POI anchors at `HEARTVALE_POIS` world positions (±5 m).
+- [ ] No POI/building/prop footprint straddles a zone seam.
+- [ ] Nav grid walkable to every seam line where ground is open.
+- [ ] Each zone's geometry/props stream as one chunk keyed by zone id
+      (`hv-1`…`hv-7`) so neighbors pre-join with no loading screen.
+- [ ] Seam terrain height/texture match ≤ 0.05 m against neighbor builds.
+- [ ] Local player position available in world-frame meters (for
+      `zoneAt(x, z)` boundary detection + multiplayer pre-join).
+- [ ] Connector dressing at the named crossing sites in
+      `HEARTVALE_ZONE_TICKETS.md` (e.g. "Anwel Ford" ≈ (5437, 2531)).
+- [ ] Zone data modules data-authored (no hardcoded geometry in World3D).
+- [ ] Visual review gate (runbook §7) passed before owner review.
+
 ---
 
 ## What is genuinely good (keep)
@@ -112,7 +153,11 @@ runtime, fed by the existing heightmap/splat/layout exports.
 1. **Rescale to the v2 frame** (Finding 0) — everything else sits on top.
 2. Re-render post-Poly Haven scene; verify vegetation (Finding 5).
 3. Move look-dev into the Three.js runtime: splat terrain + water shader +
-   day lighting (Findings 1, 2, 4, 6).
-4. Building texture/dressing pass with Poly Haven PBR sets (Finding 3).
-5. Re-run this review's checklist per `ZONE_BUILD_RUNBOOK.md` §7 before
+   day lighting (Findings 1, 2, 4, 6), art direction anchored to the painted
+   M-003 palette (Finding 9).
+4. Building texture/dressing pass with Poly Haven PBR sets (Finding 3) and
+   placeholder replacement tickets (Finding 8).
+5. Close every spec-conformance gap in the checklist above (zone chunks,
+   seams, world-frame position reporting, connectors).
+6. Re-run this review's checklist per `ZONE_BUILD_RUNBOOK.md` §7 before
    showing the owner.
