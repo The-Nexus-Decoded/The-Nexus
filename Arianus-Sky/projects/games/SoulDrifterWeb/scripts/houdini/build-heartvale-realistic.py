@@ -153,9 +153,13 @@ def create_materials() -> None:
     if material_network is None:
         material_network = hou.node("/").createNode("matnet", "mat")
 
-    def shader(name: str, color: Color, roughness: float, metallic: float = 0.0) -> hou.Node:
-        # Geometry carries its true color as point Cd; keep the shader base white
-        # so the OpenGL review renders don't multiply basecolor x point color.
+    tex_root = "$HIP/../textures/heartvale"
+
+    def shader(name: str, color: Color, roughness: float, metallic: float = 0.0, texture: str | None = None, tint: bool = True) -> hou.Node:
+        # Geometry carries its color as point Cd; keep the shader base white so the
+        # OpenGL review renders don't multiply basecolor x point color. Textured
+        # materials can opt out of the tint (the texture carries the hue) or keep
+        # it (bark: grayscale texture x point-color tint = oak dark / birch pale).
         _ = color
         existing = material_network.node(name)
         if existing:
@@ -165,11 +169,16 @@ def create_materials() -> None:
         node.parm("basecolor_usePointColor").set(1)
         node.parm("rough").set(roughness)
         node.parm("metallic").set(metallic)
+        if texture is not None:
+            node.parm("basecolor_useTexture").set(1)
+            node.parm("basecolor_texture").set(f"{tex_root}/{texture}.png")
+            if not tint:
+                node.parm("basecolor_usePointColor").set(0)
         return node
 
     shader("HVR_Terrain", (1.0, 1.0, 1.0), 0.96)
-    shader("HVR_Terrace_Stone", TERRACE_STONE, 0.90)
-    shader("HVR_Well_Stone", WELL_STONE, 0.86)
+    shader("HVR_Terrace_Stone", TERRACE_STONE, 0.90, texture="terrace-flagstone", tint=False)
+    shader("HVR_Well_Stone", WELL_STONE, 0.86, texture="wellstone", tint=False)
     water = shader("HVR_River_Water", RIVER_WATER, 0.12)
     if water.parm("alpha"):
         water.parm("alpha").set(1.0)
@@ -181,17 +190,17 @@ def create_materials() -> None:
     shard.parmTuple("emitcolor").set(SHARD)
     shard.parm("emitint").set(0.06)
     shader("HVR_Portal_Dark", PORTAL_DARK, 1.0)
-    shader("HVR_Bark", BARK, 0.94)
+    shader("HVR_Bark", BARK, 0.94, texture="bark")  # grayscale texture x tint: oak dark, birch pale
     leaf = shader("HVR_Leaf", LEAF_DEEP, 0.82)
     leaf.parm("emitcolor_usePointColor").set(1)
     leaf.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
     leaf.parm("emitint").set(0.22)
     shader("HVR_Rock", ROCK, 0.97)
-    shader("HVR_Timber", TIMBER, 0.88)
-    shader("HVR_Plaster", PLASTER, 0.96)
-    shader("HVR_Thatch", THATCH, 0.98)
-    shader("HVR_Slate", SLATE, 0.72)
-    shader("HVR_Dock_Wood", DOCK_WOOD, 0.90)
+    shader("HVR_Timber", TIMBER, 0.88, texture="timber", tint=False)
+    shader("HVR_Plaster", PLASTER, 0.96, texture="plaster", tint=False)
+    shader("HVR_Thatch", THATCH, 0.98, texture="thatch", tint=False)
+    shader("HVR_Slate", SLATE, 0.72, texture="slate", tint=False)
+    shader("HVR_Dock_Wood", DOCK_WOOD, 0.90, texture="dockwood", tint=False)
     shader("HVR_Reed", REED, 0.92)
     grass = shader("HVR_Grass", (1.0, 1.0, 1.0), 0.88)
     grass.parm("emitcolor_usePointColor").set(1)
@@ -476,7 +485,7 @@ def build_sky(builder: GeometryBuilder) -> None:
         (24.0, 48.0, (0.62, 0.73, 0.86)),
         (48.0, 78.0, (0.52, 0.66, 0.83)),
         (78.0, 120.0, (0.42, 0.58, 0.80)),
-        (120.0, 180.0, (0.32, 0.50, 0.76)),
+        (120.0, 420.0, (0.32, 0.50, 0.76)),
     )
     radius, sides = 700.0, 48
     # distant ground plane so downward rays beyond the zone hit hazy meadow, not void
@@ -558,39 +567,74 @@ def build_terrace(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
 
 
 def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
-    """Anwel river-town blockout: timber-framed houses, dock, well, fences."""
+    """Anwel river-town: timber-framed, enterable houses around an east-bank plaza.
+
+    The canon river course AND the north-south road both run through the atlas
+    anchor point, so the village sits ~7 m east — beside the road, off the wet
+    bank. Houses are hollow shells with 2.2 m door openings (character ~1.8 m)
+    and a window, so they are enterable in-game and in later engine ports."""
     anchor = layout.anchors["anwel"]["world"]
     ax, az = anchor["x"], anchor["z"]
+    plaza = (ax + 7.0, az - 0.5)
 
     def gy(x: float, z: float) -> float:
         return layout.terrain_height(x, z)
 
-    def house(name: str, lx: float, lz: float, w: float, d: float, h: float, yaw: float, roof: str = "thatch") -> None:
+    def house(name: str, lx: float, lz: float, w: float, d: float, h: float, roof: str = "thatch") -> None:
         x, z = ax + lx, az + lz
-        base = gy(x, z) - 0.1
-        # stone footing
+        yaw = math.atan2(plaza[1] - z, plaza[0] - x)  # door wall (+local X) faces the plaza
+        cy_, sy_ = math.cos(yaw), math.sin(yaw)
+
+        def spot(ox: float, oz: float) -> tuple[float, float]:
+            return (x + ox * cy_ - oz * sy_, z + ox * sy_ + oz * cy_)
+
+        base = gy(x, z) - 0.12
+        t = 0.14  # wall thickness
+        wall0 = base + 0.42  # top of footing/floor
+        door_w, door_h = 1.15, 2.2
+        win_w, win_sill, win_top = 0.95, 1.25, 2.15
+
+        # footing + floor
         builder.add_box(f"{name}_footing", (x, base + 0.15, z), (w + 0.3, 0.3, d + 0.3), WELL_STONE, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw)
-        # plaster walls + timber frame corners
-        builder.add_box(f"{name}_walls", (x, base + 0.3 + h / 2, z), (w, h, d), PLASTER, "anwel", MATERIAL_PATHS["plaster"], yaw=yaw)
+        builder.add_box(f"{name}_floor", (x, base + 0.36, z), (w, 0.12, d), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=yaw)
+
+        def panel(tag: str, ox: float, oz: float, y0: float, y1: float, sx: float, sz: float) -> None:
+            cx, cz = spot(ox, oz)
+            builder.add_box(f"{name}_{tag}", (cx, wall0 + (y0 + y1) / 2, cz), (sx, y1 - y0, sz), PLASTER, "anwel", MATERIAL_PATHS["plaster"], yaw=yaw)
+
+        # door wall (+X local): two side panels + lintel over the open doorway
+        side = (d - door_w) / 2
+        panel("wall_door_left", w / 2 - t / 2, -(door_w + side) / 2, 0.0, h, t, side)
+        panel("wall_door_right", w / 2 - t / 2, (door_w + side) / 2, 0.0, h, t, side)
+        panel("wall_door_lintel", w / 2 - t / 2, 0.0, door_h, h, t, door_w)
+        # window wall (-X local): sill, header, two side panels
+        panel("wall_win_sill", -w / 2 + t / 2, 0.0, 0.0, win_sill, t, d)
+        panel("wall_win_header", -w / 2 + t / 2, 0.0, win_top, h, t, d)
+        wside = (d - win_w) / 2
+        panel("wall_win_left", -w / 2 + t / 2, -(win_w + wside) / 2, win_sill, win_top, t, wside)
+        panel("wall_win_right", -w / 2 + t / 2, (win_w + wside) / 2, win_sill, win_top, t, wside)
+        # side walls (±Z local): full panels
+        panel("wall_side_a", 0.0, -d / 2 + t / 2, 0.0, h, w - 2 * t, t)
+        panel("wall_side_b", 0.0, d / 2 - t / 2, 0.0, h, w - 2 * t, t)
+
+        # timber frame: corner posts + door surround
         for cx in (-1, 1):
             for cz in (-1, 1):
-                ox = cx * (w / 2 - 0.09) * math.cos(yaw) - cz * (d / 2 - 0.09) * math.sin(yaw)
-                oz = cx * (w / 2 - 0.09) * math.sin(yaw) + cz * (d / 2 - 0.09) * math.cos(yaw)
-                builder.add_box(f"{name}_post_{cx}_{cz}", (x + ox, base + 0.3 + h / 2, z + oz), (0.18, h, 0.18), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
-        builder.add_prism_roof(f"{name}_roof", (x, base + 0.3 + h, z), w + 0.7, d + 0.7, h * 0.55, THATCH if roof == "thatch" else SLATE, "anwel", MATERIAL_PATHS[roof], yaw=yaw)
-        # door
-        dx = (w / 2 + 0.02) * math.cos(yaw)
-        dz = (w / 2 + 0.02) * math.sin(yaw)
-        builder.add_box(f"{name}_door", (x + dx, base + 1.05, z + dz), (0.06, 1.5, 0.8), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+                px, pz = spot(cx * (w / 2 - 0.09), cz * (d / 2 - 0.09))
+                builder.add_box(f"{name}_post_{cx}_{cz}", (px, wall0 + h / 2, pz), (0.18, h, 0.18), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+        for dz in (-door_w / 2, door_w / 2):
+            px, pz = spot(w / 2 + 0.03, dz)
+            builder.add_box(f"{name}_doorframe_{dz:+.2f}", (px, wall0 + door_h / 2, pz), (0.10, door_h, 0.10), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+        builder.add_prism_roof(f"{name}_roof", (x, wall0 + h, z), w + 0.7, d + 0.7, h * 0.55, THATCH if roof == "thatch" else SLATE, "anwel", MATERIAL_PATHS[roof], yaw=yaw)
 
-    house("anwel_reeve_hall", 2.2, 3.0, 5.2, 4.0, 2.6, 0.15, "slate")
-    house("anwel_cottage_north", -3.2, -2.4, 3.6, 3.0, 2.2, -0.2)
-    house("anwel_cottage_east", 4.0, -1.2, 3.2, 2.8, 2.1, 0.35)
-    house("anwel_fisher_hut", -4.4, 1.6, 2.8, 2.4, 1.9, 0.5)
-    house("anwel_store_barn", 1.0, -4.6, 4.2, 3.2, 2.4, -0.1)
+    house("anwel_reeve_hall", 10.4, 2.6, 5.4, 4.2, 3.0, "slate")
+    house("anwel_cottage_north", 5.6, -3.8, 3.6, 3.0, 2.6)
+    house("anwel_cottage_east", 12.4, -1.8, 3.2, 2.8, 2.5)
+    house("anwel_fisher_hut", 4.9, 2.6, 2.8, 2.4, 2.3)
+    house("anwel_store_barn", 8.8, -6.2, 4.4, 3.2, 2.8)
 
-    # Village well
-    wx, wz = ax + 0.4, az + 0.2
+    # Village well on the plaza
+    wx, wz = plaza
     wy = gy(wx, wz)
     builder.add_cylinder("anwel_well_ring", (wx, wy + 0.4, wz), 0.9, 0.8, 12, WELL_STONE, "anwel", MATERIAL_PATHS["wellstone"])
     builder.add_cylinder("anwel_well_water", (wx, wy + 0.62, wz), 0.65, 0.06, 12, RIVER_WATER, "anwel", MATERIAL_PATHS["water"])
@@ -598,8 +642,8 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
     for px in (-0.7, 0.7):
         builder.add_box(f"anwel_well_post_{px}", (wx + px, wy + 1.25, wz), (0.12, 1.3, 0.12), TIMBER, "anwel", MATERIAL_PATHS["timber"])
 
-    # Dock into the river (river runs ~x = ax - 3.5 at Anwel)
-    dock_x = ax - 3.4
+    # Dock into the river (west bank, river centre ~x = ax at Anwel)
+    dock_x = ax - 2.9
     for plank in range(6):
         pz = az - 2.6 + plank * 0.75
         py = gy(dock_x + 1.2, pz)
@@ -609,10 +653,10 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         py = gy(dock_x + 1.2, pz)
         builder.add_cylinder(f"dock_post_{post}", (dock_x - 1.1, py + 0.3, pz), 0.09, 1.1, 7, DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
 
-    # Fences along the road in
+    # Fences along the east side of the road in
     for fence in range(5):
-        fx = ax + 2.6 + fence * 0.02
-        fz = az + 5.0 + fence * 1.5
+        fx = ax + 3.4 + fence * 0.04
+        fz = az + 4.5 + fence * 1.5
         fy = gy(fx, fz)
         builder.add_box(f"anwel_fence_post_{fence}", (fx, fy + 0.5, fz), (0.12, 1.0, 0.12), TIMBER, "anwel", MATERIAL_PATHS["timber"])
         if fence < 4:
@@ -702,7 +746,7 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
     def excluded(x: float, z: float, margin: float = 0.0) -> bool:
         if math.hypot(x, z) < 13.0 + margin:
             return True
-        if math.hypot(x - anwel["x"], z - anwel["z"]) < 9.0:
+        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 11.0:  # village plaza, east bank
             return True
         if layout.river_distance(x, z) < 3.4:
             return True
@@ -844,7 +888,7 @@ def _grass_points(layout: HeartvaleLayout, rng: random.Random, want_lush: bool) 
     def blocked(x: float, z: float) -> bool:
         if math.hypot(x, z) < 11.6:
             return True
-        if math.hypot(x - anwel["x"], z - anwel["z"]) < 7.5:
+        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 9.5:  # trampled village plaza
             return True
         if layout.river_distance(x, z) < 2.8:
             return True
@@ -932,10 +976,11 @@ def create_lighting(obj: hou.Node) -> None:
 
     ambient = obj.createNode("ambient", "HEARTVALE_SKY_FILL")
     ambient.parmTuple("light_color").set((0.45, 0.55, 0.65))
-    ambient.parm("light_intensity").set(0.32)
+    ambient.parm("light_intensity").set(0.45)
     ambient.parm("ogl_enablelight").set(1)
     distant("HEARTVALE_SUN_KEY", (-35.0, -125.0, 10.0), (1.0, 0.9, 0.75), 0.15)
     distant("HEARTVALE_SKY_RIM", (-20.0, 60.0, -15.0), (0.5, 0.65, 0.85), -1.6)
+    distant("HEARTVALE_BOUNCE_FILL", (25.0, 55.0, -5.0), (0.72, 0.68, 0.60), -1.1)  # warm ground bounce, lifts shadow faces
     point("SOULWELL_GLOW", (0.0, 3.4, 0.0), SOUL_WATER, 1.1)
 
 
@@ -979,7 +1024,8 @@ def create_cameras(obj: hou.Node, layout: HeartvaleLayout) -> None:
     terrace_eye = (5.8, 3.9, -8.8)  # east side of the terrace, clear of the Breach arch
     ground = _persp_camera(obj, "GROUND_TERRACE_CAMERA", terrace_eye, (-1.5, 1.7, 7.5), 32.0)
     anwel = layout.anchors["anwel"]["world"]
-    _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] - 13.5, anwel["z"] + 14.5, 2.2), (anwel["x"] + 1.5, layout.terrain_height(anwel["x"], anwel["z"]) + 2.0, anwel["z"] - 3.0), 34.0)
+    plaza = (anwel["x"] + 7.0, anwel["z"] - 0.5)
+    _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] - 4.0, anwel["z"] - 15.0, 7.0), (plaza[0], layout.terrain_height(*plaza) + 1.2, plaza[1] - 0.5), 36.0)
     _persp_camera(obj, "RIVER_BANK_CAMERA", eye(-14.0, 27.0), (-2.0, layout.terrain_height(-2.0, 14.0) + 0.6, 14.0), 40.0)
     ground.setCurrent(True)
 
