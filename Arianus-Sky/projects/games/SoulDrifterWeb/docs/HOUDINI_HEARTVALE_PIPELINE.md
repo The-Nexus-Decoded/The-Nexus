@@ -59,8 +59,10 @@ A second, higher-fidelity scene builds the full living basin on top of the same 
 
 - **Terrain**: 200×200-quad grid (1.4 m resolution, shared points) with seeded fBm + domain warp, river carve with soft banks, road flattening, terrace pad blend, and the Erboug rise. Vertex colors are the biome splat (lush grass / dry grass / meadow / dirt road / riverbed / wet bank / terrace stone) driven by moisture and patch noise.
 - **Anwel river-town blockout**: five timber-framed houses (stone footings, plaster infill, thatch/slate prism roofs), the village well, a dock on the Anwel run, and split-rail fences — the settlement the player walks into after the terrace.
-- **Vegetation**: 150 trees scattered by grove noise (two-lobe octahedron canopies), 50 boulders, sedge clumps along the river banks, and 90 grass tufts ringing the terrace for the first-impression shot.
-- **Review set**: four orthographic cameras + OpenGL ROPs — `TERRACE_REVIEW_RENDER`, `ANWEL_REVIEW_RENDER`, `RIVER_REVIEW_RENDER`, `ZONE_REVIEW_RENDER`.
+- **Vegetation (lifelike pass)**: 110 branching trees in three species (oak / birch / willow near water) built from tapered tube trunks + primary branches + twig forks with 260–380 oriented leaf cards each; 90 twiggy shrubs with leaf shells; 50 boulders; sedge clumps along the banks. All double-sided so backfaces stay lit.
+- **Grass field**: ~49,000 individually modeled curved blades (tapered ribbon prototype, root→tip color gradient) instanced via copy-to-points in three density bands (lush near the terrace, sparser to the basin rim), split lush/dry by moisture noise with a riparian green-up near rivers. Kept in a separate `HEARTVALE_GRASS_FIELD` geo node so the committed hip and OBJ export stay lean.
+- **Sky**: inward-facing gradient cylinder (horizon haze → zenith blue, emissive) + a distant ground plane at y=−4.65 so no camera ray ever hits void.
+- **Review set**: ground-level perspective cameras (`GROUND_TERRACE_RENDER`, `ANWEL_STREET_RENDER`, `RIVER_BANK_RENDER`) + the orthographic `ZONE_REVIEW_RENDER`, all OpenGL ROPs with shadows, AO and distance fog.
 
 Regeneration (from `SoulDrifterWeb`):
 
@@ -74,10 +76,10 @@ node scripts/houdini/export-heartvale-soulwell-layout.mjs $layout
 Headless OpenGL batch rendering segfaults on this driver (Vulkan, GR_PolyCurveVK), so each still is rendered in an isolated process:
 
 ```powershell
-& '...\hython.exe' scripts/houdini/render-heartvale-still.py source-assets/houdini/heartvale-realistic.hipnc TERRACE_REVIEW_RENDER "$out\terrace_review_render.png"
+& '...\hython.exe' scripts/houdini/render-heartvale-still.py source-assets/houdini/heartvale-realistic.hipnc GROUND_TERRACE_RENDER "$out\ground_terrace_render.png"
 ```
 
-Material note: geometry carries its color as point `Cd`; every Principled shader keeps a white base with `basecolor_usePointColor=1`, otherwise the OpenGL review pass multiplies base color × point color and everything reads near-black.
+Material notes: geometry carries its color as point `Cd`; every Principled shader keeps a white base with `basecolor_usePointColor=1`, otherwise the OpenGL review pass multiplies base color × point color and everything reads near-black. Grass and leaf materials add a small point-color emission (0.22) so backlit blades and canopy undersides never crush to black.
 
 ## Portable terrain export (Unreal / Unity / Three.js)
 

@@ -56,6 +56,13 @@ THATCH: Color = (0.52, 0.42, 0.24)
 SLATE: Color = (0.30, 0.32, 0.34)
 DOCK_WOOD: Color = (0.38, 0.29, 0.17)
 REED: Color = (0.40, 0.46, 0.22)
+GRASS_ROOT: Color = (0.075, 0.17, 0.05)
+GRASS_TIP: Color = (0.36, 0.50, 0.16)
+DRY_ROOT: Color = (0.28, 0.26, 0.10)
+DRY_TIP: Color = (0.55, 0.50, 0.22)
+BIRCH_BARK: Color = (0.62, 0.60, 0.55)
+LEAF_BIRCH: Color = (0.38, 0.52, 0.16)
+LEAF_WILLOW: Color = (0.30, 0.46, 0.14)
 
 MATERIAL_PATHS = {
     "terrain": "/mat/HVR_Terrain",
@@ -74,6 +81,8 @@ MATERIAL_PATHS = {
     "slate": "/mat/HVR_Slate",
     "dock": "/mat/HVR_Dock_Wood",
     "reed": "/mat/HVR_Reed",
+    "grass": "/mat/HVR_Grass",
+    "sky": "/mat/HVR_Sky",
 }
 
 TERRAIN_SAMPLES = 200  # quads per side over the 280 m zone (1.4 m resolution)
@@ -163,7 +172,7 @@ def create_materials() -> None:
     shader("HVR_Well_Stone", WELL_STONE, 0.86)
     water = shader("HVR_River_Water", RIVER_WATER, 0.12)
     if water.parm("alpha"):
-        water.parm("alpha").set(0.88)
+        water.parm("alpha").set(1.0)
     soulwater = shader("HVR_Soul_Water", SOUL_WATER, 0.10)
     soulwater.parmTuple("emitcolor").set(SOUL_WATER)
     soulwater.parm("emitint").set(0.05)
@@ -173,7 +182,10 @@ def create_materials() -> None:
     shard.parm("emitint").set(0.06)
     shader("HVR_Portal_Dark", PORTAL_DARK, 1.0)
     shader("HVR_Bark", BARK, 0.94)
-    shader("HVR_Leaf", LEAF_DEEP, 0.82)
+    leaf = shader("HVR_Leaf", LEAF_DEEP, 0.82)
+    leaf.parm("emitcolor_usePointColor").set(1)
+    leaf.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
+    leaf.parm("emitint").set(0.22)
     shader("HVR_Rock", ROCK, 0.97)
     shader("HVR_Timber", TIMBER, 0.88)
     shader("HVR_Plaster", PLASTER, 0.96)
@@ -181,6 +193,14 @@ def create_materials() -> None:
     shader("HVR_Slate", SLATE, 0.72)
     shader("HVR_Dock_Wood", DOCK_WOOD, 0.90)
     shader("HVR_Reed", REED, 0.92)
+    grass = shader("HVR_Grass", (1.0, 1.0, 1.0), 0.88)
+    grass.parm("emitcolor_usePointColor").set(1)
+    grass.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
+    grass.parm("emitint").set(0.22)
+    sky = shader("HVR_Sky", (0.0, 0.0, 0.0), 1.0)
+    sky.parm("emitcolor_usePointColor").set(1)
+    sky.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
+    sky.parm("emitint").set(0.8)
     material_network.layoutChildren()
 
 
@@ -292,6 +312,44 @@ class GeometryBuilder:
         for face in ((0, 4, 5, 1), (3, 2, 5, 4), (0, 1, 2, 3), (0, 3, 4), (1, 5, 2)):
             self._polygon([pts[i] for i in face], name, kind, color, material)
 
+    def add_tapered_tube(self, name: str, p0: Vector3, p1: Vector3, r0: float, r1: float, sides: int, color: Color, kind: str, material: str) -> None:
+        """Uncapped tapered segment between two points — trunks, branches, stems."""
+        dx, dy, dz = p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]
+        length = math.sqrt(dx * dx + dy * dy + dz * dz) or 1e-6
+        dx, dy, dz = dx / length, dy / length, dz / length
+        ax, ay, az = (1.0, 0.0, 0.0) if abs(dy) > 0.93 else (0.0, 1.0, 0.0)
+        ux, uy, uz = dy * az - dz * ay, dz * ax - dx * az, dx * ay - dy * ax
+        ul = math.sqrt(ux * ux + uy * uy + uz * uz) or 1e-6
+        ux, uy, uz = ux / ul, uy / ul, uz / ul
+        vx, vy, vz = dy * uz - dz * uy, dz * ux - dx * uz, dx * uy - dy * ux
+        ring0: list[hou.Point] = []
+        ring1: list[hou.Point] = []
+        for i in range(sides):
+            a = i / sides * math.tau
+            ca, sa = math.cos(a), math.sin(a)
+            ox, oy, oz = ux * ca + vx * sa, uy * ca + vy * sa, uz * ca + vz * sa
+            ring0.append(self._point((p0[0] + ox * r0, p0[1] + oy * r0, p0[2] + oz * r0), color))
+            ring1.append(self._point((p1[0] + ox * r1, p1[1] + oy * r1, p1[2] + oz * r1), color))
+        for i in range(sides):
+            nxt = (i + 1) % sides
+            self._polygon([ring0[i], ring0[nxt], ring1[nxt], ring1[i]], name, kind, color, material)
+
+    def add_leaf_card(self, name: str, center: Vector3, width: float, height: float, yaw: float, pitch: float, roll: float, color: Color, kind: str, material: str) -> None:
+        """Single quad foliage card with free orientation."""
+        hw, hh = width / 2.0, height / 2.0
+        cr, sr = math.cos(roll), math.sin(roll)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        pts: list[hou.Point] = []
+        for lx, ly in ((-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)):
+            x0, y0 = lx * cr - ly * sr, lx * sr + ly * cr
+            y1, z1 = y0 * cp, y0 * sp
+            x2 = x0 * cy - z1 * sy
+            z2 = x0 * sy + z1 * cy
+            pts.append(self._point((center[0] + x2, center[1] + y1, center[2] + z2), color))
+        self._polygon(pts, name, kind, color, material)
+        self._polygon(list(reversed(pts)), name, kind, color, material)  # double-sided
+
 
 class HeartvaleLayout:
     """Layout + terrain model. Heights and masks come from ONE function set so
@@ -363,7 +421,7 @@ class HeartvaleLayout:
         if d_river < 2.6:
             return RIVERBED, 3
         if d_river < 4.6:
-            return mix3(WET_BANK, MEADOW, 0.25), 4
+            return mix3(WET_BANK, MEADOW, 0.4), 4
         if d_road < 2.2:
             jitter = 0.5 + 0.5 * value_noise(x * 0.5, z * 0.5, self.seed ^ 0x77)
             return mix3(DIRT_ROAD, RIVERBED, 0.12 * jitter), 2
@@ -372,6 +430,9 @@ class HeartvaleLayout:
         lush = smoothstep(-0.35, 0.25, moisture)
         color = mix3(GRASS_DRY, GRASS_LUSH, lush)
         color = mix3(color, MEADOW, 0.4 * smoothstep(0.1, 0.5, patch))
+        # high-frequency hue jitter so the ground never reads as flat fill
+        jitter = value_noise(x * 0.9, z * 0.9, self.seed ^ 0x51CE) * 0.05
+        color = (clamp(color[0] + jitter * 0.6, 0.0, 1.0), clamp(color[1] + jitter, 0.0, 1.0), clamp(color[2] + jitter * 0.4, 0.0, 1.0))
         splat_index = 1 if lush < 0.35 else 0
         return color, splat_index
 
@@ -405,6 +466,32 @@ def build_terrain(builder: GeometryBuilder, layout: HeartvaleLayout) -> tuple[li
             builder._polygon(corners, f"terrain_{ix:03d}_{iz:03d}", "terrain", color, MATERIAL_PATHS["terrain"])
 
     return heights, splats, step, TERRAIN_SAMPLES + 1
+
+
+def build_sky(builder: GeometryBuilder) -> None:
+    """Inward-facing gradient sky wall — horizon haze to zenith blue."""
+    bands = (
+        (-600.0, 6.0, (0.82, 0.86, 0.89)),
+        (6.0, 24.0, (0.72, 0.80, 0.88)),
+        (24.0, 48.0, (0.62, 0.73, 0.86)),
+        (48.0, 78.0, (0.52, 0.66, 0.83)),
+        (78.0, 120.0, (0.42, 0.58, 0.80)),
+        (120.0, 180.0, (0.32, 0.50, 0.76)),
+    )
+    radius, sides = 700.0, 48
+    # distant ground plane so downward rays beyond the zone hit hazy meadow, not void
+    builder.add_cylinder("sky_ground_plane", (0.0, -4.65, 0.0), radius, 0.1, 48, (0.42, 0.48, 0.26), "sky", MATERIAL_PATHS["sky"], cap_bottom=False)
+    for y0, y1, color in bands:
+        ring0: list[hou.Point] = []
+        ring1: list[hou.Point] = []
+        for i in range(sides):
+            a = i / sides * math.tau
+            ring0.append(builder._point((math.cos(a) * radius, y0, math.sin(a) * radius), color))
+            ring1.append(builder._point((math.cos(a) * radius, y1, math.sin(a) * radius), color))
+        for i in range(sides):
+            nxt = (i + 1) % sides
+            # reversed winding so the wall faces inward
+            builder._polygon([ring0[i], ring1[i], ring1[nxt], ring0[nxt]], f"sky_{int(y0)}_{i:02d}", "sky", color, MATERIAL_PATHS["sky"])
 
 
 def _polyline_normals(samples: list[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -532,9 +619,83 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
             builder.add_box(f"anwel_fence_rail_{fence}", (fx, fy + 0.75, fz + 0.75), (0.07, 0.07, 1.5), TIMBER, "anwel", MATERIAL_PATHS["timber"])
 
 
+TREE_SPECIES = {
+    "oak": {"height": (4.5, 7.0), "trunk": (0.22, 0.38), "branches": (5, 7), "cards": 340, "leaf_a": LEAF_DEEP, "leaf_b": LEAF_LIGHT, "spread": 1.0, "droop": 0.0},
+    "birch": {"height": (5.0, 7.5), "trunk": (0.10, 0.18), "branches": (6, 9), "cards": 260, "leaf_a": LEAF_BIRCH, "leaf_b": LEAF_LIGHT, "spread": 0.7, "droop": 0.0},
+    "willow": {"height": (4.0, 6.0), "trunk": (0.20, 0.30), "branches": (7, 10), "cards": 380, "leaf_a": LEAF_WILLOW, "leaf_b": LEAF_LIGHT, "spread": 1.15, "droop": 0.85},
+}
+
+
+def build_tree(builder: GeometryBuilder, index: int, x: float, gy: float, z: float, rng: random.Random, species: str) -> None:
+    """Branching tree: meandering tapered trunk, primary branches + twig forks,
+    and hundreds of oriented leaf cards clustered around branch tips."""
+    spec = TREE_SPECIES[species]
+    name = f"tree_{index:03d}"
+    height = rng.uniform(*spec["height"])
+    trunk_r = rng.uniform(*spec["trunk"])
+    bark = BIRCH_BARK if species == "birch" else BARK
+    joints: list[Vector3] = [(x, gy - 0.15, z)]
+    px, pz = x, z
+    for s in range(4):
+        px += rng.uniform(-0.012, 0.012) * height
+        pz += rng.uniform(-0.012, 0.012) * height
+        joints.append((px, gy + height * (s + 1) / 4.0, pz))
+    for s in range(4):
+        builder.add_tapered_tube(f"{name}_trunk_{s}", joints[s], joints[s + 1], trunk_r * (1.0 - 0.15 * s), trunk_r * (1.0 - 0.15 * (s + 1)), 6, bark, "tree", MATERIAL_PATHS["bark"])
+    top = joints[-1]
+    tips: list[Vector3] = [top]
+    for b in range(rng.randint(*spec["branches"])):
+        frac = rng.uniform(0.55, 1.0)
+        base = (x + (joints[3][0] - x) * frac, gy + height * frac, z + (joints[3][2] - z) * frac)
+        yaw = rng.uniform(0.0, math.tau)
+        blen = rng.uniform(1.1, 2.1) * spec["spread"]
+        rise = rng.uniform(0.5, 1.1) - spec["droop"] * 0.9
+        mid = (base[0] + math.cos(yaw) * blen * 0.55, base[1] + rise * blen * 0.5, base[2] + math.sin(yaw) * blen * 0.55)
+        end = (base[0] + math.cos(yaw) * blen, base[1] + rise * blen - spec["droop"] * blen * 0.55, base[2] + math.sin(yaw) * blen)
+        builder.add_tapered_tube(f"{name}_br_{b}_a", base, mid, trunk_r * 0.42, trunk_r * 0.22, 5, bark, "tree", MATERIAL_PATHS["bark"])
+        builder.add_tapered_tube(f"{name}_br_{b}_b", mid, end, trunk_r * 0.22, trunk_r * 0.08, 5, bark, "tree", MATERIAL_PATHS["bark"])
+        tips.append(end)
+        if rng.random() < 0.7:
+            tyaw = yaw + rng.uniform(-0.9, 0.9)
+            tlen = blen * rng.uniform(0.3, 0.5)
+            tend = (end[0] + math.cos(tyaw) * tlen, end[1] + (rng.uniform(-0.2, 0.5) - spec["droop"] * 0.3) * tlen, end[2] + math.sin(tyaw) * tlen)
+            builder.add_tapered_tube(f"{name}_tw_{b}", end, tend, trunk_r * 0.08, trunk_r * 0.03, 4, bark, "tree", MATERIAL_PATHS["bark"])
+            tips.append(tend)
+    per_shell = max(8, spec["cards"] // len(tips))
+    card = 0
+    for shell in tips:
+        ex, ey = 0.95 * spec["spread"], 0.6
+        for _ in range(per_shell):
+            oy = rng.uniform(-ey, ey)
+            center = (shell[0] + rng.uniform(-ex, ex), shell[1] + oy, shell[2] + rng.uniform(-ex, ex))
+            shade = clamp(0.55 + 0.45 * (oy / ey), 0.0, 1.0) * rng.uniform(0.7, 1.3)
+            color = mix3(spec["leaf_a"], spec["leaf_b"], clamp(shade, 0.0, 1.0))
+            builder.add_leaf_card(f"{name}_leaf_{card:03d}", center, rng.uniform(0.24, 0.40), rng.uniform(0.18, 0.30), rng.uniform(0.0, math.tau), rng.uniform(-1.2, 1.2), rng.uniform(0.0, math.tau), color, "tree", MATERIAL_PATHS["leaf"])
+            card += 1
+
+
+def build_shrub(builder: GeometryBuilder, index: int, x: float, gy: float, z: float, rng: random.Random) -> None:
+    """Twiggy bush: a fan of thin stems with small leaf cards in a loose shell."""
+    name = f"shrub_{index:03d}"
+    tips: list[Vector3] = []
+    for s in range(rng.randint(4, 7)):
+        yaw = rng.uniform(0.0, math.tau)
+        reach = rng.uniform(0.25, 0.60)
+        end = (x + math.cos(yaw) * reach, gy + rng.uniform(0.5, 1.0), z + math.sin(yaw) * reach)
+        builder.add_tapered_tube(f"{name}_stem_{s}", (x, gy + 0.02, z), end, 0.035, 0.012, 4, BARK, "shrub", MATERIAL_PATHS["bark"])
+        tips.append(end)
+    card = 0
+    for tip in tips:
+        for _ in range(rng.randint(14, 22)):
+            center = (tip[0] + rng.uniform(-0.45, 0.45), tip[1] + rng.uniform(-0.30, 0.30), tip[2] + rng.uniform(-0.45, 0.45))
+            color = mix3(LEAF_DEEP, LEAF_LIGHT, rng.random())
+            builder.add_leaf_card(f"{name}_leaf_{card:03d}", center, rng.uniform(0.12, 0.20), rng.uniform(0.09, 0.15), rng.uniform(0.0, math.tau), rng.uniform(-1.2, 1.2), rng.uniform(0.0, math.tau), color, "shrub", MATERIAL_PATHS["leaf"])
+            card += 1
+
+
 def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict[str, int]:
     rng = random.Random(layout.seed ^ 0xC0FFEE)
-    counts = {"trees": 0, "rocks": 0, "reeds": 0, "grassTufts": 0}
+    counts = {"trees": 0, "shrubs": 0, "rocks": 0, "reeds": 0}
     half_extent = layout.zone_grid * layout.tile_size / 2.0
     anwel = layout.anchors["anwel"]["world"]
 
@@ -553,9 +714,11 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
                 return True
         return False
 
+    placed_trees: list[tuple[float, float, float]] = []
+
     # Trees — clustered by noise so they read as groves, denser near treeline NE.
     for _ in range(1600):
-        if counts["trees"] >= 150:
+        if counts["trees"] >= 110:
             break
         x = rng.uniform(-half_extent + 6, half_extent - 6)
         z = rng.uniform(-half_extent + 6, half_extent - 6)
@@ -568,14 +731,35 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         if excluded(x, z):
             continue
         gy = layout.terrain_height(x, z)
-        trunk_h = rng.uniform(2.2, 4.0)
-        trunk_r = rng.uniform(0.16, 0.32)
-        canopy = rng.uniform(1.3, 2.3)
-        leaf = mix3(LEAF_DEEP, LEAF_LIGHT, rng.random())
-        builder.add_cylinder(f"tree_trunk_{counts['trees']:03d}", (x, gy + trunk_h / 2, z), trunk_r, trunk_h, 7, BARK, "tree", MATERIAL_PATHS["bark"])
-        builder.add_octahedron(f"tree_canopy_{counts['trees']:03d}", (x, gy + trunk_h + canopy * 0.5, z), canopy, leaf, "tree", MATERIAL_PATHS["leaf"], stretch_y=0.85)
-        builder.add_octahedron(f"tree_canopy_b_{counts['trees']:03d}", (x + canopy * 0.35, gy + trunk_h + canopy * 0.95, z + canopy * 0.2), canopy * 0.6, leaf, "tree", MATERIAL_PATHS["leaf"], stretch_y=0.8)
+        if layout.river_distance(x, z) < 9.0:
+            species = "willow"
+        elif x > 10 and z < -30 and rng.random() < 0.5:
+            species = "birch"
+        else:
+            species = "oak"
+        build_tree(builder, counts["trees"], x, gy, z, rng, species)
+        placed_trees.append((x, gy, z))
         counts["trees"] += 1
+
+    # Shrubs — under trees, along roadsides and river edges.
+    for _ in range(1200):
+        if counts["shrubs"] >= 90:
+            break
+        if placed_trees and rng.random() < 0.6:
+            tx, _, tz = placed_trees[rng.randrange(len(placed_trees))]
+            angle = rng.uniform(0.0, math.tau)
+            dist = rng.uniform(2.5, 7.0)
+            x, z = tx + math.cos(angle) * dist, tz + math.sin(angle) * dist
+        else:
+            x = rng.uniform(-half_extent + 6, half_extent - 6)
+            z = rng.uniform(-half_extent + 6, half_extent - 6)
+        if abs(x) > half_extent - 4 or abs(z) > half_extent - 4:
+            continue
+        if excluded(x, z, margin=-1.0):
+            continue
+        gy = layout.terrain_height(x, z)
+        build_shrub(builder, counts["shrubs"], x, gy, z, rng)
+        counts["shrubs"] += 1
 
     # Rocks
     for _ in range(400):
@@ -605,21 +789,127 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         builder.add_octahedron(f"sedge_{counts['reeds']:03d}", (x, gy + 0.22, z), rng.uniform(0.30, 0.5), mix3(REED, GRASS_LUSH, rng.random() * 0.5), "reed", MATERIAL_PATHS["reed"], squash=1.2, stretch_y=0.65)
         counts["reeds"] += 1
 
-    # Grass tufts near the terrace/start area (the lifelike first impression)
-    for _ in range(500):
-        if counts["grassTufts"] >= 90:
-            break
-        angle = rng.uniform(0, math.tau)
-        r = rng.uniform(12.5, 42.0)
-        x, z = math.cos(angle) * r, math.sin(angle) * r
-        if excluded(x, z, margin=-1.5):
-            continue
-        gy = layout.terrain_height(x, z)
-        color = mix3(GRASS_LUSH, LEAF_LIGHT, 0.3 + rng.random() * 0.5)
-        builder.add_octahedron(f"tuft_{counts['grassTufts']:03d}", (x, gy + 0.14, z), rng.uniform(0.15, 0.24), color, "grass", MATERIAL_PATHS["reed"], squash=1.6, stretch_y=0.8)
-        counts["grassTufts"] += 1
-
     return counts
+
+
+def _quat_mul(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    ax, ay, az, aw = a
+    bx, by, bz, bw = b
+    return (
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz,
+    )
+
+
+def _blade_prototype(root: Color, tip: Color) -> hou.Geometry:
+    """One curved tapered grass blade, local +Y up, bending toward +X."""
+    geometry = hou.Geometry()
+    geometry.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
+    geometry.addAttrib(hou.attribType.Prim, "shop_materialpath", "")
+    segments, height, width0, bend = 4, 0.52, 0.038, 0.17
+    prev: tuple[hou.Point, hou.Point] | None = None
+    for i in range(segments + 1):
+        t = i / segments
+        cx, cy = bend * t * t, height * t
+        half = width0 * (1.0 - 0.8 * t) / 2.0
+        color = mix3(root, tip, t)
+        left = geometry.createPoint()
+        left.setPosition((cx - half, cy, 0.0))
+        left.setAttribValue("Cd", color)
+        right = geometry.createPoint()
+        right.setPosition((cx + half, cy, 0.0))
+        right.setAttribValue("Cd", color)
+        if prev is not None:
+            polygon = geometry.createPolygon()
+            for point in (prev[0], prev[1], right, left):
+                polygon.addVertex(point)
+            polygon.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
+            back = geometry.createPolygon()
+            for point in (prev[1], prev[0], left, right):
+                back.addVertex(point)
+            back.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
+        prev = (left, right)
+    return geometry
+
+
+def _grass_points(layout: HeartvaleLayout, rng: random.Random, want_lush: bool) -> tuple[hou.Geometry, int]:
+    geometry = hou.Geometry()
+    geometry.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
+    geometry.addAttrib(hou.attribType.Point, "orient", (0.0, 0.0, 0.0, 1.0))
+    geometry.addAttrib(hou.attribType.Point, "pscale", 1.0)
+    anwel = layout.anchors["anwel"]["world"]
+
+    def blocked(x: float, z: float) -> bool:
+        if math.hypot(x, z) < 11.6:
+            return True
+        if math.hypot(x - anwel["x"], z - anwel["z"]) < 7.5:
+            return True
+        if layout.river_distance(x, z) < 2.8:
+            return True
+        return layout.road_distance(x, z) < 2.1
+
+    placed = 0
+    bands = ((0.0, 38.0, 0.38), (38.0, 80.0, 0.90), (80.0, 136.0, 2.2))
+    for inner, outer, spacing in bands:
+        gx = -outer
+        while gx < outer:
+            gz = -outer
+            while gz < outer:
+                gz += spacing
+                x = gx + rng.uniform(-0.4, 0.4) * spacing
+                z = gz + rng.uniform(-0.4, 0.4) * spacing
+                r = math.hypot(x, z)
+                if r < inner or r >= outer or blocked(x, z):
+                    continue
+                moisture = fbm(x * 0.021 + 9.0, z * 0.021 - 4.0, layout.seed ^ 0xF00D, 3)
+                moisture += 0.35 * (1.0 - smoothstep(3.0, 14.0, layout.river_distance(x, z)))  # riparian green-up
+                if (moisture > -0.05) != want_lush:
+                    continue
+                gy = layout.terrain_height(x, z)
+                point = geometry.createPoint()
+                point.setPosition((x, gy + 0.005, z))
+                yaw = rng.uniform(0.0, math.tau)
+                tilt = rng.uniform(0.0, 0.35)
+                q_yaw = (0.0, math.sin(yaw / 2.0), 0.0, math.cos(yaw / 2.0))
+                q_tilt = (math.sin(tilt / 2.0), 0.0, 0.0, math.cos(tilt / 2.0))
+                point.setAttribValue("orient", _quat_mul(q_yaw, q_tilt))
+                point.setAttribValue("pscale", rng.uniform(0.55, 1.45))
+                placed += 1
+            gx += spacing
+    return geometry, placed
+
+
+def build_grass_field(grass_node: hou.Node, layout: HeartvaleLayout) -> int:
+    """Instanced blade grass: two prototypes (lush/dry), scatter points, copy-to-points.
+    Kept in its own geo node so the OBJ export and the committed .hipnc stay lean."""
+    rng = random.Random(layout.seed ^ 0x6A455)
+    copies: list[hou.Node] = []
+    total = 0
+    for want_lush, label, root, tip in (
+        (True, "LUSH", GRASS_ROOT, GRASS_TIP),
+        (False, "DRY", DRY_ROOT, DRY_TIP),
+    ):
+        proto_stash = grass_node.createNode("stash", f"BLADE_PROTO_{label}")
+        proto_stash.parm("stash").set(_blade_prototype(root, tip))
+        points_stash = grass_node.createNode("stash", f"BLADE_POINTS_{label}")
+        points_geo, placed = _grass_points(layout, rng, want_lush)
+        points_stash.parm("stash").set(points_geo)
+        copy = grass_node.createNode("copytopoints", f"COPY_BLADES_{label}")
+        copy.setInput(0, proto_stash)
+        copy.setInput(1, points_stash)
+        copies.append(copy)
+        total += placed
+    merge = grass_node.createNode("merge", "GRASS_MERGE")
+    for index, copy in enumerate(copies):
+        merge.setInput(index, copy)
+    out = grass_node.createNode("null", "OUT_GRASS")
+    out.setInput(0, merge)
+    out.setDisplayFlag(True)
+    out.setRenderFlag(True)
+    grass_node.layoutChildren()
+    return total
 
 
 def create_lighting(obj: hou.Node) -> None:
@@ -660,25 +950,46 @@ def _ortho_camera(obj: hou.Node, name: str, position: Vector3, target: Vector3, 
         camera.parm("projection").set("ortho")
     if camera.parm("orthowidth"):
         camera.parm("orthowidth").set(width)
+    if camera.parm("far"):
+        camera.parm("far").set(8000.0)
+    return camera
+
+
+def _persp_camera(obj: hou.Node, name: str, position: Vector3, target: Vector3, focal: float = 38.0) -> hou.Node:
+    target_node = obj.createNode("null", f"{name}_TARGET")
+    target_node.parmTuple("t").set(target)
+    camera = obj.createNode("cam", name)
+    camera.parmTuple("t").set(position)
+    if camera.parm("lookatpath"):
+        camera.parm("lookatpath").set(target_node.path())
+    camera.parm("focal").set(focal)
+    if camera.parm("far"):
+        camera.parm("far").set(8000.0)
     return camera
 
 
 def create_cameras(obj: hou.Node, layout: HeartvaleLayout) -> None:
     span = layout.zone_grid * layout.tile_size
     _ortho_camera(obj, "ISO_ZONE_CAMERA", (-span * 0.40, span * 0.55, 30.0 + span * 0.40), (0.0, 0.0, 30.0), span * 1.16)
-    terrace = _ortho_camera(obj, "TERRACE_REVIEW_CAMERA", (-13.0, 9.5, 14.0), (0.0, 2.2, -0.5), 26.0)
+
+    def eye(x: float, z: float, above: float = 1.7) -> Vector3:
+        return (x, layout.terrain_height(x, z) + above, z)
+
+    # Ground-level perspective shots — the player's actual first impressions.
+    terrace_eye = (5.8, 3.9, -8.8)  # east side of the terrace, clear of the Breach arch
+    ground = _persp_camera(obj, "GROUND_TERRACE_CAMERA", terrace_eye, (-1.5, 1.7, 7.5), 32.0)
     anwel = layout.anchors["anwel"]["world"]
-    _ortho_camera(obj, "ANWEL_REVIEW_CAMERA", (anwel["x"] - 12.0, 9.0, anwel["z"] + 13.0), (anwel["x"], 1.8, anwel["z"]), 24.0)
-    _ortho_camera(obj, "RIVER_REVIEW_CAMERA", (-24.0, 10.0, 34.0), (-6.0, 0.5, 18.0), 34.0)
-    terrace.setCurrent(True)
+    _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] - 13.5, anwel["z"] + 14.5, 2.2), (anwel["x"] + 1.5, layout.terrain_height(anwel["x"], anwel["z"]) + 2.0, anwel["z"] - 3.0), 34.0)
+    _persp_camera(obj, "RIVER_BANK_CAMERA", eye(-14.0, 27.0), (-2.0, layout.terrain_height(-2.0, 14.0) + 0.6, 14.0), 40.0)
+    ground.setCurrent(True)
 
 
 def create_review_renders(out: hou.Node, outdir: Path) -> list[dict]:
     results: list[dict] = []
     for name, camera in (
-        ("TERRACE_REVIEW_RENDER", "/obj/TERRACE_REVIEW_CAMERA"),
-        ("ANWEL_REVIEW_RENDER", "/obj/ANWEL_REVIEW_CAMERA"),
-        ("RIVER_REVIEW_RENDER", "/obj/RIVER_REVIEW_CAMERA"),
+        ("GROUND_TERRACE_RENDER", "/obj/GROUND_TERRACE_CAMERA"),
+        ("ANWEL_STREET_RENDER", "/obj/ANWEL_STREET_CAMERA"),
+        ("RIVER_BANK_RENDER", "/obj/RIVER_BANK_CAMERA"),
         ("ZONE_REVIEW_RENDER", "/obj/ISO_ZONE_CAMERA"),
     ):
         render = out.createNode("opengl", name)
@@ -774,9 +1085,15 @@ def main() -> None:
     builder = GeometryBuilder()
     heights, splats, step, sample_count = build_terrain(builder, layout)
     build_water(builder, layout)
+    build_sky(builder)
     build_terrace(builder, layout)
     build_anwel(builder, layout)
     counts = scatter_vegetation(builder, layout)
+
+    grass_node = obj.createNode("geo", "HEARTVALE_GRASS_FIELD")
+    for child in grass_node.children():
+        child.destroy()
+    counts["grassBlades"] = build_grass_field(grass_node, layout)
 
     stash = environment.createNode("stash", "AUTHORED_ENVIRONMENT")
     stash.parm("stash").set(builder.geometry)
