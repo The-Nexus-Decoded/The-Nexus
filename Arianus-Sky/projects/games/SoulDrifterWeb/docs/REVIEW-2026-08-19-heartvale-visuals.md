@@ -138,6 +138,74 @@ in the current build because it predates the frame:
 
 ---
 
+## Third-look addendum (renders of 15:10, commit `e8f97b39`)
+
+Verified against the fresh renders (owner workspace `heartvale-preview/`,
+15:10). Progress is real: 8 Poly Haven PBR texture sets landed, the Soul
+Well has mossy stone + windlass, and trees are real Poly Haven trees. The
+remaining failures are the ground layer and lighting:
+
+- **T1. Tree-ground merge (owner-flagged):** the fix attempt was
+  "terrain-following soil discs" — brown geometry pancakes with hard
+  polygonal edges under each trunk. A disc ON the ground is not blending.
+  **Fix:** delete the discs; paint a noisy, feathered "forest floor" radius
+  into the splat map around each trunk (falloff ~1.5–2.5 m), plus a few
+  leaf-litter/twig props. The *ground itself* must change under trees.
+- **T2. Grass (owner-flagged):** oversized, uniformly-spaced blade cards of
+  one height and one flat yellow, pasted on untextured ground. **Fix:**
+  clump cards (3–7 blades) at 0.25–0.5 m, noise-driven patchiness (dense
+  meadows, sparse verges), per-clump height/rotation/color variance sampled
+  from the ground splat, and density falloff near roads/water — over a
+  TEXTURED meadow (T3). In the runtime: instanced grass + wind shader.
+- **T3. Terrain STILL untextured (Finding 1, unfixed):** meadow and
+  riverbank are smooth vertex-color gradients; water meets bank as a hard
+  cyan line with a black gap. **Fix:** splat-blended tiled PBR ground
+  textures (grass/dry grass/dirt/riverbed/wet bank channels already in the
+  splat export); feather the wet-bank channel and add water depth fade at
+  edges. This is the #1 visual fix — everything sits on it.
+- **T4. Houses read as polygons (owner-flagged):** plaster/thatch/stone
+  textures ARE applied now (visible on sunlit faces: thatch, chimney stone,
+  foundation course), but (a) shadow sides crush to pure black — no ambient
+  fill, no AO, no sky bounce — so most surfaces read as flat black polygons;
+  (b) geometry is razor-sharp boxes — no bevels, no eave/corner trim, no
+  timber framing on gables; (c) doors/windows are unlit black holes.
+  **Fix:** bevel or trim every hard edge; timber-frame the gable ends;
+  foundation courses everywhere; shutters/frames that catch light; and fix
+  the lighting (T5) so the textures that already exist become visible.
+- **T5. Lighting/renderer (Finding 4, unfixed):** single harsh sun, zero
+  fill. **Fix (runtime):** day profile per `docs/LIGHTING-PROFILES.md` +
+  SSAO/contact shadows (N8AO, see tools below) + hemisphere/sky fill +
+  distance haze. AO alone will ground trees, houses, and props more than
+  any texture.
+- **T6. Scale STILL the old frame (Finding 0, unfixed):** layout script
+  still at 1 tile = 1.75 m / 280 m basin. Remains the first job at handoff.
+
+### Free tools/plugins for the fix work (all free, license-safe)
+
+- **ambientCG** — CC0 PBR textures (meadow grass, soil, gravel, bark,
+  plaster, timber) to complement Poly Haven. ⚠ Avoid Quixel Megascans:
+  free only for Unreal Engine, NOT license-safe here.
+- **N8AO** (npm) — SSAO/contact shadows for Three.js; the single biggest
+  "grounding" win for the iso view.
+- **Three.js Water2 example / custom river shader** — ripple normals,
+  depth fade, bank foam (runtime water, replacing the flat ribbon).
+- **Instanced grass pattern** (three.js `InstancedMesh` + wind vertex
+  shader) — already have instancing precedent (49k grass blades in Houdini);
+  port the concept to the runtime with clump cards.
+- **glTF-Transform CLI + KTX2 (`toktx`)** — meshopt/Basis compression so
+  Poly Haven assets + textures fit the 150 MB runtime budget.
+- **Materialize** — derive full PBR sets (normal/rough/AO) from painted or
+  AI-generated images; the path to textures that match the M-003 painted
+  art direction exactly.
+- **Blender** — bevels, trim sheets, house variant kit-bashing, GLB export.
+- **Quaternius / Kenney / Poly Pizza** — CC0 model libraries for village
+  dressing (carts, fences, barrels, stalls, crates). Record everything in
+  `third-party-assets.json` per policy.
+- Houdini stays the layout/scale authority; OpenGL renders remain
+  blockout-only — final look is judged in the Three.js runtime.
+
+---
+
 ## What is genuinely good (keep)
 
 - Canon-anchored layout: POI bearings/relative positions match the atlas.
