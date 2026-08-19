@@ -78,4 +78,19 @@ async function bootstrap(): Promise<void> {
   );
 }
 
-void bootstrap();
+void (async () => {
+  // Zone preview branch: ?zonePreview=hv-1 renders the Heartvale outdoor zone
+  // straight from the Houdini exports, bypassing character creation. Used by
+  // the visual review gate (ZONE_BUILD_RUNBOOK.md §7) — World3D is untouched.
+  const previewZone = new URL(window.location.href).searchParams.get("zonePreview");
+  if (previewZone) {
+    const { startZonePreview } = await import("./game/zones/heartvale/preview");
+    const shell = document.getElementById("character-creation");
+    if (shell) shell.hidden = true;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    await startZonePreview(host, previewZone);
+    return;
+  }
+  await bootstrap();
+})();
