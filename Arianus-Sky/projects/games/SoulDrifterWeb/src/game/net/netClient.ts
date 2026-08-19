@@ -23,7 +23,7 @@ import {
 export type MpConnectionStatus =
   | { kind: "idle" }
   | { kind: "connecting" }
-  | { kind: "online"; id: string; playerCount: number; cap: number; shard?: string; shards?: number }
+  | { kind: "online"; id: string; playerCount: number; cap: number; shard?: string; shards?: number; linking?: string }
   | { kind: "full"; cap: number }
   | { kind: "offline"; reason: string };
 
@@ -74,6 +74,15 @@ export class MpNetClient {
 
   get id(): string | null {
     return this.playerId;
+  }
+
+  get zoneId(): string {
+    return this.zone;
+  }
+
+  /** True after a welcome — the connection is joined to a shard. */
+  get online(): boolean {
+    return this.playerId !== null;
   }
 
   get playerCount(): number {

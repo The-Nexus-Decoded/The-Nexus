@@ -20,7 +20,9 @@ deliberately a foundation — no combat, inventory, or chat authority yet.
 | Opt-in wiring | `src/main.ts` | Active only with `?mp=` or `VITE_MP_URL`. Status badge is created from JS — no static HTML/CSS changes. |
 | Zone server | `server/zone-server.mjs` + `server/zone-room.mjs` + `server/zone-directory.mjs` | Node `ws` relay. Shard overflow instancing: 30 players per shard, new shard of the same zone created on demand when all shards fill (see below), 20 Hz per-player relay clamp, 45 s idle reap, `/health` probe. |
 | Section registry | `server/sections.mjs` | Heartvale's 7 sections (world-meter rects + adjacency) and the Thalenyr scale constants. See `docs/THALENYR_SCALE_AND_SECTIONS.md`. |
-| Tests | `tests/mpProtocol.test.ts`, `tests/mpInterpolation.test.ts`, `tests/zoneRoom.test.mjs`, `tests/zoneDirectory.test.mjs` | 25 new tests; full suite 168/168 green. |
+| Client zone registry | `src/game/net/heartvaleZones.ts` | TS mirror of `server/sections.mjs` — same rects/adjacency, `zoneAt`, `nearestAdjacentEdge`, `distanceToRect`. Parity-tested against the server module so the two can never drift. |
+| Seamless crossover | `src/game/net/zoneCrossover.ts` | State machine that pre-joins the adjacent zone inside a 50 m edge band, receives on both shards while overlapping, transfers presence when `zoneAt` flips, and holds the old shard as the return pre-join (2 s / 10 m hysteresis — no connect/disconnect churn at a seam). |
+| Tests | `tests/mpProtocol.test.ts`, `tests/mpInterpolation.test.ts`, `tests/zoneRoom.test.mjs`, `tests/zoneDirectory.test.mjs`, `tests/heartvaleZones.test.ts`, `tests/zoneCrossover.test.ts` | 39 new tests; full suite 182/182 green. |
 | Live smoke test | `scripts/mp-smoke-test.mjs` | 31 real clients: 30 fill shard #1, 31st overflows into shard #2, relay isolated per shard, empty shard closes. |
 
 ## Shard overflow instancing
@@ -35,6 +37,35 @@ their serials are reused. `welcome` carries `shard` + `shards`; the badge
 shows `hv-1 · #2 · 27/30 drifters`. Relay is isolated per shard. Full design:
 `docs/THALENYR_SCALE_AND_SECTIONS.md`.
 
+## Seamless zone crossover
+
+With crossover mode on, the client tracks the local player's world-meter
+position against the Heartvale section rects and manages **two** relay
+connections near a seam so crossing it never drops presence:
+
+1. **Pre-join** — within 50 m of an adjacent section's edge, a second client
+   connects to that zone and waits for its `welcome`.
+2. **Dual** — both shards are online; the local state still publishes only
+   through the current zone, but players near the seam on the neighboring
+   shard are already visible (and vice versa).
+3. **Transfer** — the moment `zoneAt` flips, the neighbor client becomes
+   primary and publishing switches over. The retired shard is *retained* as
+   the return pre-join while still in the band, so hovering on a seam does
+   not thrash connections. Settling requires 2 s or 10 m past the edge
+   (hysteresis); the old client is released past 65 m.
+
+Teleport/spawn into a non-adjacent zone joins the new zone cold. Crossover
+mode is opt-in: `?crossover=1` or `VITE_MP_CROSSOVER=1`, and it defaults the
+zone to `hv-1` instead of `heartvale`. While a pre-join is in flight the
+badge shows a linking hint, e.g. `hv-1 ⇄ hv-2 · #1 · 27/30 drifters`.
+
+**Frame requirement:** crossover positions must be in the shared world frame
+(plate meters, origin at plate top-left, +x east / +z south — see
+`docs/THALENYR_SCALE_AND_SECTIONS.md`). The layer feeds the local player's
+transform from the active world's bridge, so real in-world use lands with
+the Heartvale zone build; until then the state machine is covered by its
+unit tests (simulated walks across every seam behavior above).
+
 ## Run it
 
 ```bash
@@ -48,9 +79,16 @@ Join a zone from the game URL:
 http://localhost:5173/?mp=ws://localhost:8787&zone=heartvale
 ```
 
+Crossover mode (section rects + seamless seam transitions):
+
+```
+http://localhost:5173/?mp=ws://localhost:8787&crossover=1&zone=hv-1
+```
+
 Open the same URL in more windows/machines to share the instance. The
-bottom-left badge shows `heartvale · N/30 drifters`. Health probe:
-`GET http://localhost:8787/health`.
+bottom-left badge shows `heartvale · N/30 drifters` (or
+`hv-1 ⇄ hv-2 · #1 · N/30 drifters` while a crossover pre-join is in
+flight). Health probe: `GET http://localhost:8787/health`.
 
 ## Protocol v1 (JSON over WebSocket)
 

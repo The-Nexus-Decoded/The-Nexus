@@ -2,10 +2,11 @@
 
 Design contract for turning the painted Thalenyr atlas (M-003) into playable
 mini-world zones. Status: **v2 POI-safe zone cut + taxonomy approved by the
-owner (2026-08-19)**; shard overflow instancing is implemented on
-`feat/multiplayer-base-layer`; in-world tile streaming and boundary crossover
-land with the Heartvale world build (see `docs/ZONE_BUILD_RUNBOOK.md` and
-`docs/HEARTVALE_ZONE_TICKETS.md`).
+owner (2026-08-19)**; shard overflow instancing and the client crossover
+state machine (pre-join / dual-receive / transfer with hysteresis) are
+implemented on `feat/multiplayer-base-layer`; in-world tile streaming and
+wiring crossover to the Heartvale world's transform land with the world
+build (see `docs/ZONE_BUILD_RUNBOOK.md` and `docs/HEARTVALE_ZONE_TICKETS.md`).
 
 ---
 
@@ -154,7 +155,7 @@ Verified by `tests/zoneDirectory.test.mjs` (6 tests) and the live
 
 ---
 
-## 4. Seamless zone transitions (design — lands with the world build)
+## 4. Seamless zone transitions (client implemented; in-world wiring lands with the world build)
 
 Goal: **no loading screen** when moving between zones, at any point along a
 shared edge (not just at Connectors).
@@ -179,6 +180,15 @@ creates the next shard transparently (the badge's shard id ticks over).
 Party-aware shard affinity (friends crossing together land in the *same*
 shard) is a follow-up — directory hint `?shard=hv-2#1`, noted, not built.
 
+Networking notes (implemented as designed in `src/game/net/zoneCrossover.ts`,
+unit-tested in `tests/zoneCrossover.test.ts`): the client registry
+`src/game/net/heartvaleZones.ts` mirrors `server/sections.mjs` and is
+parity-tested against it; the crossover state machine keeps the retired
+shard connected as the *return* pre-join while the player is still inside
+the band, so pacing across a seam never reconnects. In-world activation is
+opt-in via `?crossover=1` / `VITE_MP_CROSSOVER=1` and waits on the world
+build reporting plate-frame positions.
+
 ---
 
 ## 5. What lands where
@@ -190,7 +200,7 @@ shard) is a follow-up — directory hint `?shard=hv-2#1`, noted, not built.
 | v2 zone cut + taxonomy (owner-approved) | Done (this doc) |
 | Zone build runbook (`docs/ZONE_BUILD_RUNBOOK.md`) | Done (this branch) |
 | Per-zone tickets (`docs/HEARTVALE_ZONE_TICKETS.md`) | Done (this branch) |
-| Client boundary detection + pre-join crossover | Zone build (tickets HV-x) |
+| Client boundary detection + pre-join crossover (`heartvaleZones.ts` + `zoneCrossover.ts`) | Done (this branch) — activates in-world once the zone build reports plate-frame positions |
 | Terrain/prop tile streaming | Zone build (tickets HV-x) |
 | Party-aware shard affinity | Follow-up |
 | Tickets for remaining Thalenyr sections | Blocked until Heartvale validated in-game (ticket THALENYR-SECTIONS-01) |

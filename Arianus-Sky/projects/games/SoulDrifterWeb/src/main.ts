@@ -39,7 +39,8 @@ function renderMultiplayerStatus(zone: string, status: MpConnectionStatus): void
   switch (status.kind) {
     case "online": {
       const shardLabel = status.shard ? ` · #${status.shard.split("#")[1]}` : "";
-      badge.textContent = `${zone}${shardLabel} · ${status.playerCount}/${status.cap} drifters`;
+      const linkingLabel = status.linking ? ` ⇄ ${status.linking}` : "";
+      badge.textContent = `${zone}${linkingLabel}${shardLabel} · ${status.playerCount}/${status.cap} drifters`;
       badge.style.color = "#cfe8c8";
       break;
     }
@@ -64,13 +65,20 @@ function connectMultiplayerIfEnabled(world: World3D, profile: CharacterProfile):
   const params = new URL(window.location.href).searchParams;
   const url = params.get("mp") || (import.meta.env.VITE_MP_URL as string | undefined) || "";
   if (!url) return;
-  const zone = params.get("zone") || (import.meta.env.VITE_MP_ZONE as string | undefined) || "heartvale";
+  // Crossover mode (seamless zone transitions) opts into the zone registry;
+  // plain mode keeps any zone id the server accepts.
+  const crossover = params.has("crossover") || Boolean(import.meta.env.VITE_MP_CROSSOVER as string | undefined);
+  const zone =
+    params.get("zone") ||
+    (import.meta.env.VITE_MP_ZONE as string | undefined) ||
+    (crossover ? "hv-1" : "heartvale");
   activeMultiplayer = createMultiplayerLayer({
     url,
     zone,
     playerName: profile.name,
     appearance: { raceId: profile.raceId, callingId: profile.callingId },
     bridge: world.multiplayerBridge(),
+    crossover,
     onStatus: (status) => renderMultiplayerStatus(zone, status),
   });
   activeMultiplayer.connect();
