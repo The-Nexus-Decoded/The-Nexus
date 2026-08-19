@@ -1,0 +1,704 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "src/game/zoneHeartvale.ts#HEARTVALE_QUESTS",
+  "quests": [
+    {
+      "id": "q-first-roof",
+      "name": "The First Roof",
+      "giverNpcId": "mira-eddlestone",
+      "turnInNpcId": "mira-eddlestone",
+      "level": 1,
+      "summary": "Accept Mira's welcome and learn how the asking works in Anwel.",
+      "objectives": [
+        {
+          "id": "greet",
+          "kind": "talk",
+          "targetId": "mira-eddlestone",
+          "count": 1,
+          "label": "Take Mira's welcome mark"
+        }
+      ],
+      "rewards": {
+        "xp": 60,
+        "coin": 5,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 1,
+        "soloLevel": 1,
+        "difficulty": "solo"
+      },
+      "requires": [],
+      "teaches": "The quest system: offers, the log, turn-in, and rewards.",
+      "onComplete": {
+        "removeSpawns": [],
+        "addSpawns": [],
+        "worldNote": "Anwel's doors mark you as one of their own. Villagers greet you by name.",
+        "atlasPromotion": {
+          "realmId": "thalenyr",
+          "poiId": "anwel",
+          "status": "completed"
+        }
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-mudclaw-toll",
+      "name": "The Mudclaw Toll",
+      "giverNpcId": "dockmaster-pell",
+      "turnInNpcId": "dockmaster-pell",
+      "level": 1,
+      "summary": "Cull 6 mudclaw crabs from the dock shallows and keep what they drop.",
+      "objectives": [
+        {
+          "id": "cull",
+          "kind": "kill",
+          "targetId": "mudclaw-crab",
+          "count": 6,
+          "label": "Mudclaw crabs culled"
+        }
+      ],
+      "rewards": {
+        "xp": 160,
+        "coin": 10,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 1,
+        "soloLevel": 1,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Combat, kill credit, and looting materials from beasts.",
+      "onComplete": {
+        "removeSpawns": [
+          "camp-mudclaw-shallows"
+        ],
+        "addSpawns": [
+          {
+            "spawnId": "phase-fisher-shallows",
+            "monsterId": "mudclaw-crab"
+          }
+        ],
+        "worldNote": "The shallows are quiet. Anwel fishers work the dock water again, and their lanterns burn at dusk."
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-gossamer-wings",
+      "name": "Feathers for the Fletcher",
+      "giverNpcId": "fletcher-anes",
+      "turnInNpcId": "fletcher-anes",
+      "level": 2,
+      "summary": "Gather 8 gossamer wings from the meadow west of the Well road.",
+      "objectives": [
+        {
+          "id": "wings",
+          "kind": "collect",
+          "targetId": "mat-gossamer-wing",
+          "count": 8,
+          "label": "Gossamer wings gathered"
+        }
+      ],
+      "rewards": {
+        "xp": 200,
+        "coin": 12,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 2,
+        "soloLevel": 2,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Exploration and material collection from wander mobs.",
+      "origin": "authored"
+    },
+    {
+      "id": "q-thornback-trouble",
+      "name": "Thornback Trouble",
+      "giverNpcId": "herder-bonn",
+      "turnInNpcId": "herder-bonn",
+      "level": 3,
+      "summary": "Cull 5 thornback boars so the west field can be planted.",
+      "objectives": [
+        {
+          "id": "cull",
+          "kind": "kill",
+          "targetId": "thornback-boar",
+          "count": 5,
+          "label": "Thornback boars culled"
+        }
+      ],
+      "rewards": {
+        "xp": 260,
+        "coin": 15,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 3,
+        "soloLevel": 3,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Reading charges and positioning against tougher beasts.",
+      "onComplete": {
+        "removeSpawns": [
+          "camp-thornback-field"
+        ],
+        "addSpawns": [
+          {
+            "spawnId": "phase-grazer-field",
+            "monsterId": "thornback-boar"
+          }
+        ],
+        "worldNote": "The west field is turned earth again. A wary remnant pair of boars keeps to the far hedgerow."
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-road-to-well-stone",
+      "name": "The Road to the Well-Stone",
+      "giverNpcId": "cael-roadwarden",
+      "turnInNpcId": "cael-roadwarden",
+      "level": 4,
+      "summary": "Escort Brother Owyn safely along the south road toward Vaeldor.",
+      "objectives": [
+        {
+          "id": "escort",
+          "kind": "escort",
+          "targetId": "escort-owyn-vaeldor-road",
+          "count": 1,
+          "label": "Owyn walked the viper banks"
+        }
+      ],
+      "rewards": {
+        "xp": 340,
+        "coin": 18,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 4,
+        "soloLevel": 4,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Escort quests: protecting a follower through hostile ground.",
+      "origin": "authored"
+    },
+    {
+      "id": "q-echoes-in-the-water",
+      "name": "Echoes in the Water",
+      "giverNpcId": "wellkeeper-sef",
+      "turnInNpcId": "wellkeeper-sef",
+      "level": 4,
+      "summary": "Touch the terrace shard echoes in the order the Well woke: stone, river, sky.",
+      "objectives": [
+        {
+          "id": "echo",
+          "kind": "puzzle",
+          "targetId": "terrace-shard-echoes",
+          "count": 1,
+          "label": "The terrace answered"
+        }
+      ],
+      "rewards": {
+        "xp": 340,
+        "coin": 0,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 4,
+        "soloLevel": 4,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Puzzle interactions and the Law of the Echo.",
+      "onComplete": {
+        "removeSpawns": [],
+        "addSpawns": [],
+        "worldNote": "The terrace hums a half-tone lower for you now. The shards lean toward you when you pass."
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-toll-road-reivers",
+      "name": "Toll-Road Reivers",
+      "giverNpcId": "reeve-droma",
+      "turnInNpcId": "reeve-droma",
+      "level": 5,
+      "summary": "Break the reiver camp at the east-road fork: 8 reivers.",
+      "objectives": [
+        {
+          "id": "break",
+          "kind": "kill",
+          "targetId": "toll-road-reiver",
+          "count": 8,
+          "label": "Reivers driven off"
+        }
+      ],
+      "rewards": {
+        "xp": 460,
+        "coin": 30,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 5,
+        "soloLevel": 5,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Humanoid loot: coin, rare armor, and wielder weapons.",
+      "onComplete": {
+        "removeSpawns": [
+          "camp-reiver-road"
+        ],
+        "addSpawns": [],
+        "worldNote": "The fork camp is ash and torn canvas. Merchants walk the east road without paying the toll.",
+        "atlasPromotion": {
+          "realmId": "thalenyr",
+          "poiId": "erboug",
+          "status": "rumored"
+        }
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-what-the-river-keeps",
+      "name": "What the River Keeps",
+      "giverNpcId": "scavenger-ils",
+      "turnInNpcId": "scavenger-ils",
+      "level": 5,
+      "summary": "Find 5 river-keeper caches along the banks: bent reed, grey stone, low branch.",
+      "objectives": [
+        {
+          "id": "caches",
+          "kind": "find",
+          "targetId": "river-keeper-cache",
+          "count": 5,
+          "label": "Caches recovered"
+        }
+      ],
+      "rewards": {
+        "xp": 440,
+        "coin": 20,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 5,
+        "soloLevel": 5,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-first-roof"
+      ],
+      "teaches": "Find quests: reading the world for hidden interactables.",
+      "origin": "authored"
+    },
+    {
+      "id": "q-eel-trap-geometry",
+      "name": "Eel-Trap Geometry",
+      "giverNpcId": "old-fen",
+      "turnInNpcId": "old-fen",
+      "level": 6,
+      "summary": "Set Fen's three eel traps in the right current folds: deep, slack, ripple.",
+      "objectives": [
+        {
+          "id": "traps",
+          "kind": "puzzle",
+          "targetId": "eel-trap-folds",
+          "count": 1,
+          "label": "Traps set in the right folds"
+        }
+      ],
+      "rewards": {
+        "xp": 500,
+        "coin": 14,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 6,
+        "soloLevel": 6,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-what-the-river-keeps"
+      ],
+      "teaches": "Environmental puzzles with order-of-operations logic.",
+      "origin": "authored"
+    },
+    {
+      "id": "q-lost-yearling",
+      "name": "The Lost Yearling",
+      "giverNpcId": "shepherdess-rill",
+      "turnInNpcId": "shepherdess-rill",
+      "level": 6,
+      "summary": "Find Rill's yearling in the muster field and walk her home, slowly.",
+      "objectives": [
+        {
+          "id": "sheep",
+          "kind": "escort",
+          "targetId": "escort-yearling-home",
+          "count": 1,
+          "label": "Yearling walked home"
+        }
+      ],
+      "rewards": {
+        "xp": 540,
+        "coin": 16,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 6,
+        "soloLevel": 6,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-road-to-well-stone"
+      ],
+      "teaches": "Follow mechanics with a skittish follower; the Thalen's Heir song hook.",
+      "origin": "authored"
+    },
+    {
+      "id": "q-break-east-road-camp",
+      "name": "Break the East-Road Camp",
+      "giverNpcId": "sergeant-hull",
+      "turnInNpcId": "sergeant-hull",
+      "level": 8,
+      "summary": "Destroy the elite reiver camp: both lieutenants and Captain Borro.",
+      "objectives": [
+        {
+          "id": "lieutenants",
+          "kind": "kill",
+          "targetId": "reiver-lieutenant",
+          "count": 2,
+          "label": "Reiver lieutenants defeated"
+        },
+        {
+          "id": "captain",
+          "kind": "kill",
+          "targetId": "reiver-captain",
+          "count": 1,
+          "label": "Captain Borro Half-Toll defeated"
+        }
+      ],
+      "rewards": {
+        "xp": 1000,
+        "coin": 80,
+        "itemIds": [
+          "wpn-lieutenant-glaive"
+        ]
+      },
+      "scaling": {
+        "recommendedParty": 3,
+        "intendedLevel": 8,
+        "soloLevel": 11,
+        "difficulty": "party"
+      },
+      "requires": [
+        "q-toll-road-reivers"
+      ],
+      "teaches": "Elite camps: designed for a party of three at level 8, or a solo player who out-leveled it.",
+      "onComplete": {
+        "removeSpawns": [
+          "camp-east-road-elite",
+          "camp-east-road-captain"
+        ],
+        "addSpawns": [
+          {
+            "spawnId": "phase-watch-post",
+            "monsterId": "toll-road-reiver"
+          }
+        ],
+        "worldNote": "The east-road camp is gone. A Vaeldor watch post stands in the ash, and its banner catches the morning wind."
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-weirwight",
+      "name": "The Weirwight of the Meeting Waters",
+      "giverNpcId": "wellkeeper-sef",
+      "turnInNpcId": "reeve-droma",
+      "level": 9,
+      "summary": "Where the rivers meet under Vaeldor's walls, something drowned still keeps the weir. End it.",
+      "objectives": [
+        {
+          "id": "wight",
+          "kind": "kill",
+          "targetId": "weirwight",
+          "count": 1,
+          "label": "The Weirwight laid to rest"
+        }
+      ],
+      "rewards": {
+        "xp": 1400,
+        "coin": 120,
+        "itemIds": [
+          "arm-weirwight-shroud"
+        ]
+      },
+      "scaling": {
+        "recommendedParty": 4,
+        "intendedLevel": 9,
+        "soloLevel": 13,
+        "difficulty": "raid"
+      },
+      "requires": [
+        "q-road-to-well-stone",
+        "q-toll-road-reivers"
+      ],
+      "teaches": "Zone boss: built for a full party, or a much stronger solo soul.",
+      "onComplete": {
+        "removeSpawns": [
+          "boss-weirwight-waters"
+        ],
+        "addSpawns": [],
+        "worldNote": "The meeting waters run clear. A small shrine of river-stones stands where the wight kept its weir, and the water no longer pulls at wading birds.",
+        "atlasPromotion": {
+          "realmId": "thalenyr",
+          "poiId": "vaeldor",
+          "status": "explored"
+        }
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-humming-roots",
+      "name": "The Humming Roots",
+      "giverNpcId": "reeve-droma",
+      "turnInNpcId": "reeve-droma",
+      "level": 9,
+      "summary": "Scout the Lockroot treeline where the old inscription's roots swallow the ground.",
+      "objectives": [
+        {
+          "id": "scout",
+          "kind": "find",
+          "targetId": "lockroot-entrance",
+          "count": 1,
+          "label": "Lockroot entrance scouted"
+        }
+      ],
+      "rewards": {
+        "xp": 600,
+        "coin": 25,
+        "itemIds": []
+      },
+      "scaling": {
+        "recommendedParty": 1,
+        "intendedLevel": 9,
+        "soloLevel": 9,
+        "difficulty": "solo"
+      },
+      "requires": [
+        "q-toll-road-reivers"
+      ],
+      "teaches": "Dungeon thresholds: the next descent is a rumor with an address.",
+      "onComplete": {
+        "removeSpawns": [],
+        "addSpawns": [],
+        "worldNote": "The deeper halls still hum — but now the atlas knows the way.",
+        "atlasPromotion": {
+          "realmId": "thalenyr",
+          "poiId": "lockroot",
+          "status": "explored"
+        }
+      },
+      "origin": "authored"
+    },
+    {
+      "id": "q-rootbound-cantor",
+      "name": "The Rootbound Cantor",
+      "giverNpcId": "wellkeeper-sef",
+      "turnInNpcId": "wellkeeper-sef",
+      "level": 10,
+      "summary": "The thing humming in the treeline is wound through the inscription's roots. Silence it.",
+      "objectives": [
+        {
+          "id": "cantor",
+          "kind": "kill",
+          "targetId": "rootbound-cantor",
+          "count": 1,
+          "label": "The Cantor silenced"
+        }
+      ],
+      "rewards": {
+        "xp": 1600,
+        "coin": 140,
+        "itemIds": [
+          "wpn-cantor-staff"
+        ]
+      },
+      "scaling": {
+        "recommendedParty": 4,
+        "intendedLevel": 10,
+        "soloLevel": 14,
+        "difficulty": "raid"
+      },
+      "requires": [
+        "q-humming-roots"
+      ],
+      "teaches": "Second zone boss: the capstone of the Heartvale band.",
+      "onComplete": {
+        "removeSpawns": [
+          "boss-rootbound-treeline"
+        ],
+        "addSpawns": [],
+        "worldNote": "The treeline is quiet for the first time in living memory. The Lockroot entrance no longer hums — it waits."
+      },
+      "origin": "authored"
+    }
+  ],
+  "templates": [
+    {
+      "id": "t-cull-contract",
+      "namePattern": "Cull Contract: {monster} at {place}",
+      "summaryPattern": "The Reeve needs {count} {monster} driven from {place}. {flavor}.",
+      "kind": "kill",
+      "slots": {
+        "monsterPool": [
+          "gossamer-moth",
+          "reed-viper",
+          "thornback-boar",
+          "root-gnawer"
+        ],
+        "placePool": [
+          {
+            "id": "west-meadow",
+            "name": "the west meadow"
+          },
+          {
+            "id": "river-banks",
+            "name": "the river banks"
+          },
+          {
+            "id": "hedgerow-fields",
+            "name": "the hedgerow fields"
+          },
+          {
+            "id": "treeline-fringe",
+            "name": "the Lockroot fringe"
+          }
+        ],
+        "flavorPool": [
+          "The land remembers, and lately it remembers teeth",
+          "The first waking generations kept these banks clear — so shall we",
+          "The well-stone measures all roads, and the roads measure us",
+          "A kind forest stops being kind the week before harvest"
+        ]
+      },
+      "countRange": [
+        4,
+        8
+      ],
+      "levelRange": [
+        2,
+        7
+      ],
+      "xpPerUnit": 22,
+      "coinPerUnit": 3,
+      "rotation": "daily"
+    },
+    {
+      "id": "t-bounty-contract",
+      "namePattern": "Bounty: {monster} near {place}",
+      "summaryPattern": "Coin for steel: put down {count} {monster} troubling {place}. {flavor}.",
+      "kind": "kill",
+      "slots": {
+        "monsterPool": [
+          "toll-road-reiver",
+          "unquiet-musterman"
+        ],
+        "placePool": [
+          {
+            "id": "east-road",
+            "name": "the east road"
+          },
+          {
+            "id": "muster-field",
+            "name": "the old muster field"
+          },
+          {
+            "id": "fork-camp",
+            "name": "the fork camp"
+          }
+        ],
+        "flavorPool": [
+          "Road-stolen coin spends the same as honest coin",
+          "The dead of the muster-days did not choose their watch — end it kindly",
+          "Borro's shadow is gone, but shadows cast shadows"
+        ]
+      },
+      "countRange": [
+        3,
+        6
+      ],
+      "levelRange": [
+        5,
+        8
+      ],
+      "xpPerUnit": 30,
+      "coinPerUnit": 8,
+      "rotation": "daily"
+    },
+    {
+      "id": "t-gather-contract",
+      "namePattern": "Gather Contract: {monster} for the stores",
+      "summaryPattern": "Anwel's stores want {count} {monster}. {flavor}.",
+      "kind": "collect",
+      "slots": {
+        "monsterPool": [
+          "mat-gossamer-wing",
+          "mat-reed-viper-skin",
+          "mat-thornback-bristle"
+        ],
+        "placePool": [
+          {
+            "id": "anwel-stores",
+            "name": "the Anwel stores"
+          },
+          {
+            "id": "fletcher-bench",
+            "name": "the fletcher's bench"
+          }
+        ],
+        "flavorPool": [
+          "Winter counts what summer gathered",
+          "Every bundle is a roof that holds"
+        ]
+      },
+      "countRange": [
+        4,
+        10
+      ],
+      "levelRange": [
+        2,
+        6
+      ],
+      "xpPerUnit": 14,
+      "coinPerUnit": 2,
+      "rotation": "daily"
+    }
+  ]
+}

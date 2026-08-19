@@ -681,3 +681,87 @@ export function phasedSpawnAreas(completedQuestIds: ReadonlySet<string>): readon
     return true; // wander areas are never phased
   });
 }
+
+// --- Rotating contract templates -------------------------------------------------
+// Daily, seeded instances so the vale's needs are not a fixed generic list.
+// Same date -> same instance for every player (shared world); a GM or AI
+// agent can inject one-off instances with any seed for live events.
+
+import type { QuestTemplate } from "./questdb/schema";
+
+export const HEARTVALE_CONTRACT_GIVER = "reeve-droma";
+
+export const HEARTVALE_QUEST_TEMPLATES: readonly QuestTemplate[] = [
+  {
+    id: "t-cull-contract",
+    namePattern: "Cull Contract: {monster} at {place}",
+    summaryPattern: "The Reeve needs {count} {monster} driven from {place}. {flavor}.",
+    kind: "kill",
+    slots: {
+      monsterPool: ["gossamer-moth", "reed-viper", "thornback-boar", "root-gnawer"],
+      placePool: [
+        { id: "west-meadow", name: "the west meadow" },
+        { id: "river-banks", name: "the river banks" },
+        { id: "hedgerow-fields", name: "the hedgerow fields" },
+        { id: "treeline-fringe", name: "the Lockroot fringe" },
+      ],
+      flavorPool: [
+        "The land remembers, and lately it remembers teeth",
+        "The first waking generations kept these banks clear — so shall we",
+        "The well-stone measures all roads, and the roads measure us",
+        "A kind forest stops being kind the week before harvest",
+      ],
+    },
+    countRange: [4, 8],
+    levelRange: [2, 7],
+    xpPerUnit: 22,
+    coinPerUnit: 3,
+    rotation: "daily",
+  },
+  {
+    id: "t-bounty-contract",
+    namePattern: "Bounty: {monster} near {place}",
+    summaryPattern: "Coin for steel: put down {count} {monster} troubling {place}. {flavor}.",
+    kind: "kill",
+    slots: {
+      monsterPool: ["toll-road-reiver", "unquiet-musterman"],
+      placePool: [
+        { id: "east-road", name: "the east road" },
+        { id: "muster-field", name: "the old muster field" },
+        { id: "fork-camp", name: "the fork camp" },
+      ],
+      flavorPool: [
+        "Road-stolen coin spends the same as honest coin",
+        "The dead of the muster-days did not choose their watch — end it kindly",
+        "Borro's shadow is gone, but shadows cast shadows",
+      ],
+    },
+    countRange: [3, 6],
+    levelRange: [5, 8],
+    xpPerUnit: 30,
+    coinPerUnit: 8,
+    rotation: "daily",
+  },
+  {
+    id: "t-gather-contract",
+    namePattern: "Gather Contract: {monster} for the stores",
+    summaryPattern: "Anwel's stores want {count} {monster}. {flavor}.",
+    kind: "collect",
+    slots: {
+      monsterPool: ["mat-gossamer-wing", "mat-reed-viper-skin", "mat-thornback-bristle"],
+      placePool: [
+        { id: "anwel-stores", name: "the Anwel stores" },
+        { id: "fletcher-bench", name: "the fletcher's bench" },
+      ],
+      flavorPool: [
+        "Winter counts what summer gathered",
+        "Every bundle is a roof that holds",
+      ],
+    },
+    countRange: [4, 10],
+    levelRange: [2, 6],
+    xpPerUnit: 14,
+    coinPerUnit: 2,
+    rotation: "daily",
+  },
+] as const;
