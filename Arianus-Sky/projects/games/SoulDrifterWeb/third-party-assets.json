@@ -1,6 +1,88 @@
 {
   "schemaVersion": 1,
-  "shippingAssets": [],
+  "shippingAssets": [
+    {
+      "id": "polyhaven-grass-medium-01",
+      "name": "Grass Medium 01",
+      "url": "https://polyhaven.com/a/grass_medium_01",
+      "usage": "Houdini source scene dressing (verge grass clumps around Anwel and the terrace road); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/grass_medium_01/. Referenced live by source-assets/houdini/heartvale-realistic.hipnc."
+    },
+    {
+      "id": "polyhaven-grass-medium-02",
+      "name": "Grass Medium 02",
+      "url": "https://polyhaven.com/a/grass_medium_02",
+      "usage": "Houdini source scene dressing (gossamer-moth meadow grass); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/grass_medium_02/."
+    },
+    {
+      "id": "polyhaven-tree-small-02",
+      "name": "Tree Small 02",
+      "url": "https://polyhaven.com/a/tree_small_02",
+      "usage": "Houdini source scene dressing (hero trees at the terrace and Anwel entrance); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/tree_small_02/. KHR_texture_transform extension stripped from the local .gltf copy so the Houdini glTF importer accepts it; geometry and textures unchanged."
+    },
+    {
+      "id": "polyhaven-island-tree-02",
+      "name": "Island Tree 02",
+      "url": "https://polyhaven.com/a/island_tree_02",
+      "usage": "Houdini source scene dressing (hero trees on the riverbank and south road); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/island_tree_02/. Same KHR_texture_transform strip as tree_small_02."
+    },
+    {
+      "id": "polyhaven-wild-rooibos-bush",
+      "name": "Wild Rooibos Bush",
+      "url": "https://polyhaven.com/a/wild_rooibos_bush",
+      "usage": "Houdini source scene dressing (wild bushes around Anwel gardens and road verge); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wild_rooibos_bush/."
+    },
+    {
+      "id": "polyhaven-wooden-barrels-01",
+      "name": "Wooden Barrels 01",
+      "url": "https://polyhaven.com/a/wooden_barrels_01",
+      "usage": "Houdini source scene dressing (barrel clusters on the Anwel dock and store barn); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_barrels_01/."
+    },
+    {
+      "id": "polyhaven-wooden-crate-01",
+      "name": "Wooden Crate 01",
+      "url": "https://polyhaven.com/a/wooden_crate_01",
+      "usage": "Houdini source scene dressing (crates on the Anwel dock and store barn); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_crate_01/."
+    },
+    {
+      "id": "polyhaven-wooden-bucket-01",
+      "name": "Wooden Bucket 01",
+      "url": "https://polyhaven.com/a/wooden_bucket_01",
+      "usage": "Houdini source scene dressing (buckets at the Anwel plaza well); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_bucket_01/."
+    },
+    {
+      "id": "polyhaven-wooden-lantern-01",
+      "name": "Wooden Lantern 01",
+      "url": "https://polyhaven.com/a/wooden_lantern_01",
+      "usage": "Houdini source scene dressing (lanterns hung at each Anwel house door at 2 m); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_lantern_01/."
+    }
+  ],
   "researchReferences": [
     {
       "id": "exult-engine",

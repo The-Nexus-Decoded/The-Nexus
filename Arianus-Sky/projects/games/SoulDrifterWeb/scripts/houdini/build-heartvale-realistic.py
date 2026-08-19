@@ -22,6 +22,7 @@ import argparse
 import json
 import math
 import random
+import re
 import struct
 import sys
 from pathlib import Path
@@ -83,6 +84,7 @@ MATERIAL_PATHS = {
     "reed": "/mat/HVR_Reed",
     "grass": "/mat/HVR_Grass",
     "sky": "/mat/HVR_Sky",
+    "npc": "/mat/HVR_NPC",
 }
 
 TERRAIN_SAMPLES = 200  # quads per side over the 280 m zone (1.4 m resolution)
@@ -209,7 +211,8 @@ def create_materials() -> None:
     sky = shader("HVR_Sky", (0.0, 0.0, 0.0), 1.0)
     sky.parm("emitcolor_usePointColor").set(1)
     sky.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
-    sky.parm("emitint").set(0.8)
+    sky.parm("emitint").set(0.55)
+    shader("HVR_NPC", (1.0, 1.0, 1.0), 0.88)  # tunics/skin ride on point Cd
     material_network.layoutChildren()
 
 
@@ -956,6 +959,274 @@ def build_grass_field(grass_node: hou.Node, layout: HeartvaleLayout) -> int:
     return total
 
 
+# --- Poly Haven dressing (CC0 assets, source-assets/polyhaven/) -----------------
+POLYHAVEN_DIR = "$HIP/../polyhaven"
+
+
+def _ph_material_map(ph_root: Path, aid: str) -> dict[str, str]:
+    """glTF material name -> base-color texture uri, parsed from the asset itself."""
+    data = json.loads((ph_root / aid / f"{aid}.gltf").read_text(encoding="utf-8"))
+    images = data.get("images", [])
+    textures = data.get("textures", [])
+    mapping: dict[str, str] = {}
+    for mat in data.get("materials", []):
+        tex = mat.get("pbrMetallicRoughness", {}).get("baseColorTexture", {})
+        index = tex.get("index")
+        if index is None or index >= len(textures):
+            continue
+        source = textures[index].get("source")
+        if source is None or source >= len(images):
+            continue
+        uri = images[source].get("uri", "")
+        if uri:
+            mapping[mat.get("name", aid)] = uri
+    return mapping
+
+
+def _ph_shader(matnet: hou.Node, aid: str, mat_name: str, uri: str) -> str:
+    node_name = "PH_" + re.sub(r"[^A-Za-z0-9]+", "_", f"{aid}_{mat_name}").upper()
+    existing = matnet.node(node_name)
+    if existing is not None:
+        return existing.path()
+    node = matnet.createNode("principledshader::2.0", node_name)
+    node.parmTuple("basecolor").set((1.0, 1.0, 1.0))
+    node.parm("basecolor_usePointColor").set(0)
+    node.parm("basecolor_useTexture").set(1)
+    node.parm("basecolor_texture").set(f"{POLYHAVEN_DIR}/{aid}/{uri}")
+    node.parm("rough").set(0.85)
+    return node.path()
+
+
+def _ph_load(ph_node: hou.Node, aid: str, label: str) -> hou.Node:
+    file_node = ph_node.createNode("file", f"PHFILE_{label}")
+    file_node.parm("file").set(f"{POLYHAVEN_DIR}/{aid}/{aid}.gltf")
+    unpack = ph_node.createNode("unpack", f"PHUNPACK_{label}")
+    unpack.setInput(0, file_node)
+    return unpack
+
+
+def _ph_assign(ph_node: hou.Node, source: hou.Node, matnet: hou.Node, ph_root: Path, aid: str, label: str) -> hou.Node:
+    node = source
+    for index, (mat_name, uri) in enumerate(sorted(_ph_material_map(ph_root, aid).items())):
+        assign = ph_node.createNode("material", f"PHMAT_{label}_{index}")
+        assign.setInput(0, node)
+        assign.parm("group1").set(f"@gltf_material_name={mat_name}")
+        assign.parm("shop_materialpath1").set(_ph_shader(matnet, aid, mat_name, uri))
+        node = assign
+    return node
+
+
+def _ph_place(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, aid: str, label: str,
+              x: float, z: float, ground: float, target_height: float,
+              yaw: float = 0.0, hook: bool = False) -> hou.Node:
+    """Load, height-normalize, and place one asset. hook=True hangs the asset's
+    top at `ground` (used for door lanterns); otherwise its base sits on ground."""
+    unpack = _ph_load(ph_node, aid, label)
+    bb = unpack.geometry().boundingBox()
+    size = bb.sizevec()
+    scale = target_height / size.y() if size.y() > 1e-6 else 1.0
+    xf = ph_node.createNode("xform", f"PHXFORM_{label}")
+    xf.setInput(0, unpack)
+    xf.parm("scale").set(scale)
+    xf.parmTuple("r").set((0.0, yaw, 0.0))
+    ty = ground - (bb.maxvec().y() if hook else bb.minvec().y()) * scale
+    xf.parmTuple("t").set((x, ty, z))
+    return _ph_assign(ph_node, xf, matnet, ph_root, aid, label)
+
+
+def _ph_scatter(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, layout: HeartvaleLayout,
+                aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float) -> hou.Node:
+    """Copy a height-normalized asset onto Python-scattered points (pscale per point)."""
+    unpack = _ph_load(ph_node, aid, label)
+    bb = unpack.geometry().boundingBox()
+    size = bb.sizevec()
+    scale = target_height / size.y() if size.y() > 1e-6 else 1.0
+    xf = ph_node.createNode("xform", f"PHXFORM_{label}")
+    xf.setInput(0, unpack)
+    xf.parm("scale").set(scale)
+    xf.parmTuple("t").set((0.0, -bb.minvec().y() * scale, 0.0))  # base at origin
+
+    points_geo = hou.Geometry()
+    points_geo.addAttrib(hou.attribType.Point, "pscale", 1.0)
+    for x, z, pscale in spots:
+        point = points_geo.createPoint()
+        point.setPosition((x, layout.terrain_height(x, z), z))
+        point.setAttribValue("pscale", pscale)
+    stash = ph_node.createNode("stash", f"PHPOINTS_{label}")
+    stash.parm("stash").set(points_geo)
+
+    copy = ph_node.createNode("copytopoints", f"PHCOPY_{label}")
+    copy.setInput(0, xf)
+    copy.setInput(1, stash)
+    return _ph_assign(ph_node, copy, matnet, ph_root, aid, label)
+
+
+def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path) -> dict[str, int]:
+    """CC0 Poly Haven dressing: village props, verge grass, wild bushes, hero trees.
+
+    All chains stay live file references (the .hipnc stays lean); scale is
+    normalized per asset so everything lands at true world size."""
+    matnet = hou.node("/mat")
+    rng = random.Random(layout.seed ^ 0x9A17)
+    anchor = layout.anchors["anwel"]["world"]
+    ax, az = anchor["x"], anchor["z"]
+    plaza = (ax + 7.0, az - 0.5)
+
+    def gy(x: float, z: float) -> float:
+        return layout.terrain_height(x, z)
+
+    counts = {"props": 0, "grassClumps": 0, "bushes": 0, "heroTrees": 0}
+    outs: list[hou.Node] = []
+
+    def place(aid: str, label: str, x: float, z: float, target_height: float, yaw: float = 0.0, hook: bool = False) -> None:
+        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), target_height, yaw, hook))
+        counts["props"] += 1
+
+    # Village props — dock, store barn, plaza well (positions match build_anwel)
+    place("wooden_barrels_01", "BARRELS_DOCK", ax - 2.3, az - 1.6, 0.95, yaw=15.0)
+    place("wooden_barrels_01", "BARRELS_BARN", ax + 10.7, az - 7.2, 0.95, yaw=40.0)
+    place("wooden_crate_01", "CRATE_DOCK_A", ax - 3.5, az + 1.6, 0.50, yaw=70.0)
+    place("wooden_crate_01", "CRATE_DOCK_B", ax - 3.1, az + 2.3, 0.50, yaw=20.0)
+    place("wooden_crate_01", "CRATE_BARN_A", ax + 7.1, az - 7.6, 0.55, yaw=0.0)
+    place("wooden_crate_01", "CRATE_BARN_B", ax + 7.9, az - 6.9, 0.50, yaw=55.0)
+    place("wooden_bucket_01", "BUCKET_WELL_A", plaza[0] - 0.8, plaza[1] + 0.7, 0.50, yaw=10.0)
+    place("wooden_bucket_01", "BUCKET_WELL_B", plaza[0] + 0.9, plaza[1] - 0.7, 0.50, yaw=130.0)
+
+    # Door lanterns — hung beside each house door at 2.0 m (doors face the plaza)
+    houses = ((10.4, 2.6, 5.4), (5.6, -3.8, 3.6), (12.4, -1.8, 3.2), (4.9, 2.6, 2.8), (8.8, -6.2, 4.4))
+    for index, (hx, hz, hw) in enumerate(houses):
+        wx, wz = ax + hx, az + hz
+        yaw_to_plaza = math.atan2(plaza[1] - wz, plaza[0] - wx)
+        door_x = wx + math.cos(yaw_to_plaza) * (hw / 2 + 0.30)
+        door_z = wz + math.sin(yaw_to_plaza) * (hw / 2 + 0.30)
+        side_x, side_z = -math.sin(yaw_to_plaza) * 0.95, math.cos(yaw_to_plaza) * 0.95
+        lx, lz = door_x + side_x, door_z + side_z
+        outs.append(_ph_place(ph_node, matnet, ph_root, "wooden_lantern_01", f"LANTERN_{index}",
+                              lx, lz, gy(lx, lz) + 2.0, 0.53, yaw=math.degrees(yaw_to_plaza), hook=True))
+        counts["props"] += 1
+
+    # Verge grass along the road near Anwel + a ring around the plaza
+    grass_spots: list[tuple[float, float, float]] = []
+    road_near = [s for s in layout.road_samples if abs(s[0] - ax) < 45.0 and abs(s[1] - az) < 45.0]
+    for i in range(0, len(road_near), 3):
+        sx, sz = road_near[i]
+        ang = rng.uniform(0.0, 2.0 * math.pi)
+        off = rng.uniform(1.6, 2.4)
+        grass_spots.append((sx + math.cos(ang) * off, sz + math.sin(ang) * off, rng.uniform(0.7, 1.3)))
+    for k in range(8):
+        ang = k * math.pi / 4.0 + rng.uniform(-0.2, 0.2)
+        r = rng.uniform(5.0, 6.5)
+        grass_spots.append((plaza[0] + math.cos(ang) * r, plaza[1] + math.sin(ang) * r, rng.uniform(0.6, 1.0)))
+    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "grass_medium_01", "GRASS_VERGE", grass_spots, 0.22))
+    counts["grassClumps"] += len(grass_spots)
+
+    # Second grass species in the gossamer-moth meadow west of the terrace road
+    meadow_spots: list[tuple[float, float, float]] = []
+    mx, mz = layout.grid_to_world(30.0, 66.0)
+    for k in range(10):
+        ang = rng.uniform(0.0, 2.0 * math.pi)
+        r = rng.uniform(2.0, 8.0)
+        candidate = (mx + math.cos(ang) * r, mz + math.sin(ang) * r)
+        if layout.river_distance(*candidate) > 2.0 and layout.road_distance(*candidate) > 1.2:
+            meadow_spots.append((candidate[0], candidate[1], rng.uniform(0.8, 1.4)))
+    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "grass_medium_02", "GRASS_MEADOW", meadow_spots, 0.26))
+    counts["grassClumps"] += len(meadow_spots)
+
+    # Wild bushes: house gardens + east road verge (kept off road and water)
+    bush_spots: list[tuple[float, float, float]] = []
+    attempts = 0
+    while len(bush_spots) < 14 and attempts < 120:
+        attempts += 1
+        ang = rng.uniform(0.0, 2.0 * math.pi)
+        r = rng.uniform(4.0, 13.0)
+        candidate = (plaza[0] + math.cos(ang) * r, plaza[1] + math.sin(ang) * r)
+        if layout.river_distance(*candidate) > 2.0 and layout.road_distance(*candidate) > 1.5:
+            bush_spots.append((candidate[0], candidate[1], rng.uniform(1.0, 1.8)))
+    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "wild_rooibos_bush", "BUSH_ANWEL", bush_spots, 0.60))
+    counts["bushes"] += len(bush_spots)
+
+    # Hero trees — full-geometry CC0 trees at landmark spots among the procedural stand
+    for aid, label, x, z, height, yaw in (
+        ("tree_small_02", "HERO_TREE_TERRACE", 6.5, -6.0, 8.0, 25.0),
+        ("island_tree_02", "HERO_TREE_RIVER", ax - 4.5, az + 8.5, 7.5, 160.0),
+        ("tree_small_02", "HERO_TREE_ANWEL", ax + 3.5, az - 10.5, 7.0, 200.0),
+        ("island_tree_02", "HERO_TREE_SOUTH", -3.0, 16.0, 6.5, 310.0),
+    ):
+        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), height, yaw=yaw))
+        counts["heroTrees"] += 1
+
+    merge = ph_node.createNode("merge", "POLYHAVEN_MERGE")
+    for index, node in enumerate(outs):
+        merge.setInput(index, node)
+    out = ph_node.createNode("null", "OUT_POLYHAVEN")
+    out.setInput(0, merge)
+    out.setDisplayFlag(True)
+    out.setRenderFlag(True)
+    ph_node.layoutChildren()
+    matnet.layoutChildren()
+    return counts
+
+
+# --- NPC scale mannequins -------------------------------------------------------
+# 1.75 m stand-ins for the 11 quest NPCs + Brother Owyn, so village scale reads
+# correctly in the review renders (mannequin vs 2.2 m doorways, dock, well).
+NPC_SKIN: Color = (0.62, 0.47, 0.35)
+NPC_TROUSER: Color = (0.23, 0.18, 0.12)
+NPC_HAIR: Color = (0.16, 0.11, 0.07)
+NPC_PLACEMENTS: list[tuple[str, float, float, float, Color]] = [
+    # id, world x, world z, facing yaw (deg), tunic color
+    ("mira-eddlestone", 4.6, -24.9, 200.0, (0.30, 0.42, 0.22)),
+    ("dockmaster-pell", -2.4, -25.6, 90.0, (0.18, 0.26, 0.38)),
+    ("fletcher-anes", 6.3, -28.9, 160.0, (0.38, 0.27, 0.16)),
+    ("herder-bonn", 3.2, -31.5, 20.0, (0.45, 0.35, 0.16)),
+    ("cael-roadwarden", 1.2, -30.2, 0.0, (0.28, 0.32, 0.38)),
+    ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),
+    ("reeve-droma", 11.6, -24.6, 250.0, (0.42, 0.18, 0.20)),
+    ("scavenger-ils", -3.4, -28.6, 60.0, (0.32, 0.32, 0.30)),
+    ("old-fen", -3.0, -27.4, 120.0, (0.24, 0.38, 0.30)),
+    ("shepherdess-rill", 1.0, 8.0, 180.0, (0.55, 0.50, 0.38)),
+    ("sergeant-hull", 2.2, 12.5, 180.0, (0.36, 0.38, 0.42)),
+    ("brother-owyn", 2.0, -30.9, 10.0, (0.60, 0.57, 0.50)),
+]
+
+
+def _build_mannequin(builder: GeometryBuilder, npc_id: str, x: float, z: float, ground: float, yaw_deg: float, tunic: Color) -> None:
+    yaw = math.radians(yaw_deg)
+    cy_, sy_ = math.cos(yaw), math.sin(yaw)
+
+    def at(lx: float, lz: float) -> tuple[float, float]:
+        return (x + lx * cy_ - lz * sy_, z + lx * sy_ + lz * cy_)
+
+    mat = MATERIAL_PATHS["npc"]
+    arm = (tunic[0] * 0.8, tunic[1] * 0.8, tunic[2] * 0.8)
+    for side in (-1, 1):
+        lx, lz = at(side * 0.11, 0.0)
+        builder.add_cylinder(f"npc_{npc_id}_leg_{side}", (lx, ground + 0.40, lz), 0.075, 0.80, 7, NPC_TROUSER, "npc", mat)
+        ax_, az_ = at(side * 0.26, 0.0)
+        builder.add_cylinder(f"npc_{npc_id}_arm_{side}", (ax_, ground + 1.05, az_), 0.05, 0.55, 6, arm, "npc", mat)
+    builder.add_cylinder(f"npc_{npc_id}_torso", (x, ground + 1.10, z), 0.17, 0.62, 8, tunic, "npc", mat)
+    builder.add_cylinder(f"npc_{npc_id}_head", (x, ground + 1.62, z), 0.115, 0.24, 8, NPC_SKIN, "npc", mat)
+    builder.add_box(f"npc_{npc_id}_hair", (x, ground + 1.78, z), (0.24, 0.08, 0.24), NPC_HAIR, "npc", mat, yaw=yaw)
+
+
+def build_npcs(npc_node: hou.Node, layout: HeartvaleLayout) -> int:
+    builder = GeometryBuilder()
+    for npc_id, x, z, yaw, tunic in NPC_PLACEMENTS:
+        _build_mannequin(builder, npc_id, x, z, layout.terrain_height(x, z), yaw, tunic)
+    stash = npc_node.createNode("stash", "NPC_MANNEQUINS")
+    stash.parm("stash").set(builder.geometry)
+    normal = npc_node.createNode("normal", "NPC_NORMALS")
+    normal.setInput(0, stash)
+    normal.parm("cuspangle").set(50.0)
+    out = npc_node.createNode("null", "OUT_NPCS")
+    out.setInput(0, normal)
+    out.setDisplayFlag(True)
+    out.setRenderFlag(True)
+    npc_node.layoutChildren()
+    return len(NPC_PLACEMENTS)
+
+
+
 def create_lighting(obj: hou.Node) -> None:
     def distant(name: str, rotation: Vector3, color: Color, exposure: float) -> None:
         light = obj.createNode("hlight::2.0", name)
@@ -976,10 +1247,11 @@ def create_lighting(obj: hou.Node) -> None:
 
     ambient = obj.createNode("ambient", "HEARTVALE_SKY_FILL")
     ambient.parmTuple("light_color").set((0.45, 0.55, 0.65))
-    ambient.parm("light_intensity").set(0.45)
+    ambient.parm("light_intensity").set(0.55)
     ambient.parm("ogl_enablelight").set(1)
-    distant("HEARTVALE_SUN_KEY", (-35.0, -125.0, 10.0), (1.0, 0.9, 0.75), 0.15)
-    distant("HEARTVALE_SKY_RIM", (-20.0, 60.0, -15.0), (0.5, 0.65, 0.85), -1.6)
+    # Key light from the south so the north-facing review cameras see lit faces.
+    distant("HEARTVALE_SUN_KEY", (-42.0, -15.0, 5.0), (1.0, 0.9, 0.75), 0.15)
+    distant("HEARTVALE_SKY_RIM", (-20.0, 160.0, -15.0), (0.5, 0.65, 0.85), -1.6)
     distant("HEARTVALE_BOUNCE_FILL", (25.0, 55.0, -5.0), (0.72, 0.68, 0.60), -1.1)  # warm ground bounce, lifts shadow faces
     point("SOULWELL_GLOW", (0.0, 3.4, 0.0), SOUL_WATER, 1.1)
 
@@ -1121,6 +1393,9 @@ def main() -> None:
 
     hou.hipFile.clear(suppress_save_prompt=True)
     hou.setFps(30)
+    # Save once up front so $HIP resolves for the live Poly Haven file references
+    # while the scene is still being cooked.
+    hou.hipFile.save(args.hip.resolve().as_posix())
     create_materials()
 
     obj = hou.node("/obj")
@@ -1140,6 +1415,17 @@ def main() -> None:
     for child in grass_node.children():
         child.destroy()
     counts["grassBlades"] = build_grass_field(grass_node, layout)
+
+    ph_node = obj.createNode("geo", "HEARTVALE_POLYHAVEN")
+    for child in ph_node.children():
+        child.destroy()
+    ph_root = args.hip.resolve().parent.parent / "polyhaven"
+    counts.update(build_polyhaven(ph_node, layout, ph_root))
+
+    npc_node = obj.createNode("geo", "HEARTVALE_NPCS")
+    for child in npc_node.children():
+        child.destroy()
+    counts["npcs"] = build_npcs(npc_node, layout)
 
     stash = environment.createNode("stash", "AUTHORED_ENVIRONMENT")
     stash.parm("stash").set(builder.geometry)

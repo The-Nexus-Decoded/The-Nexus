@@ -99,6 +99,12 @@ const ROADS = [
     waypoints: [[40, 57.5], [45, 48], [49, 41], [52.5, 35]],
   },
   {
+    // Through-road (runbook rule 9): the atlas shows the river road continuing
+    // north past Anwel along the east bank toward the basin rim.
+    id: "anwel-north-road",
+    waypoints: [[40, 57.5], [41.5, 48], [42, 38], [42.5, 26], [43, 14], [43.5, 3]],
+  },
+  {
     id: "well-to-vaeldor",
     waypoints: [[40, 72.5], [40.5, 80], [42, 88], [46, 96], [51, 105], [55, 112], [57.5, 117.5]],
   },
