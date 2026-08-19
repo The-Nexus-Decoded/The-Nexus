@@ -97,7 +97,35 @@ From the Heartvale vertical-slice runbook — they apply to every zone ticket:
 7. Map-reading rules: POIs shown on water sit NEXT to it; roads/rivers continue through POI markers (never dead-end a road at a settlement).
 8. Never leave a dev server running when a task ends.
 
-## 7. Done =
+## 7. Visual review gate (mandatory — added 2026-08-19)
+
+Before a zone build is shown to the owner, it MUST pass an **independent
+visual review pass** — done by a fresh session or a different agent than the
+builder, with a reviewer's brief (find what's wrong), not a builder's brief
+(verify what's done). The reviewer checks:
+
+- [ ] **Renders, not intentions** — capture current renders/screenshots and
+      judge them against the owner's visual target (realistic isometric).
+      "The geometry exists" is not "it reads correctly."
+- [ ] **Material/shader ceiling** — read the material code: untextured
+      vertex-color terrain, flat-color water, and procedural placeholder
+      textures cap visual quality no matter how good the layout is. Name
+      the ceiling explicitly in the review.
+- [ ] **Intent vs output** — for every feature the docs claim (elevation,
+      river carve, rises, dressing density), verify it is *readable* in the
+      render, not merely present in the data.
+- [ ] **Scale/frame conformance** — verify world-frame numbers against
+      `server/sections.mjs` (rects, POI anchors, distances). Any locally
+      invented scale authority is a finding, even if it predates the frame.
+- [ ] **Fresh-render rule** — review renders must postdate the last
+      content commit. Never judge (or approve) from stale screenshots.
+- [ ] Findings are written to `docs/REVIEW-<date>-<zone-id>.md` with
+      root causes (code paths, not vibes) and a prioritized fix list.
+
+The owner should never be the first person to catch a basic visual miss —
+the process catches it first.
+
+## 8. Done =
 
 - `npm run typecheck && npm test` green; zone data invariants covered by vitest (rect containment of POIs, nav continuity to seams).
 - Probe screenshots: your zone alone, your zone + each built neighbor streamed together, and a seam-crossing walk.
