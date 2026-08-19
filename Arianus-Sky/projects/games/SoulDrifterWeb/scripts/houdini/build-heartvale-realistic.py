@@ -26,7 +26,7 @@ import re
 import struct
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import hou
 
@@ -630,11 +630,54 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
             builder.add_box(f"{name}_doorframe_{dz:+.2f}", (px, wall0 + door_h / 2, pz), (0.10, door_h, 0.10), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
         builder.add_prism_roof(f"{name}_roof", (x, wall0 + h, z), w + 0.7, d + 0.7, h * 0.55, THATCH if roof == "thatch" else SLATE, "anwel", MATERIAL_PATHS[roof], yaw=yaw)
 
-    house("anwel_reeve_hall", 10.4, 2.6, 5.4, 4.2, 3.0, "slate")
-    house("anwel_cottage_north", 5.6, -3.8, 3.6, 3.0, 2.6)
-    house("anwel_cottage_east", 12.4, -1.8, 3.2, 2.8, 2.5)
-    house("anwel_fisher_hut", 4.9, 2.6, 2.8, 2.4, 2.3)
-    house("anwel_store_barn", 8.8, -6.2, 4.4, 3.2, 2.8)
+    house("anwel_reeve_hall", 13.8, 4.2, 5.4, 4.2, 3.0, "slate")
+    house("anwel_cottage_north", 6.2, 6.4, 3.6, 3.0, 2.6)
+    house("anwel_fisher_hut", 1.8, 4.6, 2.8, 2.4, 2.3)
+    house("anwel_cottage_east", 15.0, -2.2, 3.2, 2.8, 2.5)
+    house("anwel_store_barn", 10.8, -7.6, 4.4, 3.2, 2.8)
+    house("anwel_cottage_south", 5.4, -8.2, 3.4, 2.8, 2.5)
+
+    # Fenced garden plots behind/beside houses — the separation and small
+    # gardens a real village has between buildings. Gate gap faces the lane.
+    def garden(name: str, gcx: float, gcz: float, w: float, d: float) -> None:
+        x, z = ax + gcx, az + gcz
+        gy0 = gy(x, z)
+        post_step = 0.9
+        gate = 1.1  # gate gap on the south (lane-facing) side
+        sides = (
+            ("n", [(x - w / 2 + i * post_step, z - d / 2) for i in range(int(w / post_step) + 1)]),
+            ("e", [(x + w / 2, z - d / 2 + i * post_step) for i in range(int(d / post_step) + 1)]),
+            ("w", [(x - w / 2, z - d / 2 + i * post_step) for i in range(int(d / post_step) + 1)]),
+        )
+        south_posts = []
+        i = 0
+        while True:
+            px = x - w / 2 + i * post_step
+            if px > x + w / 2:
+                break
+            if abs(px - x) > gate / 2:  # leave the gate open
+                south_posts.append((px, z + d / 2))
+            i += 1
+        sides += (("s", south_posts),)
+        post_index = 0
+        for side_name, posts in sides:
+            for px, pz in posts:
+                py = gy(px, pz)
+                builder.add_box(f"{name}_post_{post_index}", (px, py + 0.42, pz), (0.09, 0.84, 0.09), TIMBER, "anwel", MATERIAL_PATHS["timber"])
+                post_index += 1
+            for a, b in zip(posts, posts[1:]):
+                if math.hypot(b[0] - a[0], b[1] - a[1]) > post_step * 1.5:
+                    continue  # don't rail across the gate
+                mx, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+                rail_len = math.hypot(b[0] - a[0], b[1] - a[1])
+                yaw = math.atan2(b[0] - a[0], b[1] - a[1])
+                builder.add_box(f"{name}_rail_{post_index}_{side_name}", (mx, gy(mx, mz) + 0.62, mz), (0.06, 0.07, rail_len), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+                post_index += 1
+
+    garden("garden_reeve", 13.8, 8.8, 4.5, 3.0)
+    garden("garden_north", 9.8, 6.9, 3.5, 2.6)
+    garden("garden_south", 5.4, -11.8, 4.0, 3.0)
+    garden("garden_east", 18.2, -2.2, 3.2, 3.2)
 
     # Village well on the plaza
     wx, wz = plaza
@@ -740,16 +783,18 @@ def build_shrub(builder: GeometryBuilder, index: int, x: float, gy: float, z: fl
             card += 1
 
 
-def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict[str, int]:
+def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict[str, Any]:
+    """Plan vegetation/rock positions. Nothing is built into the authored mesh
+    anymore — positions are consumed by build_polyhaven(), which scatters real
+    CC0 assets (trees, shrubs, boulders, grass tufts) onto them."""
     rng = random.Random(layout.seed ^ 0xC0FFEE)
-    counts = {"trees": 0, "shrubs": 0, "rocks": 0, "reeds": 0}
     half_extent = layout.zone_grid * layout.tile_size / 2.0
     anwel = layout.anchors["anwel"]["world"]
 
     def excluded(x: float, z: float, margin: float = 0.0) -> bool:
         if math.hypot(x, z) < 13.0 + margin:
             return True
-        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 11.0:  # village plaza, east bank
+        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:  # village green + house ring
             return True
         if layout.river_distance(x, z) < 3.4:
             return True
@@ -762,10 +807,14 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         return False
 
     placed_trees: list[tuple[float, float, float]] = []
+    trees: list[tuple[float, float, float, str, float]] = []  # x, gy, z, species, pscale
+    shrubs: list[tuple[float, float, float, int, float]] = []  # x, gy, z, variant, pscale
+    rocks: list[tuple[float, float, float, float]] = []  # x, gy, z, radius
+    sedges: list[tuple[float, float, float, float]] = []  # x, gy, z, pscale
 
     # Trees — clustered by noise so they read as groves, denser near treeline NE.
     for _ in range(1600):
-        if counts["trees"] >= 110:
+        if len(trees) >= 130:
             break
         x = rng.uniform(-half_extent + 6, half_extent - 6)
         z = rng.uniform(-half_extent + 6, half_extent - 6)
@@ -784,13 +833,12 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
             species = "birch"
         else:
             species = "oak"
-        build_tree(builder, counts["trees"], x, gy, z, rng, species)
+        trees.append((x, gy, z, species, rng.uniform(0.9, 1.7)))
         placed_trees.append((x, gy, z))
-        counts["trees"] += 1
 
     # Shrubs — under trees, along roadsides and river edges.
     for _ in range(1200):
-        if counts["shrubs"] >= 90:
+        if len(shrubs) >= 110:
             break
         if placed_trees and rng.random() < 0.6:
             tx, _, tz = placed_trees[rng.randrange(len(placed_trees))]
@@ -805,25 +853,22 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         if excluded(x, z, margin=-1.0):
             continue
         gy = layout.terrain_height(x, z)
-        build_shrub(builder, counts["shrubs"], x, gy, z, rng)
-        counts["shrubs"] += 1
+        shrubs.append((x, gy, z, rng.randrange(4), rng.uniform(0.8, 1.6)))
 
     # Rocks
     for _ in range(400):
-        if counts["rocks"] >= 50:
+        if len(rocks) >= 60:
             break
         x = rng.uniform(-half_extent + 6, half_extent - 6)
         z = rng.uniform(-half_extent + 6, half_extent - 6)
         if excluded(x, z, margin=-2.0):
             continue
         gy = layout.terrain_height(x, z)
-        rock_r = rng.uniform(0.3, 1.2)
-        builder.add_octahedron(f"rock_{counts['rocks']:03d}", (x, gy + rock_r * 0.25, z), rock_r, mix3(ROCK, RIVERBED, rng.random() * 0.4), "rock", MATERIAL_PATHS["rock"], squash=rng.uniform(1.0, 1.6), stretch_y=0.7)
-        counts["rocks"] += 1
+        rocks.append((x, gy, z, rng.uniform(0.3, 1.2)))
 
-    # Sedge clumps along riverbanks
+    # Sedge tufts along riverbanks
     for _ in range(1200):
-        if counts["reeds"] >= 70:
+        if len(sedges) >= 90:
             break
         x = rng.uniform(-half_extent + 6, half_extent - 6)
         z = rng.uniform(-half_extent + 6, half_extent - 6)
@@ -833,10 +878,18 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         if layout.road_distance(x, z) < 2.0:
             continue
         gy = layout.terrain_height(x, z)
-        builder.add_octahedron(f"sedge_{counts['reeds']:03d}", (x, gy + 0.22, z), rng.uniform(0.30, 0.5), mix3(REED, GRASS_LUSH, rng.random() * 0.5), "reed", MATERIAL_PATHS["reed"], squash=1.2, stretch_y=0.65)
-        counts["reeds"] += 1
+        sedges.append((x, gy, z, rng.uniform(1.1, 2.0)))
 
-    return counts
+    return {
+        "trees": len(trees),
+        "shrubs": len(shrubs),
+        "rocks": len(rocks),
+        "reeds": len(sedges),
+        "treePositions": trees,
+        "shrubPositions": shrubs,
+        "rockPositions": rocks,
+        "sedgePositions": sedges,
+    }
 
 
 def _quat_mul(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
@@ -855,7 +908,7 @@ def _blade_prototype(root: Color, tip: Color) -> hou.Geometry:
     geometry = hou.Geometry()
     geometry.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
     geometry.addAttrib(hou.attribType.Prim, "shop_materialpath", "")
-    segments, height, width0, bend = 4, 0.52, 0.038, 0.17
+    segments, height, width0, bend = 4, 0.58, 0.062, 0.17
     prev: tuple[hou.Point, hou.Point] | None = None
     for i in range(segments + 1):
         t = i / segments
@@ -891,14 +944,14 @@ def _grass_points(layout: HeartvaleLayout, rng: random.Random, want_lush: bool) 
     def blocked(x: float, z: float) -> bool:
         if math.hypot(x, z) < 11.6:
             return True
-        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 9.5:  # trampled village plaza
+        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:  # trampled village green + house ring
             return True
         if layout.river_distance(x, z) < 2.8:
             return True
         return layout.road_distance(x, z) < 2.1
 
     placed = 0
-    bands = ((0.0, 38.0, 0.38), (38.0, 80.0, 0.90), (80.0, 136.0, 2.2))
+    bands = ((0.0, 38.0, 0.30), (38.0, 80.0, 0.68), (80.0, 136.0, 1.7))
     for inner, outer, spacing in bands:
         gx = -outer
         while gx < outer:
@@ -997,8 +1050,15 @@ def _ph_shader(matnet: hou.Node, aid: str, mat_name: str, uri: str) -> str:
     return node.path()
 
 
-def _ph_load(ph_node: hou.Node, aid: str, label: str) -> hou.Node:
+def _ph_load(ph_node: hou.Node, ph_root: Path, aid: str, label: str, use_lod: bool = True) -> hou.Node:
+    """Load an asset: cached polyreduced prototype (.bgeo.sc) when available,
+    else the live glTF (unpack needed). LOD caches come from
+    reduce-polyhaven-assets.py."""
+    lod = ph_root / aid / f"{aid}_lod.bgeo.sc"
     file_node = ph_node.createNode("file", f"PHFILE_{label}")
+    if use_lod and lod.is_file():
+        file_node.parm("file").set(f"{POLYHAVEN_DIR}/{aid}/{aid}_lod.bgeo.sc")
+        return file_node  # plain polygons already, no unpack needed
     file_node.parm("file").set(f"{POLYHAVEN_DIR}/{aid}/{aid}.gltf")
     unpack = ph_node.createNode("unpack", f"PHUNPACK_{label}")
     unpack.setInput(0, file_node)
@@ -1018,10 +1078,10 @@ def _ph_assign(ph_node: hou.Node, source: hou.Node, matnet: hou.Node, ph_root: P
 
 def _ph_place(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, aid: str, label: str,
               x: float, z: float, ground: float, target_height: float,
-              yaw: float = 0.0, hook: bool = False) -> hou.Node:
+              yaw: float = 0.0, hook: bool = False, use_lod: bool = True) -> hou.Node:
     """Load, height-normalize, and place one asset. hook=True hangs the asset's
     top at `ground` (used for door lanterns); otherwise its base sits on ground."""
-    unpack = _ph_load(ph_node, aid, label)
+    unpack = _ph_load(ph_node, ph_root, aid, label, use_lod)
     bb = unpack.geometry().boundingBox()
     size = bb.sizevec()
     scale = target_height / size.y() if size.y() > 1e-6 else 1.0
@@ -1035,9 +1095,10 @@ def _ph_place(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, aid: str, labe
 
 
 def _ph_scatter(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, layout: HeartvaleLayout,
-                aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float) -> hou.Node:
+                aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float,
+                use_lod: bool = True) -> hou.Node:
     """Copy a height-normalized asset onto Python-scattered points (pscale per point)."""
-    unpack = _ph_load(ph_node, aid, label)
+    unpack = _ph_load(ph_node, ph_root, aid, label, use_lod)
     bb = unpack.geometry().boundingBox()
     size = bb.sizevec()
     scale = target_height / size.y() if size.y() > 1e-6 else 1.0
@@ -1061,11 +1122,14 @@ def _ph_scatter(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, layout: Hear
     return _ph_assign(ph_node, copy, matnet, ph_root, aid, label)
 
 
-def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path) -> dict[str, int]:
-    """CC0 Poly Haven dressing: village props, verge grass, wild bushes, hero trees.
+def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, planned: dict[str, Any]) -> dict[str, int]:
+    """CC0 Poly Haven dressing: the living layer of the zone.
 
-    All chains stay live file references (the .hipnc stays lean); scale is
-    normalized per asset so everything lands at true world size."""
+    Everything scatters REAL assets — trees, shrubs, boulders, grass tufts,
+    ferns, flowers, forest-floor debris, village props — over the position
+    plans from scatter_vegetation() plus authored garden/village spots.
+    Heavy assets use polyreduced .bgeo.sc prototypes (reduce-polyhaven-assets.py);
+    only the two spawn-area hero trees reference the full LOD0 glTFs."""
     matnet = hou.node("/mat")
     rng = random.Random(layout.seed ^ 0x9A17)
     anchor = layout.anchors["anwel"]["world"]
@@ -1075,25 +1139,147 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path) -
     def gy(x: float, z: float) -> float:
         return layout.terrain_height(x, z)
 
-    counts = {"props": 0, "grassClumps": 0, "bushes": 0, "heroTrees": 0}
+    counts = {"props": 0, "grassClumps": 0, "bushes": 0, "heroTrees": 0,
+              "phTrees": 0, "phRocks": 0, "phPlants": 0, "phDebris": 0}
     outs: list[hou.Node] = []
 
-    def place(aid: str, label: str, x: float, z: float, target_height: float, yaw: float = 0.0, hook: bool = False) -> None:
-        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), target_height, yaw, hook))
-        counts["props"] += 1
+    def scatter(aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float, counter: str, use_lod: bool = True) -> None:
+        if not spots:
+            return
+        outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, aid, label, spots, target_height, use_lod))
+        counts[counter] += len(spots)
 
-    # Village props — dock, store barn, plaza well (positions match build_anwel)
+    def place(aid: str, label: str, x: float, z: float, target_height: float, yaw: float = 0.0,
+              hook: bool = False, use_lod: bool = True, sink: float = 0.0, counter: str = "props") -> None:
+        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z) - sink,
+                              target_height, yaw, hook, use_lod))
+        counts[counter] += 1
+
+    # --- Trees: real CC0 geometry at every planned position ----------------------
+    species_assets = {"oak": ("tree_small_02", 6.0), "birch": ("island_tree_03", 5.5), "willow": ("island_tree_01", 7.0)}
+    tree_spots: dict[str, list[tuple[float, float, float]]] = {aid: [] for aid, _ in species_assets.values()}
+    tree_spots["island_tree_02"] = []
+    for x, _gy, z, species, ps in planned["treePositions"]:
+        aid, base = species_assets[species]
+        if species == "oak" and rng.random() < 0.22:
+            aid, base = "island_tree_02", 6.0
+        tree_spots[aid].append((x, z, ps))
+    for aid, base in list(species_assets.values()) + [("island_tree_02", 6.0)]:
+        scatter(aid, f"TREES_{aid.upper()}", tree_spots[aid], base, "phTrees")
+
+    # Two full-LOD0 hero trees right where the player wakes and first walks
+    for aid, label, x, z, height, yaw in (
+        ("tree_small_02", "HERO_TREE_TERRACE", 6.5, -6.0, 8.0, 25.0),
+        ("island_tree_02", "HERO_TREE_RIVER", ax - 4.5, az + 8.5, 7.5, 160.0),
+    ):
+        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), height, yaw=yaw, use_lod=False))
+        counts["heroTrees"] += 1
+
+    # --- Shrubs ------------------------------------------------------------------
+    shrub_assets = [("shrub_01", 0.55), ("shrub_02", 1.15), ("shrub_03", 0.50), ("wild_rooibos_bush", 0.70)]
+    shrub_spots: dict[str, list[tuple[float, float, float]]] = {aid: [] for aid, _ in shrub_assets}
+    for x, _gy, z, variant, ps in planned["shrubPositions"]:
+        aid, _base = shrub_assets[variant]
+        shrub_spots[aid].append((x, z, ps))
+    for aid, base in shrub_assets:
+        scatter(aid, f"SHRUBS_{aid.upper()}", shrub_spots[aid], base, "bushes")
+
+    # --- Rocks: real boulders and stones instead of octahedra --------------------
+    boulder_spots: list[tuple[float, float, float]] = []
+    stone_spots: list[tuple[float, float, float]] = []
+    for x, _gy, z, radius in planned["rockPositions"]:
+        if radius < 0.65:
+            stone_spots.append((x, z, radius * 8.0))
+        else:
+            boulder_spots.append((x, z, radius))
+    scatter("boulder_01", "ROCKS_BOULDER", boulder_spots, 1.0, "phRocks")
+    scatter("stone_01", "ROCKS_STONE", stone_spots, 0.10, "phRocks")
+
+    # Mossy outcrops at scenic fixed spots (riverbend, terrace base, treeline foot)
+    for index, (x, z) in enumerate(((-8.0, -40.0), (14.0, 20.0), (-16.0, 8.0), (24.0, -48.0), (-6.0, -64.0), (30.0, 60.0))):
+        aid = "rock_moss_set_01" if index % 2 == 0 else "rock_moss_set_02"
+        place(aid, f"OUTCROP_{index}", x, z, 1.5, yaw=rng.uniform(0.0, 360.0), sink=0.35, counter="phRocks")
+
+    # --- Riverbank sedges become real grass tufts --------------------------------
+    scatter("grass_medium_02", "SEDGE_BANKS", [(x, z, ps) for x, _gy, z, ps in planned["sedgePositions"]], 0.50, "grassClumps")
+
+    # --- Mass grass cover: tuft patches across the whole vale --------------------
+    vale_grass: list[tuple[float, float, float]] = []
+    attempts = 0
+    while len(vale_grass) < 240 and attempts < 3000:
+        attempts += 1
+        x = rng.uniform(-58.0, 58.0)
+        z = rng.uniform(-58.0, 58.0)
+        r = math.hypot(x, z)
+        if r < 13.0 or r > 58.0:
+            continue
+        if math.hypot(x - plaza[0], z - plaza[1]) < 14.0:
+            continue
+        if layout.river_distance(x, z) < 3.0 or layout.road_distance(x, z) < 2.4:
+            continue
+        vale_grass.append((x, z, rng.uniform(1.0, 1.8)))
+    scatter("grass_medium_01", "GRASS_VALE", vale_grass, 0.22, "grassClumps")
+
+    # --- Forest-floor life: ferns, moss, flowers, stumps, fallen logs ------------
+    tree_xz = [(x, z) for x, _gy, z, _s, _p in planned["treePositions"]]
+
+    def near_trees(count: int, dmin: float, dmax: float, smin: float, smax: float) -> list[tuple[float, float, float]]:
+        spots: list[tuple[float, float, float]] = []
+        tries = 0
+        while len(spots) < count and tries < count * 30 and tree_xz:
+            tries += 1
+            tx, tz = tree_xz[rng.randrange(len(tree_xz))]
+            ang = rng.uniform(0.0, math.tau)
+            dist = rng.uniform(dmin, dmax)
+            x, z = tx + math.cos(ang) * dist, tz + math.sin(ang) * dist
+            if layout.river_distance(x, z) < 2.6 or layout.road_distance(x, z) < 1.6:
+                continue
+            spots.append((x, z, rng.uniform(smin, smax)))
+        return spots
+
+    scatter("fern_02", "FERNS", near_trees(30, 1.5, 6.0, 1.0, 1.8), 0.43, "phPlants")
+    scatter("moss_01", "MOSS", near_trees(16, 0.8, 1.8, 6.0, 12.0), 0.05, "phPlants")
+    scatter("tree_stump_01", "STUMPS", near_trees(8, 3.0, 7.0, 1.2, 2.0), 0.57, "phDebris")
+    scatter("dry_branches_medium_01", "BRANCHES", near_trees(10, 2.0, 6.0, 1.0, 1.8), 0.34, "phDebris")
+
+    log_spots = near_trees(6, 3.0, 8.0, 1.5, 2.5)
+    for index, (x, z, ps) in enumerate(log_spots):
+        place("dead_tree_trunk", f"FALLEN_LOG_{index}", x, z, 0.30 * ps, yaw=rng.uniform(0.0, 360.0), counter="phDebris")
+
+    # Wildflowers: roadsides and the moth meadow
+    flower_spots: list[tuple[float, float, float]] = []
+    tries = 0
+    while len(flower_spots) < 26 and tries < 800:
+        tries += 1
+        x = rng.uniform(-45.0, 45.0)
+        z = rng.uniform(-45.0, 45.0)
+        d_road = layout.road_distance(x, z)
+        if 2.3 < d_road < 4.5 and layout.river_distance(x, z) > 3.0:
+            flower_spots.append((x, z, rng.uniform(1.0, 1.8)))
+    mx, mz = layout.grid_to_world(30.0, 66.0)
+    for _ in range(8):
+        ang = rng.uniform(0.0, math.tau)
+        r = rng.uniform(2.0, 8.0)
+        flower_spots.append((mx + math.cos(ang) * r, mz + math.sin(ang) * r, rng.uniform(1.0, 1.8)))
+    scatter("celandine_01", "FLOWERS", flower_spots, 0.19, "phPlants")
+
+    # --- Village: lane props, door lanterns, garden plots ------------------------
     place("wooden_barrels_01", "BARRELS_DOCK", ax - 2.3, az - 1.6, 0.95, yaw=15.0)
-    place("wooden_barrels_01", "BARRELS_BARN", ax + 10.7, az - 7.2, 0.95, yaw=40.0)
+    place("wooden_barrels_01", "BARRELS_BARN", ax + 12.9, az - 8.2, 0.95, yaw=40.0)
     place("wooden_crate_01", "CRATE_DOCK_A", ax - 3.5, az + 1.6, 0.50, yaw=70.0)
     place("wooden_crate_01", "CRATE_DOCK_B", ax - 3.1, az + 2.3, 0.50, yaw=20.0)
-    place("wooden_crate_01", "CRATE_BARN_A", ax + 7.1, az - 7.6, 0.55, yaw=0.0)
-    place("wooden_crate_01", "CRATE_BARN_B", ax + 7.9, az - 6.9, 0.50, yaw=55.0)
+    place("wooden_crate_01", "CRATE_BARN_A", ax + 9.2, az - 8.7, 0.55, yaw=0.0)
+    place("wooden_crate_01", "CRATE_BARN_B", ax + 10.0, az - 8.0, 0.50, yaw=55.0)
+    place("wooden_crate_02", "CRATE2_DOCK", ax - 3.8, az + 0.9, 0.46, yaw=25.0)
+    place("wooden_crate_02", "CRATE2_BARN", ax + 9.7, az - 9.3, 0.46, yaw=100.0)
+    place("wine_barrel_01", "WINE_DOCK", ax - 2.6, az + 2.2, 0.87, yaw=5.0)
+    place("wine_barrel_01", "WINE_BARN", ax + 11.8, az - 6.9, 0.87, yaw=75.0)
+    place("wine_barrel_01", "WINE_REEVE", ax + 12.9, az + 3.1, 0.87, yaw=140.0)
     place("wooden_bucket_01", "BUCKET_WELL_A", plaza[0] - 0.8, plaza[1] + 0.7, 0.50, yaw=10.0)
     place("wooden_bucket_01", "BUCKET_WELL_B", plaza[0] + 0.9, plaza[1] - 0.7, 0.50, yaw=130.0)
 
-    # Door lanterns — hung beside each house door at 2.0 m (doors face the plaza)
-    houses = ((10.4, 2.6, 5.4), (5.6, -3.8, 3.6), (12.4, -1.8, 3.2), (4.9, 2.6, 2.8), (8.8, -6.2, 4.4))
+    # Door lanterns — hung beside each house door at 2.0 m (doors face the green)
+    houses = ((13.8, 4.2, 5.4), (6.2, 6.4, 3.6), (1.8, 4.6, 2.8), (15.0, -2.2, 3.2), (10.8, -7.6, 4.4), (5.4, -8.2, 3.4))
     for index, (hx, hz, hw) in enumerate(houses):
         wx, wz = ax + hx, az + hz
         yaw_to_plaza = math.atan2(plaza[1] - wz, plaza[0] - wx)
@@ -1105,55 +1291,22 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path) -
                               lx, lz, gy(lx, lz) + 2.0, 0.53, yaw=math.degrees(yaw_to_plaza), hook=True))
         counts["props"] += 1
 
-    # Verge grass along the road near Anwel + a ring around the plaza
-    grass_spots: list[tuple[float, float, float]] = []
-    road_near = [s for s in layout.road_samples if abs(s[0] - ax) < 45.0 and abs(s[1] - az) < 45.0]
-    for i in range(0, len(road_near), 3):
-        sx, sz = road_near[i]
-        ang = rng.uniform(0.0, 2.0 * math.pi)
-        off = rng.uniform(1.6, 2.4)
-        grass_spots.append((sx + math.cos(ang) * off, sz + math.sin(ang) * off, rng.uniform(0.7, 1.3)))
-    for k in range(8):
-        ang = k * math.pi / 4.0 + rng.uniform(-0.2, 0.2)
-        r = rng.uniform(5.0, 6.5)
-        grass_spots.append((plaza[0] + math.cos(ang) * r, plaza[1] + math.sin(ang) * r, rng.uniform(0.6, 1.0)))
-    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "grass_medium_01", "GRASS_VERGE", grass_spots, 0.22))
-    counts["grassClumps"] += len(grass_spots)
-
-    # Second grass species in the gossamer-moth meadow west of the terrace road
-    meadow_spots: list[tuple[float, float, float]] = []
-    mx, mz = layout.grid_to_world(30.0, 66.0)
-    for k in range(10):
-        ang = rng.uniform(0.0, 2.0 * math.pi)
-        r = rng.uniform(2.0, 8.0)
-        candidate = (mx + math.cos(ang) * r, mz + math.sin(ang) * r)
-        if layout.river_distance(*candidate) > 2.0 and layout.road_distance(*candidate) > 1.2:
-            meadow_spots.append((candidate[0], candidate[1], rng.uniform(0.8, 1.4)))
-    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "grass_medium_02", "GRASS_MEADOW", meadow_spots, 0.26))
-    counts["grassClumps"] += len(meadow_spots)
-
-    # Wild bushes: house gardens + east road verge (kept off road and water)
-    bush_spots: list[tuple[float, float, float]] = []
-    attempts = 0
-    while len(bush_spots) < 14 and attempts < 120:
-        attempts += 1
-        ang = rng.uniform(0.0, 2.0 * math.pi)
-        r = rng.uniform(4.0, 13.0)
-        candidate = (plaza[0] + math.cos(ang) * r, plaza[1] + math.sin(ang) * r)
-        if layout.river_distance(*candidate) > 2.0 and layout.road_distance(*candidate) > 1.5:
-            bush_spots.append((candidate[0], candidate[1], rng.uniform(1.0, 1.8)))
-    outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, "wild_rooibos_bush", "BUSH_ANWEL", bush_spots, 0.60))
-    counts["bushes"] += len(bush_spots)
-
-    # Hero trees — full-geometry CC0 trees at landmark spots among the procedural stand
-    for aid, label, x, z, height, yaw in (
-        ("tree_small_02", "HERO_TREE_TERRACE", 6.5, -6.0, 8.0, 25.0),
-        ("island_tree_02", "HERO_TREE_RIVER", ax - 4.5, az + 8.5, 7.5, 160.0),
-        ("tree_small_02", "HERO_TREE_ANWEL", ax + 3.5, az - 10.5, 7.0, 200.0),
-        ("island_tree_02", "HERO_TREE_SOUTH", -3.0, 16.0, 6.5, 310.0),
-    ):
-        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), height, yaw=yaw))
-        counts["heroTrees"] += 1
+    # Gardens: planter boxes + soft planting inside each fenced plot
+    gardens = ((13.8, 8.8, 4.5, 3.0), (9.8, 6.9, 3.5, 2.6), (5.4, -11.8, 4.0, 3.0), (18.2, -2.2, 3.2, 3.2))
+    for index, (gcx, gcz, gw, gd) in enumerate(gardens):
+        cx, cz = ax + gcx, az + gcz
+        place("planter_box_01", f"PLANTER_{index}_A", cx - gw * 0.22, cz - gd * 0.18, 0.42, yaw=rng.uniform(-8.0, 8.0))
+        place("planter_box_01", f"PLANTER_{index}_B", cx + gw * 0.22, cz + gd * 0.18, 0.42, yaw=90.0 + rng.uniform(-8.0, 8.0))
+        bed_spots = [
+            (cx + rng.uniform(-0.4, 0.4) * gw, cz + rng.uniform(-0.4, 0.4) * gd, rng.uniform(0.7, 1.0)),
+            (cx + rng.uniform(-0.4, 0.4) * gw, cz + rng.uniform(-0.4, 0.4) * gd, rng.uniform(0.7, 1.0)),
+        ]
+        scatter("grass_medium_01", f"GARDEN_GRASS_{index}", bed_spots, 0.20, "grassClumps")
+        scatter("celandine_01", f"GARDEN_FLOWERS_{index}",
+                [(cx + rng.uniform(-0.35, 0.35) * gw, cz + rng.uniform(-0.35, 0.35) * gd, rng.uniform(0.8, 1.2))],
+                0.19, "phPlants")
+        scatter("shrub_03", f"GARDEN_BUSH_{index}",
+                [(cx - gw * 0.30, cz + gd * 0.30, rng.uniform(0.8, 1.1))], 0.50, "bushes")
 
     merge = ph_node.createNode("merge", "POLYHAVEN_MERGE")
     for index, node in enumerate(outs):
@@ -1177,11 +1330,11 @@ NPC_PLACEMENTS: list[tuple[str, float, float, float, Color]] = [
     # id, world x, world z, facing yaw (deg), tunic color
     ("mira-eddlestone", 4.6, -24.9, 200.0, (0.30, 0.42, 0.22)),
     ("dockmaster-pell", -2.4, -25.6, 90.0, (0.18, 0.26, 0.38)),
-    ("fletcher-anes", 6.3, -28.9, 160.0, (0.38, 0.27, 0.16)),
+    ("fletcher-anes", 6.0, -21.6, 170.0, (0.38, 0.27, 0.16)),
     ("herder-bonn", 3.2, -31.5, 20.0, (0.45, 0.35, 0.16)),
     ("cael-roadwarden", 1.2, -30.2, 0.0, (0.28, 0.32, 0.38)),
     ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),
-    ("reeve-droma", 11.6, -24.6, 250.0, (0.42, 0.18, 0.20)),
+    ("reeve-droma", 12.6, -23.6, 250.0, (0.42, 0.18, 0.20)),
     ("scavenger-ils", -3.4, -28.6, 60.0, (0.32, 0.32, 0.30)),
     ("old-fen", -3.0, -27.4, 120.0, (0.24, 0.38, 0.30)),
     ("shepherdess-rill", 1.0, 8.0, 180.0, (0.55, 0.50, 0.38)),
@@ -1420,7 +1573,9 @@ def main() -> None:
     for child in ph_node.children():
         child.destroy()
     ph_root = args.hip.resolve().parent.parent / "polyhaven"
-    counts.update(build_polyhaven(ph_node, layout, ph_root))
+    counts.update(build_polyhaven(ph_node, layout, ph_root, counts))
+    for key in ("treePositions", "shrubPositions", "rockPositions", "sedgePositions"):
+        counts.pop(key, None)  # planning data, not summary output
 
     npc_node = obj.createNode("geo", "HEARTVALE_NPCS")
     for child in npc_node.children():

@@ -116,6 +116,22 @@ const ROADS = [
     id: "vaeldor-road-to-erboug",
     waypoints: [[46, 96], [56, 92], [66, 89], [76, 86.5], [87.5, 85]],
   },
+  {
+    // Village lane: leaves the river road and loops around Anwel's green so the
+    // settlement reads as a real place — houses face the lane, set back behind
+    // garden plots, instead of clustering on the plaza (world-space design in
+    // build-heartvale-realistic.py; grid = world/1.75 + (40, 72.5)).
+    id: "anwel-village-lane",
+    waypoints: [
+      [40.57, 56.96], [41.6, 56.84], [42.29, 56.9], [42.4, 55.59], [43.43, 54.67],
+      [44.91, 54.44], [46.17, 55.13], [46.63, 56.5], [46.63, 57.99], [46.06, 59.36],
+      [44.8, 60.04], [43.43, 59.93], [42.51, 59.13], [42.29, 57.99], [42.29, 56.9],
+    ],
+  },
+  {
+    id: "anwel-dock-spur",
+    waypoints: [[40.57, 57.64], [39.2, 57.87], [38.51, 57.99]],
+  },
 ];
 
 const payload = {

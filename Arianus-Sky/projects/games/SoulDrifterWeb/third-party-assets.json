@@ -81,6 +81,168 @@
       "license": "CC0-1.0",
       "bundled": true,
       "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_lantern_01/."
+    },
+    {
+      "id": "polyhaven-island-tree-01",
+      "name": "Island Tree 01",
+      "url": "https://polyhaven.com/a/island_tree_01",
+      "usage": "Houdini source scene dressing (scattered vale trees (willow-class, near water)); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/island_tree_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-island-tree-03",
+      "name": "Island Tree 03",
+      "url": "https://polyhaven.com/a/island_tree_03",
+      "usage": "Houdini source scene dressing (scattered vale trees (birch-class, Lockroot treeline)); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/island_tree_03/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-rock-moss-set-01",
+      "name": "Rock Moss Set 01",
+      "url": "https://polyhaven.com/a/rock_moss_set_01",
+      "usage": "Houdini source scene dressing (mossy outcrops at scenic fixed spots); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/rock_moss_set_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-rock-moss-set-02",
+      "name": "Rock Moss Set 02",
+      "url": "https://polyhaven.com/a/rock_moss_set_02",
+      "usage": "Houdini source scene dressing (mossy outcrops at scenic fixed spots); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/rock_moss_set_02/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-boulder-01",
+      "name": "Boulder 01",
+      "url": "https://polyhaven.com/a/boulder_01",
+      "usage": "Houdini source scene dressing (scattered boulders across the vale); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/boulder_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-stone-01",
+      "name": "Stone 01",
+      "url": "https://polyhaven.com/a/stone_01",
+      "usage": "Houdini source scene dressing (small path stones); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/stone_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-shrub-01",
+      "name": "Shrub 01",
+      "url": "https://polyhaven.com/a/shrub_01",
+      "usage": "Houdini source scene dressing (hedge shrubs); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/shrub_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-shrub-02",
+      "name": "Shrub 02",
+      "url": "https://polyhaven.com/a/shrub_02",
+      "usage": "Houdini source scene dressing (bushy clusters); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/shrub_02/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-shrub-03",
+      "name": "Shrub 03",
+      "url": "https://polyhaven.com/a/shrub_03",
+      "usage": "Houdini source scene dressing (small shrubs and garden bushes); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/shrub_03/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-fern-02",
+      "name": "Fern 02",
+      "url": "https://polyhaven.com/a/fern_02",
+      "usage": "Houdini source scene dressing (forest-floor ferns near trees); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/fern_02/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-celandine-01",
+      "name": "Celandine 01",
+      "url": "https://polyhaven.com/a/celandine_01",
+      "usage": "Houdini source scene dressing (wildflower patches on roadsides, meadow, gardens); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/celandine_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-moss-01",
+      "name": "Moss 01",
+      "url": "https://polyhaven.com/a/moss_01",
+      "usage": "Houdini source scene dressing (moss patches at tree bases); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/moss_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-dead-tree-trunk",
+      "name": "Dead Tree Trunk",
+      "url": "https://polyhaven.com/a/dead_tree_trunk",
+      "usage": "Houdini source scene dressing (fallen logs in the groves); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/dead_tree_trunk/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-tree-stump-01",
+      "name": "Tree Stump 01",
+      "url": "https://polyhaven.com/a/tree_stump_01",
+      "usage": "Houdini source scene dressing (stumps in the groves); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/tree_stump_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-dry-branches-medium-01",
+      "name": "Dry Branches Medium 01",
+      "url": "https://polyhaven.com/a/dry_branches_medium_01",
+      "usage": "Houdini source scene dressing (branch litter under trees); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/dry_branches_medium_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-wooden-crate-02",
+      "name": "Wooden Crate 02",
+      "url": "https://polyhaven.com/a/wooden_crate_02",
+      "usage": "Houdini source scene dressing (village crates); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wooden_crate_02/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-wine-barrel-01",
+      "name": "Wine Barrel 01",
+      "url": "https://polyhaven.com/a/wine_barrel_01",
+      "usage": "Houdini source scene dressing (village barrels at dock, barn, reeve hall); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/wine_barrel_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "polyhaven-planter-box-01",
+      "name": "Planter Box 01",
+      "url": "https://polyhaven.com/a/planter_box_01",
+      "usage": "Houdini source scene dressing (garden planter boxes); not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "notes": "1k glTF + JPG textures under source-assets/polyhaven/planter_box_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
     }
   ],
   "researchReferences": [
