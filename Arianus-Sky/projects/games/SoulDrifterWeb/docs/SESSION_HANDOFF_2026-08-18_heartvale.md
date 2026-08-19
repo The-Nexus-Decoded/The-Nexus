@@ -2,6 +2,13 @@
 
 Branch: `codex/heartvale-outdoor` (from `codex/435-3d-asset-pipeline`) · Executor: Kimi session
 
+> **⚠ READ FIRST (2026-08-19):** this handoff predates the owner-approved v2
+> zone frame. The scale it references (1 atlas % = 8.75 m, 280×280 m basin) is
+> **superseded** — the build is ~13× too small. Before continuing any work
+> described here, read `docs/KICKOFF-2026-08-19-heartvale-restart.md` and
+> follow its read-order and first moves. The "Open work" list below is still
+> valid in spirit but must be executed against the new frame.
+
 ## Landed (3 commits, all gated)
 
 | Commit | Content |

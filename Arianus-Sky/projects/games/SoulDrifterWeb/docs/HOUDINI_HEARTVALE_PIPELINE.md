@@ -2,9 +2,20 @@
 
 Branch: `codex/heartvale-outdoor` · Runbook: Zone 2 Heartvale Outdoor (Breach exit + 5 nearest POIs) · Created: 2026-08-18
 
+> **⚠ SUPERSEDED SCALE — READ FIRST (2026-08-19):** the "Scale authority (locked)"
+> section below is **superseded** by the owner-approved v2 zone frame. The
+> constants here (1 atlas % = 8.75 m, zone = 160×160 tiles / 280×280 m) produce
+> a world ~13× too small. Before any further work read, in order:
+> `docs/KICKOFF-2026-08-19-heartvale-restart.md` →
+> `docs/REVIEW-2026-08-19-heartvale-visuals.md` →
+> `docs/ZONE_BUILD_RUNBOOK.md` → `docs/THALENYR_SCALE_AND_SECTIONS.md` +
+> `server/sections.mjs` (authoritative numbers) → `docs/HEARTVALE_ZONE_TICKETS.md`.
+> Do not use the constants below for new work; they remain only to explain the
+> existing scene's proportions.
+
 This is the outdoor counterpart to the First Breach Houdini pilot (`docs/HOUDINI_FIRST_BREACH_PIPELINE.md`). It builds the Heartvale basin of Thalenyr — the world the player steps into after the "way upward" transition — as a procedurally authored Houdini source scene with an exportable OBJ blockout.
 
-## Scale authority (locked)
+## Scale authority (locked) — ⚠ SUPERSEDED 2026-08-19, see notice above
 
 The layout export script is the single source of truth for outdoor scale. Every future zone, POI, or location MUST be placed with these constants so the world stays consistent with the lore atlas (`public/lore-atlas/data.js`):
 
