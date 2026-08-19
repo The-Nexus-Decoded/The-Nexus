@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 2,
+  "frame": "soulwell-local meters (+X east, +Z south); add plateOffset for plate-world meters",
+  "npcs": [
+    {
+      "id": "mira-eddlestone",
+      "x": 4.6,
+      "z": -205.7,
+      "yawDeg": 200.0,
+      "tunic": [
+        0.3,
+        0.42,
+        0.22
+      ]
+    },
+    {
+      "id": "dockmaster-pell",
+      "x": -2.4,
+      "z": -206.4,
+      "yawDeg": 90.0,
+      "tunic": [
+        0.18,
+        0.26,
+        0.38
+      ]
+    },
+    {
+      "id": "fletcher-anes",
+      "x": 6.0,
+      "z": -202.4,
+      "yawDeg": 170.0,
+      "tunic": [
+        0.38,
+        0.27,
+        0.16
+      ]
+    },
+    {
+      "id": "herder-bonn",
+      "x": 3.2,
+      "z": -212.3,
+      "yawDeg": 20.0,
+      "tunic": [
+        0.45,
+        0.35,
+        0.16
+      ]
+    },
+    {
+      "id": "cael-roadwarden",
+      "x": 1.2,
+      "z": -211.0,
+      "yawDeg": 0.0,
+      "tunic": [
+        0.28,
+        0.32,
+        0.38
+      ]
+    },
+    {
+      "id": "wellkeeper-sef",
+      "x": 2.6,
+      "z": 2.2,
+      "yawDeg": 220.0,
+      "tunic": [
+        0.16,
+        0.4,
+        0.38
+      ]
+    },
+    {
+      "id": "reeve-droma",
+      "x": 12.6,
+      "z": -204.4,
+      "yawDeg": 250.0,
+      "tunic": [
+        0.42,
+        0.18,
+        0.2
+      ]
+    },
+    {
+      "id": "scavenger-ils",
+      "x": -3.4,
+      "z": -209.4,
+      "yawDeg": 60.0,
+      "tunic": [
+        0.32,
+        0.32,
+        0.3
+      ]
+    },
+    {
+      "id": "old-fen",
+      "x": -3.0,
+      "z": -208.2,
+      "yawDeg": 120.0,
+      "tunic": [
+        0.24,
+        0.38,
+        0.3
+      ]
+    },
+    {
+      "id": "shepherdess-rill",
+      "x": 1.0,
+      "z": 8.0,
+      "yawDeg": 180.0,
+      "tunic": [
+        0.55,
+        0.5,
+        0.38
+      ]
+    },
+    {
+      "id": "sergeant-hull",
+      "x": 2.2,
+      "z": 12.5,
+      "yawDeg": 180.0,
+      "tunic": [
+        0.36,
+        0.38,
+        0.42
+      ]
+    },
+    {
+      "id": "brother-owyn",
+      "x": 2.0,
+      "z": -211.7,
+      "yawDeg": 10.0,
+      "tunic": [
+        0.6,
+        0.57,
+        0.5
+      ]
+    }
+  ]
+}

@@ -23,7 +23,6 @@ import json
 import math
 import random
 import re
-import struct
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -90,8 +89,6 @@ MATERIAL_PATHS = {
     "iron": "/mat/HVR_Iron",
 }
 
-TERRAIN_SAMPLES = 200  # quads per side over the 280 m zone (1.4 m resolution)
-HEIGHT_EXPORT_SAMPLES = 200
 
 
 def parse_args() -> argparse.Namespace:
@@ -244,16 +241,17 @@ class GeometryBuilder:
         vertices: list[hou.Vertex] = []
         for point in points:
             vertices.append(polygon.addVertex(point))
-        positions = [point.position() for point in points]
-        ranges = [max(p[axis] for p in positions) - min(p[axis] for p in positions) for axis in range(3)]
-        if ranges[1] <= min(ranges[0], ranges[2]):
-            projected = [(p[0], p[2]) for p in positions]
-        elif ranges[0] <= min(ranges[1], ranges[2]):
-            projected = [(p[2], p[1]) for p in positions]
-        else:
-            projected = [(p[0], p[1]) for p in positions]
-        for vertex, (u, v) in zip(vertices, projected, strict=True):
-            vertex.setAttribValue("uv", (u * uv_scale, v * uv_scale, 0.0))
+        if uv_scale > 0.0:
+            positions = [point.position() for point in points]
+            ranges = [max(p[axis] for p in positions) - min(p[axis] for p in positions) for axis in range(3)]
+            if ranges[1] <= min(ranges[0], ranges[2]):
+                projected = [(p[0], p[2]) for p in positions]
+            elif ranges[0] <= min(ranges[1], ranges[2]):
+                projected = [(p[2], p[1]) for p in positions]
+            else:
+                projected = [(p[0], p[1]) for p in positions]
+            for vertex, (u, v) in zip(vertices, projected, strict=True):
+                vertex.setAttribValue("uv", (u * uv_scale, v * uv_scale, 0.0))
         polygon.setAttribValue("name", name)
         polygon.setAttribValue("path", f"/HeartvaleReal/{kind}/{name}")
         polygon.setAttribValue("souldrifter_kind", kind)
@@ -370,26 +368,277 @@ class GeometryBuilder:
         self._polygon(list(reversed(pts)), name, kind, color, material)  # double-sided
 
 
+# --- Height/splat field (numpy): ONE source of truth for mesh + runtime exports ---
+# v2 frame: layout arrives in plate world meters; the build works in soulwell-
+# relative local meters. The basin is 3360×2700 m (hv-1…hv-7 span + margin).
+import numpy as np
+
+EXPORT_STEP = 2.5   # runtime heightmap/splat resolution (meters per texel)
+MESH_STEP = 5.0     # Houdini blockout mesh resolution (2× export, exact subset)
+DOMAIN_X = (-1180.0, 2300.0)  # local meters; hv-6 west edge ≈ -1117.5, hv-5/7 east ≈ +2242.5
+DOMAIN_Z = (-1160.0, 1665.0)  # hv-2 north ≈ -1096, hv-4 south ≈ +1604
+SPLAT_CHANNELS = ["grass", "dry", "road", "riverbed", "wet", "stone", "forest"]
+FOREST_FLOOR_TINT: Color = (0.30, 0.24, 0.15)
+
+
+def _hash2_np(ix: np.ndarray, iz: np.ndarray, seed: int) -> np.ndarray:
+    """Vectorized _hash2. Low 48 bits of Python's infinite-precision two's
+    complement arithmetic match int64, so this is bit-identical to the scalar
+    version (verified against it at build time below)."""
+    v = (ix.astype(np.int64) * 0x1F123BB5) ^ (iz.astype(np.int64) * 0x5F356495) ^ np.int64(seed)
+    v = ((v ^ (v >> 16)) * 0x45D9F3B) & 0xFFFFFFFF
+    v = v ^ (v >> 16)
+    return (v & 0xFFFFFF).astype(np.float64) / float(0x1000000)
+
+
+def _value_noise_np(x: np.ndarray, z: np.ndarray, seed: int) -> np.ndarray:
+    ix, iz = np.floor(x), np.floor(z)
+    fx, fz = x - ix, z - iz
+    sx = fx * fx * (3.0 - 2.0 * fx)
+    sz = fz * fz * (3.0 - 2.0 * fz)
+    a = _hash2_np(ix, iz, seed)
+    b = _hash2_np(ix + 1.0, iz, seed)
+    c = _hash2_np(ix, iz + 1.0, seed)
+    d = _hash2_np(ix + 1.0, iz + 1.0, seed)
+    low = a + (b - a) * sx
+    high = c + (d - c) * sx
+    return (low + (high - low) * sz) * 2.0 - 1.0
+
+
+def _fbm_np(x: np.ndarray, z: np.ndarray, seed: int, octaves: int = 4, lacunarity: float = 2.0, gain: float = 0.5) -> np.ndarray:
+    total = np.zeros_like(x)
+    amplitude, frequency, norm = 1.0, 1.0, 0.0
+    for octave in range(octaves):
+        total += amplitude * _value_noise_np(x * frequency, z * frequency, seed + octave * 131)
+        norm += amplitude
+        amplitude *= gain
+        frequency *= lacunarity
+    return total / norm
+
+
+def _smoothstep_np(e0: float, e1: float, v: np.ndarray) -> np.ndarray:
+    t = np.clip((v - e0) / (e1 - e0), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def _polyline_distance_field(xs: np.ndarray, zs: np.ndarray, samples: list[tuple[float, float]], max_dist: float) -> np.ndarray:
+    """Approximate euclidean distance to a polyline via ring dilation (good to
+    max_dist; beyond that the value saturates). Samples are densified to ~1 m
+    first so rasterization at 2.5 m leaves no gaps."""
+    step = float(xs[1] - xs[0])
+    nz, nx = len(zs), len(xs)
+    dense: list[tuple[float, float]] = []
+    for (ax, az), (bx, bz) in zip(samples, samples[1:]):
+        length = math.hypot(bx - ax, bz - az)
+        n = max(1, int(length))
+        for s in range(n):
+            t = s / n
+            dense.append((ax + (bx - ax) * t, az + (bz - az) * t))
+    if samples:
+        dense.append(samples[-1])
+    mask = np.zeros((nz, nx), dtype=bool)
+    if dense:
+        arr = np.asarray(dense)
+        ix = np.clip(np.rint((arr[:, 0] - xs[0]) / step).astype(np.int64), 0, nx - 1)
+        iz = np.clip(np.rint((arr[:, 1] - zs[0]) / step).astype(np.int64), 0, nz - 1)
+        mask[iz, ix] = True
+    dist = np.full((nz, nx), np.inf)
+    dist[mask] = 0.0
+    frontier = mask
+    rings = int(math.ceil(max_dist / step))
+    for k in range(1, rings + 1):
+        dil = frontier.copy()
+        dil[1:, :] |= frontier[:-1, :]
+        dil[:-1, :] |= frontier[1:, :]
+        dil[:, 1:] |= frontier[:, :-1]
+        dil[:, :-1] |= frontier[:, 1:]
+        new = dil & ~np.isfinite(dist)
+        if not new.any():
+            break
+        dist[new] = k * step
+        frontier = dil
+    return np.where(np.isfinite(dist), dist, max_dist + step)
+
+
+class HeightField:
+    """Terrain height + splat weights + tints on one numpy grid. The Houdini
+    mesh, the runtime heightmap/splat exports, and every placement call sample
+    this field, so mesh/export/scatter always agree (runbook §3)."""
+
+    def __init__(self, layout: "HeartvaleLayout") -> None:
+        """Phase 1: heights + distance fields + moisture (no splat yet — the
+        forest-floor channel needs tree positions, planned after heights)."""
+        seed = layout.seed
+        self.x0, self.x1 = DOMAIN_X
+        self.z0, self.z1 = DOMAIN_Z
+        self.step = EXPORT_STEP
+        self.xs = self.x0 + np.arange(int(round((self.x1 - self.x0) / self.step)) + 1) * self.step
+        self.zs = self.z0 + np.arange(int(round((self.z1 - self.z0) / self.step)) + 1) * self.step
+        X, Z = np.meshgrid(self.xs, self.zs)  # (nz, nx), row-major, +Z rows
+
+        # Basin-scale relief: domain-warped fBm with ~600 m wavelengths, local
+        # detail kept at real scale, plus the authored terrace/Erboug forms.
+        wx = X + 120.0 * _fbm_np(X * 0.0009 + 40.0, Z * 0.0009 - 17.0, seed ^ 0xA53A, 3)
+        wz = Z + 120.0 * _fbm_np(X * 0.0009 - 23.0, Z * 0.0009 + 51.0, seed ^ 0x9E37, 3)
+        base = 9.0 * _fbm_np(wx * 0.0016, wz * 0.0016, seed, 5)
+        base += 0.35 * _fbm_np(X * 0.11, Z * 0.11, seed ^ 0x51ED, 3)
+        base = base + 2.2 * np.exp(-((X - 0.0) ** 2 + (Z + 14.0) ** 2) / (2 * 10.0**2))  # terrace mound
+        erboug = layout.anchors["erboug"]["world"]
+        base = base + 6.0 * np.exp(-((X - erboug["x"]) ** 2 + (Z - erboug["z"]) ** 2) / (2 * 65.0**2))
+        base = base - 6.0 * _smoothstep_np(300.0, 1500.0, Z)  # gentle descent south toward Vaeldor
+        self.base = base
+
+        H = base + (1.35 - base) * _smoothstep_np(16.0, 10.5, np.hypot(X, Z))  # terrace plateau
+        self.d_river = _polyline_distance_field(self.xs, self.zs, layout.river_samples, 20.0)
+        carve = 1.65 * (1.0 - _smoothstep_np(2.4, 5.4, self.d_river))
+        carve += 0.35 * (1.0 - _smoothstep_np(4.0, 7.5, self.d_river))  # soft banks
+        H = H - carve
+        self.d_road = _polyline_distance_field(self.xs, self.zs, layout.road_samples, 20.0)
+        H = H + (np.round(H / 0.30) * 0.30 - H) * (0.5 * (1.0 - _smoothstep_np(1.8, 4.2, self.d_road)))
+        self.H = H
+
+        self.moisture = _fbm_np(X * 0.021 + 9.0, Z * 0.021 - 4.0, seed ^ 0xF00D, 3)
+        self.moisture = self.moisture + 0.35 * (1.0 - _smoothstep_np(3.0, 14.0, self.d_river))  # riparian green-up
+
+        self._X = X
+        self._Z = Z
+        self.weights: np.ndarray | None = None
+        self.tint: np.ndarray | None = None
+
+    def build_splat(self, layout: "HeartvaleLayout", tree_positions: list[tuple[float, float]]) -> None:
+        """Phase 2: splat weights + tints. Runs after vegetation planning so the
+        forest-floor channel can be painted around every planned trunk."""
+        X, Z = self._X, self._Z
+        nz, nx = X.shape
+        lush = _smoothstep_np(-0.35, 0.25, self.moisture)
+        W = np.zeros((len(SPLAT_CHANNELS), nz, nx), dtype=np.float64)
+        W[0] = lush
+        W[1] = 1.0 - lush
+
+        def overlay(channel: int, w: np.ndarray) -> None:
+            W[:] = W * (1.0 - w)[None, :, :]
+            W[channel] += w
+
+        # T1: forest floor painted INTO the ground — feathered, per-tree noisy
+        # radius (~1.5–2.5 m) leaf-litter under every planned trunk.
+        forest = np.zeros((nz, nx))
+        rng = random.Random(layout.seed ^ 0xF012)
+        for tx, tz in tree_positions:
+            radius = rng.uniform(1.5, 2.5)
+            jx = int(round((tx - self.x0) / self.step))
+            iz = int(round((tz - self.z0) / self.step))
+            reach = int(math.ceil(radius / self.step)) + 1
+            x_lo, x_hi = max(0, jx - reach), min(nx, jx + reach + 1)
+            z_lo, z_hi = max(0, iz - reach), min(nz, iz + reach + 1)
+            if x_lo >= x_hi or z_lo >= z_hi:
+                continue
+            DX, DZ = np.meshgrid(self.xs[x_lo:x_hi] - tx, self.zs[z_lo:z_hi] - tz)
+            d = np.hypot(DX, DZ)
+            w = np.clip(1.0 - d / radius, 0.0, 1.0) ** 0.7 * 0.9
+            np.maximum(forest[z_lo:z_hi, x_lo:x_hi], w, out=forest[z_lo:z_hi, x_lo:x_hi])
+        wet = _smoothstep_np(2.2, 3.4, self.d_river) * (1.0 - _smoothstep_np(4.2, 5.6, self.d_river))
+        road = 1.0 - _smoothstep_np(1.7, 3.0, self.d_road)
+        riverbed = 1.0 - _smoothstep_np(2.6, 4.0, self.d_river)
+        stone = 1.0 - _smoothstep_np(11.0, 12.5, np.hypot(X, Z))
+        overlay(6, forest)
+        overlay(4, wet)
+        overlay(2, road)
+        overlay(3, riverbed)
+        overlay(5, stone)
+        self.weights = W
+
+        # Vertex tint (Houdini blockout Cd + subtle runtime modulation)
+        patch = _fbm_np(X * 0.02, Z * 0.02, layout.seed ^ 0xBEEF, 3)
+        meadow_blend = 0.4 * _smoothstep_np(0.1, 0.5, patch)
+        col = np.empty((3, nz, nx))
+        for i in range(3):
+            c = GRASS_DRY[i] + (GRASS_LUSH[i] - GRASS_DRY[i]) * lush
+            col[i] = c + (MEADOW[i] - c) * meadow_blend
+        for target, w in (
+            (FOREST_FLOOR_TINT, forest),
+            (WET_BANK, wet * 0.7),
+            (DIRT_ROAD, road),
+            (RIVERBED, riverbed),
+            (TERRACE_STONE, stone),
+        ):
+            for i in range(3):
+                col[i] = col[i] * (1.0 - w) + target[i] * w
+        jitter = _value_noise_np(X * 0.9, Z * 0.9, layout.seed ^ 0x51CE) * 0.05
+        col[0] = np.clip(col[0] + jitter * 0.6, 0.0, 1.0)
+        col[1] = np.clip(col[1] + jitter, 0.0, 1.0)
+        col[2] = np.clip(col[2] + jitter * 0.4, 0.0, 1.0)
+        self.tint = col
+        self.weights = W
+
+    def _sample(self, grid: np.ndarray, x: float, z: float) -> float:
+        fx = (x - self.x0) / self.step
+        fz = (z - self.z0) / self.step
+        fx = min(max(fx, 0.0), grid.shape[1] - 1.001)
+        fz = min(max(fz, 0.0), grid.shape[0] - 1.001)
+        ix, iz = int(fx), int(fz)
+        tx, tz = fx - ix, fz - iz
+        a, b = grid[iz, ix], grid[iz, ix + 1]
+        c, d = grid[iz + 1, ix], grid[iz + 1, ix + 1]
+        return float((a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz)
+
+    def height(self, x: float, z: float) -> float:
+        return self._sample(self.H, x, z)
+
+    def base_height(self, x: float, z: float) -> float:
+        return self._sample(self.base, x, z)
+
+    def moisture_at(self, x: float, z: float) -> float:
+        return self._sample(self.moisture, x, z)
+
+    def splat_weights_at(self, x: float, z: float) -> list[float]:
+        ix = int(round((x - self.x0) / self.step))
+        iz = int(round((z - self.z0) / self.step))
+        ix = min(max(ix, 0), self.weights.shape[2] - 1)
+        iz = min(max(iz, 0), self.weights.shape[1] - 1)
+        return [float(self.weights[c, iz, ix]) for c in range(len(SPLAT_CHANNELS))]
+
+
 class HeartvaleLayout:
-    """Layout + terrain model. Heights and masks come from ONE function set so
-    the mesh, the exported heightmap, and the splat masks always agree."""
+    """v2 frame layout: payload world coords are plate-frame meters; everything
+    in the build uses soulwell-relative local meters (same axes). Heights come
+    from the attached HeightField — never recompute terrain functions locally."""
 
     def __init__(self, payload: dict) -> None:
         self.payload = payload
-        self.tile_size = float(payload["scale"]["tileSize"])
-        self.zone_grid = int(payload["scale"]["zoneGrid"])
+        self.tile_size = float(payload["scale"]["tileSize"])  # logical grid only (15 m)
         soulwell = next(a for a in payload["anchors"] if a["id"] == "soulwell")
-        self.origin_grid = (soulwell["grid"]["x"], soulwell["grid"]["y"])
-        to_world = lambda samples: [self.grid_to_world(gx, gy) for gx, gy in samples]
-        self.rivers = [(r["id"], to_world(r["samples"])) for r in payload["rivers"]]
-        self.roads = [(r["id"], to_world(r["samples"])) for r in payload["roads"]]
+        self.origin_plate = (soulwell["world"]["x"], soulwell["world"]["z"])
+        self.zones = payload.get("zones", [])
+        self.seed = int(payload["seed"])
+        self.field: HeightField | None = None
+
+        def localize(samples: Sequence[Sequence[float]]) -> list[tuple[float, float]]:
+            return [(wx - self.origin_plate[0], wz - self.origin_plate[1]) for wx, wz in samples]
+
+        self.rivers = [(r["id"], localize(r["samples"])) for r in payload["rivers"]]
+        self.roads = [(r["id"], localize(r["samples"])) for r in payload["roads"]]
         self.river_samples = [s for _, samples in self.rivers for s in samples]
         self.road_samples = [s for _, samples in self.roads for s in samples]
-        self.anchors = {a["id"]: a for a in payload["anchors"]}
-        self.seed = int(payload["seed"])
+        self.anchors: dict[str, dict] = {}
+        for anchor in payload["anchors"]:
+            entry = dict(anchor)
+            entry["worldPlate"] = dict(anchor["world"])
+            entry["world"] = {
+                "x": anchor["world"]["x"] - self.origin_plate[0],
+                "z": anchor["world"]["z"] - self.origin_plate[1],
+            }
+            self.anchors[anchor["id"]] = entry
 
-    def grid_to_world(self, gx: float, gy: float) -> tuple[float, float]:
-        return ((gx - self.origin_grid[0]) * self.tile_size, (gy - self.origin_grid[1]) * self.tile_size)
+    def attach_field(self, field: HeightField) -> None:
+        self.field = field
+
+    def terrain_height(self, x: float, z: float) -> float:
+        assert self.field is not None, "attach_field() must run before placement"
+        return self.field.height(x, z)
+
+    def base_height(self, x: float, z: float) -> float:
+        assert self.field is not None, "attach_field() must run before placement"
+        return self.field.base_height(x, z)
 
     @staticmethod
     def _nearest(samples: list[tuple[float, float]], x: float, z: float) -> float:
@@ -406,85 +655,37 @@ class HeartvaleLayout:
     def road_distance(self, x: float, z: float) -> float:
         return self._nearest(self.road_samples, x, z)
 
-    def base_height(self, x: float, z: float) -> float:
-        # Domain-warped fBm: rolling vale with believable ridge/valley structure.
-        wx = x + 14.0 * fbm(x * 0.012 + 40.0, z * 0.012 - 17.0, self.seed ^ 0xA53A, 3)
-        wz = z + 14.0 * fbm(x * 0.012 - 23.0, z * 0.012 + 51.0, self.seed ^ 0x9E37, 3)
-        h = 2.1 * fbm(wx * 0.020, wz * 0.020, self.seed, 5)
-        h += 0.35 * fbm(x * 0.11, z * 0.11, self.seed ^ 0x51ED, 3)
-        h += 2.2 * math.exp(-((x - 0.0) ** 2 + (z + 14.0) ** 2) / (2 * 10.0**2))  # terrace mound
-        erboug = self.anchors["erboug"]["world"]
-        h += 3.0 * math.exp(-((x - erboug["x"]) ** 2 + (z - erboug["z"]) ** 2) / (2 * 18.0**2))
-        h -= 1.2 * smoothstep(80.0, 200.0, z)
-        return h
 
-    def terrain_height(self, x: float, z: float) -> float:
-        h = self.base_height(x, z)
-        r = math.hypot(x, z)
-        h = mix(h, 1.35, smoothstep(16.0, 10.5, r))
-        d_river = self.river_distance(x, z)
-        carve = 1.65 * (1.0 - smoothstep(2.4, 5.4, d_river))
-        carve += 0.35 * (1.0 - smoothstep(4.0, 7.5, d_river))  # soft banks
-        h -= carve
-        d_road = self.road_distance(x, z)
-        h = mix(h, round(h / 0.30) * 0.30, 0.5 * (1.0 - smoothstep(1.8, 4.2, d_road)))
-        return h
+def build_terrain(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
+    """Blockout mesh: every 2nd field texel (5 m grid — an exact subset of the
+    2.5 m export grid, so the mesh and the runtime heightmap always agree)."""
+    field = layout.field
+    assert field is not None
+    sub = int(round(MESH_STEP / EXPORT_STEP))
+    xs = field.xs[::sub]
+    zs = field.zs[::sub]
+    H = field.H[::sub, ::sub]
+    tint = field.tint[:, ::sub, ::sub]
+    nx, nz = len(xs), len(zs)
 
-    def splat(self, x: float, z: float) -> tuple[Color, int]:
-        """Vertex color + dominant splat index (0 grass 1 dry 2 road 3 riverbed 4 wet 5 stone)."""
-        r = math.hypot(x, z)
-        if r < 12.0:
-            return TERRACE_STONE, 5
-        d_river = self.river_distance(x, z)
-        d_road = self.road_distance(x, z)
-        if d_river < 2.6:
-            return RIVERBED, 3
-        if d_river < 4.6:
-            return mix3(WET_BANK, MEADOW, 0.4), 4
-        if d_road < 2.2:
-            jitter = 0.5 + 0.5 * value_noise(x * 0.5, z * 0.5, self.seed ^ 0x77)
-            return mix3(DIRT_ROAD, RIVERBED, 0.12 * jitter), 2
-        patch = fbm(x * 0.05, z * 0.05, self.seed ^ 0xBEEF, 3)
-        moisture = fbm(x * 0.021 + 9.0, z * 0.021 - 4.0, self.seed ^ 0xF00D, 3)
-        lush = smoothstep(-0.35, 0.25, moisture)
-        color = mix3(GRASS_DRY, GRASS_LUSH, lush)
-        color = mix3(color, MEADOW, 0.4 * smoothstep(0.1, 0.5, patch))
-        # high-frequency hue jitter so the ground never reads as flat fill
-        jitter = value_noise(x * 0.9, z * 0.9, self.seed ^ 0x51CE) * 0.05
-        color = (clamp(color[0] + jitter * 0.6, 0.0, 1.0), clamp(color[1] + jitter, 0.0, 1.0), clamp(color[2] + jitter * 0.4, 0.0, 1.0))
-        splat_index = 1 if lush < 0.35 else 0
-        return color, splat_index
-
-
-def build_terrain(builder: GeometryBuilder, layout: HeartvaleLayout) -> tuple[list[float], list[int], float, int]:
-    """Returns (heights, splats, step, count) for the portable heightmap export."""
-    half_extent = layout.zone_grid * layout.tile_size / 2.0
-    step = half_extent * 2.0 / TERRAIN_SAMPLES
-    origin = -half_extent
-
-    heights: list[float] = []
-    splats: list[int] = []
     point_grid: list[list[hou.Point]] = []
-    for iz in range(TERRAIN_SAMPLES + 1):
+    for iz in range(nz):
         row: list[hou.Point] = []
-        for ix in range(TERRAIN_SAMPLES + 1):
-            x = origin + ix * step
-            z = origin + iz * step
-            h = layout.terrain_height(x, z)
-            color, splat_index = layout.splat(x, z)
-            heights.append(h)
-            splats.append(splat_index)
-            row.append(builder._point((x, h, z), color))
+        for ix in range(nx):
+            row.append(builder._point(
+                (float(xs[ix]), float(H[iz, ix]), float(zs[iz])),
+                (float(tint[0, iz, ix]), float(tint[1, iz, ix]), float(tint[2, iz, ix])),
+            ))
         point_grid.append(row)
 
-    for iz in range(TERRAIN_SAMPLES):
-        for ix in range(TERRAIN_SAMPLES):
+    for iz in range(nz - 1):
+        for ix in range(nx - 1):
             corners = [point_grid[iz][ix], point_grid[iz + 1][ix], point_grid[iz + 1][ix + 1], point_grid[iz][ix + 1]]
             colors = [p.attribValue("Cd") for p in corners]
             color = tuple(sum(c[i] for c in colors) / 4.0 for i in range(3))
-            builder._polygon(corners, f"terrain_{ix:03d}_{iz:03d}", "terrain", color, MATERIAL_PATHS["terrain"])
-
-    return heights, splats, step, TERRAIN_SAMPLES + 1
+            # constant name/path and no uvs on terrain: 393k unique strings and
+            # 1.6M uv triples would otherwise triple the committed .hipnc size
+            builder._polygon(corners, "terrain", "terrain", color, MATERIAL_PATHS["terrain"], 0.0)
 
 
 def build_sky(builder: GeometryBuilder) -> None:
@@ -497,7 +698,7 @@ def build_sky(builder: GeometryBuilder) -> None:
         (78.0, 120.0, (0.42, 0.58, 0.80)),
         (120.0, 420.0, (0.32, 0.50, 0.76)),
     )
-    radius, sides = 700.0, 48
+    radius, sides = 3200.0, 48
     # distant ground plane so downward rays beyond the zone hit hazy meadow, not void
     builder.add_cylinder("sky_ground_plane", (0.0, -4.65, 0.0), radius, 0.1, 48, (0.42, 0.48, 0.26), "sky", MATERIAL_PATHS["sky"], cap_bottom=False)
     for y0, y1, color in bands:
@@ -531,7 +732,7 @@ def _polyline_normals(samples: list[tuple[float, float]]) -> list[tuple[float, f
 def build_water(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
     for river_id, samples in layout.rivers:
         normals = _polyline_normals(samples)
-        half_width = 2.1
+        half_width = 3.2
         for index in range(len(samples) - 1):
             corners: list[Vector3] = []
             for si in (index, index + 1):
@@ -586,8 +787,9 @@ def build_terrace(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         builder.add_cylinder(f"terrace_column_stub_{column_index}", (math.cos(angle) * radius, pad + 0.30 + height / 2, math.sin(angle) * radius), 0.38, height, 10, WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
 
 
-def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
+def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
     """Anwel river-town: timber-framed, enterable houses around an east-bank plaza.
+    Returns the data-authored village spec (also exported as village.json).
 
     The canon river course AND the north-south road both run through the atlas
     anchor point, so the village sits ~7 m east — beside the road, off the wet
@@ -649,6 +851,16 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         for sz_off in (-(win_w / 2 + 0.14), win_w / 2 + 0.14):
             shx, shz = spot(-w / 2 - 0.05, sz_off)
             builder.add_box(f"{name}_shutter_{sz_off:+.2f}", (shx, wall0 + (win_sill + win_top) / 2, shz), (0.05, win_top - win_sill, 0.24), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        # window frame + mullions so the opening catches light (T4)
+        for mz in (-(win_w / 2 + 0.04), win_w / 2 + 0.04):
+            fx_, fz_ = spot(-w / 2 - 0.02, mz)
+            builder.add_box(f"{name}_win_jamb_{mz:+.2f}", (fx_, wall0 + (win_sill + win_top) / 2, fz_), (0.09, win_top - win_sill + 0.10, 0.09), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        for my, tag in ((win_sill - 0.05, "sill"), (win_top + 0.05, "header")):
+            fx_, fz_ = spot(-w / 2 - 0.02, 0.0)
+            builder.add_box(f"{name}_win_{tag}", (fx_, wall0 + my, fz_), (0.09, 0.09, win_w + 0.18), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        fx_, fz_ = spot(-w / 2 - 0.01, 0.0)
+        builder.add_box(f"{name}_win_mullion_v", (fx_, wall0 + (win_sill + win_top) / 2, fz_), (0.05, win_top - win_sill, 0.05), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+        builder.add_box(f"{name}_win_mullion_h", (fx_, wall0 + (win_sill + win_top) / 2, fz_), (0.05, 0.05, win_w), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
 
         # timber frame: corner posts + door surround
         for cx in (-1, 1):
@@ -662,24 +874,40 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         builder.add_prism_roof(f"{name}_roof", (x, wall0 + h, z), w + 0.7, d + 0.7, roof_h, roof_tint, "anwel", MATERIAL_PATHS[roof], yaw=yaw, uv_scale=0.75)
         # ridge beam caps the gable
         builder.add_box(f"{name}_ridge", (x, wall0 + h + roof_h - 0.03, z), (w + 0.85, 0.12, 0.14), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        # eave boards + gable timber framing (T4: kills the razor-sharp box read)
+        for ez_sign in (-1, 1):
+            ex_, ez_ = spot(0.0, ez_sign * ((d + 0.7) / 2 - 0.06))
+            builder.add_box(f"{name}_eave_{ez_sign:+d}", (ex_, wall0 + h + 0.03, ez_), (w + 0.85, 0.10, 0.13), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        for gx_sign in (-1, 1):
+            px_, pz_ = spot(gx_sign * (w / 2 - 0.06), 0.0)
+            builder.add_box(f"{name}_gable_post_{gx_sign:+d}", (px_, wall0 + h + roof_h / 2, pz_), (0.10, roof_h, 0.10), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+            for gz_sign in (-1, 1):
+                bx_, bz_ = spot(gx_sign * (w / 2 - 0.06), gz_sign * (d / 2 - 0.10))
+                builder.add_tapered_tube(f"{name}_gable_brace_{gx_sign:+d}_{gz_sign:+d}", (bx_, wall0 + h + 0.04, bz_), (px_, wall0 + h + roof_h - 0.08, pz_), 0.05, 0.05, 4, timber_tint, "anwel", MATERIAL_PATHS["timber"])
         if chimney:
             chx, chz = spot(-w * 0.18, -d * 0.20)
             builder.add_box(f"{name}_chimney", (chx, wall0 + h + roof_h + 0.55, chz), (0.48, 1.6, 0.48), wash, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw, uv_scale=0.55)
             builder.add_box(f"{name}_chimney_cap", (chx, wall0 + h + roof_h + 1.40, chz), (0.62, 0.12, 0.62), SLATE, "anwel", MATERIAL_PATHS["slate"], yaw=yaw, uv_scale=0.6)
 
     # Lime-wash / timber / roof variation so no two cottages read the same.
-    house("anwel_reeve_hall", 13.8, 4.2, 5.4, 4.2, 3.0, "slate",
-          wash=(0.92, 0.88, 0.78), timber_tint=(0.75, 0.62, 0.50), roof_tint=(0.85, 0.88, 0.95), chimney=True)
-    house("anwel_cottage_north", 6.2, 6.4, 3.6, 3.0, 2.6,
-          wash=(1.02, 0.98, 0.90), timber_tint=(1.05, 0.95, 0.82), roof_tint=(1.05, 0.95, 0.80))
-    house("anwel_fisher_hut", 1.8, 4.6, 2.8, 2.4, 2.3,
-          wash=(0.82, 0.80, 0.72), timber_tint=(0.62, 0.55, 0.48), roof_tint=(0.78, 0.72, 0.60))
-    house("anwel_cottage_east", 15.0, -2.2, 3.2, 2.8, 2.5,
-          wash=(0.98, 0.90, 0.74), timber_tint=(0.88, 0.76, 0.62), roof_tint=(0.92, 0.85, 0.68), chimney=True)
-    house("anwel_store_barn", 10.8, -7.6, 4.4, 3.2, 2.8, "slate",
-          wash=(0.86, 0.82, 0.70), timber_tint=(0.70, 0.60, 0.50), roof_tint=(1.0, 0.92, 0.85))
-    house("anwel_cottage_south", 5.4, -8.2, 3.4, 2.8, 2.5,
-          wash=(1.05, 1.00, 0.94), timber_tint=(0.95, 0.85, 0.70), roof_tint=(1.10, 1.00, 0.82), chimney=True)
+    # Data-authored: these specs also ship to the runtime in village.json.
+    house_specs = [
+        {"name": "anwel_reeve_hall", "lx": 13.8, "lz": 4.2, "w": 5.4, "d": 4.2, "h": 3.0, "roof": "slate",
+         "wash": (0.92, 0.88, 0.78), "timber": (0.75, 0.62, 0.50), "roofTint": (0.85, 0.88, 0.95), "chimney": True},
+        {"name": "anwel_cottage_north", "lx": 6.2, "lz": 6.4, "w": 3.6, "d": 3.0, "h": 2.6, "roof": "thatch",
+         "wash": (1.02, 0.98, 0.90), "timber": (1.05, 0.95, 0.82), "roofTint": (1.05, 0.95, 0.80), "chimney": False},
+        {"name": "anwel_fisher_hut", "lx": 1.8, "lz": 4.6, "w": 2.8, "d": 2.4, "h": 2.3, "roof": "thatch",
+         "wash": (0.82, 0.80, 0.72), "timber": (0.62, 0.55, 0.48), "roofTint": (0.78, 0.72, 0.60), "chimney": False},
+        {"name": "anwel_cottage_east", "lx": 15.0, "lz": -2.2, "w": 3.2, "d": 2.8, "h": 2.5, "roof": "thatch",
+         "wash": (0.98, 0.90, 0.74), "timber": (0.88, 0.76, 0.62), "roofTint": (0.92, 0.85, 0.68), "chimney": True},
+        {"name": "anwel_store_barn", "lx": 10.8, "lz": -7.6, "w": 4.4, "d": 3.2, "h": 2.8, "roof": "slate",
+         "wash": (0.86, 0.82, 0.70), "timber": (0.70, 0.60, 0.50), "roofTint": (1.0, 0.92, 0.85), "chimney": False},
+        {"name": "anwel_cottage_south", "lx": 5.4, "lz": -8.2, "w": 3.4, "d": 2.8, "h": 2.5, "roof": "thatch",
+         "wash": (1.05, 1.00, 0.94), "timber": (0.95, 0.85, 0.70), "roofTint": (1.10, 1.00, 0.82), "chimney": True},
+    ]
+    for spec in house_specs:
+        house(spec["name"], spec["lx"], spec["lz"], spec["w"], spec["d"], spec["h"], spec["roof"],
+              wash=spec["wash"], timber_tint=spec["timber"], roof_tint=spec["roofTint"], chimney=spec["chimney"])
 
     # Fenced garden plots behind/beside houses — the separation and small
     # gardens a real village has between buildings. Gate gap faces the lane.
@@ -718,10 +946,14 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
                 builder.add_box(f"{name}_rail_{post_index}_{side_name}", (mx, gy(mx, mz) + 0.62, mz), (0.06, 0.07, rail_len), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
                 post_index += 1
 
-    garden("garden_reeve", 13.8, 8.8, 4.5, 3.0)
-    garden("garden_north", 9.8, 6.9, 3.5, 2.6)
-    garden("garden_south", 5.4, -11.8, 4.0, 3.0)
-    garden("garden_east", 18.2, -2.2, 3.2, 3.2)
+    garden_specs = [
+        {"name": "garden_reeve", "lx": 13.8, "lz": 8.8, "w": 4.5, "d": 3.0},
+        {"name": "garden_north", "lx": 9.8, "lz": 6.9, "w": 3.5, "d": 2.6},
+        {"name": "garden_south", "lx": 5.4, "lz": -11.8, "w": 4.0, "d": 3.0},
+        {"name": "garden_east", "lx": 18.2, "lz": -2.2, "w": 3.2, "d": 3.2},
+    ]
+    for spec in garden_specs:
+        garden(spec["name"], spec["lx"], spec["lz"], spec["w"], spec["d"])
 
     # Village well on the plaza
     wx, wz = plaza
@@ -751,6 +983,24 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         builder.add_box(f"anwel_fence_post_{fence}", (fx, fy + 0.5, fz), (0.12, 1.0, 0.12), TIMBER, "anwel", MATERIAL_PATHS["timber"])
         if fence < 4:
             builder.add_box(f"anwel_fence_rail_{fence}", (fx, fy + 0.75, fz + 0.75), (0.07, 0.07, 1.5), TIMBER, "anwel", MATERIAL_PATHS["timber"])
+
+    # Data-authored capture for the runtime village builder (village.json).
+    return {
+        "anchor": {"x": ax, "z": az},
+        "plaza": {"x": plaza[0], "z": plaza[1]},
+        "houses": [
+            {
+                **{k: (list(v) if isinstance(v, tuple) else v) for k, v in spec.items()},
+                "x": ax + spec["lx"],
+                "z": az + spec["lz"],
+                "yawDeg": math.degrees(math.atan2(plaza[1] - (az + spec["lz"]), plaza[0] - (ax + spec["lx"]))),
+            }
+            for spec in house_specs
+        ],
+        "gardens": [{**spec, "x": ax + spec["lx"], "z": az + spec["lz"]} for spec in garden_specs],
+        "well": {"x": plaza[0], "z": plaza[1]},
+        "dock": {"x": ax - 2.9, "z0": az - 2.6, "planks": 6, "plankSpacing": 0.75},
+    }
 
 
 TREE_SPECIES = {
@@ -828,12 +1078,15 @@ def build_shrub(builder: GeometryBuilder, index: int, x: float, gy: float, z: fl
 
 
 def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict[str, Any]:
-    """Plan vegetation/rock positions. Nothing is built into the authored mesh
-    anymore — positions are consumed by build_polyhaven(), which scatters real
-    CC0 assets (trees, shrubs, boulders, grass tufts) onto them."""
+    """Plan vegetation/rock positions across the whole 3360×2700 m section.
+    Nothing is built into the authored mesh anymore — positions are consumed by
+    build_polyhaven() (near-field Houdini blockout instances) and exported to
+    scatter.json for the runtime (the full plan)."""
     rng = random.Random(layout.seed ^ 0xC0FFEE)
-    half_extent = layout.zone_grid * layout.tile_size / 2.0
+    x0, x1 = DOMAIN_X
+    z0, z1 = DOMAIN_Z
     anwel = layout.anchors["anwel"]["world"]
+    lockroot = layout.anchors["lockroot"]["world"]
 
     def excluded(x: float, z: float, margin: float = 0.0) -> bool:
         if math.hypot(x, z) < 13.0 + margin:
@@ -856,24 +1109,31 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
     rocks: list[tuple[float, float, float, float]] = []  # x, gy, z, radius
     sedges: list[tuple[float, float, float, float]] = []  # x, gy, z, pscale
 
-    # Trees — clustered by noise so they read as groves, denser near treeline NE.
-    for _ in range(1600):
-        if len(trees) >= 130:
+    # Trees — clustered by noise so they read as groves. Massing follows the
+    # plate: the Thalholt/west wilds treeline (hv-6) and the Lockroot reach NE.
+    for _ in range(24000):
+        if len(trees) >= 850:
             break
-        x = rng.uniform(-half_extent + 6, half_extent - 6)
-        z = rng.uniform(-half_extent + 6, half_extent - 6)
-        grove = fbm(x * 0.03 + 7.0, z * 0.03 - 3.0, layout.seed + 77, 3)
-        bias = 0.25 if (x > 10 and z < -30) else 0.0  # Lockroot treeline NE
-        if grove < 0.08 - bias and rng.random() > 0.18:
+        x = rng.uniform(x0 + 10, x1 - 10)
+        z = rng.uniform(z0 + 10, z1 - 10)
+        grove = fbm(x * 0.004 + 7.0, z * 0.004 - 3.0, layout.seed + 77, 3)
+        bias = 0.0
+        if x < -460.0:  # west wilds strip (hv-6)
+            bias = 0.28
+        elif x > lockroot["x"] - 260.0 and z < lockroot["z"] + 260.0 and z < -300.0:
+            bias = 0.22  # Lockroot reach
+        if grove < 0.10 - bias and rng.random() > 0.15:
             continue
-        if math.hypot(x, z) > 40.0 and rng.random() > 0.5:
-            continue
+        if math.hypot(x, z) > 500.0 and math.hypot(x - anwel["x"], z - anwel["z"]) > 400.0 and rng.random() > 0.35:
+            continue  # keep the far march sparse
         if excluded(x, z):
             continue
         gy = layout.terrain_height(x, z)
-        if layout.river_distance(x, z) < 9.0:
+        if layout.river_distance(x, z) < 12.0:
             species = "willow"
-        elif x > 10 and z < -30 and rng.random() < 0.5:
+        elif x < -460.0 and rng.random() < 0.6:
+            species = "oak"
+        elif z < -300.0 and rng.random() < 0.5:
             species = "birch"
         else:
             species = "oak"
@@ -881,8 +1141,8 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         placed_trees.append((x, gy, z))
 
     # Shrubs — under trees, along roadsides and river edges.
-    for _ in range(1200):
-        if len(shrubs) >= 110:
+    for _ in range(9000):
+        if len(shrubs) >= 600:
             break
         if placed_trees and rng.random() < 0.6:
             tx, _, tz = placed_trees[rng.randrange(len(placed_trees))]
@@ -890,9 +1150,9 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
             dist = rng.uniform(2.5, 7.0)
             x, z = tx + math.cos(angle) * dist, tz + math.sin(angle) * dist
         else:
-            x = rng.uniform(-half_extent + 6, half_extent - 6)
-            z = rng.uniform(-half_extent + 6, half_extent - 6)
-        if abs(x) > half_extent - 4 or abs(z) > half_extent - 4:
+            x = rng.uniform(x0 + 10, x1 - 10)
+            z = rng.uniform(z0 + 10, z1 - 10)
+        if x < x0 + 6 or x > x1 - 6 or z < z0 + 6 or z > z1 - 6:
             continue
         if excluded(x, z, margin=-1.0):
             continue
@@ -900,24 +1160,24 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
         shrubs.append((x, gy, z, rng.randrange(4), rng.uniform(0.8, 1.6)))
 
     # Rocks
-    for _ in range(400):
-        if len(rocks) >= 60:
+    for _ in range(3000):
+        if len(rocks) >= 250:
             break
-        x = rng.uniform(-half_extent + 6, half_extent - 6)
-        z = rng.uniform(-half_extent + 6, half_extent - 6)
+        x = rng.uniform(x0 + 10, x1 - 10)
+        z = rng.uniform(z0 + 10, z1 - 10)
         if excluded(x, z, margin=-2.0):
             continue
         gy = layout.terrain_height(x, z)
         rocks.append((x, gy, z, rng.uniform(0.3, 1.2)))
 
     # Sedge tufts along riverbanks
-    for _ in range(1200):
-        if len(sedges) >= 90:
+    for _ in range(6000):
+        if len(sedges) >= 300:
             break
-        x = rng.uniform(-half_extent + 6, half_extent - 6)
-        z = rng.uniform(-half_extent + 6, half_extent - 6)
+        x = rng.uniform(x0 + 10, x1 - 10)
+        z = rng.uniform(z0 + 10, z1 - 10)
         d = layout.river_distance(x, z)
-        if d < 2.2 or d > 5.2:
+        if d < 2.8 or d > 6.5:
             continue
         if layout.road_distance(x, z) < 2.0:
             continue
@@ -947,100 +1207,142 @@ def _quat_mul(a: tuple[float, float, float, float], b: tuple[float, float, float
     )
 
 
-def _blade_prototype(root: Color, tip: Color) -> hou.Geometry:
-    """One curved tapered grass blade, local +Y up, bending toward +X."""
+def _clump_prototype(root: Color, tip: Color) -> hou.Geometry:
+    """One grass CLUMP (T2): 5 tapered blades fanned from a small base,
+    varied heights 0.25–0.5 m and lean, so clumps read as tufts not cards."""
     geometry = hou.Geometry()
     geometry.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
     geometry.addAttrib(hou.attribType.Prim, "shop_materialpath", "")
-    segments, height, width0, bend = 4, 0.58, 0.062, 0.17
-    prev: tuple[hou.Point, hou.Point] | None = None
-    for i in range(segments + 1):
-        t = i / segments
-        cx, cy = bend * t * t, height * t
-        half = width0 * (1.0 - 0.8 * t) / 2.0
-        color = mix3(root, tip, t)
-        left = geometry.createPoint()
-        left.setPosition((cx - half, cy, 0.0))
-        left.setAttribValue("Cd", color)
-        right = geometry.createPoint()
-        right.setPosition((cx + half, cy, 0.0))
-        right.setAttribValue("Cd", color)
-        if prev is not None:
-            polygon = geometry.createPolygon()
-            for point in (prev[0], prev[1], right, left):
-                polygon.addVertex(point)
-            polygon.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
-            back = geometry.createPolygon()
-            for point in (prev[1], prev[0], left, right):
-                back.addVertex(point)
-            back.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
-        prev = (left, right)
+    rng = random.Random(7)
+    for blade in range(5):
+        yaw = blade / 5.0 * math.tau + rng.uniform(-0.35, 0.35)
+        height = rng.uniform(0.25, 0.50)
+        width0 = rng.uniform(0.045, 0.070)
+        bend = rng.uniform(0.10, 0.24)
+        ox, oz = math.cos(yaw) * 0.05, math.sin(yaw) * 0.05
+        dx, dz = math.cos(yaw), math.sin(yaw)
+        segments = 4
+        prev: tuple[hou.Point, hou.Point] | None = None
+        for i in range(segments + 1):
+            t = i / segments
+            along = bend * t * t
+            cx, cy, cz = ox + dx * along, height * t, oz + dz * along
+            half = width0 * (1.0 - 0.8 * t) / 2.0
+            px, pz = -dz * half, dx * half
+            shade = 0.85 + 0.15 * t
+            color = mix3(root, tip, t)
+            color = (color[0] * shade, color[1] * shade, color[2] * shade)
+            left = geometry.createPoint()
+            left.setPosition((cx - px, cy, cz - pz))
+            left.setAttribValue("Cd", color)
+            right = geometry.createPoint()
+            right.setPosition((cx + px, cy, cz + pz))
+            right.setAttribValue("Cd", color)
+            if prev is not None:
+                polygon = geometry.createPolygon()
+                for point in (prev[0], prev[1], right, left):
+                    polygon.addVertex(point)
+                polygon.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
+                back = geometry.createPolygon()
+                for point in (prev[1], prev[0], left, right):
+                    back.addVertex(point)
+                back.setAttribValue("shop_materialpath", MATERIAL_PATHS["grass"])
+            prev = (left, right)
     return geometry
 
 
-def _grass_points(layout: HeartvaleLayout, rng: random.Random, want_lush: bool) -> tuple[hou.Geometry, int]:
-    geometry = hou.Geometry()
-    geometry.addAttrib(hou.attribType.Point, "Cd", (1.0, 1.0, 1.0))
-    geometry.addAttrib(hou.attribType.Point, "orient", (0.0, 0.0, 0.0, 1.0))
-    geometry.addAttrib(hou.attribType.Point, "pscale", 1.0)
+def plan_grass_clumps(layout: HeartvaleLayout) -> list[tuple[float, float, float, float, int]]:
+    """T2 runtime grass plan: noise-driven patchiness (dense meadows, bald
+    patches, sparse verges), per-clump scale/rotation/variant, density falloff
+    near roads/water. Rows: [x, z, scale, yaw, variant] (variant 0 dry 1 lush).
+    Coordinates are soulwell-local meters — the runtime adds the plate offset."""
+    field = layout.field
+    assert field is not None
+    rng = random.Random(layout.seed ^ 0x6A455)
     anwel = layout.anchors["anwel"]["world"]
 
-    def blocked(x: float, z: float) -> bool:
-        if math.hypot(x, z) < 11.6:
-            return True
-        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:  # trampled village green + house ring
-            return True
-        if layout.river_distance(x, z) < 2.8:
-            return True
-        return layout.road_distance(x, z) < 2.1
-
-    placed = 0
-    bands = ((0.0, 38.0, 0.30), (38.0, 80.0, 0.68), (80.0, 136.0, 1.7))
-    for inner, outer, spacing in bands:
-        gx = -outer
-        while gx < outer:
-            gz = -outer
-            while gz < outer:
+    clumps: list[tuple[float, float, float, float, int]] = []
+    bands = (
+        # (center x, z, inner r, outer r, spacing)
+        (0.0, 0.0, 0.0, 130.0, 0.9),        # soulwell meadow, dense
+        (0.0, 0.0, 130.0, 330.0, 2.2),      # soulwell far ring
+        (anwel["x"], anwel["z"], 0.0, 120.0, 1.0),   # around Anwel
+        (anwel["x"], anwel["z"], 120.0, 300.0, 2.4),
+    )
+    for cx, cz, inner, outer, spacing in bands:
+        gx = cx - outer
+        while gx < cx + outer:
+            gz = cz - outer
+            while gz < cz + outer:
                 gz += spacing
                 x = gx + rng.uniform(-0.4, 0.4) * spacing
                 z = gz + rng.uniform(-0.4, 0.4) * spacing
-                r = math.hypot(x, z)
-                if r < inner or r >= outer or blocked(x, z):
+                r = math.hypot(x - cx, z - cz)
+                if r < inner or r >= outer:
                     continue
-                moisture = fbm(x * 0.021 + 9.0, z * 0.021 - 4.0, layout.seed ^ 0xF00D, 3)
-                moisture += 0.35 * (1.0 - smoothstep(3.0, 14.0, layout.river_distance(x, z)))  # riparian green-up
-                if (moisture > -0.05) != want_lush:
+                if math.hypot(x, z) < 11.6:
                     continue
-                gy = layout.terrain_height(x, z)
-                point = geometry.createPoint()
-                point.setPosition((x, gy + 0.005, z))
-                yaw = rng.uniform(0.0, math.tau)
-                tilt = rng.uniform(0.0, 0.35)
-                q_yaw = (0.0, math.sin(yaw / 2.0), 0.0, math.cos(yaw / 2.0))
-                q_tilt = (math.sin(tilt / 2.0), 0.0, 0.0, math.cos(tilt / 2.0))
-                point.setAttribValue("orient", _quat_mul(q_yaw, q_tilt))
-                point.setAttribValue("pscale", rng.uniform(0.55, 1.45))
-                placed += 1
+                if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:
+                    continue
+                d_river = layout.river_distance(x, z)
+                d_road = layout.road_distance(x, z)
+                if d_river < 2.8 or d_road < 2.1:
+                    continue
+                # patchiness: meadow clumping noise — bald patches stay bald
+                patch = fbm(x * 0.03, z * 0.03, layout.seed ^ 0xBEEF, 3)
+                if patch < -0.12 and rng.random() > 0.15:
+                    continue
+                # density falloff near roads/water: trampled verges, wet margins
+                if d_road < 4.0 and rng.random() < 0.5 * (1.0 - smoothstep(2.1, 4.0, d_road)):
+                    continue
+                if d_river < 6.0 and rng.random() < 0.45 * (1.0 - smoothstep(2.8, 6.0, d_river)):
+                    continue
+                moisture = field.moisture_at(x, z)
+                variant = 1 if moisture > -0.05 else 0
+                clumps.append((
+                    round(x, 2), round(z, 2),
+                    round(rng.uniform(0.7, 1.45), 2),
+                    round(rng.uniform(0.0, math.tau), 2),
+                    variant,
+                ))
             gx += spacing
-    return geometry, placed
+    return clumps
 
 
-def build_grass_field(grass_node: hou.Node, layout: HeartvaleLayout) -> int:
-    """Instanced blade grass: two prototypes (lush/dry), scatter points, copy-to-points.
-    Kept in its own geo node so the OBJ export and the committed .hipnc stay lean."""
-    rng = random.Random(layout.seed ^ 0x6A455)
+def build_grass_field(grass_node: hou.Node, layout: HeartvaleLayout, clumps: list[tuple[float, float, float, float, int]]) -> int:
+    """Blockout grass: clump cards on the near-field subset of the runtime plan
+    (the full plan ships to the runtime in scatter.json)."""
+    anwel = layout.anchors["anwel"]["world"]
     copies: list[hou.Node] = []
     total = 0
-    for want_lush, label, root, tip in (
-        (True, "LUSH", GRASS_ROOT, GRASS_TIP),
-        (False, "DRY", DRY_ROOT, DRY_TIP),
+    for want_variant, label, root, tip in (
+        (1, "LUSH", GRASS_ROOT, GRASS_TIP),
+        (0, "DRY", DRY_ROOT, DRY_TIP),
     ):
-        proto_stash = grass_node.createNode("stash", f"BLADE_PROTO_{label}")
-        proto_stash.parm("stash").set(_blade_prototype(root, tip))
-        points_stash = grass_node.createNode("stash", f"BLADE_POINTS_{label}")
-        points_geo, placed = _grass_points(layout, rng, want_lush)
+        points_geo = hou.Geometry()
+        points_geo.addAttrib(hou.attribType.Point, "pscale", 1.0)
+        points_geo.addAttrib(hou.attribType.Point, "orient", (0.0, 0.0, 0.0, 1.0))
+        placed = 0
+        for x, z, scale, yaw, variant in clumps:
+            if variant != want_variant:
+                continue
+            if math.hypot(x, z) > 70.0 and math.hypot(x - anwel["x"], z - anwel["z"]) > 70.0:
+                continue  # near-field only in the blockout scene
+            point = points_geo.createPoint()
+            point.setPosition((x, layout.terrain_height(x, z) + 0.005, z))
+            q_yaw = (0.0, math.sin(yaw / 2.0), 0.0, math.cos(yaw / 2.0))
+            tilt = (hash((int(x * 10), int(z * 10))) % 100) / 100.0 * 0.22
+            q_tilt = (math.sin(tilt / 2.0), 0.0, 0.0, math.cos(tilt / 2.0))
+            point.setAttribValue("orient", _quat_mul(q_yaw, q_tilt))
+            point.setAttribValue("pscale", scale)
+            placed += 1
+        if placed == 0:
+            continue
+        proto_stash = grass_node.createNode("stash", f"CLUMP_PROTO_{label}")
+        proto_stash.parm("stash").set(_clump_prototype(root, tip))
+        points_stash = grass_node.createNode("stash", f"CLUMP_POINTS_{label}")
         points_stash.parm("stash").set(points_geo)
-        copy = grass_node.createNode("copytopoints", f"COPY_BLADES_{label}")
+        copy = grass_node.createNode("copytopoints", f"COPY_CLUMPS_{label}")
         copy.setInput(0, proto_stash)
         copy.setInput(1, points_stash)
         copies.append(copy)
@@ -1199,11 +1501,16 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
                               target_height, yaw, hook, use_lod))
         counts[counter] += 1
 
-    # --- Trees: real CC0 geometry at every planned position ----------------------
+    # --- Trees: real CC0 geometry at near-field planned positions --------------
+    # The section plan holds ~850 trees; the Houdini blockout only instances
+    # trunks within 320 m of the Soul Well or Anwel (viewport weight) — the
+    # FULL plan ships to the runtime in scatter.json, which instanced-meshes it.
     species_assets = {"oak": ("tree_small_02", 6.0), "birch": ("island_tree_03", 5.5), "willow": ("island_tree_01", 7.0)}
     tree_spots: dict[str, list[tuple[float, float, float]]] = {aid: [] for aid, _ in species_assets.values()}
     tree_spots["island_tree_02"] = []
     for x, _gy, z, species, ps in planned["treePositions"]:
+        if math.hypot(x, z) > 320.0 and math.hypot(x - ax, z - az) > 320.0:
+            continue  # far-field: runtime-only
         aid, base = species_assets[species]
         if species == "oak" and rng.random() < 0.22:
             aid, base = "island_tree_02", 6.0
@@ -1219,44 +1526,15 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
         outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z) - 0.12, height, yaw=yaw, use_lod=False))
         counts["heroTrees"] += 1
 
-    # --- Tree-base blending: soil discs + grass tufts seat every trunk ----------
-    # Trunks are sunk 10 cm (above) and get a leaf-litter soil disc that follows
-    # the terrain, so trees read as growing out of the ground, not plopped on it.
-    base_discs = hou.Geometry()
-    base_discs.addAttrib(hou.attribType.Point, "Cd", (0.85, 0.80, 0.72))
-    base_discs.addAttrib(hou.attribType.Prim, "shop_materialpath", "")
-    base_discs.addAttrib(hou.attribType.Vertex, "uv", (0.0, 0.0, 0.0))
-
-    def soil_disc(cx: float, cz: float, radius: float, material: str) -> None:
-        sides = 12
-        ring_pts: list[hou.Point] = []
-        for i in range(sides):
-            a = i / sides * math.tau
-            px, pz = cx + math.cos(a) * radius, cz + math.sin(a) * radius
-            p = base_discs.createPoint()
-            p.setPosition((px, gy(px, pz) + 0.035, pz))
-            ring_pts.append(p)
-        center_p = base_discs.createPoint()
-        center_p.setPosition((cx, gy(cx, cz) + 0.05, cz))
-        for i in range(sides):
-            poly = base_discs.createPolygon()
-            for p in (center_p, ring_pts[i], ring_pts[(i + 1) % sides]):
-                vertex = poly.addVertex(p)
-                pos = p.position()
-                vertex.setAttribValue("uv", (pos[0] * 0.45, pos[2] * 0.45, 0.0))
-            poly.setAttribValue("shop_materialpath", material)
-
-    for x, _gy, z, _species, ps in planned["treePositions"]:
-        soil_disc(x, z, 0.55 + 0.45 * ps, MATERIAL_PATHS["soil"])
-    soil_disc(6.5, -6.0, 1.6, MATERIAL_PATHS["forestfloor"])        # hero terrace tree
-    soil_disc(ax - 4.5, az + 8.5, 1.5, MATERIAL_PATHS["forestfloor"])  # hero riverbank tree
-    disc_stash = ph_node.createNode("stash", "TREE_BASE_DISCS")
-    disc_stash.parm("stash").set(base_discs)
-    outs.append(disc_stash)
-
-    # A grass tuft leaning against half the trunks sells the blend even more.
+    # --- Tree-base blending (T1): the GROUND changes under trees --------------
+    # No geometry discs — the forest-floor splat channel (painted in
+    # HeightField.build_splat around every planned trunk) carries the blend.
+    # Geometry side: trunks sunk 10 cm (above) + litter/twig props and a grass
+    # tuft leaning against about half the trunks.
     base_tufts: list[tuple[float, float, float]] = []
     for x, _gy, z, _species, ps in planned["treePositions"]:
+        if math.hypot(x, z) > 320.0 and math.hypot(x - ax, z - az) > 320.0:
+            continue
         if rng.random() < 0.5:
             ang = rng.uniform(0.0, math.tau)
             dist = rng.uniform(0.7, 1.3) * ps
@@ -1291,16 +1569,17 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
     # --- Riverbank sedges become real grass tufts --------------------------------
     scatter("grass_medium_02", "SEDGE_BANKS", [(x, z, ps) for x, _gy, z, ps in planned["sedgePositions"]], 0.50, "grassClumps")
 
-    # --- Mass grass cover: tuft patches across the whole vale --------------------
+    # --- Mass grass cover: tuft patches across the vale (near-field blockout) --
     vale_grass: list[tuple[float, float, float]] = []
     attempts = 0
-    while len(vale_grass) < 240 and attempts < 3000:
+    while len(vale_grass) < 700 and attempts < 12000:
         attempts += 1
-        x = rng.uniform(-58.0, 58.0)
-        z = rng.uniform(-58.0, 58.0)
-        r = math.hypot(x, z)
-        if r < 13.0 or r > 58.0:
-            continue
+        if rng.random() < 0.55:
+            ang, rad = rng.uniform(0.0, math.tau), rng.uniform(13.0, 260.0)
+            x, z = math.cos(ang) * rad, math.sin(ang) * rad
+        else:
+            ang, rad = rng.uniform(0.0, math.tau), rng.uniform(14.0, 220.0)
+            x, z = ax + math.cos(ang) * rad, az + math.sin(ang) * rad
         if math.hypot(x - plaza[0], z - plaza[1]) < 14.0:
             continue
         if layout.river_distance(x, z) < 3.0 or layout.road_distance(x, z) < 2.4:
@@ -1344,7 +1623,7 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
         d_road = layout.road_distance(x, z)
         if 2.3 < d_road < 4.5 and layout.river_distance(x, z) > 3.0:
             flower_spots.append((x, z, rng.uniform(1.0, 1.8)))
-    mx, mz = layout.grid_to_world(30.0, 66.0)
+    mx, mz = -17.5, -11.4  # moth meadow, just NW of the terrace (local meters)
     for _ in range(8):
         ang = rng.uniform(0.0, math.tau)
         r = rng.uniform(2.0, 8.0)
@@ -1415,19 +1694,20 @@ NPC_SKIN: Color = (0.62, 0.47, 0.35)
 NPC_TROUSER: Color = (0.23, 0.18, 0.12)
 NPC_HAIR: Color = (0.16, 0.11, 0.07)
 NPC_PLACEMENTS: list[tuple[str, float, float, float, Color]] = [
-    # id, world x, world z, facing yaw (deg), tunic color
-    ("mira-eddlestone", 4.6, -24.9, 200.0, (0.30, 0.42, 0.22)),
-    ("dockmaster-pell", -2.4, -25.6, 90.0, (0.18, 0.26, 0.38)),
-    ("fletcher-anes", 6.0, -21.6, 170.0, (0.38, 0.27, 0.16)),
-    ("herder-bonn", 3.2, -31.5, 20.0, (0.45, 0.35, 0.16)),
-    ("cael-roadwarden", 1.2, -30.2, 0.0, (0.28, 0.32, 0.38)),
+    # id, local x, local z (soulwell-relative meters; Anwel now at z ≈ -207),
+    # facing yaw (deg), tunic color
+    ("mira-eddlestone", 4.6, -205.7, 200.0, (0.30, 0.42, 0.22)),
+    ("dockmaster-pell", -2.4, -206.4, 90.0, (0.18, 0.26, 0.38)),
+    ("fletcher-anes", 6.0, -202.4, 170.0, (0.38, 0.27, 0.16)),
+    ("herder-bonn", 3.2, -212.3, 20.0, (0.45, 0.35, 0.16)),
+    ("cael-roadwarden", 1.2, -211.0, 0.0, (0.28, 0.32, 0.38)),
     ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),
-    ("reeve-droma", 12.6, -23.6, 250.0, (0.42, 0.18, 0.20)),
-    ("scavenger-ils", -3.4, -28.6, 60.0, (0.32, 0.32, 0.30)),
-    ("old-fen", -3.0, -27.4, 120.0, (0.24, 0.38, 0.30)),
+    ("reeve-droma", 12.6, -204.4, 250.0, (0.42, 0.18, 0.20)),
+    ("scavenger-ils", -3.4, -209.4, 60.0, (0.32, 0.32, 0.30)),
+    ("old-fen", -3.0, -208.2, 120.0, (0.24, 0.38, 0.30)),
     ("shepherdess-rill", 1.0, 8.0, 180.0, (0.55, 0.50, 0.38)),
     ("sergeant-hull", 2.2, 12.5, 180.0, (0.36, 0.38, 0.42)),
-    ("brother-owyn", 2.0, -30.9, 10.0, (0.60, 0.57, 0.50)),
+    ("brother-owyn", 2.0, -211.7, 10.0, (0.60, 0.57, 0.50)),
 ]
 
 
@@ -1527,8 +1807,9 @@ def _persp_camera(obj: hou.Node, name: str, position: Vector3, target: Vector3, 
 
 
 def create_cameras(obj: hou.Node, layout: HeartvaleLayout) -> None:
-    span = layout.zone_grid * layout.tile_size
-    _ortho_camera(obj, "ISO_ZONE_CAMERA", (-span * 0.40, span * 0.55, 30.0 + span * 0.40), (0.0, 0.0, 30.0), span * 1.16)
+    # Zone review: frame hv-1 + Anwel (the vertical slice) from the SW sky.
+    slice_center = (60.0, -80.0)
+    _ortho_camera(obj, "ISO_ZONE_CAMERA", (slice_center[0] - 620.0, 760.0, slice_center[1] + 620.0), (slice_center[0], 0.0, slice_center[1]), 1450.0)
 
     def eye(x: float, z: float, above: float = 1.7) -> Vector3:
         return (x, layout.terrain_height(x, z) + above, z)
@@ -1539,7 +1820,10 @@ def create_cameras(obj: hou.Node, layout: HeartvaleLayout) -> None:
     anwel = layout.anchors["anwel"]["world"]
     plaza = (anwel["x"] + 7.0, anwel["z"] - 0.5)
     _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] - 4.0, anwel["z"] - 15.0, 7.0), (plaza[0], layout.terrain_height(*plaza) + 1.2, plaza[1] - 0.5), 36.0)
-    _persp_camera(obj, "RIVER_BANK_CAMERA", eye(-14.0, 27.0), (-2.0, layout.terrain_height(-2.0, 14.0) + 0.6, 14.0), 40.0)
+    # Riverbank shot: on the Anwel run just south of the terrace.
+    river_samples = dict(layout.rivers).get("anwel-run", layout.rivers[0][1])
+    bank_x, bank_z = min(river_samples, key=lambda s: math.hypot(s[0] - 0.0, s[1] - 60.0))
+    _persp_camera(obj, "RIVER_BANK_CAMERA", eye(bank_x - 12.0, bank_z + 9.0), (bank_x + 4.0, layout.terrain_height(bank_x + 4.0, bank_z - 6.0) + 0.6, bank_z - 6.0), 40.0)
     ground.setCurrent(True)
 
 
@@ -1594,34 +1878,97 @@ def execute_renders(out: hou.Node, renders: list[dict]) -> list[dict]:
     return executed
 
 
-def export_portable(outdir: Path, heights: list[float], splats: list[int], step: float, count: int, layout: HeartvaleLayout) -> dict:
-    """Engine-agnostic exports: raw float32 heightmap, uint8 splat map, meta."""
+def export_portable(outdir: Path, layout: HeartvaleLayout, planned: dict, clumps: list, village: dict) -> dict:
+    """Engine-agnostic exports, soulwell-local meters (runtime adds plateOffset):
+    float32 heightmap, 7-channel uint8 splat WEIGHTS (feathered blends, T1/T3),
+    meta, and the data-authored scatter/village/npc JSON. Mirrored into
+    public/data/zones/heartvale/ so the Three.js runtime reads the same truth."""
+    field = layout.field
+    assert field is not None and field.weights is not None and field.tint is not None
     outdir.mkdir(parents=True, exist_ok=True)
+    nx, nz = len(field.xs), len(field.zs)
+
     height_path = outdir / "heartvale-heightmap-f32.raw"
-    splat_path = outdir / "heartvale-splat-u8.raw"
-    height_path.write_bytes(struct.pack(f"<{len(heights)}f", *heights))
-    splat_path.write_bytes(bytes(splats))
+    field.H.astype("<f4").tofile(height_path)
+    splat_path = outdir / "heartvale-splat-weights-u8.raw"
+    weights_u8 = np.clip(np.round(field.weights * 255.0), 0, 255).astype(np.uint8)
+    weights_u8.tofile(splat_path)  # channel-major: C × nz × nx
+    tint_path = outdir / "heartvale-tint-u8.raw"
+    np.clip(np.round(field.tint * 255.0), 0, 255).astype(np.uint8).tofile(tint_path)
+
     meta = {
-        "format": "row-major, origin = world (-140, -140), +X east, +Z south",
-        "samplesPerSide": count,
-        "metersPerSample": step,
-        "extentMeters": layout.zone_grid * layout.tile_size,
-        "worldOrigin": "soulwell-terrace",
-        "heightmap": {"file": height_path.name, "dtype": "float32-le", "units": "meters"},
+        "schemaVersion": 3,
+        "frame": "soulwell-local meters (+X east, +Z south); add plateOffset for plate-world meters",
+        "plateOffset": [layout.origin_plate[0], layout.origin_plate[1]],
+        "plateFrame": "origin = M-003 plate top-left, +x east, +z south, meters; 1 cell = 1500 m",
+        "originLocal": [field.x0, field.z0],
+        "samples": {"x": nx, "z": nz},
+        "metersPerSample": field.step,
+        "heightmap": {"file": height_path.name, "dtype": "float32-le", "units": "meters", "order": "row-major (+Z rows)"},
         "splat": {
             "file": splat_path.name,
             "dtype": "uint8",
-            "legend": {"0": "grass", "1": "dry-grass", "2": "dirt-road", "3": "riverbed", "4": "wet-bank", "5": "terrace-stone"},
+            "order": "channel-major, each channel row-major nz×nx",
+            "channels": SPLAT_CHANNELS,
         },
+        "tint": {"file": tint_path.name, "dtype": "uint8-rgb", "order": "channel-major rgb planes nz×nx"},
+        "zones": layout.zones,
         "engines": {
-            "threejs": "PlaneGeometry 200x200 segments; displace vertices with heightmap; vertex-color or splat-blend materials.",
-            "unreal": "Landscape import: convert heightmap to 16-bit PNG (scale/offset in meta), splat -> Landscape Layer weights.",
-            "unity": "TerrainData.SetHeights from resampled float grid; splat -> TerrainLayer alphamaps.",
+            "threejs": "GridDisplace with heightmap; ShaderMaterial splat-blends the 7 channel textures; scatter.json drives InstancedMesh vegetation.",
+            "unreal": "Landscape import: convert heightmap to 16-bit PNG; splat channels -> Landscape Layer weights.",
+            "unity": "TerrainData.SetHeights; splat channels -> TerrainLayer alphamaps.",
         },
     }
     meta_path = outdir / "heartvale-terrain-export.json"
     meta_path.write_text(json.dumps(meta, indent=2) + "\n", "utf8")
-    return {"heightmap": height_path.as_posix(), "splat": splat_path.as_posix(), "meta": meta_path.as_posix()}
+
+    def local_to_plate(x: float, z: float) -> list[float]:
+        return [round(x + layout.origin_plate[0], 2), round(z + layout.origin_plate[1], 2)]
+
+    scatter = {
+        "schemaVersion": 2,
+        "frame": meta["frame"],
+        "assets": {
+            "trees": {"oak": "tree_small_02", "birch": "island_tree_03", "willow": "island_tree_01", "oakAlt": "island_tree_02"},
+            "shrubs": ["shrub_01", "shrub_02", "shrub_03", "wild_rooibos_bush"],
+            "rocks": {"boulder": "boulder_01", "stone": "stone_01"},
+            "sedge": "grass_medium_02",
+            "grassTuft": "grass_medium_01",
+        },
+        "trees": [[round(x, 2), round(z, 2), species, round(ps, 2)] for x, _gy, z, species, ps in planned["treePositions"]],
+        "shrubs": [[round(x, 2), round(z, 2), variant, round(ps, 2)] for x, _gy, z, variant, ps in planned["shrubPositions"]],
+        "rocks": [[round(x, 2), round(z, 2), round(radius, 2)] for x, _gy, z, radius in planned["rockPositions"]],
+        "sedges": [[round(x, 2), round(z, 2), round(ps, 2)] for x, _gy, z, ps in planned["sedgePositions"]],
+        "grassClumps": [list(row) for row in clumps],
+    }
+    scatter_path = outdir / "heartvale-scatter.json"
+    scatter_path.write_text(json.dumps(scatter, separators=(",", ":")) + "\n", "utf8")
+
+    village_path = outdir / "heartvale-village.json"
+    village_path.write_text(json.dumps({"schemaVersion": 2, "frame": meta["frame"], **village}, indent=2) + "\n", "utf8")
+
+    npcs_path = outdir / "heartvale-npcs.json"
+    npcs_path.write_text(json.dumps({
+        "schemaVersion": 2,
+        "frame": meta["frame"],
+        "npcs": [
+            {"id": npc_id, "x": x, "z": z, "yawDeg": yaw, "tunic": list(tunic)}
+            for npc_id, x, z, yaw, tunic in NPC_PLACEMENTS
+        ],
+    }, indent=2) + "\n", "utf8")
+
+    outputs = {
+        "heightmap": height_path, "splat": splat_path, "tint": tint_path, "meta": meta_path,
+        "scatter": scatter_path, "village": village_path, "npcs": npcs_path,
+    }
+    runtime_dir = Path(__file__).resolve().parents[2] / "public" / "data" / "zones" / "heartvale"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    mirrored: list[str] = []
+    for path in outputs.values():
+        target = runtime_dir / path.name
+        target.write_bytes(path.read_bytes())
+        mirrored.append(target.as_posix())
+    return {key: path.as_posix() for key, path in outputs.items()} | {"runtimeMirror": mirrored}
 
 
 def main() -> None:
@@ -1631,6 +1978,14 @@ def main() -> None:
     layout = HeartvaleLayout(payload)
     args.hip.parent.mkdir(parents=True, exist_ok=True)
     args.outdir.mkdir(parents=True, exist_ok=True)
+
+    # Field phase 1 (heights/distances) → vegetation plan (needs heights) →
+    # field phase 2 (splat weights incl. forest floor under planned trunks).
+    field = HeightField(layout)
+    layout.attach_field(field)
+    planned = scatter_vegetation(GeometryBuilder(), layout)
+    field.build_splat(layout, [(x, z) for x, _gy, z, _s, _p in planned["treePositions"]])
+    grass_clumps = plan_grass_clumps(layout)
 
     hou.hipFile.clear(suppress_save_prompt=True)
     hou.setFps(30)
@@ -1645,25 +2000,26 @@ def main() -> None:
         child.destroy()
 
     builder = GeometryBuilder()
-    heights, splats, step, sample_count = build_terrain(builder, layout)
+    build_terrain(builder, layout)
     build_water(builder, layout)
     build_sky(builder)
     build_terrace(builder, layout)
-    build_anwel(builder, layout)
-    counts = scatter_vegetation(builder, layout)
+    village = build_anwel(builder, layout)
+    counts: dict[str, Any] = {
+        "trees": planned["trees"], "shrubs": planned["shrubs"], "rocks": planned["rocks"],
+        "reeds": planned["reeds"], "grassClumpsPlanned": len(grass_clumps),
+    }
 
     grass_node = obj.createNode("geo", "HEARTVALE_GRASS_FIELD")
     for child in grass_node.children():
         child.destroy()
-    counts["grassBlades"] = build_grass_field(grass_node, layout)
+    counts["grassClumpInstances"] = build_grass_field(grass_node, layout, grass_clumps)
 
     ph_node = obj.createNode("geo", "HEARTVALE_POLYHAVEN")
     for child in ph_node.children():
         child.destroy()
     ph_root = args.hip.resolve().parent.parent / "polyhaven"
-    counts.update(build_polyhaven(ph_node, layout, ph_root, counts))
-    for key in ("treePositions", "shrubPositions", "rockPositions", "sedgePositions"):
-        counts.pop(key, None)  # planning data, not summary output
+    counts.update(build_polyhaven(ph_node, layout, ph_root, planned))
 
     npc_node = obj.createNode("geo", "HEARTVALE_NPCS")
     for child in npc_node.children():
@@ -1677,6 +2033,10 @@ def main() -> None:
     normal.parm("cuspangle").set(55.0)
     normal.setDisplayFlag(True)
     normal.setRenderFlag(True)
+    # OBJ handoff is a temp artifact (never committed) — full scene, terrain
+    # included; engines should prefer the heightmap/splat exports for terrain.
+    obj_path = args.outdir / "heartvale-realistic-environment.obj"
+    normal.geometry().saveToFile(obj_path.as_posix())
 
     create_lighting(obj)
     create_cameras(obj, layout)
@@ -1687,15 +2047,13 @@ def main() -> None:
     metadata.setUserData("souldrifter_source", payload["source"])
     metadata.setUserData("souldrifter_license", license_category)
     metadata.setUserData("souldrifter_scale", json.dumps(payload["scale"], separators=(",", ":")))
-    metadata.setUserData("souldrifter_portability", "heightmap+splat+obj; see heartvale-terrain-export.json")
+    metadata.setUserData("souldrifter_portability", "heightmap+splat-weights+scatter/village/npc json+obj; see heartvale-terrain-export.json")
 
     obj.layoutChildren()
     environment.layoutChildren()
     hou.hipFile.save(args.hip.resolve().as_posix())
 
-    obj_path = args.outdir / "heartvale-realistic-environment.obj"
-    normal.geometry().saveToFile(obj_path.as_posix())
-    portable = export_portable(args.outdir, heights, splats, step, sample_count, layout)
+    portable = export_portable(args.outdir, layout, planned, grass_clumps, village)
     # Headless OpenGL can segfault mid-batch (Vulkan driver); stills are rendered
     # one process per camera via scripts/houdini/render-heartvale-still.py.
     render_results = [{**entry, "status": "pending: render via render-heartvale-still.py"} for entry in renders]
@@ -1704,6 +2062,7 @@ def main() -> None:
         "houdiniVersion": hou.applicationVersionString(),
         "license": license_category,
         "seed": payload["seed"],
+        "frame": payload["scale"]["frame"],
         "environmentPoints": len(builder.geometry.points()),
         "environmentPrimitives": len(builder.geometry.prims()),
         **counts,

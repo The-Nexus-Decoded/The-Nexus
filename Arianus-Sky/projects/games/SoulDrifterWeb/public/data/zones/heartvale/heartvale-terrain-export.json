@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 3,
+  "frame": "soulwell-local meters (+X east, +Z south); add plateOffset for plate-world meters",
+  "plateOffset": [
+    5437.5,
+    2648.44
+  ],
+  "plateFrame": "origin = M-003 plate top-left, +x east, +z south, meters; 1 cell = 1500 m",
+  "originLocal": [
+    -1180.0,
+    -1160.0
+  ],
+  "samples": {
+    "x": 1393,
+    "z": 1131
+  },
+  "metersPerSample": 2.5,
+  "heightmap": {
+    "file": "heartvale-heightmap-f32.raw",
+    "dtype": "float32-le",
+    "units": "meters",
+    "order": "row-major (+Z rows)"
+  },
+  "splat": {
+    "file": "heartvale-splat-weights-u8.raw",
+    "dtype": "uint8",
+    "order": "channel-major, each channel row-major nz\u00d7nx",
+    "channels": [
+      "grass",
+      "dry",
+      "road",
+      "riverbed",
+      "wet",
+      "stone",
+      "forest"
+    ]
+  },
+  "tint": {
+    "file": "heartvale-tint-u8.raw",
+    "dtype": "uint8-rgb",
+    "order": "channel-major rgb planes nz\u00d7nx"
+  },
+  "zones": [
+    {
+      "id": "hv-1",
+      "name": "Soul Well Basin",
+      "rect": {
+        "x0": 4980,
+        "z0": 2531.25,
+        "x1": 6240,
+        "z1": 2970
+      },
+      "adjacent": [
+        "hv-2",
+        "hv-3",
+        "hv-5",
+        "hv-6"
+      ]
+    },
+    {
+      "id": "hv-2",
+      "name": "Anwel & Lockroot Reach",
+      "rect": {
+        "x0": 4980,
+        "z0": 1552.5,
+        "x1": 6720,
+        "z1": 2531.25
+      },
+      "adjacent": [
+        "hv-1",
+        "hv-5",
+        "hv-6"
+      ]
+    },
+    {
+      "id": "hv-3",
+      "name": "Vaeldor Crown",
+      "rect": {
+        "x0": 4980,
+        "z0": 2970,
+        "x1": 6240,
+        "z1": 3375
+      },
+      "adjacent": [
+        "hv-1",
+        "hv-4",
+        "hv-6",
+        "hv-7"
+      ]
+    },
+    {
+      "id": "hv-4",
+      "name": "Thalen's Heir",
+      "rect": {
+        "x0": 4980,
+        "z0": 3375,
+        "x1": 6240,
+        "z1": 4252.5
+      },
+      "adjacent": [
+        "hv-3",
+        "hv-6",
+        "hv-7"
+      ]
+    },
+    {
+      "id": "hv-5",
+      "name": "Erboug Stones",
+      "rect": {
+        "x0": 6240,
+        "z0": 2531.25,
+        "x1": 7680,
+        "z1": 2970
+      },
+      "adjacent": [
+        "hv-1",
+        "hv-2",
+        "hv-7"
+      ]
+    },
+    {
+      "id": "hv-6",
+      "name": "West Vale Wilds",
+      "rect": {
+        "x0": 4320,
+        "z0": 1552.5,
+        "x1": 4980,
+        "z1": 4252.5
+      },
+      "adjacent": [
+        "hv-1",
+        "hv-2",
+        "hv-3",
+        "hv-4"
+      ]
+    },
+    {
+      "id": "hv-7",
+      "name": "East March",
+      "rect": {
+        "x0": 6240,
+        "z0": 2970,
+        "x1": 7680,
+        "z1": 4252.5
+      },
+      "adjacent": [
+        "hv-3",
+        "hv-4",
+        "hv-5"
+      ]
+    }
+  ],
+  "engines": {
+    "threejs": "GridDisplace with heightmap; ShaderMaterial splat-blends the 7 channel textures; scatter.json drives InstancedMesh vegetation.",
+    "unreal": "Landscape import: convert heightmap to 16-bit PNG; splat channels -> Landscape Layer weights.",
+    "unity": "TerrainData.SetHeights; splat channels -> TerrainLayer alphamaps."
+  }
+}
