@@ -239,6 +239,25 @@
         "y": 233.594
       },
       "driftMeters": 371.20428796014755
+    },
+    {
+      "id": "lockfragment",
+      "name": "Lock-Inscription Fragment",
+      "type": "poi",
+      "zone": "hv-6",
+      "plate": [
+        828,
+        288
+      ],
+      "world": {
+        "x": 4851.56,
+        "z": 1687.5
+      },
+      "grid": {
+        "x": 323.43733333333336,
+        "y": 112.5
+      },
+      "driftMeters": null
     }
   ],
   "rivers": [

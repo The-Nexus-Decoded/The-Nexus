@@ -14,10 +14,15 @@
  * bearings and river/road shapes. Each legacy grid waypoint is mapped
  * grid → atlas % → plate pixels → world meters, then the whole network is
  * rigidly translated so the legacy Soul Well lands exactly on its measured
- * HEARTVALE_POIS anchor. All other anchors land within ±5 m (validated in
- * tests). Village-scale features (Anwel lane loop, dock spur) are authored
- * directly in meters around the Anwel anchor — they must NOT be stretched
- * by the basin transform.
+ * HEARTVALE_POIS anchor. An inverse-distance-weighted correction field
+ * (1/d⁴ over the six legacy POI deltas) then snaps every POI-CONNECTING
+ * road/river endpoint to its measured anchor at 0.00 m. Endpoints that are
+ * geographic rather than POI-serving — river sources and the north-exit
+ * road — intentionally end 292–497 m from the nearest anchor.
+ * lockfragment (hv-6) has no legacy atlas waypoint; it is appended as a
+ * measured-only anchor straight from sections.mjs. Village-scale features
+ * (Anwel lane loop, dock spur) are authored directly in meters around the
+ * Anwel anchor — they must NOT be stretched by the basin transform.
  *
  * Consumed by scripts/houdini/build-heartvale-realistic.py (Houdini build)
  * and by the runtime zone loader (public/data/zones/heartvale/layout.json).
@@ -129,6 +134,26 @@ const anchors = LEGACY_POIS.map((legacy) => {
   };
 });
 
+// POIs with no legacy atlas waypoint (nothing road/river-serving to snap):
+// appended straight from sections.mjs so all seven Heartvale POIs are
+// addressable through layout.json anchors.
+const MEASURED_ONLY_POIS = [{ id: "lockfragment", name: "Lock-Inscription Fragment", type: "poi" }];
+for (const extra of MEASURED_ONLY_POIS) {
+  const measured = poiById.get(extra.id);
+  if (!measured) throw new Error(`HEARTVALE_POIS is missing '${extra.id}'.`);
+  const world = { x: measured.world[0], z: measured.world[1] };
+  anchors.push({
+    id: extra.id,
+    name: extra.name,
+    type: extra.type,
+    zone: measured.zone,
+    plate: measured.plate,
+    world,
+    grid: { x: world.x / TILE_SIZE, y: world.z / TILE_SIZE },
+    driftMeters: null, // no legacy waypoint to drift from
+  });
+}
+
 /** Resample a world-meter waypoint polyline at ~`spacing` meter spacing. */
 function samplePolyline(waypoints, spacing = 5.0) {
   const samples = [];
@@ -237,7 +262,11 @@ console.log(JSON.stringify({
   outputPath,
   seed: SEED,
   tileSize: TILE_SIZE,
-  anchors: anchors.map((a) => ({ id: a.id, world: a.world, driftMeters: Number(a.driftMeters.toFixed(2)) })),
+  anchors: anchors.map((a) => ({
+    id: a.id,
+    world: a.world,
+    driftMeters: a.driftMeters == null ? null : Number(a.driftMeters.toFixed(2)),
+  })),
   riverSamples: payload.rivers.reduce((sum, river) => sum + river.samples.length, 0),
   roadSamples: payload.roads.reduce((sum, road) => sum + road.samples.length, 0),
 }));
