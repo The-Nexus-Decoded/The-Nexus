@@ -106,9 +106,10 @@ async function main() {
     const mover = clients[0];
     const watcher = clients[1];
     const moverId = welcomes[0].id;
-    mover.ws.send(JSON.stringify({ t: "state", state: { p: [3, 0, 4], h: 1.1, a: "move", seq: 1 } }));
+    // Legal hv-1 position (zone containment is enforced server-side pre-relay).
+    mover.ws.send(JSON.stringify({ t: "state", state: { p: [5600, 0, 2750], h: 1.1, a: "move", seq: 1 } }));
     const relayed = await watcher.waitFor((m) => m.t === "state" && m.id === moverId);
-    check("same-shard watcher received mover state", relayed.state.p[0] === 3 && relayed.state.a === "move");
+    check("same-shard watcher received mover state", relayed.state.p[0] === 5600 && relayed.state.a === "move");
     const echo = mover.messages.filter((m) => m.t === "state" && m.id === moverId);
     check("sender does not receive its own state back", echo.length === 0);
     await sleep(400);

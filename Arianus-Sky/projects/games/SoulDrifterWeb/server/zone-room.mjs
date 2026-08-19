@@ -19,13 +19,17 @@ export function resetPlayerSerialForTests() {
 export class ZoneRoom {
   /**
    * @param {string} zoneId
-   * @param {{ cap?: number, maxStateHz?: number, now?: () => number }} [options]
+   * @param {{ cap?: number, maxStateHz?: number, now?: () => number,
+   *   monitor?: import("./anti-cheat.mjs").MovementMonitor,
+   *   onFlag?: (player: object, verdict: object) => void }} [options]
    */
   constructor(zoneId, options = {}) {
     this.zoneId = zoneId;
     this.cap = options.cap ?? ZONE_PLAYER_CAP;
     this.maxStateHz = options.maxStateHz ?? MAX_STATE_RELAYS_PER_SECOND;
     this.now = options.now ?? (() => Date.now());
+    this.monitor = options.monitor ?? null;
+    this.onFlag = options.onFlag ?? null;
     /** @type {Map<string, { id: string, name: string, appearance: object, state: object|null, relays: number[] }>} */
     this.players = new Map();
   }
@@ -63,13 +67,23 @@ export class ZoneRoom {
     const player = this.players.get(id);
     if (!player) return null;
     this.players.delete(id);
+    this.monitor?.dropPlayer(id);
     return { id: player.id, name: player.name, appearance: player.appearance, state: player.state };
+  }
+
+  /** Server-initiated teleport (spawn/Connector): see MovementMonitor. */
+  authorizeTeleport(id, p) {
+    this.monitor?.authorizeTeleport(id, p);
   }
 
   /**
    * Records a state update and decides the relay message, honoring the
-   * per-player relay clamp. Out-of-order seqs are dropped.
-   * @returns {{ broadcast: { t: "state", id: string, state: object } } | { drop: true }}
+   * per-player relay clamp. Out-of-order seqs are dropped. When a movement
+   * monitor is attached, anti-cheat validation runs BEFORE acceptance:
+   * rejected states are dropped (not relayed, not accepted) and reported via
+   * onFlag, so illegal movement never propagates to other clients and a
+   * warper cannot ratchet forward off an accepted position.
+   * @returns {{ broadcast: { t: "state", id: string, state: object } } | { drop: true, flag?: object }}
    */
   applyState(id, state) {
     const player = this.players.get(id);
@@ -77,6 +91,14 @@ export class ZoneRoom {
     if (player.state && state.seq <= player.state.seq) return { drop: true };
 
     const now = this.now();
+    if (this.monitor) {
+      const verdict = this.monitor.validate(id, this.zoneId, state, now);
+      if (!verdict.ok) {
+        this.onFlag?.(player, verdict, this);
+        return { drop: true, flag: verdict.flag };
+      }
+    }
+
     const windowStart = now - 1000;
     player.relays = player.relays.filter((at) => at >= windowStart);
     if (player.relays.length >= this.maxStateHz) return { drop: true };

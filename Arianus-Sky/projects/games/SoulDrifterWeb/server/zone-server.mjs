@@ -21,7 +21,8 @@
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { ZoneDirectory } from "./zone-directory.mjs";
-import { ZONE_PLAYER_CAP } from "./zone-room.mjs";
+import { ZoneRoom, ZONE_PLAYER_CAP } from "./zone-room.mjs";
+import { MovementMonitor, createAnomalyLogger } from "./anti-cheat.mjs";
 
 const PROTOCOL_VERSION = 1;
 const MAX_MESSAGE_BYTES = 4096;
@@ -31,6 +32,13 @@ const MAX_NAME_LENGTH = 24;
 
 const PORT = Number.parseInt(process.env.PORT || "8787", 10);
 const MAX_SHARDS = Number.parseInt(process.env.MAX_SHARDS || "10", 10);
+// Anti-cheat: "audit" (default — log + drop illegal states, no kicks) or
+// "enforce" (additionally disconnect players whose cheat score crosses the
+// threshold). Flag-first per docs/ANTI_CHEAT.md: false positives (lag) must
+// never ban anyone while the thresholds are being tuned on real traffic.
+const AC_MODE = process.env.AC_MODE === "enforce" ? "enforce" : "audit";
+const AC_MAX_SPEED_MPS = Number.parseFloat(process.env.AC_MAX_SPEED_MPS || "9");
+const AC_LOG_DIR = process.env.AC_LOG_DIR || "logs";
 
 /** Minimal mirror of src/game/net/protocol.ts validation (keep in sync). */
 function parseHello(raw) {
@@ -60,7 +68,46 @@ function parseState(raw) {
   return state;
 }
 
-const directory = new ZoneDirectory({ cap: ZONE_PLAYER_CAP, maxShards: MAX_SHARDS });
+const monitor = new MovementMonitor({ maxSpeedMps: AC_MAX_SPEED_MPS });
+const anomalyLog = createAnomalyLogger({ dir: AC_LOG_DIR });
+
+/** Anti-cheat flag handling: always audit-log + drop the illegal state;
+ *  enforce mode also disconnects once the rolling score crosses the threshold. */
+function handleFlag(player, verdict, room) {
+  const record = {
+    kind: "flag",
+    rule: verdict.flag.kind,
+    detail: verdict.flag.detail,
+    severity: verdict.flag.severity,
+    score: verdict.flag.score,
+    playerId: player.id,
+    name: player.name,
+    shard: room.zoneId,
+    mode: AC_MODE,
+  };
+  anomalyLog.log(record);
+  console.warn(`[ac] ${verdict.flag.kind} ${player.name} (${player.id}) ${verdict.flag.detail} — score ${verdict.flag.score}`);
+  if (AC_MODE === "enforce" && verdict.flag.kickRecommended) {
+    for (const [ws, session] of sessions) {
+      if (session.playerId === player.id && session.room === room) {
+        anomalyLog.log({ kind: "kick", reason: "anti-cheat score", ...record });
+        send(ws, { t: "error", code: "anti-cheat", message: "Disconnected by movement validation." });
+        ws.close(4003, "anti-cheat");
+      }
+    }
+  }
+}
+
+const directory = new ZoneDirectory({
+  cap: ZONE_PLAYER_CAP,
+  maxShards: MAX_SHARDS,
+  roomFactory: (shardId) =>
+    new ZoneRoom(shardId, {
+      cap: ZONE_PLAYER_CAP,
+      monitor,
+      onFlag: (player, verdict, room) => handleFlag(player, verdict, room),
+    }),
+});
 /** @type {Map<import("ws").WebSocket, { room: import("./zone-room.mjs").ZoneRoom, playerId: string, lastSeen: number }>} */
 const sessions = new Map();
 
@@ -138,6 +185,7 @@ wss.on("connection", (ws) => {
       console.log(
         `[${result.shard}] ${result.player.name} joined (${result.room.size}/${result.room.cap}, ${result.shards} shard(s))`,
       );
+      anomalyLog.log({ kind: "join", playerId: result.player.id, name: result.player.name, shard: result.shard, shards: result.shards });
       return;
     }
 
@@ -159,12 +207,14 @@ wss.on("connection", (ws) => {
     const session = sessions.get(ws);
     sessions.delete(ws);
     if (!session) return;
+    const acScore = monitor.scoreFor(session.playerId);
     const { departed, shard, shardClosed } = directory.leave(session.room, session.playerId);
     if (departed) {
       broadcast(session.room, session.playerId, { t: "leave", id: session.playerId });
       console.log(
         `[${shard}] ${departed.name} left (${session.room.size}/${session.room.cap})${shardClosed ? " — shard closed" : ""}`,
       );
+      anomalyLog.log({ kind: "leave", playerId: session.playerId, name: departed.name, shard, score: acScore });
     }
   });
 });
@@ -178,5 +228,5 @@ const heartbeat = setInterval(() => {
 heartbeat.unref();
 
 httpServer.listen(PORT, () => {
-  console.log(`SoulDrifter zone relay listening on :${PORT} (cap ${ZONE_PLAYER_CAP}/shard, max ${MAX_SHARDS} shards/zone)`);
+  console.log(`SoulDrifter zone relay listening on :${PORT} (cap ${ZONE_PLAYER_CAP}/shard, max ${MAX_SHARDS} shards/zone, anti-cheat ${AC_MODE}, max ${AC_MAX_SPEED_MPS} m/s, log ${AC_LOG_DIR}/)`);
 });

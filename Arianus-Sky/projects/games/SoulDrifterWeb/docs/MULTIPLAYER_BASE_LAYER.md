@@ -22,7 +22,8 @@ deliberately a foundation — no combat, inventory, or chat authority yet.
 | Section registry | `server/sections.mjs` | Heartvale's 7 sections (world-meter rects + adjacency) and the Thalenyr scale constants. See `docs/THALENYR_SCALE_AND_SECTIONS.md`. |
 | Client zone registry | `src/game/net/heartvaleZones.ts` | TS mirror of `server/sections.mjs` — same rects/adjacency, `zoneAt`, `nearestAdjacentEdge`, `distanceToRect`. Parity-tested against the server module so the two can never drift. |
 | Seamless crossover | `src/game/net/zoneCrossover.ts` | State machine that pre-joins the adjacent zone inside a 50 m edge band, receives on both shards while overlapping, transfers presence when `zoneAt` flips, and holds the old shard as the return pre-join (2 s / 10 m hysteresis — no connect/disconnect churn at a seam). |
-| Tests | `tests/mpProtocol.test.ts`, `tests/mpInterpolation.test.ts`, `tests/zoneRoom.test.mjs`, `tests/zoneDirectory.test.mjs`, `tests/heartvaleZones.test.ts`, `tests/zoneCrossover.test.ts` | 39 new tests; full suite 182/182 green. |
+| Anti-cheat Phase 1 | `server/anti-cheat.mjs` | Pre-relay movement validation (teleport/speed/fly/zone-spoof checks with lag-tolerant sliding-window speed), rolling cheat scores, audit/enforce modes (`AC_MODE`), append-only JSONL anomaly log (`logs/`). Research + phased design: `docs/ANTI_CHEAT.md`. |
+| Tests | `tests/mpProtocol.test.ts`, `tests/mpInterpolation.test.ts`, `tests/zoneRoom.test.mjs`, `tests/zoneDirectory.test.mjs`, `tests/heartvaleZones.test.ts`, `tests/zoneCrossover.test.ts`, `tests/antiCheat.test.mjs` | 54 new tests; full suite 197/197 green. |
 | Live smoke test | `scripts/mp-smoke-test.mjs` | 31 real clients: 30 fill shard #1, 31st overflows into shard #2, relay isolated per shard, empty shard closes. |
 
 ## Shard overflow instancing
@@ -101,7 +102,11 @@ Server → client: `welcome` (assigned id + snapshot of current players +
 `state` (relayed, sender excluded), `pong`, `error`.
 
 Guards: 4 KiB message ceiling, per-player 20 Hz relay clamp, out-of-order
-`seq` dropped, idle sockets reaped at 45 s, empty rooms discarded.
+`seq` dropped, idle sockets reaped at 45 s, empty rooms discarded. Every
+`state` also passes `MovementMonitor` validation before acceptance/relay
+(teleport, windowed speed, bounds/altitude, zone containment vs
+`server/sections.mjs`); violations are dropped, scored, and written to the
+JSONL anomaly log — see `docs/ANTI_CHEAT.md`.
 
 ## Heartvale integration checklist (follow-up work)
 
@@ -115,8 +120,11 @@ Guards: 4 KiB message ceiling, per-player 20 Hz relay clamp, out-of-order
    transport-free for exactly that reason.
 4. **Auth**: `hello` is unauthenticated by design (dev). Add the beta-gate
    token check (see `worker/static-sites-worker.js`) before public testing.
-5. **Authority**: positions are client-reported (trust-based). Fine for a
-   co-op presence layer; combat/economy will need server validation later.
+5. **Authority**: positions are client-reported (trust-based) but now sit
+   behind the Phase 1 validation + audit net (`docs/ANTI_CHEAT.md`). The
+   standing rule for combat/economy/loot/spawns: **the server computes, the
+   client requests** — drop tables, spawn tables, and warp destinations must
+   never ship in the client bundle.
 
 ## Notes
 

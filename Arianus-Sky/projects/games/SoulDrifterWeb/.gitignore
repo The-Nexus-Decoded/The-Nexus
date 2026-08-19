@@ -2,5 +2,6 @@ node_modules/
 dist/
 dist-pages/
 coverage/
+logs/
 *.log
 
