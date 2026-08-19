@@ -243,6 +243,62 @@
       "license": "CC0-1.0",
       "bundled": true,
       "notes": "1k glTF + JPG textures under source-assets/polyhaven/planter_box_01/. Heavy assets also carry a polyreduced prototype cache (<id>_lod.bgeo.sc) made by scripts/houdini/reduce-polyhaven-assets.py."
+    },
+    {
+      "id": "mossy_stone_wall",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/mossy_stone_wall",
+      "license": "CC0-1.0",
+      "use": "Soulwell ring, breach arch, column stubs, Anwel footings"
+    },
+    {
+      "id": "mossy_cobblestone",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/mossy_cobblestone",
+      "license": "CC0-1.0",
+      "use": "Terrace flagstones + steps"
+    },
+    {
+      "id": "plastered_wall",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/plastered_wall",
+      "license": "CC0-1.0",
+      "use": "Anwel house wall panels"
+    },
+    {
+      "id": "wood_planks",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/wood_planks",
+      "license": "CC0-1.0",
+      "use": "Timber frame, doors, dock planks"
+    },
+    {
+      "id": "thatch_roof_angled",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/thatch_roof_angled",
+      "license": "CC0-1.0",
+      "use": "Thatch cottage roofs"
+    },
+    {
+      "id": "roof_slates_02",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/roof_slates_02",
+      "license": "CC0-1.0",
+      "use": "Slate roofs (reeve hall, barn)"
+    },
+    {
+      "id": "brown_mud_leaves_01",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/brown_mud_leaves_01",
+      "license": "CC0-1.0",
+      "use": "Tree-base soil blend discs"
+    },
+    {
+      "id": "forest_floor",
+      "kind": "texture",
+      "source": "https://polyhaven.com/a/forest_floor",
+      "license": "CC0-1.0",
+      "use": "Well surround + dark forest ground patches"
     }
   ],
   "researchReferences": [

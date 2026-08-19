@@ -85,6 +85,9 @@ MATERIAL_PATHS = {
     "grass": "/mat/HVR_Grass",
     "sky": "/mat/HVR_Sky",
     "npc": "/mat/HVR_NPC",
+    "soil": "/mat/HVR_Soil",
+    "forestfloor": "/mat/HVR_Forest_Floor",
+    "iron": "/mat/HVR_Iron",
 }
 
 TERRAIN_SAMPLES = 200  # quads per side over the 280 m zone (1.4 m resolution)
@@ -155,13 +158,14 @@ def create_materials() -> None:
     if material_network is None:
         material_network = hou.node("/").createNode("matnet", "mat")
 
-    tex_root = "$HIP/../textures/heartvale"
+    tex_root = "$HIP/../textures/heartvale"  # procedural fallbacks (bark etc.)
+    ph_tex = lambda tex_id: f"$HIP/../polyhaven/textures/{tex_id}/{tex_id}_diff_1k.jpg"  # CC0 PBR sets
 
-    def shader(name: str, color: Color, roughness: float, metallic: float = 0.0, texture: str | None = None, tint: bool = True) -> hou.Node:
+    def shader(name: str, color: Color, roughness: float, metallic: float = 0.0, texture: str | None = None, tint: bool = True, ph: bool = False) -> hou.Node:
         # Geometry carries its color as point Cd; keep the shader base white so the
         # OpenGL review renders don't multiply basecolor x point color. Textured
         # materials can opt out of the tint (the texture carries the hue) or keep
-        # it (bark: grayscale texture x point-color tint = oak dark / birch pale).
+        # it (bark/roofs/plaster: texture x point-color tint = per-instance variety).
         _ = color
         existing = material_network.node(name)
         if existing:
@@ -173,14 +177,14 @@ def create_materials() -> None:
         node.parm("metallic").set(metallic)
         if texture is not None:
             node.parm("basecolor_useTexture").set(1)
-            node.parm("basecolor_texture").set(f"{tex_root}/{texture}.png")
+            node.parm("basecolor_texture").set(ph_tex(texture) if ph else f"{tex_root}/{texture}.png")
             if not tint:
                 node.parm("basecolor_usePointColor").set(0)
         return node
 
     shader("HVR_Terrain", (1.0, 1.0, 1.0), 0.96)
-    shader("HVR_Terrace_Stone", TERRACE_STONE, 0.90, texture="terrace-flagstone", tint=False)
-    shader("HVR_Well_Stone", WELL_STONE, 0.86, texture="wellstone", tint=False)
+    shader("HVR_Terrace_Stone", TERRACE_STONE, 0.90, texture="mossy_cobblestone", tint=False, ph=True)
+    shader("HVR_Well_Stone", WELL_STONE, 0.86, texture="mossy_stone_wall", tint=False, ph=True)
     water = shader("HVR_River_Water", RIVER_WATER, 0.12)
     if water.parm("alpha"):
         water.parm("alpha").set(1.0)
@@ -198,11 +202,14 @@ def create_materials() -> None:
     leaf.parmTuple("emitcolor").set((1.0, 1.0, 1.0))
     leaf.parm("emitint").set(0.22)
     shader("HVR_Rock", ROCK, 0.97)
-    shader("HVR_Timber", TIMBER, 0.88, texture="timber", tint=False)
-    shader("HVR_Plaster", PLASTER, 0.96, texture="plaster", tint=False)
-    shader("HVR_Thatch", THATCH, 0.98, texture="thatch", tint=False)
-    shader("HVR_Slate", SLATE, 0.72, texture="slate", tint=False)
-    shader("HVR_Dock_Wood", DOCK_WOOD, 0.90, texture="dockwood", tint=False)
+    shader("HVR_Timber", TIMBER, 0.88, texture="wood_planks", ph=True)  # tint x planks = per-house timber variety
+    shader("HVR_Plaster", PLASTER, 0.96, texture="plastered_wall", ph=True)  # tint x plaster = per-house lime wash
+    shader("HVR_Thatch", THATCH, 0.98, texture="thatch_roof_angled", ph=True)
+    shader("HVR_Slate", SLATE, 0.72, texture="roof_slates_02", ph=True)
+    shader("HVR_Dock_Wood", DOCK_WOOD, 0.90, texture="wood_planks", ph=True)
+    shader("HVR_Soil", (0.85, 0.80, 0.72), 0.99, texture="brown_mud_leaves_01", tint=False, ph=True)
+    shader("HVR_Forest_Floor", (0.85, 0.82, 0.75), 0.99, texture="forest_floor", tint=False, ph=True)
+    iron = shader("HVR_Iron", (0.16, 0.15, 0.14), 0.55, 0.85, tint=False)
     shader("HVR_Reed", REED, 0.92)
     grass = shader("HVR_Grass", (1.0, 1.0, 1.0), 0.88)
     grass.parm("emitcolor_usePointColor").set(1)
@@ -232,7 +239,7 @@ class GeometryBuilder:
         point.setAttribValue("Cd", color)
         return point
 
-    def _polygon(self, points: Sequence[hou.Point], name: str, kind: str, color: Color, material: str) -> None:
+    def _polygon(self, points: Sequence[hou.Point], name: str, kind: str, color: Color, material: str, uv_scale: float = 0.3) -> None:
         polygon = self.geometry.createPolygon()
         vertices: list[hou.Vertex] = []
         for point in points:
@@ -246,16 +253,16 @@ class GeometryBuilder:
         else:
             projected = [(p[0], p[1]) for p in positions]
         for vertex, (u, v) in zip(vertices, projected, strict=True):
-            vertex.setAttribValue("uv", (u * 0.3, v * 0.3, 0.0))
+            vertex.setAttribValue("uv", (u * uv_scale, v * uv_scale, 0.0))
         polygon.setAttribValue("name", name)
         polygon.setAttribValue("path", f"/HeartvaleReal/{kind}/{name}")
         polygon.setAttribValue("souldrifter_kind", kind)
         polygon.setAttribValue("shop_materialpath", material)
 
-    def add_quad(self, name: str, corners: Sequence[Vector3], color: Color, kind: str, material: str) -> None:
-        self._polygon([self._point(p, color) for p in corners], name, kind, color, material)
+    def add_quad(self, name: str, corners: Sequence[Vector3], color: Color, kind: str, material: str, uv_scale: float = 0.3) -> None:
+        self._polygon([self._point(p, color) for p in corners], name, kind, color, material, uv_scale)
 
-    def add_box(self, name: str, center: Vector3, size: Vector3, color: Color, kind: str, material: str, yaw: float = 0.0) -> None:
+    def add_box(self, name: str, center: Vector3, size: Vector3, color: Color, kind: str, material: str, yaw: float = 0.0, uv_scale: float = 0.3) -> None:
         hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2
         corners: list[Vector3] = []
         for ly in (-hy, hy):
@@ -266,9 +273,9 @@ class GeometryBuilder:
                     corners.append((center[0] + x, center[1] + ly, center[2] + z))
         points = [self._point(p, color) for p in corners]
         for face in ((0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)):
-            self._polygon([points[i] for i in face], name, kind, color, material)
+            self._polygon([points[i] for i in face], name, kind, color, material, uv_scale)
 
-    def add_cylinder(self, name: str, center: Vector3, radius: float, height: float, sides: int, color: Color, kind: str, material: str, cap_top: bool = True, cap_bottom: bool = True) -> None:
+    def add_cylinder(self, name: str, center: Vector3, radius: float, height: float, sides: int, color: Color, kind: str, material: str, cap_top: bool = True, cap_bottom: bool = True, uv_scale: float = 0.3) -> None:
         bottom: list[hou.Point] = []
         top: list[hou.Point] = []
         for index in range(sides):
@@ -278,14 +285,14 @@ class GeometryBuilder:
             bottom.append(self._point((x, center[1] - height / 2, z), color))
             top.append(self._point((x, center[1] + height / 2, z), color))
         if cap_bottom:
-            self._polygon(list(reversed(bottom)), name, kind, color, material)
+            self._polygon(list(reversed(bottom)), name, kind, color, material, uv_scale)
         if cap_top:
-            self._polygon(top, name, kind, color, material)
+            self._polygon(top, name, kind, color, material, uv_scale)
         for index in range(sides):
             nxt = (index + 1) % sides
-            self._polygon([bottom[index], bottom[nxt], top[nxt], top[index]], name, kind, color, material)
+            self._polygon([bottom[index], bottom[nxt], top[nxt], top[index]], name, kind, color, material, uv_scale)
 
-    def add_ring(self, name: str, center: Vector3, inner: float, outer: float, y: float, sides: int, color: Color, kind: str, material: str) -> None:
+    def add_ring(self, name: str, center: Vector3, inner: float, outer: float, y: float, sides: int, color: Color, kind: str, material: str, uv_scale: float = 0.3) -> None:
         for index in range(sides):
             a0 = index / sides * math.tau
             a1 = (index + 1) / sides * math.tau
@@ -294,7 +301,7 @@ class GeometryBuilder:
                 (center[0] + math.cos(a1) * inner, y, center[2] + math.sin(a1) * inner),
                 (center[0] + math.cos(a1) * outer, y, center[2] + math.sin(a1) * outer),
                 (center[0] + math.cos(a0) * outer, y, center[2] + math.sin(a0) * outer),
-            ], color, kind, material)
+            ], color, kind, material, uv_scale)
 
     def add_octahedron(self, name: str, center: Vector3, radius: float, color: Color, kind: str, material: str, squash: float = 1.0, stretch_y: float = 1.0) -> None:
         positions = (
@@ -309,7 +316,7 @@ class GeometryBuilder:
         for face in ((0, 2, 4), (0, 4, 3), (0, 3, 5), (0, 5, 2), (1, 4, 2), (1, 3, 4), (1, 5, 3), (1, 2, 5)):
             self._polygon([points[i] for i in face], name, kind, color, material)
 
-    def add_prism_roof(self, name: str, center: Vector3, width: float, depth: float, height: float, color: Color, kind: str, material: str, yaw: float = 0.0) -> None:
+    def add_prism_roof(self, name: str, center: Vector3, width: float, depth: float, height: float, color: Color, kind: str, material: str, yaw: float = 0.0, uv_scale: float = 0.3) -> None:
         """Gabled roof: ridge along local X."""
         hw, hd = width / 2, depth / 2
         base = [
@@ -322,7 +329,7 @@ class GeometryBuilder:
             z = lx * math.sin(yaw) + lz * math.cos(yaw)
             pts.append(self._point((center[0] + x, center[1] + ly, center[2] + z), color))
         for face in ((0, 4, 5, 1), (3, 2, 5, 4), (0, 1, 2, 3), (0, 3, 4), (1, 5, 2)):
-            self._polygon([pts[i] for i in face], name, kind, color, material)
+            self._polygon([pts[i] for i in face], name, kind, color, material, uv_scale)
 
     def add_tapered_tube(self, name: str, p0: Vector3, p1: Vector3, r0: float, r1: float, sides: int, color: Color, kind: str, material: str) -> None:
         """Uncapped tapered segment between two points — trunks, branches, stems."""
@@ -542,31 +549,41 @@ def build_water(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
 
 def build_terrace(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
     pad = 1.35
-    builder.add_cylinder("terrace_lower_step", (0, pad + 0.15, 0), 10.5, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"])
-    builder.add_cylinder("terrace_upper_step", (0, pad + 0.42, 0), 8.75, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"])
+    builder.add_cylinder("terrace_lower_step", (0, pad + 0.15, 0), 10.5, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], uv_scale=0.45)
+    builder.add_cylinder("terrace_upper_step", (0, pad + 0.42, 0), 8.75, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], uv_scale=0.45)
     top = pad + 0.57
-    builder.add_cylinder("well_outer_ring", (0, top + 0.55, 0), 2.60, 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], cap_top=False)
+    # Soulwell ring: mossy stone courses with iron bands, plus a timber windlass
+    # frame (posts, axle, rope, bucket) so the spawn anchor reads as a real well.
+    builder.add_cylinder("well_outer_ring", (0, top + 0.55, 0), 2.60, 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], cap_top=False, uv_scale=0.6)
     builder.add_cylinder("well_shaft_dark", (0, top + 0.45, 0), 2.05, 0.90, 16, PORTAL_DARK, "well", MATERIAL_PATHS["portal"])
     builder.add_cylinder("well_soul_water", (0, top + 0.95, 0), 1.95, 0.08, 16, SOUL_WATER, "well", MATERIAL_PATHS["soulwater"])
-    builder.add_ring("well_rim_cap", (0, 0, 0), 2.05, 2.60, top + 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"])
-    builder.add_octahedron("echo_shard_large", (0.15, top + 3.10, 0.10), 0.52, SHARD, "shard", MATERIAL_PATHS["shard"])
-    builder.add_octahedron("echo_shard_mid", (-0.55, top + 3.95, 0.35), 0.34, SHARD, "shard", MATERIAL_PATHS["shard"])
-    builder.add_octahedron("echo_shard_small", (0.60, top + 4.55, -0.30), 0.24, SHARD, "shard", MATERIAL_PATHS["shard"])
+    builder.add_ring("well_rim_cap", (0, 0, 0), 2.05, 2.60, top + 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_cylinder("well_band_lower", (0, top + 0.26, 0), 2.66, 0.08, 16, (0.16, 0.15, 0.14), "well", MATERIAL_PATHS["iron"], cap_top=False, cap_bottom=False)
+    builder.add_cylinder("well_band_upper", (0, top + 0.86, 0), 2.66, 0.08, 16, (0.16, 0.15, 0.14), "well", MATERIAL_PATHS["iron"], cap_top=False, cap_bottom=False)
+    for px in (-2.9, 2.9):
+        builder.add_box(f"well_windlass_post_{px:+.1f}", (px, top + 1.70, 0), (0.20, 3.40, 0.20), TIMBER, "well", MATERIAL_PATHS["timber"], uv_scale=0.5)
+        builder.add_box(f"well_windlass_foot_{px:+.1f}", (px, top + 0.10, 0), (0.55, 0.20, 0.55), WELL_STONE, "well", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_tapered_tube("well_windlass_axle", (-3.05, top + 3.15, 0), (3.05, top + 3.15, 0), 0.09, 0.09, 8, DOCK_WOOD, "well", MATERIAL_PATHS["dock"])
+    builder.add_tapered_tube("well_rope", (0, top + 3.10, 0), (0, top + 1.08, 0), 0.024, 0.024, 5, (0.45, 0.37, 0.24), "well", MATERIAL_PATHS["timber"])
+    builder.add_cylinder("well_bucket", (0, top + 0.96, 0), 0.17, 0.26, 8, DOCK_WOOD, "well", MATERIAL_PATHS["dock"], uv_scale=0.5)
+    builder.add_octahedron("echo_shard_large", (0.15, top + 3.85, 0.10), 0.52, SHARD, "shard", MATERIAL_PATHS["shard"])
+    builder.add_octahedron("echo_shard_mid", (-0.55, top + 4.60, 0.35), 0.34, SHARD, "shard", MATERIAL_PATHS["shard"])
+    builder.add_octahedron("echo_shard_small", (0.60, top + 5.20, -0.30), 0.24, SHARD, "shard", MATERIAL_PATHS["shard"])
     arch_z = -8.2
-    builder.add_box("breach_arch_jamb_west", (-1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"])
-    builder.add_box("breach_arch_jamb_east", (1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"])
-    builder.add_box("breach_arch_lintel", (0, top + 2.85, arch_z), (3.20, 0.70, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"])
+    builder.add_box("breach_arch_jamb_west", (-1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_box("breach_arch_jamb_east", (1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_box("breach_arch_lintel", (0, top + 2.85, arch_z), (3.20, 0.70, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
     builder.add_box("breach_passage_dark", (0, top + 1.20, arch_z - 0.75), (1.85, 2.40, 0.60), PORTAL_DARK, "portal", MATERIAL_PATHS["portal"])
     for step_index in range(3):
-        builder.add_box(f"breach_step_{step_index}", (0, top + 0.42 - step_index * 0.19, arch_z + 1.05 + step_index * 0.62), (2.1, 0.19, 0.66), TERRACE_STONE, "portal", MATERIAL_PATHS["terrace"])
-    builder.add_box("overlook_parapet_west", (-1.6, top + 0.42, 8.1), (1.7, 0.84, 0.45), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"])
-    builder.add_box("overlook_parapet_east", (1.6, top + 0.42, 8.1), (1.7, 0.84, 0.45), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"])
+        builder.add_box(f"breach_step_{step_index}", (0, top + 0.42 - step_index * 0.19, arch_z + 1.05 + step_index * 0.62), (2.1, 0.19, 0.66), TERRACE_STONE, "portal", MATERIAL_PATHS["terrace"], uv_scale=0.5)
+    builder.add_box("overlook_parapet_west", (-1.6, top + 0.42, 8.1), (1.7, 0.84, 0.45), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_box("overlook_parapet_east", (1.6, top + 0.42, 8.1), (1.7, 0.84, 0.45), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
     for slab_index in range(4):
-        builder.add_box(f"terrace_flagstone_{slab_index}", (0.10 * (slab_index % 2), top + 0.025, -6.1 + slab_index * 1.35), (1.30, 0.06, 1.05), TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], yaw=0.05 * ((slab_index % 3) - 1))
+        builder.add_box(f"terrace_flagstone_{slab_index}", (0.10 * (slab_index % 2), top + 0.025, -6.1 + slab_index * 1.35), (1.30, 0.06, 1.05), TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], yaw=0.05 * ((slab_index % 3) - 1), uv_scale=0.5)
     for column_index, angle in enumerate((0.6, 1.9, 3.4, 4.9)):
         radius = 9.4
         height = (0.9, 1.5, 0.7, 1.2)[column_index]
-        builder.add_cylinder(f"terrace_column_stub_{column_index}", (math.cos(angle) * radius, pad + 0.30 + height / 2, math.sin(angle) * radius), 0.38, height, 10, WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"])
+        builder.add_cylinder(f"terrace_column_stub_{column_index}", (math.cos(angle) * radius, pad + 0.30 + height / 2, math.sin(angle) * radius), 0.38, height, 10, WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
 
 
 def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
@@ -583,7 +600,9 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
     def gy(x: float, z: float) -> float:
         return layout.terrain_height(x, z)
 
-    def house(name: str, lx: float, lz: float, w: float, d: float, h: float, roof: str = "thatch") -> None:
+    def house(name: str, lx: float, lz: float, w: float, d: float, h: float, roof: str = "thatch",
+              wash: Color = (1.0, 1.0, 1.0), timber_tint: Color = (1.0, 1.0, 1.0),
+              roof_tint: Color = (1.0, 1.0, 1.0), chimney: bool = False) -> None:
         x, z = ax + lx, az + lz
         yaw = math.atan2(plaza[1] - z, plaza[0] - x)  # door wall (+local X) faces the plaza
         cy_, sy_ = math.cos(yaw), math.sin(yaw)
@@ -598,12 +617,12 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         win_w, win_sill, win_top = 0.95, 1.25, 2.15
 
         # footing + floor
-        builder.add_box(f"{name}_footing", (x, base + 0.15, z), (w + 0.3, 0.3, d + 0.3), WELL_STONE, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw)
-        builder.add_box(f"{name}_floor", (x, base + 0.36, z), (w, 0.12, d), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=yaw)
+        builder.add_box(f"{name}_footing", (x, base + 0.15, z), (w + 0.3, 0.3, d + 0.3), WELL_STONE, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw, uv_scale=0.55)
+        builder.add_box(f"{name}_floor", (x, base + 0.36, z), (w, 0.12, d), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=yaw, uv_scale=0.5)
 
         def panel(tag: str, ox: float, oz: float, y0: float, y1: float, sx: float, sz: float) -> None:
             cx, cz = spot(ox, oz)
-            builder.add_box(f"{name}_{tag}", (cx, wall0 + (y0 + y1) / 2, cz), (sx, y1 - y0, sz), PLASTER, "anwel", MATERIAL_PATHS["plaster"], yaw=yaw)
+            builder.add_box(f"{name}_{tag}", (cx, wall0 + (y0 + y1) / 2, cz), (sx, y1 - y0, sz), wash, "anwel", MATERIAL_PATHS["plaster"], yaw=yaw, uv_scale=0.5)
 
         # door wall (+X local): two side panels + lintel over the open doorway
         side = (d - door_w) / 2
@@ -620,22 +639,47 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
         panel("wall_side_a", 0.0, -d / 2 + t / 2, 0.0, h, w - 2 * t, t)
         panel("wall_side_b", 0.0, d / 2 - t / 2, 0.0, h, w - 2 * t, t)
 
+        # plank door (recessed into the opening) + stone doorstep
+        dx_, dz_ = spot(w / 2 - 0.10, 0.0)
+        builder.add_box(f"{name}_door", (dx_, wall0 + door_h / 2 - 0.03, dz_), (0.06, door_h - 0.08, door_w - 0.10), timber_tint, "anwel", MATERIAL_PATHS["dock"], yaw=yaw, uv_scale=0.5)
+        sx_, sz_ = spot(w / 2 + 0.28, 0.0)
+        builder.add_box(f"{name}_doorstep", (sx_, wall0 - 0.34, sz_), (0.62, 0.10, door_w + 0.2), WELL_STONE, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw, uv_scale=0.55)
+
+        # window shutters (both sides of the window on the -X wall)
+        for sz_off in (-(win_w / 2 + 0.14), win_w / 2 + 0.14):
+            shx, shz = spot(-w / 2 - 0.05, sz_off)
+            builder.add_box(f"{name}_shutter_{sz_off:+.2f}", (shx, wall0 + (win_sill + win_top) / 2, shz), (0.05, win_top - win_sill, 0.24), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+
         # timber frame: corner posts + door surround
         for cx in (-1, 1):
             for cz in (-1, 1):
                 px, pz = spot(cx * (w / 2 - 0.09), cz * (d / 2 - 0.09))
-                builder.add_box(f"{name}_post_{cx}_{cz}", (px, wall0 + h / 2, pz), (0.18, h, 0.18), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
+                builder.add_box(f"{name}_post_{cx}_{cz}", (px, wall0 + h / 2, pz), (0.18, h, 0.18), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
         for dz in (-door_w / 2, door_w / 2):
             px, pz = spot(w / 2 + 0.03, dz)
-            builder.add_box(f"{name}_doorframe_{dz:+.2f}", (px, wall0 + door_h / 2, pz), (0.10, door_h, 0.10), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
-        builder.add_prism_roof(f"{name}_roof", (x, wall0 + h, z), w + 0.7, d + 0.7, h * 0.55, THATCH if roof == "thatch" else SLATE, "anwel", MATERIAL_PATHS[roof], yaw=yaw)
+            builder.add_box(f"{name}_doorframe_{dz:+.2f}", (px, wall0 + door_h / 2, pz), (0.10, door_h, 0.10), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        roof_h = h * 0.55
+        builder.add_prism_roof(f"{name}_roof", (x, wall0 + h, z), w + 0.7, d + 0.7, roof_h, roof_tint, "anwel", MATERIAL_PATHS[roof], yaw=yaw, uv_scale=0.75)
+        # ridge beam caps the gable
+        builder.add_box(f"{name}_ridge", (x, wall0 + h + roof_h - 0.03, z), (w + 0.85, 0.12, 0.14), timber_tint, "anwel", MATERIAL_PATHS["timber"], yaw=yaw, uv_scale=0.5)
+        if chimney:
+            chx, chz = spot(-w * 0.18, -d * 0.20)
+            builder.add_box(f"{name}_chimney", (chx, wall0 + h + roof_h + 0.55, chz), (0.48, 1.6, 0.48), wash, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw, uv_scale=0.55)
+            builder.add_box(f"{name}_chimney_cap", (chx, wall0 + h + roof_h + 1.40, chz), (0.62, 0.12, 0.62), SLATE, "anwel", MATERIAL_PATHS["slate"], yaw=yaw, uv_scale=0.6)
 
-    house("anwel_reeve_hall", 13.8, 4.2, 5.4, 4.2, 3.0, "slate")
-    house("anwel_cottage_north", 6.2, 6.4, 3.6, 3.0, 2.6)
-    house("anwel_fisher_hut", 1.8, 4.6, 2.8, 2.4, 2.3)
-    house("anwel_cottage_east", 15.0, -2.2, 3.2, 2.8, 2.5)
-    house("anwel_store_barn", 10.8, -7.6, 4.4, 3.2, 2.8)
-    house("anwel_cottage_south", 5.4, -8.2, 3.4, 2.8, 2.5)
+    # Lime-wash / timber / roof variation so no two cottages read the same.
+    house("anwel_reeve_hall", 13.8, 4.2, 5.4, 4.2, 3.0, "slate",
+          wash=(0.92, 0.88, 0.78), timber_tint=(0.75, 0.62, 0.50), roof_tint=(0.85, 0.88, 0.95), chimney=True)
+    house("anwel_cottage_north", 6.2, 6.4, 3.6, 3.0, 2.6,
+          wash=(1.02, 0.98, 0.90), timber_tint=(1.05, 0.95, 0.82), roof_tint=(1.05, 0.95, 0.80))
+    house("anwel_fisher_hut", 1.8, 4.6, 2.8, 2.4, 2.3,
+          wash=(0.82, 0.80, 0.72), timber_tint=(0.62, 0.55, 0.48), roof_tint=(0.78, 0.72, 0.60))
+    house("anwel_cottage_east", 15.0, -2.2, 3.2, 2.8, 2.5,
+          wash=(0.98, 0.90, 0.74), timber_tint=(0.88, 0.76, 0.62), roof_tint=(0.92, 0.85, 0.68), chimney=True)
+    house("anwel_store_barn", 10.8, -7.6, 4.4, 3.2, 2.8, "slate",
+          wash=(0.86, 0.82, 0.70), timber_tint=(0.70, 0.60, 0.50), roof_tint=(1.0, 0.92, 0.85))
+    house("anwel_cottage_south", 5.4, -8.2, 3.4, 2.8, 2.5,
+          wash=(1.05, 1.00, 0.94), timber_tint=(0.95, 0.85, 0.70), roof_tint=(1.10, 1.00, 0.82), chimney=True)
 
     # Fenced garden plots behind/beside houses — the separation and small
     # gardens a real village has between buildings. Gate gap faces the lane.
@@ -1096,7 +1140,7 @@ def _ph_place(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, aid: str, labe
 
 def _ph_scatter(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, layout: HeartvaleLayout,
                 aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float,
-                use_lod: bool = True) -> hou.Node:
+                use_lod: bool = True, sink: float = 0.0) -> hou.Node:
     """Copy a height-normalized asset onto Python-scattered points (pscale per point)."""
     unpack = _ph_load(ph_node, ph_root, aid, label, use_lod)
     bb = unpack.geometry().boundingBox()
@@ -1111,7 +1155,7 @@ def _ph_scatter(ph_node: hou.Node, matnet: hou.Node, ph_root: Path, layout: Hear
     points_geo.addAttrib(hou.attribType.Point, "pscale", 1.0)
     for x, z, pscale in spots:
         point = points_geo.createPoint()
-        point.setPosition((x, layout.terrain_height(x, z), z))
+        point.setPosition((x, layout.terrain_height(x, z) - sink * pscale, z))
         point.setAttribValue("pscale", pscale)
     stash = ph_node.createNode("stash", f"PHPOINTS_{label}")
     stash.parm("stash").set(points_geo)
@@ -1143,10 +1187,10 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
               "phTrees": 0, "phRocks": 0, "phPlants": 0, "phDebris": 0}
     outs: list[hou.Node] = []
 
-    def scatter(aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float, counter: str, use_lod: bool = True) -> None:
+    def scatter(aid: str, label: str, spots: list[tuple[float, float, float]], target_height: float, counter: str, use_lod: bool = True, sink: float = 0.0) -> None:
         if not spots:
             return
-        outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, aid, label, spots, target_height, use_lod))
+        outs.append(_ph_scatter(ph_node, matnet, ph_root, layout, aid, label, spots, target_height, use_lod, sink))
         counts[counter] += len(spots)
 
     def place(aid: str, label: str, x: float, z: float, target_height: float, yaw: float = 0.0,
@@ -1165,15 +1209,59 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
             aid, base = "island_tree_02", 6.0
         tree_spots[aid].append((x, z, ps))
     for aid, base in list(species_assets.values()) + [("island_tree_02", 6.0)]:
-        scatter(aid, f"TREES_{aid.upper()}", tree_spots[aid], base, "phTrees")
+        scatter(aid, f"TREES_{aid.upper()}", tree_spots[aid], base, "phTrees", sink=0.10)
 
     # Two full-LOD0 hero trees right where the player wakes and first walks
     for aid, label, x, z, height, yaw in (
         ("tree_small_02", "HERO_TREE_TERRACE", 6.5, -6.0, 8.0, 25.0),
         ("island_tree_02", "HERO_TREE_RIVER", ax - 4.5, az + 8.5, 7.5, 160.0),
     ):
-        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z), height, yaw=yaw, use_lod=False))
+        outs.append(_ph_place(ph_node, matnet, ph_root, aid, label, x, z, gy(x, z) - 0.12, height, yaw=yaw, use_lod=False))
         counts["heroTrees"] += 1
+
+    # --- Tree-base blending: soil discs + grass tufts seat every trunk ----------
+    # Trunks are sunk 10 cm (above) and get a leaf-litter soil disc that follows
+    # the terrain, so trees read as growing out of the ground, not plopped on it.
+    base_discs = hou.Geometry()
+    base_discs.addAttrib(hou.attribType.Point, "Cd", (0.85, 0.80, 0.72))
+    base_discs.addAttrib(hou.attribType.Prim, "shop_materialpath", "")
+    base_discs.addAttrib(hou.attribType.Vertex, "uv", (0.0, 0.0, 0.0))
+
+    def soil_disc(cx: float, cz: float, radius: float, material: str) -> None:
+        sides = 12
+        ring_pts: list[hou.Point] = []
+        for i in range(sides):
+            a = i / sides * math.tau
+            px, pz = cx + math.cos(a) * radius, cz + math.sin(a) * radius
+            p = base_discs.createPoint()
+            p.setPosition((px, gy(px, pz) + 0.035, pz))
+            ring_pts.append(p)
+        center_p = base_discs.createPoint()
+        center_p.setPosition((cx, gy(cx, cz) + 0.05, cz))
+        for i in range(sides):
+            poly = base_discs.createPolygon()
+            for p in (center_p, ring_pts[i], ring_pts[(i + 1) % sides]):
+                vertex = poly.addVertex(p)
+                pos = p.position()
+                vertex.setAttribValue("uv", (pos[0] * 0.45, pos[2] * 0.45, 0.0))
+            poly.setAttribValue("shop_materialpath", material)
+
+    for x, _gy, z, _species, ps in planned["treePositions"]:
+        soil_disc(x, z, 0.55 + 0.45 * ps, MATERIAL_PATHS["soil"])
+    soil_disc(6.5, -6.0, 1.6, MATERIAL_PATHS["forestfloor"])        # hero terrace tree
+    soil_disc(ax - 4.5, az + 8.5, 1.5, MATERIAL_PATHS["forestfloor"])  # hero riverbank tree
+    disc_stash = ph_node.createNode("stash", "TREE_BASE_DISCS")
+    disc_stash.parm("stash").set(base_discs)
+    outs.append(disc_stash)
+
+    # A grass tuft leaning against half the trunks sells the blend even more.
+    base_tufts: list[tuple[float, float, float]] = []
+    for x, _gy, z, _species, ps in planned["treePositions"]:
+        if rng.random() < 0.5:
+            ang = rng.uniform(0.0, math.tau)
+            dist = rng.uniform(0.7, 1.3) * ps
+            base_tufts.append((x + math.cos(ang) * dist, z + math.sin(ang) * dist, rng.uniform(0.8, 1.3)))
+    scatter("grass_medium_01", "TREE_BASE_TUFTS", base_tufts, 0.20, "grassClumps")
 
     # --- Shrubs ------------------------------------------------------------------
     shrub_assets = [("shrub_01", 0.55), ("shrub_02", 1.15), ("shrub_03", 0.50), ("wild_rooibos_bush", 0.70)]

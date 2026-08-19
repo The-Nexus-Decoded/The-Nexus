@@ -294,5 +294,79 @@
       "textures/planter_box_01_diff_1k.jpg",
       "textures/planter_box_01_nor_gl_1k.jpg"
     ]
+  },
+  "textures": {
+    "mossy_stone_wall": {
+      "use": "Soulwell ring, breach arch, column stubs, Anwel footings",
+      "maps": {
+        "diff": "mossy_stone_wall_diff_1k.jpg",
+        "nor_gl": "mossy_stone_wall_nor_gl_1k.jpg",
+        "rough": "mossy_stone_wall_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "mossy_cobblestone": {
+      "use": "Terrace flagstones + steps",
+      "maps": {
+        "diff": "mossy_cobblestone_diff_1k.jpg",
+        "nor_gl": "mossy_cobblestone_nor_gl_1k.jpg",
+        "rough": "mossy_cobblestone_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "plastered_wall": {
+      "use": "Anwel house wall panels",
+      "maps": {
+        "diff": "plastered_wall_diff_1k.jpg",
+        "nor_gl": "plastered_wall_nor_gl_1k.jpg",
+        "rough": "plastered_wall_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "wood_planks": {
+      "use": "Timber frame, doors, dock planks",
+      "maps": {
+        "diff": "wood_planks_diff_1k.jpg",
+        "nor_gl": "wood_planks_nor_gl_1k.jpg",
+        "rough": "wood_planks_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "thatch_roof_angled": {
+      "use": "Thatch cottage roofs",
+      "maps": {
+        "diff": "thatch_roof_angled_diff_1k.jpg",
+        "nor_gl": "thatch_roof_angled_nor_gl_1k.jpg",
+        "rough": "thatch_roof_angled_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "roof_slates_02": {
+      "use": "Slate roofs (reeve hall, barn)",
+      "maps": {
+        "diff": "roof_slates_02_diff_1k.jpg",
+        "nor_gl": "roof_slates_02_nor_gl_1k.jpg",
+        "rough": "roof_slates_02_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "brown_mud_leaves_01": {
+      "use": "Tree-base soil blend discs",
+      "maps": {
+        "diff": "brown_mud_leaves_01_diff_1k.jpg",
+        "nor_gl": "brown_mud_leaves_01_nor_gl_1k.jpg",
+        "rough": "brown_mud_leaves_01_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    },
+    "forest_floor": {
+      "use": "Well surround + dark forest ground patches",
+      "maps": {
+        "diff": "forest_floor_diff_1k.jpg",
+        "nor_gl": "forest_floor_nor_gl_1k.jpg",
+        "rough": "forest_floor_rough_1k.jpg"
+      },
+      "license": "CC0-1.0"
+    }
   }
 }
