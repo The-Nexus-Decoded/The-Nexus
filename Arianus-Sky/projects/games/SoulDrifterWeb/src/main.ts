@@ -37,10 +37,12 @@ function multiplayerBadge(): HTMLElement {
 function renderMultiplayerStatus(zone: string, status: MpConnectionStatus): void {
   const badge = multiplayerBadge();
   switch (status.kind) {
-    case "online":
-      badge.textContent = `${zone} · ${status.playerCount}/${status.cap} drifters`;
+    case "online": {
+      const shardLabel = status.shard ? ` · #${status.shard.split("#")[1]}` : "";
+      badge.textContent = `${zone}${shardLabel} · ${status.playerCount}/${status.cap} drifters`;
       badge.style.color = "#cfe8c8";
       break;
+    }
     case "connecting":
       badge.textContent = `${zone} · linking…`;
       badge.style.color = "#e8dfc8";

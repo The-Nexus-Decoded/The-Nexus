@@ -63,8 +63,19 @@ export type MpClientMessage =
 
 /* Server → Client */
 export type MpServerMessage =
-  | { t: "welcome"; v: number; id: string; zone: string; cap: number; players: MpPlayerSnapshot[] }
-  | { t: "full"; cap: number }
+  | {
+      t: "welcome";
+      v: number;
+      id: string;
+      zone: string;
+      cap: number;
+      players: MpPlayerSnapshot[];
+      /** Shard instance this client landed in, e.g. "hv-1#2" (directory servers). */
+      shard?: string;
+      /** Live shard count for the zone (directory servers). */
+      shards?: number;
+    }
+  | { t: "full"; cap: number; shards?: number }
   | { t: "join"; player: MpPlayerSnapshot }
   | { t: "leave"; id: string }
   | { t: "state"; id: string; state: MpPlayerState }

@@ -1,8 +1,12 @@
 /**
  * SoulDrifter multiplayer base-layer zone server.
  *
- * WebSocket relay for zone instances (one room per zone id, 30-player cap).
- * Presence + transform relay only — no combat/inventory authority yet.
+ * WebSocket relay for zone semi-zones with shard overflow instancing:
+ * each zone id (e.g. a Heartvale section) holds up to 30 concurrent players
+ * per shard; when every shard is full a new shard instance of the same zone
+ * is created on demand, so a busy section pushes overflow into another
+ * instance rather than rejecting players. Presence + transform relay only —
+ * no combat/inventory authority yet.
  *
  * Usage:
  *   node server/zone-server.mjs            # listens on :8787
@@ -10,13 +14,14 @@
  *
  * Health probe: GET http://host:8787/health → {"ok":true,"zones":{...}}
  *
- * Client handshake: {"t":"hello","v":1,"zone":"heartvale","name":"…","appearance":{…}}
- * Game client: append ?mp=ws://host:8787&zone=heartvale to the game URL.
+ * Client handshake: {"t":"hello","v":1,"zone":"hv-1","name":"…","appearance":{…}}
+ * Game client: append ?mp=ws://host:8787&zone=hv-1 to the game URL.
  */
 
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
-import { ZoneRoom, ZONE_PLAYER_CAP } from "./zone-room.mjs";
+import { ZoneDirectory } from "./zone-directory.mjs";
+import { ZONE_PLAYER_CAP } from "./zone-room.mjs";
 
 const PROTOCOL_VERSION = 1;
 const MAX_MESSAGE_BYTES = 4096;
@@ -25,6 +30,7 @@ const HEARTBEAT_SCAN_MS = 10_000;
 const MAX_NAME_LENGTH = 24;
 
 const PORT = Number.parseInt(process.env.PORT || "8787", 10);
+const MAX_SHARDS = Number.parseInt(process.env.MAX_SHARDS || "10", 10);
 
 /** Minimal mirror of src/game/net/protocol.ts validation (keep in sync). */
 function parseHello(raw) {
@@ -54,19 +60,9 @@ function parseState(raw) {
   return state;
 }
 
-/** @type {Map<string, ZoneRoom>} */
-const rooms = new Map();
-/** @type {Map<import("ws").WebSocket, { room: ZoneRoom, playerId: string, lastSeen: number }>} */
+const directory = new ZoneDirectory({ cap: ZONE_PLAYER_CAP, maxShards: MAX_SHARDS });
+/** @type {Map<import("ws").WebSocket, { room: import("./zone-room.mjs").ZoneRoom, playerId: string, lastSeen: number }>} */
 const sessions = new Map();
-
-function roomFor(zoneId) {
-  let room = rooms.get(zoneId);
-  if (!room) {
-    room = new ZoneRoom(zoneId, { cap: ZONE_PLAYER_CAP });
-    rooms.set(zoneId, room);
-  }
-  return room;
-}
 
 function send(ws, message) {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
@@ -81,10 +77,8 @@ function broadcast(room, exceptId, message) {
 
 const httpServer = createServer((req, res) => {
   if (req.url === "/health") {
-    const zones = {};
-    for (const [id, room] of rooms) zones[id] = { players: room.size, cap: room.cap };
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true, zones }));
+    res.end(JSON.stringify({ ok: true, zones: directory.describe() }));
     return;
   }
   res.writeHead(404, { "content-type": "text/plain" });
@@ -119,28 +113,31 @@ wss.on("connection", (ws) => {
         ws.close(4002, "bad hello");
         return;
       }
-      const room = roomFor(hello.zone);
-      const result = room.addPlayer(hello);
+      const result = directory.join(hello.zone, hello);
       if (!result.ok) {
-        send(ws, { t: "full", cap: result.cap });
+        send(ws, { t: "full", cap: result.cap, shards: result.shards });
         ws.close(4000, "zone full");
         return;
       }
-      sessions.set(ws, { room, playerId: result.player.id, lastSeen: Date.now() });
+      sessions.set(ws, { room: result.room, playerId: result.player.id, lastSeen: Date.now() });
       joined = true;
       send(ws, {
         t: "welcome",
         v: PROTOCOL_VERSION,
         id: result.player.id,
-        zone: room.zoneId,
-        cap: room.cap,
+        zone: hello.zone,
+        shard: result.shard,
+        shards: result.shards,
+        cap: result.room.cap,
         players: result.snapshot,
       });
-      broadcast(room, result.player.id, {
+      broadcast(result.room, result.player.id, {
         t: "join",
         player: { id: result.player.id, name: result.player.name, appearance: result.player.appearance, state: null },
       });
-      console.log(`[${room.zoneId}] ${result.player.name} joined (${room.size}/${room.cap})`);
+      console.log(
+        `[${result.shard}] ${result.player.name} joined (${result.room.size}/${result.room.cap}, ${result.shards} shard(s))`,
+      );
       return;
     }
 
@@ -162,12 +159,13 @@ wss.on("connection", (ws) => {
     const session = sessions.get(ws);
     sessions.delete(ws);
     if (!session) return;
-    const departed = session.room.removePlayer(session.playerId);
+    const { departed, shard, shardClosed } = directory.leave(session.room, session.playerId);
     if (departed) {
       broadcast(session.room, session.playerId, { t: "leave", id: session.playerId });
-      console.log(`[${session.room.zoneId}] ${departed.name} left (${session.room.size}/${session.room.cap})`);
+      console.log(
+        `[${shard}] ${departed.name} left (${session.room.size}/${session.room.cap})${shardClosed ? " — shard closed" : ""}`,
+      );
     }
-    if (session.room.size === 0) rooms.delete(session.room.zoneId);
   });
 });
 
@@ -180,5 +178,5 @@ const heartbeat = setInterval(() => {
 heartbeat.unref();
 
 httpServer.listen(PORT, () => {
-  console.log(`SoulDrifter zone relay listening on :${PORT} (cap ${ZONE_PLAYER_CAP}/zone)`);
+  console.log(`SoulDrifter zone relay listening on :${PORT} (cap ${ZONE_PLAYER_CAP}/shard, max ${MAX_SHARDS} shards/zone)`);
 });

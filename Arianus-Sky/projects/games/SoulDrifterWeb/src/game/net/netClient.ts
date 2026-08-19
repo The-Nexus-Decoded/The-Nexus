@@ -23,7 +23,7 @@ import {
 export type MpConnectionStatus =
   | { kind: "idle" }
   | { kind: "connecting" }
-  | { kind: "online"; id: string; playerCount: number; cap: number }
+  | { kind: "online"; id: string; playerCount: number; cap: number; shard?: string; shards?: number }
   | { kind: "full"; cap: number }
   | { kind: "offline"; reason: string };
 
@@ -47,6 +47,8 @@ export class MpNetClient {
   private reconnectAttempt = 0;
   private closedByUser = false;
   private players = new Map<string, MpPlayerSnapshot>();
+  private shard: string | undefined;
+  private shardCount: number | undefined;
 
   constructor(
     private readonly url: string,
@@ -135,6 +137,8 @@ export class MpNetClient {
     switch (message.t) {
       case "welcome": {
         this.playerId = message.id;
+        this.shard = message.shard;
+        this.shardCount = message.shards;
         this.reconnectAttempt = 0;
         this.players.clear();
         for (const player of message.players) {
@@ -183,6 +187,8 @@ export class MpNetClient {
       id: this.playerId,
       playerCount: this.playerCount,
       cap: MP_MAX_ZONE_PLAYERS,
+      shard: this.shard,
+      shards: this.shardCount,
     });
   }
 
