@@ -8,6 +8,17 @@ The first playable level is **The First Breach**:
 
 `Realm-Lock Vestibule -> randomized 3-5 chamber Fractured Galleries crawl -> shared Ashen Lock`
 
+## World Structure & Multiplayer
+
+World building follows the approved taxonomy **Map/Landmass → Section → Zone → Connector** (+ Shard at runtime): a Section (e.g. Heartvale) is authored as one continuous world, then sliced into Zones (`hv-1`…`hv-7`) — 30-player server slices with on-demand overflow shards and no loading screens at the seams.
+
+- [`docs/THALENYR_SCALE_AND_SECTIONS.md`](docs/THALENYR_SCALE_AND_SECTIONS.md) — scale model (1 grid cell = 30 km canon, 20:1 compression = 1500 m world), the owner-approved v2 POI-safe Heartvale zone cut, sharding, and the seamless-crossover design.
+- [`server/sections.mjs`](server/sections.mjs) — machine-readable zone registry (world-meter rects, adjacency, POI anchors). Zone numbers come from here; never re-measure.
+- [`docs/ZONE_BUILD_RUNBOOK.md`](docs/ZONE_BUILD_RUNBOOK.md) — the contract every zone-building agent works under.
+- [`docs/HEARTVALE_ZONE_TICKETS.md`](docs/HEARTVALE_ZONE_TICKETS.md) — one handable ticket per Heartvale zone, plus the blocked ticket for the remaining Thalenyr sections.
+- [`docs/MULTIPLAYER_BASE_LAYER.md`](docs/MULTIPLAYER_BASE_LAYER.md) — presence/transform relay, shard overflow instancing (`server/zone-directory.mjs`), protocol v1.
+- [`docs/MAP_ASSET_PIPELINE.md`](docs/MAP_ASSET_PIPELINE.md) — map-delivery convention (PNG masters → 1600px WebP) so repo size stays sane.
+
 It currently demonstrates:
 
 - Ultima VII-inspired isometric composition without using Ultima assets
