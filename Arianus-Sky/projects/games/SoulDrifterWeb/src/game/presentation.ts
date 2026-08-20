@@ -177,6 +177,7 @@ export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
   hairStyle: HairStyleId;
+  hairColor: number;
   raceId: HumanoidRaceId;
   facialHair?: FacialHairId;
 }
@@ -294,6 +295,22 @@ function fitHairCoverage(model: THREE.Object3D): void {
   });
 }
 
+function applyHairColor(model: THREE.Object3D, color: number): void {
+  const target = new THREE.Color(color);
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (!(material instanceof THREE.MeshStandardMaterial)) return;
+      if (!/(?:hair|beard)/i.test(`${child.name} ${material.name}`)) return;
+      material.userData.authoredHairColor ??= material.color.clone();
+      material.color.copy(target);
+      material.roughness = Math.max(material.roughness, 0.58);
+      material.needsUpdate = true;
+    });
+  });
+}
+
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
   fitHairCoverage(model);
   // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
@@ -324,6 +341,7 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
 
   applyScalpVariant(model, appearance.hairStyle);
+  applyHairColor(model, appearance.hairColor);
 }
 
 export function screenPanToWorld(

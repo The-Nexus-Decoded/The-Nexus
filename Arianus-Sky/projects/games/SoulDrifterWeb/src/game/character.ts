@@ -81,11 +81,24 @@ export interface CharacterDraft {
 }
 
 export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
+export type HairColorId =
+  | "soft-black"
+  | "blue-black"
+  | "dark-brown"
+  | "medium-brown"
+  | "light-brown"
+  | "auburn"
+  | "copper-red"
+  | "dark-blonde"
+  | "golden-blonde"
+  | "ash-grey"
+  | "silver-white";
 export type SkinToneId = "ashen" | "umber" | "copper" | "deep";
 export type FacialHairId = "none" | "full-beard";
 
 export interface CharacterAppearance {
   hairStyle: HairStyleId;
+  hairColor: HairColorId;
   skinTone: SkinToneId;
   facialHair?: FacialHairId;
 }
@@ -99,14 +112,28 @@ export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: numb
 
 export const HAIR_STYLES: ReadonlyArray<{ id: HairStyleId; name: string; description: string }> = [
   { id: "shaved", name: "Shaved", description: "Clean head silhouette; no helmet-like hair shell." },
-  { id: "cropped", name: "Close-cropped", description: "Short silver crown kept clear of collars and weapons." },
-  { id: "parted", name: "Swept back", description: "A swept-back silver style for a soul that remembers discipline." },
-  { id: "silver-sweep", name: "Silver sweep", description: "Longer Patryn-blooded sweep for an older soul." },
+  { id: "cropped", name: "Close-cropped", description: "Short crown kept clear of collars and weapons." },
+  { id: "parted", name: "Swept back", description: "A disciplined swept-back style." },
+  { id: "silver-sweep", name: "Long sweep", description: "Longer Patryn-blooded sweep for an older soul." },
 ];
+
+export const HAIR_COLORS: Readonly<Record<HairColorId, { name: string; color: number }>> = {
+  "soft-black": { name: "Soft black", color: 0x151312 },
+  "blue-black": { name: "Blue black", color: 0x10141b },
+  "dark-brown": { name: "Dark brown", color: 0x2c1d17 },
+  "medium-brown": { name: "Medium brown", color: 0x513329 },
+  "light-brown": { name: "Light brown", color: 0x795444 },
+  auburn: { name: "Auburn", color: 0x6f2f24 },
+  "copper-red": { name: "Copper red", color: 0xa34e2d },
+  "dark-blonde": { name: "Dark blonde", color: 0x9a7a4d },
+  "golden-blonde": { name: "Golden blonde", color: 0xc9a967 },
+  "ash-grey": { name: "Ash grey", color: 0x8e8b86 },
+  "silver-white": { name: "Silver white", color: 0xd7d4cd },
+};
 
 export const FACIAL_HAIR_STYLES: ReadonlyArray<{ id: FacialHairId; name: string; description: string }> = [
   { id: "none", name: "Clean-shaven", description: "The Well returned the face bare." },
-  { id: "full-beard", name: "Full beard", description: "A full silver beard earned in an earlier life." },
+  { id: "full-beard", name: "Full beard", description: "A full beard earned in an earlier life." },
 ];
 
 export interface CharacterProfile {
@@ -525,19 +552,22 @@ export function normalizeLegacyCharacterProfile(profile: CharacterProfile): Char
   const hairStyle = legacyAppearance?.hairStyle && HAIR_STYLES.some((style) => style.id === legacyAppearance.hairStyle)
     ? legacyAppearance.hairStyle
     : "shaved";
+  const hairColor = legacyAppearance?.hairColor && legacyAppearance.hairColor in HAIR_COLORS
+    ? legacyAppearance.hairColor
+    : "silver-white";
   const skinTone = legacyAppearance?.skinTone && legacyAppearance.skinTone in SKIN_TONES
     ? legacyAppearance.skinTone
     : "ashen";
   const facialHair = legacyAppearance?.facialHair && FACIAL_HAIR_STYLES.some((style) => style.id === legacyAppearance.facialHair)
     ? legacyAppearance.facialHair
     : "none";
-  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.skinTone;
+  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.hairColor || !legacyAppearance?.skinTone;
   return {
     ...profile,
     raceName: race.name,
     raceGlyph: race.glyph,
     callingName: calling.name,
-    appearance: { hairStyle, skinTone, facialHair },
+    appearance: { hairStyle, hairColor, skinTone, facialHair },
     appearanceNeedsReview: profile.appearanceNeedsReview ?? usedAppearanceDefault,
   };
 }

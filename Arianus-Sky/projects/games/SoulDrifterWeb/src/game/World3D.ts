@@ -8,7 +8,7 @@ import {
   trimAnimationPackClipEnvelope,
   type AnimationPackSpec,
 } from "./animationPacks";
-import { callingById, SKIN_TONES, type CharacterProfile } from "./character";
+import { callingById, HAIR_COLORS, SKIN_TONES, type CharacterProfile } from "./character";
 import {
   dungeonTileKey,
   generateSoulwellDungeon,
@@ -1148,6 +1148,7 @@ export class World3D {
     });
     if (id === "player") applyModularAppearance(model, {
       hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
+      hairColor: HAIR_COLORS[this.profile.appearance?.hairColor ?? "silver-white"].color,
       raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.profile.appearance?.facialHair ?? "none",
     });

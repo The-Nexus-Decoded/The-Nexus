@@ -17,7 +17,7 @@ function elfShadowknight() {
     name: "Aster",
     raceId: "elf",
     callingId: "shadowknight",
-    appearance: { hairStyle: "silver-sweep", skinTone: "ashen" },
+    appearance: { hairStyle: "silver-sweep", hairColor: "silver-white", skinTone: "ashen" },
     answers,
   };
   return deriveCharacter(draft);

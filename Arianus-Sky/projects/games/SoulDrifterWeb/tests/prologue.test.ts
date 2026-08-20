@@ -8,7 +8,7 @@ describe("Chronicle of Returning", () => {
       name: "Vaelis",
       raceId: "elf",
       callingId: "shadowknight",
-      appearance: { hairStyle: "shaved", skinTone: "ashen" },
+      appearance: { hairStyle: "shaved", hairColor: "silver-white", skinTone: "ashen" },
       answers: Object.fromEntries(MEMORY_QUESTIONS.map((question) => [question.id, question.answers[0]!.id])),
     });
     const pages = prologuePages(profile);
