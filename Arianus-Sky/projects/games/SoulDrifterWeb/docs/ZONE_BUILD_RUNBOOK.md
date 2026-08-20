@@ -125,7 +125,24 @@ builder, with a reviewer's brief (find what's wrong), not a builder's brief
 The owner should never be the first person to catch a basic visual miss —
 the process catches it first.
 
-## 8. Done =
+## 8. Driving the builder chat (ticket shape — owner ruling 2026-08-20)
+
+**Organize tickets by contiguous, related tasks end-to-end.** One ticket =
+one coherent piece of the world finished completely (e.g. "the Soul Well
+feature", "Anwel village", "terrain palette + vegetation pass") — not
+artificially chopped micro-prompts. When the builder chat hits its turn
+limit, simply resume it and let it continue the same ticket.
+
+1. **Commit early, commit often:** the builder commits each completed
+   sub-step so a turn-limit stop never strands work; resume picks up from
+   the last commit.
+2. **Tickets are end-to-end:** a ticket is done when the feature is built,
+   exported, rendering in the runtime, and §7-reviewed — not when a
+   fragment lands.
+3. **The §7 visual review gate runs per ticket**, on fresh renders, before
+   the owner is shown.
+
+## 9. Done =
 
 - `npm run typecheck && npm test` green; zone data invariants covered by vitest (rect containment of POIs, nav continuity to seams).
 - Probe screenshots: your zone alone, your zone + each built neighbor streamed together, and a seam-crossing walk.

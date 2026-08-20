@@ -66,3 +66,25 @@
   claim was imprecise. Capture after commit next time.
 - hv-3…hv-7 POI builds (Vaeldor walls, Erboug ring) are their own zone
   tickets — not hv-1 gaps.
+
+## Owner rulings added 2026-08-20 (canon + direction)
+
+- **V13. Anwel is too small — canon: a small VILLAGE, not a tiny
+  settlement.** Current build is 6 houses; expand to a real small-village
+  footprint (more homes, lanes, communal plots) inside the hv-2 anchors,
+  honoring map-reading ground rule 7 (POIs on water sit NEXT to it; roads
+  continue through the village, never dead-end).
+- **V14. The Soul Well is NOT a well — it is a small POOL.** Canon: a
+  shallow basin filled with a silvery, machine-like liquid substance that
+  enables two-way travel between realms. The surroundings (terrace, stone
+  apron, breach arch, windlass housing may be repurposed or removed) are
+  right; the feature itself must be rebuilt as the silvery pool — liquid
+  shader (reflective metallic silver, slow machinic motion), not water,
+  no well ring/roof/bucket.
+- **V15. Visual direction: TRUE 3D, not isometric.** The owner prefers how
+  the zone actually renders ("this is a better direction") — drop any
+  isometric-framing targets; the outdoor zone's true-3D look is the style
+  benchmark for the game going forward. Consequence: the STARTING ZONE
+  (Level 01, the Breach) must be brought up to the outdoor build's true-3D
+  standard so the first minutes match the outside (own ticket; runbook
+  ground rule 2 — never break Level 01 — applies).
