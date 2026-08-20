@@ -99,7 +99,27 @@ to EVERY zone, dungeon, village, prop, and scene you build:
 - Repo-wide: **never delete .md files** (root CLAUDE.md rule); don't write
   secrets into the repo.
 
-## 5. Where things live (quick map)
+## 5. Approved free asset sources (verify license per asset, record everything)
+
+Pull from these FIRST before generating anything. Rules: prefer **CC0**;
+**CC-BY** is fine with a credit entry; **CC-BY-SA / GPL / unknown licenses
+need owner approval first**; every asset goes in `third-party-assets.json`
+with source URL, license, and hash. No paid provider operations without
+exact-cost owner approval; local-GPU generation is the approved path for
+custom art. No Ultima-derived data, ever.
+
+| Source | License | Good for |
+|---|---|---|
+| Poly Haven (polyhaven.com) | CC0 | PBR texture sets, HDRIs, props (already mirrored in `source-assets/polyhaven/`) |
+| ambientCG (ambientcg.com) | CC0 | PBR materials/textures |
+| Quaternius (quaternius.com) | CC0 | Animated low-poly models — animals, characters, creatures |
+| Kenney (kenney.nl) | CC0 | Prop/environment packs, UI |
+| Poly Pizza (poly.pizza) | CC0 / CC-BY (check per model) | Low-poly props, animals, furniture |
+| Sketchfab (sketchfab.com) | Varies per model — verify (CC0/CC-BY ok; SA needs approval) | Higher-fidelity models |
+| OpenGameArt (opengameart.org) | Varies — verify (no GPL without approval) | Sprites, textures, audio |
+| Existing repo inventory | already cleared | Dungeon kit (38 IDs), Poly Haven sets, atlas map art — reuse FIRST |
+
+## 6. Where things live (quick map)
 
 | What | Where |
 |---|---|
