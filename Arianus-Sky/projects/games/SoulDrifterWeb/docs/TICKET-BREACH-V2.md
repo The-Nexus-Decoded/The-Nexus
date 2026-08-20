@@ -23,9 +23,14 @@
 **Camera note (conflict resolution):** the #450 handoff lists
 "isometric/orthographic presentation" as a carryover constraint. Owner
 ruling V15 supersedes it: match the Heartvale outdoor build's true-3D look.
-What DOES carry over from that rule: the failure lesson behind it — the
-logical gameplay grid must stay hidden under a visually continuous
-environment; no visible repeated floor/wall cells at gameplay distance.
+**"True 3D" means the same stack and visual language as the Heartvale zone
+preview: Three.js with a perspective 3D camera, PBR materials, real-time
+lighting + AO, continuous geometry with the gameplay grid hidden
+underneath** — the dungeon should feel like walking from the Heartvale
+meadow straight into a cave. What DOES carry over from the old rule: the
+failure lesson behind it — the logical gameplay grid must stay hidden under
+a visually continuous environment; no visible repeated floor/wall cells at
+gameplay distance.
 
 ## 2. Goal
 
