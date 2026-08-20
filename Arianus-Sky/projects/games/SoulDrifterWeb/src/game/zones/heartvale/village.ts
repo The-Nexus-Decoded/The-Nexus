@@ -128,26 +128,26 @@ function roofPrism(
   const hd = d / 2 + overhang;
   const y0 = -0.02;
   const positions = new Float32Array([
-    // slope north (-z side)
+    // slope north (-z side) — faces up-north
     -hw, y0, -hd, hw, y0, -hd, hw, rise, 0,
     -hw, y0, -hd, hw, rise, 0, -hw, rise, 0,
-    // slope south (+z side)
-    hw, y0, hd, -hw, y0, hd, -hw, rise, 0,
-    hw, y0, hd, -hw, rise, 0, hw, rise, 0,
+    // slope south (+z side) — faces up-south
+    -hw, y0, hd, hw, y0, hd, hw, rise, 0,
+    -hw, y0, hd, hw, rise, 0, -hw, rise, 0,
     // gable west (-x) — wound so the face looks OUTWARD (−x)
     -hw, y0, -hd, -hw, y0, hd, -hw, rise, 0,
     // gable east (+x) — outward (+x)
     hw, y0, -hd, hw, rise, 0, hw, y0, hd,
-    // underside (closes eaves from below)
-    -hw, y0, -hd, -hw, y0, hd, hw, y0, hd,
-    -hw, y0, -hd, hw, y0, hd, hw, y0, -hd,
+    // underside (closes eaves from below) — faces DOWN
+    -hw, y0, -hd, hw, y0, hd, -hw, y0, hd,
+    -hw, y0, -hd, hw, y0, -hd, hw, y0, hd,
   ]);
   const uvs = new Float32Array([
     0, 0, w / 1.6, 0, w / 1.6, d / 1.6, 0, 0, w / 1.6, d / 1.6, 0, d / 1.6,
     0, 0, w / 1.6, 0, w / 1.6, d / 1.6, 0, 0, w / 1.6, d / 1.6, 0, d / 1.6,
     0, 0, 0, 1, 1, 0,
     0, 0, 1, 0, 0, 1,
-    0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,
+    0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1,
   ]);
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -222,7 +222,8 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
   // Ridge beam.
   addBox(g, timber, w + overhang * 2 + 0.1, 0.09, 0.12, 0, wallTop + rise, 0, false);
 
-  // Door on the street face (+z), framed and slightly proud.
+  // Door on the street face (+z), framed and slightly proud, with stone
+  // steps down to ground so players can actually walk in (#452).
   const doorX = w * 0.18;
   addBox(g, mats.wood, 0.9, 1.9, 0.08, doorX, 0.42 + 0.95, d / 2 + 0.03, false);
   addBox(g, timber, 1.1, 0.12, 0.1, doorX, 0.42 + 1.95, d / 2 + 0.03, false);
@@ -231,22 +232,33 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
   }
   // Lintel shadow line above door.
   addBox(g, mats.dark, 1.0, 0.06, 0.06, doorX, 0.42 + 2.02, d / 2 + 0.02, false);
+  // Stone steps: two treads descending from the threshold.
+  addBox(g, mats.stone, 1.2, 0.16, 0.4, doorX, 0.42 - 0.08, d / 2 + 0.24, false);
+  addBox(g, mats.stone, 1.3, 0.14, 0.42, doorX, 0.42 - 0.24, d / 2 + 0.52, false);
 
-  // Windows: recessed dark pane + timber frame + shutters that catch light.
+  // Windows: recessed dark pane + FULL timber frame (jambs close the gaps,
+  // #452) + sill + shutters that catch light.
   const windowXs = [-w * 0.26, w * 0.38];
   for (const wx of windowXs) {
     if (Math.abs(wx) > w / 2 - 0.5) continue;
-    addBox(g, mats.dark, 0.62, 0.7, 0.05, wx, 0.42 + h * 0.62, d / 2 + 0.015, false);
-    addBox(g, timber, 0.74, 0.08, 0.07, wx, 0.42 + h * 0.62 + 0.39, d / 2 + 0.025, false);
-    addBox(g, timber, 0.74, 0.08, 0.07, wx, 0.42 + h * 0.62 - 0.39, d / 2 + 0.025, false);
+    const wy = 0.42 + h * 0.62;
+    addBox(g, mats.dark, 0.62, 0.7, 0.05, wx, wy, d / 2 + 0.015, false);
+    addBox(g, timber, 0.74, 0.08, 0.07, wx, wy + 0.39, d / 2 + 0.025, false); // header
+    addBox(g, timber, 0.74, 0.08, 0.07, wx, wy - 0.39, d / 2 + 0.025, false); // sill
+    for (const jx of [-1, 1]) {
+      addBox(g, timber, 0.08, 0.78, 0.07, wx + jx * 0.37, wy, d / 2 + 0.025, false); // jambs
+    }
     for (const sx of [-1, 1]) {
-      const shutter = addBox(g, mats.wood, 0.24, 0.72, 0.04, wx + sx * 0.46, 0.42 + h * 0.62, d / 2 + 0.02, false);
+      const shutter = addBox(g, mats.wood, 0.24, 0.72, 0.04, wx + sx * 0.5, wy, d / 2 + 0.02, false);
       shutter.rotation.y = sx * 0.28;
     }
   }
 
   if (house.chimney) {
+    // Ridge-seated: the stack rises ON the ridge line with a flashing collar
+    // where it exits — never spearing through a slope mid-field (#452).
     addBox(g, mats.stone, 0.55, rise + 1.5, 0.55, -w * 0.3, wallTop + (rise + 1.5) / 2 - 0.3, 0, false);
+    addBox(g, mats.stone, 0.85, 0.16, 0.85, -w * 0.3, wallTop + rise + 0.06, 0, false); // flashing collar at the ridge
     addBox(g, mats.stone, 0.7, 0.14, 0.7, -w * 0.3, wallTop + rise + 1.1, 0, false);
   }
 
@@ -300,6 +312,16 @@ function buildWell(x: number, z: number, mats: VillageMaterials, field: TerrainF
   return g;
 }
 
+/** Thin rope/cord between two points (jetty rails, mooring lines). */
+function ropeBetween(a: THREE.Vector3, b: THREE.Vector3, parent: THREE.Group, mats: VillageMaterials): void {
+  const len = a.distanceTo(b);
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, len, 5), mats.dark);
+  rope.position.copy(a).lerp(b, 0.5);
+  rope.lookAt(b);
+  rope.rotateX(Math.PI / 2);
+  parent.add(rope);
+}
+
 function buildJetty(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
   const g = new THREE.Group();
   g.name = "anwel-jetty";
@@ -328,6 +350,16 @@ function buildJetty(village: VillageData, mats: VillageMaterials, field: Terrain
     post.castShadow = true;
     g.add(post);
   }
+  // Hand rail on the north side + rope along the top (#452 finish pass).
+  const railZ = z - 0.8;
+  const railTops: THREE.Vector3[] = [];
+  for (let x = x0 - 0.3; x >= x1 - 0.2; x -= 1.6) {
+    addBox(g, mats.timber, 0.07, 0.9, 0.07, x, deckY + 0.45, railZ, false);
+    railTops.push(new THREE.Vector3(x, deckY + 0.88, railZ));
+  }
+  for (let i = 0; i < railTops.length - 1; i += 1) {
+    ropeBetween(railTops[i]!, railTops[i + 1]!, g, mats);
+  }
   return g;
 }
 
@@ -350,51 +382,134 @@ function buildBoats(village: VillageData, mats: VillageMaterials, field: Terrain
     b.position.set(boat.x, waterY, boat.z);
     b.rotation.y = THREE.MathUtils.degToRad(boat.yawDeg);
     g.add(b);
+    // Mooring rope: bow cleat to the nearest jetty pile (#452).
+    const j = village.jetty;
+    const bowLocal = new THREE.Vector3(1.35, 0.3, 0);
+    const bow = bowLocal.applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(boat.yawDeg))
+      .add(new THREE.Vector3(boat.x, waterY, boat.z));
+    const pileTop = new THREE.Vector3(j.x1 + 0.4, field.height(j.x0 + 1.5, j.z) + 0.7, j.z);
+    ropeBetween(bow, pileTop, g, mats);
   }
   return g;
 }
 
-/** Kind-specific dressing: stall+awning for the vendor, anvil/quench for the
- * smithy, hanging signs for the shops. Local space, door wall is +X. */
+/** Kind-specific dressing (#452): distinct silhouettes, not just sign boards.
+ * Local space — the door wall is +Z (street-facing after the group yaw). */
 function dressByKind(g: THREE.Group, house: VillageHouse, mats: VillageMaterials): void {
-  const { w, d } = house;
-  const frontX = w / 2;
+  const { w, d, h } = house;
+  const frontZ = d / 2;
+  const doorX = w * 0.18;
+  const wallTop = 0.42 + h;
+
+  // Shop sign: arm + colored board beside the door (all service buildings).
+  if (house.kind === "apothecary" || house.kind === "vendor" || house.kind === "smithy") {
+    addBox(g, mats.timber, 0.08, 0.08, 0.9, doorX - 0.9, 2.6, frontZ + 0.4, false);
+    const boardColor = house.kind === "apothecary" ? 0x3e6b3a : house.kind === "smithy" ? 0x4a4a4e : 0x8a6a3a;
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.55, 0.05),
+      new THREE.MeshStandardMaterial({ color: boardColor, roughness: 0.85 }),
+    );
+    board.position.set(doorX - 0.9, 2.25, frontZ + 0.72);
+    board.castShadow = true;
+    g.add(board);
+  }
+
   if (house.kind === "vendor") {
-    // Market stall beside the door: posts + canvas awning + crate counter.
-    const sx = frontX + 1.3;
-    for (const [px, pz] of [[sx - 0.9, -0.9], [sx - 0.9, 0.9], [sx + 0.9, -0.9], [sx + 0.9, 0.9]] as const) {
-      addBox(g, mats.timber, 0.08, 2.1, 0.08, px, 1.47, pz, false);
+    // Market stall on the street face: 4 posts + big striped awning + counter
+    // with goods — the adventurer buy/sell stop.
+    const stallZ = frontZ + 1.5;
+    for (const [px, pz] of [[-1.0, -0.9], [1.0, -0.9], [-1.0, 0.9], [1.0, 0.9]] as const) {
+      addBox(g, mats.timber, 0.08, 2.1, 0.08, doorX + px, 1.47, stallZ + pz, false);
     }
     const awning = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.2, 2.2),
+      new THREE.PlaneGeometry(2.4, 2.2),
       new THREE.MeshStandardMaterial({ color: 0xa8492e, roughness: 0.9, side: THREE.DoubleSide }),
     );
-    awning.rotation.x = -Math.PI / 2 + 0.18;
-    awning.position.set(sx, 2.55, 0);
+    awning.rotation.x = -Math.PI / 2 + 0.16;
+    awning.position.set(doorX, 2.6, stallZ);
     awning.castShadow = true;
     g.add(awning);
-    addBox(g, mats.wood, 1.5, 0.75, 0.6, sx, 0.8, 0, false);
+    addBox(g, mats.wood, 1.8, 0.78, 0.6, doorX, 0.81, stallZ, false); // counter
+    addBox(g, mats.dark, 0.4, 0.22, 0.3, doorX - 0.4, 1.31, stallZ, false); // goods
+    addBox(g, mats.timber, 0.35, 0.3, 0.35, doorX + 0.5, 1.35, stallZ, false); // crate of wares
   }
+
   if (house.kind === "smithy") {
-    // Anvil + quench barrel outside the forge door.
-    addBox(g, mats.dark, 0.55, 0.32, 0.28, frontX + 1.1, 0.75, d * 0.2, false);
-    addBox(g, mats.timber, 0.5, 0.35, 0.5, frontX + 1.1, 0.42, d * 0.2, false);
+    // Open-front forge lean-to on the south gable side + anvil + quench barrel.
+    const sideX = w / 2 + 1.2;
+    for (const pz of [-d / 2 + 0.4, d / 2 - 0.4]) {
+      addBox(g, mats.timber, 0.1, 2.2, 0.1, sideX + 0.9, 1.1, pz, false);
+    }
+    const lean = new THREE.Mesh(new THREE.PlaneGeometry(2.2, d - 0.6), mats.thatch([0.7, 0.66, 0.55]));
+    lean.rotation.z = Math.PI / 2 - 0.32;
+    lean.rotation.y = Math.PI / 2;
+    lean.position.set(sideX + 0.45, 2.65, 0);
+    lean.castShadow = true;
+    g.add(lean);
+    addBox(g, mats.dark, 0.55, 0.32, 0.28, sideX + 0.2, 0.75, 0.3, false); // anvil
+    addBox(g, mats.timber, 0.5, 0.35, 0.5, sideX + 0.2, 0.42, 0.3, false); // anvil block
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.7, 10), mats.wood);
-    barrel.position.set(frontX + 0.9, 0.77, -d * 0.28);
+    barrel.position.set(sideX + 0.3, 0.77, -0.9);
     barrel.castShadow = true;
     g.add(barrel);
   }
-  if (house.kind === "apothecary" || house.kind === "vendor" || house.kind === "smithy") {
-    // Hanging shop sign: arm from the door frame + board.
-    addBox(g, mats.timber, 0.08, 0.08, 0.9, frontX + 0.35, 2.6, -w * 0.2, false);
-    const boardColor = house.kind === "apothecary" ? 0x3e6b3a : house.kind === "smithy" ? 0x4a4a4e : 0x8a6a3a;
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.55, 0.7),
-      new THREE.MeshStandardMaterial({ color: boardColor, roughness: 0.85 }),
+
+  if (house.kind === "apothecary") {
+    // Roof dormer on the street slope + herb drying rack by the door.
+    const dormer = new THREE.Group();
+    addBox(dormer, mats.plaster(1, 1, house.wash), 0.9, 0.7, 0.8, 0, 0, 0, false);
+    const dRoof = roofPrism(mats.thatch(house.roofTint), 0.9, 0.8, 0.35, 0.1);
+    dRoof.position.y = 0.35;
+    dormer.add(dRoof);
+    dormer.position.set(-w * 0.1, wallTop + 0.55, frontZ - 0.45);
+    g.add(dormer);
+    // drying rack: two posts + bar + hanging bundles
+    const rackZ = frontZ + 0.9;
+    addBox(g, mats.timber, 0.06, 1.4, 0.06, doorX + 1.2, 1.12, rackZ, false);
+    addBox(g, mats.timber, 0.06, 1.4, 0.06, doorX + 2.0, 1.12, rackZ, false);
+    addBox(g, mats.timber, 0.9, 0.05, 0.05, doorX + 1.6, 1.78, rackZ, false);
+    const bundleMat = new THREE.MeshStandardMaterial({ color: 0x5d7a35, roughness: 1.0 });
+    for (const bx of [1.35, 1.6, 1.85]) {
+      const bundle = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.4, 5), bundleMat);
+      bundle.position.set(doorX + bx, 1.55, rackZ);
+      bundle.rotation.x = Math.PI;
+      g.add(bundle);
+    }
+  }
+
+  if (house.kind === "reeve") {
+    // Headman's porch: two posts + flat canopy over the door + banner pole.
+    for (const px of [-0.9, 0.9]) {
+      addBox(g, mats.timber, 0.12, 2.2, 0.12, doorX + px, 1.1 + 0.42, frontZ + 1.0, false);
+    }
+    addBox(g, mats.wood, 2.4, 0.1, 1.3, doorX, 2.72, frontZ + 0.7, false);
+    addBox(g, mats.timber, 0.07, 3.4, 0.07, doorX + 1.8, 1.7 + 0.42, frontZ + 1.2, false); // banner pole
+    const banner = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.55, 0.9),
+      new THREE.MeshStandardMaterial({ color: 0x6d2e2e, roughness: 0.9, side: THREE.DoubleSide }),
     );
-    board.position.set(frontX + 0.35, 2.25, -w * 0.2);
-    board.castShadow = true;
-    g.add(board);
+    banner.position.set(doorX + 2.09, 3.3, frontZ + 1.2);
+    banner.castShadow = true;
+    g.add(banner);
+  }
+
+  if (house.kind === "hall") {
+    // Town hall: bell post beside the door + double door read.
+    addBox(g, mats.timber, 0.14, 3.0, 0.14, doorX - 1.6, 1.5 + 0.42, frontZ + 0.9, false);
+    addBox(g, mats.timber, 0.8, 0.12, 0.12, doorX - 1.6, 3.3, frontZ + 0.9, false);
+    const bell = new THREE.Mesh(
+      new THREE.ConeGeometry(0.16, 0.3, 8),
+      new THREE.MeshStandardMaterial({ color: 0x8f7b3a, metalness: 0.6, roughness: 0.5 }),
+    );
+    bell.position.set(doorX - 1.6, 3.05, frontZ + 0.9);
+    bell.castShadow = true;
+    g.add(bell);
+  }
+
+  if (house.kind === "barn") {
+    // Hayloft opening high on the street gable + wider double door read.
+    addBox(g, mats.dark, 0.8, 0.7, 0.06, 0, wallTop + 0.45, frontZ + 0.01, false);
+    addBox(g, mats.timber, 0.9, 0.08, 0.08, 0, wallTop + 0.85, frontZ + 0.02, false);
   }
 }
 
@@ -410,27 +525,78 @@ function buildGarden(garden: { name: string; x: number; z: number; w: number; d:
   soil.position.y = 0.07;
   soil.receiveShadow = true;
   g.add(soil);
-  // Crop rows: little green tufts.
-  const tuftMat = new THREE.MeshStandardMaterial({ color: 0x5d7a35, roughness: 1.0 });
-  const rows = Math.max(2, Math.floor(garden.d / 0.7));
-  const cols = Math.max(3, Math.floor(garden.w / 0.6));
-  const tuft = new THREE.ConeGeometry(0.09, 0.3, 5);
-  const inst = new THREE.InstancedMesh(tuft, tuftMat, rows * cols);
+
+  // Crop rows (#452): tilled ridges + leafy cross-cards that read as
+  // vegetables at gameplay distance — not flat icons.
+  const rows = Math.max(2, Math.floor(garden.d / 0.8));
+  const cols = Math.max(3, Math.floor(garden.w / 0.55));
+  // tilled ridges
+  for (let r = 0; r < rows; r += 1) {
+    const rz = -garden.d / 2 + 0.4 + (r * (garden.d - 0.8)) / (rows - 1);
+    const ridge = new THREE.Mesh(
+      new THREE.BoxGeometry(garden.w - 0.5, 0.09, 0.28),
+      new THREE.MeshStandardMaterial({ color: 0x2e2318, roughness: 1.0 }),
+    );
+    ridge.position.set(0, 0.18, rz);
+    ridge.receiveShadow = true;
+    g.add(ridge);
+  }
+  // leafy crop card (procedural separated leaves — gaps keep it from reading
+  // as a solid cone at distance)
+  const leafCanvas = document.createElement("canvas");
+  leafCanvas.width = 64;
+  leafCanvas.height = 64;
+  const lctx = leafCanvas.getContext("2d");
+  if (lctx) {
+    lctx.clearRect(0, 0, 64, 64);
+    const leaves: [number, number, number, number][] = [
+      [20, 34, -0.5, 1.0], [44, 34, 0.5, 1.0], [32, 26, 0.0, 1.15],
+      [14, 44, -0.9, 0.85], [50, 44, 0.9, 0.85], [26, 48, -0.25, 0.8], [40, 48, 0.25, 0.8],
+    ];
+    leaves.forEach(([lx, ly, rot, s], i) => {
+      lctx.fillStyle = i % 2 ? "#4e6b2a" : "#637f36";
+      lctx.beginPath();
+      lctx.ellipse(lx, ly, 5 * s, 11 * s, rot, 0, Math.PI * 2);
+      lctx.fill();
+    });
+  }
+  const leafTex = new THREE.CanvasTexture(leafCanvas);
+  leafTex.colorSpace = THREE.SRGBColorSpace;
+  const cropMat = new THREE.MeshStandardMaterial({
+    map: leafTex,
+    alphaTest: 0.4,
+    side: THREE.DoubleSide,
+    roughness: 1.0,
+  });
+  const card = new THREE.BufferGeometry();
+  // two crossed quads, 0.3 m tall
+  card.setAttribute("position", new THREE.Float32BufferAttribute([
+    -0.14, 0, 0, 0.14, 0, 0, -0.14, 0.3, 0, 0.14, 0.3, 0,
+    0, 0, -0.14, 0, 0, 0.14, 0, 0.3, -0.14, 0, 0.3, 0.14,
+  ], 3));
+  card.setAttribute("uv", new THREE.Float32BufferAttribute([
+    0, 0, 1, 0, 0, 1, 1, 1,
+    0, 0, 1, 0, 0, 1, 1, 1,
+  ], 2));
+  card.setIndex([0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6]);
+  card.computeVertexNormals();
+  const crops = new THREE.InstancedMesh(card, cropMat, rows * cols);
   const m = new THREE.Matrix4();
   let k = 0;
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
+      const jitter = ((r * 31 + c * 17) % 10) / 10 - 0.5;
       m.makeTranslation(
-        -garden.w / 2 + 0.3 + (c * (garden.w - 0.6)) / (cols - 1),
-        0.28,
-        -garden.d / 2 + 0.3 + (r * (garden.d - 0.6)) / (rows - 1),
+        -garden.w / 2 + 0.35 + (c * (garden.w - 0.7)) / (cols - 1),
+        0.2,
+        -garden.d / 2 + 0.4 + (r * (garden.d - 0.8)) / (rows - 1) + jitter * 0.06,
       );
-      inst.setMatrixAt(k, m);
+      crops.setMatrixAt(k, m);
       k += 1;
     }
   }
-  inst.castShadow = true;
-  g.add(inst);
+  crops.castShadow = true;
+  g.add(crops);
   // Wattle fence: posts + two rails per side.
   const post = new THREE.CylinderGeometry(0.045, 0.05, 0.85, 5);
   const postMat = mats.timber;
@@ -507,7 +673,11 @@ async function dressWithProps(village: VillageData, field: TerrainField, parent:
     const isWellBucket = id === "wooden_bucket_01";
     const x = isWellBucket ? village.well.x + px : px;
     const z = isWellBucket ? village.well.z + pz : pz;
-    node.position.set(x, field.height(x, z), z);
+    // Ground-snap by bounding box: prop origins vary (center vs base), so seat
+    // each prop's lowest point on the terrain — no floating or half-sunk props.
+    const box = new THREE.Box3().setFromObject(node);
+    const groundY = field.height(x, z);
+    node.position.set(x, groundY - (box.isEmpty() ? 0 : box.min.y), z);
     node.rotation.y = THREE.MathUtils.degToRad(yaw);
     parent.add(node);
   }
@@ -548,10 +718,10 @@ function buildNpcs(npcs: NpcData, field: TerrainField, parent: THREE.Group, vill
       ctx.fillText(npc.id.replace(/-/g, " "), 128, 40);
     }
     const label = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false }),
+      new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, depthTest: true }),
     );
-    label.scale.set(1.9, 0.48, 1);
-    label.position.y = 2.15;
+    label.scale.set(1.25, 0.31, 1);
+    label.position.y = 2.0;
     g.add(label);
 
     // Ground snap — but NPCs on the jetty stand on the deck, not the riverbed.
