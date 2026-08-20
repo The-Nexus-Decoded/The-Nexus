@@ -143,10 +143,14 @@ HARD_POOL = [
 # ---------------------------------------------------------------------------
 SPAWN_TABLE = {
     "wayfarer": dict(
+        enemyCount=3, enemyKinds=["breachling"], healthMult=1.00, damageMult=1.00,
+        galleryPressureBase=34, bossPressureBase=64,
         enemies="3 Breachlings per run (light)", distribution="seeded across chambers (1-2 per chamber)",
         health="1.00x", damage="1.00x", galleryPressure="34 + seed variance", bossPressure="64 + seed variance",
     ),
     "oathbreaker": dict(
+        enemyCount=5, enemyKinds=["oathbound", "ravager"], healthMult=1.55, damageMult=1.22,
+        galleryPressureBase=58, bossPressureBase=84,
         enemies="5 Oathbound/Ravager variants per run", distribution="seeded across chambers (denser: up to socket count)",
         health="1.55x", damage="1.22x", galleryPressure="58 + seed variance", bossPressure="84 + seed variance",
     ),
@@ -273,7 +277,7 @@ DRESSING = {
              ("bottles-jugs-crockery-cluster", 4.0, 11.0), ("supply-pile", 13.0, 11.5),
              ("floor-brazier", 2.0, 4.0), ("storage-chest", 2.2, 12.0)],
     # ---- HARD pool ----
-    "H-01": [("masonry-barricade", 6.0, 3.2), ("cave-in-rubble", 9.5, 8.0),
+    "H-01": [("masonry-barricade", 6.0, 2.1), ("cave-in-rubble", 9.5, 8.0),
              ("chain-shackle", 3.0, 0.4), ("floor-brazier", 2.0, 8.3),
              ("storage-chest", 10.5, 2.0)],
     "H-02": [("monster-egg-nest", 10.5, 8.5), ("shed-chitin-pile", 6.0, 7.0),
@@ -292,7 +296,7 @@ DRESSING = {
     "H-06": [("burrowed-wall-breach-plug", 3.5, 0.5), ("burrowed-wall-breach-plug", 8.5, 0.5),
              ("monster-egg-nest", 9.5, 8.5), ("shed-chitin-pile", 3.5, 7.5),
              ("cocooned-remains-web-mass", 11.5, 8.5), ("storage-chest", 2.2, 9.5)],
-    "H-07": [("rusted-portcullis", 7.0, 5.0), ("weapon-armor-heap", 11.5, 7.5),
+    "H-07": [("rusted-portcullis", 7.0, 6.4), ("weapon-armor-heap", 11.5, 7.5),
              ("floor-brazier", 7.0, 8.5), ("supply-pile", 2.5, 8.0),
              ("storage-chest", 12.5, 2.2), ("storage-chest", 2.2, 2.0)],
 }
