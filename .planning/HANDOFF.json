@@ -1,11 +1,11 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-20T07:18:00.000Z",
+  "timestamp": "2026-08-20T20:14:36.682Z",
   "phase": "issue-448",
   "phase_name": "SoulDrifter First Breach model foundation",
   "phase_dir": ".planning",
   "plan": 1,
-  "task": 3,
+  "task": 4,
   "total_tasks": 11,
   "status": "in_progress",
   "completed_tasks": [
@@ -20,22 +20,24 @@
       "name": "Open Mixamo and establish an authentication-capable Codex browser session",
       "status": "done",
       "progress": "The owner's existing in-app Mixamo tab was authenticated. Mixamo exposed one stored custom upload, ELF-SHADOWKNIGHT-UNARMED-MIXAMO. It was discarded by selecting the built-in The Boss character, and the active character name and preview were visually verified as THE BOSS."
+    },
+    {
+      "id": 3,
+      "name": "Prepare v002, upload it, place markers, and complete Mixamo Auto-Rigger once",
+      "status": "done",
+      "progress": "The yaw-corrected v002 source was accepted and Auto-Rigger completed as SD-BODY-HUMAN-MASCULINE-HEAVY-MIXAMO-INTAKE-V002. Codex then controlled the visible in-app tab and downloaded FBX Binary in T-pose. Returned file: C:\\Users\\olawal\\Downloads\\sd-body-human-masculine-heavy-mixamo-intake-v002.fbx; 3,294,864 bytes; SHA-256 A9A95B84A3B51823DD710FE6924B20738333B4EC928F07D203714A38A2D1A847. Mixamo hierarchy tokens were confirmed."
     }
   ],
   "remaining_tasks": [
     {
-      "id": 3,
-      "name": "Codex uploads the exact verified FBX, places Mixamo markers, and runs auto-rig once",
-      "status": "not_started"
-    },
-    {
       "id": 4,
       "name": "Download the rigged FBX and run fresh local skeleton, weight, and deformation verification",
-      "status": "not_started"
+      "status": "in_progress",
+      "progress": "Download and structural token check are complete. Fresh import, weight inspection, and close deformation renders remain."
     },
     {
       "id": 5,
-      "name": "Map or retarget the result to the canonical 65-bone runtime rig and continue the remaining issue-448 asset plan",
+      "name": "Map or retarget the result to the canonical 65-bone runtime rig and acquire a complete clean replacement humanoid animation library",
       "status": "not_started"
     },
     {
@@ -65,7 +67,7 @@
     },
     {
       "id": 11,
-      "name": "Integrate shared motion libraries, attachments, runtime QA, evidence, issue #448, and draft PR #449",
+      "name": "Integrate the complete replacement motion libraries and runtime attachments, remove rejected legacy clips after QA, and update evidence, issue #448, and draft PR #449",
       "status": "not_started"
     }
   ],
@@ -123,9 +125,25 @@
       "decision": "Deliver the complete modular character creator in this lane after the rig dependency gate.",
       "rationale": "The owner explicitly requires body profiles, ancestry and presentation, four face families, skin tones, all preserved hairstyles, independent hair colors, facial details, adornments, and starter-only gear before the task is complete.",
       "phase": "issue-448"
+    },
+    {
+      "decision": "Replace every one of the 19 existing humanoid motion GLBs rather than reusing them as final assets.",
+      "rationale": "The owner rejected all old clips as poor quality. Keep them only as temporary reference/fallback until complete replacements pass runtime QA, then remove them.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "Replacement animation files contain no baked weapon meshes.",
+      "rationale": "Hands animate around the intended grip while the game attaches the actual sword, shield, bow, staff, rod, knife, or other equipment through runtime sockets. Download the base rig once with skin and every Mixamo action separately without skin.",
+      "phase": "issue-448"
     }
   ],
-  "uncommitted_files": [],
-  "next_action": "Use the authenticated in-app Mixamo tab to upload the exact verified Human masculine heavy FBX, place markers, and auto-rig once. Download outside the repository and complete local deformation proof before any other humanoid bind.",
-  "context_notes": "Authoritative worktree: H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models. Branch codex/448-souldrifter-first-breach-models is at eb8557d7 before the current contract edits. Draft PR #449 targets qa; issue #448 is the ticket. The full rig-family and complete character-creator contracts are recorded in docs/RIG_FAMILY_PRODUCTION_CONTRACT.md and first-breach-model-register.json. The character-creator scope includes four face families, six-plus skin tones, twelve preserved hairstyle meshes plus shaved/bald, eleven independent hair-color materials, modular facial details/adornments, all three body profiles, and starter-only gear. Do not merge, deploy, spend 3D AI Studio credits, delete cloud models, touch main, or ask the owner to upload the model. Exact FBX: Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx. SHA-256 D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF; 2,584,252 bytes; 1 mesh; 28,555 vertices; 44,999 triangles; 1 material; 0 skins; 0 animations. The 0.01 mm seam weld reduced components to 1 without losing triangles, but 15,581 boundary/nonmanifold edges remain and are a manual continuity/Mixamo acceptance gate. Tests previously passed 165/165; typecheck and build passed; no ESLint script exists."
+  "uncommitted_files": [
+    "Arianus-Sky/projects/games/SoulDrifterWeb/scripts/prepare-mixamo-intake.py",
+    "Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/evidence/issue-448/mixamo-intake-human-heavy-v002.png",
+    "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v002.fbx",
+    ".planning/.continue-here.md",
+    ".planning/HANDOFF.json"
+  ],
+  "next_action": "Verify the downloaded v002 FBX hash, fresh-import it locally, and complete skeleton, skin-weight, and close deformation proof. Do not upload or auto-rig it again. Once it passes, author the complete replacement-animation manifest; do not reuse the rejected 19 legacy clips or bake weapon geometry into replacement motions.",
+  "context_notes": "Authoritative worktree: H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models. Branch codex/448-souldrifter-first-breach-models is at b8b19284 with intentional uncommitted v002 intake work. Draft PR #449 targets qa; issue #448 is the ticket. The rigged return is safe outside the repo at C:\\Users\\olawal\\Downloads\\sd-body-human-masculine-heavy-mixamo-intake-v002.fbx, 3,294,864 bytes, SHA-256 A9A95B84A3B51823DD710FE6924B20738333B4EC928F07D203714A38A2D1A847. The authenticated in-Codex Mixamo tab currently shows the v002 rig but may disappear during the Codex update. Browser control succeeded through mcp__node_repl__js plus @oai/sky targeting the ChatGPT window; the external Chrome DevTools page was only about:blank. All 19 legacy humanoid clips are rejected as final assets. Replace the complete library with clean animation-only clips without baked weapons, keeping old clips only until replacements pass runtime QA. Do not merge, deploy, spend 3D AI Studio credits, delete cloud models, touch main, or re-upload the completed v002 rig."
 }
