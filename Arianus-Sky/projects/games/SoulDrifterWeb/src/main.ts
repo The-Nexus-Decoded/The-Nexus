@@ -67,7 +67,7 @@ void (async () => {
     const seed = seedParam !== null && /^\d+$/.test(seedParam) ? Number(seedParam) : 4182;
     const pathParam = searchParams.get("path");
     const path = pathParam === "oathbreaker" ? "oathbreaker" : "wayfarer";
-    const cam = searchParams.get("cam") ?? "vestibule";
+    const cam = searchParams.get("cam") ?? "vestibule"; // orbit presets by default; &cam=walk for WASD walk mode
     await startDungeonPreview(host, { seed, path, cam });
     return;
   }

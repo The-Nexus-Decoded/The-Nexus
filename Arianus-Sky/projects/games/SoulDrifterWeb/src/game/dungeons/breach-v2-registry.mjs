@@ -717,15 +717,15 @@ export const BREACH_V2_REGISTRY = {
       "name": "The Ashen Lock (boss)",
       "kind": "boss",
       "x": 208.0,
-      "y": 1.0,
-      "w": 24.0,
-      "h": 18.0,
-      "notes": "Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets; V2 ships exactly 1 boss.",
+      "y": -1.0,
+      "w": 30.0,
+      "h": 22.0,
+      "notes": "Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets with a glowing rune circle at the active anchor; V2 ships exactly 1 boss.",
       "placements": [
         {
           "asset": "broken-stone-stair-dais",
-          "x": 14.0,
-          "y": 9.0,
+          "x": 20.0,
+          "y": 11.0,
           "placement": "floor",
           "group": "structure",
           "facing": "up",
@@ -737,7 +737,7 @@ export const BREACH_V2_REGISTRY = {
         {
           "asset": "guardian-statue",
           "x": 3.5,
-          "y": 3.0,
+          "y": 3.5,
           "placement": "floor",
           "group": "structure",
           "facing": "up",
@@ -749,7 +749,7 @@ export const BREACH_V2_REGISTRY = {
         {
           "asset": "guardian-statue",
           "x": 3.5,
-          "y": 15.0,
+          "y": 18.5,
           "placement": "floor",
           "group": "structure",
           "facing": "up",
@@ -760,8 +760,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "corruption-growth",
-          "x": 20.0,
-          "y": 3.0,
+          "x": 25.0,
+          "y": 4.0,
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
@@ -772,8 +772,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "corruption-growth",
-          "x": 20.0,
-          "y": 14.0,
+          "x": 25.0,
+          "y": 17.0,
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
@@ -784,8 +784,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "corruption-growth",
-          "x": 10.0,
-          "y": 15.5,
+          "x": 12.0,
+          "y": 18.5,
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
@@ -796,7 +796,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "chain-shackle",
-          "x": 8.0,
+          "x": 9.0,
           "y": 0.4,
           "placement": "wall",
           "group": "macabre",
@@ -808,7 +808,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "chain-shackle",
-          "x": 16.0,
+          "x": 20.0,
           "y": 0.4,
           "placement": "wall",
           "group": "macabre",
@@ -820,8 +820,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "floor-brazier",
-          "x": 6.0,
-          "y": 9.0,
+          "x": 7.0,
+          "y": 11.0,
           "placement": "floor",
           "group": "fire",
           "facing": "up",
@@ -832,8 +832,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "floor-brazier",
-          "x": 18.0,
-          "y": 9.0,
+          "x": 23.0,
+          "y": 11.0,
           "placement": "floor",
           "group": "fire",
           "facing": "up",
@@ -844,8 +844,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "bone-pile",
-          "x": 12.0,
-          "y": 13.0,
+          "x": 14.0,
+          "y": 14.5,
           "placement": "floor",
           "group": "macabre",
           "facing": "up",
@@ -857,7 +857,7 @@ export const BREACH_V2_REGISTRY = {
         {
           "asset": "cave-in-rubble",
           "x": 2.5,
-          "y": 12.0,
+          "y": 14.0,
           "placement": "floor",
           "group": "rubble",
           "facing": "up",
@@ -868,8 +868,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "hanging-brazier",
-          "x": 14.0,
-          "y": 5.0,
+          "x": 15.0,
+          "y": 7.0,
           "placement": "ceiling",
           "group": "fire",
           "facing": "down",
@@ -880,7 +880,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-cinderbound",
-          "x": 12.0,
+          "x": 13.0,
           "y": 0.35,
           "width": 1.6,
           "placement": "wall",
@@ -893,7 +893,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-cinderbound",
-          "x": 20.5,
+          "x": 23.0,
           "y": 0.35,
           "width": 1.6,
           "placement": "wall",
@@ -910,7 +910,7 @@ export const BREACH_V2_REGISTRY = {
       "id": "memory-vault",
       "name": "First Memory Vault",
       "kind": "vault",
-      "x": 236.0,
+      "x": 242.0,
       "y": 3.0,
       "w": 10.0,
       "h": 8.0,
@@ -995,7 +995,7 @@ export const BREACH_V2_REGISTRY = {
       "id": "exit-connector",
       "name": "The Way Upward (exit Connector)",
       "kind": "exit",
-      "x": 236.0,
+      "x": 242.0,
       "y": 12.0,
       "w": 16.0,
       "h": 6.0,
@@ -1098,8 +1098,8 @@ export const BREACH_V2_REGISTRY = {
     {
       "id": "ilyra",
       "label": "Wellkeeper Ilyra (Chronicle of Returning)",
-      "x": 11.5,
-      "y": 12.8,
+      "x": 12.6,
+      "y": 13.6,
       "r": 0.45,
       "roomId": "vestibule"
     },
@@ -3091,18 +3091,22 @@ export const BREACH_V2_REGISTRY = {
     "note": "V2 ships exactly one boss; 3 anchor sockets + set architecture keep 3-of-6 boss sets possible later.",
     "anchorSockets": [
       [
-        218.5,
-        6.0
+        217.5,
+        4.5
       ],
       [
-        225.5,
-        6.0
+        228.5,
+        4.5
       ],
       [
-        222.0,
-        14.5
+        223.0,
+        15.5
       ]
-    ]
+    ],
+    "runeCircle": {
+      "radius": 2.6,
+      "note": "glowing rune circle on the floor at the active boss anchor"
+    }
   },
   "tables": {
     "spawn": {

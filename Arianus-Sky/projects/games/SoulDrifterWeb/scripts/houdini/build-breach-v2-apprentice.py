@@ -526,46 +526,65 @@ def build_landmarks(obj, payload, game_root: Path, workspace_root: Path | None):
         child.destroy()
     merge = group.createNode("merge", "LANDMARK_GEO")
 
-    # --- Soul Well (V14): small silvery glowing pool + shard + ripples
+    # --- Soul Well (V14, owner-tuned): rock-and-stone RAISED pool built into
+    # the ground — octagonal masonry basin, recessed shimmering silver water,
+    # small suspended shard, stone emergence step. Not a neon disc.
     well = lm["soulWell"]
-    basin = group.createNode("tube", "SOULWELL_BASIN_RIM")
-    basin.parm("rad1").set(well["apron"])
-    basin.parm("rad2").set(well["apron"] * 0.92)
-    basin.parm("height").set(0.55)
+    apron = well["apron"]
+    basin = group.createNode("tube", "SOULWELL_STONE_BASIN")
+    basin.parm("type").set("poly")
+    basin.parm("rad1").set(apron)
+    basin.parm("rad2").set(apron * 1.08)
+    basin.parm("height").set(0.75)
     basin.parm("orient").set("y")
-    basin.parmTuple("t").set((well["x"], 0.27, well["z"]))
-    pool = group.createNode("circle", "SOULWELL_POOL_SURFACE")
-    pool.parm("radx").set(well["r"])
-    pool.parm("rady").set(well["r"])
+    basin.parm("cap").set(1)
+    basin.parm("cols").set(8)  # octagonal stone
+    basin.parmTuple("t").set((well["x"], 0.375, well["z"]))
+    basin_mat = principled("BV2_SoulWell_Stone", (0.6, 0.56, 0.5), 0.85, metallic=0.04)
+    basin_apply = group.createNode("material", "SOULWELL_BASIN_MAT")
+    basin_apply.setInput(0, basin)
+    basin_apply.parm("shop_materialpath1").set(basin_mat)
+    # recessed silvery water (liquid, not neon)
+    pool = group.createNode("circle", "SOULWELL_WATER")
+    pool.parm("radx").set(well["r"] + 0.25)
+    pool.parm("rady").set(well["r"] + 0.25)
     pool.parm("orient").set("zx")
     pool.parm("divs").set(48)
-    pool.parmTuple("t").set((well["x"], 0.18, well["z"]))
-    pool_mat = principled("BV2_SoulWell_Pool", (0.35, 0.75, 0.85), 0.12, metallic=0.6,
-                          emissive=(0.45, 0.85, 0.95), emissive_intensity=1.6)
+    pool.parmTuple("t").set((well["x"], 0.56, well["z"]))
+    pool_mat = principled("BV2_SoulWell_Water", (0.76, 0.8, 0.83), 0.16, metallic=0.42,
+                          emissive=(0.62, 0.7, 0.75), emissive_intensity=0.5)
     pool_apply = group.createNode("material", "SOULWELL_POOL_MAT")
     pool_apply.setInput(0, pool)
     pool_apply.parm("shop_materialpath1").set(pool_mat)
     shard = group.createNode("sphere", "SOULWELL_SUSPENDED_SHARD")
-    shard.parm("radx").set(0.22)
-    shard.parm("rady").set(0.34)
-    shard.parm("radz").set(0.22)
-    shard.parmTuple("t").set((well["x"], 2.1, well["z"]))
-    shard_mat = principled("BV2_SoulWell_Shard", (0.55, 0.85, 0.95), 0.2, metallic=0.4,
-                           emissive=(0.5, 0.85, 1.0), emissive_intensity=1.2)
+    shard.parm("radx").set(0.2)
+    shard.parm("rady").set(0.3)
+    shard.parm("radz").set(0.2)
+    shard.parmTuple("t").set((well["x"], 2.0, well["z"]))
+    shard_mat = principled("BV2_SoulWell_Shard", (0.72, 0.8, 0.85), 0.25, metallic=0.5,
+                           emissive=(0.68, 0.77, 0.82), emissive_intensity=0.5)
     shard_apply = group.createNode("material", "SOULWELL_SHARD_MAT")
     shard_apply.setInput(0, shard)
     shard_apply.parm("shop_materialpath1").set(shard_mat)
-    merge.setInput(0, basin)
+    # stone emergence step (south edge)
+    step = group.createNode("box", "SOULWELL_EMERGENCE_STEP")
+    step.parmTuple("size").set((1.6, 0.22, 0.7))
+    step.parmTuple("t").set((well["x"], 0.11, well["z"] + apron + 0.15))
+    step_apply = group.createNode("material", "SOULWELL_STEP_MAT")
+    step_apply.setInput(0, step)
+    step_apply.parm("shop_materialpath1").set(basin_mat)
+    merge.setInput(0, basin_apply)
     merge.setInput(1, pool_apply)
     merge.setInput(2, shard_apply)
-    idx = 3
-    for ring_i, radius in enumerate((0.62, 1.16, 1.68)):
+    merge.setInput(3, step_apply)
+    idx = 4
+    for ring_i, radius in enumerate((0.7, 1.25, 1.75)):
         ring = group.createNode("tube", f"SOULWELL_RIPPLE_{ring_i}")
         ring.parm("rad1").set(radius)
-        ring.parm("rad2").set(radius + 0.03)
-        ring.parm("height").set(0.02)
+        ring.parm("rad2").set(radius + 0.02)
+        ring.parm("height").set(0.015)
         ring.parm("orient").set("y")
-        ring.parmTuple("t").set((well["x"], 0.2, well["z"]))
+        ring.parmTuple("t").set((well["x"], 0.58, well["z"]))
         merge.setInput(idx, ring)
         idx += 1
 
@@ -681,18 +700,41 @@ def build_landmarks(obj, payload, game_root: Path, workspace_root: Path | None):
         merge.setInput(idx, eapply)
         idx += 1
     boss = payload["boss"]
-    bring = group.createNode("circle", "BOSS_ANCHOR_RING")
-    bring.parm("radx").set(2.2)
-    bring.parm("rady").set(2.2)
-    bring.parm("orient").set("zx")
-    bring.parmTuple("t").set((boss["x"], 0.06, boss["z"]))
-    bm = principled("BV2_BossRing", (0.8, 0.3, 0.15), 0.6,
-                    emissive=(0.9, 0.35, 0.15), emissive_intensity=0.8)
-    bapply = group.createNode("material", "BOSS_RING_mat")
-    bapply.setInput(0, bring)
-    bapply.parm("shop_materialpath1").set(bm)
-    merge.setInput(idx, bapply)
-    idx += 1
+    # glowing rune circle where the Warden spawns (owner canon): ring + rune marks
+    bm = principled("BV2_RuneCircle", (0.48, 0.17, 0.08), 0.5,
+                    emissive=(1.0, 0.35, 0.17), emissive_intensity=1.1)
+    ring_r = 2.6
+    ring_outer = group.createNode("tube", "BOSS_RUNE_OUTER")
+    ring_outer.parm("rad1").set(ring_r - 0.09)
+    ring_outer.parm("rad2").set(ring_r)
+    ring_outer.parm("height").set(0.03)
+    ring_outer.parm("orient").set("y")
+    ring_outer.parmTuple("t").set((boss["x"], 0.05, boss["z"]))
+    ring_inner = group.createNode("tube", "BOSS_RUNE_INNER")
+    ring_inner.parm("rad1").set(ring_r * 0.62)
+    ring_inner.parm("rad2").set(ring_r * 0.68)
+    ring_inner.parm("height").set(0.03)
+    ring_inner.parm("orient").set("y")
+    ring_inner.parmTuple("t").set((boss["x"], 0.05, boss["z"]))
+    for ring_node in (ring_outer, ring_inner):
+        rapply = group.createNode("material", f"{ring_node.name()}_mat")
+        rapply.setInput(0, ring_node)
+        rapply.parm("shop_materialpath1").set(bm)
+        merge.setInput(idx, rapply)
+        idx += 1
+    import math as _math
+    for ri in range(12):
+        angle = ri / 12 * _math.tau
+        rune = group.createNode("box", f"BOSS_RUNE_MARK_{ri}")
+        rune.parmTuple("size").set((0.09, 0.03, 0.42))
+        rune.parmTuple("t").set((boss["x"] + _math.cos(angle) * ring_r * 0.81, 0.05,
+                                 boss["z"] + _math.sin(angle) * ring_r * 0.81))
+        rune.parmTuple("r").set((0.0, -_math.degrees(angle) + (ri % 3) * 28.0, 0.0))
+        rapply = group.createNode("material", f"BOSS_RUNE_MARK_{ri}_mat")
+        rapply.setInput(0, rune)
+        rapply.parm("shop_materialpath1").set(bm)
+        merge.setInput(idx, rapply)
+        idx += 1
 
     out = group.createNode("null", "LANDMARKS_OUT")
     out.setInput(0, merge)

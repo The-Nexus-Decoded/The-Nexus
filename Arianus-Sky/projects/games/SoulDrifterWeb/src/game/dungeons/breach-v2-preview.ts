@@ -21,6 +21,7 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
+import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
 
@@ -39,10 +40,14 @@ interface PreviewHooks {
   __dungeonLayout: BreachV2Layout;
   __dungeonRenderer: THREE.WebGLRenderer;
   __dungeonCamera: THREE.PerspectiveCamera;
-  __dungeonControls: OrbitControls;
+  __dungeonControls: OrbitControls | null;
   __dungeonFrames: number;
   __dungeonLoopError: string | null;
   __dungeonStats: { calls: number; triangles: number; geometries: number; textures: number };
+  __dungeonMode: string;
+  __dungeonPlayer: { x: number; z: number };
+  __dungeonWalkTo: (x: number, z: number) => boolean;
+  __dungeonKeys: Set<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,50 +313,74 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   group.name = "breach-v2-landmarks";
   scene.add(group);
 
-  // Soul Well (V14): silvery glowing pool — basin rim, pool, ripples, shard
+  // Soul Well (V14, owner-tuned): a rock-and-stone RAISED pool built into the
+  // ground — octagonal masonry basin, recessed silvery water with a slow
+  // shimmer, small suspended shard. Not a neon disc: silver, stone, water.
   const well = lm.soulWell;
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(well.apron ?? 2.65, 0.24, 10, 48),
-    new THREE.MeshStandardMaterial({ color: 0x5a5b66, roughness: 0.7, metalness: 0.3 }),
-  );
-  rim.rotation.x = Math.PI / 2;
-  rim.position.set(well.x, 0.24, well.z);
-  rim.castShadow = true;
-  group.add(rim);
-  const poolMaterial = new THREE.MeshStandardMaterial({
-    color: 0x9fd8e8, roughness: 0.12, metalness: 0.55,
-    emissive: 0x63d8ee, emissiveIntensity: 1.1, transparent: true, opacity: 0.92,
+  const basinMat = new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load(`${TEX_ROOT}/masonry-color.jpg`),
+    roughness: 0.85, metalness: 0.04, color: 0x9a9187,
   });
-  const pool = new THREE.Mesh(new THREE.CircleGeometry(well.r ?? 1.8, 48), poolMaterial);
-  pool.rotation.x = -Math.PI / 2;
-  pool.position.set(well.x, 0.18, well.z);
-  group.add(pool);
+  basinMat.map!.colorSpace = THREE.SRGBColorSpace;
+  basinMat.map!.wrapS = THREE.RepeatWrapping;
+  basinMat.map!.wrapT = THREE.RepeatWrapping;
+  const apron = well.apron ?? 2.65;
+  const basin = new THREE.Mesh(new THREE.CylinderGeometry(apron, apron * 1.08, 0.75, 8), basinMat);
+  basin.position.set(well.x, 0.375, well.z);
+  basin.castShadow = true;
+  basin.receiveShadow = true;
+  group.add(basin);
+  // stone rim lip
+  const lip = new THREE.Mesh(
+    new THREE.TorusGeometry(apron - 0.12, 0.16, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0x847b6e, roughness: 0.8, metalness: 0.06 }),
+  );
+  lip.rotation.x = Math.PI / 2;
+  lip.position.set(well.x, 0.78, well.z);
+  lip.castShadow = true;
+  group.add(lip);
+  // recessed silvery water (reads as liquid, not UI): soft silver, slow shimmer
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0xc2ccd4, roughness: 0.16, metalness: 0.42,
+    emissive: 0x9fb2bd, emissiveIntensity: 0.32, transparent: true, opacity: 0.96,
+  });
+  const water = new THREE.Mesh(new THREE.CircleGeometry((well.r ?? 1.8) + 0.25, 48), waterMat);
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(well.x, 0.56, well.z);
+  group.add(water);
   const ripples: THREE.Mesh[] = [];
-  [0.62, 1.16, 1.68].forEach((radius, i) => {
+  [0.7, 1.25, 1.75].forEach((radius) => {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, 0.018, 8, 64),
-      new THREE.MeshBasicMaterial({ color: 0xbdf3ff, transparent: true, opacity: 0.35 }),
+      new THREE.TorusGeometry(radius, 0.014, 8, 64),
+      new THREE.MeshBasicMaterial({ color: 0xe8f0f4, transparent: true, opacity: 0.22 }),
     );
     ring.rotation.x = Math.PI / 2;
-    ring.position.set(well.x, 0.2, well.z);
+    ring.position.set(well.x, 0.58, well.z);
     group.add(ring);
     ripples.push(ring);
-    void i;
   });
   const shard = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.3),
+    new THREE.OctahedronGeometry(0.2),
     new THREE.MeshStandardMaterial({
-      color: 0x8fe8ff, roughness: 0.2, metalness: 0.4, emissive: 0x7fdfff, emissiveIntensity: 0.9,
+      color: 0xb8ccd8, roughness: 0.25, metalness: 0.5, emissive: 0xaec4d2, emissiveIntensity: 0.5,
     }),
   );
-  shard.position.set(well.x, 2.1, well.z);
+  shard.position.set(well.x, 2.0, well.z);
   group.add(shard);
+  // emergence step at the south edge (stone)
+  const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.7), basinMat);
+  step.position.set(well.x, 0.11, well.z + apron + 0.15);
+  step.castShadow = true;
+  group.add(step);
   tickables.push((elapsed) => {
-    shard.rotation.y = elapsed * 0.4;
-    shard.position.y = 2.1 + Math.sin(elapsed * 0.9) * 0.08;
+    shard.rotation.y = elapsed * 0.25;
+    shard.position.y = 2.0 + Math.sin(elapsed * 0.6) * 0.05;
+    waterMat.emissiveIntensity = 0.3 + Math.sin(elapsed * 0.8) * 0.06;
     ripples.forEach((ring, i) => {
-      const pulse = 1 + Math.sin(elapsed * 1.4 + i * 1.3) * 0.05;
-      ring.scale.set(pulse, pulse, 1);
+      const phase = (elapsed * 0.35 + i / ripples.length) % 1;
+      const s = 0.4 + phase * 1.1;
+      ring.scale.set(s, s, 1);
+      (ring.material as THREE.MeshBasicMaterial).opacity = 0.26 * (1 - phase);
     });
   });
 
@@ -450,13 +479,32 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     marker.position.set(enemy.x, 0.45, enemy.z);
     group.add(marker);
   }
-  const bossRing = new THREE.Mesh(
-    new THREE.RingGeometry(1.9, 2.2, 48),
-    new THREE.MeshBasicMaterial({ color: 0xe85a2c, transparent: true, opacity: 0.6, side: THREE.DoubleSide }),
-  );
-  bossRing.rotation.x = -Math.PI / 2;
-  bossRing.position.set(layout.boss.x, 0.06, layout.boss.z);
-  group.add(bossRing);
+  // glowing rune circle where the Warden spawns (owner canon) — ring + rune marks
+  const runeRadius = 2.6;
+  const runeGroup = new THREE.Group();
+  runeGroup.position.set(layout.boss.x, 0, layout.boss.z);
+  const runeMat = new THREE.MeshStandardMaterial({
+    color: 0x7a2c14, roughness: 0.5, emissive: 0xff5a2c, emissiveIntensity: 1.1,
+  });
+  const ringOuter = new THREE.Mesh(new THREE.RingGeometry(runeRadius - 0.09, runeRadius, 64), runeMat);
+  ringOuter.rotation.x = -Math.PI / 2;
+  ringOuter.position.y = 0.06;
+  runeGroup.add(ringOuter);
+  const ringInner = new THREE.Mesh(new THREE.RingGeometry(runeRadius * 0.62, runeRadius * 0.68, 48), runeMat);
+  ringInner.rotation.x = -Math.PI / 2;
+  ringInner.position.y = 0.06;
+  runeGroup.add(ringInner);
+  for (let i = 0; i < 12; i += 1) {
+    const a = (i / 12) * Math.PI * 2;
+    const rune = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.02, 0.42), runeMat);
+    rune.position.set(Math.cos(a) * runeRadius * 0.81, 0.06, Math.sin(a) * runeRadius * 0.81);
+    rune.rotation.y = -a + (i % 3) * 0.5;
+    runeGroup.add(rune);
+  }
+  group.add(runeGroup);
+  tickables.push((elapsed) => {
+    runeMat.emissiveIntensity = 0.95 + Math.sin(elapsed * 1.6) * 0.3;
+  });
 
   // daylight portal at the east end of the Way Upward (visible from inside)
   const exitGlow = new THREE.Mesh(
@@ -596,6 +644,15 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
     day.target.position.set(exitSpec.x - 12, 1.0, exitSpec.z);
     scene.add(day, day.target);
   }
+  // wall-map accent lights so the readable art reads (§5A)
+  for (const p of layout.placements) {
+    if (p.role !== "wall-art") continue;
+    if (!["art-thalenyr-atlas", "art-heartvale-section", "art-breach-v2-flatmap"].includes(p.asset)) continue;
+    const [nx, nz] = ART_FACING_NORMAL[p.facing] ?? [0, 1];
+    const artLight = new THREE.PointLight(0xfff0d8, 3.4, 7, 1.7);
+    artLight.position.set(p.x + nx * 1.2, 2.5, p.z + nz * 1.2);
+    scene.add(artLight);
+  }
 }
 
 interface CameraPreset { target: [number, number, number]; offset: [number, number, number] }
@@ -612,7 +669,7 @@ function cameraPresets(layout: BreachV2Layout): Record<string, CameraPreset> {
     },
     boss: { target: [layout.boss.x, 1.2, layout.boss.z], offset: [-9.5, 5.4, -6.5] },
     exit: { target: [lm.exitPoint.x - 2, 1.4, lm.exitPoint.z], offset: [-10.5, 3.2, 0.2] },
-    overview: { target: [126, 0, 12], offset: [0, 155, -42] },
+    overview: { target: [130, 0, 12], offset: [0, 165, -46] },
   };
 }
 
@@ -673,13 +730,65 @@ export async function startDungeonPreview(
   setupLights(scene, layout);
 
   const presets = cameraPresets(layout);
+
+  // ---- walk mode: WASD on the hidden nav grid (collision from the generator's
+  // own walkable cells — the same data the invariant suite proves reachable)
+  const walkMode = options.cam === "walk";
+  const genData = generateBreachV2(options.seed, options.path);
+  const walkable = new Set(genData.navCells.map(breachV2CellKey));
+  for (const cell of genData.blockedCells) walkable.delete(breachV2CellKey(cell));
+  const NAV = layout.meta.navCell;
+  const isWalkable = (x: number, z: number): boolean => {
+    const r = 0.35; // player radius
+    for (const [ox, oz] of [[r, r], [r, -r], [-r, r], [-r, -r]] as const) {
+      if (!walkable.has(`${Math.floor((x + ox) / NAV)},${Math.floor((z + oz) / NAV)}`)) return false;
+    }
+    return true;
+  };
+  const playerPos = new THREE.Vector3(layout.landmarks.playerStart.x, 0, layout.landmarks.playerStart.z);
+  let camYaw = 2.35; // start facing the Soul Well / Ilyra from the emergence point
+  let camPitch = 0.4;
+  let camDist = 5.2;
+  const keys = new Set<string>();
+  let player: THREE.Mesh | null = null;
+  if (walkMode) {
+    controls.enabled = false;
+    player = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x8fd8e8, roughness: 0.5, emissive: 0x2a6a78, emissiveIntensity: 0.35,
+      }),
+    );
+    player.castShadow = true;
+    scene.add(player);
+    player.position.set(playerPos.x, 0.85, playerPos.z);
+    let dragging = false;
+    renderer.domElement.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      renderer.domElement.setPointerCapture(e.pointerId);
+    });
+    renderer.domElement.addEventListener("pointerup", () => { dragging = false; });
+    renderer.domElement.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      camYaw -= e.movementX * 0.0052;
+      camPitch = Math.min(1.25, Math.max(0.15, camPitch + e.movementY * 0.004));
+    });
+    renderer.domElement.addEventListener("wheel", (e) => {
+      camDist = Math.min(10, Math.max(2.6, camDist + e.deltaY * 0.004));
+    }, { passive: true });
+    window.addEventListener("keydown", (e) => keys.add(e.code));
+    window.addEventListener("keyup", (e) => keys.delete(e.code));
+  }
+
   const preset = presets[options.cam] ?? presets.vestibule!;
-  controls.target.set(...preset.target);
-  camera.position.set(
-    preset.target[0] + preset.offset[0],
-    preset.target[1] + preset.offset[1],
-    preset.target[2] + preset.offset[2],
-  );
+  if (!walkMode) {
+    controls.target.set(...preset.target);
+    camera.position.set(
+      preset.target[0] + preset.offset[0],
+      preset.target[1] + preset.offset[1],
+      preset.target[2] + preset.offset[2],
+    );
+  }
 
   const hud = setupHud(container);
   loading.remove();
@@ -689,10 +798,18 @@ export async function startDungeonPreview(
   hooks.__dungeonLayout = layout;
   hooks.__dungeonRenderer = renderer;
   hooks.__dungeonCamera = camera;
-  hooks.__dungeonControls = controls;
+  hooks.__dungeonControls = walkMode ? null : controls;
   hooks.__dungeonFrames = 0;
   hooks.__dungeonLoopError = null;
   hooks.__dungeonStats = { calls: 0, triangles: 0, geometries: 0, textures: 0 };
+  hooks.__dungeonMode = walkMode ? "walk" : "orbit";
+  hooks.__dungeonPlayer = { x: playerPos.x, z: playerPos.z };
+  hooks.__dungeonWalkTo = (x, z) => {
+    if (!walkMode || !isWalkable(x, z)) return false;
+    playerPos.set(x, 0, z);
+    return true;
+  };
+  hooks.__dungeonKeys = keys; // probe visibility
 
   const clock = new THREE.Clock();
   let fpsAccum = 0;
@@ -713,7 +830,50 @@ export async function startDungeonPreview(
         fpsFrames = 0;
       }
       for (const tick of tickables) tick(elapsed);
-      controls.update();
+      if (walkMode && player) {
+        // movement relative to the camera's ground forward
+        const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
+        const step = (run ? 6.2 : 3.2) * delta;
+        if (keys.has("KeyQ")) camYaw += delta * 1.9;
+        if (keys.has("KeyE")) camYaw -= delta * 1.9;
+        const fwd = new THREE.Vector3();
+        camera.getWorldDirection(fwd);
+        fwd.y = 0;
+        fwd.normalize();
+        const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0));
+        let mx = 0;
+        let mz = 0;
+        if (keys.has("KeyW") || keys.has("ArrowUp")) mz += 1;
+        if (keys.has("KeyS") || keys.has("ArrowDown")) mz -= 1;
+        if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
+        if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
+        if (mx !== 0 || mz !== 0) {
+          const move = fwd.multiplyScalar(mz).add(right.multiplyScalar(mx));
+          move.normalize().multiplyScalar(step);
+          const nx = playerPos.x + move.x;
+          const nz = playerPos.z + move.z;
+          if (isWalkable(nx, nz)) {
+            playerPos.set(nx, 0, nz);
+          } else if (isWalkable(nx, playerPos.z)) {
+            playerPos.set(nx, 0, playerPos.z); // slide along walls
+          } else if (isWalkable(playerPos.x, nz)) {
+            playerPos.set(playerPos.x, 0, nz);
+          }
+          player.rotation.y = Math.atan2(move.x, move.z);
+        }
+        player.position.set(playerPos.x, 0.85, playerPos.z);
+        const cp = Math.cos(camPitch);
+        camera.position.set(
+          playerPos.x + Math.sin(camYaw) * camDist * cp,
+          1.4 + Math.sin(camPitch) * camDist,
+          playerPos.z + Math.cos(camYaw) * camDist * cp,
+        );
+        camera.lookAt(playerPos.x, 1.4, playerPos.z);
+        hooks.__dungeonPlayer.x = playerPos.x;
+        hooks.__dungeonPlayer.z = playerPos.z;
+      } else {
+        controls.update();
+      }
       renderer.render(scene, camera);
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {
@@ -723,9 +883,9 @@ export async function startDungeonPreview(
         textures: renderer.info.memory.textures,
       };
       hud.textContent =
-        `breach-v2 preview  seed ${options.seed}  path ${options.path}  cam ${options.cam}  ${fpsText}\n` +
+        `breach-v2 preview  seed ${options.seed}  path ${options.path}  ${walkMode ? "WALK — WASD/arrows move · drag look · wheel zoom · Q/E rotate · shift sprint" : `cam ${options.cam}`}  ${fpsText}\n` +
         `chambers ${layout.meta.chamberCount} (${layout.rooms.filter((r) => !r.fixed).map((r) => ("poolRoomId" in r ? r.poolRoomId : r.id)).join(", ")})  ` +
-        `boss ${layout.boss.pattern}\n` +
+        `boss ${layout.boss.pattern}${walkMode ? `  ·  at (${playerPos.x.toFixed(1)}, ${playerPos.z.toFixed(1)})` : ""}\n` +
         `calls ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +
         `textures ${hooks.__dungeonStats.textures}`;
     } catch (error) {

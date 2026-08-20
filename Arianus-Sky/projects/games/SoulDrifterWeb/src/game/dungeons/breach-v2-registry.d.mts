@@ -96,6 +96,7 @@ export interface BreachV2Registry {
     perRun: number;
     note: string;
     anchorSockets: [number, number][];
+    runeCircle: { radius: number; note: string };
   };
   tables: {
     spawn: Record<"wayfarer" | "oathbreaker", BreachV2SpawnPreset>;

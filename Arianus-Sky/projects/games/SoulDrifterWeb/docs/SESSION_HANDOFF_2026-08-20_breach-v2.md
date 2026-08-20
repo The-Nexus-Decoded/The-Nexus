@@ -40,6 +40,20 @@ Apprentice is non-commercial; shipping needs the licensed export path per runboo
 Rebuild: `node --experimental-strip-types scripts/houdini/export-breach-v2-layout.mjs 4182 wayfarer <out.json>`
 then `hython scripts/houdini/build-breach-v2-apprentice.py <layout.json> <hip> <obj> . <workspace>`.
 
+## Owner visual feedback applied (2026-08-20, second pass)
+
+- Ashen Lock enlarged 24×18 → 30×22 m; **glowing rune circle** (ring + 12 rune marks,
+  pulsing ember) at the seeded boss anchor socket.
+- Soul Well rebuilt per owner: raised octagonal **stone basin** built into the ground,
+  recessed **silvery shimmering water** (liquid, not neon), stone emergence step, smaller
+  shard. Ilyra moved clear of the basin rim.
+- Wall-map accent lights so the atlas/section/zone maps read at zoom (§5A).
+- Walk mode: `&cam=walk` — WASD/arrows on the generator's own walkable cells (collision
+  proven by the invariant suite), drag look, wheel zoom, Q/E rotate, shift sprint.
+  Default preview stays the vestibule orbit preset; in-game walking waits for QA deploy.
+- The whole level is open for the owner in the Houdini GUI (hmaster, crash-safe env vars):
+  `source-assets/houdini/breach-v2-apprentice.hipnc`.
+
 ## Open issues (owner rulings needed)
 
 1. **Build size:** RESOLVED by owner ruling 2026-08-20 — no fixed deployment budget for

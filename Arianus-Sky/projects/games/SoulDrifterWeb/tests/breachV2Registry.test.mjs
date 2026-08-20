@@ -24,8 +24,8 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     ]);
     expect(fixedById.vestibule.w).toBe(30);
     expect(fixedById.vestibule.h).toBe(22);
-    expect(fixedById["ashen-lock"].w).toBe(24);
-    expect(fixedById["ashen-lock"].h).toBe(18);
+    expect(fixedById["ashen-lock"].w).toBe(30);
+    expect(fixedById["ashen-lock"].h).toBe(22);
     // spine adjacency: vestibule -> link -> plaza are x-contiguous
     expect(fixedById["plaza-link"].x).toBe(fixedById.vestibule.x + fixedById.vestibule.w);
     expect(fixedById["threshold-plaza"].x).toBe(fixedById["plaza-link"].x + fixedById["plaza-link"].w);

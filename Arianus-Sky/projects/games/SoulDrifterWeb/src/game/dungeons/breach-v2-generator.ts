@@ -230,8 +230,8 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   };
   link("conv-ante", [188, 10], [192, 10], 3.2);
   link("ante-boss", [204, 10], [208, 10], 3.2);
-  link("boss-vault", [232, 7], [236, 7], 2.5);   // sealed until the Warden falls (state, not geometry)
-  link("boss-exit", [232, 15], [236, 15], 2.5);
+  link("boss-vault", [238, 7], [242, 7], 2.5);   // sealed until the Warden falls (state, not geometry)
+  link("boss-exit", [238, 15], [242, 15], 2.5);
   const allCorridors = [...corridors, ...fixedConnectors];
 
   // --- placements: fixed rooms + chamber templates, world-space

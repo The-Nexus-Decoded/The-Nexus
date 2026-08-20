@@ -15,10 +15,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from breach_v2_design import (  # noqa: E402
-    ASSET_META, BOOK_PROPS, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT,
-    DRESSING, EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, KIT_DIMS,
-    LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY,
-    SPAWN_TABLE, VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
+    ASSET_META, BOOK_PROPS, BOSS_ANCHOR_SOCKETS, BOSS_RUNE_CIRCLE, BOSS_SET,
+    CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING, EASY_POOL, FIXED_DRESSING,
+    FIXED_ROOMS, HARD_POOL, KIT_DIMS, LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS,
+    PROP_TABLE, SEED_POLICY, SPAWN_TABLE, VESTIBULE_LANDMARKS, WALL_ART,
+    WORLD_ANCHOR,
 )
 
 ROOM_INDEX = {r["id"]: r for r in FIXED_ROOMS}
@@ -130,7 +131,8 @@ def main():
         "pools": {"easy": easy, "hard": hard},
         "bossSet": {"bosses": BOSS_SET["bosses"], "perRun": BOSS_SET["perRun"],
                     "note": BOSS_SET["note"],
-                    "anchorSockets": [[218.5, 6.0], [225.5, 6.0], [222.0, 14.5]]},
+                    "anchorSockets": [list(a) for a in BOSS_ANCHOR_SOCKETS],
+                    "runeCircle": BOSS_RUNE_CIRCLE},
         "tables": {"spawn": SPAWN_TABLE, "loot": LOOT_TABLE, "props": PROP_TABLE},
         "corruption": [{"area": n, "level": v} for n, v in CORRUPTION_GRADIENT],
         "seedPolicy": dict(SEED_POLICY),

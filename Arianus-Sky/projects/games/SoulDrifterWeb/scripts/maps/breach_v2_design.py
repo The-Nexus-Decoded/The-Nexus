@@ -41,17 +41,17 @@ FIXED_ROOMS = [
     ),
     dict(
         id="ashen-lock", name="The Ashen Lock (boss)", kind="boss",
-        x=208.0, y=1.0, w=24.0, h=18.0,
-        notes="Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets; V2 ships exactly 1 boss.",
+        x=208.0, y=-1.0, w=30.0, h=22.0,
+        notes="Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets with a glowing rune circle at the active anchor; V2 ships exactly 1 boss.",
     ),
     dict(
         id="memory-vault", name="First Memory Vault", kind="vault",
-        x=236.0, y=3.0, w=10.0, h=8.0,
+        x=242.0, y=3.0, w=10.0, h=8.0,
         notes="Sealed until the Warden falls. First Memory on the dais; awarded exactly once.",
     ),
     dict(
         id="exit-connector", name="The Way Upward (exit Connector)", kind="exit",
-        x=236.0, y=12.0, w=16.0, h=6.0,
+        x=242.0, y=12.0, w=16.0, h=6.0,
         notes="Ascending passage out of the Breach -> Heartvale hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
     ),
 ]
@@ -61,7 +61,7 @@ VESTIBULE_LANDMARKS = [
     dict(id="soul-well", label="Soul Well (V14): silvery glowing pool", x=8.75, y=11.0,
          r=1.8, apron=2.65, note="pool Ø 3.6 m, rim apron Ø 5.3 m"),
     dict(id="player-emergence", label="Player emergence point", x=8.75, y=14.2, r=0.5),
-    dict(id="ilyra", label="Wellkeeper Ilyra (Chronicle of Returning)", x=11.5, y=12.8, r=0.45),
+    dict(id="ilyra", label="Wellkeeper Ilyra (Chronicle of Returning)", x=12.6, y=13.6, r=0.45),
     dict(id="memory-loom", label="Memory Loom (TRUE loom) — 3 stat pts · 1 ancestry boon · 1 discipline", x=3.6, y=8.2, r=1.3),
     dict(id="coffer", label="Wayfarer's Coffer (starter gear inspection)", x=24.4, y=14.6, r=0.9),
     dict(id="effigy", label="True training effigy (level-one rehearsal)", x=21.8, y=6.4, r=0.9),
@@ -191,6 +191,9 @@ BOSS_SET = dict(
     perRun=1,
     note="V2 ships exactly one boss; 3 anchor sockets + set architecture keep 3-of-6 boss sets possible later.",
 )
+# boss anchor sockets (world meters); the seeded active anchor gets the glowing rune circle
+BOSS_ANCHOR_SOCKETS = [(217.5, 4.5), (228.5, 4.5), (223.0, 15.5)]
+BOSS_RUNE_CIRCLE = dict(radius=2.6, note="glowing rune circle on the floor at the active boss anchor")
 
 SEED_POLICY = dict(
     layoutSeed="topology, chamber pick+order from path pool, corridor bends, encounter placement, boss pattern",
@@ -325,13 +328,13 @@ FIXED_DRESSING = {
                         ("chain-shackle", 6.0, 0.4),
                         ("masonry-barricade", 10.5, 7.0), ("weapon-armor-heap", 3.0, 7.0),
                         ("floor-brazier", 6.0, 4.5)],  # archway frames the portcullis door
-    "ashen-lock": [("broken-stone-stair-dais", 14.0, 9.0), ("guardian-statue", 3.5, 3.0),
-                   ("guardian-statue", 3.5, 15.0), ("corruption-growth", 20.0, 3.0),
-                   ("corruption-growth", 20.0, 14.0), ("corruption-growth", 10.0, 15.5),
-                   ("chain-shackle", 8.0, 0.4), ("chain-shackle", 16.0, 0.4),
-                   ("floor-brazier", 6.0, 9.0), ("floor-brazier", 18.0, 9.0),
-                   ("bone-pile", 12.0, 13.0), ("cave-in-rubble", 2.5, 12.0),
-                   ("hanging-brazier", 14.0, 5.0)],  # over the dais approach
+    "ashen-lock": [("broken-stone-stair-dais", 20.0, 11.0), ("guardian-statue", 3.5, 3.5),
+                   ("guardian-statue", 3.5, 18.5), ("corruption-growth", 25.0, 4.0),
+                   ("corruption-growth", 25.0, 17.0), ("corruption-growth", 12.0, 18.5),
+                   ("chain-shackle", 9.0, 0.4), ("chain-shackle", 20.0, 0.4),
+                   ("floor-brazier", 7.0, 11.0), ("floor-brazier", 23.0, 11.0),
+                   ("bone-pile", 14.0, 14.5), ("cave-in-rubble", 2.5, 14.0),
+                   ("hanging-brazier", 15.0, 7.0)],  # over the dais approach
     "memory-vault": [("reliquary-wall-alcove", 2.5, 0.4), ("reliquary-wall-alcove", 7.5, 0.4),
                      ("candelabra-cluster", 2.0, 6.5), ("candelabra-cluster", 8.0, 6.5),
                      ("storage-chest", 8.0, 2.2)],  # Warden's cache beside the First Memory dais
@@ -369,8 +372,8 @@ WALL_ART = {
                         ("art-banner-oathbreaker", 15.7, 9.5, 1.4)],   # above the Oathbreaker door
     "convergence": [("art-banner-ashen", 0.3, 5.0, 1.4)],              # warning banner between entries
     "ashen-threshold": [("art-relief-warden", 9.5, 0.35, 1.8)],        # the Warden's warning relief
-    "ashen-lock": [("art-banner-cinderbound", 12.0, 0.35, 1.6),
-                   ("art-banner-cinderbound", 20.5, 0.35, 1.6)],
+    "ashen-lock": [("art-banner-cinderbound", 13.0, 0.35, 1.6),
+                   ("art-banner-cinderbound", 23.0, 0.35, 1.6)],
     "memory-vault": [("art-relief-first-memory", 5.0, 0.35, 1.8)],     # above the dais
     # pool rooms
     "E-03": [("art-painting-reliquary", 7.0, 0.35, 1.6)],

@@ -17,7 +17,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from breach_v2_design import (
-    ASSET_META, BOOK_PROPS, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING,
+    ASSET_META, BOOK_PROPS, BOSS_ANCHOR_SOCKETS, BOSS_RUNE_CIRCLE, BOSS_SET, CORRIDOR_WIDTH,
+    CORRUPTION_GRADIENT, DRESSING,
     EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE, PATH_SLOTS,
     PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY, SLOT_BOX, SPAWN_TABLE,
     VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
@@ -260,7 +261,7 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
           "Vestibule + Plaza detailed in panel A2)", font(30, bold=True), PAPER)
 
     # 5 m reference grid across the plan area
-    for gm in range(0, 256, 5):
+    for gm in range(0, 266, 5):
         x, _ = plan_px(gm, 0)
         draw.line([x, SPINE_Y0, x, SPINE_Y0 + SPINE_H], fill=GRID, width=1)
         if gm % 10 == 0:
@@ -395,7 +396,7 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     label(draw, (px0 + px1) / 2, py0 - 24, "Threshold Plaza — FIXED · 16 x 12 m · SAFE",
           font(17, bold=True), PAPER, anchor="ma")
     for lm in PLAZA_LANDMARKS:
-        dlx, dly = plan_px(lm["x"], lm["y"])
+        dlx, dly = plan_px(36.0 + lm["x"], 4.0 + lm["y"])  # plaza landmarks are room-local
         if lm["id"].startswith("door-"):
             color = CYAN if lm["id"] == "door-wayfarer" else EMBER
             draw_door(draw, dlx, dly, lm["w"], "E", color)
@@ -420,28 +421,32 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     draw_door(draw, *plan_px(208.0, 10.0), 3.5, "W", EMBER)
     label(draw, *plan_px(210.0, 12.4), "one-way portcullis", font(13, bold=True), EMBER)
 
-    for ax, ay in [(218.5, 6.0), (225.5, 6.0), (222.0, 14.5)]:
+    for ax, ay in BOSS_ANCHOR_SOCKETS:
         axp, ayp = plan_px(ax, ay)
+        rr = BOSS_RUNE_CIRCLE["radius"] * PPM
+        draw.ellipse([axp - rr, ayp - rr, axp + rr, ayp + rr], outline=EMBER + (150,), width=2)
+        draw.ellipse([axp - rr * 0.72, ayp - rr * 0.72, axp + rr * 0.72, ayp + rr * 0.72],
+                     outline=EMBER + (90,), width=1)
         draw.polygon([(axp, ayp - 7), (axp + 7, ayp), (axp, ayp + 7), (axp - 7, ayp)],
                      outline=EMBER, width=2)
-    bx, by = plan_px(222.0, 10.0)
+    bx, by = plan_px(223.0, 10.0)
     draw.polygon([(bx, by - 13), (bx + 13, by), (bx, by + 13), (bx - 13, by)], fill=EMBER)
     tag(draw, *plan_px(209.5, 3.4), "CINDERBOUND WARDEN", EMBER)
-    label(draw, *plan_px(224, 17.0), "boss set 1 of 1 · 3 anchors · corruption 1.00",
+    label(draw, *plan_px(223, 19.6), "boss set 1 of 1 · 3 rune-circle anchors · corruption 1.00",
           font(13), (225, 150, 130), anchor="ma")
 
     # Vault link + First Memory
-    draw.line([plan_px(232.0, 7.0), plan_px(236.0, 7.0)], fill=VIOLET + (160,), width=int(2.5 * PPM))
-    draw_door(draw, *plan_px(236.0, 7.0), 2.5, "W", VIOLET)
-    mx, my = plan_px(241.0, 7.0)
+    draw.line([plan_px(238.0, 7.0), plan_px(242.0, 7.0)], fill=VIOLET + (160,), width=int(2.5 * PPM))
+    draw_door(draw, *plan_px(242.0, 7.0), 2.5, "W", VIOLET)
+    mx, my = plan_px(247.0, 7.0)
     draw.polygon([(mx, my - 10), (mx + 9, my), (mx, my + 10), (mx - 9, my)], fill=VIOLET)
-    label(draw, *plan_px(241, 9.4), "FIRST MEMORY — once", font(12, bold=True), VIOLET, anchor="ma")
+    label(draw, *plan_px(247, 9.4), "FIRST MEMORY — once", font(12, bold=True), VIOLET, anchor="ma")
 
     # Exit connector -> Heartvale
-    draw.line([plan_px(232.0, 15.0), plan_px(236.0, 15.0)], fill=(140, 130, 100), width=int(2.5 * PPM))
-    ex, ey = plan_px(252.0, 15.0)
+    draw.line([plan_px(238.0, 15.0), plan_px(242.0, 15.0)], fill=(140, 130, 100), width=int(2.5 * PPM))
+    ex, ey = plan_px(258.0, 15.0)
     draw.polygon([(ex - 4, ey - 12), (ex + 14, ey), (ex - 4, ey + 12)], fill=GREEN)
-    label(draw, *plan_px(244, 13.4), "ascending passage", font(12), GREEN, anchor="ma")
+    label(draw, *plan_px(250, 13.4), "ascending passage", font(12), GREEN, anchor="ma")
     tag(draw, *plan_px(196.0, 22.6),
         f"EXIT → Heartvale hv-1 (Soul Well Basin) · anchor ({WORLD_ANCHOR['x']}, {WORLD_ANCHOR['y']})",
         GREEN)
@@ -591,7 +596,7 @@ def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
 
     # plaza NPCs + doors
     for lm in PLAZA_LANDMARKS:
-        lx, ly = a2_px(lm["x"], lm["y"])
+        lx, ly = a2_px(36.0 + lm["x"], 4.0 + lm["y"])  # plaza landmarks are room-local
         if lm["id"].startswith("door-"):
             color = CYAN if lm["id"] == "door-wayfarer" else EMBER
             draw_door(draw, lx, ly, lm["w"], "E", color)
