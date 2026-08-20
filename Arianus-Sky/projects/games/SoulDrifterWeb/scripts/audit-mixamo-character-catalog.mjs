@@ -63,10 +63,7 @@ async function fetchCatalog() {
 }
 
 function allSelections(ledger) {
-  return [
-    ...ledger.namedNpcAssignments.map((entry) => ({ ...entry, lane: "named-placeholder" })),
-    ...ledger.backgroundNpcRoster.map((entry) => ({ ...entry, lane: "background" })),
-  ];
+  return ledger.backgroundNpcRoster.map((entry) => ({ ...entry, lane: "background" }));
 }
 
 function validateLedger(ledger, catalog) {
@@ -97,8 +94,14 @@ function validateLedger(ledger, catalog) {
     mixamoIds.add(selection.mixamoCharacterId);
   }
 
-  if (ledger.namedNpcAssignments.length !== 3) {
-    errors.push("named NPC placeholder matrix must contain exactly Ilyra, Orren, and Brannoc");
+  if (ledger.policy.mixamoNamedNpcUseAllowed !== false) {
+    errors.push("Mixamo character bodies must remain background-only");
+  }
+  if (ledger.namedNpcAssemblies.length !== 3) {
+    errors.push("canonical named NPC assembly matrix must contain Ilyra, Orren, and Brannoc");
+  }
+  if (ledger.namedNpcAssemblies.some((entry) => "mixamoCharacterId" in entry)) {
+    errors.push("named NPC assemblies must not reference Mixamo character IDs");
   }
   if (ledger.policy.productionAcceptanceAllowed !== false) {
     errors.push("temporary Mixamo NPCs must not satisfy final custom-NPC acceptance");

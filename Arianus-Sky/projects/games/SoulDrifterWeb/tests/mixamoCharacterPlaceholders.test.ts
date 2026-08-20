@@ -2,38 +2,46 @@ import { describe, expect, it } from "vitest";
 import ledger from "../docs/animation/mixamo-character-placeholder-ledger.json";
 
 describe("Mixamo temporary NPC character ledger", () => {
-  it("keeps temporary stand-ins separate from final named-NPC acceptance", () => {
+  it("keeps Mixamo characters background-only", () => {
     expect(ledger.issue).toBe(448);
-    expect(ledger.policy.purpose).toBe("temporary-playable-npc-stand-ins");
+    expect(ledger.policy.purpose).toBe("background-npc-placeholders-and-catalog-provenance");
     expect(ledger.policy.runtimePromotionAllowedAfterLocalAudit).toBe(true);
     expect(ledger.policy.productionAcceptanceAllowed).toBe(false);
     expect(ledger.policy.namedNpcCustomSourcesPreserved).toBe(true);
-    expect(ledger.policy.namedNpcCustomReplacementStillRequired).toBe(true);
+    expect(ledger.policy.namedNpcCustomReplacementStillRequired).toBe(false);
+    expect(ledger.policy.namedNpcAssemblyMode).toBe("canonical-race-rig-modular-identity");
+    expect(ledger.policy.mixamoNamedNpcUseAllowed).toBe(false);
+    expect(ledger.policy.namedNpcFullBodyExportRequired).toBe(false);
     expect(ledger.policy.noPaidProviderOperationRequired).toBe(true);
   });
 
-  it("assigns one exact Mixamo source to each First Breach named NPC", () => {
-    expect(ledger.namedNpcAssignments.map((entry) => entry.npcId).sort()).toEqual([
+  it("assembles each named NPC from its canonical ancestry rig", () => {
+    expect(ledger.namedNpcAssemblies.map((entry) => entry.npcId).sort()).toEqual([
       "brannoc",
       "ilyra",
       "orren",
     ]);
-    for (const entry of ledger.namedNpcAssignments) {
-      expect(entry.temporary).toBe(true);
-      expect(entry.state).toBe("selected-awaiting-download");
-      expect(entry.mixamoCharacterId).toMatch(/^[0-9a-f-]{36}$/);
-      expect(entry.runtimeAssetId).toMatch(/^npc\.placeholder\./);
-      expect(entry.expectedDownloadFile).toMatch(/^sd-mixamo-npc-.+-v001\.fbx$/);
+    expect(ledger.namedNpcAssemblies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ npcId: "ilyra", ancestry: "human", presentation: "feminine" }),
+        expect.objectContaining({ npcId: "orren", ancestry: "elf", presentation: "masculine" }),
+        expect.objectContaining({ npcId: "brannoc", ancestry: "dwarf", presentation: "masculine" }),
+      ]),
+    );
+    for (const entry of ledger.namedNpcAssemblies) {
+      expect(entry.state).toBe("mvp-assembly-required");
+      expect(entry.runtimeAssetId).toMatch(/^npc\.named\./);
+      expect(entry.bodyRigAssetId).toMatch(new RegExp(`^body-${entry.ancestry}-${entry.presentation}-`));
+      expect(entry).not.toHaveProperty("mixamoCharacterId");
     }
   });
 
-  it("uses unique source and runtime IDs across the complete placeholder roster", () => {
-    const completeRoster = [...ledger.namedNpcAssignments, ...ledger.backgroundNpcRoster];
-    expect(new Set(completeRoster.map((entry) => entry.runtimeAssetId)).size).toBe(
-      completeRoster.length,
+  it("uses unique Mixamo sources and runtime IDs for the background roster", () => {
+    expect(new Set(ledger.backgroundNpcRoster.map((entry) => entry.runtimeAssetId)).size).toBe(
+      ledger.backgroundNpcRoster.length,
     );
-    expect(new Set(completeRoster.map((entry) => entry.mixamoCharacterId)).size).toBe(
-      completeRoster.length,
+    expect(new Set(ledger.backgroundNpcRoster.map((entry) => entry.mixamoCharacterId)).size).toBe(
+      ledger.backgroundNpcRoster.length,
     );
     expect(ledger.backgroundNpcRoster.length).toBeGreaterThanOrEqual(8);
   });

@@ -9,11 +9,14 @@
     "licenseSummary": "Mixamo characters and animations may be used royalty-free in commercial video games; raw source files must remain project assets rather than a separately redistributed asset pack."
   },
   "policy": {
-    "purpose": "temporary-playable-npc-stand-ins",
+    "purpose": "background-npc-placeholders-and-catalog-provenance",
     "runtimePromotionAllowedAfterLocalAudit": true,
     "productionAcceptanceAllowed": false,
     "namedNpcCustomSourcesPreserved": true,
-    "namedNpcCustomReplacementStillRequired": true,
+    "namedNpcCustomReplacementStillRequired": false,
+    "namedNpcAssemblyMode": "canonical-race-rig-modular-identity",
+    "mixamoNamedNpcUseAllowed": false,
+    "namedNpcFullBodyExportRequired": false,
     "mixamoCharacterNamesAreSourceProvenanceNotSoulDrifterLoreNames": true,
     "requiredDownload": {
       "format": "FBX Binary",
@@ -38,36 +41,45 @@
     "rawDownloadDirectory": "external-intake-only",
     "noPaidProviderOperationRequired": true
   },
-  "namedNpcAssignments": [
+  "namedNpcAssemblies": [
     {
       "npcId": "ilyra",
-      "runtimeAssetId": "npc.placeholder.ilyra.mixamo.peasant-girl",
-      "mixamoCharacterId": "58978fe0-8573-4d51-9666-f6c075f64fd0",
-      "mixamoCharacterName": "Peasant Girl",
-      "expectedDownloadFile": "sd-mixamo-npc-ilyra-placeholder-peasant-girl-v001.fbx",
-      "fitReason": "grounded medieval civilian silhouette suitable for the Wellkeeper role",
-      "state": "selected-awaiting-download",
-      "temporary": true
+      "runtimeAssetId": "npc.named.ilyra.canonical-v001",
+      "ancestry": "human",
+      "presentation": "feminine",
+      "bodyRigAssetId": "body-human-feminine-heavy-v001",
+      "headAssetId": "head-west-eurasian-feminine-v001",
+      "hairAssetId": "hair-fem-braided-crown-v001",
+      "hairColorId": "silver",
+      "clothingAssemblyId": "npc-ilyra-pilgrim-blue-grey-v001",
+      "appearanceReferenceAssetId": "npc-ilyra-image-first-v001",
+      "state": "mvp-assembly-required"
     },
     {
       "npcId": "orren",
-      "runtimeAssetId": "npc.placeholder.orren.mixamo.dreyar",
-      "mixamoCharacterId": "2ab5fc24-52ac-472b-9171-98c05cca7e78",
-      "mixamoCharacterName": "Dreyar By M.Aure",
-      "expectedDownloadFile": "sd-mixamo-npc-orren-placeholder-dreyar-v001.fbx",
-      "fitReason": "lean fantasy field-combat silhouette suitable for a Breach scout",
-      "state": "selected-awaiting-download",
-      "temporary": true
+      "runtimeAssetId": "npc.named.orren.canonical-v001",
+      "ancestry": "elf",
+      "presentation": "masculine",
+      "bodyRigAssetId": "body-elf-masculine-heavy-v001",
+      "headAssetId": "head-south-asian-indian-masculine-v001",
+      "hairAssetId": "hair-masc-topknot-v001",
+      "hairColorId": "near-black",
+      "clothingAssemblyId": "npc-orren-field-leather-green-scarf-v001",
+      "appearanceReferenceAssetId": "npc-orren-image-first-v001",
+      "state": "mvp-assembly-required"
     },
     {
       "npcId": "brannoc",
-      "runtimeAssetId": "npc.placeholder.brannoc.mixamo.peasant-man",
-      "mixamoCharacterId": "5fb4b535-034a-4011-af3b-2880391547a5",
-      "mixamoCharacterName": "Peasant Man",
-      "expectedDownloadFile": "sd-mixamo-npc-brannoc-placeholder-peasant-man-v001.fbx",
-      "fitReason": "stocky bearded medieval silhouette suitable for the Arena Warden placeholder",
-      "state": "selected-awaiting-download",
-      "temporary": true
+      "runtimeAssetId": "npc.named.brannoc.canonical-v001",
+      "ancestry": "dwarf",
+      "presentation": "masculine",
+      "bodyRigAssetId": "body-dwarf-masculine-heavy-v001",
+      "headAssetId": "head-west-eurasian-masculine-v001",
+      "hairAssetId": "hair-masc-swept-back-v001",
+      "hairColorId": "silver",
+      "clothingAssemblyId": "npc-brannoc-arena-leather-blue-grey-v001",
+      "appearanceReferenceAssetId": "npc-brannoc-image-first-v001",
+      "state": "mvp-assembly-required"
     }
   ],
   "backgroundNpcRoster": [
