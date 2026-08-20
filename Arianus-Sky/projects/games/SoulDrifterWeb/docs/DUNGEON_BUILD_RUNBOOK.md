@@ -107,7 +107,15 @@ verify the registry against the flat map (measured-only, like POI anchors).
 5. Commit early, commit often; resume the builder chat on turn limit.
 6. Never leave a dev server running when a task ends.
 7. Visual direction is **true 3D** (owner ruling 2026-08-20 — the Heartvale
-   outdoor look is the benchmark; isometric framing is dropped).
+   outdoor look is the benchmark; isometric framing is dropped). The failure
+   lesson behind the old isometric rule still binds: the logical gameplay
+   grid stays hidden under a visually continuous environment — no visible
+   repeated cells at gameplay distance.
+8. Houdini Apprentice is non-commercial and `.hipnc` cannot run in the
+   browser. Prototype freely, but shipping assets must go through an
+   approved licensed Houdini or Blender export path; Three.js is the runtime.
+9. No paid provider operation (generation, texture, rig, remesh, purchase,
+   retry) without a new exact-cost owner approval.
 
 ## 7. Review gate (mandatory)
 
