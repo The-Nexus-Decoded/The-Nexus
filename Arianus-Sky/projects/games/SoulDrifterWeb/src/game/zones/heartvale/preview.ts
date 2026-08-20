@@ -308,9 +308,23 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   const clock = new THREE.Clock();
   const tickables = [rivers.userData.tick, grass.userData.tick].filter(Boolean);
 
+  // FPS/frame-ms meter (latency smoke, visible on the dev HUD line).
+  let fpsAccum = 0;
+  let fpsFrames = 0;
+  let fpsText = "…";
+
   renderer.setAnimationLoop(() => {
     try {
-      const elapsed = clock.getElapsedTime();
+      const delta = clock.getDelta();
+      const elapsed = clock.elapsedTime;
+      fpsAccum += delta;
+      fpsFrames += 1;
+      if (fpsAccum >= 0.5) {
+        const fps = fpsFrames / fpsAccum;
+        fpsText = `${fps.toFixed(0)} fps · ${(1000 / fps).toFixed(1)} ms`;
+        fpsAccum = 0;
+        fpsFrames = 0;
+      }
       for (const tick of tickables) tick(elapsed);
       controls.update();
 
@@ -326,7 +340,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
       const wz = controls.target.z + data.meta.plateOffset[1];
       const zone = zoneAt(data.meta, wx, wz);
       hud.textContent =
-        `zone preview: ${zoneId}  cam: ${presetName}\n` +
+        `zone preview: ${zoneId}  cam: ${presetName}  ${fpsText}\n` +
         `world: ${wx.toFixed(1)}, ${wz.toFixed(1)} m  ` +
         `zone: ${zone ? `${zone.id} · ${zone.name}` : "outside section"}`;
       composer.render();
