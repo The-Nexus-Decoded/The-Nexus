@@ -124,6 +124,75 @@ function setupHud(container: HTMLElement): HTMLDivElement {
   return hud;
 }
 
+/** Hidden dev/test teleport panel — never shown to normal users.
+ * Open with `?dev=1` or by pressing backtick (`). Buttons teleport the
+ * camera to any POI anchor or zone center, or swap camera presets. */
+function setupDevPanel(
+  container: HTMLElement,
+  data: ZoneData,
+  visible: boolean,
+  teleport: (x: number, z: number, offset: [number, number, number]) => void,
+  presetJump: (name: string) => void,
+): void {
+  const panel = document.createElement("div");
+  panel.style.cssText = [
+    "position:absolute", "top:10px", "right:10px", "padding:10px 12px",
+    "background:rgba(8,10,8,0.78)", "color:#e8dcc0", "font:12px/1.7 monospace",
+    "border-radius:8px", "border:1px solid #4a4632", "max-height:90vh",
+    "overflow-y:auto", "display:", visible ? "block" : "none",
+  ].join(";").replace("display:;", visible ? "display:block;" : "display:none;");
+
+  const title = document.createElement("div");
+  title.textContent = "DEV TELEPORT (` to hide)";
+  title.style.cssText = "color:#c9a84c;font-weight:bold;margin-bottom:6px;";
+  panel.appendChild(title);
+
+  const addButton = (label: string, onClick: () => void) => {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.style.cssText =
+      "display:block;width:100%;text-align:left;margin:2px 0;padding:3px 8px;" +
+      "background:#232a1e;color:#e8dcc0;border:1px solid #4a4632;border-radius:4px;cursor:pointer;font:11px monospace;";
+    btn.onclick = onClick;
+    panel.appendChild(btn);
+  };
+
+  const section = (label: string) => {
+    const div = document.createElement("div");
+    div.textContent = label;
+    div.style.cssText = "color:#8a9678;margin-top:8px;";
+    panel.appendChild(div);
+  };
+
+  const [offX, offZ] = data.meta.plateOffset;
+
+  section("POI anchors");
+  for (const anchor of data.layout.anchors) {
+    const zone = anchor.zone ? ` [${anchor.zone}]` : "";
+    addButton(`${anchor.id}${zone}`, () =>
+      teleport(anchor.world.x - offX, anchor.world.z - offZ, [22, 14, 22]));
+  }
+
+  section("Zone centers");
+  for (const zoneRect of data.meta.zones) {
+    const cx = (zoneRect.rect.x0 + zoneRect.rect.x1) / 2 - offX;
+    const cz = (zoneRect.rect.z0 + zoneRect.rect.z1) / 2 - offZ;
+    addButton(`${zoneRect.id} · ${zoneRect.name}`, () => teleport(cx, cz, [180, 150, 220]));
+  }
+
+  section("Camera presets");
+  for (const name of ["soulwell", "anwel", "river", "riverclose", "iso"]) {
+    addButton(`cam: ${name}`, () => presetJump(name));
+  }
+
+  container.appendChild(panel);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "`" || event.key === "~") {
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    }
+  });
+}
+
 export async function startZonePreview(container: HTMLElement, zoneId: string): Promise<void> {
   container.style.cssText = "position:fixed;inset:0;overflow:hidden;background:#101410;";
   const loading = document.createElement("div");
@@ -168,6 +237,19 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   const ty = data.field.height(tx, tz);
   controls.target.set(tx, ty, tz);
   camera.position.set(tx + (ox ?? 16), ty + (oy ?? 11), tz + (oz ?? 16));
+
+  // Dev teleport panel (?dev=1 or backtick) — hidden from normal users.
+  const teleportTo = (x: number, z: number, offset: [number, number, number]) => {
+    const y = data.field.height(x, z);
+    controls.target.set(x, y, z);
+    camera.position.set(x + offset[0], y + offset[1], z + offset[2]);
+  };
+  const presetJump = (name: string) => {
+    const p = table[name];
+    if (!p) return;
+    teleportTo(p.target[0], p.target[1], p.offset);
+  };
+  setupDevPanel(container, data, params.get("dev") === "1", teleportTo, presetJump);
 
   // --- Content ---
   scene.add(createTerrain(data.meta, data.field));
