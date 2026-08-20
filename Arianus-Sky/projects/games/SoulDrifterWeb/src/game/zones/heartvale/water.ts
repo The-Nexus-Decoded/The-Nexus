@@ -68,12 +68,22 @@ function buildRibbon(
 
     const y = smoothY[i] ?? 0;
     const o = i * 6;
-    positions[o] = (pts[i]?.x ?? 0) - normal.x * half;
-    positions[o + 1] = y;
-    positions[o + 2] = (pts[i]?.y ?? 0) - normal.y * half;
-    positions[o + 3] = (pts[i]?.x ?? 0) + normal.x * half;
-    positions[o + 4] = y;
-    positions[o + 5] = (pts[i]?.y ?? 0) + normal.y * half;
+    const px = pts[i]?.x ?? 0;
+    const pz = pts[i]?.y ?? 0;
+    const lx = px - normal.x * half;
+    const lz = pz - normal.y * half;
+    const rx = px + normal.x * half;
+    const rz = pz + normal.y * half;
+    // Waterline tuck: ribbon edges hug the bank — clamp each edge vertex just
+    // under the local terrain so banks never stair-step through the surface.
+    const ly = Math.min(y, field.height(lx, lz) - 0.06);
+    const ry = Math.min(y, field.height(rx, rz) - 0.06);
+    positions[o] = lx;
+    positions[o + 1] = ly;
+    positions[o + 2] = lz;
+    positions[o + 3] = rx;
+    positions[o + 4] = ry;
+    positions[o + 5] = rz;
     across[i * 2] = -1;
     across[i * 2 + 1] = 1;
     along[i * 2] = distance;

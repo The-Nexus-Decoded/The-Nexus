@@ -134,10 +134,10 @@ function roofPrism(
     // slope south (+z side)
     hw, y0, hd, -hw, y0, hd, -hw, rise, 0,
     hw, y0, hd, -hw, rise, 0, hw, rise, 0,
-    // gable west (-x)
-    -hw, y0, -hd, -hw, rise, 0, -hw, y0, hd,
-    // gable east (+x)
-    hw, y0, -hd, hw, y0, hd, hw, rise, 0,
+    // gable west (-x) — wound so the face looks OUTWARD (−x)
+    -hw, y0, -hd, -hw, y0, hd, -hw, rise, 0,
+    // gable east (+x) — outward (+x)
+    hw, y0, -hd, hw, rise, 0, hw, y0, hd,
     // underside (closes eaves from below)
     -hw, y0, -hd, -hw, y0, hd, hw, y0, hd,
     -hw, y0, -hd, hw, y0, hd, hw, y0, -hd,
@@ -197,14 +197,18 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
   addBox(g, timber, w + 0.04, 0.09, 0.09, 0, 0.42 + h * 0.55, d / 2 + 0.01, false);
   addBox(g, timber, w + 0.04, 0.09, 0.09, 0, 0.42 + h * 0.55, -d / 2 - 0.01, false);
 
-  // Gable-end timber framing: verticals + diagonals on ±x faces, tucked
-  // under the roof slope so nothing spikes through the shingles.
+  // Gable-end timber: an A-frame of battens lying flat ON the gable plaster
+  // face (never diagonal posts in the air — those spiked through the roof).
   for (const sx of [-1, 1]) {
-    const gx = sx * (w / 2 - 0.06);
-    addBox(g, timber, 0.09, rise * 0.8, 0.09, gx, wallTop + rise * 0.38, 0, false);
+    const gx = sx * (w / 2 + overhang + 0.02);
+    // vertical king post
+    addBox(g, timber, 0.07, rise * 0.92, 0.07, gx, wallTop + rise * 0.46, 0, false);
+    // diagonal struts along the gable slope, pressed against the face
     for (const sz of [-1, 1]) {
-      const brace = addBox(g, timber, 0.07, rise * 0.85, 0.07, gx, wallTop + rise * 0.34, sz * d * 0.14, false);
-      brace.rotation.x = sz * Math.atan2(d / 2, rise) * 0.7;
+      const run = (d / 2 + overhang) * 0.92;
+      const strutLen = Math.hypot(run, rise) * 0.96;
+      const strut = addBox(g, timber, 0.06, strutLen, 0.06, gx, wallTop + rise / 2, sz * run / 2, false);
+      strut.rotation.x = -sz * Math.atan2(run, rise); // long axis along the slope (YZ plane)
     }
   }
 
