@@ -7,7 +7,7 @@ This branch provides a non-commercial Houdini Apprentice pilot for comparing a p
 ## Locked pilot input
 
 - Source layout: `src/game/dungeon.ts#generateSoulwellDungeon`
-- Comparison seed: `2215682322`
+- Owner review seed: `4182`
 - Tile size: `1.75` metres
 - Houdini: `22.0.368`
 - License: Apprentice / non-commercial
@@ -15,7 +15,9 @@ This branch provides a non-commercial Houdini Apprentice pilot for comparing a p
 - Comparison OBJ: generated on demand outside the repository
 - PBR sources: existing `public/assets/textures/environment/first-breach/flagstone-*` and `masonry-*` sets
 
-The Houdini scene preserves the generated training room, galleries, connecting passages, boss arena, prop coordinates, player start, NPC positions, and enemy positions. Its visible model-reference subnet loads the current player, Ilyra, Orren, Brannoc, Breachlings, and Cinderbound Warden models. A hidden library subnet references all current calling and Shadowknight models without placing them into gameplay.
+The Houdini scene preserves the generated training room, galleries, connecting passages, boss arena, prop coordinates, player start, NPC positions, and enemy positions. The approved environment kit is visible under `/obj/APPROVED_DUNGEON_KIT`. The gameplay and complete-character reference subnets remain available but hidden during environment review so character material fallbacks and rig guides cannot contaminate the lighting comparison.
+
+Houdini 22's GLTF 2.0 SOP cannot read images embedded in binary `.glb` files. The deterministic builder therefore extracts each used kit asset's embedded base-color and normal maps into the ignored `source-assets/houdini/.cache/dungeon-kit-textures/` folder, creates a dedicated Principled material, and assigns it to the imported mesh. The cache is regenerated from committed source GLBs and is never a source-of-truth artifact.
 
 ## Owner-directed visual revision
 
@@ -46,7 +48,7 @@ The environment dressing is procedurally authored, not AI-generated and not fixe
 - Monster occupation: bone scatters, broken defenses, disturbed storage, and debris concentrated in skirmish and boss spaces.
 - Gameplay protection: the Houdini scatter rejects tiles close to the player start, NPCs, enemies, authored props, and blocked tiles, then favors walls and corners instead of navigation centers.
 
-The comparison artifact uses seed `2215682322`, but adjacent seed `2215682323` produced a different dungeon size and a different dressing fingerprint. Reusing a seed reproduces its exact dressing. Room identity pieces stay attached to their semantic room and authored prop coordinates, while incidental clutter varies with the seed. Runtime collision remains unchanged in Phase 1; Phase 2 must classify accepted dressing as blocking or non-blocking before it can affect gameplay.
+The current owner-review artifact uses seed `4182`. Reusing a seed reproduces its exact dressing. Room identity pieces stay attached to their semantic room and authored prop coordinates, while incidental clutter varies with the seed. Runtime collision remains unchanged in Phase 1; Phase 2 must classify accepted dressing as blocking or non-blocking before it can affect gameplay.
 
 ## Regeneration
 
@@ -55,7 +57,7 @@ From `SoulDrifterWeb` in PowerShell:
 ```powershell
 $layout = Join-Path $env:TEMP 'souldrifter-first-breach-layout.json'
 $obj = Join-Path $env:TEMP 'souldrifter-first-breach-environment.obj'
-node --experimental-strip-types scripts/houdini/export-first-breach-layout.mjs 2215682322 $layout
+node --experimental-strip-types scripts/houdini/export-first-breach-layout.mjs 4182 $layout
 & 'H:\Program Files\Side Effects Software\Houdini 22.0.368\bin\hython.exe' scripts/houdini/build-first-breach-apprentice.py $layout source-assets/houdini/first-breach-apprentice.hipnc $obj .
 ```
 

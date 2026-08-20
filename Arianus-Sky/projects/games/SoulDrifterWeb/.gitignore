@@ -3,4 +3,5 @@ dist/
 dist-pages/
 coverage/
 *.log
+source-assets/houdini/.cache/
 

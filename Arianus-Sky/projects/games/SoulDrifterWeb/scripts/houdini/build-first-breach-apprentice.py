@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import math
 import os
 import re
+import struct
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -35,6 +37,8 @@ WALL_COLORS: dict[str, Color] = {
 BRONZE: Color = (0.46, 0.29, 0.12)
 SOULGLASS: Color = (0.08, 0.56, 0.54)
 EMBER: Color = (0.82, 0.16, 0.035)
+SOUL_CHANNEL: Color = (0.025, 0.28, 0.27)
+EMBER_CHANNEL: Color = (0.38, 0.055, 0.012)
 WOOD: Color = (0.34, 0.18, 0.075)
 IRON: Color = (0.12, 0.14, 0.14)
 MORTAR: Color = (0.13, 0.12, 0.105)
@@ -88,7 +92,7 @@ def material_path(color: Color, kind: str) -> str:
     if kind == "mortar":
         return MATERIAL_PATHS["mortar"]
     if kind == "emissive":
-        return MATERIAL_PATHS["ember" if same_color(color, EMBER) else "soulglass"]
+        return MATERIAL_PATHS["ember" if same_color(color, EMBER) or same_color(color, EMBER_CHANNEL) else "soulglass"]
     if same_color(color, BRONZE):
         return MATERIAL_PATHS["bronze"]
     if same_color(color, WOOD):
@@ -162,6 +166,88 @@ def create_materials(texture_references: dict[str, dict[str, str]]) -> None:
     ember.parmTuple("emitcolor").set(EMBER)
     ember.parm("emitint").set(0.06)
     material_network.layoutChildren()
+
+
+def extract_glb_texture(source_path: Path, slot: str, destination: Path) -> Path | None:
+    data = source_path.read_bytes()
+    if len(data) < 20 or data[:4] != b"glTF":
+        return None
+
+    _, version, total_length = struct.unpack_from("<4sII", data, 0)
+    if version != 2 or total_length > len(data):
+        raise RuntimeError(f"Unsupported GLB header in {source_path}")
+
+    document: dict | None = None
+    binary_chunk = b""
+    offset = 12
+    while offset + 8 <= total_length:
+        chunk_length, chunk_type = struct.unpack_from("<II", data, offset)
+        chunk = data[offset + 8:offset + 8 + chunk_length]
+        if chunk_type == 0x4E4F534A:
+            document = json.loads(chunk.rstrip(b"\x00 \t\r\n").decode("utf-8"))
+        elif chunk_type == 0x004E4942:
+            binary_chunk = chunk
+        offset += 8 + chunk_length
+
+    if not document or not document.get("materials"):
+        return None
+    material = document["materials"][0]
+    texture_ref = material.get("pbrMetallicRoughness", {}).get(slot) if slot == "baseColorTexture" else material.get(slot)
+    if not texture_ref:
+        return None
+    texture = document["textures"][int(texture_ref["index"])]
+    image = document["images"][int(texture["source"])]
+    image_bytes: bytes
+    if "bufferView" in image:
+        view = document["bufferViews"][int(image["bufferView"])]
+        start = int(view.get("byteOffset", 0))
+        end = start + int(view["byteLength"])
+        image_bytes = binary_chunk[start:end]
+    else:
+        uri = str(image.get("uri", ""))
+        if uri.startswith("data:"):
+            image_bytes = base64.b64decode(uri.split(",", 1)[1])
+        elif uri:
+            return (source_path.parent / uri).resolve()
+        else:
+            return None
+
+    mime_type = str(image.get("mimeType", "image/jpeg"))
+    extension = ".png" if mime_type == "image/png" else ".webp" if mime_type == "image/webp" else ".jpg"
+    output_path = destination.with_suffix(extension)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if not output_path.is_file() or output_path.read_bytes() != image_bytes:
+        output_path.write_bytes(image_bytes)
+    return output_path.resolve()
+
+
+def create_kit_material(asset_id: str, source_path: Path, texture_cache: Path) -> str:
+    material_network = hou.node("/mat")
+    if material_network is None:
+        raise RuntimeError("Missing /mat network")
+    material_name = f"FB_Kit_{safe_name(asset_id)}"
+    existing = material_network.node(material_name)
+    if existing:
+        existing.destroy()
+    material = material_network.createNode("principledshader::2.0", material_name)
+    material.parm("basecolor_usePointColor").set(0)
+    material.parmTuple("basecolor").set((0.74, 0.70, 0.62))
+    material.parm("rough").set(0.76)
+    material.parm("metallic").set(0.28 if any(token in asset_id for token in ("iron", "weapon", "armor", "chain", "cage", "portcullis", "brazier", "sconce", "candelabra")) else 0.04)
+
+    base_color = extract_glb_texture(source_path, "baseColorTexture", texture_cache / f"{asset_id}-basecolor")
+    if base_color:
+        material.parm("basecolor_useTexture").set(1)
+        material.parm("basecolor_texture").set(base_color.as_posix())
+        material.parm("basecolor_textureIntensity").set(0.86)
+    normal = extract_glb_texture(source_path, "normalTexture", texture_cache / f"{asset_id}-normal")
+    if normal:
+        material.parm("baseBumpAndNormal_enable").set(1)
+        material.parm("baseBumpAndNormal_type").set("normal")
+        material.parm("baseNormal_useTexture").set(1)
+        material.parm("baseNormal_texture").set(normal.as_posix())
+        material.parm("baseNormal_scale").set(0.62)
+    return material.path()
 
 
 class GeometryBuilder:
@@ -481,6 +567,7 @@ def add_floor_conduit(
     end: tuple[float, float],
     color: Color,
     kind: str = "emissive",
+    width: float = 0.048,
 ) -> None:
     delta_x = end[0] - start[0]
     delta_z = end[1] - start[1]
@@ -490,7 +577,7 @@ def add_floor_conduit(
     builder.add_box(
         name,
         ((start[0] + end[0]) * 0.5, 0.055, (start[1] + end[1]) * 0.5),
-        (length, 0.035, 0.048),
+        (length, 0.035, width),
         color,
         kind,
         yaw=math.atan2(delta_z, delta_x),
@@ -629,11 +716,11 @@ def add_training_chamber_identity(payload: dict, builder: GeometryBuilder) -> No
     loom = props["memory-loom"]
     well_position = (well["x"] * tile_size, well["y"] * tile_size)
     loom_position = (loom["x"] * tile_size, loom["y"] * tile_size)
-    add_floor_conduit(builder, "loom_to_soulwell_conduit", loom_position, well_position, BRONZE, "prop")
-    for gate_id, color in (("gate-wayfarer", SOULGLASS), ("gate-oathbreaker", EMBER)):
+    add_floor_conduit(builder, "loom_to_soulwell_conduit", loom_position, well_position, BRONZE, "prop", 0.07)
+    for gate_id, color in (("gate-wayfarer", SOUL_CHANNEL), ("gate-oathbreaker", EMBER_CHANNEL)):
         gate = props[gate_id]
         gate_position = ((gate["x"] + 0.2) * tile_size, gate["y"] * tile_size)
-        add_floor_conduit(builder, f"{gate_id}_conduit", well_position, gate_position, BRONZE, "prop")
+        add_floor_conduit(builder, f"{gate_id}_conduit", well_position, gate_position, color, "emissive", 0.075)
 
     for index, placement in enumerate(((0.32, 1.3, 0.0), (5.4, 0.22, 0.0), (13.8, 0.28, 0.0), (0.22, 8.7, math.pi / 2))):
         x = placement[0] * tile_size
@@ -820,6 +907,13 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
         if prop.get("assetId"):
             # Approved GLB kit props are imported as authored geometry below.
             # Keeping the primitive placeholder would create overlapping assets.
+            spec = payload["environmentAssets"][prop["assetId"]]
+            if spec.get("fireAnchorY") is not None:
+                fire_x = (float(prop["x"]) + float(prop.get("offsetX", 0.0))) * tile_size
+                fire_z = (float(prop["y"]) + float(prop.get("offsetY", 0.0))) * tile_size
+                fire_y = float(spec.get("elevation", 0.0)) + float(spec["fireAnchorY"])
+                fire_color = SOULGLASS if spec.get("fireColor") == "soul" else EMBER
+                builder.add_octahedron(f"{safe_name(prop['id'])}_flame", (fire_x, fire_y, fire_z), 0.24, fire_color, "emissive")
             continue
         x = prop["x"] * tile_size
         z = prop["y"] * tile_size
@@ -996,6 +1090,7 @@ def create_model_reference(
     elevation: float = 0.0,
     rotation_y: float = 0.0,
     vertical_scale: float = 1.0,
+    material_path: str | None = None,
 ) -> dict:
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
@@ -1005,7 +1100,7 @@ def create_model_reference(
     importer = container.createNode("gltf::2.0", "SOURCE_GLTF")
     importer.parm("gltffile").set(source_path.as_posix())
     importer.parm("importnodegeometryas").set("flattenedgeometry")
-    importer.parm("enablematerialimport").set(1 if visible else 0)
+    importer.parm("enablematerialimport").set(0 if material_path else (1 if visible else 0))
     geometry = importer.geometry()
     if not geometry or not geometry.prims():
         raise RuntimeError(f"Houdini imported no geometry from {source_path}")
@@ -1022,8 +1117,14 @@ def create_model_reference(
     transform.parm("tx").set(-bounds.center()[0] * scale)
     transform.parm("ty").set(-bounds.minvec()[1] * scale)
     transform.parm("tz").set(-bounds.center()[2] * scale)
-    transform.setDisplayFlag(True)
-    transform.setRenderFlag(True)
+    display_node = transform
+    if material_path:
+        material = container.createNode("material", "APPLY_PREVIEW_MATERIAL")
+        material.setInput(0, transform)
+        material.parm("shop_materialpath1").set(material_path)
+        display_node = material
+    display_node.setDisplayFlag(True)
+    display_node.setRenderFlag(True)
     container.parmTuple("t").set((position[0], elevation, position[1]))
     container.parmTuple("r").set((0.0, math.degrees(rotation_y), 0.0))
     container.setDisplayFlag(visible)
@@ -1037,6 +1138,7 @@ def create_model_reference(
         "elevation": elevation,
         "rotationY": rotation_y,
         "verticalScale": vertical_scale,
+        "material": material_path,
         "visible": visible,
     }
 
@@ -1049,7 +1151,9 @@ def create_environment_prop_references(obj: hou.Node, payload: dict, game_root: 
         game_root / "docs" / "3d-ai-studio" / "source-models" / "environment" / "dungeon-kit",
     )
     kit = obj.createNode("subnet", "APPROVED_DUNGEON_KIT")
+    texture_cache = game_root / "source-assets" / "houdini" / ".cache" / "dungeon-kit-textures"
     diagnostics: list[dict] = []
+    material_paths: dict[str, str] = {}
 
     def source_for(asset_id: str, source_url: str) -> Path:
         filename = Path(source_url).name
@@ -1064,12 +1168,16 @@ def create_environment_prop_references(obj: hou.Node, payload: dict, game_root: 
         if not asset_id:
             continue
         spec = asset_specs[asset_id]
+        source_path = source_for(asset_id, spec["sourceUrl"])
+        if asset_id not in material_paths:
+            material_paths[asset_id] = create_kit_material(asset_id, source_path, texture_cache)
+        material_path = material_paths[asset_id]
         x = (float(prop["x"]) + float(prop.get("offsetX", 0.0))) * tile_size
         z = (float(prop["y"]) + float(prop.get("offsetY", 0.0))) * tile_size
         diagnostic = create_model_reference(
             kit,
             f"{prop['id']}_{asset_id}",
-            source_for(asset_id, spec["sourceUrl"]),
+            source_path,
             (x, z),
             float(spec["targetHeight"]),
             True,
@@ -1077,6 +1185,7 @@ def create_environment_prop_references(obj: hou.Node, payload: dict, game_root: 
             elevation=float(spec.get("elevation", 0.0)),
             rotation_y=float(prop.get("rotationY", 0.0)),
             vertical_scale=float(spec.get("verticalScale", 1.0)),
+            material_path=material_path,
         )
         diagnostic["assetId"] = asset_id
         diagnostic["roomId"] = prop["roomId"]
@@ -1111,6 +1220,7 @@ def create_actor_references(obj: hou.Node, payload: dict, game_root: Path) -> li
     for index, (name, relative) in enumerate(references["library"].items()):
         diagnostics.append(create_model_reference(library, f"library_{name}", source(relative), (index * 2.6, -8.0), 2.0, False))
     library.setDisplayFlag(False)
+    preview.setDisplayFlag(False)
     preview.moveToGoodPosition()
     library.moveToGoodPosition()
     return diagnostics
@@ -1129,6 +1239,7 @@ def create_camera(obj: hou.Node, payload: dict) -> None:
 
     target = obj.createNode("null", "ISO_CAMERA_TARGET")
     target.parmTuple("t").set((center_x, 0.0, center_z))
+    target.setDisplayFlag(False)
     camera = obj.createNode("cam", "ISO_CAMERA")
     camera.parmTuple("t").set((center_x - span * 0.43, span * 0.62, center_z + span * 0.43))
     if camera.parm("lookatpath"):
@@ -1147,6 +1258,7 @@ def create_camera(obj: hou.Node, payload: dict) -> None:
         room_span = max(room["width"], room["height"]) * tile_size
         detail_target = obj.createNode("null", f"{name}_TARGET")
         detail_target.parmTuple("t").set((room_x, 0.55, room_z))
+        detail_target.setDisplayFlag(False)
         detail = obj.createNode("cam", name)
         detail.parmTuple("t").set((room_x - room_span * 0.72, room_span * 0.84, room_z + room_span * 0.72))
         detail.parm("lookatpath").set(detail_target.path())
@@ -1171,38 +1283,63 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
         light.parmTuple("light_color").set(color)
         light.parm("light_exposure").set(exposure)
         light.parm("ogl_enablelight").set(1)
+        light.setDisplayFlag(False)
 
-    def point(name: str, grid_x: float, grid_z: float, height: float, color: Color, intensity: float, exposure: float) -> None:
+    def point(name: str, grid_x: float, grid_z: float, height: float, color: Color, intensity: float, exposure: float, radius: float = 7.0) -> None:
         light = obj.createNode("hlight::2.0", name)
         light.parm("light_type").set("point")
         light.parmTuple("t").set((grid_x * tile_size, height, grid_z * tile_size))
         light.parmTuple("light_color").set(color)
-        light.parm("light_intensity").set(intensity)
+        light.parm("light_intensity").set(intensity * 2.2)
         light.parm("light_exposure").set(exposure)
+        light.parm("atten_dist").set(radius * 0.65)
+        light.parm("activeradiusenable").set(1)
+        light.parm("activeradius").set(radius)
+        light.parm("shadow_softness").set(0.55)
         light.parm("ogl_enablelight").set(1)
+        light.setDisplayFlag(False)
 
     ambient = obj.createNode("ambient", "DUNGEON_AMBIENT_FILL")
     ambient.parmTuple("light_color").set((0.12, 0.16, 0.18))
-    ambient.parm("light_intensity").set(0.82)
+    ambient.parm("light_intensity").set(0.38)
     ambient.parm("ogl_enablelight").set(1)
+    ambient.setDisplayFlag(False)
 
-    distant("ISO_MOON_KEY", (-52.0, -34.0, -24.0), (0.44, 0.59, 0.72), 0.30)
-    distant("ISO_WARM_RIM", (-34.0, 142.0, 16.0), (0.78, 0.43, 0.24), -0.70)
+    distant("ISO_MOON_KEY", (-52.0, -34.0, -24.0), (0.44, 0.59, 0.72), 0.48)
+    distant("ISO_WARM_RIM", (-34.0, 142.0, 16.0), (0.78, 0.43, 0.24), -0.42)
     well = props["well"]
-    point("SOULWELL_GLOW", well["x"], well["y"], 2.25, (0.08, 0.70, 0.66), 1.25, 0.0)
+    point("SOULWELL_GLOW", well["x"], well["y"], 2.25, (0.08, 0.70, 0.66), 1.8, 0.0, 8.5)
     for gate_id, name, color, intensity in (
         ("gate-wayfarer", "WAYFARER_GATE_GLOW", (0.10, 0.66, 0.62), 0.90),
         ("gate-oathbreaker", "OATHBREAKER_GATE_GLOW", (0.86, 0.15, 0.03), 1.05),
     ):
         gate = props[gate_id]
-        point(name, gate["x"] - 0.45, gate["y"], 2.15, color, intensity, 0.0)
-    point("ARCHIVE_SOUL_LAMP", 7.8, 1.15, 2.55, (0.16, 0.65, 0.62), 0.78, 0.0)
-    point("TRAINING_EMBER_LAMP", 10.0, 11.4, 2.15, (0.95, 0.24, 0.08), 0.86, 0.0)
+        point(name, gate["x"] - 0.45, gate["y"], 2.15, color, intensity, 0.0, 5.8)
+    point("ARCHIVE_SOUL_LAMP", 7.8, 1.15, 2.55, (0.16, 0.65, 0.62), 0.78, 0.0, 5.2)
+    point("TRAINING_EMBER_LAMP", 10.0, 11.4, 2.15, (0.95, 0.24, 0.08), 0.86, 0.0, 5.2)
+    for prop in payload["dungeon"]["props"]:
+        asset_id = prop.get("assetId")
+        if not asset_id:
+            continue
+        spec = payload["environmentAssets"][asset_id]
+        if spec.get("fireAnchorY") is None:
+            continue
+        fire_color = (0.08, 0.70, 0.66) if spec.get("fireColor") == "soul" else (0.96, 0.25, 0.055)
+        point(
+            f"PROP_FIRE_{safe_name(prop['id'])}",
+            float(prop["x"]) + float(prop.get("offsetX", 0.0)),
+            float(prop["y"]) + float(prop.get("offsetY", 0.0)),
+            float(spec.get("elevation", 0.0)) + float(spec["fireAnchorY"]),
+            fire_color,
+            0.62 if spec.get("fireCastsShadow") else 0.42,
+            -0.18,
+            4.8,
+        )
     training = rooms["training"]
-    point("TRAINING_ROOM_FILL", training["center"]["x"], training["center"]["y"], 7.5, (0.34, 0.46, 0.49), 0.85, -0.5)
+    point("TRAINING_ROOM_FILL", training["center"]["x"], training["center"]["y"], 7.5, (0.34, 0.46, 0.49), 0.46, -0.5, 14.0)
     boss = rooms["boss"]
-    point("ASHEN_LOCK_GLOW", boss["center"]["x"], boss["center"]["y"], 2.4, (0.92, 0.19, 0.035), 1.10, 0.0)
-    point("BOSS_ROOM_FILL", boss["center"]["x"], boss["center"]["y"], 8.5, (0.36, 0.28, 0.24), 0.95, -0.5)
+    point("ASHEN_LOCK_GLOW", boss["center"]["x"], boss["center"]["y"], 2.4, (0.92, 0.19, 0.035), 1.45, 0.0, 9.0)
+    point("BOSS_ROOM_FILL", boss["center"]["x"], boss["center"]["y"], 8.5, (0.36, 0.28, 0.24), 0.52, -0.5, 16.0)
     for index, (offset_x, offset_z) in enumerate(((-4.7, -3.4), (4.7, 3.4), (-10.2, 5.8), (10.4, -5.8))):
         point(f"BOSS_FIRE_POOL_{index}", boss["center"]["x"] + offset_x / tile_size, boss["center"]["y"] + offset_z / tile_size, 2.0, (0.88, 0.24, 0.055), 0.72, 0.0)
 
@@ -1310,6 +1447,7 @@ def main() -> None:
 
     obj.layoutChildren()
     environment.layoutChildren()
+    hou.clearAllSelected()
     hou.hipFile.save(args.hip.resolve().as_posix())
     normal.geometry().saveToFile(args.obj.resolve().as_posix())
     if not args.obj.is_file() or args.obj.stat().st_size == 0:
