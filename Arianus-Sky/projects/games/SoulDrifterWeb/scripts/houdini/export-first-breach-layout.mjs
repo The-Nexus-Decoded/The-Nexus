@@ -82,10 +82,23 @@ function completeHoudiniComposition(sourceDungeon) {
     if (prop.id === "gate-oathbreaker") {
       return { ...prop, assetId: "heavy-door", offsetX: 0.49, offsetY: 0, rotationY: -Math.PI / 2 };
     }
+    if (prop.id === "starter-coffer") {
+      return { ...prop, assetId: "storage-chest", offsetX: 0, offsetY: 0 };
+    }
+    if (prop.id === "training-effigy") {
+      return { ...prop, assetId: "guardian-statue", offsetX: 0, offsetY: 0 };
+    }
+    if (prop.id === "memory-loom") {
+      return { ...prop, assetId: "ruined-altar", offsetX: 0, offsetY: 0 };
+    }
+    if (prop.assetId && DUNGEON_PROP_ASSETS[prop.assetId].placement === "floor") {
+      return { ...prop, offsetX: 0, offsetY: 0 };
+    }
     return prop;
   });
-  const placedAssetIds = new Set(props.flatMap((prop) => prop.assetId ? [prop.assetId] : []));
-  const missingAssetIds = Object.keys(DUNGEON_PROP_ASSETS).filter((assetId) => !placedAssetIds.has(assetId));
+  const missingAssetIds = Object.keys(DUNGEON_PROP_ASSETS).filter((assetId) => !props.some(
+    (prop) => prop.assetId === assetId && prop.roomId === COMPLETE_KIT_ROOM[assetId],
+  ));
   const unexpectedMissing = missingAssetIds.filter((assetId) => !(assetId in COMPLETE_KIT_ROOM));
   if (unexpectedMissing.length > 0) {
     throw new Error(`Houdini composition has no semantic room assignment for: ${unexpectedMissing.join(", ")}`);
@@ -124,7 +137,7 @@ function completeHoudiniComposition(sourceDungeon) {
     const candidate = candidates[0];
     if (!candidate) throw new Error(`Unable to place complete-kit asset ${assetId} in ${roomId}.`);
     reserved.add(pointKey(candidate));
-    const edgeOffset = spec.placement === "wall" ? 0.42 : spec.placement === "ceiling" ? 0.12 : 0.28;
+    const edgeOffset = spec.placement === "wall" ? 0.42 : spec.placement === "ceiling" ? 0.12 : 0;
     const score = placementScore(assetId, candidate);
     props.push({
       id: `houdini-complete-${assetId}`,

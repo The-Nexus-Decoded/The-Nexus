@@ -192,7 +192,11 @@ def extract_glb_texture(source_path: Path, slot: str, destination: Path) -> Path
     if not document or not document.get("materials"):
         return None
     material = document["materials"][0]
-    texture_ref = material.get("pbrMetallicRoughness", {}).get(slot) if slot == "baseColorTexture" else material.get(slot)
+    texture_ref = (
+        material.get("pbrMetallicRoughness", {}).get(slot)
+        if slot in ("baseColorTexture", "metallicRoughnessTexture")
+        else material.get(slot)
+    )
     if not texture_ref:
         return None
     texture = document["textures"][int(texture_ref["index"])]
@@ -239,14 +243,29 @@ def create_kit_material(asset_id: str, source_path: Path, texture_cache: Path) -
     if base_color:
         material.parm("basecolor_useTexture").set(1)
         material.parm("basecolor_texture").set(base_color.as_posix())
-        material.parm("basecolor_textureIntensity").set(0.86)
+        material.parm("basecolor_textureIntensity").set(1.0)
     normal = extract_glb_texture(source_path, "normalTexture", texture_cache / f"{asset_id}-normal")
     if normal:
         material.parm("baseBumpAndNormal_enable").set(1)
         material.parm("baseBumpAndNormal_type").set("normal")
         material.parm("baseNormal_useTexture").set(1)
         material.parm("baseNormal_texture").set(normal.as_posix())
-        material.parm("baseNormal_scale").set(0.62)
+        material.parm("baseNormal_scale").set(1.0)
+    metallic_roughness = extract_glb_texture(
+        source_path,
+        "metallicRoughnessTexture",
+        texture_cache / f"{asset_id}-metallic-roughness",
+    )
+    if metallic_roughness:
+        texture_path = metallic_roughness.as_posix()
+        material.parm("rough_useTexture").set(1)
+        material.parm("rough_texture").set(texture_path)
+        material.parm("rough_monoChannel").set("2")
+        material.parm("rough_textureColorSpace").set("Raw")
+        material.parm("metallic_useTexture").set(1)
+        material.parm("metallic_texture").set(texture_path)
+        material.parm("metallic_monoChannel").set("3")
+        material.parm("metallic_textureColorSpace").set("Raw")
     return material.path()
 
 
@@ -878,14 +897,6 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
             name = f"floor_{zone}_{start}_{end}_{y}"
             builder.add_box(name, (center_x, -floor_height / 2, y * tile_size), (width, floor_height, tile_size + 0.035), ZONE_COLORS[zone], "floor")
 
-    for room in dungeon["rooms"]:
-        center_x = room["center"]["x"] * tile_size
-        center_z = room["center"]["y"] * tile_size
-        width = max(2.0, min(room["width"] * tile_size * 0.52, 13.0))
-        tint = BRONZE if room["id"] == "boss" else SOULGLASS
-        builder.add_box(f"{room['id']}_realm_inlay", (center_x, 0.018, center_z), (width, 0.035, 0.15), tint, "inlay", yaw=-0.18 if room["id"] == "skirmish" else 0.0)
-        builder.add_octahedron(f"{room['id']}_realm_lock", (center_x, 0.34, center_z), 0.26 if room["id"] != "boss" else 0.38, tint, "inlay")
-
     boundaries: dict[tuple[str, int], list[tuple[int, str]]] = {}
     for tile in tiles:
         x, y, zone = tile["x"], tile["y"], tile["zoneId"]
@@ -906,14 +917,8 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
     for prop in dungeon["props"]:
         if prop.get("assetId"):
             # Approved GLB kit props are imported as authored geometry below.
-            # Keeping the primitive placeholder would create overlapping assets.
-            spec = payload["environmentAssets"][prop["assetId"]]
-            if spec.get("fireAnchorY") is not None:
-                fire_x = (float(prop["x"]) + float(prop.get("offsetX", 0.0))) * tile_size
-                fire_z = (float(prop["y"]) + float(prop.get("offsetY", 0.0))) * tile_size
-                fire_y = float(spec.get("elevation", 0.0)) + float(spec["fireAnchorY"])
-                fire_color = SOULGLASS if spec.get("fireColor") == "soul" else EMBER
-                builder.add_octahedron(f"{safe_name(prop['id'])}_flame", (fire_x, fire_y, fire_z), 0.24, fire_color, "emissive")
+            # Primitive stand-ins and crystal-shaped flame markers stay out of
+            # the default owner-review scene.
             continue
         x = prop["x"] * tile_size
         z = prop["y"] * tile_size
@@ -935,7 +940,6 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
                     "prop",
                     yaw=-angle + 0.28,
                 )
-            builder.add_octahedron(f"{name}_focus", (x, 1.76, z), 0.38, SOULGLASS, "emissive")
         elif kind == "pillar":
             builder.add_box(f"{name}_base", (x, 0.16, z), (1.15, 0.32, 1.15), WALL_COLORS[prop["roomId"]], "prop")
             builder.add_cylinder(name, (x, 1.42, z), 0.42, 2.52, 8, WALL_COLORS[prop["roomId"]], "prop")
@@ -984,6 +988,9 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
             builder.add_cylinder(f"{name}_base", (x, 0.18, z), 0.62, 0.36, 10, BRONZE, "prop")
             builder.add_box(f"{name}_body", (x, 1.13, z), (0.72, 1.54, 0.42), WOOD, "prop")
             builder.add_cylinder(f"{name}_head", (x, 2.08, z), 0.34, 0.58, 10, WOOD, "prop")
+
+    if not payload.get("includeLegacyProceduralPlaceholders", False):
+        return
 
     add_training_chamber_identity(payload, builder)
     add_boss_chamber_identity(payload, builder)
@@ -1255,7 +1262,12 @@ def create_camera(obj: hou.Node, payload: dict) -> None:
 
     rooms = {room["id"]: room for room in payload["dungeon"]["rooms"]}
 
-    def detail_camera(room_id: str, name: str, width_multiplier: float) -> hou.Node:
+    def detail_camera(
+        room_id: str,
+        name: str,
+        width_multiplier: float,
+        view_direction: tuple[float, float] = (-1.0, 1.0),
+    ) -> hou.Node:
         room = rooms[room_id]
         room_x = room["center"]["x"] * tile_size
         room_z = room["center"]["y"] * tile_size
@@ -1264,13 +1276,18 @@ def create_camera(obj: hou.Node, payload: dict) -> None:
         detail_target.parmTuple("t").set((room_x, 0.55, room_z))
         detail_target.setDisplayFlag(False)
         detail = obj.createNode("cam", name)
-        detail.parmTuple("t").set((room_x - room_span * 0.72, room_span * 0.84, room_z + room_span * 0.72))
+        detail.parmTuple("t").set((
+            room_x + room_span * 0.72 * view_direction[0],
+            room_span * 0.84,
+            room_z + room_span * 0.72 * view_direction[1],
+        ))
         detail.parm("lookatpath").set(detail_target.path())
         detail.parm("projection").set("ortho")
         detail.parm("orthowidth").set(room_span * width_multiplier)
         return detail
 
     training_camera = detail_camera("training", "TRAINING_MATERIAL_CAMERA", 1.32)
+    detail_camera("training", "TRAINING_ARCHIVE_CAMERA", 1.32, (1.0, -1.0))
     detail_camera("skirmish", "SKIRMISH_MATERIAL_CAMERA", 1.18)
     detail_camera("boss", "BOSS_MATERIAL_CAMERA", 1.18)
     training_camera.setCurrent(True)
@@ -1320,7 +1337,8 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
     ):
         gate = props[gate_id]
         point(name, gate["x"] - 0.45, gate["y"], 2.15, color, intensity, 0.0, 5.8)
-    point("ARCHIVE_SOUL_LAMP", 7.8, 1.15, 2.55, (0.16, 0.65, 0.62), 0.78, 0.0, 5.2)
+    loom = props["memory-loom"]
+    point("MEMORY_LOOM_GLOW", loom["x"], loom["y"], 1.65, (0.16, 0.65, 0.62), 0.78, 0.0, 5.2)
     point("TRAINING_EMBER_LAMP", 10.0, 11.4, 2.15, (0.95, 0.24, 0.08), 0.86, 0.0, 5.2)
     for prop in payload["dungeon"]["props"]:
         asset_id = prop.get("assetId")
@@ -1353,6 +1371,7 @@ def create_review_renders(out: hou.Node) -> None:
     for name, camera in (
         ("FULL_ROUTE_REVIEW_RENDER", "/obj/ISO_CAMERA"),
         ("TRAINING_REVIEW_RENDER", "/obj/TRAINING_MATERIAL_CAMERA"),
+        ("TRAINING_ARCHIVE_REVIEW_RENDER", "/obj/TRAINING_ARCHIVE_CAMERA"),
         ("SKIRMISH_REVIEW_RENDER", "/obj/SKIRMISH_MATERIAL_CAMERA"),
         ("BOSS_REVIEW_RENDER", "/obj/BOSS_MATERIAL_CAMERA"),
     ):
