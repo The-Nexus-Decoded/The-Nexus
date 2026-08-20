@@ -1,6 +1,6 @@
 # TICKET — BREACH-V2: Starting Zone rebuild (Level 01, the Breach) — true-3D, flat-map-first
 
-**Branch:** `codex/breach-v2-rebuild` (cut from `qa` @ `a34fbfe9`)
+**GitHub issue:** #451 · **Branch:** `codex/451-souldrifter-breach-v2` (cut from `qa` @ `a34fbfe9`)
 **Runbook:** `docs/DUNGEON_BUILD_RUNBOOK.md` (read fully before starting)
 **Style benchmark:** the Heartvale outdoor build on branch
 `codex/heartvale-outdoor` (true 3D — owner ruling V15, 2026-08-20)
