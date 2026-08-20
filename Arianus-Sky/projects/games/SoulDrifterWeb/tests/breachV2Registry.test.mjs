@@ -59,14 +59,14 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     expect(w.roomId).toBe("threshold-plaza");
     expect(o.roomId).toBe("threshold-plaza");
     const plaza = fixedById["threshold-plaza"];
-    expect(w.x).toBe(plaza.x + plaza.w); // both on the east wall
-    expect(o.x).toBe(plaza.x + plaza.w);
+    expect(w.x).toBe(plaza.w); // both on the east wall (room-local meters)
+    expect(o.x).toBe(plaza.w);
     expect(Math.abs(w.y - o.y)).toBeGreaterThanOrEqual(5); // physically separate
     // plaza hosts Orren + Brannoc before the choice
     for (const npc of ["orren", "brannoc"]) {
       const lm = R.landmarks.find((l) => l.id === npc);
-      expect(lm.x).toBeGreaterThan(plaza.x);
-      expect(lm.x).toBeLessThan(plaza.x + plaza.w);
+      expect(lm.x).toBeGreaterThan(0);
+      expect(lm.x).toBeLessThan(plaza.w);
     }
   });
 
@@ -186,8 +186,8 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     const plaza = fixedById["threshold-plaza"];
     const bannerW = plazaArt.find((p) => p.asset === "art-banner-wayfarer");
     const bannerO = plazaArt.find((p) => p.asset === "art-banner-oathbreaker");
-    expect(bannerW.y).toBeCloseTo(w.y - plaza.y, 1);
-    expect(bannerO.y).toBeCloseTo(o.y - plaza.y, 1);
+    expect(bannerW.y).toBeCloseTo(w.y, 1); // room-local: banner above its door
+    expect(bannerO.y).toBeCloseTo(o.y, 1);
     // books/scrolls in Vestibule + Fallen Archive
     expect(fixedById.vestibule.placements.some((p) => p.group === "books")).toBe(true);
     const e07 = pools.easy.find((r) => r.id === "E-07");

@@ -973,32 +973,32 @@ export const BREACH_V2_REGISTRY = {
     {
       "id": "orren",
       "label": "Breach Scout Orren (guide beat)",
-      "x": 44.0,
-      "y": 7.0,
+      "x": 8.0,
+      "y": 3.0,
       "r": 0.45,
       "roomId": "threshold-plaza"
     },
     {
       "id": "brannoc",
       "label": "Arena Warden Brannoc (guide beat)",
-      "x": 44.0,
-      "y": 13.0,
+      "x": 8.0,
+      "y": 9.0,
       "r": 0.45,
       "roomId": "threshold-plaza"
     },
     {
       "id": "door-wayfarer",
       "label": "WAYFARER DOOR — easy path (soul-cyan)",
-      "x": 52.0,
-      "y": 6.5,
+      "x": 16.0,
+      "y": 2.5,
       "w": 3.0,
       "roomId": "threshold-plaza"
     },
     {
       "id": "door-oathbreaker",
       "label": "OATHBREAKER DOOR — hard path (ember-red)",
-      "x": 52.0,
-      "y": 13.5,
+      "x": 16.0,
+      "y": 9.5,
       "w": 3.0,
       "roomId": "threshold-plaza"
     }
