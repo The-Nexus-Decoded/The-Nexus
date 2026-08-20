@@ -513,19 +513,22 @@ async function buildHorses(village: VillageData, field: TerrainField): Promise<T
       g.add(model);
 
       const mixer = new THREE.AnimationMixer(model);
-      const find = (re: RegExp) => gltf.animations.find((c) => re.test(c.name));
+      mixer.timeScale = 0.75; // Quaternius clips are authored playful-fast; calm them
+      // Bind by EXACT clip name (regexes grabbed Attack_Headbutt via "head"
+      // and Idle_HitReact via "idle" — the white horse ended up headbutting).
+      const byName = new Map(gltf.animations.map((c) => [c.name, c]));
+      const pick = (...names: string[]) => names.map((n) => byName.get(n)).find(Boolean);
       const actions: HorseActor["actions"] = {};
-      for (const [key, re] of [["idle", /idle|stand/i], ["graze", /eating|graze/i], ["look", /look|alert|head/i]] as const) {
-        const clip = find(re);
-        if (clip) {
-          const action = mixer.clipAction(clip);
-          action.setLoop(THREE.LoopRepeat, Infinity);
-          actions[key] = action;
-        }
-      }
-      if (!actions.idle && !actions.graze && gltf.animations[0]) {
-        actions.idle = mixer.clipAction(gltf.animations[0]);
-      }
+      const bind = (key: "idle" | "graze" | "look", clip?: THREE.AnimationClip, timeScale = 1) => {
+        if (!clip) return;
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.timeScale = timeScale;
+        actions[key] = action;
+      };
+      bind("idle", pick("Idle", "AnimalArmature|Idle"));
+      bind("graze", pick("Eating", "Idle_Headlow", "AnimalArmature|Eating"), 0.7);
+      bind("look", pick("Idle_2", "AnimalArmature|Idle_2"));
       const first = actions.idle ?? actions.graze ?? actions.look;
       first?.play();
       const rng = rand(4182 + index * 977);
