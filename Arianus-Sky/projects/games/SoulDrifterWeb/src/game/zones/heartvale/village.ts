@@ -428,6 +428,88 @@ function ropeBetween(a: THREE.Vector3, b: THREE.Vector3, parent: THREE.Group, ma
   parent.add(rope);
 }
 
+/** Stable (owner addition #7): open-front stall shed + tack rail + hay,
+ * facing the street's north end. Paddock fence uses the garden builder. */
+function buildStable(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
+  const stable = village.stable;
+  if (!stable) return new THREE.Group();
+  const g = new THREE.Group();
+  g.name = "anwel-stable";
+  const { x, z, w, d, h } = stable;
+  const baseY = field.height(x, z);
+
+  // Posts + thatch roof (open front faces +x, toward the street).
+  for (const px of [-w / 2 + 0.15, w / 2 - 0.15]) {
+    for (const pz of [-d / 2 + 0.15, d / 2 - 0.15]) {
+      addBox(g, mats.timber, 0.16, h, 0.16, px, h / 2, pz, false);
+    }
+  }
+  const roof = roofPrism(mats.thatch([0.85, 0.78, 0.6]), w + 0.8, d + 0.8, 0.9, 0.25, mats.plankWall(w, 1, [0.5, 0.42, 0.34]), mats.timber);
+  roof.position.y = h;
+  g.add(roof);
+  // Back + side half-walls (plank courses).
+  const halfWall = mats.plankWall(w, 1.9, [0.5, 0.42, 0.34]);
+  addBox(g, halfWall, 0.14, 1.9, d - 0.3, -w / 2 + 0.07, 0.95, 0);
+  addBox(g, halfWall, w - 0.3, 1.9, 0.14, 0, 0.95, -d / 2 + 0.07);
+  addBox(g, halfWall, w - 0.3, 1.9, 0.14, 0, 0.95, d / 2 - 0.07);
+  // Stall divider + hay pile + tack rail with saddle blanket.
+  addBox(g, mats.timber, 0.08, 1.5, d - 0.6, 0.4, 0.75, 0, false);
+  addBox(g, mats.thatch([0.9, 0.85, 0.6]), 1.2, 0.7, 0.9, -0.8, 0.35, 0.8, false);
+  addBox(g, mats.timber, 0.06, 1.0, 0.06, w / 2 - 0.5, 0.92, -d / 2 - 0.6, false);
+  addBox(g, mats.timber, 0.06, 1.0, 0.06, w / 2 - 0.5, 0.92, -d / 2 - 1.8, false);
+  addBox(g, mats.wood, 0.06, 0.06, 1.3, w / 2 - 0.5, 1.4, -d / 2 - 1.2, false);
+  addBox(g, new THREE.MeshStandardMaterial({ color: 0x7a3b2e, roughness: 0.95 }), 0.5, 0.35, 0.12, w / 2 - 0.5, 1.22, -d / 2 - 1.2, false);
+
+  g.position.set(x, baseY, z);
+  return g;
+}
+
+/** Horses in the paddock — Quaternius CC0 animated GLBs (idle/eating). */
+async function buildHorses(village: VillageData, field: TerrainField): Promise<THREE.Group> {
+  const g = new THREE.Group();
+  g.name = "anwel-horses";
+  const horses = village.horses ?? [];
+  if (horses.length === 0) return g;
+
+  const loader = new GLTFLoader();
+  const mixers: THREE.AnimationMixer[] = [];
+  for (const horse of horses) {
+    try {
+      const gltf = await loader.loadAsync(`${MODEL_ROOT}/${horse.id}.glb`);
+      const model = gltf.scene;
+      model.traverse((node) => {
+        if ((node as THREE.Mesh).isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+          node.frustumCulled = false;
+        }
+      });
+      // Normalize to ~1.55 m at the withers regardless of author units.
+      const box = new THREE.Box3().setFromObject(model);
+      const height = box.max.y - box.min.y;
+      const scale = height > 0 ? 1.55 / height : 1;
+      model.scale.setScalar(scale);
+      model.position.set(horse.x, field.height(horse.x, horse.z) - box.min.y * scale, horse.z);
+      model.rotation.y = THREE.MathUtils.degToRad(horse.yawDeg);
+      g.add(model);
+
+      const mixer = new THREE.AnimationMixer(model);
+      const clip =
+        gltf.animations.find((c) => /idle/i.test(c.name)) ??
+        gltf.animations.find((c) => /eating/i.test(c.name)) ??
+        gltf.animations[0];
+      if (clip) mixer.clipAction(clip).play();
+      mixers.push(mixer);
+    } catch (error) {
+      console.warn(`horse load failed: ${horse.id}`, error);
+    }
+  }
+  g.userData.tick = (elapsed: number, delta: number) => {
+    for (const mixer of mixers) mixer.update(delta);
+  };
+  return g;
+}
+
 function buildJetty(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
   const g = new THREE.Group();
   g.name = "anwel-jetty";
@@ -466,6 +548,16 @@ function buildJetty(village: VillageData, mats: VillageMaterials, field: Terrain
   for (let i = 0; i < railTops.length - 1; i += 1) {
     ropeBetween(railTops[i]!, railTops[i + 1]!, g, mats);
   }
+  // Boarding ladder on the T-head south side, rungs into the water (#452).
+  const ladderX = x1 - 0.5;
+  const ladderZ = z + 0.9;
+  const bedY = field.height(ladderX, ladderZ);
+  for (const lx of [-0.22, 0.22]) {
+    addBox(g, mats.wood, 0.06, deckY - bedY + 0.7, 0.06, ladderX + lx, (deckY + bedY) / 2 + 0.15, ladderZ, false);
+  }
+  for (let rung = 0; rung < 4; rung += 1) {
+    addBox(g, mats.wood, 0.5, 0.05, 0.05, ladderX, deckY - 0.25 - rung * 0.32, ladderZ, false);
+  }
   return g;
 }
 
@@ -485,6 +577,16 @@ function buildBoats(village: VillageData, mats: VillageMaterials, field: Terrain
       addBox(b, mats.wood, 2.5, 0.14, 0.08, 0, 0.18, side * 0.52, false);
     }
     addBox(b, mats.timber, 0.3, 0.06, 0.85, 0, 0.16, 0, false);
+    addBox(b, mats.timber, 0.3, 0.06, 0.85, 0.7, 0.16, 0, false); // second bench
+    // Oar resting across the gunwales (#452: punts read as boats).
+    const oar = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.9, 6), mats.wood);
+    shaft.rotation.z = Math.PI / 2;
+    oar.add(shaft);
+    addBox(oar, mats.wood, 0.35, 0.03, 0.12, 1.05, 0, 0, false); // blade
+    oar.position.set(-0.2, 0.3, 0.1);
+    oar.rotation.y = 0.35;
+    b.add(oar);
     b.position.set(boat.x, waterY, boat.z);
     b.rotation.y = THREE.MathUtils.degToRad(boat.yawDeg);
     g.add(b);
@@ -619,10 +721,17 @@ function dressByKind(g: THREE.Group, house: VillageHouse, mats: VillageMaterials
   }
 }
 
-function buildGarden(garden: { name: string; x: number; z: number; w: number; d: number }, mats: VillageMaterials, field: TerrainField): THREE.Group {
+function buildGarden(
+  garden: { name: string; x: number; z: number; w: number; d: number },
+  mats: VillageMaterials,
+  field: TerrainField,
+  pastureOnly = false,
+): THREE.Group {
   const g = new THREE.Group();
   g.name = `garden-${garden.name}`;
   const baseY = field.height(garden.x, garden.z);
+  const m = new THREE.Matrix4();
+  if (!pastureOnly) {
   // Soil bed.
   const soil = new THREE.Mesh(
     new THREE.BoxGeometry(garden.w, 0.14, garden.d),
@@ -687,7 +796,6 @@ function buildGarden(garden: { name: string; x: number; z: number; w: number; d:
   card.setIndex([0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6]);
   card.computeVertexNormals();
   const crops = new THREE.InstancedMesh(card, cropMat, rows * cols);
-  const m = new THREE.Matrix4();
   let k = 0;
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
@@ -703,6 +811,7 @@ function buildGarden(garden: { name: string; x: number; z: number; w: number; d:
   }
   crops.castShadow = true;
   g.add(crops);
+  } // end if (!pastureOnly) — paddocks keep grazed grass
   // Wattle fence: posts + two rails per side.
   const post = new THREE.CylinderGeometry(0.045, 0.05, 0.85, 5);
   const postMat = mats.timber;
@@ -939,6 +1048,13 @@ export async function createVillageAndTerrace(
   for (const garden of village.gardens) {
     group.add(buildGarden(garden, mats, field));
   }
+  // Stable + paddock + horses (owner addition #7).
+  group.add(buildStable(village, mats, field));
+  if (village.paddock) {
+    group.add(buildGarden({ ...village.paddock, name: "paddock" }, mats, field, true));
+  }
+  const horses = await buildHorses(village, field);
+  group.add(horses);
   buildNpcs(npcs, field, group, village);
   await dressWithProps(village, field, group);
   return group;
