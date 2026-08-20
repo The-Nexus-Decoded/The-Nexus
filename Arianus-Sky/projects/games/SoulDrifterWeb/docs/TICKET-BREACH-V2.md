@@ -4,6 +4,7 @@
 **Runbook:** `docs/DUNGEON_BUILD_RUNBOOK.md` (read fully before starting)
 **Style benchmark:** the Heartvale outdoor build on branch `codex/heartvale-outdoor`
 **Chat brief:** work this ticket end-to-end; commit each sub-step; if the turn limit hits, the chat is resumed and continues the same ticket.
+**Work location (owner directive 2026-08-20):** ALL code and worktrees live on the **H: drive** — C: is space-constrained. Use the ready worktree at `H:\CodexData\.codex\worktrees\breach\The-Nexus-breach-v2` or create one under `H:\CodexData\.codex\worktrees\<id>\` from the main checkout at `H:\Projects\AI_Tools_And_Information\The-Nexus` (`git worktree add` — no fresh full clone, no re-downloading history). Do NOT clone into `C:\Users\…\workspace`.
 
 ## 1. Precedence (what rules what)
 
