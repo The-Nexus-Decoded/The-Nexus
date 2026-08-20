@@ -49,6 +49,8 @@ Production work for this program belongs to the 3D AI Studio project `SoulDrifte
 
 3D AI Studio exposes automatic model/derivative lineage rather than a manually named Git-style asset branch. Git remains the reviewed source of truth. Every accepted generation records its 3D AI Studio project, provider operation and model version, task ID, credit receipt, ChatGPT prompt/edit hashes, exact approved source-image hash, automatic derivative lineage where applicable, untouched-export hash, processed-export hash, and the Git commit that consumed it. A floating or generic `latest` reference cannot supply production assets.
 
+Current runtime-ready work uses a hard repository lineage split. Untouched provider imports, if a reviewed source is ever copied into the repository, belong under `public/assets/3d/imported/issue-448/`. Blender-retopologized, conformed, baked, rigged, or otherwise locally rebuilt outputs belong under `public/assets/3d/local-derived/issue-448/`. The local-derived manifest records the parent provider task and untouched hash, local recipe, Blender version, output hash, intended runtime slot, and promotion gate. Provider exports never masquerade as local originals, and source-only imports never enter runtime resolution merely because they exist in the repository.
+
 ## Generation operation by asset type
 
 All production categories use the same image-first principle, but not a single provider model. Simple and symmetric assets can use one owner-reviewed ChatGPT image followed by Prism 3.1 single-image conversion. Bespoke asymmetric monsters and hero actors use four separate owner-reviewed views followed by the provider that best preserves that asset's accepted silhouette, anatomy, topology budget, and material read; the current bindings are Meshy 7 Multi-image for Breachlings and Prism 3.1 Multi-Image for the Warden. Humanoid sources use a neutral front A- or T-pose with clear limbs and flat feet. Riggable creatures use a neutral custom-rig stance that preserves their canonical anatomy; forcing a hunched predator upright to imitate a humanoid A-pose is a source failure. Weapons, armor, clothing, and ordinary props use a neutral unobstructed product orientation. A composite contact sheet, multiple figures, inset views, action pose, fused equipment set, or conflicting camera view is invalid provider input.
@@ -72,7 +74,7 @@ For an object with an obvious functional front, that front is the canonical zero
 
 Clean white or transparent source backgrounds are uploaded directly. Background-removal credits are not spent merely to make a local file addressable to the connector; browser upload of the exact approved file is the required intake path.
 
-On 2026-08-17 the owner authorized all required issue #448 single-image conversions without per-task approval pauses. On 2026-08-18 the owner first introduced and later explicitly removed the temporary credit floor so the bounded #448 source library could be completed. Every ChatGPT source is still shown in chat before conversion, and live settings, charge, task ID, receipt, and source hash are recorded for every task. Unexpected provider pricing still stops the batch. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment remain outside this authorization.
+On 2026-08-17 the owner authorized all required issue #448 single-image conversions without per-task approval pauses. On 2026-08-18 the owner first introduced and later explicitly removed the temporary credit floor so the bounded #448 source library could be completed. On 2026-08-19 the owner superseded that authorization: paid generation is paused at the verified 89-credit balance, and remaining asset work proceeds through local Blender technicalization, with local GPU acceleration allowed. Any new provider generation requires fresh action-time approval. Runtime promotion, merge, and deployment remain separate gates.
 
 The historical 2026-08-17 comparison and subsequent Breachling/Warden tests established the rule:
 
@@ -94,7 +96,7 @@ The 2026-08-18 Breachling multi-view POC compared both source-construction metho
 
 The later controlled body batch is recorded in [`body-anchor-intake.json`](./body-anchor-intake.json). Twelve accepted visual sources and their twelve owner-reviewed input images are preserved outside the shipping tree. They are grandfathered paid source candidates: their actual output is reviewed without automatically purchasing replacements. Each untouched GLB is a single unrigged mesh with roughly 727k-767k vertices and 1.41M-1.49M triangles, so none is eligible for direct runtime promotion. Account balance after the batch was 2,472 credits.
 
-The modular source batch is recorded under `appearanceReferenceLibrary` and `modularSourceConversions` in [`first-breach-model-register.json`](./first-breach-model-register.json). It preserves eight representative facial references covering four cross-ancestry families and two presentations, twelve hairstyle references, ten starter weapon/off-hand sources, and four starter wearable sources. Facial references are deformation and material targets for the canonical head rather than separate paid head models. Simple modular assets use Meshy 7 Smart Topology in single-image low-poly mode with 2K PBR textures; this is an asset-specific source conversion, not a change to the Prism requirement for hero actors such as the Warden. Every result remains outside the shipping tree pending Blender part separation, conforming, retopology/bake, sockets, coverage masks, and camera/clipping QA. The generated ritual knife is explicitly rejected because the provider invented a split blade; the accepted worn dagger is the Level 1 Asura/Slayer fallback.
+The modular source batch is recorded under `appearanceReferenceLibrary` and `modularSourceConversions` in [`first-breach-model-register.json`](./first-breach-model-register.json). It preserves eight representative facial references covering four cross-ancestry families and two presentations, twelve hairstyle references, and ten weapon/off-hand source records supporting the eight Level 1 weapon packages. Four additional paid wearable conversions are preserved strictly as rejected overscope provenance; they are not Level 1 gear, are not accepted technicalization sources, and cannot be promoted. The Level 1 clothing contract is one shared worn C-tier family, with calling identity limited to restrained material tint, trim, and stitching variants on that family. Facial references are deformation and material targets for the canonical head rather than separate paid head models. Simple modular weapon assets use Meshy 7 Smart Topology in single-image low-poly mode with 2K PBR textures; this is an asset-specific source conversion, not a change to the Prism requirement for hero actors such as the Warden. Every accepted result remains outside the shipping tree pending Blender part separation, conforming, retopology/bake, sockets, coverage masks, and camera/clipping QA. The generated ritual knife is explicitly rejected because the provider invented a split blade; the accepted worn dagger is the Level 1 Asura/Slayer fallback. Paid generation is paused at the owner-verified 89-credit balance; the remaining work proceeds locally unless the owner gives new action-time approval.
 
 ## Permanent playable-character foundation
 
@@ -132,6 +134,7 @@ The current production minimum is:
 - four adult facial-feature families per compatible head topology: African diaspora/Black, East Asian, South Asian/Indian, and European;
 - at least six equally canonical skin-tone material families, including deep, dark, medium-deep, medium, tan/olive, and light/pale coverage;
 - at least six masculine-presenting and six feminine-presenting hair geometry families, with cross-presentation availability whenever fit QA passes;
+- eleven reusable natural hair-color material families from black through brown, red, blonde, grey, and silver-white; color is an independent material selection and never requires duplicate hairstyle geometry;
 - modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings;
 - ancestry markers that remain readable without changing morality, class, rarity, or power;
 - locally rendered headshots from the exact approved runtime assembly.
@@ -144,21 +147,21 @@ Character creation, gameplay, paper doll, saved profile, and headshot rendering 
 
 ### Starter calling assemblies
 
-All nine Level 1 callings use the shared worn C-tier outfit with separate modest identity layers:
+All nine Level 1 callings use the same shared worn C-tier clothing family. Calling presentation changes are material tint, trim, and stitching variants on that one family, not separate armor or wearable purchases:
 
 | Calling | Calling layer | Separate starter weapon package |
 | --- | --- | --- |
-| Warrior | leather bracer and restrained shoulder guard | plain iron longsword |
-| Mage | faded mantle, sash, and component pouch | ashwood practice staff |
-| Priest | devotional stole and modest forearm guard | plain wooden mace |
-| Sharpshooter | leather bracer, belt pouch, and quiver | shortbow, string, arrows, and quiver |
-| Paladin | battered light shoulder/chest protection | iron shortsword and wooden shield |
-| Summoner | binding sash, token loops, and ritual pouch | binding rod |
-| Asura | dark practical wraps and restrained ritual holder | ritual knife |
-| Slayer | light leather bracers and paired sheaths | paired worn daggers |
-| Shadowknight | worn common layer without advanced runes or grave-iron | battered longsword finish |
+| Warrior | rust-brown trim and worn wrap stitching | plain iron longsword |
+| Mage | faded indigo trim and restrained arcane stitching | ashwood practice staff |
+| Priest | faded ivory trim and simple devotional stitching | plain wooden mace |
+| Sharpshooter | moss trim and practical seam reinforcement | shortbow, string, arrows, and quiver |
+| Paladin | muted ochre trim and plain oath stitching | iron shortsword and wooden shield |
+| Summoner | weathered teal trim and simple binding stitching | binding rod |
+| Asura | charcoal trim and restrained ritual stitching | ritual knife |
+| Slayer | dark umber trim and reinforced movement seams | paired worn daggers |
+| Shadowknight | soot-grey trim without advanced runes or grave-iron | battered longsword finish |
 
-The weapon, sheath, off-hand, clothing, armor, hair, and body remain independently replaceable. Higher-level weapons and armor are not part of this ticket.
+The weapon package, shared clothing family, hair, and body remain independently replaceable. No standalone armor conversion is accepted in this ticket, and higher-level weapons and armor are out of scope.
 
 ## First Breach NPC model and conversation-face proof
 
@@ -292,7 +295,7 @@ Normal-speed gameplay-camera video is the authoritative visual proof. Close-up v
 
 ### Stage 3: controlled expansion
 
-After the source-construction pilots pass, continue the authorized source-only queue in this order:
+After the source-construction pilots pass, continue the local-only technicalization queue in this order:
 
 1. counterpart Human body and Human appearance library;
 2. Elf, Dwarf, and Halfling body pairs and fit profiles;
@@ -303,9 +306,9 @@ After the source-construction pilots pass, continue the authorized source-only q
 
 ### Stage 4: technicalization and runtime proof
 
-After the required source library is complete, obtain the separate authorization for retopology, bake, rigging, animation, and runtime integration. Prove the canonical humanoid rig first, then the shared Breachling rig and Warden mechanical hierarchy, then the named-NPC facial rig. Only after those gates pass may the branch replace a runtime placeholder and begin final Level 1 animation/room revalidation.
+The owner authorized local retopology, bake, conforming, rig preparation, and validation on 2026-08-19, including local GPU use. Prove the canonical humanoid topology and rig gate first, then the shared Breachling topology/rig and Warden mechanical hierarchy, then the named-NPC facial rig. This does not authorize paid remesh, paid rigging, paid animation, runtime promotion, merge, or deployment. Only after the technical gates pass may the branch replace a runtime placeholder and begin final Level 1 animation/room revalidation.
 
-The standing authorization covers the required owner-reviewed ChatGPT-source conversions for issue #448, including the owner-approved strict four-view Breachling and Warden conversions. It does not approve direct text-to-3D, remesh, rigging, animation purchases, runtime promotion, QA merge, or production deployment. A task that consumes an unexpected credit amount stops the batch immediately.
+The current authorization is local-only. Historical owner-reviewed provider conversions remain preserved, but no new text-to-3D, image-to-3D, provider remesh, paid rigging, or paid animation operation may run without fresh action-time approval. Runtime promotion, QA merge, and production deployment remain outside this phase.
 
 ## Rollback and promotion
 
@@ -315,6 +318,6 @@ Runtime resolution must retain an explicit fallback manifest while the branch is
 
 ## Current authorization and notification point
 
-The approved 85-credit Human comparison and the twelve-model image-first body-anchor batch are complete and preserved. The owner has authorized the remaining bounded issue #448 ChatGPT-image-to-3D source generation without individual approval pauses and removed the temporary credit floor. Before each submission, Codex still shows the source image in chat and records its complete canonical prompt/edit hashes, exact file hash, exclusion list, model/version, settings, live cost, task ID, and credit receipt. An unexpected provider charge still stops the batch immediately.
+The approved 85-credit Human comparison, twelve-model image-first body-anchor batch, and later modular source tasks are complete and preserved as historical lineage. The current verified personal balance is 89 credits, and paid generation is paused. Remaining work uses local Blender technicalization and the imported/local-derived provenance split. Any future paid submission requires fresh action-time approval and a live price check.
 
-This authorization does not include direct text-to-3D, remesh, rigging, animation purchases, QA merge, or deployment. Single-image mode requires exactly one isolated subject on a plain background; riggable actors require a neutral full-body stance with unobstructed limbs that preserves canonical anatomy. Multi-view requires a separate owner decision, four separately stored identity-matched files, and the strict side/rear contradiction gate. Separately art-directed ChatGPT views are preferred for bespoke monsters; a Character Sheet staging master is a fallback for simpler humanoid/NPC proof. A composite contact sheet is staging evidence only and is never valid Image-to-3D input.
+This authorization does not include any paid provider operation, runtime promotion, QA merge, or deployment. Historical single-image and multi-view source rules remain in this document so preserved tasks can be audited and reproduced only if the owner later authorizes that exact action.

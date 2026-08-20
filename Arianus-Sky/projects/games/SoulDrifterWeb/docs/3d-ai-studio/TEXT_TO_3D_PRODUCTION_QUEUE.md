@@ -4,11 +4,11 @@ Status: active under [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-N
 
 > Historical filename: direct text-to-3D is retired for new production assets. This file now tracks the owner-approved ChatGPT image -> 3D AI Studio conversion queue plus historical task provenance.
 
-Default operation: every body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module begins as an owner-reviewed ChatGPT image containing one complete isolated subject, then uses Prism 3.1 single-image conversion. The Breachling family and Cinderbound Warden have a separate owner decision permitting four identity-matched views after the strict view gate. Direct text-to-3D is not a production path.
+Default operation: technicalize the preserved owner-reviewed source library locally in Blender. No new provider generation is authorized. Historical bodies, NPCs, creatures, hair, and accepted Level 1 weapon sources retain their exact provider lineage; the single shared C-tier starter clothing family and any missing technical pieces are built or conformed locally.
 
-Approved starting preset: Prism 3.1 with Ultra texture quality, subject to a fresh live-price check and provenance record before every paid submission
+Historical provider preset: Prism 3.1 with Ultra texture quality for hero actors, plus the recorded asset-specific Meshy 7 conversions. These settings are provenance, not current authorization.
 
-Authorization: all required issue #448 owner-reviewed ChatGPT-source conversions may proceed without per-task approval pauses. Show every source image in chat and record its exact hash before conversion. Notify the owner if the account balance drops below 2,000 credits. Direct text-to-3D, remesh, rigging, paid animation, runtime promotion, merge, and deployment remain separate gates.
+Authorization: local Blender retopology, conforming, bake, rig preparation, and validation may proceed, including local GPU acceleration. Paid generation is paused at the owner-verified 89-credit personal balance. Any new provider generation, provider remesh, paid rigging, or paid animation requires fresh action-time approval. Runtime promotion, merge, and deployment remain separate gates.
 
 Prospective full-spec rule: every new generation repeats the complete canonical identity, silhouette, scale/proportions, anatomy/joints, face, materials/palette, role/lore, required-detail, and forbidden-trait block verbatim. Only the camera or output suffix changes. Shorthand and reference-only delta prompts are prohibited. Existing paid models are preserved and judged by their actual visual/technical output; missing retrospective prompt parity does not automatically trigger another purchase.
 
@@ -20,12 +20,12 @@ Accepted image-first intake: [`body-anchor-intake.json`](body-anchor-intake.json
 
 1. Complete the eight adult ancestry/presentation base anchors.
 2. Export, clean, retopologize, and normalize the accepted anchors to the canonical humanoid rig.
-3. Build the shared C-tier starter underlayer, calling layers, armor pieces, and separate weapon packages.
+3. Build one shared C-tier starter clothing family, restrained calling material variants, and the eight separate starter weapon packages.
 4. Build the character-selection appearance library: four cross-ancestry facial-feature families, six or more skin tones, hair families, facial hair, scars, tattoos/paint, piercings, sideburns, and runtime-matched headshots.
 5. Build Ilyra, Orren, Brannoc, the reusable conversation-face rig, the training construct, the Breachling family, and the Cinderbound Warden.
 6. Revalidate animations, character creation, paper doll, dialogue, combat, defeat states, rooms, browser budgets, and the complete First Breach playthrough.
 
-The eight anchors are ancestry/presentation topology and proportion sources, not class-locked characters. Slim, Athletic, and Heavy are versioned shape/conform profiles on each compatible topology and canonical skeleton. Calling identity comes from modular clothing, armor, weapons, hair, materials, and effects rather than a fused race/calling body model.
+The eight anchors are ancestry/presentation topology and proportion sources, not class-locked characters. Slim, Athletic, and Heavy are versioned shape/conform profiles on each compatible topology and canonical skeleton. Calling identity comes from the shared starter clothing family, its restrained material variants, separate starter weapons, hair, and effects rather than a fused race/calling body model.
 
 ## Phase 1: base ancestry anchors
 
@@ -89,9 +89,9 @@ All gear remains separate from the body:
 - Summoner binding rod;
 - Asura ritual knife;
 - Slayer paired daggers and sheaths;
-- modular bracers, mantles, stoles, sashes, pouches, guards, quivers, shields, sheaths, and harnesses.
+- no standalone armor or extra wearable conversions; only components explicitly included in the eight weapon packages, such as the quiver, shield, and paired-dagger sheaths.
 
-One approved ChatGPT image and one single-image conversion produce one isolated garment, armor piece, weapon, or accessory source. Bodies and equipment are never requested as one fused generation.
+Paid single-image conversion is limited to isolated sources needed by the eight weapon packages. The single shared C-tier clothing family and its calling tint/trim/stitching variants are authored and conformed locally after the body rig gate. Bodies and equipment are never requested as one fused generation. The four previously generated standalone wearable sources are preserved as rejected overscope provenance and must not be promoted or used to justify further generation. All paid generation is paused at the owner-verified 89-credit balance.
 
 ## Phase 4: character-selection appearance library
 
@@ -140,8 +140,8 @@ For the owner-approved Breachling and Warden multi-view path, submit four separa
 
 ## Batch and credit gates
 
-- No paid task runs unless its complete canonical ChatGPT prompt/edit hashes, source-image hash, model, settings, and live cost are recorded and it falls inside the issue #448 authorization.
-- Notify the owner when the account balance drops below 2,000 credits.
-- Phase authorization includes required source conversions and tier renders, but does not imply approval for remesh, rigging, paid animation, runtime promotion, or another project phase.
+- No paid task runs under the current authorization. A future paid task requires fresh owner approval plus complete prompt/edit hashes, source-image hash, model, settings, and live cost.
+- The last verified personal balance is 89 credits; preserving it is the default.
+- Phase authorization includes local Blender technicalization only. It does not imply paid provider work, runtime promotion, merge, deployment, or another project phase.
 - Stop the batch if the service reports a different total, a task duplicates, or the first result exposes a prompt-wide defect.
-- Every result remains outside `public/assets` until source provenance, cleanup, rig, animation, performance, and owner visual review pass.
+- Untouched provider exports remain outside `public/assets` unless deliberately copied under `public/assets/3d/imported/issue-448/`. Reviewed local rebuilds may enter `public/assets/3d/local-derived/issue-448/`, but remain non-promotable until provenance, cleanup, rig, animation, performance, and owner visual review pass.

@@ -1,20 +1,21 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "program": {
     "issue": 448,
     "branch": "codex/448-souldrifter-first-breach-models",
     "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
     "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
-    "status": "prospective-canonical-full-spec-gate-active-existing-paid-sources-preserved-for-output-qa",
+    "status": "local-only-technicalization-active-existing-paid-sources-preserved-for-output-qa",
     "workflowDecision": "chatgpt-image-first-single-image-default-with-strict-four-view-for-owner-approved-hero-creatures",
-    "paidOperationApproved": true,
+    "paidOperationApproved": false,
     "textTo3dGenerationApproved": false,
     "textTo3dWorkflowStatus": "retired-by-owner-after-breachling-and-warden-comparison",
-    "imageTo3dApproved": true,
-    "approvedImageTo3dScope": [
-      "all-required-model-sources-for-issue-448-from-owner-reviewed-single-subject-chatgpt-images",
-      "strict-four-view-breachling-and-cinderbound-warden-source-conversions-after-view-gate"
-    ],
+    "imageTo3dApproved": false,
+    "approvedImageTo3dScope": [],
+    "localTechnicalizationApproved": true,
+    "currentExecutionMode": "local-only-blender-retopology-conform-bake-and-validation",
+    "localGpuAccelerationAllowed": true,
+    "newProviderGenerationRequiresFreshActionTimeApproval": true,
     "creditFloorRemovedByOwner": true,
     "notifyWhenCreditBalanceBelow": null
   },
@@ -37,7 +38,7 @@
     ]
   },
   "generationPolicy": {
-    "defaultOperation": "chatgpt-reference-image-then-asset-appropriate-image-to-3d",
+    "defaultOperation": "local-technicalization-of-preserved-owner-reviewed-sources",
     "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
     "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
     "bespokeAsymmetricActorOperation": "four-separate-owner-reviewed-chatgpt-views-then-asset-specific-multi-image-provider",
@@ -73,12 +74,10 @@
       "failureAction": "freeze-as-provisional-or-reject-regenerate-source-and-spend-zero-provider-credits"
     },
     "imageTo3dProduction": {
-      "allowed": true,
-      "purpose": "convert-an-owner-reviewed-chatgpt-single-subject-production-reference",
-      "separateApprovalRequired": false,
-      "approvedScope": [
-        "all-required-model-sources-for-issue-448"
-      ],
+      "allowed": false,
+      "purpose": "historical-provider-source-lineage-only-until-new-action-time-approval",
+      "separateApprovalRequired": true,
+      "approvedScope": [],
       "singleImageRequirements": [
         "one-isolated-character",
         "one-front-facing-full-body-pose",
@@ -247,14 +246,20 @@
     ]
   },
   "creditPolicy": {
-    "approval": "phase-wide-owner-reviewed-chatgpt-image-to-3d-source-generation-for-issue-448-including-approved-strict-four-view-hero-creatures",
-    "batchApprovalImplied": true,
+    "approval": "local-only-technicalization-no-new-provider-spend",
+    "batchApprovalImplied": false,
+    "currentPaidGenerationApproved": false,
+    "paidGenerationPaused": true,
+    "lastVerifiedBalance": 89,
+    "balanceContext": "personal",
     "stopOnUnexpectedCost": true,
     "notifyWhenCreditBalanceBelow": null,
     "creditFloorRemovedByOwner": true,
     "excludedOperations": [
-      "remesh",
-      "rigging",
+      "text-to-3d",
+      "image-to-3d",
+      "provider-remesh",
+      "paid-rigging",
       "paid-animation"
     ],
     "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
@@ -1720,7 +1725,11 @@
       "presentationIsAvailabilityMetadataNotAGenderLock": true,
       "requiredMasculineStyles": 6,
       "requiredFeminineStyles": 6,
-      "skullEarShoulderAndHelmetFitRequired": true
+      "skullEarShoulderAndHelmetFitRequired": true,
+      "colorIsIndependentMaterialSelection": true,
+      "geometryDuplicationPerColor": false,
+      "preservePbrDetailWithMelaninTint": true,
+      "colorMaterialFamilies": ["black", "dark-brown", "medium-brown", "light-brown", "auburn", "copper-red", "dark-blonde", "golden-blonde", "platinum-blonde", "grey", "silver-white"]
     },
     "hairReferences": [
       {"assetId": "hair-masc-cropped-fade-v001", "presentation": "masculine", "style": "cropped-fade", "file": "sd-hair-masc-cropped-fade-chatgpt-v1.png", "bytes": 1470954, "sha256": "30B819C03E931CCAEC0010643A13931381CD437F351F8EA18E99BA4DE12B3345"},
@@ -1740,12 +1749,28 @@
     "modularAdornments": ["brows", "facial-hair", "sideburns", "scars", "tattoos-and-paint", "nose-rings-and-studs", "earrings"]
   },
   "modularSourceConversions": {
-    "status": "source-conversion-batch-complete-no-runtime-promotion",
+    "status": "source-conversion-batch-preserved-starter-scope-corrected-no-runtime-promotion",
     "studioProject": "SoulDrifter",
     "studioProjectId": 310153,
     "provider": "3d-ai-studio",
     "model": "meshy-7-smart-topology-low-poly",
     "settings": {"singleImage": true, "lowPoly": true, "texture": true, "textureQuality": "2k", "pbr": true, "maximumPolygons": 15000, "expectedCreditsPerTask": 20, "generationRateLimitPerMinute": 3, "uploadRateLimitPerHour": 20},
+    "creditSafety": {
+      "paidGenerationPaused": true,
+      "lastVerifiedBalance": 89,
+      "balanceContext": "personal",
+      "reason": "Owner correction after out-of-scope wearable generation; preserve remaining credits and continue locally only."
+    },
+    "starterScope": {
+      "sharedClothingFamilyAssetId": "shared-c-tier-starter-clothing-family",
+      "sharedClothingFamilyCount": 1,
+      "callingPresentationVariation": "material-tints-trim-and-stitching-on-the-shared-clothing-family-only",
+      "standaloneArmorConversionsAllowed": false,
+      "higherLevelGearAllowed": false,
+      "acceptedWeaponPackageIds": ["longsword", "practice-staff", "wooden-mace", "shortbow-arrow-quiver", "shortsword-shield", "binding-rod", "ritual-knife", "paired-daggers"],
+      "technicalizationSourceAssetIds": ["gear-iron-longsword-starter-v001", "gear-ashwood-practice-staff-v001", "gear-wooden-mace-starter-v001", "gear-shortbow-starter-v001", "gear-arrow-quiver-starter-v001", "gear-iron-shortsword-starter-v001", "gear-wooden-shield-starter-v001", "gear-binding-rod-starter-v001", "gear-worn-dagger-starter-v001"],
+      "rejectedOverscopeAssetIds": ["wearable-leather-guard-v001", "wearable-devotional-cloth-v001", "wearable-light-plate-v001", "wearable-dark-ritual-wrap-v001"]
+    },
     "sourceOnlyGate": {
       "runtimePromotionAllowed": false,
       "requiredNextSteps": ["blender-cleanup-and-part-separation", "retopology-and-uv-pbr-bake", "canonical-scale-orientation-and-pivots", "head-or-body-conform-and-coverage-masks", "socket-and-grip-profiles", "clipping-and-gameplay-camera-qa"]
@@ -1761,10 +1786,10 @@
       {"assetId": "gear-binding-rod-starter-v001", "category": "weapon-focus", "sourceFile": "sd-gear-binding-rod-chatgpt-v1.png", "sourceSha256": "CFE172DCFEE6FAC832E566E22AE567F038844C7F5D877092825AEEC45BCA982F", "taskId": "2fb15c31-a8b5-4672-8cd8-abf840947609", "exportFile": "sd-gear-binding-rod-meshy-lowpoly-task-2fb15c31-untouched.glb", "exportBytes": 7441352, "exportSha256": "1A89AFABFF30658B772B2E911C44DF700FF1D1E943BB10F56EBBF1A5FDBF0D7D", "triangles": 6972, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
       {"assetId": "gear-ritual-knife-starter-v001", "category": "weapon", "sourceFile": "sd-gear-ritual-knife-chatgpt-v1.png", "sourceSha256": "1681116BA20F97E6C8F5013B5BC17AF1DCA26FAFC417B1C338ACC7596864BE24", "taskId": "4697f448-d8c7-41fd-afce-5e39e0147ca7", "exportFile": "sd-gear-ritual-knife-meshy-lowpoly-task-4697f448-rejected-geometry.glb", "exportBytes": 8864072, "exportSha256": "EF463AE46B27FA8C0E635D9606EE14BCB82CDC087D45B5740ED105F3F3E6F819", "triangles": 5355, "status": "rejected-provider-invented-split-blade", "fallbackAssetId": "gear-worn-dagger-starter-v001", "runtimePromotionAllowed": false},
       {"assetId": "gear-worn-dagger-starter-v001", "category": "weapon", "sourceFile": "sd-gear-worn-dagger-chatgpt-v1.png", "sourceSha256": "6FED1E91EDD9C1C67A5045ABC87468249EAB3EF1805779FBC30CCD8D2CA7CA18", "taskId": "46591885-35b5-4b86-8d66-1febd9bed5a4", "exportFile": "sd-gear-worn-dagger-meshy-lowpoly-task-46591885-untouched.glb", "exportBytes": 6470840, "exportSha256": "32E281EF8190E2B7524B6E64D2E8EFF7CF3C4E400E84DE54525CBE2502144436", "triangles": 5193, "status": "accepted-source-technicalization-pending-shared-asura-and-slayer-level-one-fallback", "runtimePromotionAllowed": false},
-      {"assetId": "wearable-leather-guard-v001", "category": "wearable", "sourceFile": "sd-wearable-leather-guard-harness-chatgpt-v1.png", "sourceSha256": "DB094B89A58E39732961BABF41A219391D7DCA1FF23CDE5CAAD240B2F63A9B51", "taskId": "38365cb8-ccdd-423d-8f1f-5d27a20296bf", "exportFile": "sd-wearable-leather-guard-meshy-lowpoly-task-38365cb8-untouched.glb", "exportBytes": 7902560, "exportSha256": "66A59041FACF364021F75196ECD696290D96D2205F4CEE184A1C2988715C4E45", "triangles": 13121, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
-      {"assetId": "wearable-devotional-cloth-v001", "category": "wearable", "sourceFile": "sd-wearable-cloth-devotional-layer-chatgpt-v1.png", "sourceSha256": "84188DE5E9985B0B67AAD142CDF0A3E635636299B3B24DB75CC2592C952B1FC5", "taskId": "7c78ede8-07b2-460d-9126-d05c089980f7", "exportFile": "sd-wearable-devotional-cloth-meshy-lowpoly-task-7c78ede8-untouched.glb", "exportBytes": 7803536, "exportSha256": "708B0189F6E53D135BAC251AE80D16A94BB2530BDEF9927A7E3D3A49F8CD0763", "triangles": 14164, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
-      {"assetId": "wearable-light-plate-v001", "category": "wearable", "sourceFile": "sd-wearable-light-plate-starter-chatgpt-v1.png", "sourceSha256": "8253587BB5D89460677B986B04F3AB415130C57A83681F2AD884BA2D0F27118B", "taskId": "d9b0313a-a55f-48da-b0b3-b32e36567f2a", "exportFile": "sd-wearable-light-plate-meshy-lowpoly-task-d9b0313a-untouched.glb", "exportBytes": 8564552, "exportSha256": "0B0A44305A58A5293244333397D8CDF81F9C6F00C57896C086F85D7BE998524F", "triangles": 12659, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
-      {"assetId": "wearable-dark-ritual-wrap-v001", "category": "wearable", "sourceFile": "sd-wearable-dark-ritual-wrap-chatgpt-v1.png", "sourceSha256": "77A9C3FF3EFEE2617823FC2F3D4B54EA64F56036EF8B60ACE8E4E1075A2D210C", "taskId": "052e0451-347b-4ad3-8490-245fe5e336d2", "exportFile": "sd-wearable-dark-ritual-wrap-meshy-lowpoly-task-052e0451-untouched.glb", "exportBytes": 6936468, "exportSha256": "B7B09590D90F492ED3D428B0845B3F7C3EF7B7DD61C2F33EA9F715DA0A52FBFD", "triangles": 14706, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-leather-guard-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-leather-guard-harness-chatgpt-v1.png", "sourceSha256": "DB094B89A58E39732961BABF41A219391D7DCA1FF23CDE5CAAD240B2F63A9B51", "taskId": "38365cb8-ccdd-423d-8f1f-5d27a20296bf", "exportFile": "sd-wearable-leather-guard-meshy-lowpoly-task-38365cb8-untouched.glb", "exportBytes": 7902560, "exportSha256": "66A59041FACF364021F75196ECD696290D96D2205F4CEE184A1C2988715C4E45", "triangles": 13121, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-devotional-cloth-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-cloth-devotional-layer-chatgpt-v1.png", "sourceSha256": "84188DE5E9985B0B67AAD142CDF0A3E635636299B3B24DB75CC2592C952B1FC5", "taskId": "7c78ede8-07b2-460d-9126-d05c089980f7", "exportFile": "sd-wearable-devotional-cloth-meshy-lowpoly-task-7c78ede8-untouched.glb", "exportBytes": 7803536, "exportSha256": "708B0189F6E53D135BAC251AE80D16A94BB2530BDEF9927A7E3D3A49F8CD0763", "triangles": 14164, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-light-plate-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-light-plate-starter-chatgpt-v1.png", "sourceSha256": "8253587BB5D89460677B986B04F3AB415130C57A83681F2AD884BA2D0F27118B", "taskId": "d9b0313a-a55f-48da-b0b3-b32e36567f2a", "exportFile": "sd-wearable-light-plate-meshy-lowpoly-task-d9b0313a-untouched.glb", "exportBytes": 8564552, "exportSha256": "0B0A44305A58A5293244333397D8CDF81F9C6F00C57896C086F85D7BE998524F", "triangles": 12659, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Plate armor violates the Level 1 shared C-tier clothing boundary and the no-high-level-armor rule.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-dark-ritual-wrap-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-dark-ritual-wrap-chatgpt-v1.png", "sourceSha256": "77A9C3FF3EFEE2617823FC2F3D4B54EA64F56036EF8B60ACE8E4E1075A2D210C", "taskId": "052e0451-347b-4ad3-8490-245fe5e336d2", "exportFile": "sd-wearable-dark-ritual-wrap-meshy-lowpoly-task-052e0451-untouched.glb", "exportBytes": 6936468, "exportSha256": "B7B09590D90F492ED3D428B0845B3F7C3EF7B7DD61C2F33EA9F715DA0A52FBFD", "triangles": 14706, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
       {"assetId": "hair-masc-cropped-fade-v001", "category": "hair", "sourceFile": "sd-hair-masc-cropped-fade-chatgpt-v1.png", "sourceSha256": "30B819C03E931CCAEC0010643A13931381CD437F351F8EA18E99BA4DE12B3345", "taskId": "e87f2c75-2694-4da7-88d8-134695397f36", "exportFile": "sd-hair-masc-cropped-meshy-lowpoly-task-e87f2c75-untouched.glb", "exportBytes": 7623432, "exportSha256": "7E6A8C22A1BC358DFC082EF7DBA6210E693081924D4527DF2CC6DD6A729D5CAC", "triangles": 11328, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
       {"assetId": "hair-masc-shoulder-loose-v001", "category": "hair", "sourceFile": "sd-hair-masc-shoulder-loose-chatgpt-v1.png", "sourceSha256": "EE854F608249D8BA56690FD6A5B5454E24410C5F0361AE9E87C0E670C32E0E50", "taskId": "fae1622b-e69c-4af7-ad1c-adaa15eba06c", "exportFile": "sd-hair-masc-shoulder-meshy-lowpoly-task-fae1622b-untouched.glb", "exportBytes": 9156112, "exportSha256": "0342DE0E6B9691DC3AE2EF139C297BE02FA02B69975F1C77C00278A84BBB0D73", "triangles": 8191, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
       {"assetId": "hair-masc-topknot-v001", "category": "hair", "sourceFile": "sd-hair-masc-topknot-chatgpt-v1.png", "sourceSha256": "8097FBCDA7FC80631D3762CAB9C80F8D0F7200F46F3AAE771C55753EC7273F7D", "taskId": "ef935ff0-d3a1-45cc-b285-d8245468cce5", "exportFile": "sd-hair-masc-topknot-meshy-lowpoly-task-ef935ff0-untouched.glb", "exportBytes": 7209552, "exportSha256": "F9FD22155E0674A73B04CEB7244B7BA258A493A9AE23BF9C44278541A794D6AF", "triangles": 10849, "status": "accepted-source-head-conform-and-ear-hole-cleanup-pending", "runtimePromotionAllowed": false},
@@ -1783,7 +1808,8 @@
     {
       "id": "playable-body-families",
       "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
       "lifetime": "game-wide",
       "bodyProfiles": [
         "slim",
@@ -1806,7 +1832,8 @@
     {
       "id": "face-and-appearance-library",
       "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "runtimeAssetLineage": "local-derived",
+      "status": "local-deformation-material-and-conform-work-pending",
       "lifetime": "game-wide",
       "facialFeatureFamilies": [
         {
@@ -1865,9 +1892,14 @@
     },
     {
       "id": "starter-calling-kits",
-      "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "geometrySource": "local-conform-and-material-assembly",
+      "runtimeAssetLineage": "local-derived",
+      "status": "shared-c-tier-clothing-source-preparation-required",
       "lifetime": "first-breach",
+      "sharedClothingFamilyAssetId": "shared-c-tier-starter-clothing-family",
+      "sharedClothingFamilyCount": 1,
+      "callingPresentationVariation": "material-tints-trim-and-stitching-only",
+      "standaloneArmorConversionsAllowed": false,
       "items": [
         "warrior",
         "mage",
@@ -1883,7 +1915,8 @@
     {
       "id": "starter-weapon-packages",
       "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
       "lifetime": "first-breach",
       "items": [
         "longsword",
@@ -1899,7 +1932,8 @@
     {
       "id": "named-tutorial-npcs",
       "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
       "lifetime": "first-breach-poc-game-wide-contract",
       "matchingConversationFaceRequired": true,
       "items": [
@@ -1911,7 +1945,8 @@
     {
       "id": "first-breach-creatures",
       "geometrySource": "3d-ai-studio",
-      "status": "approval-required",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-or-local-build-pending",
       "lifetime": "first-breach",
       "placeholderReuseAllowedForProduction": false,
       "designCompletenessRequired": [

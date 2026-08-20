@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "issue": 448,
+  "lineageKind": "local-derived",
+  "root": "public/assets/3d/local-derived/issue-448",
+  "providerImportRoot": "public/assets/3d/imported/issue-448",
+  "externalSourceIntake": "external-intake://SoulDrifter/issue-448",
+  "runtimePromotionAllowedByDefault": false,
+  "policy": {
+    "providerExportsMayBeStoredAsLocalDerived": false,
+    "localRetopologyKeepsParentSourceHash": true,
+    "localBuildRecipeRequired": true,
+    "outputHashRequired": true,
+    "runtimeSlotRequired": true,
+    "promotionRequiresTechnicalAndVisualGate": true,
+    "hairColorUsesSharedGeometryAndIndependentMaterials": true
+  },
+  "requiredAssetFields": [
+    "assetId",
+    "lineageKind",
+    "parentSource",
+    "localRecipe",
+    "output",
+    "intendedRuntimeSlot",
+    "runtimePromotionAllowed"
+  ],
+  "parentSourceFields": [
+    "provider",
+    "taskId",
+    "file",
+    "sha256"
+  ],
+  "localRecipeFields": [
+    "tool",
+    "toolVersion",
+    "script",
+    "gpuAccelerationUsed",
+    "parameters"
+  ],
+  "outputFields": [
+    "file",
+    "sha256",
+    "bytes",
+    "triangles",
+    "materials",
+    "skins",
+    "animations"
+  ],
+  "assets": []
+}

@@ -1,28 +1,39 @@
 import { describe, expect, it } from "vitest";
 import bodyAnchorIntake from "../docs/3d-ai-studio/body-anchor-intake.json";
 import modelRegister from "../docs/3d-ai-studio/first-breach-model-register.json";
+import localAssetLineage from "../public/assets/3d/local-derived/issue-448/asset-lineage.json";
 
 const sourceTask = (assetId: string) =>
   modelRegister.sourceGenerationTasks.find((entry) => entry.assetId === assetId) as any;
 
 describe("First Breach production model register", () => {
-  it("records the bounded issue authorization without expanding it to downstream paid work", () => {
+  it("records the current local-only authorization without expanding it to paid work", () => {
     expect(modelRegister.program.issue).toBe(448);
-    expect(modelRegister.program.paidOperationApproved).toBe(true);
+    expect(modelRegister.program.paidOperationApproved).toBe(false);
     expect(modelRegister.program.textTo3dGenerationApproved).toBe(false);
-    expect(modelRegister.creditPolicy.batchApprovalImplied).toBe(true);
+    expect(modelRegister.program.imageTo3dApproved).toBe(false);
+    expect(modelRegister.program.localTechnicalizationApproved).toBe(true);
+    expect(modelRegister.program.localGpuAccelerationAllowed).toBe(true);
+    expect(modelRegister.creditPolicy.batchApprovalImplied).toBe(false);
+    expect(modelRegister.creditPolicy.currentPaidGenerationApproved).toBe(false);
+    expect(modelRegister.creditPolicy.paidGenerationPaused).toBe(true);
+    expect(modelRegister.creditPolicy.lastVerifiedBalance).toBe(89);
     expect(modelRegister.creditPolicy.stopOnUnexpectedCost).toBe(true);
     expect(modelRegister.creditPolicy.excludedOperations).toEqual(
-      expect.arrayContaining(["remesh", "rigging", "paid-animation"]),
+      expect.arrayContaining(["text-to-3d", "image-to-3d", "provider-remesh", "paid-rigging", "paid-animation"]),
     );
-    expect(modelRegister.program.creditFloorRemovedByOwner).toBe(true);
-    expect(modelRegister.creditPolicy.creditFloorRemovedByOwner).toBe(true);
-    expect(modelRegister.program.notifyWhenCreditBalanceBelow).toBeNull();
-    expect(modelRegister.creditPolicy.notifyWhenCreditBalanceBelow).toBeNull();
+
+    const starterCallingKits = modelRegister.assetGroups.find((group) => group.id === "starter-calling-kits");
+    expect(starterCallingKits).toMatchObject({
+      geometrySource: "local-conform-and-material-assembly",
+      status: "shared-c-tier-clothing-source-preparation-required",
+      sharedClothingFamilyCount: 1,
+      standaloneArmorConversionsAllowed: false,
+    });
 
     for (const group of modelRegister.assetGroups) {
-      expect(group.geometrySource).toBe("3d-ai-studio");
-      expect(group.status).toBe("approval-required");
+      expect(group.runtimeAssetLineage).toBe("local-derived");
+      expect(group.status).not.toBe("approval-required");
     }
   });
 
@@ -747,6 +758,24 @@ describe("First Breach production model register", () => {
     expect(hairConversions).toHaveLength(12);
     expect(hairConversions.filter((entry: any) => entry.taskId)).toHaveLength(12);
     expect(hairConversions.filter((entry: any) => entry.status === "source-approved-awaiting-provider-upload-window")).toHaveLength(0);
+    expect(library.hairPolicy).toMatchObject({
+      colorIsIndependentMaterialSelection: true,
+      geometryDuplicationPerColor: false,
+      preservePbrDetailWithMelaninTint: true,
+    });
+    expect(library.hairPolicy.colorMaterialFamilies).toEqual([
+      "black",
+      "dark-brown",
+      "medium-brown",
+      "light-brown",
+      "auburn",
+      "copper-red",
+      "dark-blonde",
+      "golden-blonde",
+      "platinum-blonde",
+      "grey",
+      "silver-white",
+    ]);
 
     for (const reference of library.hairReferences) {
       expect(reference.sha256).toMatch(/^[A-F0-9]{64}$/);
@@ -754,14 +783,15 @@ describe("First Breach production model register", () => {
     }
   });
 
-  it("registers modular starter gear and wearables as source-only low-poly conversions", () => {
+  it("limits Level 1 gear to one shared clothing family and eight weapon packages", () => {
     const conversions = modelRegister.modularSourceConversions as any;
     const gear = conversions.entries.filter((entry: any) => entry.assetId.startsWith("gear-"));
-    const wearables = conversions.entries.filter((entry: any) => entry.category === "wearable");
+    const rejectedWearables = conversions.entries.filter((entry: any) => entry.category === "rejected-wearable-provenance");
     const completed = conversions.entries.filter((entry: any) => entry.taskId);
+    const starterWeapons = (modelRegister.assetGroups as any[]).find((group) => group.id === "starter-weapon-packages");
 
     expect(conversions).toMatchObject({
-      status: "source-conversion-batch-complete-no-runtime-promotion",
+      status: "source-conversion-batch-preserved-starter-scope-corrected-no-runtime-promotion",
       studioProject: "SoulDrifter",
       studioProjectId: 310153,
       provider: "3d-ai-studio",
@@ -777,10 +807,43 @@ describe("First Breach production model register", () => {
         generationRateLimitPerMinute: 3,
         uploadRateLimitPerHour: 20,
       },
+      creditSafety: {
+        paidGenerationPaused: true,
+        lastVerifiedBalance: 89,
+        balanceContext: "personal",
+      },
+      starterScope: {
+        sharedClothingFamilyAssetId: "shared-c-tier-starter-clothing-family",
+        sharedClothingFamilyCount: 1,
+        callingPresentationVariation: "material-tints-trim-and-stitching-on-the-shared-clothing-family-only",
+        standaloneArmorConversionsAllowed: false,
+        higherLevelGearAllowed: false,
+      },
     });
     expect(gear).toHaveLength(10);
-    expect(wearables).toHaveLength(4);
+    expect(rejectedWearables).toHaveLength(4);
     expect(completed).toHaveLength(26);
+    expect(conversions.starterScope.acceptedWeaponPackageIds).toEqual([
+      "longsword",
+      "practice-staff",
+      "wooden-mace",
+      "shortbow-arrow-quiver",
+      "shortsword-shield",
+      "binding-rod",
+      "ritual-knife",
+      "paired-daggers",
+    ]);
+    expect(starterWeapons.items).toEqual(conversions.starterScope.acceptedWeaponPackageIds);
+    expect(conversions.starterScope.technicalizationSourceAssetIds).toHaveLength(9);
+    expect(conversions.starterScope.technicalizationSourceAssetIds.some((assetId: string) => /plate|armor/i.test(assetId))).toBe(false);
+    for (const entry of rejectedWearables) {
+      expect(entry).toMatchObject({
+        status: "rejected-overscope-not-level-one-starter-gear",
+        levelOneEligibility: false,
+        provenanceOnly: true,
+        runtimePromotionAllowed: false,
+      });
+    }
 
     for (const entry of conversions.entries) {
       expect(entry.sourceSha256).toMatch(/^[A-F0-9]{64}$/);
@@ -801,6 +864,29 @@ describe("First Breach production model register", () => {
       fallbackAssetId: "gear-worn-dagger-starter-v001",
       runtimePromotionAllowed: false,
     });
+  });
+
+  it("separates local-derived runtime assets from provider imports with auditable lineage", () => {
+    expect(localAssetLineage).toMatchObject({
+      issue: 448,
+      lineageKind: "local-derived",
+      root: "public/assets/3d/local-derived/issue-448",
+      providerImportRoot: "public/assets/3d/imported/issue-448",
+      runtimePromotionAllowedByDefault: false,
+    });
+    expect(localAssetLineage.requiredAssetFields).toEqual(
+      expect.arrayContaining([
+        "assetId",
+        "parentSource",
+        "localRecipe",
+        "output",
+        "intendedRuntimeSlot",
+        "runtimePromotionAllowed",
+      ]),
+    );
+    expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
+    expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
+    expect(localAssetLineage.assets).toEqual([]);
   });
 
   it("covers every current level surface that must be revalidated", () => {
