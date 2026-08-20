@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-20T06:10:36.263Z",
+  "timestamp": "2026-08-20T07:18:00.000Z",
   "phase": "issue-448",
   "phase_name": "SoulDrifter First Breach model foundation",
   "phase_dir": ".planning",
   "plan": 1,
-  "task": 2,
-  "total_tasks": 5,
-  "status": "paused",
+  "task": 3,
+  "total_tasks": 11,
+  "status": "in_progress",
   "completed_tasks": [
     {
       "id": 1,
@@ -18,8 +18,8 @@
     {
       "id": 2,
       "name": "Open Mixamo and establish an authentication-capable Codex browser session",
-      "status": "in_progress",
-      "progress": "The isolated Chrome DevTools profile initially exposed navigator.webdriver=true and Google rejected it. Navigating to Mixamo with an initScript that makes Navigator.prototype.webdriver return undefined allowed the Google sign-in page to load. The owner believes a separate already-authenticated Mixamo tab also exists. Codex desktop froze before that tab could be attached."
+      "status": "done",
+      "progress": "The owner's existing in-app Mixamo tab was authenticated. Mixamo exposed one stored custom upload, ELF-SHADOWKNIGHT-UNARMED-MIXAMO. It was discarded by selecting the built-in The Boss character, and the active character name and preview were visually verified as THE BOSS."
     }
   ],
   "remaining_tasks": [
@@ -37,14 +37,39 @@
       "id": 5,
       "name": "Map or retarget the result to the canonical 65-bone runtime rig and continue the remaining issue-448 asset plan",
       "status": "not_started"
+    },
+    {
+      "id": 6,
+      "name": "Bind or topology-transfer the remaining eleven preserved humanoid body sources and add heavy, dwarf, and halfling corrective weights",
+      "status": "not_started"
+    },
+    {
+      "id": 7,
+      "name": "Build one tail-enabled low-hunched Breachling-family skeleton and validate Base, Stalker, Oathbound, and Ravager variants",
+      "status": "not_started"
+    },
+    {
+      "id": 8,
+      "name": "Integrate the existing Warden rigid pilot and build or reuse a reduced rigid Sentinel hierarchy",
+      "status": "not_started"
+    },
+    {
+      "id": 9,
+      "name": "Establish head-seam-v1 and build four cross-ancestry facial-feature families with shared expression and viseme controls",
+      "status": "not_started"
+    },
+    {
+      "id": 10,
+      "name": "Fit all twelve preserved hairstyles, implement eleven independent hair colors, skin tones, adornments, body/profile selectors, and starter-only assemblies in the character creator",
+      "status": "not_started"
+    },
+    {
+      "id": 11,
+      "name": "Integrate shared motion libraries, attachments, runtime QA, evidence, issue #448, and draft PR #449",
+      "status": "not_started"
     }
   ],
   "blockers": [
-    {
-      "description": "Codex desktop is frozen and must be restarted.",
-      "type": "technical",
-      "workaround": "Resume from this handoff after restarting the app."
-    },
     {
       "description": "Google rejects the default isolated automation profile when navigator.webdriver is true.",
       "type": "external",
@@ -58,9 +83,9 @@
   ],
   "human_actions_pending": [
     {
-      "action": "Restart Codex and, only if the persisted Mixamo session is not authenticated, complete Adobe/Google sign-in and 2FA in the visible browser.",
-      "context": "The owner explicitly does not want to perform the model upload or rigging steps.",
-      "blocking": true
+      "action": "Only if the persisted Mixamo session expires, complete Adobe/Google sign-in and 2FA in the visible browser.",
+      "context": "The current in-app Mixamo tab is authenticated. The owner handles credentials only; Codex handles every model operation.",
+      "blocking": false
     }
   ],
   "decisions": [
@@ -83,9 +108,24 @@
       "decision": "The current Mixamo upload is the Human masculine heavy body bind proof, not a request to reacquire every animation or rerig the existing NPC placeholders.",
       "rationale": "The verified FBX is the new generated body surface that needs one-time skin binding and deformation proof.",
       "phase": "issue-448"
+    },
+    {
+      "decision": "Complete four reusable rig families: canonical humanoid, Breachling family, Warden rigid mechanical, and Sentinel rigid mechanical.",
+      "rationale": "The owner explicitly approved the complete body-type and First Breach monster rig program. Each distinct mesh binds once, while compatible actors share one versioned skeleton and animation library per anatomy family.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "Reuse the existing 17-bone Warden rigid proof and the preserved 12-body anchor inventory instead of rebuilding accepted work.",
+      "rationale": "The live register already proves a rigid Warden pilot and preserves the exact humanoid source set. Reuse reduces risk, time, and duplicated work.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "Deliver the complete modular character creator in this lane after the rig dependency gate.",
+      "rationale": "The owner explicitly requires body profiles, ancestry and presentation, four face families, skin tones, all preserved hairstyles, independent hair colors, facial details, adornments, and starter-only gear before the task is complete.",
+      "phase": "issue-448"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "After Codex restarts, inspect the active in-app browser tabs for an already-authenticated Mixamo session before opening any new login. If signed in, upload the exact verified FBX from the recorded path. If not, restore the webdriver-hiding initScript, let the owner authenticate only, and then perform the upload.",
-  "context_notes": "Authoritative worktree: H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models. Branch codex/448-souldrifter-first-breach-models is clean and matches origin at 968475e2. Draft PR #449 targets qa; issue #448 is the ticket. Do not merge, deploy, spend 3D AI Studio credits, delete cloud models, touch main, or ask the owner to upload the model. Exact FBX: Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx. SHA-256 D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF; 2,584,252 bytes; 1 mesh; 28,555 vertices; 44,999 triangles; 1 material; 0 skins; 0 animations. The 0.01 mm seam weld reduced components to 1 without losing triangles, but 15,581 boundary/nonmanifold edges remain and are a manual continuity/Mixamo acceptance gate. Tests previously passed 165/165; typecheck and build passed; no ESLint script exists."
+  "next_action": "Use the authenticated in-app Mixamo tab to upload the exact verified Human masculine heavy FBX, place markers, and auto-rig once. Download outside the repository and complete local deformation proof before any other humanoid bind.",
+  "context_notes": "Authoritative worktree: H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models. Branch codex/448-souldrifter-first-breach-models is at eb8557d7 before the current contract edits. Draft PR #449 targets qa; issue #448 is the ticket. The full rig-family and complete character-creator contracts are recorded in docs/RIG_FAMILY_PRODUCTION_CONTRACT.md and first-breach-model-register.json. The character-creator scope includes four face families, six-plus skin tones, twelve preserved hairstyle meshes plus shaved/bald, eleven independent hair-color materials, modular facial details/adornments, all three body profiles, and starter-only gear. Do not merge, deploy, spend 3D AI Studio credits, delete cloud models, touch main, or ask the owner to upload the model. Exact FBX: Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx. SHA-256 D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF; 2,584,252 bytes; 1 mesh; 28,555 vertices; 44,999 triangles; 1 material; 0 skins; 0 animations. The 0.01 mm seam weld reduced components to 1 without losing triangles, but 15,581 boundary/nonmanifold edges remain and are a manual continuity/Mixamo acceptance gate. Tests previously passed 165/165; typecheck and build passed; no ESLint script exists."
 }

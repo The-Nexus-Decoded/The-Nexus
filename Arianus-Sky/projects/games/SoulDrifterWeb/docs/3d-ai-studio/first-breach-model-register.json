@@ -245,6 +245,188 @@
       "broader-labyrinth-and-four-realm-bestiary"
     ]
   },
+  "rigProgram": {
+    "schemaVersion": 1,
+    "ownerDecisionDate": "2026-08-20",
+    "status": "phase-1-contract-locked-human-heavy-bind-gate-in-progress",
+    "newPaidGenerationAllowed": false,
+    "runtimePromotionAllowedUntilDeformationProofPasses": false,
+    "principles": [
+      "bind-each-distinct-mesh-topology-once",
+      "reuse-one-versioned-animation-library-per-compatible-skeleton-family",
+      "transfer-weights-only-between-proven-topology-compatible-meshes",
+      "add-corrective-weights-for-extreme-proportions-before-runtime-promotion",
+      "attach-rigid-hair-armor-and-weapons-to-existing-bones-or-sockets-without-rerigging-the-body"
+    ],
+    "skeletonFamilies": {
+      "canonical-humanoid": {
+        "target": "canonical-65-bone-runtime-rig",
+        "currentSourceManifest": "./body-anchor-intake.json",
+        "currentDistinctSourceMeshes": 12,
+        "bodyProfiles": ["slim", "athletic", "heavy"],
+        "ancestries": ["human", "elf", "dwarf", "halfling"],
+        "presentations": ["masculine", "feminine"],
+        "firstBindProof": "body-human-masculine-heavy-v001",
+        "firstBindMethod": "mixamo-auto-rig-then-local-retarget-or-direct-pack-compatibility-test",
+        "requiredCorrectiveRegions": [
+          "shoulders",
+          "armpits",
+          "elbows",
+          "wrists-and-fingers",
+          "hips-and-groin",
+          "knees",
+          "ankles"
+        ],
+        "extremeProfileOverrides": {
+          "heavy": ["shoulder-volume", "upper-arm-torso-clearance", "abdomen-hip-fold", "thigh-groin-separation"],
+          "dwarf": ["short-limb-elbow-plane", "broad-shoulder-twist", "hip-knee-compression"],
+          "halfling": ["short-limb-retarget-profile", "knee-and-ankle-bend-plane", "hand-and-foot-scale"]
+        }
+      },
+      "breachling-family": {
+        "target": "breachling-family-rig-v1",
+        "sharedBy": ["breachling", "breachling-stalker", "oathbound-breachling", "breachling-ravager"],
+        "requiredAnatomy": [
+          "permanent-low-hunched-spine",
+          "long-weight-bearing-arms",
+          "four-finger-hands",
+          "short-digitigrade-legs",
+          "jaw-open-close-and-snarl-controls",
+          "versioned-muscular-tail-chain"
+        ],
+        "availableThreeDimensionalSources": ["breachling", "breachling-stalker"],
+        "sourceViewSetsAwaitingLocalTopologyVariants": ["oathbound-breachling", "breachling-ravager"],
+        "motionReuse": "one-locomotion-combat-and-defeat-library-shared-across-all-four-tier-meshes"
+      },
+      "cinderbound-warden": {
+        "target": "warden-rigid-rig-v1",
+        "existingProof": "sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+        "existingProofBoneCount": 17,
+        "weightPolicy": "rigid-component-assignment-with-no-soft-stone-deformation",
+        "requiredMechanisms": [
+          "weighted-piston-locomotion",
+          "rotating-shoulder-rings",
+          "opening-rib-cage",
+          "soul-tax-left-palm",
+          "integrated-right-claw-blade",
+          "core-shutdown"
+        ]
+      },
+      "training-effigy-sentinel": {
+        "target": "sentinel-rigid-rig-v1",
+        "weightPolicy": "rigid-hinge-component-assignment",
+        "reuseDecisionGate": "reuse-a-reduced-warden-hierarchy-only-if-pivot-axis-and-component-segmentation-tests-pass",
+        "fallback": "create-a-separate-simpler-rigid-hierarchy"
+      }
+    },
+    "promotionGates": [
+      "skeleton-and-bone-map-validation",
+      "close-deformation-review-at-shoulders-elbows-wrists-fingers-hips-and-knees",
+      "normal-speed-locomotion-and-combat-review",
+      "root-grounding-and-foot-contact-thresholds",
+      "equipment-socket-and-hair-clipping-review",
+      "gameplay-camera-and-small-viewport-readability",
+      "tests-typecheck-build-and-browser-smoke"
+    ]
+  },
+  "characterCreationProgram": {
+    "schemaVersion": 1,
+    "ownerDecisionDate": "2026-08-20",
+    "status": "complete-character-creator-required-after-rig-dependency-gate",
+    "sharedAssetIdentityRequiredAcross": [
+      "character-creation-preview",
+      "world-actor",
+      "paper-doll",
+      "saved-profile",
+      "local-runtime-headshot"
+    ],
+    "independentSelections": {
+      "ancestry": ["human", "elf", "dwarf", "halfling"],
+      "presentation": ["masculine", "feminine"],
+      "bodyProfile": ["slim", "athletic", "heavy"],
+      "facialFeatureFamily": [
+        "african-diaspora-black",
+        "east-asian",
+        "south-asian-indian",
+        "european"
+      ],
+      "skinToneMinimum": ["deep", "dark", "medium-deep", "medium", "tan-olive", "light-pale"],
+      "hairSourceStyles": [
+        "feminine-bob",
+        "feminine-braided-crown",
+        "feminine-high-ponytail",
+        "feminine-long-wavy",
+        "feminine-pixie",
+        "feminine-twin-braids",
+        "masculine-cropped",
+        "masculine-curly",
+        "masculine-shoulder-length",
+        "masculine-swept",
+        "masculine-topknot",
+        "masculine-warrior-braid"
+      ],
+      "meshlessHairOptions": ["shaved", "bald"],
+      "hairColorMaterialFamilies": [
+        "soft-black",
+        "blue-black",
+        "dark-brown",
+        "medium-brown",
+        "light-brown",
+        "auburn",
+        "copper-red",
+        "dark-blonde",
+        "light-blonde",
+        "grey",
+        "silver-white"
+      ],
+      "modularDetails": [
+        "brows",
+        "facial-hair",
+        "sideburns",
+        "scars",
+        "tattoos-and-paint",
+        "nose-rings-and-studs",
+        "earrings"
+      ]
+    },
+    "headContract": {
+      "canonical": "head-seam-v1",
+      "method": "local-compatible-topology-conform-and-deformation-profiles",
+      "newSkeletonPerFaceProhibited": true,
+      "duplicatedFullBodyPerFaceProhibited": true,
+      "requiredSharedControls": [
+        "blink-and-squint",
+        "eye-direction",
+        "brow-raise-lower-and-asymmetry",
+        "jaw-open-close",
+        "cheek-and-lip-deformation",
+        "compact-speech-visemes",
+        "restrained-expression-presets"
+      ],
+      "ancestryMarkersRemainIndependent": true,
+      "namedNpcProofActors": ["ilyra", "orren", "brannoc"]
+    },
+    "hairPolicy": {
+      "sourceMeshCount": 12,
+      "colorImplementedAsMaterialSelection": true,
+      "duplicateGeometryPerColorProhibited": true,
+      "crossPresentationWhenFitQaPasses": true,
+      "helmetPolicy": "hide-or-authored-tucked-variant",
+      "fitGates": [
+        "scalp-coverage",
+        "ear-clearance",
+        "shoulder-and-collar-motion",
+        "weapon-clearance",
+        "smallest-viewport-readability"
+      ]
+    },
+    "starterPresentation": {
+      "clothing": "one-shared-worn-c-tier-family-with-calling-material-trim-and-stitching-variants",
+      "weaponAssemblies": 9,
+      "higherLevelArmorAndWeaponsProhibited": true,
+      "fusedBodyEquipmentProhibited": true
+    }
+  },
   "creditPolicy": {
     "approval": "local-only-technicalization-no-new-provider-spend",
     "batchApprovalImplied": false,
