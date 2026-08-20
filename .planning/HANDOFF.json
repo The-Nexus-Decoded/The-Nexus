@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-20T01:15:05-05:00",
+  "phase": "issue-450",
+  "phase_name": "First Breach Houdini visual correction and QA review",
+  "phase_dir": ".planning",
+  "plan": 1,
+  "task": 1,
+  "total_tasks": 4,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 0,
+      "name": "Add query-controlled Houdini QA runtime mode and QA-only asset budget reporting",
+      "status": "done",
+      "commit": "647314f8"
+    },
+    {
+      "id": 1,
+      "name": "Audit rejected Houdini composition",
+      "status": "in_progress",
+      "progress": "Confirmed corridor misplacement from roomId versus zoneId filtering and incorrect semantic substitutions for the training effigy and memory loom. Full visual spec and renders are not yet created."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 2,
+      "name": "Create full room-by-room visual acceptance spec and current Houdini/Three.js side-by-side evidence",
+      "status": "not_started"
+    },
+    {
+      "id": 3,
+      "name": "Correct semantic sockets, gates, wall dressing, fire, materials, lighting, and randomized prop sets; rebuild hipnc",
+      "status": "not_started"
+    },
+    {
+      "id": 4,
+      "name": "Run visual and technical verification, obtain owner approval, then create QA PR/release",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Owner rejected the current Houdini scene visually; it must not be deployed to QA.",
+      "type": "human_action",
+      "workaround": "Produce local Houdini and Three.js review renders plus the visual spec, correct the scene, and request visual approval before QA release."
+    },
+    {
+      "description": "The current completion algorithm filters placement by roomId, but passage tiles inherit adjacent room IDs, so room props can land in corridors.",
+      "type": "technical",
+      "workaround": "Constrain non-corridor assets to exact zoneId and use explicit corridor-safe wall fixture sockets."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Review side-by-side local renders after corrections",
+      "context": "Owner requires the Houdini source scene and Three.js runtime to match the accepted Diablo-style atmosphere before QA deployment.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Pause QA deployment immediately after owner visual rejection.",
+      "rationale": "The current scene has semantically incorrect placements and inconsistent presentation.",
+      "phase": "issue-450"
+    },
+    {
+      "decision": "Review locally in both Houdini and Three.js before deployment.",
+      "rationale": "Deployment is not required for accurate material, lighting, fire, shadow, fog, and asset-presence review.",
+      "phase": "issue-450"
+    },
+    {
+      "decision": "Keep the 150 MB hard cap for production but make it report-only for qa and PRs targeting qa.",
+      "rationale": "QA must accept the complete review kit while production still needs an enforced size safeguard.",
+      "phase": "issue-450"
+    },
+    {
+      "decision": "Randomize approved prop sets among semantic sockets, never arbitrary walkable tiles.",
+      "rationale": "Randomization must preserve traversal, readability, and plausible placement.",
+      "phase": "issue-450"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Read .planning/.continue-here.md, acknowledge its blocking constraints, then create the visual acceptance spec and render the current hipnc plus local Three.js environment=houdini baseline before changing placements.",
+  "context_notes": "Branch codex/450-houdini-apprentice-first-breach is clean at 647314f8. Commit 647314f8 is local and not pushed. No PR exists. Do not redeploy, regenerate paid 3D assets, or spend credits. The approved GLBs and texture cache exist. The owner specifically reported misplaced statues/braziers, missing-looking chains/weapon racks/gates, weaker lighting/color/fire presentation, insufficient wall paintings/atmosphere, and questioned whether randomization is preserved."
+}
