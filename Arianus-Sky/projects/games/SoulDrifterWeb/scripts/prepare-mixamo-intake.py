@@ -12,11 +12,12 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+from math import radians
 from pathlib import Path
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 
 def arguments() -> argparse.Namespace:
@@ -34,6 +35,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--parent-asset-id", required=True)
     parser.add_argument("--expected-source-sha256", required=True)
     parser.add_argument("--weld-threshold-meters", type=float, default=0.00001)
+    parser.add_argument("--yaw-degrees", type=float, default=0.0)
     parser.add_argument("--preview-resolution", type=int, default=1024)
     return parser.parse_args(sys.argv[separator + 1 :])
 
@@ -120,7 +122,12 @@ def scene_diagnostics(meshes: list[bpy.types.Object]) -> dict[str, object]:
     }
 
 
-def prepare_mesh(item: bpy.types.Object, asset_id: str, weld_threshold: float) -> None:
+def prepare_mesh(
+    item: bpy.types.Object,
+    asset_id: str,
+    weld_threshold: float,
+    yaw_degrees: float,
+) -> None:
     world_matrix = item.matrix_world.copy()
     item.parent = None
     item.matrix_world = world_matrix
@@ -139,8 +146,14 @@ def prepare_mesh(item: bpy.types.Object, asset_id: str, weld_threshold: float) -
         bpy.ops.mesh.select_all(action="SELECT")
         bpy.ops.mesh.remove_doubles(threshold=weld_threshold)
         bpy.ops.object.mode_set(mode="OBJECT")
-    item.name = "SD_Human_Heavy_MixamoIntake"
-    item.data.name = "SD_Human_Heavy_MixamoIntake_Mesh"
+    if yaw_degrees:
+        item.matrix_world = Matrix.Rotation(radians(yaw_degrees), 4, "Z") @ item.matrix_world
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    object_name = "SD_" + "_".join(
+        segment for segment in asset_id.replace("-mixamo-intake", "").split("-") if segment
+    )
+    item.name = object_name
+    item.data.name = f"{object_name}_Mesh"
     item["assetId"] = asset_id
     item["runtimePromotionAllowed"] = False
     item["externalUploadState"] = "not-uploaded"
@@ -254,7 +267,12 @@ def main() -> None:
     if any(item.type == "ARMATURE" for item in bpy.context.scene.objects):
         raise RuntimeError("Mixamo intake source must be unrigged")
 
-    prepare_mesh(source_meshes[0], args.asset_id, args.weld_threshold_meters)
+    prepare_mesh(
+        source_meshes[0],
+        args.asset_id,
+        args.weld_threshold_meters,
+        args.yaw_degrees,
+    )
     source_diagnostics = scene_diagnostics(source_meshes)
     export_fbx(source_meshes[0], output)
 
@@ -302,6 +320,7 @@ def main() -> None:
                 "helperObjectsExported": False,
                 "armatureExported": False,
                 "seamWeldThresholdMeters": args.weld_threshold_meters,
+                "yawDegrees": args.yaw_degrees,
             },
         },
         "sourceDiagnostics": source_diagnostics,

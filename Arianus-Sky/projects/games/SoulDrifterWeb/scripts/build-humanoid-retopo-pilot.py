@@ -39,6 +39,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--asset-id", required=True)
     parser.add_argument("--source-task-id", required=True)
     parser.add_argument("--expected-source-sha256", required=True)
+    parser.add_argument("--intended-runtime-slot", required=True)
     parser.add_argument("--target-triangles", type=int, default=45000)
     parser.add_argument("--target-height-meters", type=float, default=1.82)
     parser.add_argument("--preview-resolution", type=int, default=1024)
@@ -272,7 +273,7 @@ def main() -> None:
             "dimensionsMeters": dimensions,
             "preview": preview.name,
         },
-        "intendedRuntimeSlot": "character-body/human/masculine/heavy",
+        "intendedRuntimeSlot": args.intended_runtime_slot,
         "runtimePromotionAllowed": False,
         "remainingGates": [
             "owner-visual-comparison",
