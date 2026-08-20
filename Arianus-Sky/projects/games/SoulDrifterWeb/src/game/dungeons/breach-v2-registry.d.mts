@@ -10,6 +10,8 @@ export interface BreachV2Placement {
   blocking: boolean;
   role: "dressing" | "loot-cache" | "wall-art" | "readable-props";
   width?: number;
+  height?: number;
+  footprint?: number;
 }
 
 export interface BreachV2FixedRoom {

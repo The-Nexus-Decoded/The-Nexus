@@ -16,9 +16,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from breach_v2_design import (  # noqa: E402
     ASSET_META, BOOK_PROPS, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT,
-    DRESSING, EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE,
-    PATH_SLOTS, PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY, SPAWN_TABLE,
-    VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
+    DRESSING, EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, KIT_DIMS,
+    LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY,
+    SPAWN_TABLE, VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
 )
 
 ROOM_INDEX = {r["id"]: r for r in FIXED_ROOMS}
@@ -40,8 +40,10 @@ def placements(room_id, room_w, room_h):
     out = []
     for asset, x, y in FIXED_DRESSING.get(room_id, DRESSING.get(room_id, [])):
         group, placement = ASSET_META[asset]
+        height, footprint = KIT_DIMS[asset]
         out.append(dict(asset=asset, x=x, y=y, placement=placement, group=group,
                         facing=facing(room_w, room_h, x, y, placement),
+                        height=height, footprint=footprint,
                         blocking=group in ("loot", "furniture", "structure", "rubble", "corruption")
                         and asset not in ("bone-pile", "iron-floor-grate", "shed-chitin-pile",
                                           "weapon-armor-heap", "bottles-jugs-crockery-cluster",
@@ -50,10 +52,13 @@ def placements(room_id, room_w, room_h):
     for art_id, x, y, w_m in WALL_ART.get(room_id, []):
         out.append(dict(asset=art_id, x=x, y=y, width=w_m, placement="wall", group="art",
                         facing=facing(room_w, room_h, x, y, "wall"), blocking=False,
+                        height=round(w_m * 0.7, 2), footprint=w_m,
                         role="wall-art"))
     for asset, x, y in BOOK_PROPS.get(room_id, []):
+        height, footprint = KIT_DIMS[asset]
         out.append(dict(asset=asset, x=x, y=y, placement="floor", group="books",
-                        facing="up", blocking=False, role="readable-props"))
+                        facing="up", height=height, footprint=footprint,
+                        blocking=False, role="readable-props"))
     return out
 
 
@@ -156,8 +161,9 @@ def main():
  *
  * Placement records carry the §6 minimum metadata: roomId (via parent room),
  * asset/type, x/y in local room meters, placement + facing normal, blocking,
- * role, and (for wall art) width. Footprints/heights come from
- * DungeonPropCatalog.ts at runtime (the asset authority).
+ * role, footprint + height (mirrors of DungeonPropCatalog.ts, asserted 1:1 by
+ * tests/breachV2Registry.test.mjs — the catalog stays the runtime authority),
+ * and (for wall art) width.
  */
 
 export const BREACH_V2_REGISTRY = '''

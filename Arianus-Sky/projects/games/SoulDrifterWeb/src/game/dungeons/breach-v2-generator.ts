@@ -13,7 +13,6 @@
  */
 
 import { BREACH_V2_REGISTRY as R } from "./breach-v2-registry.mjs";
-import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import type {
   BreachV2FixedRoom, BreachV2Placement, BreachV2PoolRoom,
 } from "./breach-v2-registry.mjs";
@@ -174,11 +173,6 @@ function landmark(id: string) {
   return { ...lm, worldX: room.x + lm.x, worldY: room.y + lm.y };
 }
 
-function footprintOf(asset: string): number {
-  const spec = (DUNGEON_PROP_ASSETS as Record<string, { maxFootprint?: number }>)[asset];
-  return spec?.maxFootprint ?? 1.2;
-}
-
 export function generateBreachV2(seed: number, pathId: BreachV2PathId): GeneratedBreachV2 {
   const random = mulberry32((seed || 1) >>> 0);
   const path = R.paths[pathId];
@@ -251,7 +245,7 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
         worldX: ox + p.x,
         worldY: oy + p.y,
         blocksMovement: p.blocking,
-        footprint: footprintOf(p.asset),
+        footprint: p.footprint ?? 1.2,
       });
     }
   };

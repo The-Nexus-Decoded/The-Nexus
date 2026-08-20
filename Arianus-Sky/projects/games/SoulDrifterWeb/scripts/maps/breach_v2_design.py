@@ -67,12 +67,12 @@ VESTIBULE_LANDMARKS = [
     dict(id="effigy", label="True training effigy (level-one rehearsal)", x=21.8, y=6.4, r=0.9),
 ]
 
-# Threshold plaza landmarks
+# Threshold plaza landmarks — ROOM-LOCAL meters (plaza origin 36,4 on the plan)
 PLAZA_LANDMARKS = [
-    dict(id="orren", label="Breach Scout Orren (guide beat)", x=44.0, y=7.0, r=0.45),
-    dict(id="brannoc", label="Arena Warden Brannoc (guide beat)", x=44.0, y=13.0, r=0.45),
-    dict(id="door-wayfarer", label="WAYFARER DOOR — easy path (soul-cyan)", x=52.0, y=6.5, w=3.0),
-    dict(id="door-oathbreaker", label="OATHBREAKER DOOR — hard path (ember-red)", x=52.0, y=13.5, w=3.0),
+    dict(id="orren", label="Breach Scout Orren (guide beat)", x=8.0, y=3.0, r=0.45),
+    dict(id="brannoc", label="Arena Warden Brannoc (guide beat)", x=8.0, y=9.0, r=0.45),
+    dict(id="door-wayfarer", label="WAYFARER DOOR — easy path (soul-cyan)", x=16.0, y=2.5, w=3.0),
+    dict(id="door-oathbreaker", label="OATHBREAKER DOOR — hard path (ember-red)", x=16.0, y=9.5, w=3.0),
 ]
 
 # ---------------------------------------------------------------------------
@@ -383,4 +383,34 @@ BOOK_PROPS = {
     "vestibule": [("books-pile", 15.6, 4.2), ("scrolls-pile", 5.4, 8.8)],   # table + beside the Loom
     "E-07": [("books-pile", 5.5, 6.5), ("books-pile", 10.5, 6.0), ("scrolls-pile", 7.0, 12.3)],
     "E-03": [("scrolls-pile", 5.5, 9.5)],
+}
+
+
+# ---------------------------------------------------------------------------
+# Kit dimensions — mirrors src/game/environment/DungeonPropCatalog.ts
+# (targetHeight, maxFootprint in meters). The registry test asserts these
+# match the catalog 1:1; the catalog stays the runtime asset authority.
+# ---------------------------------------------------------------------------
+KIT_DIMS = {
+    "archive-bookshelf": (2.75, 2.6), "archive-cupboard": (2.35, 2.35),
+    "storage-chest": (1.05, 1.65), "reinforced-crate": (1.08, 1.55),
+    "storage-barrel": (1.22, 1.4), "trestle-table": (0.92, 2.8),
+    "heavy-bench": (0.9, 2.35), "high-backed-chair": (1.7, 1.35),
+    "empty-weapon-rack": (2.05, 2.25), "wall-torch-sconce": (1.5, 0.95),
+    "floor-brazier": (1.38, 1.5), "hanging-brazier": (1.35, 1.45),
+    "cave-in-rubble": (1.05, 2.55), "masonry-barricade": (1.55, 2.9),
+    "bone-pile": (0.72, 2.15), "chain-shackle": (1.65, 1.6),
+    "ruined-altar": (1.45, 2.25), "heavy-door": (3.0, 2.45),
+    "false-wall-panel": (2.9, 2.75), "supply-pile": (1.35, 2.2),
+    "corruption-growth": (1.45, 2.3), "guardian-statue": (3.15, 1.75),
+    "ruined-stone-archway": (3.45, 3.5), "reliquary-wall-alcove": (2.75, 2.15),
+    "broken-stone-stair-dais": (0.92, 3.25), "wooden-support-brace": (3.25, 3.1),
+    "rusted-portcullis": (3.05, 2.75), "iron-floor-grate": (0.22, 2.3),
+    "collapsed-timber-masonry-pile": (1.55, 3.35), "hanging-iron-cage": (2.15, 1.55),
+    "candelabra-cluster": (1.65, 1.9), "bottles-jugs-crockery-cluster": (0.88, 1.65),
+    "weapon-armor-heap": (1.05, 2.45), "broken-handcart": (1.42, 3.35),
+    "monster-egg-nest": (1.05, 2.5), "cocooned-remains-web-mass": (2.65, 1.75),
+    "shed-chitin-pile": (0.78, 2.35), "burrowed-wall-breach-plug": (2.8, 2.9),
+    # texture-based custom props (Add-on A) — kit geometry reused
+    "books-pile": (0.35, 0.9), "scrolls-pile": (0.3, 0.9),
 }

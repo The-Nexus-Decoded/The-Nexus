@@ -12,8 +12,9 @@
  *
  * Placement records carry the §6 minimum metadata: roomId (via parent room),
  * asset/type, x/y in local room meters, placement + facing normal, blocking,
- * role, and (for wall art) width. Footprints/heights come from
- * DungeonPropCatalog.ts at runtime (the asset authority).
+ * role, footprint + height (mirrors of DungeonPropCatalog.ts, asserted 1:1 by
+ * tests/breachV2Registry.test.mjs — the catalog stays the runtime authority),
+ * and (for wall art) width.
  */
 
 export const BREACH_V2_REGISTRY = {
@@ -48,6 +49,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -58,6 +61,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -68,6 +73,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -78,6 +85,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -88,6 +97,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -98,6 +109,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -108,6 +121,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "furniture",
           "facing": "east",
+          "height": 2.75,
+          "footprint": 2.6,
           "blocking": true,
           "role": "dressing"
         },
@@ -118,6 +133,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "furniture",
           "facing": "up",
+          "height": 0.92,
+          "footprint": 2.8,
           "blocking": true,
           "role": "dressing"
         },
@@ -128,6 +145,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "furniture",
           "facing": "up",
+          "height": 0.9,
+          "footprint": 2.35,
           "blocking": true,
           "role": "dressing"
         },
@@ -138,6 +157,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "furniture",
           "facing": "south",
+          "height": 2.05,
+          "footprint": 2.25,
           "blocking": true,
           "role": "dressing"
         },
@@ -148,6 +169,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "rubble",
           "facing": "up",
+          "height": 1.05,
+          "footprint": 2.55,
           "blocking": true,
           "role": "dressing"
         },
@@ -158,6 +181,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "rubble",
           "facing": "up",
+          "height": 1.55,
+          "footprint": 3.35,
           "blocking": true,
           "role": "dressing"
         },
@@ -168,6 +193,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.65,
+          "footprint": 1.9,
           "blocking": false,
           "role": "dressing"
         },
@@ -178,6 +205,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "loot",
           "facing": "up",
+          "height": 1.35,
+          "footprint": 2.2,
           "blocking": false,
           "role": "dressing"
         },
@@ -188,6 +217,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 3.15,
+          "footprint": 1.75,
           "blocking": true,
           "role": "dressing"
         },
@@ -198,6 +229,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 3.15,
+          "footprint": 1.75,
           "blocking": true,
           "role": "dressing"
         },
@@ -208,6 +241,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 0.22,
+          "footprint": 2.3,
           "blocking": false,
           "role": "dressing"
         },
@@ -218,6 +253,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "east",
+          "height": 3.25,
+          "footprint": 3.1,
           "blocking": true,
           "role": "dressing"
         },
@@ -228,6 +265,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "east",
+          "height": 3.25,
+          "footprint": 3.1,
           "blocking": true,
           "role": "dressing"
         },
@@ -240,6 +279,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.82,
+          "footprint": 2.6,
           "role": "wall-art"
         },
         {
@@ -251,6 +292,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.54,
+          "footprint": 2.2,
           "role": "wall-art"
         },
         {
@@ -262,6 +305,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "north",
           "blocking": false,
+          "height": 1.4,
+          "footprint": 2.0,
           "role": "wall-art"
         },
         {
@@ -271,6 +316,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "books",
           "facing": "up",
+          "height": 0.35,
+          "footprint": 0.9,
           "blocking": false,
           "role": "readable-props"
         },
@@ -281,6 +328,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "books",
           "facing": "up",
+          "height": 0.3,
+          "footprint": 0.9,
           "blocking": false,
           "role": "readable-props"
         }
@@ -303,6 +352,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -313,6 +364,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         }
@@ -335,6 +388,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -345,6 +400,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -355,6 +412,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "furniture",
           "facing": "south",
+          "height": 2.05,
+          "footprint": 2.25,
           "blocking": true,
           "role": "dressing"
         },
@@ -365,6 +424,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "furniture",
           "facing": "up",
+          "height": 0.9,
+          "footprint": 2.35,
           "blocking": true,
           "role": "dressing"
         },
@@ -375,6 +436,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 0.22,
+          "footprint": 2.3,
           "blocking": false,
           "role": "dressing"
         },
@@ -385,6 +448,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.65,
+          "footprint": 1.9,
           "blocking": false,
           "role": "dressing"
         },
@@ -395,6 +460,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "west",
+          "height": 3.0,
+          "footprint": 2.45,
           "blocking": true,
           "role": "dressing"
         },
@@ -405,6 +472,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "west",
+          "height": 3.0,
+          "footprint": 2.45,
           "blocking": true,
           "role": "dressing"
         },
@@ -417,6 +486,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.26,
+          "footprint": 1.8,
           "role": "wall-art"
         },
         {
@@ -428,6 +499,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "west",
           "blocking": false,
+          "height": 0.98,
+          "footprint": 1.4,
           "role": "wall-art"
         },
         {
@@ -439,6 +512,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "west",
           "blocking": false,
+          "height": 0.98,
+          "footprint": 1.4,
           "role": "wall-art"
         }
       ]
@@ -460,6 +535,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
+          "height": 1.45,
+          "footprint": 2.3,
           "blocking": true,
           "role": "dressing"
         },
@@ -470,6 +547,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
+          "height": 1.45,
+          "footprint": 2.3,
           "blocking": true,
           "role": "dressing"
         },
@@ -480,6 +559,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -490,6 +571,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -500,6 +583,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "macabre",
           "facing": "up",
+          "height": 0.72,
+          "footprint": 2.15,
           "blocking": false,
           "role": "dressing"
         },
@@ -510,6 +595,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "ceiling",
           "group": "fire",
           "facing": "down",
+          "height": 1.35,
+          "footprint": 1.45,
           "blocking": false,
           "role": "dressing"
         },
@@ -522,6 +609,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "east",
           "blocking": false,
+          "height": 0.98,
+          "footprint": 1.4,
           "role": "wall-art"
         }
       ]
@@ -543,6 +632,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "east",
+          "height": 3.45,
+          "footprint": 3.5,
           "blocking": true,
           "role": "dressing"
         },
@@ -553,6 +644,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "macabre",
           "facing": "south",
+          "height": 1.65,
+          "footprint": 1.6,
           "blocking": false,
           "role": "dressing"
         },
@@ -563,6 +656,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "macabre",
           "facing": "south",
+          "height": 1.65,
+          "footprint": 1.6,
           "blocking": false,
           "role": "dressing"
         },
@@ -573,6 +668,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 1.55,
+          "footprint": 2.9,
           "blocking": true,
           "role": "dressing"
         },
@@ -583,6 +680,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "loot",
           "facing": "up",
+          "height": 1.05,
+          "footprint": 2.45,
           "blocking": false,
           "role": "dressing"
         },
@@ -593,6 +692,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -605,6 +706,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.26,
+          "footprint": 1.8,
           "role": "wall-art"
         }
       ]
@@ -626,6 +729,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 0.92,
+          "footprint": 3.25,
           "blocking": true,
           "role": "dressing"
         },
@@ -636,6 +741,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 3.15,
+          "footprint": 1.75,
           "blocking": true,
           "role": "dressing"
         },
@@ -646,6 +753,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "structure",
           "facing": "up",
+          "height": 3.15,
+          "footprint": 1.75,
           "blocking": true,
           "role": "dressing"
         },
@@ -656,6 +765,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
+          "height": 1.45,
+          "footprint": 2.3,
           "blocking": true,
           "role": "dressing"
         },
@@ -666,6 +777,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
+          "height": 1.45,
+          "footprint": 2.3,
           "blocking": true,
           "role": "dressing"
         },
@@ -676,6 +789,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "corruption",
           "facing": "up",
+          "height": 1.45,
+          "footprint": 2.3,
           "blocking": true,
           "role": "dressing"
         },
@@ -686,6 +801,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "macabre",
           "facing": "south",
+          "height": 1.65,
+          "footprint": 1.6,
           "blocking": false,
           "role": "dressing"
         },
@@ -696,6 +813,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "macabre",
           "facing": "south",
+          "height": 1.65,
+          "footprint": 1.6,
           "blocking": false,
           "role": "dressing"
         },
@@ -706,6 +825,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -716,6 +837,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
           "blocking": false,
           "role": "dressing"
         },
@@ -726,6 +849,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "macabre",
           "facing": "up",
+          "height": 0.72,
+          "footprint": 2.15,
           "blocking": false,
           "role": "dressing"
         },
@@ -736,6 +861,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "rubble",
           "facing": "up",
+          "height": 1.05,
+          "footprint": 2.55,
           "blocking": true,
           "role": "dressing"
         },
@@ -746,6 +873,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "ceiling",
           "group": "fire",
           "facing": "down",
+          "height": 1.35,
+          "footprint": 1.45,
           "blocking": false,
           "role": "dressing"
         },
@@ -758,6 +887,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.12,
+          "footprint": 1.6,
           "role": "wall-art"
         },
         {
@@ -769,6 +900,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.12,
+          "footprint": 1.6,
           "role": "wall-art"
         }
       ]
@@ -790,6 +923,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "south",
+          "height": 2.75,
+          "footprint": 2.15,
           "blocking": true,
           "role": "dressing"
         },
@@ -800,6 +935,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "south",
+          "height": 2.75,
+          "footprint": 2.15,
           "blocking": true,
           "role": "dressing"
         },
@@ -810,6 +947,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.65,
+          "footprint": 1.9,
           "blocking": false,
           "role": "dressing"
         },
@@ -820,6 +959,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "fire",
           "facing": "up",
+          "height": 1.65,
+          "footprint": 1.9,
           "blocking": false,
           "role": "dressing"
         },
@@ -830,6 +971,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "loot",
           "facing": "up",
+          "height": 1.05,
+          "footprint": 1.65,
           "blocking": true,
           "role": "loot-cache"
         },
@@ -842,6 +985,8 @@ export const BREACH_V2_REGISTRY = {
           "group": "art",
           "facing": "south",
           "blocking": false,
+          "height": 1.26,
+          "footprint": 1.8,
           "role": "wall-art"
         }
       ]
@@ -863,6 +1008,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "south",
+          "height": 3.25,
+          "footprint": 3.1,
           "blocking": true,
           "role": "dressing"
         },
@@ -873,6 +1020,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "south",
+          "height": 3.25,
+          "footprint": 3.1,
           "blocking": true,
           "role": "dressing"
         },
@@ -883,6 +1032,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "south",
+          "height": 3.25,
+          "footprint": 3.1,
           "blocking": true,
           "role": "dressing"
         },
@@ -893,6 +1044,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "floor",
           "group": "rubble",
           "facing": "up",
+          "height": 1.05,
+          "footprint": 2.55,
           "blocking": true,
           "role": "dressing"
         },
@@ -903,6 +1056,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -913,6 +1068,8 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "structure",
           "facing": "west",
+          "height": 3.45,
+          "footprint": 3.5,
           "blocking": true,
           "role": "dressing"
         }
@@ -1116,6 +1273,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1126,6 +1285,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1136,6 +1297,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "fire",
             "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -1146,6 +1309,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 0.9,
+            "footprint": 2.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1156,6 +1321,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 0.92,
+            "footprint": 2.8,
             "blocking": true,
             "role": "dressing"
           },
@@ -1166,6 +1333,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.22,
+            "footprint": 1.4,
             "blocking": false,
             "role": "dressing"
           },
@@ -1176,6 +1345,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.08,
+            "footprint": 1.55,
             "blocking": false,
             "role": "dressing"
           },
@@ -1186,6 +1357,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 0.22,
+            "footprint": 2.3,
             "blocking": false,
             "role": "dressing"
           },
@@ -1196,6 +1369,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -1249,6 +1424,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "rubble",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.55,
             "blocking": true,
             "role": "dressing"
           },
@@ -1259,6 +1436,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.42,
+            "footprint": 3.35,
             "blocking": false,
             "role": "dressing"
           },
@@ -1269,6 +1448,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.22,
+            "footprint": 1.4,
             "blocking": false,
             "role": "dressing"
           },
@@ -1279,6 +1460,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "east",
+            "height": 3.25,
+            "footprint": 3.1,
             "blocking": true,
             "role": "dressing"
           },
@@ -1289,6 +1472,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "fire",
             "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -1299,6 +1484,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1309,6 +1496,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -1319,6 +1508,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "macabre",
             "facing": "up",
+            "height": 0.72,
+            "footprint": 2.15,
             "blocking": false,
             "role": "dressing"
           }
@@ -1358,6 +1549,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "south",
+            "height": 2.75,
+            "footprint": 2.15,
             "blocking": true,
             "role": "dressing"
           },
@@ -1368,6 +1561,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "south",
+            "height": 2.75,
+            "footprint": 2.15,
             "blocking": true,
             "role": "dressing"
           },
@@ -1378,6 +1573,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 1.45,
+            "footprint": 2.25,
             "blocking": true,
             "role": "dressing"
           },
@@ -1388,6 +1585,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.65,
+            "footprint": 1.9,
             "blocking": false,
             "role": "dressing"
           },
@@ -1398,6 +1597,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "west",
+            "height": 2.35,
+            "footprint": 2.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1408,6 +1609,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1418,6 +1621,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -1428,6 +1633,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "macabre",
             "facing": "up",
+            "height": 0.72,
+            "footprint": 2.15,
             "blocking": false,
             "role": "dressing"
           },
@@ -1440,6 +1647,8 @@ export const BREACH_V2_REGISTRY = {
             "group": "art",
             "facing": "south",
             "blocking": false,
+            "height": 1.12,
+            "footprint": 1.6,
             "role": "wall-art"
           },
           {
@@ -1449,6 +1658,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "books",
             "facing": "up",
+            "height": 0.3,
+            "footprint": 0.9,
             "blocking": false,
             "role": "readable-props"
           }
@@ -1497,6 +1708,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 0.22,
+            "footprint": 2.3,
             "blocking": false,
             "role": "dressing"
           },
@@ -1507,6 +1720,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 0.22,
+            "footprint": 2.3,
             "blocking": false,
             "role": "dressing"
           },
@@ -1517,6 +1732,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "east",
+            "height": 3.25,
+            "footprint": 3.1,
             "blocking": true,
             "role": "dressing"
           },
@@ -1527,6 +1744,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "west",
+            "height": 3.25,
+            "footprint": 3.1,
             "blocking": true,
             "role": "dressing"
           },
@@ -1537,6 +1756,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1547,6 +1768,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 0.9,
+            "footprint": 2.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1557,6 +1780,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.22,
+            "footprint": 1.4,
             "blocking": false,
             "role": "dressing"
           },
@@ -1567,6 +1792,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 1.22,
+            "footprint": 1.4,
             "blocking": false,
             "role": "dressing"
           },
@@ -1577,6 +1804,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.35,
+            "footprint": 2.2,
             "blocking": false,
             "role": "dressing"
           },
@@ -1587,6 +1816,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -1635,6 +1866,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 0.92,
+            "footprint": 3.25,
             "blocking": true,
             "role": "dressing"
           },
@@ -1645,6 +1878,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "rubble",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.55,
             "blocking": true,
             "role": "dressing"
           },
@@ -1655,6 +1890,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1665,6 +1902,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "fire",
             "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -1675,6 +1914,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "fire",
             "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -1685,6 +1926,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "north",
+            "height": 2.75,
+            "footprint": 2.6,
             "blocking": true,
             "role": "dressing"
           },
@@ -1695,6 +1938,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -1738,6 +1983,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1748,6 +1995,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1758,6 +2007,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1768,6 +2019,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1778,6 +2031,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 0.9,
+            "footprint": 2.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1788,6 +2043,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "west",
+            "height": 2.05,
+            "footprint": 2.25,
             "blocking": true,
             "role": "dressing"
           },
@@ -1798,6 +2055,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 0.88,
+            "footprint": 1.65,
             "blocking": false,
             "role": "dressing"
           },
@@ -1808,6 +2067,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -1852,6 +2113,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "south",
+            "height": 2.75,
+            "footprint": 2.6,
             "blocking": true,
             "role": "dressing"
           },
@@ -1862,6 +2125,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "south",
+            "height": 2.75,
+            "footprint": 2.6,
             "blocking": true,
             "role": "dressing"
           },
@@ -1872,6 +2137,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "south",
+            "height": 2.75,
+            "footprint": 2.6,
             "blocking": true,
             "role": "dressing"
           },
@@ -1882,6 +2149,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "furniture",
             "facing": "west",
+            "height": 2.35,
+            "footprint": 2.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1892,6 +2161,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 0.92,
+            "footprint": 2.8,
             "blocking": true,
             "role": "dressing"
           },
@@ -1902,6 +2173,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "furniture",
             "facing": "up",
+            "height": 1.7,
+            "footprint": 1.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -1912,6 +2185,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "goods",
             "facing": "up",
+            "height": 0.88,
+            "footprint": 1.65,
             "blocking": false,
             "role": "dressing"
           },
@@ -1922,6 +2197,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.35,
+            "footprint": 2.2,
             "blocking": false,
             "role": "dressing"
           },
@@ -1932,6 +2209,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -1942,6 +2221,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -1954,6 +2235,8 @@ export const BREACH_V2_REGISTRY = {
             "group": "art",
             "facing": "south",
             "blocking": false,
+            "height": 0.98,
+            "footprint": 1.4,
             "role": "wall-art"
           },
           {
@@ -1963,6 +2246,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "books",
             "facing": "up",
+            "height": 0.35,
+            "footprint": 0.9,
             "blocking": false,
             "role": "readable-props"
           },
@@ -1973,6 +2258,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "books",
             "facing": "up",
+            "height": 0.35,
+            "footprint": 0.9,
             "blocking": false,
             "role": "readable-props"
           },
@@ -1983,6 +2270,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "books",
             "facing": "up",
+            "height": 0.3,
+            "footprint": 0.9,
             "blocking": false,
             "role": "readable-props"
           }
@@ -2032,6 +2321,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 1.55,
+            "footprint": 2.9,
             "blocking": true,
             "role": "dressing"
           },
@@ -2042,6 +2333,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "rubble",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.55,
             "blocking": true,
             "role": "dressing"
           },
@@ -2052,6 +2345,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "macabre",
             "facing": "south",
+            "height": 1.65,
+            "footprint": 1.6,
             "blocking": false,
             "role": "dressing"
           },
@@ -2062,6 +2357,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -2072,6 +2369,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -2124,6 +2423,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.5,
             "blocking": true,
             "role": "dressing"
           },
@@ -2134,6 +2435,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 0.78,
+            "footprint": 2.35,
             "blocking": false,
             "role": "dressing"
           },
@@ -2144,6 +2447,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "corruption",
             "facing": "south",
+            "height": 2.65,
+            "footprint": 1.75,
             "blocking": true,
             "role": "dressing"
           },
@@ -2154,6 +2459,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "macabre",
             "facing": "up",
+            "height": 0.72,
+            "footprint": 2.15,
             "blocking": false,
             "role": "dressing"
           },
@@ -2164,6 +2471,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -2216,6 +2525,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "macabre",
             "facing": "south",
+            "height": 1.65,
+            "footprint": 1.6,
             "blocking": false,
             "role": "dressing"
           },
@@ -2226,6 +2537,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "macabre",
             "facing": "south",
+            "height": 1.65,
+            "footprint": 1.6,
             "blocking": false,
             "role": "dressing"
           },
@@ -2236,6 +2549,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "ceiling",
             "group": "macabre",
             "facing": "down",
+            "height": 2.15,
+            "footprint": 1.55,
             "blocking": false,
             "role": "dressing"
           },
@@ -2246,6 +2561,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.45,
             "blocking": false,
             "role": "dressing"
           },
@@ -2256,6 +2573,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -2266,6 +2585,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -2276,6 +2597,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "west",
+            "height": 2.9,
+            "footprint": 2.75,
             "blocking": true,
             "role": "dressing"
           },
@@ -2288,6 +2611,8 @@ export const BREACH_V2_REGISTRY = {
             "group": "art",
             "facing": "north",
             "blocking": false,
+            "height": 1.12,
+            "footprint": 1.6,
             "role": "wall-art"
           }
         ]
@@ -2334,6 +2659,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 1.55,
+            "footprint": 2.9,
             "blocking": true,
             "role": "dressing"
           },
@@ -2344,6 +2671,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "structure",
             "facing": "up",
+            "height": 1.55,
+            "footprint": 2.9,
             "blocking": true,
             "role": "dressing"
           },
@@ -2354,6 +2683,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "rubble",
             "facing": "up",
+            "height": 1.55,
+            "footprint": 3.35,
             "blocking": true,
             "role": "dressing"
           },
@@ -2364,6 +2695,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "fire",
             "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -2374,6 +2707,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -2430,6 +2765,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 1.45,
+            "footprint": 2.3,
             "blocking": true,
             "role": "dressing"
           },
@@ -2440,6 +2777,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 1.45,
+            "footprint": 2.3,
             "blocking": true,
             "role": "dressing"
           },
@@ -2450,6 +2789,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -2460,6 +2801,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -2470,6 +2813,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "macabre",
             "facing": "up",
+            "height": 0.72,
+            "footprint": 2.15,
             "blocking": false,
             "role": "dressing"
           },
@@ -2480,6 +2825,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -2536,6 +2883,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "corruption",
             "facing": "south",
+            "height": 2.8,
+            "footprint": 2.9,
             "blocking": true,
             "role": "dressing"
           },
@@ -2546,6 +2895,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "corruption",
             "facing": "south",
+            "height": 2.8,
+            "footprint": 2.9,
             "blocking": true,
             "role": "dressing"
           },
@@ -2556,6 +2907,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.5,
             "blocking": true,
             "role": "dressing"
           },
@@ -2566,6 +2919,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "corruption",
             "facing": "up",
+            "height": 0.78,
+            "footprint": 2.35,
             "blocking": false,
             "role": "dressing"
           },
@@ -2576,6 +2931,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "corruption",
             "facing": "west",
+            "height": 2.65,
+            "footprint": 1.75,
             "blocking": true,
             "role": "dressing"
           },
@@ -2586,6 +2943,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           }
@@ -2633,6 +2992,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "wall",
             "group": "structure",
             "facing": "north",
+            "height": 3.05,
+            "footprint": 2.75,
             "blocking": true,
             "role": "dressing"
           },
@@ -2643,6 +3004,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 2.45,
             "blocking": false,
             "role": "dressing"
           },
@@ -2653,6 +3016,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "fire",
             "facing": "up",
+            "height": 1.38,
+            "footprint": 1.5,
             "blocking": false,
             "role": "dressing"
           },
@@ -2663,6 +3028,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.35,
+            "footprint": 2.2,
             "blocking": false,
             "role": "dressing"
           },
@@ -2673,6 +3040,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -2683,6 +3052,8 @@ export const BREACH_V2_REGISTRY = {
             "placement": "floor",
             "group": "loot",
             "facing": "up",
+            "height": 1.05,
+            "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
           },
@@ -2695,6 +3066,8 @@ export const BREACH_V2_REGISTRY = {
             "group": "art",
             "facing": "south",
             "blocking": false,
+            "height": 1.12,
+            "footprint": 1.6,
             "role": "wall-art"
           }
         ]

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
-import { DUNGEON_PROP_ASSET_IDS } from "../src/game/environment/DungeonPropCatalog";
+import { DUNGEON_PROP_ASSETS, DUNGEON_PROP_ASSET_IDS } from "../src/game/environment/DungeonPropCatalog";
 
 const fixedById = Object.fromEntries(R.fixedRooms.map((r) => [r.id, r]));
 const pools = R.pools;
@@ -141,6 +141,17 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
     const missing = DUNGEON_PROP_ASSET_IDS.filter((id) => !used.has(id));
     expect(missing).toEqual([]);
+  });
+
+  it("registry footprint/height mirror the prop catalog 1:1 (§6 metadata)", () => {
+    for (const room of [...R.fixedRooms, ...allPoolRooms]) {
+      for (const p of room.placements) {
+        const spec = DUNGEON_PROP_ASSETS[p.asset];
+        if (!spec) continue; // custom props (books/scrolls, wall art) are not kit assets
+        expect(p.footprint, `${room.id}:${p.asset} footprint`).toBeCloseTo(spec.maxFootprint, 6);
+        expect(p.height, `${room.id}:${p.asset} height`).toBeCloseTo(spec.targetHeight, 6);
+      }
+    }
   });
 
   it("boss set: exactly one Cinderbound Warden per run, 3 anchor sockets", () => {
