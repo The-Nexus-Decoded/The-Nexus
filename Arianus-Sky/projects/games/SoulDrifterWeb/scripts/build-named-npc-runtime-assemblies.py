@@ -35,6 +35,9 @@ NPCS = (
         "hairAssetId": "hair-fem-braided-crown-v001",
         "hair": "hair-head-fits-v001/sd-hair-fem-braided-crown-head-fit-v001.glb",
         "hairColor": "#A6A8B4",
+        "skinColor": "#9A6653",
+        "torsoColor": "#596B78",
+        "legColor": "#35444D",
         "ancestry": "human",
         "presentation": "feminine",
         "role": "wellkeeper",
@@ -49,6 +52,9 @@ NPCS = (
         "hairAssetId": "hair-masc-topknot-v001",
         "hair": "hair-head-fits-v001/sd-hair-masc-topknot-head-fit-v001.glb",
         "hairColor": "#17131A",
+        "skinColor": "#82573F",
+        "torsoColor": "#405C50",
+        "legColor": "#293A35",
         "ancestry": "elf",
         "presentation": "masculine",
         "role": "scout",
@@ -63,6 +69,9 @@ NPCS = (
         "hairAssetId": "hair-masc-swept-back-v001",
         "hair": "hair-head-fits-v001/sd-hair-masc-swept-back-head-fit-v001.glb",
         "hairColor": "#9699A5",
+        "skinColor": "#A46D50",
+        "torsoColor": "#5B4638",
+        "legColor": "#37454E",
         "ancestry": "dwarf",
         "presentation": "masculine",
         "role": "arena-warden",
@@ -132,6 +141,51 @@ def material(name: str, color: str, roughness: float = 0.72, metallic: float = 0
 def tint_mesh(obj: bpy.types.Object, tint: bpy.types.Material) -> None:
     obj.data.materials.clear()
     obj.data.materials.append(tint)
+
+
+def paint_body_regions(
+    body: bpy.types.Object,
+    minimum: Vector,
+    maximum: Vector,
+    config: dict,
+) -> dict[str, int]:
+    """Restore an MVP skin/clothing palette to single-material intake bodies.
+
+    The local rig intake has valid topology, weights, and a complete skeleton,
+    but its FBX does not embed the authored 3D Studio texture set. Its geometry
+    still has clearly separated head, arms, shirt, shorts, and legs, so assign
+    stable materials by each polygon's spatial region. This keeps the canonical
+    skin and avoids pretending the gray diagnostic material is production art.
+    """
+    skin = material(f"MAT_{config['npcId']}_skin", config["skinColor"], 0.62)
+    torso = material(f"MAT_{config['npcId']}_torso_cloth", config["torsoColor"], 0.82)
+    legs = material(f"MAT_{config['npcId']}_leg_cloth", config["legColor"], 0.86)
+    body.data.materials.clear()
+    for region_material in (skin, torso, legs):
+        body.data.materials.append(region_material)
+
+    height = max(0.001, maximum.z - minimum.z)
+    width = max(0.001, maximum.x - minimum.x)
+    center_x = (minimum.x + maximum.x) * 0.5
+    counts = {"skin": 0, "torsoCloth": 0, "legCloth": 0}
+    for polygon in body.data.polygons:
+        center = sum(
+            (body.matrix_world @ body.data.vertices[index].co for index in polygon.vertices),
+            Vector(),
+        ) / len(polygon.vertices)
+        normalized_height = (center.z - minimum.z) / height
+        arm_or_hand = normalized_height > 0.49 and abs(center.x - center_x) > width * 0.20
+        exposed_skin = normalized_height > 0.79 or normalized_height < 0.39 or arm_or_hand
+        if exposed_skin:
+            polygon.material_index = 0
+            counts["skin"] += 1
+        elif normalized_height < 0.58:
+            polygon.material_index = 2
+            counts["legCloth"] += 1
+        else:
+            polygon.material_index = 1
+            counts["torsoCloth"] += 1
+    return counts
 
 
 def add_primitive(
@@ -216,6 +270,7 @@ def build_one(config: dict, intake_root: Path, output_root: Path) -> dict:
     bpy.context.view_layer.update()
     body_minimum, body_maximum = world_bounds(body)
     body_height = body_maximum.z - body_minimum.z
+    body_region_polygons = paint_body_regions(body, body_minimum, body_maximum, config)
     # Preserve the body rig's integrated head for the playable MVP. The earlier
     # modular-head replacement cut the skinned scalp away and fitted unskinned
     # source meshes in a different local axis, producing faceless/occluded
@@ -259,6 +314,8 @@ def build_one(config: dict, intake_root: Path, output_root: Path) -> dict:
         "outputSha256": digest(output),
         "bones": len(armature.data.bones),
         "roleLayerCount": len(role_layers),
+        "bodyMaterialMode": "spatial-mvp-skin-cloth-segmentation",
+        "bodyRegionPolygons": body_region_polygons,
         "runtimeIdentityGeometry": "integrated-body-head",
         "modularIdentityTargetRecorded": True,
         "modularIdentityGeometryDeferredToIssue": 457,
@@ -283,6 +340,7 @@ def main() -> None:
         "rigFamily": "canonical-humanoid-65",
         "namedNpcFullBodyExportRequired": False,
         "mixamoNamedNpcUseAllowed": False,
+        "bodyMaterialMode": "spatial-mvp-skin-cloth-segmentation",
         "outputCount": len(outputs),
         "outputs": outputs,
     }
