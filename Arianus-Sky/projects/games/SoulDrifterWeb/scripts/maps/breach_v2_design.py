@@ -336,3 +336,47 @@ FIXED_DRESSING = {
                        ("wall-torch-sconce", 5.0, 0.3),
                        ("ruined-stone-archway", 15.7, 3.0)],  # the breach exit arch into daylight
 }
+
+
+# ---------------------------------------------------------------------------
+# Owner Add-on A (2026-08-20): readable wall art + book/scroll props.
+# WALL_ART: (art-id, x, y, width_m) — framed PBR planes on walls, zoom-readable
+# (runbook §5A; >=1024px per ~1 m; real labels composed over art, never
+# AI-rendered text). Reuses existing map masters first (zero cost):
+#   art-thalenyr-atlas     <- lore-atlas M-003 painted master (world map)
+#   art-heartvale-section  <- heartvale_section_cut_v2 master (zone map)
+#   art-breach-v2-flatmap  <- THIS flat map (the zone's own map)
+# Reliefs/banners/paintings beyond those are local-GPU work (third-party-assets
+# record) scheduled with deliverables 3-5. Books/scrolls are texture-based
+# props on reused kit geometry (readable-book UI NOT in scope).
+# ---------------------------------------------------------------------------
+
+ASSET_META.update({
+    "books-pile": ("books", "floor"), "scrolls-pile": ("books", "floor"),
+})
+
+WALL_ART = {
+    # fixed rooms (local meters)
+    "vestibule": [("art-thalenyr-atlas", 8.75, 0.35, 2.6),      # world map — new players study it here
+                  ("art-heartvale-section", 15.8, 0.35, 2.2),   # the zone they're heading to
+                  ("art-relief-lock-inscription", 8.75, 21.65, 2.0)],  # realm-memory relief, S wall
+    "threshold-plaza": [("art-breach-v2-flatmap", 3.5, 0.35, 1.8),     # this zone's map (route study)
+                        ("art-banner-wayfarer", 15.7, 2.5, 1.4),       # above the Wayfarer door
+                        ("art-banner-oathbreaker", 15.7, 9.5, 1.4)],   # above the Oathbreaker door
+    "convergence": [("art-banner-ashen", 0.3, 5.0, 1.4)],              # warning banner between entries
+    "ashen-threshold": [("art-relief-warden", 9.5, 0.35, 1.8)],        # the Warden's warning relief
+    "ashen-lock": [("art-banner-cinderbound", 12.0, 0.35, 1.6),
+                   ("art-banner-cinderbound", 20.5, 0.35, 1.6)],
+    "memory-vault": [("art-relief-first-memory", 5.0, 0.35, 1.8)],     # above the dais
+    # pool rooms
+    "E-03": [("art-painting-reliquary", 7.0, 0.35, 1.6)],
+    "E-07": [("art-map-thalenyr-scroll", 5.5, 0.4, 1.4)],
+    "H-03": [("art-banner-oathscar", 6.0, 11.65, 1.6)],
+    "H-07": [("art-relief-toll", 5.0, 0.35, 1.6)],
+}
+
+BOOK_PROPS = {
+    "vestibule": [("books-pile", 15.6, 4.2), ("scrolls-pile", 5.4, 8.8)],   # table + beside the Loom
+    "E-07": [("books-pile", 5.5, 6.5), ("books-pile", 10.5, 6.0), ("scrolls-pile", 7.0, 12.3)],
+    "E-03": [("scrolls-pile", 5.5, 9.5)],
+}

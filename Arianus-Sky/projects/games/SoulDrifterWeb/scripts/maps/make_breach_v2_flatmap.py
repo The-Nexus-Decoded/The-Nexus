@@ -17,9 +17,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from breach_v2_design import (
-    ASSET_META, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING, EASY_POOL,
-    FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS,
-    PROP_TABLE, SEED_POLICY, SLOT_BOX, SPAWN_TABLE, VESTIBULE_LANDMARKS, WORLD_ANCHOR,
+    ASSET_META, BOOK_PROPS, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING,
+    EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE, PATH_SLOTS,
+    PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY, SLOT_BOX, SPAWN_TABLE,
+    VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
 )
 
 HERE = Path(__file__).parent
@@ -116,8 +117,34 @@ GROUP_COLORS = {
     "fire": (255, 154, 60), "loot": GOLD, "goods": (170, 140, 80),
     "corruption": (214, 70, 120), "macabre": (205, 200, 185),
     "furniture": (190, 150, 100), "rubble": (135, 122, 105),
-    "structure": (170, 175, 190),
+    "structure": (170, 175, 190), "books": (232, 224, 200), "art": (240, 214, 130),
 }
+
+
+def number_chip(draw: ImageDraw.ImageDraw, x: float, y: float, n: int, color,
+                fsize: int = 13) -> None:
+    f = font(fsize, bold=True)
+    s = str(n)
+    tw = draw.textlength(s, font=f)
+    draw.rectangle([x - 2, y - 1, x + tw + 4, y + f.size + 3],
+                   fill=(8, 9, 11, 225), outline=color + (220,), width=1)
+    draw.text((x + 1, y + 1), s, font=f, fill=color)
+
+
+def draw_wall_art(draw: ImageDraw.ImageDraw, items, to_px, scale: float,
+                  numbered: bool = True, start: int = 0, fsize: int = 12) -> None:
+    """Framed wall-art planes (runbook §5A): gold frames hugging the wall."""
+    color = GROUP_COLORS["art"]
+    for i, (art_id, mx, my, w_m) in enumerate(items):
+        x, y = to_px(mx, my)
+        w = w_m * scale
+        h = max(6.0, 1.05 * scale)
+        draw.rectangle([x - w / 2, y - h / 2, x + w / 2, y + h / 2],
+                       fill=(52, 46, 34), outline=color, width=2)
+        draw.rectangle([x - w / 2 + 2, y - h / 2 + 2, x + w / 2 - 2, y + h / 2 - 2],
+                       outline=color + (120,), width=1)
+        if numbered:
+            number_chip(draw, x + w / 2 + 3, y - h / 2 - 2, start + i + 1, color, fsize)
 
 
 def draw_dressing(draw: ImageDraw.ImageDraw, items, to_px, scale: float,
@@ -307,6 +334,18 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
             draw_dressing(draw, items,
                           lambda mx, my, _ox=ox, _oy=oy: plan_px(_ox + mx, _oy + my),
                           PPM * 0.7, numbered=(room["kind"] == "boss"), fsize=11)
+        art = WALL_ART.get(room["id"])
+        if art:
+            ox, oy = room["x"], room["y"]
+            draw_wall_art(draw, art,
+                          lambda mx, my, _ox=ox, _oy=oy: plan_px(_ox + mx, _oy + my),
+                          PPM * 0.7, numbered=False)
+        books = BOOK_PROPS.get(room["id"])
+        if books:
+            ox, oy = room["x"], room["y"]
+            draw_dressing(draw, books,
+                          lambda mx, my, _ox=ox, _oy=oy: plan_px(_ox + mx, _oy + my),
+                          PPM * 0.7, numbered=False)
         cx = (x0 + x1) / 2
         if room["kind"] == "corridor":
             label(draw, cx, y0 - 8, "Gallery Link · 6 x 6 m · FIXED", font(13), PAPER_DIM, anchor="ma")
@@ -435,6 +474,16 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     label(draw, bx2, ry,
           "1 stair-dais · 2-3 guardian-statue · 4-6 corruption-growth · 7-8 chain-shackle · "
           "9-10 floor-brazier · 11 bone-pile · 12 cave-in-rubble · 13 hanging-brazier", font(13), PAPER_DIM)
+    ry += 19
+    label(draw, tbx, ry, "wall art (§5A): ", font(13, bold=True), GROUP_COLORS["art"])
+    wx = tbx + draw.textlength("wall art (§5A): ", font=font(13, bold=True))
+    label(draw, wx, ry,
+          "vestibule: thalenyr-atlas + heartvale-section maps, lock-inscription relief · plaza: breach flatmap, "
+          "wayfarer/oathbreaker banners", font(13), PAPER_DIM)
+    ry += 19
+    label(draw, tbx + 92, ry,
+          "convergence: ashen banner · ante: warden relief · boss: cinderbound banner x2 · vault: first-memory "
+          "relief · E-03/E-07/H-03/H-07: painting/scroll/banners", font(13), PAPER_DIM)
 
 
 # ---------------------------------------------------------------------------
@@ -559,27 +608,40 @@ def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
                 "BREACH SCOUT ORREN" if lm["id"] == "orren" else "ARENA WARDEN BRANNOC",
                 GREEN, f=font(14, bold=True), anchor="ra")
 
-    # authored kit dressing — numbered glyphs, decoded in the list below
+    # authored kit dressing + wall art + books — numbered glyphs, decoded below
     draw_dressing(draw, FIXED_DRESSING["vestibule"],
                   lambda mx, my: a2_px(mx, my), DETAIL_SCALE, numbered=True, fsize=12, start=0)
+    draw_wall_art(draw, WALL_ART["vestibule"], lambda mx, my: a2_px(mx, my), DETAIL_SCALE,
+                  start=len(FIXED_DRESSING["vestibule"]), fsize=12)
+    draw_dressing(draw, BOOK_PROPS["vestibule"],
+                  lambda mx, my: a2_px(mx, my), DETAIL_SCALE, numbered=True, fsize=12,
+                  start=len(FIXED_DRESSING["vestibule"]) + len(WALL_ART["vestibule"]))
+    plaza_start = len(FIXED_DRESSING["vestibule"]) + len(WALL_ART["vestibule"]) + len(BOOK_PROPS["vestibule"])
     draw_dressing(draw, FIXED_DRESSING["threshold-plaza"],
-                  lambda mx, my: a2_px(36.0 + mx, 4.0 + my), DETAIL_SCALE, numbered=True, fsize=12, start=19)
+                  lambda mx, my: a2_px(36.0 + mx, 4.0 + my), DETAIL_SCALE, numbered=True, fsize=12,
+                  start=plaza_start)
+    draw_wall_art(draw, WALL_ART["threshold-plaza"], lambda mx, my: a2_px(36.0 + mx, 4.0 + my),
+                  DETAIL_SCALE, start=plaza_start + len(FIXED_DRESSING["threshold-plaza"]), fsize=12)
+    link_start = plaza_start + len(FIXED_DRESSING["threshold-plaza"]) + len(WALL_ART["threshold-plaza"])
     draw_dressing(draw, FIXED_DRESSING["plaza-link"],
-                  lambda mx, my: a2_px(30.0 + mx, 8.0 + my), DETAIL_SCALE, numbered=True, fsize=12, start=25)
+                  lambda mx, my: a2_px(30.0 + mx, 8.0 + my), DETAIL_SCALE, numbered=True, fsize=12,
+                  start=link_start)
 
     # numbered dressing list (wrapped, full panel width)
     list_f = font(14)
     ly0 = A2_Y0 + 500
-    label(draw, A2_X0 + 24, ly0, "KIT DRESSING — Vestibule 1–19 · Plaza 20–25 · Link 26–27:",
-          font(15, bold=True), PAPER)
-    entries = [(f"V{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["vestibule"])]
-    entries += [(f"P{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["threshold-plaza"])]
-    entries += [(f"L{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["plaza-link"])]
-    # chips carry global numbers; render as "n·asset"
-    flow = [f"{i + 1}·{a}" for i, (_tag, a) in enumerate(entries)]
+    label(draw, A2_X0 + 24, ly0, "KIT DRESSING + WALL ART — Vestibule 1–24 (art 20–22, books 23–24) · "
+          "Plaza 25–35 (art 33–35) · Link 36–37:", font(15, bold=True), PAPER)
+    flow = [a for a, _x, _y in FIXED_DRESSING["vestibule"]] \
+        + [aid for aid, _x, _y, _w in WALL_ART["vestibule"]] \
+        + [a for a, _x, _y in BOOK_PROPS["vestibule"]] \
+        + [a for a, _x, _y in FIXED_DRESSING["threshold-plaza"]] \
+        + [aid for aid, _x, _y, _w in WALL_ART["threshold-plaza"]] \
+        + [a for a, _x, _y in FIXED_DRESSING["plaza-link"]]
     line = ""
     ty = ly0 + 24
-    for chunk in flow:
+    for n, name in enumerate(flow):
+        chunk = f"{n + 1}·{name}"
         cand = (line + "  " + chunk).strip()
         if draw.textlength(cand, font=list_f) > 1160:
             label(draw, A2_X0 + 24, ty, line, list_f, (200, 195, 180))
@@ -632,9 +694,16 @@ def draw_pool(draw: ImageDraw.ImageDraw, x0: int, y0: int, title: str, color,
             draw.polygon([(sx, sy - 6), (sx + 6, sy), (sx, sy + 6), (sx - 6, sy)],
                          outline=RED, width=2)
         # authored kit placement (numbered) — includes the loot chest
-        items = DRESSING[room["id"]]
-        draw_dressing(draw, items, lambda mx, my, _cx=cx, _cy=cy: (_cx + mx * PPM, _cy + my * PPM),
-                      PPM, numbered=True, fsize=12)
+        items = list(DRESSING[room["id"]])
+        art = WALL_ART.get(room["id"], [])
+        books = BOOK_PROPS.get(room["id"], [])
+        to_px = lambda mx, my, _cx=cx, _cy=cy: (_cx + mx * PPM, _cy + my * PPM)
+        draw_dressing(draw, items, to_px, PPM, numbered=True, fsize=12)
+        draw_wall_art(draw, art, to_px, PPM, start=len(items), fsize=12)
+        draw_dressing(draw, books, to_px, PPM, numbered=True, fsize=12,
+                      start=len(items) + len(art))
+        all_named = [a for a, _x, _y in items] + [aid for aid, _x, _y, _w in art] \
+            + [a for a, _x, _y in books]
         label(draw, cx, cy + h_px + 6, f"{room['id']} · {room['name']}", font(19, bold=True), PAPER)
         label(draw, cx, cy + h_px + 30, f"{room['w']:.0f} x {room['h']:.0f} m = {room['w']*room['h']:.0f} m2",
               font(16, bold=True), GOLD)
@@ -646,9 +715,10 @@ def draw_pool(draw: ImageDraw.ImageDraw, x0: int, y0: int, title: str, color,
         kit_f = font(13)
         line = ""
         ty = cy + h_px + 92
-        for chunk in dressing_list_text(items).split("  "):
+        for n, name in enumerate(all_named):
+            chunk = f"{n + 1}·{name}"
             cand = (line + "  " + chunk).strip()
-            if draw.textlength(cand, font=kit_f) > cell_w - 36:
+            if draw.textlength(cand, font=kit_f) > cell_w - 30:
                 label(draw, cx, ty, line, kit_f, (200, 195, 180))
                 ty += 17
                 line = chunk
@@ -701,6 +771,8 @@ def draw_rail(draw: ImageDraw.ImageDraw) -> None:
         (VIOLET, "Memory Loom / First Memory"),
         ((190, 160, 110), "prop socket (dressing seed)"),
         ((150, 116, 62), "bronze conduit (loom-well-doors)"),
+        (GROUP_COLORS["art"], "wall art — framed, zoom-readable (§5A)"),
+        (GROUP_COLORS["books"], "books / scrolls (texture props)"),
     ]
     for color, text in items:
         draw.rectangle([RAIL_X0, y + 3, RAIL_X0 + 22, y + 21], fill=color)
