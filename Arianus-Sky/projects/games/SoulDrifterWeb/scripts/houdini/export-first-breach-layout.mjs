@@ -58,14 +58,32 @@ const COMPLETE_KIT_ROOM = {
   "broken-stone-stair-dais": "boss",
 };
 
+const LIGHTING_FIXTURE_QUOTAS = {
+  training: {
+    "wall-torch-sconce": 5,
+    "floor-brazier": 2,
+    "hanging-brazier": 2,
+  },
+  skirmish: {
+    "wall-torch-sconce": 8,
+    "floor-brazier": 3,
+    "hanging-brazier": 3,
+  },
+  boss: {
+    "wall-torch-sconce": 4,
+    "floor-brazier": 4,
+    "hanging-brazier": 2,
+  },
+};
+
 function pointKey(point) {
   return `${point.x},${point.y}`;
 }
 
 function boundaryRotation(dx, dy) {
-  if (dx < 0) return Math.PI / 2;
-  if (dx > 0) return -Math.PI / 2;
-  return dy > 0 ? Math.PI : 0;
+  if (dx < 0) return 0;
+  if (dx > 0) return Math.PI;
+  return dy > 0 ? Math.PI / 2 : -Math.PI / 2;
 }
 
 function placementScore(assetId, candidate) {
@@ -77,10 +95,10 @@ function placementScore(assetId, candidate) {
 function completeHoudiniComposition(sourceDungeon) {
   const props = sourceDungeon.props.map((prop) => {
     if (prop.id === "gate-wayfarer") {
-      return { ...prop, assetId: "rusted-portcullis", offsetX: 0.49, offsetY: 0, rotationY: -Math.PI / 2 };
+      return { ...prop, assetId: "rusted-portcullis", offsetX: 0.49, offsetY: 0, rotationY: Math.PI };
     }
     if (prop.id === "gate-oathbreaker") {
-      return { ...prop, assetId: "heavy-door", offsetX: 0.49, offsetY: 0, rotationY: -Math.PI / 2 };
+      return { ...prop, assetId: "heavy-door", offsetX: 0.49, offsetY: 0, rotationY: Math.PI };
     }
     if (prop.id === "starter-coffer") {
       return { ...prop, assetId: "storage-chest", offsetX: 0, offsetY: 0 };
@@ -91,8 +109,15 @@ function completeHoudiniComposition(sourceDungeon) {
     if (prop.id === "memory-loom") {
       return { ...prop, assetId: "ruined-altar", offsetX: 0, offsetY: 0 };
     }
-    if (prop.assetId && DUNGEON_PROP_ASSETS[prop.assetId].placement === "floor") {
-      return { ...prop, offsetX: 0, offsetY: 0 };
+    if (prop.assetId) {
+      const spec = DUNGEON_PROP_ASSETS[prop.assetId];
+      if (spec.placement === "floor") return { ...prop, offsetX: 0, offsetY: 0 };
+      if (spec.placement === "wall" && (prop.offsetX || prop.offsetY)) {
+        return {
+          ...prop,
+          rotationY: boundaryRotation(Math.sign(prop.offsetX ?? 0), Math.sign(prop.offsetY ?? 0)),
+        };
+      }
     }
     return prop;
   });
@@ -151,6 +176,52 @@ function completeHoudiniComposition(sourceDungeon) {
       offsetY: candidate.dy * edgeOffset,
       rotationY: boundaryRotation(candidate.dx, candidate.dy) + (spec.placement === "wall" ? 0 : ((score / 0xffff_ffff) - 0.5) * 0.16),
     });
+  }
+
+  for (const [roomId, quotas] of Object.entries(LIGHTING_FIXTURE_QUOTAS)) {
+    for (const [assetId, targetCount] of Object.entries(quotas)) {
+      const spec = DUNGEON_PROP_ASSETS[assetId];
+      let currentCount = props.filter((prop) => prop.roomId === roomId && prop.assetId === assetId).length;
+      while (currentCount < targetCount) {
+        const existingLights = props.filter((prop) => {
+          const propSpec = prop.assetId ? DUNGEON_PROP_ASSETS[prop.assetId] : null;
+          return prop.roomId === roomId && propSpec?.fireAnchorY != null;
+        });
+        const candidates = sourceDungeon.tiles
+          .filter((tile) => tile.roomId === roomId && !reserved.has(pointKey(tile)))
+          .filter((tile) => roomId !== "training" || !well || Math.abs(tile.x - well.x) + Math.abs(tile.y - well.y) >= 4)
+          .flatMap((tile) => directions
+            .filter(({ dx, dy }) => !dungeonTileKeys.has(pointKey({ x: tile.x + dx, y: tile.y + dy })))
+            .map(({ dx, dy }) => ({ x: tile.x, y: tile.y, dx, dy })))
+          .sort((left, right) => {
+            const lightSeparation = (candidate) => existingLights.length === 0
+              ? Number.POSITIVE_INFINITY
+              : Math.min(...existingLights.map((light) => Math.abs(candidate.x - light.x) + Math.abs(candidate.y - light.y)));
+            const separationDifference = lightSeparation(right) - lightSeparation(left);
+            const leftVisibility = left.dy < 0 || left.dx > 0 ? 0 : 1;
+            const rightVisibility = right.dy < 0 || right.dx > 0 ? 0 : 1;
+            return separationDifference || leftVisibility - rightVisibility || placementScore(`${assetId}-${currentCount}`, left) - placementScore(`${assetId}-${currentCount}`, right);
+          });
+        const candidate = candidates[0];
+        if (!candidate) throw new Error(`Unable to place ${assetId} lighting fixture ${currentCount + 1}/${targetCount} in ${roomId}.`);
+        reserved.add(pointKey(candidate));
+        const edgeOffset = spec.placement === "wall" ? 0.42 : spec.placement === "ceiling" ? 0.12 : 0;
+        const score = placementScore(`${assetId}-${currentCount}`, candidate);
+        props.push({
+          id: `houdini-light-${roomId}-${assetId}-${currentCount}`,
+          kind: spec.kind,
+          roomId,
+          blocksMovement: spec.blocksMovement,
+          assetId,
+          x: candidate.x,
+          y: candidate.y,
+          offsetX: candidate.dx * edgeOffset,
+          offsetY: candidate.dy * edgeOffset,
+          rotationY: boundaryRotation(candidate.dx, candidate.dy) + (spec.placement === "wall" ? 0 : ((score / 0xffff_ffff) - 0.5) * 0.16),
+        });
+        currentCount += 1;
+      }
+    }
   }
 
   return { ...sourceDungeon, props };

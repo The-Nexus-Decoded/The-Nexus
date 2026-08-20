@@ -37,6 +37,22 @@ Drakkin is approved world canon but is not in the current playable runtime regis
 9. No generated artifact enters `public/assets` until its source, ownership, task ID, settings, hashes, diagnostics, and review status are recorded.
 10. Paid batch generation stops immediately when a body, topology, rig, scale, or material gate fails.
 
+## Non-negotiable visual-parity gate
+
+The approved textured view in 3D AI Studio is the visual source of truth for every generated asset. Houdini, Blender, Three.js, optimization tools, and format converters must preserve that authored appearance; they may not silently substitute a generic material, guess a color, tint the asset to match the scene, or discard a texture channel.
+
+Every import and every derived export must pass all of these checks before it can be accepted or placed in a level:
+
+1. Preserve the untouched provider GLB and capture its approved 3D AI Studio textured preview as comparison evidence.
+2. Inventory every material slot and preserve base-color, normal, metallic, roughness, occlusion, emissive, alpha, double-sided, sampler, UV-set, and material-factor data that the source actually contains.
+3. Treat base color and emissive as color data; treat normal, metallic, roughness, and occlusion as non-color data. For standard glTF combined maps, green is roughness and blue is metallic. Never swap or average those channels.
+4. Render a neutral-light turntable from the untouched source, the cleaned authoring file, and the optimized runtime file from matching camera angles. Also capture one normal gameplay-camera proof under representative scene lighting.
+5. Compare silhouette, orientation, scale, base color, surface detail, metal-versus-dielectric response, roughness, transparency, emission, and visible seams one to one with the approved 3D AI Studio preview.
+6. Record the comparison images, reviewer, source hash, derived hash, material inventory, and pass/fail result in the asset's intake record. A missing comparison is a failed gate.
+7. Block promotion when a tool changes the look. Correct the import/export configuration and rerun the comparison; do not repair a mismatch by eye with an undocumented Houdini or Three.js color override.
+
+Renderer-specific tone mapping, exposure, and environment reflections may produce small presentation differences, but the underlying maps and material response must remain equivalent. Any intentional recolor is a separately named, versioned, owner-approved material variant derived from the preserved source—not an import fix and never a replacement for the original appearance.
+
 ## Paid plan and MCP preflight
 
 The owner performs the account-only steps:
@@ -391,6 +407,7 @@ Stop and request owner review when:
 - [ ] Tattoos/paint use masks or decals; piercings and dimensional facial details use declared sockets; facial hair and sideburns remain modular.
 - [ ] Headshots are locally rendered from the reviewed shipping assembly rather than purchased as duplicate 3D generations.
 - [ ] Topology, UV, PBR bake, scale, ground, orientation, and bounds pass.
+- [ ] One-to-one 3D Studio/source/authoring/runtime visual-parity evidence passes with no guessed or substituted materials.
 - [ ] Skeleton identity or retarget profile is proven rather than assumed.
 - [ ] Existing baseline animation pack passes on the clean body.
 - [ ] Clothing/armor is modular, weighted correctly, and has coverage metadata.

@@ -258,10 +258,14 @@ def create_kit_material(asset_id: str, source_path: Path, texture_cache: Path) -
     )
     if metallic_roughness:
         texture_path = metallic_roughness.as_posix()
+        # Preserve the glTF channel values at full strength: green is roughness,
+        # blue is the per-pixel metal mask (wood stays dielectric, iron stays metal).
+        material.parm("rough").set(1.0)
         material.parm("rough_useTexture").set(1)
         material.parm("rough_texture").set(texture_path)
         material.parm("rough_monoChannel").set("2")
         material.parm("rough_textureColorSpace").set("Raw")
+        material.parm("metallic").set(1.0)
         material.parm("metallic_useTexture").set(1)
         material.parm("metallic_texture").set(texture_path)
         material.parm("metallic_monoChannel").set("3")
@@ -382,6 +386,34 @@ class GeometryBuilder:
         points = [self._point(position, color) for position in positions]
         for face in ((0, 2, 4), (0, 4, 3), (0, 3, 5), (0, 5, 2), (1, 4, 2), (1, 3, 4), (1, 5, 3), (1, 2, 5)):
             self._polygon([points[index] for index in face], name, kind, color)
+
+    def add_flame(self, name: str, base: Vector3, radius: float, height: float, phase: float) -> None:
+        sides = 8
+        rings: list[list[hou.Point]] = []
+        for ring_index, (height_ratio, radius_ratio) in enumerate(((0.0, 0.72), (0.24, 1.0), (0.54, 0.66), (0.78, 0.34))):
+            offset_x = math.sin(phase + ring_index * 0.92) * radius * 0.22 * height_ratio
+            offset_z = math.cos(phase * 0.73 + ring_index * 0.81) * radius * 0.18 * height_ratio
+            ring: list[hou.Point] = []
+            for side_index in range(sides):
+                angle = side_index / sides * math.tau + phase + ring_index * 0.21
+                ring.append(self._point((
+                    base[0] + offset_x + math.cos(angle) * radius * radius_ratio,
+                    base[1] + height * height_ratio,
+                    base[2] + offset_z + math.sin(angle) * radius * radius_ratio,
+                ), EMBER))
+            rings.append(ring)
+        self._polygon(list(reversed(rings[0])), name, "emissive", EMBER)
+        for lower, upper in zip(rings, rings[1:]):
+            for side_index in range(sides):
+                next_index = (side_index + 1) % sides
+                self._polygon([lower[side_index], lower[next_index], upper[next_index], upper[side_index]], name, "emissive", EMBER)
+        tip = self._point((
+            base[0] + math.sin(phase + 2.7) * radius * 0.38,
+            base[1] + height,
+            base[2] + math.cos(phase + 1.9) * radius * 0.31,
+        ), EMBER)
+        for side_index in range(sides):
+            self._polygon([rings[-1][side_index], rings[-1][(side_index + 1) % sides], tip], name, "emissive", EMBER)
 
 
 def contiguous_runs(values: Iterable[tuple[int, str]]) -> list[tuple[int, int, str]]:
@@ -915,10 +947,23 @@ def add_environment(payload: dict, builder: GeometryBuilder) -> None:
             add_masonry_wall_run(builder, orientation, fixed, start, end, zone, height, tile_size, int(payload["seed"]))
 
     for prop in dungeon["props"]:
-        if prop.get("assetId"):
+        asset_id = prop.get("assetId")
+        if asset_id:
             # Approved GLB kit props are imported as authored geometry below.
-            # Primitive stand-ins and crystal-shaped flame markers stay out of
-            # the default owner-review scene.
+            # Fire is a separate emissive VFX layer and never changes the GLB.
+            spec = payload["environmentAssets"][asset_id]
+            if spec.get("fireAnchorY") is not None:
+                x = (float(prop["x"]) + float(prop.get("offsetX", 0.0))) * tile_size
+                z = (float(prop["y"]) + float(prop.get("offsetY", 0.0))) * tile_size
+                phase = (_hash2d(int(prop["x"]), int(prop["y"]), int(payload["seed"])) / 0xFFFFFFFF) * math.tau
+                radius = 0.19 if spec.get("placement") == "wall" else 0.28
+                builder.add_flame(
+                    f"{safe_name(prop['id'])}_fire_vfx",
+                    (x, float(spec.get("elevation", 0.0)) + float(spec["fireAnchorY"]), z),
+                    radius,
+                    0.52 if spec.get("placement") == "wall" else 0.68,
+                    phase,
+                )
             continue
         x = prop["x"] * tile_size
         z = prop["y"] * tile_size
@@ -1305,7 +1350,7 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
         light.parmTuple("light_color").set(color)
         light.parm("light_exposure").set(exposure)
         light.parm("ogl_enablelight").set(1)
-        light.setDisplayFlag(False)
+        light.setDisplayFlag(True)
 
     def point(name: str, grid_x: float, grid_z: float, height: float, color: Color, intensity: float, exposure: float, radius: float = 7.0) -> None:
         light = obj.createNode("hlight::2.0", name)
@@ -1314,18 +1359,19 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
         light.parmTuple("light_color").set(color)
         light.parm("light_intensity").set(intensity * 2.2)
         light.parm("light_exposure").set(exposure)
+        light.parm("atten_type").set("half")
         light.parm("atten_dist").set(radius * 0.65)
         light.parm("activeradiusenable").set(1)
         light.parm("activeradius").set(radius)
         light.parm("shadow_softness").set(0.55)
         light.parm("ogl_enablelight").set(1)
-        light.setDisplayFlag(False)
+        light.setDisplayFlag(True)
 
     ambient = obj.createNode("ambient", "DUNGEON_AMBIENT_FILL")
-    ambient.parmTuple("light_color").set((0.12, 0.16, 0.18))
-    ambient.parm("light_intensity").set(0.38)
+    ambient.parmTuple("light_color").set((0.30, 0.34, 0.38))
+    ambient.parm("light_intensity").set(0.85)
     ambient.parm("ogl_enablelight").set(1)
-    ambient.setDisplayFlag(False)
+    ambient.setDisplayFlag(True)
 
     distant("ISO_MOON_KEY", (-52.0, -34.0, -24.0), (0.44, 0.59, 0.72), 0.48)
     distant("ISO_WARM_RIM", (-34.0, 142.0, 16.0), (0.78, 0.43, 0.24), -0.42)
@@ -1339,7 +1385,6 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
         point(name, gate["x"] - 0.45, gate["y"], 2.15, color, intensity, 0.0, 5.8)
     loom = props["memory-loom"]
     point("MEMORY_LOOM_GLOW", loom["x"], loom["y"], 1.65, (0.16, 0.65, 0.62), 0.78, 0.0, 5.2)
-    point("TRAINING_EMBER_LAMP", 10.0, 11.4, 2.15, (0.95, 0.24, 0.08), 0.86, 0.0, 5.2)
     for prop in payload["dungeon"]["props"]:
         asset_id = prop.get("assetId")
         if not asset_id:
@@ -1347,19 +1392,22 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
         spec = payload["environmentAssets"][asset_id]
         if spec.get("fireAnchorY") is None:
             continue
-        fire_color = (0.08, 0.70, 0.66) if spec.get("fireColor") == "soul" else (0.96, 0.25, 0.055)
+        fire_color = (0.08, 0.70, 0.66) if spec.get("fireColor") == "soul" else (1.0, 0.34, 0.075)
+        casts_shadow = bool(spec.get("fireCastsShadow"))
         point(
             f"PROP_FIRE_{safe_name(prop['id'])}",
             float(prop["x"]) + float(prop.get("offsetX", 0.0)),
             float(prop["y"]) + float(prop.get("offsetY", 0.0)),
             float(spec.get("elevation", 0.0)) + float(spec["fireAnchorY"]),
             fire_color,
-            0.62 if spec.get("fireCastsShadow") else 0.42,
-            -0.18,
-            4.8,
+            1.18 if casts_shadow else 1.05,
+            -0.04,
+            9.4 if casts_shadow else 8.4,
         )
     training = rooms["training"]
-    point("TRAINING_ROOM_FILL", training["center"]["x"], training["center"]["y"], 7.5, (0.34, 0.46, 0.49), 0.46, -0.5, 14.0)
+    point("TRAINING_ROOM_FILL", training["center"]["x"], training["center"]["y"], 7.5, (0.34, 0.46, 0.49), 0.46, -0.32, 14.0)
+    skirmish = rooms["skirmish"]
+    point("SKIRMISH_ROOM_FILL", skirmish["center"]["x"], skirmish["center"]["y"], 8.0, (0.25, 0.34, 0.36), 0.34, -0.44, 19.0)
     boss = rooms["boss"]
     point("ASHEN_LOCK_GLOW", boss["center"]["x"], boss["center"]["y"], 2.4, (0.92, 0.19, 0.035), 1.45, 0.0, 9.0)
     point("BOSS_ROOM_FILL", boss["center"]["x"], boss["center"]["y"], 8.5, (0.36, 0.28, 0.24), 0.52, -0.5, 16.0)
@@ -1397,7 +1445,7 @@ def create_review_renders(out: hou.Node) -> None:
         render.parm("bloomintensity").set(0.07)
         render.parm("bloomthreshold").set(0.98)
         render.parm("colorcorrect").set("lut_gamma")
-        render.parm("gamma").set(1.12)
+        render.parm("gamma").set(1.28)
 
     out.layoutChildren()
 
