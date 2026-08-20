@@ -287,7 +287,12 @@ def apply_transferred_weights(
             for segment in range(1, 5)
         ),
     }
-    groups = {name: mesh.vertex_groups.get(name) or mesh.vertex_groups.new(name=name) for name in relevant}
+    groups = {}
+    for name in relevant:
+        group = mesh.vertex_groups.get(name)
+        if group is None:
+            group = mesh.vertex_groups.new(name=name)
+        groups[name] = group
     transferred = 0
     for candidate_mesh, vertex, _ in candidates:
         if candidate_mesh != mesh:
@@ -315,6 +320,98 @@ def apply_transferred_weights(
             groups[name].add([vertex.index], weight / total, "REPLACE")
         transferred += 1
     return transferred
+
+
+def distance_to_segment(point: Vector, head: Vector, tail: Vector) -> float:
+    direction = tail - head
+    denominator = direction.length_squared
+    if denominator <= 0.00000001:
+        return (point - head).length
+    factor = max(0.0, min(1.0, (point - head).dot(direction) / denominator))
+    return (point - (head + direction * factor)).length
+
+
+def weighted_bone_names(meshes: list[bpy.types.Object]) -> set[str]:
+    result: set[str] = set()
+    for mesh in meshes:
+        names = group_names(mesh)
+        for vertex in mesh.data.vertices:
+            result.update(
+                names[assignment.group]
+                for assignment in vertex.groups
+                if assignment.weight > 0.000001 and assignment.group in names
+            )
+    return result
+
+
+def ensure_required_finger_weights(
+    meshes: list[bpy.types.Object],
+    rig: bpy.types.Object,
+    side: str,
+    candidates: list[tuple[bpy.types.Object, bpy.types.MeshVertex, Vector]],
+    vertices_per_segment: int = 12,
+) -> list[str]:
+    """Give every deforming digit segment a local vertex patch when KNN misses it."""
+    required = {
+        target_finger_name(side, finger, segment)
+        for finger in FINGERS
+        for segment in range(1, 4)
+    }
+    missing = sorted(required - weighted_bone_names(meshes))
+    reserved: set[tuple[str, int]] = set()
+    for name in missing:
+        # FBX imports can leave an empty, locked group with the correct name.
+        # Recreate globally missing groups so Blender cannot silently retain an
+        # unusable placeholder while accepting writes into a suffixed group.
+        for mesh in meshes:
+            empty_group = mesh.vertex_groups.get(name)
+            if empty_group is not None:
+                mesh.vertex_groups.remove(empty_group)
+        bone = rig.data.bones[name]
+        ranked = sorted(
+            (
+                (
+                    distance_to_segment(
+                        armature_space_vertex(mesh, rig, vertex.co),
+                        bone.head_local,
+                        bone.tail_local,
+                    ),
+                    mesh,
+                    vertex,
+                )
+                for mesh, vertex, _ in candidates
+                if (mesh.name, vertex.index) not in reserved
+            ),
+            key=lambda item: item[0],
+        )[:vertices_per_segment]
+        for _, mesh, vertex in ranked:
+            reserved.add((mesh.name, vertex.index))
+            names = group_names(mesh)
+            assignments = list(vertex.groups)
+            existing = sorted(
+                (
+                    (names[assignment.group], assignment.weight)
+                    for assignment in assignments
+                    if assignment.weight > 0.000001 and assignment.group in names
+                ),
+                key=lambda item: (item[0] in required, item[1]),
+                reverse=True,
+            )[:3]
+            for assignment in assignments:
+                mesh.vertex_groups[assignment.group].remove([vertex.index])
+            total = sum(weight for _, weight in existing)
+            if total > 0:
+                for group_name, weight in existing:
+                    mesh.vertex_groups[group_name].add(
+                        [vertex.index],
+                        (weight / total) * 0.35,
+                        "REPLACE",
+                    )
+            group = mesh.vertex_groups.get(name)
+            if group is None:
+                group = mesh.vertex_groups.new(name=name)
+            group.add([vertex.index], 0.65, "REPLACE")
+    return sorted(required - weighted_bone_names(meshes))
 
 
 def limit_influences(mesh: bpy.types.Object, maximum: int = 4) -> int:
@@ -450,6 +547,26 @@ def main() -> None:
         transfer_counts[side] = count
     for mesh in target_meshes:
         pruned_vertices += limit_influences(mesh)
+    for repair_pass in range(2):
+        for side, data in side_data.items():
+            ensure_required_finger_weights(
+                target_meshes,
+                target_rig,
+                side,
+                data["targetCandidates"],
+            )
+        if repair_pass == 0:
+            for mesh in target_meshes:
+                pruned_vertices += limit_influences(mesh)
+
+    weighted_names = weighted_bone_names(target_meshes)
+    missing_weighted_fingers = sorted(
+        target_finger_name(side, finger, segment)
+        for side in SIDES
+        for finger in FINGERS
+        for segment in range(1, 4)
+        if target_finger_name(side, finger, segment) not in weighted_names
+    )
 
     export_target(output, target_rig, target_meshes)
     bone_names = {bone.name for bone in target_rig.data.bones}
@@ -472,9 +589,10 @@ def main() -> None:
         "outputSha256": digest(output),
         "boneCount": len(bone_names),
         "missingFingerBones": missing,
+        "missingWeightedFingerBones": sorted(missing_weighted_fingers),
         "transferredVertices": transfer_counts,
         "verticesPrunedToFourInfluences": pruned_vertices,
-        "structuralPass": len(bone_names) == 65 and not missing,
+        "structuralPass": len(bone_names) == 65 and not missing and not missing_weighted_fingers,
         "visualDeformationReviewRequired": True,
         "runtimePromotionAllowed": False,
     }

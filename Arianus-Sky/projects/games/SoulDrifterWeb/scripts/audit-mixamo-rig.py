@@ -52,6 +52,12 @@ EXPECTED_FINGER_BONES = {
     for finger in ("Thumb", "Index", "Middle", "Ring", "Pinky")
     for segment in (1, 2, 3, 4)
 }
+EXPECTED_WEIGHTED_FINGER_BONES = {
+    f"mixamorig:{side}Hand{finger}{segment}"
+    for side in ("Left", "Right")
+    for finger in ("Thumb", "Index", "Middle", "Ring", "Pinky")
+    for segment in (1, 2, 3)
+}
 MINIMUM_PRODUCTION_BONES = 65
 
 
@@ -99,6 +105,7 @@ def weight_audit(item: bpy.types.Object, bone_names: set[str]) -> dict[str, obje
         "vertexGroups": len(item.vertex_groups),
         "boneVertexGroups": len(set(group_names.values()) & bone_names),
         "weightedBones": len(weighted_bones),
+        "weightedBoneNames": sorted(weighted_bones),
         "vertices": len(item.data.vertices),
         "unweightedVertices": sum(count == 0 for count in influence_counts),
         "verticesOverFourInfluences": sum(count > 4 for count in influence_counts),
@@ -249,6 +256,12 @@ def main() -> None:
         })
     missing_expected_bones = EXPECTED_BONES - bone_names
     missing_finger_bones = EXPECTED_FINGER_BONES - bone_names
+    weighted_bones = {
+        name
+        for mesh_report in mesh_reports
+        for name in mesh_report["weights"]["weightedBoneNames"]
+    }
+    missing_weighted_finger_bones = EXPECTED_WEIGHTED_FINGER_BONES - weighted_bones
     weights_pass = all(
         mesh_report["weights"]["unweightedVertices"] == 0
         and mesh_report["weights"]["verticesOverFourInfluences"] == 0
@@ -270,6 +283,7 @@ def main() -> None:
         "fullFingerChainsRequired": True,
         "missingExpectedBones": sorted(missing_expected_bones),
         "missingFingerBones": sorted(missing_finger_bones),
+        "missingWeightedFingerBones": sorted(missing_weighted_finger_bones),
         "boneNames": sorted(bone_names),
         "dimensionsMeters": [round(value, 6) for value in dimensions],
         "meshes": mesh_reports,
@@ -278,6 +292,7 @@ def main() -> None:
             len(bone_names) >= MINIMUM_PRODUCTION_BONES
             and not missing_expected_bones
             and not missing_finger_bones
+            and not missing_weighted_finger_bones
             and weights_pass
         ),
         "renders": rendered,
