@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-20T06:10:36.263Z",
+  "phase": "issue-448",
+  "phase_name": "SoulDrifter First Breach model foundation",
+  "phase_dir": ".planning",
+  "plan": 1,
+  "task": 2,
+  "total_tasks": 5,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Prepare and verify Human masculine heavy Mixamo intake FBX",
+      "status": "done",
+      "commit": "968475e2"
+    },
+    {
+      "id": 2,
+      "name": "Open Mixamo and establish an authentication-capable Codex browser session",
+      "status": "in_progress",
+      "progress": "The isolated Chrome DevTools profile initially exposed navigator.webdriver=true and Google rejected it. Navigating to Mixamo with an initScript that makes Navigator.prototype.webdriver return undefined allowed the Google sign-in page to load. The owner believes a separate already-authenticated Mixamo tab also exists. Codex desktop froze before that tab could be attached."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 3,
+      "name": "Codex uploads the exact verified FBX, places Mixamo markers, and runs auto-rig once",
+      "status": "not_started"
+    },
+    {
+      "id": 4,
+      "name": "Download the rigged FBX and run fresh local skeleton, weight, and deformation verification",
+      "status": "not_started"
+    },
+    {
+      "id": 5,
+      "name": "Map or retarget the result to the canonical 65-bone runtime rig and continue the remaining issue-448 asset plan",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Codex desktop is frozen and must be restarted.",
+      "type": "technical",
+      "workaround": "Resume from this handoff after restarting the app."
+    },
+    {
+      "description": "Google rejects the default isolated automation profile when navigator.webdriver is true.",
+      "type": "external",
+      "workaround": "First inspect the owner's already-signed-in Mixamo tab. If a new Google login is required, navigate to Mixamo with initScript: Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => undefined, configurable: true }); then start Adobe/Google authentication."
+    },
+    {
+      "description": "Only the owner may enter account credentials or complete 2FA.",
+      "type": "human_action",
+      "workaround": "The owner authenticates only. Codex performs the upload, marker placement, rig, download, and verification."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Restart Codex and, only if the persisted Mixamo session is not authenticated, complete Adobe/Google sign-in and 2FA in the visible browser.",
+      "context": "The owner explicitly does not want to perform the model upload or rigging steps.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Mixamo is authorized and free; no additional cost approval is needed.",
+      "rationale": "The owner already directed Codex to use Mixamo, and Mixamo does not spend 3D AI Studio credits.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "The owner performs authentication only; Codex owns every upload and rigging action.",
+      "rationale": "Credentials and 2FA must remain owner-entered, while the owner explicitly rejected being handed the upload work.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "Rig each distinct replacement mesh once, then reuse shared motion packs through the canonical skeleton or one retarget profile.",
+      "rationale": "The old runtime NPCs are already rigged and animated, while the new high-quality replacement meshes are unrigged. Animation acquisition is per motion archetype or weapon family, not per NPC or equipment item.",
+      "phase": "issue-448"
+    },
+    {
+      "decision": "The current Mixamo upload is the Human masculine heavy body bind proof, not a request to reacquire every animation or rerig the existing NPC placeholders.",
+      "rationale": "The verified FBX is the new generated body surface that needs one-time skin binding and deformation proof.",
+      "phase": "issue-448"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "After Codex restarts, inspect the active in-app browser tabs for an already-authenticated Mixamo session before opening any new login. If signed in, upload the exact verified FBX from the recorded path. If not, restore the webdriver-hiding initScript, let the owner authenticate only, and then perform the upload.",
+  "context_notes": "Authoritative worktree: H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models. Branch codex/448-souldrifter-first-breach-models is clean and matches origin at 968475e2. Draft PR #449 targets qa; issue #448 is the ticket. Do not merge, deploy, spend 3D AI Studio credits, delete cloud models, touch main, or ask the owner to upload the model. Exact FBX: Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx. SHA-256 D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF; 2,584,252 bytes; 1 mesh; 28,555 vertices; 44,999 triangles; 1 material; 0 skins; 0 animations. The 0.01 mm seam weld reduced components to 1 without losing triangles, but 15,581 boundary/nonmanifold edges remain and are a manual continuity/Mixamo acceptance gate. Tests previously passed 165/165; typecheck and build passed; no ESLint script exists."
+}
