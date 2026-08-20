@@ -267,7 +267,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   const grass = createGrassField(data.scatter, terrain);
   scene.add(grass);
 
-  const village = await createVillageAndTerrace(data.village, data.npcs, terrain);
+  const village = await createVillageAndTerrace(data.village, data.npcs, terrain, data.layout, data.meta.plateOffset);
   scene.add(village);
 
   const vegetation = await createVegetation(data.scatter, terrain);

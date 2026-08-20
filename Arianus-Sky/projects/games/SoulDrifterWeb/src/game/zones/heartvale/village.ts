@@ -11,18 +11,18 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { NpcData, TerrainField, VillageData, VillageHouse } from "./data";
+import type { LayoutData, NpcData, TerrainField, VillageData, VillageHouse } from "./data";
 
 const TEX_ROOT = "/assets/zones/heartvale/textures/buildings";
 const MODEL_ROOT = "/assets/zones/heartvale/models";
 
-function tiled(loader: THREE.TextureLoader, url: string, rx: number, ry: number): THREE.Texture {
+function tiled(loader: THREE.TextureLoader, url: string, rx: number, ry: number, srgb = true): THREE.Texture {
   const tex = loader.load(url);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(rx, ry);
   tex.anisotropy = 8;
-  tex.colorSpace = THREE.SRGBColorSpace;
+  if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
@@ -36,6 +36,7 @@ function boxUV(geometry: THREE.BoxGeometry, sx: number, sy: number): void {
 
 interface VillageMaterials {
   plaster: (w: number, h: number, wash: [number, number, number]) => THREE.MeshStandardMaterial;
+  plankWall: (w: number, h: number, tint: [number, number, number]) => THREE.MeshStandardMaterial;
   timber: THREE.MeshStandardMaterial;
   thatch: (tint: [number, number, number]) => THREE.MeshStandardMaterial;
   slate: (tint: [number, number, number]) => THREE.MeshStandardMaterial;
@@ -43,44 +44,52 @@ interface VillageMaterials {
   cobble: THREE.MeshStandardMaterial;
   wood: THREE.MeshStandardMaterial;
   dark: THREE.MeshStandardMaterial;
+  mud: THREE.MeshStandardMaterial;
 }
 
 function makeMaterials(): VillageMaterials {
   const loader = new THREE.TextureLoader();
-  const timber = new THREE.MeshStandardMaterial({
-    map: tiled(loader, `${TEX_ROOT}/wood_planks/wood_planks_diff_1k.jpg`, 1, 1),
-    roughness: 0.9,
+  // Full PBR per the Quality Bible §1.2 — diffuse + normal + roughness on
+  // every building surface (the promoted Poly Haven sets carry all three).
+  const pbr = (set: string, rx: number, ry: number) => ({
+    map: tiled(loader, `${TEX_ROOT}/${set}/${set}_diff_1k.jpg`, rx, ry),
+    normalMap: tiled(loader, `${TEX_ROOT}/${set}/${set}_nor_gl_1k.jpg`, rx, ry, false),
+    roughnessMap: tiled(loader, `${TEX_ROOT}/${set}/${set}_rough_1k.jpg`, rx, ry, false),
   });
-  const stone = new THREE.MeshStandardMaterial({
-    map: tiled(loader, `${TEX_ROOT}/mossy_stone_wall/mossy_stone_wall_diff_1k.jpg`, 1.6, 0.5),
-    roughness: 0.95,
-  });
-  const cobble = new THREE.MeshStandardMaterial({
-    map: tiled(loader, `${TEX_ROOT}/mossy_cobblestone/mossy_cobblestone_diff_1k.jpg`, 6, 6),
-    roughness: 0.9,
-  });
-  const wood = new THREE.MeshStandardMaterial({
-    map: tiled(loader, `${TEX_ROOT}/wood_planks/wood_planks_diff_1k.jpg`, 1, 1),
-    roughness: 0.85,
-  });
+  const timberMaps = pbr("wood_planks", 1, 1);
+  const timber = new THREE.MeshStandardMaterial({ ...timberMaps, roughness: 0.9 });
+  const stoneMaps = pbr("mossy_stone_wall", 1.6, 0.5);
+  const stone = new THREE.MeshStandardMaterial({ ...stoneMaps, roughness: 0.95 });
+  const cobbleMaps = pbr("mossy_cobblestone", 6, 6);
+  const cobble = new THREE.MeshStandardMaterial({ ...cobbleMaps, roughness: 0.9 });
+  const wood = new THREE.MeshStandardMaterial({ ...pbr("wood_planks", 1, 1), roughness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x1c140d, roughness: 1.0 });
+  const mudMaps = pbr("brown_mud", 4, 4);
+  const mud = new THREE.MeshStandardMaterial({ ...mudMaps, roughness: 1.0 });
   return {
     plaster: (w, h, wash) =>
       new THREE.MeshStandardMaterial({
-        map: tiled(loader, `${TEX_ROOT}/plastered_wall/plastered_wall_diff_1k.jpg`, w / 3.2, h / 3.2),
+        ...pbr("plastered_wall", w / 3.2, h / 3.2),
         color: new THREE.Color(wash[0], wash[1], wash[2]),
         roughness: 0.92,
+      }),
+    // Log/plank-course walls for cottages/barn (medieval construction language).
+    plankWall: (w, h, tint) =>
+      new THREE.MeshStandardMaterial({
+        ...pbr("wood_planks", w / 2.6, h / 2.6),
+        color: new THREE.Color(tint[0], tint[1], tint[2]),
+        roughness: 0.9,
       }),
     timber,
     thatch: (tint) =>
       new THREE.MeshStandardMaterial({
-        map: tiled(loader, `${TEX_ROOT}/thatch_roof_angled/thatch_roof_angled_diff_1k.jpg`, 2.4, 1.6),
+        ...pbr("thatch_roof_angled", 2.4, 1.6),
         color: new THREE.Color(tint[0] * 1.06, tint[1] * 0.88, tint[2] * 0.55), // golden straw
         roughness: 1.0,
       }),
     slate: (tint) =>
       new THREE.MeshStandardMaterial({
-        map: tiled(loader, `${TEX_ROOT}/roof_slates_02/roof_slates_02_diff_1k.jpg`, 2.6, 1.8),
+        ...pbr("roof_slates_02", 2.6, 1.8),
         color: new THREE.Color(tint[0] * 0.6, tint[1] * 0.64, tint[2] * 0.7), // weathered blue-grey
         roughness: 0.8,
       }),
@@ -88,6 +97,7 @@ function makeMaterials(): VillageMaterials {
     cobble,
     wood,
     dark,
+    mud,
   };
 }
 
@@ -153,12 +163,13 @@ function roofPrism(
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
-  // Face groups: 0-11 slopes, 12-17 gables, 18-29 underside (verts, non-indexed)
+  // Face groups: verts 0-11 slopes (4 tris), 12-17 gables (2 tris),
+  // 18-23 underside (2 tris — NOT 4; the overrun drew garbage = "roof holes").
   let mesh: THREE.Mesh;
   if (gableMaterial || undersideMaterial) {
     geometry.addGroup(0, 12, 0); // slopes
     geometry.addGroup(12, 6, 1); // gables
-    geometry.addGroup(18, 12, 2); // underside
+    geometry.addGroup(18, 6, 2); // underside
     mesh = new THREE.Mesh(geometry, [material, gableMaterial ?? material, undersideMaterial ?? material]);
   } else {
     mesh = new THREE.Mesh(geometry, material);
@@ -178,8 +189,15 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
 
   // Foundation course — stone, slightly proud of the walls.
   addBox(g, mats.stone, w + 0.18, 0.42, d + 0.18, 0, 0.21, 0);
-  // Plaster walls.
-  addBox(g, mats.plaster(w, h, house.wash), w, h, d, 0, 0.42 + h / 2, 0);
+  // Dirt/weathering skirt at the wall base (Quality Bible §1.3 completeness).
+  addBox(g, mats.mud, w + 0.1, 0.3, d + 0.1, 0, 0.5, 0);
+  // Walls: plaster+timber for civic/shop buildings, log-plank courses for
+  // cottages and the barn (reviewer: no plain stucco boxes everywhere).
+  const isTimberBuilt = house.kind === "cottage" || house.kind === "barn";
+  const wallMat = isTimberBuilt
+    ? mats.plankWall(w, h, house.wash.map((c) => c * 0.55) as [number, number, number])
+    : mats.plaster(w, h, house.wash);
+  addBox(g, wallMat, w, h, d, 0, 0.42 + h / 2, 0);
 
   const wallTop = 0.42 + h;
   const timber = mats.timber;
@@ -219,8 +237,18 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
   const roof = roofPrism(roofMat, w, d, rise, overhang, gableMat, mats.timber);
   roof.position.y = wallTop;
   g.add(roof);
-  // Ridge beam.
-  addBox(g, timber, w + overhang * 2 + 0.1, 0.09, 0.12, 0, wallTop + rise, 0, false);
+  // Ridge cap (rounded beam over the ridge line) + eave shadow lines so the
+  // roof reads as thatch/slate construction, not a flat cap (#452 review).
+  const ridgeCap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, w + overhang * 2 + 0.2, 8), roofMat);
+  ridgeCap.rotation.z = Math.PI / 2;
+  ridgeCap.position.set(0, wallTop + rise + 0.02, 0);
+  ridgeCap.castShadow = true;
+  g.add(ridgeCap);
+  for (const sz of [-1, 1]) {
+    addBox(g, mats.dark, w + overhang * 2, 0.06, 0.08, 0, wallTop - 0.02, sz * (d / 2 + overhang - 0.1), false);
+  }
+  // Ridge beam below the cap.
+  addBox(g, timber, w + overhang * 2 + 0.1, 0.09, 0.12, 0, wallTop + rise - 0.06, 0, false);
 
   // Door on the street face (+z), framed and slightly proud, with stone
   // steps down to ground so players can actually walk in (#452).
@@ -312,7 +340,85 @@ function buildWell(x: number, z: number, mats: VillageMaterials, field: TerrainF
   return g;
 }
 
-/** Thin rope/cord between two points (jetty rails, mooring lines). */
+/** Cobbled street strip following the layout's village-lane spline, hugging
+ * the terrain — the spine the houses face (#452 street-surface continuity).
+ * Cobble in the village core, packed-mud aprons where it merges into the
+ * dirt roads at both ends (no abrupt texture edges, rule 7). */
+function buildStreet(
+  village: VillageData,
+  field: TerrainField,
+  laneSamples: [number, number][],
+  plateOffset: [number, number],
+  mats: VillageMaterials,
+): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "anwel-street";
+  const pts = laneSamples.map(([wx, wz]) => ({ x: wx - plateOffset[0], z: wz - plateOffset[1] }));
+  if (pts.length < 2) return g;
+
+  const width = 3.0;
+  const half = width / 2;
+  const cobbleUntil = Math.floor(pts.length * 0.85); // ends merge to dirt
+
+  type Run = { start: number; end: number; mud: boolean };
+  const runs: Run[] = [
+    { start: 0, end: Math.max(2, pts.length - cobbleUntil), mud: true },
+    { start: Math.max(2, pts.length - cobbleUntil) - 1, end: cobbleUntil, mud: false },
+    { start: cobbleUntil - 1, end: pts.length - 1, mud: true },
+  ];
+
+  for (const run of runs) {
+    const runPts = pts.slice(run.start, run.end + 1);
+    if (runPts.length < 2) continue;
+    const count = runPts.length;
+    const positions = new Float32Array(count * 2 * 3);
+    const uvs = new Float32Array(count * 2 * 2);
+    const index = new Uint32Array((count - 1) * 6);
+    let distance = 0;
+    for (let i = 0; i < count; i += 1) {
+      const prev = runPts[Math.max(i - 1, 0)] ?? runPts[i]!;
+      const next = runPts[Math.min(i + 1, count - 1)] ?? runPts[i]!;
+      let dx = next.x - prev.x;
+      let dz = next.z - prev.z;
+      const len = Math.hypot(dx, dz) || 1;
+      dx /= len;
+      dz /= len;
+      if (i > 0) distance += Math.hypot(runPts[i]!.x - runPts[i - 1]!.x, runPts[i]!.z - runPts[i - 1]!.z);
+      const lx = runPts[i]!.x + dz * half;
+      const lz = runPts[i]!.z - dx * half;
+      const rx = runPts[i]!.x - dz * half;
+      const rz = runPts[i]!.z + dx * half;
+      const o = i * 6;
+      positions[o] = lx;
+      positions[o + 1] = field.height(lx, lz) + 0.07;
+      positions[o + 2] = lz;
+      positions[o + 3] = rx;
+      positions[o + 4] = field.height(rx, rz) + 0.07;
+      positions[o + 5] = rz;
+      uvs[i * 4] = 0;
+      uvs[i * 4 + 1] = distance / 3.0;
+      uvs[i * 4 + 2] = 1;
+      uvs[i * 4 + 3] = distance / 3.0;
+    }
+    let q = 0;
+    for (let i = 0; i < count - 1; i += 1) {
+      const a = i * 2;
+      index[q] = a; index[q + 1] = a + 1; index[q + 2] = a + 2;
+      index[q + 3] = a + 1; index[q + 4] = a + 3; index[q + 5] = a + 2;
+      q += 6;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+    geometry.setIndex(new THREE.BufferAttribute(index, 1));
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, run.mud ? mats.mud : mats.cobble);
+    mesh.receiveShadow = true;
+    mesh.castShadow = false;
+    g.add(mesh);
+  }
+  return g;
+}
 function ropeBetween(a: THREE.Vector3, b: THREE.Vector3, parent: THREE.Group, mats: VillageMaterials): void {
   const len = a.distanceTo(b);
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, len, 5), mats.dark);
@@ -797,24 +903,33 @@ export async function createVillageAndTerrace(
   village: VillageData,
   npcs: NpcData,
   field: TerrainField,
+  layout?: LayoutData,
+  plateOffset: [number, number] = [0, 0],
 ): Promise<THREE.Group> {
   const group = new THREE.Group();
   group.name = "HeartvaleVillage";
   const mats = makeMaterials();
+
+  // Street surface first — the spine everything faces (#452).
+  const lane = layout?.roads.find((r) => r.id === "anwel-village-lane");
+  if (lane) {
+    group.add(buildStreet(village, field, lane.samples, plateOffset, mats));
+  }
 
   group.add(buildSoulwell(mats, field));
   for (const house of village.houses) {
     group.add(buildHouse(house, mats, field));
   }
   group.add(buildWell(village.well.x, village.well.z, mats, field));
-  // Plaza cobbles: a worn stone apron under the well between the shopfronts.
+  // Plaza cobbles: a worn stone apron under the well between the shopfronts —
+  // sized to clear every house footprint (nearest corner ≈ 5.1 m away).
   const plazaPad = new THREE.Mesh(
-    new THREE.CylinderGeometry(5.2, 5.4, 0.14, 20),
+    new THREE.CylinderGeometry(4.3, 4.5, 0.08, 20),
     mats.cobble,
   );
   plazaPad.position.set(
     village.plaza.x,
-    field.height(village.plaza.x, village.plaza.z) + 0.07,
+    field.height(village.plaza.x, village.plaza.z) + 0.04,
     village.plaza.z,
   );
   plazaPad.receiveShadow = true;
