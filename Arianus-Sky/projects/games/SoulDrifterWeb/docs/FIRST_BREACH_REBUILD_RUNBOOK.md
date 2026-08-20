@@ -372,7 +372,7 @@ The new agent chooses the visual design. Before handoff to QA, the implementatio
 - `yarn test`, `yarn typecheck`, `yarn build`, `yarn verify:release`, and `git diff --check` pass;
 - owner approves local visual evidence before any QA deployment.
 
-The production 150 MiB release cap remains enforced. QA/review code may report rather than fail the cap, but that is not permission to ship an oversized production build.
+No fixed deployment budget for now (owner ruling 2026-08-20); the build's prune step reports dist size for awareness.
 
 ## 14. Required reading for the next agent
 

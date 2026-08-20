@@ -47,7 +47,7 @@ with measured evidence, not intentions.
 | Boss = Cinderbound Warden, 1 per run, seeded pattern | PASS (anchor ring + ember; monster model is #448 scope) | boss shots + tests |
 | First Memory awarded once | PASS at data level (vault, sealed link, registry invariant) | registry + tests |
 | Kit gap fill (4 uncovered IDs) | PASS — heavy-door = trial doors; false-wall-panel H-03; reliquary-alcoves E-03/vault; hanging-brazier = chain-mounted variant | registry coverage test |
-| `npm run build` (150 MiB prune gate) | **FAIL — pre-existing** (155.1 MB; handed branch ~153.9 MB before this ticket's 1.2 MB) — owner ruling requested | handoff issue 1 |
+| `npm run build` | PASS — owner ruling 2026-08-20: no fixed deployment budget for now; prune step reports dist size (155 MB) without failing | handoff issue 1 |
 
 ## Named material/shader ceilings
 
@@ -60,4 +60,4 @@ with measured evidence, not intentions.
 
 ## Gate verdict (builder pass)
 
-Ready for the independent §7 pass, then the owner. Blocking owner decision: build budget.
+Ready for the independent §7 pass, then the owner. (Build-budget question resolved by owner ruling 2026-08-20.)

@@ -42,11 +42,9 @@ then `hython scripts/houdini/build-breach-v2-apprentice.py <layout.json> <hip> <
 
 ## Open issues (owner rulings needed)
 
-1. **Build budget (pre-existing):** `npm run build`'s prune gate fails at 155.1 MB vs 150 MiB.
-   The handed branch (qa + #450 asset transfer) already measured ~153.9 MB before this ticket's
-   ~1.2 MB (fixtures + wall art). Biggest blocks in dist: `assets/3d/characters` 69 MB,
-   `lore-atlas` 39 MB. `verify:release` reports ok (does not fail the cap). Needs an owner
-   ruling on what to prune/exclude — not decided by the builder.
+1. **Build size:** RESOLVED by owner ruling 2026-08-20 — no fixed deployment budget for
+   now; the prune step reports dist size (155 MB) without failing the build. Budget language
+   removed from the runbook/ticket/pipeline docs accordingly.
 2. **Kit triangle density:** probe reads 2.5–3.4 M tris (755–1150 calls). Under the rejected
    #450 scene (3.78 M / 2,211) on both axes, but a kit decimation/instancing pass would help.
    Do not regenerate assets (credit rules) — runtime-level optimization only.

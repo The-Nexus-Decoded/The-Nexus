@@ -93,7 +93,8 @@ to EVERY zone, dungeon, village, prop, and scene you build:
 - **Asset policy:** original or licensed/CC0 only, recorded in
   `third-party-assets.json`. No Ultima-derived data, ever.
 - `npm run typecheck` and `npm test` green at every commit. Production build
-  stays under the 150 MiB cap.
+  passes; `scripts/prune-runtime-assets.mjs` reports the dist size for
+  awareness (no fixed deployment budget for now — owner ruling 2026-08-20).
 - Phone-width responsive + desktop both keep working.
 - Never leave a dev server running when your task ends.
 - Repo-wide: **never delete .md files** (root CLAUDE.md rule); don't write

@@ -114,7 +114,7 @@ Rules:
    framed textures.
 3. **Texture-based, not 3D-generated:** wall art ships as PBR-textured
    planes/frames (diffuse + normal + roughness), not new 3D models — cheap
-   on budget and draw calls. Frames may reuse kit geometry.
+   on size and draw calls. Frames may reuse kit geometry.
 4. **Readability is the acceptance bar:** the art must stay legible at the
    runtime's closest zoom (texture resolution and texel density sized for
    it — e.g. a 1 m wall map wants ≥ 1024px; label text must be crisp, not

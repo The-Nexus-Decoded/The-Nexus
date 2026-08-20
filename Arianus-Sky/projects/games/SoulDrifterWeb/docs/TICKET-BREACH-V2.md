@@ -113,9 +113,9 @@ Memory are custom gameplay landmarks — not in the 38-prop kit.**
   approval.
 - **Characters/monsters:** #448 / draft PR #449 own Ilyra/Orren/Brannoc
   faces, monsters, rigs. **Do not regenerate them under #451.**
-- **Build budget:** production 150 MiB cap enforced; document renderer
-  statistics (the rejected scene hit 2,211 draw calls / 3.78 M triangles —
-  stay far under).
+- **Build size:** no fixed deployment budget for now (owner ruling
+  2026-08-20); still document renderer statistics (the rejected scene hit
+  2,211 draw calls / 3.78 M triangles — stay far under).
 
 ## 6. Randomization rules (from the #450 failure record — binding)
 
