@@ -10,15 +10,17 @@
 
 import * as THREE from "three";
 import type { LayoutRiver, TerrainField } from "./data";
+import { WATER_TUNING } from "./waterTuning";
 
 /** Per-river visual width (m) — main stem widest, tributaries narrower. */
-const RIVER_WIDTH: Record<string, number> = {
+export const RIVER_WIDTH: Record<string, number> = {
   "anwel-run": 12.0,
   "lockroot-run": 8.0,
   "heir-run": 10.0,
 };
-const DEFAULT_WIDTH = 9.0;
-const WATER_LIFT = 0.5;
+export const DEFAULT_WATER_WIDTH = 9.0;
+// Water level comes from WATER_TUNING.waterLift (shared with the swim
+// domain so visuals and gameplay depth never drift apart).
 
 interface Ribbon {
   positions: Float32Array;
@@ -34,12 +36,12 @@ function buildRibbon(
 ): Ribbon | null {
   const samples = river.samples;
   if (samples.length < 2) return null;
-  const width = RIVER_WIDTH[river.id] ?? DEFAULT_WIDTH;
+  const width = RIVER_WIDTH[river.id] ?? DEFAULT_WATER_WIDTH;
   const half = width / 2;
 
   // Convert to local frame and pre-compute smoothed water heights.
   const pts: THREE.Vector2[] = samples.map(([wx = 0, wz = 0]) => new THREE.Vector2(wx - offset[0], wz - offset[1]));
-  const rawY = pts.map((p) => field.height(p.x, p.y) + WATER_LIFT);
+  const rawY = pts.map((p) => field.height(p.x, p.y) + WATER_TUNING.waterLift);
   const smoothY = rawY.map((_, i) => {
     let sum = 0;
     let n = 0;
@@ -115,11 +117,11 @@ export function createRivers(
   // tributary's overlapping end samples so the main stem's ribbon carries the
   // junction — overlapping ribbons interleave into ugly zigzags otherwise.
   const sorted = [...rivers].sort(
-    (a, b) => (RIVER_WIDTH[b.id] ?? DEFAULT_WIDTH) - (RIVER_WIDTH[a.id] ?? DEFAULT_WIDTH),
+    (a, b) => (RIVER_WIDTH[b.id] ?? DEFAULT_WATER_WIDTH) - (RIVER_WIDTH[a.id] ?? DEFAULT_WATER_WIDTH),
   );
   const corridors: { samples: [number, number][]; half: number }[] = [];
   const trimmedRivers: LayoutRiver[] = sorted.map((river) => {
-    const width = RIVER_WIDTH[river.id] ?? DEFAULT_WIDTH;
+    const width = RIVER_WIDTH[river.id] ?? DEFAULT_WATER_WIDTH;
     let samples = river.samples;
     for (const corridor of corridors) {
       const joinDist = (corridor.half + width / 2) * 0.75;

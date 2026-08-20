@@ -14,6 +14,7 @@ import {
 } from "./game/lightingTuning";
 
 let activeWorld: World3D | null = null;
+let activePreview: { dispose: () => void } | null = null as { dispose: () => void } | null;
 
 async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): Promise<void> {
   // Character shaping persists; a trial oath belongs only to the generated
@@ -88,9 +89,10 @@ void (async () => {
     const { startZonePreview } = await import("./game/zones/heartvale/preview");
     const shell = document.getElementById("character-creation");
     if (shell) shell.hidden = true;
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    await startZonePreview(host, previewZone);
+    // Tear down any prior preview instance (HMR re-runs this module) —
+    // a double-mounted preview splits input across two players/loops.
+    if (activePreview) activePreview.dispose();
+    activePreview = await startZonePreview(document.body, previewZone);
     return;
   }
   // Hidden dev shortcut: ?dev=1 adds a small zone-preview launcher that

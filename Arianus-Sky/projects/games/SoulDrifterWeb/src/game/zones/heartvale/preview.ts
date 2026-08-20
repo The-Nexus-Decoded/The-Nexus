@@ -19,9 +19,12 @@ import { N8AOPass } from "n8ao";
 
 import { loadZoneData, zoneAt, type ZoneData } from "./data";
 import { createSplatDataTextures, createTerrain } from "./terrain";
-import { createRivers } from "./water";
+import { createRivers, DEFAULT_WATER_WIDTH, RIVER_WIDTH } from "./water";
 import { createGrassField, createVegetation } from "./vegetation";
 import { createVillageAndTerrace } from "./village";
+import { WaterBody } from "./swim";
+import { ZonePlayer } from "./player";
+import { WATER_TUNING } from "./waterTuning";
 
 const DATA_BASE = "/data/zones/heartvale";
 
@@ -125,6 +128,50 @@ function setupHud(container: HTMLElement): HTMLDivElement {
   return hud;
 }
 
+/** Walk-mode HUD: breath + health bars (visible only while walking, #453). */
+function setupVitalsHud(container: HTMLElement): { element: HTMLDivElement; set: (breath: number, health: number, contact: string) => void } {
+  const wrap = document.createElement("div");
+  wrap.style.cssText =
+    "position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:260px;" +
+    "font:11px monospace;color:#e8dcc0;display:none;pointer-events:none;text-align:center;";
+  const contact = document.createElement("div");
+  contact.style.cssText = "margin-bottom:4px;text-shadow:0 1px 2px #000;";
+  wrap.appendChild(contact);
+  const bars: HTMLDivElement[] = [];
+  for (const [label, color] of [["breath", "#4ec3c9"], ["health", "#c94e4e"]] as const) {
+    const row = document.createElement("div");
+    row.style.cssText = "height:10px;background:rgba(0,0,0,0.5);border:1px solid #333;border-radius:5px;margin:3px 0;position:relative;";
+    const fill = document.createElement("div");
+    fill.style.cssText = `height:100%;width:100%;background:${color};border-radius:4px;transition:width 0.15s;`;
+    row.appendChild(fill);
+    const tag = document.createElement("span");
+    tag.textContent = label;
+    tag.style.cssText = "position:absolute;left:6px;top:-1px;font-size:9px;color:#fff;text-shadow:0 1px 1px #000;";
+    row.appendChild(tag);
+    wrap.appendChild(row);
+    bars.push(fill);
+  }
+  container.appendChild(wrap);
+  return {
+    element: wrap,
+    set: (breath, health, contactText) => {
+      bars[0]!.style.width = `${Math.round(breath * 100)}%`;
+      bars[1]!.style.width = `${Math.round(health * 100)}%`;
+      contact.textContent = contactText;
+    },
+  };
+}
+
+/** Underwater full-screen tint when the camera is submerged (#453). */
+function setupUnderwaterOverlay(container: HTMLElement): HTMLDivElement {
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:absolute;inset:0;pointer-events:none;display:none;" +
+    `background:radial-gradient(ellipse at center, rgba(30,74,82,0.35), rgba(20,50,58,0.6));`;
+  container.appendChild(overlay);
+  return overlay;
+}
+
 /** Hidden dev/test teleport panel — never shown to normal users.
  * Open with `?dev=1` or by pressing backtick (`). Buttons teleport the
  * camera to any POI anchor or zone center, or swap camera presets. */
@@ -198,8 +245,10 @@ function setupDevPanel(
   });
 }
 
-export async function startZonePreview(container: HTMLElement, zoneId: string): Promise<void> {
-  container.style.cssText = "position:fixed;inset:0;overflow:hidden;background:#101410;";
+export async function startZonePreview(container: HTMLElement, zoneId: string): Promise<{ dispose: () => void }> {
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:0;overflow:hidden;background:#101410;";
+  container.appendChild(host);
   const loading = document.createElement("div");
   loading.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e8dcc0;font:14px monospace;";
   loading.textContent = "Loading Heartvale terrain, textures and vegetation…";
@@ -209,12 +258,12 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setSize(host.clientWidth, host.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  container.appendChild(renderer.domElement);
+  host.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xd3d6c4, 0.00042);
@@ -223,7 +272,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
 
   const camera = new THREE.PerspectiveCamera(
     34,
-    container.clientWidth / container.clientHeight,
+    host.clientWidth / host.clientHeight,
     0.3,
     6000,
   );
@@ -254,7 +303,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
     if (!p) return;
     teleportTo(p.target[0], p.target[1], p.offset);
   };
-  setupDevPanel(container, data, params.get("dev") === "1", teleportTo, presetJump);
+  setupDevPanel(host, data, params.get("dev") === "1", teleportTo, presetJump);
 
   // --- Content ---
   scene.add(createTerrain(data.meta, data.field));
@@ -278,7 +327,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   composer.addPass(new RenderPass(scene, camera));
   let aoPass: { setSize: (w: number, h: number) => void } | null = null;
   try {
-    const n8aopass = new N8AOPass(scene, camera, container.clientWidth, container.clientHeight);
+    const n8aopass = new N8AOPass(scene, camera, host.clientWidth, host.clientHeight);
     n8aopass.configuration.aoRadius = 2.0;
     n8aopass.configuration.distanceFalloff = 3.0;
     n8aopass.configuration.intensity = 3.2;
@@ -290,8 +339,47 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   }
   composer.addPass(new OutputPass());
 
-  const hud = setupHud(container);
+  const hud = setupHud(host);
+  const vitals = setupVitalsHud(host);
+  const underwaterOverlay = setupUnderwaterOverlay(host);
   loading.remove();
+
+  // --- Swimmable water (#453): water domain + walk-mode player ---
+  const water = new WaterBody(
+    terrain,
+    data.layout.rivers.map((river) => ({
+      id: river.id,
+      samples: river.samples.map(
+        ([wx, wz]) => [wx - data.meta.plateOffset[0], wz - data.meta.plateOffset[1]] as [number, number],
+      ),
+      halfWidth: (RIVER_WIDTH[river.id] ?? DEFAULT_WATER_WIDTH) / 2,
+    })),
+  );
+  const player = new ZonePlayer(scene);
+  player.place(6, 6, terrain); // on the terrace apron, beside the well
+  player.root.visible = false;
+
+  const keys = new Set<string>();
+  window.addEventListener("keydown", (event) => keys.add(event.key.toLowerCase()));
+  window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+
+  let walkMode = false;
+  const setWalkMode = (on: boolean) => {
+    walkMode = on;
+    player.root.visible = on;
+    controls.enablePan = !on;
+    controls.enableZoom = !on;
+    if (on) {
+      // camera swings behind the player
+      const p = player.position;
+      const y = terrain.height(p.x, p.z);
+      controls.target.set(p.x, y + 1.4, p.z);
+      camera.position.set(p.x - 5, y + 3.4, p.z - 5);
+    }
+  };
+  window.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "t" && !event.repeat) setWalkMode(!walkMode);
+  });
 
   // Debug/review hook: lets the Playwright probe inspect the scene graph.
   const hooks = window as unknown as {
@@ -302,12 +390,18 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
     __zoneCamera: THREE.PerspectiveCamera;
     __zoneRenderer: THREE.WebGLRenderer;
     __zoneControls: OrbitControls;
+    __zonePlayer: ZonePlayer;
+    __zoneWalk: (on: boolean) => void;
+    __zoneKeys: Set<string>;
   };
   hooks.__zoneScene = scene;
   hooks.__zoneData = data;
   hooks.__zoneCamera = camera;
   hooks.__zoneRenderer = renderer;
   hooks.__zoneControls = controls;
+  hooks.__zonePlayer = player;
+  hooks.__zoneWalk = setWalkMode;
+  hooks.__zoneKeys = keys;
   hooks.__zoneFrames = 0;
   hooks.__zoneLoopError = null;
 
@@ -336,21 +430,73 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
         fpsFrames = 0;
       }
       for (const tick of tickables) tick(elapsed, delta);
+
+      // --- Walk mode (#453): drive the player, follow camera, water HUD ---
+      let focus = controls.target;
+      if (walkMode) {
+        const before = player.position.clone();
+        // Camera-relative WASD: project camera forward onto the ground plane.
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+        const right = new THREE.Vector3(forward.z, 0, -forward.x);
+        const move = new THREE.Vector3();
+        if (keys.has("w") || keys.has("arrowup")) move.add(forward);
+        if (keys.has("s") || keys.has("arrowdown")) move.sub(forward);
+        if (keys.has("d") || keys.has("arrowright")) move.add(right);
+        if (keys.has("a") || keys.has("arrowleft")) move.sub(right);
+        if (move.lengthSq() > 0) move.normalize();
+
+        const state = player.update(
+          delta,
+          { x: move.x, z: move.z },
+          keys.has("shift"),
+          keys.has("c"),
+          terrain,
+          water,
+          elapsed,
+        );
+        // Debug: expose the last frame's inputs to review probes.
+        (window as unknown as { __zoneMoveDebug: object }).__zoneMoveDebug = {
+          keysDown: [...keys],
+          move: { x: move.x.toFixed(2), z: move.z.toFixed(2) },
+          contact: state.contact,
+          dt: delta.toFixed(4),
+        };
+        // Follow: translate camera + target by the player's frame delta.
+        const deltaMove = player.position.clone().sub(before);
+        camera.position.add(deltaMove);
+        controls.target.copy(player.position).add(new THREE.Vector3(0, 1.3, 0));
+        focus = controls.target;
+        vitals.element.style.display = "block";
+        vitals.set(
+          state.breath,
+          state.health,
+          `${state.contact}${state.submerged ? " · SUBMERGED" : ""}${state.health < 1 ? " · DROWNING" : ""}`,
+        );
+      } else {
+        vitals.element.style.display = "none";
+      }
+
       controls.update();
 
-      // Shadow frustum follows the camera focus.
-      sun.target.position.copy(controls.target);
-      sun.position.set(
-        controls.target.x + 90,
-        controls.target.y + 130,
-        controls.target.z + 55,
-      );
+      // Underwater camera feel: dense fog + blue overlay when the camera dips.
+      const camSurface = water.waterSurfaceAt(camera.position.x, camera.position.z);
+      const camUnder = camSurface !== null && camera.position.y < camSurface;
+      underwaterOverlay.style.display = camUnder ? "block" : "none";
+      const foggy = scene.fog as THREE.FogExp2;
+      foggy.density = camUnder ? WATER_TUNING.underwaterFogDensity : 0.00042;
 
-      const wx = controls.target.x + data.meta.plateOffset[0];
-      const wz = controls.target.z + data.meta.plateOffset[1];
+      // Shadow frustum follows the camera focus.
+      sun.target.position.copy(focus);
+      sun.position.set(focus.x + 90, focus.y + 130, focus.z + 55);
+
+      const wx = focus.x + data.meta.plateOffset[0];
+      const wz = focus.z + data.meta.plateOffset[1];
       const zone = zoneAt(data.meta, wx, wz);
       hud.textContent =
-        `zone preview: ${zoneId}  cam: ${presetName}  ${fpsText}\n` +
+        `zone preview: ${zoneId}  cam: ${presetName}${walkMode ? "  WALK (T to exit)" : ""}  ${fpsText}\n` +
         `world: ${wx.toFixed(1)}, ${wz.toFixed(1)} m  ` +
         `zone: ${zone ? `${zone.id} · ${zone.name}` : "outside section"}`;
       composer.render();
@@ -362,12 +508,21 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   });
 
   window.addEventListener("resize", () => {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
     composer.setSize(w, h);
     aoPass?.setSize(w, h);
   });
+
+  return {
+    dispose: () => {
+      renderer.setAnimationLoop(null);
+      composer.dispose();
+      renderer.dispose();
+      host.remove();
+    },
+  };
 }
