@@ -1127,6 +1127,7 @@ def create_model_reference(
     display_node.setRenderFlag(True)
     container.parmTuple("t").set((position[0], elevation, position[1]))
     container.parmTuple("r").set((0.0, math.degrees(rotation_y), 0.0))
+    container.setUserData("souldrifter_source", source_path.as_posix())
     container.setDisplayFlag(visible)
     return {
         "name": name,
@@ -1189,6 +1190,9 @@ def create_environment_prop_references(obj: hou.Node, payload: dict, game_root: 
         )
         diagnostic["assetId"] = asset_id
         diagnostic["roomId"] = prop["roomId"]
+        model_node = kit.node(safe_name(diagnostic["name"]))
+        model_node.setUserData("souldrifter_asset_id", asset_id)
+        model_node.setUserData("souldrifter_room_id", prop["roomId"])
         diagnostics.append(diagnostic)
 
     kit.setUserData("souldrifter_seed", str(payload["seed"]))
@@ -1267,6 +1271,7 @@ def create_camera(obj: hou.Node, payload: dict) -> None:
         return detail
 
     training_camera = detail_camera("training", "TRAINING_MATERIAL_CAMERA", 1.32)
+    detail_camera("skirmish", "SKIRMISH_MATERIAL_CAMERA", 1.18)
     detail_camera("boss", "BOSS_MATERIAL_CAMERA", 1.18)
     training_camera.setCurrent(True)
 
@@ -1346,7 +1351,9 @@ def create_lighting(obj: hou.Node, payload: dict) -> None:
 
 def create_review_renders(out: hou.Node) -> None:
     for name, camera in (
+        ("FULL_ROUTE_REVIEW_RENDER", "/obj/ISO_CAMERA"),
         ("TRAINING_REVIEW_RENDER", "/obj/TRAINING_MATERIAL_CAMERA"),
+        ("SKIRMISH_REVIEW_RENDER", "/obj/SKIRMISH_MATERIAL_CAMERA"),
         ("BOSS_REVIEW_RENDER", "/obj/BOSS_MATERIAL_CAMERA"),
     ):
         render = out.createNode("opengl", name)

@@ -17,6 +17,8 @@ This branch provides a non-commercial Houdini Apprentice pilot for comparing a p
 
 The Houdini scene preserves the generated training room, galleries, connecting passages, boss arena, prop coordinates, player start, NPC positions, and enemy positions. The approved environment kit is visible under `/obj/APPROVED_DUNGEON_KIT`. The gameplay and complete-character reference subnets remain available but hidden during environment review so character material fallbacks and rig guides cannot contaminate the lighting comparison.
 
+The Houdini-only review composition guarantees coverage of all 38 approved environment asset IDs for every valid seed. It preserves the generator's existing placements, replaces the two procedural exit markers with the imported rusted portcullis and heavy door, then places only missing kit families in seed-stable, room-appropriate boundary sockets. Seed `4182` contains 51 imported environment instances: 16 in training, 25 in skirmish spaces, and 10 in the boss room. Each imported node stores its asset ID, semantic room, and source path as Houdini user data for direct scene auditing.
+
 Houdini 22's GLTF 2.0 SOP cannot read images embedded in binary `.glb` files. The deterministic builder therefore extracts each used kit asset's embedded base-color and normal maps into the ignored `source-assets/houdini/.cache/dungeon-kit-textures/` folder, creates a dedicated Principled material, and assigns it to the imported mesh. The cache is regenerated from committed source GLBs and is never a source-of-truth artifact.
 
 ## Owner-directed visual revision
@@ -29,13 +31,14 @@ The training room has an authored identity layer on top of the authoritative see
 
 The boss room is staged as the Ashen Lock rather than a generic empty rectangle: a soot-dark ritual lock, bronze channels, damaged monoliths, perimeter columns, collapsed corners, a chained reliquary, bones, ash-stained stone, and controlled fire pools give the arena a distinct combat silhouette while leaving its navigation center readable.
 
-The scene also includes cool and warm directional lights, room-local Soulwell and Ashen Lock lights, controlled ambient fill, and three orthographic cameras:
+The scene also includes cool and warm directional lights, room-local Soulwell and Ashen Lock lights, controlled ambient fill, and four orthographic cameras:
 
 - `ISO_CAMERA` for the complete generated route
 - `TRAINING_MATERIAL_CAMERA` for close material inspection
+- `SKIRMISH_MATERIAL_CAMERA` for the occupied galleries and monster takeover kit
 - `BOSS_MATERIAL_CAMERA` for the Ashen Lock treatment
 
-Two ready-to-render OpenGL nodes live under `/out`: `TRAINING_REVIEW_RENDER` and `BOSS_REVIEW_RENDER`. Both render at 1280x720 with 16 light samples, 4096-pixel anti-aliased area-shadow maps, ambient occlusion, subtle blue-gray distance haze, texture sampling, and restrained bloom on the emissive accents. Select either node and click **Render to MPlay** to review the authored lighting and shadows without changing the scene.
+Four ready-to-render OpenGL nodes live under `/out`: `FULL_ROUTE_REVIEW_RENDER`, `TRAINING_REVIEW_RENDER`, `SKIRMISH_REVIEW_RENDER`, and `BOSS_REVIEW_RENDER`. They render at 1280x720 with 16 light samples, 4096-pixel anti-aliased area-shadow maps, ambient occlusion, subtle blue-gray distance haze, texture sampling, and restrained bloom on the emissive accents. Select a node and click **Render to MPlay** to review the complete route or a room-scale asset composition without changing the scene.
 
 These are look-development references. The web runtime must reproduce the approved material and lighting intent with Three.js-native PBR materials, instancing, lights, and post-processing.
 

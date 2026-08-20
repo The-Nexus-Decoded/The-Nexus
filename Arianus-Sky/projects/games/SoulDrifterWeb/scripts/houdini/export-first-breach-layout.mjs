@@ -17,6 +17,132 @@ if (!outputPath) {
   throw new Error("Usage: node --experimental-strip-types export-first-breach-layout.mjs [seed] <output.json>");
 }
 
+const COMPLETE_KIT_ROOM = {
+  "archive-bookshelf": "training",
+  "archive-cupboard": "training",
+  "storage-chest": "training",
+  "reinforced-crate": "training",
+  "storage-barrel": "training",
+  "trestle-table": "training",
+  "heavy-bench": "training",
+  "high-backed-chair": "training",
+  "empty-weapon-rack": "training",
+  "wall-torch-sconce": "training",
+  "floor-brazier": "training",
+  "hanging-brazier": "training",
+  "heavy-door": "training",
+  "rusted-portcullis": "training",
+  "candelabra-cluster": "training",
+  "bottles-jugs-crockery-cluster": "training",
+  "cave-in-rubble": "skirmish",
+  "masonry-barricade": "skirmish",
+  "bone-pile": "skirmish",
+  "chain-shackle": "skirmish",
+  "false-wall-panel": "skirmish",
+  "supply-pile": "skirmish",
+  "corruption-growth": "skirmish",
+  "ruined-stone-archway": "skirmish",
+  "wooden-support-brace": "skirmish",
+  "iron-floor-grate": "skirmish",
+  "collapsed-timber-masonry-pile": "skirmish",
+  "hanging-iron-cage": "skirmish",
+  "weapon-armor-heap": "skirmish",
+  "broken-handcart": "skirmish",
+  "monster-egg-nest": "skirmish",
+  "cocooned-remains-web-mass": "skirmish",
+  "shed-chitin-pile": "skirmish",
+  "burrowed-wall-breach-plug": "skirmish",
+  "ruined-altar": "boss",
+  "guardian-statue": "boss",
+  "reliquary-wall-alcove": "boss",
+  "broken-stone-stair-dais": "boss",
+};
+
+function pointKey(point) {
+  return `${point.x},${point.y}`;
+}
+
+function boundaryRotation(dx, dy) {
+  if (dx < 0) return Math.PI / 2;
+  if (dx > 0) return -Math.PI / 2;
+  return dy > 0 ? Math.PI : 0;
+}
+
+function placementScore(assetId, candidate) {
+  let value = (seed ^ Math.imul(candidate.x, 0x1f123bb5) ^ Math.imul(candidate.y, 0x5f356495)) >>> 0;
+  for (const character of assetId) value = Math.imul(value ^ character.charCodeAt(0), 0x45d9f3b) >>> 0;
+  return value;
+}
+
+function completeHoudiniComposition(sourceDungeon) {
+  const props = sourceDungeon.props.map((prop) => {
+    if (prop.id === "gate-wayfarer") {
+      return { ...prop, assetId: "rusted-portcullis", offsetX: 0.49, offsetY: 0, rotationY: -Math.PI / 2 };
+    }
+    if (prop.id === "gate-oathbreaker") {
+      return { ...prop, assetId: "heavy-door", offsetX: 0.49, offsetY: 0, rotationY: -Math.PI / 2 };
+    }
+    return prop;
+  });
+  const placedAssetIds = new Set(props.flatMap((prop) => prop.assetId ? [prop.assetId] : []));
+  const missingAssetIds = Object.keys(DUNGEON_PROP_ASSETS).filter((assetId) => !placedAssetIds.has(assetId));
+  const unexpectedMissing = missingAssetIds.filter((assetId) => !(assetId in COMPLETE_KIT_ROOM));
+  if (unexpectedMissing.length > 0) {
+    throw new Error(`Houdini composition has no semantic room assignment for: ${unexpectedMissing.join(", ")}`);
+  }
+
+  const dungeonTileKeys = new Set(sourceDungeon.tiles.map(pointKey));
+  const reserved = new Set([
+    ...props,
+    ...sourceDungeon.npcs,
+    ...sourceDungeon.enemies,
+    ...sourceDungeon.blockedTiles,
+    sourceDungeon.playerStart,
+  ].map(pointKey));
+  const well = props.find((prop) => prop.id === "well");
+  const directions = [
+    { dx: -1, dy: 0 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: -1 },
+    { dx: 0, dy: 1 },
+  ];
+
+  for (const assetId of missingAssetIds) {
+    const spec = DUNGEON_PROP_ASSETS[assetId];
+    const roomId = COMPLETE_KIT_ROOM[assetId];
+    const candidates = sourceDungeon.tiles
+      .filter((tile) => tile.roomId === roomId && !reserved.has(pointKey(tile)))
+      .filter((tile) => roomId !== "training" || !well || Math.abs(tile.x - well.x) + Math.abs(tile.y - well.y) >= 5)
+      .flatMap((tile) => directions
+        .filter(({ dx, dy }) => !dungeonTileKeys.has(pointKey({ x: tile.x + dx, y: tile.y + dy })))
+        .map(({ dx, dy }) => ({ x: tile.x, y: tile.y, dx, dy })))
+      .sort((left, right) => {
+        const leftVisibility = left.dy < 0 || left.dx > 0 ? 0 : 1;
+        const rightVisibility = right.dy < 0 || right.dx > 0 ? 0 : 1;
+        return leftVisibility - rightVisibility || placementScore(assetId, left) - placementScore(assetId, right);
+      });
+    const candidate = candidates[0];
+    if (!candidate) throw new Error(`Unable to place complete-kit asset ${assetId} in ${roomId}.`);
+    reserved.add(pointKey(candidate));
+    const edgeOffset = spec.placement === "wall" ? 0.42 : spec.placement === "ceiling" ? 0.12 : 0.28;
+    const score = placementScore(assetId, candidate);
+    props.push({
+      id: `houdini-complete-${assetId}`,
+      kind: spec.kind,
+      roomId,
+      blocksMovement: spec.blocksMovement,
+      assetId,
+      x: candidate.x,
+      y: candidate.y,
+      offsetX: candidate.dx * edgeOffset,
+      offsetY: candidate.dy * edgeOffset,
+      rotationY: boundaryRotation(candidate.dx, candidate.dy) + (spec.placement === "wall" ? 0 : ((score / 0xffff_ffff) - 0.5) * 0.16),
+    });
+  }
+
+  return { ...sourceDungeon, props };
+}
+
 const modelReferences = {
   gameplay: {
     player: "assets/3d/characters/human-shadowknight/human-shadowknight.glb",
@@ -49,7 +175,7 @@ const payload = {
   seed,
   tileSize: 1.75,
   floorHeight: 0.22,
-  dungeon: generateSoulwellDungeon(seed),
+  dungeon: completeHoudiniComposition(generateSoulwellDungeon(seed)),
   environmentAssets: DUNGEON_PROP_ASSETS,
   modelReferences,
 };
@@ -63,6 +189,7 @@ console.log(JSON.stringify({
   tiles: payload.dungeon.tiles.length,
   props: payload.dungeon.props.length,
   environmentAssets: Object.keys(payload.environmentAssets).length,
+  uniqueEnvironmentAssets: new Set(payload.dungeon.props.flatMap((prop) => prop.assetId ? [prop.assetId] : [])).size,
   npcs: payload.dungeon.npcs.length,
   enemies: payload.dungeon.enemies.length,
   libraryModels: Object.keys(modelReferences.library).length,
