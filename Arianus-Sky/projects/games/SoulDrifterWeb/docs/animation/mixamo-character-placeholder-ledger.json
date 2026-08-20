@@ -48,12 +48,13 @@
       "ancestry": "human",
       "presentation": "feminine",
       "bodyRigAssetId": "body-human-feminine-heavy-v001",
-      "headAssetId": "head-west-eurasian-feminine-v001",
+      "headAssetId": "head-european-feminine-v001",
       "hairAssetId": "hair-fem-braided-crown-v001",
       "hairColorId": "silver",
       "clothingAssemblyId": "npc-ilyra-pilgrim-blue-grey-v001",
       "appearanceReferenceAssetId": "npc-ilyra-image-first-v001",
-      "state": "mvp-assembly-required"
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+      "state": "mvp-runtime-built"
     },
     {
       "npcId": "orren",
@@ -66,7 +67,8 @@
       "hairColorId": "near-black",
       "clothingAssemblyId": "npc-orren-field-leather-green-scarf-v001",
       "appearanceReferenceAssetId": "npc-orren-image-first-v001",
-      "state": "mvp-assembly-required"
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
+      "state": "mvp-runtime-built"
     },
     {
       "npcId": "brannoc",
@@ -74,12 +76,13 @@
       "ancestry": "dwarf",
       "presentation": "masculine",
       "bodyRigAssetId": "body-dwarf-masculine-heavy-v001",
-      "headAssetId": "head-west-eurasian-masculine-v001",
+      "headAssetId": "head-european-masculine-v001",
       "hairAssetId": "hair-masc-swept-back-v001",
       "hairColorId": "silver",
       "clothingAssemblyId": "npc-brannoc-arena-leather-blue-grey-v001",
       "appearanceReferenceAssetId": "npc-brannoc-image-first-v001",
-      "state": "mvp-assembly-required"
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
+      "state": "mvp-runtime-built"
     }
   ],
   "backgroundNpcRoster": [

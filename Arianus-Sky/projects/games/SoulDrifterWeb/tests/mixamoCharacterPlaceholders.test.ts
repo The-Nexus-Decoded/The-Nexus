@@ -16,6 +16,11 @@ describe("Mixamo temporary NPC character ledger", () => {
   });
 
   it("assembles each named NPC from its canonical ancestry rig", () => {
+    const knownHeadAssetIds = new Set([
+      "head-european-feminine-v001",
+      "head-south-asian-indian-masculine-v001",
+      "head-european-masculine-v001",
+    ]);
     expect(ledger.namedNpcAssemblies.map((entry) => entry.npcId).sort()).toEqual([
       "brannoc",
       "ilyra",
@@ -29,9 +34,13 @@ describe("Mixamo temporary NPC character ledger", () => {
       ]),
     );
     for (const entry of ledger.namedNpcAssemblies) {
-      expect(entry.state).toBe("mvp-assembly-required");
+      expect(entry.state).toBe("mvp-runtime-built");
       expect(entry.runtimeAssetId).toMatch(/^npc\.named\./);
+      expect(entry.runtimeModelPath).toMatch(
+        /^\/assets\/3d\/local-derived\/issue-448\/named-npcs\/sd-npc-.+-canonical-v001\.glb$/,
+      );
       expect(entry.bodyRigAssetId).toMatch(new RegExp(`^body-${entry.ancestry}-${entry.presentation}-`));
+      expect(knownHeadAssetIds.has(entry.headAssetId)).toBe(true);
       expect(entry).not.toHaveProperty("mixamoCharacterId");
     }
   });

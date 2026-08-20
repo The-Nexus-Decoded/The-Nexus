@@ -3,6 +3,7 @@ import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
   bindOptionalCompatibleAnimationClip,
+  HUMANOID_ACTIVE_ANIMATION_PACKS,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
   trimAnimationPackClipEnvelope,
@@ -128,10 +129,11 @@ const IN_PLACE_ANIMATION_NAMES = new Set([
   "siphoncleavebaselinecandidate", "siphoncleavebaseline",
 ]);
 const NPC_MODEL_PATHS: Record<string, string> = {
-  ilyra: "/assets/3d/characters/npc-ilyra.gltf",
-  orren: "/assets/3d/characters/npc-orren.gltf",
-  brannoc: "/assets/3d/characters/npc-brannoc.gltf",
+  ilyra: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+  orren: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
+  brannoc: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
 };
+const NPC_IDLE_ANIMATION_PACKS = HUMANOID_ACTIVE_ANIMATION_PACKS.slice(0, 1);
 
 interface AnimatedActor {
   id: string;
@@ -1057,10 +1059,18 @@ export class World3D {
     );
     this.scene.add(this.player.root);
 
-    const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 1.94, brannoc: 2.12 };
+    const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 2.04, brannoc: 1.72 };
     const npcNames: Record<string, string> = { ilyra: "Wellkeeper Ilyra", orren: "Breach Scout Orren", brannoc: "Arena Warden Brannoc" };
     await Promise.all(this.dungeon.npcs.map(async (npc) => {
-      const actor = await this.createActor(npc.id, NPC_MODEL_PATHS[npc.id]!, npc, npcHeights[npc.id]!, 0xc59b62, npcNames[npc.id] ?? npc.id);
+      const actor = await this.createActor(
+        npc.id,
+        NPC_MODEL_PATHS[npc.id]!,
+        npc,
+        npcHeights[npc.id]!,
+        0xc59b62,
+        npcNames[npc.id] ?? npc.id,
+        NPC_IDLE_ANIMATION_PACKS,
+      );
       actor.root.traverse((child) => { child.userData.interactId = npc.id; });
       this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
       this.addInteractionMarker(actor.root, 0x62e6db, false);

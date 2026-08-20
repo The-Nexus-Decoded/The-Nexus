@@ -889,7 +889,20 @@ describe("First Breach production model register", () => {
     );
     expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
     expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
-    expect(runtimeAssetManifest.excludeGlobs).toContain("assets/3d/local-derived/issue-448/**");
+    expect(runtimeAssetManifest.excludeGlobs).toEqual(
+      expect.arrayContaining([
+        "assets/3d/local-derived/issue-448/mixamo-intake/**",
+        "assets/3d/local-derived/issue-448/asset-lineage.json",
+        "assets/3d/local-derived/issue-448/sd-body-human-masculine-heavy-local-retopo-pilot-v001.glb",
+      ]),
+    );
+    expect(runtimeAssetManifest.protectedPaths).toEqual(
+      expect.arrayContaining([
+        "assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+        "assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
+        "assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
+      ]),
+    );
     expect(localAssetLineage.assets).toHaveLength(2);
     expect(localAssetLineage.assets[0]).toMatchObject({
       assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
