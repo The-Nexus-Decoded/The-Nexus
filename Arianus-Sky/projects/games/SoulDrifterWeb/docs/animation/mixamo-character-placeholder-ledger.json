@@ -48,12 +48,16 @@
       "ancestry": "human",
       "presentation": "feminine",
       "bodyRigAssetId": "body-human-feminine-heavy-v001",
+      "availableIdentityRigAssetId": "npc-ilyra-layered-full-fingers-v005",
       "headAssetId": "head-european-feminine-v001",
       "hairAssetId": "hair-fem-braided-crown-v001",
       "hairColorId": "silver",
       "clothingAssemblyId": "npc-ilyra-pilgrim-blue-grey-v001",
       "appearanceReferenceAssetId": "npc-ilyra-image-first-v001",
       "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+      "runtimePresentation": "reviewed-authored-old-woman-robe-static-mvp",
+      "animationPolicy": "no-incompatible-borrowed-idle",
+      "texturedRigMergeIssue": 457,
       "state": "mvp-runtime-built"
     },
     {

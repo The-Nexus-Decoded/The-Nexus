@@ -1069,7 +1069,7 @@ export class World3D {
         npcHeights[npc.id]!,
         0xc59b62,
         npcNames[npc.id] ?? npc.id,
-        NPC_IDLE_ANIMATION_PACKS,
+        npc.id === "ilyra" ? [] : NPC_IDLE_ANIMATION_PACKS,
       );
       actor.root.traverse((child) => { child.userData.interactId = npc.id; });
       this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
@@ -1132,6 +1132,10 @@ export class World3D {
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
+    // The reviewed Ilyra source was authored facing +X; the runtime's actor
+    // convention is +Z. Normalize her authored model once so interaction and
+    // camera-facing yaw use the same convention as every other actor.
+    if (id === "ilyra") model.rotation.y = -Math.PI / 2;
     model.updateMatrixWorld(true);
     const initialBox = actorBodyBounds(model);
     const sourceHeight = Math.max(0.01, initialBox.max.y - initialBox.min.y);

@@ -1,8 +1,8 @@
-"""Build the three First Breach named NPCs from shared humanoid rig families.
+"""Build the three First Breach named NPC runtime presentations.
 
-The body FBX supplies the canonical 65-bone skeleton and skin. Modular heads,
-hair, colors, and simple role clothing remain separate inputs to this local
-assembly step. The output GLBs are MVP actors, not new per-NPC skeletons.
+Ilyra uses her reviewed authored old-woman full body for the static MVP while
+her separately completed 65-bone rig awaits the texture/deformation merge.
+Orren and Brannoc retain the canonical humanoid rig-family assembly route.
 
 Run with Blender 4.5+:
 
@@ -18,6 +18,7 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
+import shutil
 import sys
 
 import bpy
@@ -28,8 +29,9 @@ NPCS = (
     {
         "npcId": "ilyra",
         "runtimeAssetId": "npc.named.ilyra.canonical-v001",
-        "bodyRigAssetId": "body-human-feminine-heavy-v001",
-        "body": "full-finger-rigs-v001/body-human-feminine-heavy-v001-full-fingers-v002.fbx",
+        "bodyRigAssetId": "npc-ilyra-layered-full-fingers-v005",
+        "body": "named-npcs-v001/ilyra/ilyra-layered-full-fingers-v005.fbx",
+        "authoredStaticVisual": "named-npcs-v001/ilyra/ilyra-continuous-retopo-v007.glb",
         "headAssetId": "head-european-feminine-v001",
         "head": "modular-head-library-v001/sd-head-european-feminine-v001.glb",
         "hairAssetId": "hair-fem-braided-crown-v001",
@@ -250,7 +252,56 @@ def add_role_layers(config: dict, armature: bpy.types.Object, body_height: float
     return layers
 
 
+def build_authored_static_mvp(config: dict, intake_root: Path, output_root: Path) -> dict:
+    """Ship the reviewed identity while its textured deformation merge is pending.
+
+    Ilyra already has a correct elderly face, silver braid, layered robe, belt,
+    pouch, keys, boots, and authored PBR texture in the reviewed retopo GLB.
+    Her separate 65-bone FBX currently lacks that texture payload. For the MVP,
+    preserve the authored static visual instead of disguising a generic body or
+    playing an incompatible animation that drags the model toward a T-pose.
+    """
+    visual_path = (intake_root / config["authoredStaticVisual"]).resolve()
+    rig_path = (intake_root / config["body"]).resolve()
+    head_path = (intake_root / config["head"]).resolve()
+    hair_path = (intake_root / config["hair"]).resolve()
+    for path in (visual_path, rig_path, head_path, hair_path):
+        if not path.is_file():
+            raise FileNotFoundError(path)
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    output = output_root / f"sd-npc-{config['npcId']}-canonical-v001.glb"
+    shutil.copyfile(visual_path, output)
+    return {
+        **config,
+        "bodySource": str(rig_path),
+        "bodySourceSha256": digest(rig_path),
+        "authoredStaticVisualSource": str(visual_path),
+        "authoredStaticVisualSourceSha256": digest(visual_path),
+        "headSource": str(head_path),
+        "headSourceSha256": digest(head_path),
+        "hairSource": str(hair_path),
+        "hairSourceSha256": digest(hair_path),
+        "output": str(output.resolve()),
+        "outputBytes": output.stat().st_size,
+        "outputSha256": digest(output),
+        "bones": 0,
+        "availableRigBones": 65,
+        "roleLayerCount": 0,
+        "bodyMaterialMode": "authored-pbr-static-identity-mvp",
+        "runtimeIdentityGeometry": "reviewed-ilyra-old-woman-fullbody",
+        "runtimeMotionMode": "static-authored-neutral-pose",
+        "texturedRigMergeDeferredToIssue": 457,
+        "sharedSkeleton": False,
+        "uniqueNpcSkeleton": False,
+        "mvpRuntimeAllowed": True,
+        "postMvpPolishIssue": 457,
+    }
+
+
 def build_one(config: dict, intake_root: Path, output_root: Path) -> dict:
+    if "authoredStaticVisual" in config:
+        return build_authored_static_mvp(config, intake_root, output_root)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     body_path = (intake_root / config["body"]).resolve()
     head_path = (intake_root / config["head"]).resolve()
@@ -337,10 +388,10 @@ def main() -> None:
         "schemaVersion": 1,
         "issue": 448,
         "recipe": "scripts/build-named-npc-runtime-assemblies.py",
-        "rigFamily": "canonical-humanoid-65",
+        "rigFamily": "mixed-mvp-authored-static-and-canonical-humanoid-65",
         "namedNpcFullBodyExportRequired": False,
         "mixamoNamedNpcUseAllowed": False,
-        "bodyMaterialMode": "spatial-mvp-skin-cloth-segmentation",
+        "bodyMaterialMode": "per-actor-see-output-record",
         "outputCount": len(outputs),
         "outputs": outputs,
     }
