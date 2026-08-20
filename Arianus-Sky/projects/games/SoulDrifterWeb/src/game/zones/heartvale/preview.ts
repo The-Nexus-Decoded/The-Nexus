@@ -139,8 +139,9 @@ function setupDevPanel(
     "position:absolute", "top:10px", "right:10px", "padding:10px 12px",
     "background:rgba(8,10,8,0.78)", "color:#e8dcc0", "font:12px/1.7 monospace",
     "border-radius:8px", "border:1px solid #4a4632", "max-height:90vh",
-    "overflow-y:auto", "display:", visible ? "block" : "none",
-  ].join(";").replace("display:;", visible ? "display:block;" : "display:none;");
+    "overflow-y:auto",
+  ].join(";");
+  panel.style.display = visible ? "block" : "none";
 
   const title = document.createElement("div");
   title.textContent = "DEV TELEPORT (` to hide)";
