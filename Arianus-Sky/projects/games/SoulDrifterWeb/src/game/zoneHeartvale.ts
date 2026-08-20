@@ -5,10 +5,16 @@
  * monsters, spawn areas, NPCs with dialogue, quests, puzzles, escorts, and
  * the per-player world phasing that fires when a quest is turned in.
  *
- * Scale is identical to the Houdini pipeline
- * (scripts/houdini/export-heartvale-soulwell-layout.mjs):
- *   1 tile = 1.75 m · 1 atlas unit = 5 tiles · zone grid 160 × 160
- *   zone origin = atlas (38.0, 24.0) · world origin = Soul Well terrace (grid 40, 72.5)
+ * Frames:
+ *   LEGACY grid (authoring shorthand): 1 tile = 1/5 atlas %, zone grid
+ *     160 × 160, origin atlas (38.0, 24.0), Soul Well at grid (40, 72.5).
+ *   WORLD (v2, authoritative): plate-world meters per server/sections.mjs —
+ *     origin = M-003 plate top-left, +x east, +z south, 12000 × 6750 m.
+ *     Every world position below is DERIVED from the legacy grid through the
+ *     same mapping + POI correction field the layout exporter uses
+ *     (scripts/houdini/export-heartvale-soulwell-layout.mjs); the test suite
+ *     locks this module against the exported layout.json so the two never
+ *     drift apart.
  *
  * Canon sources: public/lore-atlas/data.js (read-only) and
  * RUNBOOK-heartvale-outdoor-zone.md. Realm law: Thalenyr, "The Verdant
@@ -16,6 +22,11 @@
  * Low-level magic boundary: mortal techniques only (runbook §1.6).
  */
 
+import {
+  HEARTVALE_POIS,
+  PLATE_WORLD_HEIGHT_M,
+  PLATE_WORLD_WIDTH_M,
+} from "../../server/sections.mjs";
 import type { NpcDatabase } from "./npc";
 import type { QuestDefinition } from "./quests";
 import type { GridPoint } from "./types";
@@ -38,6 +49,88 @@ export function atlasToGrid(atlasX: number, atlasY: number): GridPoint {
 
 export const SOULWELL_GRID: GridPoint = atlasToGrid(46.0, 38.5); // (40, 72.5)
 
+// --- v2 world frame (authoritative) -------------------------------------------
+// Plate-world meters. Legacy-grid -> world mapping mirrors the layout exporter
+// exactly: percent-of-plate per axis, rigid shift so the legacy Soul Well grid
+// point lands on the measured anchor, then an IDW (1/d^4) correction field
+// built from the six legacy POI deltas so geography keyed to a POI (roads,
+// camps, banks) follows the measured anchors. NOTE the plate is anisotropic
+// in legacy tiles: 1 tile = 24 m east-west but 13.5 m north-south.
+
+export interface WorldPoint {
+  x: number;
+  z: number;
+}
+
+const poiById = new Map(HEARTVALE_POIS.map((poi) => [poi.id, poi]));
+
+function measuredPoi(id: string): (typeof HEARTVALE_POIS)[number] {
+  const poi = poiById.get(id);
+  if (!poi) throw new Error(`HEARTVALE_POIS is missing '${id}'.`);
+  return poi;
+}
+
+function legacyGridToPlateWorld(gx: number, gy: number): WorldPoint {
+  const atlasX = gx / HEARTVALE_SCALE.atlasUnitTiles + HEARTVALE_SCALE.zoneOriginAtlas.x;
+  const atlasY = gy / HEARTVALE_SCALE.atlasUnitTiles + HEARTVALE_SCALE.zoneOriginAtlas.y;
+  return {
+    x: (atlasX / 100) * PLATE_WORLD_WIDTH_M,
+    z: (atlasY / 100) * PLATE_WORLD_HEIGHT_M,
+  };
+}
+
+const measuredSoulwell = measuredPoi("soulwell");
+const legacySoulwellWorld = legacyGridToPlateWorld(SOULWELL_GRID.x, SOULWELL_GRID.y);
+const WORLD_SHIFT: WorldPoint = {
+  x: measuredSoulwell.world[0] - legacySoulwellWorld.x,
+  z: measuredSoulwell.world[1] - legacySoulwellWorld.z,
+};
+
+/** Atlas positions of the six legacy POIs (shape/bearing source only). */
+const LEGACY_ANCHOR_ATLAS: Record<string, { x: number; y: number }> = {
+  soulwell: { x: 46.0, y: 38.5 },
+  anwel: { x: 46.0, y: 35.5 },
+  lockroot: { x: 48.5, y: 31.0 },
+  vaeldor: { x: 49.5, y: 47.5 },
+  erboug: { x: 55.5, y: 41.0 },
+  thalensheir: { x: 46.5, y: 51.5 },
+};
+
+const CORRECTIONS = Object.entries(LEGACY_ANCHOR_ATLAS).map(([id, atlas]) => {
+  const grid = atlasToGrid(atlas.x, atlas.y);
+  const base = legacyGridToPlateWorld(grid.x, grid.y);
+  const measured = measuredPoi(id);
+  const x = base.x + WORLD_SHIFT.x;
+  const z = base.z + WORLD_SHIFT.z;
+  return { x, z, dx: measured.world[0] - x, dz: measured.world[1] - z };
+});
+
+/** Legacy grid point -> authoritative plate-world meters. */
+export function gridToWorld(grid: GridPoint): WorldPoint {
+  const base = legacyGridToPlateWorld(grid.x, grid.y);
+  const bx = base.x + WORLD_SHIFT.x;
+  const bz = base.z + WORLD_SHIFT.z;
+  let weightSum = 0;
+  let dxSum = 0;
+  let dzSum = 0;
+  for (const c of CORRECTIONS) {
+    const d2 = (bx - c.x) ** 2 + (bz - c.z) ** 2;
+    if (d2 < 0.25) return { x: c.x + c.dx, z: c.z + c.dz }; // on the POI: exact
+    const weight = 1 / (d2 * d2);
+    weightSum += weight;
+    dxSum += weight * c.dx;
+    dzSum += weight * c.dz;
+  }
+  return { x: bx + dxSum / weightSum, z: bz + dzSum / weightSum };
+}
+
+/** Nominal meters per legacy tile for radii — area-preserving mean of the
+ * anisotropic plate axes (24 m east-west, 13.5 m north-south). */
+export const LEGACY_TILE_RADIUS_METERS = Math.sqrt(
+  (PLATE_WORLD_WIDTH_M / 100 / HEARTVALE_SCALE.atlasUnitTiles) *
+    (PLATE_WORLD_HEIGHT_M / 100 / HEARTVALE_SCALE.atlasUnitTiles),
+);
+
 // --- Anchors (canon bearings from the Soul Well) ------------------------------
 
 export interface ZoneAnchor {
@@ -46,16 +139,40 @@ export interface ZoneAnchor {
   type: string;
   atlas: { x: number; y: number };
   grid: GridPoint;
+  /** Authoritative measured plate-world meters (from sections.mjs). */
+  world: WorldPoint;
   canon: string;
 }
 
+const anchor = (
+  id: string,
+  name: string,
+  type: string,
+  atlas: { x: number; y: number },
+  canon: string,
+): ZoneAnchor => {
+  const measured = measuredPoi(id);
+  return {
+    id,
+    name,
+    type,
+    atlas,
+    grid: atlasToGrid(atlas.x, atlas.y),
+    world: { x: measured.world[0], z: measured.world[1] },
+    canon,
+  };
+};
+
 export const HEARTVALE_ANCHORS: readonly ZoneAnchor[] = [
-  { id: "soulwell", name: "The Soul Well & First Breach", type: "well", atlas: { x: 46.0, y: 38.5 }, grid: atlasToGrid(46.0, 38.5), canon: "The lock that bloomed. Soul Drifters awaken beside it." },
-  { id: "anwel", name: "Anwel", type: "city", atlas: { x: 46.0, y: 35.5 }, grid: atlasToGrid(46.0, 35.5), canon: "River-town above the Well, first roof most newly woken souls ever see." },
-  { id: "lockroot", name: "Lockroot Vaults", type: "dungeon", atlas: { x: 48.5, y: 31.0 }, grid: atlasToGrid(48.5, 31.0), canon: "Root-choked vaults grown around a fragment of the original lock-inscription. The deeper halls still hum." },
-  { id: "vaeldor", name: "Vaeldor", type: "capital", atlas: { x: 49.5, y: 47.5 }, grid: atlasToGrid(49.5, 47.5), canon: "Capital of the Verdant Echo, raised at the meeting of the rivers. All roads are measured from its well-stone." },
-  { id: "erboug", name: "The Erboug Stones", type: "poi", atlas: { x: 55.5, y: 41.0 }, grid: atlasToGrid(55.5, 41.0), canon: "Standing stones that predate every settlement record. Drakkin will not camp inside the ring." },
-  { id: "thalensheir", name: "Thalen's Heir", type: "city", atlas: { x: 46.5, y: 51.5 }, grid: atlasToGrid(46.5, 51.5), canon: "Said to stand where the first shepherd's weir once ran. The folk etymology survives here in song." },
+  anchor("soulwell", "The Soul Well & First Breach", "well", { x: 46.0, y: 38.5 }, "The lock that bloomed. Soul Drifters awaken beside it."),
+  anchor("anwel", "Anwel", "city", { x: 46.0, y: 35.5 }, "River-town above the Well, first roof most newly woken souls ever see."),
+  anchor("lockroot", "Lockroot Vaults", "dungeon", { x: 48.5, y: 31.0 }, "Root-choked vaults grown around a fragment of the original lock-inscription. The deeper halls still hum."),
+  anchor("vaeldor", "Vaeldor", "capital", { x: 49.5, y: 47.5 }, "Capital of the Verdant Echo, raised at the meeting of the rivers. All roads are measured from its well-stone."),
+  anchor("erboug", "The Erboug Stones", "poi", { x: 55.5, y: 41.0 }, "Standing stones that predate every settlement record. Drakkin will not camp inside the ring."),
+  anchor("thalensheir", "Thalen's Heir", "city", { x: 46.5, y: 51.5 }, "Said to stand where the first shepherd's weir once ran. The folk etymology survives here in song."),
+  // No legacy atlas waypoint — atlas position inverse-mapped from the measured
+  // plate marker (828, 288) so the seventh POI is addressable in both frames.
+  anchor("lockfragment", "Lock-Inscription Fragment", "poi", { x: 40.4296875, y: 25.0 }, "A broken piece of the original lock-inscription on the wild west bank. The treeline hums louder near it."),
 ] as const;
 
 // --- Monsters ------------------------------------------------------------------
@@ -100,14 +217,22 @@ export interface SpawnArea {
   kind: "wander" | "quest" | "elite" | "boss";
   monsterId: string;
   count: number;
+  /** Legacy authoring grid (kept for reference; see gridToWorld). */
   center: GridPoint;
+  /** Legacy tiles — see radiusMeters for the authoritative value. */
   radius: number;
+  /** Authoritative plate-world center, meters (via gridToWorld). */
+  world: WorldPoint;
+  /** Authoritative radius in meters (area-preserving plate scale). */
+  radiusMeters: number;
   questId?: string;
   phasedInBy?: string;
   note: string;
 }
 
-export const HEARTVALE_SPAWN_AREAS: readonly SpawnArea[] = [
+type SpawnAreaSeed = Omit<SpawnArea, "world" | "radiusMeters">;
+
+const HEARTVALE_SPAWN_AREA_SEEDS: readonly SpawnAreaSeed[] = [
   // Wander mobs — always present for every player, quest state irrelevant.
   { id: "wander-moth-meadow", kind: "wander", monsterId: "gossamer-moth", count: 10, center: { x: 30, y: 66 }, radius: 9, note: "Meadow west of the terrace road." },
   { id: "wander-viper-banks", kind: "wander", monsterId: "reed-viper", count: 8, center: { x: 38, y: 82 }, radius: 8, note: "Riverbanks south of the Well." },
@@ -129,6 +254,12 @@ export const HEARTVALE_SPAWN_AREAS: readonly SpawnArea[] = [
   { id: "phase-grazer-field", kind: "wander", monsterId: "thornback-boar", count: 2, center: { x: 28, y: 86 }, radius: 6, phasedInBy: "q-thornback-trouble", note: "A thinned, wary remnant herd — the field is farmland again." },
   { id: "phase-watch-post", kind: "wander", monsterId: "toll-road-reiver", count: 0, center: { x: 70, y: 88 }, radius: 5, phasedInBy: "q-break-east-road-camp", note: "A Vaeldor watch post stands where the elite camp burned." },
 ] as const;
+
+export const HEARTVALE_SPAWN_AREAS: readonly SpawnArea[] = HEARTVALE_SPAWN_AREA_SEEDS.map((area) => ({
+  ...area,
+  world: gridToWorld(area.center),
+  radiusMeters: area.radius * LEGACY_TILE_RADIUS_METERS,
+}));
 
 // --- NPCs ----------------------------------------------------------------------
 // 11 quest NPCs (+2 escort followers). Sprites share one original placeholder
@@ -371,14 +502,18 @@ export const HEARTVALE_PUZZLES: readonly PuzzleDefinition[] = [
 export interface EscortDefinition {
   id: string;
   followerName: string;
-  /** Waypoints (grid) the follower must survive through. */
+  /** Waypoints (legacy grid) the follower must survive through. */
   route: readonly GridPoint[];
+  /** Authoritative plate-world waypoints, meters (derived from route). */
+  worldRoute: readonly WorldPoint[];
   /** Wander spawn areas that aggro the route. */
   threatAreaIds: readonly string[];
   failNote: string;
 }
 
-export const HEARTVALE_ESCORTS: readonly EscortDefinition[] = [
+type EscortSeed = Omit<EscortDefinition, "worldRoute">;
+
+const HEARTVALE_ESCORT_SEEDS: readonly EscortSeed[] = [
   {
     id: "escort-owyn-vaeldor-road",
     followerName: "Brother Owyn",
@@ -398,6 +533,11 @@ export const HEARTVALE_ESCORTS: readonly EscortDefinition[] = [
     failNote: "The yearling bolts back into the muster field. Rill sighs the sigh of grandmothers.",
   },
 ] as const;
+
+export const HEARTVALE_ESCORTS: readonly EscortDefinition[] = HEARTVALE_ESCORT_SEEDS.map((escort) => ({
+  ...escort,
+  worldRoute: escort.route.map((point) => gridToWorld(point)),
+}));
 
 // --- Quests ----------------------------------------------------------------------
 // Ordered so each quest teaches a mechanic before the next one leans on it.

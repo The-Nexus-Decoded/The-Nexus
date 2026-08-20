@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import layoutJson from "../public/data/zones/heartvale/layout.json";
+import { HEARTVALE_POIS } from "../server/sections.mjs";
 import { LOOT_TABLES } from "../src/game/loot";
 import { monsterXp, xpToReachLevel } from "../src/game/progression";
 import {
@@ -10,7 +12,10 @@ import {
   HEARTVALE_PUZZLES,
   HEARTVALE_QUESTS,
   HEARTVALE_SPAWN_AREAS,
+  LEGACY_TILE_RADIUS_METERS,
   SOULWELL_GRID,
+  atlasToGrid,
+  gridToWorld,
   phasedSpawnAreas,
   requiredKillXp,
   totalQuestXp,
@@ -141,5 +146,66 @@ describe("Heartvale zone content integrity", () => {
     expect(lockroot?.onComplete?.atlasPromotion).toEqual({ realmId: "thalenyr", poiId: "lockroot", status: "explored" });
     const ids = HEARTVALE_QUESTS.map((quest) => quest.id);
     expect(ids.indexOf("q-first-roof")).toBeLessThan(ids.indexOf("q-weirwight"));
+  });
+});
+
+// --- v2 world frame (plate-world meters) ---------------------------------------
+// Locks the zone content authority to the layout authority: gridToWorld must
+// reproduce the exported layout anchors, and every gameplay position must
+// land inside the section bounds (hv zones span x 4320–7680, z 1552.5–4252.5).
+describe("Heartvale v2 world frame", () => {
+  const layoutAnchors = new Map(
+    (layoutJson.anchors as { id: string; world: { x: number; z: number } }[]).map((a) => [a.id, a.world]),
+  );
+  const SECTION = { x0: 4320, x1: 7680, z0: 1552.5, z1: 4252.5 };
+  const inSection = (p: { x: number; z: number }) =>
+    p.x >= SECTION.x0 && p.x <= SECTION.x1 && p.z >= SECTION.z0 && p.z <= SECTION.z1;
+
+  it("gridToWorld reproduces the exported layout anchors (±0.5 m)", () => {
+    for (const poi of HEARTVALE_POIS) {
+      if (poi.id === "lockfragment") continue; // no legacy waypoint — direct anchor
+      const anchor = layoutAnchors.get(poi.id);
+      expect(anchor, poi.id).toBeDefined();
+      const legacy = HEARTVALE_ANCHORS.find((a) => a.id === poi.id);
+      expect(legacy, poi.id).toBeDefined();
+      const world = gridToWorld(legacy!.grid);
+      expect(Math.hypot(world.x - anchor!.x, world.z - anchor!.z), poi.id).toBeLessThan(0.5);
+    }
+  });
+
+  it("anchors carry the measured world position from sections.mjs (never re-measured)", () => {
+    for (const anchor of HEARTVALE_ANCHORS) {
+      const poi = HEARTVALE_POIS.find((p) => p.id === anchor.id);
+      expect(poi, anchor.id).toBeDefined();
+      expect(anchor.world).toEqual({ x: poi!.world[0], z: poi!.world[1] });
+    }
+    expect(HEARTVALE_ANCHORS.map((a) => a.id)).toContain("lockfragment");
+  });
+
+  it("every spawn area sits inside the section in world meters", () => {
+    expect(HEARTVALE_SPAWN_AREAS.length).toBeGreaterThanOrEqual(15);
+    for (const area of HEARTVALE_SPAWN_AREAS) {
+      expect(inSection(area.world), `${area.id} @ ${area.world.x.toFixed(0)},${area.world.z.toFixed(0)}`).toBe(true);
+      expect(area.radiusMeters).toBeCloseTo(area.radius * LEGACY_TILE_RADIUS_METERS, 6);
+      expect(area.radiusMeters).toBeGreaterThan(0);
+    }
+  });
+
+  it("escort worldRoutes mirror their legacy routes in world meters", () => {
+    for (const escort of HEARTVALE_ESCORTS) {
+      expect(escort.worldRoute.length).toBe(escort.route.length);
+      escort.worldRoute.forEach((point, i) => {
+        const expected = gridToWorld(escort.route[i]!);
+        expect(point).toEqual(expected);
+        expect(inSection(point), `${escort.id} waypoint ${i}`).toBe(true);
+      });
+    }
+  });
+
+  it("keeps the soulwell at the hv-1 anchor (start-zone invariant)", () => {
+    const soulwell = gridToWorld(SOULWELL_GRID);
+    const measured = HEARTVALE_POIS.find((p) => p.id === "soulwell")!;
+    expect(soulwell.x).toBeCloseTo(measured.world[0], 2);
+    expect(soulwell.z).toBeCloseTo(measured.world[1], 2);
   });
 });
