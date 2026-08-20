@@ -1,6 +1,37 @@
 {
   "schemaVersion": 1,
-  "shippingAssets": [],
+  "shippingAssets": [
+    {
+      "id": "breach-v2-wall-art-thalenyr-atlas",
+      "name": "Thalenyr painted world atlas (M-003)",
+      "url": "docs/maps/breach-v2/ + workspace masters (souldrifter-thalenyr)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world readable wall map — Vestibule, training-room priority (runbook §5A)",
+      "bundled": true,
+      "sha256": "8d6c45f0eae797d1d9603f82697f108bb9696af001707fd35a793dad3582bbe6",
+      "notes": "1600px WebP q75 export per MAP_ASSET_PIPELINE; masters live outside the repo."
+    },
+    {
+      "id": "breach-v2-wall-art-heartvale-section",
+      "name": "Heartvale section cut v2 (POI-safe zone map)",
+      "url": "docs/maps/breach-v2/ + workspace masters (souldrifter-thalenyr)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world readable zone map — Vestibule wall art",
+      "bundled": true,
+      "sha256": "5d95a5974bec14215af26a305d42177735bf2f46d8f5941da71a6d5c484b9783",
+      "notes": "1600px WebP q75 export per MAP_ASSET_PIPELINE; masters live outside the repo."
+    },
+    {
+      "id": "breach-v2-wall-art-breach-v2-flatmap",
+      "name": "BREACH-V2 starting-zone flat map (this ticket's deliverable 1)",
+      "url": "docs/maps/breach-v2/ + workspace masters (souldrifter-thalenyr)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world zone map — Threshold Plaza wall art",
+      "bundled": true,
+      "sha256": "f546dada9b7025bfb7c1a219d3a7e857e0c5891bfac4432e3aadeed1a58e3cd6",
+      "notes": "1600px WebP q75 export per MAP_ASSET_PIPELINE; masters live outside the repo."
+    }
+  ],
   "researchReferences": [
     {
       "id": "exult-engine",

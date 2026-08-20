@@ -3,4 +3,6 @@ dist/
 dist-pages/
 coverage/
 *.log
+# Houdini derived texture cache — regenerable, never the source of truth
+source-assets/houdini/.cache/
 
