@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-20T03:49:49-05:00",
+  "phase": "issue-450",
+  "phase_name": "first-breach-independent-redesign-handoff",
+  "phase_dir": ".planning",
+  "plan": 1,
+  "task": 1,
+  "total_tasks": 1,
+  "status": "paused_for_new_agent_handoff",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Package neutral First Breach rebuild handoff",
+      "status": "done",
+      "progress": "Runbook records branch/worktree, canonical rules, verified asset locations, integration map, provider/license constraints, and factual failures while explicitly granting the next agent independent visual-design freedom."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 2,
+      "name": "Create a new ticket and dedicated branch for an independent level redesign",
+      "status": "not_started"
+    },
+    {
+      "id": 3,
+      "name": "Have the new agent propose its own design before full implementation",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "No current or historical Houdini composition is owner-approved.",
+      "type": "human_action",
+      "workaround": "The next agent should create an independent design using only canon, functional rules, and committed assets."
+    },
+    {
+      "description": "Current placement uses roomId and generic boundary cells, causing corridor leakage and implausible scatter.",
+      "type": "technical",
+      "workaround": "Use exact zone/polygon membership and a new deterministic placement/configuration system."
+    },
+    {
+      "description": "Houdini Apprentice source is non-commercial and cannot be shipped directly to the web.",
+      "type": "external",
+      "workaround": "Use a licensed Houdini or approved Blender export path for shipping assets; Three.js remains the runtime."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Create or approve the new redesign ticket and branch name.",
+      "context": "The owner is transferring visual level design to another agent while retaining this branch as the source package.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Give the next agent independent visual-design freedom.",
+      "rationale": "The owner does not want the failed scene or prior proposed composition to bias the replacement design.",
+      "phase": "issue-450"
+    },
+    {
+      "decision": "Keep the logical gameplay grid but require a visually continuous real-3D isometric art layer.",
+      "rationale": "The current visible construction reads as a tile map even though it uses 3D geometry.",
+      "phase": "issue-450"
+    },
+    {
+      "decision": "Reuse committed models and spend no additional 3D AI Studio credits.",
+      "rationale": "The registered balance is 819 with a hard floor of 800, and the existing asset kit is already committed.",
+      "phase": "issue-450"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Read docs/FIRST_BREACH_REBUILD_RUNBOOK.md, create a new ticket/worktree/branch from the final handoff commit, and propose an independent design without using the rejected scene or legacy concept as the visual target.",
+  "context_notes": "Issue #450 remains open and owner-qa:pending. The reference branch contains 37 physical source/runtime environment GLBs representing 38 logical variants, gameplay code, PBR assets, a rejected Houdini scene, and factual failure history. No paid operation or QA deployment is authorized."
+}

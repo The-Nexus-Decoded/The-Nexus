@@ -1,6 +1,8 @@
 # First Breach Visual Acceptance Specification
 
-Status: **BLOCKING — baseline rejected; correction work has not started**  
+> **Historical rejected-attempt record — not visual direction for the independent redesign.** The owner has explicitly asked the next agent to create its own design without using this document's proposed composition or the rejected Houdini scene as a target. Canonical requirements now come from `LEVEL_01.md`, `GAME_BIBLE.md`, and `FIRST_BREACH_REBUILD_RUNBOOK.md`. Retain this file only for its baseline evidence and failure history.
+
+Status: **SUPERSEDED AS A DESIGN BRIEF — retained as rejected baseline evidence**
 Issue: The-Nexus #450  
 Branch: `codex/450-houdini-apprentice-first-breach`  
 Baseline commit: `e0ec68c4`  
