@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import bodyAnchorIntake from "../docs/3d-ai-studio/body-anchor-intake.json";
 import modelRegister from "../docs/3d-ai-studio/first-breach-model-register.json";
 import localAssetLineage from "../public/assets/3d/local-derived/issue-448/asset-lineage.json";
+import runtimeAssetManifest from "../scripts/runtime-asset-manifest.json";
 
 const sourceTask = (assetId: string) =>
   modelRegister.sourceGenerationTasks.find((entry) => entry.assetId === assetId) as any;
@@ -886,7 +887,34 @@ describe("First Breach production model register", () => {
     );
     expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
     expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
-    expect(localAssetLineage.assets).toEqual([]);
+    expect(runtimeAssetManifest.excludeGlobs).toContain("assets/3d/local-derived/issue-448/**");
+    expect(localAssetLineage.assets).toHaveLength(1);
+    expect(localAssetLineage.assets[0]).toMatchObject({
+      assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
+      lineageKind: "local-derived",
+      status: "non-shipping-visual-topology-pilot",
+      parentSource: {
+        taskId: "31044697-8e60-46c5-b046-43db7bedac4e",
+        sha256: "BC2DFB678AE6A3590B7B5C556E8E9708973CE2D08075E55224397CE57570FE7E",
+      },
+      localRecipe: {
+        tool: "Blender",
+        toolVersion: "4.5.12 LTS",
+        gpuAccelerationUsed: true,
+      },
+      output: {
+        file: "sd-body-human-masculine-heavy-local-retopo-pilot-v001.glb",
+        sha256: "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+        bytes: 1980268,
+        vertices: 32456,
+        triangles: 44999,
+        materials: 1,
+        skins: 0,
+        animations: 0,
+      },
+      intendedRuntimeSlot: "character-body/human/masculine/heavy",
+      runtimePromotionAllowed: false,
+    });
   });
 
   it("covers every current level surface that must be revalidated", () => {

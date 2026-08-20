@@ -10,6 +10,7 @@
     "assets/generated/tutorial-npcs-*-v1.png",
     "assets/generated/action-icons/*-atlas.png",
     "assets/generated/characters/advanced/**",
+    "assets/3d/local-derived/issue-448/**",
     "lore-atlas/assets/P-*_painted.png",
     "lore-atlas/assets/maps/*.svg"
   ],
