@@ -165,6 +165,34 @@ owner approved a visual direction.
 7. **Session handoff doc** + independent review gate (runbook §7) BEFORE the
    owner is shown.
 
+## 8A. Add-on A — readable wall art + kit gap fill (owner directive 2026-08-20)
+
+Approved add-on, worked alongside deliverables 3–5 (not a gate on them):
+
+1. **Readable wall art (runbook §5A):** paintings, banners, reliefs, and
+   **zoom-readable MAPS OF OTHER ZONES** (Thalenyr atlas, Heartvale section
+   map — reuse existing repo map masters first, zero cost) mounted as framed
+   PBR planes at named `wall-art` sockets. **The Vestibule/training room is
+   the priority location** — a new player must be able to zoom in and study
+   a readable world map there. Readability at closest zoom is the
+   acceptance bar (≥ 1024px per ~1 m of wall art; real composed labels, no
+   AI-generated text).
+2. **New art via LOCAL GPU only** (owner directive — no paid provider
+   credits): backgrounds generated locally, labels composed over them,
+   recorded in `third-party-assets.json`.
+3. **Kit gap fill:** the 4 uncovered catalog IDs get placed or get
+   documented exclusions — `false-wall-panel`, `heavy-door`,
+   `reliquary-wall-alcove`, and `hanging-brazier` (no independent model; a
+   chain-mounted variant of `floor-brazier.glb` is acceptable as a
+   separately named/versioned variant per the fidelity rules).
+4. **Books/scrolls (deferred family):** add simple readable book/scroll
+   props to the Vestibule and Archive rooms — texture-based (kit geometry
+   reused), local-GPU covers/pages; full readable-book UI is NOT in scope.
+5. **Prop density pass:** when the registry is derived, sanity-check per-
+   room prop socket counts against the readable-art and dressing goals —
+   the #450 failure was sparse/implausible placement; chambers should feel
+   dressed, not empty (subject to the §6 socket legality rules).
+
 ## 9. Acceptance
 
 - All runbook §8 "Done =" criteria, plus: `yarn test`, `yarn typecheck`,

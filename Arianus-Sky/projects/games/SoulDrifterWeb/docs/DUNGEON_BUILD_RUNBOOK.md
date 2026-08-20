@@ -95,6 +95,35 @@ verify the registry against the flat map (measured-only, like POI anchors).
    licensed/CC0 only, recorded in `third-party-assets.json`. No
    Ultima-derived data, ever.
 
+## 5A. In-world readable art (owner directive 2026-08-20)
+
+Dungeons should feel lived-in, and walls are lore surfaces. Every dungeon
+includes **readable wall art and documents** — paintings, banners, reliefs,
+books/scroll piles, and especially **MAPS OF OTHER ZONES** (e.g. the
+Thalenyr atlas, the Heartvale section map) that the player can ZOOM INTO AND
+ACTUALLY READ. The training room / start area of each dungeon is the
+priority location (new players should be able to study the world map there).
+
+Rules:
+
+1. **Local-GPU generation is the approved path for new art assets** — no
+   paid provider credits (owner directive). Textures are generated locally,
+   recorded in `third-party-assets.json` like any other asset.
+2. **Reuse existing map art first** — the atlas/zone map masters already in
+   the repo/workspace are zero-cost, canon-accurate wall maps; mount them as
+   framed textures.
+3. **Texture-based, not 3D-generated:** wall art ships as PBR-textured
+   planes/frames (diffuse + normal + roughness), not new 3D models — cheap
+   on budget and draw calls. Frames may reuse kit geometry.
+4. **Readability is the acceptance bar:** the art must stay legible at the
+   runtime's closest zoom (texture resolution and texel density sized for
+   it — e.g. a 1 m wall map wants ≥ 1024px; label text must be crisp, not
+   generated gibberish — compose real labels over generated backgrounds,
+   never ask an image model to render text).
+5. Wall art is a **prop-socket category** on the flat map (`wall-art`
+   sockets with the artwork id named per socket), so it flows through the
+   same registry → socket → validation pipeline as every other prop.
+
 ## 6. Ground rules (inherited, non-negotiable)
 
 1. **NEVER deploy to GitHub Pages / the live site.** Owner reviews locally.
