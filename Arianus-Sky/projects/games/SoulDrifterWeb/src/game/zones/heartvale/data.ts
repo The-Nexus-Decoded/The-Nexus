@@ -110,6 +110,21 @@ export interface VillageBoat {
   yawDeg: number;
 }
 
+export interface VillageStable {
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  h: number;
+}
+
+export interface VillageHorse {
+  id: string;
+  x: number;
+  z: number;
+  yawDeg: number;
+}
+
 export interface VillageData {
   schemaVersion: number;
   anchor: { x: number; z: number };
@@ -120,6 +135,9 @@ export interface VillageData {
   well: { x: number; z: number };
   jetty: VillageJetty;
   boats: VillageBoat[];
+  stable?: VillageStable;
+  paddock?: VillageGarden;
+  horses?: VillageHorse[];
 }
 
 export interface NpcEntry {

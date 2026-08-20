@@ -555,6 +555,18 @@ class HeightField:
         H = H - carve
         self.d_road = _polyline_distance_field(self.xs, self.zs, layout.road_samples, 20.0)
         H = H + (np.round(H / 0.30) * 0.30 - H) * (0.5 * (1.0 - _smoothstep_np(1.8, 4.2, self.d_road)))
+
+        # Village plateau (#452): Anwel's footprint sits on flattened ground so
+        # house floors, the plaza pad, and props sit true (no clipping/floating).
+        anwel_a = layout.anchors["anwel"]["world"]
+        vcx, vcz = anwel_a["x"] + 25.5, anwel_a["z"] - 5.5
+        vrect = np.maximum(np.abs(X - vcx) / 18.0, np.abs(Z - vcz) / 29.0)
+        vm = 1.0 - _smoothstep_np(0.85, 1.18, vrect)
+        # target height = current terrain at the plaza center
+        pi = int((anwel_a["z"] - 2.0 - self.z0) / self.step)
+        pj = int((anwel_a["x"] + 22.5 - self.x0) / self.step)
+        H_village = float(H[pi, pj])
+        H = H * (1.0 - vm) + H_village * vm
         self.H = H
 
         self.moisture = _fbm_np(X * 0.021 + 9.0, Z * 0.021 - 4.0, seed ^ 0xF00D, 3)
@@ -1057,6 +1069,30 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
             builder.add_box(f"boat_{boat_index}_gunwale_{side:+d}", (sx_, water_y + 0.18, sz_), (2.5, 0.14, 0.08), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=byaw)
         builder.add_box(f"boat_{boat_index}_bench", (bx, water_y + 0.16, bz), (0.3, 0.06, 0.85), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=byaw)
 
+    # Stable (owner addition #7): open-front stall shed at the street's north
+    # end + paddock with two horses (Quaternius CC0 animated GLBs at runtime).
+    stable = {"x": ax + 19.5, "z": az - 28.0, "w": 5.0, "d": 3.6, "h": 2.6}
+    sx_, sz_ = stable["x"], stable["z"]
+    sy_ = gy(sx_, sz_)
+    for px_ in (-stable["w"] / 2 + 0.15, stable["w"] / 2 - 0.15):
+        for pz_ in (-stable["d"] / 2 + 0.15, stable["d"] / 2 - 0.15):
+            builder.add_box(f"stable_post_{px_:.1f}_{pz_:.1f}", (sx_ + px_, sy_ + 1.3, sz_ + pz_), (0.16, 2.6, 0.16), TIMBER, "anwel", MATERIAL_PATHS["timber"])
+    builder.add_prism_roof("stable_roof", (sx_, sy_ + 2.6, sz_), stable["w"] + 0.8, stable["d"] + 0.8, 0.9, THATCH, "anwel", MATERIAL_PATHS["thatch"], uv_scale=0.75)
+    # back + side half-walls (open front faces the street, +x)
+    builder.add_box("stable_back_wall", (sx_ - stable["w"] / 2 + 0.07, sy_ + 0.95, sz_), (0.14, 1.9, stable["d"] - 0.3), (0.55, 0.46, 0.38), "anwel", MATERIAL_PATHS["timber"], uv_scale=0.5)
+    builder.add_box("stable_side_wall_n", (sx_, sy_ + 0.95, sz_ - stable["d"] / 2 + 0.07), (stable["w"] - 0.3, 1.9, 0.14), (0.55, 0.46, 0.38), "anwel", MATERIAL_PATHS["timber"], uv_scale=0.5)
+    builder.add_box("stable_side_wall_s", (sx_, sy_ + 0.95, sz_ + stable["d"] / 2 - 0.07), (stable["w"] - 0.3, 1.9, 0.14), (0.55, 0.46, 0.38), "anwel", MATERIAL_PATHS["timber"], uv_scale=0.5)
+    # hay pile inside + tack rail
+    builder.add_box("stable_hay", (sx_ - 0.8, sy_ + 0.35, sz_ + 0.8), (1.2, 0.7, 0.9), THATCH, "anwel", MATERIAL_PATHS["thatch"], uv_scale=0.8)
+
+    paddock = {"x": ax + 29.5, "z": az - 30.0, "w": 7.0, "d": 4.5}
+    garden("paddock_fence", paddock["x"] - ax, paddock["z"] - az, paddock["w"], paddock["d"])  # wattle fence, gate on lane side
+
+    horses = [
+        {"id": "horse", "x": ax + 28.5, "z": az - 29.6, "yawDeg": 205.0},
+        {"id": "horse_white", "x": ax + 30.5, "z": az - 30.6, "yawDeg": 155.0},
+    ]
+
     # Data-authored capture for the runtime village builder (village.json).
     return {
         "anchor": {"x": ax, "z": az},
@@ -1075,6 +1111,9 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
         "well": {"x": plaza[0], "z": plaza[1]},
         "jetty": {"x0": jetty_x0, "x1": jetty_x1, "z": jetty_z, "deckY": jetty_y},
         "boats": boats,
+        "stable": stable,
+        "paddock": paddock,
+        "horses": horses,
     }
 
 

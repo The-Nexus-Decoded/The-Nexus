@@ -267,7 +267,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   const grass = createGrassField(data.scatter, terrain);
   scene.add(grass);
 
-  const village = await createVillageAndTerrace(data.village, data.npcs, terrain);
+  const village = await createVillageAndTerrace(data.village, data.npcs, terrain, data.layout, data.meta.plateOffset);
   scene.add(village);
 
   const vegetation = await createVegetation(data.scatter, terrain);
@@ -312,7 +312,11 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   hooks.__zoneLoopError = null;
 
   const clock = new THREE.Clock();
-  const tickables = [rivers.userData.tick, grass.userData.tick].filter(Boolean);
+  // Collect every animated subsystem's tick (water, grass wind, horses…).
+  const tickables: ((elapsed: number, delta: number) => void)[] = [];
+  scene.traverse((node) => {
+    if (typeof node.userData.tick === "function") tickables.push(node.userData.tick);
+  });
 
   // FPS/frame-ms meter (latency smoke, visible on the dev HUD line).
   let fpsAccum = 0;
@@ -331,7 +335,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
         fpsAccum = 0;
         fpsFrames = 0;
       }
-      for (const tick of tickables) tick(elapsed);
+      for (const tick of tickables) tick(elapsed, delta);
       controls.update();
 
       // Shadow frustum follows the camera focus.

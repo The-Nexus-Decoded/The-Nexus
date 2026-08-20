@@ -334,6 +334,22 @@
       "source": "https://polyhaven.com/a/brown_mud",
       "license": "CC0-1.0",
       "use": "Splat channel 4: wet bank mud / shoreline"
+    },
+    {
+      "id": "quaternius-horse",
+      "kind": "model",
+      "source": "https://poly.pizza/m/qvTrSG9pZF",
+      "license": "CC0-1.0",
+      "use": "Anwel stable horse (brown) \u2014 animated idle/eating; ~4.3k tris GLB",
+      "notes": "Quaternius Low Poly Animals Animated; downloaded 2026-08-20; public/assets/zones/heartvale/models/horse.glb"
+    },
+    {
+      "id": "quaternius-horse-white",
+      "kind": "model",
+      "source": "https://poly.pizza/m/bEdE4rmZy9",
+      "license": "CC0-1.0",
+      "use": "Anwel stable horse (white) \u2014 same rig/animations as quaternius-horse",
+      "notes": "Quaternius Low Poly Animals Animated; downloaded 2026-08-20; public/assets/zones/heartvale/models/horse_white.glb"
     }
   ],
   "researchReferences": [
