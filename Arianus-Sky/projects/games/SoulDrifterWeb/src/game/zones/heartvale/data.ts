@@ -215,13 +215,13 @@ export interface ZoneData {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`fetch ${url}: ${response.status}`);
   return (await response.json()) as T;
 }
 
 async function fetchBytes(url: string): Promise<ArrayBuffer> {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`fetch ${url}: ${response.status}`);
   return response.arrayBuffer();
 }
