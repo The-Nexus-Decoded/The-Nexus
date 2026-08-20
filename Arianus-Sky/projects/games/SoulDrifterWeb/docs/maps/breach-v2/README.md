@@ -17,9 +17,15 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
 - **Panel A2 — Vestibule + Plaza detail** (16 px/m inset): Soul Well pool
   (Ø 3.6 m silvery glowing pool, rim Ø 5.3 m — owner ruling V14), player
   emergence, Wellkeeper Ilyra, true Memory Loom, Wayfarer's Coffer, true
-  training effigy, bronze conduits, 2 m interaction clearances.
+  training effigy, bronze conduits, 2 m interaction clearances, and all
+  fixed-room kit dressing as numbered glyphs (decoded below the plan).
 - **Panels B1/B2 — room pools at true size**: 7 EASY (Wayfarer) rooms and
-  7 HARD (Oathbreaker) rooms with door sockets, spawn/loot/prop socket counts.
+  7 HARD (Oathbreaker) rooms with door sockets, spawn sockets, and authored
+  placement of the 3D AI Studio dungeon kit — numbered glyphs with per-room
+  lists. All 38 kit asset IDs are placed somewhere in the zone; every combat
+  chamber carries a `storage-chest` at a loot socket; the two trial doors are
+  `heavy-door` instances; the Ashen Lock dressing is numbered on the spine
+  and decoded in the fixed-dressing index.
 - **Rail B — tables**: legend, per-path spawn table, loot table, prop tables
   (dungeon-kit IDs), boss set (1× Cinderbound Warden per run), seed policy
   (layout seed + dressing seed, mulberry32 lineage, comparison seed 4182).

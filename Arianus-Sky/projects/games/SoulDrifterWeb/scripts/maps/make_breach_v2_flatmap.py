@@ -17,9 +17,9 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from breach_v2_design import (
-    BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT, EASY_POOL, FIXED_ROOMS,
-    HARD_POOL, LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS, PROP_TABLE,
-    SEED_POLICY, SLOT_BOX, SPAWN_TABLE, VESTIBULE_LANDMARKS, WORLD_ANCHOR,
+    ASSET_META, BOSS_SET, CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING, EASY_POOL,
+    FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS,
+    PROP_TABLE, SEED_POLICY, SLOT_BOX, SPAWN_TABLE, VESTIBULE_LANDMARKS, WORLD_ANCHOR,
 )
 
 HERE = Path(__file__).parent
@@ -38,10 +38,12 @@ RAIL_X0, RAIL_Y0 = 2490, 150
 RAIL_W = 870
 POOLS_Y0 = 910
 POOL_PANEL_W = 1180
-STRIP_C_Y0 = 1640
-STRIP_D_Y0 = 2020
-FOOTER_Y0 = 2300
-CANVAS_H = 2420
+POOL_CELL_H = 380
+POOL_FRAME_H = 800
+STRIP_C_Y0 = 1790
+STRIP_D_Y0 = 2160
+FOOTER_Y0 = 2440
+CANVAS_H = 2560
 
 # Palette (dark drafted-plan aesthetic)
 INK = (14, 15, 18)
@@ -108,6 +110,46 @@ def dash_rect(draw: ImageDraw.ImageDraw, x0: float, y0: float, x1: float, y1: fl
     dashed_line(x1, y0, x1, y1)
     dashed_line(x1, y1, x0, y1)
     dashed_line(x0, y1, x0, y0)
+
+
+GROUP_COLORS = {
+    "fire": (255, 154, 60), "loot": GOLD, "goods": (170, 140, 80),
+    "corruption": (214, 70, 120), "macabre": (205, 200, 185),
+    "furniture": (190, 150, 100), "rubble": (135, 122, 105),
+    "structure": (170, 175, 190),
+}
+
+
+def draw_dressing(draw: ImageDraw.ImageDraw, items, to_px, scale: float,
+                  numbered: bool = False, fsize: int = 13, start: int = 0) -> None:
+    """Draw placed dungeon-kit assets as glyphs: square=wall, circle=floor,
+    triangle=ceiling; colored by group; optional 1-based number chips."""
+    for i, (asset, mx, my) in enumerate(items):
+        group, placement = ASSET_META[asset]
+        color = GROUP_COLORS[group]
+        x, y = to_px(mx, my)
+        r = max(4.0, 0.55 * scale)
+        if placement == "wall":
+            draw.rectangle([x - r, y - r * 0.7, x + r, y + r * 0.7], fill=color,
+                           outline=(10, 10, 12), width=1)
+        elif placement == "ceiling":
+            draw.polygon([(x, y + r), (x - r, y - r * 0.7), (x + r, y - r * 0.7)],
+                         fill=color, outline=(10, 10, 12))
+        else:
+            draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline=(10, 10, 12), width=1)
+        if numbered:
+            n = str(start + i + 1)
+            f = font(fsize, bold=True)
+            tw = draw.textlength(n, font=f)
+            bx, by = x + r + 2, y - r - 4
+            draw.rectangle([bx - 2, by - 1, bx + tw + 4, by + f.size + 3],
+                           fill=(8, 9, 11, 225), outline=color + (220,), width=1)
+            draw.text((bx + 1, by + 1), n, font=f, fill=color)
+
+
+def dressing_list_text(items) -> str:
+    """'1 floor-brazier · 2 floor-brazier · 3 storage-chest …' for legends."""
+    return "  ".join(f"{i + 1} {asset}" for i, (asset, _x, _y) in enumerate(items))
 
 
 def draw_room(draw: ImageDraw.ImageDraw, px: float, py: float, w_m: float, h_m: float,
@@ -258,6 +300,13 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
         if lvl > 0.12:
             draw.rectangle([x0, y0, x1, y1], fill=(190, 40, 30, int(90 * lvl)))
         draw.rectangle([x0, y0, x1, y1], outline=wall, width=5 if room["kind"] != "corridor" else 3)
+        # authored kit dressing (fixed rooms — same every run); boss room numbered
+        items = FIXED_DRESSING.get(room["id"])
+        if items:
+            ox, oy = room["x"], room["y"]
+            draw_dressing(draw, items,
+                          lambda mx, my, _ox=ox, _oy=oy: plan_px(_ox + mx, _oy + my),
+                          PPM * 0.7, numbered=(room["kind"] == "boss"), fsize=11)
         cx = (x0 + x1) / 2
         if room["kind"] == "corridor":
             label(draw, cx, y0 - 8, "Gallery Link · 6 x 6 m · FIXED", font(13), PAPER_DIM, anchor="ma")
@@ -358,12 +407,41 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
         f"EXIT → Heartvale hv-1 (Soul Well Basin) · anchor ({WORLD_ANCHOR['x']}, {WORLD_ANCHOR['y']})",
         GREEN)
 
+    # --- fixed-room dressing index (compressed; vestibule/plaza numbered in A2)
+    def _compress(items):
+        counts = {}
+        for asset, _x, _y in items:
+            counts[asset] = counts.get(asset, 0) + 1
+        return " · ".join(f"{a} x{n}" if n > 1 else a for a, n in counts.items())
+
+    tbx, tby = plan_px(-2.0, 23.0)
+    label(draw, tbx, tby, "FIXED DRESSING (kit IDs) — Vestibule/Plaza/Link numbered in panel A2 · "
+          "boss room numbered on plan", font(14, bold=True), PAPER)
+    rows = [
+        ("gallery link", FIXED_DRESSING["plaza-link"]),
+        ("convergence", FIXED_DRESSING["convergence"]),
+        ("ashen threshold", FIXED_DRESSING["ashen-threshold"]),
+        ("memory vault", FIXED_DRESSING["memory-vault"]),
+        ("way upward (exit)", FIXED_DRESSING["exit-connector"]),
+    ]
+    ry = tby + 22
+    for name, items in rows:
+        label(draw, tbx, ry, f"{name}: ", font(13, bold=True), GOLD)
+        nx = tbx + draw.textlength(f"{name}: ", font=font(13, bold=True))
+        label(draw, nx, ry, _compress(items), font(13), PAPER_DIM)
+        ry += 19
+    label(draw, tbx, ry, "ashen lock (boss): ", font(13, bold=True), GOLD)
+    bx2 = tbx + draw.textlength("ashen lock (boss): ", font=font(13, bold=True))
+    label(draw, bx2, ry,
+          "1 stair-dais · 2-3 guardian-statue · 4-6 corruption-growth · 7-8 chain-shackle · "
+          "9-10 floor-brazier · 11 bone-pile · 12 cave-in-rubble · 13 hanging-brazier", font(13), PAPER_DIM)
+
 
 # ---------------------------------------------------------------------------
 # Panel A2 — Vestibule + Threshold Plaza detail (2x zoom inset)
 # ---------------------------------------------------------------------------
 DETAIL_SCALE = 16.0
-A2_X0, A2_Y0 = 28, 1640
+A2_X0, A2_Y0 = 28, 1760
 A2_ORIGIN_X, A2_ORIGIN_Y = A2_X0 + 60, A2_Y0 + 90
 
 
@@ -372,10 +450,10 @@ def a2_px(mx: float, my: float) -> tuple[float, float]:
 
 
 def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
-    draw.rectangle([A2_X0, A2_Y0 - 46, A2_X0 + 1232, A2_Y0 + 560], fill=PANEL,
+    draw.rectangle([A2_X0, A2_Y0 - 46, A2_X0 + 1232, A2_Y0 + 700], fill=PANEL,
                    outline=PANEL_EDGE, width=2)
-    label(draw, A2_X0 + 12, A2_Y0 - 38, "A2 · VESTIBULE + THRESHOLD PLAZA DETAIL — 16 px/m (1.8x the spine scale)",
-          font(26, bold=True), PAPER)
+    label(draw, A2_X0 + 12, A2_Y0 - 38, "A2 · VESTIBULE + THRESHOLD PLAZA DETAIL — 16 px/m (1.8x the spine scale) · "
+          "numbered glyphs = placed kit assets", font(24, bold=True), PAPER)
 
     # 5 m grid
     for gm in range(0, 56, 5):
@@ -481,7 +559,39 @@ def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
                 "BREACH SCOUT ORREN" if lm["id"] == "orren" else "ARENA WARDEN BRANNOC",
                 GREEN, f=font(14, bold=True), anchor="ra")
 
-    label(draw, A2_X0 + 24, A2_Y0 + 500,
+    # authored kit dressing — numbered glyphs, decoded in the list below
+    draw_dressing(draw, FIXED_DRESSING["vestibule"],
+                  lambda mx, my: a2_px(mx, my), DETAIL_SCALE, numbered=True, fsize=12, start=0)
+    draw_dressing(draw, FIXED_DRESSING["threshold-plaza"],
+                  lambda mx, my: a2_px(36.0 + mx, 4.0 + my), DETAIL_SCALE, numbered=True, fsize=12, start=19)
+    draw_dressing(draw, FIXED_DRESSING["plaza-link"],
+                  lambda mx, my: a2_px(30.0 + mx, 8.0 + my), DETAIL_SCALE, numbered=True, fsize=12, start=25)
+
+    # numbered dressing list (wrapped, full panel width)
+    list_f = font(14)
+    ly0 = A2_Y0 + 500
+    label(draw, A2_X0 + 24, ly0, "KIT DRESSING — Vestibule 1–19 · Plaza 20–25 · Link 26–27:",
+          font(15, bold=True), PAPER)
+    entries = [(f"V{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["vestibule"])]
+    entries += [(f"P{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["threshold-plaza"])]
+    entries += [(f"L{i+1}", a) for i, (a, _x, _y) in enumerate(FIXED_DRESSING["plaza-link"])]
+    # chips carry global numbers; render as "n·asset"
+    flow = [f"{i + 1}·{a}" for i, (_tag, a) in enumerate(entries)]
+    line = ""
+    ty = ly0 + 24
+    for chunk in flow:
+        cand = (line + "  " + chunk).strip()
+        if draw.textlength(cand, font=list_f) > 1160:
+            label(draw, A2_X0 + 24, ty, line, list_f, (200, 195, 180))
+            ty += 20
+            line = chunk
+        else:
+            line = cand
+    if line:
+        label(draw, A2_X0 + 24, ty, line, list_f, (200, 195, 180))
+        ty += 20
+
+    label(draw, A2_X0 + 24, A2_Y0 + 650,
           "dashed rings = 2 m interaction clearances — navigation stays open among start, Ilyra, Loom, coffer, effigy, "
           "and both gates (LEVEL_01) · doors locked until the tutorial seals · touching a door opens the voiced "
           "Wayfarer/Oathbreaker comparison — never silent commit", font(15), PAPER_DIM)
@@ -491,12 +601,14 @@ def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
 # ---------------------------------------------------------------------------
 def draw_pool(draw: ImageDraw.ImageDraw, x0: int, y0: int, title: str, color,
               pool: list[dict], note: str) -> None:
-    draw.rectangle([x0 - 12, y0 - 46, x0 + POOL_PANEL_W, y0 + 640], fill=PANEL,
+    draw.rectangle([x0 - 12, y0 - 46, x0 + POOL_PANEL_W, y0 + POOL_FRAME_H], fill=PANEL,
                    outline=PANEL_EDGE, width=2)
-    label(draw, x0, y0 - 38, title, font(30, bold=True), color)
-    label(draw, x0, y0 + 606, note, font(17), PAPER_DIM)
+    label(draw, x0, y0 - 38, title, font(28, bold=True), color)
+    label(draw, x0, y0 + POOL_FRAME_H - 40, note, font(17), PAPER_DIM)
+    label(draw, x0 + POOL_PANEL_W - 10, y0 + POOL_FRAME_H - 40, "numbered glyphs = placed kit assets",
+          font(15), PAPER_DIM, anchor="ra")
     cols = 4
-    cell_w, cell_h = 288, 300
+    cell_w, cell_h = 288, POOL_CELL_H
     for i, room in enumerate(pool):
         cx = x0 + (i % cols) * cell_w + 18
         cy = y0 + (i // cols) * cell_h + 14
@@ -513,25 +625,37 @@ def draw_pool(draw: ImageDraw.ImageDraw, x0: int, y0: int, title: str, color,
                 draw_door(draw, (rx0 + rx1) / 2, ry0, 2.5, "N", PAPER)
             else:
                 draw_door(draw, (rx0 + rx1) / 2, ry1, 2.5, "S", PAPER)
+        # enemy spawn sockets (red diamonds) along the mid lane
         for k in range(room["spawns"]):
             sx = rx0 + (k + 1) * (w_px / (room["spawns"] + 1))
-            sy = ry0 + h_px * 0.32
-            draw.polygon([(sx, sy - 6), (sx + 6, sy), (sx, sy + 6), (sx - 6, sy)], fill=RED)
-        for k in range(room["loot"]):
-            sx = rx0 + (k + 1) * (w_px / (room["loot"] + 1))
-            sy = ry0 + h_px * 0.72
-            draw.rectangle([sx - 5, sy - 5, sx + 5, sy + 5], fill=GOLD)
-        for k in range(room["props"]):
-            sx = rx0 + (k + 1) * (w_px / (room["props"] + 1))
-            sy = ry0 + h_px * 0.52
-            draw.ellipse([sx - 3, sy - 3, sx + 3, sy + 3], outline=(190, 160, 110), width=2)
+            sy = ry0 + h_px * 0.42
+            draw.polygon([(sx, sy - 6), (sx + 6, sy), (sx, sy + 6), (sx - 6, sy)],
+                         outline=RED, width=2)
+        # authored kit placement (numbered) — includes the loot chest
+        items = DRESSING[room["id"]]
+        draw_dressing(draw, items, lambda mx, my, _cx=cx, _cy=cy: (_cx + mx * PPM, _cy + my * PPM),
+                      PPM, numbered=True, fsize=12)
         label(draw, cx, cy + h_px + 6, f"{room['id']} · {room['name']}", font(19, bold=True), PAPER)
         label(draw, cx, cy + h_px + 30, f"{room['w']:.0f} x {room['h']:.0f} m = {room['w']*room['h']:.0f} m2",
               font(16, bold=True), GOLD)
         label(draw, cx, cy + h_px + 52,
-              f"doors {'/'.join(room['sockets'])} | spawns {room['spawns']} | props {room['props']} | loot {room['loot']}",
+              f"doors {'/'.join(room['sockets'])} · spawn sockets {room['spawns']} · chest 1",
               font(15), PAPER_DIM)
         label(draw, cx, cy + h_px + 72, room["flavor"], font(15), (170, 168, 158))
+        # kit placement list (numbered, wrapped)
+        kit_f = font(13)
+        line = ""
+        ty = cy + h_px + 92
+        for chunk in dressing_list_text(items).split("  "):
+            cand = (line + "  " + chunk).strip()
+            if draw.textlength(cand, font=kit_f) > cell_w - 36:
+                label(draw, cx, ty, line, kit_f, (200, 195, 180))
+                ty += 17
+                line = chunk
+            else:
+                line = cand
+        if line:
+            label(draw, cx, ty, line, kit_f, (200, 195, 180))
 
 
 # ---------------------------------------------------------------------------
@@ -711,7 +835,7 @@ def draw_footer(draw: ImageDraw.ImageDraw) -> None:
     label(draw, bx, by + 44,
           "Master PNG: workspace souldrifter-thalenyr/flatmaps/breach-v2/ · shipped: docs/maps/breach-v2/breach-v2-flatmap-1600.webp (WebP q75) · "
           "registry derived measured-only from this map", font(16), PAPER_DIM)
-    label(draw, CANVAS_W - 40, FOOTER_Y0 + 44, "BREACH-V2 · 2026-08-20 · v1",
+    label(draw, CANVAS_W - 40, FOOTER_Y0 + 44, "BREACH-V2 · 2026-08-20 · v2 (full kit placement)",
           font(18, bold=True), PAPER_DIM, anchor="ra")
 
 
