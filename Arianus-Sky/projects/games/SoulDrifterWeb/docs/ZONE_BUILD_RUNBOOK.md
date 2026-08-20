@@ -125,7 +125,25 @@ builder, with a reviewer's brief (find what's wrong), not a builder's brief
 The owner should never be the first person to catch a basic visual miss —
 the process catches it first.
 
-## 8. Done =
+## 8. Driving the builder chat (prompt cadence — added 2026-08-19)
+
+Hard-won lesson from the hv-1 build: a zone build handed to an agent chat as
+ONE giant prompt blows through the chat's turn limit and strands uncommitted
+work mid-task (the LOD exporter incident). For every remaining zone/section:
+
+1. **One deliverable per prompt.** "Commit the LOD→glTF exporter and nothing
+   else", not "do the whole visual pass." A prompt is sized correctly when
+   the builder can finish AND commit it inside a single turn.
+2. **Commit early, commit often.** Every prompt includes: "commit each
+   completed sub-step before starting the next." A turn-limit stop then costs
+   nothing — continue picks up from the last commit, never a dirty tree.
+3. **Sequence, don't parallelize.** Feed the prompts one at a time in
+   runbook order (frame → terrain → water → vegetation → structures →
+   dressing → LODs → exports); each builds on the previous commit.
+4. **Review between prompts, not at the end.** The §7 visual review gate
+   runs per deliverable, so drift is caught after one commit, not after ten.
+
+## 9. Done =
 
 - `npm run typecheck && npm test` green; zone data invariants covered by vitest (rect containment of POIs, nav continuity to seams).
 - Probe screenshots: your zone alone, your zone + each built neighbor streamed together, and a seam-crossing walk.
