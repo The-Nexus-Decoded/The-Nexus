@@ -50,7 +50,7 @@ EXPECTED_FINGER_BONES = {
     f"mixamorig:{side}Hand{finger}{segment}"
     for side in ("Left", "Right")
     for finger in ("Thumb", "Index", "Middle", "Ring", "Pinky")
-    for segment in (1, 2, 3)
+    for segment in (1, 2, 3, 4)
 }
 MINIMUM_PRODUCTION_BONES = 65
 

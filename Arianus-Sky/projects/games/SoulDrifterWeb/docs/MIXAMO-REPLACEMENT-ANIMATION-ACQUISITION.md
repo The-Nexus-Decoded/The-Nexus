@@ -18,7 +18,8 @@ The production humanoid gate is now explicit:
 - `Standard Skeleton (65)` selected during auto-rigging; never the reduced
   `3 Chain Fingers (49)` option, which shares a driver across the middle,
   ring, and pinky fingers;
-- all five digits present on both hands with complete three-bone chains;
+- all five digits present on both hands with the complete Mixamo four-node
+  chain, including each terminal digit bone;
 - one armature rooted at `mixamorig:Hips` and no unweighted vertices;
 - no more than four normalized influences per runtime vertex after cleanup; and
 - passing weapon-grip, bow-draw, and spellcasting deformation proof.
