@@ -239,7 +239,7 @@ export async function createVegetation(scatter: ScatterData, field: TerrainField
   return group;
 }
 
-/** Grass clump card geometry: 3 crossed quads, pivot at ground. */
+/** Grass clump card geometry: 3 crossed narrow quads, pivot at ground. */
 function grassClumpGeometry(): THREE.BufferGeometry {
   const positions: number[] = [];
   const uvs: number[] = [];
@@ -247,8 +247,8 @@ function grassClumpGeometry(): THREE.BufferGeometry {
   const index: number[] = [];
   for (let blade = 0; blade < 3; blade += 1) {
     const angle = (blade / 3) * Math.PI;
-    const dx = Math.cos(angle) * 0.5;
-    const dz = Math.sin(angle) * 0.5;
+    const dx = Math.cos(angle) * 0.17; // narrow cards read as tufts, not agave
+    const dz = Math.sin(angle) * 0.17;
     const base = blade * 4;
     positions.push(-dx, 0, -dz, dx, 0, dz, -dx, 1, -dz, dx, 1, dz);
     uvs.push(0, 0, 1, 0, 0, 1, 1, 1);
@@ -278,10 +278,10 @@ function grassBladeTexture(): THREE.CanvasTexture {
     return seed / 2147483647;
   };
   const rand = rng(90421);
-  for (let i = 0; i < 9; i += 1) {
-    const x0 = 18 + rand() * 92;
-    const lean = (rand() - 0.5) * 46;
-    const w = 3.5 + rand() * 4.5;
+  for (let i = 0; i < 14; i += 1) {
+    const x0 = 12 + rand() * 104;
+    const lean = (rand() - 0.5) * 40;
+    const w = 2.0 + rand() * 2.6;
     const shade = 0.75 + rand() * 0.5;
     const grad = ctx.createLinearGradient(0, 128, 0, 0);
     grad.addColorStop(0, `rgba(${Math.round(72 * shade)},${Math.round(88 * shade)},${Math.round(38 * shade)},1)`);
@@ -368,7 +368,7 @@ diffuseColor.rgb *= mix(lushTint, dryTint, vDry) * (0.55 + 0.45 * vSplatTip);`,
   clumps.forEach(([x, z, scale, yaw, variant], i) => {
     const y = field.height(x, z);
     quat.setFromAxisAngle(up, yaw);
-    const s = scale * 1.25 * (0.55 + 0.45 * ((i * 2654435761) % 1000) / 1000);
+    const s = scale * 0.85 * (0.55 + 0.45 * ((i * 2654435761) % 1000) / 1000);
     matrix.compose(new THREE.Vector3(x, y - 0.02, z), quat, new THREE.Vector3(s, s, s));
     mesh.setMatrixAt(i, matrix);
     dry[i] = variant === 0 ? 0.85 : 0.12;

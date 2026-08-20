@@ -193,12 +193,17 @@ const RIVERS = [
 // Basin-scale roads: plate transform. Village-scale roads: meter offsets.
 const anwel = poiById.get("anwel");
 const ANWEL_WORLD = { x: anwel.world[0], z: anwel.world[1] };
+// Village street plan (owner ruling V13: a real small village, not a tiny
+// cluster). Main street runs N-S on the DRY east bank (river channel is
+// ~±11 m around the anchor), hooks into the through-road south and north —
+// roads never dead-end at a settlement (ground rule 7).
 const villageLaneOffsets = [
-  [1.0, -0.93], [2.8, -1.03], [4.01, -0.93], [4.2, -3.22], [6.0, -4.83],
-  [8.59, -5.23], [10.8, -4.02], [11.6, -1.63], [11.6, 0.98], [10.61, 3.38],
-  [8.4, 4.57], [6.0, 4.38], [4.39, 2.98], [4.01, 0.98], [4.01, -0.93],
+  [10.0, 13.0], [16.0, 8.0], [21.0, 3.0], [23.5, -2.0], [24.5, -8.0],
+  [24.5, -16.0], [23.0, -24.0], [19.0, -30.0], [14.0, -34.0],
 ];
-const dockSpurOffsets = [[1.0, 0.27], [-1.4, 0.67], [-2.61, 0.88]];
+// Dock spur: plaza -> east bank edge only. The jetty itself is built geometry
+// (planks over water), never road splat.
+const dockSpurOffsets = [[16.0, -2.0], [12.0, -2.0], [10.5, -2.0]];
 const offsetToWorld = ([ox, oz]) => [ANWEL_WORLD.x + ox, ANWEL_WORLD.z + oz];
 
 const ROADS = [

@@ -101,6 +101,32 @@ export function createRivers(
   const group = new THREE.Group();
   group.name = "HeartvaleRivers";
 
+  // Confluence rule: where a narrower tributary meets a wider stem, trim the
+  // tributary's overlapping end samples so the main stem's ribbon carries the
+  // junction — overlapping ribbons interleave into ugly zigzags otherwise.
+  const sorted = [...rivers].sort(
+    (a, b) => (RIVER_WIDTH[b.id] ?? DEFAULT_WIDTH) - (RIVER_WIDTH[a.id] ?? DEFAULT_WIDTH),
+  );
+  const corridors: { samples: [number, number][]; half: number }[] = [];
+  const trimmedRivers: LayoutRiver[] = sorted.map((river) => {
+    const width = RIVER_WIDTH[river.id] ?? DEFAULT_WIDTH;
+    let samples = river.samples;
+    for (const corridor of corridors) {
+      const joinDist = (corridor.half + width / 2) * 0.75;
+      const nearCorridor = (s: [number, number]) =>
+        corridor.samples.some((c) => Math.hypot(s[0] - c[0], s[1] - c[1]) < joinDist);
+      // Trim from the join end(s) only — never punch mid-river holes.
+      let start = 0;
+      let end = samples.length;
+      while (start < end && nearCorridor(samples[start]!)) start += 1;
+      while (end > start && nearCorridor(samples[end - 1]!)) end -= 1;
+      // Keep at least a stub; a fully-overlapped tributary disappears.
+      samples = samples.slice(start, Math.max(end, start + 2));
+    }
+    corridors.push({ samples: river.samples, half: width / 2 });
+    return { ...river, samples };
+  });
+
   const material = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -194,12 +220,15 @@ export function createRivers(
 
         float alpha = 0.92 - edge * (1.0 - shallow) * 0.35;
         gl_FragColor = vec4(water, alpha);
-        #include <fog_fragment>
+        // V8: water keeps its teal into the haze — partial fog so distant
+        // river stays a river, not a white glare band.
+        float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor * 0.55);
       }
     `,
   });
 
-  for (const river of rivers) {
+  for (const river of trimmedRivers) {
     const ribbon = buildRibbon(river, field, plateOffset);
     if (!ribbon) continue;
     const geometry = new THREE.BufferGeometry();

@@ -190,16 +190,16 @@ vec4 wA = texture2D(uSplatA, groundUv);
 vec4 wB = texture2D(uSplatB, groundUv);
 float wSum = max(wA.r + wA.g + wA.b + wA.a + wB.r + wB.g + wB.b, 1e-4);
 vec3 blend =
-    texture2D(uTex0, vGroundXZ / uTile0).rgb * wA.r * vec3(0.80, 0.98, 0.58)
-  + texture2D(uTex1, vGroundXZ / uTile1).rgb * wA.g * vec3(1.06, 0.94, 0.58)
+    texture2D(uTex0, vGroundXZ / uTile0).rgb * wA.r * vec3(0.52, 0.88, 0.40)
+  + texture2D(uTex1, vGroundXZ / uTile1).rgb * wA.g * vec3(0.90, 0.82, 0.42)
   + texture2D(uTex2, vGroundXZ / uTile2).rgb * wA.b * vec3(0.98, 0.82, 0.62)
   + texture2D(uTex3, vGroundXZ / uTile3).rgb * wA.a * vec3(0.82, 0.78, 0.70)
   + texture2D(uTex4, vGroundXZ / uTile4).rgb * wB.r * vec3(0.74, 0.64, 0.52)
   + texture2D(uTex5, vGroundXZ / uTile5).rgb * wB.g * vec3(1.12, 1.08, 0.98)
-  + texture2D(uTex6, vGroundXZ / uTile6).rgb * wB.b * vec3(0.78, 0.78, 0.55);
+  + texture2D(uTex6, vGroundXZ / uTile6).rgb * wB.b * vec3(0.62, 0.72, 0.42);
 blend /= wSum;
 vec3 tint = texture2D(uTint, groundUv).rgb;
-diffuseColor.rgb = blend * mix(vec3(1.0), tint * 1.8, 0.42);
+diffuseColor.rgb = blend * mix(vec3(1.0), tint * 1.8, 0.50);
 `,
       )
       .replace(
@@ -217,7 +217,7 @@ roughnessFactor = clamp(roughnessFactor - wetW * 0.45 - roadW * 0.12, 0.35, 1.0)
   // a stock MeshStandardMaterial program in the cache.
   material.customProgramCacheKey = () => "heartvale-splat-terrain-v1";
 
-  const mesh = new THREE.Mesh(buildGeometry(field, 2), material);
+  const mesh = new THREE.Mesh(buildGeometry(field, 1), material);
   mesh.name = "HeartvaleTerrain";
   mesh.receiveShadow = true;
   mesh.castShadow = false;

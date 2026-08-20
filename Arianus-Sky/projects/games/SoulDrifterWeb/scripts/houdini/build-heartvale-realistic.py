@@ -90,6 +90,64 @@ MATERIAL_PATHS = {
 }
 
 
+# --- Anwel village plan (owner ruling V13) -------------------------------------
+# Single authority for the street layout: build_anwel() (Houdini blockout +
+# village.json) and the dressing pass both read these offsets. Offsets are
+# meters east/south of the Anwel anchor; the river channel runs through the
+# anchor, so the village core sits +17…+33 m east on the dry bank.
+ANWEL_PLAZA_OFF = (22.5, -2.0)
+ANWEL_STREET_X_OFF = 24.5  # main street centerline, N-S
+# name, kind, lx, lz, w, d, h, roof, wash, timber, roofTint, chimney, face offset
+ANWEL_HOUSES: list[dict] = [
+    {"name": "anwel_reeve_hall", "kind": "reeve", "lx": 17.0, "lz": -14.0, "w": 6.5, "d": 4.5, "h": 3.2, "roof": "slate",
+     "wash": (0.92, 0.88, 0.78), "timber": (0.75, 0.62, 0.50), "roofTint": (0.85, 0.88, 0.95), "chimney": True,
+     "face_off": (ANWEL_STREET_X_OFF, -14.0)},
+    {"name": "anwel_smithy", "kind": "smithy", "lx": 17.0, "lz": -5.5, "w": 4.5, "d": 3.5, "h": 2.8, "roof": "thatch",
+     "wash": (0.80, 0.76, 0.68), "timber": (0.55, 0.46, 0.38), "roofTint": (0.85, 0.78, 0.62), "chimney": True,
+     "face_off": (ANWEL_STREET_X_OFF, -5.5)},
+    {"name": "anwel_vendor", "kind": "vendor", "lx": 17.0, "lz": 3.5, "w": 4.2, "d": 3.2, "h": 2.6, "roof": "thatch",
+     "wash": (1.02, 0.96, 0.84), "timber": (0.95, 0.82, 0.66), "roofTint": (1.05, 0.95, 0.75), "chimney": False,
+     "face_off": (ANWEL_STREET_X_OFF, 3.5)},
+    {"name": "anwel_village_hall", "kind": "hall", "lx": 31.0, "lz": -15.0, "w": 6.0, "d": 4.5, "h": 3.0, "roof": "thatch",
+     "wash": (0.98, 0.94, 0.82), "timber": (0.82, 0.70, 0.56), "roofTint": (0.95, 0.88, 0.70), "chimney": True,
+     "face_off": (ANWEL_STREET_X_OFF, -15.0)},
+    {"name": "anwel_apothecary", "kind": "apothecary", "lx": 31.0, "lz": -6.0, "w": 3.6, "d": 3.0, "h": 2.5, "roof": "thatch",
+     "wash": (0.90, 0.98, 0.88), "timber": (0.70, 0.80, 0.62), "roofTint": (0.90, 1.00, 0.78), "chimney": False,
+     "face_off": (ANWEL_STREET_X_OFF, -6.0)},
+    {"name": "anwel_cottage_east", "kind": "cottage", "lx": 31.0, "lz": 3.0, "w": 3.2, "d": 2.8, "h": 2.5, "roof": "thatch",
+     "wash": (0.98, 0.90, 0.74), "timber": (0.88, 0.76, 0.62), "roofTint": (0.92, 0.85, 0.68), "chimney": True,
+     "face_off": (ANWEL_STREET_X_OFF, 3.0)},
+    {"name": "anwel_cottage_south", "kind": "cottage", "lx": 20.0, "lz": 15.0, "w": 3.4, "d": 2.8, "h": 2.5, "roof": "thatch",
+     "wash": (1.05, 1.00, 0.94), "timber": (0.95, 0.85, 0.70), "roofTint": (1.10, 1.00, 0.82), "chimney": True,
+     "face_off": (21.0, 3.0)},
+    {"name": "anwel_fisher_hut", "kind": "cottage", "lx": 13.5, "lz": 19.0, "w": 2.8, "d": 2.4, "h": 2.3, "roof": "thatch",
+     "wash": (0.82, 0.80, 0.72), "timber": (0.62, 0.55, 0.48), "roofTint": (0.78, 0.72, 0.60), "chimney": False,
+     "face_off": (16.0, 12.0)},
+    {"name": "anwel_store_barn", "kind": "barn", "lx": 33.0, "lz": -23.0, "w": 4.4, "d": 3.2, "h": 2.8, "roof": "slate",
+     "wash": (0.86, 0.82, 0.70), "timber": (0.70, 0.60, 0.50), "roofTint": (1.0, 0.92, 0.85), "chimney": False,
+     "face_off": (ANWEL_STREET_X_OFF, -21.0)},
+    {"name": "anwel_cottage_north", "kind": "cottage", "lx": 16.0, "lz": -21.5, "w": 3.6, "d": 3.0, "h": 2.6, "roof": "thatch",
+     "wash": (1.02, 0.98, 0.90), "timber": (1.05, 0.95, 0.82), "roofTint": (1.05, 0.95, 0.80), "chimney": False,
+     "face_off": (ANWEL_STREET_X_OFF, -21.5)},
+]
+ANWEL_GARDENS: list[dict] = [
+    {"name": "garden_reeve", "lx": 17.0, "lz": -19.8, "w": 4.5, "d": 3.0},
+    {"name": "garden_apothecary", "lx": 35.6, "lz": -6.0, "w": 3.5, "d": 2.6},
+    {"name": "garden_south", "lx": 20.0, "lz": 19.6, "w": 4.0, "d": 3.0},
+    {"name": "garden_barn", "lx": 38.0, "lz": -23.0, "w": 3.2, "d": 3.2},
+]
+# Village footprint band used by tree/grass exclusions (anwel-relative).
+ANWEL_VILLAGE_RECT = (11.0, -32.0, 40.0, 21.0)  # min dx, min dz, max dx, max dz
+
+
+def anwel_in_village(dx: float, dz: float) -> bool:
+    """True if an anchor-relative offset sits inside the village footprint."""
+    x0, z0, x1, z1 = ANWEL_VILLAGE_RECT
+    if x0 <= dx <= x1 and z0 <= dz <= z1:
+        return True
+    return math.hypot(dx - ANWEL_PLAZA_OFF[0], dz - ANWEL_PLAZA_OFF[1]) < 14.0
+
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -790,25 +848,33 @@ def build_terrace(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
 
 
 def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
-    """Anwel river-town: timber-framed, enterable houses around an east-bank plaza.
+    """Anwel river VILLAGE (owner ruling V13): a real street plan on the dry
+    east bank — main street N-S, named working buildings (reeve hall, village
+    hall, smithy, apothecary, general vendor), cottages with gardens between
+    them, a plaza well, and a jetty with moored boats on the water.
     Returns the data-authored village spec (also exported as village.json).
 
-    The canon river course AND the north-south road both run through the atlas
-    anchor point, so the village sits ~7 m east — beside the road, off the wet
-    bank. Houses are hollow shells with 2.2 m door openings (character ~1.8 m)
+    The canon river course runs through the atlas anchor; the widened channel
+    (±11 m wet) means everything west of ~+12 m is water or bank, so the
+    village core sits +17…+33 m east. Doors face the street, not the plaza.
+    Houses are hollow shells with 2.2 m door openings (character ~1.8 m)
     and a window, so they are enterable in-game and in later engine ports."""
     anchor = layout.anchors["anwel"]["world"]
     ax, az = anchor["x"], anchor["z"]
-    plaza = (ax + 7.0, az - 0.5)
+    plaza = (ax + 22.5, az - 2.0)
+    street_x = ax + 24.5  # main street centerline
 
     def gy(x: float, z: float) -> float:
         return layout.terrain_height(x, z)
 
     def house(name: str, lx: float, lz: float, w: float, d: float, h: float, roof: str = "thatch",
               wash: Color = (1.0, 1.0, 1.0), timber_tint: Color = (1.0, 1.0, 1.0),
-              roof_tint: Color = (1.0, 1.0, 1.0), chimney: bool = False) -> None:
+              roof_tint: Color = (1.0, 1.0, 1.0), chimney: bool = False,
+              face: tuple[float, float] | None = None) -> None:
         x, z = ax + lx, az + lz
-        yaw = math.atan2(plaza[1] - z, plaza[0] - x)  # door wall (+local X) faces the plaza
+        # Door wall (+local X) faces the street-facing point (default: plaza).
+        fx_t, fz_t = face if face is not None else plaza
+        yaw = math.atan2(fz_t - z, fx_t - x)
         cy_, sy_ = math.cos(yaw), math.sin(yaw)
 
         def spot(ox: float, oz: float) -> tuple[float, float]:
@@ -891,25 +957,16 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
             builder.add_box(f"{name}_chimney", (chx, wall0 + h + roof_h + 0.55, chz), (0.48, 1.6, 0.48), wash, "anwel", MATERIAL_PATHS["wellstone"], yaw=yaw, uv_scale=0.55)
             builder.add_box(f"{name}_chimney_cap", (chx, wall0 + h + roof_h + 1.40, chz), (0.62, 0.12, 0.62), SLATE, "anwel", MATERIAL_PATHS["slate"], yaw=yaw, uv_scale=0.6)
 
-    # Lime-wash / timber / roof variation so no two cottages read the same.
-    # Data-authored: these specs also ship to the runtime in village.json.
+    # Street plan from the module authority (ANWEL_HOUSES / ANWEL_GARDENS).
     house_specs = [
-        {"name": "anwel_reeve_hall", "lx": 13.8, "lz": 4.2, "w": 5.4, "d": 4.2, "h": 3.0, "roof": "slate",
-         "wash": (0.92, 0.88, 0.78), "timber": (0.75, 0.62, 0.50), "roofTint": (0.85, 0.88, 0.95), "chimney": True},
-        {"name": "anwel_cottage_north", "lx": 6.2, "lz": 6.4, "w": 3.6, "d": 3.0, "h": 2.6, "roof": "thatch",
-         "wash": (1.02, 0.98, 0.90), "timber": (1.05, 0.95, 0.82), "roofTint": (1.05, 0.95, 0.80), "chimney": False},
-        {"name": "anwel_fisher_hut", "lx": 1.8, "lz": 4.6, "w": 2.8, "d": 2.4, "h": 2.3, "roof": "thatch",
-         "wash": (0.82, 0.80, 0.72), "timber": (0.62, 0.55, 0.48), "roofTint": (0.78, 0.72, 0.60), "chimney": False},
-        {"name": "anwel_cottage_east", "lx": 15.0, "lz": -2.2, "w": 3.2, "d": 2.8, "h": 2.5, "roof": "thatch",
-         "wash": (0.98, 0.90, 0.74), "timber": (0.88, 0.76, 0.62), "roofTint": (0.92, 0.85, 0.68), "chimney": True},
-        {"name": "anwel_store_barn", "lx": 10.8, "lz": -7.6, "w": 4.4, "d": 3.2, "h": 2.8, "roof": "slate",
-         "wash": (0.86, 0.82, 0.70), "timber": (0.70, 0.60, 0.50), "roofTint": (1.0, 0.92, 0.85), "chimney": False},
-        {"name": "anwel_cottage_south", "lx": 5.4, "lz": -8.2, "w": 3.4, "d": 2.8, "h": 2.5, "roof": "thatch",
-         "wash": (1.05, 1.00, 0.94), "timber": (0.95, 0.85, 0.70), "roofTint": (1.10, 1.00, 0.82), "chimney": True},
+        {k: v for k, v in spec.items() if k != "face_off"}
+        | {"face": (ax + spec["face_off"][0], az + spec["face_off"][1])}
+        for spec in ANWEL_HOUSES
     ]
     for spec in house_specs:
         house(spec["name"], spec["lx"], spec["lz"], spec["w"], spec["d"], spec["h"], spec["roof"],
-              wash=spec["wash"], timber_tint=spec["timber"], roof_tint=spec["roofTint"], chimney=spec["chimney"])
+              wash=spec["wash"], timber_tint=spec["timber"], roof_tint=spec["roofTint"], chimney=spec["chimney"],
+              face=spec["face"])
 
     # Fenced garden plots behind/beside houses — the separation and small
     # gardens a real village has between buildings. Gate gap faces the lane.
@@ -948,12 +1005,7 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
                 builder.add_box(f"{name}_rail_{post_index}_{side_name}", (mx, gy(mx, mz) + 0.62, mz), (0.06, 0.07, rail_len), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=yaw)
                 post_index += 1
 
-    garden_specs = [
-        {"name": "garden_reeve", "lx": 13.8, "lz": 8.8, "w": 4.5, "d": 3.0},
-        {"name": "garden_north", "lx": 9.8, "lz": 6.9, "w": 3.5, "d": 2.6},
-        {"name": "garden_south", "lx": 5.4, "lz": -11.8, "w": 4.0, "d": 3.0},
-        {"name": "garden_east", "lx": 18.2, "lz": -2.2, "w": 3.2, "d": 3.2},
-    ]
+    garden_specs = [{**spec} for spec in ANWEL_GARDENS]
     for spec in garden_specs:
         garden(spec["name"], spec["lx"], spec["lz"], spec["w"], spec["d"])
 
@@ -966,42 +1018,63 @@ def build_anwel(builder: GeometryBuilder, layout: HeartvaleLayout) -> dict:
     for px in (-0.7, 0.7):
         builder.add_box(f"anwel_well_post_{px}", (wx + px, wy + 1.25, wz), (0.12, 1.3, 0.12), TIMBER, "anwel", MATERIAL_PATHS["timber"])
 
-    # Dock into the river (west bank, river centre ~x = ax at Anwel)
-    dock_x = ax - 2.9
-    for plank in range(6):
-        pz = az - 2.6 + plank * 0.75
-        py = gy(dock_x + 1.2, pz)
-        builder.add_box(f"dock_plank_{plank}", (dock_x, py + 0.32, pz), (2.6, 0.08, 0.6), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
-    for post in range(3):
-        pz = az - 2.4 + post * 1.6
-        py = gy(dock_x + 1.2, pz)
-        builder.add_cylinder(f"dock_post_{post}", (dock_x - 1.1, py + 0.3, pz), 0.09, 1.1, 7, DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
+    # Jetty: bank -> over the water, with a T-head and moored punts.
+    # The river channel centre passes through the anchor; water spans ~±6 m.
+    jetty_z = az - 2.0
+    jetty_x0 = ax + 10.5   # bank end (dry)
+    jetty_x1 = ax + 2.5    # T-head end (over water)
+    jetty_y = gy(ax + 12.0, jetty_z) + 0.45  # deck just above bank height
+    plank = 0
+    x = jetty_x0
+    while x >= jetty_x1:
+        builder.add_box(f"jetty_plank_{plank}", (x, jetty_y, jetty_z), (0.62, 0.08, 1.7), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
+        plank += 1
+        x -= 0.68
+    # T-head planks (perpendicular) at the water end
+    for t in range(4):
+        builder.add_box(f"jetty_thead_{t}", (jetty_x1, jetty_y, jetty_z - 1.6 + t * 1.05), (1.7, 0.08, 0.62), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
+    # piles into the water
+    for pile, (px, pz) in enumerate(((jetty_x0 - 2.0, jetty_z - 0.8), (jetty_x0 - 2.0, jetty_z + 0.8),
+                                     (jetty_x1 + 1.6, jetty_z - 0.8), (jetty_x1 + 1.6, jetty_z + 0.8),
+                                     (jetty_x1, jetty_z - 1.5), (jetty_x1, jetty_z + 1.5))):
+        builder.add_cylinder(f"jetty_pile_{pile}", (px, jetty_y - 0.55, pz), 0.09, 1.6, 7, DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"])
 
-    # Fences along the east side of the road in
-    for fence in range(5):
-        fx = ax + 3.4 + fence * 0.04
-        fz = az + 4.5 + fence * 1.5
-        fy = gy(fx, fz)
-        builder.add_box(f"anwel_fence_post_{fence}", (fx, fy + 0.5, fz), (0.12, 1.0, 0.12), TIMBER, "anwel", MATERIAL_PATHS["timber"])
-        if fence < 4:
-            builder.add_box(f"anwel_fence_rail_{fence}", (fx, fy + 0.75, fz + 0.75), (0.07, 0.07, 1.5), TIMBER, "anwel", MATERIAL_PATHS["timber"])
+    # Moored punts: flat-bottom river boats beside the jetty.
+    boats = [
+        {"x": ax + 2.2, "z": az + 1.8, "yawDeg": 100.0},
+        {"x": ax + 3.6, "z": az - 6.8, "yawDeg": 72.0},
+    ]
+    for boat_index, boat in enumerate(boats):
+        bx, bz = boat["x"], boat["z"]
+        byaw = math.radians(boat["yawDeg"])
+        water_y = gy(bx, bz) + 0.55  # floats on the ribbon surface
+        builder.add_box(f"boat_{boat_index}_hull", (bx, water_y, bz), (2.6, 0.28, 1.0), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=byaw)
+        for end in (-1, 1):
+            ex_, ez_ = bx + math.cos(byaw) * end * 1.35, bz + math.sin(byaw) * end * 1.35
+            builder.add_box(f"boat_{boat_index}_end_{end:+d}", (ex_, water_y + 0.14, ez_), (0.35, 0.42, 0.9), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=byaw)
+        for side in (-1, 1):
+            sx_, sz_ = bx - math.sin(byaw) * side * 0.52, bz + math.cos(byaw) * side * 0.52
+            builder.add_box(f"boat_{boat_index}_gunwale_{side:+d}", (sx_, water_y + 0.18, sz_), (2.5, 0.14, 0.08), DOCK_WOOD, "anwel", MATERIAL_PATHS["dock"], yaw=byaw)
+        builder.add_box(f"boat_{boat_index}_bench", (bx, water_y + 0.16, bz), (0.3, 0.06, 0.85), TIMBER, "anwel", MATERIAL_PATHS["timber"], yaw=byaw)
 
     # Data-authored capture for the runtime village builder (village.json).
     return {
         "anchor": {"x": ax, "z": az},
         "plaza": {"x": plaza[0], "z": plaza[1]},
+        "streetX": street_x,
         "houses": [
             {
-                **{k: (list(v) if isinstance(v, tuple) else v) for k, v in spec.items()},
+                **{k: (list(v) if isinstance(v, tuple) else v) for k, v in spec.items() if k != "face"},
                 "x": ax + spec["lx"],
                 "z": az + spec["lz"],
-                "yawDeg": math.degrees(math.atan2(plaza[1] - (az + spec["lz"]), plaza[0] - (ax + spec["lx"]))),
+                "yawDeg": math.degrees(math.atan2(spec["face"][1] - (az + spec["lz"]), spec["face"][0] - (ax + spec["lx"]))),
             }
             for spec in house_specs
         ],
         "gardens": [{**spec, "x": ax + spec["lx"], "z": az + spec["lz"]} for spec in garden_specs],
         "well": {"x": plaza[0], "z": plaza[1]},
-        "dock": {"x": ax - 2.9, "z0": az - 2.6, "planks": 6, "plankSpacing": 0.75},
+        "jetty": {"x0": jetty_x0, "x1": jetty_x1, "z": jetty_z, "deckY": jetty_y},
+        "boats": boats,
     }
 
 
@@ -1093,7 +1166,7 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
     def excluded(x: float, z: float, margin: float = 0.0) -> bool:
         if math.hypot(x, z) < 13.0 + margin:
             return True
-        if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:  # village green + house ring
+        if anwel_in_village(x - anwel["x"], z - anwel["z"]):  # village footprint + plaza
             return True
         if layout.river_distance(x, z) < 5.6:
             return True
@@ -1284,7 +1357,7 @@ def plan_grass_clumps(layout: HeartvaleLayout) -> list[tuple[float, float, float
                     continue
                 if math.hypot(x, z) < 11.6:
                     continue
-                if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:
+                if anwel_in_village(x - anwel["x"], z - anwel["z"]):
                     continue
                 d_river = layout.river_distance(x, z)
                 d_road = layout.road_distance(x, z)
@@ -1482,7 +1555,7 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
     rng = random.Random(layout.seed ^ 0x9A17)
     anchor = layout.anchors["anwel"]["world"]
     ax, az = anchor["x"], anchor["z"]
-    plaza = (ax + 7.0, az - 0.5)
+    plaza = (ax + ANWEL_PLAZA_OFF[0], az + ANWEL_PLAZA_OFF[1])
 
     def gy(x: float, z: float) -> float:
         return layout.terrain_height(x, z)
@@ -1582,7 +1655,7 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
         else:
             ang, rad = rng.uniform(0.0, math.tau), rng.uniform(14.0, 220.0)
             x, z = ax + math.cos(ang) * rad, az + math.sin(ang) * rad
-        if math.hypot(x - plaza[0], z - plaza[1]) < 14.0:
+        if anwel_in_village(x - ax, z - az):
             continue
         if layout.river_distance(x, z) < 3.0 or layout.road_distance(x, z) < 2.4:
             continue
@@ -1633,37 +1706,38 @@ def build_polyhaven(ph_node: hou.Node, layout: HeartvaleLayout, ph_root: Path, p
     scatter("celandine_01", "FLOWERS", flower_spots, 0.19, "phPlants")
 
     # --- Village: lane props, door lanterns, garden plots ------------------------
-    place("wooden_barrels_01", "BARRELS_DOCK", ax - 2.3, az - 1.6, 0.95, yaw=15.0)
-    place("wooden_barrels_01", "BARRELS_BARN", ax + 12.9, az - 8.2, 0.95, yaw=40.0)
-    place("wooden_crate_01", "CRATE_DOCK_A", ax - 3.5, az + 1.6, 0.50, yaw=70.0)
-    place("wooden_crate_01", "CRATE_DOCK_B", ax - 3.1, az + 2.3, 0.50, yaw=20.0)
-    place("wooden_crate_01", "CRATE_BARN_A", ax + 9.2, az - 8.7, 0.55, yaw=0.0)
-    place("wooden_crate_01", "CRATE_BARN_B", ax + 10.0, az - 8.0, 0.50, yaw=55.0)
-    place("wooden_crate_02", "CRATE2_DOCK", ax - 3.8, az + 0.9, 0.46, yaw=25.0)
-    place("wooden_crate_02", "CRATE2_BARN", ax + 9.7, az - 9.3, 0.46, yaw=100.0)
-    place("wine_barrel_01", "WINE_DOCK", ax - 2.6, az + 2.2, 0.87, yaw=5.0)
-    place("wine_barrel_01", "WINE_BARN", ax + 11.8, az - 6.9, 0.87, yaw=75.0)
-    place("wine_barrel_01", "WINE_REEVE", ax + 12.9, az + 3.1, 0.87, yaw=140.0)
+    # Props sit at the jetty root, the vendor front, and the barn — never in
+    # the river (jetty planks are the only dressing over water).
+    place("wooden_barrels_01", "BARRELS_JETTY", ax + 11.2, az - 3.6, 0.95, yaw=15.0)
+    place("wooden_barrels_01", "BARRELS_BARN", ax + 34.9, az - 20.8, 0.95, yaw=40.0)
+    place("wooden_crate_01", "CRATE_JETTY_A", ax + 10.6, az - 0.9, 0.50, yaw=70.0)
+    place("wooden_crate_01", "CRATE_VENDOR", ax + 19.4, az + 5.2, 0.50, yaw=20.0)
+    place("wooden_crate_01", "CRATE_BARN_A", ax + 34.4, az - 21.4, 0.55, yaw=0.0)
+    place("wooden_crate_01", "CRATE_BARN_B", ax + 35.2, az - 20.7, 0.50, yaw=55.0)
+    place("wooden_crate_02", "CRATE2_JETTY", ax + 10.2, az - 3.4, 0.46, yaw=25.0)
+    place("wooden_crate_02", "CRATE2_BARN", ax + 34.9, az - 22.0, 0.46, yaw=100.0)
+    place("wine_barrel_01", "WINE_VENDOR", ax + 19.0, az + 4.6, 0.87, yaw=5.0)
+    place("wine_barrel_01", "WINE_BARN", ax + 33.6, az - 20.2, 0.87, yaw=75.0)
+    place("wine_barrel_01", "WINE_REEVE", ax + 18.6, az - 11.8, 0.87, yaw=140.0)
     place("wooden_bucket_01", "BUCKET_WELL_A", plaza[0] - 0.8, plaza[1] + 0.7, 0.50, yaw=10.0)
     place("wooden_bucket_01", "BUCKET_WELL_B", plaza[0] + 0.9, plaza[1] - 0.7, 0.50, yaw=130.0)
 
-    # Door lanterns — hung beside each house door at 2.0 m (doors face the green)
-    houses = ((13.8, 4.2, 5.4), (6.2, 6.4, 3.6), (1.8, 4.6, 2.8), (15.0, -2.2, 3.2), (10.8, -7.6, 4.4), (5.4, -8.2, 3.4))
-    for index, (hx, hz, hw) in enumerate(houses):
-        wx, wz = ax + hx, az + hz
-        yaw_to_plaza = math.atan2(plaza[1] - wz, plaza[0] - wx)
-        door_x = wx + math.cos(yaw_to_plaza) * (hw / 2 + 0.30)
-        door_z = wz + math.sin(yaw_to_plaza) * (hw / 2 + 0.30)
-        side_x, side_z = -math.sin(yaw_to_plaza) * 0.95, math.cos(yaw_to_plaza) * 0.95
+    # Door lanterns — hung beside each house door (doors face the street).
+    for index, spec in enumerate(ANWEL_HOUSES):
+        wx, wz, hw = ax + spec["lx"], az + spec["lz"], spec["w"]
+        yaw_to_street = math.atan2(spec["face_off"][1] - spec["lz"], spec["face_off"][0] - spec["lx"])
+        door_x = wx + math.cos(yaw_to_street) * (hw / 2 + 0.30)
+        door_z = wz + math.sin(yaw_to_street) * (hw / 2 + 0.30)
+        side_x, side_z = -math.sin(yaw_to_street) * 0.95, math.cos(yaw_to_street) * 0.95
         lx, lz = door_x + side_x, door_z + side_z
         outs.append(_ph_place(ph_node, matnet, ph_root, "wooden_lantern_01", f"LANTERN_{index}",
-                              lx, lz, gy(lx, lz) + 2.0, 0.53, yaw=math.degrees(yaw_to_plaza), hook=True))
+                              lx, lz, gy(lx, lz) + 2.0, 0.53, yaw=math.degrees(yaw_to_street), hook=True))
         counts["props"] += 1
 
     # Gardens: planter boxes + soft planting inside each fenced plot
-    gardens = ((13.8, 8.8, 4.5, 3.0), (9.8, 6.9, 3.5, 2.6), (5.4, -11.8, 4.0, 3.0), (18.2, -2.2, 3.2, 3.2))
-    for index, (gcx, gcz, gw, gd) in enumerate(gardens):
-        cx, cz = ax + gcx, az + gcz
+    for index, spec in enumerate(ANWEL_GARDENS):
+        cx, cz = ax + spec["lx"], az + spec["lz"]
+        gw, gd = spec["w"], spec["d"]
         place("planter_box_01", f"PLANTER_{index}_A", cx - gw * 0.22, cz - gd * 0.18, 0.42, yaw=rng.uniform(-8.0, 8.0))
         place("planter_box_01", f"PLANTER_{index}_B", cx + gw * 0.22, cz + gd * 0.18, 0.42, yaw=90.0 + rng.uniform(-8.0, 8.0))
         bed_spots = [
@@ -1696,20 +1770,22 @@ NPC_SKIN: Color = (0.62, 0.47, 0.35)
 NPC_TROUSER: Color = (0.23, 0.18, 0.12)
 NPC_HAIR: Color = (0.16, 0.11, 0.07)
 NPC_PLACEMENTS: list[tuple[str, float, float, float, Color]] = [
-    # id, local x, local z (soulwell-relative meters; Anwel now at z ≈ -207),
+    # id, local x, local z (soulwell-relative meters; Anwel anchor at z ≈ -207,
+    # village street plan: plaza at (+22.5, -209), main street x ≈ +24.5,
+    # jetty at z = -209 reaching over the water to x ≈ +2.5).
     # facing yaw (deg), tunic color
-    ("mira-eddlestone", 4.6, -205.7, 200.0, (0.30, 0.42, 0.22)),
-    ("dockmaster-pell", -2.4, -206.4, 90.0, (0.18, 0.26, 0.38)),
-    ("fletcher-anes", 6.0, -202.4, 170.0, (0.38, 0.27, 0.16)),
-    ("herder-bonn", 3.2, -212.3, 20.0, (0.45, 0.35, 0.16)),
-    ("cael-roadwarden", 1.2, -211.0, 0.0, (0.28, 0.32, 0.38)),
-    ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),
-    ("reeve-droma", 12.6, -204.4, 250.0, (0.42, 0.18, 0.20)),
-    ("scavenger-ils", -3.4, -209.4, 60.0, (0.32, 0.32, 0.30)),
-    ("old-fen", -3.0, -208.2, 120.0, (0.24, 0.38, 0.30)),
-    ("shepherdess-rill", 1.0, 8.0, 180.0, (0.55, 0.50, 0.38)),
-    ("sergeant-hull", 2.2, 12.5, 180.0, (0.36, 0.38, 0.42)),
-    ("brother-owyn", 2.0, -211.7, 10.0, (0.60, 0.57, 0.50)),
+    ("mira-eddlestone", 23.5, -207.5, 180.0, (0.30, 0.42, 0.22)),   # plaza, greeting arrivals from the south road
+    ("dockmaster-pell", 4.0, -209.0, 270.0, (0.18, 0.26, 0.38)),    # on the jetty T-head, over the water
+    ("fletcher-anes", 18.5, -205.5, 90.0, (0.38, 0.27, 0.16)),      # by the vendor stall on the plaza edge
+    ("herder-bonn", 16.0, -188.0, 20.0, (0.45, 0.35, 0.16)),        # south field edge
+    ("cael-roadwarden", 12.0, -196.0, 0.0, (0.28, 0.32, 0.38)),     # south lane entrance, watching the road
+    ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),        # soulwell terrace (unchanged)
+    ("reeve-droma", 19.8, -221.0, 90.0, (0.42, 0.18, 0.20)),        # at the reeve hall door
+    ("scavenger-ils", 12.5, -205.0, 60.0, (0.32, 0.32, 0.30)),      # dry bank by the jetty root
+    ("old-fen", 10.5, -210.5, 270.0, (0.24, 0.38, 0.30)),           # jetty root, watching his eel traps
+    ("shepherdess-rill", 1.0, 8.0, 180.0, (0.55, 0.50, 0.38)),      # soulwell side (unchanged)
+    ("sergeant-hull", 2.2, 12.5, 180.0, (0.36, 0.38, 0.42)),        # soulwell side (unchanged)
+    ("brother-owyn", 28.0, -224.5, 10.0, (0.60, 0.57, 0.50)),       # village hall front, ready for the road
 ]
 
 
@@ -1820,8 +1896,8 @@ def create_cameras(obj: hou.Node, layout: HeartvaleLayout) -> None:
     terrace_eye = (5.8, 3.9, -8.8)  # east side of the terrace, clear of the Breach arch
     ground = _persp_camera(obj, "GROUND_TERRACE_CAMERA", terrace_eye, (-1.5, 1.7, 7.5), 32.0)
     anwel = layout.anchors["anwel"]["world"]
-    plaza = (anwel["x"] + 7.0, anwel["z"] - 0.5)
-    _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] - 4.0, anwel["z"] - 15.0, 7.0), (plaza[0], layout.terrain_height(*plaza) + 1.2, plaza[1] - 0.5), 36.0)
+    plaza = (anwel["x"] + ANWEL_PLAZA_OFF[0], anwel["z"] + ANWEL_PLAZA_OFF[1])
+    _persp_camera(obj, "ANWEL_STREET_CAMERA", eye(anwel["x"] + 13.0, anwel["z"] + 14.0, 7.0), (plaza[0], layout.terrain_height(*plaza) + 1.2, plaza[1] - 4.0), 36.0)
     # Riverbank shot: on the Anwel run just south of the terrace.
     river_samples = dict(layout.rivers).get("anwel-run", layout.rivers[0][1])
     bank_x, bank_z = min(river_samples, key=lambda s: math.hypot(s[0] - 0.0, s[1] - 60.0))

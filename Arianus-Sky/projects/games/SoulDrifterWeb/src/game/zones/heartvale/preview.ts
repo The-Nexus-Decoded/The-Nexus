@@ -42,7 +42,8 @@ function presets(data: ZoneData): Record<string, CameraPreset> {
   ];
   return {
     soulwell: { target: [0, 0], offset: [16, 11, 16] },
-    anwel: { target: [anwel.x, anwel.z], offset: [24, 16, 24] },
+    // Village core: the plaza on the dry east bank, not the anchor in the river.
+    anwel: { target: [anwel.x + 22.5, anwel.z - 2.0], offset: [26, 17, 26] },
     river: { target: riverLocal, offset: [30, 14, 30] },
     riverclose: { target: riverLocal, offset: [14, 5, 14] },
     iso: { target: [anwel.x * 0.4, anwel.z * 0.4], offset: [260, 210, 300] },
@@ -170,8 +171,11 @@ function setupDevPanel(
   section("POI anchors");
   for (const anchor of data.layout.anchors) {
     const zone = anchor.zone ? ` [${anchor.zone}]` : "";
-    addButton(`${anchor.id}${zone}`, () =>
-      teleport(anchor.world.x - offX, anchor.world.z - offZ, [22, 14, 22]));
+    // Anwel's anchor sits in the river by canon — teleport to the plaza instead.
+    const isAnwel = anchor.id === "anwel";
+    const lx = isAnwel ? data.village.plaza.x : anchor.world.x - offX;
+    const lz = isAnwel ? data.village.plaza.z : anchor.world.z - offZ;
+    addButton(`${anchor.id}${zone}`, () => teleport(lx, lz, [22, 14, 22]));
   }
 
   section("Zone centers");
@@ -297,11 +301,13 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
     __zoneLoopError: string | null;
     __zoneCamera: THREE.PerspectiveCamera;
     __zoneRenderer: THREE.WebGLRenderer;
+    __zoneControls: OrbitControls;
   };
   hooks.__zoneScene = scene;
   hooks.__zoneData = data;
   hooks.__zoneCamera = camera;
   hooks.__zoneRenderer = renderer;
+  hooks.__zoneControls = controls;
   hooks.__zoneFrames = 0;
   hooks.__zoneLoopError = null;
 

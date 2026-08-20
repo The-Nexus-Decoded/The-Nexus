@@ -75,6 +75,7 @@ export interface ScatterData {
 
 export interface VillageHouse {
   name: string;
+  kind: "reeve" | "hall" | "smithy" | "apothecary" | "vendor" | "cottage" | "barn";
   x: number;
   z: number;
   w: number;
@@ -96,14 +97,29 @@ export interface VillageGarden {
   d: number;
 }
 
+export interface VillageJetty {
+  x0: number; // bank end (dry)
+  x1: number; // T-head end (over water)
+  z: number;
+  deckY: number;
+}
+
+export interface VillageBoat {
+  x: number;
+  z: number;
+  yawDeg: number;
+}
+
 export interface VillageData {
   schemaVersion: number;
   anchor: { x: number; z: number };
   plaza: { x: number; z: number };
+  streetX: number;
   houses: VillageHouse[];
   gardens: VillageGarden[];
   well: { x: number; z: number };
-  dock: { x: number; z0: number; planks: number; plankSpacing: number };
+  jetty: VillageJetty;
+  boats: VillageBoat[];
 }
 
 export interface NpcEntry {

@@ -112,13 +112,17 @@ function addBox(
   return mesh;
 }
 
-/** Gabled roof prism with eaves overhang, ridge along local X. */
+/** Gabled roof prism with eaves overhang, ridge along local X.
+ * Slopes get the roof material; gable ends get wall plaster (with the timber
+ * framing already on the wall beneath); the underside gets plain timber. */
 function roofPrism(
   material: THREE.Material,
   w: number,
   d: number,
   rise: number,
   overhang: number,
+  gableMaterial?: THREE.Material,
+  undersideMaterial?: THREE.Material,
 ): THREE.Mesh {
   const hw = w / 2 + overhang;
   const hd = d / 2 + overhang;
@@ -149,7 +153,16 @@ function roofPrism(
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
-  const mesh = new THREE.Mesh(geometry, material);
+  // Face groups: 0-11 slopes, 12-17 gables, 18-29 underside (verts, non-indexed)
+  let mesh: THREE.Mesh;
+  if (gableMaterial || undersideMaterial) {
+    geometry.addGroup(0, 12, 0); // slopes
+    geometry.addGroup(12, 6, 1); // gables
+    geometry.addGroup(18, 12, 2); // underside
+    mesh = new THREE.Mesh(geometry, [material, gableMaterial ?? material, undersideMaterial ?? material]);
+  } else {
+    mesh = new THREE.Mesh(geometry, material);
+  }
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -195,9 +208,11 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
     }
   }
 
-  // Roof.
+  // Roof: slopes in thatch/slate, gable triangles in plaster, eave undersides
+  // in dark timber.
   const roofMat = house.roof === "slate" ? mats.slate(house.roofTint) : mats.thatch(house.roofTint);
-  const roof = roofPrism(roofMat, w, d, rise, overhang);
+  const gableMat = mats.plaster(w, rise, house.wash);
+  const roof = roofPrism(roofMat, w, d, rise, overhang, gableMat, mats.timber);
   roof.position.y = wallTop;
   g.add(roof);
   // Ridge beam.
@@ -231,8 +246,13 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
     addBox(g, mats.stone, 0.7, 0.14, 0.7, -w * 0.3, wallTop + rise + 1.1, 0, false);
   }
 
+  dressByKind(g, house, mats);
+
   g.position.set(house.x, baseY, house.z);
-  g.rotation.y = THREE.MathUtils.degToRad(house.yawDeg);
+  // yawDeg aims local +X at the street (Houdini convention); the runtime door
+  // wall is +Z, and three.js rotation.y maps +Z to (sinθ, 0, cosθ) — so the
+  // door faces the street at θ = 90° − yawDeg.
+  g.rotation.y = THREE.MathUtils.degToRad(90 - house.yawDeg);
   return g;
 }
 
@@ -276,24 +296,102 @@ function buildWell(x: number, z: number, mats: VillageMaterials, field: TerrainF
   return g;
 }
 
-function buildDock(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
+function buildJetty(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
   const g = new THREE.Group();
-  g.name = "anwel-dock";
-  const { x, z0, planks, plankSpacing } = village.dock;
-  for (let i = 0; i < planks; i += 1) {
-    const z = z0 + i * plankSpacing;
-    const y = field.height(x, z) + 0.32;
-    addBox(g, mats.wood, 1.6, 0.08, 0.62, x, y, z, false);
-    if (i % 2 === 0) {
-      for (const sx of [-1, 1]) {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.9, 6), mats.timber);
-        post.position.set(x + sx * 0.7, y - 0.35, z);
-        post.castShadow = true;
-        g.add(post);
-      }
-    }
+  g.name = "anwel-jetty";
+  const { x0, x1, z } = village.jetty;
+  // Deck height: just above the bank, level all the way over the water.
+  const deckY = field.height(x0 + 1.5, z) + 0.45;
+  // Deck planks (bank -> T-head).
+  for (let x = x0; x >= x1; x -= 0.68) {
+    addBox(g, mats.wood, 0.62, 0.08, 1.7, x, deckY, z, false);
+  }
+  // T-head cross planks.
+  for (let t = 0; t < 4; t += 1) {
+    addBox(g, mats.wood, 1.7, 0.08, 0.62, x1, deckY, z - 1.6 + t * 1.05, false);
+  }
+  // Piles into the water.
+  const piles: [number, number][] = [
+    [x0 - 2.0, z - 0.8], [x0 - 2.0, z + 0.8],
+    [x1 + 1.6, z - 0.8], [x1 + 1.6, z + 0.8],
+    [x1, z - 1.5], [x1, z + 1.5],
+  ];
+  for (const [px, pz] of piles) {
+    const bed = field.height(px, pz);
+    const top = deckY + 0.25;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, top - bed + 0.3, 7), mats.timber);
+    post.position.set(px, (top + bed) / 2 - 0.1, pz);
+    post.castShadow = true;
+    g.add(post);
   }
   return g;
+}
+
+function buildBoats(village: VillageData, mats: VillageMaterials, field: TerrainField): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "anwel-boats";
+  for (const [index, boat] of village.boats.entries()) {
+    const b = new THREE.Group();
+    b.name = `boat-${index}`;
+    const waterY = field.height(boat.x, boat.z) + 0.55; // floats on the ribbon
+    // Flat-bottomed punt: hull, raised ends, gunwales, bench.
+    addBox(b, mats.wood, 2.6, 0.28, 1.0, 0, 0, 0, false);
+    for (const end of [-1, 1]) {
+      addBox(b, mats.wood, 0.35, 0.42, 0.9, end * 1.35, 0.14, 0, false);
+    }
+    for (const side of [-1, 1]) {
+      addBox(b, mats.wood, 2.5, 0.14, 0.08, 0, 0.18, side * 0.52, false);
+    }
+    addBox(b, mats.timber, 0.3, 0.06, 0.85, 0, 0.16, 0, false);
+    b.position.set(boat.x, waterY, boat.z);
+    b.rotation.y = THREE.MathUtils.degToRad(boat.yawDeg);
+    g.add(b);
+  }
+  return g;
+}
+
+/** Kind-specific dressing: stall+awning for the vendor, anvil/quench for the
+ * smithy, hanging signs for the shops. Local space, door wall is +X. */
+function dressByKind(g: THREE.Group, house: VillageHouse, mats: VillageMaterials): void {
+  const { w, d } = house;
+  const frontX = w / 2;
+  if (house.kind === "vendor") {
+    // Market stall beside the door: posts + canvas awning + crate counter.
+    const sx = frontX + 1.3;
+    for (const [px, pz] of [[sx - 0.9, -0.9], [sx - 0.9, 0.9], [sx + 0.9, -0.9], [sx + 0.9, 0.9]] as const) {
+      addBox(g, mats.timber, 0.08, 2.1, 0.08, px, 1.47, pz, false);
+    }
+    const awning = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.2, 2.2),
+      new THREE.MeshStandardMaterial({ color: 0xa8492e, roughness: 0.9, side: THREE.DoubleSide }),
+    );
+    awning.rotation.x = -Math.PI / 2 + 0.18;
+    awning.position.set(sx, 2.55, 0);
+    awning.castShadow = true;
+    g.add(awning);
+    addBox(g, mats.wood, 1.5, 0.75, 0.6, sx, 0.8, 0, false);
+  }
+  if (house.kind === "smithy") {
+    // Anvil + quench barrel outside the forge door.
+    addBox(g, mats.dark, 0.55, 0.32, 0.28, frontX + 1.1, 0.75, d * 0.2, false);
+    addBox(g, mats.timber, 0.5, 0.35, 0.5, frontX + 1.1, 0.42, d * 0.2, false);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.7, 10), mats.wood);
+    barrel.position.set(frontX + 0.9, 0.77, -d * 0.28);
+    barrel.castShadow = true;
+    g.add(barrel);
+  }
+  if (house.kind === "apothecary" || house.kind === "vendor" || house.kind === "smithy") {
+    // Hanging shop sign: arm from the door frame + board.
+    addBox(g, mats.timber, 0.08, 0.08, 0.9, frontX + 0.35, 2.6, -w * 0.2, false);
+    const boardColor = house.kind === "apothecary" ? 0x3e6b3a : house.kind === "smithy" ? 0x4a4a4e : 0x8a6a3a;
+    const board = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.55, 0.7),
+      new THREE.MeshStandardMaterial({ color: boardColor, roughness: 0.85 }),
+    );
+    board.position.set(frontX + 0.35, 2.25, -w * 0.2);
+    board.castShadow = true;
+    g.add(board);
+  }
 }
 
 function buildGarden(garden: { name: string; x: number; z: number; w: number; d: number }, mats: VillageMaterials, field: TerrainField): THREE.Group {
@@ -396,8 +494,8 @@ async function dressWithProps(village: VillageData, field: TerrainField, parent:
     ["wooden_bucket_01", 0.9, 0.6, 0], // relative to well, patched below
     ["wooden_lantern_01", plaza.x - 2.2, plaza.z - 1.4, 0],
     ["planter_box_01", plaza.x + 0.4, plaza.z - 2.4, 95],
-    ["wooden_barrels_01", village.dock.x + 1.3, village.dock.z0 + 0.6, 130],
-    ["wooden_crate_01", village.dock.x + 1.2, village.dock.z0 + 2.1, 85],
+    ["wooden_barrels_01", village.jetty.x0 + 0.8, village.jetty.z - 1.6, 130],
+    ["wooden_crate_01", village.jetty.x0 + 0.3, village.jetty.z + 1.3, 85],
   ];
   for (const [id, px, pz, yaw] of placements) {
     const node = await prop(id);
@@ -412,7 +510,7 @@ async function dressWithProps(village: VillageData, field: TerrainField, parent:
 }
 
 /** Placeholder scale figures — tracked placeholder (Finding 8). */
-function buildNpcs(npcs: NpcData, field: TerrainField, parent: THREE.Group): void {
+function buildNpcs(npcs: NpcData, field: TerrainField, parent: THREE.Group, village?: VillageData): void {
   for (const npc of npcs.npcs) {
     const g = new THREE.Group();
     g.name = `npc-${npc.id}`;
@@ -452,7 +550,15 @@ function buildNpcs(npcs: NpcData, field: TerrainField, parent: THREE.Group): voi
     label.position.y = 2.15;
     g.add(label);
 
-    g.position.set(npc.x, field.height(npc.x, npc.z), npc.z);
+    // Ground snap — but NPCs on the jetty stand on the deck, not the riverbed.
+    let groundY = field.height(npc.x, npc.z);
+    if (village) {
+      const j = village.jetty;
+      if (npc.x <= j.x0 + 0.5 && npc.x >= j.x1 - 1.2 && Math.abs(npc.z - j.z) < 1.9) {
+        groundY = field.height(j.x0 + 1.5, j.z) + 0.45 + 0.05;
+      }
+    }
+    g.position.set(npc.x, groundY, npc.z);
     g.rotation.y = THREE.MathUtils.degToRad(npc.yawDeg);
     parent.add(g);
   }
@@ -527,11 +633,24 @@ export async function createVillageAndTerrace(
     group.add(buildHouse(house, mats, field));
   }
   group.add(buildWell(village.well.x, village.well.z, mats, field));
-  group.add(buildDock(village, mats, field));
+  // Plaza cobbles: a worn stone apron under the well between the shopfronts.
+  const plazaPad = new THREE.Mesh(
+    new THREE.CylinderGeometry(5.2, 5.4, 0.14, 20),
+    mats.cobble,
+  );
+  plazaPad.position.set(
+    village.plaza.x,
+    field.height(village.plaza.x, village.plaza.z) + 0.07,
+    village.plaza.z,
+  );
+  plazaPad.receiveShadow = true;
+  group.add(plazaPad);
+  group.add(buildJetty(village, mats, field));
+  group.add(buildBoats(village, mats, field));
   for (const garden of village.gardens) {
     group.add(buildGarden(garden, mats, field));
   }
-  buildNpcs(npcs, field, group);
+  buildNpcs(npcs, field, group, village);
   await dressWithProps(village, field, group);
   return group;
 }
