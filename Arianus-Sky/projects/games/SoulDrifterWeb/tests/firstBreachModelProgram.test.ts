@@ -890,7 +890,7 @@ describe("First Breach production model register", () => {
     expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
     expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
     expect(runtimeAssetManifest.excludeGlobs).toContain("assets/3d/local-derived/issue-448/**");
-    expect(localAssetLineage.assets).toHaveLength(1);
+    expect(localAssetLineage.assets).toHaveLength(2);
     expect(localAssetLineage.assets[0]).toMatchObject({
       assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
       lineageKind: "local-derived",
@@ -917,6 +917,87 @@ describe("First Breach production model register", () => {
       intendedRuntimeSlot: "character-body/human/masculine/heavy",
       runtimePromotionAllowed: false,
     });
+    const mixamoIntake = localAssetLineage.assets[1]!;
+    expect(mixamoIntake).toMatchObject({
+      assetId: "body-human-masculine-heavy-mixamo-intake-v001",
+      lineageKind: "local-derived",
+      status: "local-mixamo-intake-package-awaiting-online-rig",
+      parentSource: {
+        sourceKind: "local-derived",
+        assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
+        sha256: "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+        bytes: 1980268,
+      },
+      localRecipe: {
+        tool: "Blender",
+        toolVersion: "4.5.12 LTS",
+        script: "scripts/prepare-mixamo-intake.py",
+        gpuAccelerationUsed: false,
+        parameters: {
+          format: "FBX",
+          embeddedTexturesRequested: true,
+          triangulatedExport: true,
+          neutralPose: "reviewed-parent-t-pose",
+          seamWeldThresholdMeters: 0.00001,
+        },
+      },
+      output: {
+        file: "mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx",
+        sha256: "D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF",
+        bytes: 2584252,
+        vertices: 28555,
+        triangles: 44999,
+        materials: 1,
+        skins: 0,
+        animations: 0,
+        previewFile: "docs/3d-ai-studio/evidence/issue-448/mixamo-intake-human-heavy-v001.png",
+        previewSha256: "643F9FCB3391D083FCED2D0BAF098EC311A585A08B314E9FF3B210917C6AD3D2",
+        previewBytes: 1151372,
+      },
+      technicalInspection: {
+        freshImportVerified: true,
+        meshObjects: 1,
+        armatures: 0,
+        connectedComponents: 1,
+        boundaryEdges: 15581,
+        nonManifoldEdges: 15581,
+        looseVertices: 0,
+      },
+      mixamoPreflight: {
+        supportedUploadFormat: true,
+        singleMeshObject: true,
+        unrigged: true,
+        centeredAtWorldOrigin: true,
+        detailedFingerGeometryPreserved: true,
+        surfaceConnected: true,
+        openBoundaryEdgesRecorded: 15581,
+        manualMarkerPlacementRequired: true,
+        manualMeshContinuityReviewRequired: true,
+      },
+      externalUploadState: "not-uploaded",
+      intendedRuntimeSlot: "character-body/human/masculine/heavy",
+      runtimePromotionAllowed: false,
+    });
+    const mixamoFbx = readFileSync(
+      new URL(
+        "../public/assets/3d/local-derived/issue-448/mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx",
+        import.meta.url,
+      ),
+    );
+    expect(mixamoFbx.byteLength).toBe(mixamoIntake.output.bytes);
+    expect(createHash("sha256").update(mixamoFbx).digest("hex").toUpperCase()).toBe(
+      mixamoIntake.output.sha256,
+    );
+    const mixamoPreview = readFileSync(
+      new URL(
+        "../docs/3d-ai-studio/evidence/issue-448/mixamo-intake-human-heavy-v001.png",
+        import.meta.url,
+      ),
+    );
+    expect(mixamoPreview.byteLength).toBe(mixamoIntake.output.previewBytes);
+    expect(createHash("sha256").update(mixamoPreview).digest("hex").toUpperCase()).toBe(
+      mixamoIntake.output.previewSha256,
+    );
     expect(localAssetLineage.rejectedExperiments).toContainEqual(expect.objectContaining({
       assetId: "body-human-masculine-heavy-local-rig-pilot-v001",
       status: "rejected-procedural-rig-after-close-up-deformation-review",
