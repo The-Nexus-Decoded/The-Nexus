@@ -138,9 +138,10 @@ function roofPrism(
   const hd = d / 2 + overhang;
   const y0 = -0.02;
   const positions = new Float32Array([
-    // slope north (-z side) — faces up-north
-    -hw, y0, -hd, hw, y0, -hd, hw, rise, 0,
-    -hw, y0, -hd, hw, rise, 0, -hw, rise, 0,
+    // slope north (-z side) — faces up-north (winding fixed: was inverted and
+    // backface-culled, so this slope was invisible from street level)
+    -hw, y0, -hd, hw, rise, 0, hw, y0, -hd,
+    -hw, y0, -hd, -hw, rise, 0, hw, rise, 0,
     // slope south (+z side) — faces up-south
     -hw, y0, hd, hw, y0, hd, hw, rise, 0,
     -hw, y0, hd, hw, rise, 0, -hw, rise, 0,
@@ -153,7 +154,7 @@ function roofPrism(
     -hw, y0, -hd, hw, y0, -hd, hw, y0, hd,
   ]);
   const uvs = new Float32Array([
-    0, 0, w / 1.6, 0, w / 1.6, d / 1.6, 0, 0, w / 1.6, d / 1.6, 0, d / 1.6,
+    0, 0, w / 1.6, d / 1.6, w / 1.6, 0, 0, 0, 0, d / 1.6, w / 1.6, d / 1.6,
     0, 0, w / 1.6, 0, w / 1.6, d / 1.6, 0, 0, w / 1.6, d / 1.6, 0, d / 1.6,
     0, 0, 0, 1, 1, 0,
     0, 0, 1, 0, 0, 1,
@@ -464,16 +465,34 @@ function buildStable(village: VillageData, mats: VillageMaterials, field: Terrai
   return g;
 }
 
-/** Horses in the paddock — Quaternius CC0 animated GLBs (idle/eating). */
+/** Horses in the paddock — Quaternius CC0 animated GLBs. Behavior timer:
+ *  cycles idle ↔ graze (with the occasional look-around), cross-faded, on
+ *  randomized per-horse durations — never one clip looping forever. */
 async function buildHorses(village: VillageData, field: TerrainField): Promise<THREE.Group> {
   const g = new THREE.Group();
   g.name = "anwel-horses";
   const horses = village.horses ?? [];
   if (horses.length === 0) return g;
 
+  interface HorseActor {
+    mixer: THREE.AnimationMixer;
+    actions: Partial<Record<"idle" | "graze" | "look", THREE.AnimationAction>>;
+    current: "idle" | "graze" | "look";
+    until: number;
+    seed: number;
+  }
+  const actors: HorseActor[] = [];
+  // Deterministic per-horse variation so the paddock never moves in sync.
+  const rand = (seed: number) => {
+    let s = seed >>> 0;
+    return () => {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 0xffffffff;
+    };
+  };
+
   const loader = new GLTFLoader();
-  const mixers: THREE.AnimationMixer[] = [];
-  for (const horse of horses) {
+  for (const [index, horse] of horses.entries()) {
     try {
       const gltf = await loader.loadAsync(`${MODEL_ROOT}/${horse.id}.glb`);
       const model = gltf.scene;
@@ -494,18 +513,58 @@ async function buildHorses(village: VillageData, field: TerrainField): Promise<T
       g.add(model);
 
       const mixer = new THREE.AnimationMixer(model);
-      const clip =
-        gltf.animations.find((c) => /idle/i.test(c.name)) ??
-        gltf.animations.find((c) => /eating/i.test(c.name)) ??
-        gltf.animations[0];
-      if (clip) mixer.clipAction(clip).play();
-      mixers.push(mixer);
+      const find = (re: RegExp) => gltf.animations.find((c) => re.test(c.name));
+      const actions: HorseActor["actions"] = {};
+      for (const [key, re] of [["idle", /idle|stand/i], ["graze", /eating|graze/i], ["look", /look|alert|head/i]] as const) {
+        const clip = find(re);
+        if (clip) {
+          const action = mixer.clipAction(clip);
+          action.setLoop(THREE.LoopRepeat, Infinity);
+          actions[key] = action;
+        }
+      }
+      if (!actions.idle && !actions.graze && gltf.animations[0]) {
+        actions.idle = mixer.clipAction(gltf.animations[0]);
+      }
+      const first = actions.idle ?? actions.graze ?? actions.look;
+      first?.play();
+      const rng = rand(4182 + index * 977);
+      actors.push({
+        mixer,
+        actions,
+        current: actions.idle ? "idle" : actions.graze ? "graze" : "look",
+        until: 4 + rng() * 8,
+        seed: rng() * 1000,
+      });
     } catch (error) {
       console.warn(`horse load failed: ${horse.id}`, error);
     }
   }
+
+  let clock = 0;
   g.userData.tick = (elapsed: number, delta: number) => {
-    for (const mixer of mixers) mixer.update(delta);
+    clock += delta;
+    for (const actor of actors) {
+      actor.mixer.update(delta);
+      if (clock < actor.until) continue;
+      // Behavior timer fired: pick the next beat. Mostly calm idling with
+      // grazing spells; occasional look-around. Durations stay randomized.
+      const rng = rand(Math.floor(actor.seed + clock * 1000));
+      const roll = rng();
+      const next: HorseActor["current"] =
+        roll < 0.45 && actor.actions.idle ? "idle"
+        : roll < 0.85 && actor.actions.graze ? "graze"
+        : actor.actions.look ? "look"
+        : actor.actions.idle ? "idle" : "graze";
+      const action = actor.actions[next];
+      if (action && next !== actor.current) {
+        const prev = actor.actions[actor.current];
+        action.reset().play();
+        if (prev) action.crossFadeFrom(prev, 0.6, false);
+        actor.current = next;
+      }
+      actor.until = clock + (next === "graze" ? 8 + rng() * 10 : next === "look" ? 2 + rng() * 3 : 6 + rng() * 9);
+    }
   };
   return g;
 }
