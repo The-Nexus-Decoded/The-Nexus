@@ -888,7 +888,7 @@ describe("First Breach production model register", () => {
     expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
     expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
     expect(runtimeAssetManifest.excludeGlobs).toContain("assets/3d/local-derived/issue-448/**");
-    expect(localAssetLineage.assets).toHaveLength(1);
+    expect(localAssetLineage.assets).toHaveLength(2);
     expect(localAssetLineage.assets[0]).toMatchObject({
       assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
       lineageKind: "local-derived",
@@ -911,6 +911,45 @@ describe("First Breach production model register", () => {
         materials: 1,
         skins: 0,
         animations: 0,
+      },
+      intendedRuntimeSlot: "character-body/human/masculine/heavy",
+      runtimePromotionAllowed: false,
+    });
+    expect(localAssetLineage.assets[1]).toMatchObject({
+      assetId: "body-human-masculine-heavy-local-rig-pilot-v001",
+      lineageKind: "local-derived",
+      status: "non-shipping-skinning-animation-proof",
+      parentSource: {
+        sourceKind: "local-derived",
+        assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
+        sha256: "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+      },
+      localRecipe: {
+        tool: "Blender",
+        toolVersion: "4.5.12 LTS",
+        gpuAccelerationUsed: true,
+        parameters: {
+          rig: "SD_CanonicalHumanoidRig",
+          deformJoints: 19,
+          weighting: "deterministic-region-blends-with-three-influence-maximum",
+          proofAction: "Humanoid_DeformationProof",
+        },
+      },
+      output: {
+        file: "sd-body-human-masculine-heavy-local-rig-pilot-v001.glb",
+        sha256: "AE471DA0A12765FA3FE8BC8B8FB26FF00C3971949454F386F67B4E66F2C555BC",
+        bytes: 2650684,
+        vertices: 32455,
+        triangles: 44999,
+        materials: 1,
+        skins: 1,
+        joints: 20,
+        animations: ["Humanoid_DeformationProof"],
+      },
+      weighting: {
+        weightedVertices: 32455,
+        unweightedVertices: 0,
+        maximumInfluences: 3,
       },
       intendedRuntimeSlot: "character-body/human/masculine/heavy",
       runtimePromotionAllowed: false,
