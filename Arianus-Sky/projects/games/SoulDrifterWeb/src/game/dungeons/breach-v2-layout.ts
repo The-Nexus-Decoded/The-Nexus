@@ -92,7 +92,7 @@ export function buildBreachV2Layout(
 
   const corridors = gen.corridors.map((c) => ({
     id: c.id,
-    points: [[c.from.x, c.from.y], [c.bend.x, c.bend.y], [c.to.x, c.to.y]],
+    points: [[c.from.x, c.from.y], [c.bend.x, c.bend.y], [c.to.x, c.to.y]] as [number, number][],
     width: c.width,
   }));
 

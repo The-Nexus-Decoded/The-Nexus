@@ -29,14 +29,15 @@ const PATHS = ["wayfarer", "oathbreaker"];
 
 await mkdir(OUT_DIR, { recursive: true });
 
-await writeFile(`${OUT_DIR}/registry.json`, `${JSON.stringify(R, null, 2)}\n`, "utf8");
+// minified — these are data payloads, not reading material (150 MiB budget)
+await writeFile(`${OUT_DIR}/registry.json`, `${JSON.stringify(R)}\n`, "utf8");
 
 const fixtures = [];
 for (const { seed, label } of FIXTURE_SEEDS) {
   for (const pathId of PATHS) {
     const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
     const file = `layout-${seed}-${pathId}.json`;
-    await writeFile(`${OUT_DIR}/${file}`, `${JSON.stringify(layout, null, 2)}\n`, "utf8");
+    await writeFile(`${OUT_DIR}/${file}`, `${JSON.stringify(layout)}\n`, "utf8");
     fixtures.push({
       file, seed, path: pathId, label,
       chambers: layout.meta.chamberCount,
