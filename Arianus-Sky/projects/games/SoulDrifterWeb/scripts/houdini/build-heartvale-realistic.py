@@ -555,6 +555,18 @@ class HeightField:
         H = H - carve
         self.d_road = _polyline_distance_field(self.xs, self.zs, layout.road_samples, 20.0)
         H = H + (np.round(H / 0.30) * 0.30 - H) * (0.5 * (1.0 - _smoothstep_np(1.8, 4.2, self.d_road)))
+
+        # Village plateau (#452): Anwel's footprint sits on flattened ground so
+        # house floors, the plaza pad, and props sit true (no clipping/floating).
+        anwel_a = layout.anchors["anwel"]["world"]
+        vcx, vcz = anwel_a["x"] + 25.5, anwel_a["z"] - 5.5
+        vrect = np.maximum(np.abs(X - vcx) / 18.0, np.abs(Z - vcz) / 29.0)
+        vm = 1.0 - _smoothstep_np(0.85, 1.18, vrect)
+        # target height = current terrain at the plaza center
+        pi = int((anwel_a["z"] - 2.0 - self.z0) / self.step)
+        pj = int((anwel_a["x"] + 22.5 - self.x0) / self.step)
+        H_village = float(H[pi, pj])
+        H = H * (1.0 - vm) + H_village * vm
         self.H = H
 
         self.moisture = _fbm_np(X * 0.021 + 9.0, Z * 0.021 - 4.0, seed ^ 0xF00D, 3)
