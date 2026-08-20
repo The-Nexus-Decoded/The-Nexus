@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import bodyAnchorIntake from "../docs/3d-ai-studio/body-anchor-intake.json";
 import modelRegister from "../docs/3d-ai-studio/first-breach-model-register.json";
@@ -890,7 +890,7 @@ describe("First Breach production model register", () => {
     expect(localAssetLineage.policy.providerExportsMayBeStoredAsLocalDerived).toBe(false);
     expect(localAssetLineage.policy.localRetopologyKeepsParentSourceHash).toBe(true);
     expect(runtimeAssetManifest.excludeGlobs).toContain("assets/3d/local-derived/issue-448/**");
-    expect(localAssetLineage.assets).toHaveLength(3);
+    expect(localAssetLineage.assets).toHaveLength(2);
     expect(localAssetLineage.assets[0]).toMatchObject({
       assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
       lineageKind: "local-derived",
@@ -956,54 +956,31 @@ describe("First Breach production model register", () => {
       intendedRuntimeSlot: "character-body/human/masculine/heavy",
       runtimePromotionAllowed: false,
     });
-    expect(localAssetLineage.assets[2]).toMatchObject({
+    expect(localAssetLineage.rejectedExperiments).toContainEqual(expect.objectContaining({
       assetId: "body-human-masculine-heavy-local-quad-bake-pilot-v001",
-      lineageKind: "local-derived",
-      status: "non-shipping-unified-quad-baked-appearance-pilot",
-      parentSource: {
-        sourceKind: "local-derived",
-        assetId: "body-human-masculine-heavy-local-retopo-pilot-v001",
-        sha256: "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
-      },
-      localRecipe: {
-        tool: "Blender",
-        toolVersion: "4.5.12 LTS",
-        gpuAccelerationUsed: true,
-        parameters: {
-          method: "voxel-remesh-union-smart-uv-selected-to-active-pbr-bake",
-          voxelSize: 0.008,
-          textureResolution: 2048,
-          bakeDevice: "CUDA",
-        },
-      },
-      output: {
+      status: "rejected-visible-surface-after-close-up-deformation-review",
+      artifactRetained: false,
+      binaryRemovedFromRepository: true,
+      formerOutput: {
         file: "sd-body-human-masculine-heavy-local-quad-bake-pilot-v001.glb",
         sha256: "99CE9111EC2FADD0DC826688121991674E55CA9D2FC3BA882F511B43FDAE45B1",
         bytes: 6812384,
-        vertices: 21638,
-        polygons: 21636,
-        quads: 21636,
-        nonQuads: 0,
-        triangles: 43272,
-        uvLayers: 1,
-        materials: 1,
-        embeddedTextures: ["base-color", "normal"],
-        skins: 0,
-        animations: 0,
       },
-      intendedRuntimeSlot: "character-body/human/masculine/heavy",
-      runtimePromotionAllowed: false,
-    });
-    const quadBakeBytes = readFileSync(
-      new URL(
-        "../public/assets/3d/local-derived/issue-448/sd-body-human-masculine-heavy-local-quad-bake-pilot-v001.glb",
-        import.meta.url,
+      rejectionReasons: expect.arrayContaining([
+        "voxel-remesh-fused-finger-separations",
+        "coarse-hand-and-wrist-topology-failed-deformation-review",
+        "baked-alpha-channel-created-transparent-atlas-gaps",
+      ]),
+      replacementStrategy: "preserve-detailed-visible-surface-and-build-a-separate-local-deformation-cage",
+    }));
+    expect(
+      existsSync(
+        new URL(
+          "../public/assets/3d/local-derived/issue-448/sd-body-human-masculine-heavy-local-quad-bake-pilot-v001.glb",
+          import.meta.url,
+        ),
       ),
-    );
-    expect(quadBakeBytes.byteLength).toBe(6812384);
-    expect(createHash("sha256").update(quadBakeBytes).digest("hex").toUpperCase()).toBe(
-      "99CE9111EC2FADD0DC826688121991674E55CA9D2FC3BA882F511B43FDAE45B1",
-    );
+    ).toBe(false);
   });
 
   it("covers every current level surface that must be revalidated", () => {

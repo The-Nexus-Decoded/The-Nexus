@@ -1,10 +1,12 @@
-"""Build a unified local quad-cage and bake the reviewed humanoid appearance.
+"""Build a local quad topology diagnostic and bake the reviewed appearance.
 
 This is an issue #448 feasibility recipe, not a runtime-promotion recipe. It
 fuses the source model's disconnected pieces with Blender's voxel remesher,
 creates a fresh UV atlas, and bakes base-color and tangent-space normal maps
-from the reviewed local topology pilot. The exported GLB remains gated until
-the exact quad output passes skinning, deformation, seam, and clipping review.
+from the reviewed local topology pilot. Voxel union can erase finger spacing,
+so this recipe is cage/topology evidence only and must never be promoted as a
+visible character surface. The exported GLB remains gated until a separate,
+hand-preserving visible surface passes deformation, seam, and clipping review.
 """
 
 from __future__ import annotations
@@ -103,6 +105,7 @@ def make_bake_material(
     material.node_tree.links.new(bsdf.outputs["BSDF"], output_node.inputs["Surface"])
     bsdf.inputs["Roughness"].default_value = 0.72
     bsdf.inputs["Metallic"].default_value = 0.0
+    bsdf.inputs["Alpha"].default_value = 1.0
     target.data.materials.clear()
     target.data.materials.append(material)
 
@@ -110,7 +113,7 @@ def make_bake_material(
         "SD_HumanoidBaseColor",
         width=resolution,
         height=resolution,
-        alpha=True,
+        alpha=False,
     )
     base.filepath_raw = str(texture_dir / "base-color.png")
     base.file_format = "PNG"
@@ -172,7 +175,6 @@ def bake_appearance(
     normal.pack()
 
     links.new(base_node.outputs["Color"], bsdf.inputs["Base Color"])
-    links.new(base_node.outputs["Alpha"], bsdf.inputs["Alpha"])
     normal_map = nodes.new("ShaderNodeNormalMap")
     normal_map.name = "BakedNormalMap"
     links.new(normal_node.outputs["Color"], normal_map.inputs["Color"])
@@ -237,7 +239,8 @@ def main() -> None:
     low["parentAssetId"] = args.parent_asset_id
     low["parentSha256"] = actual_source_hash
     low["runtimePromotionAllowed"] = False
-    low["status"] = "non-shipping-unified-quad-baked-appearance-pilot"
+    low["status"] = "non-shipping-quad-topology-diagnostic"
+    low["visibleSurfaceAllowed"] = False
 
     bpy.ops.object.select_all(action="DESELECT")
     low.select_set(True)
@@ -263,8 +266,9 @@ def main() -> None:
         "schemaVersion": 1,
         "issue": 448,
         "assetId": args.asset_id,
-        "status": "non-shipping-unified-quad-baked-appearance-pilot",
+        "status": "non-shipping-quad-topology-diagnostic",
         "runtimePromotionAllowed": False,
+        "visibleSurfaceAllowed": False,
         "tool": {"name": "Blender", "version": bpy.app.version_string},
         "source": {
             "assetId": args.parent_asset_id,
@@ -273,7 +277,7 @@ def main() -> None:
             "bytes": source.stat().st_size,
         },
         "recipe": {
-            "method": "voxel-remesh-union-smart-uv-selected-to-active-pbr-bake",
+            "method": "voxel-remesh-union-smart-uv-selected-to-active-opaque-pbr-bake",
             "voxelSize": args.voxel_size,
             "textureResolution": args.texture_resolution,
             "bakeDevice": device,
@@ -296,10 +300,10 @@ def main() -> None:
             "animations": 0,
         },
         "remainingGates": [
-            "owner-visual-review",
+            "hand-preserving-visible-surface-replacement",
+            "close-up-elbow-wrist-and-hand-deformation-review",
             "artist-authored-edge-flow-review",
             "canonical-head-seam",
-            "rig-and-weight-paint-on-this-exact-quad-output",
             "locomotion-retarget-proof",
             "equipment-clipping-proof",
         ],
