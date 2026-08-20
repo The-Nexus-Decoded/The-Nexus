@@ -42,7 +42,10 @@ function buildRibbon(
   // Convert to local frame and pre-compute smoothed water heights.
   const pts: THREE.Vector2[] = samples.map(([wx = 0, wz = 0]) => new THREE.Vector2(wx - offset[0], wz - offset[1]));
   const rawY = pts.map((p) => field.height(p.x, p.y) + WATER_TUNING.waterLift);
-  const smoothY = rawY.map((_, i) => {
+  // Smooth along the course, but NEVER below the local bed + lift — upstream
+  // reaches climb, and a smoothed level dips under the bed (dry-looking
+  // stretches). The max() creates slight uphill steps the bank tuck hides.
+  const smoothY = rawY.map((raw, i) => {
     let sum = 0;
     let n = 0;
     for (let k = -4; k <= 4; k += 1) {
@@ -50,7 +53,7 @@ function buildRibbon(
       sum += rawY[j] ?? 0;
       n += 1;
     }
-    return sum / n;
+    return Math.max(sum / n, raw ?? 0);
   });
 
   const count = pts.length;

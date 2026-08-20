@@ -469,7 +469,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
         camera.position.add(deltaMove);
         controls.target.copy(player.position).add(new THREE.Vector3(0, 1.3, 0));
         focus = controls.target;
-        vitals.element.style.display = "block";
+        vitals.element.style.display = state.contact === "dry" ? "none" : "block";
         vitals.set(
           state.breath,
           state.health,
