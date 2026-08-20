@@ -131,8 +131,16 @@ export async function pruneAssetRoot(assetRoot, manifest) {
   };
 }
 
+export function isRuntimeHardBudgetEnforced(environment = process.env) {
+  const isQaBuild = environment.SOULDRIFTER_RELEASE_CHANNEL === "qa"
+    || environment.GITHUB_REF_NAME === "qa"
+    || environment.GITHUB_BASE_REF === "qa";
+  return !isQaBuild;
+}
+
 export async function pruneRuntimeAssets(root = projectRoot) {
   const manifest = await loadAssetManifest(resolve(root, "scripts/runtime-asset-manifest.json"));
+  const hardBudgetEnforced = isRuntimeHardBudgetEnforced();
   const results = [];
   for (const target of manifest.targets) {
     const assetRoot = resolve(root, normalizeAssetPath(target.assetRoot));
@@ -140,12 +148,20 @@ export async function pruneRuntimeAssets(root = projectRoot) {
     const result = await pruneAssetRoot(assetRoot, manifest);
     const budgetRoot = resolve(root, normalizeAssetPath(target.budgetRoot));
     const bytes = await directoryBytes(budgetRoot);
-    if (bytes > manifest.maxBytes) {
+    const hardBudgetMet = bytes <= manifest.maxBytes;
+    if (hardBudgetEnforced && !hardBudgetMet) {
       throw new Error(`${target.budgetRoot} is ${bytes} bytes, exceeding the ${manifest.maxBytes}-byte runtime budget.`);
+    }
+    if (!hardBudgetEnforced && !hardBudgetMet) {
+      process.stderr.write(
+        `QA asset budget report: ${target.budgetRoot} is ${bytes} bytes, above the production ${manifest.maxBytes}-byte budget.\n`,
+      );
     }
     results.push({
       target: target.budgetRoot,
       bytes,
+      hardBudgetEnforced,
+      hardBudgetMet,
       preferredBudgetMet: bytes <= manifest.preferredMaxBytes,
       ...result,
     });

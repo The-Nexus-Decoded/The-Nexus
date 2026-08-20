@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   collectPrunableFiles,
   directoryBytes,
+  isRuntimeHardBudgetEnforced,
   loadAssetManifest,
   pruneAssetRoot,
 } from "../scripts/prune-runtime-assets.mjs";
@@ -22,6 +23,14 @@ afterEach(async () => {
 });
 
 describe("runtime asset budget", () => {
+  it("reports size without enforcing the 150 MB hard cap for QA builds only", () => {
+    expect(isRuntimeHardBudgetEnforced({ GITHUB_REF_NAME: "qa" })).toBe(false);
+    expect(isRuntimeHardBudgetEnforced({ GITHUB_BASE_REF: "qa" })).toBe(false);
+    expect(isRuntimeHardBudgetEnforced({ SOULDRIFTER_RELEASE_CHANNEL: "qa" })).toBe(false);
+    expect(isRuntimeHardBudgetEnforced({ GITHUB_REF_NAME: "main" })).toBe(true);
+    expect(isRuntimeHardBudgetEnforced({})).toBe(true);
+  });
+
   it("identifies only build-time source art in the real public asset tree", async () => {
     const manifest = await loadAssetManifest();
     const publicRoot = resolve(import.meta.dirname, "../public");

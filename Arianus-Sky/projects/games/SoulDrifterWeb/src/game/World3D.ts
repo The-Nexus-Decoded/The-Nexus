@@ -82,6 +82,7 @@ import { buildSoulwellChamber } from "./environment/rooms/SoulwellChamber";
 import { createSoulwellMaterialLibrary, type SoulwellMaterialLibrary } from "./environment/MaterialLibrary";
 import { dungeonPropAssetSpec, type DungeonPropAssetId } from "./environment/DungeonPropCatalog";
 import { createDungeonFireEffect, instantiateDungeonProp } from "./environment/DungeonPropKit";
+import { completeHoudiniFirstBreachComposition } from "./environment/HoudiniFirstBreachComposition";
 import {
   cameraFollowStep,
   cameraPanBounds,
@@ -188,6 +189,7 @@ interface StoryObject {
 
 interface DebugSnapshot {
   seed: number;
+  environmentVariant: "runtime" | "houdini";
   realmPressure: number;
   room: DungeonRoomKind;
   player: GridPoint & { hp: number; stability: number; resource: number };
@@ -378,6 +380,8 @@ export class World3D {
   private readonly calling: ReturnType<typeof callingById>;
   private readonly lighting = lightingTuningRegistry.snapshot();
   private readonly dungeon: GeneratedDungeon;
+  private readonly environmentVariant: "runtime" | "houdini";
+  private readonly seed: number;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 320);
   private readonly renderer: THREE.WebGLRenderer;
@@ -466,15 +470,22 @@ export class World3D {
   public constructor(
     private readonly container: HTMLElement,
     private readonly profile: CharacterProfile,
-    private readonly seed: number,
+    seed: number,
     savedInventory?: InventoryState,
   ) {
+    this.environmentVariant = new URLSearchParams(window.location.search).get("environment") === "houdini"
+      ? "houdini"
+      : "runtime";
+    this.seed = this.environmentVariant === "houdini" ? 4182 : seed;
     this.calling = callingById(profile.callingId);
     this.inventory = savedInventory?.items.map((item) => ({ ...item })) ?? createStarterInventory(profile.callingId);
     this.backpackCapacity = savedInventory
       ? { ...savedInventory.capacity }
       : createStarterBackpackCapacity();
-    this.dungeon = generateSoulwellDungeon(seed);
+    const generatedDungeon = generateSoulwellDungeon(this.seed);
+    this.dungeon = this.environmentVariant === "houdini"
+      ? completeHoudiniFirstBreachComposition(generatedDungeon)
+      : generatedDungeon;
     this.soulwellCheckpoint = { grid: { ...this.dungeon.playerStart }, room: "training" };
     this.tileMap = new Map(this.dungeon.tiles.map((tile) => [dungeonTileKey(tile), tile]));
     this.trialDifficulty = null;
@@ -483,7 +494,7 @@ export class World3D {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = this.lighting.exposure;
+    this.renderer.toneMappingExposure = this.lighting.exposure * (this.environmentVariant === "houdini" ? 1.08 : 1);
     this.renderer.shadowMap.enabled = this.lighting.shadowQuality !== "off";
     this.renderer.shadowMap.type = this.shadowMapType();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -505,6 +516,8 @@ export class World3D {
 
   public async start(): Promise<void> {
     this.container.replaceChildren(this.renderer.domElement);
+    this.container.dataset.environmentVariant = this.environmentVariant;
+    document.documentElement.dataset.souldrifterEnvironment = this.environmentVariant;
     this.scene.background = new THREE.Color(0x05090d);
     this.scene.fog = new THREE.FogExp2(0x071015, this.lighting.fogDensity);
     this.configureLights();
@@ -538,12 +551,19 @@ export class World3D {
     this.environmentDisposers.forEach((dispose) => dispose());
     this.renderer.dispose();
     this.paperRenderer.dispose();
+    delete this.container.dataset.environmentVariant;
+    delete document.documentElement.dataset.souldrifterEnvironment;
     if (window.__SOULDRIFTER_DEBUG__) delete window.__SOULDRIFTER_DEBUG__;
   }
 
   private configureLights(): void {
-    const hemisphere = new THREE.HemisphereLight(0x9fbeca, 0x17110f, this.lighting.hemisphereIntensity);
-    const ambient = new THREE.AmbientLight(0x789092, this.lighting.ambientIntensity);
+    const reviewMultiplier = this.environmentVariant === "houdini" ? 1.3 : 1;
+    const hemisphere = new THREE.HemisphereLight(
+      0x9fbeca,
+      0x17110f,
+      this.lighting.hemisphereIntensity * reviewMultiplier,
+    );
+    const ambient = new THREE.AmbientLight(0x789092, this.lighting.ambientIntensity * reviewMultiplier);
     hemisphere.layers.enable(1);
     ambient.layers.enable(1);
     this.scene.add(hemisphere);
@@ -916,7 +936,8 @@ export class World3D {
           root.userData.fireLit = lit;
         };
         root.userData.setFireLit = setFireLit;
-        setFireLit(((this.seed ^ (prop.x * 31) ^ (prop.y * 17)) & 3) !== 0);
+        setFireLit(this.environmentVariant === "houdini"
+          || ((this.seed ^ (prop.x * 31) ^ (prop.y * 17)) & 3) !== 0);
         animateFire = fire.animate;
         disposeFire = fire.dispose;
       }
@@ -4028,6 +4049,7 @@ export class World3D {
     };
     return {
       seed: this.seed,
+      environmentVariant: this.environmentVariant,
       realmPressure: this.realmPressure,
       room: this.currentRoom,
       player: { ...this.player.grid, hp: this.hp, stability: this.stability, resource: this.resource },

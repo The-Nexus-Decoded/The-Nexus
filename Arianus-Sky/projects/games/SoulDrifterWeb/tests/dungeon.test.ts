@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dungeonTileKey, generateSoulwellDungeon, parseDebugRunSeed, roomContains } from "../src/game/dungeon";
 import { DUNGEON_PROP_ASSET_IDS, dungeonPropAssetSpec } from "../src/game/environment/DungeonPropCatalog";
+import { completeHoudiniFirstBreachComposition } from "../src/game/environment/HoudiniFirstBreachComposition";
 
 function reachableTiles(dungeon: ReturnType<typeof generateSoulwellDungeon>): Set<string> {
   const floor = new Set(dungeon.tiles.map(dungeonTileKey));
@@ -49,6 +50,29 @@ describe("Soulwell dungeon generation", () => {
 
   it("is deterministic for a recorded run seed", () => {
     expect(generateSoulwellDungeon(4182)).toEqual(generateSoulwellDungeon(4182));
+  });
+
+  it("reproduces the complete Houdini review composition for the approved seed", () => {
+    const dungeon = completeHoudiniFirstBreachComposition(generateSoulwellDungeon(4182));
+    const kitAssets = new Set(dungeon.props.flatMap((prop) => prop.assetId ? [prop.assetId] : []));
+
+    expect(kitAssets).toEqual(new Set(DUNGEON_PROP_ASSET_IDS));
+    expect(dungeon.props.find((prop) => prop.id === "starter-coffer")?.assetId).toBe("storage-chest");
+    expect(dungeon.props.find((prop) => prop.id === "training-effigy")?.assetId).toBe("guardian-statue");
+    expect(dungeon.props.find((prop) => prop.id === "memory-loom")?.assetId).toBe("ruined-altar");
+    expect(dungeon.props.find((prop) => prop.id === "gate-wayfarer")?.assetId).toBe("rusted-portcullis");
+    expect(dungeon.props.find((prop) => prop.id === "gate-oathbreaker")?.assetId).toBe("heavy-door");
+
+    const expectedFixtures = {
+      training: { "wall-torch-sconce": 5, "floor-brazier": 2, "hanging-brazier": 2 },
+      skirmish: { "wall-torch-sconce": 8, "floor-brazier": 3, "hanging-brazier": 3 },
+      boss: { "wall-torch-sconce": 4, "floor-brazier": 4, "hanging-brazier": 2 },
+    } as const;
+    for (const [roomId, fixtures] of Object.entries(expectedFixtures)) {
+      for (const [assetId, minimum] of Object.entries(fixtures)) {
+        expect(dungeon.props.filter((prop) => prop.roomId === roomId && prop.assetId === assetId)).toHaveLength(minimum);
+      }
+    }
   });
 
   it("changes layout, encounters, or modifiers across different runs", () => {
