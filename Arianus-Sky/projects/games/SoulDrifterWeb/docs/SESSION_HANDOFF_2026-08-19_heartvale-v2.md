@@ -52,8 +52,9 @@ session with a reviewer's brief. Before owner sign-off, spawn one with:
 - NPC figures + garden cones + lane dressing are tracked placeholders
   (Finding 8) — no replacement tickets filed yet.
 - No per-channel normal maps on terrain (diffuse-only blend).
-- zoneHeartvale.ts quest/spawn data still uses old-scale coordinates — needs
-  a world-meters pass before the quest engine drives this zone live.
+- ~~zoneHeartvale.ts quest/spawn data~~ — DONE (evening): gridToWorld()
+  derives world meters for every spawn area, escort route, and anchor;
+  locked to layout.json by 5 new test invariants.
 - Seam/chunking checks (§5) untested: hv-1 is the only built zone so far.
 
 ## Rebuild commands
