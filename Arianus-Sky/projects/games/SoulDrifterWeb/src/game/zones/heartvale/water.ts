@@ -18,7 +18,7 @@ const RIVER_WIDTH: Record<string, number> = {
   "heir-run": 10.0,
 };
 const DEFAULT_WIDTH = 9.0;
-const WATER_LIFT = 0.42;
+const WATER_LIFT = 0.5;
 
 interface Ribbon {
   positions: Float32Array;
@@ -83,9 +83,9 @@ function buildRibbon(
   const index = new Uint32Array((count - 1) * 6);
   let q = 0;
   for (let i = 0; i < count - 1; i += 1) {
-    const a = i * 2;
-    index[q] = a; index[q + 1] = a + 2; index[q + 2] = a + 1;
-    index[q + 3] = a + 1; index[q + 4] = a + 2; index[q + 5] = a + 3;
+    const a = i * 2; // left vertex of sample i; a+1 = right, a+2/a+3 next sample
+    index[q] = a; index[q + 1] = a + 1; index[q + 2] = a + 2;
+    index[q + 3] = a + 1; index[q + 4] = a + 3; index[q + 5] = a + 2;
     q += 6;
   }
   return { positions, across, along, index };
@@ -105,26 +105,24 @@ export function createRivers(
     transparent: true,
     depthWrite: false,
     fog: true,
-    uniforms: THREE.UniformsUtils.merge([
-      THREE.UniformsLib.fog,
-      {
-        uTime: { value: 0 },
-        uSunDir: { value: new THREE.Vector3(0.5, 0.8, 0.3).normalize() },
-        uDeepColor: { value: new THREE.Color(0x1d4d4e) },
-        uShallowColor: { value: new THREE.Color(0x4e8f86) },
-        uSkyColor: { value: new THREE.Color(0xbfd9e8) },
-        uFoamColor: { value: new THREE.Color(0xe8f2ec) },
-        uSplatA: { value: splatA },
-        uSplatB: { value: splatB },
-        uGroundOrigin: { value: new THREE.Vector2(field.originX, field.originZ) },
-        uGroundExtent: {
-          value: new THREE.Vector2(
-            (field.nx - 1) * field.step,
-            (field.nz - 1) * field.step,
-          ),
-        },
+    uniforms: {
+      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+      uTime: { value: 0 },
+      uSunDir: { value: new THREE.Vector3(0.5, 0.8, 0.3).normalize() },
+      uDeepColor: { value: new THREE.Color(0x14454a) },
+      uShallowColor: { value: new THREE.Color(0x3f8478) },
+      uSkyColor: { value: new THREE.Color(0x9fc3d4) },
+      uFoamColor: { value: new THREE.Color(0xe8f2ec) },
+      uSplatA: { value: splatA },
+      uSplatB: { value: splatB },
+      uGroundOrigin: { value: new THREE.Vector2(field.originX, field.originZ) },
+      uGroundExtent: {
+        value: new THREE.Vector2(
+          (field.nx - 1) * field.step,
+          (field.nz - 1) * field.step,
+        ),
       },
-    ]),
+    },
     vertexShader: `
       #include <fog_pars_vertex>
       attribute float across;
@@ -182,11 +180,11 @@ export function createRivers(
         vec3 water = mix(uDeepColor, uShallowColor, shallow);
 
         float fresnel = pow(1.0 - max(dot(normal, vViewDir), 0.0), 2.2);
-        water = mix(water, uSkyColor, fresnel * 0.65);
+        water = mix(water, uSkyColor, fresnel * 0.32);
 
         vec3 halfDir = normalize(uSunDir + vViewDir);
         float spec = pow(max(dot(normal, halfDir), 0.0), 90.0);
-        water += vec3(1.0, 0.95, 0.8) * spec * 0.9;
+        water += vec3(1.0, 0.95, 0.8) * spec * 0.45;
 
         // Foam: wet-bank band near the ribbon edge, broken by ripple noise.
         float edge = smoothstep(0.45, 0.95, abs(vAcross));

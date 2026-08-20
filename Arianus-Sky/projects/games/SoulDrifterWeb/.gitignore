@@ -3,3 +3,6 @@ dist/
 coverage/
 *.log
 
+
+# Houdini blockout OBJ (Houdini-side artifact; runtime uses the raw/json exports)
+public/data/zones/heartvale/*.obj

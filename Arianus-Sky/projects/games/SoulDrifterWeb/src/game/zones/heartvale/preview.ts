@@ -44,6 +44,7 @@ function presets(data: ZoneData): Record<string, CameraPreset> {
     soulwell: { target: [0, 0], offset: [16, 11, 16] },
     anwel: { target: [anwel.x, anwel.z], offset: [24, 16, 24] },
     river: { target: riverLocal, offset: [30, 14, 30] },
+    riverclose: { target: riverLocal, offset: [14, 5, 14] },
     iso: { target: [anwel.x * 0.4, anwel.z * 0.4], offset: [260, 210, 300] },
   };
 }
@@ -142,7 +143,7 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xd3d6c4, 0.0015);
+  scene.fog = new THREE.FogExp2(0xd3d6c4, 0.00042);
   scene.add(createSkyDome());
   const sun = setupLighting(scene);
 
@@ -205,30 +206,52 @@ export async function startZonePreview(container: HTMLElement, zoneId: string): 
   const hud = setupHud(container);
   loading.remove();
 
+  // Debug/review hook: lets the Playwright probe inspect the scene graph.
+  const hooks = window as unknown as {
+    __zoneScene: THREE.Scene;
+    __zoneData: ZoneData;
+    __zoneFrames: number;
+    __zoneLoopError: string | null;
+    __zoneCamera: THREE.PerspectiveCamera;
+    __zoneRenderer: THREE.WebGLRenderer;
+  };
+  hooks.__zoneScene = scene;
+  hooks.__zoneData = data;
+  hooks.__zoneCamera = camera;
+  hooks.__zoneRenderer = renderer;
+  hooks.__zoneFrames = 0;
+  hooks.__zoneLoopError = null;
+
   const clock = new THREE.Clock();
   const tickables = [rivers.userData.tick, grass.userData.tick].filter(Boolean);
 
   renderer.setAnimationLoop(() => {
-    const elapsed = clock.getElapsedTime();
-    for (const tick of tickables) tick(elapsed);
-    controls.update();
+    try {
+      const elapsed = clock.getElapsedTime();
+      for (const tick of tickables) tick(elapsed);
+      controls.update();
 
-    // Shadow frustum follows the camera focus.
-    sun.target.position.copy(controls.target);
-    sun.position.set(
-      controls.target.x + 90,
-      controls.target.y + 130,
-      controls.target.z + 55,
-    );
+      // Shadow frustum follows the camera focus.
+      sun.target.position.copy(controls.target);
+      sun.position.set(
+        controls.target.x + 90,
+        controls.target.y + 130,
+        controls.target.z + 55,
+      );
 
-    const wx = controls.target.x + data.meta.plateOffset[0];
-    const wz = controls.target.z + data.meta.plateOffset[1];
-    const zone = zoneAt(data.meta, wx, wz);
-    hud.textContent =
-      `zone preview: ${zoneId}  cam: ${presetName}\n` +
-      `world: ${wx.toFixed(1)}, ${wz.toFixed(1)} m  ` +
-      `zone: ${zone ? `${zone.id} · ${zone.name}` : "outside section"}`;
-    composer.render();
+      const wx = controls.target.x + data.meta.plateOffset[0];
+      const wz = controls.target.z + data.meta.plateOffset[1];
+      const zone = zoneAt(data.meta, wx, wz);
+      hud.textContent =
+        `zone preview: ${zoneId}  cam: ${presetName}\n` +
+        `world: ${wx.toFixed(1)}, ${wz.toFixed(1)} m  ` +
+        `zone: ${zone ? `${zone.id} · ${zone.name}` : "outside section"}`;
+      composer.render();
+      hooks.__zoneFrames += 1;
+    } catch (error) {
+      hooks.__zoneLoopError = error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error);
+      console.error("zone preview loop error", error);
+    }
   });
 
   window.addEventListener("resize", () => {

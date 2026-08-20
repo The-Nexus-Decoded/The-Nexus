@@ -75,13 +75,13 @@ function makeMaterials(): VillageMaterials {
     thatch: (tint) =>
       new THREE.MeshStandardMaterial({
         map: tiled(loader, `${TEX_ROOT}/thatch_roof_angled/thatch_roof_angled_diff_1k.jpg`, 2.4, 1.6),
-        color: new THREE.Color(tint[0], tint[1], tint[2]),
+        color: new THREE.Color(tint[0] * 1.06, tint[1] * 0.88, tint[2] * 0.55), // golden straw
         roughness: 1.0,
       }),
     slate: (tint) =>
       new THREE.MeshStandardMaterial({
         map: tiled(loader, `${TEX_ROOT}/roof_slates_02/roof_slates_02_diff_1k.jpg`, 2.6, 1.8),
-        color: new THREE.Color(tint[0], tint[1], tint[2]),
+        color: new THREE.Color(tint[0] * 0.6, tint[1] * 0.64, tint[2] * 0.7), // weathered blue-grey
         roughness: 0.8,
       }),
     stone,
@@ -184,13 +184,14 @@ function buildHouse(house: VillageHouse, mats: VillageMaterials, field: TerrainF
   addBox(g, timber, w + 0.04, 0.09, 0.09, 0, 0.42 + h * 0.55, d / 2 + 0.01, false);
   addBox(g, timber, w + 0.04, 0.09, 0.09, 0, 0.42 + h * 0.55, -d / 2 - 0.01, false);
 
-  // Gable-end timber framing: verticals + diagonals on ±x faces.
+  // Gable-end timber framing: verticals + diagonals on ±x faces, tucked
+  // under the roof slope so nothing spikes through the shingles.
   for (const sx of [-1, 1]) {
-    const gx = sx * (w / 2 + 0.01);
-    addBox(g, timber, 0.09, rise, 0.09, gx, wallTop + rise / 2, 0, false);
+    const gx = sx * (w / 2 - 0.06);
+    addBox(g, timber, 0.09, rise * 0.8, 0.09, gx, wallTop + rise * 0.38, 0, false);
     for (const sz of [-1, 1]) {
-      const brace = addBox(g, timber, 0.07, rise * 1.15, 0.07, gx, wallTop + rise * 0.45, sz * d * 0.22, false);
-      brace.rotation.x = sz * Math.atan2(d / 2, rise);
+      const brace = addBox(g, timber, 0.07, rise * 0.85, 0.07, gx, wallTop + rise * 0.34, sz * d * 0.14, false);
+      brace.rotation.x = sz * Math.atan2(d / 2, rise) * 0.7;
     }
   }
 
@@ -462,7 +463,7 @@ function buildSoulwell(mats: VillageMaterials, field: TerrainField): THREE.Group
   const g = new THREE.Group();
   g.name = "soulwell-terrace";
   // Flagstone pad.
-  const pad = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 5.9, 0.35, 24), mats.cobble);
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.7, 0.35, 28), mats.cobble);
   pad.position.y = 0.17;
   pad.receiveShadow = true;
   pad.castShadow = false;

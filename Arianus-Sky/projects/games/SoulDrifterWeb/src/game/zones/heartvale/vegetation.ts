@@ -368,7 +368,7 @@ diffuseColor.rgb *= mix(lushTint, dryTint, vDry) * (0.55 + 0.45 * vSplatTip);`,
   clumps.forEach(([x, z, scale, yaw, variant], i) => {
     const y = field.height(x, z);
     quat.setFromAxisAngle(up, yaw);
-    const s = scale * (0.55 + 0.45 * ((i * 2654435761) % 1000) / 1000);
+    const s = scale * 1.25 * (0.55 + 0.45 * ((i * 2654435761) % 1000) / 1000);
     matrix.compose(new THREE.Vector3(x, y - 0.02, z), quat, new THREE.Vector3(s, s, s));
     mesh.setMatrixAt(i, matrix);
     dry[i] = variant === 0 ? 0.85 : 0.12;

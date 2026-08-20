@@ -490,8 +490,10 @@ class HeightField:
 
         H = base + (1.35 - base) * _smoothstep_np(16.0, 10.5, np.hypot(X, Z))  # terrace plateau
         self.d_river = _polyline_distance_field(self.xs, self.zs, layout.river_samples, 20.0)
-        carve = 1.65 * (1.0 - _smoothstep_np(2.4, 5.4, self.d_river))
-        carve += 0.35 * (1.0 - _smoothstep_np(4.0, 7.5, self.d_river))  # soft banks
+        # Channel wide enough to carry the runtime water ribbon (7–12 m):
+        # full depth to 4.2 m, feathered banks to ~10.5 m.
+        carve = 1.9 * (1.0 - _smoothstep_np(4.2, 7.2, self.d_river))
+        carve += 0.4 * (1.0 - _smoothstep_np(6.0, 10.5, self.d_river))  # soft banks
         H = H - carve
         self.d_road = _polyline_distance_field(self.xs, self.zs, layout.road_samples, 20.0)
         H = H + (np.round(H / 0.30) * 0.30 - H) * (0.5 * (1.0 - _smoothstep_np(1.8, 4.2, self.d_road)))
@@ -536,10 +538,10 @@ class HeightField:
             d = np.hypot(DX, DZ)
             w = np.clip(1.0 - d / radius, 0.0, 1.0) ** 0.7 * 0.9
             np.maximum(forest[z_lo:z_hi, x_lo:x_hi], w, out=forest[z_lo:z_hi, x_lo:x_hi])
-        wet = _smoothstep_np(2.2, 3.4, self.d_river) * (1.0 - _smoothstep_np(4.2, 5.6, self.d_river))
+        wet = _smoothstep_np(3.0, 4.4, self.d_river) * (1.0 - _smoothstep_np(5.8, 7.4, self.d_river))
         road = 1.0 - _smoothstep_np(1.7, 3.0, self.d_road)
-        riverbed = 1.0 - _smoothstep_np(2.6, 4.0, self.d_river)
-        stone = 1.0 - _smoothstep_np(11.0, 12.5, np.hypot(X, Z))
+        riverbed = 1.0 - _smoothstep_np(3.8, 5.8, self.d_river)
+        stone = 1.0 - _smoothstep_np(6.8, 8.4, np.hypot(X, Z))
         overlay(6, forest)
         overlay(4, wet)
         overlay(2, road)
@@ -1093,7 +1095,7 @@ def scatter_vegetation(builder: GeometryBuilder, layout: HeartvaleLayout) -> dic
             return True
         if math.hypot(x - (anwel["x"] + 7.0), z - (anwel["z"] - 0.5)) < 14.0:  # village green + house ring
             return True
-        if layout.river_distance(x, z) < 3.4:
+        if layout.river_distance(x, z) < 5.6:
             return True
         if layout.road_distance(x, z) < 2.8:
             return True
@@ -1286,7 +1288,7 @@ def plan_grass_clumps(layout: HeartvaleLayout) -> list[tuple[float, float, float
                     continue
                 d_river = layout.river_distance(x, z)
                 d_road = layout.road_distance(x, z)
-                if d_river < 2.8 or d_road < 2.1:
+                if d_river < 4.6 or d_road < 2.1:
                     continue
                 # patchiness: meadow clumping noise — bald patches stay bald
                 patch = fbm(x * 0.03, z * 0.03, layout.seed ^ 0xBEEF, 3)
