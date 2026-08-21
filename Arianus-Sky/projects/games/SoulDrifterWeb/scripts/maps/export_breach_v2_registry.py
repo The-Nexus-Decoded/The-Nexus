@@ -48,7 +48,8 @@ def placements(room_id, room_w, room_h):
                         blocking=group in ("loot", "furniture", "structure", "rubble", "corruption")
                         and asset not in ("bone-pile", "iron-floor-grate", "shed-chitin-pile",
                                           "weapon-armor-heap", "bottles-jugs-crockery-cluster",
-                                          "supply-pile", "candelabra-cluster", "wall-torch-sconce"),
+                                          "supply-pile", "candelabra-cluster", "wall-torch-sconce",
+                                          "heavy-door"),
                         role=("loot-cache" if asset == "storage-chest" else
                               "destructible-cover" if asset in (
                                   "storage-barrel", "reinforced-crate", "broken-handcart"

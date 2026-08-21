@@ -92,6 +92,18 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "archive-bookshelf",
+          "x": 16.0,
+          "y": 0.5,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "south",
+          "height": 2.75,
+          "footprint": 2.6,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "archive-bookshelf",
           "x": 17.8,
           "y": 21.5,
           "placement": "wall",
@@ -185,6 +197,54 @@ export const BREACH_V2_REGISTRY = {
           "footprint": 2.45,
           "blocking": false,
           "role": "dressing"
+        },
+        {
+          "asset": "floor-brazier",
+          "x": 20.8,
+          "y": 3.5,
+          "placement": "floor",
+          "group": "fire",
+          "facing": "up",
+          "height": 1.38,
+          "footprint": 1.5,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "storage-chest",
+          "x": 27.8,
+          "y": 2.0,
+          "placement": "floor",
+          "group": "loot",
+          "facing": "up",
+          "height": 1.05,
+          "footprint": 1.65,
+          "blocking": true,
+          "role": "loot-cache"
+        },
+        {
+          "asset": "reinforced-crate",
+          "x": 28.2,
+          "y": 10.2,
+          "placement": "floor",
+          "group": "goods",
+          "facing": "up",
+          "height": 1.08,
+          "footprint": 1.55,
+          "blocking": false,
+          "role": "destructible-cover"
+        },
+        {
+          "asset": "storage-barrel",
+          "x": 28.2,
+          "y": 12.0,
+          "placement": "floor",
+          "group": "goods",
+          "facing": "up",
+          "height": 1.22,
+          "footprint": 1.4,
+          "blocking": false,
+          "role": "destructible-cover"
         },
         {
           "asset": "cave-in-rubble",
@@ -679,8 +739,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "storage-chest",
-          "x": 13.8,
-          "y": 1.8,
+          "x": 3.8,
+          "y": 5.5,
           "placement": "floor",
           "group": "loot",
           "facing": "up",
@@ -688,30 +748,6 @@ export const BREACH_V2_REGISTRY = {
           "footprint": 1.65,
           "blocking": true,
           "role": "loot-cache"
-        },
-        {
-          "asset": "heavy-door",
-          "x": 15.7,
-          "y": 2.5,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "west",
-          "height": 3.0,
-          "footprint": 2.45,
-          "blocking": true,
-          "role": "dressing"
-        },
-        {
-          "asset": "heavy-door",
-          "x": 15.7,
-          "y": 9.5,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "west",
-          "height": 3.0,
-          "footprint": 2.45,
-          "blocking": true,
-          "role": "dressing"
         },
         {
           "asset": "wall-torch-sconce",
@@ -1411,7 +1447,7 @@ export const BREACH_V2_REGISTRY = {
           "facing": "west",
           "height": 3.0,
           "footprint": 2.45,
-          "blocking": true,
+          "blocking": false,
           "role": "dressing"
         },
         {

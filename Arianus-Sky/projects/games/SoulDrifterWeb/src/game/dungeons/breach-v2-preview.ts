@@ -339,7 +339,7 @@ interface SectionDoorSystem {
   toggleNearest(x: number, z: number, maxDistance?: number): string | null;
 }
 
-/** Alternate the authored 3DAI Studio heavy door and portcullis at section boundaries. */
+/** Use authored 3DAI Studio doors and portcullises at section boundaries. */
 async function placeSectionDoors(
   scene: THREE.Scene,
   layout: BreachV2Layout,
@@ -373,7 +373,10 @@ async function placeSectionDoors(
   ];
 
   const tickables: ((elapsed: number) => void)[] = [];
-  const portcullisIds = new Set(["ashen-threshold", "boss-lock"]);
+  const portcullisIds = new Set([
+    "wayfarer-choice", "oathbreaker-choice", "ashen-threshold", "boss-lock",
+  ]);
+  const sealedVoids: THREE.Object3D[] = [];
   const states: {
     id: string;
     x: number;
@@ -444,12 +447,69 @@ async function placeSectionDoors(
     scene.add(pivot);
     tickables.push(instance.animate);
     states.push({ ...door, root: pivot, kind, active, open: false, progress: 0 });
+
+    if (!active && (door.id === "wayfarer-choice" || door.id === "oathbreaker-choice")) {
+      const smokeMaterial = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec2 vUv;
+          uniform float uTime;
+          float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+          }
+          float noise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+              mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), f.x), f.y);
+          }
+          void main() {
+            vec2 flow = vec2(vUv.x * 3.8 + sin(vUv.y * 7.0 + uTime) * 0.2,
+              vUv.y * 5.2 - uTime * 0.18);
+            float smoke = noise(flow) * 0.55 + noise(flow * 2.1 + 4.0) * 0.3;
+            float edge = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x)
+              * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
+            vec3 color = mix(vec3(0.012, 0.008, 0.018), vec3(0.20, 0.08, 0.27), smoke);
+            gl_FragColor = vec4(color, 0.94 * edge);
+          }
+        `,
+        transparent: true,
+        depthWrite: true,
+        side: THREE.DoubleSide,
+      });
+      const smoke = new THREE.Mesh(
+        new THREE.PlaneGeometry(DOOR_PORTAL_W + 0.18, DOOR_LINTEL_H + 0.08, 1, 1),
+        smokeMaterial,
+      );
+      smoke.name = `sealed-route-void-${door.id}`;
+      smoke.position.set(door.x + (door.axis === "x" ? 0.34 : 0), (DOOR_LINTEL_H + 0.08) / 2,
+        door.z + (door.axis === "z" ? 0.34 : 0));
+      smoke.rotation.y = door.axis === "x" ? Math.PI / 2 : 0;
+      smoke.userData = { inactiveRoute: true, connectorId: door.id, blocksMovement: false };
+      scene.add(smoke);
+      sealedVoids.push(smoke);
+      tickables.push((elapsed) => { smokeMaterial.uniforms.uTime!.value = elapsed; });
+    }
   }
 
-  tickables.push(() => {
+  let lastDoorTickElapsed: number | null = null;
+  tickables.push((elapsed) => {
+    const delta = lastDoorTickElapsed === null
+      ? 1 / 30
+      : Math.min(0.5, Math.max(0, elapsed - lastDoorTickElapsed));
+    lastDoorTickElapsed = elapsed;
+    const animationAlpha = 1 - Math.exp(-5.5 * delta);
     for (const state of states) {
       const target = state.open ? 1 : 0;
-      state.progress += (target - state.progress) * 0.14;
+      state.progress += (target - state.progress) * animationAlpha;
       if (Math.abs(target - state.progress) < 0.001) state.progress = target;
       const frameYaw = state.axis === "x" ? 0 : Math.PI / 2;
       const closedLeafOffset = new THREE.Vector3(0, 0, DOOR_PORTAL_W / 2)
@@ -471,7 +531,7 @@ async function placeSectionDoors(
   };
   return {
     tickables,
-    cullables: states.map((state) => state.root),
+    cullables: [...states.map((state) => state.root), ...sealedVoids],
     isBlocked: (x, z, radius) => states.some((state) => {
       if (!state.root.userData.blocksMovement) return false;
       const normalDistance = state.axis === "x" ? Math.abs(x - state.x) : Math.abs(z - state.z);
@@ -580,7 +640,7 @@ async function placeKitProps(
     cullables.push(dressing);
   };
   let phase = 0;
-  const litSconceSides = new Set<string>();
+  const litSconceSides = new Map<string, number>();
   const litBrazierRooms = new Set<string>();
   for (const p of layout.placements) {
     if (!p.glbRuntime || p.asset === "heavy-door") continue;
@@ -693,14 +753,18 @@ async function placeKitProps(
         : p.asset === "floor-brazier" ? 0.68
           : 0.58;
       fire.root.scale.setScalar(flameScale);
-      // Keep one lit brazier plus one real sconce light on each opposing wall.
+      // Large rooms keep two real sconce lights on each opposing wall so
+      // tutorial props remain readable. Smaller rooms keep one per wall.
       // Fire roots are distance-culled, so only nearby rooms contribute lights.
       const sconceSide = `${p.roomId}:${p.facing}`;
+      const roomWidth = layout.rooms.find((room) => room.id === p.roomId)?.w ?? 0;
+      const sconceLimit = roomWidth >= 18 ? 2 : 1;
+      const sconceCount = litSconceSides.get(sconceSide) ?? 0;
       const keepSconce = p.asset === "wall-torch-sconce"
         && (p.facing === "north" || p.facing === "south")
-        && !litSconceSides.has(sconceSide);
+        && sconceCount < sconceLimit;
       const keepBrazier = p.asset === "floor-brazier" && !litBrazierRooms.has(p.roomId);
-      if (keepSconce) litSconceSides.add(sconceSide);
+      if (keepSconce) litSconceSides.set(sconceSide, sconceCount + 1);
       if (keepBrazier) litBrazierRooms.add(p.roomId);
       const keepLocalLight = keepSconce || keepBrazier;
       const localLights: THREE.PointLight[] = [];

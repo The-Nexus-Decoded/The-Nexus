@@ -55,6 +55,13 @@ function hasReachableAdjacent(x: number, y: number, reachable: Set<string>): boo
   ].some((c) => reachable.has(breachV2CellKey(c)));
 }
 
+function playerPointWalkable(gen: GeneratedBreachV2, x: number, y: number): boolean {
+  const walkable = walkableKeys(gen);
+  const radius = 0.35;
+  return ([[radius, radius], [radius, -radius], [-radius, radius], [-radius, -radius]] as const)
+    .every(([ox, oy]) => walkable.has(breachV2CellKey(cellAt(x + ox, y + oy))));
+}
+
 describe("BREACH-V2 seeded generator", () => {
   it("is deterministic for a recorded run seed (both paths)", () => {
     for (const pathId of PATHS) {
@@ -174,6 +181,17 @@ describe("BREACH-V2 seeded generator", () => {
         }
         // player start walkable
         expect(walkable.has(breachV2CellKey(cellAt(gen.playerStart.x, gen.playerStart.y)))).toBe(true);
+      }
+    }
+  });
+
+  it("keeps a full player-width approach clear through either selected route gate", () => {
+    for (const pathId of PATHS) {
+      const gen = generateBreachV2(4182, pathId);
+      const entry = gen.corridors.find((corridor) => corridor.id === "corridor-entry")!;
+      for (let x = entry.from.x - 3; x <= entry.from.x + 5; x += 0.5) {
+        expect(playerPointWalkable(gen, x, entry.from.y),
+          `${pathId} route blocked at (${x}, ${entry.from.y})`).toBe(true);
       }
     }
   });
