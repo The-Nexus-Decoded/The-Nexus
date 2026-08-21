@@ -103,7 +103,7 @@ function texturedBox(w: number, h: number, d: number, material: THREE.Material):
 // ---------------------------------------------------------------------------
 // shell: floors + walls with door gaps + corridors (mirrors the Houdini build)
 // ---------------------------------------------------------------------------
-function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.Material; masonry: THREE.Material }): THREE.Group {
+function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshStandardMaterial; masonry: THREE.MeshStandardMaterial }): THREE.Group {
   const shell = new THREE.Group();
   shell.name = "breach-v2-shell";
   const rooms = layout.rooms;
@@ -240,6 +240,25 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.Materi
   masonryMesh.receiveShadow = true;
   shell.add(masonryMesh);
 
+  // room ceilings (dark timber-stone caps) — they read as ceiling at eye level
+  // and cut away when the review camera rises (see the render loop toggle)
+  const ceilingGeos: THREE.BufferGeometry[] = [];
+  for (const room of rooms) {
+    const wallH = room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
+    const g = new THREE.BoxGeometry(room.w + WALL_T * 2, 0.25, room.h + WALL_T * 2);
+    scaleBoxUV(g, room.w, 0.25, room.h);
+    g.translate(room.x + room.w / 2, wallH + 0.125, room.z + room.h / 2);
+    ceilingGeos.push(g);
+  }
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    map: materials.masonry.map, roughness: 0.95, metalness: 0.0, color: 0x3a332c,
+  });
+  const ceilings = new THREE.Mesh(mergeGeometries(ceilingGeos), ceilingMat);
+  ceilings.name = "shell-ceilings";
+  ceilings.castShadow = false;
+  ceilings.receiveShadow = true;
+  shell.add(ceilings);
+
   // void undercroft
   const bx0 = Math.min(...rooms.map((r) => r.x)) - 4;
   const bx1 = Math.max(...rooms.map((r) => r.x + r.w)) + 4;
@@ -289,10 +308,14 @@ async function placeKitProps(
     scene.add(instance.root);
     tickables.push(instance.animate);
     if (p.fireAnchorY !== null && p.fireColor) {
+      // B7 texture-unit discipline: fire lights never cast shadows in the
+      // preview — every shadow-casting point light adds a cube shadow map to
+      // every lit material, and ~15 braziers blew past MAX_TEXTURE_IMAGE_UNITS
+      // on real GPUs. Local glow only; the two landmark lights carry shadows.
       const fire = createDungeonFireEffect({
         anchorY: p.fireAnchorY,
         color: p.fireColor,
-        castShadow: p.fireCastsShadow,
+        castShadow: false,
         phase,
       });
       fire.root.position.set(p.x, p.elevation, p.z);
@@ -462,21 +485,25 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     crystal.position.y = 1.6 + Math.sin(elapsed * 1.2) * 0.1;
   });
 
-  // actor markers (#448/#449 own the real characters/monsters)
+  // actor markers (#448/#449 own the real characters/monsters) — subtle/ghosted
+  // for review renders (§7 B1); &markers=0 hides them entirely
+  const markersHidden = new URL(window.location.href).searchParams.get("markers") === "0";
   const markerMat = (color: number) => new THREE.MeshStandardMaterial({
-    color, roughness: 0.5, emissive: color, emissiveIntensity: 0.25,
+    color, roughness: 0.5, emissive: color, emissiveIntensity: 0.18,
+    transparent: true, opacity: 0.42,
   });
   for (const [pos, color, h] of [
-    [lm.ilyra, 0x66e080, 1.75], [lm.orren, 0x66cc73, 1.75], [lm.brannoc, 0x80bf60, 1.75],
+    [lm.ilyra, 0x66e080, 1.5], [lm.orren, 0x66cc73, 1.5], [lm.brannoc, 0x80bf60, 1.5],
   ] as const) {
-    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, h, 16), markerMat(color));
+    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, h, 16), markerMat(color));
     marker.position.set(pos.x, h / 2, pos.z);
-    marker.castShadow = true;
+    marker.visible = !markersHidden;
     group.add(marker);
   }
   for (const enemy of layout.enemies) {
-    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 12), markerMat(0xbf4030));
-    marker.position.set(enemy.x, 0.45, enemy.z);
+    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12), markerMat(0xbf4030));
+    marker.position.set(enemy.x, 0.4, enemy.z);
+    marker.visible = !markersHidden;
     group.add(marker);
   }
   // glowing rune circle where the Warden spawns (owner canon) — ring + rune marks
@@ -526,6 +553,17 @@ const ART_TEXTURES: Record<string, string> = {
   "art-thalenyr-atlas": `${ART_ROOT}/thalenyr-atlas.webp`,
   "art-heartvale-section": `${ART_ROOT}/heartvale-section.webp`,
   "art-breach-v2-flatmap": `${ART_ROOT}/breach-v2-flatmap.webp`,
+  "art-banner-wayfarer": `${ART_ROOT}/art-banner-wayfarer.webp`,
+  "art-banner-oathbreaker": `${ART_ROOT}/art-banner-oathbreaker.webp`,
+  "art-banner-ashen": `${ART_ROOT}/art-banner-ashen.webp`,
+  "art-banner-cinderbound": `${ART_ROOT}/art-banner-cinderbound.webp`,
+  "art-banner-oathscar": `${ART_ROOT}/art-banner-oathscar.webp`,
+  "art-relief-warden": `${ART_ROOT}/art-relief-warden.webp`,
+  "art-relief-first-memory": `${ART_ROOT}/art-relief-first-memory.webp`,
+  "art-relief-toll": `${ART_ROOT}/art-relief-toll.webp`,
+  "art-relief-lock-inscription": `${ART_ROOT}/art-relief-lock-inscription.webp`,
+  "art-painting-reliquary": `${ART_ROOT}/art-painting-reliquary.webp`,
+  "art-map-thalenyr-scroll": `${ART_ROOT}/art-map-thalenyr-scroll.webp`,
 };
 const ART_FACING_NORMAL: Record<string, [number, number]> = {
   south: [0, 1], north: [0, -1], east: [1, 0], west: [-1, 0],
@@ -565,7 +603,7 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
       const mesh = p.asset === "scrolls-pile"
         ? new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.7, 10), paperMat)
         : new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.24, 0.36), paperMat);
-      mesh.position.set(p.x, p.asset === "scrolls-pile" ? 0.16 : 0.12, p.z);
+      mesh.position.set(p.x, (p.elevation ?? 0) + (p.asset === "scrolls-pile" ? 0.16 : 0.12), p.z);
       if (p.asset === "scrolls-pile") mesh.rotation.z = Math.PI / 2;
       mesh.rotation.y = THREE.MathUtils.degToRad(p.yaw);
       mesh.castShadow = true;
@@ -621,12 +659,17 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
     }
     scene.add(light);
   }
-  // per-room soft fills so every chamber reads (warmer with corruption)
+  // per-room soft fills so every chamber reads (warmer with corruption);
+  // galleries carry combat light — chambers must never read bare or black
   for (const room of layout.rooms) {
     if (room.kind === "corridor") continue;
     const warm = Math.min(1, 0.35 + room.corruption);
     const color = new THREE.Color().setRGB(0.55 + 0.35 * warm, 0.5, 0.55 - 0.25 * warm);
-    const fill = new THREE.PointLight(color, 3.2, Math.hypot(room.w, room.h) * 0.75 + 4, 1.7);
+    const isGallery = room.kind === "gallery";
+    const fill = new THREE.PointLight(
+      color, isGallery ? 6.5 : 3.4,
+      Math.hypot(room.w, room.h) * (isGallery ? 1.0 : 0.75) + 4, 1.6,
+    );
     fill.position.set(room.x + room.w / 2, 3.1, room.z + room.h / 2);
     scene.add(fill);
   }
@@ -644,12 +687,12 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
     day.target.position.set(exitSpec.x - 12, 1.0, exitSpec.z);
     scene.add(day, day.target);
   }
-  // wall-map accent lights so the readable art reads (§5A)
+  // wall-map accent lights so the readable art reads (§5A) — maps brightest
   for (const p of layout.placements) {
     if (p.role !== "wall-art") continue;
-    if (!["art-thalenyr-atlas", "art-heartvale-section", "art-breach-v2-flatmap"].includes(p.asset)) continue;
+    const isMap = ["art-thalenyr-atlas", "art-heartvale-section", "art-breach-v2-flatmap"].includes(p.asset);
     const [nx, nz] = ART_FACING_NORMAL[p.facing] ?? [0, 1];
-    const artLight = new THREE.PointLight(0xfff0d8, 3.4, 7, 1.7);
+    const artLight = new THREE.PointLight(0xfff0d8, isMap ? 3.4 : 1.6, isMap ? 7 : 5, 1.7);
     artLight.position.set(p.x + nx * 1.2, 2.5, p.z + nz * 1.2);
     scene.add(artLight);
   }
@@ -722,7 +765,9 @@ export async function startDungeonPreview(
   gltfLoader.setMeshoptDecoder(MeshoptDecoder); // kit GLBs are meshopt-compressed
 
   const materials = loadShellTextures(texLoader);
-  scene.add(buildShell(layout, materials));
+  const shellGroup = buildShell(layout, materials);
+  scene.add(shellGroup);
+  const ceilings = shellGroup.getObjectByName("shell-ceilings");
   const propPlacement = await placeKitProps(scene, layout, gltfLoader, scene);
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
@@ -746,7 +791,7 @@ export async function startDungeonPreview(
     return true;
   };
   const playerPos = new THREE.Vector3(layout.landmarks.playerStart.x, 0, layout.landmarks.playerStart.z);
-  let camYaw = 2.35; // start facing the Soul Well / Ilyra from the emergence point
+  let camYaw = 0.08; // camera just south of the emergence point — opening view faces the Soul Well
   let camPitch = 0.4;
   let camDist = 5.2;
   const keys = new Set<string>();
@@ -875,6 +920,10 @@ export async function startDungeonPreview(
         controls.update();
       }
       renderer.render(scene, camera);
+      // ceiling cutaway: caps read as ceilings at eye level (walk mode or a
+      // camera inside the room, below the 3.2 m wall cap) and step aside for
+      // raised review cameras
+      if (ceilings) ceilings.visible = walkMode && camera.position.y < 3.4;
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {
         calls: renderer.info.render.calls,

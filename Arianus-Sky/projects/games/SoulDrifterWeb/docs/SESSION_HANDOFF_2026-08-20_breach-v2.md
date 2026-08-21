@@ -54,21 +54,31 @@ then `hython scripts/houdini/build-breach-v2-apprentice.py <layout.json> <hip> <
 - The whole level is open for the owner in the Houdini GUI (hmaster, crash-safe env vars):
   `source-assets/houdini/breach-v2-apprentice.hipnc`.
 
+## Owner note 2026-08-20 (viewing surfaces)
+
+- The level is open in the Houdini GUI (hmaster on the worktree scene) — crash-safe
+  env vars used (HOUDINI_VULKAN_VIEWER_MULTITHREADING=0, HOUDINI_OCL_DEVICETYPE=CPU,
+  HOUDINI_OCL_OGL_INTEROP=0).
+- The live preview server runs detached on `http://127.0.0.1:5173/?dungeonPreview=breach-v2`
+  (batch: `workspace\souldrifter-thalenyr\playtestreach-v2-preview-server.bat`;
+  stop it by closing that window or killing the node process on port 5173).
+- Walking the zone in-engine is game scope after QA deploy — not preview scope.
+
 ## Open issues (owner rulings needed)
 
 1. **Build size:** RESOLVED by owner ruling 2026-08-20 — no fixed deployment budget for
    now; the prune step reports dist size (155 MB) without failing the build. Budget language
    removed from the runbook/ticket/pipeline docs accordingly.
-2. **Kit triangle density:** probe reads 2.5–3.4 M tris (755–1150 calls). Under the rejected
-   #450 scene (3.78 M / 2,211) on both axes, but a kit decimation/instancing pass would help.
+2. **Kit triangle density:** REAL-GPU probe reads 0.49–1.23 M tris (143–536 calls),
+   53–61 fps — far under the rejected #450 scene. Instancing remains an optional follow-up.
    Do not regenerate assets (credit rules) — runtime-level optimization only.
 3. **Corridors between chambers are dim** (no fixtures there by design); rooms carry the light.
    If the owner wants lit corridors, add sconce sockets to the registry.
-4. **NPC/enemy/boss markers** are placeholders by design — #448 / PR #449 own Ilyra/Orren/
-   Brannoc faces, monsters, rigs. The Warden is an anchor ring + ember light only.
-5. **Wall art:** atlas/section/zone maps are mounted and readable. The remaining reliefs/
-   banners/paintings are labeled placeholders pending local-GPU art (Add-on A rule 2 —
-   no paid ops). Book/scroll props are texture-based blocks pending local covers.
+4. **NPC/enemy/boss markers** are small ghosted placeholders by design (`&markers=0` hides
+   them) — #448 / PR #449 own Ilyra/Orren/Brannoc faces, monsters, rigs.
+5. **Wall art:** all named sockets ship real textures — the three map masters plus 11
+   procedural in-house banners/reliefs/painting/scroll (zero credits, recorded in
+   third-party-assets.json). Book/scroll props sit at correct elevations.
 6. **Preview is visual review only** — gameplay wiring (interactions, combat, tutorial flow)
    stays in Level 01; replacing it is the separate post-sign-off ticket behind a flag.
 

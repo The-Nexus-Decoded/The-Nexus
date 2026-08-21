@@ -857,7 +857,7 @@
       "yaw": 0,
       "placement": "floor",
       "facing": "up",
-      "elevation": 0,
+      "elevation": 0.92,
       "height": 0.35,
       "footprint": 0.9,
       "blocking": false,

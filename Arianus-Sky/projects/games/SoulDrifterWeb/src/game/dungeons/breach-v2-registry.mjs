@@ -318,6 +318,7 @@ export const BREACH_V2_REGISTRY = {
           "facing": "up",
           "height": 0.35,
           "footprint": 0.9,
+          "elevation": 0.92,
           "blocking": false,
           "role": "readable-props"
         },
@@ -330,6 +331,7 @@ export const BREACH_V2_REGISTRY = {
           "facing": "up",
           "height": 0.3,
           "footprint": 0.9,
+          "elevation": 0.0,
           "blocking": false,
           "role": "readable-props"
         }
@@ -1660,6 +1662,7 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.3,
             "footprint": 0.9,
+            "elevation": 0.0,
             "blocking": false,
             "role": "readable-props"
           }
@@ -2248,6 +2251,7 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.35,
             "footprint": 0.9,
+            "elevation": 0.0,
             "blocking": false,
             "role": "readable-props"
           },
@@ -2260,6 +2264,7 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.35,
             "footprint": 0.9,
+            "elevation": 0.0,
             "blocking": false,
             "role": "readable-props"
           },
@@ -2272,6 +2277,7 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.3,
             "footprint": 0.9,
+            "elevation": 0.0,
             "blocking": false,
             "role": "readable-props"
           }

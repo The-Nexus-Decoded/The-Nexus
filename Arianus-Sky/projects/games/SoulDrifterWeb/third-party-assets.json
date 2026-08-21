@@ -30,6 +30,116 @@
       "bundled": true,
       "sha256": "f546dada9b7025bfb7c1a219d3a7e857e0c5891bfac4432e3aadeed1a58e3cd6",
       "notes": "1600px WebP q75 export per MAP_ASSET_PIPELINE; masters live outside the repo."
+    },
+    {
+      "id": "breach-v2-wall-art-art-banner-wayfarer",
+      "name": "BREACH-V2 procedural wall art — art-banner-wayfarer",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "5c46b8419bd4ba5d0a2a47ef8ce7fe86f0405513293ae5281492a575157f3ef9",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-banner-oathbreaker",
+      "name": "BREACH-V2 procedural wall art — art-banner-oathbreaker",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "8959a3b90a29f7b211025e7ad4c3710e811118594e6cdd9c94fb6581264e845e",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-banner-ashen",
+      "name": "BREACH-V2 procedural wall art — art-banner-ashen",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "5fb108bb3d9c39d2ff9fe0f67c7e374da06337dea672650bcad82cf1c97345bf",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-banner-cinderbound",
+      "name": "BREACH-V2 procedural wall art — art-banner-cinderbound",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "e58f5fdc8d180079facd4b8349a6a724767ccf6f751b4a6b2e39cd7546c5f7de",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-banner-oathscar",
+      "name": "BREACH-V2 procedural wall art — art-banner-oathscar",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "5ad357d32e448b3797dbd72313a20b99a9d2861be3b59a7f7f426f7dd54c6c2b",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-relief-warden",
+      "name": "BREACH-V2 procedural wall art — art-relief-warden",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "84b90171dc92536a9563a8f6f6550c91d84f7602637669c23677b9d0b83ccc67",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-relief-first-memory",
+      "name": "BREACH-V2 procedural wall art — art-relief-first-memory",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "5053d9a6e0a16d903dc5ea66cc26de42ef0ba577425d04615aa6123c7e82f16e",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-relief-toll",
+      "name": "BREACH-V2 procedural wall art — art-relief-toll",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "2705d52bea4d81cf3bc290c745d60432aaa29ed762ce59dc149a9c42415476aa",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-relief-lock-inscription",
+      "name": "BREACH-V2 procedural wall art — art-relief-lock-inscription",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "5b22507e07d218ff2ac3a18370a46e85d68a6dc29dcd0d3df2890a592be94d99",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-painting-reliquary",
+      "name": "BREACH-V2 procedural wall art — art-painting-reliquary",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "7c48a44d6cb8c46653e39584a02f590fd17876e8418de00110f5ff35410caa04",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+    },
+    {
+      "id": "breach-v2-wall-art-art-map-thalenyr-scroll",
+      "name": "BREACH-V2 procedural wall art — art-map-thalenyr-scroll",
+      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
+      "bundled": true,
+      "sha256": "53977c732a74a53428f2ba983f69e3bddeca967e72ee34ca3b11bf9eed029280",
+      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
     }
   ],
   "researchReferences": [

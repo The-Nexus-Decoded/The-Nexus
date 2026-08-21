@@ -55,10 +55,11 @@ def placements(room_id, room_w, room_h):
                         facing=facing(room_w, room_h, x, y, "wall"), blocking=False,
                         height=round(w_m * 0.7, 2), footprint=w_m,
                         role="wall-art"))
-    for asset, x, y in BOOK_PROPS.get(room_id, []):
+    for asset, x, y, *rest in BOOK_PROPS.get(room_id, []):
         height, footprint = KIT_DIMS[asset]
         out.append(dict(asset=asset, x=x, y=y, placement="floor", group="books",
                         facing="up", height=height, footprint=footprint,
+                        elevation=rest[0] if rest else 0.0,
                         blocking=False, role="readable-props"))
     return out
 

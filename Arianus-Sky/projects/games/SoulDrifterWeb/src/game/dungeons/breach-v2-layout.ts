@@ -62,7 +62,7 @@ export function buildBreachV2Layout(
       yaw: p.placement === "wall" ? (FACING_YAW[p.facing] ?? 0) : propYaw(p.asset, p.x, p.y),
       placement: p.placement,
       facing: p.facing,
-      elevation: spec?.elevation ?? 0,
+      elevation: p.elevation ?? spec?.elevation ?? 0,
       height: p.height ?? spec?.targetHeight ?? 1.0,
       footprint: p.footprint ?? spec?.maxFootprint ?? 1.2,
       blocking: p.blocksMovement,

@@ -61,3 +61,26 @@ with measured evidence, not intentions.
 ## Gate verdict (builder pass)
 
 Ready for the independent §7 pass, then the owner. (Build-budget question resolved by owner ruling 2026-08-20.)
+
+## Follow-up — independent §7 findings B1–B7 (issue comment, 2026-08-20) — RESOLVED
+
+| Finding | Resolution |
+|---|---|
+| B7 (CRITICAL) black render on real GPUs — texture-unit overflow | Root cause: per-brazier fire PointLights with castShadow from the catalog — each shadow light costs every lit material a cube-map unit; ~15-20 braziers exceeded MAX_TEXTURE_IMAGE_UNITS(16) on ANGLE. Preview now caps shadow casting to the two landmark lights; fire lights never cast. Verified on a REAL-GPU (ANGLE/D3D) probe: 0 shader errors, 53-61 fps. |
+| B1 giant placeholder markers | Markers now small + ghosted (opacity 0.42); `&markers=0` hides them in evidence captures. |
+| B2 floating white cube | It was the table book pile at floor height — books/scrolls now carry elevation metadata (registry → both builds); the pile sits ON the trestle table. |
+| B3 black void over rooms | Rooms now have dark stone caps; they show at eye level/walk mode and cut away for raised review cameras (visible when camera < 3.4 m). |
+| B4 dark/empty galleries | Gallery fill lights raised (intensity 6.5, wider radius); chambers carry authored dressing + chests per the registry. |
+| B5 wall art only in the Vestibule | All named sockets now ship real textures: 11 procedural in-house banners/reliefs/painting/scroll (scripts/maps/make_breach_v2_wallart.py — local PIL, zero credits, real composed labels), recorded in third-party-assets.json. |
+| Process: swiftshader evidence blind to B7 | Probe gate now runs on real GPU (ANGLE) — playtest/breach-v2-probe.mjs args changed; the 10-shot matrix re-captured on real GPU: all clean, 143-536 calls, 0.49-1.23 M tris, 53-61 fps. |
+
+Walk probe (real GPU): mode boots, collision refuses the Soul Well pool, 8/8 spine
+waypoints walkable, keyboard movement verified. Movement beyond this is game-engine
+scope (owner note 2026-08-20: walking belongs to the QA-deployed game, not the preview).
+
+## Gate verdict (updated)
+
+Independent §7 findings B1-B7 resolved and re-evidenced on real GPU. Owner is reviewing
+the Houdini scene (GUI opened on the worktree) and the live preview. Remaining owner
+decisions: none blocking — QA deploy scheduling and the Level 01 replacement ticket are
+the owner's call after sign-off.

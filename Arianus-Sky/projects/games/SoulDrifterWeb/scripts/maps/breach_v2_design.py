@@ -383,9 +383,10 @@ WALL_ART = {
 }
 
 BOOK_PROPS = {
-    "vestibule": [("books-pile", 15.6, 4.2), ("scrolls-pile", 5.4, 8.8)],   # table + beside the Loom
-    "E-07": [("books-pile", 5.5, 6.5), ("books-pile", 10.5, 6.0), ("scrolls-pile", 7.0, 12.3)],
-    "E-03": [("scrolls-pile", 5.5, 9.5)],
+    # (asset, x, y, elevation) — elevation > 0 means "on a surface" (e.g. the table)
+    "vestibule": [("books-pile", 15.6, 4.2, 0.92), ("scrolls-pile", 5.4, 8.8, 0.0)],   # table + beside the Loom
+    "E-07": [("books-pile", 5.5, 6.5, 0.0), ("books-pile", 10.5, 6.0, 0.0), ("scrolls-pile", 7.0, 12.3, 0.0)],
+    "E-03": [("scrolls-pile", 5.5, 9.5, 0.0)],
 }
 
 

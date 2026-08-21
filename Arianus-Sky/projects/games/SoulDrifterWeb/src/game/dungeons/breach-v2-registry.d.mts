@@ -12,6 +12,7 @@ export interface BreachV2Placement {
   width?: number;
   height?: number;
   footprint?: number;
+  elevation?: number;
 }
 
 export interface BreachV2FixedRoom {
