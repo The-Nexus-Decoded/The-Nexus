@@ -1013,57 +1013,207 @@ function buildNpcs(npcs: NpcData, field: TerrainField, parent: THREE.Group, vill
 }
 
 /** Soulwell terrace: mossy stone ring + windlass + breach arch stub. */
+/** Silvery machine-liquid surface (V14): reflective metal-silver with slow
+ * machinic motion — rotating concentric bands + fresnel sky sheen + a low
+ * teal pulse. Not water: no foam, no depth fade, fully opaque. */
+function soulLiquidMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    fog: true,
+    uniforms: {
+      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+      uTime: { value: 0 },
+      uSky: { value: new THREE.Color(0xcfe4ea) },
+      uSilverDeep: { value: new THREE.Color(0x46545c) },
+      uSilverBright: { value: new THREE.Color(0xb9c8cc) },
+      uPulse: { value: new THREE.Color(0x2fd3c0) },
+    },
+    vertexShader: `
+      #include <fog_pars_vertex>
+      varying vec2 vLocal;
+      varying vec3 vViewDir;
+      varying vec3 vWorldPos;
+      void main() {
+        vLocal = position.xy; // circle geometry is authored in XY before rotation
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vWorldPos = worldPos.xyz;
+        vViewDir = normalize(cameraPosition - worldPos.xyz);
+        vec4 mvPosition = viewMatrix * worldPos;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }
+    `,
+    fragmentShader: `
+      #include <fog_pars_fragment>
+      uniform float uTime;
+      uniform vec3 uSky;
+      uniform vec3 uSilverDeep;
+      uniform vec3 uSilverBright;
+      uniform vec3 uPulse;
+      varying vec2 vLocal;
+      varying vec3 vViewDir;
+      varying vec3 vWorldPos;
+      void main() {
+        float r = length(vLocal);
+        float ang = atan(vLocal.y, vLocal.x);
+        // Machinic motion: concentric bands slowly rotating + breathing.
+        float bands = sin(r * 9.0 - uTime * 0.7 + sin(ang * 4.0 + uTime * 0.35) * 0.8);
+        float fine = sin(r * 26.0 + uTime * 1.1 - ang * 6.0);
+        float m = 0.5 + 0.5 * bands * 0.8 + 0.25 * fine * bands;
+        vec3 silver = mix(uSilverDeep, uSilverBright, m);
+        // Fresnel sky sheen across the liquid metal.
+        float fres = pow(1.0 - max(vViewDir.y, 0.0), 2.0);
+        silver = mix(silver, uSky, fres * 0.4);
+        // Slow teal pulse — the Well "breathing".
+        float pulse = 0.5 + 0.5 * sin(uTime * 0.6);
+        silver += uPulse * (0.10 + 0.18 * pulse) * smoothstep(0.9, 0.2, r);
+        gl_FragColor = vec4(silver, 1.0);
+        #include <fog_fragment>
+      }
+    `,
+  });
+}
+
+/** V14: the Soul Well is a shallow silvery POOL in ancient ruins — a landing
+ * and gathering place. Stepped basin + liquid, weathered pillar ring (some
+ * broken), two small stepped pyramids flanking the approach, the breach arch
+ * behind, echo shards hovering over the liquid. NO well furniture (ruling). */
 function buildSoulwell(mats: VillageMaterials, field: TerrainField): THREE.Group {
   const g = new THREE.Group();
   g.name = "soulwell-terrace";
-  // Flagstone pad.
+  const baseY = field.height(0, 0);
+  const top = 0.35; // pad top, local to the group
+
+  // Flagstone pad (wider apron — this is a gathering place).
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.7, 0.35, 28), mats.cobble);
   pad.position.y = 0.17;
   pad.receiveShadow = true;
-  pad.castShadow = false;
   g.add(pad);
-  // Well ring.
-  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 1.1, 18, 1, true), mats.stone);
-  ring.position.y = 0.9;
-  ring.castShadow = true;
-  ring.receiveShadow = true;
-  g.add(ring);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.12, 8, 18), mats.stone);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 1.47;
-  rim.castShadow = true;
-  g.add(rim);
-  // Soulwell glow — the one magical accent (low-level canon).
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1.25, 18),
-    new THREE.MeshStandardMaterial({
-      color: 0x0e2f33,
-      emissive: new THREE.Color(0x2fd3c0),
-      emissiveIntensity: 0.85,
-      roughness: 0.3,
-    }),
-  );
-  glow.rotation.x = -Math.PI / 2;
-  glow.position.y = 0.62;
-  g.add(glow);
-  // Windlass frame.
-  for (const sx of [-1, 1]) {
-    addBox(g, mats.wood, 0.16, 2.5, 0.16, sx * 1.5, 1.55, 0, false);
+
+  // Stepped pool basin: open rim steps (walls + flat annulus caps — never a
+  // solid cap over the liquid), floor, then the silvery surface inside.
+  const rimWall = new THREE.Mesh(new THREE.CylinderGeometry(2.75, 2.9, 0.55, 24, 1, true), mats.stone);
+  rimWall.position.y = top + 0.275;
+  rimWall.castShadow = true;
+  rimWall.receiveShadow = true;
+  g.add(rimWall);
+  const rimTop = new THREE.Mesh(new THREE.RingGeometry(2.26, 2.82, 24), mats.stone);
+  rimTop.rotation.x = -Math.PI / 2;
+  rimTop.position.y = top + 0.55;
+  rimTop.receiveShadow = true;
+  g.add(rimTop);
+  const innerWall = new THREE.Mesh(new THREE.CylinderGeometry(2.26, 2.26, 0.3, 24, 1, true), mats.stone);
+  innerWall.position.y = top + 0.4;
+  g.add(innerWall);
+  // Basin floor (dark stone visible at the rim shallows).
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(2.26, 24), mats.dark);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = top + 0.26;
+  g.add(floor);
+  // The silvery liquid — above the floor, just below the rim.
+  const liquid = new THREE.Mesh(new THREE.CircleGeometry(2.24, 40), soulLiquidMaterial());
+  liquid.rotation.x = -Math.PI / 2;
+  liquid.position.y = top + 0.46;
+  g.add(liquid);
+
+  // Echo shards hover over the pool (canon: recovered memories have weight).
+  const shardMat = new THREE.MeshStandardMaterial({
+    color: 0x9fd8d2,
+    emissive: new THREE.Color(0x2fd3c0),
+    emissiveIntensity: 0.9,
+    roughness: 0.2,
+    metalness: 0.3,
+  });
+  const shards: THREE.Mesh[] = [];
+  const shardSizes = [0.5, 0.32, 0.22];
+  shardSizes.forEach((s, i) => {
+    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(s), shardMat);
+    shard.castShadow = true;
+    shards.push(shard);
+    g.add(shard);
+    void i;
+  });
+
+  // Weathered pillar ring — varied heights, two broken stubs with rubble.
+  const pillarHeights = [3.3, 1.0, 2.9, 3.5, 0.85, 3.1, 2.6, 1.25, 3.35];
+  const rubbleSpots: [number, number][] = [];
+  pillarHeights.forEach((height, i) => {
+    const ang = (i / pillarHeights.length) * Math.PI * 2 + 0.19;
+    const px = Math.cos(ang) * 8.2;
+    const pz = Math.sin(ang) * 8.2;
+    const broken = height < 1.4;
+    const py = field.height(px, pz) - baseY;
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.38, height, 10), mats.stone);
+    pillar.position.set(px, py + height / 2, pz);
+    pillar.rotation.z = broken ? 0 : (i % 2 ? 0.035 : -0.028); // weathered lean
+    pillar.rotation.x = broken ? 0 : (i % 3 ? 0.02 : -0.025);
+    pillar.castShadow = true;
+    pillar.receiveShadow = true;
+    g.add(pillar);
+    if (!broken) {
+      // capital: a wider weathered cap so tall pillars read as columns
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 0.85), mats.stone);
+      cap.position.set(px, py + height + 0.08, pz);
+      cap.rotation.z = pillar.rotation.z;
+      cap.castShadow = true;
+      g.add(cap);
+    } else {
+      rubbleSpots.push([px, pz]);
+    }
+  });
+  // Rubble: fallen drums beside the broken stubs.
+  for (const [rx, rz] of rubbleSpots) {
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.9, 9), mats.stone);
+    const ry = field.height(rx + 0.8, rz + 0.5) - baseY;
+    drum.position.set(rx + 0.8, ry + 0.30, rz + 0.5);
+    drum.rotation.z = Math.PI / 2;
+    drum.rotation.y = rx * 2.3;
+    drum.castShadow = true;
+    drum.receiveShadow = true;
+    g.add(drum);
   }
-  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.1, 8), mats.wood);
-  bar.rotation.z = Math.PI / 2;
-  bar.position.y = 2.65;
-  bar.castShadow = true;
-  g.add(bar);
-  const canopy = roofPrism(mats.thatch([0.75, 0.78, 0.7]), 3.4, 1.6, 0.6, 0.18);
-  canopy.position.y = 3.0;
-  g.add(canopy);
-  // Breach arch stub behind the well (two column stubs + lintel).
+
+  // Two small stepped pyramids flanking the south approach.
+  for (const sx of [-1, 1]) {
+    const bx = sx * 6.8;
+    const bz = 4.6;
+    const by = field.height(bx, bz) - baseY;
+    for (let tier = 0; tier < 3; tier += 1) {
+      const w = 1.7 - tier * 0.5;
+      const block = new THREE.Mesh(new THREE.BoxGeometry(w, 0.42, w), mats.stone);
+      block.position.set(bx, by + 0.21 + tier * 0.42, bz);
+      block.castShadow = true;
+      block.receiveShadow = true;
+      g.add(block);
+    }
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.5, 4), mats.stone);
+    cap.position.set(bx, by + 0.42 * 3 + 0.25, bz);
+    cap.rotation.y = Math.PI / 4;
+    cap.castShadow = true;
+    g.add(cap);
+  }
+
+  // Breach arch behind the pool (the door you walked out of).
   for (const sx of [-1, 1]) {
     addBox(g, mats.stone, 0.7, 3.2, 0.7, sx * 1.6, 1.6, -3.4, false);
   }
   addBox(g, mats.stone, 4.2, 0.65, 0.8, 0, 3.5, -3.4, false);
-  g.position.set(0, field.height(0, 0), 0);
+
+  // The pool's quiet glow on the stones (canon low-level magic accent).
+  const glowLight = new THREE.PointLight(0x66e0cf, 1.1, 13, 2.0);
+  glowLight.position.set(0, top + 2.2, 0);
+  g.add(glowLight);
+
+  g.position.set(0, baseY, 0);
+  // Animate: liquid time + shard orbit/bob.
+  const liquidMat = liquid.material as THREE.ShaderMaterial;
+  g.userData.tick = (elapsed: number) => {
+    (liquidMat.uniforms.uTime as { value: number }).value = elapsed;
+    shards.forEach((shard, i) => {
+      const t = elapsed * (0.22 + i * 0.07) + i * 2.1;
+      shard.position.set(Math.cos(t) * (0.5 + i * 0.35), top + 1.5 + Math.sin(elapsed * 0.8 + i) * 0.18 + i * 0.5, Math.sin(t) * (0.5 + i * 0.35));
+      shard.rotation.y = elapsed * 0.4 + i;
+    });
+  };
   return g;
 }
 

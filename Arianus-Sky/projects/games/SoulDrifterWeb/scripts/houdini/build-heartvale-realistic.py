@@ -825,23 +825,35 @@ def build_terrace(builder: GeometryBuilder, layout: HeartvaleLayout) -> None:
     builder.add_cylinder("terrace_lower_step", (0, pad + 0.15, 0), 10.5, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], uv_scale=0.45)
     builder.add_cylinder("terrace_upper_step", (0, pad + 0.42, 0), 8.75, 0.30, 28, TERRACE_STONE, "terrace", MATERIAL_PATHS["terrace"], uv_scale=0.45)
     top = pad + 0.57
-    # Soulwell ring: mossy stone courses with iron bands, plus a timber windlass
-    # frame (posts, axle, rope, bucket) so the spawn anchor reads as a real well.
-    builder.add_cylinder("well_outer_ring", (0, top + 0.55, 0), 2.60, 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], cap_top=False, uv_scale=0.6)
-    builder.add_cylinder("well_shaft_dark", (0, top + 0.45, 0), 2.05, 0.90, 16, PORTAL_DARK, "well", MATERIAL_PATHS["portal"])
-    builder.add_cylinder("well_soul_water", (0, top + 0.95, 0), 1.95, 0.08, 16, SOUL_WATER, "well", MATERIAL_PATHS["soulwater"])
-    builder.add_ring("well_rim_cap", (0, 0, 0), 2.05, 2.60, top + 1.10, 16, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
-    builder.add_cylinder("well_band_lower", (0, top + 0.26, 0), 2.66, 0.08, 16, (0.16, 0.15, 0.14), "well", MATERIAL_PATHS["iron"], cap_top=False, cap_bottom=False)
-    builder.add_cylinder("well_band_upper", (0, top + 0.86, 0), 2.66, 0.08, 16, (0.16, 0.15, 0.14), "well", MATERIAL_PATHS["iron"], cap_top=False, cap_bottom=False)
-    for px in (-2.9, 2.9):
-        builder.add_box(f"well_windlass_post_{px:+.1f}", (px, top + 1.70, 0), (0.20, 3.40, 0.20), TIMBER, "well", MATERIAL_PATHS["timber"], uv_scale=0.5)
-        builder.add_box(f"well_windlass_foot_{px:+.1f}", (px, top + 0.10, 0), (0.55, 0.20, 0.55), WELL_STONE, "well", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
-    builder.add_tapered_tube("well_windlass_axle", (-3.05, top + 3.15, 0), (3.05, top + 3.15, 0), 0.09, 0.09, 8, DOCK_WOOD, "well", MATERIAL_PATHS["dock"])
-    builder.add_tapered_tube("well_rope", (0, top + 3.10, 0), (0, top + 1.08, 0), 0.024, 0.024, 5, (0.45, 0.37, 0.24), "well", MATERIAL_PATHS["timber"])
-    builder.add_cylinder("well_bucket", (0, top + 0.96, 0), 0.17, 0.26, 8, DOCK_WOOD, "well", MATERIAL_PATHS["dock"], uv_scale=0.5)
+    # V14: the Soul Well is a shallow POOL of silvery machine-liquid in
+    # ancient ruins — never a well. Open rim steps around the liquid disc,
+    # echo shards hover above it (canon), pillar ring with broken stubs,
+    # two small stepped pyramids flank the south approach.
+    builder.add_cylinder("pool_rim_wall", (0, top + 0.27, 0), 2.82, 0.55, 20, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], cap_top=False, uv_scale=0.6)
+    builder.add_ring("pool_rim_top", (0, 0, 0), 2.26, 2.82, top + 0.55, 20, WELL_STONE, "well", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    builder.add_cylinder("pool_basin_floor", (0, top + 0.26, 0), 2.24, 0.06, 20, PORTAL_DARK, "well", MATERIAL_PATHS["portal"])
+    builder.add_cylinder("pool_soul_liquid", (0, top + 0.46, 0), 2.24, 0.05, 20, SOUL_WATER, "well", MATERIAL_PATHS["soulwater"])
     builder.add_octahedron("echo_shard_large", (0.15, top + 3.85, 0.10), 0.52, SHARD, "shard", MATERIAL_PATHS["shard"])
     builder.add_octahedron("echo_shard_mid", (-0.55, top + 4.60, 0.35), 0.34, SHARD, "shard", MATERIAL_PATHS["shard"])
     builder.add_octahedron("echo_shard_small", (0.60, top + 5.20, -0.30), 0.24, SHARD, "shard", MATERIAL_PATHS["shard"])
+    # Ancient pillar ring: varied heights, two broken stubs with fallen drums.
+    pillar_heights = (3.3, 1.0, 2.9, 3.5, 0.85, 3.1, 2.6, 1.25, 3.35)
+    for pillar_index, height in enumerate(pillar_heights):
+        ang = (pillar_index / len(pillar_heights)) * math.tau + 0.19
+        px, pz = math.cos(ang) * 8.2, math.sin(ang) * 8.2
+        py = layout.terrain_height(px, pz)
+        builder.add_cylinder(f"ruin_pillar_{pillar_index}", (px, py + height / 2, pz), 0.34, height, 10, WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+        if height >= 1.4:
+            builder.add_box(f"ruin_pillar_cap_{pillar_index}", (px, py + height + 0.11, pz), (0.85, 0.22, 0.85), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+        else:
+            builder.add_cylinder(f"ruin_fallen_drum_{pillar_index}", (px + 0.8, layout.terrain_height(px + 0.8, pz + 0.5) + 0.45, pz + 0.5), 0.42, 0.9, 9, WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+    # Stepped pyramids flanking the south approach.
+    for psx in (-6.8, 6.8):
+        py_y = layout.terrain_height(psx, 4.6)
+        for tier in range(3):
+            w = 1.7 - tier * 0.5
+            builder.add_box(f"ruin_pyramid_{int(psx):+d}_tier_{tier}", (psx, py_y + 0.21 + tier * 0.42, 4.6), (w, 0.42, w), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
+        builder.add_box(f"ruin_pyramid_{int(psx):+d}_cap", (psx, py_y + 0.42 * 3 + 0.25, 4.6), (0.45, 0.5, 0.45), WELL_STONE, "terrace", MATERIAL_PATHS["wellstone"], yaw=0.7854, uv_scale=0.6)
     arch_z = -8.2
     builder.add_box("breach_arch_jamb_west", (-1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
     builder.add_box("breach_arch_jamb_east", (1.25, top + 1.30, arch_z), (0.65, 2.60, 1.10), WELL_STONE, "portal", MATERIAL_PATHS["wellstone"], uv_scale=0.6)
@@ -1818,7 +1830,7 @@ NPC_PLACEMENTS: list[tuple[str, float, float, float, Color]] = [
     ("fletcher-anes", 18.5, -205.5, 90.0, (0.38, 0.27, 0.16)),      # by the vendor stall on the plaza edge
     ("herder-bonn", 16.0, -188.0, 20.0, (0.45, 0.35, 0.16)),        # south field edge
     ("cael-roadwarden", 12.0, -196.0, 0.0, (0.28, 0.32, 0.38)),     # south lane entrance, watching the road
-    ("wellkeeper-sef", 2.6, 2.2, 220.0, (0.16, 0.40, 0.38)),        # soulwell terrace (unchanged)
+    ("wellkeeper-sef", 4.1, 1.9, 250.0, (0.16, 0.40, 0.38)),        # beside the pool rim, facing the liquid (V14)
     ("reeve-droma", 19.8, -221.0, 90.0, (0.42, 0.18, 0.20)),        # at the reeve hall door
     ("scavenger-ils", 12.5, -205.0, 60.0, (0.32, 0.32, 0.30)),      # dry bank by the jetty root
     ("old-fen", 10.5, -210.5, 270.0, (0.24, 0.38, 0.30)),           # jetty root, watching his eel traps

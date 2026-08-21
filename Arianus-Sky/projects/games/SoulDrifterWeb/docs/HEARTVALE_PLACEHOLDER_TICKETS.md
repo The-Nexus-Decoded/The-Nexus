@@ -11,7 +11,7 @@ Every placeholder in the hv-1/hv-2 build, tracked so none silently becomes
 | HV-PH-04 | Boats | Box-built punts (hull/ends/gunwales) | Original low-poly punt GLB or CC0 rowboat (Poly Pizza/Kenney) | Boats with real hull shading bob at the jetty |
 | HV-PH-05 | Shop signs | Flat colored boards | Original painted sign textures (per shop kind) | Signs legible: smithy hammer, apothecary leaf, vendor scale |
 | HV-PH-06 | Breach arch stubs | Stone boxes at the terrace | Original breach-arch kit matching the Level 01 interior portal | Arch reads as the same structure seen from inside L01 |
-| HV-PH-07 | Soulwell feature | Stone ring + canopy + emissive disc | **Owner ruling V14: silvery machine-liquid POOL** — liquid metal shader, no well furniture | Pool replaces ring entirely; terrace stays |
+| ~~HV-PH-07~~ | ~~Soulwell feature~~ | DONE (2026-08-20): silvery machine-liquid pool + ruins built per V14 — stepped basin, animated liquid shader, pillar ring, pyramids, echo shards | — | — |
 | HV-PH-08 | Grass blade texture | Procedural canvas blades | Painted alpha card matching M-003 palette (Materialize pass) | Grass cards read painted, not procedural |
 
 Note V7's 137 margin-band trees (16% outside every zone rect): pending decision —
