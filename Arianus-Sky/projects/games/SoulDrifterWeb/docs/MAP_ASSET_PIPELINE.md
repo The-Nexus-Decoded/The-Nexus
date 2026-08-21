@@ -1,8 +1,9 @@
 # Map & Art Asset Delivery Convention
 
 Hard-won rule — keep the runtime lean (`scripts/runtime-asset-manifest.json`
-reports dist size; no fixed deployment budget for now — owner ruling
-2026-08-20). Raw PNG art bloats the build for no visual gain.
+enforces a permanent 500,000,000-byte QA/production ceiling and a
+475,000,000-byte preferred ceiling — owner ruling 2026-08-21). Raw PNG art
+bloats the build for no visual gain.
 
 ## The pipeline
 

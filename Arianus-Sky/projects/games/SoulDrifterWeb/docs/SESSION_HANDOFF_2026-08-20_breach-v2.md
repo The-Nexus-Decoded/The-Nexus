@@ -66,9 +66,9 @@ then `hython scripts/houdini/build-breach-v2-apprentice.py <layout.json> <hip> <
 
 ## Open issues (owner rulings needed)
 
-1. **Build size:** RESOLVED by owner ruling 2026-08-20 — no fixed deployment budget for
-   now; the prune step reports dist size (155 MB) without failing the build. Budget language
-   removed from the runbook/ticket/pipeline docs accordingly.
+1. **Build size:** RESOLVED by owner ruling 2026-08-21 — QA and production have a
+   permanent 500,000,000-byte ceiling with a 475,000,000-byte preferred ceiling.
+   Both `dist` and `dist-pages` are checked after runtime-asset pruning.
 2. **Kit triangle density:** REAL-GPU probe reads 0.49–1.23 M tris (143–536 calls),
    53–61 fps — far under the rejected #450 scene. Instancing remains an optional follow-up.
    Do not regenerate assets (credit rules) — runtime-level optimization only.
@@ -85,5 +85,5 @@ then `hython scripts/houdini/build-breach-v2-apprentice.py <layout.json> <hip> <
 ## Next sub-steps if resumed
 
 - Deliverable 7 follow-through: independent review gate (fresh session, brief in the REVIEW doc).
-- Any rework the owner requests from the renders (doors, lighting, corruption density, …).
+- Owner tests the draft PR in QA; do not merge until that approval arrives.
 - Add-on A art production on local GPU (reliefs/banners/book covers) once the owner approves the look.

@@ -47,7 +47,7 @@ with measured evidence, not intentions.
 | Boss = Cinderbound Warden, 1 per run, seeded pattern | PASS (anchor ring + ember; monster model is #448 scope) | boss shots + tests |
 | First Memory awarded once | PASS at data level (vault, sealed link, registry invariant) | registry + tests |
 | Kit gap fill (4 uncovered IDs) | PASS — heavy-door = trial doors; false-wall-panel H-03; reliquary-alcoves E-03/vault; hanging-brazier = chain-mounted variant | registry coverage test |
-| `npm run build` | PASS — owner ruling 2026-08-20: no fixed deployment budget for now; prune step reports dist size (155 MB) without failing | handoff issue 1 |
+| `npm run build` | PASS — permanent 500,000,000-byte QA/production ceiling; preferred ceiling 475,000,000 bytes; both output targets remain about 155 MB | manifest + budget test |
 
 ## Named material/shader ceilings
 
@@ -60,7 +60,7 @@ with measured evidence, not intentions.
 
 ## Gate verdict (builder pass)
 
-Ready for the independent §7 pass, then the owner. (Build-budget question resolved by owner ruling 2026-08-20.)
+Ready for owner testing from the draft PR into QA. No merge is authorized before that test.
 
 ## Follow-up — independent §7 findings B1–B7 (issue comment, 2026-08-20) — RESOLVED
 
@@ -73,6 +73,18 @@ Ready for the independent §7 pass, then the owner. (Build-budget question resol
 | B4 dark/empty galleries | Gallery fill lights raised (intensity 6.5, wider radius); chambers carry authored dressing + chests per the registry. |
 | B5 wall art only in the Vestibule | All named sockets now ship real textures: 11 procedural in-house banners/reliefs/painting/scroll (scripts/maps/make_breach_v2_wallart.py — local PIL, zero credits, real composed labels), recorded in third-party-assets.json. |
 | Process: swiftshader evidence blind to B7 | Probe gate now runs on real GPU (ANGLE) — playtest/breach-v2-probe.mjs args changed; the 10-shot matrix re-captured on real GPU: all clean, 143-536 calls, 0.49-1.23 M tris, 53-61 fps. |
+
+## Follow-up — owner screenshot polish (2026-08-21) — RESOLVED
+
+- Every major section boundary now has a stone frame and the downloaded 3DAI
+  Studio `heavy-door.glb`; open leaves park at the jamb and route-choice doors
+  remain visibly closed. Procedural iron portcullis leaves were removed.
+- The training vestibule gained art on both long walls, including the Haplo
+  runeship image, plus bookshelves, cupboard, racks, books, scrolls, and weapon
+  dressing from the downloaded kit.
+- The Ashen Lock is 30 × 22 m with six destructible cover pillars and a
+  multi-glyph Death Gate rune lattice instead of one repeated character.
+- The exit is a single readable route into Heartvale with reduced portal bloom.
 
 Walk probe (real GPU): mode boots, collision refuses the Soul Well pool, 8/8 spine
 waypoints walkable, keyboard movement verified. Movement beyond this is game-engine

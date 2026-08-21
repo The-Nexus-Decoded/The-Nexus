@@ -273,6 +273,161 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   shell.add(voidMesh);
   return shell;
 }
+
+/**
+ * Authored architecture that sits above the hidden navigation shell.
+ * Gates make every major transition legible, while the boss cover is tagged
+ * for the later combat/destruction pass instead of being anonymous scenery.
+ */
+function buildArchitecturalPolish(
+  scene: THREE.Scene,
+  layout: BreachV2Layout,
+  materials: { flagstone: THREE.MeshStandardMaterial; masonry: THREE.MeshStandardMaterial },
+): void {
+  const group = new THREE.Group();
+  group.name = "breach-v2-architectural-polish";
+  scene.add(group);
+
+  const addGate = (
+    id: string,
+    x: number,
+    z: number,
+    axis: "x" | "z",
+    state: "closed" | "raised" = "raised",
+  ): void => {
+    const gate = new THREE.Group();
+    gate.name = `section-gate-${id}`;
+    gate.position.set(x, 0, z);
+    gate.userData = { connectorId: id, state, blocksMovement: state === "closed" };
+    const span = 3.2;
+    const stoneParts: THREE.Mesh[] = [];
+    const placeAlong = (mesh: THREE.Object3D, along: number): void => {
+      if (axis === "x") mesh.position.z = along;
+      else mesh.position.x = along;
+    };
+    for (const side of [-1, 1]) {
+      const post = texturedBox(axis === "x" ? 0.72 : 0.58, 3.25, axis === "x" ? 0.58 : 0.72, materials.masonry);
+      post.position.y = 1.625;
+      placeAlong(post, side * (span / 2 + 0.28));
+      stoneParts.push(post);
+    }
+    const lintel = texturedBox(axis === "x" ? 0.72 : span + 1.15, 0.54, axis === "x" ? span + 1.15 : 0.72, materials.masonry);
+    lintel.position.y = 3.0;
+    stoneParts.push(lintel);
+
+    const mergeParts = (parts: THREE.Mesh[], material: THREE.Material, name: string): THREE.Mesh => {
+      const geometries = parts.map((part) => {
+        part.updateMatrix();
+        return part.geometry.clone().applyMatrix4(part.matrix);
+      });
+      const merged = new THREE.Mesh(mergeGeometries(geometries), material);
+      merged.name = name;
+      merged.castShadow = true;
+      merged.receiveShadow = true;
+      return merged;
+    };
+    gate.add(mergeParts(stoneParts, materials.masonry, "stone-frame"));
+    group.add(gate);
+  };
+
+  const lm = layout.landmarks;
+  addGate("vestibule-link", 30, 11, "x");
+  addGate("threshold-entry", 36, 11, "x");
+  addGate("wayfarer-choice", lm.doorWayfarer.x, lm.doorWayfarer.z, "x", "closed");
+  addGate("oathbreaker-choice", lm.doorOathbreaker.x, lm.doorOathbreaker.z, "x", "closed");
+  for (const room of layout.rooms.filter((candidate) => candidate.kind === "gallery")) {
+    addGate(`${room.id}-entry`, room.x, room.z + room.h / 2, "x");
+  }
+  addGate("convergence-lock", 188, 10, "x");
+  addGate("ashen-threshold", 192, 10, "x");
+  addGate("boss-lock", 208, 10, "x");
+  addGate("memory-vault", 242, 7, "x");
+  addGate("way-upward", 247, 12, "z");
+  addGate("heartvale-threshold", 258, 15, "x");
+
+  const bossRoom = layout.rooms.find((room) => room.kind === "boss");
+  if (bossRoom) {
+    const cover = new THREE.Group();
+    cover.name = "boss-destructible-cover";
+    const cx = bossRoom.x + bossRoom.w / 2;
+    const cz = bossRoom.z + bossRoom.h / 2;
+    const coverPositions: readonly (readonly [number, number])[] = [
+      [-10, -2], [-10, 3], [-5, 0], [5, 0], [10, -2], [10, 3],
+    ];
+    for (const [index, [ox, oz]] of coverPositions.entries()) {
+      const pillar = new THREE.Group();
+      pillar.name = `destructible-pillar-${index + 1}`;
+      pillar.position.set(cx + ox, 0, cz + oz);
+      pillar.userData = { destructible: true, hitPoints: 120, combatCover: true };
+      const base = texturedBox(1.7, 0.42, 1.7, materials.masonry);
+      base.position.y = 0.21;
+      const shaft = texturedBox(1.08, 2.45, 1.08, materials.masonry);
+      shaft.position.y = 1.62;
+      const capital = texturedBox(1.55, 0.38, 1.55, materials.masonry);
+      capital.position.y = 3.03;
+      pillar.add(base, shaft, capital);
+      cover.add(pillar);
+    }
+    group.add(cover);
+  }
+}
+
+/**
+ * Use the authored 3DAI Studio heavy door at every section boundary. Open
+ * doors sit against a jamb so the preview remains walkable. The two closed
+ * trial-choice doors remain authored registry placements below.
+ */
+async function placeSectionDoors(
+  scene: THREE.Scene,
+  layout: BreachV2Layout,
+  loader: GLTFLoader,
+): Promise<((elapsed: number) => void)[]> {
+  const spec = DUNGEON_PROP_ASSETS["heavy-door"];
+  const gltf = await loader.loadAsync(spec.sourceUrl);
+  const doors: readonly {
+    id: string;
+    x: number;
+    z: number;
+    axis: "x" | "z";
+  }[] = [
+    { id: "vestibule-link", x: 30, z: 11, axis: "x" },
+    { id: "threshold-entry", x: 36, z: 11, axis: "x" },
+    ...layout.rooms
+      .filter((room) => room.kind === "gallery")
+      .map((room) => ({ id: `${room.id}-entry`, x: room.x, z: room.z + room.h / 2, axis: "x" as const })),
+    { id: "convergence-lock", x: 188, z: 10, axis: "x" },
+    { id: "ashen-threshold", x: 192, z: 10, axis: "x" },
+    { id: "boss-lock", x: 208, z: 10, axis: "x" },
+    { id: "memory-vault", x: 242, z: 7, axis: "x" },
+    { id: "way-upward", x: 247, z: 12, axis: "z" },
+    { id: "heartvale-threshold", x: 258, z: 15, axis: "x" },
+  ];
+
+  const tickables: ((elapsed: number) => void)[] = [];
+  for (const [index, door] of doors.entries()) {
+    const instance = instantiateDungeonProp(gltf.scene, spec, index * 0.23);
+    instance.root.name = `section-door-${door.id}`;
+    instance.root.userData = {
+      ...instance.root.userData,
+      connectorId: door.id,
+      state: "open",
+      blocksMovement: false,
+      sourceAsset: "heavy-door.glb",
+    };
+    instance.root.position.set(door.x, 0, door.z);
+    // The downloaded source's closed face is local +X, matching the same
+    // 90-degree basis correction used by authored registry placements.
+    const frameYaw = door.axis === "x" ? Math.PI / 2 : 0;
+    // Move the centered model to the jamb before opening it, preserving a
+    // clear 2 m navigation lane through the architectural frame.
+    if (door.axis === "x") instance.root.position.z += 1.35;
+    else instance.root.position.x += 1.35;
+    instance.root.rotation.y = frameYaw + THREE.MathUtils.degToRad(35);
+    scene.add(instance.root);
+    tickables.push(instance.animate);
+  }
+  return tickables;
+}
 // ---------------------------------------------------------------------------
 // kit props via DungeonPropKit (catalog-normalized, hanging assemblies, fires)
 // ---------------------------------------------------------------------------
@@ -304,7 +459,11 @@ async function placeKitProps(
     const instance = instantiateDungeonProp(gltf.scene, spec, phase);
     phase += 0.37;
     instance.root.position.set(p.x, p.elevation, p.z);
-    instance.root.rotation.y = THREE.MathUtils.degToRad(p.yaw);
+    // The 3DAI heavy-door source faces across its local X axis, while authored
+    // wall yaw is expressed as a wall normal. Correct that source-local basis
+    // once here so registry doors sit inside their frames instead of edge-on.
+    const sourceYawCorrection = p.asset === "heavy-door" ? 90 : 0;
+    instance.root.rotation.y = THREE.MathUtils.degToRad(p.yaw + sourceYawCorrection);
     scene.add(instance.root);
     tickables.push(instance.animate);
     if (p.fireAnchorY !== null && p.fireColor) {
@@ -485,9 +644,9 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     crystal.position.y = 1.6 + Math.sin(elapsed * 1.2) * 0.1;
   });
 
-  // actor markers (#448/#449 own the real characters/monsters) — subtle/ghosted
-  // for review renders (§7 B1); &markers=0 hides them entirely
-  const markersHidden = new URL(window.location.href).searchParams.get("markers") === "0";
+  // #448/#449 own the real characters/monsters. Placeholder markers stay off
+  // in normal review/mobile builds and can be explicitly enabled for socket QA.
+  const markersHidden = new URL(window.location.href).searchParams.get("markers") !== "1";
   const markerMat = (color: number) => new THREE.MeshStandardMaterial({
     color, roughness: 0.5, emissive: color, emissiveIntensity: 0.18,
     transparent: true, opacity: 0.42,
@@ -506,27 +665,53 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     marker.visible = !markersHidden;
     group.add(marker);
   }
-  // glowing rune circle where the Warden spawns (owner canon) — ring + rune marks
-  const runeRadius = 2.6;
+  // Cinderbound Warden sigil: a coherent realm-lock lattice with eight
+  // deliberately different glyphs, not repeated bars or random characters.
+  const runeRadius = 3.35;
   const runeGroup = new THREE.Group();
   runeGroup.position.set(layout.boss.x, 0, layout.boss.z);
   const runeMat = new THREE.MeshStandardMaterial({
     color: 0x7a2c14, roughness: 0.5, emissive: 0xff5a2c, emissiveIntensity: 1.1,
   });
-  const ringOuter = new THREE.Mesh(new THREE.RingGeometry(runeRadius - 0.09, runeRadius, 64), runeMat);
-  ringOuter.rotation.x = -Math.PI / 2;
-  ringOuter.position.y = 0.06;
-  runeGroup.add(ringOuter);
-  const ringInner = new THREE.Mesh(new THREE.RingGeometry(runeRadius * 0.62, runeRadius * 0.68, 48), runeMat);
-  ringInner.rotation.x = -Math.PI / 2;
-  ringInner.position.y = 0.06;
-  runeGroup.add(ringInner);
-  for (let i = 0; i < 12; i += 1) {
-    const a = (i / 12) * Math.PI * 2;
-    const rune = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.02, 0.42), runeMat);
-    rune.position.set(Math.cos(a) * runeRadius * 0.81, 0.06, Math.sin(a) * runeRadius * 0.81);
-    rune.rotation.y = -a + (i % 3) * 0.5;
-    runeGroup.add(rune);
+  for (const [inner, outer] of [[0.93, 1], [0.57, 0.62], [0.25, 0.29]] as const) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(runeRadius * inner, runeRadius * outer, 96), runeMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.065;
+    runeGroup.add(ring);
+  }
+  type GlyphSegment = readonly [number, number, number, number];
+  const glyphs: readonly (readonly GlyphSegment[])[] = [
+    [[-0.34, -0.42, -0.34, 0.42], [-0.34, 0.05, 0.32, -0.38], [-0.34, 0.05, 0.28, 0.38]],
+    [[-0.32, -0.42, 0.32, -0.42], [0.32, -0.42, -0.1, 0.05], [-0.1, 0.05, 0.34, 0.42]],
+    [[-0.36, 0.38, 0, -0.42], [0, -0.42, 0.36, 0.38], [-0.22, 0.05, 0.22, 0.05]],
+    [[-0.36, -0.38, 0.36, 0.38], [-0.36, 0.38, 0.36, -0.38], [0, -0.42, 0, 0.42]],
+    [[-0.34, -0.42, -0.34, 0.42], [-0.34, -0.42, 0.34, -0.1], [0.34, -0.1, -0.1, 0.42]],
+    [[0, -0.44, 0, 0.44], [-0.34, -0.12, 0, -0.44], [0, 0.44, 0.34, 0.12]],
+    [[-0.38, -0.38, 0.38, -0.38], [0.38, -0.38, 0.05, 0.1], [0.05, 0.1, 0.38, 0.4]],
+    [[-0.38, 0, 0, -0.42], [0, -0.42, 0.38, 0], [0.38, 0, 0, 0.42], [0, 0.42, -0.38, 0]],
+  ];
+  const addGlyphSegment = (parent: THREE.Group, [x1, z1, x2, z2]: GlyphSegment): void => {
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const segment = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(dx, dz), 0.025, 0.085), runeMat);
+    segment.position.set((x1 + x2) / 2, 0.075, (z1 + z2) / 2);
+    segment.rotation.y = -Math.atan2(dz, dx);
+    parent.add(segment);
+  };
+  glyphs.forEach((segments, index) => {
+    const angle = (index / glyphs.length) * Math.PI * 2;
+    const glyph = new THREE.Group();
+    glyph.position.set(Math.cos(angle) * runeRadius * 0.78, 0, Math.sin(angle) * runeRadius * 0.78);
+    glyph.rotation.y = -angle + Math.PI / 2;
+    segments.forEach((segment) => addGlyphSegment(glyph, segment));
+    runeGroup.add(glyph);
+  });
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (index / 8) * Math.PI * 2;
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(runeRadius * 0.52, 0.025, 0.055), runeMat);
+    spoke.position.set(Math.cos(angle) * runeRadius * 0.28, 0.07, Math.sin(angle) * runeRadius * 0.28);
+    spoke.rotation.y = -angle;
+    runeGroup.add(spoke);
   }
   group.add(runeGroup);
   tickables.push((elapsed) => {
@@ -536,7 +721,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   // daylight portal at the east end of the Way Upward (visible from inside)
   const exitGlow = new THREE.Mesh(
     new THREE.PlaneGeometry(4.2, 3.4),
-    new THREE.MeshBasicMaterial({ color: 0xd8e8c4, transparent: true, opacity: 0.95 }),
+    new THREE.MeshBasicMaterial({ color: 0xa9c7a2, transparent: true, opacity: 0.62, depthWrite: false }),
   );
   exitGlow.position.set(lm.exitPoint.x + 0.6, 1.7, lm.exitPoint.z);
   exitGlow.rotation.y = -Math.PI / 2;
@@ -564,6 +749,7 @@ const ART_TEXTURES: Record<string, string> = {
   "art-relief-lock-inscription": `${ART_ROOT}/art-relief-lock-inscription.webp`,
   "art-painting-reliquary": `${ART_ROOT}/art-painting-reliquary.webp`,
   "art-map-thalenyr-scroll": `${ART_ROOT}/art-map-thalenyr-scroll.webp`,
+  "art-haplo-runeship": "/assets/generated/prologue/04-haplo-runeship.webp",
 };
 const ART_FACING_NORMAL: Record<string, [number, number]> = {
   south: [0, 1], north: [0, -1], east: [1, 0], west: [-1, 0],
@@ -682,7 +868,7 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   // the "first outdoor moment": daylight spilling west into the Way Upward
   const exitSpec = layout.lights.find((l) => l.id === "exit-daylight");
   if (exitSpec) {
-    const day = new THREE.SpotLight(0xe8f0d0, 60, 34, Math.PI / 3.0, 0.55, 1.1);
+    const day = new THREE.SpotLight(0xd7e7c7, 22, 34, Math.PI / 3.0, 0.6, 1.25);
     day.position.set(exitSpec.x + 4, 3.4, exitSpec.z);
     day.target.position.set(exitSpec.x - 12, 1.0, exitSpec.z);
     scene.add(day, day.target);
@@ -767,8 +953,10 @@ export async function startDungeonPreview(
   const materials = loadShellTextures(texLoader);
   const shellGroup = buildShell(layout, materials);
   scene.add(shellGroup);
+  buildArchitecturalPolish(scene, layout, materials);
   const ceilings = shellGroup.getObjectByName("shell-ceilings");
   const propPlacement = await placeKitProps(scene, layout, gltfLoader, scene);
+  const sectionDoorTickables = await placeSectionDoors(scene, layout, gltfLoader);
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
@@ -860,7 +1048,7 @@ export async function startDungeonPreview(
   let fpsAccum = 0;
   let fpsFrames = 0;
   let fpsText = "…";
-  const tickables = [...propPlacement.tickables, ...landmarkTickables];
+  const tickables = [...propPlacement.tickables, ...sectionDoorTickables, ...landmarkTickables];
 
   renderer.setAnimationLoop(() => {
     try {

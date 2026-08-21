@@ -127,6 +127,54 @@ export const BREACH_V2_REGISTRY = {
           "role": "dressing"
         },
         {
+          "asset": "archive-bookshelf",
+          "x": 0.5,
+          "y": 6.4,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "east",
+          "height": 2.75,
+          "footprint": 2.6,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "archive-bookshelf",
+          "x": 17.8,
+          "y": 21.5,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "north",
+          "height": 2.75,
+          "footprint": 2.6,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "archive-bookshelf",
+          "x": 21.2,
+          "y": 21.5,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "north",
+          "height": 2.75,
+          "footprint": 2.6,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "archive-cupboard",
+          "x": 25.4,
+          "y": 21.5,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "north",
+          "height": 2.35,
+          "footprint": 2.35,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
           "asset": "trestle-table",
           "x": 14.5,
           "y": 3.6,
@@ -160,6 +208,30 @@ export const BREACH_V2_REGISTRY = {
           "height": 2.05,
           "footprint": 2.25,
           "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "empty-weapon-rack",
+          "x": 23.0,
+          "y": 0.4,
+          "placement": "wall",
+          "group": "furniture",
+          "facing": "south",
+          "height": 2.05,
+          "footprint": 2.25,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "weapon-armor-heap",
+          "x": 26.0,
+          "y": 4.0,
+          "placement": "floor",
+          "group": "loot",
+          "facing": "up",
+          "height": 1.05,
+          "footprint": 2.45,
+          "blocking": false,
           "role": "dressing"
         },
         {
@@ -310,9 +382,48 @@ export const BREACH_V2_REGISTRY = {
           "role": "wall-art"
         },
         {
+          "asset": "art-haplo-runeship",
+          "x": 13.3,
+          "y": 21.65,
+          "width": 3.4,
+          "placement": "wall",
+          "group": "art",
+          "facing": "north",
+          "blocking": false,
+          "height": 2.38,
+          "footprint": 3.4,
+          "role": "wall-art"
+        },
+        {
+          "asset": "art-relief-first-memory",
+          "x": 23.8,
+          "y": 21.65,
+          "width": 1.8,
+          "placement": "wall",
+          "group": "art",
+          "facing": "north",
+          "blocking": false,
+          "height": 1.26,
+          "footprint": 1.8,
+          "role": "wall-art"
+        },
+        {
           "asset": "books-pile",
-          "x": 15.6,
-          "y": 4.2,
+          "x": 15.2,
+          "y": 4.0,
+          "placement": "floor",
+          "group": "books",
+          "facing": "up",
+          "height": 0.35,
+          "footprint": 0.9,
+          "elevation": 0.92,
+          "blocking": false,
+          "role": "readable-props"
+        },
+        {
+          "asset": "books-pile",
+          "x": 16.2,
+          "y": 4.15,
           "placement": "floor",
           "group": "books",
           "facing": "up",
@@ -330,6 +441,45 @@ export const BREACH_V2_REGISTRY = {
           "group": "books",
           "facing": "up",
           "height": 0.3,
+          "footprint": 0.9,
+          "elevation": 0.0,
+          "blocking": false,
+          "role": "readable-props"
+        },
+        {
+          "asset": "scrolls-pile",
+          "x": 18.4,
+          "y": 20.5,
+          "placement": "floor",
+          "group": "books",
+          "facing": "up",
+          "height": 0.3,
+          "footprint": 0.9,
+          "elevation": 0.0,
+          "blocking": false,
+          "role": "readable-props"
+        },
+        {
+          "asset": "books-pile",
+          "x": 21.6,
+          "y": 20.4,
+          "placement": "floor",
+          "group": "books",
+          "facing": "up",
+          "height": 0.35,
+          "footprint": 0.9,
+          "elevation": 0.0,
+          "blocking": false,
+          "role": "readable-props"
+        },
+        {
+          "asset": "books-pile",
+          "x": 25.2,
+          "y": 20.5,
+          "placement": "floor",
+          "group": "books",
+          "facing": "up",
+          "height": 0.35,
           "footprint": 0.9,
           "elevation": 0.0,
           "blocking": false,
@@ -457,7 +607,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "heavy-door",
-          "x": 15.8,
+          "x": 15.7,
           "y": 2.5,
           "placement": "wall",
           "group": "structure",
@@ -469,7 +619,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "heavy-door",
-          "x": 15.8,
+          "x": 15.7,
           "y": 9.5,
           "placement": "wall",
           "group": "structure",
@@ -881,6 +1031,18 @@ export const BREACH_V2_REGISTRY = {
           "role": "dressing"
         },
         {
+          "asset": "heavy-door",
+          "x": 29.6,
+          "y": 11.0,
+          "placement": "wall",
+          "group": "structure",
+          "facing": "west",
+          "height": 3.0,
+          "footprint": 2.45,
+          "blocking": true,
+          "role": "dressing"
+        },
+        {
           "asset": "art-banner-cinderbound",
           "x": 13.0,
           "y": 0.35,
@@ -1004,42 +1166,6 @@ export const BREACH_V2_REGISTRY = {
       "notes": "Ascending passage out of the Breach -> Heartvale hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
       "placements": [
         {
-          "asset": "wooden-support-brace",
-          "x": 2.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "south",
-          "height": 3.25,
-          "footprint": 3.1,
-          "blocking": true,
-          "role": "dressing"
-        },
-        {
-          "asset": "wooden-support-brace",
-          "x": 8.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "south",
-          "height": 3.25,
-          "footprint": 3.1,
-          "blocking": true,
-          "role": "dressing"
-        },
-        {
-          "asset": "wooden-support-brace",
-          "x": 14.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "south",
-          "height": 3.25,
-          "footprint": 3.1,
-          "blocking": true,
-          "role": "dressing"
-        },
-        {
           "asset": "cave-in-rubble",
           "x": 1.5,
           "y": 4.5,
@@ -1061,18 +1187,6 @@ export const BREACH_V2_REGISTRY = {
           "height": 1.5,
           "footprint": 0.95,
           "blocking": false,
-          "role": "dressing"
-        },
-        {
-          "asset": "ruined-stone-archway",
-          "x": 15.7,
-          "y": 3.0,
-          "placement": "wall",
-          "group": "structure",
-          "facing": "west",
-          "height": 3.45,
-          "footprint": 3.5,
-          "blocking": true,
           "role": "dressing"
         }
       ]

@@ -10,8 +10,8 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
   Realm-Lock Vestibule (30 × 22 m) → Gallery Link → Threshold Plaza (16 × 12 m,
   safe; Orren + Brannoc; soul-cyan **Wayfarer** and ember-red **Oathbreaker**
   doors) → two seeded paths of 3–5 chambers (slots S1–S5) → Convergence
-  Gallery → Ashen Threshold (ante-room) → The Ashen Lock (boss, 24 × 18 m,
-  one-way portcullis, 3 boss-anchor sockets) → First Memory Vault →
+  Gallery → Ashen Threshold (ante-room) → The Ashen Lock (boss, 30 × 22 m,
+  heavy section door, 3 boss-anchor sockets) → First Memory Vault →
   The Way Upward exit Connector to Heartvale hv-1 (Soul Well Basin), world
   anchor (5437.5, 2648.4).
 - **Panel A2 — Vestibule + Plaza detail** (16 px/m inset): Soul Well pool
@@ -34,7 +34,7 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
 
 ## Convention (per `docs/MAP_ASSET_PIPELINE.md`)
 
-- The full-resolution PNG master (3400 × 2420) lives **outside the repo** in
+- The full-resolution PNG master (3400 × 2560) lives **outside the repo** in
   the local workspace: `Documents\kimi\workspace\souldrifter-thalenyr\flatmaps\breach-v2\breach-v2-flatmap-master.png`.
 - The shipped runtime copy is the 1600px WebP (q75) in this directory.
 - Re-render with: `python make_breach_v2_flatmap.py` (managed Python + PIL)

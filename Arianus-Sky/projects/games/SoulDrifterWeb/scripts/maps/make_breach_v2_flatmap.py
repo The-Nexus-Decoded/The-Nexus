@@ -152,7 +152,8 @@ def draw_dressing(draw: ImageDraw.ImageDraw, items, to_px, scale: float,
                   numbered: bool = False, fsize: int = 13, start: int = 0) -> None:
     """Draw placed dungeon-kit assets as glyphs: square=wall, circle=floor,
     triangle=ceiling; colored by group; optional 1-based number chips."""
-    for i, (asset, mx, my) in enumerate(items):
+    for i, item in enumerate(items):
+        asset, mx, my = item[:3]  # readable props also carry surface elevation
         group, placement = ASSET_META[asset]
         color = GROUP_COLORS[group]
         x, y = to_px(mx, my)
@@ -357,7 +358,9 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
             label(draw, cx, y1 + 8, "Ashen Threshold (ante)", font(15, bold=True), PAPER, anchor="ma")
             label(draw, cx, y1 + 28, "12 x 9 m · FIXED", font(13), GOLD, anchor="ma")
         elif room["kind"] == "boss":
-            label(draw, cx, y0 - 24, "The Ashen Lock — boss room · FIXED · 24 x 18 m", font(18, bold=True),
+            label(draw, cx, y0 - 24,
+                  f"The Ashen Lock — boss room · FIXED · {room['w']:g} x {room['h']:g} m",
+                  font(18, bold=True),
                   PAPER, anchor="ma")
         elif room["kind"] == "vault":
             label(draw, cx, y0 - 15, "First Memory Vault · FIXED · 10 x 8 m", font(13, bold=True),
@@ -635,11 +638,18 @@ def draw_vestibule_detail(draw: ImageDraw.ImageDraw) -> None:
     # numbered dressing list (wrapped, full panel width)
     list_f = font(14)
     ly0 = A2_Y0 + 500
-    label(draw, A2_X0 + 24, ly0, "KIT DRESSING + WALL ART — Vestibule 1–24 (art 20–22, books 23–24) · "
-          "Plaza 25–35 (art 33–35) · Link 36–37:", font(15, bold=True), PAPER)
+    vestibule_art_start = len(FIXED_DRESSING["vestibule"]) + 1
+    vestibule_books_start = vestibule_art_start + len(WALL_ART["vestibule"])
+    plaza_art_start = plaza_start + len(FIXED_DRESSING["threshold-plaza"]) + 1
+    label(draw, A2_X0 + 24, ly0,
+          f"KIT DRESSING + WALL ART — Vestibule 1–{plaza_start} "
+          f"(art {vestibule_art_start}–{vestibule_books_start - 1}, books {vestibule_books_start}–{plaza_start}) · "
+          f"Plaza {plaza_start + 1}–{link_start} (art {plaza_art_start}–{link_start}) · "
+          f"Link {link_start + 1}–{link_start + len(FIXED_DRESSING['plaza-link'])}:",
+          font(15, bold=True), PAPER)
     flow = [a for a, _x, _y in FIXED_DRESSING["vestibule"]] \
         + [aid for aid, _x, _y, _w in WALL_ART["vestibule"]] \
-        + [a for a, _x, _y in BOOK_PROPS["vestibule"]] \
+        + [item[0] for item in BOOK_PROPS["vestibule"]] \
         + [a for a, _x, _y in FIXED_DRESSING["threshold-plaza"]] \
         + [aid for aid, _x, _y, _w in WALL_ART["threshold-plaza"]] \
         + [a for a, _x, _y in FIXED_DRESSING["plaza-link"]]
@@ -708,7 +718,7 @@ def draw_pool(draw: ImageDraw.ImageDraw, x0: int, y0: int, title: str, color,
         draw_dressing(draw, books, to_px, PPM, numbered=True, fsize=12,
                       start=len(items) + len(art))
         all_named = [a for a, _x, _y in items] + [aid for aid, _x, _y, _w in art] \
-            + [a for a, _x, _y in books]
+            + [item[0] for item in books]
         label(draw, cx, cy + h_px + 6, f"{room['id']} · {room['name']}", font(19, bold=True), PAPER)
         label(draw, cx, cy + h_px + 30, f"{room['w']:.0f} x {room['h']:.0f} m = {room['w']*room['h']:.0f} m2",
               font(16, bold=True), GOLD)

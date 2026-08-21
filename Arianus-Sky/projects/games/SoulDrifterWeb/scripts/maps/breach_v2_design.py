@@ -309,8 +309,11 @@ FIXED_DRESSING = {
     "vestibule": [("wall-torch-sconce", 5.0, 0.3), ("wall-torch-sconce", 12.0, 0.3),
                   ("wall-torch-sconce", 18.0, 0.3), ("wall-torch-sconce", 25.0, 0.3),
                   ("floor-brazier", 5.8, 13.8), ("floor-brazier", 11.7, 13.8),
-                  ("archive-bookshelf", 0.5, 3.5), ("trestle-table", 14.5, 3.6),
+                  ("archive-bookshelf", 0.5, 3.5), ("archive-bookshelf", 0.5, 6.4),
+                  ("archive-bookshelf", 17.8, 21.5), ("archive-bookshelf", 21.2, 21.5),
+                  ("archive-cupboard", 25.4, 21.5), ("trestle-table", 14.5, 3.6),
                   ("heavy-bench", 14.5, 5.4), ("empty-weapon-rack", 19.5, 0.4),
+                  ("empty-weapon-rack", 23.0, 0.4), ("weapon-armor-heap", 26.0, 4.0),
                   ("cave-in-rubble", 27.5, 19.0), ("collapsed-timber-masonry-pile", 2.0, 18.5),
                   ("candelabra-cluster", 22.8, 12.8), ("supply-pile", 26.8, 17.2),
                   ("guardian-statue", 28.6, 7.2), ("guardian-statue", 28.6, 14.8),
@@ -320,28 +323,28 @@ FIXED_DRESSING = {
     "threshold-plaza": [("floor-brazier", 1.5, 2.5), ("floor-brazier", 1.5, 9.5),
                         ("empty-weapon-rack", 8.0, 0.4), ("heavy-bench", 8.0, 11.4),
                         ("iron-floor-grate", 8.0, 6.0), ("candelabra-cluster", 15.0, 6.0),
-                        ("heavy-door", 15.8, 2.5), ("heavy-door", 15.8, 9.5)],  # the two trial door leaves
+                        ("heavy-door", 15.7, 2.5),
+                        ("heavy-door", 15.7, 9.5)],  # paired physical trial doors from the 3DAI kit
     "convergence": [("corruption-growth", 1.5, 2.0), ("corruption-growth", 1.5, 8.0),
                     ("floor-brazier", 10.5, 2.5), ("floor-brazier", 10.5, 7.5),
                     ("bone-pile", 6.0, 8.5), ("hanging-brazier", 6.0, 5.0)],
     "ashen-threshold": [("ruined-stone-archway", 0.3, 4.5), ("chain-shackle", 2.0, 0.4),
                         ("chain-shackle", 6.0, 0.4),
                         ("masonry-barricade", 10.5, 7.0), ("weapon-armor-heap", 3.0, 7.0),
-                        ("floor-brazier", 6.0, 4.5)],  # archway frames the portcullis door
+                        ("floor-brazier", 6.0, 4.5)],  # archway frames the heavy section door
     "ashen-lock": [("broken-stone-stair-dais", 20.0, 11.0), ("guardian-statue", 3.5, 3.5),
                    ("guardian-statue", 3.5, 18.5), ("corruption-growth", 25.0, 4.0),
                    ("corruption-growth", 25.0, 17.0), ("corruption-growth", 12.0, 18.5),
                    ("chain-shackle", 9.0, 0.4), ("chain-shackle", 20.0, 0.4),
                    ("floor-brazier", 7.0, 11.0), ("floor-brazier", 23.0, 11.0),
                    ("bone-pile", 14.0, 14.5), ("cave-in-rubble", 2.5, 14.0),
-                   ("hanging-brazier", 15.0, 7.0)],  # over the dais approach
+                   ("hanging-brazier", 15.0, 7.0),
+                   ("heavy-door", 29.6, 11.0)],  # sealed boss-to-vault reward door
     "memory-vault": [("reliquary-wall-alcove", 2.5, 0.4), ("reliquary-wall-alcove", 7.5, 0.4),
                      ("candelabra-cluster", 2.0, 6.5), ("candelabra-cluster", 8.0, 6.5),
                      ("storage-chest", 8.0, 2.2)],  # Warden's cache beside the First Memory dais
-    "exit-connector": [("wooden-support-brace", 2.0, 0.3), ("wooden-support-brace", 8.0, 0.3),
-                       ("wooden-support-brace", 14.0, 0.3), ("cave-in-rubble", 1.5, 4.5),
-                       ("wall-torch-sconce", 5.0, 0.3),
-                       ("ruined-stone-archway", 15.7, 3.0)],  # the breach exit arch into daylight
+    "exit-connector": [("cave-in-rubble", 1.5, 4.5),
+                       ("wall-torch-sconce", 5.0, 0.3)],  # clean single route into the framed daylight gate
 }
 
 
@@ -366,7 +369,9 @@ WALL_ART = {
     # fixed rooms (local meters)
     "vestibule": [("art-thalenyr-atlas", 8.75, 0.35, 2.6),      # world map — new players study it here
                   ("art-heartvale-section", 15.8, 0.35, 2.2),   # the zone they're heading to
-                  ("art-relief-lock-inscription", 8.75, 21.65, 2.0)],  # realm-memory relief, S wall
+                  ("art-relief-lock-inscription", 8.75, 21.65, 2.0),  # realm-memory relief, S wall
+                  ("art-haplo-runeship", 13.3, 21.65, 3.4),     # Dragon Wing/runeship world hook
+                  ("art-relief-first-memory", 23.8, 21.65, 1.8)],  # tutorial promise on opposite wall
     "threshold-plaza": [("art-breach-v2-flatmap", 3.5, 0.35, 1.8),     # this zone's map (route study)
                         ("art-banner-wayfarer", 15.7, 2.5, 1.4),       # above the Wayfarer door
                         ("art-banner-oathbreaker", 15.7, 9.5, 1.4)],   # above the Oathbreaker door
@@ -384,7 +389,9 @@ WALL_ART = {
 
 BOOK_PROPS = {
     # (asset, x, y, elevation) — elevation > 0 means "on a surface" (e.g. the table)
-    "vestibule": [("books-pile", 15.6, 4.2, 0.92), ("scrolls-pile", 5.4, 8.8, 0.0)],   # table + beside the Loom
+    "vestibule": [("books-pile", 15.2, 4.0, 0.92), ("books-pile", 16.2, 4.15, 0.92),
+                  ("scrolls-pile", 5.4, 8.8, 0.0), ("scrolls-pile", 18.4, 20.5, 0.0),
+                  ("books-pile", 21.6, 20.4, 0.0), ("books-pile", 25.2, 20.5, 0.0)],
     "E-07": [("books-pile", 5.5, 6.5, 0.0), ("books-pile", 10.5, 6.0, 0.0), ("scrolls-pile", 7.0, 12.3, 0.0)],
     "E-03": [("scrolls-pile", 5.5, 9.5, 0.0)],
 }

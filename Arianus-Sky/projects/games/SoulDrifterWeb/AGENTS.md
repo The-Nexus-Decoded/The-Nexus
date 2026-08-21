@@ -92,9 +92,10 @@ to EVERY zone, dungeon, village, prop, and scene you build:
   approved path for new art.
 - **Asset policy:** original or licensed/CC0 only, recorded in
   `third-party-assets.json`. No Ultima-derived data, ever.
-- `npm run typecheck` and `npm test` green at every commit. Production build
-  passes; `scripts/prune-runtime-assets.mjs` reports the dist size for
-  awareness (no fixed deployment budget for now — owner ruling 2026-08-20).
+- `npm run typecheck` and `npm test` green at every commit. QA and production
+  builds must remain below the permanent 500,000,000-byte ceiling enforced by
+  `scripts/runtime-asset-manifest.json`; the 475,000,000-byte preferred ceiling
+  preserves deploy-provider headroom (owner ruling 2026-08-21).
 - Phone-width responsive + desktop both keep working.
 - Never leave a dev server running when your task ends.
 - Repo-wide: **never delete .md files** (root CLAUDE.md rule); don't write
