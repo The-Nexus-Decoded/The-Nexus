@@ -337,6 +337,14 @@ interface SectionDoorSystem {
   isBlocked(x: number, z: number, radius: number): boolean;
   setAllOpen(open: boolean): void;
   toggleNearest(x: number, z: number, maxDistance?: number): string | null;
+  toggleAt(
+    playerX: number,
+    playerZ: number,
+    targetX: number,
+    targetZ: number,
+    maxPlayerDistance?: number,
+    maxTargetDistance?: number,
+  ): string | null;
 }
 
 /** Use authored 3DAI Studio doors and portcullises at section boundaries. */
@@ -376,7 +384,7 @@ async function placeSectionDoors(
   const portcullisIds = new Set([
     "wayfarer-choice", "oathbreaker-choice", "ashen-threshold", "boss-lock",
   ]);
-  const sealedVoids: THREE.Object3D[] = [];
+  const routeMists: THREE.Object3D[] = [];
   const states: {
     id: string;
     x: number;
@@ -448,9 +456,12 @@ async function placeSectionDoors(
     tickables.push(instance.animate);
     states.push({ ...door, root: pivot, kind, active, open: false, progress: 0 });
 
-    if (!active && (door.id === "wayfarer-choice" || door.id === "oathbreaker-choice")) {
+    if (door.id === "wayfarer-choice" || door.id === "oathbreaker-choice") {
       const smokeMaterial = new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0 } },
+        uniforms: {
+          uTime: { value: 0 },
+          uOpacity: { value: active ? 0.62 : 0.94 },
+        },
         vertexShader: `
           varying vec2 vUv;
           void main() {
@@ -461,6 +472,7 @@ async function placeSectionDoors(
         fragmentShader: `
           varying vec2 vUv;
           uniform float uTime;
+          uniform float uOpacity;
           float hash(vec2 p) {
             return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
           }
@@ -478,7 +490,7 @@ async function placeSectionDoors(
             float edge = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x)
               * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
             vec3 color = mix(vec3(0.012, 0.008, 0.018), vec3(0.20, 0.08, 0.27), smoke);
-            gl_FragColor = vec4(color, 0.94 * edge);
+            gl_FragColor = vec4(color, uOpacity * edge);
           }
         `,
         transparent: true,
@@ -489,13 +501,17 @@ async function placeSectionDoors(
         new THREE.PlaneGeometry(DOOR_PORTAL_W + 0.18, DOOR_LINTEL_H + 0.08, 1, 1),
         smokeMaterial,
       );
-      smoke.name = `sealed-route-void-${door.id}`;
+      smoke.name = `route-mist-${door.id}`;
       smoke.position.set(door.x + (door.axis === "x" ? 0.34 : 0), (DOOR_LINTEL_H + 0.08) / 2,
         door.z + (door.axis === "z" ? 0.34 : 0));
       smoke.rotation.y = door.axis === "x" ? Math.PI / 2 : 0;
-      smoke.userData = { inactiveRoute: true, connectorId: door.id, blocksMovement: false };
+      smoke.userData = {
+        activeRoute: active,
+        connectorId: door.id,
+        blocksMovement: false,
+      };
       scene.add(smoke);
-      sealedVoids.push(smoke);
+      routeMists.push(smoke);
       tickables.push((elapsed) => { smokeMaterial.uniforms.uTime!.value = elapsed; });
     }
   }
@@ -531,7 +547,7 @@ async function placeSectionDoors(
   };
   return {
     tickables,
-    cullables: [...states.map((state) => state.root), ...sealedVoids],
+    cullables: [...states.map((state) => state.root), ...routeMists],
     isBlocked: (x, z, radius) => states.some((state) => {
       if (!state.root.userData.blocksMovement) return false;
       const normalDistance = state.axis === "x" ? Math.abs(x - state.x) : Math.abs(z - state.z);
@@ -544,6 +560,30 @@ async function placeSectionDoors(
         .map((state) => ({ state, distance: Math.hypot(state.x - x, state.z - z) }))
         .filter(({ state, distance }) => state.active && distance <= maxDistance)
         .sort((a, b) => a.distance - b.distance)[0]?.state;
+      if (!nearest) return null;
+      setOpen(nearest, !nearest.open);
+      return nearest.id;
+    },
+    toggleAt: (
+      playerX,
+      playerZ,
+      targetX,
+      targetZ,
+      maxPlayerDistance = 4.2,
+      maxTargetDistance = 1.55,
+    ) => {
+      const nearest = states
+        .map((state) => ({
+          state,
+          playerDistance: Math.hypot(state.x - playerX, state.z - playerZ),
+          targetDistance: Math.hypot(state.x - targetX, state.z - targetZ),
+        }))
+        .filter(({ state, playerDistance, targetDistance }) => (
+          state.active
+          && playerDistance <= maxPlayerDistance
+          && targetDistance <= maxTargetDistance
+        ))
+        .sort((a, b) => a.targetDistance - b.targetDistance)[0]?.state;
       if (!nearest) return null;
       setOpen(nearest, !nearest.open);
       return nearest.id;
@@ -1492,15 +1532,17 @@ export async function startDungeonPreview(
     const pointerNdc = new THREE.Vector2();
     const walkPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const clickPoint = new THREE.Vector3();
-    const setClickDestination = (clientX: number, clientY: number): void => {
+    const pickWalkPoint = (clientX: number, clientY: number): THREE.Vector3 | null => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerNdc.set(
         ((clientX - rect.left) / rect.width) * 2 - 1,
         -((clientY - rect.top) / rect.height) * 2 + 1,
       );
       pointerRaycaster.setFromCamera(pointerNdc, camera);
-      if (!pointerRaycaster.ray.intersectPlane(walkPlane, clickPoint)) return;
-      const [targetX, targetZ] = nearestWalkable(clickPoint.x, clickPoint.z);
+      return pointerRaycaster.ray.intersectPlane(walkPlane, clickPoint) ? clickPoint.clone() : null;
+    };
+    const setClickDestination = (point: THREE.Vector3): void => {
+      const [targetX, targetZ] = nearestWalkable(point.x, point.z);
       const startCell = { x: Math.floor(playerPos.x / NAV), y: Math.floor(playerPos.z / NAV) };
       const targetCell = { x: Math.floor(targetX / NAV), y: Math.floor(targetZ / NAV) };
       const cells = findPath(startCell, targetCell, (cell) => isWalkable((cell.x + 0.5) * NAV, (cell.y + 0.5) * NAV));
@@ -1515,8 +1557,11 @@ export async function startDungeonPreview(
     });
     renderer.domElement.addEventListener("pointerup", (e) => {
       if (pointerTravel < 8) {
-        const toggledDoor = sectionDoors.toggleNearest(playerPos.x, playerPos.z);
-        if (!toggledDoor) setClickDestination(e.clientX, e.clientY);
+        const target = pickWalkPoint(e.clientX, e.clientY);
+        const toggledDoor = target
+          ? sectionDoors.toggleAt(playerPos.x, playerPos.z, target.x, target.z)
+          : null;
+        if (!toggledDoor && target) setClickDestination(target);
       }
       dragging = false;
     });

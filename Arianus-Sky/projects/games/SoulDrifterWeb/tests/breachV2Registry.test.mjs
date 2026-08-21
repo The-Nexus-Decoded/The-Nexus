@@ -108,6 +108,28 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
   });
 
+  it("staggers opposing sconces and keeps every wall-art frame clear", () => {
+    for (const room of [...R.fixedRooms, ...allPoolRooms]) {
+      const sconces = room.placements.filter((p) => p.asset === "wall-torch-sconce");
+      const north = sconces.filter((p) => p.facing === "south").map((p) => p.x);
+      const south = sconces.filter((p) => p.facing === "north").map((p) => p.x);
+      expect(south, `${room.id}: mechanically mirrored sconces`).not.toEqual(north);
+
+      const art = room.placements.filter((p) => p.role === "wall-art");
+      for (const frame of art) {
+        for (const sconce of sconces.filter((p) => p.facing === frame.facing)) {
+          const axis = ["north", "south"].includes(frame.facing) ? "x" : "y";
+          const separation = Math.abs(frame[axis] - sconce[axis]);
+          const required = frame.width / 2 + sconce.footprint / 2 + 0.2;
+          expect(
+            separation,
+            `${room.id}: ${frame.asset} collides with sconce on ${frame.facing} wall`,
+          ).toBeGreaterThanOrEqual(required);
+        }
+      }
+    }
+  });
+
   it("placement records carry the §6 minimum metadata and stay in bounds", () => {
     const rooms = [
       ...R.fixedRooms.map((r) => ({ ...r, sockets: [] })),

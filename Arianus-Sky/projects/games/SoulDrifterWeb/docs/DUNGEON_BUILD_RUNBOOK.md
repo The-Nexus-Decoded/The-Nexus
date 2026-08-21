@@ -164,6 +164,10 @@ registry coordinate or an orbit screenshot is not proof.
 3. **Wall-mounted assets:** bookshelves, racks, reliefs, paintings, sconces,
    and statues face into the room, sit flush to their supporting wall, and do
    not sit half inside it. Paired statues use the same forward direction.
+   Wall dressing is authored with clearance between each footprint: a frame,
+   sconce, banner, shelf, or rack may never overlap another wall asset. Do not
+   mirror identical coordinates onto the opposite wall; stagger fixtures and
+   art so the room reads as an inhabited place rather than a mechanical set.
    Record each imported asset family's source-forward axis and correct it once
    at the loader boundary; never compensate with unexplained per-instance yaw.
    Inspect wall-mounted assets from the front and both sides so a thin edge,
@@ -225,10 +229,11 @@ alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
   registry door, a procedural placeholder frame, and a runtime door system at
   the same socket. BREACH-V2 choice gates are runtime-owned imported 3D
   portcullises; static dressing never reserves their nav cells.
-- For a generated branch choice, the selected gate must raise into one clean,
-  capsule-width corridor that reaches chamber 1. The unselected gate stays
-  lowered and may use an opaque animated void treatment to communicate a
-  sealed branch; it must not reveal a blank wall or unused dungeon geometry.
+- For a generated branch choice, both route portals carry animated swirling
+  mist. The selected gate must raise into one clean, capsule-width corridor
+  that reaches chamber 1; its lighter mist is nonblocking. The unselected gate
+  stays lowered behind denser mist and cannot be entered. Reversing the chosen
+  path must reverse only gate access, not remove either portal treatment.
 - Test branch thresholds with the real player radius at repeated points from
   inside the choice room to beyond the gate. A reachable endpoint cell alone
   is insufficient because an adjacent chest or prop can still block the
@@ -238,7 +243,12 @@ alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
   automation, mobile browsers, and background tabs may run at 1 FPS.
 - Exercise the actual interaction path after every warp: confirm avatar world
   coordinates change to the destination, then confirm WASD and click-to-move
-  both change them again. A camera-only warp is a failure.
+  both change them again. Clicking a gate toggles that gate; clicking nearby
+  floor must remain click-to-move and must never close an already-open gate.
+  A camera-only warp is a failure.
+- Add registry tests for wall-art/fixture footprint clearance and for staggered
+  opposing-wall coordinates. A screenshot-only check does not prevent the
+  same collision or mirrored-layout defect from returning in another seed.
 - Inspect effects from first-person range. Splash tubes, flame cards, and
   particle sprites that look restrained from isometric distance can become
   opaque placeholder shapes at player height.

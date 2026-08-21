@@ -383,9 +383,10 @@ FIXED_DRESSING = {
 }
 
 # Every authored room carries visible wall-mounted fire on BOTH the north and
-# south walls. These pairs replace the earlier one-sided singles. The runtime
-# derives each point light from the sconce's real flame anchor, so illumination
-# cannot drift away from the fixture during layout/export changes.
+# south walls. The opposite wall is deliberately staggered so rooms read as
+# inhabited spaces rather than mirrored procedural sets. The runtime derives
+# each point light from the sconce's real flame anchor, so illumination cannot
+# drift away from the fixture during layout/export changes.
 SCONCE_PAIR_X = {
     "vestibule": [4.0, 17.5, 28.0], "plaza-link": [1.5, 4.5],
     "threshold-plaza": [6.0, 12.0], "convergence": [3.0, 9.0],
@@ -394,7 +395,7 @@ SCONCE_PAIR_X = {
     "E-01": [4.0, 10.0], "E-02": [6.0, 11.0], "E-03": [2.0, 12.0],
     "E-04": [8.0], "E-05": [3.0, 11.0], "E-06": [5.0, 17.0],
     "E-07": [1.5, 14.5], "H-01": [3.0, 9.0], "H-02": [2.0, 7.0],
-    "H-03": [4.5], "H-04": [3.0, 9.0], "H-05": [3.0, 10.0],
+    "H-03": [2.5], "H-04": [3.0, 9.0], "H-05": [3.0, 10.0],
     "H-06": [6.0], "H-07": [9.0],
 }
 
@@ -402,15 +403,17 @@ _ROOM_DIMS = {
     room["id"]: (room["w"], room["h"])
     for room in [*FIXED_ROOMS, *EASY_POOL, *HARD_POOL]
 }
-for _room_id, _pair_xs in SCONCE_PAIR_X.items():
+for _room_id, _north_xs in SCONCE_PAIR_X.items():
     _target = FIXED_DRESSING.get(_room_id, DRESSING.get(_room_id))
     _room_w, _room_h = _ROOM_DIMS[_room_id]
     _target[:] = [entry for entry in _target if entry[0] != "wall-torch-sconce"]
-    for _x in _pair_xs:
+    for _index, _x in enumerate(_north_xs):
         assert 0.5 <= _x <= _room_w - 0.5
+        _south_x = _x + (1.15 if _index % 2 == 0 else -1.15)
+        _south_x = max(0.5, min(_room_w - 0.5, _south_x))
         _target.extend([
             ("wall-torch-sconce", _x, 0.3),
-            ("wall-torch-sconce", _x, _room_h - 0.3),
+            ("wall-torch-sconce", round(_south_x, 2), _room_h - 0.3),
         ])
 
 
@@ -433,17 +436,17 @@ ASSET_META.update({
 WALL_ART = {
     # fixed rooms (local meters)
     "vestibule": [("art-thalenyr-atlas", 8.75, 0.35, 2.6),      # world map — new players study it here
-                  ("art-painting-reliquary", 15.8, 0.35, 2.2), # original lore reliquary painting
+                  ("art-painting-reliquary", 14.5, 0.35, 2.2), # original lore reliquary painting
                   ("art-relief-lock-inscription", 8.75, 21.65, 2.0),  # realm-memory relief, S wall
                   ("art-painting-winged-skyship", 13.3, 21.65, 3.4),  # original Arianus memory painting
                   ("art-relief-first-memory", 23.8, 21.65, 1.8)],  # tutorial promise on opposite wall
     "threshold-plaza": [("art-map-thalenyr-scroll", 3.5, 0.35, 1.8),  # lore cartography, never a dev map
-                        ("art-banner-wayfarer", 12.5, 0.35, 1.4),      # north wall beside the Wayfarer door
+                        ("art-banner-wayfarer", 9.0, 0.35, 1.4),       # north wall beside the Wayfarer door
                         ("art-banner-oathbreaker", 12.5, 11.65, 1.4)], # south wall beside the Oathbreaker door
     "convergence": [("art-banner-ashen", 0.3, 5.0, 1.4)],              # warning banner between entries
-    "ashen-threshold": [("art-relief-warden", 9.5, 0.35, 1.8)],        # the Warden's warning relief
-    "ashen-lock": [("art-banner-cinderbound", 13.0, 0.35, 1.6),
-                   ("art-banner-cinderbound", 23.0, 0.35, 1.6)],
+    "ashen-threshold": [("art-relief-warden", 10.5, 0.35, 1.8)],       # the Warden's warning relief
+    "ashen-lock": [("art-banner-cinderbound", 12.0, 0.35, 1.6),
+                   ("art-banner-cinderbound", 22.5, 0.35, 1.6)],
     "memory-vault": [("art-relief-first-memory", 5.0, 0.35, 1.8)],     # above the dais
     # pool rooms
     "E-03": [("art-painting-reliquary", 7.0, 0.35, 1.6)],

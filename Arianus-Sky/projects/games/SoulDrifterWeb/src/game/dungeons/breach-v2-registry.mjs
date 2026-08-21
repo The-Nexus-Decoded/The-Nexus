@@ -368,7 +368,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 4.0,
+          "x": 5.15,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -392,7 +392,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 17.5,
+          "x": 16.35,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -416,7 +416,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 28.0,
+          "x": 29.15,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -441,7 +441,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-painting-reliquary",
-          "x": 15.8,
+          "x": 14.5,
           "y": 0.35,
           "width": 2.2,
           "placement": "wall",
@@ -595,7 +595,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 1.5,
+          "x": 2.65,
           "y": 5.7,
           "placement": "wall",
           "group": "fire",
@@ -619,7 +619,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 4.5,
+          "x": 3.35,
           "y": 5.7,
           "placement": "wall",
           "group": "fire",
@@ -763,7 +763,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 6.0,
+          "x": 7.15,
           "y": 11.7,
           "placement": "wall",
           "group": "fire",
@@ -787,7 +787,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 12.0,
+          "x": 10.85,
           "y": 11.7,
           "placement": "wall",
           "group": "fire",
@@ -812,7 +812,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-wayfarer",
-          "x": 12.5,
+          "x": 9.0,
           "y": 0.35,
           "width": 1.4,
           "placement": "wall",
@@ -970,7 +970,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 3.0,
+          "x": 4.15,
           "y": 9.7,
           "placement": "wall",
           "group": "fire",
@@ -994,7 +994,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 9.0,
+          "x": 7.85,
           "y": 9.7,
           "placement": "wall",
           "group": "fire",
@@ -1127,7 +1127,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 4.0,
+          "x": 5.15,
           "y": 8.7,
           "placement": "wall",
           "group": "fire",
@@ -1151,7 +1151,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 8.0,
+          "x": 6.85,
           "y": 8.7,
           "placement": "wall",
           "group": "fire",
@@ -1163,7 +1163,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-relief-warden",
-          "x": 9.5,
+          "x": 10.5,
           "y": 0.35,
           "width": 1.8,
           "placement": "wall",
@@ -1464,7 +1464,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 5.0,
+          "x": 6.15,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -1488,7 +1488,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 15.0,
+          "x": 13.85,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -1512,7 +1512,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 25.0,
+          "x": 26.15,
           "y": 21.7,
           "placement": "wall",
           "group": "fire",
@@ -1524,7 +1524,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-cinderbound",
-          "x": 13.0,
+          "x": 12.0,
           "y": 0.35,
           "width": 1.6,
           "placement": "wall",
@@ -1537,7 +1537,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-cinderbound",
-          "x": 23.0,
+          "x": 22.5,
           "y": 0.35,
           "width": 1.6,
           "placement": "wall",
@@ -1646,7 +1646,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 1.0,
+          "x": 2.15,
           "y": 7.7,
           "placement": "wall",
           "group": "fire",
@@ -1670,7 +1670,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 9.0,
+          "x": 7.85,
           "y": 7.7,
           "placement": "wall",
           "group": "fire",
@@ -1779,7 +1779,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 5.0,
+          "x": 6.15,
           "y": 5.7,
           "placement": "wall",
           "group": "fire",
@@ -1803,7 +1803,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 11.0,
+          "x": 9.85,
           "y": 5.7,
           "placement": "wall",
           "group": "fire",
@@ -2116,7 +2116,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 4.0,
+            "x": 5.15,
             "y": 12.7,
             "placement": "wall",
             "group": "fire",
@@ -2140,7 +2140,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 10.0,
+            "x": 8.85,
             "y": 12.7,
             "placement": "wall",
             "group": "fire",
@@ -2303,7 +2303,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 6.0,
+            "x": 7.15,
             "y": 13.7,
             "placement": "wall",
             "group": "fire",
@@ -2327,7 +2327,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 11.0,
+            "x": 9.85,
             "y": 13.7,
             "placement": "wall",
             "group": "fire",
@@ -2500,7 +2500,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 2.0,
+            "x": 3.15,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -2524,7 +2524,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 12.0,
+            "x": 10.85,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -2744,7 +2744,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 8.0,
+            "x": 9.15,
             "y": 14.7,
             "placement": "wall",
             "group": "fire",
@@ -2890,7 +2890,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 3.0,
+            "x": 4.15,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -2914,7 +2914,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 11.0,
+            "x": 9.85,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -3091,7 +3091,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 5.0,
+            "x": 6.15,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -3115,7 +3115,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 17.0,
+            "x": 15.85,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -3317,7 +3317,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 1.5,
+            "x": 2.65,
             "y": 13.7,
             "placement": "wall",
             "group": "fire",
@@ -3341,7 +3341,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 14.5,
+            "x": 13.35,
             "y": 13.7,
             "placement": "wall",
             "group": "fire",
@@ -3540,7 +3540,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 3.0,
+            "x": 4.15,
             "y": 9.7,
             "placement": "wall",
             "group": "fire",
@@ -3564,7 +3564,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 9.0,
+            "x": 7.85,
             "y": 9.7,
             "placement": "wall",
             "group": "fire",
@@ -3726,7 +3726,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 2.0,
+            "x": 3.15,
             "y": 10.7,
             "placement": "wall",
             "group": "fire",
@@ -3750,7 +3750,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 7.0,
+            "x": 5.85,
             "y": 10.7,
             "placement": "wall",
             "group": "fire",
@@ -3912,7 +3912,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 4.5,
+            "x": 2.5,
             "y": 0.3,
             "placement": "wall",
             "group": "fire",
@@ -3924,7 +3924,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 4.5,
+            "x": 3.65,
             "y": 11.7,
             "placement": "wall",
             "group": "fire",
@@ -4082,7 +4082,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 3.0,
+            "x": 4.15,
             "y": 8.7,
             "placement": "wall",
             "group": "fire",
@@ -4106,7 +4106,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 9.0,
+            "x": 7.85,
             "y": 8.7,
             "placement": "wall",
             "group": "fire",
@@ -4272,7 +4272,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 3.0,
+            "x": 4.15,
             "y": 9.7,
             "placement": "wall",
             "group": "fire",
@@ -4296,7 +4296,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 10.0,
+            "x": 8.85,
             "y": 9.7,
             "placement": "wall",
             "group": "fire",
@@ -4474,7 +4474,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 6.0,
+            "x": 7.15,
             "y": 10.7,
             "placement": "wall",
             "group": "fire",
@@ -4631,7 +4631,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "wall-torch-sconce",
-            "x": 9.0,
+            "x": 10.15,
             "y": 9.7,
             "placement": "wall",
             "group": "fire",
