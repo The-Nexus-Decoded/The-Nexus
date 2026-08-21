@@ -1,7 +1,14 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { SKIN_TONES, type FacialHairId, type HairStyleId, type SkinToneId } from "./game/character";
+import {
+  HAIR_COLORS,
+  SKIN_TONES,
+  type FacialHairId,
+  type HairColorId,
+  type HairStyleId,
+  type SkinToneId,
+} from "./game/character";
 import { applyModularAppearance, cloneActorMaterial, raceAvatarShape } from "./game/presentation";
 
 const PREVIEW_MODEL_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
@@ -10,6 +17,7 @@ const STARTER_SWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|P
 
 export interface CreationPreviewAppearance {
   hairStyle: HairStyleId;
+  hairColor: HairColorId;
   skinTone: SkinToneId;
   raceId: string;
   facialHair?: FacialHairId;
@@ -149,6 +157,7 @@ export class CreationAvatarPreview {
     });
     applyModularAppearance(this.model, {
       hairStyle: this.appearance.hairStyle,
+      hairColor: HAIR_COLORS[this.appearance.hairColor]?.color ?? HAIR_COLORS["silver-white"].color,
       raceId: (this.appearance.raceId || "human") as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.appearance.facialHair ?? "none",
     });

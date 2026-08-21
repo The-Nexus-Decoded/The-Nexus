@@ -3,12 +3,13 @@ import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
   bindOptionalCompatibleAnimationClip,
+  HUMANOID_ACTIVE_ANIMATION_PACKS,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
   trimAnimationPackClipEnvelope,
   type AnimationPackSpec,
 } from "./animationPacks";
-import { callingById, SKIN_TONES, type CharacterProfile } from "./character";
+import { callingById, HAIR_COLORS, SKIN_TONES, type CharacterProfile } from "./character";
 import {
   dungeonTileKey,
   generateSoulwellDungeon,
@@ -23,7 +24,6 @@ import {
 import { buildDialogue, type DialogueScene, type NpcDatabase, type NpcStoryOverride } from "./npc";
 import { findPath } from "./pathfinding";
 import {
-  enemyDefeatVisibilityMs,
   planPursuitPath,
   planSoulwellRespawn,
   resolveMeleeTarget,
@@ -51,6 +51,13 @@ import {
   type InventoryState,
 } from "./equipment";
 import { BASIC_ATTACK, basicAttackDamage } from "./combatActions";
+import { callingCombatContract, type CallingCombatContract } from "./callingCombat";
+import {
+  priestMendingWardHealing,
+  recoverWhileSafe,
+  recoveryChargesAtBossCheckpoint,
+  STARTER_RECOVERY_CHARGES,
+} from "./combatRecovery";
 import {
   CINDER_GUARD_MOTION,
   ENEMY_MELEE_MOTION,
@@ -58,7 +65,6 @@ import {
   SIPHON_CLEAVE_MOTION,
   UNARMED_KICK_MOTION,
   UNARMED_PUNCH_MOTION,
-  WEAPON_STRIKE_MOTION,
   WORLD_INTERACTION_MOTIONS,
   type MotionArchetypeContract,
   type WorldInteractionMotionContract,
@@ -85,7 +91,7 @@ import {
   cameraTileEnvelope,
   cloneActorMaterial,
   createTerminalDeathClip,
-  createStarterLongswordPresentation,
+  createStarterWeaponPresentation,
   deathBodyTilt,
   applyModularAppearance,
   raceAvatarShape,
@@ -107,6 +113,7 @@ import {
 import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 import { markAtlasPoi } from "./atlasSync";
+import { resolveFirstMemoryAction } from "./levelCompletion";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -117,6 +124,8 @@ const STABILITY_REGEN_DELAY_MS = 4_500;
 const STABILITY_REGEN_INTERVAL_SECONDS = 1.5;
 const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
 const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
+const BREACHLING_RUNTIME_MODEL = "/assets/3d/local-derived/issue-448/creatures/sd-creature-breachling-base-runtime-mvp-v001.glb";
+const WARDEN_RUNTIME_MODEL = "/assets/3d/local-derived/issue-448/creatures/sd-creature-cinderbound-warden-runtime-mvp-v001.glb";
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -128,10 +137,50 @@ const IN_PLACE_ANIMATION_NAMES = new Set([
   "siphoncleavebaselinecandidate", "siphoncleavebaseline",
 ]);
 const NPC_MODEL_PATHS: Record<string, string> = {
-  ilyra: "/assets/3d/characters/npc-ilyra.gltf",
-  orren: "/assets/3d/characters/npc-orren.gltf",
-  brannoc: "/assets/3d/characters/npc-brannoc.gltf",
+  ilyra: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+  orren: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
+  brannoc: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
 };
+const NPC_IDLE_ANIMATION_PACKS = HUMANOID_ACTIVE_ANIMATION_PACKS.slice(0, 1);
+
+function creatureTransformClips(model: THREE.Object3D): THREE.AnimationClip[] {
+  const target = model.name;
+  const basePosition = model.position.clone();
+  const baseRotation = model.quaternion.clone();
+  const positionTrack = (times: number[], offsets: Array<[number, number, number]>): THREE.VectorKeyframeTrack =>
+    new THREE.VectorKeyframeTrack(
+      `${target}.position`,
+      times,
+      offsets.flatMap(([x, y, z]) => [basePosition.x + x, basePosition.y + y, basePosition.z + z]),
+    );
+  const rotationTrack = (times: number[], turns: Array<[number, number, number]>): THREE.QuaternionKeyframeTrack =>
+    new THREE.QuaternionKeyframeTrack(
+      `${target}.quaternion`,
+      times,
+      turns.flatMap(([x, y, z]) => {
+        const offset = new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
+        return baseRotation.clone().multiply(offset).toArray();
+      }),
+    );
+  const clip = (
+    name: string,
+    duration: number,
+    times: number[],
+    offsets: Array<[number, number, number]>,
+    turns: Array<[number, number, number]>,
+  ): THREE.AnimationClip => new THREE.AnimationClip(name, duration, [positionTrack(times, offsets), rotationTrack(times, turns)]);
+
+  return [
+    clip("Idle", 2, [0, 1, 2], [[0, 0, 0], [0, 0.035, 0], [0, 0, 0]], [[0, 0, 0], [0.025, 0, 0.018], [0, 0, 0]]),
+    clip("Walk", 0.8, [0, 0.2, 0.4, 0.6, 0.8], [[0, 0, 0], [0, 0.055, 0.025], [0, 0, 0.05], [0, 0.055, 0.025], [0, 0, 0]], [[0, 0, 0.06], [0.035, 0, 0], [0, 0, -0.06], [0.035, 0, 0], [0, 0, 0.06]]),
+    clip("Run", 0.56, [0, 0.14, 0.28, 0.42, 0.56], [[0, 0, 0], [0, 0.085, 0.06], [0, 0, 0.1], [0, 0.085, 0.06], [0, 0, 0]], [[0.08, 0, 0.09], [-0.04, 0, 0], [0.08, 0, -0.09], [-0.04, 0, 0], [0.08, 0, 0.09]]),
+    clip("Punch", 0.72, [0, 0.22, 0.42, 0.72], [[0, 0, 0], [0, 0.02, -0.08], [0, 0.08, 0.2], [0, 0, 0]], [[0, 0, 0], [0.12, -0.18, 0], [-0.2, 0.2, 0.08], [0, 0, 0]]),
+    clip("SwordSlash", 0.82, [0, 0.24, 0.5, 0.82], [[0, 0, 0], [0, 0.03, -0.06], [0, 0.07, 0.18], [0, 0, 0]], [[0, 0, -0.18], [0.08, -0.28, 0.2], [-0.16, 0.28, -0.22], [0, 0, 0]]),
+    clip("RecieveHit", 0.48, [0, 0.16, 0.48], [[0, 0, 0], [0, 0.045, -0.16], [0, 0, 0]], [[0, 0, 0], [0.3, 0, 0.12], [0, 0, 0]]),
+    clip("Death", 1.18, [0, 0.34, 0.78, 1.18], [[0, 0, 0], [0, 0.04, -0.08], [0, -0.11, 0.05], [0, -0.22, 0.08]], [[0, 0, 0], [0.18, 0, 0.18], [0.45, 0, 0.82], [0.35, 0, 1.34]]),
+    clip("Defeat", 1.18, [0, 0.34, 0.78, 1.18], [[0, 0, 0], [0, 0.04, -0.08], [0, -0.11, 0.05], [0, -0.22, 0.08]], [[0, 0, 0], [0.18, 0, 0.18], [0.45, 0, 0.82], [0.35, 0, 1.34]]),
+  ];
+}
 
 interface AnimatedActor {
   id: string;
@@ -186,7 +235,15 @@ interface DebugSnapshot {
   seed: number;
   realmPressure: number;
   room: DungeonRoomKind;
-  player: GridPoint & { hp: number; stability: number; resource: number };
+  player: GridPoint & {
+    hp: number;
+    maxHp: number;
+    stability: number;
+    maxStability: number;
+    resource: number;
+    raceId: string;
+    callingId: string;
+  };
   combatStyle: CombatStyle;
   combatState: RuntimeState;
   encounter: "none" | "skirmish" | "boss";
@@ -217,6 +274,7 @@ interface DebugSnapshot {
   revealedRooms: DungeonRoomKind[];
   inventory: Array<{ id: string; name: string; equipped: boolean; slot?: string; durability?: number }>;
   complete: boolean;
+  ascended: boolean;
   recoveryCharges: number;
   trialDifficulty: TrialDifficulty | null;
   selectedTargetId: string | null;
@@ -275,20 +333,25 @@ interface DebugSnapshot {
 interface DebugBridge {
   snapshot(): DebugSnapshot;
   moveTo(x: number, y: number): Promise<void>;
+  approachTarget(id: string): Promise<void>;
+  retreatFromTarget(id: string): Promise<void>;
   interact(id: string): Promise<void>;
   target(id: string): Promise<void>;
   clearTarget(): void;
   action(action: ActionName): Promise<void>;
   setCombatStyle(style: CombatStyle): void;
+  setCombatSpeed(speed: number): void;
   activeBlock(): void;
   pose(animation: string, normalizedTime: number): void;
   weapon(state: WeaponVisualState): void;
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
   prepareTrialGate(): void;
+  selectTrial(difficulty: TrialDifficulty): Promise<void>;
   prepareImprint(): void;
   requestInteraction(id: string): Promise<void>;
   confirmInteraction(): Promise<void>;
   prepareCorridor(): Promise<void>;
+  prepareBoss(): Promise<void>;
   prepareOcclusion(): string;
   enemyRound(): Promise<void>;
   enemyPose(id: string, phase: "telegraph" | "contact" | "recovery"): void;
@@ -371,6 +434,7 @@ function nearestOpenAdjacent(
 export class World3D {
   private readonly ui = new GameUI();
   private readonly calling: ReturnType<typeof callingById>;
+  private readonly combatContract: CallingCombatContract;
   private readonly lighting = lightingTuningRegistry.snapshot();
   private readonly dungeon: GeneratedDungeon;
   private readonly scene = new THREE.Scene();
@@ -397,6 +461,7 @@ export class World3D {
   private readonly environmentDisposers: Array<() => void> = [];
   private readonly revealedRooms = new Set<DungeonRoomKind>();
   private readonly completedEncounters = new Set<"skirmish" | "boss">();
+  private readonly lootedEnemyIds = new Set<string>();
   private readonly inventory: InventoryItem[];
   private readonly backpackCapacity: BackpackCapacity;
   private player!: AnimatedActor;
@@ -417,7 +482,7 @@ export class World3D {
   private stability: number;
   private resource = 0;
   private realmPressure = 12;
-  private recoveryCharges = 2;
+  private recoveryCharges = STARTER_RECOVERY_CHARGES;
   private tutorialStep = 1;
   private signatureReadyAt = 0;
   private basicReadyAt = 0;
@@ -430,6 +495,7 @@ export class World3D {
   private unarmedAttackCursor = 0;
   private disposed = false;
   private complete = false;
+  private ascended = false;
   private animationFrame = 0;
   private combatSpeed = 1;
   private locomotionPreference: LocomotionPreference = "auto";
@@ -465,6 +531,7 @@ export class World3D {
     savedInventory?: InventoryState,
   ) {
     this.calling = callingById(profile.callingId);
+    this.combatContract = callingCombatContract(profile.callingId);
     this.inventory = savedInventory?.items.map((item) => ({ ...item })) ?? createStarterInventory(profile.callingId);
     this.backpackCapacity = savedInventory
       ? { ...savedInventory.capacity }
@@ -1057,10 +1124,18 @@ export class World3D {
     );
     this.scene.add(this.player.root);
 
-    const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 1.94, brannoc: 2.12 };
+    const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 2.04, brannoc: 1.72 };
     const npcNames: Record<string, string> = { ilyra: "Wellkeeper Ilyra", orren: "Breach Scout Orren", brannoc: "Arena Warden Brannoc" };
     await Promise.all(this.dungeon.npcs.map(async (npc) => {
-      const actor = await this.createActor(npc.id, NPC_MODEL_PATHS[npc.id]!, npc, npcHeights[npc.id]!, 0xc59b62, npcNames[npc.id] ?? npc.id);
+      const actor = await this.createActor(
+        npc.id,
+        NPC_MODEL_PATHS[npc.id]!,
+        npc,
+        npcHeights[npc.id]!,
+        0xc59b62,
+        npcNames[npc.id] ?? npc.id,
+        npc.id === "ilyra" ? [] : NPC_IDLE_ANIMATION_PACKS,
+      );
       actor.root.traverse((child) => { child.userData.interactId = npc.id; });
       this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
       this.addInteractionMarker(actor.root, 0x62e6db, false);
@@ -1069,13 +1144,15 @@ export class World3D {
       this.zoneGroups.get(zoneId)!.add(actor.root);
     }));
 
+    await this.installTrainingSentinelVisual();
+
     await Promise.all(this.dungeon.enemies.map(async (enemy) => {
       const isBoss = enemy.kind === "miniboss";
       const actor = await this.createActor(
         enemy.id,
-        isBoss ? FALLBACK_PALADIN_MODEL : "/assets/3d/characters/enemy-breachling.gltf",
+        isBoss ? WARDEN_RUNTIME_MODEL : BREACHLING_RUNTIME_MODEL,
         enemy,
-        isBoss ? 2.78 : 1.96,
+        isBoss ? 3.66 : 1.96,
         isBoss ? 0xe45d38 : 0x7849a2,
         enemy.name,
       ) as EnemyRuntime;
@@ -1087,7 +1164,7 @@ export class World3D {
       actor.attackCount = 0;
       actor.nextActionAt = 0;
       const targetRing = new THREE.Mesh(
-        new THREE.RingGeometry(isBoss ? 0.78 : 0.54, isBoss ? 0.94 : 0.68, 48),
+        new THREE.RingGeometry(isBoss ? 1.02 : 0.54, isBoss ? 1.25 : 0.68, 48),
         new THREE.MeshBasicMaterial({
           color: isBoss ? 0xff8a5b : 0xf3bd64,
           transparent: true,
@@ -1122,6 +1199,11 @@ export class World3D {
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
+    model.name = `${id}-visual`;
+    // The reviewed Ilyra source was authored facing +X; the runtime's actor
+    // convention is +Z. Normalize her authored model once so interaction and
+    // camera-facing yaw use the same convention as every other actor.
+    if (id === "ilyra") model.rotation.y = -Math.PI / 2;
     model.updateMatrixWorld(true);
     const initialBox = actorBodyBounds(model);
     const sourceHeight = Math.max(0.01, initialBox.max.y - initialBox.min.y);
@@ -1142,12 +1224,17 @@ export class World3D {
         const skinTone = id === "player"
           ? SKIN_TONES[this.profile.appearance?.skinTone ?? "ashen"].color
           : undefined;
-        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, id === "player", skinTone));
+        const preserveAuthoredPalette = id === "player"
+          || Object.hasOwn(NPC_MODEL_PATHS, id)
+          || id.includes("breachling")
+          || id.includes("warden");
+        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, preserveAuthoredPalette, skinTone));
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
     });
     if (id === "player") applyModularAppearance(model, {
       hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
+      hairColor: HAIR_COLORS[this.profile.appearance?.hairColor ?? "silver-white"].color,
       raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.profile.appearance?.facialHair ?? "none",
     });
@@ -1184,6 +1271,9 @@ export class World3D {
       clip.name,
       IN_PLACE_ANIMATION_NAMES.has(clip.name.toLowerCase()) ? sanitizeAttackClip(clip) : clip,
     ]));
+    if (id.includes("breachling") || id.includes("warden")) {
+      creatureTransformClips(model).forEach((clip) => clips.set(clip.name, clip));
+    }
     const externalClips = await Promise.all(animationPacks.map(async (spec) => {
       try {
         return await this.loadExternalAnimationPack(spec, model);
@@ -1205,7 +1295,10 @@ export class World3D {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh && /boot|feet|shoe/i.test(child.name)) groundingMeshes.push(child);
     });
-    const weapon = id === "player" ? createStarterLongswordPresentation(model) : undefined;
+    const starterWeapon = id === "player" ? equippedUsableWeapon(this.inventory) : undefined;
+    const weapon = id === "player" && starterWeapon
+      ? createStarterWeaponPresentation(model, starterWeapon.weaponFamily!, this.profile.callingId)
+      : undefined;
     if (weapon) setWeaponVisualState(weapon, equippedUsableWeapon(this.inventory) ? "sheathed" : "hidden");
     const motion = new AvatarMotionController();
     motion.setWeapon(weapon?.state ?? "hidden");
@@ -1225,6 +1318,41 @@ export class World3D {
     if (id === "player") model.traverse((child) => child.layers.set(1));
     this.groundActor(actor);
     return actor;
+  }
+
+  private async installTrainingSentinelVisual(): Promise<void> {
+    const effigy = this.storyObjects.get("training-effigy");
+    if (!effigy) return;
+    const gltf = await this.loadModel(WARDEN_RUNTIME_MODEL);
+    const model = cloneSkeleton(gltf.scene);
+    model.name = "training-sentinel-runtime-visual";
+    model.updateMatrixWorld(true);
+    const initial = actorBodyBounds(model);
+    const height = Math.max(0.01, initial.max.y - initial.min.y);
+    model.scale.setScalar(2.08 / height);
+    model.updateMatrixWorld(true);
+    const scaled = actorBodyBounds(model);
+    model.position.y -= scaled.min.y;
+    model.rotation.y = -Math.PI / 2;
+    model.traverse((child) => {
+      child.userData.interactId = effigy.id;
+      if (!(child instanceof THREE.Mesh)) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      const sources = Array.isArray(child.material) ? child.material : [child.material];
+      const materials = sources.map((source) => cloneActorMaterial(source, 0x8c7357, true));
+      child.material = Array.isArray(child.material) ? materials : materials[0]!;
+    });
+    effigy.root.children.forEach((child) => {
+      if (!child.name.startsWith("semantic-proxy-") && child.name !== "interaction-marker") child.visible = false;
+    });
+    effigy.root.add(model);
+    const baseY = model.position.y;
+    this.environmentAnimators.push((elapsed) => {
+      if (!effigy.root.visible) return;
+      model.position.y = baseY + Math.sin(elapsed * 1.55) * 0.025;
+      model.rotation.z = Math.sin(elapsed * 0.72) * 0.018;
+    });
   }
 
   /** Converts the authored collapse into a readable horizontal corpse. */
@@ -1420,7 +1548,9 @@ export class World3D {
       return;
     }
 
-    const clipNames = target === "drawn" ? ["DrawSword"] : ["SheatheSword"];
+    const clipNames = target === "drawn"
+      ? this.combatContract.drawClipNames
+      : this.combatContract.sheatheClipNames;
     if (!this.hasAnimation(actor, clipNames)) {
       this.setWeaponState(actor, target);
       return;
@@ -1458,7 +1588,7 @@ export class World3D {
   }
 
   private basicAttackMotion(armed: boolean): MotionArchetypeContract {
-    if (armed) return WEAPON_STRIKE_MOTION;
+    if (armed) return this.combatContract.basicMotion;
     const motion = this.unarmedAttackCursor % 2 === 0 ? UNARMED_PUNCH_MOTION : UNARMED_KICK_MOTION;
     this.unarmedAttackCursor += 1;
     return motion;
@@ -1873,16 +2003,26 @@ export class World3D {
   }
 
   private interactionRoot(id: string): THREE.Object3D | null {
-    return this.npcs.get(id)?.root ?? this.storyObjects.get(id)?.root ?? null;
+    const corpse = this.enemies.get(id);
+    return this.npcs.get(id)?.root
+      ?? this.storyObjects.get(id)?.root
+      ?? (corpse && !corpse.alive && !this.lootedEnemyIds.has(id) ? corpse.root : null);
   }
 
   private interactionGrid(id: string): GridPoint | null {
-    return this.npcs.get(id)?.grid ?? this.storyObjects.get(id)?.grid ?? null;
+    const corpse = this.enemies.get(id);
+    return this.npcs.get(id)?.grid
+      ?? this.storyObjects.get(id)?.grid
+      ?? (corpse && !corpse.alive && !this.lootedEnemyIds.has(id) ? corpse.grid : null);
   }
 
   private interactionPromptFor(id: string): { label: string; detail: string } {
     const npc = this.npcs.get(id);
     if (npc) return { label: `Talk to ${npc.label?.name || id}`, detail: "Confirm conversation" };
+    const corpse = this.enemies.get(id);
+    if (corpse && !corpse.alive && !this.lootedEnemyIds.has(id)) {
+      return { label: `Loot ${corpse.definition.name}`, detail: "Take carried items, then clear the remains" };
+    }
     const object = this.storyObjects.get(id);
     if (!object) return { label: "Interact", detail: "Confirm interaction" };
     if (object.kind === "gate") {
@@ -1897,6 +2037,17 @@ export class World3D {
     if (object.kind === "chest") return { label: "Open Wayfarer's Coffer", detail: "Quest supplies · confirm" };
     if (object.kind === "memory-loom") return { label: "Use Memory Loom", detail: "Shape starter traits · confirm" };
     if (object.kind === "soul-well") return { label: "Touch Soulwell", detail: "Restore Vitality and Stability · confirm" };
+    if (object.kind === "essence") {
+      const action = resolveFirstMemoryAction({
+        bossDefeated: this.completedEncounters.has("boss"),
+        memoryClaimed: this.complete,
+        ascended: this.ascended,
+      });
+      if (action === "claim") return { label: "Claim the First Memory", detail: "Stabilize the Soul Essence · confirm" };
+      if (action === "ascend") return { label: "Ascend to the Above", detail: "Leave the Soulwell · confirm" };
+      if (action === "arrived") return { label: "The Above reached", detail: "Thalenyr Verge arrival" };
+      return { label: "Sealed Soul Essence", detail: "Defeat the Cinderbound Warden" };
+    }
     return { label: "Interact", detail: "Confirm interaction" };
   }
 
@@ -1981,6 +2132,9 @@ export class World3D {
     if (selectedObject && manhattan(this.player.grid, selectedObject.grid) > 1) this.selectStoryObjectTarget(null);
     const nearby = [
       ...[...this.npcs.values()].map((actor) => ({ id: actor.id, grid: actor.grid })),
+      ...[...this.enemies.values()]
+        .filter((enemy) => !enemy.alive && !this.lootedEnemyIds.has(enemy.id) && enemy.root.visible)
+        .map((enemy) => ({ id: enemy.id, grid: enemy.grid })),
       ...[...this.storyObjects.values()]
         .filter((object) => !object.destroyed && object.root.visible)
         .map((object) => ({ id: object.id, grid: object.grid })),
@@ -2003,6 +2157,41 @@ export class World3D {
         } finally {
           this.actionBusy = false;
         }
+      }
+      return;
+    }
+    const corpse = this.enemies.get(id);
+    if (corpse && !corpse.alive && !this.lootedEnemyIds.has(id)) {
+      await this.approach(corpse.grid);
+      if (manhattan(this.player.grid, corpse.grid) > 1) return;
+      this.actionBusy = true;
+      try {
+        const isWarden = corpse.definition.kind === "miniboss";
+        await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.pickup, () => {
+          const collected = this.addInventoryItem(isWarden ? {
+            id: "cinderbound-command-core",
+            name: "Cinderbound Command Core",
+            kind: "material",
+            description: "The real articulated command core recovered from the defeated Warden chassis.",
+          } : {
+            id: "breachling-ash-claw",
+            name: "Breachling Ash Claw",
+            kind: "material",
+            quantity: 1,
+            stackLimit: 99,
+            description: "A physical claw taken from a Breachling corpse; alchemists prize its ash-dark keratin.",
+          });
+          if (!collected) return;
+          this.lootedEnemyIds.add(id);
+          corpse.root.visible = false;
+          corpse.root.traverse((child) => { delete child.userData.interactId; });
+          this.setPendingInteraction(null);
+          this.refreshEquipmentUi();
+          this.ui.setMessage(`${corpse.definition.name} looted. Its remains recede only after the carried item is recovered.`);
+          this.ui.addLog(`${corpse.definition.name} looted · ${isWarden ? "Cinderbound Command Core" : "Breachling Ash Claw"} recovered.`);
+        });
+      } finally {
+        this.actionBusy = false;
       }
       return;
     }
@@ -2049,16 +2238,16 @@ export class World3D {
         id: "woven-recovery-bands",
         name: "Woven Recovery Band",
         kind: "consumable",
-        quantity: 2,
+        quantity: STARTER_RECOVERY_CHARGES,
         stackLimit: 10,
-        description: "Two low-tier recovery bands carried into the shared trial. They restore Vitality and Stability.",
+        description: "Four low-tier recovery bands carried into the shared trial. They restore Vitality and Stability.",
       });
       this.refreshEquipmentUi();
       this.tutorialStep = Math.max(this.tutorialStep, 5);
       this.ui.setTutorial(5, 9, "Choose the gate, not the destination", "Both portcullises enter the same combat-practice wing. Wayfarer teaches the basics; Oathbreaker changes the encounter and pressure for stronger rewards.");
       this.ui.setObjective("Choose a trial gate: Wayfarer (standard reward) or Oathbreaker (severe, stronger reward).");
       this.showTrialGateGuidance();
-      this.ui.setMessage("The coffer yields a binding charm and two recovery bands. Your worn C-tier clothing and starter weapon were already equipped when the Well returned you.");
+      this.ui.setMessage("The coffer yields a binding charm and four recovery bands. Your worn C-tier clothing and starter weapon were already equipped when the Well returned you.");
       void storyDatabase.reachCheckpoint("starter-supplies-recovered", id);
       }, false);
     } else if (object.kind === "memory-loom") {
@@ -2072,11 +2261,16 @@ export class World3D {
       this.ui.setMessage(`Training effigy ready. Activate ${this.calling.signatureSkill}, ${this.calling.defensiveSkill}, or Recover from the illustrated action bar.`);
       void storyDatabase.reachCheckpoint("training-effigy-inspected", this.calling.id);
     } else if (object.kind === "essence") {
-      if (!this.completedEncounters.has("boss")) {
+      const completionAction = resolveFirstMemoryAction({
+        bossDefeated: this.completedEncounters.has("boss"),
+        memoryClaimed: this.complete,
+        ascended: this.ascended,
+      });
+      if (completionAction === "sealed") {
         this.ui.setMessage("The Cinderbound Warden still seals the Soul Essence.");
         return;
       }
-      if (!this.complete) {
+      if (completionAction === "claim") {
         await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.pickup, () => {
         this.complete = true;
         this.claimTrialReward();
@@ -2093,6 +2287,10 @@ export class World3D {
         this.ui.addLog("Dungeon complete · The First Breach stabilized.");
         void storyDatabase.reachCheckpoint("first-breach-complete", id);
         });
+      } else if (completionAction === "ascend") {
+        await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.door, () => this.enterAboveLanding(), false);
+      } else {
+        this.ui.setMessage("You have reached the Thalenyr Verge in the Above.");
       }
     }
     } finally {
@@ -2182,7 +2380,7 @@ export class World3D {
     const impactPoint = object.root.getWorldPosition(new THREE.Vector3()).setY(object.kind === "pillar" ? 1.2 : 0.65);
     await this.delay(motion.eventMs);
     const strikeEffect = this.playBasicStrikeEffectAt(impactPoint, !armed);
-    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
+    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse, this.calling.id);
     const hit = applyDestructibleHit({
       kind: object.kind,
       hp: object.hp,
@@ -2675,14 +2873,14 @@ export class World3D {
     this.faceActorTowards(this.player, enemy.root.position);
     if (this.selectedAction === "signature") await this.runPlayerAction(() => this.performSignature());
     else if (this.selectedAction === "basic" || this.combatStyle === "real-time") await this.runPlayerAction(() => this.performBasicAttack());
-    else this.ui.setMessage(`${enemy.definition.name} targeted. Use Weapon Strike, ${this.calling.signatureSkill}, or reposition.`);
+    else this.ui.setMessage(`${enemy.definition.name} targeted. Use ${this.combatContract.basicName}, ${this.calling.signatureSkill}, or reposition.`);
   }
 
   private async performBasicAttack(): Promise<void> {
     const active = this.activeEnemies();
     const selected = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
     const selectedOrFirst = selected?.alive && selected.definition.roomId === this.encounter ? selected : active[0];
-    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, BASIC_ATTACK.range)
+    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, this.combatContract.basicRange)
       ?? selectedOrFirst;
     if (!target) {
       await this.previewBasicAttack();
@@ -2690,8 +2888,9 @@ export class World3D {
     }
     this.selectEnemyTarget(target.id);
     this.faceActorTowards(this.player, target.root.position);
-    if (manhattan(this.player.grid, target.grid) > BASIC_ATTACK.range) {
-      await this.previewBasicAttack(target.root.position, "Out of range (1 tile required)");
+    if (manhattan(this.player.grid, target.grid) > this.combatContract.basicRange) {
+      const range = this.combatContract.basicRange;
+      await this.previewBasicAttack(target.root.position, `Out of range (${range} tile${range === 1 ? "" : "s"} required)`);
       return;
     }
     const now = performance.now();
@@ -2707,7 +2906,7 @@ export class World3D {
     const motion = this.playMotionArchetype(this.player, this.basicAttackMotion(armed));
     await this.delay(motion.eventMs);
     const strikeEffect = this.playBasicStrikeEffectAt(target.root.position.clone().add(new THREE.Vector3(0, 0.88, 0)), !armed);
-    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
+    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse, this.calling.id);
     target.hp = Math.max(0, target.hp - damage);
     await Promise.all([
       strikeEffect,
@@ -2716,7 +2915,7 @@ export class World3D {
     this.playActorIdle(this.player);
     if (target.hp === 0) await this.defeatEnemy(target);
     else this.playActorHit(target);
-    this.ui.addLog(`${armed ? "Weapon" : "Unarmed"} Strike hits ${target.definition.name} for ${damage}; no resource spent.`);
+    this.ui.addLog(`${armed ? this.combatContract.basicName : "Unarmed Strike"} hits ${target.definition.name} for ${damage}; no resource spent.`);
     this.refreshStats();
     this.refreshTarget();
     this.basicReadyAt = now + BASIC_ATTACK.cooldownMs;
@@ -2764,9 +2963,7 @@ export class World3D {
     const animationMs = shadowknightMotion?.durationMs
       ?? this.playGenericActorAction(
         this.player,
-        this.calling.signatureRange > 2
-          ? ["CastProjectile", "Shoot_OneHanded", "Cast"]
-          : ["SwordSlashInward", "SwordSlash", "BasicThrust"],
+        this.combatContract.signatureClipNames,
         1.35,
       );
     const eventMs = shadowknightMotion?.eventMs ?? 0;
@@ -2800,7 +2997,7 @@ export class World3D {
 
   private async activateGuard(outOfCombat = false): Promise<void> {
     const now = performance.now();
-    if (now < this.guardReadyAt) {
+    if ((outOfCombat || this.combatStyle === "real-time") && now < this.guardReadyAt) {
       this.ui.setMessage(`${this.calling.defensiveSkill} is still recovering.`);
       return;
     }
@@ -2817,12 +3014,17 @@ export class World3D {
       ? this.playMotionArchetype(this.player, CINDER_GUARD_MOTION)
       : null;
     const animationMs = shadowknightMotion?.durationMs
-      ?? this.playGenericActorAction(this.player, ["Cast", "Victory"]);
+      ?? this.playGenericActorAction(this.player, this.combatContract.defenseClipNames);
     const eventMs = shadowknightMotion?.eventMs ?? 0;
     this.ui.animateAction("guard", Math.max(1200, animationMs));
     this.guardReadyAt = now + Math.max(outOfCombat ? 4800 : 2600, animationMs);
     await this.delay(eventMs);
     this.playerGuard = true;
+    if (this.calling.id === "priest") {
+      const healing = priestMendingWardHealing(this.hp, this.profile.maxHp);
+      this.hp += healing;
+      if (healing > 0) this.ui.addLog(`Mending Ward restores ${healing} Vitality.`);
+    }
     this.playGuardEffect(outOfCombat ? 4000 : 1350);
     this.ui.setMessage(`${this.calling.defensiveSkill} is active${this.reinforcedGuard ? ", reinforced by class resource" : ""}.`);
     this.ui.addLog(`${this.profile.name} invokes ${this.calling.defensiveSkill}.`);
@@ -2840,19 +3042,36 @@ export class World3D {
 
   private async recover(outOfCombat = false): Promise<void> {
     const now = performance.now();
-    if (now < this.recoverReadyAt) {
+    if ((outOfCombat || this.combatStyle === "real-time") && now < this.recoverReadyAt) {
       this.ui.setMessage("Recovery is still on cooldown.");
       return;
     }
     await this.ensurePlayerWeaponSheathed();
     const motion = this.playMotionArchetype(this.player, RECOVER_MOTION);
-    this.recoverReadyAt = now + Math.max(5200, motion.durationMs);
+    const cooldownMs = outOfCombat ? 2400 : this.recoveryCharges > 0 ? 5200 : 1200;
+    this.recoverReadyAt = now + Math.max(cooldownMs, motion.durationMs);
     this.ui.animateAction("wait", Math.max(760, motion.durationMs));
     await this.delay(motion.eventMs);
     let healed = 0;
     let restored = 0;
+    let resourceRestored = 0;
     const needsRecovery = this.hp < this.profile.maxHp || this.stability < this.profile.maxStability;
-    if (needsRecovery && this.recoveryCharges > 0) {
+    if (outOfCombat) {
+      const recovery = recoverWhileSafe(this.calling.id, {
+        hp: this.hp,
+        maxHp: this.profile.maxHp,
+        stability: this.stability,
+        maxStability: this.profile.maxStability,
+        resource: this.resource,
+      });
+      this.hp = recovery.hp;
+      this.stability = recovery.stability;
+      this.resource = recovery.resource;
+      healed = recovery.healed;
+      restored = recovery.stabilityRestored;
+      resourceRestored = recovery.resourceRestored;
+      this.ui.addLog(`Safe rest restores ${healed} Vitality, ${restored} Stability, and ${resourceRestored} ${this.calling.resourceName}.`);
+    } else if (needsRecovery && this.recoveryCharges > 0) {
       healed = Math.min(this.profile.maxHp - this.hp, Math.ceil(this.profile.maxHp * 0.28));
       this.hp += healed;
       restored = Math.min(this.profile.maxStability - this.stability, 28);
@@ -2867,8 +3086,8 @@ export class World3D {
     this.playRecoveryEffect();
     this.ui.setRecoveryCharges(this.recoveryCharges);
     this.refreshStats();
-    this.ui.setMessage(healed > 0 || restored > 0
-      ? `${healed > 0 ? `${healed} Vitality and ` : ""}${restored} Stability restored.`
+    this.ui.setMessage(healed > 0 || restored > 0 || resourceRestored > 0
+      ? `${healed > 0 ? `${healed} Vitality, ` : ""}${restored} Stability, and ${resourceRestored} ${this.calling.resourceName} restored.`
       : "Vitality and Stability are already full; no recovery band was consumed.");
     await this.delay(Math.max(0, motion.durationMs - motion.eventMs));
     if (!this.playerMoving && this.combatState !== "defeat") this.playActorIdle(this.player);
@@ -2891,9 +3110,17 @@ export class World3D {
     if (this.combatStyle === "real-time") {
       await this.runRealTimeEnemyPulse();
     } else {
-      for (const enemy of this.activeEnemies()) {
-        await this.enemyStep(enemy);
-        if (this.hp <= 0 || this.respawnGeneration !== startedRespawnGeneration) break;
+      const enemies = this.activeEnemies();
+      for (const enemy of enemies) {
+        if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
+        const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
+        await this.walkActor(enemy, path.slice(0, 1), 175 / this.combatSpeed);
+      }
+      const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);
+      if (adjacent.length > 0 && this.respawnGeneration === startedRespawnGeneration) {
+        const attacker = adjacent[this.realTimeAttackCursor % adjacent.length]!;
+        this.realTimeAttackCursor = (this.realTimeAttackCursor + 1) % Math.max(1, adjacent.length);
+        await this.enemyAttack(attacker);
       }
     }
     this.actionBusy = false;
@@ -2909,8 +3136,7 @@ export class World3D {
     for (const enemy of enemies) {
       if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
       const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
-      const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
+      await this.walkActor(enemy, path.slice(0, 1), 175 / this.combatSpeed);
     }
 
     const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);
@@ -2918,16 +3144,6 @@ export class World3D {
     const attacker = adjacent[this.realTimeAttackCursor % adjacent.length]!;
     this.realTimeAttackCursor = (this.realTimeAttackCursor + 1) % Math.max(1, adjacent.length);
     await this.enemyAttack(attacker);
-  }
-
-  private async enemyStep(enemy: EnemyRuntime): Promise<void> {
-    const distance = manhattan(enemy.grid, this.player.grid);
-    if (distance > 1) {
-      const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
-      const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
-    }
-    if (manhattan(enemy.grid, this.player.grid) === 1) await this.enemyAttack(enemy);
   }
 
   private clearEnemyAttackPhase(): void {
@@ -3085,12 +3301,14 @@ export class World3D {
 
   private defeatEnemy(enemy: EnemyRuntime): void {
     enemy.alive = false;
-    const deathDurationMs = this.playActorDeath(enemy);
+    this.playActorDeath(enemy);
     enemy.label?.material.opacity && (enemy.label.material.opacity = 0.35);
-    if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
-    void this.delay(enemyDefeatVisibilityMs(deathDurationMs)).then(() => {
-      if (!enemy.alive && !this.disposed) enemy.root.visible = false;
+    enemy.root.traverse((child) => {
+      delete child.userData.enemyId;
+      child.userData.interactId = enemy.id;
     });
+    if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
+    this.ui.addLog(`${enemy.definition.name} defeated · remains available to loot.`);
   }
 
   private finishEncounter(): void {
@@ -3105,10 +3323,15 @@ export class World3D {
     this.ui.clearTarget();
     this.ui.setMode("victory", this.combatStyle);
     if (finished === "skirmish") {
+      const priorRecoveryCharges = this.recoveryCharges;
+      this.recoveryCharges = recoveryChargesAtBossCheckpoint(this.recoveryCharges);
+      this.ui.setRecoveryCharges(this.recoveryCharges);
       this.tutorialStep = 7;
-      this.ui.setTutorial(7, 9, "Prepare for the sealed depth", "The light creatures are dead. Recover Stability, inspect your remaining bands, then enter the miniboss chamber.");
+      this.ui.setTutorial(7, 9, "Prepare for the sealed depth", "The light creatures are dead. Recover Vitality and Stability, then enter the miniboss chamber with four bands rewoven at this checkpoint.");
       this.ui.setObjective("Proceed through the far passage and challenge the creature sealing the Soul Essence.");
-      this.ui.setMessage("The galleries fall quiet. The deeper fog now answers your soul imprint.");
+      this.ui.setMessage(priorRecoveryCharges < this.recoveryCharges
+        ? `The galleries fall quiet. The Soulwell reweaves ${this.recoveryCharges - priorRecoveryCharges} recovery band${this.recoveryCharges - priorRecoveryCharges === 1 ? "" : "s"} for the sealed depth.`
+        : "The galleries fall quiet. The deeper fog now answers your soul imprint.");
       void storyDatabase.reachCheckpoint("skirmish-cleared", "fractured-galleries");
     } else {
       const essence = this.storyObjects.get("first-memory");
@@ -3585,13 +3808,19 @@ export class World3D {
 
   private prepareDebugTrialGate(): void {
     this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
-    this.profile.starterImprint ??= {
-      allocations: { might: 1, finesse: 1, vitality: 1 },
-      raceBoonId: "elf-memory",
-      callingPerkId: "shadowknight-graveiron",
-      raceBoonName: "Unbroken Recollection",
-      callingPerkName: "Grave-Iron Discipline",
-    };
+    if (!this.profile.starterImprint) {
+      const raceBoon = raceBoonOptions(this.profile.raceId)[0]!;
+      const callingPerk = callingPerkOptions(this.profile.callingId)[0]!;
+      applyStarterImprint(this.profile, {
+        allocations: { vitality: 3 },
+        raceBoonId: raceBoon.id,
+        callingPerkId: callingPerk.id,
+      });
+      this.hp = this.profile.maxHp;
+      this.stability = this.profile.maxStability;
+      this.ui.setCharacter(this.profile);
+      this.refreshStats();
+    }
     this.openedObjects.add("starter-coffer");
     this.tutorialStep = Math.max(this.tutorialStep, 5);
     this.ui.setTutorial(5, 9, "Choose the trial gate", "Both portcullises remain solid until a deliberate difficulty-and-reward choice is confirmed.");
@@ -3629,6 +3858,110 @@ export class World3D {
     this.cameraFollowInitialized = false;
     this.updateCamera(true, 0);
     await this.startEncounter("skirmish");
+  }
+
+  private enterAboveLanding(): void {
+    if (this.ascended) return;
+    this.ascended = true;
+    this.setPendingInteraction(null);
+    this.selectStoryObjectTarget(null);
+    this.zoneGroups.forEach((group) => { group.visible = false; });
+    this.scene.background = new THREE.Color(0x88b9c7);
+    this.scene.fog = new THREE.FogExp2(0x9bc5c8, 0.018);
+
+    const landing = new THREE.Group();
+    landing.name = "above-thalenyr-verge-mvp";
+    const grass = new THREE.MeshStandardMaterial({ color: 0x526f52, roughness: 0.96 });
+    const stone = new THREE.MeshStandardMaterial({ color: 0x777b72, roughness: 0.88 });
+    const bark = new THREE.MeshStandardMaterial({ color: 0x493a2a, roughness: 1 });
+    const leaves = new THREE.MeshStandardMaterial({ color: 0x315c45, roughness: 0.92 });
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(16, 64), grass);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    landing.add(ground);
+    const dais = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.8, 0.34, 32), stone);
+    dais.position.y = 0.17;
+    dais.receiveShadow = true;
+    landing.add(dais);
+    for (let index = 0; index < 5; index += 1) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.2, 0.78), stone);
+      step.position.set(0, 0.1 + index * 0.16, 3.1 + index * 0.65);
+      step.castShadow = true;
+      step.receiveShadow = true;
+      landing.add(step);
+    }
+    [[-6, -4], [6, -3], [-8, 3], [8, 5], [-4, 8], [5, 9]].forEach(([x, z], index) => {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 2.4, 8), bark);
+      trunk.position.set(x!, 1.2, z!);
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(1.35 + (index % 2) * 0.25, 3.5, 10), leaves);
+      crown.position.set(x!, 3.45, z!);
+      trunk.castShadow = true;
+      crown.castShadow = true;
+      landing.add(trunk, crown);
+    });
+    const sun = new THREE.DirectionalLight(0xfff0c5, 3.8);
+    sun.position.set(-8, 14, -6);
+    sun.castShadow = true;
+    landing.add(sun);
+    this.scene.add(landing);
+    this.environmentDisposers.push(() => {
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      landing.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        geometries.add(child.geometry);
+        (Array.isArray(child.material) ? child.material : [child.material]).forEach((material) => materials.add(material));
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+      this.scene.remove(landing);
+    });
+    this.player.grid = { x: 0, y: 0 };
+    this.player.root.position.set(0, 0.34, 0);
+    this.player.root.rotation.y = 0;
+    this.cameraFollowInitialized = false;
+    this.ui.showCombatControls(false);
+    this.ui.setMode("victory", this.combatStyle);
+    this.ui.setZone("The Thalenyr Verge", "The Above · Outdoor starting realm");
+    this.ui.setObjective("The First Breach is complete. The wider Above awaits beyond this MVP landing.");
+    this.ui.setMessage("Open air replaces Soulwell ash. You have reached the Above.");
+    this.ui.addLog("Ascended from the First Breach · Thalenyr Verge reached.");
+    markAtlasPoi("thalenyr", "soulwell", "completed");
+    void storyDatabase.reachCheckpoint("above-arrival", "thalenyr-verge");
+  }
+
+  private async prepareDebugBoss(): Promise<void> {
+    this.prepareDebugTrialGate();
+    if (!this.trialDifficulty) await this.selectTrial("wayfarer");
+    this.enemies.forEach((enemy) => {
+      if (enemy.definition.roomId !== "skirmish") return;
+      enemy.alive = false;
+      enemy.root.visible = false;
+    });
+    this.completedEncounters.add("skirmish");
+    this.encounter = "none";
+    this.revealRoom("skirmish", false);
+    this.revealRoom("boss", false);
+    this.currentRoom = "boss";
+    const select = requiredElement<HTMLSelectElement>("combat-style");
+    if (!select.disabled) this.setCombatStylePreference("turn-based");
+    const warden = [...this.enemies.values()].find((enemy) => enemy.alive && enemy.definition.roomId === "boss");
+    if (!warden) throw new Error("No boss enemy available for visual proof.");
+    const destination = this.dungeon.tiles
+      .filter((tile) => tile.roomId === "boss" && manhattan(tile, warden.grid) >= 3)
+      .filter((tile) => this.isWalkable(tile, "player"))
+      .sort((left, right) => manhattan(left, warden.grid) - manhattan(right, warden.grid))[0];
+    if (!destination) throw new Error("No valid boss proof tile found.");
+    this.player.grid = { x: destination.x, y: destination.y };
+    this.player.root.position.copy(gridToWorld(destination));
+    this.player.root.position.y = 0;
+    this.clearTrialGateGuidance();
+    this.debugCameraFocus = null;
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollowInitialized = false;
+    this.updateCamera(true, 0);
+    await this.startEncounter("boss");
   }
 
   private positionDebugCameraOnActors(first: AnimatedActor, second: AnimatedActor): void {
@@ -3723,6 +4056,26 @@ export class World3D {
     const bridge: DebugBridge = {
       snapshot: () => this.debugSnapshot(),
       moveTo: async (x, y) => this.handleGroundClick({ x, y }),
+      approachTarget: async (id) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown living enemy movement target: ${id}`);
+        const path = planPursuitPath(this.player.grid, enemy.grid, (point) => this.isWalkable(point, "player"));
+        const destination = path[Math.min(path.length, this.profile.movement) - 1];
+        if (!destination) throw new Error(`No reachable approach path to enemy: ${id}`);
+        await this.handleGroundClick(destination);
+      },
+      retreatFromTarget: async (id) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown living enemy retreat target: ${id}`);
+        const destination = this.dungeon.tiles
+          .filter((tile) => tile.roomId === this.currentRoom && this.isWalkable(tile, "player"))
+          .map((tile) => ({ tile, path: findPath(this.player.grid, tile, (point) => this.isWalkable(point, "player")) }))
+          .filter(({ path }) => path.length > 0 && path.length <= this.profile.movement)
+          .sort((left, right) => manhattan(right.tile, enemy.grid) - manhattan(left.tile, enemy.grid)
+            || right.path.length - left.path.length)[0]?.tile;
+        if (!destination) throw new Error(`No reachable retreat path from enemy: ${id}`);
+        await this.handleGroundClick(destination);
+      },
       interact: async (id) => this.interactById(id),
       target: async (id) => this.targetEnemy(id),
       clearTarget: () => this.selectEnemyTarget(null),
@@ -3730,6 +4083,9 @@ export class World3D {
       setCombatStyle: (style) => {
         const select = requiredElement<HTMLSelectElement>("combat-style");
         if (!select.disabled) this.setCombatStylePreference(style);
+      },
+      setCombatSpeed: (speed) => {
+        this.combatSpeed = THREE.MathUtils.clamp(speed, 1, 8);
       },
       activeBlock: () => {
         const prompt = requiredElement<HTMLElement>("reaction-prompt");
@@ -3764,6 +4120,7 @@ export class World3D {
         this.player.weapon.hipSocket.updateMatrixWorld(true);
       },
       prepareTrialGate: () => this.prepareDebugTrialGate(),
+      selectTrial: async (difficulty) => this.selectTrial(difficulty),
       prepareImprint: () => {
         this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
         delete this.profile.starterImprint;
@@ -3772,6 +4129,7 @@ export class World3D {
       requestInteraction: async (id) => this.requestInteractionById(id),
       confirmInteraction: async () => this.confirmPendingInteraction(),
       prepareCorridor: async () => this.prepareDebugCorridor(),
+      prepareBoss: async () => this.prepareDebugBoss(),
       prepareOcclusion: () => this.prepareDebugLowWallOcclusion(),
       enemyRound: async () => this.runEnemyRound(),
       enemyPose: (id, phase) => {
@@ -3793,6 +4151,7 @@ export class World3D {
         const enemy = this.enemies.get(id);
         if (!enemy?.alive) throw new Error(`Unknown living enemy visual-proof target: ${id}`);
         this.defeatEnemy(enemy);
+        if (this.activeEnemies().length === 0) this.finishEncounter();
       },
       gatePose: (id, progress) => {
         const object = this.storyObjects.get(id);
@@ -3905,7 +4264,16 @@ export class World3D {
       seed: this.seed,
       realmPressure: this.realmPressure,
       room: this.currentRoom,
-      player: { ...this.player.grid, hp: this.hp, stability: this.stability, resource: this.resource },
+      player: {
+        ...this.player.grid,
+        hp: this.hp,
+        maxHp: this.profile.maxHp,
+        stability: this.stability,
+        maxStability: this.profile.maxStability,
+        resource: this.resource,
+        raceId: this.profile.raceId,
+        callingId: this.profile.callingId,
+      },
       combatStyle: this.combatStyle,
       combatState: this.combatState,
       encounter: this.encounter,
@@ -3943,6 +4311,7 @@ export class World3D {
       revealedRooms: [...this.revealedRooms],
       inventory: [...this.inventory],
       complete: this.complete,
+      ascended: this.ascended,
       recoveryCharges: this.recoveryCharges,
       trialDifficulty: this.trialDifficulty,
       selectedTargetId: this.selectedTargetId,
@@ -4156,7 +4525,7 @@ export class World3D {
   }
 
   private updateStabilityRecovery(deltaSeconds: number): void {
-    if (this.encounter !== "none" || this.actionBusy || this.playerMoving || this.stability >= this.profile.maxStability) {
+    if (this.encounter !== "none" || this.actionBusy || this.playerMoving) {
       this.stabilityRegenAccumulator = 0;
       return;
     }
@@ -4166,12 +4535,28 @@ export class World3D {
     if (this.stabilityRegenAccumulator < STABILITY_REGEN_INTERVAL_SECONDS) return;
     const recovered = Math.floor(this.stabilityRegenAccumulator / STABILITY_REGEN_INTERVAL_SECONDS);
     this.stabilityRegenAccumulator %= STABILITY_REGEN_INTERVAL_SECONDS;
-    this.stability = Math.min(this.profile.maxStability, this.stability + recovered);
-    this.refreshStats();
+    const nextHp = Math.min(this.profile.maxHp, this.hp + recovered);
+    const nextStability = Math.min(this.profile.maxStability, this.stability + recovered);
+    const nextResource = Math.min(100, this.resource + recovered);
+    if (nextHp !== this.hp || nextStability !== this.stability || nextResource !== this.resource) {
+      this.hp = nextHp;
+      this.stability = nextStability;
+      this.resource = nextResource;
+      this.refreshStats();
+    }
   }
 
   private updateCamera(immediate: boolean, deltaSeconds: number): void {
     if (!this.player) return;
+    if (this.ascended) {
+      const target = this.player.root.position.clone().setY(0.9);
+      this.cameraTarget.copy(target);
+      const desired = target.clone().add(new THREE.Vector3(-12.5, 15.5, 17.5));
+      if (immediate) this.camera.position.copy(desired);
+      else this.camera.position.lerp(desired, 1 - Math.exp(-8 * THREE.MathUtils.clamp(deltaSeconds, 0, 0.1)));
+      this.camera.lookAt(target);
+      return;
+    }
     if (this.debugCameraFocus) {
       this.positionDebugCameraOnActors(this.debugCameraFocus.first, this.debugCameraFocus.second);
       return;

@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "issue": 448,
+  "capturedAt": "2026-08-20T23:00:00.000Z",
+  "source": {
+    "catalogEndpoint": "https://www.mixamo.com/api/v1/products?type=Character",
+    "catalogCount": 108,
+    "licenseEvidence": "https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html",
+    "licenseSummary": "Mixamo characters and animations may be used royalty-free in commercial video games; raw source files must remain project assets rather than a separately redistributed asset pack."
+  },
+  "policy": {
+    "purpose": "background-npc-placeholders-and-catalog-provenance",
+    "runtimePromotionAllowedAfterLocalAudit": true,
+    "productionAcceptanceAllowed": false,
+    "namedNpcCustomSourcesPreserved": true,
+    "namedNpcCustomReplacementStillRequired": true,
+    "namedNpcAssemblyMode": "canonical-race-rig-modular-identity",
+    "mixamoNamedNpcUseAllowed": true,
+    "namedNpcFullBodyExportRequired": true,
+    "bodyProfileDistribution": {
+      "heavyPopulationTargetPercent": "10-15",
+      "defaultProfile": "athletic",
+      "rule": "Heavy is an intentional character trait, never the generic NPC base. Dwarf stockiness is racial proportion, not an automatic heavy-body assignment."
+    },
+    "mixamoCharacterNamesAreSourceProvenanceNotSoulDrifterLoreNames": true,
+    "requiredDownload": {
+      "format": "FBX Binary",
+      "pose": "T-pose-or-neutral-bind-pose",
+      "skin": "With Skin",
+      "fps": 30,
+      "keyframeReduction": "none"
+    },
+    "requiredLocalAudit": [
+      "exact-source-id-and-file-sha-recorded",
+      "embedded-or-sidecar-textures-resolve",
+      "skeleton-and-skin-import",
+      "zero-unweighted-visible-vertices",
+      "maximum-four-influences-per-vertex",
+      "idle-walk-run-turn-deformation",
+      "conversation-camera-identity-match",
+      "weapon-and-clothing-clipping",
+      "gameplay-camera-silhouette",
+      "license-provenance-retained"
+    ],
+    "shippingDirectory": "/assets/3d/mixamo-derived/npcs/",
+    "rawDownloadDirectory": "external-intake-only",
+    "noPaidProviderOperationRequired": true
+  },
+  "namedNpcAssemblies": [
+    {
+      "npcId": "ilyra",
+      "runtimeAssetId": "npc.named.ilyra.canonical-v001",
+      "ancestry": "human",
+      "presentation": "feminine",
+      "bodyRigAssetId": "body-human-feminine-heavy-v001",
+      "requiredReplacementBodyProfile": "heavy-older-character-specific",
+      "availableIdentityRigAssetId": "npc-ilyra-layered-full-fingers-v005",
+      "headAssetId": "head-european-feminine-v001",
+      "hairAssetId": "hair-fem-braided-crown-v001",
+      "hairColorId": "silver",
+      "clothingAssemblyId": "npc-ilyra-pilgrim-blue-grey-v001",
+      "appearanceReferenceAssetId": "npc-ilyra-image-first-v001",
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-ilyra-canonical-v001.glb",
+      "runtimePresentation": "reviewed-authored-old-woman-robe-static-mvp",
+      "animationPolicy": "no-incompatible-borrowed-idle",
+      "texturedRigMergeIssue": 457,
+      "visualAcceptance": false,
+      "state": "textured-rig-merge-required"
+    },
+    {
+      "npcId": "orren",
+      "runtimeAssetId": "npc.named.orren.canonical-v001",
+      "ancestry": "elf",
+      "presentation": "masculine",
+      "bodyRigAssetId": "body-elf-masculine-heavy-v001",
+      "requiredReplacementBodyProfile": "lean-athletic",
+      "headAssetId": "head-south-asian-indian-masculine-v001",
+      "hairAssetId": "hair-masc-topknot-v001",
+      "hairColorId": "near-black",
+      "clothingAssemblyId": "npc-orren-field-leather-green-scarf-v001",
+      "appearanceReferenceAssetId": "npc-orren-image-first-v001",
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
+      "visualAcceptance": false,
+      "state": "visual-rebuild-required"
+    },
+    {
+      "npcId": "brannoc",
+      "runtimeAssetId": "npc.named.brannoc.canonical-v001",
+      "ancestry": "dwarf",
+      "presentation": "masculine",
+      "bodyRigAssetId": "body-dwarf-masculine-heavy-v001",
+      "requiredReplacementBodyProfile": "stocky-athletic-dwarf",
+      "headAssetId": "head-european-masculine-v001",
+      "hairAssetId": "hair-masc-swept-back-v001",
+      "hairColorId": "silver",
+      "clothingAssemblyId": "npc-brannoc-arena-leather-blue-grey-v001",
+      "appearanceReferenceAssetId": "npc-brannoc-image-first-v001",
+      "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
+      "visualAcceptance": false,
+      "state": "visual-rebuild-required"
+    }
+  ],
+  "backgroundNpcRoster": [
+    {
+      "runtimeAssetId": "npc.background.guard.castle-01",
+      "mixamoCharacterId": "38b86ed5-aaf7-4a88-a791-181d18efcc19",
+      "mixamoCharacterName": "Castle Guard 01",
+      "roleTags": ["guard", "arena", "watch"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.guard.castle-02",
+      "mixamoCharacterId": "ba017cbf-6ca0-43e8-9234-556f0bb18d1b",
+      "mixamoCharacterName": "Castle Guard 02",
+      "roleTags": ["guard", "arena", "watch"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.guard.knight",
+      "mixamoCharacterId": "f57c2597-1a49-4c13-a6a5-1cf29532b9d7",
+      "mixamoCharacterName": "Knight D Pelegrini",
+      "roleTags": ["guard", "fighter", "warden"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.guard.paladin",
+      "mixamoCharacterId": "eface83a-acc0-4036-a15e-3c650df1510d",
+      "mixamoCharacterName": "Paladin J Nordstrom",
+      "roleTags": ["guard", "ritual", "veteran"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.scout.erika",
+      "mixamoCharacterId": "d0496a75-08b9-4f4e-9f1d-f65820323cc2",
+      "mixamoCharacterName": "Erika Archer",
+      "roleTags": ["scout", "archer", "ranger"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.raider.pirate",
+      "mixamoCharacterId": "129b7c59-46fe-4da4-b434-ee02b204b80e",
+      "mixamoCharacterName": "Pirate By P. Konstantinov",
+      "roleTags": ["raider", "mercenary", "rogue"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.bruiser.warrok",
+      "mixamoCharacterId": "efb06b46-a470-49b2-b7da-a06755d4dba7",
+      "mixamoCharacterName": "Warrok W Kurniawan",
+      "roleTags": ["bruiser", "mercenary", "hostile"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.occultist.nightshade",
+      "mixamoCharacterId": "b6d6b787-7378-4316-8db9-0434e51a44b4",
+      "mixamoCharacterName": "Nightshade J Friedrich",
+      "roleTags": ["occultist", "caster", "hostile"],
+      "state": "shortlisted-awaiting-download"
+    },
+    {
+      "runtimeAssetId": "npc.background.breach-touched.goblin",
+      "mixamoCharacterId": "130a335c-bbdb-492f-971f-8faab0616b6e",
+      "mixamoCharacterName": "Goblin D Shareyko",
+      "roleTags": ["breach-touched", "hostile", "humanoid"],
+      "state": "shortlisted-awaiting-download"
+    }
+  ]
+}

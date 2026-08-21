@@ -110,16 +110,60 @@ function splitTrackName(trackName: string): { node: string; property: string } |
   return { node: trackName.slice(0, separator), property: trackName.slice(separator + 1) };
 }
 
+const CUSTOM_TO_MIXAMO_BONES: Readonly<Record<string, string>> = {
+  pelvis: "Hips",
+  spine_01: "Spine",
+  spine_02: "Spine1",
+  spine_03: "Spine2",
+  neck_01: "Neck",
+  head: "Head",
+  clavicle_l: "LeftShoulder",
+  clavicle_r: "RightShoulder",
+  upperarm_l: "LeftArm",
+  upperarm_r: "RightArm",
+  lowerarm_l: "LeftForeArm",
+  lowerarm_r: "RightForeArm",
+  hand_l: "LeftHand",
+  hand_r: "RightHand",
+  thigh_l: "LeftUpLeg",
+  thigh_r: "RightUpLeg",
+  calf_l: "LeftLeg",
+  calf_r: "RightLeg",
+  foot_l: "LeftFoot",
+  foot_r: "RightFoot",
+  ball_l: "LeftToeBase",
+  ball_r: "RightToeBase",
+  ball_leaf_l: "LeftToe_End",
+  ball_leaf_r: "RightToe_End",
+};
+
+function mixamoBoneAlias(sourceNode: string): string | null {
+  const normalized = sourceNode.toLowerCase();
+  const direct = CUSTOM_TO_MIXAMO_BONES[normalized];
+  if (direct) return direct;
+  const finger = /^(thumb|index|middle|ring|pinky)_(0[1-3])_([lr])$/i.exec(sourceNode);
+  if (!finger) return null;
+  const [, digit, segment, side] = finger;
+  const mixamoDigit = digit!.toLowerCase() === "pinky" ? "Pinky" : `${digit![0]!.toUpperCase()}${digit!.slice(1).toLowerCase()}`;
+  return `${side!.toLowerCase() === "l" ? "Left" : "Right"}Hand${mixamoDigit}${Number(segment)}`;
+}
+
 function targetNodeName(sourceNode: string, targetRoot: THREE.Object3D): string | null {
   if (targetRoot.getObjectByName(sourceNode)) return sourceNode;
   const unprefixed = sourceNode.split(/[|/:]/).at(-1) ?? sourceNode;
   if (targetRoot.getObjectByName(unprefixed)) return unprefixed;
+  const mixamoAlias = mixamoBoneAlias(unprefixed);
+  if (mixamoAlias) {
+    const namespacedAlias = `mixamorig:${mixamoAlias}`;
+    if (targetRoot.getObjectByName(namespacedAlias)) return namespacedAlias;
+    if (targetRoot.getObjectByName(mixamoAlias)) return mixamoAlias;
+  }
   // Armature-root tracks must follow the target model's own armature node so
   // same-rig packs bind across rigs that do not share the source armature name.
   if (/armature$/i.test(unprefixed)) {
     let found: string | null = null;
     targetRoot.traverse((node) => {
-      if (found === null && /armature$/i.test(node.name)) found = node.name;
+      if (found === null && /(?:armature|rig)$/i.test(node.name)) found = node.name;
     });
     if (found !== null) return found;
   }

@@ -1,9 +1,11 @@
 # 3D AI Studio Character and Equipment Pipeline
 
 Status: production contract proposed under [The-Nexus #435](https://github.com/The-Nexus-Decoded/The-Nexus/issues/435)  
-Scope: paid 3D AI Studio intake, base ancestry bodies, starter calling kits, separate weapons, Blender cleanup, rig compatibility, animation reuse, browser export, provenance, and visual QA
+Scope: ChatGPT reference-image design, paid 3D AI Studio single-image intake, base ancestry bodies, starter calling kits, separate weapons, NPCs, creatures, Blender cleanup, rig compatibility, animation reuse, browser export, provenance, and visual QA
 
 This document defines how SoulDrifter uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
+
+The active production execution is [`FIRST_BREACH_MODEL_PROGRAM.md`](FIRST_BREACH_MODEL_PROGRAM.md), tracked by [The-Nexus #448](https://github.com/The-Nexus-Decoded/The-Nexus/issues/448). Its machine-readable scope gate is [`first-breach-model-register.json`](first-breach-model-register.json). The reproducible untouched-GLB inventory is [`first-breach-source-audit.json`](first-breach-source-audit.json); regenerate it from the owner-controlled external intake with `yarn audit:3d-source --source-root <issue-448-intake> --output docs/3d-ai-studio/first-breach-source-audit.json`. It adds the permanent playable-humanoid foundation, matching animated conversation faces for Ilyra/Orren/Brannoc, and purpose-built First Breach creature models. Open-world environments, later-realm monsters, and higher-tier equipment are explicitly outside that first production batch.
 
 ## Locked production decision
 
@@ -15,6 +17,8 @@ SoulDrifter does **not** purchase or maintain an independent model for every anc
 - a separate reusable weapon and off-hand library;
 - one canonical humanoid animation contract plus documented race/body retarget profiles;
 - separate hair, facial-detail, sheath, harness, rune/sigil, and effect layers.
+
+Every production geometry family in the First Breach execution set starts from an owner-reviewed ChatGPT source containing one complete isolated subject. Simple assets use one approved image; bespoke asymmetric hero actors use four separately approved identity-matched views. The source is then routed through the 3D AI Studio model that best preserves that asset's required anatomy, topology budget, and materials. Blender cleanup, retopology, conforming, facial shape authoring, material variation, rigging, LOD creation, and animation integration remain mandatory; a raw generated result is never a shipping model. Existing generic or legacy actors remain rollback placeholders only.
 
 Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 
@@ -50,7 +54,7 @@ Codex then performs the technical verification:
 2. Run a read-only capability/listing call before any paid generation.
 3. Confirm which models and operations the connector actually exposes: image creation, image-to-3D, text-to-3D, remesh, texture, rig, export, and task status.
 4. Confirm whether the connector returns task IDs, credit estimates, seeds, model versions, and downloadable artifacts.
-5. Perform one deliberately small, disposable test only after the owner approves the expected credit charge.
+5. Perform paid generation only inside the current written owner authorization; otherwise obtain approval for the exact expected credit charge.
 6. Record the connector and model versions. Never assume the MCP exposes every operation available in the web dashboard or public REST API.
 
 If MCP is unavailable, the same pipeline may use the documented REST API or an owner-reviewed dashboard handoff. API credentials use bearer authentication and remain outside Git. The public API and MCP connector are separate integration paths and may expose different features.
@@ -66,7 +70,7 @@ If MCP is unavailable, the same pipeline may use the documented REST API or an o
 | 3 | Dwarf | compact adult body, broad grounded frame, non-cartoon proportions | generate after shared clothing proof |
 | 4 | Halfling | small adult body, readable hands/feet/face, never childlike or chibi | generate after small-body retarget proof |
 
-The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry, but only one owner-approved Human body is generated for the first paid rig proof. Its counterpart and later ancestry bodies require separate credit approvals after the skeleton, head seam, clothing, and animation gates pass.
+The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry. Under the 2026-08-17 phase authorization, the remaining seven base anchors may be generated before the shared rig proof; Slim and Heavy conform profiles, gear expansion, and runtime promotion still wait for topology, skeleton, head-seam, clothing, and animation gates.
 
 ### Modular head, skin, hair, and facial-detail contract
 
@@ -75,7 +79,7 @@ Appearance variety is assembled from reusable parts and materials. It must not m
 | Layer | Minimum production target | Boundary |
 | --- | --- | --- |
 | Adult body families | masculine and feminine for Human, Elf, Dwarf, and Halfling | same gameplay stats; anatomy and clothing-conform profiles remain separate assets |
-| Facial structures | three readable adult face families per compatible head topology | soft/round, angular/high-cheek, and broad/strong are shape guides, never personality, morality, or ethnicity labels |
+| Facial-feature families | four respectful adult families per compatible head topology | African diaspora/Black, East Asian, South Asian/Indian, and European; each is available across Human, Elf, Dwarf, and Halfling with equivalent detail and facial-animation coverage |
 | Skin tones | at least six equally canonical tones | deep, dark, medium-deep, medium, tan/olive, and light/pale coverage; implemented as approved texture/material variants, not duplicate body geometry |
 | Hair | at least six masculine-presenting and six feminine-presenting fitted styles | separate meshes; every style may be offered across presentation categories when head fit and clipping QA pass |
 | Facial details | modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings | texture masks/decals when flat; separate socketed meshes when dimensional; never baked permanently into the base head |
@@ -116,76 +120,110 @@ This creates eight initial weapon packages rather than nine unrelated weapons:
 
 The owner approves one assembled calling view for each of the nine callings. Those review assemblies may use representative ancestries for variety, but they do not create ancestry/calling restrictions.
 
-## Source-image and prompt gate
+## ChatGPT image-first source gate
 
-Image-to-3D is the preferred character path. Text-to-3D may be used for rough props, but it is not the approval path for a hero body.
+Every SoulDrifter body, head, NPC, creature, garment, armor piece, weapon, prop, and environment module starts from high-quality grounded-realistic ChatGPT reference art. Direct text-to-3D is retired for new production sources after its Breachling and Warden results proved less controllable and more cartoon-prone. Provider selection is asset-specific: Prism 3.1 remains the preferred hero-character and hero-creature path; Meshy 7 Multi-image is retained for the accepted Breachling reconstruction; corrected Prism 3.1 Multi-Image is required for the Cinderbound Warden; and simple modular hair, starter gear, and wearable sources use Meshy 7 Smart Topology low-poly conversion with 2K PBR textures. The owner has authorized the remaining bounded issue #448 source conversions without a standing credit floor. Record exact settings and charge for every task, and stop if the provider reports an unexpected amount.
 
-Before a paid 3D request, prepare a consistent multi-view sheet:
+This decision follows the approved 2026-08-17 Human athletic comparison:
 
-- front, left, back, and right orthographic-like views;
-- identical proportions, face, clothing boundary, and color across every view;
-- neutral A-pose or T-pose with fingers readable and limbs separated from the torso;
-- clean, high-contrast, plain background;
-- full body visible, centered, and not cropped;
-- no dramatic camera perspective, action pose, weapon, shield, cape, particles, floor props, or cast shadow hiding the silhouette;
-- no long loose hair during the rigging proof;
-- no labels or decorative borders touching the subject.
+- Prism 3.1 text-to-3D task `ef7a7258`, with Ultra texture quality, cost 40 credits and produced one coherent humanoid candidate. It drifted from the requested relaxed A-pose to a T-pose and interpreted knee-length pants as full-length pants, so it remains a non-shipping source pending export, topology, rig, and animation review.
+- Prism 3.1 multi-view image-to-3D task `304b62b1`, with Ultra texture quality, cost 45 credits and produced three unwanted figures because adjacent views remained visible in the cropped source frames. That candidate is rejected.
+- The bounded comparison cost 85 credits total, moving the account balance from 3,557 to 3,472. Neither candidate was remeshed, rigged, or promoted.
 
-### Base-body prompt template
+The comparison history remains provenance, not current guidance. Single-image Image-to-3D is now the production default. Each source contains one isolated subject, plain background, unobstructed silhouette, and no duplicate views, labels, inset frames, scenery, or fused unrelated pieces. Riggable actors use a neutral front A- or T-pose with clear limbs and flat feet; objects use one neutral production orientation. Multi-view is allowed only by a separate owner decision with four clean identity-matched files.
+
+Before a paid single-image conversion, lock:
+
+- one asset category and internal asset ID;
+- one complete ChatGPT design prompt, edit history, and explicit exclusion list;
+- the exact owner-reviewed image filename, dimensions, bytes, and SHA-256;
+- the intended bind-pose family, silhouette, material boundary, and modularity boundary;
+- the exact provider model/version, expected cost, maximum cost, and stop conditions;
+- any lore, ancestry, calling, body-profile, or level constraints already approved by the owner.
+
+### Base-body ChatGPT image template
 
 ```text
-Create a production reference sheet for an original SoulDrifter [ANCESTRY] adult humanoid.
-Show the exact same character from front, left, back, and right views in a neutral A-pose.
-Use grounded realistic-fantasy proportions and an adult face. The character wears a fitted,
-opaque, seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair,
-jewelry, particles, glow, text, pedestal, or environment. Keep both hands, all fingers, both
-feet, ears, and the complete silhouette clearly visible. Use a clean plain background and
-consistent neutral lighting. The views must agree exactly in anatomy, face, proportions,
-materials, and garment boundaries. This is a modular game-character base, not concept art.
+Original SoulDrifter [ANCESTRY] adult [PRESENTATION] [BODY PROFILE] modular game-character
+base. Grounded realistic-fantasy style for a polished isometric action RPG. Neutral relaxed
+A-pose, [APPROVED PROPORTIONS], [APPROVED SKIN TONE], [APPROVED HAIR BOUNDARY], and a
+strong symmetrical adult face. Fitted opaque seam-simple neutral underlayer; bare or
+seam-simple feet for the rig proof. Separate readable fingers, arms clear of the torso, and
+a clean continuous silhouette. No armor, weapon, shield, cape, robe, large hair, jewelry,
+particles, glow, pedestal, environment, exaggerated anatomy, facial hair, logos, text,
+duplicate figures, or turntable views. Single complete full-body character.
 ```
 
 Append only ancestry-specific requirements that have already been approved. Do not place calling identity, morality, high-level magic, or advanced rune traditions into a base ancestry body.
 
-### Weapon prompt template
+### Weapon ChatGPT image template
 
 ```text
 Create one original low-level SoulDrifter [WEAPON] as an isolated game asset.
 It is a worn C-tier mortal implement made from [MATERIALS], with believable construction,
 grip dimensions, thickness, and weight. No hand, character, sheath, floating particles,
 runes, relic glow, text, environment, or display stand. Center the entire object on a clean
-plain background and provide consistent front, side, and rear reference views. Preserve a
-clear unobstructed primary grip and a silhouette readable from an elevated isometric camera.
+plain background in a neutral production orientation. Preserve a clear unobstructed primary
+grip and a silhouette readable from an elevated isometric camera. Single complete object;
+no duplicate views, alternate versions, or fused accessories.
 ```
 
-### Clothing or armor prompt template
+### Clothing or armor ChatGPT image template
 
 ```text
 Create one original modular C-tier [GARMENT OR ARMOR PIECE] for the approved SoulDrifter
-[BODY ARCHETYPE]. Show it fitted over the approved neutral body reference in front, left,
-back, and right views. The piece is worn, practical, low-level, and constructionally
-believable. No weapon, advanced rune language, relic glow, cape, unrelated accessories,
-body redesign, action pose, or environment. Keep seams, openings, thickness, attachment
-points, and body coverage clearly visible. This output is a conforming source for a separate
-game-equipment mesh, not a permanently fused character.
+[BODY ARCHETYPE] as one isolated game-equipment source. The piece is worn, practical,
+low-level, and constructionally believable. No visible character body, weapon, advanced
+rune language, relic glow, cape, unrelated accessories, body redesign, action pose, or
+environment. Keep seams, openings, thickness, attachment points, and body coverage clearly
+readable. Single complete garment or armor piece; no duplicate views or equipment set. This
+is a conforming source for a separate game-equipment mesh, never fused character geometry.
 ```
+
+### Monster ChatGPT image template
+
+```text
+Create one original SoulDrifter [MONSTER FAMILY AND TIER] as a complete isolated full-body
+game-model reference. Grounded realistic dark-fantasy rendering with the approved SoulDrifter
+material language, not cartoon art. Neutral symmetrical A-pose for rigging, limbs and joints
+clear, feet planted, plain background. Define its scale, silhouette, locomotor anatomy, attack
+anatomy, joint logic, surface/material hierarchy, palette, threat language, encounter role,
+and any family-preserving horns, spikes, plates, bindings, or ridges. The face must have
+anatomically credible predatory or mechanical function: [JAW / SENSOR / MASK CONTRACT].
+Preserve all required animation controls and VFX/SFX sockets. No human facial drift, generic
+humanoid costume, weapon-like debris, pedestal, scenery, duplicate, collage, turntable, gore,
+or cropped anatomy. One coherent subject only.
+```
+
+For a Breachling tier, preserve the shared hunched anatomy and rig. The pale ash/grey base,
+slate Stalker, ochre-bound Oathbound, and cinder-red horned/spiked Ravager each receive their
+own render but do not become unrelated species. The approved base benchmark uses a huge
+broad hinged non-human maw with deep cavity, layered teeth, visible tongue, and separate
+`jaw-open`, `jaw-close`, and `snarl` controls.
+
+The Cinderbound Warden is a separate mechanical/golem boss: articulated charred-basalt and
+oxidized-bronze plates around an ember core, faceless mask/sensor slit, left-palm soul-tax
+mechanism, and integrated right-forearm sweep blade. It is not biological, a Breachling,
+an armored human, a Paladin, or a wielder of separate swords.
 
 ## Generation and intake sequence
 
-### Phase 0: approve before spending credits
+### Phase 0: verify authorization before spending credits
 
-1. Lock the ticket, asset ID, ancestry/calling purpose, concept sheet, prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
+1. Lock the ticket, asset ID, ancestry/calling/encounter purpose, ChatGPT image brief, model/version, seed policy, target face count, material plan, and expected credit cost.
 2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
-3. Save the prompt and source-image hashes in the intake ledger.
-4. Obtain owner approval of the reference sheet and expected charge.
+3. Generate and show exactly one ChatGPT source image in chat, then save every prompt/edit hash and the exact approved image hash in the intake ledger. Riggable actors use one front-facing full-body A- or T-pose on a plain background; contact sheets and automatic multi-view crops are invalid.
+4. Confirm that the task fits the bounded issue #448 image-to-3D authorization and asset-specific provider route, then record the exact image/settings/live charge. Direct text-to-3D, remesh, rigging, and paid animation remain outside this authorization; an unexpected provider charge stops the batch.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one image-to-3D task through MCP.
+1. Submit the exact approved single image through MCP or the authenticated 3D AI Studio dashboard.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
-5. Reject extra limbs, fused fingers, closed armpits, asymmetric neutral poses, missing back detail, melted facial features, intersecting geometry, and weapon-like fragments.
-6. Do not request variants until the defect is classified as a prompt/reference problem or a generation problem.
+5. Reject duplicate subjects, extra limbs, fused fingers, closed armpits, unusable pose drift, missing back detail, melted facial features, intersecting geometry, fused equipment, and weapon-like fragments.
+6. Do not request variants until the defect is classified as a prompt problem, model limitation, or downstream cleanup problem.
+7. If conversion fails, classify whether the source image, model limitation, or downstream cleanup caused it. Correct the ChatGPT image first; do not switch to direct text-to-3D as an automatic fallback.
 
 ### Phase 2: export to non-shipping intake
 
@@ -221,7 +259,7 @@ For the Human pilot:
 6. Do not replace the canonical skeleton or migrate the animation library as a side effect of asset generation. That requires a separate approved migration decision.
 7. Reject a rig that twists shoulders, collapses elbows, lifts feet, breaks fingers, changes height, or loses material/mesh bindings on round trip.
 
-No other ancestry body is generated until this gate passes or the owner explicitly approves the retarget cost.
+No additional body source is promoted or sent to paid rigging until this gate passes or the owner explicitly approves the retarget cost.
 
 ### Phase 5: modular clothing and armor
 
@@ -281,6 +319,7 @@ body-human-feminine-a-v001
 body-elf-masculine-a-v001
 body-elf-feminine-a-v001
 head-human-face-angular-v001
+head-elf-face-east-asian-v001
 material-skin-human-deep-v001
 hair-coils-short-fit-human-v001
 adornment-earring-hoop-small-left-v001
@@ -337,7 +376,8 @@ Every 3D AI Studio artifact records:
 - GitHub ticket and calling/race purpose;
 - task ID and dashboard project;
 - generation model/version and operation;
-- prompt, negative constraints, seed, and source-image hashes;
+- prompt, negative constraints, seed, and prompt hash;
+- ChatGPT prompt/edit hashes and the exact approved source-image hash for every production artifact;
 - generation date, credit cost, owner account, and commercial-use status;
 - untouched source filename, format, byte size, and SHA-256;
 - Blender version and cleanup/retopo/bake notes;
@@ -349,23 +389,24 @@ Every 3D AI Studio artifact records:
 
 ## Pilot stop-gates
 
-The first paid sequence is deliberately narrow:
+The current paid sequence is deliberately gated:
 
-1. Prepare and approve masculine and feminine Human multi-view source sheets without submitting either generation.
-2. With a separate exact-cost approval, generate one owner-selected Human body candidate only.
-3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
+1. Preserve the twelve accepted single-image Halfling and Heavy body anchors in [`body-anchor-intake.json`](./body-anchor-intake.json); reject multi-view task `304b62b1` and do not derive production assets from it.
+2. Treat the 1.41M-1.49M-triangle untouched GLBs as visual source sculpts only; none may enter `public/assets` or a runtime manifest.
+3. Select one Human topology pilot, clean, retopologize, bake, and compare a resulting rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
-5. Produce one shared starter tunic, one modest rigid Warrior guard, and one separate starter longsword.
+5. Preserve the registered ChatGPT-image-first starter weapon/off-hand and wearable source conversions, including the rejected split-blade ritual knife and its accepted worn-dagger fallback; do not promote them before part separation, conforming, sockets, coverage masks, and camera/clipping QA.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
-8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
-9. With a separate approval, prove the counterpart Human body family and shared appearance layers before expanding ancestry bodies.
-10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
-11. Only after those gates pass, generate remaining ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
+8. Lock the neck seam, four cross-ancestry facial-feature families, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
+9. Prove the counterpart Human body family and shared appearance layers before expanding derived body profiles.
+10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before promoting any preserved Dwarf or Halfling source.
+11. Only after those gates pass, continue remaining body profiles, calling layers, and shared weapon packages in controlled batches.
 
 Stop and request owner review when:
 
-- the source sheet does not preserve identity across views;
+- the ChatGPT source cannot express one coherent isolated subject within the approved design envelope;
+- single-image conversion loses required anatomy, mechanical logic, identity, or silhouette;
 - a generation consumes an unexpected credit amount;
 - the generated topology cannot be retopologized economically;
 - the Prism rig is not compatible with the current animation plan;
@@ -377,11 +418,11 @@ Stop and request owner review when:
 ## Approval checklist
 
 - [ ] Paid plan and MCP connection verified without exposing credentials.
-- [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
+- [ ] Asset ticket, prompt or source-image hash, operation, model/version, expected credits, and applicable phase authorization recorded.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
-- [ ] Three facial structures share approved expression/deformation landmarks and the versioned neck seam.
+- [ ] African diaspora/Black, East Asian, South Asian/Indian, and European facial-feature families are available across Human, Elf, Dwarf, and Halfling and share approved expression/deformation landmarks and the versioned neck seam.
 - [ ] At least six skin tones render consistently and carry no stat, morality, rarity, or class meaning.
 - [ ] At least six masculine-presenting and six feminine-presenting hair fits pass skull, ear, shoulder, and helmet clipping checks.
 - [ ] Tattoos/paint use masks or decals; piercings and dimensional facial details use declared sockets; facial hair and sideburns remain modular.
@@ -402,7 +443,8 @@ No batch generation begins while any pilot-critical item remains unchecked.
 ## Vendor references
 
 - [3D AI Studio recommended workflow](https://docs.3daistudio.com/3d-generation/recommended-workflow)
-- [3D AI Studio image-to-3D and multi-view guidance](https://docs.3daistudio.com/3d-generation/image-to-3d)
+- [3D AI Studio text-to-3D guidance (historical comparison only)](https://docs.3daistudio.com/3d-generation/text-to-3d)
+- [3D AI Studio image-to-3D and multi-view guidance (production path)](https://docs.3daistudio.com/3d-generation/image-to-3d)
 - [3D AI Studio remesh guidance](https://docs.3daistudio.com/processing/remesh)
 - [3D AI Studio rigging and Mixamo-compatible export](https://docs.3daistudio.com/processing/rigging)
 - [3D AI Studio export formats](https://docs.3daistudio.com/export-formats)

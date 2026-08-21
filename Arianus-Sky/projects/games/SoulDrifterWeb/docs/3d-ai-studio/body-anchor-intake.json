@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 2,
+  "issue": 448,
+  "branch": "codex/448-souldrifter-first-breach-models",
+  "capturedAt": "2026-08-18",
+  "studio": {
+    "project": "SoulDrifter",
+    "model": "prism-3.1",
+    "operation": "image-to-3d-single-image",
+    "creditBalanceAfterBatch": 2472,
+    "notifyWhenCreditBalanceBelow": 2000
+  },
+  "intake": {
+    "localRoot": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/body-anchors",
+    "untouchedGlbDirectory": "untouched",
+    "sourceImageDirectory": "source-images",
+    "insideShippingTree": false,
+    "providerCloudSourcesRetained": true,
+    "browserDownloadDuplicatesDeleted": false
+  },
+  "workflow": {
+    "sourceRule": "one-owner-reviewed-front-facing-full-body-t-pose-on-a-plain-background",
+    "existingPaidSourceDisposition": "grandfathered-preserved-and-judged-by-owner-visible-output-plus-technical-intake-with-no-automatic-regeneration",
+    "prospectiveCanonicalFullSpecParityRequired": true,
+    "retrospectiveCompletePromptParityVerified": false,
+    "retrospectivePromptGapTriggersRebuild": false,
+    "prospectivePromptRule": "repeat-the-complete-canonical-identity-silhouette-proportion-anatomy-face-material-role-required-and-forbidden-block-verbatim-with-only-camera-or-output-suffix-changes",
+    "shorthandOrReferenceOnlyDeltaPromptsAllowedProspectively": false,
+    "multiViewUsed": false,
+    "contactSheetsAllowed": false,
+    "directRuntimePromotionAllowed": false,
+    "requiredNextGate": "offline-retopology-scale-orientation-head-seam-and-canonical-rig-proof"
+  },
+  "commonDiagnostics": {
+    "format": "glb",
+    "glbVersion": 2,
+    "generator": "https://tripo3d.ai",
+    "meshes": 1,
+    "primitives": 1,
+    "attributes": [
+      "POSITION",
+      "NORMAL",
+      "TEXCOORD_0"
+    ],
+    "materials": 1,
+    "textures": 1,
+    "embeddedImages": 1,
+    "embeddedImageMimeType": "image/jpeg",
+    "skins": 0,
+    "joints": 0,
+    "animations": 0,
+    "sourceVertexRange": [
+      727171,
+      766722
+    ],
+    "sourceTriangleRange": [
+      1414548,
+      1493296
+    ],
+    "sourceByteRange": [
+      41213872,
+      43491896
+    ],
+    "indexIntegrity": {
+      "duplicateIndexTriangles": 0,
+      "zeroAreaTriangles": 0,
+      "outOfRangeIndices": 0,
+      "unusedVertices": 0
+    },
+    "connectedComponentRange": [
+      73,
+      393
+    ],
+    "componentsUnder100TrianglesRange": [
+      2,
+      49
+    ],
+    "componentsUnder1000TrianglesRange": [
+      6,
+      237
+    ],
+    "scaleFinding": "largest source extent is normalized to approximately 1.0 and centered at the origin; shipping meter scale, orientation, ground contact, and pivot are not established",
+    "topologyFinding": "single extremely dense fused source mesh with internally disconnected surfaces; the integrity scan found no invalid, duplicate-index, zero-area, or unused geometry, but Halfling sources contain 151-393 connected components and up to 237 sub-1000-triangle fragments, so component classification, cleanup, deformation topology, modular head seam, clothing fit, and game LODs are not established",
+    "rigFinding": "no skin, skeleton, joints, or animation clips are present",
+    "decision": "accepted-as-visual-source-only-awaiting-production-retopology-and-rig-gate"
+  },
+  "artifacts": [
+    {
+      "assetId": "body-human-masculine-heavy-v001",
+      "ancestry": "human",
+      "presentation": "masculine",
+      "bodyProfile": "heavy",
+      "taskId": "31044697-8e60-46c5-b046-43db7bedac4e",
+      "sourceImage": {
+        "file": "sd-body-hum-m-h-img-v1-source.png",
+        "bytes": 1805791,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "1EB2438CFF84E59C2EDA3490D470634E8EC131DE02B271BEAE10B1677105E065"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hum-m-h-img-v1.glb",
+        "bytes": 41213872,
+        "sha256": "BC2DFB678AE6A3590B7B5C556E8E9708973CE2D08075E55224397CE57570FE7E"
+      },
+      "diagnostics": {
+        "vertices": 730452,
+        "triangles": 1430636,
+        "connectedComponents": 74,
+        "componentsUnder100Triangles": 5,
+        "componentsUnder1000Triangles": 7
+      }
+    },
+    {
+      "assetId": "body-human-feminine-heavy-v001",
+      "ancestry": "human",
+      "presentation": "feminine",
+      "bodyProfile": "heavy",
+      "taskId": "c0602df6-0790-4399-9f35-2c1a03dc1b09",
+      "sourceImage": {
+        "file": "sd-body-hum-f-h-img-v1-source.png",
+        "bytes": 1660845,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "02F8812C39915B8E2FDB803BB556B0C2F1FF1EC5128A1CEF3AF85077621CFAA5"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hum-f-h-img-v1.glb",
+        "bytes": 43033360,
+        "sha256": "0F75FE3CDC38378D68DEAB55D356DE119142CF686E1D467468D64ADC423002E3"
+      },
+      "diagnostics": {
+        "vertices": 762065,
+        "triangles": 1493296,
+        "connectedComponents": 73,
+        "componentsUnder100Triangles": 2,
+        "componentsUnder1000Triangles": 6
+      }
+    },
+    {
+      "assetId": "body-elf-masculine-heavy-v001",
+      "ancestry": "elf",
+      "presentation": "masculine",
+      "bodyProfile": "heavy",
+      "taskId": "4cd648bc-24bb-4cd7-8a61-4085ad36da3b",
+      "sourceImage": {
+        "file": "sd-body-elf-m-h-img-v1-source.png",
+        "bytes": 1708360,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "D22074FCC45A1743678DC34DDA327724FC4CF30916E39D24B37F26F29A6F29AB"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-elf-m-h-img-v1.glb",
+        "bytes": 42408308,
+        "sha256": "29A9FEAB261F79CB66B6FB14F62D90E581FCDA19D182D25CDF71F5C521C3DE17"
+      },
+      "diagnostics": {
+        "vertices": 750895,
+        "triangles": 1470180,
+        "connectedComponents": 80,
+        "componentsUnder100Triangles": 2,
+        "componentsUnder1000Triangles": 7
+      }
+    },
+    {
+      "assetId": "body-elf-feminine-heavy-v001",
+      "ancestry": "elf",
+      "presentation": "feminine",
+      "bodyProfile": "heavy",
+      "taskId": "7bc5d462-a45f-488a-83a3-86ed9c9d9186",
+      "sourceImage": {
+        "file": "sd-body-elf-f-h-img-v1-source.png",
+        "bytes": 1629522,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "1D9F2D7A1A3D9AE3837EB34D2E56D59F4CB9326873CA9A6772B9FCFDC5E35D0D"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-elf-f-h-img-v1.glb",
+        "bytes": 42705380,
+        "sha256": "31531E30446C56DC178AFD3507369A243890F78B1A1A1107C934AD6A1BDB6D2C"
+      },
+      "diagnostics": {
+        "vertices": 757232,
+        "triangles": 1483118,
+        "connectedComponents": 81,
+        "componentsUnder100Triangles": 5,
+        "componentsUnder1000Triangles": 11
+      }
+    },
+    {
+      "assetId": "body-dwarf-masculine-heavy-v001",
+      "ancestry": "dwarf",
+      "presentation": "masculine",
+      "bodyProfile": "heavy",
+      "taskId": "22deaac5-ccce-45e1-9a0f-3fce3f078d69",
+      "sourceImage": {
+        "file": "sd-body-dwa-m-h-img-v1-source.png",
+        "bytes": 1638209,
+        "width": 1182,
+        "height": 1331,
+        "sha256": "B0FF33261984403697B55065D73C3F3C1B45CBEFFE09742D7FAA9A1289A6E07B"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-dwa-m-h-img-v1.glb",
+        "bytes": 42573536,
+        "sha256": "59327B38964D630CEE7B7BC20627CEC85B67D1F172632522AFA0DA322FC2F8C9"
+      },
+      "diagnostics": {
+        "vertices": 753325,
+        "triangles": 1476490,
+        "connectedComponents": 74,
+        "componentsUnder100Triangles": 4,
+        "componentsUnder1000Triangles": 9
+      }
+    },
+    {
+      "assetId": "body-dwarf-feminine-heavy-v001",
+      "ancestry": "dwarf",
+      "presentation": "feminine",
+      "bodyProfile": "heavy",
+      "taskId": "1ce2728c-e74d-4bc9-804c-ed21f4e7fd02",
+      "sourceImage": {
+        "file": "sd-body-dwa-f-h-img-v1-source.png",
+        "bytes": 1521297,
+        "width": 1182,
+        "height": 1331,
+        "sha256": "DF95F54E56C4895866078997356F806865D6A4B89F1A64C71697C7E94404456C"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-dwa-f-h-img-v1.glb",
+        "bytes": 41505216,
+        "sha256": "009C659C8059197840C92AF98FE9B975E09FBC5C7D2ED3564725ED4F632784AF"
+      },
+      "diagnostics": {
+        "vertices": 736121,
+        "triangles": 1434602,
+        "connectedComponents": 116,
+        "componentsUnder100Triangles": 7,
+        "componentsUnder1000Triangles": 16
+      }
+    },
+    {
+      "assetId": "body-halfling-masculine-slim-v001",
+      "ancestry": "halfling",
+      "presentation": "masculine",
+      "bodyProfile": "slim",
+      "taskId": "b0a871bc-5a3b-4f5b-a88e-a44f9a27ba3a",
+      "sourceImage": {
+        "file": "sd-body-hal-m-s-img-v1-source.png",
+        "bytes": 1706286,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "41FBE4C0DB48AFED14295247D4185A7496AE2FF59E9D8421E52693B8347AC559"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-m-s-img-v1.glb",
+        "bytes": 42018356,
+        "sha256": "EE24FFAB5A335722FC05F97BD3162A999452A4C2B1380D094EB91270F84F1176"
+      },
+      "diagnostics": {
+        "vertices": 742591,
+        "triangles": 1429868,
+        "connectedComponents": 368,
+        "componentsUnder100Triangles": 19,
+        "componentsUnder1000Triangles": 182
+      }
+    },
+    {
+      "assetId": "body-halfling-masculine-athletic-v001",
+      "ancestry": "halfling",
+      "presentation": "masculine",
+      "bodyProfile": "athletic",
+      "taskId": "d8897a78-33b5-4736-80c7-5af34146fb6e",
+      "sourceImage": {
+        "file": "sd-body-hal-m-a-img-v1-source.png",
+        "bytes": 1380560,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "4674C9144C5D211DC210C71A5CF4785103BD44AC3F5E8369F58C77381EE68320"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-m-a-img-v1.glb",
+        "bytes": 41726300,
+        "sha256": "D5A5B296D02D58C545D239DEF5B8D975DB39363B957FAAFA2134EB31B6D17D6B"
+      },
+      "diagnostics": {
+        "vertices": 737417,
+        "triangles": 1430220,
+        "connectedComponents": 213,
+        "componentsUnder100Triangles": 27,
+        "componentsUnder1000Triangles": 72
+      }
+    },
+    {
+      "assetId": "body-halfling-masculine-heavy-v002",
+      "ancestry": "halfling",
+      "presentation": "masculine",
+      "bodyProfile": "heavy",
+      "taskId": "aff6ef22-f4c5-48ac-b171-94f2cfb5ac1f",
+      "sourceImage": {
+        "file": "sd-body-hal-m-h-img-v2-source.png",
+        "bytes": 1711648,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "CA00B9350141517B17F9CC1603D58CDC5FEA425763C70BD9B5C08EAE4DD54996"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-m-h-img-v2.glb",
+        "bytes": 43491896,
+        "sha256": "9A9DF888627CC3FE6A190FECF882A1EF934DB915EBA52E9FA1246379C34D852C"
+      },
+      "diagnostics": {
+        "vertices": 766722,
+        "triangles": 1491246,
+        "connectedComponents": 151,
+        "componentsUnder100Triangles": 10,
+        "componentsUnder1000Triangles": 31
+      }
+    },
+    {
+      "assetId": "body-halfling-feminine-slim-v002",
+      "ancestry": "halfling",
+      "presentation": "feminine",
+      "bodyProfile": "slim",
+      "taskId": "28a59a08-06bb-4fae-b20b-2b5584bb2df4",
+      "sourceImage": {
+        "file": "sd-body-hal-f-s-img-v2-source.png",
+        "bytes": 1678187,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "79AF18C3CDB9F2A31A89221585A997C0D4FC4E813BFCC949352D93F2088D3E95"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-f-s-img-v2.glb",
+        "bytes": 43061124,
+        "sha256": "7549C1511C4285C0A8652EB7569F09904E33F1CA537FA7371F59CE49BC73D8BF"
+      },
+      "diagnostics": {
+        "vertices": 764828,
+        "triangles": 1474466,
+        "connectedComponents": 393,
+        "componentsUnder100Triangles": 49,
+        "componentsUnder1000Triangles": 237
+      }
+    },
+    {
+      "assetId": "body-halfling-feminine-athletic-v002",
+      "ancestry": "halfling",
+      "presentation": "feminine",
+      "bodyProfile": "athletic",
+      "taskId": "7fa55896-b6b3-459b-88fe-c29b765d3100",
+      "sourceImage": {
+        "file": "sd-body-hal-f-a-img-v2-source.png",
+        "bytes": 1742048,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "816E144D34AB0F16DB1711354D83A28CF2B8528617AE2D6C173D4D50E4730072"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-f-a-img-v2.glb",
+        "bytes": 42710880,
+        "sha256": "ECDEE9B7101E6F48062C56BA6537ED5FFF18FB814250B8B54311EA3521614BD5"
+      },
+      "diagnostics": {
+        "vertices": 754723,
+        "triangles": 1458651,
+        "connectedComponents": 336,
+        "componentsUnder100Triangles": 37,
+        "componentsUnder1000Triangles": 197
+      }
+    },
+    {
+      "assetId": "body-halfling-feminine-heavy-v002",
+      "ancestry": "halfling",
+      "presentation": "feminine",
+      "bodyProfile": "heavy",
+      "taskId": "424df91a-fdff-42f9-b190-b3891e9ed217",
+      "sourceImage": {
+        "file": "sd-body-hal-f-h-img-v2-source.png",
+        "bytes": 1957086,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "FE0640EF32972F3AE9BCA87E716E9D70CE6B8784366BF7AF8294796A8469F543"
+      },
+      "untouchedGlb": {
+        "file": "sd-body-hal-f-h-img-v2.glb",
+        "bytes": 41491888,
+        "sha256": "C6E82C60B702C7A0EC0E919661E7E1270F5BC1C0B79BF3211E4F25ACCC1D7558"
+      },
+      "diagnostics": {
+        "vertices": 727171,
+        "triangles": 1414548,
+        "connectedComponents": 168,
+        "componentsUnder100Triangles": 12,
+        "componentsUnder1000Triangles": 65
+      }
+    }
+  ]
+}

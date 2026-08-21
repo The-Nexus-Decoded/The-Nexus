@@ -305,7 +305,12 @@ export function generateSoulwellDungeon(seed: number): GeneratedDungeon {
   for (let index = 0; index < skirmishCount; index += 1) {
     const sectionIndex = Math.min(crawlSections.length - 1, Math.floor((index * crawlSections.length) / skirmishCount));
     const section = crawlSections[sectionIndex]!;
-    const point = randomOpenPoint(random, { ...section, id: "skirmish" }, reserved, 2);
+    // The opening three columns belong to the safe guide threshold. Spawn the
+    // first-room creatures deeper inside the vault instead of beside Brannoc.
+    const spawnSection = sectionIndex === 0
+      ? { ...section, x: section.x + 3, width: section.width - 3 }
+      : section;
+    const point = randomOpenPoint(random, { ...spawnSection, id: "skirmish" }, reserved, sectionIndex === 0 ? 1 : 2);
     enemies.push({
       id: `breachling-${index + 1}`,
       name: index === 0 ? "Breachling Stalker" : "Breachling",

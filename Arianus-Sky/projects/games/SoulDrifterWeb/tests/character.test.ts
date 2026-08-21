@@ -24,7 +24,7 @@ function completeDraft(raceId: string, callingId: string): CharacterDraft {
     name: "Aster",
     raceId,
     callingId,
-    appearance: { hairStyle: "shaved", skinTone: "ashen" },
+    appearance: { hairStyle: "shaved", hairColor: "silver-white", skinTone: "ashen" },
     answers,
   };
 }
@@ -124,7 +124,7 @@ describe("character weaving", () => {
       raceName: "Elf",
       callingId: "shadowknight",
       callingName: "Shadowknight",
-      appearance: { hairStyle: "shaved", skinTone: "ashen" },
+      appearance: { hairStyle: "shaved", hairColor: "silver-white", skinTone: "ashen" },
       appearanceNeedsReview: true,
       onboarding: legacy.onboarding,
     });

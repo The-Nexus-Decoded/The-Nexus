@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dungeonTileKey, generateSoulwellDungeon, parseDebugRunSeed, roomContains } from "../src/game/dungeon";
+import { manhattan } from "../src/game/iso";
 
 function reachableTiles(dungeon: ReturnType<typeof generateSoulwellDungeon>): Set<string> {
   const floor = new Set(dungeon.tiles.map(dungeonTileKey));
@@ -99,6 +100,17 @@ describe("Soulwell dungeon generation", () => {
     for (const enemy of dungeon.enemies) expect(tiles.has(dungeonTileKey(enemy))).toBe(true);
     for (const prop of dungeon.props) expect(tiles.has(dungeonTileKey(prop))).toBe(true);
     for (const room of dungeon.rooms) expect(roomContains(room, room.center)).toBe(true);
+  });
+
+  it("keeps the guide passage clear before the first hostile threshold", () => {
+    for (let seed = 1; seed <= 500; seed += 1) {
+      const dungeon = generateSoulwellDungeon(seed);
+      const brannoc = dungeon.npcs.find((npc) => npc.id === "brannoc")!;
+      const breachlings = dungeon.enemies.filter((enemy) => enemy.kind === "breachling");
+      for (const enemy of breachlings) {
+        expect(manhattan(brannoc, enemy), `enemy ${enemy.id}, seed ${seed}`).toBeGreaterThanOrEqual(5);
+      }
+    }
   });
 
   it("keeps every objective and encounter reachable across randomized runs", () => {
