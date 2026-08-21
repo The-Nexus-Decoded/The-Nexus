@@ -53,6 +53,7 @@ import {
 } from "./equipment";
 import { BASIC_ATTACK, basicAttackDamage } from "./combatActions";
 import { callingCombatContract, type CallingCombatContract } from "./callingCombat";
+import { priestMendingWardHealing, recoverWhileSafe } from "./combatRecovery";
 import {
   CINDER_GUARD_MOTION,
   ENEMY_MELEE_MOTION,
@@ -230,7 +231,15 @@ interface DebugSnapshot {
   seed: number;
   realmPressure: number;
   room: DungeonRoomKind;
-  player: GridPoint & { hp: number; stability: number; resource: number };
+  player: GridPoint & {
+    hp: number;
+    maxHp: number;
+    stability: number;
+    maxStability: number;
+    resource: number;
+    raceId: string;
+    callingId: string;
+  };
   combatStyle: CombatStyle;
   combatState: RuntimeState;
   encounter: "none" | "skirmish" | "boss";
@@ -320,6 +329,8 @@ interface DebugSnapshot {
 interface DebugBridge {
   snapshot(): DebugSnapshot;
   moveTo(x: number, y: number): Promise<void>;
+  approachTarget(id: string): Promise<void>;
+  retreatFromTarget(id: string): Promise<void>;
   interact(id: string): Promise<void>;
   target(id: string): Promise<void>;
   clearTarget(): void;
@@ -330,6 +341,7 @@ interface DebugBridge {
   weapon(state: WeaponVisualState): void;
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
   prepareTrialGate(): void;
+  selectTrial(difficulty: TrialDifficulty): Promise<void>;
   prepareImprint(): void;
   requestInteraction(id: string): Promise<void>;
   confirmInteraction(): Promise<void>;
@@ -2951,6 +2963,11 @@ export class World3D {
     this.guardReadyAt = now + Math.max(outOfCombat ? 4800 : 2600, animationMs);
     await this.delay(eventMs);
     this.playerGuard = true;
+    if (this.calling.id === "priest") {
+      const healing = priestMendingWardHealing(this.hp, this.profile.maxHp);
+      this.hp += healing;
+      if (healing > 0) this.ui.addLog(`Mending Ward restores ${healing} Vitality.`);
+    }
     this.playGuardEffect(outOfCombat ? 4000 : 1350);
     this.ui.setMessage(`${this.calling.defensiveSkill} is active${this.reinforcedGuard ? ", reinforced by class resource" : ""}.`);
     this.ui.addLog(`${this.profile.name} invokes ${this.calling.defensiveSkill}.`);
@@ -2974,13 +2991,30 @@ export class World3D {
     }
     await this.ensurePlayerWeaponSheathed();
     const motion = this.playMotionArchetype(this.player, RECOVER_MOTION);
-    this.recoverReadyAt = now + Math.max(5200, motion.durationMs);
+    const cooldownMs = outOfCombat ? 2400 : this.recoveryCharges > 0 ? 5200 : 1200;
+    this.recoverReadyAt = now + Math.max(cooldownMs, motion.durationMs);
     this.ui.animateAction("wait", Math.max(760, motion.durationMs));
     await this.delay(motion.eventMs);
     let healed = 0;
     let restored = 0;
+    let resourceRestored = 0;
     const needsRecovery = this.hp < this.profile.maxHp || this.stability < this.profile.maxStability;
-    if (needsRecovery && this.recoveryCharges > 0) {
+    if (outOfCombat) {
+      const recovery = recoverWhileSafe(this.calling.id, {
+        hp: this.hp,
+        maxHp: this.profile.maxHp,
+        stability: this.stability,
+        maxStability: this.profile.maxStability,
+        resource: this.resource,
+      });
+      this.hp = recovery.hp;
+      this.stability = recovery.stability;
+      this.resource = recovery.resource;
+      healed = recovery.healed;
+      restored = recovery.stabilityRestored;
+      resourceRestored = recovery.resourceRestored;
+      this.ui.addLog(`Safe rest restores ${healed} Vitality, ${restored} Stability, and ${resourceRestored} ${this.calling.resourceName}.`);
+    } else if (needsRecovery && this.recoveryCharges > 0) {
       healed = Math.min(this.profile.maxHp - this.hp, Math.ceil(this.profile.maxHp * 0.28));
       this.hp += healed;
       restored = Math.min(this.profile.maxStability - this.stability, 28);
@@ -2995,8 +3029,8 @@ export class World3D {
     this.playRecoveryEffect();
     this.ui.setRecoveryCharges(this.recoveryCharges);
     this.refreshStats();
-    this.ui.setMessage(healed > 0 || restored > 0
-      ? `${healed > 0 ? `${healed} Vitality and ` : ""}${restored} Stability restored.`
+    this.ui.setMessage(healed > 0 || restored > 0 || resourceRestored > 0
+      ? `${healed > 0 ? `${healed} Vitality, ` : ""}${restored} Stability, and ${resourceRestored} ${this.calling.resourceName} restored.`
       : "Vitality and Stability are already full; no recovery band was consumed.");
     await this.delay(Math.max(0, motion.durationMs - motion.eventMs));
     if (!this.playerMoving && this.combatState !== "defeat") this.playActorIdle(this.player);
@@ -3713,13 +3747,19 @@ export class World3D {
 
   private prepareDebugTrialGate(): void {
     this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
-    this.profile.starterImprint ??= {
-      allocations: { might: 1, finesse: 1, vitality: 1 },
-      raceBoonId: "elf-memory",
-      callingPerkId: "shadowknight-graveiron",
-      raceBoonName: "Unbroken Recollection",
-      callingPerkName: "Grave-Iron Discipline",
-    };
+    if (!this.profile.starterImprint) {
+      const raceBoon = raceBoonOptions(this.profile.raceId)[0]!;
+      const callingPerk = callingPerkOptions(this.profile.callingId)[0]!;
+      applyStarterImprint(this.profile, {
+        allocations: { vitality: 3 },
+        raceBoonId: raceBoon.id,
+        callingPerkId: callingPerk.id,
+      });
+      this.hp = this.profile.maxHp;
+      this.stability = this.profile.maxStability;
+      this.ui.setCharacter(this.profile);
+      this.refreshStats();
+    }
     this.openedObjects.add("starter-coffer");
     this.tutorialStep = Math.max(this.tutorialStep, 5);
     this.ui.setTutorial(5, 9, "Choose the trial gate", "Both portcullises remain solid until a deliberate difficulty-and-reward choice is confirmed.");
@@ -3955,6 +3995,26 @@ export class World3D {
     const bridge: DebugBridge = {
       snapshot: () => this.debugSnapshot(),
       moveTo: async (x, y) => this.handleGroundClick({ x, y }),
+      approachTarget: async (id) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown living enemy movement target: ${id}`);
+        const path = planPursuitPath(this.player.grid, enemy.grid, (point) => this.isWalkable(point, "player"));
+        const destination = path[Math.min(path.length, this.profile.movement) - 1];
+        if (!destination) throw new Error(`No reachable approach path to enemy: ${id}`);
+        await this.handleGroundClick(destination);
+      },
+      retreatFromTarget: async (id) => {
+        const enemy = this.enemies.get(id);
+        if (!enemy?.alive) throw new Error(`Unknown living enemy retreat target: ${id}`);
+        const destination = this.dungeon.tiles
+          .filter((tile) => tile.roomId === this.currentRoom && this.isWalkable(tile, "player"))
+          .map((tile) => ({ tile, path: findPath(this.player.grid, tile, (point) => this.isWalkable(point, "player")) }))
+          .filter(({ path }) => path.length > 0 && path.length <= this.profile.movement)
+          .sort((left, right) => manhattan(right.tile, enemy.grid) - manhattan(left.tile, enemy.grid)
+            || right.path.length - left.path.length)[0]?.tile;
+        if (!destination) throw new Error(`No reachable retreat path from enemy: ${id}`);
+        await this.handleGroundClick(destination);
+      },
       interact: async (id) => this.interactById(id),
       target: async (id) => this.targetEnemy(id),
       clearTarget: () => this.selectEnemyTarget(null),
@@ -3996,6 +4056,7 @@ export class World3D {
         this.player.weapon.hipSocket.updateMatrixWorld(true);
       },
       prepareTrialGate: () => this.prepareDebugTrialGate(),
+      selectTrial: async (difficulty) => this.selectTrial(difficulty),
       prepareImprint: () => {
         this.profile.onboarding = { ilyraAnswered: true, storybookCompleted: true, storybookPage: 6 };
         delete this.profile.starterImprint;
@@ -4139,7 +4200,16 @@ export class World3D {
       seed: this.seed,
       realmPressure: this.realmPressure,
       room: this.currentRoom,
-      player: { ...this.player.grid, hp: this.hp, stability: this.stability, resource: this.resource },
+      player: {
+        ...this.player.grid,
+        hp: this.hp,
+        maxHp: this.profile.maxHp,
+        stability: this.stability,
+        maxStability: this.profile.maxStability,
+        resource: this.resource,
+        raceId: this.profile.raceId,
+        callingId: this.profile.callingId,
+      },
       combatStyle: this.combatStyle,
       combatState: this.combatState,
       encounter: this.encounter,
@@ -4391,7 +4461,7 @@ export class World3D {
   }
 
   private updateStabilityRecovery(deltaSeconds: number): void {
-    if (this.encounter !== "none" || this.actionBusy || this.playerMoving || this.stability >= this.profile.maxStability) {
+    if (this.encounter !== "none" || this.actionBusy || this.playerMoving) {
       this.stabilityRegenAccumulator = 0;
       return;
     }
@@ -4401,8 +4471,15 @@ export class World3D {
     if (this.stabilityRegenAccumulator < STABILITY_REGEN_INTERVAL_SECONDS) return;
     const recovered = Math.floor(this.stabilityRegenAccumulator / STABILITY_REGEN_INTERVAL_SECONDS);
     this.stabilityRegenAccumulator %= STABILITY_REGEN_INTERVAL_SECONDS;
-    this.stability = Math.min(this.profile.maxStability, this.stability + recovered);
-    this.refreshStats();
+    const nextHp = Math.min(this.profile.maxHp, this.hp + recovered);
+    const nextStability = Math.min(this.profile.maxStability, this.stability + recovered);
+    const nextResource = Math.min(100, this.resource + recovered);
+    if (nextHp !== this.hp || nextStability !== this.stability || nextResource !== this.resource) {
+      this.hp = nextHp;
+      this.stability = nextStability;
+      this.resource = nextResource;
+      this.refreshStats();
+    }
   }
 
   private updateCamera(immediate: boolean, deltaSeconds: number): void {
