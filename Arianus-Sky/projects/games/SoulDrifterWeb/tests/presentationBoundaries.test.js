@@ -264,7 +264,10 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
   it("keeps model-independent combat feedback attached to the shared runtime boundaries", () => {
     expect(world).toMatch(/targetRing\.name = "selected-target-ring"[\s\S]*actor\.root\.userData\.targeted = false/s);
     expect(world).toMatch(/private selectEnemyTarget\(id: string \| null\)[\s\S]*this\.faceActorTowards\(this\.player, selected!\.root\.position\)/s);
-    expect(world).toMatch(/const deathDurationMs = this\.playActorDeath\(enemy\)[\s\S]*enemyDefeatVisibilityMs\(deathDurationMs\)[\s\S]*enemy\.root\.visible = false/s);
+    expect(world).toMatch(/private defeatEnemy\(enemy: EnemyRuntime\)[\s\S]*child\.userData\.interactId = enemy\.id[\s\S]*remains available to loot/s);
+    expect(world).toMatch(/!enemy\.alive && !this\.lootedEnemyIds\.has\(enemy\.id\) && enemy\.root\.visible/s);
+    expect(world).toMatch(/Loot \$\{corpse\.definition\.name\}[\s\S]*this\.lootedEnemyIds\.add\(id\)[\s\S]*corpse\.root\.visible = false/s);
+    expect(world).not.toMatch(/enemyDefeatVisibilityMs\([\s\S]*enemy\.root\.visible = false/s);
     expect(world).not.toContain("420 / this.combatSpeed");
     expect(world).toMatch(/weaponEnchant\.name = "cinder-guard-weapon-enchant"[\s\S]*weaponSocket\.add\(weaponEnchant\)/s);
   });

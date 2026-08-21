@@ -24,7 +24,6 @@ import {
 import { buildDialogue, type DialogueScene, type NpcDatabase, type NpcStoryOverride } from "./npc";
 import { findPath } from "./pathfinding";
 import {
-  enemyDefeatVisibilityMs,
   planPursuitPath,
   planSoulwellRespawn,
   resolveMeleeTarget,
@@ -462,6 +461,7 @@ export class World3D {
   private readonly environmentDisposers: Array<() => void> = [];
   private readonly revealedRooms = new Set<DungeonRoomKind>();
   private readonly completedEncounters = new Set<"skirmish" | "boss">();
+  private readonly lootedEnemyIds = new Set<string>();
   private readonly inventory: InventoryItem[];
   private readonly backpackCapacity: BackpackCapacity;
   private player!: AnimatedActor;
@@ -2000,16 +2000,26 @@ export class World3D {
   }
 
   private interactionRoot(id: string): THREE.Object3D | null {
-    return this.npcs.get(id)?.root ?? this.storyObjects.get(id)?.root ?? null;
+    const corpse = this.enemies.get(id);
+    return this.npcs.get(id)?.root
+      ?? this.storyObjects.get(id)?.root
+      ?? (corpse && !corpse.alive && !this.lootedEnemyIds.has(id) ? corpse.root : null);
   }
 
   private interactionGrid(id: string): GridPoint | null {
-    return this.npcs.get(id)?.grid ?? this.storyObjects.get(id)?.grid ?? null;
+    const corpse = this.enemies.get(id);
+    return this.npcs.get(id)?.grid
+      ?? this.storyObjects.get(id)?.grid
+      ?? (corpse && !corpse.alive && !this.lootedEnemyIds.has(id) ? corpse.grid : null);
   }
 
   private interactionPromptFor(id: string): { label: string; detail: string } {
     const npc = this.npcs.get(id);
     if (npc) return { label: `Talk to ${npc.label?.name || id}`, detail: "Confirm conversation" };
+    const corpse = this.enemies.get(id);
+    if (corpse && !corpse.alive && !this.lootedEnemyIds.has(id)) {
+      return { label: `Loot ${corpse.definition.name}`, detail: "Take carried items, then clear the remains" };
+    }
     const object = this.storyObjects.get(id);
     if (!object) return { label: "Interact", detail: "Confirm interaction" };
     if (object.kind === "gate") {
@@ -2119,6 +2129,9 @@ export class World3D {
     if (selectedObject && manhattan(this.player.grid, selectedObject.grid) > 1) this.selectStoryObjectTarget(null);
     const nearby = [
       ...[...this.npcs.values()].map((actor) => ({ id: actor.id, grid: actor.grid })),
+      ...[...this.enemies.values()]
+        .filter((enemy) => !enemy.alive && !this.lootedEnemyIds.has(enemy.id) && enemy.root.visible)
+        .map((enemy) => ({ id: enemy.id, grid: enemy.grid })),
       ...[...this.storyObjects.values()]
         .filter((object) => !object.destroyed && object.root.visible)
         .map((object) => ({ id: object.id, grid: object.grid })),
@@ -2141,6 +2154,41 @@ export class World3D {
         } finally {
           this.actionBusy = false;
         }
+      }
+      return;
+    }
+    const corpse = this.enemies.get(id);
+    if (corpse && !corpse.alive && !this.lootedEnemyIds.has(id)) {
+      await this.approach(corpse.grid);
+      if (manhattan(this.player.grid, corpse.grid) > 1) return;
+      this.actionBusy = true;
+      try {
+        const isWarden = corpse.definition.kind === "miniboss";
+        await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.pickup, () => {
+          const collected = this.addInventoryItem(isWarden ? {
+            id: "cinderbound-command-core",
+            name: "Cinderbound Command Core",
+            kind: "material",
+            description: "The real articulated command core recovered from the defeated Warden chassis.",
+          } : {
+            id: "breachling-ash-claw",
+            name: "Breachling Ash Claw",
+            kind: "material",
+            quantity: 1,
+            stackLimit: 99,
+            description: "A physical claw taken from a Breachling corpse; alchemists prize its ash-dark keratin.",
+          });
+          if (!collected) return;
+          this.lootedEnemyIds.add(id);
+          corpse.root.visible = false;
+          corpse.root.traverse((child) => { delete child.userData.interactId; });
+          this.setPendingInteraction(null);
+          this.refreshEquipmentUi();
+          this.ui.setMessage(`${corpse.definition.name} looted. Its remains recede only after the carried item is recovered.`);
+          this.ui.addLog(`${corpse.definition.name} looted · ${isWarden ? "Cinderbound Command Core" : "Breachling Ash Claw"} recovered.`);
+        });
+      } finally {
+        this.actionBusy = false;
       }
       return;
     }
@@ -3250,12 +3298,14 @@ export class World3D {
 
   private defeatEnemy(enemy: EnemyRuntime): void {
     enemy.alive = false;
-    const deathDurationMs = this.playActorDeath(enemy);
+    this.playActorDeath(enemy);
     enemy.label?.material.opacity && (enemy.label.material.opacity = 0.35);
-    if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
-    void this.delay(enemyDefeatVisibilityMs(deathDurationMs)).then(() => {
-      if (!enemy.alive && !this.disposed) enemy.root.visible = false;
+    enemy.root.traverse((child) => {
+      delete child.userData.enemyId;
+      child.userData.interactId = enemy.id;
     });
+    if (this.selectedTargetId === enemy.id) this.selectEnemyTarget(this.activeEnemies()[0]?.id ?? null);
+    this.ui.addLog(`${enemy.definition.name} defeated · remains available to loot.`);
   }
 
   private finishEncounter(): void {

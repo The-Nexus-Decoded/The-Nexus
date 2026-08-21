@@ -31,6 +31,24 @@ function sourceClip(): THREE.AnimationClip {
   ]);
 }
 
+function mixamoRig(): THREE.Group {
+  const root = new THREE.Group();
+  root.name = "SD_brannoc_CanonicalRig";
+  for (const name of [
+    "Hips", "Spine", "Spine1", "Spine2", "Neck", "Head",
+    "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand",
+    "RightShoulder", "RightArm", "RightForeArm", "RightHand",
+    "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LeftToe_End",
+    "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End",
+    "LeftHandIndex1", "RightHandPinky3",
+  ]) {
+    const bone = new THREE.Bone();
+    bone.name = `mixamorig:${name}`;
+    root.add(bone);
+  }
+  return root;
+}
+
 describe("external animation packs", () => {
   it("declares the raw same-rig Outward pack as the Siphon semantic source", () => {
     expect(SIPHON_CLEAVE_PACK).toMatchObject({
@@ -84,6 +102,38 @@ describe("external animation packs", () => {
     ]);
     expect(Array.from(bound.tracks[0]!.values)).toEqual(Array.from(source.tracks[0]!.values));
     expect(bound.tracks[0]!.values).not.toBe(source.tracks[0]!.values);
+  });
+
+  it("retargets the custom humanoid pack onto a canonical 65-bone Mixamo NPC rig", () => {
+    const values = [0, 0, 0, 1, 0.2, 0, 0, 0.98];
+    const source = new THREE.AnimationClip("custom-humanoid", 1, [
+      new THREE.VectorKeyframeTrack("ElfShadowknight_Armature.position", [0, 1], [0, 0, 0, 0, 0, 0]),
+      new THREE.QuaternionKeyframeTrack("pelvis.quaternion", [0, 1], values),
+      new THREE.QuaternionKeyframeTrack("upperarm_l.quaternion", [0, 1], values),
+      new THREE.QuaternionKeyframeTrack("index_01_l.quaternion", [0, 1], values),
+      new THREE.QuaternionKeyframeTrack("pinky_03_r.quaternion", [0, 1], values),
+    ]);
+    const target = mixamoRig();
+    const report = validateAnimationClipCompatibility(source, target);
+
+    expect(report.compatible).toBe(true);
+    expect(report.missingNodes).toEqual([]);
+    expect(report.remappedTracks).toEqual(expect.arrayContaining([
+      { from: "ElfShadowknight_Armature", to: "SD_brannoc_CanonicalRig" },
+      { from: "pelvis", to: "mixamorig:Hips" },
+      { from: "upperarm_l", to: "mixamorig:LeftArm" },
+      { from: "index_01_l", to: "mixamorig:LeftHandIndex1" },
+      { from: "pinky_03_r", to: "mixamorig:RightHandPinky3" },
+    ]));
+    const bound = bindCompatibleAnimationClip(source, target, "IdleRelaxed");
+    expect(bound.tracks.map((track) => track.name)).toEqual([
+      "SD_brannoc_CanonicalRig.position",
+      "mixamorig:Hips.quaternion",
+      "mixamorig:LeftArm.quaternion",
+      "mixamorig:LeftHandIndex1.quaternion",
+      "mixamorig:RightHandPinky3.quaternion",
+    ]);
+    expect(Array.from(bound.tracks[2]!.values)).toEqual(Array.from(source.tracks[2]!.values));
   });
 
   it("rejects a pack before playback when any animated node is absent", () => {
