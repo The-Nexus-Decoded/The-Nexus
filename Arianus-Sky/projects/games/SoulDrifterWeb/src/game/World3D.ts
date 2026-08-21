@@ -1224,7 +1224,10 @@ export class World3D {
         const skinTone = id === "player"
           ? SKIN_TONES[this.profile.appearance?.skinTone ?? "ashen"].color
           : undefined;
-        const preserveAuthoredPalette = id === "player" || id === "ilyra" || id.includes("breachling") || id.includes("warden");
+        const preserveAuthoredPalette = id === "player"
+          || Object.hasOwn(NPC_MODEL_PATHS, id)
+          || id.includes("breachling")
+          || id.includes("warden");
         const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, preserveAuthoredPalette, skinTone));
         child.material = hadMaterialArray ? customized : customized[0]!;
       }

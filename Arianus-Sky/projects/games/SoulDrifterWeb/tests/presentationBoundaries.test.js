@@ -73,6 +73,10 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(ui).toContain("setInteractionPrompt(");
   });
 
+  it("preserves every named NPC's authored materials instead of applying generic skill tint", () => {
+    expect(world).toMatch(/const preserveAuthoredPalette = id === "player"[\s\S]*Object\.hasOwn\(NPC_MODEL_PATHS, id\)[\s\S]*cloneActorMaterial\(source, tint, preserveAuthoredPalette, skinTone\)/s);
+  });
+
   it("opens the selected trial gate as a vertical portcullis only after confirmation", () => {
     expect(world).toContain('getObjectByName("trial-portcullis")');
     expect(world).toMatch(/portcullis\.position\.y\s*=/);
