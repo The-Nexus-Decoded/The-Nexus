@@ -2329,7 +2329,7 @@ export class World3D {
     const impactPoint = object.root.getWorldPosition(new THREE.Vector3()).setY(object.kind === "pillar" ? 1.2 : 0.65);
     await this.delay(motion.eventMs);
     const strikeEffect = this.playBasicStrikeEffectAt(impactPoint, !armed);
-    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
+    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse, this.calling.id);
     const hit = applyDestructibleHit({
       kind: object.kind,
       hp: object.hp,
@@ -2855,7 +2855,7 @@ export class World3D {
     const motion = this.playMotionArchetype(this.player, this.basicAttackMotion(armed));
     await this.delay(motion.eventMs);
     const strikeEffect = this.playBasicStrikeEffectAt(target.root.position.clone().add(new THREE.Vector3(0, 0.88, 0)), !armed);
-    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
+    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse, this.calling.id);
     target.hp = Math.max(0, target.hp - damage);
     await Promise.all([
       strikeEffect,
@@ -3063,8 +3063,7 @@ export class World3D {
       for (const enemy of enemies) {
         if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
         const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
-        const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-        await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
+        await this.walkActor(enemy, path.slice(0, 1), 175 / this.combatSpeed);
       }
       const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);
       if (adjacent.length > 0 && this.respawnGeneration === startedRespawnGeneration) {
@@ -3086,8 +3085,7 @@ export class World3D {
     for (const enemy of enemies) {
       if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
       const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
-      const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
+      await this.walkActor(enemy, path.slice(0, 1), 175 / this.combatSpeed);
     }
 
     const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);

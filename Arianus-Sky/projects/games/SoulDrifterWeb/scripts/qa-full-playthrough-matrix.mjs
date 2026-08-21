@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -23,14 +23,68 @@ const outputDir = process.env.SOULDRIFTER_QA_OUTPUT
   ?? "H:/CodexData/Temp/souldrifter-448-full-playthrough";
 const baseUrl = process.env.SOULDRIFTER_QA_URL
   ?? "http://127.0.0.1:5174/?debugSeed=2215682322";
+const qaMode = process.env.SOULDRIFTER_QA_MODE ?? "smoke";
+if (!["smoke", "matrix"].includes(qaMode)) throw new Error(`Unknown SOULDRIFTER_QA_MODE: ${qaMode}`);
+const rendererMode = process.env.SOULDRIFTER_QA_RENDERER ?? "hardware";
+if (!["hardware", "ci-swiftshader"].includes(rendererMode)) throw new Error(`Unknown SOULDRIFTER_QA_RENDERER: ${rendererMode}`);
+const defaultCallings = qaMode === "smoke" ? ["mage"] : ALL_CALLINGS;
+const defaultDifficulties = qaMode === "smoke" ? ["wayfarer"] : DIFFICULTIES;
 const selectedCallings = process.env.SOULDRIFTER_QA_CALLINGS
   ? process.env.SOULDRIFTER_QA_CALLINGS.split(",").map((value) => value.trim()).filter(Boolean)
-  : ALL_CALLINGS;
+  : defaultCallings;
 const selectedDifficulties = process.env.SOULDRIFTER_QA_DIFFICULTIES
   ? process.env.SOULDRIFTER_QA_DIFFICULTIES.split(",").map((value) => value.trim()).filter(Boolean)
-  : DIFFICULTIES;
+  : defaultDifficulties;
+const caseTimeoutMs = Number(process.env.SOULDRIFTER_QA_CASE_TIMEOUT_MS ?? 1_200_000);
+const hardwareBrowserPath = process.env.SOULDRIFTER_QA_BROWSER_PATH
+  ?? "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+const gpuLockPath = "H:/CodexData/Temp/souldrifter-playwright-gpu.lock";
 
 mkdirSync(outputDir, { recursive: true });
+
+async function inspectWebglRenderer(browser) {
+  const context = await browser.newContext({ serviceWorkers: "block" });
+  try {
+    const page = await context.newPage();
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    return await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+      if (!gl) throw new Error("WebGL is unavailable.");
+      const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+      if (!debugInfo) throw new Error("WEBGL_debug_renderer_info is unavailable.");
+      return String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+    });
+  } finally {
+    await context.close();
+  }
+}
+
+function assertHardwareRenderer(renderer) {
+  if (/swiftshader|llvmpipe|software/i.test(renderer)) {
+    throw new Error(`Hardware QA aborted: software WebGL renderer detected (${renderer}).`);
+  }
+  if (!renderer.includes("NVIDIA GeForce GTX 1080 Ti")) {
+    throw new Error(`Hardware QA aborted: expected NVIDIA GeForce GTX 1080 Ti, received ${renderer}.`);
+  }
+}
+
+function clearStaleGpuLock() {
+  try {
+    const lockPid = Number.parseInt(readFileSync(gpuLockPath, "utf8").trim(), 10);
+    if (Number.isInteger(lockPid) && lockPid > 0) {
+      try {
+        process.kill(lockPid, 0);
+        return;
+      } catch (error) {
+        if (error?.code !== "ESRCH") return;
+      }
+    }
+    unlinkSync(gpuLockPath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 
 function distance(left, right) {
   return Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
@@ -128,6 +182,7 @@ async function retreatFrom(page, target) {
 async function clearEncounter(page, callingId, roomId) {
   const basicRange = BASIC_RANGES[callingId] ?? 1;
   const signatureRange = SIGNATURE_RANGES[callingId] ?? 1;
+  const prefersMelee = callingId === "priest" && roomId === "skirmish";
   const observations = [];
   let previousRespawnGeneration = (await snapshot(page)).respawnGeneration;
   console.log(`[qa] ${callingId} ${roomId}: combat started`);
@@ -139,7 +194,8 @@ async function clearEncounter(page, callingId, roomId) {
       return { turns: turn - 1, observations };
     }
     if (turn === 1 || turn % 10 === 0) {
-      console.log(`[qa] ${callingId} ${roomId}: turn ${turn}, hp ${state.player.hp}/${state.player.maxHp}, bands ${state.recoveryCharges}`);
+      const checkpointTarget = nearestEnemy(state, roomId);
+      console.log(`[qa] ${callingId} ${roomId}: turn ${turn}, hp ${state.player.hp}/${state.player.maxHp}, bands ${state.recoveryCharges}, target hp ${checkpointTarget?.hp ?? 0}`);
     }
     if (state.respawnGeneration !== previousRespawnGeneration) {
       throw new Error(`${callingId}: died during ${roomId} on turn ${turn}. Last actions: ${JSON.stringify(observations.slice(-8))}`);
@@ -151,12 +207,6 @@ async function clearEncounter(page, callingId, roomId) {
     state = await snapshot(page);
     const targetDistance = distance(state.player, target);
 
-    if (state.player.hp / state.player.maxHp <= 0.52 && state.recoveryCharges > 0) {
-      await act(page, "wait");
-      observations.push({ turn, action: "recover", hp: state.player.hp, stability: state.player.stability, target: target.id });
-      continue;
-    }
-
     if (callingId === "priest"
       && state.player.hp / state.player.maxHp <= 0.62
       && state.player.stability >= 8
@@ -166,7 +216,14 @@ async function clearEncounter(page, callingId, roomId) {
       continue;
     }
 
-    if (signatureRange > 1 && targetDistance <= 2) {
+    const recoveryThreshold = callingId === "priest" ? 0.42 : 0.52;
+    if (state.player.hp / state.player.maxHp <= recoveryThreshold && state.recoveryCharges > 0) {
+      await act(page, "wait");
+      observations.push({ turn, action: "recover", hp: state.player.hp, stability: state.player.stability, target: target.id });
+      continue;
+    }
+
+    if (!prefersMelee && signatureRange > 1 && targetDistance <= 2) {
       const retreated = await retreatFrom(page, target);
       state = await snapshot(page);
       if (!retreated) {
@@ -177,7 +234,7 @@ async function clearEncounter(page, callingId, roomId) {
     }
 
     state = await snapshot(page);
-    if (signatureRange > basicRange && state.player.stability < 12) {
+    if (!prefersMelee && signatureRange > basicRange && state.player.stability < 12) {
       await act(page, "wait");
       observations.push({ turn, action: "center-soul", hp: state.player.hp, stability: state.player.stability, target: target.id });
       continue;
@@ -185,7 +242,7 @@ async function clearEncounter(page, callingId, roomId) {
 
     state = await snapshot(page);
     const movedTarget = state.enemies.find((enemy) => enemy.id === target.id) ?? target;
-    const combatRange = state.player.stability >= 12 ? signatureRange : basicRange;
+    const combatRange = prefersMelee ? basicRange : state.player.stability >= 12 ? signatureRange : basicRange;
     if (distance(state.player, movedTarget) > combatRange) {
       const moved = await moveToward(page, target, combatRange);
       state = await snapshot(page);
@@ -201,7 +258,9 @@ async function clearEncounter(page, callingId, roomId) {
     state = await snapshot(page);
     const liveTarget = state.enemies.find((enemy) => enemy.id === target.id && enemy.alive) ?? nearestEnemy(state, roomId);
     if (!liveTarget) continue;
-    const useSignature = state.player.stability >= 12 && distance(state.player, liveTarget) <= signatureRange;
+    const useSignature = state.player.stability >= 12
+      && distance(state.player, liveTarget) <= signatureRange
+      && (!prefersMelee || turn % 3 === 0);
     await act(page, useSignature ? "signature" : "basic");
     const after = await snapshot(page);
     observations.push({
@@ -241,6 +300,11 @@ async function restBetweenEncounters(page) {
 
 async function runPlaythrough(browser, callingId, difficulty) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    void context.close().catch(() => undefined);
+  }, caseTimeoutMs);
   const page = await context.newPage();
   const consoleErrors = [];
   const failedRequests = [];
@@ -301,6 +365,9 @@ async function runPlaythrough(browser, callingId, difficulty) {
       failedRequests,
     };
   } catch (error) {
+    const caseError = timedOut
+      ? new Error(`${callingId}/${difficulty}: exceeded the ${caseTimeoutMs} ms per-case timeout.`)
+      : error;
     const failedState = await snapshot(page).catch(() => null);
     await page.screenshot({
       path: join(outputDir, `${callingId}-${difficulty}-failure.jpg`),
@@ -312,24 +379,50 @@ async function runPlaythrough(browser, callingId, difficulty) {
       callingId,
       difficulty,
       status: "failed",
-      error: error instanceof Error ? error.stack : String(error),
+      error: caseError instanceof Error ? caseError.stack : String(caseError),
       failedState,
       consoleErrors,
       failedRequests,
     };
   } finally {
-    await context.close();
+    clearTimeout(timeoutId);
+    await context.close().catch(() => undefined);
   }
 }
 
-const browser = await chromium.launch({
-  executablePath: "C:/Users/olawal/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe",
-  headless: process.env.SOULDRIFTER_QA_HEADED !== "1",
-  args: ["--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=swiftshader", "--disable-gpu-sandbox"],
-});
-
 const results = [];
+let browser;
+let gpuLockFd;
+let renderer = "not inspected";
 try {
+  if (rendererMode === "hardware") {
+    clearStaleGpuLock();
+    try {
+      gpuLockFd = openSync(gpuLockPath, "wx");
+      writeFileSync(gpuLockFd, `${process.pid}\n`);
+    } catch (error) {
+      if (error?.code === "EEXIST") {
+        throw new Error(`Another SoulDrifter hardware QA process owns ${gpuLockPath}. GPU QA is single-instance; do not start a second matrix.`);
+      }
+      throw error;
+    }
+  }
+
+  const launchOptions = rendererMode === "hardware"
+    ? {
+      executablePath: hardwareBrowserPath,
+      headless: false,
+      args: ["--enable-webgl", "--use-angle=d3d11", "--enable-gpu-rasterization", "--ignore-gpu-blocklist"],
+    }
+    : {
+      headless: true,
+      args: ["--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=swiftshader"],
+    };
+  browser = await chromium.launch(launchOptions);
+  renderer = await inspectWebglRenderer(browser);
+  console.log(`[qa] WebGL renderer: ${renderer}`);
+  if (rendererMode === "hardware") assertHardwareRenderer(renderer);
+
   for (const callingId of selectedCallings) {
     for (const difficulty of selectedDifficulties) {
       const result = await runPlaythrough(browser, callingId, difficulty);
@@ -338,12 +431,24 @@ try {
     }
   }
 } finally {
-  await browser.close();
+  await browser?.close().catch(() => undefined);
+  if (gpuLockFd !== undefined) closeSync(gpuLockFd);
+  if (rendererMode === "hardware") {
+    try {
+      unlinkSync(gpuLockPath);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
 }
 
 const report = {
   generatedAt: new Date().toISOString(),
   baseUrl,
+  qaMode,
+  rendererMode,
+  renderer,
+  caseTimeoutMs,
   selectedCallings,
   selectedDifficulties,
   passed: results.filter((result) => result.status === "passed").length,

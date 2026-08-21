@@ -12,4 +12,15 @@ describe("basic weapon attack", () => {
     expect(basicAttackDamage(16, 16)).toBe(9);
     expect(basicAttackDamage(16, 16)).toBeLessThan(11);
   });
+
+  it("makes the Priest a credible starter mace combatant instead of a heal-only caster", () => {
+    expect(basicAttackDamage(6, 6, "priest")).toBe(9);
+    expect(basicAttackDamage(6, 6, "mage")).toBe(6);
+  });
+
+  it("gives dedicated melee callings stronger level-one weapon basics", () => {
+    expect(basicAttackDamage(9, 6, "warrior")).toBe(9);
+    expect(basicAttackDamage(6, 9, "slayer")).toBe(9);
+    expect(basicAttackDamage(6, 6, "shadowknight")).toBe(9);
+  });
 });
