@@ -130,10 +130,17 @@ async function clearEncounter(page, callingId, roomId) {
   const signatureRange = SIGNATURE_RANGES[callingId] ?? 1;
   const observations = [];
   let previousRespawnGeneration = (await snapshot(page)).respawnGeneration;
+  console.log(`[qa] ${callingId} ${roomId}: combat started`);
 
   for (let turn = 1; turn <= 90; turn += 1) {
     let state = await snapshot(page);
-    if (state.encounter === "none") return { turns: turn - 1, observations };
+    if (state.encounter === "none") {
+      console.log(`[qa] ${callingId} ${roomId}: cleared in ${turn - 1} turns`);
+      return { turns: turn - 1, observations };
+    }
+    if (turn === 1 || turn % 10 === 0) {
+      console.log(`[qa] ${callingId} ${roomId}: turn ${turn}, hp ${state.player.hp}/${state.player.maxHp}, bands ${state.recoveryCharges}`);
+    }
     if (state.respawnGeneration !== previousRespawnGeneration) {
       throw new Error(`${callingId}: died during ${roomId} on turn ${turn}. Last actions: ${JSON.stringify(observations.slice(-8))}`);
     }
@@ -144,7 +151,7 @@ async function clearEncounter(page, callingId, roomId) {
     state = await snapshot(page);
     const targetDistance = distance(state.player, target);
 
-    if ((state.player.hp / state.player.maxHp <= 0.52 || state.player.stability < 18) && state.recoveryCharges > 0) {
+    if (state.player.hp / state.player.maxHp <= 0.52 && state.recoveryCharges > 0) {
       await act(page, "wait");
       observations.push({ turn, action: "recover", hp: state.player.hp, stability: state.player.stability, target: target.id });
       continue;
@@ -241,7 +248,7 @@ async function runPlaythrough(browser, callingId, difficulty) {
   page.on("requestfailed", (request) => failedRequests.push({ url: request.url(), error: request.failure()?.errorText }));
   try {
     await createCharacter(page, callingId);
-    await page.evaluate(() => document.querySelector("#speed-toggle")?.click());
+    await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.setCombatSpeed(8));
     const paperDoll = await inspectPaperDoll(page, callingId, difficulty);
     await page.evaluate(async (selectedDifficulty) => {
       const bridge = window.__SOULDRIFTER_DEBUG__;

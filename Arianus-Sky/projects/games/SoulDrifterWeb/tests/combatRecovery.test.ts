@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { priestMendingWardHealing, recoverWhileSafe } from "../src/game/combatRecovery";
+import {
+  priestMendingWardHealing,
+  recoverWhileSafe,
+  recoveryChargesAtBossCheckpoint,
+  STARTER_RECOVERY_CHARGES,
+} from "../src/game/combatRecovery";
 
 describe("calling recovery", () => {
+  it("budgets one finite recovery band for each combat stretch of the starter trial", () => {
+    expect(STARTER_RECOVERY_CHARGES).toBe(4);
+  });
+
+  it("reweaves a four-band boss reserve without erasing careful conservation", () => {
+    expect(recoveryChargesAtBossCheckpoint(0)).toBe(4);
+    expect(recoveryChargesAtBossCheckpoint(1)).toBe(4);
+    expect(recoveryChargesAtBossCheckpoint(5)).toBe(5);
+  });
+
   it("lets every calling rest between encounters without consuming a recovery band", () => {
     const result = recoverWhileSafe("mage", {
       hp: 12,

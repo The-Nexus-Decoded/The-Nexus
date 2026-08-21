@@ -1,5 +1,12 @@
 import type { CallingId } from "./character";
 
+export const STARTER_RECOVERY_CHARGES = 4;
+export const BOSS_CHECKPOINT_RECOVERY_CHARGES = 4;
+
+export function recoveryChargesAtBossCheckpoint(currentCharges: number): number {
+  return Math.max(currentCharges, BOSS_CHECKPOINT_RECOVERY_CHARGES);
+}
+
 export interface RecoveryPool {
   hp: number;
   maxHp: number;

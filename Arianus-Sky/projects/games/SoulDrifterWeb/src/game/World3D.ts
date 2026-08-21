@@ -53,7 +53,12 @@ import {
 } from "./equipment";
 import { BASIC_ATTACK, basicAttackDamage } from "./combatActions";
 import { callingCombatContract, type CallingCombatContract } from "./callingCombat";
-import { priestMendingWardHealing, recoverWhileSafe } from "./combatRecovery";
+import {
+  priestMendingWardHealing,
+  recoverWhileSafe,
+  recoveryChargesAtBossCheckpoint,
+  STARTER_RECOVERY_CHARGES,
+} from "./combatRecovery";
 import {
   CINDER_GUARD_MOTION,
   ENEMY_MELEE_MOTION,
@@ -336,6 +341,7 @@ interface DebugBridge {
   clearTarget(): void;
   action(action: ActionName): Promise<void>;
   setCombatStyle(style: CombatStyle): void;
+  setCombatSpeed(speed: number): void;
   activeBlock(): void;
   pose(animation: string, normalizedTime: number): void;
   weapon(state: WeaponVisualState): void;
@@ -476,7 +482,7 @@ export class World3D {
   private stability: number;
   private resource = 0;
   private realmPressure = 12;
-  private recoveryCharges = 2;
+  private recoveryCharges = STARTER_RECOVERY_CHARGES;
   private tutorialStep = 1;
   private signatureReadyAt = 0;
   private basicReadyAt = 0;
@@ -2181,16 +2187,16 @@ export class World3D {
         id: "woven-recovery-bands",
         name: "Woven Recovery Band",
         kind: "consumable",
-        quantity: 2,
+        quantity: STARTER_RECOVERY_CHARGES,
         stackLimit: 10,
-        description: "Two low-tier recovery bands carried into the shared trial. They restore Vitality and Stability.",
+        description: "Four low-tier recovery bands carried into the shared trial. They restore Vitality and Stability.",
       });
       this.refreshEquipmentUi();
       this.tutorialStep = Math.max(this.tutorialStep, 5);
       this.ui.setTutorial(5, 9, "Choose the gate, not the destination", "Both portcullises enter the same combat-practice wing. Wayfarer teaches the basics; Oathbreaker changes the encounter and pressure for stronger rewards.");
       this.ui.setObjective("Choose a trial gate: Wayfarer (standard reward) or Oathbreaker (severe, stronger reward).");
       this.showTrialGateGuidance();
-      this.ui.setMessage("The coffer yields a binding charm and two recovery bands. Your worn C-tier clothing and starter weapon were already equipped when the Well returned you.");
+      this.ui.setMessage("The coffer yields a binding charm and four recovery bands. Your worn C-tier clothing and starter weapon were already equipped when the Well returned you.");
       void storyDatabase.reachCheckpoint("starter-supplies-recovered", id);
       }, false);
     } else if (object.kind === "memory-loom") {
@@ -2940,7 +2946,7 @@ export class World3D {
 
   private async activateGuard(outOfCombat = false): Promise<void> {
     const now = performance.now();
-    if (now < this.guardReadyAt) {
+    if ((outOfCombat || this.combatStyle === "real-time") && now < this.guardReadyAt) {
       this.ui.setMessage(`${this.calling.defensiveSkill} is still recovering.`);
       return;
     }
@@ -2985,7 +2991,7 @@ export class World3D {
 
   private async recover(outOfCombat = false): Promise<void> {
     const now = performance.now();
-    if (now < this.recoverReadyAt) {
+    if ((outOfCombat || this.combatStyle === "real-time") && now < this.recoverReadyAt) {
       this.ui.setMessage("Recovery is still on cooldown.");
       return;
     }
@@ -3053,9 +3059,18 @@ export class World3D {
     if (this.combatStyle === "real-time") {
       await this.runRealTimeEnemyPulse();
     } else {
-      for (const enemy of this.activeEnemies()) {
-        await this.enemyStep(enemy);
-        if (this.hp <= 0 || this.respawnGeneration !== startedRespawnGeneration) break;
+      const enemies = this.activeEnemies();
+      for (const enemy of enemies) {
+        if (manhattan(enemy.grid, this.player.grid) <= 1) continue;
+        const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
+        const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
+        await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
+      }
+      const adjacent = enemies.filter((enemy) => manhattan(enemy.grid, this.player.grid) === 1);
+      if (adjacent.length > 0 && this.respawnGeneration === startedRespawnGeneration) {
+        const attacker = adjacent[this.realTimeAttackCursor % adjacent.length]!;
+        this.realTimeAttackCursor = (this.realTimeAttackCursor + 1) % Math.max(1, adjacent.length);
+        await this.enemyAttack(attacker);
       }
     }
     this.actionBusy = false;
@@ -3080,16 +3095,6 @@ export class World3D {
     const attacker = adjacent[this.realTimeAttackCursor % adjacent.length]!;
     this.realTimeAttackCursor = (this.realTimeAttackCursor + 1) % Math.max(1, adjacent.length);
     await this.enemyAttack(attacker);
-  }
-
-  private async enemyStep(enemy: EnemyRuntime): Promise<void> {
-    const distance = manhattan(enemy.grid, this.player.grid);
-    if (distance > 1) {
-      const path = planPursuitPath(enemy.grid, this.player.grid, (point) => this.isWalkable(point, enemy.id));
-      const stepCount = enemy.definition.kind === "miniboss" ? 2 : 1;
-      await this.walkActor(enemy, path.slice(0, stepCount), 175 / this.combatSpeed);
-    }
-    if (manhattan(enemy.grid, this.player.grid) === 1) await this.enemyAttack(enemy);
   }
 
   private clearEnemyAttackPhase(): void {
@@ -3267,10 +3272,15 @@ export class World3D {
     this.ui.clearTarget();
     this.ui.setMode("victory", this.combatStyle);
     if (finished === "skirmish") {
+      const priorRecoveryCharges = this.recoveryCharges;
+      this.recoveryCharges = recoveryChargesAtBossCheckpoint(this.recoveryCharges);
+      this.ui.setRecoveryCharges(this.recoveryCharges);
       this.tutorialStep = 7;
-      this.ui.setTutorial(7, 9, "Prepare for the sealed depth", "The light creatures are dead. Recover Stability, inspect your remaining bands, then enter the miniboss chamber.");
+      this.ui.setTutorial(7, 9, "Prepare for the sealed depth", "The light creatures are dead. Recover Vitality and Stability, then enter the miniboss chamber with four bands rewoven at this checkpoint.");
       this.ui.setObjective("Proceed through the far passage and challenge the creature sealing the Soul Essence.");
-      this.ui.setMessage("The galleries fall quiet. The deeper fog now answers your soul imprint.");
+      this.ui.setMessage(priorRecoveryCharges < this.recoveryCharges
+        ? `The galleries fall quiet. The Soulwell reweaves ${this.recoveryCharges - priorRecoveryCharges} recovery band${this.recoveryCharges - priorRecoveryCharges === 1 ? "" : "s"} for the sealed depth.`
+        : "The galleries fall quiet. The deeper fog now answers your soul imprint.");
       void storyDatabase.reachCheckpoint("skirmish-cleared", "fractured-galleries");
     } else {
       const essence = this.storyObjects.get("first-memory");
@@ -4022,6 +4032,9 @@ export class World3D {
       setCombatStyle: (style) => {
         const select = requiredElement<HTMLSelectElement>("combat-style");
         if (!select.disabled) this.setCombatStylePreference(style);
+      },
+      setCombatSpeed: (speed) => {
+        this.combatSpeed = THREE.MathUtils.clamp(speed, 1, 8);
       },
       activeBlock: () => {
         const prompt = requiredElement<HTMLElement>("reaction-prompt");
