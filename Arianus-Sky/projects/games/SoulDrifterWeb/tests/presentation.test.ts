@@ -146,6 +146,25 @@ describe("actor presentation boundaries", () => {
     expect(weapon?.handSocket.visible).toBe(true);
     expect(weapon?.hipSocket.visible).toBe(false);
   });
+
+  it("creates a usable fallback sword for the legacy Warrior rig", () => {
+    const model = new THREE.Group();
+    const hips = new THREE.Bone();
+    hips.name = "Hips";
+    const fist = new THREE.Bone();
+    fist.name = "Fist.R";
+    model.add(hips, fist);
+
+    const weapon = createStarterLongswordPresentation(model);
+
+    expect(weapon).toBeDefined();
+    expect(weapon?.handSocket.parent).toBe(fist);
+    expect(weapon?.hipSocket.parent).toBe(hips);
+    expect(weapon?.handSocket.getObjectByName("SK_StarterLongsword_RuntimeFallback")).toBeDefined();
+    setWeaponVisualState(weapon!, "drawn");
+    expect(weapon?.handSocket.visible).toBe(true);
+    expect(weapon?.hipSocket.visible).toBe(false);
+  });
 });
 
 describe("camera pan boundaries", () => {

@@ -129,6 +129,38 @@ export interface WeaponPresentation {
 
 const STARTER_LONGSWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
 
+function firstRigNode(model: THREE.Object3D, aliases: readonly string[]): THREE.Object3D | undefined {
+  const normalizedAliases = new Set(aliases.map((name) => name.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  let match: THREE.Object3D | undefined;
+  model.traverse((child) => {
+    if (match) return;
+    const normalizedName = child.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalizedAliases.has(normalizedName)) match = child;
+  });
+  return match;
+}
+
+function createFallbackStarterLongsword(): THREE.Group {
+  const sword = new THREE.Group();
+  sword.name = "SK_StarterLongsword_RuntimeFallback";
+  const iron = new THREE.MeshStandardMaterial({ color: 0x8f969b, metalness: 0.72, roughness: 0.42 });
+  const leather = new THREE.MeshStandardMaterial({ color: 0x4a2e20, metalness: 0.04, roughness: 0.86 });
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.78, 0.035), iron);
+  blade.name = "SK_StarterLongsword_Blade_RuntimeFallback";
+  blade.position.y = -0.43;
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.055, 0.065), iron);
+  guard.name = "SK_StarterLongsword_Guard_RuntimeFallback";
+  guard.position.y = -0.015;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 10), leather);
+  grip.name = "SK_StarterLongsword_Grip_RuntimeFallback";
+  grip.position.y = 0.135;
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), iron);
+  pommel.name = "SK_StarterLongsword_Pommel_RuntimeFallback";
+  pommel.position.y = 0.29;
+  sword.add(blade, guard, grip, pommel);
+  return sword;
+}
+
 /**
  * Creates one visual copy for the hand and one for the left hip. Both are
  * driven by the same skeleton, so armor/skin changes never require re-rigging
@@ -139,17 +171,18 @@ export function createStarterLongswordPresentation(model: THREE.Object3D): Weapo
   model.traverse((child) => {
     if (STARTER_LONGSWORD_PART.test(child.name)) parts.push(child);
   });
-  if (parts.length === 0) return undefined;
 
-  const handBone = model.getObjectByName("hand_r") ?? parts[0]!.parent;
-  const hipBone = model.getObjectByName("pelvis") ?? model.getObjectByName("spine_01");
+  const handBone = firstRigNode(model, ["hand_r", "Hand.R", "Fist.R", "RightHand", "mixamorigRightHand"])
+    ?? parts[0]?.parent;
+  const hipBone = firstRigNode(model, ["pelvis", "Hips", "mixamorigHips", "spine_01", "Abdomen", "Torso"]);
   if (!handBone || !hipBone) return undefined;
 
   const handSocket = new THREE.Group();
   handSocket.name = "weapon-socket-hand-r";
   handBone.add(handSocket);
   model.updateMatrixWorld(true);
-  parts.forEach((part) => handSocket.attach(part));
+  if (parts.length > 0) parts.forEach((part) => handSocket.attach(part));
+  else handSocket.add(createFallbackStarterLongsword());
 
   const hipSocket = handSocket.clone(true);
   hipSocket.name = "weapon-socket-hip-l";
