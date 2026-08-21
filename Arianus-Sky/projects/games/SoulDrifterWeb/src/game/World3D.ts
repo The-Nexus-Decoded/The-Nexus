@@ -52,6 +52,7 @@ import {
   type InventoryState,
 } from "./equipment";
 import { BASIC_ATTACK, basicAttackDamage } from "./combatActions";
+import { callingCombatContract, type CallingCombatContract } from "./callingCombat";
 import {
   CINDER_GUARD_MOTION,
   ENEMY_MELEE_MOTION,
@@ -59,7 +60,6 @@ import {
   SIPHON_CLEAVE_MOTION,
   UNARMED_KICK_MOTION,
   UNARMED_PUNCH_MOTION,
-  WEAPON_STRIKE_MOTION,
   WORLD_INTERACTION_MOTIONS,
   type MotionArchetypeContract,
   type WorldInteractionMotionContract,
@@ -86,7 +86,7 @@ import {
   cameraTileEnvelope,
   cloneActorMaterial,
   createTerminalDeathClip,
-  createStarterLongswordPresentation,
+  createStarterWeaponPresentation,
   deathBodyTilt,
   applyModularAppearance,
   raceAvatarShape,
@@ -417,6 +417,7 @@ function nearestOpenAdjacent(
 export class World3D {
   private readonly ui = new GameUI();
   private readonly calling: ReturnType<typeof callingById>;
+  private readonly combatContract: CallingCombatContract;
   private readonly lighting = lightingTuningRegistry.snapshot();
   private readonly dungeon: GeneratedDungeon;
   private readonly scene = new THREE.Scene();
@@ -512,6 +513,7 @@ export class World3D {
     savedInventory?: InventoryState,
   ) {
     this.calling = callingById(profile.callingId);
+    this.combatContract = callingCombatContract(profile.callingId);
     this.inventory = savedInventory?.items.map((item) => ({ ...item })) ?? createStarterInventory(profile.callingId);
     this.backpackCapacity = savedInventory
       ? { ...savedInventory.capacity }
@@ -1272,7 +1274,10 @@ export class World3D {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh && /boot|feet|shoe/i.test(child.name)) groundingMeshes.push(child);
     });
-    const weapon = id === "player" ? createStarterLongswordPresentation(model) : undefined;
+    const starterWeapon = id === "player" ? equippedUsableWeapon(this.inventory) : undefined;
+    const weapon = id === "player" && starterWeapon
+      ? createStarterWeaponPresentation(model, starterWeapon.weaponFamily!, this.profile.callingId)
+      : undefined;
     if (weapon) setWeaponVisualState(weapon, equippedUsableWeapon(this.inventory) ? "sheathed" : "hidden");
     const motion = new AvatarMotionController();
     motion.setWeapon(weapon?.state ?? "hidden");
@@ -1522,7 +1527,9 @@ export class World3D {
       return;
     }
 
-    const clipNames = target === "drawn" ? ["DrawSword"] : ["SheatheSword"];
+    const clipNames = target === "drawn"
+      ? this.combatContract.drawClipNames
+      : this.combatContract.sheatheClipNames;
     if (!this.hasAnimation(actor, clipNames)) {
       this.setWeaponState(actor, target);
       return;
@@ -1560,7 +1567,7 @@ export class World3D {
   }
 
   private basicAttackMotion(armed: boolean): MotionArchetypeContract {
-    if (armed) return WEAPON_STRIKE_MOTION;
+    if (armed) return this.combatContract.basicMotion;
     const motion = this.unarmedAttackCursor % 2 === 0 ? UNARMED_PUNCH_MOTION : UNARMED_KICK_MOTION;
     this.unarmedAttackCursor += 1;
     return motion;
@@ -2797,14 +2804,14 @@ export class World3D {
     this.faceActorTowards(this.player, enemy.root.position);
     if (this.selectedAction === "signature") await this.runPlayerAction(() => this.performSignature());
     else if (this.selectedAction === "basic" || this.combatStyle === "real-time") await this.runPlayerAction(() => this.performBasicAttack());
-    else this.ui.setMessage(`${enemy.definition.name} targeted. Use Weapon Strike, ${this.calling.signatureSkill}, or reposition.`);
+    else this.ui.setMessage(`${enemy.definition.name} targeted. Use ${this.combatContract.basicName}, ${this.calling.signatureSkill}, or reposition.`);
   }
 
   private async performBasicAttack(): Promise<void> {
     const active = this.activeEnemies();
     const selected = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
     const selectedOrFirst = selected?.alive && selected.definition.roomId === this.encounter ? selected : active[0];
-    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, BASIC_ATTACK.range)
+    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, this.combatContract.basicRange)
       ?? selectedOrFirst;
     if (!target) {
       await this.previewBasicAttack();
@@ -2812,8 +2819,9 @@ export class World3D {
     }
     this.selectEnemyTarget(target.id);
     this.faceActorTowards(this.player, target.root.position);
-    if (manhattan(this.player.grid, target.grid) > BASIC_ATTACK.range) {
-      await this.previewBasicAttack(target.root.position, "Out of range (1 tile required)");
+    if (manhattan(this.player.grid, target.grid) > this.combatContract.basicRange) {
+      const range = this.combatContract.basicRange;
+      await this.previewBasicAttack(target.root.position, `Out of range (${range} tile${range === 1 ? "" : "s"} required)`);
       return;
     }
     const now = performance.now();
@@ -2838,7 +2846,7 @@ export class World3D {
     this.playActorIdle(this.player);
     if (target.hp === 0) await this.defeatEnemy(target);
     else this.playActorHit(target);
-    this.ui.addLog(`${armed ? "Weapon" : "Unarmed"} Strike hits ${target.definition.name} for ${damage}; no resource spent.`);
+    this.ui.addLog(`${armed ? this.combatContract.basicName : "Unarmed Strike"} hits ${target.definition.name} for ${damage}; no resource spent.`);
     this.refreshStats();
     this.refreshTarget();
     this.basicReadyAt = now + BASIC_ATTACK.cooldownMs;
@@ -2886,9 +2894,7 @@ export class World3D {
     const animationMs = shadowknightMotion?.durationMs
       ?? this.playGenericActorAction(
         this.player,
-        this.calling.signatureRange > 2
-          ? ["CastProjectile", "Shoot_OneHanded", "Cast"]
-          : ["SwordSlashInward", "SwordSlash", "BasicThrust"],
+        this.combatContract.signatureClipNames,
         1.35,
       );
     const eventMs = shadowknightMotion?.eventMs ?? 0;
@@ -2939,7 +2945,7 @@ export class World3D {
       ? this.playMotionArchetype(this.player, CINDER_GUARD_MOTION)
       : null;
     const animationMs = shadowknightMotion?.durationMs
-      ?? this.playGenericActorAction(this.player, ["Cast", "Victory"]);
+      ?? this.playGenericActorAction(this.player, this.combatContract.defenseClipNames);
     const eventMs = shadowknightMotion?.eventMs ?? 0;
     this.ui.animateAction("guard", Math.max(1200, animationMs));
     this.guardReadyAt = now + Math.max(outOfCombat ? 4800 : 2600, animationMs);

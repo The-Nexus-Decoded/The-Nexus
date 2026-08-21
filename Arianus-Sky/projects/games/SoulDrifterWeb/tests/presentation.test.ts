@@ -8,12 +8,15 @@ import {
   createTerminalDeathClip,
   deathBodyTilt,
   createStarterLongswordPresentation,
+  createStarterWeaponPresentation,
   occlusionSampleHeights,
   resolvePointerHitIntent,
   screenPanToWorld,
   sanitizeAttackClip,
   setWeaponVisualState,
 } from "../src/game/presentation";
+import { CALLINGS } from "../src/game/character";
+import { STARTER_LOADOUTS } from "../src/game/equipment";
 import { generateSoulwellDungeon } from "../src/game/dungeon";
 
 describe("actor presentation boundaries", () => {
@@ -164,6 +167,63 @@ describe("actor presentation boundaries", () => {
     setWeaponVisualState(weapon!, "drawn");
     expect(weapon?.handSocket.visible).toBe(true);
     expect(weapon?.hipSocket.visible).toBe(false);
+  });
+
+  it("creates the correct runtime starter weapon for every calling", () => {
+    const fallbackNames = {
+      sword: "SK_StarterLongsword_RuntimeFallback",
+      staff: "SK_StarterStaff_RuntimeFallback",
+      hammer: "SK_StarterMace_RuntimeFallback",
+      bow: "SK_StarterShortbow_RuntimeFallback",
+      focus: "SK_StarterBindingRod_RuntimeFallback",
+      dagger: "SK_StarterDagger_RuntimeFallback",
+    } as const;
+
+    for (const calling of CALLINGS) {
+      const model = new THREE.Group();
+      const hips = new THREE.Bone();
+      hips.name = "Hips";
+      const rightHand = new THREE.Bone();
+      rightHand.name = "RightHand";
+      const leftHand = new THREE.Bone();
+      leftHand.name = "LeftHand";
+      model.add(hips, rightHand, leftHand);
+
+      const family = STARTER_LOADOUTS[calling.id].weaponFamily;
+      const weapon = createStarterWeaponPresentation(model, family, calling.id);
+
+      expect(weapon).toBeDefined();
+      if (!weapon) throw new Error(`Missing ${calling.id} starter weapon presentation`);
+      expect(weapon.family).toBe(family);
+      expect(weapon.handSocket.getObjectByName(fallbackNames[family as keyof typeof fallbackNames])).toBeDefined();
+      expect(weapon.handSocket.parent).toBe(rightHand);
+      expect(weapon.hipSocket.parent).toBe(hips);
+    }
+  });
+
+  it("presents the Paladin shield and Slayer second dagger in both equipment states", () => {
+    for (const [callingId, expectedName] of [
+      ["paladin", "SK_StarterWoodenShield_RuntimeFallback"],
+      ["slayer", "SK_StarterDagger_RuntimeFallback"],
+    ] as const) {
+      const model = new THREE.Group();
+      for (const boneName of ["Hips", "RightHand", "LeftHand"]) {
+        const bone = new THREE.Bone();
+        bone.name = boneName;
+        model.add(bone);
+      }
+      const weapon = createStarterWeaponPresentation(model, STARTER_LOADOUTS[callingId].weaponFamily, callingId);
+
+      expect(weapon).toBeDefined();
+      if (!weapon) throw new Error(`Missing ${callingId} starter weapon presentation`);
+      expect(weapon.offHandSocket?.getObjectByName(expectedName)).toBeDefined();
+      setWeaponVisualState(weapon, "sheathed");
+      expect(weapon.offHandSocket?.visible).toBe(false);
+      expect(weapon.offHipSocket?.visible).toBe(true);
+      setWeaponVisualState(weapon, "drawn");
+      expect(weapon.offHandSocket?.visible).toBe(true);
+      expect(weapon.offHipSocket?.visible).toBe(false);
+    }
   });
 });
 
