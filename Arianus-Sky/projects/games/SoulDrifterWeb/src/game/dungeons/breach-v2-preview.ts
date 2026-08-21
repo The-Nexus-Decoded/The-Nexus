@@ -292,11 +292,7 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   return shell;
 }
 
-/**
- * Authored architecture that sits above the hidden navigation shell.
- * Gates make every major transition legible, while the boss cover is tagged
- * for the later combat/destruction pass instead of being anonymous scenery.
- */
+/** Boss cover is tagged for the later combat/destruction pass. */
 function buildArchitecturalPolish(
   scene: THREE.Scene,
   layout: BreachV2Layout,
@@ -305,63 +301,6 @@ function buildArchitecturalPolish(
   const group = new THREE.Group();
   group.name = "breach-v2-architectural-polish";
   scene.add(group);
-
-  const addGate = (
-    id: string,
-    x: number,
-    z: number,
-    axis: "x" | "z",
-    state: "closed" | "raised" = "closed",
-  ): void => {
-    const gate = new THREE.Group();
-    gate.name = `section-gate-${id}`;
-    gate.position.set(x, 0, z);
-    gate.userData = { connectorId: id, state, blocksMovement: state === "closed" };
-    const span = DOOR_PORTAL_W;
-    const stoneParts: THREE.Mesh[] = [];
-    const placeAlong = (mesh: THREE.Object3D, along: number): void => {
-      if (axis === "x") mesh.position.z = along;
-      else mesh.position.x = along;
-    };
-    for (const side of [-1, 1]) {
-      const post = texturedBox(axis === "x" ? 0.72 : 0.58, 3.25, axis === "x" ? 0.58 : 0.72, materials.masonry);
-      post.position.y = 1.625;
-      placeAlong(post, side * (span / 2 + 0.28));
-      stoneParts.push(post);
-    }
-    const lintel = texturedBox(axis === "x" ? 0.72 : span + 1.15, 0.54, axis === "x" ? span + 1.15 : 0.72, materials.masonry);
-    lintel.position.y = 3.0;
-    stoneParts.push(lintel);
-
-    const mergeParts = (parts: THREE.Mesh[], material: THREE.Material, name: string): THREE.Mesh => {
-      const geometries = parts.map((part) => {
-        part.updateMatrix();
-        return part.geometry.clone().applyMatrix4(part.matrix);
-      });
-      const merged = new THREE.Mesh(mergeGeometries(geometries), material);
-      merged.name = name;
-      merged.castShadow = true;
-      merged.receiveShadow = true;
-      return merged;
-    };
-    gate.add(mergeParts(stoneParts, materials.masonry, "stone-frame"));
-    group.add(gate);
-  };
-
-  const lm = layout.landmarks;
-  addGate("vestibule-link", 30, 11, "x");
-  addGate("threshold-entry", 36, 11, "x");
-  addGate("wayfarer-choice", lm.doorWayfarer.x, lm.doorWayfarer.z, "x", "closed");
-  addGate("oathbreaker-choice", lm.doorOathbreaker.x, lm.doorOathbreaker.z, "x", "closed");
-  for (const room of layout.rooms.filter((candidate) => candidate.kind === "gallery")) {
-    addGate(`${room.id}-entry`, room.x, room.z + room.h / 2, "x");
-  }
-  addGate("convergence-lock", 188, 10, "x");
-  addGate("ashen-threshold", 192, 10, "x");
-  addGate("boss-lock", 208, 10, "x");
-  addGate("memory-vault", 242, 7, "x");
-  addGate("way-upward", 247, 12, "z");
-  addGate("heartvale-threshold", 258, 15, "x");
 
   const bossRoom = layout.rooms.find((room) => room.kind === "boss");
   if (bossRoom) {
