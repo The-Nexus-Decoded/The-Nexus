@@ -108,6 +108,7 @@ import {
 import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 import { markAtlasPoi } from "./atlasSync";
+import { resolveFirstMemoryAction } from "./levelCompletion";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -260,6 +261,7 @@ interface DebugSnapshot {
   revealedRooms: DungeonRoomKind[];
   inventory: Array<{ id: string; name: string; equipped: boolean; slot?: string; durability?: number }>;
   complete: boolean;
+  ascended: boolean;
   recoveryCharges: number;
   trialDifficulty: TrialDifficulty | null;
   selectedTargetId: string | null;
@@ -474,6 +476,7 @@ export class World3D {
   private unarmedAttackCursor = 0;
   private disposed = false;
   private complete = false;
+  private ascended = false;
   private animationFrame = 0;
   private combatSpeed = 1;
   private locomotionPreference: LocomotionPreference = "auto";
@@ -1996,6 +1999,17 @@ export class World3D {
     if (object.kind === "chest") return { label: "Open Wayfarer's Coffer", detail: "Quest supplies · confirm" };
     if (object.kind === "memory-loom") return { label: "Use Memory Loom", detail: "Shape starter traits · confirm" };
     if (object.kind === "soul-well") return { label: "Touch Soulwell", detail: "Restore Vitality and Stability · confirm" };
+    if (object.kind === "essence") {
+      const action = resolveFirstMemoryAction({
+        bossDefeated: this.completedEncounters.has("boss"),
+        memoryClaimed: this.complete,
+        ascended: this.ascended,
+      });
+      if (action === "claim") return { label: "Claim the First Memory", detail: "Stabilize the Soul Essence · confirm" };
+      if (action === "ascend") return { label: "Ascend to the Above", detail: "Leave the Soulwell · confirm" };
+      if (action === "arrived") return { label: "The Above reached", detail: "Thalenyr Verge arrival" };
+      return { label: "Sealed Soul Essence", detail: "Defeat the Cinderbound Warden" };
+    }
     return { label: "Interact", detail: "Confirm interaction" };
   }
 
@@ -2171,11 +2185,16 @@ export class World3D {
       this.ui.setMessage(`Training effigy ready. Activate ${this.calling.signatureSkill}, ${this.calling.defensiveSkill}, or Recover from the illustrated action bar.`);
       void storyDatabase.reachCheckpoint("training-effigy-inspected", this.calling.id);
     } else if (object.kind === "essence") {
-      if (!this.completedEncounters.has("boss")) {
+      const completionAction = resolveFirstMemoryAction({
+        bossDefeated: this.completedEncounters.has("boss"),
+        memoryClaimed: this.complete,
+        ascended: this.ascended,
+      });
+      if (completionAction === "sealed") {
         this.ui.setMessage("The Cinderbound Warden still seals the Soul Essence.");
         return;
       }
-      if (!this.complete) {
+      if (completionAction === "claim") {
         await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.pickup, () => {
         this.complete = true;
         this.claimTrialReward();
@@ -2192,6 +2211,10 @@ export class World3D {
         this.ui.addLog("Dungeon complete · The First Breach stabilized.");
         void storyDatabase.reachCheckpoint("first-breach-complete", id);
         });
+      } else if (completionAction === "ascend") {
+        await this.playWorldInteraction(WORLD_INTERACTION_MOTIONS.door, () => this.enterAboveLanding(), false);
+      } else {
+        this.ui.setMessage("You have reached the Thalenyr Verge in the Above.");
       }
     }
     } finally {
@@ -3730,6 +3753,76 @@ export class World3D {
     await this.startEncounter("skirmish");
   }
 
+  private enterAboveLanding(): void {
+    if (this.ascended) return;
+    this.ascended = true;
+    this.setPendingInteraction(null);
+    this.selectStoryObjectTarget(null);
+    this.zoneGroups.forEach((group) => { group.visible = false; });
+    this.scene.background = new THREE.Color(0x88b9c7);
+    this.scene.fog = new THREE.FogExp2(0x9bc5c8, 0.018);
+
+    const landing = new THREE.Group();
+    landing.name = "above-thalenyr-verge-mvp";
+    const grass = new THREE.MeshStandardMaterial({ color: 0x526f52, roughness: 0.96 });
+    const stone = new THREE.MeshStandardMaterial({ color: 0x777b72, roughness: 0.88 });
+    const bark = new THREE.MeshStandardMaterial({ color: 0x493a2a, roughness: 1 });
+    const leaves = new THREE.MeshStandardMaterial({ color: 0x315c45, roughness: 0.92 });
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(16, 64), grass);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    landing.add(ground);
+    const dais = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.8, 0.34, 32), stone);
+    dais.position.y = 0.17;
+    dais.receiveShadow = true;
+    landing.add(dais);
+    for (let index = 0; index < 5; index += 1) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.2, 0.78), stone);
+      step.position.set(0, 0.1 + index * 0.16, 3.1 + index * 0.65);
+      step.castShadow = true;
+      step.receiveShadow = true;
+      landing.add(step);
+    }
+    [[-6, -4], [6, -3], [-8, 3], [8, 5], [-4, 8], [5, 9]].forEach(([x, z], index) => {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 2.4, 8), bark);
+      trunk.position.set(x!, 1.2, z!);
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(1.35 + (index % 2) * 0.25, 3.5, 10), leaves);
+      crown.position.set(x!, 3.45, z!);
+      trunk.castShadow = true;
+      crown.castShadow = true;
+      landing.add(trunk, crown);
+    });
+    const sun = new THREE.DirectionalLight(0xfff0c5, 3.8);
+    sun.position.set(-8, 14, -6);
+    sun.castShadow = true;
+    landing.add(sun);
+    this.scene.add(landing);
+    this.environmentDisposers.push(() => {
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      landing.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        geometries.add(child.geometry);
+        (Array.isArray(child.material) ? child.material : [child.material]).forEach((material) => materials.add(material));
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+      this.scene.remove(landing);
+    });
+    this.player.grid = { x: 0, y: 0 };
+    this.player.root.position.set(0, 0.34, 0);
+    this.player.root.rotation.y = 0;
+    this.cameraFollowInitialized = false;
+    this.ui.showCombatControls(false);
+    this.ui.setMode("victory", this.combatStyle);
+    this.ui.setZone("The Thalenyr Verge", "The Above · Outdoor starting realm");
+    this.ui.setObjective("The First Breach is complete. The wider Above awaits beyond this MVP landing.");
+    this.ui.setMessage("Open air replaces Soulwell ash. You have reached the Above.");
+    this.ui.addLog("Ascended from the First Breach · Thalenyr Verge reached.");
+    markAtlasPoi("thalenyr", "soulwell", "completed");
+    void storyDatabase.reachCheckpoint("above-arrival", "thalenyr-verge");
+  }
+
   private async prepareDebugBoss(): Promise<void> {
     this.prepareDebugTrialGate();
     if (!this.trialDifficulty) await this.selectTrial("wayfarer");
@@ -3927,6 +4020,7 @@ export class World3D {
         const enemy = this.enemies.get(id);
         if (!enemy?.alive) throw new Error(`Unknown living enemy visual-proof target: ${id}`);
         this.defeatEnemy(enemy);
+        if (this.activeEnemies().length === 0) this.finishEncounter();
       },
       gatePose: (id, progress) => {
         const object = this.storyObjects.get(id);
@@ -4077,6 +4171,7 @@ export class World3D {
       revealedRooms: [...this.revealedRooms],
       inventory: [...this.inventory],
       complete: this.complete,
+      ascended: this.ascended,
       recoveryCharges: this.recoveryCharges,
       trialDifficulty: this.trialDifficulty,
       selectedTargetId: this.selectedTargetId,
@@ -4306,6 +4401,15 @@ export class World3D {
 
   private updateCamera(immediate: boolean, deltaSeconds: number): void {
     if (!this.player) return;
+    if (this.ascended) {
+      const target = this.player.root.position.clone().setY(0.9);
+      this.cameraTarget.copy(target);
+      const desired = target.clone().add(new THREE.Vector3(-12.5, 15.5, 17.5));
+      if (immediate) this.camera.position.copy(desired);
+      else this.camera.position.lerp(desired, 1 - Math.exp(-8 * THREE.MathUtils.clamp(deltaSeconds, 0, 0.1)));
+      this.camera.lookAt(target);
+      return;
+    }
     if (this.debugCameraFocus) {
       this.positionDebugCameraOnActors(this.debugCameraFocus.first, this.debugCameraFocus.second);
       return;
