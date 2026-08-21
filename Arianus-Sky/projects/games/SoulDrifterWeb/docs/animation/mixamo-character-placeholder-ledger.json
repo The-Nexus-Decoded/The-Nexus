@@ -13,10 +13,15 @@
     "runtimePromotionAllowedAfterLocalAudit": true,
     "productionAcceptanceAllowed": false,
     "namedNpcCustomSourcesPreserved": true,
-    "namedNpcCustomReplacementStillRequired": false,
+    "namedNpcCustomReplacementStillRequired": true,
     "namedNpcAssemblyMode": "canonical-race-rig-modular-identity",
-    "mixamoNamedNpcUseAllowed": false,
-    "namedNpcFullBodyExportRequired": false,
+    "mixamoNamedNpcUseAllowed": true,
+    "namedNpcFullBodyExportRequired": true,
+    "bodyProfileDistribution": {
+      "heavyPopulationTargetPercent": "10-15",
+      "defaultProfile": "athletic",
+      "rule": "Heavy is an intentional character trait, never the generic NPC base. Dwarf stockiness is racial proportion, not an automatic heavy-body assignment."
+    },
     "mixamoCharacterNamesAreSourceProvenanceNotSoulDrifterLoreNames": true,
     "requiredDownload": {
       "format": "FBX Binary",
@@ -48,6 +53,7 @@
       "ancestry": "human",
       "presentation": "feminine",
       "bodyRigAssetId": "body-human-feminine-heavy-v001",
+      "requiredReplacementBodyProfile": "heavy-older-character-specific",
       "availableIdentityRigAssetId": "npc-ilyra-layered-full-fingers-v005",
       "headAssetId": "head-european-feminine-v001",
       "hairAssetId": "hair-fem-braided-crown-v001",
@@ -58,7 +64,8 @@
       "runtimePresentation": "reviewed-authored-old-woman-robe-static-mvp",
       "animationPolicy": "no-incompatible-borrowed-idle",
       "texturedRigMergeIssue": 457,
-      "state": "mvp-runtime-built"
+      "visualAcceptance": false,
+      "state": "textured-rig-merge-required"
     },
     {
       "npcId": "orren",
@@ -66,13 +73,15 @@
       "ancestry": "elf",
       "presentation": "masculine",
       "bodyRigAssetId": "body-elf-masculine-heavy-v001",
+      "requiredReplacementBodyProfile": "lean-athletic",
       "headAssetId": "head-south-asian-indian-masculine-v001",
       "hairAssetId": "hair-masc-topknot-v001",
       "hairColorId": "near-black",
       "clothingAssemblyId": "npc-orren-field-leather-green-scarf-v001",
       "appearanceReferenceAssetId": "npc-orren-image-first-v001",
       "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-orren-canonical-v001.glb",
-      "state": "mvp-runtime-built"
+      "visualAcceptance": false,
+      "state": "visual-rebuild-required"
     },
     {
       "npcId": "brannoc",
@@ -80,13 +89,15 @@
       "ancestry": "dwarf",
       "presentation": "masculine",
       "bodyRigAssetId": "body-dwarf-masculine-heavy-v001",
+      "requiredReplacementBodyProfile": "stocky-athletic-dwarf",
       "headAssetId": "head-european-masculine-v001",
       "hairAssetId": "hair-masc-swept-back-v001",
       "hairColorId": "silver",
       "clothingAssemblyId": "npc-brannoc-arena-leather-blue-grey-v001",
       "appearanceReferenceAssetId": "npc-brannoc-image-first-v001",
       "runtimeModelPath": "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
-      "state": "mvp-runtime-built"
+      "visualAcceptance": false,
+      "state": "visual-rebuild-required"
     }
   ],
   "backgroundNpcRoster": [

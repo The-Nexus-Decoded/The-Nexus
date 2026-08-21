@@ -2,20 +2,23 @@ import { describe, expect, it } from "vitest";
 import ledger from "../docs/animation/mixamo-character-placeholder-ledger.json";
 
 describe("Mixamo temporary NPC character ledger", () => {
-  it("keeps Mixamo characters background-only", () => {
+  it("allows audited Mixamo fallbacks without accepting them as production named NPCs", () => {
     expect(ledger.issue).toBe(448);
     expect(ledger.policy.purpose).toBe("background-npc-placeholders-and-catalog-provenance");
     expect(ledger.policy.runtimePromotionAllowedAfterLocalAudit).toBe(true);
     expect(ledger.policy.productionAcceptanceAllowed).toBe(false);
     expect(ledger.policy.namedNpcCustomSourcesPreserved).toBe(true);
-    expect(ledger.policy.namedNpcCustomReplacementStillRequired).toBe(false);
+    expect(ledger.policy.namedNpcCustomReplacementStillRequired).toBe(true);
     expect(ledger.policy.namedNpcAssemblyMode).toBe("canonical-race-rig-modular-identity");
-    expect(ledger.policy.mixamoNamedNpcUseAllowed).toBe(false);
-    expect(ledger.policy.namedNpcFullBodyExportRequired).toBe(false);
+    expect(ledger.policy.mixamoNamedNpcUseAllowed).toBe(true);
+    expect(ledger.policy.namedNpcFullBodyExportRequired).toBe(true);
+    expect(ledger.policy.bodyProfileDistribution).toEqual(
+      expect.objectContaining({ heavyPopulationTargetPercent: "10-15", defaultProfile: "athletic" }),
+    );
     expect(ledger.policy.noPaidProviderOperationRequired).toBe(true);
   });
 
-  it("assembles each named NPC from its canonical ancestry rig", () => {
+  it("tracks rejected named NPC visuals against role-appropriate replacement profiles", () => {
     const knownHeadAssetIds = new Set([
       "head-european-feminine-v001",
       "head-south-asian-indian-masculine-v001",
@@ -33,8 +36,16 @@ describe("Mixamo temporary NPC character ledger", () => {
         expect.objectContaining({ npcId: "brannoc", ancestry: "dwarf", presentation: "masculine" }),
       ]),
     );
+    expect(ledger.namedNpcAssemblies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ npcId: "ilyra", requiredReplacementBodyProfile: "heavy-older-character-specific" }),
+        expect.objectContaining({ npcId: "orren", requiredReplacementBodyProfile: "lean-athletic" }),
+        expect.objectContaining({ npcId: "brannoc", requiredReplacementBodyProfile: "stocky-athletic-dwarf" }),
+      ]),
+    );
     for (const entry of ledger.namedNpcAssemblies) {
-      expect(entry.state).toBe("mvp-runtime-built");
+      expect(entry.visualAcceptance).toBe(false);
+      expect(entry.state).toMatch(/(?:textured-rig-merge|visual-rebuild)-required/);
       expect(entry.runtimeAssetId).toMatch(/^npc\.named\./);
       expect(entry.runtimeModelPath).toMatch(
         /^\/assets\/3d\/local-derived\/issue-448\/named-npcs\/sd-npc-.+-canonical-v001\.glb$/,
