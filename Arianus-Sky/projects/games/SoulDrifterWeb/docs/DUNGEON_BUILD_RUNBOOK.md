@@ -171,8 +171,9 @@ registry coordinate or an orbit screenshot is not proof.
 4. **Lighting has a fixture:** flames originate inside a brazier/sconce/candle,
    never below it or on the floor. Both long walls receive authored light
    sources. Keep visible flames on every fixture but budget dynamic lights
-   (normally one distance-culled sconce light on each long wall and one brazier
-   light per room) so fixture count does not multiply shader cost.
+   (normally one distance-culled sconce light on each long wall, two per wall
+   in large tutorial rooms, and one brazier light per room) so fixture count
+   does not multiply shader cost while important props remain readable.
 5. **Surface ownership:** candelabras sit on tables, crates, or stands; rubble
    belongs against a damaged/collapsed wall; books and scrolls sit on shelves,
    tables, or intentional floor-reading areas. Nothing floats, presents a raw
@@ -220,9 +221,21 @@ alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
 - Keep a portal-clearance envelope in generator data. BREACH-V2 route banners
   were technically on the correct wall but occupied the same coordinates as
   the closed door leaves; door-open screenshots alone concealed the defect.
+- Give each portal exactly one visual/collision owner. Do not combine a static
+  registry door, a procedural placeholder frame, and a runtime door system at
+  the same socket. BREACH-V2 choice gates are runtime-owned imported 3D
+  portcullises; static dressing never reserves their nav cells.
+- For a generated branch choice, the selected gate must raise into one clean,
+  capsule-width corridor that reaches chamber 1. The unselected gate stays
+  lowered and may use an opaque animated void treatment to communicate a
+  sealed branch; it must not reveal a blank wall or unused dungeon geometry.
+- Test branch thresholds with the real player radius at repeated points from
+  inside the choice room to beyond the gate. A reachable endpoint cell alone
+  is insufficient because an adjacent chest or prop can still block the
+  capsule corners.
 - Capture portal states only after hinge/lift animation reaches its final
-  state. Automation or background tabs may run at 1 FPS, so wall-clock waits
-  are not proof that a frame-smoothed transition has completed.
+  state. Gate motion must be elapsed-time based, not rendered-frame based;
+  automation, mobile browsers, and background tabs may run at 1 FPS.
 - Exercise the actual interaction path after every warp: confirm avatar world
   coordinates change to the destination, then confirm WASD and click-to-move
   both change them again. A camera-only warp is a failure.
