@@ -118,6 +118,8 @@ const STABILITY_REGEN_DELAY_MS = 4_500;
 const STABILITY_REGEN_INTERVAL_SECONDS = 1.5;
 const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
 const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
+const BREACHLING_RUNTIME_MODEL = "/assets/3d/local-derived/issue-448/creatures/sd-creature-breachling-base-runtime-mvp-v001.glb";
+const WARDEN_RUNTIME_MODEL = "/assets/3d/local-derived/issue-448/creatures/sd-creature-cinderbound-warden-runtime-mvp-v001.glb";
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -134,6 +136,45 @@ const NPC_MODEL_PATHS: Record<string, string> = {
   brannoc: "/assets/3d/local-derived/issue-448/named-npcs/sd-npc-brannoc-canonical-v001.glb",
 };
 const NPC_IDLE_ANIMATION_PACKS = HUMANOID_ACTIVE_ANIMATION_PACKS.slice(0, 1);
+
+function creatureTransformClips(model: THREE.Object3D): THREE.AnimationClip[] {
+  const target = model.name;
+  const basePosition = model.position.clone();
+  const baseRotation = model.quaternion.clone();
+  const positionTrack = (times: number[], offsets: Array<[number, number, number]>): THREE.VectorKeyframeTrack =>
+    new THREE.VectorKeyframeTrack(
+      `${target}.position`,
+      times,
+      offsets.flatMap(([x, y, z]) => [basePosition.x + x, basePosition.y + y, basePosition.z + z]),
+    );
+  const rotationTrack = (times: number[], turns: Array<[number, number, number]>): THREE.QuaternionKeyframeTrack =>
+    new THREE.QuaternionKeyframeTrack(
+      `${target}.quaternion`,
+      times,
+      turns.flatMap(([x, y, z]) => {
+        const offset = new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
+        return baseRotation.clone().multiply(offset).toArray();
+      }),
+    );
+  const clip = (
+    name: string,
+    duration: number,
+    times: number[],
+    offsets: Array<[number, number, number]>,
+    turns: Array<[number, number, number]>,
+  ): THREE.AnimationClip => new THREE.AnimationClip(name, duration, [positionTrack(times, offsets), rotationTrack(times, turns)]);
+
+  return [
+    clip("Idle", 2, [0, 1, 2], [[0, 0, 0], [0, 0.035, 0], [0, 0, 0]], [[0, 0, 0], [0.025, 0, 0.018], [0, 0, 0]]),
+    clip("Walk", 0.8, [0, 0.2, 0.4, 0.6, 0.8], [[0, 0, 0], [0, 0.055, 0.025], [0, 0, 0.05], [0, 0.055, 0.025], [0, 0, 0]], [[0, 0, 0.06], [0.035, 0, 0], [0, 0, -0.06], [0.035, 0, 0], [0, 0, 0.06]]),
+    clip("Run", 0.56, [0, 0.14, 0.28, 0.42, 0.56], [[0, 0, 0], [0, 0.085, 0.06], [0, 0, 0.1], [0, 0.085, 0.06], [0, 0, 0]], [[0.08, 0, 0.09], [-0.04, 0, 0], [0.08, 0, -0.09], [-0.04, 0, 0], [0.08, 0, 0.09]]),
+    clip("Punch", 0.72, [0, 0.22, 0.42, 0.72], [[0, 0, 0], [0, 0.02, -0.08], [0, 0.08, 0.2], [0, 0, 0]], [[0, 0, 0], [0.12, -0.18, 0], [-0.2, 0.2, 0.08], [0, 0, 0]]),
+    clip("SwordSlash", 0.82, [0, 0.24, 0.5, 0.82], [[0, 0, 0], [0, 0.03, -0.06], [0, 0.07, 0.18], [0, 0, 0]], [[0, 0, -0.18], [0.08, -0.28, 0.2], [-0.16, 0.28, -0.22], [0, 0, 0]]),
+    clip("RecieveHit", 0.48, [0, 0.16, 0.48], [[0, 0, 0], [0, 0.045, -0.16], [0, 0, 0]], [[0, 0, 0], [0.3, 0, 0.12], [0, 0, 0]]),
+    clip("Death", 1.18, [0, 0.34, 0.78, 1.18], [[0, 0, 0], [0, 0.04, -0.08], [0, -0.11, 0.05], [0, -0.22, 0.08]], [[0, 0, 0], [0.18, 0, 0.18], [0.45, 0, 0.82], [0.35, 0, 1.34]]),
+    clip("Defeat", 1.18, [0, 0.34, 0.78, 1.18], [[0, 0, 0], [0, 0.04, -0.08], [0, -0.11, 0.05], [0, -0.22, 0.08]], [[0, 0, 0], [0.18, 0, 0.18], [0.45, 0, 0.82], [0.35, 0, 1.34]]),
+  ];
+}
 
 interface AnimatedActor {
   id: string;
@@ -291,6 +332,7 @@ interface DebugBridge {
   requestInteraction(id: string): Promise<void>;
   confirmInteraction(): Promise<void>;
   prepareCorridor(): Promise<void>;
+  prepareBoss(): Promise<void>;
   prepareOcclusion(): string;
   enemyRound(): Promise<void>;
   enemyPose(id: string, phase: "telegraph" | "contact" | "recovery"): void;
@@ -1079,13 +1121,15 @@ export class World3D {
       this.zoneGroups.get(zoneId)!.add(actor.root);
     }));
 
+    await this.installTrainingSentinelVisual();
+
     await Promise.all(this.dungeon.enemies.map(async (enemy) => {
       const isBoss = enemy.kind === "miniboss";
       const actor = await this.createActor(
         enemy.id,
-        isBoss ? FALLBACK_PALADIN_MODEL : "/assets/3d/characters/enemy-breachling.gltf",
+        isBoss ? WARDEN_RUNTIME_MODEL : BREACHLING_RUNTIME_MODEL,
         enemy,
-        isBoss ? 2.78 : 1.96,
+        isBoss ? 3.66 : 1.96,
         isBoss ? 0xe45d38 : 0x7849a2,
         enemy.name,
       ) as EnemyRuntime;
@@ -1097,7 +1141,7 @@ export class World3D {
       actor.attackCount = 0;
       actor.nextActionAt = 0;
       const targetRing = new THREE.Mesh(
-        new THREE.RingGeometry(isBoss ? 0.78 : 0.54, isBoss ? 0.94 : 0.68, 48),
+        new THREE.RingGeometry(isBoss ? 1.02 : 0.54, isBoss ? 1.25 : 0.68, 48),
         new THREE.MeshBasicMaterial({
           color: isBoss ? 0xff8a5b : 0xf3bd64,
           transparent: true,
@@ -1132,6 +1176,7 @@ export class World3D {
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
+    model.name = `${id}-visual`;
     // The reviewed Ilyra source was authored facing +X; the runtime's actor
     // convention is +Z. Normalize her authored model once so interaction and
     // camera-facing yaw use the same convention as every other actor.
@@ -1156,7 +1201,8 @@ export class World3D {
         const skinTone = id === "player"
           ? SKIN_TONES[this.profile.appearance?.skinTone ?? "ashen"].color
           : undefined;
-        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, id === "player", skinTone));
+        const preserveAuthoredPalette = id === "player" || id === "ilyra" || id.includes("breachling") || id.includes("warden");
+        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, preserveAuthoredPalette, skinTone));
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
     });
@@ -1199,6 +1245,9 @@ export class World3D {
       clip.name,
       IN_PLACE_ANIMATION_NAMES.has(clip.name.toLowerCase()) ? sanitizeAttackClip(clip) : clip,
     ]));
+    if (id.includes("breachling") || id.includes("warden")) {
+      creatureTransformClips(model).forEach((clip) => clips.set(clip.name, clip));
+    }
     const externalClips = await Promise.all(animationPacks.map(async (spec) => {
       try {
         return await this.loadExternalAnimationPack(spec, model);
@@ -1240,6 +1289,41 @@ export class World3D {
     if (id === "player") model.traverse((child) => child.layers.set(1));
     this.groundActor(actor);
     return actor;
+  }
+
+  private async installTrainingSentinelVisual(): Promise<void> {
+    const effigy = this.storyObjects.get("training-effigy");
+    if (!effigy) return;
+    const gltf = await this.loadModel(WARDEN_RUNTIME_MODEL);
+    const model = cloneSkeleton(gltf.scene);
+    model.name = "training-sentinel-runtime-visual";
+    model.updateMatrixWorld(true);
+    const initial = actorBodyBounds(model);
+    const height = Math.max(0.01, initial.max.y - initial.min.y);
+    model.scale.setScalar(2.08 / height);
+    model.updateMatrixWorld(true);
+    const scaled = actorBodyBounds(model);
+    model.position.y -= scaled.min.y;
+    model.rotation.y = -Math.PI / 2;
+    model.traverse((child) => {
+      child.userData.interactId = effigy.id;
+      if (!(child instanceof THREE.Mesh)) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      const sources = Array.isArray(child.material) ? child.material : [child.material];
+      const materials = sources.map((source) => cloneActorMaterial(source, 0x8c7357, true));
+      child.material = Array.isArray(child.material) ? materials : materials[0]!;
+    });
+    effigy.root.children.forEach((child) => {
+      if (!child.name.startsWith("semantic-proxy-") && child.name !== "interaction-marker") child.visible = false;
+    });
+    effigy.root.add(model);
+    const baseY = model.position.y;
+    this.environmentAnimators.push((elapsed) => {
+      if (!effigy.root.visible) return;
+      model.position.y = baseY + Math.sin(elapsed * 1.55) * 0.025;
+      model.rotation.z = Math.sin(elapsed * 0.72) * 0.018;
+    });
   }
 
   /** Converts the authored collapse into a readable horizontal corpse. */
@@ -3646,6 +3730,40 @@ export class World3D {
     await this.startEncounter("skirmish");
   }
 
+  private async prepareDebugBoss(): Promise<void> {
+    this.prepareDebugTrialGate();
+    if (!this.trialDifficulty) await this.selectTrial("wayfarer");
+    this.enemies.forEach((enemy) => {
+      if (enemy.definition.roomId !== "skirmish") return;
+      enemy.alive = false;
+      enemy.root.visible = false;
+    });
+    this.completedEncounters.add("skirmish");
+    this.encounter = "none";
+    this.revealRoom("skirmish", false);
+    this.revealRoom("boss", false);
+    this.currentRoom = "boss";
+    const select = requiredElement<HTMLSelectElement>("combat-style");
+    if (!select.disabled) this.setCombatStylePreference("turn-based");
+    const warden = [...this.enemies.values()].find((enemy) => enemy.alive && enemy.definition.roomId === "boss");
+    if (!warden) throw new Error("No boss enemy available for visual proof.");
+    const destination = this.dungeon.tiles
+      .filter((tile) => tile.roomId === "boss" && manhattan(tile, warden.grid) >= 3)
+      .filter((tile) => this.isWalkable(tile, "player"))
+      .sort((left, right) => manhattan(left, warden.grid) - manhattan(right, warden.grid))[0];
+    if (!destination) throw new Error("No valid boss proof tile found.");
+    this.player.grid = { x: destination.x, y: destination.y };
+    this.player.root.position.copy(gridToWorld(destination));
+    this.player.root.position.y = 0;
+    this.clearTrialGateGuidance();
+    this.debugCameraFocus = null;
+    this.cameraFollow.manualOffset.set(0, 0);
+    this.cameraFollow.lookAhead.set(0, 0);
+    this.cameraFollowInitialized = false;
+    this.updateCamera(true, 0);
+    await this.startEncounter("boss");
+  }
+
   private positionDebugCameraOnActors(first: AnimatedActor, second: AnimatedActor): void {
     const midpoint = first.root.position.clone().lerp(second.root.position, 0.5);
     this.cameraFollow.center.set(first.root.position.x, first.root.position.z);
@@ -3787,6 +3905,7 @@ export class World3D {
       requestInteraction: async (id) => this.requestInteractionById(id),
       confirmInteraction: async () => this.confirmPendingInteraction(),
       prepareCorridor: async () => this.prepareDebugCorridor(),
+      prepareBoss: async () => this.prepareDebugBoss(),
       prepareOcclusion: () => this.prepareDebugLowWallOcclusion(),
       enemyRound: async () => this.runEnemyRound(),
       enemyPose: (id, phase) => {
