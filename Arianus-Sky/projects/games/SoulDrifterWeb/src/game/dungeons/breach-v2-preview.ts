@@ -1589,7 +1589,8 @@ export async function startDungeonPreview(
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),
   });
 
-  const clock = new THREE.Clock();
+  const timer = new THREE.Timer();
+  timer.connect(document);
   const cameraRaycaster = new THREE.Raycaster();
   const cameraTarget = new THREE.Vector3();
   const desiredCamera = new THREE.Vector3();
@@ -1639,8 +1640,9 @@ export async function startDungeonPreview(
     if (frameMs - lastFrameMs < targetFrameMs) return;
     lastFrameMs = frameMs;
     try {
-      const delta = clock.getDelta();
-      const elapsed = clock.elapsedTime;
+      timer.update(frameMs);
+      const delta = timer.getDelta();
+      const elapsed = timer.getElapsed();
       fpsAccum += delta;
       fpsFrames += 1;
       if (fpsAccum >= 0.5) {
