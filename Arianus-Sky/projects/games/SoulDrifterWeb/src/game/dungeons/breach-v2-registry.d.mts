@@ -8,7 +8,7 @@ export interface BreachV2Placement {
   group: string;
   facing: string;
   blocking: boolean;
-  role: "dressing" | "loot-cache" | "wall-art" | "readable-props";
+  role: "dressing" | "loot-cache" | "wall-art" | "readable-props" | "destructible-cover";
   width?: number;
   height?: number;
   footprint?: number;
@@ -96,6 +96,7 @@ export interface BreachV2Registry {
     bosses: { id: string; name: string; weight: number; patterns: string[] }[];
     perRun: number;
     note: string;
+    activeAnchor: [number, number];
     anchorSockets: [number, number][];
     runeCircle: { radius: number; note: string };
   };

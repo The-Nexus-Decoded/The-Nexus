@@ -177,9 +177,12 @@ PROP_TABLE = {
     "hard": ["corruption-growth", "monster-egg-nest", "cocooned-remains-web-mass", "shed-chitin-pile",
              "burrowed-wall-breach-plug", "chain-shackle", "hanging-iron-cage", "masonry-barricade",
              "bone-pile", "weapon-armor-heap", "rusted-portcullis", "floor-brazier", "wall-torch-sconce",
-             "cave-in-rubble", "collapsed-timber-masonry-pile", "supply-pile", "storage-chest"],
+             "cave-in-rubble", "collapsed-timber-masonry-pile", "supply-pile", "storage-chest",
+             "storage-barrel", "reinforced-crate"],
     "boss-suite": ["corruption-growth", "guardian-statue", "ruined-stone-archway", "rusted-portcullis",
-                   "floor-brazier", "chain-shackle", "bone-pile", "broken-stone-stair-dais"],
+                   "floor-brazier", "chain-shackle", "bone-pile", "broken-stone-stair-dais",
+                   "cocooned-remains-web-mass", "weapon-armor-heap", "storage-barrel",
+                   "reinforced-crate", "broken-handcart"],
     "vestibule": ["floor-brazier", "wall-torch-sconce", "archive-bookshelf", "trestle-table",
                   "heavy-bench", "storage-chest (coffer)", "cave-in-rubble", "wooden-support-brace",
                   "candelabra-cluster"],
@@ -189,11 +192,12 @@ BOSS_SET = dict(
     bosses=[dict(id="cinderbound-warden", name="Cinderbound Warden", weight=1,
                  patterns=["cinder-sweep", "ash-call", "soul-tax"])],
     perRun=1,
-    note="V2 ships exactly one boss; 3 anchor sockets + set architecture keep 3-of-6 boss sets possible later.",
+    activeAnchor=[223.0, 10.0],
+    note="V2 ships exactly one boss at the central activation sigil; reserve sockets keep future encounter variants possible.",
 )
 # boss anchor sockets (world meters); the seeded active anchor gets the glowing rune circle
-BOSS_ANCHOR_SOCKETS = [(217.5, 4.5), (228.5, 4.5), (223.0, 15.5)]
-BOSS_RUNE_CIRCLE = dict(radius=2.6, note="glowing rune circle on the floor at the active boss anchor")
+BOSS_ANCHOR_SOCKETS = [(223.0, 10.0), (217.5, 4.5), (228.5, 4.5)]
+BOSS_RUNE_CIRCLE = dict(radius=3.35, note="central realm-lock sigil with radial cinder hazard lanes")
 
 SEED_POLICY = dict(
     layoutSeed="topology, chamber pick+order from path pool, corridor bends, encounter placement, boss pattern",
@@ -254,54 +258,70 @@ DRESSING = {
              ("reinforced-crate", 13.0, 11.0), ("iron-floor-grate", 8.0, 6.5),
              ("storage-chest", 14.0, 2.0)],
     "E-02": [("cave-in-rubble", 9.5, 4.2), ("broken-handcart", 3.8, 10.5),
-             ("storage-barrel", 2.0, 2.0), ("wooden-support-brace", 0.4, 3.0),
+             ("storage-barrel", 2.0, 2.0), ("reinforced-crate", 3.6, 2.0),
+             ("wooden-support-brace", 0.4, 3.0),
              ("wall-torch-sconce", 9.5, 0.3), ("floor-brazier", 16.5, 3.5),
              ("storage-chest", 16.5, 11.8), ("bone-pile", 12.0, 9.0)],
     "E-03": [("reliquary-wall-alcove", 4.0, 0.4), ("reliquary-wall-alcove", 10.0, 0.4),
              ("ruined-altar", 7.0, 3.2), ("candelabra-cluster", 3.0, 9.0),
              ("archive-cupboard", 13.6, 9.5), ("floor-brazier", 2.2, 2.5),
-             ("storage-chest", 12.5, 2.2), ("bone-pile", 8.5, 9.5)],
+             ("storage-chest", 12.5, 2.2), ("bone-pile", 8.5, 9.5),
+             ("storage-barrel", 11.8, 10.2), ("reinforced-crate", 10.2, 10.2)],
     "E-04": [("iron-floor-grate", 5.5, 7.5), ("iron-floor-grate", 11.5, 7.5),
              ("wooden-support-brace", 0.4, 3.0), ("wooden-support-brace", 16.6, 11.0),
              ("floor-brazier", 8.5, 2.5), ("heavy-bench", 4.0, 13.2),
              ("storage-barrel", 14.8, 12.5), ("storage-barrel", 13.5, 13.0),
+             ("reinforced-crate", 12.0, 12.5),
              ("supply-pile", 2.5, 12.5), ("storage-chest", 15.0, 2.2)],
     "E-05": [("broken-stone-stair-dais", 11.5, 3.0), ("cave-in-rubble", 3.0, 9.0),
              ("floor-brazier", 4.5, 2.0), ("wall-torch-sconce", 11.0, 0.3),
              ("wall-torch-sconce", 3.0, 0.3), ("archive-bookshelf", 7.5, 11.4),
-             ("storage-chest", 12.8, 8.8)],
+             ("storage-chest", 12.8, 8.8), ("storage-barrel", 2.2, 2.0),
+             ("reinforced-crate", 3.7, 2.0)],
     "E-06": [("floor-brazier", 5.0, 2.5), ("floor-brazier", 10.0, 2.5),
              ("floor-brazier", 15.0, 2.5), ("floor-brazier", 10.0, 9.5),
              ("heavy-bench", 7.0, 9.8), ("empty-weapon-rack", 18.6, 9.0),
-             ("bottles-jugs-crockery-cluster", 13.0, 9.6), ("storage-chest", 2.2, 9.8)],
+             ("bottles-jugs-crockery-cluster", 13.0, 9.6), ("storage-chest", 17.5, 2.0),
+             ("storage-barrel", 17.5, 9.6), ("reinforced-crate", 16.0, 9.5)],
     "E-07": [("archive-bookshelf", 3.5, 0.5), ("archive-bookshelf", 7.5, 0.5),
              ("archive-bookshelf", 11.5, 0.5), ("archive-cupboard", 15.5, 2.5),
              ("trestle-table", 8.0, 9.5), ("high-backed-chair", 9.6, 10.3),
              ("bottles-jugs-crockery-cluster", 4.0, 11.0), ("supply-pile", 13.0, 11.5),
-             ("floor-brazier", 2.0, 4.0), ("storage-chest", 2.2, 12.0)],
+             ("floor-brazier", 2.0, 4.0), ("storage-chest", 13.5, 3.7),
+             ("storage-barrel", 12.8, 11.2), ("reinforced-crate", 11.2, 11.0)],
     # ---- HARD pool ----
     "H-01": [("masonry-barricade", 6.0, 2.1), ("cave-in-rubble", 9.5, 8.0),
              ("chain-shackle", 3.0, 0.4), ("floor-brazier", 2.0, 8.3),
-             ("storage-chest", 10.5, 2.0)],
+             ("storage-chest", 10.5, 2.0), ("storage-barrel", 2.0, 2.0),
+             ("reinforced-crate", 3.5, 2.0)],
     "H-02": [("monster-egg-nest", 10.5, 8.5), ("shed-chitin-pile", 6.0, 7.0),
              ("cocooned-remains-web-mass", 11.5, 0.5), ("bone-pile", 3.0, 8.0),
-             ("storage-chest", 2.0, 2.0)],
+             ("floor-brazier", 6.5, 9.2),
+             ("storage-chest", 10.5, 2.5), ("storage-barrel", 10.5, 9.0),
+             ("reinforced-crate", 9.0, 2.0)],
     "H-03": [("chain-shackle", 3.0, 0.4), ("chain-shackle", 9.0, 0.4),
              ("hanging-iron-cage", 6.0, 4.0), ("weapon-armor-heap", 9.0, 9.0),
              ("floor-brazier", 2.2, 10.0), ("storage-chest", 10.3, 10.3),
-             ("false-wall-panel", 11.7, 9.0)],  # false wall conceals the loot approach
+             ("false-wall-panel", 11.7, 9.0), ("storage-barrel", 2.0, 2.0),
+             ("reinforced-crate", 3.5, 2.0)],  # false wall conceals the loot approach
     "H-04": [("masonry-barricade", 5.0, 3.2), ("masonry-barricade", 9.0, 5.8),
              ("collapsed-timber-masonry-pile", 12.0, 7.5), ("wall-torch-sconce", 7.0, 0.3),
-             ("storage-chest", 12.5, 1.8)],
+             ("floor-brazier", 2.0, 7.2),
+             ("storage-chest", 12.5, 1.8), ("storage-barrel", 2.0, 1.8),
+             ("reinforced-crate", 3.5, 1.8)],
     "H-05": [("corruption-growth", 10.5, 7.5), ("corruption-growth", 3.0, 2.5),
              ("floor-brazier", 4.0, 5.0), ("floor-brazier", 9.0, 5.0),
-             ("bone-pile", 6.5, 8.2), ("storage-chest", 11.5, 2.0)],
+             ("bone-pile", 6.5, 8.2), ("storage-chest", 11.5, 2.0),
+             ("storage-barrel", 2.0, 8.2), ("reinforced-crate", 3.5, 8.2)],
     "H-06": [("burrowed-wall-breach-plug", 3.5, 0.5), ("burrowed-wall-breach-plug", 8.5, 0.5),
              ("monster-egg-nest", 9.5, 8.5), ("shed-chitin-pile", 3.5, 7.5),
-             ("cocooned-remains-web-mass", 11.5, 8.5), ("storage-chest", 2.2, 9.5)],
+             ("floor-brazier", 2.0, 2.0),
+             ("cocooned-remains-web-mass", 11.5, 8.5), ("storage-chest", 10.0, 2.0),
+             ("storage-barrel", 10.0, 9.0), ("reinforced-crate", 8.5, 9.0)],
     "H-07": [("rusted-portcullis", 7.0, 6.4), ("weapon-armor-heap", 11.5, 7.5),
              ("floor-brazier", 7.0, 8.5), ("supply-pile", 2.5, 8.0),
-             ("storage-chest", 12.5, 2.2), ("storage-chest", 2.2, 2.0)],
+             ("storage-chest", 12.5, 2.2), ("storage-chest", 2.2, 2.0),
+             ("storage-barrel", 2.5, 7.5), ("reinforced-crate", 4.0, 7.5)],
 }
 
 # Fixed-room dressing, local room meters
@@ -323,27 +343,41 @@ FIXED_DRESSING = {
     "threshold-plaza": [("floor-brazier", 1.5, 2.5), ("floor-brazier", 1.5, 9.5),
                         ("empty-weapon-rack", 8.0, 0.4), ("heavy-bench", 8.0, 11.4),
                         ("iron-floor-grate", 8.0, 6.0), ("candelabra-cluster", 15.0, 6.0),
+                        ("storage-barrel", 2.2, 10.2), ("reinforced-crate", 3.7, 10.2),
+                        ("storage-chest", 13.8, 1.8),
                         ("heavy-door", 15.7, 2.5),
                         ("heavy-door", 15.7, 9.5)],  # paired physical trial doors from the 3DAI kit
     "convergence": [("corruption-growth", 1.5, 2.0), ("corruption-growth", 1.5, 8.0),
                     ("floor-brazier", 10.5, 2.5), ("floor-brazier", 10.5, 7.5),
-                    ("bone-pile", 6.0, 8.5), ("hanging-brazier", 6.0, 5.0)],
-    "ashen-threshold": [("ruined-stone-archway", 0.3, 4.5), ("chain-shackle", 2.0, 0.4),
+                    ("bone-pile", 6.0, 8.5), ("hanging-brazier", 6.0, 5.0),
+                    ("storage-barrel", 9.8, 8.5), ("reinforced-crate", 8.3, 8.5),
+                    ("storage-chest", 9.8, 1.5)],
+    "ashen-threshold": [("chain-shackle", 2.0, 0.4),
                         ("chain-shackle", 6.0, 0.4),
                         ("masonry-barricade", 10.5, 7.0), ("weapon-armor-heap", 3.0, 7.0),
-                        ("floor-brazier", 6.0, 4.5)],  # archway frames the heavy section door
+                        ("floor-brazier", 6.0, 4.5), ("storage-barrel", 8.5, 7.2),
+                        ("reinforced-crate", 7.0, 7.2)],
     "ashen-lock": [("broken-stone-stair-dais", 20.0, 11.0), ("guardian-statue", 3.5, 3.5),
                    ("guardian-statue", 3.5, 18.5), ("corruption-growth", 25.0, 4.0),
                    ("corruption-growth", 25.0, 17.0), ("corruption-growth", 12.0, 18.5),
                    ("chain-shackle", 9.0, 0.4), ("chain-shackle", 20.0, 0.4),
                    ("floor-brazier", 7.0, 11.0), ("floor-brazier", 23.0, 11.0),
-                   ("bone-pile", 14.0, 14.5), ("cave-in-rubble", 2.5, 14.0),
+                   ("bone-pile", 14.0, 14.5), ("bone-pile", 18.5, 5.0),
+                   ("weapon-armor-heap", 22.0, 18.5),
+                   ("cocooned-remains-web-mass", 8.0, 0.5),
+                   ("cocooned-remains-web-mass", 24.0, 21.5),
+                   ("reinforced-crate", 6.0, 18.8), ("reinforced-crate", 23.0, 3.5),
+                   ("storage-barrel", 4.5, 18.8), ("broken-handcart", 18.5, 19.0),
+                   ("cave-in-rubble", 2.5, 14.0),
                    ("hanging-brazier", 15.0, 7.0),
                    ("heavy-door", 29.6, 11.0)],  # sealed boss-to-vault reward door
     "memory-vault": [("reliquary-wall-alcove", 2.5, 0.4), ("reliquary-wall-alcove", 7.5, 0.4),
+                     ("ruined-altar", 5.0, 4.0),
                      ("candelabra-cluster", 2.0, 6.5), ("candelabra-cluster", 8.0, 6.5),
                      ("storage-chest", 8.0, 2.2)],  # Warden's cache beside the First Memory dais
-    "exit-connector": [("cave-in-rubble", 1.5, 4.5),
+    "exit-connector": [("cave-in-rubble", 1.5, 4.5), ("ruined-stone-archway", 15.6, 3.0),
+                       ("storage-barrel", 13.5, 4.5),
+                       ("reinforced-crate", 12.0, 4.5), ("storage-chest", 13.8, 1.5),
                        ("wall-torch-sconce", 5.0, 0.3)],  # clean single route into the framed daylight gate
 }
 
@@ -352,7 +386,7 @@ FIXED_DRESSING = {
 # derives each point light from the sconce's real flame anchor, so illumination
 # cannot drift away from the fixture during layout/export changes.
 SCONCE_PAIR_X = {
-    "vestibule": [5.0, 28.0], "plaza-link": [1.5, 4.5],
+    "vestibule": [4.0, 17.5, 28.0], "plaza-link": [1.5, 4.5],
     "threshold-plaza": [6.0, 12.0], "convergence": [3.0, 9.0],
     "ashen-threshold": [4.0, 8.0], "ashen-lock": [5.0, 15.0, 25.0],
     "memory-vault": [1.0, 9.0], "exit-connector": [5.0, 11.0],
@@ -398,13 +432,13 @@ ASSET_META.update({
 WALL_ART = {
     # fixed rooms (local meters)
     "vestibule": [("art-thalenyr-atlas", 8.75, 0.35, 2.6),      # world map — new players study it here
-                  ("art-heartvale-section", 15.8, 0.35, 2.2),   # the zone they're heading to
+                  ("art-painting-reliquary", 15.8, 0.35, 2.2), # original lore reliquary painting
                   ("art-relief-lock-inscription", 8.75, 21.65, 2.0),  # realm-memory relief, S wall
                   ("art-painting-winged-skyship", 13.3, 21.65, 3.4),  # original Arianus memory painting
                   ("art-relief-first-memory", 23.8, 21.65, 1.8)],  # tutorial promise on opposite wall
-    "threshold-plaza": [("art-breach-v2-flatmap", 3.5, 0.35, 1.8),     # this zone's map (route study)
-                        ("art-banner-wayfarer", 15.7, 2.5, 1.4),       # above the Wayfarer door
-                        ("art-banner-oathbreaker", 15.7, 9.5, 1.4)],   # above the Oathbreaker door
+    "threshold-plaza": [("art-map-thalenyr-scroll", 3.5, 0.35, 1.8),  # lore cartography, never a dev map
+                        ("art-banner-wayfarer", 12.5, 0.35, 1.4),      # north wall beside the Wayfarer door
+                        ("art-banner-oathbreaker", 12.5, 11.65, 1.4)], # south wall beside the Oathbreaker door
     "convergence": [("art-banner-ashen", 0.3, 5.0, 1.4)],              # warning banner between entries
     "ashen-threshold": [("art-relief-warden", 9.5, 0.35, 1.8)],        # the Warden's warning relief
     "ashen-lock": [("art-banner-cinderbound", 13.0, 0.35, 1.6),

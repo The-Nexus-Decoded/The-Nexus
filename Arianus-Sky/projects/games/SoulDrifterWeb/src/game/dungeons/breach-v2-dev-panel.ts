@@ -7,10 +7,13 @@ interface BreachV2DevPanelOptions {
   path: "wayfarer" | "oathbreaker";
   cam: string;
   warp: (x: number, z: number) => boolean;
+  setAllDoorsOpen: (open: boolean) => void;
 }
 
 const CAMERA_MODES = [
-  ["walk", "Walk from start"],
+  ["isometric", "Isometric gameplay (default)"],
+  ["walk", "Third-person walk"],
+  ["firstperson", "First-person walk"],
   ["vestibule", "Realm-Lock Vestibule"],
   ["plaza", "Threshold Plaza"],
   ["gallery", "Current route gallery"],
@@ -104,6 +107,8 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   seedRow.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:4px;margin-top:5px";
   const seedInput = document.createElement("input");
   seedInput.type = "number";
+  seedInput.id = "breach-v2-dungeon-seed";
+  seedInput.name = "breach-v2-dungeon-seed";
   seedInput.min = "0";
   seedInput.step = "1";
   seedInput.value = String(options.seed);
@@ -139,11 +144,13 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   section("QA helpers");
   button("Reset walk to Soul Well", () => replacePreviewParams({ cam: "walk", start: "vestibule" }));
+  button("Open all section doors", () => options.setAllDoorsOpen(true));
+  button("Close all section doors", () => options.setAllDoorsOpen(false));
   button("Show encounter markers", () => replacePreviewParams({ markers: "1" }));
   button("Hide encounter markers", () => replacePreviewParams({ markers: null }));
 
   const foot = document.createElement("p");
-  foot.textContent = "Walk: WASD / arrows · Shift sprint · drag look · wheel zoom · Q/E rotate";
+  foot.textContent = "Move: click/tap floor or WASD · F/tap nearby door · Shift sprint · drag camera · wheel zoom · Q/E rotate";
   foot.style.cssText = "margin:10px 0 0;padding-top:8px;border-top:1px solid rgba(190,145,76,.24);color:#b8ad96;font:10px/1.45 ui-monospace,monospace";
   body.appendChild(foot);
 

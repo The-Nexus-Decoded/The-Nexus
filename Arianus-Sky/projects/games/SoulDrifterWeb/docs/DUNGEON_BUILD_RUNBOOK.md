@@ -146,6 +146,93 @@ Rules:
 9. No paid provider operation (generation, texture, rig, remesh, purchase,
    retry) without a new exact-cost owner approval.
 
+## 6A. Runtime placement and room-quality gate
+
+Every room must pass this gate in the actual walk camera before review. A
+registry coordinate or an orbit screenshot is not proof.
+
+1. **Continuous enclosure:** floors, both wall faces, lintels, and ceilings
+   form a sealed interior. Looking up in walk mode shows the dungeon ceiling.
+   No seam exposes another room, the world void, or the rest of the dungeon.
+2. **Doors and gates:** every room transition has a visible door/gate seated
+   squarely in its portal. Its closed face spans the opening (never edge-on),
+   it starts closed when progression requires it, opens without clipping the
+   wall, and its collision state matches its animation. Test at least one
+   X-boundary and one Z-boundary door. Reserve a prop-free clearance envelope
+   around every portal; wall art, banners, sconces, statues, and rubble may not
+   overlap it.
+3. **Wall-mounted assets:** bookshelves, racks, reliefs, paintings, sconces,
+   and statues face into the room, sit flush to their supporting wall, and do
+   not sit half inside it. Paired statues use the same forward direction.
+   Record each imported asset family's source-forward axis and correct it once
+   at the loader boundary; never compensate with unexplained per-instance yaw.
+   Inspect wall-mounted assets from the front and both sides so a thin edge,
+   exposed back, or wall intersection cannot pass as a correct placement.
+4. **Lighting has a fixture:** flames originate inside a brazier/sconce/candle,
+   never below it or on the floor. Both long walls receive authored light
+   sources. Keep visible flames on every fixture but budget dynamic lights
+   (normally one distance-culled sconce light on each long wall and one brazier
+   light per room) so fixture count does not multiply shader cost.
+5. **Surface ownership:** candelabras sit on tables, crates, or stands; rubble
+   belongs against a damaged/collapsed wall; books and scrolls sit on shelves,
+   tables, or intentional floor-reading areas. Nothing floats, presents a raw
+   primitive, or uses placeholder white geometry in an owner build.
+6. **Effects:** fire uses an irregular animated flame silhouette plus embers,
+   not cones. Water is a continuous liquid surface with ripples/caustics and
+   restrained splash particles, not a faceted triangle fan. Pool rims reuse
+   the dungeon masonry language.
+7. **Start/tutorial room:** provide imported chairs, a desk/table, chests,
+   crates/boxes, shelves, and readable lore dressing. Tag representative props
+   for future `inspect`, `open`, `move`, and `destroy` tutorials; preserve a
+   clear walking lane from spawn to the first gate.
+8. **Art content:** paintings and reliefs are newly authored in-world lore art
+   based on book themes. Existing canon maps may be reused where readable.
+   Never mount development screenshots, code, planning sheets, diagrams, or
+   internal game notes as in-world art.
+9. **Developer traversal:** dev warps must enter walk mode, place the avatar on
+   a nearest valid nav point, and allow walking immediately. Include start,
+   every room, boss, and exit targets plus door-open/close helpers; do not make
+   testers edit the URL.
+10. **Performance proof:** record renderer, draw calls, triangles, textures,
+    frame time, and CPU/GPU utilization in a full walk. Local Playwright must
+    use installed Edge/Chrome with hardware ANGLE/D3D11 and must abort on
+    SwiftShader/llvmpipe. Close browsers in `finally`, enforce case timeouts,
+    and never run multiple full matrices concurrently.
+
+The visual pass is performed from player height through the entire seed on
+both paths. It is an explicit room matrix, not a representative sample: list
+every fixed room and every selected pooled room, then mark wide view, close
+view, north/east/south/west wall check, door closed, door open, and traversal
+PASS/FAIL. Review screenshots must include each closed doorway before it is
+opened, its open state, each room interior, the boss suite, and the exit.
+Generated coordinates and automated invariants never replace this inspection.
+The owner must not be the first person to find an edge-on door, picture,
+alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
+
+### BREACH-V2 regression lessons (apply to every procedural dungeon)
+
+- Audit **all asset families**, not only portals. BREACH-V2 defects included
+  shelves, alcoves, statues, candelabra supports, weapon racks, wall art,
+  flame anchors, water splashes, rubble, and the first-memory objective.
+- Validate an imported asset's source-forward axis from front and side views
+  before adding a global correction. A guessed 90-degree fix can turn a flush
+  wall panel into a slab projecting into the room.
+- Keep a portal-clearance envelope in generator data. BREACH-V2 route banners
+  were technically on the correct wall but occupied the same coordinates as
+  the closed door leaves; door-open screenshots alone concealed the defect.
+- Capture portal states only after hinge/lift animation reaches its final
+  state. Automation or background tabs may run at 1 FPS, so wall-clock waits
+  are not proof that a frame-smoothed transition has completed.
+- Exercise the actual interaction path after every warp: confirm avatar world
+  coordinates change to the destination, then confirm WASD and click-to-move
+  both change them again. A camera-only warp is a failure.
+- Inspect effects from first-person range. Splash tubes, flame cards, and
+  particle sprites that look restrained from isometric distance can become
+  opaque placeholder shapes at player height.
+- Preserve evidence for the exact generated seeds used by QA. At minimum use
+  one seed covering every pooled variant across both routes, plus the fixed
+  start, convergence, boss, memory, and exit rooms.
+
 ## 7. Review gate (mandatory)
 
 Same gate as the outdoor zones: an independent reviewer (fresh session,

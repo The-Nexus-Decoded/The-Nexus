@@ -41,6 +41,13 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    48-line diffs; that is why this rule exists.
 6. **It must read at gameplay distance AND at zoom.** Review-gate evidence
    includes street-level/close-up renders, not just beauty shots.
+7. **Orientation is functional correctness.** Audit EVERY room and every
+   placed asset family from gameplay view plus close front/side views. Doors,
+   gates, pictures, reliefs, shelves, racks, statues, furniture, and fixtures
+   must present their intended face to the player, sit square to their support,
+   and fit the surrounding architecture. Maintain explicit source-axis
+   corrections for imported assets. A coordinate, yaw value, or one wide
+   screenshot is not proof; record the completed room-by-room inspection.
 
 ## 2. Work locations (owner directive — binding)
 

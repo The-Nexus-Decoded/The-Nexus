@@ -49,7 +49,10 @@ def placements(room_id, room_w, room_h):
                         and asset not in ("bone-pile", "iron-floor-grate", "shed-chitin-pile",
                                           "weapon-armor-heap", "bottles-jugs-crockery-cluster",
                                           "supply-pile", "candelabra-cluster", "wall-torch-sconce"),
-                        role=("loot-cache" if asset == "storage-chest" else "dressing")))
+                        role=("loot-cache" if asset == "storage-chest" else
+                              "destructible-cover" if asset in (
+                                  "storage-barrel", "reinforced-crate", "broken-handcart"
+                              ) else "dressing")))
     for art_id, x, y, w_m in WALL_ART.get(room_id, []):
         out.append(dict(asset=art_id, x=x, y=y, width=w_m, placement="wall", group="art",
                         facing=facing(room_w, room_h, x, y, "wall"), blocking=False,
@@ -132,6 +135,7 @@ def main():
         "pools": {"easy": easy, "hard": hard},
         "bossSet": {"bosses": BOSS_SET["bosses"], "perRun": BOSS_SET["perRun"],
                     "note": BOSS_SET["note"],
+                    "activeAnchor": BOSS_SET["activeAnchor"],
                     "anchorSockets": [list(a) for a in BOSS_ANCHOR_SOCKETS],
                     "runeCircle": BOSS_RUNE_CIRCLE},
         "tables": {"spawn": SPAWN_TABLE, "loot": LOOT_TABLE, "props": PROP_TABLE},

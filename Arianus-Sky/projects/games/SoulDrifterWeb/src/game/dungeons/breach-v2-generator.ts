@@ -284,7 +284,7 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   }
 
   // --- boss: seeded anchor + pattern (set rule: exactly 1 per run)
-  const anchor = random.pick(R.bossSet.anchorSockets);
+  const anchor = R.bossSet.activeAnchor;
   const boss = {
     id: R.bossSet.bosses[0]!.id,
     pattern: random.pick(R.bossSet.bosses[0]!.patterns) as BreachV2BossPattern,

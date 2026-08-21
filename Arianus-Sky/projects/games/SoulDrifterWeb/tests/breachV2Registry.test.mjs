@@ -191,22 +191,30 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     expect(R.tables.spawn.oathbreaker.bossPressureBase).toBe(84);
   });
 
-  it("wall art: Vestibule carries the readable world maps (Add-on A priority)", () => {
+  it("wall art: Vestibule carries lore art and excludes developer planning sheets", () => {
     const vestibuleArt = fixedById.vestibule.placements.filter((p) => p.role === "wall-art");
     const artIds = vestibuleArt.map((p) => p.asset);
     expect(artIds).toContain("art-thalenyr-atlas"); // the readable world map
-    expect(artIds).toContain("art-heartvale-section");
+    expect(artIds).toContain("art-painting-reliquary");
+    expect(artIds).not.toContain("art-heartvale-section");
+    expect(artIds).not.toContain("art-breach-v2-flatmap");
+    const allArtIds = [...R.fixedRooms, ...allPoolRooms]
+      .flatMap((room) => room.placements)
+      .filter((p) => p.role === "wall-art")
+      .map((p) => p.asset);
+    expect(allArtIds).not.toContain("art-heartvale-section");
+    expect(allArtIds).not.toContain("art-breach-v2-flatmap");
     const atlas = vestibuleArt.find((p) => p.asset === "art-thalenyr-atlas");
     expect(atlas.width).toBeGreaterThanOrEqual(2); // >= 2 m wide for readability
-    // door banners above both trial doors
+    // Route banners identify both choices without occupying either portal.
     const plazaArt = fixedById["threshold-plaza"].placements.filter((p) => p.role === "wall-art");
     const w = R.landmarks.find((l) => l.id === "door-wayfarer");
     const o = R.landmarks.find((l) => l.id === "door-oathbreaker");
     const plaza = fixedById["threshold-plaza"];
     const bannerW = plazaArt.find((p) => p.asset === "art-banner-wayfarer");
     const bannerO = plazaArt.find((p) => p.asset === "art-banner-oathbreaker");
-    expect(bannerW.y).toBeCloseTo(w.y, 1); // room-local: banner above its door
-    expect(bannerO.y).toBeCloseTo(o.y, 1);
+    expect(Math.hypot(bannerW.x - (w.x - plaza.x), bannerW.y - (w.y - plaza.y))).toBeGreaterThan(2.5);
+    expect(Math.hypot(bannerO.x - (o.x - plaza.x), bannerO.y - (o.y - plaza.y))).toBeGreaterThan(2.5);
     // books/scrolls in Vestibule + Fallen Archive
     expect(fixedById.vestibule.placements.some((p) => p.group === "books")).toBe(true);
     const e07 = pools.easy.find((r) => r.id === "E-07");
