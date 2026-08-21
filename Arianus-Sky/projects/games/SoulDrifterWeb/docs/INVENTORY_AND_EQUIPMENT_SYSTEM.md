@@ -8,6 +8,9 @@
 - Each item stack consumes one slot. Stackable consumables and materials show their quantity; ordinary equipment does not stack.
 - Quest rewards, monster loot, vendor purchases, crafting results, and unequipped gear all enter through the same capacity-checked inventory boundary.
 - A full backpack refuses a new item or unequip operation and explains why. Required quest rewards must remain claimable at their source until space exists; they must never be silently destroyed.
+- Every visible NPC or creature garment, armor piece, weapon, shield, tool, harness, pack, or carried object is backed by a real equipped item instance. Painted-on gear and decorative fake weapons are prohibited.
+- On defeat, every visible equipped item receives an explicit loot result: transferable, damaged, broken, bound, quest-protected, or destroyed. It may not silently vanish.
+- Defeated actors remain in the world as lootable remains. The body is removed only after available loot resolves successfully; a full backpack leaves the remains and items in place.
 - The active local prototype inventory persists in IndexedDB with the saved soul. Creating a new soul clears the prior active inventory; continuing the saved soul restores it.
 
 ## Expandable capacity model
@@ -31,11 +34,12 @@ Implemented now:
 - item stacks and quantities;
 - capacity enforcement when collecting or unequipping;
 - local saved-soul persistence;
-- authoritative main-hand weapon detection for action availability.
+- authoritative main-hand weapon detection for action availability;
+- capacity-safe corpse looting with remains that persist until a successful collection.
 
 Later systems plug into the same inventory write boundary:
 
-- enemy drop tables and lootable remains;
+- expanded per-creature drop tables and per-item corpse disposition rules;
 - quest-reward claim records;
 - vendor buy/sell transactions and currency;
 - drag-and-drop, sorting, splitting, and stack overflow;

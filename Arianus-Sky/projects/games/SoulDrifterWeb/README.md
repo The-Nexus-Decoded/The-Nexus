@@ -2,7 +2,7 @@
 
 An original browser-native isometric RPG prototype built from the SoulDrifter world bible.
 
-The authoritative browser-specific direction is in [`docs/BROWSER_GAME_DESIGN.md`](docs/BROWSER_GAME_DESIGN.md). Character and living-story rules are in [`docs/CHARACTER_AND_STORY_SYSTEM.md`](docs/CHARACTER_AND_STORY_SYSTEM.md), class/rune progression is in [`docs/CLASS_PROGRESSION_CODEX.md`](docs/CLASS_PROGRESSION_CODEX.md), and the paid generation, modular equipment, and intake contract is in [`docs/3d-ai-studio/README.md`](docs/3d-ai-studio/README.md). The mandatory repeatable workflow for every weapon, spell, summon, buff, skill, race, class, player, and NPC animation is in [`docs/ANIMATION_PRODUCTION_PIPELINE.md`](docs/ANIMATION_PRODUCTION_PIPELINE.md), and weapon work must pass the source-backed stance gate in [`docs/WEAPON_MOTION_REFERENCE_INDEX.md`](docs/WEAPON_MOTION_REFERENCE_INDEX.md). The full inherited world and content canon is preserved in [`docs/GAME_BIBLE.md`](docs/GAME_BIBLE.md).
+The authoritative browser-specific direction is in [`docs/BROWSER_GAME_DESIGN.md`](docs/BROWSER_GAME_DESIGN.md). Character and living-story rules are in [`docs/CHARACTER_AND_STORY_SYSTEM.md`](docs/CHARACTER_AND_STORY_SYSTEM.md), class/rune progression is in [`docs/CLASS_PROGRESSION_CODEX.md`](docs/CLASS_PROGRESSION_CODEX.md), NPC runtime rules are in [`docs/NPC_SYSTEM.md`](docs/NPC_SYSTEM.md), and creature runtime rules are in [`docs/CREATURE_SYSTEM.md`](docs/CREATURE_SYSTEM.md). The paid generation, modular equipment, and intake contract is in [`docs/3d-ai-studio/README.md`](docs/3d-ai-studio/README.md). The mandatory repeatable workflow for every weapon, spell, summon, buff, skill, race, class, player, and NPC animation is in [`docs/ANIMATION_PRODUCTION_PIPELINE.md`](docs/ANIMATION_PRODUCTION_PIPELINE.md), and weapon work must pass the source-backed stance gate in [`docs/WEAPON_MOTION_REFERENCE_INDEX.md`](docs/WEAPON_MOTION_REFERENCE_INDEX.md). The full inherited world and content canon is preserved in [`docs/GAME_BIBLE.md`](docs/GAME_BIBLE.md).
 
 The first playable level is **The First Breach**:
 
@@ -11,7 +11,7 @@ The first playable level is **The First Breach**:
 It currently demonstrates:
 
 - Ultima VII-inspired isometric composition without using Ultima assets
-- a fully rendered 3D Soulwell machine-temple with original character, NPC, creature, PBR environment, and effect assets
+- a fully rendered 3D Soulwell machine-temple with original character, creature, PBR environment, and effect assets; named-NPC identity and clothing presentation remain an active acceptance blocker
 - a complete 4-ancestry × 9-calling character creator with 36 C-tier starter appearances
 - four diegetic memory questions that derive stats, starting skills, and story facts
 - an Ilyra-led starter refinement with three final stat points, one ancestry boon, and one base-calling discipline
@@ -26,6 +26,15 @@ It currently demonstrates:
 - autonomous enemy pursuit/attacks, breakable nonquest props, interaction markers, fog of war, close zoom, limited camera rotation, and a compact translucent action bar
 - IndexedDB character, conversation, checkpoint, event-history, and NPC-story-override persistence
 - the Cinderbound Warden and First Memory objective
+
+## Shared Actor Contract
+
+- Player characters, NPCs, monsters, bosses, summons, charmed creatures, and tamed animals use the same authoritative skill-and-command model.
+- Every attack, spell, heal, buff, debuff, weather effect, movement action, and interaction performed by an actor is a registered skill or command with costs, targeting, timing, effects, and animation events. AI does not receive fake attacks outside that system.
+- Class, creature family, equipment, rank, and boss state determine an actor's available skills. Hidden secondary skills remain registered abilities even when ordinary players cannot see them.
+- Charm, possession, and taming expose the valid controllable subset of the target's actual skills; they do not substitute generic player attacks.
+- Visible clothing, armor, weapons, shields, tools, and carried objects are real item instances equipped by that actor. Presentation-only painted gear and fake weapon meshes are prohibited.
+- Defeated actors leave lootable remains. A body disappears only after its available loot has been resolved successfully; full inventory leaves the remains in place.
 
 ## Run
 
