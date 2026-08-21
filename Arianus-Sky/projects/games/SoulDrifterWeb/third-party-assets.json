@@ -33,103 +33,113 @@
     },
     {
       "id": "breach-v2-wall-art-art-banner-wayfarer",
-      "name": "BREACH-V2 procedural wall art — art-banner-wayfarer",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Wayfarer lore tapestry",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "5c46b8419bd4ba5d0a2a47ef8ce7fe86f0405513293ae5281492a575157f3ef9",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "9eb1fd4520b0f59b9105f7927c79a09e737f29baffa050d6c892912ec1df30dd",
+      "notes": "Original lore-derived woven narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-banner-oathbreaker",
-      "name": "BREACH-V2 procedural wall art — art-banner-oathbreaker",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Oathbreaker lore tapestry",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "8959a3b90a29f7b211025e7ad4c3710e811118594e6cdd9c94fb6581264e845e",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "6afe2ab2bc2178e937db495570db1429088f459a0a9d2620e84963c83666b1ca",
+      "notes": "Original lore-derived woven narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-banner-ashen",
-      "name": "BREACH-V2 procedural wall art — art-banner-ashen",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Ashen Threshold lore tapestry",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "5fb108bb3d9c39d2ff9fe0f67c7e374da06337dea672650bcad82cf1c97345bf",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "a98d98503dc2a1cd7a5ae50b200e99866dbab3ace533614584f079835b5536a8",
+      "notes": "Original lore-derived woven narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-banner-cinderbound",
-      "name": "BREACH-V2 procedural wall art — art-banner-cinderbound",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Cinderbound Warden lore tapestry",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "e58f5fdc8d180079facd4b8349a6a724767ccf6f751b4a6b2e39cd7546c5f7de",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "08519c56b9a4083f85027059b36a87d9552bba79575214f296a01beee80fd1ad",
+      "notes": "Original lore-derived woven narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-banner-oathscar",
-      "name": "BREACH-V2 procedural wall art — art-banner-oathscar",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Oath Scar lore tapestry",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "5ad357d32e448b3797dbd72313a20b99a9d2861be3b59a7f7f426f7dd54c6c2b",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "25b65913096cbe067d825890500f26d7a4531a78cbba900b000a9416adb20521",
+      "notes": "Original lore-derived woven narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-relief-warden",
-      "name": "BREACH-V2 procedural wall art — art-relief-warden",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Cinderbound Warden narrative relief",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "84b90171dc92536a9563a8f6f6550c91d84f7602637669c23677b9d0b83ccc67",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "a239ec3102a811756de8f9b05d9fa4fa453594b9efdd27baa136e3a9af0aca4c",
+      "notes": "Original lore-derived carved narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-relief-first-memory",
-      "name": "BREACH-V2 procedural wall art — art-relief-first-memory",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "First Memory lore painting",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "5053d9a6e0a16d903dc5ea66cc26de42ef0ba577425d04615aa6123c7e82f16e",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "43efdd4152e3c58d0b5e42711f9b70097b5205fe7e4267724480f9b6d2000dba",
+      "notes": "Original lore-derived aged narrative painting; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-relief-toll",
-      "name": "BREACH-V2 procedural wall art — art-relief-toll",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Toll Gate narrative relief",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "2705d52bea4d81cf3bc290c745d60432aaa29ed762ce59dc149a9c42415476aa",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "ef6d873d06c4eb272eff5aed83ae0a7e88a36165b467a396604622c5c45b190a",
+      "notes": "Original lore-derived carved narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-relief-lock-inscription",
-      "name": "BREACH-V2 procedural wall art — art-relief-lock-inscription",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Realm-Lock inscription narrative relief",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "5b22507e07d218ff2ac3a18370a46e85d68a6dc29dcd0d3df2890a592be94d99",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "551351c4abcc35cabcf498405f09b35ec1a505e9b3693ccd50692b26467dfaef",
+      "notes": "Original lore-derived carved narrative art; no text, UI, code, diagrams, or reused game imagery."
     },
     {
       "id": "breach-v2-wall-art-art-painting-reliquary",
-      "name": "BREACH-V2 procedural wall art — art-painting-reliquary",
-      "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
+      "name": "Memory reliquary lore painting",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
       "bundled": true,
-      "sha256": "7c48a44d6cb8c46653e39584a02f590fd17876e8418de00110f5ff35410caa04",
-      "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds."
+      "sha256": "1a18e4b0a27c0b49320b68933b078fb239d19120c8a67f8e749173c5340f3b94",
+      "notes": "Original lore-derived aged narrative painting; no text, UI, code, diagrams, or reused game imagery."
+    },
+    {
+      "id": "breach-v2-wall-art-art-painting-winged-skyship",
+      "name": "Arianus winged skyship memory painting",
+      "url": "OpenAI image generation; project-authored prompt and art direction",
+      "license": "Project-original in-house art (SoulDrifter); no third-party content",
+      "usage": "in-world framed wall art at the Realm-Lock Vestibule lore gallery",
+      "bundled": true,
+      "sha256": "858e684f6cf967d6136e25f116ba38f228cf8bcc2824874bbcafd7d6211d995d",
+      "notes": "New lore-derived aged painting; replaces the reused prologue image and contains no text, UI, code, or diagrams."
     },
     {
       "id": "breach-v2-wall-art-art-map-thalenyr-scroll",

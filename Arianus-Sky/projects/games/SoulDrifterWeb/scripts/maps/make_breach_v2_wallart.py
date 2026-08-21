@@ -1,9 +1,10 @@
-"""BREACH-V2 procedural wall art (Add-on A; local, original, zero-credit).
+"""LEGACY BREACH-V2 placeholder wall-art generator.
 
-Generates the banner/relief/painting/scroll textures for the named wall-art
-sockets on the flat map. CPU PIL only — real composed labels over generated
-backgrounds (never model-rendered text). Saves WebP into the repo art dir and
-records each in third-party-assets.json.
+The shipped narrative paintings, tapestries, and reliefs are original
+lore-derived image-generation outputs. This script is retained only to explain
+the superseded placeholder provenance and to rebuild the approved Thalenyr
+scroll mount when explicitly requested. It refuses normal execution so it
+cannot overwrite the production art with labeled UI-style placeholders.
 
 Run from scripts/maps/ or the workspace mirror:
   python make_breach_v2_wallart.py <game-root>
@@ -219,6 +220,11 @@ ART_BUILDERS = {
 
 
 def main():
+    if "--legacy-placeholders" not in sys.argv:
+        raise SystemExit(
+            "Refusing to overwrite shipped lore art. Pass --legacy-placeholders "
+            "only when intentionally rebuilding superseded review placeholders."
+        )
     game_root = Path(sys.argv[1]).resolve()
     out_dir = game_root / "public/assets/textures/environment/breach-v2/art"
     out_dir.mkdir(parents=True, exist_ok=True)

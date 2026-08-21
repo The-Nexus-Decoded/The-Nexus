@@ -38,7 +38,7 @@
         "E-01"
       ],
       "bossPattern": "cinder-sweep",
-      "placements": 135
+      "placements": 177
     },
     {
       "file": "layout-4182-oathbreaker.json",
@@ -62,7 +62,7 @@
         "H-01"
       ],
       "bossPattern": "cinder-sweep",
-      "placements": 116
+      "placements": 158
     },
     {
       "file": "layout-7-wayfarer.json",
@@ -84,7 +84,7 @@
         "E-02"
       ],
       "bossPattern": "cinder-sweep",
-      "placements": 116
+      "placements": 152
     },
     {
       "file": "layout-7-oathbreaker.json",
@@ -106,7 +106,7 @@
         "H-02"
       ],
       "bossPattern": "cinder-sweep",
-      "placements": 105
+      "placements": 142
     },
     {
       "file": "layout-1-wayfarer.json",
@@ -129,7 +129,7 @@
         "E-06"
       ],
       "bossPattern": "cinder-sweep",
-      "placements": 127
+      "placements": 169
     },
     {
       "file": "layout-1-oathbreaker.json",
@@ -152,7 +152,7 @@
         "H-06"
       ],
       "bossPattern": "ash-call",
-      "placements": 113
+      "placements": 150
     },
     {
       "file": "layout-2-wayfarer.json",
@@ -176,7 +176,7 @@
         "E-07"
       ],
       "bossPattern": "ash-call",
-      "placements": 135
+      "placements": 177
     },
     {
       "file": "layout-2-oathbreaker.json",
@@ -200,7 +200,7 @@
         "H-07"
       ],
       "bossPattern": "soul-tax",
-      "placements": 116
+      "placements": 158
     }
   ]
 }

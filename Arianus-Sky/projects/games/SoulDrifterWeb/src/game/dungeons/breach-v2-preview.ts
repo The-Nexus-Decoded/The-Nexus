@@ -22,6 +22,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
+import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
 
@@ -462,7 +463,12 @@ async function placeKitProps(
     // The 3DAI heavy-door source faces across its local X axis, while authored
     // wall yaw is expressed as a wall normal. Correct that source-local basis
     // once here so registry doors sit inside their frames instead of edge-on.
-    const sourceYawCorrection = p.asset === "heavy-door" ? 90 : 0;
+    const sourceYawCorrection = {
+      "heavy-door": 90,
+      "archive-bookshelf": 90,
+      "archive-cupboard": 90,
+      "empty-weapon-rack": 90,
+    }[p.asset] ?? 0;
     instance.root.rotation.y = THREE.MathUtils.degToRad(p.yaw + sourceYawCorrection);
     scene.add(instance.root);
     tickables.push(instance.animate);
@@ -748,8 +754,8 @@ const ART_TEXTURES: Record<string, string> = {
   "art-relief-toll": `${ART_ROOT}/art-relief-toll.webp`,
   "art-relief-lock-inscription": `${ART_ROOT}/art-relief-lock-inscription.webp`,
   "art-painting-reliquary": `${ART_ROOT}/art-painting-reliquary.webp`,
+  "art-painting-winged-skyship": `${ART_ROOT}/art-painting-winged-skyship.webp`,
   "art-map-thalenyr-scroll": `${ART_ROOT}/art-map-thalenyr-scroll.webp`,
-  "art-haplo-runeship": "/assets/generated/prologue/04-haplo-runeship.webp",
 };
 const ART_FACING_NORMAL: Record<string, [number, number]> = {
   south: [0, 1], north: [0, -1], east: [1, 0], west: [-1, 0],
@@ -978,10 +984,28 @@ export async function startDungeonPreview(
     }
     return true;
   };
-  const playerPos = new THREE.Vector3(layout.landmarks.playerStart.x, 0, layout.landmarks.playerStart.z);
+  const requestedStart = new URL(window.location.href).searchParams.get("start");
+  const requestedRoom = requestedStart
+    ? layout.rooms.find((room) => room.id === requestedStart || ("poolRoomId" in room && room.poolRoomId === requestedStart))
+    : null;
+  const nearestWalkable = (x: number, z: number): [number, number] => {
+    if (isWalkable(x, z)) return [x, z];
+    for (let radius = NAV; radius <= NAV * 5; radius += NAV) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+        const candidateX = x + Math.cos(angle) * radius;
+        const candidateZ = z + Math.sin(angle) * radius;
+        if (isWalkable(candidateX, candidateZ)) return [candidateX, candidateZ];
+      }
+    }
+    return [layout.landmarks.playerStart.x, layout.landmarks.playerStart.z];
+  };
+  const requestedPosition = requestedRoom && requestedRoom.id !== "vestibule"
+    ? nearestWalkable(requestedRoom.x + requestedRoom.w / 2, requestedRoom.z + requestedRoom.h / 2)
+    : [layout.landmarks.playerStart.x, layout.landmarks.playerStart.z] as [number, number];
+  const playerPos = new THREE.Vector3(requestedPosition[0], 0, requestedPosition[1]);
   let camYaw = 0.08; // camera just south of the emergence point — opening view faces the Soul Well
-  let camPitch = 0.4;
-  let camDist = 5.2;
+  let camPitch = 0.24;
+  let camDist = 4.4;
   const keys = new Set<string>();
   let player: THREE.Mesh | null = null;
   if (walkMode) {
@@ -1004,10 +1028,10 @@ export async function startDungeonPreview(
     renderer.domElement.addEventListener("pointermove", (e) => {
       if (!dragging) return;
       camYaw -= e.movementX * 0.0052;
-      camPitch = Math.min(1.25, Math.max(0.15, camPitch + e.movementY * 0.004));
+      camPitch = Math.min(0.58, Math.max(-0.18, camPitch + e.movementY * 0.004));
     });
     renderer.domElement.addEventListener("wheel", (e) => {
-      camDist = Math.min(10, Math.max(2.6, camDist + e.deltaY * 0.004));
+      camDist = Math.min(6.2, Math.max(2.6, camDist + e.deltaY * 0.004));
     }, { passive: true });
     window.addEventListener("keydown", (e) => keys.add(e.code));
     window.addEventListener("keyup", (e) => keys.delete(e.code));
@@ -1044,7 +1068,32 @@ export async function startDungeonPreview(
   };
   hooks.__dungeonKeys = keys; // probe visibility
 
+  const warp = (x: number, z: number): boolean => {
+    const [walkX, walkZ] = nearestWalkable(x, z);
+    if (walkMode) {
+      playerPos.set(walkX, 0, walkZ);
+      return true;
+    }
+    const offset = camera.position.clone().sub(controls.target);
+    controls.target.set(x, 1.0, z);
+    camera.position.copy(controls.target).add(offset);
+    controls.update();
+    return true;
+  };
+  setupBreachV2DevPanel({
+    container,
+    layout,
+    seed: options.seed,
+    path: options.path,
+    cam: options.cam,
+    warp,
+  });
+
   const clock = new THREE.Clock();
+  const cameraRaycaster = new THREE.Raycaster();
+  const cameraTarget = new THREE.Vector3();
+  const desiredCamera = new THREE.Vector3();
+  const cameraDirection = new THREE.Vector3();
   let fpsAccum = 0;
   let fpsFrames = 0;
   let fpsText = "…";
@@ -1096,22 +1145,34 @@ export async function startDungeonPreview(
         }
         player.position.set(playerPos.x, 0.85, playerPos.z);
         const cp = Math.cos(camPitch);
-        camera.position.set(
+        desiredCamera.set(
           playerPos.x + Math.sin(camYaw) * camDist * cp,
-          1.4 + Math.sin(camPitch) * camDist,
+          Math.min(2.82, 1.4 + Math.sin(camPitch) * camDist),
           playerPos.z + Math.cos(camYaw) * camDist * cp,
         );
-        camera.lookAt(playerPos.x, 1.4, playerPos.z);
+        cameraTarget.set(playerPos.x, 1.4, playerPos.z);
+        cameraDirection.copy(desiredCamera).sub(cameraTarget);
+        const desiredDistance = cameraDirection.length();
+        cameraDirection.normalize();
+        cameraRaycaster.set(cameraTarget, cameraDirection);
+        cameraRaycaster.far = desiredDistance;
+        const wallHit = cameraRaycaster.intersectObject(shellGroup, true)[0];
+        const cameraDistance = wallHit
+          ? Math.max(0.75, Math.min(desiredDistance, wallHit.distance - 0.18))
+          : desiredDistance;
+        camera.position.copy(cameraTarget).addScaledVector(cameraDirection, cameraDistance);
+        camera.lookAt(cameraTarget);
         hooks.__dungeonPlayer.x = playerPos.x;
         hooks.__dungeonPlayer.z = playerPos.z;
       } else {
         controls.update();
       }
-      renderer.render(scene, camera);
       // ceiling cutaway: caps read as ceilings at eye level (walk mode or a
-      // camera inside the room, below the 3.2 m wall cap) and step aside for
-      // raised review cameras
-      if (ceilings) ceilings.visible = walkMode && camera.position.y < 3.4;
+      // camera inside the room) and step aside for raised orbit review cameras.
+      // The walk camera is clamped below the cap so looking up always reveals
+      // authored dungeon ceiling instead of the outdoor void.
+      if (ceilings) ceilings.visible = walkMode;
+      renderer.render(scene, camera);
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {
         calls: renderer.info.render.calls,

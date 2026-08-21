@@ -347,18 +347,48 @@ FIXED_DRESSING = {
                        ("wall-torch-sconce", 5.0, 0.3)],  # clean single route into the framed daylight gate
 }
 
+# Every authored room carries visible wall-mounted fire on BOTH the north and
+# south walls. These pairs replace the earlier one-sided singles. The runtime
+# derives each point light from the sconce's real flame anchor, so illumination
+# cannot drift away from the fixture during layout/export changes.
+SCONCE_PAIR_X = {
+    "vestibule": [5.0, 28.0], "plaza-link": [1.5, 4.5],
+    "threshold-plaza": [6.0, 12.0], "convergence": [3.0, 9.0],
+    "ashen-threshold": [4.0, 8.0], "ashen-lock": [5.0, 15.0, 25.0],
+    "memory-vault": [1.0, 9.0], "exit-connector": [5.0, 11.0],
+    "E-01": [4.0, 10.0], "E-02": [6.0, 11.0], "E-03": [2.0, 12.0],
+    "E-04": [8.0], "E-05": [3.0, 11.0], "E-06": [5.0, 17.0],
+    "E-07": [1.5, 14.5], "H-01": [3.0, 9.0], "H-02": [2.0, 7.0],
+    "H-03": [4.5], "H-04": [3.0, 9.0], "H-05": [3.0, 10.0],
+    "H-06": [6.0], "H-07": [9.0],
+}
+
+_ROOM_DIMS = {
+    room["id"]: (room["w"], room["h"])
+    for room in [*FIXED_ROOMS, *EASY_POOL, *HARD_POOL]
+}
+for _room_id, _pair_xs in SCONCE_PAIR_X.items():
+    _target = FIXED_DRESSING.get(_room_id, DRESSING.get(_room_id))
+    _room_w, _room_h = _ROOM_DIMS[_room_id]
+    _target[:] = [entry for entry in _target if entry[0] != "wall-torch-sconce"]
+    for _x in _pair_xs:
+        assert 0.5 <= _x <= _room_w - 0.5
+        _target.extend([
+            ("wall-torch-sconce", _x, 0.3),
+            ("wall-torch-sconce", _x, _room_h - 0.3),
+        ])
+
 
 # ---------------------------------------------------------------------------
 # Owner Add-on A (2026-08-20): readable wall art + book/scroll props.
 # WALL_ART: (art-id, x, y, width_m) — framed PBR planes on walls, zoom-readable
-# (runbook §5A; >=1024px per ~1 m; real labels composed over art, never
-# AI-rendered text). Reuses existing map masters first (zero cost):
+# (runbook §5A). Cartographic pieces reuse the approved lore map masters:
 #   art-thalenyr-atlas     <- lore-atlas M-003 painted master (world map)
 #   art-heartvale-section  <- heartvale_section_cut_v2 master (zone map)
 #   art-breach-v2-flatmap  <- THIS flat map (the zone's own map)
-# Reliefs/banners/paintings beyond those are local-GPU work (third-party-assets
-# record) scheduled with deliverables 3-5. Books/scrolls are texture-based
-# props on reused kit geometry (readable-book UI NOT in scope).
+# All other pieces are original lore-derived narrative paintings, tapestries,
+# and reliefs with no labels, UI, code, or technical diagrams. Books/scrolls
+# remain texture-based props on reused kit geometry.
 # ---------------------------------------------------------------------------
 
 ASSET_META.update({
@@ -370,7 +400,7 @@ WALL_ART = {
     "vestibule": [("art-thalenyr-atlas", 8.75, 0.35, 2.6),      # world map — new players study it here
                   ("art-heartvale-section", 15.8, 0.35, 2.2),   # the zone they're heading to
                   ("art-relief-lock-inscription", 8.75, 21.65, 2.0),  # realm-memory relief, S wall
-                  ("art-haplo-runeship", 13.3, 21.65, 3.4),     # Dragon Wing/runeship world hook
+                  ("art-painting-winged-skyship", 13.3, 21.65, 3.4),  # original Arianus memory painting
                   ("art-relief-first-memory", 23.8, 21.65, 1.8)],  # tutorial promise on opposite wall
     "threshold-plaza": [("art-breach-v2-flatmap", 3.5, 0.35, 1.8),     # this zone's map (route study)
                         ("art-banner-wayfarer", 15.7, 2.5, 1.4),       # above the Wayfarer door

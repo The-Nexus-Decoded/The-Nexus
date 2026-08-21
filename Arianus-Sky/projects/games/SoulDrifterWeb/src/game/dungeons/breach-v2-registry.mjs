@@ -43,54 +43,6 @@ export const BREACH_V2_REGISTRY = {
       "notes": "Fixed start. Damaged trans-realm machine-temple; cleanest room (corruption 0.05).",
       "placements": [
         {
-          "asset": "wall-torch-sconce",
-          "x": 5.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "fire",
-          "facing": "south",
-          "height": 1.5,
-          "footprint": 0.95,
-          "blocking": false,
-          "role": "dressing"
-        },
-        {
-          "asset": "wall-torch-sconce",
-          "x": 12.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "fire",
-          "facing": "south",
-          "height": 1.5,
-          "footprint": 0.95,
-          "blocking": false,
-          "role": "dressing"
-        },
-        {
-          "asset": "wall-torch-sconce",
-          "x": 18.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "fire",
-          "facing": "south",
-          "height": 1.5,
-          "footprint": 0.95,
-          "blocking": false,
-          "role": "dressing"
-        },
-        {
-          "asset": "wall-torch-sconce",
-          "x": 25.0,
-          "y": 0.3,
-          "placement": "wall",
-          "group": "fire",
-          "facing": "south",
-          "height": 1.5,
-          "footprint": 0.95,
-          "blocking": false,
-          "role": "dressing"
-        },
-        {
           "asset": "floor-brazier",
           "x": 5.8,
           "y": 13.8,
@@ -343,6 +295,54 @@ export const BREACH_V2_REGISTRY = {
           "role": "dressing"
         },
         {
+          "asset": "wall-torch-sconce",
+          "x": 5.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 5.0,
+          "y": 21.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 28.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 28.0,
+          "y": 21.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
           "asset": "art-thalenyr-atlas",
           "x": 8.75,
           "y": 0.35,
@@ -382,7 +382,7 @@ export const BREACH_V2_REGISTRY = {
           "role": "wall-art"
         },
         {
-          "asset": "art-haplo-runeship",
+          "asset": "art-painting-winged-skyship",
           "x": 13.3,
           "y": 21.65,
           "width": 3.4,
@@ -511,11 +511,35 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
+          "x": 1.5,
+          "y": 5.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
           "x": 4.5,
           "y": 0.3,
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 4.5,
+          "y": 5.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
           "height": 1.5,
           "footprint": 0.95,
           "blocking": false,
@@ -627,6 +651,54 @@ export const BREACH_V2_REGISTRY = {
           "height": 3.0,
           "footprint": 2.45,
           "blocking": true,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 6.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 6.0,
+          "y": 11.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 12.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 12.0,
+          "y": 11.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
           "role": "dressing"
         },
         {
@@ -753,6 +825,54 @@ export const BREACH_V2_REGISTRY = {
           "role": "dressing"
         },
         {
+          "asset": "wall-torch-sconce",
+          "x": 3.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 3.0,
+          "y": 9.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 9.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 9.0,
+          "y": 9.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
           "asset": "art-banner-ashen",
           "x": 0.3,
           "y": 5.0,
@@ -846,6 +966,54 @@ export const BREACH_V2_REGISTRY = {
           "facing": "up",
           "height": 1.38,
           "footprint": 1.5,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 4.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 4.0,
+          "y": 8.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 8.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 8.0,
+          "y": 8.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
           "blocking": false,
           "role": "dressing"
         },
@@ -1043,6 +1211,78 @@ export const BREACH_V2_REGISTRY = {
           "role": "dressing"
         },
         {
+          "asset": "wall-torch-sconce",
+          "x": 5.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 5.0,
+          "y": 21.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 15.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 15.0,
+          "y": 21.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 25.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 25.0,
+          "y": 21.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
           "asset": "art-banner-cinderbound",
           "x": 13.0,
           "y": 0.35,
@@ -1141,6 +1381,54 @@ export const BREACH_V2_REGISTRY = {
           "role": "loot-cache"
         },
         {
+          "asset": "wall-torch-sconce",
+          "x": 1.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 1.0,
+          "y": 7.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 9.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 9.0,
+          "y": 7.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
           "asset": "art-relief-first-memory",
           "x": 5.0,
           "y": 0.35,
@@ -1184,6 +1472,42 @@ export const BREACH_V2_REGISTRY = {
           "placement": "wall",
           "group": "fire",
           "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 5.0,
+          "y": 5.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 11.0,
+          "y": 0.3,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "south",
+          "height": 1.5,
+          "footprint": 0.95,
+          "blocking": false,
+          "role": "dressing"
+        },
+        {
+          "asset": "wall-torch-sconce",
+          "x": 11.0,
+          "y": 5.7,
+          "placement": "wall",
+          "group": "fire",
+          "facing": "north",
           "height": 1.5,
           "footprint": 0.95,
           "blocking": false,
@@ -1407,18 +1731,6 @@ export const BREACH_V2_REGISTRY = {
             "role": "dressing"
           },
           {
-            "asset": "wall-torch-sconce",
-            "x": 8.0,
-            "y": 0.3,
-            "placement": "wall",
-            "group": "fire",
-            "facing": "south",
-            "height": 1.5,
-            "footprint": 0.95,
-            "blocking": false,
-            "role": "dressing"
-          },
-          {
             "asset": "heavy-bench",
             "x": 6.5,
             "y": 11.6,
@@ -1489,6 +1801,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 4.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 4.0,
+            "y": 12.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 10.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 10.0,
+            "y": 12.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -1582,18 +1942,6 @@ export const BREACH_V2_REGISTRY = {
             "role": "dressing"
           },
           {
-            "asset": "wall-torch-sconce",
-            "x": 9.5,
-            "y": 0.3,
-            "placement": "wall",
-            "group": "fire",
-            "facing": "south",
-            "height": 1.5,
-            "footprint": 0.95,
-            "blocking": false,
-            "role": "dressing"
-          },
-          {
             "asset": "floor-brazier",
             "x": 16.5,
             "y": 3.5,
@@ -1626,6 +1974,54 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.72,
             "footprint": 2.15,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 6.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 6.0,
+            "y": 13.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 11.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 11.0,
+            "y": 13.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           }
@@ -1751,6 +2147,54 @@ export const BREACH_V2_REGISTRY = {
             "facing": "up",
             "height": 0.72,
             "footprint": 2.15,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 2.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 2.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 12.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 12.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
             "blocking": false,
             "role": "dressing"
           },
@@ -1937,6 +2381,30 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 8.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 8.0,
+            "y": 14.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2013,30 +2481,6 @@ export const BREACH_V2_REGISTRY = {
             "role": "dressing"
           },
           {
-            "asset": "wall-torch-sconce",
-            "x": 11.0,
-            "y": 0.3,
-            "placement": "wall",
-            "group": "fire",
-            "facing": "south",
-            "height": 1.5,
-            "footprint": 0.95,
-            "blocking": false,
-            "role": "dressing"
-          },
-          {
-            "asset": "wall-torch-sconce",
-            "x": 3.0,
-            "y": 0.3,
-            "placement": "wall",
-            "group": "fire",
-            "facing": "south",
-            "height": 1.5,
-            "footprint": 0.95,
-            "blocking": false,
-            "role": "dressing"
-          },
-          {
             "asset": "archive-bookshelf",
             "x": 7.5,
             "y": 11.4,
@@ -2059,6 +2503,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 11.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 11.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2188,6 +2680,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 5.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 5.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 17.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 17.0,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2344,6 +2884,54 @@ export const BREACH_V2_REGISTRY = {
             "role": "loot-cache"
           },
           {
+            "asset": "wall-torch-sconce",
+            "x": 1.5,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 1.5,
+            "y": 13.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 14.5,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 14.5,
+            "y": 13.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
             "asset": "art-map-thalenyr-scroll",
             "x": 5.5,
             "y": 0.4,
@@ -2493,6 +3081,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 9.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 9.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2595,6 +3231,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 2.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 2.0,
+            "y": 10.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 7.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 7.0,
+            "y": 10.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2723,6 +3407,30 @@ export const BREACH_V2_REGISTRY = {
             "role": "dressing"
           },
           {
+            "asset": "wall-torch-sconce",
+            "x": 4.5,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 4.5,
+            "y": 11.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
             "asset": "art-banner-oathscar",
             "x": 6.0,
             "y": 11.65,
@@ -2809,18 +3517,6 @@ export const BREACH_V2_REGISTRY = {
             "role": "dressing"
           },
           {
-            "asset": "wall-torch-sconce",
-            "x": 7.0,
-            "y": 0.3,
-            "placement": "wall",
-            "group": "fire",
-            "facing": "south",
-            "height": 1.5,
-            "footprint": 0.95,
-            "blocking": false,
-            "role": "dressing"
-          },
-          {
             "asset": "storage-chest",
             "x": 12.5,
             "y": 1.8,
@@ -2831,6 +3527,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 8.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 8.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -2949,6 +3693,54 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 3.0,
+            "y": 9.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 10.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 10.0,
+            "y": 9.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -3067,6 +3859,30 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 6.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 6.0,
+            "y": 10.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           }
         ]
       },
@@ -3176,6 +3992,30 @@ export const BREACH_V2_REGISTRY = {
             "footprint": 1.65,
             "blocking": true,
             "role": "loot-cache"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 0.3,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "south",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
+          },
+          {
+            "asset": "wall-torch-sconce",
+            "x": 9.0,
+            "y": 9.7,
+            "placement": "wall",
+            "group": "fire",
+            "facing": "north",
+            "height": 1.5,
+            "footprint": 0.95,
+            "blocking": false,
+            "role": "dressing"
           },
           {
             "asset": "art-relief-toll",

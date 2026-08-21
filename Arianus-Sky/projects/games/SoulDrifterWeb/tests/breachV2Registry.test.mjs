@@ -100,6 +100,14 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
   });
 
+  it("mounts flame-anchored sconces on both opposing walls in every room", () => {
+    for (const room of [...R.fixedRooms, ...allPoolRooms]) {
+      const sconces = room.placements.filter((p) => p.asset === "wall-torch-sconce");
+      expect(sconces.some((p) => p.facing === "south"), `${room.id}: north-wall sconce`).toBe(true);
+      expect(sconces.some((p) => p.facing === "north"), `${room.id}: south-wall sconce`).toBe(true);
+    }
+  });
+
   it("placement records carry the §6 minimum metadata and stay in bounds", () => {
     const rooms = [
       ...R.fixedRooms.map((r) => ({ ...r, sockets: [] })),
