@@ -41,6 +41,13 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    48-line diffs; that is why this rule exists.
 6. **It must read at gameplay distance AND at zoom.** Review-gate evidence
    includes street-level/close-up renders, not just beauty shots.
+7. **Orientation is functional correctness.** Audit EVERY room and every
+   placed asset family from gameplay view plus close front/side views. Doors,
+   gates, pictures, reliefs, shelves, racks, statues, furniture, and fixtures
+   must present their intended face to the player, sit square to their support,
+   and fit the surrounding architecture. Maintain explicit source-axis
+   corrections for imported assets. A coordinate, yaw value, or one wide
+   screenshot is not proof; record the completed room-by-room inspection.
 
 ## 2. Work locations (owner directive — binding)
 
@@ -92,8 +99,10 @@ to EVERY zone, dungeon, village, prop, and scene you build:
   approved path for new art.
 - **Asset policy:** original or licensed/CC0 only, recorded in
   `third-party-assets.json`. No Ultima-derived data, ever.
-- `npm run typecheck` and `npm test` green at every commit. Production build
-  stays under the 150 MiB cap.
+- `npm run typecheck` and `npm test` green at every commit. QA and production
+  builds must remain below the permanent 500,000,000-byte ceiling enforced by
+  `scripts/runtime-asset-manifest.json`; the 475,000,000-byte preferred ceiling
+  preserves deploy-provider headroom (owner ruling 2026-08-21).
 - Phone-width responsive + desktop both keep working.
 - Never leave a dev server running when your task ends.
 - Repo-wide: **never delete .md files** (root CLAUDE.md rule); don't write

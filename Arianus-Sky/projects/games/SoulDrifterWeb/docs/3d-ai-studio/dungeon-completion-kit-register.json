@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "issue": 450,
+  "branch": "codex/450-houdini-apprentice-first-breach",
+  "generatedOn": "2026-08-18",
+  "studioProject": {
+    "name": "SoulDrifter",
+    "id": 310153
+  },
+  "operation": {
+    "provider": "3D AI Studio",
+    "model": "Prism 3.1",
+    "mode": "single-image-to-3d",
+    "faceLimit": 12000,
+    "geometryQuality": "standard",
+    "texture": true,
+    "textureQuality": "standard",
+    "pbr": true,
+    "costPerAsset": 35,
+    "assetCount": 16,
+    "totalCost": 560,
+    "finalCreditBalance": 819,
+    "minimumCreditBalance": 800,
+    "paidRetries": 0
+  },
+  "batchAdjustment": {
+    "reason": "A separate Meshy 7 Multi-Image task appeared on the shared account after preflight and consumed 45 credits.",
+    "externalTaskId": "2897ca72-80fa-4872-ae65-98a088a7d63c",
+    "deferredAssets": [
+      "sack-bundle-cluster",
+      "rope-coil-and-hook",
+      "loose-books-and-scrolls-pile"
+    ]
+  },
+  "paths": {
+    "references": "docs/3d-ai-studio/reference-sheets/environment/completion-kit",
+    "sources": "docs/3d-ai-studio/source-models/environment/dungeon-completion-kit",
+    "runtime": "public/assets/3d/environment/dungeon-kit"
+  },
+  "assets": [
+    {
+      "id": "ruined-stone-archway",
+      "taskId": "04a36a26-9032-422f-a50c-cd90fbdea26f",
+      "sourceBytes": 1754376,
+      "sourceSha256": "4d4b5e523edbd7567a4f3126a979065d4f4a1525584d974e343c6b6859ddcd6f",
+      "runtimeBytes": 122924,
+      "runtimeSha256": "10151eeb04a3f66e62ba5cd38a847c69c2adb6e2b7394151a0b9f1706cd76e7c"
+    },
+    {
+      "id": "reliquary-wall-alcove",
+      "taskId": "d126e37e-f00a-40f9-bf31-e8771f88bf23",
+      "sourceBytes": 1420180,
+      "sourceSha256": "f5f98a587a32dd838e9dd4a291e3d3877dbc710412224b6c1b78eed830cecad5",
+      "runtimeBytes": 105368,
+      "runtimeSha256": "4350ca6a31b382be43f0d81e5b269834383a1abb89126decaf4bd93e3cd67c2b"
+    },
+    {
+      "id": "broken-stone-stair-dais",
+      "taskId": "330a6dc6-d4de-4759-8885-e74abca94ed7",
+      "sourceBytes": 1483304,
+      "sourceSha256": "5054d586fb86c65ccd15b39ee5d72ff3abf84bf9fa87c16f70b5b8cbaceaa954",
+      "runtimeBytes": 105280,
+      "runtimeSha256": "73f444e26e78da1bf688e2a8b91eeb3472ed939c5489aa3adbcdd286a0db68f0"
+    },
+    {
+      "id": "wooden-support-brace",
+      "taskId": "bc42bf12-d03a-4508-a93e-901c177406a2",
+      "sourceBytes": 1523720,
+      "sourceSha256": "ba54975ebe057632386de822e0bd1ce382e68e652f2f73c8b948de15ed6eb3d8",
+      "runtimeBytes": 113396,
+      "runtimeSha256": "df9070a5bf060bb99454b1e9f6e09c403feac1856adf45b12ab622fac3f0c19a"
+    },
+    {
+      "id": "rusted-portcullis",
+      "taskId": "498147cf-376c-47f6-b0ae-9dced4fdd20b",
+      "sourceBytes": 1159852,
+      "sourceSha256": "8b3969d05a8abbaa23b37f31ad4bd9352586668a424f55193c46e2b1b188b42b",
+      "runtimeBytes": 109020,
+      "runtimeSha256": "442241c57f2895aba74c261c0b4063f97a435e3ab7cad2d4d02ffb2aa3e804a0"
+    },
+    {
+      "id": "iron-floor-grate",
+      "taskId": "51baf27e-9083-4f7d-a6bd-e7e7c1156b7d",
+      "sourceBytes": 1376420,
+      "sourceSha256": "cebc8c14cb257216273fd0a023d5315095196b67ed0796508e9ec5156a1d9051",
+      "runtimeBytes": 113552,
+      "runtimeSha256": "5407239dccbc500eaebc0ce3d878b41cf1b30f6a8c4c05ec8d137a92d8fed1ee"
+    },
+    {
+      "id": "collapsed-timber-masonry-pile",
+      "taskId": "7734196e-f19b-410d-9c3d-db7406cbfb38",
+      "sourceBytes": 1577332,
+      "sourceSha256": "85c9bc52f966e1ee2896539262d1f52c8887d6bd8dec19c954cbbb0f868f9121",
+      "runtimeBytes": 127528,
+      "runtimeSha256": "1495c5b783b1d7bbf884c55729693b8fb7b3e2d3a679ed7779cce55d78805a1f"
+    },
+    {
+      "id": "hanging-iron-cage",
+      "taskId": "926eb380-58c7-48bb-ba43-4042e380bc80",
+      "sourceBytes": 1148240,
+      "sourceSha256": "9fc5d26438ba569c70b9fc6d9a7eb707e1c4058a97ed593d0fef123970f1badf",
+      "runtimeBytes": 125272,
+      "runtimeSha256": "c750830c92bf51fe349d67429a5a35ae2bd58801bda4413149129a331164c90c"
+    },
+    {
+      "id": "candelabra-cluster",
+      "taskId": "80ac7fc5-adf2-44d9-b705-9e9d7c33d5e7",
+      "sourceBytes": 1326252,
+      "sourceSha256": "cec0d78ce3d41d034852e980e1e2244653a137e3b0656e3e0b8b0b2ac9eccd14",
+      "runtimeBytes": 112088,
+      "runtimeSha256": "0088fd1e49f24506a645ff27416882253457f7f57da29ac165cb77097e6c1bea"
+    },
+    {
+      "id": "bottles-jugs-crockery-cluster",
+      "taskId": "482589b9-6d4d-4320-bec1-48c654aa1dd2",
+      "sourceBytes": 1303180,
+      "sourceSha256": "7b9c0a1505c8500cb5331122889186eca12f52725547d9c41329d2f8d8f42943",
+      "runtimeBytes": 123172,
+      "runtimeSha256": "57c06c1d7eee1355c455e613787bc918af396f1dd3e19f65d5c71c1d14b13d99"
+    },
+    {
+      "id": "weapon-armor-heap",
+      "taskId": "11a7d53e-e9f0-4fb0-b311-3ca0481d36a3",
+      "sourceBytes": 1412168,
+      "sourceSha256": "eb4f2db05a25cbd0e71f521c0d84ff3fcdbfe5e10ea8b3348d19935aa72ed5b7",
+      "runtimeBytes": 134772,
+      "runtimeSha256": "ad02a3aad0d2a42c22ff6819f1d99f9a1d3c2fa6f1cf3fa07dcfd5070727d0fe"
+    },
+    {
+      "id": "broken-handcart",
+      "taskId": "0716ee03-4e1e-4fac-a777-e53937b58204",
+      "sourceBytes": 1353492,
+      "sourceSha256": "4b73c1e6e04d9ac20f7f04e69e38ec801581e24cbdb718e8277cb990f0367039",
+      "runtimeBytes": 124272,
+      "runtimeSha256": "7b3476cd2ef3c3655a40f5eba3051a130b00073089eb380310ac3ffd5f6706ff"
+    },
+    {
+      "id": "monster-egg-nest",
+      "taskId": "23678261-107c-41dc-9bbb-8b04c09cd98e",
+      "sourceBytes": 1588704,
+      "sourceSha256": "93cf4013e65566e5252ef1a1e8c533193984ca1ca60b7d61a7a47e5408af971b",
+      "runtimeBytes": 130032,
+      "runtimeSha256": "3c0665492141e48c677536930adfa750324cf8ce920c367d3a3e3af86d416aac"
+    },
+    {
+      "id": "cocooned-remains-web-mass",
+      "taskId": "916ea5ed-bfc9-407b-8773-814a9d61b65e",
+      "sourceBytes": 1533240,
+      "sourceSha256": "765dc3ca378292610775320df5fac5f086624150254c7b0b668e5331a0d30a8a",
+      "runtimeBytes": 134556,
+      "runtimeSha256": "1bbac71684e47a96a7b858da33666fcb03f03ad431d0d1bd768469d777e72970"
+    },
+    {
+      "id": "shed-chitin-pile",
+      "taskId": "9e50fa0c-dbd0-488a-896b-6241db3d877f",
+      "sourceBytes": 1589768,
+      "sourceSha256": "e644c9b65f997809f2a885ccffb1a15521e0f5bf8c3ab3bf6d2e680aa7758f2b",
+      "runtimeBytes": 141332,
+      "runtimeSha256": "dca4e525b2789f5b80f9e07d335c22cb7e32aff2a402fb7b00057b60a0990303"
+    },
+    {
+      "id": "burrowed-wall-breach-plug",
+      "taskId": "68f116db-29a6-443d-87e9-2b0f65702b8a",
+      "sourceBytes": 1389804,
+      "sourceSha256": "b5a5c3ee5b1633637e31afab88699f49951377547a4fa1f65e45cb0ad74ca4f5",
+      "runtimeBytes": 132108,
+      "runtimeSha256": "7bb46b793e8481786cc8d70906222368a907a3cd99c56d9a23f80f5bb9239398"
+    }
+  ]
+}

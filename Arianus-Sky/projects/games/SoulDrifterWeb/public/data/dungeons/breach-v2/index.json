@@ -1,0 +1,206 @@
+{
+  "dungeon": "breach-v2",
+  "sourceMap": "docs/maps/breach-v2/breach-v2-flatmap-1600.webp",
+  "worldAnchor": {
+    "zone": "Heartvale hv-1 (Soul Well Basin)",
+    "x": 5437.5,
+    "z": 2648.4,
+    "note": "exit Connector emerges at the Soul Well Basin POI (Heartvale hv-1)"
+  },
+  "seedPolicy": {
+    "layoutSeed": "topology, chamber pick+order from path pool, corridor bends, encounter placement, boss pattern",
+    "dressingSeed": "environment detail within legal placement sockets (never blocks doors/NPCs/spawns/quest/boss route)",
+    "rng": "mulberry32 lineage (same as src/game/dungeon.ts); seed recorded per run; same seed -> same result",
+    "comparisonSeed": 4182,
+    "validation": "sparse / median / dense representative seeds + full invariant sweep incl. 4182"
+  },
+  "note": "the preview generates arbitrary seeds live; these fixtures pin the review set",
+  "fixtures": [
+    {
+      "file": "layout-4182-wayfarer.json",
+      "seed": 4182,
+      "path": "wayfarer",
+      "label": "comparison",
+      "chambers": 5,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "E-04",
+        "E-05",
+        "E-06",
+        "E-07",
+        "E-01"
+      ],
+      "bossPattern": "cinder-sweep",
+      "placements": 209
+    },
+    {
+      "file": "layout-4182-oathbreaker.json",
+      "seed": 4182,
+      "path": "oathbreaker",
+      "label": "comparison",
+      "chambers": 5,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "H-04",
+        "H-05",
+        "H-06",
+        "H-07",
+        "H-01"
+      ],
+      "bossPattern": "cinder-sweep",
+      "placements": 195
+    },
+    {
+      "file": "layout-7-wayfarer.json",
+      "seed": 7,
+      "path": "wayfarer",
+      "label": "sparse-3ch",
+      "chambers": 3,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "E-05",
+        "E-07",
+        "E-02"
+      ],
+      "bossPattern": "ash-call",
+      "placements": 182
+    },
+    {
+      "file": "layout-7-oathbreaker.json",
+      "seed": 7,
+      "path": "oathbreaker",
+      "label": "sparse-3ch",
+      "chambers": 3,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "H-05",
+        "H-07",
+        "H-02"
+      ],
+      "bossPattern": "ash-call",
+      "placements": 174
+    },
+    {
+      "file": "layout-1-wayfarer.json",
+      "seed": 1,
+      "path": "wayfarer",
+      "label": "median-4ch",
+      "chambers": 4,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "E-03",
+        "E-02",
+        "E-07",
+        "E-06"
+      ],
+      "bossPattern": "ash-call",
+      "placements": 201
+    },
+    {
+      "file": "layout-1-oathbreaker.json",
+      "seed": 1,
+      "path": "oathbreaker",
+      "label": "median-4ch",
+      "chambers": 4,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "H-03",
+        "H-02",
+        "H-07",
+        "H-06"
+      ],
+      "bossPattern": "cinder-sweep",
+      "placements": 185
+    },
+    {
+      "file": "layout-2-wayfarer.json",
+      "seed": 2,
+      "path": "wayfarer",
+      "label": "dense-5ch",
+      "chambers": 5,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "E-05",
+        "E-01",
+        "E-06",
+        "E-04",
+        "E-07"
+      ],
+      "bossPattern": "soul-tax",
+      "placements": 209
+    },
+    {
+      "file": "layout-2-oathbreaker.json",
+      "seed": 2,
+      "path": "oathbreaker",
+      "label": "dense-5ch",
+      "chambers": 5,
+      "rooms": [
+        "vestibule",
+        "plaza-link",
+        "threshold-plaza",
+        "convergence",
+        "ashen-threshold",
+        "ashen-lock",
+        "memory-vault",
+        "exit-connector",
+        "H-05",
+        "H-01",
+        "H-06",
+        "H-04",
+        "H-07"
+      ],
+      "bossPattern": "ash-call",
+      "placements": 195
+    }
+  ]
+}
