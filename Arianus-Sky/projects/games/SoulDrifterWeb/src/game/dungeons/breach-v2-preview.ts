@@ -138,6 +138,22 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
       }
     }
   }
+  // The generator only emits the selected branch corridor, but both authored
+  // choice portals must be real openings. The inactive opening is visually
+  // sealed by its closed portcullis and dense mist, never by a wall hidden
+  // behind the gate.
+  const thresholdRoom = rooms.find((room) => room.id === "threshold-plaza");
+  if (thresholdRoom) {
+    const key = `${thresholdRoom.id}:E`;
+    const spans = openings.get(key) ?? [];
+    for (const landmark of [layout.landmarks.doorWayfarer, layout.landmarks.doorOathbreaker]) {
+      const center = landmark.z - thresholdRoom.z;
+      if (!spans.some(([existing]) => Math.abs(existing - center) < 0.05)) {
+        spans.push([center, DOOR_PORTAL_W]);
+      }
+    }
+    openings.set(key, spans);
+  }
   const fixed = rooms.filter((r) => r.fixed);
   const addSharedEastWestOpening = (
     west: BreachV2Layout["rooms"][number],
@@ -420,6 +436,16 @@ async function placeSectionDoors(
           material.needsUpdate = true;
         });
       });
+    } else if (kind === "gate" && sourceModel) {
+      // The height-constrained catalog fit leaves this particular source GLB
+      // only ~2.17 m wide. Widen its dominant horizontal axis so the metal
+      // overlaps the 2.5 m stone jambs instead of leaving daylight seams.
+      sourceModel.updateMatrixWorld(true);
+      const size = new THREE.Box3().setFromObject(sourceModel, true).getSize(new THREE.Vector3());
+      const targetWidth = DOOR_PORTAL_W + 0.08;
+      if (size.z >= size.x) sourceModel.scale.z *= targetWidth / Math.max(size.z, 0.001);
+      else sourceModel.scale.x *= targetWidth / Math.max(size.x, 0.001);
+      sourceModel.updateMatrixWorld(true);
     }
     const pivot = new THREE.Group();
     pivot.name = `section-${kind}-${door.id}`;
@@ -460,7 +486,10 @@ async function placeSectionDoors(
       const smokeMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
-          uOpacity: { value: active ? 0.62 : 0.94 },
+          uOpacity: { value: active ? 0.78 : 0.96 },
+          uTint: {
+            value: new THREE.Color(door.id === "wayfarer-choice" ? 0x46d9e8 : 0xe86a3c),
+          },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -473,6 +502,7 @@ async function placeSectionDoors(
           varying vec2 vUv;
           uniform float uTime;
           uniform float uOpacity;
+          uniform vec3 uTint;
           float hash(vec2 p) {
             return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
           }
@@ -489,12 +519,12 @@ async function placeSectionDoors(
             float smoke = noise(flow) * 0.55 + noise(flow * 2.1 + 4.0) * 0.3;
             float edge = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x)
               * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
-            vec3 color = mix(vec3(0.012, 0.008, 0.018), vec3(0.20, 0.08, 0.27), smoke);
-            gl_FragColor = vec4(color, uOpacity * edge);
+            vec3 color = mix(vec3(0.008, 0.006, 0.012), uTint, 0.24 + smoke * 0.76);
+            gl_FragColor = vec4(color, uOpacity * edge * (0.20 + smoke * 0.72));
           }
         `,
         transparent: true,
-        depthWrite: true,
+        depthWrite: false,
         side: THREE.DoubleSide,
       });
       const smoke = new THREE.Mesh(

@@ -234,6 +234,11 @@ alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
   that reaches chamber 1; its lighter mist is nonblocking. The unselected gate
   stays lowered behind denser mist and cannot be entered. Reversing the chosen
   path must reverse only gate access, not remove either portal treatment.
+- Cut both choice portals out of the rendered shell even when only one branch
+  corridor is generated. A gate mounted in front of intact masonry is a hard
+  failure: nav probes can still pass through invisible collision data while
+  the player sees a wall. Fit the closed imported gate slightly into both
+  jambs so there are no daylight seams, then inspect it from inside the room.
 - Test branch thresholds with the real player radius at repeated points from
   inside the choice room to beyond the gate. A reachable endpoint cell alone
   is insufficient because an adjacent chest or prop can still block the
@@ -246,6 +251,9 @@ alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
   both change them again. Clicking a gate toggles that gate; clicking nearby
   floor must remain click-to-move and must never close an already-open gate.
   A camera-only warp is a failure.
+- Preserve fresh closed-gate, raised-gate, corridor-bend, doorway, and chamber
+  arrival screenshots for both routes. Coordinate logs alone are not visual
+  proof and may not be used to declare a dungeon handoff ready.
 - Add registry tests for wall-art/fixture footprint clearance and for staggered
   opposing-wall coordinates. A screenshot-only check does not prevent the
   same collision or mirrored-layout defect from returning in another seed.
