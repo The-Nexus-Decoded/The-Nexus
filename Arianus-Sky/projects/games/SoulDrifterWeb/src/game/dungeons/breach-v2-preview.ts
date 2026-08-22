@@ -1003,26 +1003,6 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   addBox(effigy.x, 1.35, effigy.z, 1.5, 0.18, 0.18, effigyMat);
   addBox(effigy.x, 1.95, effigy.z, 0.42, 0.5, 0.42, effigyMat);
 
-  // trial door veils
-  const veilFor = (door: { x: number; z: number }, color: number): THREE.Mesh => {
-    const veil = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.6, 2.6),
-      new THREE.MeshBasicMaterial({
-        color, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false,
-      }),
-    );
-    veil.position.set(door.x + 0.28, 1.3, door.z);
-    veil.rotation.y = Math.PI / 2;
-    group.add(veil);
-    return veil;
-  };
-  const veilW = veilFor(lm.doorWayfarer, 0x46d9e8);
-  const veilO = veilFor(lm.doorOathbreaker, 0xe86a3c);
-  tickables.push((elapsed) => {
-    (veilW.material as THREE.MeshBasicMaterial).opacity = 0.28 + Math.sin(elapsed * 1.1) * 0.07;
-    (veilO.material as THREE.MeshBasicMaterial).opacity = 0.28 + Math.cos(elapsed * 1.3) * 0.07;
-  });
-
   // First Memory: an open illuminated codex grounded on the imported ruined
   // altar. This is a readable reward object, not a floating white UI marker.
   const fm = lm.firstMemory;
