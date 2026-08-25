@@ -48,7 +48,7 @@ interface PreviewHooks {
   __dungeonLoopError: string | null;
   __dungeonStats: { calls: number; triangles: number; geometries: number; textures: number };
   __dungeonMode: string;
-  __dungeonPlayer: { x: number; z: number };
+  __dungeonPlayer: { x: number; y: number; z: number };
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonSetDoorsOpen: (open: boolean) => void;
   __dungeonKeys: Set<string>;
@@ -102,6 +102,101 @@ function texturedBox(w: number, h: number, d: number, material: THREE.Material):
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
+}
+
+interface SharedAscent {
+  axis: "x" | "z";
+  along: number;
+  width: number;
+  from: number;
+  to: number;
+  fromElevation: number;
+  toElevation: number;
+}
+
+function sharedAscents(layout: BreachV2Layout): SharedAscent[] {
+  const ascents: SharedAscent[] = [];
+  const fixedRooms = layout.rooms.filter((room) => room.fixed);
+  for (const a of fixedRooms) {
+    for (const b of fixedRooms) {
+      if (a.id >= b.id || Math.abs(a.floorElevation - b.floorElevation) < 0.01) continue;
+      const z0 = Math.max(a.z, b.z);
+      const z1 = Math.min(a.z + a.h, b.z + b.h);
+      if (z1 - z0 > 1 && (Math.abs(a.x + a.w - b.x) < 0.05 || Math.abs(b.x + b.w - a.x) < 0.05)) {
+        const west = a.x < b.x ? a : b;
+        const east = west === a ? b : a;
+        const boundary = west.x + west.w;
+        const run = Math.min(1.8, (west.floorElevation < east.floorElevation ? west.w : east.w) * 0.2);
+        ascents.push({
+          axis: "x", along: (z0 + z1) / 2,
+          width: Math.min(z1 - z0 - 1, DOOR_PORTAL_W),
+          from: west.floorElevation < east.floorElevation ? boundary - run : boundary + run,
+          to: boundary,
+          fromElevation: west.floorElevation < east.floorElevation ? west.floorElevation : east.floorElevation,
+          toElevation: west.floorElevation < east.floorElevation ? east.floorElevation : west.floorElevation,
+        });
+      }
+    }
+  }
+  return ascents;
+}
+
+function segmentElevation(
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  fromElevation: number,
+  toElevation: number,
+  x: number,
+  z: number,
+): { elevation: number; distance: number; progress: number } {
+  const dx = bx - ax;
+  const dz = bz - az;
+  const lengthSq = dx * dx + dz * dz;
+  const progress = lengthSq > 0
+    ? THREE.MathUtils.clamp(((x - ax) * dx + (z - az) * dz) / lengthSq, 0, 1)
+    : 0;
+  const px = ax + dx * progress;
+  const pz = az + dz * progress;
+  return {
+    elevation: THREE.MathUtils.lerp(fromElevation, toElevation, progress),
+    distance: Math.hypot(x - px, z - pz),
+    progress,
+  };
+}
+
+export function floorElevationAt(layout: BreachV2Layout, x: number, z: number): number {
+  for (const corridor of layout.corridors) {
+    for (let index = 0; index < corridor.points.length - 1; index += 1) {
+      const [ax, az] = corridor.points[index]!;
+      const [bx, bz] = corridor.points[index + 1]!;
+      if (Math.hypot(bx - ax, bz - az) < 0.01) continue;
+      const sample = segmentElevation(
+        ax, az, bx, bz,
+        corridor.elevations[index]!, corridor.elevations[index + 1]!,
+        x, z,
+      );
+      if (sample.distance <= corridor.width / 2 + 0.1) return sample.elevation;
+    }
+  }
+  for (const ascent of sharedAscents(layout)) {
+    const low = Math.min(ascent.from, ascent.to);
+    const high = Math.max(ascent.from, ascent.to);
+    const cross = ascent.axis === "x" ? x : z;
+    const along = ascent.axis === "x" ? z : x;
+    if (cross >= low && cross <= high && Math.abs(along - ascent.along) <= ascent.width / 2) {
+      const progress = Math.abs(cross - ascent.from) / Math.abs(ascent.to - ascent.from);
+      return THREE.MathUtils.lerp(ascent.fromElevation, ascent.toElevation, progress);
+    }
+  }
+  const room = layout.rooms.find((candidate) => (
+    x >= candidate.x - 0.05 && x <= candidate.x + candidate.w + 0.05
+    && z >= candidate.z - 0.05 && z <= candidate.z + candidate.h + 0.05
+  ));
+  if (!room) return 0;
+  const progress = room.w > 0 ? THREE.MathUtils.clamp((x - room.x) / room.w, 0, 1) : 0;
+  return THREE.MathUtils.lerp(room.floorElevation, room.endElevation, progress);
 }
 
 // ---------------------------------------------------------------------------
@@ -189,14 +284,52 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     geometry.translate(cx, cy, cz);
     bucket.push(geometry);
   };
-  const addWall = (cx: number, cz: number, sx: number, sz: number, h: number): void => {
-    pushBox(buckets.masonry, sx, h, sz, cx, h / 2, cz);
+  const addWall = (cx: number, cz: number, sx: number, sz: number, h: number, baseY: number): void => {
+    pushBox(buckets.masonry, sx, h, sz, cx, baseY + h / 2, cz);
+  };
+  let stairTreadCount = 0;
+  const addSteppedRun = (
+    ax: number,
+    az: number,
+    bx: number,
+    bz: number,
+    width: number,
+    fromElevation: number,
+    toElevation: number,
+  ): void => {
+    const length = Math.hypot(bx - ax, bz - az);
+    if (length < 0.01) return;
+    const rise = Math.abs(toElevation - fromElevation);
+    const steps = rise < 0.01 ? 1 : Math.max(2, Math.ceil(rise / 0.18));
+    const vertical = Math.abs(bx - ax) < 0.01;
+    for (let index = 0; index < steps; index += 1) {
+      const p0 = index / steps;
+      const p1 = (index + 1) / steps;
+      const elevation = THREE.MathUtils.lerp(fromElevation, toElevation, steps === 1 ? 0 : index / (steps - 1));
+      const cx = THREE.MathUtils.lerp(ax, bx, (p0 + p1) / 2);
+      const cz = THREE.MathUtils.lerp(az, bz, (p0 + p1) / 2);
+      const run = length / steps + 0.03;
+      pushBox(
+        buckets.flagstone,
+        vertical ? width : run,
+        FLOOR_T,
+        vertical ? run : width,
+        cx,
+        elevation - FLOOR_T / 2,
+        cz,
+      );
+    }
+    if (steps > 1) stairTreadCount += steps;
   };
 
   for (const room of rooms) {
     const { x: rx, z: rz, w: rw, h: rh } = room;
     const wallH = room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
-    pushBox(buckets.flagstone, rw + WALL_T * 2, FLOOR_T, rh + WALL_T * 2, rx + rw / 2, -FLOOR_T / 2, rz + rh / 2);
+    if (Math.abs(room.endElevation - room.floorElevation) < 0.01) {
+      pushBox(buckets.flagstone, rw + WALL_T * 2, FLOOR_T, rh + WALL_T * 2, rx + rw / 2, room.floorElevation - FLOOR_T / 2, rz + rh / 2);
+    } else {
+      addSteppedRun(rx, rz + rh / 2, rx + rw, rz + rh / 2, rh + WALL_T * 2, room.floorElevation, room.endElevation);
+    }
 
     const sides: Record<string, [boolean, number, number, number]> = {
       N: [true, rx - WALL_T, rz - WALL_T / 2, rw + 2 * WALL_T],
@@ -217,15 +350,32 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
         if (o0 - cursor > 0.1) {
           const segLen = o0 - cursor;
           const mid = cursor + segLen / 2;
-          if (alongX) addWall(startA + mid, fixedC, segLen, WALL_T, wallH);
-          else addWall(fixedC, startA + mid, WALL_T, segLen, wallH);
+          if (alongX && Math.abs(room.endElevation - room.floorElevation) >= 0.01) {
+            const slices = Math.max(1, Math.ceil(segLen / 1.2));
+            for (let index = 0; index < slices; index += 1) {
+              const sliceStart = cursor + (segLen * index) / slices;
+              const sliceEnd = cursor + (segLen * (index + 1)) / slices;
+              const sliceMid = (sliceStart + sliceEnd) / 2;
+              const baseY = THREE.MathUtils.lerp(room.floorElevation, room.endElevation, sliceMid / room.w);
+              addWall(startA + sliceMid, fixedC, sliceEnd - sliceStart + 0.02, WALL_T, wallH, baseY);
+            }
+          } else {
+            const baseY = alongX
+              ? THREE.MathUtils.lerp(room.floorElevation, room.endElevation, mid / room.w)
+              : side === "E" ? room.endElevation : room.floorElevation;
+            if (alongX) addWall(startA + mid, fixedC, segLen, WALL_T, wallH, baseY);
+            else addWall(fixedC, startA + mid, WALL_T, segLen, wallH, baseY);
+          }
         }
         if (o0 < length) {
           const lintelH = wallH - DOOR_LINTEL_H;
           if (lintelH > 0.05) {
             const mid = (o0 + o1) / 2;
-            if (alongX) pushBox(buckets.masonry, o1 - o0, lintelH, WALL_T, startA + mid, DOOR_LINTEL_H + lintelH / 2, fixedC);
-            else pushBox(buckets.masonry, WALL_T, lintelH, o1 - o0, fixedC, DOOR_LINTEL_H + lintelH / 2, startA + mid);
+            const baseY = alongX
+              ? THREE.MathUtils.lerp(room.floorElevation, room.endElevation, mid / room.w)
+              : side === "E" ? room.endElevation : room.floorElevation;
+            if (alongX) pushBox(buckets.masonry, o1 - o0, lintelH, WALL_T, startA + mid, baseY + DOOR_LINTEL_H + lintelH / 2, fixedC);
+            else pushBox(buckets.masonry, WALL_T, lintelH, o1 - o0, fixedC, baseY + DOOR_LINTEL_H + lintelH / 2, startA + mid);
           }
         }
         cursor = Math.max(cursor, o1);
@@ -244,21 +394,31 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
       const z0 = Math.min(az, bz);
       const z1 = Math.max(az, bz);
       if (x1 - x0 < 0.01 && z1 - z0 < 0.01) continue;
+      const fromElevation = corridor.elevations[i]!;
+      const toElevation = corridor.elevations[i + 1]!;
+      addSteppedRun(ax, az, bx, bz, w + WALL_T * 2, fromElevation, toElevation);
+      const baseY = Math.min(fromElevation, toElevation);
+      const wallHeight = WALL_H + Math.abs(toElevation - fromElevation);
       if (x1 - x0 < 0.01) {
-        pushBox(buckets.flagstone, w + WALL_T * 2, FLOOR_T, z1 - z0, ax, -FLOOR_T / 2, (z0 + z1) / 2);
-        addWall(ax - w / 2 - WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, WALL_H);
-        addWall(ax + w / 2 + WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, WALL_H);
+        addWall(ax - w / 2 - WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, wallHeight, baseY);
+        addWall(ax + w / 2 + WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, wallHeight, baseY);
       } else {
-        pushBox(buckets.flagstone, x1 - x0, FLOOR_T, w + WALL_T * 2, (x0 + x1) / 2, -FLOOR_T / 2, az);
-        addWall((x0 + x1) / 2, az - w / 2 - WALL_T / 2, x1 - x0, WALL_T, WALL_H);
-        addWall((x0 + x1) / 2, az + w / 2 + WALL_T / 2, x1 - x0, WALL_T, WALL_H);
+        addWall((x0 + x1) / 2, az - w / 2 - WALL_T / 2, x1 - x0, WALL_T, wallHeight, baseY);
+        addWall((x0 + x1) / 2, az + w / 2 + WALL_T / 2, x1 - x0, WALL_T, wallHeight, baseY);
       }
+    }
+  }
+
+  for (const ascent of sharedAscents(layout)) {
+    if (ascent.axis === "x") {
+      addSteppedRun(ascent.from, ascent.along, ascent.to, ascent.along, ascent.width, ascent.fromElevation, ascent.toElevation);
     }
   }
 
   // merge buckets into single meshes per material
   const flagstoneMesh = new THREE.Mesh(mergeGeometries(buckets.flagstone), materials.flagstone);
   flagstoneMesh.name = "shell-floors";
+  flagstoneMesh.userData = { stairTreadCount };
   flagstoneMesh.receiveShadow = true;
   shell.add(flagstoneMesh);
   const masonryMesh = new THREE.Mesh(mergeGeometries(buckets.masonry), materials.masonry);
@@ -275,7 +435,7 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     const wallH = room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
     const g = new THREE.BoxGeometry(room.w + WALL_T * 2, 0.25, room.h + WALL_T * 2);
     scaleBoxUV(g, room.w, 0.25, room.h);
-    g.translate(room.x + room.w / 2, wallH + 0.125, room.z + room.h / 2);
+    g.translate(room.x + room.w / 2, Math.max(room.floorElevation, room.endElevation) + wallH + 0.125, room.z + room.h / 2);
     ceilingGeos.push(g);
   }
   let corridorCeilingSegmentCount = 0;
@@ -291,7 +451,7 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
       const depth = vertical ? length : corridor.width + WALL_T * 2;
       const g = new THREE.BoxGeometry(width, 0.25, depth);
       scaleBoxUV(g, width, 0.25, depth);
-      g.translate((ax + bx) / 2, WALL_H + 0.125, (az + bz) / 2);
+      g.translate((ax + bx) / 2, Math.max(corridor.elevations[i]!, corridor.elevations[i + 1]!) + WALL_H + 0.125, (az + bz) / 2);
       ceilingGeos.push(g);
       corridorCeilingSegmentCount += 1;
     }
@@ -347,7 +507,7 @@ function buildArchitecturalPolish(
     cover.name = "boss-destructible-cover";
     const cx = bossRoom.x + bossRoom.w / 2;
     const cz = bossRoom.z + bossRoom.h / 2;
-    cover.position.set(cx, 0, cz);
+    cover.position.set(cx, bossRoom.floorElevation, cz);
     cover.userData = { combatCoverSet: true, lineOfSightBlockerCount: 6 };
     const coverPositions: readonly (readonly [number, number])[] = [
       [-10, -2], [-10, 3], [-5, 0], [5, 0], [10, -2], [10, 3],
@@ -429,6 +589,7 @@ async function placeSectionDoors(
     x: number;
     z: number;
     axis: "x" | "z";
+    floorY: number;
     root: THREE.Group;
     kind: "door" | "gate";
     active: boolean;
@@ -436,6 +597,7 @@ async function placeSectionDoors(
     progress: number;
   }[] = [];
   for (const [index, door] of doors.entries()) {
+    const floorY = floorElevationAt(layout, door.x, door.z);
     const kind = portcullisIds.has(door.id) ? "gate" : "door";
     const active = door.id !== "wayfarer-choice" && door.id !== "oathbreaker-choice"
       ? true
@@ -483,6 +645,7 @@ async function placeSectionDoors(
       portalX: door.x,
       portalZ: door.z,
       portalAxis: door.axis,
+      floorElevation: floorY,
     };
     instance.root.name = `section-${kind}-leaf-${door.id}`;
     const frameYaw = door.axis === "x" ? 0 : Math.PI / 2;
@@ -492,18 +655,18 @@ async function placeSectionDoors(
       // its centre. The paid model's leaf and hardware stay together.
       const closedLeafOffset = new THREE.Vector3(0, 0, DOOR_PORTAL_W / 2)
         .applyAxisAngle(new THREE.Vector3(0, 1, 0), frameYaw);
-      pivot.position.set(door.x - closedLeafOffset.x, 0, door.z - closedLeafOffset.z);
+      pivot.position.set(door.x - closedLeafOffset.x, floorY, door.z - closedLeafOffset.z);
       instance.root.position.set(0, 0, DOOR_PORTAL_W / 2);
     } else {
       // Portcullises sit centered in the opening and lift into the lintel.
       // Their open motion is vertical; they never rotate like a hinged leaf.
-      pivot.position.set(door.x, 0, door.z);
+      pivot.position.set(door.x, floorY, door.z);
       instance.root.position.set(0, 0, 0);
     }
     pivot.add(instance.root);
     scene.add(pivot);
     tickables.push(instance.animate);
-    states.push({ ...door, root: pivot, kind, active, open: false, progress: 0 });
+    states.push({ ...door, floorY, root: pivot, kind, active, open: false, progress: 0 });
 
     if (door.id === "wayfarer-choice" || door.id === "oathbreaker-choice") {
       const smokeMaterial = new THREE.ShaderMaterial({
@@ -555,7 +718,7 @@ async function placeSectionDoors(
         smokeMaterial,
       );
       smoke.name = `route-mist-${door.id}`;
-      smoke.position.set(door.x + (door.axis === "x" ? 0.34 : 0), (DOOR_LINTEL_H + 0.08) / 2,
+      smoke.position.set(door.x + (door.axis === "x" ? 0.34 : 0), floorY + (DOOR_LINTEL_H + 0.08) / 2,
         door.z + (door.axis === "z" ? 0.34 : 0));
       smoke.rotation.y = door.axis === "x" ? Math.PI / 2 : 0;
       smoke.userData = {
@@ -584,10 +747,10 @@ async function placeSectionDoors(
       const closedLeafOffset = new THREE.Vector3(0, 0, DOOR_PORTAL_W / 2)
         .applyAxisAngle(new THREE.Vector3(0, 1, 0), frameYaw);
       if (state.kind === "door") {
-        state.root.position.set(state.x - closedLeafOffset.x, 0, state.z - closedLeafOffset.z);
+        state.root.position.set(state.x - closedLeafOffset.x, state.floorY, state.z - closedLeafOffset.z);
         state.root.rotation.y = frameYaw + state.progress * (Math.PI / 2);
       } else {
-        state.root.position.set(state.x, state.progress * (DOOR_LINTEL_H + 0.42), state.z);
+        state.root.position.set(state.x, state.floorY + state.progress * (DOOR_LINTEL_H + 0.42), state.z);
         state.root.rotation.y = frameYaw;
       }
       state.root.userData.state = state.active ? (state.open ? "open" : "closed") : "sealed";
@@ -668,7 +831,7 @@ async function placeKitProps(
     }
   }
   const needsCandelabraSupports = layout.placements.some((placement) => (
-    placement.asset === "candelabra-cluster" && placement.elevation < 0.2
+    placement.asset === "candelabra-cluster" && placement.elevation - placement.floorElevation < 0.2
   ));
   const candelabraSupportSpec = DUNGEON_PROP_ASSETS["reinforced-crate"];
   if (needsCandelabraSupports && !used.has(candelabraSupportSpec.sourceUrl)) {
@@ -739,7 +902,7 @@ async function placeKitProps(
     if (!p.glbRuntime || p.asset === "heavy-door") continue;
     const spec = DUNGEON_PROP_ASSETS[p.asset as keyof typeof DUNGEON_PROP_ASSETS];
     const gltf = loaded.get(p.glbRuntime)!;
-    const needsCandleStand = p.asset === "candelabra-cluster" && p.elevation < 0.2;
+    const needsCandleStand = p.asset === "candelabra-cluster" && p.elevation - p.floorElevation < 0.2;
     const instance = instantiateDungeonProp(gltf.scene, {
       ...spec,
       targetHeight: needsCandleStand ? 0.72 : p.height,
@@ -1238,6 +1401,12 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   exitGlow.rotation.y = -Math.PI / 2;
   group.add(exitGlow);
 
+  // Landmark builders use local floor-relative Y values. Lift each authored
+  // assembly once after construction so animated children retain local motion.
+  for (const child of group.children) {
+    child.position.y += floorElevationAt(layout, child.position.x, child.position.z);
+  }
+
   return tickables;
 }
 
@@ -1284,7 +1453,7 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
       const [nx, nz] = ART_FACING_NORMAL[p.facing] ?? [0, 1];
       const yaw = Math.atan2(nx, nz);
       const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, h + 0.16, 0.08), frameMat);
-      frame.position.set(p.x, 1.65, p.z);
+      frame.position.set(p.x, p.floorElevation + 1.65, p.z);
       frame.rotation.y = yaw;
       frame.castShadow = true;
       group.add(frame);
@@ -1296,7 +1465,7 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
         artMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
       }
       const art = new THREE.Mesh(new THREE.PlaneGeometry(w, h), artMat);
-      art.position.set(p.x + nx * 0.07, 1.65, p.z + nz * 0.07);
+      art.position.set(p.x + nx * 0.07, p.floorElevation + 1.65, p.z + nz * 0.07);
       art.rotation.y = yaw;
       group.add(art);
     } else if (p.role === "readable-props") {
@@ -1350,7 +1519,7 @@ function buildCorruption(scene: THREE.Scene, layout: BreachV2Layout): void {
       [room.x + 0.12, room.z + room.h / 2, 0.06, room.h * 0.8],
     ] as const) {
       const strip = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.05, sz), mat);
-      strip.position.set(cx, 0.06, cz);
+      strip.position.set(cx, floorElevationAt(layout, cx, cz) + 0.06, cz);
       group.add(strip);
     }
   }
@@ -1387,19 +1556,19 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   // trial-door accents: cyan over Wayfarer, ember over Oathbreaker
   for (const [lm, color] of [[layout.landmarks.doorWayfarer, 0x46d9e8], [layout.landmarks.doorOathbreaker, 0xe86a3c]] as const) {
     const doorLight = new THREE.PointLight(color, 8, 9, 1.6);
-    doorLight.position.set(lm.x - 1.2, 2.6, lm.z);
+    doorLight.position.set(lm.x - 1.2, lm.elevation + 2.6, lm.z);
     scene.add(doorLight);
   }
   const vestibuleExitLight = new THREE.PointLight(0xffa35c, 10, 11, 1.65);
   vestibuleExitLight.name = "vestibule-exit-read-light";
-  vestibuleExitLight.position.set(27.2, 2.35, 11);
+  vestibuleExitLight.position.set(27.2, floorElevationAt(layout, 27.2, 11) + 2.35, 11);
   scene.add(vestibuleExitLight);
   // the "first outdoor moment": daylight spilling west into the Way Upward
   const exitSpec = layout.lights.find((l) => l.id === "exit-daylight");
   if (exitSpec) {
     const day = new THREE.SpotLight(0xd7e7c7, 22, 34, Math.PI / 3.0, 0.6, 1.25);
-    day.position.set(exitSpec.x + 4, 3.4, exitSpec.z);
-    day.target.position.set(exitSpec.x - 12, 1.0, exitSpec.z);
+    day.position.set(exitSpec.x + 4, exitSpec.y + 0.4, exitSpec.z);
+    day.target.position.set(exitSpec.x - 12, floorElevationAt(layout, exitSpec.x - 12, exitSpec.z) + 1.0, exitSpec.z);
     scene.add(day, day.target);
   }
   // wall-map accent lights so the readable art reads (§5A) — maps brightest
@@ -1409,7 +1578,7 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
     if (!isMap) continue;
     const [nx, nz] = ART_FACING_NORMAL[p.facing] ?? [0, 1];
     const artLight = new THREE.PointLight(0xfff0d8, isMap ? 3.4 : 1.6, isMap ? 7 : 5, 1.7);
-    artLight.position.set(p.x + nx * 1.2, 2.5, p.z + nz * 1.2);
+    artLight.position.set(p.x + nx * 1.2, p.floorElevation + 2.5, p.z + nz * 1.2);
     scene.add(artLight);
   }
 }
@@ -1420,16 +1589,16 @@ function cameraPresets(layout: BreachV2Layout): Record<string, CameraPreset> {
   const lm = layout.landmarks;
   const firstChamber = layout.rooms.find((r) => !r.fixed) ?? layout.rooms[0]!;
   return {
-    vestibule: { target: [lm.soulWell.x, 0.8, lm.soulWell.z], offset: [10.5, 6.2, 9.0] },
-    isometric: { target: [lm.playerStart.x, 0.8, lm.playerStart.z], offset: [10.5, 12.5, 10.5] },
-    plaza: { target: [lm.doorWayfarer.x - 4, 1.2, lm.doorWayfarer.z + 3.5], offset: [-9, 3.4, 0.5] },
+    vestibule: { target: [lm.soulWell.x, lm.soulWell.elevation + 0.8, lm.soulWell.z], offset: [10.5, 6.2, 9.0] },
+    isometric: { target: [lm.playerStart.x, lm.playerStart.elevation + 0.8, lm.playerStart.z], offset: [10.5, 12.5, 10.5] },
+    plaza: { target: [lm.doorWayfarer.x - 4, lm.doorWayfarer.elevation + 1.2, lm.doorWayfarer.z + 3.5], offset: [-9, 3.4, 0.5] },
     gallery: {
-      target: [firstChamber.x + firstChamber.w / 2, 1.0, firstChamber.z + firstChamber.h / 2],
+      target: [firstChamber.x + firstChamber.w / 2, firstChamber.floorElevation + 1.0, firstChamber.z + firstChamber.h / 2],
       offset: [-6.5, 4.4, -5.0],
     },
-    boss: { target: [layout.boss.x, 1.2, layout.boss.z], offset: [-9.5, 5.4, -6.5] },
-    exit: { target: [lm.exitPoint.x - 2, 1.4, lm.exitPoint.z], offset: [-10.5, 3.2, 0.2] },
-    overview: { target: [130, 0, 12], offset: [0, 165, -46] },
+    boss: { target: [layout.boss.x, layout.boss.elevation + 1.2, layout.boss.z], offset: [-9.5, 5.4, -6.5] },
+    exit: { target: [lm.exitPoint.x - 2, lm.exitPoint.elevation + 1.4, lm.exitPoint.z], offset: [-10.5, 3.2, 0.2] },
+    overview: { target: [130, 4, 12], offset: [0, 165, -46] },
   };
 }
 
@@ -1540,7 +1709,14 @@ export async function startDungeonPreview(
   const requestedPosition = requestedRoom && requestedRoom.id !== "vestibule"
     ? nearestWalkable(requestedRoom.x + requestedRoom.w / 2, requestedRoom.z + requestedRoom.h / 2, true)
     : nearestWalkable(layout.landmarks.playerStart.x, layout.landmarks.playerStart.z);
-  const playerPos = new THREE.Vector3(requestedPosition[0], 0, requestedPosition[1]);
+  const playerPos = new THREE.Vector3(
+    requestedPosition[0],
+    floorElevationAt(layout, requestedPosition[0], requestedPosition[1]),
+    requestedPosition[1],
+  );
+  const setPlayerPosition = (x: number, z: number): void => {
+    playerPos.set(x, floorElevationAt(layout, x, z), z);
+  };
   let camYaw = isometricMode ? Math.PI / 4 : 0.08;
   let camPitch = isometricMode ? 0.76 : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? 14.5 : 4.4;
@@ -1558,13 +1734,11 @@ export async function startDungeonPreview(
     player.castShadow = true;
     player.visible = !firstPersonMode;
     scene.add(player);
-    player.position.set(playerPos.x, 0.85, playerPos.z);
+    player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
     const pointerRaycaster = new THREE.Raycaster();
     const pointerNdc = new THREE.Vector2();
-    const walkPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const clickPoint = new THREE.Vector3();
     const pickWalkPoint = (clientX: number, clientY: number): THREE.Vector3 | null => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerNdc.set(
@@ -1572,7 +1746,8 @@ export async function startDungeonPreview(
         -((clientY - rect.top) / rect.height) * 2 + 1,
       );
       pointerRaycaster.setFromCamera(pointerNdc, camera);
-      return pointerRaycaster.ray.intersectPlane(walkPlane, clickPoint) ? clickPoint.clone() : null;
+      return pointerRaycaster.intersectObject(shellGroup, true)
+        .find((intersection) => intersection.object.name === "shell-floors")?.point.clone() ?? null;
     };
     const setClickDestination = (point: THREE.Vector3): void => {
       const [targetX, targetZ] = nearestWalkable(point.x, point.z);
@@ -1580,7 +1755,11 @@ export async function startDungeonPreview(
       const targetCell = { x: Math.floor(targetX / NAV), y: Math.floor(targetZ / NAV) };
       const cells = findPath(startCell, targetCell, (cell) => isWalkable((cell.x + 0.5) * NAV, (cell.y + 0.5) * NAV));
       clickPath.splice(0, clickPath.length, ...cells.map((cell) => (
-        new THREE.Vector3((cell.x + 0.5) * NAV, 0, (cell.y + 0.5) * NAV)
+        new THREE.Vector3(
+          (cell.x + 0.5) * NAV,
+          floorElevationAt(layout, (cell.x + 0.5) * NAV, (cell.y + 0.5) * NAV),
+          (cell.y + 0.5) * NAV,
+        )
       )));
     };
     renderer.domElement.addEventListener("pointerdown", (e) => {
@@ -1641,10 +1820,10 @@ export async function startDungeonPreview(
   hooks.__dungeonLoopError = null;
   hooks.__dungeonStats = { calls: 0, triangles: 0, geometries: 0, textures: 0 };
   hooks.__dungeonMode = walkMode ? "walk" : "orbit";
-  hooks.__dungeonPlayer = { x: playerPos.x, z: playerPos.z };
+  hooks.__dungeonPlayer = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
-    playerPos.set(x, 0, z);
+    setPlayerPosition(x, z);
     return true;
   };
   hooks.__dungeonSetDoorsOpen = (open) => sectionDoors.setAllOpen(open);
@@ -1653,7 +1832,7 @@ export async function startDungeonPreview(
   const warp = (x: number, z: number): boolean => {
     const [walkX, walkZ] = nearestWalkable(x, z, true);
     if (walkMode) {
-      playerPos.set(walkX, 0, walkZ);
+      setPlayerPosition(walkX, walkZ);
       return true;
     }
     // The dev panel handles a false result by reloading this destination in
@@ -1701,7 +1880,7 @@ export async function startDungeonPreview(
       detailCullables.forEach((object) => { object.visible = false; });
       return;
     }
-    if (walkMode) cullOrigin.set(playerPos.x, 0, playerPos.z);
+    if (walkMode) cullOrigin.copy(playerPos);
     else cullOrigin.set(controls.target.x, 0, controls.target.z);
     const radius = isometricMode ? 44 : 38;
     const radiusSq = radius * radius;
@@ -1757,11 +1936,11 @@ export async function startDungeonPreview(
           const nx = playerPos.x + move.x;
           const nz = playerPos.z + move.z;
           if (isWalkable(nx, nz)) {
-            playerPos.set(nx, 0, nz);
+            setPlayerPosition(nx, nz);
           } else if (isWalkable(nx, playerPos.z)) {
-            playerPos.set(nx, 0, playerPos.z); // slide along walls
+            setPlayerPosition(nx, playerPos.z); // slide along walls
           } else if (isWalkable(playerPos.x, nz)) {
-            playerPos.set(playerPos.x, 0, nz);
+            setPlayerPosition(playerPos.x, nz);
           }
           player.rotation.y = Math.atan2(move.x, move.z);
         } else if (clickPath.length > 0) {
@@ -1769,21 +1948,24 @@ export async function startDungeonPreview(
           const dx = target.x - playerPos.x;
           const dz = target.z - playerPos.z;
           const distance = Math.hypot(dx, dz);
-          if (distance <= step) {
-            playerPos.set(target.x, 0, target.z);
-            clickPath.shift();
+          const nextX = distance <= step ? target.x : playerPos.x + (dx / distance) * step;
+          const nextZ = distance <= step ? target.z : playerPos.z + (dz / distance) * step;
+          if (isWalkable(nextX, nextZ)) {
+            setPlayerPosition(nextX, nextZ);
+            if (distance <= step) clickPath.shift();
           } else {
-            playerPos.x += (dx / distance) * step;
-            playerPos.z += (dz / distance) * step;
+            // Door state may have changed after the path was planned. Never let
+            // click movement coast through a newly closed portal.
+            clickPath.length = 0;
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
-        player.position.set(playerPos.x, 0.85, playerPos.z);
+        player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
         if (firstPersonMode) {
-          camera.position.set(playerPos.x, 1.62, playerPos.z);
+          camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
           cameraTarget.set(
             playerPos.x - Math.sin(camYaw) * Math.cos(camPitch),
-            1.62 - Math.sin(camPitch),
+            playerPos.y + 1.62 - Math.sin(camPitch),
             playerPos.z - Math.cos(camYaw) * Math.cos(camPitch),
           );
           camera.lookAt(cameraTarget);
@@ -1791,10 +1973,10 @@ export async function startDungeonPreview(
           const cp = Math.cos(camPitch);
           desiredCamera.set(
             playerPos.x + Math.sin(camYaw) * camDist * cp,
-            1.4 + Math.sin(camPitch) * camDist,
+            playerPos.y + 1.4 + Math.sin(camPitch) * camDist,
             playerPos.z + Math.cos(camYaw) * camDist * cp,
           );
-          cameraTarget.set(playerPos.x, 1.4, playerPos.z);
+          cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
           if (isometricMode) {
             camera.position.copy(desiredCamera);
           } else {
@@ -1812,6 +1994,7 @@ export async function startDungeonPreview(
           camera.lookAt(cameraTarget);
         }
         hooks.__dungeonPlayer.x = playerPos.x;
+        hooks.__dungeonPlayer.y = playerPos.y;
         hooks.__dungeonPlayer.z = playerPos.z;
       } else {
         controls.update();
@@ -1834,7 +2017,7 @@ export async function startDungeonPreview(
       hud.textContent =
         `breach-v2 preview  seed ${options.seed}  path ${options.path}  ${walkMode ? `${firstPersonMode ? "FIRST PERSON" : isometricMode ? "ISOMETRIC" : "THIRD PERSON"} — click floor or WASD move · F/tap door · drag camera · wheel zoom · Q/E rotate · shift sprint` : `cam ${options.cam}`}  ${fpsText}\n` +
         `chambers ${layout.meta.chamberCount} (${layout.rooms.filter((r) => !r.fixed).map((r) => ("poolRoomId" in r ? r.poolRoomId : r.id)).join(", ")})  ` +
-        `boss ${layout.boss.pattern}${walkMode ? `  ·  at (${playerPos.x.toFixed(1)}, ${playerPos.z.toFixed(1)})` : ""}\n` +
+        `boss ${layout.boss.pattern}${walkMode ? `  ·  at (${playerPos.x.toFixed(1)}, ${playerPos.y.toFixed(1)}↑, ${playerPos.z.toFixed(1)})` : ""}\n` +
         `calls ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +
         `textures ${hooks.__dungeonStats.textures}`;
     } catch (error) {
