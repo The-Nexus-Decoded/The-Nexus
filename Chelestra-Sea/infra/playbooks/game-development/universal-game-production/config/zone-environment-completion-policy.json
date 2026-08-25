@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "policyId": "universal-zone-environment-completion-v1",
+  "stageOrder": [
+    "DESIGN_AND_PURPOSE",
+    "TOPOLOGY_AND_TRAVERSAL",
+    "SHELL_SURFACES_VOLUMES",
+    "ENVIRONMENT_STAGING_PROP_PLACEMENT",
+    "PROP_COMPLETE_COLLISION_DISCOVERY",
+    "COLLISION_IMPLEMENTATION_REGRESSION",
+    "INTERACTION_PICKUP_DESTRUCTION",
+    "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
+    "INDEPENDENT_ENVIRONMENT_VERIFICATION",
+    "SEPARATE_POPULATION_GAMEPLAY_PHASE"
+  ],
+  "orderingRules": {
+    "propsBeforeFinalCollisionWalkthrough": true,
+    "emptyShellWalkthroughMaySubstitute": false,
+    "navigationMaySubstituteForCollision": false,
+    "collisionBeforeInteractionDestructionAcceptance": true,
+    "interactionDestructionBeforeFinalWalkthrough": true,
+    "environmentVerifiedBeforePopulation": true,
+    "producerMaySelfVerify": false
+  },
+  "baseObjectClasses": [
+    "STRUCTURAL_SOLID",
+    "STATEFUL_THRESHOLD",
+    "INTERACTABLE_CONTAINER",
+    "DESTRUCTIBLE_SOLID_PROP",
+    "PROTECTED_PROP_OR_STRUCTURE",
+    "QUEST_DESTRUCTIBLE",
+    "PICKUP_TRIGGER",
+    "SOFT_OR_COSMETIC_NONBLOCKING",
+    "HAZARD_OR_SPECIAL_VOLUME"
+  ],
+  "requiredPlacementClassifications": [
+    "collisionClass",
+    "interactionClass",
+    "destructionClass",
+    "protectionReasonWhenApplicable",
+    "performanceClass"
+  ],
+  "environmentPopulationBoundary": {
+    "environmentOwns": [
+      "TOPOLOGY",
+      "SHELL",
+      "ENVIRONMENT_PROPS",
+      "COLLISION",
+      "BASE_INTERACTIONS",
+      "BASE_DESTRUCTION",
+      "DETERMINISTIC_TEST_CONTENTS",
+      "ENVIRONMENT_VERIFICATION"
+    ],
+    "populationOwns": [
+      "NPC_CREATURE_SPAWNS",
+      "PATROLS_AND_AI",
+      "ENCOUNTERS_RANDOM_ENCOUNTERS_RESPAWN",
+      "QUEST_ACTORS_DIALOGUE_OBJECTIVES",
+      "PRODUCTION_LOOT_DROP_TABLES",
+      "POPULATION_PERSISTENCE_NETWORKING"
+    ],
+    "populationMaySilentlyAlterVerifiedEnvironment": false
+  }
+}
