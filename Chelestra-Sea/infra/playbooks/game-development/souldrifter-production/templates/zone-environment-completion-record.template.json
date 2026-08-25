@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-zone-environment-completion-v1",
+  "ticket": 0,
+  "commit": "",
+  "zoneId": "",
+  "seedOrVariant": "",
+  "stages": [
+    {
+      "stage": "DESIGN_CONTRACT",
+      "status": "NOT_STARTED",
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "TOPOLOGY_AND_CONNECTIONS",
+      "status": "NOT_STARTED",
+      "topologyRecord": "",
+      "connectionRecords": [],
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "SHARED_SHELL_SURFACES_VOLUMES",
+      "status": "NOT_STARTED",
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "ENVIRONMENT_STAGING_PROP_PLACEMENT",
+      "status": "NOT_STARTED",
+      "spacePurposeProfiles": [],
+      "semanticPlacementMaps": [],
+      "placedObjectCount": 0,
+      "unclassifiedObjectCount": 0,
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "PROP_COMPLETE_WALKTHROUGH_COLLISION_DISCOVERY",
+      "status": "NOT_STARTED",
+      "testedProfiles": [],
+      "routes": [],
+      "collisionDefects": [],
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "COLLISION_IMPLEMENTATION_REGRESSION",
+      "status": "NOT_STARTED",
+      "positiveCollisionChecks": [],
+      "negativeCollisionChecks": [],
+      "cameraChecks": [],
+      "remainingDefects": [],
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "INTERACTION_PICKUP_DESTRUCTION",
+      "status": "NOT_STARTED",
+      "containerChecks": [],
+      "pickupChecks": [],
+      "destructionChecks": [],
+      "protectedObjectChecks": [],
+      "persistenceChecks": [],
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
+      "status": "NOT_STARTED",
+      "desktopRoutes": [],
+      "mobileRoutes": [],
+      "realGpu": "NOT_RUN",
+      "performance": {},
+      "saveReload": "NOT_RUN",
+      "consoleErrors": [],
+      "producerEvidence": [],
+      "verifierStatus": "NOT_RUN"
+    },
+    {
+      "stage": "INDEPENDENT_ENVIRONMENT_VERIFICATION",
+      "status": "NOT_STARTED",
+      "verifier": "",
+      "result": "NOT_RUN",
+      "evidence": [],
+      "findings": []
+    },
+    {
+      "stage": "SEPARATE_ZONE_POPULATION_GAMEPLAY_TICKET",
+      "status": "NOT_STARTED",
+      "ticketId": "",
+      "environmentDependencyCommit": "",
+      "allowedEnvironmentChanges": false
+    }
+  ],
+  "objects": [
+    {
+      "objectId": "",
+      "assetId": "",
+      "spatialNodeId": "",
+      "spacePurposeProfile": "",
+      "semanticZone": "",
+      "collisionClass": "",
+      "interactionClass": "",
+      "destructionClass": "",
+      "protectionReason": "",
+      "placementStatus": "NOT_RUN",
+      "collisionStatus": "NOT_RUN",
+      "interactionStatus": "NOT_RUN",
+      "destructionStatus": "NOT_RUN",
+      "persistenceStatus": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "metrics": {
+    "criticalTraversalLaneObstructions": 0,
+    "thresholdClearanceViolations": 0,
+    "floatingOrUnsupportedProps": 0,
+    "unintendedPropIntersections": 0,
+    "unclassifiedCollisionObjects": 0,
+    "unclassifiedInteractionObjects": 0,
+    "unclassifiedDestructionObjects": 0,
+    "positiveCollisionFailures": 0,
+    "negativeCollisionFailures": 0,
+    "interactionFailures": 0,
+    "destructionFailures": 0,
+    "persistenceFailures": 0,
+    "softLocks": 0
+  },
+  "producerStatus": "NOT_STARTED",
+  "independentVerification": "NOT_RUN",
+  "environmentStatus": "NOT_STARTED"
+}
