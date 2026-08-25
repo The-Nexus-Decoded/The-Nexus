@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-25-master-v12`
+**Context version:** `2026-08-25-master-v13`
 
 Mandatory entry point for M3, Claude Code, ChatGPT/Codex and future SoulDrifter workers.
 
@@ -17,7 +17,7 @@ Current production workflow comes from:
 - `Chelestra-Sea/infra/playbooks/game-development/universal-game-production/`
 - `Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/`
 
-`Arianus-Sky/projects/games/SoulDrifterWeb/` is the runtime/data/asset/test implementation target. Legacy SKY runbooks may be implementation references but cannot override the current SEA harness.
+`Arianus-Sky/projects/games/SoulDrifterWeb/` is the runtime/data/asset/test implementation target. Legacy SKY runbooks may inform implementation but cannot override the current SEA harness.
 
 ## Bootstrap frequency
 
@@ -41,31 +41,37 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 1. Auto-discover/reuse the ticket worktree through `AUTO_DISCOVER_WORKSPACE.md`.
 2. Load persistent toolchain/provider receipts.
 3. Run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only when required.
-4. For procedural/randomized or traversal-heavy levels, read:
+4. For every zone/environment ticket, read:
+   - `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`
+   - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`
+   - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
+   - `config/zone-environment-completion-policy.json`
+   - `templates/zone-environment-completion-record.template.json`
+5. For procedural/randomized or traversal-heavy levels, also read:
    - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
    - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
    - `config/dungeon-topology-policy.json`
    - `config/spatial-connection-policy.json`
    - `templates/dungeon-topology-record.template.json`
    - `templates/spatial-connection-record.template.json`
-5. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-6. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
-7. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
-8. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
-9. Read repository `AGENTS.md`.
-10. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
-11. Read the assigned issue and every current comment.
-12. Read related PR(s), all comments/reviews and live head.
-13. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
-14. Read the ticket kickoff under `kickoffs/` when one exists.
-15. Inspect actual worktree/branch/recent commits.
-16. Return Session + Context Receipts before editing.
+6. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+7. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
+8. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
+9. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
+10. Read repository `AGENTS.md`.
+11. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
+12. Read the assigned issue and every current comment.
+13. Read related PR(s), all comments/reviews and live head.
+14. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
+15. Read the ticket kickoff under `kickoffs/` when one exists.
+16. Inspect actual worktree/branch/recent commits.
+17. Return Session + Context Receipts before editing.
 
 ## Session Receipt — every chat
 
 ```text
 SOULDRIFTER SESSION RECEIPT
-contextVersion: 2026-08-25-master-v12
+contextVersion: 2026-08-25-master-v13
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 ticket: <issue>
 branch: <branch>
@@ -76,6 +82,9 @@ toolchainReceiptId: <id>
 toolchainReceiptStatus: CACHED_PASS | REFRESH_REQUIRED | BLOCKED
 projectUsageMode: NONCOMMERCIAL_POC | COMMERCIAL | UNKNOWN
 requiredLanes:
+  zoneEnvironmentPipeline: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  environmentStaging: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  collisionInteractionDestruction: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   proceduralTopology: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   spatialTraversalContracts: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   imageReferenceBakeoff: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
@@ -95,7 +104,7 @@ blockingIssues: []
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-25-master-v12
+contextVersion: 2026-08-25-master-v13
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -106,6 +115,9 @@ worktree: <absolute path>
 gameRoot: Arianus-Sky/projects/games/SoulDrifterWeb
 sessionReceipt: PASS/BLOCKED
 cachedToolchainReceipt: PASS/REFRESH_REQUIRED/BLOCKED
+zoneEnvironmentPipelineLoaded: yes/no/not-required
+environmentStagingPolicyLoaded: yes/no/not-required
+collisionInteractionDestructionPolicyLoaded: yes/no/not-required
 proceduralTopologyPolicyLoaded: yes/no/not-required
 spatialConnectionCatalogLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
@@ -119,7 +131,96 @@ plannedScope: <concise scope>
 
 No valid Session Receipt + Context Receipt means no implementation.
 
-## Procedural topology and traversal rule
+---
+
+# Canonical zone/environment completion order
+
+Every zone/environment follows this stage order:
+
+```text
+0. design and purpose contract
+1. topology and connection solver
+2. shared shell / surfaces / traversal volumes
+3. semantic environment staging and prop placement
+4. prop-complete real-character walkthrough / collision discovery
+5. collision implementation and regression
+6. interaction / pickup / destruction
+7. final integrated environment walkthrough
+8. independent environment verification
+9. separate zone-population / gameplay ticket
+```
+
+Important distinctions:
+
+- Structural collision intent and navigation may be derived from topology during shell construction.
+- **Final collision acceptance happens only after the full intended prop set is placed.**
+- An empty-shell traversal cannot prove the staged level is collision-safe.
+- Environment staging and gameplay population are separate.
+- Chests, furniture, paintings, statues, crates, wall fixtures and environmental storytelling belong in the environment ticket.
+- Live NPCs/monsters, random encounters, patrols, quests, production loot/drop tables and population tuning belong in the later population ticket.
+
+Every placed object must have collision, interaction and destruction classification before the prop-complete walkthrough.
+
+---
+
+# Environment staging rule
+
+A space must be staged according to what it is.
+
+Examples:
+
+- a house needs believable sleeping, storage, food/hearth, seating, lighting and personal-use areas;
+- a shop needs counters, display/stock, storage, signage, work space and customer circulation;
+- a workshop needs tools, stations, raw materials, storage, waste and safety systems;
+- a dungeon/crypt needs appropriate cages, chains, remains, rubble, altars, braziers, containers, wall art, warnings, hidden-route candidates, breakable clutter and evidence of its occupants;
+- a biome pocket or mega-zone needs terrain landmarks, local subregions, routes, streaming cells and environmental systems—not uniform prop scatter.
+
+Placement order:
+
+```text
+structural fixtures
+-> functional furniture/equipment
+-> containers and cover
+-> wall/ceiling/hanging objects
+-> environmental storytelling
+-> small clutter
+-> hidden/secret candidates
+```
+
+Do not collision-test before the staged prop set is frozen.
+
+---
+
+# Collision, interaction and destruction rule
+
+The prop-complete walkthrough uses the actual playable controller/model and discovers:
+
+- missing collision on visible solids;
+- invisible blockers;
+- collider/mesh mismatch;
+- tunneling;
+- camera clipping;
+- props that trap or block the player;
+- click-to-move/WASD disagreement;
+- large-body visual clipping.
+
+Then collision is repaired and regression-tested before interaction/destruction acceptance.
+
+SoulDrifter uses a **maximum-destructibility environment**:
+
+- ordinary nonstructural props should be destructible or detachable where practical;
+- chests/containers must open and transfer contents correctly;
+- pickups must transfer once without duplication;
+- crates, barrels, furniture, pottery, bones, loose cover and noncritical wall fixtures should break/detach when allowed;
+- iron/steel structures, progression-critical doors, structural shell and required quest mechanisms are protected by default;
+- quest/story destruction requires an explicit authored `QUEST_DESTRUCTIBLE` state;
+- every object must have a working contract or an explicit protection/noninteraction reason.
+
+Final environment acceptance requires a full staged walkthrough with collision, interactions, destruction, persistence and performance all active together.
+
+---
+
+# Procedural topology and traversal rule
 
 A generated level is a graph of **spatial nodes**, not necessarily rectangular rooms. A node may be a chamber, cavern, shaft, water volume, underwater tunnel, air pocket, biome pocket, labyrinth, mega-zone or transforming living-dungeon region.
 
@@ -130,23 +231,14 @@ logical graph and explicit traversal contracts
 -> constructive edge-by-edge spatial embedding
 -> canonical boundaries, surfaces and volumes
 -> actual-geometry plan/section/volume/state diagnostics
--> runtime geometry/collision/navigation/movement states
--> gameplay/dressing/FX
+-> shared shell and structural movement intent
+-> environment staging
+-> prop-complete collision/interaction/destruction gates
 ```
 
 Do not render sealed modules first and connect them afterward.
 
-Every edge declares:
-
-- connection type;
-- physical or nonphysical;
-- movement mode and medium;
-- directionality and lock/state requirements;
-- source/destination geometry, surface or volume;
-- collision/navigation ownership;
-- controller, animation and camera transitions;
-- stamina/oxygen/hazard/failure/recovery rules;
-- AI/companion, save/reload, streaming and network behavior where applicable.
+Every edge declares connection type, physical/nonphysical status, movement mode, medium, directionality, geometry/surface/volume, collision/navigation ownership, controller/camera/animation transitions, resources/hazards, recovery, AI, persistence and evidence.
 
 Use top-down diagnostics for horizontal connections, sections/elevations for vertical routes, 3D volume/slice evidence for water/air-pocket routes, and state sequences for moving or living-dungeon topology.
 
@@ -158,7 +250,7 @@ The current First Breach contains **no magical teleport or `PORTAL_TRANSFER` edg
 
 Its route gates, physical corridors, stairs/landings and walk-through Soulwell water veil are continuous physical connections. Code or mesh labels containing `portal` do not change the traversal type.
 
-The randomized branch is generated after the player selects Wayfarer or Oathbreaker and before selected gallery-room meshes render:
+The randomized branch is generated after the player selects Wayfarer or Oathbreaker and before selected gallery meshes render:
 
 ```text
 fixed Soul Well + vestibule + Threshold Plaza
@@ -169,7 +261,9 @@ fixed Soul Well + vestibule + Threshold Plaza
 -> validate and backtrack
 -> freeze plan
 -> render one shared shell
--> collision/navigation/gameplay/dressing/FX
+-> audit/freeze existing staging
+-> prop-complete walkthrough
+-> collision and interaction/destruction verification
 ```
 
 ## Image/reference policy
