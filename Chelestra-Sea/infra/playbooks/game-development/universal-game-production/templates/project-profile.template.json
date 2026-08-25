@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "projectId": "replace-me",
+  "repository": {
+    "identity": "owner/repository",
+    "mainCheckoutHint": "",
+    "worktreeRootHint": ""
+  },
+  "engine": {
+    "id": "threejs|unity|unreal|godot|custom",
+    "version": "",
+    "languages": [],
+    "runtimeModules": []
+  },
+  "platforms": [],
+  "inputs": [],
+  "gameModes": [],
+  "selectedModules": {
+    "genre": [],
+    "platform": [],
+    "engine": [],
+    "providers": [],
+    "dcc": [],
+    "networking": [],
+    "release": []
+  },
+  "projectOverlay": "PROJECT_OVERLAY.md",
+  "toolchain": {
+    "stateRoot": "H:\\CodexData\\game-production-toolchain",
+    "receiptPath": "H:\\CodexData\\game-production-toolchain\\receipts\\production-toolchain.json",
+    "cachePolicy": "config/onboarding-cache-policy.json",
+    "fullBootstrapOnlyOnInvalidation": true
+  },
+  "conceptImagePolicy": {
+    "hostLlmFirst": true,
+    "allow3DProvider2DImageCreditsByDefault": false
+  },
+  "providerPolicy": {
+    "exactOwnerApprovalBeforePaidOperation": true,
+    "liveBalanceAndPricingRefresh": true,
+    "unapprovedAutomaticRetries": false,
+    "selectedAdapters": []
+  },
+  "animationPolicy": {
+    "directAcceptedProviderPresetRequiresBakeoff": false,
+    "dualCustomAnimationBakeoff": true,
+    "candidateLanes": [
+      "HOUDINI_KINEFX",
+      "BLENDER"
+    ],
+    "blindAiReview": true,
+    "ownerFinalCreativeDecision": true,
+    "preserveAllCandidatesAndMetrics": true
+  },
+  "performanceBudgets": {},
+  "saveNetworkRelease": {},
+  "ownerOnlyGates": [
+    "paid_provider_operation",
+    "merge",
+    "deploy",
+    "release"
+  ]
+}
