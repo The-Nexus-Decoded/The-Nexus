@@ -37,14 +37,14 @@
       "description": "Ashen Lock -> First Memory Vault -> Way Upward -> Heartvale is one sequential physical route matching the flat map.",
       "priority": "critical",
       "dependencies": ["451-P0A-PORTALS"],
-      "producer": null,
-      "status": "NOT_STARTED",
+      "producer": "chatgpt-codex",
+      "status": "IMPLEMENTED_UNVERIFIED",
       "automated_checks": ["ordered post-boss connector graph", "source/destination socket assertions"],
       "runtime_checks": ["boss room to memory", "memory to Way Upward", "Way Upward to Heartvale threshold"],
       "visual_evidence": ["each post-boss threshold from both sides", "corridor midpoint", "exit daylight continuity"],
       "verifier": "independent-verifier",
-      "verification": { "status": "NOT_RUN", "commit": null, "notes": null },
-      "blockers": ["Current generator emits boss-vault and boss-exit connectors without an explicit memory-vault-to-exit sequence; confirm and repair against the flat map."]
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Producer generator suite passed 12/12 and asserts the ordered connector topology while forbidding the former direct boss-exit bypass; independent runtime verification remains required." },
+      "blockers": []
     },
     {
       "id": "451-P0B-COLLISION",

@@ -94,27 +94,27 @@
       "from": "Ashen Lock / Cinderbound Warden",
       "to": "First Memory Vault",
       "required": ["boss-defeat unlock", "source aperture", "door", "continuous corridor", "vault aperture", "collision/nav", "First Memory reachable once"],
-      "producerStatus": "NEEDS_AUDIT",
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
       "verifierStatus": "NOT_RUN",
-      "notes": "Generator contains boss-vault geometry, but the complete defeat-to-memory runtime sequence is unproven."
+      "notes": "The boss-vault connector now participates in the explicit sequential post-boss graph; defeat-state runtime proof remains outstanding."
     },
     {
       "id": "451-EDGE-09",
       "from": "First Memory Vault",
       "to": "Way Upward",
       "required": ["memory completion unlock", "vault source aperture", "door", "continuous corridor or shared opening", "Way Upward destination aperture", "collision/nav", "WASD", "click-to-move"],
-      "producerStatus": "NOT_STARTED",
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
       "verifierStatus": "NOT_RUN",
-      "notes": "Primary Phase 2 risk: current generator has no explicit vault-to-exit connector even though the flat map requires this sequence."
+      "notes": "The vault-exit connector now joins the vault south aperture to the Way Upward north aperture; physical shell and runtime traversal remain unverified."
     },
     {
       "id": "451-EDGE-10",
       "from": "Way Upward",
       "to": "Heartvale hv-1 threshold",
       "required": ["source aperture", "continuous exit shell", "Heartvale threshold aperture", "collision/nav", "daylight/material continuity", "player traversal", "save/reload exit state"],
-      "producerStatus": "NEEDS_AUDIT",
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
       "verifierStatus": "NOT_RUN",
-      "notes": "World anchor exists; complete runtime transition remains unverified."
+      "notes": "The heartvale-exit connector now continues east through the Heartvale threshold; transition and save/reload remain unverified."
     }
   ],
   "requiredRouteRuns": [

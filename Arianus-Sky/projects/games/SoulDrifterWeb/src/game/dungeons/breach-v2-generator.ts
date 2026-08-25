@@ -230,8 +230,12 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   };
   link("conv-ante", [188, 10], [192, 10], 3.2);
   link("ante-boss", [204, 10], [208, 10], 3.2);
-  link("boss-vault", [238, 7], [242, 7], 2.5);   // sealed until the Warden falls (state, not geometry)
-  link("boss-exit", [238, 15], [242, 15], 2.5);
+  // The authored post-boss spine is sequential: Ashen Lock -> First Memory
+  // Vault -> Way Upward -> Heartvale. Unlocking is runtime state; these
+  // connectors describe the physical topology and must not bypass the vault.
+  link("boss-vault", [238, 7], [242, 7], 2.5);
+  link("vault-exit", [247, 11], [247, 12], 2.5);
+  link("heartvale-exit", [258, 15], [262, 15], 2.5);
   const allCorridors = [...corridors, ...fixedConnectors];
 
   // --- placements: fixed rooms + chamber templates, world-space

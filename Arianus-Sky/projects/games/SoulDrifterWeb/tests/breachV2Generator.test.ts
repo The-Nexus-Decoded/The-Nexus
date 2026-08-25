@@ -129,6 +129,45 @@ describe("BREACH-V2 seeded generator", () => {
     }
   });
 
+  it("keeps the post-boss route sequential through the memory vault and Way Upward", () => {
+    for (const pathId of PATHS) {
+      const gen = generateBreachV2(4182, pathId);
+      const connectorIds = gen.corridors.map((corridor) => corridor.id);
+      expect(connectorIds).toEqual(expect.arrayContaining([
+        "conv-ante",
+        "ante-boss",
+        "boss-vault",
+        "vault-exit",
+        "heartvale-exit",
+      ]));
+      expect(connectorIds).not.toContain("boss-exit");
+
+      const bossRoom = R.fixedRooms.find((room) => room.id === "ashen-lock")!;
+      const vaultRoom = R.fixedRooms.find((room) => room.id === "memory-vault")!;
+      const exitRoom = R.fixedRooms.find((room) => room.id === "exit-connector")!;
+      const bossVault = gen.corridors.find((corridor) => corridor.id === "boss-vault")!;
+      const vaultExit = gen.corridors.find((corridor) => corridor.id === "vault-exit")!;
+      const heartvaleExit = gen.corridors.find((corridor) => corridor.id === "heartvale-exit")!;
+
+      expect(bossVault.from.x).toBeCloseTo(bossRoom.x + bossRoom.w, 6);
+      expect(bossVault.to.x).toBeCloseTo(vaultRoom.x, 6);
+      expect(bossVault.from.y).toBeGreaterThan(bossRoom.y);
+      expect(bossVault.from.y).toBeLessThan(bossRoom.y + bossRoom.h);
+      expect(bossVault.to.y).toBeGreaterThan(vaultRoom.y);
+      expect(bossVault.to.y).toBeLessThan(vaultRoom.y + vaultRoom.h);
+
+      expect(vaultExit.from.y).toBeCloseTo(vaultRoom.y + vaultRoom.h, 6);
+      expect(vaultExit.to.y).toBeCloseTo(exitRoom.y, 6);
+      expect(vaultExit.from.x).toBeCloseTo(vaultRoom.x + vaultRoom.w / 2, 6);
+      expect(vaultExit.to.x).toBeCloseTo(exitRoom.x + 5, 6);
+
+      expect(heartvaleExit.from.x).toBeCloseTo(exitRoom.x + exitRoom.w, 6);
+      expect(heartvaleExit.from.y).toBeCloseTo(exitRoom.y + exitRoom.h / 2, 6);
+      expect(heartvaleExit.to.x).toBeGreaterThan(heartvaleExit.from.x);
+      expect(heartvaleExit.to.y).toBeCloseTo(heartvaleExit.from.y, 6);
+    }
+  });
+
   it("keeps every objective and encounter reachable on a 500-seed sweep (both paths)", () => {
     for (let seed = 1; seed <= 500; seed += 1) {
       for (const pathId of PATHS) {
