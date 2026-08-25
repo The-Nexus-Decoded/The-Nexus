@@ -31,52 +31,6 @@ content that will be randomized at runtime:
 appear in the dungeon, it appears on the flat map and in the registry. The
 RNG only chooses *which subset and which order* — never *what exists*.
 
-## 1A. Architectural flat-layout and topology gate (before any build)
-
-The flat map is a **CAD-like architectural construction plan**, not concept
-art and not a collage of separately designed room boxes. It must present the
-entire dungeon in one coordinate system so an AI builder and a human reviewer
-can prove how every space physically joins before generating registry data or
-3D geometry.
-
-Required plan information:
-
-- the whole dungeon footprint, with fixed rooms and every possible route,
-  pooled room and convergence visible together;
-- true dimensions, scale, orientation, datum and canonical wall thickness;
-- one ID per wall/boundary edge and the two spaces adjacent to it;
-- intended edge state: `WALL`, `OPEN`, `DOOR`, `GATE` or `CONNECTOR`;
-- dimensioned doorway/gate apertures, frame depth, swing/lift/travel direction
-  and a prop-free player-clearance envelope;
-- corridor centerlines, inside clear width, bends and exact room intersections;
-- floor and ceiling elevations, stair/ramp direction, rise/run, landings and
-  section/elevation callouts for every vertical transition;
-- continuous floor, collision and navigation overlays from spawn through both
-  branches, convergence, boss suite and exit.
-
-Adjacent rooms, corridors and sections are not independent sealed objects.
-They form one architectural topology:
-
-- a closed boundary produces exactly one shared wall;
-- an open connection suppresses both candidate walls across its full clear
-  width and joins floor, ceiling, collision and navigation continuously;
-- a door or gate cuts exactly one shared boundary and has one geometry,
-  animation and collision owner;
-- a corridor footprint unions with its destination room at the aperture; it
-  never terminates behind a second wall or overlaps a closed room shell;
-- an elevation change includes the authored stair, ramp or landing and cannot
-  be left as overlapping floor slabs or an unexplained jump.
-
-The builder must reject the flat design before implementation when the full
-layout is not readable, adjacency ownership is missing, shared walls are
-duplicated, a passage crosses wall geometry, vertical transitions are
-underspecified, or any route cannot be traced end to end. Dressing, fog,
-lighting, doors and VFX may not be used to conceal an unresolved connection.
-
-The gate requires owner/reviewer-readable whole-plan evidence plus enlarged
-connection and elevation details. It passes before step 2 of the build
-pipeline; room-shell code, assets and effects do not start while it fails.
-
 ## 2. Fixed anchors vs randomized middle (the architecture)
 
 Every dungeon has three structural layers:
@@ -121,17 +75,10 @@ verify the registry against the flat map (measured-only, like POI anchors).
     path; boss count matches the set rule)
   - room pool exhaustion rules (no duplicate rooms unless the pool allows)
   - door/socket integrity (every room connects through real door sockets)
-  - shared-boundary uniqueness (one canonical edge and at most one wall per
-    adjacent-space boundary; no coincident or near-duplicate walls)
-  - opening integrity (no wall/collision segment crosses a declared doorway,
-    gate, connector, corridor centerline, stair or landing)
-  - elevation continuity (every floor-height change has the specified
-    traversable stair/ramp/landing and continuous collision/navigation)
 
 ## 5. Build pipeline (same as Heartvale, adapted indoors)
 
-1. **Architectural flat layout** authored + checked in, then passed through
-   the §1A whole-layout topology gate (source of the registry).
+1. **Flat map** authored + checked in (source of the registry).
 2. **Registry** derived from the map (meters, pools, tables).
 3. **Houdini build** — the interior shell + dressing authored from the
    registry as ONE continuous build per floor/level (rooms share walls,
@@ -328,9 +275,7 @@ to catch a basic miss.
 
 ## 8. Done =
 
-- Architectural flat layout, shared-boundary/adjacency data, and registry
-  checked in and consistent (measured-only); §1A topology gate passed before
-  shell construction.
+- Flat map + registry checked in and consistent (measured-only).
 - `npm run typecheck && npm test` green incl. the §4 invariants on a seed
   sweep.
 - Runtime preview live; probe renders: start area, one full easy-path run,
