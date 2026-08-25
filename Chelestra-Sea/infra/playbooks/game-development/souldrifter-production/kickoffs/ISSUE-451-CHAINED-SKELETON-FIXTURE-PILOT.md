@@ -4,9 +4,9 @@
 
 Add a small number of animated chained-skeleton wall fixtures to the existing BREACH-V2 dungeon as an end-to-end proof that the updated SoulDrifter production pipeline can:
 
-1. create or approve a concept/reference;
+1. create or approve concept/reference images with the active LLM image generator;
 2. connect to Tripo through a verified API/SDK/official CLI lane;
-3. generate/import a 3D asset;
+3. use Tripo for the approved 3D generation/import step;
 4. segment or preserve modular parts;
 5. clean/retopo/LOD the geometry;
 6. rig the skeleton;
@@ -19,11 +19,33 @@ Add a small number of animated chained-skeleton wall fixtures to the existing BR
 
 This is a **fixture/environment pilot**, not a playable character, combat monster, quest NPC, or replacement for #448.
 
+## Provider-role boundary
+
+### Concept/reference images
+
+Use the active host LLM's built-in image generation first—ChatGPT, Codex, M3, Claude, or another approved active LLM image lane.
+
+Do **not** spend Tripo credits on text-to-image, image-to-image, or image-to-multiview for this pilot when the host LLM can create the references.
+
+Store the selected concept images, prompts, model/version when exposed, owner corrections, hashes, and selected/rejected status in controlled project staging.
+
+### Tripo
+
+Use Tripo only for the approved 3D stages:
+
+- text-to-3D or image/multiview-to-3D;
+- optional segmentation comparison;
+- mesh processing/low-poly where approved;
+- rig check;
+- rigging;
+- baseline retargeting/animation when useful;
+- controlled downloads.
+
 ## Mandatory order
 
 The pilot does not start until `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` returns PASS for every required lane.
 
-No paid Tripo operation runs until the agent reads the current account balance/pricing, provides the exact expected and maximum credit cost for the pilot, and receives owner approval for that exact spend.
+No paid Tripo operation runs until the agent reads the current account balance/pricing, provides the exact expected and maximum credit cost for the **3D operations only**, and receives owner approval for that exact spend.
 
 ## Modular asset contract
 
@@ -49,8 +71,8 @@ Preferred first option:
 
 Optional comparison path:
 
-- generate or import a new wall-shackle/chain assembly as a separate prop;
-- never require segmentation merely because the prompt fused the chains into the skeleton.
+- generate or import a new wall-shackle/chain assembly as a separate 3D prop;
+- never require segmentation merely because a bad prompt fused the chains into the skeleton.
 
 Chains remain separate runtime objects. They may use:
 
@@ -71,21 +93,22 @@ Do not skin the chain mesh to the skeleton body as one permanent character mesh.
 
 ## Concept/reference lane
 
-Run one controlled A/B design pilot:
+Run one controlled A/B 3D-production pilot while using the same LLM-generated concept direction.
 
 ### Pilot A — recommended modular-first path
 
-1. Generate/approve a clean isolated skeleton concept or multiview reference with no chains or wall.
-2. Generate the skeleton body in Tripo.
-3. Reuse the existing chain/shackle prop or generate it separately.
-4. Assemble them in Houdini/Blender/Three.js through sockets.
+1. Use the active LLM image generator to create/approve a clean isolated skeleton concept or multiview reference with no chains or wall.
+2. Submit the selected image(s) to Tripo image/multiview-to-3D, or use approved Tripo text-to-3D when that produces a better isolated body.
+3. Reuse the existing chain/shackle prop or generate it separately as a 3D asset.
+4. Assemble the body, chains, and wall anchors in Houdini/Blender/Three.js through sockets.
 
 ### Pilot B — segmentation capability proof
 
-1. Generate one combined chained-skeleton fixture candidate only if the exact cost is approved.
-2. Run Tripo mesh segmentation before rigging.
-3. Evaluate whether body, chains, shackles, and wall plate separate cleanly.
-4. Do not ship Pilot B merely to justify the segmentation spend; compare it against Pilot A on quality, modularity, cost, cleanup time, and animation compatibility.
+1. Use the active LLM image generator to create one combined chained-skeleton fixture reference only if the segmentation comparison is useful.
+2. Submit that reference to Tripo image-to-3D only after the exact 3D cost is approved.
+3. Run Tripo mesh segmentation before rigging.
+4. Evaluate whether body, chains, shackles, and wall plate separate cleanly.
+5. Do not ship Pilot B merely to justify the segmentation spend; compare it against Pilot A on quality, modularity, cost, cleanup time, and animation compatibility.
 
 The shipping result should use the better modular route.
 
@@ -96,8 +119,8 @@ Tripo mesh segmentation, mesh completion, low-poly/decimation, and other geometr
 Required sequence:
 
 ```text
-concept/reference
--> text/image/multiview to model
+LLM-generated concept/reference
+-> Tripo text/image/multiview-to-3D
 -> segmentation if needed
 -> mesh completion if needed
 -> low-poly/retopo/UV/material cleanup
@@ -193,27 +216,29 @@ Every placement must prove:
 Required evidence from the exact commit:
 
 1. toolchain receipt;
-2. sanitized Tripo authenticated read/balance proof;
-3. exact provider quote and owner approval record;
-4. concept/reference and prompt provenance;
-5. provider task IDs and actual costs;
-6. untouched provider downloads and hashes;
-7. segmentation comparison if Pilot B is run;
-8. rig/deformation close-up;
-9. normal-speed animation loop;
-10. chain-body separation proof;
-11. Three.js gameplay-camera capture;
-12. wall placement from both sides/angles;
-13. real-GPU renderer/console/performance capture;
-14. full dungeon traversal regression showing fixtures do not block #451.
+2. host-LLM image-generation access proof with zero Tripo 2D credits;
+3. concept/reference images, prompts, corrections, and hashes;
+4. sanitized Tripo authenticated read/balance proof;
+5. exact Tripo 3D-operation quote and owner approval record;
+6. provider task IDs and actual 3D costs;
+7. untouched provider downloads and hashes;
+8. segmentation comparison if Pilot B is run;
+9. rig/deformation close-up;
+10. normal-speed animation loop;
+11. chain-body separation proof;
+12. Three.js gameplay-camera capture;
+13. wall placement from both sides/angles;
+14. real-GPU renderer/console/performance capture;
+15. full dungeon traversal regression showing fixtures do not block #451.
 
 ## Acceptance
 
 The pilot passes only when:
 
 - provider/toolchain preflight passes;
+- concept images came from the active LLM/approved image lane without unnecessary Tripo image credits;
 - no secret is exposed;
-- exact paid operations were owner-approved;
+- exact paid Tripo 3D operations were owner-approved;
 - body, chain, and wall-anchor components remain modular;
 - the skeleton deforms acceptably while hands/feet remain constrained;
 - chain endpoints remain visually connected during the loop;
