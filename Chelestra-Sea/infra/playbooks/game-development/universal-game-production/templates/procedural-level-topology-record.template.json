@@ -1,52 +1,85 @@
 {
-  "schemaVersion": 1,
-  "policyId": "universal-procedural-level-topology-v1",
+  "schemaVersion": 2,
+  "policyId": "universal-procedural-level-topology-v2",
   "projectId": "",
   "ticketId": "",
   "commit": "",
   "seedOrVariant": "",
   "logicalGraph": {
-    "nodes": [],
-    "edges": []
+    "nodes": [
+      {
+        "id": "",
+        "type": "",
+        "state": ""
+      }
+    ],
+    "edges": [
+      {
+        "edgeId": "",
+        "sourceNode": "",
+        "destinationNode": "",
+        "connectionType": "",
+        "movementModes": [],
+        "medium": [],
+        "directionality": "BIDIRECTIONAL",
+        "requiredState": []
+      }
+    ]
   },
   "embedding": {
     "rootNode": "",
     "placementAttempts": [],
     "backtracks": [],
     "rejectedCandidates": [],
-    "acceptedModules": []
+    "acceptedNodes": []
   },
-  "boundaries": [],
+  "canonicalInventory": {
+    "boundaries": [],
+    "surfaces": [],
+    "volumes": [],
+    "pathsAndSplines": [],
+    "dynamicStateGeometry": [],
+    "streamingBoundaries": []
+  },
   "connections": [
     {
       "edgeId": "",
+      "spatialConnectionRecord": "",
       "connectionType": "",
-      "sourceOpening": "",
-      "destinationOpening": "",
-      "connectorGeometry": [],
-      "clearance": 0,
+      "sourceOpeningSurfaceOrVolume": null,
+      "destinationOpeningSurfaceOrVolume": null,
+      "connectorPathSurfaceOrVolume": null,
+      "clearance": null,
+      "elevationOrDepthProfile": [],
       "surfaceContinuity": "NOT_RUN",
       "volumeContinuity": "NOT_RUN",
       "collisionContinuity": "NOT_RUN",
       "navigationContinuity": "NOT_RUN",
+      "movementStateTransition": "NOT_RUN",
+      "resourceAndRecoveryRules": "NOT_RUN",
       "realControllerProof": "NOT_RUN",
       "evidence": []
     }
   ],
   "diagnostics": {
-    "planOrSectionEvidence": [],
-    "generatedFromActualEmbeddedGeometry": true,
+    "topDownPlans": [],
+    "sectionsOrElevations": [],
+    "volumeOrSliceEvidence": [],
+    "stateGraphsOrTimelines": [],
+    "regionOrStreamingMaps": [],
+    "generatedFromActualEmbeddedData": true,
     "automatedReview": "NOT_RUN",
     "aiVisionReview": "NOT_RUN",
     "ownerDesignVerdict": "NOT_REQUIRED"
   },
   "metrics": {
     "requiredLogicalEdges": 0,
-    "physicallyResolvedEdges": 0,
-    "unintendedModuleOverlaps": 0,
+    "physicallyOrExplicitlyResolvedEdges": 0,
+    "unintendedNodeOverlaps": 0,
+    "unintendedConnectorNodeOverlaps": 0,
     "coincidentDuplicateBoundaries": 0,
     "boundariesCrossingOpenings": 0,
-    "orphanDoorsOrConnectors": 0,
+    "orphanDoorsGatesOrConnectors": 0,
     "unmatchedConnectorEndpoints": 0,
     "physicalConnectorsEndingAtBlockingGeometry": 0,
     "missingDestinationOpenings": 0,
@@ -55,7 +88,10 @@
     "volumeContinuityFailures": 0,
     "collisionContinuityFailures": 0,
     "navigationContinuityFailures": 0,
-    "unsupportedElevationTransitions": 0
+    "unsupportedElevationOrDepthTransitions": 0,
+    "movementStateTransitionFailures": 0,
+    "resourceRuleFailures": 0,
+    "recoveryOrSoftLockFailures": 0
   },
   "automatedGate": "NOT_RUN",
   "independentVerification": "NOT_RUN",
