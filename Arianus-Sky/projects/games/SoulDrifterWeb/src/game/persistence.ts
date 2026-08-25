@@ -2,7 +2,7 @@ import type { CharacterProfile } from "./character";
 import type { InventoryState } from "./equipment";
 
 const DATABASE_NAME = "souldrifter-story";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 interface NpcStateRecord {
   id: string;
@@ -96,6 +96,19 @@ class SoulDrifterDatabase {
     return record?.data ?? null;
   }
 
+  public async loadDungeonRun<T>(runId: string): Promise<T | null> {
+    const record = await this.get<{ id: string; state: T }>("dungeonRuns", runId);
+    return record?.state ?? null;
+  }
+
+  public async saveDungeonRun(runId: string, state: unknown): Promise<void> {
+    await this.put("dungeonRuns", { id: runId, state, updatedAt: new Date().toISOString() });
+  }
+
+  public async clearDungeonRun(runId: string): Promise<void> {
+    await this.delete("dungeonRuns", runId);
+  }
+
   private async open(): Promise<IDBDatabase> {
     if (this.connection) return this.connection;
     this.connection = new Promise<IDBDatabase>((resolve, reject) => {
@@ -109,6 +122,7 @@ class SoulDrifterDatabase {
         if (!db.objectStoreNames.contains("storyOverrides")) db.createObjectStore("storyOverrides", { keyPath: "id" });
         if (!db.objectStoreNames.contains("inventories")) db.createObjectStore("inventories", { keyPath: "id" });
         if (!db.objectStoreNames.contains("avatarPreviews")) db.createObjectStore("avatarPreviews", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("dungeonRuns")) db.createObjectStore("dungeonRuns", { keyPath: "id" });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error ?? new Error("Unable to open the SoulDrifter story database."));

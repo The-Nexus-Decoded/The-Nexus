@@ -23,7 +23,10 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
 import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
+import { createBreachV2RunController, type BreachV2RunState } from "./breach-v2-gameplay";
+import { setupBreachV2GameplayUi } from "./breach-v2-gameplay-ui";
 import { findPath } from "../pathfinding";
+import { storyDatabase } from "../persistence";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
 
@@ -52,6 +55,18 @@ interface PreviewHooks {
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonSetDoorsOpen: (open: boolean) => void;
   __dungeonKeys: Set<string>;
+  __dungeonGameplay: {
+    snapshot: () => BreachV2RunState;
+    objective: () => string;
+    interact: (targetId: string) => string;
+    enterRoom: (roomId: string) => void;
+    attack: () => void;
+    guard: () => void;
+    recover: () => void;
+    restartEncounter: () => void;
+    setCombatStyle: (style: "real-time" | "turn-based") => void;
+    requestDoor: (doorId: string) => boolean;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -551,6 +566,7 @@ async function placeSectionDoors(
   scene: THREE.Scene,
   layout: BreachV2Layout,
   loader: GLTFLoader,
+  authorizeDoor: (doorId: string) => boolean,
 ): Promise<SectionDoorSystem> {
   const doorSpec = DUNGEON_PROP_ASSETS["heavy-door"];
   const gateSpec = DUNGEON_PROP_ASSETS["rusted-portcullis"];
@@ -777,6 +793,7 @@ async function placeSectionDoors(
         .filter(({ state, distance }) => state.active && distance <= maxDistance)
         .sort((a, b) => a.distance - b.distance)[0]?.state;
       if (!nearest) return null;
+      if (!nearest.open && !authorizeDoor(nearest.id)) return nearest.id;
       setOpen(nearest, !nearest.open);
       return nearest.id;
     },
@@ -801,6 +818,7 @@ async function placeSectionDoors(
         ))
         .sort((a, b) => a.targetDistance - b.targetDistance)[0]?.state;
       if (!nearest) return null;
+      if (!nearest.open && !authorizeDoor(nearest.id)) return nearest.id;
       setOpen(nearest, !nearest.open);
       return nearest.id;
     },
@@ -1624,6 +1642,27 @@ export async function startDungeonPreview(
   container.appendChild(loading);
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
+  const runId = `breach-v2:${options.seed}:${options.path}`;
+  const previewUrl = new URL(window.location.href);
+  if (previewUrl.searchParams.get("fresh") === "1") {
+    await storyDatabase.clearDungeonRun(runId);
+    previewUrl.searchParams.delete("fresh");
+    window.history.replaceState(null, "", previewUrl);
+  }
+  const savedState = await storyDatabase.loadDungeonRun<BreachV2RunState>(runId);
+  const gameplay = createBreachV2RunController({
+    seed: options.seed,
+    path: options.path,
+    chamberIds: layout.rooms.filter((room) => !room.fixed).map((room) => room.id),
+    rewardId: layout.rewardId,
+    bossHp: layout.boss.maxHp,
+    savedState,
+    onChange: (state) => {
+      void storyDatabase.saveDungeonRun(runId, state).catch((error: unknown) => {
+        console.error("unable to persist BREACH-V2 run", error);
+      });
+    },
+  });
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
@@ -1657,7 +1696,12 @@ export async function startDungeonPreview(
   buildArchitecturalPolish(scene, layout, materials);
   const ceilings = shellGroup.getObjectByName("shell-ceilings");
   const propPlacement = await placeKitProps(scene, layout, gltfLoader, scene);
-  const sectionDoors = await placeSectionDoors(scene, layout, gltfLoader);
+  const sectionDoors = await placeSectionDoors(
+    scene,
+    layout,
+    gltfLoader,
+    (doorId) => gameplay.requestDoor(doorId).allowed,
+  );
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
@@ -1717,6 +1761,12 @@ export async function startDungeonPreview(
   const setPlayerPosition = (x: number, z: number): void => {
     playerPos.set(x, floorElevationAt(layout, x, z), z);
   };
+  const gameplayUi = setupBreachV2GameplayUi({
+    container,
+    layout,
+    controller: gameplay,
+    getPlayerPosition: () => playerPos,
+  });
   let camYaw = isometricMode ? Math.PI / 4 : 0.08;
   let camPitch = isometricMode ? 0.76 : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? 14.5 : 4.4;
@@ -1793,6 +1843,10 @@ export async function startDungeonPreview(
     window.addEventListener("keydown", (e) => {
       keys.add(e.code);
       if (e.code === "KeyF" && !e.repeat) sectionDoors.toggleNearest(playerPos.x, playerPos.z);
+      if (e.code === "KeyR" && !e.repeat) gameplayUi.interactNearest();
+      if (e.code === "Digit1" && !e.repeat) gameplay.attack();
+      if (e.code === "Digit2" && !e.repeat) gameplay.guard();
+      if (e.code === "Digit3" && !e.repeat) gameplay.recover();
     });
     window.addEventListener("keyup", (e) => keys.delete(e.code));
   }
@@ -1828,6 +1882,18 @@ export async function startDungeonPreview(
   };
   hooks.__dungeonSetDoorsOpen = (open) => sectionDoors.setAllOpen(open);
   hooks.__dungeonKeys = keys; // probe visibility
+  hooks.__dungeonGameplay = {
+    snapshot: () => gameplay.snapshot(),
+    objective: () => gameplay.objective(),
+    interact: (targetId) => gameplay.interact(targetId),
+    enterRoom: (roomId) => gameplay.enterRoom(roomId),
+    attack: () => gameplay.attack(),
+    guard: () => gameplay.guard(),
+    recover: () => gameplay.recover(),
+    restartEncounter: () => gameplay.restartEncounter(),
+    setCombatStyle: (style) => gameplay.setCombatStyle(style),
+    requestDoor: (doorId) => gameplay.requestDoor(doorId).allowed,
+  };
 
   const warp = (x: number, z: number): boolean => {
     const [walkX, walkZ] = nearestWalkable(x, z, true);
@@ -1999,6 +2065,15 @@ export async function startDungeonPreview(
       } else {
         controls.update();
       }
+      const currentRoom = layout.rooms.find((room) => (
+        playerPos.x >= room.x
+        && playerPos.x <= room.x + room.w
+        && playerPos.z >= room.z
+        && playerPos.z <= room.z + room.h
+      ));
+      if (currentRoom) gameplay.enterRoom(currentRoom.id);
+      gameplay.tick(delta * 1000);
+      gameplayUi.update();
       cullFrames += 1;
       if (cullFrames % 8 === 0) updateDetailVisibility();
       // ceiling cutaway: caps read as ceilings at eye level (walk mode or a
