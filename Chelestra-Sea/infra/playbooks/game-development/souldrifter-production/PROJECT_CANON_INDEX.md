@@ -45,39 +45,50 @@ Current SEA playbook files are the production workflow authority.
 
 ## Procedural dungeon topology
 
-- Read `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md` for every randomized/procedural level change.
-- The required architecture is:
+Read `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md` for every randomized/procedural level change.
+
+Required architecture:
 
 ```text
-logical graph
--> constructive edge-by-edge spatial embedding
--> canonical shared boundaries/apertures
--> top-down actual-geometry validation
--> one shared shell
+fixed pre-choice area
+-> player selects Wayfarer or Oathbreaker
+-> generate selected route's logical run graph
+-> construct selected route's complete top-down topology map
+-> validate room transforms, socket pairs, boundaries, apertures, corridors and elevation
+-> backtrack/retry invalid placements
+-> freeze accepted route topology
+-> render one shared shell and room interiors from that topology
 -> collision/navigation
--> 3D dressing/FX
+-> gameplay/dressing/FX
 ```
 
-- Do not place independently sealed room boxes at slot centers and connect them afterward.
-- Place each destination room relative to a validated source socket/connector.
-- Resolve and validate the complete edge before accepting the next room.
-- Retry alternate sockets/orientations/modules or backtrack when placement fails.
-- Shared walls are emitted once; open spans emit no wall from either room.
-- A physical corridor requires source aperture, continuous corridor geometry and destination aperture.
-- A magical/teleport portal is an explicit nonphysical edge and must not generate a fake corridor.
-- Every seed/route produces a top-down diagnostic from actual embedded geometry and passes automated, AI/vision and required owner-design review before shell dressing.
+Specific rules:
+
+- The fixed Soul Well/vestibule/Threshold Plaza may exist before route selection.
+- The randomized route branch is selected/generated when the player chooses the door/path, except in explicit preview/testing mode.
+- Do not render selected gallery rooms as independent closed boxes before route topology is solved.
+- Do not place rooms at arbitrary slot centers and then ask corridors/openings to repair the layout.
+- Place each destination room relative to a compatible, validated source socket and connection type.
+- Resolve source opening + shared boundary/corridor/portal semantics + destination opening before accepting the next room.
+- Retry another socket/orientation/archetype or backtrack if a complete edge fails.
+- Shared walls emit once; open spans emit no wall from either room.
+- A physical corridor must physically enter both endpoint openings.
+- A magical/teleport portal is an explicit nonphysical transfer edge and does not create a fake corridor.
+- Every seed/path produces a top-down diagnostic from actual embedded geometry before 3D room rendering/dressing.
+- Automated invariants, independent AI/vision review and real no-warp traversal are required.
 - Graph connectivity, coordinates, pathfinding, visible doors and room warps are never sufficient physical proof.
 
 ## Browser runtime and portability
 
 - SoulDrifter remains browser-first and mobile-browser compatible.
-- Three.js is the canonical browser runtime for the POC and foreseeable browser releases.
-- There is no planned Babylon.js comparison, evaluation ticket, target package or migration roadmap.
-- Continue improving Three.js through WebGL/WebGPU capability paths, scalable FX/material quality, mobile performance, streaming/loading, physics/animation integration and real-device profiling.
-- Do not delay the First Breach or duplicate the game in another browser engine.
-- If a future installed/native edition is genuinely required, evaluate Unreal Engine versus Unity as a separate owner-approved product phase.
-- Unreal/Unity are long-term optional portability targets only, not current production clients.
-- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and target-specific packages so future native integration reuses expensive creative/procedural work rather than starting over.
+- Three.js remains canonical while completing the First Breach and first playable Heartvale section POC.
+- Do not begin Babylon.js work during #451, #448, or the unfinished Heartvale POC.
+- After both representative sections are complete and independently verified in Three.js, create an isolated Babylon.js port of exactly those two sections for side-by-side comparison.
+- Compare desktop/mobile browser support, WebGL/WebGPU, loading/bundle size, performance/memory/thermal behavior, water/particles/lighting/FX, animation, physics, UI/input, material fidelity, tooling, defects and implementation effort.
+- The Three.js game remains intact and canonical until the owner records the comparison verdict.
+- Possible owner outcomes include staying with Three.js, moving future browser work to Babylon.js, keeping both for further testing, category split, or rejecting the Babylon port.
+- Unreal/Unity remain later optional native/full-engine candidates only.
+- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and target packages so every port reuses the expensive work rather than starting over.
 - Read `BROWSER_RUNTIME_ROADMAP.md`.
 
 ## Images and primary 3D references
@@ -118,7 +129,7 @@ logical graph
 - While that classification remains accurate, use the full FX feature set exposed by Houdini Apprentice instead of artificially lowering visual fidelity.
 - Particles, Pyro, FLIP/procedural water, Vellum, RBD, KineFX, procedural terrain, lighting, materials, shaders, fog and volumetrics are valid POC tools when present in the installed build.
 - Apprentice restrictions remain binding: non-commercial formats/use, no mixing into Indie/commercial pipelines, no Apprentice HDA through Houdini Engine, render/renderer restrictions and exact exporter restrictions.
-- Three.js remains runtime; every required export/bake representation must pass an actual smoke test under the installed license.
+- Three.js remains the current runtime; every required export/bake representation must pass an actual smoke test under the installed license.
 - The planned Indie upgrade establishes the limited-commercial/Engine/export/rendering lane and requires a clean rebuild/re-export; it is not required merely to unlock the main FX tools already available in Apprentice.
 
 ## Character / asset / animation / combat specialist sources
