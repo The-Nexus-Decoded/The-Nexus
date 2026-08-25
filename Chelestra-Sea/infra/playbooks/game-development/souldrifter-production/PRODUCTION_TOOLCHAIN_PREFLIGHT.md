@@ -1,31 +1,40 @@
 # SoulDrifter Production Toolchain Preflight
 
-**Status:** mandatory before any production ticket edits, asset generation, Houdini build, animation, VFX, or runtime integration.
+## Frequency
 
-This preflight closes a gap in the earlier consolidated harness: workspace/GitHub onboarding alone is not enough. A session must prove that every tool required by its ticket is installed, authenticated, documented, writable, and able to complete a safe smoke check before production starts.
+This is a **full workstation/toolchain bootstrap**, not a process repeated from zero in every chat.
+
+Run it:
+
+- once when the workstation has no valid cached receipt;
+- when `SESSION_FAST_START.md` reports an invalidation trigger;
+- after a major provider/DCC/runtime/license/secret change;
+- for a newly required lane that was never bootstrapped.
+
+Every normal chat loads the cached receipt. Immediately before a paid provider operation, it refreshes live balance/pricing and exact approval without rerunning the full toolchain suite.
 
 ## Core rule
 
-**No toolchain receipt, no production work.**
+A ticket-required lane must have a valid cached PASS or a fresh PASS. Unused lanes are `NOT_REQUIRED`.
 
-The agent may install/configure routine tooling when it has shell/package-manager permission. It asks the owner only for genuine human-only gates such as browser/device authorization, billing approval, an OS elevation prompt the agent cannot complete, or a secret that must remain outside chat.
+The agent may install/configure routine tooling when shell/package-manager permissions allow. Ask the owner only for human-only authorization, billing approval, blocked elevation prompts, or secrets that must remain outside chat.
 
 Never print, paste, commit, screenshot, or log secret values.
 
 ---
 
-# Gate 1 — Workspace, Git, GitHub, and storage
+# Gate 1 — Workspace, Git, GitHub and storage
 
 Prove:
 
-- correct The-Nexus checkout/worktree;
-- correct issue/PR branch and live GitHub access;
-- no unexplained dirty changes;
-- H: drive workspace and controlled staging folders are writable;
-- enough free disk space for source, derivatives, caches, renders, and downloaded provider outputs;
-- provider outputs will be copied immediately into controlled storage and registered with hashes/provenance.
+- correct The-Nexus checkout/worktree/branch;
+- live issue/PR access;
+- no unexplained dirty work;
+- H: drive staging/download/evidence roots are writable;
+- adequate disk space;
+- asset registry/provenance/rollback paths exist.
 
-Required evidence:
+Required local evidence:
 
 ```text
 git rev-parse --show-toplevel
@@ -38,293 +47,214 @@ git worktree list --porcelain
 
 ---
 
-# Gate 2 — Tripo connection: 3D production only
+# Gate 2 — Host-LLM concept/reference image lane
 
-## Owner-locked role boundary
+Use ChatGPT/Codex/M3/Claude native image generation first when available.
 
-Tripo is the primary **3D** provider for approved:
+Record tool availability, prompt/reference provenance, model/version when exposed, dimensions, controlled path and hash.
 
-- text-to-3D;
-- image-to-3D;
-- multiview-to-3D;
-- model upload and processing;
+Tripo 2D image credits remain disabled by default. An exception requires a specific owner reason and exact cost approval.
+
+---
+
+# Gate 3 — Tripo v3 3D provider connection
+
+## Official reusable configuration
+
+- provider config: `config/tripo-provider.json`
+- one-time installer/check: `scripts/tripo/bootstrap-tripo.ps1`
+- read-only authenticated check: `scripts/tripo/tripo-readonly-check.mjs`
+- official SDK: `@vastai/tripo-sdk`
+- official repository: `https://github.com/VAST-AI-Research/tripo-js-sdk`
+- global v3 base: `https://openapi.tripo3d.ai/v3`
+- secret name: `TRIPO_API_KEY`
+- local tool root: `H:\CodexData\souldrifter-toolchain\tripo-v3\`
+- local receipt: `H:\CodexData\souldrifter-toolchain\receipts\tripo-provider.json`
+
+## One-time Tripo bootstrap
+
+Run from the playbook checkout:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\tripo\bootstrap-tripo.ps1
+```
+
+The script:
+
+1. verifies Node.js 18+ and npm;
+2. verifies `TRIPO_API_KEY` is present without displaying it;
+3. creates controlled local tool/download/task folders;
+4. installs and locks the official `@vastai/tripo-sdk` package;
+5. makes a no-charge authenticated `getBalance()` call;
+6. verifies required SDK methods;
+7. writes a sanitized persistent receipt.
+
+It does **not** submit a charged generation task.
+
+## Required Tripo capabilities
+
+Verify:
+
+- text/image/multiview-to-model;
+- upload/download;
 - segmentation;
-- mesh completion/low-poly/decimation where supported;
-- rig checking;
+- mesh completion/decimation;
+- rig check;
 - rigging;
-- retargeting/baseline animation;
-- task polling and controlled downloads.
+- preset animation retargeting;
+- task polling/listing;
+- balance read.
 
-**Do not spend Tripo credits on text-to-image, image-to-image, or concept/multiview image generation when the active LLM environment already has image-generation capability.** Concept images use the host LLM image generator first under Gate 4.
+## CLI/MCP policy
 
-Tripo is not considered connected until the current workstation/session completes a live, read-only authenticated call and records a sanitized result.
+Do not install the older unverified generic `tripo-cli` package.
 
-## Supported connection lanes
+An official CLI is installed only when the authenticated Tripo console or current first-party documentation identifies the exact package/installer, publisher, version and health/auth commands.
 
-### A. Official Tripo v3 JavaScript/TypeScript SDK — preferred for SoulDrifter/Three.js automation
+MCP is optional and does not replace SDK/API proof.
 
-Use the official package:
+## Cached Tripo receipt
 
-```text
-@vastai/tripo-sdk
-```
+Normal chats read the local receipt and verify:
 
-The agent must:
+- receipt schema/age;
+- tool root/package lock still exists;
+- `TRIPO_API_KEY` name is still present;
+- no invalidation trigger fired.
 
-1. verify Node.js and the project package manager;
-2. install/pin the SDK in an isolated tooling package or approved project tool directory;
-3. confirm `TRIPO_API_KEY` exists in OS/local secret storage without printing it;
-4. call the SDK's read-only balance endpoint;
-5. record SDK version, API base URL, account/balance read success, and timestamp;
-6. verify the ticket-required 3D methods exist: text/image/multiview-to-model, upload/download, segmentation, low-poly/decimation, rig check, rigging, retargeting, and task polling.
-
-### B. Official Python SDK — acceptable for Houdini/Python integration
-
-Use:
-
-```text
-pip install tripo3d
-```
-
-Pin the version in the project tooling environment and run the same read-only credential/balance check.
-
-### C. Provider-supplied CLI — only after exact first-party discovery
-
-The older draft playbook named a generic `tripo-cli` package without proving that it was the current official provider CLI. That instruction is superseded.
-
-If the owner's Tripo account/console exposes a first-party CLI and says the LLM can install it, the agent must:
-
-1. open the current provider instructions from the authenticated Tripo console;
-2. record the exact package/repository/installer, version, publisher, checksum/signature when available, and official documentation location;
-3. install that exact first-party CLI;
-4. run its documented version, authentication, and health commands;
-5. perform a read-only account/balance/task-list call;
-6. never invent `doctor`, `login`, `docs`, or MCP commands unless the current official CLI documents them.
-
-Do not install similarly named third-party packages merely because they appear in a package registry.
-
-### D. Official Tripo MCP — optional, not automatically equivalent to full API automation
-
-The official `tripo-mcp` project is currently an alpha integration centered on Blender + the Tripo Blender add-on. Use it only if the current host supports MCP and the complete Blender/add-on/MCP chain passes a read-only tool-discovery test.
-
-MCP failure must not block the official SDK/API lane.
-
-## Tripo preflight receipt
-
-```text
-TRIPO PREFLIGHT
-lane: <js-sdk|python-sdk|official-cli|mcp>
-packageOrTool: <name>
-version: <version>
-apiBase: <url>
-secretPresent: yes/no (never print value)
-authenticatedRead: PASS/FAIL
-balanceRead: PASS/FAIL
-currentBalance: <number or redacted policy result>
-capabilitiesVerified:
-  textToModel: yes/no
-  imageToModel: yes/no
-  multiviewToModel: yes/no
-  upload: yes/no
-  download: yes/no
-  segmentation: yes/no
-  lowPolyOrDecimate: yes/no
-  rigCheck: yes/no
-  rig: yes/no
-  retargetOrBaselineAnimation: yes/no
-tripo2DImageGenerationPolicy: DISABLED_BY_DEFAULT
-blockingIssues: []
-result: PASS|BLOCKED
-```
-
-No charged provider task may run during preflight.
+They do not reinstall the SDK or rerun full capability discovery.
 
 ---
 
-# Gate 3 — Provider pricing, credit, and spend control
+# Gate 4 — Tripo pricing and spend control
 
-Before every charged Tripo operation:
+Before every charged 3D operation:
 
-1. read the current official pricing/credit schedule;
-2. query account balance;
-3. quote each requested **3D** operation separately;
-4. state expected and maximum credits;
-5. state whether a retry would incur another charge;
-6. obtain explicit owner approval for that exact pilot/batch;
-7. record task IDs, actual cost, output URLs, download hashes, and remaining balance.
+1. live authenticated balance;
+2. current official pricing;
+3. expected/max credits for each operation;
+4. retry-cost disclosure;
+5. exact owner approval;
+6. submit approved task only;
+7. record task ID, actual cost, URLs, immediate download hashes and remaining balance.
 
-The quote must exclude 2D concept-image generation because the host LLM image lane is the default.
-
-A broad statement such as “use Tripo” is not approval for a paid batch.
+A general instruction to use Tripo is not approval for a paid task/batch.
 
 ---
 
-# Gate 4 — Concept/reference image policy: host LLM first
+# Gate 5 — Animation capability and routing
 
-## Priority order
+Read `ANIMATION_PROVIDER_ROUTING.md`.
 
-For concept art, isolated subject references, and multiview reference sheets:
+Verify the live Tripo rig version and preset library. Do not claim arbitrary text-to-animation unless authenticated first-party evidence proves it.
 
-1. **Use the active LLM's built-in image-generation capability** when available. This includes ChatGPT image generation and the native image-generation capabilities available to the active Codex/M3/Claude environment.
-2. Use owner-supplied reference images when provided.
-3. Use another owner-approved local or cloud image model only when the active LLM lacks the required image capability or quality.
-4. Mark `OWNER_DECISION_REQUIRED` when no approved image lane is available.
+Direct accepted Tripo presets may ship after QA.
 
-## Tripo restriction
+Every required custom motion not adequately covered by Tripo—and every substantial constrained/interaction/class/weapon/boss/signature-death/acting motion—must follow `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`:
 
-Do not use Tripo text-to-image, image-to-image, or image-to-multiview for normal SoulDrifter concept production when the active LLM can generate the required images.
-
-Tripo 2D image generation is allowed only through a new, explicit owner exception that states why the LLM-native image lane is insufficient and approves the exact expected/max credit cost.
-
-## Concept-image receipt
-
-Record:
-
-- provider/host LLM;
-- model/version when exposed;
-- prompt and owner corrections;
-- source/reference provenance;
-- output dimensions/format;
-- controlled local path and hash;
-- selected/rejected status;
-- whether the image is a concept reference or a canonical source artifact;
-- Tripo credits used for 2D images: normally `0`.
-
-Do not assume a local coding session has loaded its image tool merely because the platform advertises one. The session must verify access and generate a harmless no-provider-credit concept smoke image when the ticket requires it.
+- Houdini KineFX candidate;
+- Blender candidate;
+- identical locked inputs;
+- automated gates;
+- blind AI review;
+- blinded owner A/B verdict;
+- winner integration;
+- both candidates/metrics preserved.
 
 ---
 
-# Gate 5 — Houdini installation, Python/HOM, license, and production format
+# Gate 6 — Houdini
 
-The agent must detect and record:
+Detect and record:
 
-- Houdini version/build;
-- executable paths (`hmaster`, `hython`, and approved batch/export tools);
-- Python/HOM import success;
-- current license category;
-- current scene/HDA format;
-- SideFX Labs availability/version if required;
-- glTF/FBX/Alembic/VAT/texture-sheet export capabilities needed by the ticket;
-- a harmless scripted scene/export smoke test.
+- version/build;
+- `hmaster`/`hython` paths;
+- `hou` import;
+- KineFX/required nodes;
+- current license;
+- scene/HDA format;
+- SideFX Labs if required;
+- GLB/FBX/Alembic/VAT/texture export capabilities;
+- harmless deterministic smoke test.
 
-## Apprentice now
-
-Houdini Apprentice is acceptable for learning and non-commercial prototypes and exposes virtually the Houdini FX feature set, including particles/Pyro/Vellum/KineFX. Its restrictions remain binding: non-commercial use, `.hipnc`/`.hdanc`, 1080p render cap, watermarked non-`.picnc` renders, no third-party renderers, and no Houdini Engine production use.
-
-## Indie upgrade next week
-
-Houdini Indie does not primarily add a new particle/FX feature tier; it enables a limited-commercial production pipeline with Indie file formats, unrestricted render resolution, supported third-party renderers, command-line/Engine workflows, and commercial export within Indie eligibility.
-
-Before switching production to Indie:
-
-1. install/activate the Indie license and record it;
-2. create clean `.hiplc`/`.hdalc` production scenes/assets;
-3. do not load non-commercial HDAs/assets that would downgrade the Indie session;
-4. rebuild/re-export production deliverables from source scripts/data under Indie;
-5. keep Apprentice `.hipnc` files as prototype/reference only unless SideFX explicitly converts them;
-6. re-run the full export/runtime validation gate under Indie.
-
-## Houdini receipt
-
-```text
-HOUDINI PREFLIGHT
-versionBuild: <value>
-license: <Apprentice|Indie|other>
-sceneFormat: <hipnc|hiplc|hip>
-hython: PASS/FAIL
-houImport: PASS/FAIL
-labs: <version/not-required>
-requiredExports: <list + PASS/FAIL>
-prototypeOnly: yes/no
-commercialPipelineReady: yes/no
-blockingIssues: []
-result: PASS|BLOCKED
-```
+Apprentice is prototype/non-commercial but includes particles/Pyro/Vellum/KineFX. The planned Indie upgrade invalidates the cached Houdini receipt and requires clean `.hiplc`/`.hdalc`, license, command-line/Engine/export and runtime revalidation.
 
 ---
 
-# Gate 6 — Blender/Tripo add-on/MCP when used
+# Gate 7 — Blender
 
-If the selected Tripo MCP lane requires Blender:
+Detect and record:
 
-- detect Blender version/path;
-- install and pin the official Tripo Blender add-on;
-- verify add-on enablement;
-- verify MCP server launch and tool discovery;
-- run a read-only or no-charge connection probe;
-- record the exact local output/staging folder.
-
-If Blender/MCP is not needed for the ticket, mark this gate `NOT_REQUIRED` rather than pretending it passed.
-
----
-
-# Gate 7 — Three.js/runtime/web asset toolchain
-
-Prove:
-
-- Node/package-manager versions match the project;
-- dependencies install cleanly in the existing worktree;
-- GLB loading and animation playback work;
-- any glTF compression/optimization tools are installed and pinned;
-- browser automation can launch against the real GPU;
-- renderer string, WebGL limits, texture-unit limit, draw calls, triangles, textures, and memory can be captured;
-- software rendering is rejected for final visual acceptance.
-
-The GTX 1080 Ti/ANGLE D3D11 path must remain part of the current First Breach acceptance gate.
+- Blender version/path;
+- Python access;
+- required add-ons;
+- armature/constraint/action/NLA capabilities;
+- import of the canonical rig;
+- GLB/FBX export preserving the same skeleton/action contract;
+- harmless deterministic smoke test.
 
 ---
 
-# Gate 8 — Audio/media tooling when required
+# Gate 8 — Three.js/runtime and real GPU
 
-For animated fixtures, dialogue, VFX, or cinematic evidence, prove the required tools exist:
+Verify:
 
-- audio source/recording/generation approval;
-- WAV/OGG conversion;
-- loop and loudness validation;
-- FFmpeg or equivalent for evidence capture/transcode;
-- runtime audio loader/playback.
-
-Audio and animation events must be authored as separate runtime contracts.
-
----
-
-# Gate 9 — Asset registry, provenance, rollback, and acceptance
-
-Before a generated asset enters runtime:
-
-- preserve original concept/reference images and untouched provider output;
-- preserve prompt/reference/task/model/version/cost/license data;
-- checksum every source and derivative;
-- complete segmentation/mesh editing/retopo before final rigging;
-- validate topology, scale, origin, materials, LOD, collision, rig/deformation, animation markers, and browser performance;
-- publish only the accepted derivative to the runtime tree;
-- keep a rollback path.
-
-Provider task success is never asset acceptance.
+- project Node/package-manager versions;
+- GLB/model/animation loading;
+- compression/optimization tools;
+- browser automation;
+- renderer/device/WebGL limits;
+- draw calls, triangles, textures and memory;
+- real NVIDIA GTX 1080 Ti / ANGLE D3D11 path for current acceptance;
+- software rendering rejected for final evidence;
+- console/network/shader checks.
 
 ---
 
-# Final production toolchain receipt
+# Gate 9 — Audio/media
+
+When required, verify approved audio source/generation, WAV/OGG conversion, loudness/loop checks, runtime spatial playback, concurrency and FFmpeg/evidence capture.
+
+---
+
+# Gate 10 — Asset registry/provenance/rollback
+
+Before generated assets enter runtime:
+
+- preserve concept/reference and untouched provider outputs;
+- preserve prompts/task/model/version/cost/license;
+- checksum every source/derivative;
+- finish segmentation/geometry processing before final rig;
+- validate topology, scale, pivot, materials, LOD, collision, rig/deformation, animation markers and runtime performance;
+- publish accepted derivative only;
+- retain rollback.
+
+Provider success is not acceptance.
+
+---
+
+# Persistent receipt
 
 ```text
 SOULDRIFTER PRODUCTION TOOLCHAIN RECEIPT
+schemaVersion: <version>
+receiptId: <id>
+generatedAt: <timestamp>
 workspaceGitHub: PASS/FAIL
 storage: PASS/FAIL
 hostLlmImageGeneration: PASS/FAIL/NOT_REQUIRED
 tripoApiSdk3D: PASS/FAIL/NOT_REQUIRED
 tripoOfficialCli: PASS/FAIL/NOT_EXPOSED
 tripoMcp: PASS/FAIL/NOT_REQUIRED
-tripo2DImageCreditsAllowed: NO_BY_DEFAULT
-houdini: PASS/FAIL
+houdini: PASS/FAIL/NOT_REQUIRED
 houdiniLicense: <Apprentice|Indie|other>
 blender: PASS/FAIL/NOT_REQUIRED
-threejsRuntime: PASS/FAIL
-realGpuEvidence: PASS/FAIL
+threejsRuntime: PASS/FAIL/NOT_REQUIRED
+realGpuEvidence: PASS/FAIL/NOT_REQUIRED
 audioMedia: PASS/FAIL/NOT_REQUIRED
 assetRegistry: PASS/FAIL
-creditQuoteGate: PASS/FAIL
 blockingIssues: []
 result: PASS|BLOCKED
 ```
 
-A ticket may begin only when every lane it actually requires is `PASS` and every unused lane is explicitly `NOT_REQUIRED`.
+Store it outside Git under `H:\CodexData\souldrifter-toolchain\receipts\` and load it through `SESSION_FAST_START.md`.
