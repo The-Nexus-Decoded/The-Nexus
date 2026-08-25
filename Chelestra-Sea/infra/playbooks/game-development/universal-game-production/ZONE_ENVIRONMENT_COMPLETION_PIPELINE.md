@@ -4,97 +4,116 @@
 
 This is the reusable stage order for completing a playable environment before population/encounter production scales.
 
+Read with `ZONE_PRODUCTION_QUALITY_GATES.md`, the procedural-topology policy, spatial-connection catalog, staging policy and collision/interaction/destruction policy.
+
 ## Canonical order
 
 ```text
-0. design and purpose contract
-1. topology and connection/traversal solver
-2. shared shell, surfaces and traversal volumes
-3. environment staging and prop placement
-4. prop-complete walkthrough / collision discovery
-5. collision implementation and regression
-6. interaction, pickup and destruction
-7. final integrated environment walkthrough
-8. independent environment verification
-9. separate population/gameplay phase or ticket
+0.  design/canon/budget/zone-seam contract
+1.  topology and connection/traversal solver
+2.  graybox playability/scale/pacing/camera/socket reservation
+3.  shared shell/surfaces/volumes/world seams
+4.  asset intake and technical readiness
+5.  environment staging and prop placement
+6.  prop-complete walkthrough/collision discovery
+7.  collision/physics/navigation/hazard regression
+8.  interaction/pickup/destruction/dynamic state
+9.  lookdev/lighting/atmosphere/wayfinding
+10. audio/acoustics
+11. performance/streaming/loading/memory
+12. recovery/checkpoints/out-of-bounds/soft locks
+13. device/input/camera/accessibility/network contract
+14. population-readiness revalidation and handoff
+15. final integrated walkthrough and experience review
+16. independent environment verification
+17. separate population/gameplay phase or ticket
 ```
 
-No later stage substitutes for an earlier stage.
+No later stage substitutes for an earlier stage. An irrelevant gate is explicitly `NOT_REQUIRED`; a required gate is never silently skipped.
 
----
+## Gate summaries
 
-# Gate 0 — Design and purpose
+### Gate 0 — Design, budgets and seams
 
-Define:
+Define environment purpose, fixed/generated regions, spatial and traversal types, target devices, performance budgets, space-purpose profiles, interaction/destruction direction, actor profiles, population boundary and adjacent-zone entry/exit/loading/save contracts.
 
-- environment purpose and experience;
-- fixed/generated regions;
-- spatial-node and connection types;
-- target devices/performance;
-- space-purpose profiles;
-- interaction/destruction direction;
-- population-scope boundary.
+### Gate 1 — Topology and traversal
 
-# Gate 1 — Topology and traversal
+Prove logical graph, constructive embedding, canonical boundaries/openings/surfaces/volumes, explicit movement contracts, diagnostics and invariants.
 
-Use the procedural-topology and spatial-connection policies.
+### Gate 2 — Graybox playability
 
-Prove graph, constructive embedding, boundaries/openings, traversal contracts, diagnostics and invariants.
+Traverse at real movement speed before expensive art. Validate dimensions, pacing, route timing, camera fit, combat/readability space and required actor profiles. Reserve checkpoint, spawn, patrol, encounter, quest, dialogue and cinematic envelopes.
 
-# Gate 2 — Shell, surfaces and volumes
+### Gate 3 — Shell, surfaces, volumes and seams
 
-Create runtime geometry from the accepted topology:
+Create runtime shell/terrain, connectors, vertical transitions, traversal/hazard volumes, structural collision/nav intent, entry/exit geometry and streaming/culling regions.
 
-- shell/terrain/floors/ceilings;
-- apertures/connectors/vertical transitions;
-- water/climb/hazard volumes where applicable;
-- structural collision/navigation intent;
-- streaming/culling regions.
+### Gate 4 — Asset intake
 
-# Gate 3 — Staging and prop placement
+Every asset proves provenance/license/rollback, units/scale/axes/pivot, geometry/material/textures, compression/LOD/culling, collider strategy, interaction/destruction anchors/states and target-runtime compatibility.
 
-Use `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`.
+### Gate 5 — Staging and prop placement
 
-Place and classify all intended environmental fixtures, furniture, containers, cover, wall objects, storytelling and clutter before the collision walkthrough.
+Stage the place according to its purpose and classify every object before collision discovery.
 
-# Gate 4 — Prop-complete collision discovery
+### Gate 6 — Prop-complete collision discovery
 
-Walk the actual controller/profile through the complete staged environment and create a defect inventory.
+Walk the actual controller/body/camera through the complete staged environment and create a defect inventory.
 
-# Gate 5 — Collision implementation/regression
+### Gate 7 — Collision, physics, nav and hazards
 
-Repair positive/negative collision, mesh/collider/state alignment, camera/body issues and navigation agreement. Repeat all routes.
+Repair positive/negative collision, surface physics, water/moving-platform behavior, hazards, stateful thresholds, camera/body alignment and navigation agreement.
 
-# Gate 6 — Interaction/pickup/destruction
+### Gate 8 — Interaction and dynamic state
 
-Use `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`.
+Implement containers, pickups, mechanisms, destruction/protection classes, collision/nav state changes, persistence, debris and moving/transforming states.
 
-Implement representative containers, pickups, stateful mechanisms, destruction categories, protected objects, collision changes, persistence and performance.
+### Gate 9 — Lookdev and wayfinding
 
-# Gate 7 — Final integrated walkthrough
+Validate materials, lighting, shadows, exposure, fog, water, weather, particles, post effects, landmarks, exits, interactions and state readability. Atmosphere may not hide defects.
 
-Run all environment systems together on target devices/render paths and verify no topology, collision, interaction, persistence or performance regression.
+### Gate 10 — Audio/acoustics
+
+Validate ambience, music, reverb, obstruction/occlusion, attenuation, footsteps, interaction/destruction/hazard cues, water transitions, concurrency and device/browser resume behavior.
+
+### Gate 11 — Performance/streaming/loading
+
+Track staged budgets and validate loading, draw calls, geometry, textures, frame time, memory, lights/shadows, particles/overdraw, animations, physics/nav/audio, shader stutter, mobile behavior, quality tiers and repeated entry.
+
+### Gate 12 — Recovery and soft locks
+
+Test save/checkpoint/respawn/re-entry, stuck recovery, boundary exploits, dynamic-state recovery, missing-state/load fallback, required-item protection and no progression soft locks.
+
+### Gate 13 — Device/input/accessibility/network
+
+Validate required devices, browsers, inputs, viewports, camera, prompts, contrast/color-independent cues, reduced motion, captions and interruption recovery. Define network authority/state when applicable.
+
+### Gate 14 — Population-readiness handoff
+
+Revalidate final spawn/patrol/leash/actor-size/encounter/cover/LOS/quest/cinematic/drop envelopes and provide stable socket IDs plus a dependency commit without adding final population.
+
+### Gate 15 — Final integrated walkthrough and experience review
+
+Run every system together on target profiles and review orientation, believability, repetition, dead travel, spatial rhythm, interaction density, fatigue, storytelling and enjoyment.
 
 Producer stops at `IMPLEMENTED_UNVERIFIED`.
 
-# Gate 8 — Independent environment verification
+### Gate 16 — Independent verification
 
 An independent verifier repeats the complete environment acceptance on the exact commit.
 
 Required status: `ENVIRONMENT_VERIFIED`.
 
-# Gate 9 — Separate population/gameplay phase
+### Gate 17 — Separate population/gameplay phase
 
-After environment verification, implement project-specific:
+After environment verification, implement project-specific NPC/creature population, patrols/AI, encounters, respawn tuning, quests/dialogue/objectives, production loot/drop tables and population state.
 
-- NPC/creature population;
-- patrols/AI;
-- encounters/random encounters/respawn;
-- quests/dialogue/objectives;
-- production loot/drop tables;
-- population persistence/network state.
+That phase consumes the verified environment and may not silently alter topology, staging or collision. Required environment changes reopen the affected gates.
 
-That phase consumes the verified environment and may not silently alter its topology/staging/collision.
+## Reopen rule
+
+Changes reopen the lowest affected gate and every dependent gate. See `ZONE_PRODUCTION_QUALITY_GATES.md` for examples.
 
 ## Machine-readable files
 
@@ -103,4 +122,4 @@ That phase consumes the verified environment and may not silently alter its topo
 
 ## Done rule
 
-A zone is environment-complete only after the fully staged environment has verified topology, collision, interactions, destruction, persistence, performance and independent real-controller proof.
+A zone is complete only when every required gate has current evidence and independent verification. A connected navigation graph, attractive screenshots, green tests or one successful walkthrough cannot substitute for the complete gate set.
