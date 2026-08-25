@@ -1,50 +1,69 @@
 {
-  "schemaVersion": 1,
-  "policyId": "universal-procedural-level-topology-v1",
-  "architecture": "LOGICAL_GRAPH_THEN_CONSTRUCTIVE_EMBEDDING_THEN_CANONICAL_BOUNDARIES_THEN_RUNTIME",
+  "schemaVersion": 2,
+  "policyId": "universal-procedural-level-topology-v2",
+  "architecture": "LOGICAL_GRAPH_THEN_TRAVERSAL_CONTRACTS_THEN_CONSTRUCTIVE_EMBEDDING_THEN_CANONICAL_BOUNDARIES_SURFACES_AND_VOLUMES_THEN_RUNTIME",
+  "relatedPolicies": [
+    "SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md",
+    "config/spatial-connection-policy.json",
+    "templates/spatial-connection-record.template.json"
+  ],
   "requiredLayers": [
     "logical_graph",
-    "embedded_spatial_plan",
-    "runtime_geometry_physics_navigation"
+    "traversal_connection_contracts",
+    "embedded_spatial_plan_surfaces_and_volumes",
+    "runtime_geometry_physics_navigation_and_controller_states"
+  ],
+  "supportedSpatialNodeFamilies": [
+    "ENCLOSED_ARCHITECTURAL_SPACE",
+    "CAVERN_OR_SHAFT",
+    "VERTICAL_TRAVERSAL_REGION",
+    "WATER_OR_AIR_VOLUME",
+    "BIOME_POCKET",
+    "LABYRINTH_OR_MEGA_ZONE",
+    "DYNAMIC_OR_LIVING_REGION",
+    "EXTERIOR_OR_STREAMED_REGION",
+    "VEHICLE_OR_TRANSPORT_SPACE"
   ],
   "constructiveEmbedding": {
     "placeDestinationRelativeToAcceptedEdge": true,
     "resolveEdgeBeforeAcceptingDestination": true,
-    "retryAlternateSocketOrientationOrModule": true,
+    "deriveDestinationTransformFromConnection": true,
+    "validateMovementCameraResourcesHazardsAndRecovery": true,
+    "retryAlternateSocketSurfaceVolumeOrientationOrModule": true,
     "backtrackWhenNecessary": true,
     "rejectWhenBacktrackingExhausted": true,
     "deterministicSeedsSupported": true
   },
-  "baseConnectionTypes": [
-    "DIRECT_OPEN_ADJACENCY",
-    "DOOR_GATE_ADJACENCY",
-    "CORRIDOR_OR_PASSAGE",
-    "PORTAL_OR_TELEPORT",
-    "VERTICAL_TRANSITION",
-    "ROAD_OR_PATH_JUNCTION",
-    "PLATFORM_OR_BRIDGE_CONNECTION"
-  ],
-  "canonicalBoundaryRules": {
+  "connectionCatalog": "config/spatial-connection-policy.json",
+  "canonicalOwnershipRules": {
     "sharedBoundaryEmittedOnce": true,
     "openSpanBlockingBoundary": false,
-    "statefulPortalOwnsSingleApertureStateCollisionContract": true,
-    "connectorMustReachBothEndpointOpenings": true,
+    "controlledThresholdOwnsSingleApertureStateCollisionContract": true,
+    "physicalConnectorMustReachBothEndpoints": true,
     "coincidentDuplicateBoundariesAllowed": false,
-    "runtimeConsumesBoundaryInventory": true
+    "deterministicSurfaceAndVolumeOwnershipRequired": true,
+    "waterAndAirVolumesMayTrapPlayer": false,
+    "runtimeConsumesAcceptedInventory": true
   },
   "diagnosticGate": {
-    "derivedFromActualEmbeddedGeometry": true,
+    "derivedFromActualEmbeddedGeometryVolumesAndStates": true,
     "requiredBeforeDressing": true,
+    "horizontalRequires": ["TOP_DOWN_PLAN"],
+    "verticalRequires": ["TOP_DOWN_PLAN", "SECTION_OR_ELEVATION"],
+    "aquaticRequires": ["TOP_DOWN_PLAN", "SECTION_OR_ELEVATION", "THREE_D_VOLUME_OR_SLICE"],
+    "dynamicRequires": ["STATE_GRAPH", "TIMELINE_OR_STATE_SEQUENCE", "BEFORE_AFTER_GEOMETRY"],
+    "megaZoneRequires": ["REGION_GRAPH", "STREAMING_MAP", "LOCAL_SUBGRAPHS"],
     "automatedTopologyReview": true,
     "independentAiVisionReviewWhenApplicable": true,
     "ownerReviewForInitialOrMajorGeneratorChange": true
   },
   "defaultHardInvariants": {
-    "requiredLogicalEdgesEqualsPhysicallyResolvedEdges": true,
-    "unintendedModuleOverlaps": 0,
+    "requiredLogicalEdgesEqualsPhysicallyOrExplicitlyResolvedEdges": true,
+    "unintendedNodeOverlaps": 0,
+    "unintendedConnectorNodeOverlaps": 0,
     "coincidentDuplicateBoundaries": 0,
     "boundariesCrossingOpenings": 0,
-    "orphanDoorsOrConnectors": 0,
+    "orphanDoorsGatesOrConnectors": 0,
     "unmatchedConnectorEndpoints": 0,
     "physicalConnectorsEndingAtBlockingGeometry": 0,
     "missingDestinationOpenings": 0,
@@ -53,13 +72,17 @@
     "volumeContinuityFailures": 0,
     "collisionContinuityFailures": 0,
     "navigationContinuityFailures": 0,
-    "unsupportedElevationTransitions": 0
+    "unsupportedElevationOrDepthTransitions": 0,
+    "movementStateTransitionFailures": 0,
+    "resourceRuleFailures": 0,
+    "recoveryOrSoftLockFailures": 0
   },
   "runtimeProof": {
-    "realControllerOrInputRequired": true,
+    "realMovementModeRequiredForEveryEdge": true,
     "debugWarpMayProveConnectivity": false,
-    "sourceConnectorDestinationEvidence": true,
-    "statefulPortalBothSidesEvidence": true,
+    "sourceTransitionDestinationEvidence": true,
+    "controlledConnectionStatesEvidence": true,
+    "saveReloadProofWhenMidTraversalPersistenceIsPossible": true,
     "independentVerification": true
   }
 }
