@@ -11,6 +11,7 @@
 import { generateBreachV2 } from "./breach-v2-generator.ts";
 import { BREACH_V2_REGISTRY as R } from "./breach-v2-registry.mjs";
 import type { BreachV2PathId } from "./breach-v2-generator.ts";
+import { buildBreachV2TopologyManifest } from "./breach-v2-topology.ts";
 
 export interface BreachV2CatalogSpec {
   sourceUrl: string;
@@ -97,9 +98,13 @@ export function buildBreachV2Layout(
 
   const corridors = gen.corridors.map((c) => ({
     id: c.id,
-    points: [[c.from.x, c.from.y], [c.bend.x, c.bend.y], [c.to.x, c.to.y]] as [number, number][],
+    sourceRoomId: c.sourceRoomId,
+    destinationRoomId: c.destinationRoomId,
+    connectionType: c.connectionType,
+    points: c.points.map((point): [number, number] => [point.x, point.y]),
     width: c.width,
-    elevations: [c.fromElevation, c.bendElevation, c.toElevation] as [number, number, number],
+    elevations: [...c.elevations],
+    externalDestination: c.externalDestination ?? false,
   }));
 
   const landmarkOut = (id: string) => {
@@ -127,6 +132,15 @@ export function buildBreachV2Layout(
     { id: "memory-glow", x: gen.firstMemory.x, z: gen.firstMemory.y, y: gen.firstMemory.floorElevation + 1.8, color: "#c9a8ff", intensity: 1.4, radius: 7.0, castsShadow: false },
     { id: "exit-daylight", x: gen.exitPoint.x, z: gen.exitPoint.y, y: gen.exitPoint.floorElevation + 3.0, color: "#cfe8c0", intensity: 1.5, radius: 10.0, castsShadow: false },
   ];
+  const topology = buildBreachV2TopologyManifest({
+    ticket: 451,
+    seed,
+    pathId,
+    rooms,
+    corridors,
+    logicalGraph: gen.logicalGraph,
+    placement: gen.placement,
+  });
 
   return {
     meta: {
@@ -136,6 +150,9 @@ export function buildBreachV2Layout(
     },
     rooms,
     corridors,
+    logicalGraph: gen.logicalGraph,
+    placement: gen.placement,
+    topology,
     placements,
     landmarks: {
       soulWell: well,

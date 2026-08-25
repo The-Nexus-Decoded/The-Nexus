@@ -8,6 +8,7 @@ import {
   breachV2CellKey, generateBreachV2,
   type BreachV2PathId, type GeneratedBreachV2,
 } from "../src/game/dungeons/breach-v2-generator";
+import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
 
 const NAV = R.units.navCellMeters;
@@ -177,8 +178,11 @@ describe("BREACH-V2 seeded generator", () => {
         expect(new Set(chamberElevations).size).toBe(chamberElevations.length);
 
         for (const corridor of gen.corridors) {
-          expect(corridor.fromElevation, corridor.id).toBeLessThanOrEqual(corridor.bendElevation);
-          expect(corridor.bendElevation, corridor.id).toBeLessThanOrEqual(corridor.toElevation);
+          expect(corridor.elevations[0], corridor.id).toBeCloseTo(corridor.fromElevation, 6);
+          expect(corridor.elevations[corridor.elevations.length - 1], corridor.id)
+            .toBeCloseTo(corridor.toElevation, 6);
+          expect(corridor.elevations, corridor.id)
+            .toEqual([...corridor.elevations].sort((a, b) => a - b));
         }
 
         const entry = gen.corridors.find((corridor) => corridor.id === "corridor-entry")!;
@@ -191,6 +195,155 @@ describe("BREACH-V2 seeded generator", () => {
         expect(gen.exitPoint.floorElevation).toBeGreaterThan(gen.firstMemory.floorElevation);
         expect(gen.exitPoint.floorElevation).toBeLessThan(R.worldAnchor.elevation);
       }
+    }
+  });
+
+  it("constructively embeds each accepted room from the prior shared boundary", () => {
+    for (let seed = 1; seed <= 200; seed += 1) {
+      for (const pathId of PATHS) {
+        const gen = generateBreachV2(seed, pathId);
+        const entry = gen.corridors.find((corridor) => corridor.id === "corridor-entry")!;
+        const path = R.paths[pathId];
+
+        expect(gen.placement.rootRoomId).toBe("vestibule");
+        expect(gen.placement.attempts).toHaveLength(gen.chamberCount);
+        expect(gen.placement.attempts.every((attempt) => attempt.accepted)).toBe(true);
+        expect(gen.placement.backtracks).toEqual([]);
+        expect(gen.placement.rejectedCandidates).toEqual([]);
+
+        let acceptedEastBoundary = entry.from.x;
+        for (const [index, chamber] of gen.chambers.entries()) {
+          const attempt = gen.placement.attempts[index]!;
+          expect(chamber.x, `${pathId} seed ${seed} room ${chamber.id}`)
+            .toBeGreaterThan(acceptedEastBoundary);
+          expect(chamber.x - acceptedEastBoundary)
+            .toBeGreaterThanOrEqual(path.corridorWidthMeters - 0.01);
+          expect(attempt.roomId).toBe(chamber.id);
+          expect(attempt.destinationSocket.x).toBeCloseTo(chamber.x, 6);
+          expect(attempt.connectorGap).toBeCloseTo(chamber.x - acceptedEastBoundary, 6);
+          acceptedEastBoundary = chamber.x + chamber.w;
+        }
+
+        expect(path.convergenceSocket[0] - acceptedEastBoundary)
+          .toBeGreaterThanOrEqual(path.corridorWidthMeters - 0.01);
+      }
+    }
+  });
+
+  it("routes corridor endpoints normal to room walls with explicit polyline elevations", () => {
+    for (const pathId of PATHS) {
+      const gen = generateBreachV2(4182, pathId);
+      const routeCorridors = gen.corridors.filter((corridor) => (
+        corridor.id === "corridor-entry" || corridor.id.startsWith("corridor-out-")
+      ));
+
+      for (const corridor of routeCorridors) {
+        expect(corridor.points.length, corridor.id).toBeGreaterThanOrEqual(2);
+        expect(corridor.elevations, corridor.id).toHaveLength(corridor.points.length);
+        for (let index = 0; index < corridor.points.length - 1; index += 1) {
+          const a = corridor.points[index]!;
+          const b = corridor.points[index + 1]!;
+          expect(Math.hypot(b.x - a.x, b.y - a.y), `${corridor.id} segment ${index}`)
+            .toBeGreaterThan(0.01);
+        }
+
+        const first = corridor.points[0]!;
+        const firstInside = corridor.points[1]!;
+        const lastInside = corridor.points[corridor.points.length - 2]!;
+        const last = corridor.points[corridor.points.length - 1]!;
+        expect(firstInside.y, `${corridor.id} source approach`).toBeCloseTo(first.y, 6);
+        expect(lastInside.y, `${corridor.id} destination approach`).toBeCloseTo(last.y, 6);
+        expect(Math.abs(firstInside.x - first.x), `${corridor.id} source normal`).toBeGreaterThan(0.01);
+        expect(Math.abs(last.x - lastInside.x), `${corridor.id} destination normal`).toBeGreaterThan(0.01);
+      }
+    }
+  });
+
+  it("records the full progression graph including the Heartvale portal transfer", () => {
+    for (const pathId of PATHS) {
+      const gen = generateBreachV2(4182, pathId);
+      const edges = new Map(gen.logicalGraph.edges.map((edge) => [edge.edgeId, edge]));
+
+      for (const corridor of gen.corridors) {
+        expect(edges.get(corridor.id)).toMatchObject({
+          sourceNode: corridor.sourceRoomId,
+          destinationNode: corridor.destinationRoomId,
+          connectionType: corridor.connectionType,
+          requiredForProgression: true,
+        });
+      }
+
+      expect(edges.get("vestibule-plaza-link")).toMatchObject({
+        sourceNode: "vestibule",
+        destinationNode: "plaza-link",
+        connectionType: "VERTICAL_TRANSITION",
+      });
+      expect(edges.get("plaza-link-threshold")).toMatchObject({
+        sourceNode: "plaza-link",
+        destinationNode: "threshold-plaza",
+        connectionType: "VERTICAL_TRANSITION",
+      });
+      expect(edges.get("heartvale-transfer")).toEqual({
+        edgeId: "heartvale-transfer",
+        sourceNode: "heartvale-threshold",
+        destinationNode: "heartvale-hv-1",
+        connectionType: "PORTAL_TRANSFER",
+        requiredForProgression: true,
+      });
+    }
+  });
+
+  it("passes the SEA whole-level topology gate with one canonical shell inventory", () => {
+    for (const pathId of PATHS) {
+      const manifest = buildBreachV2Layout(4182, pathId, {}).topology;
+      const {
+        requiredLogicalEdges,
+        physicallyResolvedEdges,
+        connectedPhysicalComponents,
+        ...failureMetrics
+      } = manifest.metrics;
+      const boundaryIds = manifest.boundaries.map((boundary) => boundary.boundaryId);
+      const apertures = manifest.boundaries.flatMap((boundary) => boundary.apertures);
+      const apertureIds = apertures.map((aperture) => aperture.apertureId);
+      const aperturesById = new Map(apertures.map((aperture) => [aperture.apertureId, aperture]));
+      const assemblies = apertures.map((aperture) => aperture.assembly);
+
+      expect(manifest.automatedGate).toBe("PASS");
+      expect(manifest.status).toBe("PLAN_GATE_PASS_REVIEW_REQUIRED");
+      expect(physicallyResolvedEdges).toBe(requiredLogicalEdges);
+      expect(connectedPhysicalComponents).toBe(1);
+      expect(Object.values(failureMetrics).every((value) => value === 0)).toBe(true);
+      expect(new Set(boundaryIds).size).toBe(boundaryIds.length);
+      expect(new Set(apertureIds).size).toBe(apertureIds.length);
+      expect(manifest.boundaries.some((boundary) => boundary.classification === "SHARED_WALL")).toBe(true);
+      expect(manifest.boundaries.some((boundary) => boundary.classification === "CORRIDOR_WALL")).toBe(true);
+      expect(manifest.connections.every((connection) => (
+        connection.physicalResolutionStatus === "RESOLVED"
+        && connection.sourceApertureId.length > 0
+        && connection.destinationApertureId.length > 0
+        && connection.sourceApproachNormal
+        && connection.destinationApproachNormal
+        && aperturesById.get(connection.sourceApertureId)!.clearWidth >= connection.clearWidth
+        && aperturesById.get(connection.destinationApertureId)!.clearWidth >= connection.clearWidth
+      ))).toBe(true);
+      expect(manifest.connections.every((connection) => (
+        connection.transition.rise === 0
+        || (connection.transition.mode === "STAIRS" && connection.transition.recommendedSteps > 0)
+      ))).toBe(true);
+      expect(assemblies).toEqual(expect.arrayContaining(["PORTCULLIS", "DOOR", "PORTAL"]));
+      expect(manifest.topDownDiagnostic.layers).toEqual(expect.arrayContaining([
+        "room_polygons_and_ids",
+        "wall_segments_and_boundary_ids",
+        "apertures",
+        "doors_gates_portcullises",
+        "corridor_polygons_and_centerlines",
+        "navigation_clearance",
+        "floor_elevations",
+        "vertical_transitions",
+        "logical_edges",
+        "physical_edge_matches",
+        "overlap_and_error_overlays",
+      ]));
     }
   });
 

@@ -18,7 +18,21 @@ import type {
 } from "./breach-v2-registry.mjs";
 
 export type BreachV2PathId = "wayfarer" | "oathbreaker";
+export type BreachV2ConnectionType =
+  | "DIRECT_OPEN_ADJACENCY"
+  | "DOOR_GATE_ADJACENCY"
+  | "CORRIDOR"
+  | "PORTAL_TRANSFER"
+  | "VERTICAL_TRANSITION";
 type BreachV2BossPattern = "cinder-sweep" | "ash-call" | "soul-tax";
+
+export interface BreachV2LogicalEdge {
+  edgeId: string;
+  sourceNode: string;
+  destinationNode: string;
+  connectionType: BreachV2ConnectionType;
+  requiredForProgression: boolean;
+}
 
 interface BreachV2ChamberInstance {
   id: string;
@@ -34,13 +48,17 @@ interface BreachV2ChamberInstance {
 
 interface BreachV2Corridor {
   id: string;
+  sourceRoomId: string;
+  destinationRoomId: string;
+  connectionType: "CORRIDOR" | "VERTICAL_TRANSITION";
+  points: { x: number; y: number }[];
+  elevations: number[];
   from: { x: number; y: number };
-  bend: { x: number; y: number };
   to: { x: number; y: number };
   width: number;
   fromElevation: number;
-  bendElevation: number;
   toElevation: number;
+  externalDestination?: boolean;
 }
 
 interface BreachV2PlacedProp extends BreachV2Placement {
@@ -74,6 +92,24 @@ export interface GeneratedBreachV2 {
   chamberCount: number;
   chambers: BreachV2ChamberInstance[];
   corridors: BreachV2Corridor[];
+  logicalGraph: { nodes: string[]; edges: BreachV2LogicalEdge[] };
+  placement: {
+    rootRoomId: string;
+    attempts: {
+      roomId: string;
+      archetypeId: string;
+      acceptedFromEdge: string;
+      guideCenter: [number, number];
+      sourceSocket: { x: number; y: number };
+      destinationSocket: { x: number; y: number };
+      connectorGap: number;
+      attemptCount: number;
+      accepted: boolean;
+    }[];
+    backtracks: string[];
+    rejectedCandidates: string[];
+    deterministicResult: boolean;
+  };
   fixedRooms: BreachV2FixedRoom[];
   placements: BreachV2PlacedProp[];
   enemies: BreachV2Enemy[];
@@ -160,8 +196,9 @@ function corridorCells(c: BreachV2Corridor): BreachV2Cell[] {
       }
     }
   };
-  walk(c.from, c.bend);
-  walk(c.bend, c.to);
+  for (let index = 0; index < c.points.length - 1; index += 1) {
+    walk(c.points[index]!, c.points[index + 1]!);
+  }
   return [...cells.values()];
 }
 
@@ -171,22 +208,55 @@ function doorWorld(ch: BreachV2ChamberInstance, side: "W" | "E"): { x: number; y
     : { x: ch.x + ch.w, y: ch.y + ch.h / 2 };
 }
 
+function doglegPoints(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): { x: number; y: number }[] {
+  if (Math.abs(from.x - to.x) < 0.01 || Math.abs(from.y - to.y) < 0.01) return [from, to];
+  const midpointX = (from.x + to.x) / 2;
+  return [from, { x: midpointX, y: from.y }, { x: midpointX, y: to.y }, to];
+}
+
 function corridorWithElevation(
   id: string,
-  from: { x: number; y: number },
-  bend: { x: number; y: number },
-  to: { x: number; y: number },
+  sourceRoomId: string,
+  destinationRoomId: string,
+  points: { x: number; y: number }[],
   width: number,
   fromElevation: number,
   toElevation: number,
+  connectionType: "CORRIDOR" | "VERTICAL_TRANSITION" = "CORRIDOR",
+  externalDestination = false,
 ): BreachV2Corridor {
-  const firstLength = Math.hypot(bend.x - from.x, bend.y - from.y);
-  const secondLength = Math.hypot(to.x - bend.x, to.y - bend.y);
-  const totalLength = firstLength + secondLength;
-  const bendElevation = totalLength > 0
-    ? fromElevation + (toElevation - fromElevation) * (firstLength / totalLength)
-    : fromElevation;
-  return { id, from, bend, to, width, fromElevation, bendElevation, toElevation };
+  const normalized = points.filter((point, index) => (
+    index === 0 || Math.hypot(point.x - points[index - 1]!.x, point.y - points[index - 1]!.y) >= 0.01
+  ));
+  if (normalized.length < 2) throw new Error(`corridor ${id} has no physical length`);
+  const segmentLengths = normalized.slice(1).map((point, index) => (
+    Math.hypot(point.x - normalized[index]!.x, point.y - normalized[index]!.y)
+  ));
+  const totalLength = segmentLengths.reduce((sum, length) => sum + length, 0);
+  let traversed = 0;
+  const elevations = normalized.map((_point, index) => {
+    if (index > 0) traversed += segmentLengths[index - 1]!;
+    return totalLength > 0
+      ? fromElevation + (toElevation - fromElevation) * (traversed / totalLength)
+      : fromElevation;
+  });
+  return {
+    id,
+    sourceRoomId,
+    destinationRoomId,
+    connectionType,
+    points: normalized,
+    elevations,
+    from: normalized[0]!,
+    to: normalized[normalized.length - 1]!,
+    width,
+    fromElevation,
+    toElevation,
+    ...(externalDestination ? { externalDestination: true } : {}),
+  };
 }
 
 function landmark(id: string) {
@@ -203,46 +273,79 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   const pool = R.pools[path.pool];
   const preset = R.tables.spawn[pathId];
 
-  // --- chambers: 3-5, drawn without replacement from the path pool only
+  // --- logical run + constructive chamber placement -------------------------
+  // Draw archetypes first, then grow the accepted spatial run from the
+  // Threshold Plaza socket toward the fixed convergence socket. Slot centers
+  // remain route-shape guides for Z only; X is derived from the accepted
+  // source boundary, selected room widths, and the remaining connector run.
   const chamberCount = random.int(path.minChambers, path.maxChambers);
   const drawn = random.shuffle([...pool]).slice(0, chamberCount);
-  const chambers: BreachV2ChamberInstance[] = drawn.map((room: BreachV2PoolRoom, index) => {
-    const [cx, cy] = path.slotCenters[index]!;
-    return {
+  const doorLm = landmark(pathId === "wayfarer" ? "door-wayfarer" : "door-oathbreaker");
+  const corridorWidth = path.corridorWidthMeters;
+  const entryFrom = { x: doorLm.worldX, y: doorLm.worldY };
+  const conv = { x: path.convergenceSocket[0], y: path.convergenceSocket[1] };
+  const availableConnectorRun = conv.x - entryFrom.x
+    - drawn.reduce((sum: number, room: BreachV2PoolRoom) => sum + room.w, 0);
+  const connectorGap = availableConnectorRun / (drawn.length + 1);
+  if (connectorGap + 0.01 < corridorWidth) {
+    throw new Error(`seed ${seed} ${pathId} cannot embed ${drawn.length} rooms with player-width connectors`);
+  }
+
+  const placementAttempts: GeneratedBreachV2["placement"]["attempts"] = [];
+  const chambers: BreachV2ChamberInstance[] = [];
+  let acceptedEastBoundary = entryFrom.x;
+  for (let index = 0; index < drawn.length; index += 1) {
+    const room = drawn[index]!;
+    const [, guideY] = path.slotCenters[index]!;
+    const x = acceptedEastBoundary + connectorGap;
+    const y = guideY - room.h / 2;
+    const chamber: BreachV2ChamberInstance = {
       id: `chamber-${index + 1}`,
       poolRoomId: room.id,
       name: room.name,
-      x: cx - room.w / 2,
-      y: cy - room.h / 2,
+      x,
+      y,
       w: room.w,
       h: room.h,
       slot: index + 1,
       floorElevation: path.slotElevations[index]!,
     };
-  });
+    const sourceSocket = index === 0 ? entryFrom : doorWorld(chambers[index - 1]!, "E");
+    const destinationSocket = doorWorld(chamber, "W");
+    placementAttempts.push({
+      roomId: chamber.id,
+      archetypeId: chamber.poolRoomId,
+      acceptedFromEdge: index === 0 ? "corridor-entry" : `corridor-out-${index}`,
+      guideCenter: [x + room.w / 2, guideY],
+      sourceSocket,
+      destinationSocket,
+      connectorGap: destinationSocket.x - sourceSocket.x,
+      attemptCount: 1,
+      accepted: true,
+    });
+    chambers.push(chamber);
+    acceptedEastBoundary = x + room.w;
+  }
 
   // --- corridors: plaza door -> S1 W; then each chamber E -> next chamber W;
   // --- last chamber E -> convergence socket
-  const doorLm = landmark(pathId === "wayfarer" ? "door-wayfarer" : "door-oathbreaker");
-  const corridorWidth = path.corridorWidthMeters;
   const corridors: BreachV2Corridor[] = [];
-  const entryFrom = { x: doorLm.worldX, y: doorLm.worldY };
   const firstW = doorWorld(chambers[0]!, "W");
   const thresholdElevation = R.fixedRooms.find((room) => room.id === "threshold-plaza")!.floorElevation;
   corridors.push(corridorWithElevation(
-    "corridor-entry", entryFrom, { x: firstW.x, y: entryFrom.y }, firstW,
+    "corridor-entry", "threshold-plaza", chambers[0]!.id, doglegPoints(entryFrom, firstW),
     corridorWidth, thresholdElevation, chambers[0]!.floorElevation,
   ));
-  const conv = { x: path.convergenceSocket[0], y: path.convergenceSocket[1] };
   const convergenceElevation = R.fixedRooms.find((room) => room.id === "convergence")!.floorElevation;
   for (let i = 0; i < chambers.length; i += 1) {
     const exit = doorWorld(chambers[i]!, "E");
     const next = i + 1 < chambers.length ? doorWorld(chambers[i + 1]!, "W") : conv;
+    const destinationRoomId = i + 1 < chambers.length ? chambers[i + 1]!.id : "convergence";
     const nextElevation = i + 1 < chambers.length
       ? chambers[i + 1]!.floorElevation
       : convergenceElevation;
     corridors.push(corridorWithElevation(
-      `corridor-out-${i + 1}`, exit, { x: next.x, y: exit.y }, next,
+      `corridor-out-${i + 1}`, chambers[i]!.id, destinationRoomId, doglegPoints(exit, next),
       corridorWidth, chambers[i]!.floorElevation, nextElevation,
     ));
   }
@@ -250,23 +353,69 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   // --- fixed connectors between the fixed rooms (same every run)
   const fixedConnectors: BreachV2Corridor[] = [];
   const link = (
-    id: string, a: [number, number], b: [number, number], width: number,
+    id: string, sourceRoomId: string, destinationRoomId: string,
+    a: [number, number], b: [number, number], width: number,
     fromElevation: number, toElevation: number,
+    connectionType: "CORRIDOR" | "VERTICAL_TRANSITION" = "CORRIDOR",
+    externalDestination = false,
   ): void => {
     fixedConnectors.push(corridorWithElevation(
-      id, { x: a[0], y: a[1] }, { x: b[0], y: a[1] }, { x: b[0], y: b[1] },
-      width, fromElevation, toElevation,
+      id, sourceRoomId, destinationRoomId,
+      doglegPoints({ x: a[0], y: a[1] }, { x: b[0], y: b[1] }),
+      width, fromElevation, toElevation, connectionType, externalDestination,
     ));
   };
-  link("conv-ante", [188, 10], [192, 10], 3.2, 5.6, 6.2);
-  link("ante-boss", [204, 10], [208, 10], 3.2, 6.2, 6.8);
+  link("conv-ante", "convergence", "ashen-threshold", [188, 10], [192, 10], 3.2, 5.6, 6.2);
+  link("ante-boss", "ashen-threshold", "ashen-lock", [204, 10], [208, 10], 3.2, 6.2, 6.8);
   // The authored post-boss spine is sequential: Ashen Lock -> First Memory
   // Vault -> Way Upward -> Heartvale. Unlocking is runtime state; these
   // connectors describe the physical topology and must not bypass the vault.
-  link("boss-vault", [238, 7], [242, 7], 2.5, 6.8, 7.6);
-  link("vault-exit", [247, 11], [247, 12], 2.5, 7.6, 7.9);
-  link("heartvale-exit", [258, 15], [262, 15], 2.5, R.worldAnchor.elevation, R.worldAnchor.elevation);
+  link("boss-vault", "ashen-lock", "memory-vault", [238, 7], [242, 7], 2.5, 6.8, 7.6);
+  link(
+    "vault-exit", "memory-vault", "exit-connector", [247, 11], [247, 12], 2.5, 7.6, 7.9,
+    "VERTICAL_TRANSITION",
+  );
+  link(
+    "heartvale-exit", "exit-connector", "heartvale-threshold", [258, 15], [262, 15], 2.5,
+    R.worldAnchor.elevation, R.worldAnchor.elevation, "CORRIDOR", true,
+  );
   const allCorridors = [...corridors, ...fixedConnectors];
+  const logicalEdges: BreachV2LogicalEdge[] = [
+    {
+      edgeId: "vestibule-plaza-link",
+      sourceNode: "vestibule",
+      destinationNode: "plaza-link",
+      connectionType: "VERTICAL_TRANSITION",
+      requiredForProgression: true,
+    },
+    {
+      edgeId: "plaza-link-threshold",
+      sourceNode: "plaza-link",
+      destinationNode: "threshold-plaza",
+      connectionType: "VERTICAL_TRANSITION",
+      requiredForProgression: true,
+    },
+    ...allCorridors.map((corridor): BreachV2LogicalEdge => ({
+      edgeId: corridor.id,
+      sourceNode: corridor.sourceRoomId,
+      destinationNode: corridor.destinationRoomId,
+      connectionType: corridor.connectionType,
+      requiredForProgression: true,
+    })),
+    {
+      edgeId: "heartvale-transfer",
+      sourceNode: "heartvale-threshold",
+      destinationNode: "heartvale-hv-1",
+      connectionType: "PORTAL_TRANSFER",
+      requiredForProgression: true,
+    },
+  ];
+  const logicalNodes = [
+    ...R.fixedRooms.map((room) => room.id),
+    ...chambers.map((room) => room.id),
+    "heartvale-threshold",
+    "heartvale-hv-1",
+  ];
 
   // --- placements: fixed rooms + chamber templates, world-space
   const placements: BreachV2PlacedProp[] = [];
@@ -383,6 +532,14 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
     chamberCount,
     chambers,
     corridors: allCorridors,
+    logicalGraph: { nodes: logicalNodes, edges: logicalEdges },
+    placement: {
+      rootRoomId: "vestibule",
+      attempts: placementAttempts,
+      backtracks: [],
+      rejectedCandidates: [],
+      deterministicResult: true,
+    },
     fixedRooms: R.fixedRooms,
     placements,
     enemies,
