@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Allow a game to remain browser-first/mobile-compatible while preserving expensive procedural, 3D, animation and FX work for later browser-runtime migration or optional native-engine targets.
+Allow a game to remain browser-first/mobile-compatible while preserving expensive procedural, 3D, animation and FX work for an optional future native/full-engine target.
 
 ## Browser-first rule
 
@@ -12,39 +12,58 @@ A project profile may declare:
 primaryDelivery: BROWSER
 mobileBrowserRequired: true
 installationRequired: false
+canonicalBrowserRuntime: <project-selected runtime>
 ```
 
-The current runtime remains stable until the selected vertical slice is complete and independently verified.
+The selected browser runtime remains stable until the current vertical slice is complete and independently verified.
 
-Do not switch rendering/game frameworks mid-slice merely because another engine may have more built-in features.
+Do not switch rendering/game frameworks mid-slice merely because another framework has different built-in features.
 
-## Post-slice browser-engine evaluation
+## No default lateral browser-engine migration
 
-A project may schedule a side-by-side evaluation after its POC/vertical slice.
+The universal playbook does not prescribe a post-POC migration from one browser engine/library to another.
 
-Example browser candidates:
+A project should normally improve its accepted browser runtime through:
 
-- Three.js;
-- Babylon.js;
-- PlayCanvas;
-- another approved WebGL/WebGPU runtime.
+- WebGL/WebGPU capability paths;
+- scalable shaders, particles, water, fog and post-processing;
+- asset streaming/compression/loading;
+- animation and physics optimization;
+- mobile memory, thermal and battery work;
+- real-device profiling;
+- PWA/offline work when selected;
+- runtime architecture and tooling improvements.
 
-The evaluation uses the same representative scene/assets/gameplay rather than unrelated demos.
+A lateral browser-runtime comparison may happen only when the project overlay explicitly defines:
 
-Compare:
+- the business/technical problem that the current runtime cannot reasonably solve;
+- named candidate runtimes;
+- the representative test slice;
+- acceptance metrics;
+- migration budget/risk;
+- owner approval.
 
-- desktop/mobile browser support;
-- WebGL fallback and WebGPU path;
-- startup/download/streaming behavior;
-- frame rate, memory and thermal behavior;
-- particles, water, fog, volumetrics and post-processing;
-- animation, physics, input and UI;
-- asset compatibility/material fidelity;
-- debugging/tooling;
-- implementation effort and migration risk;
-- networking/save/runtime compatibility.
+There is no default named browser-engine comparison candidate in the universal core.
 
-A runtime change requires owner approval after evidence. The evaluation branch must not silently replace the canonical runtime.
+## Optional future native/full-engine target
+
+When browser delivery can no longer satisfy an approved product requirement, a project may evaluate a native/installed engine as a separate phase.
+
+Common candidates may include Unreal Engine, Unity, Godot or another project-approved engine. The project overlay owns the actual shortlist.
+
+A native evaluation must be based on concrete requirements such as:
+
+- visual/FX fidelity;
+- world scale and streaming;
+- simulation/physics;
+- platform/store distribution;
+- console support;
+- editor/tooling needs;
+- performance;
+- networking;
+- content-production scale.
+
+Do not maintain a parallel native client during the browser POC unless the owner explicitly approves it.
 
 ## Engine-neutral source preservation
 
@@ -69,11 +88,10 @@ asset-or-effect/
     metadata-manifests/
   targets/
     current-browser-runtime/
-    alternate-browser-evaluation/
     native-engine-future/
 ```
 
-Choose only formats appropriate to the asset, such as USD, Alembic, FBX, glTF/GLB, VDB, VAT, flipbooks, point caches, PBR maps, MaterialX or project-specific metadata.
+Choose formats appropriate to each asset, such as USD, Alembic, FBX, glTF/GLB, VDB, VAT, flipbooks, point caches, PBR maps, MaterialX or project-specific metadata.
 
 ## DCC source-of-truth rule
 
@@ -83,11 +101,9 @@ Runtime packages are derivatives optimized for the selected target.
 
 A later target should re-integrate/re-export preserved work instead of recreating modeling, simulation, animation or art direction from zero.
 
-## Native-engine targets
+## Target status
 
-Unreal, Unity, Godot or another installed/native target may remain long-term options without becoming current production dependencies.
-
-The project profile determines whether any native target is:
+The project profile determines whether a non-browser target is:
 
 - `NOT_PLANNED`;
 - `LONG_TERM_PORTABILITY_ONLY`;
@@ -95,6 +111,12 @@ The project profile determines whether any native target is:
 - `ACTIVE_TARGET`.
 
 Long-term portability means preserving sources/manifests—not maintaining multiple production clients today.
+
+## Portability does not mean zero work
+
+Preserved sources avoid recreating expensive creative/procedural work, but each target still needs target-specific integration for rendering, materials, particles, physics, animation, UI, loading, networking and packaging.
+
+The promise is **reuse and controlled re-integration**, not an automatic one-click port.
 
 ## License/provenance
 
@@ -110,4 +132,4 @@ Browser-first production and long-term portability are compatible when:
 - source assets/caches/scripts are preserved;
 - neutral contracts/manifests exist;
 - target-specific runtime code remains separated;
-- later migration is treated as integration/re-export, not a promise of zero work or a reason to restart.
+- later migration is treated as integration/re-export, not a reason to restart.
