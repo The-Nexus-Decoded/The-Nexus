@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-24-master-v4`
+**Context version:** `2026-08-24-master-v5`
 
 This is the mandatory entry point for every SoulDrifter production session:
 
@@ -20,16 +20,17 @@ Every session reconstructs context from the same files before editing.
 0. Read `ONBOARDING.md`.
 1. Read `AUTO_DISCOVER_WORKSPACE.md` and automatically discover/reuse the existing ticket worktree.
 2. Read `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` and prove every provider/tool/runtime lane required by the ticket. A named tool is not considered connected until it passes a live sanitized check.
-3. Read the game repository's binding `AGENTS.md`.
-4. Read this file.
-5. Read `PROJECT_CANON_INDEX.md`.
-6. Read `WORKFLOW.md`.
-7. Read the assigned GitHub issue and **every current comment**.
-8. Read its related PR(s), every PR comment/review, and the live head state.
-9. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
-10. Read the ticket kickoff under `kickoffs/` when one exists.
-11. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
-12. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
+3. For any animation/rigging ticket, read `ANIMATION_PROVIDER_ROUTING.md` and record whether each motion uses a Tripo preset, a preset-derived variant, a verified Tripo custom-motion feature, another custom-motion lane, or runtime procedural motion.
+4. Read the game repository's binding `AGENTS.md`.
+5. Read this file.
+6. Read `PROJECT_CANON_INDEX.md`.
+7. Read `WORKFLOW.md`.
+8. Read the assigned GitHub issue and **every current comment**.
+9. Read its related PR(s), every PR comment/review, and the live head state.
+10. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
+11. Read the ticket kickoff under `kickoffs/` when one exists.
+12. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
+13. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
 
 ## Two receipts are required before editing
 
@@ -47,11 +48,13 @@ Proves:
 
 Proves all ticket-required lanes, including as applicable:
 
-- Tripo official API/SDK authenticated read;
+- active host-LLM image-generation capability for concept/reference images;
+- Tripo official API/SDK authenticated read for 3D work;
 - exact provider-supplied CLI discovery/health check if exposed;
 - optional Tripo MCP/Blender add-on chain;
 - current balance/pricing/credit gate;
-- image/concept provider;
+- Tripo preset animation library and rig version;
+- any verified first-party Tripo custom-motion capability;
 - Houdini version, Python/HOM, license, file format, export path;
 - Blender/add-ons;
 - Three.js/GLB optimization/runtime;
@@ -61,11 +64,23 @@ Proves all ticket-required lanes, including as applicable:
 
 No valid receipts = no implementation, generation, provider spend, Houdini build, animation, VFX, or runtime integration.
 
+## Provider boundaries
+
+### Concept/reference images
+
+Use the active LLM's built-in image generator first. Do not spend Tripo credits on 2D concept or multiview image generation during normal production when ChatGPT/Codex/M3/Claude can generate the required references.
+
+### Tripo
+
+Use Tripo for approved 3D generation, segmentation, mesh processing, rig checking, rigging, preset animation retargeting, any separately verified first-party custom-motion feature, and controlled downloads.
+
+The public Tripo API documents versioned fixed preset animation libraries rather than arbitrary prompt-to-animation. Do not claim arbitrary custom animation until a live authenticated provider capability check proves it.
+
 ## Context Receipt — required after onboarding/toolchain preflight
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-24-master-v4
+contextVersion: 2026-08-24-master-v5
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -81,6 +96,7 @@ requiredFilesRead:
   - START_HERE.md
   - ONBOARDING.md
   - PRODUCTION_TOOLCHAIN_PREFLIGHT.md
+  - ANIMATION_PROVIDER_ROUTING.md (when applicable)
   - ...
 ticketStateLoaded: <yes/no/new>
 latestOwnerDirectionChecked: yes
@@ -114,8 +130,12 @@ Only the full done gate may move the ticket to `OWNER_READY`.
 
 - Real-time combat is the default.
 - Turn-based combat is optional and shares the same authoritative combat simulation.
-- Tripo is the primary new asset-generation/segmentation/retopo/rigging/baseline-animation lane **after connection preflight passes**.
+- Tripo is the primary new 3D asset-generation/segmentation/retopo/rigging/preset-animation lane **after connection preflight passes**.
 - Use official Tripo v3 SDK/API or an exact provider-documented first-party CLI. Do not install an unverified similarly named package.
+- Use host-LLM image generation for concept/reference images; Tripo 2D image credits are disabled by default.
+- Search Tripo's live preset library before commissioning a custom motion.
+- Use Houdini KineFX/Blender to derive constrained, directional, weapon-specific, class-specific, death, and interaction variants from suitable Tripo presets.
+- Route truly unique motions through a verified custom-motion provider or AI-authored DCC/procedural lane.
 - Geometry-changing operations occur before final rigging.
 - Mixamo is legacy/fallback reference only.
 - Playable characters use modular base bodies + separate gear.
