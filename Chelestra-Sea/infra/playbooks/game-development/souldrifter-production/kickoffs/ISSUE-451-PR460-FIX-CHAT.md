@@ -8,19 +8,58 @@ Continue and **fix** the existing BREACH-V2 implementation. Do not rebuild the l
 
 This is the current MVP blocker. Do not perform #448 playable-character/NPC/monster production in this task. Existing rollback actors may be used to prove the dungeon and gameplay spine.
 
-## Owner correction — production onboarding is mandatory
+## Owner correction — full production onboarding is mandatory
 
 Before any code, generation, Houdini build, animation, VFX, or asset integration:
 
 1. read `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`;
-2. prove Tripo API/SDK access with a live sanitized authenticated read;
-3. inspect/install an exact provider-documented first-party CLI only if the authenticated Tripo console exposes one;
-4. do not use the older unverified generic `tripo-cli` command;
-5. verify Houdini version/Python/HOM/license/file format/export path;
-6. verify Three.js, GLB tooling, real GPU, controlled storage, secrets, and asset registry;
-7. return the full Production Toolchain Receipt.
+2. prove the active LLM's built-in image-generation lane when concept images are required;
+3. prove Tripo API/SDK access with a live sanitized authenticated read for 3D work;
+4. inspect/install an exact provider-documented first-party CLI only if the authenticated Tripo console exposes one;
+5. do not use the older unverified generic `tripo-cli` command;
+6. read `ANIMATION_PROVIDER_ROUTING.md` and prove the live Tripo preset/custom-motion capabilities;
+7. verify Houdini version/Python/HOM/license/file format/export path;
+8. verify Three.js, GLB tooling, real GPU, controlled storage, secrets, and asset registry;
+9. return the full Production Toolchain Receipt.
 
 A tool's name appearing in the playbook is not proof that it is installed or connected.
+
+## Owner-locked provider boundary
+
+### Images and reference sheets
+
+- Use ChatGPT/Codex/M3/Claude native image generation for concept art and multiview references whenever the active host exposes it.
+- Do not spend Tripo credits on text-to-image, image-to-image, or image-to-multiview during normal SoulDrifter production.
+- A Tripo 2D-image operation requires a separate explicit owner exception and exact credit approval.
+
+### Tripo 3D
+
+Use Tripo for the approved 3D stages:
+
+- text/image/multiview-to-3D;
+- segmentation;
+- mesh completion/low-poly/decimation when approved;
+- rig check;
+- rigging;
+- preset animation retargeting;
+- any verified first-party custom-motion capability exposed to the owner's account;
+- controlled downloads.
+
+### Animation truth
+
+Tripo provides automatic rigging and a substantial preset animation library. The public API currently documents fixed preset identifiers rather than arbitrary prompt-to-animation generation.
+
+Depending on the rig version, the public documentation lists 27 presets for Rig v2.5 and 101 biped preset names for Rig v1.0. Useful entries include multiple defeat animations, hit reactions, hurt, fall, climb, cast-a-spell, slash, shoot, swim, flee, frightened, lift-heavy and many ambient gestures.
+
+For a requested motion:
+
+1. search the live Tripo preset library first;
+2. use a matching Tripo preset directly when it passes;
+3. derive a custom variant in Houdini KineFX/Blender when a preset is close but needs constraints, timing, direction, weapon alignment or additive layers;
+4. use a verified Tripo custom-motion feature only if the authenticated account/official CLI actually exposes it;
+5. otherwise route to an approved bespoke motion lane and retarget/bake onto the accepted rig.
+
+Do not claim that Tripo can generate an arbitrary custom motion from text unless the live provider preflight proves that exact capability.
 
 ## Owner-directed pipeline pilot
 
@@ -28,9 +67,20 @@ After core toolchain preflight passes, this ticket also contains one controlled 
 
 `ISSUE-451-CHAINED-SKELETON-FIXTURE-PILOT.md`
 
-The pilot creates 2–3 chained skeleton wall fixtures while keeping skeleton, chains/shackles, and wall anchors modular. It proves concept/reference -> Tripo -> segmentation/mesh editing -> rig -> custom struggle loop -> Three.js integration -> audio/VFX -> runtime QA.
+The pilot creates 2–3 chained skeleton wall fixtures while keeping skeleton, chains/shackles, and wall anchors modular. It proves:
 
-No charged Tripo task may run until the exact current expected/max credit cost is shown and approved by the owner.
+```text
+host-LLM concept/reference image
+-> Tripo 3D generation
+-> segmentation/mesh editing when needed
+-> Tripo rig
+-> Tripo preset or preset-derived/custom struggle animation
+-> Three.js integration
+-> audio/VFX
+-> runtime QA
+```
+
+No charged Tripo task may run until the exact current expected/max credit cost for the **3D operations** is shown and approved by the owner.
 
 ## Live target
 
@@ -59,6 +109,7 @@ First read and execute:
 - `ONBOARDING.md`
 - `AUTO_DISCOVER_WORKSPACE.md`
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`
+- `ANIMATION_PROVIDER_ROUTING.md`
 - this #451 kickoff
 - `ISSUE-451-CHAINED-SKELETON-FIXTURE-PILOT.md`
 
@@ -68,22 +119,36 @@ Before editing:
 3. Verify repo root, branch, local HEAD, status, remote, and `git worktree list --porcelain`.
 4. Fetch live issue #451 and every comment; fetch PR #460 and every comment/review; reconcile local HEAD with the live PR head without resetting unexplained work.
 5. Read the binding game AGENTS.md; `docs/DUNGEON_BUILD_RUNBOOK.md`; `docs/TICKET-BREACH-V2.md`; `docs/FIRST_BREACH_REBUILD_RUNBOOK.md`; `docs/LEVEL_01.md`; the review/handoff docs; registry; generator; layout; and preview files.
-6. Load or create `.agent-state/451/` ticket contract, completion ledger, evidence manifest, handoff, spatial connection matrix, toolchain receipt, and provider receipt.
+6. Load or create `.agent-state/451/` ticket contract, completion ledger, evidence manifest, handoff, spatial connection matrix, toolchain receipt, provider receipt, and animation-demand/routing records.
 7. Return all three before making changes:
    - SoulDrifter Onboarding Receipt
    - SoulDrifter Production Toolchain Receipt
    - Context Receipt
 
-TRIPO CONNECTION PROOF
+HOST-LLM IMAGE-GENERATION PROOF
+- Verify the active Codex/M3/Claude/ChatGPT environment can create concept/reference images.
+- Use that native image lane for the chained-skeleton concept and multiview references.
+- Store prompts, owner corrections, model/version when exposed, dimensions, controlled path, and hashes.
+- Tripo 2D image credits must remain zero unless the owner separately approves an exception.
+
+TRIPO 3D CONNECTION PROOF
 - Do not claim Tripo is connected from a runbook.
 - Prefer the official Tripo v3 JS/TS SDK `@vastai/tripo-sdk` or official Python SDK `tripo3d`.
 - Verify `TRIPO_API_KEY` exists in secret storage without printing it.
 - Make a live read-only authenticated balance call and record a sanitized result.
+- Verify current 3D capabilities: text/image/multiview-to-model, upload/download, segmentation, low-poly/decimation, rig check, rigging, preset retargeting, task polling, and any account-exposed custom-motion capability.
 - If the owner's Tripo console provides a first-party CLI, inspect the exact current provider instructions, publisher/package/version and health/auth commands before installing it.
 - Do not install an unverified similarly named `tripo-cli` package.
-- MCP is optional and must be separately proven; the official Tripo MCP/Blender lane does not replace API/SDK proof.
-- Read current official capabilities and pricing for generation, segmentation, low-poly, rig check, rigging and retargeting.
+- MCP is optional and must be separately proven; it does not replace API/SDK proof.
+- Read current official pricing for the required 3D operations.
 - No charged call until exact expected/max credits are shown and owner-approved.
+
+TRIPO ANIMATION CAPABILITY PROOF
+- Query/record the live preset library and rig version available to the account/API.
+- Public docs currently describe fixed preset libraries, not arbitrary text-to-animation.
+- Search presets for every requested motion before routing custom work.
+- Record candidate presets, match score, and route: TRIPO_PRESET, TRIPO_PRESET_DERIVED, VERIFIED_TRIPO_CUSTOM, EXTERNAL_CUSTOM, or PROCEDURAL_RUNTIME.
+- Do not label anything VERIFIED_TRIPO_CUSTOM unless the authenticated provider/official CLI proves the custom-motion endpoint/input contract.
 
 HOUDINI PROOF
 - Detect Houdini version/build, hmaster/hython paths, `hou` import, current license category and scene format.
@@ -113,15 +178,20 @@ P1 visual/technical acceptance: sealed rooms, no floating/intersecting props, so
 P1-PILOT: only after the core path is stable and the provider spend gate is approved, execute the chained-skeleton fixture pilot end to end.
 
 For the chained-skeleton pilot:
+- generate/approve concept and multiview reference images with the active LLM image generator, not Tripo;
+- use Tripo for the approved 3D body/prop generation, segmentation/mesh processing, rig check, rigging and preset-retarget tests;
 - use a clean skeleton body with no fused chains/wall;
 - reuse or separately create chain/shackle and wall-anchor props;
 - if a combined segmentation comparison is approved, segment before rigging;
 - complete all geometry-changing operations before rigging;
-- use Tripo rig check/rig as approved, then author the actual constrained struggle loop in Houdini KineFX or Blender if no suitable preset exists;
+- search Tripo's live presets for the closest struggle/hurt/frightened/complain/sob/defeat/ambient motion;
+- if a preset is close, derive the chained struggle with wrist/ankle constraints and corrective layers in Houdini KineFX or Blender;
+- if the authenticated Tripo account exposes a verified custom-motion feature, test it as an A/B path;
+- otherwise use the approved bespoke custom-motion lane while preserving the Tripo rig;
 - keep chain endpoints attached to wall anchors and wrist/ankle sockets;
 - add restrained chain-rattle/bone-creak audio as a separate runtime contract;
 - place only 2–3 fixtures in legal wall sockets with no traversal/combat/camera obstruction;
-- capture full provenance, cost, hashes, deformation, animation, chain separation, runtime and real-GPU evidence.
+- capture full provenance, cost, hashes, deformation, animation routing, chain separation, runtime and real-GPU evidence.
 
 Do not restart Houdini composition, replace the flat map/registry without a proven minimal defect, regenerate #448 characters/monsters, merge, deploy, or close the issue.
 
@@ -141,4 +211,4 @@ A producer may mark work only `IMPLEMENTED_UNVERIFIED`. Only an independent veri
 
 ## Acceptance summary
 
-The ticket is not ready because tests are green or because PR #460 exists. It is ready only after an independent verifier physically walks the required graph, completes boss -> First Memory -> exit, validates both movement systems and both combat-mode smoke paths, confirms real-GPU rendering, and—if the chained-skeleton pilot is approved and run—verifies the entire provider-to-runtime artifact lineage.
+The ticket is not ready because tests are green or because PR #460 exists. It is ready only after an independent verifier physically walks the required graph, completes boss -> First Memory -> exit, validates both movement systems and both combat-mode smoke paths, confirms real-GPU rendering, and—if the chained-skeleton pilot is approved and run—verifies the complete image-to-3D-to-rig-to-animation-to-runtime lineage.
