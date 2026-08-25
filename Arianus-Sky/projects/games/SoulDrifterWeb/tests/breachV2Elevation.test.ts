@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { floorElevationAt } from "../src/game/dungeons/breach-v2-preview";
+import { floorElevationAt, hasDungeonFloorAt } from "../src/game/dungeons/breach-v2-preview";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
@@ -40,6 +40,8 @@ describe("BREACH-V2 upward runtime topology", () => {
       expect(wayUpward[0]).toBeCloseTo(7.9, 6);
       expect(wayUpward.at(-1)).toBeCloseTo(10.4, 6);
       expect(floorElevationAt(layout, 262, 15)).toBeCloseTo(10.4, 6);
+      expect(hasDungeonFloorAt(layout, 261.9, 15)).toBe(true);
+      expect(hasDungeonFloorAt(layout, 262.4, 15)).toBe(false);
     });
   }
 });

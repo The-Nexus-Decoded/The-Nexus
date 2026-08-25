@@ -165,23 +165,23 @@ function segmentElevation(
   toElevation: number,
   x: number,
   z: number,
-): { elevation: number; distance: number; progress: number } {
+): { elevation: number; distance: number; progress: number; rawProgress: number } {
   const dx = bx - ax;
   const dz = bz - az;
   const lengthSq = dx * dx + dz * dz;
-  const progress = lengthSq > 0
-    ? THREE.MathUtils.clamp(((x - ax) * dx + (z - az) * dz) / lengthSq, 0, 1)
-    : 0;
+  const rawProgress = lengthSq > 0 ? ((x - ax) * dx + (z - az) * dz) / lengthSq : 0;
+  const progress = THREE.MathUtils.clamp(rawProgress, 0, 1);
   const px = ax + dx * progress;
   const pz = az + dz * progress;
   return {
     elevation: THREE.MathUtils.lerp(fromElevation, toElevation, progress),
     distance: Math.hypot(x - px, z - pz),
     progress,
+    rawProgress,
   };
 }
 
-export function floorElevationAt(layout: BreachV2Layout, x: number, z: number): number {
+function floorElevationSampleAt(layout: BreachV2Layout, x: number, z: number): number | null {
   for (const corridor of layout.corridors) {
     for (let index = 0; index < corridor.points.length - 1; index += 1) {
       const [ax, az] = corridor.points[index]!;
@@ -192,7 +192,11 @@ export function floorElevationAt(layout: BreachV2Layout, x: number, z: number): 
         corridor.elevations[index]!, corridor.elevations[index + 1]!,
         x, z,
       );
-      if (sample.distance <= corridor.width / 2 + 0.1) return sample.elevation;
+      if (
+        sample.rawProgress >= -0.005
+        && sample.rawProgress <= 1.005
+        && sample.distance <= corridor.width / 2 + 0.1
+      ) return sample.elevation;
     }
   }
   for (const ascent of sharedAscents(layout)) {
@@ -209,9 +213,17 @@ export function floorElevationAt(layout: BreachV2Layout, x: number, z: number): 
     x >= candidate.x - 0.05 && x <= candidate.x + candidate.w + 0.05
     && z >= candidate.z - 0.05 && z <= candidate.z + candidate.h + 0.05
   ));
-  if (!room) return 0;
+  if (!room) return null;
   const progress = room.w > 0 ? THREE.MathUtils.clamp((x - room.x) / room.w, 0, 1) : 0;
   return THREE.MathUtils.lerp(room.floorElevation, room.endElevation, progress);
+}
+
+export function floorElevationAt(layout: BreachV2Layout, x: number, z: number): number {
+  return floorElevationSampleAt(layout, x, z) ?? 0;
+}
+
+export function hasDungeonFloorAt(layout: BreachV2Layout, x: number, z: number): boolean {
+  return floorElevationSampleAt(layout, x, z) !== null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1722,6 +1734,7 @@ export async function startDungeonPreview(
     const r = 0.35; // player radius
     if (sectionDoors.isBlocked(x, z, r)) return false;
     for (const [ox, oz] of [[r, r], [r, -r], [-r, r], [-r, -r]] as const) {
+      if (!hasDungeonFloorAt(layout, x + ox, z + oz)) return false;
       if (!walkable.has(`${Math.floor((x + ox) / NAV)},${Math.floor((z + oz) / NAV)}`)) return false;
     }
     return true;
@@ -1981,7 +1994,11 @@ export async function startDungeonPreview(
       if (walkMode && player) {
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
-        const step = (run ? 6.2 : 3.2) * delta;
+        // A thin portal must never be skipped by one long low-FPS movement
+        // sample. The cap stays above normal 45 fps travel but below the
+        // closed-door collision band, so keyboard and click travel remain
+        // governed by the same runtime walkability predicate.
+        const step = Math.min((run ? 6.2 : 3.2) * delta, 0.28);
         if (keys.has("KeyQ")) camYaw += delta * 1.9;
         if (keys.has("KeyE")) camYaw -= delta * 1.9;
         const fwd = new THREE.Vector3();
