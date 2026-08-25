@@ -25,6 +25,13 @@ For the assigned ticket:
 - create/update ticket contract, completion ledger, evidence manifest, handoff and work claim;
 - load only selected modules.
 
+For zone/environment work, load:
+
+- `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`;
+- `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`;
+- `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`;
+- their config and record template.
+
 ## Phase 1 — Requirement compilation
 
 Convert prose into explicit testable contracts.
@@ -32,6 +39,9 @@ Convert prose into explicit testable contracts.
 Examples:
 
 - **Procedural spatial edge:** source node/socket/surface/volume -> connection type -> constructive destination placement -> canonical ownership -> movement/camera/resource/failure contract -> real traversal -> evidence.
+- **Environment staging:** purpose profile -> semantic zones -> placement order -> object classification -> clearance/performance audit -> frozen staged environment.
+- **Collision:** prop-complete actual-controller walkthrough -> defect inventory -> positive/negative collision -> state/camera/body checks -> repair -> route regression.
+- **Interaction/destruction:** prompt/range -> state machine -> animation/events -> collision update -> result/inventory -> persistence -> failure/recovery -> evidence.
 - **Aquatic route:** water/depth/air volumes -> entry/exit -> swim/dive controller -> oxygen/drowning/current -> air pockets -> camera/lighting -> save/reload/recovery -> evidence.
 - **Vertical route:** stairs/climb/lift/drop geometry -> mount/travel/dismount -> animation/camera/stamina -> fall/recovery -> AI support -> evidence.
 - **Living/mega-zone:** region/state graphs -> local subgraphs/streaming -> atomic collision/nav changes -> relocation safety -> persistence -> evidence.
@@ -49,7 +59,54 @@ Before editing:
 - freeze valid regions/components;
 - produce an atomic defect/requirement list.
 
-## Mandatory procedural topology and traversal gate
+---
+
+# Mandatory zone/environment gate order
+
+```text
+0. design and purpose
+1. topology and traversal
+2. shell, surfaces and volumes
+3. environment staging and prop placement
+4. prop-complete collision discovery
+5. collision implementation and regression
+6. interaction, pickup and destruction
+7. final integrated environment walkthrough
+8. independent environment verification
+9. separate population/gameplay phase
+```
+
+Hard rules:
+
+- place the intended environment-prop set before final collision verification;
+- an empty-shell walkthrough cannot substitute for the staged pass;
+- navigation cannot substitute for collision;
+- collision precedes interaction/destruction acceptance;
+- environment verification precedes population scaling;
+- population changes that alter topology/staging/collision reopen the affected gates.
+
+## Environment versus population boundary
+
+Environment phase normally owns:
+
+- topology, shell and environmental props;
+- collision;
+- base interactions and destruction;
+- deterministic test contents;
+- environment verification.
+
+Population/gameplay phase normally owns:
+
+- NPC/creature spawns;
+- patrols/AI;
+- encounters/random encounters/respawn;
+- quests/dialogue/objectives;
+- production loot/drop tables;
+- population persistence/network behavior.
+
+---
+
+# Mandatory procedural topology and traversal gate
 
 For generated or traversal-heavy levels, read:
 
@@ -65,8 +122,9 @@ logical graph + explicit traversal contracts
 -> constructive edge-by-edge spatial embedding
 -> canonical boundaries, surfaces and volumes
 -> actual-geometry plan/section/volume/state validation
--> runtime geometry/collision/navigation/controller states
--> gameplay/dressing/FX
+-> shared shell and structural movement intent
+-> environment staging
+-> prop-complete collision/interaction/destruction gates
 ```
 
 For each edge:
@@ -76,12 +134,12 @@ For each edge:
 3. choose a compatible destination socket/orientation/state;
 4. calculate the shared boundary, path/spline, surface or volume;
 5. derive the destination transform from that edge;
-6. validate overlap, clearance, elevation/depth, surface/volume, collision, navigation, camera, resources, hazards and recovery;
+6. validate overlap, clearance, elevation/depth, surface/volume, structural collision/navigation intent, camera, resources, hazards and recovery;
 7. accept the destination only when the complete edge passes;
 8. otherwise retry or backtrack;
 9. reject the variant when legal embedding cannot be found.
 
-Before dressing, generate diagnostics from actual solved data:
+Before staging, generate diagnostics from actual solved data:
 
 - top-down plan for horizontal routes;
 - section/elevation for vertical routes;
@@ -93,9 +151,13 @@ Pass automated checks, applicable AI/vision review and required owner/design rev
 
 ## Phase 3 — Implementation in dependency order
 
-### Level/world
+### Level/world environment
 
-`logical graph -> traversal contracts -> constructive embedding/backtracking -> plan/section/volume/state gate -> canonical boundaries/surfaces/volumes -> runtime surfaces/water/shell -> collision/nav/controller states -> real-input traversal -> interactions/encounters -> dressing -> materials/lighting -> VFX/audio -> performance -> QA`
+`design -> topology/traversal -> constructive embedding/backtracking -> diagnostics -> shell/surfaces/volumes -> semantic staging/props -> prop-complete walkthrough -> collision repair/regression -> interaction/pickup/destruction -> final integrated environment walkthrough -> independent environment verification`
+
+### Later population/gameplay
+
+`verified environment sockets/routes -> NPC/creature spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> gameplay verification`
 
 ### 3D asset
 
@@ -115,9 +177,13 @@ A producer commits atomic increments, runs automated/runtime checks, stores fres
 
 The producer may not self-verify or merge/deploy without authorization.
 
+Environment producers record independent stage statuses for staging, collision, interaction/destruction and the final integrated walkthrough.
+
 ## Phase 5 — Independent verification
 
 The verifier re-derives requirements, tests the exact commit, rejects stale/producer-only evidence, uses target devices/render APIs, and returns PASS, FAIL or NEEDS_EVIDENCE.
+
+For environment work, the verifier audits final staging, walks the actual controller/profile, checks positive/negative collision, tests representative interactions/destruction/protected objects, verifies collision updates and persistence, and checks target-device performance.
 
 For spatial connections, use the real movement mode and failure/recovery path:
 
@@ -138,8 +204,10 @@ For animation bakeoffs, the reviewer/verifier must not be either candidate produ
 A ticket becomes owner-ready only when:
 
 - all critical rows are VERIFIED;
-- topology and spatial-connection records pass where applicable;
-- movement, camera, resource, hazard and recovery contracts are proven;
+- topology, spatial-connection and zone-environment records pass where applicable;
+- final staged props are classified;
+- prop-complete collision proof passes;
+- interaction/destruction/persistence passes;
 - provider/toolchain/spend receipts are valid;
 - provenance/licenses/rollback are complete;
 - target-device performance passes;
@@ -170,5 +238,5 @@ Before a session ends:
 - record next atomic requirement and blockers;
 - stop dev servers/provider pollers;
 - preserve provider task IDs/download hashes;
-- preserve topology, spatial-connection, animation and portability records;
+- preserve topology, spatial-connection, zone-environment, animation and portability records;
 - leave enough state for another model to resume without chat history.
