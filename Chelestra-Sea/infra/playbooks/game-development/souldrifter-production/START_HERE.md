@@ -1,8 +1,9 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-23-master-v3`
+**Context version:** `2026-08-24-master-v4`
 
 This is the mandatory entry point for every SoulDrifter production session:
+
 - MiniMax M3 / Code Agent Team
 - Claude / Claude Code
 - ChatGPT / Codex
@@ -16,38 +17,70 @@ Every session reconstructs context from the same files before editing.
 
 ## Mandatory startup order
 
-0. If this model/platform has not passed onboarding, read `ONBOARDING.md` and `AUTO_DISCOVER_WORKSPACE.md` first. Auto-discover existing worktrees; do not ask the owner to select ticket workspaces unless discovery fails. Produce a PASS onboarding receipt.
+0. Read `ONBOARDING.md`.
+1. Read `AUTO_DISCOVER_WORKSPACE.md` and automatically discover/reuse the existing ticket worktree.
+2. Read `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` and prove every provider/tool/runtime lane required by the ticket. A named tool is not considered connected until it passes a live sanitized check.
+3. Read the game repository's binding `AGENTS.md`.
+4. Read this file.
+5. Read `PROJECT_CANON_INDEX.md`.
+6. Read `WORKFLOW.md`.
+7. Read the assigned GitHub issue and **every current comment**.
+8. Read its related PR(s), every PR comment/review, and the live head state.
+9. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
+10. Read the ticket kickoff under `kickoffs/` when one exists.
+11. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
+12. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
 
-1. Read the game repository's binding `AGENTS.md`.
-2. Read this file.
-3. Read `config/context-version.json`.
-4. Read `PROJECT_CANON_INDEX.md`.
-5. Read `WORKFLOW.md`.
-6. Read `docs/01_MASTER_PLAYBOOK.md`.
-7. Read `config/current-phase-scope.json`.
-8. Read the GitHub issue assigned to this session **and every current comment**.
-9. Read its related PR(s), if any.
-10. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`,
-    `evidence-manifest.json`, and `handoff.json` when they exist.
-11. Read only the specialist runbooks/skills required by the ticket, plus anything they reference.
-12. Inspect the actual worktree/branch and recent commits. Never trust claims without checking files/runtime.
+## Two receipts are required before editing
 
-## Context Receipt — REQUIRED BEFORE EDITING
+### A. SoulDrifter Onboarding Receipt
 
-Before modifying anything, output/store:
+Proves:
+
+- correct workspace/worktree/branch;
+- live GitHub access;
+- fresh local/live heads;
+- no unexplained work was reset;
+- agent-team context propagation where applicable.
+
+### B. SoulDrifter Production Toolchain Receipt
+
+Proves all ticket-required lanes, including as applicable:
+
+- Tripo official API/SDK authenticated read;
+- exact provider-supplied CLI discovery/health check if exposed;
+- optional Tripo MCP/Blender add-on chain;
+- current balance/pricing/credit gate;
+- image/concept provider;
+- Houdini version, Python/HOM, license, file format, export path;
+- Blender/add-ons;
+- Three.js/GLB optimization/runtime;
+- real GPU;
+- audio/media;
+- controlled asset storage, registry, provenance, and rollback.
+
+No valid receipts = no implementation, generation, provider spend, Houdini build, animation, VFX, or runtime integration.
+
+## Context Receipt — required after onboarding/toolchain preflight
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-23-master-v3
+contextVersion: 2026-08-24-master-v4
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
 branch: <branch>
+localHead: <sha>
+liveHead: <sha>
 worktree: <absolute path>
 gameRoot: Arianus-Sky/projects/games/SoulDrifterWeb
+onboardingReceipt: PASS/BLOCKED
+productionToolchainReceipt: PASS/BLOCKED
 requiredFilesRead:
   - AGENTS.md
   - START_HERE.md
+  - ONBOARDING.md
+  - PRODUCTION_TOOLCHAIN_PREFLIGHT.md
   - ...
 ticketStateLoaded: <yes/no/new>
 latestOwnerDirectionChecked: yes
@@ -55,19 +88,18 @@ blockingConflicts: <none or list>
 plannedScope: <one concise paragraph>
 ```
 
-No valid Context Receipt = no implementation work.
-
 ## One session / one responsibility
 
 ### Orchestrator session
-May audit all tickets and route work.
-It should not become the implementation worker for every ticket.
+
+May audit all tickets, verify onboarding/toolchain status, and route work. It should not become the implementation worker for every ticket.
 
 ### Worker session
-Owns one GitHub ticket in one dedicated worktree.
-Do not opportunistically fix unrelated tickets.
+
+Owns one GitHub ticket in one dedicated worktree. Do not opportunistically fix unrelated tickets.
 
 ### Verifier session
+
 Must be independent from the producer whose work it verifies.
 
 ## Completion rule
@@ -82,19 +114,24 @@ Only the full done gate may move the ticket to `OWNER_READY`.
 
 - Real-time combat is the default.
 - Turn-based combat is optional and shares the same authoritative combat simulation.
-- Tripo is the primary new asset-generation / segmentation / retopo / rigging / baseline-animation lane.
-- Mixamo is legacy/fallback reference only, not the primary future production path.
+- Tripo is the primary new asset-generation/segmentation/retopo/rigging/baseline-animation lane **after connection preflight passes**.
+- Use official Tripo v3 SDK/API or an exact provider-documented first-party CLI. Do not install an unverified similarly named package.
+- Geometry-changing operations occur before final rigging.
+- Mixamo is legacy/fallback reference only.
 - Playable characters use modular base bodies + separate gear.
 - NPCs may use full-outfit generation + segmentation.
 - Monsters are regenerated/compared or preserved only after new-harness QA.
+- Houdini Apprentice is prototype/non-commercial; Houdini Indie becomes the commercial production/export lane after the planned upgrade and clean Indie revalidation.
+- Three.js remains runtime.
 - Current phase is First Breach / Heartvale / Levels 1–9.
 - Do not leak late Sartan/Patryn/Labyrinth/rune/possibility systems into current starter content.
-- Summoner starter magical creature is the **Lesser Driftling**; later Driftling tiers are Minor and Major.
+- Summoner starter magical creature is the Lesser Driftling; later tiers are Minor and Major.
 - Reactive combat requires setup/opening/payoff relationships, class resources, cooldowns, visible target reactions, and shared contact markers.
 
 ## Conflict rule
 
-If an older harness file conflicts with newer `docs/`, `config/`, owner-directed updates,
-or current repository canon, the newer/current source wins.
+Latest explicit owner direction, binding game `AGENTS.md`, current runtime/code, and current GitHub ticket/PR state outrank older harness text.
+
+If an older playbook command conflicts with current official provider documentation, the current official documentation wins and the conflict must be recorded.
 
 When uncertain, mark `OWNER_DECISION_REQUIRED`; do not silently choose.
