@@ -1,370 +1,538 @@
-**UNIVERSAL AI GAME  
-PRODUCTION PLAYBOOK**
+# UNIVERSAL AI GAME PRODUCTION PLAYBOOK
 
-A genre-agnostic multi-LLM pipeline for designing, building, testing,
-and releasing any type of game
+A genre-agnostic multi-LLM pipeline for designing, building, testing, and releasing any type of game.
 
-| **Universal Core + Genre/Platform Modules + Project Overlay + Independent Verification** |
-|------------------------------------------------------------------------------------------|
+**Architecture:** Universal Core + Genre/Platform/Engine/Provider Modules + Project Overlay + Ticket State + Independent Verification
 
 For MiniMax M3 • Claude Code • ChatGPT/Codex • Future LLM teams
 
-Version 1.0 • August 2026
+**Version 1.1 — August 24, 2026**
+
+---
 
 # Executive Summary
 
-This playbook separates reusable game-production process from
-project-specific design. The universal core can support a shooter,
-action game, flight simulator, management sim, mobile puzzle game,
-multiplayer strategy title, or several nested games inside one product.
+This playbook separates reusable game-production process from project-specific design. The same universal core can support shooters, action games, role-playing games, flight simulators, vehicle games, strategy titles, management simulations, puzzle games, mobile/web games, VR/XR, multiplayer products, and nested games inside a larger product.
 
-The existing SoulDrifter playbook should remain separate. SoulDrifter
-contains valuable project-specific canon, combat rules, character
-pipelines, asset IDs, branch/worktree mappings, and acceptance criteria.
-Moving those details into a universal guide would weaken both systems.
+A project does not inherit mechanics merely because the original pipeline was developed for an action RPG. Each project selects only the modules it requires and stores its own canon, paths, budgets, provider decisions, tools, and owner instructions in a project overlay.
 
-The recommended architecture is a stable universal harness plus a small
-project profile and overlay for each game. Multi-LLM workers read the
-same repository state, not separate chat memories, and independent
-verification prevents partial work from being called complete.
+The updated architecture fixes two common failures:
 
-## The separation rule
+1. **Tool/provider names were treated as if they were already connected.** Now every selected tool lane must pass a live sanitized connection/capability check before use.
+2. **Every new chat risked repeating a large onboarding procedure.** Now the workstation/toolchain is bootstrapped once, receipts are cached outside Git, and each new chat performs only a short freshness/ticket-context check.
 
-| **Layer**              | **Contains**                                                  | **Examples**                                                           |
-|------------------------|---------------------------------------------------------------|------------------------------------------------------------------------|
-| Universal core         | Reusable workflow, agents, skills, schemas, QA, release gates | Ticket compiler, asset registry, verifier, worktree discovery          |
-| Genre/platform modules | Mechanic-specific requirements loaded only when applicable    | Shooter, flight sim, strategy, 2D, VR, multiplayer                     |
-| Project overlay        | Game-specific truth and production policy                     | Canon, exact mechanics, art direction, paths, budgets, owner decisions |
-| Ticket state           | Current work and proof                                        | Contracts, ledger, evidence, handoff, blockers                         |
+The production sequence is:
 
-## Recommended use
+```text
+ONE-TIME WORKSTATION/TOOLCHAIN BOOTSTRAP
+            |
+            v
+PERSISTENT SANITIZED RECEIPTS
+            |
+            v
+FAST SESSION START FOR EACH NEW CHAT
+            |
+            v
+LIVE TICKET/PR/WORKTREE CONTEXT
+            |
+            v
+REQUIREMENT CONTRACT + DEPENDENCY PLAN
+            |
+            v
+IMPLEMENTATION / ASSET PRODUCTION
+            |
+            v
+RUNTIME + TARGET-DEVICE PROOF
+            |
+            v
+INDEPENDENT VERIFICATION
+            |
+            v
+OWNER/RELEASE GATE
+```
 
-- Keep SoulDrifter on its existing project-specific harness.
-- Install the universal harness once in a shared or template location.
-- For each new game, create a project profile, select modules, and add a project overlay.
-- Run a global audit, prove a vertical slice, then fan work out to parallel-safe agents.
-- Require independent verification and machine done gates before owner-ready or release-ready status.
+---
 
-# Contents
+# 1. Separation Rule
 
-1. Architecture: Universal Core and Project Overlays
-2. Multi-LLM Agent Team
-3. Project Profile and Module Selection
-4. End-to-End Production Lifecycle
-5. Game Design and Vertical Slice
-6. Code and Runtime Architecture
-7. 2D and 3D Asset Pipelines
-8. Animation, Interactions, VFX and Audio
-9. Gameplay AI, Physics and Simulation
-10. Networking, Saves and Backend
-11. UI, Input and Accessibility
-12. QA, Performance and Release
-13. Genre and Platform Modules
-14. Nested Games and Mini-Games
-15. Starting a New Project
-16. Relationship to SoulDrifter
-
-# 1. Architecture: Universal Core and Project Overlays
-
-A generic game pipeline must be broad without becoming vague. The solution is composition: reusable core process plus modules and an overlay.
-
-## Universal core responsibilities
-
-- Workspace/Git/tracker onboarding and auto-discovery
-- Context receipts and repository-based state
-- Requirement compilation and dependency graphs
-- Agent roles, parallel work claims, handoffs and independent verification
-- Asset/action/evidence schemas
-- QA, performance, networking, save, release and live-ops gates
-
-## Project overlay responsibilities
-
-- The exact player promise and game rules
-- Canon, story, factions, classes, vehicles, weapons or economy
-- Engine paths, folders, worktrees and runtime constraints
-- Art/audio direction and naming conventions
-- Provider accounts, cost gates and licensing rules
-- Target-device budgets and release authorization
-
-> **Do not flatten project detail into the universal core.** A shooter should not inherit RPG equipment assumptions. A flight simulator should not inherit humanoid combat matrices. A project selects only the modules it actually needs.
-
-# 2. Multi-LLM Agent Team
-
-The same harness works across M3, Claude Code and ChatGPT/Codex because model-specific tools are adapters, not sources of truth.
-
-| **Role** | **Primary responsibility** | **Completion authority** |
+| Layer | Contains | Examples |
 |---|---|---|
-| Production Orchestrator | Audit, dependencies, worktrees, routing, risk/budget and owner-ready queue | Cannot self-verify production work |
-| Requirements/Canon Auditor | Convert tickets and design into atomic contracts | Defines expected work; does not prove implementation |
-| Specialist Workers | Implement design, code, assets, animation, VFX, AI, networking, audio or release work | Stop at IMPLEMENTED_UNVERIFIED |
-| Independent Verifier | Re-derive requirements and test current commit/evidence | Only role that marks VERIFIED |
-| Performance/Device Verifier | Validate real target renderer/device/network/performance | Required for platform-sensitive acceptance |
+| Universal core | Reusable workflow, state, provider/DCC contracts, QA, release gates | Worktree discovery, receipts, asset registry, verifier |
+| Genre/platform modules | Mechanic-specific requirement expansions | Shooter, flight sim, strategy, 2D, VR, multiplayer |
+| Engine/provider modules | Tool-specific setup and adapters | Unity, Unreal, Godot, Three.js, Tripo, Houdini, Blender |
+| Project overlay | Project truth | Canon, mechanics, art direction, paths, budgets, owner decisions |
+| Ticket state | Current expected work and proof | Contract, ledger, evidence, handoff, blockers |
 
-## Shared-context mechanism
+Do not flatten project detail into the universal core. A flight simulator should not inherit humanoid classes; a card game should not inherit 3D rigging; a shooter should not inherit RPG equipment assumptions.
 
-1. Read START_HERE and context version.
-2. Load project profile and overlay.
-3. Fetch live ticket/comments/PR.
-4. Load ticket contract, ledger, evidence and handoff.
-5. Verify branch/worktree.
-6. Return Context Receipt.
-7. Only then edit.
+---
 
-# 3. Project Profile and Module Selection
+# 2. Persistent Onboarding and Fast Sessions
 
-A project profile replaces the assumption that every game is an RPG. It describes what the game actually contains.
+## 2.1 Full bootstrap — once per workstation/template
 
-## Minimum profile fields
+Run `ONBOARDING.md` and `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` once, then cache sanitized receipts outside Git.
 
-- Project/repository identity
-- Engine/toolchain and languages
-- Platforms and input methods
-- One or more game modes
-- Selected genre and platform modules
-- Project overlay/canon index
-- Performance budgets
-- Provider and spending rules
-- Save/network/release model
+The full bootstrap may:
 
-## Game modes
+- verify repository/tracker/worktree access;
+- install and pin selected provider SDKs;
+- authenticate through approved local secret storage;
+- perform read-only account/capability checks;
+- verify DCC/engine versions, licenses and export paths;
+- verify real target devices/GPUs;
+- create controlled staging/download/evidence roots;
+- verify audio/media tools;
+- write receipt IDs, versions, paths and timestamps.
 
-One product can contain several modes. Each mode selects its own modules while sharing chosen host systems.
+It must not:
 
-| **Example mode** | **Camera/dimension** | **Modules** | **Shared host systems** |
-|---|---|---|---|
-| Main world | Third-person 3D | Action/adventure, narrative | Account, save, inventory, UI shell |
-| Flight mode | Cockpit/external 3D | Flight/vehicle sim, nested mini-game | Shared profile and rewards |
-| Card table | 2D/3D hybrid | Card/turn-based, nested mini-game | Same economy and quest state |
+- print or commit secrets;
+- submit paid tasks merely to prove setup;
+- generate ticket assets during onboarding;
+- overwrite unexplained project work.
 
-# 4. End-to-End Production Lifecycle
+Re-run only when invalidated: missing/expired receipt, provider auth failure, SDK/API-region change, DCC/engine/license change, Node/Python major-version change, target-device change, or explicit owner request.
 
-1. Onboard and auto-discover existing work.
+## 2.2 Fast start — every new chat
+
+Every M3, Claude Code, Codex, or future session reads `SESSION_FAST_START.md` and performs only:
+
+- branch/worktree discovery;
+- cached receipt validation;
+- required secret-name/tool-root check;
+- project-profile/overlay load;
+- live ticket/PR/comment/head fetch;
+- ticket-state/work-claim load;
+- selected-module load;
+- Session Receipt + Context Receipt.
+
+No per-chat package installation or full smoke suite unless invalidated.
+
+## 2.3 Live pre-spend refresh
+
+Before every charged provider operation, regardless of cached receipt:
+
+1. live authenticated balance;
+2. current official price;
+3. expected and maximum cost;
+4. retry-cost disclosure;
+5. exact owner approval;
+6. task ID, actual cost, result, download hash and remaining balance.
+
+---
+
+# 3. Multi-LLM Agent Team
+
+| Role | Responsibility | Authority |
+|---|---|---|
+| Production Orchestrator | Audit, dependencies, receipts, routing, worktree conflicts, owner-ready queue | Cannot self-verify implementation |
+| Requirements/Canon Auditor | Convert design/tickets into atomic contracts and expected matrices | Defines expected work |
+| Specialist Worker | Code, level, asset, animation, VFX, audio, AI, networking or release work | Stops at `IMPLEMENTED_UNVERIFIED` |
+| Independent Verifier | Re-derive requirements and test current commit/evidence | Only role that marks `VERIFIED` |
+| Performance/Device Verifier | Test real target hardware/render/network conditions | Required for platform-sensitive acceptance |
+| Blind Comparison Coordinator | Randomize A/B candidates and preserve review integrity | Cannot produce either candidate |
+
+One chat owns one responsibility. One ticket uses one branch/worktree unless an explicit integration owner coordinates isolated sub-lanes.
+
+---
+
+# 4. Project Profile and Module Selection
+
+A project profile should include:
+
+- project/repository identity;
+- engine/runtime/languages;
+- platforms and inputs;
+- game modes;
+- genre/platform modules;
+- engine/DCC/provider modules;
+- project overlay/canon index;
+- performance/device budgets;
+- provider/spending/license rules;
+- save/network/release model;
+- custom-animation comparison policy;
+- persistent receipt roots and allowed secret names.
+
+One product may contain multiple modes. A third-person adventure can contain a flight simulator, card game, puzzle, or other nested mode while sharing selected account/save/economy systems.
+
+---
+
+# 5. End-to-End Production Lifecycle
+
+1. Fast-start from cached toolchain state; full bootstrap only when required.
 2. Validate project profile and overlay.
 3. Audit open work and classify tickets.
-4. Compile requirements and expected matrices.
-5. Define and prove vertical slice.
-6. Implement in dependency order.
-7. Pilot AI/provider pipelines before batching.
+4. Compile atomic requirements and expected matrices.
+5. Define/prove a vertical slice.
+6. Pilot provider/asset pipelines before batching.
+7. Implement in dependency order.
 8. Integrate into the actual runtime.
-9. Run automated, visual, device and performance checks.
-10. Independent verification.
+9. Run automated, visual, audio, device and performance checks.
+10. Independently verify current commit and fresh evidence.
 11. Owner-ready gate.
-12. Release gate, observability and rollback.
+12. Release, observability, rollback and live-ops gate.
 
 ## Dependency-order examples
 
-- 3D actor: design → model → topology → texture → rig → animation → sockets/LOD → runtime → gameplay proof
-- Shooter weapon: data → model/sockets → aim/recoil → animation → hit logic → VFX/audio → UI → network → QA
-- Aircraft: physics specification → input/control surfaces → instruments/camera → terrain/weather → damage/AI → telemetry → device QA
-- Management simulation: data model → tick/update architecture → agents/economy → UI → saves/migrations → scale/performance
+- 3D actor: concept/reference → 3D source → segmentation/edit → topology/material → rig → animation → sockets/LOD → runtime → gameplay/device proof.
+- Level: map/topology → registry → shells/openings → connectors → collision/nav → dressing → materials/lighting → VFX/audio → runtime traversal → performance → QA.
+- Shooter weapon: data → model/sockets → aim/recoil → animation → hit logic → VFX/audio → UI/network → QA.
+- Aircraft: physics spec → controls → instruments/camera → world/weather → damage/AI → telemetry/device QA.
+- Simulation: data model → tick/update architecture → agents/economy → UI → saves/migrations → scale/performance.
 
-# 5. Game Design and Vertical Slice
+---
 
-The vertical slice is the most important anti-waste gate. It proves the riskiest complete loop before content scaling.
+# 6. Vertical Slice
 
-## Vertical-slice contract
+The vertical slice proves the riskiest complete loop before content scaling.
 
-- Player goal and start state
-- Core action/control and camera
-- Feedback and game feel
-- Success/failure and recovery
-- Save/reload or session recovery
-- One representative production asset pipeline
-- Target platform/device execution
-- Performance baseline and debug instrumentation
+Required:
 
-> **Scale only after proof.** Do not spend a full provider subscription on hundreds of assets until one complete generated/processed asset works in the target runtime and passes visual/performance QA.
+- player goal/start state;
+- core control/camera/action;
+- feedback/game feel;
+- success/failure/recovery;
+- save/reload/session recovery;
+- one complete representative asset/provider pipeline;
+- target-device execution;
+- performance/debug baseline;
+- provenance/rollback;
+- independent verification.
 
-# 6. Code and Runtime Architecture
+Do not batch hundreds of provider assets before one complete source-to-runtime asset passes.
 
-- Data-driven registries for actions, assets, levels, vehicles, units or cards
-- Stable state machines and explicit transitions
-- Clear engine/tool/runtime boundaries
-- Input abstraction and remapping
-- Camera modes as contracts
-- Error handling, retries and fallback assets
-- Debug snapshots, telemetry and deterministic reproduction
-- Tests around schemas and high-risk integration boundaries
+---
 
-## Action contracts
+# 7. Provider and Asset Pipeline
 
-An action contract can represent a sword attack, gunshot, flight control event, unit command, card play, crafting action, or puzzle interaction. It records input, timing, resource/cooldown, animation, VFX/audio, state changes and network ownership.
+## 7.1 Concept/reference images
 
-# 7. 2D and 3D Asset Pipelines
+Use the active host LLM image generator first when available. Record prompt, owner corrections, model/version when exposed, dimensions, controlled path and hash.
 
-## 2D
+A selected 3D provider should not consume credits for ordinary 2D concept generation unless the project overlay explicitly approves an exception.
 
-Concept/style → clean source → layers/slices → sprite/skeletal animation → atlas/export → compression/filtering → runtime integration → responsive/device QA.
+## 7.2 Provider adapters
 
-## 3D
+Each selected provider module defines:
 
-Reference/design → model/generate → segment/edit → topology/retopo → UV/texture/material → rig/animation if needed → LOD/collision/sockets → export → runtime/import → performance/visual QA.
+- official SDK/API/package/repository;
+- region/base URL;
+- secret environment-variable names;
+- read-only authenticated check;
+- capabilities;
+- local staging/download paths;
+- task polling/retries;
+- price/balance/spend gate;
+- output expiry/download policy;
+- provenance/hash/rollback contract;
+- optional official CLI/MCP policy.
 
-## Universal asset registry
+Never install a similarly named third-party CLI by guessing. Use exact first-party documentation.
 
-- Expected asset ID and category
-- Source/provider/provenance/license
-- Technical metrics and budgets
-- Status and runtime slot
-- Evidence and promotion gate
-- Existing-versus-new comparison when replacing assets
+## 7.3 Tripo v3 reusable module
+
+The included `providers/tripo-v3/` module uses the official JavaScript/TypeScript SDK `@vastai/tripo-sdk` and v3 API.
+
+Default role:
+
+- text/image/multiview-to-3D;
+- upload/download;
+- segmentation;
+- mesh completion/decimation;
+- rig check;
+- rigging;
+- preset animation retargeting;
+- task polling/balance.
+
+Concept images remain host-LLM-first. The module installs once, performs a no-charge authenticated read, writes a cached receipt, and refreshes balance/pricing only before paid tasks.
+
+## 7.4 Universal 3D sequence
+
+```text
+concept/reference
+-> generate/import 3D source
+-> segmentation/edit when required
+-> mesh completion/retopo/decimation
+-> UV/texture/material
+-> scale/origin/pivot
+-> rig check
+-> rig
+-> animation route
+-> collision/LOD/sockets
+-> export
+-> runtime
+-> target-device QA
+```
+
+Geometry-changing operations occur before final rigging unless the selected provider/DCC contract proves otherwise.
+
+## 7.5 Asset registry
+
+Record:
+
+- expected asset ID/category;
+- source/provider/model/version/task/cost;
+- prompt/reference/license;
+- untouched and derivative hashes;
+- technical metrics;
+- runtime slot;
+- acceptance/evidence;
+- rollback;
+- existing-versus-new comparison.
+
+Provider task success is never asset acceptance.
+
+---
 
 # 8. Animation, Interactions, VFX and Audio
 
-## Animation
+## 8.1 Animation routing
 
-- Semantic action intent
-- Anticipation, active/contact/release and recovery
-- Root motion and displacement policy
-- IK, contacts, additive layers and deformation
-- Equipment/prop/socket events
-- Transitions and interruption/cancel rules
-- Normal-speed runtime and target-camera proof
+Every motion is classified as one of:
 
-## Interactions
+- direct accepted provider preset;
+- simple preset-derived variant;
+- verified provider custom motion;
+- dual custom-DCC bakeoff;
+- runtime procedural motion.
 
-- Actor/prop animation and alignment
-- Collision/state transition
-- Prompt and failure feedback
-- Audio/VFX event markers
-- Save/network consequence
-- Clean exit/recovery
+Direct provider presets that pass full acceptance do not require duplicate production.
 
-## VFX/audio
+## 8.2 Dual custom-animation bakeoff
 
-- Telegraph and contact readability
-- Pooling and performance tiers
-- Spatial audio and bus priority
-- Target-device reduced-quality fallbacks
-- Shared event markers so gameplay, animation, VFX and sound agree
+When enabled by the project profile, a custom motion not adequately covered by provider presets receives two independently produced candidates—default lanes:
 
-# 9. Gameplay AI, Physics and Simulation
+1. Houdini KineFX;
+2. Blender.
 
-Simulation-heavy genres need explicit fidelity and performance levels. Decide whether the project is arcade, assisted, systemic, or study-simulation before implementing physics or AI.
+Both use the same model/rig/source/brief, duration/FPS, root-motion policy, constraints, markers, scene, cameras, export contract and production budget.
 
-- Update frequency and deterministic state
-- Physics layers/collision ownership
-- Navigation, steering and pathfinding
-- Behavior/state machines and sensors
-- Vehicles/control surfaces and damage models
-- Agent/economy simulation at scale
-- Debug views, telemetry and reproducible seeds
-- Level-of-detail for simulation, not only graphics
+Required process:
 
-# 10. Networking, Saves and Backend
+```text
+lock common inputs
+-> Candidate Lane A + Candidate Lane B
+-> automated admissibility gates
+-> randomize labels
+-> blind independent AI scoring
+-> blinded owner A/B review
+-> store verdict
+-> reveal labels
+-> integrate winner
+-> preserve loser/source/metrics
+-> update experiment registry
+```
 
-- Authoritative ownership and trust boundaries
-- Replication, prediction, reconciliation and lag strategy
-- Lobbies/parties/match/session lifecycle
-- Reconnect and failure recovery
-- Identity, persistence and entitlements
-- Save schema versioning and migrations
-- Anti-cheat/duplication/moderation/security
-- Observability, scaling and incident response
+Review aggregate outcomes at 10, 25, 50, 100, then each additional 50 comparisons. No pipeline retires automatically; category/global routing changes require representative evidence and explicit owner approval.
 
-> **One source of authoritative truth.** The same action should not have unrelated offline, turn-based, real-time and multiplayer definitions. Use shared contracts with scheduler/network adapters where possible.
+Projects may substitute different candidate lanes, but must preserve the fair-input/blind-review/data contract.
 
-# 11. UI, Input and Accessibility
+## 8.3 Interaction contract
 
-- Keyboard/mouse, controller, touch, HOTAS/wheel, VR hands as selected
-- Remapping, dead zones, sensitivity and input prompts
-- Responsive UI and safe areas
-- Readable HUD and actionable errors
-- Contrast, text scaling, subtitles, motion reduction and assist modes
-- Localization expansion and bidirectional layout planning when applicable
-- Tutorial/onboarding that teaches actual systems
+- actor/prop alignment;
+- collision/state transition;
+- prompt and failure feedback;
+- audio/VFX/gameplay event markers;
+- save/network consequence;
+- clean interruption/recovery.
 
-# 12. QA, Performance and Release
+## 8.4 VFX/audio
+
+- gameplay events remain authoritative;
+- telegraph/contact readability;
+- attachment/timing markers;
+- pooling and quality tiers;
+- spatial audio and concurrency;
+- reduced-quality target-device fallbacks;
+- target-camera and target-device proof.
+
+---
+
+# 9. DCC and License Policy
+
+DCC modules record version, scripting, license, file formats, plugins/add-ons, import/export and deterministic smoke tests.
+
+## Houdini
+
+Apprentice exposes virtually the FX feature set but remains non-commercial/restricted. Indie is a limited-commercial production lane with different file/license/export behavior. Upgrading licenses invalidates the cached Houdini receipt and requires a clean production-format/export revalidation.
+
+## Blender
+
+Record version, Python, add-ons, armature/constraint/action/NLA capabilities, and GLB/FBX export proof.
+
+Other DCCs can be selected through project modules.
+
+---
+
+# 10. Code and Runtime Architecture
+
+- data-driven registries;
+- explicit state machines;
+- stable provider/DCC/runtime boundaries;
+- input abstraction/remapping;
+- camera contracts;
+- deterministic reproduction;
+- error/retry/fallback behavior;
+- debug snapshots/telemetry;
+- tests around schemas and high-risk integration boundaries.
+
+An action contract records input, timing, cooldown/resource, animation, VFX/audio, state changes and network ownership whether the action is a sword attack, gunshot, aircraft control, unit command, card play, crafting action or puzzle interaction.
+
+---
+
+# 11. Gameplay AI, Physics and Simulation
+
+Choose arcade, assisted, systemic, or study-simulation fidelity before implementation.
+
+Define:
+
+- update rate/determinism;
+- physics/collision ownership;
+- navigation/steering;
+- behavior/sensors;
+- vehicles/control surfaces/damage;
+- agent/economy scale;
+- simulation LOD;
+- telemetry/debug views;
+- reproducible seeds.
+
+---
+
+# 12. Networking, Saves and Backend
+
+- authoritative ownership/trust boundaries;
+- replication/prediction/reconciliation;
+- session/lobby/party lifecycle;
+- reconnect/failure recovery;
+- identity/persistence/entitlements;
+- save schema/migrations;
+- anti-cheat/duplication/moderation/security;
+- observability/scaling/incidents.
+
+Use shared action contracts with scheduler/network adapters rather than unrelated definitions for offline, turn-based, real-time and multiplayer modes.
+
+---
+
+# 13. UI, Input and Accessibility
+
+- keyboard/mouse/controller/touch/HOTAS/wheel/VR inputs as selected;
+- remapping/dead zones/sensitivity;
+- responsive UI/safe areas;
+- readable HUD/errors;
+- contrast/text scale/subtitles/motion reduction/assist modes;
+- localization expansion;
+- tutorial that teaches actual systems.
+
+---
+
+# 14. QA, Performance and Release
 
 ## Test layers
 
-- Unit/schema/contract tests
-- Integration and end-to-end gameplay loops
-- Visual/audio evidence
-- Real target devices and render APIs
-- Network and adverse-condition tests
-- Save/migration/backward-compatibility tests
-- Performance/thermal/memory/loading/soak tests
-- Accessibility and input matrix
+- unit/schema/contract;
+- integration/end-to-end gameplay;
+- visual/audio evidence;
+- real target hardware/render APIs;
+- adverse network conditions;
+- save/migration/backward compatibility;
+- performance/thermal/memory/loading/soak;
+- accessibility/input matrix;
+- provenance/license/rollback.
 
-## Completion authority
-
-Workers stop at IMPLEMENTED_UNVERIFIED. The independent verifier checks the current commit and fresh evidence. A machine done gate rejects missing critical rows, unresolved dependencies, self-verification, stale evidence and remaining blockers.
+Workers stop at `IMPLEMENTED_UNVERIFIED`. Independent verifiers re-derive expectations from current state and alone mark `VERIFIED`.
 
 ## Release
 
-- Build and packaging
-- Migrations and environment configuration
-- Signing/store/hosting checks
-- Analytics/crash/error observability
-- Rollback/canary plan
-- Asset/license/provenance review
-- Owner approval
+- build/package/sign/store/hosting;
+- environment/migrations;
+- analytics/crash/error observability;
+- canary/rollback;
+- asset/license/provenance review;
+- owner authorization.
 
-# 13. Genre and Platform Modules
+---
 
-| **Module** | **Adds to the requirement compiler** |
+# 15. Genre and Platform Modules
+
+| Module | Adds |
 |---|---|
-| Action/Adventure/RPG | Character movement, interactions, combat, progression, quests, equipment |
+| Action/Adventure/RPG | Movement, interactions, combat, progression, quests, equipment |
 | FPS/TPS Shooter | Aim, weapons, recoil/ballistics, cover, hit validation, netcode |
-| Flight/Vehicle Simulation | Physics fidelity, controls, cockpit/instruments, weather/terrain, telemetry |
-| Racing | Vehicle handling, tracks/laps, timing, AI, collisions, replays |
-| Strategy/Tactics | Deterministic rules, pathfinding, fog, economy, large-agent performance |
-| Builder/Management/Sandbox | Placement, simulation agents, production chains, time controls, persistence |
-| Survival/Crafting | Resources, inventory, recipes, status, building, persistence |
-| Platformer/Puzzle | Movement feel, collisions, checkpoints, puzzle solvability/reset |
-| Fighting/Sports | Frame/input rules, hitboxes, scoring, rollback, training/replay |
-| Card/Board/Turn-Based | Rules engine, legal actions, turns/phases, seeds, logs/reconnect |
+| Flight/Vehicle Simulation | Physics fidelity, controls, instruments, weather/terrain, telemetry |
+| Racing | Handling, tracks/laps, timing, AI, collisions, replays |
+| Strategy/Tactics | Rules, pathfinding, fog, economy, large-agent performance |
+| Builder/Management/Sandbox | Placement, simulation agents, production chains, persistence |
+| Survival/Crafting | Resources, inventory, recipes, status, building |
+| Platformer/Puzzle | Movement feel, collision, checkpoints, solvability/reset |
+| Fighting/Sports | Frames/inputs, hitboxes, scoring, rollback, replay |
+| Card/Board/Turn-Based | Rules engine, legal actions, phases, seeds, logs/reconnect |
 | Multiplayer/Social | Sessions, replication, chat/moderation, backend/security |
 | Narrative/Adventure | Dialogue/story state, cinematics, voice/subtitles/localization |
-| 2D / 3D / Mobile-Web / Desktop / VR | Presentation and platform constraints loaded independently |
+| 2D/3D/Mobile/Web/Desktop/VR | Presentation and platform constraints independently selected |
 
-# 14. Nested Games and Mini-Games
+---
 
-A game can contain other game types without forcing the entire project into one genre. Define every subgame as a mode with explicit shared and isolated systems.
+# 16. Nested Games and Mini-Games
 
-## Required nested-mode contract
+Each subgame/mode defines:
 
-- Entry/exit and failure recovery
-- State, inventory, currency and reward transfer
-- Input/camera/UI switch
-- Pause/time/network behavior
-- Separate mechanics and module set
-- Save/checkpoint behavior
-- Performance and asset-loading boundary
-- Anti-exploit rules
+- entry/exit/failure recovery;
+- shared/isolated state, inventory, currency and rewards;
+- input/camera/UI switch;
+- pause/time/network behavior;
+- module set;
+- save/checkpoint behavior;
+- performance/asset-loading boundary;
+- anti-exploit rules.
 
-Example: an action-adventure game may contain a high-fidelity aircraft simulator. The flight mode loads Flight/Vehicle Simulation and perhaps VR modules while the host retains identity, quest, save and reward state.
+---
 
-# 15. Starting a New Project
+# 17. Starting a New Project
 
-1. Copy/reference the universal harness.
+1. Reference/copy universal harness.
 2. Create `project-profile.json`.
-3. Choose genre and platform modules.
-4. Create project overlay and canon index.
-5. Pass onboarding and auto-discover repository/worktrees.
-6. Run global audit.
-7. Define vertical slice and first requirement contracts.
-8. Pilot providers/assets.
-9. Integrate and independently verify.
-10. Scale production.
+3. Select genre/platform/engine/provider modules.
+4. Create project overlay/canon index.
+5. Run one-time workstation/toolchain onboarding if no valid cached receipt exists.
+6. Use Session Fast Start for normal chats.
+7. Run global audit.
+8. Define vertical slice and atomic contracts.
+9. Pilot providers/assets.
+10. Integrate and independently verify.
+11. Scale only after proof.
 
-## Suggested first prompt
+Suggested first prompt:
 
-You are the Production Orchestrator for project `<PROJECT_ID>`. Read START_HERE.md, validate project-profile.json and the project overlay, return a Context Receipt, then perform the global audit. Do not implement until the audit produces the dependency and parallel-safety map.
+```text
+You are the Production Orchestrator for project <PROJECT_ID>.
+Read START_HERE.md and SESSION_FAST_START.md, load the cached toolchain receipt,
+validate project-profile.json and the project overlay, return the Session and
+Context Receipts, then perform the global audit. Run full onboarding only when
+the cached receipt is missing or invalid. Do not implement until the audit
+produces the dependency and parallel-safety map.
+```
 
-# 16. Relationship to SoulDrifter
+---
 
-SoulDrifter should keep its existing detailed harness. That project has specific classes, combat modes, Driftling design, Tripo decisions, asset matrices, GitHub branches, Level 1 scope and owner directions that do not belong in a generic guide.
+# 18. Relationship to Project-Specific Playbooks
 
-## Recommended relationship
+The universal core supplies shared workflow, toolchain/provider contracts, cached onboarding, animation comparison, QA and release principles.
 
-- Universal core supplies shared workflow and reusable skills.
-- SoulDrifter overlay supplies all SoulDrifter-specific canon and production rules.
-- A future shooter gets a different overlay and shooter modules.
-- A future flight simulator gets a different overlay and flight/VR modules.
-- No project-specific overlay overwrites another.
+Each project-specific playbook supplies:
+
+- exact canon/mechanics;
+- project paths/branches/worktrees;
+- selected tools/providers;
+- budgets/licensing;
+- asset/action matrices;
+- ticket order;
+- owner decisions.
+
+SoulDrifter remains one such detailed overlay; future shooters, simulators and other games receive different overlays without weakening the universal core.
+
+---
 
 # Final Production Principle
 
-> **Show, prove, and verify.** The purpose of the harness is not to produce more documents. It is to make AI teams finish complete, connected, target-platform-ready game features without relying on memory or optimistic summaries.
+> **Configure once, load quickly, build in dependency order, prove in the real runtime, and verify independently.**
