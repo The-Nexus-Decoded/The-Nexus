@@ -1,6 +1,6 @@
 # Universal AI Game Production Playbook
 
-Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, genre/platform/engine/provider modules, asset pipelines, testing, networking, releases and independent verification.
+Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, provider/DCC/runtime modules, procedural-level rules, asset pipelines, testing, networking, releases and independent verification.
 
 ## Start
 
@@ -14,7 +14,7 @@ The harness separates:
 2. **fast per-chat session startup**;
 3. **live pre-spend provider refresh**.
 
-New chats do not reinstall and fully revalidate every tool. They load cached receipts, fetch current ticket state and verify only the lanes selected by the project/ticket.
+New chats load cached receipts, fetch current ticket state and verify only the selected lanes.
 
 ## Core files
 
@@ -22,53 +22,67 @@ New chats do not reinstall and fully revalidate every tool. They load cached rec
 - `PLAYBOOK_V2_CORRECTIONS.md` — mandatory corrections and supersession rules
 - `START_HERE.md` — per-session entry point
 - `ONBOARDING.md` — one-time/invalidated workstation bootstrap
-- `SESSION_FAST_START.md` — short process for each new chat
-- `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` — reusable provider/DCC/engine/device checks
+- `SESSION_FAST_START.md` — short process for each chat
+- `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` — provider/DCC/engine/device checks
 - `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md` — graph-first constructive spatial generation
-- `BROWSER_RUNTIME_PORTABILITY_POLICY.md` — stable browser runtime plus optional native-port preservation
+- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` — ground, vertical, aquatic, biome, mega-zone, dynamic and transfer connection contracts
+- `BROWSER_RUNTIME_PORTABILITY_POLICY.md` — stable runtime plus optional future-port preservation
 - `IMAGE_REFERENCE_BAKEOFF_POLICY.md` — multi-candidate image comparison and full-asset framing
-- `HOUDINI_LICENSE_MODE_POLICY.md` — Apprentice POC, Indie and commercial license-mode routing
-- `WORKFLOW.md` — dependency-ordered multi-LLM production lifecycle
+- `HOUDINI_LICENSE_MODE_POLICY.md` — Apprentice POC, Indie and commercial routing
+- `WORKFLOW.md` — dependency-ordered multi-LLM lifecycle
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` — fair dual-candidate animation comparison
-- `config/onboarding-cache-policy.json` — receipt age/invalidation policy
-- `config/procedural-level-topology-policy.json` — machine-readable topology invariants
-- `config/animation-bakeoff-policy.json` — custom-animation experiment policy
-- `templates/procedural-level-topology-record.template.json` — generated-layout evidence record
-- `templates/animation-bakeoff-record.template.json` — animation experiment record
+- `config/onboarding-cache-policy.json`
+- `config/procedural-level-topology-policy.json`
+- `config/spatial-connection-policy.json`
+- `config/animation-bakeoff-policy.json`
+- `templates/procedural-level-topology-record.template.json`
+- `templates/spatial-connection-record.template.json`
+- `templates/animation-bakeoff-record.template.json`
 - `providers/tripo/` — reusable Tripo provider module
 - `scripts/providers/tripo/` — no-charge connection/bootstrap helpers
-- `source-bundle/` — original complete extracted harness source
+- `source-bundle/` — original extracted harness source
 
-## Universal procedural-level policy
+## Universal procedural topology and traversal policy
 
-Generated levels, buildings, roads, tracks, platforms and zones use:
+Generated levels use:
 
 ```text
-logical graph
+logical graph + explicit traversal contracts
 -> constructive edge-by-edge embedding
--> canonical shared boundaries/openings
--> actual-geometry plan/section validation
--> runtime geometry/collision/navigation
--> dressing/FX
+-> canonical boundaries, surfaces and volumes
+-> actual-geometry plan/section/volume/state validation
+-> runtime geometry/collision/navigation/controller states
+-> gameplay/dressing/FX
 ```
 
-Do not place independently sealed modules and connect them after the fact. Resolve each edge before accepting the destination, retry/backtrack invalid placements, emit shared boundaries once and require real-controller proof. Debug warp/pathfinding alone is not physical connectivity evidence.
+A spatial node may be a room, cavern, shaft, water volume, air pocket, biome pocket, labyrinth, mega-zone, moving platform region or transforming living-world state.
+
+The traversal catalog covers:
+
+- open, door/gate, corridor, crawlspace and destructible routes;
+- stairs, climbing, lifts, drops, ropes and moving platforms;
+- jumps, bridges and platform sequences;
+- wading, swimming, underwater tunnels, air pockets, currents and boats;
+- biome transitions, labyrinths, mega-zones and living topology;
+- vehicles, streaming boundaries, true transfers and non-Euclidean links.
+
+Do not place sealed modules and connect them after the fact. Resolve every edge before accepting the destination, retry/backtrack invalid placements and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
 
 ## Universal image policy
 
 Projects define candidate image lanes, but important primary 3D references should compare multiple candidates before downstream 3D work.
 
-Every primary 3D-source image must show the **entire asset in frame**. This applies to characters, creatures, weapons, items, armor, furniture, architecture, doors, fixtures, vehicles and environment set pieces. Cropped close-ups are supplemental only.
+Every primary 3D-source image shows the **entire asset in frame**. Cropped close-ups are supplemental only.
 
 ## Universal provider policy
 
 - Distinguish Studio/browser, API/SDK, official CLI and MCP lanes.
 - Do not assume credentials, quotas or credits are shared.
-- A blocked API/CLI lane does not automatically block an allowed authenticated Studio/browser lane.
-- Provider connection is proven once with a live sanitized check and cached receipt.
-- Paid operations always require current balance/pricing/allowance and exact owner approval.
-- Provider outputs enter controlled storage immediately and require provenance, hashes, runtime QA and rollback.
-- CLI/MCP integrations are optional and must be exact first-party tools, not guessed packages.
+- A blocked API/CLI lane does not automatically block an allowed Studio/browser lane.
+- Prove provider connection once with a sanitized live check and cached receipt.
+- Paid operations require current balance/pricing/allowance and exact owner approval.
+- Provider outputs require controlled storage, provenance, hashes, runtime QA and rollback.
+- CLI/MCP tools must be exact first-party integrations.
 
 ## Universal Houdini policy
 
@@ -78,18 +92,16 @@ Apprentice restrictions still apply. Every project declares its usage mode and s
 
 ## Universal custom-animation policy
 
-When enabled, custom animations not adequately covered by an accepted provider preset receive two candidates—by default Houdini KineFX and Blender—under identical inputs, automated gates, blind AI review and blinded owner A/B selection. Both candidates and metrics are retained for evidence-based routing.
+When enabled, custom animations not adequately covered by an accepted provider preset receive two candidates—by default Houdini KineFX and Blender—under identical inputs, automated gates, blind AI review and blinded owner selection. Both candidates and metrics are retained.
 
-A direct provider preset that passes all acceptance gates does not require duplicate DCC production.
+## Universal runtime portability policy
 
-## Universal browser/runtime portability policy
+The universal core does not prescribe a default lateral migration from one browser engine to another.
 
-The universal core does not prescribe a default lateral migration from one browser engine to another after a POC.
+Projects improve their accepted runtime unless their overlay defines a concrete unsolved requirement, named candidates, comparison slice, metrics, budget and owner approval.
 
-Projects should improve their accepted browser runtime unless their overlay defines a concrete unsolved requirement, named candidates, comparison slice, metrics, budget and owner approval.
-
-If browser delivery later cannot satisfy approved requirements, evaluate a native/installed engine as a separate phase. Preserve DCC/provider sources, neutral assets/caches/manifests and target-specific derivatives so the future target reuses the expensive work instead of starting over.
+For a future native/installed engine, preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives so the new target reuses expensive work instead of starting over.
 
 ## Project boundary
 
-This folder remains project-agnostic. Project-specific lore, mechanics, branches, paths, budgets, provider account values, runtime choice, ticket ordering, usage-mode classification and owner decisions belong in each project's profile/overlay.
+This folder remains project-agnostic. Project-specific lore, mechanics, branches, paths, budgets, provider account values, runtime choice, ticket ordering, usage mode and owner decisions belong in the project profile/overlay.
