@@ -1,7 +1,44 @@
 {
-  "schemaVersion": 1,
-  "policyId": "souldrifter-procedural-dungeon-topology-v1",
-  "generationArchitecture": "LOGICAL_GRAPH_THEN_CONSTRUCTIVE_SPATIAL_EMBEDDING_THEN_SHARED_SHELL",
+  "schemaVersion": 2,
+  "policyId": "souldrifter-procedural-dungeon-topology-v2",
+  "generationArchitecture": "ROUTE_SELECTION_THEN_LOGICAL_GRAPH_THEN_CONSTRUCTIVE_SPATIAL_EMBEDDING_THEN_SHARED_SHELL",
+  "runtimeTrigger": {
+    "fixedAreaMayRenderBeforeRouteChoice": [
+      "soul_well",
+      "realm_lock_vestibule",
+      "threshold_plaza"
+    ],
+    "selectedRouteGenerationTrigger": "PLAYER_SELECTS_WAYFARER_OR_OATHBREAKER",
+    "selectedGalleryMeshesMayRenderBeforeTopologyPass": false,
+    "unselectedRandomBranchRenderingRequired": false,
+    "previewModeMayPrecomputeBothPaths": true,
+    "requiredSequence": [
+      "lock_seed_and_selected_path",
+      "choose_3_to_5_legal_room_archetypes_and_order",
+      "build_selected_route_logical_graph",
+      "solve_complete_selected_route_top_down_topology",
+      "place_rooms_edge_by_edge_from_compatible_sockets",
+      "resolve_canonical_boundaries_apertures_connectors_and_elevations",
+      "run_invariants_and_backtrack_invalid_placements",
+      "freeze_accepted_route_topology",
+      "render_shared_shell_and_interiors",
+      "build_collision_and_navigation",
+      "place_encounters_dressing_lighting_water_and_fx"
+    ]
+  },
+  "roomArchetypeContract": {
+    "isClosedIndependentBox": false,
+    "requiredData": [
+      "footprint_variants",
+      "legal_connection_sockets",
+      "compatible_connection_types",
+      "allowed_orientations",
+      "floor_and_ceiling_requirements",
+      "elevation_constraints",
+      "player_clearance_constraints",
+      "encounter_and_dressing_sockets"
+    ]
+  },
   "randomization": {
     "mayChoose": [
       "room_archetypes",
@@ -13,6 +50,10 @@
     ],
     "mayNotDo": [
       "place_independent_sealed_room_boxes_then_connect_afterward",
+      "render_selected_room_meshes_before_topology_pass",
+      "place_rooms_at_unrelated_slot_centers_then_connect_coordinates",
+      "add_corridors_after_rendering_and_infer_openings_from_endpoints",
+      "merge_duplicate_walls_or_slabs_after_rendering",
       "accept_overlaps_and_hide_them_with_dressing",
       "treat_pathfinding_or_warp_as_physical_connection_proof",
       "emit_duplicate_shared_walls",
@@ -23,14 +64,17 @@
     "rootRoomRequired": true,
     "placeDestinationRelativeToAcceptedSourceSocket": true,
     "resolveConnectionBeforeAcceptingDestinationRoom": true,
+    "deriveDestinationTransformFromConnection": true,
+    "validateFullEdgeBeforeRoomAcceptance": true,
     "backtrackingRequiredWhenPlacementFails": true,
+    "retryAlternateSocketOrientationOrArchetype": true,
     "rejectInvalidSeedWhenBacktrackingExhausted": true,
     "preserveDeterminism": true
   },
   "connectionTypes": [
     "DIRECT_OPEN_ADJACENCY",
     "DOOR_GATE_ADJACENCY",
-    "CORRIDOR",
+    "PHYSICAL_CORRIDOR",
     "PORTAL_TRANSFER",
     "VERTICAL_TRANSITION"
   ],
@@ -40,18 +84,21 @@
     "openSpanEmitsNoWallFromEitherRoom": true,
     "portalSpanEmitsWallOutsideApertureOnly": true,
     "duplicateCoplanarWallsAllowed": false,
+    "deterministicFloorCeilingOwnershipRequired": true,
     "shellGeneratorConsumesBoundaryInventory": true
   },
   "topDownGate": {
-    "generatedFromActualEmbeddedGeometry": true,
+    "generatedFromActualSolvedTopology": true,
+    "requiredBeforeSelectedRoomMeshRendering": true,
     "requiredBeforeShellDressing": true,
     "requiredLayers": [
-      "room_polygons_and_ids",
+      "room_polygons_ids_archetypes_and_orientations",
+      "fixed_vs_randomized_areas",
       "wall_segments_and_boundary_ids",
       "apertures",
       "doors_gates_portcullises",
       "corridor_polygons_and_centerlines",
-      "navigation_clearance",
+      "navigation_and_player_clearance",
       "floor_elevations",
       "vertical_transitions",
       "logical_edges",
@@ -93,12 +140,16 @@
     "galleryCountMin": 3,
     "galleryCountMax": 5,
     "comparisonSeed": 4182,
-    "requiredPaths": ["wayfarer", "oathbreaker"],
+    "requiredPaths": [
+      "wayfarer",
+      "oathbreaker"
+    ],
     "permanentRegressionCases": [
       "route_gate_open_but_wall_intact_behind_gate",
       "corridor_reaches_coordinate_but_not_destination_aperture",
       "duplicate_walls_between_adjacent_rooms",
-      "navigation_connected_but_rendered_geometry_blocked"
+      "navigation_connected_but_rendered_geometry_blocked",
+      "selected_room_rendered_before_route_topology_solved"
     ]
   }
 }
