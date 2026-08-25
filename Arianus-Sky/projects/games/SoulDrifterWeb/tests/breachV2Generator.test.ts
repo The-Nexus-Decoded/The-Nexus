@@ -168,6 +168,32 @@ describe("BREACH-V2 seeded generator", () => {
     }
   });
 
+  it("preserves a monotonic authored ascent from the Vestibule to Heartvale", () => {
+    for (const pathId of PATHS) {
+      for (const seed of [7, 1, 2, 4182]) {
+        const gen = generateBreachV2(seed, pathId);
+        const chamberElevations = gen.chambers.map((chamber) => chamber.floorElevation);
+        expect(chamberElevations).toEqual([...chamberElevations].sort((a, b) => a - b));
+        expect(new Set(chamberElevations).size).toBe(chamberElevations.length);
+
+        for (const corridor of gen.corridors) {
+          expect(corridor.fromElevation, corridor.id).toBeLessThanOrEqual(corridor.bendElevation);
+          expect(corridor.bendElevation, corridor.id).toBeLessThanOrEqual(corridor.toElevation);
+        }
+
+        const entry = gen.corridors.find((corridor) => corridor.id === "corridor-entry")!;
+        const heartvale = gen.corridors.find((corridor) => corridor.id === "heartvale-exit")!;
+        expect(entry.fromElevation).toBe(R.fixedRooms.find((room) => room.id === "threshold-plaza")!.floorElevation);
+        expect(entry.toElevation).toBe(gen.chambers[0]!.floorElevation);
+        expect(heartvale.fromElevation).toBe(R.worldAnchor.elevation);
+        expect(heartvale.toElevation).toBe(R.worldAnchor.elevation);
+        expect(gen.playerStart.floorElevation).toBe(0);
+        expect(gen.exitPoint.floorElevation).toBeGreaterThan(gen.firstMemory.floorElevation);
+        expect(gen.exitPoint.floorElevation).toBeLessThan(R.worldAnchor.elevation);
+      }
+    }
+  });
+
   it("keeps every objective and encounter reachable on a 500-seed sweep (both paths)", () => {
     for (let seed = 1; seed <= 500; seed += 1) {
       for (const pathId of PATHS) {

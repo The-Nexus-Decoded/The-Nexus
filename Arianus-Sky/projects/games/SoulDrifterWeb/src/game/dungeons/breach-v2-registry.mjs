@@ -29,6 +29,7 @@ export const BREACH_V2_REGISTRY = {
     "zone": "Heartvale hv-1 (Soul Well Basin)",
     "x": 5437.5,
     "z": 2648.4,
+    "elevation": 10.4,
     "note": "exit Connector emerges at the Soul Well Basin POI (Heartvale hv-1)"
   },
   "fixedRooms": [
@@ -40,6 +41,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 0.0,
       "w": 30.0,
       "h": 22.0,
+      "floorElevation": 0.0,
       "notes": "Fixed start. Damaged trans-realm machine-temple; cleanest room (corruption 0.05).",
       "placements": [
         {
@@ -579,6 +581,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 8.0,
       "w": 6.0,
       "h": 6.0,
+      "floorElevation": 0.4,
       "notes": "Short fixed link; bronze conduits run east toward the paired doors.",
       "placements": [
         {
@@ -639,6 +642,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 4.0,
       "w": 16.0,
       "h": 12.0,
+      "floorElevation": 0.8,
       "notes": "Safe. Orren (north) + Brannoc (south) guide beat before the choice. Two doors on the east wall.",
       "placements": [
         {
@@ -846,6 +850,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 5.0,
       "w": 12.0,
       "h": 10.0,
+      "floorElevation": 5.6,
       "notes": "Both paths rejoin here (two west sockets, one east socket). Corruption rises (0.7).",
       "placements": [
         {
@@ -1006,12 +1011,12 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "art-banner-ashen",
-          "x": 0.3,
-          "y": 5.0,
+          "x": 6.0,
+          "y": 0.35,
           "width": 1.4,
           "placement": "wall",
           "group": "art",
-          "facing": "east",
+          "facing": "south",
           "blocking": false,
           "height": 0.98,
           "footprint": 1.4,
@@ -1027,6 +1032,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 5.5,
       "w": 12.0,
       "h": 9.0,
+      "floorElevation": 6.2,
       "notes": "Boss-suite ante-room. One-way portcullis seals behind the player.",
       "placements": [
         {
@@ -1184,6 +1190,7 @@ export const BREACH_V2_REGISTRY = {
       "y": -1.0,
       "w": 30.0,
       "h": 22.0,
+      "floorElevation": 6.8,
       "notes": "Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets with a glowing rune circle at the active anchor; V2 ships exactly 1 boss.",
       "placements": [
         {
@@ -1558,6 +1565,7 @@ export const BREACH_V2_REGISTRY = {
       "y": 3.0,
       "w": 10.0,
       "h": 8.0,
+      "floorElevation": 7.6,
       "notes": "Sealed until the Warden falls. First Memory on the dais; awarded exactly once.",
       "placements": [
         {
@@ -1703,7 +1711,8 @@ export const BREACH_V2_REGISTRY = {
       "y": 12.0,
       "w": 16.0,
       "h": 6.0,
-      "notes": "Ascending passage out of the Breach -> Heartvale hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
+      "floorElevation": 7.9,
+      "notes": "Ascending passage climbs from 7.9 m to Heartvale at 10.4 m -> hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
       "placements": [
         {
           "asset": "cave-in-rubble",
@@ -1767,7 +1776,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 5.0,
+          "x": 1.5,
           "y": 0.3,
           "placement": "wall",
           "group": "fire",
@@ -1779,7 +1788,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "wall-torch-sconce",
-          "x": 6.15,
+          "x": 2.65,
           "y": 5.7,
           "placement": "wall",
           "group": "fire",
@@ -1929,6 +1938,13 @@ export const BREACH_V2_REGISTRY = {
           -1.0
         ]
       ],
+      "slotElevations": [
+        1.6,
+        2.4,
+        3.2,
+        4.0,
+        4.8
+      ],
       "convergenceSocket": [
         176.0,
         8.0
@@ -1961,6 +1977,13 @@ export const BREACH_V2_REGISTRY = {
           160.0,
           19.0
         ]
+      ],
+      "slotElevations": [
+        1.6,
+        2.4,
+        3.2,
+        4.0,
+        4.8
       ],
       "convergenceSocket": [
         176.0,
@@ -4865,6 +4888,7 @@ export const BREACH_V2_REGISTRY = {
     "reachability": "start -> boss -> exit connected on every seed; every objective reachable",
     "socketIntegrity": "every chamber connects through real door sockets; corridor widths fixed",
     "noBlockedCriticals": "dressing never blocks doors, NPCs, spawns, quest objects, boss route",
+    "monotonicAscent": "every authored route rises from the Realm-Lock floor to Heartvale",
     "firstMemoryOnce": "the First Memory is awarded exactly once",
     "comparisonSeed": 4182
   }

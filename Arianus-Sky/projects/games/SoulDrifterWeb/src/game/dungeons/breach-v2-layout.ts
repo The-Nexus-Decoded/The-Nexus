@@ -62,7 +62,8 @@ export function buildBreachV2Layout(
       yaw: p.placement === "wall" ? (FACING_YAW[p.facing] ?? 0) : propYaw(p.asset, p.x, p.y),
       placement: p.placement,
       facing: p.facing,
-      elevation: p.elevation ?? spec?.elevation ?? 0,
+      elevation: p.floorElevation + (p.elevation ?? spec?.elevation ?? 0),
+      floorElevation: p.floorElevation,
       height: p.height ?? spec?.targetHeight ?? 1.0,
       footprint: p.footprint ?? spec?.maxFootprint ?? 1.2,
       blocking: p.blocksMovement,
@@ -81,11 +82,15 @@ export function buildBreachV2Layout(
     ...gen.fixedRooms.map((r) => ({
       id: r.id, name: r.name, kind: r.kind, fixed: true,
       x: r.x, z: r.y, w: r.w, h: r.h,
+      floorElevation: r.floorElevation,
+      endElevation: r.kind === "exit" ? R.worldAnchor.elevation : r.floorElevation,
       corruption: CORRUPTION_BY_KIND[r.kind] ?? 0.2,
     })),
     ...gen.chambers.map((c) => ({
       id: c.id, name: c.name, kind: "gallery" as const, fixed: false, poolRoomId: c.poolRoomId,
       x: c.x, z: c.y, w: c.w, h: c.h,
+      floorElevation: c.floorElevation,
+      endElevation: c.floorElevation,
       corruption: pathId === "wayfarer" ? 0.25 : 0.45,
     })),
   ];
@@ -94,13 +99,14 @@ export function buildBreachV2Layout(
     id: c.id,
     points: [[c.from.x, c.from.y], [c.bend.x, c.bend.y], [c.to.x, c.to.y]] as [number, number][],
     width: c.width,
+    elevations: [c.fromElevation, c.bendElevation, c.toElevation] as [number, number, number],
   }));
 
   const landmarkOut = (id: string) => {
     const lm = R.landmarks.find((l) => l.id === id)!;
     const room = R.fixedRooms.find((r) => r.id === lm.roomId)!;
     return {
-      id, roomId: lm.roomId, x: room.x + lm.x, z: room.y + lm.y,
+      id, roomId: lm.roomId, x: room.x + lm.x, z: room.y + lm.y, elevation: room.floorElevation,
       r: lm.r ?? null, apron: lm.apron ?? null, w: lm.w ?? null, label: lm.label,
     };
   };
@@ -116,10 +122,10 @@ export function buildBreachV2Layout(
   const well = landmarkOut("soul-well");
   const lights = [
     ...fireLights,
-    { id: "soul-well-glow", x: well.x, z: well.z, y: 1.6, color: "#7fe8ff", intensity: 2.2, radius: 10.0, castsShadow: true },
-    { id: "boss-ember", x: gen.boss.x, z: gen.boss.y, y: 3.4, color: "#ff6a3c", intensity: 1.6, radius: 14.0, castsShadow: true },
-    { id: "memory-glow", x: gen.firstMemory.x, z: gen.firstMemory.y, y: 1.8, color: "#c9a8ff", intensity: 1.4, radius: 7.0, castsShadow: false },
-    { id: "exit-daylight", x: gen.exitPoint.x, z: gen.exitPoint.y, y: 3.0, color: "#cfe8c0", intensity: 1.5, radius: 10.0, castsShadow: false },
+    { id: "soul-well-glow", x: well.x, z: well.z, y: well.elevation + 1.6, color: "#7fe8ff", intensity: 2.2, radius: 10.0, castsShadow: true },
+    { id: "boss-ember", x: gen.boss.x, z: gen.boss.y, y: gen.boss.floorElevation + 3.4, color: "#ff6a3c", intensity: 1.6, radius: 14.0, castsShadow: true },
+    { id: "memory-glow", x: gen.firstMemory.x, z: gen.firstMemory.y, y: gen.firstMemory.floorElevation + 1.8, color: "#c9a8ff", intensity: 1.4, radius: 7.0, castsShadow: false },
+    { id: "exit-daylight", x: gen.exitPoint.x, z: gen.exitPoint.y, y: gen.exitPoint.floorElevation + 3.0, color: "#cfe8c0", intensity: 1.5, radius: 10.0, castsShadow: false },
   ];
 
   return {
@@ -133,7 +139,7 @@ export function buildBreachV2Layout(
     placements,
     landmarks: {
       soulWell: well,
-      playerStart: { x: gen.playerStart.x, z: gen.playerStart.y },
+      playerStart: { x: gen.playerStart.x, z: gen.playerStart.y, elevation: gen.playerStart.floorElevation },
       ilyra: landmarkOut("ilyra"),
       memoryLoom: landmarkOut("memory-loom"),
       coffer: landmarkOut("coffer"),
@@ -142,11 +148,11 @@ export function buildBreachV2Layout(
       brannoc: landmarkOut("brannoc"),
       doorWayfarer: landmarkOut("door-wayfarer"),
       doorOathbreaker: landmarkOut("door-oathbreaker"),
-      firstMemory: { x: gen.firstMemory.x, z: gen.firstMemory.y },
-      exitPoint: { x: gen.exitPoint.x, z: gen.exitPoint.y },
+      firstMemory: { x: gen.firstMemory.x, z: gen.firstMemory.y, elevation: gen.firstMemory.floorElevation },
+      exitPoint: { x: gen.exitPoint.x, z: gen.exitPoint.y, elevation: gen.exitPoint.floorElevation },
     },
-    enemies: gen.enemies.map((e) => ({ id: e.id, kind: e.kind, x: e.x, z: e.y, maxHp: e.maxHp })),
-    boss: { id: gen.boss.id, pattern: gen.boss.pattern, x: gen.boss.x, z: gen.boss.y, maxHp: gen.boss.maxHp },
+    enemies: gen.enemies.map((e) => ({ id: e.id, kind: e.kind, x: e.x, z: e.y, elevation: e.floorElevation, maxHp: e.maxHp })),
+    boss: { id: gen.boss.id, pattern: gen.boss.pattern, x: gen.boss.x, z: gen.boss.y, elevation: gen.boss.floorElevation, maxHp: gen.boss.maxHp },
     lights,
     pressures: { gallery: gen.galleryPressure, boss: gen.bossPressure },
     rewardId: gen.rewardId,

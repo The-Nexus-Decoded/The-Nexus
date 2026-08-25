@@ -23,6 +23,7 @@ export interface BreachV2FixedRoom {
   y: number;
   w: number;
   h: number;
+  floorElevation: number;
   notes: string;
   placements: BreachV2Placement[];
 }
@@ -65,6 +66,7 @@ export interface BreachV2Path {
   maxChambers: number;
   corridorWidthMeters: number;
   slotCenters: [number, number][];
+  slotElevations: number[];
   convergenceSocket: [number, number];
 }
 
@@ -87,7 +89,7 @@ export interface BreachV2Registry {
   id: "breach-v2";
   sourceMap: string;
   units: { meters: true; navCellMeters: number; note: string };
-  worldAnchor: { zone: string; x: number; z: number; note: string };
+  worldAnchor: { zone: string; x: number; z: number; elevation: number; note: string };
   fixedRooms: BreachV2FixedRoom[];
   landmarks: BreachV2Landmark[];
   paths: Record<"wayfarer" | "oathbreaker", BreachV2Path>;

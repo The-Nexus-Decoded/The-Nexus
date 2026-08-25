@@ -29,6 +29,7 @@ export interface BreachV2ChamberInstance {
   w: number;
   h: number;
   slot: number;
+  floorElevation: number;
 }
 
 export interface BreachV2Corridor {
@@ -37,6 +38,9 @@ export interface BreachV2Corridor {
   bend: { x: number; y: number };
   to: { x: number; y: number };
   width: number;
+  fromElevation: number;
+  bendElevation: number;
+  toElevation: number;
 }
 
 export interface BreachV2PlacedProp extends BreachV2Placement {
@@ -46,6 +50,7 @@ export interface BreachV2PlacedProp extends BreachV2Placement {
   worldY: number;
   blocksMovement: boolean;
   footprint: number;
+  floorElevation: number;
 }
 
 export interface BreachV2Enemy {
@@ -55,6 +60,7 @@ export interface BreachV2Enemy {
   x: number;
   y: number;
   maxHp: number;
+  floorElevation: number;
 }
 
 export interface BreachV2Cell {
@@ -71,12 +77,12 @@ export interface GeneratedBreachV2 {
   fixedRooms: BreachV2FixedRoom[];
   placements: BreachV2PlacedProp[];
   enemies: BreachV2Enemy[];
-  boss: { id: string; pattern: BreachV2BossPattern; anchorSocket: [number, number]; x: number; y: number; maxHp: number };
+  boss: { id: string; pattern: BreachV2BossPattern; anchorSocket: [number, number]; x: number; y: number; maxHp: number; floorElevation: number };
   navCells: BreachV2Cell[];
   blockedCells: BreachV2Cell[];
-  playerStart: { x: number; y: number };
-  firstMemory: { x: number; y: number };
-  exitPoint: { x: number; y: number };
+  playerStart: { x: number; y: number; floorElevation: number };
+  firstMemory: { x: number; y: number; floorElevation: number };
+  exitPoint: { x: number; y: number; floorElevation: number };
   galleryPressure: number;
   bossPressure: number;
   bonusSkillAwakened: boolean | null;
@@ -165,6 +171,24 @@ function doorWorld(ch: BreachV2ChamberInstance, side: "W" | "E"): { x: number; y
     : { x: ch.x + ch.w, y: ch.y + ch.h / 2 };
 }
 
+function corridorWithElevation(
+  id: string,
+  from: { x: number; y: number },
+  bend: { x: number; y: number },
+  to: { x: number; y: number },
+  width: number,
+  fromElevation: number,
+  toElevation: number,
+): BreachV2Corridor {
+  const firstLength = Math.hypot(bend.x - from.x, bend.y - from.y);
+  const secondLength = Math.hypot(to.x - bend.x, to.y - bend.y);
+  const totalLength = firstLength + secondLength;
+  const bendElevation = totalLength > 0
+    ? fromElevation + (toElevation - fromElevation) * (firstLength / totalLength)
+    : fromElevation;
+  return { id, from, bend, to, width, fromElevation, bendElevation, toElevation };
+}
+
 function landmark(id: string) {
   const lm = R.landmarks.find((l) => l.id === id);
   if (!lm) throw new Error(`missing landmark ${id}`);
@@ -193,6 +217,7 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
       w: room.w,
       h: room.h,
       slot: index + 1,
+      floorElevation: path.slotElevations[index]!,
     };
   });
 
@@ -203,44 +228,52 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
   const corridors: BreachV2Corridor[] = [];
   const entryFrom = { x: doorLm.worldX, y: doorLm.worldY };
   const firstW = doorWorld(chambers[0]!, "W");
-  corridors.push({
-    id: "corridor-entry",
-    from: entryFrom,
-    bend: { x: firstW.x, y: entryFrom.y },
-    to: firstW,
-    width: corridorWidth,
-  });
+  const thresholdElevation = R.fixedRooms.find((room) => room.id === "threshold-plaza")!.floorElevation;
+  corridors.push(corridorWithElevation(
+    "corridor-entry", entryFrom, { x: firstW.x, y: entryFrom.y }, firstW,
+    corridorWidth, thresholdElevation, chambers[0]!.floorElevation,
+  ));
   const conv = { x: path.convergenceSocket[0], y: path.convergenceSocket[1] };
+  const convergenceElevation = R.fixedRooms.find((room) => room.id === "convergence")!.floorElevation;
   for (let i = 0; i < chambers.length; i += 1) {
     const exit = doorWorld(chambers[i]!, "E");
     const next = i + 1 < chambers.length ? doorWorld(chambers[i + 1]!, "W") : conv;
-    corridors.push({
-      id: `corridor-out-${i + 1}`,
-      from: exit,
-      bend: { x: next.x, y: exit.y },
-      to: next,
-      width: corridorWidth,
-    });
+    const nextElevation = i + 1 < chambers.length
+      ? chambers[i + 1]!.floorElevation
+      : convergenceElevation;
+    corridors.push(corridorWithElevation(
+      `corridor-out-${i + 1}`, exit, { x: next.x, y: exit.y }, next,
+      corridorWidth, chambers[i]!.floorElevation, nextElevation,
+    ));
   }
 
   // --- fixed connectors between the fixed rooms (same every run)
   const fixedConnectors: BreachV2Corridor[] = [];
-  const link = (id: string, a: [number, number], b: [number, number], width: number): void => {
-    fixedConnectors.push({ id, from: { x: a[0], y: a[1] }, bend: { x: b[0], y: a[1] }, to: { x: b[0], y: b[1] }, width });
+  const link = (
+    id: string, a: [number, number], b: [number, number], width: number,
+    fromElevation: number, toElevation: number,
+  ): void => {
+    fixedConnectors.push(corridorWithElevation(
+      id, { x: a[0], y: a[1] }, { x: b[0], y: a[1] }, { x: b[0], y: b[1] },
+      width, fromElevation, toElevation,
+    ));
   };
-  link("conv-ante", [188, 10], [192, 10], 3.2);
-  link("ante-boss", [204, 10], [208, 10], 3.2);
+  link("conv-ante", [188, 10], [192, 10], 3.2, 5.6, 6.2);
+  link("ante-boss", [204, 10], [208, 10], 3.2, 6.2, 6.8);
   // The authored post-boss spine is sequential: Ashen Lock -> First Memory
   // Vault -> Way Upward -> Heartvale. Unlocking is runtime state; these
   // connectors describe the physical topology and must not bypass the vault.
-  link("boss-vault", [238, 7], [242, 7], 2.5);
-  link("vault-exit", [247, 11], [247, 12], 2.5);
-  link("heartvale-exit", [258, 15], [262, 15], 2.5);
+  link("boss-vault", [238, 7], [242, 7], 2.5, 6.8, 7.6);
+  link("vault-exit", [247, 11], [247, 12], 2.5, 7.6, 7.9);
+  link("heartvale-exit", [258, 15], [262, 15], 2.5, R.worldAnchor.elevation, R.worldAnchor.elevation);
   const allCorridors = [...corridors, ...fixedConnectors];
 
   // --- placements: fixed rooms + chamber templates, world-space
   const placements: BreachV2PlacedProp[] = [];
-  const placeRoom = (roomId: string, zoneId: string, ox: number, oy: number, items: BreachV2Placement[]): void => {
+  const placeRoom = (
+    roomId: string, zoneId: string, ox: number, oy: number, roomWidth: number,
+    floorStart: number, floorEnd: number, items: BreachV2Placement[],
+  ): void => {
     for (const p of items) {
       placements.push({
         ...p,
@@ -250,14 +283,18 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
         worldY: oy + p.y,
         blocksMovement: p.blocking,
         footprint: p.footprint ?? 1.2,
+        floorElevation: floorStart + (floorEnd - floorStart) * (p.x / roomWidth),
       });
     }
   };
-  for (const room of R.fixedRooms) placeRoom(room.id, room.kind, room.x, room.y, room.placements);
+  for (const room of R.fixedRooms) {
+    const floorEnd = room.kind === "exit" ? R.worldAnchor.elevation : room.floorElevation;
+    placeRoom(room.id, room.kind, room.x, room.y, room.w, room.floorElevation, floorEnd, room.placements);
+  }
   const poolById = new Map(pool.map((room) => [room.id, room]));
   for (const ch of chambers) {
     const template = poolById.get(ch.poolRoomId)!;
-    placeRoom(ch.id, path.difficulty, ch.x, ch.y, template.placements);
+    placeRoom(ch.id, path.difficulty, ch.x, ch.y, ch.w, ch.floorElevation, ch.floorElevation, template.placements);
   }
 
   // --- enemies on authored spawn sockets (never more than a chamber's sockets)
@@ -284,6 +321,7 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
       x: ch.x + socket.x,
       y: ch.y + socket.y,
       maxHp: random.int(12, 16) + (pathId === "oathbreaker" ? 2 : 0),
+      floorElevation: ch.floorElevation,
     });
   }
 
@@ -296,6 +334,7 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
     x: anchor[0],
     y: anchor[1],
     maxHp: random.int(52, 62),
+    floorElevation: R.fixedRooms.find((room) => room.id === "ashen-lock")!.floorElevation,
   };
 
   // --- nav grid: rooms + corridors, then blocking placements reserve cells
@@ -350,9 +389,14 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
     boss,
     navCells: [...floor.values()],
     blockedCells: [...blocked.values()],
-    playerStart: { x: emergence.worldX, y: emergence.worldY },
-    firstMemory: { x: vault.x + 5.0, y: vault.y + 4.0 },
-    exitPoint: { x: exitRoom.x + exitRoom.w - 1.0, y: exitRoom.y + exitRoom.h / 2 },
+    playerStart: { x: emergence.worldX, y: emergence.worldY, floorElevation: R.fixedRooms.find((room) => room.id === "vestibule")!.floorElevation },
+    firstMemory: { x: vault.x + 5.0, y: vault.y + 4.0, floorElevation: vault.floorElevation },
+    exitPoint: {
+      x: exitRoom.x + exitRoom.w - 1.0,
+      y: exitRoom.y + exitRoom.h / 2,
+      floorElevation: exitRoom.floorElevation
+        + (R.worldAnchor.elevation - exitRoom.floorElevation) * ((exitRoom.w - 1.0) / exitRoom.w),
+    },
     galleryPressure: preset.galleryPressureBase + random.int(0, 6),
     bossPressure: preset.bossPressureBase + random.int(0, 6),
     bonusSkillAwakened: pathId === "oathbreaker" ? random.next() < 0.68 : null,
