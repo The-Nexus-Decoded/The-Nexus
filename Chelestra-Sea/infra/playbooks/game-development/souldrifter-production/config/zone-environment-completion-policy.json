@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-zone-environment-completion-v1",
+  "stageOrder": [
+    "DESIGN_CONTRACT",
+    "TOPOLOGY_AND_CONNECTIONS",
+    "SHARED_SHELL_SURFACES_VOLUMES",
+    "ENVIRONMENT_STAGING_PROP_PLACEMENT",
+    "PROP_COMPLETE_WALKTHROUGH_COLLISION_DISCOVERY",
+    "COLLISION_IMPLEMENTATION_REGRESSION",
+    "INTERACTION_PICKUP_DESTRUCTION",
+    "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
+    "INDEPENDENT_ENVIRONMENT_VERIFICATION",
+    "SEPARATE_ZONE_POPULATION_GAMEPLAY_TICKET"
+  ],
+  "hardOrderingRules": {
+    "propsPlacedBeforeCollisionWalkthrough": true,
+    "collisionVerifiedBeforeInteractionDestructionAcceptance": true,
+    "interactionDestructionVerifiedBeforeFinalIntegratedWalkthrough": true,
+    "environmentVerifiedBeforePopulationTicket": true,
+    "emptyShellWalkthroughMaySubstituteForPropCompleteWalkthrough": false,
+    "navigationMaySubstituteForCollision": false,
+    "producerMaySelfVerify": false
+  },
+  "environmentStaging": {
+    "spacePurposeProfileRequired": true,
+    "semanticPlacementZonesRequired": true,
+    "deterministicOrAuthoredPlacementRequired": true,
+    "requiredObjectClassifications": [
+      "collisionClass",
+      "interactionClass",
+      "destructionClass",
+      "protectionReasonWhenApplicable",
+      "performanceClass"
+    ],
+    "placementSequence": [
+      "STRUCTURAL_FIXTURES",
+      "FUNCTIONAL_FURNITURE_AND_EQUIPMENT",
+      "CONTAINERS_AND_COVER",
+      "WALL_CEILING_HANGING_OBJECTS",
+      "ENVIRONMENTAL_STORYTELLING",
+      "SMALL_CLUTTER",
+      "HIDDEN_SECRET_CANDIDATES"
+    ]
+  },
+  "collisionProfiles": [
+    "PLAYABLE_CHARACTER_CAPSULE",
+    "LARGEST_SUPPORTED_BODY_VISUAL_PROFILE",
+    "NPC_COMPANION_CAPSULE_WHEN_REQUIRED",
+    "LARGE_MONSTER_CAPSULE_WHEN_REQUIRED",
+    "THIRD_PERSON_CAMERA",
+    "PROJECTILE_MELEE_PHYSICS_LAYERS_WHEN_REQUIRED"
+  ],
+  "collisionObjectClasses": [
+    "STRUCTURAL_SOLID",
+    "STATEFUL_THRESHOLD",
+    "INTERACTABLE_CONTAINER",
+    "DESTRUCTIBLE_SOLID_PROP",
+    "PROTECTED_PROP_OR_STRUCTURE",
+    "QUEST_DESTRUCTIBLE",
+    "PICKUP_TRIGGER",
+    "SOFT_OR_COSMETIC_NONBLOCKING",
+    "HAZARD_OR_SPECIAL_VOLUME"
+  ],
+  "maximumDestructibility": {
+    "defaultNonstructuralPropsDestructibleOrDetachable": true,
+    "progressionDoorsProtectedByDefault": true,
+    "structuralShellProtectedByDefault": true,
+    "ironSteelStructuralPropsProtectedByDefault": true,
+    "questDestructionRequiresExplicitState": true,
+    "everyPlacedObjectRequiresContractOrProtectionReason": true
+  },
+  "minimumInteractionProof": [
+    "OPEN_CONTAINER",
+    "TRANSFER_TEST_ITEM_ONCE",
+    "PICKUP_ITEM_ONCE_NO_DUPLICATION",
+    "OPERATE_STATEFUL_THRESHOLD",
+    "PROMPT_SELECTION_WITH_OVERLAPPING_TARGETS_WHEN_APPLICABLE",
+    "SAVE_RELOAD_INTERACTION_STATE"
+  ],
+  "minimumDestructionProof": [
+    "BREAK_REPRESENTATIVE_WOODEN_CRATE_OR_BOX",
+    "BREAK_REPRESENTATIVE_BARREL_OR_FURNITURE",
+    "BREAK_OR_DETACH_REPRESENTATIVE_WALL_PROP_WHEN_ALLOWED",
+    "PROTECTED_OBJECT_REJECTS_DAMAGE",
+    "DESTROYED_COLLIDER_CLEARS",
+    "DEBRIS_DOES_NOT_SOFTLOCK_ROUTE",
+    "SAVE_RELOAD_DESTRUCTION_STATE",
+    "BROWSER_MOBILE_DEBRIS_BUDGET_PASSES"
+  ],
+  "environmentPopulationBoundary": {
+    "environmentTicketOwns": [
+      "TOPOLOGY",
+      "SHELL",
+      "PROP_PLACEMENT",
+      "COLLISION",
+      "BASE_INTERACTIONS",
+      "BASE_DESTRUCTION",
+      "DETERMINISTIC_TEST_LOOT",
+      "ENVIRONMENT_VERIFICATION"
+    ],
+    "populationTicketOwns": [
+      "NPC_SPAWNS",
+      "MONSTER_SPAWNS",
+      "PATROLS",
+      "RANDOM_ENCOUNTERS",
+      "RESPAWN",
+      "QUEST_ACTORS_AND_OBJECTIVES",
+      "PRODUCTION_LOOT_AND_DROP_TABLES",
+      "ENCOUNTER_COMPOSITION",
+      "AI_COMBAT_BEHAVIOR",
+      "POPULATION_PERSISTENCE"
+    ],
+    "populationMaySilentlyAlterVerifiedEnvironment": false
+  },
+  "currentFirstBreach": {
+    "existingStagingMayBePreserved": true,
+    "stagingRebuildRequired": false,
+    "existingStagingAuditRequired": true,
+    "propCompleteWalkthroughRequired": true,
+    "collisionRegressionRequired": true,
+    "interactionDestructionProofRequired": true,
+    "newRandomEncounterExpansionInIssue451": false
+  }
+}
