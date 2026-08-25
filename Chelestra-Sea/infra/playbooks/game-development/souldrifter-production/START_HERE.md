@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-24-master-v6`
+**Context version:** `2026-08-24-master-v7`
 
 This is the mandatory entry point for every SoulDrifter production session:
 
@@ -13,101 +13,92 @@ This is the mandatory entry point for every SoulDrifter production session:
 
 **Chat memory is not project state. The repository is project state.**
 
-Every session reconstructs context from the same files before editing.
+Every session reconstructs ticket context from repository state, but it does **not** reinstall and fully revalidate the workstation toolchain on every new chat.
+
+## Bootstrap frequency
+
+### Full machine/toolchain onboarding
+
+Run once per workstation, then again only when the cached receipt is missing, expired, invalidated, or a major tool/license/secret changes.
+
+The full bootstrap installs/verifies Tripo SDK/API access, Houdini, Blender, Three.js/GLB tools, real-GPU validation, media tools, controlled staging, and provider receipts.
+
+### New-chat fast start
+
+Every new chat performs the short process in `SESSION_FAST_START.md`:
+
+- find/reuse the assigned worktree;
+- load the cached toolchain receipt;
+- verify its context/schema/age and required secret names without exposing values;
+- fetch the live issue/PR/comments/head;
+- load `.agent-state/<issue>/`;
+- return a Session Receipt and Context Receipt.
+
+Do not repeat package installation, full Houdini/Blender smoke suites, or full provider discovery unless an invalidation trigger fires.
+
+### Before a paid provider operation
+
+Even with a valid cached receipt, perform a live Tripo balance/pricing refresh and obtain exact owner approval immediately before the charged operation.
 
 ## Mandatory startup order
 
-0. Read `ONBOARDING.md`.
-1. Read `AUTO_DISCOVER_WORKSPACE.md` and automatically discover/reuse the existing ticket worktree.
-2. Read `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` and prove every provider/tool/runtime lane required by the ticket. A named tool is not considered connected until it passes a live sanitized check.
-3. For any animation/rigging ticket, read:
-   - `ANIMATION_PROVIDER_ROUTING.md`
-   - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
-   - `config/animation-bakeoff-policy.json`
-4. Record whether each motion uses:
-   - direct Tripo preset;
-   - simple Tripo-preset-derived variant;
-   - verified Tripo custom motion;
-   - mandatory Houdini KineFX versus Blender bakeoff;
-   - runtime procedural motion.
+0. Read `SESSION_FAST_START.md` and `config/onboarding-cache-policy.json`.
+1. Auto-discover/reuse the existing ticket worktree through `AUTO_DISCOVER_WORKSPACE.md`.
+2. Load the persistent production toolchain receipt.
+3. If the receipt is missing/stale/invalid, run the full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` bootstrap. Otherwise use the cached PASS.
+4. For any animation/rigging ticket, read `ANIMATION_PROVIDER_ROUTING.md`; for required custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
 5. Read the game repository's binding `AGENTS.md`.
-6. Read this file.
-7. Read `PROJECT_CANON_INDEX.md`.
-8. Read `WORKFLOW.md`.
-9. Read the assigned GitHub issue and **every current comment**.
-10. Read its related PR(s), every PR comment/review, and the live head state.
-11. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
-12. Read the ticket kickoff under `kickoffs/` when one exists.
-13. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
-14. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
+6. Read this file and `PROJECT_CANON_INDEX.md`.
+7. Read `WORKFLOW.md`.
+8. Read the assigned GitHub issue and **every current comment**.
+9. Read its related PR(s), every PR comment/review, and the live head state.
+10. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when present.
+11. Read the ticket kickoff under `kickoffs/` when one exists.
+12. Read only the specialist source-bundle/game-repository runbooks required by the ticket.
+13. Inspect the actual worktree/branch and recent commits.
+14. Return a Session Receipt and Context Receipt before editing.
 
-## Two receipts are required before editing
+## Required receipts
 
-### A. SoulDrifter Onboarding Receipt
+### Session Receipt — every chat
 
-Proves:
+```text
+SOULDRIFTER SESSION RECEIPT
+contextVersion: 2026-08-24-master-v7
+platform: <M3|Claude Code|ChatGPT/Codex|other>
+ticket: <issue>
+branch: <branch>
+worktree: <path>
+localHead: <sha>
+liveHead: <sha>
+toolchainReceiptId: <id>
+toolchainReceiptGeneratedAt: <timestamp>
+toolchainReceiptStatus: CACHED_PASS | REFRESH_REQUIRED | BLOCKED
+requiredLanes:
+  hostLlmImageGeneration: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  tripo3D: CACHED_PASS | LIVE_REFRESH_PASS | NOT_REQUIRED
+  houdini: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  blender: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  threejs: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  realGpu: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+providerSpendPlannedThisSession: yes/no
+fullBootstrapRequired: yes/no
+blockingIssues: []
+```
 
-- correct workspace/worktree/branch;
-- live GitHub access;
-- fresh local/live heads;
-- no unexplained work was reset;
-- agent-team context propagation where applicable.
+### Full onboarding/toolchain receipts — first time or invalidation only
 
-### B. SoulDrifter Production Toolchain Receipt
+The full receipts from `ONBOARDING.md` and `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` are stored locally under:
 
-Proves all ticket-required lanes, including as applicable:
+`H:\CodexData\souldrifter-toolchain\receipts\`
 
-- active host-LLM image-generation capability for concept/reference images;
-- Tripo official API/SDK authenticated read for 3D work;
-- exact provider-supplied CLI discovery/health check if exposed;
-- optional Tripo MCP/Blender add-on chain;
-- current balance/pricing/credit gate;
-- Tripo preset animation library and rig version;
-- any verified first-party Tripo custom-motion capability;
-- Houdini version, Python/HOM, license, KineFX, file format, export path;
-- Blender version, required add-ons, Python, export path;
-- dual-animation bakeoff source/evidence storage;
-- Three.js/GLB optimization/runtime;
-- real GPU;
-- audio/media;
-- controlled asset storage, registry, provenance, and rollback.
+They must never contain secret values and must not be committed.
 
-No valid receipts = no implementation, generation, provider spend, Houdini build, Blender build, animation, VFX, or runtime integration.
-
-## Provider boundaries
-
-### Concept/reference images
-
-Use the active LLM's built-in image generator first. Do not spend Tripo credits on 2D concept or multiview image generation during normal production when ChatGPT/Codex/M3/Claude can generate the required references.
-
-### Tripo
-
-Use Tripo for approved 3D generation, segmentation, mesh processing, rig checking, rigging, preset animation retargeting, any separately verified first-party custom-motion feature, and controlled downloads.
-
-The public Tripo API documents versioned fixed preset animation libraries rather than arbitrary prompt-to-animation. Do not claim arbitrary custom animation until a live authenticated provider capability check proves it.
-
-### Custom animations
-
-A direct Tripo preset that passes the full acceptance gate does not require duplicate DCC production.
-
-Every animation that is not acceptably covered by Tripo—and every substantial constrained/interaction-derived motion—must produce:
-
-1. one Houdini KineFX candidate;
-2. one Blender candidate;
-3. automated technical checks for both;
-4. a blinded independent AI comparison;
-5. a blinded owner side-by-side review;
-6. a recorded winner/tie/rework verdict;
-7. winner integration and independent verification;
-8. a machine-readable bakeoff record preserving both candidates.
-
-Aggregate data is reviewed after 10, 25, 50, 100, and each additional 50 completed custom-animation bakeoffs. No pipeline retires automatically; retirement or category routing requires evidence and explicit owner approval.
-
-## Context Receipt — required after onboarding/toolchain preflight
+### Context Receipt — every chat
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-24-master-v6
+contextVersion: 2026-08-24-master-v7
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -116,17 +107,15 @@ localHead: <sha>
 liveHead: <sha>
 worktree: <absolute path>
 gameRoot: Arianus-Sky/projects/games/SoulDrifterWeb
-onboardingReceipt: PASS/BLOCKED
-productionToolchainReceipt: PASS/BLOCKED
+sessionReceipt: PASS/BLOCKED
+cachedToolchainReceipt: PASS/REFRESH_REQUIRED/BLOCKED
 animationRoutingLoaded: yes/no/not-required
 bakeoffPolicyLoaded: yes/no/not-required
 requiredFilesRead:
   - AGENTS.md
   - START_HERE.md
-  - ONBOARDING.md
-  - PRODUCTION_TOOLCHAIN_PREFLIGHT.md
-  - ANIMATION_PROVIDER_ROUTING.md (when applicable)
-  - CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md (when applicable)
+  - SESSION_FAST_START.md
+  - assigned ticket/PR
   - ...
 ticketStateLoaded: <yes/no/new>
 latestOwnerDirectionChecked: yes
@@ -134,59 +123,54 @@ blockingConflicts: <none or list>
 plannedScope: <one concise paragraph>
 ```
 
+No valid Session Receipt + Context Receipt means no implementation.
+
+## Provider boundaries
+
+### Concept/reference images
+
+Use the active LLM's built-in image generator first. Do not spend Tripo credits on 2D concept or multiview image generation during normal production when ChatGPT/Codex/M3/Claude can generate the references.
+
+### Tripo 3D
+
+Use the official Tripo v3 SDK/API for approved 3D generation, upload/download, segmentation, mesh completion/decimation, rig checking, rigging, preset animation retargeting, and any separately verified first-party custom-motion feature.
+
+The official JavaScript/TypeScript SDK is `@vastai/tripo-sdk`, with global v3 base URL `https://openapi.tripo3d.ai/v3`. Persistent configuration lives in `config/tripo-provider.json`; the read-only connection check lives in `scripts/tripo/tripo-readonly-check.mjs`; the one-time bootstrap writes its receipt beneath `H:\CodexData\souldrifter-toolchain\`.
+
+An official CLI is optional and may be installed only after the authenticated Tripo console or current first-party documentation identifies the exact package/installer, publisher, version, and health/auth commands. Do not install the older unverified generic `tripo-cli` package.
+
+### Custom animation
+
+A direct Tripo preset that passes does not need duplicate DCC production.
+
+Every required custom motion not adequately covered by Tripo—plus substantial constrained, interaction, class-specific, weapon-specific, boss, signature-death, or acting motion—produces both:
+
+1. Houdini KineFX candidate;
+2. Blender candidate.
+
+The candidates use identical locked inputs, pass the same gates, receive blind AI comparison, then receive the owner's blinded A/B verdict. The winner enters runtime; both source packages and metrics remain in the bakeoff registry.
+
 ## One session / one responsibility
 
-### Orchestrator session
-
-May audit all tickets, verify onboarding/toolchain status, and route work. It should not become the implementation worker for every ticket.
-
-### Worker session
-
-Owns one GitHub ticket in one dedicated worktree. Do not opportunistically fix unrelated tickets.
-
-For a dual animation bakeoff, the Houdini and Blender producers are separate worker responsibilities. One integration owner controls the canonical action ID and winner integration.
-
-### Verifier session
-
-Must be independent from both animation producers and from the implementation producer whose work it verifies.
-
-## Completion rule
-
-`IMPLEMENTED_UNVERIFIED` is the highest status an implementation worker may grant itself.
-
-Neither the Houdini producer nor the Blender producer may declare its own candidate the winner.
-
-Only an independent verifier may move requirements to `VERIFIED`.
-
-Only the full done gate may move the ticket to `OWNER_READY`.
+- **Orchestrator:** audits, validates cached onboarding/toolchain state, routes work, and does not self-verify implementation.
+- **Worker:** owns one ticket in one worktree and stops at `IMPLEMENTED_UNVERIFIED`.
+- **Verifier:** independently re-derives requirements and alone may mark them `VERIFIED`.
 
 ## Current production direction
 
-- Real-time combat is the default.
-- Turn-based combat is optional and shares the same authoritative combat simulation.
-- Tripo is the primary new 3D asset-generation/segmentation/retopo/rigging/preset-animation lane **after connection preflight passes**.
-- Use official Tripo v3 SDK/API or an exact provider-documented first-party CLI. Do not install an unverified similarly named package.
-- Use host-LLM image generation for concept/reference images; Tripo 2D image credits are disabled by default.
-- Search Tripo's live preset library before commissioning a custom motion.
-- Use a direct Tripo preset when it passes full acceptance.
-- For every remaining custom motion, run both Houdini KineFX and Blender under the same fair-input contract, then compare blind and gather data.
-- Use verified Tripo custom motion as a source or additional candidate when actually available, but it does not cancel an owner-required dual bakeoff.
+- Real-time combat is the default; turn-based is optional over the same simulation.
+- Host-LLM image generation is the default concept/reference lane.
+- Tripo is the primary 3D generation/processing/rigging/preset-animation lane after connection proof.
 - Geometry-changing operations occur before final rigging.
-- Mixamo is legacy/fallback reference only.
-- Playable characters use modular base bodies + separate gear.
-- NPCs may use full-outfit generation + segmentation.
-- Monsters are regenerated/compared or preserved only after new-harness QA.
-- Houdini Apprentice is prototype/non-commercial; Houdini Indie becomes the commercial production/export lane after the planned upgrade and clean Indie revalidation.
-- Three.js remains runtime.
-- Current phase is First Breach / Heartvale / Levels 1–9.
-- Do not leak late Sartan/Patryn/Labyrinth/rune/possibility systems into current starter content.
-- Summoner starter magical creature is the Lesser Driftling; later tiers are Minor and Major.
-- Reactive combat requires setup/opening/payoff relationships, class resources, cooldowns, visible target reactions, and shared contact markers.
+- Playable characters remain modular.
+- Houdini Apprentice is prototype/non-commercial; Houdini Indie becomes the production/export lane after the planned upgrade and clean revalidation.
+- Three.js remains runtime; real-GPU validation is mandatory.
+- Current phase remains First Breach / Heartvale / Levels 1–9.
 
 ## Conflict rule
 
 Latest explicit owner direction, binding game `AGENTS.md`, current runtime/code, and current GitHub ticket/PR state outrank older harness text.
 
-If an older playbook command conflicts with current official provider documentation, the current official documentation wins and the conflict must be recorded.
+If older playbook commands conflict with current official provider documentation, current official documentation wins and the conflict is recorded.
 
 When uncertain, mark `OWNER_DECISION_REQUIRED`; do not silently choose.
