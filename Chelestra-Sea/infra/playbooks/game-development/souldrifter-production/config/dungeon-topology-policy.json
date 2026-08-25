@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-procedural-dungeon-topology-v1",
+  "generationArchitecture": "LOGICAL_GRAPH_THEN_CONSTRUCTIVE_SPATIAL_EMBEDDING_THEN_SHARED_SHELL",
+  "randomization": {
+    "mayChoose": [
+      "room_archetypes",
+      "room_order_within_legal_graph",
+      "compatible_socket",
+      "orientation",
+      "legal_connector_variant",
+      "dressing_after_topology_pass"
+    ],
+    "mayNotDo": [
+      "place_independent_sealed_room_boxes_then_connect_afterward",
+      "accept_overlaps_and_hide_them_with_dressing",
+      "treat_pathfinding_or_warp_as_physical_connection_proof",
+      "emit_duplicate_shared_walls",
+      "accept_corridor_endpoints_at_intact_walls"
+    ]
+  },
+  "constructivePlacement": {
+    "rootRoomRequired": true,
+    "placeDestinationRelativeToAcceptedSourceSocket": true,
+    "resolveConnectionBeforeAcceptingDestinationRoom": true,
+    "backtrackingRequiredWhenPlacementFails": true,
+    "rejectInvalidSeedWhenBacktrackingExhausted": true,
+    "preserveDeterminism": true
+  },
+  "connectionTypes": [
+    "DIRECT_OPEN_ADJACENCY",
+    "DOOR_GATE_ADJACENCY",
+    "CORRIDOR",
+    "PORTAL_TRANSFER",
+    "VERTICAL_TRANSITION"
+  ],
+  "sharedBoundary": {
+    "canonicalBoundaryIdsRequired": true,
+    "emitSharedWallOnce": true,
+    "openSpanEmitsNoWallFromEitherRoom": true,
+    "portalSpanEmitsWallOutsideApertureOnly": true,
+    "duplicateCoplanarWallsAllowed": false,
+    "shellGeneratorConsumesBoundaryInventory": true
+  },
+  "topDownGate": {
+    "generatedFromActualEmbeddedGeometry": true,
+    "requiredBeforeShellDressing": true,
+    "requiredLayers": [
+      "room_polygons_and_ids",
+      "wall_segments_and_boundary_ids",
+      "apertures",
+      "doors_gates_portcullises",
+      "corridor_polygons_and_centerlines",
+      "navigation_clearance",
+      "floor_elevations",
+      "vertical_transitions",
+      "logical_edges",
+      "physical_edge_matches",
+      "overlap_and_error_overlays"
+    ],
+    "automatedReview": true,
+    "independentAiVisionReview": true,
+    "ownerReviewForInitialOrMajorArchitectureChange": true
+  },
+  "hardInvariants": {
+    "requiredLogicalEdgesEqualsPhysicallyResolvedEdges": true,
+    "connectedPhysicalComponents": 1,
+    "unintendedRoomOverlaps": 0,
+    "unintendedCorridorRoomOverlaps": 0,
+    "coincidentDuplicateWalls": 0,
+    "wallsCrossingApertures": 0,
+    "orphanDoorsOrGates": 0,
+    "unmatchedCorridorEndpoints": 0,
+    "corridorsEndingAtIntactWalls": 0,
+    "missingDestinationApertures": 0,
+    "minimumPlayerClearanceFailures": 0,
+    "floorContinuityFailures": 0,
+    "ceilingContinuityFailures": 0,
+    "collisionContinuityFailures": 0,
+    "navigationContinuityFailures": 0,
+    "unsupportedElevationTransitions": 0
+  },
+  "runtimeProof": {
+    "wasdEveryPhysicalEdge": true,
+    "clickMoveEveryPhysicalEdge": true,
+    "sourceConnectorDestinationEvidence": true,
+    "inspectBothSidesOfPortalAssembly": true,
+    "roomWarpMayBeUsedAsTraversalProof": false,
+    "continuousNoWarpRouteRequired": true,
+    "realGpuRequired": true
+  },
+  "firstBreach": {
+    "galleryCountMin": 3,
+    "galleryCountMax": 5,
+    "comparisonSeed": 4182,
+    "requiredPaths": ["wayfarer", "oathbreaker"],
+    "permanentRegressionCases": [
+      "route_gate_open_but_wall_intact_behind_gate",
+      "corridor_reaches_coordinate_but_not_destination_aperture",
+      "duplicate_walls_between_adjacent_rooms",
+      "navigation_connected_but_rendered_geometry_blocked"
+    ]
+  }
+}
