@@ -1,26 +1,88 @@
 {
-  "schemaVersion": 1,
-  "policyId": "souldrifter-zone-environment-completion-v1",
+  "schemaVersion": 2,
+  "policyId": "souldrifter-zone-environment-completion-v2",
   "stageOrder": [
-    "DESIGN_CONTRACT",
-    "TOPOLOGY_AND_CONNECTIONS",
-    "SHARED_SHELL_SURFACES_VOLUMES",
+    "DESIGN_CANON_BUDGET_ZONE_SEAM_CONTRACT",
+    "TOPOLOGY_CONNECTION_TRAVERSAL_SOLVER",
+    "GRAYBOX_PLAYABILITY_SCALE_PACING_CAMERA_SOCKET_RESERVATION",
+    "SHARED_SHELL_SURFACES_VOLUMES_WORLD_SEAMS",
+    "ASSET_INTAKE_TECHNICAL_READINESS",
     "ENVIRONMENT_STAGING_PROP_PLACEMENT",
     "PROP_COMPLETE_WALKTHROUGH_COLLISION_DISCOVERY",
-    "COLLISION_IMPLEMENTATION_REGRESSION",
-    "INTERACTION_PICKUP_DESTRUCTION",
-    "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
+    "COLLISION_PHYSICS_NAVIGATION_HAZARD_REGRESSION",
+    "INTERACTION_PICKUP_DESTRUCTION_DYNAMIC_STATE",
+    "LOOKDEV_LIGHTING_ATMOSPHERE_WAYFINDING",
+    "AUDIO_ACOUSTICS",
+    "PERFORMANCE_STREAMING_LOADING_MEMORY",
+    "FAILURE_RECOVERY_CHECKPOINTS_OUT_OF_BOUNDS_SOFTLOCKS",
+    "DEVICE_INPUT_CAMERA_ACCESSIBILITY_NETWORK_CONTRACT",
+    "POPULATION_READINESS_REVALIDATION_HANDOFF",
+    "FINAL_INTEGRATED_WALKTHROUGH_EXPERIENCE_REVIEW",
     "INDEPENDENT_ENVIRONMENT_VERIFICATION",
     "SEPARATE_ZONE_POPULATION_GAMEPLAY_TICKET"
   ],
   "hardOrderingRules": {
+    "grayboxAcceptedBeforeProductionArt": true,
+    "zoneSeamsDefinedBeforeShellFreeze": true,
+    "assetIntakePassesBeforePlacement": true,
     "propsPlacedBeforeCollisionWalkthrough": true,
-    "collisionVerifiedBeforeInteractionDestructionAcceptance": true,
-    "interactionDestructionVerifiedBeforeFinalIntegratedWalkthrough": true,
+    "collisionPhysicsVerifiedBeforeInteractionAcceptance": true,
+    "interactionDynamicStateVerifiedBeforeLookdevFinalization": true,
+    "lookdevAudioCompletedBeforeDedicatedPerformancePass": true,
+    "performanceAndRecoveryPassBeforeFinalWalkthrough": true,
+    "populationReadinessRevalidatedBeforePopulationTicket": true,
     "environmentVerifiedBeforePopulationTicket": true,
     "emptyShellWalkthroughMaySubstituteForPropCompleteWalkthrough": false,
     "navigationMaySubstituteForCollision": false,
+    "attractiveScreenshotsMaySubstituteForRuntimeProof": false,
     "producerMaySelfVerify": false
+  },
+  "graybox": {
+    "requiredChecks": [
+      "REAL_MOVEMENT_SPEED_AND_ROUTE_TIMING",
+      "SPACE_AND_THRESHOLD_DIMENSIONS",
+      "PACING_AND_DEAD_SPACE",
+      "WAYFINDING_WITHOUT_FINAL_ART",
+      "REQUIRED_CAMERA_PROFILES",
+      "COMBAT_TELEGRAPH_DODGE_PROJECTILE_RECOVERY_LANES",
+      "LARGEST_BODY_VISUAL_PROFILE",
+      "INTERACTION_APPROACHES",
+      "CHECKPOINT_RESPAWN_ANCHORS",
+      "SPAWN_PATROL_LEASH_QUEST_CINEMATIC_RESERVATIONS"
+    ],
+    "reservedEnvelopesMayBeOccupiedByProps": false
+  },
+  "zoneSeams": {
+    "requiredFields": [
+      "sourceZoneId",
+      "destinationZoneId",
+      "entryTransform",
+      "exitTransform",
+      "worldScaleAndOrientation",
+      "returnBehavior",
+      "saveCheckpointRespawnContract",
+      "loadingStreamingContract",
+      "lightingWeatherAudioMusicHandoff",
+      "proceduralStateHandoff",
+      "destinationFailureFallback"
+    ]
+  },
+  "assetIntake": {
+    "requiredFields": [
+      "sourceProviderLicenseProvenance",
+      "sourceHashAndRollback",
+      "unitsScaleAxesPivotBounds",
+      "normalsTangentsUvMaterialsTextures",
+      "textureFormatColorSpaceCompression",
+      "shaderAndTextureUnitBudget",
+      "lodInstancingBatchingCullingClass",
+      "collisionProxyStrategy",
+      "interactionDestructionAttachmentAnchors",
+      "requiredStateVariants",
+      "animationEventMarkersWhenApplicable",
+      "browserMobileCompatibility",
+      "manifestIdAndVersion"
+    ]
   },
   "environmentStaging": {
     "spacePurposeProfileRequired": true,
@@ -62,6 +124,18 @@
     "SOFT_OR_COSMETIC_NONBLOCKING",
     "HAZARD_OR_SPECIAL_VOLUME"
   ],
+  "physicsSurfacesHazards": {
+    "requiredWhenApplicable": [
+      "FRICTION_RESTITUTION_SLOPE",
+      "SURFACE_FOOTSTEP_IMPACT_TAGS",
+      "MOVEMENT_MODIFIER_SURFACES",
+      "WATER_DEPTH_BUOYANCY_CURRENT",
+      "DAMAGE_FALL_DROWNING_CRUSH_VOLUMES",
+      "MOVING_PLATFORM_TRANSFER",
+      "PROJECTILE_MELEE_PHYSICS_DEBRIS_LAYERS",
+      "HAZARD_TELEGRAPH_AND_RECOVERY"
+    ]
+  },
   "maximumDestructibility": {
     "defaultNonstructuralPropsDestructibleOrDetachable": true,
     "progressionDoorsProtectedByDefault": true,
@@ -88,14 +162,154 @@
     "SAVE_RELOAD_DESTRUCTION_STATE",
     "BROWSER_MOBILE_DEBRIS_BUDGET_PASSES"
   ],
+  "lookdevWayfinding": {
+    "requiredChecks": [
+      "PBR_MATERIAL_CONSISTENCY",
+      "TEXTURE_DENSITY_AND_REPETITION",
+      "LIGHTING_SHADOW_EXPOSURE_POST",
+      "FOG_PARTICLES_WATER_WEATHER",
+      "LANDMARK_EXIT_INTERACTION_READABILITY",
+      "STATE_READABILITY",
+      "COLORBLIND_AND_LOW_LIGHT_READABILITY",
+      "ATMOSPHERE_DOES_NOT_HIDE_DEFECTS"
+    ]
+  },
+  "audioAcoustics": {
+    "requiredWhenApplicable": [
+      "AMBIENT_BEDS_AND_LOCAL_EMITTERS",
+      "MUSIC_STATE_TRANSITIONS",
+      "REVERB_ZONES",
+      "WALL_DOOR_OCCLUSION",
+      "ATTENUATION_DIRECTIONALITY",
+      "SURFACE_FOOTSTEPS",
+      "INTERACTION_DESTRUCTION_HAZARD_CUES",
+      "WATER_UNDERWATER_TRANSITIONS",
+      "CONCURRENCY_LOOP_QUALITY",
+      "BROWSER_MOBILE_RESUME",
+      "CRITICAL_AUDIO_ALTERNATIVE"
+    ]
+  },
+  "performanceStreaming": {
+    "checkpointStages": [
+      "GRAYBOX",
+      "POST_STAGING",
+      "POST_INTERACTION_DESTRUCTION",
+      "POST_LOOKDEV_AUDIO",
+      "FINAL_INTEGRATED"
+    ],
+    "requiredMetrics": [
+      "BUNDLE_AND_STREAMED_SIZE",
+      "STARTUP_FIRST_INTERACTIVE_ZONE_ENTRY_TIME",
+      "DRAW_CALLS_TRIANGLES_INSTANCES",
+      "MATERIALS_TEXTURES_TEXTURE_UNITS",
+      "CPU_GPU_FRAME_TIME",
+      "SYSTEM_GPU_JS_MEMORY",
+      "LIGHTS_SHADOWS",
+      "PARTICLES_OVERDRAW_VOLUMETRICS",
+      "ANIMATION_PHYSICS_NAV_AUDIO_COST",
+      "SAVE_SIZE",
+      "SHADER_FIRST_USE_STUTTER",
+      "MOBILE_THERMAL_BATTERY"
+    ],
+    "requiredScenarios": [
+      "SLOW_NETWORK",
+      "CACHE_MISS",
+      "BACKGROUND_RESUME",
+      "REPEATED_ZONE_ENTRY"
+    ]
+  },
+  "failureRecovery": {
+    "requiredScenarios": [
+      "CHECKPOINT_SAVE_RESPAWN",
+      "ZONE_REENTRY",
+      "FALL_DROWNING_HAZARD_RECOVERY_WHEN_APPLICABLE",
+      "STUCK_UNSTUCK",
+      "OUT_OF_BOUNDS_ESCAPE_ATTEMPTS",
+      "NO_FALL_THROUGH_OR_INFINITE_VOID",
+      "NO_REQUIRED_ITEM_OR_MECHANISM_LOSS",
+      "NO_DEBRIS_DOOR_SCRIPT_SOFTLOCK",
+      "DYNAMIC_STATE_RECOVERY",
+      "SEED_SCHEMA_VERSION_MIGRATION",
+      "MISSING_ASSET_STATE_LOAD_FALLBACK",
+      "DISCONNECT_RECONNECT_WHEN_APPLICABLE"
+    ]
+  },
+  "deviceInputAccessibility": {
+    "requiredWhenApplicable": [
+      "KEYBOARD_MOUSE",
+      "CONTROLLER",
+      "TOUCH_MOBILE",
+      "SUPPORTED_BROWSERS_AND_VIEWPORTS",
+      "SAFE_AREAS_AND_ORIENTATION",
+      "INTERACTION_TARGET_SIZE_PRIORITY",
+      "CAMERA_COLLISION_OCCLUSION_RECENTER_ZOOM",
+      "REDUCED_MOTION_SHAKE_FLASH",
+      "PROMPT_CONTRAST_COLOR_INDEPENDENCE",
+      "CAPTIONS_SUBTITLES",
+      "NO_HOVER_ONLY_PROGRESSION",
+      "INTERRUPTION_RECOVERY"
+    ]
+  },
+  "networkContract": {
+    "liveTestMayBeNotRequiredForLocalPoc": true,
+    "stateModelMustRemainSynchronizable": true,
+    "requiredWhenEnabled": [
+      "AUTHORITATIVE_LAYOUT_SEED",
+      "THRESHOLD_MECHANISM_STATE",
+      "CONTAINER_PICKUP_DESTRUCTION_STATE",
+      "HAZARD_MOVING_GEOMETRY_STATE",
+      "LATE_JOIN_RECONNECT",
+      "INTERACTION_CONTENTION",
+      "RELEVANCE_INTEREST_MANAGEMENT",
+      "VERSION_MISMATCH"
+    ]
+  },
+  "populationReadiness": {
+    "revalidateAfterFinalEnvironmentChanges": true,
+    "requiredChecks": [
+      "SPAWN_ENVELOPES_CLEAR",
+      "PATROL_CHASE_LEASH_RESET_ROUTES",
+      "ACTOR_SIZE_CLEARANCE",
+      "ENCOUNTER_TELEGRAPH_DODGE_RECOVERY_SPACE",
+      "COVER_AND_LINE_OF_SIGHT",
+      "QUEST_DIALOGUE_CINEMATIC_ANCHORS",
+      "LOOT_DROP_SAFE_REGIONS",
+      "AI_PLAYER_NAV_AGREEMENT",
+      "DESTRUCTION_DOES_NOT_BREAK_POPULATION_ROUTES",
+      "POPULATION_STREAMING_CULLING_REGIONS",
+      "STABLE_SOCKET_IDS_AND_DEPENDENCY_COMMIT"
+    ]
+  },
+  "observability": {
+    "required": [
+      "ZONE_VERSION_SEED_ROUTE_IDS",
+      "TOPOLOGY_COLLISION_NAV_INTERACTION_HAZARD_OVERLAYS",
+      "PERFORMANCE_COUNTERS_AND_RENDERER_DEVICE",
+      "DETERMINISTIC_REPRO_COMMANDS",
+      "ASSET_STATE_MANIFESTS",
+      "SAVE_CHECKPOINT_FIXTURES",
+      "FAILED_REQUEST_SHADER_ERROR_CAPTURE",
+      "DYNAMIC_STATE_EVIDENCE",
+      "DEFECT_LEDGER_AND_KNOWN_LIMITS",
+      "RELEASE_SAFE_DEBUG_CONTROLS"
+    ]
+  },
   "environmentPopulationBoundary": {
     "environmentTicketOwns": [
+      "DESIGN_AND_BUDGETS",
       "TOPOLOGY",
+      "GRAYBOX",
+      "ZONE_SEAMS",
       "SHELL",
+      "ASSET_INTAKE",
       "PROP_PLACEMENT",
-      "COLLISION",
+      "COLLISION_PHYSICS_NAV_HAZARDS",
       "BASE_INTERACTIONS",
       "BASE_DESTRUCTION",
+      "LOOKDEV_LIGHTING_AUDIO",
+      "PERFORMANCE_STREAMING",
+      "RECOVERY_ACCESSIBILITY",
+      "POPULATION_READINESS_HANDOFF",
       "DETERMINISTIC_TEST_LOOT",
       "ENVIRONMENT_VERIFICATION"
     ],
@@ -104,7 +318,7 @@
       "MONSTER_SPAWNS",
       "PATROLS",
       "RANDOM_ENCOUNTERS",
-      "RESPAWN",
+      "RESPAWN_TUNING",
       "QUEST_ACTORS_AND_OBJECTIVES",
       "PRODUCTION_LOOT_AND_DROP_TABLES",
       "ENCOUNTER_COMPOSITION",
@@ -114,12 +328,15 @@
     "populationMaySilentlyAlterVerifiedEnvironment": false
   },
   "currentFirstBreach": {
-    "existingStagingMayBePreserved": true,
-    "stagingRebuildRequired": false,
-    "existingStagingAuditRequired": true,
+    "existingTopologyStagingLookdevMayBePreserved": true,
+    "fullRestartRequired": false,
+    "reconciliationRequired": true,
+    "assetRegistryAuditRequired": true,
     "propCompleteWalkthroughRequired": true,
-    "collisionRegressionRequired": true,
+    "collisionPhysicsRegressionRequired": true,
     "interactionDestructionProofRequired": true,
+    "lookdevAudioPerformanceReconciliationRequired": true,
+    "recoveryDevicePopulationReadinessChecksRequired": true,
     "newRandomEncounterExpansionInIssue451": false
   }
 }
