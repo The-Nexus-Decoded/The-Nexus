@@ -182,6 +182,8 @@ For each edge, test the real movement mode and failure/recovery path:
 
 Capture source, transition/midpoint and destination. Verify camera, animation, collision, navigation, resources, hazards, persistence and recovery.
 
+Runtime traversal uses the exact production movement primitive, intended body profile and integration timestep. For each physical connection, exercise axis-aligned and diagonal/combined input, corner approaches, wall sliding and a continuous swept segment from source through transition to destination. Endpoint standability, grid occupancy, waypoint reachability, pathfinding success and sparse predicate samples cannot prove continuous traversal or exclude tunneling and corner cutting.
+
 Debug teleport/warp may be used for inspection but not connection proof.
 
 ---

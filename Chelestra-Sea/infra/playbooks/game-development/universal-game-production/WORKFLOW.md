@@ -44,7 +44,7 @@ Examples:
 - **Procedural spatial edge:** source -> connection type -> constructive destination placement -> canonical ownership -> movement/camera/resource/failure contract -> real traversal -> evidence.
 - **Asset intake:** provenance/license/rollback -> units/axes/pivot -> geometry/material/textures -> LOD/culling/compression -> collider -> interaction/destruction anchors -> registry acceptance.
 - **Staging:** purpose profile -> semantic zones -> placement order -> object classification -> clearance/performance audit -> frozen staged environment.
-- **Collision/physics:** prop-complete controller walkthrough -> defect inventory -> positive/negative collision -> surfaces/hazards/camera/body -> repair -> regression.
+- **Collision/physics:** prop-complete controller walkthrough -> complete runtime spatial authority -> render/collider and post-fit reconciliation -> positive/negative movement/LOS/projectile/interaction/camera parity -> production movement sweeps -> repair -> regression.
 - **Interaction/dynamic state:** prompt/range -> state machine -> animation/events -> collision/nav update -> result/inventory -> persistence -> recovery -> evidence.
 - **Lookdev/audio:** material/lighting/atmosphere/wayfinding -> reverb/occlusion/attenuation -> cues/accessibility -> performance.
 - **Performance/streaming:** staged checkpoints -> optimization -> slow network/cache/resume/re-entry -> final device budget.
@@ -94,6 +94,7 @@ Hard rules:
 - assets pass technical intake before staging;
 - intended props are placed before final collision verification;
 - empty-shell traversal and navigation do not substitute for staged collision;
+- proof/debug hooks use the same complete live spatial authority as gameplay rather than a reduced placement, grid or render-only source;
 - collision/physics/hazards precede interaction/dynamic-state acceptance;
 - atmosphere cannot hide defects;
 - performance/recovery/device checks precede final walkthrough;
@@ -163,6 +164,10 @@ The verifier re-derives requirements, tests the exact commit, rejects stale/prod
 For zones, verify topology/seams, graybox assumptions, asset/staging set, real-controller collision/physics/hazards, interactions/destruction/persistence, lookdev/audio, performance/streaming, recovery/OOB, devices/inputs/accessibility, population-readiness and final experience.
 
 For spatial edges, use the real movement mode and failure/recovery path. Debug teleport/pathfinding alone is not proof.
+
+For spatial authority, trace every stable object from asset catalog through placement registry, generated/authored layout, runtime effective state and render/collider instances. Reconcile final post-fit world transforms/bounds, explicit overrides, rendered solids, justified collision-only blockers and nonblocking/traversable/VFX/inherited classifications.
+
+Repeat player movement, NPC navigation, LOS/occlusion, projectile/melee/physics, interaction and camera queries against the same live identity/transform/state data, including dynamic, destroyed and disabled door/object states. Use the production body and timestep for axis, diagonal, corner, sliding and continuous swept-segment tests; endpoint, grid and path success are insufficient.
 
 For animation bakeoffs, the reviewer/verifier must not be either candidate producer.
 

@@ -122,6 +122,24 @@ Every placement records:
 
 ---
 
+# Contract source and drift control
+
+Every staged object keeps one stable identity through this contract chain:
+
+```text
+asset-catalog default
+-> placement registry
+-> generated or authored layout
+-> runtime effective object
+-> render-owner and collider instances
+```
+
+At every handoff, reconcile transform, final footprint/bounds, collision, interaction, destruction, protection, performance and dynamic-state fields. Derived data identifies its source revision. A downstream value may differ only through an explicit approved override that records the field, prior value, effective value, reason, source ticket and approver. Silent catalog/registry/layout/runtime drift fails staging.
+
+Before staging freezes, every render root is assigned a stable owner/collider ID or an explicit nonblocking, traversable, VFX-only or inherited-owner classification. Rendered solids without colliders, collision-only blockers without reviewed reasons, and unresolved post-fit render/proxy mismatches block the prop-complete walkthrough.
+
+---
+
 # Placement acceptance
 
 Before the prop-complete walkthrough:

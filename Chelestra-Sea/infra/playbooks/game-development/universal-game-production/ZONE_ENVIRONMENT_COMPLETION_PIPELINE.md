@@ -57,17 +57,25 @@ Every asset proves provenance/license/rollback, units/scale/axes/pivot, geometry
 
 Stage the place according to its purpose and classify every object before collision discovery.
 
+Freeze stable object/render-owner/collider IDs and reconcile the asset-catalog -> placement-registry -> generated/authored-layout -> runtime/render/collider contract chain. Every override is explicit and approved; every render root is blocking, nonblocking, traversable, VFX-only or inherited-owner.
+
 ### Gate 6 — Prop-complete collision discovery
 
 Walk the actual controller/body/camera through the complete staged environment and create a defect inventory.
+
+Build that inventory from the same complete live spatial authority used by gameplay, including shell, thresholds, props, landmarks, special volumes and every reachable dynamic or lifecycle state.
 
 ### Gate 7 — Collision, physics, nav and hazards
 
 Repair positive/negative collision, surface physics, water/moving-platform behavior, hazards, stateful thresholds, camera/body alignment and navigation agreement.
 
+Reconcile final post-fit render world transforms/bounds with runtime proxies, then prove shared state across movement, NPC navigation, LOS/occlusion, projectile/melee/physics, interaction, camera and proof hooks. Execute the production movement primitive/body/timestep through axis, diagonal, corner, sliding and continuous swept-segment cases; endpoint, grid and path success are insufficient.
+
 ### Gate 8 — Interaction and dynamic state
 
 Implement containers, pickups, mechanisms, destruction/protection classes, collision/nav state changes, persistence, debris and moving/transforming states.
+
+Door, object and volume transitions update render, collision and every spatial-query consumer atomically for intact, damaged, destroyed, disabled, open, closed and removed states.
 
 ### Gate 9 — Lookdev and wayfinding
 

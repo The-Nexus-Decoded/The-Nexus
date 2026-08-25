@@ -52,6 +52,24 @@ Test every profile used by the project, such as:
 
 The visible model and gameplay collider remain aligned.
 
+## Runtime spatial authority and proof completeness
+
+Each zone has one complete runtime spatial authority. It owns stable object, render-owner and collider IDs plus the effective world transform, enabled state and lifecycle state for:
+
+- shell boundaries, openings, surfaces and terrain;
+- stateful thresholds, moving leaves and other dynamic geometry;
+- placed fixtures, props, landmarks and built-ins;
+- hazard and special volumes;
+- intact, damaged, destroyed, disabled and removed states.
+
+Player movement, NPC/companion navigation, line-of-sight and occlusion, projectile/melee/physics queries, interaction approach/range, camera collision and debug/proof hooks consume that same identity, transform and state authority. Query-specific layers or proxy shapes may differ only when their mapping and reason are recorded and positive/negative parity tests prove the intended difference. A placement-only list, render-scene raycast, navigation grid or reduced debug array cannot claim complete spatial proof.
+
+Every render root or primitive declares one stable spatial owner and one explicit mode such as blocking, nonblocking, traversable, VFX-only or inherited-owner. Every rendered solid that should block resolves to an active collider; every collision-only blocker has an explicit reviewed reason. Orphan render solids, orphan colliders and duplicate ownership are failures.
+
+Collider acceptance compares the final rendered world transform and bounds with the final runtime proxy after fitting, scale, pivot correction, rotation, parenting and state animation. Pre-fit source bounds, catalog targets and hard-coded approximations cannot substitute for post-fit proof.
+
+Runtime movement proof executes the production movement primitive with the intended body profile and integration timestep. Test axis-aligned and diagonal/combined input, corner approaches, wall sliding and every continuous swept route segment. Endpoint standability, grid occupancy, waypoint reachability, pathfinding success and sparse samples cannot prove collision continuity or exclude tunneling and corner cutting.
+
 ## Positive collision
 
 Visible solids that should block must block.
