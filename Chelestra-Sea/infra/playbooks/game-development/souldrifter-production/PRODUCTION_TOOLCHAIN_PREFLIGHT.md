@@ -38,9 +38,24 @@ git worktree list --porcelain
 
 ---
 
-# Gate 2 — Tripo connection: API/SDK first, optional provider CLI, optional MCP
+# Gate 2 — Tripo connection: 3D production only
 
-## Do not assume connection from documentation alone
+## Owner-locked role boundary
+
+Tripo is the primary **3D** provider for approved:
+
+- text-to-3D;
+- image-to-3D;
+- multiview-to-3D;
+- model upload and processing;
+- segmentation;
+- mesh completion/low-poly/decimation where supported;
+- rig checking;
+- rigging;
+- retargeting/baseline animation;
+- task polling and controlled downloads.
+
+**Do not spend Tripo credits on text-to-image, image-to-image, or concept/multiview image generation when the active LLM environment already has image-generation capability.** Concept images use the host LLM image generator first under Gate 4.
 
 Tripo is not considered connected until the current workstation/session completes a live, read-only authenticated call and records a sanitized result.
 
@@ -61,7 +76,7 @@ The agent must:
 3. confirm `TRIPO_API_KEY` exists in OS/local secret storage without printing it;
 4. call the SDK's read-only balance endpoint;
 5. record SDK version, API base URL, account/balance read success, and timestamp;
-6. verify the methods required by the ticket exist: generation, upload/download, segmentation, low-poly/decimation, rig check, rigging, retargeting, task polling, and immediate download.
+6. verify the ticket-required 3D methods exist: text/image/multiview-to-model, upload/download, segmentation, low-poly/decimation, rig check, rigging, retargeting, and task polling.
 
 ### B. Official Python SDK — acceptable for Houdini/Python integration
 
@@ -107,7 +122,6 @@ authenticatedRead: PASS/FAIL
 balanceRead: PASS/FAIL
 currentBalance: <number or redacted policy result>
 capabilitiesVerified:
-  textToImage: yes/no
   textToModel: yes/no
   imageToModel: yes/no
   multiviewToModel: yes/no
@@ -117,7 +131,8 @@ capabilitiesVerified:
   lowPolyOrDecimate: yes/no
   rigCheck: yes/no
   rig: yes/no
-  retarget: yes/no
+  retargetOrBaselineAnimation: yes/no
+tripo2DImageGenerationPolicy: DISABLED_BY_DEFAULT
 blockingIssues: []
 result: PASS|BLOCKED
 ```
@@ -128,40 +143,54 @@ No charged provider task may run during preflight.
 
 # Gate 3 — Provider pricing, credit, and spend control
 
-Before every charged operation:
+Before every charged Tripo operation:
 
 1. read the current official pricing/credit schedule;
 2. query account balance;
-3. quote each requested operation separately;
+3. quote each requested **3D** operation separately;
 4. state expected and maximum credits;
 5. state whether a retry would incur another charge;
 6. obtain explicit owner approval for that exact pilot/batch;
 7. record task IDs, actual cost, output URLs, download hashes, and remaining balance.
 
+The quote must exclude 2D concept-image generation because the host LLM image lane is the default.
+
 A broad statement such as “use Tripo” is not approval for a paid batch.
 
 ---
 
-# Gate 4 — Image/concept provider
+# Gate 4 — Concept/reference image policy: host LLM first
 
-For workflows that begin with a concept image or multi-view images, prove one approved image-generation lane is available in the current agent environment.
+## Priority order
 
-Possible lanes:
+For concept art, isolated subject references, and multiview reference sheets:
 
-- Tripo v3 text-to-image/image-to-multiview through the authenticated SDK/API;
-- an approved OpenAI Images API integration with its key held in secret storage;
-- owner-supplied reference images;
-- another owner-approved provider.
+1. **Use the active LLM's built-in image-generation capability** when available. This includes ChatGPT image generation and the native image-generation capabilities available to the active Codex/M3/Claude environment.
+2. Use owner-supplied reference images when provided.
+3. Use another owner-approved local or cloud image model only when the active LLM lacks the required image capability or quality.
+4. Mark `OWNER_DECISION_REQUIRED` when no approved image lane is available.
+
+## Tripo restriction
+
+Do not use Tripo text-to-image, image-to-image, or image-to-multiview for normal SoulDrifter concept production when the active LLM can generate the required images.
+
+Tripo 2D image generation is allowed only through a new, explicit owner exception that states why the LLM-native image lane is insufficient and approves the exact expected/max credit cost.
+
+## Concept-image receipt
 
 Record:
 
-- provider/model/version;
-- prompt/reference provenance;
+- provider/host LLM;
+- model/version when exposed;
+- prompt and owner corrections;
+- source/reference provenance;
 - output dimensions/format;
 - controlled local path and hash;
-- whether the image is a concept reference or a canonical source artifact.
+- selected/rejected status;
+- whether the image is a concept reference or a canonical source artifact;
+- Tripo credits used for 2D images: normally `0`.
 
-Do not assume a local Codex chat has the same image-generation tools as ChatGPT.
+Do not assume a local coding session has loaded its image tool merely because the platform advertises one. The session must verify access and generate a harmless no-provider-credit concept smoke image when the ticket requires it.
 
 ---
 
@@ -263,7 +292,7 @@ Audio and animation events must be authored as separate runtime contracts.
 
 Before a generated asset enters runtime:
 
-- preserve original provider output;
+- preserve original concept/reference images and untouched provider output;
 - preserve prompt/reference/task/model/version/cost/license data;
 - checksum every source and derivative;
 - complete segmentation/mesh editing/retopo before final rigging;
@@ -281,10 +310,11 @@ Provider task success is never asset acceptance.
 SOULDRIFTER PRODUCTION TOOLCHAIN RECEIPT
 workspaceGitHub: PASS/FAIL
 storage: PASS/FAIL
-tripoApiSdk: PASS/FAIL/NOT_REQUIRED
+hostLlmImageGeneration: PASS/FAIL/NOT_REQUIRED
+tripoApiSdk3D: PASS/FAIL/NOT_REQUIRED
 tripoOfficialCli: PASS/FAIL/NOT_EXPOSED
 tripoMcp: PASS/FAIL/NOT_REQUIRED
-imageProvider: PASS/FAIL/NOT_REQUIRED
+tripo2DImageCreditsAllowed: NO_BY_DEFAULT
 houdini: PASS/FAIL
 houdiniLicense: <Apprentice|Indie|other>
 blender: PASS/FAIL/NOT_REQUIRED
