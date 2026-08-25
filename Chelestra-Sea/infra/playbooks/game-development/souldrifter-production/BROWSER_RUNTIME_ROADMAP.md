@@ -1,62 +1,74 @@
-# SoulDrifter Browser Runtime and Portability Roadmap
+# SoulDrifter Browser Runtime and Native-Port Roadmap
 
 ## Owner-locked current direction
 
 SoulDrifter remains a **browser-first, mobile-compatible game**.
 
-Current POC/runtime:
+Current and planned browser runtime:
 
 - Three.js;
 - browser delivery with no required installation;
 - desktop and mobile-browser support;
-- WebGL/WebGPU feature detection and scalable quality tiers;
+- WebGL fallback and WebGPU feature path where supported;
+- scalable graphics/FX quality tiers;
 - Houdini as the procedural/FX authoring source;
 - engine-neutral asset preservation.
 
-Do not migrate the current #451/#448 POC work to another runtime while the First Breach vertical slice is unfinished.
+## No Babylon.js migration or evaluation roadmap
 
-## Post-POC browser-engine evaluation
+Babylon.js is **not** a planned SoulDrifter runtime evaluation, migration target, or post-POC milestone.
 
-After the current First Breach POC round is complete and independently verified, create a separate evaluation ticket for **Babylon.js**.
+Do not:
 
-The evaluation compares the same representative SoulDrifter slice in Three.js and Babylon.js without replacing the canonical branch during the experiment.
+- create a Babylon.js comparison ticket;
+- maintain a Babylon.js target package;
+- duplicate the First Breach in Babylon.js;
+- delay Three.js work for a browser-engine comparison;
+- recommend Babylon.js as the default next step after the POC.
 
-Required comparison criteria:
+The browser strategy is to continue improving the existing Three.js runtime rather than moving laterally to another browser engine.
 
-- desktop-browser and mobile-browser compatibility;
-- WebGL fallback and WebGPU path;
-- startup/download size and streaming behavior;
-- frame rate, memory, draw calls and thermal behavior on representative phones;
-- water, particles, fog, volumetrics and post-processing;
-- skeletal animation and retargeting;
-- physics/character-controller integration;
-- UI/input/accessibility integration;
-- asset loading, GLB compatibility and material fidelity;
-- developer tooling/debugging;
-- implementation effort and migration risk;
-- offline/PWA options if selected later;
-- multiplayer/runtime architecture compatibility.
+A future owner decision may reopen browser-engine research, but no such work is currently authorized.
 
-Possible outcomes:
+## Three.js browser-runtime priorities
 
-- remain on Three.js;
-- adopt Babylon.js for future work;
-- use Babylon.js only for a later project/mode;
-- retain a renderer/runtime adapter boundary and continue evaluating.
+After the First Breach vertical slice, continue strengthening the existing runtime through targeted improvements rather than a framework rewrite:
 
-No migration happens automatically. The owner approves any runtime change after side-by-side evidence.
+- mobile-browser compatibility and touch/input behavior;
+- WebGL/WebGPU capability detection;
+- GPU particle, water, fog, volumetric and post-processing paths appropriate to device tier;
+- shader/material quality tiers;
+- asset streaming, compression and loading;
+- animation, physics and character-controller performance;
+- memory, thermal and battery behavior on representative phones;
+- PWA/offline support if approved later;
+- multiplayer/runtime architecture compatibility;
+- debug, profiling and real-device evidence.
 
-## Long-term non-browser targets
+Three.js remains the canonical browser runtime unless the owner explicitly changes that decision.
 
-Unreal and Unity remain **long-term optional targets**, not current production priorities.
+## Long-term full native/installed port
 
-The project does not build or maintain a parallel Unreal/Unity client during the current browser POC.
+If the project eventually requires a full installed/native version beyond what the browser target can reasonably deliver, evaluate:
 
-However, every expensive Houdini/model/animation/FX source must be preserved so a future native/full-engine version can reuse the work rather than restart.
+1. Unreal Engine;
+2. Unity.
+
+That is a long-term product decision, not a current POC dependency.
+
+A native port would be:
+
+- a separate evaluation/project phase;
+- based on a mature, accepted browser vertical slice;
+- justified by concrete requirements such as fidelity, world scale, platform distribution, simulation, tooling or performance;
+- approved by the owner before implementation;
+- built by reusing preserved source and neutral assets rather than recreating them from zero.
+
+Do not build or maintain a parallel Unreal/Unity client during the current browser POC.
 
 ## Engine-neutral preservation contract
 
-For every accepted asset/effect, preserve when applicable:
+For every accepted asset/effect, preserve appropriate source and neutral representations:
 
 ```text
 source/
@@ -79,42 +91,55 @@ neutral/
 
 targets/
   web-threejs/
-  web-babylon-evaluation/
   unreal-future/
   unity-future/
 ```
 
-Not every format is required for every asset; the asset contract selects the appropriate neutral representations.
+Not every format is required for every asset. The asset contract selects the representations appropriate to the asset/effect.
 
 ## Houdini source-of-truth rule
 
-Houdini source graphs, scripts, parameters, seeds and caches are preserved as master authoring data.
+Houdini source graphs, scripts, parameters, seeds and caches are preserved as master authoring data where applicable.
 
-The browser runtime receives optimized representations such as:
+The Three.js browser runtime receives optimized representations such as:
 
-- GLB/static or skinned meshes;
+- static/skinned GLB;
 - PBR textures;
-- flow/foam/normal/displacement maps;
+- flow, foam, normal and displacement maps;
 - flipbooks/sprite sheets;
 - VAT;
 - point/transform data;
 - baked animation;
 - runtime metadata.
 
-A future Babylon.js, Unreal or Unity target should re-integrate these preserved sources/neutral outputs rather than recreate the artistic/procedural work.
+A future Unreal or Unity target should re-integrate/re-export preserved source and neutral outputs rather than recreate the artistic, procedural, simulation and animation work.
+
+## Portability does not mean zero work
+
+The preserved sources remove the need to start over, but each target still needs engine-specific integration:
+
+- Three.js shaders/runtime systems;
+- Unreal materials, Niagara, animation and gameplay integration;
+- Unity shaders/VFX Graph, animation and gameplay integration;
+- engine-specific physics, lighting, UI, loading and packaging.
+
+The goal is **reuse and controlled re-integration**, not a false promise that an engine port requires no target-specific work.
 
 ## License/provenance rule
 
-Current Apprentice-derived SoulDrifter artifacts remain marked `APPRENTICE_NONCOMMERCIAL` and `NONCOMMERCIAL_POC`.
+Current Apprentice-derived SoulDrifter artifacts remain marked:
 
-When Houdini Indie or another production license becomes the active lane, rebuild/re-export clean licensed production derivatives from documented source data/settings. Preserve the Apprentice material as prototype history and reference; do not silently relabel it commercial-ready.
+- `APPRENTICE_NONCOMMERCIAL`;
+- `NONCOMMERCIAL_POC`.
+
+When Houdini Indie or another production license becomes active, rebuild/re-export clean licensed derivatives from documented source data/settings. Preserve Apprentice material as prototype history and reference; do not silently relabel it commercial-ready.
 
 ## Current priority
 
 ```text
 1. Finish and verify First Breach in Three.js
 2. Finish the browser/mobile vertical slice
-3. Run Babylon.js evaluation on the same representative content
-4. Make an owner-approved browser-runtime decision
-5. Keep Unreal/Unity portability as a maintained long-term asset-preservation requirement
+3. Improve Three.js/WebGL/WebGPU quality and performance as required
+4. Preserve engine-neutral source/assets continuously
+5. Consider Unreal versus Unity only if a future native/full-engine edition is actually needed
 ```
