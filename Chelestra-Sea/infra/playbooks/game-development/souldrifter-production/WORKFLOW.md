@@ -39,8 +39,8 @@ Examples:
 - **Door/gate:** source aperture -> frame/leaf -> state/collision -> destination clearance -> real traversal -> evidence.
 - **Procedural spatial edge:** source node/socket/surface/volume -> explicit connection type -> destination placement -> canonical boundaries/surfaces/volumes -> movement/camera/resource contract -> real traversal -> evidence.
 - **Asset intake:** provenance/license/hash -> units/scale/axes/pivot -> geometry/material/textures -> LOD/culling/compression -> collision proxy -> interaction/destruction anchors -> registry acceptance.
-- **Environment staging:** space-purpose profile -> semantic zones -> structural fixtures -> functional furniture -> containers/cover -> wall/ceiling objects -> storytelling/clutter -> classification -> placement audit.
-- **Collision/physics:** prop-complete actual-character walkthrough -> defect inventory -> positive/negative collision -> surfaces/hazards -> camera/body-profile checks -> repair -> route regression.
+- **Environment staging:** space-purpose profile -> semantic zones -> structural fixtures -> functional furniture -> containers/cover -> wall/ceiling objects -> storytelling/clutter -> asset-catalog/placement-registry/generated-layout/runtime contract -> stable render-owner/collider IDs -> classification/reconciliation -> placement audit.
+- **Collision/physics:** prop-complete actual-character walkthrough -> complete shared runtime spatial authority -> post-fit world-bounds/proxy proof -> positive/negative collision -> movement/NPC-nav/LOS/combat-physics/interaction/camera/debug state parity -> production primitive axis/diagonal/corner/sliding/swept tests -> repair -> route regression.
 - **Interaction/destruction:** prompt/range -> state machine -> animation/events -> collision/nav update -> inventory/loot -> persistence -> failure/recovery -> evidence.
 - **Lookdev/audio:** materials/lighting/atmosphere/wayfinding -> reverb/occlusion/attenuation -> state cues -> accessibility -> performance.
 - **Performance/streaming:** staged checkpoint metrics -> LOD/culling/instancing/compression -> slow-network/cache/resume/re-entry -> final device budget.
@@ -83,6 +83,8 @@ Rules:
 - final props are placed before the collision walkthrough;
 - an empty-shell traversal cannot substitute for staged collision proof;
 - navigation/pathfinding cannot substitute for collision;
+- debug/proof hooks must use the same complete runtime spatial authority as production, never a reduced shadow inventory;
+- endpoint arrival, grid/BFS/path/navigation success and sparse point samples cannot substitute for production movement/body/timestep and continuous swept-segment proof;
 - interaction/destruction cannot be accepted before collision/physics passes;
 - atmosphere cannot hide topology or collision defects;
 - performance is measured throughout and receives a dedicated final gate;
@@ -203,6 +205,9 @@ For zones, verify:
 - graybox metrics and camera assumptions;
 - final asset/staging set;
 - real-controller collision/physics/hazards;
+- asset-catalog -> placement-registry -> generated-layout -> runtime/render/collider reconciliation, approved overrides, stable IDs and final fitted bounds/proxy agreement;
+- complete shared spatial-authority coverage and current-state parity across movement, NPC navigation, LOS, projectile/melee/physics, interaction, camera and debug/proof hooks;
+- the actual production body/movement/timestep/substep implementation against axis and diagonal approaches, corners, grazing, sliding and continuous swept segments;
 - interactions/destruction/state/persistence;
 - lookdev/wayfinding/audio;
 - performance/streaming/loading;
@@ -211,11 +216,11 @@ For zones, verify:
 - population-readiness handoff;
 - final experience/pacing.
 
-Debug warp never proves connectivity. Producer-only or stale evidence is rejected.
+Debug warp never proves connectivity. Endpoint, grid/path/navigation or proof-only approximation success never proves collision. Producer-only or stale evidence is rejected.
 
 ## Phase 8 — Deterministic done gate
 
-Fail if any required gate is missing, stale or self-verified; if assets/props are unclassified; if collision used an empty shell; if interaction/destruction/recovery is untested; if performance/device evidence is missing; if population-readiness sockets are invalid; if provider/toolchain/spend receipts are missing; or if provenance/rollback is incomplete.
+Fail if any required gate is missing, stale or self-verified; if assets/props are unclassified; if catalog/registry/generated-layout/runtime contracts drift or overrides lack approval; if rendered solids, collision-only owners or post-fit proxies are unreconciled; if the runtime spatial authority is incomplete or query/state consumers disagree; if collision used an empty shell or a nonproduction movement approximation; if diagonal/corner/sliding/continuous-sweep proof is missing; if interaction/destruction/recovery is untested; if performance/device evidence is missing; if population-readiness sockets are invalid; if provider/toolchain/spend receipts are missing; or if provenance/rollback is incomplete.
 
 ## Phase 9 — Owner-ready
 

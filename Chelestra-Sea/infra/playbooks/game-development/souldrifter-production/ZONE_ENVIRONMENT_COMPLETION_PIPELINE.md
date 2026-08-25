@@ -140,6 +140,7 @@ Before staging, every asset used by the zone must pass the registry checks in `Z
 - texture/shader/texture-unit budgets;
 - LOD, instancing, compression and culling class;
 - collision proxy strategy;
+- final in-zone fitted world transform/bounds and final proxy agreement, including every reachable dynamic state;
 - interaction/destruction/attachment anchors and variants;
 - animation/event markers when applicable;
 - browser/mobile compatibility.
@@ -166,6 +167,13 @@ Stage every place according to its function and fiction:
 
 Every object receives collision, interaction, destruction and protection classification.
 
+Before the staged environment freezes:
+
+- reconcile the asset-catalog default -> placement-registry approved override -> generated-layout effective contract -> runtime render/collider instance chain;
+- assign stable object, render-owner and collider IDs, with explicit blocking-solid, traversable-surface, nonblocking-detail, hazard/special-volume, VFX-only or inherited-child classification;
+- prove every rendered solid maps to collider-owner ID(s), and every collision-only owner has an approved reason;
+- verify final fitted world transform/bounds against the final runtime proxy rather than source or pre-fit bounds.
+
 Status: `STAGED_ENVIRONMENT_FROZEN_FOR_COLLISION_TEST`.
 
 ---
@@ -184,6 +192,8 @@ Test:
 - positive collision and intended clear space;
 - camera and model clipping;
 - route obstruction/trapping.
+
+The walkthrough and its proof hooks must consume the same complete runtime spatial authority as production. Invoke the production movement/collision primitive with production body dimensions, speed, timestep and substep rules; cover axis and diagonal approaches, corners, grazing, sliding and continuous swept segments between samples. Endpoint arrival, grid/path/navigation success and sparse sampled positions are explicitly insufficient.
 
 This produces a defect inventory. It is not final acceptance.
 
@@ -209,6 +219,8 @@ Repair and verify:
 - destroyed-state collider clearing;
 - player and AI navigation agreement where intended.
 
+Player movement, NPC navigation, line of sight, projectile/melee/physics queries, interaction targeting, camera collision/occlusion and debug/proof hooks must share stable owner IDs plus the same current transform/state revision. Reconcile effective render owners to colliders, collision-only owners to recorded reasons and final fitted world bounds to final proxies. Closed/open/raised, intact/damaged/destroyed, enabled/disabled and spawned/despawned changes update all consumers atomically.
+
 Repeat all affected routes after structural or collider changes.
 
 Status: `COLLISION_PHYSICS_NAV_HAZARDS_VERIFIED`.
@@ -231,6 +243,8 @@ Implement and test:
 - save/reload/persistence;
 - bounded debris and cleanup;
 - moving/transforming environment states when applicable.
+
+Every state transition must update render state and the complete shared runtime spatial authority atomically; subsystem-local, stale or proof-only state is a gate failure.
 
 Status: `ENVIRONMENT_INTERACTIONS_DYNAMIC_STATE_VERIFIED`.
 
@@ -393,6 +407,8 @@ Status: `ENVIRONMENT_IMPLEMENTED_UNVERIFIED` and `OWNER_EXPERIENCE_REVIEW_READY`
 
 An independent verifier repeats the complete acceptance on the exact commit and rejects stale/producer-only evidence.
 
+The verifier independently re-derives spatial-authority coverage; catalog/registry/generated-layout/runtime contract reconciliation and override approval; stable render-owner/collider reconciliation; post-fit world-bounds/proxy agreement; movement/navigation/LOS/combat-physics/interaction/camera/debug state parity; and production movement-primitive proof including diagonal, corner, sliding and continuous swept-segment cases. Endpoint, grid, path or navigation success alone fails this gate.
+
 Required final status: `ENVIRONMENT_VERIFIED`.
 
 ---
@@ -448,4 +464,4 @@ A change reopens the lowest affected gate and every dependent gate. See `ZONE_PR
 
 A zone is not complete because it looks finished, has a connected nav graph, passes unit tests or supports one successful walkthrough.
 
-It is complete only when every required gate has current evidence and independent verification.
+It is complete only when every required gate has current evidence and independent verification, with zero unresolved spatial-authority, contract-drift, render/collider, post-fit proxy, query/state-parity or production-movement proof omissions.

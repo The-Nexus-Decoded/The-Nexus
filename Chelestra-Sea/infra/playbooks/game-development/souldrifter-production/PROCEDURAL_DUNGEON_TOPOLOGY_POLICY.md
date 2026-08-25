@@ -83,6 +83,8 @@ Three.js geometry, collision, navigation, movement-state transitions, camera beh
 
 The runtime may not reinterpret the graph independently or invent openings after shell construction.
 
+Each run/state also derives one complete runtime spatial authority from the accepted inventory. Production player movement, NPC navigation, line of sight, projectile/melee/physics queries, interaction targeting, camera collision/occlusion and debug/proof hooks share stable owner IDs and the same current transform/state revision; no subsystem or proof-only shadow inventory may reinterpret the plan.
+
 ---
 
 # 3. Constructive placement algorithm
@@ -175,6 +177,16 @@ Rules:
 - water volumes and air pockets cannot overlap incorrectly or trap the player;
 - shell/runtime generation consumes the accepted inventory instead of closing every node independently.
 
+Runtime ownership requirements:
+
+- every effective visible render owner and collider owner has a stable ID;
+- every render owner is explicitly a blocking solid, traversable surface, nonblocking detail, hazard/special volume, VFX-only owner or inherited child;
+- every rendered solid maps to collider-owner ID(s), while every collision-only owner records an approved reason;
+- compound/merged render owners enumerate all collider IDs, and inherited children name their owner;
+- asset-catalog defaults, placement-registry approved overrides, generated-layout effective contracts and runtime render/collider instances remain traceable and reconciled;
+- fitting/normalization and world placement happen before final world bounds are measured and the final proxy is derived or validated;
+- closed/open/raised, intact/damaged/destroyed, enabled/disabled and spawned/despawned transitions update render plus every spatial consumer atomically.
+
 ---
 
 # 6. Diagnostic gate
@@ -222,6 +234,13 @@ unsupportedElevationOrDepthTransitions == 0
 movementStateTransitionFailures == 0
 resourceRuleFailures == 0
 recoveryOrSoftLockFailures == 0
+runtimeSpatialAuthorityCoverageFailures == 0
+renderColliderReconciliationFailures == 0
+contractChainOrOverrideFailures == 0
+postFitProxyMismatchFailures == 0
+spatialQueryStateParityFailures == 0
+productionMovementPrimitiveParityFailures == 0
+continuousSweepFailures == 0
 ```
 
 Additional requirements:
@@ -248,6 +267,10 @@ The verifier uses the real movement mode:
 - swim/dive controls, oxygen and air pockets for aquatic routes;
 - ride/board controls for transport;
 - activation/arrival checks for true transfer edges.
+
+Ground-route and collision acceptance invokes the actual production movement/collision primitive with production body dimensions, speed, timestep and substep rules. Test axis-aligned and diagonal approaches, corners, grazing, wall sliding, thin obstacles and every reachable dynamic-threshold or destructible footprint state. Record and validate every continuous swept segment between movement samples.
+
+Endpoint arrival, grid/BFS/path/navigation reachability and sparse point checks are insufficient even when a route reaches its destination. Runtime proof/debug hooks must query the same complete spatial authority and current state revision as production.
 
 Inspect source, midpoint/transition and destination. Verify camera, animation, collision, navigation, resources, hazards, save/reload and recovery.
 
@@ -286,11 +309,15 @@ Store per seed/variant:
 - placement attempts/backtracking;
 - transforms, polygons, surfaces and volumes;
 - canonical boundary/surface/volume inventory;
+- complete runtime spatial-authority inventory with stable render-owner/collider IDs and state revision;
+- catalog/placement-registry/generated-layout/runtime contract and approved-override reconciliation;
+- rendered-solid/collider and collision-only-reason reconciliation;
+- final fitted world transforms/bounds and final proxy comparison;
 - topology and movement-state metrics;
 - plan/section/volume/state diagnostics;
 - automated results;
 - AI/owner review;
-- runtime evidence;
+- production movement/body/timestep plus continuous swept-segment runtime evidence;
 - verifier status.
 
 ## Done rule

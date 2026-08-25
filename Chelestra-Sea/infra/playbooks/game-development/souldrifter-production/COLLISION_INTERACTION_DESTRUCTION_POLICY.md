@@ -115,6 +115,20 @@ Clear space must remain clear:
 
 Passing positive collision while leaving invisible blockers is not acceptable.
 
+## Runtime spatial authority and proof completeness
+
+Each run/seed/state has one complete runtime spatial authority inventory. It covers the canonical shell and boundary spans, every placed object, bespoke landmark or fixture, stateful threshold or leaf, traversable surface, hazard/special volume and inherited render detail that can affect a spatial query.
+
+Production player movement, NPC navigation, line of sight, projectile/melee/physics queries, interaction targeting, camera collision/occlusion and debug/proof hooks consume the same stable owner IDs and current transform/state revision. Layer-specific filters or proxies are allowed only when their difference is explicit, justified and tested. A reduced proof-only or subsystem-specific shadow inventory is forbidden.
+
+Dynamic transitions—including closed/open/raised, intact/damaged/destroyed, enabled/disabled and spawned/despawned—propagate atomically to every consumer and to render state. Test every reachable state and transition; changing only movement collision or only the visible object is a failure.
+
+Every effective visible render owner has a stable render-owner ID and one explicit spatial classification: blocking solid, traversable surface, nonblocking fixture/detail, hazard/special volume, VFX-only or inherited child. Every rendered solid maps to existing collider-owner ID(s). Every collision-only owner records an explicit reason. Compound or merged render owners enumerate all collider IDs; child geometry either inherits a named owner or declares its own classification. Acceptance requires zero unresolved render-only solids, invisible colliders without a reason or stale owner/collider IDs.
+
+Fit and normalize an asset first—units, axes, pivot, scale, yaw, placement and parent transforms—then measure its final world transform/bounds and derive or validate its final proxy. Raw source or pre-fit bounds are not acceptance evidence. Dynamic geometry validates every reachable state's bounds plus the swept envelope of its transition.
+
+Movement acceptance invokes the actual production movement/collision primitive with the production body dimensions, speed, timestep and substep rules. It tests axis-aligned and diagonal approaches, corners, grazing, sliding, thin obstacles, open/closed thresholds and destructible-state footprints, while recording every continuous swept segment between samples. Endpoint success, grid/BFS/path/navigation reachability or sparse point checks cannot substitute for this proof.
+
 ---
 
 # 4. Runtime collision classes
@@ -301,10 +315,15 @@ Test with:
 - WASD/controller movement;
 - click-to-move;
 - sprint when supported;
+- the production movement/body/timestep/substep implementation, not a verifier-only approximation;
+- axis-aligned and diagonal approaches, corner contacts, grazing and wall sliding;
+- continuous swept-segment checks between every recorded movement sample;
 - camera rotation/zoom;
 - representative animation states;
 - desktop and narrow/mobile viewport;
 - real GPU for final evidence.
+
+The verifier must reject a pass based only on successful endpoints, a grid/path query or sparse sampled positions, even when the destination is reachable.
 
 ---
 

@@ -224,6 +224,23 @@ Every placement record includes:
 - deterministic seed/rule or authored-placement ID;
 - rollback/removal path.
 
+## Contract source and drift control
+
+Every placed object's effective spatial contract follows one traceable chain:
+
+```text
+asset-catalog default
+-> placement-registry authored override
+-> generated-layout effective contract
+-> runtime render/collider instance
+```
+
+The record carries a stable object ID, stable render-owner and collider IDs, the catalog default, any approved override and its reason/owner, the effective classification, final transform, footprint and height envelope. Generated layout materializes that effective contract; runtime render and collider systems consume it instead of independently re-deriving booleans or footprints.
+
+Every effective visible render child either inherits a named stable owner or declares its own blocking-solid, traversable-surface, nonblocking-detail, hazard/special-volume or VFX-only classification. Compound owners enumerate every collider ID. After final fitting and world placement, measure world transform/bounds and derive or validate the final collision proxy; source/pre-fit bounds are insufficient.
+
+Overrides are valid only when explicit, approved and recorded. Acceptance hard-fails on catalog-to-registry, registry-to-generated-layout or generated-layout-to-runtime/render/collider drift; an unapproved override; an unresolved rendered solid; a collision-only owner without a reason; a stale owner/collider ID; or a final-world-bounds/proxy mismatch.
+
 ---
 
 # 6. Placement acceptance gates
@@ -245,6 +262,13 @@ unclassifiedDestructionObjects == 0
 unexplainedProtectedObjects == 0
 semanticProfileCriticalCategoryGaps == 0
 performanceBudgetFailures == 0
+catalogRegistryContractDrift == 0
+registryGeneratedContractDrift == 0
+generatedRuntimeContractDrift == 0
+unapprovedContractOverrides == 0
+unresolvedRenderOnlySolids == 0
+unexplainedCollisionOnlyOwners == 0
+postFitProxyMismatchFailures == 0
 ```
 
 The environment must also pass a visual staging audit:
