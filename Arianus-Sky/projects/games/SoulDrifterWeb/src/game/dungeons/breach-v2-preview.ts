@@ -267,8 +267,9 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   masonryMesh.receiveShadow = true;
   shell.add(masonryMesh);
 
-  // room ceilings (dark timber-stone caps) — they read as ceiling at eye level
-  // and cut away when the review camera rises (see the render loop toggle)
+  // Room and corridor ceilings (dark timber-stone caps) read as a continuous
+  // dungeon shell at eye level and cut away together when the review camera
+  // rises (see the render loop toggle).
   const ceilingGeos: THREE.BufferGeometry[] = [];
   for (const room of rooms) {
     const wallH = room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
@@ -276,6 +277,24 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     scaleBoxUV(g, room.w, 0.25, room.h);
     g.translate(room.x + room.w / 2, wallH + 0.125, room.z + room.h / 2);
     ceilingGeos.push(g);
+  }
+  let corridorCeilingSegmentCount = 0;
+  for (const corridor of corridors) {
+    const pts = corridor.points;
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const [ax, az] = pts[i]!;
+      const [bx, bz] = pts[i + 1]!;
+      const length = Math.hypot(bx - ax, bz - az);
+      if (length < 0.01) continue;
+      const vertical = Math.abs(bx - ax) < 0.01;
+      const width = vertical ? corridor.width + WALL_T * 2 : length;
+      const depth = vertical ? length : corridor.width + WALL_T * 2;
+      const g = new THREE.BoxGeometry(width, 0.25, depth);
+      scaleBoxUV(g, width, 0.25, depth);
+      g.translate((ax + bx) / 2, WALL_H + 0.125, (az + bz) / 2);
+      ceilingGeos.push(g);
+      corridorCeilingSegmentCount += 1;
+    }
   }
   const ceilingMat = new THREE.MeshStandardMaterial({
     map: materials.masonry.map,
@@ -291,6 +310,10 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   ceilings.name = "shell-ceilings";
   ceilings.castShadow = false;
   ceilings.receiveShadow = true;
+  ceilings.userData = {
+    roomCapCount: rooms.length,
+    corridorCapCount: corridorCeilingSegmentCount,
+  };
   shell.add(ceilings);
 
   // void undercroft
