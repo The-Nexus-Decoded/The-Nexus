@@ -1,6 +1,6 @@
 # Universal AI Game Production Playbook
 
-Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, provider/DCC/runtime modules, procedural-level rules, environment-completion gates, asset pipelines, testing, networking, releases and independent verification.
+Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, provider/DCC/runtime modules, procedural-level rules, complete zone-production gates, asset pipelines, testing, networking, releases and independent verification.
 
 ## Start
 
@@ -10,136 +10,133 @@ Read `START_HERE.md`.
 
 The harness separates:
 
-1. **one-time workstation/toolchain onboarding**;
-2. **fast per-chat session startup**;
-3. **live pre-spend provider refresh**.
+1. one-time workstation/toolchain onboarding;
+2. fast per-chat session startup;
+3. live pre-spend provider refresh.
 
 New chats load cached receipts, fetch current ticket state and verify only the selected lanes.
 
 ## Core files
 
 - `PLAYBOOK.md` — original genre-agnostic playbook
-- `PLAYBOOK_V2_CORRECTIONS.md` — mandatory corrections and supersession rules
+- `PLAYBOOK_V2_CORRECTIONS.md` — mandatory corrections/supersession rules
 - `START_HERE.md` — per-session entry point
 - `ONBOARDING.md` — one-time/invalidated workstation bootstrap
 - `SESSION_FAST_START.md` — short process for each chat
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` — provider/DCC/engine/device checks
-- `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md` — exact topology-to-population stage order
+- `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md` — complete stage order from design through population handoff
+- `ZONE_PRODUCTION_QUALITY_GATES.md` — graybox, seams, asset intake, lookdev, audio, performance, recovery, device/accessibility, network, population-readiness and experience review
 - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md` — purpose-based staging before collision testing
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md` — prop-complete collision, interaction and destruction gates
 - `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md` — graph-first constructive spatial generation
-- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` — ground, vertical, aquatic, biome, mega-zone, dynamic and transfer contracts
+- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` — architectural, vertical, aquatic, biome, mega-zone, dynamic and transfer contracts
 - `BROWSER_RUNTIME_PORTABILITY_POLICY.md` — stable runtime plus optional future-port preservation
-- `IMAGE_REFERENCE_BAKEOFF_POLICY.md` — multi-candidate image comparison and full-asset framing
+- `IMAGE_REFERENCE_BAKEOFF_POLICY.md` — multi-candidate image comparison/full-asset framing
 - `HOUDINI_LICENSE_MODE_POLICY.md` — Apprentice POC, Indie and commercial routing
 - `WORKFLOW.md` — dependency-ordered multi-LLM lifecycle
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` — fair dual-candidate animation comparison
-- `config/onboarding-cache-policy.json`
-- `config/zone-environment-completion-policy.json`
-- `config/procedural-level-topology-policy.json`
-- `config/spatial-connection-policy.json`
-- `config/animation-bakeoff-policy.json`
-- `templates/zone-environment-completion-record.template.json`
-- `templates/procedural-level-topology-record.template.json`
-- `templates/spatial-connection-record.template.json`
-- `templates/animation-bakeoff-record.template.json`
-- `providers/tripo/` — reusable Tripo provider module
-- `scripts/providers/tripo/` — no-charge connection/bootstrap helpers
+- matching `config/` policies and `templates/` records
+- `providers/tripo/` and `scripts/providers/tripo/`
 - `source-bundle/` — original extracted harness source
 
 ## Universal zone/environment pipeline
 
 ```text
-design/purpose
--> topology/traversal
--> shell/surfaces/volumes
--> environment staging and prop placement
--> prop-complete collision discovery
--> collision repair/regression
--> interaction/pickup/destruction
--> final integrated environment walkthrough
--> independent environment verification
--> separate population/gameplay phase
+0.  design/canon/budget/zone-seam contract
+1.  topology and connection/traversal solver
+2.  graybox playability/scale/pacing/camera/socket reservation
+3.  shell/surfaces/volumes/world seams
+4.  asset intake and technical readiness
+5.  staging and prop placement
+6.  prop-complete collision discovery
+7.  collision/physics/navigation/hazard regression
+8.  interaction/pickup/destruction/dynamic state
+9.  lookdev/lighting/atmosphere/wayfinding
+10. audio/acoustics
+11. performance/streaming/loading/memory
+12. recovery/checkpoints/out-of-bounds/soft locks
+13. device/input/camera/accessibility/network contract
+14. population-readiness revalidation and handoff
+15. final integrated walkthrough and experience review
+16. independent environment verification
+17. separate population/gameplay phase
 ```
 
-The intended environmental props must be placed before final collision verification. An empty-shell walkthrough cannot prove the staged level. Navigation cannot substitute for collision.
+Key rules:
 
-Environment staging normally owns fixtures, furniture, containers, wall art, cover, debris, clues, base interactions/destruction and test contents. The later population phase normally owns live NPC/creature spawns, patrols, random encounters, quests and production loot/drop tables.
+- graybox playability passes before expensive production art;
+- adjacent-zone seams and state handoffs are explicit;
+- assets pass technical intake before staging;
+- intended props are placed before final collision proof;
+- empty-shell traversal and navigation cannot substitute for collision;
+- collision/physics/hazards precede interaction/destruction;
+- atmosphere may not hide defects;
+- audio is a zone system;
+- performance is measured throughout;
+- recovery, out-of-bounds, device and accessibility behavior are tested;
+- population is separate, but its envelopes are reserved and revalidated;
+- final review includes readability, pacing, fatigue and enjoyment;
+- changes reopen the lowest affected gate and all dependent gates.
 
-Every placed object has collision, interaction, destruction and performance classification or an explicit reason a class does not apply.
-
-## Universal procedural topology and traversal policy
+## Universal procedural topology and traversal
 
 Generated levels use:
 
 ```text
 logical graph + explicit traversal contracts
 -> constructive edge-by-edge embedding
--> canonical boundaries, surfaces and volumes
--> actual-geometry plan/section/volume/state validation
--> shared shell and structural movement intent
--> environment staging
--> prop-complete collision/interaction/destruction gates
+-> canonical boundaries/surfaces/volumes
+-> actual-geometry diagnostics
+-> graybox acceptance
+-> shared shell
+-> asset intake/staging
+-> prop-complete collision/interaction/quality gates
 ```
 
-A spatial node may be a room, cavern, shaft, water volume, air pocket, biome pocket, labyrinth, mega-zone, moving platform region or transforming living-world state.
+A node may be a room, cavern, shaft, water volume, air pocket, biome pocket, labyrinth, mega-zone, moving platform region or transforming world state.
 
-The traversal catalog covers architectural, vertical, aquatic, platform, biome, mega-zone, living-topology, transport, streaming and true-transfer connections.
+Do not place sealed modules and connect them afterward. Resolve each edge before accepting the destination, retry/backtrack invalid layouts and require real-controller proof.
 
-Do not place sealed modules and connect them afterward. Resolve every edge before accepting the destination, retry/backtrack invalid placements and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
+## Universal staging/collision/destruction
 
-## Universal staging policy
+Every place receives a purpose profile and semantic placement map. Place structural fixtures before functional furniture, containers, wall/ceiling objects, storytelling, clutter and hidden candidates.
 
-Every spatial node receives a purpose profile and semantic placement map.
+The prop-complete walkthrough uses the actual controller/profile and proves both intended blocking and intended clearance.
 
-Examples include dwellings, shops, workshops, temples, dungeons/ruins and biome/mega-zones. Place structural fixtures before functional furniture, containers, wall/ceiling objects, storytelling, clutter and hidden candidates.
+Projects may enable maximum destructibility, but structural/progression objects may remain protected. Every placed object needs a working interaction/destruction contract or an explicit protection/noninteraction reason.
 
-Do not use blind asset scatter or fill critical traversal/camera/combat lanes with decoration.
+## Universal quality gates
 
-## Universal collision/interaction/destruction policy
+`ZONE_PRODUCTION_QUALITY_GATES.md` covers:
 
-The prop-complete walkthrough uses the actual controller/profile and must find missing collision, invisible blockers, collider/mesh mismatch, tunneling, threshold state errors, camera clipping and prop traps.
+- graybox scale/pacing/camera;
+- zone seams;
+- asset technical readiness;
+- physics/surfaces/hazards;
+- lookdev/lighting/wayfinding;
+- audio/acoustics;
+- performance/streaming/loading/memory;
+- recovery/checkpoints/out-of-bounds/soft locks;
+- device/input/accessibility/network state;
+- population-readiness;
+- observability/reproducibility;
+- final experience review.
 
-Both intended blocking and intended clearance must pass.
+## Shared image/provider/DCC rules
 
-Projects may choose maximum destructibility, but structural/progression objects can remain protected. Every object must have a working interaction/destruction contract or an explicit protection/noninteraction reason.
+- Primary 3D-source images show the entire asset in frame.
+- Studio/browser, API/SDK, official CLI and MCP lanes remain separate.
+- Provider connection is cached, but paid work always receives live balance/pricing/approval.
+- Geometry-changing operations happen before final rigging.
+- A genuine non-commercial POC may use the full FX features exposed by Houdini Apprentice while respecting license/output restrictions.
+- Configured custom-animation bakeoffs use identical inputs, blind review and owner selection.
 
-Representative proof includes containers, pickups, stateful thresholds, destructible categories, protected objects, collider clearing, debris cleanup, save/reload and target-device performance.
+## Runtime portability
 
-## Universal image policy
+The universal core does not prescribe a default lateral runtime migration. A comparison requires a project-defined problem, candidates, representative slice, metrics, budget and owner approval.
 
-Projects define candidate image lanes, but important primary 3D references should compare multiple candidates before downstream 3D work.
-
-Every primary 3D-source image shows the **entire asset in frame**. Cropped close-ups are supplemental only.
-
-## Universal provider policy
-
-- Distinguish Studio/browser, API/SDK, official CLI and MCP lanes.
-- Do not assume credentials, quotas or credits are shared.
-- A blocked API/CLI lane does not automatically block an allowed Studio/browser lane.
-- Prove provider connection once with a sanitized live check and cached receipt.
-- Paid operations require current balance/pricing/allowance and exact owner approval.
-- Provider outputs require controlled storage, provenance, hashes, runtime QA and rollback.
-- CLI/MCP tools must be exact first-party integrations.
-
-## Universal Houdini policy
-
-A genuine non-commercial POC may use the full FX features exposed by Houdini Apprentice. The free license is not itself a reason to reduce particles, water, Pyro, Vellum, KineFX, lighting, materials, shaders, terrain or volumetrics to crude placeholders.
-
-Apprentice restrictions still apply. Every project declares its usage mode and smoke-tests the exact runtime/export representation.
-
-## Universal custom-animation policy
-
-When enabled, custom animations not adequately covered by an accepted provider preset receive two candidates—by default Houdini KineFX and Blender—under identical inputs, automated gates, blind AI review and blinded owner selection. Both candidates and metrics are retained.
-
-## Universal runtime portability policy
-
-The universal core does not prescribe a default lateral migration from one browser engine to another.
-
-Projects improve their accepted runtime unless their overlay defines a concrete unsolved requirement, named candidates, comparison slice, metrics, budget and owner approval.
-
-For a future native/installed engine, preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives so the new target reuses expensive work instead of starting over.
+Preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives so future integrations reuse expensive work.
 
 ## Project boundary
 
-This folder remains project-agnostic. Project-specific lore, mechanics, branches, paths, budgets, provider account values, runtime choice, ticket ordering, usage mode and owner decisions belong in the project profile/overlay.
+Project-specific lore, mechanics, branches, paths, budgets, provider account values, runtime choices, ticket ordering, usage mode and owner decisions belong in the project profile/overlay.
