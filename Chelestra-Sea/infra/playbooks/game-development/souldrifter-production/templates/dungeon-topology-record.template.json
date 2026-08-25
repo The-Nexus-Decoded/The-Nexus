@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 3,
-  "policyId": "souldrifter-procedural-dungeon-topology-v3",
+  "schemaVersion": 4,
+  "policyId": "souldrifter-procedural-dungeon-topology-v4",
   "ticket": 0,
   "commit": "",
   "seed": 0,
@@ -59,8 +59,152 @@
     "volumes": [],
     "pathsAndSplines": [],
     "dynamicStateGeometry": [],
-    "streamingBoundaries": []
+    "streamingBoundaries": [],
+    "renderOwners": [],
+    "colliderOwners": []
   },
+  "runtimeSpatialAuthority": {
+    "authorityId": "",
+    "stateRevision": 0,
+    "proofSourceCoverageStatus": "NOT_RUN",
+    "sourceCoverage": [
+      {
+        "sourceId": "",
+        "sourceFamily": "",
+        "ownerId": "",
+        "renderOwnerId": "",
+        "colliderOwnerIds": [],
+        "coverageStatus": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "consumerBindings": [
+      {
+        "consumer": "PLAYER_MOVEMENT",
+        "authorityId": "",
+        "stateRevision": 0,
+        "bindingStatus": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "dynamicStateTransitions": [
+      {
+        "transitionId": "",
+        "objectId": "",
+        "fromState": "",
+        "toState": "",
+        "fromRevision": 0,
+        "toRevision": 0,
+        "renderAndAllSpatialConsumersUpdatedAtomically": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "renderColliderReconciliation": [
+      {
+        "ownerId": "",
+        "renderOwnerId": "",
+        "colliderOwnerIds": [],
+        "spatialParticipation": "UNCLASSIFIED",
+        "inheritedOwnerId": "",
+        "collisionOnlyReason": "",
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ]
+  },
+  "objectContracts": [
+    {
+      "objectId": "",
+      "assetId": "",
+      "spatialNodeId": "",
+      "renderOwnerId": "",
+      "colliderOwnerIds": [],
+      "inheritedOwnerId": "",
+      "spatialParticipation": "UNCLASSIFIED",
+      "collisionOnlyReason": "",
+      "contractChain": {
+        "assetCatalogDefault": {},
+        "placementRegistryEffectiveEntry": {},
+        "generatedLayoutEffectiveContract": {},
+        "runtimeRenderContract": {},
+        "runtimeColliderContract": {},
+        "effectiveContractHash": "",
+        "reconciliationStatus": "NOT_RUN",
+        "approvedOverride": {
+          "applied": false,
+          "overrideId": "",
+          "approvedBy": "",
+          "reason": "",
+          "approvalEvidence": [],
+          "replacedContractFields": []
+        }
+      },
+      "postFitSpatialData": {
+        "stateId": "",
+        "stateRevision": 0,
+        "worldTransform": {
+          "position": [0, 0, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        },
+        "worldBounds": {
+          "min": [0, 0, 0],
+          "max": [0, 0, 0]
+        },
+        "proxyId": "",
+        "proxyBounds": {
+          "min": [0, 0, 0],
+          "max": [0, 0, 0]
+        },
+        "dynamicTransitionSweptEnvelope": null,
+        "validationStatus": "NOT_RUN",
+        "evidence": []
+      }
+    }
+  ],
+  "productionMovementEvidence": [
+    {
+      "edgeId": "",
+      "routeOrProbeId": "",
+      "movementPrimitiveId": "",
+      "bodyProfileId": "",
+      "bodyDimensions": {
+        "radius": 0,
+        "height": 0
+      },
+      "speedUnitsPerSecond": 0,
+      "timestepSeconds": 0,
+      "substepCount": 0,
+      "substepPolicy": "",
+      "inputOrNavigationMode": "",
+      "scenarioCoverage": {
+        "axisAlignedApproach": "NOT_RUN",
+        "diagonalApproachAndNavigation": "NOT_RUN",
+        "cornerContact": "NOT_RUN",
+        "grazingContact": "NOT_RUN",
+        "wallSliding": "NOT_RUN",
+        "thinObstacle": "NOT_RUN",
+        "dynamicThresholdStates": "NOT_RUN",
+        "destructibleFootprintStates": "NOT_RUN"
+      },
+      "samples": [],
+      "continuousSegmentsOrSweeps": [
+        {
+          "segmentId": "",
+          "fromPosition": [0, 0, 0],
+          "toPosition": [0, 0, 0],
+          "sweepShape": "",
+          "hitOwnerId": "",
+          "result": "NOT_RUN"
+        }
+      ],
+      "endpointOnly": false,
+      "gridBfsPathOrNavigationOnly": false,
+      "sparsePointOnly": false,
+      "result": "NOT_RUN",
+      "evidence": []
+    }
+  ],
   "connections": [
     {
       "edgeId": "",
@@ -115,7 +259,25 @@
     "unsupportedElevationOrDepthTransitions": 0,
     "movementStateTransitionFailures": 0,
     "resourceRuleFailures": 0,
-    "recoveryOrSoftLockFailures": 0
+    "recoveryOrSoftLockFailures": 0,
+    "proofSourceCoverageFailures": 0,
+    "unresolvedRenderOnlySolids": 0,
+    "unexplainedColliderOnlyObjects": 0,
+    "catalogRegistryContractDrift": 0,
+    "registryGeneratedContractDrift": 0,
+    "generatedRuntimeContractDrift": 0,
+    "runtimeRenderColliderContractDrift": 0,
+    "unjustifiedContractOverrides": 0,
+    "postFitProxyMismatchFailures": 0,
+    "spatialQueryParityFailures": 0,
+    "spatialStatePropagationFailures": 0,
+    "lineOfSightParityFailures": 0,
+    "projectilePhysicsParityFailures": 0,
+    "interactionParityFailures": 0,
+    "cameraParityFailures": 0,
+    "movementPrimitiveParityFailures": 0,
+    "diagonalNavigationFailures": 0,
+    "continuousSegmentOrSweepFailures": 0
   },
   "firstBreachChecks": {
     "magicalPortalTransferPresent": false,

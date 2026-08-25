@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "policyId": "souldrifter-zone-environment-completion-v2",
+  "schemaVersion": 3,
+  "policyId": "souldrifter-zone-environment-completion-v3",
   "stageOrder": [
     "DESIGN_CANON_BUDGET_ZONE_SEAM_CONTRACT",
     "TOPOLOGY_CONNECTION_TRAVERSAL_SOLVER",
@@ -34,6 +34,8 @@
     "environmentVerifiedBeforePopulationTicket": true,
     "emptyShellWalkthroughMaySubstituteForPropCompleteWalkthrough": false,
     "navigationMaySubstituteForCollision": false,
+    "proofOrDebugInventoryMaySubstituteForRuntimeSpatialAuthority": false,
+    "endpointGridPathOrNavigationSuccessMaySubstituteForContinuousCollisionProof": false,
     "attractiveScreenshotsMaySubstituteForRuntimeProof": false,
     "producerMaySelfVerify": false
   },
@@ -77,6 +79,7 @@
       "shaderAndTextureUnitBudget",
       "lodInstancingBatchingCullingClass",
       "collisionProxyStrategy",
+      "postFitWorldTransformBoundsAndFinalProxy",
       "interactionDestructionAttachmentAnchors",
       "requiredStateVariants",
       "animationEventMarkersWhenApplicable",
@@ -89,11 +92,17 @@
     "semanticPlacementZonesRequired": true,
     "deterministicOrAuthoredPlacementRequired": true,
     "requiredObjectClassifications": [
+      "renderOwnerId",
+      "colliderOwnerIds",
+      "spatialParticipation",
+      "inheritedOwnerIdWhenApplicable",
+      "collisionOnlyReasonWhenApplicable",
       "collisionClass",
       "interactionClass",
       "destructionClass",
       "protectionReasonWhenApplicable",
-      "performanceClass"
+      "performanceClass",
+      "contractOverrideApprovalWhenApplicable"
     ],
     "placementSequence": [
       "STRUCTURAL_FIXTURES",
@@ -104,6 +113,128 @@
       "SMALL_CLUTTER",
       "HIDDEN_SECRET_CANDIDATES"
     ]
+  },
+  "objectContractChain": {
+    "requiredSequence": [
+      "ASSET_CATALOG_DEFAULT",
+      "PLACEMENT_REGISTRY_EFFECTIVE_ENTRY",
+      "GENERATED_LAYOUT_EFFECTIVE_CONTRACT",
+      "RUNTIME_RENDER_INSTANCE",
+      "RUNTIME_COLLIDER_INSTANCE"
+    ],
+    "stableObjectRenderAndColliderIdsRequired": true,
+    "runtimeMayReDeriveContractIndependently": false,
+    "explicitApprovedOverridesOnly": true,
+    "overrideRequiredFields": [
+      "overrideId",
+      "approvedBy",
+      "reason",
+      "approvalEvidence",
+      "replacedContractFields"
+    ],
+    "spatialParticipationValues": [
+      "BLOCKING_SOLID",
+      "TRAVERSABLE_SURFACE",
+      "NONBLOCKING_DETAIL",
+      "HAZARD_OR_SPECIAL_VOLUME",
+      "VFX_ONLY",
+      "INHERITED_CHILD"
+    ],
+    "renderedSolidRequiresColliderOwnerIds": true,
+    "collisionOnlyOwnerRequiresReason": true,
+    "compoundOwnerEnumeratesColliderIds": true,
+    "inheritedChildRequiresOwnerId": true
+  },
+  "postFitProxyValidation": {
+    "fitNormalizeAndPlaceBeforeWorldBoundsMeasurement": true,
+    "requiredFields": [
+      "worldTransform",
+      "worldBounds",
+      "proxyId",
+      "proxyBounds",
+      "stateId",
+      "stateRevision"
+    ],
+    "rawSourceOrPreFitBoundsMaySubstitute": false,
+    "allReachableDynamicStatesRequired": true,
+    "dynamicTransitionSweptEnvelopeRequired": true
+  },
+  "runtimeSpatialAuthority": {
+    "singleCompleteAuthorityPerRunSeedState": true,
+    "authorityIdRequired": true,
+    "stateRevisionRequired": true,
+    "completeSourceCoverageRequired": true,
+    "proofAndDebugHooksUseProductionAuthority": true,
+    "stableOwnerIdsRequired": true,
+    "requiredSourceFamilies": [
+      "CANONICAL_SHELL_BOUNDARIES_SURFACES_AND_VOLUMES",
+      "PLACED_OBJECT_CONTRACTS",
+      "BESPOKE_LANDMARKS_AND_FIXTURES",
+      "STATEFUL_THRESHOLDS_AND_LEAVES",
+      "TRAVERSABLE_SURFACES",
+      "HAZARD_AND_SPECIAL_VOLUMES",
+      "INHERITED_RENDER_CHILDREN",
+      "COLLISION_ONLY_OWNERS"
+    ],
+    "requiredConsumers": [
+      "PLAYER_MOVEMENT",
+      "NPC_NAVIGATION",
+      "LINE_OF_SIGHT",
+      "PROJECTILE_MELEE_AND_PHYSICS",
+      "INTERACTION_TARGETING",
+      "CAMERA_COLLISION_AND_OCCLUSION",
+      "DEBUG_AND_PROOF_HOOKS",
+      "RENDER_STATE"
+    ],
+    "requiredDynamicStates": [
+      "CLOSED_OPEN_RAISED",
+      "INTACT_DAMAGED_DESTROYED",
+      "ENABLED_DISABLED",
+      "SPAWNED_DESPAWNED"
+    ],
+    "stateTransitionsUpdateAllConsumersAtomically": true,
+    "subsystemSpecificShadowAuthorityAllowed": false
+  },
+  "productionMovementProof": {
+    "actualProductionMovementAndCollisionPrimitiveRequired": true,
+    "productionBodyDimensionsRequired": true,
+    "productionSpeedRequired": true,
+    "productionTimestepRequired": true,
+    "productionSubstepRulesRequired": true,
+    "requiredScenarios": [
+      "AXIS_ALIGNED_APPROACH",
+      "DIAGONAL_APPROACH_AND_NAVIGATION",
+      "CORNER_CONTACT",
+      "GRAZING_CONTACT",
+      "WALL_SLIDING",
+      "THIN_OBSTACLE",
+      "OPEN_CLOSED_DYNAMIC_THRESHOLD",
+      "INTACT_DESTROYED_FOOTPRINT"
+    ],
+    "continuousSegmentsOrSweepsBetweenSamplesRequired": true,
+    "endpointOnlyProofAccepted": false,
+    "gridBfsPathOrNavigationOnlyProofAccepted": false,
+    "sparsePointOnlyProofAccepted": false
+  },
+  "hardZeroMetrics": {
+    "proofSourceCoverageFailures": 0,
+    "unresolvedRenderOnlySolids": 0,
+    "unexplainedColliderOnlyObjects": 0,
+    "catalogRegistryContractDrift": 0,
+    "registryGeneratedContractDrift": 0,
+    "generatedRuntimeContractDrift": 0,
+    "runtimeRenderColliderContractDrift": 0,
+    "unjustifiedContractOverrides": 0,
+    "postFitProxyMismatchFailures": 0,
+    "spatialQueryParityFailures": 0,
+    "spatialStatePropagationFailures": 0,
+    "lineOfSightParityFailures": 0,
+    "projectilePhysicsParityFailures": 0,
+    "interactionParityFailures": 0,
+    "cameraParityFailures": 0,
+    "movementPrimitiveParityFailures": 0,
+    "diagonalNavigationFailures": 0,
+    "continuousSegmentOrSweepFailures": 0
   },
   "collisionProfiles": [
     "PLAYABLE_CHARACTER_CAPSULE",
