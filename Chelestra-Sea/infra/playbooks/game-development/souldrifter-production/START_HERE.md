@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-23-master-v1`
+**Context version:** `2026-08-23-master-v3`
 
 This is the mandatory entry point for every SoulDrifter production session:
 - MiniMax M3 / Code Agent Team
@@ -38,7 +38,7 @@ Before modifying anything, output/store:
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-23-master-v1
+contextVersion: 2026-08-23-master-v3
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
