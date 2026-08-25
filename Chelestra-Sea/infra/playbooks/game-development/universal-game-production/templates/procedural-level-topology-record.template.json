@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "policyId": "universal-procedural-level-topology-v1",
+  "projectId": "",
+  "ticketId": "",
+  "commit": "",
+  "seedOrVariant": "",
+  "logicalGraph": {
+    "nodes": [],
+    "edges": []
+  },
+  "embedding": {
+    "rootNode": "",
+    "placementAttempts": [],
+    "backtracks": [],
+    "rejectedCandidates": [],
+    "acceptedModules": []
+  },
+  "boundaries": [],
+  "connections": [
+    {
+      "edgeId": "",
+      "connectionType": "",
+      "sourceOpening": "",
+      "destinationOpening": "",
+      "connectorGeometry": [],
+      "clearance": 0,
+      "surfaceContinuity": "NOT_RUN",
+      "volumeContinuity": "NOT_RUN",
+      "collisionContinuity": "NOT_RUN",
+      "navigationContinuity": "NOT_RUN",
+      "realControllerProof": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "diagnostics": {
+    "planOrSectionEvidence": [],
+    "generatedFromActualEmbeddedGeometry": true,
+    "automatedReview": "NOT_RUN",
+    "aiVisionReview": "NOT_RUN",
+    "ownerDesignVerdict": "NOT_REQUIRED"
+  },
+  "metrics": {
+    "requiredLogicalEdges": 0,
+    "physicallyResolvedEdges": 0,
+    "unintendedModuleOverlaps": 0,
+    "coincidentDuplicateBoundaries": 0,
+    "boundariesCrossingOpenings": 0,
+    "orphanDoorsOrConnectors": 0,
+    "unmatchedConnectorEndpoints": 0,
+    "physicalConnectorsEndingAtBlockingGeometry": 0,
+    "missingDestinationOpenings": 0,
+    "clearanceFailures": 0,
+    "surfaceContinuityFailures": 0,
+    "volumeContinuityFailures": 0,
+    "collisionContinuityFailures": 0,
+    "navigationContinuityFailures": 0,
+    "unsupportedElevationTransitions": 0
+  },
+  "automatedGate": "NOT_RUN",
+  "independentVerification": "NOT_RUN",
+  "status": "NOT_STARTED"
+}
