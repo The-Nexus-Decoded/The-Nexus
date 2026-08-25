@@ -1,6 +1,6 @@
 # START HERE — Universal AI Game Production Harness
 
-**Context version:** `2026-08-24-universal-game-v3`
+**Context version:** `2026-08-25-universal-game-v4`
 
 ## Core principle
 
@@ -31,7 +31,7 @@ Do not reinstall providers, DCCs, engine tools, or repeat full smoke suites in e
 
 ### Before any paid provider operation
 
-Refresh live balance/pricing and obtain exact owner approval immediately before the charged operation, even when the cached connection receipt is valid.
+Refresh live balance/pricing/allowance for the active provider lane and obtain exact owner approval immediately before the charged operation, even when the cached connection receipt is valid.
 
 ## Startup order
 
@@ -44,18 +44,20 @@ Refresh live balance/pricing and obtain exact owner approval immediately before 
 7. Read the game's `project-profile.json` and project overlay/canon index.
 8. Read `WORKFLOW.md`.
 9. Load selected genre/platform/engine/provider modules only.
-10. For Tripo projects, load `providers/tripo/README.md` and the project-specific provider config derived from `providers/tripo/tripo-provider.template.json`.
-11. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`, `config/animation-bakeoff-policy.json`, and the bakeoff record template when enabled by the project profile.
-12. Read assigned issue/ticket and all current comments/PR reviews.
-13. Load ticket state under `.agent-state/<ticket>/`.
-14. Inspect actual branch/worktree and recent commits.
-15. Return a Session Receipt and Context Receipt before editing.
+10. If creating primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+11. If using Houdini, read `HOUDINI_LICENSE_MODE_POLICY.md`.
+12. For Tripo projects, load `providers/tripo/README.md` and the project-specific provider config derived from `providers/tripo/tripo-provider.template.json`.
+13. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`, `config/animation-bakeoff-policy.json`, and the bakeoff record template when enabled by the project profile.
+14. Read assigned issue/ticket and all current comments/PR reviews.
+15. Load ticket state under `.agent-state/<ticket>/`.
+16. Inspect actual branch/worktree and recent commits.
+17. Return a Session Receipt and Context Receipt before editing.
 
 ## Session Receipt
 
 ```text
 GAME PRODUCTION SESSION RECEIPT
-contextVersion: 2026-08-24-universal-game-v3
+contextVersion: 2026-08-25-universal-game-v4
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 projectId: <id>
 ticket: <number or GLOBAL-AUDIT>
@@ -66,6 +68,7 @@ localHead: <sha>
 liveHead: <sha>
 toolchainReceiptId: <id>
 toolchainReceiptStatus: CACHED_PASS | REFRESH_REQUIRED | BLOCKED
+projectUsageMode: NONCOMMERCIAL_POC | EDUCATIONAL | LIMITED_COMMERCIAL_INDIE | FULL_COMMERCIAL | UNKNOWN
 selectedModules:
   - <genre/platform/engine/provider module>
 providerSpendPlanned: yes/no
@@ -77,7 +80,7 @@ blockingIssues: []
 
 ```text
 GAME PRODUCTION CONTEXT RECEIPT
-contextVersion: 2026-08-24-universal-game-v3
+contextVersion: 2026-08-25-universal-game-v4
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 role: <orchestrator|auditor|worker|verifier>
 projectId: <id>
@@ -88,6 +91,8 @@ worktree: <absolute path>
 projectProfileLoaded: yes/no
 projectOverlayLoaded: yes/no
 sessionReceipt: PASS/BLOCKED
+imagePolicyLoaded: yes/no/not-required
+houdiniLicensePolicyLoaded: yes/no/not-required
 selectedModules:
   - <module>
 latestTicketDirectionChecked: yes/no
@@ -97,14 +102,32 @@ plannedScope: <concise scope>
 
 No valid Session Receipt + Context Receipt means no implementation.
 
-## Reusable provider boundaries
+## Reusable image/reference policy
 
-- Use the active host LLM's image generator for concept/reference images when available.
-- Use 3D providers for approved 3D work, not unnecessary 2D image spending.
+Follow `IMAGE_REFERENCE_BAKEOFF_POLICY.md` for primary 3D-source images.
+
+Projects may configure different candidate models/providers, but every primary source must show the **entire asset in frame**. This applies to characters, creatures, items, architecture, fixtures, vehicles and environment set pieces. Cropped close-ups are supplemental only.
+
+## Reusable provider policy
+
+- Separate Studio/browser, API/SDK, official CLI and MCP lanes.
+- Do not assume their credentials, credits or quotas are shared.
+- Use the best active/funded lane selected by the project overlay.
+- A blocked API/CLI lane must not block an allowed authenticated Studio/browser lane.
 - Provider modules must prove a live sanitized authenticated connection once and cache the receipt.
-- Paid tasks always require current price/balance refresh and exact approval.
+- Paid tasks always require current price/balance/allowance refresh and exact approval.
 - Geometry-changing operations occur before final rigging.
 - Provider success is not asset acceptance.
+
+## Houdini license-mode policy
+
+Follow `HOUDINI_LICENSE_MODE_POLICY.md`.
+
+A genuine non-commercial POC may use the full FX features exposed by Houdini Apprentice; the free license is not itself a reason to reduce water, particles, Pyro, Vellum, KineFX, lighting, materials, shaders, terrain or volumetrics to crude placeholders.
+
+Apprentice license/output restrictions still apply. A free public app is not automatically non-commercial when tied to business promotion, client work, investment solicitation, monetization or a commercial production pipeline.
+
+Projects must smoke-test the exact runtime/export representation. If final export is restricted, preserve the high-fidelity POC source and schedule a clean licensed rebuild/export rather than silently lowering the creative target.
 
 ## Custom-animation comparison policy
 
@@ -127,4 +150,4 @@ Projects may replace Houdini/Blender with other named lanes through their overla
 
 ## Generic-core boundary
 
-Do not write project-specific lore, class names, proprietary mechanics, asset IDs, provider account values, or ticket paths into the universal core. Put them in the project overlay and project-specific provider config.
+Do not write project-specific lore, class names, proprietary mechanics, asset IDs, provider account values, branches or ticket paths into the universal core. Put them in the project overlay and project-specific provider config.
