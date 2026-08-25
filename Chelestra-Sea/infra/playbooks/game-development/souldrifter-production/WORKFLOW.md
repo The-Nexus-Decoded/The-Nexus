@@ -23,6 +23,7 @@ Fetch issue + all comments + linked PRs, confirm the worktree, inspect current f
 For every zone/environment ticket, load:
 
 - `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`;
+- `ZONE_PRODUCTION_QUALITY_GATES.md`;
 - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`;
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`;
 - the zone completion config/template.
@@ -33,17 +34,20 @@ Expand hidden dependencies into explicit testable rows.
 
 Examples:
 
+- **Zone seam:** source/destination IDs -> transforms/facing -> loading/streaming -> save/respawn -> state/audio/lighting handoff -> failure fallback.
+- **Graybox:** real movement and route timing -> dimensions -> camera fit -> combat/telegraph space -> actor profiles -> spawn/patrol/quest reservations -> owner verdict.
 - **Door/gate:** source aperture -> frame/leaf -> state/collision -> destination clearance -> real traversal -> evidence.
 - **Procedural spatial edge:** source node/socket/surface/volume -> explicit connection type -> destination placement -> canonical boundaries/surfaces/volumes -> movement/camera/resource contract -> real traversal -> evidence.
+- **Asset intake:** provenance/license/hash -> units/scale/axes/pivot -> geometry/material/textures -> LOD/culling/compression -> collision proxy -> interaction/destruction anchors -> registry acceptance.
 - **Environment staging:** space-purpose profile -> semantic zones -> structural fixtures -> functional furniture -> containers/cover -> wall/ceiling objects -> storytelling/clutter -> classification -> placement audit.
-- **Collision:** prop-complete actual-character walkthrough -> defect inventory -> positive/negative collision -> camera/body-profile checks -> repair -> route regression.
-- **Interaction/destruction:** prompt/range -> state machine -> animation/events -> collision update -> inventory/loot -> persistence -> failure/recovery -> evidence.
-- **Underwater tunnel:** water volume -> entry transition -> swim/dive controller -> oxygen/drowning -> current/hazard -> air pocket/emergence -> camera/lighting -> save/reload -> recovery -> evidence.
-- **Climb/ladder:** mount point -> climb surface/spline -> animation/camera/stamina -> interruption/fall -> dismount/top-out -> AI support -> evidence.
-- **Living dungeon/mega-zone:** before/after or region graph -> streaming/local subgraphs -> atomic collision/nav state -> player relocation safety -> persistence -> evidence.
+- **Collision/physics:** prop-complete actual-character walkthrough -> defect inventory -> positive/negative collision -> surfaces/hazards -> camera/body-profile checks -> repair -> route regression.
+- **Interaction/destruction:** prompt/range -> state machine -> animation/events -> collision/nav update -> inventory/loot -> persistence -> failure/recovery -> evidence.
+- **Lookdev/audio:** materials/lighting/atmosphere/wayfinding -> reverb/occlusion/attenuation -> state cues -> accessibility -> performance.
+- **Performance/streaming:** staged checkpoint metrics -> LOD/culling/instancing/compression -> slow-network/cache/resume/re-entry -> final device budget.
+- **Recovery:** checkpoint/save/re-entry -> stuck/out-of-bounds -> dynamic-state recovery -> migration/fallback -> no soft lock.
+- **Population readiness:** final spawn envelopes -> patrol/leash -> actor-size routes -> encounter/cover/LOS -> quest/cinematic/drop anchors -> stable socket manifest.
 - **Generated asset:** provider lane -> quote/approval -> source/provenance -> controlled download -> geometry processing before rig -> deformation -> animation -> runtime -> performance -> rollback.
-- **Custom animation:** Tripo preset search -> Houdini KineFX candidate + Blender candidate when required -> blind AI review -> owner verdict -> winner integration -> experiment record.
-- **Combat ability:** source/canon -> mechanics -> chain/status -> cooldown/resource -> animation/VFX/SFX -> target reaction -> both combat modes -> UI -> QA.
+- **Custom animation:** Tripo preset search -> Houdini KineFX + Blender candidates when required -> blind AI review -> owner verdict -> winner integration -> experiment record.
 
 ---
 
@@ -52,128 +56,110 @@ Examples:
 Every zone/environment uses:
 
 ```text
-0. design/purpose contract
-1. topology and connection solver
-2. shared shell, surfaces and traversal volumes
-3. environment staging and prop placement
-4. prop-complete walkthrough / collision discovery
-5. collision implementation and regression
-6. interaction, pickup and destruction
-7. final integrated environment walkthrough
-8. independent environment verification
-9. separate zone-population/gameplay ticket
+0.  design/canon/budget/zone-seam contract
+1.  topology and connection/traversal solver
+2.  graybox playability/scale/pacing/camera/socket reservation
+3.  shared shell/surfaces/volumes/world seams
+4.  asset intake and technical readiness
+5.  environment staging and prop placement
+6.  prop-complete walkthrough/collision discovery
+7.  collision/physics/navigation/hazard regression
+8.  interaction/pickup/destruction/dynamic state
+9.  lookdev/lighting/atmosphere/wayfinding
+10. audio/acoustics
+11. performance/streaming/loading/memory
+12. failure recovery/checkpoints/out-of-bounds/soft locks
+13. device/input/camera/accessibility/network contract
+14. population-readiness revalidation and handoff
+15. final integrated walkthrough and experience review
+16. independent environment verification
+17. separate zone-population/gameplay ticket
 ```
 
 Rules:
 
+- graybox playability passes before expensive production art;
+- assets pass technical intake before staging;
 - final props are placed before the collision walkthrough;
-- an empty-shell traversal cannot substitute for the staged collision pass;
+- an empty-shell traversal cannot substitute for staged collision proof;
 - navigation/pathfinding cannot substitute for collision;
-- interaction/destruction cannot be accepted before collision passes;
-- population/encounters cannot begin before the environment package is verified;
-- any later population change that moves props or changes collision reopens the affected environment gates.
+- interaction/destruction cannot be accepted before collision/physics passes;
+- atmosphere cannot hide topology or collision defects;
+- performance is measured throughout and receives a dedicated final gate;
+- recovery, out-of-bounds, save/re-entry, device/input and accessibility are required where applicable;
+- population does not begin before environment verification, but population envelopes must be reserved early and revalidated late;
+- changes reopen the lowest affected gate and every dependent gate.
 
 ## Environment staging versus population
 
 Environment ticket owns:
 
-- shell and environmental fixtures;
-- furniture, paintings, statues, chests, containers, crates, barrels, wall objects, cover, ambient remains and clues;
-- collision/interaction/destruction classification;
-- base chest/pickup/destruction proof using deterministic test contents;
-- final environment verification.
+- design/budgets/zone seams;
+- topology/graybox/shell;
+- asset intake;
+- environmental fixtures/furniture/containers/art/cover/remains/clues;
+- collision/physics/hazards;
+- base interactions/destruction/deterministic test contents;
+- lookdev/audio/performance/recovery/device checks;
+- population-readiness socket handoff;
+- independent environment verification.
 
 Separate population/gameplay ticket owns:
 
 - NPC/monster spawns;
-- patrols, random encounters and respawn;
+- patrols, random encounters and respawn tuning;
 - quest actors/objectives/dialogue;
 - production loot/drop tables;
-- encounter composition and combat pacing;
+- encounter composition/combat pacing;
 - AI population persistence/network behavior.
 
 ---
 
 # Mandatory topology and traversal gate
 
-For every procedural/randomized or traversal-heavy level, read:
-
-- `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`;
-- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`;
-- `config/dungeon-topology-policy.json`;
-- `config/spatial-connection-policy.json`.
+For procedural/randomized or traversal-heavy levels, read the topology and spatial-connection policies.
 
 Required architecture:
 
 ```text
 logical graph + explicit traversal contracts
 -> constructive edge-by-edge spatial embedding
--> canonical boundaries, surfaces and volumes
--> actual-geometry plan/section/volume/state diagnostics
+-> canonical boundaries/surfaces/volumes
+-> actual-geometry diagnostics
+-> graybox playability
 -> shared shell and structural movement intent
--> semantic staging
--> prop-complete collision/interaction/destruction gates
+-> asset intake and staging
+-> prop-complete collision/interaction/quality gates
 ```
 
 The generator must not place independently sealed modules and connect them after placement.
 
-### Constructive growth
+For each edge, select a legal source, explicit connection type/movement mode/medium/directionality, compatible destination, connector geometry/surface/volume and complete movement/camera/resource/recovery contract. Accept the destination only when the whole edge passes; otherwise retry/backtrack/reject.
 
-For each edge:
-
-1. choose a legal source socket, surface, path or volume;
-2. choose the exact connection type, movement mode, medium and directionality;
-3. select a compatible destination socket/orientation/state;
-4. calculate the shared boundary, connector path/spline, surface or volume;
-5. derive the destination transform from that connection;
-6. validate overlap, clearance, elevation/depth, surfaces/volumes, structural collision/nav intent, camera, resources, hazards and recovery;
-7. accept the destination only when the complete edge passes;
-8. otherwise retry or backtrack;
-9. reject the variant when legal embedding cannot be found.
-
-### Supported traversal families
-
-- open adjacency, doors/gates, corridors, crawlspaces and secret/destructible passages;
-- stairs, ramps, ladders, climbing, mantling, lifts, drops, ropes and moving platforms;
-- jumps, bridges, balance paths and platform sequences;
-- wading, surface swimming, underwater tunnels, dive shafts, air pockets, currents, waterfalls and boats;
-- biome transitions, labyrinths, mega-zones and living-dungeon transformations;
-- vehicles, streaming boundaries, true portal transfers and non-Euclidean connections.
-
-A physical edge cannot pass by pointing at coordinates or pathfinding through missing geometry. A true transfer edge is explicitly nonphysical and creates no fake corridor.
-
-### Diagnostic requirements
-
-Generate diagnostics from actual solved data:
-
-- plan/top-down for horizontal routes;
-- section/elevation for vertical routes;
-- 3D volume/slice views for water and air-pocket routes;
-- state graphs/timelines for moving or transforming topology;
-- region/streaming maps and local subgraphs for mega-zones.
-
-Required before shell/staging acceptance:
-
-1. automated topology/traversal invariants;
-2. applicable independent AI/vision review;
-3. owner design verdict for initial generator architecture or major changes.
+Use top-down plans for horizontal routes, sections/elevations for vertical routes, 3D volume/slice evidence for water/air-pocket routes, state graphs for moving/transforming topology, and region/streaming maps for mega-zones.
 
 ### Current First Breach
 
-The current First Breach contains no magical teleport/`PORTAL_TRANSFER` edge. Its route gates, corridors, stairs/landings and Soulwell exit veil are physical continuous connections.
+The current First Breach contains no magical teleport/`PORTAL_TRANSFER` edge. Its gates, corridors, stairs/landings and Soulwell exit veil are physical continuous connections.
 
 Generate the selected randomized branch after the player chooses Wayfarer or Oathbreaker and before gallery meshes render.
 
-The branch already contains extensive props. Preserve valid staging, audit/freeze it, then run the prop-complete collision and interaction/destruction sequence.
+The branch already contains extensive props, lookdev and minimal gameplay. Preserve valid work, audit/freeze it, then fill the missing graybox/asset/collision/interaction/quality/recovery/population-readiness gates rather than restarting the level.
 
 ## Phase 3 — Baseline audit
 
 Identify genuinely complete work, unproven claims, stale/legacy work, baseline tests and fresh evidence.
 
-For #451, audit both:
+For #451, audit:
 
-- the current generator/topology implementation;
-- the complete existing prop placement and its collision/interaction/destruction classifications.
+- generator/topology;
+- current scale/camera/pacing assumptions;
+- asset registry/technical readiness;
+- complete prop placement/classification;
+- collision/physics/nav/hazards;
+- interactions/destruction;
+- lookdev/audio/performance;
+- recovery/device/population-readiness status.
 
 ## Phase 4 — Claim and isolation
 
@@ -187,11 +173,11 @@ For animation bakeoffs, Houdini and Blender producers work in isolated source ar
 
 ### World/level environment
 
-`design -> topology/traversal contracts -> constructive embedding/backtracking -> diagnostics -> shared shell/surfaces/volumes -> staging/prop placement -> prop-complete walkthrough -> collision repair/regression -> interaction/pickup/destruction -> final integrated environment walkthrough -> independent environment verification`
+`design/seams/budgets -> topology/traversal -> graybox -> shell/surfaces/volumes -> asset intake -> staging -> prop-complete walkthrough -> collision/physics/nav/hazards -> interaction/destruction/state -> lookdev/wayfinding -> audio -> performance/streaming -> recovery/OOB -> device/accessibility/network -> population-readiness -> final experience walkthrough -> independent verification`
 
 ### Later zone population/gameplay
 
-`verified environment sockets/routes -> NPC/monster spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> combat/gameplay verification`
+`verified environment dependency commit + stable sockets -> NPC/monster spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> combat/gameplay verification`
 
 ### Character/animated asset
 
@@ -201,50 +187,35 @@ For animation bakeoffs, Houdini and Blender producers work in isolated source ar
 
 `lock common brief/rig/source motion -> Houdini KineFX + Blender candidates -> automated gates -> blind AI review -> owner A/B review -> label reveal -> winner integration -> loser preservation -> registry -> independent verification`
 
-### Combat
-
-`source/canon -> mechanics -> chain/status -> resource/cooldown -> animation route/bakeoff -> VFX/SFX -> runtime contact -> target reaction -> both combat modes -> QA`
-
 ## Phase 6 — Producer checks
 
 The worker runs checks, captures evidence, updates ledger/state, commits and stops at `IMPLEMENTED_UNVERIFIED`.
 
-A producer may not declare its own work verified or its own animation candidate the winner.
-
-For environment work, the producer must record separate statuses for staging, collision, interaction/destruction and the final integrated walkthrough.
+For environment work, record a separate status for every required zone gate. A producer may not collapse them into one “done” claim.
 
 ## Phase 7 — Independent verification
 
-For environment verification, the verifier:
+The verifier tests the exact commit and independently re-derives requirements.
 
-- checks the accepted topology and connection contracts;
-- audits the final prop-complete staging;
-- traverses every required route with the actual controller/profile;
-- tests visible solids and intended clear spaces;
-- tests representative containers, pickups, destructibles and protected objects;
-- verifies collision changes after opening/destruction;
-- verifies save/reload and debris cleanup;
-- checks desktop/mobile and real-GPU performance.
+For zones, verify:
 
-For traversal-specific edges, use the real movement mode:
+- topology/connection/zone seams;
+- graybox metrics and camera assumptions;
+- final asset/staging set;
+- real-controller collision/physics/hazards;
+- interactions/destruction/state/persistence;
+- lookdev/wayfinding/audio;
+- performance/streaming/loading;
+- recovery/out-of-bounds/save/re-entry;
+- required devices/inputs/accessibility;
+- population-readiness handoff;
+- final experience/pacing.
 
-- walk/click-to-move;
-- crouch/crawl;
-- climb/mantle/ladder;
-- jump/platform/rope;
-- swim/dive/oxygen/air pockets;
-- ride/transport;
-- true transfer activation/arrival when applicable.
-
-Debug warp never proves connectivity.
-
-For custom-animation bakeoffs, a coordinator blinds labels, an independent AI reviewer scores both, the owner records the A/B verdict, labels are revealed, and the winner enters normal verification.
-
-All other requirements receive PASS / FAIL / NEEDS_EVIDENCE.
+Debug warp never proves connectivity. Producer-only or stale evidence is rejected.
 
 ## Phase 8 — Deterministic done gate
 
-Fail if critical rows are not VERIFIED, dependencies/evidence/tests are missing, producer self-verifies, topology/spatial-connection/zone-completion records are incomplete, staged props are unclassified, the collision pass used an empty shell, interaction/destruction/persistence is untested, provider/toolchain receipts are missing, owner-only spend approval is absent, animation bakeoff records are missing, GPU proof is missing, combat modes diverge, or rollback/provenance is incomplete.
+Fail if any required gate is missing, stale or self-verified; if assets/props are unclassified; if collision used an empty shell; if interaction/destruction/recovery is untested; if performance/device evidence is missing; if population-readiness sockets are invalid; if provider/toolchain/spend receipts are missing; or if provenance/rollback is incomplete.
 
 ## Phase 9 — Owner-ready
 
