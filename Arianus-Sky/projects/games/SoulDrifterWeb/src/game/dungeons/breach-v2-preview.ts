@@ -738,10 +738,17 @@ async function placeSectionDoors(
             vec2 flow = vec2(vUv.x * 3.8 + sin(vUv.y * 7.0 + uTime) * 0.2,
               vUv.y * 5.2 - uTime * 0.18);
             float smoke = noise(flow) * 0.55 + noise(flow * 2.1 + 4.0) * 0.3;
+            float wisp = pow(0.5 + 0.5 * sin(
+              vUv.y * 31.0 - uTime * 2.1 + noise(vec2(vUv.x * 7.0, uTime * 0.08)) * 8.0
+            ), 7.0);
+            float shimmer = pow(0.5 + 0.5 * sin(
+              vUv.x * 46.0 + vUv.y * 9.0 + uTime * 2.8
+            ), 14.0) * (0.25 + smoke * 0.75);
             float edge = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x)
               * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
-            vec3 color = mix(vec3(0.008, 0.006, 0.012), uTint, 0.24 + smoke * 0.76);
-            gl_FragColor = vec4(color, uOpacity * edge * (0.20 + smoke * 0.72));
+            vec3 color = mix(vec3(0.008, 0.006, 0.012), uTint, 0.20 + smoke * 0.63 + wisp * 0.14);
+            color += uTint * shimmer * 0.22;
+            gl_FragColor = vec4(color, uOpacity * edge * (0.17 + smoke * 0.66 + wisp * 0.12));
           }
         `,
         transparent: true,
@@ -1149,41 +1156,73 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     block.rotation.y = Math.PI / 2 - angle;
     group.add(block);
   }
-  // Recessed soul-water uses a continuous shader surface. The old deformed
-  // triangle fan exposed bright wedge facets that read as floating geometry.
+  // Recessed soul-water is an opaque abyssal realm surface. It deliberately
+  // hides the masonry below; shallow translucent water makes the Soul Well
+  // read as a basin instead of a one-way passage into another realm.
   const waterMat = new THREE.ShaderMaterial({
     uniforms: { uTime: { value: 0 } },
     vertexShader: `
+      uniform float uTime;
       varying vec2 vUv;
+      varying float vLift;
       void main() {
         vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vec2 p = (uv - 0.5) * 2.0;
+        float radius = length(p);
+        float angle = atan(p.y, p.x);
+        float spiral = sin(angle * 5.0 - radius * 19.0 - uTime * 1.85);
+        float crossWave = sin(p.x * 15.0 + p.y * 11.0 + uTime * 1.35);
+        float edgeEnvelope = 1.0 - smoothstep(0.76, 1.0, radius);
+        vLift = (spiral * 0.72 + crossWave * 0.28) * edgeEnvelope;
+        vec3 displaced = position;
+        displaced.z += vLift * 0.045;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
       }
     `,
     fragmentShader: `
       varying vec2 vUv;
+      varying float vLift;
       uniform float uTime;
       void main() {
         vec2 p = (vUv - 0.5) * 2.0;
-        float waveA = sin(p.x * 15.0 + uTime * 1.7 + sin(p.y * 7.0)) * 0.5 + 0.5;
-        float waveB = sin(p.y * 18.0 - uTime * 1.3 + p.x * 5.0) * 0.5 + 0.5;
-        float caustic = pow(max(0.0, waveA + waveB - 1.18), 3.0);
-        float pulse = 0.5 + 0.5 * sin(length(p) * 13.0 - uTime * 1.55);
-        vec3 deep = vec3(0.055, 0.19, 0.22);
-        vec3 soul = vec3(0.26, 0.72, 0.76);
-        vec3 foam = vec3(0.72, 0.94, 0.92);
-        vec3 color = mix(deep, soul, 0.22 + waveA * 0.17 + pulse * 0.08);
-        color = mix(color, foam, caustic * 0.58);
-        gl_FragColor = vec4(color, 0.91);
+        float radius = length(p);
+        if (radius > 1.0) discard;
+        float angle = atan(p.y, p.x);
+        float spiralA = sin(angle * 6.0 - radius * 23.0 - uTime * 2.05) * 0.5 + 0.5;
+        float spiralB = sin(angle * -4.0 - radius * 34.0 + uTime * 1.45) * 0.5 + 0.5;
+        float current = pow(max(0.0, spiralA + spiralB - 1.12), 2.6);
+        float fineCurrent = pow(0.5 + 0.5 * sin(
+          angle * 10.0 - radius * 52.0 - uTime * 3.1
+        ), 9.0);
+        float abyss = 1.0 - smoothstep(0.08, 0.78, radius);
+        float rim = smoothstep(0.76, 0.98, radius);
+        vec3 blackDepth = vec3(0.002, 0.018, 0.026);
+        vec3 deepSoul = vec3(0.015, 0.115, 0.145);
+        vec3 currentColor = vec3(0.12, 0.48, 0.54);
+        vec3 soulWhite = vec3(0.68, 0.94, 0.91);
+        vec3 color = mix(deepSoul, blackDepth, abyss * 0.88);
+        color = mix(color, currentColor, current * (0.38 + radius * 0.28));
+        color = mix(color, soulWhite, fineCurrent * (0.08 + rim * 0.30));
+        color += currentColor * max(vLift, 0.0) * 0.08;
+        gl_FragColor = vec4(color, 1.0);
       }
     `,
-    transparent: true,
+    transparent: false,
     depthWrite: true,
+    side: THREE.DoubleSide,
   });
-  const waterGeometry = new THREE.CircleGeometry((well.r ?? 1.8) + 0.24, 64, 0, Math.PI * 2);
+  const waterRadius = (well.r ?? 1.8) + 0.24;
+  const waterGeometry = new THREE.PlaneGeometry(waterRadius * 2, waterRadius * 2, 48, 48);
   const water = new THREE.Mesh(waterGeometry, waterMat);
+  water.name = "vestibule-soulwell-abyss-water";
   water.rotation.x = -Math.PI / 2;
-  water.position.set(well.x, 0.56, well.z);
+  water.position.set(well.x, 0.575, well.z);
+  water.userData = {
+    vfxKind: "abyssal-soulwell-vortex",
+    visualDepth: "bottomless-realm-threshold",
+    sourceLane: "HOUDINI_APPRENTICE_POC_RUNTIME_SHADER",
+    collisionMode: "landmark-boundary",
+  };
   group.add(water);
   const jetGeometries: THREE.BufferGeometry[] = [];
   for (let index = 0; index < 3; index += 1) {
@@ -1205,6 +1244,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     blending: THREE.NormalBlending,
   });
   const splashes = new THREE.Mesh(splashGeometry, splashMaterial);
+  splashes.name = "vestibule-soulwell-current-jets";
   splashes.position.set(well.x, 0.59, well.z);
   group.add(splashes);
   const ripples: THREE.Mesh[] = [];
@@ -1218,6 +1258,36 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     group.add(ring);
     ripples.push(ring);
   });
+  const soulWellKey = new THREE.PointLight(0x66dce1, 7.2, 11, 1.75);
+  soulWellKey.name = "soulwell-fx-key";
+  soulWellKey.position.set(well.x, 1.28, well.z);
+  soulWellKey.castShadow = true;
+  soulWellKey.shadow.mapSize.set(512, 512);
+  soulWellKey.shadow.bias = -0.01;
+  group.add(soulWellKey);
+  const soulWellBounce = new THREE.PointLight(0x245c70, 2.4, 7.5, 1.9);
+  soulWellBounce.name = "soulwell-fx-bounce";
+  soulWellBounce.position.set(well.x, 0.72, well.z);
+  group.add(soulWellBounce);
+  const moteCount = 22;
+  const motePositions = new Float32Array(moteCount * 3);
+  const moteGeometry = new THREE.BufferGeometry();
+  moteGeometry.setAttribute("position", new THREE.BufferAttribute(motePositions, 3));
+  const soulMotes = new THREE.Points(
+    moteGeometry,
+    new THREE.PointsMaterial({
+      color: 0x89f5ed,
+      size: 0.075,
+      transparent: true,
+      opacity: 0.58,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    }),
+  );
+  soulMotes.name = "vestibule-soulwell-rising-motes";
+  soulMotes.position.set(well.x, 0.61, well.z);
+  group.add(soulMotes);
   // emergence step at the south edge (stone)
   const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.7), basinMat);
   step.position.set(well.x, 0.11, well.z + apron + 0.15);
@@ -1234,6 +1304,18 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
       ring.scale.set(s, s, 1);
       (ring.material as THREE.MeshBasicMaterial).opacity = 0.16 * (1 - phase);
     });
+    soulWellKey.intensity = 6.8 + Math.sin(elapsed * 1.15) * 0.65;
+    soulWellKey.position.y = 1.26 + Math.sin(elapsed * 0.7) * 0.08;
+    soulWellBounce.intensity = 2.2 + Math.sin(elapsed * 0.8 + 1.4) * 0.25;
+    for (let index = 0; index < moteCount; index += 1) {
+      const rise = (elapsed * (0.12 + (index % 5) * 0.012) + index * 0.137) % 1;
+      const angle = index * 2.399 + elapsed * (0.18 + (index % 3) * 0.035);
+      const radius = 0.32 + (index % 7) * 0.17;
+      motePositions[index * 3] = Math.cos(angle) * radius;
+      motePositions[index * 3 + 1] = 0.12 + rise * 2.15;
+      motePositions[index * 3 + 2] = Math.sin(angle) * radius;
+    }
+    moteGeometry.attributes.position!.needsUpdate = true;
   });
 
   // Memory Loom: recognizable timber loom with heddles, shuttle, wheel, and
@@ -1456,6 +1538,88 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     hazardMaterials[1]!.opacity = 0.2 + Math.max(0, -pulse) * 0.44;
   });
 
+  // Sparse authored puddles sit at room-edge low points. They are intentionally
+  // shallow, nonblocking, and visually distinct from the opaque Soul Well.
+  const puddleMaterial = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec2 vUv;
+      uniform float uTime;
+      void main() {
+        vec2 p = (vUv - 0.5) * 2.0;
+        float irregularRadius = length(p * vec2(0.86, 1.08))
+          + sin(atan(p.y, p.x) * 5.0 + 0.7) * 0.065;
+        if (irregularRadius > 0.94) discard;
+        float edge = smoothstep(0.94, 0.64, irregularRadius);
+        float waveA = sin(p.x * 13.0 + p.y * 7.0 - uTime * 1.65) * 0.5 + 0.5;
+        float waveB = sin(p.y * 17.0 - p.x * 5.0 + uTime * 1.15) * 0.5 + 0.5;
+        float shimmer = pow(max(0.0, waveA + waveB - 1.18), 3.2);
+        vec3 color = mix(vec3(0.035, 0.16, 0.18), vec3(0.52, 0.78, 0.75), shimmer * 0.68);
+        gl_FragColor = vec4(color, edge * (0.54 + shimmer * 0.20));
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const puddleRoomIds = new Set([
+    "threshold-plaza", "convergence", "ashen-threshold", "memory-vault", "exit-connector",
+  ]);
+  const puddleRooms = layout.rooms.filter((room, index) => (
+    puddleRoomIds.has(room.id) || (room.kind === "gallery" && index % 2 === 0)
+  ));
+  for (const [index, room] of puddleRooms.entries()) {
+    const insetX = 1.15 + (index % 3) * 0.16;
+    const insetZ = 1.05 + (index % 2) * 0.2;
+    const candidates = [
+      [room.x + insetX, room.z + insetZ],
+      [room.x + room.w - insetX, room.z + insetZ],
+      [room.x + insetX, room.z + room.h - insetZ],
+      [room.x + room.w - insetX, room.z + room.h - insetZ],
+    ] as const;
+    const roomProps = layout.placements.filter((placement) => placement.roomId === room.id);
+    const puddlePosition = candidates
+      .map(([x, z]) => ({
+        x,
+        z,
+        clearance: roomProps.reduce(
+          (minimum, placement) => Math.min(minimum, Math.hypot(x - placement.x, z - placement.z)),
+          Number.POSITIVE_INFINITY,
+        ),
+      }))
+      .sort((a, b) => b.clearance - a.clearance)[0]!;
+    const puddle = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 1.02, 12, 8), puddleMaterial);
+    puddle.name = `dungeon-puddle-${room.id}`;
+    puddle.rotation.set(-Math.PI / 2, 0, index * 0.73);
+    puddle.scale.set(0.78 + (index % 3) * 0.14, 0.72 + (index % 2) * 0.16, 1);
+    puddle.position.set(puddlePosition.x, 0.028, puddlePosition.z);
+    puddle.renderOrder = 2;
+    puddle.userData = {
+      vfxKind: "shallow-animated-puddle",
+      collisionMode: "nonblocking",
+      visualDepth: "shallow",
+      authoredLowPoint: true,
+    };
+    group.add(puddle);
+  }
+  tickables.push((elapsed) => { puddleMaterial.uniforms.uTime!.value = elapsed; });
+
+  const fogBase = new THREE.Color(0x0d0f14);
+  const fogSoulTint = new THREE.Color(0x102229);
+  tickables.push((elapsed) => {
+    if (!(scene.fog instanceof THREE.FogExp2)) return;
+    const breath = 0.5 + 0.5 * Math.sin(elapsed * 0.23);
+    scene.fog.density = 0.00525 + breath * 0.00035;
+    scene.fog.color.lerpColors(fogBase, fogSoulTint, breath * 0.18);
+  });
+
   // The Heartvale threshold is not a door: it is the vertical skin of the
   // Soulwell above. Keep this runtime layer traversable and translucent so the
   // outdoor terrain remains visible through the downward-flowing water. Its
@@ -1501,11 +1665,22 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
         float fallB = sin(p.x * 31.0 - p.y * 13.0 - uTime * 2.1) * 0.5 + 0.5;
         float verticalFlow = sin((p.y + fallA * 0.045) * 52.0 + uTime * 5.2) * 0.5 + 0.5;
         float caustic = pow(max(0.0, fallA + fallB + verticalFlow * 0.45 - 1.42), 2.4);
+        float fallingStreak = pow(0.5 + 0.5 * sin(
+          p.x * 93.0 + sin(p.y * 19.0 - uTime * 3.1) * 2.8 - uTime * 5.7
+        ), 17.0);
+        float crossingStreak = pow(0.5 + 0.5 * sin(
+          p.x * 51.0 - p.y * 14.0 + uTime * 3.4
+        ), 15.0);
+        float rippleLine = pow(0.5 + 0.5 * sin(
+          p.y * 84.0 + sin(p.x * 21.0) * 2.2 + uTime * 7.2
+        ), 18.0);
+        float sheetShimmer = max(fallingStreak * 0.74, crossingStreak * 0.18)
+          + rippleLine * 0.10;
         float edge = 1.0 - smoothstep(0.34, 0.5, abs(p.x - 0.5));
         float baseMix = 0.3 + fallA * 0.18 + (vRipple * 0.5 + 0.5) * 0.08;
         vec3 color = mix(uDeep, uSoul, baseMix);
-        color = mix(color, uShimmer, caustic * 0.78);
-        float alpha = 0.39 + caustic * 0.24 + edge * 0.08;
+        color = mix(color, uShimmer, min(0.72, caustic * 0.38 + sheetShimmer * 0.54));
+        float alpha = 0.30 + caustic * 0.12 + sheetShimmer * 0.22 + edge * 0.06;
         gl_FragColor = vec4(color, alpha);
       }
     `,
@@ -1665,11 +1840,12 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   // Shadow discipline: only the two landmark lights cast (each shadow-casting
   // point light adds a cube shadow pass AND one shader texture unit per light —
   // uncapped shadows exceed MAX_TEXTURE_IMAGE_UNITS and explode the frame cost).
-  const SHADOW_LIGHTS = new Set(["soul-well-glow", "boss-ember"]);
+  const SHADOW_LIGHTS = new Set(["boss-ember"]);
   for (const spec of layout.lights) {
     // Each authored fire fixture already owns its local point light. Creating
-    // the registry light again doubled the per-fragment lighting cost.
-    if (spec.id.startsWith("fire-") || spec.id === "exit-daylight") continue;
+    // the registry light again doubled the per-fragment lighting cost. The
+    // Soul Well owns a tuned animated key/bounce pair in buildLandmarks.
+    if (spec.id.startsWith("fire-") || spec.id === "exit-daylight" || spec.id === "soul-well-glow") continue;
     const light = new THREE.PointLight(new THREE.Color(spec.color), spec.intensity * 14, spec.radius * 2.4, 1.5);
     light.position.set(spec.x, spec.y, spec.z);
     light.castShadow = spec.castsShadow && SHADOW_LIGHTS.has(spec.id);
