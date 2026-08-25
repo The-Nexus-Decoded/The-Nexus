@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "policyId": "universal-procedural-level-topology-v1",
+  "architecture": "LOGICAL_GRAPH_THEN_CONSTRUCTIVE_EMBEDDING_THEN_CANONICAL_BOUNDARIES_THEN_RUNTIME",
+  "requiredLayers": [
+    "logical_graph",
+    "embedded_spatial_plan",
+    "runtime_geometry_physics_navigation"
+  ],
+  "constructiveEmbedding": {
+    "placeDestinationRelativeToAcceptedEdge": true,
+    "resolveEdgeBeforeAcceptingDestination": true,
+    "retryAlternateSocketOrientationOrModule": true,
+    "backtrackWhenNecessary": true,
+    "rejectWhenBacktrackingExhausted": true,
+    "deterministicSeedsSupported": true
+  },
+  "baseConnectionTypes": [
+    "DIRECT_OPEN_ADJACENCY",
+    "DOOR_GATE_ADJACENCY",
+    "CORRIDOR_OR_PASSAGE",
+    "PORTAL_OR_TELEPORT",
+    "VERTICAL_TRANSITION",
+    "ROAD_OR_PATH_JUNCTION",
+    "PLATFORM_OR_BRIDGE_CONNECTION"
+  ],
+  "canonicalBoundaryRules": {
+    "sharedBoundaryEmittedOnce": true,
+    "openSpanBlockingBoundary": false,
+    "statefulPortalOwnsSingleApertureStateCollisionContract": true,
+    "connectorMustReachBothEndpointOpenings": true,
+    "coincidentDuplicateBoundariesAllowed": false,
+    "runtimeConsumesBoundaryInventory": true
+  },
+  "diagnosticGate": {
+    "derivedFromActualEmbeddedGeometry": true,
+    "requiredBeforeDressing": true,
+    "automatedTopologyReview": true,
+    "independentAiVisionReviewWhenApplicable": true,
+    "ownerReviewForInitialOrMajorGeneratorChange": true
+  },
+  "defaultHardInvariants": {
+    "requiredLogicalEdgesEqualsPhysicallyResolvedEdges": true,
+    "unintendedModuleOverlaps": 0,
+    "coincidentDuplicateBoundaries": 0,
+    "boundariesCrossingOpenings": 0,
+    "orphanDoorsOrConnectors": 0,
+    "unmatchedConnectorEndpoints": 0,
+    "physicalConnectorsEndingAtBlockingGeometry": 0,
+    "missingDestinationOpenings": 0,
+    "clearanceFailures": 0,
+    "surfaceContinuityFailures": 0,
+    "volumeContinuityFailures": 0,
+    "collisionContinuityFailures": 0,
+    "navigationContinuityFailures": 0,
+    "unsupportedElevationTransitions": 0
+  },
+  "runtimeProof": {
+    "realControllerOrInputRequired": true,
+    "debugWarpMayProveConnectivity": false,
+    "sourceConnectorDestinationEvidence": true,
+    "statefulPortalBothSidesEvidence": true,
+    "independentVerification": true
+  }
+}
