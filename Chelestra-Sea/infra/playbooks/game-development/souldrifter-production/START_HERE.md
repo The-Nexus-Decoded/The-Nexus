@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-25-master-v9`
+**Context version:** `2026-08-25-master-v10`
 
 Mandatory entry point for M3, Claude Code, ChatGPT/Codex and future SoulDrifter workers.
 
@@ -45,9 +45,9 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 ## Mandatory startup order
 
 0. Read `SESSION_FAST_START.md` and `config/onboarding-cache-policy.json`.
-1. Auto-discover/reuse the existing ticket worktree through `AUTO_DISCOVER_WORKSPACE.md`.
+1. Auto-discover/reuse the ticket worktree through `AUTO_DISCOVER_WORKSPACE.md`.
 2. Load persistent toolchain/provider receipts.
-3. Run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only if required.
+3. Run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only when required.
 4. For procedural/randomized levels, read:
    - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
    - `config/dungeon-topology-policy.json`
@@ -55,7 +55,7 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 5. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
 6. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
 7. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
-8. For runtime migration/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
+8. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
 9. Read repository `AGENTS.md`.
 10. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
 11. Read the assigned issue and every current comment.
@@ -69,7 +69,7 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 
 ```text
 SOULDRIFTER SESSION RECEIPT
-contextVersion: 2026-08-25-master-v9
+contextVersion: 2026-08-25-master-v10
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 ticket: <issue>
 branch: <branch>
@@ -98,7 +98,7 @@ blockingIssues: []
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-25-master-v9
+contextVersion: 2026-08-25-master-v10
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -137,7 +137,7 @@ logical graph
 
 It must not place independently sealed room boxes and attach corridors/doors afterward.
 
-For every edge, place the next room relative to a validated source socket/connector, resolve source aperture + connector/shared boundary + destination aperture before accepting the room, and retry/backtrack when the placement is invalid.
+For every edge, place the next room relative to a validated source socket/connector, resolve source aperture + connector/shared boundary + destination aperture before accepting the room, and retry/backtrack when placement is invalid.
 
 Shared walls emit once. Open spans emit no wall. Corridors must enter both openings. Portal-transfer edges are explicit nonphysical transitions and do not create fake corridors.
 
@@ -191,12 +191,13 @@ Every substantial custom motion not adequately covered by Tripo produces:
 
 SoulDrifter remains browser-first and mobile-browser compatible.
 
-- Three.js remains the current POC/runtime.
-- Finish and independently verify the First Breach browser/mobile slice before changing runtimes.
-- After that round, evaluate Babylon.js side by side with the same representative content.
-- Any migration requires owner approval after evidence.
-- Unreal/Unity remain long-term portability targets only.
-- Preserve Houdini/Blender/provider sources, neutral assets/caches/manifests and target-specific derivatives so future integrations reuse the work rather than restart.
+- Three.js is the locked browser runtime for the POC and foreseeable browser releases.
+- There is no Babylon.js evaluation, migration or comparison roadmap.
+- Improve Three.js through WebGL/WebGPU capability paths, scalable FX/materials, mobile optimization, streaming/loading, animation/physics integration and real-device profiling.
+- Do not duplicate the game in another browser engine or delay the current slice for a lateral browser rewrite.
+- If a future installed/native edition is genuinely required, evaluate Unreal Engine versus Unity as a separate owner-approved long-term product phase.
+- Unreal/Unity are not current production clients.
+- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and Three.js derivatives so a future native port reuses the work rather than restarting.
 
 ## Roles and completion
 
