@@ -7,7 +7,9 @@ Contents:
 - `START_HERE.md` — current project entry point
 - `CURRENT_DIRECTION.md` — current design/production snapshot
 - `DELIVERY_NOTES.md` — earlier delivery material and supersession notes
-- `SOURCE_BUNDLE.part-*.md` — complete current master harness + legacy starter-pack source in GitHub-friendly chunks
-- `HOUDINI_THREEJS_PLAYBOOK.part-*.md` — readable earlier Houdini/Three.js production reference
+- `source-bundle/` — complete current master harness + preserved earlier starter-pack source in GitHub-friendly numbered chunks
+- `houdini-threejs-playbook/` — readable earlier Houdini/Three.js production reference
+
+The original v3 ZIP and earlier DOCX/ZIP files are also preserved in the local portable archive. GitHub stores the browsable source so M3/Claude/Codex can consume it directly.
 
 The v3 master harness supersedes conflicting older instructions. Older material is retained for provenance and useful detail.
