@@ -4,21 +4,14 @@
 
 Every session begins with `SESSION_FAST_START.md`.
 
-- If the cached workstation/toolchain receipt is valid, use it and continue.
-- If a required lane is missing, stale, failed or newly selected, bootstrap only that lane through `ONBOARDING.md` and `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`.
+- Use valid cached workstation/toolchain receipts.
+- Bootstrap only missing, stale, failed or newly selected lanes.
 - Do not reinstall every provider/DCC/engine in every chat.
-- Immediately before a paid provider operation, refresh balance/pricing/allowance and obtain exact owner approval.
+- Immediately before paid provider work, refresh balance/pricing/allowance and obtain exact owner approval.
 
 ## Phase A — Global project audit
 
-The first orchestrator session:
-
-1. validates `project-profile.json` and the project overlay;
-2. discovers existing worktrees/branches;
-3. reads open tickets/PRs/comments;
-4. classifies work as continue, revalidate, rework, superseded, blocked, owner-decision or close-candidate;
-5. builds dependency, provider, file-collision and parallel-safety maps;
-6. identifies the smallest complete vertical slice.
+The first orchestrator session validates the project profile/overlay, discovers worktrees, reads open tickets/PRs/comments, classifies work, maps dependencies/providers/file collisions, and identifies the smallest complete vertical slice.
 
 The audit does not broadly implement tickets.
 
@@ -30,17 +23,20 @@ For the assigned ticket:
 - reconcile local worktree/branch/head without discarding unexplained work;
 - load `.agent-state/<ticket>/`;
 - create/update ticket contract, completion ledger, evidence manifest, handoff and work claim;
-- load only selected genre/platform/engine/provider modules.
+- load only selected modules.
 
 ## Phase 1 — Requirement compilation
 
-Convert prose into explicit, testable contracts.
+Convert prose into explicit testable contracts.
 
 Examples:
 
-- **Procedural level edge:** logical edge type -> source socket/boundary -> constructive destination placement -> shared boundary/opening/connector -> elevation -> collision/nav/real-controller traversal -> evidence.
+- **Procedural spatial edge:** source node/socket/surface/volume -> connection type -> constructive destination placement -> canonical ownership -> movement/camera/resource/failure contract -> real traversal -> evidence.
+- **Aquatic route:** water/depth/air volumes -> entry/exit -> swim/dive controller -> oxygen/drowning/current -> air pockets -> camera/lighting -> save/reload/recovery -> evidence.
+- **Vertical route:** stairs/climb/lift/drop geometry -> mount/travel/dismount -> animation/camera/stamina -> fall/recovery -> AI support -> evidence.
+- **Living/mega-zone:** region/state graphs -> local subgraphs/streaming -> atomic collision/nav changes -> relocation safety -> persistence -> evidence.
 - **3D asset:** concept/reference -> approved provider task -> controlled download -> segmentation/edit -> topology/material -> rig/animation -> LOD/collision/sockets -> runtime -> device/performance -> provenance/rollback.
-- **Custom animation:** provider preset search -> routing classification -> common brief -> two candidates when required -> blind review -> owner verdict -> winner integration -> registry data.
+- **Custom animation:** provider preset search -> routing -> common brief -> configured candidates -> blind review -> owner verdict -> winner integration -> registry.
 - **Gameplay action:** input -> state/resource/cooldown -> animation/contact -> VFX/audio -> target reaction -> network/save -> UI -> scheduler modes -> QA.
 
 ## Phase 2 — Baseline audit
@@ -48,56 +44,66 @@ Examples:
 Before editing:
 
 - run current tests/runtime;
-- identify genuinely verified work;
-- identify claims without proof;
-- capture current visual/performance evidence;
-- freeze valid regions/components to prevent unnecessary rebuilds;
+- identify genuinely verified work and unsupported claims;
+- capture visual/performance evidence;
+- freeze valid regions/components;
 - produce an atomic defect/requirement list.
 
-## Mandatory procedural-layout gate
+## Mandatory procedural topology and traversal gate
 
-For generated rooms, buildings, roads, tracks, platforms or zones, read `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md`.
+For generated or traversal-heavy levels, read:
+
+- `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md`;
+- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`;
+- `config/procedural-level-topology-policy.json`;
+- `config/spatial-connection-policy.json`.
 
 Required architecture:
 
 ```text
-logical graph
+logical graph + explicit traversal contracts
 -> constructive edge-by-edge spatial embedding
--> canonical shared boundaries/openings
--> actual-geometry plan/section validation
--> runtime geometry/collision/navigation
--> dressing/FX
+-> canonical boundaries, surfaces and volumes
+-> actual-geometry plan/section/volume/state validation
+-> runtime geometry/collision/navigation/controller states
+-> gameplay/dressing/FX
 ```
-
-The generator must not place independently sealed modules and connect them after placement.
 
 For each edge:
 
-1. choose a legal source socket/boundary;
-2. choose explicit connection semantics;
-3. choose a compatible destination socket/orientation;
-4. calculate the connector/shared boundary;
-5. place the destination relative to that edge;
-6. validate overlap, clearance, elevation, boundary, surface/volume, collision and navigation;
+1. choose a legal source socket, boundary, surface, path or volume;
+2. choose explicit connection type, movement mode, medium, directionality and state contract;
+3. choose a compatible destination socket/orientation/state;
+4. calculate the shared boundary, path/spline, surface or volume;
+5. derive the destination transform from that edge;
+6. validate overlap, clearance, elevation/depth, surface/volume, collision, navigation, camera, resources, hazards and recovery;
 7. accept the destination only when the complete edge passes;
 8. otherwise retry or backtrack;
 9. reject the variant when legal embedding cannot be found.
 
-Before dressing, generate diagnostics from the actual embedded geometry and pass automated topology checks, applicable AI/vision review and required owner/design review.
+Before dressing, generate diagnostics from actual solved data:
+
+- top-down plan for horizontal routes;
+- section/elevation for vertical routes;
+- 3D volume/slice for water/air-pocket routes;
+- state graph/timeline for moving or transforming topology;
+- region/streaming map plus local subgraphs for mega-zones.
+
+Pass automated checks, applicable AI/vision review and required owner/design review.
 
 ## Phase 3 — Implementation in dependency order
 
 ### Level/world
 
-`logical graph -> constructive embedding/backtracking -> actual-geometry plan/section gate -> canonical boundaries/openings -> shared shell/surfaces -> connectors/elevation transitions -> collision/nav -> real-controller traversal -> interactions/encounters -> dressing -> materials/lighting -> VFX/audio -> performance -> QA`
+`logical graph -> traversal contracts -> constructive embedding/backtracking -> plan/section/volume/state gate -> canonical boundaries/surfaces/volumes -> runtime surfaces/water/shell -> collision/nav/controller states -> real-input traversal -> interactions/encounters -> dressing -> materials/lighting -> VFX/audio -> performance -> QA`
 
 ### 3D asset
 
-`toolchain lane check -> exact quote/approval -> concept/reference -> provider 3D generation/import -> segmentation/mesh processing -> topology/UV/material -> rig -> animation -> sockets/LOD/collision -> export -> runtime -> performance -> QA`
+`toolchain lane check -> exact quote/approval -> concept/reference -> provider generation/import -> segmentation/mesh processing -> topology/UV/material -> rig -> animation -> sockets/LOD/collision -> export -> runtime -> performance -> QA`
 
 ### Custom animation
 
-`preset/custom capability search -> route selection -> locked common inputs -> configured candidate lanes -> automated gates -> blind AI review -> blinded owner verdict -> winner integration -> registry update -> independent verification`
+`preset/custom capability search -> route selection -> locked common inputs -> configured candidate lanes -> automated gates -> blind AI review -> blinded owner verdict -> winner integration -> registry -> independent verification`
 
 ### Code/runtime feature
 
@@ -105,29 +111,25 @@ Before dressing, generate diagnostics from the actual embedded geometry and pass
 
 ## Phase 4 — Producer checks
 
-A producer:
-
-- commits atomic increments;
-- runs automated/runtime checks;
-- stores fresh evidence;
-- updates ledger/handoff;
-- records provider task/cost/provenance when applicable;
-- stops at `IMPLEMENTED_UNVERIFIED`.
+A producer commits atomic increments, runs automated/runtime checks, stores fresh evidence, updates ledger/handoff, records provider provenance, and stops at `IMPLEMENTED_UNVERIFIED`.
 
 The producer may not self-verify or merge/deploy without authorization.
 
 ## Phase 5 — Independent verification
 
-The verifier:
+The verifier re-derives requirements, tests the exact commit, rejects stale/producer-only evidence, uses target devices/render APIs, and returns PASS, FAIL or NEEDS_EVIDENCE.
 
-- re-derives requirements from source truth;
-- tests the exact current commit;
-- rejects stale/producer-only evidence;
-- uses real target devices/render APIs where required;
-- returns PASS, FAIL or NEEDS_EVIDENCE per requirement;
-- alone may move rows to `VERIFIED`.
+For spatial connections, use the real movement mode and failure/recovery path:
 
-For procedural levels, the verifier checks the actual-geometry diagnostic and traverses each required physical edge with the real controller/input. Debug teleport/pathfinding alone is not proof.
+- walk/click-to-move;
+- crouch/crawl;
+- climb/mantle/ladder;
+- jump/platform/rope;
+- swim/dive/oxygen/air pockets;
+- vehicle/transport;
+- true transfer activation/arrival when applicable.
+
+Debug teleport/pathfinding alone is not proof.
 
 For animation bakeoffs, the reviewer/verifier must not be either candidate producer.
 
@@ -136,7 +138,8 @@ For animation bakeoffs, the reviewer/verifier must not be either candidate produ
 A ticket becomes owner-ready only when:
 
 - all critical rows are VERIFIED;
-- topology records/invariants pass where applicable;
+- topology and spatial-connection records pass where applicable;
+- movement, camera, resource, hazard and recovery contracts are proven;
 - provider/toolchain/spend receipts are valid;
 - provenance/licenses/rollback are complete;
 - target-device performance passes;
@@ -146,13 +149,13 @@ A ticket becomes owner-ready only when:
 
 ## Phase 7 — Runtime/portability decisions
 
-A project keeps its accepted runtime stable through the vertical slice.
+Keep the accepted runtime stable through the vertical slice.
 
 The universal core does not prescribe a default lateral browser-engine migration.
 
 A runtime comparison requires a project-overlay-defined problem, named candidates, representative slice, metrics, budget and owner approval.
 
-If an approved future native/full-engine target is needed, preserve DCC/provider sources, neutral assets/caches/manifests and target-specific derivatives so the new target reuses expensive work rather than restarting.
+For an approved future native/full-engine target, preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives so the new target reuses expensive work.
 
 ## Phase 8 — Release
 
@@ -167,5 +170,5 @@ Before a session ends:
 - record next atomic requirement and blockers;
 - stop dev servers/provider pollers;
 - preserve provider task IDs/download hashes;
-- preserve topology/animation/portability records when applicable;
+- preserve topology, spatial-connection, animation and portability records;
 - leave enough state for another model to resume without chat history.
