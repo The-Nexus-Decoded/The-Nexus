@@ -1,6 +1,6 @@
 # START HERE — Universal AI Game Production Harness
 
-**Context version:** `2026-08-25-universal-game-v5`
+**Context version:** `2026-08-25-universal-game-v6`
 
 ## Core principle
 
@@ -37,10 +37,13 @@ Refresh live balance/pricing/allowance for the active lane and obtain exact owne
 7. Read the game's `project-profile.json` and project overlay/canon index.
 8. Read `WORKFLOW.md`.
 9. Load selected genre/platform/engine/provider modules only.
-10. For procedural/generated levels, read:
+10. For procedural/generated or traversal-heavy levels, read:
     - `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md`
+    - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
     - `config/procedural-level-topology-policy.json`
+    - `config/spatial-connection-policy.json`
     - `templates/procedural-level-topology-record.template.json`
+    - `templates/spatial-connection-record.template.json`
 11. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
 12. For Houdini, read `HOUDINI_LICENSE_MODE_POLICY.md`.
 13. For Tripo, load `providers/tripo/README.md` and project-specific config derived from its template.
@@ -55,7 +58,7 @@ Refresh live balance/pricing/allowance for the active lane and obtain exact owne
 
 ```text
 GAME PRODUCTION SESSION RECEIPT
-contextVersion: 2026-08-25-universal-game-v5
+contextVersion: 2026-08-25-universal-game-v6
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 projectId: <id>
 ticket: <number or GLOBAL-AUDIT>
@@ -78,7 +81,7 @@ blockingIssues: []
 
 ```text
 GAME PRODUCTION CONTEXT RECEIPT
-contextVersion: 2026-08-25-universal-game-v5
+contextVersion: 2026-08-25-universal-game-v6
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 role: <orchestrator|auditor|worker|verifier>
 projectId: <id>
@@ -90,6 +93,7 @@ projectProfileLoaded: yes/no
 projectOverlayLoaded: yes/no
 sessionReceipt: PASS/BLOCKED
 proceduralTopologyPolicyLoaded: yes/no/not-required
+spatialConnectionCatalogLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
 houdiniLicensePolicyLoaded: yes/no/not-required
 animationBakeoffPolicyLoaded: yes/no/not-required
@@ -103,20 +107,26 @@ plannedScope: <concise scope>
 
 No valid Session Receipt + Context Receipt means no implementation.
 
-## Procedural level topology policy
+## Procedural topology and traversal policy
 
-For generated rooms, buildings, roads, platforms, tracks or zones:
+A generated level is a graph of **spatial nodes**, not necessarily rectangular rooms. A node may be an architectural space, cavern, shaft, water volume, air pocket, biome pocket, labyrinth, mega-zone, moving platform region or transforming living-world state.
+
+Required architecture:
 
 ```text
-logical graph
+logical graph + explicit traversal contracts
 -> constructive edge-by-edge spatial embedding
--> canonical shared boundaries/openings
--> actual-geometry plan/section validation
--> runtime geometry/collision/navigation
--> dressing/FX
+-> canonical boundaries, surfaces and volumes
+-> actual-geometry plan/section/volume/state validation
+-> runtime geometry/collision/navigation/controller states
+-> gameplay/dressing/FX
 ```
 
-Do not place independently sealed modules and connect them after the fact. Resolve each edge before accepting the destination module, retry/backtrack invalid placements, emit shared boundaries once, and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
+Every edge declares connection type, movement mode, medium, directionality, state requirements, geometry/surface/volume, collision/navigation ownership, controller/animation/camera transitions, resources/hazards/recovery, persistence/streaming and verification.
+
+Use top-down plans for horizontal routes, sections/elevations for vertical routes, 3D volume/slice evidence for aquatic routes, state sequences for moving/transforming topology and region/streaming maps for mega-zones.
+
+Do not place sealed modules first and connect them after the fact. Resolve each edge before accepting the destination, retry/backtrack invalid placements, and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
 
 ## Image/reference policy
 
@@ -151,13 +161,11 @@ When enabled:
 
 ## Browser runtime and portability policy
 
-The universal core does **not** prescribe a lateral browser-engine migration after a POC.
+The universal core does not prescribe a lateral browser-engine migration after a POC.
 
 Projects should improve their accepted browser runtime unless the overlay defines a concrete unsolved requirement, named candidates, comparison slice, metrics, budget and owner approval.
 
-There is no default named browser-engine comparison candidate in the universal core.
-
-If browser delivery later cannot satisfy approved product requirements, evaluate a native/installed engine as a separate phase. Preserve DCC/provider sources, neutral assets/caches/manifests and target-specific derivatives so the future target reuses the expensive work rather than starting from zero.
+If browser delivery later cannot satisfy approved product requirements, evaluate a native/installed engine as a separate phase. Preserve DCC/provider sources, neutral assets/caches/manifests and target-specific derivatives so the future target reuses expensive work rather than starting from zero.
 
 Portability means controlled re-integration, not zero engine-specific work.
 
