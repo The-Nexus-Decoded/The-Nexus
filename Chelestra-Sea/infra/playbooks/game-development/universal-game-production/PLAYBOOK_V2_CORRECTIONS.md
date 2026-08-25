@@ -29,32 +29,55 @@ Required files:
 
 Every selected provider module must define and prove:
 
+- supported Studio/browser, API/SDK, official CLI and MCP lanes;
+- which credentials, credits and quotas are separate;
+- active-lane selection and fallback order;
 - official SDK/API/package/repository;
 - version and region/base URL;
 - secret environment-variable name without exposing the value;
-- live read-only authenticated call;
+- live read-only authenticated call when available;
 - capabilities needed by the project;
 - controlled download/staging paths;
 - task polling/retry behavior;
-- price/balance/spend gate;
+- price/balance/allowance/spend gate;
 - provenance, hashes and rollback;
 - optional CLI/MCP discovery from exact first-party documentation.
 
+A blocked API/CLI lane must not block an authenticated Studio/browser lane when the project overlay permits it.
+
 The connection result is stored in a sanitized persistent receipt and referenced by future sessions.
 
-## 3. Host-LLM image generation precedes paid 3D-provider image generation
+## 3. Primary 3D-source images use a multi-candidate full-asset bakeoff
 
-When the active M3, Claude, ChatGPT/Codex or other host can create concept/reference images, use that lane first.
+Read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
 
-A 3D provider's 2D image features are disabled by default to avoid unnecessary credits. A project overlay may authorize an exception with an exact reason and cost.
+The project profile selects the actual candidate models/providers. A recommended important-asset comparison uses:
 
-The 3D provider then consumes approved text/image/multiview references for 3D generation and downstream processing.
+- two Studio/provider image models;
+- two host-LLM image candidates.
+
+Before generation, verify each active account/session, model label, allowance/quota and whether the operation is free or charged.
+
+Every primary image intended for 3D generation must show the **complete asset in frame**. This applies to characters, creatures, weapons, items, armor, furniture, architecture, doors, fixtures, vehicles and environment set pieces.
+
+No cropped critical geometry, supports, attachments or extremities. Close-ups are supplemental `DETAIL_REFERENCE_ONLY` and cannot be the sole primary source.
+
+Compare candidates, preserve prompts/settings/hashes and record the owner-selected source before downstream paid 3D work.
 
 ## 4. Tripo is a reusable 3D provider module, not universal hard-coding
 
-The universal harness includes a selectable Tripo v3 provider module under `providers/tripo/`.
+The universal harness includes a selectable Tripo provider module under `providers/tripo/`.
 
-Current official default lane:
+Projects must distinguish:
+
+- authenticated Studio browser lane;
+- API/SDK lane;
+- separately documented official CLI lane;
+- optional MCP lane.
+
+Do not assume their credentials or balances are shared.
+
+The official JavaScript/TypeScript SDK lane currently uses:
 
 - package: `@vastai/tripo-sdk`;
 - Node.js 18+;
@@ -67,14 +90,14 @@ Use Tripo for approved 3D generation/import, upload/download, segmentation, mesh
 
 Do not install similarly named CLI packages by guesswork. An official CLI is optional and must be discovered from current first-party documentation or the authenticated provider console.
 
-The official Tripo MCP is optional and currently uses a Blender/add-on workflow; MCP does not replace the core SDK/API receipt unless the project explicitly makes it authoritative and proves equivalent capabilities.
+The official Tripo MCP is optional and does not replace the core provider receipt unless the project explicitly makes it authoritative and proves equivalent capabilities.
 
 ## 5. Geometry-changing stages precede rigging
 
 Universal 3D order:
 
 ```text
-host-LLM concept/reference
+approved full-asset concept/reference
 -> 3D provider generation/import
 -> segmentation/mesh completion/retopo/low-poly
 -> UV/material/texture
@@ -114,19 +137,28 @@ Required files:
 
 Aggregate results are reviewed at defined checkpoints. No pipeline retires automatically.
 
-## 7. Houdini Apprentice and Indie are license/pipeline states
+## 7. Houdini Apprentice can be the full-FX non-commercial POC lane
 
-Houdini Apprentice exposes virtually the Houdini FX feature set for learning/non-commercial work, including procedural modeling, particles/dynamics, Pyro, Vellum and KineFX. Its restrictions make it a prototype lane.
+Read `HOUDINI_LICENSE_MODE_POLICY.md`.
 
-Houdini Indie is the limited-commercial production lane when the project qualifies. A license upgrade invalidates the cached Houdini receipt and requires:
+Houdini Apprentice exposes virtually the Houdini FX feature set for personal/non-commercial work. When a project's declared and reviewed usage mode is genuinely `NONCOMMERCIAL_POC`, the pipeline should use the full features exposed by the installed build—including particles, Pyro, FLIP/procedural water, Vellum, RBD, KineFX, terrain, lighting, materials, shaders, fog and volumetrics—rather than lowering the creative target solely because the license is free.
 
-- current license proof;
-- clean Indie scene/asset formats;
-- detection/removal of non-commercial asset contamination;
-- fresh scripted import/export/runtime smoke tests;
-- revalidation of Engine/batch/third-party-renderer requirements selected by the project.
+The restrictions remain binding:
 
-Do not claim that Indie primarily adds new particle features; it primarily changes production/commercial/file-format/render/Engine capabilities while retaining Houdini FX-class tools.
+- non-commercial use and file formats;
+- no mixing into Indie/commercial Houdini pipelines;
+- no Apprentice-created HDA through Houdini Engine;
+- render-resolution/wordmark restrictions;
+- no third-party renderers;
+- exact exporter/output limitations.
+
+A free public app is not automatically non-commercial if it promotes a business, supports paid client work, solicits investment, monetizes related services or feeds a commercial production pipeline. Record the project's usage-mode attestation and pause if uncertain.
+
+Smoke-test the exact runtime representation. If the effect works but the final exporter is restricted, preserve the full-fidelity POC source and schedule a clean Indie/commercial rebuild/export rather than prematurely replacing the effect with a crude placeholder.
+
+Houdini Indie is the limited-commercial production lane when the project qualifies. A license upgrade invalidates the cached Houdini receipt and requires clean licensed scene/asset formats, contamination checks and fresh export/runtime validation.
+
+Indie primarily changes production/commercial/file-format/render/Engine capabilities; it is not primarily a new particle/FX-feature tier.
 
 ## 8. Toolchain preflight is lane-selective
 
@@ -144,14 +176,15 @@ A cached authenticated receipt proves connectivity, not current price or blanket
 
 Immediately before every charged task:
 
-1. live balance read;
-2. current official pricing;
-3. exact operation/model/version;
-4. expected and maximum cost;
-5. retry-cost disclosure;
-6. explicit owner approval;
-7. task submission;
-8. actual cost/task ID/download hash/remaining balance record.
+1. identify the active provider lane;
+2. live balance/allowance read for that lane;
+3. current official pricing;
+4. exact operation/model/version;
+5. expected and maximum cost;
+6. retry-cost disclosure;
+7. explicit owner approval;
+8. task submission;
+9. actual cost/task ID/download hash/remaining balance record.
 
 ## 10. Representative vertical-slice pipeline proof
 
@@ -159,8 +192,8 @@ Before content scaling, every project must prove at least one complete represent
 
 ```text
 creative brief
--> concept/reference
--> provider/DCC production
+-> full-asset image/reference bakeoff
+-> selected provider/DCC production
 -> processing/rig/animation where required
 -> runtime integration
 -> target-device proof
@@ -175,17 +208,18 @@ The pilot belongs at the appropriate end of the feature's dependency sequence—
 Universal core owns:
 
 - persistent onboarding/caching;
-- provider adapter contracts;
-- image/provider role boundaries;
-- DCC/engine/runtime preflight;
+- provider adapter/lane contracts;
+- full-asset image bakeoff and framing rules;
+- DCC license-mode/runtime preflight;
 - animation bakeoff rules;
 - asset/provenance/rollback;
 - ticket/verification workflow.
 
 Project overlays own:
 
-- exact providers enabled;
-- account/region/path/budget values;
+- exact providers/models enabled;
+- account/region/path/budget/quota values;
+- project usage mode and license attestation;
 - art/canon/mechanics;
 - exact animation categories and comparison lanes;
 - ticket ordering;
