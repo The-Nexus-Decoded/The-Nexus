@@ -1,10 +1,10 @@
 # SoulDrifter Ticket Workflow — Multi-LLM
 
-## Phase -1 — Production toolchain preflight
+## Phase -1 — Session fast-start / toolchain state
 
-Before audit or implementation, execute `ONBOARDING.md` and `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`.
+Normal chats use `SESSION_FAST_START.md` and cached machine/toolchain receipts.
 
-The session must prove the required repository, provider, Houdini, Blender, runtime, GPU, storage, secret, and asset-registry lanes are actually available. Documentation alone is not a connection test.
+Run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only when a required lane is missing, stale or invalidated. Paid provider work still receives a live balance/pricing/approval refresh immediately before submission.
 
 ## Phase A — Global audit before large parallel execution
 
@@ -20,13 +20,13 @@ Classify each:
 - `OWNER_DECISION_REQUIRED`
 - `CLOSE_CANDIDATE_AFTER_VERIFICATION`
 
-Compare existing work to binding rules, latest owner comments, current runtime/canon, this harness, current phase rules, the verified Tripo/modular-character direction, custom-animation bakeoff policy, and combat/VFX rules.
+Compare existing work to binding rules, latest owner comments, current runtime/canon, this harness, current phase rules, verified provider/tool lanes, modular-character direction, custom-animation bakeoff policy and combat/VFX rules.
 
 The global audit creates the execution map; it does not implement every ticket.
 
 ## Phase 0 — Session startup
 
-Follow `START_HERE.md`, complete onboarding/toolchain receipts, and create a Context Receipt.
+Follow `START_HERE.md`, return the Session Receipt and Context Receipt, and load live ticket/PR state before editing.
 
 ## Phase 1 — Ticket intake
 
@@ -38,52 +38,83 @@ Expand hidden dependencies into explicit testable rows.
 
 Examples:
 
-- a door requires a source aperture, frame, collision state, connector, destination aperture, player traversal, and evidence;
-- a generated asset requires provider connection, quote/approval, source/provenance, controlled download, segmentation/retopo before rig, deformation, animation, runtime, performance, and rollback;
-- a custom animation not acceptably covered by Tripo requires one Houdini KineFX candidate, one Blender candidate, a fair common-input contract, automated gates, blind AI review, owner verdict, winner integration, and experiment-registry update;
-- a new combat ability requires source research, mechanics, chain/status, cooldown/resource, animation, VFX/SFX markers, target reaction, both combat modes, UI state, and authoritative fields.
+- a door requires a source aperture, frame, collision state, connector, destination aperture, player traversal and evidence;
+- a generated asset requires provider lane, quote/approval, source/provenance, controlled download, geometry processing before rig, deformation, animation, runtime, performance and rollback;
+- a custom animation not acceptably covered by Tripo requires one Houdini KineFX candidate, one Blender candidate, identical common inputs, automated gates, blind AI review, owner verdict, winner integration and experiment-registry update;
+- a new combat ability requires source research, mechanics, chain/status, cooldown/resource, animation, VFX/SFX markers, target reaction, both combat modes, UI state and authoritative fields;
+- a randomized room edge requires logical edge semantics, source socket/aperture, shared-boundary ownership, connector geometry, destination socket/aperture, elevation, collision/nav continuity and real-controller traversal.
 
-### Mandatory architectural layout gate for every level and zone
+## Mandatory procedural architectural gate
 
-Before registry derivation or 3D construction, every indoor level and outdoor
-zone requires a complete CAD-like flat layout in one coordinate frame. It must
-show the whole playable footprint and every possible randomized branch or
-variant, with true dimensions, canonical wall/boundary IDs, shared-boundary
-ownership, openings, doors/gates, corridor centerlines and clear widths,
-stairs/ramps/landings, floor elevations, collision and navigation.
+Read `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md` and `config/dungeon-topology-policy.json` for every procedural/randomized dungeon change.
 
-Randomization may select room modules and their legal order. It never permits
-the builder to place independently sealed room and corridor boxes beside one
-another. After selection, the chosen footprints are resolved into one
-architectural topology:
+The generator must use:
 
-- a closed adjacency emits one shared wall;
-- an open adjacency emits no wall from either side;
-- a door, gate or connector cuts one shared boundary and has one geometry,
-  animation and collision owner;
-- a corridor unions with each destination aperture and preserves continuous
-  floor, ceiling, collision and navigation;
-- every elevation change includes its specified stair, ramp or landing.
+```text
+logical run graph
+-> constructive edge-by-edge spatial embedding
+-> canonical shared boundaries/apertures
+-> accepted top-down architectural plan
+-> one shared shell
+-> collision/navigation
+-> 3D dressing and FX
+```
 
-The flat layout fails the gate if the complete route cannot be traced, an
-adjacency is missing from the graph, duplicate/coincident walls share an edge,
-a wall crosses an opening or walkable centerline, an elevation transition is
-underspecified, or any floor/ceiling/collision/nav connection is discontinuous.
+It must not place independently sealed room boxes at slot centers and attach corridors/doors afterward.
 
-Required evidence before implementation:
+### Constructive growth
 
-1. readable whole-layout plan;
-2. enlarged connection details;
-3. section/elevation details for vertical transitions;
-4. machine-readable adjacency and boundary inventory;
-5. automated topology-gate results;
-6. independent design review and the required owner design verdict.
+For each edge:
 
-No room shell, dressing, lighting or VFX work begins until this gate passes.
+1. choose a legal source socket on accepted geometry;
+2. choose the exact connection type;
+3. select a compatible destination socket/orientation;
+4. calculate shared boundary or connector;
+5. place the destination room relative to that connector;
+6. validate overlap, clearance, elevation, boundaries, floor/ceiling, collision and nav;
+7. accept the room only when the full edge is valid;
+8. otherwise retry or backtrack;
+9. reject the generated result if legal embedding cannot be found.
+
+### Connection semantics
+
+Every edge is explicit:
+
+- direct open adjacency;
+- shared-wall door/gate adjacency;
+- physical corridor;
+- magical/teleport portal;
+- vertical transition.
+
+A portal-transfer edge creates no fake corridor. A physical connection cannot pass by pointing at coordinates or by pathfinding through missing geometry.
+
+### Top-down gate
+
+Every generated route/seed produces a diagnostic top-down plan from the **actual embedded geometry** showing room polygons, canonical boundaries, apertures, doors/gates, corridor polygons/centerlines, elevation, clearance/nav, logical edges, physical matches and error overlays.
+
+Required before shell dressing:
+
+1. automated topology invariants;
+2. independent AI/vision review;
+3. owner design verdict for the initial generator architecture or major changes.
+
+Hard failures include:
+
+- duplicate/coincident shared walls;
+- independently closed adjacent room shells;
+- corridors ending at intact walls;
+- missing destination apertures;
+- overlapping rooms/floors/ceilings;
+- orphan portals/doors;
+- navigation connected while rendered geometry is blocked;
+- unsupported elevation changes;
+- any required logical edge without one complete physical resolution.
 
 ## Phase 3 — Baseline audit
 
-Identify genuinely complete work, unproven claims, stale/legacy work, baseline tests, and fresh evidence.
+Identify genuinely complete work, unproven claims, stale/legacy work, baseline tests and fresh evidence.
+
+For #451, audit the current slot-center/box-shell generator rather than assuming its layout data is architecturally valid.
 
 ## Phase 4 — Claim and isolation
 
@@ -91,17 +122,17 @@ One worker session = one issue + one branch + one worktree.
 
 Record high-conflict/shared-file claims. If claims overlap, serialize or assign an explicit integration owner.
 
-For a dual animation bakeoff, Houdini and Blender producers may work in isolated source subdirectories or dedicated animation worktrees, but one integration owner controls the canonical runtime action ID and final winner merge.
+For a dual animation bakeoff, Houdini and Blender producers may work in isolated source subdirectories/worktrees, but one integration owner controls the canonical runtime action ID and final winner integration.
 
 ## Phase 5 — Dependency-order implementation
 
 World:
 
-`complete architectural flat layout -> shared-boundary/adjacency graph -> topology gate + owner design verdict -> registry -> unioned shells/openings -> connectors/elevation transitions -> collision/nav -> dressing -> materials/lighting -> VFX -> real-input runtime traversal -> performance -> QA`
+`logical graph -> constructive embedding/backtracking -> top-down actual-geometry proof -> canonical boundaries/openings -> shared shell -> connectors/elevation transitions -> collision/nav -> real-input traversal -> dressing -> materials/lighting -> Houdini/Three.js FX -> performance/mobile -> QA`
 
 Character/animated asset:
 
-`toolchain preflight -> exact quote/approval -> concept/reference -> generation/input -> segmentation where needed -> mesh completion/retopo/low-poly -> texture/material -> rig check -> rig -> deformation -> Tripo preset search -> direct preset OR custom-animation routing -> modular attachments -> runtime assembly -> gameplay proof -> performance`
+`toolchain state -> exact quote/approval -> concept/reference -> generation/input -> segmentation/mesh processing -> texture/material -> rig check -> rig -> deformation -> Tripo preset search -> direct preset OR custom-animation routing -> modular attachments -> runtime assembly -> gameplay proof -> performance`
 
 Custom animation not covered by Tripo:
 
@@ -113,9 +144,9 @@ Combat:
 
 ## Phase 6 — Producer checks
 
-Worker runs checks, captures evidence, updates ledger, commits, and stops at `IMPLEMENTED_UNVERIFIED`.
+Worker runs checks, captures evidence, updates ledger, commits and stops at `IMPLEMENTED_UNVERIFIED`.
 
-A Houdini or Blender producer may not declare its own candidate the bakeoff winner.
+A Houdini or Blender producer may not declare its candidate the bakeoff winner.
 
 ## Phase 7 — Blind comparison and independent verification
 
@@ -127,11 +158,13 @@ For required custom-animation bakeoffs:
 4. labels are revealed only after the verdict is recorded;
 5. the selected winner enters normal independent runtime verification.
 
+For level topology, the verifier independently derives the expected graph, checks the actual-geometry top-down plan, and physically traverses each required edge without warp.
+
 For all other requirements, the verifier independently re-derives expectations and returns PASS / FAIL / NEEDS_EVIDENCE.
 
 ## Phase 8 — Deterministic done gate
 
-Fail if critical rows are not VERIFIED, dependencies/evidence/tests are missing, producer self-verifies, expected matrices are incomplete, provider/toolchain receipts are missing, owner-only spend approval is absent, required animation bakeoff records are missing, GPU proof is missing, combat modes diverge, or rollback/provenance is incomplete.
+Fail if critical rows are not VERIFIED, dependencies/evidence/tests are missing, producer self-verifies, expected matrices are incomplete, topology records/invariants are missing, provider/toolchain receipts are missing, owner-only spend approval is absent, required animation bakeoff records are missing, GPU proof is missing, combat modes diverge, or rollback/provenance is incomplete.
 
 ## Phase 9 — Owner-ready
 
@@ -141,6 +174,6 @@ Never merge/deploy without owner authorization.
 
 ## Phase 10 — Handoff
 
-Commit, update ledger/handoff, store next atomic requirement/blockers, stop dev server/provider pollers, preserve exact task IDs/output paths, and update the animation bakeoff registry when applicable.
+Commit, update ledger/handoff, store next atomic requirement/blockers, stop dev server/provider pollers, preserve exact task IDs/output paths, update topology and animation experiment registries, and record runtime-portability assets when applicable.
 
 The next chat resumes from repository state, not chat history.
