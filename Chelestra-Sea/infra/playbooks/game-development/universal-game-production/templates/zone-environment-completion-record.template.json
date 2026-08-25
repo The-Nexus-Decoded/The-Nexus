@@ -1,71 +1,51 @@
 {
-  "schemaVersion": 1,
-  "policyId": "universal-zone-environment-completion-v1",
+  "schemaVersion": 2,
+  "policyId": "universal-zone-environment-completion-v2",
   "projectId": "",
   "ticketId": "",
   "commit": "",
   "zoneId": "",
+  "zoneVersion": "",
+  "seedOrVariant": "",
+  "targetProfiles": {
+    "devices": [],
+    "browsers": [],
+    "inputs": [],
+    "cameras": [],
+    "actorProfiles": []
+  },
   "stages": [
-    { "stage": "DESIGN_AND_PURPOSE", "status": "NOT_STARTED", "evidence": [] },
-    { "stage": "TOPOLOGY_AND_TRAVERSAL", "status": "NOT_STARTED", "evidence": [] },
-    { "stage": "SHELL_SURFACES_VOLUMES", "status": "NOT_STARTED", "evidence": [] },
+    { "stage": "DESIGN_CANON_BUDGET_ZONE_SEAM_CONTRACT", "status": "NOT_STARTED", "evidence": [] },
+    { "stage": "TOPOLOGY_CONNECTION_TRAVERSAL_SOLVER", "status": "NOT_STARTED", "topologyRecord": "", "connectionRecords": [], "evidence": [] },
+    { "stage": "GRAYBOX_PLAYABILITY_SCALE_PACING_CAMERA_SOCKET_RESERVATION", "status": "NOT_STARTED", "routeTimings": [], "cameraChecks": [], "reservedEnvelopes": [], "evidence": [] },
+    { "stage": "SHARED_SHELL_SURFACES_VOLUMES_WORLD_SEAMS", "status": "NOT_STARTED", "seamChecks": [], "evidence": [] },
+    { "stage": "ASSET_INTAKE_TECHNICAL_READINESS", "status": "NOT_STARTED", "assetRegistry": "", "acceptedAssets": 0, "quarantinedAssets": 0, "evidence": [] },
+    { "stage": "ENVIRONMENT_STAGING_PROP_PLACEMENT", "status": "NOT_STARTED", "spacePurposeProfiles": [], "semanticPlacementMaps": [], "evidence": [] },
+    { "stage": "PROP_COMPLETE_COLLISION_DISCOVERY", "status": "NOT_STARTED", "testedProfiles": [], "routes": [], "defects": [], "evidence": [] },
+    { "stage": "COLLISION_PHYSICS_NAVIGATION_HAZARD_REGRESSION", "status": "NOT_STARTED", "positiveChecks": [], "negativeChecks": [], "physicsHazardChecks": [], "cameraChecks": [], "remainingDefects": [], "evidence": [] },
+    { "stage": "INTERACTION_PICKUP_DESTRUCTION_DYNAMIC_STATE", "status": "NOT_STARTED", "interactionChecks": [], "pickupChecks": [], "destructionChecks": [], "protectedObjectChecks": [], "dynamicStateChecks": [], "persistenceChecks": [], "evidence": [] },
+    { "stage": "LOOKDEV_LIGHTING_ATMOSPHERE_WAYFINDING", "status": "NOT_STARTED", "materialChecks": [], "lightingChecks": [], "atmosphereChecks": [], "readabilityChecks": [], "evidence": [] },
+    { "stage": "AUDIO_ACOUSTICS", "status": "NOT_STARTED", "ambientChecks": [], "reverbOcclusionChecks": [], "cueChecks": [], "resumeChecks": [], "evidence": [] },
+    { "stage": "PERFORMANCE_STREAMING_LOADING_MEMORY", "status": "NOT_STARTED", "checkpointMetrics": {}, "qualityTiers": [], "networkCacheResumeChecks": [], "budgetFailures": [], "evidence": [] },
+    { "stage": "FAILURE_RECOVERY_CHECKPOINTS_OUT_OF_BOUNDS_SOFTLOCKS", "status": "NOT_STARTED", "checkpointChecks": [], "reentryChecks": [], "stuckBoundaryChecks": [], "recoveryChecks": [], "softLocks": [], "evidence": [] },
+    { "stage": "DEVICE_INPUT_CAMERA_ACCESSIBILITY_NETWORK_CONTRACT", "status": "NOT_STARTED", "deviceInputChecks": [], "cameraChecks": [], "accessibilityChecks": [], "networkContractStatus": "NOT_REQUIRED", "evidence": [] },
+    { "stage": "POPULATION_READINESS_REVALIDATION_HANDOFF", "status": "NOT_STARTED", "spawnPatrolChecks": [], "actorClearanceChecks": [], "encounterAnchorChecks": [], "stableSocketManifest": "", "dependencyCommit": "", "evidence": [] },
+    { "stage": "FINAL_INTEGRATED_WALKTHROUGH_EXPERIENCE_REVIEW", "status": "NOT_STARTED", "routes": [], "targetDevices": [], "performance": {}, "experienceReview": {}, "runtimeErrors": [], "evidence": [] },
+    { "stage": "INDEPENDENT_ENVIRONMENT_VERIFICATION", "status": "NOT_STARTED", "verifier": "", "result": "NOT_RUN", "evidence": [], "findings": [] },
+    { "stage": "SEPARATE_POPULATION_GAMEPLAY_PHASE", "status": "NOT_STARTED", "ticketId": "", "environmentDependencyCommit": "", "stableSocketManifest": "" }
+  ],
+  "assets": [
     {
-      "stage": "ENVIRONMENT_STAGING_PROP_PLACEMENT",
-      "status": "NOT_STARTED",
-      "spacePurposeProfiles": [],
-      "semanticPlacementMaps": [],
-      "objects": [],
+      "assetId": "",
+      "version": "",
+      "provenanceStatus": "NOT_RUN",
+      "scaleAxesPivotStatus": "NOT_RUN",
+      "materialTextureStatus": "NOT_RUN",
+      "lodCullingStatus": "NOT_RUN",
+      "collisionProxyStatus": "NOT_RUN",
+      "interactionDestructionAnchorStatus": "NOT_RUN",
+      "accepted": false,
       "evidence": []
-    },
-    {
-      "stage": "PROP_COMPLETE_COLLISION_DISCOVERY",
-      "status": "NOT_STARTED",
-      "testedProfiles": [],
-      "routes": [],
-      "defects": [],
-      "evidence": []
-    },
-    {
-      "stage": "COLLISION_IMPLEMENTATION_REGRESSION",
-      "status": "NOT_STARTED",
-      "positiveChecks": [],
-      "negativeChecks": [],
-      "cameraChecks": [],
-      "remainingDefects": [],
-      "evidence": []
-    },
-    {
-      "stage": "INTERACTION_PICKUP_DESTRUCTION",
-      "status": "NOT_STARTED",
-      "interactionChecks": [],
-      "pickupChecks": [],
-      "destructionChecks": [],
-      "protectedObjectChecks": [],
-      "persistenceChecks": [],
-      "evidence": []
-    },
-    {
-      "stage": "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
-      "status": "NOT_STARTED",
-      "targetDevices": [],
-      "routes": [],
-      "performance": {},
-      "runtimeErrors": [],
-      "evidence": []
-    },
-    {
-      "stage": "INDEPENDENT_ENVIRONMENT_VERIFICATION",
-      "status": "NOT_STARTED",
-      "verifier": "",
-      "result": "NOT_RUN",
-      "evidence": [],
-      "findings": []
-    },
-    {
-      "stage": "SEPARATE_POPULATION_GAMEPLAY_PHASE",
-      "status": "NOT_STARTED",
-      "ticketId": "",
-      "environmentDependencyCommit": ""
     }
   ],
   "objects": [
@@ -84,18 +64,38 @@
       "interactionStatus": "NOT_RUN",
       "destructionStatus": "NOT_RUN",
       "persistenceStatus": "NOT_RUN",
+      "performanceStatus": "NOT_RUN",
       "evidence": []
     }
   ],
   "metrics": {
     "criticalTraversalObstructions": 0,
     "unclassifiedObjects": 0,
+    "assetReadinessFailures": 0,
     "positiveCollisionFailures": 0,
     "negativeCollisionFailures": 0,
+    "physicsHazardFailures": 0,
     "interactionFailures": 0,
     "destructionFailures": 0,
+    "lookdevReadabilityFailures": 0,
+    "audioFailures": 0,
+    "performanceBudgetFailures": 0,
+    "streamingLoadingFailures": 0,
+    "recoveryFailures": 0,
+    "outOfBoundsEscapes": 0,
+    "deviceAccessibilityFailures": 0,
+    "populationReadinessFailures": 0,
     "persistenceFailures": 0,
     "softLocks": 0
+  },
+  "observability": {
+    "reproductionCommandOrUrl": "",
+    "debugOverlays": [],
+    "performanceCapture": [],
+    "rendererDeviceCapture": [],
+    "errorCapture": [],
+    "defectLedger": "",
+    "knownLimits": []
   },
   "producerStatus": "NOT_STARTED",
   "independentVerification": "NOT_RUN",
