@@ -18,29 +18,41 @@ Verify:
 - source/derivative/download/evidence folders;
 - asset-registry and rollback path.
 
-## Gate 2 — Host-LLM image generation
+## Gate 2 — Image/reference generation
 
-Use the active LLM's built-in image generator for concept/reference images when available.
+Read `IMAGE_REFERENCE_BAKEOFF_POLICY.md` when the ticket creates primary 3D-source images.
 
-Record tool availability, model/version when exposed, prompt/reference provenance, dimensions, controlled path and hash.
+The project profile defines the candidate lanes. A recommended important-asset comparison uses two studio/provider image models and two host-LLM image candidates.
 
-Do not spend a 3D provider's credits on 2D image generation by default when the host LLM can create the references. A project overlay may authorize an exception with exact reason/cost.
+Before generation:
+
+- verify each active account/session and allowance/quota;
+- distinguish Studio/browser quotas from API/CLI credits;
+- record provider/model/version/settings/provenance;
+- obtain exact approval for any paid image operation.
+
+Every primary 3D-source image must show the **complete asset in frame**. This applies to characters, creatures, items, weapons, armor, furniture, architecture, doors, fixtures, vehicles and environment set pieces. Cropped close-ups are supplemental only.
 
 ## Gate 3 — 3D provider adapter
 
 Each selected provider module must prove:
 
+- all supported access lanes, such as Studio browser, API/SDK and official CLI;
+- which credentials/credits/quotas are separate;
+- active lane selection and fallback order;
 - official SDK/API/package/repository;
 - version and base URL/region;
 - secret presence without exposing value;
-- live read-only authenticated call;
-- balance/account read when available;
+- live read-only authenticated call when available;
+- balance/account/allowance read when available;
 - generation/upload/download/task-polling capabilities;
 - required mesh-processing/rig/animation capabilities;
 - controlled immediate download;
 - provider URL expiry behavior;
 - exact pricing/spend gate;
 - provenance, hashes and rollback.
+
+A blocked API/CLI lane must not block an authenticated Studio/browser lane when the project profile permits browser operation.
 
 Provider success is not asset acceptance.
 
@@ -54,13 +66,14 @@ Do not install similarly named third-party packages by guesswork.
 
 MCP does not replace core SDK/API proof unless the project profile explicitly defines MCP as the authoritative provider lane and it passes equivalent authentication/capability tests.
 
-## Gate 5 — DCC tools
+## Gate 5 — DCC tools and license modes
 
 For each selected DCC, record:
 
 - version/build/path;
 - Python/scripting availability;
 - license category;
+- project usage mode;
 - file formats;
 - required add-ons/plugins;
 - import/export capabilities;
@@ -69,7 +82,15 @@ For each selected DCC, record:
 
 ### Houdini
 
-Apprentice exposes virtually the FX feature set but remains non-commercial/restricted. Indie is the limited-commercial production lane and requires fresh license/file-format/export validation.
+Read `HOUDINI_LICENSE_MODE_POLICY.md`.
+
+When a project is genuinely `NONCOMMERCIAL_POC`, Houdini Apprentice may use the full FX features exposed by the installed build. Do not artificially replace particles, Pyro, FLIP/procedural water, Vellum, RBD, KineFX, terrain, lighting, materials, shaders, fog or volumetrics with crude placeholders merely because the license is free.
+
+Apprentice restrictions still apply: non-commercial use/formats, no mixing into Indie/commercial pipelines, no Apprentice HDA through Houdini Engine, render/renderer restrictions and exact exporter limitations.
+
+A free public app is not automatically non-commercial when it promotes a business, supports paid client work, solicits investment, monetizes related services or feeds a commercial production pipeline. Record the owner's project-use attestation and pause if the classification is uncertain.
+
+Smoke-test the exact runtime/export representation. If the feature works but final export is restricted, preserve the full-fidelity POC source and schedule a clean licensed rebuild/export rather than lowering the creative target before proving the restriction.
 
 ### Blender
 
@@ -93,13 +114,27 @@ When required, verify audio-generation/source policy, conversion, loudness/loop 
 
 Immediately before every charged operation:
 
-1. live authenticated balance read;
-2. current official price read;
-3. expected and maximum cost;
-4. retry-cost disclosure;
-5. exact owner approval;
-6. submit only approved operation;
-7. record task ID, actual cost, result, download hash and remaining balance.
+1. identify the active provider access lane;
+2. live authenticated balance/allowance read for that lane;
+3. current official price read;
+4. expected and maximum cost;
+5. retry-cost disclosure;
+6. exact owner approval;
+7. submit only approved operation;
+8. record task ID, actual cost, result, download hash and remaining balance/allowance.
+
+## Gate 10 — Provenance and license readiness
+
+For every generated/baked asset, record:
+
+- source/provider/tool/version;
+- project usage mode;
+- DCC license tier;
+- source and export formats;
+- commercial/non-commercial readiness;
+- Engine/runtime compatibility;
+- whether clean licensed rebuild/export is required;
+- hashes, evidence and rollback.
 
 ## Cached toolchain receipt
 
@@ -110,11 +145,13 @@ receiptId: <id>
 generatedAt: <timestamp>
 stateRoot: <path>
 repositoryTracker: PASS/FAIL
-hostLlmImageGeneration: PASS/FAIL/NOT_REQUIRED
+projectUsageMode: NONCOMMERCIAL_POC | EDUCATIONAL | LIMITED_COMMERCIAL_INDIE | FULL_COMMERCIAL | UNKNOWN
+imageReferenceLanes:
+  - <lane + PASS/FAIL/NOT_REQUIRED>
 providerModules:
-  - <module + PASS/FAIL/NOT_REQUIRED>
+  - <module + active lane + PASS/FAIL/NOT_REQUIRED>
 dccModules:
-  - <module + PASS/FAIL/NOT_REQUIRED>
+  - <module + license + PASS/FAIL/NOT_REQUIRED>
 engineRuntimeModules:
   - <module + PASS/FAIL/NOT_REQUIRED>
 realTargetDevices:
