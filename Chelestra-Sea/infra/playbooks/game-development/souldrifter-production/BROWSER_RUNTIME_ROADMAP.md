@@ -1,68 +1,85 @@
-# SoulDrifter Browser Runtime and Native-Port Roadmap
+# SoulDrifter Browser Runtime and Portability Roadmap
 
 ## Owner-locked current direction
 
 SoulDrifter remains a **browser-first, mobile-compatible game**.
 
-Current and planned browser runtime:
+Current canonical runtime:
 
 - Three.js;
 - browser delivery with no required installation;
 - desktop and mobile-browser support;
-- WebGL fallback and WebGPU feature path where supported;
+- WebGL fallback and WebGPU feature paths where supported;
 - scalable graphics/FX quality tiers;
 - Houdini as the procedural/FX authoring source;
 - engine-neutral asset preservation.
 
-## No Babylon.js migration or evaluation roadmap
+## Current POC scope stays on Three.js
 
-Babylon.js is **not** a planned SoulDrifter runtime evaluation, migration target, or post-POC milestone.
+Do not interrupt, delay, or duplicate the current production work while completing:
 
-Do not:
+1. the First Breach playable level;
+2. the first playable Heartvale section reached after the Breach exit.
 
-- create a Babylon.js comparison ticket;
-- maintain a Babylon.js target package;
-- duplicate the First Breach in Babylon.js;
-- delay Three.js work for a browser-engine comparison;
-- recommend Babylon.js as the default next step after the POC.
+Both sections must first be complete and independently verified in Three.js, including desktop/mobile-browser behavior, gameplay, assets, animation, FX, loading, save/progression and performance.
 
-The browser strategy is to continue improving the existing Three.js runtime rather than moving laterally to another browser engine.
+Three.js remains canonical until the owner explicitly accepts another result.
 
-A future owner decision may reopen browser-engine research, but no such work is currently authorized.
+## Post-POC Babylon.js comparison
 
-## Three.js browser-runtime priorities
+After the **First Breach + first Heartvale section POC** is complete and verified, create a separate isolated Babylon.js port/evaluation branch containing exactly those two representative sections.
 
-After the First Breach vertical slice, continue strengthening the existing runtime through targeted improvements rather than a framework rewrite:
+This is a controlled comparison, not an automatic migration.
 
-- mobile-browser compatibility and touch/input behavior;
-- WebGL/WebGPU capability detection;
-- GPU particle, water, fog, volumetric and post-processing paths appropriate to device tier;
-- shader/material quality tiers;
-- asset streaming, compression and loading;
-- animation, physics and character-controller performance;
-- memory, thermal and battery behavior on representative phones;
-- PWA/offline support if approved later;
-- multiplayer/runtime architecture compatibility;
-- debug, profiling and real-device evidence.
+### Required comparison scope
 
-Three.js remains the canonical browser runtime unless the owner explicitly changes that decision.
+Port the same accepted content and behavior:
+
+- character selection/load-in needed for the slice;
+- First Breach start-to-boss-to-exit flow;
+- first Heartvale playable section;
+- same approved models, rigs, animations and effects;
+- same saved state/progression contract;
+- same desktop and representative mobile-browser targets;
+- equivalent graphics quality tiers.
+
+Do not redesign the game to make one runtime look better. Use the same asset sources, gameplay contracts, cameras, quality targets and test devices.
+
+### Required comparison metrics
+
+- desktop and mobile-browser compatibility;
+- WebGL fallback and WebGPU behavior;
+- startup/download size and streaming/loading;
+- frame rate, frame-time stability, memory, thermal and battery behavior;
+- water, particles, fog, volumetrics, lighting and post-processing;
+- skeletal animation, retargeting and state transitions;
+- physics and character-controller behavior;
+- UI, touch, keyboard/mouse and accessibility integration;
+- asset-loading reliability and material fidelity;
+- debugging/profiling/tooling;
+- implementation time, defects and maintenance complexity;
+- save/network/runtime architecture compatibility.
+
+### Decision outcomes
+
+After side-by-side evidence, the owner may choose:
+
+- `THREEJS_REMAINS_CANONICAL`;
+- `BABYLONJS_WINS_FUTURE_BROWSER_WORK`;
+- `KEEP_BOTH_FOR_FURTHER_TESTING`;
+- `CATEGORY_SPLIT_OR_SPECIAL_MODE_ONLY`;
+- `REJECT_BABYLON_PORT`.
+
+No migration occurs before the verdict. The existing Three.js game remains intact and runnable throughout the experiment.
 
 ## Long-term full native/installed port
 
-If the project eventually requires a full installed/native version beyond what the browser target can reasonably deliver, evaluate:
+If the project eventually needs an installed/native edition beyond what the browser target can reasonably deliver, evaluate:
 
 1. Unreal Engine;
 2. Unity.
 
-That is a long-term product decision, not a current POC dependency.
-
-A native port would be:
-
-- a separate evaluation/project phase;
-- based on a mature, accepted browser vertical slice;
-- justified by concrete requirements such as fidelity, world scale, platform distribution, simulation, tooling or performance;
-- approved by the owner before implementation;
-- built by reusing preserved source and neutral assets rather than recreating them from zero.
+That is a later product phase, not a current POC dependency and not a substitute for the Babylon browser comparison.
 
 Do not build or maintain a parallel Unreal/Unity client during the current browser POC.
 
@@ -91,6 +108,7 @@ neutral/
 
 targets/
   web-threejs/
+  web-babylon-poc-comparison/
   unreal-future/
   unity-future/
 ```
@@ -101,7 +119,7 @@ Not every format is required for every asset. The asset contract selects the rep
 
 Houdini source graphs, scripts, parameters, seeds and caches are preserved as master authoring data where applicable.
 
-The Three.js browser runtime receives optimized representations such as:
+The browser runtimes consume optimized representations such as:
 
 - static/skinned GLB;
 - PBR textures;
@@ -112,18 +130,13 @@ The Three.js browser runtime receives optimized representations such as:
 - baked animation;
 - runtime metadata.
 
-A future Unreal or Unity target should re-integrate/re-export preserved source and neutral outputs rather than recreate the artistic, procedural, simulation and animation work.
+The Babylon.js comparison and any future Unreal/Unity port should re-integrate/re-export preserved source and neutral outputs rather than recreate artistic, procedural, simulation and animation work.
 
 ## Portability does not mean zero work
 
-The preserved sources remove the need to start over, but each target still needs engine-specific integration:
+Preserved sources prevent starting over, but every target still needs runtime-specific integration for rendering, materials, particles, physics, animation, UI, loading, networking and packaging.
 
-- Three.js shaders/runtime systems;
-- Unreal materials, Niagara, animation and gameplay integration;
-- Unity shaders/VFX Graph, animation and gameplay integration;
-- engine-specific physics, lighting, UI, loading and packaging.
-
-The goal is **reuse and controlled re-integration**, not a false promise that an engine port requires no target-specific work.
+The goal is **reuse and controlled re-integration**.
 
 ## License/provenance rule
 
@@ -138,8 +151,10 @@ When Houdini Indie or another production license becomes active, rebuild/re-expo
 
 ```text
 1. Finish and verify First Breach in Three.js
-2. Finish the browser/mobile vertical slice
-3. Improve Three.js/WebGL/WebGPU quality and performance as required
-4. Preserve engine-neutral source/assets continuously
-5. Consider Unreal versus Unity only if a future native/full-engine edition is actually needed
+2. Finish and verify the first Heartvale playable section in Three.js
+3. Freeze a representative two-section POC baseline
+4. Port that exact baseline to Babylon.js on an isolated comparison branch
+5. Run desktop/mobile-browser side-by-side tests
+6. Owner selects the future browser-runtime direction
+7. Consider Unreal versus Unity only if a future native/full-engine edition is needed
 ```
