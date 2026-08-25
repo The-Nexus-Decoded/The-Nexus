@@ -19,6 +19,7 @@ A lower-priority source never silently overrides a higher-priority source.
 - `ONBOARDING.md`
 - `AUTO_DISCOVER_WORKSPACE.md`
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`
+- `ANIMATION_PROVIDER_ROUTING.md`
 - `WORKFLOW.md`
 - `ARCHITECTURE_DECISION.md`
 - ticket kickoff files under `kickoffs/`
@@ -51,9 +52,28 @@ Before a live session relies on a specialist file, it must locate/materialize th
 
 ## Current production tool direction
 
-- Tripo is the primary new asset lane, but it is not considered connected until `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` passes a live authenticated read.
+### Images
+
+- Use the active LLM's built-in image generator for concept art and multiview references whenever available.
+- Tripo 2D image credits are disabled by default; exceptions require exact owner approval.
+
+### Tripo 3D
+
+- Tripo is the primary new 3D asset lane, but it is not considered connected until `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` passes a live authenticated read.
 - Use official Tripo v3 SDK/API or an exact provider-documented first-party CLI. Do not guess or install an unverified similarly named package.
 - Geometry-changing operations, including segmentation/mesh completion/low-poly, occur before final rigging.
+
+### Animation
+
+- Tripo is the primary auto-rig and preset-animation-retarget lane.
+- The public API currently documents versioned fixed preset libraries, not arbitrary text-to-animation.
+- Search the live preset library first for every motion.
+- Derive constrained, directional, class-specific, weapon-specific, interaction, hit and death variants in Houdini KineFX/Blender when a preset is close.
+- Use a verified Tripo custom-motion feature only when authenticated provider evidence proves it exists for the owner's account.
+- Route genuinely bespoke motions through another approved custom-motion or AI-authored DCC/procedural lane while preserving the Tripo/canonical rig.
+
+### Other
+
 - Playable characters remain modular.
 - NPC full-outfit segmentation is allowed where approved.
 - Monsters use regenerate/compare QA.
