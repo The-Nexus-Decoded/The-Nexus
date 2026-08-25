@@ -5,6 +5,7 @@
     "zone": "Heartvale hv-1 (Soul Well Basin)",
     "x": 5437.5,
     "z": 2648.4,
+    "elevation": 10.4,
     "note": "exit Connector emerges at the Soul Well Basin POI (Heartvale hv-1)"
   },
   "seedPolicy": {
