@@ -1,13 +1,16 @@
 # SoulDrifter Multi-LLM Onboarding
 
-**This gate happens before GLOBAL-AUDIT or any ticket implementation.**
+## Execution frequency
 
-Onboarding has two independent halves:
+This is the **full workstation bootstrap**, not a ritual repeated in every new chat.
 
-1. repository/workspace/session onboarding;
-2. production toolchain/provider onboarding.
+Run it:
 
-Passing only the Git/GitHub half is not enough.
+- once on the production workstation;
+- again only when `SESSION_FAST_START.md` or `config/onboarding-cache-policy.json` reports an invalidation trigger;
+- after major changes such as the Houdini Apprentice-to-Indie upgrade, Tripo SDK/API-region change, secret/authentication failure, Blender major-version/add-on change, Node/Python major-version change, or real-GPU/browser-path change.
+
+Every normal M3, Claude Code, or Codex chat uses the cached receipts through `SESSION_FAST_START.md`.
 
 ## Authoritative local workspace
 
@@ -23,37 +26,29 @@ Ticket worktrees belong under:
 
 `H:\CodexData\.codex\worktrees\<issue>\...`
 
+Persistent local toolchain state:
+
+`H:\CodexData\souldrifter-toolchain\`
+
 Repository:
 
 `The-Nexus-Decoded/The-Nexus`
 
 ## Hard rules
 
-- Do not create a fresh clone when the existing checkout/worktree is available.
-- Do not silently use another copy of The-Nexus.
+- Do not create a fresh clone when the existing checkout/worktree exists.
+- Do not silently use another The-Nexus copy.
 - Do not work from Downloads/Desktop/temp copies.
-- Do not put multiple ticket workers in the same worktree.
 - One ticket = one branch + one dedicated worktree.
-- Never write credentials/tokens into the repo, prompt, screenshots, evidence, or logs.
-- Do not begin production work until `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` passes for every tool required by the ticket.
+- Never store credentials/tokens in Git, prompts, screenshots, evidence, or logs.
+- Full bootstrap configures tools only; it does not submit paid provider tasks or generate ticket assets.
+- Ticket-specific provider work still requires exact live pricing/balance and owner approval.
 
 ---
 
 # Gate A — Automatic workspace/worktree discovery
 
-Read `AUTO_DISCOVER_WORKSPACE.md`.
-
-Every model/session must:
-
-1. inspect its current directory for an existing The-Nexus checkout/worktree;
-2. locate the canonical local The-Nexus checkout if needed;
-3. run `git worktree list --porcelain`;
-4. discover existing ticket worktrees/branches;
-5. map ticket -> local worktree -> branch -> live PR/issue;
-6. reuse in-progress worktrees instead of creating duplicates;
-7. prove the SoulDrifter game root and harness are accessible.
-
-Minimum evidence:
+Read `AUTO_DISCOVER_WORKSPACE.md` and prove:
 
 ```text
 git rev-parse --show-toplevel
@@ -64,40 +59,42 @@ git remote -v
 git worktree list --porcelain
 ```
 
-If no valid checkout/worktree can be discovered:
-
-`BLOCKED_WORKSPACE_DISCOVERY`
+Reuse existing in-progress worktrees. Do not reset or discard unexplained work.
 
 ---
 
-# Gate B — GitHub connection verification
+# Gate B — GitHub connection
 
-Prove live read access to:
+Prove live read access to `The-Nexus-Decoded/The-Nexus`, including assigned issue, all comments, related PR/reviews, and live head state.
 
-`The-Nexus-Decoded/The-Nexus`
-
-The session must retrieve repository metadata, its assigned issue, all current comments, related PRs/reviews, and the live branch/head state.
-
-Do not assume local Git authentication proves GitHub issue/PR integration, or vice versa.
-
-If live reads fail:
-
-`BLOCKED_GITHUB_CONNECTION`
+Local Git authentication does not prove tracker access, and tracker access does not prove the correct local worktree.
 
 ---
 
-# Gate C — Sync/freshness and work preservation
+# Gate C — Persistent production toolchain bootstrap
 
-Before edits:
+Execute `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` once for the workstation-required lanes.
 
-- identify the remote/upstream;
-- fetch refs when permitted;
-- compare local and live heads;
-- inspect uncommitted changes;
-- do not reset, clean, discard, or overwrite unexplained work;
-- load ticket handoff/ledger/evidence state.
+This includes:
 
-A clean `git status` alone does not prove freshness.
+- active host-LLM image-generation capability where available;
+- official Tripo v3 SDK/API installation and authenticated read-only balance check;
+- optional exact first-party Tripo CLI discovery, never the old unverified generic `tripo-cli` package;
+- optional Tripo MCP/Blender integration;
+- Houdini version/build, Python/HOM, KineFX, license, file format, and export smoke test;
+- Blender version/Python/add-ons/import/export smoke test;
+- Three.js/GLB/runtime tools;
+- real-GPU browser path;
+- audio/media utilities;
+- controlled staging, asset registry, hashes, provenance, and rollback.
+
+The official Tripo provider module is defined in:
+
+- `config/tripo-provider.json`
+- `scripts/tripo/tripo-readonly-check.mjs`
+- the shared local tool root under `H:\CodexData\souldrifter-toolchain\tripo-v3\`
+
+A provider name in documentation is not a connection. The bootstrap must perform a live sanitized authenticated check and write a local receipt.
 
 ---
 
@@ -105,75 +102,45 @@ A clean `git status` alone does not prove freshness.
 
 ## MiniMax M3
 
-Built-in sidebar agents such as Explore, Worker, Coder, Verifier, and General are product defaults unless explicitly customized.
-
-Do not infer hidden prompts/tools from their names. Inspect only observable settings and run one harmless read-only dispatch to prove that a subagent can access the selected repository, live GitHub context, and `START_HERE.md`.
+Explore, Worker, Coder, Verifier, and General may be product defaults. Do not infer hidden settings from names. Run one harmless read-only dispatch proving repository, harness, and ticket context propagation.
 
 ## Claude Code and ChatGPT/Codex
 
-Both must prove the exact same repository/worktree, live GitHub, context-version, ticket-state, and no-conflicting-work-claim gates.
-
-Model-specific memory is an adapter, not project truth.
+Verify the same repository/worktree, live GitHub, context version, ticket state, and work claims. Model-specific memory is an adapter, not project truth.
 
 ---
 
-# Gate E — Production toolchain/provider preflight
+# Persistent receipt locations
 
-Read and execute:
+```text
+H:\CodexData\souldrifter-toolchain\receipts\production-toolchain.json
+H:\CodexData\souldrifter-toolchain\receipts\tripo-provider.json
+```
 
-`PRODUCTION_TOOLCHAIN_PREFLIGHT.md`
+Receipts contain versions, paths, timestamps, capability PASS/FAIL state, and receipt IDs—but never secret values.
 
-This includes, when required by the ticket:
-
-- Tripo API/SDK connection and authenticated read;
-- exact first-party CLI discovery/installation if the provider exposes one;
-- optional Tripo MCP/Blender add-on verification;
-- current provider pricing/balance/credit gate;
-- image/concept provider;
-- Houdini version/Python/HOM/license/export path;
-- Apprentice-versus-Indie production-format rules;
-- Blender and add-ons;
-- Three.js/runtime/GLB optimization;
-- real-GPU browser validation;
-- audio/media tooling;
-- asset registry, provenance, rollback, and controlled storage.
-
-A provider is not “connected” because its name appears in a runbook. It must pass a live sanitized connection check.
-
----
-
-# Gate F — Context Receipt
-
-After onboarding passes, follow `START_HERE.md` and produce the ticket Context Receipt.
-
----
-
-# Combined onboarding receipt
+## Full onboarding receipt
 
 ```text
 SOULDRIFTER ONBOARDING RECEIPT
 contextVersion: <version>
 platform: <M3|Claude Code|ChatGPT/Codex>
+workstationId: <sanitized identifier>
 workspaceRoot: <path>
-repositoryTopLevel: <path>
 repositoryIdentity: The-Nexus-Decoded/The-Nexus
 repositoryRemote: <remote>
-branch: <branch>
-localHead: <sha>
-liveHead: <sha>
-worktree: <path>
-gitStatusReviewed: yes/no
-remoteFreshnessReviewed: yes/no
+worktreeDiscovery: PASS/FAIL
 githubLiveRead: PASS/FAIL
-harnessEntryPointRead: yes/no
-agentContextPropagationTested: <yes/no/not-applicable>
-productionToolchainReceipt: PASS/BLOCKED
-tripoConnection: PASS/FAIL/NOT_REQUIRED
-houdiniConnection: PASS/FAIL/NOT_REQUIRED
-threejsRuntime: PASS/FAIL/NOT_REQUIRED
-realGpu: PASS/FAIL/NOT_REQUIRED
+agentContextPropagation: PASS/FAIL/NOT_APPLICABLE
+productionToolchainReceiptId: <id>
+productionToolchainReceiptPath: <path>
+tripoProviderReceiptId: <id>
+houdiniLicense: <Apprentice|Indie|other>
+blender: PASS/FAIL
+threejsRuntime: PASS/FAIL
+realGpu: PASS/FAIL
 blockingIssues: []
 result: PASS|BLOCKED
 ```
 
-No PASS means no audit, implementation, provider spend, or asset production.
+After this passes, new chats use `SESSION_FAST_START.md`; they do not rerun this full process unless invalidated.
