@@ -598,20 +598,27 @@ async function placeSectionDoors(
     { id: "oathbreaker-choice", x: layout.landmarks.doorOathbreaker.x, z: layout.landmarks.doorOathbreaker.z, axis: "x" },
     ...layout.rooms
       .filter((room) => room.kind === "gallery")
+      // Generated route corridors enter each gallery at the midpoint of its
+      // west wall (room.x, room.z + room.h / 2). The portal normal and its
+      // collision band therefore stay on X while the leaf spans Z.
       .map((room) => ({ id: `${room.id}-entry`, x: room.x, z: room.z + room.h / 2, axis: "x" as const })),
     { id: "convergence-lock", x: 188, z: 10, axis: "x" },
     { id: "ashen-threshold", x: 192, z: 10, axis: "x" },
     { id: "boss-lock", x: 208, z: 10, axis: "x" },
     { id: "memory-vault", x: 242, z: 7, axis: "x" },
     { id: "way-upward", x: 247, z: 12, axis: "z" },
-    { id: "heartvale-threshold", x: 258, z: 15, axis: "x" },
   ];
 
   const tickables: ((elapsed: number) => void)[] = [];
   const portcullisIds = new Set([
-    "wayfarer-choice", "oathbreaker-choice", "ashen-threshold", "boss-lock",
+    "ashen-threshold", "boss-lock",
   ]);
   const routeMists: THREE.Object3D[] = [];
+  const routeMistByDoorId = new Map<string, {
+    mesh: THREE.Mesh;
+    material: THREE.ShaderMaterial;
+    closedOpacity: number;
+  }>();
   const states: {
     id: string;
     x: number;
@@ -756,6 +763,11 @@ async function placeSectionDoors(
       };
       scene.add(smoke);
       routeMists.push(smoke);
+      routeMistByDoorId.set(door.id, {
+        mesh: smoke,
+        material: smokeMaterial,
+        closedOpacity: active ? 0.78 : 0.96,
+      });
       tickables.push((elapsed) => { smokeMaterial.uniforms.uTime!.value = elapsed; });
     }
   }
@@ -783,6 +795,15 @@ async function placeSectionDoors(
       }
       state.root.userData.state = state.active ? (state.open ? "open" : "closed") : "sealed";
       state.root.userData.blocksMovement = !state.open || state.progress < 0.88;
+      const routeMist = routeMistByDoorId.get(state.id);
+      if (routeMist) {
+        // The inactive route remains visibly sealed. The chosen route's mist
+        // follows the physical portal progress so an open route-choice door
+        // never leaves an opaque phantom barrier across the aperture.
+        const openFactor = state.active ? 1 - state.progress : 1;
+        routeMist.material.uniforms.uOpacity!.value = routeMist.closedOpacity * openFactor;
+        routeMist.mesh.userData.openProgress = state.progress;
+      }
     }
   });
 
@@ -848,7 +869,6 @@ async function placeKitProps(
   scene: THREE.Scene,
   layout: BreachV2Layout,
   loader: GLTFLoader,
-  fireParent: THREE.Scene,
 ): Promise<PropPlacements> {
   const used = new Map<string, Promise<GLTF>>();
   const hasWeaponRacks = layout.placements.some((placement) => placement.asset === "empty-weapon-rack");
@@ -1034,8 +1054,20 @@ async function placeKitProps(
         castShadow: false,
         phase,
       });
-      fire.root.position.set(p.x, p.elevation + p.fireAnchorY, p.z);
-      const flameScale = p.asset === "wall-torch-sconce" ? 0.55
+      // Fire belongs to the imported fixture, not to the world. The sconce's
+      // authored torch cup is offset from its wall plate; this one loader-side
+      // source-space correction seats the flame in that cup for every wall
+      // orientation. Braziers stay centered, and hanging flames inherit sway.
+      const fixtureFireOffset = p.asset === "wall-torch-sconce"
+        ? new THREE.Vector3(0.1, p.fireAnchorY - 0.22, -0.31)
+        : new THREE.Vector3(0, p.fireAnchorY, 0);
+      fire.root.position.copy(fixtureFireOffset);
+      fire.root.userData = {
+        fixtureAsset: p.asset,
+        fixtureRoomId: p.roomId,
+        fixtureLocalAnchor: fixtureFireOffset.toArray(),
+      };
+      const flameScale = p.asset === "wall-torch-sconce" ? 0.48
         : p.asset === "floor-brazier" ? 0.68
           : 0.58;
       fire.root.scale.setScalar(flameScale);
@@ -1061,7 +1093,7 @@ async function placeKitProps(
         child.decay = 1.5;
         localLights.push(child);
       });
-      fireParent.add(fire.root);
+      instance.fireMount.add(fire.root);
       cullables.push(fire.root);
       tickables.push((elapsed) => {
         // Hidden rooms do not need particle-buffer or shader-uniform updates.
@@ -1069,7 +1101,9 @@ async function placeKitProps(
         // fire animator applies its flicker baseline.
         if (!fire.root.visible) return;
         fire.animate(elapsed);
-        const lightScale = p.asset === "floor-brazier" ? 5.2 : 4.0;
+        const lightScale = p.asset === "floor-brazier" ? 3.4
+          : p.asset === "hanging-brazier" ? 2.6
+            : 1.7;
         localLights.forEach((light) => { light.intensity *= lightScale; });
       });
     }
@@ -1422,14 +1456,76 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     hazardMaterials[1]!.opacity = 0.2 + Math.max(0, -pulse) * 0.44;
   });
 
-  // daylight portal at the east end of the Way Upward (visible from inside)
-  const exitGlow = new THREE.Mesh(
-    new THREE.PlaneGeometry(4.2, 3.4),
-    new THREE.MeshBasicMaterial({ color: 0xa9c7a2, transparent: true, opacity: 0.62, depthWrite: false }),
-  );
-  exitGlow.position.set(lm.exitPoint.x + 0.6, 1.7, lm.exitPoint.z);
-  exitGlow.rotation.y = -Math.PI / 2;
-  group.add(exitGlow);
+  // The Heartvale threshold is not a door: it is the vertical skin of the
+  // Soulwell above. Keep this runtime layer traversable and translucent so the
+  // outdoor terrain remains visible through the downward-flowing water. Its
+  // dimensions, arch mask, flow phases, and normal displacement mirror the
+  // isolated Houdini FX POC in build-soulwell-exit-water-poc.py.
+  const exitWaterMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uDeep: { value: new THREE.Color(0x123c49) },
+      uSoul: { value: new THREE.Color(0x69d7d5) },
+      uShimmer: { value: new THREE.Color(0xd9fff4) },
+    },
+    vertexShader: `
+      uniform float uTime;
+      varying vec2 vUv;
+      varying float vRipple;
+      void main() {
+        vUv = uv;
+        vec3 displaced = position;
+        float edge = smoothstep(0.0, 0.13, uv.x) * smoothstep(0.0, 0.13, 1.0 - uv.x);
+        vRipple = sin(uv.y * 22.0 - uTime * 2.8 + sin(uv.x * 11.0) * 1.8);
+        displaced.z += vRipple * 0.055 * edge;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uDeep;
+      uniform vec3 uSoul;
+      uniform vec3 uShimmer;
+      varying vec2 vUv;
+      varying float vRipple;
+      void main() {
+        vec2 p = vUv;
+        float halfWidth = 0.205;
+        float shoulderY = 0.58;
+        float body = (1.0 - step(halfWidth, abs(p.x - 0.5))) * (1.0 - step(shoulderY, p.y));
+        vec2 archPoint = vec2((p.x - 0.5) / halfWidth, (p.y - shoulderY) / 0.28);
+        float crown = (1.0 - step(1.0, length(archPoint))) * step(shoulderY, p.y);
+        float archMask = max(body, crown);
+        if (archMask < 0.5) discard;
+        float fallA = sin(p.x * 18.0 + p.y * 7.0 + uTime * 1.4) * 0.5 + 0.5;
+        float fallB = sin(p.x * 31.0 - p.y * 13.0 - uTime * 2.1) * 0.5 + 0.5;
+        float verticalFlow = sin((p.y + fallA * 0.045) * 52.0 + uTime * 5.2) * 0.5 + 0.5;
+        float caustic = pow(max(0.0, fallA + fallB + verticalFlow * 0.45 - 1.42), 2.4);
+        float edge = 1.0 - smoothstep(0.34, 0.5, abs(p.x - 0.5));
+        float baseMix = 0.3 + fallA * 0.18 + (vRipple * 0.5 + 0.5) * 0.08;
+        vec3 color = mix(uDeep, uSoul, baseMix);
+        color = mix(color, uShimmer, caustic * 0.78);
+        float alpha = 0.39 + caustic * 0.24 + edge * 0.08;
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const exitWater = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3.4, 32, 24), exitWaterMaterial);
+  exitWater.name = "heartvale-soulwell-water-threshold";
+  exitWater.position.set(lm.exitPoint.x + 0.6, 1.7, lm.exitPoint.z);
+  exitWater.rotation.y = -Math.PI / 2;
+  exitWater.renderOrder = 5;
+  exitWater.userData = {
+    vfxKind: "soulwell-water-threshold",
+    collisionMode: "traversable",
+    sourceLane: "HOUDINI_APPRENTICE_POC_RUNTIME_SHADER",
+    houdiniProductionStatus: "POC_VALIDATED_NONCOMMERCIAL",
+  };
+  group.add(exitWater);
+  tickables.push((elapsed) => { exitWaterMaterial.uniforms.uTime!.value = elapsed; });
 
   // Landmark builders use local floor-relative Y values. Lift each authored
   // assembly once after construction so animated children retain local motion.
@@ -1573,7 +1669,7 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   for (const spec of layout.lights) {
     // Each authored fire fixture already owns its local point light. Creating
     // the registry light again doubled the per-fragment lighting cost.
-    if (spec.id.startsWith("fire-")) continue;
+    if (spec.id.startsWith("fire-") || spec.id === "exit-daylight") continue;
     const light = new THREE.PointLight(new THREE.Color(spec.color), spec.intensity * 14, spec.radius * 2.4, 1.5);
     light.position.set(spec.x, spec.y, spec.z);
     light.castShadow = spec.castsShadow && SHADOW_LIGHTS.has(spec.id);
@@ -1596,7 +1692,8 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   // the "first outdoor moment": daylight spilling west into the Way Upward
   const exitSpec = layout.lights.find((l) => l.id === "exit-daylight");
   if (exitSpec) {
-    const day = new THREE.SpotLight(0xd7e7c7, 22, 34, Math.PI / 3.0, 0.6, 1.25);
+    const day = new THREE.SpotLight(0xd7e7c7, 10, 34, Math.PI / 3.0, 0.6, 1.25);
+    day.name = "heartvale-threshold-daylight";
     day.position.set(exitSpec.x + 4, exitSpec.y + 0.4, exitSpec.z);
     day.target.position.set(exitSpec.x - 12, floorElevationAt(layout, exitSpec.x - 12, exitSpec.z) + 1.0, exitSpec.z);
     scene.add(day, day.target);
@@ -1707,7 +1804,7 @@ export async function startDungeonPreview(
   scene.add(shellGroup);
   buildArchitecturalPolish(scene, layout, materials);
   const ceilings = shellGroup.getObjectByName("shell-ceilings");
-  const propPlacement = await placeKitProps(scene, layout, gltfLoader, scene);
+  const propPlacement = await placeKitProps(scene, layout, gltfLoader);
   const sectionDoors = await placeSectionDoors(
     scene,
     layout,

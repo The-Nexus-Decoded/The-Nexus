@@ -79,27 +79,27 @@
       "description": "Complete tutorial, selected 3-5 galleries, Warden defeat, First Memory once, exit and save/reload.",
       "priority": "critical",
       "dependencies": ["451-P0B-MOVEMENT"],
-      "producer": null,
-      "status": "NOT_STARTED",
+      "producer": "chatgpt-codex",
+      "status": "IMPLEMENTED_UNVERIFIED",
       "automated_checks": ["First Memory idempotency", "reward idempotency", "save/reload state"],
       "runtime_checks": ["one uninterrupted full run through boss, memory and exit"],
       "visual_evidence": ["tutorial interactions", "boss defeat", "memory reveal", "Heartvale connector"],
       "verifier": "independent-verifier",
-      "verification": { "status": "NOT_RUN", "commit": null, "notes": "BREACH-V2 remains preview-isolated from the legacy Level 01 gameplay runtime." },
-      "blockers": ["Gameplay integration boundary must be audited before deciding the minimal in-ticket repair."]
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Producer added preview-isolated tutorial, sequential gallery, Warden, one-time First Memory reward, Heartvale exit, and IndexedDB save/reload state at commit 39942d2a. Focused tests and a live seed-4182 Wayfarer completion/reload passed; independent verification remains required." },
+      "blockers": []
     },
     {
       "id": "451-P0C-COMBAT-MODES",
       "description": "Real-time default and turn-based smoke share combat state, rewards and outcomes.",
       "priority": "critical",
       "dependencies": ["451-P0C-GAMEPLAY"],
-      "producer": null,
-      "status": "NOT_STARTED",
+      "producer": "chatgpt-codex",
+      "status": "IMPLEMENTED_UNVERIFIED",
       "automated_checks": ["shared authoritative combat contract"],
       "runtime_checks": ["real-time full-spine smoke", "turn-based smoke on same simulation"],
       "visual_evidence": ["mode and state continuity"],
       "verifier": "independent-verifier",
-      "verification": { "status": "NOT_RUN", "commit": null, "notes": null },
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Producer tests and browser smoke show real-time and turn-based presentations preserve the same active encounter and rewards. Independent verification remains required." },
       "blockers": []
     },
     {
@@ -113,7 +113,21 @@
       "runtime_checks": ["desktop", "narrow viewport", "first-person", "third-person"],
       "visual_evidence": ["every room wide", "close front/side", "four walls", "doors closed/open", "ceiling"],
       "verifier": "independent-verifier",
-      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Prior screenshots are not fresh evidence for the next commit." },
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Producer captured fresh real-GPU targeted evidence for seated sconce and brazier flames, heavy-door and portcullis closed/open states, the +10.4 m Way Upward stair approach, and the doorless Soulwell water threshold at desktop and 390x844. Full independent every-room review remains required." },
+      "blockers": []
+    },
+    {
+      "id": "451-P1-EXIT-VFX",
+      "description": "The Heartvale exit arch is a doorless, traversable, downward-flowing Soulwell water veil rather than a flat door-like plane.",
+      "priority": "high",
+      "dependencies": ["451-P0A-EXIT-CHAIN"],
+      "producer": "chatgpt-codex",
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "automated_checks": ["Houdini frame fingerprints change", "Houdini topology remains stable", "runtime shader time advances", "Heartvale door portal absent"],
+      "runtime_checks": ["Wayfarer exit view", "Oathbreaker exit view", "threshold remains traversable", "zero shader or console errors"],
+      "visual_evidence": ["animated water contained inside the arch", "Heartvale terrain visible through the veil", "no physical exit door"],
+      "verifier": "independent-verifier",
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Producer built an isolated Houdini 22.0.368 Apprentice .hipnc POC without rebuilding the dungeon. Frames 1/12/24 produced unique position fingerprints with stable 825-point/266-primitive topology; the aligned Three.js shader passed both-route Playwright and real-GPU checks. This is a non-commercial POC, not an Indie production export." },
       "blockers": []
     },
     {
@@ -121,13 +135,13 @@
       "description": "Current commit passes typecheck, tests, build, release checks, real-GPU and performance gates.",
       "priority": "high",
       "dependencies": ["451-P0C-GAMEPLAY", "451-P0C-COMBAT-MODES", "451-P1-VISUAL"],
-      "producer": null,
-      "status": "NOT_STARTED",
+      "producer": "chatgpt-codex",
+      "status": "IMPLEMENTED_UNVERIFIED",
       "automated_checks": ["yarn typecheck", "yarn test", "yarn build", "yarn verify:release", "git diff --check"],
       "runtime_checks": ["ANGLE/D3D11 renderer", "zero shader failures", "performance metrics", "desktop and narrow viewport"],
       "visual_evidence": ["fresh verifier evidence tied to current commit"],
       "verifier": "independent-verifier",
-      "verification": { "status": "NOT_RUN", "commit": null, "notes": "No build or runtime verification ran during Phase 1." },
+      "verification": { "status": "NOT_RUN", "commit": null, "notes": "Current producer pass: yarn typecheck, 28 test files / 182 tests, yarn build within preferred release budget, yarn verify:release, git diff --check, two-route native Python Playwright acceptance, real-GPU browser smoke, and 390x844 visual check all passed with zero console/shader errors. The SoulDrifter package has no ESLint script/config; Arianus-Sky's parent ESLint config targets the separate Next app. Independent verification remains required." },
       "blockers": []
     }
   ]
