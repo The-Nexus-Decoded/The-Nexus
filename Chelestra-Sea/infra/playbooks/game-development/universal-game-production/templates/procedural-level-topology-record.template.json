@@ -1,10 +1,55 @@
 {
-  "schemaVersion": 2,
-  "policyId": "universal-procedural-level-topology-v2",
+  "schemaVersion": 3,
+  "policyId": "universal-procedural-level-topology-v3",
   "projectId": "",
   "ticketId": "",
   "commit": "",
   "seedOrVariant": "",
+  "runtimeSpatialAuthority": {
+    "authorityId": "",
+    "stateRevision": "",
+    "sourceCoverage": [
+      {
+        "sourceClass": "",
+        "sourceRecordIds": [],
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "queryStateParity": [
+      {
+        "consumer": "",
+        "state": "",
+        "authorityId": "",
+        "stateRevision": "",
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "dynamicStatePropagationChecks": [
+      {
+        "objectId": "",
+        "fromState": "",
+        "toState": "",
+        "authorityId": "",
+        "stateRevision": "",
+        "consumerResults": {},
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "debugAndProofHookChecks": [
+      {
+        "hookId": "",
+        "authorityId": "",
+        "stateRevision": "",
+        "matchesLiveAuthority": null,
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "status": "NOT_RUN"
+  },
   "logicalGraph": {
     "nodes": [
       {
@@ -41,6 +86,70 @@
     "dynamicStateGeometry": [],
     "streamingBoundaries": []
   },
+  "objectContractChain": [
+    {
+      "objectId": "",
+      "spatialInventoryClass": "",
+      "assetCatalogRecordId": "",
+      "placementRegistryRecordId": "",
+      "generatedLayoutRecordId": "",
+      "runtimeObjectId": "",
+      "renderOwnerIds": [],
+      "colliderIds": [],
+      "stableIdStatus": "NOT_RUN",
+      "renderColliderReconciliationStatus": "NOT_RUN",
+      "colliderOnlyReason": "",
+      "worldTransform": {
+        "position": null,
+        "rotation": null,
+        "scale": null
+      },
+      "worldBounds": {
+        "minimum": null,
+        "maximum": null
+      },
+      "proxyBounds": {
+        "minimum": null,
+        "maximum": null
+      },
+      "postFitProxyStatus": "NOT_RUN",
+      "participation": {
+        "classification": "",
+        "inheritedFromRenderOwnerId": "",
+        "playerMovement": "",
+        "npcNavigation": "",
+        "lineOfSightAndOcclusion": "",
+        "projectileMeleeAndPhysics": "",
+        "interaction": "",
+        "camera": "",
+        "debugAndProofHooks": ""
+      },
+      "approvedOverrides": [
+        {
+          "field": "",
+          "priorValue": null,
+          "effectiveValue": null,
+          "reason": "",
+          "ticketId": "",
+          "approvedBy": "",
+          "approvalEvidence": []
+        }
+      ],
+      "dynamicStates": [
+        {
+          "state": "",
+          "stateRevision": "",
+          "renderOwnerIds": [],
+          "colliderIds": [],
+          "participation": {},
+          "status": "NOT_RUN",
+          "evidence": []
+        }
+      ],
+      "reconciliationStatus": "NOT_RUN",
+      "evidence": []
+    }
+  ],
   "connections": [
     {
       "edgeId": "",
@@ -58,6 +167,33 @@
       "movementStateTransition": "NOT_RUN",
       "resourceAndRecoveryRules": "NOT_RUN",
       "realControllerProof": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "productionMovementEvidence": [
+    {
+      "routeOrEdgeId": "",
+      "authorityId": "",
+      "stateRevision": "",
+      "movementPrimitiveId": "",
+      "bodyProfileId": "",
+      "timestepSeconds": null,
+      "axisAligned": { "status": "NOT_RUN", "evidence": [] },
+      "diagonalCombinedInput": { "status": "NOT_RUN", "evidence": [] },
+      "cornerApproach": { "status": "NOT_RUN", "evidence": [] },
+      "wallSliding": { "status": "NOT_RUN", "evidence": [] },
+      "continuousSegmentsOrSweeps": [
+        {
+          "start": null,
+          "end": null,
+          "segmentLength": null,
+          "timestepCount": null,
+          "collisionResult": "NOT_RUN",
+          "evidence": []
+        }
+      ],
+      "endpointGridOrPathOnly": false,
+      "result": "NOT_RUN",
       "evidence": []
     }
   ],
@@ -91,7 +227,25 @@
     "unsupportedElevationOrDepthTransitions": 0,
     "movementStateTransitionFailures": 0,
     "resourceRuleFailures": 0,
-    "recoveryOrSoftLockFailures": 0
+    "recoveryOrSoftLockFailures": 0,
+    "proofSourceCoverageFailures": 0,
+    "unresolvedRenderOnlySolids": 0,
+    "unexplainedColliderOnlyObjects": 0,
+    "catalogRegistryContractDrift": 0,
+    "registryGeneratedContractDrift": 0,
+    "generatedRuntimeContractDrift": 0,
+    "runtimeRenderColliderContractDrift": 0,
+    "unjustifiedContractOverrides": 0,
+    "postFitProxyMismatchFailures": 0,
+    "spatialQueryParityFailures": 0,
+    "spatialStatePropagationFailures": 0,
+    "lineOfSightParityFailures": 0,
+    "projectilePhysicsParityFailures": 0,
+    "interactionParityFailures": 0,
+    "cameraParityFailures": 0,
+    "movementPrimitiveParityFailures": 0,
+    "diagonalNavigationFailures": 0,
+    "continuousSegmentOrSweepFailures": 0
   },
   "automatedGate": "NOT_RUN",
   "independentVerification": "NOT_RUN",

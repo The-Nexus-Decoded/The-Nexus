@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "policyId": "universal-procedural-level-topology-v2",
+  "schemaVersion": 3,
+  "policyId": "universal-procedural-level-topology-v3",
   "architecture": "LOGICAL_GRAPH_THEN_TRAVERSAL_CONTRACTS_THEN_CONSTRUCTIVE_EMBEDDING_THEN_CANONICAL_BOUNDARIES_SURFACES_AND_VOLUMES_THEN_RUNTIME",
   "relatedPolicies": [
     "SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md",
@@ -45,6 +45,107 @@
     "waterAndAirVolumesMayTrapPlayer": false,
     "runtimeConsumesAcceptedInventory": true
   },
+  "runtimeSpatialAuthority": {
+    "required": true,
+    "authorityIdRequired": true,
+    "stateRevisionRequired": true,
+    "requiredSourceCoverage": [
+      "STRUCTURAL_SHELL",
+      "OPENINGS_AND_APERTURES",
+      "WALKABLE_AND_NONWALKABLE_SURFACES",
+      "TERRAIN_AND_ELEVATION_TRANSITIONS",
+      "THRESHOLDS_AND_MOVING_LEAVES",
+      "PROPS_LANDMARKS_AND_BUILT_INS",
+      "HAZARDS_AND_SPECIAL_VOLUMES",
+      "DYNAMIC_AND_LIFECYCLE_STATES"
+    ],
+    "requiredConsumers": [
+      "PLAYER_MOVEMENT",
+      "NPC_NAVIGATION",
+      "LINE_OF_SIGHT_AND_OCCLUSION",
+      "PROJECTILE_MELEE_AND_PHYSICS",
+      "INTERACTION",
+      "CAMERA",
+      "DEBUG_AND_PROOF_HOOKS"
+    ],
+    "requiredStateCoverage": [
+      "INTACT",
+      "DAMAGED",
+      "DESTROYED",
+      "ENABLED",
+      "DISABLED",
+      "OPEN",
+      "CLOSED",
+      "REMOVED"
+    ],
+    "sameLiveAuthorityAndStateRevisionForAllConsumers": true,
+    "debugAndProofHooksMayUseReducedAuthority": false,
+    "stableObjectRenderOwnerColliderIdsRequired": true,
+    "allowedParticipationClassifications": [
+      "BLOCKING",
+      "NONBLOCKING",
+      "TRAVERSABLE",
+      "VFX_ONLY",
+      "INHERITED_FROM_RENDER_OWNER"
+    ],
+    "querySpecificParticipationMustBeExplicit": true,
+    "dynamicStatePropagationRequired": true
+  },
+  "objectContractReconciliation": {
+    "requiredChain": [
+      "ASSET_CATALOG",
+      "PLACEMENT_REGISTRY",
+      "GENERATED_OR_AUTHORED_LAYOUT",
+      "RUNTIME_EFFECTIVE_OBJECT",
+      "RENDER_OWNER",
+      "COLLIDER_INSTANCES"
+    ],
+    "requiredReconciledFields": [
+      "ASSET_ID",
+      "OBJECT_ID",
+      "WORLD_TRANSFORM",
+      "POST_FIT_WORLD_BOUNDS",
+      "COLLISION_PROFILE",
+      "QUERY_PARTICIPATION",
+      "DYNAMIC_STATE"
+    ],
+    "renderedSolidRequiresColliderOrExplicitParticipationClassification": true,
+    "colliderOnlyObjectRequiresReason": true,
+    "approvedOverrideRequiredForContractDrift": true,
+    "requiredOverrideFields": [
+      "FIELD",
+      "PRIOR_VALUE",
+      "EFFECTIVE_VALUE",
+      "REASON",
+      "TICKET_ID",
+      "APPROVED_BY",
+      "APPROVAL_EVIDENCE"
+    ]
+  },
+  "postFitProxyValidation": {
+    "finalWorldTransformRequired": true,
+    "postFitWorldBoundsRequired": true,
+    "finalProxyBoundsRequired": true,
+    "renderOwnerBoundsComparedToProxyBounds": true,
+    "preFitOrLocalBoundsMaySubstitute": false,
+    "mismatchBlocksAcceptance": true
+  },
+  "productionMovementProof": {
+    "productionMovementPrimitiveRequired": true,
+    "productionBodyProfileRequired": true,
+    "productionTimestepRequired": true,
+    "requiredCases": [
+      "AXIS_ALIGNED",
+      "DIAGONAL_COMBINED_INPUT",
+      "CORNER_APPROACH",
+      "WALL_SLIDING"
+    ],
+    "continuousSegmentOrSweepProofRequired": true,
+    "endpointOnlyProofSufficient": false,
+    "gridOnlyProofSufficient": false,
+    "pathOnlyProofSufficient": false,
+    "sparseSampleProofSufficient": false
+  },
   "diagnosticGate": {
     "derivedFromActualEmbeddedGeometryVolumesAndStates": true,
     "requiredBeforeDressing": true,
@@ -76,6 +177,26 @@
     "movementStateTransitionFailures": 0,
     "resourceRuleFailures": 0,
     "recoveryOrSoftLockFailures": 0
+  },
+  "hardZeroMetrics": {
+    "proofSourceCoverageFailures": 0,
+    "unresolvedRenderOnlySolids": 0,
+    "unexplainedColliderOnlyObjects": 0,
+    "catalogRegistryContractDrift": 0,
+    "registryGeneratedContractDrift": 0,
+    "generatedRuntimeContractDrift": 0,
+    "runtimeRenderColliderContractDrift": 0,
+    "unjustifiedContractOverrides": 0,
+    "postFitProxyMismatchFailures": 0,
+    "spatialQueryParityFailures": 0,
+    "spatialStatePropagationFailures": 0,
+    "lineOfSightParityFailures": 0,
+    "projectilePhysicsParityFailures": 0,
+    "interactionParityFailures": 0,
+    "cameraParityFailures": 0,
+    "movementPrimitiveParityFailures": 0,
+    "diagonalNavigationFailures": 0,
+    "continuousSegmentOrSweepFailures": 0
   },
   "runtimeProof": {
     "realMovementModeRequiredForEveryEdge": true,
