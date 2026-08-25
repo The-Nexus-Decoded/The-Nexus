@@ -1,37 +1,50 @@
 {
-  "schemaVersion": 1,
-  "policyId": "souldrifter-procedural-dungeon-topology-v1",
+  "schemaVersion": 3,
+  "policyId": "souldrifter-procedural-dungeon-topology-v3",
   "ticket": 0,
   "commit": "",
   "seed": 0,
   "pathId": "",
   "logicalGraph": {
-    "nodes": [],
+    "nodes": [
+      {
+        "id": "",
+        "type": "ROOM_OR_CHAMBER",
+        "state": ""
+      }
+    ],
     "edges": [
       {
         "edgeId": "",
         "sourceNode": "",
         "destinationNode": "",
-        "connectionType": "CORRIDOR",
+        "connectionType": "PHYSICAL_CORRIDOR_OR_PASSAGE",
+        "movementModes": ["WALK"],
+        "medium": ["AIR"],
+        "directionality": "BIDIRECTIONAL",
         "requiredForProgression": true,
-        "physicalResolutionStatus": "NOT_STARTED"
+        "physicalOrExplicitResolutionStatus": "NOT_STARTED"
       }
     ]
   },
   "placement": {
-    "rootRoomId": "",
+    "rootNodeId": "",
     "attempts": [],
     "backtracks": [],
     "rejectedCandidates": [],
     "deterministicResult": true
   },
-  "rooms": [
+  "spatialNodes": [
     {
-      "roomId": "",
+      "nodeId": "",
+      "nodeType": "ROOM_OR_CHAMBER",
       "archetypeId": "",
       "polygon": [],
+      "surfaces": [],
+      "volumes": [],
       "floorElevation": 0,
       "ceilingElevation": 0,
+      "depthOrAirProperties": null,
       "transform": {
         "x": 0,
         "z": 0,
@@ -40,64 +53,74 @@
       "acceptedFromEdge": ""
     }
   ],
-  "boundaries": [
-    {
-      "boundaryId": "",
-      "owner": "",
-      "adjacentTo": "OUTSIDE",
-      "classification": "WALL",
-      "start": [0, 0],
-      "end": [0, 0],
-      "thickness": 0,
-      "apertures": []
-    }
-  ],
+  "canonicalInventory": {
+    "boundaries": [],
+    "surfaces": [],
+    "volumes": [],
+    "pathsAndSplines": [],
+    "dynamicStateGeometry": [],
+    "streamingBoundaries": []
+  },
   "connections": [
     {
       "edgeId": "",
-      "connectionType": "CORRIDOR",
-      "sourceBoundaryId": "",
-      "sourceApertureId": "",
-      "destinationBoundaryId": "",
-      "destinationApertureId": "",
-      "connectorPolygon": [],
-      "centerline": [],
-      "clearWidth": 0,
-      "floorContinuity": "NOT_RUN",
-      "ceilingContinuity": "NOT_RUN",
+      "spatialConnectionRecord": "",
+      "connectionType": "PHYSICAL_CORRIDOR_OR_PASSAGE",
+      "sourceBoundarySurfaceOrVolumeId": "",
+      "sourceApertureOrAttachPointId": "",
+      "destinationBoundarySurfaceOrVolumeId": "",
+      "destinationApertureOrAttachPointId": "",
+      "connectorPathSurfaceOrVolume": null,
+      "clearance": null,
+      "elevationOrDepthProfile": [],
+      "surfaceContinuity": "NOT_RUN",
+      "volumeContinuity": "NOT_RUN",
       "collisionContinuity": "NOT_RUN",
       "navigationContinuity": "NOT_RUN",
+      "movementStateTransition": "NOT_RUN",
+      "resourceAndRecoveryRules": "NOT_RUN",
       "wasdTraversal": "NOT_RUN",
       "clickMoveTraversal": "NOT_RUN",
+      "otherMovementModeProof": "NOT_REQUIRED",
       "evidence": []
     }
   ],
-  "topDownDiagnostic": {
-    "imagePath": "",
-    "generatedFromActualEmbeddedGeometry": true,
-    "layers": [],
+  "diagnostics": {
+    "topDownPlans": [],
+    "sectionsOrElevations": [],
+    "volumeOrSliceEvidence": [],
+    "stateGraphsOrTimelines": [],
+    "regionOrStreamingMaps": [],
+    "generatedFromActualSolvedData": true,
     "automatedReview": "NOT_RUN",
     "aiVisionReview": "NOT_RUN",
     "ownerVerdict": "NOT_REQUIRED"
   },
   "metrics": {
     "requiredLogicalEdges": 0,
-    "physicallyResolvedEdges": 0,
-    "connectedPhysicalComponents": 0,
-    "unintendedRoomOverlaps": 0,
-    "unintendedCorridorRoomOverlaps": 0,
-    "coincidentDuplicateWalls": 0,
-    "wallsCrossingApertures": 0,
-    "orphanDoorsOrGates": 0,
-    "unmatchedCorridorEndpoints": 0,
-    "corridorsEndingAtIntactWalls": 0,
-    "missingDestinationApertures": 0,
+    "physicallyOrExplicitlyResolvedEdges": 0,
+    "unintendedNodeOverlaps": 0,
+    "unintendedConnectorNodeOverlaps": 0,
+    "coincidentDuplicateBoundaries": 0,
+    "boundariesCrossingOpenings": 0,
+    "orphanDoorsGatesOrConnectors": 0,
+    "unmatchedConnectorEndpoints": 0,
+    "physicalConnectorsEndingAtBlockingGeometry": 0,
+    "missingDestinationOpenings": 0,
     "minimumPlayerClearanceFailures": 0,
-    "floorContinuityFailures": 0,
-    "ceilingContinuityFailures": 0,
+    "surfaceContinuityFailures": 0,
+    "volumeContinuityFailures": 0,
     "collisionContinuityFailures": 0,
     "navigationContinuityFailures": 0,
-    "unsupportedElevationTransitions": 0
+    "unsupportedElevationOrDepthTransitions": 0,
+    "movementStateTransitionFailures": 0,
+    "resourceRuleFailures": 0,
+    "recoveryOrSoftLockFailures": 0
+  },
+  "firstBreachChecks": {
+    "magicalPortalTransferPresent": false,
+    "physicalThresholdsOnly": true,
+    "soulwellExitVeilIsWalkThroughEffect": true
   },
   "automatedGate": "NOT_RUN",
   "independentVerification": "NOT_RUN",
