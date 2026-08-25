@@ -1,7 +1,12 @@
 {
-  "schemaVersion": 2,
-  "policyId": "souldrifter-procedural-dungeon-topology-v2",
-  "generationArchitecture": "ROUTE_SELECTION_THEN_LOGICAL_GRAPH_THEN_CONSTRUCTIVE_SPATIAL_EMBEDDING_THEN_SHARED_SHELL",
+  "schemaVersion": 3,
+  "policyId": "souldrifter-procedural-dungeon-topology-v3",
+  "generationArchitecture": "ROUTE_SELECTION_THEN_LOGICAL_GRAPH_THEN_CONSTRUCTIVE_SPATIAL_EMBEDDING_THEN_CANONICAL_BOUNDARIES_SURFACES_AND_VOLUMES_THEN_RUNTIME",
+  "relatedPolicies": [
+    "SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md",
+    "config/spatial-connection-policy.json",
+    "templates/spatial-connection-record.template.json"
+  ],
   "runtimeTrigger": {
     "fixedAreaMayRenderBeforeRouteChoice": [
       "soul_well",
@@ -14,126 +19,143 @@
     "previewModeMayPrecomputeBothPaths": true,
     "requiredSequence": [
       "lock_seed_and_selected_path",
-      "choose_3_to_5_legal_room_archetypes_and_order",
+      "choose_legal_spatial_node_archetypes_and_order",
       "build_selected_route_logical_graph",
-      "solve_complete_selected_route_top_down_topology",
-      "place_rooms_edge_by_edge_from_compatible_sockets",
-      "resolve_canonical_boundaries_apertures_connectors_and_elevations",
+      "assign_explicit_connection_type_movement_mode_medium_and_directionality",
+      "solve_complete_selected_route_spatial_topology",
+      "place_nodes_edge_by_edge_from_compatible_sockets_surfaces_or_volumes",
+      "resolve_canonical_boundaries_apertures_paths_surfaces_volumes_and_elevations",
       "run_invariants_and_backtrack_invalid_placements",
       "freeze_accepted_route_topology",
-      "render_shared_shell_and_interiors",
-      "build_collision_and_navigation",
+      "render_shared_shell_surfaces_volumes_and_interiors",
+      "build_collision_navigation_and_movement_state_transitions",
       "place_encounters_dressing_lighting_water_and_fx"
     ]
   },
-  "roomArchetypeContract": {
+  "spatialNodeContract": {
+    "isAlwaysRectangularRoom": false,
     "isClosedIndependentBox": false,
+    "supportedNodeFamilies": [
+      "ENCLOSED_ARCHITECTURAL_SPACE",
+      "CAVERN_OR_SHAFT",
+      "VERTICAL_TRAVERSAL_REGION",
+      "WATER_VOLUME_OR_AIR_POCKET",
+      "BIOME_POCKET",
+      "LABYRINTH_OR_MEGA_ZONE",
+      "DYNAMIC_OR_LIVING_DUNGEON_REGION",
+      "EXTERIOR_OR_STREAMED_REGION"
+    ],
     "requiredData": [
-      "footprint_variants",
-      "legal_connection_sockets",
+      "footprint_surface_or_volume_variants",
+      "legal_connection_sockets_surfaces_or_volumes",
       "compatible_connection_types",
-      "allowed_orientations",
-      "floor_and_ceiling_requirements",
-      "elevation_constraints",
+      "allowed_orientations_or_state_transforms",
+      "floor_ceiling_depth_and_air_requirements",
+      "elevation_and_medium_constraints",
       "player_clearance_constraints",
-      "encounter_and_dressing_sockets"
+      "movement_camera_resource_and_recovery_contracts",
+      "encounter_landmark_and_dressing_sockets"
     ]
   },
   "randomization": {
     "mayChoose": [
-      "room_archetypes",
-      "room_order_within_legal_graph",
-      "compatible_socket",
+      "spatial_node_archetypes",
+      "node_order_within_legal_graph",
+      "compatible_socket_surface_or_volume",
       "orientation",
       "legal_connector_variant",
+      "dynamic_state_variant_when_authorized",
       "dressing_after_topology_pass"
     ],
     "mayNotDo": [
       "place_independent_sealed_room_boxes_then_connect_afterward",
-      "render_selected_room_meshes_before_topology_pass",
-      "place_rooms_at_unrelated_slot_centers_then_connect_coordinates",
-      "add_corridors_after_rendering_and_infer_openings_from_endpoints",
-      "merge_duplicate_walls_or_slabs_after_rendering",
+      "render_selected_node_meshes_before_topology_pass",
+      "place_nodes_at_unrelated_slot_centers_then_connect_coordinates",
+      "add_connectors_after_rendering_and_infer_openings_from_endpoints",
+      "merge_duplicate_walls_slabs_or_volumes_after_rendering",
       "accept_overlaps_and_hide_them_with_dressing",
       "treat_pathfinding_or_warp_as_physical_connection_proof",
-      "emit_duplicate_shared_walls",
-      "accept_corridor_endpoints_at_intact_walls"
+      "emit_duplicate_shared_boundaries",
+      "accept_physical_connector_endpoints_at_blocking_geometry",
+      "flatten_water_vertical_or_mega_zone_topology_into_unsupported_room_boxes"
     ]
   },
   "constructivePlacement": {
-    "rootRoomRequired": true,
-    "placeDestinationRelativeToAcceptedSourceSocket": true,
-    "resolveConnectionBeforeAcceptingDestinationRoom": true,
+    "rootNodeRequired": true,
+    "placeDestinationRelativeToAcceptedSourceConnection": true,
+    "resolveConnectionBeforeAcceptingDestinationNode": true,
     "deriveDestinationTransformFromConnection": true,
-    "validateFullEdgeBeforeRoomAcceptance": true,
+    "validateFullEdgeBeforeNodeAcceptance": true,
+    "validateMovementCameraResourceAndRecoveryContract": true,
     "backtrackingRequiredWhenPlacementFails": true,
-    "retryAlternateSocketOrientationOrArchetype": true,
+    "retryAlternateSocketSurfaceVolumeOrientationOrArchetype": true,
     "rejectInvalidSeedWhenBacktrackingExhausted": true,
     "preserveDeterminism": true
   },
-  "connectionTypes": [
-    "DIRECT_OPEN_ADJACENCY",
-    "DOOR_GATE_ADJACENCY",
-    "PHYSICAL_CORRIDOR",
-    "PORTAL_TRANSFER",
-    "VERTICAL_TRANSITION"
-  ],
-  "sharedBoundary": {
-    "canonicalBoundaryIdsRequired": true,
+  "connectionCatalog": "config/spatial-connection-policy.json",
+  "canonicalOwnership": {
+    "canonicalBoundarySurfaceAndVolumeIdsRequired": true,
     "emitSharedWallOnce": true,
-    "openSpanEmitsNoWallFromEitherRoom": true,
-    "portalSpanEmitsWallOutsideApertureOnly": true,
-    "duplicateCoplanarWallsAllowed": false,
-    "deterministicFloorCeilingOwnershipRequired": true,
-    "shellGeneratorConsumesBoundaryInventory": true
+    "openSpanEmitsNoWallFromEitherSpace": true,
+    "controlledThresholdEmitsBoundaryOutsideApertureOnly": true,
+    "duplicateCoplanarBoundariesAllowed": false,
+    "deterministicFloorCeilingTerrainAndVolumeOwnershipRequired": true,
+    "waterAndAirVolumesMustNotTrapPlayer": true,
+    "runtimeGeneratorConsumesAcceptedInventory": true
   },
-  "topDownGate": {
+  "diagnosticGate": {
     "generatedFromActualSolvedTopology": true,
-    "requiredBeforeSelectedRoomMeshRendering": true,
-    "requiredBeforeShellDressing": true,
-    "requiredLayers": [
-      "room_polygons_ids_archetypes_and_orientations",
+    "requiredBeforeSelectedNodeMeshRendering": true,
+    "requiredBeforeDressing": true,
+    "requiredBaseLayers": [
+      "spatial_node_ids_types_and_transforms",
       "fixed_vs_randomized_areas",
-      "wall_segments_and_boundary_ids",
-      "apertures",
-      "doors_gates_portcullises",
-      "corridor_polygons_and_centerlines",
+      "boundary_surface_and_volume_ids",
+      "apertures_and_thresholds",
+      "connector_paths_splines_and_polygons",
+      "movement_modes_and_media",
       "navigation_and_player_clearance",
-      "floor_elevations",
-      "vertical_transitions",
+      "floor_elevations_depths_and_air_pockets",
       "logical_edges",
-      "physical_edge_matches",
+      "physical_or_explicit_edge_resolutions",
       "overlap_and_error_overlays"
     ],
+    "horizontalRequires": ["TOP_DOWN_PLAN"],
+    "verticalRequires": ["TOP_DOWN_PLAN", "SECTION_OR_ELEVATION"],
+    "aquaticRequires": ["TOP_DOWN_PLAN", "SECTION_OR_ELEVATION", "THREE_D_VOLUME_OR_SLICE"],
+    "dynamicRequires": ["STATE_GRAPH", "TIMELINE_OR_STATE_SEQUENCE", "BEFORE_AFTER_GEOMETRY"],
+    "megaZoneRequires": ["REGION_GRAPH", "STREAMING_MAP", "LOCAL_SUBGRAPHS"],
     "automatedReview": true,
     "independentAiVisionReview": true,
     "ownerReviewForInitialOrMajorArchitectureChange": true
   },
   "hardInvariants": {
-    "requiredLogicalEdgesEqualsPhysicallyResolvedEdges": true,
-    "connectedPhysicalComponents": 1,
-    "unintendedRoomOverlaps": 0,
-    "unintendedCorridorRoomOverlaps": 0,
-    "coincidentDuplicateWalls": 0,
-    "wallsCrossingApertures": 0,
-    "orphanDoorsOrGates": 0,
-    "unmatchedCorridorEndpoints": 0,
-    "corridorsEndingAtIntactWalls": 0,
-    "missingDestinationApertures": 0,
+    "requiredLogicalEdgesEqualsPhysicallyOrExplicitlyResolvedEdges": true,
+    "unintendedNodeOverlaps": 0,
+    "unintendedConnectorNodeOverlaps": 0,
+    "coincidentDuplicateBoundaries": 0,
+    "boundariesCrossingOpenings": 0,
+    "orphanDoorsGatesOrConnectors": 0,
+    "unmatchedConnectorEndpoints": 0,
+    "physicalConnectorsEndingAtBlockingGeometry": 0,
+    "missingDestinationOpenings": 0,
     "minimumPlayerClearanceFailures": 0,
-    "floorContinuityFailures": 0,
-    "ceilingContinuityFailures": 0,
+    "surfaceContinuityFailures": 0,
+    "volumeContinuityFailures": 0,
     "collisionContinuityFailures": 0,
     "navigationContinuityFailures": 0,
-    "unsupportedElevationTransitions": 0
+    "unsupportedElevationOrDepthTransitions": 0,
+    "movementStateTransitionFailures": 0,
+    "resourceRuleFailures": 0,
+    "recoveryOrSoftLockFailures": 0
   },
   "runtimeProof": {
-    "wasdEveryPhysicalEdge": true,
-    "clickMoveEveryPhysicalEdge": true,
-    "sourceConnectorDestinationEvidence": true,
-    "inspectBothSidesOfPortalAssembly": true,
-    "roomWarpMayBeUsedAsTraversalProof": false,
-    "continuousNoWarpRouteRequired": true,
+    "useRealMovementModeForEveryEdge": true,
+    "sourceTransitionDestinationEvidence": true,
+    "inspectBothSidesOrStatesOfControlledConnections": true,
+    "debugWarpMayBeUsedAsConnectionProof": false,
+    "continuousRequiredRoutes": true,
+    "saveReloadProofWhenTraversalCanPersistMidEdge": true,
     "realGpuRequired": true
   },
   "firstBreach": {
@@ -144,12 +166,21 @@
       "wayfarer",
       "oathbreaker"
     ],
+    "magicalPortalTransferPresent": false,
+    "allowedConnectionTypes": [
+      "DIRECT_OPEN_ADJACENCY",
+      "DOOR_GATE_THRESHOLD",
+      "PHYSICAL_CORRIDOR_OR_PASSAGE",
+      "STAIRS_RAMP_OR_LANDING"
+    ],
+    "soulwellExitVeil": "DOORLESS_PHYSICAL_THRESHOLD_EFFECT_NOT_TELEPORT",
     "permanentRegressionCases": [
       "route_gate_open_but_wall_intact_behind_gate",
       "corridor_reaches_coordinate_but_not_destination_aperture",
       "duplicate_walls_between_adjacent_rooms",
       "navigation_connected_but_rendered_geometry_blocked",
-      "selected_room_rendered_before_route_topology_solved"
+      "selected_room_rendered_before_route_topology_solved",
+      "physical_threshold_misclassified_as_portal_transfer"
     ]
   }
 }
