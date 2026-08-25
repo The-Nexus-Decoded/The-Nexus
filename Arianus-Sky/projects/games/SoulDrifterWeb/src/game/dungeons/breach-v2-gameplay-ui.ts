@@ -6,6 +6,7 @@ interface Position2D { x: number; z: number }
 interface InteractionTarget extends Position2D {
   id: string;
   label: string;
+  interactionRadius?: number;
 }
 
 export interface BreachV2GameplayUi {
@@ -83,7 +84,10 @@ export function setupBreachV2GameplayUi(options: {
     { ...layout.landmarks.ilyra, id: "ilyra", label: "Ilyra" },
     { ...layout.landmarks.memoryLoom, id: "memory-loom", label: "Memory Loom" },
     { ...layout.landmarks.coffer, id: "coffer", label: "Wayfarer's Coffer" },
-    { ...layout.landmarks.effigy, id: "effigy", label: "training effigy" },
+    // The effigy's blocked nav footprint leaves the nearest legal player
+    // position ~2.73 m from its center; keep its prompt reachable without
+    // widening every story interaction in the zone.
+    { ...layout.landmarks.effigy, id: "effigy", label: "training effigy", interactionRadius: 3 },
     { ...layout.landmarks.firstMemory, id: "first-memory", label: "First Memory" },
     { ...layout.landmarks.exitPoint, id: "heartvale-exit", label: "Heartvale threshold" },
   ];
@@ -91,8 +95,9 @@ export function setupBreachV2GameplayUi(options: {
     const player = getPlayerPosition();
     const nearest = targets
       .map((target) => ({ target, distance: Math.hypot(player.x - target.x, player.z - target.z) }))
+      .filter(({ target, distance }) => distance <= (target.interactionRadius ?? 2.6))
       .sort((a, b) => a.distance - b.distance)[0];
-    return nearest && nearest.distance <= 2.6 ? nearest : null;
+    return nearest ?? null;
   };
   const interactNearest = (): string | null => {
     const nearest = nearestTarget();

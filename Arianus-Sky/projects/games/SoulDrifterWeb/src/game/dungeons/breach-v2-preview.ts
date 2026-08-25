@@ -611,7 +611,7 @@ async function placeSectionDoors(
 
   const tickables: ((elapsed: number) => void)[] = [];
   const portcullisIds = new Set([
-    "ashen-threshold", "boss-lock",
+    "wayfarer-choice", "oathbreaker-choice", "ashen-threshold", "boss-lock",
   ]);
   const routeMists: THREE.Object3D[] = [];
   const routeMistByDoorId = new Map<string, {
@@ -831,7 +831,12 @@ async function placeSectionDoors(
       const nearest = states
         .map((state) => ({ state, distance: Math.hypot(state.x - x, state.z - z) }))
         .filter(({ state, distance }) => state.active && distance <= maxDistance)
-        .sort((a, b) => a.distance - b.distance)[0]?.state;
+        // Short connectors can put two doors inside the keyboard interaction
+        // radius. Continue forward by preferring a closed door over an open
+        // door behind the player; once both share a state, distance wins.
+        .sort((a, b) => a.state.open === b.state.open
+          ? a.distance - b.distance
+          : a.state.open ? 1 : -1)[0]?.state;
       if (!nearest) return null;
       if (!nearest.open && !authorizeDoor(nearest.id)) return nearest.id;
       setOpen(nearest, !nearest.open);
@@ -1001,9 +1006,12 @@ async function placeKitProps(
       "reinforced-crate", "storage-barrel",
     ].includes(p.asset);
     const authoredFloorFacing = tutorialAsset || p.asset === "guardian-statue";
-    const tutorialFacing = authoredFloorFacing
+    const vestibuleGuardianFacing = p.roomId === "vestibule" && p.asset === "guardian-statue"
+      ? 270 // both flanking guardians look west into the approaching room
+      : null;
+    const tutorialFacing = vestibuleGuardianFacing ?? (authoredFloorFacing
       ? ({ north: 0, east: 90, south: 180, west: 270 }[p.facing] ?? p.yaw)
-      : p.yaw;
+      : p.yaw);
     instance.root.rotation.y = THREE.MathUtils.degToRad(tutorialFacing + sourceYawCorrection);
     if (tutorialAsset) {
       const actions = p.asset === "storage-chest"
@@ -1929,6 +1937,10 @@ export async function startDungeonPreview(
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
+  // The preview is a production-zone test harness: active-route doors are
+  // unlocked by default so reviewers can traverse every section. Add
+  // `gates=on` only when explicitly validating the campaign progression locks.
+  const progressionGatesEnabled = previewUrl.searchParams.get("gates") === "on";
   if (previewUrl.searchParams.get("fresh") === "1") {
     await storyDatabase.clearDungeonRun(runId);
     previewUrl.searchParams.delete("fresh");
@@ -1985,7 +1997,7 @@ export async function startDungeonPreview(
     scene,
     layout,
     gltfLoader,
-    (doorId) => gameplay.requestDoor(doorId).allowed,
+    (doorId) => !progressionGatesEnabled || gameplay.requestDoor(doorId).allowed,
   );
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
@@ -2380,7 +2392,7 @@ export async function startDungeonPreview(
         textures: renderer.info.memory.textures,
       };
       hud.textContent =
-        `breach-v2 preview  seed ${options.seed}  path ${options.path}  ${walkMode ? `${firstPersonMode ? "FIRST PERSON" : isometricMode ? "ISOMETRIC" : "THIRD PERSON"} — click floor or WASD move · F/tap door · drag camera · wheel zoom · Q/E rotate · shift sprint` : `cam ${options.cam}`}  ${fpsText}\n` +
+        `breach-v2 preview  seed ${options.seed}  path ${options.path}  ${progressionGatesEnabled ? "CAMPAIGN GATES" : "TEST UNLOCKED"}  ${walkMode ? `${firstPersonMode ? "FIRST PERSON" : isometricMode ? "ISOMETRIC" : "THIRD PERSON"} — click floor or WASD move · F/tap door · drag camera · wheel zoom · Q/E rotate · shift sprint` : `cam ${options.cam}`}  ${fpsText}\n` +
         `chambers ${layout.meta.chamberCount} (${layout.rooms.filter((r) => !r.fixed).map((r) => ("poolRoomId" in r ? r.poolRoomId : r.id)).join(", ")})  ` +
         `boss ${layout.boss.pattern}${walkMode ? `  ·  at (${playerPos.x.toFixed(1)}, ${playerPos.y.toFixed(1)}↑, ${playerPos.z.toFixed(1)})` : ""}\n` +
         `calls ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +

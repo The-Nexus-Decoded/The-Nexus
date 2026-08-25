@@ -226,8 +226,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "reinforced-crate",
-          "x": 28.2,
-          "y": 10.2,
+          "x": 25.2,
+          "y": 8.6,
           "placement": "floor",
           "group": "goods",
           "facing": "up",
@@ -238,8 +238,8 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "storage-barrel",
-          "x": 28.2,
-          "y": 12.0,
+          "x": 24.2,
+          "y": 17.8,
           "placement": "floor",
           "group": "goods",
           "facing": "up",

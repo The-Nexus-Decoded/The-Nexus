@@ -70,6 +70,17 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
   });
 
+  it("keeps the Vestibule exit portal approach clear of every floor prop", () => {
+    const portal = { x: fixedById.vestibule.w, y: 11 };
+    for (const prop of fixedById.vestibule.placements.filter((p) => p.placement === "floor")) {
+      const edgeClearance = Math.hypot(prop.x - portal.x, prop.y - portal.y) - prop.footprint / 2;
+      expect(
+        edgeClearance,
+        `vestibule exit blocked by ${prop.asset}@${prop.x},${prop.y}`,
+      ).toBeGreaterThanOrEqual(2.6);
+    }
+  });
+
   it("pools: 7 easy + 7 hard rooms, disjoint, true dims, sockets legal", () => {
     expect(pools.easy).toHaveLength(7);
     expect(pools.hard).toHaveLength(7);

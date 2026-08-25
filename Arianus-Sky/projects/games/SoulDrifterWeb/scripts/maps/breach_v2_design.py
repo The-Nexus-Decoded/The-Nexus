@@ -337,7 +337,7 @@ FIXED_DRESSING = {
                   ("heavy-bench", 14.5, 5.4), ("empty-weapon-rack", 19.5, 0.4),
                   ("empty-weapon-rack", 23.0, 0.4), ("weapon-armor-heap", 26.0, 4.0),
                   ("floor-brazier", 20.8, 3.5), ("storage-chest", 27.8, 2.0),
-                  ("reinforced-crate", 28.2, 10.2), ("storage-barrel", 28.2, 12.0),
+                  ("reinforced-crate", 25.2, 8.6), ("storage-barrel", 24.2, 17.8),
                   ("cave-in-rubble", 27.5, 19.0), ("collapsed-timber-masonry-pile", 2.0, 18.5),
                   ("candelabra-cluster", 22.8, 12.8), ("supply-pile", 26.8, 17.2),
                   ("guardian-statue", 28.6, 7.2), ("guardian-statue", 28.6, 14.8),
