@@ -19,7 +19,7 @@ from breach_v2_design import (  # noqa: E402
     CORRIDOR_WIDTH, CORRUPTION_GRADIENT, DRESSING, EASY_POOL, FIXED_DRESSING,
     FIXED_ROOMS, HARD_POOL, KIT_DIMS, LOOT_TABLE, PATH_SLOTS, PLAZA_LANDMARKS,
     PROP_TABLE, SEED_POLICY, SPAWN_TABLE, VESTIBULE_LANDMARKS, WALL_ART,
-    WORLD_ANCHOR,
+    WAY_UPWARD_EXIT_ELEVATION, WORLD_ANCHOR,
 )
 
 ROOM_INDEX = {r["id"]: r for r in FIXED_ROOMS}
@@ -107,7 +107,8 @@ def main():
     for room in FIXED_ROOMS:
         fixed.append(dict(
             id=room["id"], name=room["name"], kind=room["kind"],
-            x=room["x"], y=room["y"], w=room["w"], h=room["h"], notes=room["notes"],
+            x=room["x"], y=room["y"], w=room["w"], h=room["h"],
+            floorElevation=room["elevation"], notes=room["notes"],
             placements=placements(room["id"], room["w"], room["h"]),
         ))
 
@@ -120,6 +121,7 @@ def main():
         "units": {"meters": True, "navCellMeters": 1.75,
                   "note": "true world-frame meters; nav cell hidden under continuous geometry"},
         "worldAnchor": {"zone": WORLD_ANCHOR["zone"], "x": WORLD_ANCHOR["x"], "z": WORLD_ANCHOR["y"],
+                        "elevation": WAY_UPWARD_EXIT_ELEVATION,
                         "note": "exit Connector emerges at the Soul Well Basin POI (Heartvale hv-1)"},
         "fixedRooms": fixed,
         "landmarks": landmarks,
@@ -127,10 +129,12 @@ def main():
             "wayfarer": {"difficulty": "easy", "pool": "easy", "minChambers": 3, "maxChambers": 5,
                          "corridorWidthMeters": CORRIDOR_WIDTH["wayfarer"],
                          "slotCenters": [[s["x"], s["y"]] for s in PATH_SLOTS["wayfarer"]],
+                         "slotElevations": [s["elevation"] for s in PATH_SLOTS["wayfarer"]],
                          "convergenceSocket": [176.0, 8.0]},
             "oathbreaker": {"difficulty": "hard", "pool": "hard", "minChambers": 3, "maxChambers": 5,
                             "corridorWidthMeters": CORRIDOR_WIDTH["oathbreaker"],
                             "slotCenters": [[s["x"], s["y"]] for s in PATH_SLOTS["oathbreaker"]],
+                            "slotElevations": [s["elevation"] for s in PATH_SLOTS["oathbreaker"]],
                             "convergenceSocket": [176.0, 12.0]},
         },
         "pools": {"easy": easy, "hard": hard},
@@ -149,6 +153,7 @@ def main():
             "reachability": "start -> boss -> exit connected on every seed; every objective reachable",
             "socketIntegrity": "every chamber connects through real door sockets; corridor widths fixed",
             "noBlockedCriticals": "dressing never blocks doors, NPCs, spawns, quest objects, boss route",
+            "monotonicAscent": "every authored route rises from the Realm-Lock floor to Heartvale",
             "firstMemoryOnce": "the First Memory is awarded exactly once",
             "comparisonSeed": 4182,
         },

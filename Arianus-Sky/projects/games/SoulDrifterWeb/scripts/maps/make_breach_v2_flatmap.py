@@ -21,12 +21,12 @@ from breach_v2_design import (
     CORRUPTION_GRADIENT, DRESSING,
     EASY_POOL, FIXED_DRESSING, FIXED_ROOMS, HARD_POOL, LOOT_TABLE, PATH_SLOTS,
     PLAZA_LANDMARKS, PROP_TABLE, SEED_POLICY, SLOT_BOX, SPAWN_TABLE,
-    VESTIBULE_LANDMARKS, WALL_ART, WORLD_ANCHOR,
+    VESTIBULE_LANDMARKS, WALL_ART, WAY_UPWARD_EXIT_ELEVATION, WORLD_ANCHOR,
 )
 
 HERE = Path(__file__).parent
 MASTER = HERE / "breach-v2-flatmap-master.png"
-EXPORT = HERE / "breach-v2-flatmap-1600.webp"
+EXPORT = HERE.parent.parent / "docs" / "maps" / "breach-v2" / "breach-v2-flatmap-1600.webp"
 
 SCALE = 9.0  # px per meter — UNIFORM across every panel on this sheet
 PPM = SCALE
@@ -207,6 +207,30 @@ def draw_door(draw: ImageDraw.ImageDraw, x: float, y: float, w_m: float, side: s
         draw.line([x, y - half, x, y + half], fill=color, width=3)
 
 
+def draw_ascent(draw: ImageDraw.ImageDraw, start: tuple[float, float], end: tuple[float, float],
+                from_elevation: float, to_elevation: float, color) -> None:
+    """Draw a corridor centerline with stair ticks and an uphill arrow."""
+    import math
+    x0, y0 = start
+    x1, y1 = end
+    dx, dy = x1 - x0, y1 - y0
+    length = math.hypot(dx, dy)
+    if length < 1:
+        return
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux
+    draw.line([start, end], fill=color + (210,), width=5)
+    for index in range(1, 6):
+        t = index / 6
+        cx, cy = x0 + dx * t, y0 + dy * t
+        draw.line([cx - px * 5, cy - py * 5, cx + px * 5, cy + py * 5], fill=PAPER_DIM, width=2)
+    base = (x1 - ux * 12, y1 - uy * 12)
+    draw.polygon([end, (base[0] + px * 6, base[1] + py * 6),
+                  (base[0] - px * 6, base[1] - py * 6)], fill=color)
+    label(draw, (x0 + x1) / 2, (y0 + y1) / 2 - 12,
+          f"↑ +{from_elevation:.1f}→+{to_elevation:.1f} m", font(11, bold=True), color, anchor="ma")
+
+
 def tag(draw: ImageDraw.ImageDraw, x: float, y: float, text: str, color, f=None,
         anchor="la") -> None:
     f = f or font(16, bold=True)
@@ -258,7 +282,7 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     # Panel frame
     draw.rectangle([SPINE_X0 - 12, SPINE_Y0 - 46, SPINE_X0 + SPINE_W, SPINE_Y0 + SPINE_H + 60],
                    fill=PANEL, outline=PANEL_EDGE, width=2)
-    label(draw, SPINE_X0, SPINE_Y0 - 38, "A · FIXED SPINE — same every run (seeded middle shown as slots; "
+    label(draw, SPINE_X0, SPINE_Y0 - 38, "A · FIXED SPINE + ASCENT — same every run (seeded middle shown as slots; "
           "Vestibule + Plaza detailed in panel A2)", font(30, bold=True), PAPER)
 
     # 5 m reference grid across the plan area
@@ -285,6 +309,7 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
             w, h = SLOT_BOX["w"] * PPM, SLOT_BOX["h"] * PPM
             dash_rect(draw, cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, color + (190,), 3)
             label(draw, cx, cy - 10, f"S{s['slot']}", font(19, bold=True), color, anchor="ma")
+            label(draw, cx, cy + 14, f"+{s['elevation']:.1f} m ↑", font(12, bold=True), color, anchor="ma")
         start = plan_px(52.0, 6.5 if path == "wayfarer" else 13.5)
         conv = plan_px(176.0, 8.0 if path == "wayfarer" else 12.0)
         chain = [start, *points, conv]
@@ -349,6 +374,7 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
                           lambda mx, my, _ox=ox, _oy=oy: plan_px(_ox + mx, _oy + my),
                           PPM * 0.7, numbered=False)
         cx = (x0 + x1) / 2
+        label(draw, x0 + 5, y0 + 5, f"+{room['elevation']:.1f} m", font(11, bold=True), GOLD)
         if room["kind"] == "corridor":
             label(draw, cx, y0 - 8, "Gallery Link · 6 x 6 m · FIXED", font(13), PAPER_DIM, anchor="ma")
         elif room["kind"] == "convergence":
@@ -392,6 +418,8 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     draw.line([plan_px(26.0, 11.0), plan_px(44.0, 10.0)], fill=bronze + (220,), width=3)
     draw.line([plan_px(44.0, 10.0), plan_px(52.0, 6.5)], fill=bronze + (220,), width=3)
     draw.line([plan_px(44.0, 10.0), plan_px(52.0, 13.5)], fill=bronze + (220,), width=3)
+    draw_ascent(draw, plan_px(29.0, 11.0), plan_px(31.0, 11.0), 0.0, 0.4, GOLD)
+    draw_ascent(draw, plan_px(35.0, 11.0), plan_px(37.0, 11.0), 0.4, 0.8, GOLD)
 
     # --- Threshold plaza: NPCs + the TWO DOORS
     px0, py0 = plan_px(36, 4)
@@ -419,8 +447,10 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     b = plan_px(192.0, 10.0)
     draw.line([a, b], fill=(140, 130, 100), width=int(3.2 * PPM))
     draw.line([a, b], fill=(20, 22, 26, 255), width=int(3.2 * PPM * 0.45))
+    draw_ascent(draw, a, b, 5.6, 6.2, GOLD)
     draw_door(draw, *plan_px(192.0, 10.0), 3.0, "W", GOLD)
 
+    draw_ascent(draw, plan_px(204.0, 10.0), plan_px(208.0, 10.0), 6.2, 6.8, EMBER)
     draw_door(draw, *plan_px(208.0, 10.0), 3.5, "W", EMBER)
     label(draw, *plan_px(210.0, 12.4), "one-way portcullis", font(13, bold=True), EMBER)
 
@@ -439,17 +469,23 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
           font(13), (225, 150, 130), anchor="ma")
 
     # Vault link + First Memory
-    draw.line([plan_px(238.0, 7.0), plan_px(242.0, 7.0)], fill=VIOLET + (160,), width=int(2.5 * PPM))
+    draw_ascent(draw, plan_px(238.0, 7.0), plan_px(242.0, 7.0), 6.8, 7.6, VIOLET)
     draw_door(draw, *plan_px(242.0, 7.0), 2.5, "W", VIOLET)
     mx, my = plan_px(247.0, 7.0)
     draw.polygon([(mx, my - 10), (mx + 9, my), (mx, my + 10), (mx - 9, my)], fill=VIOLET)
     label(draw, *plan_px(247, 9.4), "FIRST MEMORY — once", font(12, bold=True), VIOLET, anchor="ma")
 
-    # Exit connector -> Heartvale
-    draw.line([plan_px(238.0, 15.0), plan_px(242.0, 15.0)], fill=(140, 130, 100), width=int(2.5 * PPM))
+    # Sequential Memory Vault -> Way Upward -> Heartvale ascent. There is no
+    # direct Ashen Lock -> exit bypass.
+    draw_ascent(draw, plan_px(247.0, 11.0), plan_px(247.0, 12.0), 7.6, 7.9, GREEN)
+    draw_door(draw, *plan_px(247.0, 12.0), 2.5, "N", GREEN)
+    draw_ascent(draw, plan_px(258.0, 15.0), plan_px(262.0, 15.0), 7.9,
+                WAY_UPWARD_EXIT_ELEVATION, GREEN)
     ex, ey = plan_px(258.0, 15.0)
     draw.polygon([(ex - 4, ey - 12), (ex + 14, ey), (ex - 4, ey + 12)], fill=GREEN)
-    label(draw, *plan_px(250, 13.4), "ascending passage", font(12), GREEN, anchor="ma")
+    label(draw, *plan_px(250, 13.4),
+          f"ascending passage · stairs to +{WAY_UPWARD_EXIT_ELEVATION:.1f} m",
+          font(12), GREEN, anchor="ma")
     tag(draw, *plan_px(196.0, 22.6),
         f"EXIT → Heartvale hv-1 (Soul Well Basin) · anchor ({WORLD_ANCHOR['x']}, {WORLD_ANCHOR['y']})",
         GREEN)
@@ -850,11 +886,11 @@ def draw_strips(draw: ImageDraw.ImageDraw) -> None:
     label(draw, 1302, STRIP_C_Y0 - 38, "C · HOW A RUN ASSEMBLES (seed picks subset + order only)",
           font(23, bold=True), PAPER)
     steps = [
-        ("Vestibule", "fixed", PAPER), ("Threshold Plaza", "fixed · safe", GREEN),
+        ("Vestibule", "fixed · +0.0 m", PAPER), ("Threshold Plaza", "fixed · safe · +0.8 m", GREEN),
         ("door choice", "Wayfarer / Oathbreaker", GOLD),
-        ("3–5 seeded chambers", "path pool only", CYAN),
-        ("Convergence", "fixed", PAPER), ("Ashen Lock", "fixed · 1 boss", EMBER),
-        ("First Memory", "once", VIOLET), ("Way Upward → hv-1", "fixed", GREEN),
+        ("3–5 seeded chambers", "path pool · +1.6→+4.8 m", CYAN),
+        ("Convergence", "fixed · +5.6 m", PAPER), ("Ashen Lock", "fixed · 1 boss · +6.8 m", EMBER),
+        ("First Memory", "once · +7.6 m", VIOLET), ("Way Upward → hv-1", "stairs · +7.9→+10.4 m", GREEN),
     ]
     for i, (name, sub, color) in enumerate(steps):
         x = 1310 + (i % 4) * 292
@@ -922,7 +958,7 @@ def draw_footer(draw: ImageDraw.ImageDraw) -> None:
     label(draw, bx, by + 44,
           "Master PNG: workspace souldrifter-thalenyr/flatmaps/breach-v2/ · shipped: docs/maps/breach-v2/breach-v2-flatmap-1600.webp (WebP q75) · "
           "registry derived measured-only from this map", font(16), PAPER_DIM)
-    label(draw, CANVAS_W - 40, FOOTER_Y0 + 44, "BREACH-V2 · 2026-08-20 · v2 (full kit placement)",
+    label(draw, CANVAS_W - 40, FOOTER_Y0 + 44, "BREACH-V2 · 2026-08-24 · v3 (ascent + portal audit)",
           font(18, bold=True), PAPER_DIM, anchor="ra")
 
 

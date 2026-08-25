@@ -16,43 +16,43 @@ the measured source for breach-v2-registry.mjs (deliverable 2).
 FIXED_ROOMS = [
     dict(
         id="vestibule", name="Realm-Lock Vestibule", kind="start",
-        x=0.0, y=0.0, w=30.0, h=22.0,
+        x=0.0, y=0.0, w=30.0, h=22.0, elevation=0.0,
         notes="Fixed start. Damaged trans-realm machine-temple; cleanest room (corruption 0.05).",
     ),
     dict(
         id="plaza-link", name="Vestibule Gallery Link", kind="corridor",
-        x=30.0, y=8.0, w=6.0, h=6.0,
+        x=30.0, y=8.0, w=6.0, h=6.0, elevation=0.4,
         notes="Short fixed link; bronze conduits run east toward the paired doors.",
     ),
     dict(
         id="threshold-plaza", name="Threshold Plaza", kind="plaza",
-        x=36.0, y=4.0, w=16.0, h=12.0,
+        x=36.0, y=4.0, w=16.0, h=12.0, elevation=0.8,
         notes="Safe. Orren (north) + Brannoc (south) guide beat before the choice. Two doors on the east wall.",
     ),
     dict(
         id="convergence", name="Convergence Gallery", kind="convergence",
-        x=176.0, y=5.0, w=12.0, h=10.0,
+        x=176.0, y=5.0, w=12.0, h=10.0, elevation=5.6,
         notes="Both paths rejoin here (two west sockets, one east socket). Corruption rises (0.7).",
     ),
     dict(
         id="ashen-threshold", name="The Ashen Threshold (ante-room)", kind="ante",
-        x=192.0, y=5.5, w=12.0, h=9.0,
+        x=192.0, y=5.5, w=12.0, h=9.0, elevation=6.2,
         notes="Boss-suite ante-room. One-way portcullis seals behind the player.",
     ),
     dict(
         id="ashen-lock", name="The Ashen Lock (boss)", kind="boss",
-        x=208.0, y=-1.0, w=30.0, h=22.0,
+        x=208.0, y=-1.0, w=30.0, h=22.0, elevation=6.8,
         notes="Cinderbound Warden arena. Corruption densest (1.0). 3 boss-anchor sockets with a glowing rune circle at the active anchor; V2 ships exactly 1 boss.",
     ),
     dict(
         id="memory-vault", name="First Memory Vault", kind="vault",
-        x=242.0, y=3.0, w=10.0, h=8.0,
+        x=242.0, y=3.0, w=10.0, h=8.0, elevation=7.6,
         notes="Sealed until the Warden falls. First Memory on the dais; awarded exactly once.",
     ),
     dict(
         id="exit-connector", name="The Way Upward (exit Connector)", kind="exit",
-        x=242.0, y=12.0, w=16.0, h=6.0,
-        notes="Ascending passage out of the Breach -> Heartvale hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
+        x=242.0, y=12.0, w=16.0, h=6.0, elevation=7.9,
+        notes="Ascending passage climbs from 7.9 m to Heartvale at 10.4 m -> hv-1 (Soul Well Basin), world anchor (5437.5, 2648.4).",
     ),
 ]
 
@@ -83,22 +83,23 @@ PLAZA_LANDMARKS = [
 # ---------------------------------------------------------------------------
 PATH_SLOTS = {
     "wayfarer": [  # north arc
-        dict(slot=1, x=64.0, y=-1.0),
-        dict(slot=2, x=88.0, y=-7.0),
-        dict(slot=3, x=112.0, y=-9.0),
-        dict(slot=4, x=136.0, y=-7.0),
-        dict(slot=5, x=160.0, y=-1.0),
+        dict(slot=1, x=64.0, y=-1.0, elevation=1.6),
+        dict(slot=2, x=88.0, y=-7.0, elevation=2.4),
+        dict(slot=3, x=112.0, y=-9.0, elevation=3.2),
+        dict(slot=4, x=136.0, y=-7.0, elevation=4.0),
+        dict(slot=5, x=160.0, y=-1.0, elevation=4.8),
     ],
     "oathbreaker": [  # south arc
-        dict(slot=1, x=64.0, y=19.0),
-        dict(slot=2, x=88.0, y=25.0),
-        dict(slot=3, x=112.0, y=27.0),
-        dict(slot=4, x=136.0, y=25.0),
-        dict(slot=5, x=160.0, y=19.0),
+        dict(slot=1, x=64.0, y=19.0, elevation=1.6),
+        dict(slot=2, x=88.0, y=25.0, elevation=2.4),
+        dict(slot=3, x=112.0, y=27.0, elevation=3.2),
+        dict(slot=4, x=136.0, y=25.0, elevation=4.0),
+        dict(slot=5, x=160.0, y=19.0, elevation=4.8),
     ],
 }
 SLOT_BOX = dict(w=15.0, h=13.0)  # indicative placeholder box on the plan
 CORRIDOR_WIDTH = {"wayfarer": 3.5, "oathbreaker": 3.0}  # meters
+WAY_UPWARD_EXIT_ELEVATION = 10.4
 
 # ---------------------------------------------------------------------------
 # Room pools. Every room drawn at true size. Sockets are door/wall anchors.
@@ -391,7 +392,7 @@ SCONCE_PAIR_X = {
     "vestibule": [4.0, 17.5, 28.0], "plaza-link": [1.5, 4.5],
     "threshold-plaza": [6.0, 12.0], "convergence": [3.0, 9.0],
     "ashen-threshold": [4.0, 8.0], "ashen-lock": [5.0, 15.0, 25.0],
-    "memory-vault": [1.0, 9.0], "exit-connector": [5.0, 11.0],
+    "memory-vault": [1.0, 9.0], "exit-connector": [1.5, 11.0],
     "E-01": [4.0, 10.0], "E-02": [6.0, 11.0], "E-03": [2.0, 12.0],
     "E-04": [8.0], "E-05": [3.0, 11.0], "E-06": [5.0, 17.0],
     "E-07": [1.5, 14.5], "H-01": [3.0, 9.0], "H-02": [2.0, 7.0],
@@ -443,7 +444,7 @@ WALL_ART = {
     "threshold-plaza": [("art-map-thalenyr-scroll", 3.5, 0.35, 1.8),  # lore cartography, never a dev map
                         ("art-banner-wayfarer", 9.0, 0.35, 1.4),       # north wall beside the Wayfarer door
                         ("art-banner-oathbreaker", 12.5, 11.65, 1.4)], # south wall beside the Oathbreaker door
-    "convergence": [("art-banner-ashen", 0.3, 5.0, 1.4)],              # warning banner between entries
+    "convergence": [("art-banner-ashen", 6.0, 0.35, 1.4)],             # north wall, clear of both entries
     "ashen-threshold": [("art-relief-warden", 10.5, 0.35, 1.8)],       # the Warden's warning relief
     "ashen-lock": [("art-banner-cinderbound", 12.0, 0.35, 1.6),
                    ("art-banner-cinderbound", 22.5, 0.35, 1.6)],

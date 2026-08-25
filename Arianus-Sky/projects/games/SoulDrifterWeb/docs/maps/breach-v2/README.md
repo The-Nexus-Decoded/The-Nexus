@@ -13,7 +13,10 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
   Gallery → Ashen Threshold (ante-room) → The Ashen Lock (boss, 30 × 22 m,
   heavy section door, 3 boss-anchor sockets) → First Memory Vault →
   The Way Upward exit Connector to Heartvale hv-1 (Soul Well Basin), world
-  anchor (5437.5, 2648.4).
+  anchor (5437.5, 2648.4). Elevation annotations define a monotonic ascent
+  from +0.0 m in the Vestibule through stepped galleries to +10.4 m at the
+  Heartvale threshold; stair ticks, uphill arrows, and slot elevations mark
+  the climb.
 - **Panel A2 — Vestibule + Plaza detail** (16 px/m inset): Soul Well pool
   (Ø 3.6 m silvery glowing pool, rim Ø 5.3 m — owner ruling V14), player
   emergence, Wellkeeper Ilyra, true Memory Loom, Wayfarer's Coffer, true
@@ -23,9 +26,9 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
   7 HARD (Oathbreaker) rooms with door sockets, spawn sockets, and authored
   placement of the 3D AI Studio dungeon kit — numbered glyphs with per-room
   lists. All 38 kit asset IDs are placed somewhere in the zone; every combat
-  chamber carries a `storage-chest` at a loot socket; the two trial doors are
-  `heavy-door` instances; the Ashen Lock dressing is numbered on the spine
-  and decoded in the fixed-dressing index.
+  chamber carries a `storage-chest` at a loot socket; the two trial gates are
+  runtime-owned imported `rusted-portcullis` instances; the Ashen Lock
+  dressing is numbered on the spine and decoded in the fixed-dressing index.
 - **Rail B — tables**: legend, per-path spawn table, loot table, prop tables
   (dungeon-kit IDs), boss set (1× Cinderbound Warden per run), seed policy
   (layout seed + dressing seed, mulberry32 lineage, comparison seed 4182).
@@ -44,3 +47,14 @@ BREACH-V2 starting-zone flat map, authored per `docs/DUNGEON_BUILD_RUNBOOK.md`
 
 Scale: uniform 9 px/m on the master (16 px/m in the A2 inset). The engine nav
 cell is 1.75 m and stays hidden under continuous geometry at runtime.
+
+## 2026-08-24 inherited-map correction
+
+The production-harness audit found and corrected three pre-harness defects
+without changing the horizontal room graph: the obsolete direct Ashen Lock →
+exit line was replaced by the authored First Memory Vault → Way Upward
+sequence; a Way Upward wall sconce and the Convergence warning banner were
+moved out of portal-clearance envelopes; and the missing vertical design was
+made explicit as a continuous +0.0 m → +10.4 m ascent. The runtime must build
+real floors, stairs, collision, player elevation, and camera motion from these
+values—flat navigation with decorative stair props does not satisfy the map.
