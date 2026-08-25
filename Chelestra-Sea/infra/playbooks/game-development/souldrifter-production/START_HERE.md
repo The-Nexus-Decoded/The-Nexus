@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-24-master-v5`
+**Context version:** `2026-08-24-master-v6`
 
 This is the mandatory entry point for every SoulDrifter production session:
 
@@ -20,17 +20,26 @@ Every session reconstructs context from the same files before editing.
 0. Read `ONBOARDING.md`.
 1. Read `AUTO_DISCOVER_WORKSPACE.md` and automatically discover/reuse the existing ticket worktree.
 2. Read `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` and prove every provider/tool/runtime lane required by the ticket. A named tool is not considered connected until it passes a live sanitized check.
-3. For any animation/rigging ticket, read `ANIMATION_PROVIDER_ROUTING.md` and record whether each motion uses a Tripo preset, a preset-derived variant, a verified Tripo custom-motion feature, another custom-motion lane, or runtime procedural motion.
-4. Read the game repository's binding `AGENTS.md`.
-5. Read this file.
-6. Read `PROJECT_CANON_INDEX.md`.
-7. Read `WORKFLOW.md`.
-8. Read the assigned GitHub issue and **every current comment**.
-9. Read its related PR(s), every PR comment/review, and the live head state.
-10. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
-11. Read the ticket kickoff under `kickoffs/` when one exists.
-12. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
-13. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
+3. For any animation/rigging ticket, read:
+   - `ANIMATION_PROVIDER_ROUTING.md`
+   - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
+   - `config/animation-bakeoff-policy.json`
+4. Record whether each motion uses:
+   - direct Tripo preset;
+   - simple Tripo-preset-derived variant;
+   - verified Tripo custom motion;
+   - mandatory Houdini KineFX versus Blender bakeoff;
+   - runtime procedural motion.
+5. Read the game repository's binding `AGENTS.md`.
+6. Read this file.
+7. Read `PROJECT_CANON_INDEX.md`.
+8. Read `WORKFLOW.md`.
+9. Read the assigned GitHub issue and **every current comment**.
+10. Read its related PR(s), every PR comment/review, and the live head state.
+11. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json`, and `handoff.json` when they exist.
+12. Read the ticket kickoff under `kickoffs/` when one exists.
+13. Read only the specialist source-bundle/game-repository runbooks required by the ticket, plus anything they reference.
+14. Inspect the actual worktree/branch, recent commits, installed tools, provider connections, current licenses, and runtime. Never trust claims without checking.
 
 ## Two receipts are required before editing
 
@@ -55,14 +64,15 @@ Proves all ticket-required lanes, including as applicable:
 - current balance/pricing/credit gate;
 - Tripo preset animation library and rig version;
 - any verified first-party Tripo custom-motion capability;
-- Houdini version, Python/HOM, license, file format, export path;
-- Blender/add-ons;
+- Houdini version, Python/HOM, license, KineFX, file format, export path;
+- Blender version, required add-ons, Python, export path;
+- dual-animation bakeoff source/evidence storage;
 - Three.js/GLB optimization/runtime;
 - real GPU;
 - audio/media;
 - controlled asset storage, registry, provenance, and rollback.
 
-No valid receipts = no implementation, generation, provider spend, Houdini build, animation, VFX, or runtime integration.
+No valid receipts = no implementation, generation, provider spend, Houdini build, Blender build, animation, VFX, or runtime integration.
 
 ## Provider boundaries
 
@@ -76,11 +86,28 @@ Use Tripo for approved 3D generation, segmentation, mesh processing, rig checkin
 
 The public Tripo API documents versioned fixed preset animation libraries rather than arbitrary prompt-to-animation. Do not claim arbitrary custom animation until a live authenticated provider capability check proves it.
 
+### Custom animations
+
+A direct Tripo preset that passes the full acceptance gate does not require duplicate DCC production.
+
+Every animation that is not acceptably covered by Tripo—and every substantial constrained/interaction-derived motion—must produce:
+
+1. one Houdini KineFX candidate;
+2. one Blender candidate;
+3. automated technical checks for both;
+4. a blinded independent AI comparison;
+5. a blinded owner side-by-side review;
+6. a recorded winner/tie/rework verdict;
+7. winner integration and independent verification;
+8. a machine-readable bakeoff record preserving both candidates.
+
+Aggregate data is reviewed after 10, 25, 50, 100, and each additional 50 completed custom-animation bakeoffs. No pipeline retires automatically; retirement or category routing requires evidence and explicit owner approval.
+
 ## Context Receipt — required after onboarding/toolchain preflight
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-24-master-v5
+contextVersion: 2026-08-24-master-v6
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -91,12 +118,15 @@ worktree: <absolute path>
 gameRoot: Arianus-Sky/projects/games/SoulDrifterWeb
 onboardingReceipt: PASS/BLOCKED
 productionToolchainReceipt: PASS/BLOCKED
+animationRoutingLoaded: yes/no/not-required
+bakeoffPolicyLoaded: yes/no/not-required
 requiredFilesRead:
   - AGENTS.md
   - START_HERE.md
   - ONBOARDING.md
   - PRODUCTION_TOOLCHAIN_PREFLIGHT.md
   - ANIMATION_PROVIDER_ROUTING.md (when applicable)
+  - CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md (when applicable)
   - ...
 ticketStateLoaded: <yes/no/new>
 latestOwnerDirectionChecked: yes
@@ -114,13 +144,17 @@ May audit all tickets, verify onboarding/toolchain status, and route work. It sh
 
 Owns one GitHub ticket in one dedicated worktree. Do not opportunistically fix unrelated tickets.
 
+For a dual animation bakeoff, the Houdini and Blender producers are separate worker responsibilities. One integration owner controls the canonical action ID and winner integration.
+
 ### Verifier session
 
-Must be independent from the producer whose work it verifies.
+Must be independent from both animation producers and from the implementation producer whose work it verifies.
 
 ## Completion rule
 
 `IMPLEMENTED_UNVERIFIED` is the highest status an implementation worker may grant itself.
+
+Neither the Houdini producer nor the Blender producer may declare its own candidate the winner.
 
 Only an independent verifier may move requirements to `VERIFIED`.
 
@@ -134,8 +168,9 @@ Only the full done gate may move the ticket to `OWNER_READY`.
 - Use official Tripo v3 SDK/API or an exact provider-documented first-party CLI. Do not install an unverified similarly named package.
 - Use host-LLM image generation for concept/reference images; Tripo 2D image credits are disabled by default.
 - Search Tripo's live preset library before commissioning a custom motion.
-- Use Houdini KineFX/Blender to derive constrained, directional, weapon-specific, class-specific, death, and interaction variants from suitable Tripo presets.
-- Route truly unique motions through a verified custom-motion provider or AI-authored DCC/procedural lane.
+- Use a direct Tripo preset when it passes full acceptance.
+- For every remaining custom motion, run both Houdini KineFX and Blender under the same fair-input contract, then compare blind and gather data.
+- Use verified Tripo custom motion as a source or additional candidate when actually available, but it does not cancel an owner-required dual bakeoff.
 - Geometry-changing operations occur before final rigging.
 - Mixamo is legacy/fallback reference only.
 - Playable characters use modular base bodies + separate gear.
