@@ -20,6 +20,9 @@ A lower-priority source never silently overrides a higher-priority source.
 - `AUTO_DISCOVER_WORKSPACE.md`
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`
 - `ANIMATION_PROVIDER_ROUTING.md`
+- `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
+- `config/animation-bakeoff-policy.json`
+- `templates/animation-bakeoff-record.template.json`
 - `WORKFLOW.md`
 - `ARCHITECTURE_DECISION.md`
 - ticket kickoff files under `kickoffs/`
@@ -68,9 +71,13 @@ Before a live session relies on a specialist file, it must locate/materialize th
 - Tripo is the primary auto-rig and preset-animation-retarget lane.
 - The public API currently documents versioned fixed preset libraries, not arbitrary text-to-animation.
 - Search the live preset library first for every motion.
-- Derive constrained, directional, class-specific, weapon-specific, interaction, hit and death variants in Houdini KineFX/Blender when a preset is close.
+- A direct Tripo preset that passes the full acceptance gate does not require duplicate DCC production.
+- For every custom animation not acceptably covered by Tripo, produce both a Houdini KineFX candidate and a Blender candidate from the same locked inputs.
+- Blind the candidates, have an independent AI reviewer score them, present the side-by-side comparison to the owner, integrate the owner-selected winner, and preserve both candidates and their data.
+- Record every bakeoff in the animation experiment registry.
+- Review aggregate results after 10, 25, 50, 100, and every additional 50 custom animations.
+- No animation pipeline retires automatically. A global or category-specific retirement requires representative evidence and explicit owner approval.
 - Use a verified Tripo custom-motion feature only when authenticated provider evidence proves it exists for the owner's account.
-- Route genuinely bespoke motions through another approved custom-motion or AI-authored DCC/procedural lane while preserving the Tripo/canonical rig.
 
 ### Other
 
