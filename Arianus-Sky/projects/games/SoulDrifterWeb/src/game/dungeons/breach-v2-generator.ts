@@ -18,9 +18,9 @@ import type {
 } from "./breach-v2-registry.mjs";
 
 export type BreachV2PathId = "wayfarer" | "oathbreaker";
-export type BreachV2BossPattern = "cinder-sweep" | "ash-call" | "soul-tax";
+type BreachV2BossPattern = "cinder-sweep" | "ash-call" | "soul-tax";
 
-export interface BreachV2ChamberInstance {
+interface BreachV2ChamberInstance {
   id: string;
   poolRoomId: string;
   name: string;
@@ -32,7 +32,7 @@ export interface BreachV2ChamberInstance {
   floorElevation: number;
 }
 
-export interface BreachV2Corridor {
+interface BreachV2Corridor {
   id: string;
   from: { x: number; y: number };
   bend: { x: number; y: number };
@@ -43,7 +43,7 @@ export interface BreachV2Corridor {
   toElevation: number;
 }
 
-export interface BreachV2PlacedProp extends BreachV2Placement {
+interface BreachV2PlacedProp extends BreachV2Placement {
   roomId: string;
   zoneId: string;
   worldX: number;
@@ -53,7 +53,7 @@ export interface BreachV2PlacedProp extends BreachV2Placement {
   floorElevation: number;
 }
 
-export interface BreachV2Enemy {
+interface BreachV2Enemy {
   id: string;
   kind: string;
   chamberId: string;
@@ -63,7 +63,7 @@ export interface BreachV2Enemy {
   floorElevation: number;
 }
 
-export interface BreachV2Cell {
+interface BreachV2Cell {
   col: number;
   row: number;
 }
