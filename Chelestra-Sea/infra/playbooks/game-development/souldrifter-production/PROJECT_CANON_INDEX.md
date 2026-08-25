@@ -71,11 +71,13 @@ logical graph
 ## Browser runtime and portability
 
 - SoulDrifter remains browser-first and mobile-browser compatible.
-- Three.js remains the current POC/runtime until the First Breach browser vertical slice is complete and independently verified.
-- After the current POC round, create a separate Babylon.js side-by-side browser evaluation using the same representative content.
-- No Babylon migration happens automatically; the owner chooses after desktop/mobile browser, WebGL/WebGPU, effects, animation, physics, bundle/loading, performance and implementation evidence.
-- Unreal/Unity remain long-term optional portability targets only, not current production clients.
-- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and target-specific packages so later browser/native integration does not recreate expensive creative/procedural work from zero.
+- Three.js is the canonical browser runtime for the POC and foreseeable browser releases.
+- There is no planned Babylon.js comparison, evaluation ticket, target package or migration roadmap.
+- Continue improving Three.js through WebGL/WebGPU capability paths, scalable FX/material quality, mobile performance, streaming/loading, physics/animation integration and real-device profiling.
+- Do not delay the First Breach or duplicate the game in another browser engine.
+- If a future installed/native edition is genuinely required, evaluate Unreal Engine versus Unity as a separate owner-approved product phase.
+- Unreal/Unity are long-term optional portability targets only, not current production clients.
+- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and target-specific packages so future native integration reuses expensive creative/procedural work rather than starting over.
 - Read `BROWSER_RUNTIME_ROADMAP.md`.
 
 ## Images and primary 3D references
