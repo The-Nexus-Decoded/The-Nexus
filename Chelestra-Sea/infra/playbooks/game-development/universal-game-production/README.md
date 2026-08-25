@@ -1,6 +1,6 @@
 # Universal AI Game Production Playbook
 
-Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, provider/DCC/runtime modules, procedural-level rules, asset pipelines, testing, networking, releases and independent verification.
+Use this package for any game genre or platform. It provides a reusable multi-LLM production core, project profiles, provider/DCC/runtime modules, procedural-level rules, environment-completion gates, asset pipelines, testing, networking, releases and independent verification.
 
 ## Start
 
@@ -24,23 +24,49 @@ New chats load cached receipts, fetch current ticket state and verify only the s
 - `ONBOARDING.md` — one-time/invalidated workstation bootstrap
 - `SESSION_FAST_START.md` — short process for each chat
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` — provider/DCC/engine/device checks
+- `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md` — exact topology-to-population stage order
+- `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md` — purpose-based staging before collision testing
+- `COLLISION_INTERACTION_DESTRUCTION_POLICY.md` — prop-complete collision, interaction and destruction gates
 - `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md` — graph-first constructive spatial generation
-- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` — ground, vertical, aquatic, biome, mega-zone, dynamic and transfer connection contracts
+- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` — ground, vertical, aquatic, biome, mega-zone, dynamic and transfer contracts
 - `BROWSER_RUNTIME_PORTABILITY_POLICY.md` — stable runtime plus optional future-port preservation
 - `IMAGE_REFERENCE_BAKEOFF_POLICY.md` — multi-candidate image comparison and full-asset framing
 - `HOUDINI_LICENSE_MODE_POLICY.md` — Apprentice POC, Indie and commercial routing
 - `WORKFLOW.md` — dependency-ordered multi-LLM lifecycle
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` — fair dual-candidate animation comparison
 - `config/onboarding-cache-policy.json`
+- `config/zone-environment-completion-policy.json`
 - `config/procedural-level-topology-policy.json`
 - `config/spatial-connection-policy.json`
 - `config/animation-bakeoff-policy.json`
+- `templates/zone-environment-completion-record.template.json`
 - `templates/procedural-level-topology-record.template.json`
 - `templates/spatial-connection-record.template.json`
 - `templates/animation-bakeoff-record.template.json`
 - `providers/tripo/` — reusable Tripo provider module
 - `scripts/providers/tripo/` — no-charge connection/bootstrap helpers
 - `source-bundle/` — original extracted harness source
+
+## Universal zone/environment pipeline
+
+```text
+design/purpose
+-> topology/traversal
+-> shell/surfaces/volumes
+-> environment staging and prop placement
+-> prop-complete collision discovery
+-> collision repair/regression
+-> interaction/pickup/destruction
+-> final integrated environment walkthrough
+-> independent environment verification
+-> separate population/gameplay phase
+```
+
+The intended environmental props must be placed before final collision verification. An empty-shell walkthrough cannot prove the staged level. Navigation cannot substitute for collision.
+
+Environment staging normally owns fixtures, furniture, containers, wall art, cover, debris, clues, base interactions/destruction and test contents. The later population phase normally owns live NPC/creature spawns, patrols, random encounters, quests and production loot/drop tables.
+
+Every placed object has collision, interaction, destruction and performance classification or an explicit reason a class does not apply.
 
 ## Universal procedural topology and traversal policy
 
@@ -51,22 +77,34 @@ logical graph + explicit traversal contracts
 -> constructive edge-by-edge embedding
 -> canonical boundaries, surfaces and volumes
 -> actual-geometry plan/section/volume/state validation
--> runtime geometry/collision/navigation/controller states
--> gameplay/dressing/FX
+-> shared shell and structural movement intent
+-> environment staging
+-> prop-complete collision/interaction/destruction gates
 ```
 
 A spatial node may be a room, cavern, shaft, water volume, air pocket, biome pocket, labyrinth, mega-zone, moving platform region or transforming living-world state.
 
-The traversal catalog covers:
+The traversal catalog covers architectural, vertical, aquatic, platform, biome, mega-zone, living-topology, transport, streaming and true-transfer connections.
 
-- open, door/gate, corridor, crawlspace and destructible routes;
-- stairs, climbing, lifts, drops, ropes and moving platforms;
-- jumps, bridges and platform sequences;
-- wading, swimming, underwater tunnels, air pockets, currents and boats;
-- biome transitions, labyrinths, mega-zones and living topology;
-- vehicles, streaming boundaries, true transfers and non-Euclidean links.
+Do not place sealed modules and connect them afterward. Resolve every edge before accepting the destination, retry/backtrack invalid placements and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
 
-Do not place sealed modules and connect them after the fact. Resolve every edge before accepting the destination, retry/backtrack invalid placements and require real-controller proof. Debug warp/pathfinding alone is not connectivity evidence.
+## Universal staging policy
+
+Every spatial node receives a purpose profile and semantic placement map.
+
+Examples include dwellings, shops, workshops, temples, dungeons/ruins and biome/mega-zones. Place structural fixtures before functional furniture, containers, wall/ceiling objects, storytelling, clutter and hidden candidates.
+
+Do not use blind asset scatter or fill critical traversal/camera/combat lanes with decoration.
+
+## Universal collision/interaction/destruction policy
+
+The prop-complete walkthrough uses the actual controller/profile and must find missing collision, invisible blockers, collider/mesh mismatch, tunneling, threshold state errors, camera clipping and prop traps.
+
+Both intended blocking and intended clearance must pass.
+
+Projects may choose maximum destructibility, but structural/progression objects can remain protected. Every object must have a working interaction/destruction contract or an explicit protection/noninteraction reason.
+
+Representative proof includes containers, pickups, stateful thresholds, destructible categories, protected objects, collider clearing, debris cleanup, save/reload and target-device performance.
 
 ## Universal image policy
 
