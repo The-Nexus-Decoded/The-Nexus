@@ -225,3 +225,66 @@ Project overlays own:
 - ticket ordering;
 - target device budgets;
 - release authority.
+
+## 12. Flat layouts are architectural topology contracts
+
+Every indoor level, outdoor zone, building, dungeon, route network and
+multi-elevation play space begins with a **complete architectural flat
+layout**. This is a measured construction document for the whole playable
+area, not a concept image, mood board or collection of independent room
+rectangles.
+
+The pre-build layout package must show, in one shared coordinate frame:
+
+- the complete footprint of every fixed area and every possible generated
+  branch or pooled variant;
+- dimensioned room, corridor, road, path and exterior boundaries;
+- canonical wall centerlines/thicknesses and a stable ID for every boundary;
+- which adjacent spaces own each side of a shared boundary;
+- every opening, doorway, gate and connector, including clear width, frame,
+  door swing or gate travel, and reserved traversal clearance;
+- stairs, ramps, landings, slopes, floor elevations, rise/run direction and
+  section/elevation callouts wherever plan view alone is ambiguous;
+- continuous walkable surfaces, collision boundaries, navigation routes and
+  source/destination aperture alignment;
+- scale, orientation, datum, grid and any engine/world-frame conversion.
+
+Geometry generation uses a canonical shared-boundary graph or equivalent
+unioned footprint. When two spaces are adjacent, their common edge is
+resolved once:
+
+- `WALL` emits one shared wall, never one closed-shell wall per space;
+- `OPEN` emits no wall from either side and preserves continuous floor,
+  ceiling, collision and navigation;
+- `DOOR`, `GATE` or `CONNECTOR` cuts one dimensioned aperture in that shared
+  boundary and assigns one visual/collision/state owner;
+- an elevation change emits the specified stair, ramp or landing transition
+  rather than overlapping floors or an unexplained step.
+
+Do not build levels by generating sealed room boxes and placing them beside
+sealed corridor boxes. Do not rely on 3D dressing, fog, darkness or a door
+asset to hide unresolved topology.
+
+### Mandatory topology gate before 3D construction
+
+The flat layout and its machine-readable adjacency/boundary representation
+must be reviewed before registry derivation, shell generation, dressing,
+lighting, VFX or audio begins. Reject the layout if any check fails:
+
+1. the whole playable layout and all possible branches are not visible and
+   traceable end to end;
+2. an adjacency exists geometrically but is absent or contradictory in the
+   connection graph;
+3. coincident, parallel or near-duplicate walls occupy one shared boundary;
+4. a wall crosses a declared opening, corridor centerline, stair, landing or
+   other walkable surface;
+5. a connection has a floor, ceiling, wall, collision or elevation gap;
+6. a door/gate has more than one geometry or collision owner;
+7. any required route is disconnected at the design, collision or navigation
+   layer.
+
+Acceptance evidence includes the complete plan at readable scale, enlarged
+connection details, section/elevation views for vertical transitions,
+automated topology checks, and real-input runtime traversal through every
+connector after implementation. A room-by-room screenshot set cannot replace
+the whole-layout topology proof.
