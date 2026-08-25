@@ -2,9 +2,9 @@
 
 ## Mission
 
-Continue and fix the existing BREACH-V2 implementation. Preserve accepted First Breach content, room archetypes, art direction, environmental staging, gameplay and progression, but repair and verify the procedural generator, collision and environment-interaction architecture at their roots.
+Continue and fix the existing BREACH-V2 implementation. Preserve accepted First Breach content, room archetypes, art direction, environmental staging, gameplay and progression, but repair and verify the procedural generator and the complete zone-environment pipeline at their roots.
 
-The environment portion of the ticket is complete only when the player can travel continuously from Soul Well/vestibule through the selected route, 3–5 connected gallery spaces, Cinderbound Warden, First Memory and the Heartvale exit **inside the complete staged environment**, with correct collision, interactions and destruction.
+The environment portion is complete only when the player can travel continuously from Soul Well/vestibule through the selected route, 3–5 connected gallery spaces, Cinderbound Warden, First Memory and the Heartvale exit inside the complete staged environment, with correct collision, interactions, destruction, readability, performance and recovery.
 
 This is not a replacement level and is not #448 character/monster production.
 
@@ -28,14 +28,12 @@ Read from `infra/game-production-playbooks`:
 - `SESSION_FAST_START.md`
 - `WORKFLOW.md`
 - `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`
+- `ZONE_PRODUCTION_QUALITY_GATES.md`
 - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
 - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
 - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
-- `config/zone-environment-completion-policy.json`
-- `config/dungeon-topology-policy.json`
-- `config/spatial-connection-policy.json`
-- the matching record templates
+- the matching configs/templates
 - `BROWSER_RUNTIME_ROADMAP.md`
 - live ticket/PR comments and current implementation files
 
@@ -59,17 +57,20 @@ PLAYER CHOOSES WAYFARER OR OATHBREAKER
 -> solve complete selected-route topology
 -> place each next space from a validated source socket/connection
 -> resolve canonical shared walls, apertures, corridors and elevations
--> run overlap, clearance, continuity and reachability checks
--> retry/backtrack when invalid
--> freeze accepted route topology
+-> validate/backtrack and freeze accepted topology
 
 ONLY AFTER TOPOLOGY PASSES
--> generate/render one shared shell and interiors
--> derive structural collision/navigation intent
--> place/freeze environmental staging
+-> graybox/scale/camera sanity check
+-> generate one shared shell and interiors
+-> audit technical readiness of assets
+-> audit/fix/freeze environmental staging
 -> run prop-complete collision walkthrough
--> repair/verify collision
--> verify interaction/pickup/destruction
+-> repair/verify collision, physics, nav and hazards
+-> verify interaction/pickup/destruction/dynamic state
+-> reconcile lookdev, lighting, wayfinding and audio
+-> run performance/streaming/loading pass
+-> verify recovery, out-of-bounds, device/input/accessibility
+-> revalidate population-ready sockets
 -> run final integrated environment walkthrough
 ```
 
@@ -81,30 +82,15 @@ A gallery archetype provides footprint/shape variants, legal sockets, allowed or
 
 It does not arrive as an independently closed four-wall box that is pushed against another box.
 
-## Place the next room from the connection
-
-For each logical edge:
-
-1. choose a legal source socket on the accepted previous space;
-2. choose the exact connection type;
-3. choose a compatible destination socket/orientation;
-4. calculate the shared boundary or corridor;
-5. derive the destination transform from the connection;
-6. validate overlap, floor/ceiling, player clearance, structural collision/navigation and elevation;
-7. accept the destination only when the entire edge passes;
-8. otherwise retry or backtrack.
-
-Do not place rooms at unrelated slot centers and connect coordinates afterward.
+For each edge, derive the destination transform from a valid source/destination socket and complete physical connection. Do not place rooms at unrelated slot centers and connect coordinates afterward.
 
 ---
 
 # Current First Breach connection types
 
-The current First Breach contains **no magical teleport or `PORTAL_TRANSFER` edge**.
+The current First Breach contains no magical teleport or `PORTAL_TRANSFER` edge.
 
-The word `portal` may still appear in old code, mesh names or visual-effect names. In this level it means a physical threshold/gate unless an explicit transfer contract says otherwise.
-
-Allowed current connection families:
+Allowed current families:
 
 - `DIRECT_OPEN_ADJACENCY`;
 - `DOOR_GATE_THRESHOLD`;
@@ -112,11 +98,11 @@ Allowed current connection families:
 - `STAIRS_RAMP_OR_LANDING`;
 - the Soulwell exit water veil as a doorless physical walk-through effect threshold.
 
-Future zones may use swimming, underwater tunnels, air pockets, climbing, mega-zones, biome pockets, living-dungeon transformations or true portal transfers, but those are not part of #451 unless separately authorized.
+The word `portal` in old code/mesh/effect names does not make an edge a teleport.
 
 ---
 
-# Canonical shared-boundary and topology gate
+# Canonical topology gate
 
 The accepted topology creates canonical boundary IDs before shell rendering.
 
@@ -127,129 +113,126 @@ The accepted topology creates canonical boundary IDs before shell rendering.
 - floors/ceilings have deterministic shared ownership or union;
 - shell generation consumes the boundary inventory.
 
-For every tested seed/path, generate diagnostics from actual solved topology showing space polygons, boundaries, openings/gates, corridor geometry, clearance/nav, elevation, physical edge resolutions and errors.
-
-Use section/elevation details wherever plan view cannot prove vertical clearance.
+For every tested seed/path, generate diagnostics from actual solved topology showing spaces, boundaries, openings/gates, corridors, clearance/nav, elevation, physical edge resolution and errors.
 
 Invalid arrangements retry/backtrack/reject; they are not hidden with darkness, fog, doors or props.
 
 ---
 
-# Existing First Breach staging must be audited and frozen
+# Existing staging and assets
 
-The current branch already contains extensive environmental staging:
+The branch already contains chests, crates, barrels, furniture, statues, cover, paintings, banners, wall fixtures, cages, chains, remains, lighting, water and FX.
 
-- chests and containers;
-- crates, barrels and furniture;
-- statues and cover;
-- paintings, banners and wall fixtures;
-- cages, chains, remains and dungeon dressing;
-- lighting, water and FX fixtures.
+Do not restart valid work.
 
-Do **not** restart or remove valid staging merely to follow the new sequence.
-
-Instead:
-
-1. audit every current placement against `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`;
-2. preserve valid placements;
-3. fix only floating, intersecting, obstructive, semantically wrong or unclassified objects;
-4. assign every object a collision, interaction and destruction class;
-5. freeze the accepted staged environment before the collision walkthrough.
-
-The level should read as a believable dungeon, not an empty shell or random asset scatter.
+1. Audit assets for scale, axes, pivot, materials/textures, LOD/culling, collider strategy, interaction/destruction anchors, provenance and rollback.
+2. Preserve valid placements.
+3. Fix only floating, intersecting, obstructive, semantically wrong or unclassified objects.
+4. Assign every object collision, interaction, destruction and performance class.
+5. Freeze the accepted staged environment before collision discovery.
 
 ---
 
-# Prop-complete collision gate
+# Prop-complete collision, physics and hazard gate
 
-A nav graph or empty-shell walk is not sufficient.
+Walk the actual playable character/controller through the fully staged level and identify:
 
-Walk the actual playable character/controller through the **fully staged level** and identify:
-
-- walls, statues, chests, boxes, furniture or fixtures with missing collision;
+- visible solids with missing collision;
 - invisible blockers;
 - collider/mesh mismatch;
 - door/gate state mismatch;
 - tunneling;
-- camera clipping;
-- props that trap or obstruct the player;
-- WASD versus click-to-move disagreement;
-- largest-body visual clipping.
+- camera/model clipping;
+- props that trap or obstruct;
+- WASD/click-to-move disagreement;
+- largest-body clipping;
+- wrong friction/slope/surface behavior;
+- bad water/current/moving-platform/hazard behavior where applicable.
 
-Test both positive and negative collision:
-
-- objects that should block must block;
-- openings, stairs, corridors, interaction approaches and destroyed footprints must remain clear.
-
-After repairs, repeat the complete route and all representative prop probes.
+Test positive and negative collision. After repairs, repeat the complete routes and representative object probes.
 
 ---
 
-# Interaction, pickup and destruction gate
+# Interaction, pickup, destruction and dynamic state
 
-Minimum required proof:
+Minimum proof:
 
 - open a chest/coffer and receive one deterministic test item exactly once;
 - verify open-state lid/collision clearance;
 - pick up a dropped item once without duplication;
-- operate doors/gates through their intended state;
-- break representative crates/boxes, barrels/furniture and allowed wall-mounted props;
-- verify destroyed collision clears;
-- verify debris cannot soft-lock the route;
-- verify protected iron/structural/progression objects reject damage;
-- verify save/reload preserves open, looted and destroyed states;
-- verify browser/mobile debris and performance budgets.
+- operate doors/gates through intended states;
+- break representative crates/boxes, barrels/furniture and allowed wall props;
+- clear destroyed collision and bound debris;
+- prove protected iron/structural/progression objects reject damage;
+- preserve open/looted/destroyed state through save/reload;
+- prove no interaction/destruction state soft-locks the route.
 
-SoulDrifter uses a maximum-destructibility direction:
+SoulDrifter uses maximum destructibility: ordinary nonstructural props are destructible/detachable where practical; structural/progression objects are protected unless explicitly `QUEST_DESTRUCTIBLE`.
 
-- ordinary nonstructural props are destructible/detachable when practical;
-- chests are interactable first and may use an explicit break-after-empty rule;
-- iron/steel structures, structural shell and progression-critical doors/mechanisms are protected by default;
-- quest/story destruction requires explicit `QUEST_DESTRUCTIBLE` state.
+---
 
-Every object needs a working interaction/destruction contract or a documented protection/noninteraction reason.
+# Remaining quality gates
+
+After interaction/destruction geometry is stable, complete the gates in `ZONE_PRODUCTION_QUALITY_GATES.md`.
+
+## Lookdev, lighting and wayfinding
+
+Verify materials, texture density, lighting, shadows, exposure, fog, particles, water and post effects while keeping routes, exits, interactions and object states readable. Atmosphere may not hide defects.
+
+## Audio and acoustics
+
+Verify ambience, localized emitters, reverb, wall/door occlusion, attenuation, footsteps, interaction/destruction cues, music/state transitions, loop quality and browser/mobile resume behavior.
+
+## Performance, streaming and loading
+
+Measure bundle/entry time, draw calls, triangles, materials/textures/texture units, frame time, memory, lights/shadows, particles/overdraw, animations, physics/nav/audio, shader stutter and representative mobile thermal behavior. Test slow network, cache miss, background/resume and repeated entry.
+
+## Recovery and out-of-bounds
+
+Test checkpoint/save/respawn/re-entry, stuck recovery, boundary escape attempts, fall-through/void, debris/door/script soft locks, dynamic-state recovery and missing-state/load fallback.
+
+## Device/input/accessibility
+
+Test required desktop/mobile browsers, keyboard/mouse/controller/touch, camera collision/recenter/zoom, viewports/safe areas, target sizes, readable/color-independent prompts, reduced motion/shake/flash and captions where required.
+
+## Population-readiness handoff
+
+Revalidate final spawn envelopes, patrol/leash paths, actor-size clearance, encounter/telegraph spaces, cover/LOS, quest/dialogue/cinematic anchors, drop-safe regions and stable socket IDs. Do not add new population in this gate.
 
 ---
 
 # Final integrated environment walkthrough
 
-After collision and interaction/destruction pass, run the complete staged level with all systems active.
-
 For Wayfarer and Oathbreaker:
 
-- traverse every physical edge with WASD;
-- traverse every physical edge with click-to-move;
-- inspect source aperture, connector midpoint/bend and destination aperture;
-- inspect both sides of stateful gates/doors;
-- inspect floors, walls, ceilings and prop clusters;
-- interact with representative containers and pickups;
-- destroy representative objects from every allowed class;
-- verify protected objects;
+- traverse every physical edge with WASD and click-to-move;
+- inspect both sides of thresholds and all prop clusters;
+- test representative containers, pickups, destructibles and protected objects;
 - complete at least one no-warp run through boss, First Memory and exit;
-- save/reload after interaction/destruction;
-- test desktop and representative mobile/narrow viewport;
-- use real GPU/ANGLE D3D11 for final evidence;
-- record performance and console/state errors.
+- save/reload/re-enter after dynamic changes;
+- test required camera/device/input profiles;
+- use real GPU/ANGLE D3D11;
+- record performance, failed requests, shader errors and console/state errors;
+- review orientation, believability, repetition, travel fatigue, interaction density and enjoyment.
 
-The prior open-gate/intact-wall failure and the newly discovered pass-through-prop collision failure are permanent regression cases.
+Permanent regressions include:
+
+- open gate with intact wall behind it;
+- navigation connected while geometry is blocked;
+- player passing through staged props;
+- invisible collider after a prop is destroyed;
+- atmosphere hiding a required route;
+- debris or state changes soft-locking progression.
 
 ---
 
 # Separate population/gameplay ticket boundary
 
-After the environment package is independently verified, use a separate ticket for:
+After the environment package is independently verified, use a separate ticket for NPC/monster spawning, patrols/AI, random encounters, respawn tuning, quest actors/dialogue/objectives, production loot/drop tables and population persistence.
 
-- NPC and monster spawning;
-- patrols and AI routes;
-- random encounters and respawn;
-- encounter composition and combat pacing;
-- quest actors, objectives and dialogue;
-- production loot/drop tables;
-- population persistence/network behavior.
+The later ticket consumes verified sockets/routes/APIs and may not silently move props or weaken collision.
 
-The later ticket consumes verified environment sockets, paths and interaction APIs. It may not silently move props or weaken collision. Any environment change reopens the affected environment gate.
-
-Existing minimal boss/progression content required to finish the current MVP remains in #451. Do not expand new random encounters, population systems or quest scope merely to complete the environment correction.
+Existing minimal boss/progression content required for the current MVP remains in #451. Do not expand population systems merely to finish the environment correction.
 
 ---
 
@@ -257,48 +240,32 @@ Existing minimal boss/progression content required to finish the current MVP rem
 
 ```text
 Phase -1  cached session fast-start
-Phase 0   current-generator, topology and existing-staging audit
+Phase 0   current generator/topology/graybox/assets/staging audit
 Phase 1   route-selection graph/topology solver
-Phase 2   canonical boundaries, apertures, corridors and shared shell
-Phase 3   audit/fix/freeze existing prop placement
-Phase 4   prop-complete character walkthrough and collision defect inventory
-Phase 5   collision repair and full regression
-Phase 6   chest/pickup/destruction/protected-object implementation and proof
-Phase 7   final integrated environment walkthrough
-Phase 8   independent core-environment verification
-Phase 9   complete required MVP boss/First Memory/exit proof
+Phase 2   canonical boundaries/corridors/shared shell/zone seam
+Phase 3   asset readiness + staging audit/freeze
+Phase 4   prop-complete collision defect inventory
+Phase 5   collision/physics/nav/hazard repair and regression
+Phase 6   interaction/pickup/destruction/dynamic-state proof
+Phase 7   lookdev/wayfinding/audio reconciliation
+Phase 8   performance/streaming/loading pass
+Phase 9   recovery/OOB/device/accessibility checks
+Phase 10  population-readiness handoff
+Phase 11  final integrated walkthrough/experience review
+Phase 12  independent core-environment verification
 FINAL     chained-skeleton Tripo/Houdini/Blender pilot after exact spend approval
-Phase 11  independent pilot/full regression
+Phase 14  independent pilot/full regression
 LATER     separate population/random-encounter/quest ticket
 ```
 
-The chained-skeleton pilot remains last and cannot delay topology, staging, collision or interaction verification.
+The chained-skeleton pilot remains last and cannot delay core environment gates.
 
-Babylon.js work is outside #451. After First Breach and the first playable Heartvale section are complete/verified in Three.js, a separate isolated Babylon.js port may compare exactly those two sections.
+Babylon.js work remains outside #451. After First Breach and the first playable Heartvale section are complete/verified in Three.js, a separate isolated Babylon.js port may compare exactly those two sections.
 
----
-
-# Copy/paste instruction for a future/resumed worker
+## Future/resumed worker summary
 
 ```text
-Read the latest #451 kickoff and these policies:
-- ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md
-- ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md
-- COLLISION_INTERACTION_DESTRUCTION_POLICY.md
-- PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md
-- SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md
+Preserve valid work. Do not use nav, coordinates, empty-shell traversal or survey warp as final proof.
 
-For this ticket:
-1. preserve/finalize the selected-route topology and shared shell;
-2. audit and freeze the existing prop-complete staging;
-3. walk the actual playable character through the fully staged zone;
-4. produce the collision-defect inventory;
-5. repair and regression-test positive/negative collision;
-6. prove chest opening, pickup, destruction and protected objects;
-7. run the final integrated no-warp walkthrough;
-8. stop at IMPLEMENTED_UNVERIFIED for independent review.
-
-Do not use an empty-shell walk, nav graph, coordinates or survey warp as final proof.
-Do not expand random encounters or quest population inside this environment correction.
-Do not merge or deploy.
+Complete the full zone gate record from topology through final experience review. Producer stops at IMPLEMENTED_UNVERIFIED. Do not merge or deploy.
 ```
