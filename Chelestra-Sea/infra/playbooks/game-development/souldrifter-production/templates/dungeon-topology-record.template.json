@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-procedural-dungeon-topology-v1",
+  "ticket": 0,
+  "commit": "",
+  "seed": 0,
+  "pathId": "",
+  "logicalGraph": {
+    "nodes": [],
+    "edges": [
+      {
+        "edgeId": "",
+        "sourceNode": "",
+        "destinationNode": "",
+        "connectionType": "CORRIDOR",
+        "requiredForProgression": true,
+        "physicalResolutionStatus": "NOT_STARTED"
+      }
+    ]
+  },
+  "placement": {
+    "rootRoomId": "",
+    "attempts": [],
+    "backtracks": [],
+    "rejectedCandidates": [],
+    "deterministicResult": true
+  },
+  "rooms": [
+    {
+      "roomId": "",
+      "archetypeId": "",
+      "polygon": [],
+      "floorElevation": 0,
+      "ceilingElevation": 0,
+      "transform": {
+        "x": 0,
+        "z": 0,
+        "rotationDegrees": 0
+      },
+      "acceptedFromEdge": ""
+    }
+  ],
+  "boundaries": [
+    {
+      "boundaryId": "",
+      "owner": "",
+      "adjacentTo": "OUTSIDE",
+      "classification": "WALL",
+      "start": [0, 0],
+      "end": [0, 0],
+      "thickness": 0,
+      "apertures": []
+    }
+  ],
+  "connections": [
+    {
+      "edgeId": "",
+      "connectionType": "CORRIDOR",
+      "sourceBoundaryId": "",
+      "sourceApertureId": "",
+      "destinationBoundaryId": "",
+      "destinationApertureId": "",
+      "connectorPolygon": [],
+      "centerline": [],
+      "clearWidth": 0,
+      "floorContinuity": "NOT_RUN",
+      "ceilingContinuity": "NOT_RUN",
+      "collisionContinuity": "NOT_RUN",
+      "navigationContinuity": "NOT_RUN",
+      "wasdTraversal": "NOT_RUN",
+      "clickMoveTraversal": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "topDownDiagnostic": {
+    "imagePath": "",
+    "generatedFromActualEmbeddedGeometry": true,
+    "layers": [],
+    "automatedReview": "NOT_RUN",
+    "aiVisionReview": "NOT_RUN",
+    "ownerVerdict": "NOT_REQUIRED"
+  },
+  "metrics": {
+    "requiredLogicalEdges": 0,
+    "physicallyResolvedEdges": 0,
+    "connectedPhysicalComponents": 0,
+    "unintendedRoomOverlaps": 0,
+    "unintendedCorridorRoomOverlaps": 0,
+    "coincidentDuplicateWalls": 0,
+    "wallsCrossingApertures": 0,
+    "orphanDoorsOrGates": 0,
+    "unmatchedCorridorEndpoints": 0,
+    "corridorsEndingAtIntactWalls": 0,
+    "missingDestinationApertures": 0,
+    "minimumPlayerClearanceFailures": 0,
+    "floorContinuityFailures": 0,
+    "ceilingContinuityFailures": 0,
+    "collisionContinuityFailures": 0,
+    "navigationContinuityFailures": 0,
+    "unsupportedElevationTransitions": 0
+  },
+  "automatedGate": "NOT_RUN",
+  "independentVerification": "NOT_RUN",
+  "status": "NOT_STARTED"
+}
