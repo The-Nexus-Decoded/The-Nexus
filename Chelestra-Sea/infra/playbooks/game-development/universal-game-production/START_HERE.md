@@ -1,33 +1,80 @@
 # START HERE — Universal AI Game Production Harness
 
-**Context version:** `2026-08-23-universal-game-v1`
+**Context version:** `2026-08-24-universal-game-v2`
 
 ## Core principle
 
 **Chat memory is not project state. The repository is project state.**
 
-Every session reconstructs context from the same files before editing.
+The universal core supports any genre/platform through project profiles, modules, provider adapters, and project overlays.
+
+## Onboarding frequency
+
+### Full machine/toolchain bootstrap
+
+Run once per workstation/template environment, then only when a cached receipt is missing, expired, invalidated, or a major tool/license/provider/secret changes.
+
+### Every new chat
+
+Use `SESSION_FAST_START.md` to:
+
+- discover/reuse the assigned worktree;
+- load the cached toolchain receipt;
+- validate receipt schema/age and required tool roots;
+- fetch live ticket/PR/comments/head;
+- load project profile, overlay and ticket state;
+- return a Session Receipt and Context Receipt.
+
+Do not reinstall providers, DCCs, engine tools, or repeat full smoke suites in every chat.
+
+### Before any paid provider operation
+
+Refresh live balance/pricing and obtain exact owner approval immediately before the charged operation, even when the cached connection receipt is valid.
 
 ## Startup order
 
-1. Read the repository's binding agent instructions (`AGENTS.md`, `CLAUDE.md`, or equivalent).
-2. Read `ONBOARDING.md` when this platform/workspace has not passed onboarding.
-3. Read this file.
-4. Read `config/context-version.json`.
-5. Read the game's `project-profile.json`.
-6. Read the game's project overlay/canon index.
-7. Read `WORKFLOW.md`.
-8. Read the assigned issue/ticket and all current comments.
-9. Read ticket state under `.agent-state/<ticket>/` when present.
-10. Read only the selected genre/platform modules and specialist skills required by the ticket.
-11. Inspect the actual branch/worktree and recent commits.
-12. Produce a Context Receipt before editing.
+1. Read `SESSION_FAST_START.md` and `config/onboarding-cache-policy.json`.
+2. Read the repository's binding agent instructions (`AGENTS.md`, `CLAUDE.md`, or equivalent).
+3. Discover/reuse the assigned branch/worktree.
+4. Load the cached production-toolchain receipt.
+5. If invalid, run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`; otherwise use the cached PASS.
+6. Read this file.
+7. Read the game's `project-profile.json` and project overlay/canon index.
+8. Read `WORKFLOW.md`.
+9. Load selected genre/platform/engine/provider modules only.
+10. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` when enabled by the project profile.
+11. Read assigned issue/ticket and all current comments/PR reviews.
+12. Load ticket state under `.agent-state/<ticket>/`.
+13. Inspect actual branch/worktree and recent commits.
+14. Return a Session Receipt and Context Receipt before editing.
 
-## Required Context Receipt
+## Session Receipt
+
+```text
+GAME PRODUCTION SESSION RECEIPT
+contextVersion: 2026-08-24-universal-game-v2
+platform: <M3|Claude Code|ChatGPT/Codex|other>
+projectId: <id>
+ticket: <number or GLOBAL-AUDIT>
+repository: <identity>
+branch: <branch>
+worktree: <path>
+localHead: <sha>
+liveHead: <sha>
+toolchainReceiptId: <id>
+toolchainReceiptStatus: CACHED_PASS | REFRESH_REQUIRED | BLOCKED
+selectedModules:
+  - <genre/platform/engine/provider module>
+providerSpendPlanned: yes/no
+fullBootstrapRequired: yes/no
+blockingIssues: []
+```
+
+## Context Receipt
 
 ```text
 GAME PRODUCTION CONTEXT RECEIPT
-contextVersion: 2026-08-23-universal-game-v1
+contextVersion: 2026-08-24-universal-game-v2
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 role: <orchestrator|auditor|worker|verifier>
 projectId: <id>
@@ -37,6 +84,7 @@ branch: <branch>
 worktree: <absolute path>
 projectProfileLoaded: yes/no
 projectOverlayLoaded: yes/no
+sessionReceipt: PASS/BLOCKED
 selectedModules:
   - <module>
 latestTicketDirectionChecked: yes/no
@@ -44,7 +92,29 @@ blockingConflicts: <none or list>
 plannedScope: <concise scope>
 ```
 
-No valid receipt = no implementation.
+No valid Session Receipt + Context Receipt means no implementation.
+
+## Reusable provider boundaries
+
+- Use the active host LLM's image generator for concept/reference images when available.
+- Use 3D providers for approved 3D work, not unnecessary 2D image spending.
+- Provider modules must prove a live sanitized authenticated connection once and cache the receipt.
+- Paid tasks always require current price/balance refresh and exact approval.
+- Geometry-changing operations occur before final rigging.
+- Provider success is not asset acceptance.
+
+## Custom-animation comparison policy
+
+When enabled by the project profile:
+
+- direct accepted provider presets may ship without duplicate DCC production;
+- custom motions not adequately covered by provider presets produce both a Houdini KineFX and Blender candidate;
+- both use identical locked inputs;
+- an independent AI review is blinded;
+- the owner makes the blinded A/B decision;
+- both results and metrics are retained until evidence supports category-specific or global routing changes.
+
+Projects may replace Houdini/Blender with other named lanes through their overlay, but the fair dual-candidate/blind-review/data-collection contract remains reusable.
 
 ## Role boundary
 
@@ -54,5 +124,4 @@ No valid receipt = no implementation.
 
 ## Generic-core boundary
 
-Do not write game-specific lore, class names, proprietary mechanics, or asset IDs into the universal core.
-Put those in the project overlay.
+Do not write project-specific lore, class names, proprietary mechanics, asset IDs, or ticket paths into the universal core. Put them in the project overlay.
