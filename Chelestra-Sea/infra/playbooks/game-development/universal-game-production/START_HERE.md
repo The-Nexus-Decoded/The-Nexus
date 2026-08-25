@@ -1,12 +1,14 @@
 # START HERE — Universal AI Game Production Harness
 
-**Context version:** `2026-08-24-universal-game-v2`
+**Context version:** `2026-08-24-universal-game-v3`
 
 ## Core principle
 
 **Chat memory is not project state. The repository is project state.**
 
-The universal core supports any genre/platform through project profiles, modules, provider adapters, and project overlays.
+The universal core supports any game genre/platform through project profiles, modules, provider adapters, and project overlays.
+
+`PLAYBOOK_V2_CORRECTIONS.md` supersedes conflicting or incomplete portions of the original `PLAYBOOK.md` v1.
 
 ## Onboarding frequency
 
@@ -38,21 +40,22 @@ Refresh live balance/pricing and obtain exact owner approval immediately before 
 3. Discover/reuse the assigned branch/worktree.
 4. Load the cached production-toolchain receipt.
 5. If invalid, run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`; otherwise use the cached PASS.
-6. Read this file.
+6. Read this file, `PLAYBOOK.md`, and `PLAYBOOK_V2_CORRECTIONS.md`.
 7. Read the game's `project-profile.json` and project overlay/canon index.
 8. Read `WORKFLOW.md`.
 9. Load selected genre/platform/engine/provider modules only.
-10. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` when enabled by the project profile.
-11. Read assigned issue/ticket and all current comments/PR reviews.
-12. Load ticket state under `.agent-state/<ticket>/`.
-13. Inspect actual branch/worktree and recent commits.
-14. Return a Session Receipt and Context Receipt before editing.
+10. For Tripo projects, load `providers/tripo/README.md` and the project-specific provider config derived from `providers/tripo/tripo-provider.template.json`.
+11. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`, `config/animation-bakeoff-policy.json`, and the bakeoff record template when enabled by the project profile.
+12. Read assigned issue/ticket and all current comments/PR reviews.
+13. Load ticket state under `.agent-state/<ticket>/`.
+14. Inspect actual branch/worktree and recent commits.
+15. Return a Session Receipt and Context Receipt before editing.
 
 ## Session Receipt
 
 ```text
 GAME PRODUCTION SESSION RECEIPT
-contextVersion: 2026-08-24-universal-game-v2
+contextVersion: 2026-08-24-universal-game-v3
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 projectId: <id>
 ticket: <number or GLOBAL-AUDIT>
@@ -74,7 +77,7 @@ blockingIssues: []
 
 ```text
 GAME PRODUCTION CONTEXT RECEIPT
-contextVersion: 2026-08-24-universal-game-v2
+contextVersion: 2026-08-24-universal-game-v3
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 role: <orchestrator|auditor|worker|verifier>
 projectId: <id>
@@ -108,7 +111,7 @@ No valid Session Receipt + Context Receipt means no implementation.
 When enabled by the project profile:
 
 - direct accepted provider presets may ship without duplicate DCC production;
-- custom motions not adequately covered by provider presets produce both a Houdini KineFX and Blender candidate;
+- custom motions not adequately covered by provider presets produce both a Houdini KineFX and Blender candidate by default;
 - both use identical locked inputs;
 - an independent AI review is blinded;
 - the owner makes the blinded A/B decision;
@@ -124,4 +127,4 @@ Projects may replace Houdini/Blender with other named lanes through their overla
 
 ## Generic-core boundary
 
-Do not write project-specific lore, class names, proprietary mechanics, asset IDs, or ticket paths into the universal core. Put them in the project overlay.
+Do not write project-specific lore, class names, proprietary mechanics, asset IDs, provider account values, or ticket paths into the universal core. Put them in the project overlay and project-specific provider config.
