@@ -57,6 +57,8 @@ Examples that may be covered directly or approximately by the documented library
 
 A preset is accepted only after normal-speed gameplay-camera and close deformation QA.
 
+A direct Tripo preset that passes the full technical, runtime, gameplay-camera, and owner acceptance gate does **not** require duplicate Houdini/Blender production.
+
 ## Tier 2 — Derived custom variants from Tripo presets
 
 Use Houdini KineFX, Blender, or another approved DCC automation layer to derive additional game-specific clips from a Tripo-retargeted base motion.
@@ -77,22 +79,54 @@ Allowed transformations include:
 - clip trimming, looping and recovery cleanup;
 - contact/VFX/SFX/gameplay event markers.
 
-This is the preferred way to turn a general Tripo preset into several coherent SoulDrifter variants without manually animating every bone from zero.
+For simple deterministic transformations, one approved DCC lane may be sufficient.
+
+When the derived motion requires substantial interaction, constraint, acting, weapon, or silhouette work, the owner-locked **dual-pipeline bakeoff** applies:
+
+- one Houdini KineFX candidate;
+- one Blender candidate;
+- blind AI review;
+- owner side-by-side verdict;
+- experiment registry update.
+
+See `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`.
 
 ## Tier 3 — Bespoke custom-motion lane
 
-Use this when no Tripo preset is close enough to the required silhouette, timing, interaction or constrained movement.
+Use this when no Tripo preset is close enough to the required silhouette, timing, interaction, or constrained movement.
 
 Possible sources:
 
 - a verified Tripo first-party custom-motion feature exposed to the owner's account;
 - an owner-approved text/video-to-motion or motion-capture provider;
-- AI-authored Houdini KineFX or Blender animation scripts;
+- AI-authored Houdini KineFX animation scripts;
+- AI-authored Blender rig/animation scripts;
 - procedural IK/physics/constraint authoring;
 - recorded or licensed motion capture;
 - limited manual cleanup after an automated first pass.
 
-The resulting motion is retargeted/baked onto the accepted canonical rig and then enters the same animation QA contract.
+### Mandatory dual-pipeline rule
+
+Every Tier 3 custom animation must produce two independent candidates from the same locked brief and canonical rig:
+
+1. `HOUDINI_KINEFX`
+2. `BLENDER`
+
+The two candidates use the same source motion/reference, duration, FPS, root-motion contract, constraints, markers, review cameras, runtime export settings, and acceptance criteria.
+
+An independent coordinator blinds the labels, an independent AI reviewer scores the candidates, and the owner chooses the winner, tie, category split, rework, or new route.
+
+The winner becomes the canonical runtime clip. The loser and its source scripts are preserved as experiment data.
+
+No pipeline may be retired automatically. Aggregate evidence is reviewed after 10, 25, 50, 100, and each additional 50 bakeoffs. A global retirement proposal normally requires at least 25 representative samples, category coverage, a 75% owner-decided win rate, a material time/failure advantage, and explicit owner approval.
+
+See:
+
+- `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
+- `config/animation-bakeoff-policy.json`
+- `templates/animation-bakeoff-record.template.json`
+
+The resulting winning motion is retargeted/baked onto the accepted canonical rig and then enters the normal animation QA contract.
 
 ## Tier 4 — Runtime procedural motion
 
@@ -113,6 +147,8 @@ Use runtime systems for:
 
 Procedural motion combines with authored/preset clips and is still server/gameplay-state driven where authoritative behavior matters.
 
+Runtime procedural motion does not eliminate the dual-pipeline bakeoff when a custom authored base clip is still required.
+
 ---
 
 # Death and hit-reaction strategy
@@ -131,6 +167,8 @@ Use a layered library:
 
 This creates many distinct results while keeping the authored library manageable.
 
+For every bespoke signature death not acceptably covered by Tripo presets, run the Houdini KineFX versus Blender bakeoff and store the result.
+
 ---
 
 # Class and ability animation routing
@@ -145,14 +183,18 @@ For every requested animation, the animation-demand record must include:
   "tripoPresetSearchCompleted": true,
   "candidatePresets": [],
   "presetMatchScore": 0.0,
-  "route": "TRIPO_PRESET | TRIPO_PRESET_DERIVED | VERIFIED_TRIPO_CUSTOM | EXTERNAL_CUSTOM | PROCEDURAL_RUNTIME",
+  "route": "TRIPO_PRESET | TRIPO_PRESET_DERIVED | VERIFIED_TRIPO_CUSTOM | DUAL_DCC_BAKEOFF | PROCEDURAL_RUNTIME",
+  "dualBakeoffRequired": true,
+  "bakeoffRecordPath": "",
   "rigFamily": "canonical-humanoid",
   "contactMarkers": [],
   "ownerApproval": "PENDING"
 }
 ```
 
-Do not label a motion `TRIPO_CUSTOM` unless a live authenticated provider capability check proves that custom-motion input is supported.
+Do not label a motion `VERIFIED_TRIPO_CUSTOM` unless a live authenticated provider capability check proves that custom-motion input is supported.
+
+Do not label a Tier 3 motion complete until both DCC candidates have been produced or one lane has a documented unrecoverable technical blocker.
 
 ---
 
@@ -170,14 +212,21 @@ The exact requirement—wrists/ankles constrained to wall anchors while the tors
 Required routing:
 
 1. query the live Tripo preset list;
-2. test the closest useful candidates such as hurt, frightened, complain, sob, defeat or another verified ambient preset;
-3. if a suitable preset exists, use it as the base clip;
-4. add wall/chain constraints and corrective layers in Houdini KineFX/Blender;
-5. if the authenticated Tripo account exposes a verified custom-motion feature, test it as a separate A/B lane;
-6. otherwise use the bespoke custom-motion lane;
-7. keep chain simulation/attachments separate from the skeleton body.
+2. test the closest useful candidates such as hurt, frightened, complain, sob, defeat, or another verified ambient preset;
+3. lock the accepted Tripo rig and source/base motion for both DCC lanes;
+4. create one Houdini KineFX constrained-struggle candidate;
+5. create one Blender constrained-struggle candidate;
+6. keep chain simulation/attachments separate from the skeleton body in both lanes;
+7. export both through the same Three.js review scene;
+8. blind the A/B labels;
+9. run independent AI comparison;
+10. present the side-by-side review to the owner;
+11. integrate the owner-selected winner;
+12. update the animation bakeoff registry.
 
-The final clip may therefore be classified `TRIPO_PRESET_DERIVED`, which is still an AI-first Tripo-led production path.
+If the authenticated Tripo account exposes a verified custom-motion feature, it may provide the common source motion or a third comparison candidate, but it does not remove the owner-directed Houdini-versus-Blender bakeoff for this pilot.
+
+The final accepted clip may be classified `TRIPO_PRESET_DERIVED + DUAL_DCC_BAKEOFF`, which remains an AI-first Tripo-led production path.
 
 ---
 
@@ -196,4 +245,5 @@ No animation enters the runtime library until it passes:
 - Three.js GLB playback;
 - real-GPU performance;
 - provenance and rollback;
+- dual-pipeline comparison when required;
 - independent verification.
