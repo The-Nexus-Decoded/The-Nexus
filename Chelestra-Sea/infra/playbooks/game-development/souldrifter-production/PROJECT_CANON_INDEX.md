@@ -20,18 +20,23 @@ A lower-priority source never silently overrides a higher-priority source.
 - `ONBOARDING.md`
 - `AUTO_DISCOVER_WORKSPACE.md`
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md`
-- `IMAGE_REFERENCE_BAKEOFF_POLICY.md`
-- `HOUDINI_APPRENTICE_POC_POLICY.md`
+- `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`
+- `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`
+- `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
 - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
 - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
+- `IMAGE_REFERENCE_BAKEOFF_POLICY.md`
+- `HOUDINI_APPRENTICE_POC_POLICY.md`
 - `BROWSER_RUNTIME_ROADMAP.md`
 - `ANIMATION_PROVIDER_ROUTING.md`
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
 - `config/onboarding-cache-policy.json`
 - `config/tripo-provider.json`
+- `config/zone-environment-completion-policy.json`
 - `config/dungeon-topology-policy.json`
 - `config/spatial-connection-policy.json`
 - `config/animation-bakeoff-policy.json`
+- `templates/zone-environment-completion-record.template.json`
 - `templates/dungeon-topology-record.template.json`
 - `templates/spatial-connection-record.template.json`
 - `templates/animation-bakeoff-record.template.json`
@@ -46,7 +51,132 @@ Current SEA playbook files are the production workflow authority.
 
 `Arianus-Sky/projects/games/SoulDrifterWeb/` is the implementation target for runtime code, data, assets and tests. Legacy SKY runbooks may inform implementation but do not override the SEA harness.
 
-## Spatial nodes and traversal
+---
+
+# Zone environment completion canon
+
+Every SoulDrifter zone/environment uses this exact stage order:
+
+```text
+0. design and purpose contract
+1. topology and connection solver
+2. shared shell, surfaces and traversal volumes
+3. environment staging and prop placement
+4. prop-complete real-character walkthrough / collision discovery
+5. collision implementation and regression
+6. interaction, pickup and destruction
+7. final integrated environment walkthrough
+8. independent environment verification
+9. separate zone-population/gameplay ticket
+```
+
+No stage may be skipped or treated as proof of another stage.
+
+Key rules:
+
+- place the final intended environmental props before the collision walkthrough;
+- an empty-shell walkthrough is not final collision proof;
+- navigation/pathfinding is not collision proof;
+- collision must pass before interaction/destruction acceptance;
+- interaction/destruction must pass before the final integrated walkthrough;
+- the environment must be independently verified before population expansion;
+- population work may not silently alter verified topology, prop placement or collision.
+
+## Environment staging versus population
+
+### Environment/level ticket owns
+
+- architectural shell and fixtures;
+- furniture and functional staging;
+- paintings, statues, shelves, sconces and wall/ceiling fixtures;
+- chests, containers, crates, barrels, pottery, cover and debris;
+- environmental storytelling, remains, clues and hidden-route candidates;
+- collision/interaction/destruction classification;
+- base chest/pickup/destruction proof using deterministic test contents;
+- final environment verification.
+
+### Separate zone-population/gameplay ticket owns
+
+- NPC and monster spawns;
+- patrols, random encounters and respawn;
+- quest actors, dialogue and objectives;
+- production loot/drop tables;
+- encounter composition and combat pacing;
+- boss waves/adds and population state;
+- AI population persistence/network behavior.
+
+A later population change that needs a moved prop, new aperture or changed collider reopens the relevant environment gate.
+
+## Semantic staging canon
+
+Every spatial node receives a `spacePurposeProfile` and must read as the kind of place it represents.
+
+Examples:
+
+- houses require believable sleeping, storage, food/hearth, seating, lighting and personal-use areas;
+- shops require counters, display/stock, storage, signage, work areas and customer circulation;
+- workshops require stations, tools, materials, storage, waste and safety systems;
+- temples require ritual focus, offerings, iconography, processional/service space and lighting;
+- dungeons/crypts require appropriate cages, chains, remains, rubble, altars, braziers, containers, wall art, warnings, hidden ruins, breakable clutter and faction/creature traces;
+- biome pockets and mega-zones use terrain landmarks, local subregions, routes and streaming cells rather than uniform scatter.
+
+Placement order:
+
+```text
+structural fixtures
+-> functional furniture/equipment
+-> containers and cover
+-> wall/ceiling/hanging objects
+-> environmental storytelling
+-> small clutter
+-> hidden/secret candidates
+```
+
+Every placed object records collision class, interaction class, destruction class, protection reason when applicable, and performance class.
+
+## Collision canon
+
+The prop-complete walkthrough uses the actual playable controller/model and representative required profiles.
+
+It must detect and repair:
+
+- missing collision on visible solids;
+- invisible blockers;
+- collider/mesh mismatch;
+- door/gate state mismatch;
+- tunneling;
+- camera clipping;
+- prop placement that traps or blocks the player;
+- click-to-move/WASD disagreement;
+- large-body visual clipping.
+
+Both positive and negative collision are required:
+
+- intended solids block;
+- intended openings and destroyed footprints remain clear.
+
+## Maximum-destructibility canon
+
+SoulDrifter uses a maximum-destructibility environment.
+
+The binding rule is:
+
+> Every placed environmental object must have a working interaction/destruction contract or an explicit reason why it is protected or intentionally noninteractive.
+
+Defaults:
+
+- crates, boxes, barrels, wooden furniture, pottery, bones, loose debris and noncritical cover: destructible;
+- noncritical paintings, banners, shelves, sconces, chains, cages and wall fixtures: destructible or detachable when performance/art constraints permit;
+- chests/coffers: interactable first, commonly protected until opened/looted, with optional break-after-empty behavior;
+- iron/steel structural objects: protected by default;
+- structural shell and progression-critical doors/gates/mechanisms: protected by default;
+- quest/story destruction requires an explicit `QUEST_DESTRUCTIBLE` state.
+
+Destroyed collision must clear correctly; debris must not soft-lock required routes; save/reload must preserve open, looted and destroyed states.
+
+---
+
+# Spatial nodes and traversal
 
 SoulDrifter topology is not limited to rectangular rooms.
 
@@ -61,18 +191,7 @@ A spatial node may be:
 
 Read `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md` for the full connection taxonomy.
 
-Every edge declares:
-
-- connection type;
-- physical or nonphysical;
-- movement mode and medium;
-- directionality and lock/state requirements;
-- geometry, surface, path or volume;
-- collision/navigation ownership;
-- controller, animation and camera transitions;
-- stamina, oxygen, hazards, failure and recovery;
-- AI/companion, persistence, streaming and network behavior when applicable;
-- diagnostic evidence and independent verification.
+Every edge declares connection type, physical/nonphysical status, movement mode/medium, directionality, geometry/surface/volume, collision/navigation ownership, controller/animation/camera transitions, resources/hazards/recovery, AI/persistence/streaming/network behavior, diagnostics and verification.
 
 Use:
 
@@ -95,8 +214,9 @@ fixed pre-choice area when applicable
 -> constructive edge-by-edge spatial embedding
 -> canonical boundaries, surfaces and volumes
 -> actual-geometry plan/section/volume/state validation
--> runtime geometry/collision/navigation/movement states
--> gameplay/dressing/FX
+-> shared shell and structural movement intent
+-> environment staging
+-> prop-complete collision/interaction/destruction gates
 ```
 
 Do not place independently sealed rooms or other modules and connect them after rendering.
@@ -114,8 +234,12 @@ Shared walls emit once; open spans emit no wall. Physical corridors enter both e
 - Route gates, corridors, stairs/landings and the walk-through Soulwell water veil are physical connections.
 - A code/mesh label containing `portal` does not make an edge nonphysical.
 - Current #451 allowed connection types are defined in `config/spatial-connection-policy.json`.
+- Preserve the existing extensive staging, audit/freeze it, then complete the prop-aware collision and interaction/destruction gates.
+- Do not expand random encounters, quest population or spawn systems merely to finish the environment correction.
 
-## Browser runtime and portability
+---
+
+# Browser runtime and portability
 
 - SoulDrifter remains browser-first and mobile-browser compatible.
 - Three.js remains canonical while completing the First Breach and first playable Heartvale section POC.
@@ -126,48 +250,46 @@ Shared walls emit once; open spans emit no wall. Physical corridors enter both e
 - Unreal/Unity remain later optional native/full-engine candidates only.
 - Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and target packages so every port reuses expensive work rather than starting over.
 
-## Images and primary 3D references
+# Images and primary 3D references
 
 - Follow `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-- When the authenticated Tripo Studio allowance is active, generate two Studio candidates—Nano Banana and Nano Banana Pro—and two ChatGPT/OpenAI image candidates.
-- Verify exact Studio model labels and allowance in the live UI.
+- When the authenticated Tripo Studio allowance is active, generate two Studio candidates—Nano Banana and Nano Banana Pro—and two ChatGPT/OpenAI candidates.
+- Verify exact Studio labels and allowance live.
 - Compare all four and store the owner-selected source.
 - Every primary 3D-source image shows the **entire asset in frame**, including critical geometry, supports and attachments.
-- Cropped close-ups are `DETAIL_REFERENCE_ONLY` and cannot be the sole primary source.
+- Cropped close-ups are `DETAIL_REFERENCE_ONLY`.
 
-## Tripo 3D
+# Tripo 3D
 
 - Studio browser, API/SDK and official CLI are separate lanes; credentials and credits may differ.
 - Use `API_SDK_PRIMARY` when authenticated/funded.
 - Use `OFFICIAL_CLI_PRIMARY` only when first-party and separately authenticated/funded.
 - Use `STUDIO_BROWSER_PRIMARY` when API/CLI are unavailable/unfunded but Studio is active.
 - A blocked API/CLI lane must not block Studio browser production.
-- Tripo is the primary new 3D asset lane after the active lane passes preflight.
-- Do not install an unverified similarly named package.
 - Geometry-changing operations occur before final rigging.
 
-## Animation
+# Animation
 
 - Search the live Tripo preset library first.
 - A direct Tripo preset that passes acceptance does not require duplicate DCC production.
-- Every substantial custom motion not acceptably covered by Tripo produces both a Houdini KineFX candidate and Blender candidate from identical locked inputs.
+- Every substantial custom motion not acceptably covered by Tripo produces both Houdini KineFX and Blender candidates from identical locked inputs.
 - Blind the candidates, use independent AI review, present a blinded owner A/B comparison, integrate the winner and preserve both candidates/data.
 - Review aggregate results after 10, 25, 50, 100 and every additional 50 custom animations.
-- No pipeline retires automatically; retirement requires representative evidence and explicit owner approval.
+- No pipeline retires automatically.
 
-## Houdini
+# Houdini
 
 - Current owner-declared mode is `NONCOMMERCIAL_POC`; read `HOUDINI_APPRENTICE_POC_POLICY.md`.
-- Use the full FX feature set exposed by Apprentice when appropriate: particles, Pyro, FLIP/procedural water, Vellum, RBD, KineFX, terrain, lighting, materials, shaders, fog and volumetrics.
+- Use the full FX feature set exposed by Apprentice when appropriate.
 - Apprentice restrictions remain binding.
 - Three.js receives supported baked/exported representations.
-- The planned Indie upgrade establishes the limited-commercial/Engine/export/rendering lane and requires clean rebuild/re-export; it is not required merely to unlock the main FX tools.
+- The planned Indie upgrade establishes the limited-commercial/Engine/export/rendering lane and requires clean rebuild/re-export.
 
-## Character, asset, combat and lore direction
+# Character, asset, combat and lore direction
 
-The source bundle preserves the detailed character, Tripo, animation, combat-reaction, VFX, gear, loot, ancestry, Summoner, resource/cooldown and dual-combat-mode documents.
+The source bundle preserves detailed character, Tripo, animation, combat-reaction, VFX, gear, loot, ancestry, Summoner, resource/cooldown and dual-combat-mode documents.
 
-Before relying on a specialist file, locate/materialize the actual file. Do not claim it was read when only an index entry was seen.
+Before relying on a specialist file, locate/materialize the actual file.
 
 Current owner direction also includes:
 
