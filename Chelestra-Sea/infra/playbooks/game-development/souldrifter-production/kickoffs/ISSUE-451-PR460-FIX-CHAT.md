@@ -27,7 +27,7 @@ Do not generate or animate the chained skeleton during onboarding or early dunge
 ```text
 Phase -1: cached fast-start or one-time machine bootstrap
 Phase 0: read-only baseline audit
-Phase 1: fix topology, apertures, corridors, collision and traversal
+Phase 1: vet/correct the complete architectural flat layout, then fix shared-boundary topology, apertures, corridors, elevations, collision and traversal
 Phase 2: fix complete gameplay spine through boss, First Memory and exit
 Phase 3: visual/material/FX/performance/mobile and real-GPU acceptance
 Phase 4: independent verifier passes the core dungeon
@@ -53,8 +53,10 @@ The session must re-check live PR head and rediscover/reuse the local worktree b
 
 Read from branch `infra/game-production-playbooks`:
 
+- `Chelestra-Sea/infra/playbooks/game-development/universal-game-production/PLAYBOOK_V2_CORRECTIONS.md`
 - `START_HERE.md`
 - `SESSION_FAST_START.md`
+- `WORKFLOW.md`
 - `config/onboarding-cache-policy.json`
 - `ONBOARDING.md` only when full bootstrap is required
 - `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only when full bootstrap/refresh is required
@@ -65,6 +67,11 @@ Read from branch `infra/game-production-playbooks`:
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
 - `config/animation-bakeoff-policy.json`
 - `ISSUE-451-CHAINED-SKELETON-FIXTURE-PILOT.md`
+
+These SEA paths are the production authority. SKY is the runtime implementation
+target, not the source of workflow/runbook instructions. Ignore stale ticket or
+handoff pointers that treat a SKY runbook as production authority and update
+the ticket state before implementation.
 
 ## Image/reference policy
 
@@ -124,6 +131,30 @@ Every required custom animation not adequately covered by Tripo—plus substanti
 7. winner integration;
 8. preservation of both source packages and metrics.
 
+## Mandatory Phase 1 architectural topology correction
+
+The existing BREACH-V2 flat design predates the current architectural-layout
+gate and is not accepted merely because individual rooms have dimensions. It
+must be re-audited as one complete plan before repairing the runtime shell.
+
+For seed `4182`, produce and vet a complete CAD-like overview containing the
+fixed start, both route choices, every possible route-room footprint,
+convergence, boss suite, First Memory, Way Upward and Heartvale connector.
+Show canonical shared walls, aperture widths, door/gate travel, corridor
+centerlines/clear widths, floor elevations, stairs/landings, collision and
+navigation in the same coordinate frame.
+
+Random selection chooses legal room modules and order; it does not create
+sealed boxes. Resolve the selected footprints into one shared-boundary graph:
+one wall for a closed adjacency, no wall across an opening, one owner for a
+door/gate, and continuous floor/ceiling/collision/nav across every connector.
+
+Reject the design and stop before shell generation if the overview contains
+coincident or parallel walls on one boundary, corridor ends behind a wall,
+room/corridor overlap, void gaps, missing stairs/landings, or any route that
+cannot be traced continuously. Fog, darkness, dressing and door assets are
+not acceptable masks for unresolved topology.
+
 ## Copy/paste prompt
 
 ```text
@@ -134,8 +165,10 @@ Do not rebuild BREACH-V2. Continue the existing branch/worktree and preserve val
 FIRST: perform the cached session fast start—not a full reinstallation by default.
 
 Read:
+- Chelestra-Sea/infra/playbooks/game-development/universal-game-production/PLAYBOOK_V2_CORRECTIONS.md
 - START_HERE.md
 - SESSION_FAST_START.md
+- WORKFLOW.md
 - config/onboarding-cache-policy.json
 - IMAGE_REFERENCE_BAKEOFF_POLICY.md
 - HOUDINI_APPRENTICE_POC_POLICY.md
@@ -166,6 +199,12 @@ Soul Well/Vestibule
 -> Ashen Lock/Warden
 -> First Memory
 -> Way Upward/Heartvale exit
+
+Before changing runtime geometry, re-author and vet the complete architectural
+flat layout under the SEA workflow. The overview must show the entire dungeon,
+both route families, canonical shared boundaries, openings, corridor widths,
+stairs/landings and elevations. Randomized rooms remain architectural spaces
+that union cleanly with their neighbors; they are not independent closed boxes.
 
 Earlier nav-only proof missed intact wall geometry behind route gates. A graph edge, coordinate, warp, visible door or pathfinding result is not sufficient. Every required edge needs:
 - source wall aperture;
@@ -207,6 +246,10 @@ Producer status stops at IMPLEMENTED_UNVERIFIED. Only independent verification m
 
 The core #451 dungeon must already pass:
 
+- accepted whole-level architectural flat layout and machine-readable
+  shared-boundary/adjacency inventory;
+- zero duplicate/coincident walls, blocked openings, corridor/room overlaps or
+  unexplained elevation gaps;
 - Wayfarer and Oathbreaker;
 - seed 4182 plus representative additional seeds;
 - continuous no-warp traversal;

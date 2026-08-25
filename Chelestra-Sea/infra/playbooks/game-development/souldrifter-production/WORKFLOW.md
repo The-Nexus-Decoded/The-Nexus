@@ -43,6 +43,44 @@ Examples:
 - a custom animation not acceptably covered by Tripo requires one Houdini KineFX candidate, one Blender candidate, a fair common-input contract, automated gates, blind AI review, owner verdict, winner integration, and experiment-registry update;
 - a new combat ability requires source research, mechanics, chain/status, cooldown/resource, animation, VFX/SFX markers, target reaction, both combat modes, UI state, and authoritative fields.
 
+### Mandatory architectural layout gate for every level and zone
+
+Before registry derivation or 3D construction, every indoor level and outdoor
+zone requires a complete CAD-like flat layout in one coordinate frame. It must
+show the whole playable footprint and every possible randomized branch or
+variant, with true dimensions, canonical wall/boundary IDs, shared-boundary
+ownership, openings, doors/gates, corridor centerlines and clear widths,
+stairs/ramps/landings, floor elevations, collision and navigation.
+
+Randomization may select room modules and their legal order. It never permits
+the builder to place independently sealed room and corridor boxes beside one
+another. After selection, the chosen footprints are resolved into one
+architectural topology:
+
+- a closed adjacency emits one shared wall;
+- an open adjacency emits no wall from either side;
+- a door, gate or connector cuts one shared boundary and has one geometry,
+  animation and collision owner;
+- a corridor unions with each destination aperture and preserves continuous
+  floor, ceiling, collision and navigation;
+- every elevation change includes its specified stair, ramp or landing.
+
+The flat layout fails the gate if the complete route cannot be traced, an
+adjacency is missing from the graph, duplicate/coincident walls share an edge,
+a wall crosses an opening or walkable centerline, an elevation transition is
+underspecified, or any floor/ceiling/collision/nav connection is discontinuous.
+
+Required evidence before implementation:
+
+1. readable whole-layout plan;
+2. enlarged connection details;
+3. section/elevation details for vertical transitions;
+4. machine-readable adjacency and boundary inventory;
+5. automated topology-gate results;
+6. independent design review and the required owner design verdict.
+
+No room shell, dressing, lighting or VFX work begins until this gate passes.
+
 ## Phase 3 — Baseline audit
 
 Identify genuinely complete work, unproven claims, stale/legacy work, baseline tests, and fresh evidence.
@@ -59,7 +97,7 @@ For a dual animation bakeoff, Houdini and Blender producers may work in isolated
 
 World:
 
-`map/topology -> registry -> shells/openings -> connectors -> collision/nav -> dressing -> materials/lighting -> VFX -> runtime traversal -> performance -> QA`
+`complete architectural flat layout -> shared-boundary/adjacency graph -> topology gate + owner design verdict -> registry -> unioned shells/openings -> connectors/elevation transitions -> collision/nav -> dressing -> materials/lighting -> VFX -> real-input runtime traversal -> performance -> QA`
 
 Character/animated asset:
 

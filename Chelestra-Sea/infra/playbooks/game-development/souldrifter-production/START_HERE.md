@@ -15,6 +15,25 @@ This is the mandatory entry point for every SoulDrifter production session:
 
 Every session reconstructs ticket context from repository state, but it does **not** reinstall and fully revalidate the workstation toolchain on every new chat.
 
+## Production-document authority
+
+All SoulDrifter production rules, workflows, runbooks, kickoffs, toolchain
+policies and verification gates come from:
+
+- `Chelestra-Sea/infra/playbooks/game-development/universal-game-production/`;
+- `Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/`.
+
+`Arianus-Sky/projects/games/SoulDrifterWeb/` is the implementation target for
+runtime code, game data, assets and tests. It is **not** the authority for
+production workflow or runbook policy. Repository/global `AGENTS.md` files
+still govern safety, branch discipline and code-quality constraints, but a
+legacy SKY `docs/*RUNBOOK*` file must not replace or override the current SEA
+workflow.
+
+If a ticket contract, handoff or old prompt lists a SKY runbook as production
+authority, classify that pointer as stale, reconcile it to the current SEA
+harness, and record the correction before implementation.
+
 ## Bootstrap frequency
 
 ### Full machine/toolchain onboarding
