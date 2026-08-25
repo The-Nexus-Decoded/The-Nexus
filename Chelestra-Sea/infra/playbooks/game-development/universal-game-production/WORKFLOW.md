@@ -28,6 +28,7 @@ For the assigned ticket:
 For zone/environment work, load:
 
 - `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`;
+- `ZONE_PRODUCTION_QUALITY_GATES.md`;
 - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`;
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`;
 - their config and record template.
@@ -38,16 +39,19 @@ Convert prose into explicit testable contracts.
 
 Examples:
 
-- **Procedural spatial edge:** source node/socket/surface/volume -> connection type -> constructive destination placement -> canonical ownership -> movement/camera/resource/failure contract -> real traversal -> evidence.
-- **Environment staging:** purpose profile -> semantic zones -> placement order -> object classification -> clearance/performance audit -> frozen staged environment.
-- **Collision:** prop-complete actual-controller walkthrough -> defect inventory -> positive/negative collision -> state/camera/body checks -> repair -> route regression.
-- **Interaction/destruction:** prompt/range -> state machine -> animation/events -> collision update -> result/inventory -> persistence -> failure/recovery -> evidence.
-- **Aquatic route:** water/depth/air volumes -> entry/exit -> swim/dive controller -> oxygen/drowning/current -> air pockets -> camera/lighting -> save/reload/recovery -> evidence.
-- **Vertical route:** stairs/climb/lift/drop geometry -> mount/travel/dismount -> animation/camera/stamina -> fall/recovery -> AI support -> evidence.
-- **Living/mega-zone:** region/state graphs -> local subgraphs/streaming -> atomic collision/nav changes -> relocation safety -> persistence -> evidence.
-- **3D asset:** concept/reference -> approved provider task -> controlled download -> segmentation/edit -> topology/material -> rig/animation -> LOD/collision/sockets -> runtime -> device/performance -> provenance/rollback.
-- **Custom animation:** provider preset search -> routing -> common brief -> configured candidates -> blind review -> owner verdict -> winner integration -> registry.
-- **Gameplay action:** input -> state/resource/cooldown -> animation/contact -> VFX/audio -> target reaction -> network/save -> UI -> scheduler modes -> QA.
+- **Zone seam:** source/destination -> transforms/facing -> loading/streaming -> save/respawn -> state/audio/lighting handoff -> failure fallback.
+- **Graybox:** movement/timing -> dimensions -> camera -> combat/interaction space -> actor profiles -> spawn/patrol/quest reservations -> owner verdict.
+- **Procedural spatial edge:** source -> connection type -> constructive destination placement -> canonical ownership -> movement/camera/resource/failure contract -> real traversal -> evidence.
+- **Asset intake:** provenance/license/rollback -> units/axes/pivot -> geometry/material/textures -> LOD/culling/compression -> collider -> interaction/destruction anchors -> registry acceptance.
+- **Staging:** purpose profile -> semantic zones -> placement order -> object classification -> clearance/performance audit -> frozen staged environment.
+- **Collision/physics:** prop-complete controller walkthrough -> defect inventory -> positive/negative collision -> surfaces/hazards/camera/body -> repair -> regression.
+- **Interaction/dynamic state:** prompt/range -> state machine -> animation/events -> collision/nav update -> result/inventory -> persistence -> recovery -> evidence.
+- **Lookdev/audio:** material/lighting/atmosphere/wayfinding -> reverb/occlusion/attenuation -> cues/accessibility -> performance.
+- **Performance/streaming:** staged checkpoints -> optimization -> slow network/cache/resume/re-entry -> final device budget.
+- **Recovery:** save/respawn/re-entry -> stuck/out-of-bounds -> dynamic-state recovery -> version/fallback -> no soft lock.
+- **Population readiness:** spawn/patrol/actor-size/encounter/quest/drop envelopes -> stable socket manifest -> dependency commit.
+- **3D asset:** concept/reference -> approved provider task -> controlled download -> processing -> topology/material -> rig/animation -> LOD/collision/sockets -> runtime -> performance -> provenance/rollback.
+- **Custom animation:** provider preset search -> configured candidates -> blind review -> owner verdict -> winner integration -> registry.
 
 ## Phase 2 — Baseline audit
 
@@ -64,166 +68,113 @@ Before editing:
 # Mandatory zone/environment gate order
 
 ```text
-0. design and purpose
-1. topology and traversal
-2. shell, surfaces and volumes
-3. environment staging and prop placement
-4. prop-complete collision discovery
-5. collision implementation and regression
-6. interaction, pickup and destruction
-7. final integrated environment walkthrough
-8. independent environment verification
-9. separate population/gameplay phase
+0.  design/canon/budget/zone-seam contract
+1.  topology and connection/traversal solver
+2.  graybox playability/scale/pacing/camera/socket reservation
+3.  shell/surfaces/volumes/world seams
+4.  asset intake and technical readiness
+5.  staging and prop placement
+6.  prop-complete collision discovery
+7.  collision/physics/navigation/hazard regression
+8.  interaction/pickup/destruction/dynamic state
+9.  lookdev/lighting/atmosphere/wayfinding
+10. audio/acoustics
+11. performance/streaming/loading/memory
+12. recovery/checkpoints/out-of-bounds/soft locks
+13. device/input/camera/accessibility/network contract
+14. population-readiness revalidation and handoff
+15. final integrated walkthrough and experience review
+16. independent environment verification
+17. separate population/gameplay phase
 ```
 
 Hard rules:
 
-- place the intended environment-prop set before final collision verification;
-- an empty-shell walkthrough cannot substitute for the staged pass;
-- navigation cannot substitute for collision;
-- collision precedes interaction/destruction acceptance;
+- graybox passes before expensive art;
+- assets pass technical intake before staging;
+- intended props are placed before final collision verification;
+- empty-shell traversal and navigation do not substitute for staged collision;
+- collision/physics/hazards precede interaction/dynamic-state acceptance;
+- atmosphere cannot hide defects;
+- performance/recovery/device checks precede final walkthrough;
+- population envelopes are reserved early and revalidated late;
 - environment verification precedes population scaling;
-- population changes that alter topology/staging/collision reopen the affected gates.
+- changes reopen the lowest affected gate and all dependent gates.
 
 ## Environment versus population boundary
 
-Environment phase normally owns:
+Environment phase normally owns design/budgets/seams, topology/graybox/shell, asset intake, environmental props, collision/physics/hazards, base interactions/destruction, lookdev/audio, performance/streaming, recovery/device/accessibility/network contract, population-readiness handoff, deterministic test contents and environment verification.
 
-- topology, shell and environmental props;
-- collision;
-- base interactions and destruction;
-- deterministic test contents;
-- environment verification.
-
-Population/gameplay phase normally owns:
-
-- NPC/creature spawns;
-- patrols/AI;
-- encounters/random encounters/respawn;
-- quests/dialogue/objectives;
-- production loot/drop tables;
-- population persistence/network behavior.
+Population/gameplay phase normally owns live NPC/creature spawns, patrols/AI, encounters/random encounters/respawn tuning, quests/dialogue/objectives, production loot/drop tables and population persistence/network behavior.
 
 ---
 
 # Mandatory procedural topology and traversal gate
 
-For generated or traversal-heavy levels, read:
-
-- `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md`;
-- `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`;
-- `config/procedural-level-topology-policy.json`;
-- `config/spatial-connection-policy.json`.
-
-Required architecture:
+For generated/traversal-heavy levels, use:
 
 ```text
 logical graph + explicit traversal contracts
--> constructive edge-by-edge spatial embedding
--> canonical boundaries, surfaces and volumes
--> actual-geometry plan/section/volume/state validation
--> shared shell and structural movement intent
--> environment staging
--> prop-complete collision/interaction/destruction gates
+-> constructive edge-by-edge embedding
+-> canonical boundaries/surfaces/volumes
+-> actual-geometry diagnostics
+-> graybox acceptance
+-> shared shell
+-> asset intake/staging
+-> prop-complete collision/interaction/quality gates
 ```
 
-For each edge:
+For each edge, select a legal source, explicit connection type/movement mode/medium/directionality, compatible destination, connector geometry/surface/volume and complete camera/resource/recovery contract. Accept only when the whole edge passes; otherwise retry/backtrack/reject.
 
-1. choose a legal source socket, boundary, surface, path or volume;
-2. choose explicit connection type, movement mode, medium, directionality and state contract;
-3. choose a compatible destination socket/orientation/state;
-4. calculate the shared boundary, path/spline, surface or volume;
-5. derive the destination transform from that edge;
-6. validate overlap, clearance, elevation/depth, surface/volume, structural collision/navigation intent, camera, resources, hazards and recovery;
-7. accept the destination only when the complete edge passes;
-8. otherwise retry or backtrack;
-9. reject the variant when legal embedding cannot be found.
-
-Before staging, generate diagnostics from actual solved data:
-
-- top-down plan for horizontal routes;
-- section/elevation for vertical routes;
-- 3D volume/slice for water/air-pocket routes;
-- state graph/timeline for moving or transforming topology;
-- region/streaming map plus local subgraphs for mega-zones.
-
-Pass automated checks, applicable AI/vision review and required owner/design review.
+Use top-down plans for horizontal routes, sections/elevations for vertical routes, 3D volume/slice views for aquatic routes, state graphs for dynamic topology and region maps for mega-zones.
 
 ## Phase 3 — Implementation in dependency order
 
 ### Level/world environment
 
-`design -> topology/traversal -> constructive embedding/backtracking -> diagnostics -> shell/surfaces/volumes -> semantic staging/props -> prop-complete walkthrough -> collision repair/regression -> interaction/pickup/destruction -> final integrated environment walkthrough -> independent environment verification`
+`design/seams/budgets -> topology/traversal -> graybox -> shell/surfaces/volumes -> asset intake -> staging -> prop-complete walkthrough -> collision/physics/nav/hazards -> interaction/destruction/state -> lookdev/wayfinding -> audio -> performance/streaming -> recovery/OOB -> device/accessibility/network -> population-readiness -> final experience walkthrough -> independent verification`
 
 ### Later population/gameplay
 
-`verified environment sockets/routes -> NPC/creature spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> gameplay verification`
+`verified environment dependency commit + stable sockets -> NPC/creature spawns -> patrols/AI -> encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> gameplay verification`
 
 ### 3D asset
 
-`toolchain lane check -> exact quote/approval -> concept/reference -> provider generation/import -> segmentation/mesh processing -> topology/UV/material -> rig -> animation -> sockets/LOD/collision -> export -> runtime -> performance -> QA`
+`toolchain lane -> quote/approval -> concept/reference -> provider generation/import -> processing -> topology/UV/material -> rig -> animation -> sockets/LOD/collision -> export -> runtime -> performance -> QA`
 
 ### Custom animation
 
-`preset/custom capability search -> route selection -> locked common inputs -> configured candidate lanes -> automated gates -> blind AI review -> blinded owner verdict -> winner integration -> registry -> independent verification`
+`preset/custom search -> route -> locked common inputs -> candidate lanes -> gates -> blind AI review -> owner verdict -> winner integration -> registry -> verification`
 
 ### Code/runtime feature
 
-`data/schema -> service/state machine -> runtime integration -> UI/input -> save/network -> observability -> tests -> target-device proof`
+`data/schema -> service/state machine -> runtime -> UI/input -> save/network -> observability -> tests -> target-device proof`
 
 ## Phase 4 — Producer checks
 
 A producer commits atomic increments, runs automated/runtime checks, stores fresh evidence, updates ledger/handoff, records provider provenance, and stops at `IMPLEMENTED_UNVERIFIED`.
 
-The producer may not self-verify or merge/deploy without authorization.
-
-Environment producers record independent stage statuses for staging, collision, interaction/destruction and the final integrated walkthrough.
+Environment producers record a distinct status for every required zone gate.
 
 ## Phase 5 — Independent verification
 
 The verifier re-derives requirements, tests the exact commit, rejects stale/producer-only evidence, uses target devices/render APIs, and returns PASS, FAIL or NEEDS_EVIDENCE.
 
-For environment work, the verifier audits final staging, walks the actual controller/profile, checks positive/negative collision, tests representative interactions/destruction/protected objects, verifies collision updates and persistence, and checks target-device performance.
+For zones, verify topology/seams, graybox assumptions, asset/staging set, real-controller collision/physics/hazards, interactions/destruction/persistence, lookdev/audio, performance/streaming, recovery/OOB, devices/inputs/accessibility, population-readiness and final experience.
 
-For spatial connections, use the real movement mode and failure/recovery path:
-
-- walk/click-to-move;
-- crouch/crawl;
-- climb/mantle/ladder;
-- jump/platform/rope;
-- swim/dive/oxygen/air pockets;
-- vehicle/transport;
-- true transfer activation/arrival when applicable.
-
-Debug teleport/pathfinding alone is not proof.
+For spatial edges, use the real movement mode and failure/recovery path. Debug teleport/pathfinding alone is not proof.
 
 For animation bakeoffs, the reviewer/verifier must not be either candidate producer.
 
 ## Phase 6 — Owner-ready gate
 
-A ticket becomes owner-ready only when:
-
-- all critical rows are VERIFIED;
-- topology, spatial-connection and zone-environment records pass where applicable;
-- final staged props are classified;
-- prop-complete collision proof passes;
-- interaction/destruction/persistence passes;
-- provider/toolchain/spend receipts are valid;
-- provenance/licenses/rollback are complete;
-- target-device performance passes;
-- required owner creative verdicts are stored;
-- tests/build/package/release checks pass;
-- no unresolved blockers remain.
+A ticket becomes owner-ready only when all critical rows and required zone gates are independently VERIFIED; provider/toolchain/spend receipts and provenance/rollback are complete; target-device performance passes; owner creative/experience verdicts are stored; tests/build/package/release checks pass; and no blockers remain.
 
 ## Phase 7 — Runtime/portability decisions
 
-Keep the accepted runtime stable through the vertical slice.
+Keep the accepted runtime stable through the vertical slice. Runtime comparisons require a project-overlay-defined problem, candidates, representative slice, metrics, budget and owner approval.
 
-The universal core does not prescribe a default lateral browser-engine migration.
-
-A runtime comparison requires a project-overlay-defined problem, named candidates, representative slice, metrics, budget and owner approval.
-
-For an approved future native/full-engine target, preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives so the new target reuses expensive work.
+Preserve DCC/provider sources, neutral assets/caches/manifests and target derivatives for future integrations.
 
 ## Phase 8 — Release
 
@@ -233,9 +184,9 @@ Release remains project-overlay controlled and may require branch promotion, sig
 
 Before a session ends:
 
-- commit or clearly preserve dirty work;
+- commit or preserve dirty work;
 - update ledger/evidence/handoff;
-- record next atomic requirement and blockers;
+- record next atomic requirement/blockers;
 - stop dev servers/provider pollers;
 - preserve provider task IDs/download hashes;
 - preserve topology, spatial-connection, zone-environment, animation and portability records;
