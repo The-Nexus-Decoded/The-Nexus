@@ -32,11 +32,12 @@ function replacePreviewParams(values: Record<string, string | null>): void {
 }
 
 export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
+  const compactViewport = window.innerWidth < 760;
   const panel = document.createElement("aside");
   panel.dataset.testid = "breach-v2-dev-panel";
   panel.setAttribute("aria-label", "BREACH-V2 developer map controls");
   panel.style.cssText = [
-    "position:absolute", "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
+    "position:absolute", compactViewport ? "bottom:12px" : "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
     "max-height:calc(100vh - 24px)", "overflow:auto", "padding:12px", "box-sizing:border-box",
     "background:linear-gradient(165deg,rgba(16,19,20,.96),rgba(27,22,18,.94))",
     "color:#e9dfc7", "border:1px solid rgba(190,145,76,.58)", "border-radius:3px",
@@ -59,7 +60,8 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   body.style.paddingTop = "8px";
   panel.appendChild(body);
 
-  const initiallyOpen = import.meta.env.DEV || new URL(window.location.href).searchParams.get("dev") === "1";
+  const initiallyOpen = new URL(window.location.href).searchParams.get("dev") === "1"
+    || (import.meta.env.DEV && !compactViewport);
   let open = initiallyOpen;
   const syncOpen = (): void => {
     body.hidden = !open;
