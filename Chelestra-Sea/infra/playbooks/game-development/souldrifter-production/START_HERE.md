@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-25-master-v10`
+**Context version:** `2026-08-25-master-v11`
 
 Mandatory entry point for M3, Claude Code, ChatGPT/Codex and future SoulDrifter workers.
 
@@ -69,7 +69,7 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 
 ```text
 SOULDRIFTER SESSION RECEIPT
-contextVersion: 2026-08-25-master-v10
+contextVersion: 2026-08-25-master-v11
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 ticket: <issue>
 branch: <branch>
@@ -98,7 +98,7 @@ blockingIssues: []
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-25-master-v10
+contextVersion: 2026-08-25-master-v11
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -123,25 +123,47 @@ No valid Session Receipt + Context Receipt means no implementation.
 
 ## Procedural dungeon rule
 
-The generator must use:
+The randomized branch is generated **after the player selects Wayfarer or Oathbreaker and before any selected gallery-room meshes are rendered**.
+
+Required sequence:
 
 ```text
-logical graph
--> constructive edge-by-edge spatial embedding
--> canonical shared boundaries/apertures
--> top-down actual-geometry validation
--> one shared shell
+render/load fixed Soul Well + vestibule + Threshold Plaza
+-> player chooses route door
+-> derive deterministic selected-route logical graph for seed + path
+-> choose 3–5 legal room archetypes/order
+-> construct complete top-down route topology
+-> solve room positions/orientations/socket pairs edge by edge
+-> resolve canonical shared boundaries, openings, corridors/portals and elevation
+-> run overlap/clearance/continuity invariants
+-> retry/backtrack invalid placements
+-> freeze accepted route plan
+-> generate one shared shell/interiors from the plan
 -> collision/navigation
--> 3D dressing/FX
+-> encounters/dressing/FX
 ```
 
-It must not place independently sealed room boxes and attach corridors/doors afterward.
+It must not:
 
-For every edge, place the next room relative to a validated source socket/connector, resolve source aperture + connector/shared boundary + destination aperture before accepting the room, and retry/backtrack when placement is invalid.
+- render independent sealed room boxes first;
+- place rooms at unrelated slot centers;
+- add corridors after the fact and hope their endpoints create openings;
+- merge duplicate walls/slabs after rendering;
+- use pathfinding, coordinates, visible doors or room warps as proof of geometry.
 
-Shared walls emit once. Open spans emit no wall. Corridors must enter both openings. Portal-transfer edges are explicit nonphysical transitions and do not create fake corridors.
+For each edge, resolve the source socket/aperture, exact connection type, connector/shared-boundary geometry and destination socket/aperture before accepting the next room.
 
-Every seed/route must pass automated invariants, actual-geometry top-down review, AI/vision review and real no-warp traversal. Graph connectivity, coordinates, pathfinding, visible doors and room warps are not sufficient proof.
+Connection types are explicit:
+
+- direct open adjacency;
+- door/gate shared-boundary adjacency;
+- physical corridor;
+- magical/teleport portal transfer;
+- vertical transition.
+
+Shared walls emit once. Open spans emit no wall. Physical corridors enter both openings. Portal-transfer edges intentionally generate no physical corridor.
+
+Every selected route/seed must pass actual-geometry top-down diagnostics, automated invariants, independent AI/vision review and real no-warp traversal before dressing/FX acceptance.
 
 ## Image/reference policy
 
@@ -191,13 +213,13 @@ Every substantial custom motion not adequately covered by Tripo produces:
 
 SoulDrifter remains browser-first and mobile-browser compatible.
 
-- Three.js is the locked browser runtime for the POC and foreseeable browser releases.
-- There is no Babylon.js evaluation, migration or comparison roadmap.
-- Improve Three.js through WebGL/WebGPU capability paths, scalable FX/materials, mobile optimization, streaming/loading, animation/physics integration and real-device profiling.
-- Do not duplicate the game in another browser engine or delay the current slice for a lateral browser rewrite.
-- If a future installed/native edition is genuinely required, evaluate Unreal Engine versus Unity as a separate owner-approved long-term product phase.
-- Unreal/Unity are not current production clients.
-- Preserve Houdini/Blender/provider source, neutral assets/caches/manifests and Three.js derivatives so a future native port reuses the work rather than restarting.
+- Three.js remains canonical while completing the First Breach and first playable Heartvale POC sections.
+- No Babylon.js work begins inside #451, #448 or the unfinished Heartvale slice.
+- After both sections are complete and independently verified, create an isolated Babylon.js port of exactly those two sections.
+- Compare equivalent gameplay/content on desktop and representative mobile browsers, including loading, bundle size, WebGL/WebGPU, FX, animation, physics, memory, thermal behavior, material fidelity, tooling, defects and implementation effort.
+- Keep the Three.js version intact and canonical until the owner records the A/B runtime verdict.
+- A future Unreal-versus-Unity evaluation remains a separate option only if an installed/native edition is later needed.
+- Preserve all source and neutral assets so every port reuses the existing work.
 
 ## Roles and completion
 
