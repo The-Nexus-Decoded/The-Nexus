@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "policyId": "universal-zone-environment-completion-v1",
+  "projectId": "",
+  "ticketId": "",
+  "commit": "",
+  "zoneId": "",
+  "stages": [
+    { "stage": "DESIGN_AND_PURPOSE", "status": "NOT_STARTED", "evidence": [] },
+    { "stage": "TOPOLOGY_AND_TRAVERSAL", "status": "NOT_STARTED", "evidence": [] },
+    { "stage": "SHELL_SURFACES_VOLUMES", "status": "NOT_STARTED", "evidence": [] },
+    {
+      "stage": "ENVIRONMENT_STAGING_PROP_PLACEMENT",
+      "status": "NOT_STARTED",
+      "spacePurposeProfiles": [],
+      "semanticPlacementMaps": [],
+      "objects": [],
+      "evidence": []
+    },
+    {
+      "stage": "PROP_COMPLETE_COLLISION_DISCOVERY",
+      "status": "NOT_STARTED",
+      "testedProfiles": [],
+      "routes": [],
+      "defects": [],
+      "evidence": []
+    },
+    {
+      "stage": "COLLISION_IMPLEMENTATION_REGRESSION",
+      "status": "NOT_STARTED",
+      "positiveChecks": [],
+      "negativeChecks": [],
+      "cameraChecks": [],
+      "remainingDefects": [],
+      "evidence": []
+    },
+    {
+      "stage": "INTERACTION_PICKUP_DESTRUCTION",
+      "status": "NOT_STARTED",
+      "interactionChecks": [],
+      "pickupChecks": [],
+      "destructionChecks": [],
+      "protectedObjectChecks": [],
+      "persistenceChecks": [],
+      "evidence": []
+    },
+    {
+      "stage": "FINAL_INTEGRATED_ENVIRONMENT_WALKTHROUGH",
+      "status": "NOT_STARTED",
+      "targetDevices": [],
+      "routes": [],
+      "performance": {},
+      "runtimeErrors": [],
+      "evidence": []
+    },
+    {
+      "stage": "INDEPENDENT_ENVIRONMENT_VERIFICATION",
+      "status": "NOT_STARTED",
+      "verifier": "",
+      "result": "NOT_RUN",
+      "evidence": [],
+      "findings": []
+    },
+    {
+      "stage": "SEPARATE_POPULATION_GAMEPLAY_PHASE",
+      "status": "NOT_STARTED",
+      "ticketId": "",
+      "environmentDependencyCommit": ""
+    }
+  ],
+  "objects": [
+    {
+      "objectId": "",
+      "assetId": "",
+      "spatialNodeId": "",
+      "spacePurposeProfile": "",
+      "semanticZone": "",
+      "collisionClass": "",
+      "interactionClass": "",
+      "destructionClass": "",
+      "protectionReason": "",
+      "placementStatus": "NOT_RUN",
+      "collisionStatus": "NOT_RUN",
+      "interactionStatus": "NOT_RUN",
+      "destructionStatus": "NOT_RUN",
+      "persistenceStatus": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "metrics": {
+    "criticalTraversalObstructions": 0,
+    "unclassifiedObjects": 0,
+    "positiveCollisionFailures": 0,
+    "negativeCollisionFailures": 0,
+    "interactionFailures": 0,
+    "destructionFailures": 0,
+    "persistenceFailures": 0,
+    "softLocks": 0
+  },
+  "producerStatus": "NOT_STARTED",
+  "independentVerification": "NOT_RUN",
+  "environmentStatus": "NOT_STARTED"
+}
