@@ -10,10 +10,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Invoke-Git([string[]]$Args) {
-    $value = & git @Args 2>&1
+function Invoke-Git([string[]]$GitArgs) {
+    $value = & git @GitArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "git $($Args -join ' ') failed: $($value -join [Environment]::NewLine)"
+        throw "git $($GitArgs -join ' ') failed: $($value -join [Environment]::NewLine)"
     }
     return $value
 }
