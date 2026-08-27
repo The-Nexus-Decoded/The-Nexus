@@ -2027,8 +2027,9 @@ async function repairWideTerminalCoverage(
     record.role === 'wide' && record.replacementPosition === wide.publicKey.toBase58()
   ));
   const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
+  const priorDistributionFactor = Number(priorPlacement?.observedDistributionFactor || 1);
   const observedDistributionFactor = modeledWideTerminal > 0
-    ? currentProof.wideTerminalPrincipalSol / modeledWideTerminal
+    ? priorDistributionFactor * currentProof.wideTerminalPrincipalSol / modeledWideTerminal
     : 1;
   if (!(observedDistributionFactor > 0 && observedDistributionFactor <= 1.05)) {
     throw new Error('wide_distribution_calibration_invalid_retry_without_deploy');
@@ -2296,8 +2297,9 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   ));
   const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
   const observedWideTerminal = Number(journal.terminalCoverageProof?.wideTerminalPrincipalSol || 0);
+  const priorDistributionFactor = Number(priorPlacement?.observedDistributionFactor || 1);
   const observedDistributionFactor = modeledWideTerminal > 0
-    ? observedWideTerminal / modeledWideTerminal
+    ? priorDistributionFactor * observedWideTerminal / modeledWideTerminal
     : 1;
   if (!(observedDistributionFactor > 0 && observedDistributionFactor <= 1.05)) {
     throw new Error('wide_recovery_distribution_calibration_invalid_retry_without_deploy');
