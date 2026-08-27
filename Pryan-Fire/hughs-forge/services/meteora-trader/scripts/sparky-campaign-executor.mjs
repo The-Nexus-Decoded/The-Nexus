@@ -1355,9 +1355,14 @@ async function ownerMintDeltaForSignature(connection, signature, owner, mint) {
 
 async function recoverInterruptedWideCoverage(connection, pool, wallet, journal, tight) {
   const generation = Number(journal.positions.wide.generation || 0) + 1;
-  const prefix = `wide_g${generation}_coverage_close_`;
+  const closePrefixes = [
+    `wide_g${generation}_coverage_close_`,
+    `wide_g${generation}_retarget_close_`,
+  ];
   const signatures = Object.entries(journal.stages)
-    .filter(([name, stage]) => name.startsWith(prefix) && stage.status === 'confirmed')
+    .filter(([name, stage]) => (
+      closePrefixes.some((prefix) => name.startsWith(prefix)) && stage.status === 'confirmed'
+    ))
     .map(([, stage]) => stage.signature);
   if (!signatures.length) throw new Error('missing_confirmed_wide_recovery_close_evidence');
   let recoveredXRaw = 0n;
