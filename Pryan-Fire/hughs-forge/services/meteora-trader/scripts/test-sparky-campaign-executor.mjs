@@ -120,6 +120,7 @@ assert.equal(tightThird.shouldRetarget, true);
 
 const cappedRetargets = Array.from({ length: 6 }, (_, index) => ({
   role: 'tight',
+  priorState: 'out_above',
   at: new Date(guardNow - index * 60_000).toISOString(),
 }));
 const tightCapped = retargetGuardDecision({

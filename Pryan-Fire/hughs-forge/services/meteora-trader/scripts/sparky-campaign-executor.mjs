@@ -127,6 +127,7 @@ export function retargetGuardDecision({
     : 0;
   const recentRetargets = retargets.filter((record) => (
     record.role === role
+      && (record.priorState === 'out_below' || record.priorState === 'out_above')
       && Number.isFinite(Date.parse(record.at))
       && nowMs - Date.parse(record.at) < RETARGET_WINDOW_MS
   )).length;
