@@ -592,19 +592,24 @@ async function createWidePosition(
   }
   const existing = await pool.getPosition(wideKeypair.publicKey);
   const existingInventory = positionInventory(existing);
-  if (existingInventory.tokenXRaw === 0n && existingInventory.tokenYRaw === 0n
-      && (wideXRaw > 0n || wideYRaw > 0n)) {
+  const remainingXRaw = wideXRaw > existingInventory.tokenXRaw
+    ? wideXRaw - existingInventory.tokenXRaw
+    : 0n;
+  const remainingYRaw = wideYRaw > existingInventory.tokenYRaw
+    ? wideYRaw - existingInventory.tokenYRaw
+    : 0n;
+  if (remainingXRaw > 0n || remainingYRaw > 0n) {
     const strategy = {
       minBinId: lower,
       maxBinId: upper,
       strategyType: StrategyType.BidAsk,
     };
-    if (wideYRaw === 0n) strategy.singleSidedX = true;
+    if (remainingYRaw === 0n) strategy.singleSidedX = true;
     const transactions = await pool.addLiquidityByStrategyChunkable({
       positionPubKey: wideKeypair.publicKey,
       user: wallet.publicKey,
-      totalXAmount: new BN(wideXRaw.toString()),
-      totalYAmount: new BN(wideYRaw.toString()),
+      totalXAmount: new BN(remainingXRaw.toString()),
+      totalYAmount: new BN(remainingYRaw.toString()),
       strategy,
       slippage: SLIPPAGE_PCT,
     });
@@ -612,7 +617,7 @@ async function createWidePosition(
       await sendStage(
         connection,
         journal,
-        `wide_g${generation}_deposit_${index + 1}`,
+        `wide_g${generation}_deposit_${remainingXRaw}_${remainingYRaw}_${index + 1}`,
         transactions[index],
         [wallet],
       );
@@ -1293,6 +1298,13 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   });
   if (!finalPlan) throw new Error('post_close_principal_only_terminal_coverage_infeasible');
   const replacement = derivePositionKeypair(wallet, 'wide', generation);
+  const existingReplacement = await positionOrNull(connection, pool, replacement.publicKey);
+  const lowerBinId = existingReplacement
+    ? Number(existingReplacement.positionData.lowerBinId)
+    : activeBinId;
+  const upperBinId = existingReplacement
+    ? Number(existingReplacement.positionData.upperBinId)
+    : activeBinId + width;
   await createWidePosition(
     connection,
     freshPool,
@@ -1372,7 +1384,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     pool,
     wallet,
     journal,
-    { recoveryPosition: { minBinId: activeBinId, maxBinId: activeBinId + width } },
+    { recoveryPosition: { minBinId: lowerBinId, maxBinId: upperBinId } },
     replacement,
     recoveredXRaw,
     0n,
@@ -1393,8 +1405,8 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     replacementPosition: replacement.publicKey.toBase58(),
     recoveredXRaw: recoveredXRaw.toString(),
     activeBinId,
-    lowerBinId: activeBinId,
-    upperBinId: activeBinId + width,
+    lowerBinId,
+    upperBinId,
     proof,
     at: new Date().toISOString(),
   });
