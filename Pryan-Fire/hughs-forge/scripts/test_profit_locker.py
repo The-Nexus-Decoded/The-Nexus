@@ -35,8 +35,8 @@ def _enroll(
     position=POSITION,
     pool=POOL,
     target=30.0,
-    fee_sleeve=20.0,
-    reserve=20.0,
+    fee_sleeve=40.0,
+    reserve=0.0,
     max_multiple=12.0,
 ):
     _discover(state, position=position, pool=pool)
@@ -94,9 +94,9 @@ def _valid_plan(*, position=POSITION, pool=POOL, generated_at=NOW, top_multiple=
         "active_bin_id": 100,
         "min_bin_id": 100,
         "max_bin_id": 800,
-        "fee_sleeve_pct": 20.0,
-        "protected_reserve_pct": 20.0,
-        "recovery_ladder_pct": 60.0,
+        "fee_sleeve_pct": 5.0,
+        "protected_reserve_pct": 0.0,
+        "recovery_ladder_pct": 95.0,
         "positions": [
             {"role": "wide_upward_recovery_ladder", "starts_at_active_bin": True},
             {"role": "tight_upward_fee_sleeve", "starts_at_active_bin": True},
@@ -312,8 +312,7 @@ def test_recovery_fails_closed_when_fresh_preflight_guard_changes():
     [
         (lambda plan: plan.update(range_top_price=13.0), "range_multiple_exceeds_enrollment_limit"),
         (lambda plan: plan.update(min_bin_id=99), "range_must_start_at_live_bin_and_move_upward"),
-        (lambda plan: plan.update(fee_sleeve_pct=21.0), "fee_sleeve_exceeds_enrollment_limit"),
-        (lambda plan: plan.update(protected_reserve_pct=19.0), "protected_reserve_below_enrollment_floor"),
+        (lambda plan: plan.update(fee_sleeve_pct=41.0), "fee_sleeve_exceeds_enrollment_limit"),
     ],
 )
 def test_recovery_plan_cannot_exceed_enrolled_limits(mutator, expected_reason):
@@ -390,7 +389,9 @@ def test_mainnet_config_encodes_monitoring_roll_harvest_reentry_and_learning_con
     assert config["recovery"]["downward_anti_chase"]["enabled"] is True
     assert config["recovery"]["tight_fee_position"]["continuous_roll_management"] is True
     assert config["fee_harvesting"]["swap_non_sol_fees_to_sol"] is True
-    assert config["top_side_reentry"]["max_recovered_sol_recycle_pct"] <= 20
+    assert config["recovery"]["protected_reserve"]["default_inventory_pct"] == 0
+    assert config["recovery"]["allocation_optimizer"]["enabled"] is True
+    assert config["top_side_reentry"]["max_recovered_sol_recycle_pct"] == 100
     assert config["accounting"]["scope"] == "wallet_pool_campaign_lifecycle"
     assert config["accounting"]["require_unique_source_id"] is True
     assert config["learning"]["record_outcomes"] is True

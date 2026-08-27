@@ -75,7 +75,7 @@
       "role": "recover_principal_and_target_profit",
       "distribution": "bid_ask",
       "lower_bound": "live_active_bin",
-      "default_inventory_pct": 60,
+      "inventory_pct": "optimizer_remainder_after_fee_sleeve_and_approved_moonbag",
       "maximum_range_price_multiple": 12,
       "require_bin_by_bin_target_proof": true
     },
@@ -83,8 +83,9 @@
       "role": "capture_near_price_volume",
       "distribution": "spot_upward",
       "lower_bound": "live_active_bin",
-      "default_inventory_pct": 20,
-      "maximum_inventory_pct": 20,
+      "inventory_pct": "minimum_economically_viable_under_recovery_drag_cap",
+      "minimum_inventory_pct": 5,
+      "maximum_inventory_pct": 40,
       "continuous_roll_management": true,
       "roll_trigger_bins_from_edge": 2,
       "minimum_dwell_seconds": 60,
@@ -92,10 +93,32 @@
       "require_positive_expected_net_fees": true
     },
     "protected_reserve": {
-      "default_inventory_pct": 20,
-      "minimum_inventory_pct": 20,
+      "default_inventory_pct": 0,
+      "minimum_inventory_pct": 0,
       "outside_all_lp_positions": true,
-      "may_be_spent_by_rolls": false
+      "may_be_spent_by_rolls": false,
+      "requires_explicit_owner_approval": true,
+      "allowed_reasons": [
+        "approved_social_or_onchain_upside_moonbag",
+        "approved_token_fee_retention"
+      ]
+    },
+    "allocation_optimizer": {
+      "enabled": true,
+      "fee_evaluation_horizon_hours": 6,
+      "minimum_expected_net_fee_sol": 0.003,
+      "minimum_fee_to_cost_multiple": 3,
+      "maximum_fee_opportunity_cost_pct_of_required_exit": 5,
+      "select": "smallest_fee_sleeve_that_passes_fee_and_recovery_constraints",
+      "live_inputs": [
+        "active_bin_liquidity",
+        "five_minute_fee_history",
+        "recent_volume",
+        "recent_price_range",
+        "sol_usd",
+        "estimated_time_in_range",
+        "claim_swap_roll_and_network_costs"
+      ]
     },
     "upward_roll_management": {
       "enabled": true,
@@ -126,8 +149,9 @@
   "top_side_reentry": {
     "enabled": true,
     "condition": "sol_only_and_campaign_target_not_met",
-    "max_recovered_sol_recycle_pct": 20,
-    "minimum_protected_sol_pct": 80,
+    "max_recovered_sol_recycle_pct": 100,
+    "minimum_protected_sol_pct": 0,
+    "exclude_profit_vault_and_gas_buffer": true,
     "require_in_range_fee_opportunity": true,
     "require_expected_fees_above_all_costs": true,
     "require_price_impact_guard": true,

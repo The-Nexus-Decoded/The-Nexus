@@ -31,12 +31,14 @@ The target can trigger only from current, executable values. Projected future fe
 
 ## Two-position recovery
 
-Recovery is used when a position has moved heavily to the token side. It divides only the enrolled inventory available after the protected reserve:
+Recovery is used when a position has moved heavily to the token side. By default, no token is left loose in the wallet: all deployable inventory goes into one of the two LP positions.
 
 1. **Wide upward recovery position.** A BidAsk ladder starts at the fresh active bin and sells progressively into an upward move. Its top is solved bin by bin so deterministic proceeds can recover campaign basis plus the selected target after costs. A rough entry-price/current-price multiple, such as an 8.5x drawdown, is useful context but is not the answer: a BidAsk distribution has unequal inventory per bin, so the validator must simulate each bin's proceeds. If the allowed range cannot reach the target without future fees, the plan is rejected.
-2. **Tight upward fee position.** A smaller Spot sleeve starts at the active bin and concentrates liquidity near current trading. Spot is used here because it gives the active bin useful inventory instead of starving it with a second wide BidAsk distribution. It earns fees while recovery develops. Its inventory is capped independently and it may not consume the protected reserve.
+2. **Tight upward fee position.** A smaller Spot sleeve starts at the active bin and spreads its inventory evenly across a tight active range. It earns fees while recovery develops.
 
-The default allocation is 60% wide recovery, 20% tight fee sleeve, and 20% reserve outside all LP positions. Percentages are enrollment settings rather than universal constants. A range is rejected if its price multiple, allocation, liquidity, price impact, expected hold-relative drag, or deterministic proceeds exceed the enrolled limits.
+The allocation is calculated rather than fixed. The optimizer searches fee-sleeve sizes using active-bin liquidity, conservative recent fee velocity, volume, volatility, estimated time in range, and operating costs. It selects the smallest sleeve whose expected net fees clear both a minimum value and fee-to-cost multiple, while keeping the loss from selling too much inventory in the depressed tight range below the recovery-drag cap. The wide ladder receives the remainder. If no split can both earn meaningful fees and preserve the recovery target, the plan fails closed.
+
+The default loose-token reserve is 0%. If advisory token analysis finds a credible social, holder, volume, liquidity, wallet-flow, or listing catalyst, it may notify the owner and propose either an explicitly sized principal moonbag or token-fee retention. Nothing is reserved until the owner approves the percentage. Retained token fees remain unrealized and do not count as SOL profit until sold.
 
 ## Continuous monitoring and rolls
 
@@ -62,7 +64,7 @@ If the destination is missing, the balance is not sufficient to send the full pr
 
 ## SOL-only top-side behavior
 
-If an upward position finishes above its range as SOL-only before the campaign reaches its net-profit target, management continues. The engine protects at least 80% of recovered SOL and may recycle at most 20% into a new in-range fee position. Creating the required token side therefore uses a capped SOL-to-token swap.
+If an upward position finishes above its range as SOL-only before the campaign reaches its net-profit target, management continues. The engine may redeploy the campaign principal into a new in-range fee position while excluding the gas buffer and all profit already swept to the separate vault. Creating the required token side therefore uses a bounded SOL-to-token swap.
 
 Re-entry must still have positive expected net fees, acceptable liquidity, impact and slippage, a current quote, and a successful transaction simulation. It inherits the campaign ID and authorization. If those checks fail, recovered SOL remains protected and the engine alerts instead of chasing the market.
 
