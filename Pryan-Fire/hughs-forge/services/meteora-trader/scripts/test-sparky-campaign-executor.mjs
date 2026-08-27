@@ -5,6 +5,7 @@ import {
   boundedSlippageBps,
   campaignMilestones,
   campaignReturnSol,
+  deployableCampaignTokenRaw,
   exitProfitSweepLamports,
   feeSweepLamports,
   nextLiquiditySlippagePct,
@@ -74,6 +75,8 @@ assert.equal(nextLiquiditySlippagePct(1), 2);
 assert.equal(nextLiquiditySlippagePct(2), 3);
 assert.equal(nextLiquiditySlippagePct(3), 5);
 assert.equal(nextLiquiditySlippagePct(5), null);
+assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 0n), 2_703_525_237n);
+assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 3_000_000_000n), 0n);
 
 assert.equal(rangeState(-631, -630, -409), 'out_below');
 assert.equal(rangeState(-630, -630, -409), 'lower_edge');

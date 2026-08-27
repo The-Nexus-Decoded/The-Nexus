@@ -94,6 +94,12 @@ export function nextLiquiditySlippagePct(currentPct) {
   return LIQUIDITY_SLIPPAGE_LEVELS_PCT[index + 1];
 }
 
+export function deployableCampaignTokenRaw(walletTokenRaw, pendingFeeTokenRaw = 0n) {
+  const walletAmount = BigInt(walletTokenRaw);
+  const pendingFees = BigInt(pendingFeeTokenRaw);
+  return walletAmount > pendingFees ? walletAmount - pendingFees : 0n;
+}
+
 function liquiditySlippagePct(journal, role, generation) {
   const policy = journal.executionPolicy?.liquiditySlippage?.[role];
   return Number(policy?.generation) === generation
@@ -1341,6 +1347,94 @@ async function executeJupiterOrder(connection, order, wallet, stageName) {
   return { ...body, chainEvidence };
 }
 
+async function deployWideWalletResidual(connection, pool, wallet, journal, position) {
+  const record = journal.positions.wide;
+  const dustThresholdRaw = 10n ** BigInt(pool.tokenX.mint.decimals);
+  const maximumPasses = 3;
+  for (let pass = 1; pass <= maximumPasses; pass += 1) {
+    const before = await walletSnapshot(connection, wallet.publicKey);
+    const pendingFeeXRaw = BigInt(journal.ledger.pendingFeeXRaw || 0);
+    const deployableRaw = deployableCampaignTokenRaw(before.sparkyRaw, pendingFeeXRaw);
+    if (deployableRaw <= dustThresholdRaw) {
+      journal.wideResidual = {
+        status: 'reconciled',
+        observedAt: new Date().toISOString(),
+        deployableRaw: deployableRaw.toString(),
+        pendingFeeXRaw: pendingFeeXRaw.toString(),
+        dustThresholdRaw: dustThresholdRaw.toString(),
+      };
+      atomicWriteJson(STATE_FILE, journal);
+      return;
+    }
+    const slippagePct = liquiditySlippagePct(journal, 'wide', Number(record.generation));
+    const strategy = {
+      minBinId: Number(record.lowerBinId),
+      maxBinId: Number(record.upperBinId),
+      strategyType: StrategyType.BidAsk,
+      singleSidedX: true,
+    };
+    try {
+      const transactions = await pool.addLiquidityByStrategyChunkable({
+        positionPubKey: position.publicKey,
+        user: wallet.publicKey,
+        totalXAmount: new BN(deployableRaw.toString()),
+        totalYAmount: new BN(0),
+        strategy,
+        slippage: slippagePct,
+      });
+      if (!transactions.length) throw new Error('wide_residual_builder_returned_no_transactions');
+      for (let index = 0; index < transactions.length; index += 1) {
+        await sendStage(
+          connection,
+          journal,
+          `wide_g${record.generation}_residual_${deployableRaw}_${pass}_${index + 1}`,
+          transactions[index],
+          [wallet],
+          {
+            postcondition: () => positionPostcondition(
+              connection,
+              pool,
+              position.publicKey.toBase58(),
+              Number(record.lowerBinId),
+              Number(record.upperBinId),
+              true,
+            ),
+          },
+        );
+      }
+    } catch (error) {
+      recordLiquiditySlippageFailure(
+        journal,
+        'wide',
+        Number(record.generation),
+        slippagePct,
+        error,
+      );
+    }
+    const after = await walletSnapshot(connection, wallet.publicKey);
+    const remainingRaw = deployableCampaignTokenRaw(after.sparkyRaw, pendingFeeXRaw);
+    if (remainingRaw >= deployableRaw) {
+      throw new Error(`wide_residual_deposit_made_no_progress:${deployableRaw}:${remainingRaw}`);
+    }
+    journal.wideResidual = {
+      status: remainingRaw <= dustThresholdRaw ? 'reconciled' : 'retrying',
+      observedAt: new Date().toISOString(),
+      pass,
+      beforeRaw: deployableRaw.toString(),
+      remainingRaw: remainingRaw.toString(),
+      pendingFeeXRaw: pendingFeeXRaw.toString(),
+      dustThresholdRaw: dustThresholdRaw.toString(),
+    };
+    atomicWriteJson(STATE_FILE, journal);
+    if (remainingRaw <= dustThresholdRaw) {
+      resetLiquiditySlippage(journal, 'wide');
+      recordActionReconciled(journal, `wide_g${record.generation}_wallet_residual`, journal.wideResidual);
+      return;
+    }
+  }
+  throw new Error(`wide_wallet_residual_above_dust_after_${maximumPasses}_passes`);
+}
+
 async function executableSnapshot(connection, pool, journal) {
   const positionRecords = Object.values(journal.positions || {});
   const positions = (await Promise.all(
@@ -2019,6 +2113,11 @@ async function tick(connection, wallet) {
     }
     throw new Error('managed_position_count_mismatch');
   }
+  const fundedWide = positions.find(
+    (position) => position.publicKey.toBase58() === journal.positions.wide.address,
+  );
+  if (!fundedWide) throw new Error('managed_wide_position_missing_before_residual_reconciliation');
+  await deployWideWalletResidual(connection, pool, wallet, journal, fundedWide);
   let snapshot = await executableSnapshot(connection, pool, journal);
   journal.lastSnapshot = snapshot;
   atomicWriteJson(STATE_FILE, journal);
