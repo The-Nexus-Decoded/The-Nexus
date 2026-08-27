@@ -6,6 +6,15 @@ import type {
 
 export type BreachV2TopologyPoint = [number, number];
 
+export interface BreachV2TopologyVector {
+  x: number;
+  z: number;
+}
+
+export const BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT = 2.6;
+export const BREACH_V2_HEAVY_DOOR_APERTURE_WIDTH = 1.918027799129488;
+export const BREACH_V2_HEAVY_DOOR_APERTURE_HEIGHT = 3.04;
+
 interface TopologyRoomInput {
   id: string;
   name: string;
@@ -58,6 +67,15 @@ export interface BuildBreachV2TopologyInput {
   corridors: TopologyCorridorInput[];
   logicalGraph: { nodes: string[]; edges: BreachV2LogicalEdge[] };
   placement: TopologyPlacementInput;
+  supplementalApertures?: Array<{
+    apertureId: string;
+    roomId: string;
+    center: BreachV2TopologyPoint;
+    clearWidth: number;
+    assembly: "DOOR" | "PORTCULLIS";
+    runtimeConnectorId: string;
+    purpose: "SEALED_ROUTE_CHOICE";
+  }>;
   imagePath?: string;
 }
 
@@ -68,7 +86,10 @@ export interface BreachV2TopologyAperture {
   start: BreachV2TopologyPoint;
   end: BreachV2TopologyPoint;
   clearWidth: number;
+  clearHeight: number;
+  upstreamNormal: BreachV2TopologyVector;
   assembly: "OPEN" | "DOOR" | "PORTCULLIS" | "PORTAL";
+  runtimeConnectorId?: string;
 }
 
 export interface BreachV2TopologyBoundary {
@@ -82,6 +103,20 @@ export interface BreachV2TopologyBoundary {
   apertures: BreachV2TopologyAperture[];
 }
 
+export interface BreachV2BoundaryInterval {
+  start: BreachV2TopologyPoint;
+  end: BreachV2TopologyPoint;
+  startDistance: number;
+  endDistance: number;
+  apertureIds: string[];
+}
+
+export interface BreachV2BoundarySplit {
+  length: number;
+  solidSpans: BreachV2BoundaryInterval[];
+  apertureSpans: BreachV2BoundaryInterval[];
+}
+
 interface BreachV2TopologyConnection {
   edgeId: string;
   connectionType: BreachV2ConnectionType;
@@ -93,6 +128,7 @@ interface BreachV2TopologyConnection {
   centerline: BreachV2TopologyPoint[];
   elevations: number[];
   ceilings: number[];
+  connectorWidth: number;
   clearWidth: number;
   transition: {
     mode: "LEVEL" | "STAIRS" | "PORTAL";
@@ -162,6 +198,13 @@ export interface BreachV2TopologyManifest {
   }>;
   boundaries: BreachV2TopologyBoundary[];
   connections: BreachV2TopologyConnection[];
+  supplementalAssemblies: Array<{
+    apertureId: string;
+    boundaryId: string;
+    assembly: "DOOR" | "PORTCULLIS";
+    runtimeConnectorId: string;
+    purpose: "SEALED_ROUTE_CHOICE";
+  }>;
   topDownDiagnostic: {
     imagePath: string;
     generatedFromActualEmbeddedGeometry: true;
@@ -208,6 +251,28 @@ function close(a: number, b: number): boolean {
   return Math.abs(a - b) <= EPSILON;
 }
 
+function upstreamNormalFromFlow(
+  start: BreachV2TopologyPoint,
+  end: BreachV2TopologyPoint,
+): BreachV2TopologyVector {
+  const dx = end[0] - start[0];
+  const dz = end[1] - start[1];
+  const length = Math.hypot(dx, dz);
+  if (length <= EPSILON) {
+    throw new Error("BREACH-V2 aperture upstream normal requires a non-zero flow segment");
+  }
+  const x = -dx / length;
+  const z = -dz / length;
+  return {
+    x: Math.abs(x) <= EPSILON ? 0 : x,
+    z: Math.abs(z) <= EPSILON ? 0 : z,
+  };
+}
+
+function normalsMatch(a: BreachV2TopologyVector, b: BreachV2TopologyVector): boolean {
+  return close(a.x, b.x) && close(a.z, b.z);
+}
+
 function keyNumber(value: number): string {
   return Number(value.toFixed(4)).toString().replace("-", "m").replace(".", "p");
 }
@@ -220,6 +285,74 @@ function pointOnSegment(point: BreachV2TopologyPoint, start: BreachV2TopologyPoi
     && point[0] <= Math.max(start[0], end[0]) + EPSILON
     && point[1] >= Math.min(start[1], end[1]) - EPSILON
     && point[1] <= Math.max(start[1], end[1]) + EPSILON;
+}
+
+export function splitBreachV2Boundary(boundary: BreachV2TopologyBoundary): BreachV2BoundarySplit {
+  const dx = boundary.end[0] - boundary.start[0];
+  const dz = boundary.end[1] - boundary.start[1];
+  const length = Math.hypot(dx, dz);
+  if (length <= EPSILON) return { length: 0, solidSpans: [], apertureSpans: [] };
+  const ux = dx / length;
+  const uz = dz / length;
+  const pointAt = (distance: number): BreachV2TopologyPoint => [
+    boundary.start[0] + ux * distance,
+    boundary.start[1] + uz * distance,
+  ];
+  const project = (point: BreachV2TopologyPoint): number => clamp(
+    (point[0] - boundary.start[0]) * ux + (point[1] - boundary.start[1]) * uz,
+    0,
+    length,
+  );
+  const rawApertures = boundary.apertures.map((aperture) => {
+    const a = project(aperture.start);
+    const b = project(aperture.end);
+    return {
+      startDistance: Math.min(a, b),
+      endDistance: Math.max(a, b),
+      apertureIds: [aperture.apertureId],
+    };
+  }).filter((span) => span.endDistance - span.startDistance > EPSILON)
+    .sort((a, b) => a.startDistance - b.startDistance);
+  const merged: Array<{ startDistance: number; endDistance: number; apertureIds: string[] }> = [];
+  for (const span of rawApertures) {
+    const previous = merged[merged.length - 1];
+    if (previous && span.startDistance <= previous.endDistance + EPSILON) {
+      previous.endDistance = Math.max(previous.endDistance, span.endDistance);
+      previous.apertureIds.push(...span.apertureIds);
+    } else {
+      merged.push({ ...span, apertureIds: [...span.apertureIds] });
+    }
+  }
+  const apertureSpans = merged.map((span): BreachV2BoundaryInterval => ({
+    ...span,
+    start: pointAt(span.startDistance),
+    end: pointAt(span.endDistance),
+  }));
+  const solidSpans: BreachV2BoundaryInterval[] = [];
+  let cursor = 0;
+  for (const aperture of [...apertureSpans, {
+    start: boundary.end,
+    end: boundary.end,
+    startDistance: length,
+    endDistance: length,
+    apertureIds: [],
+  }]) {
+    if (aperture.startDistance - cursor > EPSILON) {
+      solidSpans.push({
+        start: pointAt(cursor),
+        end: pointAt(aperture.startDistance),
+        startDistance: cursor,
+        endDistance: aperture.startDistance,
+        apertureIds: [],
+      });
+    }
+    cursor = Math.max(cursor, aperture.endDistance);
+  }
+  return { length, solidSpans, apertureSpans };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function segmentGeometryKey(start: BreachV2TopologyPoint, end: BreachV2TopologyPoint): string {
@@ -413,11 +546,16 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
     edge: BreachV2LogicalEdge,
     center: BreachV2TopologyPoint,
     requestedWidth: number,
+    upstreamNormal: BreachV2TopologyVector,
     assembly: BreachV2TopologyAperture["assembly"] = "OPEN",
+    runtimeConnectorId?: string,
   ): BreachV2TopologyAperture => {
     const horizontal = close(boundary.start[1], boundary.end[1]);
     const length = Math.hypot(boundary.end[0] - boundary.start[0], boundary.end[1] - boundary.start[1]);
-    const width = Math.min(requestedWidth, Math.max(0, length - 0.2));
+    const authoredWidth = assembly === "DOOR"
+      ? BREACH_V2_HEAVY_DOOR_APERTURE_WIDTH
+      : requestedWidth;
+    const width = Math.min(authoredWidth, Math.max(0, length - 0.2));
     const aperture: BreachV2TopologyAperture = {
       apertureId: `aperture-${edge.edgeId}-${boundary.boundaryId}`,
       edgeId: edge.edgeId,
@@ -425,7 +563,12 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
       start: horizontal ? [center[0] - width / 2, center[1]] : [center[0], center[1] - width / 2],
       end: horizontal ? [center[0] + width / 2, center[1]] : [center[0], center[1] + width / 2],
       clearWidth: width,
+      clearHeight: assembly === "DOOR"
+        ? BREACH_V2_HEAVY_DOOR_APERTURE_HEIGHT
+        : BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT,
+      upstreamNormal,
       assembly,
+      ...(runtimeConnectorId ? { runtimeConnectorId } : {}),
     };
     boundary.apertures.push(aperture);
     return aperture;
@@ -441,6 +584,7 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
     let centerline: BreachV2TopologyPoint[] = [];
     let connectorPolygon: BreachV2TopologyPoint[] = [];
     let elevationProfile: number[] = [];
+    let connectorWidth = 0;
     let clearWidth = 0;
     let floorContinuity: "PASS" | "FAIL" = "PASS";
 
@@ -448,20 +592,50 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
       centerline = corridor.points;
       connectorPolygon = bufferPolyline(corridor.points, corridor.width);
       elevationProfile = corridor.elevations;
-      clearWidth = corridor.width;
+      connectorWidth = corridor.width;
       sourceBoundary = roomBoundaryAt(edge.sourceNode, corridor.points[0]!);
-      const sourceAssembly: BreachV2TopologyAperture["assembly"] = edge.edgeId === "corridor-entry"
-        || edge.edgeId === "ante-boss"
-        ? "PORTCULLIS"
-        : edge.edgeId === "boss-vault" ? "DOOR" : "OPEN";
+      const sourcePortal = edge.edgeId === "corridor-entry"
+        ? { assembly: "PORTCULLIS" as const, runtimeConnectorId: `${input.pathId}-choice` }
+        : edge.edgeId === "conv-ante"
+          ? { assembly: "DOOR" as const, runtimeConnectorId: "convergence-lock" }
+          : null;
       if (sourceBoundary) {
-        sourceAperture = apertureOn(sourceBoundary, edge, corridor.points[0]!, corridor.width, sourceAssembly);
+        sourceAperture = apertureOn(
+          sourceBoundary,
+          edge,
+          corridor.points[0]!,
+          corridor.width,
+          upstreamNormalFromFlow(corridor.points[0]!, corridor.points[1]!),
+          sourcePortal?.assembly ?? "OPEN",
+          sourcePortal?.runtimeConnectorId,
+        );
       }
       if (roomsById.has(edge.destinationNode)) {
         destinationBoundary = roomBoundaryAt(edge.destinationNode, corridor.points[corridor.points.length - 1]!);
         if (destinationBoundary) {
+          const destinationRoom = roomsById.get(edge.destinationNode)!;
+          const destinationPortal = destinationRoom.kind === "gallery"
+            ? { assembly: "DOOR" as const, runtimeConnectorId: `${edge.destinationNode}-entry` }
+            : edge.edgeId === "conv-ante"
+              ? { assembly: "PORTCULLIS" as const, runtimeConnectorId: "ashen-threshold" }
+              : edge.edgeId === "ante-boss"
+                ? { assembly: "PORTCULLIS" as const, runtimeConnectorId: "boss-lock" }
+                : edge.edgeId === "boss-vault"
+                  ? { assembly: "DOOR" as const, runtimeConnectorId: "memory-vault" }
+                  : edge.edgeId === "vault-exit"
+                    ? { assembly: "DOOR" as const, runtimeConnectorId: "way-upward" }
+                    : null;
           destinationAperture = apertureOn(
-            destinationBoundary, edge, corridor.points[corridor.points.length - 1]!, corridor.width,
+            destinationBoundary,
+            edge,
+            corridor.points[corridor.points.length - 1]!,
+            corridor.width,
+            upstreamNormalFromFlow(
+              corridor.points[corridor.points.length - 2]!,
+              corridor.points[corridor.points.length - 1]!,
+            ),
+            destinationPortal?.assembly ?? "OPEN",
+            destinationPortal?.runtimeConnectorId,
           );
         }
       } else if (corridor.externalDestination) {
@@ -481,7 +655,15 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
         };
         canonical.boundaries.push(portalBoundary);
         destinationBoundary = portalBoundary;
-        destinationAperture = apertureOn(portalBoundary, edge, endpoint, corridor.width, "PORTAL");
+        destinationAperture = apertureOn(
+          portalBoundary,
+          edge,
+          endpoint,
+          corridor.width,
+          upstreamNormalFromFlow(previous, endpoint),
+          "PORTAL",
+          "heartvale-threshold",
+        );
       }
       if (!sourceBoundary || !sourceAperture) unmatchedCorridorEndpoints += 1;
       if (!destinationBoundary || !destinationAperture) {
@@ -504,13 +686,13 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
       const aperture = portalBoundary.apertures[0];
       sourceAperture = aperture;
       destinationAperture = aperture;
-      clearWidth = aperture?.clearWidth ?? 0;
+      connectorWidth = aperture?.clearWidth ?? 0;
       const midpoint: BreachV2TopologyPoint = [
         (portalBoundary.start[0] + portalBoundary.end[0]) / 2,
         (portalBoundary.start[1] + portalBoundary.end[1]) / 2,
       ];
       centerline = [[midpoint[0] - 0.3, midpoint[1]], [midpoint[0] + 0.3, midpoint[1]]];
-      connectorPolygon = bufferPolyline(centerline, clearWidth);
+      connectorPolygon = bufferPolyline(centerline, connectorWidth);
       const portalElevation = input.corridors.find((candidate) => candidate.id === "heartvale-exit")
         ?.elevations.at(-1) ?? 0;
       elevationProfile = [portalElevation, portalElevation];
@@ -526,12 +708,9 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
           (shared.start[0] + shared.end[0]) / 2,
           (shared.start[1] + shared.end[1]) / 2,
         ];
-        const aperture = apertureOn(shared, edge, midpoint, Math.min(3.2, Math.hypot(
-          shared.end[0] - shared.start[0], shared.end[1] - shared.start[1],
-        )));
-        sourceAperture = aperture;
-        destinationAperture = aperture;
-        clearWidth = aperture.clearWidth;
+        const directPortal = edge.edgeId === "vestibule-plaza-link"
+          ? "vestibule-link"
+          : edge.edgeId === "plaza-link-threshold" ? "threshold-entry" : undefined;
         const sourceRoom = roomsById.get(edge.sourceNode)!;
         const destinationRoom = roomsById.get(edge.destinationNode)!;
         const sourceCenter: BreachV2TopologyPoint = [sourceRoom.x + sourceRoom.w / 2, sourceRoom.z + sourceRoom.h / 2];
@@ -545,12 +724,47 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
           [midpoint[0] - normalX * 1.2, midpoint[1] - normalZ * 1.2],
           [midpoint[0] + normalX * 1.2, midpoint[1] + normalZ * 1.2],
         ];
-        connectorPolygon = bufferPolyline(centerline, clearWidth);
+        connectorWidth = Math.min(3.2, Math.hypot(
+          shared.end[0] - shared.start[0], shared.end[1] - shared.start[1],
+        ));
+        const aperture = apertureOn(
+          shared,
+          edge,
+          midpoint,
+          connectorWidth,
+          upstreamNormalFromFlow(centerline[0]!, centerline[1]!),
+          directPortal ? "DOOR" : "OPEN",
+          directPortal,
+        );
+        sourceAperture = aperture;
+        destinationAperture = aperture;
+        connectorPolygon = bufferPolyline(centerline, connectorWidth);
         elevationProfile = [sourceRoom.endElevation, destinationRoom.floorElevation];
       }
     }
 
     const resolved = Boolean(sourceBoundary && destinationBoundary && sourceAperture && destinationAperture);
+    if (resolved && centerline.length >= 2) {
+      const sourceNormal = upstreamNormalFromFlow(centerline[0]!, centerline[1]!);
+      const destinationNormal = upstreamNormalFromFlow(
+        centerline[centerline.length - 2]!,
+        centerline[centerline.length - 1]!,
+      );
+      if (sourceAperture === destinationAperture && !normalsMatch(sourceNormal, destinationNormal)) {
+        throw new Error(
+          `BREACH-V2 shared aperture ${sourceAperture!.apertureId} has conflicting source/destination flow normals`,
+        );
+      }
+      if (!normalsMatch(sourceAperture!.upstreamNormal, sourceNormal)
+        || !normalsMatch(destinationAperture!.upstreamNormal, destinationNormal)) {
+        throw new Error(`BREACH-V2 aperture upstream normal drift on ${edge.edgeId}`);
+      }
+      clearWidth = Math.min(
+        connectorWidth,
+        sourceAperture!.clearWidth,
+        destinationAperture!.clearWidth,
+      );
+    }
     if (!corridor && edge.connectionType !== "PORTAL_TRANSFER" && !resolved) missingDestinationApertures += 1;
     if (!resolved && !corridor) unmatchedCorridorEndpoints += 1;
     const transitionRun = centerline.slice(1).reduce((run, point, index) => (
@@ -613,6 +827,7 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
       centerline,
       elevations: elevationProfile,
       ceilings: ceilingProfile,
+      connectorWidth,
       clearWidth,
       transition: {
         mode: transitionMode,
@@ -661,6 +876,42 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
     }
   }
 
+  const supplementalAssemblies = (input.supplementalApertures ?? []).flatMap((supplemental) => {
+    const boundary = roomBoundaryAt(supplemental.roomId, supplemental.center);
+    if (!boundary) {
+      missingDestinationApertures += 1;
+      return [];
+    }
+    const syntheticEdge: BreachV2LogicalEdge = {
+      edgeId: supplemental.apertureId,
+      sourceNode: supplemental.roomId,
+      destinationNode: `sealed:${supplemental.apertureId}`,
+      connectionType: "DOOR_GATE_ADJACENCY",
+      requiredForProgression: false,
+    };
+    const room = roomsById.get(supplemental.roomId);
+    if (!room) {
+      throw new Error(`BREACH-V2 supplemental aperture room is missing: ${supplemental.roomId}`);
+    }
+    const roomCenter: BreachV2TopologyPoint = [room.x + room.w / 2, room.z + room.h / 2];
+    const aperture = apertureOn(
+      boundary,
+      syntheticEdge,
+      supplemental.center,
+      supplemental.clearWidth,
+      upstreamNormalFromFlow(roomCenter, supplemental.center),
+      supplemental.assembly,
+      supplemental.runtimeConnectorId,
+    );
+    return [{
+      apertureId: aperture.apertureId,
+      boundaryId: boundary.boundaryId,
+      assembly: supplemental.assembly,
+      runtimeConnectorId: supplemental.runtimeConnectorId,
+      purpose: supplemental.purpose,
+    }];
+  });
+
   const requiredEdges = input.logicalGraph.edges.filter((edge) => edge.requiredForProgression);
   const resolvedEdgeIds = new Set(connections
     .filter((connection) => connection.physicalResolutionStatus === "RESOLVED")
@@ -684,6 +935,7 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
   const referencedApertureIds = new Set(connections.flatMap((connection) => [
     connection.sourceApertureId, connection.destinationApertureId,
   ]).filter(Boolean));
+  supplementalAssemblies.forEach((assembly) => referencedApertureIds.add(assembly.apertureId));
   const orphanDoorsOrGates = allApertures.filter((aperture) => (
     aperture.assembly !== "OPEN" && !referencedApertureIds.has(aperture.apertureId)
   )).length;
@@ -773,6 +1025,7 @@ export function buildBreachV2TopologyManifest(input: BuildBreachV2TopologyInput)
     })),
     boundaries: canonical.boundaries,
     connections,
+    supplementalAssemblies,
     topDownDiagnostic: {
       imagePath: input.imagePath ?? "",
       generatedFromActualEmbeddedGeometry: true,

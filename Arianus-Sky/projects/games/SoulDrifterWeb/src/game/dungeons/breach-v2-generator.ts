@@ -16,6 +16,7 @@ import { BREACH_V2_REGISTRY as R } from "./breach-v2-registry.mjs";
 import type {
   BreachV2FixedRoom, BreachV2Placement, BreachV2PoolRoom,
 } from "./breach-v2-registry.mjs";
+import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog.ts";
 
 export type BreachV2PathId = "wayfarer" | "oathbreaker";
 export type BreachV2ConnectionType =
@@ -61,14 +62,40 @@ interface BreachV2Corridor {
   externalDestination?: boolean;
 }
 
-interface BreachV2PlacedProp extends BreachV2Placement {
+export interface BreachV2CollisionResolverPlacement extends BreachV2Placement {
   roomId: string;
   zoneId: string;
   worldX: number;
   worldY: number;
-  blocksMovement: boolean;
   footprint: number;
   floorElevation: number;
+}
+
+interface BreachV2PlacedProp extends BreachV2CollisionResolverPlacement {
+  blocksMovement: boolean;
+}
+
+export type BreachV2CollisionResolver = (
+  placement: BreachV2CollisionResolverPlacement,
+) => boolean;
+
+const PROP_COLLISION_CATALOG = DUNGEON_PROP_ASSETS as Record<
+  string,
+  { blocksMovement: boolean }
+>;
+
+export function resolveBreachV2CanonicalPlacementBlocking(
+  placement: BreachV2CollisionResolverPlacement,
+): boolean {
+  if (placement.asset === "heavy-door") return false;
+  const catalog = PROP_COLLISION_CATALOG[placement.asset];
+  if (!catalog) return placement.blocking;
+  if (catalog.blocksMovement === placement.blocking) return placement.blocking;
+  if (placement.placement === "floor" && catalog.blocksMovement && !placement.blocking) return true;
+  throw new Error(
+    `Unapproved BREACH-V2 collision disagreement for ${placement.roomId}:${placement.asset}: `
+    + `catalog=${catalog.blocksMovement}, registry=${placement.blocking}`,
+  );
 }
 
 interface BreachV2Enemy {
@@ -267,7 +294,11 @@ function landmark(id: string) {
   return { ...lm, worldX: room.x + lm.x, worldY: room.y + lm.y };
 }
 
-export function generateBreachV2(seed: number, pathId: BreachV2PathId): GeneratedBreachV2 {
+export function generateBreachV2(
+  seed: number,
+  pathId: BreachV2PathId,
+  resolveCollision: BreachV2CollisionResolver = resolveBreachV2CanonicalPlacementBlocking,
+): GeneratedBreachV2 {
   const random = mulberry32((seed || 1) >>> 0);
   const path = R.paths[pathId];
   const pool = R.pools[path.pool];
@@ -424,15 +455,18 @@ export function generateBreachV2(seed: number, pathId: BreachV2PathId): Generate
     floorStart: number, floorEnd: number, items: BreachV2Placement[],
   ): void => {
     for (const p of items) {
-      placements.push({
+      const placed: BreachV2CollisionResolverPlacement = {
         ...p,
         roomId,
         zoneId,
         worldX: ox + p.x,
         worldY: oy + p.y,
-        blocksMovement: p.blocking,
         footprint: p.footprint ?? 1.2,
         floorElevation: floorStart + (floorEnd - floorStart) * (p.x / roomWidth),
+      };
+      placements.push({
+        ...placed,
+        blocksMovement: resolveCollision(placed),
       });
     }
   };

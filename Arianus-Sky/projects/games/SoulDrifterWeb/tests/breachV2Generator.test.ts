@@ -10,9 +10,14 @@ import {
 } from "../src/game/dungeons/breach-v2-generator";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
+import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
 const NAV = R.units.navCellMeters;
 const PATHS: BreachV2PathId[] = ["wayfarer", "oathbreaker"];
+const importNodeModule = (specifier: string) => import(specifier);
+const nodeProcess = (globalThis as typeof globalThis & {
+  process: { cwd: () => string; execPath: string };
+}).process;
 
 function cellAt(x: number, y: number) {
   return { col: Math.floor(x / NAV), row: Math.floor(y / NAV) };
@@ -295,7 +300,7 @@ describe("BREACH-V2 seeded generator", () => {
 
   it("passes the SEA whole-level topology gate with one canonical shell inventory", () => {
     for (const pathId of PATHS) {
-      const manifest = buildBreachV2Layout(4182, pathId, {}).topology;
+      const manifest = buildBreachV2Layout(4182, pathId, DUNGEON_PROP_ASSETS).topology;
       const {
         requiredLogicalEdges,
         physicallyResolvedEdges,
@@ -345,6 +350,83 @@ describe("BREACH-V2 seeded generator", () => {
         "overlap_and_error_overlays",
       ]));
     }
+  });
+
+  it("exports the canonical topology with both route-choice portcullises intact", async () => {
+    const [
+      { execFileSync },
+      { mkdtempSync, readFileSync, rmSync },
+      { tmpdir },
+      { default: path },
+    ] = await Promise.all([
+      importNodeModule("node:child_process"),
+      importNodeModule("node:fs"),
+      importNodeModule("node:os"),
+      importNodeModule("node:path"),
+    ]);
+    const outDir = mkdtempSync(path.join(tmpdir(), "souldrifter-topology-export-"));
+    try {
+      execFileSync(nodeProcess.execPath, [
+        "--experimental-strip-types",
+        path.resolve("scripts/export-breach-v2-topology.mjs"),
+        "--seed", "4182",
+        "--path", "both",
+        "--out-dir", outDir,
+      ], { cwd: nodeProcess.cwd(), encoding: "utf8" });
+
+      for (const pathId of PATHS) {
+        const stem = `breach-v2-seed-4182-${pathId}-topology`;
+        const manifest = JSON.parse(readFileSync(path.join(outDir, `${stem}.json`), "utf8"));
+        const canonical = buildBreachV2Layout(4182, pathId, DUNGEON_PROP_ASSETS).topology;
+        const inactivePathId = pathId === "wayfarer" ? "oathbreaker" : "wayfarer";
+        const routeChoiceIds = manifest.boundaries
+          .flatMap((boundary: { apertures: Array<{
+            assembly: string;
+            runtimeConnectorId?: string;
+          }> }) => boundary.apertures)
+          .filter((aperture: { assembly: string; runtimeConnectorId?: string }) => (
+            aperture.assembly === "PORTCULLIS"
+            && aperture.runtimeConnectorId?.endsWith("-choice")
+          ))
+          .map((aperture: { runtimeConnectorId: string }) => aperture.runtimeConnectorId);
+
+        expect(manifest).toEqual({
+          ...canonical,
+          commit: expect.any(String),
+          topDownDiagnostic: {
+            ...canonical.topDownDiagnostic,
+            imagePath: expect.stringContaining(`${stem}.svg`),
+          },
+        });
+        expect(new Set(routeChoiceIds)).toEqual(new Set(["wayfarer-choice", "oathbreaker-choice"]));
+        expect(manifest.supplementalAssemblies).toEqual(expect.arrayContaining([
+          expect.objectContaining({
+            assembly: "PORTCULLIS",
+            runtimeConnectorId: `${inactivePathId}-choice`,
+            purpose: "SEALED_ROUTE_CHOICE",
+          }),
+        ]));
+
+        const svg = readFileSync(path.join(outDir, `${stem}.svg`), "utf8");
+        expect(svg).toContain("<title>corridor-entry PORTCULLIS</title>");
+        expect(svg).toContain(`<title>route-choice-${inactivePathId} PORTCULLIS</title>`);
+      }
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects caller-authored catalogs before they can redefine collision truth", () => {
+    expect(() => buildBreachV2Layout(4182, "wayfarer", {})).toThrow(
+      /requires the canonical DUNGEON_PROP_ASSETS catalog/,
+    );
+    expect(() => buildBreachV2Layout(
+      4182,
+      "wayfarer",
+      { ...DUNGEON_PROP_ASSETS },
+    )).toThrow(/partial, cloned, or caller-authored catalogs/);
+    expect(buildBreachV2Layout(4182, "wayfarer").placements)
+      .toEqual(buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS).placements);
   });
 
   it("keeps every objective and encounter reachable on a 500-seed sweep (both paths)", () => {
