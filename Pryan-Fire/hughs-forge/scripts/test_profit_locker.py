@@ -380,7 +380,10 @@ def test_mainnet_config_encodes_monitoring_roll_harvest_reentry_and_learning_con
     assert config["profit_targets"]["maximum_pct"] == 80
     assert config["profit_sweep"]["enabled"] is True
     assert config["profit_sweep"]["required_for_enrollment"] is True
-    assert config["profit_sweep"]["destination_wallet"] is None
+    assert (
+        config["profit_sweep"]["destination_wallet"]
+        == "3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB"
+    )
     assert config["profit_sweep"]["principal_may_be_swept"] is False
     assert config["monitoring"]["active_bin_subscription"]["enabled"] is True
     assert config["monitoring"]["active_bin_subscription"]["fallback_poll_seconds"] == 15

@@ -31,7 +31,7 @@
   "profit_sweep": {
     "enabled": true,
     "required_for_enrollment": true,
-    "destination_wallet": null,
+    "destination_wallet": "3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB",
     "asset": "SOL",
     "amount_basis": "realized_net_campaign_profit_after_all_costs",
     "principal_may_be_swept": false,
