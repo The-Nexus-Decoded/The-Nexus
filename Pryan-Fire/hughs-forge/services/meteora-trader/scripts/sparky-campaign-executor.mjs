@@ -481,7 +481,11 @@ async function positionPostcondition(connection, pool, address, lowerBinId, uppe
   if (!position) return { ok: false, reason: 'position_account_missing' };
   const actualLower = Number(position.positionData.lowerBinId);
   const actualUpper = Number(position.positionData.upperBinId);
-  if (actualLower !== lowerBinId || actualUpper !== upperBinId) {
+  const exactRange = actualLower === lowerBinId && actualUpper === upperBinId;
+  const populatedRangeWithinEnrollment = requireLiquidity
+    && actualLower >= lowerBinId
+    && actualUpper <= upperBinId;
+  if (!exactRange && !populatedRangeWithinEnrollment) {
     return {
       ok: false,
       reason: `position_range_mismatch:${actualLower}:${actualUpper}`,
