@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "execution": {
+    "enabled": false,
+    "dry_run": true,
+    "local_signer_only": true,
+    "require_transaction_simulation": true,
+    "kill_switch_file": "/data/openclaw/profit-locker/trade-stop.lock",
+    "state_file": "/data/openclaw/profit-locker/state.json",
+    "event_log_file": "/data/openclaw/profit-locker/events.jsonl"
+  },
+  "enrollment": {
+    "default_status": "pending",
+    "requires_explicit_yes_or_no": true,
+    "nag_until_answered": true,
+    "reminder_seconds": 900,
+    "notification_channels": [
+      "in_app",
+      "email"
+    ],
+    "yes_authorizes_pool_campaign": true,
+    "recovery_requires_additional_answer": false
+  },
+  "profit_targets": {
+    "default_pct": 30,
+    "minimum_pct": 10,
+    "maximum_pct": 80,
+    "target_basis": "net_campaign_profit_after_all_costs",
+    "future_unearned_fees_may_prove_target": false
+  },
+  "profit_sweep": {
+    "enabled": true,
+    "required_for_enrollment": true,
+    "destination_wallet": null,
+    "asset": "SOL",
+    "amount_basis": "realized_net_campaign_profit_after_all_costs",
+    "principal_may_be_swept": false,
+    "destination_must_differ_from_source": true,
+    "require_close_reconciliation": true,
+    "require_full_profit_sweep": true,
+    "require_transaction_simulation": true,
+    "minimum_source_wallet_reserve_sol": 0.02,
+    "idempotent_once_per_settlement": true,
+    "missing_destination_action": "block_enrollment_and_notify"
+  },
+  "monitoring": {
+    "active_bin_subscription": {
+      "enabled": true,
+      "transport": "solana_websocket",
+      "fallback_poll_seconds": 15,
+      "resubscribe_backoff_seconds": [
+        1,
+        2,
+        5,
+        10,
+        15
+      ]
+    },
+    "full_snapshot_seconds": 60,
+    "maximum_price_age_seconds": 30,
+    "maximum_quote_age_seconds": 20,
+    "stale_data_action": "fail_closed_and_notify",
+    "concurrency": {
+      "independent_positions": true,
+      "position_execution_lock": true,
+      "pool_campaign_execution_lock": true,
+      "maximum_parallel_preflights": 4
+    }
+  },
+  "recovery": {
+    "enabled": true,
+    "strategy": "bid_ask_upward_two_position",
+    "authorization": "enrollment_with_notification",
+    "wide_recovery_position": {
+      "role": "recover_principal_and_target_profit",
+      "distribution": "bid_ask",
+      "lower_bound": "live_active_bin",
+      "default_inventory_pct": 60,
+      "maximum_range_price_multiple": 12,
+      "require_bin_by_bin_target_proof": true
+    },
+    "tight_fee_position": {
+      "role": "capture_near_price_volume",
+      "distribution": "spot_upward",
+      "lower_bound": "live_active_bin",
+      "default_inventory_pct": 20,
+      "maximum_inventory_pct": 20,
+      "continuous_roll_management": true,
+      "roll_trigger_bins_from_edge": 2,
+      "minimum_dwell_seconds": 60,
+      "maximum_rolls_per_hour": 6,
+      "require_positive_expected_net_fees": true
+    },
+    "protected_reserve": {
+      "default_inventory_pct": 20,
+      "minimum_inventory_pct": 20,
+      "outside_all_lp_positions": true,
+      "may_be_spent_by_rolls": false
+    },
+    "upward_roll_management": {
+      "enabled": true,
+      "reanchor_from_fresh_active_bin": true,
+      "preserve_campaign_cost_basis": true,
+      "preserve_protected_reserve": true,
+      "require_fresh_quote_and_simulation": true
+    },
+    "downward_anti_chase": {
+      "enabled": true,
+      "never_move_recovery_floor_below_enrolled_floor_without_owner_approval": true,
+      "minimum_confirmation_seconds": 120,
+      "minimum_recovery_bps": 100,
+      "maximum_downward_rolls_per_hour": 0
+    }
+  },
+  "fee_harvesting": {
+    "enabled": true,
+    "evaluation_seconds": 60,
+    "minimum_claim_interval_seconds": 900,
+    "minimum_gross_value_usd": 5,
+    "minimum_value_to_cost_multiple": 3,
+    "swap_non_sol_fees_to_sol": true,
+    "maximum_swap_slippage_bps": 200,
+    "preserve_configured_token_fee_pct": 0,
+    "record_as_realized_campaign_value": true
+  },
+  "top_side_reentry": {
+    "enabled": true,
+    "condition": "sol_only_and_campaign_target_not_met",
+    "max_recovered_sol_recycle_pct": 20,
+    "minimum_protected_sol_pct": 80,
+    "require_in_range_fee_opportunity": true,
+    "require_expected_fees_above_all_costs": true,
+    "require_price_impact_guard": true,
+    "require_fresh_simulation": true,
+    "inherit_campaign_authorization": true
+  },
+  "accounting": {
+    "scope": "wallet_pool_campaign_lifecycle",
+    "valuation_currency": "usd",
+    "require_complete_cost_basis": true,
+    "require_unique_source_id": true,
+    "include": [
+      "capital_contributions",
+      "realized_liquidity_proceeds",
+      "claimed_fees",
+      "unclaimed_fees_when_not_in_exit_quote",
+      "current_simulated_exit_value",
+      "swap_costs",
+      "slippage",
+      "priority_fees",
+      "network_fees",
+      "rent"
+    ],
+    "prevent_rolled_capital_double_counting": true,
+    "children_inherit_campaign_id": true
+  },
+  "guards": {
+    "require_owner_match": true,
+    "require_data_fresh": true,
+    "require_recovery_feasible": true,
+    "require_price_impact_ok": true,
+    "require_slippage_ok": true,
+    "require_liquidity_ok": true,
+    "require_hold_relative_drag_ok": true,
+    "require_balance_ok": true,
+    "require_simulation_ok": true,
+    "failure_action": "fail_closed_and_notify"
+  },
+  "intelligence": {
+    "mode": "advisory_only",
+    "may_access_private_keys": false,
+    "may_sign_transactions": false,
+    "may_submit_transactions": false,
+    "suggestions_require_deterministic_validation": true,
+    "notify_before_parameter_adjustment": true
+  },
+  "learning": {
+    "enabled": true,
+    "record_proposals": true,
+    "record_outcomes": true,
+    "record_counterfactuals": true,
+    "outcome_horizons_seconds": [
+      900,
+      3600,
+      21600,
+      86400
+    ],
+    "metrics": [
+      "net_campaign_profit_pct",
+      "fee_capture_usd",
+      "hold_relative_return_pct",
+      "maximum_drawdown_pct",
+      "roll_cost_usd",
+      "time_in_range_pct",
+      "target_hit",
+      "target_hit_seconds"
+    ],
+    "counterfactual_policies": [
+      "hold_only",
+      "wide_recovery_only",
+      "no_fee_harvest",
+      "no_top_side_reentry",
+      "alternate_profit_target"
+    ],
+    "may_change_live_policy": false,
+    "promotion_requires_owner_approval": true,
+    "minimum_evaluated_campaigns_before_promotion": 30,
+    "minimum_win_probability": 0.7,
+    "minimum_confidence": 0.95
+  }
+}
