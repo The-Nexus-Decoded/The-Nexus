@@ -38,7 +38,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   panel.setAttribute("aria-label", "BREACH-V2 developer map controls");
   panel.style.cssText = [
     "position:absolute", compactViewport ? "bottom:12px" : "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
-    "max-height:calc(100vh - 24px)", "overflow:auto", "padding:12px", "box-sizing:border-box",
+    "max-height:calc(100dvh - 24px)", "overflow:auto", "padding:12px", "box-sizing:border-box",
     "background:linear-gradient(165deg,rgba(16,19,20,.96),rgba(27,22,18,.94))",
     "color:#e9dfc7", "border:1px solid rgba(190,145,76,.58)", "border-radius:3px",
     "box-shadow:0 18px 55px rgba(0,0,0,.52),inset 0 0 30px rgba(128,73,28,.08)",
@@ -49,11 +49,15 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   header.type = "button";
   header.dataset.testid = "breach-v2-dev-toggle";
   header.style.cssText = [
-    "display:flex", "align-items:center", "justify-content:space-between", "width:100%", "padding:0 0 9px",
+    "display:flex", "align-items:center", "justify-content:space-between", "gap:12px", "width:100%", "min-height:44px", "padding:0 0 9px",
     "border:0", "border-bottom:1px solid rgba(190,145,76,.35)", "background:transparent", "color:#e4b967",
-    "font:700 12px/1.2 Georgia,serif", "letter-spacing:.13em", "cursor:pointer", "text-transform:uppercase",
+    "font:700 12px/1.2 Georgia,serif", "letter-spacing:.13em", "cursor:pointer", "text-transform:uppercase", "touch-action:manipulation",
   ].join(";");
-  header.innerHTML = "<span>Dungeon survey controls</span><span aria-hidden=\"true\">`</span>";
+  const headerTitle = document.createElement("span");
+  headerTitle.textContent = "Dungeon navigation";
+  const headerAction = document.createElement("span");
+  headerAction.style.cssText = "flex:0 0 auto;padding:6px 9px;border:1px solid rgba(228,185,103,.5);border-radius:3px;letter-spacing:.05em";
+  header.append(headerTitle, headerAction);
   panel.appendChild(header);
 
   const body = document.createElement("div");
@@ -67,6 +71,9 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     body.hidden = !open;
     panel.style.width = open ? "min(310px,calc(100vw - 24px))" : "min(240px,calc(100vw - 24px))";
     header.setAttribute("aria-expanded", String(open));
+    header.setAttribute("aria-label", `${open ? "Hide" : "Show"} dungeon navigation controls`);
+    header.title = `${open ? "Hide" : "Show"} dungeon navigation controls`;
+    headerAction.textContent = open ? "Hide" : "Show";
   };
   const toggle = (): void => { open = !open; syncOpen(); };
   header.addEventListener("click", toggle);

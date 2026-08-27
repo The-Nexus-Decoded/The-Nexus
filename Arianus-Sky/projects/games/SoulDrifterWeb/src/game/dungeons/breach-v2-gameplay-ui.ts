@@ -24,15 +24,19 @@ export interface BreachV2GameplayUi {
   destroy(): void;
 }
 
+export function shouldCollapseBreachV2GameplayUi(viewportWidth: number): boolean {
+  return viewportWidth <= 640;
+}
+
 function button(label: string, title: string): HTMLButtonElement {
   const element = document.createElement("button");
   element.type = "button";
   element.textContent = label;
   element.title = title;
   element.style.cssText = [
-    "border:1px solid rgba(154,216,232,.42)", "border-radius:4px", "padding:5px 8px",
+    "border:1px solid rgba(154,216,232,.42)", "border-radius:4px", "padding:7px 9px",
     "background:rgba(14,31,38,.94)", "color:#d9f4f7", "font:11px/1.2 monospace",
-    "cursor:pointer",
+    "cursor:pointer", "min-height:36px",
   ].join(";");
   return element;
 }
@@ -62,11 +66,20 @@ export function setupBreachV2GameplayUi(options: {
     "box-sizing:border-box", "padding:10px", "border:1px solid rgba(127,232,255,.35)",
     "border-radius:8px", "background:rgba(7,11,16,.86)", "backdrop-filter:blur(6px)",
     "color:#eee7d4", "font:12px/1.4 monospace", "box-shadow:0 8px 28px rgba(0,0,0,.38)",
+    "max-height:calc(100dvh - 20px)", "overflow:auto",
   ].join(";");
 
+  const headingRow = document.createElement("div");
+  headingRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px";
   const heading = document.createElement("div");
   heading.style.cssText = "font-weight:700;color:#9feaff;letter-spacing:.06em;text-transform:uppercase";
   heading.textContent = "First Breach · Ascending Run";
+  const collapseButton = button("", "Collapse First Breach controls");
+  collapseButton.setAttribute("aria-controls", "breach-v2-gameplay-controls-body");
+  collapseButton.style.cssText += ";flex:0 0 auto;min-width:44px;padding:7px 10px;font-weight:700";
+  headingRow.append(heading, collapseButton);
+  const body = document.createElement("div");
+  body.id = "breach-v2-gameplay-controls-body";
   const objective = document.createElement("div");
   objective.style.cssText = "margin-top:5px;color:#fff3cb";
   const status = document.createElement("div");
@@ -103,8 +116,26 @@ export function setupBreachV2GameplayUi(options: {
   const damagePrompt = document.createElement("span");
   damagePrompt.style.cssText = "color:#c9d5d8";
   destruction.append(damageButton, damagePrompt);
-  panel.append(heading, objective, status, vitals, controls, interaction, destruction);
+  body.append(objective, status, vitals, controls, interaction, destruction);
+  panel.append(headingRow, body);
   container.appendChild(panel);
+
+  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+  let expanded = !shouldCollapseBreachV2GameplayUi(viewportWidth);
+  const updateExpandedState = (): void => {
+    body.hidden = !expanded;
+    collapseButton.textContent = expanded ? "Hide" : "Show";
+    collapseButton.title = expanded ? "Collapse First Breach controls" : "Expand First Breach controls";
+    collapseButton.setAttribute("aria-expanded", String(expanded));
+    panel.style.width = expanded
+      ? "min(380px,calc(100vw - 20px))"
+      : "min(280px,calc(100vw - 20px))";
+  };
+  collapseButton.addEventListener("click", () => {
+    expanded = !expanded;
+    updateExpandedState();
+  });
+  updateExpandedState();
 
   const targets: InteractionTarget[] = [
     { ...layout.landmarks.ilyra, id: "ilyra", label: "Ilyra" },
@@ -198,6 +229,10 @@ export function setupBreachV2GameplayUi(options: {
     interactPrompt.textContent = nearest ? `Nearby: ${nearest.target.label}` : "Move near a story landmark";
     damageButton.disabled = !damageTarget;
     damagePrompt.textContent = damageTarget ? `Break/test: ${damageTarget.label}` : "No break/test target in range";
+    for (const action of [attack, guard, recover, restore, interactButton, damageButton]) {
+      action.style.opacity = action.disabled ? ".45" : "1";
+      action.style.cursor = action.disabled ? "not-allowed" : "pointer";
+    }
   };
   update();
   return { update, interactNearest, damageNearest, destroy: () => panel.remove() };

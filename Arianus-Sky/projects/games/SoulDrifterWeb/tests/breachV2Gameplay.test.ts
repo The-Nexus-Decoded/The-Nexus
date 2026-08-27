@@ -4,6 +4,7 @@ import {
   createBreachV2RunController,
   type BreachV2RunController,
 } from "../src/game/dungeons/breach-v2-gameplay";
+import { shouldCollapseBreachV2GameplayUi } from "../src/game/dungeons/breach-v2-gameplay-ui";
 
 const chambers = ["chamber-1", "chamber-2", "chamber-3"] as const;
 const environmentObjects = [
@@ -59,6 +60,13 @@ function defeatActiveEncounter(run: BreachV2RunController): void {
 }
 
 describe("BREACH-V2 isolated gameplay spine", () => {
+  it("starts the gameplay controls collapsed on phone-width viewports", () => {
+    expect(shouldCollapseBreachV2GameplayUi(390)).toBe(true);
+    expect(shouldCollapseBreachV2GameplayUi(640)).toBe(true);
+    expect(shouldCollapseBreachV2GameplayUi(641)).toBe(false);
+    expect(shouldCollapseBreachV2GameplayUi(1280)).toBe(false);
+  });
+
   it("enforces tutorial order and the selected route", () => {
     const run = create();
 
