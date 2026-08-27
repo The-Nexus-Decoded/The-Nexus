@@ -855,7 +855,7 @@ export const BREACH_V2_REGISTRY = {
       "placements": [
         {
           "asset": "corruption-growth",
-          "x": 1.5,
+          "x": 2.5,
           "y": 2.0,
           "placement": "floor",
           "group": "corruption",
@@ -867,7 +867,7 @@ export const BREACH_V2_REGISTRY = {
         },
         {
           "asset": "corruption-growth",
-          "x": 1.5,
+          "x": 2.5,
           "y": 8.0,
           "placement": "floor",
           "group": "corruption",
@@ -3852,13 +3852,13 @@ export const BREACH_V2_REGISTRY = {
           {
             "asset": "hanging-iron-cage",
             "x": 6.0,
-            "y": 4.0,
+            "y": 2.8,
             "placement": "ceiling",
             "group": "macabre",
             "facing": "down",
             "height": 2.15,
             "footprint": 1.55,
-            "blocking": false,
+            "blocking": true,
             "role": "dressing"
           },
           {
@@ -4009,8 +4009,8 @@ export const BREACH_V2_REGISTRY = {
         "placements": [
           {
             "asset": "masonry-barricade",
-            "x": 5.0,
-            "y": 3.2,
+            "x": 4.5,
+            "y": 3.0,
             "placement": "floor",
             "group": "structure",
             "facing": "up",
@@ -4021,7 +4021,7 @@ export const BREACH_V2_REGISTRY = {
           },
           {
             "asset": "masonry-barricade",
-            "x": 9.0,
+            "x": 9.5,
             "y": 5.8,
             "placement": "floor",
             "group": "structure",
