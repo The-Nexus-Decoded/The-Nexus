@@ -450,6 +450,25 @@ async function loadPool(connection) {
   return pool;
 }
 
+async function getActiveBinVerified(pool) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= ONCHAIN_VERIFY_ATTEMPTS; attempt += 1) {
+    try {
+      const active = await pool.getActiveBin();
+      if (active && Number.isFinite(Number(active.binId)) && Number.isFinite(Number(active.pricePerToken))) {
+        return active;
+      }
+      lastError = new Error('active_bin_response_missing_fields');
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < ONCHAIN_VERIFY_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
+  throw new Error(`active_bin_unavailable_after_retries:${lastError?.message || 'unknown'}`);
+}
+
 async function positionOrNull(connection, pool, address) {
   if (!address) return null;
   const publicKey = new PublicKey(address);
@@ -771,7 +790,7 @@ async function preflightMigration(connection, wallet) {
   const root = await positionOrNull(connection, pool, CAMPAIGN.rootPosition);
   if (!root) throw new Error('root_position_not_found');
   if (!root.positionData.owner.equals(wallet.publicKey)) throw new Error('position_owner_mismatch');
-  const activeBinId = Number((await pool.getActiveBin()).binId);
+  const activeBinId = Number((await getActiveBinVerified(pool)).binId);
   const inventory = positionInventory(root);
   const [walletBefore, rootAccount] = await Promise.all([
     walletSnapshot(connection, wallet.publicKey),
@@ -1174,7 +1193,7 @@ async function migrate(connection, wallet, preflight) {
   atomicWriteJson(STATE_FILE, journal);
 
   pool = await loadPool(connection);
-  const liveBin = Number((await pool.getActiveBin()).binId);
+  const liveBin = Number((await getActiveBinVerified(pool)).binId);
   if (Math.abs(liveBin - preflight.activeBinId) > MAX_ACTIVE_BIN_DRIFT) {
     preflight = await preflightMigrationAfterRootClose(connection, wallet, preflight, liveBin);
     journal.preflight = preflight;
@@ -1215,7 +1234,7 @@ async function migrate(connection, wallet, preflight) {
   journal.reconciliation = {
     wideTokenXRaw: positionInventory(wide).tokenXRaw.toString(),
     tightTokenXRaw: positionInventory(tight).tokenXRaw.toString(),
-    activeBinId: Number((await pool.getActiveBin()).binId),
+    activeBinId: Number((await getActiveBinVerified(pool)).binId),
   };
   atomicWriteJson(STATE_FILE, journal);
   return journal;
@@ -1223,7 +1242,8 @@ async function migrate(connection, wallet, preflight) {
 
 async function preflightMigrationAfterRootClose(connection, wallet, previous, liveBin) {
   const pool = await loadPool(connection);
-  const active = Number((await pool.getActiveBin()).binId);
+  const activeState = await getActiveBinVerified(pool);
+  const active = Number(activeState.binId);
   if (active !== liveBin) throw new Error('active_bin_changed_during_replan');
   const oldRoot = plannerInput();
   const synthetic = {
@@ -1231,7 +1251,7 @@ async function preflightMigrationAfterRootClose(connection, wallet, previous, li
     live: false,
     activeBinId: active,
     binStep: Number(pool.lbPair.binStep),
-    activePrice: Number((await pool.getActiveBin()).pricePerToken),
+    activePrice: Number(activeState.pricePerToken),
     tokenAmount: Number(atomicToUi(BigInt(previous.rootInventory.tokenXRaw), pool.tokenX.mint.decimals)),
     existingSol: 0,
     requiredExitSol: CAMPAIGN.targetValueSol,
@@ -1343,7 +1363,7 @@ async function executableSnapshot(connection, pool, journal) {
   const unclaimedFeeLamports = feeY + pendingFeeSol + BigInt(feeQuote?.outAmount || 0);
   const cumulativeFeeLamports = BigInt(journal.ledger.cumulativeNetFeesEarnedLamports || 0);
   const costsLamports = BigInt(journal.ledger.cumulativeExecutionCostsLamports || 0);
-  const activeBinId = Number((await pool.getActiveBin()).binId);
+  const activeBinId = Number((await getActiveBinVerified(pool)).binId);
   const snapshot = {
     observedAt: new Date().toISOString(),
     activeBinId,
@@ -1507,7 +1527,7 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
   const currentRecord = journal.positions[role];
   const generation = Number(currentRecord.generation || 0) + 1;
   const priorWidth = currentRecord.upperBinId - currentRecord.lowerBinId + 1;
-  const activeBinId = Number((await pool.getActiveBin()).binId);
+  const activeBinId = Number((await getActiveBinVerified(pool)).binId);
   const state = rangeState(activeBinId, currentRecord.lowerBinId, currentRecord.upperBinId);
   if (!state.startsWith('out_')) return false;
 
@@ -1636,7 +1656,7 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   const currentProof = terminalProofForPositions(pool, journal, wide, tight);
   if (currentProof.passes) return false;
   const inventory = positionInventory(wide);
-  const active = await pool.getActiveBin();
+  const active = await getActiveBinVerified(pool);
   const activeBinId = Number(active.binId);
   const generation = Number(journal.positions.wide.generation || 0) + 1;
   const expectedSwap = inventory.tokenYRaw > TRANSFER_FEE_BUFFER_LAMPORTS
@@ -1715,7 +1735,7 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   ).toString();
 
   const freshPool = await loadPool(connection);
-  const freshActive = await freshPool.getActiveBin();
+  const freshActive = await getActiveBinVerified(freshPool);
   const freshTight = await positionOrNull(connection, freshPool, journal.positions.tight.address);
   if (!freshTight) throw new Error('tight_position_missing_during_wide_coverage_repair');
   const finalPlan = solveWideUpperBin({
@@ -1845,7 +1865,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   const remainingXRaw = recoveredXRaw > existingXRaw ? recoveredXRaw - existingXRaw : 0n;
   const walletState = await walletSnapshot(connection, wallet.publicKey);
   if (walletState.sparkyRaw < remainingXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
-  const freshActiveBinId = Number((await workingPool.getActiveBin()).binId);
+  const freshActiveBinId = Number((await getActiveBinVerified(workingPool)).binId);
   const lowerBinId = existingReplacement
     ? Number(existingReplacement.positionData.lowerBinId)
     : freshActiveBinId;
