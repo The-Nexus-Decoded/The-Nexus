@@ -245,6 +245,23 @@ def test_profit_target_is_scope_bound_and_idempotent_across_campaign_lifecycle()
     assert profit_locker.evaluate_profit_target(state, key, wrong_scope, now=NOW) is None
 
 
+def test_forty_percent_target_counts_swept_fees_plus_current_positions():
+    state = profit_locker.new_state()
+    key = _enroll(state, target=40.0)
+    campaign_id = state["positions"][key]["campaign_id"]
+    snapshot = _snapshot(exit_value=950.0, claimed=450.0)
+    snapshot["capital_contributions"] = [{"source_id": "deposit:root", "usd": 1000.0}]
+    snapshot["realized_liquidity_proceeds"] = []
+    snapshot["execution_costs"] = []
+    snapshot["scope"] = {"wallet": WALLET, "pool": POOL, "campaign_id": campaign_id}
+
+    trigger = profit_locker.evaluate_profit_target(state, key, snapshot, now=NOW)
+
+    assert trigger["type"] == "preflight_profit_close"
+    assert trigger["calculation"]["profit_pct"] == pytest.approx(40.0)
+    assert trigger["settlement"]["convert_proceeds_to"] == "SOL"
+
+
 def test_campaign_child_inherits_authorization_without_another_enrollment_answer():
     state = profit_locker.new_state()
     root_key = _enroll(state)
@@ -390,12 +407,15 @@ def test_mainnet_config_encodes_monitoring_roll_harvest_reentry_and_learning_con
     assert config["recovery"]["strategy"] == "bid_ask_upward_two_position"
     assert config["recovery"]["authorization"] == "enrollment_with_notification"
     assert config["recovery"]["downward_anti_chase"]["enabled"] is True
+    assert config["recovery"]["wide_recovery_position"]["continuous_range_management"] is True
+    assert config["recovery"]["wide_recovery_position"]["retarget_trigger_bins_from_edge"] == 2
+    assert config["recovery"]["wide_recovery_position"]["retarget_may_fund_tight_position"] is False
     assert config["recovery"]["tight_fee_position"]["continuous_roll_management"] is True
     assert config["recovery"]["tight_fee_position"]["maximum_inventory_pct"] == 40
     sparky = config["recovery"]["campaign_overrides"]["sparky_capital_recovery"]
     assert sparky["maximum_tight_fee_position_pct"] == 30
     assert sparky["recovery_price_ceiling"] == "entry_price_divided_by_fresh_live_price"
-    assert sparky["profit_target_pct"] == 70
+    assert sparky["profit_target_pct"] == 40
     assert config["fee_harvesting"]["swap_non_sol_fees_to_sol"] is True
     assert config["recovery"]["protected_reserve"]["default_inventory_pct"] == 0
     assert config["recovery"]["allocation_optimizer"]["enabled"] is True
@@ -413,16 +433,18 @@ def test_profit_sweep_moves_only_realized_net_profit_and_is_idempotent():
     campaign_id = state["positions"][key]["campaign_id"]
     settlement = {
         "scope": {"wallet": WALLET, "pool": POOL, "campaign_id": campaign_id},
-        "realized_net_profit_sol": 5.0,
-        "available_attributable_sol": 15.1,
-        "required_source_wallet_reserve_sol": 10.0,
+        "positions_executable_value_sol": 9.0,
+        "cumulative_net_fees_earned_sol": 6.1,
+        "realized_fee_sol_available": 6.0,
+        "required_source_wallet_reserve_sol": 0.02,
         "transfer_fee_budget_sol": 0.001,
+        "break_even_basis_sol": 10.0,
     }
     guards = {name: True for name in profit_locker.REQUIRED_PROFIT_SWEEP_GUARDS}
 
     action = profit_locker.prepare_profit_sweep(state, campaign_id, settlement, guards, now=NOW)
     assert action["type"] == "preflight_profit_sweep"
-    assert action["amount_sol"] == 5.0
+    assert action["amount_sol"] == 5.979
     assert action["destination_wallet"] == VAULT
     assert action["principal_may_be_swept"] is False
     assert profit_locker.prepare_profit_sweep(state, campaign_id, settlement, guards, now=NOW)[
@@ -433,35 +455,76 @@ def test_profit_sweep_moves_only_realized_net_profit_and_is_idempotent():
         state,
         campaign_id,
         idempotency_key=action["idempotency_key"],
-        amount_sol=5.0,
+        amount_sol=5.979,
         signature="finalized-sol-transfer-signature",
         finalized_at=NOW,
     )
     assert finalized["status"] == "finalized"
-    assert state["campaigns"][campaign_id]["profit_swept_sol"] == 5.0
+    assert state["campaigns"][campaign_id]["profit_swept_sol"] == 5.979
     assert profit_locker.finalize_profit_sweep(
         state,
         campaign_id,
         idempotency_key=action["idempotency_key"],
-        amount_sol=5.0,
+        amount_sol=5.979,
         signature="ignored-on-idempotent-retry",
         finalized_at=NOW,
     )["signature"] == "finalized-sol-transfer-signature"
 
+    next_settlement = {
+        **settlement,
+        "positions_executable_value_sol": 9.0,
+        "cumulative_net_fees_earned_sol": 6.1,
+        "realized_fee_sol_available": 2.0,
+    }
+    next_action = profit_locker.prepare_profit_sweep(
+        state, campaign_id, next_settlement, guards, now=NOW + timedelta(minutes=15)
+    )
+    assert next_action["type"] == "preflight_profit_sweep"
+    assert next_action["amount_sol"] == 1.979
+    assert next_action["funding_source"] == "realized_campaign_fees_only"
+    assert next_action["campaign_return_value_after_sweep_sol"] >= 10.0
 
-def test_profit_sweep_fails_closed_instead_of_sending_principal():
+
+def test_profit_sweep_fails_closed_before_campaign_break_even():
     state = profit_locker.new_state()
     key = _enroll(state)
     campaign_id = state["positions"][key]["campaign_id"]
     settlement = {
         "scope": {"wallet": WALLET, "pool": POOL, "campaign_id": campaign_id},
-        "realized_net_profit_sol": 5.0,
-        "available_attributable_sol": 14.0,
-        "required_source_wallet_reserve_sol": 10.0,
+        "positions_executable_value_sol": 8.0,
+        "cumulative_net_fees_earned_sol": 1.99,
+        "realized_fee_sol_available": 1.49,
+        "required_source_wallet_reserve_sol": 0.02,
         "transfer_fee_budget_sol": 0.001,
+        "break_even_basis_sol": 10.0,
     }
     guards = {name: True for name in profit_locker.REQUIRED_PROFIT_SWEEP_GUARDS}
 
     blocked = profit_locker.prepare_profit_sweep(state, campaign_id, settlement, guards, now=NOW)
     assert blocked["type"] == "profit_sweep_blocked"
-    assert "insufficient_attributable_sol_for_full_profit_sweep" in blocked["reasons"]
+    assert "positions_plus_fees_have_not_reached_break_even" in blocked["reasons"]
+
+
+def test_post_close_exit_sweep_keeps_entry_basis_and_ignores_unrelated_wallet_sol():
+    state = profit_locker.new_state()
+    key = _enroll(state, target=40.0)
+    campaign_id = state["positions"][key]["campaign_id"]
+    state["campaigns"][campaign_id]["status"] = "closed"
+    settlement = {
+        "scope": {"wallet": WALLET, "pool": POOL, "campaign_id": campaign_id},
+        "exit_transaction_sol_proceeds": 14.0,
+        "available_proven_exit_proceeds_sol": 14.0,
+        "entry_basis_sol": 10.0,
+        "transfer_fee_budget_sol": 0.001,
+        "wallet_total_sol": 114.0,
+    }
+    guards = {name: True for name in profit_locker.REQUIRED_EXIT_SWEEP_GUARDS}
+
+    action = profit_locker.prepare_exit_profit_sweep(
+        state, campaign_id, settlement, guards, now=NOW
+    )
+
+    assert action["type"] == "preflight_exit_profit_sweep"
+    assert action["amount_sol"] == 3.999
+    assert action["entry_basis_retained_sol"] == 10.0
+    assert action["unrelated_wallet_sol_may_be_swept"] is False

@@ -33,15 +33,31 @@
     "required_for_enrollment": true,
     "destination_wallet": "3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB",
     "asset": "SOL",
-    "amount_basis": "realized_net_campaign_profit_after_all_costs",
+    "amount_basis": "all_realized_fee_sol_after_positions_plus_cumulative_fees_reach_break_even",
+    "activation_threshold": "fees_plus_executable_positions_reach_break_even_basis",
+    "during_campaign_enabled": true,
+    "preserve_break_even_basis_after_every_sweep": false,
+    "preserve_break_even_across_positions_plus_cumulative_fee_ledger": true,
+    "sweep_every_realized_fee_batch_after_break_even": true,
+    "position_liquidity_may_fund_during_campaign_sweep": false,
+    "wallet_sol_without_campaign_fee_provenance_may_be_swept": false,
     "principal_may_be_swept": false,
     "destination_must_differ_from_source": true,
-    "require_close_reconciliation": true,
-    "require_full_profit_sweep": true,
+    "require_campaign_reconciliation": true,
+    "allow_incremental_profit_sweeps": true,
     "require_transaction_simulation": true,
     "minimum_source_wallet_reserve_sol": 0.02,
     "idempotent_once_per_settlement": true,
     "missing_destination_action": "block_enrollment_and_notify"
+  },
+  "exit_settlement": {
+    "close_trigger_basis": "current_executable_positions_plus_cumulative_net_fees_minus_all_costs",
+    "close_all_positions_at_target": true,
+    "claim_all_remaining_fees": true,
+    "swap_all_campaign_tokens_to_sol": true,
+    "retain_original_entry_basis_in_trading_wallet": true,
+    "sweep_only_proven_exit_transaction_sol_above_entry_basis": true,
+    "unrelated_wallet_sol_may_be_swept": false
   },
   "monitoring": {
     "active_bin_subscription": {
@@ -77,7 +93,14 @@
       "lower_bound": "live_active_bin",
       "inventory_pct": "optimizer_remainder_after_fee_sleeve_and_approved_moonbag",
       "maximum_range_price_multiple": 12,
-      "require_bin_by_bin_target_proof": true
+      "require_bin_by_bin_target_proof": true,
+      "continuous_range_management": true,
+      "retarget_trigger_bins_from_edge": 2,
+      "out_of_range_action": "close_and_reopen_from_fresh_active_bin",
+      "retarget_preserves_target_price_and_campaign_basis": true,
+      "retarget_may_fund_tight_position": false,
+      "require_fresh_quote_and_simulation": true,
+      "maximum_retargets_per_hour": 2
     },
     "tight_fee_position": {
       "role": "capture_near_price_volume",
@@ -143,7 +166,7 @@
         "root_position": "HWSuro4P1PguyhfydtdGS1vv5FPeRarRJfVrb27A48CB",
         "maximum_tight_fee_position_pct": 30,
         "recovery_price_ceiling": "entry_price_divided_by_fresh_live_price",
-        "profit_target_pct": 70
+        "profit_target_pct": 40
       }
     }
   },
@@ -156,7 +179,11 @@
     "swap_non_sol_fees_to_sol": true,
     "maximum_swap_slippage_bps": 200,
     "preserve_configured_token_fee_pct": 0,
-    "record_as_realized_campaign_value": true
+    "record_as_realized_campaign_value": true,
+    "auto_compound": false,
+    "before_break_even_action": "track_and_hold_fees",
+    "after_break_even_action": "sweep_every_realized_fee_batch_to_profit_wallet",
+    "swept_fees_remain_in_cumulative_campaign_return_ledger": true
   },
   "top_side_reentry": {
     "enabled": true,

@@ -44,8 +44,20 @@ REQUIRED_RECOVERY_GUARDS = (
 )
 
 REQUIRED_PROFIT_SWEEP_GUARDS = (
-    "close_reconciled",
-    "all_proceeds_in_sol",
+    "campaign_reconciled",
+    "fee_provenance_reconciled",
+    "all_sweepable_fees_in_sol",
+    "destination_valid",
+    "destination_distinct",
+    "balance_ok",
+    "network_fee_reserved",
+    "simulation_ok",
+)
+
+REQUIRED_EXIT_SWEEP_GUARDS = (
+    "campaign_close_reconciled",
+    "exit_proceeds_provenance_reconciled",
+    "all_exit_proceeds_in_sol",
     "destination_valid",
     "destination_distinct",
     "balance_ok",
@@ -500,7 +512,7 @@ def prepare_profit_sweep(
     *,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """Prepare one exact SOL transfer for realized profit, never principal."""
+    """Prepare a fee-funded SOL transfer after total campaign equity reaches break-even."""
     campaign = state.get("campaigns", {}).get(campaign_id)
     if not campaign or campaign.get("status") != "active":
         raise KeyError("unknown_or_inactive_campaign")
@@ -521,24 +533,36 @@ def prepare_profit_sweep(
     if not _same_scope(_campaign_scope(campaign), settlement.get("scope", {})):
         reasons.append("scope_mismatch")
     try:
-        realized_net_profit_sol = float(settlement.get("realized_net_profit_sol"))
-        attributable_sol = float(settlement.get("available_attributable_sol"))
+        positions_value_sol = float(settlement.get("positions_executable_value_sol"))
+        cumulative_net_fees_sol = float(settlement.get("cumulative_net_fees_earned_sol"))
+        realized_fee_sol = float(settlement.get("realized_fee_sol_available"))
         required_reserve_sol = float(settlement.get("required_source_wallet_reserve_sol"))
         transfer_fee_budget_sol = float(settlement.get("transfer_fee_budget_sol"))
+        break_even_basis_sol = float(settlement.get("break_even_basis_sol"))
     except (TypeError, ValueError):
         reasons.append("invalid_profit_sweep_values")
-        realized_net_profit_sol = attributable_sol = required_reserve_sol = transfer_fee_budget_sol = 0.0
-    already_swept = float(campaign.get("profit_swept_sol", 0.0) or 0.0)
-    unswept_profit = realized_net_profit_sol - already_swept
-    spendable_sol = attributable_sol - required_reserve_sol - transfer_fee_budget_sol
-    if realized_net_profit_sol <= 0 or unswept_profit <= 0:
-        reasons.append("no_unswept_realized_profit")
-    if min(attributable_sol, required_reserve_sol, transfer_fee_budget_sol) < 0:
+        positions_value_sol = cumulative_net_fees_sol = realized_fee_sol = 0.0
+        required_reserve_sol = transfer_fee_budget_sol = break_even_basis_sol = 0.0
+    campaign_return_value_sol = positions_value_sol + cumulative_net_fees_sol
+    spendable_fee_sol = realized_fee_sol - required_reserve_sol - transfer_fee_budget_sol
+    if realized_fee_sol <= 0:
+        reasons.append("no_realized_fee_sol_available")
+    if min(
+        positions_value_sol,
+        cumulative_net_fees_sol,
+        realized_fee_sol,
+        required_reserve_sol,
+        transfer_fee_budget_sol,
+        break_even_basis_sol,
+    ) < 0:
         reasons.append("negative_profit_sweep_value")
-    if spendable_sol + 1e-12 < unswept_profit:
-        reasons.append("insufficient_attributable_sol_for_full_profit_sweep")
+    if campaign_return_value_sol + 1e-12 < break_even_basis_sol:
+        reasons.append("positions_plus_fees_have_not_reached_break_even")
+    amount_sol = round(spendable_fee_sol, 12)
+    if amount_sol <= 0:
+        reasons.append("no_realized_fee_batch_available_to_sweep")
     existing = campaign.get("profit_sweep")
-    if existing and existing.get("status") in {"pending_execution", "finalized"}:
+    if existing and existing.get("status") == "pending_execution":
         return {
             "type": "profit_sweep_already_exists",
             "idempotency_key": existing["idempotency_key"],
@@ -553,14 +577,17 @@ def prepare_profit_sweep(
         }
 
     prepared_at = _as_utc(now or utc_now())
-    amount_sol = round(unswept_profit, 12)
     fingerprint = _fingerprint(
         {
             "campaign_id": campaign_id,
             "source": source,
             "destination": destination,
             "amount_sol": amount_sol,
-            "realized_net_profit_sol": realized_net_profit_sol,
+            "positions_executable_value_sol": positions_value_sol,
+            "cumulative_net_fees_earned_sol": cumulative_net_fees_sol,
+            "realized_fee_sol_available": realized_fee_sol,
+            "campaign_return_value_sol": campaign_return_value_sol,
+            "break_even_basis_sol": break_even_basis_sol,
         }
     )
     sweep = {
@@ -571,11 +598,103 @@ def prepare_profit_sweep(
         "destination_wallet": destination,
         "asset": "SOL",
         "amount_sol": amount_sol,
+        "funding_source": "realized_campaign_fees_only",
         "principal_may_be_swept": False,
+        "break_even_basis_sol": break_even_basis_sol,
+        "positions_executable_value_sol": positions_value_sol,
+        "cumulative_net_fees_earned_sol": cumulative_net_fees_sol,
+        "realized_fee_sol_available": realized_fee_sol,
+        "campaign_return_value_before_sweep_sol": campaign_return_value_sol,
+        "campaign_return_value_after_sweep_sol": round(
+            campaign_return_value_sol - transfer_fee_budget_sol, 12
+        ),
         "settlement_fingerprint": fingerprint,
     }
     campaign["profit_sweep"] = sweep
     return {"type": "preflight_profit_sweep", "scope": _campaign_scope(campaign), **sweep}
+
+
+def prepare_exit_profit_sweep(
+    state: MutableMapping[str, Any],
+    campaign_id: str,
+    settlement: Mapping[str, Any],
+    guards: Mapping[str, Any],
+    *,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Keep entry principal in the trading wallet and sweep only proven exit excess."""
+    campaign = state.get("campaigns", {}).get(campaign_id)
+    if not campaign:
+        raise KeyError("unknown_campaign")
+    policy = campaign.get("policy", {}).get("profit_sweep", {})
+    destination = str(policy.get("destination_wallet") or "")
+    source = str(campaign.get("wallet") or "")
+    reasons = [
+        f"guard_failed:{name}"
+        for name in REQUIRED_EXIT_SWEEP_GUARDS
+        if guards.get(name) is not True
+    ]
+    if not destination:
+        reasons.append("profit_vault_wallet_missing")
+    if destination == source:
+        reasons.append("profit_vault_matches_source_wallet")
+    if not _same_scope(_campaign_scope(campaign), settlement.get("scope", {})):
+        reasons.append("scope_mismatch")
+    try:
+        exit_proceeds_sol = float(settlement.get("exit_transaction_sol_proceeds"))
+        available_exit_proceeds_sol = float(settlement.get("available_proven_exit_proceeds_sol"))
+        entry_basis_sol = float(settlement.get("entry_basis_sol"))
+        transfer_fee_budget_sol = float(settlement.get("transfer_fee_budget_sol"))
+    except (TypeError, ValueError):
+        reasons.append("invalid_exit_sweep_values")
+        exit_proceeds_sol = available_exit_proceeds_sol = entry_basis_sol = transfer_fee_budget_sol = 0.0
+    if min(exit_proceeds_sol, available_exit_proceeds_sol, entry_basis_sol, transfer_fee_budget_sol) < 0:
+        reasons.append("negative_exit_sweep_value")
+    attributable_exit_sol = min(exit_proceeds_sol, available_exit_proceeds_sol)
+    amount_sol = round(attributable_exit_sol - entry_basis_sol - transfer_fee_budget_sol, 12)
+    if amount_sol <= 0:
+        reasons.append("no_exit_profit_above_entry_basis")
+    existing = campaign.get("profit_sweep")
+    if existing and existing.get("status") == "pending_execution":
+        return {
+            "type": "profit_sweep_already_exists",
+            "idempotency_key": existing["idempotency_key"],
+            "status": existing["status"],
+            "scope": _campaign_scope(campaign),
+        }
+    if reasons:
+        return {"type": "exit_profit_sweep_blocked", "scope": _campaign_scope(campaign), "reasons": sorted(set(reasons))}
+
+    prepared_at = _as_utc(now or utc_now())
+    fingerprint = _fingerprint(
+        {
+            "campaign_id": campaign_id,
+            "source": source,
+            "destination": destination,
+            "exit_transaction_sol_proceeds": exit_proceeds_sol,
+            "available_proven_exit_proceeds_sol": available_exit_proceeds_sol,
+            "entry_basis_sol": entry_basis_sol,
+            "transfer_fee_budget_sol": transfer_fee_budget_sol,
+            "amount_sol": amount_sol,
+        }
+    )
+    sweep = {
+        "status": "pending_execution",
+        "kind": "post_close_exit_profit",
+        "idempotency_key": f"exit-profit-sweep:{campaign_id}:{fingerprint[:16]}",
+        "prepared_at": _iso(prepared_at),
+        "source_wallet": source,
+        "destination_wallet": destination,
+        "asset": "SOL",
+        "amount_sol": amount_sol,
+        "funding_source": "proven_exit_transaction_proceeds_only",
+        "entry_basis_retained_sol": entry_basis_sol,
+        "unrelated_wallet_sol_may_be_swept": False,
+        "principal_may_be_swept": False,
+        "settlement_fingerprint": fingerprint,
+    }
+    campaign["profit_sweep"] = sweep
+    return {"type": "preflight_exit_profit_sweep", "scope": _campaign_scope(campaign), **sweep}
 
 
 def finalize_profit_sweep(
@@ -609,6 +728,7 @@ def finalize_profit_sweep(
             "finalized_at": _iso(_as_utc(finalized_at or utc_now())),
         }
     )
+    campaign.setdefault("profit_sweep_history", []).append(dict(sweep))
     campaign["profit_swept_sol"] = float(campaign.get("profit_swept_sol", 0.0) or 0.0) + float(amount_sol)
     return dict(sweep)
 
