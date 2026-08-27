@@ -143,7 +143,7 @@
         "root_position": "HWSuro4P1PguyhfydtdGS1vv5FPeRarRJfVrb27A48CB",
         "maximum_tight_fee_position_pct": 30,
         "recovery_price_ceiling": "entry_price_divided_by_fresh_live_price",
-        "profit_target_pct": 30
+        "profit_target_pct": 70
       }
     }
   },
