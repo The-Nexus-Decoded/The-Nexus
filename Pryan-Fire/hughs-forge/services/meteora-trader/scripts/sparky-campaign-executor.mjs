@@ -2274,12 +2274,24 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   const walletPrincipalXRaw = deployableCampaignTokenRaw(walletState.sparkyRaw, pendingFeeXRaw);
   const recoverablePrincipalXRaw = existingXRaw + walletPrincipalXRaw;
   if (recoverablePrincipalXRaw <= 0n) throw new Error('wide_recovery_wallet_inventory_missing');
+  const priorPlacement = (journal.retargets || []).findLast((record) => (
+    record.role === 'wide' && record.replacementPosition === journal.positions.wide.address
+  ));
+  const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
+  const observedWideTerminal = Number(journal.terminalCoverageProof?.wideTerminalPrincipalSol || 0);
+  const observedDistributionFactor = modeledWideTerminal > 0
+    ? observedWideTerminal / modeledWideTerminal
+    : 1;
+  if (!(observedDistributionFactor > 0 && observedDistributionFactor <= 1.05)) {
+    throw new Error('wide_recovery_distribution_calibration_invalid_retry_without_deploy');
+  }
   const freshActive = await getActiveBinVerified(workingPool);
   const freshActiveBinId = Number(freshActive.binId);
   const freshTight = await positionOrNull(connection, workingPool, journal.positions.tight.address);
   if (!freshTight) throw new Error('tight_position_missing_during_exact_wide_recovery');
   const exactPlan = solveWideUpperBin({
-    tokenAmount: Number(atomicToUi(recoverablePrincipalXRaw, workingPool.tokenX.mint.decimals)),
+    tokenAmount: Number(atomicToUi(recoverablePrincipalXRaw, workingPool.tokenX.mint.decimals))
+      * observedDistributionFactor,
     spotTerminalPrincipalSol: positionTerminalPrincipalSol(
       freshTight.positionData,
       workingPool.tokenX.mint.decimals,
@@ -2327,6 +2339,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     lowerBinId,
     upperBinId,
     requestedExactPlan: exactPlan,
+    observedDistributionFactor,
     proof,
     at: new Date().toISOString(),
   });
