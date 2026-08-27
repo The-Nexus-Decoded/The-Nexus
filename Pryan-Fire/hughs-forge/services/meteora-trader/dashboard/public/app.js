@@ -308,6 +308,12 @@ function renderLiquiditySignal(campaign) {
     container.innerHTML = '<div class="empty-state">Live pool TVL is unavailable.</div>';
     return;
   }
+  if (!Number.isFinite(referenceTvl) || referenceTvl <= 0 || !Number.isFinite(drawdownPct)) {
+    label.textContent = 'BASELINE PENDING';
+    label.className = 'source-chip warning';
+    container.innerHTML = '<div class="empty-state">Waiting for a persisted pool-liquidity baseline. No stay/exit signal is available yet.</div>';
+    return;
+  }
 
   label.textContent = critical ? 'CRITICAL' : warning ? 'WARNING' : 'STABLE';
   label.className = `source-chip liquidity-${critical ? 'critical' : warning ? 'warning' : 'stable'}`;
