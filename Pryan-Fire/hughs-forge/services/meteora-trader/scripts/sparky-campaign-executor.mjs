@@ -1838,14 +1838,36 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     const existingWidth = Number(existingReplacement.positionData.upperBinId)
       - Number(existingReplacement.positionData.lowerBinId);
     if (existingWidth !== width) {
-      await closePositions(
-        connection,
-        workingPool,
-        wallet,
-        journal,
-        [existingReplacement],
-        `wide_g${generation}_mis_sized_recovery_close`,
-      );
+      const inventory = positionInventory(existingReplacement);
+      const isEmpty = inventory.tokenXRaw + inventory.tokenYRaw
+        + inventory.feeXRaw + inventory.feeYRaw === 0n;
+      if (isEmpty) {
+        const emptyCloseStage = `wide_g${generation}_mis_sized_empty_close`;
+        const emptyClose = await workingPool.closePositionIfEmpty({
+          owner: wallet.publicKey,
+          position: existingReplacement,
+        });
+        await sendStage(connection, journal, emptyCloseStage, emptyClose, [wallet], {
+          postcondition: () => positionClosedPostcondition(
+            connection,
+            existingReplacement.publicKey.toBase58(),
+          ),
+        });
+        recordActionReconciled(journal, emptyCloseStage, {
+          address: existingReplacement.publicKey.toBase58(),
+          accountClosed: true,
+          wasEmpty: true,
+        });
+      } else {
+        await closePositions(
+          connection,
+          workingPool,
+          wallet,
+          journal,
+          [existingReplacement],
+          `wide_g${generation}_mis_sized_recovery_close`,
+        );
+      }
       replacementGeneration += 1;
       journal.wideRecovery = {
         sourceGeneration: generation,
@@ -2256,7 +2278,10 @@ async function main() {
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   main().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
-    process.stdout.write(`${JSON.stringify({ status: 'failed', error: message, stateFile: STATE_FILE }, null, 2)}\n`);
+    const stack = error instanceof Error ? error.stack : null;
+    process.stdout.write(`${JSON.stringify({
+      status: 'failed', error: message, stack, stateFile: STATE_FILE,
+    }, null, 2)}\n`);
     process.exitCode = 1;
   });
 }
