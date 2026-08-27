@@ -5,10 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout.ts";
-import {
-  buildBreachV2TopologyManifest,
-  renderBreachV2TopologySvg,
-} from "../src/game/dungeons/breach-v2-topology.ts";
+import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog.ts";
+import { renderBreachV2TopologySvg } from "../src/game/dungeons/breach-v2-topology.ts";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -71,22 +69,19 @@ const commit = (() => {
 await mkdir(outDir, { recursive: true });
 const results = [];
 for (const pathId of pathIds) {
-  const layout = buildBreachV2Layout(seed, pathId, {});
+  const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
   const stem = `breach-v2-seed-${seed}-${pathId}-topology`;
   const svgPath = path.join(outDir, `${stem}.svg`);
   const jsonPath = path.join(outDir, `${stem}.json`);
   const relativeSvgPath = path.relative(PROJECT_ROOT, svgPath).replaceAll("\\", "/");
-  const manifest = buildBreachV2TopologyManifest({
-    ticket: 451,
+  const manifest = {
+    ...layout.topology,
     commit,
-    seed,
-    pathId,
-    rooms: layout.rooms,
-    corridors: layout.corridors,
-    logicalGraph: layout.logicalGraph,
-    placement: layout.placement,
-    imagePath: relativeSvgPath,
-  });
+    topDownDiagnostic: {
+      ...layout.topology.topDownDiagnostic,
+      imagePath: relativeSvgPath,
+    },
+  };
   await writeFile(svgPath, renderBreachV2TopologySvg(manifest), "utf8");
   await writeFile(jsonPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   results.push({

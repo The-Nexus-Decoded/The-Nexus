@@ -301,11 +301,13 @@ DRESSING = {
              ("storage-chest", 10.5, 2.5), ("storage-barrel", 10.5, 9.0),
              ("reinforced-crate", 9.0, 2.0)],
     "H-03": [("chain-shackle", 3.0, 0.4), ("chain-shackle", 9.0, 0.4),
-             ("hanging-iron-cage", 6.0, 4.0), ("weapon-armor-heap", 9.0, 9.0),
+             ("hanging-iron-cage", 6.0, 2.8), ("weapon-armor-heap", 9.0, 9.0),
              ("floor-brazier", 2.2, 10.0), ("storage-chest", 10.3, 10.3),
              ("false-wall-panel", 11.7, 9.0), ("storage-barrel", 2.0, 2.0),
              ("reinforced-crate", 3.5, 2.0)],  # false wall conceals the loot approach
-    "H-04": [("masonry-barricade", 5.0, 3.2), ("masonry-barricade", 9.0, 5.8),
+    # Keep the authored serpentine fight while reserving a 0.45 m humanoid
+    # capsule lane between the two full-solid 2.9 m barricade envelopes.
+    "H-04": [("masonry-barricade", 4.5, 3.0), ("masonry-barricade", 9.5, 5.8),
              ("collapsed-timber-masonry-pile", 12.0, 7.5), ("wall-torch-sconce", 7.0, 0.3),
              ("floor-brazier", 2.0, 7.2),
              ("storage-chest", 12.5, 1.8), ("storage-barrel", 2.0, 1.8),
@@ -349,7 +351,9 @@ FIXED_DRESSING = {
                         ("iron-floor-grate", 8.0, 6.0), ("candelabra-cluster", 15.0, 6.0),
                         ("storage-barrel", 2.2, 10.2), ("reinforced-crate", 3.7, 10.2),
                         ("storage-chest", 3.8, 5.5)],  # route portcullises are runtime-owned
-    "convergence": [("corruption-growth", 1.5, 2.0), ("corruption-growth", 1.5, 8.0),
+    # Keep both corruption clusters while reserving the expanded 0.45 m
+    # humanoid approach envelopes at the paired west route apertures.
+    "convergence": [("corruption-growth", 2.5, 2.0), ("corruption-growth", 2.5, 8.0),
                     ("floor-brazier", 10.5, 2.5), ("floor-brazier", 10.5, 7.5),
                     ("bone-pile", 6.0, 8.5), ("hanging-brazier", 6.0, 5.0),
                     ("storage-barrel", 9.8, 8.5), ("reinforced-crate", 8.3, 8.5),

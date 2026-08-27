@@ -23,6 +23,7 @@ from breach_v2_design import (  # noqa: E402
 )
 
 ROOM_INDEX = {r["id"]: r for r in FIXED_ROOMS}
+BLOCKING_ASSETS = {"hanging-iron-cage"}
 
 
 def facing(room_w, room_h, x, y, placement):
@@ -45,11 +46,13 @@ def placements(room_id, room_w, room_h):
         out.append(dict(asset=asset, x=x, y=y, placement=placement, group=group,
                         facing=facing(room_w, room_h, x, y, placement),
                         height=height, footprint=footprint,
-                        blocking=group in ("loot", "furniture", "structure", "rubble", "corruption")
-                        and asset not in ("bone-pile", "iron-floor-grate", "shed-chitin-pile",
-                                          "weapon-armor-heap", "bottles-jugs-crockery-cluster",
-                                          "supply-pile", "candelabra-cluster", "wall-torch-sconce",
-                                          "heavy-door"),
+                        blocking=asset in BLOCKING_ASSETS or (
+                            group in ("loot", "furniture", "structure", "rubble", "corruption")
+                            and asset not in ("bone-pile", "iron-floor-grate", "shed-chitin-pile",
+                                              "weapon-armor-heap", "bottles-jugs-crockery-cluster",
+                                              "supply-pile", "candelabra-cluster", "wall-torch-sconce",
+                                              "heavy-door")
+                        ),
                         role=("loot-cache" if asset == "storage-chest" else
                               "destructible-cover" if asset in (
                                   "storage-barrel", "reinforced-crate", "broken-handcart"
