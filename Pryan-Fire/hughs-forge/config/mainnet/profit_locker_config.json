@@ -106,10 +106,12 @@
     "allocation_optimizer": {
       "enabled": true,
       "fee_evaluation_horizon_hours": 6,
-      "minimum_expected_net_fee_sol": 0.003,
+      "minimum_expected_net_fee_sol": 0.02,
+      "minimum_expected_net_fee_pct_of_recovery_gap": 0.5,
+      "minimum_fee_sleeve_yield_pct_per_horizon": 0.25,
       "minimum_fee_to_cost_multiple": 3,
       "maximum_fee_opportunity_cost_pct_of_required_exit": 5,
-      "select": "smallest_fee_sleeve_that_passes_fee_and_recovery_constraints",
+      "select": "maximum_meaningful_net_fees_under_combined_recovery_drag_cap",
       "live_inputs": [
         "active_bin_liquidity",
         "five_minute_fee_history",

@@ -31,7 +31,9 @@ const DEFAULTS = Object.freeze({
   feeEvaluationHorizonHours: 6,
   expectedTimeInRangePct: 60,
   estimatedFeeCycleCostSol: 0.0005,
-  minimumNetFeeSol: 0.003,
+  minimumNetFeeSol: 0.02,
+  minimumNetFeePctOfRecoveryGap: 0.5,
+  minimumFeeSleeveYieldPct: 0.25,
   minimumFeeToCostMultiple: 3,
   maximumFeeOpportunityCostPctOfRequiredExit: 5,
 });
@@ -196,6 +198,18 @@ function buildAllocationCandidate(input, feeSleevePct) {
     * activeLiquidityShare;
   const expectedGrossFeeSol = solUsd > 0 ? expectedGrossFeeUsd / solUsd : 0;
   const expectedNetFeeSol = expectedGrossFeeSol - Number(input.estimatedFeeCycleCostSol);
+  const feeCapitalValueSol = feeTokens * activePrice;
+  const expectedNetFeeYieldPct = feeCapitalValueSol > 0
+    ? expectedNetFeeSol / feeCapitalValueSol * 100
+    : 0;
+  const currentHoldValueSol = existingSol + (tokenAmount * activePrice);
+  const recoveryGapSol = Math.max(0, requiredExitSol - currentHoldValueSol);
+  const recoveryGapFeeFloorSol = recoveryGapSol
+    * Number(input.minimumNetFeePctOfRecoveryGap) / 100;
+  const meaningfulNetFeeFloorSol = Math.max(
+    Number(input.minimumNetFeeSol),
+    recoveryGapFeeFloorSol,
+  );
   const feeToCostMultiple = Number(input.estimatedFeeCycleCostSol) > 0
     ? expectedGrossFeeSol / Number(input.estimatedFeeCycleCostSol)
     : 0;
@@ -203,8 +217,11 @@ function buildAllocationCandidate(input, feeSleevePct) {
   if (activePoolLiquiditySol <= 0 || conservativePoolFeeUsdPerHour <= 0 || solUsd <= 0) {
     economicReasons.push('live_fee_evidence_missing');
   }
-  if (expectedNetFeeSol < Number(input.minimumNetFeeSol)) {
+  if (expectedNetFeeSol < meaningfulNetFeeFloorSol) {
     economicReasons.push('expected_net_fees_below_minimum');
+  }
+  if (expectedNetFeeYieldPct < Number(input.minimumFeeSleeveYieldPct)) {
+    economicReasons.push('fee_yield_per_tvl_below_minimum');
   }
   if (feeToCostMultiple < Number(input.minimumFeeToCostMultiple)) {
     economicReasons.push('fee_to_cost_multiple_below_minimum');
@@ -235,6 +252,11 @@ function buildAllocationCandidate(input, feeSleevePct) {
       expectedGrossFeeSol,
       estimatedFeeCycleCostSol: Number(input.estimatedFeeCycleCostSol),
       expectedNetFeeSol,
+      feeCapitalValueSol,
+      expectedNetFeeYieldPct,
+      recoveryGapSol,
+      recoveryGapFeeFloorSol,
+      meaningfulNetFeeFloorSol,
       feeToCostMultiple,
       feeOpportunityCostSol,
       feeOpportunityCostPctOfRequiredExit,
@@ -242,6 +264,70 @@ function buildAllocationCandidate(input, feeSleevePct) {
       reasons: economicReasons,
     },
   };
+}
+
+export function recommendFeeSleeveAdjustment(input) {
+  const currentPct = clampPercent('current_fee_sleeve_pct', input.currentFeeSleevePct);
+  const observationHours = assertFinite('observation_hours', input.observationHours);
+  const minimumObservationHours = assertFinite(
+    'minimum_observation_hours', input.minimumObservationHours ?? 1,
+  );
+  const averageTvlSol = assertFinite('average_fee_position_tvl_sol', input.averageFeePositionTvlSol);
+  const realizedNetFeeSol = assertFinite('realized_net_fee_sol', input.realizedNetFeeSol);
+  const benchmarkFeeRatePerTvlHour = assertFinite(
+    'benchmark_fee_rate_per_tvl_hour', input.benchmarkFeeRatePerTvlHour,
+  );
+  const minimumRelativeEfficiencyPct = assertFinite(
+    'minimum_relative_efficiency_pct', input.minimumRelativeEfficiencyPct ?? 80,
+  );
+  const targetNetFeeSol = assertFinite('target_net_fee_sol', input.targetNetFeeSol);
+  const availableRealizedFeeSol = assertFinite(
+    'available_realized_fee_sol', input.availableRealizedFeeSol ?? realizedNetFeeSol,
+  );
+  if (observationHours < 0 || averageTvlSol <= 0 || availableRealizedFeeSol < 0) {
+    throw new Error('invalid_fee_sleeve_adjustment_inputs');
+  }
+  const realizedFeeRatePerTvlHour = observationHours > 0
+    ? realizedNetFeeSol / averageTvlSol / observationHours
+    : 0;
+  const relativeEfficiencyPct = benchmarkFeeRatePerTvlHour > 0
+    ? realizedFeeRatePerTvlHour / benchmarkFeeRatePerTvlHour * 100
+    : 0;
+  const evidence = {
+    observationHours,
+    realizedNetFeeSol,
+    averageTvlSol,
+    realizedFeeRatePerTvlHour,
+    benchmarkFeeRatePerTvlHour,
+    relativeEfficiencyPct,
+    targetNetFeeSol,
+    wideRecoveryPositionMutable: false,
+    availableRealizedFeeSol,
+  };
+  if (observationHours < minimumObservationHours) {
+    return { action: 'hold_for_more_evidence', targetFeeSleevePct: currentPct, evidence };
+  }
+  if (relativeEfficiencyPct < minimumRelativeEfficiencyPct) {
+    return {
+      action: 'recenter_existing_tight_sleeve',
+      reason: 'fee_yield_per_tvl_underperforming',
+      targetFeeSleevePct: currentPct,
+      additionalCapitalSol: 0,
+      additionalCapitalSource: 'none',
+      evidence,
+    };
+  }
+  if (realizedNetFeeSol < targetNetFeeSol && availableRealizedFeeSol > 0) {
+    return {
+      action: 'compound_tight_sleeve_fees',
+      reason: 'strong_fee_yield_but_absolute_fees_below_target',
+      targetFeeSleevePct: currentPct,
+      additionalCapitalSol: availableRealizedFeeSol,
+      additionalCapitalSource: 'tight_sleeve_realized_fees_only',
+      evidence,
+    };
+  }
+  return { action: 'hold', targetFeeSleevePct: currentPct, evidence };
 }
 
 export function buildTwoPositionPlan(input) {
@@ -295,6 +381,14 @@ export function buildTwoPositionPlan(input) {
     minimumNetFeeSol: assertFinite(
       'minimum_net_fee_sol', input.minimumNetFeeSol ?? DEFAULTS.minimumNetFeeSol,
     ),
+    minimumNetFeePctOfRecoveryGap: assertFinite(
+      'minimum_net_fee_pct_of_recovery_gap',
+      input.minimumNetFeePctOfRecoveryGap ?? DEFAULTS.minimumNetFeePctOfRecoveryGap,
+    ),
+    minimumFeeSleeveYieldPct: assertFinite(
+      'minimum_fee_sleeve_yield_pct',
+      input.minimumFeeSleeveYieldPct ?? DEFAULTS.minimumFeeSleeveYieldPct,
+    ),
     minimumFeeToCostMultiple: assertFinite(
       'minimum_fee_to_cost_multiple',
       input.minimumFeeToCostMultiple ?? DEFAULTS.minimumFeeToCostMultiple,
@@ -323,7 +417,10 @@ export function buildTwoPositionPlan(input) {
     const candidate = buildAllocationCandidate(normalized, Number(feePct.toFixed(6)));
     if (candidate) candidates.push(candidate);
   }
-  const selectedCandidate = candidates.find((candidate) => candidate.feeEconomics.eligible);
+  const selectedCandidate = candidates
+    .filter((candidate) => candidate.feeEconomics.eligible)
+    .sort((left, right) => right.feeEconomics.expectedNetFeeSol
+      - left.feeEconomics.expectedNetFeeSol)[0];
   if (!selectedCandidate) {
     return {
       feasible: false,
@@ -371,7 +468,7 @@ export function buildTwoPositionPlan(input) {
     requiredExitSol,
     futureFeesCountedTowardTarget: false,
     allocationMethod: forcedFeePct === null
-      ? 'minimum_economically_viable_fee_sleeve_under_recovery_drag_cap'
+      ? 'maximum_meaningful_net_fees_under_combined_recovery_drag_cap'
       : 'operator_forced_fee_sleeve_validated_against_live_economics',
     marketEvidence: input.marketEvidence,
     allocations: {
@@ -527,6 +624,8 @@ async function readLivePosition(payload) {
     expectedTimeInRangePct: payload.expectedTimeInRangePct,
     estimatedFeeCycleCostSol: payload.estimatedFeeCycleCostSol,
     minimumNetFeeSol: payload.minimumNetFeeSol,
+    minimumNetFeePctOfRecoveryGap: payload.minimumNetFeePctOfRecoveryGap,
+    minimumFeeSleeveYieldPct: payload.minimumFeeSleeveYieldPct,
     minimumFeeToCostMultiple: payload.minimumFeeToCostMultiple,
     maximumFeeOpportunityCostPctOfRequiredExit:
       payload.maximumFeeOpportunityCostPctOfRequiredExit,
