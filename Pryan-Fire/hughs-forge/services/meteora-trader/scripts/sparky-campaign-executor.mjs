@@ -62,6 +62,7 @@ const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
 const TERMINAL_EXECUTION_ALLOWANCE_SOL = 0.005;
+const TERMINAL_COVERAGE_BUFFER_PCT = 10;
 const RETARGET_WINDOW_MS = 60 * 60 * 1000;
 const RETARGET_POLICY = Object.freeze({
   wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
@@ -378,6 +379,10 @@ function requiredCampaignTargetSol(journal) {
   return trancheTargetSol(journal.ledger.capitalTranches);
 }
 
+function requiredTerminalCoverageSol(journal) {
+  return requiredCampaignTargetSol(journal) * (1 + TERMINAL_COVERAGE_BUFFER_PCT / 100);
+}
+
 function campaignBasisSol(journal) {
   return journal.ledger.capitalTranches.reduce(
     (total, tranche) => total + Number(tranche.capitalSol),
@@ -391,7 +396,7 @@ function terminalProofForPositions(pool, journal, wide, tight) {
   return terminalCoverageProof({
     wideTerminalPrincipalSol: positionTerminalPrincipalSol(wide.positionData, xDecimals, yDecimals),
     spotTerminalPrincipalSol: positionTerminalPrincipalSol(tight.positionData, xDecimals, yDecimals),
-    requiredTargetSol: requiredCampaignTargetSol(journal),
+    requiredTargetSol: requiredTerminalCoverageSol(journal),
     executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
   });
 }
@@ -2063,7 +2068,7 @@ async function repairWideTerminalCoverage(
     tokenAmount: Number(atomicToUi(prospectiveXRaw, pool.tokenX.mint.decimals))
       * observedDistributionFactor,
     spotTerminalPrincipalSol: spotTerminal,
-    requiredTargetSol: requiredCampaignTargetSol(journal),
+    requiredTargetSol: requiredTerminalCoverageSol(journal),
     executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
     activeBinId,
     activePrice: Number(active.pricePerToken),
@@ -2161,7 +2166,7 @@ async function repairWideTerminalCoverage(
       freshPool.tokenX.mint.decimals,
       freshPool.tokenY.mint.decimals,
     ),
-    requiredTargetSol: requiredCampaignTargetSol(journal),
+    requiredTargetSol: requiredTerminalCoverageSol(journal),
     executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
     activeBinId: Number(freshActive.binId),
     activePrice: Number(freshActive.pricePerToken),
@@ -2324,7 +2329,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
       workingPool.tokenX.mint.decimals,
       workingPool.tokenY.mint.decimals,
     ),
-    requiredTargetSol: requiredCampaignTargetSol(journal),
+    requiredTargetSol: requiredTerminalCoverageSol(journal),
     executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
     activeBinId: freshActiveBinId,
     activePrice: Number(freshActive.pricePerToken),
