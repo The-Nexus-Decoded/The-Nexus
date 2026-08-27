@@ -664,15 +664,9 @@ async function sendStage(connection, journal, stageName, transaction, signers, o
     preflightCommitment: 'confirmed',
   });
   if (sent !== signature) throw new Error(`${stageName}_signature_changed_on_send`);
-  try {
-    const confirmation = await connection.confirmTransaction({ signature, ...prepared.latest }, 'confirmed');
-    if (confirmation.value.err) {
-      throw new Error(`${stageName}_confirmation_failed:${JSON.stringify(confirmation.value.err)}`);
-    }
-  } catch (error) {
-    await reconcileSendingStage(connection, journal, stageName, postcondition);
-    return journal.stages[stageName].signature;
-  }
+  // Do not use Connection.confirmTransaction here. Its websocket subscription can
+  // throw outside the controller loop when a shared RPC returns 429. Polling the
+  // journaled signature keeps every failure inside the resumable state machine.
   await finalizeStage(connection, journal, stageName, postcondition);
   return signature;
 }
