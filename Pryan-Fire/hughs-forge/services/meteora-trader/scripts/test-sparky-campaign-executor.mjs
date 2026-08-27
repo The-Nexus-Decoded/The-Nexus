@@ -7,6 +7,7 @@ import {
   campaignReturnSol,
   exitProfitSweepLamports,
   feeSweepLamports,
+  nextLiquiditySlippagePct,
   rangeState,
   retargetGuardDecision,
   targetValueSol,
@@ -68,6 +69,9 @@ assert.equal(exitProfitSweepLamports(14_000_000_000n, 10), 3_999_990_000n);
 assert.equal(boundedSlippageBps(200), 200);
 assert.throws(() => boundedSlippageBps(301), /slippage_bps_outside_safety_bounds/);
 assert.throws(() => boundedSlippageBps(49), /slippage_bps_outside_safety_bounds/);
+assert.equal(nextLiquiditySlippagePct(0.5), 1);
+assert.equal(nextLiquiditySlippagePct(1), 2);
+assert.equal(nextLiquiditySlippagePct(2), null);
 
 assert.equal(rangeState(-631, -630, -409), 'out_below');
 assert.equal(rangeState(-630, -630, -409), 'lower_edge');

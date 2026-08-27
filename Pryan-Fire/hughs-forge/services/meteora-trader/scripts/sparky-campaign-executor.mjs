@@ -56,7 +56,7 @@ const LIVE_CONFIRMATION = 'SPARKY-CAMPAIGN-40PCT-LIVE';
 const EDGE_GUARD_BINS = 2;
 const MAX_ACTIVE_BIN_DRIFT = 2;
 const MIN_NATIVE_SOL = 0.03;
-const SLIPPAGE_PCT = 0.5;
+const LIQUIDITY_SLIPPAGE_LEVELS_PCT = Object.freeze([0.5, 1, 2]);
 const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
@@ -85,6 +85,47 @@ export function boundedSlippageBps(requestedBps = 200) {
     throw new Error(`slippage_bps_outside_safety_bounds:${value}`);
   }
   return value;
+}
+
+export function nextLiquiditySlippagePct(currentPct) {
+  const index = LIQUIDITY_SLIPPAGE_LEVELS_PCT.indexOf(Number(currentPct));
+  if (index < 0 || index === LIQUIDITY_SLIPPAGE_LEVELS_PCT.length - 1) return null;
+  return LIQUIDITY_SLIPPAGE_LEVELS_PCT[index + 1];
+}
+
+function liquiditySlippagePct(journal, role, generation) {
+  const policy = journal.executionPolicy?.liquiditySlippage?.[role];
+  return Number(policy?.generation) === generation
+    ? Number(policy.pct)
+    : LIQUIDITY_SLIPPAGE_LEVELS_PCT[0];
+}
+
+function recordLiquiditySlippageFailure(journal, role, generation, currentPct, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes('ExceededAmountSlippageTolerance') && !message.includes('Custom:6003')) {
+    throw error;
+  }
+  const nextPct = nextLiquiditySlippagePct(currentPct);
+  if (nextPct === null) {
+    throw new Error(`${role}_liquidity_slippage_safety_cap_reached:${currentPct}:${message}`);
+  }
+  journal.executionPolicy ||= {};
+  journal.executionPolicy.liquiditySlippage ||= {};
+  journal.executionPolicy.liquiditySlippage[role] = {
+    generation,
+    pct: nextPct,
+    priorPct: currentPct,
+    raisedAt: new Date().toISOString(),
+    reason: 'meteora_simulation_exceeded_amount_slippage_tolerance',
+  };
+  atomicWriteJson(STATE_FILE, journal);
+  throw new Error(`${role}_liquidity_slippage_raised_for_next_reconciliation:${currentPct}:${nextPct}`);
+}
+
+function resetLiquiditySlippage(journal, role) {
+  if (journal.executionPolicy?.liquiditySlippage?.[role]) {
+    delete journal.executionPolicy.liquiditySlippage[role];
+  }
 }
 
 export function targetValueSol(entryBasisSol, targetProfitPct) {
@@ -671,6 +712,24 @@ async function sendStage(connection, journal, stageName, transaction, signers, o
   return signature;
 }
 
+async function reconcileOutstandingStages(connection, journal) {
+  const outstanding = Object.entries(journal.stages || {})
+    .filter(([, stage]) => stage.status === 'sending');
+  for (const [stageName] of outstanding) {
+    await reconcileSendingStage(connection, journal, stageName);
+  }
+  if (outstanding.length) {
+    journal.controllerHealth = {
+      status: 'reconciled_interrupted_transactions',
+      pid: process.pid,
+      verifiedAt: new Date().toISOString(),
+      actionBlocked: false,
+      reconciledStages: outstanding.map(([stageName]) => stageName),
+    };
+    atomicWriteJson(STATE_FILE, journal);
+  }
+}
+
 async function buildRootRemoval(pool, root) {
   return pool.removeLiquidity({
     user: new PublicKey(CAMPAIGN.owner),
@@ -835,38 +894,43 @@ async function createWidePosition(
     ? wideYRaw - existingInventory.tokenYRaw
     : 0n;
   if (remainingXRaw > 0n || remainingYRaw > 0n) {
+    const slippagePct = liquiditySlippagePct(journal, 'wide', generation);
     const strategy = {
       minBinId: lower,
       maxBinId: upper,
       strategyType: StrategyType.BidAsk,
     };
     if (remainingYRaw === 0n) strategy.singleSidedX = true;
-    const transactions = await pool.addLiquidityByStrategyChunkable({
-      positionPubKey: wideKeypair.publicKey,
-      user: wallet.publicKey,
-      totalXAmount: new BN(remainingXRaw.toString()),
-      totalYAmount: new BN(remainingYRaw.toString()),
-      strategy,
-      slippage: SLIPPAGE_PCT,
-    });
-    for (let index = 0; index < transactions.length; index += 1) {
-      await sendStage(
-        connection,
-        journal,
-        `wide_g${generation}_deposit_${remainingXRaw}_${remainingYRaw}_${index + 1}`,
-        transactions[index],
-        [wallet],
-        {
-          postcondition: () => positionPostcondition(
-            connection,
-            pool,
-            wideKeypair.publicKey.toBase58(),
-            lower,
-            upper,
-            true,
-          ),
-        },
-      );
+    try {
+      const transactions = await pool.addLiquidityByStrategyChunkable({
+        positionPubKey: wideKeypair.publicKey,
+        user: wallet.publicKey,
+        totalXAmount: new BN(remainingXRaw.toString()),
+        totalYAmount: new BN(remainingYRaw.toString()),
+        strategy,
+        slippage: slippagePct,
+      });
+      for (let index = 0; index < transactions.length; index += 1) {
+        await sendStage(
+          connection,
+          journal,
+          `wide_g${generation}_deposit_${remainingXRaw}_${remainingYRaw}_${index + 1}`,
+          transactions[index],
+          [wallet],
+          {
+            postcondition: () => positionPostcondition(
+              connection,
+              pool,
+              wideKeypair.publicKey.toBase58(),
+              lower,
+              upper,
+              true,
+            ),
+          },
+        );
+      }
+    } catch (error) {
+      recordLiquiditySlippageFailure(journal, 'wide', generation, slippagePct, error);
     }
   }
   const wideEvidence = await waitForPostcondition(
@@ -887,6 +951,7 @@ async function createWidePosition(
     lowerBinId: lower,
     upperBinId: upper,
   };
+  resetLiquiditySlippage(journal, 'wide');
   recordActionReconciled(journal, `wide_g${generation}_ready`, wideEvidence);
   atomicWriteJson(STATE_FILE, journal);
 }
@@ -933,38 +998,43 @@ async function createTightPosition(
   const existingInventory = positionInventory(existing);
   if (existingInventory.tokenXRaw === 0n && existingInventory.tokenYRaw === 0n
       && (tightXRaw > 0n || tightYRaw > 0n)) {
+    const slippagePct = liquiditySlippagePct(journal, 'tight', generation);
     const strategy = {
       minBinId: lower,
       maxBinId: upper,
       strategyType: StrategyType.Spot,
     };
     if (tightYRaw === 0n) strategy.singleSidedX = true;
-    const transactions = await pool.addLiquidityByStrategyChunkable({
-      positionPubKey: tightKeypair.publicKey,
-      user: wallet.publicKey,
-      totalXAmount: new BN(tightXRaw.toString()),
-      totalYAmount: new BN(tightYRaw.toString()),
-      strategy,
-      slippage: SLIPPAGE_PCT,
-    });
-    for (let index = 0; index < transactions.length; index += 1) {
-      await sendStage(
-        connection,
-        journal,
-        `tight_g${generation}_deposit_${index + 1}`,
-        transactions[index],
-        [wallet],
-        {
-          postcondition: () => positionPostcondition(
-            connection,
-            pool,
-            tightKeypair.publicKey.toBase58(),
-            lower,
-            upper,
-            true,
-          ),
-        },
-      );
+    try {
+      const transactions = await pool.addLiquidityByStrategyChunkable({
+        positionPubKey: tightKeypair.publicKey,
+        user: wallet.publicKey,
+        totalXAmount: new BN(tightXRaw.toString()),
+        totalYAmount: new BN(tightYRaw.toString()),
+        strategy,
+        slippage: slippagePct,
+      });
+      for (let index = 0; index < transactions.length; index += 1) {
+        await sendStage(
+          connection,
+          journal,
+          `tight_g${generation}_deposit_${index + 1}`,
+          transactions[index],
+          [wallet],
+          {
+            postcondition: () => positionPostcondition(
+              connection,
+              pool,
+              tightKeypair.publicKey.toBase58(),
+              lower,
+              upper,
+              true,
+            ),
+          },
+        );
+      }
+    } catch (error) {
+      recordLiquiditySlippageFailure(journal, 'tight', generation, slippagePct, error);
     }
   }
   const tightEvidence = await waitForPostcondition(
@@ -985,6 +1055,7 @@ async function createTightPosition(
     lowerBinId: lower,
     upperBinId: upper,
   };
+  resetLiquiditySlippage(journal, 'tight');
   recordActionReconciled(journal, `tight_g${generation}_ready`, tightEvidence);
   atomicWriteJson(STATE_FILE, journal);
 }
@@ -1846,6 +1917,7 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
 async function tick(connection, wallet) {
   const journal = loadOrCreateJournal();
   if (journal.status !== 'active') throw new Error(`campaign_not_active:${journal.status}`);
+  await reconcileOutstandingStages(connection, journal);
   const pool = await loadPool(connection);
   const positions = (await Promise.all(
     Object.values(journal.positions).map((record) => positionOrNull(connection, pool, record.address)),
