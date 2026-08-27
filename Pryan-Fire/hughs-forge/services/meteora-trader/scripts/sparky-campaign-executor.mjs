@@ -2023,6 +2023,16 @@ async function repairWideTerminalCoverage(
 ) {
   const currentProof = terminalProofForPositions(pool, journal, wide, tight);
   if (currentProof.passes && !forceOptimize) return false;
+  const priorPlacement = (journal.retargets || []).findLast((record) => (
+    record.role === 'wide' && record.replacementPosition === wide.publicKey.toBase58()
+  ));
+  const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
+  const observedDistributionFactor = modeledWideTerminal > 0
+    ? currentProof.wideTerminalPrincipalSol / modeledWideTerminal
+    : 1;
+  if (!(observedDistributionFactor > 0 && observedDistributionFactor <= 1.05)) {
+    throw new Error('wide_distribution_calibration_invalid_retry_without_deploy');
+  }
   const repairReason = currentProof.passes
     ? 'principal_only_terminal_coverage_reoptimization'
     : 'principal_only_terminal_coverage_repair';
@@ -2045,7 +2055,8 @@ async function repairWideTerminalCoverage(
     pool.tokenY.mint.decimals,
   );
   const plan = solveWideUpperBin({
-    tokenAmount: Number(atomicToUi(prospectiveXRaw, pool.tokenX.mint.decimals)),
+    tokenAmount: Number(atomicToUi(prospectiveXRaw, pool.tokenX.mint.decimals))
+      * observedDistributionFactor,
     spotTerminalPrincipalSol: spotTerminal,
     requiredTargetSol: requiredCampaignTargetSol(journal),
     executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
@@ -2138,7 +2149,8 @@ async function repairWideTerminalCoverage(
   const freshTight = await positionOrNull(connection, freshPool, journal.positions.tight.address);
   if (!freshTight) throw new Error('tight_position_missing_during_wide_coverage_repair');
   const finalPlan = solveWideUpperBin({
-    tokenAmount: Number(atomicToUi(redeployXRaw, freshPool.tokenX.mint.decimals)),
+    tokenAmount: Number(atomicToUi(redeployXRaw, freshPool.tokenX.mint.decimals))
+      * observedDistributionFactor,
     spotTerminalPrincipalSol: positionTerminalPrincipalSol(
       freshTight.positionData,
       freshPool.tokenX.mint.decimals,
@@ -2168,7 +2180,8 @@ async function repairWideTerminalCoverage(
     role: 'wide', generation, reason: repairReason,
     priorPosition: wide.publicKey.toBase58(), replacementPosition: replacement.publicKey.toBase58(),
     activeBinId: Number(freshActive.binId), lowerBinId: finalPlan.lowerBinId,
-    upperBinId: finalPlan.upperBinId, proof: finalPlan, at: new Date().toISOString(),
+    upperBinId: finalPlan.upperBinId, proof: finalPlan,
+    observedDistributionFactor, at: new Date().toISOString(),
   });
   atomicWriteJson(STATE_FILE, journal);
   const confirmedWide = await positionOrNull(connection, await loadPool(connection), replacement.publicKey);
@@ -2464,7 +2477,6 @@ async function tick(connection, wallet) {
   const fallbackWideNeedsOptimization = latestWidePlacement?.reason
     === 'interrupted_coverage_recovery_from_confirmed_transaction_deltas';
   if (!journal.terminalCoverageProof.passes || fallbackWideNeedsOptimization) {
-    if (journal.coverageRepairBlocked) throw new Error('coverage_repair_blocked_after_failed_post_proof');
     await repairWideTerminalCoverage(
       connection,
       pool,
