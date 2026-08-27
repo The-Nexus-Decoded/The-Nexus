@@ -36,23 +36,66 @@ const {
   LAMPORTS_PER_SOL,
 } = require('@solana/web3.js');
 
-export const CAMPAIGN = Object.freeze({
+const DEFAULT_CAMPAIGN = Object.freeze({
   id: 'sparky-capital-recovery-v1',
   pool: 'D2XeJBX5shvpdec9TspZzvvC6M78UAUfn165VeiPLvhK',
   rootPosition: 'HWSuro4P1PguyhfydtdGS1vv5FPeRarRJfVrb27A48CB',
   owner: 'sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb',
-  sparkyMint: '3vSD9xyKCfRBpP3uDEUJaPyWGNWZDFkv4C4qHbjLpump',
+  tokenMint: '3vSD9xyKCfRBpP3uDEUJaPyWGNWZDFkv4C4qHbjLpump',
   wsolMint: 'So11111111111111111111111111111111111111112',
   profitWallet: '3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB',
   entryBasisSol: 2.269634845,
   targetProfitPct: 40,
-  targetValueSol: 3.177488783,
   widePct: 70,
   tightPct: 30,
   autoCompound: false,
+  initialPositionMode: 'dual_active',
+  terminalCoverageBufferPct: 10,
+  liveConfirmation: 'SPARKY-CAMPAIGN-40PCT-LIVE',
 });
 
-const LIVE_CONFIRMATION = 'SPARKY-CAMPAIGN-40PCT-LIVE';
+function loadCampaignConfig() {
+  const configFile = process.env.METEORA_CAMPAIGN_CONFIG_FILE;
+  const supplied = configFile
+    ? JSON.parse(fs.readFileSync(path.resolve(configFile), 'utf8'))
+    : DEFAULT_CAMPAIGN;
+  const campaign = {
+    ...supplied,
+    tokenMint: supplied.tokenMint || supplied.sparkyMint,
+  };
+  const required = ['id', 'pool', 'rootPosition', 'owner', 'tokenMint', 'wsolMint', 'profitWallet'];
+  for (const field of required) {
+    if (typeof campaign[field] !== 'string' || !campaign[field]) {
+      throw new Error(`campaign_config_missing_${field}`);
+    }
+  }
+  campaign.entryBasisSol = Number(campaign.entryBasisSol);
+  campaign.targetProfitPct = Number(campaign.targetProfitPct);
+  if (!(campaign.entryBasisSol > 0)) throw new Error('campaign_entry_basis_must_be_positive');
+  if (campaign.targetProfitPct < 10 || campaign.targetProfitPct > 80) {
+    throw new Error('campaign_target_profit_pct_outside_10_80');
+  }
+  campaign.targetValueSol = campaign.entryBasisSol * (1 + campaign.targetProfitPct / 100);
+  campaign.widePct = Number(campaign.widePct ?? 70);
+  campaign.tightPct = Number(campaign.tightPct ?? 30);
+  if (!(campaign.widePct > 0) || !(campaign.tightPct > 0)
+      || Math.abs(campaign.widePct + campaign.tightPct - 100) > 1e-9) {
+    throw new Error('campaign_wide_and_tight_pct_must_total_100');
+  }
+  campaign.terminalCoverageBufferPct = Number(campaign.terminalCoverageBufferPct ?? 10);
+  campaign.minimumFeeSleevePct = Number(campaign.minimumFeeSleevePct ?? 5);
+  campaign.maximumFeeSleevePct = Number(campaign.maximumFeeSleevePct ?? campaign.tightPct);
+  campaign.feeSleeveStepPct = Number(campaign.feeSleeveStepPct ?? 1);
+  campaign.recoverySearchCeilingPriceMultiple = Number(
+    campaign.recoverySearchCeilingPriceMultiple ?? 1_000,
+  );
+  campaign.initialPositionMode ||= 'dual_active';
+  campaign.liveConfirmation ||= `${campaign.id.toUpperCase()}-LIVE`;
+  return Object.freeze(campaign);
+}
+
+export const CAMPAIGN = loadCampaignConfig();
+const LIVE_CONFIRMATION = CAMPAIGN.liveConfirmation;
 const EDGE_GUARD_BINS = 2;
 const MAX_ACTIVE_BIN_DRIFT = 2;
 const PREFERRED_NATIVE_SOL = 0.03;
@@ -62,7 +105,7 @@ const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
 const TERMINAL_EXECUTION_ALLOWANCE_SOL = 0.005;
-const TERMINAL_COVERAGE_BUFFER_PCT = 10;
+const TERMINAL_COVERAGE_BUFFER_PCT = CAMPAIGN.terminalCoverageBufferPct;
 const RETARGET_WINDOW_MS = 60 * 60 * 1000;
 const RETARGET_POLICY = Object.freeze({
   wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
@@ -72,7 +115,8 @@ const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.c
 const JUPITER_URL = (process.env.JUPITER_ULTRA_ENDPOINT || 'https://api.jup.ag/ultra/v1').replace(/\/$/, '');
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const PLANNER = path.join(moduleDir, 'plan-two-position-recovery.mjs');
-const STATE_FILE = process.env.SPARKEY_CAMPAIGN_STATE_FILE
+const STATE_FILE = process.env.METEORA_CAMPAIGN_STATE_FILE
+  || process.env.SPARKEY_CAMPAIGN_STATE_FILE
   || path.resolve(moduleDir, '..', 'state', `${CAMPAIGN.id}.json`);
 const LOCK_FILE = `${STATE_FILE}.controller.lock`;
 const MAX_SWAP_SLIPPAGE_BPS = 300;
@@ -246,6 +290,19 @@ export function retargetGuardDecision({
   };
 }
 
+export function singlePositionRangeDisposition(guard) {
+  if (!guard?.shouldRetarget) {
+    return { action: 'hold', actionBlocked: false, reason: guard?.blockedReason || null };
+  }
+  if (guard.range === 'out_below') {
+    return { action: 'migrate_to_dual_recovery', actionBlocked: false, reason: null };
+  }
+  if (guard.range === 'out_above') {
+    return { action: 'retarget_single_spot', actionBlocked: false, reason: null };
+  }
+  return { action: 'hold', actionBlocked: true, reason: 'unexpected_single_position_range' };
+}
+
 export function feeSweepLamports(realizedFeeLamports, breakEvenReached) {
   const fees = BigInt(realizedFeeLamports);
   if (!breakEvenReached || fees <= TRANSFER_FEE_BUFFER_LAMPORTS) return 0n;
@@ -363,12 +420,23 @@ function acquireControllerLock() {
 }
 
 function newJournal() {
+  const monitorSingle = CAMPAIGN.initialPositionMode === 'monitor_single_until_range_exit';
   return {
     schemaVersion: 1,
     campaign: CAMPAIGN,
-    status: 'not_migrated',
+    status: monitorSingle ? 'monitoring_root' : 'not_migrated',
     createdAt: new Date().toISOString(),
-    positions: {},
+    positions: monitorSingle ? {
+      tight: {
+        address: CAMPAIGN.rootPosition,
+        generation: 0,
+        strategy: 'Spot',
+        lowerBinId: null,
+        upperBinId: null,
+        enrolledAt: new Date().toISOString(),
+        source: 'existing_root_position',
+      },
+    } : {},
     stages: {},
     ledger: {
       capitalTranches: [{
@@ -510,14 +578,14 @@ async function tokenBalanceRaw(connection, owner, mint) {
 async function walletSnapshot(connection, owner) {
   const [lamports, sparkyRaw] = await Promise.all([
     connection.getBalance(owner, 'confirmed'),
-    tokenBalanceRaw(connection, owner, new PublicKey(CAMPAIGN.sparkyMint)),
+    tokenBalanceRaw(connection, owner, new PublicKey(CAMPAIGN.tokenMint)),
   ]);
   return { lamports: BigInt(lamports), sparkyRaw };
 }
 
 async function loadPool(connection) {
   const pool = await DLMM.create(connection, new PublicKey(CAMPAIGN.pool));
-  if (pool.tokenX.publicKey.toBase58() !== CAMPAIGN.sparkyMint
+  if (pool.tokenX.publicKey.toBase58() !== CAMPAIGN.tokenMint
       || pool.tokenY.publicKey.toBase58() !== CAMPAIGN.wsolMint) {
     throw new Error('pool_mint_mismatch');
   }
@@ -607,12 +675,13 @@ function plannerInput() {
     pool: CAMPAIGN.pool,
     position: CAMPAIGN.rootPosition,
     wallet: CAMPAIGN.owner,
-    requiredExitSol: CAMPAIGN.targetValueSol,
-    minimumFeeSleevePct: 5,
-    maximumFeeSleevePct: 30,
-    feeSleeveStepPct: 5,
+    requiredExitSol: CAMPAIGN.targetValueSol * (1 + TERMINAL_COVERAGE_BUFFER_PCT / 100),
+    minimumFeeSleevePct: CAMPAIGN.minimumFeeSleevePct,
+    maximumFeeSleevePct: CAMPAIGN.maximumFeeSleevePct,
+    feeSleeveStepPct: CAMPAIGN.feeSleeveStepPct,
     protectedReservePct: 0,
-    maxRangePriceMultiple: 8.5,
+    maxRangePriceMultiple: CAMPAIGN.recoverySearchCeilingPriceMultiple,
+    maximumRecoveryTargetPriceMultiple: CAMPAIGN.recoverySearchCeilingPriceMultiple,
   };
 }
 
@@ -856,6 +925,13 @@ async function buildRootRemoval(pool, root) {
   });
 }
 
+export function isDeferredRentSimulationError(message) {
+  const normalized = String(message).toLowerCase().replace(/\s+/g, '');
+  return normalized.includes('insufficientfundsforrent')
+    || normalized.includes('insufficientlamports')
+    || normalized.includes('customprogramerror:0x1');
+}
+
 async function tryCreateSimulation(connection, build, signers, label) {
   try {
     const transaction = await build();
@@ -863,7 +939,7 @@ async function tryCreateSimulation(connection, build, signers, label) {
     return { ok: true, unitsConsumed: prepared.unitsConsumed, deferredUntilRootClose: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes('insufficient lamports') && !message.includes('custom program error: 0x1')) {
+    if (!isDeferredRentSimulationError(message)) {
       throw error;
     }
     return {
@@ -1249,9 +1325,16 @@ async function migrate(connection, wallet, preflight) {
     const closeExecutionCostLamports = expectedNativeInflow > nativeDelta
       ? expectedNativeInflow - nativeDelta
       : 0n;
-    const wideXRaw = principalXRaw * BigInt(CAMPAIGN.widePct) / 100n;
+    const plannedWidePct = Number(preflight.plan.allocations?.recoveryLadderPct);
+    const plannedTightPct = Number(preflight.plan.allocations?.feePositionPct);
+    if (!(plannedWidePct > 0) || !(plannedTightPct > 0)
+        || Math.abs(plannedWidePct + plannedTightPct - 100) > 1e-6) {
+      throw new Error('planner_allocation_percentages_invalid');
+    }
+    const plannedWideBps = BigInt(Math.round(plannedWidePct * 100));
+    const wideXRaw = principalXRaw * plannedWideBps / 10_000n;
     const tightXRaw = principalXRaw - wideXRaw;
-    const wideYRaw = principalYRaw * BigInt(CAMPAIGN.widePct) / 100n;
+    const wideYRaw = principalYRaw * plannedWideBps / 10_000n;
     const tightYRaw = principalYRaw - wideYRaw;
     journal.migrationInventory = {
       withdrawnXRaw: withdrawnXRaw.toString(),
@@ -1265,6 +1348,8 @@ async function migrate(connection, wallet, preflight) {
       pendingFeeSolLamports: pendingFeeSolLamports.toString(),
       excludedRootRentRefundLamports: excludedRootRent.toString(),
       rootCloseExecutionCostLamports: closeExecutionCostLamports.toString(),
+      plannedWidePct,
+      plannedTightPct,
     };
     journal.ledger.cumulativeExecutionCostsLamports = closeExecutionCostLamports.toString();
   }
@@ -1633,8 +1718,8 @@ async function executableSnapshot(connection, pool, journal) {
   const pendingFeeX = BigInt(journal.ledger.pendingFeeXRaw || 0);
   const pendingFeeSol = BigInt(journal.ledger.pendingFeeSolLamports || 0);
   const [principalQuote, feeQuote] = await Promise.all([
-    jupiterQuote(CAMPAIGN.sparkyMint, principalX),
-    jupiterQuote(CAMPAIGN.sparkyMint, feeX + pendingFeeX),
+    jupiterQuote(CAMPAIGN.tokenMint, principalX),
+    jupiterQuote(CAMPAIGN.tokenMint, feeX + pendingFeeX),
   ]);
   const positionsExecutableLamports = principalY + BigInt(principalQuote?.outAmount || 0);
   const unclaimedFeeLamports = feeY + pendingFeeSol + BigInt(feeQuote?.outAmount || 0);
@@ -1716,7 +1801,7 @@ async function claimFees(connection, pool, wallet, journal, positions) {
   const realizedFeeX = newlyClaimedX + pendingFeeX;
   let feeSwapStage = null;
   if (realizedFeeX > 0n) {
-    const order = await jupiterOrder(CAMPAIGN.sparkyMint, realizedFeeX, CAMPAIGN.owner);
+    const order = await jupiterOrder(CAMPAIGN.tokenMint, realizedFeeX, CAMPAIGN.owner);
     feeSwapStage = `fee_swap_${Date.now()}`;
     const executed = await executeJupiterOrder(connection, order, wallet, feeSwapStage);
     journal.stages[feeSwapStage] = {
@@ -1874,7 +1959,7 @@ async function closePositions(connection, pool, wallet, journal, positions, pref
 
 async function convertRetargetFeeXToSol(connection, wallet, journal, feeXRaw, stageName) {
   if (feeXRaw <= 0n) return { pendingFeeXRaw: 0n, realizedFeeSolLamports: 0n };
-  const order = await jupiterOrder(CAMPAIGN.sparkyMint, feeXRaw, CAMPAIGN.owner);
+  const order = await jupiterOrder(CAMPAIGN.tokenMint, feeXRaw, CAMPAIGN.owner);
   if (BigInt(order.outAmount) <= TRANSFER_FEE_BUFFER_LAMPORTS) {
     return { pendingFeeXRaw: feeXRaw, realizedFeeSolLamports: 0n };
   }
@@ -1960,7 +2045,7 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
       swapInput,
       CAMPAIGN.owner,
       200,
-      CAMPAIGN.sparkyMint,
+      CAMPAIGN.tokenMint,
     );
     const swapStage = `${role}_g${generation}_retarget_swap`;
     const executed = await executeJupiterOrder(connection, order, wallet, swapStage);
@@ -2076,7 +2161,7 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   const pendingFeeSol = BigInt(journal.ledger.pendingFeeSolLamports || 0);
   const campaignTokenRaw = afterClose.sparkyRaw - before.sparkyRaw + pendingFeeX;
   if (campaignTokenRaw > 0n) {
-    const order = await jupiterOrder(CAMPAIGN.sparkyMint, campaignTokenRaw, CAMPAIGN.owner);
+    const order = await jupiterOrder(CAMPAIGN.tokenMint, campaignTokenRaw, CAMPAIGN.owner);
     const executed = await executeJupiterOrder(connection, order, wallet, 'target_exit_swap');
     journal.stages.target_exit_swap = {
       status: 'chain_confirmed',
@@ -2166,6 +2251,116 @@ function pauseForManualTakeover(journal, decision) {
   delete journal.tickContext;
   atomicWriteJson(STATE_FILE, journal);
   return journal;
+}
+
+async function monitorSinglePositionTick(connection, wallet) {
+  const journal = loadOrCreateJournal();
+  if (journal.status !== 'monitoring_root') {
+    throw new Error(`campaign_not_monitoring_root:${journal.status}`);
+  }
+  if (journal.controllerHealth?.requiresManualResume) {
+    throw new Error(`controller_manual_resume_required:${journal.controllerHealth.blockedReason || 'unknown'}`);
+  }
+  journal.tickContext = {
+    id: crypto.randomUUID(),
+    startedAt: new Date().toISOString(),
+    actionStarted: false,
+  };
+  atomicWriteJson(STATE_FILE, journal);
+  await reconcileOutstandingStages(connection, journal);
+  reconcileUnaccountedFeeSwapStages(journal);
+  const pool = await loadPool(connection);
+  const livePoolState = await pool.getPositionsByUserAndLbPair(wallet.publicKey);
+  const positions = livePoolState.userPositions || [];
+  const positionSet = managedPositionSetDecision(
+    journal.positions,
+    positions.map((position) => position.publicKey.toBase58()),
+  );
+  if (!positionSet.exactMatch) return pauseForManualTakeover(journal, positionSet);
+  const record = journal.positions.tight;
+  const position = positions.find(
+    (candidate) => candidate.publicKey.toBase58() === record.address,
+  );
+  if (!position) throw new Error('monitored_root_position_missing');
+  record.lowerBinId = Number(position.positionData.lowerBinId);
+  record.upperBinId = Number(position.positionData.upperBinId);
+  record.strategy = 'Spot';
+  atomicWriteJson(STATE_FILE, journal);
+
+  let snapshot = await executableSnapshot(connection, pool, journal);
+  journal.lastSnapshot = snapshot;
+  atomicWriteJson(STATE_FILE, journal);
+  if (snapshot.targetReached) {
+    await settleTargetExit(connection, pool, wallet, journal, positions, snapshot);
+    return completeControllerTick(loadOrCreateJournal(), 'target_exit_reconciled');
+  }
+
+  const hasFees = positions.some((candidate) => {
+    const inventory = positionInventory(candidate);
+    return inventory.feeXRaw > 0n || inventory.feeYRaw > 0n;
+  });
+  const hasPendingFees = BigInt(journal.ledger.pendingFeeXRaw || 0) > 0n
+    || BigInt(journal.ledger.pendingFeeSolLamports || 0) > 0n;
+  const lastFeeActionAt = Date.parse(journal.ledger.lastFeeActionAt || 0);
+  const feeIntervalElapsed = !Number.isFinite(lastFeeActionAt)
+    || Date.now() - lastFeeActionAt >= MIN_FEE_CLAIM_INTERVAL_MS;
+  const feeValueEconomical = snapshot.unclaimedFeeValueSol >= MIN_FEE_CLAIM_VALUE_SOL;
+  if (snapshot.breakEvenReached && (hasFees || hasPendingFees)
+      && feeIntervalElapsed && feeValueEconomical) {
+    await claimFees(connection, pool, wallet, journal, positions);
+    journal.ledger.lastFeeActionAt = new Date().toISOString();
+    atomicWriteJson(STATE_FILE, journal);
+    return completeControllerTick(journal, 'fee_claim_reconciled');
+  }
+  const feeSweep = await sweepProvenFeesIfEligible(connection, wallet, journal, snapshot);
+  if (feeSweep) {
+    snapshot = await executableSnapshot(connection, await loadPool(connection), journal);
+    journal.lastSnapshot = snapshot;
+    return completeControllerTick(journal, 'fee_sweep_reconciled');
+  }
+
+  const singleState = snapshot.positions[0];
+  const retargets = Array.isArray(journal.retargets) ? journal.retargets : [];
+  journal.retargetGuards ||= {};
+  const guard = retargetGuardDecision({
+    role: 'tight',
+    range: singleState?.rangeState || 'missing',
+    activeBinId: snapshot.activeBinId,
+    lowerBinId: record.lowerBinId,
+    upperBinId: record.upperBinId,
+    previous: journal.retargetGuards.tight,
+    retargets,
+    positionStartedAt: retargets.findLast((candidate) => candidate.role === 'tight')?.at
+      || record.enrolledAt
+      || journal.createdAt,
+  });
+  journal.retargetGuards.tight = guard;
+  const disposition = singlePositionRangeDisposition(guard);
+  journal.rangeAlerts = {
+    observedAt: snapshot.observedAt,
+    single: singleState?.rangeState || 'missing',
+    attentionRequired: singleState?.rangeState !== 'in_range',
+    retargetRequired: guard.shouldRetarget,
+    nextAction: disposition.action,
+  };
+  atomicWriteJson(STATE_FILE, journal);
+  if (disposition.action === 'migrate_to_dual_recovery') {
+    const preflight = await preflightMigration(connection, wallet);
+    await migrate(connection, wallet, preflight);
+    return completeControllerTick(loadOrCreateJournal(), 'dual_recovery_migration_reconciled');
+  }
+  if (disposition.action === 'retarget_single_spot') {
+    await retargetOutOfRangePosition(
+      connection,
+      await loadPool(connection),
+      wallet,
+      journal,
+      'tight',
+      position,
+    );
+    return completeControllerTick(loadOrCreateJournal(), 'single_spot_retarget_reconciled');
+  }
+  return completeControllerTick(journal);
 }
 
 async function tick(connection, wallet) {
@@ -2397,13 +2592,19 @@ async function main() {
     return;
   }
   if (args.mode === 'tick') {
-    process.stdout.write(`${JSON.stringify(publicStatus(await tick(connection, wallet)), null, 2)}\n`);
+    const journal = loadOrCreateJournal();
+    const result = journal.status === 'monitoring_root'
+      ? await monitorSinglePositionTick(connection, wallet)
+      : await tick(connection, wallet);
+    process.stdout.write(`${JSON.stringify(publicStatus(result), null, 2)}\n`);
     return;
   }
   while (true) {
     try {
       const journal = loadOrCreateJournal();
-      if (journal.status === 'not_migrated' || journal.status === 'migrating') {
+      if (journal.status === 'monitoring_root') {
+        await monitorSinglePositionTick(connection, wallet);
+      } else if (journal.status === 'not_migrated' || journal.status === 'migrating') {
         const preflight = journal.preflight || await preflightMigration(connection, wallet);
         await migrate(connection, wallet, preflight);
       } else if (journal.status === 'active') {

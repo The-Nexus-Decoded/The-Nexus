@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "fone-sol-50pct-v1",
+  "pool": "fAeDy2q7ZjZZZFt6Q1FtbHaCU5dtLEPmYcwcwfAexNA",
+  "rootPosition": "GqTtyBCXa3vNKQCq5tBYtZYmA4z2QPaRZwcHn2sxUXQP",
+  "owner": "sh36vHUDHcXqVD8aZJR8GF3Z3PdaU69XG8wJeB1e1xb",
+  "tokenMint": "CTPoyCwkjMvoJwU4xvZZqoD8tiYk6yDchySiN5gGpump",
+  "wsolMint": "So11111111111111111111111111111111111111112",
+  "profitWallet": "3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB",
+  "entryBasisSol": 2.0571667859074068,
+  "targetProfitPct": 50,
+  "widePct": 70,
+  "tightPct": 30,
+  "minimumFeeSleevePct": 5,
+  "maximumFeeSleevePct": 30,
+  "feeSleeveStepPct": 1,
+  "recoverySearchCeilingPriceMultiple": 1000,
+  "autoCompound": false,
+  "initialPositionMode": "monitor_single_until_range_exit",
+  "terminalCoverageBufferPct": 10,
+  "liveConfirmation": "FONE-SOL-50PCT-LIVE"
+}

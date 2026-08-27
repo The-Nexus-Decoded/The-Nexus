@@ -9,10 +9,12 @@ import {
   deployableCampaignTokenRaw,
   exitProfitSweepLamports,
   feeSweepLamports,
+  isDeferredRentSimulationError,
   managedPositionSetDecision,
   nextLiquiditySlippagePct,
   rangeState,
   retargetGuardDecision,
+  singlePositionRangeDisposition,
   terminalCoverageDisposition,
   targetValueSol,
 } from './sparky-campaign-executor.mjs';
@@ -23,11 +25,14 @@ import {
   trancheTargetSol,
 } from './terminal-coverage.mjs';
 
-assert.equal(targetValueSol(CAMPAIGN.entryBasisSol, 40), CAMPAIGN.targetValueSol);
+assert.equal(
+  targetValueSol(CAMPAIGN.entryBasisSol, CAMPAIGN.targetProfitPct),
+  CAMPAIGN.targetValueSol,
+);
 assert.equal(trancheTargetSol([
-  { capitalSol: CAMPAIGN.entryBasisSol, profitPct: 40 },
-  { capitalSol: 1, profitPct: 40 },
-]), 4.577488783);
+  { capitalSol: CAMPAIGN.entryBasisSol, profitPct: CAMPAIGN.targetProfitPct },
+  { capitalSol: 1, profitPct: CAMPAIGN.targetProfitPct },
+]), CAMPAIGN.targetValueSol + (1 + CAMPAIGN.targetProfitPct / 100));
 
 const insufficientCoverage = terminalCoverageProof({
   wideTerminalPrincipalSol: 1.8903620326203512,
@@ -120,6 +125,10 @@ assert.equal(nextLiquiditySlippagePct(3), 5);
 assert.equal(nextLiquiditySlippagePct(5), null);
 assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 0n), 2_703_525_237n);
 assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 3_000_000_000n), 0n);
+assert.equal(isDeferredRentSimulationError('{"InsufficientFundsForRent":{"account_index":0}}'), true);
+assert.equal(isDeferredRentSimulationError('insufficient lamports for rent'), true);
+assert.equal(isDeferredRentSimulationError('custom program error: 0x1'), true);
+assert.equal(isDeferredRentSimulationError('Blockhash not found'), false);
 
 const rentExcludedClose = classifyCloseNativeDelta(
   912_000_000n,
@@ -229,6 +238,22 @@ const recoveredInRange = retargetGuardDecision({
 });
 assert.equal(recoveredInRange.consecutiveOutOfRange, 0);
 assert.equal(recoveredInRange.blockedReason, 'position_not_out_of_range');
+
+assert.deepEqual(singlePositionRangeDisposition(tightThird), {
+  action: 'retarget_single_spot',
+  actionBlocked: false,
+  reason: null,
+});
+assert.deepEqual(singlePositionRangeDisposition({ ...tightThird, range: 'out_below' }), {
+  action: 'migrate_to_dual_recovery',
+  actionBlocked: false,
+  reason: null,
+});
+assert.deepEqual(singlePositionRangeDisposition(tightFirst), {
+  action: 'hold',
+  actionBlocked: false,
+  reason: 'awaiting_confirmation',
+});
 
 const exactManagedSet = managedPositionSetDecision(
   { wide: { address: 'wide-1' }, tight: { address: 'tight-1' } },
