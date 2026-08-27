@@ -391,6 +391,10 @@ def test_mainnet_config_encodes_monitoring_roll_harvest_reentry_and_learning_con
     assert config["recovery"]["authorization"] == "enrollment_with_notification"
     assert config["recovery"]["downward_anti_chase"]["enabled"] is True
     assert config["recovery"]["tight_fee_position"]["continuous_roll_management"] is True
+    assert config["recovery"]["tight_fee_position"]["maximum_inventory_pct"] == 40
+    sparky = config["recovery"]["campaign_overrides"]["sparky_capital_recovery"]
+    assert sparky["maximum_tight_fee_position_pct"] == 30
+    assert sparky["recovery_price_ceiling"] == "entry_price_divided_by_fresh_live_price"
     assert config["fee_harvesting"]["swap_non_sol_fees_to_sol"] is True
     assert config["recovery"]["protected_reserve"]["default_inventory_pct"] == 0
     assert config["recovery"]["allocation_optimizer"]["enabled"] is True

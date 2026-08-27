@@ -136,6 +136,15 @@
       "minimum_confirmation_seconds": 120,
       "minimum_recovery_bps": 100,
       "maximum_downward_rolls_per_hour": 0
+    },
+    "campaign_overrides": {
+      "sparky_capital_recovery": {
+        "pool": "D2XeJBX5shvpdec9TspZzvvC6M78UAUfn165VeiPLvhK",
+        "root_position": "HWSuro4P1PguyhfydtdGS1vv5FPeRarRJfVrb27A48CB",
+        "maximum_tight_fee_position_pct": 30,
+        "recovery_price_ceiling": "entry_price_divided_by_fresh_live_price",
+        "profit_target_pct": 30
+      }
     }
   },
   "fee_harvesting": {
