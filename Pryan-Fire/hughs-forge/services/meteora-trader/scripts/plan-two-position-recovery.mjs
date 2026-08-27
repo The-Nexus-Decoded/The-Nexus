@@ -582,7 +582,7 @@ async function readLiveMarketEvidence(pool, poolAddress, activeBin, xDecimals, y
   };
 }
 
-async function readLivePosition(payload) {
+export async function readLivePosition(payload) {
   const rpcUrl = payload.rpcUrl || process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
   const connection = new Connection(rpcUrl, 'confirmed');
   const poolAddress = new PublicKey(payload.pool);
