@@ -1298,13 +1298,6 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   });
   if (!finalPlan) throw new Error('post_close_principal_only_terminal_coverage_infeasible');
   const replacement = derivePositionKeypair(wallet, 'wide', generation);
-  const existingReplacement = await positionOrNull(connection, pool, replacement.publicKey);
-  const lowerBinId = existingReplacement
-    ? Number(existingReplacement.positionData.lowerBinId)
-    : activeBinId;
-  const upperBinId = existingReplacement
-    ? Number(existingReplacement.positionData.upperBinId)
-    : activeBinId + width;
   await createWidePosition(
     connection,
     freshPool,
@@ -1375,8 +1368,6 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     );
   }
   if (recoveredXRaw <= 0n) throw new Error('wide_recovery_token_delta_not_positive');
-  const walletState = await walletSnapshot(connection, wallet.publicKey);
-  if (walletState.sparkyRaw < recoveredXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
   const active = await pool.getActiveBin();
   const activeBinId = Number(active.binId);
   const width = Math.ceil(
@@ -1384,6 +1375,19 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
       / Math.log(1 + Number(pool.lbPair.binStep) / 10_000),
   );
   const replacement = derivePositionKeypair(wallet, 'wide', generation);
+  const existingReplacement = await positionOrNull(connection, pool, replacement.publicKey);
+  const existingXRaw = existingReplacement
+    ? positionInventory(existingReplacement).tokenXRaw
+    : 0n;
+  const remainingXRaw = recoveredXRaw > existingXRaw ? recoveredXRaw - existingXRaw : 0n;
+  const walletState = await walletSnapshot(connection, wallet.publicKey);
+  if (walletState.sparkyRaw < remainingXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
+  const lowerBinId = existingReplacement
+    ? Number(existingReplacement.positionData.lowerBinId)
+    : activeBinId;
+  const upperBinId = existingReplacement
+    ? Number(existingReplacement.positionData.upperBinId)
+    : activeBinId + width;
   await createWidePosition(
     connection,
     pool,
