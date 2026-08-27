@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <title>Hugh's Forge — Meteora Control Room</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,6 +22,7 @@
       </div>
       <div class="topbar-actions">
         <span id="globalStatus" class="status-pill status-loading"><i></i>Connecting</span>
+        <button id="themeButton" class="button button-quiet" type="button" aria-label="Switch color theme">Dark mode</button>
         <button id="refreshButton" class="button button-quiet" type="button">Refresh now</button>
         <label class="toggle"><input id="autoRefresh" type="checkbox" checked /><span></span>Auto 10s</label>
       </div>
@@ -34,14 +35,14 @@
         <article class="panel command-panel">
           <div class="panel-heading">
             <div><p class="eyebrow">SYSTEM AUTHORITY</p><h2>Controller command</h2></div>
-            <span class="read-only-tag">READ ONLY / PHASE 1</span>
+            <span id="executionMode" class="read-only-tag">CONTROLS LOCKED</span>
           </div>
           <div class="control-grid">
             <button class="command-button command-stop" type="button" disabled><span>■</span>Emergency stop<small>Control lane locked</small></button>
             <button class="command-button" type="button" disabled><span>Ⅱ</span>Pause actions<small>Control lane locked</small></button>
             <button class="command-button" type="button" disabled><span>↻</span>Reconcile now<small>Control lane locked</small></button>
           </div>
-          <p class="safety-copy">This screen never loads a private key. Transaction controls will be serialized through the controller only after owner authentication is added.</p>
+          <p id="executionSummary" class="safety-copy">This screen never loads a private key. The enrolled controller can monitor and execute policy; manual buttons stay locked until owner authentication is added.</p>
         </article>
 
         <article class="panel wallet-panel">
@@ -61,6 +62,29 @@
       </section>
 
       <section class="section-block">
+        <div class="section-heading"><div><p class="eyebrow">CAMPAIGN TELEMETRY</p><h2>Capital, target, range and fees</h2></div><p>Live journal evidence. Projected future fees never count toward the target.</p></div>
+        <div class="telemetry-grid">
+          <article class="panel chart-panel chart-wide">
+            <div class="panel-heading"><div><p class="eyebrow">RETURN CURVE</p><h2 id="chartCampaignTitle">Select a campaign</h2></div><span id="chartSampleCount" class="source-chip">0 samples</span></div>
+            <div class="chart-body"><svg id="valueChart" class="value-chart" viewBox="0 0 720 230" role="img" aria-label="Campaign value over time"></svg></div>
+            <div class="chart-legend"><span><i class="legend-live"></i>Campaign return</span><span><i class="legend-basis"></i>Entry basis</span><span><i class="legend-target"></i>Close target</span></div>
+          </article>
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">TARGET WATERFALL</p><h2>What counts</h2></div><span id="targetProgressLabel" class="source-chip">—</span></div>
+            <div id="targetWaterfall" class="waterfall"></div>
+          </article>
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">BIN MAP</p><h2>Range location</h2></div><span id="activeBinLabel" class="source-chip">—</span></div>
+            <div id="rangeMap" class="range-map"></div>
+          </article>
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">VALUE MIX</p><h2>Position vs fees</h2></div><span class="source-chip">PROVEN ONLY</span></div>
+            <div class="mix-layout"><div id="valueMix" class="value-mix"><strong>—</strong></div><dl id="valueMixLegend" class="mix-legend"></dl></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-block">
         <div class="section-heading"><div><p class="eyebrow">POSITIONS</p><h2>Current wallet pools</h2></div><p>Official Meteora Data API, refreshed on demand.</p></div>
         <div id="positionsGrid" class="positions-grid"><div class="empty-state">Discovering open positions…</div></div>
       </section>
@@ -75,7 +99,7 @@
             <label>Wide / tight<input id="allocation" type="text" readonly /></label>
             <label>Auto-compound<input id="autoCompoundValue" type="text" readonly /></label>
             <label>Profit wallet<input id="profitWallet" type="text" readonly /></label>
-            <button class="button button-disabled" disabled type="button">Unlock settings in Phase 2</button>
+            <button class="button button-disabled" disabled type="button">Owner-authenticated edits coming next</button>
           </form>
         </article>
 
@@ -94,7 +118,7 @@
       </section>
     </main>
 
-    <footer><span>LOCALHOST ONLY</span><span id="footerClock">—</span><span>NO SIGNER LOADED</span></footer>
+    <footer><span>LOCALHOST ONLY</span><span id="footerClock">—</span><span>SIGNER ISOLATED FROM DASHBOARD</span></footer>
     <script src="/app.js" defer></script>
   </body>
 </html>
