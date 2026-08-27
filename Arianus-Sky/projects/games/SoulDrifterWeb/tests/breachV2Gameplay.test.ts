@@ -6,6 +6,28 @@ import {
 } from "../src/game/dungeons/breach-v2-gameplay";
 
 const chambers = ["chamber-1", "chamber-2", "chamber-3"] as const;
+const environmentObjects = [
+  ...["crate", "barrel", "table", "chair", "wall-brace", "cover-1", "cover-2", "cover-3", "cover-4"]
+    .map((id) => ({
+      id,
+      label: id,
+      destructionClass: "DESTRUCTIBLE_SOLID_PROP" as const,
+      durability: 55,
+    })),
+  {
+    id: "boss-lock-structure",
+    label: "boss lock structure",
+    destructionClass: "PROTECTED_PROP_OR_STRUCTURE" as const,
+    durability: 999,
+    protectionReason: "progression mechanism",
+  },
+  {
+    id: "vestibule:storage-chest:7",
+    label: "Wayfarer's Coffer",
+    destructionClass: "INTERACTABLE_CONTAINER" as const,
+    durability: 80,
+  },
+] as const;
 
 function create(savedState?: unknown): BreachV2RunController {
   return createBreachV2RunController({
@@ -14,6 +36,9 @@ function create(savedState?: unknown): BreachV2RunController {
     chamberIds: chambers,
     rewardId: "tempered-training-gear",
     bossHp: 30,
+    cofferObjectId: "vestibule:storage-chest:7",
+    deterministicTestItemId: "test-starter-4182-wayfarer",
+    environmentObjects,
     savedState,
   });
 }
@@ -22,6 +47,7 @@ function completeTutorial(run: BreachV2RunController): void {
   run.interact("ilyra");
   run.interact("memory-loom");
   run.interact("coffer");
+  run.interact("coffer-pickup");
   run.interact("effigy");
   expect(run.requestDoor("wayfarer-choice").allowed).toBe(true);
 }
@@ -107,5 +133,58 @@ describe("BREACH-V2 isolated gameplay spine", () => {
     parallel.setCombatStyle("turn-based");
     parallel.attack();
     expect(parallel.snapshot().activeEncounter?.enemyHp).toBe(realTimeState.activeEncounter?.enemyHp);
+  });
+
+  it("opens the coffer, drops and collects one deterministic item, and restores without duplication", () => {
+    const run = create();
+    run.interact("ilyra");
+    run.interact("memory-loom");
+
+    run.interact("coffer");
+    run.interact("coffer");
+    let state = run.snapshot();
+    expect(state.environment.cofferOpened).toBe(true);
+    expect(state.environment.pickupDropped).toBe(true);
+    expect(state.environment.pickupCollected).toBe(false);
+    expect(state.environment.removedColliderIds).toEqual(["vestibule:storage-chest:7"]);
+
+    run.interact("coffer-pickup");
+    run.interact("coffer-pickup");
+    state = run.snapshot();
+    expect(state.environment.pickupCollected).toBe(true);
+    expect(state.environment.collectedItemIds).toEqual(["test-starter-4182-wayfarer"]);
+    expect(state.tutorial.cofferOpened).toBe(true);
+    expect(create(state).snapshot()).toEqual(state);
+  });
+
+  it("clears destroyed colliders, bounds debris, rejects protected damage, and persists the route-safe state", () => {
+    const run = create();
+    const partial = run.damageEnvironmentObject("crate", 20);
+    expect(partial).toMatchObject({ accepted: true, destroyed: false });
+    expect(run.snapshot().environment.objectHitPoints.crate).toBe(35);
+
+    const destroyed = run.damageEnvironmentObject("crate", 35);
+    expect(destroyed).toMatchObject({ accepted: true, destroyed: true });
+    expect(run.snapshot().environment.removedColliderIds).toContain("crate");
+    run.damageEnvironmentObject("crate", 999);
+    expect(run.snapshot().environment.debrisObjectIds.filter((id) => id === "crate")).toHaveLength(1);
+
+    const protectedResult = run.damageEnvironmentObject("boss-lock-structure", 999);
+    expect(protectedResult).toMatchObject({ accepted: false, destroyed: false });
+    expect(run.snapshot().environment.removedColliderIds).not.toContain("boss-lock-structure");
+
+    for (const id of ["barrel", "table", "chair", "wall-brace", "cover-1", "cover-2", "cover-3", "cover-4"]) {
+      run.damageEnvironmentObject(id, 999);
+    }
+    expect(run.snapshot().environment.debrisObjectIds).toHaveLength(8);
+    run.cleanupEnvironmentDebris();
+    const cleaned = run.snapshot();
+    expect(cleaned.environment.debrisObjectIds).toEqual([]);
+    expect(cleaned.environment.destroyedObjectIds).toContain("wall-brace");
+    expect(cleaned.environment.removedColliderIds).toContain("wall-brace");
+    const restored = create(cleaned);
+    expect(restored.snapshot()).toEqual(cleaned);
+    completeTutorial(restored);
+    expect(restored.requestDoor("chamber-1-entry").allowed).toBe(true);
   });
 });

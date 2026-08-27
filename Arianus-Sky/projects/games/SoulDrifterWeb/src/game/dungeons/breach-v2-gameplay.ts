@@ -20,6 +20,38 @@ export interface BreachV2EncounterState {
   enemyMaxHp: number;
 }
 
+export type BreachV2DestructionClass =
+  | "INTERACTABLE_CONTAINER"
+  | "DESTRUCTIBLE_SOLID_PROP"
+  | "PROTECTED_PROP_OR_STRUCTURE";
+
+export interface BreachV2EnvironmentObjectConfig {
+  id: string;
+  label: string;
+  destructionClass: BreachV2DestructionClass;
+  durability: number;
+  protectionReason?: string;
+}
+
+export interface BreachV2EnvironmentState {
+  cofferObjectId: string;
+  cofferOpened: boolean;
+  pickupDropped: boolean;
+  pickupCollected: boolean;
+  deterministicItemId: string;
+  collectedItemIds: string[];
+  objectHitPoints: Record<string, number>;
+  destroyedObjectIds: string[];
+  removedColliderIds: string[];
+  debrisObjectIds: string[];
+}
+
+export interface BreachV2EnvironmentDamageResult {
+  accepted: boolean;
+  destroyed: boolean;
+  message: string;
+}
+
 export interface BreachV2RunState {
   schemaVersion: 1;
   seed: number;
@@ -42,6 +74,7 @@ export interface BreachV2RunState {
   firstMemoryClaimed: boolean;
   rewardGranted: boolean;
   rewardIds: string[];
+  environment: BreachV2EnvironmentState;
   exitedToHeartvale: boolean;
   statusMessage: string;
   revision: number;
@@ -54,6 +87,9 @@ export interface BreachV2RunConfig {
   chamberIds: readonly string[];
   rewardId: string;
   bossHp: number;
+  cofferObjectId?: string;
+  deterministicTestItemId?: string;
+  environmentObjects?: readonly BreachV2EnvironmentObjectConfig[];
   savedState?: unknown;
   onChange?: (state: BreachV2RunState) => void;
 }
@@ -69,6 +105,24 @@ function cloneState(state: BreachV2RunState): BreachV2RunState {
 
 function tutorialComplete(state: BreachV2RunState): boolean {
   return Object.values(state.tutorial).every(Boolean);
+}
+
+const MAX_ACTIVE_DEBRIS_RECORDS = 8;
+
+function initialEnvironmentState(config: BreachV2RunConfig): BreachV2EnvironmentState {
+  return {
+    cofferObjectId: config.cofferObjectId ?? "vestibule:storage-chest",
+    cofferOpened: false,
+    pickupDropped: false,
+    pickupCollected: false,
+    deterministicItemId: config.deterministicTestItemId
+      ?? `breach-v2-starter-${config.seed}-${config.path}`,
+    collectedItemIds: [],
+    objectHitPoints: {},
+    destroyedObjectIds: [],
+    removedColliderIds: [],
+    debrisObjectIds: [],
+  };
 }
 
 function initialState(config: BreachV2RunConfig): BreachV2RunState {
@@ -94,6 +148,7 @@ function initialState(config: BreachV2RunConfig): BreachV2RunState {
     firstMemoryClaimed: false,
     rewardGranted: false,
     rewardIds: [],
+    environment: initialEnvironmentState(config),
     exitedToHeartvale: false,
     statusMessage: "Speak with Wellkeeper Ilyra beside the Soul Well.",
     revision: 0,
@@ -111,7 +166,22 @@ function restoreState(config: BreachV2RunConfig): BreachV2RunState {
     || !Array.isArray(candidate.clearedRoomIds)
     || !Array.isArray(candidate.rewardIds)
   ) return initialState(config);
-  return cloneState(candidate as BreachV2RunState);
+  const restored = cloneState(candidate as BreachV2RunState);
+  if (!restored.environment) {
+    const environment = initialEnvironmentState(config);
+    // Old schema-v1 saves treated coffer interaction as immediate acquisition.
+    // Preserve that completed tutorial while migrating it to the explicit
+    // open/drop/collect anti-duplication state machine.
+    if (restored.tutorial.cofferOpened) {
+      environment.cofferOpened = true;
+      environment.pickupDropped = true;
+      environment.pickupCollected = true;
+      environment.collectedItemIds.push(environment.deterministicItemId);
+      environment.removedColliderIds.push(environment.cofferObjectId);
+    }
+    restored.environment = environment;
+  }
+  return restored;
 }
 
 function actor(id: "player" | "sentinel", hp: number, maxHp: number, guard = false): ActorState {
@@ -144,7 +214,8 @@ export class BreachV2RunController {
     const state = this.state;
     if (!state.tutorial.chronicleRead) return "Read Ilyra's Chronicle of Returning.";
     if (!state.tutorial.imprintSealed) return "Seal three stat threads, one ancestry boon, and one discipline at the Memory Loom.";
-    if (!state.tutorial.cofferOpened) return "Open the Wayfarer's Coffer and equip the starter weapon.";
+    if (!state.environment.cofferOpened) return "Open the Wayfarer's Coffer.";
+    if (!state.tutorial.cofferOpened) return "Collect the dropped starter weapon once.";
     if (!state.tutorial.trainingComplete) return "Complete the level-one rehearsal at the training effigy.";
     if (!state.routeChosen) return `Open the ${state.path === "wayfarer" ? "Wayfarer" : "Oathbreaker"} gate.`;
     if (state.activeEncounter) return `Defeat ${state.activeEncounter.kind === "boss" ? "the Cinderbound Warden" : state.activeEncounter.roomId}.`;
@@ -169,8 +240,23 @@ export class BreachV2RunController {
     }
     if (targetId === "coffer") {
       if (!state.tutorial.imprintSealed) return this.commit("The coffer's seal waits for the completed Soul Imprint.");
-      if (!state.tutorial.cofferOpened) state.tutorial.cofferOpened = true;
-      return this.commit("Starter weapon and tempered training gear equipped.");
+      if (state.environment.cofferOpened) return this.commit("The coffer remains open and cannot duplicate its test item.");
+      state.environment.cofferOpened = true;
+      state.environment.pickupDropped = true;
+      if (!state.environment.removedColliderIds.includes(state.environment.cofferObjectId)) {
+        state.environment.removedColliderIds.push(state.environment.cofferObjectId);
+      }
+      return this.commit("The coffer lid opens and drops one deterministic starter weapon.");
+    }
+    if (targetId === "coffer-pickup") {
+      if (!state.environment.pickupDropped) return this.commit("No starter pickup has been released.");
+      if (state.environment.pickupCollected) return this.commit("The starter pickup was already collected; no duplicate is created.");
+      state.environment.pickupCollected = true;
+      state.tutorial.cofferOpened = true;
+      if (!state.environment.collectedItemIds.includes(state.environment.deterministicItemId)) {
+        state.environment.collectedItemIds.push(state.environment.deterministicItemId);
+      }
+      return this.commit("Starter weapon collected exactly once. The training effigy is ready.");
     }
     if (targetId === "effigy") {
       if (!state.tutorial.cofferOpened) return this.commit("Take up the starter weapon before rehearsing level-one actions.");
@@ -197,6 +283,55 @@ export class BreachV2RunController {
       return this.commit("Heartvale hv-1 reached. The completed run has been saved.");
     }
     return this.commit("Nothing in the Soulwell pattern answers that interaction.");
+  }
+
+  public damageEnvironmentObject(targetId: string, damage = Number.POSITIVE_INFINITY): BreachV2EnvironmentDamageResult {
+    const target = this.config.environmentObjects?.find((candidate) => candidate.id === targetId);
+    if (!target) {
+      const message = "That environment object has no registered destruction contract.";
+      this.commit(message);
+      return { accepted: false, destroyed: false, message };
+    }
+    if (target.destructionClass !== "DESTRUCTIBLE_SOLID_PROP") {
+      const message = `${target.label} is protected: ${target.protectionReason ?? "structural or progression authority"}.`;
+      this.commit(message);
+      return { accepted: false, destroyed: false, message };
+    }
+    if (this.state.environment.destroyedObjectIds.includes(targetId)) {
+      const message = `${target.label} is already destroyed; repeated damage creates no duplicate debris or drop.`;
+      this.commit(message);
+      return { accepted: true, destroyed: true, message };
+    }
+    const current = this.state.environment.objectHitPoints[targetId] ?? Math.max(1, target.durability);
+    const next = Math.max(0, current - Math.max(0, damage));
+    this.state.environment.objectHitPoints[targetId] = next;
+    if (next > 0) {
+      const message = `${target.label} has ${next} durability remaining.`;
+      this.commit(message);
+      return { accepted: true, destroyed: false, message };
+    }
+    this.state.environment.destroyedObjectIds.push(targetId);
+    if (!this.state.environment.removedColliderIds.includes(targetId)) {
+      this.state.environment.removedColliderIds.push(targetId);
+    }
+    this.state.environment.debrisObjectIds.push(targetId);
+    this.state.environment.debrisObjectIds.splice(
+      0,
+      Math.max(0, this.state.environment.debrisObjectIds.length - MAX_ACTIVE_DEBRIS_RECORDS),
+    );
+    const message = `${target.label} destroyed; its movement, line-of-sight, camera, and interaction collider is removed.`;
+    this.commit(message);
+    return { accepted: true, destroyed: true, message };
+  }
+
+  public cleanupEnvironmentDebris(targetId?: string): void {
+    const previous = this.state.environment.debrisObjectIds.length;
+    this.state.environment.debrisObjectIds = targetId
+      ? this.state.environment.debrisObjectIds.filter((id) => id !== targetId)
+      : [];
+    if (this.state.environment.debrisObjectIds.length !== previous) {
+      this.commit("Bounded destruction debris cleaned without restoring the destroyed collider.");
+    }
   }
 
   public requestDoor(doorId: string): DoorRequestResult {

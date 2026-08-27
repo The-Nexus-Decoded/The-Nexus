@@ -21,11 +21,25 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
+import {
+  BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT,
+  splitBreachV2Boundary,
+  type BreachV2TopologyBoundary,
+  type BreachV2TopologyPoint,
+} from "./breach-v2-topology.ts";
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
 import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
-import { createBreachV2RunController, type BreachV2RunState } from "./breach-v2-gameplay";
-import { setupBreachV2GameplayUi } from "./breach-v2-gameplay-ui";
-import { findPath } from "../pathfinding";
+import {
+  createBreachV2RunController,
+  type BreachV2EnvironmentDamageResult,
+  type BreachV2EnvironmentObjectConfig,
+  type BreachV2EnvironmentState,
+  type BreachV2RunState,
+} from "./breach-v2-gameplay";
+import {
+  setupBreachV2GameplayUi,
+  type BreachV2EnvironmentUiTarget,
+} from "./breach-v2-gameplay-ui";
 import { storyDatabase } from "../persistence";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
@@ -38,8 +52,24 @@ const WALL_H_GRAND = 4.0;
 const WALL_H_BOSS = 4.5;
 const WALL_T = 0.5;
 const FLOOR_T = 0.3;
-const DOOR_LINTEL_H = 2.6;
+const DOOR_LINTEL_H = BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT;
 const DOOR_PORTAL_W = 2.5;
+const PLAYER_CAPSULE_HEIGHT = 1.69;
+const PLAYER_CAPSULE_CLEARANCE = 0.04;
+const CAMERA_COLLISION_RADIUS = 0.24;
+const CAMERA_COLLISION_SKIN = 0.02;
+const CEILING_CUTAWAY_HYSTERESIS = 0.3;
+
+export const BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS = Object.freeze({
+  thickness: 0.245622262358666,
+  height: 1,
+  width: 0.646009266376496,
+});
+export const BREACH_V2_HEAVY_DOOR_FITTED_BOUNDS = Object.freeze({
+  thickness: BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.thickness * 3,
+  height: BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.height * 3,
+  width: BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.width * 3,
+});
 
 interface PreviewHooks {
   __dungeonScene: THREE.Scene;
@@ -53,6 +83,32 @@ interface PreviewHooks {
   __dungeonMode: string;
   __dungeonPlayer: { x: number; y: number; z: number };
   __dungeonWalkTo: (x: number, z: number) => boolean;
+  __dungeonCanStandAt: (x: number, z: number) => boolean;
+  __dungeonNavigateTo: (x: number, z: number) => boolean;
+  __dungeonPathRemaining: () => number;
+  __dungeonPathSnapshot: () => { x: number; y: number; z: number }[];
+  __dungeonCollisionBlockers: BreachV2PlanarCollider[];
+  __dungeonSpatialContractAudit: BreachV2SpatialContractAudit;
+  __dungeonRefreshSpatialContractAudit: () => BreachV2SpatialContractAudit;
+  __dungeonCanProfileStandAt: (radius: number, x: number, z: number) => boolean;
+  __dungeonPlanProfilePath: (
+    radius: number,
+    start: { x: number; z: number },
+    target: { x: number; z: number },
+  ) => { x: number; z: number }[];
+  __dungeonSweepMovement: (
+    start: { x: number; z: number },
+    requestedEnd: { x: number; z: number },
+  ) => BreachV2MovementSweep;
+  __dungeonSweepProfileMovement: (
+    radius: number,
+    start: { x: number; z: number },
+    requestedEnd: { x: number; z: number },
+  ) => BreachV2MovementSweep;
+  __dungeonLineOfSightBlocked: (
+    start: { x: number; z: number },
+    end: { x: number; z: number },
+  ) => boolean;
   __dungeonSetDoorsOpen: (open: boolean) => void;
   __dungeonKeys: Set<string>;
   __dungeonGameplay: {
@@ -67,6 +123,102 @@ interface PreviewHooks {
     setCombatStyle: (style: "real-time" | "turn-based") => void;
     requestDoor: (doorId: string) => boolean;
   };
+  __dungeonEnvironment: {
+    objects: () => BreachV2EnvironmentObjectConfig[];
+    snapshot: () => BreachV2EnvironmentState;
+    damage: (targetId: string, damage?: number) => BreachV2EnvironmentDamageResult;
+    collectPickup: () => string;
+    cleanupDebris: (targetId?: string) => void;
+    activeDebrisCount: () => number;
+  };
+}
+
+interface BreachV2RuntimeEnvironmentObject extends BreachV2EnvironmentObjectConfig {
+  x: number;
+  z: number;
+  root: THREE.Object3D;
+  coffer: boolean;
+  pickupRoot?: THREE.Object3D;
+  setCofferOpen?: (open: boolean) => void;
+}
+
+const BREACH_V2_DESTRUCTIBLE_ASSETS = new Set([
+  "reinforced-crate",
+  "storage-barrel",
+  "trestle-table",
+  "high-backed-chair",
+  "heavy-bench",
+  "broken-handcart",
+  "wooden-support-brace",
+  "boss-cover-pillar",
+]);
+
+export function buildBreachV2EnvironmentObjectConfigs(
+  layout: BreachV2Layout,
+): BreachV2EnvironmentObjectConfig[] {
+  return layout.placements.map((placement, index) => {
+    const id = `${placement.roomId}:${placement.asset}:${index}`;
+    const coffer = placement.roomId === "vestibule" && placement.asset === "storage-chest";
+    const destructible = placement.role === "destructible-cover"
+      || BREACH_V2_DESTRUCTIBLE_ASSETS.has(placement.asset);
+    return {
+      id,
+      label: placement.asset.replaceAll("-", " "),
+      destructionClass: coffer
+        ? "INTERACTABLE_CONTAINER"
+        : destructible
+          ? "DESTRUCTIBLE_SOLID_PROP"
+          : "PROTECTED_PROP_OR_STRUCTURE",
+      durability: placement.asset === "boss-cover-pillar"
+        ? 120
+        : placement.asset === "broken-handcart" ? 90 : 55,
+      protectionReason: coffer
+        ? "container interaction owns its state transition"
+        : destructible ? undefined : "structural, fixture, or progression contract",
+    };
+  });
+}
+
+export interface BreachV2MovementSweep {
+  resolvedEnd: { x: number; z: number };
+  completed: boolean;
+  sampleCount: number;
+}
+
+export interface BreachV2SpatialContractAudit {
+  renderableCount: number;
+  excludedRenderableCount: number;
+  classifiedRenderableCount: number;
+  unresolvedRenderableNames: string[];
+  blockingRenderOwnerIds: string[];
+  missingBlockingColliderOwnerIds: string[];
+  unexpectedMovementColliderOwnerIds: string[];
+  missingLineOfSightColliderOwnerIds: string[];
+  unexpectedLineOfSightColliderOwnerIds: string[];
+  missingCameraColliderOwnerIds: string[];
+  unexpectedCameraColliderOwnerIds: string[];
+  unexplainedColliderIds: string[];
+  postFitProxyMismatchOwnerIds: string[];
+}
+
+interface BreachV2SpatialContract {
+  spatialOwnerId: string;
+  collisionMode: string;
+  blocksMovement: boolean;
+  blocksLineOfSight: boolean;
+  blocksCamera?: boolean;
+  collisionId?: string;
+  collisionIdPrefix?: string;
+  colliderOwnerClass?: BreachV2PlanarCollider["ownerClass"];
+  postFitAuditMode?: "exact" | "compound-envelope" | "shell-topology";
+  contractReason?: string;
+}
+
+function setSpatialContract(
+  object: THREE.Object3D,
+  contract: BreachV2SpatialContract,
+): void {
+  object.userData = { ...object.userData, ...contract };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +378,1113 @@ export function hasDungeonFloorAt(layout: BreachV2Layout, x: number, z: number):
   return floorElevationSampleAt(layout, x, z) !== null;
 }
 
+export function sweepBreachV2Movement(
+  start: { x: number; z: number },
+  requestedEnd: { x: number; z: number },
+  canStandAt: (x: number, z: number) => boolean,
+  maxSampleDistance = 0.05,
+): BreachV2MovementSweep {
+  const distance = Math.hypot(requestedEnd.x - start.x, requestedEnd.z - start.z);
+  const sampleCount = Math.max(1, Math.ceil(distance / maxSampleDistance));
+  let resolvedEnd = { ...start };
+  for (let index = 1; index <= sampleCount; index += 1) {
+    const progress = index / sampleCount;
+    const sample = {
+      x: THREE.MathUtils.lerp(start.x, requestedEnd.x, progress),
+      z: THREE.MathUtils.lerp(start.z, requestedEnd.z, progress),
+    };
+    if (!canStandAt(sample.x, sample.z)) {
+      return { resolvedEnd, completed: false, sampleCount };
+    }
+    resolvedEnd = sample;
+  }
+  return { resolvedEnd, completed: true, sampleCount };
+}
+
+export function findBreachV2RuntimePath(
+  start: { x: number; z: number },
+  target: { x: number; z: number },
+  cellSize: number,
+  canStandAt: (x: number, z: number) => boolean,
+): { x: number; z: number }[] {
+  interface PathCell { x: number; y: number }
+  const key = (cell: PathCell): string => `${cell.x},${cell.y}`;
+  const worldPoint = (cell: PathCell): { x: number; z: number } => ({
+    x: (cell.x + 0.5) * cellSize,
+    z: (cell.y + 0.5) * cellSize,
+  });
+  const segmentClear = (
+    from: { x: number; z: number },
+    to: { x: number; z: number },
+  ): boolean => sweepBreachV2Movement(from, to, canStandAt).completed;
+
+  const nearestConnectedCell = (point: { x: number; z: number }): PathCell | null => {
+    const center = {
+      x: Math.floor(point.x / cellSize),
+      y: Math.floor(point.z / cellSize),
+    };
+    const candidates: PathCell[] = [];
+    for (let radius = 0; radius <= 3; radius += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+          if (radius > 0 && Math.max(Math.abs(offsetX), Math.abs(offsetY)) !== radius) continue;
+          candidates.push({ x: center.x + offsetX, y: center.y + offsetY });
+        }
+      }
+    }
+    return candidates
+      .filter((cell) => {
+        const world = worldPoint(cell);
+        return canStandAt(world.x, world.z) && segmentClear(point, world);
+      })
+      .sort((a, b) => {
+        const worldA = worldPoint(a);
+        const worldB = worldPoint(b);
+        return Math.hypot(worldA.x - point.x, worldA.z - point.z)
+          - Math.hypot(worldB.x - point.x, worldB.z - point.z);
+      })[0] ?? null;
+  };
+  const startCell = nearestConnectedCell(start);
+  const targetCell = nearestConnectedCell(target);
+  if (!startCell || !targetCell) return [];
+  const startKey = key(startCell);
+  const targetKey = key(targetCell);
+  if (startKey === targetKey) return [worldPoint(targetCell)];
+
+  const directions = [
+    { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+    { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 },
+  ] as const;
+  const queue: PathCell[] = [startCell];
+  let queueIndex = 0;
+  const cameFrom = new Map<string, PathCell | null>([[startKey, null]]);
+  while (queueIndex < queue.length) {
+    const current = queue[queueIndex++]!;
+    const currentWorld = worldPoint(current);
+    for (const direction of directions) {
+      const next = { x: current.x + direction.x, y: current.y + direction.y };
+      const nextKey = key(next);
+      if (cameFrom.has(nextKey)) continue;
+      const nextWorld = worldPoint(next);
+      if (!canStandAt(nextWorld.x, nextWorld.z) || !segmentClear(currentWorld, nextWorld)) continue;
+      cameFrom.set(nextKey, current);
+      if (nextKey === targetKey) {
+        const reversed: PathCell[] = [next];
+        let cursor = current;
+        while (key(cursor) !== startKey) {
+          reversed.push(cursor);
+          cursor = cameFrom.get(key(cursor))!;
+        }
+        reversed.push(startCell);
+        return reversed.reverse().map(worldPoint);
+      }
+      queue.push(next);
+    }
+  }
+  return [];
+}
+
+export function findBreachV2AdaptiveRuntimePath(
+  start: { x: number; z: number },
+  target: { x: number; z: number },
+  baseCellSize: number,
+  canStandAt: (x: number, z: number) => boolean,
+): { x: number; z: number }[] {
+  const coarse = findBreachV2RuntimePath(start, target, baseCellSize, canStandAt);
+  if (coarse.length > 0) return coarse;
+  // A valid continuous route around a tight dogleg can fall between the
+  // globally anchored coarse samples. Finer grids are not strictly monotonic:
+  // nearest-cell snapping at half spacing can put the two ends of a narrow
+  // aperture on opposite raster phases even when quarter spacing connects it.
+  // Retry both resolutions before declaring the topology disconnected; every
+  // edge is still swept through the exact final fitted standability predicate.
+  const fine = findBreachV2RuntimePath(start, target, baseCellSize / 2, canStandAt);
+  if (fine.length > 0) return fine;
+  return findBreachV2RuntimePath(start, target, baseCellSize / 4, canStandAt);
+}
+
+export interface BreachV2PlanarCollider {
+  id: string;
+  asset: string;
+  roomId: string;
+  ownerClass: "placement" | "shell" | "landmark" | "portal";
+  shape: "aabb" | "circle" | "oriented-box";
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  minY: number;
+  maxY: number;
+  centerX?: number;
+  centerZ?: number;
+  radius?: number;
+  halfX?: number;
+  halfZ?: number;
+  yaw?: number;
+  /** Runtime builders always set this; omission stays movement-solid for legacy test fixtures. */
+  blocksMovement?: boolean;
+  blocksLineOfSight: boolean;
+  /** Defaults to blocksLineOfSight; raised overhead gates remain camera-solid without blocking actor LOS. */
+  blocksCamera?: boolean;
+}
+
+export interface BreachV2PlacementProxyMeasurement {
+  id: string;
+  centerX: number;
+  centerZ: number;
+  halfX: number;
+  halfZ: number;
+  yaw: number;
+  minY: number;
+  maxY: number;
+}
+
+export interface BreachV2CameraOnlyColliderSet {
+  lintels: BreachV2PlanarCollider[];
+  ceilings: BreachV2PlanarCollider[];
+}
+
+function isBreachV2DynamicallyRemoved(object: THREE.Object3D): boolean {
+  let cursor: THREE.Object3D | null = object;
+  while (cursor) {
+    if (cursor.userData.dynamicRemoved === true) return true;
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+function isBreachV2SpatialAuditExcluded(object: THREE.Object3D): boolean {
+  let cursor: THREE.Object3D | null = object;
+  while (cursor) {
+    if (cursor.userData.spatialAuditExcluded) return true;
+    cursor = cursor.parent;
+  }
+  return false;
+}
+
+function forEachWorldGeometryCorner(
+  roots: readonly THREE.Object3D[],
+  visit: (corner: THREE.Vector3, renderable: THREE.Object3D) => void,
+): void {
+  const corner = new THREE.Vector3();
+  for (const root of roots) {
+    root.updateWorldMatrix(true, true);
+    root.traverse((object) => {
+      if (isBreachV2DynamicallyRemoved(object) || isBreachV2SpatialAuditExcluded(object)) return;
+      if (
+        !(object instanceof THREE.Mesh)
+        && !(object instanceof THREE.Line)
+        && !(object instanceof THREE.Points)
+      ) return;
+      const geometry = object.geometry;
+      if (!geometry.boundingBox) geometry.computeBoundingBox();
+      const bounds = geometry.boundingBox;
+      if (!bounds || bounds.isEmpty()) return;
+      for (const x of [bounds.min.x, bounds.max.x]) {
+        for (const y of [bounds.min.y, bounds.max.y]) {
+          for (const z of [bounds.min.z, bounds.max.z]) {
+            corner.set(x, y, z).applyMatrix4(object.matrixWorld);
+            visit(corner, object);
+          }
+        }
+      }
+    });
+  }
+}
+
+export function buildBreachV2PlacementColliders(
+  layout: BreachV2Layout,
+  postFitMeasurements: readonly BreachV2PlacementProxyMeasurement[] = [],
+): BreachV2PlanarCollider[] {
+  const colliders: BreachV2PlanarCollider[] = [];
+  const measurementsById = new Map(postFitMeasurements.map((measurement) => [measurement.id, measurement]));
+  const exitClearWidth = layout.corridors.find((corridor) => corridor.id === "heartvale-exit")?.width
+    ?? DOOR_PORTAL_W;
+  for (const [index, placement] of layout.placements.entries()) {
+    if (!placement.blocking) continue;
+    const id = `${placement.roomId}:${placement.asset}:${index}`;
+    const half = placement.footprint / 2;
+    if (placement.asset !== "ruined-stone-archway") {
+      const measured = measurementsById.get(id);
+      if (measured) {
+        const cosine = Math.cos(measured.yaw);
+        const sine = Math.sin(measured.yaw);
+        const extentX = Math.abs(cosine) * measured.halfX + Math.abs(sine) * measured.halfZ;
+        const extentZ = Math.abs(sine) * measured.halfX + Math.abs(cosine) * measured.halfZ;
+        colliders.push({
+          id,
+          asset: placement.asset,
+          roomId: placement.roomId,
+          ownerClass: "placement",
+          shape: "oriented-box",
+          minX: measured.centerX - extentX,
+          maxX: measured.centerX + extentX,
+          minZ: measured.centerZ - extentZ,
+          maxZ: measured.centerZ + extentZ,
+          centerX: measured.centerX,
+          centerZ: measured.centerZ,
+          halfX: measured.halfX,
+          halfZ: measured.halfZ,
+          yaw: measured.yaw,
+          minY: measured.minY,
+          maxY: measured.maxY,
+          blocksMovement: true,
+          blocksLineOfSight: measured.maxY - measured.minY >= 1.25,
+        });
+        continue;
+      }
+      // Deterministic registry fallback for pure topology tests and any
+      // procedural placement without a fitted render root. Live GLB props
+      // supply the tighter post-fit oriented measurement above.
+      colliders.push({
+        id,
+        asset: placement.asset,
+        roomId: placement.roomId,
+        ownerClass: "placement",
+        shape: "aabb",
+        minX: placement.x - half,
+        maxX: placement.x + half,
+        minZ: placement.z - half,
+        maxZ: placement.z + half,
+        minY: placement.elevation,
+        maxY: placement.elevation + placement.height,
+        blocksMovement: true,
+        blocksLineOfSight: placement.height >= 1.25,
+      });
+      continue;
+    }
+
+    // An arch is a frame, not one solid obstacle. Preserve collision on both
+    // stone uprights while leaving its authored corridor-width opening usable.
+    const clearHalf = Math.min(exitClearWidth / 2, Math.max(0, half - 0.05));
+    const frameDepth = Math.min(0.65, half);
+    const spansZ = placement.facing === "east" || placement.facing === "west";
+    if (spansZ) {
+      colliders.push(
+        {
+          id: `${id}:left-upright`, asset: placement.asset, roomId: placement.roomId,
+          ownerClass: "placement", shape: "aabb",
+          minX: placement.x - frameDepth, maxX: placement.x + frameDepth,
+          minZ: placement.z - half, maxZ: placement.z - clearHalf,
+          minY: placement.elevation, maxY: placement.elevation + placement.height,
+          blocksMovement: true,
+          blocksLineOfSight: true,
+        },
+        {
+          id: `${id}:right-upright`, asset: placement.asset, roomId: placement.roomId,
+          ownerClass: "placement", shape: "aabb",
+          minX: placement.x - frameDepth, maxX: placement.x + frameDepth,
+          minZ: placement.z + clearHalf, maxZ: placement.z + half,
+          minY: placement.elevation, maxY: placement.elevation + placement.height,
+          blocksMovement: true,
+          blocksLineOfSight: true,
+        },
+      );
+    } else {
+      colliders.push(
+        {
+          id: `${id}:left-upright`, asset: placement.asset, roomId: placement.roomId,
+          ownerClass: "placement", shape: "aabb",
+          minX: placement.x - half, maxX: placement.x - clearHalf,
+          minZ: placement.z - frameDepth, maxZ: placement.z + frameDepth,
+          minY: placement.elevation, maxY: placement.elevation + placement.height,
+          blocksMovement: true,
+          blocksLineOfSight: true,
+        },
+        {
+          id: `${id}:right-upright`, asset: placement.asset, roomId: placement.roomId,
+          ownerClass: "placement", shape: "aabb",
+          minX: placement.x + clearHalf, maxX: placement.x + half,
+          minZ: placement.z - frameDepth, maxZ: placement.z + frameDepth,
+          minY: placement.elevation, maxY: placement.elevation + placement.height,
+          blocksMovement: true,
+          blocksLineOfSight: true,
+        },
+      );
+    }
+  }
+  return colliders.filter((collider) => collider.maxX > collider.minX && collider.maxZ > collider.minZ);
+}
+
+export function buildBreachV2ShellColliders(
+  layout: BreachV2Layout,
+): BreachV2PlanarCollider[] {
+  return layout.topology.boundaries.flatMap((boundary) => {
+    const halfThickness = boundary.thickness / 2;
+    return splitBreachV2Boundary(boundary).solidSpans.flatMap((span, spanIndex) => {
+      const spanLength = span.endDistance - span.startDistance;
+      const sliceCount = Math.max(1, Math.ceil(spanLength / 1.2));
+      return Array.from({ length: sliceCount }, (_, sliceIndex) => {
+        const p0 = sliceIndex / sliceCount;
+        const p1 = (sliceIndex + 1) / sliceCount;
+        const start: BreachV2TopologyPoint = [
+          THREE.MathUtils.lerp(span.start[0], span.end[0], p0),
+          THREE.MathUtils.lerp(span.start[1], span.end[1], p0),
+        ];
+        const end: BreachV2TopologyPoint = [
+          THREE.MathUtils.lerp(span.start[0], span.end[0], p1),
+          THREE.MathUtils.lerp(span.start[1], span.end[1], p1),
+        ];
+        const horizontal = Math.abs(start[1] - end[1]) < 1e-6;
+        const vertical = Math.abs(start[0] - end[0]) < 1e-6;
+        if (!horizontal && !vertical) {
+          throw new Error(`BREACH-V2 shell collider requires a rectilinear span: ${boundary.boundaryId}`);
+        }
+        const midpoint: BreachV2TopologyPoint = [
+          (start[0] + end[0]) / 2,
+          (start[1] + end[1]) / 2,
+        ];
+        const verticalEnvelope = boundaryVerticalEnvelope(layout, boundary, midpoint);
+        return {
+          id: `shell:${boundary.boundaryId}:solid:${spanIndex}:slice:${sliceIndex}`,
+          asset: "shell-wall",
+          roomId: boundary.owner,
+          ownerClass: "shell" as const,
+          shape: "aabb" as const,
+          minX: Math.min(start[0], end[0]) - (horizontal ? 0 : halfThickness),
+          maxX: Math.max(start[0], end[0]) + (horizontal ? 0 : halfThickness),
+          minZ: Math.min(start[1], end[1]) - (horizontal ? halfThickness : 0),
+          maxZ: Math.max(start[1], end[1]) + (horizontal ? halfThickness : 0),
+          minY: verticalEnvelope.base,
+          maxY: verticalEnvelope.top,
+          blocksMovement: true,
+          blocksLineOfSight: true,
+        };
+      });
+    });
+  }).filter((collider) => collider.maxX > collider.minX && collider.maxZ > collider.minZ);
+}
+
+export function getBreachV2ApertureSpanClearHeight(
+  boundary: BreachV2TopologyBoundary,
+  apertureIds: readonly string[],
+): number {
+  const matchingHeights = boundary.apertures
+    .filter((aperture) => apertureIds.includes(aperture.apertureId))
+    .map((aperture) => aperture.clearHeight);
+  return matchingHeights.length > 0
+    ? Math.max(...matchingHeights)
+    : BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT;
+}
+
+/**
+ * Camera-only volumes for rendered overhead shell geometry. These volumes are
+ * deliberately separate from the planar shell colliders: an actor may walk
+ * through the clear part of an aperture and beneath a ceiling, while a raised
+ * third-person camera must not pass through the masonry that is actually
+ * visible on screen.
+ */
+export function buildBreachV2CameraOnlyColliders(
+  layout: BreachV2Layout,
+): BreachV2CameraOnlyColliderSet {
+  const lintels: BreachV2PlanarCollider[] = [];
+  for (const boundary of layout.topology.boundaries) {
+    const halfThickness = boundary.thickness / 2;
+    for (const [index, span] of splitBreachV2Boundary(boundary).apertureSpans.entries()) {
+      const horizontal = Math.abs(span.start[1] - span.end[1]) < 1e-6;
+      const vertical = Math.abs(span.start[0] - span.end[0]) < 1e-6;
+      if (!horizontal && !vertical) {
+        throw new Error(`BREACH-V2 lintel collider requires a rectilinear span: ${boundary.boundaryId}`);
+      }
+      const midpoint: BreachV2TopologyPoint = [
+        (span.start[0] + span.end[0]) / 2,
+        (span.start[1] + span.end[1]) / 2,
+      ];
+      const envelope = boundaryVerticalEnvelope(layout, boundary, midpoint);
+      const lintelBase = envelope.base + getBreachV2ApertureSpanClearHeight(boundary, span.apertureIds);
+      if (envelope.top - lintelBase <= 0.05) continue;
+      lintels.push({
+        id: `camera:shell:lintel:${boundary.boundaryId}:${index}`,
+        asset: "shell-aperture-lintel",
+        roomId: boundary.owner,
+        ownerClass: "shell",
+        shape: "aabb",
+        minX: Math.min(span.start[0], span.end[0]) - (horizontal ? 0 : halfThickness),
+        maxX: Math.max(span.start[0], span.end[0]) + (horizontal ? 0 : halfThickness),
+        minZ: Math.min(span.start[1], span.end[1]) - (horizontal ? halfThickness : 0),
+        maxZ: Math.max(span.start[1], span.end[1]) + (horizontal ? halfThickness : 0),
+        minY: lintelBase,
+        maxY: envelope.top,
+        blocksMovement: false,
+        blocksLineOfSight: false,
+        blocksCamera: true,
+      });
+    }
+  }
+
+  const ceilings: BreachV2PlanarCollider[] = layout.rooms.map((room) => {
+    const minY = Math.max(room.floorElevation, room.endElevation) + roomWallHeight(room);
+    return {
+      id: `camera:shell:ceiling:room:${room.id}`,
+      asset: "shell-room-ceiling",
+      roomId: room.id,
+      ownerClass: "shell" as const,
+      shape: "aabb" as const,
+      minX: room.x - WALL_T,
+      maxX: room.x + room.w + WALL_T,
+      minZ: room.z - WALL_T,
+      maxZ: room.z + room.h + WALL_T,
+      minY,
+      maxY: minY + 0.25,
+      blocksMovement: false,
+      blocksLineOfSight: false,
+      blocksCamera: true,
+    };
+  });
+  for (const corridor of layout.corridors) {
+    for (let index = 0; index < corridor.points.length - 1; index += 1) {
+      const [ax, az] = corridor.points[index]!;
+      const [bx, bz] = corridor.points[index + 1]!;
+      const length = Math.hypot(bx - ax, bz - az);
+      if (length < 0.01) continue;
+      const vertical = Math.abs(bx - ax) < 0.01;
+      const width = vertical ? corridor.width + WALL_T * 2 : length;
+      const depth = vertical ? length : corridor.width + WALL_T * 2;
+      const centerX = (ax + bx) / 2;
+      const centerZ = (az + bz) / 2;
+      const minY = Math.max(corridor.elevations[index]!, corridor.elevations[index + 1]!) + WALL_H;
+      ceilings.push({
+        id: `camera:shell:ceiling:corridor:${corridor.id}:${index}`,
+        asset: "shell-corridor-ceiling",
+        roomId: corridor.id,
+        ownerClass: "shell",
+        shape: "aabb",
+        minX: centerX - width / 2,
+        maxX: centerX + width / 2,
+        minZ: centerZ - depth / 2,
+        maxZ: centerZ + depth / 2,
+        minY,
+        maxY: minY + 0.25,
+        blocksMovement: false,
+        blocksLineOfSight: false,
+        blocksCamera: true,
+      });
+    }
+  }
+
+  return { lintels, ceilings };
+}
+
+export function getBreachV2VisibleCameraColliders(
+  colliders: BreachV2CameraOnlyColliderSet,
+  ceilingsVisible: boolean,
+): BreachV2PlanarCollider[] {
+  return ceilingsVisible
+    ? [...colliders.lintels, ...colliders.ceilings]
+    : [...colliders.lintels];
+}
+
+export function buildBreachV2LandmarkColliders(
+  layout: BreachV2Layout,
+): BreachV2PlanarCollider[] {
+  const { soulWell, memoryLoom, effigy } = layout.landmarks;
+  const soulWellRadius = (soulWell.apron ?? 2.65) + 0.08;
+  const soulWellFloor = floorElevationAt(layout, soulWell.x, soulWell.z);
+  const loomFloor = floorElevationAt(layout, memoryLoom.x, memoryLoom.z);
+  const effigyFloor = floorElevationAt(layout, effigy.x, effigy.z);
+  return [
+    {
+      id: "landmark:soul-well",
+      asset: "soul-well-masonry",
+      roomId: "vestibule",
+      ownerClass: "landmark",
+      shape: "circle",
+      minX: soulWell.x - soulWellRadius,
+      maxX: soulWell.x + soulWellRadius,
+      minZ: soulWell.z - soulWellRadius,
+      maxZ: soulWell.z + soulWellRadius,
+      centerX: soulWell.x,
+      centerZ: soulWell.z,
+      radius: soulWellRadius,
+      minY: soulWellFloor,
+      maxY: soulWellFloor + 0.98,
+      blocksMovement: true,
+      blocksLineOfSight: false,
+    },
+    {
+      id: "landmark:memory-loom",
+      asset: "memory-loom",
+      roomId: "memory-vault",
+      ownerClass: "landmark",
+      shape: "aabb",
+      minX: memoryLoom.x - 1.62,
+      maxX: memoryLoom.x + 1.22,
+      minZ: memoryLoom.z - 0.3,
+      maxZ: memoryLoom.z + 0.3,
+      minY: loomFloor,
+      maxY: loomFloor + 2.65,
+      blocksMovement: true,
+      blocksLineOfSight: true,
+    },
+    {
+      id: "landmark:training-effigy",
+      asset: "training-effigy",
+      roomId: "vestibule",
+      ownerClass: "landmark",
+      shape: "aabb",
+      minX: effigy.x - 0.75,
+      maxX: effigy.x + 0.75,
+      minZ: effigy.z - 0.21,
+      maxZ: effigy.z + 0.21,
+      minY: effigyFloor,
+      maxY: effigyFloor + 2.2,
+      blocksMovement: true,
+      blocksLineOfSight: true,
+    },
+  ];
+}
+
+export function isBreachV2PlacementBlocked(
+  colliders: readonly BreachV2PlanarCollider[],
+  x: number,
+  z: number,
+  radius: number,
+): boolean {
+  return colliders.some((collider) => {
+    if (collider.blocksMovement === false) return false;
+    if (collider.shape === "circle") {
+      return Math.hypot(
+        x - collider.centerX!,
+        z - collider.centerZ!,
+      ) <= collider.radius! + radius;
+    }
+    if (collider.shape === "oriented-box") {
+      const cosine = Math.cos(collider.yaw ?? 0);
+      const sine = Math.sin(collider.yaw ?? 0);
+      const dx = x - collider.centerX!;
+      const dz = z - collider.centerZ!;
+      const localX = dx * cosine - dz * sine;
+      const localZ = dx * sine + dz * cosine;
+      const closestX = THREE.MathUtils.clamp(localX, -collider.halfX!, collider.halfX!);
+      const closestZ = THREE.MathUtils.clamp(localZ, -collider.halfZ!, collider.halfZ!);
+      return (localX - closestX) ** 2 + (localZ - closestZ) ** 2 <= radius ** 2;
+    }
+    const closestX = THREE.MathUtils.clamp(x, collider.minX, collider.maxX);
+    const closestZ = THREE.MathUtils.clamp(z, collider.minZ, collider.maxZ);
+    return (x - closestX) ** 2 + (z - closestZ) ** 2 <= radius ** 2;
+  });
+}
+
+export function filterBreachV2RemovedColliders(
+  colliders: readonly BreachV2PlanarCollider[],
+  removedColliderIds: readonly string[],
+): BreachV2PlanarCollider[] {
+  const removed = new Set(removedColliderIds);
+  return colliders.filter((collider) => !removed.has(collider.id));
+}
+
+export function getBreachV2SegmentIntervalXZ(
+  collider: BreachV2PlanarCollider,
+  start: { x: number; z: number },
+  end: { x: number; z: number },
+  padding = 0,
+): { enter: number; exit: number } | null {
+  if (collider.shape === "circle") {
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const offsetX = start.x - collider.centerX!;
+    const offsetZ = start.z - collider.centerZ!;
+    const a = dx * dx + dz * dz;
+    const radius = collider.radius! + padding;
+    if (a < 1e-10) {
+      return offsetX * offsetX + offsetZ * offsetZ <= radius ** 2
+        ? { enter: 0, exit: 1 }
+        : null;
+    }
+    const b = 2 * (offsetX * dx + offsetZ * dz);
+    const c = offsetX * offsetX + offsetZ * offsetZ - radius ** 2;
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return null;
+    const root = Math.sqrt(discriminant);
+    const first = (-b - root) / (2 * a);
+    const second = (-b + root) / (2 * a);
+    const enter = Math.max(0, Math.min(first, second));
+    const exit = Math.min(1, Math.max(first, second));
+    return enter <= exit ? { enter, exit } : null;
+  }
+  let lineStart = start;
+  let lineEnd = end;
+  let minX = collider.minX - padding;
+  let maxX = collider.maxX + padding;
+  let minZ = collider.minZ - padding;
+  let maxZ = collider.maxZ + padding;
+  if (collider.shape === "oriented-box") {
+    const cosine = Math.cos(collider.yaw ?? 0);
+    const sine = Math.sin(collider.yaw ?? 0);
+    const rotate = (point: { x: number; z: number }) => {
+      const dx = point.x - collider.centerX!;
+      const dz = point.z - collider.centerZ!;
+      return { x: dx * cosine - dz * sine, z: dx * sine + dz * cosine };
+    };
+    lineStart = rotate(start);
+    lineEnd = rotate(end);
+    minX = -collider.halfX! - padding;
+    maxX = collider.halfX! + padding;
+    minZ = -collider.halfZ! - padding;
+    maxZ = collider.halfZ! + padding;
+  }
+  let enter = 0;
+  let exit = 1;
+  for (const [origin, delta, lower, upper] of [
+    [lineStart.x, lineEnd.x - lineStart.x, minX, maxX],
+    [lineStart.z, lineEnd.z - lineStart.z, minZ, maxZ],
+  ] as const) {
+    if (Math.abs(delta) < 1e-8) {
+      if (origin < lower || origin > upper) return null;
+      continue;
+    }
+    const first = (lower - origin) / delta;
+    const second = (upper - origin) / delta;
+    enter = Math.max(enter, Math.min(first, second));
+    exit = Math.min(exit, Math.max(first, second));
+    if (enter > exit) return null;
+  }
+  return { enter, exit };
+}
+
+export function isBreachV2LineOfSightBlocked(
+  colliders: readonly BreachV2PlanarCollider[],
+  start: { x: number; z: number },
+  end: { x: number; z: number },
+): boolean {
+  return colliders.some((collider) => (
+    collider.blocksLineOfSight && getBreachV2SegmentIntervalXZ(collider, start, end) !== null
+  ));
+}
+
+export function firstBreachV2CameraHit(
+  colliders: readonly BreachV2PlanarCollider[],
+  start: { x: number; y: number; z: number },
+  end: { x: number; y: number; z: number },
+  cameraRadius = 0,
+): { collider: BreachV2PlanarCollider; fraction: number } | null {
+  let nearest: { collider: BreachV2PlanarCollider; fraction: number } | null = null;
+  for (const collider of colliders) {
+    if (!(collider.blocksCamera ?? collider.blocksLineOfSight)) continue;
+    const horizontal = getBreachV2SegmentIntervalXZ(collider, start, end, cameraRadius);
+    if (!horizontal) continue;
+    const deltaY = end.y - start.y;
+    let verticalEnter = 0;
+    let verticalExit = 1;
+    if (Math.abs(deltaY) < 1e-8) {
+      if (start.y < collider.minY - cameraRadius || start.y > collider.maxY + cameraRadius) continue;
+    } else {
+      const first = (collider.minY - cameraRadius - start.y) / deltaY;
+      const second = (collider.maxY + cameraRadius - start.y) / deltaY;
+      verticalEnter = Math.max(0, Math.min(first, second));
+      verticalExit = Math.min(1, Math.max(first, second));
+      if (verticalEnter > verticalExit) continue;
+    }
+    const fraction = Math.max(horizontal.enter, verticalEnter);
+    if (fraction > Math.min(horizontal.exit, verticalExit)) continue;
+    if (!nearest || fraction < nearest.fraction) nearest = { collider, fraction };
+  }
+  return nearest;
+}
+
+export function resolveBreachV2CameraDistance(
+  desiredDistance: number,
+  hitFraction: number | null,
+  skin = CAMERA_COLLISION_SKIN,
+): number {
+  if (hitFraction === null) return Math.max(0, desiredDistance);
+  const hitDistance = Math.max(0, desiredDistance) * THREE.MathUtils.clamp(hitFraction, 0, 1);
+  return Math.min(Math.max(0, desiredDistance), Math.max(0, hitDistance - Math.max(0, skin)));
+}
+
+export function resolveBreachV2CameraFloorY(
+  requestedY: number,
+  sampledFloorY: number | null,
+  fallbackFloorY: number,
+  cameraRadius = CAMERA_COLLISION_RADIUS,
+): number {
+  const floorY = sampledFloorY ?? fallbackFloorY;
+  return Math.max(requestedY, floorY + Math.max(0, cameraRadius));
+}
+
+export function resolveBreachV2PlaceholderAvatarOpacity(cameraDistance: number): number {
+  return THREE.MathUtils.smoothstep(Math.max(0, cameraDistance), 0.85, 1.75);
+}
+
+export type BreachV2CeilingCameraMode = "firstperson" | "thirdperson" | "isometric" | "overview" | "orbit";
+
+export function resolveBreachV2CeilingVisibility(
+  currentVisible: boolean,
+  mode: BreachV2CeilingCameraMode,
+  desiredCameraY: number,
+  localCeilingY: number | null,
+  hysteresis = CEILING_CUTAWAY_HYSTERESIS,
+): boolean {
+  if (mode === "firstperson") return true;
+  if (mode === "isometric" || mode === "overview") return false;
+  if (localCeilingY === null) return currentVisible;
+  const band = Math.max(0, hysteresis);
+  if (currentVisible && desiredCameraY >= localCeilingY + band) return false;
+  if (!currentVisible && desiredCameraY <= localCeilingY - band) return true;
+  return currentVisible;
+}
+
+export function isBreachV2LandmarkBlocked(
+  layout: BreachV2Layout,
+  x: number,
+  z: number,
+  radius: number,
+): boolean {
+  return isBreachV2PlacementBlocked(buildBreachV2LandmarkColliders(layout), x, z, radius);
+}
+
+export function getBreachV2ClosedDoorYaw(frontNormal: { x: number; z: number }): number {
+  return Math.atan2(-frontNormal.z, frontNormal.x);
+}
+
+export function buildBreachV2DoorLeafCollider(input: {
+  id: string;
+  x: number;
+  z: number;
+  closedYaw: number;
+  progress: number;
+  halfThickness: number;
+  halfSpan: number;
+  minY?: number;
+  maxY?: number;
+}): BreachV2PlanarCollider {
+  const yaw = input.closedYaw + THREE.MathUtils.clamp(input.progress, 0, 1) * (Math.PI / 2);
+  const hingeX = input.x - Math.sin(input.closedYaw) * input.halfSpan;
+  const hingeZ = input.z - Math.cos(input.closedYaw) * input.halfSpan;
+  const centerX = hingeX + Math.sin(yaw) * input.halfSpan;
+  const centerZ = hingeZ + Math.cos(yaw) * input.halfSpan;
+  const extentX = Math.abs(Math.cos(yaw)) * input.halfThickness
+    + Math.abs(Math.sin(yaw)) * input.halfSpan;
+  const extentZ = Math.abs(Math.sin(yaw)) * input.halfThickness
+    + Math.abs(Math.cos(yaw)) * input.halfSpan;
+  return {
+    id: `portal:${input.id}:leaf`,
+    asset: "heavy-door",
+    roomId: input.id,
+    ownerClass: "portal",
+    shape: "oriented-box",
+    minX: centerX - extentX,
+    maxX: centerX + extentX,
+    minZ: centerZ - extentZ,
+    maxZ: centerZ + extentZ,
+    centerX,
+    centerZ,
+    halfX: input.halfThickness,
+    halfZ: input.halfSpan,
+    yaw,
+    minY: input.minY ?? 0,
+    maxY: input.maxY ?? BREACH_V2_HEAVY_DOOR_FITTED_BOUNDS.height,
+    blocksMovement: true,
+    blocksLineOfSight: true,
+  };
+}
+
+export function isBreachV2PortalClosureSafe(
+  input: {
+    kind: "door" | "gate";
+    id: string;
+    x: number;
+    z: number;
+    axis: "x" | "z";
+    closedYaw: number;
+    clearWidth: number;
+    progress: number;
+    halfThickness: number;
+    halfSpan: number;
+  },
+  occupant: { x: number; z: number },
+  occupantRadius = 0.35,
+): boolean {
+  const radius = Math.max(0, occupantRadius);
+  if (input.kind === "gate") {
+    const normalHalf = input.halfThickness;
+    const spanHalf = input.halfSpan;
+    const closedGate: BreachV2PlanarCollider = {
+      id: `portal:${input.id}:closure-sweep`,
+      asset: "rusted-portcullis",
+      roomId: input.id,
+      ownerClass: "portal",
+      shape: "aabb",
+      minX: input.x - (input.axis === "x" ? normalHalf : spanHalf),
+      maxX: input.x + (input.axis === "x" ? normalHalf : spanHalf),
+      minZ: input.z - (input.axis === "x" ? spanHalf : normalHalf),
+      maxZ: input.z + (input.axis === "x" ? spanHalf : normalHalf),
+      minY: 0,
+      maxY: DOOR_LINTEL_H,
+      blocksMovement: true,
+      blocksLineOfSight: true,
+    };
+    return !isBreachV2PlacementBlocked([closedGate], occupant.x, occupant.z, radius);
+  }
+
+  const closingProgress = THREE.MathUtils.clamp(input.progress, 0, 1);
+  const arcLength = (Math.PI / 2) * input.halfSpan * 2
+    * closingProgress;
+  const sampleSpacing = Math.max(0.05, radius * 0.4);
+  const sampleCount = Math.max(1, Math.ceil(arcLength / sampleSpacing));
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const progress = closingProgress * (index / sampleCount);
+    const leaf = buildBreachV2DoorLeafCollider({
+      id: `${input.id}:closure-sweep`,
+      x: input.x,
+      z: input.z,
+      closedYaw: input.closedYaw,
+      progress,
+      halfThickness: input.halfThickness,
+      halfSpan: input.halfSpan,
+    });
+    if (isBreachV2PlacementBlocked([leaf], occupant.x, occupant.z, radius)) return false;
+  }
+  return true;
+}
+
+export function auditBreachV2SpatialContracts(
+  scene: THREE.Scene,
+  colliders: readonly BreachV2PlanarCollider[],
+): BreachV2SpatialContractAudit {
+  scene.updateMatrixWorld(true);
+  const renderables: THREE.Object3D[] = [];
+  scene.traverse((object) => {
+    if (isBreachV2DynamicallyRemoved(object)) return;
+    if (
+      object instanceof THREE.Mesh
+      || object instanceof THREE.Line
+      || object instanceof THREE.Points
+      || object instanceof THREE.Sprite
+    ) renderables.push(object);
+  });
+  const unresolved = new Set<string>();
+  const contractRoots = new Set<THREE.Object3D>();
+  let classifiedRenderableCount = 0;
+  let excludedRenderableCount = 0;
+  const objectPath = (object: THREE.Object3D): string => {
+    const names: string[] = [];
+    let cursor: THREE.Object3D | null = object;
+    while (cursor && !(cursor instanceof THREE.Scene)) {
+      names.unshift(cursor.name || cursor.type);
+      cursor = cursor.parent;
+    }
+    return names.join("/");
+  };
+  for (const renderable of renderables) {
+    let cursor: THREE.Object3D | null = renderable;
+    let contractRoot: THREE.Object3D | null = null;
+    let excluded = false;
+    while (cursor && !(cursor instanceof THREE.Scene)) {
+      if (cursor.userData.spatialAuditExcluded) {
+        excluded = true;
+        break;
+      }
+      if (typeof cursor.userData.collisionMode === "string") {
+        contractRoot = cursor;
+        break;
+      }
+      cursor = cursor.parent;
+    }
+    if (excluded) {
+      excludedRenderableCount += 1;
+      continue;
+    }
+    if (!contractRoot) {
+      unresolved.add(objectPath(renderable));
+      continue;
+    }
+    classifiedRenderableCount += 1;
+    contractRoots.add(contractRoot);
+  }
+
+  const explainedColliderIds = new Set<string>();
+  const blockingRenderOwnerIds = new Set<string>();
+  const missingBlockingColliderOwnerIds = new Set<string>();
+  const unexpectedMovementColliderOwnerIds = new Set<string>();
+  const missingLineOfSightColliderOwnerIds = new Set<string>();
+  const unexpectedLineOfSightColliderOwnerIds = new Set<string>();
+  const missingCameraColliderOwnerIds = new Set<string>();
+  const unexpectedCameraColliderOwnerIds = new Set<string>();
+  const postFitProxyMismatchOwnerIds = new Set<string>();
+  const postFitGroups = new Map<string, {
+    roots: Set<THREE.Object3D>;
+    colliders: Map<string, BreachV2PlanarCollider>;
+    mode: NonNullable<BreachV2SpatialContract["postFitAuditMode"]>;
+  }>();
+  const tolerance = 0.12;
+  for (const root of contractRoots) {
+    const contract = root.userData as BreachV2SpatialContract;
+    const matchingColliders = colliders.filter((collider) => (
+      (contract.collisionId !== undefined && collider.id === contract.collisionId)
+      || (contract.collisionIdPrefix !== undefined && collider.id.startsWith(contract.collisionIdPrefix))
+      || (contract.colliderOwnerClass !== undefined && collider.ownerClass === contract.colliderOwnerClass)
+    ));
+    matchingColliders.forEach((collider) => explainedColliderIds.add(collider.id));
+    const movementColliders = matchingColliders.filter((collider) => collider.blocksMovement !== false);
+    const lineOfSightColliders = matchingColliders.filter((collider) => collider.blocksLineOfSight);
+    const cameraColliders = matchingColliders.filter((collider) => (
+      collider.blocksCamera ?? collider.blocksLineOfSight
+    ));
+    if (contract.blocksMovement) {
+      blockingRenderOwnerIds.add(contract.spatialOwnerId);
+      if (movementColliders.length === 0) {
+        missingBlockingColliderOwnerIds.add(contract.spatialOwnerId);
+      }
+    } else if (movementColliders.length > 0) {
+      unexpectedMovementColliderOwnerIds.add(contract.spatialOwnerId);
+    }
+    if (contract.blocksLineOfSight) {
+      if (lineOfSightColliders.length === 0) {
+        missingLineOfSightColliderOwnerIds.add(contract.spatialOwnerId);
+      }
+    } else if (lineOfSightColliders.length > 0) {
+      unexpectedLineOfSightColliderOwnerIds.add(contract.spatialOwnerId);
+    }
+    if (contract.blocksCamera === true) {
+      if (cameraColliders.length === 0) {
+        missingCameraColliderOwnerIds.add(contract.spatialOwnerId);
+      }
+    } else if (contract.blocksCamera === false && cameraColliders.length > 0) {
+      unexpectedCameraColliderOwnerIds.add(contract.spatialOwnerId);
+    }
+
+    if (matchingColliders.length === 0) continue;
+    const mode = contract.postFitAuditMode
+      ?? (contract.colliderOwnerClass === "shell" ? "shell-topology" : "exact");
+    if (mode === "shell-topology") continue;
+    const group = postFitGroups.get(contract.spatialOwnerId) ?? {
+      roots: new Set<THREE.Object3D>(),
+      colliders: new Map<string, BreachV2PlanarCollider>(),
+      mode,
+    };
+    group.roots.add(root);
+    matchingColliders.forEach((collider) => group.colliders.set(collider.id, collider));
+    if (mode === "compound-envelope") group.mode = mode;
+    postFitGroups.set(contract.spatialOwnerId, group);
+  }
+
+  for (const [spatialOwnerId, group] of postFitGroups) {
+    const renderBounds = new THREE.Box3();
+    for (const root of group.roots) {
+      forEachWorldGeometryCorner([root], (corner, renderable) => {
+        let owner: THREE.Object3D | null = renderable;
+        while (owner && !(owner instanceof THREE.Scene)) {
+          if (typeof owner.userData.collisionMode === "string") break;
+          owner = owner.parent;
+        }
+        if (owner === root) renderBounds.expandByPoint(corner);
+      });
+    }
+    if (renderBounds.isEmpty()) continue;
+    // Compound frames are compared by their complete outer envelope; shell
+    // spans are excluded above because their parity is proven boundary-by-
+    // boundary rather than against one merged render mesh.
+    const proxyBounds = [...group.colliders.values()].reduce((bounds, collider) => ({
+      minX: Math.min(bounds.minX, collider.minX),
+      maxX: Math.max(bounds.maxX, collider.maxX),
+      minZ: Math.min(bounds.minZ, collider.minZ),
+      maxZ: Math.max(bounds.maxZ, collider.maxZ),
+      minY: Math.min(bounds.minY, collider.minY),
+      maxY: Math.max(bounds.maxY, collider.maxY),
+    }), {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minZ: Number.POSITIVE_INFINITY,
+      maxZ: Number.NEGATIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY,
+    });
+    const groupTolerance = group.mode === "compound-envelope" ? 0.18 : tolerance;
+    const renderOutsideProxy = (
+      renderBounds.min.x < proxyBounds.minX - groupTolerance
+      || renderBounds.max.x > proxyBounds.maxX + groupTolerance
+      || renderBounds.min.z < proxyBounds.minZ - groupTolerance
+      || renderBounds.max.z > proxyBounds.maxZ + groupTolerance
+      || renderBounds.min.y < proxyBounds.minY - groupTolerance
+      || renderBounds.max.y > proxyBounds.maxY + groupTolerance
+    );
+    const proxyFarOutsideRender = (
+      proxyBounds.minX < renderBounds.min.x - groupTolerance
+      || proxyBounds.maxX > renderBounds.max.x + groupTolerance
+      || proxyBounds.minZ < renderBounds.min.z - groupTolerance
+      || proxyBounds.maxZ > renderBounds.max.z + groupTolerance
+      || proxyBounds.minY < renderBounds.min.y - groupTolerance
+      || proxyBounds.maxY > renderBounds.max.y + groupTolerance
+    );
+    if (renderOutsideProxy || proxyFarOutsideRender) {
+      postFitProxyMismatchOwnerIds.add(spatialOwnerId);
+    }
+  }
+
+  return {
+    renderableCount: renderables.length - excludedRenderableCount,
+    excludedRenderableCount,
+    classifiedRenderableCount,
+    unresolvedRenderableNames: [...unresolved].sort(),
+    blockingRenderOwnerIds: [...blockingRenderOwnerIds].sort(),
+    missingBlockingColliderOwnerIds: [...missingBlockingColliderOwnerIds].sort(),
+    unexpectedMovementColliderOwnerIds: [...unexpectedMovementColliderOwnerIds].sort(),
+    missingLineOfSightColliderOwnerIds: [...missingLineOfSightColliderOwnerIds].sort(),
+    unexpectedLineOfSightColliderOwnerIds: [...unexpectedLineOfSightColliderOwnerIds].sort(),
+    missingCameraColliderOwnerIds: [...missingCameraColliderOwnerIds].sort(),
+    unexpectedCameraColliderOwnerIds: [...unexpectedCameraColliderOwnerIds].sort(),
+    unexplainedColliderIds: colliders
+      .filter((collider) => !explainedColliderIds.has(collider.id))
+      .map((collider) => collider.id)
+      .sort(),
+    postFitProxyMismatchOwnerIds: [...postFitProxyMismatchOwnerIds].sort(),
+  };
+}
+
+function roomWallHeight(room: BreachV2Layout["rooms"][number]): number {
+  return room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
+}
+
+function roomElevationAt(room: BreachV2Layout["rooms"][number], x: number): number {
+  const progress = room.w > 0 ? THREE.MathUtils.clamp((x - room.x) / room.w, 0, 1) : 0;
+  return THREE.MathUtils.lerp(room.floorElevation, room.endElevation, progress);
+}
+
+function connectionElevationAt(
+  connection: BreachV2Layout["topology"]["connections"][number],
+  point: BreachV2TopologyPoint,
+): number {
+  let nearest = { distance: Number.POSITIVE_INFINITY, elevation: connection.elevations[0] ?? 0 };
+  for (let index = 0; index < connection.centerline.length - 1; index += 1) {
+    const [ax, az] = connection.centerline[index]!;
+    const [bx, bz] = connection.centerline[index + 1]!;
+    const sample = segmentElevation(
+      ax, az, bx, bz,
+      connection.elevations[index]!, connection.elevations[index + 1]!,
+      point[0], point[1],
+    );
+    if (sample.distance < nearest.distance) nearest = sample;
+  }
+  return nearest.elevation;
+}
+
+function boundaryVerticalEnvelope(
+  layout: BreachV2Layout,
+  boundary: BreachV2TopologyBoundary,
+  point: BreachV2TopologyPoint,
+): { base: number; top: number } {
+  const adjoiningRooms = layout.rooms.filter((room) => (
+    room.id === boundary.owner || room.id === boundary.adjacentTo
+  ));
+  if (adjoiningRooms.length > 0) {
+    const bases = adjoiningRooms.map((room) => roomElevationAt(room, point[0]));
+    const tops = adjoiningRooms.map((room, index) => bases[index]! + roomWallHeight(room));
+    return { base: Math.min(...bases), top: Math.max(...tops) };
+  }
+  const connectorId = boundary.owner.startsWith("connector:")
+    ? boundary.owner.slice("connector:".length)
+    : null;
+  const connection = connectorId
+    ? layout.topology.connections.find((candidate) => candidate.edgeId === connectorId)
+    : layout.topology.connections.find((candidate) => (
+      candidate.sourceBoundaryId === boundary.boundaryId
+      || candidate.destinationBoundaryId === boundary.boundaryId
+    ));
+  const base = connection ? connectionElevationAt(connection, point) : 0;
+  return { base, top: base + WALL_H };
+}
+
 // ---------------------------------------------------------------------------
 // shell: floors + walls with door gaps + corridors (mirrors the Houdini build)
 // ---------------------------------------------------------------------------
@@ -235,75 +1494,12 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   const rooms = layout.rooms;
   const corridors = layout.corridors;
 
-  // ---- openings per room side ------------------------------------------------
-  const openings = new Map<string, [number, number][]>();
-  const sideOf = (room: BreachV2Layout["rooms"][number], px: number, pz: number): string | null => {
-    const tol = 0.75;
-    if (Math.abs(px - room.x) <= tol) return "W";
-    if (Math.abs(px - (room.x + room.w)) <= tol) return "E";
-    if (Math.abs(pz - room.z) <= tol) return "N";
-    if (Math.abs(pz - (room.z + room.h)) <= tol) return "S";
-    return null;
-  };
-  for (const corridor of corridors) {
-    const pts = corridor.points;
-    const width = Math.min(corridor.width, DOOR_PORTAL_W);
-    for (const [ex, ez] of [pts[0]!, pts[pts.length - 1]!]) {
-      for (const room of rooms) {
-        const side = sideOf(room, ex, ez);
-        if (!side) continue;
-        const along = side === "N" || side === "S" ? ex : ez;
-        const base = side === "N" || side === "S" ? room.x : room.z;
-        const key = `${room.id}:${side}`;
-        if (!openings.has(key)) openings.set(key, []);
-        openings.get(key)!.push([along - base, width]);
-      }
-    }
-  }
-  // The generator only emits the selected branch corridor, but both authored
-  // choice portals must be real openings. The inactive opening is visually
-  // sealed by its closed portcullis and dense mist, never by a wall hidden
-  // behind the gate.
-  const thresholdRoom = rooms.find((room) => room.id === "threshold-plaza");
-  if (thresholdRoom) {
-    const key = `${thresholdRoom.id}:E`;
-    const spans = openings.get(key) ?? [];
-    for (const landmark of [layout.landmarks.doorWayfarer, layout.landmarks.doorOathbreaker]) {
-      const center = landmark.z - thresholdRoom.z;
-      if (!spans.some(([existing]) => Math.abs(existing - center) < 0.05)) {
-        spans.push([center, DOOR_PORTAL_W]);
-      }
-    }
-    openings.set(key, spans);
-  }
-  const fixed = rooms.filter((r) => r.fixed);
-  const addSharedEastWestOpening = (
-    west: BreachV2Layout["rooms"][number],
-    east: BreachV2Layout["rooms"][number],
-  ): void => {
-    const lo = Math.max(west.z, east.z);
-    const hi = Math.min(west.z + west.h, east.z + east.h);
-    if (hi - lo <= 1.0) return;
-    const width = Math.min(hi - lo - 1.0, DOOR_PORTAL_W);
-    const center = (lo + hi) / 2;
-    if (!openings.has(`${west.id}:E`)) openings.set(`${west.id}:E`, []);
-    openings.get(`${west.id}:E`)!.push([center - west.z, width]);
-    if (!openings.has(`${east.id}:W`)) openings.set(`${east.id}:W`, []);
-    openings.get(`${east.id}:W`)!.push([center - east.z, width]);
-  };
-  for (const a of fixed) {
-    for (const b of fixed) {
-      if (a.id >= b.id) continue;
-      if (Math.abs(a.x + a.w - b.x) < 0.05) {
-        addSharedEastWestOpening(a, b);
-      } else if (Math.abs(b.x + b.w - a.x) < 0.05) {
-        addSharedEastWestOpening(b, a);
-      }
-    }
-  }
-
   // ---- geometry buckets merged per material (draw-call discipline) ----------
-  const buckets = { flagstone: [] as THREE.BufferGeometry[], masonry: [] as THREE.BufferGeometry[] };
+  const buckets = {
+    flagstone: [] as THREE.BufferGeometry[],
+    solidMasonry: [] as THREE.BufferGeometry[],
+    lintelMasonry: [] as THREE.BufferGeometry[],
+  };
   const pushBox = (bucket: THREE.BufferGeometry[], w: number, h: number, d: number,
                    cx: number, cy: number, cz: number): void => {
     const geometry = new THREE.BoxGeometry(w, h, d);
@@ -311,8 +1507,27 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     geometry.translate(cx, cy, cz);
     bucket.push(geometry);
   };
-  const addWall = (cx: number, cz: number, sx: number, sz: number, h: number, baseY: number): void => {
-    pushBox(buckets.masonry, sx, h, sz, cx, baseY + h / 2, cz);
+  const pushWallSpan = (
+    start: BreachV2TopologyPoint,
+    end: BreachV2TopologyPoint,
+    height: number,
+    baseY: number,
+    thickness: number,
+    bucket: THREE.BufferGeometry[],
+  ): void => {
+    const dx = end[0] - start[0];
+    const dz = end[1] - start[1];
+    const length = Math.hypot(dx, dz);
+    if (length < 0.01 || height < 0.01) return;
+    const geometry = new THREE.BoxGeometry(length, height, thickness);
+    scaleBoxUV(geometry, length, height, thickness);
+    geometry.rotateY(-Math.atan2(dz, dx));
+    geometry.translate(
+      (start[0] + end[0]) / 2,
+      baseY + height / 2,
+      (start[1] + end[1]) / 2,
+    );
+    bucket.push(geometry);
   };
   let stairTreadCount = 0;
   const addSteppedRun = (
@@ -351,62 +1566,10 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
 
   for (const room of rooms) {
     const { x: rx, z: rz, w: rw, h: rh } = room;
-    const wallH = room.kind === "boss" ? WALL_H_BOSS : room.kind === "start" ? WALL_H_GRAND : WALL_H;
     if (Math.abs(room.endElevation - room.floorElevation) < 0.01) {
       pushBox(buckets.flagstone, rw + WALL_T * 2, FLOOR_T, rh + WALL_T * 2, rx + rw / 2, room.floorElevation - FLOOR_T / 2, rz + rh / 2);
     } else {
       addSteppedRun(rx, rz + rh / 2, rx + rw, rz + rh / 2, rh + WALL_T * 2, room.floorElevation, room.endElevation);
-    }
-
-    const sides: Record<string, [boolean, number, number, number]> = {
-      N: [true, rx - WALL_T, rz - WALL_T / 2, rw + 2 * WALL_T],
-      S: [true, rx - WALL_T, rz + rh + WALL_T / 2, rw + 2 * WALL_T],
-      W: [false, rz, rx - WALL_T / 2, rh],
-      E: [false, rz, rx + rw + WALL_T / 2, rh],
-    };
-    for (const [side, [alongX, startA, fixedC, length]] of Object.entries(sides)) {
-      const spans = (openings.get(`${room.id}:${side}`) ?? [])
-        .map(([center, width]): [number, number] => [
-          Math.max(0.4, center - width / 2),
-          Math.min(length - 0.4, center + width / 2),
-        ])
-        .filter(([o0, o1]) => o1 > o0)
-        .sort((a, b) => a[0] - b[0]);
-      let cursor = 0;
-      for (const [o0, o1] of [...spans, [length, length] as [number, number]]) {
-        if (o0 - cursor > 0.1) {
-          const segLen = o0 - cursor;
-          const mid = cursor + segLen / 2;
-          if (alongX && Math.abs(room.endElevation - room.floorElevation) >= 0.01) {
-            const slices = Math.max(1, Math.ceil(segLen / 1.2));
-            for (let index = 0; index < slices; index += 1) {
-              const sliceStart = cursor + (segLen * index) / slices;
-              const sliceEnd = cursor + (segLen * (index + 1)) / slices;
-              const sliceMid = (sliceStart + sliceEnd) / 2;
-              const baseY = THREE.MathUtils.lerp(room.floorElevation, room.endElevation, sliceMid / room.w);
-              addWall(startA + sliceMid, fixedC, sliceEnd - sliceStart + 0.02, WALL_T, wallH, baseY);
-            }
-          } else {
-            const baseY = alongX
-              ? THREE.MathUtils.lerp(room.floorElevation, room.endElevation, mid / room.w)
-              : side === "E" ? room.endElevation : room.floorElevation;
-            if (alongX) addWall(startA + mid, fixedC, segLen, WALL_T, wallH, baseY);
-            else addWall(fixedC, startA + mid, WALL_T, segLen, wallH, baseY);
-          }
-        }
-        if (o0 < length) {
-          const lintelH = wallH - DOOR_LINTEL_H;
-          if (lintelH > 0.05) {
-            const mid = (o0 + o1) / 2;
-            const baseY = alongX
-              ? THREE.MathUtils.lerp(room.floorElevation, room.endElevation, mid / room.w)
-              : side === "E" ? room.endElevation : room.floorElevation;
-            if (alongX) pushBox(buckets.masonry, o1 - o0, lintelH, WALL_T, startA + mid, baseY + DOOR_LINTEL_H + lintelH / 2, fixedC);
-            else pushBox(buckets.masonry, WALL_T, lintelH, o1 - o0, fixedC, baseY + DOOR_LINTEL_H + lintelH / 2, startA + mid);
-          }
-        }
-        cursor = Math.max(cursor, o1);
-      }
     }
   }
 
@@ -416,23 +1579,64 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     for (let i = 0; i < pts.length - 1; i += 1) {
       const [ax, az] = pts[i]!;
       const [bx, bz] = pts[i + 1]!;
-      const x0 = Math.min(ax, bx);
-      const x1 = Math.max(ax, bx);
-      const z0 = Math.min(az, bz);
-      const z1 = Math.max(az, bz);
-      if (x1 - x0 < 0.01 && z1 - z0 < 0.01) continue;
+      if (Math.hypot(bx - ax, bz - az) < 0.01) continue;
       const fromElevation = corridor.elevations[i]!;
       const toElevation = corridor.elevations[i + 1]!;
       addSteppedRun(ax, az, bx, bz, w + WALL_T * 2, fromElevation, toElevation);
-      const baseY = Math.min(fromElevation, toElevation);
-      const wallHeight = WALL_H + Math.abs(toElevation - fromElevation);
-      if (x1 - x0 < 0.01) {
-        addWall(ax - w / 2 - WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, wallHeight, baseY);
-        addWall(ax + w / 2 + WALL_T / 2, (z0 + z1) / 2, WALL_T, z1 - z0, wallHeight, baseY);
-      } else {
-        addWall((x0 + x1) / 2, az - w / 2 - WALL_T / 2, x1 - x0, WALL_T, wallHeight, baseY);
-        addWall((x0 + x1) / 2, az + w / 2 + WALL_T / 2, x1 - x0, WALL_T, wallHeight, baseY);
+    }
+  }
+
+  let canonicalWallSpanCount = 0;
+  let canonicalLintelSpanCount = 0;
+  for (const boundary of layout.topology.boundaries) {
+    const split = splitBreachV2Boundary(boundary);
+    for (const span of split.solidSpans) {
+      const spanLength = span.endDistance - span.startDistance;
+      const slices = Math.max(1, Math.ceil(spanLength / 1.2));
+      for (let index = 0; index < slices; index += 1) {
+        const p0 = index / slices;
+        const p1 = (index + 1) / slices;
+        const start: BreachV2TopologyPoint = [
+          THREE.MathUtils.lerp(span.start[0], span.end[0], p0),
+          THREE.MathUtils.lerp(span.start[1], span.end[1], p0),
+        ];
+        const end: BreachV2TopologyPoint = [
+          THREE.MathUtils.lerp(span.start[0], span.end[0], p1),
+          THREE.MathUtils.lerp(span.start[1], span.end[1], p1),
+        ];
+        const midpoint: BreachV2TopologyPoint = [
+          (start[0] + end[0]) / 2,
+          (start[1] + end[1]) / 2,
+        ];
+        const envelope = boundaryVerticalEnvelope(layout, boundary, midpoint);
+        pushWallSpan(
+          start,
+          end,
+          envelope.top - envelope.base,
+          envelope.base,
+          boundary.thickness,
+          buckets.solidMasonry,
+        );
+        canonicalWallSpanCount += 1;
       }
+    }
+    for (const span of split.apertureSpans) {
+      const midpoint: BreachV2TopologyPoint = [
+        (span.start[0] + span.end[0]) / 2,
+        (span.start[1] + span.end[1]) / 2,
+      ];
+      const envelope = boundaryVerticalEnvelope(layout, boundary, midpoint);
+      const lintelBase = envelope.base + getBreachV2ApertureSpanClearHeight(boundary, span.apertureIds);
+      if (envelope.top - lintelBase <= 0.05) continue;
+      pushWallSpan(
+        span.start,
+        span.end,
+        envelope.top - lintelBase,
+        lintelBase,
+        boundary.thickness,
+        buckets.lintelMasonry,
+      );
+      canonicalLintelSpanCount += 1;
     }
   }
 
@@ -446,13 +1650,50 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   const flagstoneMesh = new THREE.Mesh(mergeGeometries(buckets.flagstone), materials.flagstone);
   flagstoneMesh.name = "shell-floors";
   flagstoneMesh.userData = { stairTreadCount };
+  setSpatialContract(flagstoneMesh, {
+    spatialOwnerId: "shell:walkable-surfaces",
+    collisionMode: "traversable-surface",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    contractReason: "Walkable floor and stair surfaces are governed by the canonical nav-floor predicate.",
+  });
   flagstoneMesh.receiveShadow = true;
   shell.add(flagstoneMesh);
-  const masonryMesh = new THREE.Mesh(mergeGeometries(buckets.masonry), materials.masonry);
+  const masonryMesh = new THREE.Mesh(mergeGeometries(buckets.solidMasonry), materials.masonry);
   masonryMesh.name = "shell-walls";
   masonryMesh.castShadow = true;
   masonryMesh.receiveShadow = true;
+  masonryMesh.userData = {
+    topologyPolicyId: layout.topology.policyId,
+    topologyGate: layout.topology.automatedGate,
+    canonicalBoundaryCount: layout.topology.boundaries.length,
+    canonicalWallSpanCount,
+  };
+  setSpatialContract(masonryMesh, {
+    spatialOwnerId: "shell:canonical-boundaries",
+    collisionMode: "static-solid",
+    blocksMovement: true,
+    blocksLineOfSight: true,
+    collisionIdPrefix: "shell:",
+    postFitAuditMode: "shell-topology",
+  });
   shell.add(masonryMesh);
+  const lintelMesh = new THREE.Mesh(mergeGeometries(buckets.lintelMasonry), materials.masonry);
+  lintelMesh.name = "shell-lintels";
+  lintelMesh.castShadow = true;
+  lintelMesh.receiveShadow = true;
+  lintelMesh.userData = { canonicalLintelSpanCount };
+  setSpatialContract(lintelMesh, {
+    spatialOwnerId: "shell:aperture-lintels",
+    collisionMode: "camera-only-overhead",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    blocksCamera: true,
+    collisionIdPrefix: "camera:shell:lintel:",
+    postFitAuditMode: "shell-topology",
+    contractReason: "Canonical aperture lintels are actor-nonblocking but camera-solid while their masonry is visible.",
+  });
+  shell.add(lintelMesh);
 
   // Room and corridor ceilings (dark timber-stone caps) read as a continuous
   // dungeon shell at eye level and cut away together when the review camera
@@ -501,6 +1742,16 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
     roomCapCount: rooms.length,
     corridorCapCount: corridorCeilingSegmentCount,
   };
+  setSpatialContract(ceilings, {
+    spatialOwnerId: "shell:overhead-caps",
+    collisionMode: "camera-only-overhead",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    blocksCamera: true,
+    collisionIdPrefix: "camera:shell:ceiling:",
+    postFitAuditMode: "shell-topology",
+    contractReason: "Ceiling caps are actor-nonblocking and camera-solid only while the non-isometric cutaway keeps them visible.",
+  });
   shell.add(ceilings);
 
   // void undercroft
@@ -514,6 +1765,13 @@ function buildShell(layout: BreachV2Layout, materials: { flagstone: THREE.MeshSt
   );
   voidMesh.position.set((bx0 + bx1) / 2, -1.8, (bz0 + bz1) / 2);
   voidMesh.receiveShadow = true;
+  setSpatialContract(voidMesh, {
+    spatialOwnerId: "shell:void-undercroft",
+    collisionMode: "nonwalkable-background",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    contractReason: "The undercroft is visual background below every canonical floor surface.",
+  });
   shell.add(voidMesh);
   return shell;
 }
@@ -523,28 +1781,46 @@ function buildArchitecturalPolish(
   scene: THREE.Scene,
   layout: BreachV2Layout,
   materials: { flagstone: THREE.MeshStandardMaterial; masonry: THREE.MeshStandardMaterial },
-): void {
+): BreachV2RuntimeEnvironmentObject[] {
+  const environmentObjects: BreachV2RuntimeEnvironmentObject[] = [];
   const group = new THREE.Group();
   group.name = "breach-v2-architectural-polish";
   scene.add(group);
 
   const bossRoom = layout.rooms.find((room) => room.kind === "boss");
-  if (bossRoom) {
+  const coverPlacements = layout.placements
+    .map((placement, placementIndex) => ({ placement, placementIndex }))
+    .filter(({ placement }) => placement.asset === "boss-cover-pillar");
+  if (bossRoom && coverPlacements.length > 0) {
     const cover = new THREE.Group();
     cover.name = "boss-destructible-cover";
     const cx = bossRoom.x + bossRoom.w / 2;
     const cz = bossRoom.z + bossRoom.h / 2;
     cover.position.set(cx, bossRoom.floorElevation, cz);
-    cover.userData = { combatCoverSet: true, lineOfSightBlockerCount: 6 };
-    const coverPositions: readonly (readonly [number, number])[] = [
-      [-10, -2], [-10, 3], [-5, 0], [5, 0], [10, -2], [10, 3],
-    ];
-    for (const [index, [ox, oz]] of coverPositions.entries()) {
+    cover.userData = {
+      combatCoverSet: true,
+      lineOfSightBlockerCount: coverPlacements.length,
+      authoritativeInventory: true,
+    };
+    for (const [index, { placement, placementIndex }] of coverPlacements.entries()) {
       const pillar = new THREE.Group();
       pillar.name = `destructible-pillar-${index + 1}`;
-      pillar.position.set(ox, 0, oz);
-      pillar.userData = { destructible: true, hitPoints: 120, combatCover: true };
-      const base = texturedBox(1.7, 0.42, 1.7, materials.masonry);
+      pillar.position.set(placement.x - cx, 0, placement.z - cz);
+      pillar.userData = {
+        destructible: true,
+        hitPoints: 120,
+        combatCover: true,
+        blocksLineOfSight: true,
+        collisionId: `${placement.roomId}:${placement.asset}:${placementIndex}`,
+      };
+      setSpatialContract(pillar, {
+        spatialOwnerId: `${placement.roomId}:${placement.asset}:${placementIndex}`,
+        collisionMode: "destructible-solid",
+        blocksMovement: true,
+        blocksLineOfSight: true,
+        collisionId: `${placement.roomId}:${placement.asset}:${placementIndex}`,
+      });
+      const base = texturedBox(placement.footprint, 0.42, placement.footprint, materials.masonry);
       base.position.y = 0.21;
       const shaft = texturedBox(1.08, 2.45, 1.08, materials.masonry);
       shaft.position.y = 1.62;
@@ -552,17 +1828,36 @@ function buildArchitecturalPolish(
       capital.position.y = 3.03;
       pillar.add(base, shaft, capital);
       cover.add(pillar);
+      environmentObjects.push({
+        id: `${placement.roomId}:${placement.asset}:${placementIndex}`,
+        label: "boss cover pillar",
+        destructionClass: "DESTRUCTIBLE_SOLID_PROP",
+        durability: 120,
+        x: placement.x,
+        z: placement.z,
+        root: pillar,
+        coffer: false,
+      });
     }
     group.add(cover);
   }
+  return environmentObjects;
 }
 
 interface SectionDoorSystem {
   tickables: ((elapsed: number) => void)[];
   cullables: THREE.Object3D[];
+  interactionRoots: THREE.Object3D[];
   isBlocked(x: number, z: number, radius: number): boolean;
+  getCollisionBlockers(): BreachV2PlanarCollider[];
   setAllOpen(open: boolean): void;
   toggleNearest(x: number, z: number, maxDistance?: number): string | null;
+  toggleHit(
+    playerX: number,
+    playerZ: number,
+    hitObject: THREE.Object3D,
+    maxPlayerDistance?: number,
+  ): string | null;
   toggleAt(
     playerX: number,
     playerZ: number,
@@ -579,6 +1874,7 @@ async function placeSectionDoors(
   layout: BreachV2Layout,
   loader: GLTFLoader,
   authorizeDoor: (doorId: string) => boolean,
+  getOccupantPosition: () => { x: number; z: number } | null,
 ): Promise<SectionDoorSystem> {
   const doorSpec = DUNGEON_PROP_ASSETS["heavy-door"];
   const gateSpec = DUNGEON_PROP_ASSETS["rusted-portcullis"];
@@ -586,33 +1882,9 @@ async function placeSectionDoors(
     loader.loadAsync(doorSpec.sourceUrl),
     loader.loadAsync(gateSpec.sourceUrl),
   ]);
-  const doors: readonly {
-    id: string;
-    x: number;
-    z: number;
-    axis: "x" | "z";
-  }[] = [
-    { id: "vestibule-link", x: 30, z: 11, axis: "x" },
-    { id: "threshold-entry", x: 36, z: 11, axis: "x" },
-    { id: "wayfarer-choice", x: layout.landmarks.doorWayfarer.x, z: layout.landmarks.doorWayfarer.z, axis: "x" },
-    { id: "oathbreaker-choice", x: layout.landmarks.doorOathbreaker.x, z: layout.landmarks.doorOathbreaker.z, axis: "x" },
-    ...layout.rooms
-      .filter((room) => room.kind === "gallery")
-      // Generated route corridors enter each gallery at the midpoint of its
-      // west wall (room.x, room.z + room.h / 2). The portal normal and its
-      // collision band therefore stay on X while the leaf spans Z.
-      .map((room) => ({ id: `${room.id}-entry`, x: room.x, z: room.z + room.h / 2, axis: "x" as const })),
-    { id: "convergence-lock", x: 188, z: 10, axis: "x" },
-    { id: "ashen-threshold", x: 192, z: 10, axis: "x" },
-    { id: "boss-lock", x: 208, z: 10, axis: "x" },
-    { id: "memory-vault", x: 242, z: 7, axis: "x" },
-    { id: "way-upward", x: 247, z: 12, axis: "z" },
-  ];
+  const doors = layout.sectionPortals;
 
   const tickables: ((elapsed: number) => void)[] = [];
-  const portcullisIds = new Set([
-    "wayfarer-choice", "oathbreaker-choice", "ashen-threshold", "boss-lock",
-  ]);
   const routeMists: THREE.Object3D[] = [];
   const routeMistByDoorId = new Map<string, {
     mesh: THREE.Mesh;
@@ -624,30 +1896,45 @@ async function placeSectionDoors(
     x: number;
     z: number;
     axis: "x" | "z";
+    clearWidth: number;
+    clearHeight: number;
+    frontNormal: { x: number; z: number };
+    closedYaw: number;
     floorY: number;
     root: THREE.Group;
     kind: "door" | "gate";
     active: boolean;
     open: boolean;
     progress: number;
+    leafHalfThickness: number;
+    leafHalfSpan: number;
+    leafHeight: number;
+    leafVerticalOffset: number;
   }[] = [];
   for (const [index, door] of doors.entries()) {
     const floorY = floorElevationAt(layout, door.x, door.z);
-    const kind = portcullisIds.has(door.id) ? "gate" : "door";
-    const active = door.id !== "wayfarer-choice" && door.id !== "oathbreaker-choice"
-      ? true
-      : door.id === `${layout.meta.path}-choice`;
+    const { kind, active } = door;
     const sourceSpec = kind === "door" ? doorSpec : gateSpec;
     const sourceScene = kind === "door" ? doorGltf.scene : gateGltf.scene;
     const instance = instantiateDungeonProp(sourceScene, sourceSpec, index * 0.23);
     const sourceModel = instance.root.getObjectByName(`${sourceSpec.id}-model`);
+    let leafHalfThickness = 0.4;
+    let leafHalfSpan = door.clearWidth / 2 + 0.05;
+    let leafHeight = DOOR_LINTEL_H + 0.08;
+    let leafVerticalOffset = 0;
+    if (kind === "door" && !sourceModel) {
+      throw new Error(`BREACH-V2 imported heavy-door model root is missing for ${door.id}`);
+    }
     if (kind === "door" && sourceModel) {
-      // Fit the actual 3DAI Studio leaf into the authored 2.5 m portal. The
-      // catalog-normalized source is 1.94 m wide and otherwise left daylight
-      // gaps at both jambs.
+      // DungeonPropKit already applies the catalog's uniform 3 m fit. Preserve
+      // that authored aspect ratio and let topology fit masonry to the asset.
       sourceModel.visible = true;
-      sourceModel.position.y = (DOOR_LINTEL_H + 0.08) / 2;
-      sourceModel.scale.set(3, DOOR_LINTEL_H + 0.08, 3.96);
+      sourceModel.updateMatrixWorld(true);
+      const fittedSize = new THREE.Box3().setFromObject(sourceModel, true).getSize(new THREE.Vector3());
+      leafHalfThickness = fittedSize.x / 2;
+      leafHalfSpan = fittedSize.z / 2;
+      leafHeight = fittedSize.y;
+      leafVerticalOffset = Math.max(0, (door.clearHeight - leafHeight) / 2);
       sourceModel.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -659,39 +1946,75 @@ async function placeSectionDoors(
     } else if (kind === "gate" && sourceModel) {
       // The height-constrained catalog fit leaves this particular source GLB
       // only ~2.17 m wide. Widen its dominant horizontal axis so the metal
-      // overlaps the 2.5 m stone jambs instead of leaving daylight seams.
+      // overlaps the canonical stone jambs instead of leaving daylight seams.
       sourceModel.updateMatrixWorld(true);
       const size = new THREE.Box3().setFromObject(sourceModel, true).getSize(new THREE.Vector3());
-      const targetWidth = DOOR_PORTAL_W + 0.08;
+      const targetWidth = door.clearWidth + 0.08;
       if (size.z >= size.x) sourceModel.scale.z *= targetWidth / Math.max(size.z, 0.001);
       else sourceModel.scale.x *= targetWidth / Math.max(size.x, 0.001);
       sourceModel.updateMatrixWorld(true);
+      const fittedSize = new THREE.Box3().setFromObject(sourceModel, true).getSize(new THREE.Vector3());
+      leafHalfThickness = Math.min(fittedSize.x, fittedSize.z) / 2;
+      leafHalfSpan = Math.max(fittedSize.x, fittedSize.z) / 2;
+      leafHeight = fittedSize.y;
     }
+    const closedYaw = kind === "door"
+      ? getBreachV2ClosedDoorYaw(door.frontNormal)
+      : door.axis === "x" ? 0 : Math.PI / 2;
+    const fittedWidth = leafHalfSpan * 2;
+    const fittedThickness = leafHalfThickness * 2;
+    const jambClearancePerSide = (door.clearWidth - fittedWidth) / 2;
+    const lintelClearance = (door.clearHeight - leafHeight) / 2;
     const pivot = new THREE.Group();
     pivot.name = `section-${kind}-${door.id}`;
     pivot.userData = {
       ...instance.root.userData,
       connectorId: door.id,
       state: active ? "closed" : "sealed",
+      openProgress: 0,
       blocksMovement: true,
+      blocksAperture: true,
+      blocksLineOfSight: true,
+      collisionMode: "dynamic-solid",
+      spatialOwnerId: `portal:${door.id}`,
+      collisionId: `portal:${door.id}:leaf`,
       activeRouteDoor: active,
       portalKind: kind,
       sourceAsset: kind === "door" ? "heavy-door.glb" : "rusted-portcullis.glb",
       portalX: door.x,
       portalZ: door.z,
       portalAxis: door.axis,
+      frontNormal: { ...door.frontNormal },
+      closedYaw,
+      apertureId: door.apertureId,
+      boundaryId: door.boundaryId,
+      clearWidth: door.clearWidth,
+      clearHeight: door.clearHeight,
+      fittedWidth,
+      fittedHeight: leafHeight,
+      fittedThickness,
+      sourceAspect: kind === "door"
+        ? BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.width / BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.height
+        : null,
+      fittedAspect: fittedWidth / Math.max(leafHeight, 0.001),
+      apertureClearWidth: door.clearWidth,
+      apertureClearHeight: door.clearHeight,
+      jambClearancePerSide,
+      lintelClearance,
       floorElevation: floorY,
+      postFitColliderHalfThickness: leafHalfThickness,
+      postFitColliderHalfSpan: leafHalfSpan,
+      postFitColliderHeight: leafHeight,
     };
     instance.root.name = `section-${kind}-leaf-${door.id}`;
-    const frameYaw = door.axis === "x" ? 0 : Math.PI / 2;
-    pivot.rotation.y = frameYaw;
+    pivot.rotation.y = closedYaw;
     if (kind === "door") {
       // Swing around the jamb-side hinge instead of rotating the leaf around
       // its centre. The paid model's leaf and hardware stay together.
-      const closedLeafOffset = new THREE.Vector3(0, 0, DOOR_PORTAL_W / 2)
-        .applyAxisAngle(new THREE.Vector3(0, 1, 0), frameYaw);
+      const closedLeafOffset = new THREE.Vector3(0, 0, leafHalfSpan)
+        .applyAxisAngle(new THREE.Vector3(0, 1, 0), closedYaw);
       pivot.position.set(door.x - closedLeafOffset.x, floorY, door.z - closedLeafOffset.z);
-      instance.root.position.set(0, 0, DOOR_PORTAL_W / 2);
+      instance.root.position.set(0, leafVerticalOffset, leafHalfSpan);
     } else {
       // Portcullises sit centered in the opening and lift into the lintel.
       // Their open motion is vertical; they never rotate like a hinged leaf.
@@ -701,9 +2024,22 @@ async function placeSectionDoors(
     pivot.add(instance.root);
     scene.add(pivot);
     tickables.push(instance.animate);
-    states.push({ ...door, floorY, root: pivot, kind, active, open: false, progress: 0 });
+    states.push({
+      ...door,
+      floorY,
+      root: pivot,
+      kind,
+      active,
+      open: false,
+      progress: 0,
+      closedYaw,
+      leafHalfThickness,
+      leafHalfSpan,
+      leafHeight,
+      leafVerticalOffset,
+    });
 
-    if (door.id === "wayfarer-choice" || door.id === "oathbreaker-choice") {
+    if (door.routeChoice) {
       const smokeMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
@@ -756,7 +2092,7 @@ async function placeSectionDoors(
         side: THREE.DoubleSide,
       });
       const smoke = new THREE.Mesh(
-        new THREE.PlaneGeometry(DOOR_PORTAL_W + 0.18, DOOR_LINTEL_H + 0.08, 1, 1),
+        new THREE.PlaneGeometry(door.clearWidth + 0.18, DOOR_LINTEL_H + 0.08, 1, 1),
         smokeMaterial,
       );
       smoke.name = `route-mist-${door.id}`;
@@ -767,6 +2103,10 @@ async function placeSectionDoors(
         activeRoute: active,
         connectorId: door.id,
         blocksMovement: false,
+        blocksLineOfSight: false,
+        collisionMode: "vfx-only",
+        spatialOwnerId: `portal:${door.id}:route-mist`,
+        contractReason: "Route mist is a visual state layer; the authored gate leaf owns collision.",
       };
       scene.add(smoke);
       routeMists.push(smoke);
@@ -787,21 +2127,62 @@ async function placeSectionDoors(
     lastDoorTickElapsed = elapsed;
     const animationAlpha = 1 - Math.exp(-5.5 * delta);
     for (const state of states) {
-      const target = state.open ? 1 : 0;
+      let target = state.open ? 1 : 0;
+      const occupant = getOccupantPosition();
+      if (
+        target === 0
+        && state.active
+        && !state.open
+        && state.progress > 0.001
+        && occupant
+        && !isBreachV2PortalClosureSafe({
+          kind: state.kind,
+          id: state.id,
+          x: state.x,
+          z: state.z,
+          axis: state.axis,
+          closedYaw: state.closedYaw,
+          clearWidth: state.clearWidth,
+          progress: state.progress,
+          halfThickness: state.leafHalfThickness,
+          halfSpan: state.leafHalfSpan,
+        }, occupant)
+      ) {
+        // Reverse before a descending gate or swinging leaf can overlap the
+        // live capsule. Movement collision then keeps the occupant outside
+        // the current leaf while this future-sweep guard keeps the leaf away.
+        state.open = true;
+        target = 1;
+      }
       state.progress += (target - state.progress) * animationAlpha;
       if (Math.abs(target - state.progress) < 0.001) state.progress = target;
-      const frameYaw = state.axis === "x" ? 0 : Math.PI / 2;
-      const closedLeafOffset = new THREE.Vector3(0, 0, DOOR_PORTAL_W / 2)
-        .applyAxisAngle(new THREE.Vector3(0, 1, 0), frameYaw);
+      const closedLeafOffset = new THREE.Vector3(0, 0, state.leafHalfSpan)
+        .applyAxisAngle(new THREE.Vector3(0, 1, 0), state.closedYaw);
       if (state.kind === "door") {
         state.root.position.set(state.x - closedLeafOffset.x, state.floorY, state.z - closedLeafOffset.z);
-        state.root.rotation.y = frameYaw + state.progress * (Math.PI / 2);
+        state.root.rotation.y = state.closedYaw + state.progress * (Math.PI / 2);
       } else {
-        state.root.position.set(state.x, state.floorY + state.progress * (DOOR_LINTEL_H + 0.42), state.z);
-        state.root.rotation.y = frameYaw;
+        state.root.position.set(state.x, state.floorY + state.progress * (state.clearHeight + 0.42), state.z);
+        state.root.rotation.y = state.closedYaw;
       }
       state.root.userData.state = state.active ? (state.open ? "open" : "closed") : "sealed";
-      state.root.userData.blocksMovement = !state.open || state.progress < 0.88;
+      state.root.userData.openProgress = state.progress;
+      const gateBottomY = state.floorY + state.progress * (state.clearHeight + 0.42);
+      const gateClearsCapsule = gateBottomY >= (
+        state.floorY + PLAYER_CAPSULE_HEIGHT + PLAYER_CAPSULE_CLEARANCE
+      );
+      const blocksMovement = state.kind === "door" || !gateClearsCapsule;
+      const blocksActorLineOfSight = state.kind === "door" || !gateClearsCapsule;
+      const blocksAperture = state.kind === "gate"
+        ? blocksMovement
+        : !state.open || state.progress < 0.88;
+      state.root.userData.blocksAperture = blocksAperture;
+      // A raised portcullis leaves the walk plane. A hinged door remains a
+      // physical leaf beside the aperture after it swings fully open. The
+      // raised gate remains a spatial object above the capsule for height-aware
+      // camera/projectile queries, but it no longer blocks actor eye-level LOS.
+      state.root.userData.blocksMovement = blocksMovement;
+      state.root.userData.blocksLineOfSight = blocksActorLineOfSight;
       const routeMist = routeMistByDoorId.get(state.id);
       if (routeMist) {
         // The inactive route remains visibly sealed. The chosen route's mist
@@ -814,18 +2195,78 @@ async function placeSectionDoors(
     }
   });
 
-  const setOpen = (state: (typeof states)[number], open: boolean): void => {
-    state.open = state.active && open;
+  const setOpen = (state: (typeof states)[number], open: boolean): boolean => {
+    if (!state.active) {
+      state.open = false;
+      return false;
+    }
+    const occupant = getOccupantPosition();
+    if (
+      !open
+      && occupant
+      && !isBreachV2PortalClosureSafe({
+        kind: state.kind,
+        id: state.id,
+        x: state.x,
+        z: state.z,
+        axis: state.axis,
+        closedYaw: state.closedYaw,
+        clearWidth: state.clearWidth,
+        progress: state.progress,
+        halfThickness: state.leafHalfThickness,
+        halfSpan: state.leafHalfSpan,
+      }, occupant)
+    ) return false;
+    state.open = open;
+    return true;
   };
+  const toggleState = (state: (typeof states)[number]): string | null => {
+    if (!state.open && !authorizeDoor(state.id)) return state.id;
+    return setOpen(state, !state.open) ? state.id : null;
+  };
+  const getCollisionBlockers = (): BreachV2PlanarCollider[] => (
+    states.flatMap<BreachV2PlanarCollider>((state): BreachV2PlanarCollider[] => {
+      if (state.kind === "gate") {
+        const normalHalf = state.leafHalfThickness;
+        const spanHalf = state.leafHalfSpan;
+        const gateBottomY = state.floorY + state.progress * (state.clearHeight + 0.42);
+        return [{
+          id: `portal:${state.id}:leaf`,
+          asset: "rusted-portcullis",
+          roomId: state.id,
+          ownerClass: "portal" as const,
+          shape: "aabb" as const,
+          minX: state.x - (state.axis === "x" ? normalHalf : spanHalf),
+          maxX: state.x + (state.axis === "x" ? normalHalf : spanHalf),
+          minZ: state.z - (state.axis === "x" ? spanHalf : normalHalf),
+          maxZ: state.z + (state.axis === "x" ? spanHalf : normalHalf),
+          minY: gateBottomY,
+          maxY: gateBottomY + state.leafHeight,
+          blocksMovement: state.root.userData.blocksMovement === true,
+          blocksLineOfSight: state.root.userData.blocksLineOfSight === true,
+          blocksCamera: true,
+        }];
+      }
+
+      return [buildBreachV2DoorLeafCollider({
+        id: state.id,
+        x: state.x,
+        z: state.z,
+        closedYaw: state.closedYaw,
+        progress: state.progress,
+        halfThickness: state.leafHalfThickness,
+        halfSpan: state.leafHalfSpan,
+        minY: state.floorY + state.leafVerticalOffset,
+        maxY: state.floorY + state.leafVerticalOffset + state.leafHeight,
+      })];
+    })
+  );
   return {
     tickables,
     cullables: [...states.map((state) => state.root), ...routeMists],
-    isBlocked: (x, z, radius) => states.some((state) => {
-      if (!state.root.userData.blocksMovement) return false;
-      const normalDistance = state.axis === "x" ? Math.abs(x - state.x) : Math.abs(z - state.z);
-      const alongDistance = state.axis === "x" ? Math.abs(z - state.z) : Math.abs(x - state.x);
-      return normalDistance <= radius + 0.24 && alongDistance <= DOOR_PORTAL_W / 2 + radius;
-    }),
+    interactionRoots: states.map((state) => state.root),
+    isBlocked: (x, z, radius) => isBreachV2PlacementBlocked(getCollisionBlockers(), x, z, radius),
+    getCollisionBlockers,
     setAllOpen: (open) => states.forEach((state) => setOpen(state, open)),
     toggleNearest: (x, z, maxDistance = 4.2) => {
       const nearest = states
@@ -838,9 +2279,22 @@ async function placeSectionDoors(
           ? a.distance - b.distance
           : a.state.open ? 1 : -1)[0]?.state;
       if (!nearest) return null;
-      if (!nearest.open && !authorizeDoor(nearest.id)) return nearest.id;
-      setOpen(nearest, !nearest.open);
-      return nearest.id;
+      return toggleState(nearest);
+    },
+    toggleHit: (playerX, playerZ, hitObject, maxPlayerDistance = 4.2) => {
+      let cursor: THREE.Object3D | null = hitObject;
+      let hitState: (typeof states)[number] | undefined;
+      while (cursor && !(cursor instanceof THREE.Scene)) {
+        hitState = states.find((state) => state.root === cursor);
+        if (hitState) break;
+        cursor = cursor.parent;
+      }
+      if (
+        !hitState
+        || !hitState.active
+        || Math.hypot(hitState.x - playerX, hitState.z - playerZ) > maxPlayerDistance
+      ) return null;
+      return toggleState(hitState);
     },
     toggleAt: (
       playerX,
@@ -863,9 +2317,7 @@ async function placeSectionDoors(
         ))
         .sort((a, b) => a.targetDistance - b.targetDistance)[0]?.state;
       if (!nearest) return null;
-      if (!nearest.open && !authorizeDoor(nearest.id)) return nearest.id;
-      setOpen(nearest, !nearest.open);
-      return nearest.id;
+      return toggleState(nearest);
     },
   };
 }
@@ -875,6 +2327,46 @@ async function placeSectionDoors(
 interface PropPlacements {
   tickables: ((elapsed: number) => void)[];
   cullables: THREE.Object3D[];
+  placementProxyMeasurements: BreachV2PlacementProxyMeasurement[];
+  environmentObjects: BreachV2RuntimeEnvironmentObject[];
+}
+
+function measureBreachV2PlacementProxy(
+  id: string,
+  roots: readonly THREE.Object3D[],
+  yaw: number,
+): BreachV2PlacementProxyMeasurement | null {
+  const cosine = Math.cos(yaw);
+  const sine = Math.sin(yaw);
+  let minLocalX = Number.POSITIVE_INFINITY;
+  let maxLocalX = Number.NEGATIVE_INFINITY;
+  let minLocalZ = Number.POSITIVE_INFINITY;
+  let maxLocalZ = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  forEachWorldGeometryCorner(roots, (corner) => {
+    const localX = corner.x * cosine - corner.z * sine;
+    const localZ = corner.x * sine + corner.z * cosine;
+    minLocalX = Math.min(minLocalX, localX);
+    maxLocalX = Math.max(maxLocalX, localX);
+    minLocalZ = Math.min(minLocalZ, localZ);
+    maxLocalZ = Math.max(maxLocalZ, localZ);
+    minY = Math.min(minY, corner.y);
+    maxY = Math.max(maxY, corner.y);
+  });
+  if (!Number.isFinite(minLocalX) || !Number.isFinite(minY)) return null;
+  const localCenterX = (minLocalX + maxLocalX) / 2;
+  const localCenterZ = (minLocalZ + maxLocalZ) / 2;
+  return {
+    id,
+    centerX: localCenterX * cosine + localCenterZ * sine,
+    centerZ: -localCenterX * sine + localCenterZ * cosine,
+    halfX: Math.max(0.01, (maxLocalX - minLocalX) / 2),
+    halfZ: Math.max(0.01, (maxLocalZ - minLocalZ) / 2),
+    yaw,
+    minY,
+    maxY,
+  };
 }
 
 async function placeKitProps(
@@ -941,7 +2433,18 @@ async function placeKitProps(
 
   const tickables: ((elapsed: number) => void)[] = [];
   const cullables: THREE.Object3D[] = [];
-  const addRackWeapons = (x: number, y: number, z: number, yaw: number): void => {
+  const placementProxyMeasurements: BreachV2PlacementProxyMeasurement[] = [];
+  const environmentObjects: BreachV2RuntimeEnvironmentObject[] = [];
+  const environmentConfigById = new Map(
+    buildBreachV2EnvironmentObjectConfigs(layout).map((config) => [config.id, config]),
+  );
+  const addRackWeapons = (
+    x: number,
+    y: number,
+    z: number,
+    yaw: number,
+    spatialOwnerId: string,
+  ): void => {
     if (rackWeaponSource.children.length === 0) return;
     const dressing = new THREE.Group();
     dressing.name = "training-rack-imported-longswords";
@@ -954,14 +2457,23 @@ async function placeKitProps(
       dressing.add(weapon);
     });
     dressing.userData = { importedWeaponDisplay: true, sourceAsset: "elf-shadowknight-starter-longsword" };
+    setSpatialContract(dressing, {
+      spatialOwnerId,
+      collisionMode: "placement-dressing-detail",
+      blocksMovement: false,
+      blocksLineOfSight: false,
+      contractReason: "Mounted longswords inherit the rack owner but do not add a second collision proxy.",
+    });
     scene.add(dressing);
     cullables.push(dressing);
   };
   let phase = 0;
   const litSconceSides = new Map<string, number>();
   const litBrazierRooms = new Set<string>();
-  for (const p of layout.placements) {
+  for (const [placementIndex, p] of layout.placements.entries()) {
     if (!p.glbRuntime || p.asset === "heavy-door") continue;
+    const spatialOwnerId = `${p.roomId}:${p.asset}:${placementIndex}`;
+    const physicalBlocking = p.blocking;
     const spec = DUNGEON_PROP_ASSETS[p.asset as keyof typeof DUNGEON_PROP_ASSETS];
     const gltf = loaded.get(p.glbRuntime)!;
     const needsCandleStand = p.asset === "candelabra-cluster" && p.elevation - p.floorElevation < 0.2;
@@ -970,6 +2482,7 @@ async function placeKitProps(
       targetHeight: needsCandleStand ? 0.72 : p.height,
       maxFootprint: needsCandleStand ? 0.82 : p.footprint,
     }, phase);
+    const proxyRoots: THREE.Object3D[] = [instance.root];
     phase += 0.37;
     instance.root.position.set(p.x, p.elevation + (needsCandleStand ? 0.76 : 0), p.z);
     if (needsCandleStand) {
@@ -987,8 +2500,17 @@ async function placeKitProps(
         supportFor: "candelabra-cluster",
         sourceAsset: "reinforced-crate",
       };
+      setSpatialContract(support.root, {
+        spatialOwnerId,
+        collisionMode: "placement-support",
+        blocksMovement: physicalBlocking,
+        blocksLineOfSight: physicalBlocking && p.height >= 1.25,
+        collisionId: physicalBlocking ? spatialOwnerId : undefined,
+        contractReason: "The imported support is part of the candelabra placement and shares its single proxy.",
+      });
       scene.add(support.root);
       cullables.push(support.root);
+      proxyRoots.push(support.root);
     }
     // The 3DAI heavy-door source faces across its local X axis, while authored
     // wall yaw is expressed as a wall normal. Correct that source-local basis
@@ -1013,6 +2535,12 @@ async function placeKitProps(
       ? ({ north: 0, east: 90, south: 180, west: 270 }[p.facing] ?? p.yaw)
       : p.yaw);
     instance.root.rotation.y = THREE.MathUtils.degToRad(tutorialFacing + sourceYawCorrection);
+    const environmentConfig = environmentConfigById.get(spatialOwnerId)!;
+    instance.root.userData = {
+      ...instance.root.userData,
+      destructionClass: environmentConfig.destructionClass,
+      protectionReason: environmentConfig.protectionReason,
+    };
     if (tutorialAsset) {
       const actions = p.asset === "storage-chest"
         ? ["inspect", "open", "move"]
@@ -1050,14 +2578,98 @@ async function placeKitProps(
         interactionActions: ["inspect", "open"],
       };
     }
+    setSpatialContract(instance.root, {
+      spatialOwnerId,
+      collisionMode: physicalBlocking
+        ? p.role === "destructible-cover" ? "destructible-solid" : "placement-solid"
+        : p.placement === "ceiling"
+          ? "overhead-nonblocking"
+          : p.asset === "iron-floor-grate" ? "traversable-surface" : "intentional-nonblocking",
+      blocksMovement: physicalBlocking,
+      blocksLineOfSight: physicalBlocking && p.height >= 1.25,
+      collisionId: physicalBlocking && p.asset !== "ruined-stone-archway"
+        ? spatialOwnerId
+        : undefined,
+      collisionIdPrefix: physicalBlocking && p.asset === "ruined-stone-archway"
+        ? `${spatialOwnerId}:`
+        : undefined,
+      postFitAuditMode: p.asset === "ruined-stone-archway" ? "compound-envelope" : "exact",
+      contractReason: physicalBlocking
+        ? "The generated layout placement owns the runtime footprint collider."
+        : "The generated layout classifies this rendered placement as nonblocking.",
+    });
     scene.add(instance.root);
     cullables.push(instance.root);
+    if (physicalBlocking) {
+      const measurement = measureBreachV2PlacementProxy(
+        spatialOwnerId,
+        proxyRoots,
+        instance.root.rotation.y,
+      );
+      if (measurement) {
+        placementProxyMeasurements.push(measurement);
+        const measuredBlocksLineOfSight = measurement.maxY - measurement.minY >= 1.25;
+        proxyRoots.forEach((root) => {
+          root.userData.blocksLineOfSight = measuredBlocksLineOfSight;
+        });
+      }
+    }
     tickables.push((elapsed) => {
       if (instance.root.visible) instance.animate(elapsed);
     });
     if (p.asset === "empty-weapon-rack") {
-      addRackWeapons(p.x, p.elevation, p.z, instance.root.rotation.y);
+      addRackWeapons(p.x, p.elevation, p.z, instance.root.rotation.y, spatialOwnerId);
     }
+    const coffer = p.roomId === "vestibule" && p.asset === "storage-chest";
+    let pickupRoot: THREE.Object3D | undefined;
+    let setCofferOpen: ((open: boolean) => void) | undefined;
+    if (coffer) {
+      const model = instance.root.getObjectByName("storage-chest-model");
+      if (model) {
+        const closedScaleY = model.scale.y;
+        const lid = model.clone(true);
+        lid.name = "storage-chest-imported-open-lid";
+        lid.visible = false;
+        lid.userData.spatialAuditExcluded = "inactive-coffer-state-geometry";
+        instance.root.add(lid);
+        setCofferOpen = (open) => {
+          model.scale.y = closedScaleY * (open ? 0.72 : 1);
+          lid.visible = open;
+          lid.scale.y = closedScaleY * 0.28;
+          lid.position.y = model.position.y + p.height * 0.7;
+          lid.position.z = model.position.z - p.footprint * 0.16;
+          lid.rotation.x = open ? -0.95 : 0;
+          lid.userData.spatialAuditExcluded = open
+            ? undefined
+            : "inactive-coffer-state-geometry";
+          instance.root.userData.cofferLidOpen = open;
+        };
+      }
+      if (rackWeaponSource.children.length > 0) {
+        pickupRoot = rackWeaponSource.clone(true);
+        pickupRoot.name = "coffer-deterministic-starter-pickup";
+        pickupRoot.position.set(p.x + 1.25, p.elevation + 0.62, p.z);
+        pickupRoot.rotation.set(0, instance.root.rotation.y, Math.PI / 2);
+        pickupRoot.visible = false;
+        setSpatialContract(pickupRoot, {
+          spatialOwnerId: "pickup:coffer-starter",
+          collisionMode: "pickup-trigger-nonblocking",
+          blocksMovement: false,
+          blocksLineOfSight: false,
+          contractReason: "The deterministic Gate 8 starter pickup is an interaction trigger, never a solid.",
+        });
+        scene.add(pickupRoot);
+      }
+    }
+    environmentObjects.push({
+      ...environmentConfig,
+      x: p.x,
+      z: p.z,
+      root: instance.root,
+      coffer,
+      pickupRoot,
+      setCofferOpen,
+    });
     if (p.fireAnchorY !== null && p.fireColor) {
       // B7 texture-unit discipline: fire lights never cast shadows in the
       // preview — every shadow-casting point light adds a cube shadow map to
@@ -1082,6 +2694,13 @@ async function placeKitProps(
         fixtureRoomId: p.roomId,
         fixtureLocalAnchor: fixtureFireOffset.toArray(),
       };
+      setSpatialContract(fire.root, {
+        spatialOwnerId,
+        collisionMode: "fixture-vfx",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+        contractReason: "Fire particles and glow inherit the fixture transform without adding collision.",
+      });
       const flameScale = p.asset === "wall-torch-sconce" ? 0.48
         : p.asset === "floor-brazier" ? 0.68
           : 0.58;
@@ -1123,12 +2742,16 @@ async function placeKitProps(
       });
     }
   }
-  return { tickables, cullables };
+  return { tickables, cullables, placementProxyMeasurements, environmentObjects };
 }
 
 // ---------------------------------------------------------------------------
 // landmarks (custom — never kit-substituted)
 // ---------------------------------------------------------------------------
+export function resolveBreachV2WorldY(floorElevation: number, localOffset: number): number {
+  return floorElevation + localOffset;
+}
+
 function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: number) => void)[] {
   const tickables: ((elapsed: number) => void)[] = [];
   const lm = layout.landmarks;
@@ -1155,6 +2778,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   basinBase.castShadow = true;
   basinBase.receiveShadow = true;
   group.add(basinBase);
+  const soulWellSolidParts: THREE.Object3D[] = [basinBase];
   const ringRadius = apron - 0.14;
   const blockLength = 2 * ringRadius * Math.tan(Math.PI / 8) * 0.94;
   for (let index = 0; index < 8; index += 1) {
@@ -1163,6 +2787,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     block.position.set(well.x + Math.cos(angle) * ringRadius, 0.68, well.z + Math.sin(angle) * ringRadius);
     block.rotation.y = Math.PI / 2 - angle;
     group.add(block);
+    soulWellSolidParts.push(block);
   }
   // Recessed soul-water is an opaque abyssal realm surface. It deliberately
   // hides the masonry below; shallow translucent water makes the Soul Well
@@ -1229,7 +2854,11 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     vfxKind: "abyssal-soulwell-vortex",
     visualDepth: "bottomless-realm-threshold",
     sourceLane: "HOUDINI_APPRENTICE_POC_RUNTIME_SHADER",
-    collisionMode: "landmark-boundary",
+    collisionMode: "landmark-vfx-detail",
+    spatialOwnerId: "landmark:soul-well",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    contractReason: "The visible water inherits the Soul Well owner; masonry owns the boundary collider.",
   };
   group.add(water);
   const jetGeometries: THREE.BufferGeometry[] = [];
@@ -1254,6 +2883,12 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   const splashes = new THREE.Mesh(splashGeometry, splashMaterial);
   splashes.name = "vestibule-soulwell-current-jets";
   splashes.position.set(well.x, 0.59, well.z);
+  setSpatialContract(splashes, {
+    spatialOwnerId: "landmark:soul-well",
+    collisionMode: "landmark-vfx-detail",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+  });
   group.add(splashes);
   const ripples: THREE.Mesh[] = [];
   [0.7, 1.25, 1.75].forEach((radius) => {
@@ -1263,6 +2898,12 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     );
     ring.rotation.x = Math.PI / 2;
     ring.position.set(well.x, 0.58, well.z);
+    setSpatialContract(ring, {
+      spatialOwnerId: "landmark:soul-well",
+      collisionMode: "landmark-vfx-detail",
+      blocksMovement: false,
+      blocksLineOfSight: false,
+    });
     group.add(ring);
     ripples.push(ring);
   });
@@ -1295,12 +2936,31 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   );
   soulMotes.name = "vestibule-soulwell-rising-motes";
   soulMotes.position.set(well.x, 0.61, well.z);
+  setSpatialContract(soulMotes, {
+    spatialOwnerId: "landmark:soul-well",
+    collisionMode: "landmark-vfx-detail",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+  });
   group.add(soulMotes);
   // emergence step at the south edge (stone)
   const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.7), basinMat);
   step.position.set(well.x, 0.11, well.z + apron + 0.15);
   step.castShadow = true;
+  setSpatialContract(step, {
+    spatialOwnerId: "surface:soul-well-emergence-step",
+    collisionMode: "traversable-surface",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+  });
   group.add(step);
+  soulWellSolidParts.forEach((part) => setSpatialContract(part, {
+    spatialOwnerId: "landmark:soul-well",
+    collisionMode: "landmark-solid",
+    blocksMovement: true,
+    blocksLineOfSight: false,
+    collisionId: "landmark:soul-well",
+  }));
   tickables.push((elapsed) => {
     waterMat.uniforms.uTime!.value = elapsed;
     const jetPulse = 0.88 + Math.sin(elapsed * 1.8) * 0.12;
@@ -1333,6 +2993,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   const threadMat = new THREE.MeshStandardMaterial({
     color: 0x8070c0, roughness: 0.4, emissive: 0x8c73d9, emissiveIntensity: 0.7,
   });
+  const loomChildStart = group.children.length;
   const addBox = (x: number, y: number, z: number, w: number, h: number, d: number, mat: THREE.Material): void => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     mesh.position.set(x, y, z);
@@ -1358,6 +3019,13 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     group.add(thread);
     threads.push(thread);
   }
+  group.children.slice(loomChildStart).forEach((part) => setSpatialContract(part, {
+    spatialOwnerId: "landmark:memory-loom",
+    collisionMode: "landmark-solid",
+    blocksMovement: true,
+    blocksLineOfSight: true,
+    collisionId: "landmark:memory-loom",
+  }));
   tickables.push((elapsed) => {
     loomWheel.rotation.z = elapsed * 0.22;
     shuttle.position.x = loom.x + Math.sin(elapsed * 0.55) * 0.42;
@@ -1369,9 +3037,17 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
   // Training effigy
   const effigy = lm.effigy;
   const effigyMat = new THREE.MeshStandardMaterial({ color: 0x735626, roughness: 0.85 });
+  const effigyChildStart = group.children.length;
   addBox(effigy.x, 0.85, effigy.z, 0.22, 1.7, 0.22, effigyMat);
   addBox(effigy.x, 1.35, effigy.z, 1.5, 0.18, 0.18, effigyMat);
   addBox(effigy.x, 1.95, effigy.z, 0.42, 0.5, 0.42, effigyMat);
+  group.children.slice(effigyChildStart).forEach((part) => setSpatialContract(part, {
+    spatialOwnerId: "landmark:training-effigy",
+    collisionMode: "landmark-solid",
+    blocksMovement: true,
+    blocksLineOfSight: true,
+    collisionId: "landmark:training-effigy",
+  }));
 
   // First Memory: an open illuminated codex grounded on the imported ruined
   // altar. This is a readable reward object, not a floating white UI marker.
@@ -1401,6 +3077,13 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     unlockCondition: "boss-defeated",
     interactionActions: ["inspect", "claim"],
   };
+  setSpatialContract(memoryCodex, {
+    spatialOwnerId: "landmark:first-memory",
+    collisionMode: "interactable-nonblocking",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    contractReason: "The codex is an interaction target mounted above its supporting altar placement.",
+  });
   const cover = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.02), coverMaterial);
   cover.position.y = -0.06;
   cover.castShadow = true;
@@ -1435,18 +3118,33 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     color, roughness: 0.5, emissive: color, emissiveIntensity: 0.18,
     transparent: true, opacity: 0.42,
   });
-  for (const [pos, color, h] of [
-    [lm.ilyra, 0x66e080, 1.5], [lm.orren, 0x66cc73, 1.5], [lm.brannoc, 0x80bf60, 1.5],
+  for (const [id, pos, color, h] of [
+    ["ilyra", lm.ilyra, 0x66e080, 1.5], ["orren", lm.orren, 0x66cc73, 1.5],
+    ["brannoc", lm.brannoc, 0x80bf60, 1.5],
   ] as const) {
     const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, h, 16), markerMat(color));
+    marker.name = `debug-actor-marker-${id}`;
     marker.position.set(pos.x, h / 2, pos.z);
     marker.visible = !markersHidden;
+    setSpatialContract(marker, {
+      spatialOwnerId: `debug:actor-marker:${id}`,
+      collisionMode: "debug-marker",
+      blocksMovement: false,
+      blocksLineOfSight: false,
+    });
     group.add(marker);
   }
   for (const enemy of layout.enemies) {
     const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12), markerMat(0xbf4030));
+    marker.name = `debug-enemy-marker-${enemy.id}`;
     marker.position.set(enemy.x, 0.4, enemy.z);
     marker.visible = !markersHidden;
+    setSpatialContract(marker, {
+      spatialOwnerId: `debug:enemy-marker:${enemy.id}`,
+      collisionMode: "debug-marker",
+      blocksMovement: false,
+      blocksLineOfSight: false,
+    });
     group.add(marker);
   }
   // Cinderbound Warden sigil: a coherent realm-lock lattice with eight
@@ -1466,6 +3164,13 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     bossId: layout.boss.id,
     periodicHazard: "radial-cinder-lanes",
   };
+  setSpatialContract(runeGroup, {
+    spatialOwnerId: `hazard:${layout.boss.id}:activation-sigil`,
+    collisionMode: "hazard-telegraph",
+    blocksMovement: false,
+    blocksLineOfSight: false,
+    contractReason: "The sigil and cinder lanes are damage telegraphs, not physical blockers.",
+  });
   const runeMat = new THREE.MeshStandardMaterial({
     color: 0x7a2c14, roughness: 0.5, emissive: 0xff5a2c, emissiveIntensity: 1.1,
   });
@@ -1612,6 +3317,9 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     puddle.userData = {
       vfxKind: "shallow-animated-puddle",
       collisionMode: "nonblocking",
+      spatialOwnerId: `effect:puddle:${room.id}`,
+      blocksMovement: false,
+      blocksLineOfSight: false,
       visualDepth: "shallow",
       authoredLowPoint: true,
     };
@@ -1662,7 +3370,7 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
       varying float vRipple;
       void main() {
         vec2 p = vUv;
-        float halfWidth = 0.205;
+        float halfWidth = 0.5;
         float shoulderY = 0.58;
         float body = (1.0 - step(halfWidth, abs(p.x - 0.5))) * (1.0 - step(shoulderY, p.y));
         vec2 archPoint = vec2((p.x - 0.5) / halfWidth, (p.y - shoulderY) / 0.28);
@@ -1696,16 +3404,38 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     depthWrite: false,
     side: THREE.DoubleSide,
   });
-  const exitWater = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3.4, 32, 24), exitWaterMaterial);
+  const exitPortalBoundary = layout.topology.boundaries.find((boundary) => (
+    boundary.classification === "PORTAL_FRAME"
+  ));
+  const exitPortalAperture = exitPortalBoundary?.apertures.find((aperture) => aperture.assembly === "PORTAL");
+  const exitPortalWidth = exitPortalAperture?.clearWidth ?? 2.5;
+  const exitPortalCenter: BreachV2TopologyPoint = exitPortalAperture
+    ? [
+      (exitPortalAperture.start[0] + exitPortalAperture.end[0]) / 2,
+      (exitPortalAperture.start[1] + exitPortalAperture.end[1]) / 2,
+    ]
+    : [lm.exitPoint.x + 0.6, lm.exitPoint.z];
+  const exitWater = new THREE.Mesh(
+    new THREE.PlaneGeometry(exitPortalWidth, 3.4, 32, 24),
+    exitWaterMaterial,
+  );
   exitWater.name = "heartvale-soulwell-water-threshold";
-  exitWater.position.set(lm.exitPoint.x + 0.6, 1.7, lm.exitPoint.z);
-  exitWater.rotation.y = -Math.PI / 2;
+  exitWater.position.set(exitPortalCenter[0], 1.7, exitPortalCenter[1]);
+  exitWater.rotation.y = exitPortalBoundary
+    && Math.abs(exitPortalBoundary.start[0] - exitPortalBoundary.end[0]) < 0.001
+    ? -Math.PI / 2 : 0;
   exitWater.renderOrder = 5;
   exitWater.userData = {
     vfxKind: "soulwell-water-threshold",
     collisionMode: "traversable",
+    spatialOwnerId: `effect:soulwell-exit:${exitPortalAperture?.apertureId ?? "unresolved"}`,
+    blocksMovement: false,
+    blocksLineOfSight: false,
     sourceLane: "HOUDINI_APPRENTICE_POC_RUNTIME_SHADER",
     houdiniProductionStatus: "POC_VALIDATED_NONCOMMERCIAL",
+    boundaryId: exitPortalBoundary?.boundaryId ?? null,
+    apertureId: exitPortalAperture?.apertureId ?? null,
+    clearWidth: exitPortalWidth,
   };
   group.add(exitWater);
   tickables.push((elapsed) => { exitWaterMaterial.uniforms.uTime!.value = elapsed; });
@@ -1755,7 +3485,8 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
     new THREE.MeshStandardMaterial({ color, roughness: 0.76, metalness: 0.02 })
   ));
 
-  for (const p of layout.placements) {
+  for (const [placementIndex, p] of layout.placements.entries()) {
+    const spatialOwnerId = `${p.roomId}:${p.asset}:${placementIndex}`;
     if (p.role === "wall-art") {
       const w = p.width ?? 1.6;
       const h = p.height ?? w * 0.7;
@@ -1765,6 +3496,12 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
       frame.position.set(p.x, p.floorElevation + 1.65, p.z);
       frame.rotation.y = yaw;
       frame.castShadow = true;
+      setSpatialContract(frame, {
+        spatialOwnerId,
+        collisionMode: "wall-attachment-nonblocking",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+      });
       group.add(frame);
       const url = ART_TEXTURES[p.asset];
       let artMat: THREE.Material = placeholderMat;
@@ -1776,12 +3513,24 @@ function buildWallArtAndBooks(scene: THREE.Scene, layout: BreachV2Layout, texLoa
       const art = new THREE.Mesh(new THREE.PlaneGeometry(w, h), artMat);
       art.position.set(p.x + nx * 0.07, p.floorElevation + 1.65, p.z + nz * 0.07);
       art.rotation.y = yaw;
+      setSpatialContract(art, {
+        spatialOwnerId,
+        collisionMode: "wall-attachment-nonblocking",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+      });
       group.add(art);
     } else if (p.role === "readable-props") {
       const pile = new THREE.Group();
       pile.name = `readable-${p.asset}`;
       pile.position.set(p.x, p.elevation ?? 0, p.z);
       pile.rotation.y = THREE.MathUtils.degToRad(p.yaw);
+      setSpatialContract(pile, {
+        spatialOwnerId,
+        collisionMode: "readable-prop-nonblocking",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+      });
       if (p.asset === "scrolls-pile") {
         for (let index = 0; index < 3; index += 1) {
           const scroll = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.46 + index * 0.05, 10), paperMat);
@@ -1823,12 +3572,18 @@ function buildCorruption(scene: THREE.Scene, layout: BreachV2Layout): void {
     const mat = new THREE.MeshStandardMaterial({
       color: 0x661f14, roughness: 0.5, emissive: 0xd94d26, emissiveIntensity: intensity,
     });
-    for (const [cx, cz, sx, sz] of [
+    for (const [stripIndex, [cx, cz, sx, sz]] of ([
       [room.x + room.w / 2, room.z + 0.12, room.w * 0.8, 0.06],
       [room.x + 0.12, room.z + room.h / 2, 0.06, room.h * 0.8],
-    ] as const) {
+    ] as const).entries()) {
       const strip = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.05, sz), mat);
       strip.position.set(cx, floorElevationAt(layout, cx, cz) + 0.06, cz);
+      setSpatialContract(strip, {
+        spatialOwnerId: `effect:corruption:${room.id}:${stripIndex}`,
+        collisionMode: "surface-vfx",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+      });
       group.add(strip);
     }
   }
@@ -1869,7 +3624,7 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
     doorLight.position.set(lm.x - 1.2, lm.elevation + 2.6, lm.z);
     scene.add(doorLight);
   }
-  const vestibuleExitLight = new THREE.PointLight(0xffa35c, 10, 11, 1.65);
+  const vestibuleExitLight = new THREE.PointLight(0xfff0dc, 7.5, 9, 1.65);
   vestibuleExitLight.name = "vestibule-exit-read-light";
   vestibuleExitLight.position.set(27.2, floorElevationAt(layout, 27.2, 11) + 2.35, 11);
   scene.add(vestibuleExitLight);
@@ -1894,13 +3649,21 @@ function setupLights(scene: THREE.Scene, layout: BreachV2Layout): void {
   }
 }
 
-interface CameraPreset { target: [number, number, number]; offset: [number, number, number] }
+export interface CameraPreset {
+  target: [number, number, number];
+  offset: [number, number, number];
+  minDistance?: number;
+}
 
-function cameraPresets(layout: BreachV2Layout): Record<string, CameraPreset> {
+export function cameraPresets(layout: BreachV2Layout): Record<string, CameraPreset> {
   const lm = layout.landmarks;
   const firstChamber = layout.rooms.find((r) => !r.fixed) ?? layout.rooms[0]!;
   return {
-    vestibule: { target: [lm.soulWell.x, lm.soulWell.elevation + 0.8, lm.soulWell.z], offset: [10.5, 6.2, 9.0] },
+    vestibule: {
+      target: [lm.soulWell.x, lm.soulWell.elevation + 0.8, lm.soulWell.z],
+      offset: [10.5, 6.2, 9.0],
+      minDistance: 5.5,
+    },
     isometric: { target: [lm.playerStart.x, lm.playerStart.elevation + 0.8, lm.playerStart.z], offset: [10.5, 12.5, 10.5] },
     plaza: { target: [lm.doorWayfarer.x - 4, lm.doorWayfarer.elevation + 1.2, lm.doorWayfarer.z + 3.5], offset: [-9, 3.4, 0.5] },
     gallery: {
@@ -1935,6 +3698,13 @@ export async function startDungeonPreview(
   container.appendChild(loading);
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
+  const environmentConfigs = buildBreachV2EnvironmentObjectConfigs(layout);
+  const cofferObjectId = environmentConfigs.find((config) => (
+    config.destructionClass === "INTERACTABLE_CONTAINER"
+  ))?.id ?? "vestibule:storage-chest";
+  let removedEnvironmentColliderIds: string[] = [];
+  let debrisCleanupDeadlineMs = 0;
+  let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
   // The preview is a production-zone test harness: active-route doors are
@@ -1953,8 +3723,12 @@ export async function startDungeonPreview(
     chamberIds: layout.rooms.filter((room) => !room.fixed).map((room) => room.id),
     rewardId: layout.rewardId,
     bossHp: layout.boss.maxHp,
+    cofferObjectId,
+    deterministicTestItemId: `breach-v2-starter-${options.seed}-${options.path}`,
+    environmentObjects: environmentConfigs,
     savedState,
     onChange: (state) => {
+      syncEnvironmentState?.(state.environment);
       void storyDatabase.saveDungeonRun(runId, state).catch((error: unknown) => {
         console.error("unable to persist BREACH-V2 run", error);
       });
@@ -1990,19 +3764,64 @@ export async function startDungeonPreview(
   const materials = loadShellTextures(texLoader);
   const shellGroup = buildShell(layout, materials);
   scene.add(shellGroup);
-  buildArchitecturalPolish(scene, layout, materials);
+  const architecturalEnvironmentObjects = buildArchitecturalPolish(scene, layout, materials);
   const ceilings = shellGroup.getObjectByName("shell-ceilings");
   const propPlacement = await placeKitProps(scene, layout, gltfLoader);
+  const environmentObjects = [
+    ...architecturalEnvironmentObjects,
+    ...propPlacement.environmentObjects,
+  ];
+  syncEnvironmentState = (state) => {
+    removedEnvironmentColliderIds = [...state.removedColliderIds];
+    debrisCleanupDeadlineMs = state.debrisObjectIds.length > 0
+      ? debrisCleanupDeadlineMs || performance.now() + 2500
+      : 0;
+    const destroyedIds = new Set(state.destroyedObjectIds);
+    for (const object of environmentObjects) {
+      const destroyed = destroyedIds.has(object.id);
+      const openCoffer = object.coffer && state.cofferOpened;
+      object.root.userData.dynamicRemoved = destroyed;
+      object.root.userData.blocksMovement = !destroyed && !openCoffer
+        && object.root.userData.blocksMovement === true;
+      object.root.userData.blocksLineOfSight = !destroyed && !openCoffer
+        && object.root.userData.blocksLineOfSight === true;
+      object.root.userData.collisionMode = destroyed
+        ? "destroyed-removed"
+        : openCoffer ? "opened-container-nonblocking" : object.root.userData.collisionMode;
+      object.root.visible = !destroyed;
+      object.setCofferOpen?.(openCoffer);
+      if (object.pickupRoot) {
+        object.pickupRoot.visible = state.pickupDropped && !state.pickupCollected;
+      }
+    }
+  };
+  syncEnvironmentState(gameplay.snapshot().environment);
+  let playerPositionForPortalSafety: { x: number; z: number } | null = null;
   const sectionDoors = await placeSectionDoors(
     scene,
     layout,
     gltfLoader,
     (doorId) => !progressionGatesEnabled || gameplay.requestDoor(doorId).allowed,
+    () => playerPositionForPortalSafety,
   );
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
   setupLights(scene, layout);
+  if (options.cam === "overview") {
+    // Survey mode is an architectural QA view, so the whole shell must remain
+    // legible at once instead of depending on local sconces hundreds of metres
+    // apart. Gameplay cameras retain the authored lighting and fog.
+    scene.fog = null;
+    renderer.toneMappingExposure = 1.3;
+    scene.add(new THREE.HemisphereLight(0xb9c8d6, 0x54483d, 3.2));
+    for (const material of [materials.flagstone, materials.masonry]) {
+      material.emissiveMap = material.map;
+      material.emissive.set(0x454545);
+      material.emissiveIntensity = 0.7;
+      material.needsUpdate = true;
+    }
+  }
 
   const presets = cameraPresets(layout);
 
@@ -2011,19 +3830,76 @@ export async function startDungeonPreview(
   const firstPersonMode = options.cam === "firstperson";
   const isometricMode = options.cam === "isometric";
   const walkMode = options.cam === "walk" || firstPersonMode || isometricMode;
+  const ceilingCameraMode: BreachV2CeilingCameraMode = firstPersonMode
+    ? "firstperson"
+    : isometricMode
+      ? "isometric"
+      : options.cam === "overview"
+        ? "overview"
+        : walkMode
+          ? "thirdperson"
+          : "orbit";
+  let ceilingsVisible = walkMode && !isometricMode;
+  const syncCeilingRenderState = (): void => {
+    if (!ceilings) return;
+    ceilings.visible = ceilingsVisible;
+    ceilings.userData.blocksCamera = ceilingsVisible;
+  };
+  syncCeilingRenderState();
   const genData = generateBreachV2(options.seed, options.path);
+  // blockedCells remains a coarse generator diagnostic/export. Runtime
+  // standability uses final fitted colliders; deleting whole 1.75 m cells and
+  // then expanding them again by the actor radius creates false raster chokes.
   const walkable = new Set(genData.navCells.map(breachV2CellKey));
-  for (const cell of genData.blockedCells) walkable.delete(breachV2CellKey(cell));
   const NAV = layout.meta.navCell;
-  const isWalkable = (x: number, z: number): boolean => {
-    const r = 0.35; // player radius
-    if (sectionDoors.isBlocked(x, z, r)) return false;
+  const placementColliders = buildBreachV2PlacementColliders(
+    layout,
+    propPlacement.placementProxyMeasurements,
+  );
+  const staticCollisionBlockers = [
+    ...buildBreachV2ShellColliders(layout),
+    ...placementColliders,
+    ...buildBreachV2LandmarkColliders(layout),
+  ];
+  const cameraOnlyColliders = buildBreachV2CameraOnlyColliders(layout);
+  const localCeilingYAt = (x: number, z: number): number | null => {
+    const localCaps = cameraOnlyColliders.ceilings.filter((collider) => (
+      x >= collider.minX && x <= collider.maxX && z >= collider.minZ && z <= collider.maxZ
+    ));
+    return localCaps.length > 0
+      ? Math.min(...localCaps.map((collider) => collider.minY))
+      : null;
+  };
+  const updateCeilingState = (desiredCameraY: number, targetX: number, targetZ: number): void => {
+    ceilingsVisible = resolveBreachV2CeilingVisibility(
+      ceilingsVisible,
+      ceilingCameraMode,
+      desiredCameraY,
+      localCeilingYAt(targetX, targetZ),
+    );
+    syncCeilingRenderState();
+  };
+  const getRuntimeCollisionBlockers = (): BreachV2PlanarCollider[] => [
+    ...filterBreachV2RemovedColliders(staticCollisionBlockers, removedEnvironmentColliderIds),
+    ...getBreachV2VisibleCameraColliders(cameraOnlyColliders, ceilingsVisible),
+    ...sectionDoors.getCollisionBlockers(),
+  ];
+  let runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+  // The generator's 1.75 m cells prove whole-zone reachability, but they are
+  // too coarse for click paths around a player-radius dogleg. Plan at half a
+  // nav cell while retaining the exact same floor, blocker, and door predicate
+  // used by WASD movement.
+  const PATH_CELL = NAV / 2;
+  const canProfileStandAt = (radius: number, x: number, z: number): boolean => {
+    const r = Math.max(0, radius);
+    if (isBreachV2PlacementBlocked(runtimeCollisionBlockers, x, z, r)) return false;
     for (const [ox, oz] of [[r, r], [r, -r], [-r, r], [-r, -r]] as const) {
       if (!hasDungeonFloorAt(layout, x + ox, z + oz)) return false;
       if (!walkable.has(`${Math.floor((x + ox) / NAV)},${Math.floor((z + oz) / NAV)}`)) return false;
     }
     return true;
   };
+  const isWalkable = (x: number, z: number): boolean => canProfileStandAt(0.35, x, z);
   const requestedStart = new URL(window.location.href).searchParams.get("start");
   const requestedRoom = requestedStart
     ? layout.rooms.find((room) => room.id === requestedStart || ("poolRoomId" in room && room.poolRoomId === requestedStart))
@@ -2056,6 +3932,7 @@ export async function startDungeonPreview(
     floorElevationAt(layout, requestedPosition[0], requestedPosition[1]),
     requestedPosition[1],
   );
+  playerPositionForPortalSafety = playerPos;
   const setPlayerPosition = (x: number, z: number): void => {
     playerPos.set(x, floorElevationAt(layout, x, z), z);
   };
@@ -2064,51 +3941,122 @@ export async function startDungeonPreview(
     layout,
     controller: gameplay,
     getPlayerPosition: () => playerPos,
+    getEnvironmentTargets: () => {
+      const state = gameplay.snapshot().environment;
+      const destroyed = new Set(state.destroyedObjectIds);
+      const targets: BreachV2EnvironmentUiTarget[] = environmentObjects
+        .filter((object) => !destroyed.has(object.id))
+        .map((object) => ({
+          id: object.id,
+          label: object.label,
+          x: object.x,
+          z: object.z,
+          damageable: !object.coffer,
+        }));
+      const coffer = environmentObjects.find((object) => object.coffer);
+      if (coffer && state.pickupDropped && !state.pickupCollected) {
+        targets.push({
+          id: "coffer-pickup",
+          label: "dropped starter weapon",
+          x: coffer.x + 1.25,
+          z: coffer.z,
+          damageable: false,
+          interactionId: "coffer-pickup",
+        });
+      }
+      return targets;
+    },
+    damageEnvironment: (targetId) => { gameplay.damageEnvironmentObject(targetId, 999); },
+    isLineOfSightBlocked: (start, end) => (
+      isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
+    ),
   });
   let camYaw = isometricMode ? Math.PI / 4 : 0.08;
   let camPitch = isometricMode ? 0.76 : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? 14.5 : 4.4;
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
+  let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
   let player: THREE.Mesh | null = null;
+  let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
   if (walkMode) {
     controls.enabled = false;
+    playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8fd8e8,
+      roughness: 0.5,
+      emissive: 0x2a6a78,
+      emissiveIntensity: 0.35,
+      transparent: true,
+    });
     player = new THREE.Mesh(
       new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-      new THREE.MeshStandardMaterial({
-        color: 0x8fd8e8, roughness: 0.5, emissive: 0x2a6a78, emissiveIntensity: 0.35,
-      }),
+      playerPlaceholderMaterial,
     );
     player.castShadow = true;
     player.visible = !firstPersonMode;
+    player.userData.spatialAuditExcluded = "runtime-player-avatar";
     scene.add(player);
     player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
     const pointerRaycaster = new THREE.Raycaster();
     const pointerNdc = new THREE.Vector2();
-    const pickWalkPoint = (clientX: number, clientY: number): THREE.Vector3 | null => {
+    const setPointerRay = (clientX: number, clientY: number): void => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerNdc.set(
         ((clientX - rect.left) / rect.width) * 2 - 1,
         -((clientY - rect.top) / rect.height) * 2 + 1,
       );
       pointerRaycaster.setFromCamera(pointerNdc, camera);
+    };
+    const pickDoorObject = (): THREE.Object3D | null => {
+      const doorHit = pointerRaycaster.intersectObjects(sectionDoors.interactionRoots, true)[0];
+      if (!doorHit) return null;
+      // The nearest physical render owner must be this door. Walls, landmarks,
+      // fitted props and boss cover all occlude interaction; nonblocking VFX,
+      // floors and debug markers do not steal the tap.
+      const physicalHit = pointerRaycaster.intersectObjects(scene.children, true).find((intersection) => {
+        let cursor: THREE.Object3D | null = intersection.object;
+        while (cursor && !(cursor instanceof THREE.Scene)) {
+          if (cursor.userData.blocksMovement === true || cursor.userData.blocksLineOfSight === true) {
+            return true;
+          }
+          cursor = cursor.parent;
+        }
+        return false;
+      });
+      return !physicalHit || doorHit.distance <= physicalHit.distance + 0.02
+        ? doorHit.object
+        : null;
+    };
+    const pickWalkPoint = (): THREE.Vector3 | null => {
       return pointerRaycaster.intersectObject(shellGroup, true)
         .find((intersection) => intersection.object.name === "shell-floors")?.point.clone() ?? null;
     };
     const setClickDestination = (point: THREE.Vector3): void => {
       const [targetX, targetZ] = nearestWalkable(point.x, point.z);
-      const startCell = { x: Math.floor(playerPos.x / NAV), y: Math.floor(playerPos.z / NAV) };
-      const targetCell = { x: Math.floor(targetX / NAV), y: Math.floor(targetZ / NAV) };
-      const cells = findPath(startCell, targetCell, (cell) => isWalkable((cell.x + 0.5) * NAV, (cell.y + 0.5) * NAV));
-      clickPath.splice(0, clickPath.length, ...cells.map((cell) => (
+      const path = findBreachV2AdaptiveRuntimePath(
+        { x: playerPos.x, z: playerPos.z },
+        { x: targetX, z: targetZ },
+        PATH_CELL,
+        isWalkable,
+      );
+      clickPath.splice(0, clickPath.length, ...path.map((point) => (
         new THREE.Vector3(
-          (cell.x + 0.5) * NAV,
-          floorElevationAt(layout, (cell.x + 0.5) * NAV, (cell.y + 0.5) * NAV),
-          (cell.y + 0.5) * NAV,
+          point.x,
+          floorElevationAt(layout, point.x, point.z),
+          point.z,
         )
       )));
+    };
+    queueClickDestination = (x, z) => {
+      const [targetX, targetZ] = nearestWalkable(x, z);
+      setClickDestination(new THREE.Vector3(
+        targetX,
+        floorElevationAt(layout, targetX, targetZ),
+        targetZ,
+      ));
+      return clickPath.length > 0;
     };
     renderer.domElement.addEventListener("pointerdown", (e) => {
       dragging = true;
@@ -2117,10 +4065,12 @@ export async function startDungeonPreview(
     });
     renderer.domElement.addEventListener("pointerup", (e) => {
       if (pointerTravel < 8) {
-        const target = pickWalkPoint(e.clientX, e.clientY);
-        const toggledDoor = target
-          ? sectionDoors.toggleAt(playerPos.x, playerPos.z, target.x, target.z)
+        setPointerRay(e.clientX, e.clientY);
+        const hitDoor = pickDoorObject();
+        const toggledDoor = hitDoor
+          ? sectionDoors.toggleHit(playerPos.x, playerPos.z, hitDoor)
           : null;
+        const target = pickWalkPoint();
         if (!toggledDoor && target) setClickDestination(target);
       }
       dragging = false;
@@ -2142,6 +4092,7 @@ export async function startDungeonPreview(
       keys.add(e.code);
       if (e.code === "KeyF" && !e.repeat) sectionDoors.toggleNearest(playerPos.x, playerPos.z);
       if (e.code === "KeyR" && !e.repeat) gameplayUi.interactNearest();
+      if (e.code === "KeyX" && !e.repeat) gameplayUi.damageNearest();
       if (e.code === "Digit1" && !e.repeat) gameplay.attack();
       if (e.code === "Digit2" && !e.repeat) gameplay.guard();
       if (e.code === "Digit3" && !e.repeat) gameplay.recover();
@@ -2151,6 +4102,7 @@ export async function startDungeonPreview(
 
   const preset = presets[options.cam] ?? presets.vestibule!;
   if (!walkMode) {
+    controls.minDistance = preset.minDistance ?? 0;
     controls.target.set(...preset.target);
     camera.position.set(
       preset.target[0] + preset.offset[0],
@@ -2178,6 +4130,47 @@ export async function startDungeonPreview(
     setPlayerPosition(x, z);
     return true;
   };
+  hooks.__dungeonCanStandAt = (x, z) => walkMode && isWalkable(x, z);
+  hooks.__dungeonNavigateTo = (x, z) => queueClickDestination?.(x, z) ?? false;
+  hooks.__dungeonPathRemaining = () => clickPath.length;
+  hooks.__dungeonPathSnapshot = () => clickPath.map((point) => ({
+    x: point.x,
+    y: point.y,
+    z: point.z,
+  }));
+  hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+  hooks.__dungeonSpatialContractAudit = auditBreachV2SpatialContracts(scene, runtimeCollisionBlockers);
+  hooks.__dungeonRefreshSpatialContractAudit = () => {
+    const audit = auditBreachV2SpatialContracts(scene, runtimeCollisionBlockers);
+    hooks.__dungeonSpatialContractAudit = audit;
+    return audit;
+  };
+  hooks.__dungeonCanProfileStandAt = (radius, x, z) => (
+    walkMode && canProfileStandAt(radius, x, z)
+  );
+  hooks.__dungeonPlanProfilePath = (radius, start, target) => (
+    walkMode
+      ? findBreachV2AdaptiveRuntimePath(
+        start,
+        target,
+        PATH_CELL,
+        (x, z) => canProfileStandAt(radius, x, z),
+      )
+      : []
+  );
+  hooks.__dungeonSweepMovement = (start, requestedEnd) => (
+    sweepBreachV2Movement(start, requestedEnd, isWalkable)
+  );
+  hooks.__dungeonSweepProfileMovement = (radius, start, requestedEnd) => (
+    sweepBreachV2Movement(
+      start,
+      requestedEnd,
+      (x, z) => canProfileStandAt(radius, x, z),
+    )
+  );
+  hooks.__dungeonLineOfSightBlocked = (start, end) => (
+    isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
+  );
   hooks.__dungeonSetDoorsOpen = (open) => sectionDoors.setAllOpen(open);
   hooks.__dungeonKeys = keys; // probe visibility
   hooks.__dungeonGameplay = {
@@ -2191,6 +4184,14 @@ export async function startDungeonPreview(
     restartEncounter: () => gameplay.restartEncounter(),
     setCombatStyle: (style) => gameplay.setCombatStyle(style),
     requestDoor: (doorId) => gameplay.requestDoor(doorId).allowed,
+  };
+  hooks.__dungeonEnvironment = {
+    objects: () => environmentConfigs.map((config) => ({ ...config })),
+    snapshot: () => gameplay.snapshot().environment,
+    damage: (targetId, damage) => gameplay.damageEnvironmentObject(targetId, damage),
+    collectPickup: () => gameplay.interact("coffer-pickup"),
+    cleanupDebris: (targetId) => gameplay.cleanupEnvironmentDebris(targetId),
+    activeDebrisCount: () => gameplay.snapshot().environment.debrisObjectIds.length,
   };
 
   const warp = (x: number, z: number): boolean => {
@@ -2215,10 +4216,43 @@ export async function startDungeonPreview(
 
   const timer = new THREE.Timer();
   timer.connect(document);
-  const cameraRaycaster = new THREE.Raycaster();
   const cameraTarget = new THREE.Vector3();
   const desiredCamera = new THREE.Vector3();
   const cameraDirection = new THREE.Vector3();
+  const clampDesiredCameraAboveFloor = (
+    requested: THREE.Vector3,
+    fallbackFloor: number,
+  ): void => {
+    requested.y = resolveBreachV2CameraFloorY(
+      requested.y,
+      floorElevationSampleAt(layout, requested.x, requested.z),
+      fallbackFloor,
+    );
+  };
+  const resolveCameraAgainstScene = (
+    target: THREE.Vector3,
+    requested: THREE.Vector3,
+  ): number => {
+    cameraDirection.copy(requested).sub(target);
+    const requestedDistance = cameraDirection.length();
+    if (requestedDistance <= 1e-6) {
+      camera.position.copy(target);
+      return 0;
+    }
+    cameraDirection.multiplyScalar(1 / requestedDistance);
+    const cameraHit = firstBreachV2CameraHit(
+      runtimeCollisionBlockers,
+      target,
+      requested,
+      CAMERA_COLLISION_RADIUS,
+    );
+    const resolvedDistance = resolveBreachV2CameraDistance(
+      requestedDistance,
+      cameraHit?.fraction ?? null,
+    );
+    camera.position.copy(target).addScaledVector(cameraDirection, resolvedDistance);
+    return resolvedDistance;
+  };
   let fpsAccum = 0;
   let fpsFrames = 0;
   let fpsText = "…";
@@ -2252,7 +4286,9 @@ export async function startDungeonPreview(
       object.getWorldPosition(cullObjectPosition);
       const dx = cullObjectPosition.x - cullOrigin.x;
       const dz = cullObjectPosition.z - cullOrigin.z;
-      object.visible = detailBaseVisibility.get(object) !== false && dx * dx + dz * dz <= radiusSq;
+      object.visible = object.userData.dynamicRemoved !== true
+        && detailBaseVisibility.get(object) !== false
+        && dx * dx + dz * dz <= radiusSq;
     });
   };
   updateDetailVisibility();
@@ -2276,6 +4312,11 @@ export async function startDungeonPreview(
         fpsFrames = 0;
       }
       for (const tick of tickables) tick(elapsed);
+      if (debrisCleanupDeadlineMs > 0 && frameMs >= debrisCleanupDeadlineMs) {
+        gameplay.cleanupEnvironmentDebris();
+      }
+      runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+      hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
       if (walkMode && player) {
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
@@ -2303,12 +4344,18 @@ export async function startDungeonPreview(
           move.normalize().multiplyScalar(step);
           const nx = playerPos.x + move.x;
           const nz = playerPos.z + move.z;
-          if (isWalkable(nx, nz)) {
-            setPlayerPosition(nx, nz);
-          } else if (isWalkable(nx, playerPos.z)) {
-            setPlayerPosition(nx, playerPos.z); // slide along walls
-          } else if (isWalkable(playerPos.x, nz)) {
-            setPlayerPosition(playerPos.x, nz);
+          const start = { x: playerPos.x, z: playerPos.z };
+          const primarySweep = sweepBreachV2Movement(start, { x: nx, z: nz }, isWalkable);
+          if (primarySweep.completed) {
+            setPlayerPosition(primarySweep.resolvedEnd.x, primarySweep.resolvedEnd.z);
+          } else {
+            const xSweep = sweepBreachV2Movement(start, { x: nx, z: playerPos.z }, isWalkable);
+            const zSweep = sweepBreachV2Movement(start, { x: playerPos.x, z: nz }, isWalkable);
+            if (xSweep.completed) {
+              setPlayerPosition(xSweep.resolvedEnd.x, xSweep.resolvedEnd.z); // slide along walls
+            } else if (zSweep.completed) {
+              setPlayerPosition(zSweep.resolvedEnd.x, zSweep.resolvedEnd.z);
+            }
           }
           player.rotation.y = Math.atan2(move.x, move.z);
         } else if (clickPath.length > 0) {
@@ -2318,8 +4365,13 @@ export async function startDungeonPreview(
           const distance = Math.hypot(dx, dz);
           const nextX = distance <= step ? target.x : playerPos.x + (dx / distance) * step;
           const nextZ = distance <= step ? target.z : playerPos.z + (dz / distance) * step;
-          if (isWalkable(nextX, nextZ)) {
-            setPlayerPosition(nextX, nextZ);
+          const sweep = sweepBreachV2Movement(
+            { x: playerPos.x, z: playerPos.z },
+            { x: nextX, z: nextZ },
+            isWalkable,
+          );
+          if (sweep.completed) {
+            setPlayerPosition(sweep.resolvedEnd.x, sweep.resolvedEnd.z);
             if (distance <= step) clickPath.shift();
           } else {
             // Door state may have changed after the path was planned. Never let
@@ -2345,19 +4397,21 @@ export async function startDungeonPreview(
             playerPos.z + Math.cos(camYaw) * camDist * cp,
           );
           cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
-          if (isometricMode) {
-            camera.position.copy(desiredCamera);
-          } else {
-            cameraDirection.copy(desiredCamera).sub(cameraTarget);
-            const desiredDistance = cameraDirection.length();
-            cameraDirection.normalize();
-            cameraRaycaster.set(cameraTarget, cameraDirection);
-            cameraRaycaster.far = desiredDistance;
-            const wallHit = cameraRaycaster.intersectObject(shellGroup, true)[0];
-            const cameraDistance = wallHit
-              ? Math.max(0.75, Math.min(desiredDistance, wallHit.distance - 0.18))
-              : desiredDistance;
-            camera.position.copy(cameraTarget).addScaledVector(cameraDirection, cameraDistance);
+          clampDesiredCameraAboveFloor(desiredCamera, playerPos.y);
+          updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z);
+          runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+          hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+          const resolvedCameraDistance = resolveCameraAgainstScene(cameraTarget, desiredCamera);
+          if (playerPlaceholderMaterial) {
+            const targetOpacity = isometricMode
+              ? 1
+              : resolveBreachV2PlaceholderAvatarOpacity(resolvedCameraDistance);
+            playerPlaceholderMaterial.opacity = THREE.MathUtils.damp(
+              playerPlaceholderMaterial.opacity,
+              targetOpacity,
+              12,
+              delta,
+            );
           }
           camera.lookAt(cameraTarget);
         }
@@ -2366,6 +4420,18 @@ export async function startDungeonPreview(
         hooks.__dungeonPlayer.z = playerPos.z;
       } else {
         controls.update();
+        desiredCamera.copy(camera.position);
+        cameraTarget.copy(controls.target);
+        const targetFloor = floorElevationSampleAt(
+          layout,
+          cameraTarget.x,
+          cameraTarget.z,
+        ) ?? cameraTarget.y;
+        clampDesiredCameraAboveFloor(desiredCamera, targetFloor);
+        updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z);
+        runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+        hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+        resolveCameraAgainstScene(cameraTarget, desiredCamera);
       }
       const currentRoom = layout.rooms.find((room) => (
         playerPos.x >= room.x
@@ -2378,11 +4444,12 @@ export async function startDungeonPreview(
       gameplayUi.update();
       cullFrames += 1;
       if (cullFrames % 8 === 0) updateDetailVisibility();
-      // ceiling cutaway: caps read as ceilings at eye level (walk mode or a
-      // camera inside the room) and step aside for raised orbit review cameras.
-      // The walk camera is clamped below the cap so looking up always reveals
-      // authored dungeon ceiling instead of the outdoor void.
-      if (ceilings) ceilings.visible = walkMode && !isometricMode;
+      if (cullFrames % 30 === 0) {
+        hooks.__dungeonSpatialContractAudit = auditBreachV2SpatialContracts(
+          scene,
+          runtimeCollisionBlockers,
+        );
+      }
       renderer.render(scene, camera);
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {

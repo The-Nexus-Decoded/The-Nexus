@@ -9,9 +9,18 @@ interface InteractionTarget extends Position2D {
   interactionRadius?: number;
 }
 
+export interface BreachV2EnvironmentUiTarget extends Position2D {
+  id: string;
+  label: string;
+  interactionId?: string;
+  damageable: boolean;
+  interactionRadius?: number;
+}
+
 export interface BreachV2GameplayUi {
   update(): void;
   interactNearest(): string | null;
+  damageNearest(): string | null;
   destroy(): void;
 }
 
@@ -33,8 +42,19 @@ export function setupBreachV2GameplayUi(options: {
   layout: BreachV2Layout;
   controller: BreachV2RunController;
   getPlayerPosition: () => Position2D;
+  getEnvironmentTargets?: () => BreachV2EnvironmentUiTarget[];
+  damageEnvironment?: (targetId: string) => void;
+  isLineOfSightBlocked?: (start: Position2D, end: Position2D) => boolean;
 }): BreachV2GameplayUi {
-  const { container, layout, controller, getPlayerPosition } = options;
+  const {
+    container,
+    layout,
+    controller,
+    getPlayerPosition,
+    getEnvironmentTargets = () => [],
+    damageEnvironment = () => undefined,
+    isLineOfSightBlocked = () => false,
+  } = options;
   const panel = document.createElement("section");
   panel.setAttribute("aria-label", "First Breach run controls");
   panel.style.cssText = [
@@ -77,7 +97,13 @@ export function setupBreachV2GameplayUi(options: {
   const interactPrompt = document.createElement("span");
   interactPrompt.style.cssText = "color:#c9d5d8";
   interaction.append(interactButton, interactPrompt);
-  panel.append(heading, objective, status, vitals, controls, interaction);
+  const destruction = document.createElement("div");
+  destruction.style.cssText = "display:flex;align-items:center;gap:7px;margin-top:6px";
+  const damageButton = button("X Break", "Damage the nearest registered environment object");
+  const damagePrompt = document.createElement("span");
+  damagePrompt.style.cssText = "color:#c9d5d8";
+  destruction.append(damageButton, damagePrompt);
+  panel.append(heading, objective, status, vitals, controls, interaction, destruction);
   container.appendChild(panel);
 
   const targets: InteractionTarget[] = [
@@ -91,13 +117,49 @@ export function setupBreachV2GameplayUi(options: {
     { ...layout.landmarks.firstMemory, id: "first-memory", label: "First Memory" },
     { ...layout.landmarks.exitPoint, id: "heartvale-exit", label: "Heartvale threshold" },
   ];
+  const hasInteractionLine = (
+    player: { x: number; z: number },
+    target: { x: number; z: number },
+    distance: number,
+  ): boolean => {
+    if (distance <= 0.85) return true;
+    // Stop the LOS trace just before the target's own solid footprint. The
+    // target may block sight and movement authoritatively without blocking
+    // interaction with its reachable face.
+    const endpointInset = Math.min(0.85, distance * 0.5);
+    const approachPoint = {
+      x: target.x + ((player.x - target.x) / distance) * endpointInset,
+      z: target.z + ((player.z - target.z) / distance) * endpointInset,
+    };
+    return !isLineOfSightBlocked(player, approachPoint);
+  };
   const nearestTarget = (): { target: InteractionTarget; distance: number } | null => {
     const player = getPlayerPosition();
-    const nearest = targets
+    const dynamicTargets = getEnvironmentTargets()
+      .filter((target) => target.interactionId)
+      .map((target) => ({
+        ...target,
+        id: target.interactionId!,
+      }));
+    const nearest = [...targets, ...dynamicTargets]
       .map((target) => ({ target, distance: Math.hypot(player.x - target.x, player.z - target.z) }))
-      .filter(({ target, distance }) => distance <= (target.interactionRadius ?? 2.6))
+      .filter(({ target, distance }) => (
+        distance <= (target.interactionRadius ?? 2.6)
+        && hasInteractionLine(player, target, distance)
+      ))
       .sort((a, b) => a.distance - b.distance)[0];
     return nearest ?? null;
+  };
+  const nearestDamageTarget = (): BreachV2EnvironmentUiTarget | null => {
+    const player = getPlayerPosition();
+    return getEnvironmentTargets()
+      .filter((target) => target.damageable)
+      .map((target) => ({ target, distance: Math.hypot(player.x - target.x, player.z - target.z) }))
+      .filter(({ target, distance }) => (
+        distance <= (target.interactionRadius ?? 2.8)
+        && hasInteractionLine(player, target, distance)
+      ))
+      .sort((a, b) => a.distance - b.distance)[0]?.target ?? null;
   };
   const interactNearest = (): string | null => {
     const nearest = nearestTarget();
@@ -106,12 +168,20 @@ export function setupBreachV2GameplayUi(options: {
     return nearest.target.id;
   };
   interactButton.addEventListener("click", interactNearest);
+  const damageNearest = (): string | null => {
+    const nearest = nearestDamageTarget();
+    if (!nearest) return null;
+    damageEnvironment(nearest.id);
+    return nearest.id;
+  };
+  damageButton.addEventListener("click", damageNearest);
 
   let signature = "";
   const update = (): void => {
     const state = controller.snapshot();
     const nearest = nearestTarget();
-    const nextSignature = `${state.revision}:${nearest?.target.id ?? "none"}:${state.combatStyle}`;
+    const damageTarget = nearestDamageTarget();
+    const nextSignature = `${state.revision}:${nearest?.target.id ?? "none"}:${damageTarget?.id ?? "none"}:${state.combatStyle}`;
     if (nextSignature === signature) return;
     signature = nextSignature;
     objective.textContent = `Objective: ${controller.objective()}`;
@@ -126,7 +196,9 @@ export function setupBreachV2GameplayUi(options: {
     restore.disabled = state.phase !== "defeat";
     interactButton.disabled = !nearest;
     interactPrompt.textContent = nearest ? `Nearby: ${nearest.target.label}` : "Move near a story landmark";
+    damageButton.disabled = !damageTarget;
+    damagePrompt.textContent = damageTarget ? `Break/test: ${damageTarget.label}` : "No break/test target in range";
   };
   update();
-  return { update, interactNearest, destroy: () => panel.remove() };
+  return { update, interactNearest, damageNearest, destroy: () => panel.remove() };
 }
