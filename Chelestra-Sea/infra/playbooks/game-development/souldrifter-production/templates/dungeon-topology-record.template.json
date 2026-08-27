@@ -162,6 +162,117 @@
       }
     }
   ],
+  "effectivePlacementContracts": [
+    {
+      "placementId": "",
+      "placementKind": "PROCEDURAL_OR_STATIC_DRESSING",
+      "objectId": "",
+      "contractResolution": {
+        "assetCatalogDefaultRecordId": "",
+        "placementRegistryApprovedOverrideId": "",
+        "generatedLayoutContractId": "",
+        "resolutionStatus": "NOT_RUN"
+      },
+      "finalFittedRuntimeFootprint": {
+        "footprintId": "",
+        "stateRevision": 0,
+        "worldTransform": {
+          "position": [0, 0, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        },
+        "worldBounds": {
+          "min": [0, 0, 0],
+          "max": [0, 0, 0]
+        },
+        "actorBlockerOwnerIds": [],
+        "cameraBlockerOwnerIds": [],
+        "resolutionStatus": "NOT_RUN"
+      },
+      "clearanceStatus": "NOT_RUN",
+      "standabilityStatus": "NOT_RUN",
+      "reachabilityStatus": "NOT_RUN",
+      "acceptanceDecision": "NOT_RUN",
+      "retryBacktrackOrRejectionEvidence": [],
+      "evidence": []
+    }
+  ],
+  "bodyProfileSeedRouteValidation": {
+    "requiredBodyProfiles": [
+      {
+        "bodyProfileId": "",
+        "profileType": "PLAYER_OR_NPC_COMPANION",
+        "bodyDimensions": {
+          "radius": 0,
+          "height": 0
+        },
+        "required": true
+      }
+    ],
+    "configuredSeedRouteMatrix": [
+      {
+        "seedOrVariant": "",
+        "routeOrPathId": "",
+        "bodyProfileId": "",
+        "effectivePlacementContractIds": [],
+        "clearanceStatus": "NOT_RUN",
+        "reachabilityStatus": "NOT_RUN",
+        "result": "NOT_RUN",
+        "blockedVariantDisposition": "NOT_REQUIRED",
+        "evidence": []
+      }
+    ],
+    "representativeRandomSeedSweep": {
+      "selectionMethod": "",
+      "requestedSampleCount": 0,
+      "results": [
+        {
+          "seedOrVariant": "",
+          "routeOrPathId": "",
+          "bodyProfileId": "",
+          "effectivePlacementContractIds": [],
+          "clearanceStatus": "NOT_RUN",
+          "reachabilityStatus": "NOT_RUN",
+          "result": "NOT_RUN",
+          "blockedVariantDisposition": "NOT_REQUIRED",
+          "evidence": []
+        }
+      ]
+    },
+    "status": "NOT_RUN"
+  },
+  "artifactExportAssemblyPreservation": {
+    "exportArtifactIds": [],
+    "assemblies": [
+      {
+        "assemblyId": "",
+        "assemblyClass": "ACTIVE_OR_INACTIVE_OR_CONDITIONAL_OR_SUPPLEMENTAL",
+        "requiredByRoutesOrStates": [],
+        "sourceStableIds": [],
+        "exportedStableIds": [],
+        "preserved": null,
+        "status": "NOT_RUN",
+        "evidence": []
+      }
+    ],
+    "status": "NOT_RUN"
+  },
+  "cameraOnlyOverheadSolidProof": [
+    {
+      "ownerId": "",
+      "visibleAssetOrAssemblyId": "",
+      "solidType": "LINTEL_CEILING_BEAM_OR_CAP",
+      "finalFittedRuntimeFootprintId": "",
+      "actorPassageExpected": true,
+      "actorBlockerOwnerIds": [],
+      "cameraBlockerOwnerIds": [],
+      "actorPassageStatus": "NOT_RUN",
+      "cameraCollisionStatus": "NOT_RUN",
+      "cameraOcclusionStatus": "NOT_RUN",
+      "result": "NOT_RUN",
+      "evidence": []
+    }
+  ],
   "productionMovementEvidence": [
     {
       "edgeId": "",
@@ -277,7 +388,15 @@
     "cameraParityFailures": 0,
     "movementPrimitiveParityFailures": 0,
     "diagonalNavigationFailures": 0,
-    "continuousSegmentOrSweepFailures": 0
+    "continuousSegmentOrSweepFailures": 0,
+    "effectivePlacementContractFailures": 0,
+    "finalFittedRuntimeFootprintFailures": 0,
+    "configuredSeedRouteMatrixCoverageFailures": 0,
+    "requiredBodyProfileClearanceFailures": 0,
+    "requiredBodyProfileReachabilityFailures": 0,
+    "representativeRandomSeedSweepFailures": 0,
+    "artifactTopologyAssemblyLosses": 0,
+    "cameraOnlyOverheadBlockerFailures": 0
   },
   "firstBreachChecks": {
     "magicalPortalTransferPresent": false,

@@ -187,6 +187,23 @@ Runtime ownership requirements:
 - fitting/normalization and world placement happen before final world bounds are measured and the final proxy is derived or validated;
 - closed/open/raised, intact/damaged/destroyed, enabled/disabled and spawned/despawned transitions update render plus every spatial consumer atomically.
 
+## Effective placement and export gate
+
+Before any procedural placement or static dressing placement is accepted, resolve its effective spatial contract in this order:
+
+```text
+asset-catalog default
+-> placement-registry approved override
+-> generated-layout contract
+-> final fitted runtime footprint
+```
+
+Clearance, standability and reachability consume the effective actor blockers and effective camera blockers from that final fitted footprint. Catalog guesses, authored footprint assumptions and pre-fit bounds cannot substitute for the resolved contract.
+
+Run this acceptance gate across the complete configured seed/route matrix plus a representative random-seed sweep for every required body profile, including the player and each NPC/companion profile. When any required profile loses clearance or reachability, retry another legal placement/orientation, backtrack, or reject the variant.
+
+Artifact export must preserve active, inactive, conditional and supplemental topology assemblies together with their stable IDs, contracts and state metadata. An assembly cannot be pruned merely because it is inactive, hidden or unselected in the current render state when another supported route, state, runtime consumer or proof step requires it.
+
 ---
 
 # 6. Diagnostic gate
@@ -241,6 +258,10 @@ postFitProxyMismatchFailures == 0
 spatialQueryStateParityFailures == 0
 productionMovementPrimitiveParityFailures == 0
 continuousSweepFailures == 0
+effectivePlacementContractFailures == 0
+requiredBodyProfileClearanceFailures == 0
+artifactTopologyAssemblyLosses == 0
+cameraOnlyOverheadBlockerFailures == 0
 ```
 
 Additional requirements:
@@ -269,6 +290,8 @@ The verifier uses the real movement mode:
 - activation/arrival checks for true transfer edges.
 
 Ground-route and collision acceptance invokes the actual production movement/collision primitive with production body dimensions, speed, timestep and substep rules. Test axis-aligned and diagonal approaches, corners, grazing, wall sliding, thin obstacles and every reachable dynamic-threshold or destructible footprint state. Record and validate every continuous swept segment between movement samples.
+
+Test actor-passable camera-only overhead solids, including visible lintels, ceilings, beams and caps where applicable. Their effective camera blockers must prevent invalid camera passage or visibility while remaining absent from actor reachability blockers when their contract permits actors beneath them.
 
 Endpoint arrival, grid/BFS/path/navigation reachability and sparse point checks are insufficient even when a route reaches its destination. Runtime proof/debug hooks must query the same complete spatial authority and current state revision as production.
 
@@ -318,6 +341,9 @@ Store per seed/variant:
 - automated results;
 - AI/owner review;
 - production movement/body/timestep plus continuous swept-segment runtime evidence;
+- configured seed/route matrix and representative random-seed results for every required player and NPC/companion body profile;
+- artifact-export manifest proving active, inactive, conditional and supplemental topology assemblies survived export;
+- camera-only overhead-solid collision and occlusion evidence where applicable;
 - verifier status.
 
 ## Done rule

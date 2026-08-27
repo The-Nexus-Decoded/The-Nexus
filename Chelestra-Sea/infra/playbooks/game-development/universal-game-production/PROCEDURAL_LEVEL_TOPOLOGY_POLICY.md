@@ -109,6 +109,23 @@ Rules:
 - water/air volumes cannot trap the player;
 - runtime construction consumes the accepted inventory instead of independently closing every module.
 
+## Effective placement and export gate
+
+Before any procedural placement or static dressing placement is accepted, resolve its effective spatial contract in this order:
+
+```text
+asset-catalog default
+-> placement-registry approved override
+-> generated-layout contract
+-> final fitted runtime footprint
+```
+
+Clearance, standability and reachability consume the effective actor blockers and effective camera blockers from that final fitted footprint. Catalog guesses, authored footprint assumptions and pre-fit bounds cannot substitute for the resolved contract.
+
+Run this acceptance gate across the complete configured seed/route matrix plus a representative random-seed sweep for every required body profile, including the player and each NPC/companion profile. When any required profile loses clearance or reachability, retry another legal placement/orientation, backtrack, or reject the variant.
+
+Artifact export must preserve active, inactive, conditional and supplemental topology assemblies together with their stable IDs, contracts and state metadata. An assembly cannot be pruned merely because it is inactive, hidden or unselected in the current render state when another supported route, state, runtime consumer or proof step requires it.
+
 ---
 
 # Diagnostic gate
@@ -156,6 +173,10 @@ unsupportedElevationOrDepthTransitions == 0
 movementStateTransitionFailures == 0
 resourceRuleFailures == 0
 recoveryOrSoftLockFailures == 0
+effectivePlacementContractFailures == 0
+requiredBodyProfileClearanceFailures == 0
+artifactTopologyAssemblyLosses == 0
+cameraOnlyOverheadBlockerFailures == 0
 ```
 
 Every required progression node is reachable under intended locks/states.
@@ -184,6 +205,8 @@ Capture source, transition/midpoint and destination. Verify camera, animation, c
 
 Runtime traversal uses the exact production movement primitive, intended body profile and integration timestep. For each physical connection, exercise axis-aligned and diagonal/combined input, corner approaches, wall sliding and a continuous swept segment from source through transition to destination. Endpoint standability, grid occupancy, waypoint reachability, pathfinding success and sparse predicate samples cannot prove continuous traversal or exclude tunneling and corner cutting.
 
+Test actor-passable camera-only overhead solids, including visible lintels, ceilings, beams and caps where applicable. Their effective camera blockers must prevent invalid camera passage or visibility while remaining absent from actor reachability blockers when their contract permits actors beneath them.
+
 Debug teleport/warp may be used for inspection but not connection proof.
 
 ---
@@ -202,6 +225,9 @@ Store per seed/variant:
 - automated results;
 - AI/design review;
 - runtime evidence;
+- configured seed/route matrix and representative random-seed results for every required player and NPC/companion body profile;
+- artifact-export manifest proving active, inactive, conditional and supplemental topology assemblies survived export;
+- camera-only overhead-solid collision and occlusion evidence where applicable;
 - verifier status.
 
 ## Universal done rule
