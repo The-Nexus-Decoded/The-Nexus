@@ -5,6 +5,7 @@ import {
   boundedSlippageBps,
   campaignMilestones,
   campaignReturnSol,
+  classifyCloseNativeDelta,
   deployableCampaignTokenRaw,
   exitProfitSweepLamports,
   feeSweepLamports,
@@ -77,6 +78,30 @@ assert.equal(nextLiquiditySlippagePct(3), 5);
 assert.equal(nextLiquiditySlippagePct(5), null);
 assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 0n), 2_703_525_237n);
 assert.equal(deployableCampaignTokenRaw(2_703_525_237n, 3_000_000_000n), 0n);
+
+const rentExcludedClose = classifyCloseNativeDelta(
+  912_000_000n,
+  10_000_000n,
+  2_000_000n,
+  900_000_000n,
+);
+assert.deepEqual(rentExcludedClose, {
+  grossReceivedLamports: 912_000_000n,
+  excludedRentLamports: 900_000_000n,
+  economicReceivedLamports: 12_000_000n,
+  principalLamports: 10_000_000n,
+  realizedFeeLamports: 2_000_000n,
+  unclassifiedLamports: 0n,
+});
+const closeCostsReduceFeesFirst = classifyCloseNativeDelta(
+  911_500_000n,
+  10_000_000n,
+  2_000_000n,
+  900_000_000n,
+);
+assert.equal(closeCostsReduceFeesFirst.principalLamports, 10_000_000n);
+assert.equal(closeCostsReduceFeesFirst.realizedFeeLamports, 1_500_000n);
+assert.equal(closeCostsReduceFeesFirst.excludedRentLamports, 900_000_000n);
 
 assert.equal(rangeState(-631, -630, -409), 'out_below');
 assert.equal(rangeState(-630, -630, -409), 'lower_edge');

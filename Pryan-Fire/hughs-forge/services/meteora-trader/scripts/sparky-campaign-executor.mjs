@@ -220,6 +220,31 @@ export function feeSweepLamports(realizedFeeLamports, breakEvenReached) {
   return fees - TRANSFER_FEE_BUFFER_LAMPORTS;
 }
 
+export function classifyCloseNativeDelta(
+  grossReceivedLamports,
+  expectedPrincipalLamports,
+  expectedFeeLamports,
+  refundableRentLamports,
+) {
+  const gross = BigInt(grossReceivedLamports);
+  const expectedPrincipal = BigInt(expectedPrincipalLamports);
+  const expectedFees = BigInt(expectedFeeLamports);
+  const refundableRent = BigInt(refundableRentLamports);
+  const excludedRent = gross < refundableRent ? gross : refundableRent;
+  const economicReceived = gross - excludedRent;
+  const principal = economicReceived < expectedPrincipal ? economicReceived : expectedPrincipal;
+  const afterPrincipal = economicReceived - principal;
+  const realizedFees = afterPrincipal < expectedFees ? afterPrincipal : expectedFees;
+  return {
+    grossReceivedLamports: gross,
+    excludedRentLamports: excludedRent,
+    economicReceivedLamports: economicReceived,
+    principalLamports: principal,
+    realizedFeeLamports: realizedFees,
+    unclassifiedLamports: afterPrincipal - realizedFees,
+  };
+}
+
 export function exitProfitSweepLamports(exitProceedsLamports, entryBasisSol = CAMPAIGN.entryBasisSol) {
   const basis = BigInt(Math.round(entryBasisSol * LAMPORTS_PER_SOL));
   const proceeds = BigInt(exitProceedsLamports);
@@ -323,6 +348,9 @@ function newJournal() {
       cumulativeNetFeesEarnedLamports: '0',
       cumulativeFeesSweptLamports: '0',
       cumulativeExecutionCostsLamports: '0',
+      excludedRentRefundLamports: '0',
+      accountedFeeStages: [],
+      feeBatches: [],
       feeSweeps: [],
       exitSettlement: null,
     },
@@ -340,6 +368,10 @@ function loadOrCreateJournal() {
     profitPct: CAMPAIGN.targetProfitPct,
     addedAt: journal.createdAt || new Date().toISOString(),
   }];
+  journal.ledger.excludedRentRefundLamports ||= '0';
+  journal.ledger.accountedFeeStages ||= [];
+  journal.ledger.feeBatches ||= [];
+  journal.ledger.feeSweeps ||= [];
   return journal;
 }
 
@@ -491,7 +523,10 @@ async function positionPostcondition(connection, pool, address, lowerBinId, uppe
   const populatedRangeWithinEnrollment = requireLiquidity
     && actualLower >= lowerBinId
     && actualUpper <= upperBinId;
-  if (!exactRange && !populatedRangeWithinEnrollment) {
+  const populatedRangeWithinSdkBoundary = requireLiquidity
+    && actualLower >= lowerBinId - 1
+    && actualUpper <= upperBinId + 1;
+  if (!exactRange && !populatedRangeWithinEnrollment && !populatedRangeWithinSdkBoundary) {
     return {
       ok: false,
       reason: `position_range_mismatch:${actualLower}:${actualUpper}`,
@@ -982,8 +1017,10 @@ async function createWidePosition(
     address: wideKeypair.publicKey.toBase58(),
     generation,
     strategy: 'BidAsk',
-    lowerBinId: lower,
-    upperBinId: upper,
+    lowerBinId: Number(wideEvidence.evidence.lowerBinId),
+    upperBinId: Number(wideEvidence.evidence.upperBinId),
+    requestedLowerBinId: lower,
+    requestedUpperBinId: upper,
   };
   resetLiquiditySlippage(journal, 'wide');
   recordActionReconciled(journal, `wide_g${generation}_ready`, wideEvidence);
@@ -1086,8 +1123,10 @@ async function createTightPosition(
     address: tightKeypair.publicKey.toBase58(),
     generation,
     strategy: 'Spot',
-    lowerBinId: lower,
-    upperBinId: upper,
+    lowerBinId: Number(tightEvidence.evidence.lowerBinId),
+    upperBinId: Number(tightEvidence.evidence.upperBinId),
+    requestedLowerBinId: lower,
+    requestedUpperBinId: upper,
   };
   resetLiquiditySlippage(journal, 'tight');
   recordActionReconciled(journal, `tight_g${generation}_ready`, tightEvidence);
@@ -1349,7 +1388,28 @@ async function executeJupiterOrder(connection, order, wallet, stageName) {
 
 async function deployWideWalletResidual(connection, pool, wallet, journal, position) {
   const record = journal.positions.wide;
+  const residualPrefix = `wide_g${record.generation}_residual_`;
+  const confirmedResidualStages = Object.entries(journal.stages || {})
+    .filter(([stageName, stage]) => (
+      stageName.startsWith(residualPrefix) && stage.status === 'chain_confirmed'
+    ));
+  for (const [stageName] of confirmedResidualStages) {
+    await finalizeStage(connection, journal, stageName, () => positionPostcondition(
+      connection,
+      pool,
+      position.publicKey.toBase58(),
+      Number(record.lowerBinId),
+      Number(record.upperBinId),
+      true,
+    ));
+  }
+  const reconciledPosition = await positionOrNull(connection, pool, position.publicKey);
+  if (!reconciledPosition) throw new Error('wide_position_missing_during_residual_reconciliation');
+  record.lowerBinId = Number(reconciledPosition.positionData.lowerBinId);
+  record.upperBinId = Number(reconciledPosition.positionData.upperBinId);
+  atomicWriteJson(STATE_FILE, journal);
   const dustThresholdRaw = 10n ** BigInt(pool.tokenX.mint.decimals);
+  const tightResidualThresholdRaw = dustThresholdRaw * 10n;
   const maximumPasses = 3;
   for (let pass = 1; pass <= maximumPasses; pass += 1) {
     const before = await walletSnapshot(connection, wallet.publicKey);
@@ -1365,6 +1425,80 @@ async function deployWideWalletResidual(connection, pool, wallet, journal, posit
       };
       atomicWriteJson(STATE_FILE, journal);
       return;
+    }
+    if (deployableRaw <= tightResidualThresholdRaw) {
+      const tightRecord = journal.positions.tight;
+      const tightPosition = await positionOrNull(connection, pool, tightRecord.address);
+      if (!tightPosition) throw new Error('tight_position_missing_for_small_principal_residual');
+      const slippagePct = liquiditySlippagePct(
+        journal,
+        'tight',
+        Number(tightRecord.generation),
+      );
+      const strategy = {
+        minBinId: Number(tightRecord.lowerBinId),
+        maxBinId: Number(tightRecord.upperBinId),
+        strategyType: StrategyType.Spot,
+        singleSidedX: true,
+      };
+      try {
+        const transactions = await pool.addLiquidityByStrategyChunkable({
+          positionPubKey: tightPosition.publicKey,
+          user: wallet.publicKey,
+          totalXAmount: new BN(deployableRaw.toString()),
+          totalYAmount: new BN(0),
+          strategy,
+          slippage: slippagePct,
+        });
+        if (!transactions.length) throw new Error('tight_residual_builder_returned_no_transactions');
+        for (let index = 0; index < transactions.length; index += 1) {
+          await sendStage(
+            connection,
+            journal,
+            `tight_g${tightRecord.generation}_principal_residual_${deployableRaw}_${index + 1}`,
+            transactions[index],
+            [wallet],
+            {
+              postcondition: () => positionPostcondition(
+                connection,
+                pool,
+                tightPosition.publicKey.toBase58(),
+                Number(tightRecord.lowerBinId),
+                Number(tightRecord.upperBinId),
+                true,
+              ),
+            },
+          );
+        }
+      } catch (error) {
+        recordLiquiditySlippageFailure(
+          journal,
+          'tight',
+          Number(tightRecord.generation),
+          slippagePct,
+          error,
+        );
+      }
+      const afterTightDeposit = await walletSnapshot(connection, wallet.publicKey);
+      const remainingAfterTight = deployableCampaignTokenRaw(
+        afterTightDeposit.sparkyRaw,
+        pendingFeeXRaw,
+      );
+      if (remainingAfterTight >= deployableRaw) {
+        throw new Error(`tight_residual_deposit_made_no_progress:${deployableRaw}:${remainingAfterTight}`);
+      }
+      journal.wideResidual = {
+        status: remainingAfterTight <= dustThresholdRaw ? 'reconciled' : 'retrying',
+        destination: 'tight_spot',
+        observedAt: new Date().toISOString(),
+        beforeRaw: deployableRaw.toString(),
+        remainingRaw: remainingAfterTight.toString(),
+        pendingFeeXRaw: pendingFeeXRaw.toString(),
+        dustThresholdRaw: dustThresholdRaw.toString(),
+      };
+      atomicWriteJson(STATE_FILE, journal);
+      if (remainingAfterTight <= dustThresholdRaw) return;
+      continue;
     }
     const slippagePct = liquiditySlippagePct(journal, 'wide', Number(record.generation));
     const strategy = {
@@ -1484,6 +1618,39 @@ async function executableSnapshot(connection, pool, journal) {
   };
 }
 
+function recordFeeBatch(journal, stageName, netFeeLamports, source) {
+  const amount = BigInt(netFeeLamports);
+  if (amount <= 0n || journal.ledger.accountedFeeStages.includes(stageName)) return false;
+  journal.ledger.cumulativeNetFeesEarnedLamports = (
+    BigInt(journal.ledger.cumulativeNetFeesEarnedLamports || 0) + amount
+  ).toString();
+  journal.ledger.accountedFeeStages.push(stageName);
+  journal.ledger.feeBatches.push({
+    stage: stageName,
+    source,
+    netFeeLamports: amount.toString(),
+    accountedAt: new Date().toISOString(),
+  });
+  return true;
+}
+
+function reconcileUnaccountedFeeSwapStages(journal) {
+  let changed = false;
+  for (const [stageName, stage] of Object.entries(journal.stages || {})) {
+    if (!/^fee_swap_\d+$/.test(stageName) || stage.status !== 'reconciled') continue;
+    const walletDelta = stage.postcondition?.evidence?.walletLamportDelta;
+    if (walletDelta === undefined) continue;
+    changed = recordFeeBatch(
+      journal,
+      stageName,
+      BigInt(walletDelta),
+      'recovered_reconciled_fee_swap',
+    ) || changed;
+  }
+  if (changed) atomicWriteJson(STATE_FILE, journal);
+  return changed;
+}
+
 async function claimFees(connection, pool, wallet, journal, positions) {
   const before = await walletSnapshot(connection, wallet.publicKey);
   const claimablePositions = positions.filter((position) => {
@@ -1532,8 +1699,30 @@ async function claimFees(connection, pool, wallet, journal, positions) {
   const netFeeLamports = transactionDelta + pendingFeeSol;
   journal.ledger.pendingFeeXRaw = '0';
   journal.ledger.pendingFeeSolLamports = '0';
+  const feeBatchStage = feeSwapStage || `fee_batch_${Date.now()}`;
+  if (!feeSwapStage) {
+    journal.stages[feeBatchStage] = {
+      status: 'reconciled',
+      reconciledAt: new Date().toISOString(),
+      postcondition: {
+        ok: netFeeLamports > 0n,
+        evidence: { walletLamportDelta: transactionDelta.toString() },
+      },
+    };
+  }
+  recordFeeBatch(
+    journal,
+    feeBatchStage,
+    netFeeLamports > 0n ? netFeeLamports : 0n,
+    'claimed_and_realized_fees',
+  );
   atomicWriteJson(STATE_FILE, journal);
-  return netFeeLamports > 0n ? netFeeLamports : 0n;
+  return {
+    feeBatchStage,
+    netFeeLamports: netFeeLamports > 0n ? netFeeLamports : 0n,
+    transactionDeltaLamports: transactionDelta,
+    includedPendingFeeSolLamports: pendingFeeSol,
+  };
 }
 
 async function transferLamports(connection, wallet, destination, lamports, journal, stageName) {
@@ -1554,6 +1743,52 @@ async function transferLamports(connection, wallet, destination, lamports, journ
         : { ok: false, reason: `destination_balance_delta_too_small:${received}` };
     },
   });
+}
+
+async function sweepProvenFeesIfEligible(connection, wallet, journal, snapshot) {
+  if (!snapshot.breakEvenReached) return null;
+  const earned = BigInt(journal.ledger.cumulativeNetFeesEarnedLamports || 0);
+  const swept = BigInt(journal.ledger.cumulativeFeesSweptLamports || 0);
+  const unswept = earned > swept ? earned - swept : 0n;
+  const sweepLamports = feeSweepLamports(unswept, true);
+  if (sweepLamports <= 0n) return null;
+  const walletBalance = BigInt(await connection.getBalance(wallet.publicKey, 'confirmed'));
+  const preferredReserve = BigInt(Math.round(PREFERRED_NATIVE_SOL * LAMPORTS_PER_SOL));
+  const requiredBalance = preferredReserve + TRANSFER_FEE_BUFFER_LAMPORTS + sweepLamports;
+  if (walletBalance < requiredBalance) {
+    throw new Error(
+      `fee_sweep_exceeds_available_proven_balance:requested=${sweepLamports}`
+      + `:wallet=${walletBalance}:required_reserve=${preferredReserve}`,
+    );
+  }
+  const before = await walletSnapshot(connection, wallet.publicKey);
+  const stageName = `fee_profit_sweep_${Date.now()}`;
+  const signature = await transferLamports(
+    connection,
+    wallet,
+    CAMPAIGN.profitWallet,
+    sweepLamports,
+    journal,
+    stageName,
+  );
+  const after = await walletSnapshot(connection, wallet.publicKey);
+  const sourceDelta = before.lamports > after.lamports ? before.lamports - after.lamports : 0n;
+  const transferCost = sourceDelta > sweepLamports ? sourceDelta - sweepLamports : 0n;
+  journal.ledger.cumulativeFeesSweptLamports = (swept + sweepLamports).toString();
+  journal.ledger.cumulativeExecutionCostsLamports = (
+    BigInt(journal.ledger.cumulativeExecutionCostsLamports || 0) + transferCost
+  ).toString();
+  journal.ledger.feeSweeps.push({
+    at: new Date().toISOString(),
+    stage: stageName,
+    netEarnedFeeLamports: earned.toString(),
+    sweptLamports: sweepLamports.toString(),
+    transferCostLamports: transferCost.toString(),
+    signature,
+  });
+  journal.ledger.lastFeeActionAt = new Date().toISOString();
+  atomicWriteJson(STATE_FILE, journal);
+  return { stageName, signature, sweepLamports, transferCost };
 }
 
 async function closePositions(connection, pool, wallet, journal, positions, prefix) {
@@ -1630,6 +1865,9 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
   if (!state.startsWith('out_')) return false;
 
   const inventory = positionInventory(position);
+  const positionAccount = await connection.getAccountInfo(position.publicKey, 'confirmed');
+  if (!positionAccount) throw new Error(`${role}_position_account_missing_before_retarget_close`);
+  const refundableRentLamports = BigInt(positionAccount.lamports);
   const before = await walletSnapshot(connection, wallet.publicKey);
   await closePositions(connection, pool, wallet, journal, [position], `${role}_g${generation}_retarget_close`);
   const afterClose = await walletSnapshot(connection, wallet.publicKey);
@@ -1639,9 +1877,34 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
     ? receivedX * inventory.tokenXRaw / expectedX
     : 0n;
   const realizedFeeXRaw = receivedX - principalXRaw;
-  const receivedSol = afterClose.lamports > before.lamports ? afterClose.lamports - before.lamports : 0n;
-  const principalYRaw = receivedSol < inventory.tokenYRaw ? receivedSol : inventory.tokenYRaw;
-  const realizedFeeSol = receivedSol - principalYRaw;
+  const receivedSol = afterClose.lamports > before.lamports
+    ? afterClose.lamports - before.lamports
+    : 0n;
+  const nativeClose = classifyCloseNativeDelta(
+    receivedSol,
+    inventory.tokenYRaw,
+    inventory.feeYRaw,
+    refundableRentLamports,
+  );
+  const principalYRaw = nativeClose.principalLamports;
+  const realizedFeeSol = nativeClose.realizedFeeLamports;
+  journal.ledger.excludedRentRefundLamports = (
+    BigInt(journal.ledger.excludedRentRefundLamports || 0) + nativeClose.excludedRentLamports
+  ).toString();
+  journal.closeAccounting ||= [];
+  journal.closeAccounting.push({
+    role,
+    generation,
+    reason: 'out_of_range_retarget',
+    priorPosition: position.publicKey.toBase58(),
+    grossReceivedLamports: nativeClose.grossReceivedLamports.toString(),
+    excludedRentLamports: nativeClose.excludedRentLamports.toString(),
+    economicReceivedLamports: nativeClose.economicReceivedLamports.toString(),
+    principalLamports: nativeClose.principalLamports.toString(),
+    realizedFeeLamports: nativeClose.realizedFeeLamports.toString(),
+    unclassifiedLamports: nativeClose.unclassifiedLamports.toString(),
+    at: new Date().toISOString(),
+  });
 
   let redeployXRaw = principalXRaw;
   if (principalYRaw > TRANSFER_FEE_BUFFER_LAMPORTS) {
@@ -1782,6 +2045,9 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   });
   if (!plan) throw new Error('principal_only_terminal_coverage_infeasible');
 
+  const positionAccount = await connection.getAccountInfo(wide.publicKey, 'confirmed');
+  if (!positionAccount) throw new Error('wide_position_account_missing_before_coverage_close');
+  const refundableRentLamports = BigInt(positionAccount.lamports);
   const before = await walletSnapshot(connection, wallet.publicKey);
   await closePositions(connection, pool, wallet, journal, [wide], `wide_g${generation}_coverage_close`);
   const afterClose = await walletSnapshot(connection, wallet.publicKey);
@@ -1789,9 +2055,34 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   const expectedX = inventory.tokenXRaw + inventory.feeXRaw;
   const principalXRaw = expectedX > 0n ? receivedX * inventory.tokenXRaw / expectedX : 0n;
   const realizedFeeXRaw = receivedX - principalXRaw;
-  const receivedSol = afterClose.lamports > before.lamports ? afterClose.lamports - before.lamports : 0n;
-  const principalYRaw = receivedSol < inventory.tokenYRaw ? receivedSol : inventory.tokenYRaw;
-  const realizedFeeSol = receivedSol - principalYRaw;
+  const receivedSol = afterClose.lamports > before.lamports
+    ? afterClose.lamports - before.lamports
+    : 0n;
+  const nativeClose = classifyCloseNativeDelta(
+    receivedSol,
+    inventory.tokenYRaw,
+    inventory.feeYRaw,
+    refundableRentLamports,
+  );
+  const principalYRaw = nativeClose.principalLamports;
+  const realizedFeeSol = nativeClose.realizedFeeLamports;
+  journal.ledger.excludedRentRefundLamports = (
+    BigInt(journal.ledger.excludedRentRefundLamports || 0) + nativeClose.excludedRentLamports
+  ).toString();
+  journal.closeAccounting ||= [];
+  journal.closeAccounting.push({
+    role: 'wide',
+    generation,
+    reason: 'principal_only_terminal_coverage_repair',
+    priorPosition: wide.publicKey.toBase58(),
+    grossReceivedLamports: nativeClose.grossReceivedLamports.toString(),
+    excludedRentLamports: nativeClose.excludedRentLamports.toString(),
+    economicReceivedLamports: nativeClose.economicReceivedLamports.toString(),
+    principalLamports: nativeClose.principalLamports.toString(),
+    realizedFeeLamports: nativeClose.realizedFeeLamports.toString(),
+    unclassifiedLamports: nativeClose.unclassifiedLamports.toString(),
+    at: new Date().toISOString(),
+  });
   let redeployXRaw = principalXRaw;
   if (principalYRaw > TRANSFER_FEE_BUFFER_LAMPORTS) {
     const beforeSwap = await walletSnapshot(connection, wallet.publicKey);
@@ -1935,7 +2226,10 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   if (existingReplacement) {
     const existingWidth = Number(existingReplacement.positionData.upperBinId)
       - Number(existingReplacement.positionData.lowerBinId);
-    if (existingWidth !== width) {
+    // A replacement that is wider than the fallback remains safe. Closing it
+    // merely because its upper edge is one or more bins farther out creates an
+    // unnecessary token-transfer-fee round trip during interruption recovery.
+    if (existingWidth < width) {
       const inventory = positionInventory(existingReplacement);
       const isEmpty = inventory.tokenXRaw + inventory.tokenYRaw
         + inventory.feeXRaw + inventory.feeYRaw === 0n;
@@ -1982,9 +2276,11 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   const existingXRaw = existingReplacement
     ? positionInventory(existingReplacement).tokenXRaw
     : 0n;
-  const remainingXRaw = recoveredXRaw > existingXRaw ? recoveredXRaw - existingXRaw : 0n;
   const walletState = await walletSnapshot(connection, wallet.publicKey);
-  if (walletState.sparkyRaw < remainingXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
+  const pendingFeeXRaw = BigInt(journal.ledger.pendingFeeXRaw || 0);
+  const walletPrincipalXRaw = deployableCampaignTokenRaw(walletState.sparkyRaw, pendingFeeXRaw);
+  const recoverablePrincipalXRaw = existingXRaw + walletPrincipalXRaw;
+  if (recoverablePrincipalXRaw <= 0n) throw new Error('wide_recovery_wallet_inventory_missing');
   const freshActiveBinId = Number((await getActiveBinVerified(workingPool)).binId);
   const lowerBinId = existingReplacement
     ? Number(existingReplacement.positionData.lowerBinId)
@@ -1999,7 +2295,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     journal,
     { recoveryPosition: { minBinId: lowerBinId, maxBinId: upperBinId } },
     replacement,
-    recoveredXRaw,
+    recoverablePrincipalXRaw,
     0n,
     replacementGeneration,
   );
@@ -2016,7 +2312,9 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     generation: replacementGeneration,
     reason: 'interrupted_coverage_recovery_from_confirmed_transaction_deltas',
     replacementPosition: replacement.publicKey.toBase58(),
-    recoveredXRaw: recoveredXRaw.toString(),
+    recoveredTransactionDeltaXRaw: recoveredXRaw.toString(),
+    recoverablePrincipalXRaw: recoverablePrincipalXRaw.toString(),
+    excludedPendingFeeXRaw: pendingFeeXRaw.toString(),
     activeBinId: freshActiveBinId,
     lowerBinId,
     upperBinId,
@@ -2032,6 +2330,16 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
 }
 
 async function settleTargetExit(connection, pool, wallet, journal, positions, snapshot) {
+  const positionAccounts = await Promise.all(
+    positions.map((position) => connection.getAccountInfo(position.publicKey, 'confirmed')),
+  );
+  if (positionAccounts.some((account) => !account)) {
+    throw new Error('target_exit_position_account_missing_before_close');
+  }
+  const refundableRentLamports = positionAccounts.reduce(
+    (total, account) => total + BigInt(account.lamports),
+    0n,
+  );
   const before = await walletSnapshot(connection, wallet.publicKey);
   await closePositions(connection, pool, wallet, journal, positions, 'target_close');
   const afterClose = await walletSnapshot(connection, wallet.publicKey);
@@ -2063,7 +2371,16 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
     };
     atomicWriteJson(STATE_FILE, journal);
   }
-  const exitProceeds = afterExit.lamports - before.lamports + pendingFeeSol;
+  const grossExitProceeds = afterExit.lamports > before.lamports
+    ? afterExit.lamports - before.lamports
+    : 0n;
+  const excludedRent = grossExitProceeds < refundableRentLamports
+    ? grossExitProceeds
+    : refundableRentLamports;
+  const exitProceeds = grossExitProceeds - excludedRent + pendingFeeSol;
+  journal.ledger.excludedRentRefundLamports = (
+    BigInt(journal.ledger.excludedRentRefundLamports || 0) + excludedRent
+  ).toString();
   const retainedBasisSol = campaignBasisSol(journal);
   const sweepLamports = exitProfitSweepLamports(exitProceeds, retainedBasisSol);
   const sweepSignature = await transferLamports(
@@ -2080,6 +2397,8 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   journal.ledger.pendingFeeSolLamports = '0';
   journal.ledger.exitSettlement = {
     snapshot,
+    grossExitProceedsLamports: grossExitProceeds.toString(),
+    excludedRentRefundLamports: excludedRent.toString(),
     exitProceedsLamports: exitProceeds.toString(),
     entryBasisRetainedLamports: String(Math.round(retainedBasisSol * LAMPORTS_PER_SOL)),
     profitSweptLamports: sweepLamports.toString(),
@@ -2092,6 +2411,7 @@ async function tick(connection, wallet) {
   const journal = loadOrCreateJournal();
   if (journal.status !== 'active') throw new Error(`campaign_not_active:${journal.status}`);
   await reconcileOutstandingStages(connection, journal);
+  reconcileUnaccountedFeeSwapStages(journal);
   const pool = await loadPool(connection);
   const positions = (await Promise.all(
     Object.values(journal.positions).map((record) => positionOrNull(connection, pool, record.address)),
@@ -2163,35 +2483,23 @@ async function tick(connection, wallet) {
   const feeValueEconomical = snapshot.unclaimedFeeValueSol >= MIN_FEE_CLAIM_VALUE_SOL;
   if (snapshot.breakEvenReached && (hasFees || hasPendingFees)
       && feeIntervalElapsed && feeValueEconomical) {
-    const netFeeLamports = await claimFees(connection, pool, wallet, journal, positions);
-    if (netFeeLamports > 0n) {
-      const netAfterTransferBuffer = netFeeLamports > TRANSFER_FEE_BUFFER_LAMPORTS
-        ? netFeeLamports - TRANSFER_FEE_BUFFER_LAMPORTS
-        : 0n;
-      journal.ledger.cumulativeNetFeesEarnedLamports = (
-        BigInt(journal.ledger.cumulativeNetFeesEarnedLamports || 0) + netAfterTransferBuffer
-      ).toString();
-      const sweepLamports = feeSweepLamports(netFeeLamports, true);
-      const signature = await transferLamports(
-        connection,
-        wallet,
-        CAMPAIGN.profitWallet,
-        sweepLamports,
-        journal,
-        `fee_profit_sweep_${Date.now()}`,
-      );
-      journal.ledger.cumulativeFeesSweptLamports = (
-        BigInt(journal.ledger.cumulativeFeesSweptLamports || 0) + sweepLamports
-      ).toString();
-      journal.ledger.feeSweeps.push({
-        at: new Date().toISOString(),
-        netFeeLamports: netFeeLamports.toString(),
-        sweptLamports: sweepLamports.toString(),
-        signature,
-      });
-      journal.ledger.lastFeeActionAt = new Date().toISOString();
-      atomicWriteJson(STATE_FILE, journal);
+    await claimFees(connection, pool, wallet, journal, positions);
+    journal.ledger.lastFeeActionAt = new Date().toISOString();
+    atomicWriteJson(STATE_FILE, journal);
+    snapshot = await executableSnapshot(connection, await loadPool(connection), journal);
+    journal.lastSnapshot = snapshot;
+    atomicWriteJson(STATE_FILE, journal);
+    if (snapshot.targetReached) {
+      await settleTargetExit(connection, await loadPool(connection), wallet, journal, positions, snapshot);
+      const settled = loadOrCreateJournal();
+      settled.lastSuccessfulTickAt = new Date().toISOString();
+      delete settled.lastError;
+      atomicWriteJson(STATE_FILE, settled);
+      return settled;
     }
+  }
+  const feeSweep = await sweepProvenFeesIfEligible(connection, wallet, journal, snapshot);
+  if (feeSweep) {
     snapshot = await executableSnapshot(connection, await loadPool(connection), journal);
     journal.lastSnapshot = snapshot;
   }
