@@ -163,6 +163,38 @@ export function rangeState(activeBinId, lowerBinId, upperBinId) {
   return 'in_range';
 }
 
+export function managedPositionSetDecision(expectedRecords, observedAddresses) {
+  const expected = [...new Set(
+    Object.values(expectedRecords || {})
+      .map((record) => record?.address)
+      .filter(Boolean),
+  )].sort();
+  const observed = [...new Set(observedAddresses || [])].sort();
+  const missing = expected.filter((address) => !observed.includes(address));
+  const unexpected = observed.filter((address) => !expected.includes(address));
+  return {
+    exactMatch: missing.length === 0 && unexpected.length === 0,
+    expected,
+    observed,
+    missing,
+    unexpected,
+    action: missing.length === 0 && unexpected.length === 0
+      ? 'continue'
+      : 'pause_for_manual_takeover_reconciliation',
+  };
+}
+
+export function terminalCoverageDisposition(proof) {
+  if (proof?.passes === true) {
+    return { action: 'continue', actionBlocked: false, reason: null };
+  }
+  return {
+    action: 'pause_for_explicit_replan',
+    actionBlocked: true,
+    reason: 'terminal_coverage_proof_failed',
+  };
+}
+
 export function retargetGuardDecision({
   role,
   range,
@@ -771,6 +803,13 @@ async function sendStage(connection, journal, stageName, transaction, signers, o
     lastValidBlockHeight: prepared.latest.lastValidBlockHeight,
     priorAttempts,
   };
+  journal.tickContext ||= {
+    id: crypto.randomUUID(),
+    startedAt: new Date().toISOString(),
+  };
+  journal.tickContext.actionStarted = true;
+  journal.tickContext.lastStageName = stageName;
+  journal.tickContext.lastStagePreparedAt = new Date().toISOString();
   atomicWriteJson(STATE_FILE, journal);
   const sent = await connection.sendRawTransaction(prepared.transaction.serialize(), {
     skipPreflight: false,
@@ -782,6 +821,8 @@ async function sendStage(connection, journal, stageName, transaction, signers, o
   // throw outside the controller loop when a shared RPC returns 429. Polling the
   // journaled signature keeps every failure inside the resumable state machine.
   await finalizeStage(connection, journal, stageName, postcondition);
+  journal.tickContext.lastStageReconciledAt = new Date().toISOString();
+  atomicWriteJson(STATE_FILE, journal);
   return signature;
 }
 
@@ -2461,47 +2502,74 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   atomicWriteJson(STATE_FILE, journal);
 }
 
+function completeControllerTick(journal, status = 'healthy') {
+  journal.lastSuccessfulTickAt = new Date().toISOString();
+  journal.controllerHealth = {
+    status,
+    pid: process.pid,
+    verifiedAt: journal.lastSuccessfulTickAt,
+    actionBlocked: false,
+    requiresManualResume: false,
+  };
+  delete journal.tickContext;
+  delete journal.lastError;
+  atomicWriteJson(STATE_FILE, journal);
+  return journal;
+}
+
+function pauseForManualTakeover(journal, decision) {
+  const observedAt = new Date().toISOString();
+  journal.status = 'paused_manual_takeover';
+  journal.manualTakeover = { ...decision, observedAt };
+  journal.controllerHealth = {
+    status: 'manual_takeover_detected',
+    pid: process.pid,
+    verifiedAt: observedAt,
+    actionBlocked: true,
+    requiresManualResume: true,
+    blockedReason: 'managed_position_set_changed_outside_controller',
+  };
+  delete journal.tickContext;
+  atomicWriteJson(STATE_FILE, journal);
+  return journal;
+}
+
 async function tick(connection, wallet) {
   const journal = loadOrCreateJournal();
   if (journal.status !== 'active') throw new Error(`campaign_not_active:${journal.status}`);
+  if (journal.controllerHealth?.requiresManualResume) {
+    throw new Error(`controller_manual_resume_required:${journal.controllerHealth.blockedReason || 'unknown'}`);
+  }
+  journal.tickContext = {
+    id: crypto.randomUUID(),
+    startedAt: new Date().toISOString(),
+    actionStarted: false,
+  };
+  atomicWriteJson(STATE_FILE, journal);
   await reconcileOutstandingStages(connection, journal);
   reconcileUnaccountedFeeSwapStages(journal);
   const pool = await loadPool(connection);
-  const positions = (await Promise.all(
-    Object.values(journal.positions).map((record) => positionOrNull(connection, pool, record.address)),
-  )).filter(Boolean);
-  if (positions.length !== 2) {
-    const tight = positions.find(
-      (position) => position.publicKey.toBase58() === journal.positions.tight.address,
-    );
-    const wideExists = positions.some(
-      (position) => position.publicKey.toBase58() === journal.positions.wide.address,
-    );
-    if (positions.length === 1 && tight && !wideExists) {
-      await recoverInterruptedWideCoverage(connection, pool, wallet, journal, tight);
-      const recovered = loadOrCreateJournal();
-      recovered.lastSuccessfulTickAt = new Date().toISOString();
-      delete recovered.lastError;
-      atomicWriteJson(STATE_FILE, recovered);
-      return recovered;
-    }
-    throw new Error('managed_position_count_mismatch');
-  }
+  const livePoolState = await pool.getPositionsByUserAndLbPair(wallet.publicKey);
+  const positions = livePoolState.userPositions || [];
+  const positionSet = managedPositionSetDecision(
+    journal.positions,
+    positions.map((position) => position.publicKey.toBase58()),
+  );
+  if (!positionSet.exactMatch) return pauseForManualTakeover(journal, positionSet);
   const fundedWide = positions.find(
     (position) => position.publicKey.toBase58() === journal.positions.wide.address,
   );
   if (!fundedWide) throw new Error('managed_wide_position_missing_before_residual_reconciliation');
   await deployWideWalletResidual(connection, pool, wallet, journal, fundedWide);
+  if (journal.tickContext?.actionStarted) {
+    return completeControllerTick(journal, 'wallet_residual_reconciled');
+  }
   let snapshot = await executableSnapshot(connection, pool, journal);
   journal.lastSnapshot = snapshot;
   atomicWriteJson(STATE_FILE, journal);
   if (snapshot.targetReached) {
     await settleTargetExit(connection, pool, wallet, journal, positions, snapshot);
-    const settled = loadOrCreateJournal();
-    settled.lastSuccessfulTickAt = new Date().toISOString();
-    delete settled.lastError;
-    atomicWriteJson(STATE_FILE, settled);
-    return settled;
+    return completeControllerTick(loadOrCreateJournal(), 'target_exit_reconciled');
   }
 
   const liveWide = positions.find(
@@ -2515,27 +2583,24 @@ async function tick(connection, wallet) {
     verifiedAt: new Date().toISOString(),
   };
   atomicWriteJson(STATE_FILE, journal);
-  const latestWidePlacement = (journal.retargets || []).findLast((record) => (
-    record.role === 'wide'
-      && record.replacementPosition === journal.positions.wide.address
-  ));
-  const fallbackWideNeedsOptimization = latestWidePlacement?.reason
-    === 'interrupted_coverage_recovery_from_confirmed_transaction_deltas';
-  if (!journal.terminalCoverageProof.passes || fallbackWideNeedsOptimization) {
-    await repairWideTerminalCoverage(
-      connection,
-      pool,
-      wallet,
-      journal,
-      liveWide,
-      liveTight,
-      { forceOptimize: fallbackWideNeedsOptimization },
-    );
-    const repaired = loadOrCreateJournal();
-    repaired.lastSuccessfulTickAt = new Date().toISOString();
-    delete repaired.lastError;
-    atomicWriteJson(STATE_FILE, repaired);
-    return repaired;
+  const coverageDisposition = terminalCoverageDisposition(journal.terminalCoverageProof);
+  if (coverageDisposition.actionBlocked) {
+    journal.coverageRepairBlocked = {
+      ...coverageDisposition,
+      observedAt: new Date().toISOString(),
+      proof: journal.terminalCoverageProof,
+    };
+    journal.controllerHealth = {
+      status: 'coverage_replan_required',
+      pid: process.pid,
+      verifiedAt: journal.coverageRepairBlocked.observedAt,
+      actionBlocked: true,
+      requiresManualResume: true,
+      blockedReason: coverageDisposition.reason,
+    };
+    delete journal.tickContext;
+    atomicWriteJson(STATE_FILE, journal);
+    return journal;
   }
 
   const hasFees = positions.some((position) => {
@@ -2553,22 +2618,13 @@ async function tick(connection, wallet) {
     await claimFees(connection, pool, wallet, journal, positions);
     journal.ledger.lastFeeActionAt = new Date().toISOString();
     atomicWriteJson(STATE_FILE, journal);
-    snapshot = await executableSnapshot(connection, await loadPool(connection), journal);
-    journal.lastSnapshot = snapshot;
-    atomicWriteJson(STATE_FILE, journal);
-    if (snapshot.targetReached) {
-      await settleTargetExit(connection, await loadPool(connection), wallet, journal, positions, snapshot);
-      const settled = loadOrCreateJournal();
-      settled.lastSuccessfulTickAt = new Date().toISOString();
-      delete settled.lastError;
-      atomicWriteJson(STATE_FILE, settled);
-      return settled;
-    }
+    return completeControllerTick(journal, 'fee_claim_reconciled');
   }
   const feeSweep = await sweepProvenFeesIfEligible(connection, wallet, journal, snapshot);
   if (feeSweep) {
     snapshot = await executableSnapshot(connection, await loadPool(connection), journal);
     journal.lastSnapshot = snapshot;
+    return completeControllerTick(journal, 'fee_sweep_reconciled');
   }
 
   const wideState = snapshot.positions.find((position) => position.strategy === 'BidAsk');
@@ -2626,6 +2682,7 @@ async function tick(connection, wallet) {
       'wide',
       widePosition,
     );
+    return completeControllerTick(loadOrCreateJournal(), 'wide_retarget_reconciled');
   }
   if (tightGuard.shouldRetarget && tightPosition) {
     await retargetOutOfRangePosition(
@@ -2636,17 +2693,9 @@ async function tick(connection, wallet) {
       'tight',
       tightPosition,
     );
+    return completeControllerTick(loadOrCreateJournal(), 'tight_retarget_reconciled');
   }
-  journal.lastSuccessfulTickAt = new Date().toISOString();
-  journal.controllerHealth = {
-    status: 'healthy',
-    pid: process.pid,
-    verifiedAt: journal.lastSuccessfulTickAt,
-    actionBlocked: false,
-  };
-  delete journal.lastError;
-  atomicWriteJson(STATE_FILE, journal);
-  return journal;
+  return completeControllerTick(journal);
 }
 
 function publicStatus(journal) {
@@ -2728,18 +2777,29 @@ async function main() {
       } else if (journal.status === 'closed') {
         process.stdout.write(`${JSON.stringify(publicStatus(journal), null, 2)}\n`);
         return;
+      } else if (journal.status === 'paused_manual_takeover') {
+        process.stdout.write(`${JSON.stringify(publicStatus(journal), null, 2)}\n`);
+        return;
       }
     } catch (error) {
       const journal = loadOrCreateJournal();
+      const actionStarted = journal.tickContext?.actionStarted === true;
+      const alreadyPaused = journal.status === 'paused_manual_takeover';
       journal.lastError = {
         at: new Date().toISOString(),
         message: error instanceof Error ? error.message : String(error),
       };
+      if (journal.tickContext) journal.tickContext.failedAt = journal.lastError.at;
       journal.controllerHealth = {
-        status: 'reconciling_error',
+        status: alreadyPaused
+          ? 'manual_takeover_detected'
+          : actionStarted
+            ? 'action_error_manual_resume_required'
+            : 'degraded_read_only_retry',
         pid: process.pid,
         verifiedAt: new Date().toISOString(),
         actionBlocked: true,
+        requiresManualResume: alreadyPaused || actionStarted,
         blockedReason: journal.lastError.message,
       };
       atomicWriteJson(STATE_FILE, journal);

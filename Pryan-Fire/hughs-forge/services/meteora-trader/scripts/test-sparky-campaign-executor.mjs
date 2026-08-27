@@ -9,9 +9,11 @@ import {
   deployableCampaignTokenRaw,
   exitProfitSweepLamports,
   feeSweepLamports,
+  managedPositionSetDecision,
   nextLiquiditySlippagePct,
   rangeState,
   retargetGuardDecision,
+  terminalCoverageDisposition,
   targetValueSol,
 } from './sparky-campaign-executor.mjs';
 import {
@@ -227,5 +229,32 @@ const recoveredInRange = retargetGuardDecision({
 });
 assert.equal(recoveredInRange.consecutiveOutOfRange, 0);
 assert.equal(recoveredInRange.blockedReason, 'position_not_out_of_range');
+
+const exactManagedSet = managedPositionSetDecision(
+  { wide: { address: 'wide-1' }, tight: { address: 'tight-1' } },
+  ['tight-1', 'wide-1'],
+);
+assert.equal(exactManagedSet.exactMatch, true);
+assert.equal(exactManagedSet.action, 'continue');
+
+const manualTakeoverSet = managedPositionSetDecision(
+  { wide: { address: 'wide-1' }, tight: { address: 'tight-1' } },
+  ['manual-1'],
+);
+assert.equal(manualTakeoverSet.exactMatch, false);
+assert.deepEqual(manualTakeoverSet.missing, ['tight-1', 'wide-1']);
+assert.deepEqual(manualTakeoverSet.unexpected, ['manual-1']);
+assert.equal(manualTakeoverSet.action, 'pause_for_manual_takeover_reconciliation');
+
+assert.deepEqual(terminalCoverageDisposition({ passes: true }), {
+  action: 'continue',
+  actionBlocked: false,
+  reason: null,
+});
+assert.deepEqual(terminalCoverageDisposition({ passes: false }), {
+  action: 'pause_for_explicit_replan',
+  actionBlocked: true,
+  reason: 'terminal_coverage_proof_failed',
+});
 
 process.stdout.write('sparky campaign executor policy tests passed\n');
