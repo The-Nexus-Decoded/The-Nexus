@@ -636,8 +636,23 @@ async function migrate(connection, wallet, preflight) {
     const beforeLamports = BigInt(journal.walletBeforeMigration.lamports);
     const nativeDelta = afterRoot.lamports > beforeLamports ? afterRoot.lamports - beforeLamports : 0n;
     const expectedPrincipalY = BigInt(preflight.rootInventory.tokenYRaw);
+    const expectedFeeY = BigInt(preflight.rootInventory.feeYRaw);
+    const refundableRootRent = BigInt(
+      preflight.stagedRentEvidence?.refundableRootPositionRentLamports || 0,
+    );
     const principalYRaw = nativeDelta < expectedPrincipalY ? nativeDelta : expectedPrincipalY;
-    const pendingFeeSolLamports = nativeDelta - principalYRaw;
+    const afterPrincipal = nativeDelta - principalYRaw;
+    const excludedRootRent = afterPrincipal < refundableRootRent
+      ? afterPrincipal
+      : refundableRootRent;
+    const afterPrincipalAndRent = afterPrincipal - excludedRootRent;
+    const pendingFeeSolLamports = afterPrincipalAndRent < expectedFeeY
+      ? afterPrincipalAndRent
+      : expectedFeeY;
+    const expectedNativeInflow = expectedPrincipalY + expectedFeeY + refundableRootRent;
+    const closeExecutionCostLamports = expectedNativeInflow > nativeDelta
+      ? expectedNativeInflow - nativeDelta
+      : 0n;
     const wideXRaw = principalXRaw * BigInt(CAMPAIGN.widePct) / 100n;
     const tightXRaw = principalXRaw - wideXRaw;
     const wideYRaw = principalYRaw * BigInt(CAMPAIGN.widePct) / 100n;
@@ -652,7 +667,10 @@ async function migrate(connection, wallet, preflight) {
       tightYRaw: tightYRaw.toString(),
       pendingFeeXRaw: pendingFeeXRaw.toString(),
       pendingFeeSolLamports: pendingFeeSolLamports.toString(),
+      excludedRootRentRefundLamports: excludedRootRent.toString(),
+      rootCloseExecutionCostLamports: closeExecutionCostLamports.toString(),
     };
+    journal.ledger.cumulativeExecutionCostsLamports = closeExecutionCostLamports.toString();
   }
   const {
     wideXRaw: wideXText,
@@ -751,6 +769,27 @@ function jupiterHeaders(json = false) {
   return headers;
 }
 
+async function jupiterQuote(
+  inputMint,
+  amountRaw,
+  slippageBps = 200,
+  outputMint = CAMPAIGN.wsolMint,
+) {
+  if (BigInt(amountRaw) <= 0n) return null;
+  const query = new URLSearchParams({
+    inputMint,
+    outputMint,
+    amount: BigInt(amountRaw).toString(),
+    slippageBps: String(slippageBps),
+  });
+  const response = await fetch(`${JUPITER_URL}/order?${query}`, { headers: jupiterHeaders() });
+  const body = await response.json();
+  if (!response.ok || !body.outAmount) {
+    throw new Error(`jupiter_quote_failed:${response.status}:${body.error || 'malformed_response'}`);
+  }
+  return body;
+}
+
 async function jupiterOrder(
   inputMint,
   amountRaw,
@@ -810,12 +849,12 @@ async function executableSnapshot(connection, pool, journal) {
   }
   const pendingFeeX = BigInt(journal.ledger.pendingFeeXRaw || 0);
   const pendingFeeSol = BigInt(journal.ledger.pendingFeeSolLamports || 0);
-  const [principalOrder, feeOrder] = await Promise.all([
-    jupiterOrder(CAMPAIGN.sparkyMint, principalX, CAMPAIGN.owner),
-    jupiterOrder(CAMPAIGN.sparkyMint, feeX + pendingFeeX, CAMPAIGN.owner),
+  const [principalQuote, feeQuote] = await Promise.all([
+    jupiterQuote(CAMPAIGN.sparkyMint, principalX),
+    jupiterQuote(CAMPAIGN.sparkyMint, feeX + pendingFeeX),
   ]);
-  const positionsExecutableLamports = principalY + BigInt(principalOrder?.outAmount || 0);
-  const unclaimedFeeLamports = feeY + pendingFeeSol + BigInt(feeOrder?.outAmount || 0);
+  const positionsExecutableLamports = principalY + BigInt(principalQuote?.outAmount || 0);
+  const unclaimedFeeLamports = feeY + pendingFeeSol + BigInt(feeQuote?.outAmount || 0);
   const cumulativeFeeLamports = BigInt(journal.ledger.cumulativeNetFeesEarnedLamports || 0);
   const costsLamports = BigInt(journal.ledger.cumulativeExecutionCostsLamports || 0);
   const activeBinId = Number((await pool.getActiveBin()).binId);
@@ -1065,7 +1104,11 @@ async function tick(connection, wallet) {
   atomicWriteJson(STATE_FILE, journal);
   if (snapshot.targetReached) {
     await settleTargetExit(connection, pool, wallet, journal, positions, snapshot);
-    return loadOrCreateJournal();
+    const settled = loadOrCreateJournal();
+    settled.lastSuccessfulTickAt = new Date().toISOString();
+    delete settled.lastError;
+    atomicWriteJson(STATE_FILE, settled);
+    return settled;
   }
 
   const hasFees = positions.some((position) => {
@@ -1150,6 +1193,9 @@ async function tick(connection, wallet) {
       tightPosition,
     );
   }
+  journal.lastSuccessfulTickAt = new Date().toISOString();
+  delete journal.lastError;
+  atomicWriteJson(STATE_FILE, journal);
   return journal;
 }
 
