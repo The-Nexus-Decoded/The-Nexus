@@ -2026,7 +2026,11 @@ async function repairWideTerminalCoverage(
   const priorPlacement = (journal.retargets || []).findLast((record) => (
     record.role === 'wide' && record.replacementPosition === wide.publicKey.toBase58()
   ));
-  const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
+  const modeledWideTerminal = Number(
+    priorPlacement?.requestedExactPlan?.wideTerminalPrincipalSol
+      ?? priorPlacement?.proof?.wideTerminalPrincipalSol
+      ?? 0,
+  );
   const priorDistributionFactor = Number(priorPlacement?.observedDistributionFactor || 1);
   const observedDistributionFactor = modeledWideTerminal > 0
     ? priorDistributionFactor * currentProof.wideTerminalPrincipalSol / modeledWideTerminal
@@ -2295,7 +2299,11 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   const priorPlacement = (journal.retargets || []).findLast((record) => (
     record.role === 'wide' && record.replacementPosition === journal.positions.wide.address
   ));
-  const modeledWideTerminal = Number(priorPlacement?.proof?.wideTerminalPrincipalSol || 0);
+  const modeledWideTerminal = Number(
+    priorPlacement?.requestedExactPlan?.wideTerminalPrincipalSol
+      ?? priorPlacement?.proof?.wideTerminalPrincipalSol
+      ?? 0,
+  );
   const observedWideTerminal = Number(journal.terminalCoverageProof?.wideTerminalPrincipalSol || 0);
   const priorDistributionFactor = Number(priorPlacement?.observedDistributionFactor || 1);
   const observedDistributionFactor = modeledWideTerminal > 0
