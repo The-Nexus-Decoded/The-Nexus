@@ -54,6 +54,11 @@ const SLIPPAGE_PCT = 0.5;
 const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
+const RETARGET_WINDOW_MS = 60 * 60 * 1000;
+const RETARGET_POLICY = Object.freeze({
+  wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
+  tight: Object.freeze({ confirmations: 3, minimumDwellMs: 60_000, maximumPerHour: 6, outsideBins: 2 }),
+});
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const JUPITER_URL = (process.env.JUPITER_ULTRA_ENDPOINT || 'https://api.jup.ag/ultra/v1').replace(/\/$/, '');
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -87,6 +92,56 @@ export function rangeState(activeBinId, lowerBinId, upperBinId) {
   if (activeBinId <= lowerBinId + EDGE_GUARD_BINS) return 'lower_edge';
   if (activeBinId >= upperBinId - EDGE_GUARD_BINS) return 'upper_edge';
   return 'in_range';
+}
+
+export function retargetGuardDecision({
+  role,
+  range,
+  activeBinId,
+  lowerBinId,
+  upperBinId,
+  previous = {},
+  retargets = [],
+  positionStartedAt,
+  nowMs = Date.now(),
+}) {
+  const policy = RETARGET_POLICY[role];
+  if (!policy) throw new Error(`unknown_retarget_role:${role}`);
+  const outside = range === 'out_below' || range === 'out_above';
+  const outsideDistanceBins = range === 'out_below'
+    ? lowerBinId - activeBinId
+    : range === 'out_above'
+      ? activeBinId - upperBinId
+      : 0;
+  const sameExcursion = outside && previous.range === range;
+  const consecutiveOutOfRange = outside
+    ? (sameExcursion ? Number(previous.consecutiveOutOfRange || 0) + 1 : 1)
+    : 0;
+  const recentRetargets = retargets.filter((record) => (
+    record.role === role
+      && Number.isFinite(Date.parse(record.at))
+      && nowMs - Date.parse(record.at) < RETARGET_WINDOW_MS
+  )).length;
+  const startedAtMs = Date.parse(positionStartedAt || '');
+  const dwellMs = Number.isFinite(startedAtMs) ? Math.max(0, nowMs - startedAtMs) : 0;
+  let blockedReason = null;
+  if (!outside) blockedReason = 'position_not_out_of_range';
+  else if (outsideDistanceBins < policy.outsideBins) blockedReason = 'outside_distance_hysteresis';
+  else if (consecutiveOutOfRange < policy.confirmations) blockedReason = 'awaiting_confirmation';
+  else if (dwellMs < policy.minimumDwellMs) blockedReason = 'minimum_dwell';
+  else if (recentRetargets >= policy.maximumPerHour) blockedReason = 'hourly_retarget_cap';
+  return {
+    role,
+    range,
+    observedAt: new Date(nowMs).toISOString(),
+    outsideDistanceBins,
+    consecutiveOutOfRange,
+    dwellMs,
+    recentRetargets,
+    policy,
+    shouldRetarget: blockedReason === null,
+    blockedReason,
+  };
 }
 
 export function feeSweepLamports(realizedFeeLamports, breakEvenReached) {
@@ -1043,6 +1098,20 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
     upperBinId,
     at: new Date().toISOString(),
   });
+  journal.retargetGuards ||= {};
+  journal.retargetGuards[role] = {
+    role,
+    range: 'in_range',
+    observedAt: new Date().toISOString(),
+    outsideDistanceBins: 0,
+    consecutiveOutOfRange: 0,
+    dwellMs: 0,
+    recentRetargets: journal.retargets.filter((record) => record.role === role).length,
+    policy: RETARGET_POLICY[role],
+    shouldRetarget: false,
+    blockedReason: 'retarget_completed',
+    lastRetargetAt: journal.retargets.at(-1).at,
+  };
   atomicWriteJson(STATE_FILE, journal);
   return true;
 }
@@ -1158,13 +1227,42 @@ async function tick(connection, wallet) {
 
   const wideState = snapshot.positions.find((position) => position.strategy === 'BidAsk');
   const tightState = snapshot.positions.find((position) => position.strategy === 'Spot');
+  const retargets = Array.isArray(journal.retargets) ? journal.retargets : [];
+  const nowMs = Date.now();
+  const lastRetargetAt = (role) => retargets.findLast((record) => record.role === role)?.at
+    || journal.migratedAt;
+  journal.retargetGuards ||= {};
+  const wideGuard = retargetGuardDecision({
+    role: 'wide',
+    range: wideState?.rangeState || 'missing',
+    activeBinId: snapshot.activeBinId,
+    lowerBinId: journal.positions.wide.lowerBinId,
+    upperBinId: journal.positions.wide.upperBinId,
+    previous: journal.retargetGuards.wide,
+    retargets,
+    positionStartedAt: lastRetargetAt('wide'),
+    nowMs,
+  });
+  const tightGuard = retargetGuardDecision({
+    role: 'tight',
+    range: tightState?.rangeState || 'missing',
+    activeBinId: snapshot.activeBinId,
+    lowerBinId: journal.positions.tight.lowerBinId,
+    upperBinId: journal.positions.tight.upperBinId,
+    previous: journal.retargetGuards.tight,
+    retargets,
+    positionStartedAt: lastRetargetAt('tight'),
+    nowMs,
+  });
+  journal.retargetGuards.wide = wideGuard;
+  journal.retargetGuards.tight = tightGuard;
   journal.rangeAlerts = {
     observedAt: snapshot.observedAt,
     wide: wideState?.rangeState || 'missing',
     tight: tightState?.rangeState || 'missing',
-    retargetRequired: [wideState, tightState].some(
-      (position) => position && position.rangeState !== 'in_range',
-    ),
+    attentionRequired: [wideState, tightState].some(
+      (position) => position && position.rangeState !== 'in_range'),
+    retargetRequired: wideGuard.shouldRetarget || tightGuard.shouldRetarget,
   };
   atomicWriteJson(STATE_FILE, journal);
   const widePosition = positions.find(
@@ -1173,7 +1271,7 @@ async function tick(connection, wallet) {
   const tightPosition = positions.find(
     (position) => position.publicKey.toBase58() === journal.positions.tight.address,
   );
-  if (wideState?.rangeState?.startsWith('out_') && widePosition) {
+  if (wideGuard.shouldRetarget && widePosition) {
     await retargetOutOfRangePosition(
       connection,
       await loadPool(connection),
@@ -1183,7 +1281,7 @@ async function tick(connection, wallet) {
       widePosition,
     );
   }
-  if (tightState?.rangeState?.startsWith('out_') && tightPosition) {
+  if (tightGuard.shouldRetarget && tightPosition) {
     await retargetOutOfRangePosition(
       connection,
       await loadPool(connection),

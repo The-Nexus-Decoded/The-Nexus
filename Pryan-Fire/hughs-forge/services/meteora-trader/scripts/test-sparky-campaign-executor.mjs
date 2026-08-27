@@ -7,6 +7,7 @@ import {
   exitProfitSweepLamports,
   feeSweepLamports,
   rangeState,
+  retargetGuardDecision,
   targetValueSol,
 } from './sparky-campaign-executor.mjs';
 
@@ -46,5 +47,82 @@ assert.equal(rangeState(-629, -630, -409), 'lower_edge');
 assert.equal(rangeState(-500, -630, -409), 'in_range');
 assert.equal(rangeState(-409, -630, -409), 'upper_edge');
 assert.equal(rangeState(-408, -630, -409), 'out_above');
+
+const guardNow = Date.parse('2026-08-27T08:00:00.000Z');
+const tightHysteresis = retargetGuardDecision({
+  role: 'tight',
+  range: 'out_above',
+  activeBinId: -576,
+  lowerBinId: -598,
+  upperBinId: -577,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow,
+});
+assert.equal(tightHysteresis.shouldRetarget, false);
+assert.equal(tightHysteresis.blockedReason, 'outside_distance_hysteresis');
+
+const tightFirst = retargetGuardDecision({
+  role: 'tight',
+  range: 'out_above',
+  activeBinId: -574,
+  lowerBinId: -598,
+  upperBinId: -577,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow,
+});
+const tightSecond = retargetGuardDecision({
+  role: 'tight',
+  range: 'out_above',
+  activeBinId: -574,
+  lowerBinId: -598,
+  upperBinId: -577,
+  previous: tightFirst,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow + 15_000,
+});
+const tightThird = retargetGuardDecision({
+  role: 'tight',
+  range: 'out_above',
+  activeBinId: -574,
+  lowerBinId: -598,
+  upperBinId: -577,
+  previous: tightSecond,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow + 30_000,
+});
+assert.equal(tightFirst.blockedReason, 'awaiting_confirmation');
+assert.equal(tightSecond.blockedReason, 'awaiting_confirmation');
+assert.equal(tightThird.shouldRetarget, true);
+
+const cappedRetargets = Array.from({ length: 6 }, (_, index) => ({
+  role: 'tight',
+  at: new Date(guardNow - index * 60_000).toISOString(),
+}));
+const tightCapped = retargetGuardDecision({
+  role: 'tight',
+  range: 'out_above',
+  activeBinId: -574,
+  lowerBinId: -598,
+  upperBinId: -577,
+  previous: { range: 'out_above', consecutiveOutOfRange: 2 },
+  retargets: cappedRetargets,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow,
+});
+assert.equal(tightCapped.shouldRetarget, false);
+assert.equal(tightCapped.blockedReason, 'hourly_retarget_cap');
+
+const recoveredInRange = retargetGuardDecision({
+  role: 'tight',
+  range: 'in_range',
+  activeBinId: -585,
+  lowerBinId: -598,
+  upperBinId: -577,
+  previous: tightSecond,
+  positionStartedAt: '2026-08-27T07:58:00.000Z',
+  nowMs: guardNow,
+});
+assert.equal(recoveredInRange.consecutiveOutOfRange, 0);
+assert.equal(recoveredInRange.blockedReason, 'position_not_out_of_range');
 
 process.stdout.write('sparky campaign executor policy tests passed\n');
