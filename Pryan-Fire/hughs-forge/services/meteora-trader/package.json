@@ -1,10 +1,12 @@
 {
   "name": "meteora-trader",
   "version": "1.0.0",
-  "description": "",
+  "description": "Meteora DLMM controller and local operations dashboard",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dashboard": "node dashboard/server.mjs",
+    "dashboard:check": "node --check dashboard/server.mjs && node --check dashboard/public/app.js",
+    "test": "yarn dashboard:check"
   },
   "keywords": [],
   "author": "",
