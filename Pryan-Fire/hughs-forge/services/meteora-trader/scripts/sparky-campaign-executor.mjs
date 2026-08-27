@@ -61,6 +61,7 @@ const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
 const TERMINAL_EXECUTION_ALLOWANCE_SOL = 0.005;
+const RECOVERY_FALLBACK_PRICE_MULTIPLE = 8.5;
 const RETARGET_WINDOW_MS = 60 * 60 * 1000;
 const RETARGET_POLICY = Object.freeze({
   wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
@@ -1315,8 +1316,91 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   const confirmedTight = await positionOrNull(connection, confirmedPool, journal.positions.tight.address);
   const confirmedProof = terminalProofForPositions(confirmedPool, journal, confirmedWide, confirmedTight);
   journal.terminalCoverageProof = { ...confirmedProof, verifiedAt: new Date().toISOString() };
+  journal.coverageRepairBlocked = !confirmedProof.passes;
   atomicWriteJson(STATE_FILE, journal);
   if (!confirmedProof.passes) throw new Error('confirmed_wide_terminal_coverage_proof_failed');
+  return true;
+}
+
+async function ownerMintDeltaForSignature(connection, signature, owner, mint) {
+  const transaction = await connection.getTransaction(signature, {
+    commitment: 'confirmed',
+    maxSupportedTransactionVersion: 0,
+  });
+  if (!transaction?.meta) throw new Error(`coverage_recovery_transaction_missing:${signature}`);
+  const amountByIndex = (balances) => new Map((balances || [])
+    .filter((balance) => balance.owner === owner && balance.mint === mint)
+    .map((balance) => [balance.accountIndex, BigInt(balance.uiTokenAmount.amount)]));
+  const before = amountByIndex(transaction.meta.preTokenBalances);
+  const after = amountByIndex(transaction.meta.postTokenBalances);
+  const indexes = new Set([...before.keys(), ...after.keys()]);
+  return [...indexes].reduce(
+    (total, index) => total + (after.get(index) || 0n) - (before.get(index) || 0n),
+    0n,
+  );
+}
+
+async function recoverInterruptedWideCoverage(connection, pool, wallet, journal, tight) {
+  const generation = Number(journal.positions.wide.generation || 0) + 1;
+  const prefix = `wide_g${generation}_coverage_close_`;
+  const signatures = Object.entries(journal.stages)
+    .filter(([name, stage]) => name.startsWith(prefix) && stage.status === 'confirmed')
+    .map(([, stage]) => stage.signature);
+  if (!signatures.length) throw new Error('missing_confirmed_wide_recovery_close_evidence');
+  let recoveredXRaw = 0n;
+  for (const signature of signatures) {
+    recoveredXRaw += await ownerMintDeltaForSignature(
+      connection,
+      signature,
+      CAMPAIGN.owner,
+      CAMPAIGN.sparkyMint,
+    );
+  }
+  if (recoveredXRaw <= 0n) throw new Error('wide_recovery_token_delta_not_positive');
+  const walletState = await walletSnapshot(connection, wallet.publicKey);
+  if (walletState.sparkyRaw < recoveredXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
+  const active = await pool.getActiveBin();
+  const activeBinId = Number(active.binId);
+  const width = Math.ceil(
+    Math.log(RECOVERY_FALLBACK_PRICE_MULTIPLE)
+      / Math.log(1 + Number(pool.lbPair.binStep) / 10_000),
+  );
+  const replacement = derivePositionKeypair(wallet, 'wide', generation);
+  await createWidePosition(
+    connection,
+    pool,
+    wallet,
+    journal,
+    { recoveryPosition: { minBinId: activeBinId, maxBinId: activeBinId + width } },
+    replacement,
+    recoveredXRaw,
+    0n,
+    generation,
+  );
+  const confirmedPool = await loadPool(connection);
+  const [confirmedWide, confirmedTight] = await Promise.all([
+    positionOrNull(connection, confirmedPool, replacement.publicKey),
+    positionOrNull(connection, confirmedPool, tight.publicKey),
+  ]);
+  if (!confirmedWide || !confirmedTight) throw new Error('wide_recovery_position_reconciliation_failed');
+  const proof = terminalProofForPositions(confirmedPool, journal, confirmedWide, confirmedTight);
+  journal.retargets ||= [];
+  journal.retargets.push({
+    role: 'wide',
+    generation,
+    reason: 'interrupted_coverage_recovery_from_confirmed_transaction_deltas',
+    replacementPosition: replacement.publicKey.toBase58(),
+    recoveredXRaw: recoveredXRaw.toString(),
+    activeBinId,
+    lowerBinId: activeBinId,
+    upperBinId: activeBinId + width,
+    proof,
+    at: new Date().toISOString(),
+  });
+  journal.terminalCoverageProof = { ...proof, verifiedAt: new Date().toISOString() };
+  journal.coverageRepairBlocked = !proof.passes;
+  atomicWriteJson(STATE_FILE, journal);
+  if (!proof.passes) throw new Error('recovered_wide_terminal_coverage_proof_failed');
   return true;
 }
 
@@ -1372,7 +1456,23 @@ async function tick(connection, wallet) {
   const positions = (await Promise.all(
     Object.values(journal.positions).map((record) => positionOrNull(connection, pool, record.address)),
   )).filter(Boolean);
-  if (positions.length !== 2) throw new Error('managed_position_count_mismatch');
+  if (positions.length !== 2) {
+    const tight = positions.find(
+      (position) => position.publicKey.toBase58() === journal.positions.tight.address,
+    );
+    const wideExists = positions.some(
+      (position) => position.publicKey.toBase58() === journal.positions.wide.address,
+    );
+    if (positions.length === 1 && tight && !wideExists) {
+      await recoverInterruptedWideCoverage(connection, pool, wallet, journal, tight);
+      const recovered = loadOrCreateJournal();
+      recovered.lastSuccessfulTickAt = new Date().toISOString();
+      delete recovered.lastError;
+      atomicWriteJson(STATE_FILE, recovered);
+      return recovered;
+    }
+    throw new Error('managed_position_count_mismatch');
+  }
   let snapshot = await executableSnapshot(connection, pool, journal);
   journal.lastSnapshot = snapshot;
   atomicWriteJson(STATE_FILE, journal);
@@ -1397,6 +1497,7 @@ async function tick(connection, wallet) {
   };
   atomicWriteJson(STATE_FILE, journal);
   if (!journal.terminalCoverageProof.passes) {
+    if (journal.coverageRepairBlocked) throw new Error('coverage_repair_blocked_after_failed_post_proof');
     await repairWideTerminalCoverage(connection, pool, wallet, journal, liveWide, liveTight);
     const repaired = loadOrCreateJournal();
     repaired.lastSuccessfulTickAt = new Date().toISOString();
