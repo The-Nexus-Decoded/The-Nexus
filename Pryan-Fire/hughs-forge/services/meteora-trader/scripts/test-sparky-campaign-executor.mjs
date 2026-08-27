@@ -71,7 +71,9 @@ assert.throws(() => boundedSlippageBps(301), /slippage_bps_outside_safety_bounds
 assert.throws(() => boundedSlippageBps(49), /slippage_bps_outside_safety_bounds/);
 assert.equal(nextLiquiditySlippagePct(0.5), 1);
 assert.equal(nextLiquiditySlippagePct(1), 2);
-assert.equal(nextLiquiditySlippagePct(2), null);
+assert.equal(nextLiquiditySlippagePct(2), 3);
+assert.equal(nextLiquiditySlippagePct(3), 5);
+assert.equal(nextLiquiditySlippagePct(5), null);
 
 assert.equal(rangeState(-631, -630, -409), 'out_below');
 assert.equal(rangeState(-630, -630, -409), 'lower_edge');

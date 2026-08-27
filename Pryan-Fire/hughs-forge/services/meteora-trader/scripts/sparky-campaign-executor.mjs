@@ -55,8 +55,9 @@ export const CAMPAIGN = Object.freeze({
 const LIVE_CONFIRMATION = 'SPARKY-CAMPAIGN-40PCT-LIVE';
 const EDGE_GUARD_BINS = 2;
 const MAX_ACTIVE_BIN_DRIFT = 2;
-const MIN_NATIVE_SOL = 0.03;
-const LIQUIDITY_SLIPPAGE_LEVELS_PCT = Object.freeze([0.5, 1, 2]);
+const PREFERRED_NATIVE_SOL = 0.03;
+const MIN_ACTION_NATIVE_SOL = 0.015;
+const LIQUIDITY_SLIPPAGE_LEVELS_PCT = Object.freeze([0.5, 1, 2, 3, 5]);
 const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
@@ -682,6 +683,10 @@ async function sendStage(connection, journal, stageName, transaction, signers, o
   }
   const prepared = await simulateSigned(connection, transaction, signers, stageName);
   const signature = bs58.encode(prepared.transaction.signature);
+  const nativeBalance = await connection.getBalance(new PublicKey(CAMPAIGN.owner), 'confirmed');
+  if (nativeBalance < MIN_ACTION_NATIVE_SOL * LAMPORTS_PER_SOL) {
+    throw new Error(`insufficient_native_sol_for_transaction:${nativeBalance}`);
+  }
   const priorAttempts = existing
     ? [...(existing.priorAttempts || []), {
       signature: existing.signature,
@@ -1799,36 +1804,64 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     );
   }
   if (recoveredXRaw <= 0n) throw new Error('wide_recovery_token_delta_not_positive');
-  const active = await pool.getActiveBin();
-  const activeBinId = Number(active.binId);
   const width = Math.ceil(
     Math.log(RECOVERY_FALLBACK_PRICE_MULTIPLE)
       / Math.log(1 + Number(pool.lbPair.binStep) / 10_000),
   );
-  const replacement = derivePositionKeypair(wallet, 'wide', generation);
-  const existingReplacement = await positionOrNull(connection, pool, replacement.publicKey);
+  let replacementGeneration = Number(journal.wideRecovery?.sourceGeneration) === generation
+    ? Number(journal.wideRecovery.replacementGeneration)
+    : generation;
+  let replacement = derivePositionKeypair(wallet, 'wide', replacementGeneration);
+  let workingPool = pool;
+  let existingReplacement = await positionOrNull(connection, workingPool, replacement.publicKey);
+  if (existingReplacement) {
+    const existingWidth = Number(existingReplacement.positionData.upperBinId)
+      - Number(existingReplacement.positionData.lowerBinId);
+    if (existingWidth !== width) {
+      await closePositions(
+        connection,
+        workingPool,
+        wallet,
+        journal,
+        [existingReplacement],
+        `wide_g${generation}_mis_sized_recovery_close`,
+      );
+      replacementGeneration += 1;
+      journal.wideRecovery = {
+        sourceGeneration: generation,
+        replacementGeneration,
+        reason: 'mis_sized_partial_replacement_closed',
+        recordedAt: new Date().toISOString(),
+      };
+      atomicWriteJson(STATE_FILE, journal);
+      replacement = derivePositionKeypair(wallet, 'wide', replacementGeneration);
+      workingPool = await loadPool(connection);
+      existingReplacement = await positionOrNull(connection, workingPool, replacement.publicKey);
+    }
+  }
   const existingXRaw = existingReplacement
     ? positionInventory(existingReplacement).tokenXRaw
     : 0n;
   const remainingXRaw = recoveredXRaw > existingXRaw ? recoveredXRaw - existingXRaw : 0n;
   const walletState = await walletSnapshot(connection, wallet.publicKey);
   if (walletState.sparkyRaw < remainingXRaw) throw new Error('wide_recovery_wallet_inventory_missing');
+  const freshActiveBinId = Number((await workingPool.getActiveBin()).binId);
   const lowerBinId = existingReplacement
     ? Number(existingReplacement.positionData.lowerBinId)
-    : activeBinId;
+    : freshActiveBinId;
   const upperBinId = existingReplacement
     ? Number(existingReplacement.positionData.upperBinId)
-    : activeBinId + width;
+    : freshActiveBinId + width;
   await createWidePosition(
     connection,
-    pool,
+    workingPool,
     wallet,
     journal,
     { recoveryPosition: { minBinId: lowerBinId, maxBinId: upperBinId } },
     replacement,
     recoveredXRaw,
     0n,
-    generation,
+    replacementGeneration,
   );
   const confirmedPool = await loadPool(connection);
   const [confirmedWide, confirmedTight] = await Promise.all([
@@ -1840,11 +1873,11 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   journal.retargets ||= [];
   journal.retargets.push({
     role: 'wide',
-    generation,
+    generation: replacementGeneration,
     reason: 'interrupted_coverage_recovery_from_confirmed_transaction_deltas',
     replacementPosition: replacement.publicKey.toBase58(),
     recoveredXRaw: recoveredXRaw.toString(),
-    activeBinId,
+    activeBinId: freshActiveBinId,
     lowerBinId,
     upperBinId,
     proof,
@@ -1852,6 +1885,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   });
   journal.terminalCoverageProof = { ...proof, verifiedAt: new Date().toISOString() };
   journal.coverageRepairBlocked = !proof.passes;
+  delete journal.wideRecovery;
   atomicWriteJson(STATE_FILE, journal);
   if (!proof.passes) throw new Error('recovered_wide_terminal_coverage_proof_failed');
   return true;
@@ -2135,8 +2169,19 @@ async function main() {
   const wallet = keypairFromText(await readStdin());
   const connection = new Connection(RPC_URL, 'confirmed');
   const walletState = await walletSnapshot(connection, wallet.publicKey);
-  if (Number(walletState.lamports) / LAMPORTS_PER_SOL < MIN_NATIVE_SOL) {
+  const nativeSol = Number(walletState.lamports) / LAMPORTS_PER_SOL;
+  if (nativeSol < MIN_ACTION_NATIVE_SOL) {
     throw new Error('insufficient_native_sol_safety_buffer');
+  }
+  if (nativeSol < PREFERRED_NATIVE_SOL) {
+    const journal = loadOrCreateJournal();
+    journal.nativeReserveWarning = {
+      observedAt: new Date().toISOString(),
+      nativeSol,
+      preferredNativeSol: PREFERRED_NATIVE_SOL,
+      hardActionFloorSol: MIN_ACTION_NATIVE_SOL,
+    };
+    atomicWriteJson(STATE_FILE, journal);
   }
   if (args.mode === 'preflight') {
     process.stdout.write(`${JSON.stringify(await preflightMigration(connection, wallet), null, 2)}\n`);
