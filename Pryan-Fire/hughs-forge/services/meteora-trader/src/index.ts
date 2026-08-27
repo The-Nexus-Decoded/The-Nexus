@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { DLMM } from "@meteora-ag/dlmm";
+import DLMM from "@meteora-ag/dlmm";
 import "dotenv/config";
 
 const fetchLpPositions = async (
@@ -7,8 +7,7 @@ const fetchLpPositions = async (
   wallet: PublicKey
 ) => {
   console.log(`🔎 Fetching LP positions for wallet: ${wallet.toBase58()}...`);
-  const dlmm = new DLMM(connection);
-  const allPositions = await dlmm.getAllLbPairPositionsOfWallet(wallet);
+  const allPositions = await DLMM.getAllLbPairPositionsByUser(connection, wallet);
 
   if (Object.keys(allPositions).length === 0) {
     console.log("❎ No active DLMM positions found for this wallet.");
@@ -16,12 +15,11 @@ const fetchLpPositions = async (
   }
 
   console.log(`✅ Found ${Object.keys(allPositions).length} DLMM positions:`);
-  for (const lbPair in allPositions) {
-    const position = allPositions[lbPair];
+  for (const [lbPair, position] of allPositions) {
     console.log(`\n--- Position in ${lbPair} ---`);
-    position.positionData.forEach((pos) => {
+    position.lbPairPositionsData.forEach((pos) => {
       console.log(
-        `  - Lower Bin: ${pos.lowerBinId}, Upper Bin: ${pos.upperBinId}, Liquidity: ${pos.liquidity}`
+        `  - Lower Bin: ${pos.positionData.lowerBinId}, Upper Bin: ${pos.positionData.upperBinId}`
       );
     });
   }

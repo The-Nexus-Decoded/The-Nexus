@@ -10,8 +10,32 @@ import {
   retargetGuardDecision,
   targetValueSol,
 } from './sparky-campaign-executor.mjs';
+import {
+  terminalCoverageProof,
+  trancheTargetSol,
+} from './terminal-coverage.mjs';
 
 assert.equal(targetValueSol(CAMPAIGN.entryBasisSol, 40), CAMPAIGN.targetValueSol);
+assert.equal(trancheTargetSol([
+  { capitalSol: CAMPAIGN.entryBasisSol, profitPct: 40 },
+  { capitalSol: 1, profitPct: 40 },
+]), 4.577488783);
+
+const insufficientCoverage = terminalCoverageProof({
+  wideTerminalPrincipalSol: 1.8903620326203512,
+  spotTerminalPrincipalSol: 0.4325988576694562,
+  requiredTargetSol: CAMPAIGN.targetValueSol,
+  executionCostAllowanceSol: 0.005,
+});
+assert.equal(insufficientCoverage.passes, false);
+assert.equal(insufficientCoverage.projectedFeesCounted, false);
+const sufficientCoverage = terminalCoverageProof({
+  wideTerminalPrincipalSol: 2.75,
+  spotTerminalPrincipalSol: 0.4325988576694562,
+  requiredTargetSol: CAMPAIGN.targetValueSol,
+  executionCostAllowanceSol: 0.005,
+});
+assert.equal(sufficientCoverage.passes, true);
 
 const fivePercentDown = {
   positionsExecutableValueSol: 95,

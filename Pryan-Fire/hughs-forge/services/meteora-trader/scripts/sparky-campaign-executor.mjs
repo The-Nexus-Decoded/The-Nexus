@@ -11,6 +11,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+  positionTerminalPrincipalSol,
+  solveWideUpperBin,
+  terminalCoverageProof,
+  trancheTargetSol,
+} from './terminal-coverage.mjs';
 
 const dependencyPackage = process.env.METEORA_NODE_MODULES_PACKAGE_JSON;
 const require = createRequire(dependencyPackage ? pathToFileURL(dependencyPackage) : import.meta.url);
@@ -54,6 +60,7 @@ const SLIPPAGE_PCT = 0.5;
 const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
+const TERMINAL_EXECUTION_ALLOWANCE_SOL = 0.005;
 const RETARGET_WINDOW_MS = 60 * 60 * 1000;
 const RETARGET_POLICY = Object.freeze({
   wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
@@ -195,6 +202,12 @@ function newJournal() {
     positions: {},
     stages: {},
     ledger: {
+      capitalTranches: [{
+        id: 'original',
+        capitalSol: CAMPAIGN.entryBasisSol,
+        profitPct: CAMPAIGN.targetProfitPct,
+        addedAt: new Date().toISOString(),
+      }],
       cumulativeNetFeesEarnedLamports: '0',
       cumulativeFeesSweptLamports: '0',
       cumulativeExecutionCostsLamports: '0',
@@ -209,7 +222,35 @@ function loadOrCreateJournal() {
   if (journal.campaign?.id !== CAMPAIGN.id || journal.campaign?.owner !== CAMPAIGN.owner) {
     throw new Error('campaign_journal_scope_mismatch');
   }
+  journal.ledger.capitalTranches ||= [{
+    id: 'original',
+    capitalSol: CAMPAIGN.entryBasisSol,
+    profitPct: CAMPAIGN.targetProfitPct,
+    addedAt: journal.createdAt || new Date().toISOString(),
+  }];
   return journal;
+}
+
+function requiredCampaignTargetSol(journal) {
+  return trancheTargetSol(journal.ledger.capitalTranches);
+}
+
+function campaignBasisSol(journal) {
+  return journal.ledger.capitalTranches.reduce(
+    (total, tranche) => total + Number(tranche.capitalSol),
+    0,
+  );
+}
+
+function terminalProofForPositions(pool, journal, wide, tight) {
+  const xDecimals = pool.tokenX.mint.decimals;
+  const yDecimals = pool.tokenY.mint.decimals;
+  return terminalCoverageProof({
+    wideTerminalPrincipalSol: positionTerminalPrincipalSol(wide.positionData, xDecimals, yDecimals),
+    spotTerminalPrincipalSol: positionTerminalPrincipalSol(tight.positionData, xDecimals, yDecimals),
+    requiredTargetSol: requiredCampaignTargetSol(journal),
+    executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
+  });
 }
 
 async function readStdin() {
@@ -926,7 +967,13 @@ async function executableSnapshot(connection, pool, journal) {
       rangeState: rangeState(activeBinId, record.lowerBinId, record.upperBinId),
     })),
   };
-  return { ...snapshot, ...campaignMilestones(snapshot) };
+  return {
+    ...snapshot,
+    ...campaignMilestones(snapshot, {
+      entryBasisSol: campaignBasisSol(journal),
+      targetValueSol: requiredCampaignTargetSol(journal),
+    }),
+  };
 }
 
 async function claimFees(connection, pool, wallet, journal, positions) {
@@ -1002,6 +1049,29 @@ async function closePositions(connection, pool, wallet, journal, positions, pref
   }
 }
 
+async function convertRetargetFeeXToSol(connection, wallet, journal, feeXRaw, stageName) {
+  if (feeXRaw <= 0n) return { pendingFeeXRaw: 0n, realizedFeeSolLamports: 0n };
+  const order = await jupiterOrder(CAMPAIGN.sparkyMint, feeXRaw, CAMPAIGN.owner);
+  if (BigInt(order.outAmount) <= TRANSFER_FEE_BUFFER_LAMPORTS) {
+    return { pendingFeeXRaw: feeXRaw, realizedFeeSolLamports: 0n };
+  }
+  const before = await walletSnapshot(connection, wallet.publicKey);
+  const executed = await executeJupiterOrder(order, wallet);
+  const after = await walletSnapshot(connection, wallet.publicKey);
+  const realizedFeeSolLamports = after.lamports > before.lamports
+    ? after.lamports - before.lamports
+    : 0n;
+  journal.stages[stageName] = {
+    status: 'confirmed',
+    signature: executed.signature,
+    requestId: order.requestId,
+    inputRaw: feeXRaw.toString(),
+    outputRaw: realizedFeeSolLamports.toString(),
+    confirmedAt: new Date().toISOString(),
+  };
+  return { pendingFeeXRaw: 0n, realizedFeeSolLamports };
+}
+
 async function retargetOutOfRangePosition(connection, pool, wallet, journal, role, position) {
   const currentRecord = journal.positions[role];
   const generation = Number(currentRecord.generation || 0) + 1;
@@ -1050,11 +1120,20 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
     };
   }
 
+  const convertedFees = await convertRetargetFeeXToSol(
+    connection,
+    wallet,
+    journal,
+    realizedFeeXRaw,
+    `${role}_g${generation}_retarget_fee_swap`,
+  );
   journal.ledger.pendingFeeXRaw = (
-    BigInt(journal.ledger.pendingFeeXRaw || 0) + realizedFeeXRaw
+    BigInt(journal.ledger.pendingFeeXRaw || 0) + convertedFees.pendingFeeXRaw
   ).toString();
   journal.ledger.pendingFeeSolLamports = (
-    BigInt(journal.ledger.pendingFeeSolLamports || 0) + realizedFeeSol
+    BigInt(journal.ledger.pendingFeeSolLamports || 0)
+      + realizedFeeSol
+      + convertedFees.realizedFeeSolLamports
   ).toString();
   const lowerBinId = activeBinId;
   const upperBinId = state === 'out_below' && role === 'wide'
@@ -1116,6 +1195,131 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
   return true;
 }
 
+async function repairWideTerminalCoverage(connection, pool, wallet, journal, wide, tight) {
+  const currentProof = terminalProofForPositions(pool, journal, wide, tight);
+  if (currentProof.passes) return false;
+  const inventory = positionInventory(wide);
+  const active = await pool.getActiveBin();
+  const activeBinId = Number(active.binId);
+  const generation = Number(journal.positions.wide.generation || 0) + 1;
+  const expectedSwap = inventory.tokenYRaw > TRANSFER_FEE_BUFFER_LAMPORTS
+    ? await jupiterQuote(
+      CAMPAIGN.wsolMint,
+      inventory.tokenYRaw - TRANSFER_FEE_BUFFER_LAMPORTS,
+      200,
+      CAMPAIGN.sparkyMint,
+    )
+    : null;
+  const prospectiveXRaw = inventory.tokenXRaw + BigInt(expectedSwap?.outAmount || 0);
+  const spotTerminal = positionTerminalPrincipalSol(
+    tight.positionData,
+    pool.tokenX.mint.decimals,
+    pool.tokenY.mint.decimals,
+  );
+  const plan = solveWideUpperBin({
+    tokenAmount: Number(atomicToUi(prospectiveXRaw, pool.tokenX.mint.decimals)),
+    spotTerminalPrincipalSol: spotTerminal,
+    requiredTargetSol: requiredCampaignTargetSol(journal),
+    executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
+    activeBinId,
+    activePrice: Number(active.pricePerToken),
+    binStep: Number(pool.lbPair.binStep),
+  });
+  if (!plan) throw new Error('principal_only_terminal_coverage_infeasible');
+
+  const before = await walletSnapshot(connection, wallet.publicKey);
+  await closePositions(connection, pool, wallet, journal, [wide], `wide_g${generation}_coverage_close`);
+  const afterClose = await walletSnapshot(connection, wallet.publicKey);
+  const receivedX = afterClose.sparkyRaw - before.sparkyRaw;
+  const expectedX = inventory.tokenXRaw + inventory.feeXRaw;
+  const principalXRaw = expectedX > 0n ? receivedX * inventory.tokenXRaw / expectedX : 0n;
+  const realizedFeeXRaw = receivedX - principalXRaw;
+  const receivedSol = afterClose.lamports > before.lamports ? afterClose.lamports - before.lamports : 0n;
+  const principalYRaw = receivedSol < inventory.tokenYRaw ? receivedSol : inventory.tokenYRaw;
+  const realizedFeeSol = receivedSol - principalYRaw;
+  let redeployXRaw = principalXRaw;
+  if (principalYRaw > TRANSFER_FEE_BUFFER_LAMPORTS) {
+    const beforeSwap = await walletSnapshot(connection, wallet.publicKey);
+    const order = await jupiterOrder(
+      CAMPAIGN.wsolMint,
+      principalYRaw - TRANSFER_FEE_BUFFER_LAMPORTS,
+      CAMPAIGN.owner,
+      200,
+      CAMPAIGN.sparkyMint,
+    );
+    const executed = await executeJupiterOrder(order, wallet);
+    const afterSwap = await walletSnapshot(connection, wallet.publicKey);
+    redeployXRaw += afterSwap.sparkyRaw - beforeSwap.sparkyRaw;
+    journal.stages[`wide_g${generation}_coverage_swap`] = {
+      status: 'confirmed', signature: executed.signature, requestId: order.requestId,
+      inputRaw: (principalYRaw - TRANSFER_FEE_BUFFER_LAMPORTS).toString(),
+      outputRaw: String(order.outAmount), confirmedAt: new Date().toISOString(),
+    };
+  }
+  const convertedFees = await convertRetargetFeeXToSol(
+    connection,
+    wallet,
+    journal,
+    realizedFeeXRaw,
+    `wide_g${generation}_coverage_fee_swap`,
+  );
+  journal.ledger.pendingFeeXRaw = (
+    BigInt(journal.ledger.pendingFeeXRaw || 0) + convertedFees.pendingFeeXRaw
+  ).toString();
+  journal.ledger.pendingFeeSolLamports = (
+    BigInt(journal.ledger.pendingFeeSolLamports || 0)
+      + realizedFeeSol
+      + convertedFees.realizedFeeSolLamports
+  ).toString();
+
+  const freshPool = await loadPool(connection);
+  const freshActive = await freshPool.getActiveBin();
+  const freshTight = await positionOrNull(connection, freshPool, journal.positions.tight.address);
+  if (!freshTight) throw new Error('tight_position_missing_during_wide_coverage_repair');
+  const finalPlan = solveWideUpperBin({
+    tokenAmount: Number(atomicToUi(redeployXRaw, freshPool.tokenX.mint.decimals)),
+    spotTerminalPrincipalSol: positionTerminalPrincipalSol(
+      freshTight.positionData,
+      freshPool.tokenX.mint.decimals,
+      freshPool.tokenY.mint.decimals,
+    ),
+    requiredTargetSol: requiredCampaignTargetSol(journal),
+    executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
+    activeBinId: Number(freshActive.binId),
+    activePrice: Number(freshActive.pricePerToken),
+    binStep: Number(freshPool.lbPair.binStep),
+  });
+  if (!finalPlan) throw new Error('post_close_principal_only_terminal_coverage_infeasible');
+  const replacement = derivePositionKeypair(wallet, 'wide', generation);
+  await createWidePosition(
+    connection,
+    freshPool,
+    wallet,
+    journal,
+    { recoveryPosition: { minBinId: finalPlan.lowerBinId, maxBinId: finalPlan.upperBinId } },
+    replacement,
+    redeployXRaw,
+    0n,
+    generation,
+  );
+  journal.retargets ||= [];
+  journal.retargets.push({
+    role: 'wide', generation, reason: 'principal_only_terminal_coverage_repair',
+    priorPosition: wide.publicKey.toBase58(), replacementPosition: replacement.publicKey.toBase58(),
+    activeBinId: Number(freshActive.binId), lowerBinId: finalPlan.lowerBinId,
+    upperBinId: finalPlan.upperBinId, proof: finalPlan, at: new Date().toISOString(),
+  });
+  atomicWriteJson(STATE_FILE, journal);
+  const confirmedWide = await positionOrNull(connection, await loadPool(connection), replacement.publicKey);
+  const confirmedPool = await loadPool(connection);
+  const confirmedTight = await positionOrNull(connection, confirmedPool, journal.positions.tight.address);
+  const confirmedProof = terminalProofForPositions(confirmedPool, journal, confirmedWide, confirmedTight);
+  journal.terminalCoverageProof = { ...confirmedProof, verifiedAt: new Date().toISOString() };
+  atomicWriteJson(STATE_FILE, journal);
+  if (!confirmedProof.passes) throw new Error('confirmed_wide_terminal_coverage_proof_failed');
+  return true;
+}
+
 async function settleTargetExit(connection, pool, wallet, journal, positions, snapshot) {
   const before = await walletSnapshot(connection, wallet.publicKey);
   await closePositions(connection, pool, wallet, journal, positions, 'target_close');
@@ -1137,7 +1341,8 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   }
   const afterExit = await walletSnapshot(connection, wallet.publicKey);
   const exitProceeds = afterExit.lamports - before.lamports + pendingFeeSol;
-  const sweepLamports = exitProfitSweepLamports(exitProceeds);
+  const retainedBasisSol = campaignBasisSol(journal);
+  const sweepLamports = exitProfitSweepLamports(exitProceeds, retainedBasisSol);
   const sweepSignature = await transferLamports(
     connection,
     wallet,
@@ -1153,7 +1358,7 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   journal.ledger.exitSettlement = {
     snapshot,
     exitProceedsLamports: exitProceeds.toString(),
-    entryBasisRetainedLamports: String(Math.round(CAMPAIGN.entryBasisSol * LAMPORTS_PER_SOL)),
+    entryBasisRetainedLamports: String(Math.round(retainedBasisSol * LAMPORTS_PER_SOL)),
     profitSweptLamports: sweepLamports.toString(),
     sweepSignature,
   };
@@ -1178,6 +1383,26 @@ async function tick(connection, wallet) {
     delete settled.lastError;
     atomicWriteJson(STATE_FILE, settled);
     return settled;
+  }
+
+  const liveWide = positions.find(
+    (position) => position.publicKey.toBase58() === journal.positions.wide.address,
+  );
+  const liveTight = positions.find(
+    (position) => position.publicKey.toBase58() === journal.positions.tight.address,
+  );
+  journal.terminalCoverageProof = {
+    ...terminalProofForPositions(pool, journal, liveWide, liveTight),
+    verifiedAt: new Date().toISOString(),
+  };
+  atomicWriteJson(STATE_FILE, journal);
+  if (!journal.terminalCoverageProof.passes) {
+    await repairWideTerminalCoverage(connection, pool, wallet, journal, liveWide, liveTight);
+    const repaired = loadOrCreateJournal();
+    repaired.lastSuccessfulTickAt = new Date().toISOString();
+    delete repaired.lastError;
+    atomicWriteJson(STATE_FILE, repaired);
+    return repaired;
   }
 
   const hasFees = positions.some((position) => {
