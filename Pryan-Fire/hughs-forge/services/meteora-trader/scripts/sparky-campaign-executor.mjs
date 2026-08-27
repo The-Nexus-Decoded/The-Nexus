@@ -73,6 +73,19 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const PLANNER = path.join(moduleDir, 'plan-two-position-recovery.mjs');
 const STATE_FILE = process.env.SPARKEY_CAMPAIGN_STATE_FILE
   || path.resolve(moduleDir, '..', 'state', `${CAMPAIGN.id}.json`);
+const LOCK_FILE = `${STATE_FILE}.controller.lock`;
+const MAX_SWAP_SLIPPAGE_BPS = 300;
+const MIN_SWAP_SLIPPAGE_BPS = 50;
+const ONCHAIN_VERIFY_ATTEMPTS = 3;
+
+export function boundedSlippageBps(requestedBps = 200) {
+  const value = Number(requestedBps);
+  if (!Number.isInteger(value)) throw new Error('slippage_bps_must_be_an_integer');
+  if (value < MIN_SWAP_SLIPPAGE_BPS || value > MAX_SWAP_SLIPPAGE_BPS) {
+    throw new Error(`slippage_bps_outside_safety_bounds:${value}`);
+  }
+  return value;
+}
 
 export function targetValueSol(entryBasisSol, targetProfitPct) {
   return entryBasisSol * (1 + targetProfitPct / 100);
@@ -193,6 +206,55 @@ function atomicWriteJson(filePath, value) {
 function readJournal() {
   if (!fs.existsSync(STATE_FILE)) return null;
   return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+}
+
+function processIsAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function acquireControllerLock() {
+  fs.mkdirSync(path.dirname(LOCK_FILE), { recursive: true });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const descriptor = fs.openSync(LOCK_FILE, 'wx', 0o600);
+      fs.writeFileSync(descriptor, `${JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() })}\n`);
+      fs.closeSync(descriptor);
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        try {
+          const lock = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf8'));
+          if (Number(lock.pid) === process.pid) fs.unlinkSync(LOCK_FILE);
+        } catch {
+          // A missing or replaced lock must never be deleted by this process.
+        }
+      };
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      let holder = null;
+      try {
+        holder = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf8'));
+      } catch {
+        // An unreadable lock is treated as unsafe rather than overwritten.
+      }
+      if (holder && processIsAlive(Number(holder.pid))) {
+        throw new Error(`controller_already_running:${holder.pid}`);
+      }
+      if (attempt === 0 && holder) {
+        fs.unlinkSync(LOCK_FILE);
+        continue;
+      }
+      throw new Error('controller_lock_unreadable_or_stale');
+    }
+  }
+  throw new Error('controller_lock_acquisition_failed');
 }
 
 function newJournal() {
@@ -353,6 +415,51 @@ async function positionOrNull(connection, pool, address) {
   return pool.getPosition(publicKey);
 }
 
+async function positionPostcondition(connection, pool, address, lowerBinId, upperBinId, requireLiquidity) {
+  const position = await positionOrNull(connection, pool, address);
+  if (!position) return { ok: false, reason: 'position_account_missing' };
+  const actualLower = Number(position.positionData.lowerBinId);
+  const actualUpper = Number(position.positionData.upperBinId);
+  if (actualLower !== lowerBinId || actualUpper !== upperBinId) {
+    return {
+      ok: false,
+      reason: `position_range_mismatch:${actualLower}:${actualUpper}`,
+    };
+  }
+  const inventory = positionInventory(position);
+  const principalRaw = inventory.tokenXRaw + inventory.tokenYRaw;
+  if (requireLiquidity && principalRaw <= 0n) {
+    return { ok: false, reason: 'position_has_no_principal_liquidity' };
+  }
+  return {
+    ok: true,
+    evidence: {
+      address,
+      lowerBinId: actualLower,
+      upperBinId: actualUpper,
+      tokenXRaw: inventory.tokenXRaw.toString(),
+      tokenYRaw: inventory.tokenYRaw.toString(),
+    },
+  };
+}
+
+async function positionClosedPostcondition(connection, address) {
+  const account = await connection.getAccountInfo(new PublicKey(address), 'confirmed');
+  return account
+    ? { ok: false, reason: 'position_account_still_exists' }
+    : { ok: true, evidence: { address, accountClosed: true } };
+}
+
+function recordActionReconciled(journal, actionName, evidence) {
+  journal.actions ||= {};
+  journal.actions[actionName] = {
+    status: 'reconciled',
+    reconciledAt: new Date().toISOString(),
+    evidence,
+  };
+  atomicWriteJson(STATE_FILE, journal);
+}
+
 function plannerInput() {
   return {
     pool: CAMPAIGN.pool,
@@ -405,36 +512,150 @@ async function simulateSigned(connection, transaction, signers, label) {
   return { transaction, latest, unitsConsumed: response.value.unitsConsumed ?? null };
 }
 
-async function reconcileSendingStage(connection, journal, stageName) {
+async function waitForPostcondition(stageName, postcondition) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= ONCHAIN_VERIFY_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await postcondition();
+      if (result === true) return { ok: true, attempts: attempt };
+      if (result?.ok) return { ...result, attempts: attempt };
+      lastError = new Error(result?.reason || 'postcondition_returned_false');
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < ONCHAIN_VERIFY_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  throw new Error(`${stageName}_postcondition_failed:${lastError?.message || 'unknown'}`);
+}
+
+async function verifySignatureOnChain(connection, signature, stageName) {
+  let lastReason = 'not_found';
+  for (let attempt = 1; attempt <= ONCHAIN_VERIFY_ATTEMPTS; attempt += 1) {
+    const result = await connection.getSignatureStatuses([signature], { searchTransactionHistory: true });
+    const status = result.value[0];
+    if (status?.err) throw new Error(`stage_failed_on_chain:${stageName}:${JSON.stringify(status.err)}`);
+    const confirmed = status?.confirmationStatus === 'confirmed'
+      || status?.confirmationStatus === 'finalized';
+    if (confirmed) {
+      const transaction = await connection.getTransaction(signature, {
+        commitment: 'confirmed',
+        maxSupportedTransactionVersion: 0,
+      });
+      if (transaction?.meta?.err) {
+        throw new Error(`stage_transaction_meta_failed:${stageName}:${JSON.stringify(transaction.meta.err)}`);
+      }
+      if (transaction?.meta) {
+        const secondRead = await connection.getSignatureStatuses(
+          [signature],
+          { searchTransactionHistory: true },
+        );
+        const secondStatus = secondRead.value[0];
+        if (secondStatus?.err) {
+          throw new Error(`stage_failed_on_recheck:${stageName}:${JSON.stringify(secondStatus.err)}`);
+        }
+        if (!['confirmed', 'finalized'].includes(secondStatus?.confirmationStatus)) {
+          throw new Error(`stage_confirmation_regressed:${stageName}`);
+        }
+        return {
+          slot: status.slot,
+          confirmationStatus: secondStatus.confirmationStatus,
+          signatureChecks: 2,
+          transactionMetaVerified: true,
+          attempts: attempt,
+        };
+      }
+      lastReason = 'transaction_meta_not_available';
+    } else if (status) {
+      lastReason = status.confirmationStatus || 'processed';
+    }
+    if (attempt < ONCHAIN_VERIFY_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+  }
+  throw new Error(`stage_not_chain_confirmed:${stageName}:${signature}:${lastReason}`);
+}
+
+async function finalizeStage(connection, journal, stageName, postcondition = null) {
+  const stage = journal.stages[stageName];
+  const chainEvidence = await verifySignatureOnChain(connection, stage.signature, stageName);
+  stage.status = 'chain_confirmed';
+  stage.chainEvidence = chainEvidence;
+  stage.chainConfirmedAt = new Date().toISOString();
+  atomicWriteJson(STATE_FILE, journal);
+  if (postcondition) {
+    stage.postcondition = await waitForPostcondition(stageName, postcondition);
+    stage.status = 'reconciled';
+    stage.reconciledAt = new Date().toISOString();
+    atomicWriteJson(STATE_FILE, journal);
+  }
+  return true;
+}
+
+async function reconcileSendingStage(connection, journal, stageName, postcondition = null) {
   const stage = journal.stages[stageName];
   if (!stage || stage.status !== 'sending' || !stage.signature) return false;
   const result = await connection.getSignatureStatuses([stage.signature], { searchTransactionHistory: true });
   const status = result.value[0];
-  if (!status) throw new Error(`stage_signature_not_found:${stageName}:${stage.signature}`);
+  if (!status) {
+    const transaction = await connection.getTransaction(stage.signature, {
+      commitment: 'confirmed',
+      maxSupportedTransactionVersion: 0,
+    });
+    if (transaction?.meta) {
+      if (transaction.meta.err) {
+        throw new Error(`stage_failed_on_chain:${stageName}:${JSON.stringify(transaction.meta.err)}`);
+      }
+      return finalizeStage(connection, journal, stageName, postcondition);
+    }
+    const blockHeight = await connection.getBlockHeight('confirmed');
+    if (stage.lastValidBlockHeight && blockHeight > stage.lastValidBlockHeight) {
+      stage.status = 'expired';
+      stage.expiredAt = new Date().toISOString();
+      stage.expiredBlockHeight = blockHeight;
+      atomicWriteJson(STATE_FILE, journal);
+      throw new Error(`stage_expired_verified_absent_retry_next_tick:${stageName}:${stage.signature}`);
+    }
+    throw new Error(`stage_signature_pending_or_rpc_stale:${stageName}:${stage.signature}`);
+  }
   if (status.err) throw new Error(`stage_failed_on_chain:${stageName}:${JSON.stringify(status.err)}`);
   if (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized') {
-    stage.status = 'confirmed';
-    stage.reconciledAt = new Date().toISOString();
-    atomicWriteJson(STATE_FILE, journal);
-    return true;
+    return finalizeStage(connection, journal, stageName, postcondition);
   }
   throw new Error(`stage_still_pending:${stageName}:${stage.signature}`);
 }
 
-async function sendStage(connection, journal, stageName, transaction, signers) {
+async function sendStage(connection, journal, stageName, transaction, signers, options = {}) {
+  const { postcondition = null } = options;
   const existing = journal.stages[stageName];
-  if (existing?.status === 'confirmed') return existing.signature;
+  if (['confirmed', 'chain_confirmed', 'reconciled'].includes(existing?.status)) {
+    if (existing.status !== 'reconciled' && postcondition) {
+      await finalizeStage(connection, journal, stageName, postcondition);
+    }
+    return existing.signature;
+  }
   if (existing?.status === 'sending') {
-    await reconcileSendingStage(connection, journal, stageName);
+    await reconcileSendingStage(connection, journal, stageName, postcondition);
     return journal.stages[stageName].signature;
   }
   const prepared = await simulateSigned(connection, transaction, signers, stageName);
   const signature = bs58.encode(prepared.transaction.signature);
+  const priorAttempts = existing
+    ? [...(existing.priorAttempts || []), {
+      signature: existing.signature,
+      status: existing.status,
+      expiredAt: existing.expiredAt,
+    }]
+    : [];
   journal.stages[stageName] = {
     status: 'sending',
     signature,
     preparedAt: new Date().toISOString(),
     unitsConsumed: prepared.unitsConsumed,
+    blockhash: prepared.latest.blockhash,
+    lastValidBlockHeight: prepared.latest.lastValidBlockHeight,
+    priorAttempts,
   };
   atomicWriteJson(STATE_FILE, journal);
   const sent = await connection.sendRawTransaction(prepared.transaction.serialize(), {
@@ -443,11 +664,16 @@ async function sendStage(connection, journal, stageName, transaction, signers) {
     preflightCommitment: 'confirmed',
   });
   if (sent !== signature) throw new Error(`${stageName}_signature_changed_on_send`);
-  const confirmation = await connection.confirmTransaction({ signature, ...prepared.latest }, 'confirmed');
-  if (confirmation.value.err) throw new Error(`${stageName}_confirmation_failed:${JSON.stringify(confirmation.value.err)}`);
-  journal.stages[stageName].status = 'confirmed';
-  journal.stages[stageName].confirmedAt = new Date().toISOString();
-  atomicWriteJson(STATE_FILE, journal);
+  try {
+    const confirmation = await connection.confirmTransaction({ signature, ...prepared.latest }, 'confirmed');
+    if (confirmation.value.err) {
+      throw new Error(`${stageName}_confirmation_failed:${JSON.stringify(confirmation.value.err)}`);
+    }
+  } catch (error) {
+    await reconcileSendingStage(connection, journal, stageName, postcondition);
+    return journal.stages[stageName].signature;
+  }
+  await finalizeStage(connection, journal, stageName, postcondition);
   return signature;
 }
 
@@ -588,7 +814,23 @@ async function createWidePosition(
       wideKeypair.publicKey,
       wallet.publicKey,
     );
-    await sendStage(connection, journal, `wide_g${generation}_create`, createTx, [wallet, wideKeypair]);
+    await sendStage(
+      connection,
+      journal,
+      `wide_g${generation}_create`,
+      createTx,
+      [wallet, wideKeypair],
+      {
+        postcondition: () => positionPostcondition(
+          connection,
+          pool,
+          wideKeypair.publicKey.toBase58(),
+          lower,
+          upper,
+          false,
+        ),
+      },
+    );
   }
   const existing = await pool.getPosition(wideKeypair.publicKey);
   const existingInventory = positionInventory(existing);
@@ -620,9 +862,30 @@ async function createWidePosition(
         `wide_g${generation}_deposit_${remainingXRaw}_${remainingYRaw}_${index + 1}`,
         transactions[index],
         [wallet],
+        {
+          postcondition: () => positionPostcondition(
+            connection,
+            pool,
+            wideKeypair.publicKey.toBase58(),
+            lower,
+            upper,
+            true,
+          ),
+        },
       );
     }
   }
+  const wideEvidence = await waitForPostcondition(
+    `wide_g${generation}_ready`,
+    () => positionPostcondition(
+      connection,
+      pool,
+      wideKeypair.publicKey.toBase58(),
+      lower,
+      upper,
+      wideXRaw > 0n || wideYRaw > 0n,
+    ),
+  );
   journal.positions.wide = {
     address: wideKeypair.publicKey.toBase58(),
     generation,
@@ -630,6 +893,7 @@ async function createWidePosition(
     lowerBinId: lower,
     upperBinId: upper,
   };
+  recordActionReconciled(journal, `wide_g${generation}_ready`, wideEvidence);
   atomicWriteJson(STATE_FILE, journal);
 }
 
@@ -659,6 +923,16 @@ async function createTightPosition(
       `tight_g${generation}_create`,
       createTransaction,
       [wallet, tightKeypair],
+      {
+        postcondition: () => positionPostcondition(
+          connection,
+          pool,
+          tightKeypair.publicKey.toBase58(),
+          lower,
+          upper,
+          false,
+        ),
+      },
     );
   }
   const existing = await pool.getPosition(tightKeypair.publicKey);
@@ -686,9 +960,30 @@ async function createTightPosition(
         `tight_g${generation}_deposit_${index + 1}`,
         transactions[index],
         [wallet],
+        {
+          postcondition: () => positionPostcondition(
+            connection,
+            pool,
+            tightKeypair.publicKey.toBase58(),
+            lower,
+            upper,
+            true,
+          ),
+        },
       );
     }
   }
+  const tightEvidence = await waitForPostcondition(
+    `tight_g${generation}_ready`,
+    () => positionPostcondition(
+      connection,
+      pool,
+      tightKeypair.publicKey.toBase58(),
+      lower,
+      upper,
+      tightXRaw > 0n || tightYRaw > 0n,
+    ),
+  );
   journal.positions.tight = {
     address: tightKeypair.publicKey.toBase58(),
     generation,
@@ -696,6 +991,7 @@ async function createTightPosition(
     lowerBinId: lower,
     upperBinId: upper,
   };
+  recordActionReconciled(journal, `tight_g${generation}_ready`, tightEvidence);
   atomicWriteJson(STATE_FILE, journal);
 }
 
@@ -720,8 +1016,22 @@ async function migrate(connection, wallet, preflight) {
     const removals = await buildRootRemoval(pool, root);
     const transactions = Array.isArray(removals) ? removals : [removals];
     for (let index = 0; index < transactions.length; index += 1) {
-      await sendStage(connection, journal, `root_close_${index + 1}`, transactions[index], [wallet]);
+      await sendStage(
+        connection,
+        journal,
+        `root_close_${index + 1}`,
+        transactions[index],
+        [wallet],
+        index === transactions.length - 1
+          ? { postcondition: () => positionClosedPostcondition(connection, CAMPAIGN.rootPosition) }
+          : {},
+      );
     }
+    const rootClosed = await waitForPostcondition(
+      'root_close_reconciliation',
+      () => positionClosedPostcondition(connection, CAMPAIGN.rootPosition),
+    );
+    recordActionReconciled(journal, 'root_close_reconciliation', rootClosed);
   }
 
   const afterRoot = await walletSnapshot(connection, wallet.publicKey);
@@ -879,11 +1189,12 @@ async function jupiterQuote(
   outputMint = CAMPAIGN.wsolMint,
 ) {
   if (BigInt(amountRaw) <= 0n) return null;
+  const safeSlippageBps = boundedSlippageBps(slippageBps);
   const query = new URLSearchParams({
     inputMint,
     outputMint,
     amount: BigInt(amountRaw).toString(),
-    slippageBps: String(slippageBps),
+    slippageBps: String(safeSlippageBps),
   });
   const response = await fetch(`${JUPITER_URL}/order?${query}`, { headers: jupiterHeaders() });
   const body = await response.json();
@@ -901,12 +1212,13 @@ async function jupiterOrder(
   outputMint = CAMPAIGN.wsolMint,
 ) {
   if (BigInt(amountRaw) <= 0n) return null;
+  const safeSlippageBps = boundedSlippageBps(slippageBps);
   const query = new URLSearchParams({
     inputMint,
     outputMint,
     amount: BigInt(amountRaw).toString(),
     taker,
-    slippageBps: String(slippageBps),
+    slippageBps: String(safeSlippageBps),
   });
   const response = await fetch(`${JUPITER_URL}/order?${query}`, { headers: jupiterHeaders() });
   const body = await response.json();
@@ -916,7 +1228,7 @@ async function jupiterOrder(
   return body;
 }
 
-async function executeJupiterOrder(order, wallet) {
+async function executeJupiterOrder(connection, order, wallet, stageName) {
   const transaction = VersionedTransaction.deserialize(Buffer.from(order.transaction, 'base64'));
   transaction.sign([wallet]);
   const response = await fetch(`${JUPITER_URL}/execute`, {
@@ -931,7 +1243,8 @@ async function executeJupiterOrder(order, wallet) {
   if (!response.ok || body.status !== 'Success' || !body.signature) {
     throw new Error(`jupiter_execute_failed:${response.status}:${body.error || body.status || 'unknown'}`);
   }
-  return body;
+  const chainEvidence = await verifySignatureOnChain(connection, body.signature, stageName);
+  return { ...body, chainEvidence };
 }
 
 async function executableSnapshot(connection, pool, journal) {
@@ -1001,21 +1314,33 @@ async function claimFees(connection, pool, wallet, journal, positions) {
   const pendingFeeX = BigInt(journal.ledger.pendingFeeXRaw || 0);
   const pendingFeeSol = BigInt(journal.ledger.pendingFeeSolLamports || 0);
   const realizedFeeX = newlyClaimedX + pendingFeeX;
+  let feeSwapStage = null;
   if (realizedFeeX > 0n) {
     const order = await jupiterOrder(CAMPAIGN.sparkyMint, realizedFeeX, CAMPAIGN.owner);
-    const executed = await executeJupiterOrder(order, wallet);
-    journal.stages[`fee_swap_${Date.now()}`] = {
-      status: 'confirmed',
+    feeSwapStage = `fee_swap_${Date.now()}`;
+    const executed = await executeJupiterOrder(connection, order, wallet, feeSwapStage);
+    journal.stages[feeSwapStage] = {
+      status: 'chain_confirmed',
       signature: executed.signature,
       requestId: order.requestId,
       inputRaw: realizedFeeX.toString(),
       outputRaw: String(order.outAmount),
-      confirmedAt: new Date().toISOString(),
+      chainEvidence: executed.chainEvidence,
+      chainConfirmedAt: new Date().toISOString(),
     };
     atomicWriteJson(STATE_FILE, journal);
   }
   const afterSwap = await walletSnapshot(connection, wallet.publicKey);
   const transactionDelta = afterSwap.lamports - before.lamports;
+  if (feeSwapStage) {
+    if (transactionDelta <= 0n) throw new Error(`${feeSwapStage}_wallet_output_delta_not_positive`);
+    journal.stages[feeSwapStage].status = 'reconciled';
+    journal.stages[feeSwapStage].reconciledAt = new Date().toISOString();
+    journal.stages[feeSwapStage].postcondition = {
+      ok: true,
+      evidence: { walletLamportDelta: transactionDelta.toString() },
+    };
+  }
   const netFeeLamports = transactionDelta + pendingFeeSol;
   journal.ledger.pendingFeeXRaw = '0';
   journal.ledger.pendingFeeSolLamports = '0';
@@ -1025,12 +1350,22 @@ async function claimFees(connection, pool, wallet, journal, positions) {
 
 async function transferLamports(connection, wallet, destination, lamports, journal, stageName) {
   if (lamports <= 0n) return null;
+  const destinationKey = new PublicKey(destination);
+  const beforeBalance = BigInt(await connection.getBalance(destinationKey, 'confirmed'));
   const transaction = new Transaction().add(SystemProgram.transfer({
     fromPubkey: wallet.publicKey,
-    toPubkey: new PublicKey(destination),
+    toPubkey: destinationKey,
     lamports,
   }));
-  return sendStage(connection, journal, stageName, transaction, [wallet]);
+  return sendStage(connection, journal, stageName, transaction, [wallet], {
+    postcondition: async () => {
+      const afterBalance = BigInt(await connection.getBalance(destinationKey, 'confirmed'));
+      const received = afterBalance - beforeBalance;
+      return received >= lamports
+        ? { ok: true, evidence: { destination, receivedLamports: received.toString() } }
+        : { ok: false, reason: `destination_balance_delta_too_small:${received}` };
+    },
+  });
 }
 
 async function closePositions(connection, pool, wallet, journal, positions, prefix) {
@@ -1045,14 +1380,27 @@ async function closePositions(connection, pool, wallet, journal, positions, pref
       skipUnwrapSOL: false,
     });
     for (let index = 0; index < transactions.length; index += 1) {
+      const address = position.publicKey.toBase58();
       await sendStage(
         connection,
         journal,
-        `${prefix}_${position.publicKey.toBase58()}_${index + 1}`,
+        `${prefix}_${address}_${index + 1}`,
         transactions[index],
         [wallet],
+        index === transactions.length - 1
+          ? { postcondition: () => positionClosedPostcondition(connection, address) }
+          : {},
       );
     }
+    const closedEvidence = await waitForPostcondition(
+      `${prefix}_${position.publicKey.toBase58()}_closed`,
+      () => positionClosedPostcondition(connection, position.publicKey.toBase58()),
+    );
+    recordActionReconciled(
+      journal,
+      `${prefix}_${position.publicKey.toBase58()}_closed`,
+      closedEvidence,
+    );
   }
 }
 
@@ -1063,19 +1411,25 @@ async function convertRetargetFeeXToSol(connection, wallet, journal, feeXRaw, st
     return { pendingFeeXRaw: feeXRaw, realizedFeeSolLamports: 0n };
   }
   const before = await walletSnapshot(connection, wallet.publicKey);
-  const executed = await executeJupiterOrder(order, wallet);
+  const executed = await executeJupiterOrder(connection, order, wallet, stageName);
   const after = await walletSnapshot(connection, wallet.publicKey);
   const realizedFeeSolLamports = after.lamports > before.lamports
     ? after.lamports - before.lamports
     : 0n;
   journal.stages[stageName] = {
-    status: 'confirmed',
+    status: 'reconciled',
     signature: executed.signature,
     requestId: order.requestId,
     inputRaw: feeXRaw.toString(),
     outputRaw: realizedFeeSolLamports.toString(),
-    confirmedAt: new Date().toISOString(),
+    chainEvidence: executed.chainEvidence,
+    reconciledAt: new Date().toISOString(),
+    postcondition: {
+      ok: realizedFeeSolLamports > 0n,
+      evidence: { walletLamportDelta: realizedFeeSolLamports.toString() },
+    },
   };
+  if (realizedFeeSolLamports <= 0n) throw new Error(`${stageName}_wallet_output_delta_not_positive`);
   return { pendingFeeXRaw: 0n, realizedFeeSolLamports };
 }
 
@@ -1112,18 +1466,24 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
       200,
       CAMPAIGN.sparkyMint,
     );
-    const executed = await executeJupiterOrder(order, wallet);
+    const swapStage = `${role}_g${generation}_retarget_swap`;
+    const executed = await executeJupiterOrder(connection, order, wallet, swapStage);
     const afterSwap = await walletSnapshot(connection, wallet.publicKey);
     const receivedFromSwap = afterSwap.sparkyRaw - beforeSwap.sparkyRaw;
     if (receivedFromSwap <= 0n) throw new Error(`${role}_retarget_sol_to_sparky_swap_empty`);
     redeployXRaw += receivedFromSwap;
-    journal.stages[`${role}_g${generation}_retarget_swap`] = {
-      status: 'confirmed',
+    journal.stages[swapStage] = {
+      status: 'reconciled',
       signature: executed.signature,
       requestId: order.requestId,
       inputRaw: swapInput.toString(),
       outputRaw: receivedFromSwap.toString(),
-      confirmedAt: new Date().toISOString(),
+      chainEvidence: executed.chainEvidence,
+      reconciledAt: new Date().toISOString(),
+      postcondition: {
+        ok: true,
+        evidence: { walletSparkyDeltaRaw: receivedFromSwap.toString() },
+      },
     };
   }
 
@@ -1254,13 +1614,18 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
       200,
       CAMPAIGN.sparkyMint,
     );
-    const executed = await executeJupiterOrder(order, wallet);
+    const swapStage = `wide_g${generation}_coverage_swap`;
+    const executed = await executeJupiterOrder(connection, order, wallet, swapStage);
     const afterSwap = await walletSnapshot(connection, wallet.publicKey);
-    redeployXRaw += afterSwap.sparkyRaw - beforeSwap.sparkyRaw;
-    journal.stages[`wide_g${generation}_coverage_swap`] = {
-      status: 'confirmed', signature: executed.signature, requestId: order.requestId,
+    const receivedFromSwap = afterSwap.sparkyRaw - beforeSwap.sparkyRaw;
+    if (receivedFromSwap <= 0n) throw new Error(`${swapStage}_wallet_output_delta_not_positive`);
+    redeployXRaw += receivedFromSwap;
+    journal.stages[swapStage] = {
+      status: 'reconciled', signature: executed.signature, requestId: order.requestId,
       inputRaw: (principalYRaw - TRANSFER_FEE_BUFFER_LAMPORTS).toString(),
-      outputRaw: String(order.outAmount), confirmedAt: new Date().toISOString(),
+      outputRaw: receivedFromSwap.toString(), chainEvidence: executed.chainEvidence,
+      reconciledAt: new Date().toISOString(),
+      postcondition: { ok: true, evidence: { walletSparkyDeltaRaw: receivedFromSwap.toString() } },
     };
   }
   const convertedFees = await convertRetargetFeeXToSol(
@@ -1354,7 +1719,8 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   ];
   const signatures = Object.entries(journal.stages)
     .filter(([name, stage]) => (
-      closePrefixes.some((prefix) => name.startsWith(prefix)) && stage.status === 'confirmed'
+      closePrefixes.some((prefix) => name.startsWith(prefix))
+        && ['confirmed', 'chain_confirmed', 'reconciled'].includes(stage.status)
     ))
     .map(([, stage]) => stage.signature);
   if (!signatures.length) throw new Error('missing_confirmed_wide_recovery_close_evidence');
@@ -1435,17 +1801,29 @@ async function settleTargetExit(connection, pool, wallet, journal, positions, sn
   const campaignTokenRaw = afterClose.sparkyRaw - before.sparkyRaw + pendingFeeX;
   if (campaignTokenRaw > 0n) {
     const order = await jupiterOrder(CAMPAIGN.sparkyMint, campaignTokenRaw, CAMPAIGN.owner);
-    const executed = await executeJupiterOrder(order, wallet);
+    const executed = await executeJupiterOrder(connection, order, wallet, 'target_exit_swap');
     journal.stages.target_exit_swap = {
-      status: 'confirmed',
+      status: 'chain_confirmed',
       signature: executed.signature,
       inputRaw: campaignTokenRaw.toString(),
       outputRaw: String(order.outAmount),
-      confirmedAt: new Date().toISOString(),
+      chainEvidence: executed.chainEvidence,
+      chainConfirmedAt: new Date().toISOString(),
     };
     atomicWriteJson(STATE_FILE, journal);
   }
   const afterExit = await walletSnapshot(connection, wallet.publicKey);
+  if (journal.stages.target_exit_swap?.status === 'chain_confirmed') {
+    const exitSwapDelta = afterExit.lamports - afterClose.lamports;
+    if (exitSwapDelta <= 0n) throw new Error('target_exit_swap_wallet_output_delta_not_positive');
+    journal.stages.target_exit_swap.status = 'reconciled';
+    journal.stages.target_exit_swap.reconciledAt = new Date().toISOString();
+    journal.stages.target_exit_swap.postcondition = {
+      ok: true,
+      evidence: { walletLamportDelta: exitSwapDelta.toString() },
+    };
+    atomicWriteJson(STATE_FILE, journal);
+  }
   const exitProceeds = afterExit.lamports - before.lamports + pendingFeeSol;
   const retainedBasisSol = campaignBasisSol(journal);
   const sweepLamports = exitProfitSweepLamports(exitProceeds, retainedBasisSol);
@@ -1640,6 +2018,12 @@ async function tick(connection, wallet) {
     );
   }
   journal.lastSuccessfulTickAt = new Date().toISOString();
+  journal.controllerHealth = {
+    status: 'healthy',
+    pid: process.pid,
+    verifiedAt: journal.lastSuccessfulTickAt,
+    actionBlocked: false,
+  };
   delete journal.lastError;
   atomicWriteJson(STATE_FILE, journal);
   return journal;
@@ -1658,6 +2042,8 @@ function publicStatus(journal) {
     closedAt: journal.closedAt,
     ledger: journal.ledger,
     stages: journal.stages,
+    actions: journal.actions,
+    controllerHealth: journal.controllerHealth,
   };
 }
 
@@ -1670,6 +2056,16 @@ async function main() {
   if (['migrate', 'tick', 'run'].includes(args.mode) && args.confirmation !== LIVE_CONFIRMATION) {
     throw new Error('live_confirmation_phrase_missing');
   }
+  const releaseControllerLock = ['migrate', 'tick', 'run'].includes(args.mode)
+    ? acquireControllerLock()
+    : () => {};
+  const shutdown = () => {
+    releaseControllerLock();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  try {
   const wallet = keypairFromText(await readStdin());
   const connection = new Connection(RPC_URL, 'confirmed');
   const walletState = await walletSnapshot(connection, wallet.publicKey);
@@ -1708,9 +2104,21 @@ async function main() {
         at: new Date().toISOString(),
         message: error instanceof Error ? error.message : String(error),
       };
+      journal.controllerHealth = {
+        status: 'reconciling_error',
+        pid: process.pid,
+        verifiedAt: new Date().toISOString(),
+        actionBlocked: true,
+        blockedReason: journal.lastError.message,
+      };
       atomicWriteJson(STATE_FILE, journal);
     }
     await new Promise((resolve) => setTimeout(resolve, args.intervalSeconds * 1000));
+  }
+  } finally {
+    process.removeListener('SIGINT', shutdown);
+    process.removeListener('SIGTERM', shutdown);
+    releaseControllerLock();
   }
 }
 
