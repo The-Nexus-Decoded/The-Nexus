@@ -48,25 +48,28 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
    - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
    - `config/zone-environment-completion-policy.json`
    - `templates/zone-environment-completion-record.template.json`
-5. For procedural/randomized or traversal-heavy levels, also read:
+5. For every imported 3D asset, and every controlled threshold that stages one, read:
+   - [`IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md`](../universal-game-production/IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md)
+   - [`templates/imported-asset-runtime-presentation-record.template.json`](../universal-game-production/templates/imported-asset-runtime-presentation-record.template.json)
+6. For procedural/randomized or traversal-heavy levels, also read:
    - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
    - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
    - `config/dungeon-topology-policy.json`
    - `config/spatial-connection-policy.json`
    - `templates/dungeon-topology-record.template.json`
    - `templates/spatial-connection-record.template.json`
-6. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-7. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
-8. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
-9. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
-10. Read repository `AGENTS.md`.
-11. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
-12. Read the assigned issue and every current comment.
-13. Read related PR(s), all comments/reviews and live head.
-14. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
-15. Read the ticket kickoff under `kickoffs/` when one exists.
-16. Inspect actual worktree/branch/recent commits.
-17. Return Session + Context Receipts before editing.
+7. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+8. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
+9. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
+10. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
+11. Read repository `AGENTS.md`.
+12. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
+13. Read the assigned issue and every current comment.
+14. Read related PR(s), all comments/reviews and live head.
+15. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
+16. Read the ticket kickoff under `kickoffs/` when one exists.
+17. Inspect actual worktree/branch/recent commits.
+18. Return Session + Context Receipts before editing.
 
 ## Session Receipt — every chat
 
@@ -87,6 +90,7 @@ requiredLanes:
   zoneQualityGates: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   environmentStaging: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   collisionInteractionDestruction: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  importedAssetPresentation: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   proceduralTopology: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   spatialTraversalContracts: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   imageReferenceBakeoff: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
@@ -121,6 +125,7 @@ zoneEnvironmentPipelineLoaded: yes/no/not-required
 zoneQualityGatesLoaded: yes/no/not-required
 environmentStagingPolicyLoaded: yes/no/not-required
 collisionInteractionDestructionPolicyLoaded: yes/no/not-required
+importedAssetPresentationGateLoaded: yes/no/not-required
 proceduralTopologyPolicyLoaded: yes/no/not-required
 spatialConnectionCatalogLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
@@ -167,6 +172,7 @@ Important distinctions:
 - graybox playability must pass before expensive production art;
 - final collision acceptance happens only after the intended prop set is frozen;
 - an asset loading successfully does not prove scale, pivot, materials, collision, LOD or provenance;
+- imported doors, gates and other controlled thresholds must preserve the reviewed artifact's decorated face, proportions, materials and critical hardware, with separate leaf/frame ownership and close-view proof in every state;
 - atmosphere may not hide structural defects;
 - performance is measured at multiple checkpoints, not only at the end;
 - failure, recovery, save/re-entry and out-of-bounds behavior must be tested;

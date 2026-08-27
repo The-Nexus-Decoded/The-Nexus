@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "policyId": "imported-asset-runtime-presentation-v1",
+  "projectId": "",
+  "ticketId": "",
+  "commit": "",
+  "zoneId": "",
+  "assetId": "",
+  "placementId": "",
+  "sourceAsset": {
+    "pathOrUri": "",
+    "version": "",
+    "sha256": "",
+    "units": "",
+    "localBounds": null,
+    "dimensions": null,
+    "aspectRatios": null,
+    "geometryCounts": {},
+    "materials": [],
+    "textures": [],
+    "criticalFeatures": []
+  },
+  "runtimeAsset": {
+    "pathOrUri": "",
+    "version": "",
+    "sha256": "",
+    "localBounds": null,
+    "dimensions": null,
+    "aspectRatios": null,
+    "geometryCounts": {},
+    "materials": [],
+    "textures": [],
+    "criticalFeatures": []
+  },
+  "presentationContract": {
+    "sourceForwardAxis": null,
+    "sourceUpAxis": null,
+    "sourceRightAxis": null,
+    "sourceToDestinationTangent": null,
+    "upstreamPresentationNormal": null,
+    "decoratedInteractiveFaceNormal": null,
+    "intendedRuntimeFacingNormal": null,
+    "sourceToRuntimeTransform": null,
+    "orientationStatus": "NOT_RUN",
+    "evidence": []
+  },
+  "fidelityComparison": {
+    "geometryStatus": "NOT_RUN",
+    "materialTextureStatus": "NOT_RUN",
+    "criticalFeatureStatus": "NOT_RUN",
+    "sourceRuntimeVisualComparisonStatus": "NOT_RUN",
+    "missingOrChangedFeatures": [],
+    "evidence": []
+  },
+  "fitContract": {
+    "scale": null,
+    "uniformScaleRequired": true,
+    "aspectPreservationStatus": "NOT_RUN",
+    "approvedExceptionId": "",
+    "evidence": []
+  },
+  "assemblyContract": {
+    "movingLeafOwnerId": "",
+    "staticFrameOwnerId": "",
+    "jambOwnerId": "",
+    "lintelOwnerId": "",
+    "movingColliderIds": [],
+    "staticColliderIds": [],
+    "pivot": null,
+    "separateOwnershipStatus": "NOT_RUN",
+    "renderCollisionBoundsParityStatus": "NOT_RUN",
+    "completeSweep": {
+      "sampleCount": null,
+      "leafFrameIntersectionCount": null,
+      "leafJambIntersectionCount": null,
+      "leafLintelIntersectionCount": null,
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    "evidence": []
+  },
+  "visualEvidence": {
+    "reviewedSource": {
+      "front": [],
+      "back": [],
+      "left": [],
+      "right": []
+    },
+    "runtimeCloseRange": {
+      "front": [],
+      "back": [],
+      "left": [],
+      "right": []
+    },
+    "intendedApproach": [],
+    "controlledStates": {
+      "closed": [],
+      "intermediateSweep": [],
+      "open": []
+    },
+    "evidenceCompletenessStatus": "NOT_RUN"
+  },
+  "stateIntersectionChecks": [
+    {
+      "state": "CLOSED",
+      "leafFrameIntersectionCount": null,
+      "leafJambIntersectionCount": null,
+      "leafLintelIntersectionCount": null,
+      "clearPassageStatus": "NOT_APPLICABLE",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "state": "INTERMEDIATE_SWEEP",
+      "leafFrameIntersectionCount": null,
+      "leafJambIntersectionCount": null,
+      "leafLintelIntersectionCount": null,
+      "clearPassageStatus": "NOT_APPLICABLE",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "state": "OPEN",
+      "leafFrameIntersectionCount": null,
+      "leafJambIntersectionCount": null,
+      "leafLintelIntersectionCount": null,
+      "clearPassageStatus": "NOT_RUN",
+      "status": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "criticalFeatureVisibilityChecks": [
+    {
+      "featureId": "",
+      "requiredViewsOrStates": [],
+      "status": "NOT_RUN",
+      "evidence": []
+    }
+  ],
+  "waivers": [
+    {
+      "waiverId": "",
+      "field": "",
+      "failedValue": null,
+      "approvedValue": null,
+      "scope": "",
+      "reason": "",
+      "approvedBy": "",
+      "approvalEvidence": [],
+      "status": "NOT_REQUESTED"
+    }
+  ],
+  "hardGate": {
+    "missingRequiredEvidence": [],
+    "unwaivedFailures": [],
+    "zoneAcceptanceBlocked": true,
+    "result": "NOT_RUN"
+  },
+  "producerStatus": "NOT_STARTED",
+  "independentVerification": "NOT_RUN",
+  "finalStatus": "NOT_RUN"
+}

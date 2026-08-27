@@ -44,19 +44,22 @@ Refresh live balance/pricing/allowance for the active lane and obtain exact owne
     - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
     - `config/zone-environment-completion-policy.json`
     - `templates/zone-environment-completion-record.template.json`
-11. For procedural/generated or traversal-heavy levels, also read:
+11. For every imported 3D asset, and every zone that stages one, read:
+    - [`IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md`](IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md)
+    - [`templates/imported-asset-runtime-presentation-record.template.json`](templates/imported-asset-runtime-presentation-record.template.json)
+12. For procedural/generated or traversal-heavy levels, also read:
     - `PROCEDURAL_LEVEL_TOPOLOGY_POLICY.md`
     - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
     - the matching configs/templates.
-12. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-13. For Houdini, read `HOUDINI_LICENSE_MODE_POLICY.md`.
-14. For Tripo, load `providers/tripo/README.md` and project-specific provider config.
-15. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template when enabled.
-16. For browser/native runtime decisions, read `BROWSER_RUNTIME_PORTABILITY_POLICY.md`.
-17. Read assigned ticket and all comments/PR reviews.
-18. Load `.agent-state/<ticket>/`.
-19. Inspect actual branch/worktree and recent commits.
-20. Return Session + Context Receipts before editing.
+13. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+14. For Houdini, read `HOUDINI_LICENSE_MODE_POLICY.md`.
+15. For Tripo, load `providers/tripo/README.md` and project-specific provider config.
+16. For custom animation, read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template when enabled.
+17. For browser/native runtime decisions, read `BROWSER_RUNTIME_PORTABILITY_POLICY.md`.
+18. Read assigned ticket and all comments/PR reviews.
+19. Load `.agent-state/<ticket>/`.
+20. Inspect actual branch/worktree and recent commits.
+21. Return Session + Context Receipts before editing.
 
 ## Session Receipt
 
@@ -100,6 +103,7 @@ zoneEnvironmentPipelineLoaded: yes/no/not-required
 zoneQualityGatesLoaded: yes/no/not-required
 environmentStagingPolicyLoaded: yes/no/not-required
 collisionInteractionDestructionPolicyLoaded: yes/no/not-required
+importedAssetPresentationGateLoaded: yes/no/not-required
 proceduralTopologyPolicyLoaded: yes/no/not-required
 spatialConnectionCatalogLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
@@ -143,6 +147,7 @@ Binding distinctions:
 - graybox playability passes before expensive production art;
 - zone seams and adjacent-region handoffs are explicit;
 - assets pass technical intake before staging;
+- every imported runtime derivative passes source fidelity, orientation, uniform-fit, close-view and assembly-state checks before asset or zone acceptance;
 - final intended props are placed before final collision verification;
 - empty-shell traversal and navigation/pathfinding do not substitute for collision;
 - collision/physics/hazards pass before interaction/destruction acceptance;

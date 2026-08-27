@@ -31,6 +31,8 @@ Read from `infra/game-production-playbooks`:
 - `ZONE_PRODUCTION_QUALITY_GATES.md`
 - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
+- [`IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md`](../../universal-game-production/IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md)
+- [`templates/imported-asset-runtime-presentation-record.template.json`](../../universal-game-production/templates/imported-asset-runtime-presentation-record.template.json)
 - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
 - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
 - the matching configs/templates
@@ -130,6 +132,26 @@ Do not restart valid work.
 3. Fix only floating, intersecting, obstructive, semantically wrong or unclassified objects.
 4. Assign every object collision, interaction, destruction and performance class.
 5. Freeze the accepted staged environment before collision discovery.
+
+---
+
+# Permanent imported heavy-door regression
+
+The reviewed imported heavy-door artifact is the source of truth. A generated flat substitute, silent runtime-detail reduction, nonuniform stretch or masonry-cropped leaf fails the asset-readiness gate.
+
+Before Phase 3 or zone acceptance, create one machine-readable imported-asset presentation record per controlled heavy-door placement and prove:
+
+- reviewed source and runtime identities, hashes, local bounds, dimensions, aspect ratios, geometry counts, materials, texture identities/resolutions and critical-feature list;
+- source-to-destination tangent, upstream presentation normal and decorated/interactive face normal, with the ring handle, lock and hinges presented from the intended upstream approach;
+- one aspect-preserving uniform fit, unless an exact nonuniform exception has prior recorded owner approval;
+- separate moving-leaf and static-frame ownership: masonry, jambs and lintel do not own or crop the leaf;
+- close-range source/runtime front, back, left and right images;
+- intended-approach images in `CLOSED` and `OPEN`, plus a side/sweep image at a representative intermediate state;
+- zero leaf/frame, leaf/jamb and leaf/lintel intersections in `CLOSED`, `INTERMEDIATE_SWEEP` and `OPEN`;
+- render, pivot, moving collider and closure sweep use the same fitted bounds/orientation, and the open state exposes the contracted clear passage;
+- ring handle, lock, hinges and every declared critical feature remain visible, correctly colored and readable in the required views.
+
+Missing views, hidden hardware, wrong-facing decoration, source/runtime fidelity drift, unexplained stretching, rock/masonry cropping or any unwaived state intersection is `BLOCKED`. A wide topology image, successful load or navigation-only pass cannot satisfy this regression.
 
 ---
 
