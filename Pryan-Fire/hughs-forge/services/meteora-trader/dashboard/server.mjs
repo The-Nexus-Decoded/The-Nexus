@@ -15,7 +15,7 @@ const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.sol
 const host = process.env.METEORA_DASHBOARD_HOST || '127.0.0.1';
 const defaultPort = Number(process.env.METEORA_DASHBOARD_PORT || 4820);
 const staleTickMs = Number(process.env.METEORA_STALE_TICK_MS || 90_000);
-const minimumNativeSol = Number(process.env.METEORA_MIN_NATIVE_SOL || 0.25);
+const minimumNativeSol = Number(process.env.METEORA_MIN_NATIVE_SOL || 0.0025);
 const alertEmailTo = process.env.METEORA_ALERT_EMAIL_TO || '';
 const alertEmailFrom = process.env.METEORA_ALERT_EMAIL_FROM || '';
 const resendApiKey = process.env.RESEND_API_KEY || '';
@@ -506,7 +506,7 @@ async function updateReserveNotification(owner, walletReserve) {
     '',
     `Wallet: ${owner}`,
     `Current native SOL: ${walletReserve.balanceSol.toFixed(9)} SOL`,
-    `Required minimum: ${minimumNativeSol.toFixed(3)} SOL`,
+    `Required retained floor: ${minimumNativeSol.toFixed(4)} SOL`,
     `Shortfall: ${walletReserve.shortfallSol.toFixed(9)} SOL`,
     `Observed: ${walletReserve.fetchedAt}`,
     '',
@@ -585,7 +585,7 @@ async function buildOverview() {
       ? {
         level: 'critical',
         code: 'native_sol_below_minimum',
-        message: `Native SOL reserve is ${walletReserve.balanceSol.toFixed(6)} SOL; at least ${walletReserve.minimumSol.toFixed(2)} SOL is required for controller actions.`,
+        message: `Native SOL reserve is ${walletReserve.balanceSol.toFixed(6)} SOL; the retained wallet floor is ${walletReserve.minimumSol.toFixed(4)} SOL. Transaction affordability is checked separately.`,
       }
       : null,
     walletReserve.status !== 'live'

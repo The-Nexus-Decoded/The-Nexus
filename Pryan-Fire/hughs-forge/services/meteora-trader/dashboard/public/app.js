@@ -110,7 +110,7 @@ function renderWallet() {
         ? 'Urgent email is not configured'
         : notification?.status === 'failed'
           ? `Urgent email failed: ${notification.error}`
-          : `Minimum reserve ${sol(reserve?.minimumSol, 2)}`;
+          : `Retained wallet floor ${sol(reserve?.minimumSol, 4)}`;
   byId('walletTimestamp').textContent = portfolio?.status === 'live'
     ? `Meteora fetched ${time(portfolio.fetchedAt)} · native SOL checked ${time(reserve?.fetchedAt)} · indexed ${time(portfolio.indexedAt)}`
     : `Live portfolio unavailable: ${portfolio?.error || 'unknown error'}`;
@@ -357,7 +357,7 @@ function renderExecutionMode(campaign) {
   byId('executionSummary').textContent = armed
     ? `${campaign.id} is advancing under its enrolled policy. Manual controls remain isolated from the signer until owner authentication is implemented.`
     : reserve?.belowMinimum
-      ? `Controller actions are blocked because the wallet has ${sol(reserve.balanceSol, 6)} native SOL; the minimum action reserve is ${sol(reserve.minimumSol, 2)}.`
+      ? `Controller actions are blocked because the wallet has ${sol(reserve.balanceSol, 6)} native SOL; the retained wallet floor is ${sol(reserve.minimumSol, 4)}. Action costs are checked separately.`
       : `No selected campaign has a healthy execution process. Review the incident banner and journal before any manual action.`;
 }
 
