@@ -11,9 +11,19 @@ const stateDirectory = process.env.METEORA_STATE_DIR
   ? path.resolve(process.env.METEORA_STATE_DIR)
   : path.join(os.homedir(), 'Meteora-Secure', 'state');
 const dataApiBase = 'https://dlmm.datapi.meteora.ag';
+const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const host = process.env.METEORA_DASHBOARD_HOST || '127.0.0.1';
 const defaultPort = Number(process.env.METEORA_DASHBOARD_PORT || 4820);
 const staleTickMs = Number(process.env.METEORA_STALE_TICK_MS || 90_000);
+const minimumNativeSol = Number(process.env.METEORA_MIN_NATIVE_SOL || 0.25);
+const alertEmailTo = process.env.METEORA_ALERT_EMAIL_TO || '';
+const alertEmailFrom = process.env.METEORA_ALERT_EMAIL_FROM || '';
+const resendApiKey = process.env.RESEND_API_KEY || '';
+const reserveAlertCooldownMs = Number(process.env.METEORA_RESERVE_ALERT_COOLDOWN_MS || 4 * 60 * 60 * 1000);
+const liquidityWarningPct = 20;
+const liquidityCriticalPct = 30;
+const liquidityBaselineRefreshMs = 60_000;
+const alertStatePath = path.join(stateDirectory, 'dashboard-alert-state.json');
 
 const contentTypes = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -313,12 +323,26 @@ async function fetchPortfolio(owner) {
     const pools = await Promise.all((portfolio.pools || []).map(async (pool) => {
       const positionQuery = new URLSearchParams({ user: owner, status: 'open', page: '1', page_size: '100' });
       let positionData = { positions: [] };
-      try {
-        positionData = await fetchJson(`${dataApiBase}/positions/${encodeURIComponent(pool.poolAddress)}/pnl?${positionQuery}`);
-      } catch (error) {
-        positionData = { positions: [], error: error.message };
-      }
-      return { ...pool, positions: positionData.positions || [], positionsError: positionData.error || null };
+      let poolMetrics = null;
+      const [positionsResult, metricsResult] = await Promise.allSettled([
+        fetchJson(`${dataApiBase}/positions/${encodeURIComponent(pool.poolAddress)}/pnl?${positionQuery}`),
+        fetchJson(`${dataApiBase}/pools/${encodeURIComponent(pool.poolAddress)}`),
+      ]);
+      if (positionsResult.status === 'fulfilled') positionData = positionsResult.value;
+      else positionData = { positions: [], error: positionsResult.reason.message };
+      if (metricsResult.status === 'fulfilled') poolMetrics = metricsResult.value;
+      return {
+        ...pool,
+        positions: positionData.positions || [],
+        positionsError: positionData.error || null,
+        poolMetrics: poolMetrics ? {
+          tvlUsd: Number(poolMetrics.tvl),
+          currentPrice: Number(poolMetrics.current_price),
+          volume30mUsd: Number(poolMetrics.volume?.['30m']),
+          fees30mUsd: Number(poolMetrics.fees?.['30m']),
+          feeTvl30mPct: Number(poolMetrics.fee_tvl_ratio?.['30m']),
+        } : null,
+      };
     }));
     const newestPoolUpdate = Math.max(0, ...pools.map((pool) => Number(pool.poolStateUpdatedAtBlockTime || 0)));
     return {
@@ -332,6 +356,192 @@ async function fetchPortfolio(owner) {
     };
   } catch (error) {
     return { status: 'failed', source: 'official_meteora_data_api', error: error.message, fetchedAt: new Date().toISOString(), pools: [] };
+  }
+}
+
+async function fetchWalletReserve(owner) {
+  const fetchedAt = new Date().toISOString();
+  if (!owner) {
+    return {
+      status: 'unavailable',
+      source: 'solana_rpc',
+      error: 'wallet_not_configured',
+      fetchedAt,
+      minimumSol: minimumNativeSol,
+      belowMinimum: null,
+    };
+  }
+  try {
+    const response = await fetch(solanaRpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getBalance',
+        params: [owner, { commitment: 'confirmed' }],
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) throw new Error(`solana_rpc_${response.status}`);
+    const payload = await response.json();
+    if (payload.error || !Number.isFinite(Number(payload.result?.value))) {
+      throw new Error(payload.error?.message || 'solana_rpc_balance_missing');
+    }
+    const balanceSol = Number(payload.result.value) / 1_000_000_000;
+    return {
+      status: 'live',
+      source: 'solana_rpc',
+      fetchedAt,
+      slot: Number(payload.result.context?.slot) || null,
+      balanceSol,
+      minimumSol: minimumNativeSol,
+      shortfallSol: Math.max(0, minimumNativeSol - balanceSol),
+      belowMinimum: balanceSol < minimumNativeSol,
+    };
+  } catch (error) {
+    return {
+      status: 'failed',
+      source: 'solana_rpc',
+      error: error.message,
+      fetchedAt,
+      minimumSol: minimumNativeSol,
+      belowMinimum: null,
+    };
+  }
+}
+
+async function writeAlertState(value) {
+  const temporaryPath = `${alertStatePath}.${process.pid}.tmp`;
+  await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await fs.rename(temporaryPath, alertStatePath);
+}
+
+async function updateLiquidityBaselines(portfolio) {
+  if (portfolio.status !== 'live') return portfolio;
+  const previous = await readJson(alertStatePath) || {};
+  const liquidityBaselines = { ...(previous.liquidityBaselines || {}) };
+  const observedAt = new Date().toISOString();
+  let changed = false;
+
+  for (const pool of portfolio.pools || []) {
+    const currentTvlUsd = Number(pool.poolMetrics?.tvlUsd);
+    if (!Number.isFinite(currentTvlUsd) || currentTvlUsd <= 0) continue;
+    const prior = liquidityBaselines[pool.poolAddress] || {};
+    const peakTvlUsd = Math.max(currentTvlUsd, Number(prior.peakTvlUsd) || 0);
+    const drawdownPct = Math.max(0, (peakTvlUsd - currentTvlUsd) / peakTvlUsd * 100);
+    const signal = drawdownPct >= liquidityCriticalPct
+      ? 'critical'
+      : drawdownPct >= liquidityWarningPct
+        ? 'warning'
+        : 'stable';
+    const priorAgeMs = isoAge(prior.lastObservedAt);
+    const materiallyChanged = Math.abs(currentTvlUsd - Number(prior.currentTvlUsd || 0)) / currentTvlUsd >= 0.001;
+    if (peakTvlUsd !== Number(prior.peakTvlUsd)
+      || materiallyChanged
+      || prior.signal !== signal
+      || priorAgeMs === null
+      || priorAgeMs >= liquidityBaselineRefreshMs) {
+      liquidityBaselines[pool.poolAddress] = {
+        peakTvlUsd,
+        currentTvlUsd,
+        drawdownPct,
+        signal,
+        warningPct: liquidityWarningPct,
+        criticalPct: liquidityCriticalPct,
+        lastObservedAt: observedAt,
+      };
+      changed = true;
+    }
+    pool.poolMetrics = {
+      ...pool.poolMetrics,
+      monitoredPeakTvlUsd: peakTvlUsd,
+      liquidityDrawdownPct: drawdownPct,
+      liquiditySignal: signal,
+      liquidityBaselineObservedAt: liquidityBaselines[pool.poolAddress]?.lastObservedAt || observedAt,
+    };
+  }
+
+  if (changed) await writeAlertState({ ...previous, liquidityBaselines });
+  return portfolio;
+}
+
+async function updateReserveNotification(owner, walletReserve) {
+  const configured = Boolean(alertEmailTo && alertEmailFrom && resendApiKey);
+  if (walletReserve.status !== 'live') {
+    return { configured, status: 'reserve_unavailable', channel: 'email' };
+  }
+
+  const previous = await readJson(alertStatePath) || {};
+  if (!walletReserve.belowMinimum) {
+    if (previous.condition === 'below_minimum') {
+      await writeAlertState({
+        ...previous,
+        condition: 'healthy',
+        recoveredAt: new Date().toISOString(),
+        recoveredBalanceSol: walletReserve.balanceSol,
+      });
+    }
+    return { configured, status: 'not_required', channel: 'email' };
+  }
+
+  const lastSentAt = Date.parse(previous.lastSentAt || '');
+  if (previous.condition === 'below_minimum'
+    && Number.isFinite(lastSentAt)
+    && Date.now() - lastSentAt < reserveAlertCooldownMs) {
+    return {
+      configured,
+      status: 'suppressed_duplicate',
+      channel: 'email',
+      lastSentAt: previous.lastSentAt,
+    };
+  }
+  if (!configured) {
+    return { configured: false, status: 'not_configured', channel: 'email' };
+  }
+
+  const subject = `[URGENT] Meteora wallet below ${minimumNativeSol} SOL reserve`;
+  const text = [
+    'Hugh\'s Forge blocked trading actions because the native SOL reserve is too low.',
+    '',
+    `Wallet: ${owner}`,
+    `Current native SOL: ${walletReserve.balanceSol.toFixed(9)} SOL`,
+    `Required minimum: ${minimumNativeSol.toFixed(3)} SOL`,
+    `Shortfall: ${walletReserve.shortfallSol.toFixed(9)} SOL`,
+    `Observed: ${walletReserve.fetchedAt}`,
+    '',
+    'Restore the native SOL reserve before allowing claims, swaps, retargets, closes, or auto-compounding.',
+  ].join('\n');
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${resendApiKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ from: alertEmailFrom, to: [alertEmailTo], subject, text }),
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) throw new Error(`resend_${response.status}`);
+    const result = await response.json();
+    const lastSentAtValue = new Date().toISOString();
+    await writeAlertState({
+      ...previous,
+      condition: 'below_minimum',
+      lastSentAt: lastSentAtValue,
+      lastBalanceSol: walletReserve.balanceSol,
+      minimumSol: minimumNativeSol,
+      providerMessageId: result.id || null,
+    });
+    return {
+      configured: true,
+      status: 'sent',
+      channel: 'email',
+      lastSentAt: lastSentAtValue,
+      providerMessageId: result.id || null,
+    };
+  } catch (error) {
+    return { configured: true, status: 'failed', channel: 'email', error: error.message };
   }
 }
 
@@ -363,9 +573,33 @@ function reconcileCampaigns(campaigns, portfolio) {
 async function buildOverview() {
   const campaigns = await loadCampaigns();
   const owner = process.env.TRADING_WALLET_PUBLIC_KEY || campaigns[0]?.campaign.owner || null;
-  const portfolio = await fetchPortfolio(owner);
+  const [portfolio, walletReserve] = await Promise.all([
+    fetchPortfolio(owner),
+    fetchWalletReserve(owner),
+  ]);
+  await updateLiquidityBaselines(portfolio);
+  walletReserve.notification = await updateReserveNotification(owner, walletReserve);
   const reconciledCampaigns = reconcileCampaigns(campaigns, portfolio);
-  const criticalCount = reconciledCampaigns.filter((campaign) => campaign.severity === 'critical').length;
+  const globalAlerts = [
+    walletReserve.belowMinimum
+      ? {
+        level: 'critical',
+        code: 'native_sol_below_minimum',
+        message: `Native SOL reserve is ${walletReserve.balanceSol.toFixed(6)} SOL; at least ${walletReserve.minimumSol.toFixed(2)} SOL is required for controller actions.`,
+      }
+      : null,
+    walletReserve.status !== 'live'
+      ? { level: 'critical', code: 'native_sol_unavailable', message: `Native SOL reserve could not be verified: ${walletReserve.error || 'unknown error'}.` }
+      : null,
+    walletReserve.belowMinimum && walletReserve.notification.status === 'not_configured'
+      ? { level: 'warning', code: 'reserve_email_not_configured', message: 'Urgent reserve email is not configured on this dashboard runtime.' }
+      : null,
+    walletReserve.notification.status === 'failed'
+      ? { level: 'warning', code: 'reserve_email_failed', message: `Urgent reserve email failed: ${walletReserve.notification.error}.` }
+      : null,
+  ].filter(Boolean);
+  const campaignCriticalCount = reconciledCampaigns.filter((campaign) => campaign.severity === 'critical').length;
+  const criticalCount = campaignCriticalCount + globalAlerts.filter((alert) => alert.level === 'critical').length;
   return {
     generatedAt: new Date().toISOString(),
     readOnly: true,
@@ -373,8 +607,10 @@ async function buildOverview() {
     owner,
     globalStatus: criticalCount > 0 ? 'critical' : portfolio.status === 'live' ? 'healthy' : 'degraded',
     criticalCount,
+    globalAlerts,
     campaigns: reconciledCampaigns,
     portfolio,
+    walletReserve,
   };
 }
 

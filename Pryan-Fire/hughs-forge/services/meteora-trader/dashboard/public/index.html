@@ -48,9 +48,14 @@
         <article class="panel wallet-panel">
           <div class="panel-heading"><div><p class="eyebrow">LIVE WALLET</p><h2>Open Meteora capital</h2></div><span id="walletSource" class="source-chip">Waiting</span></div>
           <div class="wallet-metrics">
-            <div><span>Position value</span><strong id="walletBalance">—</strong></div>
+            <div><span>Native action reserve</span><strong id="walletNativeSol">—</strong></div>
+            <div><span>Meteora position value</span><strong id="walletBalance">—</strong></div>
             <div><span>Unclaimed fees</span><strong id="walletFees">—</strong></div>
             <div><span>Open positions</span><strong id="walletPositions">—</strong></div>
+          </div>
+          <div id="walletReserveStatus" class="reserve-status reserve-unknown" aria-live="assertive">
+            <div><span>TRANSACTION RESERVE</span><strong>Waiting for native SOL balance</strong><small id="walletEmailStatus">Email channel unknown</small></div>
+            <div class="reserve-meter"><span id="walletReserveMeter"></span></div>
           </div>
           <p id="walletTimestamp" class="timestamp">No live evidence yet.</p>
         </article>
@@ -80,6 +85,10 @@
           <article class="panel chart-panel">
             <div class="panel-heading"><div><p class="eyebrow">VALUE MIX</p><h2>Position vs fees</h2></div><span class="source-chip">PROVEN ONLY</span></div>
             <div class="mix-layout"><div id="valueMix" class="value-mix"><strong>—</strong></div><dl id="valueMixLegend" class="mix-legend"></dl></div>
+          </article>
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="eyebrow">LIQUIDITY SAFETY</p><h2>Pool TVL drawdown</h2></div><span id="liquiditySignalLabel" class="source-chip">WAITING</span></div>
+            <div id="liquiditySignal" class="liquidity-signal"><div class="empty-state">Waiting for live pool liquidity.</div></div>
           </article>
         </div>
       </section>

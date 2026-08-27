@@ -1,5 +1,7 @@
 const HISTORY_KEY = 'meteora-campaign-history-v1';
 const THEME_KEY = 'meteora-dashboard-theme';
+const LIQUIDITY_WARN_PCT = 20;
+const LIQUIDITY_CRITICAL_PCT = 30;
 const state = {
   overview: null,
   logs: [],
@@ -14,6 +16,7 @@ const state = {
 const byId = (id) => document.getElementById(id);
 const number = (value, digits = 3) => Number.isFinite(Number(value)) ? Number(value).toLocaleString(undefined, { maximumFractionDigits: digits }) : '—';
 const sol = (value, digits = 4) => Number.isFinite(Number(value)) ? `${number(value, digits)} SOL` : '—';
+const usd = (value, digits = 0) => Number.isFinite(Number(value)) ? Number(value).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: digits }) : '—';
 const short = (value, length = 5) => value ? `${value.slice(0, length)}…${value.slice(-length)}` : '—';
 const age = (milliseconds) => {
   if (!Number.isFinite(milliseconds)) return 'unknown';
@@ -67,24 +70,49 @@ function renderStatus() {
   statusElement.className = `status-pill status-${status}`;
   statusElement.innerHTML = `<i></i>${status === 'critical' ? 'Action required' : status}`;
 
-  const incidents = state.overview?.campaigns.flatMap((campaign) => campaign.alerts.map((alert) => ({ campaign: campaign.id, ...alert }))) || [];
+  const globalIncidents = (state.overview?.globalAlerts || []).map((alert) => ({ campaign: 'Wallet safety', ...alert }));
+  const campaignIncidents = state.overview?.campaigns.flatMap((campaign) => campaign.alerts.map((alert) => ({ campaign: campaign.id, ...alert }))) || [];
+  const incidents = [...globalIncidents, ...campaignIncidents];
   const banner = byId('criticalBanner');
   if (!incidents.length) {
     banner.classList.add('hidden');
   } else {
     banner.classList.remove('hidden');
-    banner.innerHTML = `<strong>${incidents.length} controller incident${incidents.length === 1 ? '' : 's'}</strong> — ${escapeHtml(incidents[0].campaign)}: ${escapeHtml(incidents[0].message)}`;
+    banner.innerHTML = `<strong>${incidents.length} urgent incident${incidents.length === 1 ? '' : 's'}</strong> — ${escapeHtml(incidents[0].campaign)}: ${escapeHtml(incidents[0].message)}`;
   }
 }
 
 function renderWallet() {
   const portfolio = state.overview?.portfolio;
+  const reserve = state.overview?.walletReserve;
+  const reserveStatus = byId('walletReserveStatus');
+  const reserveRatio = reserve?.status === 'live' && reserve.minimumSol > 0
+    ? clamp(reserve.balanceSol / reserve.minimumSol * 100)
+    : 0;
   byId('walletSource').textContent = portfolio?.status === 'live' ? 'Meteora live' : portfolio?.status || 'Unavailable';
+  byId('walletNativeSol').textContent = reserve?.status === 'live' ? sol(reserve.balanceSol, 6) : 'Unavailable';
   byId('walletBalance').textContent = sol(portfolio?.total?.balancesSol);
   byId('walletFees').textContent = sol(portfolio?.total?.unclaimedFeesSol);
   byId('walletPositions').textContent = number(portfolio?.total?.totalPositions, 0);
+  reserveStatus.className = `reserve-status ${reserve?.status !== 'live' ? 'reserve-unknown' : reserve.belowMinimum ? 'reserve-critical' : 'reserve-safe'}`;
+  reserveStatus.querySelector('strong').textContent = reserve?.status !== 'live'
+    ? 'Unable to verify native SOL reserve'
+    : reserve.belowMinimum
+      ? `ACTIONS BLOCKED — ${sol(reserve.shortfallSol, 6)} short`
+      : `READY — ${sol(reserve.balanceSol - reserve.minimumSol, 6)} above minimum`;
+  byId('walletReserveMeter').style.width = `${reserveRatio}%`;
+  const notification = reserve?.notification;
+  byId('walletEmailStatus').textContent = notification?.status === 'sent'
+    ? `Urgent email sent ${time(notification.lastSentAt)}`
+    : notification?.status === 'suppressed_duplicate'
+      ? `Urgent email already sent ${time(notification.lastSentAt)}`
+      : notification?.status === 'not_configured'
+        ? 'Urgent email is not configured'
+        : notification?.status === 'failed'
+          ? `Urgent email failed: ${notification.error}`
+          : `Minimum reserve ${sol(reserve?.minimumSol, 2)}`;
   byId('walletTimestamp').textContent = portfolio?.status === 'live'
-    ? `Fetched ${time(portfolio.fetchedAt)} · indexed ${time(portfolio.indexedAt)}`
+    ? `Meteora fetched ${time(portfolio.fetchedAt)} · native SOL checked ${time(reserve?.fetchedAt)} · indexed ${time(portfolio.indexedAt)}`
     : `Live portfolio unavailable: ${portfolio?.error || 'unknown error'}`;
 }
 
@@ -189,12 +217,16 @@ function renderValueChart(campaign) {
 
 function renderWaterfall(campaign) {
   const snapshot = campaign?.snapshot;
+  const basis = Number(campaign?.campaign.entryBasisSol || 0);
   const target = Number(campaign?.campaign.targetValueSol || 0);
   const positions = Number(snapshot?.positionsExecutableValueSol || 0);
   const fees = Number(snapshot?.cumulativeNetFeesEarnedSol || 0);
   const costs = Number(snapshot?.executionCostsSol || 0);
   const returned = Number(snapshot?.campaignReturnSol || 0);
   const gap = Math.max(0, target - returned);
+  const targetProgress = target > 0 ? returned / target * 100 : 0;
+  const profitSol = returned - basis;
+  const profitPct = basis > 0 ? profitSol / basis * 100 : 0;
   const maximum = Math.max(target, positions + fees, 1e-9);
   const rows = [
     ['Executable positions', positions, 'waterfall-position'],
@@ -202,9 +234,20 @@ function renderWaterfall(campaign) {
     ['Execution costs', -costs, 'waterfall-cost'],
     ['Remaining to target', gap, 'waterfall-gap'],
   ];
-  byId('targetProgressLabel').textContent = target ? `${number(returned / target * 100, 1)}%` : '—';
-  byId('targetWaterfall').innerHTML = campaign ? rows.map(([label, value, className]) => `
-    <div class="waterfall-row"><div><span>${label}</span><strong>${value < 0 ? '−' : ''}${sol(Math.abs(value))}</strong></div><div class="waterfall-track"><span class="${className}" style="width:${clamp(Math.abs(value) / maximum * 100)}%"></span></div></div>`).join('') : '<div class="empty-state">Select a campaign.</div>';
+  byId('targetProgressLabel').textContent = target ? `${number(targetProgress, 1)}%` : '—';
+  byId('targetWaterfall').innerHTML = campaign ? `
+    <div class="target-summary">
+      <div class="target-dial" style="--target-progress:${clamp(targetProgress) * 3.6}deg"><div><strong>${number(targetProgress, 1)}%</strong><span>TO TARGET</span></div></div>
+      <div class="target-numbers">
+        <div><span>Current proven return</span><strong>${sol(returned, 6)}</strong></div>
+        <div><span>Configured close target</span><strong>${sol(target, 6)}</strong></div>
+        <div><span>Entry basis</span><strong>${sol(basis, 6)}</strong></div>
+        <div><span>${profitSol >= 0 ? 'Net profit now' : 'Net loss now'}</span><strong class="${profitSol >= 0 ? 'positive' : 'negative'}">${profitSol >= 0 ? '+' : '−'}${sol(Math.abs(profitSol), 6)} / ${number(profitPct, 1)}%</strong></div>
+        <div><span>Still needed</span><strong>${sol(gap, 6)}</strong></div>
+      </div>
+    </div>
+    ${rows.map(([label, value, className]) => `
+      <div class="waterfall-row"><div><span>${label}</span><strong>${value < 0 ? '−' : ''}${sol(Math.abs(value))}</strong></div><div class="waterfall-track"><span class="${className}" style="width:${clamp(Math.abs(value) / maximum * 100)}%"></span></div></div>`).join('')}` : '<div class="empty-state">Select a campaign.</div>';
 }
 
 function renderRangeMap(campaign) {
@@ -243,21 +286,73 @@ function renderValueMix(campaign) {
     <div><dt><i class="mix-fees"></i>Proven fees</dt><dd>${sol(fees)}</dd></div>` : '';
 }
 
+function renderLiquiditySignal(campaign) {
+  const pool = state.overview?.portfolio?.pools.find((item) => item.poolAddress === campaign?.campaign.pool);
+  const currentTvl = Number(pool?.poolMetrics?.tvlUsd);
+  const monitoredPeakTvl = Number(pool?.poolMetrics?.monitoredPeakTvlUsd);
+  const serverDrawdownPct = pool?.poolMetrics?.liquidityDrawdownPct;
+  const referenceTvl = Number.isFinite(monitoredPeakTvl) && monitoredPeakTvl > 0 ? monitoredPeakTvl : currentTvl;
+  const drawdownPct = serverDrawdownPct === null || serverDrawdownPct === undefined
+    ? null
+    : Number(serverDrawdownPct);
+  const targetReached = Boolean(campaign?.snapshot?.targetReached)
+    || Number(campaign?.snapshot?.campaignReturnSol) >= Number(campaign?.campaign.targetValueSol);
+  const critical = Number.isFinite(drawdownPct) && drawdownPct >= LIQUIDITY_CRITICAL_PCT;
+  const warning = Number.isFinite(drawdownPct) && drawdownPct >= LIQUIDITY_WARN_PCT;
+  const label = byId('liquiditySignalLabel');
+  const container = byId('liquiditySignal');
+
+  if (!campaign || !Number.isFinite(currentTvl) || currentTvl <= 0) {
+    label.textContent = 'UNAVAILABLE';
+    label.className = 'source-chip';
+    container.innerHTML = '<div class="empty-state">Live pool TVL is unavailable.</div>';
+    return;
+  }
+
+  label.textContent = critical ? 'CRITICAL' : warning ? 'WARNING' : 'STABLE';
+  label.className = `source-chip liquidity-${critical ? 'critical' : warning ? 'warning' : 'stable'}`;
+  const guidance = targetReached
+    ? critical
+      ? 'Target reached and liquidity is draining hard. Strong exit signal.'
+      : warning
+        ? 'Target reached while liquidity is weakening. Favor exit over extending the hold.'
+        : 'Target reached with stable liquidity. Holding beyond target still requires an explicit campaign setting.'
+    : critical
+      ? 'Critical liquidity loss before target. Fail closed and reassess recovery odds.'
+      : warning
+        ? 'Liquidity is weakening before target. Treat further drawdown as elevated exit risk.'
+        : 'Liquidity remains inside the monitored safety band.';
+  container.innerHTML = `
+    <div class="liquidity-numbers">
+      <div><span>Current pool TVL</span><strong>${usd(currentTvl)}</strong></div>
+      <div><span>Monitored peak TVL</span><strong>${usd(referenceTvl)}</strong></div>
+      <div><span>Drawdown from peak</span><strong class="${critical ? 'negative' : warning ? 'warning' : 'positive'}">${number(drawdownPct, 1)}%</strong></div>
+    </div>
+    <div class="liquidity-meter"><span style="width:${clamp(drawdownPct / LIQUIDITY_CRITICAL_PCT * 100)}%"></span><i class="warn-marker"></i><i class="critical-marker"></i></div>
+    <div class="liquidity-thresholds"><span>0% stable</span><span>20% warning</span><span>30% critical</span></div>
+    <p>${escapeHtml(guidance)}</p>`;
+}
+
 function renderTelemetry(campaign) {
   renderValueChart(campaign);
   renderWaterfall(campaign);
   renderRangeMap(campaign);
   renderValueMix(campaign);
+  renderLiquiditySignal(campaign);
 }
 
 function renderExecutionMode(campaign) {
-  const armed = campaign?.controller.processRunning && !campaign?.controller.actionBlocked;
+  const reserve = state.overview?.walletReserve;
+  const reserveReady = reserve?.status === 'live' && !reserve.belowMinimum;
+  const armed = campaign?.controller.processRunning && !campaign?.controller.actionBlocked && reserveReady;
   const badge = byId('executionMode');
   badge.textContent = armed ? 'SIGNER ARMED / UI LOCKED' : 'ACTIONS BLOCKED';
   badge.classList.toggle('armed', Boolean(armed));
   byId('executionSummary').textContent = armed
     ? `${campaign.id} is advancing under its enrolled policy. Manual controls remain isolated from the signer until owner authentication is implemented.`
-    : `No selected campaign has a healthy execution process. Review the incident banner and journal before any manual action.`;
+    : reserve?.belowMinimum
+      ? `Controller actions are blocked because the wallet has ${sol(reserve.balanceSol, 6)} native SOL; the minimum action reserve is ${sol(reserve.minimumSol, 2)}.`
+      : `No selected campaign has a healthy execution process. Review the incident banner and journal before any manual action.`;
 }
 
 function renderActionFeed(campaign) {
