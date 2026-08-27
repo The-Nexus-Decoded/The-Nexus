@@ -1,7 +1,10 @@
 const HISTORY_KEY = 'meteora-campaign-history-v1';
 const THEME_KEY = 'meteora-dashboard-theme';
+const LIVE_SNAPSHOT_KEY = 'meteora-live-position-snapshots-v1';
+const LIVE_EVENTS_KEY = 'meteora-live-position-events-v1';
 const LIQUIDITY_WARN_PCT = 20;
 const LIQUIDITY_CRITICAL_PCT = 30;
+const MAX_CHILD_POSITIONS = 10;
 const state = {
   overview: null,
   logs: [],
@@ -9,6 +12,8 @@ const state = {
   selectedCampaign: null,
   timer: null,
   history: JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}'),
+  liveSnapshots: JSON.parse(localStorage.getItem(LIVE_SNAPSHOT_KEY) || '{}'),
+  liveEvents: JSON.parse(localStorage.getItem(LIVE_EVENTS_KEY) || '{}'),
   theme: localStorage.getItem(THEME_KEY) || 'light',
   latestActivityByCampaign: {},
 };
@@ -30,6 +35,121 @@ const time = (value) => value ? new Date(value).toLocaleString() : '—';
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' })[character]);
 const clamp = (value, minimum = 0, maximum = 100) => Math.max(minimum, Math.min(maximum, value));
 
+function livePoolForCampaign(campaign) {
+  return state.overview?.portfolio?.pools.find((pool) => pool.poolAddress === campaign?.campaign.pool) || null;
+}
+
+function liveCampaignSnapshot(campaign) {
+  const pool = livePoolForCampaign(campaign);
+  if (!pool) return null;
+  const positions = pool.positions || [];
+  const positionValueSol = positions.reduce((sum, position) => sum + Number(position.unrealizedPnl?.balancesSol || 0), 0);
+  const feeValueSol = positions.reduce((sum, position) => sum
+    + Number(position.unrealizedPnl?.unclaimedFeeTokenX?.amountSol || 0)
+    + Number(position.unrealizedPnl?.unclaimedFeeTokenY?.amountSol || 0), 0);
+  const activeBins = [...new Set(positions.map((position) => Number(position.poolActiveBinId)).filter(Number.isFinite))];
+  return {
+    observedAt: state.overview?.portfolio?.fetchedAt || new Date().toISOString(),
+    indexedAt: state.overview?.portfolio?.indexedAt || null,
+    positionValueSol,
+    feeValueSol,
+    totalValueSol: positionValueSol + feeValueSol,
+    activeBins,
+    positions,
+    addresses: positions.map((position) => position.positionAddress).filter(Boolean).sort(),
+    outOfRangeCount: positions.filter((position) => position.isOutOfRange).length,
+    provisional: campaign?.reconciliation?.matches === false,
+  };
+}
+
+function addLiveEvent(campaignId, event) {
+  const events = state.liveEvents[campaignId] || [];
+  if (!events.some((item) => item.id === event.id)) events.unshift(event);
+  state.liveEvents[campaignId] = events.slice(0, 40);
+}
+
+function detectLiveEvents() {
+  for (const campaign of state.overview?.campaigns || []) {
+    const current = liveCampaignSnapshot(campaign);
+    if (!current) continue;
+    const previous = state.liveSnapshots[campaign.id];
+    const managedAddresses = new Set(campaign.managedPositions.map((position) => position.address).filter(Boolean));
+    const unmanaged = current.addresses.filter((address) => !managedAddresses.has(address));
+    const missing = campaign.reconciliation?.missingManagedPositions || [];
+    if (unmanaged.length && missing.length) {
+      addLiveEvent(campaign.id, {
+        id: `live:replacement:${unmanaged.join(':')}`,
+        type: 'retarget',
+        title: 'Live replacement discovered',
+        detail: `${unmanaged.map((address) => short(address, 8)).join(', ')} is live while ${missing.length} journal position${missing.length === 1 ? '' : 's'} remain missing.`,
+        status: 'succeeded',
+        rawStatus: 'observed_on_meteora',
+        at: current.observedAt,
+        source: 'live_wallet_observation',
+      });
+    }
+    if (previous) {
+      const previousAddresses = new Set(previous.addresses || []);
+      const currentAddresses = new Set(current.addresses);
+      for (const address of current.addresses.filter((item) => !previousAddresses.has(item))) {
+        addLiveEvent(campaign.id, {
+          id: `live:open:${address}`,
+          type: 'open',
+          title: 'Position opened on-chain',
+          detail: `${short(address, 8)} appeared in the live Meteora wallet.`,
+          status: 'succeeded', rawStatus: 'observed_on_meteora', at: current.observedAt, source: 'live_wallet_observation',
+        });
+      }
+      for (const address of (previous.addresses || []).filter((item) => !currentAddresses.has(item))) {
+        addLiveEvent(campaign.id, {
+          id: `live:close:${address}`,
+          type: 'close',
+          title: 'Position closed or replaced',
+          detail: `${short(address, 8)} is no longer returned as an open position.`,
+          status: 'succeeded', rawStatus: 'observed_on_meteora', at: current.observedAt, source: 'live_wallet_observation',
+        });
+      }
+      const feeDrop = Number(previous.feeValueSol || 0) - current.feeValueSol;
+      const positionIncrease = current.positionValueSol - Number(previous.positionValueSol || 0);
+      const materialFeeDrop = feeDrop > Math.max(0.002, Number(previous.feeValueSol || 0) * 0.2);
+      if (materialFeeDrop) {
+        const compounded = positionIncrease > feeDrop * 0.4;
+        addLiveEvent(campaign.id, {
+          id: `live:${compounded ? 'compound' : 'claim'}:${current.observedAt}`,
+          type: compounded ? 'compound' : 'claim',
+          title: compounded ? 'Probable fee reinvestment detected' : 'Probable fee claim detected',
+          detail: `${sol(feeDrop, 6)} left unclaimed fees while deployed value changed by ${positionIncrease >= 0 ? '+' : '−'}${sol(Math.abs(positionIncrease), 6)}. Transaction reconciliation is still required.`,
+          status: 'succeeded', rawStatus: 'inferred_from_live_balance_change', at: current.observedAt, source: 'live_wallet_observation',
+        });
+      }
+      if (Number(previous.outOfRangeCount || 0) !== current.outOfRangeCount) {
+        addLiveEvent(campaign.id, {
+          id: `live:range:${current.outOfRangeCount}:${current.observedAt}`,
+          type: 'range',
+          title: current.outOfRangeCount ? 'Position left its enrolled range' : 'Position returned in range',
+          detail: `${current.outOfRangeCount} of ${current.positions.length} live child positions are out of range.`,
+          status: current.outOfRangeCount ? 'failed' : 'succeeded', rawStatus: 'observed_on_meteora', at: current.observedAt, source: 'live_wallet_observation',
+        });
+      }
+    }
+    state.liveSnapshots[campaign.id] = {
+      observedAt: current.observedAt,
+      addresses: current.addresses,
+      positionValueSol: current.positionValueSol,
+      feeValueSol: current.feeValueSol,
+      outOfRangeCount: current.outOfRangeCount,
+    };
+  }
+  localStorage.setItem(LIVE_SNAPSHOT_KEY, JSON.stringify(state.liveSnapshots));
+  localStorage.setItem(LIVE_EVENTS_KEY, JSON.stringify(state.liveEvents));
+}
+
+function combinedActivity(campaign) {
+  return [...(state.liveEvents[campaign?.id] || []), ...(campaign?.activity || [])]
+    .sort((left, right) => Date.parse(right.at) - Date.parse(left.at))
+    .slice(0, 80);
+}
+
 function setTheme(theme) {
   state.theme = theme === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.theme = state.theme;
@@ -39,18 +159,19 @@ function setTheme(theme) {
 
 function recordCampaignHistory() {
   for (const campaign of state.overview?.campaigns || []) {
+    const live = liveCampaignSnapshot(campaign);
     const snapshot = campaign.snapshot;
-    const observedAt = snapshot?.observedAt;
-    const campaignReturnSol = Number(snapshot?.campaignReturnSol);
+    const observedAt = live?.observedAt || snapshot?.observedAt;
+    const campaignReturnSol = Number(live?.totalValueSol ?? snapshot?.campaignReturnSol);
     if (!observedAt || !Number.isFinite(campaignReturnSol)) continue;
     const samples = state.history[campaign.id] || [];
     if (samples.at(-1)?.observedAt !== observedAt) {
       samples.push({
         observedAt,
         campaignReturnSol,
-        positionValueSol: Number(snapshot.positionsExecutableValueSol || 0),
-        feeValueSol: Number(snapshot.cumulativeNetFeesEarnedSol || 0),
-        activeBinId: Number(snapshot.activeBinId),
+        positionValueSol: Number(live?.positionValueSol ?? snapshot.positionsExecutableValueSol ?? 0),
+        feeValueSol: Number(live?.feeValueSol ?? snapshot.cumulativeNetFeesEarnedSol ?? 0),
+        activeBinId: Number(live?.activeBins?.[0] ?? snapshot.activeBinId),
       });
     }
     state.history[campaign.id] = samples.slice(-180);
@@ -124,7 +245,8 @@ function renderCampaigns() {
     return;
   }
   container.innerHTML = campaigns.map((campaign, index) => {
-    const value = Number(campaign.snapshot?.campaignReturnSol);
+    const live = liveCampaignSnapshot(campaign);
+    const value = Number(live?.totalValueSol ?? campaign.snapshot?.campaignReturnSol);
     const target = Number(campaign.campaign.targetValueSol);
     const progress = Number.isFinite(value) && Number.isFinite(target) ? clamp(value / target * 100) : 0;
     return `
@@ -147,6 +269,8 @@ function renderCampaigns() {
 
 function positionCard(pool, position, index) {
   const unrealized = position.unrealizedPnl || {};
+  const positionValue = Number(unrealized.balancesSol || 0);
+  const feeValue = Number(unrealized.unclaimedFeeTokenX?.amountSol || 0) + Number(unrealized.unclaimedFeeTokenY?.amountSol || 0);
   const lower = Number(position.lowerBinId);
   const upper = Number(position.upperBinId);
   const active = Number(position.poolActiveBinId);
@@ -159,8 +283,8 @@ function positionCard(pool, position, index) {
       </div>
       <div class="range-track" title="Active bin ${active} within ${lower} to ${upper}"><span style="clip-path:polygon(0 0, ${progress}% 0, ${progress}% 100%, 0 100%)"></span></div>
       <div class="position-details">
-        <div><span>Position + fees</span><strong>${sol(unrealized.balancesSol)}</strong></div>
-        <div><span>Unclaimed fees</span><strong>${sol(Number(unrealized.unclaimedFeeTokenX?.amountSol || 0) + Number(unrealized.unclaimedFeeTokenY?.amountSol || 0))}</strong></div>
+        <div><span>Live total</span><strong>${sol(positionValue + feeValue)}</strong></div>
+        <div><span>Unclaimed fees</span><strong>${sol(feeValue)}</strong></div>
         <div><span>Bins</span><strong>${lower} → ${upper}</strong></div>
         <div><span>Active bin</span><strong>${active}</strong></div>
         <div><span>PnL</span><strong>${number(position.pnlSolPctChange, 2)}%</strong></div>
@@ -172,8 +296,10 @@ function positionCard(pool, position, index) {
 function renderPositions() {
   const pools = state.overview?.portfolio?.pools || [];
   const positions = pools.flatMap((pool) => (pool.positions || []).map((position) => ({ pool, position })));
+  const visible = positions.slice(0, MAX_CHILD_POSITIONS);
+  byId('positionCountLabel').textContent = `${visible.length} / ${MAX_CHILD_POSITIONS} loaded${positions.length > MAX_CHILD_POSITIONS ? ` · ${positions.length - MAX_CHILD_POSITIONS} more hidden` : ''}`;
   byId('positionsGrid').innerHTML = positions.length
-    ? positions.map(({ pool, position }, index) => positionCard(pool, position, index)).join('')
+    ? visible.map(({ pool, position }, index) => positionCard(pool, position, index)).join('')
     : '<div class="empty-state">No open Meteora positions were returned for this wallet.</div>';
 }
 
@@ -217,12 +343,13 @@ function renderValueChart(campaign) {
 
 function renderWaterfall(campaign) {
   const snapshot = campaign?.snapshot;
+  const live = liveCampaignSnapshot(campaign);
   const basis = Number(campaign?.campaign.entryBasisSol || 0);
   const target = Number(campaign?.campaign.targetValueSol || 0);
-  const positions = Number(snapshot?.positionsExecutableValueSol || 0);
-  const fees = Number(snapshot?.cumulativeNetFeesEarnedSol || 0);
+  const positions = Number(live?.positionValueSol ?? snapshot?.positionsExecutableValueSol ?? 0);
+  const fees = Number(live?.feeValueSol ?? snapshot?.cumulativeNetFeesEarnedSol ?? 0);
   const costs = Number(snapshot?.executionCostsSol || 0);
-  const returned = Number(snapshot?.campaignReturnSol || 0);
+  const returned = live ? positions + fees - costs : Number(snapshot?.campaignReturnSol || 0);
   const gap = Math.max(0, target - returned);
   const targetProgress = target > 0 ? returned / target * 100 : 0;
   const profitSol = returned - basis;
@@ -239,10 +366,10 @@ function renderWaterfall(campaign) {
     <div class="target-summary">
       <div class="target-dial" style="--target-progress:${clamp(targetProgress) * 3.6}deg"><div><strong>${number(targetProgress, 1)}%</strong><span>TO TARGET</span></div></div>
       <div class="target-numbers">
-        <div><span>Current proven return</span><strong>${sol(returned, 6)}</strong></div>
+        <div><span>${live?.provisional ? 'Current live value · provisional' : 'Current proven return'}</span><strong>${sol(returned, 6)}</strong></div>
         <div><span>Configured close target</span><strong>${sol(target, 6)}</strong></div>
         <div><span>Entry basis</span><strong>${sol(basis, 6)}</strong></div>
-        <div><span>${profitSol >= 0 ? 'Net profit now' : 'Net loss now'}</span><strong class="${profitSol >= 0 ? 'positive' : 'negative'}">${profitSol >= 0 ? '+' : '−'}${sol(Math.abs(profitSol), 6)} / ${number(profitPct, 1)}%</strong></div>
+        <div><span>${live?.provisional ? 'Raw change vs enrolled basis' : profitSol >= 0 ? 'Net profit now' : 'Net loss now'}</span><strong class="${profitSol >= 0 ? 'positive' : 'negative'}">${profitSol >= 0 ? '+' : '−'}${sol(Math.abs(profitSol), 6)} / ${number(profitPct, 1)}%</strong></div>
         <div><span>Still needed</span><strong>${sol(gap, 6)}</strong></div>
       </div>
     </div>
@@ -251,8 +378,13 @@ function renderWaterfall(campaign) {
 }
 
 function renderRangeMap(campaign) {
-  const active = Number(campaign?.snapshot?.activeBinId);
-  const positions = campaign?.managedPositions || [];
+  const live = liveCampaignSnapshot(campaign);
+  const active = Number(live?.activeBins?.[0] ?? campaign?.snapshot?.activeBinId);
+  const positions = live?.positions?.map((position) => ({
+    strategy: 'Live child',
+    lowerBinId: position.lowerBinId,
+    upperBinId: position.upperBinId,
+  })) || campaign?.managedPositions || [];
   const bounds = positions.flatMap((position) => [Number(position.lowerBinId), Number(position.upperBinId)]).filter(Number.isFinite);
   if (!campaign || !Number.isFinite(active) || !bounds.length) {
     byId('activeBinLabel').textContent = '—';
@@ -275,8 +407,9 @@ function renderRangeMap(campaign) {
 }
 
 function renderValueMix(campaign) {
-  const positions = Number(campaign?.snapshot?.positionsExecutableValueSol || 0);
-  const fees = Number(campaign?.snapshot?.cumulativeNetFeesEarnedSol || 0);
+  const live = liveCampaignSnapshot(campaign);
+  const positions = Number(live?.positionValueSol ?? campaign?.snapshot?.positionsExecutableValueSol ?? 0);
+  const fees = Number(live?.feeValueSol ?? campaign?.snapshot?.cumulativeNetFeesEarnedSol ?? 0);
   const total = positions + fees;
   const feePct = total > 0 ? clamp(fees / total * 100) : 0;
   byId('valueMix').style.setProperty('--fee-pct', `${feePct}%`);
@@ -287,6 +420,7 @@ function renderValueMix(campaign) {
 }
 
 function renderLiquiditySignal(campaign) {
+  const live = liveCampaignSnapshot(campaign);
   const pool = state.overview?.portfolio?.pools.find((item) => item.poolAddress === campaign?.campaign.pool);
   const currentTvl = Number(pool?.poolMetrics?.tvlUsd);
   const monitoredPeakTvl = Number(pool?.poolMetrics?.monitoredPeakTvlUsd);
@@ -296,7 +430,7 @@ function renderLiquiditySignal(campaign) {
     ? null
     : Number(serverDrawdownPct);
   const targetReached = Boolean(campaign?.snapshot?.targetReached)
-    || Number(campaign?.snapshot?.campaignReturnSol) >= Number(campaign?.campaign.targetValueSol);
+    || Number(live?.totalValueSol ?? campaign?.snapshot?.campaignReturnSol) >= Number(campaign?.campaign.targetValueSol);
   const critical = Number.isFinite(drawdownPct) && drawdownPct >= LIQUIDITY_CRITICAL_PCT;
   const warning = Number.isFinite(drawdownPct) && drawdownPct >= LIQUIDITY_WARN_PCT;
   const label = byId('liquiditySignalLabel');
@@ -362,7 +496,7 @@ function renderExecutionMode(campaign) {
 }
 
 function renderActionFeed(campaign) {
-  const activity = campaign?.activity || [];
+  const activity = combinedActivity(campaign);
   const current = activity[0] || null;
   const currentFingerprint = current ? `${current.id}:${current.rawStatus}:${current.at}` : null;
   const previousFingerprint = campaign ? state.latestActivityByCampaign[campaign.id] : null;
@@ -407,12 +541,44 @@ function renderActionFeed(campaign) {
 function populateCampaignSelect() {
   const campaigns = state.overview?.campaigns || [];
   const select = byId('campaignSelect');
+  const missionSelect = byId('missionCampaignSelect');
   const preferred = campaigns.find((campaign) => campaign.controller.processRunning && !campaign.controller.actionBlocked);
   const current = state.selectedCampaign || preferred?.id || campaigns[0]?.id || '';
   select.innerHTML = campaigns.map((campaign) => `<option value="${escapeHtml(campaign.id)}">${escapeHtml(campaign.id)}</option>`).join('');
+  missionSelect.innerHTML = select.innerHTML;
   select.value = current;
+  missionSelect.value = current;
   state.selectedCampaign = select.value || null;
   renderSelectedCampaign();
+}
+
+function renderMissionSummary(campaign) {
+  const live = liveCampaignSnapshot(campaign);
+  const basis = Number(campaign?.campaign.entryBasisSol);
+  const target = Number(campaign?.campaign.targetValueSol);
+  const returned = Number(live?.totalValueSol);
+  const progress = Number.isFinite(returned) && target > 0 ? returned / target * 100 : 0;
+  const gap = Number.isFinite(returned) && Number.isFinite(target) ? Math.max(0, target - returned) : null;
+  const profit = Number.isFinite(returned) && Number.isFinite(basis) ? returned - basis : null;
+  const latest = combinedActivity(campaign)[0] || null;
+  byId('missionEvidence').textContent = !live ? 'LIVE DATA UNAVAILABLE' : live.provisional ? 'LIVE / UNRECONCILED' : 'LIVE METEORA EVIDENCE';
+  byId('missionEvidence').className = `source-chip ${live?.provisional ? 'warning' : ''}`;
+  byId('missionProgress').textContent = Number.isFinite(returned) ? `${number(progress, 1)}%` : '—';
+  byId('missionTarget').textContent = Number.isFinite(returned) ? `${sol(returned, 6)} / ${sol(target, 6)}` : 'Waiting for live campaign value';
+  byId('missionProgressBar').style.width = `${clamp(progress)}%`;
+  byId('missionValue').textContent = live ? sol(live.positionValueSol, 6) : '—';
+  byId('missionFees').textContent = live ? sol(live.feeValueSol, 6) : '—';
+  byId('missionFeeNote').textContent = live?.provisional ? 'Live fees; campaign ledger stale' : 'Live unclaimed fees';
+  byId('missionGap').textContent = gap === null ? '—' : sol(gap, 6);
+  byId('missionProfit').textContent = profit === null ? 'Net status unavailable' : `${profit >= 0 ? '+' : '−'}${sol(Math.abs(profit), 6)} vs enrolled basis${live?.provisional ? ' · provisional' : ''}`;
+  byId('missionBin').textContent = live?.activeBins.length ? live.activeBins.join(', ') : '—';
+  byId('missionRange').textContent = live ? `${live.positions.length - live.outOfRangeCount} in range · ${live.outOfRangeCount} out` : 'No live range';
+  byId('missionChildren').textContent = live ? `${live.positions.length} / ${MAX_CHILD_POSITIONS}` : '—';
+  const signal = byId('missionSignal');
+  signal.className = `mission-signal signal-${latest?.status || 'info'}`;
+  signal.innerHTML = latest
+    ? `<span>LATEST LIVE SIGNAL</span><strong>${escapeHtml(latest.title)}</strong><small>${escapeHtml(latest.detail)} · ${age(Date.now() - Date.parse(latest.at))}</small>`
+    : '<span>LATEST LIVE SIGNAL</span><strong>Monitoring — no action observed</strong><small>Live wallet data is refreshing every 10 seconds.</small>';
 }
 
 function renderSelectedCampaign() {
@@ -423,6 +589,7 @@ function renderSelectedCampaign() {
   byId('autoCompoundValue').value = campaign ? (campaign.campaign.autoCompound ? 'Enabled' : 'Disabled') : '';
   byId('profitWallet').value = campaign?.campaign.profitWallet || '';
   renderActionFeed(campaign);
+  renderMissionSummary(campaign);
   renderTelemetry(campaign);
   renderExecutionMode(campaign);
 }
@@ -450,6 +617,7 @@ async function refresh() {
   byId('refreshButton').disabled = true;
   try {
     state.overview = await fetchJson('/api/overview');
+    detectLiveEvents();
     recordCampaignHistory();
     renderStatus();
     renderWallet();
@@ -477,6 +645,12 @@ byId('themeButton').addEventListener('click', () => setTheme(state.theme === 'li
 byId('refreshLogs').addEventListener('click', loadLogs);
 byId('autoRefresh').addEventListener('change', (event) => setAutoRefresh(event.target.checked));
 byId('campaignSelect').addEventListener('change', (event) => { state.selectedCampaign = event.target.value; renderSelectedCampaign(); });
+byId('missionCampaignSelect').addEventListener('change', (event) => {
+  state.selectedCampaign = event.target.value;
+  byId('campaignSelect').value = event.target.value;
+  renderSelectedCampaign();
+  renderCampaigns();
+});
 byId('logFilter').addEventListener('input', (event) => { state.logFilter = event.target.value; renderLogs(); });
 byId('campaignGrid').addEventListener('click', (event) => {
   const card = event.target.closest('[data-campaign]');

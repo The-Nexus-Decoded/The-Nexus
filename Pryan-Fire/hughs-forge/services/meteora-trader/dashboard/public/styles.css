@@ -101,13 +101,43 @@ main { width: min(1560px, calc(100% - 2rem)); margin: 0 auto; padding: 1.6rem 0 
 .critical-banner { margin-bottom: 1rem; padding: .95rem 1.2rem; border: 1px solid color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 8%, transparent); color: var(--text); animation: reveal .35s ease both; }
 .critical-banner strong { color: var(--red); font-family: var(--display); }
 .hidden { display: none; }
-.hero-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 1rem; }
-.control-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; padding: 1rem 1.25rem .65rem; }
+.mission-panel { overflow: hidden; box-shadow: 0 18px 55px var(--shadow); }
+.mission-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--line); }
+.mission-controls { display: flex; align-items: flex-end; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
+.mission-controls label { color: var(--muted); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; }
+.mission-controls select { display: block; min-width: 15rem; margin-top: .28rem; border: 1px solid var(--line); padding: .45rem .6rem; color: var(--text); background: var(--input); }
+.mission-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: var(--line); gap: 1px; }
+.mission-grid > div { min-width: 0; padding: 1rem; background: var(--panel); }
+.mission-grid > div > span { display: block; margin-bottom: .45rem; color: var(--muted); font-size: .57rem; letter-spacing: .08em; text-transform: uppercase; }
+.mission-grid > div > strong { display: block; overflow-wrap: anywhere; color: var(--cyan); font: 600 clamp(.95rem, 1.55vw, 1.3rem) var(--display); }
+.mission-grid > div > small { display: block; margin-top: .35rem; overflow-wrap: anywhere; color: var(--muted); font-size: .58rem; line-height: 1.4; }
+.mission-progress { grid-column: span 2; }
+.mission-progress > div { display: flex; align-items: baseline; justify-content: space-between; gap: .7rem; }
+.mission-progress > div strong { color: var(--green); font: 700 clamp(1.45rem, 2.6vw, 2.25rem) var(--display); }
+.mission-progress > div small { color: var(--muted); font-size: .62rem; text-align: right; }
+.mission-progress-track { position: relative; display: block !important; height: .42rem; margin-top: .75rem; overflow: hidden; background: var(--surface-low); }
+.mission-progress-track i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width .4s ease; }
+.mission-signal { display: grid; grid-template-columns: auto minmax(12rem, .45fr) 1fr; align-items: center; gap: 1rem; padding: .75rem 1rem; border-top: 1px solid var(--line); border-left: 4px solid var(--cyan); background: color-mix(in srgb, var(--cyan) 5%, var(--panel)); }
+.mission-signal span { color: var(--muted); font-size: .57rem; letter-spacing: .1em; }
+.mission-signal strong { font: 600 .85rem var(--display); }
+.mission-signal small { overflow-wrap: anywhere; color: var(--muted); font-size: .62rem; line-height: 1.45; }
+.mission-signal.signal-succeeded { border-left-color: var(--green); background: color-mix(in srgb, var(--green) 6%, var(--panel)); }
+.mission-signal.signal-failed { border-left-color: var(--red); background: color-mix(in srgb, var(--red) 6%, var(--panel)); }
+.mission-signal.signal-pending { border-left-color: var(--amber); background: color-mix(in srgb, var(--amber) 6%, var(--panel)); }
+.command-drawer { margin: .75rem 0 1rem; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 90%, transparent); }
+.command-drawer summary { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: .75rem; padding: .55rem .7rem; cursor: pointer; list-style: none; }
+.command-drawer summary::-webkit-details-marker { display: none; }
+.command-drawer summary::after { content: "+"; color: var(--cyan); font: 600 1rem var(--display); }
+.command-drawer[open] summary::after { content: "−"; }
+.command-drawer summary > small { overflow: hidden; color: var(--muted); font-size: .61rem; text-overflow: ellipsis; white-space: nowrap; }
+.command-pill { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; padding: .43rem .7rem; color: var(--text); background: var(--surface-low); font: 600 .63rem var(--display); letter-spacing: .08em; }
+.command-pill i { width: .48rem; height: .48rem; border-radius: 50%; background: var(--amber); box-shadow: 0 0 9px currentColor; }
+.command-drawer-body { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; padding: .8rem; border-top: 1px solid var(--line); }
 .command-button { min-height: 5.2rem; border: 1px solid var(--line); color: var(--muted); background: var(--control); text-align: left; padding: .8rem; cursor: not-allowed; }
 .command-button span { display: block; margin-bottom: .6rem; color: var(--line-hot); font-size: 1.1rem; }
 .command-button small { display: block; margin-top: .25rem; color: var(--muted); font-size: .62rem; }
 .command-stop { border-color: rgba(255,93,93,.25); }
-.safety-copy { margin: 0; padding: .55rem 1.25rem 1.1rem; color: var(--muted); font-size: .7rem; line-height: 1.55; }
+.wallet-strip { margin-top: 1rem; }
 .wallet-metrics { display: grid; grid-template-columns: repeat(4, 1fr); }
 .wallet-metrics div { padding: 1.2rem; border-right: 1px solid var(--line); }
 .wallet-metrics div:last-child { border: 0; }
@@ -132,6 +162,8 @@ main { width: min(1560px, calc(100% - 2rem)); margin: 0 auto; padding: 1.6rem 0 
 .section-heading { justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
 .section-heading > p { max-width: 35rem; color: var(--muted); font-size: .72rem; text-align: right; }
 .campaign-grid, .positions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 1rem; }
+.position-rail { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(310px, 360px); justify-content: start; max-width: 100%; padding: .12rem .05rem .8rem; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-color: var(--cyan) var(--surface-low); }
+.position-rail .position-card { width: 100%; scroll-snap-align: start; }
 .campaign-card, .position-card { position: relative; overflow: hidden; border: 1px solid var(--line); background: var(--card); padding: 1.1rem; animation: reveal .4s ease both; }
 .campaign-card { cursor: pointer; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
 .campaign-card:hover, .campaign-card:focus-visible { transform: translateY(-2px); border-color: var(--line-hot); outline: none; }
@@ -280,5 +312,6 @@ pre { max-height: 32rem; margin: 0; padding: 1rem; overflow: auto; color: var(--
 footer { display: flex; justify-content: space-between; padding: .8rem clamp(1rem, 3vw, 3.4rem); border-top: 1px solid var(--line); color: var(--muted); font-size: .6rem; letter-spacing: .12em; }
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes actionFlash { 0%, 100% { box-shadow: none; } 22% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 28%, transparent), 0 0 30px var(--glow); } }
-@media (max-width: 950px) { .hero-grid, .operations-grid, .telemetry-grid { grid-template-columns: 1fr; } .chart-wide { grid-column: auto; } .topbar { align-items: flex-start; } .wallet-metrics { grid-template-columns: repeat(2, 1fr); } .wallet-metrics div:nth-child(2) { border-right: 0; } }
-@media (max-width: 680px) { .topbar { position: static; flex-direction: column; } .topbar-actions { justify-content: flex-start; } .control-grid, .wallet-metrics, .reserve-status, .target-summary, .target-numbers, .liquidity-numbers { grid-template-columns: 1fr; } .wallet-metrics div { border-right: 0; border-bottom: 1px solid var(--line); } .target-dial { justify-self: center; } .section-heading { align-items: flex-start; flex-direction: column; } .section-heading > p { text-align: left; } .settings-form { grid-template-columns: 1fr; } .settings-form label:last-of-type, .settings-form .button { grid-column: auto; } .latest-action { align-items: flex-start; flex-direction: column; } .action-current-meta { text-align: left; } .action-row-heading { align-items: flex-start; flex-direction: column; gap: .35rem; } .log-tools { width: 100%; align-items: stretch; flex-direction: column; } .log-tools input { width: 100%; } .mix-layout { grid-template-columns: 1fr; justify-items: center; } footer { gap: .7rem; flex-direction: column; } }
+@media (max-width: 1120px) { .mission-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mission-progress { grid-column: span 2; } }
+@media (max-width: 950px) { .operations-grid, .telemetry-grid { grid-template-columns: 1fr; } .chart-wide { grid-column: auto; } .topbar { align-items: flex-start; } .wallet-metrics { grid-template-columns: repeat(2, 1fr); } .wallet-metrics div:nth-child(2) { border-right: 0; } .mission-signal { grid-template-columns: 1fr; gap: .3rem; } }
+@media (max-width: 680px) { .topbar { position: static; flex-direction: column; } .topbar-actions { justify-content: flex-start; } .mission-heading { align-items: flex-start; flex-direction: column; } .mission-controls { width: 100%; justify-content: flex-start; } .mission-controls label, .mission-controls select { width: 100%; min-width: 0; } .mission-grid, .command-drawer-body, .wallet-metrics, .reserve-status, .target-summary, .target-numbers, .liquidity-numbers { grid-template-columns: 1fr; } .mission-progress { grid-column: auto; } .command-drawer summary { grid-template-columns: auto auto 1fr; } .command-drawer summary > small { display: none; } .position-rail { grid-auto-columns: minmax(285px, 88vw); } .wallet-metrics div { border-right: 0; border-bottom: 1px solid var(--line); } .target-dial { justify-self: center; } .section-heading { align-items: flex-start; flex-direction: column; } .section-heading > p { text-align: left; } .settings-form { grid-template-columns: 1fr; } .settings-form label:last-of-type, .settings-form .button { grid-column: auto; } .latest-action { align-items: flex-start; flex-direction: column; } .action-current-meta { text-align: left; } .action-row-heading { align-items: flex-start; flex-direction: column; gap: .35rem; } .log-tools { width: 100%; align-items: stretch; flex-direction: column; } .log-tools input { width: 100%; } .mix-layout { grid-template-columns: 1fr; justify-items: center; } footer { gap: .7rem; flex-direction: column; } }

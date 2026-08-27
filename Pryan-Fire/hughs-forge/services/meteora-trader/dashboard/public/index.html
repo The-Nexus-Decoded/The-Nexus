@@ -31,20 +31,43 @@
     <main>
       <section id="criticalBanner" class="critical-banner hidden" aria-live="assertive"></section>
 
-      <section class="hero-grid">
-        <article class="panel command-panel">
-          <div class="panel-heading">
-            <div><p class="eyebrow">SYSTEM AUTHORITY</p><h2>Controller command</h2></div>
-            <span id="executionMode" class="read-only-tag">CONTROLS LOCKED</span>
+      <section class="panel mission-panel" aria-labelledby="missionTitle">
+        <div class="mission-heading">
+          <div><p class="eyebrow">MASTER CONTROLLER / SELECTED CAMPAIGN</p><h2 id="missionTitle">Target flight deck</h2></div>
+          <div class="mission-controls">
+            <label>Campaign<select id="missionCampaignSelect"></select></label>
+            <span id="missionEvidence" class="source-chip">WAITING FOR LIVE EVIDENCE</span>
           </div>
-          <div class="control-grid">
-            <button class="command-button command-stop" type="button" disabled><span>■</span>Emergency stop<small>Control lane locked</small></button>
-            <button class="command-button" type="button" disabled><span>Ⅱ</span>Pause actions<small>Control lane locked</small></button>
-            <button class="command-button" type="button" disabled><span>↻</span>Reconcile now<small>Control lane locked</small></button>
+        </div>
+        <div class="mission-grid">
+          <div class="mission-progress">
+            <span>PROGRESS TO TARGET</span>
+            <div><strong id="missionProgress">—</strong><small id="missionTarget">Waiting for campaign</small></div>
+            <div class="mission-progress-track"><i id="missionProgressBar"></i></div>
           </div>
-          <p id="executionSummary" class="safety-copy">This screen never loads a private key. The enrolled controller can monitor and execute policy; manual buttons stay locked until owner authentication is added.</p>
-        </article>
+          <div><span>LIVE POOL VALUE</span><strong id="missionValue">—</strong><small>Position inventory only</small></div>
+          <div><span>UNCLAIMED FEES</span><strong id="missionFees">—</strong><small id="missionFeeNote">Proven on Meteora</small></div>
+          <div><span>GAP TO TARGET</span><strong id="missionGap">—</strong><small id="missionProfit">Net status unavailable</small></div>
+          <div><span>ACTIVE BIN</span><strong id="missionBin">—</strong><small id="missionRange">No live range</small></div>
+          <div><span>CHILD POSITIONS</span><strong id="missionChildren">—</strong><small>Capacity 10 positions</small></div>
+        </div>
+        <div id="missionSignal" class="mission-signal signal-info" aria-live="polite"><span>LATEST LIVE SIGNAL</span><strong>Waiting for wallet evidence</strong><small>No action observed yet.</small></div>
+      </section>
 
+      <details class="command-drawer">
+        <summary>
+          <span class="command-pill"><i></i>MASTER COMMANDS</span>
+          <strong id="executionMode" class="read-only-tag">CONTROLS LOCKED</strong>
+          <small id="executionSummary">Open only when intervention is required.</small>
+        </summary>
+        <div class="command-drawer-body">
+          <button class="command-button command-stop" type="button" disabled><span>■</span>Emergency stop<small>Control lane locked</small></button>
+          <button class="command-button" type="button" disabled><span>Ⅱ</span>Pause actions<small>Control lane locked</small></button>
+          <button class="command-button" type="button" disabled><span>↻</span>Reconcile now<small>Control lane locked</small></button>
+        </div>
+      </details>
+
+      <section class="wallet-strip">
         <article class="panel wallet-panel">
           <div class="panel-heading"><div><p class="eyebrow">LIVE WALLET</p><h2>Open Meteora capital</h2></div><span id="walletSource" class="source-chip">Waiting</span></div>
           <div class="wallet-metrics">
@@ -94,8 +117,8 @@
       </section>
 
       <section class="section-block">
-        <div class="section-heading"><div><p class="eyebrow">POSITIONS</p><h2>Current wallet pools</h2></div><p>Official Meteora Data API, refreshed on demand.</p></div>
-        <div id="positionsGrid" class="positions-grid"><div class="empty-state">Discovering open positions…</div></div>
+        <div class="section-heading"><div><p class="eyebrow">CHILD POSITION FLEET</p><h2>Current wallet positions</h2></div><p><span id="positionCountLabel">0 / 10 loaded</span> · Scroll horizontally to inspect each child.</p></div>
+        <div id="positionsGrid" class="positions-grid position-rail"><div class="empty-state">Discovering open positions…</div></div>
       </section>
 
       <section class="operations-grid">
