@@ -15,6 +15,8 @@ import {
   targetValueSol,
 } from './sparky-campaign-executor.mjs';
 import {
+  bidAskTerminalPrincipalSol,
+  solveWideUpperBin,
   terminalCoverageProof,
   trancheTargetSol,
 } from './terminal-coverage.mjs';
@@ -40,6 +42,44 @@ const sufficientCoverage = terminalCoverageProof({
   executionCostAllowanceSol: 0.005,
 });
 assert.equal(sufficientCoverage.passes, true);
+
+const exactWidePlan = solveWideUpperBin({
+  tokenAmount: 100,
+  spotTerminalPrincipalSol: 0.4,
+  requiredTargetSol: 3.2,
+  executionCostAllowanceSol: 0.005,
+  activeBinId: -600,
+  activePrice: 0.02,
+  binStep: 100,
+});
+assert.ok(exactWidePlan);
+assert.equal(exactWidePlan.projectedFeesCounted, false);
+assert.equal(exactWidePlan.passes, true);
+if (exactWidePlan.upperBinId > exactWidePlan.lowerBinId) {
+  const priorBinWideValue = bidAskTerminalPrincipalSol({
+    tokenAmount: 100,
+    existingSol: 0,
+    activeBinId: exactWidePlan.lowerBinId,
+    upperBinId: exactWidePlan.upperBinId - 1,
+    activePrice: 0.02,
+    binStep: 100,
+  });
+  assert.equal(terminalCoverageProof({
+    wideTerminalPrincipalSol: priorBinWideValue,
+    spotTerminalPrincipalSol: 0.4,
+    requiredTargetSol: 3.2,
+    executionCostAllowanceSol: 0.005,
+  }).passes, false, 'solver must select the first passing upper bin');
+}
+assert.equal(solveWideUpperBin({
+  tokenAmount: 1,
+  spotTerminalPrincipalSol: 0,
+  requiredTargetSol: 1_000_000,
+  activeBinId: -600,
+  activePrice: 0.02,
+  binStep: 100,
+  maximumBinCount: 5,
+}), null, 'an unprovable plan must fail closed instead of using a fallback');
 
 const fivePercentDown = {
   positionsExecutableValueSol: 95,

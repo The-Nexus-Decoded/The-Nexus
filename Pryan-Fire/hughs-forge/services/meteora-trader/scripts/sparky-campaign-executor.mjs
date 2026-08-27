@@ -62,7 +62,6 @@ const MIN_FEE_CLAIM_VALUE_SOL = 0.02;
 const MIN_FEE_CLAIM_INTERVAL_MS = 15 * 60 * 1000;
 const TRANSFER_FEE_BUFFER_LAMPORTS = 10_000n;
 const TERMINAL_EXECUTION_ALLOWANCE_SOL = 0.005;
-const RECOVERY_FALLBACK_PRICE_MULTIPLE = 8.5;
 const RETARGET_WINDOW_MS = 60 * 60 * 1000;
 const RETARGET_POLICY = Object.freeze({
   wide: Object.freeze({ confirmations: 2, minimumDwellMs: 60_000, maximumPerHour: 2, outsideBins: 1 }),
@@ -2013,9 +2012,20 @@ async function retargetOutOfRangePosition(connection, pool, wallet, journal, rol
   return true;
 }
 
-async function repairWideTerminalCoverage(connection, pool, wallet, journal, wide, tight) {
+async function repairWideTerminalCoverage(
+  connection,
+  pool,
+  wallet,
+  journal,
+  wide,
+  tight,
+  { forceOptimize = false } = {},
+) {
   const currentProof = terminalProofForPositions(pool, journal, wide, tight);
-  if (currentProof.passes) return false;
+  if (currentProof.passes && !forceOptimize) return false;
+  const repairReason = currentProof.passes
+    ? 'principal_only_terminal_coverage_reoptimization'
+    : 'principal_only_terminal_coverage_repair';
   const inventory = positionInventory(wide);
   const active = await getActiveBinVerified(pool);
   const activeBinId = Number(active.binId);
@@ -2073,7 +2083,7 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   journal.closeAccounting.push({
     role: 'wide',
     generation,
-    reason: 'principal_only_terminal_coverage_repair',
+    reason: repairReason,
     priorPosition: wide.publicKey.toBase58(),
     grossReceivedLamports: nativeClose.grossReceivedLamports.toString(),
     excludedRentLamports: nativeClose.excludedRentLamports.toString(),
@@ -2155,7 +2165,7 @@ async function repairWideTerminalCoverage(connection, pool, wallet, journal, wid
   );
   journal.retargets ||= [];
   journal.retargets.push({
-    role: 'wide', generation, reason: 'principal_only_terminal_coverage_repair',
+    role: 'wide', generation, reason: repairReason,
     priorPosition: wide.publicKey.toBase58(), replacementPosition: replacement.publicKey.toBase58(),
     activeBinId: Number(freshActive.binId), lowerBinId: finalPlan.lowerBinId,
     upperBinId: finalPlan.upperBinId, proof: finalPlan, at: new Date().toISOString(),
@@ -2213,10 +2223,6 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     );
   }
   if (recoveredXRaw <= 0n) throw new Error('wide_recovery_token_delta_not_positive');
-  const width = Math.ceil(
-    Math.log(RECOVERY_FALLBACK_PRICE_MULTIPLE)
-      / Math.log(1 + Number(pool.lbPair.binStep) / 10_000),
-  );
   let replacementGeneration = Number(journal.wideRecovery?.sourceGeneration) === generation
     ? Number(journal.wideRecovery.replacementGeneration)
     : generation;
@@ -2224,54 +2230,28 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   let workingPool = pool;
   let existingReplacement = await positionOrNull(connection, workingPool, replacement.publicKey);
   if (existingReplacement) {
-    const existingWidth = Number(existingReplacement.positionData.upperBinId)
-      - Number(existingReplacement.positionData.lowerBinId);
-    // A replacement that is wider than the fallback remains safe. Closing it
-    // merely because its upper edge is one or more bins farther out creates an
-    // unnecessary token-transfer-fee round trip during interruption recovery.
-    if (existingWidth < width) {
-      const inventory = positionInventory(existingReplacement);
-      const isEmpty = inventory.tokenXRaw + inventory.tokenYRaw
-        + inventory.feeXRaw + inventory.feeYRaw === 0n;
-      if (isEmpty) {
-        const emptyCloseStage = `wide_g${generation}_mis_sized_empty_close`;
-        const emptyClose = await workingPool.closePositionIfEmpty({
-          owner: wallet.publicKey,
-          position: existingReplacement,
-        });
-        await sendStage(connection, journal, emptyCloseStage, emptyClose, [wallet], {
-          postcondition: () => positionClosedPostcondition(
-            connection,
-            existingReplacement.publicKey.toBase58(),
-          ),
-        });
-        recordActionReconciled(journal, emptyCloseStage, {
-          address: existingReplacement.publicKey.toBase58(),
-          accountClosed: true,
-          wasEmpty: true,
-        });
-      } else {
-        await closePositions(
-          connection,
-          workingPool,
-          wallet,
-          journal,
-          [existingReplacement],
-          `wide_g${generation}_mis_sized_recovery_close`,
-        );
-      }
-      replacementGeneration += 1;
-      journal.wideRecovery = {
-        sourceGeneration: generation,
-        replacementGeneration,
-        reason: 'mis_sized_partial_replacement_closed',
-        recordedAt: new Date().toISOString(),
-      };
-      atomicWriteJson(STATE_FILE, journal);
-      replacement = derivePositionKeypair(wallet, 'wide', replacementGeneration);
-      workingPool = await loadPool(connection);
-      existingReplacement = await positionOrNull(connection, workingPool, replacement.publicKey);
-    }
+    // A partially created replacement cannot be assumed to have the correct
+    // range. Return it to wallet inventory, then solve again from fresh chain
+    // state. No token-agnostic width or price-multiple fallback is permitted.
+    await closePositions(
+      connection,
+      workingPool,
+      wallet,
+      journal,
+      [existingReplacement],
+      `wide_g${generation}_partial_replacement_close`,
+    );
+    replacementGeneration += 1;
+    journal.wideRecovery = {
+      sourceGeneration: generation,
+      replacementGeneration,
+      reason: 'partial_replacement_closed_for_exact_replan',
+      recordedAt: new Date().toISOString(),
+    };
+    atomicWriteJson(STATE_FILE, journal);
+    replacement = derivePositionKeypair(wallet, 'wide', replacementGeneration);
+    workingPool = await loadPool(connection);
+    existingReplacement = null;
   }
   const existingXRaw = existingReplacement
     ? positionInventory(existingReplacement).tokenXRaw
@@ -2281,13 +2261,28 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   const walletPrincipalXRaw = deployableCampaignTokenRaw(walletState.sparkyRaw, pendingFeeXRaw);
   const recoverablePrincipalXRaw = existingXRaw + walletPrincipalXRaw;
   if (recoverablePrincipalXRaw <= 0n) throw new Error('wide_recovery_wallet_inventory_missing');
-  const freshActiveBinId = Number((await getActiveBinVerified(workingPool)).binId);
-  const lowerBinId = existingReplacement
-    ? Number(existingReplacement.positionData.lowerBinId)
-    : freshActiveBinId;
-  const upperBinId = existingReplacement
-    ? Number(existingReplacement.positionData.upperBinId)
-    : freshActiveBinId + width;
+  const freshActive = await getActiveBinVerified(workingPool);
+  const freshActiveBinId = Number(freshActive.binId);
+  const freshTight = await positionOrNull(connection, workingPool, journal.positions.tight.address);
+  if (!freshTight) throw new Error('tight_position_missing_during_exact_wide_recovery');
+  const exactPlan = solveWideUpperBin({
+    tokenAmount: Number(atomicToUi(recoverablePrincipalXRaw, workingPool.tokenX.mint.decimals)),
+    spotTerminalPrincipalSol: positionTerminalPrincipalSol(
+      freshTight.positionData,
+      workingPool.tokenX.mint.decimals,
+      workingPool.tokenY.mint.decimals,
+    ),
+    requiredTargetSol: requiredCampaignTargetSol(journal),
+    executionCostAllowanceSol: TERMINAL_EXECUTION_ALLOWANCE_SOL,
+    activeBinId: freshActiveBinId,
+    activePrice: Number(freshActive.pricePerToken),
+    binStep: Number(workingPool.lbPair.binStep),
+  });
+  if (!exactPlan) {
+    throw new Error('exact_wide_recovery_plan_unavailable_retry_without_deploy');
+  }
+  const lowerBinId = exactPlan.lowerBinId;
+  const upperBinId = exactPlan.upperBinId;
   await createWidePosition(
     connection,
     workingPool,
@@ -2310,7 +2305,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
   journal.retargets.push({
     role: 'wide',
     generation: replacementGeneration,
-    reason: 'interrupted_coverage_recovery_from_confirmed_transaction_deltas',
+    reason: 'interrupted_coverage_recovery_exact_principal_plan',
     replacementPosition: replacement.publicKey.toBase58(),
     recoveredTransactionDeltaXRaw: recoveredXRaw.toString(),
     recoverablePrincipalXRaw: recoverablePrincipalXRaw.toString(),
@@ -2318,6 +2313,7 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     activeBinId: freshActiveBinId,
     lowerBinId,
     upperBinId,
+    requestedExactPlan: exactPlan,
     proof,
     at: new Date().toISOString(),
   });
@@ -2461,9 +2457,23 @@ async function tick(connection, wallet) {
     verifiedAt: new Date().toISOString(),
   };
   atomicWriteJson(STATE_FILE, journal);
-  if (!journal.terminalCoverageProof.passes) {
+  const latestWidePlacement = (journal.retargets || []).findLast((record) => (
+    record.role === 'wide'
+      && record.replacementPosition === journal.positions.wide.address
+  ));
+  const fallbackWideNeedsOptimization = latestWidePlacement?.reason
+    === 'interrupted_coverage_recovery_from_confirmed_transaction_deltas';
+  if (!journal.terminalCoverageProof.passes || fallbackWideNeedsOptimization) {
     if (journal.coverageRepairBlocked) throw new Error('coverage_repair_blocked_after_failed_post_proof');
-    await repairWideTerminalCoverage(connection, pool, wallet, journal, liveWide, liveTight);
+    await repairWideTerminalCoverage(
+      connection,
+      pool,
+      wallet,
+      journal,
+      liveWide,
+      liveTight,
+      { forceOptimize: fallbackWideNeedsOptimization },
+    );
     const repaired = loadOrCreateJournal();
     repaired.lastSuccessfulTickAt = new Date().toISOString();
     delete repaired.lastError;
