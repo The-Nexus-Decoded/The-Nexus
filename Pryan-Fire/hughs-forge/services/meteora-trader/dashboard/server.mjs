@@ -72,7 +72,136 @@ async function readLock(journalPath) {
 }
 
 function stageTime(stage) {
-  return stage.confirmedAt || stage.reconciledAt || stage.preparedAt || stage.at || null;
+  return stage.reconciledAt || stage.chainConfirmedAt || stage.confirmedAt || stage.submittedAt || stage.preparedAt || stage.at || null;
+}
+
+function activityStatus(rawStatus) {
+  const status = String(rawStatus || 'unknown').toLowerCase();
+  if (/failed|error|blocked|rejected|expired|uncertain|unreconciled/.test(status)) return 'failed';
+  if (/prepared|submitted|pending|broadcast|confirming|processing|in_progress/.test(status)) return 'pending';
+  if (/reconciled|chain_confirmed|confirmed|complete|completed|succeeded|ready|closed/.test(status)) return 'succeeded';
+  return 'info';
+}
+
+function readableActionName(identifier) {
+  return String(identifier || 'controller_action')
+    .replace(/_[1-9A-HJ-NP-Za-km-z]{24,}_closed$/i, '_closed')
+    .replace(/_[1-9A-HJ-NP-Za-km-z]{24,}$/i, '')
+    .replace(/_g\d+/gi, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function classifyAction(identifier) {
+  const id = String(identifier || '').toLowerCase();
+  if (/claim.*fee|fee.*claim/.test(id)) return { type: 'claim', title: 'Fees claimed' };
+  if (/profit.*sweep|sweep.*profit|fee.*sweep/.test(id)) return { type: 'sweep', title: 'Profit swept' };
+  if (/swap/.test(id)) return { type: 'swap', title: 'Token swap' };
+  if (/close/.test(id)) return { type: 'close', title: 'Position closed' };
+  if (/retarget/.test(id)) return { type: 'retarget', title: 'Position retargeted' };
+  if (/ready|open|create|deposit/.test(id)) return { type: 'open', title: 'Position opened' };
+  return { type: 'controller', title: readableActionName(identifier) };
+}
+
+function actionAddress(action) {
+  return action?.evidence?.evidence?.address
+    || action?.evidence?.address
+    || action?.postcondition?.evidence?.address
+    || action?.replacementPosition
+    || action?.priorPosition
+    || null;
+}
+
+function buildActivity(journal, stages, actions, retargets, managedPositions) {
+  const events = [];
+  for (const action of actions) {
+    const at = stageTime(action);
+    if (!at) continue;
+    const classification = classifyAction(action.id);
+    const address = actionAddress(action);
+    const actionName = readableActionName(address ? String(action.id).replace(address, '') : action.id);
+    events.push({
+      id: `action:${action.id}`,
+      type: classification.type,
+      title: classification.title,
+      detail: `${actionName}${address ? ` · ${address}` : ''}`,
+      status: activityStatus(action.status),
+      rawStatus: action.status || 'unknown',
+      signature: action.signature || null,
+      address,
+      at,
+      source: 'controller_action',
+    });
+  }
+  for (const stage of stages) {
+    const at = stageTime(stage);
+    if (!at) continue;
+    const classification = classifyAction(stage.id);
+    const address = actionAddress(stage);
+    const actionName = readableActionName(address ? String(stage.id).replace(address, '') : stage.id);
+    events.push({
+      id: `stage:${stage.id}`,
+      type: classification.type,
+      title: classification.title,
+      detail: `${actionName}${address ? ` · ${address}` : ''}`,
+      status: activityStatus(stage.status),
+      rawStatus: stage.status || 'unknown',
+      signature: stage.signature || null,
+      address,
+      at,
+      source: 'transaction_stage',
+    });
+  }
+  for (const retarget of retargets) {
+    if (!retarget.at) continue;
+    events.push({
+      id: `retarget:${retarget.role || 'position'}:${retarget.generation || retarget.at}`,
+      type: 'retarget',
+      title: `${retarget.role || 'Position'} range retargeted`,
+      detail: `${retarget.priorPosition ? `${retarget.priorPosition} → ` : ''}${retarget.replacementPosition || 'replacement pending'} · bins ${retarget.lowerBinId ?? '—'} to ${retarget.upperBinId ?? '—'}`,
+      status: retarget.replacementPosition ? 'succeeded' : 'pending',
+      rawStatus: retarget.replacementPosition ? 'reconciled' : 'pending',
+      signature: retarget.signature || null,
+      address: retarget.replacementPosition || null,
+      at: retarget.at,
+      source: 'retarget_record',
+    });
+  }
+  for (const position of managedPositions) {
+    if (!position.enrolledAt) continue;
+    events.push({
+      id: `enrollment:${position.address}`,
+      type: 'monitor',
+      title: 'Position enrolled for monitoring',
+      detail: `${position.strategy || 'Position'} · ${position.address} · bins ${position.lowerBinId ?? '—'} to ${position.upperBinId ?? '—'}`,
+      status: 'succeeded',
+      rawStatus: 'enrolled',
+      signature: null,
+      address: position.address || null,
+      at: position.enrolledAt,
+      source: 'campaign_enrollment',
+    });
+  }
+  if (journal.lastError?.at) {
+    events.push({
+      id: `error:${journal.lastError.at}`,
+      type: 'error',
+      title: 'Controller action failed',
+      detail: journal.lastError.message || 'Unknown controller error',
+      status: 'failed',
+      rawStatus: 'error',
+      signature: journal.lastError.signature || null,
+      address: null,
+      at: journal.lastError.at,
+      source: 'controller_error',
+    });
+  }
+  const deduplicated = new Map();
+  for (const event of events.sort((left, right) => Date.parse(right.at) - Date.parse(left.at))) {
+    const key = `${event.id}:${event.rawStatus}`;
+    if (!deduplicated.has(key)) deduplicated.set(key, event);
+  }
+  return [...deduplicated.values()].slice(0, 80);
 }
 
 function summarizeCampaign(journal, journalPath, modifiedAt, lock) {
@@ -86,6 +215,7 @@ function summarizeCampaign(journal, journalPath, modifiedAt, lock) {
   const processRunning = isProcessRunning(pid);
   const actionBlocked = Boolean(journal.controllerHealth?.actionBlocked);
   const stale = tickAgeMs === null || tickAgeMs > staleTickMs;
+  const activity = buildActivity(journal, stages, actions, retargets, managedPositions);
   const timeline = stages
     .map((stage) => ({
       id: stage.id || 'stage',
@@ -136,8 +266,10 @@ function summarizeCampaign(journal, journalPath, modifiedAt, lock) {
       reconciledStages: stages.filter((stage) => stage.status === 'reconciled').length,
       actions: actions.length,
       retargets: retargets.length,
+      activity: activity.length,
     },
     timeline,
+    activity,
     alerts: [
       stale ? { level: 'critical', message: 'Successful controller tick is stale.' } : null,
       actionBlocked ? { level: 'critical', message: `Actions blocked: ${journal.controllerHealth?.blockedReason || 'unknown reason'}.` } : null,

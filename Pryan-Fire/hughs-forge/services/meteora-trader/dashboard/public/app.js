@@ -8,6 +8,7 @@ const state = {
   timer: null,
   history: JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}'),
   theme: localStorage.getItem(THEME_KEY) || 'light',
+  latestActivityByCampaign: {},
 };
 
 const byId = (id) => document.getElementById(id);
@@ -259,6 +260,49 @@ function renderExecutionMode(campaign) {
     : `No selected campaign has a healthy execution process. Review the incident banner and journal before any manual action.`;
 }
 
+function renderActionFeed(campaign) {
+  const activity = campaign?.activity || [];
+  const current = activity[0] || null;
+  const currentFingerprint = current ? `${current.id}:${current.rawStatus}:${current.at}` : null;
+  const previousFingerprint = campaign ? state.latestActivityByCampaign[campaign.id] : null;
+  const latestAction = byId('latestAction');
+
+  byId('auditCount').textContent = campaign ? `${activity.length} updates` : '0 updates';
+  if (!campaign) {
+    latestAction.className = 'latest-action action-info';
+    latestAction.innerHTML = '<div><span>Current status</span><strong>Select a campaign</strong></div>';
+    byId('auditTimeline').innerHTML = '<li class="empty-state">No campaign selected.</li>';
+    return;
+  }
+
+  if (current) {
+    latestAction.className = `latest-action action-${current.status}`;
+    latestAction.innerHTML = `
+      <div><span>Latest controller update</span><strong>${escapeHtml(current.title)}</strong><small>${escapeHtml(current.detail)}</small></div>
+      <div class="action-current-meta"><b>${escapeHtml(current.status)}</b><time>${escapeHtml(age(Date.now() - Date.parse(current.at)))}</time></div>`;
+  } else {
+    const healthy = campaign.controller.processRunning && !campaign.controller.actionBlocked;
+    latestAction.className = `latest-action action-${healthy ? 'info' : 'failed'}`;
+    latestAction.innerHTML = `
+      <div><span>Current status</span><strong>${healthy ? 'Monitoring — no action in progress' : 'Controller needs attention'}</strong><small>${escapeHtml(campaign.controller.blockedReason || campaign.status)}</small></div>
+      <div class="action-current-meta"><b>${healthy ? 'monitoring' : 'failed'}</b></div>`;
+  }
+
+  if (previousFingerprint && currentFingerprint && previousFingerprint !== currentFingerprint) {
+    latestAction.classList.add('action-flash');
+    setTimeout(() => latestAction.classList.remove('action-flash'), 1_600);
+  }
+  state.latestActivityByCampaign[campaign.id] = currentFingerprint;
+
+  byId('auditTimeline').innerHTML = activity.length ? activity.map((event) => `
+    <li class="activity-${escapeHtml(event.status)}">
+      <div class="action-row-heading"><strong>${escapeHtml(event.title)}</strong><b>${escapeHtml(event.status)}</b></div>
+      <span class="action-detail">${escapeHtml(event.detail)}</span>
+      <span class="action-meta">${escapeHtml(event.rawStatus)} · ${time(event.at)}${event.source ? ` · ${escapeHtml(event.source.replace(/_/g, ' '))}` : ''}</span>
+      ${event.signature ? `<a href="https://solscan.io/tx/${encodeURIComponent(event.signature)}" target="_blank" rel="noreferrer">Transaction ${short(event.signature, 8)}</a>` : ''}
+    </li>`).join('') : '<li class="empty-state">No recorded actions yet. The controller is monitoring this campaign.</li>';
+}
+
 function populateCampaignSelect() {
   const campaigns = state.overview?.campaigns || [];
   const select = byId('campaignSelect');
@@ -277,10 +321,7 @@ function renderSelectedCampaign() {
   byId('allocation').value = campaign ? `${number(campaign.campaign.widePct, 0)}% wide / ${number(campaign.campaign.tightPct, 0)}% tight` : '';
   byId('autoCompoundValue').value = campaign ? (campaign.campaign.autoCompound ? 'Enabled' : 'Disabled') : '';
   byId('profitWallet').value = campaign?.campaign.profitWallet || '';
-  const timeline = campaign?.timeline || [];
-  byId('auditCount').textContent = campaign ? `${campaign.counts.stages} stages` : '0 stages';
-  byId('auditTimeline').innerHTML = timeline.length ? timeline.map((stage) => `
-    <li><strong>${escapeHtml(stage.id)}</strong><span>${escapeHtml(stage.status)} · ${time(stage.at)}</span>${stage.signature ? `<br /><a href="https://solscan.io/tx/${encodeURIComponent(stage.signature)}" target="_blank" rel="noreferrer">${short(stage.signature, 8)}</a>` : ''}</li>`).join('') : '<li class="empty-state">No stage timestamps found.</li>';
+  renderActionFeed(campaign);
   renderTelemetry(campaign);
   renderExecutionMode(campaign);
 }

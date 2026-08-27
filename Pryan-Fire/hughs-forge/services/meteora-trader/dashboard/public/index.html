@@ -104,7 +104,10 @@
         </article>
 
         <article class="panel audit-panel">
-          <div class="panel-heading"><div><p class="eyebrow">AUDIT</p><h2>Recent controller stages</h2></div><span id="auditCount" class="source-chip">0 stages</span></div>
+          <div class="panel-heading"><div><p class="eyebrow">LIVE ACTION STATUS</p><h2>What the controller is doing</h2></div><span id="auditCount" class="source-chip">0 updates</span></div>
+          <div id="latestAction" class="latest-action action-info" aria-live="polite">
+            <div><span>Current status</span><strong>Waiting for controller evidence</strong></div>
+          </div>
           <ol id="auditTimeline" class="audit-timeline"><li class="empty-state">No journal selected.</li></ol>
         </article>
       </section>
