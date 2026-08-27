@@ -28,14 +28,14 @@ const DEFAULTS = Object.freeze({
   feeSleeveUpsidePct: 35,
   maxRangePriceMultiple: 12,
   maxPlanAgeSeconds: 60,
-  feeEvaluationHorizonHours: 6,
+  feeEvaluationHorizonHours: 24,
   expectedTimeInRangePct: 60,
   estimatedFeeCycleCostSol: 0.0005,
   minimumNetFeeSol: 0.02,
   minimumNetFeePctOfRecoveryGap: 0.5,
   minimumFeeSleeveYieldPct: 0.25,
   minimumFeeToCostMultiple: 3,
-  maximumFeeOpportunityCostPctOfRequiredExit: 5,
+  maximumFeeOpportunityCostPctOfRequiredExit: 100,
 });
 
 function assertFinite(name, value) {
@@ -182,6 +182,7 @@ function buildAllocationCandidate(input, feeSleevePct) {
   const feeHoldValueAtTarget = feeTokens * selected.targetPrice;
   const feeOpportunityCostSol = Math.max(0, feeHoldValueAtTarget - feeValueAtTarget);
   const feeOpportunityCostPctOfRequiredExit = feeOpportunityCostSol / requiredExitSol * 100;
+  const recoveryTargetPriceMultiple = selected.targetPrice / activePrice;
 
   const solUsd = Number(input.solUsd || 0);
   const activePoolLiquiditySol = Number(input.activePoolLiquiditySol || 0);
@@ -226,9 +227,8 @@ function buildAllocationCandidate(input, feeSleevePct) {
   if (feeToCostMultiple < Number(input.minimumFeeToCostMultiple)) {
     economicReasons.push('fee_to_cost_multiple_below_minimum');
   }
-  if (feeOpportunityCostPctOfRequiredExit
-      > Number(input.maximumFeeOpportunityCostPctOfRequiredExit)) {
-    economicReasons.push('tight_fee_sleeve_recovery_drag_too_large');
+  if (recoveryTargetPriceMultiple > Number(input.maximumRecoveryTargetPriceMultiple)) {
+    economicReasons.push('combined_recovery_target_exceeds_enrolled_price_ceiling');
   }
 
   return {
@@ -260,6 +260,7 @@ function buildAllocationCandidate(input, feeSleevePct) {
       feeToCostMultiple,
       feeOpportunityCostSol,
       feeOpportunityCostPctOfRequiredExit,
+      recoveryTargetPriceMultiple,
       eligible: economicReasons.length === 0,
       reasons: economicReasons,
     },
@@ -398,6 +399,10 @@ export function buildTwoPositionPlan(input) {
       input.maximumFeeOpportunityCostPctOfRequiredExit
         ?? DEFAULTS.maximumFeeOpportunityCostPctOfRequiredExit,
     ),
+    maximumRecoveryTargetPriceMultiple: assertFinite(
+      'maximum_recovery_target_price_multiple',
+      input.maximumRecoveryTargetPriceMultiple ?? maxMultiple,
+    ),
   };
   const forcedFeePct = input.feeSleevePct === undefined
     ? null
@@ -430,6 +435,7 @@ export function buildTwoPositionPlan(input) {
       scope: input.scope,
       requiredExitSol,
       maxRangePriceMultiple: maxMultiple,
+      maximumRecoveryTargetPriceMultiple: normalized.maximumRecoveryTargetPriceMultiple,
       futureFeesCountedTowardTarget: false,
       evaluatedFeeSleeves: candidates.map((candidate) => ({
         feeSleevePct: candidate.feeSleevePct,
@@ -512,6 +518,7 @@ export function buildTwoPositionPlan(input) {
       eligible: candidate.feeEconomics.eligible,
       reasons: candidate.feeEconomics.reasons,
       expectedNetFeeSol: candidate.feeEconomics.expectedNetFeeSol,
+      recoveryTargetPriceMultiple: candidate.feeEconomics.recoveryTargetPriceMultiple,
       feeOpportunityCostPctOfRequiredExit:
         candidate.feeEconomics.feeOpportunityCostPctOfRequiredExit,
     })),
@@ -629,6 +636,7 @@ async function readLivePosition(payload) {
     minimumFeeToCostMultiple: payload.minimumFeeToCostMultiple,
     maximumFeeOpportunityCostPctOfRequiredExit:
       payload.maximumFeeOpportunityCostPctOfRequiredExit,
+    maximumRecoveryTargetPriceMultiple: payload.maximumRecoveryTargetPriceMultiple,
     solUsd: market.solUsd,
     activePoolLiquiditySol: market.activePoolLiquiditySol,
     conservativePoolFeeUsdPerHour: market.conservativePoolFeeUsdPerHour,
