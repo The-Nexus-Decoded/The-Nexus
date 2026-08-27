@@ -2246,14 +2246,31 @@ async function recoverInterruptedWideCoverage(connection, pool, wallet, journal,
     // A partially created replacement cannot be assumed to have the correct
     // range. Return it to wallet inventory, then solve again from fresh chain
     // state. No token-agnostic width or price-multiple fallback is permitted.
-    await closePositions(
-      connection,
-      workingPool,
-      wallet,
-      journal,
-      [existingReplacement],
-      `wide_g${generation}_partial_replacement_close`,
-    );
+    const partialInventory = positionInventory(existingReplacement);
+    const partialIsEmpty = partialInventory.tokenXRaw + partialInventory.tokenYRaw
+      + partialInventory.feeXRaw + partialInventory.feeYRaw === 0n;
+    if (partialIsEmpty) {
+      const stageName = `wide_g${generation}_partial_empty_close`;
+      const transaction = await workingPool.closePositionIfEmpty({
+        owner: wallet.publicKey,
+        position: existingReplacement,
+      });
+      await sendStage(connection, journal, stageName, transaction, [wallet], {
+        postcondition: () => positionClosedPostcondition(
+          connection,
+          existingReplacement.publicKey.toBase58(),
+        ),
+      });
+    } else {
+      await closePositions(
+        connection,
+        workingPool,
+        wallet,
+        journal,
+        [existingReplacement],
+        `wide_g${generation}_partial_replacement_close`,
+      );
+    }
     replacementGeneration += 1;
     journal.wideRecovery = {
       sourceGeneration: generation,
