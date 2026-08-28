@@ -1,0 +1,4367 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATES",
+  "acceptanceClaim": "NONE",
+  "generator": {
+    "path": "scripts/build-human-animation-gap-combat.py",
+    "sha256": "97B3FD28D8DF0B125687D6C1B90614643FC45F849300688E81C52A2F1F90E9CB",
+    "blenderVersion": "5.2.1 LTS",
+    "blenderBuildHash": "9e2066aef7ef",
+    "blenderBuildDate": "2026-08-25",
+    "blenderBuildTime": "02:38:20"
+  },
+  "sourceLibrary": {
+    "path": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "bytes": 32441884,
+    "sha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "actionCount": 400,
+    "selectedSourceActionCount": 33,
+    "selectedSourceActions": [
+      {
+        "name": "GreatSword__DrawAGreatSword1",
+        "sampledPoseSha256": "BF7431304DFD70B6DA7E5D97F1866617C8CA90D5C34AA68C983CBAD7377910AA",
+        "sampleCount": 17
+      },
+      {
+        "name": "GreatSword__GreatSwordBlocking",
+        "sampledPoseSha256": "55A66A0B0C04FCA017579341B206EA8FBD6010926E91576E35D60D05C0356B6E",
+        "sampleCount": 17
+      },
+      {
+        "name": "GreatSword__GreatSwordCasting",
+        "sampledPoseSha256": "B5FC959675650D5F13733CE28A664399CC4FBB06ECC42AC20D65D7EFF17D687A",
+        "sampleCount": 17
+      },
+      {
+        "name": "GreatSword__GreatSwordIdle",
+        "sampledPoseSha256": "42AE7152911D24C2ED8EE32CB33ECFB889B50A8EA2F8FB5154221596E95BA95E",
+        "sampleCount": 17
+      },
+      {
+        "name": "GreatSword__GreatSwordImpact",
+        "sampledPoseSha256": "3A4A4C89BA04E9B2D1BDBBAC9F6841CC87BE306AB2481927EBB8BAABDFD199D7",
+        "sampleCount": 17
+      },
+      {
+        "name": "GreatSword__GreatSwordSlash3",
+        "sampledPoseSha256": "D9902DFC48E5BB9A9FDB4B450F26535C572BF30714B0BB153D5019B21BA4E12F",
+        "sampleCount": 17
+      },
+      {
+        "name": "Interactions__HumanMasculineAthleticMuscularPointGesture",
+        "sampledPoseSha256": "84EB660FB98761ED75F67A6BFA2553B08C0F7503C072B1026B8000933ACE8563",
+        "sampleCount": 17
+      },
+      {
+        "name": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+        "sampledPoseSha256": "DE47745AF58881DE6A8C6FA948ECDA242FD25E9D440D1A7D741312DF24E1080A",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProLongbow__StandingDeathBackward01",
+        "sampledPoseSha256": "981BF88DAA97DE35BBCA59B319262B2FD34AC21EC5571EAE7954764059C5D0E9",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProLongbow__StandingDrawArrow",
+        "sampledPoseSha256": "42B44FB21FE7C9B15FD6A75CD41C55F20DEE29512937E2E835822A3C28A41217",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProLongbow__StandingMeleePunch",
+        "sampledPoseSha256": "5DA5A0438F1A6DA63DE648E30C3A969E390842C4DEC73621CEBCBE4A864B52DA",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProLongbow__UnarmedIdle01",
+        "sampledPoseSha256": "8CBF9995F007469E2808ED84DFCF87988D7A00C6E963BF2F435E874ED632C7CA",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__Standing1HCastSpell01",
+        "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__Standing1HMagicAttack01",
+        "sampledPoseSha256": "4A97550A4A88FED69B41588A1CF4A61DCFCD73C21D9F10CCE5343AFF49425CFE",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__Standing2HCastSpell01",
+        "sampledPoseSha256": "2CD42CB60A7D35911F705068FD728C4BBB5C1AE2C1F1A1406DC6FF6ACD1BD150",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingBlockIdle",
+        "sampledPoseSha256": "D255412C65FE640694E7A80C115FDC4A64171C28C1D362EB2899EEE64BB8172F",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingIdle02",
+        "sampledPoseSha256": "898C57C128C0B93988952FD735EFB0DA1856396DC2B02EED49B95A85B1860222",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingReactDeathBackward",
+        "sampledPoseSha256": "563214AC053948DBA442D387AEB994D946A5F5DFC1F503CE0325A1A7924C76E0",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingReactDeathForward",
+        "sampledPoseSha256": "52EF859D950C0D9891C26CB04043479DB7977E126AF07DFC043C19CBD818F165",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingReactDeathLeft",
+        "sampledPoseSha256": "C77612D6CD899A9E1CC6CD2FBB5436D5EB1835DA4A04A41A59A80E117CAF8C02",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingReactDeathRight",
+        "sampledPoseSha256": "D7920F97ABF3E343FF9DDB45999454DF9241420E1862797115F8F18F50BEE378",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMagic__StandingReactSmallFromFront",
+        "sampledPoseSha256": "3D8A9DD0DC1DD3BA7CE64E9174EDC2394D56C457E392712426BEBC6C12D9FF20",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingBlockIdle",
+        "sampledPoseSha256": "A3E77545A3D6F3B1B7EC29A02032DFA696FAD0B9090498F9E1A39E5E8436F4F1",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingIdle",
+        "sampledPoseSha256": "F806DE042C26D3B835D22D51EC3CADD3BE092AF2D39880CBDD662B829C7E212B",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingMeleeAttackBackhand",
+        "sampledPoseSha256": "13170698AFADEA82FF7B06587DC91A62A5C0CB74CE87EBA5955451A87820BFF5",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingMeleeAttackDownward",
+        "sampledPoseSha256": "2E86C7BDE07456DF29575C2643369582A05BA18ADB6F51AAB780A46D3F2761B1",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingMeleeAttackHorizontal",
+        "sampledPoseSha256": "4B1592398908631C1CBFEB079118F77AFC5A2D52E4DC3C5C84F200CA88934785",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProMeleeAxe__StandingMeleeComboAttackVer1",
+        "sampledPoseSha256": "620A3526B2D8B144CDA3A1A3030070136CA3278619ACE75F8AE38C4F31B3339C",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProSwordAndShield__DrawSword1",
+        "sampledPoseSha256": "8933C7287E262D51BA0A96E5A36FCF70223FE544B140BA409D545ADE7DA8139B",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProSwordAndShield__SheathSword1",
+        "sampledPoseSha256": "4CD2F199FC0928FE814A25198695F8F0BCF963399887279AF188BC20A283B7B9",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProSwordAndShield__SwordAndShieldAttack3",
+        "sampledPoseSha256": "C181F6C594192BF7B66F5AFA845D66226F86FDEDCBD8B406261F488040311785",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProSwordAndShield__SwordAndShieldIdle",
+        "sampledPoseSha256": "DEE7589426AE6681F69578095C337A075A8DA5D8E4A52D8F6B694C23D476DF11",
+        "sampleCount": 17
+      },
+      {
+        "name": "ProSwordAndShield__SwordAndShieldImpact",
+        "sampledPoseSha256": "697B0577539B3639A2144C373EFC0788E7147B2A5D5F6C93FBC822BBFF22DF25",
+        "sampleCount": 17
+      }
+    ]
+  },
+  "skeleton": {
+    "family": "mixamo-standard-65",
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ],
+    "bodyHeightArmatureUnits": 0.1774369180202484,
+    "reimportStatus": "PASS",
+    "reimportBoneCount": 65,
+    "reimportRootBones": [
+      "mixamorig:Hips"
+    ],
+    "maximumRestDifference": 5.600000000050009e-06,
+    "maximumAllowedRestDifference": 0.001
+  },
+  "output": {
+    "path": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-gap-combat-candidates.glb",
+    "bytes": 4204840,
+    "sha256": "36545DA597E49F24AC24349F3B9CDB28216A15F4146D7AABD276C67BEABAFD0C",
+    "actionCount": 50
+  },
+  "requirementIds": [
+    "combat.axe.death",
+    "combat.bow.cancel",
+    "combat.daggers.paired",
+    "combat.greatsword.draw-stow",
+    "combat.knife.lower-level",
+    "combat.mace.lower-level",
+    "combat.magic.channel",
+    "combat.magic.interrupt-cancel",
+    "combat.rod.lower-level",
+    "combat.staff.channel-cast",
+    "combat.staff.draw-stow",
+    "combat.staff.grip-idle",
+    "combat.staff.guard-block",
+    "combat.staff.melee-family",
+    "combat.sword-one-hand.draw-sheath",
+    "combat.sword-one-hand.guard-idle",
+    "combat.sword-one-hand.horizontal-cut",
+    "combat.sword-one-hand.thrust",
+    "combat.sword-shield.shield-bash",
+    "combat.unarmed.block",
+    "combat.unarmed.impact-recovery",
+    "combat.unarmed.jab-cross",
+    "death.status-elemental",
+    "locomotion.knockdown.get-up",
+    "reaction.spell.blowback",
+    "reaction.spell.get-up",
+    "reaction.spell.knockdown"
+  ],
+  "candidateCount": 50,
+  "candidates": [
+    {
+      "name": "GapCombat__NonterminalKnockdownBackwardCandidate",
+      "displayLabel": "Nonterminal Knockdown Backward",
+      "derivedActionName": "GapCombat__NonterminalKnockdownBackwardCandidate",
+      "requirementIds": [
+        "locomotion.knockdown.get-up"
+      ],
+      "semanticRowIds": [
+        "locomotion.knockdown.get-up"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathBackward",
+          "startFraction": 0.0,
+          "endFraction": 0.72,
+          "reverse": false,
+          "speed": 1.08,
+          "sampledPoseSha256": "563214AC053948DBA442D387AEB994D946A5F5DFC1F503CE0325A1A7924C76E0",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "trim terminal death before terminal hold to form recoverable knockdown",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathBackward",
+            "startFraction": 0.0,
+            "endFraction": 0.72,
+            "reverse": false,
+            "speed": 1.08
+          }
+        ],
+        "modifiers": {},
+        "holdLastFrames": 6,
+        "eventFrames": {
+          "impact": 15,
+          "grounded": 61
+        }
+      },
+      "transformPlanSha256": "BB1877FB9F0D0DF4792D9CCFA8AA7722169847704E41BF9614150F8E84484E8A",
+      "preExportSampledPoseSha256": "6F41744B454F4DD13497D5D46B4E7B3CD69F912879C96A4B1A66286A07E2F699",
+      "frameRange": [
+        1.0,
+        65.0
+      ],
+      "frames": 65,
+      "fps": 30,
+      "events": {
+        "impact": 15,
+        "grounded": 61
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.17,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "2031F3D1017BAE3F010D71987A75D00FC6B58DB25041444EF1C4EC593567F4FD"
+    },
+    {
+      "name": "GapCombat__NonterminalGetUpBackwardCandidate",
+      "displayLabel": "Nonterminal Get Up Backward",
+      "derivedActionName": "GapCombat__NonterminalGetUpBackwardCandidate",
+      "requirementIds": [
+        "locomotion.knockdown.get-up"
+      ],
+      "semanticRowIds": [
+        "locomotion.knockdown.get-up"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathBackward",
+          "startFraction": 0.0,
+          "endFraction": 0.72,
+          "reverse": true,
+          "speed": 0.88,
+          "sampledPoseSha256": "563214AC053948DBA442D387AEB994D946A5F5DFC1F503CE0325A1A7924C76E0",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse recoverable knockdown segment into grounded get-up",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathBackward",
+            "startFraction": 0.0,
+            "endFraction": 0.72,
+            "reverse": true,
+            "speed": 0.88
+          }
+        ],
+        "modifiers": {},
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "leaveGround": 10,
+          "standing": 69
+        }
+      },
+      "transformPlanSha256": "49787BDA82432CD6DB3AF4773BEBD4ECEB0CC2FB696A0E862E3959712A084A24",
+      "preExportSampledPoseSha256": "F430824D70BDE1D7A86A6FF9BE64C123E43861154D686CE4FA4FFE4AB243F5FB",
+      "frameRange": [
+        1.0,
+        72.0
+      ],
+      "frames": 72,
+      "fps": 30,
+      "events": {
+        "leaveGround": 10,
+        "standing": 69
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.4,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "31DDD041BB190E8AFFA5F5415B41F62005117768B2E6589B57B43480114D1D4C"
+    },
+    {
+      "name": "GapCombat__UnarmedJabCandidate",
+      "displayLabel": "Unarmed Jab",
+      "derivedActionName": "GapCombat__UnarmedJabCandidate",
+      "requirementIds": [
+        "combat.unarmed.jab-cross"
+      ],
+      "semanticRowIds": [
+        "combat.unarmed.jab-cross"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__StandingMeleePunch",
+          "startFraction": 0.05,
+          "endFraction": 0.72,
+          "reverse": false,
+          "speed": 1.24,
+          "sampledPoseSha256": "5DA5A0438F1A6DA63DE648E30C3A969E390842C4DEC73621CEBCBE4A864B52DA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "compact source punch timing with explicit closed-fist derivative",
+        "segments": [
+          {
+            "action": "ProLongbow__StandingMeleePunch",
+            "startFraction": 0.05,
+            "endFraction": 0.72,
+            "reverse": false,
+            "speed": 1.24
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 58
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "contact": 7,
+          "recovered": 13
+        }
+      },
+      "transformPlanSha256": "EBDDA69256BD6DB8EE92CB37A60CA752BC2AEF90B385EF5CB3B9EB80B9CACEEF",
+      "preExportSampledPoseSha256": "216802D9B371C1FB2B509D988BEA80771510CFD8F154577168F49559AD8F8B99",
+      "frameRange": [
+        1.0,
+        14.0
+      ],
+      "frames": 14,
+      "fps": 30,
+      "events": {
+        "contact": 7,
+        "recovered": 13
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "F31C77D6A82447489594D508925FC1820622E30E6F682292F969AA1C5AD75014"
+    },
+    {
+      "name": "GapCombat__UnarmedCrossCandidate",
+      "displayLabel": "Unarmed Cross",
+      "derivedActionName": "GapCombat__UnarmedCrossCandidate",
+      "requirementIds": [
+        "combat.unarmed.jab-cross"
+      ],
+      "semanticRowIds": [
+        "combat.unarmed.jab-cross"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__StandingMeleePunch",
+          "startFraction": 0.0,
+          "endFraction": 0.92,
+          "reverse": false,
+          "speed": 0.92,
+          "sampledPoseSha256": "5DA5A0438F1A6DA63DE648E30C3A969E390842C4DEC73621CEBCBE4A864B52DA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "heavier source punch timing with torso weight-transfer accent",
+        "segments": [
+          {
+            "action": "ProLongbow__StandingMeleePunch",
+            "startFraction": 0.0,
+            "endFraction": 0.92,
+            "reverse": false,
+            "speed": 0.92
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 58
+          },
+          "boneRotations": {
+            "mixamorig:Spine2": [
+              0.0,
+              0.0,
+              -8.0
+            ]
+          },
+          "rotationEnvelope": "bell"
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "contact": 13,
+          "recovered": 24
+        }
+      },
+      "transformPlanSha256": "B209EDF24AA5658DA406EA92B9D1C461C540A83550B21656030A60624B1DBDBF",
+      "preExportSampledPoseSha256": "3210C6F7AFDF835F5632995677103BEEB380D9670DB40711D2E9784500A9C671",
+      "frameRange": [
+        1.0,
+        25.0
+      ],
+      "frames": 25,
+      "fps": 30,
+      "events": {
+        "contact": 13,
+        "recovered": 24
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "5669DFE849288F6EC985FA57CD91A5093CCB83FA5299614FB92EE92830BF970B"
+    },
+    {
+      "name": "GapCombat__UnarmedBlockGuardCandidate",
+      "displayLabel": "Unarmed Block Guard",
+      "derivedActionName": "GapCombat__UnarmedBlockGuardCandidate",
+      "requirementIds": [
+        "combat.unarmed.block"
+      ],
+      "semanticRowIds": [
+        "combat.unarmed.block"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingBlockIdle",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "D255412C65FE640694E7A80C115FDC4A64171C28C1D362EB2899EEE64BB8172F",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "equipment-neutral guard derivative with closed hands and lowered magic silhouette",
+        "segments": [
+          {
+            "action": "ProMagic__StandingBlockIdle",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 42
+          },
+          "boneRotations": {
+            "mixamorig:LeftForeArm": [
+              0.0,
+              0.0,
+              -10.0
+            ],
+            "mixamorig:RightForeArm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          "rotationEnvelope": "constant"
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 6,
+          "guardReleased": 56
+        }
+      },
+      "transformPlanSha256": "4D3A5EF8D3B1C3109A58D20BB7B50F093DCCBA4B26B4883DE0EE449F7E9131BA",
+      "preExportSampledPoseSha256": "073D8897462EC08F710DBCB72FDE45B7BC7EF133D38969715F3ED9EB5A5DF32D",
+      "frameRange": [
+        1.0,
+        61.0
+      ],
+      "frames": 61,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 6,
+        "guardReleased": 56
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 4.07,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "CBC24D2EEEE9E0B1F3C50F18F6347AFE9790BF4E7028E602BD6D1DFB6623BB28"
+    },
+    {
+      "name": "GapCombat__UnarmedImpactRecoveryCandidate",
+      "displayLabel": "Unarmed Impact Recovery",
+      "derivedActionName": "GapCombat__UnarmedImpactRecoveryCandidate",
+      "requirementIds": [
+        "combat.unarmed.impact-recovery"
+      ],
+      "semanticRowIds": [
+        "combat.unarmed.impact-recovery"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactSmallFromFront",
+          "startFraction": 0.0,
+          "endFraction": 0.92,
+          "reverse": false,
+          "speed": 1.1,
+          "sampledPoseSha256": "3D8A9DD0DC1DD3BA7CE64E9174EDC2394D56C457E392712426BEBC6C12D9FF20",
+          "sampleCount": 17
+        },
+        {
+          "action": "ProMagic__StandingReactSmallFromFront",
+          "startFraction": 0.0,
+          "endFraction": 0.65,
+          "reverse": true,
+          "speed": 0.92,
+          "sampledPoseSha256": "3D8A9DD0DC1DD3BA7CE64E9174EDC2394D56C457E392712426BEBC6C12D9FF20",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "equipment-neutral front impact followed by deterministic balanced recovery",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactSmallFromFront",
+            "startFraction": 0.0,
+            "endFraction": 0.92,
+            "reverse": false,
+            "speed": 1.1
+          },
+          {
+            "action": "ProMagic__StandingReactSmallFromFront",
+            "startFraction": 0.0,
+            "endFraction": 0.65,
+            "reverse": true,
+            "speed": 0.92
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 28
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "impact": 8,
+          "balanceRecovered": 42
+        }
+      },
+      "transformPlanSha256": "8F505786E300B2E087DFFE6CBD4101BFDE1C5106B0AA016265709E4E202A20BA",
+      "preExportSampledPoseSha256": "596D208732A10F1FF80746AA1F6CB59E7E633355CE9F1D0CECCA3693A372F71F",
+      "frameRange": [
+        1.0,
+        45.0
+      ],
+      "frames": 45,
+      "fps": 30,
+      "events": {
+        "impact": 8,
+        "balanceRecovered": 42
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "C94F5581491E29BE1977FA2ABC3DCA1F1491FD7A82087A39BC6E9A431186B79E"
+    },
+    {
+      "name": "GapCombat__OneHandSwordGuardCandidate",
+      "displayLabel": "One Hand Sword Guard",
+      "derivedActionName": "GapCombat__OneHandSwordGuardCandidate",
+      "requirementIds": [
+        "combat.sword-one-hand.guard-idle"
+      ],
+      "semanticRowIds": [
+        "combat.sword-one-hand.guard-idle"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProSwordAndShield__SwordAndShieldIdle",
+          "startFraction": 0.06,
+          "endFraction": 0.94,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "DEE7589426AE6681F69578095C337A075A8DA5D8E4A52D8F6B694C23D476DF11",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "sword guard with shield-side chain replaced by neutral free-offhand reference",
+        "segments": [
+          {
+            "action": "ProSwordAndShield__SwordAndShieldIdle",
+            "startFraction": 0.06,
+            "endFraction": 0.94,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 6
+        }
+      },
+      "transformPlanSha256": "A6C7EBA807AA6A0D15F984D7A06E24ABBF11D2231319F77C0728D70DA8B48B28",
+      "preExportSampledPoseSha256": "0CC18A5C7106A44976B232C6F2044AF6EA0B6652B05C07629AB081875C9BC458",
+      "frameRange": [
+        1.0,
+        78.0
+      ],
+      "frames": 78,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 6
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 5.2,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "D7C6543D2F4A58821B9DD829D982CB684E55CE485EDEEE831B06E836AAF511C3"
+    },
+    {
+      "name": "GapCombat__OneHandSwordThrustCandidate",
+      "displayLabel": "One Hand Sword Thrust",
+      "derivedActionName": "GapCombat__OneHandSwordThrustCandidate",
+      "requirementIds": [
+        "combat.sword-one-hand.thrust"
+      ],
+      "semanticRowIds": [
+        "combat.sword-one-hand.thrust"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProSwordAndShield__SwordAndShieldAttack3",
+          "startFraction": 0.04,
+          "endFraction": 0.82,
+          "reverse": false,
+          "speed": 1.04,
+          "sampledPoseSha256": "C181F6C594192BF7B66F5AFA845D66226F86FDEDCBD8B406261F488040311785",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "compact sword-and-shield attack derivative with neutral free offhand",
+        "segments": [
+          {
+            "action": "ProSwordAndShield__SwordAndShieldAttack3",
+            "startFraction": 0.04,
+            "endFraction": 0.82,
+            "reverse": false,
+            "speed": 1.04
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 7,
+          "contact": 16,
+          "recovered": 31
+        }
+      },
+      "transformPlanSha256": "64741FB219C828C01CAA2C02859109A11DF839D6301EC1DAEF43318D34C3AEA9",
+      "preExportSampledPoseSha256": "A35986EBDB60C50A70B78B2FAC244FC747B14A0DDD5D7F1EC58D1A75FA0799A7",
+      "frameRange": [
+        1.0,
+        32.0
+      ],
+      "frames": 32,
+      "fps": 30,
+      "events": {
+        "windup": 7,
+        "contact": 16,
+        "recovered": 31
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "81DE895D15C61140202221FFCE0BCD2756387B5DD73FB96BBBB8BF1F8973D7F8"
+    },
+    {
+      "name": "GapCombat__OneHandSwordHorizontalCutCandidate",
+      "displayLabel": "One Hand Sword Horizontal Cut",
+      "derivedActionName": "GapCombat__OneHandSwordHorizontalCutCandidate",
+      "requirementIds": [
+        "combat.sword-one-hand.horizontal-cut"
+      ],
+      "semanticRowIds": [
+        "combat.sword-one-hand.horizontal-cut"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingMeleeAttackHorizontal",
+          "startFraction": 0.03,
+          "endFraction": 0.88,
+          "reverse": false,
+          "speed": 1.08,
+          "sampledPoseSha256": "4B1592398908631C1CBFEB079118F77AFC5A2D52E4DC3C5C84F200CA88934785",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand horizontal source cut compacted for beginner sword semantics",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingMeleeAttackHorizontal",
+            "startFraction": 0.03,
+            "endFraction": 0.88,
+            "reverse": false,
+            "speed": 1.08
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 9,
+          "contact": 24,
+          "recovered": 44
+        }
+      },
+      "transformPlanSha256": "06E1FFACD2A43C8A57B6BD93B963848E52D2D1106703B0BAA523E34201796690",
+      "preExportSampledPoseSha256": "F133A47A38210D1ABFA211C36541E59E107907D391FC22FA5A8644861B8CE934",
+      "frameRange": [
+        1.0,
+        46.0
+      ],
+      "frames": 46,
+      "fps": 30,
+      "events": {
+        "windup": 9,
+        "contact": 24,
+        "recovered": 44
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.53,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "9541155916A73D1E03C873F2CEBA3DD7BD08F8035A1413E47F00EE123F01AC07"
+    },
+    {
+      "name": "GapCombat__OneHandSwordDrawHipCandidate",
+      "displayLabel": "One Hand Sword Draw Hip",
+      "derivedActionName": "GapCombat__OneHandSwordDrawHipCandidate",
+      "requirementIds": [
+        "combat.sword-one-hand.draw-sheath"
+      ],
+      "semanticRowIds": [
+        "combat.sword-one-hand.draw-sheath"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProSwordAndShield__DrawSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "8933C7287E262D51BA0A96E5A36FCF70223FE544B140BA409D545ADE7DA8139B",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "hip draw with shield-side chain replaced by neutral free offhand",
+        "segments": [
+          {
+            "action": "ProSwordAndShield__DrawSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketRelease": 5,
+          "gripEstablished": 8
+        }
+      },
+      "transformPlanSha256": "AEAB1D60C22B8600164BA8F24922B8793AF565B50461705ACBE39BF8C3039FD0",
+      "preExportSampledPoseSha256": "CBBCACBFF44B49FD2A94105941A1536A1717B554EE6E03F48F1281648DD011F0",
+      "frameRange": [
+        1.0,
+        13.0
+      ],
+      "frames": 13,
+      "fps": 30,
+      "events": {
+        "socketRelease": 5,
+        "gripEstablished": 8
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "15B166EFC4ABE398FE2C0B6FC2CBD78F8F5C0ABCBA77652E7198569FC33BEE95"
+    },
+    {
+      "name": "GapCombat__OneHandSwordSheathHipCandidate",
+      "displayLabel": "One Hand Sword Sheath Hip",
+      "derivedActionName": "GapCombat__OneHandSwordSheathHipCandidate",
+      "requirementIds": [
+        "combat.sword-one-hand.draw-sheath"
+      ],
+      "semanticRowIds": [
+        "combat.sword-one-hand.draw-sheath"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProSwordAndShield__SheathSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "4CD2F199FC0928FE814A25198695F8F0BCF963399887279AF188BC20A283B7B9",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "hip sheath with shield-side chain replaced by neutral free offhand",
+        "segments": [
+          {
+            "action": "ProSwordAndShield__SheathSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketAligned": 18,
+          "gripReleased": 24
+        }
+      },
+      "transformPlanSha256": "406F94800782C8FDBB165171F6127748988EBD48CF6BD3516F7DC76B5D189A19",
+      "preExportSampledPoseSha256": "2BC34A6961F72B1B660E7ADDFB7533D641EC00D134A842C41650D52C98D202EE",
+      "frameRange": [
+        1.0,
+        31.0
+      ],
+      "frames": 31,
+      "fps": 30,
+      "events": {
+        "socketAligned": 18,
+        "gripReleased": 24
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "44E8CADFB9AE83BBE226B86958088294BE076DA5A1F5C12EFA893B7A5FFD8C76"
+    },
+    {
+      "name": "GapCombat__ShieldBashCandidate",
+      "displayLabel": "Shield Bash",
+      "derivedActionName": "GapCombat__ShieldBashCandidate",
+      "requirementIds": [
+        "combat.sword-shield.shield-bash"
+      ],
+      "semanticRowIds": [
+        "combat.sword-shield.shield-bash"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProSwordAndShield__SwordAndShieldImpact",
+          "startFraction": 0.0,
+          "endFraction": 0.82,
+          "reverse": false,
+          "speed": 1.12,
+          "sampledPoseSha256": "697B0577539B3639A2144C373EFC0788E7147B2A5D5F6C93FBC822BBFF22DF25",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "shield-led impact source with deterministic short forward drive",
+        "segments": [
+          {
+            "action": "ProSwordAndShield__SwordAndShieldImpact",
+            "startFraction": 0.0,
+            "endFraction": 0.82,
+            "reverse": false,
+            "speed": 1.12
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 34
+          },
+          "rootOffsetBodyHeights": [
+            0.0,
+            -0.11,
+            0.0
+          ],
+          "rootOffsetEnvelope": "bell"
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "shieldContact": 7,
+          "recovered": 13
+        }
+      },
+      "transformPlanSha256": "20FEF143A86C9060FAF7173165253625FE36E26B252B1C254F6EBAE9A73F9318",
+      "preExportSampledPoseSha256": "CA7B9AEACC64FAA54D0F93CD657CF6133D1DAB0575BA5F1E0AC31F47BA691022",
+      "frameRange": [
+        1.0,
+        14.0
+      ],
+      "frames": 14,
+      "fps": 30,
+      "events": {
+        "shieldContact": 7,
+        "recovered": 13
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "C483F94A847205FE2118C1FBDAD4FCC7FBB6F2F3750C0F01FCE2E8236D0F3DAB"
+    },
+    {
+      "name": "GapCombat__GreatswordDrawBackCandidate",
+      "displayLabel": "Greatsword Draw Back",
+      "derivedActionName": "GapCombat__GreatswordDrawBackCandidate",
+      "requirementIds": [
+        "combat.greatsword.draw-stow"
+      ],
+      "semanticRowIds": [
+        "combat.greatsword.draw-stow"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__DrawAGreatSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "BF7431304DFD70B6DA7E5D97F1866617C8CA90D5C34AA68C983CBAD7377910AA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand greatsword back draw source normalized to candidate contract",
+        "segments": [
+          {
+            "action": "GreatSword__DrawAGreatSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketRelease": 5,
+          "supportGrip": 9
+        }
+      },
+      "transformPlanSha256": "73C201C355C8EAF6B98303436D35B7F74783219883B4A60C8768969EB0AC7806",
+      "preExportSampledPoseSha256": "048720C6B253C887F979928EC41ABED70C8F3F49949EF1B6C3F81D7E36D79A07",
+      "frameRange": [
+        1.0,
+        13.0
+      ],
+      "frames": 13,
+      "fps": 30,
+      "events": {
+        "socketRelease": 5,
+        "supportGrip": 9
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "5B0F1F2987355D8C485DD4EC6C78979C2B2761B421223E61A1A8E0CD6E730CF7"
+    },
+    {
+      "name": "GapCombat__GreatswordStowBackCandidate",
+      "displayLabel": "Greatsword Stow Back",
+      "derivedActionName": "GapCombat__GreatswordStowBackCandidate",
+      "requirementIds": [
+        "combat.greatsword.draw-stow"
+      ],
+      "semanticRowIds": [
+        "combat.greatsword.draw-stow"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__DrawAGreatSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": true,
+          "speed": 0.9,
+          "sampledPoseSha256": "BF7431304DFD70B6DA7E5D97F1866617C8CA90D5C34AA68C983CBAD7377910AA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse verified back-draw path into matching back-stow candidate",
+        "segments": [
+          {
+            "action": "GreatSword__DrawAGreatSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": true,
+            "speed": 0.9
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketAligned": 10,
+          "gripReleased": 12
+        }
+      },
+      "transformPlanSha256": "B38858CA9CEEAA6FCCFCA9DDC0EE21EE2B0C15171685D74698CCEFAF685E9D90",
+      "preExportSampledPoseSha256": "92A1DB7196B5895862EBAC42BC0404E65D527E5351DBE5C0EBE43923CC4115DE",
+      "frameRange": [
+        1.0,
+        14.0
+      ],
+      "frames": 14,
+      "fps": 30,
+      "events": {
+        "socketAligned": 10,
+        "gripReleased": 12
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "D83C7FE95EF2C8A4F3B7917F8C1780FCC883C6B94F500246FCFE4CFAF4AB4F64"
+    },
+    {
+      "name": "GapCombat__AxeRetainedDeathCandidate",
+      "displayLabel": "Axe Retained Death",
+      "derivedActionName": "GapCombat__AxeRetainedDeathCandidate",
+      "requirementIds": [
+        "combat.axe.death"
+      ],
+      "semanticRowIds": [
+        "combat.axe.death"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathForward",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.96,
+          "sampledPoseSha256": "52EF859D950C0D9891C26CB04043479DB7977E126AF07DFC043C19CBD818F165",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "terminal forward collapse with right-hand axe grip retained",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathForward",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.96
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 48
+          }
+        },
+        "holdLastFrames": 10,
+        "eventFrames": {
+          "impact": 15,
+          "terminal": 99
+        }
+      },
+      "transformPlanSha256": "D3E58D9E3FAF4BC11A15408760B6CA60EDF62B9C3595D4D830FF1149AA7C7287",
+      "preExportSampledPoseSha256": "080B4B054EE929551D4ECE2BEE4B4886F78EED7D34BB180945B3A8EFD54433FF",
+      "frameRange": [
+        1.0,
+        103.0
+      ],
+      "frames": 103,
+      "fps": 30,
+      "events": {
+        "impact": 15,
+        "terminal": 99
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 4.43,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "AA17F064607E10E565A49332C77F25E49A20B0D439937DF6C992567F84049876"
+    },
+    {
+      "name": "GapCombat__BowDrawCancelCandidate",
+      "displayLabel": "Bow Draw Cancel",
+      "derivedActionName": "GapCombat__BowDrawCancelCandidate",
+      "requirementIds": [
+        "combat.bow.cancel"
+      ],
+      "semanticRowIds": [
+        "combat.bow.cancel"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__StandingDrawArrow",
+          "startFraction": 0.08,
+          "endFraction": 0.78,
+          "reverse": true,
+          "speed": 0.9,
+          "sampledPoseSha256": "42B44FB21FE7C9B15FD6A75CD41C55F20DEE29512937E2E835822A3C28A41217",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse drawn-bow source segment to return arrow and settle without disarming bow",
+        "segments": [
+          {
+            "action": "ProLongbow__StandingDrawArrow",
+            "startFraction": 0.08,
+            "endFraction": 0.78,
+            "reverse": true,
+            "speed": 0.9
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "tensionReleased": 5,
+          "arrowReturned": 14,
+          "idle": 19
+        }
+      },
+      "transformPlanSha256": "9127780AB62E3D81E130D8BE582FBFD2837B0521B5712B7812D615B374D46420",
+      "preExportSampledPoseSha256": "13AA3D61EA03B523E47A1ED087F0ACBC63D4325B2AA1C0699236D0FAAB2B2987",
+      "frameRange": [
+        1.0,
+        20.0
+      ],
+      "frames": 20,
+      "fps": 30,
+      "events": {
+        "tensionReleased": 5,
+        "arrowReturned": 14,
+        "idle": 19
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "AEBB7C87140ADBAD30A972E4C9798089A412C17F6F50F2ED1BB1765C23B079E7"
+    },
+    {
+      "name": "GapCombat__MagicInterruptCandidate",
+      "displayLabel": "Magic Interrupt",
+      "derivedActionName": "GapCombat__MagicInterruptCandidate",
+      "requirementIds": [
+        "combat.magic.interrupt-cancel"
+      ],
+      "semanticRowIds": [
+        "combat.magic.interrupt-cancel"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing2HCastSpell01",
+          "startFraction": 0.0,
+          "endFraction": 0.43,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "2CD42CB60A7D35911F705068FD728C4BBB5C1AE2C1F1A1406DC6FF6ACD1BD150",
+          "sampleCount": 17
+        },
+        {
+          "action": "ProMagic__Standing2HCastSpell01",
+          "startFraction": 0.0,
+          "endFraction": 0.43,
+          "reverse": true,
+          "speed": 1.18,
+          "sampledPoseSha256": "2CD42CB60A7D35911F705068FD728C4BBB5C1AE2C1F1A1406DC6FF6ACD1BD150",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "begin cast then reverse before release into balanced interrupt recovery",
+        "segments": [
+          {
+            "action": "ProMagic__Standing2HCastSpell01",
+            "startFraction": 0.0,
+            "endFraction": 0.43,
+            "reverse": false,
+            "speed": 1.0
+          },
+          {
+            "action": "ProMagic__Standing2HCastSpell01",
+            "startFraction": 0.0,
+            "endFraction": 0.43,
+            "reverse": true,
+            "speed": 1.18
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 18
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "castBegins": 4,
+          "interrupted": 21,
+          "recovered": 40
+        }
+      },
+      "transformPlanSha256": "5069F99F3960F0B8B2871AAC73292560A0C73D8CBF6417215679A1EA19E3E78C",
+      "preExportSampledPoseSha256": "B4C2CAE7E129CA25240BC69157AFE832175653DDD6ADC59E728094964EE97BF5",
+      "frameRange": [
+        1.0,
+        42.0
+      ],
+      "frames": 42,
+      "fps": 30,
+      "events": {
+        "castBegins": 4,
+        "interrupted": 21,
+        "recovered": 40
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "92357660A5D7B2B8ECE93C989BDF8D8A14F12CEE0316510EE4CDCCEE2B801030"
+    },
+    {
+      "name": "GapCombat__MagicChannelLoopCandidate",
+      "displayLabel": "Magic Channel Loop",
+      "derivedActionName": "GapCombat__MagicChannelLoopCandidate",
+      "requirementIds": [
+        "combat.magic.channel"
+      ],
+      "semanticRowIds": [
+        "combat.magic.channel"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing2HCastSpell01",
+          "startFraction": 0.28,
+          "endFraction": 0.61,
+          "reverse": false,
+          "speed": 0.82,
+          "sampledPoseSha256": "2CD42CB60A7D35911F705068FD728C4BBB5C1AE2C1F1A1406DC6FF6ACD1BD150",
+          "sampleCount": 17
+        },
+        {
+          "action": "ProMagic__Standing2HCastSpell01",
+          "startFraction": 0.28,
+          "endFraction": 0.61,
+          "reverse": true,
+          "speed": 0.82,
+          "sampledPoseSha256": "2CD42CB60A7D35911F705068FD728C4BBB5C1AE2C1F1A1406DC6FF6ACD1BD150",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "ping-pong sustained middle-cast segment for interruptible channel review",
+        "segments": [
+          {
+            "action": "ProMagic__Standing2HCastSpell01",
+            "startFraction": 0.28,
+            "endFraction": 0.61,
+            "reverse": false,
+            "speed": 0.82
+          },
+          {
+            "action": "ProMagic__Standing2HCastSpell01",
+            "startFraction": 0.28,
+            "endFraction": 0.61,
+            "reverse": true,
+            "speed": 0.82
+          }
+        ],
+        "modifiers": {},
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "loopStart": 1,
+          "channelPeak": 22,
+          "loopEnd": 43
+        }
+      },
+      "transformPlanSha256": "CFB291BB028C8A5937AEB1530FA2B50841D29225653703CDC0C6F461ADA317C9",
+      "preExportSampledPoseSha256": "11CF3C45CACC6B69DF4719415E8B09F7C2506859C39B2AA4921A3338BAA49DA5",
+      "frameRange": [
+        1.0,
+        43.0
+      ],
+      "frames": 43,
+      "fps": 30,
+      "events": {
+        "loopStart": 1,
+        "channelPeak": 22,
+        "loopEnd": 43
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 4.0,
+        "recommendedCameraFraming": "neutral accepted-body full-body gameplay three-quarter view, hands and feet visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "51DB4F58B7030AC2606FE04EAA2BB523E2BE34086A593F61251D1CC3E197D12B"
+    },
+    {
+      "name": "GapCombat__SpellBlowbackCandidate",
+      "displayLabel": "Spell Blowback",
+      "derivedActionName": "GapCombat__SpellBlowbackCandidate",
+      "requirementIds": [
+        "reaction.spell.blowback"
+      ],
+      "semanticRowIds": [
+        "reaction.spell.blowback"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathBackward",
+          "startFraction": 0.0,
+          "endFraction": 0.78,
+          "reverse": false,
+          "speed": 1.15,
+          "sampledPoseSha256": "563214AC053948DBA442D387AEB994D946A5F5DFC1F503CE0325A1A7924C76E0",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "trimmed nonterminal backward spell reaction with authored displacement",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathBackward",
+            "startFraction": 0.0,
+            "endFraction": 0.78,
+            "reverse": false,
+            "speed": 1.15
+          }
+        ],
+        "modifiers": {
+          "rootOffsetBodyHeights": [
+            0.0,
+            0.34,
+            0.0
+          ],
+          "rootOffsetEnvelope": "ramp",
+          "jitter": {
+            "bones": [
+              "mixamorig:Spine1",
+              "mixamorig:Spine2"
+            ],
+            "degrees": 3.0,
+            "cycles": 3.0
+          }
+        },
+        "holdLastFrames": 5,
+        "eventFrames": {
+          "spellImpact": 7,
+          "airborne": 18,
+          "grounded": 61
+        }
+      },
+      "transformPlanSha256": "C6120D068F44B6360559689BE57F04299BB0C99186BA09314E4F1834D36C4309",
+      "preExportSampledPoseSha256": "7A12F141C7770A035FD39B4176AE8FAAEFD0C09D54838D6DD7546B3C8D284260",
+      "frameRange": [
+        1.0,
+        65.0
+      ],
+      "frames": 65,
+      "fps": 30,
+      "events": {
+        "spellImpact": 7,
+        "airborne": 18,
+        "grounded": 61
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.17,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "F58D1AC026BFB92D01CFDDE775C8B8F634C0D3D3EC0AE049ACB45FC6FF1F338E"
+    },
+    {
+      "name": "GapCombat__SpellKnockdownCandidate",
+      "displayLabel": "Spell Knockdown",
+      "derivedActionName": "GapCombat__SpellKnockdownCandidate",
+      "requirementIds": [
+        "reaction.spell.knockdown"
+      ],
+      "semanticRowIds": [
+        "reaction.spell.knockdown"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathForward",
+          "startFraction": 0.0,
+          "endFraction": 0.73,
+          "reverse": false,
+          "speed": 1.08,
+          "sampledPoseSha256": "52EF859D950C0D9891C26CB04043479DB7977E126AF07DFC043C19CBD818F165",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "trim terminal forward reaction before terminal hold for recoverable spell knockdown",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathForward",
+            "startFraction": 0.0,
+            "endFraction": 0.73,
+            "reverse": false,
+            "speed": 1.08
+          }
+        ],
+        "modifiers": {
+          "jitter": {
+            "bones": [
+              "mixamorig:Spine2"
+            ],
+            "degrees": 2.0,
+            "cycles": 2.0
+          }
+        },
+        "holdLastFrames": 6,
+        "eventFrames": {
+          "spellImpact": 9,
+          "grounded": 62
+        }
+      },
+      "transformPlanSha256": "30A75869C9B9C3AE2ACF815BC289F26F12D22BC0E5DB096C618D5BBB381AACB9",
+      "preExportSampledPoseSha256": "78C526ABF5D2CF316EB1E37510ADC2031AAA47349FA189A7A5E4257B351C0529",
+      "frameRange": [
+        1.0,
+        66.0
+      ],
+      "frames": 66,
+      "fps": 30,
+      "events": {
+        "spellImpact": 9,
+        "grounded": 62
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.2,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "4D270EAB2029F580840D58F57BAE828CE18AE1F90C203225079E9C61DC9EB57E"
+    },
+    {
+      "name": "GapCombat__SpellGetUpCandidate",
+      "displayLabel": "Spell Get Up",
+      "derivedActionName": "GapCombat__SpellGetUpCandidate",
+      "requirementIds": [
+        "reaction.spell.get-up"
+      ],
+      "semanticRowIds": [
+        "reaction.spell.get-up"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathForward",
+          "startFraction": 0.0,
+          "endFraction": 0.73,
+          "reverse": true,
+          "speed": 0.86,
+          "sampledPoseSha256": "52EF859D950C0D9891C26CB04043479DB7977E126AF07DFC043C19CBD818F165",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse recoverable spell knockdown into prone-to-standing recovery",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathForward",
+            "startFraction": 0.0,
+            "endFraction": 0.73,
+            "reverse": true,
+            "speed": 0.86
+          }
+        ],
+        "modifiers": {},
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "leaveGround": 9,
+          "standing": 73
+        }
+      },
+      "transformPlanSha256": "237B06CC488708F11091E4B29AB3BB95A9449CB2ED43C64FDEBBDCD325BEAB2D",
+      "preExportSampledPoseSha256": "A4D9E52D89BB3DA571E0E1D18481011DCAEFDE9A6CEFE6E88C168370FEEF4AF6",
+      "frameRange": [
+        1.0,
+        76.0
+      ],
+      "frames": 76,
+      "fps": 30,
+      "events": {
+        "leaveGround": 9,
+        "standing": 73
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.53,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "0CDD86CEB880519FE79415CA79C64EA1DA46211DB0DFA6215BAED720CD9F58A1"
+    },
+    {
+      "name": "GapCombat__StaffGripIdleCandidate",
+      "displayLabel": "Staff Grip Idle",
+      "derivedActionName": "GapCombat__StaffGripIdleCandidate",
+      "requirementIds": [
+        "combat.staff.grip-idle"
+      ],
+      "semanticRowIds": [
+        "combat.staff.grip-idle"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordIdle",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "42AE7152911D24C2ED8EE32CB33ECFB889B50A8EA2F8FB5154221596E95BA95E",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand weapon idle retained as long-staff grip candidate",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordIdle",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "gripEstablished": 1
+        }
+      },
+      "transformPlanSha256": "80D83920F5B5B85594F30CF58FA35BF7771531634FF5738FFA51A7526CC180ED",
+      "preExportSampledPoseSha256": "A437A6A60068822B1AD78CD45C56FD34F51DF6D3ACDB29A0F57FC28FAC7E5AF1",
+      "frameRange": [
+        1.0,
+        44.0
+      ],
+      "frames": 44,
+      "fps": 30,
+      "events": {
+        "gripEstablished": 1
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 4.0,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "344C50F1FD13C38DFE3C7F9C3EBD1EA7408A1E9DC5E997EABD1D3FDF529157A3"
+    },
+    {
+      "name": "GapCombat__StaffBlockCandidate",
+      "displayLabel": "Staff Block",
+      "derivedActionName": "GapCombat__StaffBlockCandidate",
+      "requirementIds": [
+        "combat.staff.guard-block"
+      ],
+      "semanticRowIds": [
+        "combat.staff.guard-block"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordBlocking",
+          "startFraction": 0.0,
+          "endFraction": 0.9,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "55A66A0B0C04FCA017579341B206EA8FBD6010926E91576E35D60D05C0356B6E",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand weapon block retained as staff cross-body contact candidate",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordBlocking",
+            "startFraction": 0.0,
+            "endFraction": 0.9,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 3,
+          "staffContact": 6,
+          "recovered": 11
+        }
+      },
+      "transformPlanSha256": "7A02DAA04A37DEF11F78F7068419BBA7CE7E81DDEA69D789B261CA18EA249909",
+      "preExportSampledPoseSha256": "340F2BA903AACCA6A902BB5AE1FCB77EFA193890E5916EFEF16C0C5059B6AD58",
+      "frameRange": [
+        1.0,
+        12.0
+      ],
+      "frames": 12,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 3,
+        "staffContact": 6,
+        "recovered": 11
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "DFC6C20D08C6C49A9DCDA201517DAEE3B5A2791CEB307F44BB2DFB5092C1A902"
+    },
+    {
+      "name": "GapCombat__StaffDrawBackCandidate",
+      "displayLabel": "Staff Draw Back",
+      "derivedActionName": "GapCombat__StaffDrawBackCandidate",
+      "requirementIds": [
+        "combat.staff.draw-stow"
+      ],
+      "semanticRowIds": [
+        "combat.staff.draw-stow"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__DrawAGreatSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.92,
+          "sampledPoseSha256": "BF7431304DFD70B6DA7E5D97F1866617C8CA90D5C34AA68C983CBAD7377910AA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "back draw path retargeted semantically for long staff",
+        "segments": [
+          {
+            "action": "GreatSword__DrawAGreatSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.92
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketRelease": 5,
+          "supportGrip": 10
+        }
+      },
+      "transformPlanSha256": "99AAE015F2BDE91C03240489E554E826A92D72E1460FF7F55805CDA8C10146C1",
+      "preExportSampledPoseSha256": "245CDF650346A2A67E8A821CB1C7D158FA81253490FA11E63009F58338486C33",
+      "frameRange": [
+        1.0,
+        14.0
+      ],
+      "frames": 14,
+      "fps": 30,
+      "events": {
+        "socketRelease": 5,
+        "supportGrip": 10
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "B4ABDB27DD4C341E66F8457AC5D7586BC38D6D3D138DB3CBA5011D2F8D26B6A4"
+    },
+    {
+      "name": "GapCombat__StaffStowBackCandidate",
+      "displayLabel": "Staff Stow Back",
+      "derivedActionName": "GapCombat__StaffStowBackCandidate",
+      "requirementIds": [
+        "combat.staff.draw-stow"
+      ],
+      "semanticRowIds": [
+        "combat.staff.draw-stow"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__DrawAGreatSword1",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": true,
+          "speed": 0.84,
+          "sampledPoseSha256": "BF7431304DFD70B6DA7E5D97F1866617C8CA90D5C34AA68C983CBAD7377910AA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse long-weapon draw path for staff back-stow",
+        "segments": [
+          {
+            "action": "GreatSword__DrawAGreatSword1",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": true,
+            "speed": 0.84
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "socketAligned": 10,
+          "gripReleased": 13
+        }
+      },
+      "transformPlanSha256": "A3A13A54488542A9442E65C19D2134F627AF4A29BC2DC74329F70B171C3F3EF7",
+      "preExportSampledPoseSha256": "6908BB1E68B7B66A51027413205EB75280B16A50AA6F478B2A95179DB5B26D4C",
+      "frameRange": [
+        1.0,
+        15.0
+      ],
+      "frames": 15,
+      "fps": 30,
+      "events": {
+        "socketAligned": 10,
+        "gripReleased": 13
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "2B7BD0B0D021161F837B592BED4F15EADA9E847DE231A102564B6F734623FB91"
+    },
+    {
+      "name": "GapCombat__StaffThrustCandidate",
+      "displayLabel": "Staff Thrust",
+      "derivedActionName": "GapCombat__StaffThrustCandidate",
+      "requirementIds": [
+        "combat.staff.melee-family"
+      ],
+      "semanticRowIds": [
+        "combat.staff.melee-family"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+          "startFraction": 0.0,
+          "endFraction": 0.82,
+          "reverse": false,
+          "speed": 1.08,
+          "sampledPoseSha256": "DE47745AF58881DE6A8C6FA948ECDA242FD25E9D440D1A7D741312DF24E1080A",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "compact existing staff butt-smash path as forward thrust candidate",
+        "segments": [
+          {
+            "action": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+            "startFraction": 0.0,
+            "endFraction": 0.82,
+            "reverse": false,
+            "speed": 1.08
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 10,
+          "staffContact": 29,
+          "recovered": 53
+        }
+      },
+      "transformPlanSha256": "C0F9ED2A0B960D5D9379CB7D091CFE945C0F678EF239ADF85DEF73720D53BD2A",
+      "preExportSampledPoseSha256": "1561561A3D84D51DACF4A08C476373EDF8EB1C56CEB034855865DDFB86F090B0",
+      "frameRange": [
+        1.0,
+        56.0
+      ],
+      "frames": 56,
+      "fps": 30,
+      "events": {
+        "windup": 10,
+        "staffContact": 29,
+        "recovered": 53
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.87,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "98E9B9D64D74F56CA98E6FE39436C603A2C358D0C30BCB6C2BCBCE55A91A5AAA"
+    },
+    {
+      "name": "GapCombat__StaffSweepCandidate",
+      "displayLabel": "Staff Sweep",
+      "derivedActionName": "GapCombat__StaffSweepCandidate",
+      "requirementIds": [
+        "combat.staff.melee-family"
+      ],
+      "semanticRowIds": [
+        "combat.staff.melee-family"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordSlash3",
+          "startFraction": 0.03,
+          "endFraction": 0.88,
+          "reverse": false,
+          "speed": 1.04,
+          "sampledPoseSha256": "D9902DFC48E5BB9A9FDB4B450F26535C572BF30714B0BB153D5019B21BA4E12F",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand horizontal weapon slash retimed as broad staff sweep",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordSlash3",
+            "startFraction": 0.03,
+            "endFraction": 0.88,
+            "reverse": false,
+            "speed": 1.04
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 7,
+          "staffContact": 20,
+          "recovered": 36
+        }
+      },
+      "transformPlanSha256": "188ECEB161D97F536349EDC5A1F1D11CBA2073956FE668DA37794CEE2D9B3F81",
+      "preExportSampledPoseSha256": "16235373A9AA710986CE290ACE99299DA69D20094C8307085002A12EC9DB051E",
+      "frameRange": [
+        1.0,
+        37.0
+      ],
+      "frames": 37,
+      "fps": 30,
+      "events": {
+        "windup": 7,
+        "staffContact": 20,
+        "recovered": 36
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "6AED8EDCEE5D7FFEE844AA22F0913CD86800C63DED51E3DA1B4E01CE6DAC512F"
+    },
+    {
+      "name": "GapCombat__StaffButtStrikeCandidate",
+      "displayLabel": "Staff Butt Strike",
+      "derivedActionName": "GapCombat__StaffButtStrikeCandidate",
+      "requirementIds": [
+        "combat.staff.melee-family"
+      ],
+      "semanticRowIds": [
+        "combat.staff.melee-family"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "DE47745AF58881DE6A8C6FA948ECDA242FD25E9D440D1A7D741312DF24E1080A",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "existing same-body staff-butt source normalized with explicit grip and event markers",
+        "segments": [
+          {
+            "action": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 14,
+          "staffContact": 41,
+          "recovered": 70
+        }
+      },
+      "transformPlanSha256": "F37698CAF3288EBE0442168B8EC70C6267977DDF69202DD763BCF6D5EABEFD9E",
+      "preExportSampledPoseSha256": "DD2E0C0F3E3248F606AE44ECD00A953CCFA54960A824B0601CB37EEE18570A4B",
+      "frameRange": [
+        1.0,
+        73.0
+      ],
+      "frames": 73,
+      "fps": 30,
+      "events": {
+        "windup": 14,
+        "staffContact": 41,
+        "recovered": 70
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.43,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "1931514BB506F0B34EC84309F1F58D41437D5130B668CD25F6A5FCD5B71B1B7A"
+    },
+    {
+      "name": "GapCombat__StaffOverheadStrikeCandidate",
+      "displayLabel": "Staff Overhead Strike",
+      "derivedActionName": "GapCombat__StaffOverheadStrikeCandidate",
+      "requirementIds": [
+        "combat.staff.melee-family"
+      ],
+      "semanticRowIds": [
+        "combat.staff.melee-family"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingMeleeAttackDownward",
+          "startFraction": 0.0,
+          "endFraction": 0.9,
+          "reverse": false,
+          "speed": 0.94,
+          "sampledPoseSha256": "2E86C7BDE07456DF29575C2643369582A05BA18ADB6F51AAB780A46D3F2761B1",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "downward melee source converted to two-hand staff overhead candidate",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingMeleeAttackDownward",
+            "startFraction": 0.0,
+            "endFraction": 0.9,
+            "reverse": false,
+            "speed": 0.94
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 11,
+          "staffContact": 31,
+          "recovered": 51
+        }
+      },
+      "transformPlanSha256": "C0E184CE27410830608411C901C6D842896350D599D36317F10380D4BD2FB276",
+      "preExportSampledPoseSha256": "24A3554AD5B8025B59832DDB4E15C89834983AD138B2242DA3555F96E1875CA5",
+      "frameRange": [
+        1.0,
+        53.0
+      ],
+      "frames": 53,
+      "fps": 30,
+      "events": {
+        "windup": 11,
+        "staffContact": 31,
+        "recovered": 51
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.77,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "D57337AF37FB0A50BAAFB67E2FA5DED5CEBABC69CA7840EF4ED38A6CBCD980F3"
+    },
+    {
+      "name": "GapCombat__StaffRecoveryCandidate",
+      "displayLabel": "Staff Recovery",
+      "derivedActionName": "GapCombat__StaffRecoveryCandidate",
+      "requirementIds": [
+        "combat.staff.melee-family"
+      ],
+      "semanticRowIds": [
+        "combat.staff.melee-family"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordImpact",
+          "startFraction": 0.0,
+          "endFraction": 0.76,
+          "reverse": true,
+          "speed": 0.86,
+          "sampledPoseSha256": "3A4A4C89BA04E9B2D1BDBBAC9F6841CC87BE306AB2481927EBB8BAABDFD199D7",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "reverse two-hand impact settling path into staff recovery candidate",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordImpact",
+            "startFraction": 0.0,
+            "endFraction": 0.76,
+            "reverse": true,
+            "speed": 0.86
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "recoveryBegins": 2,
+          "guardRestored": 18
+        }
+      },
+      "transformPlanSha256": "768D22E2FA8E7E59760B51E39AE106016711668F33404A000375B22FB34FD9DB",
+      "preExportSampledPoseSha256": "F04338EF685A6B17F3E0C162649A5D64A68814B7FC469CDF0EB6028CBC18905C",
+      "frameRange": [
+        1.0,
+        19.0
+      ],
+      "frames": 19,
+      "fps": 30,
+      "events": {
+        "recoveryBegins": 2,
+        "guardRestored": 18
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "5F9327111A50A434C052EF605311DB3EAEB5130BA93D79768F149503A70FF84E"
+    },
+    {
+      "name": "GapCombat__StaffChannelLoopCandidate",
+      "displayLabel": "Staff Channel Loop",
+      "derivedActionName": "GapCombat__StaffChannelLoopCandidate",
+      "requirementIds": [
+        "combat.staff.channel-cast"
+      ],
+      "semanticRowIds": [
+        "combat.staff.channel-cast"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordCasting",
+          "startFraction": 0.24,
+          "endFraction": 0.68,
+          "reverse": false,
+          "speed": 0.8,
+          "sampledPoseSha256": "B5FC959675650D5F13733CE28A664399CC4FBB06ECC42AC20D65D7EFF17D687A",
+          "sampleCount": 17
+        },
+        {
+          "action": "GreatSword__GreatSwordCasting",
+          "startFraction": 0.24,
+          "endFraction": 0.68,
+          "reverse": true,
+          "speed": 0.8,
+          "sampledPoseSha256": "B5FC959675650D5F13733CE28A664399CC4FBB06ECC42AC20D65D7EFF17D687A",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand weapon casting middle segment retained as staff-assisted channel loop",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordCasting",
+            "startFraction": 0.24,
+            "endFraction": 0.68,
+            "reverse": false,
+            "speed": 0.8
+          },
+          {
+            "action": "GreatSword__GreatSwordCasting",
+            "startFraction": 0.24,
+            "endFraction": 0.68,
+            "reverse": true,
+            "speed": 0.8
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "loopStart": 1,
+          "channelPeak": 64,
+          "loopEnd": 127
+        }
+      },
+      "transformPlanSha256": "6EC9FF460B541DAB202616B3C3B7985810AA19382CFA8BE47C4877845D787B38",
+      "preExportSampledPoseSha256": "C13AA97AE227F695FBBADA55AF8309519BFDF1F63ED04C4251BE3EAEB1967654",
+      "frameRange": [
+        1.0,
+        127.0
+      ],
+      "frames": 127,
+      "fps": 30,
+      "events": {
+        "loopStart": 1,
+        "channelPeak": 64,
+        "loopEnd": 127
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 8.0,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "1AC4AFB1BD5ECA398713C0B43A07B873440BD60A2EC102B3B21FF6863F2021D9"
+    },
+    {
+      "name": "GapCombat__StaffCastReleaseCandidate",
+      "displayLabel": "Staff Cast Release",
+      "derivedActionName": "GapCombat__StaffCastReleaseCandidate",
+      "requirementIds": [
+        "combat.staff.channel-cast"
+      ],
+      "semanticRowIds": [
+        "combat.staff.channel-cast"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "GreatSword__GreatSwordCasting",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.94,
+          "sampledPoseSha256": "B5FC959675650D5F13733CE28A664399CC4FBB06ECC42AC20D65D7EFF17D687A",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "two-hand weapon cast retained as staff-assisted lower-level release candidate",
+        "segments": [
+          {
+            "action": "GreatSword__GreatSwordCasting",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.94
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 32
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "channelEstablished": 38,
+          "release": 82,
+          "recovered": 119
+        }
+      },
+      "transformPlanSha256": "B33CF83D1C64C08FBB32823DAFCCBEDFB9070EECC66D1013A8E9B9AEAF235E65",
+      "preExportSampledPoseSha256": "02F6080660B5D7F669F298AC6B5FB06832658ACD81A604CF052C8603818842DD",
+      "frameRange": [
+        1.0,
+        124.0
+      ],
+      "frames": 124,
+      "fps": 30,
+      "events": {
+        "channelEstablished": 38,
+        "release": 82,
+        "recovered": 119
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 5.13,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "C41E2822170DDF4ABF75EC0A601B2FE0661FB159416E6C318B02FC50807F152E"
+    },
+    {
+      "name": "GapCombat__MaceGuardCandidate",
+      "displayLabel": "Mace Guard",
+      "derivedActionName": "GapCombat__MaceGuardCandidate",
+      "requirementIds": [
+        "combat.mace.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.mace.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingIdle",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "F806DE042C26D3B835D22D51EC3CADD3BE092AF2D39880CBDD662B829C7E212B",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand axe idle reused only as impact-weapon mace guard candidate",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingIdle",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 1
+        }
+      },
+      "transformPlanSha256": "345B9A889C1FB39C717119C9FA4D986A66664E601FDBB467C2E112A890D14F6A",
+      "preExportSampledPoseSha256": "5719E2E9630BE9B9DC62948C06CDCAA15D433A0E22F852766D6DCF439464A7FA",
+      "frameRange": [
+        1.0,
+        41.0
+      ],
+      "frames": 41,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 1
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 4.0,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "071A5534E2F2A5CE2D7E18CB1922242590A136E090129B3E3BACC06626A00775"
+    },
+    {
+      "name": "GapCombat__MaceCompactStrikeCandidate",
+      "displayLabel": "Mace Compact Strike",
+      "derivedActionName": "GapCombat__MaceCompactStrikeCandidate",
+      "requirementIds": [
+        "combat.mace.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.mace.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingMeleeAttackDownward",
+          "startFraction": 0.08,
+          "endFraction": 0.82,
+          "reverse": false,
+          "speed": 1.16,
+          "sampledPoseSha256": "2E86C7BDE07456DF29575C2643369582A05BA18ADB6F51AAB780A46D3F2761B1",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "shortened one-hand impact strike with explicit mace contact and recovery",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingMeleeAttackDownward",
+            "startFraction": 0.08,
+            "endFraction": 0.82,
+            "reverse": false,
+            "speed": 1.16
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 7,
+          "maceContact": 18,
+          "recovered": 34
+        }
+      },
+      "transformPlanSha256": "600741894100B2942472A256ABF8A8D9F2086D0158DE1719195843CF299C2B33",
+      "preExportSampledPoseSha256": "567891F0CD55CA033A91277AA74C9D0D39BEC246CF3331E11F0B37301ACFC8B4",
+      "frameRange": [
+        1.0,
+        36.0
+      ],
+      "frames": 36,
+      "fps": 30,
+      "events": {
+        "windup": 7,
+        "maceContact": 18,
+        "recovered": 34
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "DAA51DF189E97E2DCB4E92298C30459F523717C2A25FB921C37438989446CB0D"
+    },
+    {
+      "name": "GapCombat__MaceBlockCandidate",
+      "displayLabel": "Mace Block",
+      "derivedActionName": "GapCombat__MaceBlockCandidate",
+      "requirementIds": [
+        "combat.mace.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.mace.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingBlockIdle",
+          "startFraction": 0.0,
+          "endFraction": 0.9,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "A3E77545A3D6F3B1B7EC29A02032DFA696FAD0B9090498F9E1A39E5E8436F4F1",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand impact-weapon block retained as mace block candidate",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingBlockIdle",
+            "startFraction": 0.0,
+            "endFraction": 0.9,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 4,
+          "weaponContact": 20,
+          "recovered": 39
+        }
+      },
+      "transformPlanSha256": "C7493E5F2B2A4BF3042543A71FC91161AF1BF9BE4C4507AF94772FE0DEA39665",
+      "preExportSampledPoseSha256": "3E7C67AB3AFA4365EE4B4CA115A45B7AB1BA8BD63C7AB6731D51D95F813629DD",
+      "frameRange": [
+        1.0,
+        41.0
+      ],
+      "frames": 41,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 4,
+        "weaponContact": 20,
+        "recovered": 39
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "FA511F7D8BD4D31DCC5CD2B261B05C9F3E29E5A47A18062A01C4251D585CAB65"
+    },
+    {
+      "name": "GapCombat__KnifeGuardCandidate",
+      "displayLabel": "Knife Guard",
+      "derivedActionName": "GapCombat__KnifeGuardCandidate",
+      "requirementIds": [
+        "combat.knife.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.knife.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__UnarmedIdle01",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "8CBF9995F007469E2808ED84DFCF87988D7A00C6E963BF2F435E874ED632C7CA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "unarmed guard compacted with right-hand forward knife grip",
+        "segments": [
+          {
+            "action": "ProLongbow__UnarmedIdle01",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 46
+          },
+          "boneRotations": {
+            "mixamorig:RightForeArm": [
+              0.0,
+              0.0,
+              -12.0
+            ]
+          },
+          "rotationEnvelope": "constant"
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 1
+        }
+      },
+      "transformPlanSha256": "18DCF874F41C565DBE1E8CDDC53E7DA8E4E83C454EE7F355662FC59B4EA19979",
+      "preExportSampledPoseSha256": "4A4412A1356820869707DFAA5489D9D62FF7B0A05BF0F31A751990E8D9781958",
+      "frameRange": [
+        1.0,
+        111.0
+      ],
+      "frames": 111,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 1
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 7.4,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "3F08EA24C06AF1A994AE0EBEC56B923975D2570AABC19CB45169CD0A14EEB664"
+    },
+    {
+      "name": "GapCombat__KnifeCloseStrikeCandidate",
+      "displayLabel": "Knife Close Strike",
+      "derivedActionName": "GapCombat__KnifeCloseStrikeCandidate",
+      "requirementIds": [
+        "combat.knife.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.knife.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingMeleeAttackBackhand",
+          "startFraction": 0.12,
+          "endFraction": 0.68,
+          "reverse": false,
+          "speed": 1.34,
+          "sampledPoseSha256": "13170698AFADEA82FF7B06587DC91A62A5C0CB74CE87EBA5955451A87820BFF5",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "compact backhand source limited to close ritual-knife range",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingMeleeAttackBackhand",
+            "startFraction": 0.12,
+            "endFraction": 0.68,
+            "reverse": false,
+            "speed": 1.34
+          }
+        ],
+        "modifiers": {
+          "neutralizeGroups": [
+            "left_arm"
+          ],
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 46
+          },
+          "blendGroupsToNeutral": {
+            "right_arm": 0.28,
+            "spine": 0.18
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "windup": 5,
+          "knifeContact": 16,
+          "recovered": 31
+        }
+      },
+      "transformPlanSha256": "34C67F911596F70CB4D139F3B5B4DFA35E1793C9604645E7FE172A55149BD994",
+      "preExportSampledPoseSha256": "40B5EA5F67932DDDF319B2A82C138E58CFD6FF66213EB1D1E426111EB951C43B",
+      "frameRange": [
+        1.0,
+        33.0
+      ],
+      "frames": 33,
+      "fps": 30,
+      "events": {
+        "windup": 5,
+        "knifeContact": 16,
+        "recovered": 31
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.5,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "CDAD6D164B34319165B26C62EAED3DB8C3FB178FEE48D818AC66E2F3828D9B41"
+    },
+    {
+      "name": "GapCombat__KnifeCurseGestureCandidate",
+      "displayLabel": "Knife Curse Gesture",
+      "derivedActionName": "GapCombat__KnifeCurseGestureCandidate",
+      "requirementIds": [
+        "combat.knife.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.knife.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing1HCastSpell01",
+          "startFraction": 0.05,
+          "endFraction": 0.9,
+          "reverse": false,
+          "speed": 0.94,
+          "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand lower-level cast with persistent right-hand knife grip",
+        "segments": [
+          {
+            "action": "ProMagic__Standing1HCastSpell01",
+            "startFraction": 0.05,
+            "endFraction": 0.9,
+            "reverse": false,
+            "speed": 0.94
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "curseCommand": 22,
+          "release": 34,
+          "recovered": 48
+        }
+      },
+      "transformPlanSha256": "9EF7F135E585A244CD389A73DFF23CEE09D852C513D0E91A81202D5FD3FBB149",
+      "preExportSampledPoseSha256": "C599619C069C0340919598663E20B1D04459FFDEF2988A381D6E2257425FDB36",
+      "frameRange": [
+        1.0,
+        50.0
+      ],
+      "frames": 50,
+      "fps": 30,
+      "events": {
+        "curseCommand": 22,
+        "release": 34,
+        "recovered": 48
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.67,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "15FCB6E377CE56F1B3C626ADBABE813BE12796BB299B10CE8A1DB66B672D968F"
+    },
+    {
+      "name": "GapCombat__PairedDaggersGuardCandidate",
+      "displayLabel": "Paired Daggers Guard",
+      "derivedActionName": "GapCombat__PairedDaggersGuardCandidate",
+      "requirementIds": [
+        "combat.daggers.paired"
+      ],
+      "semanticRowIds": [
+        "combat.daggers.paired"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__UnarmedIdle01",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "8CBF9995F007469E2808ED84DFCF87988D7A00C6E963BF2F435E874ED632C7CA",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "unarmed combat idle with both hands converted to forward dagger grips",
+        "segments": [
+          {
+            "action": "ProLongbow__UnarmedIdle01",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 46
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "guardEstablished": 1
+        }
+      },
+      "transformPlanSha256": "35E75DA62EF533FE2C8130EDF062270A2AF8A0A75912C6F9EF47E06F34991C1D",
+      "preExportSampledPoseSha256": "EA2C594DBEEFB2C23A1FEE466993395273DA5A3007E89427FC0DF26DB4AF9EDF",
+      "frameRange": [
+        1.0,
+        111.0
+      ],
+      "frames": 111,
+      "fps": 30,
+      "events": {
+        "guardEstablished": 1
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 7.4,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "D8006FEE2BA400A869EA68FBD1C700E8F0B6F62BB988114AA6D600C535C6B4AB"
+    },
+    {
+      "name": "GapCombat__PairedDaggersAlternatingStrikeCandidate",
+      "displayLabel": "Paired Daggers Alternating Strike",
+      "derivedActionName": "GapCombat__PairedDaggersAlternatingStrikeCandidate",
+      "requirementIds": [
+        "combat.daggers.paired"
+      ],
+      "semanticRowIds": [
+        "combat.daggers.paired"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMeleeAxe__StandingMeleeComboAttackVer1",
+          "startFraction": 0.04,
+          "endFraction": 0.88,
+          "reverse": false,
+          "speed": 1.18,
+          "sampledPoseSha256": "620A3526B2D8B144CDA3A1A3030070136CA3278619ACE75F8AE38C4F31B3339C",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "multi-hit melee source with both hands converted to paired dagger grips",
+        "segments": [
+          {
+            "action": "ProMeleeAxe__StandingMeleeComboAttackVer1",
+            "startFraction": 0.04,
+            "endFraction": 0.88,
+            "reverse": false,
+            "speed": 1.18
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 46
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "rightContact": 26,
+          "leftContact": 48,
+          "recovered": 78
+        }
+      },
+      "transformPlanSha256": "BAC6BA1D9DCF92E6B7D9FEC28DBD1B939D071E20C275F960087B8F836569C55C",
+      "preExportSampledPoseSha256": "46F1E169EF0C25302738EF1A123002F6BAC12170D5B7684BD205CB09C29C2F3C",
+      "frameRange": [
+        1.0,
+        81.0
+      ],
+      "frames": 81,
+      "fps": 30,
+      "events": {
+        "rightContact": 26,
+        "leftContact": 48,
+        "recovered": 78
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.7,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "910BD40FE75BD4515C836EDEB6F53941A48CB005FDC71E8F4A86D1A39FCF17F1"
+    },
+    {
+      "name": "GapCombat__RodGripIdleCandidate",
+      "displayLabel": "Rod Grip Idle",
+      "derivedActionName": "GapCombat__RodGripIdleCandidate",
+      "requirementIds": [
+        "combat.rod.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.rod.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingIdle02",
+          "startFraction": 0.05,
+          "endFraction": 0.95,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "898C57C128C0B93988952FD735EFB0DA1856396DC2B02EED49B95A85B1860222",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand magic idle with persistent focus-rod grip",
+        "segments": [
+          {
+            "action": "ProMagic__StandingIdle02",
+            "startFraction": 0.05,
+            "endFraction": 0.95,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "gripEstablished": 1
+        }
+      },
+      "transformPlanSha256": "07E02D86B2C60A67EDC59C8A2E0987E0831DE1B0A0FA9A84516A5D0395477FC8",
+      "preExportSampledPoseSha256": "40CAD7FF3A21730B8D0EF2B2D0D2583B160574D7EECD9A5789ADE7357E854C0D",
+      "frameRange": [
+        1.0,
+        113.0
+      ],
+      "frames": 113,
+      "fps": 30,
+      "events": {
+        "gripEstablished": 1
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 7.53,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "4C76F7FCFF82F2C8C85159C529433ED8B280A7BBBE76CDCB7AA746456BA90E23"
+    },
+    {
+      "name": "GapCombat__RodCommandCandidate",
+      "displayLabel": "Rod Command",
+      "derivedActionName": "GapCombat__RodCommandCandidate",
+      "requirementIds": [
+        "combat.rod.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.rod.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "Interactions__HumanMasculineAthleticMuscularPointGesture",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "84EB660FB98761ED75F67A6BFA2553B08C0F7503C072B1026B8000933ACE8563",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "same-body command gesture with right-hand focus-rod grip",
+        "segments": [
+          {
+            "action": "Interactions__HumanMasculineAthleticMuscularPointGesture",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.0
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "command": 25,
+          "recovered": 46
+        }
+      },
+      "transformPlanSha256": "F6849D31F60F31E8ED50FF5ACEC68EB25A04B3FD21F5F4E5FAF1EF9E704294DF",
+      "preExportSampledPoseSha256": "52C60A70CA8998BB704B6346C7DE025C2475373A012094292F4222A1CBC559B8",
+      "frameRange": [
+        1.0,
+        48.0
+      ],
+      "frames": 48,
+      "fps": 30,
+      "events": {
+        "command": 25,
+        "recovered": 46
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.6,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "BB4D4D6B8AA4E5760FF84C3C24B194852E9D04931CF74B097D79FB72DD8371E8"
+    },
+    {
+      "name": "GapCombat__RodSummonReleaseCandidate",
+      "displayLabel": "Rod Summon Release",
+      "derivedActionName": "GapCombat__RodSummonReleaseCandidate",
+      "requirementIds": [
+        "combat.rod.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.rod.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing1HMagicAttack01",
+          "startFraction": 0.0,
+          "endFraction": 0.92,
+          "reverse": false,
+          "speed": 0.94,
+          "sampledPoseSha256": "4A97550A4A88FED69B41588A1CF4A61DCFCD73C21D9F10CCE5343AFF49425CFE",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "one-hand magic release with retained focus-rod grip",
+        "segments": [
+          {
+            "action": "ProMagic__Standing1HMagicAttack01",
+            "startFraction": 0.0,
+            "endFraction": 0.92,
+            "reverse": false,
+            "speed": 0.94
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "summonRelease": 34,
+          "recovered": 53
+        }
+      },
+      "transformPlanSha256": "EBAFC68BDE28885FDD2D2CB2402058FAF850EA40B8AB5ECE08D6AF283DC8F1A6",
+      "preExportSampledPoseSha256": "CF81D025105DAB8561A66B8D122B2BE532FB6E8F69432AA9FD50D605C4B3F22E",
+      "frameRange": [
+        1.0,
+        55.0
+      ],
+      "frames": 55,
+      "fps": 30,
+      "events": {
+        "summonRelease": 34,
+        "recovered": 53
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.83,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "A43ABBBA044650EA183B56CC295EF854AE74354C0EBCD79BD1375F31CB5C0D9C"
+    },
+    {
+      "name": "GapCombat__RodChannelLoopCandidate",
+      "displayLabel": "Rod Channel Loop",
+      "derivedActionName": "GapCombat__RodChannelLoopCandidate",
+      "requirementIds": [
+        "combat.rod.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.rod.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing1HCastSpell01",
+          "startFraction": 0.27,
+          "endFraction": 0.62,
+          "reverse": false,
+          "speed": 0.82,
+          "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+          "sampleCount": 17
+        },
+        {
+          "action": "ProMagic__Standing1HCastSpell01",
+          "startFraction": 0.27,
+          "endFraction": 0.62,
+          "reverse": true,
+          "speed": 0.82,
+          "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "ping-pong one-hand cast middle segment with persistent focus-rod grip",
+        "segments": [
+          {
+            "action": "ProMagic__Standing1HCastSpell01",
+            "startFraction": 0.27,
+            "endFraction": 0.62,
+            "reverse": false,
+            "speed": 0.82
+          },
+          {
+            "action": "ProMagic__Standing1HCastSpell01",
+            "startFraction": 0.27,
+            "endFraction": 0.62,
+            "reverse": true,
+            "speed": 0.82
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "loopStart": 1,
+          "channelPeak": 24,
+          "loopEnd": 47
+        }
+      },
+      "transformPlanSha256": "EE7D7848C73F36393917C857236A0A5973BDBB7AC6DCF48B83965323FD099533",
+      "preExportSampledPoseSha256": "75325FC6579A52FAFA23B80F6933F2FE5B05EE82C8AA9C6563373DC3B350568F",
+      "frameRange": [
+        1.0,
+        47.0
+      ],
+      "frames": 47,
+      "fps": 30,
+      "events": {
+        "loopStart": 1,
+        "channelPeak": 24,
+        "loopEnd": 47
+      },
+      "playIntent": "LOOP",
+      "recommendedPreview": {
+        "playIntent": "LOOP",
+        "recommendedDurationSeconds": 4.0,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "F8F12D5591717C5D7CB99A59643276FA2BD753B08D875E355CE1839180F6B798"
+    },
+    {
+      "name": "GapCombat__RodInterruptRecoveryCandidate",
+      "displayLabel": "Rod Interrupt Recovery",
+      "derivedActionName": "GapCombat__RodInterruptRecoveryCandidate",
+      "requirementIds": [
+        "combat.rod.lower-level"
+      ],
+      "semanticRowIds": [
+        "combat.rod.lower-level"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__Standing1HCastSpell01",
+          "startFraction": 0.0,
+          "endFraction": 0.44,
+          "reverse": false,
+          "speed": 1.0,
+          "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+          "sampleCount": 17
+        },
+        {
+          "action": "ProMagic__Standing1HCastSpell01",
+          "startFraction": 0.0,
+          "endFraction": 0.44,
+          "reverse": true,
+          "speed": 1.14,
+          "sampledPoseSha256": "A93AD0B87A0E4B80FD2FF2D04890696A16D4571F374F367DBF75332CBD675703",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "begin one-hand rod cast then reverse before release into recovery",
+        "segments": [
+          {
+            "action": "ProMagic__Standing1HCastSpell01",
+            "startFraction": 0.0,
+            "endFraction": 0.44,
+            "reverse": false,
+            "speed": 1.0
+          },
+          {
+            "action": "ProMagic__Standing1HCastSpell01",
+            "startFraction": 0.0,
+            "endFraction": 0.44,
+            "reverse": true,
+            "speed": 1.14
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Right"
+            ],
+            "degrees": 38
+          }
+        },
+        "holdLastFrames": 0,
+        "eventFrames": {
+          "interrupted": 23,
+          "recovered": 44
+        }
+      },
+      "transformPlanSha256": "602926043C4958C5362EB2216DED4B910317D2FC28AB63A45963DB542962F062",
+      "preExportSampledPoseSha256": "B177D3D72047C2A2C5FE0D7170F2D0AC0F31AFD390563C19D6CEACF0F1ACE48A",
+      "frameRange": [
+        1.0,
+        46.0
+      ],
+      "frames": 46,
+      "fps": 30,
+      "events": {
+        "interrupted": 23,
+        "recovered": 44
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 2.53,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view, hands and equipment sockets unobstructed",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "DFBC786CADB7CC8A4FEE2827797A4C2F69B7CC4B37D1D97BFB0A5833AA5CC4D0"
+    },
+    {
+      "name": "GapCombat__BurningDeathCandidate",
+      "displayLabel": "Burning Death",
+      "derivedActionName": "GapCombat__BurningDeathCandidate",
+      "requirementIds": [
+        "death.status-elemental"
+      ],
+      "semanticRowIds": [
+        "death.status-elemental"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathBackward",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.08,
+          "sampledPoseSha256": "563214AC053948DBA442D387AEB994D946A5F5DFC1F503CE0325A1A7924C76E0",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "backward terminal source with fading torso/arm convulsion for burning review",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathBackward",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.08
+          }
+        ],
+        "modifiers": {
+          "jitter": {
+            "bones": [
+              "mixamorig:Spine1",
+              "mixamorig:Spine2",
+              "mixamorig:LeftArm",
+              "mixamorig:RightArm"
+            ],
+            "degrees": 5.0,
+            "cycles": 5.0
+          }
+        },
+        "holdLastFrames": 10,
+        "eventFrames": {
+          "statusPeak": 32,
+          "terminal": 88
+        }
+      },
+      "transformPlanSha256": "776FDE81088AB8BEEEB185AFB6D586C6F1165FAC87FF004DCDDD9C614CDF298F",
+      "preExportSampledPoseSha256": "80756359C8663D38DEC43B616379BE5A50407CE64F61413661EC255F1C6F024C",
+      "frameRange": [
+        1.0,
+        92.0
+      ],
+      "frames": 92,
+      "fps": 30,
+      "events": {
+        "statusPeak": 32,
+        "terminal": 88
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 4.07,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "DD685CB8776F91BE839487F5FE8CC7FC7CD3BFA267F4FF57DAC6A26113D892FB"
+    },
+    {
+      "name": "GapCombat__FreezingDeathCandidate",
+      "displayLabel": "Freezing Death",
+      "derivedActionName": "GapCombat__FreezingDeathCandidate",
+      "requirementIds": [
+        "death.status-elemental"
+      ],
+      "semanticRowIds": [
+        "death.status-elemental"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathForward",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.62,
+          "sampledPoseSha256": "52EF859D950C0D9891C26CB04043479DB7977E126AF07DFC043C19CBD818F165",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "slow forward terminal source with extended rigid end hold for freezing review",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathForward",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.62
+          }
+        ],
+        "modifiers": {
+          "fingerCurl": {
+            "hands": [
+              "Left",
+              "Right"
+            ],
+            "degrees": 18
+          }
+        },
+        "holdLastFrames": 24,
+        "eventFrames": {
+          "freezeLock": 104,
+          "terminal": 150
+        }
+      },
+      "transformPlanSha256": "1B4E30078F0157A7D1735F8F51C267F6750A7AC53E7C31D06D772560B56B466E",
+      "preExportSampledPoseSha256": "A9A916906947590FD3FF3E2A33B31C0216FE7F23A9CC488A1B95AD1E50E1DF4F",
+      "frameRange": [
+        1.0,
+        167.0
+      ],
+      "frames": 167,
+      "fps": 30,
+      "events": {
+        "freezeLock": 104,
+        "terminal": 150
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 6.57,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "B294D9DB33DA2D746C9DAE1FE6775C9B52513E38FA44F180E9B0D0104652CDAD"
+    },
+    {
+      "name": "GapCombat__ElectricalDeathCandidate",
+      "displayLabel": "Electrical Death",
+      "derivedActionName": "GapCombat__ElectricalDeathCandidate",
+      "requirementIds": [
+        "death.status-elemental"
+      ],
+      "semanticRowIds": [
+        "death.status-elemental"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathLeft",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 1.28,
+          "sampledPoseSha256": "C77612D6CD899A9E1CC6CD2FBB5436D5EB1835DA4A04A41A59A80E117CAF8C02",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "left terminal source with high-frequency spine/limb impulse for electrical review",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathLeft",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 1.28
+          }
+        ],
+        "modifiers": {
+          "jitter": {
+            "bones": [
+              "mixamorig:Spine2",
+              "mixamorig:LeftForeArm",
+              "mixamorig:RightForeArm"
+            ],
+            "degrees": 7.0,
+            "cycles": 9.0
+          }
+        },
+        "holdLastFrames": 8,
+        "eventFrames": {
+          "statusPeak": 22,
+          "terminal": 74
+        }
+      },
+      "transformPlanSha256": "019677D26A54D411B488C4C8E10AC768FAADA95BD6742E42B1DFD14F6EA3D400",
+      "preExportSampledPoseSha256": "445A93E1AF890D87E73EDE3217B4883C18DBC17C0EFD142F63CD08AB4F21DD8D",
+      "frameRange": [
+        1.0,
+        77.0
+      ],
+      "frames": 77,
+      "fps": 30,
+      "events": {
+        "statusPeak": 22,
+        "terminal": 74
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 3.57,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "BBD85D43E165C6AF9124E960F5B0D34BE7183EAB2516940FA3A54DFAEFA5122A"
+    },
+    {
+      "name": "GapCombat__PoisonDeathCandidate",
+      "displayLabel": "Poison Death",
+      "derivedActionName": "GapCombat__PoisonDeathCandidate",
+      "requirementIds": [
+        "death.status-elemental"
+      ],
+      "semanticRowIds": [
+        "death.status-elemental"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProMagic__StandingReactDeathRight",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.68,
+          "sampledPoseSha256": "D7920F97ABF3E343FF9DDB45999454DF9241420E1862797115F8F18F50BEE378",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "slow right terminal source with sustained torso curl for poison review",
+        "segments": [
+          {
+            "action": "ProMagic__StandingReactDeathRight",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.68
+          }
+        ],
+        "modifiers": {
+          "boneRotations": {
+            "mixamorig:Spine1": [
+              10.0,
+              0.0,
+              -5.0
+            ],
+            "mixamorig:Spine2": [
+              7.0,
+              0.0,
+              5.0
+            ]
+          },
+          "rotationEnvelope": "ramp"
+        },
+        "holdLastFrames": 12,
+        "eventFrames": {
+          "statusPeak": 76,
+          "terminal": 132
+        }
+      },
+      "transformPlanSha256": "4C518EDD1B3D98A7A1A71AC9E5EBA50B6CF2982C91E4CDAB655C3EFDCFDF0342",
+      "preExportSampledPoseSha256": "632095230F53B74F2CE83F2ACE502A2F565E4E8C1A66ED9E1BA9B20E593E669A",
+      "frameRange": [
+        1.0,
+        137.0
+      ],
+      "frames": 137,
+      "fps": 30,
+      "events": {
+        "statusPeak": 76,
+        "terminal": 132
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 5.57,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "BF3E5AC6ABA5ABA3D198072C4B3D92BC7C19925C2D39AD8900CCF707A444E5AC"
+    },
+    {
+      "name": "GapCombat__VoidDeathCandidate",
+      "displayLabel": "Void Death",
+      "derivedActionName": "GapCombat__VoidDeathCandidate",
+      "requirementIds": [
+        "death.status-elemental"
+      ],
+      "semanticRowIds": [
+        "death.status-elemental"
+      ],
+      "status": "UNREVIEWED_SOURCE_DERIVED_CANDIDATE",
+      "sourceActions": [
+        {
+          "action": "ProLongbow__StandingDeathBackward01",
+          "startFraction": 0.0,
+          "endFraction": 1.0,
+          "reverse": false,
+          "speed": 0.9,
+          "sampledPoseSha256": "981BF88DAA97DE35BBCA59B319262B2FD34AC21EC5571EAE7954764059C5D0E9",
+          "sampleCount": 17
+        }
+      ],
+      "transformPlan": {
+        "description": "backward terminal source with inward shoulder collapse for void review",
+        "segments": [
+          {
+            "action": "ProLongbow__StandingDeathBackward01",
+            "startFraction": 0.0,
+            "endFraction": 1.0,
+            "reverse": false,
+            "speed": 0.9
+          }
+        ],
+        "modifiers": {
+          "boneRotations": {
+            "mixamorig:LeftShoulder": [
+              0.0,
+              0.0,
+              -12.0
+            ],
+            "mixamorig:RightShoulder": [
+              0.0,
+              0.0,
+              12.0
+            ],
+            "mixamorig:Spine2": [
+              8.0,
+              0.0,
+              0.0
+            ]
+          },
+          "rotationEnvelope": "ramp"
+        },
+        "holdLastFrames": 12,
+        "eventFrames": {
+          "statusPeak": 50,
+          "terminal": 92
+        }
+      },
+      "transformPlanSha256": "736E74F005C04DD262FA6845CD7707AD3AE6CA9BD7A7D55B2CECF8F6A793540F",
+      "preExportSampledPoseSha256": "DF571F9CB7476702AC440A3DBC782ACF6C6D5DBBA42EE0564A75E93ADE13CB2C",
+      "frameRange": [
+        1.0,
+        96.0
+      ],
+      "frames": 96,
+      "fps": 30,
+      "events": {
+        "statusPeak": 50,
+        "terminal": 92
+      },
+      "playIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "playIntent": "ONE_SHOT",
+        "recommendedDurationSeconds": 4.2,
+        "recommendedCameraFraming": "neutral accepted-body full-body three-quarter view with the floor and complete displacement visible",
+        "chatPreviewRequired": true,
+        "ownerVerdictRequiredBeforeBreachV2": true
+      },
+      "remainingGates": [
+        "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+        "OWNER_APPROVE_REJECT_OR_CHANGE",
+        "NORMAL_SPEED_VISUAL_REVIEW",
+        "HAND_AND_WEAPON_CONTACT_REVIEW",
+        "MESH_DEFORMATION_REVIEW",
+        "BREACH_V2_RUNTIME_GROUNDING",
+        "OWNER_ACCEPTANCE"
+      ],
+      "reimportSampledPoseSha256": "A9BB51809008CB8230D2B06DADF1304D0BDD567598EEEFACBD9428C57C6307AD"
+    }
+  ],
+  "promotionOrder": [
+    "GENERATE_SOURCE_DERIVED_CANDIDATE",
+    "RENDER_NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+    "OWNER_APPROVE_REJECT_OR_CHANGE",
+    "QUEUE_ONLY_OWNER_APPROVED_CANDIDATES_FOR_BREACH_V2_EXHAUSTIVE_REVIEW"
+  ],
+  "globalRemainingGates": [
+    "GAP_LEDGER_INTEGRATION",
+    "NEUTRAL_ACCEPTED_BODY_CHAT_PREVIEW",
+    "OWNER_APPROVE_REJECT_OR_CHANGE",
+    "NORMAL_SPEED_EXHAUSTIVE_REVIEW",
+    "EQUIPMENT_SOCKET_AND_CONTACT_PROOF",
+    "MESH_DEFORMATION_PROOF",
+    "BREACH_V2_REAL_GAME_GROUNDING",
+    "INDEPENDENT_VERIFICATION",
+    "OWNER_ACCEPTANCE"
+  ]
+}
