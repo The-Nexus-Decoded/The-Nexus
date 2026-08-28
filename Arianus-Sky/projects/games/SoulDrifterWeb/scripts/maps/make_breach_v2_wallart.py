@@ -6,27 +6,43 @@ the superseded placeholder provenance and to rebuild the approved Thalenyr
 scroll mount when explicitly requested. It refuses normal execution so it
 cannot overwrite the production art with labeled UI-style placeholders.
 
-Run from scripts/maps/ or the workspace mirror:
-  python make_breach_v2_wallart.py <game-root>
+Scroll-only rebuild:
+  python make_breach_v2_wallart.py --game-root ../.. --mode scroll \
+    --atlas ../../public/lore-atlas/assets/M-003_painted_atlas.png
 """
 
+import argparse
 import hashlib
 import json
+import os
 import random
-import sys
+import tempfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT_NAME = "art"  # under public/assets/textures/environment/breach-v2/
+PROJECT_NAME = "souldrifter-web"
+ATLAS_SHA256 = "88d5fe568603d41a677feddde964b588862e6418b2c8f818ea4fc20e5582913f"
+FONT_REGULAR_SHA256 = "ba5564634b93a8f8ba57b48cd4f1ae7417d2b4656fbac779028679b00de3cf12"
+FONT_BOLD_SHA256 = "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34"
+FONT_REGULAR = None
+FONT_BOLD = None
+
+
+def sha256_file(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def stable_seed(art_id):
+    return int.from_bytes(hashlib.sha256(art_id.encode("utf-8")).digest()[:8], "big")
 
 
 def font(size, bold=True):
-    for p in (r"C:\Windows\Fonts\georgiab.ttf" if bold else r"C:\Windows\Fonts\georgia.ttf",
-              r"C:\Windows\Fonts\arialbd.ttf"):
-        if Path(p).exists():
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+    path = FONT_BOLD if bold else FONT_REGULAR
+    if path is None:
+        raise RuntimeError("Wall-art fonts were not initialized")
+    return ImageFont.truetype(path, size)
 
 
 def cloth(w, h, base, seed):
@@ -71,7 +87,7 @@ def emblem_ring(d, cx, cy, r, fill, width=10):
 
 def banner(art_id, base, accent, label, sigil):
     w, h = 512, 768
-    img = cloth(w, h, base, hash(art_id) & 0xFFFF)
+    img = cloth(w, h, base, stable_seed(art_id))
     d = ImageDraw.Draw(img, "RGBA")
     d.rectangle([22, 22, w - 22, h - 60], outline=accent, width=10)          # border
     d.rectangle([40, 40, w - 40, h - 78], outline=accent + (120,), width=3)
@@ -87,7 +103,7 @@ def banner(art_id, base, accent, label, sigil):
 
 def relief(art_id, label, emblem_fn):
     w, h = 768, 512
-    img = stone(w, h, hash(art_id) & 0xFFFF)
+    img = stone(w, h, stable_seed(art_id))
     d = ImageDraw.Draw(img, "RGBA")
     carved_emblem(d, w // 2, h // 2 - 40, 120, (58, 50, 40, 230), (196, 186, 164, 160), emblem_fn)
     f = font(44)
@@ -101,7 +117,7 @@ def painting(art_id):
     w, h = 768, 512
     img = Image.new("RGB", (w, h), (38, 30, 44))
     d = ImageDraw.Draw(img, "RGBA")
-    rng = random.Random(hash(art_id) & 0xFFFF)
+    rng = random.Random(stable_seed(art_id))
     for _ in range(40):  # aged violet-gold brush fields
         x, y = rng.randrange(w), rng.randrange(h)
         r = rng.randint(18, 70)
@@ -124,15 +140,18 @@ def scroll_map(art_id, atlas_path):
     w, h = 768, 512
     img = Image.new("RGB", (w, h), (216, 196, 158))  # parchment
     d = ImageDraw.Draw(img, "RGBA")
-    rng = random.Random(hash(art_id) & 0xFFFF)
+    rng = random.Random(stable_seed(art_id))
     for _ in range(w * h // 40):
         x, y = rng.randrange(w), rng.randrange(h)
         d.point((x, y), fill=(150, 128, 90, rng.randint(20, 60)))
     d.rectangle([10, 10, w - 10, h - 10], outline=(120, 96, 60, 160), width=3)
-    if Path(atlas_path).is_file():
-        atlas = Image.open(atlas_path).convert("RGB").resize((w - 120, h - 160), Image.LANCZOS)
-        img.paste(atlas, (60, 44))
-        d.rectangle([60, 44, w - 60, h - 116], outline=(90, 70, 44), width=4)
+    if not Path(atlas_path).is_file():
+        raise FileNotFoundError(f"Pinned atlas is missing: {atlas_path}")
+    atlas = Image.open(atlas_path).convert("RGB").resize(
+        (w - 120, h - 160), Image.Resampling.LANCZOS
+    )
+    img.paste(atlas, (60, 44))
+    d.rectangle([60, 44, w - 60, h - 116], outline=(90, 70, 44), width=4)
     f = font(40)
     label = "THALENYR — THE VERDANT ECHO"
     tw = d.textlength(label, font=f)
@@ -219,47 +238,137 @@ ART_BUILDERS = {
 }
 
 
-def main():
-    if "--legacy-placeholders" not in sys.argv:
-        raise SystemExit(
-            "Refusing to overwrite shipped lore art. Pass --legacy-placeholders "
-            "only when intentionally rebuilding superseded review placeholders."
-        )
-    game_root = Path(sys.argv[1]).resolve()
-    out_dir = game_root / "public/assets/textures/environment/breach-v2/art"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    atlas = Path("C:/Users/olawal/Documents/kimi/workspace/souldrifter-thalenyr/lore-atlas/assets/M-003_painted_atlas.png")
-
-    written = []
-    for art_id, build in ART_BUILDERS.items():
-        img = build()
-        out = out_dir / f"{art_id}.webp"
-        img.save(out, quality=82, method=6)
-        written.append((art_id, out))
-        print(f"{art_id}: {img.size} {out.stat().st_size / 1024:.0f} KiB")
-    # the archive scroll reuses the atlas master (parchment mount)
-    scroll = scroll_map("art-map-thalenyr-scroll", atlas)
-    out = out_dir / "art-map-thalenyr-scroll.webp"
-    scroll.save(out, quality=82, method=6)
-    written.append(("art-map-thalenyr-scroll", out))
-    print(f"art-map-thalenyr-scroll: {scroll.size} {out.stat().st_size / 1024:.0f} KiB")
-
+def validate_project(game_root, atlas):
+    global FONT_REGULAR, FONT_BOLD
+    package = game_root / "package.json"
     registry = game_root / "third-party-assets.json"
-    data = json.loads(registry.read_text(encoding="utf-8"))
-    records = [{
+    if not package.is_file() or json.loads(package.read_text(encoding="utf-8")).get("name") != PROJECT_NAME:
+        raise ValueError(f"Not a {PROJECT_NAME} project root: {game_root}")
+    if not registry.is_file():
+        raise FileNotFoundError(f"Asset registry is missing: {registry}")
+    FONT_REGULAR = game_root / "public/assets/fonts/Alegreya-Variable.ttf"
+    FONT_BOLD = game_root / "public/assets/fonts/Cinzel-Variable.ttf"
+    checks = (
+        (atlas, ATLAS_SHA256, "atlas"),
+        (FONT_REGULAR, FONT_REGULAR_SHA256, "regular font"),
+        (FONT_BOLD, FONT_BOLD_SHA256, "bold font"),
+    )
+    for path, expected, label in checks:
+        if not path.is_file():
+            raise FileNotFoundError(f"Pinned {label} is missing: {path}")
+        actual = sha256_file(path)
+        if actual != expected:
+            raise RuntimeError(f"Pinned {label} hash mismatch: expected {expected}, found {actual}")
+    return registry
+
+
+def requested_builders(mode, atlas):
+    scroll = ("art-map-thalenyr-scroll", lambda: scroll_map("art-map-thalenyr-scroll", atlas))
+    if mode == "scroll":
+        return [scroll]
+    return [*ART_BUILDERS.items(), scroll]
+
+
+def build_records(written):
+    return [{
         "id": f"breach-v2-wall-art-{art_id}",
         "name": f"BREACH-V2 procedural wall art — {art_id}",
         "url": "scripts/maps/make_breach_v2_wallart.py (local procedural PIL)",
         "license": "Project-original in-house art (SoulDrifter); no third-party content",
         "usage": "in-world framed wall art at named §5A sockets (banners/reliefs/painting/scroll)",
         "bundled": True,
-        "sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
-        "notes": "Local CPU generation, zero paid credits; real composed labels over generated backgrounds.",
+        "sha256": sha256_file(out),
+        "notes": (
+            "Stable SHA-256 seed; pinned checked-in fonts and M-003 atlas; staged validation and atomic promotion."
+        ),
     } for art_id, out in written]
-    ids = {r["id"] for r in records}
-    data["shippingAssets"] = [a for a in data["shippingAssets"] if a.get("id") not in ids] + records
-    registry.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"recorded {len(records)} procedural art assets")
+
+
+def update_registry(registry, records):
+    data = json.loads(registry.read_text(encoding="utf-8"))
+    replacements = {record["id"]: record for record in records}
+    shipping = []
+    for asset in data.get("shippingAssets", []):
+        shipping.append(replacements.pop(asset.get("id"), asset))
+    shipping.extend(replacements.values())
+    data["shippingAssets"] = shipping
+    return data
+
+
+def promote_files(staged_targets):
+    promoted = []
+    try:
+        for staged, target in staged_targets:
+            backup = target.with_name(f".{target.name}.wallart-backup")
+            if backup.exists():
+                raise RuntimeError(f"Stale wall-art backup blocks promotion: {backup}")
+            previous = None
+            if target.exists():
+                previous = backup
+                os.replace(target, previous)
+            try:
+                os.replace(staged, target)
+            except Exception:
+                if previous is not None:
+                    os.replace(previous, target)
+                raise
+            promoted.append((target, previous))
+    except Exception:
+        for target, previous in reversed(promoted):
+            target.unlink(missing_ok=True)
+            if previous is not None:
+                os.replace(previous, target)
+        raise
+    else:
+        for _target, previous in promoted:
+            if previous is not None:
+                previous.unlink(missing_ok=True)
+
+
+def generate(game_root, atlas, mode):
+    registry = validate_project(game_root, atlas)
+    out_dir = game_root / "public/assets/textures/environment/breach-v2/art"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".breach-v2-wallart-", dir=out_dir) as temp_dir:
+        stage = Path(temp_dir)
+        written = []
+        for art_id, build in requested_builders(mode, atlas):
+            image = build()
+            out = stage / f"{art_id}.webp"
+            image.save(out, format="WEBP", quality=82, method=6, exact=True)
+            with Image.open(out) as verified:
+                verified.verify()
+            written.append((art_id, out))
+        records = build_records(written)
+        staged_registry = stage / registry.name
+        staged_registry.write_text(
+            json.dumps(update_registry(registry, records), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        promote_files([
+            *((out, out_dir / out.name) for _art_id, out in written),
+            (staged_registry, registry),
+        ])
+    for record in records:
+        print(f"{record['id']}: {record['sha256']}")
+    print(f"recorded {len(records)} requested procedural art asset(s)")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--game-root", required=True, type=Path)
+    parser.add_argument("--atlas", required=True, type=Path)
+    parser.add_argument("--mode", required=True, choices=("scroll", "legacy-all"))
+    parser.add_argument("--acknowledge-placeholder-overwrite", action="store_true")
+    args = parser.parse_args()
+    if args.mode == "legacy-all" and not args.acknowledge_placeholder_overwrite:
+        parser.error("legacy-all requires --acknowledge-placeholder-overwrite")
+    return args
+
+
+def main():
+    args = parse_args()
+    generate(args.game_root.expanduser().resolve(), args.atlas.expanduser().resolve(), args.mode)
 
 
 if __name__ == "__main__":
