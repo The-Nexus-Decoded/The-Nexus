@@ -1,0 +1,1300 @@
+{
+  "$schema": "./tripo-human-pilot-ledger.schema.json",
+  "schemaVersion": 1,
+  "ledgerId": "souldrifter-issue-487-human-foundation-v1",
+  "issue": 487,
+  "recordedAt": "2026-08-28",
+  "scope": {
+    "ancestry": "HUMAN",
+    "canonicalBodyCount": 8,
+    "requiredPoseArtifactCount": 16,
+    "poseArtifactsPerBody": 2,
+    "firstPilots": [
+      "human-masculine-athletic-muscular",
+      "human-feminine-athletic-muscular"
+    ],
+    "remainingBodiesGate": "BLOCKED_BY_BOTH_PILOTS"
+  },
+  "studioPreflight": {
+    "lane": "TRIPO_STUDIO_IN_APP_BROWSER",
+    "observedAt": "2026-08-28",
+    "recordedFromVisibleStudioUi": true,
+    "generationMode": "SMART_MESH",
+    "observedProviderModel": "P2.0 - Preview",
+    "balanceCredits": 25115,
+    "displayedBaseCostCredits": 100,
+    "displayedCurrentTrialCostCredits": 0,
+    "trialLabel": "Trial x1",
+    "status": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+    "doesNotAuthorizeSubmission": true,
+    "submissionApprovalState": "NOT_REQUESTED",
+    "submitApproved": false
+  },
+  "operationSafety": {
+    "generationSubmitted": false,
+    "batchGenerationPerformed": false,
+    "sourceUploaded": false,
+    "creditsSpent": false,
+    "automaticPaidRetries": false,
+    "paidOperationApprovalState": "NOT_REQUESTED",
+    "paidOperationApproved": false,
+    "mergePerformed": false,
+    "deployPerformed": false,
+    "pr460Modified": false
+  },
+  "evidence": {
+    "visibleRecording": {
+      "required": true,
+      "overallStatus": "PENDING",
+      "storagePolicy": "EXTERNAL_VIDEO_HASH_IN_GIT_ONLY",
+      "pilotTakes": {
+        "human-masculine-athletic-muscular": {
+          "status": "PENDING",
+          "externalVideoPath": null,
+          "sha256": null,
+          "externalReceiptPath": null,
+          "receiptSha256": null,
+          "secretsVisible": false,
+          "captureChecklist": {
+            "candidate-source-and-provider-label": "PENDING",
+            "model-settings-and-pose-contract": "PENDING",
+            "live-cost-and-owner-approval": "PENDING",
+            "single-task-submission-and-task-id": "PENDING",
+            "untouched-download-and-hash": "PENDING",
+            "t-pose-rig-calibration": "PENDING",
+            "same-rig-a-pose-derivation": "PENDING",
+            "normal-and-slow-speed-deformation-and-fit-review": "PENDING"
+          }
+        },
+        "human-feminine-athletic-muscular": {
+          "status": "PENDING",
+          "externalVideoPath": null,
+          "sha256": null,
+          "externalReceiptPath": null,
+          "receiptSha256": null,
+          "secretsVisible": false,
+          "captureChecklist": {
+            "candidate-source-and-provider-label": "PENDING",
+            "model-settings-and-pose-contract": "PENDING",
+            "live-cost-and-owner-approval": "PENDING",
+            "single-task-submission-and-task-id": "PENDING",
+            "untouched-download-and-hash": "PENDING",
+            "t-pose-rig-calibration": "PENDING",
+            "same-rig-a-pose-derivation": "PENDING",
+            "normal-and-slow-speed-deformation-and-fit-review": "PENDING"
+          }
+        }
+      }
+    }
+  },
+  "bodies": [
+    {
+      "canonicalBodyId": "human-masculine-athletic-muscular",
+      "ancestry": "HUMAN",
+      "presentation": "MASCULINE",
+      "build": "ATHLETIC_MUSCULAR",
+      "isPilot": true,
+      "pilotSequence": 1,
+      "executionGate": "PILOT_PENDING",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-masculine-athletic-muscular-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-masculine-athletic-muscular-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-feminine-athletic-muscular",
+      "ancestry": "HUMAN",
+      "presentation": "FEMININE",
+      "build": "ATHLETIC_MUSCULAR",
+      "isPilot": true,
+      "pilotSequence": 2,
+      "executionGate": "PILOT_PENDING",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-feminine-athletic-muscular-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-feminine-athletic-muscular-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-masculine-slim",
+      "ancestry": "HUMAN",
+      "presentation": "MASCULINE",
+      "build": "SLIM",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-masculine-slim-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-masculine-slim-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-masculine-medium-natural",
+      "ancestry": "HUMAN",
+      "presentation": "MASCULINE",
+      "build": "MEDIUM_NATURAL",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-masculine-medium-natural-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-masculine-medium-natural-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-masculine-thick-large-framed",
+      "ancestry": "HUMAN",
+      "presentation": "MASCULINE",
+      "build": "THICK_LARGE_FRAMED",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-masculine-thick-large-framed-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-masculine-thick-large-framed-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-feminine-slim",
+      "ancestry": "HUMAN",
+      "presentation": "FEMININE",
+      "build": "SLIM",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-feminine-slim-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-feminine-slim-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-feminine-medium-natural",
+      "ancestry": "HUMAN",
+      "presentation": "FEMININE",
+      "build": "MEDIUM_NATURAL",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-feminine-medium-natural-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-feminine-medium-natural-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    },
+    {
+      "canonicalBodyId": "human-feminine-thick-large-framed",
+      "ancestry": "HUMAN",
+      "presentation": "FEMININE",
+      "build": "THICK_LARGE_FRAMED",
+      "isPilot": false,
+      "pilotSequence": null,
+      "executionGate": "BLOCKED_BY_BOTH_PILOTS",
+      "sourceBakeoff": {
+        "lockedBriefId": "issue-487-human-feminine-thick-large-framed-strict-t-v1",
+        "primarySourcePose": "STRICT_T_POSE",
+        "independentAPoseImageMaySeed3d": false,
+        "selectedCandidateSlot": null,
+        "ownerSelectionState": "NOT_REQUESTED",
+        "candidates": {
+          "TRIPO_NANO_BANANA": {
+            "slotId": "TRIPO_NANO_BANANA",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_NANO_BANANA_PRO": {
+            "slotId": "TRIPO_NANO_BANANA_PRO",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "NANO_BANANA_PRO",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_A": {
+            "slotId": "TRIPO_GPT_IMAGE_2_A",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_A",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          },
+          "TRIPO_GPT_IMAGE_2_B": {
+            "slotId": "TRIPO_GPT_IMAGE_2_B",
+            "provider": "TRIPO_STUDIO",
+            "modelSlot": "GPT_IMAGE_2_B",
+            "providerModelObserved": null,
+            "purpose": "STRICT_T_SOURCE_CANDIDATE",
+            "status": "PENDING",
+            "artifactPath": null,
+            "sha256": null,
+            "selected": false,
+            "ownerVerdict": "NOT_REQUESTED"
+          }
+        }
+      },
+      "canonicalMesh": {
+        "canonicalMeshId": "human-feminine-thick-large-framed-canonical-mesh-v001",
+        "canonicalMeshCount": 1,
+        "sourcePose": "STRICT_T_POSE",
+        "sourceHash": null,
+        "topologyFingerprint": null,
+        "vertexCount": null,
+        "uvLayoutVersion": null,
+        "materialSetVersion": null,
+        "skeletonFamily": null,
+        "skeletonVersion": null,
+        "sameMeshRequiredForBothPoseArtifacts": true,
+        "independentAPoseBodyGenerationAllowed": false,
+        "status": "PENDING"
+      },
+      "tripoSmartMesh": {
+        "required": true,
+        "liveMode": "SMART_MESH",
+        "observedProviderModel": "P2.0 - Preview",
+        "observedAt": "2026-08-28",
+        "observationState": "PROVISIONAL_PRE_SUBMISSION_UI_OBSERVATION",
+        "providerModelAtSubmission": null,
+        "capabilityContract": "NATIVE_QUAD_GENERATION",
+        "enabledAtSubmission": false,
+        "topologyType": "QUAD_FACE",
+        "targetQuadFaces": 8000,
+        "acceptedQuadFaceRange": {
+          "minimum": 6000,
+          "maximum": 9000
+        },
+        "topologyBeforePbrAndRig": true,
+        "manualHeroLoopReviewRequired": true,
+        "settingsEvidencePath": null,
+        "status": "PENDING"
+      },
+      "submissionGate": {
+        "exactExpectedCredits": null,
+        "maximumCreditsIncludingApprovedRetryEnvelope": null,
+        "projectedRemainingBalanceCredits": null,
+        "ownerPaidOperationApprovalState": "NOT_REQUESTED",
+        "ownerPaidOperationApproved": false,
+        "submitApprovalState": "NOT_REQUESTED",
+        "submitApproved": false,
+        "automaticPaidRetries": false,
+        "trialDisplayDoesNotAuthorizeSubmission": true,
+        "taskId": null,
+        "submittedAt": null,
+        "chargedCredits": null,
+        "status": "NOT_SUBMITTED"
+      },
+      "poseArtifacts": {
+        "requiredArtifactCount": 2,
+        "derivationContract": "STRICT_T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION",
+        "tPose": {
+          "artifactRole": "CANONICAL_RIG_CALIBRATION_SOURCE",
+          "normalizedPose": "STRICT_T_POSE",
+          "path": null,
+          "sha256": null,
+          "status": "PENDING"
+        },
+        "aPose": {
+          "artifactRole": "PRODUCTION_DEFORMATION_AND_FIT_POSE",
+          "normalizedPose": "A_POSE",
+          "productionMethod": "DERIVED_FROM_ACCEPTED_T_POSE_RIG",
+          "path": null,
+          "sha256": null,
+          "derivedFromTPoseRig": false,
+          "sameCanonicalMeshRequired": true,
+          "sameSkeletonRequired": true,
+          "independentGenerationAllowed": false,
+          "status": "PENDING"
+        },
+        "sameCanonicalMeshVerified": false,
+        "sameSkeletonVerified": false,
+        "dualPoseOwnerVerdict": "NOT_REQUESTED"
+      },
+      "qualityGate": {
+        "strictTSource": "PENDING",
+        "anatomyAndFullBody": "PENDING",
+        "noPedestalOrFusedGear": "PENDING",
+        "heroJointLoops": "PENDING",
+        "dualPoseDeformation": "PENDING",
+        "runtimeBudget": "PENDING",
+        "overallStatus": "PENDING"
+      }
+    }
+  ]
+}
