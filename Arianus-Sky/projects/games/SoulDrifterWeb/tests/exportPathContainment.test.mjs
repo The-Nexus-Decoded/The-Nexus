@@ -15,7 +15,7 @@ describe("project output containment", () => {
     expect(() => assertLexicallyInside(root, "H:\\outside")).toThrow(/must stay inside/);
     expect(() => assertLexicallyInside(root, "C:\\important-directory")).toThrow(/must stay inside/);
     expect(assertLexicallyInside(root, "H:\\project\\generated\\layout.json"))
-      .toBe(path.resolve("H:\\project\\generated\\layout.json"));
+      .toBe(path.win32.resolve("H:\\project\\generated\\layout.json"));
   });
 
   it("rejects an existing parent redirected outside through a junction", async () => {

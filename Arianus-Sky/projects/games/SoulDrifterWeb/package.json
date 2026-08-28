@@ -13,7 +13,7 @@
     "verify:release": "node scripts/verify-release-targets.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run --maxWorkers=1 --no-file-parallelism"
   },
   "devDependencies": {
     "@gltf-transform/cli": "4.4.2",
