@@ -197,7 +197,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   const foot = document.createElement("p");
   foot.textContent = compactViewport
-    ? "Move: D-pad or tap floor · tap nearby door · pinch camera zoom"
+    ? "Move: D-pad or tap floor · drag camera orbit · pinch zoom · tap nearby door"
     : "Move: click/tap floor or WASD · F/tap nearby door · Shift sprint · drag camera · wheel zoom · Q/E rotate";
   foot.style.cssText = "margin:10px 0 0;padding-top:8px;border-top:1px solid rgba(190,145,76,.24);color:#b8ad96;font:10px/1.45 ui-monospace,monospace";
   body.appendChild(foot);

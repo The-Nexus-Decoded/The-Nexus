@@ -1,6 +1,15 @@
 export const BREACH_V2_ISOMETRIC_MIN_DISTANCE = 6;
 export const BREACH_V2_ISOMETRIC_MAX_DISTANCE = 36;
 export const BREACH_V2_MOBILE_ZOOM_STEP = 3.5;
+export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
+
+export function resolveBreachV2TouchYaw(
+  currentYaw: number,
+  horizontalDelta: number,
+  sensitivity = 0.0075,
+): number {
+  return currentYaw - horizontalDelta * sensitivity;
+}
 
 export function resolveBreachV2CameraStep(
   currentDistance: number,

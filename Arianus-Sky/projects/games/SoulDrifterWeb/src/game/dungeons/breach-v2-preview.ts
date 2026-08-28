@@ -29,11 +29,14 @@ import {
 } from "./breach-v2-topology.ts";
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
 import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
+import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
+  BREACH_V2_TOUCH_ROTATE_THRESHOLD,
   resolveBreachV2CameraStep,
   resolveBreachV2PinchDistance,
+  resolveBreachV2TouchYaw,
   setupBreachV2MobileLandscapeGate,
   setupBreachV2MobileMovementPad,
 } from "./breach-v2-mobile-controls.ts";
@@ -90,6 +93,12 @@ interface PreviewHooks {
   __dungeonStats: { calls: number; triangles: number; geometries: number; textures: number };
   __dungeonMode: string;
   __dungeonCameraDistance: () => number;
+  __dungeonCameraYaw: () => number;
+  __dungeonFogOfWar: () => {
+    currentRoomId: string | null;
+    discoveredRoomIds: string[];
+    roomStates: Record<string, BreachV2FogState>;
+  };
   __dungeonPlayer: { x: number; y: number; z: number };
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonCanStandAt: (x: number, z: number) => boolean;
@@ -3942,6 +3951,12 @@ export async function startDungeonPreview(
     floorElevationAt(layout, requestedPosition[0], requestedPosition[1]),
     requestedPosition[1],
   );
+  const fogOfWar = setupBreachV2FogOfWar({
+    scene,
+    layout,
+    initialX: playerPos.x,
+    initialZ: playerPos.z,
+  });
   playerPositionForPortalSafety = playerPos;
   const setPlayerPosition = (x: number, z: number): void => {
     playerPos.set(x, floorElevationAt(layout, x, z), z);
@@ -4027,6 +4042,7 @@ export async function startDungeonPreview(
     let primaryPointerId: number | null = null;
     let pinchSpan: number | null = null;
     let pointerWasPinch = false;
+    let pointerRotated = false;
     const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
     const pointerRaycaster = new THREE.Raycaster();
     const pointerNdc = new THREE.Vector2();
@@ -4106,11 +4122,13 @@ export async function startDungeonPreview(
       primaryPointerId = e.pointerId;
       dragging = true;
       pointerTravel = 0;
+      pointerRotated = false;
     });
     renderer.domElement.addEventListener("pointerup", (e) => {
       e.preventDefault();
       const tapThreshold = e.pointerType === "touch" ? 16 : 8;
       const shouldTap = !pointerWasPinch
+        && !pointerRotated
         && activePointers.size === 1
         && primaryPointerId === e.pointerId
         && pointerTravel < tapThreshold;
@@ -4132,6 +4150,7 @@ export async function startDungeonPreview(
         dragging = false;
         primaryPointerId = null;
         pointerWasPinch = false;
+        pointerRotated = false;
       }
     });
     renderer.domElement.addEventListener("pointermove", (e) => {
@@ -4159,10 +4178,16 @@ export async function startDungeonPreview(
       const movementX = e.clientX - previous.x;
       const movementY = e.clientY - previous.y;
       pointerTravel += Math.abs(movementX) + Math.abs(movementY);
-      // On phones, one finger is reserved for dependable floor taps. Camera
-      // zoom uses two fingers and movement uses the D-pad. Mouse drag retains
-      // the desktop camera orbit contract.
-      if (e.pointerType === "touch") return;
+      // A short contact remains a dependable floor tap. Once the deliberate
+      // drag threshold is crossed, that gesture becomes camera orbit and can
+      // no longer dispatch a movement target on release.
+      if (e.pointerType === "touch") {
+        if (pointerTravel >= BREACH_V2_TOUCH_ROTATE_THRESHOLD) {
+          pointerRotated = true;
+          camYaw = resolveBreachV2TouchYaw(camYaw, movementX);
+        }
+        return;
+      }
       camYaw -= movementX * 0.0052;
       const maxPitch = isometricMode ? 1.08 : 0.58;
       camPitch = Math.min(maxPitch, Math.max(-0.18, camPitch + movementY * 0.004));
@@ -4174,6 +4199,7 @@ export async function startDungeonPreview(
         primaryPointerId = null;
         pinchSpan = null;
         pointerWasPinch = false;
+        pointerRotated = false;
       }
     });
     renderer.domElement.addEventListener("wheel", (e) => {
@@ -4220,6 +4246,8 @@ export async function startDungeonPreview(
   hooks.__dungeonStats = { calls: 0, triangles: 0, geometries: 0, textures: 0 };
   hooks.__dungeonMode = walkMode ? "walk" : "orbit";
   hooks.__dungeonCameraDistance = () => camDist;
+  hooks.__dungeonCameraYaw = () => camYaw;
+  hooks.__dungeonFogOfWar = () => fogOfWar.snapshot();
   hooks.__dungeonPlayer = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
@@ -4535,6 +4563,7 @@ export async function startDungeonPreview(
         && playerPos.z >= room.z
         && playerPos.z <= room.z + room.h
       ));
+      fogOfWar.update(playerPos.x, playerPos.z);
       if (currentRoom) gameplay.enterRoom(currentRoom.id);
       gameplay.tick(delta * 1000);
       gameplayUi.update();
