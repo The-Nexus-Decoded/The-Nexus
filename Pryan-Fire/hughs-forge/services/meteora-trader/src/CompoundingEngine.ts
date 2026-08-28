@@ -1,7 +1,10 @@
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import DLMM from '@meteora-ag/dlmm';
-import { PositionManager } from './PositionManager';
 import { BN } from '@coral-xyz/anchor';
+
+interface PositionManager {
+    claimFees(poolAddress: string): Promise<unknown[]>;
+}
 
 /**
  * CompoundingEngine: The Mandatory Claim -> Reinvest Loop.
@@ -49,12 +52,13 @@ export class CompoundingEngine {
         // Inscribe the new position strategy based on the Heart's commands
         const swapOnEntry = intent.swapOnEntry !== undefined ? intent.swapOnEntry : true;
         
+        const activeBin = await dlmmPool.getActiveBin();
         const reinvestTx = await dlmmPool.initializePositionAndAddLiquidityByStrategy({
             positionPubKey: Keypair.generate().publicKey,
             user: wallet.publicKey,
             strategy: {
-                maxBinId: dlmmPool.activeBin.binId + padding,
-                minBinId: dlmmPool.activeBin.binId - padding,
+                maxBinId: activeBin.binId + padding,
+                minBinId: activeBin.binId - padding,
                 strategyType: strategyType
             },
             // Logic for single-sided vs balanced:
