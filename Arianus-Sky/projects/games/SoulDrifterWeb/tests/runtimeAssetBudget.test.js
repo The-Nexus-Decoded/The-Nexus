@@ -77,7 +77,7 @@ describe("runtime asset budget", () => {
       .toThrow(/Unsafe runtime asset target/);
   });
 
-  it("keeps QA and production bundles under the permanent 500 MB ceiling", async () => {
+  it("declares both QA and production bundles under the permanent 500 MB ceiling", async () => {
     const manifest = await loadAssetManifest();
 
     expect(manifest.maxBytes).toBe(500_000_000);
@@ -86,6 +86,57 @@ describe("runtime asset budget", () => {
       { assetRoot: "dist/client", budgetRoot: "dist" },
       { assetRoot: "dist-pages", budgetRoot: "dist-pages" },
     ]);
+  });
+
+  it("measures both real target shapes and reports their post-prune byte totals", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(root);
+    await Promise.all([
+      writeFixture(root, "dist/client/index.html", "qa"),
+      writeFixture(root, "dist-pages/index.html", "production"),
+    ]);
+    await writeManifest(root, {
+      maxBytes: 100,
+      preferredMaxBytes: 50,
+      targets: [
+        { assetRoot: "dist/client", budgetRoot: "dist" },
+        { assetRoot: "dist-pages", budgetRoot: "dist-pages" },
+      ],
+    });
+
+    const results = await pruneRuntimeAssets(root);
+
+    expect(results.map(({ target }) => target)).toEqual(["dist", "dist-pages"]);
+    expect(results.map(({ bytes }) => bytes)).toEqual([2, 10]);
+    expect(results.every(({ preferredBudgetMet }) => preferredBudgetMet)).toBe(true);
+  });
+
+  it("fails when either build target is missing or a measured bundle exceeds the ceiling", async () => {
+    const missingRoot = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    const oversizedRoot = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(missingRoot, oversizedRoot);
+    await writeFixture(missingRoot, "dist/client/index.html", "qa-only");
+    const pairedTargets = [
+      { assetRoot: "dist/client", budgetRoot: "dist" },
+      { assetRoot: "dist-pages", budgetRoot: "dist-pages" },
+    ];
+    await writeManifest(missingRoot, {
+      maxBytes: 100,
+      preferredMaxBytes: 50,
+      targets: pairedTargets,
+    });
+    await expect(pruneRuntimeAssets(missingRoot)).rejects.toThrow(/targets are missing: dist-pages/);
+
+    await Promise.all([
+      writeFixture(oversizedRoot, "dist/client/index.html", "qa-bundle-too-large"),
+      writeFixture(oversizedRoot, "dist-pages/index.html", "production"),
+    ]);
+    await writeManifest(oversizedRoot, {
+      maxBytes: 10,
+      preferredMaxBytes: 8,
+      targets: pairedTargets,
+    });
+    await expect(pruneRuntimeAssets(oversizedRoot)).rejects.toThrow(/exceeding the permanent 10-byte/);
   });
 
   it("identifies only build-time source art in the real public asset tree", async () => {

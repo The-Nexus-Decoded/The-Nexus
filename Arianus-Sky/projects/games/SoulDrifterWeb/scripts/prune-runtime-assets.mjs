@@ -312,9 +312,14 @@ async function pruneAssetRoot(assetRoot, realAssetRoot, manifest) {
 export async function pruneRuntimeAssets(root = projectRoot) {
   const manifest = await loadAssetManifest(resolve(root, "scripts/runtime-asset-manifest.json"));
   const targets = await Promise.all(manifest.targets.map((target) => validateRuntimeTarget(root, target)));
+  const missingTargets = targets.filter((target) => !target.exists);
+  if (missingTargets.length > 0) {
+    throw new Error(
+      `Runtime build targets are missing: ${missingTargets.map((target) => target.normalizedAssetRoot).join(", ")}`,
+    );
+  }
   const results = [];
   for (const [index, target] of targets.entries()) {
-    if (!target.exists) continue;
     const result = await pruneAssetRoot(target.assetRoot, target.realAssetRoot, manifest);
     const bytes = await directoryBytes(target.budgetRoot);
     if (bytes > manifest.maxBytes) {
@@ -329,7 +334,6 @@ export async function pruneRuntimeAssets(root = projectRoot) {
       ...result,
     });
   }
-  if (results.length === 0) throw new Error("No runtime build targets were found to prune.");
   return results;
 }
 
