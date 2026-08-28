@@ -1,4 +1,8 @@
 import type { BreachV2Layout } from "./breach-v2-layout.ts";
+import {
+  BREACH_V2_PANEL_EVENT,
+  BREACH_V2_PANEL_REQUEST_EVENT,
+} from "./breach-v2-mobile-controls.ts";
 
 interface BreachV2DevPanelOptions {
   container: HTMLElement;
@@ -37,7 +41,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   panel.dataset.testid = "breach-v2-dev-panel";
   panel.setAttribute("aria-label", "BREACH-V2 developer map controls");
   panel.style.cssText = [
-    "position:absolute", "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
+    "position:absolute", "top:12px", "right:12px", "z-index:69", "width:min(310px,calc(100vw - 24px))",
     "max-height:calc(100dvh - 24px)", "overflow:auto", "padding:12px", "box-sizing:border-box",
     "background:linear-gradient(165deg,rgba(16,19,20,.96),rgba(27,22,18,.94))",
     "color:#e9dfc7", "border:1px solid rgba(190,145,76,.58)", "border-radius:3px",
@@ -64,37 +68,19 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   body.style.paddingTop = "8px";
   panel.appendChild(body);
 
-  const initiallyOpen = new URL(window.location.href).searchParams.get("dev") === "1"
-    || (import.meta.env.DEV && !compactViewport);
+  const initiallyOpen = new URL(window.location.href).searchParams.get("dev") === "1";
   let open = initiallyOpen;
   const syncOpen = (): void => {
+    panel.hidden = !open;
     body.hidden = !open;
     header.setAttribute("aria-expanded", String(open));
     header.setAttribute("aria-label", `${open ? "Hide" : "Show"} dungeon navigation controls`);
     header.title = `${open ? "Hide" : "Show"} dungeon navigation controls`;
-    headerTitle.textContent = compactViewport && !open ? "Map" : "Dungeon navigation";
-    headerAction.textContent = compactViewport ? "Close" : (open ? "Hide" : "Show");
-    headerAction.hidden = compactViewport && !open;
-    if (compactViewport && !open) {
-      panel.style.top = "auto";
-      panel.style.bottom = "max(18px,env(safe-area-inset-bottom))";
-      panel.style.width = "auto";
-      panel.style.padding = "0";
-      panel.style.border = "0";
-      panel.style.background = "transparent";
-      panel.style.boxShadow = "none";
-      panel.style.backdropFilter = "none";
-      panel.style.overflow = "visible";
-      header.style.width = "auto";
-      header.style.minHeight = "42px";
-      header.style.padding = "0 16px";
-      header.style.border = "1px solid rgba(228,185,103,.58)";
-      header.style.borderRadius = "999px";
-      header.style.background = "rgba(16,19,20,.84)";
-      header.style.boxShadow = "0 8px 24px rgba(0,0,0,.42)";
-      return;
-    }
-    panel.style.top = "12px";
+    headerTitle.textContent = "Dungeon navigation";
+    headerAction.textContent = "Close";
+    headerAction.hidden = !open;
+    if (!open) return;
+    panel.style.top = "max(12px,env(safe-area-inset-top))";
     panel.style.bottom = "auto";
     panel.style.width = "min(310px,calc(100vw - 24px))";
     panel.style.padding = "12px";
@@ -112,10 +98,25 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     header.style.background = "transparent";
     header.style.boxShadow = "none";
   };
-  const toggle = (): void => { open = !open; syncOpen(); };
+  const toggle = (): void => {
+    open = !open;
+    syncOpen();
+    if (open) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
+  };
   header.addEventListener("click", toggle);
   window.addEventListener("keydown", (event) => {
     if ((event.key === "`" || event.key === "~") && !(event.target instanceof HTMLInputElement)) toggle();
+  });
+  window.addEventListener(BREACH_V2_PANEL_EVENT, (event) => {
+    if ((event as CustomEvent<string>).detail === "navigation" || !open) return;
+    open = false;
+    syncOpen();
+  });
+  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, (event) => {
+    if ((event as CustomEvent<string>).detail !== "navigation") return;
+    open = true;
+    syncOpen();
+    window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
   });
 
   const section = (label: string): HTMLDivElement => {

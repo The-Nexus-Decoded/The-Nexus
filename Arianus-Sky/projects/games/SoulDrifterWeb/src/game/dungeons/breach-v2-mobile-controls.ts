@@ -2,6 +2,25 @@ export const BREACH_V2_ISOMETRIC_MIN_DISTANCE = 6;
 export const BREACH_V2_ISOMETRIC_MAX_DISTANCE = 36;
 export const BREACH_V2_MOBILE_ZOOM_STEP = 3.5;
 export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
+export const BREACH_V2_PANEL_EVENT = "breach-v2-panel-opened";
+export const BREACH_V2_PANEL_REQUEST_EVENT = "breach-v2-panel-requested";
+
+export type BreachV2GraphicsMode = "auto" | "low" | "standard" | "high";
+export type BreachV2GraphicsQuality = Exclude<BreachV2GraphicsMode, "auto">;
+
+export function resolveBreachV2AutoGraphicsQuality(options: {
+  coarsePointer: boolean;
+  hardwareConcurrency: number;
+  deviceMemoryGb: number | null;
+  pixelRatio: number;
+}): BreachV2GraphicsQuality {
+  const { coarsePointer, hardwareConcurrency, deviceMemoryGb, pixelRatio } = options;
+  if (coarsePointer && (hardwareConcurrency <= 4 || (deviceMemoryGb ?? 4) <= 4)) return "low";
+  if (coarsePointer || hardwareConcurrency <= 8 || (deviceMemoryGb !== null && deviceMemoryGb <= 8)) {
+    return "standard";
+  }
+  return pixelRatio > 1.5 ? "standard" : "high";
+}
 
 export function resolveBreachV2TouchYaw(
   currentYaw: number,
@@ -44,6 +63,180 @@ export function resolveBreachV2PinchDistance(
 
 interface MobileMovementPad {
   destroy(): void;
+}
+
+export interface BreachV2SettingsPanel {
+  updateEffectiveQuality(quality: BreachV2GraphicsQuality): void;
+  destroy(): void;
+}
+
+function pillButton(label: string, accent: "cyan" | "gold" = "gold"): HTMLButtonElement {
+  const element = document.createElement("button");
+  element.type = "button";
+  element.textContent = label;
+  const border = accent === "cyan" ? "rgba(127,232,255,.5)" : "rgba(228,185,103,.58)";
+  const color = accent === "cyan" ? "#c9f7ff" : "#f0c879";
+  element.style.cssText = [
+    "min-height:42px", "padding:0 16px", "border-radius:999px", `border:1px solid ${border}`,
+    "background:rgba(8,12,16,.84)", `color:${color}`, "box-shadow:0 8px 24px rgba(0,0,0,.42)",
+    "backdrop-filter:blur(9px)", "font:700 11px/1 Georgia,serif", "letter-spacing:.11em",
+    "text-transform:uppercase", "cursor:pointer", "touch-action:manipulation",
+  ].join(";");
+  return element;
+}
+
+export function setupBreachV2SettingsPanel(options: {
+  container: HTMLElement;
+  initialMode: BreachV2GraphicsMode;
+  initialEffectiveQuality: BreachV2GraphicsQuality;
+  initialStatsVisible: boolean;
+  onModeChange: (mode: BreachV2GraphicsMode) => void;
+  onStatsVisibilityChange: (visible: boolean) => void;
+}): BreachV2SettingsPanel {
+  const {
+    container,
+    initialMode,
+    initialEffectiveQuality,
+    initialStatsVisible,
+    onModeChange,
+    onStatsVisibilityChange,
+  } = options;
+  const root = document.createElement("section");
+  root.dataset.testid = "breach-v2-settings";
+  root.setAttribute("aria-label", "Dungeon controls and settings");
+  root.style.cssText = [
+    "position:absolute", "top:max(12px,env(safe-area-inset-top))", "left:50%", "z-index:70",
+    "transform:translateX(-50%)", "pointer-events:auto",
+  ].join(";");
+  const trigger = pillButton("Settings");
+  trigger.dataset.testid = "breach-v2-settings-toggle";
+  trigger.setAttribute("aria-expanded", "false");
+  const panel = document.createElement("div");
+  panel.hidden = true;
+  panel.style.cssText = [
+    "position:absolute", "top:50px", "left:50%", "transform:translateX(-50%)",
+    "width:min(360px,calc(100vw - 24px))", "max-height:calc(100dvh - 74px)", "overflow:auto",
+    "box-sizing:border-box", "padding:16px",
+    "border:1px solid rgba(228,185,103,.52)", "border-radius:16px",
+    "background:linear-gradient(165deg,rgba(10,15,19,.97),rgba(29,23,18,.96))",
+    "box-shadow:0 18px 55px rgba(0,0,0,.55)", "backdrop-filter:blur(12px)", "color:#eee4cf",
+    "font:12px/1.4 ui-monospace,Consolas,monospace",
+  ].join(";");
+  const title = document.createElement("div");
+  title.textContent = "Dungeon control center";
+  title.style.cssText = "color:#f0c879;font:700 13px/1.2 Georgia,serif;letter-spacing:.1em;text-transform:uppercase";
+  const toolsLabel = document.createElement("div");
+  toolsLabel.textContent = "Panels";
+  toolsLabel.style.cssText = "margin-top:14px;color:#9feaff;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase";
+  const toolsGrid = document.createElement("div");
+  toolsGrid.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px";
+  const panelLaunchers = [
+    { id: "combat", label: "Combat", detail: "Encounters & actions", testid: "breach-v2-open-combat" },
+    { id: "navigation", label: "Navigate", detail: "Rooms, views & QA", testid: "breach-v2-open-navigation" },
+  ] as const;
+  for (const launcher of panelLaunchers) {
+    const control = document.createElement("button");
+    control.type = "button";
+    control.dataset.testid = launcher.testid;
+    control.setAttribute("aria-label", `Open ${launcher.label.toLowerCase()} controls`);
+    control.style.cssText = [
+      "display:grid", "gap:3px", "min-height:56px", "padding:8px 10px", "text-align:left",
+      "border:1px solid rgba(127,232,255,.34)", "border-radius:10px", "background:rgba(12,28,34,.78)",
+      "color:#d9f4f7", "font:700 11px/1.1 ui-monospace,monospace", "cursor:pointer",
+    ].join(";");
+    const name = document.createElement("strong");
+    name.textContent = launcher.label;
+    const detail = document.createElement("small");
+    detail.textContent = launcher.detail;
+    detail.style.cssText = "color:#8fa8aa;font:9px/1.2 ui-monospace,monospace;font-weight:400";
+    control.append(name, detail);
+    control.addEventListener("click", () => {
+      setOpen(false);
+      window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_REQUEST_EVENT, { detail: launcher.id }));
+    });
+    toolsGrid.appendChild(control);
+  }
+  const qualityLabel = document.createElement("div");
+  qualityLabel.style.cssText = "margin-top:14px;color:#9feaff;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase";
+  qualityLabel.textContent = "Graphics quality";
+  const effective = document.createElement("div");
+  effective.style.cssText = "margin-top:5px;color:#b8c3c9;font-size:10px";
+  const qualityGrid = document.createElement("div");
+  qualityGrid.style.cssText = "display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px";
+  const modeButtons = new Map<BreachV2GraphicsMode, HTMLButtonElement>();
+  let mode = initialMode;
+  let effectiveQuality = initialEffectiveQuality;
+  const syncQuality = (): void => {
+    effective.textContent = `Active: ${effectiveQuality.toUpperCase()}${mode === "auto" ? " · Auto" : " · Manual"}`;
+    for (const [candidate, control] of modeButtons) {
+      const active = candidate === mode;
+      control.setAttribute("aria-pressed", String(active));
+      control.style.background = active ? "rgba(145,91,38,.72)" : "rgba(28,34,34,.82)";
+      control.style.borderColor = active ? "#d29a4e" : "rgba(123,132,119,.42)";
+      control.style.color = active ? "#fff1d5" : "#d5ddd8";
+    }
+  };
+  for (const candidate of ["auto", "low", "standard", "high"] as const) {
+    const control = document.createElement("button");
+    control.type = "button";
+    control.textContent = candidate === "standard" ? "Std" : candidate;
+    control.title = `${candidate} graphics quality`;
+    control.style.cssText = [
+      "min-width:0", "min-height:38px", "padding:0 5px", "border:1px solid", "border-radius:9px",
+      "font:700 10px/1 ui-monospace,Consolas,monospace", "text-transform:uppercase", "cursor:pointer",
+    ].join(";");
+    control.addEventListener("click", () => {
+      mode = candidate;
+      onModeChange(candidate);
+      syncQuality();
+    });
+    modeButtons.set(candidate, control);
+    qualityGrid.appendChild(control);
+  }
+  let statsVisible = initialStatsVisible;
+  const statsToggle = document.createElement("button");
+  statsToggle.type = "button";
+  statsToggle.dataset.testid = "breach-v2-stats-toggle";
+  statsToggle.style.cssText = [
+    "display:flex", "align-items:center", "justify-content:space-between", "width:100%", "min-height:42px",
+    "margin-top:14px", "padding:0 11px", "border:1px solid rgba(127,232,255,.34)", "border-radius:10px",
+    "background:rgba(12,28,34,.78)", "color:#d9f4f7", "font:700 11px/1 ui-monospace,monospace", "cursor:pointer",
+  ].join(";");
+  const syncStats = (): void => {
+    statsToggle.textContent = `Performance details  ${statsVisible ? "ON" : "OFF"}`;
+    statsToggle.setAttribute("aria-pressed", String(statsVisible));
+  };
+  statsToggle.addEventListener("click", () => {
+    statsVisible = !statsVisible;
+    onStatsVisibilityChange(statsVisible);
+    syncStats();
+  });
+  panel.append(title, toolsLabel, toolsGrid, qualityLabel, effective, qualityGrid, statsToggle);
+  root.append(trigger, panel);
+  container.appendChild(root);
+  const setOpen = (open: boolean): void => {
+    panel.hidden = !open;
+    trigger.setAttribute("aria-expanded", String(open));
+    trigger.textContent = open ? "Close" : "Settings";
+    if (open) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "settings" }));
+  };
+  trigger.addEventListener("click", () => setOpen(panel.hidden !== false));
+  const closeForOtherPanel = (event: Event): void => {
+    if ((event as CustomEvent<string>).detail !== "settings") setOpen(false);
+  };
+  window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+  syncQuality();
+  syncStats();
+  return {
+    updateEffectiveQuality: (quality) => {
+      effectiveQuality = quality;
+      syncQuality();
+    },
+    destroy: () => {
+      window.removeEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+      root.remove();
+    },
+  };
 }
 
 const DIRECTIONS = [

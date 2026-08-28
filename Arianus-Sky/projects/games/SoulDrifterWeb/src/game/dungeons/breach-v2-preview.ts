@@ -34,11 +34,15 @@ import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
+  type BreachV2GraphicsMode,
+  type BreachV2GraphicsQuality,
   resolveBreachV2CameraStep,
+  resolveBreachV2AutoGraphicsQuality,
   resolveBreachV2PinchDistance,
   resolveBreachV2TouchYaw,
   setupBreachV2MobileLandscapeGate,
   setupBreachV2MobileMovementPad,
+  setupBreachV2SettingsPanel,
 } from "./breach-v2-mobile-controls.ts";
 import {
   createBreachV2RunController,
@@ -1869,6 +1873,7 @@ interface SectionDoorSystem {
   isBlocked(x: number, z: number, radius: number): boolean;
   getCollisionBlockers(): BreachV2PlanarCollider[];
   setAllOpen(open: boolean): void;
+  ensureNearestOpen(x: number, z: number, maxDistance?: number): string | null;
   toggleNearest(x: number, z: number, maxDistance?: number): string | null;
   toggleHit(
     playerX: number,
@@ -2286,6 +2291,15 @@ async function placeSectionDoors(
     isBlocked: (x, z, radius) => isBreachV2PlacementBlocked(getCollisionBlockers(), x, z, radius),
     getCollisionBlockers,
     setAllOpen: (open) => states.forEach((state) => setOpen(state, open)),
+    ensureNearestOpen: (x, z, maxDistance = 4.6) => {
+      const nearest = states
+        .map((state) => ({ state, distance: Math.hypot(state.x - x, state.z - z) }))
+        .filter(({ state, distance }) => state.active && distance <= maxDistance && state.progress < 0.9)
+        .sort((a, b) => a.distance - b.distance)[0]?.state;
+      if (!nearest) return null;
+      if (!nearest.open && authorizeDoor(nearest.id)) setOpen(nearest, true);
+      return nearest.id;
+    },
     toggleNearest: (x, z, maxDistance = 4.2) => {
       const nearest = states
         .map((state) => ({ state, distance: Math.hypot(state.x - x, state.z - z) }))
@@ -3696,10 +3710,14 @@ export function cameraPresets(layout: BreachV2Layout): Record<string, CameraPres
 
 function setupHud(container: HTMLElement): HTMLDivElement {
   const hud = document.createElement("div");
+  hud.dataset.testid = "breach-v2-performance-details";
+  hud.setAttribute("aria-live", "polite");
   hud.style.cssText = [
-    "position:absolute", "left:10px", "bottom:10px", "padding:6px 10px",
-    "background:rgba(10,10,14,0.6)", "color:#e0d8c0", "font:12px/1.5 monospace",
-    "border-radius:6px", "pointer-events:none", "white-space:pre",
+    "position:absolute", "left:12px", "top:calc(max(12px,env(safe-area-inset-top)) + 52px)", "z-index:26",
+    "max-width:min(760px,calc(100vw - 24px))", "padding:7px 10px", "box-sizing:border-box",
+    "background:rgba(7,11,16,.76)", "border:1px solid rgba(127,232,255,.24)", "color:#d8e8e6",
+    "font:10px/1.45 ui-monospace,Consolas,monospace", "border-radius:9px", "pointer-events:none",
+    "white-space:pre-wrap", "box-shadow:0 8px 22px rgba(0,0,0,.34)", "backdrop-filter:blur(7px)",
   ].join(";");
   container.appendChild(hud);
   return hud;
@@ -3753,9 +3771,25 @@ export async function startDungeonPreview(
     },
   });
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarsePointer ? 1 : 1.25));
+  const storedGraphicsMode = window.localStorage.getItem("breach-v2-graphics-mode");
+  let graphicsMode: BreachV2GraphicsMode = storedGraphicsMode === "low"
+    || storedGraphicsMode === "standard"
+    || storedGraphicsMode === "high"
+    || storedGraphicsMode === "auto"
+    ? storedGraphicsMode
+    : "auto";
+  const deviceMemoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? null;
+  const autoGraphicsCeiling = resolveBreachV2AutoGraphicsQuality({
+    coarsePointer,
+    hardwareConcurrency: navigator.hardwareConcurrency || 4,
+    deviceMemoryGb,
+    pixelRatio: window.devicePixelRatio,
+  });
+  let graphicsQuality: BreachV2GraphicsQuality = graphicsMode === "auto"
+    ? autoGraphicsCeiling
+    : graphicsMode;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setSize(container.clientWidth, container.clientHeight);
   if (coarsePointer) renderer.domElement.style.touchAction = "none";
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -3768,8 +3802,17 @@ export async function startDungeonPreview(
   scene.background = new THREE.Color(0x0b0d10);
   scene.fog = new THREE.FogExp2(0x0d0f14, 0.0055);
 
+  const applyGraphicsQuality = (quality: BreachV2GraphicsQuality): void => {
+    graphicsQuality = quality;
+    const pixelRatioCap = quality === "low" ? 0.8 : quality === "standard" ? 1 : 1.35;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+    renderer.shadowMap.enabled = quality !== "low";
+    renderer.shadowMap.needsUpdate = true;
+  };
+  applyGraphicsQuality(graphicsQuality);
+
   const camera = new THREE.PerspectiveCamera(
-    50, container.clientWidth / container.clientHeight, 0.2, 400,
+    46, container.clientWidth / container.clientHeight, 0.2, 400,
   );
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -3889,7 +3932,8 @@ export async function startDungeonPreview(
       ? Math.min(...localCaps.map((collider) => collider.minY))
       : null;
   };
-  const updateCeilingState = (desiredCameraY: number, targetX: number, targetZ: number): void => {
+  const updateCeilingState = (desiredCameraY: number, targetX: number, targetZ: number): boolean => {
+    const previous = ceilingsVisible;
     ceilingsVisible = resolveBreachV2CeilingVisibility(
       ceilingsVisible,
       ceilingCameraMode,
@@ -3897,11 +3941,16 @@ export async function startDungeonPreview(
       localCeilingYAt(targetX, targetZ),
     );
     syncCeilingRenderState();
+    return previous !== ceilingsVisible;
   };
   const getRuntimeCollisionBlockers = (): BreachV2PlanarCollider[] => [
     ...filterBreachV2RemovedColliders(staticCollisionBlockers, removedEnvironmentColliderIds),
     ...getBreachV2VisibleCameraColliders(cameraOnlyColliders, ceilingsVisible),
     ...sectionDoors.getCollisionBlockers(),
+  ];
+  const getNavigationCollisionBlockers = (): BreachV2PlanarCollider[] => [
+    ...filterBreachV2RemovedColliders(staticCollisionBlockers, removedEnvironmentColliderIds),
+    ...getBreachV2VisibleCameraColliders(cameraOnlyColliders, ceilingsVisible),
   ];
   let runtimeCollisionBlockers = getRuntimeCollisionBlockers();
   // The generator's 1.75 m cells prove whole-zone reachability, but they are
@@ -3909,15 +3958,23 @@ export async function startDungeonPreview(
   // nav cell while retaining the exact same floor, blocker, and door predicate
   // used by WASD movement.
   const PATH_CELL = NAV / 2;
-  const canProfileStandAt = (radius: number, x: number, z: number): boolean => {
+  const canProfileStandAtWith = (
+    blockers: readonly BreachV2PlanarCollider[],
+    radius: number,
+    x: number,
+    z: number,
+  ): boolean => {
     const r = Math.max(0, radius);
-    if (isBreachV2PlacementBlocked(runtimeCollisionBlockers, x, z, r)) return false;
+    if (isBreachV2PlacementBlocked(blockers, x, z, r)) return false;
     for (const [ox, oz] of [[r, r], [r, -r], [-r, r], [-r, -r]] as const) {
       if (!hasDungeonFloorAt(layout, x + ox, z + oz)) return false;
       if (!walkable.has(`${Math.floor((x + ox) / NAV)},${Math.floor((z + oz) / NAV)}`)) return false;
     }
     return true;
   };
+  const canProfileStandAt = (radius: number, x: number, z: number): boolean => (
+    canProfileStandAtWith(runtimeCollisionBlockers, radius, x, z)
+  );
   const isWalkable = (x: number, z: number): boolean => canProfileStandAt(0.35, x, z);
   const requestedStart = new URL(window.location.href).searchParams.get("start");
   const requestedRoom = requestedStart
@@ -3997,8 +4054,8 @@ export async function startDungeonPreview(
     ),
   });
   let camYaw = isometricMode ? Math.PI / 4 : 0.08;
-  let camPitch = isometricMode ? 0.76 : 0.24;
-  let camDist = firstPersonMode ? 0 : isometricMode ? 14.5 : 4.4;
+  let camPitch = isometricMode ? 0.93 : 0.24;
+  let camDist = firstPersonMode ? 0 : isometricMode ? 18.5 : 4.4;
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
@@ -4084,12 +4141,22 @@ export async function startDungeonPreview(
         .find((intersection) => intersection.object.name === "shell-floors")?.point.clone() ?? null;
     };
     const setClickDestination = (point: THREE.Vector3): void => {
+      const targetRoom = layout.rooms.find((room) => (
+        point.x >= room.x && point.x <= room.x + room.w
+        && point.z >= room.z && point.z <= room.z + room.h
+      ));
+      const targetFogState = targetRoom ? fogOfWar.snapshot().roomStates[targetRoom.id] : null;
+      if (targetFogState === "hidden") {
+        clickPath.length = 0;
+        return;
+      }
       const [targetX, targetZ] = nearestWalkable(point.x, point.z);
+      const navigationBlockers = getNavigationCollisionBlockers();
       const path = findBreachV2AdaptiveRuntimePath(
         { x: playerPos.x, z: playerPos.z },
         { x: targetX, z: targetZ },
         PATH_CELL,
-        isWalkable,
+        (x, z) => canProfileStandAtWith(navigationBlockers, 0.35, x, z),
       );
       clickPath.splice(0, clickPath.length, ...path.map((point) => (
         new THREE.Vector3(
@@ -4233,6 +4300,31 @@ export async function startDungeonPreview(
   }
 
   const hud = setupHud(container);
+  let statsVisible = window.localStorage.getItem("breach-v2-performance-details") === "1";
+  hud.hidden = !statsVisible;
+  const settingsPanel = setupBreachV2SettingsPanel({
+    container,
+    initialMode: graphicsMode,
+    initialEffectiveQuality: graphicsQuality,
+    initialStatsVisible: statsVisible,
+    onModeChange: (mode) => {
+      graphicsMode = mode;
+      window.localStorage.setItem("breach-v2-graphics-mode", mode);
+      applyGraphicsQuality(mode === "auto" ? autoGraphicsCeiling : mode);
+      settingsPanel.updateEffectiveQuality(graphicsQuality);
+    },
+    onStatsVisibilityChange: (visible) => {
+      statsVisible = visible;
+      hud.hidden = !visible;
+      window.localStorage.setItem("breach-v2-performance-details", visible ? "1" : "0");
+    },
+  });
+  loading.textContent = "Warming dungeon materials and effects…";
+  try {
+    await renderer.compileAsync(scene, camera);
+  } catch (error) {
+    console.warn("BREACH-V2 shader warm-up was unavailable; continuing with lazy compilation", error);
+  }
   loading.remove();
 
   const hooks = window as unknown as PreviewHooks;
@@ -4380,6 +4472,17 @@ export async function startDungeonPreview(
   let fpsAccum = 0;
   let fpsFrames = 0;
   let fpsText = "…";
+  let sampledFps = 0;
+  let worstHitchMs = 0;
+  let autoSampleSeconds = 0;
+  let autoSampleFrames = 0;
+  let autoStableSamples = 0;
+  let refreshHud = true;
+  const graphicsOrder: readonly BreachV2GraphicsQuality[] = ["low", "standard", "high"];
+  const debugRendererInfo = renderer.getContext().getExtension("WEBGL_debug_renderer_info");
+  const gpuName = debugRendererInfo
+    ? String(renderer.getContext().getParameter(debugRendererInfo.UNMASKED_RENDERER_WEBGL))
+    : "WebGL renderer";
   const tickables = [...propPlacement.tickables, ...sectionDoors.tickables, ...landmarkTickables];
   const detailCullables: THREE.Object3D[] = [
     ...propPlacement.cullables,
@@ -4404,7 +4507,8 @@ export async function startDungeonPreview(
     }
     if (walkMode) cullOrigin.copy(playerPos);
     else cullOrigin.set(controls.target.x, 0, controls.target.z);
-    const radius = isometricMode ? 44 : 38;
+    const qualityRadius = graphicsQuality === "low" ? 30 : graphicsQuality === "standard" ? 38 : 46;
+    const radius = isometricMode ? qualityRadius : Math.min(qualityRadius, 38);
     const radiusSq = radius * radius;
     detailCullables.forEach((object) => {
       object.getWorldPosition(cullObjectPosition);
@@ -4417,23 +4521,58 @@ export async function startDungeonPreview(
   };
   updateDetailVisibility();
   let cullFrames = 0;
-  const targetFrameMs = 1000 / (coarsePointer ? 30 : 45);
-  let lastFrameMs = -targetFrameMs;
+  let lastFrameMs = -1000 / 30;
 
   renderer.setAnimationLoop((frameMs) => {
+    const targetFps = graphicsQuality === "low" ? 30 : graphicsQuality === "standard" ? 45 : 60;
+    const targetFrameMs = 1000 / targetFps;
     if (frameMs - lastFrameMs < targetFrameMs) return;
     lastFrameMs = frameMs;
     try {
       timer.update(frameMs);
       const delta = timer.getDelta();
       const elapsed = timer.getElapsed();
+      const frameDurationMs = delta * 1000;
       fpsAccum += delta;
       fpsFrames += 1;
+      autoSampleSeconds += delta;
+      autoSampleFrames += 1;
+      worstHitchMs = Math.max(worstHitchMs, frameDurationMs);
       if (fpsAccum >= 0.5) {
-        const fps = fpsFrames / fpsAccum;
-        fpsText = `${fps.toFixed(0)} fps · ${(1000 / fps).toFixed(1)} ms`;
+        sampledFps = fpsFrames / fpsAccum;
+        fpsText = `${sampledFps.toFixed(0)} fps · ${(1000 / sampledFps).toFixed(1)} ms`;
         fpsAccum = 0;
         fpsFrames = 0;
+        refreshHud = true;
+      }
+      if (autoSampleSeconds >= 2) {
+        const measuredFps = autoSampleFrames / autoSampleSeconds;
+        if (graphicsMode === "auto") {
+          const currentIndex = graphicsOrder.indexOf(graphicsQuality);
+          const ceilingIndex = graphicsOrder.indexOf(autoGraphicsCeiling);
+          const slow = measuredFps < targetFps * 0.82 || worstHitchMs >= 80;
+          const stable = measuredFps >= targetFps * 0.94 && worstHitchMs < 48;
+          if (slow && currentIndex > 0) {
+            applyGraphicsQuality(graphicsOrder[currentIndex - 1]!);
+            settingsPanel.updateEffectiveQuality(graphicsQuality);
+            autoStableSamples = 0;
+            updateDetailVisibility();
+          } else if (stable && currentIndex < ceilingIndex) {
+            autoStableSamples += 1;
+            if (autoStableSamples >= 5) {
+              applyGraphicsQuality(graphicsOrder[currentIndex + 1]!);
+              settingsPanel.updateEffectiveQuality(graphicsQuality);
+              autoStableSamples = 0;
+              updateDetailVisibility();
+            }
+          } else {
+            autoStableSamples = 0;
+          }
+        }
+        autoSampleSeconds = 0;
+        autoSampleFrames = 0;
+        worstHitchMs = frameDurationMs;
+        refreshHud = true;
       }
       for (const tick of tickables) tick(elapsed);
       if (debrisCleanupDeadlineMs > 0 && frameMs >= debrisCleanupDeadlineMs) {
@@ -4487,20 +4626,23 @@ export async function startDungeonPreview(
           const dx = target.x - playerPos.x;
           const dz = target.z - playerPos.z;
           const distance = Math.hypot(dx, dz);
-          const nextX = distance <= step ? target.x : playerPos.x + (dx / distance) * step;
-          const nextZ = distance <= step ? target.z : playerPos.z + (dz / distance) * step;
-          const sweep = sweepBreachV2Movement(
-            { x: playerPos.x, z: playerPos.z },
-            { x: nextX, z: nextZ },
-            isWalkable,
-          );
-          if (sweep.completed) {
-            setPlayerPosition(sweep.resolvedEnd.x, sweep.resolvedEnd.z);
-            if (distance <= step) clickPath.shift();
-          } else {
-            // Door state may have changed after the path was planned. Never let
-            // click movement coast through a newly closed portal.
-            clickPath.length = 0;
+          const openingDoor = sectionDoors.ensureNearestOpen(playerPos.x, playerPos.z);
+          if (!openingDoor) {
+            const nextX = distance <= step ? target.x : playerPos.x + (dx / distance) * step;
+            const nextZ = distance <= step ? target.z : playerPos.z + (dz / distance) * step;
+            const sweep = sweepBreachV2Movement(
+              { x: playerPos.x, z: playerPos.z },
+              { x: nextX, z: nextZ },
+              isWalkable,
+            );
+            if (sweep.completed) {
+              setPlayerPosition(sweep.resolvedEnd.x, sweep.resolvedEnd.z);
+              if (distance <= step) clickPath.shift();
+            } else {
+              // Static geometry changed after path planning; abandon this
+              // destination rather than coast through a new blocker.
+              clickPath.length = 0;
+            }
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
@@ -4522,9 +4664,10 @@ export async function startDungeonPreview(
           );
           cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
           clampDesiredCameraAboveFloor(desiredCamera, playerPos.y);
-          updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z);
-          runtimeCollisionBlockers = getRuntimeCollisionBlockers();
-          hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+          if (updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z)) {
+            runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+            hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+          }
           const resolvedCameraDistance = resolveCameraAgainstScene(cameraTarget, desiredCamera);
           if (playerPlaceholderMaterial) {
             const targetOpacity = isometricMode
@@ -4552,9 +4695,10 @@ export async function startDungeonPreview(
           cameraTarget.z,
         ) ?? cameraTarget.y;
         clampDesiredCameraAboveFloor(desiredCamera, targetFloor);
-        updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z);
-        runtimeCollisionBlockers = getRuntimeCollisionBlockers();
-        hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+        if (updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z)) {
+          runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+          hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+        }
         resolveCameraAgainstScene(cameraTarget, desiredCamera);
       }
       const currentRoom = layout.rooms.find((room) => (
@@ -4568,13 +4712,7 @@ export async function startDungeonPreview(
       gameplay.tick(delta * 1000);
       gameplayUi.update();
       cullFrames += 1;
-      if (cullFrames % 8 === 0) updateDetailVisibility();
-      if (cullFrames % 30 === 0) {
-        hooks.__dungeonSpatialContractAudit = auditBreachV2SpatialContracts(
-          scene,
-          runtimeCollisionBlockers,
-        );
-      }
+      if (cullFrames % 20 === 0) updateDetailVisibility();
       renderer.render(scene, camera);
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {
@@ -4583,12 +4721,18 @@ export async function startDungeonPreview(
         geometries: renderer.info.memory.geometries,
         textures: renderer.info.memory.textures,
       };
-      hud.textContent =
-        `breach-v2 preview  seed ${options.seed}  path ${options.path}  ${progressionGatesEnabled ? "CAMPAIGN GATES" : "TEST UNLOCKED"}  ${walkMode ? `${firstPersonMode ? "FIRST PERSON" : isometricMode ? "ISOMETRIC" : "THIRD PERSON"} — click floor or WASD move · F/tap door · drag camera · wheel zoom · Q/E rotate · shift sprint` : `cam ${options.cam}`}  ${fpsText}\n` +
-        `chambers ${layout.meta.chamberCount} (${layout.rooms.filter((r) => !r.fixed).map((r) => ("poolRoomId" in r ? r.poolRoomId : r.id)).join(", ")})  ` +
-        `boss ${layout.boss.pattern}${walkMode ? `  ·  at (${playerPos.x.toFixed(1)}, ${playerPos.y.toFixed(1)}↑, ${playerPos.z.toFixed(1)})` : ""}\n` +
-        `calls ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +
-        `textures ${hooks.__dungeonStats.textures}`;
+      if (statsVisible && refreshHud) {
+        let visibleLights = 0;
+        scene.traverse((object) => {
+          if (object instanceof THREE.Light && object.visible) visibleLights += 1;
+        });
+        hud.textContent =
+          `${graphicsMode.toUpperCase()} → ${graphicsQuality.toUpperCase()} · ${fpsText} · worst hitch ${worstHitchMs.toFixed(1)} ms\n` +
+          `draw ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +
+          `geo ${hooks.__dungeonStats.geometries} · tex ${hooks.__dungeonStats.textures} · lights ${visibleLights}\n` +
+          `GPU ${gpuName}`;
+        refreshHud = false;
+      }
     } catch (error) {
       hooks.__dungeonLoopError = error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error);
       console.error("dungeon preview loop error", error);

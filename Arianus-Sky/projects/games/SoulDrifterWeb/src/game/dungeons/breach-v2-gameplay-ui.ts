@@ -1,5 +1,9 @@
 import type { BreachV2Layout } from "./breach-v2-layout.ts";
 import type { BreachV2RunController } from "./breach-v2-gameplay";
+import {
+  BREACH_V2_PANEL_EVENT,
+  BREACH_V2_PANEL_REQUEST_EVENT,
+} from "./breach-v2-mobile-controls.ts";
 
 interface Position2D { x: number; z: number }
 
@@ -60,9 +64,10 @@ export function setupBreachV2GameplayUi(options: {
     isLineOfSightBlocked = () => false,
   } = options;
   const panel = document.createElement("section");
+  panel.dataset.testid = "breach-v2-gameplay-panel";
   panel.setAttribute("aria-label", "First Breach run controls");
   panel.style.cssText = [
-    "position:absolute", "left:10px", "top:10px", "z-index:8", "width:min(380px,calc(100vw - 20px))",
+    "position:absolute", "left:12px", "top:max(12px,env(safe-area-inset-top))", "z-index:68", "width:min(380px,calc(100vw - 24px))",
     "box-sizing:border-box", "padding:10px", "border:1px solid rgba(127,232,255,.35)",
     "border-radius:8px", "background:rgba(7,11,16,.86)", "backdrop-filter:blur(6px)",
     "color:#eee7d4", "font:12px/1.4 monospace", "box-shadow:0 8px 28px rgba(0,0,0,.38)",
@@ -120,42 +125,25 @@ export function setupBreachV2GameplayUi(options: {
   panel.append(headingRow, body);
   container.appendChild(panel);
 
-  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-  const compactViewport = shouldCollapseBreachV2GameplayUi(viewportWidth)
-    || window.matchMedia("(pointer: coarse)").matches;
-  let expanded = !compactViewport;
+  let expanded = false;
   const updateExpandedState = (): void => {
+    panel.hidden = !expanded;
     body.hidden = !expanded;
-    collapseButton.textContent = compactViewport ? (expanded ? "Close" : "Combat") : (expanded ? "Hide" : "Show");
+    collapseButton.textContent = "Close";
     collapseButton.title = expanded ? "Collapse First Breach controls" : "Expand First Breach controls";
     collapseButton.setAttribute("aria-expanded", String(expanded));
-    heading.hidden = compactViewport && !expanded;
-    if (compactViewport && !expanded) {
-      panel.style.width = "auto";
-      panel.style.padding = "0";
-      panel.style.border = "0";
-      panel.style.background = "transparent";
-      panel.style.boxShadow = "none";
-      panel.style.backdropFilter = "none";
-      panel.style.overflow = "visible";
-      collapseButton.style.borderRadius = "999px";
-      collapseButton.style.padding = "10px 16px";
-      collapseButton.style.minHeight = "42px";
-      collapseButton.style.background = "rgba(7,11,16,.82)";
-      collapseButton.style.boxShadow = "0 8px 24px rgba(0,0,0,.42)";
-      collapseButton.style.backdropFilter = "blur(9px)";
-      return;
-    }
-    panel.style.width = "min(380px,calc(100vw - 20px))";
+    heading.hidden = !expanded;
+    if (!expanded) return;
+    panel.style.width = "min(380px,calc(100vw - 24px))";
     panel.style.padding = "10px";
     panel.style.border = "1px solid rgba(127,232,255,.35)";
     panel.style.background = "rgba(7,11,16,.86)";
     panel.style.boxShadow = "0 8px 28px rgba(0,0,0,.38)";
     panel.style.backdropFilter = "blur(6px)";
     panel.style.overflow = "auto";
-    collapseButton.style.borderRadius = compactViewport ? "999px" : "4px";
-    collapseButton.style.padding = compactViewport ? "8px 13px" : "7px 10px";
-    collapseButton.style.minHeight = compactViewport ? "38px" : "36px";
+    collapseButton.style.borderRadius = "999px";
+    collapseButton.style.padding = "8px 13px";
+    collapseButton.style.minHeight = "38px";
     collapseButton.style.background = "rgba(14,31,38,.94)";
     collapseButton.style.boxShadow = "none";
     collapseButton.style.backdropFilter = "none";
@@ -163,7 +151,21 @@ export function setupBreachV2GameplayUi(options: {
   collapseButton.addEventListener("click", () => {
     expanded = !expanded;
     updateExpandedState();
+    if (expanded) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
   });
+  const closeForOtherPanel = (event: Event): void => {
+    if ((event as CustomEvent<string>).detail === "combat" || !expanded) return;
+    expanded = false;
+    updateExpandedState();
+  };
+  const openFromControlCenter = (event: Event): void => {
+    if ((event as CustomEvent<string>).detail !== "combat") return;
+    expanded = true;
+    updateExpandedState();
+    window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
+  };
+  window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
   updateExpandedState();
 
   const targets: InteractionTarget[] = [
@@ -264,5 +266,14 @@ export function setupBreachV2GameplayUi(options: {
     }
   };
   update();
-  return { update, interactNearest, damageNearest, destroy: () => panel.remove() };
+  return {
+    update,
+    interactNearest,
+    damageNearest,
+    destroy: () => {
+      window.removeEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+      window.removeEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
+      panel.remove();
+    },
+  };
 }
