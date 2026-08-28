@@ -4465,6 +4465,7 @@ export async function startDungeonPreview(
     container,
     keys,
     enabled: coarsePointer && walkMode,
+    cameraZoomEnabled: !firstPersonMode,
     adjustCameraDistance: (delta) => {
       if (firstPersonMode) return;
       const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;

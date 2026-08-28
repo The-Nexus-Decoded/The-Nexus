@@ -4,6 +4,23 @@ export const BREACH_V2_MOBILE_ZOOM_STEP = 3.5;
 export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
 export const BREACH_V2_PANEL_EVENT = "breach-v2-panel-opened";
 export const BREACH_V2_PANEL_REQUEST_EVENT = "breach-v2-panel-requested";
+export type BreachV2PanelId = "combat" | "navigation" | "settings";
+export interface BreachV2PanelRequestDetail {
+  panel: Exclude<BreachV2PanelId, "settings">;
+  origin: HTMLElement;
+}
+
+export function breachV2PanelId(event: Event): BreachV2PanelId | null {
+  const detail = (event as CustomEvent<unknown>).detail;
+  if (typeof detail === "string") {
+    return detail === "combat" || detail === "navigation" || detail === "settings" ? detail : null;
+  }
+  if (typeof detail === "object" && detail !== null && "panel" in detail) {
+    const panel = (detail as { panel?: unknown }).panel;
+    return panel === "combat" || panel === "navigation" || panel === "settings" ? panel : null;
+  }
+  return null;
+}
 
 export type BreachV2GraphicsMode = "auto" | "low" | "standard" | "high";
 export type BreachV2GraphicsQuality = Exclude<BreachV2GraphicsMode, "auto">;
@@ -161,8 +178,9 @@ export function setupBreachV2SettingsPanel(options: {
     detail.style.cssText = "color:#8fa8aa;font:9px/1.2 ui-monospace,monospace;font-weight:400";
     control.append(name, detail);
     control.addEventListener("click", () => {
-      setOpen(false);
-      window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_REQUEST_EVENT, { detail: launcher.id }));
+      setOpen(false, false);
+      const detail: BreachV2PanelRequestDetail = { panel: launcher.id, origin: trigger };
+      window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_REQUEST_EVENT, { detail }));
     });
     toolsGrid.appendChild(control);
   }
@@ -237,17 +255,24 @@ export function setupBreachV2SettingsPanel(options: {
   }
   root.append(trigger, panel);
   container.appendChild(root);
-  const setOpen = (open: boolean): void => {
+  const setOpen = (open: boolean, restoreFocus = true): void => {
     panel.hidden = !open;
     trigger.setAttribute("aria-expanded", String(open));
     trigger.textContent = open ? "Close" : "Settings";
     if (open) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "settings" }));
+    else if (restoreFocus && panel.contains(document.activeElement)) trigger.focus();
   };
   trigger.addEventListener("click", () => setOpen(panel.hidden !== false));
   const closeForOtherPanel = (event: Event): void => {
-    if ((event as CustomEvent<string>).detail !== "settings") setOpen(false);
+    if (breachV2PanelId(event) !== "settings") setOpen(false, false);
+  };
+  const closeOnEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || panel.hidden) return;
+    event.preventDefault();
+    setOpen(false);
   };
   window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+  window.addEventListener("keydown", closeOnEscape);
   syncQuality();
   syncStats();
   return {
@@ -257,6 +282,7 @@ export function setupBreachV2SettingsPanel(options: {
     },
     destroy: () => {
       window.removeEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+      window.removeEventListener("keydown", closeOnEscape);
       root.remove();
     },
   };
@@ -273,9 +299,16 @@ export function setupBreachV2MobileMovementPad(options: {
   container: HTMLElement;
   keys: Set<string>;
   enabled: boolean;
+  cameraZoomEnabled?: boolean;
   adjustCameraDistance: (delta: number) => void;
 }): MobileMovementPad {
-  const { container, keys, enabled, adjustCameraDistance } = options;
+  const {
+    container,
+    keys,
+    enabled,
+    cameraZoomEnabled = true,
+    adjustCameraDistance,
+  } = options;
   if (!enabled) return { destroy: () => undefined };
 
   const root = document.createElement("div");
@@ -308,7 +341,7 @@ export function setupBreachV2MobileMovementPad(options: {
     { label: "Zoom camera in", glyph: "+", delta: -BREACH_V2_MOBILE_ZOOM_STEP, testid: "breach-v2-zoom-in" },
     { label: "Zoom camera out", glyph: "−", delta: BREACH_V2_MOBILE_ZOOM_STEP, testid: "breach-v2-zoom-out" },
   ] as const;
-  for (const zoom of zoomControls) {
+  for (const zoom of cameraZoomEnabled ? zoomControls : []) {
     const control = document.createElement("button");
     control.type = "button";
     control.dataset.testid = zoom.testid;
@@ -320,17 +353,14 @@ export function setupBreachV2MobileMovementPad(options: {
       "color:#f0c879", "box-shadow:0 6px 18px rgba(0,0,0,.34)", "backdrop-filter:blur(7px)",
       "font:700 22px/1 Georgia,serif", "cursor:pointer",
     ].join(";");
-    control.addEventListener("pointerdown", (event) => {
+    control.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       adjustCameraDistance(zoom.delta);
-      control.style.transform = "scale(.92)";
     });
-    const release = (): void => { control.style.transform = "scale(1)"; };
-    control.addEventListener("pointerup", release);
-    control.addEventListener("pointercancel", release);
     zoomRail.appendChild(control);
   }
+  const switchReleaseTimers = new Set<number>();
   for (const direction of DIRECTIONS) {
     const control = document.createElement("button");
     control.type = "button";
@@ -344,6 +374,12 @@ export function setupBreachV2MobileMovementPad(options: {
       "color:#c9f7ff", "box-shadow:0 6px 18px rgba(0,0,0,.32)",
       "font:700 18px/1 ui-monospace,monospace", "backdrop-filter:blur(7px)",
     ].join(";");
+    let suppressNextClick = false;
+    const press = (): void => {
+      keys.add(direction.code);
+      control.style.background = "rgba(28,91,108,.92)";
+      control.style.transform = "scale(.94)";
+    };
     const release = (): void => {
       keys.delete(direction.code);
       control.style.background = "rgba(7,11,16,.72)";
@@ -353,19 +389,47 @@ export function setupBreachV2MobileMovementPad(options: {
       event.preventDefault();
       event.stopPropagation();
       control.setPointerCapture(event.pointerId);
-      keys.add(direction.code);
-      control.style.background = "rgba(28,91,108,.92)";
-      control.style.transform = "scale(.94)";
+      suppressNextClick = true;
+      press();
     });
     control.addEventListener("pointerup", release);
     control.addEventListener("pointercancel", release);
     control.addEventListener("lostpointercapture", release);
+    control.addEventListener("keydown", (event) => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      suppressNextClick = true;
+      press();
+    });
+    control.addEventListener("keyup", (event) => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      release();
+    });
+    control.addEventListener("blur", release);
+    control.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      press();
+      const timer = window.setTimeout(() => {
+        switchReleaseTimers.delete(timer);
+        release();
+      }, 120);
+      switchReleaseTimers.add(timer);
+    });
     root.appendChild(control);
   }
 
-  container.append(root, zoomRail);
+  container.append(root);
+  if (cameraZoomEnabled) container.append(zoomRail);
   return {
     destroy: () => {
+      for (const timer of switchReleaseTimers) window.clearTimeout(timer);
+      switchReleaseTimers.clear();
       for (const direction of DIRECTIONS) keys.delete(direction.code);
       root.remove();
       zoomRail.remove();

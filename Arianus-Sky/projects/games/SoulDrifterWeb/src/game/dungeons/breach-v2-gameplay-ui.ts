@@ -3,6 +3,8 @@ import type { BreachV2RunController } from "./breach-v2-gameplay";
 import {
   BREACH_V2_PANEL_EVENT,
   BREACH_V2_PANEL_REQUEST_EVENT,
+  breachV2PanelId,
+  type BreachV2PanelRequestDetail,
 } from "./breach-v2-mobile-controls.ts";
 
 interface Position2D { x: number; z: number }
@@ -97,7 +99,13 @@ export function setupBreachV2GameplayUi(options: {
   const styleSelect = document.createElement("select");
   styleSelect.setAttribute("aria-label", "Combat style");
   styleSelect.style.cssText = "border:1px solid rgba(154,216,232,.42);border-radius:4px;padding:5px;background:#0e1f26;color:#d9f4f7;font:11px monospace";
-  styleSelect.append(new Option("Real-time", "real-time"), new Option("Turn-based", "turn-based"));
+  const realtimeOption = document.createElement("option");
+  realtimeOption.value = "real-time";
+  realtimeOption.textContent = "Real-time";
+  const turnBasedOption = document.createElement("option");
+  turnBasedOption.value = "turn-based";
+  turnBasedOption.textContent = "Turn-based";
+  styleSelect.append(realtimeOption, turnBasedOption);
   styleSelect.addEventListener("change", () => controller.setCombatStyle(styleSelect.value as "real-time" | "turn-based"));
   const attack = button("1 Attack", "Attack the active encounter");
   const guard = button("2 Guard", "Guard against the next hostile strike");
@@ -125,7 +133,10 @@ export function setupBreachV2GameplayUi(options: {
   panel.append(headingRow, body);
   container.appendChild(panel);
 
-  let expanded = false;
+  let collapsedViewport = shouldCollapseBreachV2GameplayUi(window.innerWidth);
+  let expanded = !collapsedViewport;
+  let userChoseExpansion = false;
+  let restoreFocus: HTMLElement | null = null;
   const updateExpandedState = (): void => {
     panel.hidden = !expanded;
     body.hidden = !expanded;
@@ -149,23 +160,52 @@ export function setupBreachV2GameplayUi(options: {
     collapseButton.style.backdropFilter = "none";
   };
   collapseButton.addEventListener("click", () => {
+    userChoseExpansion = true;
     expanded = !expanded;
     updateExpandedState();
-    if (expanded) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
+    if (expanded) {
+      window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
+    } else {
+      const settings = container.querySelector<HTMLButtonElement>("[data-testid='breach-v2-settings-toggle']");
+      settings?.focus();
+    }
   });
   const closeForOtherPanel = (event: Event): void => {
-    if ((event as CustomEvent<string>).detail === "combat" || !expanded) return;
+    if (breachV2PanelId(event) === "combat" || !expanded) return;
     expanded = false;
     updateExpandedState();
   };
   const openFromControlCenter = (event: Event): void => {
-    if ((event as CustomEvent<string>).detail !== "combat") return;
+    if (breachV2PanelId(event) !== "combat") return;
+    const detail = (event as CustomEvent<BreachV2PanelRequestDetail>).detail;
+    restoreFocus = typeof detail === "object" ? detail.origin : null;
+    userChoseExpansion = true;
     expanded = true;
     updateExpandedState();
     window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
+    collapseButton.focus();
+  };
+  const closeOnEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || !expanded) return;
+    event.preventDefault();
+    expanded = false;
+    userChoseExpansion = true;
+    updateExpandedState();
+    if (restoreFocus?.isConnected) restoreFocus.focus();
+    restoreFocus = null;
+  };
+  const syncViewportPolicy = (): void => {
+    const nextCollapsedViewport = shouldCollapseBreachV2GameplayUi(window.innerWidth);
+    if (nextCollapsedViewport === collapsedViewport) return;
+    collapsedViewport = nextCollapsedViewport;
+    if (userChoseExpansion) return;
+    expanded = !collapsedViewport;
+    updateExpandedState();
   };
   window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
   window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
+  window.addEventListener("keydown", closeOnEscape);
+  window.addEventListener("resize", syncViewportPolicy);
   updateExpandedState();
 
   const targets: InteractionTarget[] = [
@@ -273,6 +313,8 @@ export function setupBreachV2GameplayUi(options: {
     destroy: () => {
       window.removeEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
       window.removeEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", syncViewportPolicy);
       panel.remove();
     },
   };

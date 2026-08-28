@@ -2,6 +2,8 @@ import type { BreachV2Layout } from "./breach-v2-layout.ts";
 import {
   BREACH_V2_PANEL_EVENT,
   BREACH_V2_PANEL_REQUEST_EVENT,
+  breachV2PanelId,
+  type BreachV2PanelRequestDetail,
 } from "./breach-v2-mobile-controls.ts";
 
 interface BreachV2DevPanelOptions {
@@ -14,6 +16,10 @@ interface BreachV2DevPanelOptions {
   setAllDoorsOpen: (open: boolean) => void;
   persistSpatialState: () => void;
   clearSpatialState: () => void;
+}
+
+export interface BreachV2DevPanel {
+  destroy: () => void;
 }
 
 const CAMERA_MODES = [
@@ -69,7 +75,7 @@ function replacePreviewParams(
   window.location.assign(url);
 }
 
-export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
+export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): BreachV2DevPanel {
   const compactViewport = window.innerWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
   const panel = document.createElement("aside");
   panel.dataset.testid = "breach-v2-dev-panel";
@@ -104,6 +110,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   const initiallyOpen = new URL(window.location.href).searchParams.get("dev") === "1";
   let open = initiallyOpen;
+  let restoreFocus: HTMLElement | null = null;
   const syncOpen = (): void => {
     panel.hidden = !open;
     body.hidden = !open;
@@ -138,20 +145,35 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     if (open) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
   };
   header.addEventListener("click", toggle);
-  window.addEventListener("keydown", (event) => {
+  const toggleFromKeyboard = (event: KeyboardEvent): void => {
     if ((event.key === "`" || event.key === "~") && !(event.target instanceof HTMLInputElement)) toggle();
-  });
-  window.addEventListener(BREACH_V2_PANEL_EVENT, (event) => {
-    if ((event as CustomEvent<string>).detail === "navigation" || !open) return;
+  };
+  window.addEventListener("keydown", toggleFromKeyboard);
+  const closeForOtherPanel = (event: Event): void => {
+    if (breachV2PanelId(event) === "navigation" || !open) return;
     open = false;
     syncOpen();
-  });
-  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, (event) => {
-    if ((event as CustomEvent<string>).detail !== "navigation") return;
+  };
+  const openFromControlCenter = (event: Event): void => {
+    if (breachV2PanelId(event) !== "navigation") return;
+    const detail = (event as CustomEvent<BreachV2PanelRequestDetail>).detail;
+    restoreFocus = typeof detail === "object" ? detail.origin : null;
     open = true;
     syncOpen();
     window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
-  });
+    header.focus();
+  };
+  const closeOnEscape = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || !open) return;
+    event.preventDefault();
+    open = false;
+    syncOpen();
+    if (restoreFocus?.isConnected) restoreFocus.focus();
+    restoreFocus = null;
+  };
+  window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
+  window.addEventListener("keydown", closeOnEscape);
 
   const section = (label: string): HTMLDivElement => {
     const heading = document.createElement("div");
@@ -239,4 +261,13 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   options.container.appendChild(panel);
   syncOpen();
+  return {
+    destroy: () => {
+      window.removeEventListener("keydown", toggleFromKeyboard);
+      window.removeEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
+      window.removeEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);
+      window.removeEventListener("keydown", closeOnEscape);
+      panel.remove();
+    },
+  };
 }
