@@ -11,11 +11,14 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { buildBreachV2Layout } from "../../src/game/dungeons/breach-v2-layout.ts";
 import { DUNGEON_PROP_ASSETS } from "../../src/game/environment/DungeonPropCatalog.ts";
 
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const GAME_ROOT = resolve(SCRIPT_DIR, "../..");
 const [seedRaw, pathId, outRaw] = process.argv.slice(2);
 const seed = Number(seedRaw);
 if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) {
@@ -25,7 +28,11 @@ if (pathId !== "wayfarer" && pathId !== "oathbreaker") {
   throw new Error(`Path must be wayfarer|oathbreaker; received ${pathId}.`);
 }
 if (!outRaw) throw new Error("Missing output path.");
-const outPath = resolve(outRaw);
+const outPath = resolve(GAME_ROOT, outRaw);
+const relativeOutPath = relative(GAME_ROOT, outPath);
+if (relativeOutPath.startsWith("..") || relativeOutPath === "") {
+  throw new Error("Output must be a file inside the SoulDrifterWeb project root.");
+}
 
 const SOURCE_ROOTS = [
   "docs/3d-ai-studio/source-models/environment/dungeon-kit",
@@ -36,8 +43,8 @@ function sourceGlb(spec) {
   const filename = spec?.sourceUrl ? spec.sourceUrl.split("/").pop() : null;
   if (!filename) return null;
   for (const root of SOURCE_ROOTS) {
-    const candidate = `${root}/${filename}`;
-    if (existsSync(candidate)) return candidate;
+    const candidate = resolve(GAME_ROOT, root, filename);
+    if (existsSync(candidate)) return relative(GAME_ROOT, candidate).replaceAll("\\", "/");
   }
   return null;
 }

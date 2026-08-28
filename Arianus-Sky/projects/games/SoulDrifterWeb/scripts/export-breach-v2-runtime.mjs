@@ -1,87 +1,162 @@
 #!/usr/bin/env node
-/**
- * BREACH-V2 runtime exports (runbook §5.4) -> public/data/dungeons/breach-v2/
- *
- *   node --experimental-strip-types scripts/export-breach-v2-runtime.mjs
- *
- * Emits the registry as data (registry.json), the fixed review fixtures
- * (comparison seed 4182 + sparse/median/dense representatives per path), and
- * an index.json. The runtime preview generates arbitrary seeds live; these
- * fixtures pin the review/validation set.
- */
+/** Generate the complete BREACH-V2 runtime data set as one validated unit. */
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import {
+  mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile,
+} from "node:fs/promises";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout.ts";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog.ts";
 
-const OUT_DIR = resolve("public/data/dungeons/breach-v2");
-
-const cliArgs = process.argv.slice(2);
-const fixturesOnly = cliArgs.includes("--fixtures-only");
-const metadataOnly = cliArgs.includes("--metadata-only");
-if (fixturesOnly && metadataOnly) {
-  throw new Error("--fixtures-only and --metadata-only are mutually exclusive");
-}
-const onlySeedsArg = cliArgs.find((arg) => arg.startsWith("--only-seeds="));
-const onlySeeds = onlySeedsArg
-  ? new Set(onlySeedsArg.slice("--only-seeds=".length).split(",").map((value) => Number.parseInt(value, 10)))
-  : null;
-if (onlySeeds?.has(Number.NaN)) throw new Error(`invalid --only-seeds value: ${onlySeedsArg}`);
-
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
+const DEFAULT_OUT_DIR = resolve(PROJECT_ROOT, "public/data/dungeons/breach-v2");
 const FIXTURE_SEEDS = [
-  { seed: 4182, label: "comparison" }, // kept from #450 — direct comparison seed
-  { seed: 7, label: "sparse-3ch" },    // 3 chambers (both paths, sweep-verified)
-  { seed: 1, label: "median-4ch" },    // 4 chambers
-  { seed: 2, label: "dense-5ch" },     // 5 chambers
+  { seed: 4182, label: "comparison" },
+  { seed: 7, label: "sparse-3ch" },
+  { seed: 1, label: "median-4ch" },
+  { seed: 2, label: "dense-5ch" },
 ];
 const PATHS = ["wayfarer", "oathbreaker"];
 
-await mkdir(OUT_DIR, { recursive: true });
+function valueAfter(args, flag) {
+  const index = args.indexOf(flag);
+  if (index < 0) return null;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
+  return value;
+}
 
-// minified — these are data payloads, not reading material (150 MiB budget)
-if (!fixturesOnly) await writeFile(`${OUT_DIR}/registry.json`, `${JSON.stringify(R)}\n`, "utf8");
+function validateOutputDirectory(raw) {
+  const output = raw ? resolve(PROJECT_ROOT, raw) : DEFAULT_OUT_DIR;
+  const projectRelative = relative(PROJECT_ROOT, output);
+  if (projectRelative === "" || projectRelative.startsWith("..")) {
+    throw new Error("--out-dir must stay inside the SoulDrifterWeb project root.");
+  }
+  return output;
+}
 
-const fixtures = [];
-for (const { seed, label } of FIXTURE_SEEDS) {
-  for (const pathId of PATHS) {
-    const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
-    const file = `layout-${seed}-${pathId}.json`;
-    if (!metadataOnly && (!onlySeeds || onlySeeds.has(seed))) {
-      await writeFile(`${OUT_DIR}/${file}`, `${JSON.stringify(layout)}\n`, "utf8");
-    }
-    fixtures.push({
-      file, seed, path: pathId, label,
-      chambers: layout.meta.chamberCount,
-      rooms: layout.rooms.map((r) => r.poolRoomId ?? r.id),
-      bossPattern: layout.boss.pattern,
-      placements: layout.placements.length,
-    });
+async function exists(path) {
+  try {
+    await stat(path);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
   }
 }
 
-const index = {
-  dungeon: R.id,
-  sourceMap: R.sourceMap,
-  worldAnchor: R.worldAnchor,
-  seedPolicy: R.seedPolicy,
-  note: "the preview generates arbitrary seeds live; these fixtures pin the review set",
-  fixtures,
-};
-if (!fixturesOnly) await writeFile(`${OUT_DIR}/index.json`, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+async function generateCompleteSet(outDir) {
+  await mkdir(outDir, { recursive: true });
+  await writeFile(join(outDir, "registry.json"), `${JSON.stringify(R)}\n`, "utf8");
+  const fixtures = [];
+  for (const { seed, label } of FIXTURE_SEEDS) {
+    for (const pathId of PATHS) {
+      const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
+      const file = `layout-${seed}-${pathId}.json`;
+      await writeFile(join(outDir, file), `${JSON.stringify(layout)}\n`, "utf8");
+      fixtures.push({
+        file,
+        seed,
+        path: pathId,
+        label,
+        chambers: layout.meta.chamberCount,
+        rooms: layout.rooms.map((room) => room.poolRoomId ?? room.id),
+        bossPattern: layout.boss.pattern,
+        placements: layout.placements.length,
+      });
+    }
+  }
+  const index = {
+    dungeon: R.id,
+    sourceMap: R.sourceMap,
+    worldAnchor: R.worldAnchor,
+    seedPolicy: R.seedPolicy,
+    note: "the preview generates arbitrary seeds live; these fixtures pin the review set",
+    fixtures,
+  };
+  await writeFile(join(outDir, "index.json"), `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  return fixtures;
+}
 
-const emittedFixtures = metadataOnly
-  ? []
-  : fixtures.filter((fixture) => !onlySeeds || onlySeeds.has(fixture.seed));
-console.log(
-  fixturesOnly
-    ? `wrote ${emittedFixtures.length} fixtures to ${OUT_DIR}`
-    : metadataOnly
-      ? `wrote registry.json + index.json to ${OUT_DIR}`
-      : `wrote registry.json + ${emittedFixtures.length} fixtures + index.json to ${OUT_DIR}`,
-);
-for (const f of emittedFixtures) {
-  console.log(`  ${f.file}: ${f.chambers} chambers (${f.label}) placements=${f.placements} boss=${f.bossPattern}`);
+async function validateCompleteSet(outDir, fixtures) {
+  const expectedFiles = new Set(["registry.json", "index.json", ...fixtures.map(({ file }) => file)]);
+  const actualFiles = new Set(await readdir(outDir));
+  if (actualFiles.size !== expectedFiles.size || [...expectedFiles].some((file) => !actualFiles.has(file))) {
+    throw new Error("BREACH-V2 staged export is incomplete or contains stale files.");
+  }
+  const registry = JSON.parse(await readFile(join(outDir, "registry.json"), "utf8"));
+  const index = JSON.parse(await readFile(join(outDir, "index.json"), "utf8"));
+  if (JSON.stringify(registry) !== JSON.stringify(R)) throw new Error("Staged registry differs from canonical data.");
+  if (index.fixtures.length !== FIXTURE_SEEDS.length * PATHS.length) {
+    throw new Error("Staged index does not enumerate the complete fixture matrix.");
+  }
+  for (const fixture of index.fixtures) {
+    const layout = JSON.parse(await readFile(join(outDir, fixture.file), "utf8"));
+    if (layout.meta.seed !== fixture.seed || layout.meta.path !== fixture.path) {
+      throw new Error(`Fixture metadata drift: ${fixture.file}`);
+    }
+    if (layout.placements.length !== fixture.placements) {
+      throw new Error(`Fixture placement-count drift: ${fixture.file}`);
+    }
+  }
+}
+
+async function assertMatchesTracked(stagedDir, outDir) {
+  if (!(await exists(outDir))) throw new Error("BREACH-V2 tracked export directory is missing.");
+  const stagedFiles = (await readdir(stagedDir)).sort();
+  const trackedFiles = (await readdir(outDir)).sort();
+  if (JSON.stringify(stagedFiles) !== JSON.stringify(trackedFiles)) {
+    throw new Error("BREACH-V2 tracked export file inventory is stale.");
+  }
+  for (const file of stagedFiles) {
+    const [staged, tracked] = await Promise.all([
+      readFile(join(stagedDir, file)),
+      readFile(join(outDir, file)),
+    ]);
+    if (!staged.equals(tracked)) throw new Error(`BREACH-V2 tracked export is stale: ${file}`);
+  }
+}
+
+const args = process.argv.slice(2);
+if (args.includes("--fixtures-only") || args.includes("--metadata-only")) {
+  throw new Error("Partial export modes are not supported; generate and validate the complete set.");
+}
+const allowedArgs = new Set(["--check", "--out-dir"]);
+for (let index = 0; index < args.length; index += 1) {
+  const arg = args[index];
+  if (arg === "--out-dir") {
+    index += 1;
+    continue;
+  }
+  if (!allowedArgs.has(arg)) throw new Error(`Unknown argument: ${arg}`);
+}
+const outDir = validateOutputDirectory(valueAfter(args, "--out-dir"));
+const parent = dirname(outDir);
+await mkdir(parent, { recursive: true });
+const stagedDir = await mkdtemp(join(parent, ".breach-v2-stage-"));
+const backupDir = `${outDir}.backup-${process.pid}`;
+try {
+  const fixtures = await generateCompleteSet(stagedDir);
+  await validateCompleteSet(stagedDir, fixtures);
+  if (args.includes("--check")) {
+    await assertMatchesTracked(stagedDir, outDir);
+    console.log(`verified complete BREACH-V2 export at ${outDir}`);
+  } else {
+    if (await exists(backupDir)) await rm(backupDir, { recursive: true, force: true });
+    if (await exists(outDir)) await rename(outDir, backupDir);
+    try {
+      await rename(stagedDir, outDir);
+      await rm(backupDir, { recursive: true, force: true });
+    } catch (error) {
+      if (!(await exists(outDir)) && await exists(backupDir)) await rename(backupDir, outDir);
+      throw error;
+    }
+    console.log(`wrote complete BREACH-V2 export to ${outDir}`);
+  }
+} finally {
+  await rm(stagedDir, { recursive: true, force: true });
 }

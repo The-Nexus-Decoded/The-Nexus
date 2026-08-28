@@ -372,7 +372,15 @@ describe("BREACH-V2 seeded generator", () => {
         "--seed", "4182",
         "--path", "both",
         "--out-dir", outDir,
+        "--allow-dirty",
       ], { cwd: nodeProcess.cwd(), encoding: "utf8" });
+
+      const head = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: nodeProcess.cwd(), encoding: "utf8",
+      }).trim();
+      const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+        cwd: nodeProcess.cwd(), encoding: "utf8",
+      }).trim();
 
       for (const pathId of PATHS) {
         const stem = `breach-v2-seed-4182-${pathId}-topology`;
@@ -390,9 +398,12 @@ describe("BREACH-V2 seeded generator", () => {
           ))
           .map((aperture: { runtimeConnectorId: string }) => aperture.runtimeConnectorId);
 
+        const expectedProvenance = status
+          ? new RegExp(`^DIRTY@${head}:[a-f0-9]{64}$`)
+          : head;
         expect(manifest).toEqual({
           ...canonical,
-          commit: expect.any(String),
+          commit: expect.stringMatching(expectedProvenance),
           topDownDiagnostic: {
             ...canonical.topDownDiagnostic,
             imagePath: expect.stringContaining(`${stem}.svg`),
