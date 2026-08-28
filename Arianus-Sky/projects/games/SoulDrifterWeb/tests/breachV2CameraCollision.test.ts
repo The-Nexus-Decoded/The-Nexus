@@ -7,6 +7,7 @@ import {
   BREACH_V2_ISOMETRIC_DEFAULT_PITCH,
   BREACH_V2_ISOMETRIC_DEFAULT_YAW,
   BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+  BREACH_V2_ISOMETRIC_MIN_PITCH,
   auditBreachV2SpatialContracts,
   buildBreachV2CameraOnlyColliders,
   buildBreachV2ShellColliders,
@@ -161,8 +162,10 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(target.z).toBeCloseTo(-BREACH_V2_ISOMETRIC_LOOK_AHEAD);
     expect(position.x).toBeCloseTo(0);
     expect(position.z).toBeGreaterThan(0);
-    expect(position.y).toBeGreaterThan(12);
-    expect(position.y).toBeLessThan(15);
+    expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_DEFAULT_PITCH)).toBe(20);
+    expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_MIN_PITCH)).toBe(8);
+    expect(position.y).toBeGreaterThan(7);
+    expect(position.y).toBeLessThan(8.5);
     expect(position.distanceTo(target)).toBeCloseTo(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
   });
 
@@ -211,8 +214,8 @@ describe("BREACH-V2 camera-only overhead collision", () => {
       layout.landmarks.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
     );
     expect(presets.isometric?.offset[0]).toBe(0);
-    expect(presets.isometric?.offset[1]).toBeGreaterThan(11.5);
-    expect(presets.isometric?.offset[1]).toBeLessThan(12.5);
+    expect(presets.isometric?.offset[1]).toBeGreaterThan(6);
+    expect(presets.isometric?.offset[1]).toBeLessThan(6.5);
     expect(presets.overview?.minDistance).toBeUndefined();
   });
 

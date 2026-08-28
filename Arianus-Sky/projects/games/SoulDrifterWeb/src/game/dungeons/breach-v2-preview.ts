@@ -1184,10 +1184,10 @@ export function resolveBreachV2CameraDistanceForMode(
 }
 
 export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = 0;
-export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(40);
+export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(20);
 export const BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE = 18.5;
 export const BREACH_V2_ISOMETRIC_LOOK_AHEAD = 4.25;
-export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(25);
+export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(8);
 export const BREACH_V2_ISOMETRIC_MAX_PITCH = THREE.MathUtils.degToRad(58);
 
 export function writeBreachV2IsometricCameraPose(
@@ -5005,6 +5005,11 @@ export async function startDungeonPreview(
           `${graphicsMode.toUpperCase()} → ${graphicsQuality.toUpperCase()} · ${fpsText} · worst hitch ${worstHitchMs.toFixed(1)} ms\n` +
           `draw ${hooks.__dungeonStats.calls} · tris ${hooks.__dungeonStats.triangles.toLocaleString()} · ` +
           `geo ${hooks.__dungeonStats.geometries} · tex ${hooks.__dungeonStats.textures} · lights ${visibleLights}\n` +
+          `CAM xyz ${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)} · ` +
+          `TARGET xyz ${cameraTarget.x.toFixed(2)}, ${cameraTarget.y.toFixed(2)}, ${cameraTarget.z.toFixed(2)}\n` +
+          `ORBIT yaw ${THREE.MathUtils.radToDeg(camYaw).toFixed(1)}° · ` +
+          `pitch ${THREE.MathUtils.radToDeg(camPitch).toFixed(1)}° · distance ${camDist.toFixed(2)} · ` +
+          `PLAYER xyz ${playerPos.x.toFixed(2)}, ${playerPos.y.toFixed(2)}, ${playerPos.z.toFixed(2)}\n` +
           `GPU ${gpuName}`;
         refreshHud = false;
       }
