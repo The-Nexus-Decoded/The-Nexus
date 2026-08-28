@@ -4,12 +4,13 @@
 import {
   mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile,
 } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout.ts";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog.ts";
+import { assertLexicallyInside, prepareContainedOutputParent } from "./project-output-safety.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -32,11 +33,7 @@ function valueAfter(args, flag) {
 
 function validateOutputDirectory(raw) {
   const output = raw ? resolve(PROJECT_ROOT, raw) : DEFAULT_OUT_DIR;
-  const projectRelative = relative(PROJECT_ROOT, output);
-  if (projectRelative === "" || projectRelative.startsWith("..")) {
-    throw new Error("--out-dir must stay inside the SoulDrifterWeb project root.");
-  }
-  return output;
+  return assertLexicallyInside(PROJECT_ROOT, output, "--out-dir");
 }
 
 async function exists(path) {
@@ -136,7 +133,7 @@ for (let index = 0; index < args.length; index += 1) {
 }
 const outDir = validateOutputDirectory(valueAfter(args, "--out-dir"));
 const parent = dirname(outDir);
-await mkdir(parent, { recursive: true });
+await prepareContainedOutputParent(PROJECT_ROOT, outDir, "--out-dir");
 const stagedDir = await mkdtemp(join(parent, ".breach-v2-stage-"));
 const backupDir = `${outDir}.backup-${process.pid}`;
 try {

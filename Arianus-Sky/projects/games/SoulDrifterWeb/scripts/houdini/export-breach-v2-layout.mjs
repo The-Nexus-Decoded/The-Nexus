@@ -10,12 +10,13 @@
  */
 
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildBreachV2Layout } from "../../src/game/dungeons/breach-v2-layout.ts";
 import { DUNGEON_PROP_ASSETS } from "../../src/game/environment/DungeonPropCatalog.ts";
+import { assertLexicallyInside, prepareContainedOutputParent } from "../project-output-safety.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const GAME_ROOT = resolve(SCRIPT_DIR, "../..");
@@ -29,10 +30,7 @@ if (pathId !== "wayfarer" && pathId !== "oathbreaker") {
 }
 if (!outRaw) throw new Error("Missing output path.");
 const outPath = resolve(GAME_ROOT, outRaw);
-const relativeOutPath = relative(GAME_ROOT, outPath);
-if (relativeOutPath.startsWith("..") || relativeOutPath === "") {
-  throw new Error("Output must be a file inside the SoulDrifterWeb project root.");
-}
+assertLexicallyInside(GAME_ROOT, outPath, "Output");
 
 const SOURCE_ROOTS = [
   "docs/3d-ai-studio/source-models/environment/dungeon-kit",
@@ -61,7 +59,7 @@ for (const p of layout.placements) {
   }
 }
 
-await mkdir(dirname(outPath), { recursive: true });
+await prepareContainedOutputParent(GAME_ROOT, outPath, "Output");
 await writeFile(outPath, `${JSON.stringify(layout, null, 2)}\n`, "utf8");
 console.log(`wrote ${outPath}`);
 console.log(`rooms=${layout.rooms.length} corridors=${layout.corridors.length} placements=${layout.placements.length} lights=${layout.lights.length} enemies=${layout.enemies.length}`);
