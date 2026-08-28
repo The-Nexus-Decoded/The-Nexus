@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "catalogId": "human-foundation-pilot-required-animation-coverage-v1",
+  "bodyId": "human-masculine-athletic-muscular",
+  "generatedFrom": {
+    "libraryPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "librarySha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "libraryBytes": 32441884,
+    "libraryClipCount": 400,
+    "skeletonFamily": "mixamo-standard-65",
+    "rootBone": "mixamorig:Hips",
+    "sourceReport": "H:/CodexData/souldrifter-toolchain/evidence/487/runtime/human-masculine-athletic-muscular/human-masculine-athletic-muscular-pilot-animation-library-report.json"
+  },
+  "stateContract": {
+    "REQUIRED_NOW": "A shared lower-level Human-pilot motion required before the issue-487 review gate can finish.",
+    "COVERED_NOW": "At least one exact clip exists in the immutable 400-clip candidate library. This is source coverage, not visual acceptance.",
+    "PARTIAL": "An exact candidate covers only part of the semantic, contact, equipment, transition, or recovery contract.",
+    "MISSING": "No clip in the 400-clip library satisfies the required semantic without substantial new motion production.",
+    "DEFERRED_HIGHER_LEVEL": "Distinct higher-level class or spell-signature choreography is explicitly outside the current pilot gate."
+  },
+  "acceptanceState": "UNREVIEWED_CANDIDATE_LIBRARY",
+  "reviewGate": "FROZEN_UNTIL_REQUIRED_NOW_PARTIAL_AND_MISSING_ROWS_HAVE_ACCEPTED_MOTION_CANDIDATES",
+  "requiredNow": [
+    { "id": "locomotion.idle.standing", "category": "locomotion", "motion": "neutral living standing idle", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__Idle", "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"] },
+    { "id": "locomotion.walk.forward", "category": "locomotion", "motion": "walk forward", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__Walking", "BasicLocomotion__Walking"] },
+    { "id": "locomotion.walk.backward", "category": "locomotion", "motion": "walk backward", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingWalkBack", "Shooter__WalkingBackwards"] },
+    { "id": "locomotion.strafe.walk", "category": "locomotion", "motion": "walking strafe left and right", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__LeftStrafeWalking", "MaleLocomotion__RightStrafeWalking"] },
+    { "id": "locomotion.run.forward", "category": "locomotion", "motion": "run forward", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__StandardRun", "ProMagic__StandingRunForward"] },
+    { "id": "locomotion.run.backward", "category": "locomotion", "motion": "run backward", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingRunBack", "BasicShooter__RunBackwards"] },
+    { "id": "locomotion.run.lateral", "category": "locomotion", "motion": "run left and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingRunLeft", "ProMagic__StandingRunRight"] },
+    { "id": "locomotion.sprint.forward", "category": "locomotion", "motion": "sprint forward", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingSprintForward", "ProRifle__SprintForward"] },
+    { "id": "locomotion.turn.left-right", "category": "locomotion", "motion": "ninety-degree turns in both directions", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__LeftTurn90", "MaleLocomotion__RightTurn90"] },
+    { "id": "locomotion.start-stop", "category": "locomotion", "motion": "generic walk start and stop transitions", "coverage": "PARTIAL", "candidates": ["Shooter__StartWalking", "Shooter__StopWalking"], "gap": "Existing transitions retain a rifle-ready upper-body posture and need an equipment-neutral lower-level derivative." },
+    { "id": "locomotion.crouch.idle", "category": "locomotion", "motion": "crouched idle", "coverage": "COVERED_NOW", "candidates": ["ProMagic__CrouchIdle"] },
+    { "id": "locomotion.crouch.transitions", "category": "locomotion", "motion": "stand-to-crouch and crouch-to-stand", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingIdleToCrouch", "ProMagic__CrouchToStandingIdle"] },
+    { "id": "locomotion.crouch.directional", "category": "locomotion", "motion": "crouch walk forward, backward, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__CrouchWalkForward", "ProMagic__CrouchWalkBack", "ProMagic__CrouchWalkLeft", "ProMagic__CrouchWalkRight"] },
+    { "id": "locomotion.jump.standing", "category": "locomotion", "motion": "standing jump", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingJump", "MaleLocomotion__Jump"] },
+    { "id": "locomotion.jump.running", "category": "locomotion", "motion": "running jump", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingJumpRunning"] },
+    { "id": "locomotion.fall.loop", "category": "locomotion", "motion": "equipment-neutral airborne fall loop", "coverage": "PARTIAL", "candidates": ["ProLongbow__FallALoop"], "gap": "The only dedicated fall loop is authored with longbow posture; an equipment-neutral derivative and floor-safe transitions are required." },
+    { "id": "locomotion.land.standing", "category": "locomotion", "motion": "land and recover to standing idle", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingLandToStandingIdle"] },
+    { "id": "locomotion.land.running", "category": "locomotion", "motion": "land and continue into forward run", "coverage": "PARTIAL", "candidates": ["ProLongbow__FallALandToRunForward", "ProMagic__StandingJumpRunningLanding"], "gap": "Candidates require equipment-neutral entry and exit pose normalization." },
+    { "id": "locomotion.dodge.directional", "category": "locomotion", "motion": "forward, backward, left, and right combat dodge", "coverage": "PARTIAL", "candidates": ["ProLongbow__StandingDodgeForward", "ProLongbow__StandingDodgeBackward", "ProLongbow__StandingDodgeLeft", "ProLongbow__StandingDodgeRight"], "gap": "The only complete directional family is bow-authored and needs an equipment-neutral derivative." },
+    { "id": "locomotion.knockdown.get-up", "category": "locomotion", "motion": "nonterminal knockdown to prone and grounded get-up recovery", "coverage": "MISSING", "candidates": [], "gap": "No nonterminal fall-and-get-up pair exists." },
+    { "id": "locomotion.stairs", "category": "traversal", "motion": "stair ascent and descent with step contacts", "coverage": "PARTIAL", "candidates": ["MaleLocomotion__Walking"], "gap": "Flat-ground walking is only a timing base; authored stair foot contacts and vertical root motion are absent." },
+    { "id": "locomotion.shimmy", "category": "traversal", "motion": "ledge or wall shimmy left and right", "coverage": "MISSING", "candidates": [], "gap": "No lateral hang or shimmy motion exists." },
+
+    { "id": "combat.unarmed.idle", "category": "unarmed", "motion": "unarmed combat-ready idle", "coverage": "COVERED_NOW", "candidates": ["ProLongbow__UnarmedIdle01"] },
+    { "id": "combat.unarmed.jab-cross", "category": "unarmed", "motion": "compact jab or cross with closed fist and full-body weight transfer", "coverage": "PARTIAL", "candidates": ["ProLongbow__StandingMeleePunch"], "gap": "Candidate must pass fist closure, hand deformation, and contact-frame review." },
+    { "id": "combat.unarmed.front-kick", "category": "unarmed", "motion": "simple front kick and grounded recovery", "coverage": "COVERED_NOW", "candidates": ["ProLongbow__StandingMeleeKick"] },
+    { "id": "combat.unarmed.block", "category": "unarmed", "motion": "empty-hand guard and block", "coverage": "MISSING", "candidates": [], "gap": "Magic and weapon blocks cannot substitute for the empty-hand guard." },
+    { "id": "combat.unarmed.impact-recovery", "category": "unarmed", "motion": "unarmed hit reaction with balanced recovery", "coverage": "PARTIAL", "candidates": ["BasicShooter__HitReaction", "ProMagic__StandingReactSmallFromFront"], "gap": "Existing reactions are not a coherent unarmed family and require equipment-neutral recovery QA." },
+
+    { "id": "combat.sword-one-hand.guard-idle", "category": "one-handed-sword", "motion": "one-handed sword guard with visible free offhand", "coverage": "MISSING", "candidates": [], "gap": "Sword-and-shield and greatsword idles violate the free-offhand contract." },
+    { "id": "combat.sword-one-hand.thrust", "category": "one-handed-sword", "motion": "compact beginner one-handed thrust with free-hand balance", "coverage": "MISSING", "candidates": [], "gap": "No source clip satisfies the locked starter Weapon Strike thrust contract." },
+    { "id": "combat.sword-one-hand.horizontal-cut", "category": "one-handed-sword", "motion": "one-handed horizontal outward cut with free-hand balance", "coverage": "MISSING", "candidates": [], "gap": "No source clip satisfies the free-offhand Siphon-style horizontal cut contract." },
+    { "id": "combat.sword-one-hand.draw-sheath", "category": "one-handed-sword", "motion": "draw from and sheath to hip without a shield", "coverage": "PARTIAL", "candidates": ["ProSwordAndShield__DrawSword1", "ProSwordAndShield__SheathSword1"], "gap": "Current candidates carry shield-arm posture and require a free-offhand derivative plus exact socket-transfer markers." },
+
+    { "id": "combat.sword-shield.idle-movement", "category": "sword-and-shield", "motion": "sword-and-shield idle, walk, run, turn, and strafe", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__SwordAndShieldIdle", "ProSwordAndShield__SwordAndShieldWalk", "ProSwordAndShield__SwordAndShieldRun", "ProSwordAndShield__SwordAndShieldTurn", "ProSwordAndShield__SwordAndShieldStrafe"] },
+    { "id": "combat.sword-shield.attack", "category": "sword-and-shield", "motion": "compact sword-and-shield attack family", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__SwordAndShieldAttack", "ProSwordAndShield__SwordAndShieldSlash"] },
+    { "id": "combat.sword-shield.block", "category": "sword-and-shield", "motion": "shield cover, block start or idle, and impact", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__SwordAndShieldBlock", "ProSwordAndShield__SwordAndShieldBlockIdle", "ProSwordAndShield__SwordAndShieldImpact"] },
+    { "id": "combat.sword-shield.shield-bash", "category": "sword-and-shield", "motion": "explicit shield bash with shield-face contact", "coverage": "MISSING", "candidates": [], "gap": "Generic sword-and-shield attacks do not prove a shield-led bash." },
+    { "id": "combat.sword-shield.draw-sheath", "category": "sword-and-shield", "motion": "draw and sheath sword while retaining shield control", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__DrawSword1", "ProSwordAndShield__SheathSword1"] },
+    { "id": "combat.sword-shield.death", "category": "sword-and-shield", "motion": "weapon-specific defeat and terminal collapse", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__SwordAndShieldDeath", "ProSwordAndShield__SwordAndShieldDeath2"] },
+
+    { "id": "combat.greatsword.idle-movement", "category": "greatsword", "motion": "two-handed sword idle, walk, run, turn, and strafe", "coverage": "COVERED_NOW", "candidates": ["GreatSword__GreatSwordIdle", "GreatSword__GreatSwordWalk", "GreatSword__GreatSwordRun", "GreatSword__GreatSwordTurn", "GreatSword__GreatSwordStrafe"] },
+    { "id": "combat.greatsword.attack", "category": "greatsword", "motion": "two-handed attack, slash, and overhead or spin variants", "coverage": "COVERED_NOW", "candidates": ["GreatSword__GreatSwordAttack", "GreatSword__GreatSwordSlash", "GreatSword__GreatSwordHighSpinAttack"] },
+    { "id": "combat.greatsword.block", "category": "greatsword", "motion": "two-handed sword block and impact", "coverage": "COVERED_NOW", "candidates": ["GreatSword__GreatSwordBlocking", "GreatSword__GreatSwordImpact"] },
+    { "id": "combat.greatsword.draw-stow", "category": "greatsword", "motion": "draw from and stow to back", "coverage": "PARTIAL", "candidates": ["GreatSword__DrawAGreatSword1", "GreatSword__DrawAGreatSword2"], "gap": "Draw candidates exist, but no matching greatsword back-stow clip is present." },
+    { "id": "combat.greatsword.death", "category": "greatsword", "motion": "two-handed sword defeat and terminal collapse", "coverage": "COVERED_NOW", "candidates": ["GreatSword__TwoHandedSwordDeath", "GreatSword__TwoHandedSwordDeath2"] },
+
+    { "id": "combat.axe.idle-movement", "category": "one-handed-axe", "motion": "axe-ready idle, walk, run, and turn", "coverage": "COVERED_NOW", "candidates": ["ProMeleeAxe__StandingIdle", "ProMeleeAxe__StandingWalkForward", "ProMeleeAxe__StandingRunForward", "ProMeleeAxe__StandingTurnLeft90", "ProMeleeAxe__StandingTurnRight90"] },
+    { "id": "combat.axe.attack", "category": "one-handed-axe", "motion": "horizontal, downward, backhand, and cleave attacks", "coverage": "COVERED_NOW", "candidates": ["ProMeleeAxe__StandingMeleeAttackHorizontal", "ProMeleeAxe__StandingMeleeAttackDownward", "ProMeleeAxe__StandingMeleeAttackBackhand", "ProMeleeAxe__StandingMeleeAttack360High"] },
+    { "id": "combat.axe.block", "category": "one-handed-axe", "motion": "axe block and large block reaction", "coverage": "COVERED_NOW", "candidates": ["ProMeleeAxe__StandingBlockIdle", "ProMeleeAxe__StandingBlockReactLarge"] },
+    { "id": "combat.axe.equip-stow", "category": "one-handed-axe", "motion": "equip and stow over shoulder or underarm", "coverage": "COVERED_NOW", "candidates": ["ProMeleeAxe__UnarmedEquipOverShoulder", "ProMeleeAxe__StandingDisarmOverShoulder", "ProMeleeAxe__UnarmedEquipUnderarm", "ProMeleeAxe__StandingDisarmUnderarm"] },
+    { "id": "combat.axe.death", "category": "one-handed-axe", "motion": "axe-specific defeat and terminal collapse", "coverage": "PARTIAL", "candidates": ["ProMagic__StandingReactDeathForward", "ProMagic__StandingReactDeathBackward"], "gap": "Only equipment-neutral directional deaths exist; no axe-retaining terminal clip has been acquired." },
+
+    { "id": "combat.bow.equip-stow", "category": "longbow", "motion": "equip bow from back and stow bow to back", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularBowEquipFromBack", "Interactions__HumanMasculineAthleticMuscularBowStowToBack", "ProLongbow__StandingEquipBow", "ProLongbow__StandingDisarmBow"] },
+    { "id": "combat.bow.nock-draw", "category": "longbow", "motion": "nock and draw arrow", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularBowDrawArrow", "ProLongbow__StandingDrawArrow"] },
+    { "id": "combat.bow.aim-release-recoil", "category": "longbow", "motion": "aim, loose arrow, and settle through recoil", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularBowShoot", "ProLongbow__StandingAimOverdraw", "ProLongbow__StandingAimRecoil"] },
+    { "id": "combat.bow.cancel", "category": "longbow", "motion": "safely cancel a drawn bow and return the arrow", "coverage": "MISSING", "candidates": [], "gap": "Disarming the bow is not a draw-cancel motion." },
+    { "id": "combat.bow.aim-movement", "category": "longbow", "motion": "aim-walk forward, backward, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProLongbow__StandingAimWalkForward", "ProLongbow__StandingAimWalkBack", "ProLongbow__StandingAimWalkLeft", "ProLongbow__StandingAimWalkRight"] },
+    { "id": "combat.bow.hit-death", "category": "longbow", "motion": "bow-equipped hit reactions and terminal deaths", "coverage": "COVERED_NOW", "candidates": ["ProLongbow__StandingReactSmallFromFront", "ProLongbow__StandingDeathForward01", "ProLongbow__StandingDeathBackward01"] },
+
+    { "id": "combat.magic.shared-idle-cast", "category": "shared-magic", "motion": "shared lower-level one-hand and two-hand cast foundations", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingIdle", "ProMagic__Standing1HCastSpell01", "ProMagic__Standing2HCastSpell01"] },
+    { "id": "combat.magic.shared-attacks", "category": "shared-magic", "motion": "shared lower-level directional and area magic releases", "coverage": "COVERED_NOW", "candidates": ["ProMagic__Standing1HMagicAttack01", "ProMagic__Standing2HMagicAttack01", "ProMagic__Standing2HMagicAreaAttack01"] },
+    { "id": "combat.magic.channel", "category": "shared-magic", "motion": "sustained interruptible channel loop", "coverage": "PARTIAL", "candidates": ["ProMagic__Standing2HCastSpell01", "GreatSword__SpellCast"], "gap": "Cast clips provide a release but no verified seamless sustained channel loop or interrupt exit." },
+    { "id": "combat.magic.block", "category": "shared-magic", "motion": "magic guard start, hold, large react, and end", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingBlockStart", "ProMagic__StandingBlockIdle", "ProMagic__StandingBlockReactLarge", "ProMagic__StandingBlockEnd"] },
+    { "id": "combat.magic.interrupt-cancel", "category": "shared-magic", "motion": "cast interruption and balanced cancel recovery", "coverage": "MISSING", "candidates": [], "gap": "No explicit interrupted-cast or cancel-recovery clip exists." },
+    { "id": "reaction.spell.small-directional", "category": "damage-reaction", "motion": "small spell-damage reactions from front, back, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingReactSmallFromFront", "ProMagic__StandingReactSmallFromBack", "ProMagic__StandingReactSmallFromLeft", "ProMagic__StandingReactSmallFromRight"] },
+    { "id": "reaction.spell.large-directional", "category": "damage-reaction", "motion": "large spell-damage reactions from front, back, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingReactLargeFromFront", "ProMagic__StandingReactLargeFromBack", "ProMagic__StandingReactLargeFromLeft", "ProMagic__StandingReactLargeFromRight"] },
+    { "id": "reaction.spell.blowback", "category": "damage-reaction", "motion": "nonterminal spell-impact blowback with authored displacement and fall", "coverage": "MISSING", "candidates": [], "gap": "Directional reactions do not include the required knockback travel, fall, and recoverable terminal pose." },
+    { "id": "reaction.spell.knockdown", "category": "damage-reaction", "motion": "spell-damage knockdown without death", "coverage": "MISSING", "candidates": [], "gap": "Directional death clips cannot substitute for a recoverable knockdown." },
+    { "id": "reaction.spell.get-up", "category": "damage-reaction", "motion": "grounded recovery after spell knockdown", "coverage": "MISSING", "candidates": [], "gap": "No prone-to-standing recovery exists." },
+    { "id": "reaction.stagger", "category": "damage-reaction", "motion": "short, large, and block staggers with recovery", "coverage": "COVERED_NOW", "candidates": ["BasicShooter__HitReaction", "ProMeleeAxe__StandingReactLargeGut", "ProMagic__StandingBlockReactLarge"] },
+
+    { "id": "combat.staff.grip-idle", "category": "staff", "motion": "two-handed staff grip and ready idle", "coverage": "MISSING", "candidates": [], "gap": "No clip preserves a physically valid two-hand practice-staff grip." },
+    { "id": "combat.staff.melee-family", "category": "staff", "motion": "staff thrust, sweep, butt strike, overhead strike, and recovery", "coverage": "PARTIAL", "candidates": ["Interactions__HumanMasculineAthleticMuscularStaffButtSmash"], "gap": "Only a butt-smash candidate exists; thrust, sweep, overhead, and coherent recovery are missing." },
+    { "id": "combat.staff.guard-block", "category": "staff", "motion": "staff guard and two-hand block", "coverage": "MISSING", "candidates": [], "gap": "Sword and magic blocks cannot substitute for staff contact mechanics." },
+    { "id": "combat.staff.channel-cast", "category": "staff", "motion": "staff-assisted lower-level cast and channel", "coverage": "PARTIAL", "candidates": ["ProMagic__Standing2HCastSpell01", "ProMagic__Standing2HMagicAttack01"], "gap": "Generic two-hand magic clips lack staff-hand constraints and implement contact." },
+    { "id": "combat.staff.draw-stow", "category": "staff", "motion": "draw staff from and stow staff to back", "coverage": "MISSING", "candidates": [], "gap": "No staff equipment-transfer pair exists." },
+
+    { "id": "combat.mace.lower-level", "category": "mace-hammer", "motion": "one-handed lower-level mace guard, compact strike, block, and recovery", "coverage": "MISSING", "candidates": [], "gap": "Axe and sword paths cannot substitute for mace impact mechanics." },
+    { "id": "combat.rod.lower-level", "category": "focus-rod", "motion": "binding-rod grip, command, summon release, channel, interruption, and recovery", "coverage": "PARTIAL", "candidates": ["ProMagic__Standing1HCastSpell01", "Interactions__HumanMasculineAthleticMuscularPointGesture"], "gap": "Generic cast and point clips do not preserve rod grip, interruption, or summon-release continuity." },
+    { "id": "combat.knife.lower-level", "category": "dagger-knife", "motion": "one-handed ritual-knife guard, close strike, curse gesture, and recovery", "coverage": "MISSING", "candidates": [], "gap": "No knife-specific grip or close-range motion family exists." },
+    { "id": "combat.daggers.paired", "category": "dual-wield-daggers", "motion": "paired forward-grip idle, alternating strikes, guard, and recovery", "coverage": "MISSING", "candidates": [], "gap": "No dual-wield or paired-dagger family exists." },
+
+    { "id": "death.directional", "category": "death", "motion": "front, back, left, and right terminal collapses", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularDeathBack", "Interactions__HumanMasculineAthleticMuscularDeathLeft", "Interactions__HumanMasculineAthleticMuscularDeathRightMirrored", "ProMagic__StandingReactDeathForward"] },
+    { "id": "death.weapon-variety", "category": "death", "motion": "multiple sword, shield, greatsword, bow, and rifle terminal silhouettes", "coverage": "COVERED_NOW", "candidates": ["ProSwordAndShield__SwordAndShieldDeath", "GreatSword__TwoHandedSwordDeath", "ProLongbow__StandingDeathBackward01", "ProRifle__DeathFromTheFront"] },
+    { "id": "death.moving-collapse", "category": "death", "motion": "collapse while moving", "coverage": "COVERED_NOW", "candidates": ["Shooter__WalkingToDying"] },
+    { "id": "death.status-elemental", "category": "death", "motion": "distinct lower-level burning, freezing, electrical, poison, or void terminal reactions", "coverage": "MISSING", "candidates": [], "gap": "The library has directional and weapon deaths but no status-specific terminal motion." },
+    { "id": "death.drowning", "category": "death", "motion": "water struggle, loss of buoyancy, and terminal drown state", "coverage": "MISSING", "candidates": [], "gap": "No drowning motion exists." },
+
+    { "id": "traversal.ladder", "category": "traversal", "motion": "ladder mount, climb loop, and dismount to standing", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularClimbLadderStart", "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop", "Interactions__HumanMasculineAthleticMuscularClimbLadderToStandi"] },
+    { "id": "traversal.rope", "category": "traversal", "motion": "rope climb using hands and feet", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet", "Interactions__HumanMasculineAthleticMuscularClimbRopeHands"] },
+    { "id": "traversal.wall", "category": "traversal", "motion": "wall climb up and down", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularClimbWallUp", "Interactions__HumanMasculineAthleticMuscularClimbWallDown"] },
+    { "id": "traversal.ledge", "category": "traversal", "motion": "hang-to-crouch and ledge pull-up recovery", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularClimbBracedHangToCr", "Interactions__HumanMasculineAthleticMuscularClimbLedgePullup", "Interactions__HumanMasculineAthleticMuscularClimbFreehangToStan"] },
+
+    { "id": "water.swim.idle-forward", "category": "water", "motion": "tread water and swim forward", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularSwimIdleTread", "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop"] },
+    { "id": "water.surface.edge", "category": "water", "motion": "swim to edge and climb or settle at edge", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularSwimToEdge"] },
+    { "id": "water.dive", "category": "water", "motion": "enter water from standing and transition underwater", "coverage": "MISSING", "candidates": [], "gap": "The longbow combat dive is not a water-entry motion." },
+    { "id": "water.underwater-swim", "category": "water", "motion": "underwater locomotion", "coverage": "MISSING", "candidates": [], "gap": "No underwater swim loop exists." },
+    { "id": "water.surface.open", "category": "water", "motion": "surface in open water and return to tread", "coverage": "MISSING", "candidates": [], "gap": "Edge exit does not cover open-water surfacing." },
+
+    { "id": "interaction.door.open-close", "category": "interaction", "motion": "open inward, open outward, and close door with empty hands", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularOpenDoorInward", "Interactions__HumanMasculineAthleticMuscularOpenDoorOutward", "Interactions__HumanMasculineAthleticMuscularCloseDoor"] },
+    { "id": "interaction.door.lock-unlock", "category": "interaction", "motion": "lock and unlock a door", "coverage": "MISSING", "candidates": [], "gap": "No key, latch, or lock manipulation motion exists." },
+    { "id": "interaction.lockpick", "category": "interaction", "motion": "kneel or stand at lock and perform lockpicking loop with success/fail exit", "coverage": "MISSING", "candidates": [], "gap": "No lockpick motion exists." },
+    { "id": "interaction.chest-container", "category": "interaction", "motion": "open chest and open or close container", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularOpenChestLid", "Interactions__HumanMasculineAthleticMuscularContainerOpenClose"] },
+    { "id": "interaction.lever-button", "category": "interaction", "motion": "pull lever and press button", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPullLever", "Interactions__HumanMasculineAthleticMuscularPushButton"] },
+    { "id": "interaction.valve", "category": "interaction", "motion": "grip and turn valve or wheel", "coverage": "MISSING", "candidates": [], "gap": "No circular two-hand valve interaction exists." },
+    { "id": "interaction.pickup", "category": "interaction", "motion": "pick up small item and larger object", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPickupItem", "Interactions__HumanMasculineAthleticMuscularPickupObject"] },
+    { "id": "interaction.loot-inspect", "category": "interaction", "motion": "loot and inspect object at waist or ground height", "coverage": "PARTIAL", "candidates": ["Interactions__HumanMasculineAthleticMuscularPickupItem", "ProLongbow__StandingIdle03Examine"], "gap": "No dedicated ground-loot-to-inventory sequence or inspect exit markers have been authored." },
+    { "id": "interaction.harvest", "category": "interaction", "motion": "generic hand harvest", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularHarvest"] },
+    { "id": "interaction.mine", "category": "interaction", "motion": "pickaxe mining loop with contact and recovery", "coverage": "MISSING", "candidates": [], "gap": "No mining motion exists." },
+    { "id": "interaction.chop", "category": "interaction", "motion": "tool-based wood-chop loop with contact and recovery", "coverage": "MISSING", "candidates": [], "gap": "Axe combat attacks cannot substitute for a stationary tool-contact chop loop." },
+    { "id": "interaction.push", "category": "interaction", "motion": "heavy push start, loop, and stop", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPushHeavyStart", "Interactions__HumanMasculineAthleticMuscularPushHeavyLoop", "Interactions__HumanMasculineAthleticMuscularPushHeavyStop"] },
+    { "id": "interaction.pull", "category": "interaction", "motion": "heavy pull start, loop, and stop", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPullHeavyStart", "Interactions__HumanMasculineAthleticMuscularPullHeavyLoop", "Interactions__HumanMasculineAthleticMuscularPullHeavyStop"] },
+    { "id": "interaction.lift-carry-place", "category": "interaction", "motion": "lift heavy object, carry loop, and place object", "coverage": "MISSING", "candidates": [], "gap": "No complete lift-carry-place sequence exists." },
+
+    { "id": "npc.idle-rest", "category": "npc-social", "motion": "standing idle, sitting idle, and resting pose", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed", "Interactions__HumanMasculineAthleticMuscularIdleSitting", "Interactions__HumanMasculineAthleticMuscularIdleSittingPose"] },
+    { "id": "npc.listen", "category": "npc-social", "motion": "attentive listening loop with subtle acknowledgement", "coverage": "MISSING", "candidates": [], "gap": "Talk and nod clips do not provide a neutral seamless listen loop." },
+    { "id": "npc.think", "category": "npc-social", "motion": "thinking loop and thoughtful nod", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularThink", "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful"] },
+    { "id": "npc.talk", "category": "npc-social", "motion": "small, medium, emphatic, and seated talk variants", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularTalkSmall", "Interactions__HumanMasculineAthleticMuscularTalkMedium", "Interactions__HumanMasculineAthleticMuscularTalkEmphasis", "Interactions__HumanMasculineAthleticMuscularTalkSitting"] },
+    { "id": "npc.point", "category": "npc-social", "motion": "point forward and directional point gesture", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPointForward", "Interactions__HumanMasculineAthleticMuscularPointGesture"] },
+    { "id": "npc.wave-greeting", "category": "npc-social", "motion": "wave and standing greeting", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularWaveGreeting", "Interactions__HumanMasculineAthleticMuscularGreetStanding"] },
+    { "id": "npc.nod-yes-no", "category": "npc-social", "motion": "nod yes and shake no", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularHeadNodYes", "Interactions__HumanMasculineAthleticMuscularHeadShakeNo"] },
+    { "id": "npc.beckon", "category": "npc-social", "motion": "beckon another actor closer", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularBeckon"] },
+    { "id": "npc.farewell", "category": "npc-social", "motion": "distinct farewell gesture and return to idle", "coverage": "MISSING", "candidates": [], "gap": "Greeting and wave candidates do not establish a distinct farewell contract." }
+  ],
+  "deferredHigherLevel": [
+    {
+      "id": "casting.class-signatures",
+      "scope": "DEFERRED_HIGHER_LEVEL",
+      "motion": "Distinct Mage, Priest, Paladin, Shadowknight, Necromancer, Summoner, and other class or spell-level casting identities.",
+      "reason": "Shared one-hand, two-hand, area, block, and channel foundations gate the current Human pilot. Class/spell signatures enter production with their class and level contracts and do not block issue #487."
+    },
+    {
+      "id": "combat.advanced-specializations",
+      "scope": "DEFERRED_HIGHER_LEVEL",
+      "motion": "Advanced spins, aerial attacks, multi-hit combos, signature deaths, and specialization-only weapon techniques.",
+      "reason": "The current pilot gates lower-level readable motion families; dramatic higher-tier choreography must not replace beginner semantics."
+    },
+    {
+      "id": "combat.firearms.future-setting",
+      "scope": "DEFERRED_HIGHER_LEVEL",
+      "motion": "Setting-approved firearm equipment, equip/stow, aim, fire, reload, movement, hit, and death family.",
+      "availableCandidates": ["BasicShooter__FiringRifle", "BasicShooter__Reloading", "BasicShooter__RifleAimingIdle", "ProRifle__RunForward", "ProRifle__DeathFromTheFront"],
+      "reason": "The source library preserves strong rifle candidates, but firearms remain future-setting content and do not block the current fantasy lower-level pilot."
+    },
+    {
+      "id": "combat.crossbow.future-equipment",
+      "scope": "DEFERRED_HIGHER_LEVEL",
+      "motion": "Crossbow spanning, ready, aim, trigger, settling, and reload.",
+      "reason": "No exact crossbow mechanism is approved; bow motion cannot substitute."
+    },
+    {
+      "id": "combat.spear-polearm.future-equipment",
+      "scope": "DEFERRED_HIGHER_LEVEL",
+      "motion": "Approved one-hand or two-hand spear and polearm grip, thrust, sweep, block, and recovery families.",
+      "reason": "Exact equipment and hand-count contracts are not part of the current Level-1 pilot assemblies."
+    }
+  ]
+}
