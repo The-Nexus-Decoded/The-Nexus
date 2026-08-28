@@ -1,5 +1,19 @@
 {
   "schemaVersion": 1,
+  "assetCollections": [
+    {
+      "id": "first-breach-3d-ai-studio-dungeon-kit",
+      "name": "First Breach generated dungeon source/runtime GLB pairs",
+      "manifest": "docs/3d-ai-studio/dungeon-kit-provenance.json",
+      "assetCount": 37,
+      "provider": "3D AI Studio",
+      "license": "3D AI Studio generated-output commercial rights",
+      "licenseUrl": "https://www.3daistudio.com/Platform/API/Documentation/faq",
+      "ownership": "SoulDrifter project owner account; full output rights retained",
+      "bundled": true,
+      "notes": "The referenced canonical register records every provider task, source/runtime path and SHA-256, review state, and per-asset transform policy. Optimization fails closed if this collection drifts."
+    }
+  ],
   "shippingAssets": [
     {
       "id": "breach-v2-wall-art-thalenyr-atlas",
@@ -28,8 +42,8 @@
       "license": "Project-original in-house art (SoulDrifter); no third-party content",
       "usage": "in-world zone map — Threshold Plaza wall art",
       "bundled": true,
-      "sha256": "f546dada9b7025bfb7c1a219d3a7e857e0c5891bfac4432e3aadeed1a58e3cd6",
-      "notes": "1600px WebP q75 export per MAP_ASSET_PIPELINE; masters live outside the repo."
+      "sha256": "d4639b399dec75eb43c692bac7dfbb3f5c4eb406d0e26cb36e43d11de41b0f46",
+      "notes": "Reproducible 1600px WebP q75 export; inputs, toolchain, byte digest, and pixel digest are pinned in scripts/maps/breach-v2-flatmap-receipt.json. The master PNG must be written outside the repository."
     },
     {
       "id": "breach-v2-wall-art-art-banner-wayfarer",

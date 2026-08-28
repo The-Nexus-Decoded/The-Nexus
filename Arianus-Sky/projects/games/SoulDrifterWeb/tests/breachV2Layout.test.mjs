@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
+import { BREACH_V2_REGISTRY } from "../src/game/dungeons/breach-v2-registry.mjs";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
 const OUT_DIR = resolve("public/data/dungeons/breach-v2");
@@ -36,12 +37,29 @@ describe("BREACH-V2 runtime exports", () => {
     }
   });
 
-  it("registry.json matches the registry module", () => {
+  it("registry.json deeply matches the JSON-serializable canonical registry", () => {
     const registry = readJson("registry.json");
-    expect(registry.id).toBe("breach-v2");
-    expect(registry.fixedRooms).toHaveLength(8);
-    expect(registry.pools.easy).toHaveLength(7);
-    expect(registry.pools.hard).toHaveLength(7);
+    expect(registry).toEqual(JSON.parse(JSON.stringify(BREACH_V2_REGISTRY)));
+  });
+
+  it("index metadata and file references deeply match every committed fixture", () => {
+    const index = readJson("index.json");
+    const referencedFiles = new Set();
+    for (const fixture of index.fixtures) {
+      expect(referencedFiles.has(fixture.file), `duplicate ${fixture.file}`).toBe(false);
+      referencedFiles.add(fixture.file);
+      expect(fixture.file).toMatch(/^layout-\d+-(wayfarer|oathbreaker)\.json$/);
+      const committed = readJson(fixture.file);
+      expect(fixture.seed, fixture.file).toBe(committed.meta.seed);
+      expect(fixture.path, fixture.file).toBe(committed.meta.path);
+      expect(fixture.chambers, fixture.file).toBe(committed.meta.chamberCount);
+      expect(fixture.rooms, fixture.file).toEqual(
+        committed.rooms.map((room) => room.poolRoomId ?? room.id),
+      );
+      expect(fixture.bossPattern, fixture.file).toBe(committed.boss.pattern);
+      expect(fixture.placements, fixture.file).toBe(committed.placements.length);
+    }
+    expect(referencedFiles.size).toBe(index.fixtures.length);
   });
 
   it("layout placements carry runtime GLB URLs for kit assets only", () => {

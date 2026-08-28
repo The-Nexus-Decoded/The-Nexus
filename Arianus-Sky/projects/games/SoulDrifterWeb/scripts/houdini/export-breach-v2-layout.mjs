@@ -10,12 +10,16 @@
  */
 
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { buildBreachV2Layout } from "../../src/game/dungeons/breach-v2-layout.ts";
 import { DUNGEON_PROP_ASSETS } from "../../src/game/environment/DungeonPropCatalog.ts";
+import { assertLexicallyInside, prepareContainedOutputParent } from "../project-output-safety.mjs";
 
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const GAME_ROOT = resolve(SCRIPT_DIR, "../..");
 const [seedRaw, pathId, outRaw] = process.argv.slice(2);
 const seed = Number(seedRaw);
 if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) {
@@ -25,7 +29,8 @@ if (pathId !== "wayfarer" && pathId !== "oathbreaker") {
   throw new Error(`Path must be wayfarer|oathbreaker; received ${pathId}.`);
 }
 if (!outRaw) throw new Error("Missing output path.");
-const outPath = resolve(outRaw);
+const outPath = resolve(GAME_ROOT, outRaw);
+assertLexicallyInside(GAME_ROOT, outPath, "Output");
 
 const SOURCE_ROOTS = [
   "docs/3d-ai-studio/source-models/environment/dungeon-kit",
@@ -36,8 +41,8 @@ function sourceGlb(spec) {
   const filename = spec?.sourceUrl ? spec.sourceUrl.split("/").pop() : null;
   if (!filename) return null;
   for (const root of SOURCE_ROOTS) {
-    const candidate = `${root}/${filename}`;
-    if (existsSync(candidate)) return candidate;
+    const candidate = resolve(GAME_ROOT, root, filename);
+    if (existsSync(candidate)) return relative(GAME_ROOT, candidate).replaceAll("\\", "/");
   }
   return null;
 }
@@ -54,7 +59,7 @@ for (const p of layout.placements) {
   }
 }
 
-await mkdir(dirname(outPath), { recursive: true });
+await prepareContainedOutputParent(GAME_ROOT, outPath, "Output");
 await writeFile(outPath, `${JSON.stringify(layout, null, 2)}\n`, "utf8");
 console.log(`wrote ${outPath}`);
 console.log(`rooms=${layout.rooms.length} corridors=${layout.corridors.length} placements=${layout.placements.length} lights=${layout.lights.length} enemies=${layout.enemies.length}`);

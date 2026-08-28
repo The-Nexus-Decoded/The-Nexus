@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +23,7 @@ Options:
   --path <wayfarer|oathbreaker|both>
                                Route to export (default: both)
   --out-dir <directory>        Artifact directory (default: artifacts/topology)
+  --allow-dirty                Record a tracked-diff digest (untracked inputs are refused)
   --help                       Show this help
 `);
 }
@@ -55,14 +57,28 @@ const commit = (() => {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
-    const worktreeStatus = execFileSync("git", ["status", "--porcelain"], {
+    const worktreeStatus = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
       cwd: PROJECT_ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
-    return worktreeStatus ? `WORKTREE@${head}` : head;
-  } catch {
-    return "WORKTREE";
+    if (!worktreeStatus) return head;
+    if (!args.includes("--allow-dirty")) {
+      throw new Error("Topology evidence export requires a clean worktree; pass --allow-dirty only for local diagnostics.");
+    }
+    if (worktreeStatus.split(/\r?\n/).some((line) => line.startsWith("??"))) {
+      throw new Error("Topology evidence cannot include untracked inputs.");
+    }
+    const diff = execFileSync("git", ["diff", "--binary", "HEAD"], {
+      cwd: PROJECT_ROOT,
+      encoding: "buffer",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const digest = createHash("sha256").update(diff).digest("hex");
+    return `DIRTY@${head}:${digest}`;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Topology evidence")) throw error;
+    throw new Error("Unable to resolve an exact Git provenance for topology evidence.", { cause: error });
   }
 })();
 

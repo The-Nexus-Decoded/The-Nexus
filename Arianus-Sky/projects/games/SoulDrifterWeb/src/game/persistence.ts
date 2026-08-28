@@ -3,6 +3,16 @@ import type { InventoryState } from "./equipment";
 
 const DATABASE_NAME = "souldrifter-story";
 const DATABASE_VERSION = 4;
+export const DATABASE_UPGRADE_BLOCKED_TIMEOUT_MS = 4_000;
+
+export class DatabaseUpgradeBlockedError extends Error {
+  public readonly code = "DATABASE_UPGRADE_BLOCKED";
+
+  public constructor() {
+    super("SoulDrifter storage is waiting for an older tab to close. Close other SoulDrifter tabs, then retry.");
+    this.name = "DatabaseUpgradeBlockedError";
+  }
+}
 
 interface NpcStateRecord {
   id: string;
@@ -20,8 +30,17 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
-class SoulDrifterDatabase {
+export class SoulDrifterDatabase {
   private connection: Promise<IDBDatabase> | null = null;
+
+  public constructor(
+    private readonly databaseFactory: IDBFactory = globalThis.indexedDB,
+    private readonly blockedTimeoutMs = DATABASE_UPGRADE_BLOCKED_TIMEOUT_MS,
+  ) {}
+
+  public async ready(): Promise<void> {
+    await this.open();
+  }
 
   public async loadCharacter(): Promise<CharacterProfile | null> {
     const record = await this.get<{ id: string; profile: CharacterProfile }>("characters", "active");
@@ -111,8 +130,23 @@ class SoulDrifterDatabase {
 
   private async open(): Promise<IDBDatabase> {
     if (this.connection) return this.connection;
-    this.connection = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+    let attempt: Promise<IDBDatabase>;
+    attempt = new Promise<IDBDatabase>((resolve, reject) => {
+      const request = this.databaseFactory.open(DATABASE_NAME, DATABASE_VERSION);
+      let settled = false;
+      let blockedTimer: ReturnType<typeof setTimeout> | null = null;
+      const clearBlockedTimer = (): void => {
+        if (blockedTimer === null) return;
+        clearTimeout(blockedTimer);
+        blockedTimer = null;
+      };
+      const fail = (error: Error): void => {
+        if (settled) return;
+        settled = true;
+        clearBlockedTimer();
+        if (this.connection === attempt) this.connection = null;
+        reject(error);
+      };
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains("characters")) db.createObjectStore("characters", { keyPath: "id" });
@@ -124,10 +158,28 @@ class SoulDrifterDatabase {
         if (!db.objectStoreNames.contains("avatarPreviews")) db.createObjectStore("avatarPreviews", { keyPath: "id" });
         if (!db.objectStoreNames.contains("dungeonRuns")) db.createObjectStore("dungeonRuns", { keyPath: "id" });
       };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("Unable to open the SoulDrifter story database."));
+      request.onblocked = () => {
+        if (blockedTimer !== null || settled) return;
+        blockedTimer = setTimeout(() => fail(new DatabaseUpgradeBlockedError()), this.blockedTimeoutMs);
+      };
+      request.onsuccess = () => {
+        clearBlockedTimer();
+        const database = request.result;
+        if (settled) {
+          database.close();
+          return;
+        }
+        settled = true;
+        database.onversionchange = () => {
+          database.close();
+          if (this.connection === attempt) this.connection = null;
+        };
+        resolve(database);
+      };
+      request.onerror = () => fail(request.error ?? new Error("Unable to open the SoulDrifter story database."));
     });
-    return this.connection;
+    this.connection = attempt;
+    return attempt;
   }
 
   private async get<T>(storeName: string, key: IDBValidKey): Promise<T | undefined> {

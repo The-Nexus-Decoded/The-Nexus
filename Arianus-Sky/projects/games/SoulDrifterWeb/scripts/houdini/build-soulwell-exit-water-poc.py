@@ -15,6 +15,8 @@ from pathlib import Path
 
 import hou
 
+from poc_output_policy import approved_output_directory, require_apprentice_license
+
 
 WIDTH = 4.2
 HEIGHT = 3.4
@@ -157,8 +159,9 @@ def geometry_stats(node: hou.SopNode, frame: int) -> dict[str, object]:
 
 def main() -> None:
     args = parse_args()
-    output_dir = args.output_dir.resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
+    license_name = hou.licenseCategory().name()
+    require_apprentice_license(license_name)
+    output_dir = approved_output_directory(args.output_dir)
 
     hou.hipFile.clear(suppress_save_prompt=True)
     hou.setFps(FPS)
@@ -201,7 +204,7 @@ def main() -> None:
         "scope": "isolated environmental VFX POC; no dungeon rebuild",
         "tool": {
             "houdiniVersion": hou.applicationVersionString(),
-            "licenseCategory": hou.licenseCategory().name(),
+            "licenseCategory": license_name,
             "sceneFormat": ".hipnc",
             "commercialProductionReady": False,
         },
@@ -223,7 +226,7 @@ def main() -> None:
         "validation": {
             "animatedGeometry": len({frame["positionSha256"] for frame in frames}) == len(frames),
             "stableTopology": len({(frame["points"], frame["primitives"]) for frame in frames}) == 1,
-            "nonCommercialArtifactsSegregated": True,
+            "nonCommercialArtifactsSegregated": output_dir == approved_output_directory(output_dir),
         },
         "outputs": {
             "scene": {"path": scene_path.name, "sha256": sha256(scene_path)},

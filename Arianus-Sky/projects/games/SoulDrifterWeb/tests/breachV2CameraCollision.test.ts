@@ -12,12 +12,14 @@ import {
   buildBreachV2CameraOnlyColliders,
   buildBreachV2ShellColliders,
   cameraPresets,
+  doesBreachV2PortalBlockAperture,
   doesBreachV2PortalBlockMovement,
   firstBreachV2CameraHit,
   getBreachV2VisibleCameraColliders,
   isBreachV2PortalReadyForTraversal,
   isBreachV2LineOfSightBlocked,
   isBreachV2PlacementBlocked,
+  parseBreachV2SpatialSnapshot,
   resolveBreachV2CameraDistance,
   resolveBreachV2CameraDistanceForMode,
   resolveBreachV2CameraFloorY,
@@ -26,6 +28,7 @@ import {
   type BreachV2PlanarCollider,
   writeBreachV2IsometricCameraPose,
 } from "../src/game/dungeons/breach-v2-preview";
+import { shouldPreserveBreachV2SpatialState } from "../src/game/dungeons/breach-v2-dev-panel";
 import { splitBreachV2Boundary } from "../src/game/dungeons/breach-v2-topology";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
@@ -139,11 +142,13 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(resolved).toBeGreaterThanOrEqual(0);
   });
 
-  it("preserves isometric framing through a doorway instead of collapsing onto the avatar", () => {
+  it("resolves visible wall collision in both isometric and third-person modes", () => {
     expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, true))
-      .toBe(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
+      .toBeLessThan(1);
     expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, false))
       .toBeLessThan(1);
+    expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, null, true))
+      .toBe(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
   });
 
   it("uses a diagonal follow-isometric view behind the avatar while looking ahead", () => {
@@ -176,9 +181,37 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(isBreachV2PortalReadyForTraversal(0.995)).toBe(true);
     expect(isBreachV2PortalReadyForTraversal(1)).toBe(true);
     expect(doesBreachV2PortalBlockMovement("door", 0.994, false)).toBe(true);
-    expect(doesBreachV2PortalBlockMovement("door", 0.995, false)).toBe(false);
+    expect(doesBreachV2PortalBlockMovement("door", 0.995, false)).toBe(true);
+    expect(doesBreachV2PortalBlockMovement("door", 1, false)).toBe(true);
+    expect(doesBreachV2PortalBlockAperture("door", 0.994, false)).toBe(true);
+    expect(doesBreachV2PortalBlockAperture("door", 0.995, false)).toBe(false);
     expect(doesBreachV2PortalBlockMovement("gate", 1, false)).toBe(true);
     expect(doesBreachV2PortalBlockMovement("gate", 1, true)).toBe(false);
+    expect(doesBreachV2PortalBlockAperture("gate", 1, true)).toBe(false);
+  });
+
+  it("validates camera-mode spatial snapshots and invalidates them for run changes", () => {
+    const serialized = JSON.stringify({
+      version: 1,
+      seed: 4182,
+      path: "wayfarer",
+      cameraMode: "isometric",
+      player: { x: 12.5, z: 7.25 },
+      camera: { yaw: -0.8, pitch: 0.55, distance: 18.5 },
+      discoveredRoomIds: ["vestibule", "gallery-1", "vestibule"],
+    });
+
+    expect(parseBreachV2SpatialSnapshot(serialized, 4182, "wayfarer")).toMatchObject({
+      cameraMode: "isometric",
+      player: { x: 12.5, z: 7.25 },
+      discoveredRoomIds: ["vestibule", "gallery-1"],
+    });
+    expect(parseBreachV2SpatialSnapshot(serialized, 4183, "wayfarer")).toBeNull();
+    expect(parseBreachV2SpatialSnapshot('{"version":1}', 4182, "wayfarer")).toBeNull();
+    expect(shouldPreserveBreachV2SpatialState({ cam: "walk" })).toBe(true);
+    expect(shouldPreserveBreachV2SpatialState({ markers: "1" })).toBe(true);
+    expect(shouldPreserveBreachV2SpatialState({ path: "oathbreaker", start: "vestibule" })).toBe(false);
+    expect(shouldPreserveBreachV2SpatialState({ seed: "9001" })).toBe(false);
   });
 
   it("uses one hysteretic ceiling policy for first-person, third-person, isometric, and orbit views", () => {

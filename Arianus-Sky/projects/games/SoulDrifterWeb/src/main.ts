@@ -12,6 +12,7 @@ import {
   lightingTuningRegistry,
   loadLightingTuningDocument,
 } from "./game/lightingTuning";
+import { startBreachV2PreviewRoute } from "./game/dungeons/breach-v2-startup.ts";
 
 let activeWorld: World3D | null = null;
 
@@ -55,22 +56,7 @@ void (async () => {
   // starting zone straight from the seeded generator, bypassing character
   // creation. Used by the visual review gate (DUNGEON_BUILD_RUNBOOK §5.5) —
   // Level 01 (World3D) is untouched.
-  const searchParams = new URL(window.location.href).searchParams;
-  const previewDungeon = searchParams.get("dungeonPreview");
-  if (previewDungeon === "breach-v2") {
-    const { startDungeonPreview } = await import("./game/dungeons/breach-v2-preview.ts");
-    const shell = document.getElementById("character-creation");
-    if (shell) shell.hidden = true;
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    const seedParam = searchParams.get("seed");
-    const seed = seedParam !== null && /^\d+$/.test(seedParam) ? Number(seedParam) : 4182;
-    const pathParam = searchParams.get("path");
-    const path = pathParam === "oathbreaker" ? "oathbreaker" : "wayfarer";
-    const cam = searchParams.get("cam") ?? "isometric"; // 3D Ultima-style gameplay view; wheel zoom + drag orbit
-    await startDungeonPreview(host, { seed, path, cam });
-    return;
-  }
+  if (await startBreachV2PreviewRoute()) return;
   await bootstrap();
 })();
 

@@ -12,6 +12,8 @@ export type BreachV2RunPhase =
   | "complete"
   | "defeat";
 
+export const BREACH_V2_RUN_SCHEMA_VERSION = 2 as const;
+
 export interface BreachV2EncounterState {
   id: string;
   roomId: string;
@@ -53,7 +55,7 @@ export interface BreachV2EnvironmentDamageResult {
 }
 
 export interface BreachV2RunState {
-  schemaVersion: 1;
+  schemaVersion: typeof BREACH_V2_RUN_SCHEMA_VERSION;
   seed: number;
   path: BreachV2PathId;
   phase: BreachV2RunPhase;
@@ -125,9 +127,83 @@ function initialEnvironmentState(config: BreachV2RunConfig): BreachV2Environment
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizedStringArray(value: unknown, fallback: readonly string[] = []): string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+    ? [...new Set(value)]
+    : [...fallback];
+}
+
+function normalizedHitPoints(value: unknown): Record<string, number> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => (
+    typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] >= 0
+  )));
+}
+
+function normalizeEnvironmentState(
+  config: BreachV2RunConfig,
+  value: unknown,
+  savedCollectionComplete: boolean,
+): BreachV2EnvironmentState {
+  const initial = initialEnvironmentState(config);
+  if (!isRecord(value)) {
+    if (savedCollectionComplete) {
+      initial.cofferOpened = true;
+      initial.pickupDropped = true;
+      initial.pickupCollected = true;
+      initial.collectedItemIds.push(initial.deterministicItemId);
+      initial.removedColliderIds.push(initial.cofferObjectId);
+    }
+    return initial;
+  }
+
+  const booleanValue = (key: string, fallback: boolean): boolean => (
+    typeof value[key] === "boolean" ? value[key] : fallback
+  );
+  const stringValue = (key: string, fallback: string): string => (
+    typeof value[key] === "string" && value[key].length > 0 ? value[key] : fallback
+  );
+  const environment: BreachV2EnvironmentState = {
+    cofferObjectId: stringValue("cofferObjectId", initial.cofferObjectId),
+    cofferOpened: booleanValue("cofferOpened", initial.cofferOpened),
+    pickupDropped: booleanValue("pickupDropped", initial.pickupDropped),
+    pickupCollected: booleanValue("pickupCollected", initial.pickupCollected),
+    deterministicItemId: stringValue("deterministicItemId", initial.deterministicItemId),
+    collectedItemIds: normalizedStringArray(value.collectedItemIds),
+    objectHitPoints: normalizedHitPoints(value.objectHitPoints),
+    destroyedObjectIds: normalizedStringArray(value.destroyedObjectIds),
+    removedColliderIds: normalizedStringArray(value.removedColliderIds),
+    debrisObjectIds: normalizedStringArray(value.debrisObjectIds).slice(-MAX_ACTIVE_DEBRIS_RECORDS),
+  };
+  if (savedCollectionComplete) {
+    environment.cofferOpened = true;
+    environment.pickupDropped = true;
+    environment.pickupCollected = true;
+  }
+  if (environment.cofferOpened) environment.pickupDropped = true;
+  if (environment.pickupDropped) environment.cofferOpened = true;
+  if (environment.pickupCollected) {
+    environment.pickupDropped = true;
+    environment.cofferOpened = true;
+    if (!environment.collectedItemIds.includes(environment.deterministicItemId)) {
+      environment.collectedItemIds.push(environment.deterministicItemId);
+    }
+  }
+  if (environment.cofferOpened) {
+    if (!environment.removedColliderIds.includes(environment.cofferObjectId)) {
+      environment.removedColliderIds.push(environment.cofferObjectId);
+    }
+  }
+  return environment;
+}
+
 function initialState(config: BreachV2RunConfig): BreachV2RunState {
   return {
-    schemaVersion: 1,
+    schemaVersion: BREACH_V2_RUN_SCHEMA_VERSION,
     seed: config.seed,
     path: config.path,
     phase: "tutorial",
@@ -157,30 +233,26 @@ function initialState(config: BreachV2RunConfig): BreachV2RunState {
 }
 
 function restoreState(config: BreachV2RunConfig): BreachV2RunState {
-  const candidate = config.savedState as Partial<BreachV2RunState> | null | undefined;
+  const candidate = config.savedState as (
+    Partial<Omit<BreachV2RunState, "schemaVersion" | "environment">>
+    & { schemaVersion?: unknown; environment?: unknown }
+  ) | null | undefined;
   if (
-    candidate?.schemaVersion !== 1
+    (candidate?.schemaVersion !== 1 && candidate?.schemaVersion !== BREACH_V2_RUN_SCHEMA_VERSION)
     || candidate.seed !== config.seed
     || candidate.path !== config.path
     || !candidate.tutorial
     || !Array.isArray(candidate.clearedRoomIds)
     || !Array.isArray(candidate.rewardIds)
   ) return initialState(config);
-  const restored = cloneState(candidate as BreachV2RunState);
-  if (!restored.environment) {
-    const environment = initialEnvironmentState(config);
-    // Old schema-v1 saves treated coffer interaction as immediate acquisition.
-    // Preserve that completed tutorial while migrating it to the explicit
-    // open/drop/collect anti-duplication state machine.
-    if (restored.tutorial.cofferOpened) {
-      environment.cofferOpened = true;
-      environment.pickupDropped = true;
-      environment.pickupCollected = true;
-      environment.collectedItemIds.push(environment.deterministicItemId);
-      environment.removedColliderIds.push(environment.cofferObjectId);
-    }
-    restored.environment = environment;
-  }
+  const restored = cloneState(candidate as unknown as BreachV2RunState);
+  restored.schemaVersion = BREACH_V2_RUN_SCHEMA_VERSION;
+  restored.environment = normalizeEnvironmentState(
+    config,
+    candidate.environment,
+    restored.tutorial.cofferOpened,
+  );
+  restored.tutorial.cofferOpened = restored.environment.pickupCollected;
   return restored;
 }
 

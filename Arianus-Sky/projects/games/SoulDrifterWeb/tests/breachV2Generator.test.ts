@@ -372,7 +372,15 @@ describe("BREACH-V2 seeded generator", () => {
         "--seed", "4182",
         "--path", "both",
         "--out-dir", outDir,
+        "--allow-dirty",
       ], { cwd: nodeProcess.cwd(), encoding: "utf8" });
+
+      const head = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: nodeProcess.cwd(), encoding: "utf8",
+      }).trim();
+      const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+        cwd: nodeProcess.cwd(), encoding: "utf8",
+      }).trim();
 
       for (const pathId of PATHS) {
         const stem = `breach-v2-seed-4182-${pathId}-topology`;
@@ -390,9 +398,12 @@ describe("BREACH-V2 seeded generator", () => {
           ))
           .map((aperture: { runtimeConnectorId: string }) => aperture.runtimeConnectorId);
 
+        const expectedProvenance = status
+          ? new RegExp(`^DIRTY@${head}:[a-f0-9]{64}$`)
+          : head;
         expect(manifest).toEqual({
           ...canonical,
-          commit: expect.any(String),
+          commit: expect.stringMatching(expectedProvenance),
           topDownDiagnostic: {
             ...canonical.topDownDiagnostic,
             imagePath: expect.stringContaining(`${stem}.svg`),
@@ -429,7 +440,11 @@ describe("BREACH-V2 seeded generator", () => {
       .toEqual(buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS).placements);
   });
 
-  it("keeps every objective and encounter reachable on a 500-seed sweep (both paths)", () => {
+  it("keeps every objective and encounter in the coarse nav component on a 500-seed diagnostic sweep", () => {
+    // This intentionally verifies generator-cell connectivity only. Continuous
+    // player/NPC capsule reachability is proven against fitted GLB colliders in
+    // breachV2TopologyRender.test.ts; do not represent this coarse sweep as the
+    // runtime movement gate.
     for (let seed = 1; seed <= 500; seed += 1) {
       for (const pathId of PATHS) {
         const gen = generateBreachV2(seed, pathId);

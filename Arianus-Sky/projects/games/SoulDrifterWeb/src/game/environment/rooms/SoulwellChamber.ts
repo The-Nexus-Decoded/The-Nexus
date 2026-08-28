@@ -26,6 +26,48 @@ interface BuildOptions {
   tileSize: number;
 }
 
+function getSoulwellLibraryMaterials(materials: SoulwellMaterialLibrary): Set<THREE.Material> {
+  return new Set([
+    materials.flagstone,
+    materials.masonry,
+    materials.masonryOccluder,
+    materials.bronze,
+    materials.oak,
+    materials.darkIron,
+    materials.soulglass,
+    materials.soulwater,
+    materials.moss,
+    materials.ash,
+    ...materials.tomes,
+    materials.void,
+  ]);
+}
+
+export function disposeSoulwellChamberResources(
+  root: THREE.Object3D,
+  materials: SoulwellMaterialLibrary,
+): void {
+  const libraryMaterials = getSoulwellLibraryMaterials(materials);
+  const geometries = new Set<THREE.BufferGeometry>();
+  const ownedMaterials = new Set<THREE.Material>();
+  root.traverse((child) => {
+    if (
+      child instanceof THREE.Mesh
+      || child instanceof THREE.Line
+      || child instanceof THREE.Points
+    ) {
+      geometries.add(child.geometry);
+      const childMaterials = Array.isArray(child.material) ? child.material : [child.material];
+      childMaterials.forEach((material) => {
+        if (!libraryMaterials.has(material)) ownedMaterials.add(material);
+      });
+    }
+  });
+  geometries.forEach((geometry) => geometry.dispose());
+  ownedMaterials.forEach((material) => material.dispose());
+  materials.dispose();
+}
+
 function seeded(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -245,8 +287,6 @@ function buildSoulwell(materials: SoulwellMaterialLibrary): {
   water.rotation.x = -Math.PI / 2;
   water.position.y = 0.065;
   water.renderOrder = 4;
-  water.userData.disposableGeometries = [water.geometry];
-  water.userData.disposableMaterials = [waterMaterial];
   const ripples = [0.62, 1.16, 1.68].map((radius, index) => {
     const material = materials.soulglass.clone();
     material.opacity = 0.3 - index * 0.045;
@@ -254,8 +294,6 @@ function buildSoulwell(materials: SoulwellMaterialLibrary): {
     const ripple = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.018, 8, 64), material);
     ripple.rotation.x = Math.PI / 2;
     ripple.position.y = 0.082 + index * 0.006;
-    ripple.userData.disposableGeometries = [ripple.geometry];
-    ripple.userData.disposableMaterials = [material];
     return ripple;
   });
   const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.44, 1), materials.soulglass);
@@ -298,7 +336,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   root.name = "authored-soulwell-chamber";
   const materials = await createSoulwellMaterialLibrary(seed);
   const random = seeded(seed ^ 0xa11ce);
-  const disposableGeometries: THREE.BufferGeometry[] = [];
   const chamberWidth = Math.max(...tiles.map((tile) => tile.x)) + 1;
   const chamberHeight = Math.max(...tiles.map((tile) => tile.y)) + 1;
   const roomCenterX = (chamberWidth - 1) * tileSize * 0.5;
@@ -308,7 +345,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   // made the chamber read like a board-game grid. Slight overlap keeps the
   // navigation grid invisible while the PBR texture supplies real stone seams.
   const floorGeometry = new RoundedBoxGeometry(tileSize * 1.008, 0.28, tileSize * 1.008, 2, 0.055);
-  disposableGeometries.push(floorGeometry);
   const floor = new THREE.InstancedMesh(floorGeometry, materials.flagstone, tiles.length);
   floor.name = "authored-flagstone-floor";
   floor.receiveShadow = true;
@@ -337,7 +373,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   root.add(undercroft);
 
   const brickGeometry = new RoundedBoxGeometry(1.52, 0.72, 0.48, 2, 0.055);
-  disposableGeometries.push(brickGeometry);
   const brickTransforms: THREE.Matrix4[] = [];
   const addBrickRun = (axis: "x" | "z", fixed: number, from: number, to: number, rows: number): void => {
     for (let row = 0; row < rows; row += 1) {
@@ -576,7 +611,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   ];
   conduitCurves.forEach((curve, index) => {
     const conduit = new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.035 + index * 0.01, 6, false), index === 0 ? materials.soulglass : materials.bronze);
-    disposableGeometries.push(conduit.geometry);
     conduit.receiveShadow = true;
     root.add(conduit);
   });
@@ -597,13 +631,11 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   addWeb(new THREE.Vector3((chamberWidth - 0.18) * tileSize, 4.55, 0.12 * tileSize), -1);
   const webGeometry = new THREE.BufferGeometry();
   webGeometry.setAttribute("position", new THREE.Float32BufferAttribute(webPoints, 3));
-  disposableGeometries.push(webGeometry);
   const webMaterial = new THREE.LineBasicMaterial({ color: 0xc6d0cc, transparent: true, opacity: 0.32, depthWrite: false });
   const webs = new THREE.LineSegments(webGeometry, webMaterial);
   root.add(webs);
 
   const lampGeometry = new THREE.OctahedronGeometry(0.18, 0);
-  disposableGeometries.push(lampGeometry);
   const lampPositions = [
     [2.2, 2.7, 0.2], [7.8, 2.7, 0.2], [12.7, 2.7, 0.2], [0.18, 2.45, 3.2], [0.18, 2.45, 9.6], [14.9, 2.5, 3.2], [14.9, 2.5, 10.4],
   ];
@@ -621,7 +653,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   root.add(lamps);
 
   const debrisGeometry = new THREE.DodecahedronGeometry(0.18, 0);
-  disposableGeometries.push(debrisGeometry);
   const stoneDebrisMatrices: THREE.Matrix4[] = [];
   const mossDebrisMatrices: THREE.Matrix4[] = [];
   for (let index = 0; index < 22; index += 1) {
@@ -653,7 +684,6 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
   }
   const moteGeometry = new THREE.BufferGeometry();
   moteGeometry.setAttribute("position", new THREE.BufferAttribute(motePositions, 3));
-  disposableGeometries.push(moteGeometry);
   const moteMaterial = new THREE.PointsMaterial({ color: 0x87d8cf, size: 0.035, transparent: true, opacity: 0.32, depthWrite: false });
   const motes = new THREE.Points(moteGeometry, moteMaterial);
   root.add(motes);
@@ -679,16 +709,7 @@ export async function buildSoulwellChamber(options: BuildOptions): Promise<Soulw
       motes.rotation.y += delta * 0.009;
     },
     dispose: () => {
-      root.traverse((child) => {
-        const geometries = child.userData.disposableGeometries as THREE.BufferGeometry[] | undefined;
-        geometries?.forEach((geometry) => geometry.dispose());
-        const materialsToDispose = child.userData.disposableMaterials as THREE.Material[] | undefined;
-        materialsToDispose?.forEach((material) => material.dispose());
-      });
-      disposableGeometries.forEach((geometry) => geometry.dispose());
-      moteMaterial.dispose();
-      webMaterial.dispose();
-      materials.dispose();
+      disposeSoulwellChamberResources(root, materials);
     },
   };
 }

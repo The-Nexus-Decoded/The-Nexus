@@ -82,6 +82,71 @@ const PLAYER_CAPSULE_CLEARANCE = 0.04;
 const CAMERA_COLLISION_RADIUS = 0.24;
 const CAMERA_COLLISION_SKIN = 0.02;
 const CEILING_CUTAWAY_HYSTERESIS = 0.3;
+export const BREACH_V2_SPATIAL_SESSION_KEY = "breach-v2-preview-spatial-v1";
+
+export interface BreachV2SpatialSnapshot {
+  version: 1;
+  seed: number;
+  path: "wayfarer" | "oathbreaker";
+  cameraMode: string;
+  player: { x: number; z: number };
+  camera: { yaw: number; pitch: number; distance: number };
+  discoveredRoomIds: string[];
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+export function parseBreachV2SpatialSnapshot(
+  serialized: string | null,
+  seed: number,
+  path: "wayfarer" | "oathbreaker",
+): BreachV2SpatialSnapshot | null {
+  if (!serialized) return null;
+  try {
+    const value = JSON.parse(serialized) as Partial<BreachV2SpatialSnapshot>;
+    if (
+      value.version !== 1
+      || value.seed !== seed
+      || value.path !== path
+      || typeof value.cameraMode !== "string"
+      || !value.player
+      || !isFiniteNumber(value.player.x)
+      || !isFiniteNumber(value.player.z)
+      || !value.camera
+      || !isFiniteNumber(value.camera.yaw)
+      || !isFiniteNumber(value.camera.pitch)
+      || !isFiniteNumber(value.camera.distance)
+      || !Array.isArray(value.discoveredRoomIds)
+      || !value.discoveredRoomIds.every((roomId) => typeof roomId === "string")
+    ) return null;
+    return {
+      version: 1,
+      seed,
+      path,
+      cameraMode: value.cameraMode,
+      player: { x: value.player.x, z: value.player.z },
+      camera: { ...value.camera },
+      discoveredRoomIds: [...new Set(value.discoveredRoomIds)],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function consumeBreachV2SpatialSnapshot(
+  seed: number,
+  path: "wayfarer" | "oathbreaker",
+): BreachV2SpatialSnapshot | null {
+  try {
+    const serialized = window.sessionStorage.getItem(BREACH_V2_SPATIAL_SESSION_KEY);
+    window.sessionStorage.removeItem(BREACH_V2_SPATIAL_SESSION_KEY);
+    return parseBreachV2SpatialSnapshot(serialized, seed, path);
+  } catch {
+    return null;
+  }
+}
 
 export const BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS = Object.freeze({
   thickness: 0.245622262358666,
@@ -1175,6 +1240,14 @@ export function isBreachV2PortalReadyForTraversal(progress: number): boolean {
 
 export function doesBreachV2PortalBlockMovement(
   kind: "door" | "gate",
+  _progress: number,
+  gateClearsCapsule: boolean,
+): boolean {
+  return kind === "door" || !gateClearsCapsule;
+}
+
+export function doesBreachV2PortalBlockAperture(
+  kind: "door" | "gate",
   progress: number,
   gateClearsCapsule: boolean,
 ): boolean {
@@ -1182,9 +1255,9 @@ export function doesBreachV2PortalBlockMovement(
 }
 
 export function resolveBreachV2CameraDistanceForMode(
-  requestedDistance: number, hitFraction: number | null, isometric: boolean,
+  requestedDistance: number, hitFraction: number | null, _isometric: boolean,
 ): number {
-  return isometric ? Math.max(0, requestedDistance) : resolveBreachV2CameraDistance(requestedDistance, hitFraction);
+  return resolveBreachV2CameraDistance(requestedDistance, hitFraction);
 }
 
 export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = THREE.MathUtils.degToRad(-45);
@@ -2373,12 +2446,11 @@ async function placeSectionDoors(
       );
       const blocksMovement = doesBreachV2PortalBlockMovement(state.kind, state.progress, gateClearsCapsule);
       const blocksActorLineOfSight = blocksMovement;
-      const blocksAperture = blocksMovement;
+      const blocksAperture = doesBreachV2PortalBlockAperture(state.kind, state.progress, gateClearsCapsule);
       state.root.userData.blocksAperture = blocksAperture;
-      // A raised portcullis and a fully seated hinged leaf leave the walk plane.
-      // The static jamb/wall collider still owns the non-aperture boundary. The
-      // raised gate remains a spatial object above the capsule for height-aware
-      // camera/projectile queries, but it no longer blocks actor eye-level LOS.
+      // A raised portcullis leaves the walk plane. A hinged door only clears the
+      // aperture: its rotated leaf remains a physical, LOS, and camera blocker
+      // beside the doorway throughout the swing.
       state.root.userData.blocksMovement = blocksMovement;
       state.root.userData.blocksLineOfSight = blocksActorLineOfSight;
       const blocker = state.collisionBlocker;
@@ -2403,7 +2475,7 @@ async function placeSectionDoors(
         blocker.centerX = centerX;
         blocker.centerZ = centerZ;
         blocker.yaw = yaw;
-        blocker.blocksCamera = blocksMovement;
+        blocker.blocksCamera = true;
       }
       blocker.blocksMovement = blocksMovement;
       blocker.blocksLineOfSight = blocksActorLineOfSight;
@@ -3993,12 +4065,15 @@ export async function startDungeonPreview(
   let debrisCleanupDeadlineMs = 0;
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
+  let restoredSpatialState = consumeBreachV2SpatialSnapshot(options.seed, options.path);
   const previewUrl = new URL(window.location.href);
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
   // `gates=on` only when explicitly validating the campaign progression locks.
   const progressionGatesEnabled = previewUrl.searchParams.get("gates") === "on";
   if (previewUrl.searchParams.get("fresh") === "1") {
+    try { window.sessionStorage.removeItem(BREACH_V2_SPATIAL_SESSION_KEY); } catch { /* storage unavailable */ }
+    restoredSpatialState = null;
     await storyDatabase.clearDungeonRun(runId);
     previewUrl.searchParams.delete("fresh");
     window.history.replaceState(null, "", previewUrl);
@@ -4277,7 +4352,22 @@ export async function startDungeonPreview(
     }
     return [layout.landmarks.playerStart.x, layout.landmarks.playerStart.z];
   };
-  const requestedPosition = requestedRoom && requestedRoom.id !== "vestibule"
+  const restoredRoom = restoredSpatialState
+    ? layout.rooms.find((room) => (
+      restoredSpatialState.player.x >= room.x
+      && restoredSpatialState.player.x <= room.x + room.w
+      && restoredSpatialState.player.z >= room.z
+      && restoredSpatialState.player.z <= room.z + room.h
+    )) ?? null
+    : null;
+  const requestedPosition = restoredSpatialState
+    ? nearestWalkable(
+      restoredSpatialState.player.x,
+      restoredSpatialState.player.z,
+      true,
+      restoredRoom,
+    )
+    : requestedRoom && requestedRoom.id !== "vestibule"
     ? nearestWalkable(
       requestedRoom.x + requestedRoom.w / 2,
       requestedRoom.z + requestedRoom.h / 2,
@@ -4296,6 +4386,13 @@ export async function startDungeonPreview(
     initialX: playerPos.x,
     initialZ: playerPos.z,
   });
+  if (restoredSpatialState) {
+    for (const roomId of restoredSpatialState.discoveredRoomIds) {
+      const room = layout.rooms.find((candidate) => candidate.id === roomId);
+      if (room) fogOfWar.update(room.x + room.w / 2, room.z + room.h / 2);
+    }
+    fogOfWar.update(playerPos.x, playerPos.z);
+  }
   playerPositionForPortalSafety = playerPos;
   const setPlayerPosition = (x: number, z: number): void => {
     playerPos.set(x, floorElevationAt(layout, x, z), z);
@@ -4335,9 +4432,30 @@ export async function startDungeonPreview(
       isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
     ),
   });
-  let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
-  let camPitch = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
-  let camDist = firstPersonMode ? 0 : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
+  const restoredCamera = restoredSpatialState
+    && walkMode
+    && ["walk", "firstperson", "isometric"].includes(restoredSpatialState.cameraMode)
+    ? restoredSpatialState.camera
+    : null;
+  let camYaw = restoredCamera
+    ? restoredCamera.yaw
+    : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
+  let camPitch = restoredCamera
+    ? THREE.MathUtils.clamp(
+      restoredCamera.pitch,
+      isometricMode ? BREACH_V2_ISOMETRIC_MIN_PITCH : -0.18,
+      isometricMode ? BREACH_V2_ISOMETRIC_MAX_PITCH : 0.58,
+    )
+    : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
+  let camDist = firstPersonMode
+    ? 0
+    : restoredCamera
+      ? THREE.MathUtils.clamp(
+        restoredCamera.distance,
+        isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4,
+        isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10,
+      )
+      : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
@@ -4347,6 +4465,7 @@ export async function startDungeonPreview(
     container,
     keys,
     enabled: coarsePointer && walkMode,
+    cameraZoomEnabled: !firstPersonMode,
     adjustCameraDistance: (delta) => {
       if (firstPersonMode) return;
       const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
@@ -4777,6 +4896,24 @@ export async function startDungeonPreview(
     cam: activeCameraMode,
     warp,
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),
+    persistSpatialState: () => {
+      const fog = fogOfWar.snapshot();
+      const snapshot: BreachV2SpatialSnapshot = {
+        version: 1,
+        seed: options.seed,
+        path: options.path,
+        cameraMode: activeCameraMode,
+        player: { x: playerPos.x, z: playerPos.z },
+        camera: { yaw: camYaw, pitch: camPitch, distance: camDist },
+        discoveredRoomIds: fog.discoveredRoomIds,
+      };
+      try {
+        window.sessionStorage.setItem(BREACH_V2_SPATIAL_SESSION_KEY, JSON.stringify(snapshot));
+      } catch { /* a blocked storage API must not break camera-mode changes */ }
+    },
+    clearSpatialState: () => {
+      try { window.sessionStorage.removeItem(BREACH_V2_SPATIAL_SESSION_KEY); } catch { /* storage unavailable */ }
+    },
   });
 
   const timer = new THREE.Timer();

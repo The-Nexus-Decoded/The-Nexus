@@ -15,6 +15,8 @@ from pathlib import Path
 
 import hou
 
+from poc_output_policy import approved_output_directory, require_apprentice_license
+
 
 DIAMETER = 4.08
 COLUMNS = 48
@@ -95,6 +97,7 @@ for row in range(rows):
 
 geo.addAttrib(hou.attribType.Global, "effect_id", "vestibule-soulwell-abyss-water")
 geo.addAttrib(hou.attribType.Global, "occlusion_mode", "opaque-bottomless")
+geo.addAttrib(hou.attribType.Global, "surface_opacity", 1.0)
 geo.addAttrib(hou.attribType.Global, "collision_mode", "landmark-boundary")
 geo.addAttrib(hou.attribType.Global, "license_lane", "HOUDINI_APPRENTICE_POC")
 '''
@@ -120,6 +123,10 @@ def geometry_stats(node: hou.SopNode, frame: int) -> dict[str, object]:
     geometry = node.geometry()
     positions = [point.position() for point in geometry.points()]
     lift_values = [position.y() for position in positions]
+    radius = DIAMETER / 2.0
+    primitive_centers = [primitive.boundingBox().center() for primitive in geometry.prims()]
+    center_radii = [(center.x() ** 2 + center.z() ** 2) ** 0.5 for center in primitive_centers]
+    surface_opacity = float(geometry.attribValue("surface_opacity"))
     position_fingerprint = hashlib.sha256(
         json.dumps(
             [[round(value, 6) for value in position] for position in positions],
@@ -136,14 +143,24 @@ def geometry_stats(node: hou.SopNode, frame: int) -> dict[str, object]:
             "max": list(geometry.boundingBox().maxvec()),
         },
         "surfaceLift": {"min": min(lift_values), "max": max(lift_values)},
+        "occlusionEvidence": {
+            "surfaceOpacity": surface_opacity,
+            "centerCovered": min(center_radii) <= diameter_cell_radius(),
+            "radialCoverage": max(center_radii) / radius,
+        },
         "positionSha256": position_fingerprint,
     }
 
 
+def diameter_cell_radius() -> float:
+    return (2.0 ** 0.5) * DIAMETER / max(COLUMNS, ROWS)
+
+
 def main() -> None:
     args = parse_args()
-    output_dir = args.output_dir.resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
+    license_name = hou.licenseCategory().name()
+    require_apprentice_license(license_name)
+    output_dir = approved_output_directory(args.output_dir)
 
     hou.hipFile.clear(suppress_save_prompt=True)
     hou.setFps(FPS)
@@ -186,7 +203,7 @@ def main() -> None:
         "scope": "isolated environmental VFX POC; no dungeon rebuild",
         "tool": {
             "houdiniVersion": hou.applicationVersionString(),
-            "licenseCategory": hou.licenseCategory().name(),
+            "licenseCategory": license_name,
             "sceneFormat": ".hipnc",
             "commercialProductionReady": False,
         },
@@ -204,8 +221,13 @@ def main() -> None:
         "validation": {
             "animatedGeometry": len({frame["positionSha256"] for frame in frames}) == len(frames),
             "stableTopology": len({(frame["points"], frame["primitives"]) for frame in frames}) == 1,
-            "bottomOcclusionContract": True,
-            "nonCommercialArtifactsSegregated": True,
+            "bottomOcclusionContract": all(
+                frame["occlusionEvidence"]["surfaceOpacity"] >= 0.999
+                and frame["occlusionEvidence"]["centerCovered"]
+                and frame["occlusionEvidence"]["radialCoverage"] >= 0.95
+                for frame in frames
+            ),
+            "nonCommercialArtifactsSegregated": output_dir == approved_output_directory(output_dir),
         },
         "outputs": {
             "scene": {"path": scene_path.name, "sha256": sha256(scene_path)},

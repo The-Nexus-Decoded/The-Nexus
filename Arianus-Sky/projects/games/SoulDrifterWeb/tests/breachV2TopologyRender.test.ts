@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { breachV2CellKey, generateBreachV2 } from "../src/game/dungeons/breach-v2-generator";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
@@ -34,6 +36,11 @@ import {
   splitBreachV2Boundary,
 } from "../src/game/dungeons/breach-v2-topology";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
+import { instantiateDungeonProp } from "../src/game/environment/DungeonPropKit";
+import {
+  disposeSoulwellChamberResources,
+} from "../src/game/environment/rooms/SoulwellChamber";
+import type { SoulwellMaterialLibrary } from "../src/game/environment/MaterialLibrary";
 
 const PATHS = ["wayfarer", "oathbreaker"] as const;
 const SUPPORTED_ROUTE_SEEDS = [1, 2, 7, 4182] as const;
@@ -42,12 +49,128 @@ const CAPSULE_PROFILES = [
   { id: "player", radius: 0.35 },
   { id: "humanoid-npc", radius: 0.45 },
 ] as const;
+const importNodeModule = (specifier: string) => import(specifier);
+const fittedAssetBounds = new Map<string, THREE.Box3>();
+
+function disposeObjectResources(root: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  root.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    geometries.add(child.geometry);
+    (Array.isArray(child.material) ? child.material : [child.material])
+      .forEach((material) => materials.add(material));
+  });
+  geometries.forEach((geometry) => geometry.dispose());
+  materials.forEach((material) => material.dispose());
+}
+
+async function loadFittedAssetBounds(
+  asset: keyof typeof DUNGEON_PROP_ASSETS,
+  targetHeight: number,
+  maxFootprint: number,
+): Promise<THREE.Box3> {
+  const key = `${asset}:${targetHeight}:${maxFootprint}`;
+  const cached = fittedAssetBounds.get(key);
+  if (cached) return cached.clone();
+  const [{ readFile }, { fileURLToPath }] = await Promise.all([
+    importNodeModule("node:fs/promises"),
+    importNodeModule("node:url"),
+  ]);
+  const sourcePath = fileURLToPath(new URL(
+    `../public${DUNGEON_PROP_ASSETS[asset].sourceUrl}`,
+    import.meta.url,
+  ));
+  const bytes = await readFile(sourcePath);
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  (globalThis as unknown as { self: typeof globalThis }).self = globalThis;
+  const originalError = console.error;
+  let source: THREE.Object3D | null = null;
+  let instance: ReturnType<typeof instantiateDungeonProp> | null = null;
+  try {
+    console.error = () => undefined;
+    source = (await new GLTFLoader()
+      .setMeshoptDecoder(MeshoptDecoder)
+      .parseAsync(buffer, "")).scene;
+    instance = instantiateDungeonProp(source, {
+      ...DUNGEON_PROP_ASSETS[asset],
+      targetHeight,
+      maxFootprint,
+    }, 0);
+    instance.root.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(instance.root, true);
+    fittedAssetBounds.set(key, bounds.clone());
+    return bounds;
+  } finally {
+    console.error = originalError;
+    instance?.dispose();
+    if (source) disposeObjectResources(source);
+  }
+}
+
+async function buildFittedPlacementMeasurements(
+  layout: ReturnType<typeof buildBreachV2Layout>,
+): Promise<BreachV2PlacementProxyMeasurement[]> {
+  const measurements: BreachV2PlacementProxyMeasurement[] = [];
+  for (const [index, placement] of layout.placements.entries()) {
+    if (!placement.blocking || !placement.glbRuntime || placement.asset === "ruined-stone-archway") {
+      continue;
+    }
+    const asset = placement.asset as keyof typeof DUNGEON_PROP_ASSETS;
+    const needsCandleStand = asset === "candelabra-cluster"
+      && placement.elevation - placement.floorElevation < 0.2;
+    const bounds = await loadFittedAssetBounds(
+      asset,
+      needsCandleStand ? 0.72 : placement.height,
+      needsCandleStand ? 0.82 : placement.footprint,
+    );
+    if (needsCandleStand) {
+      bounds.union(await loadFittedAssetBounds("reinforced-crate", 0.74, 0.9));
+    }
+    const sourceYawCorrections: Partial<Record<keyof typeof DUNGEON_PROP_ASSETS, number>> = {
+      "archive-bookshelf": 90,
+      "archive-cupboard": 90,
+      "empty-weapon-rack": 90,
+      "guardian-statue": 270,
+      "reliquary-wall-alcove": 90,
+    };
+    const sourceYawCorrection = sourceYawCorrections[asset] ?? 0;
+    const tutorialAsset = placement.roomId === "vestibule" && [
+      "trestle-table", "high-backed-chair", "storage-chest",
+      "reinforced-crate", "storage-barrel",
+    ].includes(asset);
+    const authoredFloorFacing = tutorialAsset || asset === "guardian-statue";
+    const vestibuleGuardianFacing = placement.roomId === "vestibule" && asset === "guardian-statue"
+      ? 270
+      : null;
+    const authoredYaw = vestibuleGuardianFacing ?? (authoredFloorFacing
+      ? ({ north: 0, east: 90, south: 180, west: 270 }[placement.facing] ?? placement.yaw)
+      : placement.yaw);
+    const yaw = THREE.MathUtils.degToRad(authoredYaw + sourceYawCorrection);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const cosine = Math.cos(yaw);
+    const sine = Math.sin(yaw);
+    measurements.push({
+      id: `${placement.roomId}:${placement.asset}:${index}`,
+      centerX: placement.x + center.x * cosine + center.z * sine,
+      centerZ: placement.z - center.x * sine + center.z * cosine,
+      halfX: size.x / 2,
+      halfZ: size.z / 2,
+      yaw,
+      minY: placement.elevation + bounds.min.y,
+      maxY: placement.elevation + bounds.max.y + (needsCandleStand ? 0.76 : 0),
+    });
+  }
+  return measurements;
+}
 
 function makeRuntimeCanStandAt(
   layout: ReturnType<typeof buildBreachV2Layout>,
   generated: ReturnType<typeof generateBreachV2>,
   radius: number,
   includeDiagnosticBlockedCells = false,
+  placementMeasurements: readonly BreachV2PlacementProxyMeasurement[] = [],
 ): (x: number, z: number) => boolean {
   const navCell = layout.meta.navCell;
   const walkable = new Set(generated.navCells.map(breachV2CellKey));
@@ -56,7 +179,7 @@ function makeRuntimeCanStandAt(
   }
   const colliders = [
     ...buildBreachV2ShellColliders(layout),
-    ...buildBreachV2PlacementColliders(layout),
+    ...buildBreachV2PlacementColliders(layout, placementMeasurements),
     ...buildBreachV2LandmarkColliders(layout),
   ];
   return (x: number, z: number): boolean => {
@@ -109,6 +232,43 @@ function expectSweptProfileRoute(
 }
 
 describe("BREACH-V2 canonical topology renderer inventory", () => {
+  it("disposes every unique Soulwell-owned geometry and cloned material exactly once", () => {
+    const root = new THREE.Group();
+    const sharedGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const clonedMaterial = new THREE.MeshStandardMaterial();
+    const libraryMaterial = new THREE.MeshStandardMaterial();
+    root.add(
+      new THREE.Mesh(sharedGeometry, clonedMaterial),
+      new THREE.Mesh(sharedGeometry, [clonedMaterial, libraryMaterial]),
+    );
+    let geometryDisposals = 0;
+    let clonedMaterialDisposals = 0;
+    let libraryDisposals = 0;
+    sharedGeometry.addEventListener("dispose", () => { geometryDisposals += 1; });
+    clonedMaterial.addEventListener("dispose", () => { clonedMaterialDisposals += 1; });
+    const materials = {
+      flagstone: libraryMaterial,
+      masonry: libraryMaterial,
+      masonryOccluder: libraryMaterial,
+      bronze: libraryMaterial,
+      oak: libraryMaterial,
+      darkIron: libraryMaterial,
+      soulglass: libraryMaterial,
+      soulwater: libraryMaterial,
+      moss: libraryMaterial,
+      ash: libraryMaterial,
+      tomes: [libraryMaterial, libraryMaterial, libraryMaterial],
+      void: libraryMaterial,
+      dispose: () => { libraryDisposals += 1; },
+    } as unknown as SoulwellMaterialLibrary;
+
+    disposeSoulwellChamberResources(root, materials);
+
+    expect(geometryDisposals).toBe(1);
+    expect(clonedMaterialDisposals).toBe(1);
+    expect(libraryDisposals).toBe(1);
+  });
+
   it("reconciles one explicit collision contract across the supported seed and route matrix", () => {
     for (const seed of [1, 2, 7, 4182]) {
       for (const pathId of PATHS) {
@@ -169,11 +329,19 @@ describe("BREACH-V2 canonical topology renderer inventory", () => {
     }
   });
 
-  it("keeps every authored prop while preserving both capsule routes on supported seeds", () => {
+  it("keeps every authored prop while preserving both capsule routes on supported seeds", async () => {
     for (const seed of SUPPORTED_ROUTE_SEEDS) {
       for (const pathId of PATHS) {
         const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
         const generated = generateBreachV2(seed, pathId);
+        const placementMeasurements = await buildFittedPlacementMeasurements(layout);
+        const measuredPlacementCount = layout.placements.filter((placement) => (
+          placement.blocking
+          && placement.glbRuntime
+          && placement.asset !== "ruined-stone-archway"
+        )).length;
+        expect(placementMeasurements, `${seed}:${pathId}:fitted-collider-coverage`)
+          .toHaveLength(measuredPlacementCount);
         expect(layout.placements, `${seed}:${pathId}:authored-inventory`)
           .toHaveLength(generated.placements.length + 6);
         for (const [index, placement] of generated.placements.entries()) {
@@ -182,7 +350,13 @@ describe("BREACH-V2 canonical topology renderer inventory", () => {
         }
         for (const profile of CAPSULE_PROFILES) {
           const label = `${seed}:${pathId}:${profile.id}`;
-          const canStandAt = makeRuntimeCanStandAt(layout, generated, profile.radius);
+          const canStandAt = makeRuntimeCanStandAt(
+            layout,
+            generated,
+            profile.radius,
+            false,
+            placementMeasurements,
+          );
           const start = findRuntimeStart(layout, canStandAt);
           expect(start, `${label}:start`).not.toBeNull();
           const route = findBreachV2AdaptiveRuntimePath(
@@ -198,39 +372,59 @@ describe("BREACH-V2 canonical topology renderer inventory", () => {
     }
   }, 60_000);
 
-  it("keeps coarse blocked cells diagnostic when fitted collision proves a route", () => {
+  it("keeps coarse blocked cells separate from fitted runtime collision truth", async () => {
     const layout = buildBreachV2Layout(1, "wayfarer", DUNGEON_PROP_ASSETS);
     const generated = generateBreachV2(1, "wayfarer");
-    const exactCanStandAt = makeRuntimeCanStandAt(layout, generated, 0.45);
-    const diagnosticCanStandAt = makeRuntimeCanStandAt(layout, generated, 0.45, true);
+    const placementMeasurements = await buildFittedPlacementMeasurements(layout);
+    const exactCanStandAt = makeRuntimeCanStandAt(
+      layout, generated, 0.45, false, placementMeasurements,
+    );
+    const diagnosticCanStandAt = makeRuntimeCanStandAt(
+      layout, generated, 0.45, true, placementMeasurements,
+    );
     const exactStart = findRuntimeStart(layout, exactCanStandAt);
     const diagnosticStart = findRuntimeStart(layout, diagnosticCanStandAt);
 
     expect(generated.blockedCells.length).toBeGreaterThan(0);
     expect(exactStart).not.toBeNull();
     expect(diagnosticStart).not.toBeNull();
-    expect(findBreachV2AdaptiveRuntimePath(
+    const exactRoute = findBreachV2AdaptiveRuntimePath(
       exactStart!,
       layout.landmarks.exitPoint,
       layout.meta.navCell / 2,
       exactCanStandAt,
-    ).length).toBeGreaterThan(0);
-    expect(findBreachV2AdaptiveRuntimePath(
+    );
+    const diagnosticRoute = findBreachV2AdaptiveRuntimePath(
       diagnosticStart!,
       layout.landmarks.exitPoint,
       layout.meta.navCell / 2,
       diagnosticCanStandAt,
-    )).toHaveLength(0);
+    );
+    const coarseOnlyExclusions = generated.blockedCells.filter((cell) => {
+      const x = (cell.col + 0.5) * layout.meta.navCell;
+      const z = (cell.row + 0.5) * layout.meta.navCell;
+      return exactCanStandAt(x, z) && !diagnosticCanStandAt(x, z);
+    });
+    expect(exactRoute.length).toBeGreaterThan(0);
+    expect(diagnosticRoute.length).toBeGreaterThan(0);
+    expect(coarseOnlyExclusions.length).toBeGreaterThan(0);
   }, 20_000);
 
-  it("preserves both capsule routes across a deterministic random-seed sweep", () => {
+  it("preserves both capsule routes across a deterministic random-seed sweep", async () => {
     for (const seed of RANDOM_ROUTE_SEEDS) {
       for (const pathId of PATHS) {
         const layout = buildBreachV2Layout(seed, pathId, DUNGEON_PROP_ASSETS);
         const generated = generateBreachV2(seed, pathId);
+        const placementMeasurements = await buildFittedPlacementMeasurements(layout);
         for (const profile of CAPSULE_PROFILES) {
           const label = `${seed}:${pathId}:${profile.id}`;
-          const canStandAt = makeRuntimeCanStandAt(layout, generated, profile.radius);
+          const canStandAt = makeRuntimeCanStandAt(
+            layout,
+            generated,
+            profile.radius,
+            false,
+            placementMeasurements,
+          );
           const start = findRuntimeStart(layout, canStandAt);
           expect(start, `${label}:start`).not.toBeNull();
           const route = findBreachV2AdaptiveRuntimePath(
@@ -984,13 +1178,14 @@ describe("BREACH-V2 canonical topology renderer inventory", () => {
     )?.collider.id).toBe("raised-gate");
   });
 
-  it("plans a continuous player-radius route through every dogleg on both paths", () => {
+  it("plans a continuous player-radius route through every dogleg on both paths", async () => {
     for (const pathId of PATHS) {
       const layout = buildBreachV2Layout(4182, pathId, DUNGEON_PROP_ASSETS);
       const generated = generateBreachV2(4182, pathId);
+      const placementMeasurements = await buildFittedPlacementMeasurements(layout);
       const navCell = layout.meta.navCell;
       const walkable = new Set(generated.navCells.map(breachV2CellKey));
-      const placementColliders = buildBreachV2PlacementColliders(layout);
+      const placementColliders = buildBreachV2PlacementColliders(layout, placementMeasurements);
       const shellColliders = buildBreachV2ShellColliders(layout);
       const landmarkColliders = buildBreachV2LandmarkColliders(layout);
       const staticColliders = [...shellColliders, ...placementColliders, ...landmarkColliders];
