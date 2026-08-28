@@ -9,12 +9,19 @@ Renders the whole starting zone at TRUE METERS, one uniform scale everywhere:
 Master PNG  -> workspace (never shipped)
 1600px WebP -> repo docs/maps/breach-v2/  (MAP_ASSET_PIPELINE convention)
 
-Run:  python make_breach_v2_flatmap.py
+Write: python make_breach_v2_flatmap.py --write --master H:/temp/breach-v2-flatmap-master.png
+Check: python make_breach_v2_flatmap.py --check
 """
 
+import argparse
+import hashlib
+import json
+import os
+import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+import PIL
+from PIL import Image, ImageDraw, ImageFont, features
 
 from breach_v2_design import (
     ASSET_META, BOOK_PROPS, BOSS_ANCHOR_SOCKETS, BOSS_RUNE_CIRCLE, BOSS_SET, CORRIDOR_WIDTH,
@@ -24,9 +31,21 @@ from breach_v2_design import (
     VESTIBULE_LANDMARKS, WALL_ART, WAY_UPWARD_EXIT_ELEVATION, WORLD_ANCHOR,
 )
 
-HERE = Path(__file__).parent
-MASTER = HERE / "breach-v2-flatmap-master.png"
-EXPORT = HERE.parent.parent / "docs" / "maps" / "breach-v2" / "breach-v2-flatmap-1600.webp"
+HERE = Path(__file__).resolve().parent
+PROJECT_ROOT = HERE.parent.parent
+DESIGN_SOURCE = HERE / "breach_v2_design.py"
+FONT_REGULAR = PROJECT_ROOT / "public" / "assets" / "fonts" / "Alegreya-Variable.ttf"
+FONT_BOLD = PROJECT_ROOT / "public" / "assets" / "fonts" / "Cinzel-Variable.ttf"
+FONT_LICENSES = (
+    PROJECT_ROOT / "public" / "assets" / "fonts" / "OFL-Alegreya.txt",
+    PROJECT_ROOT / "public" / "assets" / "fonts" / "OFL-Cinzel.txt",
+)
+EXPORT = PROJECT_ROOT / "docs" / "maps" / "breach-v2" / "breach-v2-flatmap-1600.webp"
+RECEIPT = HERE / "breach-v2-flatmap-receipt.json"
+ASSET_MANIFEST = PROJECT_ROOT / "third-party-assets.json"
+REQUIREMENTS = HERE / "requirements-flatmap.txt"
+FLATMAP_ASSET_ID = "breach-v2-wall-art-breach-v2-flatmap"
+PINNED_PILLOW = "11.2.1"
 
 SCALE = 9.0  # px per meter — UNIFORM across every panel on this sheet
 PPM = SCALE
@@ -67,14 +86,10 @@ FIXED_TAG = (150, 160, 175)
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    if bold:
-        cands = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\arialbd.ttf"]
-    else:
-        cands = [r"C:\Windows\Fonts\georgia.ttf", r"C:\Windows\Fonts\arial.ttf"]
-    for path in cands:
-        if Path(path).exists():
-            return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
+    path = FONT_BOLD if bold else FONT_REGULAR
+    if not path.is_file():
+        raise FileNotFoundError(f"Pinned flat-map font is missing: {path}")
+    return ImageFont.truetype(path, size)
 
 
 def hatch_floor(draw: ImageDraw.ImageDraw, x0: float, y0: float, x1: float, y1: float,
@@ -485,9 +500,13 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
     # --- fixed-room dressing index (compressed; vestibule/plaza numbered in A2)
     def _compress(items):
         counts = {}
-        for asset, _x, _y in items:
+        for item in items:
+            asset = item[0]
             counts[asset] = counts.get(asset, 0) + 1
         return " · ".join(f"{a} x{n}" if n > 1 else a for a, n in counts.items())
+
+    def _summarize(mapping):
+        return " · ".join(f"{room}: {_compress(items)}" for room, items in mapping.items())
 
     tbx, tby = plan_px(-2.0, 23.0)
     label(draw, tbx, tby, "FIXED DRESSING (kit IDs) — Vestibule/Plaza/Link numbered in panel A2 · "
@@ -505,21 +524,10 @@ def draw_spine(draw: ImageDraw.ImageDraw) -> None:
         nx = tbx + draw.textlength(f"{name}: ", font=font(13, bold=True))
         label(draw, nx, ry, _compress(items), font(13), PAPER_DIM)
         ry += 19
-    label(draw, tbx, ry, "ashen lock (boss): ", font(13, bold=True), GOLD)
-    bx2 = tbx + draw.textlength("ashen lock (boss): ", font=font(13, bold=True))
-    label(draw, bx2, ry,
-          "1 stair-dais · 2-3 guardian-statue · 4-6 corruption-growth · 7-8 chain-shackle · "
-          "9-10 floor-brazier · 11 bone-pile · 12 cave-in-rubble · 13 hanging-brazier", font(13), PAPER_DIM)
-    ry += 19
-    label(draw, tbx, ry, "wall art (§5A): ", font(13, bold=True), GROUP_COLORS["art"])
-    wx = tbx + draw.textlength("wall art (§5A): ", font=font(13, bold=True))
-    label(draw, wx, ry,
-          "vestibule: thalenyr-atlas + heartvale-section maps, lock-inscription relief · plaza: breach flatmap, "
-          "wayfarer/oathbreaker banners", font(13), PAPER_DIM)
-    ry += 19
-    label(draw, tbx + 92, ry,
-          "convergence: ashen banner · ante: warden relief · boss: cinderbound banner x2 · vault: first-memory "
-          "relief · E-03/E-07/H-03/H-07: painting/scroll/banners", font(13), PAPER_DIM)
+    ry = wrap_label(draw, tbx, ry, f"ashen lock (boss): {_compress(FIXED_DRESSING['ashen-lock'])}",
+                    font(13), PAPER_DIM, SPINE_W - 110, 18)
+    wrap_label(draw, tbx, ry, f"wall art (§5A): {_summarize(WALL_ART)}", font(13),
+               GROUP_COLORS["art"], SPINE_W - 110, 18)
 
 
 # ---------------------------------------------------------------------------
@@ -948,13 +956,36 @@ def draw_footer(draw: ImageDraw.ImageDraw) -> None:
     label(draw, bx + 440, by - 36, "engine nav cell = 1.75 m (hidden under continuous geometry at runtime)",
           font(16), PAPER_DIM)
     label(draw, bx, by + 44,
-          "Master PNG: workspace souldrifter-thalenyr/flatmaps/breach-v2/ · shipped: docs/maps/breach-v2/breach-v2-flatmap-1600.webp (WebP q75) · "
-          "registry derived measured-only from this map", font(16), PAPER_DIM)
+          "Master PNG: explicit external --master path (never repo-contained) · shipped: "
+          "docs/maps/breach-v2/breach-v2-flatmap-1600.webp (WebP q75) · receipt pins inputs + pixels + bytes",
+          font(16), PAPER_DIM)
     label(draw, CANVAS_W - 40, FOOTER_Y0 + 44, "BREACH-V2 · 2026-08-24 · v3 (ascent + portal audit)",
           font(18, bold=True), PAPER_DIM, anchor="ra")
 
 
-def main() -> None:
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def pixel_digest(image: Image.Image) -> str:
+    return hashlib.sha256(image.convert("RGB").tobytes()).hexdigest()
+
+
+def validate_generation_inputs() -> None:
+    if PIL.__version__ != PINNED_PILLOW:
+        raise RuntimeError(f"Pillow {PINNED_PILLOW} is required; found {PIL.__version__}")
+    if REQUIREMENTS.read_text(encoding="utf-8").strip() != f"Pillow=={PINNED_PILLOW}":
+        raise RuntimeError(f"Flat-map dependency pin drifted: {REQUIREMENTS}")
+    for path in (DESIGN_SOURCE, FONT_REGULAR, FONT_BOLD, *FONT_LICENSES, ASSET_MANIFEST):
+        if not path.is_file():
+            raise FileNotFoundError(f"Required flat-map input is missing: {path}")
+
+
+def render_document(master_path: Path, export_path: Path) -> tuple[Image.Image, Image.Image]:
     img = Image.new("RGB", (CANVAS_W, CANVAS_H), INK)
     draw = ImageDraw.Draw(img, "RGBA")
     draw_header(draw)
@@ -967,11 +998,180 @@ def main() -> None:
     draw_rail(draw)
     draw_strips(draw)
     draw_footer(draw)
-    img.save(MASTER)
-    export = img.resize((1600, round(CANVAS_H * 1600 / CANVAS_W)), Image.LANCZOS)
-    export.save(EXPORT, quality=75, method=6)
-    print(f"master: {MASTER} {img.size}")
-    print(f"export: {EXPORT} {export.size} {EXPORT.stat().st_size/1024:.0f} KiB")
+    img.save(master_path, format="PNG", optimize=False)
+    export = img.resize((1600, round(CANVAS_H * 1600 / CANVAS_W)), Image.Resampling.LANCZOS)
+    export.save(export_path, format="WEBP", quality=75, method=6, exact=True)
+    return img, export
+
+
+def build_receipt(master_path: Path, export_path: Path, master: Image.Image,
+                  export: Image.Image) -> dict:
+    inputs = (Path(__file__).resolve(), DESIGN_SOURCE, FONT_REGULAR, FONT_BOLD,
+              *FONT_LICENSES, REQUIREMENTS)
+    saved_master = Image.open(master_path).convert("RGB")
+    saved_export = Image.open(export_path).convert("RGB")
+    return {
+        "schemaVersion": 1,
+        "generator": Path(__file__).resolve().relative_to(PROJECT_ROOT).as_posix(),
+        "toolchain": {
+            "pillow": PIL.__version__,
+            "freetype": features.version_module("freetype2"),
+            "webp": features.version_module("webp"),
+        },
+        "inputs": {
+            path.relative_to(PROJECT_ROOT).as_posix(): sha256_file(path)
+            for path in inputs
+        },
+        "outputs": {
+            "externalMaster": {
+                "format": "PNG",
+                "width": master.width,
+                "height": master.height,
+                "bytes": master_path.stat().st_size,
+                "sha256": sha256_file(master_path),
+                "pixelSha256": pixel_digest(saved_master),
+            },
+            EXPORT.relative_to(PROJECT_ROOT).as_posix(): {
+                "format": "WEBP",
+                "quality": 75,
+                "method": 6,
+                "width": export.width,
+                "height": export.height,
+                "bytes": export_path.stat().st_size,
+                "sha256": sha256_file(export_path),
+                "pixelSha256": pixel_digest(saved_export),
+            },
+        },
+    }
+
+
+def updated_manifest(export_sha256: str) -> dict:
+    manifest = json.loads(ASSET_MANIFEST.read_text(encoding="utf-8"))
+    assets = [asset for asset in manifest.get("shippingAssets", [])
+              if asset.get("id") == FLATMAP_ASSET_ID]
+    if len(assets) != 1:
+        raise RuntimeError(f"Expected exactly one {FLATMAP_ASSET_ID} manifest entry; found {len(assets)}")
+    assets[0]["sha256"] = export_sha256
+    assets[0]["notes"] = (
+        "Reproducible 1600px WebP q75 export; inputs, toolchain, byte digest, and pixel digest are pinned in "
+        "scripts/maps/breach-v2-flatmap-receipt.json. The master PNG must be written outside the repository."
+    )
+    return manifest
+
+
+def promote_files(staged_targets: list[tuple[Path, Path]]) -> None:
+    promoted: list[tuple[Path, Path | None]] = []
+    try:
+        for staged, target in staged_targets:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            backup = None
+            candidate_backup = target.with_name(f".{target.name}.flatmap-backup")
+            if candidate_backup.exists():
+                raise RuntimeError(f"Stale flat-map backup blocks promotion: {candidate_backup}")
+            if target.exists():
+                backup = candidate_backup
+                os.replace(target, backup)
+            try:
+                os.replace(staged, target)
+            except Exception:
+                if backup is not None:
+                    os.replace(backup, target)
+                raise
+            promoted.append((target, backup))
+    except Exception:
+        for target, backup in reversed(promoted):
+            target.unlink(missing_ok=True)
+            if backup is not None:
+                os.replace(backup, target)
+        raise
+    else:
+        for _target, backup in promoted:
+            if backup is not None:
+                backup.unlink(missing_ok=True)
+
+
+def assert_external_master(master: Path) -> Path:
+    resolved = master.expanduser().resolve()
+    if resolved == PROJECT_ROOT or PROJECT_ROOT in resolved.parents:
+        raise ValueError(f"Master must be outside the repository: {resolved}")
+    if resolved.suffix.lower() != ".png":
+        raise ValueError(f"Master must use a .png filename: {resolved}")
+    return resolved
+
+
+def write_outputs(master_target: Path) -> None:
+    master_target.parent.mkdir(parents=True, exist_ok=True)
+    EXPORT.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="breach-v2-master-", dir=master_target.parent) as master_dir, \
+            tempfile.TemporaryDirectory(prefix=".breach-v2-export-", dir=EXPORT.parent) as repo_dir:
+        staged_master = Path(master_dir) / master_target.name
+        staged_export = Path(repo_dir) / EXPORT.name
+        staged_receipt = Path(repo_dir) / RECEIPT.name
+        staged_manifest = Path(repo_dir) / ASSET_MANIFEST.name
+        master, export = render_document(staged_master, staged_export)
+        receipt = build_receipt(staged_master, staged_export, master, export)
+        manifest = updated_manifest(receipt["outputs"][EXPORT.relative_to(PROJECT_ROOT).as_posix()]["sha256"])
+        staged_receipt.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        staged_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        promote_files([
+            (staged_master, master_target),
+            (staged_export, EXPORT),
+            (staged_receipt, RECEIPT),
+            (staged_manifest, ASSET_MANIFEST),
+        ])
+    print(f"master: {master_target} {CANVAS_W}x{CANVAS_H}")
+    print(f"export: {EXPORT} {EXPORT.stat().st_size / 1024:.0f} KiB")
+    print(f"receipt: {RECEIPT}")
+
+
+def check_outputs() -> None:
+    for path in (EXPORT, RECEIPT):
+        if not path.is_file():
+            raise FileNotFoundError(f"Tracked flat-map output is missing: {path}")
+    check_root = Path(os.environ.get("SOULDRIFTER_TEMP_ROOT", "H:/temp")).expanduser().resolve()
+    check_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="breach-v2-flatmap-check-", dir=check_root) as temp_dir:
+        temp = Path(temp_dir)
+        generated_master = temp / "master.png"
+        generated_export = temp / "export.webp"
+        master, export = render_document(generated_master, generated_export)
+        expected_receipt = build_receipt(generated_master, generated_export, master, export)
+        actual_receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        if actual_receipt != expected_receipt:
+            raise RuntimeError("Flat-map receipt does not match the pinned inputs or regenerated output")
+        if generated_export.read_bytes() != EXPORT.read_bytes():
+            raise RuntimeError("Tracked flat-map WebP bytes differ from a pinned regeneration")
+        export_key = EXPORT.relative_to(PROJECT_ROOT).as_posix()
+        tracked = Image.open(EXPORT).convert("RGB")
+        if pixel_digest(tracked) != actual_receipt["outputs"][export_key]["pixelSha256"]:
+            raise RuntimeError("Tracked flat-map pixel digest differs from its receipt")
+        manifest = updated_manifest(actual_receipt["outputs"][export_key]["sha256"])
+        if manifest != json.loads(ASSET_MANIFEST.read_text(encoding="utf-8")):
+            raise RuntimeError("Flat-map exact-file provenance hash differs from its tracked export")
+    print(f"flat-map check passed: {EXPORT}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--write", action="store_true", help="stage and promote the external master and tracked outputs")
+    mode.add_argument("--check", action="store_true", help="regenerate read-only and verify bytes, pixels, and receipt")
+    parser.add_argument("--master", type=Path, help="explicit external PNG destination; required with --write")
+    args = parser.parse_args()
+    if args.write and args.master is None:
+        parser.error("--write requires --master outside the repository")
+    if args.check and args.master is not None:
+        parser.error("--master is only valid with --write")
+    return args
+
+
+def main() -> None:
+    args = parse_args()
+    validate_generation_inputs()
+    if args.write:
+        write_outputs(assert_external_master(args.master))
+    else:
+        check_outputs()
 
 
 if __name__ == "__main__":
