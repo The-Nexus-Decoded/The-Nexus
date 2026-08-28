@@ -42,5 +42,14 @@ export async function prepareContainedOutputParent(projectRoot, outputPath, labe
   await mkdir(parent, { recursive: true });
   const realParent = await realpath(parent);
   assertLexicallyInside(root, realParent, label);
+  try {
+    const outputStat = await lstat(output);
+    if (outputStat.isSymbolicLink()) {
+      throw new Error(`${label} must not be a symbolic link or reparse point.`);
+    }
+    assertLexicallyInside(root, await realpath(output), label);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
   return output;
 }

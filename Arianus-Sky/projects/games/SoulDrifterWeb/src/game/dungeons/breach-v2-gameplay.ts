@@ -147,11 +147,11 @@ function normalizedHitPoints(value: unknown): Record<string, number> {
 function normalizeEnvironmentState(
   config: BreachV2RunConfig,
   value: unknown,
-  migrateLegacyCoffer: boolean,
+  savedCollectionComplete: boolean,
 ): BreachV2EnvironmentState {
   const initial = initialEnvironmentState(config);
   if (!isRecord(value)) {
-    if (migrateLegacyCoffer) {
+    if (savedCollectionComplete) {
       initial.cofferOpened = true;
       initial.pickupDropped = true;
       initial.pickupCollected = true;
@@ -179,7 +179,7 @@ function normalizeEnvironmentState(
     removedColliderIds: normalizedStringArray(value.removedColliderIds),
     debrisObjectIds: normalizedStringArray(value.debrisObjectIds).slice(-MAX_ACTIVE_DEBRIS_RECORDS),
   };
-  if (migrateLegacyCoffer) {
+  if (savedCollectionComplete) {
     environment.cofferOpened = true;
     environment.pickupDropped = true;
     environment.pickupCollected = true;
@@ -246,10 +246,13 @@ function restoreState(config: BreachV2RunConfig): BreachV2RunState {
     || !Array.isArray(candidate.rewardIds)
   ) return initialState(config);
   const restored = cloneState(candidate as unknown as BreachV2RunState);
-  const legacyCoffer = candidate.schemaVersion === 1 && restored.tutorial.cofferOpened;
   restored.schemaVersion = BREACH_V2_RUN_SCHEMA_VERSION;
-  restored.environment = normalizeEnvironmentState(config, candidate.environment, legacyCoffer);
-  if (restored.environment.pickupCollected) restored.tutorial.cofferOpened = true;
+  restored.environment = normalizeEnvironmentState(
+    config,
+    candidate.environment,
+    restored.tutorial.cofferOpened,
+  );
+  restored.tutorial.cofferOpened = restored.environment.pickupCollected;
   return restored;
 }
 

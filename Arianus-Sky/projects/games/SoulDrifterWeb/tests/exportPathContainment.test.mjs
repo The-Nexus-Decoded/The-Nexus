@@ -32,4 +32,21 @@ describe("project output containment", () => {
       fs.rmSync(external, { force: true, recursive: true });
     }
   });
+
+  it("rejects an existing output leaf redirected to an external file", async () => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "bv2-output-root-"));
+    const external = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "bv2-output-external-")), "sentinel.json");
+    const output = path.join(fixture, "layout.json");
+    try {
+      fs.writeFileSync(external, "preserve-me", "utf8");
+      fs.symlinkSync(external, output, "file");
+      await expect(prepareContainedOutputParent(fixture, output))
+        .rejects.toThrow(/symbolic link or reparse point|must stay inside/);
+      expect(fs.readFileSync(external, "utf8")).toBe("preserve-me");
+    } finally {
+      fs.rmSync(output, { force: true });
+      fs.rmSync(fixture, { force: true, recursive: true });
+      fs.rmSync(path.dirname(external), { force: true, recursive: true });
+    }
+  });
 });

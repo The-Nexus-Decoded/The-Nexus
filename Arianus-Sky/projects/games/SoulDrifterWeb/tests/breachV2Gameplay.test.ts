@@ -240,11 +240,14 @@ describe("BREACH-V2 isolated gameplay spine", () => {
   });
 
   it.each([
-    [{ cofferOpened: true, pickupDropped: false, pickupCollected: false }, false],
-    [{ cofferOpened: false, pickupDropped: true, pickupCollected: false }, false],
-    [{ cofferOpened: false, pickupDropped: false, pickupCollected: true }, true],
-  ])("reconciles contradictory schema-v2 coffer state %#", (environment, collected) => {
+    [{ cofferOpened: true, pickupDropped: false, pickupCollected: false }, false, false],
+    [{ cofferOpened: false, pickupDropped: true, pickupCollected: false }, false, false],
+    [{ cofferOpened: false, pickupDropped: false, pickupCollected: true }, false, true],
+    [{ cofferOpened: false, pickupDropped: false, pickupCollected: false }, true, true],
+    [{ cofferOpened: true, pickupDropped: true, pickupCollected: false }, true, true],
+  ])("reconciles contradictory schema-v2 coffer state %#", (environment, tutorialCollected, collected) => {
     const saved = create().snapshot();
+    saved.tutorial.cofferOpened = tutorialCollected;
     const restored = create({ ...saved, environment }).snapshot();
 
     expect(restored.environment.cofferOpened).toBe(true);
