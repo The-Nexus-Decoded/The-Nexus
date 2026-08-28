@@ -37,7 +37,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   panel.dataset.testid = "breach-v2-dev-panel";
   panel.setAttribute("aria-label", "BREACH-V2 developer map controls");
   panel.style.cssText = [
-    "position:absolute", compactViewport ? "bottom:12px" : "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
+    "position:absolute", "top:12px", "right:12px", "z-index:30", "width:min(310px,calc(100vw - 24px))",
     "max-height:calc(100dvh - 24px)", "overflow:auto", "padding:12px", "box-sizing:border-box",
     "background:linear-gradient(165deg,rgba(16,19,20,.96),rgba(27,22,18,.94))",
     "color:#e9dfc7", "border:1px solid rgba(190,145,76,.58)", "border-radius:3px",
@@ -69,11 +69,48 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   let open = initiallyOpen;
   const syncOpen = (): void => {
     body.hidden = !open;
-    panel.style.width = open ? "min(310px,calc(100vw - 24px))" : "min(240px,calc(100vw - 24px))";
     header.setAttribute("aria-expanded", String(open));
     header.setAttribute("aria-label", `${open ? "Hide" : "Show"} dungeon navigation controls`);
     header.title = `${open ? "Hide" : "Show"} dungeon navigation controls`;
-    headerAction.textContent = open ? "Hide" : "Show";
+    headerTitle.textContent = compactViewport && !open ? "Map" : "Dungeon navigation";
+    headerAction.textContent = compactViewport ? "Close" : (open ? "Hide" : "Show");
+    headerAction.hidden = compactViewport && !open;
+    if (compactViewport && !open) {
+      panel.style.top = "auto";
+      panel.style.bottom = "max(18px,env(safe-area-inset-bottom))";
+      panel.style.width = "auto";
+      panel.style.padding = "0";
+      panel.style.border = "0";
+      panel.style.background = "transparent";
+      panel.style.boxShadow = "none";
+      panel.style.backdropFilter = "none";
+      panel.style.overflow = "visible";
+      header.style.width = "auto";
+      header.style.minHeight = "42px";
+      header.style.padding = "0 16px";
+      header.style.border = "1px solid rgba(228,185,103,.58)";
+      header.style.borderRadius = "999px";
+      header.style.background = "rgba(16,19,20,.84)";
+      header.style.boxShadow = "0 8px 24px rgba(0,0,0,.42)";
+      return;
+    }
+    panel.style.top = "12px";
+    panel.style.bottom = "auto";
+    panel.style.width = "min(310px,calc(100vw - 24px))";
+    panel.style.padding = "12px";
+    panel.style.border = "1px solid rgba(190,145,76,.58)";
+    panel.style.background = "linear-gradient(165deg,rgba(16,19,20,.96),rgba(27,22,18,.94))";
+    panel.style.boxShadow = "0 18px 55px rgba(0,0,0,.52),inset 0 0 30px rgba(128,73,28,.08)";
+    panel.style.backdropFilter = "blur(9px)";
+    panel.style.overflow = "auto";
+    header.style.width = "100%";
+    header.style.minHeight = "44px";
+    header.style.padding = "0 0 9px";
+    header.style.border = "0";
+    header.style.borderBottom = "1px solid rgba(190,145,76,.35)";
+    header.style.borderRadius = "0";
+    header.style.background = "transparent";
+    header.style.boxShadow = "none";
   };
   const toggle = (): void => { open = !open; syncOpen(); };
   header.addEventListener("click", toggle);
@@ -159,7 +196,9 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   button("Hide encounter markers", () => replacePreviewParams({ markers: null }));
 
   const foot = document.createElement("p");
-  foot.textContent = "Move: click/tap floor or WASD · F/tap nearby door · Shift sprint · drag camera · wheel zoom · Q/E rotate";
+  foot.textContent = compactViewport
+    ? "Move: D-pad or tap floor · tap nearby door · pinch camera zoom"
+    : "Move: click/tap floor or WASD · F/tap nearby door · Shift sprint · drag camera · wheel zoom · Q/E rotate";
   foot.style.cssText = "margin:10px 0 0;padding-top:8px;border-top:1px solid rgba(190,145,76,.24);color:#b8ad96;font:10px/1.45 ui-monospace,monospace";
   body.appendChild(foot);
 

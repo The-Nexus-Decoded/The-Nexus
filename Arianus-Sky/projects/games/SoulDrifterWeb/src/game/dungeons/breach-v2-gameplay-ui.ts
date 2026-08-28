@@ -121,15 +121,43 @@ export function setupBreachV2GameplayUi(options: {
   container.appendChild(panel);
 
   const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-  let expanded = !shouldCollapseBreachV2GameplayUi(viewportWidth);
+  const compactViewport = shouldCollapseBreachV2GameplayUi(viewportWidth);
+  let expanded = !compactViewport;
   const updateExpandedState = (): void => {
     body.hidden = !expanded;
-    collapseButton.textContent = expanded ? "Hide" : "Show";
+    collapseButton.textContent = compactViewport ? (expanded ? "Close" : "Combat") : (expanded ? "Hide" : "Show");
     collapseButton.title = expanded ? "Collapse First Breach controls" : "Expand First Breach controls";
     collapseButton.setAttribute("aria-expanded", String(expanded));
-    panel.style.width = expanded
-      ? "min(380px,calc(100vw - 20px))"
-      : "min(280px,calc(100vw - 20px))";
+    heading.hidden = compactViewport && !expanded;
+    if (compactViewport && !expanded) {
+      panel.style.width = "auto";
+      panel.style.padding = "0";
+      panel.style.border = "0";
+      panel.style.background = "transparent";
+      panel.style.boxShadow = "none";
+      panel.style.backdropFilter = "none";
+      panel.style.overflow = "visible";
+      collapseButton.style.borderRadius = "999px";
+      collapseButton.style.padding = "10px 16px";
+      collapseButton.style.minHeight = "42px";
+      collapseButton.style.background = "rgba(7,11,16,.82)";
+      collapseButton.style.boxShadow = "0 8px 24px rgba(0,0,0,.42)";
+      collapseButton.style.backdropFilter = "blur(9px)";
+      return;
+    }
+    panel.style.width = "min(380px,calc(100vw - 20px))";
+    panel.style.padding = "10px";
+    panel.style.border = "1px solid rgba(127,232,255,.35)";
+    panel.style.background = "rgba(7,11,16,.86)";
+    panel.style.boxShadow = "0 8px 28px rgba(0,0,0,.38)";
+    panel.style.backdropFilter = "blur(6px)";
+    panel.style.overflow = "auto";
+    collapseButton.style.borderRadius = compactViewport ? "999px" : "4px";
+    collapseButton.style.padding = compactViewport ? "8px 13px" : "7px 10px";
+    collapseButton.style.minHeight = compactViewport ? "38px" : "36px";
+    collapseButton.style.background = "rgba(14,31,38,.94)";
+    collapseButton.style.boxShadow = "none";
+    collapseButton.style.backdropFilter = "none";
   };
   collapseButton.addEventListener("click", () => {
     expanded = !expanded;

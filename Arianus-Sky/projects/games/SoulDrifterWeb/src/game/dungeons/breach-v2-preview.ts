@@ -30,6 +30,12 @@ import {
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
 import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
 import {
+  BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+  BREACH_V2_ISOMETRIC_MIN_DISTANCE,
+  resolveBreachV2PinchDistance,
+  setupBreachV2MobileMovementPad,
+} from "./breach-v2-mobile-controls.ts";
+import {
   createBreachV2RunController,
   type BreachV2EnvironmentDamageResult,
   type BreachV2EnvironmentObjectConfig,
@@ -81,6 +87,7 @@ interface PreviewHooks {
   __dungeonLoopError: string | null;
   __dungeonStats: { calls: number; triangles: number; geometries: number; textures: number };
   __dungeonMode: string;
+  __dungeonCameraDistance: () => number;
   __dungeonPlayer: { x: number; y: number; z: number };
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonCanStandAt: (x: number, z: number) => boolean;
@@ -3739,6 +3746,7 @@ export async function startDungeonPreview(
   const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarsePointer ? 1 : 1.25));
   renderer.setSize(container.clientWidth, container.clientHeight);
+  if (coarsePointer) renderer.domElement.style.touchAction = "none";
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
@@ -3979,6 +3987,11 @@ export async function startDungeonPreview(
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
   let player: THREE.Mesh | null = null;
   let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
+  setupBreachV2MobileMovementPad({
+    container,
+    keys,
+    enabled: coarsePointer && walkMode,
+  });
   if (walkMode) {
     controls.enabled = false;
     playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
@@ -3999,8 +4012,17 @@ export async function startDungeonPreview(
     player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
+    let primaryPointerId: number | null = null;
+    let pinchSpan: number | null = null;
+    let pointerWasPinch = false;
+    const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
     const pointerRaycaster = new THREE.Raycaster();
     const pointerNdc = new THREE.Vector2();
+    const activePointerSpan = (): number | null => {
+      const points = [...activePointers.values()];
+      if (points.length < 2) return null;
+      return Math.hypot(points[0]!.x - points[1]!.x, points[0]!.y - points[1]!.y);
+    };
     const setPointerRay = (clientX: number, clientY: number): void => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerNdc.set(
@@ -4059,12 +4081,28 @@ export async function startDungeonPreview(
       return clickPath.length > 0;
     };
     renderer.domElement.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+      renderer.domElement.setPointerCapture(e.pointerId);
+      if (e.pointerType === "touch" && activePointers.size >= 2) {
+        pointerWasPinch = true;
+        pinchSpan = activePointerSpan();
+        dragging = false;
+        pointerTravel = Number.POSITIVE_INFINITY;
+        return;
+      }
+      primaryPointerId = e.pointerId;
       dragging = true;
       pointerTravel = 0;
-      renderer.domElement.setPointerCapture(e.pointerId);
     });
     renderer.domElement.addEventListener("pointerup", (e) => {
-      if (pointerTravel < 8) {
+      e.preventDefault();
+      const tapThreshold = e.pointerType === "touch" ? 16 : 8;
+      const shouldTap = !pointerWasPinch
+        && activePointers.size === 1
+        && primaryPointerId === e.pointerId
+        && pointerTravel < tapThreshold;
+      if (shouldTap) {
         setPointerRay(e.clientX, e.clientY);
         const hitDoor = pickDoorObject();
         const toggledDoor = hitDoor
@@ -4073,19 +4111,64 @@ export async function startDungeonPreview(
         const target = pickWalkPoint();
         if (!toggledDoor && target) setClickDestination(target);
       }
-      dragging = false;
+      activePointers.delete(e.pointerId);
+      if (renderer.domElement.hasPointerCapture(e.pointerId)) {
+        renderer.domElement.releasePointerCapture(e.pointerId);
+      }
+      if (activePointers.size < 2) pinchSpan = null;
+      if (activePointers.size === 0) {
+        dragging = false;
+        primaryPointerId = null;
+        pointerWasPinch = false;
+      }
     });
     renderer.domElement.addEventListener("pointermove", (e) => {
-      if (!dragging) return;
-      pointerTravel += Math.abs(e.movementX) + Math.abs(e.movementY);
-      camYaw -= e.movementX * 0.0052;
+      const previous = activePointers.get(e.pointerId);
+      if (!previous) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+      if (e.pointerType === "touch" && activePointers.size >= 2 && !firstPersonMode) {
+        e.preventDefault();
+        const nextSpan = activePointerSpan();
+        if (pinchSpan !== null && nextSpan !== null) {
+          const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+          const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
+          camDist = resolveBreachV2PinchDistance(
+            camDist,
+            pinchSpan,
+            nextSpan,
+            minDistance,
+            maxDistance,
+          );
+        }
+        pinchSpan = nextSpan;
+        return;
+      }
+      if (!dragging || primaryPointerId !== e.pointerId) return;
+      const movementX = e.clientX - previous.x;
+      const movementY = e.clientY - previous.y;
+      pointerTravel += Math.abs(movementX) + Math.abs(movementY);
+      // On phones, one finger is reserved for dependable floor taps. Camera
+      // zoom uses two fingers and movement uses the D-pad. Mouse drag retains
+      // the desktop camera orbit contract.
+      if (e.pointerType === "touch") return;
+      camYaw -= movementX * 0.0052;
       const maxPitch = isometricMode ? 1.08 : 0.58;
-      camPitch = Math.min(maxPitch, Math.max(-0.18, camPitch + e.movementY * 0.004));
+      camPitch = Math.min(maxPitch, Math.max(-0.18, camPitch + movementY * 0.004));
+    });
+    renderer.domElement.addEventListener("pointercancel", (e) => {
+      activePointers.delete(e.pointerId);
+      if (activePointers.size === 0) {
+        dragging = false;
+        primaryPointerId = null;
+        pinchSpan = null;
+        pointerWasPinch = false;
+      }
     });
     renderer.domElement.addEventListener("wheel", (e) => {
       if (!firstPersonMode) {
-        const maxDistance = isometricMode ? 22 : 8;
-        camDist = Math.min(maxDistance, Math.max(2.4, camDist + e.deltaY * 0.008));
+        const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+        const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
+        camDist = Math.min(maxDistance, Math.max(minDistance, camDist + e.deltaY * 0.008));
       }
     }, { passive: true });
     window.addEventListener("keydown", (e) => {
@@ -4124,6 +4207,7 @@ export async function startDungeonPreview(
   hooks.__dungeonLoopError = null;
   hooks.__dungeonStats = { calls: 0, triangles: 0, geometries: 0, textures: 0 };
   hooks.__dungeonMode = walkMode ? "walk" : "orbit";
+  hooks.__dungeonCameraDistance = () => camDist;
   hooks.__dungeonPlayer = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
