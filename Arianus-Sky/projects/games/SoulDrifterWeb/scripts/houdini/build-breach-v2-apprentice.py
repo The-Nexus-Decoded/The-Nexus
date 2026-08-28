@@ -748,22 +748,68 @@ def build_landmarks(obj, payload):
 # ---------------------------------------------------------------------------
 FACING_YAW = {"south": 0.0, "north": 180.0, "east": -90.0, "west": 90.0}
 
-ART_MASTERS = {  # zero-cost existing masters (reused per §5A rule 2)
-    "art-thalenyr-atlas": ("lore-atlas/assets/M-003_painted_atlas.png", "Thalenyr world atlas"),
-    "art-heartvale-section": ("heartvale_section_cut_v2.png", "Heartvale section map"),
-    "art-breach-v2-flatmap": ("flatmaps/breach-v2/breach-v2-flatmap-master.png", "Breach zone map"),
+ART_TEXTURES = {
+    "art-thalenyr-atlas": "thalenyr-atlas.webp",
+    "art-heartvale-section": "heartvale-section.webp",
+    "art-breach-v2-flatmap": "breach-v2-flatmap.webp",
+    "art-banner-wayfarer": "art-banner-wayfarer.webp",
+    "art-banner-oathbreaker": "art-banner-oathbreaker.webp",
+    "art-banner-ashen": "art-banner-ashen.webp",
+    "art-banner-cinderbound": "art-banner-cinderbound.webp",
+    "art-banner-oathscar": "art-banner-oathscar.webp",
+    "art-relief-warden": "art-relief-warden.webp",
+    "art-relief-first-memory": "art-relief-first-memory.webp",
+    "art-relief-toll": "art-relief-toll.webp",
+    "art-relief-lock-inscription": "art-relief-lock-inscription.webp",
+    "art-painting-reliquary": "art-painting-reliquary.webp",
+    "art-painting-winged-skyship": "art-painting-winged-skyship.webp",
+    "art-map-thalenyr-scroll": "art-map-thalenyr-scroll.webp",
 }
 
 
-def build_wall_art_and_books(obj, payload, workspace_root: Path | None):
+def require_file(path: Path, purpose: str) -> Path:
+    resolved = path.resolve()
+    if not resolved.is_file():
+        raise RuntimeError(f"Missing required {purpose}: {resolved}")
+    return resolved
+
+
+def art_material(asset_id: str, game_root: Path) -> str:
+    texture_name = ART_TEXTURES.get(asset_id)
+    if texture_name is None:
+        raise RuntimeError(f"No approved wall-art texture is registered for {asset_id}")
+    texture = require_file(
+        game_root / "public" / "assets" / "textures" / "environment" / "breach-v2" / "art" / texture_name,
+        f"wall-art texture for {asset_id}",
+    )
+    mat_name = f"BV2_Art_{safe_name(asset_id)}"
+    if mat_name in MATERIALS:
+        return MATERIALS[mat_name]
+    mat_net = hou.node("/mat") or hou.node("/").createNode("matnet", "mat")
+    existing = mat_net.node(mat_name)
+    if existing:
+        existing.destroy()
+    material = mat_net.createNode("principledshader::2.0", mat_name)
+    material.parm("basecolor_useTexture").set(1)
+    material.parm("basecolor_texture").set(texture.as_posix())
+    material.parm("rough").set(0.6)
+    MATERIALS[mat_name] = material.path()
+    return material.path()
+
+
+def build_wall_art_and_books(obj, payload, game_root: Path):
     group = obj.createNode("geo", "BREACH_V2_WALL_ART")
     for child in group.children():
         child.destroy()
     merge = group.createNode("merge", "ART_GEO")
     idx = 0
     frame_mat = principled("BV2_ArtFrame", (0.24, 0.18, 0.1), 0.5, metallic=0.35)
-    placeholder_mat = principled("BV2_ArtPlaceholder", (0.3, 0.26, 0.3), 0.8)
     paper_mat = principled("BV2_Paper", (0.85, 0.8, 0.66), 0.85)
+    cover_mats = (
+        principled("BV2_BookCover_Red", (0.38, 0.11, 0.08), 0.78),
+        principled("BV2_BookCover_Blue", (0.10, 0.16, 0.30), 0.78),
+        principled("BV2_BookCover_Green", (0.13, 0.25, 0.16), 0.78),
+    )
     for p in payload["placements"]:
         if p["role"] == "wall-art":
             w = p.get("width") or 1.6
@@ -785,46 +831,55 @@ def build_wall_art_and_books(obj, payload, workspace_root: Path | None):
                              "east": (0.06, 0, 0), "west": (-0.06, 0, 0)}.get(p["facing"], (0, 0, 0.06))
             plane.parmTuple("t").set((p["x"] + normal_offset[0], 1.65, p["z"] + normal_offset[2]))
             plane.parmTuple("r").set((0.0, yaw, 0.0))
-            mat_path = placeholder_mat
-            master = ART_MASTERS.get(p["asset"])
-            if master and workspace_root:
-                img = (workspace_root / "souldrifter-thalenyr" / master[0]).resolve()
-                if img.is_file():
-                    mat_name = f"BV2_Art_{safe_name(p['asset'])}"
-                    mat_net = hou.node("/mat")
-                    existing = mat_net.node(mat_name)
-                    if existing:
-                        existing.destroy()
-                    m = mat_net.createNode("principledshader::2.0", mat_name)
-                    m.parm("basecolor_useTexture").set(1)
-                    m.parm("basecolor_texture").set(img.as_posix())
-                    m.parm("rough").set(0.6)
-                    MATERIALS[mat_name] = m.path()
-                    mat_path = m.path()
+            mat_path = art_material(p["asset"], game_root)
             papply = group.createNode("material", safe_name(f"art_{p['asset']}_mat"))
             papply.setInput(0, plane)
             papply.parm("shop_materialpath1").set(mat_path)
             merge.setInput(idx, papply)
             idx += 1
         elif p["role"] == "readable-props":
+            elevation = float(p.get("elevation", 0.0))
+            yaw = float(p.get("yaw", 0.0))
             if p["asset"] == "scrolls-pile":
-                node = group.createNode("tube", safe_name(f"scrolls_{p['roomId']}_{idx}"))
-                node.parm("rad1").set(0.16)
-                node.parm("rad2").set(0.16)
-                node.parm("height").set(0.7)
-                node.parm("cap").set(1)
-                node.parmTuple("r").set((0.0, 0.0, 90.0))
-                node.parmTuple("t").set((p["x"], 0.16, p["z"]))
+                for scroll_index, (dx, dz, roll) in enumerate(((0.0, 0.0, 90.0), (0.12, 0.08, 82.0), (-0.1, 0.11, 98.0))):
+                    node = group.createNode("tube", safe_name(f"scroll_{p['roomId']}_{idx}_{scroll_index}"))
+                    radius = 0.075
+                    node.parm("rad1").set(radius)
+                    node.parm("rad2").set(radius)
+                    node.parm("height").set(0.46 + scroll_index * 0.05)
+                    node.parm("cap").set(1)
+                    node.parmTuple("r").set((0.0, yaw, roll))
+                    node.parmTuple("t").set((p["x"] + dx, elevation + radius, p["z"] + dz))
+                    apply = group.createNode("material", safe_name(f"scroll_{idx}_{scroll_index}_mat"))
+                    apply.setInput(0, node)
+                    apply.parm("shop_materialpath1").set(paper_mat)
+                    merge.setInput(idx, apply)
+                    idx += 1
+            elif p["asset"] == "books-pile":
+                dimensions = ((0.54, 0.09, 0.36), (0.48, 0.10, 0.34), (0.50, 0.085, 0.32))
+                y_cursor = elevation
+                for book_index, (width, height, depth) in enumerate(dimensions):
+                    cover = group.createNode("box", safe_name(f"book_cover_{p['roomId']}_{idx}_{book_index}"))
+                    cover.parmTuple("size").set((width, height, depth))
+                    cover.parmTuple("r").set((0.0, yaw + (book_index - 1) * 7.0, 0.0))
+                    cover.parmTuple("t").set((p["x"], y_cursor + height / 2, p["z"]))
+                    cover_apply = group.createNode("material", safe_name(f"book_cover_{idx}_{book_index}_mat"))
+                    cover_apply.setInput(0, cover)
+                    cover_apply.parm("shop_materialpath1").set(cover_mats[book_index])
+                    merge.setInput(idx, cover_apply)
+                    idx += 1
+                    pages = group.createNode("box", safe_name(f"book_pages_{p['roomId']}_{idx}_{book_index}"))
+                    pages.parmTuple("size").set((width * 0.92, height * 0.58, depth * 0.91))
+                    pages.parmTuple("r").set((0.0, yaw + (book_index - 1) * 7.0, 0.0))
+                    pages.parmTuple("t").set((p["x"], y_cursor + height / 2, p["z"]))
+                    pages_apply = group.createNode("material", safe_name(f"book_pages_{idx}_{book_index}_mat"))
+                    pages_apply.setInput(0, pages)
+                    pages_apply.parm("shop_materialpath1").set(paper_mat)
+                    merge.setInput(idx, pages_apply)
+                    idx += 1
+                    y_cursor += height
             else:
-                node = group.createNode("box", safe_name(f"books_{p['roomId']}_{idx}"))
-                node.parmTuple("size").set((0.5, 0.24, 0.36))
-                node.parmTuple("r").set((0.0, p["yaw"], 0.0))
-                node.parmTuple("t").set((p["x"], 0.12, p["z"]))
-            bapply = group.createNode("material", safe_name(f"book_{idx}_mat"))
-            bapply.setInput(0, node)
-            bapply.parm("shop_materialpath1").set(paper_mat)
-            merge.setInput(idx, bapply)
-            idx += 1
+                raise RuntimeError(f"No approved readable-prop builder is registered for {p['asset']}")
     out = group.createNode("null", "ART_OUT")
     out.setInput(0, merge)
     out.setDisplayFlag(True)
@@ -940,24 +995,38 @@ def main() -> None:
     args.hip.parent.mkdir(parents=True, exist_ok=True)
     args.obj.parent.mkdir(parents=True, exist_ok=True)
     game_root = args.game_root.resolve()
-    workspace_root = args.workspace_root.resolve() if args.workspace_root else None
+    if not game_root.is_dir():
+        raise RuntimeError(f"Game root does not exist: {game_root}")
+    if args.workspace_root and not args.workspace_root.resolve().is_dir():
+        raise RuntimeError(f"Workspace root does not exist: {args.workspace_root.resolve()}")
 
     tex_root = game_root / "public" / "assets" / "textures" / "environment" / "first-breach"
-    flagstone = textured_material("BV2_Flagstone", tex_root / "flagstone-color.jpg",
-                                  tex_root / "flagstone-normal-gl.jpg", tex_root / "flagstone-roughness.jpg",
-                                  tex_root / "flagstone-ao.jpg", args.hip.resolve().parent)
-    masonry = textured_material("BV2_Masonry", tex_root / "masonry-color.jpg",
-                                tex_root / "masonry-normal-gl.jpg", tex_root / "masonry-roughness.jpg",
-                                tex_root / "masonry-ao.jpg", args.hip.resolve().parent)
+    texture_files = {
+        "flagstone_color": require_file(tex_root / "flagstone-color.jpg", "flagstone color texture"),
+        "flagstone_normal": require_file(tex_root / "flagstone-normal-gl.jpg", "flagstone normal texture"),
+        "flagstone_roughness": require_file(tex_root / "flagstone-roughness.jpg", "flagstone roughness texture"),
+        "flagstone_ao": require_file(tex_root / "flagstone-ao.jpg", "flagstone AO texture"),
+        "masonry_color": require_file(tex_root / "masonry-color.jpg", "masonry color texture"),
+        "masonry_normal": require_file(tex_root / "masonry-normal-gl.jpg", "masonry normal texture"),
+        "masonry_roughness": require_file(tex_root / "masonry-roughness.jpg", "masonry roughness texture"),
+        "masonry_ao": require_file(tex_root / "masonry-ao.jpg", "masonry AO texture"),
+    }
 
     hou.hipFile.clear(suppress_save_prompt=True)
+    MATERIALS.clear()
     hou.setFps(30)
     obj = hou.node("/obj")
+    flagstone = textured_material("BV2_Flagstone", texture_files["flagstone_color"],
+                                  texture_files["flagstone_normal"], texture_files["flagstone_roughness"],
+                                  texture_files["flagstone_ao"], args.hip.resolve().parent)
+    masonry = textured_material("BV2_Masonry", texture_files["masonry_color"],
+                                texture_files["masonry_normal"], texture_files["masonry_roughness"],
+                                texture_files["masonry_ao"], args.hip.resolve().parent)
 
     shell_out = build_shell(obj, payload, flagstone, masonry)
     kit_diagnostics = place_kit_props(obj, payload, game_root)
     build_landmarks(obj, payload)
-    build_wall_art_and_books(obj, payload, workspace_root)
+    build_wall_art_and_books(obj, payload, game_root)
     build_corruption_accents(obj, payload)
     create_lighting(obj, payload)
     create_cameras(obj, payload)
@@ -968,6 +1037,10 @@ def main() -> None:
     metadata.setUserData("souldrifter_path", payload["meta"]["path"])
     metadata.setUserData("souldrifter_license", hou.licenseCategory().name())
     metadata.setUserData("souldrifter_kit_models", json.dumps(kit_diagnostics, separators=(",", ":")))
+
+    missing_materials = [path for path in MATERIALS.values() if hou.node(path) is None]
+    if missing_materials:
+        raise RuntimeError(f"Material nodes were lost before save: {missing_materials}")
 
     obj.layoutChildren()
     hou.clearAllSelected()
