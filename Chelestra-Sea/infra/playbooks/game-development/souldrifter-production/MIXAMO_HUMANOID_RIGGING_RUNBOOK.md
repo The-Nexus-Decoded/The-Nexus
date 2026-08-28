@@ -132,6 +132,17 @@ Reconcile the full master list and fill the current-scope gaps before presenting
 
 The first Human pilot review is exhaustive. Its accepted semantic names, provider selections, loop/transition decisions, contact and weapon rules, root-motion rules, and owner rejections become the reusable canonical decision set for later bodies. Later bodies reuse those decisions and cached sources, but still require their own proportion-correct retarget, bake, grounding/contact repair, and deformation/runtime QA.
 
+### Candidate preview and owner-verdict gate
+
+Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:
+
+1. generate the candidate and record its source, transform, hashes, semantic row, loop/one-shot intent, and preview contract;
+2. render the candidate on the neutral accepted body and post the labeled preview in the active Codex chat;
+3. record the owner's `APPROVE`, `REJECT`, or `CHANGE` verdict for that exact candidate and hash; and
+4. queue only owner-approved candidates for the BREACH-V2 exhaustive runtime review.
+
+A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the neutral-body chat preview and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
+
 ### 7. Per-body retarget and normalization
 
 For every body and every accepted semantic clip:
@@ -274,6 +285,7 @@ Stop and repair before continuing when any of these occur:
 - treating the 400-clip candidate intake as a complete or approved animation matrix while required semantics remain missing, rework, or rejected;
 - a browser download without a completion receipt, current-path byte count, SHA-256, and successful Blender import, including any small/truncated cache artifact;
 - starting exhaustive review before every current-core demand has a valid ingested candidate or explicit blocker;
+- queueing a candidate for BREACH-V2 before its labeled neutral accepted-body chat preview and exact owner verdict exist;
 - unchanged Human bake reused as a final Dwarf/Halfling/Elf export;
 - missing hashes, provenance, provider settings, or body manifest;
 - external/duplicate browser use;

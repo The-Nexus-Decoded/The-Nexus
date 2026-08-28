@@ -71,6 +71,17 @@ A Mixamo in-app Download click is not source acceptance. Require a browser compl
 
 The exhaustive first-pilot decisions become the canonical semantic names, provider choices, transition/loop rules, contact/weapon rules, root-motion policy, and owner acceptance baseline for later foundation bodies. Those bodies reuse the decisions and source clips, then receive their own proportion-specific retarget, floor/contact correction, bake, and deformation/runtime QA.
 
+### Candidate preview and owner-verdict gate
+
+Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:
+
+1. generate the candidate and record its source, transform, hashes, semantic row, loop/one-shot intent, and preview contract;
+2. render the candidate on the neutral accepted body and post the labeled preview in the active Codex chat;
+3. record the owner's `APPROVE`, `REJECT`, or `CHANGE` verdict for that exact candidate and hash; and
+4. queue only owner-approved candidates for the BREACH-V2 exhaustive runtime review.
+
+A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the neutral-body chat preview and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
+
 ## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
 
 Use Tripo for animals, non-humanoid monsters, and creature body plans for:
@@ -286,6 +297,7 @@ No animation enters the runtime library until it passes:
 - recorded actor bounds, root/pelvis transforms, lowest intended contact, floor plane, planted-foot continuity, and any baseline correction;
 - automatic rejection of unexplained initial floating/penetration, root or pelvis spikes, or dependence on an ad hoc scene Y-offset while preserving intentional jumps, falls, knockback, stairs, and other authored vertical motion;
 - source-download acceptance proving browser completion, current-path byte count, SHA-256, and successful Blender import rather than a partial cache artifact;
+- a labeled neutral accepted-body chat preview and an exact owner `APPROVE`, `REJECT`, or `CHANGE` receipt for the candidate and hash before BREACH-V2 queueing;
 - normal-speed gameplay-camera proof;
 - contact and recovery timing;
 - root-motion contract;
