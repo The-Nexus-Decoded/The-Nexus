@@ -1,13 +1,13 @@
 ---
 issue: 451
 pull_request: 460
-status: remediation_in_progress
+status: ready_for_fresh_review
 branch: codex/451-post-merge-review-fixes
 base_commit: 7666af63bac70f8d48c864b4a85122975bdaa4cb
 source_review: H:/Temp/SoulDrifter-451-review/PR-460-REVIEW.md
 findings_total: 35
-fixed: 21
-pending: 14
+fixed: 35
+pending: 0
 updated: 2026-08-28
 ---
 
@@ -48,20 +48,20 @@ This ledger tracks every unique finding from the post-merge deep review of [issu
 | WR-18 | Flat-map output depends on host-installed Windows fonts | Phase 3 | Fixed in `4219906e` |
 | WR-19 | Legacy wall-art generation is nondeterministic across Python processes | Phase 3 | Fixed in `07e1961b` |
 | WR-20 | Legacy wall-art opt-in can target the wrong tree and overwrite approved art | Phase 3 | Fixed in `07e1961b` |
-| WR-21 | Gameplay controls start hidden on desktop and the responsive test is a false positive | Phase 4 | Pending |
-| WR-22 | First-person mobile mode exposes guaranteed no-op zoom buttons | Phase 4 | Pending |
-| WR-23 | Mobile D-pad and zoom controls do not support keyboard or switch activation | Phase 4 | Pending |
-| WR-24 | Opening Combat or Navigate hides the focused launcher without focus transfer | Phase 4 | Pending |
-| WR-25 | IndexedDB v4 upgrade can remain pending forever while an older tab is open | Phase 4 | Pending |
-| WR-26 | Preview initialization errors become unhandled rejections after normal UI is hidden | Phase 4 | Pending |
-| WR-27 | Registry parity test checks only an id and collection lengths | Phase 5 | Pending |
-| WR-28 | Door partition coverage never processes the production indexed GLB | Phase 5 | Pending |
-| WR-29 | QA/production bundle-budget test never measures either bundle | Phase 5 | Pending |
-| WR-30 | Apprentice builder deletes PBR materials before assigning them | Phase 5 | Pending |
-| WR-31 | Apprentice builder silently substitutes placeholders for most art/readable props | Phase 5 | Pending |
-| WR-32 | Soulwell receipts certify license, segregation, and occlusion without measuring them | Phase 5 | Pending |
-| IN-01 | Developer-panel global listeners have no teardown path | Phase 5 | Pending |
-| IN-02 | Mobile tests cover calculations but never mount or operate the controls | Phase 5 | Pending |
+| WR-21 | Gameplay controls start hidden on desktop and the responsive test is a false positive | Phase 4 | Fixed in `b1a401e9` |
+| WR-22 | First-person mobile mode exposes guaranteed no-op zoom buttons | Phase 4 | Fixed in `b1a401e9` |
+| WR-23 | Mobile D-pad and zoom controls do not support keyboard or switch activation | Phase 4 | Fixed in `b1a401e9` |
+| WR-24 | Opening Combat or Navigate hides the focused launcher without focus transfer | Phase 4 | Fixed in `b1a401e9` |
+| WR-25 | IndexedDB v4 upgrade can remain pending forever while an older tab is open | Phase 4 | Fixed in `dad90f15` |
+| WR-26 | Preview initialization errors become unhandled rejections after normal UI is hidden | Phase 4 | Fixed in `dad90f15` |
+| WR-27 | Registry parity test checks only an id and collection lengths | Phase 5 | Fixed in `2721af0b` |
+| WR-28 | Door partition coverage never processes the production indexed GLB | Phase 5 | Fixed in `2721af0b` |
+| WR-29 | QA/production bundle-budget test never measures either bundle | Phase 5 | Fixed in `2721af0b` |
+| WR-30 | Apprentice builder deletes PBR materials before assigning them | Phase 5 | Fixed in `89680d34` |
+| WR-31 | Apprentice builder silently substitutes placeholders for most art/readable props | Phase 5 | Fixed in `89680d34` |
+| WR-32 | Soulwell receipts certify license, segregation, and occlusion without measuring them | Phase 5 | Fixed in `8a657165` |
+| IN-01 | Developer-panel global listeners have no teardown path | Phase 5 | Fixed in `b1a401e9` |
+| IN-02 | Mobile tests cover calculations but never mount or operate the controls | Phase 5 | Fixed in `b1a401e9` |
 
 ## Phase 1 evidence
 
@@ -148,3 +148,56 @@ Results:
 - TypeScript project build: passed.
 - `git diff --check`: passed; Git emitted only the existing Windows line-ending advisory.
 - ESLint: not configured in this project.
+
+## Phase 4 evidence
+
+Phase 4 makes the preview controls responsive without overriding an explicit
+owner choice, removes unusable first-person zoom controls, adds keyboard and
+switch activation to the mobile controls, and transfers/restores focus when
+panels open and close. The developer panel now removes its global listeners on
+teardown. IndexedDB upgrades time out and recover from stale tabs, while preview
+startup failures render a retry/back recovery surface instead of disappearing
+into an unhandled rejection.
+
+Results:
+
+- Mounted happy-dom control and focus tests: passed.
+- IndexedDB blocked-upgrade and preview recovery tests: passed.
+- TypeScript project build: passed.
+- DOM test runtime is exact-pinned in the lockfile.
+
+## Phase 5 evidence
+
+Phase 5 replaces shallow release gates with complete registry equality, loads
+and partitions the production indexed heavy-door GLB, and measures both actual
+build targets against the runtime budget. The Apprentice builder now clears its
+scene and cache before creating materials, validates required PBR and wall-art
+files, maps every shipped art ID to the canonical runtime texture, builds
+multi-part readable props, and fails closed on unknown content. Soul Well POCs
+require the Apprentice license, may write only under
+`H:/temp/SoulDrifter-Houdini-POC`, and derive occlusion/segregation validation
+from enforced policy and cooked geometry evidence.
+
+Final pre-review verification:
+
+```powershell
+node node_modules/vitest/vitest.mjs run --reporter=dot --maxWorkers=1 --no-file-parallelism
+npm run typecheck
+node --experimental-strip-types scripts/export-breach-v2-runtime.mjs --check
+npm run check:dungeon-kit
+npm run check:flatmap
+npm run build
+```
+
+Results:
+
+- Full single-worker Vitest suite: 38 files, 273 tests passed; 0 failed.
+- TypeScript project build: passed.
+- Complete BREACH-V2 export parity: passed.
+- Canonical 37-asset source/runtime gate: passed.
+- Flat-map reproducibility gate: passed.
+- Production build: passed.
+- Both real targets were pruned safely and remained within the preferred budget:
+  `dist` 160,002,551 bytes and `dist-pages` 159,992,391 bytes.
+- ESLint: not configured in this project.
+- Browser processes used for this verification: 0.
