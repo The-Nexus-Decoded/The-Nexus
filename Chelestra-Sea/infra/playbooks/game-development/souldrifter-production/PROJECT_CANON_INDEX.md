@@ -26,6 +26,7 @@ A lower-priority source never silently overrides a higher-priority source.
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
 - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
 - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
+- `HUMANOID_DUAL_POSE_PIPELINE.md`
 - `IMAGE_REFERENCE_BAKEOFF_POLICY.md`
 - `HOUDINI_APPRENTICE_POC_POLICY.md`
 - `BROWSER_RUNTIME_ROADMAP.md`
@@ -285,6 +286,15 @@ Do not place independently sealed modules and connect them after rendering. Plac
 - Every primary source shows the complete asset in frame.
 - Tripo Studio, API/SDK and official CLI are separate lanes; use live evidence and do not assume credentials/credits are shared.
 - Geometry-changing operations occur before final rigging.
+
+## Humanoid dual-pose canon
+
+- Every new or regenerated humanoid delivers a strict T-pose and a relaxed A-pose.
+- The T-pose is the primary generation, auto-rig, and retarget-calibration state.
+- The A-pose is derived from the same accepted rigged mesh and is required for deformation, modular-equipment fit, and animation QA.
+- `N` humanoid bodies means `N` canonical meshes and `2N` pose artifacts, not `2N` independently generated models.
+- Older generic `neutral pose` or A-pose-only source language is superseded unless an issue records an explicit owner-approved exception.
+- No second paid body generation is authorized merely to obtain the other pose.
 
 # Animation
 

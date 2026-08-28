@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-25-master-v14`
+**Context version:** `2026-08-28-master-v15`
 
 Mandatory entry point for M3, Claude Code, ChatGPT/Codex and future SoulDrifter workers.
 
@@ -58,24 +58,25 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
    - `config/spatial-connection-policy.json`
    - `templates/dungeon-topology-record.template.json`
    - `templates/spatial-connection-record.template.json`
-7. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-8. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
-9. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
-10. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
-11. Read repository `AGENTS.md`.
-12. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
-13. Read the assigned issue and every current comment.
-14. Read related PR(s), all comments/reviews and live head.
-15. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
-16. Read the ticket kickoff under `kickoffs/` when one exists.
-17. Inspect actual worktree/branch/recent commits.
-18. Return Session + Context Receipts before editing.
+7. For every humanoid source, generation, rigging, retargeting, modular-fit, or animation task, read `HUMANOID_DUAL_POSE_PIPELINE.md`.
+8. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+9. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
+10. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
+11. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
+12. Read repository `AGENTS.md`.
+13. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
+14. Read the assigned issue and every current comment.
+15. Read related PR(s), all comments/reviews and live head.
+16. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
+17. Read the ticket kickoff under `kickoffs/` when one exists.
+18. Inspect actual worktree/branch/recent commits.
+19. Return Session + Context Receipts before editing.
 
 ## Session Receipt — every chat
 
 ```text
 SOULDRIFTER SESSION RECEIPT
-contextVersion: 2026-08-25-master-v14
+contextVersion: 2026-08-28-master-v15
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 ticket: <issue>
 branch: <branch>
@@ -93,6 +94,7 @@ requiredLanes:
   importedAssetPresentation: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   proceduralTopology: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   spatialTraversalContracts: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  humanoidDualPose: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   imageReferenceBakeoff: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   tripoStudio: CACHED_PASS | LIVE_REFRESH_PASS | NOT_REQUIRED
   tripoApiSdk: CACHED_PASS | UNFUNDED | UNAVAILABLE | NOT_REQUIRED
@@ -110,7 +112,7 @@ blockingIssues: []
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-25-master-v14
+contextVersion: 2026-08-28-master-v15
 model: <m3|claude|chatgpt-codex|other>
 role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
@@ -128,6 +130,7 @@ collisionInteractionDestructionPolicyLoaded: yes/no/not-required
 importedAssetPresentationGateLoaded: yes/no/not-required
 proceduralTopologyPolicyLoaded: yes/no/not-required
 spatialConnectionCatalogLoaded: yes/no/not-required
+humanoidDualPosePolicyLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
 houdiniPocPolicyLoaded: yes/no/not-required
 animationRoutingLoaded: yes/no/not-required
@@ -218,6 +221,8 @@ For important 3D-source references, use the four-candidate bakeoff when live lan
 4. ChatGPT/OpenAI candidate B.
 
 Verify live model labels/allowance. Every primary source shows the **entire asset in frame**, including supports and attachments. Cropped images are supplemental `DETAIL_REFERENCE_ONLY`.
+
+Every humanoid follows `HUMANOID_DUAL_POSE_PIPELINE.md`: generate the primary full-body source in a strict T-pose, then derive the required A-pose from that same canonical rigged mesh. One humanoid body means one mesh and two required pose artifacts, never two independently generated bodies.
 
 # Tripo 3D policy
 

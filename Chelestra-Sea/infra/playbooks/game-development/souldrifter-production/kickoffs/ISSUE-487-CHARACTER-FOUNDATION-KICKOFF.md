@@ -39,6 +39,7 @@ Before any paid provider operation, always refresh the live active-lane balance,
 
 Every session must read the current versions of:
 
+- `../HUMANOID_DUAL_POSE_PIPELINE.md`
 - `../IMAGE_REFERENCE_BAKEOFF_POLICY.md`
 - `../ANIMATION_PROVIDER_ROUTING.md`
 - `../CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
@@ -136,6 +137,7 @@ Build is an appearance option unless a separately approved #443 rule explicitly 
 
 ```text
 2 presentations x 4 builds = 8 Human base bodies
+8 canonical Human meshes x 2 required pose states = 16 Human pose artifacts
 ```
 
 First owner-review pilots only:
@@ -143,7 +145,7 @@ First owner-review pilots only:
 - Human masculine `ATHLETIC_MUSCULAR`
 - Human feminine `ATHLETIC_MUSCULAR`
 
-The other six Human bodies remain blocked until both pilots pass. Elf and Dwarf remain blocked until the complete eight-body Human baseline passes.
+The two-pilot gate produces two canonical meshes and four pose artifacts. The remaining six Human bodies produce six canonical meshes and twelve pose artifacts after approval. Elf and Dwarf remain blocked until the complete eight-body Human baseline passes.
 
 ---
 
@@ -156,7 +158,7 @@ For a base body:
 - complete head-to-feet body;
 - hands and fingers visible and separated;
 - feet fully visible and flat;
-- neutral relaxed A-pose unless the verified rig lane requires an approved alternative;
+- strict symmetrical T-pose for the primary generation and rig-calibration source, with arms horizontal at shoulder height;
 - bald or neutral close-scalp presentation;
 - modest opaque neutral underwear only;
 - clean unobstructed background.
@@ -172,6 +174,17 @@ Automatic rejection:
 - Thick/Large-Framed rendered as obese or belly-heavy.
 
 A failed image never advances to paid 3D conversion.
+
+## Mandatory T-pose and A-pose contract
+
+Every humanoid delivers both pose states under `../HUMANOID_DUAL_POSE_PIPELINE.md`:
+
+1. a strict T-pose primary-source and rig-calibration artifact; and
+2. a relaxed A-pose deformation and equipment-fit artifact derived from the same accepted rigged mesh.
+
+This means one body identity, one canonical mesh/topology/UV/material set, one canonical skeleton, and two required pose artifacts. Do not independently generate or purchase a second body merely to obtain the A-pose.
+
+Older `neutral pose` or A-pose-only source language is superseded for humanoids unless the issue records an explicit owner-approved exception. Provider-native rest poses remain provenance only and do not replace either normalized pose state.
 
 ---
 
@@ -253,6 +266,8 @@ For each important primary source, produce four images when available from the s
 3. ChatGPT/OpenAI image A;
 4. ChatGPT/OpenAI image B.
 
+For humanoid bodies, every candidate uses the locked positive and rejection prompt blocks in `../HUMANOID_DUAL_POSE_PIPELINE.md`. The primary source is a strict T-pose. An image-model A-pose may be kept only as reference-conditioned `DETAIL_REFERENCE_ONLY`; the production A-pose comes from posing the accepted rigged mesh.
+
 Reject incomplete/no-pedestal failures before aesthetic scoring. Preserve original files, hashes, provider/model/settings when exposed, comparison metrics, selected candidate, and owner verdict.
 
 Before every charged operation, return:
@@ -278,10 +293,10 @@ For each pilot:
 
 ```text
 locked brief
--> four-image full-asset bakeoff
+-> four-image strict T-pose full-asset bakeoff
 -> owner image selection
 -> exact-cost owner approval
--> Tripo full-body generation
+-> one canonical Tripo full-body generation
 -> immediate untouched download
 -> task receipt + source hash
 -> anomaly/full-body inspection
@@ -290,8 +305,10 @@ locked brief
 -> UV/PBR bake and material validation
 -> scale/origin/axis/pivot normalization
 -> versioned head seam
--> canonical rig/skin
--> deformation QA
+-> canonical rig/skin and normalized T-pose artifact
+-> derive A-pose from the same accepted mesh and skeleton
+-> matching-topology/UV/material/seam/body-identity proof
+-> dual-pose deformation and modular-fit QA
 -> one modular head proof
 -> one modular hair proof
 -> one soft garment proof
@@ -303,7 +320,7 @@ locked brief
 -> owner verdict
 ```
 
-All geometry-changing operations occur before final rigging.
+All geometry-changing operations occur before final rigging. A geometry or topology change after the dual-pose gate invalidates both pose proofs, skin weights, modular-fit evidence, and downstream animation evidence.
 
 Minimum animation proof:
 
@@ -354,6 +371,7 @@ Owns:
 - Tripo pilot generation after approval;
 - technicalization scripts and manifests;
 - modular body/head/hair/clothing/armor/weapon contracts;
+- one-mesh/two-pose ledger fields and T-pose/A-pose artifacts;
 - rig/deformation/browser QA;
 - machine-readable pilot ledger;
 - tests.
@@ -387,6 +405,7 @@ cachedToolchainReceipt: PASS | REFRESH_REQUIRED | BLOCKED
 tripoStudio: PASS | REFRESH_REQUIRED | UNAVAILABLE
 tripoApiSdk: PASS | UNFUNDED | UNAVAILABLE
 tripoOfficialCli: PASS | UNFUNDED | NOT_EXPOSED | UNAVAILABLE
+humanoidDualPosePolicyLoaded: yes/no
 imageBakeoffPolicyLoaded: yes/no
 animationRoutingLoaded: yes/no
 importedAssetGateLoaded: yes/no
@@ -406,6 +425,11 @@ prsRead: []
 repoFilesRead: []
 ancestryConflictStatus: RESOLVED | OWNER_DECISION_REQUIRED
 firstPilots: [human-masculine-athletic, human-feminine-athletic]
+pilotCanonicalMeshes: 2
+pilotPoseArtifacts: 4
+humanBaselineCanonicalMeshes: 8
+humanBaselinePoseArtifacts: 16
+dualPoseContract: T_SOURCE_PLUS_SAME_MESH_A_DEFORMATION | BLOCKED
 remainingHumanBatch: BLOCKED
 elfDwarfBatch: BLOCKED
 currentScope: <concise>
@@ -428,18 +452,23 @@ Before making changes, the new session must return:
 6. exact #435 PR scope and stacking/rebase strategy;
 7. live Tripo Studio/API/CLI/allowance/balance status;
 8. first two Human Athletic/Muscular pilot briefs;
-9. four-image full-asset bakeoff plan;
+9. four-image strict T-pose full-body bakeoff plan;
 10. no-pedestal/no-fused-gear rejection checklist;
-11. geometry-before-rig pipeline;
-12. modular head/hair/clothing/armor/weapon contracts;
-13. Tripo preset/custom-animation routing;
-14. exact expected and maximum cost for the first charged operation;
-15. blockers and explicit owner decisions required.
+11. exact strict T-pose source prompt and rejection blocks;
+12. one-mesh/two-pose derivation, ledger, and acceptance plan;
+13. exact canonical-body and pose-artifact counts;
+14. geometry-before-rig pipeline;
+15. modular head/hair/clothing/armor/weapon contracts;
+16. Tripo preset/custom-animation routing;
+17. exact expected and maximum cost for the first charged operation;
+18. blockers and explicit owner decisions required.
 
 ## Hard stops
 
 - no paid task before exact owner approval;
 - no automatic paid retry;
+- no separate paid T-pose and A-pose body generations merely to obtain both pose states;
+- no humanoid acceptance without both pose artifacts from the same canonical mesh and skeleton;
 - no other six Human bodies before both pilots pass;
 - no Elf or Dwarf bodies before all eight Human bases pass;
 - no unsupported fourth ancestry batch;
@@ -471,7 +500,11 @@ First pilots only:
 - Human masculine Athletic/Muscular
 - Human feminine Athletic/Muscular
 
-Every source must be full-body, complete, un-cropped, no pedestal/stand/platform, no fused clothing/hair/armor/weapon/accessories, and neutral underwear only.
+Read and enforce `HUMANOID_DUAL_POSE_PIPELINE.md`. Every humanoid requires a strict T-pose primary source/calibration artifact plus a relaxed A-pose deformation/fit artifact derived from the same accepted rigged mesh. Do not generate two independent bodies.
+
+Use the policy's locked positive and rejection prompt blocks. Every primary source must explicitly generate exactly one complete adult humanoid base body in a strict symmetrical T-pose, full-body and uncropped, with no pedestal/stand/platform, no fused clothing/hair/armor/weapon/accessories, and neutral underwear only.
+
+Count meshes and pose artifacts separately: the first two pilots are 2 canonical meshes and 4 pose artifacts; the full Human baseline is 8 canonical meshes and 16 pose artifacts.
 
 Do not spend credits, batch-generate, merge, deploy, or modify PR #460 without explicit owner approval.
 ```

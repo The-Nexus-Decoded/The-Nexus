@@ -28,6 +28,8 @@ For every zone/environment ticket, load:
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`;
 - the zone completion config/template.
 
+For every humanoid source, generation, rigging, retargeting, modular-fit, or animation ticket, load `HUMANOID_DUAL_POSE_PIPELINE.md`.
+
 ## Phase 2 — Requirement expansion
 
 Expand hidden dependencies into explicit testable rows.
@@ -47,6 +49,7 @@ Examples:
 - **Recovery:** checkpoint/save/re-entry -> stuck/out-of-bounds -> dynamic-state recovery -> migration/fallback -> no soft lock.
 - **Population readiness:** final spawn envelopes -> patrol/leash -> actor-size routes -> encounter/cover/LOS -> quest/cinematic/drop anchors -> stable socket manifest.
 - **Generated asset:** provider lane -> quote/approval -> source/provenance -> controlled download -> geometry processing before rig -> deformation -> animation -> runtime -> performance -> rollback.
+- **Humanoid dual pose:** strict T-pose primary source -> one canonical mesh/body identity -> canonical rig/skin -> normalized T-pose artifact -> same-mesh derived A-pose artifact -> dual-pose deformation/modular-fit proof -> animation acceptance.
 - **Custom animation:** Tripo preset search -> Houdini KineFX + Blender candidates when required -> blind AI review -> owner verdict -> winner integration -> experiment record.
 
 ---
@@ -183,7 +186,9 @@ For animation bakeoffs, Houdini and Blender producers work in isolated source ar
 
 ### Character/animated asset
 
-`toolchain state -> quote/approval -> concept/reference -> generation/input -> segmentation/mesh processing -> texture/material -> rig check -> rig -> deformation -> Tripo preset search -> direct preset OR custom-animation routing -> modular attachments -> runtime assembly -> gameplay proof -> performance`
+`toolchain state -> quote/approval -> concept/reference -> strict T-pose generation/input -> one canonical body mesh -> segmentation/mesh processing -> texture/material/seams -> rig check -> canonical rig/skin in T-pose -> normalized T-pose artifact -> derive A-pose from the same mesh/skeleton -> dual-pose deformation and modular-fit QA -> Tripo preset search -> direct preset OR custom-animation routing -> runtime assembly -> gameplay proof -> performance -> independent verification`
+
+`N` humanoid bodies produce `N` canonical meshes and `2N` required pose artifacts. A second paid 3D body generation is not authorized merely to obtain the A-pose.
 
 ### Custom animation
 
@@ -216,11 +221,13 @@ For zones, verify:
 - population-readiness handoff;
 - final experience/pacing.
 
+For humanoids, verify the strict T-pose source and rig-calibration artifact, the A-pose derived from the same accepted mesh/skeleton, matching topology/UV/material/seam/body identity, required deformation and modular-fit evidence, and the separate body-count versus pose-artifact count.
+
 Debug warp never proves connectivity. Endpoint, grid/path/navigation or proof-only approximation success never proves collision. Producer-only or stale evidence is rejected.
 
 ## Phase 8 — Deterministic done gate
 
-Fail if any required gate is missing, stale or self-verified; if assets/props are unclassified; if catalog/registry/generated-layout/runtime contracts drift or overrides lack approval; if rendered solids, collision-only owners or post-fit proxies are unreconciled; if the runtime spatial authority is incomplete or query/state consumers disagree; if collision used an empty shell or a nonproduction movement approximation; if diagonal/corner/sliding/continuous-sweep proof is missing; if interaction/destruction/recovery is untested; if performance/device evidence is missing; if population-readiness sockets are invalid; if provider/toolchain/spend receipts are missing; or if provenance/rollback is incomplete.
+Fail if any required gate is missing, stale or self-verified; if assets/props are unclassified; if catalog/registry/generated-layout/runtime contracts drift or overrides lack approval; if rendered solids, collision-only owners or post-fit proxies are unreconciled; if the runtime spatial authority is incomplete or query/state consumers disagree; if collision used an empty shell or a nonproduction movement approximation; if diagonal/corner/sliding/continuous-sweep proof is missing; if interaction/destruction/recovery is untested; if performance/device evidence is missing; if population-readiness sockets are invalid; if a humanoid lacks either required pose artifact or the two poses do not resolve to one canonical mesh/rig; if provider/toolchain/spend receipts are missing; or if provenance/rollback is incomplete.
 
 ## Phase 9 — Owner-ready
 
@@ -230,6 +237,6 @@ Never merge/deploy without owner authorization.
 
 ## Phase 10 — Handoff
 
-Commit, update ledger/evidence/handoff, record next atomic requirement/blockers, stop dev servers/provider pollers, preserve provider task IDs/output paths, and update topology, spatial-connection, zone-completion, animation and portability records.
+Commit, update ledger/evidence/handoff, record next atomic requirement/blockers, stop dev servers/provider pollers, preserve provider task IDs/output paths, and update topology, spatial-connection, zone-completion, humanoid dual-pose, animation and portability records.
 
 The next chat resumes from repository state, not chat history.
