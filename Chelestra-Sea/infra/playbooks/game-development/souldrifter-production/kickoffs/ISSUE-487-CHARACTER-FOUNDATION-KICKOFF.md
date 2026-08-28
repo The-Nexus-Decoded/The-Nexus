@@ -263,7 +263,7 @@ Treat separately:
 
 A functioning Studio session does not prove API credits. A valid API key does not prove Studio allowance. Use the funded, working lane and record the selected lane.
 
-Every Tripo Human body uses Smart Mesh P1.0 at generation and Quad Face topology for the canonical animated mesh. Capture the visible Smart Mesh/model/topology/face-target settings before submission. The Human pilot target is 8,000 quads, with an accepted 6,000-9,000-quad intake range matching the existing 12,000-18,000-triangle desktop body/head budget. Complete retopology and hero-character joint-loop repair before PBR texture or rigging. Smart Mesh never waives dual-pose deformation or runtime-budget review.
+Every Tripo Human body uses the live Smart Mesh generation mode and Quad Face topology for the canonical animated mesh. Capture the exact visible Smart Mesh model/version/topology/face-target settings before submission. The live Studio receipt on 2026-08-28 shows `P2.0 - Preview`; treat that as observed provider state, not a permanent version pin. A changed label requires a refreshed native-quad capability audit before submission. The Human pilot target is 8,000 quads, with an accepted 6,000-9,000-quad intake range matching the existing 12,000-18,000-triangle desktop body/head budget. Complete retopology and hero-character joint-loop repair before PBR texture or rigging. Smart Mesh never waives dual-pose deformation or runtime-budget review.
 
 For each important primary source, produce four images when available from the same locked brief:
 
@@ -302,7 +302,7 @@ locked brief
 -> four-image strict T-pose full-asset bakeoff
 -> owner image selection
 -> exact-cost owner approval
--> one canonical Tripo Smart Mesh P1.0 full-body generation
+-> one canonical live-verified Tripo Smart Mesh full-body generation
 -> immediate untouched download
 -> task receipt + source hash
 -> anomaly/full-body inspection
@@ -467,7 +467,7 @@ Before making changes, the new session must return:
 15. modular head/hair/clothing/armor/weapon contracts;
 16. Tripo preset/custom-animation routing;
 17. exact expected and maximum cost for the first charged operation;
-18. visible Smart Mesh P1.0, Quad Face, and face-target evidence plan;
+18. visible exact Smart Mesh model/version, Quad Face, and face-target evidence plan;
 19. blockers and explicit owner decisions required.
 
 ## Hard stops
@@ -513,7 +513,7 @@ Read and enforce `HUMANOID_DUAL_POSE_PIPELINE.md`. Every humanoid requires a str
 
 Use the policy's locked positive and rejection prompt blocks. Every primary source must explicitly generate exactly one complete adult humanoid base body in a strict symmetrical T-pose, full-body and uncropped, with no pedestal/stand/platform, no fused clothing/hair/armor/weapon/accessories, and neutral underwear only.
 
-Use Tripo Smart Mesh P1.0 for every canonical Human generation, select Quad Face topology, capture the visible setting and target before submission, and finish topology before PBR texturing or rigging. Default to 8,000 quads within the approved 6,000-9,000-quad pilot range unless runtime evidence records another target.
+Use Tripo's live Smart Mesh generation mode for every canonical Human generation, select Quad Face topology, capture the exact visible model/version and target before submission, and finish topology before PBR texturing or rigging. The 2026-08-28 live label is `P2.0 - Preview`; if it changes, refresh the native-quad capability receipt rather than silently falling back to HD Model. Default to 8,000 quads within the approved 6,000-9,000-quad pilot range unless runtime evidence records another target.
 
 Count meshes and pose artifacts separately: the first two pilots are 2 canonical meshes and 4 pose artifacts; the full Human baseline is 8 canonical meshes and 16 pose artifacts.
 

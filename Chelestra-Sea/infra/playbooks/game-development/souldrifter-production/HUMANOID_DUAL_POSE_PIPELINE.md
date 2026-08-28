@@ -85,7 +85,7 @@ An A-pose image created by an image model is supplemental review material only. 
 
 ## Tripo Smart Mesh contract for animated bodies
 
-Every Human body generated in Tripo Studio must use **Smart Mesh (P1.0)** at generation. The submitted-task evidence must visibly capture the Smart Mesh selection, provider/model label, topology choice, and face target before the charged action. If Smart Mesh is unavailable, disabled, or its setting cannot be proven, stop before submission and request an issue-linked owner exception.
+Every Human body generated in Tripo Studio must use the live **Smart Mesh** generation mode. The submitted-task evidence must visibly capture the exact provider/model label, Smart Mesh selection, topology choice, and face target before the charged action. The live Studio receipt on 2026-08-28 identifies the current lane as **Smart Mesh P2.0 Preview**; that label is observed provider state, not a permanent version pin. If the label changes, re-audit native-quad capability and record the new version before submission. If Smart Mesh is unavailable, disabled, replaced by HD Model, or its setting cannot be proven, stop before submission and request an issue-linked owner exception.
 
 For an animated humanoid:
 
@@ -109,7 +109,7 @@ locked humanoid identity/body brief
 -> full-body/no-pedestal/no-fused-gear rejection gate
 -> owner source selection
 -> exact charged-operation approval when applicable
--> one Smart Mesh P1.0 canonical 3D body generation or approved mesh intake
+-> one live-verified Smart Mesh canonical 3D body generation or approved mesh intake
 -> untouched source download, task receipt, and source hash
 -> anomaly, topology, symmetry, scale, and full-body inspection
 -> Quad Face retopology to the recorded budget plus required manual hero-loop repair
@@ -138,7 +138,8 @@ Each humanoid ledger entry must include:
   "canonicalMeshSourceHash": "",
   "tripoSmartMesh": {
     "required": true,
-    "providerModel": "P1.0",
+    "providerModel": "<exact live Smart Mesh label>",
+    "capabilityContract": "NATIVE_QUAD_GENERATION",
     "enabledAtSubmission": false,
     "topologyType": "QUAD_FACE",
     "targetQuadFaces": 8000,
@@ -185,7 +186,7 @@ The humanoid fails until both pose states pass.
 - flat visible feet and stable neutral root;
 - correct anatomy, ancestry, presentation, and body-build contract;
 - no pedestal, fused gear, hair, clothing, weapon, accessory, or unrelated prop;
-- Smart Mesh P1.0 submission and Quad Face topology evidence are present;
+- the exact live Smart Mesh model label and Quad Face topology evidence are present;
 - the recorded canonical mesh remains inside the approved face/triangle budget;
 - hero-character joint loops pass inspection rather than relying on the Smart Mesh label alone;
 - auto-rig markers and required canonical bone chains are placeable and valid.

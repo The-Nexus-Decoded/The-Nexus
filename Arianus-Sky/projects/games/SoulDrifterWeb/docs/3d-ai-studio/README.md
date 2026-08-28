@@ -33,7 +33,7 @@ Drakkin is retired from the active playable-character and body-production plan. 
 8. A fully dressed 3D AI Studio generation may be retained as concept or high-detail source material. It is not automatically a modular shipping character.
 9. No generated artifact enters `public/assets` until its source, ownership, task ID, settings, hashes, diagnostics, and review status are recorded.
 10. Paid batch generation stops immediately when a body, topology, rig, scale, or material gate fails.
-11. Every Tripo humanoid uses Smart Mesh P1.0 at generation and Quad Face production topology; the settings and face target are visibly recorded before submission.
+11. Every Tripo humanoid uses the live Smart Mesh generation mode and Quad Face production topology; the exact model/version, settings, and face target are visibly recorded before submission. The 2026-08-28 Studio receipt shows `P2.0 - Preview`; a later label must be capability-audited rather than assumed equivalent or replaced with HD Model.
 12. Human sources use realistic adult anatomy and facial/material quality. High-detail Shadowknight images are style references only and never authorize fused armor, clothing, weapons, effects, or copied class identity.
 
 ## Paid plan and MCP preflight
@@ -178,14 +178,14 @@ game-equipment mesh, not a permanently fused character.
 ### Phase 0: approve before spending credits
 
 1. Lock the ticket, asset ID, ancestry/calling purpose, concept sheet, prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
-2. For a Tripo humanoid, lock Smart Mesh P1.0 `ON`, `Quad Face`, and the target quad-face count. Capture these visible settings before the charged submission.
+2. For a Tripo humanoid, lock the live Smart Mesh mode `ON`, `Quad Face`, and the target quad-face count. Capture the exact visible model/version and settings before the charged submission.
 3. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
 4. Save the prompt and source-image hashes in the intake ledger.
 5. Obtain owner approval of the reference sheet and expected charge.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one image-to-3D task with Smart Mesh P1.0 enabled. If the selected lane cannot prove Smart Mesh, stop rather than silently using a dense HD/triangle source.
+1. Submit one image-to-3D task with the live Smart Mesh mode enabled. If the selected lane cannot prove native-quad Smart Mesh and its exact model/version, stop rather than silently using a dense HD/triangle source.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
@@ -391,7 +391,7 @@ Stop and request owner review when:
 - [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
-- [ ] Smart Mesh P1.0, Quad Face, and the target face count are visible in submission evidence.
+- [ ] The exact live Smart Mesh model/version, Quad Face, and target face count are visible in submission evidence.
 - [ ] Canonical topology stays inside the approved 6,000-9,000-quad pilot range or has a recorded runtime-budget exception.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
 - [ ] Three facial structures share approved expression/deformation landmarks and the versioned neck seam.

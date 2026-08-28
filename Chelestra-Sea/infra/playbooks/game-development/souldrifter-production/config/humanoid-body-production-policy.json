@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "policyId": "souldrifter-humanoid-body-production-v1",
+  "schemaVersion": 2,
+  "policyId": "souldrifter-humanoid-body-production-v2",
   "checkedAt": "2026-08-28",
   "appliesTo": [
     "PLAYABLE_HUMANOID",
@@ -36,7 +36,12 @@
     ]
   },
   "tripo": {
-    "generationModel": "SMART_MESH_P1_0",
+    "generationMode": "SMART_MESH",
+    "minimumCapabilityContract": "NATIVE_QUAD_GENERATION",
+    "lastVerifiedUiModel": "P2.0 - Preview",
+    "lastVerifiedAt": "2026-08-28",
+    "modelVersionMustBeRecordedAtSubmission": true,
+    "versionDriftRequiresCapabilityAudit": true,
     "requiredAtSubmission": true,
     "topologyType": "QUAD_FACE",
     "retopologyBeforePbr": true,
