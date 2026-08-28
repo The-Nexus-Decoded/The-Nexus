@@ -145,7 +145,7 @@ describe("BREACH-V2 camera-only overhead collision", () => {
       .toBeLessThan(1);
   });
 
-  it("starts above and directly behind the avatar while looking ahead into the room", () => {
+  it("uses a lower follow-isometric view behind the avatar while looking ahead", () => {
     const target = new THREE.Vector3();
     const position = new THREE.Vector3();
     writeBreachV2IsometricCameraPose(
@@ -161,7 +161,8 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(target.z).toBeCloseTo(-BREACH_V2_ISOMETRIC_LOOK_AHEAD);
     expect(position.x).toBeCloseTo(0);
     expect(position.z).toBeGreaterThan(0);
-    expect(position.y).toBeGreaterThan(18);
+    expect(position.y).toBeGreaterThan(12);
+    expect(position.y).toBeLessThan(15);
     expect(position.distanceTo(target)).toBeCloseTo(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
   });
 
@@ -210,7 +211,8 @@ describe("BREACH-V2 camera-only overhead collision", () => {
       layout.landmarks.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
     );
     expect(presets.isometric?.offset[0]).toBe(0);
-    expect(presets.isometric?.offset[1]).toBeGreaterThan(17.5);
+    expect(presets.isometric?.offset[1]).toBeGreaterThan(11.5);
+    expect(presets.isometric?.offset[1]).toBeLessThan(12.5);
     expect(presets.overview?.minDistance).toBeUndefined();
   });
 

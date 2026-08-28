@@ -28,7 +28,10 @@ import {
   type BreachV2TopologyPoint,
 } from "./breach-v2-topology.ts";
 import { generateBreachV2, breachV2CellKey } from "./breach-v2-generator.ts";
-import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
+import {
+  resolveBreachV2LegacyLandmarkRoomId,
+  setupBreachV2DevPanel,
+} from "./breach-v2-dev-panel.ts";
 import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
@@ -1180,11 +1183,11 @@ export function resolveBreachV2CameraDistanceForMode(
 }
 
 export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = 0;
-export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(61);
-export const BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE = 20.5;
-export const BREACH_V2_ISOMETRIC_LOOK_AHEAD = 2.25;
-export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(44);
-export const BREACH_V2_ISOMETRIC_MAX_PITCH = THREE.MathUtils.degToRad(70);
+export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(40);
+export const BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE = 18.5;
+export const BREACH_V2_ISOMETRIC_LOOK_AHEAD = 4.25;
+export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(25);
+export const BREACH_V2_ISOMETRIC_MAX_PITCH = THREE.MathUtils.degToRad(58);
 
 export function writeBreachV2IsometricCameraPose(
   playerPosition: { x: number; y: number; z: number },
@@ -3864,6 +3867,8 @@ export async function startDungeonPreview(
   container.appendChild(loading);
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
+  const legacyLandmarkRoomId = resolveBreachV2LegacyLandmarkRoomId(options.cam, layout.rooms);
+  const activeCameraMode = legacyLandmarkRoomId ? "isometric" : options.cam;
   const environmentConfigs = buildBreachV2EnvironmentObjectConfigs(layout);
   const cofferObjectId = environmentConfigs.find((config) => (
     config.destructionClass === "INTERACTABLE_CONTAINER"
@@ -4000,7 +4005,7 @@ export async function startDungeonPreview(
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
   setupLights(scene, layout);
-  if (options.cam === "overview") {
+  if (activeCameraMode === "overview") {
     // Survey mode is an architectural QA view, so the whole shell must remain
     // legible at once instead of depending on local sconces hundreds of metres
     // apart. Gameplay cameras retain the authored lighting and fog.
@@ -4019,14 +4024,14 @@ export async function startDungeonPreview(
 
   // ---- walk mode: WASD on the hidden nav grid (collision from the generator's
   // own walkable cells — the same data the invariant suite proves reachable)
-  const firstPersonMode = options.cam === "firstperson";
-  const isometricMode = options.cam === "isometric";
-  const walkMode = options.cam === "walk" || firstPersonMode || isometricMode;
+  const firstPersonMode = activeCameraMode === "firstperson";
+  const isometricMode = activeCameraMode === "isometric";
+  const walkMode = activeCameraMode === "walk" || firstPersonMode || isometricMode;
   const ceilingCameraMode: BreachV2CeilingCameraMode = firstPersonMode
     ? "firstperson"
     : isometricMode
       ? "isometric"
-      : options.cam === "overview"
+      : activeCameraMode === "overview"
         ? "overview"
         : walkMode
           ? "thirdperson"
@@ -4106,7 +4111,8 @@ export async function startDungeonPreview(
     canProfileStandAtWith(runtimeCollisionBlockers, radius, x, z)
   );
   const isWalkable = (x: number, z: number): boolean => canProfileStandAt(0.35, x, z);
-  const requestedStart = new URL(window.location.href).searchParams.get("start");
+  const requestedStart = new URL(window.location.href).searchParams.get("start")
+    ?? legacyLandmarkRoomId;
   const requestedRoom = requestedStart
     ? layout.rooms.find((room) => room.id === requestedStart || ("poolRoomId" in room && room.poolRoomId === requestedStart))
     : null;
@@ -4115,23 +4121,50 @@ export async function startDungeonPreview(
     const clearance = (placement.footprint ?? 0.8) / 2 + 0.55;
     return Math.hypot(x - placement.x, z - placement.z) >= clearance;
   });
-  const nearestWalkable = (x: number, z: number, requirePropClear = false): [number, number] => {
+  const nearestWalkable = (
+    x: number,
+    z: number,
+    requirePropClear = false,
+    destinationRoom: BreachV2Layout["rooms"][number] | null = null,
+  ): [number, number] => {
+    const insideDestination = (candidateX: number, candidateZ: number): boolean => (
+      !destinationRoom
+      || (
+        candidateX >= destinationRoom.x + 0.45
+        && candidateX <= destinationRoom.x + destinationRoom.w - 0.45
+        && candidateZ >= destinationRoom.z + 0.45
+        && candidateZ <= destinationRoom.z + destinationRoom.h - 0.45
+      )
+    );
     const valid = (candidateX: number, candidateZ: number): boolean => (
+      insideDestination(candidateX, candidateZ) &&
       isWalkable(candidateX, candidateZ)
       && (!requirePropClear || isSpawnClear(candidateX, candidateZ))
     );
     if (valid(x, z)) return [x, z];
-    for (let radius = NAV; radius <= NAV * 5; radius += NAV) {
+    for (let radius = PATH_CELL; radius <= NAV * 5; radius += PATH_CELL) {
       for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
         const candidateX = x + Math.cos(angle) * radius;
         const candidateZ = z + Math.sin(angle) * radius;
         if (valid(candidateX, candidateZ)) return [candidateX, candidateZ];
       }
     }
+    if (destinationRoom) {
+      for (let candidateZ = destinationRoom.z + PATH_CELL; candidateZ < destinationRoom.z + destinationRoom.h; candidateZ += PATH_CELL) {
+        for (let candidateX = destinationRoom.x + PATH_CELL; candidateX < destinationRoom.x + destinationRoom.w; candidateX += PATH_CELL) {
+          if (valid(candidateX, candidateZ)) return [candidateX, candidateZ];
+        }
+      }
+    }
     return [layout.landmarks.playerStart.x, layout.landmarks.playerStart.z];
   };
   const requestedPosition = requestedRoom && requestedRoom.id !== "vestibule"
-    ? nearestWalkable(requestedRoom.x + requestedRoom.w / 2, requestedRoom.z + requestedRoom.h / 2, true)
+    ? nearestWalkable(
+      requestedRoom.x + requestedRoom.w / 2,
+      requestedRoom.z + requestedRoom.h / 2,
+      true,
+      requestedRoom,
+    )
     : nearestWalkable(layout.landmarks.playerStart.x, layout.landmarks.playerStart.z);
   const playerPos = new THREE.Vector3(
     requestedPosition[0],
@@ -4426,7 +4459,7 @@ export async function startDungeonPreview(
     window.addEventListener("keyup", (e) => keys.delete(e.code));
   }
 
-  const preset = presets[options.cam] ?? presets.vestibule!;
+  const preset = presets[activeCameraMode] ?? presets.vestibule!;
   if (!walkMode) {
     controls.minDistance = preset.minDistance ?? 0;
     controls.target.set(...preset.target);
@@ -4595,14 +4628,24 @@ export async function startDungeonPreview(
     activeDebrisCount: () => gameplay.snapshot().environment.debrisObjectIds.length,
   };
 
-  const warp = (x: number, z: number): boolean => {
-    const [walkX, walkZ] = nearestWalkable(x, z, true);
+  const warp = (roomId: string, x: number, z: number): boolean => {
+    const destinationRoom = layout.rooms.find((room) => room.id === roomId);
+    if (!destinationRoom) return false;
+    const [walkX, walkZ] = nearestWalkable(x, z, true, destinationRoom);
+    const insideDestination = walkX >= destinationRoom.x
+      && walkX <= destinationRoom.x + destinationRoom.w
+      && walkZ >= destinationRoom.z
+      && walkZ <= destinationRoom.z + destinationRoom.h;
+    if (!insideDestination) return false;
     if (walkMode) {
+      clickPath.length = 0;
       setPlayerPosition(walkX, walkZ);
+      fogOfWar.update(walkX, walkZ);
+      gameplay.enterRoom(destinationRoom.id);
       return true;
     }
-    // The dev panel handles a false result by reloading this destination in
-    // walk mode. Moving only an orbit camera left no avatar to continue with.
+    // The dev panel handles a false result by reloading the destination in
+    // isometric gameplay. Moving only an orbit camera left no avatar to continue with.
     return false;
   };
   setupBreachV2DevPanel({
@@ -4610,7 +4653,7 @@ export async function startDungeonPreview(
     layout,
     seed: options.seed,
     path: options.path,
-    cam: options.cam,
+    cam: activeCameraMode,
     warp,
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),
   });
@@ -4693,7 +4736,7 @@ export async function startDungeonPreview(
   const cullOrigin = new THREE.Vector3();
   const cullObjectPosition = new THREE.Vector3();
   const updateDetailVisibility = (): void => {
-    if (options.cam === "overview") {
+    if (activeCameraMode === "overview") {
       detailCullables.forEach((object) => { object.visible = false; });
       return;
     }

@@ -10,7 +10,7 @@ interface BreachV2DevPanelOptions {
   seed: number;
   path: "wayfarer" | "oathbreaker";
   cam: string;
-  warp: (x: number, z: number) => boolean;
+  warp: (roomId: string, x: number, z: number) => boolean;
   setAllDoorsOpen: (open: boolean) => void;
 }
 
@@ -18,13 +18,30 @@ const CAMERA_MODES = [
   ["isometric", "Isometric gameplay (default)"],
   ["walk", "Third-person walk"],
   ["firstperson", "First-person walk"],
-  ["vestibule", "Realm-Lock Vestibule"],
-  ["plaza", "Threshold Plaza"],
-  ["gallery", "Current route gallery"],
-  ["boss", "Ashen Lock boss"],
-  ["exit", "Way Upward exit"],
   ["overview", "Full dungeon overview"],
 ] as const;
+
+export function resolveBreachV2LegacyLandmarkRoomId(
+  cameraMode: string,
+  rooms: readonly { id: string; fixed: boolean; kind: string }[],
+): string | null {
+  if (cameraMode === "vestibule") {
+    return rooms.find((room) => room.id === "vestibule")?.id ?? null;
+  }
+  if (cameraMode === "plaza") {
+    return rooms.find((room) => room.id === "threshold-plaza")?.id ?? null;
+  }
+  if (cameraMode === "gallery") {
+    return rooms.find((room) => !room.fixed)?.id ?? null;
+  }
+  if (cameraMode === "boss") {
+    return rooms.find((room) => room.kind === "boss")?.id ?? null;
+  }
+  if (cameraMode === "exit") {
+    return rooms.find((room) => room.kind === "exit")?.id ?? null;
+  }
+  return null;
+}
 
 function replacePreviewParams(values: Record<string, string | null>): void {
   const url = new URL(window.location.href);
@@ -188,7 +205,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     const x = room.x + room.w / 2;
     const z = room.z + room.h / 2;
     const roomButton = button(label, () => {
-      if (!options.warp(x, z)) replacePreviewParams({ cam: "walk", start: room.id });
+      if (!options.warp(room.id, x, z)) replacePreviewParams({ cam: "isometric", start: room.id });
     });
     roomButton.dataset.roomId = room.id;
   }

@@ -10,6 +10,7 @@ import {
   resolveBreachV2TouchYaw,
   shouldRequireBreachV2Landscape,
 } from "../src/game/dungeons/breach-v2-mobile-controls";
+import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
 import {
   findBreachV2RoomAt,
   resolveBreachV2FogState,
@@ -75,5 +76,25 @@ describe("BREACH-V2 room discovery fog", () => {
     expect(resolveBreachV2FogState("vestibule", "gallery", discovered, edges)).toBe("discovered");
     expect(resolveBreachV2FogState("vault", "gallery", discovered, edges)).toBe("adjacent");
     expect(resolveBreachV2FogState("vault", "vestibule", new Set(["vestibule"]), edges)).toBe("hidden");
+  });
+});
+
+describe("BREACH-V2 preview landmark navigation", () => {
+  const rooms = [
+    { id: "vestibule", fixed: true, kind: "start" },
+    { id: "threshold-plaza", fixed: true, kind: "plaza" },
+    { id: "route-room-1", fixed: false, kind: "gallery" },
+    { id: "ashen-lock", fixed: true, kind: "boss" },
+    { id: "exit-connector", fixed: true, kind: "exit" },
+  ];
+
+  it("turns old fixed-camera destinations into player room entries", () => {
+    expect(resolveBreachV2LegacyLandmarkRoomId("vestibule", rooms)).toBe("vestibule");
+    expect(resolveBreachV2LegacyLandmarkRoomId("plaza", rooms)).toBe("threshold-plaza");
+    expect(resolveBreachV2LegacyLandmarkRoomId("gallery", rooms)).toBe("route-room-1");
+    expect(resolveBreachV2LegacyLandmarkRoomId("boss", rooms)).toBe("ashen-lock");
+    expect(resolveBreachV2LegacyLandmarkRoomId("exit", rooms)).toBe("exit-connector");
+    expect(resolveBreachV2LegacyLandmarkRoomId("isometric", rooms)).toBeNull();
+    expect(resolveBreachV2LegacyLandmarkRoomId("overview", rooms)).toBeNull();
   });
 });
