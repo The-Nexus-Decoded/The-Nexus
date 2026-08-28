@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,7 +6,9 @@ import {
   collectPrunableFiles,
   directoryBytes,
   loadAssetManifest,
-  pruneAssetRoot,
+  normalizeAssetPath,
+  pruneRuntimeAssets,
+  resolveRuntimeTarget,
 } from "../scripts/prune-runtime-assets.mjs";
 
 const temporaryRoots = [];
@@ -17,11 +19,60 @@ async function writeFixture(root, path, contents = path) {
   await writeFile(output, contents);
 }
 
+async function writeManifest(root, overrides = {}) {
+  const manifest = {
+    maxBytes: 500_000_000,
+    preferredMaxBytes: 475_000_000,
+    excludeGlobs: [],
+    protectedPaths: [],
+    targets: [{ assetRoot: "dist/client", budgetRoot: "dist" }],
+    ...overrides,
+  };
+  await writeFixture(root, "scripts/runtime-asset-manifest.json", JSON.stringify(manifest));
+  return manifest;
+}
+
 afterEach(async () => {
   await Promise.all(temporaryRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 describe("runtime asset budget", () => {
+  it("rejects Windows drives, UNC paths, POSIX absolute paths, and traversal", () => {
+    const root = resolve("runtime-target-fixture");
+    const unsafePaths = [
+      "C:\\outside",
+      "C:/outside",
+      "C:outside",
+      "\\\\server\\share\\outside",
+      "//server/share/outside",
+      "/tmp/outside",
+      "dist/client/../../outside",
+      "dist-pages/../outside",
+    ];
+
+    for (const assetRoot of unsafePaths) {
+      expect(() => resolveRuntimeTarget(root, { assetRoot, budgetRoot: "dist" })).toThrow(/Unsafe runtime asset/);
+      expect(() => resolveRuntimeTarget(root, { assetRoot: "dist/client", budgetRoot: assetRoot }))
+        .toThrow(/Unsafe runtime asset/);
+    }
+    expect(() => normalizeAssetPath("..\\outside")).toThrow(/Unsafe runtime asset path/);
+  });
+
+  it("accepts only the explicit build roots and their relative subpaths", () => {
+    const root = resolve("runtime-target-fixture");
+
+    expect(resolveRuntimeTarget(root, { assetRoot: ".\\dist\\client", budgetRoot: "dist" }))
+      .toMatchObject({ normalizedAssetRoot: "dist/client", normalizedBudgetRoot: "dist" });
+    expect(resolveRuntimeTarget(root, { assetRoot: "dist/client/assets", budgetRoot: "dist" }))
+      .toMatchObject({ normalizedAssetRoot: "dist/client/assets", normalizedBudgetRoot: "dist" });
+    expect(resolveRuntimeTarget(root, { assetRoot: "dist-pages", budgetRoot: "dist-pages" }))
+      .toMatchObject({ normalizedAssetRoot: "dist-pages", normalizedBudgetRoot: "dist-pages" });
+    expect(() => resolveRuntimeTarget(root, { assetRoot: "public", budgetRoot: "public" }))
+      .toThrow(/Unsafe runtime asset target/);
+    expect(() => resolveRuntimeTarget(root, { assetRoot: "dist/client", budgetRoot: "dist-pages" }))
+      .toThrow(/Unsafe runtime asset target/);
+  });
+
   it("keeps QA and production bundles under the permanent 500 MB ceiling", async () => {
     const manifest = await loadAssetManifest();
 
@@ -52,38 +103,79 @@ describe("runtime asset budget", () => {
     const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
     temporaryRoots.push(root);
     await Promise.all([
-      writeFixture(root, "assets/generated/human-class-atlas-alpha-v1.png"),
-      writeFixture(root, "assets/generated/characters/advanced/human-warrior.png"),
-      writeFixture(root, "assets/generated/first-breach-environment-v1.png"),
-      writeFixture(root, "index.html", "<main>SoulDrifter</main>"),
+      writeFixture(root, "dist/client/assets/generated/human-class-atlas-alpha-v1.png"),
+      writeFixture(root, "dist/client/assets/generated/characters/advanced/human-warrior.png"),
+      writeFixture(root, "dist/client/assets/generated/first-breach-environment-v1.png"),
+      writeFixture(root, "dist/client/index.html", "<main>SoulDrifter</main>"),
     ]);
-    const manifest = {
+    await writeManifest(root, {
       excludeGlobs: ["assets/generated/*-class-atlas-*-v1.png", "assets/generated/characters/advanced/**"],
       protectedPaths: ["assets/generated/first-breach-environment-v1.png", "index.html"],
-    };
+    });
 
-    const result = await pruneAssetRoot(root, manifest);
+    const [result] = await pruneRuntimeAssets(root);
 
     expect(result.removedFiles).toBe(2);
-    await expect(readFile(resolve(root, "assets/generated/human-class-atlas-alpha-v1.png"))).rejects.toThrow();
-    await expect(readFile(resolve(root, "assets/generated/first-breach-environment-v1.png"), "utf8"))
+    await expect(readFile(resolve(root, "dist/client/assets/generated/human-class-atlas-alpha-v1.png")))
+      .rejects.toThrow();
+    await expect(readFile(resolve(root, "dist/client/assets/generated/first-breach-environment-v1.png"), "utf8"))
       .resolves.toContain("first-breach");
-    expect(await directoryBytes(root)).toBeGreaterThan(0);
+    expect(await directoryBytes(resolve(root, "dist"))).toBeGreaterThan(0);
   });
 
   it("fails closed when a future runtime file references an excluded asset", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
     temporaryRoots.push(root);
     await Promise.all([
-      writeFixture(root, "lore-atlas/assets/P-ARIANUS_painted.png"),
-      writeFixture(root, "lore-atlas/index.html", '<img src="assets/P-ARIANUS_painted.png">'),
+      writeFixture(root, "dist/client/lore-atlas/assets/P-ARIANUS_painted.png"),
+      writeFixture(root, "dist/client/lore-atlas/index.html", '<img src="assets/P-ARIANUS_painted.png">'),
     ]);
-    const manifest = {
+    await writeManifest(root, {
       excludeGlobs: ["lore-atlas/assets/P-*_painted.png"],
       protectedPaths: ["lore-atlas/index.html"],
-    };
+    });
 
-    await expect(pruneAssetRoot(root, manifest)).rejects.toThrow(/Refusing to prune referenced runtime assets/);
-    await expect(readFile(resolve(root, "lore-atlas/assets/P-ARIANUS_painted.png"))).resolves.toBeTruthy();
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/Refusing to prune referenced runtime assets/);
+    await expect(readFile(resolve(root, "dist/client/lore-atlas/assets/P-ARIANUS_painted.png")))
+      .resolves.toBeTruthy();
+  });
+
+  it("validates every manifest target before deleting from an allowed target", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(root);
+    const candidate = "dist/client/assets/generated/human-class-atlas-alpha-v1.png";
+    await writeFixture(root, candidate);
+    await writeManifest(root, {
+      excludeGlobs: ["assets/generated/*-class-atlas-*-v1.png"],
+      targets: [
+        { assetRoot: "dist/client", budgetRoot: "dist" },
+        { assetRoot: "C:\\outside", budgetRoot: "dist" },
+      ],
+    });
+
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/Unsafe runtime asset path/);
+    await expect(readFile(resolve(root, candidate))).resolves.toBeTruthy();
+  });
+
+  it("fails closed on symlink or junction traversal without deleting the external file", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    const outside = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-outside-"));
+    temporaryRoots.push(root, outside);
+    const externalFile = resolve(outside, "human-class-atlas-alpha-v1.png");
+    const linkPath = resolve(root, "dist/client/assets/generated/escape");
+    await Promise.all([
+      writeFile(externalFile, "must survive"),
+      writeManifest(root, { excludeGlobs: ["assets/generated/**"] }),
+      mkdir(dirname(linkPath), { recursive: true }),
+    ]);
+    try {
+      await symlink(outside, linkPath, process.platform === "win32" ? "junction" : "dir");
+    } catch (error) {
+      if (["EACCES", "EPERM", "UNKNOWN"].includes(error.code)) return;
+      throw error;
+    }
+
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/Unsafe runtime asset link/);
+    await expect(readFile(externalFile, "utf8")).resolves.toBe("must survive");
   });
 });
