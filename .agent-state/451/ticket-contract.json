@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "contextVersion": "2026-08-25-master-v8",
+  "issue": 451,
+  "source": {
+    "issueUrl": "https://github.com/The-Nexus-Decoded/The-Nexus/issues/451",
+    "pullRequestUrl": "https://github.com/The-Nexus-Decoded/The-Nexus/pull/460",
+    "latestOwnerCorrectionChecked": true,
+    "latestKickoffComment": "https://github.com/The-Nexus-Decoded/The-Nexus/pull/460#issuecomment-5403911928",
+    "productionAuthorityRoot": "Chelestra-Sea/infra/playbooks/game-development"
+  },
+  "branch": "codex/451-souldrifter-breach-v2",
+  "baseBranch": "qa",
+  "baselineCommit": "8b6b28bf66be9e531df1e5d94013375109e6a2ef",
+  "worktree": "H:\\CodexData\\.codex\\worktrees\\breach\\The-Nexus-breach-v2",
+  "gameRoot": "Arianus-Sky/projects/games/SoulDrifterWeb",
+  "preview": "/?dungeonPreview=breach-v2&seed=4182&path=wayfarer&cam=walk&dev=1&start=vestibule",
+  "runbooks": [
+    "Chelestra-Sea/infra/playbooks/game-development/universal-game-production/PLAYBOOK_V2_CORRECTIONS.md",
+    "Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/START_HERE.md",
+    "Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/WORKFLOW.md",
+    "Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/kickoffs/ISSUE-451-PR460-FIX-CHAT.md"
+  ],
+  "ownerOnlyGates": [
+    "merge",
+    "deploy",
+    "paid-provider-operation",
+    "replace-current-level-01"
+  ],
+  "scope": {
+    "mission": "Fix the existing BREACH-V2 implementation without rebuilding it.",
+    "inScope": [
+      "physical apertures, portals, corridors, room shells and ceilings",
+      "complete architectural flat-layout correction, canonical shared boundaries, and elevation transitions",
+      "collision, navigation, player-capsule clearance, WASD and click-to-move",
+      "tutorial-to-route-to-boss-to-First-Memory-to-Heartvale gameplay spine",
+      "fresh visual, real-GPU, automated and independent-verifier evidence"
+    ],
+    "outOfScope": [
+      "wholesale dungeon redesign beyond the measured adjacency, boundary, opening, corridor, and elevation defects",
+      "character or monster production owned by issue 448",
+      "paid asset generation",
+      "merge, deploy, release or replacement of current Level 01"
+    ]
+  },
+  "requirements": [
+    { "id": "451-P0A-ARCHITECTURAL-PLAN", "priority": "critical", "description": "A complete CAD-like whole-level plan shows both route families, canonical shared boundaries, openings, corridor widths, stairs/elevations, collision and navigation before shell repair." },
+    { "id": "451-P0A-ROUTE-GRAPH", "priority": "critical", "description": "Both selectable routes preserve the authored fixed spine, 3-5 legal gallery chambers, convergence and boss suite." },
+    { "id": "451-P0A-PORTALS", "priority": "critical", "description": "Every required edge has source aperture, seated portal, continuous corridor and destination aperture." },
+    { "id": "451-P0A-EXIT-CHAIN", "priority": "critical", "description": "Ashen Lock, First Memory Vault, Way Upward and Heartvale form the authored sequential physical connection." },
+    { "id": "451-P0B-COLLISION", "priority": "critical", "description": "Door/gate animation, collision, nav and player-capsule clearance remain synchronized." },
+    { "id": "451-P0B-MOVEMENT", "priority": "critical", "description": "WASD and click-to-move traverse the same complete route without survey warps." },
+    { "id": "451-P0C-GAMEPLAY", "priority": "critical", "description": "Tutorial, route choice, galleries, Warden, First Memory once, exit and save/reload form one complete run." },
+    { "id": "451-P0C-COMBAT-MODES", "priority": "critical", "description": "Real-time default and turn-based smoke use the same authoritative simulation and outcomes." },
+    { "id": "451-P1-VISUAL", "priority": "high", "description": "Every room and threshold passes wide, close, both-side, shell, ceiling, material, lighting and orientation review." },
+    { "id": "451-P1-TECHNICAL", "priority": "high", "description": "Typecheck, tests, build, release verification, real-GPU renderer and performance gates pass on the current commit." }
+  ],
+  "expectedMatrices": [
+    "whole-level architectural plan plus shared-boundary/adjacency inventory",
+    "spatial-connection-matrix.json",
+    "both routes and representative sparse/median/dense seeds",
+    "every fixed room and selected pooled room",
+    "WASD and click-to-move",
+    "real-time and turn-based smoke",
+    "desktop and narrow viewport",
+    "real GPU through ANGLE/D3D11"
+  ],
+  "doneGate": {
+    "allCriticalRequirementsVerified": true,
+    "independentVerifierRequired": true,
+    "freshEvidenceRequired": true,
+    "testsRequired": true,
+    "realGpuRequired": true,
+    "ownerApprovalRequiredForMergeOrDeploy": true
+  }
+}

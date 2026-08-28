@@ -22,6 +22,17 @@ afterEach(async () => {
 });
 
 describe("runtime asset budget", () => {
+  it("keeps QA and production bundles under the permanent 500 MB ceiling", async () => {
+    const manifest = await loadAssetManifest();
+
+    expect(manifest.maxBytes).toBe(500_000_000);
+    expect(manifest.preferredMaxBytes).toBe(475_000_000);
+    expect(manifest.targets).toEqual([
+      { assetRoot: "dist/client", budgetRoot: "dist" },
+      { assetRoot: "dist-pages", budgetRoot: "dist-pages" },
+    ]);
+  });
+
   it("identifies only build-time source art in the real public asset tree", async () => {
     const manifest = await loadAssetManifest();
     const publicRoot = resolve(import.meta.dirname, "../public");
