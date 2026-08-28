@@ -429,7 +429,11 @@ describe("BREACH-V2 seeded generator", () => {
       .toEqual(buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS).placements);
   });
 
-  it("keeps every objective and encounter reachable on a 500-seed sweep (both paths)", () => {
+  it("keeps every objective and encounter in the coarse nav component on a 500-seed diagnostic sweep", () => {
+    // This intentionally verifies generator-cell connectivity only. Continuous
+    // player/NPC capsule reachability is proven against fitted GLB colliders in
+    // breachV2TopologyRender.test.ts; do not represent this coarse sweep as the
+    // runtime movement gate.
     for (let seed = 1; seed <= 500; seed += 1) {
       for (const pathId of PATHS) {
         const gen = generateBreachV2(seed, pathId);

@@ -4,12 +4,87 @@
  * docs/maps/breach-v2/breach-v2-flatmap-1600.webp
  */
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import * as THREE from "three";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { BREACH_V2_REGISTRY as R } from "../src/game/dungeons/breach-v2-registry.mjs";
 import { DUNGEON_PROP_ASSETS, DUNGEON_PROP_ASSET_IDS } from "../src/game/environment/DungeonPropCatalog";
+import { instantiateDungeonProp } from "../src/game/environment/DungeonPropKit";
 
 const fixedById = Object.fromEntries(R.fixedRooms.map((r) => [r.id, r]));
 const pools = R.pools;
 const allPoolRooms = [...pools.easy, ...pools.hard];
+const fittedBoundsByAsset = new Map();
+
+function propYaw(asset, x, y) {
+  let hash = 2166136261;
+  for (const ch of `${asset}:${x.toFixed(2)},${y.toFixed(2)}`) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (Math.abs(hash) % 8) * 45;
+}
+
+async function fittedBounds(asset) {
+  if (fittedBoundsByAsset.has(asset)) return fittedBoundsByAsset.get(asset).clone();
+  const spec = DUNGEON_PROP_ASSETS[asset];
+  const bytes = await readFile(fileURLToPath(new URL(`../public${spec.sourceUrl}`, import.meta.url)));
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  globalThis.self = globalThis;
+  const originalError = console.error;
+  let source;
+  let instance;
+  try {
+    console.error = () => undefined;
+    source = (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(buffer, "")).scene;
+    instance = instantiateDungeonProp(source, spec, 0);
+    instance.root.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(instance.root, true);
+    fittedBoundsByAsset.set(asset, bounds.clone());
+    return bounds;
+  } finally {
+    console.error = originalError;
+    instance?.dispose();
+    if (source) {
+      const geometries = new Set();
+      const materials = new Set();
+      source.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        geometries.add(child.geometry);
+        (Array.isArray(child.material) ? child.material : [child.material])
+          .forEach((material) => materials.add(material));
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+    }
+  }
+}
+
+function clearanceFromOrientedBounds(prop, socket, bounds) {
+  const sourceYawCorrection = {
+    "archive-bookshelf": 90,
+    "archive-cupboard": 90,
+    "empty-weapon-rack": 90,
+    "guardian-statue": 270,
+    "reliquary-wall-alcove": 90,
+  }[prop.asset] ?? 0;
+  const wallYaw = { south: 180, north: 0, east: 90, west: 270 }[prop.facing];
+  const yaw = THREE.MathUtils.degToRad(
+    (prop.placement === "wall" ? (wallYaw ?? 0) : propYaw(prop.asset, prop.x, prop.y))
+    + sourceYawCorrection,
+  );
+  const size = bounds.getSize(new THREE.Vector3());
+  const deltaX = socket.x - prop.x;
+  const deltaY = socket.y - prop.y;
+  const localX = deltaX * Math.cos(yaw) - deltaY * Math.sin(yaw);
+  const localY = deltaX * Math.sin(yaw) + deltaY * Math.cos(yaw);
+  return Math.hypot(
+    Math.max(Math.abs(localX) - size.x / 2, 0),
+    Math.max(Math.abs(localY) - size.z / 2, 0),
+  );
+}
 
 function doorSockets(room) {
   // pool rooms carry explicit sockets; fixed rooms use landmark doors
@@ -141,7 +216,7 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
   });
 
-  it("placement records carry the §6 minimum metadata and stay in bounds", () => {
+  it("placement records carry the §6 minimum metadata and preserve capsule clearance", async () => {
     const rooms = [
       ...R.fixedRooms.map((r) => ({ ...r, sockets: [] })),
       ...allPoolRooms,
@@ -164,11 +239,14 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
           expect(p.asset).toMatch(/^art-/);
           expect(p.width).toBeGreaterThanOrEqual(1.4);
         }
-        // blocking props never sit on door or spawn sockets (min clearance 1.2 m)
+        // Use the post-fit oriented GLB edge, not center distance. The 0.55 m
+        // envelope covers a humanoid-NPC capsule (0.45 m) plus 0.10 m safety.
         if (p.blocking) {
+          const bounds = await fittedBounds(p.asset);
           for (const s of [...sockets, ...spawns]) {
-            const d = Math.hypot(p.x - s.x, p.y - s.y);
-            expect(d, `${room.id}:${p.asset}@${p.x},${p.y} vs socket`).toBeGreaterThanOrEqual(1.2);
+            const clearance = clearanceFromOrientedBounds(p, s, bounds);
+            expect(clearance, `${room.id}:${p.asset}@${p.x},${p.y} vs socket`)
+              .toBeGreaterThanOrEqual(0.55 - 1e-6);
           }
         }
       }
