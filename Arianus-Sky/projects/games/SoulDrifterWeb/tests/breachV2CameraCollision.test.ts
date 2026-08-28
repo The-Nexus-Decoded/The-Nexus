@@ -3,6 +3,10 @@ import * as THREE from "three";
 
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import {
+  BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+  BREACH_V2_ISOMETRIC_DEFAULT_PITCH,
+  BREACH_V2_ISOMETRIC_DEFAULT_YAW,
+  BREACH_V2_ISOMETRIC_LOOK_AHEAD,
   auditBreachV2SpatialContracts,
   buildBreachV2CameraOnlyColliders,
   buildBreachV2ShellColliders,
@@ -19,6 +23,7 @@ import {
   resolveBreachV2CeilingVisibility,
   resolveBreachV2PlaceholderAvatarOpacity,
   type BreachV2PlanarCollider,
+  writeBreachV2IsometricCameraPose,
 } from "../src/game/dungeons/breach-v2-preview";
 import { splitBreachV2Boundary } from "../src/game/dungeons/breach-v2-topology";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
@@ -134,8 +139,30 @@ describe("BREACH-V2 camera-only overhead collision", () => {
   });
 
   it("preserves isometric framing through a doorway instead of collapsing onto the avatar", () => {
-    expect(resolveBreachV2CameraDistanceForMode(18.5, 0.01, true)).toBe(18.5);
-    expect(resolveBreachV2CameraDistanceForMode(18.5, 0.01, false)).toBeLessThan(1);
+    expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, true))
+      .toBe(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
+    expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, false))
+      .toBeLessThan(1);
+  });
+
+  it("starts above and directly behind the avatar while looking ahead into the room", () => {
+    const target = new THREE.Vector3();
+    const position = new THREE.Vector3();
+    writeBreachV2IsometricCameraPose(
+      { x: 0, y: 0, z: 0 },
+      BREACH_V2_ISOMETRIC_DEFAULT_YAW,
+      BREACH_V2_ISOMETRIC_DEFAULT_PITCH,
+      BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+      target,
+      position,
+    );
+
+    expect(target.x).toBeCloseTo(0);
+    expect(target.z).toBeCloseTo(-BREACH_V2_ISOMETRIC_LOOK_AHEAD);
+    expect(position.x).toBeCloseTo(0);
+    expect(position.z).toBeGreaterThan(0);
+    expect(position.y).toBeGreaterThan(18);
+    expect(position.distanceTo(target)).toBeCloseTo(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
   });
 
   it("waits for the animated portal leaf to clear the player capsule", () => {
@@ -179,6 +206,11 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     const presets = cameraPresets(layout);
     expect(presets.vestibule?.minDistance).toBe(5.5);
     expect(presets.isometric?.minDistance).toBeUndefined();
+    expect(presets.isometric?.target[2]).toBeCloseTo(
+      layout.landmarks.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+    );
+    expect(presets.isometric?.offset[0]).toBe(0);
+    expect(presets.isometric?.offset[1]).toBeGreaterThan(17.5);
     expect(presets.overview?.minDistance).toBeUndefined();
   });
 

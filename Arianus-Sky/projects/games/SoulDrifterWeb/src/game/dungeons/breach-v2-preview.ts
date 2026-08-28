@@ -1179,6 +1179,41 @@ export function resolveBreachV2CameraDistanceForMode(
   return isometric ? Math.max(0, requestedDistance) : resolveBreachV2CameraDistance(requestedDistance, hitFraction);
 }
 
+export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = 0;
+export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(61);
+export const BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE = 20.5;
+export const BREACH_V2_ISOMETRIC_LOOK_AHEAD = 2.25;
+export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(44);
+export const BREACH_V2_ISOMETRIC_MAX_PITCH = THREE.MathUtils.degToRad(70);
+
+export function writeBreachV2IsometricCameraPose(
+  playerPosition: { x: number; y: number; z: number },
+  yaw: number,
+  pitch: number,
+  distance: number,
+  target: THREE.Vector3,
+  position: THREE.Vector3,
+): void {
+  const resolvedPitch = THREE.MathUtils.clamp(
+    pitch,
+    BREACH_V2_ISOMETRIC_MIN_PITCH,
+    BREACH_V2_ISOMETRIC_MAX_PITCH,
+  );
+  const forwardX = -Math.sin(yaw);
+  const forwardZ = -Math.cos(yaw);
+  target.set(
+    playerPosition.x + forwardX * BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+    playerPosition.y + 1.4,
+    playerPosition.z + forwardZ * BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+  );
+  const horizontalDistance = Math.cos(resolvedPitch) * distance;
+  position.set(
+    target.x - forwardX * horizontalDistance,
+    target.y + Math.sin(resolvedPitch) * distance,
+    target.z - forwardZ * horizontalDistance,
+  );
+}
+
 export function buildBreachV2DoorLeafCollider(input: {
   id: string;
   x: number;
@@ -3780,7 +3815,18 @@ export function cameraPresets(layout: BreachV2Layout): Record<string, CameraPres
       offset: [10.5, 6.2, 9.0],
       minDistance: 5.5,
     },
-    isometric: { target: [lm.playerStart.x, lm.playerStart.elevation + 0.8, lm.playerStart.z], offset: [10.5, 12.5, 10.5] },
+    isometric: {
+      target: [
+        lm.playerStart.x,
+        lm.playerStart.elevation + 1.4,
+        lm.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+      ],
+      offset: [
+        0,
+        Math.sin(BREACH_V2_ISOMETRIC_DEFAULT_PITCH) * BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+        Math.cos(BREACH_V2_ISOMETRIC_DEFAULT_PITCH) * BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+      ],
+    },
     plaza: { target: [lm.doorWayfarer.x - 4, lm.doorWayfarer.elevation + 1.2, lm.doorWayfarer.z + 3.5], offset: [-9, 3.4, 0.5] },
     gallery: {
       target: [firstChamber.x + firstChamber.w / 2, firstChamber.floorElevation + 1.0, firstChamber.z + firstChamber.h / 2],
@@ -4137,9 +4183,9 @@ export async function startDungeonPreview(
       isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
     ),
   });
-  let camYaw = isometricMode ? Math.PI / 4 : 0.08;
-  let camPitch = isometricMode ? 0.93 : 0.24;
-  let camDist = firstPersonMode ? 0 : isometricMode ? 18.5 : 4.4;
+  let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
+  let camPitch = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
+  let camDist = firstPersonMode ? 0 : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
@@ -4336,12 +4382,20 @@ export async function startDungeonPreview(
         if (pointerTravel >= BREACH_V2_TOUCH_ROTATE_THRESHOLD) {
           pointerRotated = true;
           camYaw = resolveBreachV2TouchYaw(camYaw, movementX);
+          if (isometricMode) {
+            camPitch = THREE.MathUtils.clamp(
+              camPitch + movementY * 0.004,
+              BREACH_V2_ISOMETRIC_MIN_PITCH,
+              BREACH_V2_ISOMETRIC_MAX_PITCH,
+            );
+          }
         }
         return;
       }
       camYaw -= movementX * 0.0052;
-      const maxPitch = isometricMode ? 1.08 : 0.58;
-      camPitch = Math.min(maxPitch, Math.max(-0.18, camPitch + movementY * 0.004));
+      const minPitch = isometricMode ? BREACH_V2_ISOMETRIC_MIN_PITCH : -0.18;
+      const maxPitch = isometricMode ? BREACH_V2_ISOMETRIC_MAX_PITCH : 0.58;
+      camPitch = Math.min(maxPitch, Math.max(minPitch, camPitch + movementY * 0.004));
     });
     renderer.domElement.addEventListener("pointercancel", (e) => {
       activePointers.delete(e.pointerId);
@@ -4791,13 +4845,24 @@ export async function startDungeonPreview(
           );
           camera.lookAt(cameraTarget);
         } else {
-          const cp = Math.cos(camPitch);
-          desiredCamera.set(
-            playerPos.x + Math.sin(camYaw) * camDist * cp,
-            playerPos.y + 1.4 + Math.sin(camPitch) * camDist,
-            playerPos.z + Math.cos(camYaw) * camDist * cp,
-          );
-          cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
+          if (isometricMode) {
+            writeBreachV2IsometricCameraPose(
+              playerPos,
+              camYaw,
+              camPitch,
+              camDist,
+              cameraTarget,
+              desiredCamera,
+            );
+          } else {
+            const cp = Math.cos(camPitch);
+            desiredCamera.set(
+              playerPos.x + Math.sin(camYaw) * camDist * cp,
+              playerPos.y + 1.4 + Math.sin(camPitch) * camDist,
+              playerPos.z + Math.cos(camYaw) * camDist * cp,
+            );
+            cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
+          }
           clampDesiredCameraAboveFloor(desiredCamera, playerPos.y);
           if (updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z)) {
             runtimeCollisionBlockers = getRuntimeCollisionBlockers();
