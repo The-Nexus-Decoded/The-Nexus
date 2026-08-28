@@ -219,6 +219,44 @@ describe("BREACH-V2 isolated gameplay spine", () => {
     });
   });
 
+  it.each([
+    [{ cofferOpened: true }, true, true, true],
+    [{ pickupDropped: true }, true, true, true],
+    [{ pickupCollected: true }, true, true, true],
+    [{ cofferOpened: false, pickupDropped: false, pickupCollected: false }, true, true, true],
+  ])("reconciles partial schema-v1 coffer state %#", (environment, opened, dropped, collected) => {
+    const legacy = create().snapshot();
+    legacy.tutorial.cofferOpened = true;
+    const restored = create({ ...legacy, schemaVersion: 1, environment }).snapshot();
+
+    expect(restored.environment).toMatchObject({
+      cofferOpened: opened,
+      pickupDropped: dropped,
+      pickupCollected: collected,
+      collectedItemIds: ["test-starter-4182-wayfarer"],
+      removedColliderIds: ["vestibule:storage-chest:7"],
+    });
+    expect(restored.tutorial.cofferOpened).toBe(true);
+  });
+
+  it.each([
+    [{ cofferOpened: true, pickupDropped: false, pickupCollected: false }, false],
+    [{ cofferOpened: false, pickupDropped: true, pickupCollected: false }, false],
+    [{ cofferOpened: false, pickupDropped: false, pickupCollected: true }, true],
+  ])("reconciles contradictory schema-v2 coffer state %#", (environment, collected) => {
+    const saved = create().snapshot();
+    const restored = create({ ...saved, environment }).snapshot();
+
+    expect(restored.environment.cofferOpened).toBe(true);
+    expect(restored.environment.pickupDropped).toBe(true);
+    expect(restored.environment.pickupCollected).toBe(collected);
+    expect(restored.environment.removedColliderIds).toContain("vestibule:storage-chest:7");
+    expect(restored.environment.collectedItemIds).toEqual(
+      collected ? ["test-starter-4182-wayfarer"] : [],
+    );
+    expect(restored.tutorial.cofferOpened).toBe(collected);
+  });
+
   it("normalizes malformed nested environment values and bounds restored debris", () => {
     const saved = create().snapshot();
     const restored = create({
@@ -239,14 +277,14 @@ describe("BREACH-V2 isolated gameplay spine", () => {
 
     expect(restored.environment).toMatchObject({
       cofferObjectId: "vestibule:storage-chest:7",
-      cofferOpened: false,
+      cofferOpened: true,
       pickupDropped: true,
       pickupCollected: false,
       deterministicItemId: "test-starter-4182-wayfarer",
       collectedItemIds: [],
       objectHitPoints: { crate: 12 },
       destroyedObjectIds: [],
-      removedColliderIds: ["crate"],
+      removedColliderIds: ["crate", "vestibule:storage-chest:7"],
     });
     expect(restored.environment.debrisObjectIds).toEqual(
       Array.from({ length: 8 }, (_, index) => `debris-${index + 4}`),

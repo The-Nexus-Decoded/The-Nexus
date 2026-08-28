@@ -167,8 +167,6 @@ function normalizeEnvironmentState(
   const stringValue = (key: string, fallback: string): string => (
     typeof value[key] === "string" && value[key].length > 0 ? value[key] : fallback
   );
-  const hasExplicitCofferState = ["cofferOpened", "pickupDropped", "pickupCollected"]
-    .some((key) => typeof value[key] === "boolean");
   const environment: BreachV2EnvironmentState = {
     cofferObjectId: stringValue("cofferObjectId", initial.cofferObjectId),
     cofferOpened: booleanValue("cofferOpened", initial.cofferOpened),
@@ -181,13 +179,21 @@ function normalizeEnvironmentState(
     removedColliderIds: normalizedStringArray(value.removedColliderIds),
     debrisObjectIds: normalizedStringArray(value.debrisObjectIds).slice(-MAX_ACTIVE_DEBRIS_RECORDS),
   };
-  if (migrateLegacyCoffer && !hasExplicitCofferState) {
+  if (migrateLegacyCoffer) {
     environment.cofferOpened = true;
     environment.pickupDropped = true;
     environment.pickupCollected = true;
+  }
+  if (environment.cofferOpened) environment.pickupDropped = true;
+  if (environment.pickupDropped) environment.cofferOpened = true;
+  if (environment.pickupCollected) {
+    environment.pickupDropped = true;
+    environment.cofferOpened = true;
     if (!environment.collectedItemIds.includes(environment.deterministicItemId)) {
       environment.collectedItemIds.push(environment.deterministicItemId);
     }
+  }
+  if (environment.cofferOpened) {
     if (!environment.removedColliderIds.includes(environment.cofferObjectId)) {
       environment.removedColliderIds.push(environment.cofferObjectId);
     }
@@ -240,14 +246,10 @@ function restoreState(config: BreachV2RunConfig): BreachV2RunState {
     || !Array.isArray(candidate.rewardIds)
   ) return initialState(config);
   const restored = cloneState(candidate as unknown as BreachV2RunState);
-  const legacyCoffer = candidate.schemaVersion === 1
-    && restored.tutorial.cofferOpened
-    && (!isRecord(candidate.environment)
-      || !("cofferOpened" in candidate.environment)
-      || !("pickupDropped" in candidate.environment)
-      || !("pickupCollected" in candidate.environment));
+  const legacyCoffer = candidate.schemaVersion === 1 && restored.tutorial.cofferOpened;
   restored.schemaVersion = BREACH_V2_RUN_SCHEMA_VERSION;
   restored.environment = normalizeEnvironmentState(config, candidate.environment, legacyCoffer);
+  if (restored.environment.pickupCollected) restored.tutorial.cofferOpened = true;
   return restored;
 }
 
