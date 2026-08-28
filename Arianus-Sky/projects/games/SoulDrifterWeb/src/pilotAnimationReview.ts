@@ -8,6 +8,44 @@ interface ReviewRecord {
   updatedAt: string;
 }
 
+export interface PilotAnimationReviewBridge {
+  reviewAnimations(): readonly string[];
+  reviewAncestry(): string;
+  playReview(animation: string, loop: boolean): number;
+  pauseReview(paused: boolean): void;
+  pose(animation: string, normalizedTime: number): void;
+  setReviewSkin(preset: PilotSkinPresetId): Promise<{ applied: boolean; materialCount: number; reason?: string }>;
+  snapshot(): {
+    playerAnimation: string;
+    playerAnimationTime: number;
+    playerAnimationDuration: number;
+    grounding?: {
+      floorWorldY: number;
+      lowerBoundWorldY: number;
+      clearanceMeters: number;
+      floorCorrectionMeters: number;
+      baseGroundingOffsetMeters: number;
+      appliedGroundingOffsetMeters: number;
+      penetrationLiftMeters: number;
+      pivotResponseMetersPerMeter: number;
+      toleranceMeters: number;
+      sourceRootBaselineY: number;
+      targetRootRestY: number;
+      normalizedRootStartY: number;
+      currentRootY: number;
+      authoredRootDeltaY: number;
+      airborneClearanceAllowed: boolean;
+      pass: boolean;
+    };
+  };
+}
+
+declare global {
+  interface Window {
+    __SOULDRIFTER_PILOT_REVIEW__?: PilotAnimationReviewBridge;
+  }
+}
+
 const STORAGE_KEY = "souldrifter:issue-487:human-animation-review:v1";
 
 function required<T extends HTMLElement>(root: ParentNode, selector: string): T {
@@ -28,9 +66,9 @@ function saveDecisions(decisions: Record<string, ReviewRecord>): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(decisions));
 }
 
-async function waitForReviewBridge() {
+async function waitForReviewBridge(): Promise<PilotAnimationReviewBridge> {
   for (let attempt = 0; attempt < 1_200; attempt += 1) {
-    const bridge = window.__SOULDRIFTER_DEBUG__;
+    const bridge = window.__SOULDRIFTER_PILOT_REVIEW__ ?? window.__SOULDRIFTER_DEBUG__;
     if (bridge && bridge.reviewAnimations().length > 0) return bridge;
     await new Promise((resolve) => window.setTimeout(resolve, 100));
   }
@@ -87,6 +125,7 @@ export function installPilotAnimationReview(): void {
       <h2>Human Animation Pilot</h2>
       <p>Issue #487 · BREACH-V2 dungeon · ${clips.length} same-rig candidates</p>
       <div class="status" data-review-status>Ready</div>
+      <output class="status" data-testid="pilot-grounding-status" data-pass="pending">Grounding pending</output>
       <label>Category<select data-category></select></label>
       <label>Find animation<input data-search type="search" placeholder="walk, sword, death…"></label>
       <label>Animation<select data-clips size="9"></select></label>
@@ -105,6 +144,7 @@ export function installPilotAnimationReview(): void {
     const search = required<HTMLInputElement>(panel, "[data-search]");
     const clipList = required<HTMLSelectElement>(panel, "[data-clips]");
     const status = required<HTMLElement>(panel, "[data-review-status]");
+    const groundingStatus = required<HTMLOutputElement>(panel, '[data-testid="pilot-grounding-status"]');
     const note = required<HTMLTextAreaElement>(panel, "[data-note]");
     const scrub = required<HTMLInputElement>(panel, "[data-scrub]");
     const time = required<HTMLElement>(panel, "[data-time]");
@@ -190,8 +230,18 @@ export function installPilotAnimationReview(): void {
     });
 
     window.setInterval(() => {
-      if (panel.classList.contains("is-collapsed")) return;
       const snapshot = bridge.snapshot();
+      const grounding = snapshot.grounding;
+      if (grounding) {
+        groundingStatus.dataset.pass = String(grounding.pass);
+        groundingStatus.dataset.snapshot = JSON.stringify({
+          clip: snapshot.playerAnimation,
+          timeSeconds: snapshot.playerAnimationTime,
+          ...grounding,
+        });
+        groundingStatus.textContent = `Floor ${grounding.floorWorldY.toFixed(3)}m · lower ${grounding.lowerBoundWorldY.toFixed(3)}m · clearance ${grounding.clearanceMeters.toFixed(3)}m · correction ${grounding.floorCorrectionMeters.toFixed(3)}m · ${grounding.pass ? "PASS" : "FAIL"}`;
+      }
+      if (panel.classList.contains("is-collapsed")) return;
       time.textContent = `${snapshot.playerAnimationTime.toFixed(2)} / ${snapshot.playerAnimationDuration.toFixed(2)}s`;
       if (snapshot.playerAnimation.toLowerCase() === active.toLowerCase() && snapshot.playerAnimationDuration > 0) {
         scrub.value = String(Math.round(snapshot.playerAnimationTime / snapshot.playerAnimationDuration * 1000));

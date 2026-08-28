@@ -17,6 +17,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { createBreachV2AnimationPilot, type BreachV2AnimationPilot } from "./breach-v2-animation-pilot";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
@@ -3994,6 +3995,7 @@ export async function startDungeonPreview(
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
+  const pilotReviewEnabled = import.meta.env.DEV && previewUrl.searchParams.get("animationReview") === "1";
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
   // `gates=on` only when explicitly validating the campaign progression locks.
@@ -4341,8 +4343,10 @@ export async function startDungeonPreview(
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
-  let player: THREE.Mesh | null = null;
+  let player: THREE.Object3D | null = null;
   let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
+  let animationPilot: BreachV2AnimationPilot | null = null;
+  const playerRenderYOffset = pilotReviewEnabled ? 0 : 0.85;
   setupBreachV2MobileMovementPad({
     container,
     keys,
@@ -4360,22 +4364,27 @@ export async function startDungeonPreview(
   });
   if (walkMode) {
     controls.enabled = false;
-    playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8fd8e8,
-      roughness: 0.5,
-      emissive: 0x2a6a78,
-      emissiveIntensity: 0.35,
-      transparent: true,
-    });
-    player = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-      playerPlaceholderMaterial,
-    );
-    player.castShadow = true;
+    if (pilotReviewEnabled) {
+      animationPilot = await createBreachV2AnimationPilot(gltfLoader);
+      player = animationPilot.root;
+    } else {
+      playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8fd8e8,
+        roughness: 0.5,
+        emissive: 0x2a6a78,
+        emissiveIntensity: 0.35,
+        transparent: true,
+      });
+      player = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
+        playerPlaceholderMaterial,
+      );
+      player.castShadow = true;
+    }
     player.visible = !firstPersonMode;
     player.userData.spatialAuditExcluded = "runtime-player-avatar";
     scene.add(player);
-    player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+    player.position.set(playerPos.x, playerPos.y + playerRenderYOffset, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
@@ -5002,7 +5011,8 @@ export async function startDungeonPreview(
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
-        player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+        player.position.set(playerPos.x, playerPos.y + playerRenderYOffset, playerPos.z);
+        animationPilot?.update(delta);
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
           cameraTarget.set(

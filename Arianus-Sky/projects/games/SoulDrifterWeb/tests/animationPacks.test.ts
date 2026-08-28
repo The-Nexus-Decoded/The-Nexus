@@ -7,7 +7,9 @@ import {
   bindOptionalCompatibleAnimationClip,
   bindCompatibleAnimationClip,
   loadCachedAnimationPack,
+  measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
+  placeAnimatedPoseOnFloor,
   trimAnimationPackClipEnvelope,
   validateAnimationClipCompatibility,
 } from "../src/game/animationPacks";
@@ -134,7 +136,11 @@ describe("external animation packs", () => {
     }
     const source = new THREE.AnimationClip("raw", 1, tracks);
     const bound = bindCompatibleAnimationClip(source, target, "SiphonCleaveBaseline");
-    const normalized = normalizeAnimationPackRootMotion(bound, "ElfShadowknight_Armature");
+    const normalized = normalizeAnimationPackRootMotion(
+      bound,
+      "ElfShadowknight_Armature",
+      new THREE.Vector3(7, 1.25, -3),
+    );
     const authored = bound.tracks.filter((track) => !track.name.startsWith("ElfShadowknight_Armature."));
 
     expect(authored).toHaveLength(195);
@@ -149,7 +155,119 @@ describe("external animation packs", () => {
     expect(Array.from(normalized.tracks.find((track) => track.name.endsWith(".scale"))!.values))
       .toEqual(Array.from(bound.tracks.find((track) => track.name.endsWith(".scale"))!.values));
     expect(Array.from(normalized.tracks.find((track) => track.name.endsWith(".position"))!.values))
-      .toEqual([0, 0, 0, 0, 2, 0]);
+      .toEqual([7, 1.25, -3, 7, 3.25, -3]);
+  });
+
+  it("measures a posed lower bound against the actor floor without changing placement", () => {
+    const actorRoot = new THREE.Group();
+    actorRoot.position.set(8, 3, -4);
+    const animatedModel = new THREE.Group();
+    animatedModel.position.y = 1;
+    animatedModel.add(new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1)));
+    actorRoot.add(animatedModel);
+
+    const measurement = measureAnimatedPoseGrounding(actorRoot, animatedModel);
+
+    expect(measurement).toEqual({ floorWorldY: 3, lowerBoundWorldY: 3, clearanceMeters: 0 });
+    expect(actorRoot.position.toArray()).toEqual([8, 3, -4]);
+  });
+
+  it("preserves authored airborne and falling Y deltas while removing the source baseline", () => {
+    const source = new THREE.AnimationClip("jump-and-fall", 2, [
+      new THREE.VectorKeyframeTrack("Rig_Armature.position", [0, 1, 2], [2, 96, -5, 8, 99.5, 4, 11, 95.25, 9]),
+    ]);
+    const normalized = normalizeAnimationPackRootMotion(
+      source,
+      "Rig_Armature",
+      new THREE.Vector3(0, 0.5, 0),
+    );
+
+    expect(Array.from(normalized.tracks[0]!.values)).toEqual([
+      0, 0.5, 0,
+      0, 4, 0,
+      0, -0.25, 0,
+    ]);
+  });
+
+  it("locks grounded root Y to the target rest position", () => {
+    const source = new THREE.AnimationClip("idle-with-source-drift", 2, [
+      new THREE.VectorKeyframeTrack("Rig_Armature.position", [0, 1, 2], [2, 96, -5, 8, 99.5, 4, 11, 95.25, 9]),
+    ]);
+    const normalized = normalizeAnimationPackRootMotion(
+      source,
+      "Rig_Armature",
+      new THREE.Vector3(0, 0.5, 0),
+      "lock-to-rest",
+    );
+
+    expect(Array.from(normalized.tracks[0]!.values)).toEqual([
+      0, 0.5, 0,
+      0, 0.5, 0,
+      0, 0.5, 0,
+    ]);
+  });
+
+  it("resets a skinned hierarchy before every precise bound and never accumulates across thousands of frames", () => {
+    const actorRoot = new THREE.Group();
+    actorRoot.position.y = 4;
+    const pivot = new THREE.Group();
+    const model = new THREE.Group();
+    model.scale.setScalar(2.061005562562551);
+    const armature = new THREE.Group();
+    const rootBone = new THREE.Bone();
+    rootBone.name = "Runtime_Armature";
+    armature.add(rootBone);
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute([
+      -0.5, -1, -0.5,
+      0.5, -1, -0.5,
+      0.5, 1, 0.5,
+      -0.5, 1, 0.5,
+    ], 3));
+    geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute([
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+    ], 4));
+    geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute([
+      1, 0, 0, 0,
+      1, 0, 0, 0,
+      1, 0, 0, 0,
+      1, 0, 0, 0,
+    ], 4));
+    geometry.setIndex([0, 1, 2, 0, 2, 3]);
+    geometry.computeBoundingBox();
+    const material = new THREE.MeshBasicMaterial();
+    const skinnedMesh = new THREE.SkinnedMesh(geometry, material);
+    model.add(armature, skinnedMesh);
+    pivot.add(model);
+    actorRoot.add(pivot);
+    actorRoot.updateWorldMatrix(true, true);
+    skinnedMesh.bind(new THREE.Skeleton([rootBone]));
+
+    const basePivotY = -1;
+    const placements = Array.from({ length: 2_000 }, () => (
+      placeAnimatedPoseOnFloor(actorRoot, model, pivot, basePivotY)
+    ));
+
+    const first = placements[0]!;
+    expect(new Set(placements.map((placement) => placement.appliedPivotY))).toEqual(new Set([first.appliedPivotY]));
+    expect(new Set(placements.map((placement) => placement.floorCorrectionMeters)))
+      .toEqual(new Set([first.floorCorrectionMeters]));
+    expect(first.pivotResponseMetersPerMeter).toBeGreaterThan(1);
+    expect(first.appliedPivotY).toBe(basePivotY + first.floorCorrectionMeters);
+    expect(new Set(placements.map((placement) => placement.clearanceMeters)))
+      .toEqual(new Set([first.clearanceMeters]));
+    expect(Math.abs(first.clearanceMeters)).toBeLessThan(1e-9);
+    expect(pivot.position.y).toBe(first.appliedPivotY);
+    actorRoot.updateWorldMatrix(true, true);
+    skinnedMesh.skeleton.update();
+    expect(new THREE.Box3().setFromObject(model, true).min.y).toBeCloseTo(first.lowerBoundWorldY, 9);
+
+    geometry.dispose();
+    material.dispose();
   });
 
   it("trims a nondestructive frame envelope without resampling skeletal values", () => {
