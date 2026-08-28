@@ -519,7 +519,7 @@ def emissive_plane(parent, name, x, y, z, w, h, yaw_deg, color, intensity):
     return apply
 
 
-def build_landmarks(obj, payload, game_root: Path, workspace_root: Path | None):
+def build_landmarks(obj, payload):
     lm = payload["landmarks"]
     group = obj.createNode("geo", "BREACH_V2_LANDMARKS")
     for child in group.children():
@@ -722,14 +722,13 @@ def build_landmarks(obj, payload, game_root: Path, workspace_root: Path | None):
         rapply.parm("shop_materialpath1").set(bm)
         merge.setInput(idx, rapply)
         idx += 1
-    import math as _math
     for ri in range(12):
-        angle = ri / 12 * _math.tau
+        angle = ri / 12 * math.tau
         rune = group.createNode("box", f"BOSS_RUNE_MARK_{ri}")
         rune.parmTuple("size").set((0.09, 0.03, 0.42))
-        rune.parmTuple("t").set((boss["x"] + _math.cos(angle) * ring_r * 0.81, 0.05,
-                                 boss["z"] + _math.sin(angle) * ring_r * 0.81))
-        rune.parmTuple("r").set((0.0, -_math.degrees(angle) + (ri % 3) * 28.0, 0.0))
+        rune.parmTuple("t").set((boss["x"] + math.cos(angle) * ring_r * 0.81, 0.05,
+                                 boss["z"] + math.sin(angle) * ring_r * 0.81))
+        rune.parmTuple("r").set((0.0, -math.degrees(angle) + (ri % 3) * 28.0, 0.0))
         rapply = group.createNode("material", f"BOSS_RUNE_MARK_{ri}_mat")
         rapply.setInput(0, rune)
         rapply.parm("shop_materialpath1").set(bm)
@@ -957,7 +956,7 @@ def main() -> None:
 
     shell_out = build_shell(obj, payload, flagstone, masonry)
     kit_diagnostics = place_kit_props(obj, payload, game_root)
-    build_landmarks(obj, payload, game_root, workspace_root)
+    build_landmarks(obj, payload)
     build_wall_art_and_books(obj, payload, workspace_root)
     build_corruption_accents(obj, payload)
     create_lighting(obj, payload)
