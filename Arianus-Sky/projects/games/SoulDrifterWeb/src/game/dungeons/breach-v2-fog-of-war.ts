@@ -49,10 +49,12 @@ export interface BreachV2FogOfWarController {
   destroy(): void;
 }
 
-const FOG_STYLE: Record<Exclude<BreachV2FogState, "current">, { color: number; opacity: number }> = {
+export const BREACH_V2_FOG_STYLE: Record<
+  Exclude<BreachV2FogState, "current">, { color: number; opacity: number }
+> = {
   discovered: { color: 0x08191d, opacity: 0.34 },
-  adjacent: { color: 0x050d12, opacity: 0.76 },
-  hidden: { color: 0x020407, opacity: 0.97 },
+  adjacent: { color: 0x050d12, opacity: 1 },
+  hidden: { color: 0x020407, opacity: 1 },
 };
 
 function createFogTexture(): THREE.CanvasTexture {
@@ -69,7 +71,9 @@ function createFogTexture(): THREE.CanvasTexture {
       image.data[offset] = Math.round(value * 0.35);
       image.data[offset + 1] = Math.round(value * 0.7);
       image.data[offset + 2] = value;
-      image.data[offset + 3] = 210;
+      // Undiscovered and merely adjacent rooms must be visually unknowable,
+      // not just dimmed. State opacity controls the discovered-room fade.
+      image.data[offset + 3] = 255;
     }
   }
   context.putImageData(image, 0, 0);
@@ -97,8 +101,8 @@ export function setupBreachV2FogOfWar(options: {
   for (const room of layout.rooms) {
     const material = new THREE.MeshBasicMaterial({
       map: texture,
-      color: FOG_STYLE.hidden.color,
-      opacity: FOG_STYLE.hidden.opacity,
+      color: BREACH_V2_FOG_STYLE.hidden.color,
+      opacity: BREACH_V2_FOG_STYLE.hidden.opacity,
       transparent: true,
       depthWrite: true,
       side: THREE.DoubleSide,
@@ -135,8 +139,8 @@ export function setupBreachV2FogOfWar(options: {
       const overlay = overlays.get(room.id)!;
       overlay.mesh.visible = state !== "current";
       if (state !== "current") {
-        overlay.material.color.setHex(FOG_STYLE[state].color);
-        overlay.material.opacity = FOG_STYLE[state].opacity;
+        overlay.material.color.setHex(BREACH_V2_FOG_STYLE[state].color);
+        overlay.material.opacity = BREACH_V2_FOG_STYLE[state].opacity;
       }
     }
   };

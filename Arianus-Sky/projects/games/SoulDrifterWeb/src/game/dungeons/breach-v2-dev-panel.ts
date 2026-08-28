@@ -32,6 +32,10 @@ function replacePreviewParams(values: Record<string, string | null>): void {
     if (value === null) url.searchParams.delete(key);
     else url.searchParams.set(key, value);
   }
+  // View, route, seed, and orbit-to-walk changes rebuild the preview. Preserve
+  // the navigation workspace across that necessary reload so QA does not have
+  // to reopen Settings -> Navigate after every selection.
+  url.searchParams.set("dev", "1");
   window.location.assign(url);
 }
 
@@ -80,7 +84,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     headerAction.textContent = "Close";
     headerAction.hidden = !open;
     if (!open) return;
-    panel.style.top = "max(12px,env(safe-area-inset-top))";
+    panel.style.top = "calc(max(12px,env(safe-area-inset-top)) + 52px)";
     panel.style.bottom = "auto";
     panel.style.width = "min(310px,calc(100vw - 24px))";
     panel.style.padding = "12px";

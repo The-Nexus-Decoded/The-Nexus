@@ -1159,6 +1159,26 @@ export function getBreachV2ClosedDoorYaw(frontNormal: { x: number; z: number }):
   return Math.atan2(-frontNormal.z, frontNormal.x);
 }
 
+export const BREACH_V2_PORTAL_TRAVERSAL_READY_PROGRESS = 0.995;
+
+export function isBreachV2PortalReadyForTraversal(progress: number): boolean {
+  return THREE.MathUtils.clamp(progress, 0, 1) >= BREACH_V2_PORTAL_TRAVERSAL_READY_PROGRESS;
+}
+
+export function doesBreachV2PortalBlockMovement(
+  kind: "door" | "gate",
+  progress: number,
+  gateClearsCapsule: boolean,
+): boolean {
+  return kind === "door" ? !isBreachV2PortalReadyForTraversal(progress) : !gateClearsCapsule;
+}
+
+export function resolveBreachV2CameraDistanceForMode(
+  requestedDistance: number, hitFraction: number | null, isometric: boolean,
+): number {
+  return isometric ? Math.max(0, requestedDistance) : resolveBreachV2CameraDistance(requestedDistance, hitFraction);
+}
+
 export function buildBreachV2DoorLeafCollider(input: {
   id: string;
   x: number;
@@ -2194,14 +2214,12 @@ async function placeSectionDoors(
       const gateClearsCapsule = gateBottomY >= (
         state.floorY + PLAYER_CAPSULE_HEIGHT + PLAYER_CAPSULE_CLEARANCE
       );
-      const blocksMovement = state.kind === "door" || !gateClearsCapsule;
-      const blocksActorLineOfSight = state.kind === "door" || !gateClearsCapsule;
-      const blocksAperture = state.kind === "gate"
-        ? blocksMovement
-        : !state.open || state.progress < 0.88;
+      const blocksMovement = doesBreachV2PortalBlockMovement(state.kind, state.progress, gateClearsCapsule);
+      const blocksActorLineOfSight = blocksMovement;
+      const blocksAperture = blocksMovement;
       state.root.userData.blocksAperture = blocksAperture;
-      // A raised portcullis leaves the walk plane. A hinged door remains a
-      // physical leaf beside the aperture after it swings fully open. The
+      // A raised portcullis and a fully seated hinged leaf leave the walk plane.
+      // The static jamb/wall collider still owns the non-aperture boundary. The
       // raised gate remains a spatial object above the capsule for height-aware
       // camera/projectile queries, but it no longer blocks actor eye-level LOS.
       state.root.userData.blocksMovement = blocksMovement;
@@ -2271,6 +2289,11 @@ async function placeSectionDoors(
         }];
       }
 
+      // Once the leaf is fully seated beside the aperture, the canonical jamb
+      // and wall solids already own its occupied space. Keeping a second leaf
+      // collider here can strand a capsule on narrow randomized connectors.
+      if (isBreachV2PortalReadyForTraversal(state.progress)) return [];
+
       return [buildBreachV2DoorLeafCollider({
         id: state.id,
         x: state.x,
@@ -2294,7 +2317,12 @@ async function placeSectionDoors(
     ensureNearestOpen: (x, z, maxDistance = 4.6) => {
       const nearest = states
         .map((state) => ({ state, distance: Math.hypot(state.x - x, state.z - z) }))
-        .filter(({ state, distance }) => state.active && distance <= maxDistance && state.progress < 0.9)
+        // A path planned through an open aperture must not resume while the
+        // leaf is still sweeping across the player capsule. The old 90%
+        // cutoff released movement early and could pin the avatar in the jamb.
+        .filter(({ state, distance }) => state.active
+          && distance <= maxDistance
+          && !isBreachV2PortalReadyForTraversal(state.progress))
         .sort((a, b) => a.distance - b.distance)[0]?.state;
       if (!nearest) return null;
       if (!nearest.open && authorizeDoor(nearest.id)) setOpen(nearest, true);
@@ -2356,6 +2384,8 @@ async function placeSectionDoors(
 // ---------------------------------------------------------------------------
 // kit props via DungeonPropKit (catalog-normalized, hanging assemblies, fires)
 // ---------------------------------------------------------------------------
+export const BREACH_V2_LOCAL_FIRE_LIGHT_POOL_SIZE = 12;
+
 interface PropPlacements {
   tickables: ((elapsed: number) => void)[];
   cullables: THREE.Object3D[];
@@ -2467,6 +2497,10 @@ async function placeKitProps(
   const cullables: THREE.Object3D[] = [];
   const placementProxyMeasurements: BreachV2PlacementProxyMeasurement[] = [];
   const environmentObjects: BreachV2RuntimeEnvironmentObject[] = [];
+  const localFireLightCandidates: {
+    root: THREE.Object3D;
+    source: THREE.PointLight;
+  }[] = [];
   const environmentConfigById = new Map(
     buildBreachV2EnvironmentObjectConfigs(layout).map((config) => [config.id, config]),
   );
@@ -2738,8 +2772,10 @@ async function placeKitProps(
           : 0.58;
       fire.root.scale.setScalar(flameScale);
       // Large rooms keep two real sconce lights on each opposing wall so
-      // tutorial props remain readable. Smaller rooms keep one per wall.
-      // Fire roots are distance-culled, so only nearby rooms contribute lights.
+      // tutorial props remain readable. Smaller rooms keep one per wall. Their
+      // animated source lights remain hidden; a fixed-size world-space pool
+      // copies currently visible sources without changing Three.js's visible
+      // point-light count and recompiling every lit material during traversal.
       const sconceSide = `${p.roomId}:${p.facing}`;
       const roomWidth = layout.rooms.find((room) => room.id === p.roomId)?.w ?? 0;
       const sconceLimit = roomWidth >= 18 ? 2 : 1;
@@ -2754,10 +2790,13 @@ async function placeKitProps(
       const localLights: THREE.PointLight[] = [];
       fire.root.traverse((child) => {
         if (!(child instanceof THREE.PointLight)) return;
-        child.visible = keepLocalLight;
+        child.visible = false;
         child.distance = p.asset === "floor-brazier" ? 15 : 12;
         child.decay = 1.5;
-        localLights.push(child);
+        if (keepLocalLight) {
+          localLights.push(child);
+          localFireLightCandidates.push({ root: fire.root, source: child });
+        }
       });
       instance.fireMount.add(fire.root);
       cullables.push(fire.root);
@@ -2774,6 +2813,51 @@ async function placeKitProps(
       });
     }
   }
+
+  const pooledFireLights = Array.from(
+    { length: BREACH_V2_LOCAL_FIRE_LIGHT_POOL_SIZE },
+    (_, index) => {
+      const light = new THREE.PointLight(0xff8a4c, 0, 15, 1.5);
+      light.name = `breach-v2-local-fire-light-${index}`;
+      light.castShadow = false;
+      light.visible = true;
+      light.userData = {
+        spatialAuditExcluded: "fixed-count-local-fire-light-pool",
+        blocksMovement: false,
+        blocksLineOfSight: false,
+      };
+      scene.add(light);
+      return light;
+    },
+  );
+  const pooledLightPosition = new THREE.Vector3();
+  const isEffectivelyVisible = (object: THREE.Object3D): boolean => {
+    let cursor: THREE.Object3D | null = object;
+    while (cursor) {
+      if (!cursor.visible) return false;
+      cursor = cursor.parent;
+    }
+    return true;
+  };
+  tickables.push(() => {
+    let poolIndex = 0;
+    for (const candidate of localFireLightCandidates) {
+      if (poolIndex >= pooledFireLights.length) break;
+      if (!isEffectivelyVisible(candidate.root)) continue;
+      const pooled = pooledFireLights[poolIndex]!;
+      candidate.source.getWorldPosition(pooledLightPosition);
+      pooled.position.copy(pooledLightPosition);
+      pooled.color.copy(candidate.source.color);
+      pooled.intensity = candidate.source.intensity;
+      pooled.distance = candidate.source.distance;
+      pooled.decay = candidate.source.decay;
+      poolIndex += 1;
+    }
+    while (poolIndex < pooledFireLights.length) {
+      pooledFireLights[poolIndex]!.intensity = 0;
+      poolIndex += 1;
+    }
+  });
   return { tickables, cullables, placementProxyMeasurements, environmentObjects };
 }
 
@@ -4319,11 +4403,58 @@ export async function startDungeonPreview(
       window.localStorage.setItem("breach-v2-performance-details", visible ? "1" : "0");
     },
   });
-  loading.textContent = "Warming dungeon materials and effects…";
+  loading.textContent = "Warming dungeon shaders, textures, and geometry…";
   try {
     await renderer.compileAsync(scene, camera);
+
+    // compileAsync prepares shader programs, but it does not guarantee that
+    // textures and geometry for rooms outside the initial camera have reached
+    // the GPU. Paying that upload cost room-by-room caused multi-frame stalls
+    // on the first traversal even when the same route immediately repeated at
+    // a steady 60 fps. Upload every material texture, then issue one whole-
+    // dungeon gameplay-canvas render while the loading screen owns the transition.
+    const sceneTextures = new Set<THREE.Texture>();
+    scene.traverse((object) => {
+      if (!(
+        object instanceof THREE.Mesh
+        || object instanceof THREE.Line
+        || object instanceof THREE.Points
+        || object instanceof THREE.Sprite
+      )) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        for (const value of Object.values(material)) {
+          if (value instanceof THREE.Texture) sceneTextures.add(value);
+        }
+      }
+    });
+    for (const texture of sceneTextures) renderer.initTexture(texture);
+
+    const minX = Math.min(...layout.rooms.map((room) => room.x));
+    const maxX = Math.max(...layout.rooms.map((room) => room.x + room.w));
+    const minZ = Math.min(...layout.rooms.map((room) => room.z));
+    const maxZ = Math.max(...layout.rooms.map((room) => room.z + room.h));
+    const warmCamera = new THREE.PerspectiveCamera(120, 1, 0.1, 400);
+    warmCamera.position.set((minX + maxX) / 2, 180, (minZ + maxZ) / 2);
+    warmCamera.up.set(0, 0, -1);
+    warmCamera.lookAt((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+    warmCamera.updateMatrixWorld(true);
+    const previousTarget = renderer.getRenderTarget();
+    // Use the real antialiased canvas. ANGLE/Direct3D may cache a different
+    // pipeline for an offscreen target, leaving a multi-second first-use stall
+    // when the same material later reaches the gameplay framebuffer.
+    renderer.setRenderTarget(null);
+    renderer.render(scene, warmCamera);
+    scene.userData.gpuWarmup = {
+      textures: sceneTextures.size,
+      calls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      geometries: renderer.info.memory.geometries,
+    };
+    renderer.setRenderTarget(previousTarget);
+    renderer.getContext().finish();
   } catch (error) {
-    console.warn("BREACH-V2 shader warm-up was unavailable; continuing with lazy compilation", error);
+    console.warn("BREACH-V2 GPU resource warm-up was unavailable; continuing with lazy initialization", error);
   }
   loading.remove();
 
@@ -4435,6 +4566,9 @@ export async function startDungeonPreview(
   const cameraTarget = new THREE.Vector3();
   const desiredCamera = new THREE.Vector3();
   const cameraDirection = new THREE.Vector3();
+  const movementForward = new THREE.Vector3();
+  const movementRight = new THREE.Vector3();
+  const movementUp = new THREE.Vector3(0, 1, 0);
   const clampDesiredCameraAboveFloor = (
     requested: THREE.Vector3,
     fallbackFloor: number,
@@ -4462,9 +4596,13 @@ export async function startDungeonPreview(
       requested,
       CAMERA_COLLISION_RADIUS,
     );
-    const resolvedDistance = resolveBreachV2CameraDistance(
+    // The isometric cutaway intentionally renders above the room shell. A
+    // doorway between the avatar and the elevated camera must not compress
+    // the view into the avatar capsule as though this were third person.
+    const resolvedDistance = resolveBreachV2CameraDistanceForMode(
       requestedDistance,
       cameraHit?.fraction ?? null,
+      isometricMode,
     );
     camera.position.copy(target).addScaledVector(cameraDirection, resolvedDistance);
     return resolvedDistance;
@@ -4521,13 +4659,9 @@ export async function startDungeonPreview(
   };
   updateDetailVisibility();
   let cullFrames = 0;
-  let lastFrameMs = -1000 / 30;
 
   renderer.setAnimationLoop((frameMs) => {
     const targetFps = graphicsQuality === "low" ? 30 : graphicsQuality === "standard" ? 45 : 60;
-    const targetFrameMs = 1000 / targetFps;
-    if (frameMs - lastFrameMs < targetFrameMs) return;
-    lastFrameMs = frameMs;
     try {
       timer.update(frameMs);
       const delta = timer.getDelta();
@@ -4590,11 +4724,10 @@ export async function startDungeonPreview(
         const step = Math.min((run ? 6.2 : 3.2) * delta, 0.28);
         if (keys.has("KeyQ")) camYaw += delta * 1.9;
         if (keys.has("KeyE")) camYaw -= delta * 1.9;
-        const fwd = new THREE.Vector3();
-        camera.getWorldDirection(fwd);
-        fwd.y = 0;
-        fwd.normalize();
-        const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0));
+        camera.getWorldDirection(movementForward);
+        movementForward.y = 0;
+        movementForward.normalize();
+        movementRight.crossVectors(movementForward, movementUp);
         let mx = 0;
         let mz = 0;
         if (keys.has("KeyW") || keys.has("ArrowUp")) mz += 1;
@@ -4603,7 +4736,9 @@ export async function startDungeonPreview(
         if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
         if (mx !== 0 || mz !== 0) {
           clickPath.length = 0;
-          const move = fwd.multiplyScalar(mz).add(right.multiplyScalar(mx));
+          const move = movementForward
+            .multiplyScalar(mz)
+            .add(movementRight.multiplyScalar(mx));
           move.normalize().multiplyScalar(step);
           const nx = playerPos.x + move.x;
           const nz = playerPos.z + move.z;

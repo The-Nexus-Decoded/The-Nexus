@@ -105,8 +105,7 @@ export function setupBreachV2SettingsPanel(options: {
   root.dataset.testid = "breach-v2-settings";
   root.setAttribute("aria-label", "Dungeon controls and settings");
   root.style.cssText = [
-    "position:absolute", "top:max(12px,env(safe-area-inset-top))", "left:50%", "z-index:70",
-    "transform:translateX(-50%)", "pointer-events:auto",
+    "position:absolute", "top:max(12px,env(safe-area-inset-top))", "right:12px", "z-index:70", "pointer-events:auto",
   ].join(";");
   const trigger = pillButton("Settings");
   trigger.dataset.testid = "breach-v2-settings-toggle";
@@ -114,7 +113,7 @@ export function setupBreachV2SettingsPanel(options: {
   const panel = document.createElement("div");
   panel.hidden = true;
   panel.style.cssText = [
-    "position:absolute", "top:50px", "left:50%", "transform:translateX(-50%)",
+    "position:absolute", "top:50px", "right:0",
     "width:min(360px,calc(100vw - 24px))", "max-height:calc(100dvh - 74px)", "overflow:auto",
     "box-sizing:border-box", "padding:16px",
     "border:1px solid rgba(228,185,103,.52)", "border-radius:16px",

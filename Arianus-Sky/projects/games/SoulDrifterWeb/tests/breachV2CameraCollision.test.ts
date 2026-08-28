@@ -7,11 +7,14 @@ import {
   buildBreachV2CameraOnlyColliders,
   buildBreachV2ShellColliders,
   cameraPresets,
+  doesBreachV2PortalBlockMovement,
   firstBreachV2CameraHit,
   getBreachV2VisibleCameraColliders,
+  isBreachV2PortalReadyForTraversal,
   isBreachV2LineOfSightBlocked,
   isBreachV2PlacementBlocked,
   resolveBreachV2CameraDistance,
+  resolveBreachV2CameraDistanceForMode,
   resolveBreachV2CameraFloorY,
   resolveBreachV2CeilingVisibility,
   resolveBreachV2PlaceholderAvatarOpacity,
@@ -128,6 +131,22 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(resolved).toBeLessThanOrEqual(hit!.fraction);
     expect(resolved).toBeLessThan(0.35);
     expect(resolved).toBeGreaterThanOrEqual(0);
+  });
+
+  it("preserves isometric framing through a doorway instead of collapsing onto the avatar", () => {
+    expect(resolveBreachV2CameraDistanceForMode(18.5, 0.01, true)).toBe(18.5);
+    expect(resolveBreachV2CameraDistanceForMode(18.5, 0.01, false)).toBeLessThan(1);
+  });
+
+  it("waits for the animated portal leaf to clear the player capsule", () => {
+    expect(isBreachV2PortalReadyForTraversal(0.9)).toBe(false);
+    expect(isBreachV2PortalReadyForTraversal(0.994)).toBe(false);
+    expect(isBreachV2PortalReadyForTraversal(0.995)).toBe(true);
+    expect(isBreachV2PortalReadyForTraversal(1)).toBe(true);
+    expect(doesBreachV2PortalBlockMovement("door", 0.994, false)).toBe(true);
+    expect(doesBreachV2PortalBlockMovement("door", 0.995, false)).toBe(false);
+    expect(doesBreachV2PortalBlockMovement("gate", 1, false)).toBe(true);
+    expect(doesBreachV2PortalBlockMovement("gate", 1, true)).toBe(false);
   });
 
   it("uses one hysteretic ceiling policy for first-person, third-person, isometric, and orbit views", () => {
