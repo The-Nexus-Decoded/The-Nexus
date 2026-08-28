@@ -121,7 +121,8 @@ export function setupBreachV2GameplayUi(options: {
   container.appendChild(panel);
 
   const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-  const compactViewport = shouldCollapseBreachV2GameplayUi(viewportWidth);
+  const compactViewport = shouldCollapseBreachV2GameplayUi(viewportWidth)
+    || window.matchMedia("(pointer: coarse)").matches;
   let expanded = !compactViewport;
   const updateExpandedState = (): void => {
     body.hidden = !expanded;

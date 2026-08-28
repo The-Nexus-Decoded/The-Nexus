@@ -32,7 +32,7 @@ function replacePreviewParams(values: Record<string, string | null>): void {
 }
 
 export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
-  const compactViewport = window.innerWidth < 760;
+  const compactViewport = window.innerWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
   const panel = document.createElement("aside");
   panel.dataset.testid = "breach-v2-dev-panel";
   panel.setAttribute("aria-label", "BREACH-V2 developer map controls");

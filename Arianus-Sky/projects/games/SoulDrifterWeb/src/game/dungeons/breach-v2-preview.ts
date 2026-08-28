@@ -32,7 +32,9 @@ import { setupBreachV2DevPanel } from "./breach-v2-dev-panel.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
+  resolveBreachV2CameraStep,
   resolveBreachV2PinchDistance,
+  setupBreachV2MobileLandscapeGate,
   setupBreachV2MobileMovementPad,
 } from "./breach-v2-mobile-controls.ts";
 import {
@@ -3990,6 +3992,16 @@ export async function startDungeonPreview(
   setupBreachV2MobileMovementPad({
     container,
     keys,
+    enabled: coarsePointer && walkMode,
+    adjustCameraDistance: (delta) => {
+      if (firstPersonMode) return;
+      const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+      const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
+      camDist = resolveBreachV2CameraStep(camDist, delta, minDistance, maxDistance);
+    },
+  });
+  setupBreachV2MobileLandscapeGate({
+    container,
     enabled: coarsePointer && walkMode,
   });
   if (walkMode) {
