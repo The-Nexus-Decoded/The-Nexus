@@ -57,6 +57,20 @@ Required order:
 
 The baseline humanoid animation search includes idle, walk, run, turn, jump, interaction, sword, shield, dual-wield or offhand where applicable, draw/sheath or equip/unequip where available, casting, hit reactions, knockdown, death, and terminal-state variations. Acquire all useful licensed Mixamo motions that satisfy a documented SoulDrifter animation demand; do not blindly ship every catalog entry without naming, deduplication, root-motion, contact, deformation, and runtime QA.
 
+### Candidate library versus completed coverage
+
+Provider downloads and bulk exports are candidates, not accepted semantics. The issue #487 Human pilot currently has a 400-clip intake library; its required status is `CANDIDATE_INTAKE_ONLY` until the demand matrix names and deduplicates the clips, maps each required action, and records runtime and owner verdicts. Do not report those 400 candidates as 400 finished animations or as proof that custom gaps were generated.
+
+Keep missing requirements explicit. At minimum, preserve separate gap rows for spell-damage blowback/falls, complete staff combat/channel/draw/stow coverage, water surface/drowning, lockpicking, mining, chopping, farewell, special reactions, and damage-specific deaths until a direct-provider, derived, custom, or procedural result passes. A near-match remains a candidate; it does not silently close the required semantic.
+
+Complete the full master-list audit and current-scope gap fill before presenting the review UI as exhaustive. Classify core and lower-level pilot requirements as `CURRENT_487_CORE`; search Mixamo first for every humanoid row, then use Blender only for verified provider gaps, derived variants, cleanup, contacts, transitions, or game-specific motion. Every current-core row needs a valid ingested candidate or explicit blocker before exhaustive review begins.
+
+Future class-specific spellcasting identities are `DEFERRED_HIGHER_LEVEL` and do not block issue #487. Shared Mixamo magic variants can serve as generic pilot candidates, but they do not close future class-identity rows.
+
+A Mixamo in-app Download click is not source acceptance. Require a browser completion receipt with the current resolved path, byte count, SHA-256, and successful Blender import. Small or truncated cache artifacts are failed transfers and must never be promoted, retargeted, or counted as candidates.
+
+The exhaustive first-pilot decisions become the canonical semantic names, provider choices, transition/loop rules, contact/weapon rules, root-motion policy, and owner acceptance baseline for later foundation bodies. Those bodies reuse the decisions and source clips, then receive their own proportion-specific retarget, floor/contact correction, bake, and deformation/runtime QA.
+
 ## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
 
 Use Tripo for animals, non-humanoid monsters, and creature body plans for:
@@ -208,6 +222,7 @@ For every requested animation, the animation-demand record must include:
 {
   "animationId": "slayer-feinting-cut",
   "requiredMotion": "off-hand feint followed by low diagonal dagger cut",
+  "scope": "CURRENT_487_CORE | DEFERRED_HIGHER_LEVEL",
   "interactionConstraints": [],
   "providerPresetSearchCompleted": true,
   "candidatePresets": [],
@@ -217,6 +232,9 @@ For every requested animation, the animation-demand record must include:
   "bakeoffRecordPath": "",
   "rigFamily": "canonical-humanoid",
   "contactMarkers": [],
+  "coverageStatus": "CANDIDATE | DIRECT_PROVIDER_PASS | DERIVED_PASS | CUSTOM_PASS | PROCEDURAL_PASS | MISSING | REWORK | REJECTED",
+  "downloadReceipt": "PENDING | PASS | FAIL",
+  "floorRootPreflight": "PENDING | PASS | FAIL",
   "ownerApproval": "PENDING"
 }
 ```
@@ -264,6 +282,10 @@ The final accepted clip may be classified `TRIPO_PRESET_DERIVED + DUAL_DCC_BAKEO
 No animation enters the runtime library until it passes:
 
 - rig/deformation QA;
+- deterministic frame-zero floor/root preflight on the accepted bind/rest state, frame zero, and first animated frame;
+- recorded actor bounds, root/pelvis transforms, lowest intended contact, floor plane, planted-foot continuity, and any baseline correction;
+- automatic rejection of unexplained initial floating/penetration, root or pelvis spikes, or dependence on an ad hoc scene Y-offset while preserving intentional jumps, falls, knockback, stairs, and other authored vertical motion;
+- source-download acceptance proving browser completion, current-path byte count, SHA-256, and successful Blender import rather than a partial cache artifact;
 - normal-speed gameplay-camera proof;
 - contact and recovery timing;
 - root-motion contract;
@@ -272,7 +294,10 @@ No animation enters the runtime library until it passes:
 - VFX/SFX/gameplay marker alignment;
 - both combat modes when gameplay-related;
 - Three.js GLB playback;
+- grounding proof in the actual accepted BREACH-V2 real-game preview with representative locomotion, combat, reaction, and death playback; unit math and isolated loaders are supporting checks only;
 - real-GPU performance;
 - provenance and rollback;
 - dual-pipeline comparison when required;
 - independent verification.
+
+Rerun the complete candidate library preflight after any exporter, scale, rest-pose, root-motion, or retarget-profile change. Repair shared grounding failures in the normalization/export pipeline, not with per-scene placement guesses.

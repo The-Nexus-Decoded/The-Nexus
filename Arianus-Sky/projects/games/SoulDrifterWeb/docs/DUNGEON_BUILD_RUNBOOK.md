@@ -202,7 +202,20 @@ registry coordinate or an orbit screenshot is not proof.
     frame time, and CPU/GPU utilization in a full walk. Local Playwright must
     use installed Edge/Chrome with hardware ANGLE/D3D11 and must abort on
     SwiftShader/llvmpipe. Close browsers in `finally`, enforce case timeouts,
-    and never run multiple full matrices concurrently.
+    and never run multiple full matrices concurrently. Keep one Codex in-app
+    browser tab and one local game server active; close or release both before
+    starting another preview instance.
+11. **Actor presentation:** no player, NPC, enemy, boss, creature placeholder,
+    room marker, screenshot, video, owner-QA view, or shipping build may expose
+    a capsule, cone, card, primitive humanoid, or marker ghost as an actor.
+    Collision/navigation capsules remain invisible implementation geometry.
+    Use the approved generic Human pilot for dungeon scale, traversal, camera,
+    lighting, collision, grounding, and animation checks. When that body plan
+    is inappropriate, use the closest approved ancestry or creature proxy and
+    record the mismatch; if none exists, track the missing asset as a blocker.
+    For the current pilot, grounding acceptance must come from the accepted
+    real BREACH-V2 game preview with animation running. Unit bounds math,
+    isolated loaders, or static-frame calculations are supporting checks only.
 
 The visual pass is performed from player height through the entire seed on
 both paths. It is an explicit room matrix, not a representative sample: list
@@ -210,6 +223,9 @@ every fixed room and every selected pooled room, then mark wide view, close
 view, north/east/south/west wall check, door closed, door open, and traversal
 PASS/FAIL. Review screenshots must include each closed doorway before it is
 opened, its open state, each room interior, the boss suite, and the exit.
+They must also show the selected approved actor proxy grounded at representative
+spawn, traversal, interaction, and combat locations without any visible
+collision capsule or primitive substitute.
 Generated coordinates and automated invariants never replace this inspection.
 The owner must not be the first person to find an edge-on door, picture,
 alcove, shelf, rack, statue, light fixture, or other misoriented scene asset.
@@ -280,6 +296,11 @@ to catch a basic miss.
   sweep.
 - Runtime preview live; probe renders: start area, one full easy-path run,
   one full hard-path run (different seeds), boss suite, exit Connector view.
+- The selected actor's rest state and representative locomotion, combat,
+  reaction, and death clips are grounded in the accepted BREACH-V2 game
+  preview; no unit-only or isolated-scene result substitutes for this proof.
+- Every player/NPC/creature test actor uses an approved visible model; collision
+  capsules remain hidden in all renders, screenshots, videos, and review views.
 - Review gate (§7) passed; `docs/SESSION_HANDOFF_<date>_<dungeon-id>.md`
   with evidence paths and open issues.
 - Report to the owner with the preview URL and exactly what to click.

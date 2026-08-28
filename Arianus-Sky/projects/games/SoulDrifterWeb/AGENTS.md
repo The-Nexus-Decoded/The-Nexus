@@ -19,6 +19,8 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    terrain, and nothing floats. Everything sits on the ground, a foundation,
    or a mount, with correct clearances from doors, paths, spawns, and
    interactions. Verify by inspection at close range, not by assumption.
+   Character grounding must be proved in the accepted real game/zone preview;
+   bounds math or a unit test alone is not visual/runtime acceptance.
 2. **Everything is properly textured.** Full PBR — diffuse + normal +
    roughness (+ AO where the set has it) — with the CORRECT texture for the
    material. Flat single-color surfaces are not acceptable at any distance
@@ -35,6 +37,15 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    items). If the real asset doesn't exist, say so and flag it for the
    placeholder tracker — do not fake it silently. Tracked placeholders live
    in `docs/HEARTVALE_PLACEHOLDER_TICKETS.md`.
+   This includes every room, dungeon, outdoor zone, other 3D location,
+   player, NPC, creature placeholder, screenshot, video, owner-QA view, and
+   shipped presentation. Collision/navigation capsules may exist only as
+   invisible implementation geometry and must be hidden in all presentation
+   and evidence modes. Use the approved generic Human pilot as the standard
+   scale, traversal, camera, lighting, collision, and animation test actor for
+   new locations. When a Human body plan is inappropriate, use the closest
+   approved ancestry or creature proxy and record the mismatch; if no suitable
+   proxy exists, track the missing asset instead of exposing a capsule.
 5. **Evidence, not claims.** A commit message must match its diff. "Done"
    requires fresh renders (BOTH wide and close-up — failures hide at both
    scales) and green tests. Past chats have claimed entire work orders with
@@ -104,6 +115,10 @@ to EVERY zone, dungeon, village, prop, and scene you build:
   `scripts/runtime-asset-manifest.json`; the 475,000,000-byte preferred ceiling
   preserves deploy-provider headroom (owner ruling 2026-08-21).
 - Phone-width responsive + desktop both keep working.
+- Keep one Codex in-app browser tab and one local game server active at a
+  time during provider/runtime production. Reuse the current tab and server;
+  close or release them before opening another. Do not accumulate duplicate
+  provider tabs, browser profiles, or local preview servers.
 - Never leave a dev server running when your task ends.
 - Repo-wide: **never delete .md files** (root CLAUDE.md rule); don't write
   secrets into the repo.

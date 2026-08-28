@@ -4,7 +4,7 @@ Status: production contract for issue #487 and later humanoid batches
 
 Provider split: Tripo Smart Mesh for humanoid body geometry/material source; Mixamo for humanoid rigging and source motions; Blender for normalization, retargeting, missing motions, and runtime export
 
-Browser rule: use only the existing Codex in-app browser tabs for Tripo and Mixamo
+Browser rule: use one existing Codex in-app browser tab at a time for Tripo, Mixamo, or runtime review, plus one local game server; reuse or release both before opening another
 
 ## Purpose
 
@@ -62,7 +62,7 @@ Female bodies use the Mixamo female locomotion pack as their locomotion baseline
 - Confirm issue, branch, worktree, current commit, dirty state, provider balances, and current QA runtime head.
 - Reuse the cached Blender/toolchain receipt. Do not reinstall when the receipt and binaries pass validation.
 - Start a visible, crash-tolerant MKV recording before provider interaction.
-- Reuse existing Codex in-app browser tabs. Do not launch external Chrome, Edge, a hidden browser, or a duplicate provider tab.
+- Reuse one existing Codex in-app browser tab. Do not launch external Chrome, Edge, a hidden browser, or a duplicate provider tab. Keep one local game server active and close/release it before starting another.
 
 ### 2. Four-image owner selection gate
 
@@ -124,6 +124,14 @@ The required source families include:
 
 Search Mixamo first. A Mixamo provider completion does not automatically pass QA. Use Blender only for verified missing motions, cleanup, contact fixes, transitions, or game-specific actions.
 
+Do not accept a source because the in-app browser Download button was clicked. A failed in-app transfer can leave a small or truncated cache artifact. The download receipt must show browser completion, the current resolved file path, byte count, SHA-256, and a successful Blender import. Never promote partial cache bytes into the source library, retarget pipeline, or manifest.
+
+The current 400-clip Human pilot export is a cached candidate intake pool, not 400 approved game animations and not proof that the required custom gaps were created. Keep it `CANDIDATE_INTAKE_ONLY` until the demand matrix maps every required semantic to a direct-provider, derived, custom, or procedural result and that result passes the pilot review. Spell-damage blowback/falls, the complete staff family, water surface/drowning, lockpicking, mining, chopping, farewell, special reactions, and damage-specific deaths remain explicit gap rows until their own evidence says `PASS`.
+
+Reconcile the full master list and fill the current-scope gaps before presenting the review UI as exhaustive. Search Mixamo first for each humanoid demand; use Blender only after the ledger proves the provider gap or identifies cleanup/derived/game-specific work. Every `CURRENT_487_CORE` row needs a valid imported candidate or an explicit blocker before exhaustive review begins. Future class-specific spellcasting identities are `DEFERRED_HIGHER_LEVEL` and do not block #487; shared Mixamo magic variants remain generic pilot candidates rather than final class-identity animations.
+
+The first Human pilot review is exhaustive. Its accepted semantic names, provider selections, loop/transition decisions, contact and weapon rules, root-motion rules, and owner rejections become the reusable canonical decision set for later bodies. Later bodies reuse those decisions and cached sources, but still require their own proportion-correct retarget, bake, grounding/contact repair, and deformation/runtime QA.
+
 ### 7. Per-body retarget and normalization
 
 For every body and every accepted semantic clip:
@@ -139,6 +147,16 @@ For every body and every accepted semantic clip:
 - preserve loop continuity and event/contact frames;
 - bake a body-owned output; and
 - record source hash, output hash, Blender version, settings, and QA result.
+
+Before a body-owned clip may enter manual review, run the automated frame-zero floor/root preflight:
+
+1. sample the accepted bind/rest state, frame zero, and the first animated frame;
+2. record the floor plane, actor bounds, lowest intended contact, root transform, pelvis transform, and planted-foot contacts;
+3. apply one deterministic baseline correction in the export/normalization pipeline while preserving intentional vertical motion;
+4. reject initial floating or penetration outside the declared tolerance, unexplained root/pelvis spikes, broken foot-contact continuity, or any output that depends on a scene-specific Y-offset; and
+5. scan the complete body-owned library again whenever the exporter, source rest pose, scale, root-motion policy, or retarget profile changes.
+
+Fix a failed shared rule in the normalization pipeline and rerun the scan. Do not accumulate per-room placement guesses that hide bad animation exports.
 
 Do not assume an Elf, Dwarf, or Halfling passes because a Human passed. Shorter limbs and different torso/shoulder proportions require independent contact and deformation validation.
 
@@ -166,9 +184,10 @@ Do not assume an Elf, Dwarf, or Halfling passes because a Human passed. Shorter 
 - Integrate the pilot into the SoulDrifter QA branch containing the accepted current dungeon.
 - Record the live QA commit before each run; do not describe QA as production.
 - Validate spawn, scale, pivot, ground contact, locomotion, combat, deaths, interactions, camera framing, collision/LOS, equipment sockets, dialogue close-up, memory, draw calls, and frame time.
+- Prove the rest state and representative locomotion, combat, reaction, and death clips grounded in the actual accepted BREACH-V2 real-game preview. Unit math, isolated Blender playback, and loader-only tests support but do not replace this proof.
 - Nothing is promoted to `main` or deployed by this runbook without separate owner authorization.
 
-Current v23 dungeon receipt: PR #460 merged to `qa` at `7666af63bac70f8d48c864b4a85122975bdaa4cb` on 2026-08-28. Later runs must refresh and record the then-current QA head rather than assuming this commit remains current.
+Current BREACH-V2 QA integration receipt: PR #460 merged to `qa` at `7666af63bac70f8d48c864b4a85122975bdaa4cb` on 2026-08-28. This commit identifies the integration receipt, not a dungeon version label. Later runs must refresh and record the then-current QA head rather than assuming this commit remains current.
 
 ## Mandatory per-body output manifest
 
@@ -198,20 +217,42 @@ Every body manifest records at least:
     "t_pose": { "path": "path", "sha256": "sha256" },
     "a_pose": { "path": "path", "sha256": "sha256" }
   },
+  "animation_inventory": {
+    "candidate_count": 400,
+    "status": "CANDIDATE_INTAKE_ONLY|REVIEW_IN_PROGRESS|APPROVED",
+    "review_scope": "CURRENT_487_CORE",
+    "deferred_scope": "DEFERRED_HIGHER_LEVEL",
+    "required_semantics": 0,
+    "approved_semantics": 0,
+    "missing_semantics": []
+  },
   "animations": [
     {
       "semantic_id": "walk_forward",
       "source_path": "cached-source-path",
       "source_sha256": "sha256",
+      "download_receipt": {
+        "browser_completed": true,
+        "resolved_path": "current-resolved-path",
+        "bytes": 0,
+        "sha256": "sha256",
+        "blender_import": "pass|fail"
+      },
       "body_output_path": "body-owned-output-path",
       "body_output_sha256": "sha256",
       "root_motion": "in-place|root-motion",
+      "floor_root_preflight": {
+        "status": "pass|fail",
+        "frame_zero_lowest_contact_m": 0,
+        "baseline_correction_m": 0,
+        "evidence": "path"
+      },
       "qa": "pass|fail"
     }
   ],
   "runtime_qa": {
     "qa_commit": "commit",
-    "dungeon": "breach-v2-v23",
+    "dungeon": "breach-v2",
     "result": "pass|fail",
     "evidence": []
   }
@@ -229,6 +270,10 @@ Stop and repair before continuing when any of these occur:
 - nonstandard/reduced skeleton without an approved exception;
 - zero-UV mesh being treated as the texture master;
 - uncorrected foot sliding, root drift, penetration, or joint inversion;
+- frame-zero floating, floor penetration, root/pelvis discontinuity, or a clip requiring a scene-specific Y-offset;
+- treating the 400-clip candidate intake as a complete or approved animation matrix while required semantics remain missing, rework, or rejected;
+- a browser download without a completion receipt, current-path byte count, SHA-256, and successful Blender import, including any small/truncated cache artifact;
+- starting exhaustive review before every current-core demand has a valid ingested candidate or explicit blocker;
 - unchanged Human bake reused as a final Dwarf/Halfling/Elf export;
 - missing hashes, provenance, provider settings, or body manifest;
 - external/duplicate browser use;

@@ -259,6 +259,14 @@ Every weapon/offhand item is separate and declares applicable:
 
 Animation files contain motion only, not permanent actor or equipment geometry.
 
+## Runtime actor-proxy and visible-presentation contract
+
+- No room, dungeon, outdoor zone, other 3D location, player, NPC, creature placeholder, screenshot, video, owner-QA view, or shipped presentation may expose a capsule, cone, card, primitive humanoid, or marker ghost as an actor substitute.
+- Collision and navigation capsules may remain as invisible implementation geometry only. They never render in presentation or evidence modes.
+- The approved generic Human pilot is the standard actor for new-location scale, traversal, camera, lighting, collision, grounding, and animation checks.
+- When a Human body plan is inappropriate, use the closest approved ancestry or creature proxy and record the mismatch. If no suitable proxy exists, record a blocked asset dependency rather than showing a capsule.
+- A proxy proves scene integration only. It does not become the canonical NPC, monster, ancestry body, or final animation set for that location.
+
 ---
 
 # 8. Tripo lanes and image bakeoff
@@ -268,6 +276,8 @@ Treat separately:
 - Tripo Studio browser;
 - API/SDK;
 - official CLI when separately verified.
+
+During provider and runtime production, keep exactly one Codex in-app browser tab and one local game server active. Reuse the current tab/server and close or release them before opening another. Do not accumulate duplicate Tripo/Mixamo tabs, browser profiles, or preview servers.
 
 A functioning Studio session does not prove API credits. A valid API key does not prove Studio allowance. Use the funded, working lane and record the selected lane.
 
@@ -358,6 +368,38 @@ Minimum animation proof:
 - draw/sheath or equip/unequip where applicable.
 
 Search the live Mixamo library first for biped humanoids. Search the live Tripo preset library first for animals, non-humanoid monsters, and other creatures. Accepted direct provider presets do not require duplicate DCC production. Substantial custom motions follow the Houdini KineFX versus Blender blinded bakeoff.
+
+## Animation candidate, gap, and grounding gates
+
+A large downloaded or exported library is an intake pool, not a completed animation contract. The current 400-clip Human pilot library remains `CANDIDATE_INTAKE_ONLY` until every clip is named, deduplicated, mapped to a required semantic, retargeted to the accepted body, and passes runtime and owner review. Its existence does not prove that custom gaps such as spell-damage blowback/falls, the complete staff family, water surface/drowning, lockpicking, mining, chopping, farewell, special reactions, or damage-specific deaths have been authored or approved.
+
+Maintain an exhaustive animation-demand matrix with one explicit status for every requirement: `DIRECT_PROVIDER_PASS`, `DERIVED_PASS`, `CUSTOM_PASS`, `PROCEDURAL_PASS`, `MISSING`, `REWORK`, or `REJECTED`. No family, body, or issue is called animation-complete while any required semantic is `MISSING`, `REWORK`, or `REJECTED`.
+
+Classify scope before closing gaps. The existing master-list core and lower-level gameplay requirements are `CURRENT_487_CORE` and must be audited and filled for the pilot. Future class-specific spellcasting identities are `DEFERRED_HIGHER_LEVEL`; they stay in the demand ledger but do not block issue #487. Shared Mixamo magic variants are pilot candidates for generic casting/reaction coverage, not proof that a future class-specific spell identity is complete.
+
+Run the full master-list gap audit and fill sequence before presenting the review UI as exhaustive:
+
+1. reconcile every candidate with a unique semantic demand row and remove duplicates/near-duplicates from the review queue;
+2. search and verify the live Mixamo library first for every `CURRENT_487_CORE` humanoid demand;
+3. use Blender only for verified provider gaps, derived variants, cleanup, contacts, transitions, or game-specific motion;
+4. route any still-missing current-core motion through the approved custom/procedural policy; and
+5. open the exhaustive pilot review only after every current-core row has a valid ingested candidate or an explicit recorded blocker. `DEFERRED_HIGHER_LEVEL` rows remain visible in the ledger but do not enter the blocking review queue.
+
+A Mixamo in-app Download click is not an intake receipt. The in-app lane can leave a small or truncated cache artifact when no real download completes. Accept a downloaded source only after the browser reports completion and the receipt records the current resolved file path, byte count, SHA-256, and a successful Blender import. Never promote, retarget, or treat partial cache bytes as a source animation.
+
+Every retargeted clip must pass a deterministic frame-zero floor/root preflight before manual review or runtime promotion:
+
+1. load the accepted bind/rest state and sample frame zero plus the first animated frame;
+2. measure root, pelvis, actor bounds, and planted-foot contact against the declared floor plane;
+3. normalize the clip's baseline ground offset once in the export pipeline while preserving intentional jumps, falls, knockback, stairs, and other authored vertical motion;
+4. automatically reject unexplained vertical root/pelvis spikes, initial floating or penetration outside the declared tolerance, foot-contact discontinuity, or a root transform that depends on an ad hoc scene Y-offset; and
+5. re-run the same preflight across the complete candidate library after any exporter, rest-pose, scale, root-motion, or retarget-profile change.
+
+Do not repair this class of failure with one-off per-room or per-clip runtime placement guesses. Fix the shared normalization/export rule, record the before/after measurements, and rerun the automated library scan.
+
+Unit bounds math and isolated loader tests support the preflight but do not prove grounding. Final acceptance requires the actual accepted BREACH-V2 real-game preview with the pilot visibly grounded while representative locomotion, combat, reaction, and death clips run.
+
+The exhaustive owner accept/rework/reject decisions from the first Human pilot become the canonical semantic names, clip selections, transition rules, contact rules, root-motion rules, and QA expectations for the remaining foundation bodies. Source motions and decisions may be reused; each differently proportioned body still receives its own retarget, grounding/contact correction, bake, and deformation/runtime proof.
 
 ---
 
