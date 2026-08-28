@@ -89,7 +89,7 @@ Results:
 - Node syntax checks: passed.
 - Focused runtime asset budget and path-safety tests: 1 file, 8 tests passed.
 - TypeScript project check: passed with `tsc -b`.
-- Full Vitest suite: 73 files and 243 tests passed; 0 failed and 0 pending.
+- Full Vitest suite: 73 suites across 33 files and 243 tests passed; 0 failed and 0 pending.
 - `git diff --check`: passed; Git emitted only the existing Windows line-ending conversion advisory.
 - ESLint: not run because this project has no ESLint configuration, dependency, or package script.
 
