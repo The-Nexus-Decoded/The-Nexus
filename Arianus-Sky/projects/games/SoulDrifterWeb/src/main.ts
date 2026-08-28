@@ -12,6 +12,7 @@ import {
   lightingTuningRegistry,
   loadLightingTuningDocument,
 } from "./game/lightingTuning";
+import { installPilotAnimationReview } from "./pilotAnimationReview";
 
 let activeWorld: World3D | null = null;
 
@@ -49,6 +50,8 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
     throw error;
   }
 }
+
+installPilotAnimationReview();
 
 void (async () => {
   // Dungeon preview branch: ?dungeonPreview=breach-v2 renders the BREACH-V2

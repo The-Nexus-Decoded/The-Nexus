@@ -59,6 +59,7 @@ describe("runtime asset budget", () => {
     ]);
     const manifest = {
       excludeGlobs: ["assets/generated/*-class-atlas-*-v1.png", "assets/generated/characters/advanced/**"],
+      developmentOnlyGlobs: [],
       protectedPaths: ["assets/generated/first-breach-environment-v1.png", "index.html"],
     };
 
@@ -80,10 +81,32 @@ describe("runtime asset budget", () => {
     ]);
     const manifest = {
       excludeGlobs: ["lore-atlas/assets/P-*_painted.png"],
+      developmentOnlyGlobs: [],
       protectedPaths: ["lore-atlas/index.html"],
     };
 
     await expect(pruneAssetRoot(root, manifest)).rejects.toThrow(/Refusing to prune referenced runtime assets/);
     await expect(readFile(resolve(root, "lore-atlas/assets/P-ARIANUS_painted.png"))).resolves.toBeTruthy();
+  });
+
+  it("removes referenced pilot payloads that are explicitly development-only", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(root);
+    await Promise.all([
+      writeFixture(root, "assets/3d/animations/human-foundation-pilot/review-library.glb"),
+      writeFixture(root, "assets/index.js", 'const pilot = "review-library.glb";'),
+    ]);
+    const manifest = {
+      excludeGlobs: [],
+      developmentOnlyGlobs: ["assets/3d/animations/human-foundation-pilot/**"],
+      protectedPaths: ["assets/index.js"],
+    };
+
+    const result = await pruneAssetRoot(root, manifest);
+
+    expect(result.removedDevelopmentOnlyFiles).toBe(1);
+    await expect(readFile(resolve(root, "assets/3d/animations/human-foundation-pilot/review-library.glb")))
+      .rejects.toThrow();
+    await expect(readFile(resolve(root, "assets/index.js"), "utf8")).resolves.toContain("review-library.glb");
   });
 });

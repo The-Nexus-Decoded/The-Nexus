@@ -64,6 +64,8 @@ export async function loadAssetManifest(path = defaultManifestPath) {
     throw new Error("Runtime asset manifest requires a positive integer maxBytes value.");
   }
   manifest.excludeGlobs.forEach(normalizeAssetPath);
+  manifest.developmentOnlyGlobs ??= [];
+  manifest.developmentOnlyGlobs.forEach(normalizeAssetPath);
   manifest.protectedPaths.forEach(normalizeAssetPath);
   return manifest;
 }
@@ -119,8 +121,10 @@ export async function directoryBytes(root) {
 
 export async function pruneAssetRoot(assetRoot, manifest) {
   await assertProtectedAssets(assetRoot, manifest.protectedPaths);
-  const candidates = await collectPrunableFiles(assetRoot, manifest.excludeGlobs);
-  await assertCandidatesAreUnreferenced(assetRoot, candidates);
+  const sourceCandidates = await collectPrunableFiles(assetRoot, manifest.excludeGlobs);
+  const developmentCandidates = await collectPrunableFiles(assetRoot, manifest.developmentOnlyGlobs ?? []);
+  await assertCandidatesAreUnreferenced(assetRoot, sourceCandidates);
+  const candidates = [...new Set([...sourceCandidates, ...developmentCandidates])];
   const removedBytes = (await Promise.all(candidates.map(async (path) => (await stat(path)).size)))
     .reduce((total, size) => total + size, 0);
   await Promise.all(candidates.map((path) => rm(path, { force: true })));
@@ -128,6 +132,7 @@ export async function pruneAssetRoot(assetRoot, manifest) {
   return {
     removedFiles: candidates.length,
     removedBytes,
+    removedDevelopmentOnlyFiles: developmentCandidates.length,
   };
 }
 
