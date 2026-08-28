@@ -1183,8 +1183,8 @@ export function resolveBreachV2CameraDistanceForMode(
   return isometric ? Math.max(0, requestedDistance) : resolveBreachV2CameraDistance(requestedDistance, hitFraction);
 }
 
-export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = 0;
-export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(20);
+export const BREACH_V2_ISOMETRIC_DEFAULT_YAW = THREE.MathUtils.degToRad(-45);
+export const BREACH_V2_ISOMETRIC_DEFAULT_PITCH = THREE.MathUtils.degToRad(30);
 export const BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE = 18.5;
 export const BREACH_V2_ISOMETRIC_LOOK_AHEAD = 4.25;
 export const BREACH_V2_ISOMETRIC_MIN_PITCH = THREE.MathUtils.degToRad(8);
@@ -3836,6 +3836,17 @@ export interface CameraPreset {
 export function cameraPresets(layout: BreachV2Layout): Record<string, CameraPreset> {
   const lm = layout.landmarks;
   const firstChamber = layout.rooms.find((r) => !r.fixed) ?? layout.rooms[0]!;
+  const isometricTarget = new THREE.Vector3();
+  const isometricPosition = new THREE.Vector3();
+  writeBreachV2IsometricCameraPose(
+    { x: lm.playerStart.x, y: lm.playerStart.elevation, z: lm.playerStart.z },
+    BREACH_V2_ISOMETRIC_DEFAULT_YAW,
+    BREACH_V2_ISOMETRIC_DEFAULT_PITCH,
+    BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+    isometricTarget,
+    isometricPosition,
+  );
+  const isometricOffset = isometricPosition.sub(isometricTarget);
   return {
     vestibule: {
       target: [lm.soulWell.x, lm.soulWell.elevation + 0.8, lm.soulWell.z],
@@ -3843,16 +3854,8 @@ export function cameraPresets(layout: BreachV2Layout): Record<string, CameraPres
       minDistance: 5.5,
     },
     isometric: {
-      target: [
-        lm.playerStart.x,
-        lm.playerStart.elevation + 1.4,
-        lm.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
-      ],
-      offset: [
-        0,
-        Math.sin(BREACH_V2_ISOMETRIC_DEFAULT_PITCH) * BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
-        Math.cos(BREACH_V2_ISOMETRIC_DEFAULT_PITCH) * BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
-      ],
+      target: [isometricTarget.x, isometricTarget.y, isometricTarget.z],
+      offset: [isometricOffset.x, isometricOffset.y, isometricOffset.z],
     },
     plaza: { target: [lm.doorWayfarer.x - 4, lm.doorWayfarer.elevation + 1.2, lm.doorWayfarer.z + 3.5], offset: [-9, 3.4, 0.5] },
     gallery: {

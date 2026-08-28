@@ -146,7 +146,7 @@ describe("BREACH-V2 camera-only overhead collision", () => {
       .toBeLessThan(1);
   });
 
-  it("uses a lower follow-isometric view behind the avatar while looking ahead", () => {
+  it("uses a diagonal follow-isometric view behind the avatar while looking ahead", () => {
     const target = new THREE.Vector3();
     const position = new THREE.Vector3();
     writeBreachV2IsometricCameraPose(
@@ -158,14 +158,15 @@ describe("BREACH-V2 camera-only overhead collision", () => {
       position,
     );
 
-    expect(target.x).toBeCloseTo(0);
-    expect(target.z).toBeCloseTo(-BREACH_V2_ISOMETRIC_LOOK_AHEAD);
-    expect(position.x).toBeCloseTo(0);
+    expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_DEFAULT_YAW)).toBe(-45);
+    expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_DEFAULT_PITCH)).toBeCloseTo(30);
+    expect(target.x).toBeCloseTo(BREACH_V2_ISOMETRIC_LOOK_AHEAD / Math.sqrt(2));
+    expect(target.z).toBeCloseTo(-BREACH_V2_ISOMETRIC_LOOK_AHEAD / Math.sqrt(2));
+    expect(position.x).toBeLessThan(0);
     expect(position.z).toBeGreaterThan(0);
-    expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_DEFAULT_PITCH)).toBe(20);
     expect(THREE.MathUtils.radToDeg(BREACH_V2_ISOMETRIC_MIN_PITCH)).toBe(8);
-    expect(position.y).toBeGreaterThan(7);
-    expect(position.y).toBeLessThan(8.5);
+    expect(position.y).toBeGreaterThan(10.5);
+    expect(position.y).toBeLessThan(10.8);
     expect(position.distanceTo(target)).toBeCloseTo(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
   });
 
@@ -208,14 +209,25 @@ describe("BREACH-V2 camera-only overhead collision", () => {
 
   it("keeps the vestibule review orbit outside the close-camera failure band", () => {
     const presets = cameraPresets(layout);
+    const expectedTarget = new THREE.Vector3();
+    const expectedPosition = new THREE.Vector3();
+    writeBreachV2IsometricCameraPose(
+      {
+        x: layout.landmarks.playerStart.x,
+        y: layout.landmarks.playerStart.elevation,
+        z: layout.landmarks.playerStart.z,
+      },
+      BREACH_V2_ISOMETRIC_DEFAULT_YAW,
+      BREACH_V2_ISOMETRIC_DEFAULT_PITCH,
+      BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE,
+      expectedTarget,
+      expectedPosition,
+    );
+    const expectedOffset = expectedPosition.sub(expectedTarget);
     expect(presets.vestibule?.minDistance).toBe(5.5);
     expect(presets.isometric?.minDistance).toBeUndefined();
-    expect(presets.isometric?.target[2]).toBeCloseTo(
-      layout.landmarks.playerStart.z - BREACH_V2_ISOMETRIC_LOOK_AHEAD,
-    );
-    expect(presets.isometric?.offset[0]).toBe(0);
-    expect(presets.isometric?.offset[1]).toBeGreaterThan(6);
-    expect(presets.isometric?.offset[1]).toBeLessThan(6.5);
+    expect(presets.isometric?.target).toEqual(expectedTarget.toArray());
+    expect(presets.isometric?.offset).toEqual(expectedOffset.toArray());
     expect(presets.overview?.minDistance).toBeUndefined();
   });
 
