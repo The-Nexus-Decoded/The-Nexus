@@ -32,6 +32,69 @@
     "lore-atlas/assets/maps/pryan_painted.png",
     "lore-atlas/index.html"
   ],
+  "protectedGlobs": [
+    {
+      "id": "first-breach-dungeon-kit",
+      "glob": "assets/3d/environment/dungeon-kit/*.glb",
+      "expectedCount": 37,
+      "sha256": {
+        "assets/3d/environment/dungeon-kit/archive-bookshelf.glb": "aedecd8bf0a1aa7f933c40dba0408bc905eac23a287f545ed96783a61b45f8c5",
+        "assets/3d/environment/dungeon-kit/archive-cupboard.glb": "20f1878b81fd5efc49dd2f43b674384e7a425013b7219f9a976c12413926d650",
+        "assets/3d/environment/dungeon-kit/bone-pile.glb": "65e2d20f31d6a60ffd424e2a5acd5449256b7b964cf88bd7b947a7e968c8cead",
+        "assets/3d/environment/dungeon-kit/bottles-jugs-crockery-cluster.glb": "57c06c1d7eee1355c455e613787bc918af396f1dd3e19f65d5c71c1d14b13d99",
+        "assets/3d/environment/dungeon-kit/broken-handcart.glb": "7b3476cd2ef3c3655a40f5eba3051a130b00073089eb380310ac3ffd5f6706ff",
+        "assets/3d/environment/dungeon-kit/broken-stone-stair-dais.glb": "73f444e26e78da1bf688e2a8b91eeb3472ed939c5489aa3adbcdd286a0db68f0",
+        "assets/3d/environment/dungeon-kit/burrowed-wall-breach-plug.glb": "7bb46b793e8481786cc8d70906222368a907a3cd99c56d9a23f80f5bb9239398",
+        "assets/3d/environment/dungeon-kit/candelabra-cluster.glb": "0088fd1e49f24506a645ff27416882253457f7f57da29ac165cb77097e6c1bea",
+        "assets/3d/environment/dungeon-kit/cave-in-rubble.glb": "5a5de123342bb57b76f584c091bf59ff048e76df3c65de68d01de3195a206c27",
+        "assets/3d/environment/dungeon-kit/chain-shackle.glb": "2f38ff3a59a0f562cdc5da45aa3f8cc08726cf2ca7598ab167ea0a79f9991b8e",
+        "assets/3d/environment/dungeon-kit/cocooned-remains-web-mass.glb": "1bbac71684e47a96a7b858da33666fcb03f03ad431d0d1bd768469d777e72970",
+        "assets/3d/environment/dungeon-kit/collapsed-timber-masonry-pile.glb": "1495c5b783b1d7bbf884c55729693b8fb7b3e2d3a679ed7779cce55d78805a1f",
+        "assets/3d/environment/dungeon-kit/corruption-growth.glb": "64277d19efa7eb0285b30f3fd65d8774d22e5e08fd0d2cc4045304697575e2d4",
+        "assets/3d/environment/dungeon-kit/empty-weapon-rack.glb": "2f95636b08a05d1a37d4cf15276315ec4d80d1da9a0d013c06b90abd1fbb2e44",
+        "assets/3d/environment/dungeon-kit/false-wall-panel.glb": "56d57f71ef16635559a5e9b31c1ccd87dea25b52821117cdb91cde9111bdaa9b",
+        "assets/3d/environment/dungeon-kit/floor-brazier.glb": "97d0ea01ebe37ed5f4ae05fff94e99b34ef6f58720d476695267a0580b56fb0c",
+        "assets/3d/environment/dungeon-kit/guardian-statue.glb": "cb78eae25f3f1e24ebf231bcec8afa1f89fa6ebd9eec1456c0343cde513cacd9",
+        "assets/3d/environment/dungeon-kit/hanging-iron-cage.glb": "c750830c92bf51fe349d67429a5a35ae2bd58801bda4413149129a331164c90c",
+        "assets/3d/environment/dungeon-kit/heavy-bench.glb": "9566bd0b3fefde60617c5e97bff5eac59badd8a15e7bbc93e9333b6bfd022215",
+        "assets/3d/environment/dungeon-kit/heavy-door.glb": "34f0b4acf5a5a6da6da659177a02adb3f8510599decc6600044eee6230862576",
+        "assets/3d/environment/dungeon-kit/high-backed-chair.glb": "9782fbb2e790c2007bf3233ef23d1de81368870ccd494b3c7ea37f1dfe232e9c",
+        "assets/3d/environment/dungeon-kit/iron-floor-grate.glb": "5407239dccbc500eaebc0ce3d878b41cf1b30f6a8c4c05ec8d137a92d8fed1ee",
+        "assets/3d/environment/dungeon-kit/masonry-barricade.glb": "cbe4d9e9f7d0af0e1b1518c2ff180dc91e498a7d9e2c48d4e2ef078d844d2dee",
+        "assets/3d/environment/dungeon-kit/monster-egg-nest.glb": "3c0665492141e48c677536930adfa750324cf8ce920c367d3a3e3af86d416aac",
+        "assets/3d/environment/dungeon-kit/reinforced-crate.glb": "bbfff1dc429d8cf5f8fa6a0e9a79168a973f5e1bc2ae243abcd3f0acf0716dac",
+        "assets/3d/environment/dungeon-kit/reliquary-wall-alcove.glb": "4350ca6a31b382be43f0d81e5b269834383a1abb89126decaf4bd93e3cd67c2b",
+        "assets/3d/environment/dungeon-kit/ruined-altar.glb": "6155e48c01d673301205e423cd8045e8d7e09d90296c37207f6a75d0f6e3acf4",
+        "assets/3d/environment/dungeon-kit/ruined-stone-archway.glb": "10151eeb04a3f66e62ba5cd38a847c69c2adb6e2b7394151a0b9f1706cd76e7c",
+        "assets/3d/environment/dungeon-kit/rusted-portcullis.glb": "442241c57f2895aba74c261c0b4063f97a435e3ab7cad2d4d02ffb2aa3e804a0",
+        "assets/3d/environment/dungeon-kit/shed-chitin-pile.glb": "dca4e525b2789f5b80f9e07d335c22cb7e32aff2a402fb7b00057b60a0990303",
+        "assets/3d/environment/dungeon-kit/storage-barrel.glb": "883aca915a2112b31899764a2a401400556a61cf28c164a60cc1088dfbf1da71",
+        "assets/3d/environment/dungeon-kit/storage-chest.glb": "fba038db4543e95f0a215bba4fdcc06ef6b41da5e68a733109c9178716aaa2ae",
+        "assets/3d/environment/dungeon-kit/supply-pile.glb": "a0ebbec7f4cd165877b4315972f4c773d754fe11417e38e84f79977f78228a8c",
+        "assets/3d/environment/dungeon-kit/trestle-table.glb": "4c6021794fa1f3724961c5dc36d05950507f9e7f4c7529f6ca1c10ab57502370",
+        "assets/3d/environment/dungeon-kit/wall-torch-sconce.glb": "2e95c22a10cec4341e5480fcd689b75dfb62fedd05731717027f9084b87c6231",
+        "assets/3d/environment/dungeon-kit/weapon-armor-heap.glb": "ad02a3aad0d2a42c22ff6819f1d99f9a1d3c2fa6f1cf3fa07dcfd5070727d0fe",
+        "assets/3d/environment/dungeon-kit/wooden-support-brace.glb": "df9070a5bf060bb99454b1e9f6e09c403feac1856adf45b12ab622fac3f0c19a"
+      }
+    },
+    {
+      "id": "breach-v2-runtime-data",
+      "glob": "data/dungeons/breach-v2/*.json",
+      "expectedCount": 10,
+      "sha256": {
+        "data/dungeons/breach-v2/index.json": "58e5e7f57cd44d6b37cdcf65927597f7bc039fb29aea8bfdbf5fc889e266932d",
+        "data/dungeons/breach-v2/layout-1-oathbreaker.json": "e77d699bbc4d873ba84af3ba0043a57031803427eb97609f506a2bfefa99e20b",
+        "data/dungeons/breach-v2/layout-1-wayfarer.json": "1bc0bc8d9ccba51b12f57058543ae31f54e3ea29b581a0a2cc1165d7978b8c2d",
+        "data/dungeons/breach-v2/layout-2-oathbreaker.json": "ba3c580583876cc3351ce4876cf5fcc67a88500c6bbea06e0d51939c4cfbbd17",
+        "data/dungeons/breach-v2/layout-2-wayfarer.json": "ef25e42693d342530bb58cb5dd474a9240e67423ebeb30d0f83132794dc3fe6b",
+        "data/dungeons/breach-v2/layout-4182-oathbreaker.json": "1b136707ef5721da8c9af3abb345cb407cc02a87d89d084daf3c869505482ef2",
+        "data/dungeons/breach-v2/layout-4182-wayfarer.json": "4bbe7417273f6b43a869e8dee415d97ba1511ee118616c271f64f0b7dcc65808",
+        "data/dungeons/breach-v2/layout-7-oathbreaker.json": "043cf7ded8effb2c296e01f8a8c2c0aa719ba3ecd6ac7db93d543dd43a6e3bd0",
+        "data/dungeons/breach-v2/layout-7-wayfarer.json": "89ef6b86397eb5b5b0df49acbb24176ff4a9ecf7648b2c2bd46942e4f9a69a22",
+        "data/dungeons/breach-v2/registry.json": "78fa6860f57ecad9a031db961e56c69c9d378e5d49a236c50f0c2fe27e0a9de6"
+      }
+    }
+  ],
   "targets": [
     {
       "assetRoot": "dist/client",

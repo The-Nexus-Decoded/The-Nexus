@@ -1,4 +1,5 @@
 import { access, lstat, readFile, readdir, realpath, rm, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { dirname, isAbsolute, relative, resolve, win32 } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -157,8 +158,37 @@ export async function loadAssetManifest(path = defaultManifestPath) {
   if (!Number.isSafeInteger(manifest.maxBytes) || manifest.maxBytes <= 0) {
     throw new Error("Runtime asset manifest requires a positive integer maxBytes value.");
   }
+  if (!Array.isArray(manifest.excludeGlobs)
+    || !Array.isArray(manifest.protectedPaths)
+    || !Array.isArray(manifest.protectedGlobs)
+    || !Array.isArray(manifest.targets)) {
+    throw new Error("Runtime asset manifest requires path, glob, and target arrays.");
+  }
   manifest.excludeGlobs.forEach(normalizeAssetPath);
   manifest.protectedPaths.forEach(normalizeAssetPath);
+  const collectionIds = new Set();
+  for (const collection of manifest.protectedGlobs) {
+    if (!collection || typeof collection !== "object"
+      || typeof collection.id !== "string" || !collection.id
+      || collectionIds.has(collection.id)
+      || !Number.isSafeInteger(collection.expectedCount) || collection.expectedCount <= 0
+      || !collection.sha256 || typeof collection.sha256 !== "object"
+      || Array.isArray(collection.sha256)) {
+      throw new Error("Runtime asset manifest has an invalid protected glob collection.");
+    }
+    collectionIds.add(collection.id);
+    const matcher = globToRegExp(collection.glob);
+    const hashes = Object.entries(collection.sha256);
+    if (hashes.length !== collection.expectedCount) {
+      throw new Error(`Protected collection ${collection.id} hash count does not match expectedCount.`);
+    }
+    for (const [assetPath, hash] of hashes) {
+      const normalizedPath = normalizeAssetPath(assetPath);
+      if (!matcher.test(normalizedPath) || !/^[0-9a-f]{64}$/.test(hash)) {
+        throw new Error(`Protected collection ${collection.id} has an invalid path or SHA-256.`);
+      }
+    }
+  }
   return manifest;
 }
 
@@ -229,8 +259,40 @@ async function assertCandidateSafeForRemoval(realAssetRoot, candidate) {
   return realCandidate;
 }
 
+async function sha256(path) {
+  return createHash("sha256").update(await readFile(path)).digest("hex");
+}
+
+export async function assertProtectedCollections(assetRoot, realAssetRoot, protectedGlobs) {
+  const files = await walkContainedFiles(assetRoot, realAssetRoot);
+  const filesByPath = new Map(files.map((path) => [
+    normalizeAssetPath(relative(realAssetRoot, path)),
+    path,
+  ]));
+  for (const collection of protectedGlobs) {
+    const matcher = globToRegExp(collection.glob);
+    const matchedPaths = [...filesByPath.keys()].filter((path) => matcher.test(path)).sort();
+    const expectedPaths = Object.keys(collection.sha256).map(normalizeAssetPath).sort();
+    if (matchedPaths.length !== collection.expectedCount
+      || expectedPaths.length !== collection.expectedCount
+      || matchedPaths.some((path, index) => path !== expectedPaths[index])) {
+      throw new Error(
+        `Runtime build protected collection ${collection.id} inventory drifted: `
+        + `expected ${collection.expectedCount}, found ${matchedPaths.length}.`,
+      );
+    }
+    for (const assetPath of expectedPaths) {
+      const actualHash = await sha256(filesByPath.get(assetPath));
+      if (actualHash !== collection.sha256[assetPath]) {
+        throw new Error(`Runtime build protected collection ${collection.id} SHA-256 drifted: ${assetPath}`);
+      }
+    }
+  }
+}
+
 async function pruneAssetRoot(assetRoot, realAssetRoot, manifest) {
   await assertProtectedAssets(assetRoot, realAssetRoot, manifest.protectedPaths);
+  await assertProtectedCollections(assetRoot, realAssetRoot, manifest.protectedGlobs);
   const candidates = await collectPrunableFiles(assetRoot, manifest.excludeGlobs);
   await assertCandidatesAreUnreferenced(assetRoot, realAssetRoot, candidates);
   const verifiedCandidates = await Promise.all(
@@ -240,6 +302,7 @@ async function pruneAssetRoot(assetRoot, realAssetRoot, manifest) {
     .reduce((total, size) => total + size, 0);
   await Promise.all(verifiedCandidates.map((path) => rm(path, { force: true })));
   await assertProtectedAssets(assetRoot, realAssetRoot, manifest.protectedPaths);
+  await assertProtectedCollections(assetRoot, realAssetRoot, manifest.protectedGlobs);
   return {
     removedFiles: verifiedCandidates.length,
     removedBytes,

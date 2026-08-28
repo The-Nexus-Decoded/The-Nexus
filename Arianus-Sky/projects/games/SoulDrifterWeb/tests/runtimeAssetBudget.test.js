@@ -1,8 +1,10 @@
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  assertProtectedCollections,
   collectPrunableFiles,
   directoryBytes,
   loadAssetManifest,
@@ -10,6 +12,7 @@ import {
   pruneRuntimeAssets,
   resolveRuntimeTarget,
 } from "../scripts/prune-runtime-assets.mjs";
+import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
 const temporaryRoots = [];
 
@@ -25,6 +28,7 @@ async function writeManifest(root, overrides = {}) {
     preferredMaxBytes: 475_000_000,
     excludeGlobs: [],
     protectedPaths: [],
+    protectedGlobs: [],
     targets: [{ assetRoot: "dist/client", budgetRoot: "dist" }],
     ...overrides,
   };
@@ -121,6 +125,61 @@ describe("runtime asset budget", () => {
     await expect(readFile(resolve(root, "dist/client/assets/generated/first-breach-environment-v1.png"), "utf8"))
       .resolves.toContain("first-breach");
     expect(await directoryBytes(resolve(root, "dist"))).toBeGreaterThan(0);
+  });
+
+  it("protects every catalog GLB and BREACH-V2 data file by exact inventory and SHA-256", async () => {
+    const manifest = await loadAssetManifest();
+    const publicRoot = resolve(import.meta.dirname, "../public");
+    const kit = manifest.protectedGlobs.find(({ id }) => id === "first-breach-dungeon-kit");
+    const runtimeData = manifest.protectedGlobs.find(({ id }) => id === "breach-v2-runtime-data");
+    const catalogPaths = new Set(Object.values(DUNGEON_PROP_ASSETS).map(
+      ({ sourceUrl }) => normalizeAssetPath(sourceUrl.slice(1)),
+    ));
+
+    expect(kit.expectedCount).toBe(37);
+    expect(Object.keys(kit.sha256).sort()).toEqual([...catalogPaths].sort());
+    expect(runtimeData.expectedCount).toBe(10);
+    await expect(assertProtectedCollections(
+      publicRoot,
+      await realpath(publicRoot),
+      manifest.protectedGlobs,
+    )).resolves.toBeUndefined();
+  });
+
+  it("fails closed when a protected collection is missing, gains, or changes bytes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "souldrifter-assets-"));
+    temporaryRoots.push(root);
+    const assetRoot = resolve(root, "dist/client");
+    const firstPath = "assets/3d/environment/dungeon-kit/first.glb";
+    const secondPath = "assets/3d/environment/dungeon-kit/second.glb";
+    const firstBytes = Buffer.from("first-reviewed-glb");
+    const secondBytes = Buffer.from("second-reviewed-glb");
+    const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+    await Promise.all([
+      writeFixture(root, "dist/client/" + firstPath, firstBytes),
+      writeFixture(root, "dist/client/" + secondPath, secondBytes),
+    ]);
+    await writeManifest(root, {
+      protectedGlobs: [{
+        id: "fixture-kit",
+        glob: "assets/3d/environment/dungeon-kit/*.glb",
+        expectedCount: 2,
+        sha256: {
+          [firstPath]: digest(firstBytes),
+          [secondPath]: digest(secondBytes),
+        },
+      }],
+    });
+
+    await expect(pruneRuntimeAssets(root)).resolves.toHaveLength(1);
+    await writeFixture(root, "dist/client/" + firstPath, "changed");
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/SHA-256 drifted/);
+    await writeFixture(root, "dist/client/" + firstPath, firstBytes);
+    await rm(resolve(assetRoot, secondPath));
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/inventory drifted/);
+    await writeFixture(root, "dist/client/" + secondPath, secondBytes);
+    await writeFixture(root, "dist/client/assets/3d/environment/dungeon-kit/unexpected.glb", "extra");
+    await expect(pruneRuntimeAssets(root)).rejects.toThrow(/inventory drifted/);
   });
 
   it("fails closed when a future runtime file references an excluded asset", async () => {
