@@ -66,11 +66,8 @@ VIOLET = (168, 120, 220)   # memory / First Memory
 FIXED_TAG = (150, 160, 175)
 
 
-def font(size: int, bold: bool = False, mono: bool = False) -> ImageFont.FreeTypeFont:
-    cands = []
-    if mono:
-        cands = [r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf"]
-    elif bold:
+def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    if bold:
         cands = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\arialbd.ttf"]
     else:
         cands = [r"C:\Windows\Fonts\georgia.ttf", r"C:\Windows\Fonts\arial.ttf"]
@@ -174,11 +171,6 @@ def draw_dressing(draw: ImageDraw.ImageDraw, items, to_px, scale: float,
             draw.rectangle([bx - 2, by - 1, bx + tw + 4, by + f.size + 3],
                            fill=(8, 9, 11, 225), outline=color + (220,), width=1)
             draw.text((bx + 1, by + 1), n, font=f, fill=color)
-
-
-def dressing_list_text(items) -> str:
-    """'1 floor-brazier · 2 floor-brazier · 3 storage-chest …' for legends."""
-    return "  ".join(f"{i + 1} {asset}" for i, (asset, _x, _y) in enumerate(items))
 
 
 def draw_room(draw: ImageDraw.ImageDraw, px: float, py: float, w_m: float, h_m: float,
