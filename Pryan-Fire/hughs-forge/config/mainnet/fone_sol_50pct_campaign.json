@@ -8,7 +8,7 @@
   "wsolMint": "So11111111111111111111111111111111111111112",
   "profitWallet": "3d3Q5meqQpVV4CLCyHfHyYFD4Yy7jvNNt4dovdkNyNhB",
   "entryBasisSol": 2.0571667859074068,
-  "targetProfitPct": 50,
+  "targetProfitPct": 100,
   "widePct": 70,
   "tightPct": 30,
   "minimumFeeSleevePct": 5,
