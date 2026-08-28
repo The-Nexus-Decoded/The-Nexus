@@ -1,13 +1,16 @@
 ---
 issue: 451
 pull_request: 460
-status: ready_for_fresh_review
+status: complete_clean_review
 branch: codex/451-post-merge-review-fixes
 base_commit: 7666af63bac70f8d48c864b4a85122975bdaa4cb
 source_review: H:/Temp/SoulDrifter-451-review/PR-460-REVIEW.md
 findings_total: 35
 fixed: 35
 pending: 0
+fresh_review_findings_total: 6
+fresh_review_fixed: 6
+fresh_review_pending: 0
 updated: 2026-08-28
 ---
 
@@ -143,7 +146,7 @@ Results:
 - Canonical 37-asset source/runtime provenance and optimization check: passed.
 - Runtime asset protected-inventory/hash gate: passed.
 - Flat-map byte, decoded-pixel, input, toolchain, receipt, and manifest check: passed.
-- Wall-art fresh-process determinism, atlas fail-closed, and legacy-all acknowledgement tests: 3 passed.
+- Wall-art fresh-process determinism and atlas fail-closed tests: passed.
 - Focused Phase 3 automated checks run single-worker; all passed.
 - TypeScript project build: passed.
 - `git diff --check`: passed; Git emitted only the existing Windows line-ending advisory.
@@ -201,3 +204,29 @@ Results:
   `dist` 160,002,551 bytes and `dist-pages` 159,992,391 bytes.
 - ESLint: not configured in this project.
 - Browser processes used for this verification: 0.
+
+## Fresh-review remediation and final gate
+
+The independent 46-file deep review found four additional issues. A narrow
+follow-up review found two remaining edge cases. All six are fixed:
+
+| Review | Finding | Resolution | Commit |
+| --- | --- | --- | --- |
+| Fresh | CR-01 | Runtime export cross-drive and redirected-parent containment | `e97b544f` |
+| Fresh | WR-01 | Houdini layout export cross-drive containment | `e97b544f` |
+| Fresh | WR-02 | Partial/contradictory restored coffer state | `96d299e9` |
+| Fresh | WR-03 | Production placeholder wall-art overwrite mode | `d4da46e2`, `d1c8f4b0` |
+| Final follow-up | WR-01 | Existing redirected output-leaf overwrite | `58f86297` |
+| Final follow-up | WR-02 | Tutorial/pickup completion mismatch | `58f86297` |
+
+Final exact-HEAD results:
+
+- Independent static re-review: clean, 0 critical, 0 warnings, 0 info.
+- Full single-worker Vitest suite: 39 files, 285 tests passed; 0 failed.
+- TypeScript project build: passed.
+- Complete BREACH-V2 export parity: passed.
+- Production build and both real target budgets: passed.
+- Final target sizes: `dist` 160,002,375 bytes and `dist-pages` 159,992,215 bytes.
+- Production dependency audit: 0 vulnerabilities.
+- Browser processes launched by remediation/final verification: 0.
+- No merge or deployment performed.
