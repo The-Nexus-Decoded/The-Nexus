@@ -1,0 +1,2181 @@
+{
+  "schemaVersion": 16,
+  "program": {
+    "issue": 448,
+    "branch": "codex/448-souldrifter-first-breach-models",
+    "programStartGitHead": "5ddcf96bba3e7393998de46a62ef51ee602c1f83",
+    "rollbackBaseline": "e0b3d9d8b6ef893373e7aab6253441b6f3da108a",
+    "status": "local-only-technicalization-active-existing-paid-sources-preserved-for-output-qa",
+    "workflowDecision": "chatgpt-image-first-single-image-default-with-strict-four-view-for-owner-approved-hero-creatures",
+    "paidOperationApproved": false,
+    "textTo3dGenerationApproved": false,
+    "textTo3dWorkflowStatus": "retired-by-owner-after-breachling-and-warden-comparison",
+    "imageTo3dApproved": false,
+    "approvedImageTo3dScope": [],
+    "localTechnicalizationApproved": true,
+    "currentExecutionMode": "local-only-blender-retopology-conform-bake-and-validation",
+    "localGpuAccelerationAllowed": true,
+    "newProviderGenerationRequiresFreshActionTimeApproval": true,
+    "creditFloorRemovedByOwner": true,
+    "notifyWhenCreditBalanceBelow": null
+  },
+  "studioWorkspace": {
+    "project": "SoulDrifter",
+    "lineageMode": "automatic-model-and-derivative-lineage",
+    "manualBranch": null,
+    "status": "connected-dashboard",
+    "floatingLatestAllowed": false,
+    "requiredProvenance": [
+      "operation",
+      "provider-and-model-version",
+      "task-id",
+      "credit-receipt",
+      "prompt-hash",
+      "automatic-derivative-lineage",
+      "untouched-export-hash",
+      "processed-export-hash",
+      "consuming-git-commit"
+    ]
+  },
+  "generationPolicy": {
+    "defaultOperation": "local-technicalization-of-preserved-owner-reviewed-sources",
+    "humanoidBodyAnchorOperation": "image-to-3d-single-image-from-owner-reviewed-reference",
+    "isolatedCreatureGearWeaponPropAndEnvironmentOperation": "image-to-3d-single-image-from-owner-reviewed-chatgpt-reference",
+    "bespokeAsymmetricActorOperation": "four-separate-owner-reviewed-chatgpt-views-then-asset-specific-multi-image-provider",
+    "heroCreatureOperation": "image-to-3d-four-view-after-front-side-rear-contradiction-gate-and-provider-fit-review",
+    "defaultModel": "prism-3.1",
+    "selectedBespokeMultiViewModel": "asset-specific-meshy-7-for-breachlings-prism-3.1-for-cinderbound-warden",
+    "approvedStartingTextureQuality": "ultra",
+    "liveSettingsAndPriceApprovalRequiredPerTask": false,
+    "liveSettingsPriceAndReceiptRecordingRequiredPerTask": true,
+    "oneIsolatedSubjectPerTask": true,
+    "batchBlockedUntilPilotPassesIntakeRigAndAnimationGates": true,
+    "canonicalSpecParityGate": {
+      "requiredForEveryGeneratedSource": true,
+      "appliesProspectivelyFromDecision": true,
+      "existingPaidOutputsGrandfatheredForVisualAndTechnicalQa": true,
+      "existingPaidOutputsRequireAutomaticRegeneration": false,
+      "shorthandPromptsAllowed": false,
+      "referenceOnlyDeltaPromptsAllowed": false,
+      "canonicalIdentityAndAnatomyBlockReusedVerbatim": true,
+      "onlyCameraOrOutputSuffixMayChangeBetweenViews": true,
+      "requiredReviewDimensions": [
+        "silhouette",
+        "scale-and-proportions",
+        "anatomy-and-joint-logic",
+        "face-and-identity",
+        "surface-material-and-color",
+        "role-and-lore-read",
+        "pose-and-camera-view",
+        "required-details",
+        "forbidden-traits"
+      ],
+      "ownerVisualReviewRequiredAfterChecklistPass": true,
+      "failureAction": "freeze-as-provisional-or-reject-regenerate-source-and-spend-zero-provider-credits"
+    },
+    "imageTo3dProduction": {
+      "allowed": false,
+      "purpose": "historical-provider-source-lineage-only-until-new-action-time-approval",
+      "separateApprovalRequired": true,
+      "approvedScope": [],
+      "singleImageRequirements": [
+        "one-isolated-character",
+        "one-front-facing-full-body-pose",
+        "plain-background",
+        "no-insets-or-contact-sheet"
+      ],
+      "multiViewAllowedOnlyBySeparateOwnerDecision": true,
+      "multiViewOwnerDecisionRecordedFor": [
+        "breachling-family",
+        "cinderbound-warden"
+      ],
+      "multiViewSourceGate": {
+        "canonicalSourceGenerator": "chatgpt-built-in-imagegen-not-3d-ai-studio-image-generation",
+        "articulatedActorTurnaroundTool": "3d-ai-studio-character-sheet-generator-gpt-image-2-medium",
+        "articulatedActorTurnaroundUse": "fallback-for-simpler-humanoid-or-npc-proof-not-default-for-bespoke-monsters",
+        "bespokeMonsterPreferredSource": "four-separate-owner-reviewed-chatgpt-views-with-full-canonical-spec-parity",
+        "selectedBespokeMultiViewProviderModel": "asset-specific-provider-selected-from-accepted-output-quality",
+        "prismExternalBreachlingMultiViewPolicy": "do-not-retry-after-policy-rejection-and-auto-refund",
+        "turnaroundMasterAllowedAsStagingOnly": true,
+        "turnaroundMasterAllowedAsImageTo3dInput": false,
+        "providerFixedSlotOrder": [
+          "front",
+          "left",
+          "back",
+          "right"
+        ],
+        "browserUploadExactApprovedFilesRequired": true,
+        "backgroundRemovalForConnectorAddressabilityAllowed": false,
+        "appliesTo": [
+          "humanoid",
+          "biped-creature",
+          "quadruped-creature",
+          "avian-creature",
+          "mechanical-creature"
+        ],
+        "submissionBlockedUntilEveryViewPasses": true,
+        "identityAndTopologyConsistencyRequired": true,
+        "crossViewConsistencyRequired": [
+          "same-subject-scale-and-ground-height",
+          "same-camera-distance-and-orthographic-framing",
+          "same-neutral-lighting-and-background",
+          "same-pose-and-joint-angles",
+          "same-colors-materials-and-surface-markings",
+          "same-appendage-count-and-asymmetric-side-placement"
+        ],
+        "rearRequiredEvidence": [
+          "back-of-skull-or-rear-head-shell",
+          "spine-scapulae-or-rear-axial-structure",
+          "rear-pelvis-and-tail-root-when-present",
+          "backs-of-hands-paws-wings-or-forelimbs",
+          "hamstrings-knee-backs-hocks-achilles-heels-or-species-equivalent"
+        ],
+        "rearForbiddenFrontCues": [
+          "eyes-nose-mouth-teeth-tongue-or-face",
+          "throat-chest-abdomen-front-rib-cage-or-front-core",
+          "palms-palm-mechanisms-or-anterior-paw-pads",
+          "kneecaps-front-shins-toe-tops-or-front-facing-claws",
+          "front-facing-weapon-surface-or-front-emblem"
+        ],
+        "sideRequiredEvidence": [
+          "exact-ninety-degree-orthographic-profile",
+          "only-the-camera-side-eye-and-cheek-visible",
+          "clean-snout-neck-torso-pelvis-knee-hock-achilles-and-heel-silhouette",
+          "camera-side-limbs-do-not-expose-palms-or-front-chest-plane"
+        ],
+        "sideForbiddenCues": [
+          "three-quarter-camera-angle",
+          "second-eye-or-opposite-cheek",
+          "symmetrical-front-chest-plane",
+          "palm-surface",
+          "front-or-top-view-of-both-feet"
+        ],
+        "completedModelInspection": [
+          "front",
+          "left",
+          "back",
+          "right",
+          "top",
+          "underside",
+          "duplicate-or-floating-geometry",
+          "material-seams-and-texture-projection"
+        ],
+        "failureAction": "reject-source-view-regenerate-and-spend-zero-provider-credits"
+      },
+      "nonCharacterObjectRouting": {
+        "simpleSymmetricObject": "single-clean-three-quarter-image",
+        "complexAsymmetricObject": "four-view-object-turnaround-split-into-front-left-back-right",
+        "characterSheetGeneratorAllowed": false,
+        "canonicalFrontDefinedBy": "functional-facing-direction-or-documented-presentation-side"
+      },
+      "compositeSheetsAllowed": false,
+      "automaticFallbackFromTextFailure": false,
+      "textTo3dAllowedForNewProductionSources": false
+    }
+  },
+  "bodyAnchorIntake": {
+    "manifest": "./body-anchor-intake.json",
+    "acceptedVisualSources": 12,
+    "preservedProvisionalVisualSources": 12,
+    "acceptedProductionSources": 0,
+    "canonicalPromptParityVerified": false,
+    "grandfatheredPaidSourcePolicy": "preserve-and-judge-the-existing-output-by-owner-visual-review-and-technical-intake-with-no-automatic-regeneration",
+    "promptAuditFinding": "the-image-to-3d-intake-records-source-hashes-but-not-every-complete-chatgpt-prompt-so-prospective-full-spec-parity-cannot-be-proven-retroactively-and-is-not-a-rebuild-trigger-by-itself",
+    "untouchedGlbsPreserved": 12,
+    "sourceImagesPreserved": 12,
+    "creditBalanceAfterBatch": 2472,
+    "directRuntimePromotionAllowed": false,
+    "nextGate": "owner-output-review-then-offline-retopology-scale-orientation-head-seam-and-canonical-rig-proof"
+  },
+  "pilotComparison": {
+    "date": "2026-08-17",
+    "startingCredits": 3557,
+    "endingCredits": 3472,
+    "totalCreditsSpent": 85,
+    "downstreamPaidOperationsPerformed": false,
+    "results": [
+      {
+        "operation": "text-to-3d",
+        "model": "prism-3.1",
+        "textureQuality": "ultra",
+        "taskId": "ef7a7258",
+        "credits": 40,
+        "status": "retained-non-shipping-source-candidate",
+        "decision": "workflow-winner",
+        "knownDrift": [
+          "requested-a-pose-generated-t-pose",
+          "requested-knee-length-pants-generated-full-length-pants"
+        ]
+      },
+      {
+        "operation": "image-to-3d-multi-view",
+        "model": "prism-3.1-multi-view",
+        "textureQuality": "ultra",
+        "taskId": "304b62b1",
+        "credits": 45,
+        "status": "rejected",
+        "decision": "not-for-production",
+        "rejectionReason": "contaminated-composite-crops-produced-three-unwanted-figures"
+      }
+    ]
+  },
+  "scope": {
+    "permanentFoundation": [
+      "playable-humanoid-body-and-head-contract",
+      "slim-athletic-heavy-body-shape-profiles",
+      "modular-character-appearance",
+      "canonical-humanoid-rig-and-retarget-profiles",
+      "equipment-and-weapon-sockets",
+      "animation-action-registry",
+      "npc-conversation-face-contract"
+    ],
+    "firstBreachOnly": [
+      "level-one-starter-calling-kits",
+      "level-one-starter-weapons",
+      "ilyra-orren-brannoc-production-models",
+      "training-construct",
+      "breachling-family",
+      "cinderbound-warden",
+      "first-breach-room-validation"
+    ],
+    "deferred": [
+      "open-world-trees-grass-walls-buildings-terrain-and-biome-kits",
+      "higher-level-weapons-armor-and-specialization-equipment",
+      "monsters-beyond-first-breach",
+      "broader-labyrinth-and-four-realm-bestiary"
+    ]
+  },
+  "rigProgram": {
+    "schemaVersion": 1,
+    "ownerDecisionDate": "2026-08-20",
+    "status": "phase-1-contract-locked-human-heavy-bind-gate-in-progress",
+    "newPaidGenerationAllowed": false,
+    "runtimePromotionAllowedUntilDeformationProofPasses": false,
+    "principles": [
+      "bind-each-distinct-mesh-topology-once",
+      "reuse-one-versioned-animation-library-per-compatible-skeleton-family",
+      "transfer-weights-only-between-proven-topology-compatible-meshes",
+      "add-corrective-weights-for-extreme-proportions-before-runtime-promotion",
+      "attach-rigid-hair-armor-and-weapons-to-existing-bones-or-sockets-without-rerigging-the-body"
+    ],
+    "skeletonFamilies": {
+      "canonical-humanoid": {
+        "target": "canonical-65-bone-runtime-rig",
+        "currentSourceManifest": "./body-anchor-intake.json",
+        "currentDistinctSourceMeshes": 12,
+        "bodyProfiles": ["slim", "athletic", "heavy"],
+        "ancestries": ["human", "elf", "dwarf", "halfling"],
+        "presentations": ["masculine", "feminine"],
+        "firstBindProof": "body-human-masculine-heavy-v001",
+        "firstBindMethod": "mixamo-auto-rig-then-local-retarget-or-direct-pack-compatibility-test",
+        "requiredCorrectiveRegions": [
+          "shoulders",
+          "armpits",
+          "elbows",
+          "wrists-and-fingers",
+          "hips-and-groin",
+          "knees",
+          "ankles"
+        ],
+        "extremeProfileOverrides": {
+          "heavy": ["shoulder-volume", "upper-arm-torso-clearance", "abdomen-hip-fold", "thigh-groin-separation"],
+          "dwarf": ["short-limb-elbow-plane", "broad-shoulder-twist", "hip-knee-compression"],
+          "halfling": ["short-limb-retarget-profile", "knee-and-ankle-bend-plane", "hand-and-foot-scale"]
+        }
+      },
+      "breachling-family": {
+        "target": "breachling-family-rig-v1",
+        "sharedBy": ["breachling", "breachling-stalker", "oathbound-breachling", "breachling-ravager"],
+        "requiredAnatomy": [
+          "permanent-low-hunched-spine",
+          "long-weight-bearing-arms",
+          "four-finger-hands",
+          "short-digitigrade-legs",
+          "jaw-open-close-and-snarl-controls",
+          "versioned-muscular-tail-chain"
+        ],
+        "availableThreeDimensionalSources": ["breachling", "breachling-stalker"],
+        "sourceViewSetsAwaitingLocalTopologyVariants": ["oathbound-breachling", "breachling-ravager"],
+        "motionReuse": "one-locomotion-combat-and-defeat-library-shared-across-all-four-tier-meshes"
+      },
+      "cinderbound-warden": {
+        "target": "warden-rigid-rig-v1",
+        "existingProof": "sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+        "existingProofBoneCount": 17,
+        "weightPolicy": "rigid-component-assignment-with-no-soft-stone-deformation",
+        "requiredMechanisms": [
+          "weighted-piston-locomotion",
+          "rotating-shoulder-rings",
+          "opening-rib-cage",
+          "soul-tax-left-palm",
+          "integrated-right-claw-blade",
+          "core-shutdown"
+        ]
+      },
+      "training-effigy-sentinel": {
+        "target": "sentinel-rigid-rig-v1",
+        "weightPolicy": "rigid-hinge-component-assignment",
+        "reuseDecisionGate": "reuse-a-reduced-warden-hierarchy-only-if-pivot-axis-and-component-segmentation-tests-pass",
+        "fallback": "create-a-separate-simpler-rigid-hierarchy"
+      }
+    },
+    "promotionGates": [
+      "skeleton-and-bone-map-validation",
+      "close-deformation-review-at-shoulders-elbows-wrists-fingers-hips-and-knees",
+      "normal-speed-locomotion-and-combat-review",
+      "root-grounding-and-foot-contact-thresholds",
+      "equipment-socket-and-hair-clipping-review",
+      "gameplay-camera-and-small-viewport-readability",
+      "tests-typecheck-build-and-browser-smoke"
+    ]
+  },
+  "characterCreationProgram": {
+    "schemaVersion": 1,
+    "ownerDecisionDate": "2026-08-20",
+    "status": "complete-character-creator-required-after-rig-dependency-gate",
+    "sharedAssetIdentityRequiredAcross": [
+      "character-creation-preview",
+      "world-actor",
+      "paper-doll",
+      "saved-profile",
+      "local-runtime-headshot"
+    ],
+    "independentSelections": {
+      "ancestry": ["human", "elf", "dwarf", "halfling"],
+      "presentation": ["masculine", "feminine"],
+      "bodyProfile": ["slim", "athletic", "heavy"],
+      "facialFeatureFamily": [
+        "african-diaspora-black",
+        "east-asian",
+        "south-asian-indian",
+        "european"
+      ],
+      "skinToneMinimum": ["deep", "dark", "medium-deep", "medium", "tan-olive", "light-pale"],
+      "hairSourceStyles": [
+        "feminine-bob",
+        "feminine-braided-crown",
+        "feminine-high-ponytail",
+        "feminine-long-wavy",
+        "feminine-pixie",
+        "feminine-twin-braids",
+        "masculine-cropped",
+        "masculine-curly",
+        "masculine-shoulder-length",
+        "masculine-swept",
+        "masculine-topknot",
+        "masculine-warrior-braid"
+      ],
+      "meshlessHairOptions": ["shaved", "bald"],
+      "hairColorMaterialFamilies": [
+        "soft-black",
+        "blue-black",
+        "dark-brown",
+        "medium-brown",
+        "light-brown",
+        "auburn",
+        "copper-red",
+        "dark-blonde",
+        "light-blonde",
+        "grey",
+        "silver-white"
+      ],
+      "modularDetails": [
+        "brows",
+        "facial-hair",
+        "sideburns",
+        "scars",
+        "tattoos-and-paint",
+        "nose-rings-and-studs",
+        "earrings"
+      ]
+    },
+    "headContract": {
+      "canonical": "head-seam-v1",
+      "method": "local-compatible-topology-conform-and-deformation-profiles",
+      "newSkeletonPerFaceProhibited": true,
+      "duplicatedFullBodyPerFaceProhibited": true,
+      "requiredSharedControls": [
+        "blink-and-squint",
+        "eye-direction",
+        "brow-raise-lower-and-asymmetry",
+        "jaw-open-close",
+        "cheek-and-lip-deformation",
+        "compact-speech-visemes",
+        "restrained-expression-presets"
+      ],
+      "ancestryMarkersRemainIndependent": true,
+      "namedNpcProofActors": ["ilyra", "orren", "brannoc"]
+    },
+    "hairPolicy": {
+      "sourceMeshCount": 12,
+      "colorImplementedAsMaterialSelection": true,
+      "duplicateGeometryPerColorProhibited": true,
+      "crossPresentationWhenFitQaPasses": true,
+      "helmetPolicy": "hide-or-authored-tucked-variant",
+      "fitGates": [
+        "scalp-coverage",
+        "ear-clearance",
+        "shoulder-and-collar-motion",
+        "weapon-clearance",
+        "smallest-viewport-readability"
+      ]
+    },
+    "starterPresentation": {
+      "clothing": "one-shared-worn-c-tier-family-with-calling-material-trim-and-stitching-variants",
+      "weaponAssemblies": 9,
+      "higherLevelArmorAndWeaponsProhibited": true,
+      "fusedBodyEquipmentProhibited": true
+    }
+  },
+  "creditPolicy": {
+    "approval": "local-only-technicalization-no-new-provider-spend",
+    "batchApprovalImplied": false,
+    "currentPaidGenerationApproved": false,
+    "paidGenerationPaused": true,
+    "lastVerifiedBalance": 89,
+    "balanceContext": "personal",
+    "stopOnUnexpectedCost": true,
+    "notifyWhenCreditBalanceBelow": null,
+    "creditFloorRemovedByOwner": true,
+    "excludedOperations": [
+      "text-to-3d",
+      "image-to-3d",
+      "provider-remesh",
+      "paid-rigging",
+      "paid-animation"
+    ],
+    "completedPaidPilot": "human-athletic-text-versus-multi-view-comparison",
+    "completedImageTo3dException": "twelve-preserved-body-anchors-in-body-anchor-intake-manifest",
+    "latestPaidSourceTask": {
+      "assetId": "npc-brannoc-image-first-v001",
+      "taskId": "74ff6706-6833-451d-b542-4c2e75ab007c",
+      "credits": 40,
+      "creditBalanceAfterTask": 609,
+      "outcome": "completed-single-image-prism-source-front-and-rear-anomaly-gates-passed"
+    },
+    "currentCandidate": "named-tutorial-npc-source-set-and-prism-cinderbound-warden",
+    "nextPaidPilot": null
+  },
+  "sourceGenerationTasks": [
+    {
+      "assetId": "creature-breachling-base-v001",
+      "operation": "text-to-3d",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "materialType": "shaded",
+      "expectedCredits": 40,
+      "maximumCredits": 40,
+      "prompt": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall with a wiry hunched torso, long forearms ending in four clawed fingers, short digitigrade legs, broad stable feet, a narrow angular skull, swept-back ear fins, deep-set amber eyes, ash-gray skin with muted teal fissure mottling, and small bony shoulder and spine ridges. Neutral symmetrical A-pose, arms clear of torso, hands open, feet flat, clean silhouette suitable for rigging. No clothing, armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature.",
+      "promptSha256": "640AF9D6DB5969C7EC6E0F0910FFD5D181E0968E044CE0E7F81169EA89E55394",
+      "status": "generated-cloud-source-awaiting-owner-review-and-untouched-export",
+      "taskId": "82459e9b-e63b-4be1-a3be-cad264fedc44",
+      "actualCredits": 40,
+      "creditBalanceBeforeTask": 2472,
+      "creditBalanceAfterTask": 2432,
+      "creditBalanceAfterTaskVerification": "calculated-from-last-verified-balance-minus-live-charge-not-live-reverified",
+      "ownerReview": "approved-as-family-style-reference",
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": false,
+        "styleFinding": "strong-original-labyrinth-creature-silhouette-readable-at-isometric-camera",
+        "poseFinding": "requested-neutral-a-pose-generated-combat-crouch",
+        "decision": "retain-as-design-source-not-yet-a-rig-candidate"
+      },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-cinderbound-warden-v001",
+      "operation": "text-to-3d",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "materialType": "shaded",
+      "expectedCredits": 40,
+      "maximumCredits": 40,
+      "prompt": "Original SoulDrifter Cinderbound Warden, the unique First Breach dungeon boss. Grounded realistic-fantasy style for a polished classic isometric action RPG. One towering seven-foot labyrinth jailer formed from interlocking charred basalt plates over a dim ember core, with a broad triangular shoulder silhouette, narrow waist, long powerful arms, heavy four-clawed hands, furnace-like rib cage, restrained orange cinder fissures, oxidized bronze binding bands, and a faceless iron mask with one vertical amber eye slit. The right forearm ends in a broad obsidian sweep-blade grown from the arm; the left palm bears a circular soul-tax seal. Neutral stable A-pose, limbs clear, feet planted, clean riggable silhouette. No Paladin, human knight, separate weapon, sword, shield, cape, wings, horns, skulls, gore, bright magic aura, particles, scenery, pedestal, text, duplicate, collage, or turntable. One complete isolated creature.",
+      "promptSha256": "6E4FCE9519340D9DEA584F04B84D441B056D3EB7753983AC23AA537EEC34C829",
+      "status": "generated-rejected-cloud-source",
+      "taskId": "7260c2d1-6e50-4078-a667-535ffc4ab5f5",
+      "actualCredits": 40,
+      "creditBalanceBeforeTask": 2432,
+      "creditBalanceAfterTask": 2392,
+      "creditBalanceAfterTaskVerification": "calculated-from-last-verified-balance-minus-live-charges-not-live-reverified",
+      "ownerReview": "rejected",
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": false,
+        "failureFinding": "drifted-to-conventional-armored-human-with-pedestal-and-separate-swords",
+        "decision": "reject-and-replace-through-chatgpt-image-first-workflow"
+      },
+      "designContract": {
+        "family": "unique-cinderbound-mechanical-golem-boss",
+        "biology": "none",
+        "construction": "articulated-charred-basalt-and-oxidized-bronze-plates-around-an-ember-core",
+        "silhouette": "towering-broad-triangular-shoulders-narrow-waist-heavy-articulated-arms",
+        "face": "faceless-iron-mask-with-one-vertical-amber-sensor-slit",
+        "weaponLogic": "integrated-right-forearm-obsidian-sweep-blade-not-a-separate-sword",
+        "rig": "purpose-built-mechanical-hierarchy-with-rigid-plate-joints-not-humanoid-skin-deformation",
+        "forbiddenRead": [
+          "armored-human",
+          "paladin",
+          "biological-breachling",
+          "separate-handheld-swords"
+        ]
+      },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-base-image-first-v001",
+      "operation": "image-to-3d-multi-view-four-image-poc",
+      "provider": "3d-ai-studio",
+      "model": "meshy-7-multi-image",
+      "textureQuality": "standard",
+      "meshQuality": "standard",
+      "topologySetting": "quad",
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-base-chatgpt-a-pose-v3-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1727534,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "724B76297565E738189C29C9920C1473DFB88D46DAF349FD75E81FEE192A51CE",
+          "generationPromptSha256": "F66F00A06B98B8F4E85E77D8DED9195C737B85DC4F60537F11671345D5C8A944",
+          "finalEditPromptSha256": "4FBB83BC367B54209367C391868CDA88BBE2A8810F86304DE07E030C420675DC"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-base-chatgpt-left-v2-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1738308,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "187F42386728C2D0094C9A0EC46720806A991E8C09E4E047A883C3A11AAD3BC1",
+          "generationPromptSha256": "F6781CD6BD4C83383522172FA4C059AFCE715CDCB37F3A3E84AD7238C41875DC"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-base-chatgpt-rear-v2-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1844187,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "A94BCE4A190376EE2A958978EFD5D1364E06ED9A396149A83A82CDCAD864B6CA",
+          "generationPromptSha256": "83740A02C908077828314AC78EC56D28887038C7A1792A1F6B8F6495EFA9BABD"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-base-chatgpt-right-v2-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1744432,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "866A42FC25F41A4B07768786AB1BCB6A20C1B590A020EBC8C7134F72563E137F",
+          "generationPromptSha256": "09E6BC74038DEFC8F4258FEE8186F63F3F233A507887751D2B173510EC1A83BF"
+        }
+      ],
+      "viewContract": {
+        "mode": "four-clean-separate-identity-matched-files",
+        "coverage": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "rearPurpose": "lock-spine-plates-shoulder-ridges-scapulae-pelvis-and-digitigrade-achilles-instead-of-provider-inference",
+        "rearGate": "camera-anatomy-cues-pass-but-full-set-fails-the-permanent-hunched-body-identity",
+        "sideGate": "rejected-left-v2-and-right-v2-were-exact-profiles-but-upright-dragonkin-like-humanoids",
+        "sourceSetDecision": "rejected-before-provider-submission",
+        "compositeSheetAllowed": false
+      },
+      "supersededSourceImages": [
+        {
+          "file": "sd-creature-breachling-base-chatgpt-a-pose-v1-source.png",
+          "sha256": "343CFDD3DF4902655673C06D6B8B52C3E0CFAEA362670C8AED2D427F9D542028",
+          "reason": "mouth-read-too-small-closed-and-human"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-a-pose-v2-source.png",
+          "sha256": "447F4FA51DD49DC8EAA5A097D0247F2462EE0A4A639231FD38FF698CD39C28D4",
+          "reason": "predatory-jaw-still-not-large-or-threatening-enough"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-left-v1-source.png",
+          "sha256": "AF40B81BCD21FBA3B832A3323FDE1E2D2873C9C31F0DBCD3EE55CE66198B208D",
+          "reason": "three-quarter-front-view-exposed-front-chest-palm-and-toe-top-cues"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-rear-v1-source.png",
+          "sha256": "50ABC07414B545277E0C2E5BC66A83DFCFCD53A9AA1A3F3CE35D2BA3A1A9AAE6",
+          "reason": "rear-torso-passed-but-hands-were-ambiguous-and-front-toe-claws-were-visible"
+        },
+        {
+          "file": "sd-creature-breachling-base-chatgpt-right-v1-source.png",
+          "sha256": "837748C86E1A9D70F273F2BE5D93092C649A4E7C13A438500132C0261F201E16",
+          "reason": "three-quarter-front-view-exposed-front-chest-palm-and-toe-top-cues"
+        }
+      ],
+      "designContract": {
+        "family": "breachling-hunched-predator",
+        "sharedRigAcrossTiers": true,
+        "sourcePose": "neutral-symmetrical-custom-rig-stance-that-preserves-the-permanent-low-stalking-crouch",
+        "anatomy": "compact-four-foot-predator-with-spine-hinged-forward-about-forty-degrees-rounded-upper-back-shoulders-ahead-of-rear-set-pelvis-low-forward-head-long-near-ground-four-fingered-forearms-short-bent-digitigrade-legs-low-hocks-achilles-and-broad-heel-pads",
+        "forbiddenBodyRead": [
+          "upright-humanoid",
+          "dragonkin",
+          "dragonborn",
+          "heroic-biped",
+          "player-character-body-with-monster-head"
+        ],
+        "mouth": "huge-broad-non-human-hinged-predator-maw-with-deep-cavity-layered-teeth-and-visible-tongue",
+        "requiredFacialControls": [
+          "jaw-open",
+          "jaw-close",
+          "snarl"
+        ],
+        "requiredActionCoverage": [
+          "spawn-awaken",
+          "idle",
+          "locomotion",
+          "turn",
+          "telegraph",
+          "normal-attack",
+          "variant-attack",
+          "hit",
+          "stagger",
+          "death-defeat",
+          "terminal-hold"
+        ],
+        "tierRenderPolicy": "each-tier-receives-owner-reviewed-chatgpt-render-but-retains-the-shared-anatomy-and-rig",
+        "tierVariants": {
+          "base": "pale-ash-grey-level-one-with-small-ridges",
+          "stalker": "deep-rust-red-dark-crimson-leaner-with-longer-swept-ridges-and-a-long-muscular-counterbalance-tail",
+          "oathbound": "deep-moss-verdigris-green-with-ochre-accents-thicker-overlapping-grown-keratin-scutes-and-heavier-chest-and-forearms",
+          "ravager": "blackened-cinder-obsidian-with-ember-red-accents-and-the-densest-grown-osteoderms-enlarged-horns-spikes-bone-ridges-and-claws"
+        },
+        "beastTailContract": {
+          "ownerDecisionDate": "2026-08-18",
+          "requiredAcrossFamily": true,
+          "appliesTo": [
+            "breachling-base",
+            "breachling-stalker",
+            "oathbound-breachling",
+            "breachling-ravager"
+          ],
+          "anatomy": "one-functional-muscular-counterbalance-tail-continuous-with-the-sacrum-thick-at-the-root-smoothly-tapered-and-never-fused-to-a-leg",
+          "sharedRigRequirement": "one-tail-enabled-breachling-family-rig-with-a-versioned-tail-chain-used-by-every-tier",
+          "historicalPocDisposition": "task-7ad8a98c-remains-the-owner-selected-source-construction-poc-but-its-tailless-anatomy-is-not-the-final-production-family-body"
+        },
+        "tierArmorContract": {
+          "construction": "grown-biological-dermal-plating-emerging-from-the-hide",
+          "allowed": [
+            "keratin-scutes",
+            "osteoderms",
+            "mineralized-bone-shell",
+            "volcanic-dermal-plates"
+          ],
+          "manufacturedOrWornArmorAllowed": false,
+          "forbidden": [
+            "metal-plates",
+            "straps",
+            "buckles",
+            "rivets",
+            "leather-garments",
+            "knight-or-soldier-read"
+          ]
+        }
+      },
+      "status": "custom-four-view-meshy-poc-owner-preferred-workflow-proof-superseded-for-production-by-beast-tail-rule",
+      "taskId": "7ad8a98c-8984-4091-a71c-ed053295e156",
+      "actualCredits": 45,
+      "ownerReview": "custom-four-view-meshy-poc-preferred-over-auto-sheet-same-engine-comparison",
+      "canonicalPromptPolicy": {
+        "fullIdentityBlockRequiredVerbatimForEveryView": true,
+        "shorthandOrReferenceOnlyPromptAllowed": false,
+        "onlyCameraSuffixMayChange": true,
+        "canonicalIdentityBlock": "Original SoulDrifter Level 1 Breachling base creature, a labyrinth-born scavenger shaped by leaking realm energies. Grounded realistic-fantasy style for a polished classic isometric action RPG. One compact predatory creature about four feet tall. It is not an upright humanoid, Dragonkin, Dragonborn, heroic biped, or player-character body with a monster head. Its permanent resting anatomy is a low stalking hunch: the wiry torso and spine hinge forward about forty degrees from the rear-set pelvis; the upper back forms a pronounced rounded predatory arch; the shoulder girdle sits clearly forward of and slightly higher than the hips; the neck projects forward; the large head hangs low and well ahead of the chest. It has disproportionately long weight-bearing-looking forearms ending in exactly four clawed fingers, with fingertips hanging below the knees and nearly reaching the ground; noticeably short powerful bent digitigrade legs; low hocks and Achilles; broad stable heel pads and feet; a narrow angular skull; swept-back ear fins; deep-set amber eyes; ash-gray scaled skin with muted teal fissure mottling; small bony shoulder and spine ridges; and a huge broad non-human hinged predator maw with a deep cavity, multiple layers of long irregular teeth, and a visible tongue. The source uses a neutral symmetric custom-rig stance while preserving the permanent crouch, with separated limbs, open hands off the floor, planted feet, and visible joints. No clothing, manufactured armor, weapon, horns, wings, tail, gore, magic glow, particles, pedestal, scenery, text, duplicate, second pose, collage, or turntable. One complete isolated creature."
+      },
+      "tailPolicyOverride": {
+        "date": "2026-08-18",
+        "decision": "all-breachling-beast-tiers-require-one-functional-tail",
+        "supersedesHistoricalPromptTrait": "no-tail",
+        "productionEffect": "do-not-retopologize-or-rig-the-tailless-poc-as-the-final-family-body"
+      },
+      "replacementSourceSet": {
+        "status": "canonical-four-view-v5-safe-rear-owner-approved-and-meshy-converted",
+        "submissionAllowed": true,
+        "ownerReview": "approved",
+        "sourceImages": [
+          {
+            "view": "front",
+            "file": "sd-creature-breachling-base-chatgpt-front-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1810157,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "3E1CF0CFBE43AA1222DCD857243E3E71C9A0B249515AF04A6B49C568B4D2C720",
+            "generationPromptSha256": "92EEA8C259759586B1544EE0E65CE02BF9FFA7A1AE2947E04CF023A3A7FCA7EF",
+            "promptParity": "full-canonical-identity-block-plus-front-camera-suffix",
+            "anomalyGate": "passed-single-subject-symmetric-low-hunch-four-fingered-hands-and-no-duplicate-anatomy"
+          },
+          {
+            "view": "left",
+            "file": "sd-creature-breachling-base-chatgpt-left-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1821273,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "2683727F0DA3ADAF6548F5001C79478083790DF4E8F71B98A39D4982615E4637",
+            "generationPromptSha256": "021C623B5A888B9FF141FDA82899D1714DD2C24789297161D4B56DD15C540D4E",
+            "promptParity": "full-canonical-identity-block-plus-left-camera-suffix",
+            "anomalyGate": "passed-exact-left-profile-low-hunch-single-eye-and-no-opposite-cheek-or-palm-cues"
+          },
+          {
+            "view": "rear",
+            "file": "sd-creature-breachling-base-chatgpt-rear-v5-safe-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1873415,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "5E41BD54732E216529D91F1680AF5BBB2C2FAA7846E9658821815CB84DC2F3F3",
+            "promptHashCaptureStatus": "exact-final-edit-prompt-hash-not-captured-at-generation-blocks-canonical-production-promotion-until-resolved",
+            "promptParity": "full-canonical-identity-block-plus-rear-camera-suffix-and-neutral-fused-reptilian-pelvic-carapace-safety-correction",
+            "anomalyGate": "passed-true-rear-neutral-fused-pelvic-carapace-spine-scapulae-knee-backs-hocks-achilles-and-heel-pads-no-face-front-cues-or-anatomically-ambiguous-central-fold"
+          },
+          {
+            "view": "right",
+            "file": "sd-creature-breachling-base-chatgpt-right-v4-canonical-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1784823,
+            "width": 1254,
+            "height": 1254,
+            "sha256": "6A189F0C204DCDD6CE3C030BB6B997149E8DBEC653BE7655FF355C16D6D89BFB",
+            "generationPromptSha256": "7C53BFD4543BD0238F3EE0953D49948F2C7E6834B5C5578337D7FD837266209F",
+            "promptParity": "full-canonical-identity-block-plus-right-camera-suffix",
+            "anomalyGate": "passed-exact-right-profile-low-hunch-single-eye-and-no-opposite-cheek-or-palm-cues"
+          }
+        ],
+        "viewOrderForProvider": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "missingViews": []
+      },
+      "workflowComparison": {
+        "date": "2026-08-18",
+        "decision": "custom-four-view-meshy-wins-for-bespoke-monsters",
+        "ownerDecision": "ours-is-better-custom-four-view-meshy",
+        "prismCustomFourView": {
+          "status": "policy-rejected-and-auto-refunded",
+          "stableTaskIds": [
+            "1481daa5-3e18-4300-aa7d-737ee57b9c28",
+            "3f30f184-d016-4f73-ae29-c5908d61e135",
+            "11dffa1a-3fdb-49b5-bbb9-89bcd5a8f90e",
+            "c8df4f82-080a-4fa1-bd07-7dac95963787"
+          ],
+          "browserAttemptsWithoutStableTaskId": 2,
+          "correctedRearV5Retried": true,
+          "netCredits": 0,
+          "retryAllowed": false
+        },
+        "characterSheet": {
+          "taskId": "b3c21a78-3c79-442b-b383-ae3a7eb5bcd6-0",
+          "model": "gpt-image-2-medium",
+          "actualCredits": 6,
+          "status": "completed-and-mechanically-split-into-four-views",
+          "sourceSheetFile": "breachling-base-character-sheet-b3c21a78.jpeg",
+          "sourceSheetSha256": "EF12C1E03FDDD97784157869B59A4DE20B8C840AB7AF8071CFBAEC13F8253F06",
+          "decision": "fast-fallback-for-simpler-humanoid-or-npc-proof-not-bespoke-monster-default"
+        },
+        "characterSheetToPrism": {
+          "taskId": "1bea1354-38aa-45e1-a2b8-827d01ecdfb5",
+          "model": "prism-3.1-multi-view",
+          "actualCredits": 40,
+          "status": "completed-source-candidate-not-owner-selected",
+          "untouchedExportFile": "sd-creature-breachling-base-character-sheet-prism-task-1bea1354.glb",
+          "untouchedExportBytes": 42642648,
+          "untouchedExportSha256": "B86DC27CA90F4483F46F669694CF0FF7D3B1F7E977C2D9DF49DC9D000804E91D",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 760487,
+            "triangles": 1477224,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1, 0.9417218566, 0.7700154185]
+          }
+        },
+        "customFourViewToMeshy": {
+          "taskId": "7ad8a98c-8984-4091-a71c-ed053295e156",
+          "model": "meshy-7-multi-image",
+          "requestedTopology": "quad",
+          "actualCredits": 45,
+          "status": "completed-owner-preferred-source-candidate",
+          "untouchedExportFile": "sd-creature-breachling-base-custom-four-view-meshy-task-7ad8a98c.glb",
+          "untouchedExportBytes": 64256852,
+          "untouchedExportSha256": "2FE338B2F41C49784CB2EA05824E3AE27D5497F3695C03541F63CF0D429A3D0A",
+          "ownerPreferred": true,
+          "visualDecision": "best-preserves-lean-trunk-long-forearms-low-crouch-and-predator-threat-read",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 1046575,
+            "triangles": 1997824,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1.1903689504, 1.4572690129, 1.9004309773]
+          }
+        },
+        "characterSheetToMeshy": {
+          "taskId": "d16c2f59-1213-4339-8741-14ecdc3e01f3",
+          "model": "meshy-7-multi-image",
+          "requestedTopology": "quad",
+          "actualCredits": 45,
+          "status": "completed-same-engine-comparison-not-owner-selected",
+          "untouchedExportFile": "sd-creature-breachling-base-character-sheet-meshy-task-d16c2f59.glb",
+          "untouchedExportBytes": 63716704,
+          "untouchedExportSha256": "D12B8370B004F017B9749E7E59CC8E8B039AA61FB8785F9A4FFEC46041C85610",
+          "ownerPreferred": false,
+          "visualDecision": "bulkier-trunk-and-hips-shorter-rounder-silhouette-softened-bespoke-predator-proportions",
+          "meshInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "vertices": 1038247,
+            "triangles": 1999524,
+            "skins": 0,
+            "animations": 0,
+            "materials": 1,
+            "boundsSize": [1.4276419878, 1.7501109838, 1.9010099769]
+          }
+        },
+        "runtimeGate": "all-three-poc-glbs-are-high-poly-single-mesh-unrigged-and-not-runtime-ready-retopology-bake-rig-and-animation-proof-still-required"
+      },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-base-tailed-image-first-v002",
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "meshy-7-multi-image",
+      "studioProject": "SoulDrifter",
+      "studioProjectId": 310153,
+      "textureQuality": "standard",
+      "topologySetting": "quad",
+      "texturesEnabled": true,
+      "pbrEnabled": true,
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "2897ca72-80fa-4872-ae65-98a088a7d63c",
+      "creditReceipt": {
+        "balanceBeforeSubmission": 1424,
+        "postCompletionObservedBalance": 819,
+        "postCompletionBalanceAttributableToThisTaskAlone": false,
+        "concurrentPaidTasksObservedFromParallelLevelAssetWork": true,
+        "hardFloor": 800,
+        "paidGenerationBlockedAfterThisTask": true
+      },
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-base-chatgpt-front-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1913280,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "55FDAD175A6F137F45FB2CA016DED6D02826ED4B891E439C5594399AD9869D49",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-front-camera-suffix",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-single-subject-symmetric-low-hunch-one-head-two-arms-two-legs-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-base-chatgpt-left-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1683811,
+          "width": 1278,
+          "height": 1231,
+          "sha256": "81D8C0B5772E5338456DA8330827DD26299D29754CF229F98D0ED2C2DA5EEB24",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-left-camera-suffix",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-left-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-left-profile-single-eye-low-crouch-clean-tail-root-and-taper-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-base-chatgpt-rear-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1842662,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "A317BAFD4F2DC71B284F63350969745ECEE2791E5410B0D4B9C0FAE35CF945FA",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-true-rear-camera-suffix",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+          "anomalyGate": "passed-true-rear-no-face-front-core-palms-kneecaps-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-base-chatgpt-right-v6-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1851121,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "4D9DC0C6260675A608ADECDD6F838A9C15E042EEEFA7CC853A212338D8D7E28F",
+          "promptParity": "full-canonical-identity-anatomy-material-and-forbidden-trait-block-plus-right-camera-suffix",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-right-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-right-profile-single-eye-low-crouch-clean-tail-root-and-taper-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedVerbatimInEveryView": true,
+        "onlyCameraSuffixChangedBetweenViews": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "level-one-base-breachling",
+        "palette": "pale-ash-grey-scaled-hide-with-restrained-muted-teal-fissure-mottling-charcoal-ridge-tips-and-amber-eyes",
+        "tail": "one-long-muscular-counterbalance-tail-continuous-with-the-sacrum-and-diminishing-dorsal-ridge",
+        "silhouette": "permanent-low-hunched-predator-with-long-forearms-folded-digitigrade-hind-legs-and-elongated-snarling-skull"
+      },
+      "untouchedExport": {
+        "file": "sd-creature-breachling-base-meshy7-multiview-ash-tail-source.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 52772424,
+        "sha256": "797419CC9E3D19575DD3A55F91A0CD199427CC3F9AA27E6DC59659AA2809FCD9"
+      },
+      "meshInspection": {
+        "nodes": 1,
+        "meshes": 1,
+        "primitives": 1,
+        "vertices": 859345,
+        "triangles": 1648748,
+        "skins": 0,
+        "animations": 0,
+        "morphTargets": 0,
+        "materials": 1,
+        "textures": 3,
+        "pbrTextureSlots": [
+          "base-color",
+          "metallic-roughness",
+          "normal"
+        ],
+        "boundsSize": [
+          0.7138429880142212,
+          0.8865230083465576,
+          1.9015780091285706
+        ]
+      },
+      "visualInspection": {
+        "renderedViews": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "passed": true,
+        "findings": [
+          "one-head-one-tail-two-arms-two-legs",
+          "tail-is-continuous-at-the-sacrum-cleanly-tapered-and-readable-from-both-profiles",
+          "no-mirrored-front-or-second-head-on-the-rear",
+          "permanent-low-hunting-posture-and-long-forearm-silhouette-preserved",
+          "jaw-teeth-claws-dorsal-ridge-and-pale-ash-material-remain-readable"
+        ],
+        "renderFiles": [
+          "sd-creature-breachling-base-meshy7-ash-tail-render-front.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-left.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-rear.png",
+          "sd-creature-breachling-base-meshy7-ash-tail-render-right.png"
+        ]
+      },
+      "status": "generated-provisional-production-source-candidate-owner-final-review-pending-retopology-and-rig",
+      "ownerReview": "four-angle-source-and-glb-inspection-passed-owner-final-glb-review-pending",
+      "supersedesForProduction": "creature-breachling-base-image-first-v001",
+      "preservesHistoricalPoc": true,
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-stalker-image-first-v001",
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "meshy-7-multi-image",
+      "studioProject": "SoulDrifter",
+      "studioProjectId": 310153,
+      "textureQuality": "standard",
+      "topologySetting": "quad",
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "4f473756-9660-48d1-a6f7-14d6de55524a",
+      "creditBalanceBeforeTask": 1469,
+      "creditBalanceAfterTask": 1424,
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-stalker-chatgpt-front-v4-rust-tail-occluded-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1904964,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "DA95DDC504E48C47210855D713FB3B0C4813B9B37A0C9B5723054337E4FC1EC9",
+          "finalEditPromptNormalizedLfSha256": "1A15CC98B85DA4BD93654AF930D8153D0B46AB83B518C2C4EF25D948FE8CBDEA",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-one-head-two-arms-two-legs-four-main-digits-low-crouch-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-stalker-chatgpt-left-v5-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1797409,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "CD298EB431A92154E582AEE9A2919BC46094DC5C1C619257A5AFC83C5349F983",
+          "finalEditPromptNormalizedLfSha256": "123BE10FC371F4A75F71F112ECFE25A973F162A862E99162B045C16E6F844726",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-left-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-left-profile-single-eye-low-crouch-clean-tail-taper-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-stalker-chatgpt-rear-v4-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2004837,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "73116E23ECB4CCA1F823140ED3D510B5E8BA21D8A810D02AEABB753A30CC27E3",
+          "generationPromptNormalizedLfSha256": "A4795CAC8C598001CBFA7B77865860F8B0BB29FE8D331ED6BE2724674479DE79",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-and-sweeping-image-left",
+          "anomalyGate": "passed-true-rear-no-face-front-core-palms-or-duplicate-head-and-neutral-armored-pelvic-carapace"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-stalker-chatgpt-right-v5-rust-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1772476,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "770B1A6492ABCF0369675817008A202A7656787F31E88C7AD0AE78191597E5E1",
+          "finalEditPromptNormalizedLfSha256": "52C77A7E9B46EB0EB8006A747EB6F9B0ADA3345828FB46D1D8D025A3AE18072C",
+          "tailEvidence": "one-long-tail-rooted-at-the-rear-pelvis-extending-image-right-and-separated-from-the-legs",
+          "anomalyGate": "passed-exact-right-profile-single-eye-low-crouch-clean-tail-taper-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "designOutcome": {
+        "tier": "second-breachling-tier-above-base-and-below-oathbound-and-ravager",
+        "palette": "deep-rust-red-dark-crimson-living-scales-with-burgundy-joints-near-black-horns-claws-and-ridge-tips-and-amber-eyes",
+        "tail": "long-muscular-counterbalance-tail-continuous-with-the-sacrum-and-dorsal-ridge",
+        "silhouette": "permanent-low-hunched-predator-with-long-forearms-folded-digitigrade-hind-legs-and-elongated-snarling-skull"
+      },
+      "promptLineage": {
+        "finalSourcePromptParityVerified": false,
+        "status": "structured-material-and-tail-edit-prompts-preserved-over-reviewed-structural-source-lineage-but-the-full-canonical-identity-block-was-not-repeated-verbatim-in-every-final-edit",
+        "productionDisposition": "retain-the-paid-output-as-a-provisional-source-candidate-and-require-explicit-owner-grandfathering-or-a-later-concrete-visual-or-technical-rebuild-decision-before-production-promotion",
+        "automaticRegenerationAllowed": false
+      },
+      "untouchedExport": {
+        "file": "sd-creature-breachling-stalker-meshy7-multiview-rust-tail-source.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 60994784,
+        "sha256": "C167BDF8EF29BAB195B76656FED32FEC3909CF72353F3C8CB82A9E3EC19DC4E5"
+      },
+      "meshInspection": {
+        "nodes": 1,
+        "meshes": 1,
+        "primitives": 1,
+        "vertices": 1005742,
+        "triangles": 1905366,
+        "skins": 0,
+        "animations": 0,
+        "morphTargets": 0,
+        "materials": 1,
+        "textures": 3,
+        "pbrTextureSlots": [
+          "base-color",
+          "metallic-roughness",
+          "normal"
+        ],
+        "boundsSize": [
+          0.8789780139923096,
+          0.7974209785461426,
+          1.9032229781150818
+        ]
+      },
+      "visualInspection": {
+        "renderedViews": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "passed": true,
+        "findings": [
+          "one-head-one-tail-two-arms-two-legs",
+          "tail-is-continuous-at-the-sacrum-and-readable-from-both-profiles",
+          "no-mirrored-front-or-second-head-on-the-rear",
+          "single-low-hanging-head-remains-partially-visible-through-the-crouch-from-rear-and-is-not-duplicate-geometry",
+          "jaw-teeth-claws-dorsal-ridge-and-rust-red-material-remain-readable"
+        ],
+        "renderFiles": [
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-front.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-left.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-rear.png",
+          "sd-creature-breachling-stalker-meshy7-rust-tail-render-right.png"
+        ]
+      },
+      "status": "generated-provisional-source-candidate-owner-final-review-pending-retopology-and-rig",
+      "ownerReview": "owner-approved-the-silhouette-requested-the-tail-and-rust-red-distinction-final-glb-acceptance-still-pending",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-oathbound-breachling-image-first-v001",
+      "operation": "chatgpt-four-view-source-set-complete-awaiting-conversion",
+      "provider": "openai-imagegen",
+      "plannedConversionProvider": "3d-ai-studio",
+      "plannedConversionModel": "meshy-7-multi-image",
+      "plannedTextureQuality": "standard",
+      "expectedConversionCredits": 45,
+      "historicalDirectionSource": {
+        "file": "sd-creature-breachling-oathbound-chatgpt-front-v2-source.png",
+        "sha256": "2185E133A08F7FBB804CA072D7C54F3CC818CB623BCB2693871B397327387210",
+        "disposition": "visual-direction-liked-and-superseded-by-full-spec-tailed-four-view-v3-set"
+      },
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-oathbound-chatgpt-front-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1914544,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "74B990088E836F2A32CE129A4FCAE3E50016D763ED496ACCBC08108E129B1A1E",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-symmetric-low-hunch-one-head-two-arms-two-legs-four-total-digits-per-hand-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-oathbound-chatgpt-left-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1938091,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "48547804435FDC63FDA492DD6F756DFBE902234F59B82EEE6E2224402094DA58",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-left-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-left-profile-single-eye-low-crouch-clean-tail-root-grown-plates-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-oathbound-chatgpt-rear-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1883712,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "65C98BC39E7901EC8E30063BF805A6A94272E5F642C2E91084EE7872EBEBFBD8",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-sweeping-image-left-and-fully-in-frame",
+          "anomalyGate": "passed-true-rear-no-face-eyes-mouth-palms-front-chest-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-oathbound-chatgpt-right-v3-green-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1756494,
+          "width": 1402,
+          "height": 1122,
+          "sha256": "63FDE5D957795280C011AAF8B7914272EEAB83C5583122807F70258533FFAC3F",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-right-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-right-profile-single-eye-low-crouch-clean-tail-root-grown-plates-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedInEveryView": true,
+        "cameraAndOutputSuffixChangedPerView": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "third-breachling-tier-above-stalker-and-below-ravager",
+        "palette": "deep-moss-and-oxidized-verdigris-green-with-ochre-mineral-accents-near-black-ridge-and-claw-tips-and-amber-eyes",
+        "grownArmor": "thick-overlapping-keratin-scutes-and-mineralized-osteoderms-emerging-seamlessly-from-hide",
+        "silhouette": "heavier-chest-and-forearms-on-the-shared-low-hunched-tail-enabled-breachling-body"
+      },
+      "conversionCreditGate": {
+        "balanceObserved": 819,
+        "hardFloor": 800,
+        "plannedTaskCredits": 45,
+        "submissionAllowed": false,
+        "reason": "planned-conversion-would-cross-the-owner-hard-credit-floor"
+      },
+      "status": "four-view-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+      "ownerReview": "historical-direction-liked-final-four-view-v3-set-pending-owner-review",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-breachling-ravager-image-first-v001",
+      "operation": "chatgpt-four-view-source-set-complete-awaiting-conversion",
+      "provider": "openai-imagegen",
+      "plannedConversionProvider": "3d-ai-studio",
+      "plannedConversionModel": "meshy-7-multi-image",
+      "plannedTextureQuality": "standard",
+      "expectedConversionCredits": 45,
+      "historicalDirectionSource": {
+        "file": "sd-creature-breachling-ravager-chatgpt-front-v2-source.png",
+        "sha256": "8876E9D09831A7B57091F5121B279FE5713F288920CBFDC2263B724FA336C527",
+        "disposition": "visual-direction-liked-and-superseded-by-full-spec-tailed-four-view-v3-set"
+      },
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-breachling-ravager-chatgpt-front-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1939203,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "A0D94206D460AEB2387127A48344C8CC0A38A63FAD9AC53A2883E886FD427655",
+          "tailEvidence": "single-tail-aligned-directly-behind-the-body-and-fully-occluded-with-no-ambiguous-central-protrusion",
+          "anomalyGate": "passed-symmetric-low-hunch-one-head-two-arms-two-legs-four-total-digits-per-hand-and-no-duplicate-anatomy"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-breachling-ravager-chatgpt-left-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2135795,
+          "width": 1536,
+          "height": 1024,
+          "sha256": "7ABF4F8FA0E5F2962DD3C06E83C23E4B39E9EC70C1D4438317082C0A4C3667EE",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-left-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-left-profile-single-eye-low-crouch-clean-tail-root-grown-spikes-and-no-opposite-cheek"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-breachling-ravager-chatgpt-rear-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1978591,
+          "width": 1254,
+          "height": 1254,
+          "sha256": "7AD6EC124C6B87BA35658A2F1D900472C283C03EA35D9F9346A143D6BB286011",
+          "tailEvidence": "one-tail-continuous-with-the-center-sacrum-thick-at-the-root-sweeping-image-left-and-fully-in-frame",
+          "anomalyGate": "passed-true-rear-no-face-eyes-mouth-palms-front-chest-or-duplicate-head-and-clean-tail-root"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-breachling-ravager-chatgpt-right-v3-cinder-tail-canonical-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1973140,
+          "width": 1536,
+          "height": 1024,
+          "sha256": "B5DE882D02DD4F6039DFD74761349AAADCCBE225280D8EC56907722292173F2B",
+          "tailEvidence": "one-tail-continuous-with-the-sacrum-extending-image-right-separated-from-both-legs-and-smoothly-tapered",
+          "anomalyGate": "passed-right-profile-single-eye-low-crouch-clean-tail-root-grown-spikes-and-no-opposite-cheek"
+        }
+      ],
+      "viewOrderForProvider": [
+        "front",
+        "left",
+        "rear",
+        "right"
+      ],
+      "promptLineage": {
+        "finalSourcePromptParityVerified": true,
+        "fullCanonicalIdentityBlockRepeatedInEveryView": true,
+        "cameraAndOutputSuffixChangedPerView": true,
+        "normalizedPromptHashCaptureStatus": "not-backfilled-after-continuation-compaction-source-hashes-and-parity-review-preserved"
+      },
+      "designOutcome": {
+        "tier": "highest-breachling-family-tier",
+        "palette": "blackened-cinder-charcoal-and-obsidian-with-non-emissive-deep-ember-red-mineral-fissure-accents-oxblood-joints-and-ember-orange-eyes",
+        "grownArmor": "densest-family-pattern-of-volcanic-osteoderms-keratin-scutes-bone-ridges-natural-horns-and-backward-swept-spikes",
+        "silhouette": "deep-chest-and-heavily-conditioned-forearms-on-the-shared-low-hunched-tail-enabled-breachling-body"
+      },
+      "conversionCreditGate": {
+        "balanceObserved": 819,
+        "hardFloor": 800,
+        "plannedTaskCredits": 45,
+        "submissionAllowed": false,
+        "reason": "planned-conversion-would-cross-the-owner-hard-credit-floor"
+      },
+      "status": "four-view-source-set-complete-owner-review-pending-conversion-blocked-by-credit-floor",
+      "ownerReview": "historical-direction-liked-final-four-view-v3-set-pending-owner-review",
+      "sharedRigWith": "future-tail-enabled-breachling-family-rig-v1",
+      "grownBiologicalArmorOnly": true,
+      "manufacturedOrWornArmorAllowed": false,
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "creature-cinderbound-warden-image-first-v001",
+      "operation": "image-to-3d-multi-view-four-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1-multi-view",
+      "textureQuality": "ultra",
+      "meshQuality": "standard",
+      "expectedCredits": 45,
+      "maximumCredits": 45,
+      "actualCredits": 45,
+      "taskId": "445fd16b-4006-4c18-a54a-fed2a63da955",
+      "creditBalanceBeforeTask": 2392,
+      "creditBalanceAfterTask": 2347,
+      "sourceImages": [
+        {
+          "view": "front",
+          "file": "sd-creature-cinderbound-warden-chatgpt-front-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2262640,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "C2141DA746480FA72BAC0A4F90A37518F7E1AF3E8D20411DE42EA1CF44B4F1BB",
+          "generationPromptSha256": "104F2FC5D24D1039A3D3B8B1F3D92FAC28D5ACF0C1D37A76CB24E9614C3262E5"
+        },
+        {
+          "view": "left",
+          "file": "sd-creature-cinderbound-warden-chatgpt-left-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1834969,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "5296331DA1F72363EC8E14FFBB53BD718B027658FFB817834444F75735BC9529",
+          "generationPromptSha256": "6624F77844D447878C6CC027471D06F80747C3419C6F915E9A046E160576DF67"
+        },
+        {
+          "view": "rear",
+          "file": "sd-creature-cinderbound-warden-chatgpt-rear-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 2192312,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "6FD872607B391926F87015A4A2E98A812D83D811BC74B4652C17F81B1C7D8F80",
+          "generationPromptSha256": "B4BAE1F25D8547BEE3E4234CC20965749065FB61A269E9D6FBEDF123D3E8BC47"
+        },
+        {
+          "view": "right",
+          "file": "sd-creature-cinderbound-warden-chatgpt-right-v1-source.png",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+          "bytes": 1812192,
+          "width": 1122,
+          "height": 1402,
+          "sha256": "8C8F9467AAA9A52D025C761DD71708D54187197B79B040791064FDE3608210EA",
+          "generationPromptSha256": "EE5012A1AF67392B5E314C55BD0B7CF63C9EEA1C77D8A71E19BF93C9D83F8664"
+        }
+      ],
+      "status": "rejected-original-prism-and-meshy-sources-preserved-corrected-prism-source-accepted-for-technicalization",
+      "ownerReview": "corrected-prism-v3-passes-owner-specified-red-eye-furnace-claw-arm-and-true-rear-contract",
+      "untouchedExport": {
+        "file": "sd-creature-cinderbound-warden-prism-multiview-task-445fd16b-untouched.glb",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+        "bytes": 43863688,
+        "sha256": "11848C1BBEA857AF13DDA0653B7185FCF63D6DF2AC547CB5046805FE424E3666"
+      },
+      "generationOutcome": {
+        "cloudSourceRetained": true,
+        "untouchedExportPreserved": true,
+        "productionCandidateAccepted": false,
+        "fatalFindings": [
+          "duplicate-two-head-silhouette",
+          "rear-reference-repeated-front-facing-anatomy",
+          "front-and-back-became-the-same-body-surface",
+          "core-read-flat-and-did-not-provide-a-live-flame-cavity"
+        ],
+        "rootCause": "rear-v1-contained-front-facing-palm-core-emblem-and-limb-cues-so-the-provider-synthesized-a-second-front",
+        "decision": "retain-for-provenance-only-and-rebuild-the-source-set-before-any-rerun"
+      },
+      "replacementSourceSet": {
+        "status": "corrected-prism-v3-multiview-source-accepted-for-technicalization",
+        "plannedConversionModel": "prism-3.1-multi-image",
+        "submissionAllowed": true,
+        "sourceImages": [
+          {
+            "view": "front",
+            "file": "sd-creature-cinderbound-warden-chatgpt-front-v3-red-eyes-furnace-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 2286989,
+            "width": 1402,
+            "height": 1402,
+            "sha256": "9131CD10BA794B3329FD89B25374C9540D5155DAF67826A1320DFBCE3FB046D6",
+            "generationPromptSha256": "not-captured-imagegen-edit-source-and-result-hash-preserved",
+            "anomalyGate": "passed-one-head-two-distinct-red-eyes-bright-open-furnace-cavity-correct-palm-and-integrated-claw-blade-asymmetry"
+          },
+          {
+            "view": "left",
+            "file": "sd-creature-cinderbound-warden-chatgpt-left-v3-true-profile-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1634342,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "CB1AF5F7482A007406F1DD5E05B531BC755A4C6A5476DC7F8799623ED797B955",
+            "promptParity": "complete-canonical-machine-identity-material-asymmetry-and-forbidden-trait-block-plus-left-profile-camera-gate",
+            "anomalyGate": "passed-exact-left-profile-front-furnace-hidden-to-edge-thickness-near-left-soul-tax-hand-and-far-right-blade-arm-separated"
+          },
+          {
+            "view": "rear",
+            "file": "sd-creature-cinderbound-warden-chatgpt-rear-v2-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 2208238,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "891A38967BDB1A988F7984DFA3E3A4DE406D47CE466BD280EAE7086903B50EFE",
+            "generationPromptSha256": "F00F6B7A05E022B3E35D216C516B27A845D9EA63F0F9CD38022CAFA1FDE20421",
+            "rearGate": "passed-no-face-sensor-slit-palms-chest-core-kneecaps-front-shins-or-toe-top-cues"
+          },
+          {
+            "view": "right",
+            "file": "sd-creature-cinderbound-warden-chatgpt-right-v3-true-profile-source.png",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/creature-sources",
+            "bytes": 1752826,
+            "width": 1122,
+            "height": 1402,
+            "sha256": "CB833B61F42839CD332EE27E9E1A5D5D04FE5A6097B7345B4AD62708525DFDC9",
+            "promptParity": "complete-canonical-machine-identity-material-asymmetry-and-forbidden-trait-block-plus-right-profile-camera-gate",
+            "anomalyGate": "passed-exact-right-profile-front-furnace-hidden-to-edge-thickness-near-right-integrated-blade-arm-and-far-left-hand-separated"
+          }
+        ],
+        "viewOrderForProvider": [
+          "front",
+          "left",
+          "rear",
+          "right"
+        ],
+        "missingViews": [],
+        "promptLineage": {
+          "fullCanonicalMachineIdentityBlockRepeatedForNewSideViews": true,
+          "sourceHashAndViewGateRecorded": true,
+          "exactNormalizedSidePromptHashesCaptured": false,
+          "automaticRegenerationAllowed": false
+        },
+        "asymmetryContract": {
+          "leftArm": "articulated-four-digit-hand-with-concentric-soul-tax-palm-mechanism",
+          "rightArm": "integrated-obsidian-sweep-blade-housing-with-compact-four-digit-maintenance-hand",
+          "bladeMirroringOrDuplicationAllowed": false,
+          "rearFrontDuplicationAllowed": false,
+          "headCount": 1,
+          "frontRedEyeCount": 2,
+          "rearEyeCount": 0
+        },
+        "conversionCreditGate": {
+          "balanceObserved": 819,
+          "hardFloor": 800,
+          "plannedTaskCredits": 45,
+          "hardFloorRemovedByOwner": true,
+          "submissionAllowed": true,
+          "balanceAfterTask": 774
+        },
+        "conversion": {
+          "provider": "3d-ai-studio",
+          "model": "meshy-7-multi-image",
+          "taskId": "ca97a8d6-2fc0-4c9a-8ed4-8cf7eb6d3764",
+          "projectId": 310153,
+          "actualCredits": 45,
+          "creditBalanceBeforeTask": 819,
+          "creditBalanceAfterTask": 774,
+          "topology": "quad",
+          "textureQuality": "2k",
+          "pbr": true,
+          "sourceUploadReferences": [
+            "upload:warden-corrected-front_4368878f13714974b331b8d0f1ad5e90.jpg",
+            "upload:warden-corrected-left_930d6b8adf40493d842ad4644ff331a9.jpg",
+            "upload:warden-corrected-rear_5a6c60a841d84241936db06b7d3f922d.jpg",
+            "upload:warden-corrected-right_9f2e34b6fbb24223a2769ffe0158f971.jpg"
+          ],
+          "untouchedExport": {
+            "file": "sd-creature-cinderbound-warden-meshy7-corrected-multiview-task-ca97a8d6-untouched.glb",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+            "bytes": 68660976,
+            "sha256": "13A4F16B158B2BE8A921D75AD0C0F89F3C41EED818FD9D323B23629BB44C5A5D"
+          },
+          "technicalInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "materials": 1,
+            "textures": 3,
+            "images": 3,
+            "triangles": 1985294,
+            "skins": 0,
+            "animations": 0,
+            "finding": "high-density-untouched-source-requires-later-retopology-mechanical-hierarchy-and-runtime-vfx"
+          },
+          "visualInspection": {
+            "passed": [
+              "one-head-and-one-front-mask",
+              "solid-rear-shell-with-no-second-front-or-core",
+              "left-soul-tax-palm-and-right-integrated-blade-remain-asymmetric",
+              "dark-open-caged-core-cavity-present-for-runtime-vfx",
+              "intact-hands-feet-and-load-bearing-silhouette",
+              "no-floating-duplicate-body"
+            ],
+            "deferred": [
+              "owner-final-interactive-review",
+              "retopology-and-part-segmentation",
+              "rigid-mechanical-rig",
+              "VFX_CoreFlame-runtime-effect",
+              "gameplay-camera-and-animation-proof"
+            ]
+          },
+          "status": "superseded-by-corrected-prism-v3-retained-for-provenance"
+        },
+        "supersedingConversion": {
+          "provider": "3d-ai-studio",
+          "model": "prism-3.1-multi-image",
+          "taskId": "b249e29c-7ead-45da-85f0-3f996eaf8f90",
+          "projectId": 310153,
+          "actualCredits": 45,
+          "creditBalanceBeforeTask": 694,
+          "creditBalanceAfterTask": 649,
+          "textureQuality": "detailed",
+          "pbr": true,
+          "faceLimit": 150000,
+          "sourceUploadReferences": [
+            "upload:warden-prism-front-v3_d9aece0213b8423981dc6114a179bcfd.jpg",
+            "upload:warden-prism-left-v3_d5f1492e01fb4ed69eb1688539cf826a.jpg",
+            "upload:warden-prism-rear-v2_c069a432f39b426a8b0f658f3674bbfd.jpg",
+            "upload:warden-prism-right-v3_77de187c11da4823b715b5b9303069e9.jpg"
+          ],
+          "untouchedExport": {
+            "file": "sd-creature-cinderbound-warden-prism-corrected-multiview-task-b249e29c-untouched.glb",
+            "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+            "bytes": 8002660,
+            "sha256": "165FDBAEC8176269BFB51FD0E7A21DA671459D635748A0147EBB554495626C6C"
+          },
+          "technicalInspection": {
+            "nodes": 1,
+            "meshes": 1,
+            "primitives": 1,
+            "materials": 1,
+            "textures": 3,
+            "images": 3,
+            "triangles": 144490,
+            "skins": 0,
+            "animations": 0,
+            "finding": "accepted-untouched-source-requires-rigid-part-segmentation-retopology-emissive-materials-and-runtime-vfx"
+          },
+          "visualInspection": {
+            "passed": [
+              "one-head-with-two-distinct-red-glowing-eyes",
+              "bright-ember-furnace-inside-open-ribbed-chest-cage",
+              "oversized-integrated-curved-claw-blade-and-separate-soul-tax-palm",
+              "true-armored-rear-with-no-face-or-duplicate-furnace",
+              "intact-hands-feet-and-load-bearing-mechanical-silhouette",
+              "no-floating-or-duplicate-body-geometry"
+            ],
+            "deferred": [
+              "retopology-and-rigid-part-segmentation",
+              "rigid-mechanical-rig",
+              "emissive-red-eye-material-and-VFX_CoreFlame-runtime-effect",
+              "gameplay-camera-and-animation-proof"
+            ]
+          },
+          "offlineTechnicalizationPilot": {
+            "blenderVersion": "4.5.12 LTS",
+            "sourceSha256Verified": true,
+            "sourceTopology": {
+              "connectedComponents": 294,
+              "largestComponentPolygonShare": 0.031511
+            },
+            "rig": {
+              "boneCount": 17,
+              "deformBoneCount": 16,
+              "assignedComponents": 294,
+              "skinCount": 1,
+              "proofAnimation": "Warden_RigidProof",
+              "proofFrameRange": [
+                1,
+                30
+              ]
+            },
+            "lod0": {
+              "file": "sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+              "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/technicalized-pilots/warden-rigid-v006-emissive",
+              "bytes": 6774664,
+              "sha256": "57A73C1CBB8887F67679F6F962FDB1124378A20A42EBBC47957687F80294C836",
+              "triangles": 80399,
+              "targetHeightMeters": 2.13,
+              "meshes": 1,
+              "materials": 3,
+              "skins": 1,
+              "joints": 17,
+              "animations": [
+                "Warden_RigidProof"
+              ]
+            },
+            "emissiveVisualSemantics": [
+              "EyeGlow.L",
+              "EyeGlow.R",
+              "CoreEmber.Center",
+              "CoreEmber.Upper",
+              "CoreEmber.Lower"
+            ],
+            "weaponSemantics": [
+              "ClawBlade.Right",
+              "SoulTaxPalm.Left"
+            ],
+            "visualInspection": {
+              "passed": [
+                "rest-four-view-render",
+                "two-red-eyes-and-embedded-core-embers-preserved",
+                "right-claw-blade-and-left-soul-tax-palm-preserved",
+                "solid-rear-with-no-duplicate-face-or-furnace",
+                "rigid-components-move-without-soft-stone-deformation"
+              ],
+              "remaining": [
+                "dynamic-VFX_CoreFlame-runtime-effect",
+                "authored-boss-action-set-and-event-markers",
+                "gameplay-camera-clipping-and-performance-proof"
+              ]
+            },
+            "status": "external-rigid-lod0-emissive-proof-runtime-promotion-pending",
+            "runtimePromotionAllowed": false
+          },
+          "status": "accepted-production-source-rigid-emissive-pilot-proved-runtime-integration-pending"
+        }
+      },
+      "designOutcome": {
+        "silhouette": "towering-broad-triangular-shoulders-small-masked-head-open-core-cage-and-load-bearing-feet",
+        "construction": "separate-charred-basalt-plates-over-dark-iron-subframe-with-oxidized-bronze-hinges-rings-and-restraints",
+        "core": "contained-dim-ember-furnace-visible-through-opening-geometric-rib-plates",
+        "coreVfxSocket": "VFX_CoreFlame",
+        "coreVfxRule": "model-a-hollow-furnace-cage-and-core-cavity-but-render-moving-flame-as-runtime-vfx-not-baked-provider-geometry",
+        "rightArm": "integrated-obsidian-sweep-blade-housing-with-no-handheld-weapon",
+        "leftHand": "four-digit-articulated-hand-with-concentric-soul-tax-palm-mechanism",
+        "rigIntent": "rigid-mechanical-hierarchy-with-articulated-plates-pistons-rings-core-cage-and-shutdown-controls",
+        "requiredBossMechanisms": [
+          "rotating-shoulder-rings-for-ash-call",
+          "opening-rib-plates-for-soul-tax",
+          "integrated-forearm-blade-sweep",
+          "weighted-piston-locomotion",
+          "chest-core-defeat-shutdown"
+        ],
+        "forbiddenRead": [
+          "armored-human",
+          "knight",
+          "paladin",
+          "biological-monster",
+          "handheld-sword"
+        ]
+      },
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-ilyra-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "wellkeeper-and-first-chronicle-guide",
+      "sourceImage": {
+        "file": "sd-npc-ilyra-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2484981,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "F43F5B74DF9EE44CB99A30FE76973CFC5B2A6070E83107141C75958E6EFD1B89"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-ilyra-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2346556,
+        "width": 1402,
+        "height": 1122,
+        "sha256": "A31B47E193EA9083014C77505C7B64E1F54C67C3DA4284C9A995C32BCADD1997",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "mature-human-wellkeeper",
+          "silver-crown-braid-and-forward-braid",
+          "faded-blue-grey-pilgrim-robes",
+          "keys-and-pouch"
+        ]
+      },
+      "conversion": {
+        "taskId": "02c05b91-3da0-49bf-8337-f019bbedee33",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 774,
+        "creditBalanceAfterTask": 734,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:ilyra-approved-fullbody_5062327a071748869187eea12d3cea15.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-ilyra-prism-task-02c05b91-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 7247632,
+          "sha256": "63DB48E2555880D07FD579EFD8B3322B888E91682B727E0663892F2F2C9C7A6B"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 143028,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-braid-robe-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-orren-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "breach-scout-and-field-guide",
+      "sourceImage": {
+        "file": "sd-npc-orren-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2028962,
+        "width": 1023,
+        "height": 1537,
+        "sha256": "E5155DDA494FE1AC313DC3216C10931E05F4B9DEA7FB1CFC30603C6B523CCAAB"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-orren-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2586228,
+        "width": 1023,
+        "height": 1537,
+        "sha256": "A7ED1C53C33B0990DDF1C884BCDEAF94EB6ECD02A8F0C9183C3EED419A6A5F06",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "adult-male-elf-scout",
+          "medium-brown-skin-and-pointed-ears",
+          "near-black-topknot",
+          "green-scout-scarf-and-worn-leather-field-layers"
+        ]
+      },
+      "conversion": {
+        "taskId": "a00a1818-57cd-4953-90a5-b62ac934b30d",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 734,
+        "creditBalanceAfterTask": 694,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:orren-approved-fullbody_a53afda5a8714d8198faef2ef5f5ea5e.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-orren-prism-task-a00a1818-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 6886428,
+          "sha256": "D2DD62A5EB29C3C9E3C91795C198E33D1E220BFCC1B57CDB751182AF244438DF"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 146904,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-pointed-ears-topknot-layered-scout-kit-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
+      "runtimePromotionAllowed": false
+    },
+    {
+      "assetId": "npc-brannoc-image-first-v001",
+      "operation": "image-to-3d-single-image",
+      "provider": "3d-ai-studio",
+      "model": "prism-3.1",
+      "role": "arena-warden-and-combat-trainer",
+      "sourceImage": {
+        "file": "sd-npc-brannoc-chatgpt-fullbody-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2569320,
+        "width": 1024,
+        "height": 1536,
+        "sha256": "4C30D955A0EC05BDE37CFDBA9C0BCD176DD1F56BE3149A8D57A4A5646733D409"
+      },
+      "conversationFaceSource": {
+        "file": "sd-npc-brannoc-chatgpt-conversation-head-front-v1-source.png",
+        "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/npc-sources",
+        "bytes": 2743388,
+        "width": 1254,
+        "height": 1254,
+        "sha256": "79567F3E8A05E984CE60E36726C3A5EE14B9B0B18F86B2B6F1B14740546706DA",
+        "use": "facial-conform-blink-brow-jaw-viseme-and-dialogue-camera-reference"
+      },
+      "identityContract": {
+        "sameIdentityAcrossWorldActorAndConversationFace": true,
+        "lockedTraits": [
+          "mature-male-dwarf-arena-warden",
+          "swept-back-silver-hair",
+          "large-silver-multi-braided-beard",
+          "brown-leather-training-apron-and-faded-blue-grey-layers"
+        ]
+      },
+      "conversion": {
+        "taskId": "74ff6706-6833-451d-b542-4c2e75ab007c",
+        "projectId": 310153,
+        "actualCredits": 40,
+        "creditBalanceBeforeTask": 649,
+        "creditBalanceAfterTask": 609,
+        "textureQuality": "detailed",
+        "pbr": true,
+        "faceLimit": 150000,
+        "sourceUploadReference": "upload:brannoc-approved-fullbody_b661c5cf477c4540897a28c899bf5023.jpg",
+        "untouchedExport": {
+          "file": "sd-npc-brannoc-prism-task-74ff6706-untouched.glb",
+          "localIntakeDirectory": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/model-sources",
+          "bytes": 7749400,
+          "sha256": "275851FEFC59F4CBAF18DD64A92DC141B45F9BB89FE1DD0049C00219F833BE20"
+        },
+        "technicalInspection": {
+          "nodes": 1,
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 3,
+          "images": 3,
+          "triangles": 148790,
+          "skins": 0,
+          "animations": 0
+        },
+        "visualInspection": "passed-face-beard-natural-dwarf-arm-length-clothing-hands-feet-and-clean-rear-single-image-gate"
+      },
+      "status": "accepted-production-source-facial-conform-and-rigging-pending",
+      "runtimePromotionAllowed": false
+    }
+  ],
+  "appearanceReferenceLibrary": {
+    "status": "chatgpt-source-library-preserved-technicalization-pending",
+    "localIntakeRoot": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448",
+    "runtimePromotionAllowed": false,
+    "facePolicy": {
+      "implementation": "canonical-head-deformation-and-material-reference-not-one-paid-head-per-combination",
+      "availableAcrossAncestries": ["human", "elf", "dwarf", "halfling"],
+      "availableAcrossBodyProfiles": ["slim", "athletic", "heavy"],
+      "mechanicalImpact": "none",
+      "paidStandaloneConversionRequired": false
+    },
+    "faceReferences": [
+      {"familyId": "african-diaspora-black", "presentation": "feminine", "file": "sd-face-african-diaspora-fem-chatgpt-v1.png", "bytes": 2004465, "sha256": "569A26A9652C5BFC9E555D717E8AE983EFBAA3428666240B23891DC389699E92"},
+      {"familyId": "african-diaspora-black", "presentation": "masculine", "file": "sd-face-african-diaspora-masc-chatgpt-v1.png", "bytes": 2050063, "sha256": "63BD5E9AFBDB413D055ABA8AA5E5DACC0F2C29FFBEE0BB80EFC5B4BD8FD932FE"},
+      {"familyId": "east-asian", "presentation": "feminine", "file": "sd-face-east-asian-fem-chatgpt-v1.png", "bytes": 2252696, "sha256": "9B551BFEBD51797F7D9202FDE87FEE7FBED5EEB44BE95DC6FF34391A4E2D4900"},
+      {"familyId": "east-asian", "presentation": "masculine", "file": "sd-face-east-asian-masc-chatgpt-v1.png", "bytes": 2022079, "sha256": "A25ABD1FA8C54CC9092F0E0DB342F63E2595838EEB37E08CC8CF8B4FF35F5F3B"},
+      {"familyId": "south-asian-indian", "presentation": "feminine", "file": "sd-face-south-asian-fem-chatgpt-v1.png", "bytes": 2345073, "sha256": "911670C1DE7DA489C8093C305AFD0FDD3322908CB30FC7C7A6AA4255376F2192"},
+      {"familyId": "south-asian-indian", "presentation": "masculine", "file": "sd-face-south-asian-masc-chatgpt-v1.png", "bytes": 2255377, "sha256": "4961D255C03A78A825A042CC39E21C56CAA781A840DB263304539E56E7646CF6"},
+      {"familyId": "european", "presentation": "feminine", "file": "sd-face-european-fem-chatgpt-v1.png", "bytes": 2055855, "sha256": "A45863B8B08EAA2269663F05FEE0954CF1F2FA65FD8CE3B9AB7231CB7E93D742"},
+      {"familyId": "european", "presentation": "masculine", "file": "sd-face-european-masc-chatgpt-v1.png", "bytes": 1795112, "sha256": "0BAEC6EA52B2765A4CC0EF5DF0AD0741D6252A66DF7E9D6F98E939B60E4F17EA"}
+    ],
+    "hairPolicy": {
+      "implementation": "separate-conformable-meshes-fitted-after-canonical-head-and-hair-cap-gate",
+      "presentationIsAvailabilityMetadataNotAGenderLock": true,
+      "requiredMasculineStyles": 6,
+      "requiredFeminineStyles": 6,
+      "skullEarShoulderAndHelmetFitRequired": true,
+      "colorIsIndependentMaterialSelection": true,
+      "geometryDuplicationPerColor": false,
+      "preservePbrDetailWithMelaninTint": true,
+      "colorMaterialFamilies": ["black", "dark-brown", "medium-brown", "light-brown", "auburn", "copper-red", "dark-blonde", "golden-blonde", "platinum-blonde", "grey", "silver-white"]
+    },
+    "hairReferences": [
+      {"assetId": "hair-masc-cropped-fade-v001", "presentation": "masculine", "style": "cropped-fade", "file": "sd-hair-masc-cropped-fade-chatgpt-v1.png", "bytes": 1470954, "sha256": "30B819C03E931CCAEC0010643A13931381CD437F351F8EA18E99BA4DE12B3345"},
+      {"assetId": "hair-masc-shoulder-loose-v001", "presentation": "masculine", "style": "shoulder-loose", "file": "sd-hair-masc-shoulder-loose-chatgpt-v1.png", "bytes": 1669000, "sha256": "EE854F608249D8BA56690FD6A5B5454E24410C5F0361AE9E87C0E670C32E0E50"},
+      {"assetId": "hair-masc-topknot-v001", "presentation": "masculine", "style": "topknot", "file": "sd-hair-masc-topknot-chatgpt-v1.png", "bytes": 1547283, "sha256": "8097FBCDA7FC80631D3762CAB9C80F8D0F7200F46F3AAE771C55753EC7273F7D"},
+      {"assetId": "hair-masc-swept-back-v001", "presentation": "masculine", "style": "swept-back", "file": "sd-hair-masc-swept-back-chatgpt-v1.png", "bytes": 1473341, "sha256": "EAB061E1CA9EFF20116491C00652F1490AF8D2E806A990055E3FDF36931D73DE"},
+      {"assetId": "hair-masc-warrior-braid-v001", "presentation": "masculine", "style": "warrior-braid", "file": "sd-hair-masc-warrior-braid-chatgpt-v1.png", "bytes": 1124538, "sha256": "5E1870ED5A40977080D3C789F70CAE70FF4C489D94D0C916AD65E5FAB9668D7E"},
+      {"assetId": "hair-masc-short-curly-v001", "presentation": "masculine", "style": "short-curly", "file": "sd-hair-masc-short-curly-chatgpt-v1.png", "bytes": 1560480, "sha256": "28301F898E8572B52EA4D0557964EAEBC2A5A30788095EB330BC5DFF3B6E8FD4"},
+      {"assetId": "hair-fem-bob-v001", "presentation": "feminine", "style": "bob", "file": "sd-hair-fem-bob-chatgpt-v1.png", "bytes": 1555623, "sha256": "7FC3B22844CFA7BC60716836DE4E546B757CD1FB3C17B97685845ECBDE37F08B"},
+      {"assetId": "hair-fem-braided-crown-v001", "presentation": "feminine", "style": "braided-crown", "file": "sd-hair-fem-braided-crown-chatgpt-v1.png", "bytes": 1491204, "sha256": "28809F5DD24F66CB137FDB9C5B505A593F5D0B3B02C7F24DB2148D0E1E3039E5"},
+      {"assetId": "hair-fem-high-ponytail-v001", "presentation": "feminine", "style": "high-ponytail", "file": "sd-hair-fem-high-ponytail-chatgpt-v1.png", "bytes": 1333200, "sha256": "36E2080957574B05253DC2043005C631AD1D57C94389821670575777C1817D1F"},
+      {"assetId": "hair-fem-twin-braids-v001", "presentation": "feminine", "style": "twin-braids", "file": "sd-hair-fem-twin-braids-chatgpt-v1.png", "bytes": 1335193, "sha256": "AE8235B9743B250632021C66FBEAD98DD4FCF8F4FC6A19E142A543D0D7AC321C"},
+      {"assetId": "hair-fem-long-wavy-v001", "presentation": "feminine", "style": "long-wavy", "file": "sd-hair-fem-long-wavy-chatgpt-v1.png", "bytes": 1568392, "sha256": "0C6127F9FF65185AF8EC98A6F48BE5E627DB7BEF9628CD9DCFA86BA0920D388F"},
+      {"assetId": "hair-fem-pixie-v001", "presentation": "feminine", "style": "pixie", "file": "sd-hair-fem-pixie-chatgpt-v1.png", "bytes": 1538421, "sha256": "8538EA120FC9D783F0129138C926C3DC90971216295A2832C49865D3FFFF7000"}
+    ],
+    "skinToneMaterialFamilies": ["deep", "dark", "medium-deep", "medium", "tan-olive", "light-pale"],
+    "modularAdornments": ["brows", "facial-hair", "sideburns", "scars", "tattoos-and-paint", "nose-rings-and-studs", "earrings"]
+  },
+  "modularSourceConversions": {
+    "status": "source-conversion-batch-preserved-starter-scope-corrected-no-runtime-promotion",
+    "studioProject": "SoulDrifter",
+    "studioProjectId": 310153,
+    "provider": "3d-ai-studio",
+    "model": "meshy-7-smart-topology-low-poly",
+    "settings": {"singleImage": true, "lowPoly": true, "texture": true, "textureQuality": "2k", "pbr": true, "maximumPolygons": 15000, "expectedCreditsPerTask": 20, "generationRateLimitPerMinute": 3, "uploadRateLimitPerHour": 20},
+    "creditSafety": {
+      "paidGenerationPaused": true,
+      "lastVerifiedBalance": 89,
+      "balanceContext": "personal",
+      "reason": "Owner correction after out-of-scope wearable generation; preserve remaining credits and continue locally only."
+    },
+    "starterScope": {
+      "sharedClothingFamilyAssetId": "shared-c-tier-starter-clothing-family",
+      "sharedClothingFamilyCount": 1,
+      "callingPresentationVariation": "material-tints-trim-and-stitching-on-the-shared-clothing-family-only",
+      "standaloneArmorConversionsAllowed": false,
+      "higherLevelGearAllowed": false,
+      "acceptedWeaponPackageIds": ["longsword", "practice-staff", "wooden-mace", "shortbow-arrow-quiver", "shortsword-shield", "binding-rod", "ritual-knife", "paired-daggers"],
+      "technicalizationSourceAssetIds": ["gear-iron-longsword-starter-v001", "gear-ashwood-practice-staff-v001", "gear-wooden-mace-starter-v001", "gear-shortbow-starter-v001", "gear-arrow-quiver-starter-v001", "gear-iron-shortsword-starter-v001", "gear-wooden-shield-starter-v001", "gear-binding-rod-starter-v001", "gear-worn-dagger-starter-v001"],
+      "rejectedOverscopeAssetIds": ["wearable-leather-guard-v001", "wearable-devotional-cloth-v001", "wearable-light-plate-v001", "wearable-dark-ritual-wrap-v001"]
+    },
+    "sourceOnlyGate": {
+      "runtimePromotionAllowed": false,
+      "requiredNextSteps": ["blender-cleanup-and-part-separation", "retopology-and-uv-pbr-bake", "canonical-scale-orientation-and-pivots", "head-or-body-conform-and-coverage-masks", "socket-and-grip-profiles", "clipping-and-gameplay-camera-qa"]
+    },
+    "entries": [
+      {"assetId": "gear-iron-longsword-starter-v001", "category": "weapon", "sourceFile": "sd-gear-iron-longsword-chatgpt-v1.png", "sourceSha256": "79BFE840CB5A7742C72BD65779E345946B306C10590BB473FFB6B89690E366A8", "taskId": "0d878627-4082-43af-8f26-32b6e08dfd1d", "exportFile": "sd-gear-iron-longsword-meshy-lowpoly-task-0d878627-untouched.glb", "exportBytes": 8464760, "exportSha256": "E3C89AF5615C400B46D13EC329764A7DA6DA9ECAFE15EC9D4CF6A5D343ECC472", "triangles": 6571, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-ashwood-practice-staff-v001", "category": "weapon", "sourceFile": "sd-gear-ashwood-practice-staff-chatgpt-v1.png", "sourceSha256": "44735BAEDE913AEB963289C4E6415E0C5A65F92D3FAD5255961A7A37F3117C55", "taskId": "ae76bc7e-cfbd-4183-a5c9-168e9a2f5040", "exportFile": "sd-gear-ashwood-staff-meshy-lowpoly-task-ae76bc7e-untouched.glb", "exportBytes": 7498848, "exportSha256": "26E181C405624520E798C7D687526C950D8273C0097027F2CB6A93DE01896282", "triangles": 7575, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-wooden-mace-starter-v001", "category": "weapon", "sourceFile": "sd-gear-wooden-mace-chatgpt-v1.png", "sourceSha256": "3F8C8847FA4820483BB98DA8A1CBFAC0575CF11978CA00E0204810420438B09C", "taskId": "dae81102-1bd7-49ba-8eef-973d15ad347a", "exportFile": "sd-gear-wooden-mace-meshy-lowpoly-task-dae81102-untouched.glb", "exportBytes": 7707584, "exportSha256": "80DFCA376C9803A70BD7E68AEC81B4052C74743DC7AF6B5FC102ED7875D3F482", "triangles": 6217, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-shortbow-starter-v001", "category": "weapon", "sourceFile": "sd-gear-shortbow-chatgpt-v1.png", "sourceSha256": "201DB14E6109F5AF1D82207966F0B74ED0E523CA7F55CA23161F6C33AB5D24CE", "taskId": "b0ce1a7f-b683-4656-ac8f-378337597138", "exportFile": "sd-gear-shortbow-meshy-lowpoly-task-b0ce1a7f-untouched.glb", "exportBytes": 5390604, "exportSha256": "B599279C32F398D07DACA2545C5A5A69F920568FC984BA3AF065E9350BA40C95", "triangles": 7214, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-arrow-quiver-starter-v001", "category": "off-hand-and-harness", "sourceFile": "sd-gear-arrow-quiver-chatgpt-v1.png", "sourceSha256": "9F1A36A42F0B38AA19AC04DDB83BD8778FE5BDCF72E659F90205B05CB7DFDB3B", "taskId": "43edc077-59bc-4594-af80-40c550afba3c", "exportFile": "sd-gear-arrow-quiver-meshy-lowpoly-task-43edc077-untouched.glb", "exportBytes": 7070644, "exportSha256": "AC6AD1B4A85AC3C6471D02648EAD067B158DA2B27ACDB61094476C1632D0F7A9", "triangles": 7479, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-iron-shortsword-starter-v001", "category": "weapon", "sourceFile": "sd-gear-iron-shortsword-chatgpt-v1.png", "sourceSha256": "8E0E62DB24C70492E9E9001DB24AC7AEFBB5255709C84A6058087E42208BF85E", "taskId": "73e7b5a0-9b08-43b8-9aba-ec93e74c07ba", "exportFile": "sd-gear-iron-shortsword-meshy-lowpoly-task-73e7b5a0-untouched.glb", "exportBytes": 8727900, "exportSha256": "5EEA9D03C70570754E521B211B218040B2E351933F7291034DCEB3FA5BC78E88", "triangles": 5799, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-wooden-shield-starter-v001", "category": "off-hand", "sourceFile": "sd-gear-wooden-shield-chatgpt-v1.png", "sourceSha256": "E8CC0AAA20A7CF33A67230CA7FA62742B6FD204F6E14B13D6418EED4E3AC7C13", "taskId": "615c88c0-4e18-4c0d-b736-3c211f0db0a4", "exportFile": "sd-gear-wooden-shield-meshy-lowpoly-task-615c88c0-untouched.glb", "exportBytes": 8507504, "exportSha256": "8501B38A8F0006E3C2872BEBBA923B65C0AB9B788FE3F4F4ED40B1ADA4FC3EA5", "triangles": 7167, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-binding-rod-starter-v001", "category": "weapon-focus", "sourceFile": "sd-gear-binding-rod-chatgpt-v1.png", "sourceSha256": "CFE172DCFEE6FAC832E566E22AE567F038844C7F5D877092825AEEC45BCA982F", "taskId": "2fb15c31-a8b5-4672-8cd8-abf840947609", "exportFile": "sd-gear-binding-rod-meshy-lowpoly-task-2fb15c31-untouched.glb", "exportBytes": 7441352, "exportSha256": "1A89AFABFF30658B772B2E911C44DF700FF1D1E943BB10F56EBBF1A5FDBF0D7D", "triangles": 6972, "status": "accepted-source-technicalization-pending", "runtimePromotionAllowed": false},
+      {"assetId": "gear-ritual-knife-starter-v001", "category": "weapon", "sourceFile": "sd-gear-ritual-knife-chatgpt-v1.png", "sourceSha256": "1681116BA20F97E6C8F5013B5BC17AF1DCA26FAFC417B1C338ACC7596864BE24", "taskId": "4697f448-d8c7-41fd-afce-5e39e0147ca7", "exportFile": "sd-gear-ritual-knife-meshy-lowpoly-task-4697f448-rejected-geometry.glb", "exportBytes": 8864072, "exportSha256": "EF463AE46B27FA8C0E635D9606EE14BCB82CDC087D45B5740ED105F3F3E6F819", "triangles": 5355, "status": "rejected-provider-invented-split-blade", "fallbackAssetId": "gear-worn-dagger-starter-v001", "runtimePromotionAllowed": false},
+      {"assetId": "gear-worn-dagger-starter-v001", "category": "weapon", "sourceFile": "sd-gear-worn-dagger-chatgpt-v1.png", "sourceSha256": "6FED1E91EDD9C1C67A5045ABC87468249EAB3EF1805779FBC30CCD8D2CA7CA18", "taskId": "46591885-35b5-4b86-8d66-1febd9bed5a4", "exportFile": "sd-gear-worn-dagger-meshy-lowpoly-task-46591885-untouched.glb", "exportBytes": 6470840, "exportSha256": "32E281EF8190E2B7524B6E64D2E8EFF7CF3C4E400E84DE54525CBE2502144436", "triangles": 5193, "status": "accepted-source-technicalization-pending-shared-asura-and-slayer-level-one-fallback", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-leather-guard-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-leather-guard-harness-chatgpt-v1.png", "sourceSha256": "DB094B89A58E39732961BABF41A219391D7DCA1FF23CDE5CAAD240B2F63A9B51", "taskId": "38365cb8-ccdd-423d-8f1f-5d27a20296bf", "exportFile": "sd-wearable-leather-guard-meshy-lowpoly-task-38365cb8-untouched.glb", "exportBytes": 7902560, "exportSha256": "66A59041FACF364021F75196ECD696290D96D2205F4CEE184A1C2988715C4E45", "triangles": 13121, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-devotional-cloth-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-cloth-devotional-layer-chatgpt-v1.png", "sourceSha256": "84188DE5E9985B0B67AAD142CDF0A3E635636299B3B24DB75CC2592C952B1FC5", "taskId": "7c78ede8-07b2-460d-9126-d05c089980f7", "exportFile": "sd-wearable-devotional-cloth-meshy-lowpoly-task-7c78ede8-untouched.glb", "exportBytes": 7803536, "exportSha256": "708B0189F6E53D135BAC251AE80D16A94BB2530BDEF9927A7E3D3A49F8CD0763", "triangles": 14164, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-light-plate-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-light-plate-starter-chatgpt-v1.png", "sourceSha256": "8253587BB5D89460677B986B04F3AB415130C57A83681F2AD884BA2D0F27118B", "taskId": "d9b0313a-a55f-48da-b0b3-b32e36567f2a", "exportFile": "sd-wearable-light-plate-meshy-lowpoly-task-d9b0313a-untouched.glb", "exportBytes": 8564552, "exportSha256": "0B0A44305A58A5293244333397D8CDF81F9C6F00C57896C086F85D7BE998524F", "triangles": 12659, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Plate armor violates the Level 1 shared C-tier clothing boundary and the no-high-level-armor rule.", "runtimePromotionAllowed": false},
+      {"assetId": "wearable-dark-ritual-wrap-v001", "category": "rejected-wearable-provenance", "sourceFile": "sd-wearable-dark-ritual-wrap-chatgpt-v1.png", "sourceSha256": "77A9C3FF3EFEE2617823FC2F3D4B54EA64F56036EF8B60ACE8E4E1075A2D210C", "taskId": "052e0451-347b-4ad3-8490-245fe5e336d2", "exportFile": "sd-wearable-dark-ritual-wrap-meshy-lowpoly-task-052e0451-untouched.glb", "exportBytes": 6936468, "exportSha256": "B7B09590D90F492ED3D428B0845B3F7C3EF7B7DD61C2F33EA9F715DA0A52FBFD", "triangles": 14706, "status": "rejected-overscope-not-level-one-starter-gear", "levelOneEligibility": false, "provenanceOnly": true, "reason": "Standalone wearable generation exceeded the one-shared-C-tier-clothing-family contract.", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-cropped-fade-v001", "category": "hair", "sourceFile": "sd-hair-masc-cropped-fade-chatgpt-v1.png", "sourceSha256": "30B819C03E931CCAEC0010643A13931381CD437F351F8EA18E99BA4DE12B3345", "taskId": "e87f2c75-2694-4da7-88d8-134695397f36", "exportFile": "sd-hair-masc-cropped-meshy-lowpoly-task-e87f2c75-untouched.glb", "exportBytes": 7623432, "exportSha256": "7E6A8C22A1BC358DFC082EF7DBA6210E693081924D4527DF2CC6DD6A729D5CAC", "triangles": 11328, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-shoulder-loose-v001", "category": "hair", "sourceFile": "sd-hair-masc-shoulder-loose-chatgpt-v1.png", "sourceSha256": "EE854F608249D8BA56690FD6A5B5454E24410C5F0361AE9E87C0E670C32E0E50", "taskId": "fae1622b-e69c-4af7-ad1c-adaa15eba06c", "exportFile": "sd-hair-masc-shoulder-meshy-lowpoly-task-fae1622b-untouched.glb", "exportBytes": 9156112, "exportSha256": "0342DE0E6B9691DC3AE2EF139C297BE02FA02B69975F1C77C00278A84BBB0D73", "triangles": 8191, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-topknot-v001", "category": "hair", "sourceFile": "sd-hair-masc-topknot-chatgpt-v1.png", "sourceSha256": "8097FBCDA7FC80631D3762CAB9C80F8D0F7200F46F3AAE771C55753EC7273F7D", "taskId": "ef935ff0-d3a1-45cc-b285-d8245468cce5", "exportFile": "sd-hair-masc-topknot-meshy-lowpoly-task-ef935ff0-untouched.glb", "exportBytes": 7209552, "exportSha256": "F9FD22155E0674A73B04CEB7244B7BA258A493A9AE23BF9C44278541A794D6AF", "triangles": 10849, "status": "accepted-source-head-conform-and-ear-hole-cleanup-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-swept-back-v001", "category": "hair", "sourceFile": "sd-hair-masc-swept-back-chatgpt-v1.png", "sourceSha256": "EAB061E1CA9EFF20116491C00652F1490AF8D2E806A990055E3FDF36931D73DE", "taskId": "c39615aa-631d-4433-a72a-7137db7e39f1", "exportFile": "sd-hair-masc-swept-meshy-lowpoly-task-c39615aa-untouched.glb", "exportBytes": 6820912, "exportSha256": "2C0B9BFC4614D3C82BE9B04B464E6B414344C650C4A02C60D27ECE75BAA35DDF", "triangles": 9710, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-warrior-braid-v001", "category": "hair", "sourceFile": "sd-hair-masc-warrior-braid-chatgpt-v1.png", "sourceSha256": "5E1870ED5A40977080D3C789F70CAE70FF4C489D94D0C916AD65E5FAB9668D7E", "taskId": "6dc65bfc-76d2-4efd-a93c-3ff46c1b6bd9", "exportFile": "sd-hair-masc-warrior-braid-meshy-lowpoly-task-6dc65bfc-untouched.glb", "exportBytes": 6605480, "exportSha256": "4CB39245B3A6FD8B3D8E568399B3A4179D9C5728A7B0142DA88DA9AA612CD186", "triangles": 12158, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-masc-short-curly-v001", "category": "hair", "sourceFile": "sd-hair-masc-short-curly-chatgpt-v1.png", "sourceSha256": "28301F898E8572B52EA4D0557964EAEBC2A5A30788095EB330BC5DFF3B6E8FD4", "taskId": "50cd06bd-f2fb-4974-bb43-450cdb5cdb2c", "exportFile": "sd-hair-masc-curly-meshy-lowpoly-task-50cd06bd-untouched.glb", "exportBytes": 10575296, "exportSha256": "6E3BA1638D23B0B12D07E8736D920E91C45B622F715264829424722526BAC698", "triangles": 14065, "status": "accepted-source-strong-retopology-and-curl-cavity-cleanup-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-bob-v001", "category": "hair", "sourceFile": "sd-hair-fem-bob-chatgpt-v1.png", "sourceSha256": "7FC3B22844CFA7BC60716836DE4E546B757CD1FB3C17B97685845ECBDE37F08B", "taskId": "5e421512-5198-441a-a7e5-23de8127c67b", "exportFile": "sd-hair-fem-bob-meshy-lowpoly-task-5e421512-untouched.glb", "exportBytes": 10121156, "exportSha256": "930E936D78A89D685A314195710AC8C5121B6BE417CFE7CF6A48245A4D700F71", "triangles": 9217, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-braided-crown-v001", "category": "hair", "sourceFile": "sd-hair-fem-braided-crown-chatgpt-v1.png", "sourceSha256": "28809F5DD24F66CB137FDB9C5B505A593F5D0B3B02C7F24DB2148D0E1E3039E5", "taskId": "9f838558-18eb-4109-bcba-0a97a849af40", "exportFile": "sd-hair-fem-braided-crown-meshy-lowpoly-task-9f838558-untouched.glb", "exportBytes": 7858408, "exportSha256": "011E4EDC6D6E4F2CC04FE300F8D5107620D493BDEE7B7CBA232EDA43C8474687", "triangles": 14256, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-high-ponytail-v001", "category": "hair", "sourceFile": "sd-hair-fem-high-ponytail-chatgpt-v1.png", "sourceSha256": "36E2080957574B05253DC2043005C631AD1D57C94389821670575777C1817D1F", "taskId": "772a7b69-81d6-426e-a2bc-ab702e91a59b", "exportFile": "sd-hair-fem-high-ponytail-meshy-lowpoly-task-772a7b69-untouched.glb", "exportBytes": 6709336, "exportSha256": "6CA3CCD8CD6C657C9F6B86625B89FF416B540724487ADA38C9218CA3459E3B43", "triangles": 11084, "status": "accepted-source-head-conform-and-ponytail-motion-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-twin-braids-v001", "category": "hair", "sourceFile": "sd-hair-fem-twin-braids-chatgpt-v1.png", "sourceSha256": "AE8235B9743B250632021C66FBEAD98DD4FCF8F4FC6A19E142A543D0D7AC321C", "taskId": "8c48a957-3b76-4165-91e7-9f09e343fbfa", "exportFile": "sd-hair-fem-twin-braids-meshy-lowpoly-task-8c48a957-untouched.glb", "exportBytes": 7577480, "exportSha256": "3A0AAE075A266C240F9A065CDE4BC80DD9498532DAC9033DE3D9A7E895249114", "triangles": 8178, "status": "accepted-source-strong-braid-retopology-and-head-conform-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-long-wavy-v001", "category": "hair", "sourceFile": "sd-hair-fem-long-wavy-chatgpt-v1.png", "sourceSha256": "0C6127F9FF65185AF8EC98A6F48BE5E627DB7BEF9628CD9DCFA86BA0920D388F", "taskId": "0cac0a87-8b87-4ed9-bdaa-8aab3a3d22ab", "exportFile": "sd-hair-fem-long-wavy-meshy-lowpoly-task-0cac0a87-untouched.glb", "exportBytes": 8372172, "exportSha256": "ED2CDE9B87940E489370DAEBC0066FF724DE156D37643143A50D0D26971E93DA", "triangles": 7524, "status": "accepted-source-head-conform-and-shoulder-clipping-pending", "runtimePromotionAllowed": false},
+      {"assetId": "hair-fem-pixie-v001", "category": "hair", "sourceFile": "sd-hair-fem-pixie-chatgpt-v1.png", "sourceSha256": "8538EA120FC9D783F0129138C926C3DC90971216295A2832C49865D3FFFF7000", "taskId": "e1ba6c15-80ff-41a4-82c2-c3237485642d", "exportFile": "sd-hair-fem-pixie-meshy-lowpoly-task-e1ba6c15-untouched.glb", "exportBytes": 7907532, "exportSha256": "367D88C1DB78CF263517019C7C372D04D6F152614229083EABBA85AB5D756E71", "triangles": 9781, "status": "accepted-source-head-conform-pending", "runtimePromotionAllowed": false}
+    ]
+  },
+  "assetGroups": [
+    {
+      "id": "playable-body-families",
+      "geometrySource": "3d-ai-studio",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
+      "lifetime": "game-wide",
+      "bodyProfiles": [
+        "slim",
+        "athletic",
+        "heavy"
+      ],
+      "bodyProfileImplementation": "shared-compatible-topology-and-canonical-skeleton",
+      "bodyProfileGameplayImpact": "appearance-only",
+      "items": [
+        "human-masculine",
+        "human-feminine",
+        "elf-masculine",
+        "elf-feminine",
+        "dwarf-masculine",
+        "dwarf-feminine",
+        "halfling-masculine",
+        "halfling-feminine"
+      ]
+    },
+    {
+      "id": "face-and-appearance-library",
+      "geometrySource": "3d-ai-studio",
+      "runtimeAssetLineage": "local-derived",
+      "status": "local-deformation-material-and-conform-work-pending",
+      "lifetime": "game-wide",
+      "facialFeatureFamilies": [
+        {
+          "id": "african-diaspora-black",
+          "displayName": "African Diaspora / Black"
+        },
+        {
+          "id": "east-asian",
+          "displayName": "East Asian"
+        },
+        {
+          "id": "south-asian-indian",
+          "displayName": "South Asian / Indian"
+        },
+        {
+          "id": "european",
+          "displayName": "European"
+        }
+      ],
+      "availableAcrossAncestries": [
+        "human",
+        "elf",
+        "dwarf",
+        "halfling"
+      ],
+      "availableAcrossPresentations": [
+        "masculine",
+        "feminine"
+      ],
+      "availableAcrossBodyProfiles": [
+        "slim",
+        "athletic",
+        "heavy"
+      ],
+      "independentAppearanceAxes": [
+        "ancestry",
+        "facial-feature-family",
+        "skin-tone",
+        "hair",
+        "facial-hair",
+        "adornments",
+        "body-profile",
+        "presentation"
+      ],
+      "implementationContract": "reusable-versioned-head-variants-or-deformation-profiles-on-compatible-head-topologies-not-duplicated-full-bodies",
+      "ancestryMarkersLayeredIndependently": true,
+      "caricatureAllowed": false,
+      "gameplayImpact": "appearance-only",
+      "items": [
+        "four-cross-ancestry-facial-feature-families-per-compatible-head-topology",
+        "six-or-more-skin-material-families",
+        "six-or-more-masculine-presenting-hair-families",
+        "six-or-more-feminine-presenting-hair-families",
+        "modular-brows-facial-hair-sideburns-scars-tattoos-and-piercings"
+      ]
+    },
+    {
+      "id": "starter-calling-kits",
+      "geometrySource": "local-conform-and-material-assembly",
+      "runtimeAssetLineage": "local-derived",
+      "status": "shared-c-tier-clothing-source-preparation-required",
+      "lifetime": "first-breach",
+      "sharedClothingFamilyAssetId": "shared-c-tier-starter-clothing-family",
+      "sharedClothingFamilyCount": 1,
+      "callingPresentationVariation": "material-tints-trim-and-stitching-only",
+      "standaloneArmorConversionsAllowed": false,
+      "items": [
+        "warrior",
+        "mage",
+        "priest",
+        "sharpshooter",
+        "paladin",
+        "summoner",
+        "asura",
+        "slayer",
+        "shadowknight"
+      ]
+    },
+    {
+      "id": "starter-weapon-packages",
+      "geometrySource": "3d-ai-studio",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
+      "lifetime": "first-breach",
+      "items": [
+        "longsword",
+        "practice-staff",
+        "wooden-mace",
+        "shortbow-arrow-quiver",
+        "shortsword-shield",
+        "binding-rod",
+        "ritual-knife",
+        "paired-daggers"
+      ]
+    },
+    {
+      "id": "named-tutorial-npcs",
+      "geometrySource": "3d-ai-studio",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-pending",
+      "lifetime": "first-breach-poc-game-wide-contract",
+      "matchingConversationFaceRequired": true,
+      "items": [
+        "ilyra",
+        "orren",
+        "brannoc"
+      ]
+    },
+    {
+      "id": "first-breach-creatures",
+      "geometrySource": "3d-ai-studio",
+      "runtimeAssetLineage": "local-derived",
+      "status": "preserved-source-local-technicalization-or-local-build-pending",
+      "lifetime": "first-breach",
+      "placeholderReuseAllowedForProduction": false,
+      "designCompletenessRequired": [
+        "silhouette",
+        "anatomy-and-joint-logic",
+        "surface-and-material-hierarchy",
+        "threat-language-and-facial-anatomy",
+        "locomotion-and-attack-anatomy",
+        "rig-and-control-requirements",
+        "tier-or-encounter-variants",
+        "normal-isometric-camera-readability"
+      ],
+      "items": [
+        "training-effigy-sentinel",
+        "breachling",
+        "breachling-stalker",
+        "oathbound-breachling",
+        "breachling-ravager",
+        "cinderbound-warden"
+      ]
+    }
+  ],
+  "conversationFace": {
+    "sameRuntimeIdentityAsWorldActor": true,
+    "recordedVoiceDrivesVisemes": true,
+    "captionsRemainAuthoritative": true,
+    "requiredControls": [
+      "blink",
+      "gaze",
+      "brows",
+      "jaw",
+      "speech-visemes",
+      "expression-presets"
+    ]
+  },
+  "validationSurfaces": [
+    "character-creation",
+    "paper-doll",
+    "realm-lock-vestibule",
+    "ilyra-conversation",
+    "starter-coffer-and-action-rehearsal",
+    "orren-conversation",
+    "brannoc-conversation",
+    "training-sentinel",
+    "fractured-galleries",
+    "ashen-lock",
+    "player-and-enemy-defeat",
+    "first-memory-completion"
+  ]
+}

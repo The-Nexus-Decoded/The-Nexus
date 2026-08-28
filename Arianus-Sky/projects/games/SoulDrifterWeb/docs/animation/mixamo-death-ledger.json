@@ -1,0 +1,1194 @@
+{
+  "schemaVersion": 1,
+  "issue": 448,
+  "sourceCatalog": "mixamo-catalog-2026-08-20.json",
+  "sourceCapturedAt": "2026-08-20T20:34:13.083Z",
+  "generatedAt": "2026-08-20T21:18:27.176Z",
+  "uniqueDeathMotionCount": 42,
+  "selectionPolicy": {
+    "match": [
+      "posture",
+      "direction",
+      "damageType",
+      "weaponFamily"
+    ],
+    "fallbackOrder": [
+      "weaponFamily",
+      "damageType",
+      "direction",
+      "posture"
+    ],
+    "randomizeWithinMostSpecificValidPool": true,
+    "avoidImmediateRepeat": true
+  },
+  "motions": [
+    {
+      "actionId": "death.mixamo.being-electrocuted-c9ca56fe",
+      "mixamoId": "c9ca56fe-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Being Electrocuted",
+      "description": "Being Electrocuted Into Unconciousness",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "standing",
+        "damageType": "electric",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.crouch-death-c9c85edd",
+      "mixamoId": "c9c85edd-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Crouch Death",
+      "description": "Dying From A Crouched Position",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "crouched",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.crouched.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-c9c899a0",
+      "mixamoId": "c9c899a0-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death",
+      "description": "Death From Standing Idle",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-crouching-headshot-front-c9cea8f6",
+      "mixamoId": "c9cea8f6-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death Crouching Headshot Front",
+      "description": "Rifle Death Crouched From Headshot Front",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "crouched",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.crouched.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-from-back-headshot-c9cea9b8",
+      "mixamoId": "c9cea9b8-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death From Back Headshot",
+      "description": "Rifle Death From Back Headshot",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-from-front-headshot-c9cea76f",
+      "mixamoId": "c9cea76f-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death From Front Headshot",
+      "description": "Rifle Death From Front Headshot",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-from-right-c9cea835",
+      "mixamoId": "c9cea835-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death From Right",
+      "description": "Rifle Death From Right Side",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "right",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.right",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-from-the-back-c9ceaa7b",
+      "mixamoId": "c9ceaa7b-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death From The Back",
+      "description": "Rifle Death From The Back",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.death-from-the-front-c9ceab40",
+      "mixamoId": "c9ceab40-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Death From The Front",
+      "description": "Rifle Death From The Front",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-backwards-c9c6dcf2",
+      "mixamoId": "c9c6dcf2-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying Backwards",
+      "description": "Shot To The Chest Falling Backwards",
+      "genre": [],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c62bc7",
+      "mixamoId": "c9c62bc7-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Dying With Front Impact To The Head And Fall On One Knee",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c62c97",
+      "mixamoId": "c9c62c97-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Dying With Front Hit To The Head And Fall On One Knee",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c62d63",
+      "mixamoId": "c9c62d63-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Death Hit From The Back Falling On One Knee",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c62e30",
+      "mixamoId": "c9c62e30-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Dying Shot To The Chest Falling On Two Knees",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c630ac",
+      "mixamoId": "c9c630ac-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Dying Front Head Impact To Two Knees",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c6df2e",
+      "mixamoId": "c9c6df2e-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Laying On The Ground Dying",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "grounded",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.grounded.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.dying-c9c6e758",
+      "mixamoId": "c9c6e758-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Dying",
+      "description": "Explosion From Behind",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "explosive-knockback",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.falling-back-death-c9cdb348",
+      "mixamoId": "c9cdb348-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Falling Back Death",
+      "description": "Dying Falling Backward",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.falling-back-death-c9cdb40b",
+      "mixamoId": "c9cdb40b-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Falling Back Death",
+      "description": "Dying Falling Backward",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.falling-forward-death-c9cdb289",
+      "mixamoId": "c9cdb289-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Falling Forward Death",
+      "description": "Dying Falling Forward",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.flying-back-death-c9cdb4c8",
+      "mixamoId": "c9cdb4c8-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Flying Back Death",
+      "description": "Dying Flying Backward",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "explosive-knockback",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.mutant-dying-c9c93d98",
+      "mixamoId": "c9c93d98-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Mutant Dying",
+      "description": "Mutant Dying Falling Onto Back",
+      "genre": [],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "creature-physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.prone-death-c9c8a3f3",
+      "mixamoId": "c9c8a3f3-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Prone Death",
+      "description": "Dying From A Prone Position",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "grounded",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.grounded.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.rifle-death-c9c871f6",
+      "mixamoId": "c9c871f6-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Rifle Death",
+      "description": "Dying Reaction While Standing Holding A Rifle",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.rifle-run-to-dying-c9c8662e",
+      "mixamoId": "c9c8662e-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Rifle Run To Dying",
+      "description": "Getting Shot While Running With An Aimed Rifle",
+      "genre": [],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "running",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.running.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-backward-01-3ab11171",
+      "mixamoId": "3ab11171-f610-463d-84ad-addc22120a45",
+      "displayName": "Standing Death Backward 01",
+      "description": "Death Reaction Falling Backwards With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-backward-01-c9ceae44",
+      "mixamoId": "c9ceae44-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Standing Death Backward 01",
+      "description": "Death Reaction Falling Backwards With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-forward-01-c9ceaf01",
+      "mixamoId": "c9ceaf01-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Standing Death Forward 01",
+      "description": "Death Reaction Falling Forwards With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-forward-02-8a1dbf66",
+      "mixamoId": "8a1dbf66-2999-45a4-9255-17d0a3d2b20a",
+      "displayName": "Standing Death Forward 02",
+      "description": "Death Reaction Falling Forwards With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-left-02-bd3b5ef2",
+      "mixamoId": "bd3b5ef2-b166-45b6-a552-97e3afbe9539",
+      "displayName": "Standing Death Left 02",
+      "description": "Death Reaction Falling Left With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "left",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.left",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-death-right-01-b8c87300",
+      "mixamoId": "b8c87300-fb46-41b5-b4b0-27aff06137a4",
+      "displayName": "Standing Death Right 01",
+      "description": "Death Reaction Falling Right With Bow",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "right",
+        "posture": "standing",
+        "damageType": "projectile",
+        "weaponFamily": "bow"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.right",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-react-death-backward-e13a58d8",
+      "mixamoId": "e13a58d8-0104-45a5-9837-03fc3c307632",
+      "displayName": "Standing React Death Backward",
+      "description": "Death Falling Backwards",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-react-death-forward-586a54c0",
+      "mixamoId": "586a54c0-5dc8-4290-be1c-aeccd94645de",
+      "displayName": "Standing React Death Forward",
+      "description": "Death Falling Forwards",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-react-death-left-e916b410",
+      "mixamoId": "e916b410-6978-439c-af54-8377a9e79317",
+      "displayName": "Standing React Death Left",
+      "description": "Death Falling To The Left",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "left",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.left",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.standing-react-death-right-b45e7d54",
+      "mixamoId": "b45e7d54-42bc-43e2-8a2f-a5afe5e3d3ac",
+      "displayName": "Standing React Death Right",
+      "description": "Death Falling To The Right",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "right",
+        "posture": "standing",
+        "damageType": "physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.right",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.sword-and-shield-death-c9cc6aba",
+      "mixamoId": "c9cc6aba-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Sword And Shield Death",
+      "description": "Sword And Shield Falling Back Death",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "weapon-melee",
+        "weaponFamily": "sword-shield"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.sword-and-shield-death-c9cc6b82",
+      "mixamoId": "c9cc6b82-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Sword And Shield Death",
+      "description": "Sword And Shield Falling Forward Death",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "weapon-melee",
+        "weaponFamily": "sword-shield"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.two-handed-sword-death-c9ccb63f",
+      "mixamoId": "c9ccb63f-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Two Handed Sword Death",
+      "description": "Falling Forward Death",
+      "genre": [
+        "Fantasy"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "weapon-melee",
+        "weaponFamily": "greatsword"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.walking-to-dying-c9c869e6",
+      "mixamoId": "c9c869e6-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Walking To Dying",
+      "description": "Walking While Aiming Rifle To Dying",
+      "genre": [
+        "Combat"
+      ],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "walking",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.walking.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.walking-to-dying-c9c8743d",
+      "mixamoId": "c9c8743d-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Walking To Dying",
+      "description": "Walking While Aiming Rifle To Immediate Dying",
+      "genre": [],
+      "situation": {
+        "direction": "unspecified",
+        "posture": "walking",
+        "damageType": "projectile",
+        "weaponFamily": "rifle-source"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.walking.unspecified",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.zombie-death-c9cbda5a",
+      "mixamoId": "c9cbda5a-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Zombie Death",
+      "description": "Zombie Getting Hit And Falling Onto Back",
+      "genre": [
+        "Adventure"
+      ],
+      "situation": {
+        "direction": "backward",
+        "posture": "standing",
+        "damageType": "creature-physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.backward",
+        "avoidImmediateRepeat": true
+      }
+    },
+    {
+      "actionId": "death.mixamo.zombie-dying-c9cc240a",
+      "mixamoId": "c9cc240a-b96c-11e4-a802-0aaa78deedf9",
+      "displayName": "Zombie Dying",
+      "description": "Zombie Getting Hit And Falling Forward",
+      "genre": [
+        "Adventure"
+      ],
+      "situation": {
+        "direction": "forward",
+        "posture": "standing",
+        "damageType": "creature-physical",
+        "weaponFamily": "unarmed-or-any"
+      },
+      "acquisition": {
+        "state": "cataloged-not-downloaded",
+        "format": "FBX Binary",
+        "skin": "Without Skin",
+        "fps": 30,
+        "keyframeReduction": "none"
+      },
+      "runtime": {
+        "state": "candidate",
+        "terminal": true,
+        "randomPool": "death.standing.forward",
+        "avoidImmediateRepeat": true
+      }
+    }
+  ]
+}

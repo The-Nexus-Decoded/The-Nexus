@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "issue": 448,
+  "recipe": "scripts/build-creature-runtime-mvp.py",
+  "runtimeScope": "internal-first-breach-mvp",
+  "postMvpPolishIssue": 458,
+  "outputs": [
+    {
+      "role": "breachling-family-base",
+      "source": "H:\\Projects\\AI_Tools_And_Information\\The-Nexus-asset-intake\\SoulDrifter\\issue-448\\model-sources\\sd-creature-breachling-base-meshy7-multiview-ash-tail-source.glb",
+      "sourceSha256": "797419CC9E3D19575DD3A55F91A0CD199427CC3F9AA27E6DC59659AA2809FCD9",
+      "sourceBytes": 52772424,
+      "output": "H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\public\\assets\\3d\\local-derived\\issue-448\\creatures\\sd-creature-breachling-base-runtime-mvp-v001.glb",
+      "outputSha256": "A1A0F653C0139B5F10C4D89B9AF156318B951163EDD5A7A38507B55C27EE138A",
+      "outputBytes": 660368,
+      "sourceTriangles": 1648748,
+      "targetTriangles": 18000,
+      "outputTriangles": 18000,
+      "textureLimit": 512,
+      "textures": [
+        {
+          "name": "Image_0",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "Image_1",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "Image_2",
+          "sourceSize": [
+            2048,
+            2048
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        }
+      ],
+      "mvpMotionMode": "runtime-transform-clips",
+      "postMvpPolishIssue": 458
+    },
+    {
+      "role": "cinderbound-warden-and-reduced-sentinel-visual",
+      "source": "H:\\Projects\\AI_Tools_And_Information\\The-Nexus-asset-intake\\SoulDrifter\\issue-448\\technicalized-pilots\\warden-rigid-v006-emissive\\sd-creature-cinderbound-warden-rigid-lod0-pilot-v006.glb",
+      "sourceSha256": "57A73C1CBB8887F67679F6F962FDB1124378A20A42EBBC47957687F80294C836",
+      "sourceBytes": 6774664,
+      "output": "H:\\CodexData\\.codex\\worktrees\\448\\The-Nexus-souldrifter-first-breach-models\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\public\\assets\\3d\\local-derived\\issue-448\\creatures\\sd-creature-cinderbound-warden-runtime-mvp-v001.glb",
+      "outputSha256": "ABC0BAD17A80DAA48D2F82E368E868E497CA517B087EADE7CE3C6333D5E6811B",
+      "outputBytes": 1563936,
+      "sourceTriangles": 80479,
+      "targetTriangles": 32000,
+      "outputTriangles": 31998,
+      "textureLimit": 512,
+      "textures": [
+        {
+          "name": "Color_b47eb557-9494-4e02-84cf-c711f4feffbe",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "NormalGL_b47eb557-9494-4e02-84cf-c711f4feffbe",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "ORM_b47eb557-9494-4e02-84cf-c711f4feffbe",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            512,
+            512
+          ]
+        }
+      ],
+      "mvpMotionMode": "runtime-transform-clips",
+      "postMvpPolishIssue": 458
+    }
+  ]
+}

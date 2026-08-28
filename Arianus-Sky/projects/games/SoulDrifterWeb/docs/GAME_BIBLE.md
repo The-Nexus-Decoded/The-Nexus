@@ -841,6 +841,11 @@ Production interpretation:
 - Keep characters fully rigged and animated rather than converting them to sprites.
 - Required animation groups are idle, walk, run or urgent move, basic attack, signature skill, cast or channel, block or evade, hit reaction, downed, death, and interaction.
 - Every weapon action, spell, summon, buff, defense, recovery, and class/creature skill must pass the shared [`ANIMATION_PRODUCTION_PIPELINE.md`](ANIMATION_PRODUCTION_PIPELINE.md) gate. The skill owns one actor-agnostic motion/telegraph/event contract reused by compatible PCs, NPCs, enemies, summons, and PvP actors; race, gear, and power tier add layers without changing what the skill communicates before resolution.
+- PCs, NPCs, monsters, bosses, summons, charmed creatures, and tamed animals all use the same authoritative skill-and-command model. AI attacks, spells, healing, buffs, debuffs, hazards, and actor-created weather may not bypass the registered command pipeline.
+- Charm, possession, and taming expose the legal subset of the target's real skills. Class, creature family, equipment, level, rank, and boss phase can add registered secondary abilities, including abilities hidden from ordinary inspection.
+- Visible clothing, armor, weapons, shields, tools, harnesses, and carried objects are real equipped item instances. Painted-on or presentation-only fake gear is prohibited; death and transfer resolve each visible item explicitly.
+- Defeated NPCs and creatures leave lootable remains that persist until loot resolution succeeds. Inventory refusal leaves both the remains and their items in the world.
+- Detailed invariants and acceptance gates live in [`NPC_SYSTEM.md`](NPC_SYSTEM.md) and [`CREATURE_SYSTEM.md`](CREATURE_SYSTEM.md).
 - Every weapon pose and action must first pass the source-backed stance and grip research gate in [`WEAPON_MOTION_REFERENCE_INDEX.md`](WEAPON_MOTION_REFERENCE_INDEX.md). Research is selected for the exact weapon subtype, hand count, skill tier, and action; convenient animation clips cannot redefine the class skill.
 - Keep movement and interactions on a logical square grid while rendering the floor and world in 3D.
 - Use modular 3D equipment anchors so weapons, armor, runes, and class gear remain visibly equipped.

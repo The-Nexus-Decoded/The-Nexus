@@ -3,6 +3,7 @@ import {
   callingById,
   deriveCharacter,
   FACIAL_HAIR_STYLES,
+  HAIR_COLORS,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
   normalizeLegacyCharacterProfile,
@@ -47,7 +48,7 @@ export class CharacterCreation {
     name: "",
     raceId: "",
     callingId: "",
-    appearance: { hairStyle: "shaved", skinTone: "ashen", facialHair: "none" },
+    appearance: { hairStyle: "shaved", hairColor: "silver-white", skinTone: "ashen", facialHair: "none" },
     answers: {},
   };
   private step: CreationStep = "name";
@@ -247,6 +248,16 @@ export class CharacterCreation {
           </div>
         </section>
         <section>
+          <h3>Hair color</h3>
+          <div class="appearance-options appearance-options--hair-color">
+            ${Object.entries(HAIR_COLORS).map(([id, hairColor]) => `
+              <button class="appearance-option ${this.draft.appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button">
+                <span class="appearance-swatch" style="--swatch:#${hairColor.color.toString(16).padStart(6, "0")}"></span>
+                <strong>${hairColor.name}</strong>
+              </button>`).join("")}
+          </div>
+        </section>
+        <section>
           <h3>Facial hair</h3>
           <div class="appearance-options appearance-options--beard">
             ${FACIAL_HAIR_STYLES.map((style) => `
@@ -261,8 +272,10 @@ export class CharacterCreation {
     const previewCanvas = requiredElement<HTMLCanvasElement>("appearance-preview-canvas");
     this.appearancePreview = new CreationAvatarPreview(previewCanvas, {
       hairStyle: this.draft.appearance.hairStyle,
+      hairColor: this.draft.appearance.hairColor,
       skinTone: this.draft.appearance.skinTone,
       raceId: this.draft.raceId || "human",
+      facialHair: this.draft.appearance.facialHair,
     });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
@@ -270,6 +283,10 @@ export class CharacterCreation {
     });
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
       this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+    });
+    this.bindChoices("button[data-hair-color]", "hairColor", (id) => {
+      this.draft.appearance.hairColor = id as CharacterDraft["appearance"]["hairColor"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
     });
     this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
@@ -429,7 +446,7 @@ export class CharacterCreation {
   }
 
   private complete(profile: CharacterProfile, resumeSavedSoul = false): void {
-    profile.appearance ??= { hairStyle: "shaved", skinTone: "ashen" };
+    profile.appearance ??= { hairStyle: "shaved", hairColor: "silver-white", skinTone: "ashen", facialHair: "none" };
     this.root.classList.add("is-dissolving");
     window.setTimeout(() => {
       this.root.hidden = true;

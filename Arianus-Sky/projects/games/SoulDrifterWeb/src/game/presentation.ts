@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import type { CallingId } from "./character";
+import type { WeaponFamily } from "./equipment";
 
 export interface PointerHitCandidate<TTile> {
   enemyId?: string;
@@ -124,51 +126,211 @@ export type WeaponVisualState = "hidden" | "sheathed" | "drawn";
 export interface WeaponPresentation {
   handSocket: THREE.Group;
   hipSocket: THREE.Group;
+  offHandSocket?: THREE.Group;
+  offHipSocket?: THREE.Group;
+  family: WeaponFamily;
   state: WeaponVisualState;
 }
 
 const STARTER_LONGSWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
+
+function firstRigNode(model: THREE.Object3D, aliases: readonly string[]): THREE.Object3D | undefined {
+  const normalizedAliases = new Set(aliases.map((name) => name.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  let match: THREE.Object3D | undefined;
+  model.traverse((child) => {
+    if (match) return;
+    const normalizedName = child.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalizedAliases.has(normalizedName)) match = child;
+  });
+  return match;
+}
+
+function createFallbackStarterLongsword(): THREE.Group {
+  const sword = new THREE.Group();
+  sword.name = "SK_StarterLongsword_RuntimeFallback";
+  const iron = new THREE.MeshStandardMaterial({ color: 0x8f969b, metalness: 0.72, roughness: 0.42 });
+  const leather = new THREE.MeshStandardMaterial({ color: 0x4a2e20, metalness: 0.04, roughness: 0.86 });
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.78, 0.035), iron);
+  blade.name = "SK_StarterLongsword_Blade_RuntimeFallback";
+  blade.position.y = -0.43;
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.055, 0.065), iron);
+  guard.name = "SK_StarterLongsword_Guard_RuntimeFallback";
+  guard.position.y = -0.015;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.25, 10), leather);
+  grip.name = "SK_StarterLongsword_Grip_RuntimeFallback";
+  grip.position.y = 0.135;
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), iron);
+  pommel.name = "SK_StarterLongsword_Pommel_RuntimeFallback";
+  pommel.position.y = 0.29;
+  sword.add(blade, guard, grip, pommel);
+  return sword;
+}
+
+function createFallbackStarterDagger(): THREE.Group {
+  const dagger = createFallbackStarterLongsword();
+  dagger.name = "SK_StarterDagger_RuntimeFallback";
+  dagger.scale.set(0.72, 0.52, 0.8);
+  return dagger;
+}
+
+function createFallbackStarterStaff(): THREE.Group {
+  const staff = new THREE.Group();
+  staff.name = "SK_StarterStaff_RuntimeFallback";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x5d3b24, metalness: 0.02, roughness: 0.9 });
+  const binding = new THREE.MeshStandardMaterial({ color: 0x8f7251, metalness: 0.12, roughness: 0.72 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.72, 10), wood);
+  shaft.position.y = -0.62;
+  const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), binding);
+  cap.position.y = -1.5;
+  staff.add(shaft, cap);
+  return staff;
+}
+
+function createFallbackStarterMace(): THREE.Group {
+  const mace = new THREE.Group();
+  mace.name = "SK_StarterMace_RuntimeFallback";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x56351f, metalness: 0.02, roughness: 0.9 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x777d80, metalness: 0.58, roughness: 0.52 });
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.62, 10), wood);
+  handle.position.y = -0.28;
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.28, 8), iron);
+  head.position.y = -0.68;
+  mace.add(handle, head);
+  return mace;
+}
+
+function createFallbackStarterBow(): THREE.Group {
+  const bow = new THREE.Group();
+  bow.name = "SK_StarterShortbow_RuntimeFallback";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x6b4728, metalness: 0.01, roughness: 0.88 });
+  const limb = (y: number, rotation: number) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.72, 8), wood);
+    mesh.position.set(0, y, 0);
+    mesh.rotation.z = rotation;
+    return mesh;
+  };
+  const upper = limb(-0.38, 0.24);
+  const lower = limb(0.28, -0.24);
+  const stringGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0.085, -0.72, 0),
+    new THREE.Vector3(-0.08, -0.05, 0),
+    new THREE.Vector3(0.085, 0.62, 0),
+  ]);
+  const string = new THREE.Line(stringGeometry, new THREE.LineBasicMaterial({ color: 0xc9b99b }));
+  bow.add(upper, lower, string);
+  return bow;
+}
+
+function createFallbackStarterFocus(): THREE.Group {
+  const focus = new THREE.Group();
+  focus.name = "SK_StarterBindingRod_RuntimeFallback";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x493425, metalness: 0.02, roughness: 0.88 });
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x8b6a3d, metalness: 0.55, roughness: 0.48 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.68, 10), wood);
+  shaft.position.y = -0.3;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 8, 20), bronze);
+  ring.position.y = -0.7;
+  focus.add(shaft, ring);
+  return focus;
+}
+
+function createFallbackStarterShield(): THREE.Group {
+  const shield = new THREE.Group();
+  shield.name = "SK_StarterWoodenShield_RuntimeFallback";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x604026, metalness: 0.02, roughness: 0.86 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x777d80, metalness: 0.62, roughness: 0.48 });
+  const face = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.07, 24), wood);
+  face.rotation.x = Math.PI / 2;
+  const boss = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), iron);
+  boss.position.z = 0.055;
+  shield.add(face, boss);
+  return shield;
+}
+
+function createFallbackStarterWeapon(family: WeaponFamily): THREE.Group {
+  if (family === "staff") return createFallbackStarterStaff();
+  if (family === "hammer") return createFallbackStarterMace();
+  if (family === "bow") return createFallbackStarterBow();
+  if (family === "focus") return createFallbackStarterFocus();
+  if (family === "dagger") return createFallbackStarterDagger();
+  return createFallbackStarterLongsword();
+}
 
 /**
  * Creates one visual copy for the hand and one for the left hip. Both are
  * driven by the same skeleton, so armor/skin changes never require re-rigging
  * the animation library.
  */
-export function createStarterLongswordPresentation(model: THREE.Object3D): WeaponPresentation | undefined {
+export function createStarterWeaponPresentation(
+  model: THREE.Object3D,
+  family: WeaponFamily,
+  callingId: CallingId,
+): WeaponPresentation | undefined {
   const parts: THREE.Object3D[] = [];
-  model.traverse((child) => {
+  if (family === "sword") model.traverse((child) => {
     if (STARTER_LONGSWORD_PART.test(child.name)) parts.push(child);
   });
-  if (parts.length === 0) return undefined;
 
-  const handBone = model.getObjectByName("hand_r") ?? parts[0]!.parent;
-  const hipBone = model.getObjectByName("pelvis") ?? model.getObjectByName("spine_01");
+  const handBone = firstRigNode(model, ["hand_r", "Hand.R", "Fist.R", "RightHand", "mixamorigRightHand"])
+    ?? parts[0]?.parent;
+  const offHandBone = firstRigNode(model, ["hand_l", "Hand.L", "Fist.L", "LeftHand", "mixamorigLeftHand"]);
+  const hipBone = firstRigNode(model, ["pelvis", "Hips", "mixamorigHips", "spine_01", "Abdomen", "Torso"]);
   if (!handBone || !hipBone) return undefined;
 
   const handSocket = new THREE.Group();
   handSocket.name = "weapon-socket-hand-r";
   handBone.add(handSocket);
   model.updateMatrixWorld(true);
-  parts.forEach((part) => handSocket.attach(part));
+  if (parts.length > 0) parts.forEach((part) => handSocket.attach(part));
+  else handSocket.add(createFallbackStarterWeapon(family));
+  handSocket.userData.weaponFamily = family;
+  handSocket.userData.callingId = callingId;
 
   const hipSocket = handSocket.clone(true);
   hipSocket.name = "weapon-socket-hip-l";
   // Short blades hang at the left side of the belt, clear of the thigh and
   // the forward bend envelope. Large weapon families can supply a separate
   // back socket later; this avoids the disconnected chest harness.
-  hipSocket.position.set(0.24, -0.05, 0.0);
-  hipSocket.rotation.set(0.08, -0.12, 2.1);
+  if (family === "staff" || family === "bow") {
+    hipSocket.name = "weapon-socket-back";
+    hipSocket.position.set(0.16, 0.18, -0.18);
+    hipSocket.rotation.set(0.12, -0.18, 0.32);
+  } else {
+    hipSocket.position.set(0.24, -0.05, 0.0);
+    hipSocket.rotation.set(0.08, -0.12, 2.1);
+  }
   hipBone.add(hipSocket);
 
-  const presentation: WeaponPresentation = { handSocket, hipSocket, state: "hidden" };
+  let offHandSocket: THREE.Group | undefined;
+  let offHipSocket: THREE.Group | undefined;
+  if ((callingId === "paladin" || callingId === "slayer") && offHandBone) {
+    offHandSocket = new THREE.Group();
+    offHandSocket.name = "weapon-socket-hand-l";
+    offHandSocket.userData.weaponFamily = callingId === "paladin" ? "shield" : family;
+    offHandSocket.add(callingId === "paladin" ? createFallbackStarterShield() : createFallbackStarterDagger());
+    offHandBone.add(offHandSocket);
+    offHipSocket = offHandSocket.clone(true);
+    offHipSocket.name = callingId === "paladin" ? "weapon-socket-back-shield" : "weapon-socket-hip-r";
+    offHipSocket.position.set(callingId === "paladin" ? -0.18 : -0.24, callingId === "paladin" ? 0.18 : -0.05, -0.16);
+    offHipSocket.rotation.set(0.08, 0.12, callingId === "paladin" ? -0.2 : -2.1);
+    hipBone.add(offHipSocket);
+  }
+
+  const presentation: WeaponPresentation = { handSocket, hipSocket, offHandSocket, offHipSocket, family, state: "hidden" };
   setWeaponVisualState(presentation, "hidden");
   return presentation;
+}
+
+export function createStarterLongswordPresentation(model: THREE.Object3D): WeaponPresentation | undefined {
+  return createStarterWeaponPresentation(model, "sword", "warrior");
 }
 
 export function setWeaponVisualState(presentation: WeaponPresentation, state: WeaponVisualState): void {
   presentation.state = state;
   presentation.handSocket.visible = state === "drawn";
   presentation.hipSocket.visible = state === "sheathed";
+  if (presentation.offHandSocket) presentation.offHandSocket.visible = state === "drawn";
+  if (presentation.offHipSocket) presentation.offHipSocket.visible = state === "sheathed";
 }
 
 export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
@@ -177,6 +339,7 @@ export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
   hairStyle: HairStyleId;
+  hairColor: number;
   raceId: HumanoidRaceId;
   facialHair?: FacialHairId;
 }
@@ -294,6 +457,22 @@ function fitHairCoverage(model: THREE.Object3D): void {
   });
 }
 
+function applyHairColor(model: THREE.Object3D, color: number): void {
+  const target = new THREE.Color(color);
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (!(material instanceof THREE.MeshStandardMaterial)) return;
+      if (!/(?:hair|beard)/i.test(`${child.name} ${material.name}`)) return;
+      material.userData.authoredHairColor ??= material.color.clone();
+      material.color.copy(target);
+      material.roughness = Math.max(material.roughness, 0.58);
+      material.needsUpdate = true;
+    });
+  });
+}
+
 export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
   fitHairCoverage(model);
   // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
@@ -324,6 +503,7 @@ export function applyModularAppearance(model: THREE.Object3D, appearance: Modula
   show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
 
   applyScalpVariant(model, appearance.hairStyle);
+  applyHairColor(model, appearance.hairColor);
 }
 
 export function screenPanToWorld(

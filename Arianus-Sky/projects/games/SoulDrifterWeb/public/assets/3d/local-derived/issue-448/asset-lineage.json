@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "issue": 448,
+  "lineageKind": "local-derived",
+  "root": "public/assets/3d/local-derived/issue-448",
+  "providerImportRoot": "public/assets/3d/imported/issue-448",
+  "externalSourceIntake": "external-intake://SoulDrifter/issue-448",
+  "runtimePromotionAllowedByDefault": false,
+  "policy": {
+    "providerExportsMayBeStoredAsLocalDerived": false,
+    "localRetopologyKeepsParentSourceHash": true,
+    "localBuildRecipeRequired": true,
+    "outputHashRequired": true,
+    "runtimeSlotRequired": true,
+    "promotionRequiresTechnicalAndVisualGate": true,
+    "hairColorUsesSharedGeometryAndIndependentMaterials": true
+  },
+  "requiredAssetFields": [
+    "assetId",
+    "lineageKind",
+    "parentSource",
+    "localRecipe",
+    "output",
+    "intendedRuntimeSlot",
+    "runtimePromotionAllowed"
+  ],
+  "parentSourceFields": [
+    "sourceKind",
+    "file",
+    "sha256"
+  ],
+  "parentProviderFields": [
+    "provider",
+    "taskId"
+  ],
+  "parentLocalFields": [
+    "assetId"
+  ],
+  "localRecipeFields": [
+    "tool",
+    "toolVersion",
+    "script",
+    "gpuAccelerationUsed",
+    "parameters"
+  ],
+  "outputFields": [
+    "file",
+    "sha256",
+    "bytes",
+    "triangles",
+    "materials",
+    "skins",
+    "animations"
+  ],
+  "assets": [
+    {
+      "assetId": "body-human-masculine-heavy-local-retopo-pilot-v001",
+      "lineageKind": "local-derived",
+      "status": "non-shipping-visual-topology-pilot",
+      "parentSource": {
+        "sourceKind": "provider-import",
+        "provider": "3d-ai-studio",
+        "taskId": "31044697-8e60-46c5-b046-43db7bedac4e",
+        "file": "sd-body-hum-m-h-img-v1.glb",
+        "sha256": "BC2DFB678AE6A3590B7B5C556E8E9708973CE2D08075E55224397CE57570FE7E"
+      },
+      "localRecipe": {
+        "tool": "Blender",
+        "toolVersion": "4.5.12 LTS",
+        "script": "scripts/build-humanoid-retopo-pilot.py",
+        "gpuAccelerationUsed": true,
+        "parameters": {
+          "method": "collapse-decimation-preserving-source-materials-and-uvs",
+          "targetTriangles": 45000,
+          "targetHeightMeters": 1.82,
+          "smoothShading": true
+        }
+      },
+      "output": {
+        "file": "sd-body-human-masculine-heavy-local-retopo-pilot-v001.glb",
+        "sha256": "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+        "bytes": 1980268,
+        "vertices": 32456,
+        "triangles": 44999,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0
+      },
+      "intendedRuntimeSlot": "character-body/human/masculine/heavy",
+      "runtimePromotionAllowed": false,
+      "remainingGates": [
+        "owner-visual-comparison",
+        "deformation-friendly-quad-topology",
+        "canonical-head-seam",
+        "uv-and-pbr-bake-validation",
+        "canonical-rig-and-weight-paint",
+        "locomotion-and-clipping-proof"
+      ]
+    },
+    {
+      "assetId": "body-human-masculine-heavy-mixamo-intake-v001",
+      "lineageKind": "local-derived",
+      "status": "local-mixamo-intake-package-awaiting-online-rig",
+      "parentSource": {
+        "sourceKind": "local-derived",
+        "assetId": "body-human-masculine-heavy-local-retopo-pilot-v001",
+        "file": "sd-body-human-masculine-heavy-local-retopo-pilot-v001.glb",
+        "sha256": "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+        "bytes": 1980268
+      },
+      "localRecipe": {
+        "tool": "Blender",
+        "toolVersion": "4.5.12 LTS",
+        "script": "scripts/prepare-mixamo-intake.py",
+        "gpuAccelerationUsed": false,
+        "parameters": {
+          "format": "FBX",
+          "singleMeshSelection": true,
+          "embeddedTexturesRequested": true,
+          "triangulatedExport": true,
+          "neutralPose": "reviewed-parent-t-pose",
+          "centeredAtWorldOrigin": true,
+          "helperObjectsExported": false,
+          "armatureExported": false,
+          "seamWeldThresholdMeters": 0.00001
+        }
+      },
+      "output": {
+        "file": "mixamo-intake/sd-body-human-masculine-heavy-mixamo-intake-v001.fbx",
+        "sha256": "D4D152EF2E450DD356CCE1E45AE50DA29FA4810AD0F28EF3E72881330D5D52DF",
+        "bytes": 2584252,
+        "vertices": 28555,
+        "triangles": 44999,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0,
+        "previewFile": "docs/3d-ai-studio/evidence/issue-448/mixamo-intake-human-heavy-v001.png",
+        "previewSha256": "643F9FCB3391D083FCED2D0BAF098EC311A585A08B314E9FF3B210917C6AD3D2",
+        "previewBytes": 1151372
+      },
+      "technicalInspection": {
+        "freshImportVerified": true,
+        "meshObjects": 1,
+        "armatures": 0,
+        "cameras": 0,
+        "lights": 0,
+        "connectedComponents": 1,
+        "boundaryEdges": 15581,
+        "nonManifoldEdges": 15581,
+        "looseVertices": 0,
+        "boundsMeters": {
+          "dimensions": [
+            0.474228,
+            1.766592,
+            1.820169
+          ]
+        }
+      },
+      "mixamoPreflight": {
+        "supportedUploadFormat": true,
+        "singleMeshObject": true,
+        "unrigged": true,
+        "noCamerasOrLights": true,
+        "centeredAtWorldOrigin": true,
+        "neutralPose": "T-pose",
+        "humanoid": true,
+        "detailedFingerGeometryPreserved": true,
+        "surfaceConnected": true,
+        "openBoundaryEdgesRecorded": 15581,
+        "manualMarkerPlacementRequired": true,
+        "manualMeshContinuityReviewRequired": true
+      },
+      "externalUploadState": "not-uploaded",
+      "intendedRuntimeSlot": "character-body/human/masculine/heavy",
+      "runtimePromotionAllowed": false,
+      "remainingGates": [
+        "mixamo-adobe-id-authentication",
+        "mixamo-online-upload",
+        "mixamo-wrist-elbow-knee-groin-and-chin-marker-placement",
+        "mixamo-auto-rig-completion",
+        "download-rigged-fbx-with-skin",
+        "fresh-import-rigged-fbx-validation",
+        "close-up-shoulder-elbow-wrist-hand-hip-and-knee-deformation-review",
+        "locomotion-retarget-and-equipment-clipping-proof"
+      ]
+    }
+  ],
+  "rejectedExperiments": [
+    {
+      "assetId": "body-human-masculine-heavy-local-rig-pilot-v001",
+      "status": "rejected-procedural-rig-after-close-up-deformation-review",
+      "artifactRetained": false,
+      "binaryRemovedFromRepository": true,
+      "scriptRetained": false,
+      "parentAssetId": "body-human-masculine-heavy-local-retopo-pilot-v001",
+      "parentSha256": "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+      "formerOutput": {
+        "file": "sd-body-human-masculine-heavy-local-rig-pilot-v001.glb",
+        "sha256": "AE471DA0A12765FA3FE8BC8B8FB26FF00C3971949454F386F67B4E66F2C555BC",
+        "bytes": 2650684
+      },
+      "rejectionReasons": [
+        "fixed-proportion-joints-were-not-fitted-to-the-character-anatomy",
+        "coordinate-region-weights-were-not-surface-aware-or-artist-painted",
+        "nineteen-deform-bone-rig-omitted-finger-and-forearm-twist-chains",
+        "stress-pose-exposed-unacceptable-shoulder-elbow-wrist-and-hand-deformation"
+      ],
+      "replacementStrategy": "prepare-the-clean-hand-preserving-visible-surface-for-mixamo-auto-rigging"
+    },
+    {
+      "assetId": "body-human-masculine-heavy-local-quad-bake-pilot-v001",
+      "status": "rejected-visible-surface-after-close-up-deformation-review",
+      "artifactRetained": false,
+      "binaryRemovedFromRepository": true,
+      "script": "scripts/build-humanoid-quad-bake-pilot.py",
+      "parentAssetId": "body-human-masculine-heavy-local-retopo-pilot-v001",
+      "parentSha256": "CCBF1ED8A3B3D0280D8896E9DE87C12CF409436A6DC1D25B8B1022752D510936",
+      "formerOutput": {
+        "file": "sd-body-human-masculine-heavy-local-quad-bake-pilot-v001.glb",
+        "sha256": "99CE9111EC2FADD0DC826688121991674E55CA9D2FC3BA882F511B43FDAE45B1",
+        "bytes": 6812384
+      },
+      "rejectionReasons": [
+        "voxel-remesh-fused-finger-separations",
+        "coarse-hand-and-wrist-topology-failed-deformation-review",
+        "baked-alpha-channel-created-transparent-atlas-gaps"
+      ],
+      "replacementStrategy": "preserve-detailed-visible-surface-and-build-a-separate-local-deformation-cage"
+    }
+  ]
+}
