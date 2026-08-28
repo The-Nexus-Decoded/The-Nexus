@@ -2,15 +2,17 @@ import { lstat, mkdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep, win32 } from "node:path";
 
 export function assertLexicallyInside(projectRoot, candidate, label = "Output") {
-  const root = resolve(projectRoot);
-  const output = resolve(candidate);
-  const relativePath = relative(root, output);
+  const pathApi = win32.isAbsolute(projectRoot) || win32.isAbsolute(candidate)
+    ? win32
+    : { isAbsolute, relative, resolve, sep };
+  const root = pathApi.resolve(projectRoot);
+  const output = pathApi.resolve(candidate);
+  const relativePath = pathApi.relative(root, output);
   if (
     relativePath === ""
     || relativePath === ".."
-    || relativePath.startsWith(`..${sep}`)
-    || isAbsolute(relativePath)
-    || win32.isAbsolute(relativePath)
+    || relativePath.startsWith(`..${pathApi.sep}`)
+    || pathApi.isAbsolute(relativePath)
   ) {
     throw new Error(`${label} must stay inside the SoulDrifterWeb project root.`);
   }

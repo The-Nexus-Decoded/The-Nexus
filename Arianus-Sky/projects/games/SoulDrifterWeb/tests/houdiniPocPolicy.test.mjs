@@ -1,23 +1,28 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterAll, describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const houdiniDirectory = path.join(root, "scripts", "houdini");
-const approvedTestDirectory = "H:/temp/SoulDrifter-Houdini-POC/policy-test";
+const approvedTestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "SoulDrifter-Houdini-POC-"));
+const approvedTestDirectory = path.join(approvedTestRoot, "policy-test");
+const rejectedTestDirectory = path.join(path.dirname(approvedTestRoot), `${path.basename(approvedTestRoot)}-outside`);
 
 afterAll(() => {
-  fs.rmSync(approvedTestDirectory, { force: true, recursive: true });
+  fs.rmSync(approvedTestRoot, { force: true, recursive: true });
+  fs.rmSync(rejectedTestDirectory, { force: true, recursive: true });
 });
 
 describe("Houdini Apprentice POC policy", () => {
   it("accepts only Apprentice and output below the approved non-shipping root", () => {
     const program = [
       "from pathlib import Path",
-      "from poc_output_policy import approved_output_directory, require_apprentice_license",
-      "require_apprentice_license('Apprentice')",
-      `print(approved_output_directory(Path(${JSON.stringify(approvedTestDirectory)})))`,
+      "import poc_output_policy",
+      `poc_output_policy.APPROVED_OUTPUT_ROOT = Path(${JSON.stringify(approvedTestRoot)}).resolve()`,
+      "poc_output_policy.require_apprentice_license('Apprentice')",
+      `print(poc_output_policy.approved_output_directory(Path(${JSON.stringify(approvedTestDirectory)})))`,
     ].join("\n");
     const result = spawnSync("python", ["-c", program], { cwd: houdiniDirectory, encoding: "utf8" });
 
@@ -28,7 +33,12 @@ describe("Houdini Apprentice POC policy", () => {
   it("rejects other license categories and arbitrary output roots", () => {
     for (const program of [
       "from poc_output_policy import require_apprentice_license; require_apprentice_license('Indie')",
-      "from pathlib import Path; from poc_output_policy import approved_output_directory; approved_output_directory(Path('C:/temp/unapproved'))",
+      [
+        "from pathlib import Path",
+        "import poc_output_policy",
+        `poc_output_policy.APPROVED_OUTPUT_ROOT = Path(${JSON.stringify(approvedTestRoot)}).resolve()`,
+        `poc_output_policy.approved_output_directory(Path(${JSON.stringify(rejectedTestDirectory)}))`,
+      ].join("\n"),
     ]) {
       const result = spawnSync("python", ["-c", program], { cwd: houdiniDirectory, encoding: "utf8" });
       expect(result.status).not.toBe(0);

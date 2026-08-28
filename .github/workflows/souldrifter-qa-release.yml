@@ -74,6 +74,10 @@ jobs:
         working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
         run: yarn install --non-interactive --no-progress
 
+      - name: Install pinned Python image dependencies
+        working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
+        run: python -m pip install --disable-pip-version-check -r scripts/maps/requirements-flatmap.txt
+
       - name: Run tests
         working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
         run: yarn test
