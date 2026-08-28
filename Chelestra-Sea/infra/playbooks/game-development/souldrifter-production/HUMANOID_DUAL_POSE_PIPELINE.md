@@ -29,6 +29,12 @@ This policy applies to every playable humanoid, humanoid NPC, and other biped in
 
 Non-humanoid creatures follow their approved species/rig contract and do not inherit this rule automatically.
 
+## Human visual-source contract
+
+Human foundation bodies use realistic adult anatomy, believable faces, grounded proportions, and restrained realistic-fantasy material response. They are not cartoon, chibi, toy-like, miniature, or exaggerated World-of-Warcraft-style characters. Existing high-detail Shadowknight images may be used only as references for realism, facial/anatomical quality, and SoulDrifter material mood. Do not copy their armor, class identity, weapon, silhouette, effects, or finished gear into a base body.
+
+The canonical Human source remains bald or close-scalp, gearless, and clothed only in modest opaque neutral underwear. Hair, class clothing, boots, gloves, armor, belts, jewelry, weapons, effects, and permanent accessories remain separate modular assets.
+
 ## What each pose is for
 
 ### T-pose: generation and rig calibration
@@ -77,6 +83,24 @@ Do not generate a portrait, bust, cropped body, seated pose, action pose, contra
 
 An A-pose image created by an image model is supplemental review material only. It must be reference-conditioned from the selected identity, labeled `DETAIL_REFERENCE_ONLY`, and must never seed a separate 3D body. The production A-pose artifact comes from posing the accepted canonical rigged mesh.
 
+## Tripo Smart Mesh contract for animated bodies
+
+Every Human body generated in Tripo Studio must use **Smart Mesh (P1.0)** at generation. The submitted-task evidence must visibly capture the Smart Mesh selection, provider/model label, topology choice, and face target before the charged action. If Smart Mesh is unavailable, disabled, or its setting cannot be proven, stop before submission and request an issue-linked owner exception.
+
+For an animated humanoid:
+
+1. turn on Smart Mesh at generation;
+2. choose native **Quad Face** topology for the production mesh;
+3. set and record the face target before retopology; never leave an unrecorded `Auto` result as the production budget;
+4. finish retopology and any manual hero-character loop correction before PBR texturing, auto-rigging, or skin-weight acceptance;
+5. preserve or repair deformation loops at the face, neck, clavicles, shoulders, armpits, elbows, wrists, fingers, pelvis, hips, knees, ankles, and toes;
+6. reject non-manifold geometry, internal shells, disconnected debris, fused fingers, collapsing loops, uncontrolled poles, or topology that cannot hold both required poses;
+7. record the pre/post face and triangle counts, topology fingerprint, UV version, and any manual repair.
+
+The current Human pilot target is **8,000 quad faces**, with an allowed intake range of **6,000-9,000 quad faces** (approximately 12,000-18,000 triangles) so the base body and head remain inside the existing desktop intake budget. A different target requires a recorded runtime-budget reason. The derived mobile LOD targets 7,000-10,000 triangles and is not the canonical deformation mesh.
+
+Smart Mesh is a required starting topology and production accelerator, not an automatic acceptance verdict. Hero-character edge flow still must pass dual-pose deformation, modular-fit, runtime triangle, and visual inspection. Tripo's official current guidance documents Smart Mesh as native quad topology for editing/rigging/animation and recommends the order `Smart Mesh -> Retopology -> PBR -> Rig` for animated real-time assets.
+
 ## Mandatory production order
 
 ```text
@@ -85,10 +109,11 @@ locked humanoid identity/body brief
 -> full-body/no-pedestal/no-fused-gear rejection gate
 -> owner source selection
 -> exact charged-operation approval when applicable
--> one canonical 3D body generation or approved mesh intake
+-> one Smart Mesh P1.0 canonical 3D body generation or approved mesh intake
 -> untouched source download, task receipt, and source hash
 -> anomaly, topology, symmetry, scale, and full-body inspection
--> geometry cleanup, part separation, retopology/decimation, UV/PBR work
+-> Quad Face retopology to the recorded budget plus required manual hero-loop repair
+-> geometry cleanup, part separation, UV/PBR work
 -> scale/origin/axis/pivot and modular-seam normalization
 -> canonical rig/skin or documented retarget in T-pose
 -> save and hash the normalized T-pose artifact
@@ -111,6 +136,18 @@ Each humanoid ledger entry must include:
 {
   "canonicalBodyId": "",
   "canonicalMeshSourceHash": "",
+  "tripoSmartMesh": {
+    "required": true,
+    "providerModel": "P1.0",
+    "enabledAtSubmission": false,
+    "topologyType": "QUAD_FACE",
+    "targetQuadFaces": 8000,
+    "preRetopologyFaces": 0,
+    "postRetopologyFaces": 0,
+    "postRetopologyTriangles": 0,
+    "settingsEvidencePath": "",
+    "status": "PENDING | PASS | FAIL"
+  },
   "topologyFingerprint": "",
   "vertexCount": 0,
   "uvLayoutVersion": "",
@@ -148,6 +185,9 @@ The humanoid fails until both pose states pass.
 - flat visible feet and stable neutral root;
 - correct anatomy, ancestry, presentation, and body-build contract;
 - no pedestal, fused gear, hair, clothing, weapon, accessory, or unrelated prop;
+- Smart Mesh P1.0 submission and Quad Face topology evidence are present;
+- the recorded canonical mesh remains inside the approved face/triangle budget;
+- hero-character joint loops pass inspection rather than relying on the Smart Mesh label alone;
 - auto-rig markers and required canonical bone chains are placeable and valid.
 
 ### A-pose proof
@@ -180,6 +220,8 @@ The doubled pose-artifact count does not authorize doubled paid 3D generation.
 ## Hard stops and exceptions
 
 - Do not submit paid T-pose and A-pose body generations as separate bodies.
+- Do not submit a Tripo humanoid with Smart Mesh disabled or unproven.
+- Do not texture or rig the production body before Quad Face topology and the final face target are accepted.
 - Do not accept a pose-only lookalike as proof of the same identity.
 - Do not allow an image model to invent clothing, gear, props, supports, or anatomy that becomes fused source geometry.
 - Do not use an A-pose render to hide a failed T-pose rig or a T-pose render to skip A-pose deformation review.

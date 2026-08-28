@@ -117,7 +117,9 @@ No old body, head, hair, rig, NPC, monster, or animation becomes accepted merely
 - Elf
 - Dwarf
 
-Halfling, Drakkin, and any fourth ancestry remain outside this kickoff unless explicitly re-approved through #443. Existing saves and legacy data receive explicit migration/recovery handling; they are not silently deleted or rewritten.
+Halfling remains a canonical future playable ancestry with its own later town and enclave. Existing Halfling saves load and preserve ancestry, progression, skills, and identity; only new-character selection and its separate eight-body production batch remain disabled in the current foundation. Halfling is not an NPC-only or recovery-only race.
+
+Drakkin is retired from the active playable-character and body-production plan. It must not appear in the current creation, body, Tripo, or animation-retarget matrices. A raw legacy Drakkin save may receive a typed preserved-save error at the persistence boundary; it is never silently rewritten as Human. Lore-only references do not authorize a playable body or generation task.
 
 ## Presentations
 
@@ -162,6 +164,8 @@ For a base body:
 - bald or neutral close-scalp presentation;
 - modest opaque neutral underwear only;
 - clean unobstructed background.
+- realistic adult anatomy, face, hands, feet, and material response rather than cartoon, chibi, toy-like, or exaggerated stylization;
+- existing high-detail Shadowknight images used only for realism and SoulDrifter mood, never for copying gear, class identity, weapons, or effects.
 
 Automatic rejection:
 
@@ -259,6 +263,8 @@ Treat separately:
 
 A functioning Studio session does not prove API credits. A valid API key does not prove Studio allowance. Use the funded, working lane and record the selected lane.
 
+Every Tripo Human body uses Smart Mesh P1.0 at generation and Quad Face topology for the canonical animated mesh. Capture the visible Smart Mesh/model/topology/face-target settings before submission. The Human pilot target is 8,000 quads, with an accepted 6,000-9,000-quad intake range matching the existing 12,000-18,000-triangle desktop body/head budget. Complete retopology and hero-character joint-loop repair before PBR texture or rigging. Smart Mesh never waives dual-pose deformation or runtime-budget review.
+
 For each important primary source, produce four images when available from the same locked brief:
 
 1. Tripo Studio Nano Banana;
@@ -296,13 +302,13 @@ locked brief
 -> four-image strict T-pose full-asset bakeoff
 -> owner image selection
 -> exact-cost owner approval
--> one canonical Tripo full-body generation
+-> one canonical Tripo Smart Mesh P1.0 full-body generation
 -> immediate untouched download
 -> task receipt + source hash
 -> anomaly/full-body inspection
 -> cleanup and part separation
--> retopology/decimation
--> UV/PBR bake and material validation
+-> Quad Face retopology to the recorded face target and manual hero-loop correction where required
+-> UV/PBR bake and material validation after topology acceptance
 -> scale/origin/axis/pivot normalization
 -> versioned head seam
 -> canonical rig/skin and normalized T-pose artifact
@@ -424,7 +430,7 @@ issuesRead: []
 prsRead: []
 repoFilesRead: []
 ancestryConflictStatus: RESOLVED | OWNER_DECISION_REQUIRED
-firstPilots: [human-masculine-athletic, human-feminine-athletic]
+firstPilots: [human-masculine-athletic-muscular, human-feminine-athletic-muscular]
 pilotCanonicalMeshes: 2
 pilotPoseArtifacts: 4
 humanBaselineCanonicalMeshes: 8
@@ -461,7 +467,8 @@ Before making changes, the new session must return:
 15. modular head/hair/clothing/armor/weapon contracts;
 16. Tripo preset/custom-animation routing;
 17. exact expected and maximum cost for the first charged operation;
-18. blockers and explicit owner decisions required.
+18. visible Smart Mesh P1.0, Quad Face, and face-target evidence plan;
+19. blockers and explicit owner decisions required.
 
 ## Hard stops
 
@@ -472,6 +479,8 @@ Before making changes, the new session must return:
 - no other six Human bodies before both pilots pass;
 - no Elf or Dwarf bodies before all eight Human bases pass;
 - no unsupported fourth ancestry batch;
+- no Tripo humanoid submission with Smart Mesh disabled, unproven, or outside the recorded face/triangle budget;
+- no production PBR or rig pass before Quad Face topology acceptance;
 - no merge or deployment;
 - no edit to PR #460;
 - no claim that a structural test alone proves visual/runtime acceptance.
@@ -503,6 +512,8 @@ First pilots only:
 Read and enforce `HUMANOID_DUAL_POSE_PIPELINE.md`. Every humanoid requires a strict T-pose primary source/calibration artifact plus a relaxed A-pose deformation/fit artifact derived from the same accepted rigged mesh. Do not generate two independent bodies.
 
 Use the policy's locked positive and rejection prompt blocks. Every primary source must explicitly generate exactly one complete adult humanoid base body in a strict symmetrical T-pose, full-body and uncropped, with no pedestal/stand/platform, no fused clothing/hair/armor/weapon/accessories, and neutral underwear only.
+
+Use Tripo Smart Mesh P1.0 for every canonical Human generation, select Quad Face topology, capture the visible setting and target before submission, and finish topology before PBR texturing or rigging. Default to 8,000 quads within the approved 6,000-9,000-quad pilot range unless runtime evidence records another target.
 
 Count meshes and pose artifacts separately: the first two pilots are 2 canonical meshes and 4 pose artifacts; the full Human baseline is 8 canonical meshes and 16 pose artifacts.
 

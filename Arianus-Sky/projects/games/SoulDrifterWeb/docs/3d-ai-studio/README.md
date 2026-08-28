@@ -9,7 +9,8 @@ This document defines how SoulDrifter uses 3D AI Studio without generating a fus
 
 SoulDrifter does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
 
-- four current playable ancestry body archetypes: Human, Elf, Dwarf, and Halfling;
+- three initial production ancestry body archetypes: Human, Elf, and Dwarf;
+- one future playable Halfling body archetype, kept outside the current creation and generation batch while existing Halfling saves continue to load unchanged;
 - one shared C-tier starter clothing family, conformed to each body archetype;
 - nine modest calling-identity kits that layer over the starter clothing;
 - a separate reusable weapon and off-hand library;
@@ -18,7 +19,7 @@ SoulDrifter does **not** purchase or maintain an independent model for every anc
 
 Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 
-Drakkin is approved world canon but is not in the current playable runtime registry. Do not spend generation credits on a playable Drakkin body until its character-creation and body-contract ticket is approved.
+Drakkin is retired from the active playable-character and body-production plan. Do not place Drakkin in creation, Tripo, body, or animation-retarget matrices. Any lore-only reference remains non-production and does not authorize generation.
 
 ## Non-negotiable asset boundaries
 
@@ -32,6 +33,8 @@ Drakkin is approved world canon but is not in the current playable runtime regis
 8. A fully dressed 3D AI Studio generation may be retained as concept or high-detail source material. It is not automatically a modular shipping character.
 9. No generated artifact enters `public/assets` until its source, ownership, task ID, settings, hashes, diagnostics, and review status are recorded.
 10. Paid batch generation stops immediately when a body, topology, rig, scale, or material gate fails.
+11. Every Tripo humanoid uses Smart Mesh P1.0 at generation and Quad Face production topology; the settings and face target are visibly recorded before submission.
+12. Human sources use realistic adult anatomy and facial/material quality. High-detail Shadowknight images are style references only and never authorize fused armor, clothing, weapons, effects, or copied class identity.
 
 ## Paid plan and MCP preflight
 
@@ -64,9 +67,9 @@ If MCP is unavailable, the same pipeline may use the documented REST API or an o
 | 1 | Human | adult, grounded proportions, adaptable neutral silhouette | first paid pilot |
 | 2 | Elf | adult, lean precision, real face, clearly pointed ears | generate only after Human rig gate passes |
 | 3 | Dwarf | compact adult body, broad grounded frame, non-cartoon proportions | generate after shared clothing proof |
-| 4 | Halfling | small adult body, readable hands/feet/face, never childlike or chibi | generate after small-body retarget proof |
+| 4 | Halfling | small adult body, readable hands/feet/face, never childlike or chibi | future playable batch; current saves load, but no body generation in this program |
 
-The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry, but only one owner-approved Human body is generated for the first paid rig proof. Its counterpart and later ancestry bodies require separate credit approvals after the skeleton, head seam, clothing, and animation gates pass.
+The locked Human baseline is adult masculine and adult feminine across Slim, Medium/Natural, Athletic/Muscular, and Thick/Large-Framed: eight canonical meshes and sixteen required pose artifacts. The first paid gate covers the two Athletic/Muscular pilots only; both must pass before the remaining six Humans. Elf and Dwarf remain blocked until all eight Human bodies pass. Halfling's later playable batch is separate.
 
 ### Modular head, skin, hair, and facial-detail contract
 
@@ -124,7 +127,7 @@ Before a paid 3D request, prepare a consistent multi-view sheet:
 
 - front, left, back, and right orthographic-like views;
 - identical proportions, face, clothing boundary, and color across every view;
-- neutral A-pose or T-pose with fingers readable and limbs separated from the torso;
+- strict symmetrical T-pose with arms horizontal at shoulder height, fingers readable, and limbs separated from the torso;
 - clean, high-contrast, plain background;
 - full body visible, centered, and not cropped;
 - no dramatic camera perspective, action pose, weapon, shield, cape, particles, floor props, or cast shadow hiding the silhouette;
@@ -135,8 +138,9 @@ Before a paid 3D request, prepare a consistent multi-view sheet:
 
 ```text
 Create a production reference sheet for an original SoulDrifter [ANCESTRY] adult humanoid.
-Show the exact same character from front, left, back, and right views in a neutral A-pose.
-Use grounded realistic-fantasy proportions and an adult face. The character wears a fitted,
+Show the exact same character from front, left, back, and right views in a strict symmetrical
+T-pose with both arms horizontal at shoulder height. Use grounded realistic-fantasy proportions
+and a realistic adult face without cartoon, chibi, toy-like, or exaggerated stylization. The character wears a fitted,
 opaque, seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair,
 jewelry, particles, glow, text, pedestal, or environment. Keep both hands, all fingers, both
 feet, ears, and the complete silhouette clearly visible. Use a clean plain background and
@@ -174,13 +178,14 @@ game-equipment mesh, not a permanently fused character.
 ### Phase 0: approve before spending credits
 
 1. Lock the ticket, asset ID, ancestry/calling purpose, concept sheet, prompt, model/version, seed policy, target face count, material plan, and expected credit cost.
-2. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
-3. Save the prompt and source-image hashes in the intake ledger.
-4. Obtain owner approval of the reference sheet and expected charge.
+2. For a Tripo humanoid, lock Smart Mesh P1.0 `ON`, `Quad Face`, and the target quad-face count. Capture these visible settings before the charged submission.
+3. Decide whether the request is a base body, soft garment, rigid armor, weapon, or non-shipping concept. Never mix categories in one production request.
+4. Save the prompt and source-image hashes in the intake ledger.
+5. Obtain owner approval of the reference sheet and expected charge.
 
 ### Phase 1: generate one source candidate
 
-1. Submit one image-to-3D task through MCP.
+1. Submit one image-to-3D task with Smart Mesh P1.0 enabled. If the selected lane cannot prove Smart Mesh, stop rather than silently using a dense HD/triangle source.
 2. Record the returned task ID immediately.
 3. Poll status without submitting duplicates.
 4. Inspect the textured and clay views before exporting.
@@ -196,16 +201,17 @@ game-equipment mesh, not a permanently fused character.
 5. Record model version, seed, prompt, source images, task ID, generation date, account ownership, commercial-use status, and download format.
 6. Add the provider-generated asset and its ownership/license record to `third-party-assets.json` before promotion, following the existing asset policy.
 
-### Phase 3: Blender cleanup and retopology
+### Phase 3: Smart Mesh retopology and Blender cleanup
 
 1. Import the untouched candidate into a clean Blender scene.
 2. Confirm meter scale, ground contact, orientation, transform application, normals, manifold state, material slots, UVs, and texture color spaces.
 3. Remove accidental internal surfaces and disconnected generation debris without erasing source provenance.
-4. Create deformation-friendly quad topology for bodies and soft garments. A generated dense or irregular mesh is not accepted merely because it looks correct while static.
-5. Preserve facial, shoulder, elbow, hand, pelvis, knee, and ankle loops needed for animation.
-6. Bake the approved PBR appearance from the source mesh onto the production topology.
-7. Keep rigid armor and weapons mechanically clean. Do not add unnecessary bones to a non-articulated weapon.
-8. Use the existing validated Elf Shadowknight as the scale/orientation comparison until a versioned asset manifest replaces that baseline.
+4. Run or verify Tripo Quad Face retopology before texturing or rigging. For the Human pilot, target 8,000 quads inside the 6,000-9,000-quad intake range, approximately the existing 12,000-18,000-triangle desktop body/head budget.
+5. Inspect and manually repair hero-character loops where Smart Mesh does not preserve animation-quality flow. A Smart Mesh label is not a deformation verdict.
+6. Preserve facial, neck, clavicle, shoulder, armpit, elbow, wrist, finger, pelvis, hip, knee, ankle, and toe loops needed for animation.
+7. Bake the approved PBR appearance from the source mesh onto the accepted production topology.
+8. Keep rigid armor and weapons mechanically clean. Do not add unnecessary bones to a non-articulated weapon.
+9. Use the existing validated Elf Shadowknight only as a scale, realism, and material-quality reference until a versioned asset manifest replaces that baseline; do not copy its gear into the body.
 
 ### Phase 4: canonical rig compatibility proof
 
@@ -293,6 +299,8 @@ anim-sword-1h-guard-v001
 anim-bow-shortbow-shot-v001
 ```
 
+New Human foundation bodies use build-specific IDs such as `human-masculine-athletic-muscular`; each ID owns one canonical mesh plus separately hashed `t-pose` and same-rig `a-pose` artifacts. The older `*-a-v001` examples above are historical naming examples, not permission to generate an A-pose-only body.
+
 Proposed shipping layout after runtime support is approved:
 
 ```text
@@ -323,6 +331,8 @@ These are intake ceilings for the pilot, not permission to consume the entire sc
 | primary weapon or off-hand package | 1k-4k triangles | 0.5k-2k triangles |
 | complete visible player | target <= 30k triangles | target <= 18k triangles |
 
+- For Smart Mesh Human pilots, use 8,000 quads by default and reject results outside 6,000-9,000 quads unless a recorded runtime-budget reason approves the change.
+- The canonical deformation mesh and derived mobile LOD are separate artifacts; never rig only the mobile decimation and call it the canonical body.
 - Prefer one 2K PBR atlas per major character set for desktop and a 1K derived atlas for mobile.
 - Minimize material slots and draw calls; texture resolution does not compensate for poor UV density or muddy generation.
 - LODs preserve face, hands, weapon silhouette, and ancestry markers.
@@ -337,6 +347,7 @@ Every 3D AI Studio artifact records:
 - GitHub ticket and calling/race purpose;
 - task ID and dashboard project;
 - generation model/version and operation;
+- Smart Mesh enabled state, visible settings evidence, topology type, target quad faces, and pre/post face and triangle counts;
 - prompt, negative constraints, seed, and source-image hashes;
 - generation date, credit cost, owner account, and commercial-use status;
 - untouched source filename, format, byte size, and SHA-256;
@@ -351,17 +362,17 @@ Every 3D AI Studio artifact records:
 
 The first paid sequence is deliberately narrow:
 
-1. Prepare and approve masculine and feminine Human multi-view source sheets without submitting either generation.
-2. With a separate exact-cost approval, generate one owner-selected Human body candidate only.
+1. Prepare and approve the masculine and feminine Human Athletic/Muscular strict-T source sheets without submitting either generation.
+2. With exact-cost approval, generate one Smart Mesh candidate per approved pilot, never duplicate T/A bodies.
 3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
 5. Produce one shared starter tunic, one modest rigid Warrior guard, and one separate starter longsword.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
 8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
-9. With a separate approval, prove the counterpart Human body family and shared appearance layers before expanding ancestry bodies.
-10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
-11. Only after those gates pass, generate remaining ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
+9. After both Athletic/Muscular pilots pass, produce the remaining six Human build/presentation bodies under the same individually receipted gate.
+10. Do not generate Elf or Dwarf until the complete eight-body Human baseline passes; Halfling remains a separate future playable batch.
+11. Only after those gates pass, generate later ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
 
 Stop and request owner review when:
 
@@ -380,6 +391,8 @@ Stop and request owner review when:
 - [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
+- [ ] Smart Mesh P1.0, Quad Face, and the target face count are visible in submission evidence.
+- [ ] Canonical topology stays inside the approved 6,000-9,000-quad pilot range or has a recorded runtime-budget exception.
 - [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
 - [ ] Three facial structures share approved expression/deformation landmarks and the versioned neck seam.
 - [ ] At least six skin tones render consistently and carry no stat, morality, rarity, or class meaning.
@@ -401,6 +414,8 @@ No batch generation begins while any pilot-critical item remains unchecked.
 
 ## Vendor references
 
+- [Tripo Smart Mesh native quad topology](https://www.tripo3d.ai/features/smart-mesh)
+- [Tripo real-time retopology order and hero-character manual-pass guidance](https://www.tripo3d.ai/blog/ai-workflow-to-reduce-manual-retopology)
 - [3D AI Studio recommended workflow](https://docs.3daistudio.com/3d-generation/recommended-workflow)
 - [3D AI Studio image-to-3D and multi-view guidance](https://docs.3daistudio.com/3d-generation/image-to-3d)
 - [3D AI Studio remesh guidance](https://docs.3daistudio.com/processing/remesh)

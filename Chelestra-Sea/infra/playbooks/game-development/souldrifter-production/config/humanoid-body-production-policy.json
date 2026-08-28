@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "policyId": "souldrifter-humanoid-body-production-v1",
+  "checkedAt": "2026-08-28",
+  "appliesTo": [
+    "PLAYABLE_HUMANOID",
+    "HUMANOID_NPC",
+    "CANONICAL_BIPED_ANIMATION_FAMILY"
+  ],
+  "humanVisualSource": {
+    "style": "REALISTIC_ADULT_REALISTIC_FANTASY",
+    "shadowknightReferences": "REALISM_ANATOMY_FACE_MATERIAL_MOOD_ONLY",
+    "forbiddenReferenceTransfer": [
+      "ARMOR",
+      "CLASS_CLOTHING",
+      "WEAPON",
+      "EFFECTS",
+      "CLASS_IDENTITY"
+    ],
+    "baseBodyLayers": [
+      "BODY",
+      "TEMPORARY_NEUTRAL_HEAD",
+      "MODEST_OPAQUE_NEUTRAL_UNDERWEAR"
+    ],
+    "forbiddenBaseBodyLayers": [
+      "HAIR",
+      "ARMOR",
+      "CLASS_CLOTHING",
+      "BOOTS",
+      "GLOVES",
+      "BELT",
+      "JEWELRY",
+      "WEAPON",
+      "EFFECTS",
+      "PERMANENT_ACCESSORY"
+    ]
+  },
+  "tripo": {
+    "generationModel": "SMART_MESH_P1_0",
+    "requiredAtSubmission": true,
+    "topologyType": "QUAD_FACE",
+    "retopologyBeforePbr": true,
+    "retopologyBeforeRig": true,
+    "pilotQuadFaceTarget": 8000,
+    "pilotQuadFaceRange": {
+      "minimum": 6000,
+      "maximum": 9000
+    },
+    "desktopTriangleRange": {
+      "minimum": 12000,
+      "maximum": 18000
+    },
+    "mobileLodTriangleRange": {
+      "minimum": 7000,
+      "maximum": 10000
+    },
+    "settingsEvidenceRequired": [
+      "PROVIDER_MODEL_LABEL",
+      "SMART_MESH_ENABLED",
+      "QUAD_FACE_SELECTED",
+      "TARGET_FACE_COUNT",
+      "EXPECTED_CREDITS",
+      "CURRENT_BALANCE",
+      "OWNER_APPROVAL"
+    ],
+    "smartMeshIsAutomaticAcceptance": false,
+    "manualHeroLoopReviewRequired": true
+  },
+  "productionOrder": [
+    "STRICT_T_SOURCE_ACCEPTED",
+    "SMART_MESH_GENERATION",
+    "UNTOUCHED_SOURCE_HASHED",
+    "QUAD_RETOPOLOGY_TO_RECORDED_TARGET",
+    "MANUAL_HERO_LOOP_REPAIR_IF_REQUIRED",
+    "UV_AND_PBR",
+    "CANONICAL_RIG_AND_SKIN_IN_T_POSE",
+    "T_POSE_ARTIFACT_HASHED",
+    "SAME_RIG_A_POSE_DERIVED",
+    "A_POSE_ARTIFACT_HASHED",
+    "DUAL_POSE_DEFORMATION_AND_FIT_QA",
+    "RUNTIME_AND_PERFORMANCE_QA"
+  ],
+  "humanBaseline": {
+    "presentations": [
+      "MASCULINE",
+      "FEMININE"
+    ],
+    "builds": [
+      "SLIM",
+      "MEDIUM_NATURAL",
+      "ATHLETIC_MUSCULAR",
+      "THICK_LARGE_FRAMED"
+    ],
+    "canonicalMeshes": 8,
+    "poseArtifacts": 16,
+    "firstPilots": [
+      "human-masculine-athletic-muscular",
+      "human-feminine-athletic-muscular"
+    ]
+  },
+  "ancestryState": {
+    "initialProduction": [
+      "human",
+      "elf",
+      "dwarf"
+    ],
+    "futurePlayable": [
+      "halfling"
+    ],
+    "retiredFromPlayableBodyPlan": [
+      "drakkin"
+    ]
+  },
+  "officialReferences": [
+    "https://www.tripo3d.ai/features/smart-mesh",
+    "https://www.tripo3d.ai/blog/ai-workflow-to-reduce-manual-retopology"
+  ]
+}
