@@ -35,8 +35,8 @@ async function fixtureRoot() {
   return { root, atlas: join(atlasDir, "M-003_painted_atlas.png"), artDir };
 }
 
-function run(root, atlas, mode = "scroll", extra = []) {
-  return spawnSync(python, [generator, "--game-root", root, "--atlas", atlas, "--mode", mode, ...extra], {
+function run(root, atlas, extra = []) {
+  return spawnSync(python, [generator, "--game-root", root, "--atlas", atlas, ...extra], {
     encoding: "utf8",
     timeout: 30_000,
   });
@@ -79,10 +79,14 @@ describe("BREACH-V2 wall-art generator", () => {
     await expect(readFile(join(fixture.artDir, "art-map-thalenyr-scroll.webp"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
-  it("requires an explicit destructive acknowledgement for the legacy all-art mode", async () => {
+  it("rejects the removed legacy placeholder overwrite options", async () => {
     const fixture = await fixtureRoot();
-    const result = run(fixture.root, fixture.atlas, "legacy-all");
+    const result = run(fixture.root, fixture.atlas, [
+      "--mode", "legacy-all", "--acknowledge-placeholder-overwrite",
+    ]);
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("--acknowledge-placeholder-overwrite");
+    expect(result.stderr).toContain("unrecognized arguments");
+    expect(await readFile(join(fixture.artDir, "art-banner-ashen.webp"), "utf8"))
+      .toBe("approved-production-bytes");
   });
 });

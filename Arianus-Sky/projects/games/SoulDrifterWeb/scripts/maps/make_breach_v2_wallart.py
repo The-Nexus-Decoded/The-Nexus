@@ -1,13 +1,11 @@
-"""LEGACY BREACH-V2 placeholder wall-art generator.
+"""BREACH-V2 approved Thalenyr scroll wall-art generator.
 
 The shipped narrative paintings, tapestries, and reliefs are original
-lore-derived image-generation outputs. This script is retained only to explain
-the superseded placeholder provenance and to rebuild the approved Thalenyr
-scroll mount when explicitly requested. It refuses normal execution so it
-cannot overwrite the production art with labeled UI-style placeholders.
+lore-derived image-generation outputs and are never generated here. This script
+can rebuild only the approved Thalenyr scroll mount.
 
-Scroll-only rebuild:
-  python make_breach_v2_wallart.py --game-root ../.. --mode scroll \
+Rebuild:
+  python make_breach_v2_wallart.py --game-root ../.. \
     --atlas ../../public/lore-atlas/assets/M-003_painted_atlas.png
 """
 
@@ -21,7 +19,6 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-OUT_NAME = "art"  # under public/assets/textures/environment/breach-v2/
 PROJECT_NAME = "souldrifter-web"
 ATLAS_SHA256 = "88d5fe568603d41a677feddde964b588862e6418b2c8f818ea4fc20e5582913f"
 FONT_REGULAR_SHA256 = "ba5564634b93a8f8ba57b48cd4f1ae7417d2b4656fbac779028679b00de3cf12"
@@ -92,9 +89,8 @@ def validate_project(game_root, atlas):
     return registry
 
 
-def requested_builders(mode, atlas):
-    scroll = ("art-map-thalenyr-scroll", lambda: scroll_map("art-map-thalenyr-scroll", atlas))
-    return [scroll]
+def requested_builders(atlas):
+    return [("art-map-thalenyr-scroll", lambda: scroll_map("art-map-thalenyr-scroll", atlas))]
 
 
 def build_records(written):
@@ -153,14 +149,14 @@ def promote_files(staged_targets):
                 previous.unlink(missing_ok=True)
 
 
-def generate(game_root, atlas, mode):
+def generate(game_root, atlas):
     registry = validate_project(game_root, atlas)
     out_dir = game_root / "public/assets/textures/environment/breach-v2/art"
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".breach-v2-wallart-", dir=out_dir) as temp_dir:
         stage = Path(temp_dir)
         written = []
-        for art_id, build in requested_builders(mode, atlas):
+        for art_id, build in requested_builders(atlas):
             image = build()
             out = stage / f"{art_id}.webp"
             image.save(out, format="WEBP", quality=82, method=6, exact=True)
@@ -186,17 +182,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game-root", required=True, type=Path)
     parser.add_argument("--atlas", required=True, type=Path)
-    parser.add_argument("--mode", required=True, choices=("scroll", "legacy-all"))
-    parser.add_argument("--acknowledge-placeholder-overwrite", action="store_true")
-    args = parser.parse_args()
-    if args.mode == "legacy-all" and not args.acknowledge_placeholder_overwrite:
-        parser.error("legacy-all requires --acknowledge-placeholder-overwrite")
-    return args
+    return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    generate(args.game_root.expanduser().resolve(), args.atlas.expanduser().resolve(), args.mode)
+    generate(args.game_root.expanduser().resolve(), args.atlas.expanduser().resolve())
 
 
 if __name__ == "__main__":
