@@ -47,6 +47,13 @@ export function shouldRequireBreachV2Landscape(
   return coarsePointer && viewportHeight > viewportWidth;
 }
 
+export function shouldDockBreachV2PerformanceDetails(
+  coarsePointer: boolean,
+  viewportWidth: number,
+): boolean {
+  return coarsePointer || viewportWidth <= 760;
+}
+
 export function resolveBreachV2PinchDistance(
   currentDistance: number,
   previousSpan: number,
@@ -90,6 +97,8 @@ export function setupBreachV2SettingsPanel(options: {
   initialMode: BreachV2GraphicsMode;
   initialEffectiveQuality: BreachV2GraphicsQuality;
   initialStatsVisible: boolean;
+  performanceDetails?: HTMLElement;
+  dockPerformanceDetails?: boolean;
   onModeChange: (mode: BreachV2GraphicsMode) => void;
   onStatsVisibilityChange: (visible: boolean) => void;
 }): BreachV2SettingsPanel {
@@ -98,6 +107,8 @@ export function setupBreachV2SettingsPanel(options: {
     initialMode,
     initialEffectiveQuality,
     initialStatsVisible,
+    performanceDetails,
+    dockPerformanceDetails = false,
     onModeChange,
     onStatsVisibilityChange,
   } = options;
@@ -211,6 +222,19 @@ export function setupBreachV2SettingsPanel(options: {
     syncStats();
   });
   panel.append(title, toolsLabel, toolsGrid, qualityLabel, effective, qualityGrid, statsToggle);
+  if (dockPerformanceDetails && performanceDetails) {
+    const diagnosticsLabel = document.createElement("div");
+    diagnosticsLabel.textContent = "Live diagnostics";
+    diagnosticsLabel.style.cssText = "margin-top:14px;color:#9feaff;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase";
+    performanceDetails.dataset.presentation = "settings-docked";
+    performanceDetails.style.cssText = [
+      "position:static", "width:100%", "max-width:none", "margin-top:8px", "padding:8px 9px",
+      "box-sizing:border-box", "background:rgba(4,9,13,.72)", "border:1px solid rgba(127,232,255,.2)",
+      "color:#d8e8e6", "font:9px/1.4 ui-monospace,Consolas,monospace", "border-radius:9px",
+      "pointer-events:none", "white-space:pre-wrap", "overflow-wrap:anywhere", "box-shadow:none", "backdrop-filter:none",
+    ].join(";");
+    panel.append(diagnosticsLabel, performanceDetails);
+  }
   root.append(trigger, panel);
   container.appendChild(root);
   const setOpen = (open: boolean): void => {

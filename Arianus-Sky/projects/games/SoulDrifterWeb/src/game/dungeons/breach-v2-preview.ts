@@ -43,6 +43,7 @@ import {
   resolveBreachV2AutoGraphicsQuality,
   resolveBreachV2PinchDistance,
   resolveBreachV2TouchYaw,
+  shouldDockBreachV2PerformanceDetails,
   setupBreachV2MobileLandscapeGate,
   setupBreachV2MobileMovementPad,
   setupBreachV2SettingsPanel,
@@ -1991,6 +1992,8 @@ async function placeSectionDoors(
     leafHalfSpan: number;
     leafHeight: number;
     leafVerticalOffset: number;
+    closedLeafOffset: THREE.Vector3;
+    collisionBlocker: BreachV2PlanarCollider;
   }[] = [];
   for (const [index, door] of doors.entries()) {
     const floorY = floorElevationAt(layout, door.x, door.z);
@@ -2089,11 +2092,11 @@ async function placeSectionDoors(
     };
     instance.root.name = `section-${kind}-leaf-${door.id}`;
     pivot.rotation.y = closedYaw;
+    const closedLeafOffset = new THREE.Vector3(0, 0, leafHalfSpan)
+      .applyAxisAngle(new THREE.Vector3(0, 1, 0), closedYaw);
     if (kind === "door") {
       // Swing around the jamb-side hinge instead of rotating the leaf around
       // its centre. The paid model's leaf and hardware stay together.
-      const closedLeafOffset = new THREE.Vector3(0, 0, leafHalfSpan)
-        .applyAxisAngle(new THREE.Vector3(0, 1, 0), closedYaw);
       pivot.position.set(door.x - closedLeafOffset.x, floorY, door.z - closedLeafOffset.z);
       instance.root.position.set(0, leafVerticalOffset, leafHalfSpan);
     } else {
@@ -2102,6 +2105,34 @@ async function placeSectionDoors(
       pivot.position.set(door.x, floorY, door.z);
       instance.root.position.set(0, 0, 0);
     }
+    const collisionBlocker: BreachV2PlanarCollider = kind === "door"
+      ? buildBreachV2DoorLeafCollider({
+        id: door.id,
+        x: door.x,
+        z: door.z,
+        closedYaw,
+        progress: 0,
+        halfThickness: leafHalfThickness,
+        halfSpan: leafHalfSpan,
+        minY: floorY + leafVerticalOffset,
+        maxY: floorY + leafVerticalOffset + leafHeight,
+      })
+      : {
+        id: `portal:${door.id}:leaf`,
+        asset: "rusted-portcullis",
+        roomId: door.id,
+        ownerClass: "portal",
+        shape: "aabb",
+        minX: door.x - (door.axis === "x" ? leafHalfThickness : leafHalfSpan),
+        maxX: door.x + (door.axis === "x" ? leafHalfThickness : leafHalfSpan),
+        minZ: door.z - (door.axis === "x" ? leafHalfSpan : leafHalfThickness),
+        maxZ: door.z + (door.axis === "x" ? leafHalfSpan : leafHalfThickness),
+        minY: floorY,
+        maxY: floorY + leafHeight,
+        blocksMovement: true,
+        blocksLineOfSight: true,
+      };
+    collisionBlocker.blocksCamera = true;
     pivot.add(instance.root);
     scene.add(pivot);
     tickables.push(instance.animate);
@@ -2118,6 +2149,8 @@ async function placeSectionDoors(
       leafHalfSpan,
       leafHeight,
       leafVerticalOffset,
+      closedLeafOffset,
+      collisionBlocker,
     });
 
     if (door.routeChoice) {
@@ -2237,10 +2270,12 @@ async function placeSectionDoors(
       }
       state.progress += (target - state.progress) * animationAlpha;
       if (Math.abs(target - state.progress) < 0.001) state.progress = target;
-      const closedLeafOffset = new THREE.Vector3(0, 0, state.leafHalfSpan)
-        .applyAxisAngle(new THREE.Vector3(0, 1, 0), state.closedYaw);
       if (state.kind === "door") {
-        state.root.position.set(state.x - closedLeafOffset.x, state.floorY, state.z - closedLeafOffset.z);
+        state.root.position.set(
+          state.x - state.closedLeafOffset.x,
+          state.floorY,
+          state.z - state.closedLeafOffset.z,
+        );
         state.root.rotation.y = state.closedYaw + state.progress * (Math.PI / 2);
       } else {
         state.root.position.set(state.x, state.floorY + state.progress * (state.clearHeight + 0.42), state.z);
@@ -2262,6 +2297,32 @@ async function placeSectionDoors(
       // camera/projectile queries, but it no longer blocks actor eye-level LOS.
       state.root.userData.blocksMovement = blocksMovement;
       state.root.userData.blocksLineOfSight = blocksActorLineOfSight;
+      const blocker = state.collisionBlocker;
+      if (state.kind === "gate") {
+        blocker.minY = gateBottomY;
+        blocker.maxY = gateBottomY + state.leafHeight;
+        blocker.blocksCamera = true;
+      } else {
+        const yaw = state.closedYaw + state.progress * (Math.PI / 2);
+        const hingeX = state.x - Math.sin(state.closedYaw) * state.leafHalfSpan;
+        const hingeZ = state.z - Math.cos(state.closedYaw) * state.leafHalfSpan;
+        const centerX = hingeX + Math.sin(yaw) * state.leafHalfSpan;
+        const centerZ = hingeZ + Math.cos(yaw) * state.leafHalfSpan;
+        const extentX = Math.abs(Math.cos(yaw)) * state.leafHalfThickness
+          + Math.abs(Math.sin(yaw)) * state.leafHalfSpan;
+        const extentZ = Math.abs(Math.sin(yaw)) * state.leafHalfThickness
+          + Math.abs(Math.cos(yaw)) * state.leafHalfSpan;
+        blocker.minX = centerX - extentX;
+        blocker.maxX = centerX + extentX;
+        blocker.minZ = centerZ - extentZ;
+        blocker.maxZ = centerZ + extentZ;
+        blocker.centerX = centerX;
+        blocker.centerZ = centerZ;
+        blocker.yaw = yaw;
+        blocker.blocksCamera = blocksMovement;
+      }
+      blocker.blocksMovement = blocksMovement;
+      blocker.blocksLineOfSight = blocksActorLineOfSight;
       const routeMist = routeMistByDoorId.get(state.id);
       if (routeMist) {
         // The inactive route remains visibly sealed. The chosen route's mist
@@ -2303,48 +2364,11 @@ async function placeSectionDoors(
     if (!state.open && !authorizeDoor(state.id)) return state.id;
     return setOpen(state, !state.open) ? state.id : null;
   };
-  const getCollisionBlockers = (): BreachV2PlanarCollider[] => (
-    states.flatMap<BreachV2PlanarCollider>((state): BreachV2PlanarCollider[] => {
-      if (state.kind === "gate") {
-        const normalHalf = state.leafHalfThickness;
-        const spanHalf = state.leafHalfSpan;
-        const gateBottomY = state.floorY + state.progress * (state.clearHeight + 0.42);
-        return [{
-          id: `portal:${state.id}:leaf`,
-          asset: "rusted-portcullis",
-          roomId: state.id,
-          ownerClass: "portal" as const,
-          shape: "aabb" as const,
-          minX: state.x - (state.axis === "x" ? normalHalf : spanHalf),
-          maxX: state.x + (state.axis === "x" ? normalHalf : spanHalf),
-          minZ: state.z - (state.axis === "x" ? spanHalf : normalHalf),
-          maxZ: state.z + (state.axis === "x" ? spanHalf : normalHalf),
-          minY: gateBottomY,
-          maxY: gateBottomY + state.leafHeight,
-          blocksMovement: state.root.userData.blocksMovement === true,
-          blocksLineOfSight: state.root.userData.blocksLineOfSight === true,
-          blocksCamera: true,
-        }];
-      }
-
-      // Once the leaf is fully seated beside the aperture, the canonical jamb
-      // and wall solids already own its occupied space. Keeping a second leaf
-      // collider here can strand a capsule on narrow randomized connectors.
-      if (isBreachV2PortalReadyForTraversal(state.progress)) return [];
-
-      return [buildBreachV2DoorLeafCollider({
-        id: state.id,
-        x: state.x,
-        z: state.z,
-        closedYaw: state.closedYaw,
-        progress: state.progress,
-        halfThickness: state.leafHalfThickness,
-        halfSpan: state.leafHalfSpan,
-        minY: state.floorY + state.leafVerticalOffset,
-        maxY: state.floorY + state.leafVerticalOffset + state.leafHeight,
-      })];
-    })
-  );
+  // Keep portal collider identities stable. Rebuilding these objects every
+  // animation frame created garbage-collection hitches exactly while a door
+  // was opening; the animation tick now mutates only the changing bounds.
+  const collisionBlockers = states.map((state) => state.collisionBlocker);
+  const getCollisionBlockers = (): BreachV2PlanarCollider[] => collisionBlockers;
   return {
     tickables,
     cullables: [...states.map((state) => state.root), ...routeMists],
@@ -3968,6 +3992,7 @@ export async function startDungeonPreview(
     ...architecturalEnvironmentObjects,
     ...propPlacement.environmentObjects,
   ];
+  let runtimeCollisionRefreshRequested = true;
   syncEnvironmentState = (state) => {
     removedEnvironmentColliderIds = [...state.removedColliderIds];
     debrisCleanupDeadlineMs = state.debrisObjectIds.length > 0
@@ -3991,6 +4016,7 @@ export async function startDungeonPreview(
         object.pickupRoot.visible = state.pickupDropped && !state.pickupCollected;
       }
     }
+    runtimeCollisionRefreshRequested = true;
   };
   syncEnvironmentState(gameplay.snapshot().environment);
   let playerPositionForPortalSafety: { x: number; z: number } | null = null;
@@ -4088,6 +4114,7 @@ export async function startDungeonPreview(
     ...getBreachV2VisibleCameraColliders(cameraOnlyColliders, ceilingsVisible),
   ];
   let runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+  runtimeCollisionRefreshRequested = false;
   // The generator's 1.75 m cells prove whole-zone reachability, but they are
   // too coarse for click paths around a player-radius dogleg. Plan at half a
   // nav cell while retaining the exact same floor, blocker, and door predicate
@@ -4478,6 +4505,8 @@ export async function startDungeonPreview(
     initialMode: graphicsMode,
     initialEffectiveQuality: graphicsQuality,
     initialStatsVisible: statsVisible,
+    performanceDetails: hud,
+    dockPerformanceDetails: shouldDockBreachV2PerformanceDetails(coarsePointer, window.innerWidth),
     onModeChange: (mode) => {
       graphicsMode = mode;
       window.localStorage.setItem("breach-v2-graphics-mode", mode);
@@ -4809,8 +4838,11 @@ export async function startDungeonPreview(
       if (debrisCleanupDeadlineMs > 0 && frameMs >= debrisCleanupDeadlineMs) {
         gameplay.cleanupEnvironmentDebris();
       }
-      runtimeCollisionBlockers = getRuntimeCollisionBlockers();
-      hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+      if (runtimeCollisionRefreshRequested) {
+        runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+        hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+        runtimeCollisionRefreshRequested = false;
+      }
       if (walkMode && player) {
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");

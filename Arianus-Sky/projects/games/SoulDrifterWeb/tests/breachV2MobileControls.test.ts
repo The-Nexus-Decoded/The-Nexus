@@ -8,6 +8,7 @@ import {
   resolveBreachV2CameraStep,
   resolveBreachV2PinchDistance,
   resolveBreachV2TouchYaw,
+  shouldDockBreachV2PerformanceDetails,
   shouldRequireBreachV2Landscape,
 } from "../src/game/dungeons/breach-v2-mobile-controls";
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
@@ -44,6 +45,12 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
     expect(shouldRequireBreachV2Landscape(true, 390, 844)).toBe(true);
     expect(shouldRequireBreachV2Landscape(true, 844, 390)).toBe(false);
     expect(shouldRequireBreachV2Landscape(false, 390, 844)).toBe(false);
+  });
+
+  it("docks performance diagnostics away from the playfield on phone and narrow layouts", () => {
+    expect(shouldDockBreachV2PerformanceDetails(true, 844)).toBe(true);
+    expect(shouldDockBreachV2PerformanceDetails(false, 640)).toBe(true);
+    expect(shouldDockBreachV2PerformanceDetails(false, 1280)).toBe(false);
   });
 
   it("rotates yaw only after the deliberate touch-drag threshold", () => {
