@@ -1,0 +1,1237 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "assetClass": "HUMAN_ANIMATION_SOURCE_DERIVED_CANDIDATES",
+  "sourceDerivedOnly": true,
+  "visualReviewStatus": "REQUIRED",
+  "productionApproval": false,
+  "blenderVersion": "5.2.1 LTS",
+  "script": "H:\\CodexData\\.codex\\worktrees\\487\\The-Nexus-human-animation-pilot\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\scripts\\build-human-animation-gap-utility.py",
+  "scriptSha256": "3936008D91A60207491174594BEA076B8D728F9CF5A9205AEB7CEC138A91378E",
+  "sourceLibrary": {
+    "path": "H:\\CodexData\\.codex\\worktrees\\487\\The-Nexus-human-animation-pilot\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\public\\assets\\3d\\animations\\human-foundation-pilot\\human-foundation-pilot-animation-library.glb",
+    "bytes": 32441884,
+    "sha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "clipCount": 400,
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ]
+  },
+  "coveredRequirements": [
+    "death.drowning",
+    "interaction.chop",
+    "interaction.door.lock-unlock",
+    "interaction.lift-carry-place",
+    "interaction.lockpick",
+    "interaction.loot-inspect",
+    "interaction.mine",
+    "interaction.valve",
+    "locomotion.dodge.directional",
+    "locomotion.fall.loop",
+    "locomotion.land.running",
+    "locomotion.shimmy",
+    "locomotion.stairs",
+    "locomotion.start-stop",
+    "npc.farewell",
+    "npc.listen",
+    "water.dive",
+    "water.surface.open",
+    "water.underwater-swim"
+  ],
+  "clipCount": 31,
+  "clips": [
+    {
+      "clipName": "GapUtility__ShimmyLeftCandidate",
+      "requirements": [
+        "locomotion.shimmy"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop",
+          "poseSampleSha256": "E3C5F5F68024220CC74ECD1271484E0D92A59DC7094A54020855FDC1AE297608"
+        }
+      ],
+      "transform": {
+        "operation": "two-cycle ladder-limb motion with source vertical root delta remapped to left lateral travel"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Shimmy Left",
+      "semanticRowIds": [
+        "locomotion.shimmy"
+      ],
+      "derivedActionName": "GapUtility__ShimmyLeftCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 4.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "749ED5E11237B99D1B9F2BFAC16D7AD7B7BF651744934178FBD5CC86B33C51EE"
+    },
+    {
+      "clipName": "GapUtility__ShimmyRightCandidate",
+      "requirements": [
+        "locomotion.shimmy"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop",
+          "poseSampleSha256": "E3C5F5F68024220CC74ECD1271484E0D92A59DC7094A54020855FDC1AE297608"
+        }
+      ],
+      "transform": {
+        "operation": "two-cycle ladder-limb motion with source vertical root delta remapped to right lateral travel"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Shimmy Right",
+      "semanticRowIds": [
+        "locomotion.shimmy"
+      ],
+      "derivedActionName": "GapUtility__ShimmyRightCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 4.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "D7478989EF951852CCD215E24059228E7420D206E6B89F12C7232B570AFBB126"
+    },
+    {
+      "clipName": "GapUtility__WaterDiveCandidate",
+      "requirements": [
+        "water.dive"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProMagic__StandingJumpRunning",
+        "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProMagic__StandingJumpRunning",
+          "poseSampleSha256": "AD8BAB6ADF0F4D90A1373D8ACF11D6C3DB3FF0EFEDE3C0A1732E55915558F73F"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+          "poseSampleSha256": "A830D912BF94D1981471892AE6DD04E0174AA9AE9ECB99AB8FB29F2236B64C61"
+        }
+      ],
+      "transform": {
+        "operation": "trim running jump before landing, crossfade to swim stroke, then apply 0.55m source-root descent"
+      },
+      "frameRange": [
+        1.0,
+        73.0
+      ],
+      "fps": 30,
+      "displayLabel": "Water Dive",
+      "semanticRowIds": [
+        "water.dive"
+      ],
+      "derivedActionName": "GapUtility__WaterDiveCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.43,
+        "cameraFraming": "full-body side three-quarter view with waterline and root displacement visible"
+      },
+      "generatedPoseSampleSha256": "EB411F31C62897EC6B5B3BDA2311EDD94C9279C136F2F49E291DD219808A1708"
+    },
+    {
+      "clipName": "GapUtility__UnderwaterSwimCandidate",
+      "requirements": [
+        "water.underwater-swim"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+          "poseSampleSha256": "A830D912BF94D1981471892AE6DD04E0174AA9AE9ECB99AB8FB29F2236B64C61"
+        }
+      ],
+      "transform": {
+        "operation": "preserve swim stroke and forward root motion with 0.45m depth bias and 0.06m depth cycle"
+      },
+      "frameRange": [
+        1.0,
+        110.0
+      ],
+      "fps": 30,
+      "displayLabel": "Underwater Swim",
+      "semanticRowIds": [
+        "water.underwater-swim"
+      ],
+      "derivedActionName": "GapUtility__UnderwaterSwimCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 7.33,
+        "cameraFraming": "full-body side three-quarter view with waterline and root displacement visible"
+      },
+      "generatedPoseSampleSha256": "E3CC75256204D6F09593F06E9E0C1B391109CD08AF0F7658817EA5BCE5AA5427"
+    },
+    {
+      "clipName": "GapUtility__OpenWaterSurfaceCandidate",
+      "requirements": [
+        "water.surface.open"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+        "Interactions__HumanMasculineAthleticMuscularSwimIdleTread"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+          "poseSampleSha256": "A830D912BF94D1981471892AE6DD04E0174AA9AE9ECB99AB8FB29F2236B64C61"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularSwimIdleTread",
+          "poseSampleSha256": "0315CFDD50FD24F76143A2577FD56F67B16BBDF133EDB47D023756CEA5E5AE2C"
+        }
+      ],
+      "transform": {
+        "operation": "blend submerged forward stroke into aligned tread while removing 0.45m depth bias"
+      },
+      "frameRange": [
+        1.0,
+        65.0
+      ],
+      "fps": 30,
+      "displayLabel": "Open Water Surface",
+      "semanticRowIds": [
+        "water.surface.open"
+      ],
+      "derivedActionName": "GapUtility__OpenWaterSurfaceCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.17,
+        "cameraFraming": "full-body side three-quarter view with waterline and root displacement visible"
+      },
+      "generatedPoseSampleSha256": "0C909CEBA6380EB76D7543ED956CED742443FE2CB8AF26CB613CB8C945BD2A6B"
+    },
+    {
+      "clipName": "GapUtility__DrowningCandidate",
+      "requirements": [
+        "death.drowning"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularSwimIdleTread",
+        "Interactions__HumanMasculineAthleticMuscularDeathBack"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularSwimIdleTread",
+          "poseSampleSha256": "0315CFDD50FD24F76143A2577FD56F67B16BBDF133EDB47D023756CEA5E5AE2C"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularDeathBack",
+          "poseSampleSha256": "DFA841B00F0CDD99FBE4066A9E3A8E6126E910BDD062D7F443393FA9F37D18EE"
+        }
+      ],
+      "transform": {
+        "operation": "tread struggle crossfaded to aligned backward collapse with terminal 0.9m sink"
+      },
+      "frameRange": [
+        1.0,
+        121.0
+      ],
+      "fps": 30,
+      "displayLabel": "Drowning",
+      "semanticRowIds": [
+        "death.drowning"
+      ],
+      "derivedActionName": "GapUtility__DrowningCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 5.03,
+        "cameraFraming": "full-body side three-quarter view with waterline and root displacement visible"
+      },
+      "generatedPoseSampleSha256": "B3F3C103224C724A45CB55E9DA9C8BE5BF158DFBC7C8718E7E68AB30864F7DED"
+    },
+    {
+      "clipName": "GapUtility__DoorLockCandidate",
+      "requirements": [
+        "interaction.door.lock-unlock"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPushButton"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPushButton",
+          "poseSampleSha256": "7C09EA6422ACD290D2AC54F5C2FED6CB1BA3803BB4BDB1D53C6BACD0E020B781"
+        }
+      ],
+      "transform": {
+        "operation": "button reach retimed forward with deterministic right wrist and forearm key-turn arc"
+      },
+      "frameRange": [
+        1.0,
+        61.0
+      ],
+      "fps": 30,
+      "displayLabel": "Door Lock",
+      "semanticRowIds": [
+        "interaction.door.lock-unlock"
+      ],
+      "derivedActionName": "GapUtility__DoorLockCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.03,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "F90C7EF24FFF18CF3BD89CE93C0C80DE9EF8A1598938FC239A818A9AE2C1D851"
+    },
+    {
+      "clipName": "GapUtility__DoorUnlockCandidate",
+      "requirements": [
+        "interaction.door.lock-unlock"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPushButton"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPushButton",
+          "poseSampleSha256": "7C09EA6422ACD290D2AC54F5C2FED6CB1BA3803BB4BDB1D53C6BACD0E020B781"
+        }
+      ],
+      "transform": {
+        "operation": "button reach reversed with opposing deterministic right wrist and forearm key-turn arc"
+      },
+      "frameRange": [
+        1.0,
+        61.0
+      ],
+      "fps": 30,
+      "displayLabel": "Door Unlock",
+      "semanticRowIds": [
+        "interaction.door.lock-unlock"
+      ],
+      "derivedActionName": "GapUtility__DoorUnlockCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.03,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "7400D473CEE15E392F9414633FF816B3B68741AD997229EB96575D3F59C6D70A"
+    },
+    {
+      "clipName": "GapUtility__LockpickCandidate",
+      "requirements": [
+        "interaction.lockpick"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProMagic__CrouchIdle",
+        "Interactions__HumanMasculineAthleticMuscularHarvest"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProMagic__CrouchIdle",
+          "poseSampleSha256": "5F23DF076D239935C91006887C9B24F620FA39911ABDB989113D440E9C79D58F"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularHarvest",
+          "poseSampleSha256": "A173B4D38936E6289067284F5527A2AEAF41F33637525E861AC77308B63CB0C5"
+        }
+      ],
+      "transform": {
+        "operation": "crouch lower-body loop with 78% two-cycle harvest hand-motion upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Lockpick",
+      "semanticRowIds": [
+        "interaction.lockpick"
+      ],
+      "derivedActionName": "GapUtility__LockpickCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "6155CA0E1D27773433C86B11C146DB53473D0756853C9BE699A085D31108D07E"
+    },
+    {
+      "clipName": "GapUtility__ValveTurnCandidate",
+      "requirements": [
+        "interaction.valve"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPullLever"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPullLever",
+          "poseSampleSha256": "3309EC8F020BFC33505DA887EDC90909894B19813EA32FE79684A39921132B7A"
+        }
+      ],
+      "transform": {
+        "operation": "two ping-pong lever cycles with opposing 0.42-radian hand arcs"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Valve Turn",
+      "semanticRowIds": [
+        "interaction.valve"
+      ],
+      "derivedActionName": "GapUtility__ValveTurnCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "94E6AD66AB3204B53A203F0AECF860D642656FDA46F3FE40F115999A17540834"
+    },
+    {
+      "clipName": "GapUtility__MiningCandidate",
+      "requirements": [
+        "interaction.mine"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProMeleeAxe__StandingMeleeAttackDownward"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProMeleeAxe__StandingMeleeAttackDownward",
+          "poseSampleSha256": "B63051D64E3AD86DDA0C3D473BB8A4EE6F4BB8BD4D7027F2724FECED9CCEBC54"
+        }
+      ],
+      "transform": {
+        "operation": "two complete downward axe-contact cycles"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Mining",
+      "semanticRowIds": [
+        "interaction.mine"
+      ],
+      "derivedActionName": "GapUtility__MiningCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "8E23F097472812B46A80E87F37F535A318D507E18C761D2E81EBEAC5A2902649"
+    },
+    {
+      "clipName": "GapUtility__WoodChopCandidate",
+      "requirements": [
+        "interaction.chop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProMeleeAxe__StandingMeleeAttackHorizontal"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProMeleeAxe__StandingMeleeAttackHorizontal",
+          "poseSampleSha256": "68FE1ABD4CF8DE299B215554A39B5E776D6548A6C6AFF61B405980F939C9DDD4"
+        }
+      ],
+      "transform": {
+        "operation": "two complete horizontal axe-contact cycles"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Wood Chop",
+      "semanticRowIds": [
+        "interaction.chop"
+      ],
+      "derivedActionName": "GapUtility__WoodChopCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "7D10B1B4DC4804117A1D62553DB269FB0B0FC3AED3EA10B5D30B42CEF83EE5AC"
+    },
+    {
+      "clipName": "GapUtility__LiftCandidate",
+      "requirements": [
+        "interaction.lift-carry-place"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPickupObject"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPickupObject",
+          "poseSampleSha256": "4D54F3D7006179BE08ADF21C74FEA57E3EF63F44398C52CD685FB722643CD0F0"
+        }
+      ],
+      "transform": {
+        "operation": "complete source heavy-object pickup"
+      },
+      "frameRange": [
+        1.0,
+        73.0
+      ],
+      "fps": 30,
+      "displayLabel": "Lift",
+      "semanticRowIds": [
+        "interaction.lift-carry-place"
+      ],
+      "derivedActionName": "GapUtility__LiftCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.43,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "21353E07383FE7C5B94567AEAAC6BDD403CF1574543C45C7D08036B97F2BE9CB"
+    },
+    {
+      "clipName": "GapUtility__CarryLoopCandidate",
+      "requirements": [
+        "interaction.lift-carry-place"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPickupObject",
+        "BasicLocomotion__Walking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPickupObject",
+          "poseSampleSha256": "4D54F3D7006179BE08ADF21C74FEA57E3EF63F44398C52CD685FB722643CD0F0"
+        },
+        {
+          "clipName": "BasicLocomotion__Walking",
+          "poseSampleSha256": "CFC06BB7AA2CDBCE1228B84DD2A3136F0ED212F181ABF40FA4D0A9F1FCBA713E"
+        }
+      ],
+      "transform": {
+        "operation": "two-cycle walk lower body with held-object pickup pose upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Carry Loop",
+      "semanticRowIds": [
+        "interaction.lift-carry-place"
+      ],
+      "derivedActionName": "GapUtility__CarryLoopCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "B385A383B4404A2870C7B4976F2BE9FBC6441E90AAADE95E894737E4434B0B43"
+    },
+    {
+      "clipName": "GapUtility__PlaceCandidate",
+      "requirements": [
+        "interaction.lift-carry-place"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPickupObject"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPickupObject",
+          "poseSampleSha256": "4D54F3D7006179BE08ADF21C74FEA57E3EF63F44398C52CD685FB722643CD0F0"
+        }
+      ],
+      "transform": {
+        "operation": "time-reversed heavy-object pickup for controlled placement"
+      },
+      "frameRange": [
+        1.0,
+        73.0
+      ],
+      "fps": 30,
+      "displayLabel": "Place",
+      "semanticRowIds": [
+        "interaction.lift-carry-place"
+      ],
+      "derivedActionName": "GapUtility__PlaceCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.43,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "A70BB99F7D61F9FB6569DEF33BFD133D0EF483D853E8E2ECE81E76B78CC1456A"
+    },
+    {
+      "clipName": "GapUtility__NpcListenCandidate",
+      "requirements": [
+        "npc.listen"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+        "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+          "poseSampleSha256": "87358D1BBF4C34A9E42A9836E7721A79B8AF0A7D266CD6612B3C032D8C0655D3"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful",
+          "poseSampleSha256": "C0265D2F4991FD522D8E2F77AD6B44B6910AD99569E3F79C8A322C1C9E74A402"
+        }
+      ],
+      "transform": {
+        "operation": "relaxed idle with 45% thoughtful-nod upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        121.0
+      ],
+      "fps": 30,
+      "displayLabel": "Npc Listen",
+      "semanticRowIds": [
+        "npc.listen"
+      ],
+      "derivedActionName": "GapUtility__NpcListenCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 8.07,
+        "cameraFraming": "chest-up three-quarter view with face and both hands visible"
+      },
+      "generatedPoseSampleSha256": "FB962F266D304CA30CCE9813460B26C22CD57D221237834AAF55D8B9D7D11CCF"
+    },
+    {
+      "clipName": "GapUtility__NpcFarewellCandidate",
+      "requirements": [
+        "npc.farewell"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularWaveGreeting"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularWaveGreeting",
+          "poseSampleSha256": "F2820C372585AC3DE5B31347C4EBB6B4A88942305D4626DDD8E09BED05850566"
+        }
+      ],
+      "transform": {
+        "operation": "time-reversed greeting wave to produce neutral-to-dismissive farewell cadence"
+      },
+      "frameRange": [
+        1.0,
+        121.0
+      ],
+      "fps": 30,
+      "displayLabel": "Npc Farewell",
+      "semanticRowIds": [
+        "npc.farewell"
+      ],
+      "derivedActionName": "GapUtility__NpcFarewellCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 5.03,
+        "cameraFraming": "chest-up three-quarter view with face and both hands visible"
+      },
+      "generatedPoseSampleSha256": "A2DB0640A41E5D7C008ACEF4A061184BCE02A2320452047BFA4277A77FAB271F"
+    },
+    {
+      "clipName": "GapUtility__WalkStartCandidate",
+      "requirements": [
+        "locomotion.start-stop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Shooter__StartWalking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Shooter__StartWalking",
+          "poseSampleSha256": "B8AEF028AB63DE3899D391528B364C89096AA9527D53DC506495947A2991C32D"
+        }
+      ],
+      "transform": {
+        "operation": "complete source walk-start transition"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Walk Start",
+      "semanticRowIds": [
+        "locomotion.start-stop"
+      ],
+      "derivedActionName": "GapUtility__WalkStartCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "D3EEFE57F704DAE65DD6F7274CD8DDED92B8A7292D07162C9DE4A5E676682A93"
+    },
+    {
+      "clipName": "GapUtility__WalkStopCandidate",
+      "requirements": [
+        "locomotion.start-stop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Shooter__StopWalking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Shooter__StopWalking",
+          "poseSampleSha256": "761E784F4DEAC9792D1BD709568445EC00BD356651F491AC32FEB03B0E05B398"
+        }
+      ],
+      "transform": {
+        "operation": "complete source walk-stop transition"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Walk Stop",
+      "semanticRowIds": [
+        "locomotion.start-stop"
+      ],
+      "derivedActionName": "GapUtility__WalkStopCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "4FDC04A46B9CC49F18EFC800FBD4329D023B9A12CF46EB79E37DB8016638770F"
+    },
+    {
+      "clipName": "GapUtility__RunStartCandidate",
+      "requirements": [
+        "locomotion.start-stop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Shooter__StartWalking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Shooter__StartWalking",
+          "poseSampleSha256": "B8AEF028AB63DE3899D391528B364C89096AA9527D53DC506495947A2991C32D"
+        }
+      ],
+      "transform": {
+        "operation": "walk-start retimed to 75% duration with forward root displacement scaled 1.65x"
+      },
+      "frameRange": [
+        1.0,
+        37.0
+      ],
+      "fps": 30,
+      "displayLabel": "Run Start",
+      "semanticRowIds": [
+        "locomotion.start-stop"
+      ],
+      "derivedActionName": "GapUtility__RunStartCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "5E602FB17F58EBE2E48B244DF629A62841CF259F9736B42011DF37FB033EC1FD"
+    },
+    {
+      "clipName": "GapUtility__RunStopCandidate",
+      "requirements": [
+        "locomotion.start-stop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingRunForwardStop"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingRunForwardStop",
+          "poseSampleSha256": "A4662243302ED1514736159A4DE0774F16D1A4E30FA38FCEC01E3242C5DD95D5"
+        }
+      ],
+      "transform": {
+        "operation": "complete source run-to-stop transition"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Run Stop",
+      "semanticRowIds": [
+        "locomotion.start-stop"
+      ],
+      "derivedActionName": "GapUtility__RunStopCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "64AC273BBDA62481BE36A1BC0098C375AA71ADDAE5C01932BF074F3F19F1A7B0"
+    },
+    {
+      "clipName": "GapUtility__NeutralFallLoopCandidate",
+      "requirements": [
+        "locomotion.fall.loop"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__FallALandToStandingIdle01"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__FallALandToStandingIdle01",
+          "poseSampleSha256": "021A60038F05E15F5419B4E6229388C84C352EB1630AB56DDD421AC5EF45C8C0"
+        }
+      ],
+      "transform": {
+        "operation": "first 36% airborne window ping-ponged twice with root translation held in-place"
+      },
+      "frameRange": [
+        1.0,
+        65.0
+      ],
+      "fps": 30,
+      "displayLabel": "Neutral Fall Loop",
+      "semanticRowIds": [
+        "locomotion.fall.loop"
+      ],
+      "derivedActionName": "GapUtility__NeutralFallLoopCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 4.33,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "B0C4FE15041C2456ACF370DB941FEFDB78B2019C0A75102169DE348F11FC233C"
+    },
+    {
+      "clipName": "GapUtility__NeutralLandToRunCandidate",
+      "requirements": [
+        "locomotion.land.running"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__FallALandToRunForward",
+        "MaleLocomotion__StandardRun"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__FallALandToRunForward",
+          "poseSampleSha256": "CED47AE7892ED109BBC6306E20E5D27B4B9F384CD4A4595C1ABB56D71CB7EF2D"
+        },
+        {
+          "clipName": "MaleLocomotion__StandardRun",
+          "poseSampleSha256": "18AA5F9AC88EF5CDF9448106BD1C315833A5CACD392B198315B690B028B5F722"
+        }
+      ],
+      "transform": {
+        "operation": "source land-to-run with upper body crossfaded to neutral run after foot contact"
+      },
+      "frameRange": [
+        1.0,
+        73.0
+      ],
+      "fps": 30,
+      "displayLabel": "Neutral Land To Run",
+      "semanticRowIds": [
+        "locomotion.land.running"
+      ],
+      "derivedActionName": "GapUtility__NeutralLandToRunCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.43,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "FF0A034D045E97EBB1A2DBE953048A89627146474412C5E84B97B81DBBD298EC"
+    },
+    {
+      "clipName": "GapUtility__DodgeForwardCandidate",
+      "requirements": [
+        "locomotion.dodge.directional"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingDodgeForward",
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingDodgeForward",
+          "poseSampleSha256": "9D152B415139608F8875E04E276EF07B4C546AB2398289EF1121ED58EC8F5BAE"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+          "poseSampleSha256": "87358D1BBF4C34A9E42A9836E7721A79B8AF0A7D266CD6612B3C032D8C0655D3"
+        }
+      ],
+      "transform": {
+        "operation": "source directional dodge with 60% neutral idle upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Dodge Forward",
+      "semanticRowIds": [
+        "locomotion.dodge.directional"
+      ],
+      "derivedActionName": "GapUtility__DodgeForwardCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "A89D32DBD603CD5F6DA59063BE66A112BF56DAA9CA816D38384316871266BD83"
+    },
+    {
+      "clipName": "GapUtility__DodgeBackwardCandidate",
+      "requirements": [
+        "locomotion.dodge.directional"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingDodgeBackward",
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingDodgeBackward",
+          "poseSampleSha256": "27CE0A743EFCE79E061AA19562E656E2B0CE8B2FCECA23DA85C4B12AD0B9752C"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+          "poseSampleSha256": "87358D1BBF4C34A9E42A9836E7721A79B8AF0A7D266CD6612B3C032D8C0655D3"
+        }
+      ],
+      "transform": {
+        "operation": "source directional dodge with 60% neutral idle upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Dodge Backward",
+      "semanticRowIds": [
+        "locomotion.dodge.directional"
+      ],
+      "derivedActionName": "GapUtility__DodgeBackwardCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "4B417BAAA2EC6A6AFCF50BDE7DC028F607B7BFF31711413A8D4DB9E5FBAE8448"
+    },
+    {
+      "clipName": "GapUtility__DodgeLeftCandidate",
+      "requirements": [
+        "locomotion.dodge.directional"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingDodgeLeft",
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingDodgeLeft",
+          "poseSampleSha256": "9045E2DB51C35690B0A7B38D821D4457DDFE99BC28AA5F6FF81C5315D3F136E7"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+          "poseSampleSha256": "87358D1BBF4C34A9E42A9836E7721A79B8AF0A7D266CD6612B3C032D8C0655D3"
+        }
+      ],
+      "transform": {
+        "operation": "source directional dodge with 60% neutral idle upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Dodge Left",
+      "semanticRowIds": [
+        "locomotion.dodge.directional"
+      ],
+      "derivedActionName": "GapUtility__DodgeLeftCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "18E845089A30612495BED3F4FA0B835F2D2FD6EE2791D536CE8E67647F49642D"
+    },
+    {
+      "clipName": "GapUtility__DodgeRightCandidate",
+      "requirements": [
+        "locomotion.dodge.directional"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingDodgeRight",
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingDodgeRight",
+          "poseSampleSha256": "39B09560B444B1463230BB39A547FFAAFEFDA337D9373579BA0F4318D2F72E98"
+        },
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+          "poseSampleSha256": "87358D1BBF4C34A9E42A9836E7721A79B8AF0A7D266CD6612B3C032D8C0655D3"
+        }
+      ],
+      "transform": {
+        "operation": "source directional dodge with 60% neutral idle upper-body overlay"
+      },
+      "frameRange": [
+        1.0,
+        49.0
+      ],
+      "fps": 30,
+      "displayLabel": "Dodge Right",
+      "semanticRowIds": [
+        "locomotion.dodge.directional"
+      ],
+      "derivedActionName": "GapUtility__DodgeRightCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 3.0,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "D87C00750959642ED41C70E26065C66AB6DB319C8C9F8F7BF3AD049BCB5CDBB3"
+    },
+    {
+      "clipName": "GapUtility__StairsAscendCandidate",
+      "requirements": [
+        "locomotion.stairs"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "BasicLocomotion__Walking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "BasicLocomotion__Walking",
+          "poseSampleSha256": "CFC06BB7AA2CDBCE1228B84DD2A3136F0ED212F181ABF40FA4D0A9F1FCBA713E"
+        }
+      ],
+      "transform": {
+        "operation": "two walk cycles with forward root distance remapped to 42% vertical ascent plus four-step contact bob"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Stairs Ascend",
+      "semanticRowIds": [
+        "locomotion.stairs"
+      ],
+      "derivedActionName": "GapUtility__StairsAscendCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "10F3BBCBD58456D18A11B85D32D5BFEE9D4AF246417D17F9DA5600E804279EAB"
+    },
+    {
+      "clipName": "GapUtility__StairsDescendCandidate",
+      "requirements": [
+        "locomotion.stairs"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "BasicLocomotion__Walking"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "BasicLocomotion__Walking",
+          "poseSampleSha256": "CFC06BB7AA2CDBCE1228B84DD2A3136F0ED212F181ABF40FA4D0A9F1FCBA713E"
+        }
+      ],
+      "transform": {
+        "operation": "two walk cycles with forward root distance remapped to 42% vertical descent plus four-step contact bob"
+      },
+      "frameRange": [
+        1.0,
+        97.0
+      ],
+      "fps": 30,
+      "displayLabel": "Stairs Descend",
+      "semanticRowIds": [
+        "locomotion.stairs"
+      ],
+      "derivedActionName": "GapUtility__StairsDescendCandidate",
+      "playbackIntent": "LOOP",
+      "recommendedPreview": {
+        "durationSeconds": 6.47,
+        "cameraFraming": "full-body side view with root travel and both foot contacts visible"
+      },
+      "generatedPoseSampleSha256": "9A32C9344F84356A20B930B33E368D86EFEA0436A87CDE722D61D00CEE4ED374"
+    },
+    {
+      "clipName": "GapUtility__LootInspectGroundCandidate",
+      "requirements": [
+        "interaction.loot-inspect"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "Interactions__HumanMasculineAthleticMuscularPickupItem",
+        "ProLongbow__StandingIdle03Examine"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "Interactions__HumanMasculineAthleticMuscularPickupItem",
+          "poseSampleSha256": "28D9E886FC039997F7C6858D96C594914AA502D775AE088291356A78BDAAC747"
+        },
+        {
+          "clipName": "ProLongbow__StandingIdle03Examine",
+          "poseSampleSha256": "3B721D3E59331269EC559B5BF5C6D453AF8956B50D4E8F1E8C4C5CB355884899"
+        }
+      ],
+      "transform": {
+        "operation": "ground pickup followed by upper-body crossfade into source examination"
+      },
+      "frameRange": [
+        1.0,
+        121.0
+      ],
+      "fps": 30,
+      "displayLabel": "Loot Inspect Ground",
+      "semanticRowIds": [
+        "interaction.loot-inspect"
+      ],
+      "derivedActionName": "GapUtility__LootInspectGroundCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 5.03,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "E2386847C90E1C1B942D762677B8B99B419D33C1383E3E44961C19AE6EC71855"
+    },
+    {
+      "clipName": "GapUtility__LootInspectStandingCandidate",
+      "requirements": [
+        "interaction.loot-inspect"
+      ],
+      "candidateStatus": "SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED",
+      "sourceActionNames": [
+        "ProLongbow__StandingIdle03Examine"
+      ],
+      "sourceActions": [
+        {
+          "clipName": "ProLongbow__StandingIdle03Examine",
+          "poseSampleSha256": "3B721D3E59331269EC559B5BF5C6D453AF8956B50D4E8F1E8C4C5CB355884899"
+        }
+      ],
+      "transform": {
+        "operation": "complete source standing examination"
+      },
+      "frameRange": [
+        1.0,
+        121.0
+      ],
+      "fps": 30,
+      "displayLabel": "Loot Inspect Standing",
+      "semanticRowIds": [
+        "interaction.loot-inspect"
+      ],
+      "derivedActionName": "GapUtility__LootInspectStandingCandidate",
+      "playbackIntent": "ONE_SHOT",
+      "recommendedPreview": {
+        "durationSeconds": 5.03,
+        "cameraFraming": "full-body three-quarter view with both hands, contact target, and feet visible"
+      },
+      "generatedPoseSampleSha256": "560F54A2E40E888A4FF04C98DFCFEE3F94C64F2E23D1362F33115B3CB1371F60"
+    }
+  ],
+  "output": {
+    "path": "H:\\CodexData\\.codex\\worktrees\\487\\The-Nexus-human-animation-pilot\\Arianus-Sky\\projects\\games\\SoulDrifterWeb\\public\\assets\\3d\\animations\\human-foundation-pilot\\human-foundation-pilot-gap-utility-candidates.glb",
+    "bytes": 2908496,
+    "sha256": "DEC6417F18D1B549048539CEAE0508D85F66BC5510D1120B0AFF25D02D4EC3C9"
+  },
+  "reimportValidation": {
+    "passed": true,
+    "armatureCount": 1,
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ],
+    "clipCount": 31,
+    "clipNames": [
+      "GapUtility__CarryLoopCandidate",
+      "GapUtility__DodgeBackwardCandidate",
+      "GapUtility__DodgeForwardCandidate",
+      "GapUtility__DodgeLeftCandidate",
+      "GapUtility__DodgeRightCandidate",
+      "GapUtility__DoorLockCandidate",
+      "GapUtility__DoorUnlockCandidate",
+      "GapUtility__DrowningCandidate",
+      "GapUtility__LiftCandidate",
+      "GapUtility__LockpickCandidate",
+      "GapUtility__LootInspectGroundCandidate",
+      "GapUtility__LootInspectStandingCandidate",
+      "GapUtility__MiningCandidate",
+      "GapUtility__NeutralFallLoopCandidate",
+      "GapUtility__NeutralLandToRunCandidate",
+      "GapUtility__NpcFarewellCandidate",
+      "GapUtility__NpcListenCandidate",
+      "GapUtility__OpenWaterSurfaceCandidate",
+      "GapUtility__PlaceCandidate",
+      "GapUtility__RunStartCandidate",
+      "GapUtility__RunStopCandidate",
+      "GapUtility__ShimmyLeftCandidate",
+      "GapUtility__ShimmyRightCandidate",
+      "GapUtility__StairsAscendCandidate",
+      "GapUtility__StairsDescendCandidate",
+      "GapUtility__UnderwaterSwimCandidate",
+      "GapUtility__ValveTurnCandidate",
+      "GapUtility__WalkStartCandidate",
+      "GapUtility__WalkStopCandidate",
+      "GapUtility__WaterDiveCandidate",
+      "GapUtility__WoodChopCandidate"
+    ]
+  }
+}
