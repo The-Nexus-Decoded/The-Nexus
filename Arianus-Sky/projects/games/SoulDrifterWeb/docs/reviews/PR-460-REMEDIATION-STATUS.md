@@ -114,3 +114,6 @@ Results:
 
 - Focused gameplay/collision/lifecycle gate: 3 files, 57 tests passed.
 - TypeScript project build: passed.
+- Full single-worker Vitest suite: 33 files, 247 tests passed; 0 failed.
+- `git diff --check`: passed; Git emitted only the existing Windows line-ending advisory.
+- ESLint: not configured in this project.
