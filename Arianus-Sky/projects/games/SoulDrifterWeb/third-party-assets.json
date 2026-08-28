@@ -1,5 +1,19 @@
 {
   "schemaVersion": 1,
+  "assetCollections": [
+    {
+      "id": "first-breach-3d-ai-studio-dungeon-kit",
+      "name": "First Breach generated dungeon source/runtime GLB pairs",
+      "manifest": "docs/3d-ai-studio/dungeon-kit-provenance.json",
+      "assetCount": 37,
+      "provider": "3D AI Studio",
+      "license": "3D AI Studio generated-output commercial rights",
+      "licenseUrl": "https://www.3daistudio.com/Platform/API/Documentation/faq",
+      "ownership": "SoulDrifter project owner account; full output rights retained",
+      "bundled": true,
+      "notes": "The referenced canonical register records every provider task, source/runtime path and SHA-256, review state, and per-asset transform policy. Optimization fails closed if this collection drifts."
+    }
+  ],
   "shippingAssets": [
     {
       "id": "breach-v2-wall-art-thalenyr-atlas",
