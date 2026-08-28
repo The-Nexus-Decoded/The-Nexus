@@ -45,25 +45,25 @@
   "evidence": {
     "visibleRecording": {
       "required": true,
-      "overallStatus": "PENDING",
+      "overallStatus": "INCOMPLETE",
       "storagePolicy": "EXTERNAL_VIDEO_HASH_IN_GIT_ONLY",
       "pilotTakes": {
         "human-masculine-athletic-muscular": {
-          "status": "PENDING",
-          "externalVideoPath": null,
-          "sha256": null,
-          "externalReceiptPath": null,
-          "receiptSha256": null,
+          "status": "INCOMPLETE",
+          "externalVideoPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-pilot.mp4",
+          "sha256": "1a0132ae7f33c8b24b296e2a050bdcab1eeb88f418ae739e7f0a3eff82ad2795",
+          "externalReceiptPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-recording-receipt.json",
+          "receiptSha256": "eadf3bb6245c417ed608dc35cb2e2005e5f5616153dc22e858f076937cf58a24",
           "secretsVisible": false,
           "captureChecklist": {
-            "candidate-source-and-provider-label": "PENDING",
-            "model-settings-and-pose-contract": "PENDING",
-            "live-cost-and-owner-approval": "PENDING",
-            "single-task-submission-and-task-id": "PENDING",
-            "untouched-download-and-hash": "PENDING",
-            "t-pose-rig-calibration": "PENDING",
-            "same-rig-a-pose-derivation": "PENDING",
-            "normal-and-slow-speed-deformation-and-fit-review": "PENDING"
+            "candidate-source-and-provider-label": "PASS",
+            "model-settings-and-pose-contract": "INCOMPLETE",
+            "live-cost-and-owner-approval": "INCOMPLETE",
+            "single-task-submission-and-task-id": "INCOMPLETE",
+            "untouched-download-and-hash": "INCOMPLETE",
+            "t-pose-rig-calibration": "INCOMPLETE",
+            "same-rig-a-pose-derivation": "INCOMPLETE",
+            "normal-and-slow-speed-deformation-and-fit-review": "INCOMPLETE"
           }
         },
         "human-feminine-athletic-muscular": {
@@ -107,11 +107,11 @@
             "slotId": "TRIPO_NANO_BANANA",
             "provider": "TRIPO_STUDIO",
             "modelSlot": "NANO_BANANA",
-            "providerModelObserved": null,
+            "providerModelObserved": "Nano Banana",
             "purpose": "STRICT_T_SOURCE_CANDIDATE",
-            "status": "PENDING",
-            "artifactPath": null,
-            "sha256": null,
+            "status": "REJECTED",
+            "artifactPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-nano-banana-rejected.png",
+            "sha256": "2e2ccb5cda6d30861b4846e54ea0d1636ca0bcda7c10cd40a6429b8c8cca552d",
             "selected": false,
             "ownerVerdict": "NOT_REQUESTED"
           },
@@ -119,11 +119,11 @@
             "slotId": "TRIPO_NANO_BANANA_PRO",
             "provider": "TRIPO_STUDIO",
             "modelSlot": "NANO_BANANA_PRO",
-            "providerModelObserved": null,
+            "providerModelObserved": "Nano Banana Pro",
             "purpose": "STRICT_T_SOURCE_CANDIDATE",
-            "status": "PENDING",
-            "artifactPath": null,
-            "sha256": null,
+            "status": "REJECTED",
+            "artifactPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-nano-banana-pro-rejected.png",
+            "sha256": "2d7d6d3dcd0fefa28c6d702a341aa49bd5de8070e4c6775b34bc44084b876ad3",
             "selected": false,
             "ownerVerdict": "NOT_REQUESTED"
           },
@@ -131,11 +131,11 @@
             "slotId": "TRIPO_GPT_IMAGE_2_A",
             "provider": "TRIPO_STUDIO",
             "modelSlot": "GPT_IMAGE_2_A",
-            "providerModelObserved": null,
+            "providerModelObserved": "GPT Image 2",
             "purpose": "STRICT_T_SOURCE_CANDIDATE",
-            "status": "PENDING",
-            "artifactPath": null,
-            "sha256": null,
+            "status": "REJECTED",
+            "artifactPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-gpt-image-2-a-rejected.png",
+            "sha256": "a08babd3c0b13b52ce488f49bfbeb00d2398d67622766d83a53b3db21a697e68",
             "selected": false,
             "ownerVerdict": "NOT_REQUESTED"
           },
@@ -143,11 +143,11 @@
             "slotId": "TRIPO_GPT_IMAGE_2_B",
             "provider": "TRIPO_STUDIO",
             "modelSlot": "GPT_IMAGE_2_B",
-            "providerModelObserved": null,
+            "providerModelObserved": "GPT Image 2",
             "purpose": "STRICT_T_SOURCE_CANDIDATE",
-            "status": "PENDING",
-            "artifactPath": null,
-            "sha256": null,
+            "status": "REJECTED",
+            "artifactPath": "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-gpt-image-2-b-rejected.png",
+            "sha256": "cc1c1ccddd494761277ede8f5efc810cfffe446cb4c8423e8787ee276dd865fb",
             "selected": false,
             "ownerVerdict": "NOT_REQUESTED"
           }
@@ -230,13 +230,13 @@
         "dualPoseOwnerVerdict": "NOT_REQUESTED"
       },
       "qualityGate": {
-        "strictTSource": "PENDING",
-        "anatomyAndFullBody": "PENDING",
-        "noPedestalOrFusedGear": "PENDING",
+        "strictTSource": "FAIL",
+        "anatomyAndFullBody": "FAIL",
+        "noPedestalOrFusedGear": "FAIL",
         "heroJointLoops": "PENDING",
         "dualPoseDeformation": "PENDING",
         "runtimeBudget": "PENDING",
-        "overallStatus": "PENDING"
+        "overallStatus": "FAIL"
       }
     },
     {

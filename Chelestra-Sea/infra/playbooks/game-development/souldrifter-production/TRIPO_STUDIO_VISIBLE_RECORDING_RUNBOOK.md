@@ -68,6 +68,14 @@ Preserve each MP4 unchanged after its evidence take. Compute its SHA-256 after c
 
 The overall recording and each keyed pilot take use only these lifecycle statuses: `PENDING`, `IN_PROGRESS`, `PASS`, `REJECTED`, or `INCOMPLETE`.
 
+## Strict-T source frame and hand-axis gate
+
+Generate and edit each Human strict-T source in Tripo Studio at a **1:1 square aspect ratio**. The full horizontal fingertip-to-fingertip span must fit with readable empty margin on both sides while the complete head and both feet also remain visible. Reject 3:4 portrait framing for this lane: the masculine pilot proved that portrait framing can crop the hands even when the torso and feet fit.
+
+Before any upload or Smart Mesh configuration, inspect the source at full resolution. Both arms must stay exactly horizontal; each forearm and hand must be rolled around the arm's long axis so the palm faces the camera while the wrist stays straight and inline with the forearm. Every finger must extend horizontally outward with visible separation and both thumbs must point upward. Reject palms-down or edge-on hands, fused or unreadable fingers, and any correction that bends the wrists upward into a stop-sign pose.
+
+If Tripo's source-image lane does not produce a source that passes all of those checks, stop that pilot as `INCOMPLETE`, preserve and hash every rejected attempt, and do not upload any candidate to Smart Mesh. A generic autorigging T-pose is not enough when it violates issue #487's stricter source contract.
+
 ## Live Smart Mesh version-drift gate
 
 The live Tripo Studio observation on **2026-08-28** showed **Smart Mesh `P2.0 - Preview`**. That is an observed provider label, not a permanent version pin and not permission to assume that a future label has the same capabilities.

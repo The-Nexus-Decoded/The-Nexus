@@ -235,6 +235,18 @@ describe("SoulDrifter issue #487 Tripo Human pilot ledger", () => {
     expect(
       ledger.bodies.slice(2).every(({ executionGate }) => executionGate === "BLOCKED_BY_BOTH_PILOTS"),
     ).toBe(true);
+    expect(
+      ledger.bodies.find(
+        ({ canonicalBodyId }) =>
+          canonicalBodyId === "human-masculine-athletic-muscular",
+      )?.executionGate,
+    ).toBe("PILOT_PENDING");
+    expect(
+      ledger.bodies.find(
+        ({ canonicalBodyId }) =>
+          canonicalBodyId === "human-feminine-athletic-muscular",
+      )?.executionGate,
+    ).toBe("PILOT_PENDING");
   });
 
   it("keeps every source candidate inside the visible Tripo Studio lane", () => {
@@ -256,16 +268,29 @@ describe("SoulDrifter issue #487 Tripo Human pilot ledger", () => {
       expect(Object.keys(body.sourceBakeoff.candidates)).toEqual(CANDIDATE_SLOTS);
 
       for (const slot of CANDIDATE_SLOTS) {
-        expect(body.sourceBakeoff.candidates[slot]).toMatchObject({
+        const candidate = body.sourceBakeoff.candidates[slot];
+        expect(candidate).toMatchObject({
           slotId: slot,
           provider: "TRIPO_STUDIO",
           modelSlot: expectedModels[slot],
-          status: "PENDING",
-          artifactPath: null,
-          sha256: null,
           selected: false,
           ownerVerdict: "NOT_REQUESTED",
         });
+
+        if (body.canonicalBodyId === "human-masculine-athletic-muscular") {
+          expect(candidate.status).toBe("REJECTED");
+          expect(candidate.artifactPath).toContain(
+            "/evidence/487/tripo-studio/20260828T133205Z/",
+          );
+          expect(candidate.artifactPath).toContain("rejected");
+          expect(candidate.sha256).toMatch(/^[a-f0-9]{64}$/);
+        } else {
+          expect(candidate).toMatchObject({
+            status: "PENDING",
+            artifactPath: null,
+            sha256: null,
+          });
+        }
       }
     }
   });
@@ -373,26 +398,49 @@ describe("SoulDrifter issue #487 Tripo Human pilot ledger", () => {
     const recording = ledger.evidence.visibleRecording;
     expect(recording).toMatchObject({
       required: true,
-      overallStatus: "PENDING",
+      overallStatus: "INCOMPLETE",
       storagePolicy: "EXTERNAL_VIDEO_HASH_IN_GIT_ONLY",
     });
     expect(Object.keys(recording.pilotTakes)).toEqual(PILOT_IDS);
 
-    for (const pilotId of PILOT_IDS) {
-      const take = recording.pilotTakes[pilotId];
-      expect(take).toMatchObject({
-        status: "PENDING",
-        externalVideoPath: null,
-        sha256: null,
-        externalReceiptPath: null,
-        receiptSha256: null,
-        secretsVisible: false,
-      });
-      expect(Object.keys(take.captureChecklist)).toEqual(RECORDING_CHECKLIST_KEYS);
-      expect(Object.values(take.captureChecklist)).toEqual(
-        Array.from({ length: 8 }, () => "PENDING"),
-      );
-    }
+    const masculineTake =
+      recording.pilotTakes["human-masculine-athletic-muscular"];
+    expect(masculineTake).toMatchObject({
+      status: "INCOMPLETE",
+      externalVideoPath:
+        "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-tripo-pilot.mp4",
+      sha256:
+        "1a0132ae7f33c8b24b296e2a050bdcab1eeb88f418ae739e7f0a3eff82ad2795",
+      externalReceiptPath:
+        "H:/CodexData/souldrifter-toolchain/evidence/487/tripo-studio/20260828T133205Z/human-masculine-athletic-muscular-recording-receipt.json",
+      receiptSha256:
+        "eadf3bb6245c417ed608dc35cb2e2005e5f5616153dc22e858f076937cf58a24",
+      secretsVisible: false,
+    });
+    expect(Object.keys(masculineTake.captureChecklist)).toEqual(
+      RECORDING_CHECKLIST_KEYS,
+    );
+    expect(Object.values(masculineTake.captureChecklist)).toEqual([
+      "PASS",
+      ...Array.from({ length: 7 }, () => "INCOMPLETE"),
+    ]);
+
+    const feminineTake =
+      recording.pilotTakes["human-feminine-athletic-muscular"];
+    expect(feminineTake).toMatchObject({
+      status: "PENDING",
+      externalVideoPath: null,
+      sha256: null,
+      externalReceiptPath: null,
+      receiptSha256: null,
+      secretsVisible: false,
+    });
+    expect(Object.keys(feminineTake.captureChecklist)).toEqual(
+      RECORDING_CHECKLIST_KEYS,
+    );
+    expect(Object.values(feminineTake.captureChecklist)).toEqual(
+      Array.from({ length: 8 }, () => "PENDING"),
+    );
 
     const schemaBodyIds = schema.properties.bodies.items.map(
       ({ allOf }) => allOf[1].properties.canonicalBodyId.const,
