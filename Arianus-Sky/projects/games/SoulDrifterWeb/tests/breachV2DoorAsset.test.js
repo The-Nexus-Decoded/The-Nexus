@@ -63,13 +63,14 @@ function embeddedImageDimensions(glb) {
 }
 
 describe("BREACH-V2 imported heavy-door artifact fidelity", () => {
-  it("ships the reviewed Tripo artifact byte-for-byte instead of the damaged 256px derivative", () => {
+  it("ships the reviewed 3D AI Studio import byte-for-byte instead of the damaged 256px derivative", () => {
     const source = parseGlb(sourceUrl);
     const runtime = parseGlb(runtimeUrl);
     const runtimeHash = createHash("sha256").update(runtime.bytes).digest("hex").toUpperCase();
 
     expect(runtimeHash).toBe(reviewedSha256);
     expect(runtime.bytes.equals(source.bytes)).toBe(true);
+    // Preserve the generator metadata embedded inside the 3D AI Studio import.
     expect(runtime.json.asset.generator).toBe("https://tripo3d.ai");
     expect(runtime.json.meshes).toHaveLength(1);
     expect(runtime.json.meshes[0].primitives).toHaveLength(1);

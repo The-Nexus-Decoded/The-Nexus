@@ -62,6 +62,10 @@ import {
 import { storyDatabase } from "../persistence";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
+import {
+  HEAVY_DUNGEON_DOOR_FRAME_LIMITS,
+  partitionHeavyDungeonDoor,
+} from "../environment/HeavyDungeonDoor";
 
 const TEX_ROOT = "/assets/textures/environment/first-breach";
 const ART_ROOT = "/assets/textures/environment/breach-v2/art";
@@ -1984,6 +1988,7 @@ async function placeSectionDoors(
     closedYaw: number;
     floorY: number;
     root: THREE.Group;
+    frameRoot: THREE.Group | null;
     kind: "door" | "gate";
     active: boolean;
     open: boolean;
@@ -2006,20 +2011,74 @@ async function placeSectionDoors(
     let leafHalfSpan = door.clearWidth / 2 + 0.05;
     let leafHeight = DOOR_LINTEL_H + 0.08;
     let leafVerticalOffset = 0;
+    let modelVerticalOffset = 0;
+    let leafHingeLocalZ = -leafHalfSpan;
+    let fittedArtifactWidth = leafHalfSpan * 2;
+    let fittedArtifactHeight = leafHeight;
+    let frameRoot: THREE.Group | null = null;
+    let frameTriangleCount = 0;
+    let leafTriangleCount = 0;
     if (kind === "door" && !sourceModel) {
       throw new Error(`BREACH-V2 imported heavy-door model root is missing for ${door.id}`);
     }
     if (kind === "door" && sourceModel) {
       // DungeonPropKit already applies the catalog's uniform 3 m fit. Preserve
       // that authored aspect ratio and let topology fit masonry to the asset.
+      // The imported artifact is one connected mesh, so partition its authored
+      // perimeter from the central leaf before applying hinge animation. This
+      // keeps the outer frame seated in masonry while the original wood,
+      // handle, lock, straps, and leaf-side hinge hardware swing together.
       sourceModel.visible = true;
       sourceModel.updateMatrixWorld(true);
-      const fittedSize = new THREE.Box3().setFromObject(sourceModel, true).getSize(new THREE.Vector3());
-      leafHalfThickness = fittedSize.x / 2;
-      leafHalfSpan = fittedSize.z / 2;
-      leafHeight = fittedSize.y;
-      leafVerticalOffset = Math.max(0, (door.clearHeight - leafHeight) / 2);
-      sourceModel.traverse((child) => {
+      const partition = partitionHeavyDungeonDoor(sourceModel);
+      const fittedSize = partition.fullBounds.getSize(new THREE.Vector3());
+      const fittedLeafSize = partition.leafBounds.getSize(new THREE.Vector3());
+      fittedArtifactWidth = fittedSize.z;
+      fittedArtifactHeight = fittedSize.y;
+      modelVerticalOffset = Math.max(0, (door.clearHeight - fittedSize.y) / 2);
+      leafHalfThickness = fittedLeafSize.x / 2;
+      leafHalfSpan = fittedLeafSize.z / 2;
+      leafHeight = fittedLeafSize.y;
+      leafVerticalOffset = modelVerticalOffset + partition.leafBounds.min.y;
+      leafHingeLocalZ = partition.leafBounds.min.z;
+      frameTriangleCount = partition.frameTriangleCount;
+      leafTriangleCount = partition.leafTriangleCount;
+      sourceModel.parent?.remove(sourceModel);
+      partition.leaf.name = "heavy-door-moving-leaf";
+      instance.root.add(partition.leaf);
+      frameRoot = new THREE.Group();
+      frameRoot.name = `section-door-frame-${door.id}`;
+      partition.frame.name = "heavy-door-stationary-frame";
+      frameRoot.add(partition.frame);
+      const topRailHeight = fittedSize.y * (1 - HEAVY_DUNGEON_DOOR_FRAME_LIMITS.top) / 2;
+      const topRailDepth = Math.min(0.22, fittedSize.x * 0.55);
+      const topRailGeometry = new THREE.BoxGeometry(
+        topRailDepth,
+        topRailHeight,
+        fittedSize.z,
+      );
+      const topRailMaterial = new THREE.MeshStandardMaterial({
+        color: 0x211b17,
+        metalness: 0.78,
+        roughness: 0.58,
+      });
+      const topRail = new THREE.Mesh(topRailGeometry, topRailMaterial);
+      topRail.name = "heavy-door-clean-top-rail";
+      topRail.position.set(0, fittedSize.y - topRailHeight / 2, 0);
+      topRail.castShadow = true;
+      topRail.receiveShadow = true;
+      topRail.userData.disposableGeometries = [topRailGeometry];
+      topRail.userData.disposableMaterials = [topRailMaterial];
+      frameRoot.add(topRail);
+      partition.leaf.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          material.side = THREE.DoubleSide;
+          material.needsUpdate = true;
+        });
+      });
+      partition.frame.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((material) => {
@@ -2041,14 +2100,16 @@ async function placeSectionDoors(
       leafHalfThickness = Math.min(fittedSize.x, fittedSize.z) / 2;
       leafHalfSpan = Math.max(fittedSize.x, fittedSize.z) / 2;
       leafHeight = fittedSize.y;
+      fittedArtifactWidth = leafHalfSpan * 2;
+      fittedArtifactHeight = leafHeight;
     }
     const closedYaw = kind === "door"
       ? getBreachV2ClosedDoorYaw(door.frontNormal)
       : door.axis === "x" ? 0 : Math.PI / 2;
-    const fittedWidth = leafHalfSpan * 2;
+    const fittedWidth = fittedArtifactWidth;
     const fittedThickness = leafHalfThickness * 2;
     const jambClearancePerSide = (door.clearWidth - fittedWidth) / 2;
-    const lintelClearance = (door.clearHeight - leafHeight) / 2;
+    const lintelClearance = (door.clearHeight - fittedArtifactHeight) / 2;
     const pivot = new THREE.Group();
     pivot.name = `section-${kind}-${door.id}`;
     pivot.userData = {
@@ -2075,12 +2136,16 @@ async function placeSectionDoors(
       clearWidth: door.clearWidth,
       clearHeight: door.clearHeight,
       fittedWidth,
-      fittedHeight: leafHeight,
+      fittedHeight: fittedArtifactHeight,
       fittedThickness,
+      fittedLeafWidth: leafHalfSpan * 2,
+      fittedLeafHeight: leafHeight,
+      frameTriangleCount,
+      leafTriangleCount,
       sourceAspect: kind === "door"
         ? BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.width / BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS.height
         : null,
-      fittedAspect: fittedWidth / Math.max(leafHeight, 0.001),
+      fittedAspect: fittedWidth / Math.max(fittedArtifactHeight, 0.001),
       apertureClearWidth: door.clearWidth,
       apertureClearHeight: door.clearHeight,
       jambClearancePerSide,
@@ -2095,10 +2160,27 @@ async function placeSectionDoors(
     const closedLeafOffset = new THREE.Vector3(0, 0, leafHalfSpan)
       .applyAxisAngle(new THREE.Vector3(0, 1, 0), closedYaw);
     if (kind === "door") {
-      // Swing around the jamb-side hinge instead of rotating the leaf around
-      // its centre. The paid model's leaf and hardware stay together.
+      // Swing only the central leaf around the jamb-side hinge. The frame is
+      // mounted separately below and never inherits this pivot rotation.
       pivot.position.set(door.x - closedLeafOffset.x, floorY, door.z - closedLeafOffset.z);
-      instance.root.position.set(0, leafVerticalOffset, leafHalfSpan);
+      instance.root.position.set(0, modelVerticalOffset, -leafHingeLocalZ);
+      if (frameRoot) {
+        frameRoot.position.set(door.x, floorY + modelVerticalOffset, door.z);
+        frameRoot.rotation.y = closedYaw;
+        frameRoot.userData = {
+          connectorId: door.id,
+          portalKind: kind,
+          sourceAsset: "heavy-door.glb",
+          state: "stationary-frame",
+          frameTriangleCount,
+          spatialOwnerId: `portal:${door.id}:frame`,
+          collisionMode: "shell-owned-stationary-frame",
+          blocksMovement: false,
+          blocksLineOfSight: false,
+          blocksCamera: false,
+          contractReason: "The imported perimeter stays seated over canonical masonry; the shell jamb and lintel own its static collision.",
+        };
+      }
     } else {
       // Portcullises sit centered in the opening and lift into the lintel.
       // Their open motion is vertical; they never rotate like a hinged leaf.
@@ -2135,11 +2217,13 @@ async function placeSectionDoors(
     collisionBlocker.blocksCamera = true;
     pivot.add(instance.root);
     scene.add(pivot);
+    if (frameRoot) scene.add(frameRoot);
     tickables.push(instance.animate);
     states.push({
       ...door,
       floorY,
       root: pivot,
+      frameRoot,
       kind,
       active,
       open: false,
@@ -2371,8 +2455,13 @@ async function placeSectionDoors(
   const getCollisionBlockers = (): BreachV2PlanarCollider[] => collisionBlockers;
   return {
     tickables,
-    cullables: [...states.map((state) => state.root), ...routeMists],
-    interactionRoots: states.map((state) => state.root),
+    cullables: [
+      ...states.flatMap((state) => state.frameRoot ? [state.root, state.frameRoot] : [state.root]),
+      ...routeMists,
+    ],
+    interactionRoots: states.flatMap((state) => (
+      state.frameRoot ? [state.root, state.frameRoot] : [state.root]
+    )),
     isBlocked: (x, z, radius) => isBreachV2PlacementBlocked(getCollisionBlockers(), x, z, radius),
     getCollisionBlockers,
     setAllOpen: (open) => states.forEach((state) => setOpen(state, open)),
@@ -2407,7 +2496,7 @@ async function placeSectionDoors(
       let cursor: THREE.Object3D | null = hitObject;
       let hitState: (typeof states)[number] | undefined;
       while (cursor && !(cursor instanceof THREE.Scene)) {
-        hitState = states.find((state) => state.root === cursor);
+        hitState = states.find((state) => state.root === cursor || state.frameRoot === cursor);
         if (hitState) break;
         cursor = cursor.parent;
       }
