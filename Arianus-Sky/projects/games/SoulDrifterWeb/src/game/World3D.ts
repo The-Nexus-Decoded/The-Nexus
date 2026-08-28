@@ -107,6 +107,7 @@ import {
 import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 import { markAtlasPoi } from "./atlasSync";
+import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -117,6 +118,8 @@ const STABILITY_REGEN_DELAY_MS = 4_500;
 const STABILITY_REGEN_INTERVAL_SECONDS = 1.5;
 const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
 const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
+const PILOT_REVIEW_MODEL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
+const PILOT_REVIEW_LIBRARY = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -282,6 +285,11 @@ interface DebugBridge {
   setCombatStyle(style: CombatStyle): void;
   activeBlock(): void;
   pose(animation: string, normalizedTime: number): void;
+  reviewAnimations(): readonly string[];
+  reviewAncestry(): string;
+  playReview(animation: string, loop: boolean): number;
+  pauseReview(paused: boolean): void;
+  setReviewSkin(preset: PilotSkinPresetId): Promise<{ applied: boolean; materialCount: number; reason?: string }>;
   weapon(state: WeaponVisualState): void;
   weaponSocket(position: [number, number, number], rotation: [number, number, number]): void;
   prepareTrialGate(): void;
@@ -382,6 +390,9 @@ export class World3D {
   private readonly loader = new GLTFLoader();
   private readonly modelCache = new Map<string, Promise<GLTF>>();
   private readonly animationPackCache = new Map<string, Promise<readonly THREE.AnimationClip[]>>();
+  private readonly pilotReviewEnabled = import.meta.env.DEV
+    && new URL(window.location.href).searchParams.get("animationReview") === "1";
+  private readonly pilotReviewSources = new Map<string, THREE.AnimationClip>();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -516,6 +527,10 @@ export class World3D {
     // The awakening itself charts the Soul Well on the Lore Atlas map.
     markAtlasPoi("thalenyr", "soulwell", "explored");
     this.resize();
+    if (this.pilotReviewEnabled) {
+      this.camera.zoom = 2.35;
+      this.camera.updateProjectionMatrix();
+    }
     this.updateCamera(true, 0);
     this.initializeHud();
     this.installDebugBridge();
@@ -1045,16 +1060,19 @@ export class World3D {
     // architecture scale. Collision remains one logical tile; only the rendered
     // actor is enlarged so face, starter gear, and animation poses survive the camera.
     const raceScale: Record<string, number> = { human: 2.06, elf: 2.16, dwarf: 1.74, halfling: 1.52 };
-    const playerAvatar = resolvePlayerAvatarManifest(this.profile);
+    const playerAvatar = this.pilotReviewEnabled
+      ? { modelPath: PILOT_REVIEW_MODEL, animationPacks: [] }
+      : resolvePlayerAvatarManifest(this.profile);
     this.player = await this.createActor(
       "player",
       playerAvatar.modelPath ?? FALLBACK_WARRIOR_MODEL,
       this.dungeon.playerStart,
-      raceScale[this.profile.raceId] ?? 1.7,
+      this.pilotReviewEnabled ? raceScale.human! : raceScale[this.profile.raceId] ?? 1.7,
       this.calling.signatureColor,
       this.profile.name,
       playerAvatar.animationPacks,
     );
+    if (this.pilotReviewEnabled) await this.loadPilotReviewAnimationLibrary(this.player);
     this.scene.add(this.player.root);
 
     const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 1.94, brannoc: 2.12 };
@@ -1146,7 +1164,7 @@ export class World3D {
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
     });
-    if (id === "player") applyModularAppearance(model, {
+    if (id === "player" && !this.pilotReviewEnabled) applyModularAppearance(model, {
       hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
       raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.profile.appearance?.facialHair ?? "none",
@@ -1272,6 +1290,48 @@ export class World3D {
     const promise = this.loader.loadAsync(path);
     this.modelCache.set(path, promise);
     return promise;
+  }
+
+  private async loadPilotReviewAnimationLibrary(actor: AnimatedActor): Promise<void> {
+    const gltf = await this.loadModel(PILOT_REVIEW_LIBRARY);
+    if (gltf.animations.length !== 400) {
+      throw new Error(`Issue #487 pilot library expected 400 clips, got ${gltf.animations.length}.`);
+    }
+    this.pilotReviewSources.clear();
+    gltf.animations.forEach((clip) => this.pilotReviewSources.set(clip.name, clip));
+    const defaultClip = [...this.pilotReviewSources.keys()]
+      .find((name) => name.toLowerCase() === "malelocomotion__idle");
+    if (defaultClip) this.playPilotReviewAnimation(actor, defaultClip, true);
+  }
+
+  private pilotReviewClip(actor: AnimatedActor, name: string): THREE.AnimationClip | null {
+    const existing = actor.clips.get(name);
+    if (existing) return existing;
+    const source = this.pilotReviewSources.get(name);
+    if (!source) return null;
+    const bound = bindOptionalCompatibleAnimationClip(source, actor.model, source.name);
+    if (!bound) throw new Error(`Issue #487 pilot clip ${name} is incompatible with the accepted body rig.`);
+    const boundRoot = bound.tracks
+      .map((track) => track.name.slice(0, track.name.lastIndexOf(".")))
+      .find((node) => /armature$/i.test(node)) ?? "HumanFoundation_Armature";
+    const normalized = normalizeAnimationPackRootMotion(bound, boundRoot);
+    actor.clips.set(name, normalized);
+    return normalized;
+  }
+
+  private playPilotReviewAnimation(actor: AnimatedActor, name: string, loop: boolean): number {
+    const clip = this.pilotReviewClip(actor, name);
+    if (!clip) throw new Error(`Unknown issue #487 pilot animation: ${name}`);
+    actor.motion.complete();
+    this.updateActorDeathPresentation(actor);
+    actor.mixer.stopAllAction();
+    const action = actor.mixer.clipAction(clip);
+    action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
+    action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Number.POSITIVE_INFINITY : 1);
+    action.clampWhenFinished = true;
+    action.play();
+    actor.currentAction = action;
+    return clip.duration;
   }
 
   /** Loads raw same-rig clips once, then validates and binds them per cloned actor. */
@@ -3719,7 +3779,7 @@ export class World3D {
   }
 
   private installDebugBridge(): void {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env.DEV && !this.pilotReviewEnabled) return;
     const bridge: DebugBridge = {
       snapshot: () => this.debugSnapshot(),
       moveTo: async (x, y) => this.handleGroundClick({ x, y }),
@@ -3736,6 +3796,7 @@ export class World3D {
         if (!prompt.hidden) prompt.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       },
       pose: (animation, normalizedTime) => {
+        if (this.pilotReviewEnabled) this.pilotReviewClip(this.player, animation);
         const clipName = [...this.player.clips.keys()]
           .find((name) => name.toLowerCase() === animation.toLowerCase());
         if (!clipName) throw new Error(`Unknown player animation: ${animation}`);
@@ -3756,6 +3817,13 @@ export class World3D {
         this.player.model.updateMatrixWorld(true);
         this.groundActor(this.player);
       },
+      reviewAnimations: () => [...this.pilotReviewSources.keys()].sort(),
+      reviewAncestry: () => "human",
+      playReview: (animation, loop) => this.playPilotReviewAnimation(this.player, animation, loop),
+      pauseReview: (paused) => {
+        if (this.player.currentAction) this.player.currentAction.paused = paused;
+      },
+      setReviewSkin: (preset) => applyPilotSkinPreset(this.player.model, preset, "human"),
       weapon: (state) => this.setWeaponState(this.player, state),
       weaponSocket: (position, rotation) => {
         if (!this.player.weapon) return;
@@ -4176,13 +4244,26 @@ export class World3D {
       this.positionDebugCameraOnActors(this.debugCameraFocus.first, this.debugCameraFocus.second);
       return;
     }
+    const playerPosition = new THREE.Vector2(this.player.root.position.x, this.player.root.position.z);
+    if (this.pilotReviewEnabled) {
+      const target = new THREE.Vector3(playerPosition.x, 1.05, playerPosition.y);
+      const desired = target.clone().add(new THREE.Vector3(
+        Math.sin(this.cameraAzimuth) * 10.5,
+        9.5,
+        Math.cos(this.cameraAzimuth) * 10.5,
+      ));
+      this.cameraTarget.copy(target);
+      if (immediate) this.camera.position.copy(desired);
+      else this.camera.position.lerp(desired, 1 - Math.exp(-8 * THREE.MathUtils.clamp(deltaSeconds, 0, 0.1)));
+      this.camera.lookAt(target);
+      return;
+    }
     const roomEnvelope = cameraTileEnvelope(
       this.dungeon.tiles.filter((tile) => tile.roomId === this.currentRoom),
       TILE_SIZE,
     );
     const roomCenter = roomEnvelope.center;
     const roomBounds = roomEnvelope.bounds;
-    const playerPosition = new THREE.Vector2(this.player.root.position.x, this.player.root.position.z);
     if (!this.cameraFollowInitialized) {
       this.cameraFollow.center.copy(this.currentRoom === "training" ? roomCenter : playerPosition);
       this.cameraFollow.lookAhead.set(0, 0);

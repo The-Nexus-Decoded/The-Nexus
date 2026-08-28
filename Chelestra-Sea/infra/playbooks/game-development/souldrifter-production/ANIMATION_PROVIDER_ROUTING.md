@@ -1,6 +1,17 @@
 # SoulDrifter Animation Provider Routing
 
-**Verified against public Tripo documentation:** 2026-08-24
+**Verified against public Tripo and Adobe Mixamo documentation:** 2026-08-28
+
+## Owner-locked provider split
+
+- **Biped humanoids:** Tripo remains the approved Smart Mesh, retopology, texture, and PBR source. Export the accepted clean T-pose without any Tripo skeleton or Tripo animation. Adobe Mixamo is the default humanoid marker-placement, auto-rigging, skinning, and preset-animation lane.
+- **Animals, non-humanoid monsters, and other creature body plans:** Tripo creature auto-rigging and its matching preset library remain the default baseline lane.
+- **Heads and faces:** neither body provider replaces the modular facial contract. Gaze, jaw, blink, expression, and viseme controls remain a separate compatible layer on the canonical actor.
+- **Bespoke or constrained motion:** the approved DCC/custom-motion routes remain available after the provider baseline is exhausted.
+
+For a new humanoid, Mixamo marker placement is a hard pre-rig gate. Place and visually verify the chin, wrists, elbows, knees, and groin on the clean centered T-pose before confirming the rig. Select the full finger-capable standard skeleton unless a recorded runtime-budget exception requires a reduced skeleton. Do not accept an automatically generated humanoid rig merely because a provider completed the task.
+
+The 2026-08-28 Human pilot established that the Tripo v1.0 humanoid auto-rig can return a centered-looking bind pose while still producing skewed pelvis/root motion, upper-arm twisting, weak shoulder deformation, and open-hand combat motion without usable finger control. Those Tripo humanoid results are diagnostic evidence only and must not be promoted to the canonical Human rig.
 
 ## Correction
 
@@ -28,9 +39,27 @@ The authenticated Tripo Studio/CLI account must be inspected during onboarding. 
 
 # Animation production tiers
 
-## Tier 1 — Tripo preset retarget: default baseline lane
+## Tier 1A — Mixamo humanoid rig and preset animation: default biped lane
 
-Use Tripo for:
+Use Mixamo for playable Humans, playable humanoid ancestries, humanoid NPCs, and biped humanoid enemies that conform to the canonical skeleton family.
+
+Required order:
+
+1. export the accepted clean, centered, skeleton-free T-pose from the mesh provider as FBX, OBJ plus textures in ZIP, or another Mixamo-supported intake;
+2. upload the body to Mixamo;
+3. place chin, wrist, elbow, knee, and groin markers and capture front-view evidence;
+4. choose the full standard/finger-capable skeleton unless an approved LOD contract says otherwise;
+5. confirm auto-rigging only after the marker gate passes;
+6. inspect T-pose skeleton alignment, root/pelvis/spine orientation, shoulders, arms, wrists, fingers, hips, knees, ankles, and feet;
+7. derive and validate the same-mesh A-pose;
+8. search, preview, download, normalize, and ledger the required Mixamo animation set;
+9. save every accepted rigged body and animation locally because Mixamo retains only the last-used character online.
+
+The baseline humanoid animation search includes idle, walk, run, turn, jump, interaction, sword, shield, dual-wield or offhand where applicable, draw/sheath or equip/unequip where available, casting, hit reactions, knockdown, death, and terminal-state variations. Acquire all useful licensed Mixamo motions that satisfy a documented SoulDrifter animation demand; do not blindly ship every catalog entry without naming, deduplication, root-motion, contact, deformation, and runtime QA.
+
+## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
+
+Use Tripo for animals, non-humanoid monsters, and creature body plans for:
 
 - rig check;
 - automatic skeleton/skin weights;
@@ -41,7 +70,7 @@ Use Tripo for:
 - common gestures and ambient motions;
 - batch retargeting of up to the provider's current documented limit.
 
-Every ticket must first search the live preset list before commissioning a custom motion.
+Every creature ticket must first search the live preset list before commissioning a custom motion. Tripo biped presets may be retained only as diagnostic comparisons unless the owner explicitly approves a humanoid exception after side-by-side proof.
 
 Examples that may be covered directly or approximately by the documented library:
 
@@ -57,11 +86,11 @@ Examples that may be covered directly or approximately by the documented library
 
 A preset is accepted only after normal-speed gameplay-camera and close deformation QA.
 
-A direct Tripo preset that passes the full technical, runtime, gameplay-camera, and owner acceptance gate does **not** require duplicate Houdini/Blender production.
+A direct creature Tripo preset that passes the full technical, runtime, gameplay-camera, and owner acceptance gate does **not** require duplicate Houdini/Blender production.
 
-## Tier 2 — Derived custom variants from Tripo presets
+## Tier 2 — Derived custom variants from provider presets
 
-Use Houdini KineFX, Blender, or another approved DCC automation layer to derive additional game-specific clips from a Tripo-retargeted base motion.
+Use Houdini KineFX, Blender, or another approved DCC automation layer to derive additional game-specific clips from a Mixamo humanoid base motion or Tripo creature base motion.
 
 Allowed transformations include:
 
@@ -97,7 +126,7 @@ Use this when no Tripo preset is close enough to the required silhouette, timing
 
 Possible sources:
 
-- a verified Tripo first-party custom-motion feature exposed to the owner's account;
+- a verified provider custom-motion feature exposed to the owner's account;
 - an owner-approved text/video-to-motion or motion-capture provider;
 - AI-authored Houdini KineFX animation scripts;
 - AI-authored Blender rig/animation scripts;
@@ -180,10 +209,10 @@ For every requested animation, the animation-demand record must include:
   "animationId": "slayer-feinting-cut",
   "requiredMotion": "off-hand feint followed by low diagonal dagger cut",
   "interactionConstraints": [],
-  "tripoPresetSearchCompleted": true,
+  "providerPresetSearchCompleted": true,
   "candidatePresets": [],
   "presetMatchScore": 0.0,
-  "route": "TRIPO_PRESET | TRIPO_PRESET_DERIVED | VERIFIED_TRIPO_CUSTOM | DUAL_DCC_BAKEOFF | PROCEDURAL_RUNTIME",
+  "route": "MIXAMO_HUMANOID | MIXAMO_DERIVED | TRIPO_CREATURE | TRIPO_CREATURE_DERIVED | VERIFIED_PROVIDER_CUSTOM | DUAL_DCC_BAKEOFF | PROCEDURAL_RUNTIME",
   "dualBakeoffRequired": true,
   "bakeoffRecordPath": "",
   "rigFamily": "canonical-humanoid",
@@ -192,7 +221,7 @@ For every requested animation, the animation-demand record must include:
 }
 ```
 
-Do not label a motion `VERIFIED_TRIPO_CUSTOM` unless a live authenticated provider capability check proves that custom-motion input is supported.
+Do not label a motion `VERIFIED_PROVIDER_CUSTOM` unless a live authenticated provider capability check proves that custom-motion input is supported.
 
 Do not label a Tier 3 motion complete until both DCC candidates have been produced or one lane has a documented unrecoverable technical blocker.
 

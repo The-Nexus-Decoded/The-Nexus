@@ -68,11 +68,28 @@ Preserve each MP4 unchanged after its evidence take. Compute its SHA-256 after c
 
 The overall recording and each keyed pilot take use only these lifecycle statuses: `PENDING`, `IN_PROGRESS`, `PASS`, `REJECTED`, or `INCOMPLETE`.
 
+## Four-provider owner review gate
+
+Before any Smart Mesh upload or image-to-3D submission for a humanoid body, record one four-image strict-T review round in the existing signed-in Codex in-app Tripo tab. Use the same locked body brief and exactly these live image-model lanes observed on 2026-08-28:
+
+1. `Nano Banana 2`;
+2. `Nano Banana Pro`;
+3. `GPT Image 1.5`;
+4. `GPT Image 2`.
+
+For each lane, select one image, 1:1 square framing, and native `4K Resolution` before Generate Image. Capture the exact visible label, 4K switch, displayed cost, and balance. The base `Nano Banana` lane is a fallback and cannot silently replace a standard candidate. If the live labels drift, stop and record the changed lineup before any substitution.
+
+Download and hash every untouched completed candidate. Post all four full-resolution images in the active Codex thread as A-D, each labeled with asset ID, exact model, generation timestamp, dimensions, SHA-256, and technical `PASS` or `FAIL` notes. Do not omit a failed completed candidate from the owner's comparison. Record the thread delivery and the owner's explicit selected candidate ID and hash, or the owner's rejection of the round.
+
+A candidate can become the canonical Smart Mesh source only when it is both owner-selected and technically passing. If the owner prefers a candidate that fails a hard animation-source gate, preserve the preference, explain the defect, and create a corrected replacement review round after any required spend approval. Do not upload the failed image. An image-model A-pose is not part of this four-image set; derive the production A-pose from the accepted canonical rigged mesh.
+
 ## Strict-T source frame and hand-axis gate
 
 Generate and edit each Human strict-T source in Tripo Studio at a **1:1 square aspect ratio**. The full horizontal fingertip-to-fingertip span must fit with readable empty margin on both sides while the complete head and both feet also remain visible. Reject 3:4 portrait framing for this lane: the masculine pilot proved that portrait framing can crop the hands even when the torso and feet fit.
 
-Before any upload or Smart Mesh configuration, inspect the source at full resolution. Both arms must stay exactly horizontal; each forearm and hand must be rolled around the arm's long axis so the palm faces the camera while the wrist stays straight and inline with the forearm. Every finger must extend horizontally outward with visible separation and both thumbs must point upward. Reject palms-down or edge-on hands, fused or unreadable fingers, and any correction that bends the wrists upward into a stop-sign pose.
+Enable Tripo Studio's native **4K Resolution** switch **before every Human source-image submission**. Keep one image selected and visibly confirm the checked 4K switch, active source model, 1:1 ratio, displayed cost, and current balance before clicking Generate Image. A lower-resolution generation followed by the separate paid `4K` upscale action is evidence-only and does not satisfy this native-4K source contract. Do not use it as the canonical Smart Mesh input. Record the generation timestamp, native-4K state, source model, displayed cost, actual charge, and balance change in the receipt.
+
+Before any upload or Smart Mesh configuration, inspect the source at full resolution. Both arms must stay exactly horizontal in a standard game-rigging T-pose. Both forearms are pronated so the palms face directly downward and the backs of the hands face upward; wrists remain straight, neutral, and inline with the forearms. Fingers extend naturally outward in the same direction as each arm without clenched fists, fusion, overlap, or exaggerated fan-like splaying, and the thumbs point naturally forward. Reject palms facing the camera or upward, edge-on hands, bent or sideways wrists, stop-sign hands, fused or unreadable fingers, or any correction that changes the owner-approved body identity.
 
 If Tripo's source-image lane does not produce a source that passes all of those checks, stop that pilot as `INCOMPLETE`, preserve and hash every rejected attempt, and do not upload any candidate to Smart Mesh. A generic autorigging T-pose is not enough when it violates issue #487's stricter source contract.
 
@@ -97,8 +114,9 @@ Keep one continuous 30fps pilot recording when practical. If a provider wait mak
 ### 1. Candidate and source provenance
 
 - Show the non-secret issue number, canonical asset ID, and source-candidate ID.
+- Show the four-provider review set's A-D labels, active-thread delivery receipt, and exact owner-selected candidate ID and SHA-256.
 - Show the selected strict-T source image at readable scale.
-- Show the source provider/model label and source SHA-256 from the sanitized ledger or receipt.
+- Show the source provider/model label, checked native 4K setting, generation timestamp, and source SHA-256 from the sanitized ledger or receipt.
 - Pause long enough to verify one complete realistic adult body, strict T-pose, full uncropped hands/fingers/feet, bald/close scalp, neutral opaque underwear, clean background, and no gear, props, pedestal, text, or anatomy defect.
 
 ### 2. Live Tripo production settings

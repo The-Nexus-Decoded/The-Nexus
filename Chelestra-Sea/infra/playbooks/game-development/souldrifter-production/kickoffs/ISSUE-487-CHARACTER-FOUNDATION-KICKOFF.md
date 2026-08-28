@@ -42,6 +42,7 @@ Every session must read the current versions of:
 - `../HUMANOID_DUAL_POSE_PIPELINE.md`
 - `../IMAGE_REFERENCE_BAKEOFF_POLICY.md`
 - `../ANIMATION_PROVIDER_ROUTING.md`
+- `../MIXAMO_HUMANOID_RIGGING_RUNBOOK.md`
 - `../CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
 - `../config/tripo-provider.json`
 - `../config/animation-bakeoff-policy.json`
@@ -218,9 +219,16 @@ animation clips
 ## Head contract
 
 - complete humanoid generation may use a temporary neutral head;
+- issue #487 uses a Human vertical-slice sequence: prove one complete Human body, Mixamo rig, animation family, modular head/facial contract, and live dialogue presentation before scaling the proven body pipeline to the remaining Human foundations;
+- facial likeness on a body-source image is a replaceable placeholder and must not delay an otherwise accepted body, pose, anatomy, or topology result;
 - technicalization creates a stable versioned head seam;
 - modular heads share compatible topology, seam, scale, head bone, gaze, jaw, blink, expression, and viseme contracts;
-- skin tones are primarily material families, not duplicated complete bodies.
+- skin tones are primarily material families, not duplicated complete bodies;
+- the Dark Elf blue-white/blue-gray skin family is Elf-only: all non-Elf creator/review surfaces hide or disable it and the runtime material boundary rejects it when ancestry validation is bypassed;
+- deep/dark Human skin remains a separate normal Human palette and must not be labeled or implemented as Dark Elf skin;
+- dialogue, quest, and conversation UI use a live head-and-shoulders view of the same fully animated 3D NPC used in the world;
+- do not author a separate dialogue-only face, head mesh, skeleton, or facial-animation set; an isolated UI presentation instance may exist only as another runtime presentation of the same canonical NPC assets and controls; and
+- dedicated playable-race facial/head production begins only after the ordered body/race foundation pass unless the owner explicitly changes that priority.
 
 ## Hair contract
 
@@ -265,16 +273,20 @@ A functioning Studio session does not prove API credits. A valid API key does no
 
 Every Tripo Human body uses the live Smart Mesh generation mode and Quad Face topology for the canonical animated mesh. Capture the exact visible Smart Mesh model/version/topology/face-target settings before submission. The live Studio receipt on 2026-08-28 shows `P2.0 - Preview`; treat that as observed provider state, not a permanent version pin. A changed label requires a refreshed native-quad capability audit before submission. The Human pilot target is 8,000 quads, with an accepted 6,000-9,000-quad intake range matching the existing 12,000-18,000-triangle desktop body/head budget. Complete retopology and hero-character joint-loop repair before PBR texture or rigging. Smart Mesh never waives dual-pose deformation or runtime-budget review.
 
-For each important primary source, produce four images when available from the same locked brief:
+For **every humanoid body identity**, produce one owner-review set of exactly four native-4K images from the same locked brief. The live Tripo Studio lineup observed on 2026-08-28 is:
 
-1. Tripo Studio Nano Banana;
-2. Tripo Studio Nano Banana Pro;
-3. ChatGPT/OpenAI image A;
-4. ChatGPT/OpenAI image B.
+1. `Nano Banana 2`;
+2. `Nano Banana Pro`;
+3. `GPT Image 1.5`;
+4. `GPT Image 2`.
+
+Use Tripo Studio's exact visible model labels, one image per submission, a 1:1 square frame, and the native `4K Resolution` switch enabled before each submission. The base `Nano Banana` fast lane is a fallback and does not replace one of the standard four without an issue-linked owner decision. If any standard label disappears or changes, stop before silently substituting another model and record a provider-lineup drift audit.
 
 For humanoid bodies, every candidate uses the locked positive and rejection prompt blocks in `../HUMANOID_DUAL_POSE_PIPELINE.md`. The primary source is a strict T-pose. An image-model A-pose may be kept only as reference-conditioned `DETAIL_REFERENCE_ONLY`; the production A-pose comes from posing the accepted rigged mesh.
 
-Reject incomplete/no-pedestal failures before aesthetic scoring. Preserve original files, hashes, provider/model/settings when exposed, comparison metrics, selected candidate, and owner verdict.
+Preserve and post all four completed candidates in the active Codex thread as full-resolution review images labeled A-D with the body asset ID, exact provider/model, generation timestamp, native-4K state, pixel dimensions, source hash, and technical gate verdict. Do not silently hide or replace a completed candidate because it failed a technical check. The owner reviews the four-image set and explicitly selects one candidate (or rejects the round). A source becomes canonical only when it has both the owner's explicit selection and a passing full-body/strict-T/no-pedestal/no-fused-gear/no-anatomy-defect verdict. If the owner's preferred image fails a hard technical gate, preserve that preference, explain the failure, and run a corrected owner-approved replacement round rather than sending the failed image to Smart Mesh.
+
+No Smart Mesh upload or image-to-3D submission may occur until the four images are posted in-thread and the owner-selection receipt identifies the exact candidate ID and SHA-256. An image-model A-pose is not a fifth review candidate; the production A-pose is derived from the selected canonical mesh and skeleton.
 
 Before every charged operation, return:
 
@@ -299,8 +311,9 @@ For each pilot:
 
 ```text
 locked brief
--> four-image strict T-pose full-asset bakeoff
--> owner image selection
+-> four-provider native-4K strict T-pose full-asset bakeoff
+-> post all four labeled full-resolution images in the active Codex thread
+-> explicit owner image selection tied to candidate ID and SHA-256
 -> exact-cost owner approval
 -> one canonical live-verified Tripo Smart Mesh full-body generation
 -> immediate untouched download
@@ -311,7 +324,11 @@ locked brief
 -> UV/PBR bake and material validation after topology acceptance
 -> scale/origin/axis/pivot normalization
 -> versioned head seam
--> canonical rig/skin and normalized T-pose artifact
+-> export a clean centered skeleton-free T-pose using Tripo's Mixamo FBX preset
+-> Mixamo chin/wrist/elbow/knee/groin marker placement receipt
+-> full finger-capable Mixamo standard skeleton unless an approved LOD exception is recorded
+-> Mixamo auto-rig/skin and complete T-pose skeleton inspection
+-> normalized T-pose artifact
 -> derive A-pose from the same accepted mesh and skeleton
 -> matching-topology/UV/material/seam/body-identity proof
 -> dual-pose deformation and modular-fit QA
@@ -340,7 +357,7 @@ Minimum animation proof:
 - one death/terminal state;
 - draw/sheath or equip/unequip where applicable.
 
-Search the live Tripo preset library first. Accepted direct presets do not require duplicate DCC production. Substantial custom motions follow the Houdini KineFX versus Blender blinded bakeoff.
+Search the live Mixamo library first for biped humanoids. Search the live Tripo preset library first for animals, non-humanoid monsters, and other creatures. Accepted direct provider presets do not require duplicate DCC production. Substantial custom motions follow the Houdini KineFX versus Blender blinded bakeoff.
 
 ---
 
@@ -465,7 +482,7 @@ Before making changes, the new session must return:
 13. exact canonical-body and pose-artifact counts;
 14. geometry-before-rig pipeline;
 15. modular head/hair/clothing/armor/weapon contracts;
-16. Tripo preset/custom-animation routing;
+16. Mixamo humanoid and Tripo creature preset/custom-animation routing;
 17. exact expected and maximum cost for the first charged operation;
 18. visible exact Smart Mesh model/version, Quad Face, and face-target evidence plan;
 19. blockers and explicit owner decisions required.

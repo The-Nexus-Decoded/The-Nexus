@@ -12,6 +12,7 @@ import {
   lightingTuningRegistry,
   loadLightingTuningDocument,
 } from "./game/lightingTuning";
+import { installPilotAnimationReview } from "./pilotAnimationReview";
 
 let activeWorld: World3D | null = null;
 
@@ -91,4 +92,5 @@ async function bootstrap(): Promise<void> {
   }
 }
 
+installPilotAnimationReview();
 void bootstrap();

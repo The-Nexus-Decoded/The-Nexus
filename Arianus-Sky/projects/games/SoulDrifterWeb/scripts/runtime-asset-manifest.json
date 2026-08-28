@@ -13,6 +13,10 @@
     "lore-atlas/assets/P-*_painted.png",
     "lore-atlas/assets/maps/*.svg"
   ],
+  "developmentOnlyGlobs": [
+    "assets/3d/animations/human-foundation-pilot/**",
+    "assets/3d/characters/human-foundation-pilot/**"
+  ],
   "protectedPaths": [
     "assets/generated/first-breach-environment-v1.png",
     "assets/generated/action-icons/basic-weapon-strike.svg",
