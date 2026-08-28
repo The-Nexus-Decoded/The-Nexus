@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BREACH_V2_RUN_SCHEMA_VERSION,
   createBreachV2RunController,
   type BreachV2RunController,
 } from "../src/game/dungeons/breach-v2-gameplay";
@@ -194,5 +195,61 @@ describe("BREACH-V2 isolated gameplay spine", () => {
     expect(restored.snapshot()).toEqual(cleaned);
     completeTutorial(restored);
     expect(restored.requestDoor("chamber-1-entry").allowed).toBe(true);
+  });
+
+  it("migrates incomplete schema-v1 environment saves without crashing preview consumers", () => {
+    const legacy = create().snapshot();
+    legacy.tutorial.cofferOpened = true;
+    const restored = create({
+      ...legacy,
+      schemaVersion: 1,
+      environment: {},
+    }).snapshot();
+
+    expect(restored.schemaVersion).toBe(BREACH_V2_RUN_SCHEMA_VERSION);
+    expect(restored.environment).toMatchObject({
+      cofferOpened: true,
+      pickupDropped: true,
+      pickupCollected: true,
+      collectedItemIds: ["test-starter-4182-wayfarer"],
+      removedColliderIds: ["vestibule:storage-chest:7"],
+      destroyedObjectIds: [],
+      debrisObjectIds: [],
+      objectHitPoints: {},
+    });
+  });
+
+  it("normalizes malformed nested environment values and bounds restored debris", () => {
+    const saved = create().snapshot();
+    const restored = create({
+      ...saved,
+      environment: {
+        cofferObjectId: "",
+        cofferOpened: "yes",
+        pickupDropped: true,
+        pickupCollected: false,
+        deterministicItemId: null,
+        collectedItemIds: "invalid",
+        objectHitPoints: { crate: 12, negative: -1, infinite: Number.POSITIVE_INFINITY },
+        destroyedObjectIds: ["crate", 42],
+        removedColliderIds: ["crate", "crate"],
+        debrisObjectIds: Array.from({ length: 12 }, (_, index) => `debris-${index}`),
+      },
+    }).snapshot();
+
+    expect(restored.environment).toMatchObject({
+      cofferObjectId: "vestibule:storage-chest:7",
+      cofferOpened: false,
+      pickupDropped: true,
+      pickupCollected: false,
+      deterministicItemId: "test-starter-4182-wayfarer",
+      collectedItemIds: [],
+      objectHitPoints: { crate: 12 },
+      destroyedObjectIds: [],
+      removedColliderIds: ["crate"],
+    });
+    expect(restored.environment.debrisObjectIds).toEqual(
+      Array.from({ length: 8 }, (_, index) => `debris-${index + 4}`),
+    );
   });
 });

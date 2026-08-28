@@ -12,6 +12,8 @@ interface BreachV2DevPanelOptions {
   cam: string;
   warp: (roomId: string, x: number, z: number) => boolean;
   setAllDoorsOpen: (open: boolean) => void;
+  persistSpatialState: () => void;
+  clearSpatialState: () => void;
 }
 
 const CAMERA_MODES = [
@@ -43,7 +45,16 @@ export function resolveBreachV2LegacyLandmarkRoomId(
   return null;
 }
 
-function replacePreviewParams(values: Record<string, string | null>): void {
+export function shouldPreserveBreachV2SpatialState(
+  values: Readonly<Record<string, string | null>>,
+): boolean {
+  return !Object.keys(values).some((key) => key === "seed" || key === "path" || key === "start");
+}
+
+function replacePreviewParams(
+  values: Record<string, string | null>,
+  options: Pick<BreachV2DevPanelOptions, "persistSpatialState" | "clearSpatialState">,
+): void {
   const url = new URL(window.location.href);
   for (const [key, value] of Object.entries(values)) {
     if (value === null) url.searchParams.delete(key);
@@ -53,6 +64,8 @@ function replacePreviewParams(values: Record<string, string | null>): void {
   // the navigation workspace across that necessary reload so QA does not have
   // to reopen Settings -> Navigate after every selection.
   url.searchParams.set("dev", "1");
+  if (shouldPreserveBreachV2SpatialState(values)) options.persistSpatialState();
+  else options.clearSpatialState();
   window.location.assign(url);
 }
 
@@ -166,7 +179,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   const routeRow = document.createElement("div");
   routeRow.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:4px";
   for (const path of ["wayfarer", "oathbreaker"] as const) {
-    const routeButton = button(path, () => replacePreviewParams({ path, start: "vestibule" }), path === options.path);
+    const routeButton = button(path, () => replacePreviewParams({ path, start: "vestibule" }, options), path === options.path);
     routeRow.appendChild(routeButton);
   }
   body.appendChild(routeRow);
@@ -188,14 +201,14 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   applySeed.style.cssText = "padding:6px 9px;background:#6f4525;color:#fff1d5;border:1px solid #b47d43;border-radius:2px;cursor:pointer;font:700 11px ui-monospace,monospace";
   applySeed.addEventListener("click", () => {
     const parsed = Number.parseInt(seedInput.value, 10);
-    replacePreviewParams({ seed: String(Number.isFinite(parsed) ? Math.max(0, parsed) : 4182), start: "vestibule" });
+    replacePreviewParams({ seed: String(Number.isFinite(parsed) ? Math.max(0, parsed) : 4182), start: "vestibule" }, options);
   });
   seedRow.append(seedInput, applySeed);
   body.appendChild(seedRow);
 
   section("Camera mode");
   for (const [id, label] of CAMERA_MODES) {
-    button(label, () => replacePreviewParams({ cam: id }), options.cam === id);
+    button(label, () => replacePreviewParams({ cam: id }, options), options.cam === id);
   }
 
   section("Warp to section");
@@ -205,17 +218,17 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     const x = room.x + room.w / 2;
     const z = room.z + room.h / 2;
     const roomButton = button(label, () => {
-      if (!options.warp(room.id, x, z)) replacePreviewParams({ cam: "isometric", start: room.id });
+      if (!options.warp(room.id, x, z)) replacePreviewParams({ cam: "isometric", start: room.id }, options);
     });
     roomButton.dataset.roomId = room.id;
   }
 
   section("QA helpers");
-  button("Reset walk to Soul Well", () => replacePreviewParams({ cam: "walk", start: "vestibule" }));
+  button("Reset walk to Soul Well", () => replacePreviewParams({ cam: "walk", start: "vestibule" }, options));
   button("Open all section doors", () => options.setAllDoorsOpen(true));
   button("Close all section doors", () => options.setAllDoorsOpen(false));
-  button("Show encounter markers", () => replacePreviewParams({ markers: "1" }));
-  button("Hide encounter markers", () => replacePreviewParams({ markers: null }));
+  button("Show encounter markers", () => replacePreviewParams({ markers: "1" }, options));
+  button("Hide encounter markers", () => replacePreviewParams({ markers: null }, options));
 
   const foot = document.createElement("p");
   foot.textContent = compactViewport
