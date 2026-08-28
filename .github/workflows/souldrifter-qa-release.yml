@@ -72,7 +72,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
-        run: yarn install --non-interactive --no-progress
+        run: yarn install --non-interactive --no-progress --no-lockfile
 
       - name: Install pinned Python image dependencies
         working-directory: Arianus-Sky/projects/games/SoulDrifterWeb
