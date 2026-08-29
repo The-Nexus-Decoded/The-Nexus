@@ -28,6 +28,14 @@ import {
   setupBreachV2HumanFoundationReview,
   type BreachV2HumanFoundationReview,
 } from "./breach-v2-human-foundation-review.ts";
+import {
+  createBreachV2BreachlingRuntime,
+  type BreachV2BreachlingRuntime,
+} from "./breach-v2-breachlings.ts";
+import {
+  setupBreachV2CreatureReview,
+  type BreachV2CreatureReview,
+} from "./breach-v2-creature-review.ts";
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import {
@@ -132,6 +140,12 @@ interface PreviewHooks {
     pose: BreachV2HumanFoundationActor["pose"];
     pause: BreachV2HumanFoundationActor["pause"];
   } | null;
+  __dungeonCreatures: {
+    snapshots: BreachV2BreachlingRuntime["snapshots"];
+    play: BreachV2BreachlingRuntime["play"];
+    pose: BreachV2BreachlingRuntime["pose"];
+    pause: BreachV2BreachlingRuntime["pause"];
+  };
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonCanStandAt: (x: number, z: number) => boolean;
   __dungeonNavigateTo: (x: number, z: number) => boolean;
@@ -4015,6 +4029,7 @@ export async function startDungeonPreview(
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
   const animationReviewEnabled = previewUrl.searchParams.get("animationReview") === "1";
+  const creatureReviewEnabled = previewUrl.searchParams.get("creatureReview") === "1";
   clearBreachV2LegacySpatialStateForExplicitUrl(previewUrl, window.sessionStorage);
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
@@ -4357,6 +4372,18 @@ export async function startDungeonPreview(
       isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
     ),
   });
+  loading.textContent = "Loading creatures for the active room…";
+  const breachlingRuntime = createBreachV2BreachlingRuntime(
+    scene,
+    layout,
+    gltfLoader,
+    options.path,
+  );
+  await breachlingRuntime.warmAt(playerPos.x, playerPos.z);
+  let creatureAnimationReview: BreachV2CreatureReview | null = null;
+  if (creatureReviewEnabled) {
+    creatureAnimationReview = setupBreachV2CreatureReview(container, breachlingRuntime);
+  }
   let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
   let camPitch = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
@@ -4659,6 +4686,12 @@ export async function startDungeonPreview(
     pose: foundationPlayerActor.pose,
     pause: foundationPlayerActor.pause,
   } : null;
+  hooks.__dungeonCreatures = {
+    snapshots: breachlingRuntime.snapshots,
+    play: breachlingRuntime.play,
+    pose: breachlingRuntime.pose,
+    pause: breachlingRuntime.pause,
+  };
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
     setPlayerPosition(x, z);
@@ -5045,6 +5078,8 @@ export async function startDungeonPreview(
         }
         resolveCameraAgainstScene(cameraTarget, desiredCamera);
       }
+      breachlingRuntime.update(playerPos.x, playerPos.z, delta);
+      creatureAnimationReview?.update();
       const currentRoom = layout.rooms.find((room) => (
         playerPos.x >= room.x
         && playerPos.x <= room.x + room.w
