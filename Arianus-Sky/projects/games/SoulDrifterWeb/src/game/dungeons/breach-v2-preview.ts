@@ -32,6 +32,10 @@ import {
   resolveBreachV2LegacyLandmarkRoomId,
   setupBreachV2DevPanel,
 } from "./breach-v2-dev-panel.ts";
+import {
+  clearBreachV2LegacySpatialStateForExplicitUrl,
+  compileBreachV2StartupShaders,
+} from "./breach-v2-startup-safety.ts";
 import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
@@ -3994,6 +3998,7 @@ export async function startDungeonPreview(
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
+  clearBreachV2LegacySpatialStateForExplicitUrl(previewUrl, window.sessionStorage);
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
   // `gates=on` only when explicitly validating the campaign progression locks.
@@ -4611,58 +4616,12 @@ export async function startDungeonPreview(
       window.localStorage.setItem("breach-v2-performance-details", visible ? "1" : "0");
     },
   });
-  loading.textContent = "Warming dungeon shaders, textures, and geometry…";
+  loading.textContent = "Compiling dungeon shaders…";
   try {
-    await renderer.compileAsync(scene, camera);
-
-    // compileAsync prepares shader programs, but it does not guarantee that
-    // textures and geometry for rooms outside the initial camera have reached
-    // the GPU. Paying that upload cost room-by-room caused multi-frame stalls
-    // on the first traversal even when the same route immediately repeated at
-    // a steady 60 fps. Upload every material texture, then issue one whole-
-    // dungeon gameplay-canvas render while the loading screen owns the transition.
-    const sceneTextures = new Set<THREE.Texture>();
-    scene.traverse((object) => {
-      if (!(
-        object instanceof THREE.Mesh
-        || object instanceof THREE.Line
-        || object instanceof THREE.Points
-        || object instanceof THREE.Sprite
-      )) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      for (const material of materials) {
-        for (const value of Object.values(material)) {
-          if (value instanceof THREE.Texture) sceneTextures.add(value);
-        }
-      }
-    });
-    for (const texture of sceneTextures) renderer.initTexture(texture);
-
-    const minX = Math.min(...layout.rooms.map((room) => room.x));
-    const maxX = Math.max(...layout.rooms.map((room) => room.x + room.w));
-    const minZ = Math.min(...layout.rooms.map((room) => room.z));
-    const maxZ = Math.max(...layout.rooms.map((room) => room.z + room.h));
-    const warmCamera = new THREE.PerspectiveCamera(120, 1, 0.1, 400);
-    warmCamera.position.set((minX + maxX) / 2, 180, (minZ + maxZ) / 2);
-    warmCamera.up.set(0, 0, -1);
-    warmCamera.lookAt((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
-    warmCamera.updateMatrixWorld(true);
-    const previousTarget = renderer.getRenderTarget();
-    // Use the real antialiased canvas. ANGLE/Direct3D may cache a different
-    // pipeline for an offscreen target, leaving a multi-second first-use stall
-    // when the same material later reaches the gameplay framebuffer.
-    renderer.setRenderTarget(null);
-    renderer.render(scene, warmCamera);
-    scene.userData.gpuWarmup = {
-      textures: sceneTextures.size,
-      calls: renderer.info.render.calls,
-      triangles: renderer.info.render.triangles,
-      geometries: renderer.info.memory.geometries,
-    };
-    renderer.setRenderTarget(previousTarget);
-    renderer.getContext().finish();
+    await compileBreachV2StartupShaders(renderer, scene, camera);
+    scene.userData.gpuWarmup = { mode: "shaders-only" };
   } catch (error) {
-    console.warn("BREACH-V2 GPU resource warm-up was unavailable; continuing with lazy initialization", error);
+    console.warn("BREACH-V2 shader compilation was unavailable; continuing with lazy initialization", error);
   }
   loading.remove();
 
