@@ -652,7 +652,7 @@ def build_lift(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, 
 
 
 def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
-    """Author a planted two-tool pin-tumbler lockpick from the rest pose."""
+    """Author v2 as a planted two-tool lockpick with relaxed boundaries."""
     name = "AuthoredUtility__Lockpick"
     end_frame = 132
     if armature.animation_data is None:
@@ -693,7 +693,10 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
         add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
     ]
-    influence_keys = [(1, 0.0), (12, 1.0), (120, 1.0), (132, 0.0)]
+    # The rest mesh is an arms-wide authoring pose. Keep arm IK active for the
+    # complete playable range so the clip begins and ends in the same natural
+    # arms-down stance and never exposes that rest pose during a transition.
+    influence_keys = [(1, 1.0), (132, 1.0)]
     for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
         constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
             f"AuthoredIK__mixamorig:{side}ForeArm"
@@ -707,11 +710,14 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         ]
 
     # Left hand maintains light cylinder torque while the right hook probes
-    # and lifts discrete pin stacks. The last deliberate motion turns the
-    # cylinder, then both hands withdraw before the neutral recovery.
+    # and lifts discrete pin stacks. Both hands rise directly from a relaxed
+    # stance, perform small deliberate tool motions, withdraw under control,
+    # and return to the identical relaxed stance without a T-pose boundary.
+    relaxed_left = (-0.010, 0.175, 0.020)
+    relaxed_right = (-0.010, -0.175, 0.020)
     phases = [
-        (1, "neutral", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
-        (16, "reach", 6.0, 3.0, (0.160, 0.078, 0.130), (0.160, -0.085, 0.145), 25.0, 25.0),
+        (1, "natural-relaxed-stance", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
+        (16, "raise-hands-directly-to-lock", 4.0, 2.0, (0.125, 0.095, 0.120), (0.125, -0.100, 0.132), 18.0, 16.0),
         (32, "place-tension-wrench-and-pick", 10.0, 5.0, (0.192, 0.052, 0.096), (0.195, -0.052, 0.110), 50.0, 42.0),
         (44, "set-light-torque", 10.0, 5.0, (0.192, 0.052, 0.096), (0.198, -0.052, 0.111), 54.0, 45.0),
         (56, "probe-pin-stack-one", 11.0, 5.0, (0.192, 0.052, 0.096), (0.205, -0.051, 0.118), 55.0, 46.0),
@@ -720,14 +726,12 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         (92, "reset-pick-depth", 10.0, 4.0, (0.192, 0.052, 0.096), (0.194, -0.052, 0.108), 56.0, 47.0),
         (104, "set-final-pin-stack", 11.0, 5.0, (0.192, 0.052, 0.096), (0.206, -0.049, 0.123), 57.0, 48.0),
         (116, "turn-cylinder", 8.0, 3.0, (0.190, 0.044, 0.089), (0.198, -0.048, 0.112), 58.0, 58.0),
-        (124, "withdraw-tools", 4.0, 2.0, (0.150, 0.080, 0.135), (0.145, -0.090, 0.150), 25.0, 20.0),
-        (132, "neutral-recovery", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+        (124, "controlled-tool-withdrawal", 4.0, 2.0, (0.115, 0.105, 0.115), (0.110, -0.110, 0.128), 18.0, 14.0),
+        (132, "same-natural-relaxed-recovery", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
     ]
     contact_frames = [32, 44, 56, 68, 80, 92, 104, 116]
     left_targets: dict[int, Vector] = {}
     right_targets: dict[int, Vector] = {}
-    left_ground_targets: dict[int, Vector] = {}
-    right_ground_targets: dict[int, Vector] = {}
     keyed_fingers: set[str] = set()
     for frame, _, spine_x, head_x, left_pos, right_pos, curl, hand_roll in phases:
         reset_pose(armature)
@@ -744,8 +748,6 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         right_position = vec(right_pos)
         key_object_location(left_hand, frame, left_position)
         key_object_location(right_hand, frame, right_position)
-        left_ground_targets[frame] = rest_left_ankle
-        right_ground_targets[frame] = rest_right_ankle
         if frame in contact_frames:
             left_targets[frame] = left_position
             right_targets[frame] = right_position
@@ -762,18 +764,68 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
 
     left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", contact_frames, left_targets)
     right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", contact_frames, right_targets)
-    phase_frames = [phase[0] for phase in phases]
-    left_ground = measure_tail_error(armature, action, "mixamorig:LeftLeg", phase_frames, left_ground_targets)
-    right_ground = measure_tail_error(armature, action, "mixamorig:RightLeg", phase_frames, right_ground_targets)
+    every_frame = list(range(1, end_frame + 1))
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: rest_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: rest_right_ankle for frame in every_frame},
+    )
+    leg_neutrality = measure_neutral_bones(
+        armature,
+        action,
+        [
+            "mixamorig:LeftUpLeg",
+            "mixamorig:LeftLeg",
+            "mixamorig:LeftFoot",
+            "mixamorig:LeftToeBase",
+            "mixamorig:RightUpLeg",
+            "mixamorig:RightLeg",
+            "mixamorig:RightFoot",
+            "mixamorig:RightToeBase",
+        ],
+        every_frame,
+    )
+    boundary_frames = [1, end_frame]
+    left_boundary = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftForeArm",
+        boundary_frames,
+        {frame: vec(relaxed_left) for frame in boundary_frames},
+    )
+    right_boundary = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightForeArm",
+        boundary_frames,
+        {frame: vec(relaxed_right) for frame in boundary_frames},
+    )
     if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
         raise RuntimeError(f"Lockpick hand contact gate failed: left={left_contact}, right={right_contact}")
     if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
         raise RuntimeError(f"Lockpick grounding gate failed: left={left_ground}, right={right_ground}")
+    if left_boundary["maxError"] > CONTACT_TOLERANCE or right_boundary["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Lockpick natural-boundary gate failed: left={left_boundary}, right={right_boundary}")
+    if (
+        leg_neutrality["maximumLocationErrorRigUnits"] > 0.001
+        or leg_neutrality["maximumRotationErrorDegrees"] > 1.0
+        or leg_neutrality["maximumScaleError"] > 0.001
+    ):
+        raise RuntimeError(f"Lockpick lower-body neutral-pose gate failed: {leg_neutrality}")
 
     reference = {
         "url": "https://www.youtube.com/watch?v=ayzTwjLLXNI",
         "publisher": "ITS Tactical / Imminent Threat Solutions",
-        "retrievedAt": "2026-08-28",
+        "retrievedAt": "2026-08-29",
         "timeRange": "00:00-01:00 (full real-person demonstration)",
         "mechanics": {
             "stance": "Stand square to the lock with a small forward lean and both feet planted.",
@@ -783,7 +835,7 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
             "handsGripContacts": "Left hand maintains light tension-wrench torque; right hand inserts the hook pick and probes/lifts pins with short controlled strokes.",
             "anticipation": "Reach, place both tools, then settle into stable bilateral contact before probing.",
             "cadence": "Slow tension setup followed by several small probe/set strokes and a readable cylinder turn.",
-            "followThroughRecovery": "Turn the cylinder, withdraw both tools, and return to a neutral ready posture.",
+            "followThroughRecovery": "Turn the cylinder, withdraw both tools, and return to the exact same natural arms-down posture.",
         },
     }
     record = {
@@ -795,6 +847,7 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         "sourceClipReuse": False,
         "sourceActionNames": [],
         "sourceAnimationsSampled": False,
+        "supersedesRejectedCandidate": "interaction-lockpick-v1",
         "fps": FPS,
         "frameRange": [1, end_frame],
         "durationSeconds": round((end_frame - 1) / FPS, 3),
@@ -809,14 +862,31 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         ],
         "ikConstraints": ik_constraints,
         "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftTensionHand": left_contact, "rightPickHand": right_contact, "passed": True},
-        "groundingValidation": {"threshold": GROUND_TOLERANCE, "leftFoot": left_ground, "rightFoot": right_ground, "passed": True},
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftFoot": left_ground,
+            "rightFoot": right_ground,
+            "neutralLegAndFootTransforms": leg_neutrality,
+            "persistentKneeFlex": False,
+            "heelLift": False,
+            "passed": True,
+        },
+        "naturalBoundaryValidation": {
+            "frames": boundary_frames,
+            "leftArm": left_boundary,
+            "rightArm": right_boundary,
+            "identicalRelaxedStartEnd": True,
+            "tPosePlayableFrames": 0,
+            "passed": True,
+        },
         "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
         "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 58.0},
         "loopSeam": None,
         "recommendedPreview": {
             "durationSeconds": 5.0,
             "cameraFraming": "continuous close-front, close-side, close-rear, and gameplay views with the cylinder, both tools, hands, elbows, spine, feet, and floor visible",
-            "reviewFocus": ["steady left-hand torque", "short right-hand pin strokes", "tool/keyway contact", "neutral wrists", "planted feet", "readable cylinder turn", "clean withdrawal"],
+            "reviewFocus": ["no T-pose in any playable frame", "identical relaxed start/end stance", "hands raise directly to lock height", "steady left-hand torque", "short right-hand pin strokes", "slight head and shoulder focus", "tool/keyway contact", "neutral wrists", "planted feet", "readable cylinder turn", "clean controlled withdrawal", "no body/door intersection"],
         },
         "provenanceReferences": [reference],
     }
