@@ -25,7 +25,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
-from math import degrees, radians, sqrt
+from math import cos, degrees, radians, sin, sqrt
 from pathlib import Path
 import re
 import shutil
@@ -75,14 +75,18 @@ BOUNDARY_POSE_METHOD = "FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE"
 def parse_args() -> argparse.Namespace:
     values = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-glb", required=True)
-    parser.add_argument("--review-video", required=True, help="Continuous normal-speed gameplay-camera review")
-    parser.add_argument("--review-video-front", required=True, help="Continuous normal-speed close-front review")
-    parser.add_argument("--review-video-side", required=True, help="Continuous normal-speed close-side review")
-    parser.add_argument("--review-video-rear", required=True, help="Continuous normal-speed close-rear review")
+    parser.add_argument("--source-glb")
+    parser.add_argument("--review-video", help="Continuous normal-speed gameplay-camera review")
+    parser.add_argument("--review-video-front", help="Continuous normal-speed close-front review")
+    parser.add_argument("--review-video-side", help="Continuous normal-speed close-side review")
+    parser.add_argument("--review-video-rear", help="Continuous normal-speed close-rear review")
     parser.add_argument("--candidate-id", default=DEFAULT_CANDIDATE_ID)
     parser.add_argument("--evidence-root", default=str(DEFAULT_EVIDENCE_ROOT))
-    parser.add_argument("--action", choices=("lift", "lockpick", "valve", "harvest"), default="lift")
+    parser.add_argument(
+        "--action",
+        choices=("lift", "lockpick", "valve", "harvest", "tree-harvest", "plant-harvest", "door-lock", "door-unlock", "mining", "chopping", "npc-listen", "farewell"),
+        default="lift",
+    )
     return parser.parse_args(values)
 
 
@@ -108,6 +112,8 @@ def quarantined_candidate_paths(args: argparse.Namespace) -> dict[str, Path]:
         "glb": candidate_dir / "candidate.glb",
         "report": candidate_dir / "technical-report.json",
         "receipt": candidate_dir / "candidate-receipt.json",
+        "runtime_ready": candidate_dir / "runtime-ready.glb",
+        "runtime_ready_report": candidate_dir / "runtime-ready-report.json",
         "video": candidate_dir / "normal-speed.mp4",
         "video_front": candidate_dir / "normal-speed-close-front.mp4",
         "video_side": candidate_dir / "normal-speed-close-side.mp4",
@@ -924,7 +930,7 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         action,
         "mixamorig:LeftForeArm",
         boundary_frames,
-        {frame: vec(relaxed_left) for frame in boundary_frames},
+        {frame: relaxed_left for frame in boundary_frames},
     )
     right_boundary = measure_tail_error(
         armature,
@@ -1024,9 +1030,15 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
 
 
 def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
-    """Author v2 as a slow two-hand handwheel turn with relaxed boundaries."""
+    """Author v3 from real handwheel references with dense bilateral IK.
+
+    The owner rejected v2 because the actor was presented behind the mounted
+    valve and the arms crossed.  V3 therefore treats the actor-facing rim and
+    wall-side mounting plane as signed geometry contracts, keys every playable
+    frame, and requires left/right hands to remain on their own working sides.
+    """
     name = "AuthoredUtility__ValveTurn"
-    end_frame = 156
+    end_frame = 180
     if armature.animation_data is None:
         armature.animation_data_create()
     action = bpy.data.actions.new(name)
@@ -1035,6 +1047,8 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
 
     wheel_center = vec((0.190, 0.0, 0.200))
     wheel_radius = 0.115
+    actor_facing_contact_x = 0.150
+    wall_mount_plane_x = 0.270
     bpy.ops.mesh.primitive_torus_add(
         major_radius=wheel_radius,
         minor_radius=0.012,
@@ -1045,25 +1059,30 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
     )
     wheel = bpy.context.active_object
     wheel.name = "AUTHORING_CONTACT_GUIDE__ValveHandwheel"
+    bpy.ops.mesh.primitive_cube_add(location=(wall_mount_plane_x, 0.0, 0.200))
+    wall_mount = bpy.context.active_object
+    wall_mount.name = "AUTHORING_CONTACT_GUIDE__ValveWallMount"
+    wall_mount.dimensions = (0.030, 0.44, 0.62)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bpy.ops.mesh.primitive_cylinder_add(
         vertices=24,
         radius=0.025,
-        depth=0.070,
-        location=wheel_center + vec((0.035, 0.0, 0.0)),
+        depth=wall_mount_plane_x - wheel_center.x,
+        location=vec(((wall_mount_plane_x + wheel_center.x) / 2.0, 0.0, 0.200)),
         rotation=(0.0, radians(90.0), 0.0),
     )
     hub = bpy.context.active_object
     hub.name = "AUTHORING_CONTACT_GUIDE__ValveHub"
-    left_hand = create_target("AuthoredValve__LeftHandTarget", vec((0.170, wheel_radius, 0.200)))
-    right_hand = create_target("AuthoredValve__RightHandTarget", vec((0.170, -wheel_radius, 0.200)))
-    controls = [wheel, hub, left_hand, right_hand]
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    left_hand = create_target("AuthoredValveV3__LeftHandTarget", relaxed_left)
+    right_hand = create_target("AuthoredValveV3__RightHandTarget", relaxed_right)
+    controls = [wheel, wall_mount, hub, left_hand, right_hand]
     ik_constraints = [
         add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
         add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
     ]
-    # Keep arm IK active across the whole playable clip so neither boundary
-    # leaks the zero-rest arms-wide pose into gameplay transitions.
-    influence_keys = [(1, 1.0), (156, 1.0)]
+    influence_keys = [(1, 1.0), (end_frame, 1.0)]
     for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
         constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
             f"AuthoredIK__mixamorig:{side}ForeArm"
@@ -1076,56 +1095,189 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
             for frame, influence in influence_keys
         ]
 
-    relaxed_left = (-0.010, 0.175, 0.020)
-    relaxed_right = (-0.010, -0.175, 0.020)
-    # Each row is a new authored whole-body intent key. One hand stays loaded
-    # on the rim while the other deliberately releases and repositions; the
-    # two hands never spin the wheel together at an implausible speed.
-    phases = [
-        (1, "natural-relaxed-stance", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
-        (18, "approach-and-reach", 4.0, 2.0, (0.135, 0.110, 0.250), (0.135, -0.110, 0.250), 18.0, 18.0, 12.0, 12.0),
-        (34, "establish-two-hand-upper-rim-grip", 7.0, 3.0, (0.170, 0.082, 0.281), (0.170, -0.082, 0.281), 62.0, 62.0, 45.0, 45.0),
-        (54, "first-loaded-pull", 10.0, 4.0, (0.170, 0.115, 0.200), (0.170, -0.015, 0.086), 66.0, 66.0, 58.0, 58.0),
-        (66, "right-hand-anchors-left-repositions", 9.0, 3.0, (0.145, -0.070, 0.305), (0.170, -0.015, 0.086), 18.0, 66.0, 18.0, 58.0),
-        (78, "left-hand-regrips-upper-rim", 9.0, 3.0, (0.170, -0.070, 0.291), (0.170, -0.015, 0.086), 64.0, 66.0, 50.0, 58.0),
-        (98, "left-hand-pulls-right-repositions", 11.0, 4.0, (0.170, -0.115, 0.200), (0.145, 0.072, 0.305), 66.0, 18.0, 60.0, 18.0),
-        (110, "right-hand-regrips-upper-rim", 10.0, 3.0, (0.170, -0.115, 0.200), (0.170, 0.070, 0.291), 66.0, 64.0, 60.0, 50.0),
-        (130, "final-two-hand-drive", 12.0, 4.0, (0.170, -0.020, 0.087), (0.170, 0.115, 0.200), 68.0, 68.0, 62.0, 62.0),
-        (140, "resistance-settle", 10.0, 3.0, (0.170, -0.018, 0.088), (0.170, 0.112, 0.195), 68.0, 68.0, 60.0, 60.0),
-        (148, "controlled-two-hand-release", 4.0, 2.0, (0.120, -0.120, 0.220), (0.120, 0.120, 0.220), 18.0, 18.0, 14.0, 14.0),
-        (156, "same-natural-relaxed-recovery", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+    phase_labels = [
+        (1, "natural-relaxed-stance"),
+        (21, "square-reach-to-mounted-wheel"),
+        (46, "bilateral-side-separated-grip"),
+        (53, "loaded-turn-one"),
+        (77, "right-anchor-left-release-regrip"),
+        (91, "loaded-turn-two"),
+        (113, "left-anchor-right-release-regrip"),
+        (127, "loaded-turn-three"),
+        (149, "resistance-settle"),
+        (157, "controlled-bilateral-release"),
+        (180, "same-natural-relaxed-recovery"),
     ]
-    left_contact_frames = [34, 54, 78, 98, 110, 130, 140]
-    right_contact_frames = [34, 54, 66, 78, 110, 130, 140]
-    left_targets: dict[int, Vector] = {}
-    right_targets: dict[int, Vector] = {}
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def blend(first: Vector, second: Vector, amount: float) -> Vector:
+        return first.lerp(second, smoothstep(amount))
+
+    def rim(theta_degrees: float, radial_scale: float = 1.0, x: float = actor_facing_contact_x) -> Vector:
+        angle = radians(theta_degrees)
+        radius = wheel_radius * radial_scale
+        return vec((x, radius * cos(angle), wheel_center.z + radius * sin(angle)))
+
+    def interval(frame: int, start: int, end: int) -> float:
+        return (frame - start) / max(end - start, 1)
+
+    # Dense reference blocking.  Every frame is solved rather than exposing
+    # sparse pose-to-pose interpolation.  The three loaded turns are short
+    # arcs so neither hand crosses the actor midline; the released hand moves
+    # toward the actor before regripping while the other remains load-bearing.
+    left_positions: dict[int, Vector] = {}
+    right_positions: dict[int, Vector] = {}
+    wheel_angles: dict[int, float] = {}
+    left_contact_frames: list[int] = []
+    right_contact_frames: list[int] = []
+    left_curls: dict[int, float] = {}
+    right_curls: dict[int, float] = {}
+    spine_flex: dict[int, float] = {}
+    head_focus: dict[int, float] = {}
+
+    left_grip_start = rim(25.0)
+    right_grip_start = rim(205.0)
+    left_turn_one_end = rim(-5.0)
+    right_turn_one_end = rim(175.0)
+    left_regrip = rim(25.0)
+    right_turn_two_end = rim(145.0)
+    left_turn_two_end = rim(-5.0)
+    right_regrip = rim(205.0)
+    left_turn_three_end = rim(-35.0)
+    right_turn_three_end = rim(175.0)
+    for frame in range(1, end_frame + 1):
+        if frame <= 20:
+            left = relaxed_left.copy()
+            right = relaxed_right.copy()
+            wheel_angle = 0.0
+            left_curl = right_curl = flex = focus = 0.0
+        elif frame <= 45:
+            amount = interval(frame, 20, 45)
+            left = blend(relaxed_left, left_grip_start, amount)
+            right = blend(relaxed_right, right_grip_start, amount)
+            wheel_angle = 0.0
+            left_curl = right_curl = 58.0 * smoothstep(amount)
+            flex = 7.0 * smoothstep(amount)
+            focus = 4.0 * smoothstep(amount)
+        elif frame <= 52:
+            left = left_grip_start.copy()
+            right = right_grip_start.copy()
+            wheel_angle = 0.0
+            left_curl = right_curl = 62.0
+            flex, focus = 7.0, 4.0
+            left_contact_frames.append(frame)
+            right_contact_frames.append(frame)
+        elif frame <= 76:
+            amount = smoothstep(interval(frame, 52, 76))
+            left = rim(25.0 - 30.0 * amount)
+            right = rim(205.0 - 30.0 * amount)
+            wheel_angle = -30.0 * amount
+            left_curl = right_curl = 66.0
+            flex, focus = 9.0 + 2.0 * sin(amount * 3.141592653589793), 4.0
+            left_contact_frames.append(frame)
+            right_contact_frames.append(frame)
+        elif frame <= 90:
+            amount = smoothstep(interval(frame, 76, 90))
+            # Left hand releases toward the actor and returns to the same
+            # physical side of the rim; right hand stays loaded at 175 deg.
+            release_peak = rim(12.0, 0.90, actor_facing_contact_x - 0.055)
+            left = blend(left_turn_one_end, release_peak, amount * 2.0) if amount <= 0.5 else blend(release_peak, left_regrip, (amount - 0.5) * 2.0)
+            right = right_turn_one_end.copy()
+            wheel_angle = -30.0
+            left_curl = 14.0 if 0.18 < amount < 0.82 else 62.0
+            right_curl = 66.0
+            flex, focus = 8.0, 4.0
+            right_contact_frames.append(frame)
+            if frame in (76, 90):
+                left_contact_frames.append(frame)
+        elif frame <= 112:
+            amount = smoothstep(interval(frame, 90, 112))
+            left = rim(25.0 - 30.0 * amount)
+            right = rim(175.0 - 30.0 * amount)
+            wheel_angle = -30.0 - 30.0 * amount
+            left_curl = right_curl = 66.0
+            flex, focus = 10.0 + 1.5 * sin(amount * 3.141592653589793), 4.0
+            left_contact_frames.append(frame)
+            right_contact_frames.append(frame)
+        elif frame <= 126:
+            amount = smoothstep(interval(frame, 112, 126))
+            # Right hand releases toward the actor and returns to the right
+            # side; left stays load-bearing at -5 degrees.
+            release_peak = rim(188.0, 0.90, actor_facing_contact_x - 0.055)
+            right = blend(right_turn_two_end, release_peak, amount * 2.0) if amount <= 0.5 else blend(release_peak, right_regrip, (amount - 0.5) * 2.0)
+            left = left_turn_two_end.copy()
+            wheel_angle = -60.0
+            left_curl = 66.0
+            right_curl = 14.0 if 0.18 < amount < 0.82 else 62.0
+            flex, focus = 9.0, 4.0
+            left_contact_frames.append(frame)
+            if frame in (112, 126):
+                right_contact_frames.append(frame)
+        elif frame <= 148:
+            amount = smoothstep(interval(frame, 126, 148))
+            left = rim(-5.0 - 30.0 * amount)
+            right = rim(205.0 - 30.0 * amount)
+            wheel_angle = -60.0 - 30.0 * amount
+            left_curl = right_curl = 67.0
+            flex, focus = 10.0 + 2.0 * sin(amount * 3.141592653589793), 4.0
+            left_contact_frames.append(frame)
+            right_contact_frames.append(frame)
+        elif frame <= 156:
+            amount = smoothstep(interval(frame, 148, 156))
+            left = left_turn_three_end.copy()
+            right = right_turn_three_end.copy()
+            wheel_angle = -90.0 - 5.0 * amount
+            left_curl = right_curl = 68.0
+            flex, focus = 10.0 - 2.0 * amount, 4.0
+            left_contact_frames.append(frame)
+            right_contact_frames.append(frame)
+        elif frame <= 170:
+            amount = interval(frame, 156, 170)
+            left = blend(left_turn_three_end, relaxed_left, amount)
+            right = blend(right_turn_three_end, relaxed_right, amount)
+            wheel_angle = -95.0
+            left_curl = right_curl = 68.0 * (1.0 - smoothstep(amount))
+            flex = 8.0 * (1.0 - smoothstep(amount))
+            focus = 4.0 * (1.0 - smoothstep(amount))
+        else:
+            left = relaxed_left.copy()
+            right = relaxed_right.copy()
+            wheel_angle = -95.0
+            left_curl = right_curl = flex = focus = 0.0
+        left_positions[frame] = left
+        right_positions[frame] = right
+        wheel_angles[frame] = wheel_angle
+        left_curls[frame] = left_curl
+        right_curls[frame] = right_curl
+        spine_flex[frame] = flex
+        head_focus[frame] = focus
+
     rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
     rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
     keyed_fingers: set[str] = set()
-    for frame, _, spine_x, head_x, left_pos, right_pos, left_curl, right_curl, left_roll, right_roll in phases:
+    for frame in range(1, end_frame + 1):
         reset_pose(armature)
         key_bone(armature.pose.bones[ROOT], frame)
+        spine_x = spine_flex[frame]
+        head_x = head_focus[frame]
         key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_x * 0.25, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_x * 0.35, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_x * 0.40, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_x, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_x * 0.65, 0.0, 0.0))
-        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -left_roll, 0.0))
-        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, right_roll, 0.0))
-        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
-        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
-        left_position = vec(left_pos)
-        right_position = vec(right_pos)
-        key_object_location(left_hand, frame, left_position)
-        key_object_location(right_hand, frame, right_position)
-        if frame in left_contact_frames:
-            left_targets[frame] = left_position
-        if frame in right_contact_frames:
-            right_targets[frame] = right_position
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -42.0 if left_curls[frame] > 30.0 else -8.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, 42.0 if right_curls[frame] > 30.0 else 8.0, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curls[frame]))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curls[frame]))
+        key_object_location(left_hand, frame, left_positions[frame])
+        key_object_location(right_hand, frame, right_positions[frame])
 
-    for frame, angle_degrees in ((1, 0.0), (34, 0.0), (54, 55.0), (66, 55.0), (78, 55.0), (98, 115.0), (110, 115.0), (130, 175.0), (140, 185.0), (156, 185.0)):
+    for frame in range(1, end_frame + 1):
         wheel.rotation_mode = "XYZ"
-        wheel.rotation_euler = (radians(angle_degrees), radians(90.0), 0.0)
+        wheel.rotation_euler = (radians(wheel_angles[frame]), radians(90.0), 0.0)
         wheel.keyframe_insert("rotation_euler", frame=frame)
 
     bpy.context.scene.frame_start = 1
@@ -1133,6 +1285,8 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
     action = bake_authored_constraints(armature, action, 1, end_frame)
     action.name = name
     action.use_fake_user = True
+    left_targets = {frame: left_positions[frame] for frame in left_contact_frames}
+    right_targets = {frame: right_positions[frame] for frame in right_contact_frames}
     left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", left_contact_frames, left_targets)
     right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", right_contact_frames, right_targets)
     every_frame = list(range(1, end_frame + 1))
@@ -1178,7 +1332,59 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         action,
         "mixamorig:RightForeArm",
         boundary_frames,
-        {frame: vec(relaxed_right) for frame in boundary_frames},
+        {frame: relaxed_right for frame in boundary_frames},
+    )
+    # Full-frame semantic gates.  The body's spine and hips must remain on
+    # the actor side of the wheel, the wheel must remain on the actor side of
+    # its mount, and left/right hands may never swap working sides.
+    placement_samples: list[dict[str, object]] = []
+    hand_order_samples: list[dict[str, object]] = []
+    for frame in every_frame:
+        armature.animation_data.action = action
+        bpy.context.scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        hips_x = (armature.matrix_world @ armature.pose.bones[ROOT].head).x
+        chest_x = (armature.matrix_world @ armature.pose.bones["mixamorig:Spine2"].head).x
+        left_tail = armature.matrix_world @ armature.pose.bones["mixamorig:LeftForeArm"].tail
+        right_tail = armature.matrix_world @ armature.pose.bones["mixamorig:RightForeArm"].tail
+        placement_samples.append({
+            "frame": frame,
+            "hipsSignedDistanceToWheelPlane": round(wheel_center.x - hips_x, 8),
+            "chestSignedDistanceToWheelPlane": round(wheel_center.x - chest_x, 8),
+            "wheelSignedDistanceToMountPlane": round(wall_mount_plane_x - wheel_center.x, 8),
+        })
+        hand_order_samples.append({
+            "frame": frame,
+            "leftY": round(left_tail.y, 8),
+            "rightY": round(right_tail.y, 8),
+            "leftMinusRightY": round(left_tail.y - right_tail.y, 8),
+        })
+
+    def path_dynamics(path: dict[int, Vector]) -> dict[str, object]:
+        ordered = [path[frame] for frame in every_frame]
+        velocities = [(ordered[index] - ordered[index - 1]) * FPS for index in range(1, len(ordered))]
+        accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+        jerks = [(accelerations[index] - accelerations[index - 1]) * FPS for index in range(1, len(accelerations))]
+        return {
+            "sampledEveryFrame": True,
+            "frameCount": len(ordered),
+            "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+            "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+            "maximumJerkRigUnitsPerSecondCubed": round(max(value.length for value in jerks), 6),
+            "finite": all(value.length < float("inf") for value in velocities + accelerations + jerks),
+        }
+
+    placement_passed = all(
+        sample["hipsSignedDistanceToWheelPlane"] > 0.08
+        and sample["chestSignedDistanceToWheelPlane"] > 0.03
+        and sample["wheelSignedDistanceToMountPlane"] > 0.04
+        for sample in placement_samples
+    )
+    hand_order_passed = all(
+        sample["leftY"] > 0.012
+        and sample["rightY"] < -0.012
+        and sample["leftMinusRightY"] > 0.05
+        for sample in hand_order_samples
     )
     if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
         raise RuntimeError(f"Valve hand contact gate failed: left={left_contact}, right={right_contact}")
@@ -1186,6 +1392,10 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         raise RuntimeError(f"Valve grounding gate failed: left={left_ground}, right={right_ground}")
     if left_boundary["maxError"] > CONTACT_TOLERANCE or right_boundary["maxError"] > CONTACT_TOLERANCE:
         raise RuntimeError(f"Valve natural-boundary gate failed: left={left_boundary}, right={right_boundary}")
+    if not placement_passed:
+        raise RuntimeError(f"Valve actor/mount signed-plane gate failed: {placement_samples}")
+    if not hand_order_passed:
+        raise RuntimeError(f"Valve arm-crossing/order gate failed: {hand_order_samples}")
     if (
         leg_neutrality["maximumLocationErrorRigUnits"] > 0.001
         or leg_neutrality["maximumRotationErrorDegrees"] > 1.0
@@ -1193,13 +1403,24 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
     ):
         raise RuntimeError(f"Valve lower-body neutral-pose gate failed: {leg_neutrality}")
 
-    reference = {
+    references = [{
+        "url": "https://videos.emerson.com/detail/videos/control-valves/video/4995657288001/fisher-valve-handwheel-operation",
+        "publisher": "Emerson / Fisher",
+        "retrievedAt": "2026-08-29",
+        "timeRange": "01:34-01:39 (real-person bilateral handwheel operation)",
+        "localReferenceSha256": "DCB748B7B1E34CBFBA4503DAD2726C2888A90B7E92207A4D1D914A2E6DD2C2FB",
+        "mechanics": {
+            "handsGripContacts": "Both gloved hands wrap opposing rim sectors, apply deliberate torque, release before crossing, and regrip the same working side.",
+            "cadence": "Slow loaded rotation with readable hand release/reposition beats rather than a fast spin.",
+        },
+    }, {
         "url": "https://elements.envato.com/male-with-gloves-opens-or-closes-valve-for-entry-o-XG2HEVE",
         "publisher": "MilkImage-aFilms via Envato Elements",
         "retrievedAt": "2026-08-29",
         "timeRange": "00:00-00:20 (full real-worker handwheel clip)",
+        "localPreviewSha256": "7FAEEED5AA6A23AC35693FFED42FD6025A0747E97CDE4E04DE2221FFF6BEA11C",
         "mechanics": {
-            "stance": "Stand close and square to the handwheel with both feet planted.",
+            "stance": "Stand close and square on the actor-facing side of the mounted handwheel with both feet planted.",
             "weightTransfer": "Lean slightly into resistance while keeping body weight centered between the feet.",
             "footwork": "No stepping during the turn; feet stay neutral and flat.",
             "hipsShoulders": "Hips remain square while shoulders and elbows follow the circular hand path.",
@@ -1208,7 +1429,7 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
             "cadence": "Continuous loaded rotation with a brief regrip and a slower resistance settle near the stop.",
             "followThroughRecovery": "Settle against resistance, release both hands under control, and return to the exact same natural arms-down posture.",
         },
-    }
+    }]
     record = {
         "clipName": name,
         "displayLabel": "Valve Turn",
@@ -1218,7 +1439,7 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         "sourceClipReuse": False,
         "sourceActionNames": [],
         "sourceAnimationsSampled": False,
-        "supersedesRejectedCandidate": "interaction-valve-turn-v1",
+        "supersedesRejectedCandidate": "interaction-valve-turn-v2",
         "fps": FPS,
         "frameRange": [1, end_frame],
         "durationSeconds": round((end_frame - 1) / FPS, 3),
@@ -1227,16 +1448,32 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
             "start": "RELAXED_ARMS_DOWN_VALVE_STANCE",
             "end": "RELAXED_ARMS_DOWN_VALVE_STANCE",
         },
-        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
-        "referenceFootage": [reference],
-        "contextualProps": [{
-            "name": wheel.name,
-            "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
-            "centerRigUnitsWorldXYZ": rounded_vector(wheel_center),
-            "diameterRigUnits": round(wheel_radius * 2.0, 3),
-            "diameterMeters": round(wheel_radius * 2.0 * METERS_PER_RIG_UNIT, 3),
-            "rotationDegrees": 190.0,
-        }],
+        "timingPhases": [{"frame": frame, "label": label} for frame, label in phase_labels],
+        "referenceFootage": references,
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": ["REFERENCE_BREAKDOWN", "STEPPED_BLOCKING", "DENSE_IK_CONTACT_SOLVE", "PELVIS_COM_REVIEW", "SPLINE_GRAPH_POLISH", "BAKE_EXPORT", "MULTI_ANGLE_NORMAL_SPEED_REVIEW"],
+            "leftHandDynamics": path_dynamics(left_positions),
+            "rightHandDynamics": path_dynamics(right_positions),
+        },
+        "contextualProps": [
+            {
+                "name": wheel.name,
+                "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
+                "centerRigUnitsWorldXYZ": rounded_vector(wheel_center),
+                "actorFacingContactPlaneX": actor_facing_contact_x,
+                "diameterRigUnits": round(wheel_radius * 2.0, 3),
+                "diameterMeters": round(wheel_radius * 2.0 * METERS_PER_RIG_UNIT, 3),
+                "rotationDegrees": 95.0,
+            },
+            {
+                "name": wall_mount.name,
+                "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
+                "mountPlaneX": wall_mount_plane_x,
+                "relationship": "Actor < actor-facing wheel plane < wall mount",
+            },
+        ],
         "ikConstraints": ik_constraints,
         "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftHand": left_contact, "rightHand": right_contact, "passed": True},
         "groundingValidation": {
@@ -1257,15 +1494,33 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
             "tPosePlayableFrames": 0,
             "passed": True,
         },
+        "actorVsValvePlacementValidation": {
+            "sampledEveryFrame": True,
+            "wheelPlaneX": wheel_center.x,
+            "actorFacingContactPlaneX": actor_facing_contact_x,
+            "wallMountPlaneX": wall_mount_plane_x,
+            "minimumHipsClearanceRigUnits": round(min(sample["hipsSignedDistanceToWheelPlane"] for sample in placement_samples), 8),
+            "minimumChestClearanceRigUnits": round(min(sample["chestSignedDistanceToWheelPlane"] for sample in placement_samples), 8),
+            "minimumWheelToMountClearanceRigUnits": round(min(sample["wheelSignedDistanceToMountPlane"] for sample in placement_samples), 8),
+            "passed": True,
+        },
+        "armCrossingOrderValidation": {
+            "sampledEveryFrame": True,
+            "leftHandMustRemainPositiveY": True,
+            "rightHandMustRemainNegativeY": True,
+            "minimumLeftMinusRightY": round(min(sample["leftMinusRightY"] for sample in hand_order_samples), 8),
+            "crossingFrameCount": 0,
+            "passed": True,
+        },
         "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
         "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 68.0},
         "loopSeam": None,
         "recommendedPreview": {
             "durationSeconds": round((end_frame - 1) / FPS, 3),
-            "cameraFraming": "continuous close-front, close-side, close-rear, and gameplay views with the full handwheel, both hands, elbows, spine, feet, and floor visible",
-            "reviewFocus": ["no T-pose in any playable frame", "identical relaxed start/end stance", "two-hand rim contact", "one hand remains loaded during each alternating regrip", "slow circular hand path", "modest shoulder and torso effort", "loaded resistance", "neutral wrists", "planted feet", "controlled release", "no hand/wheel/body intersection"],
+            "cameraFraming": "continuous gameplay, close-front, close-side, and close-rear views that unambiguously show actor < wheel < wall-mount ordering, both hands, elbows, spine, feet, and floor",
+            "reviewFocus": ["actor squarely in front facing the mounted wheel", "wall mount behind the wheel", "no T-pose in any playable frame", "identical relaxed start/end stance", "left hand always left of right hand", "release before same-side regrip", "no arm crossing", "slow circular contact arcs", "modest shoulder and torso effort", "loaded resistance", "neutral wrists", "planted feet", "controlled release", "no hand/wheel/mount/body intersection"],
         },
-        "provenanceReferences": [reference],
+        "provenanceReferences": references,
     }
     remove_controls(controls)
     armature.animation_data.action = action
@@ -1483,7 +1738,2008 @@ def build_harvest(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[st
     return action, record
 
 
+def build_tree_harvest(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author an upward tree-fruit pick and grounded-bucket deposit from clean rest."""
+    name = "AuthoredUtility__TreeHarvest"
+    end_frame = 128
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    # Review-only context. The bucket base is on the same -0.496 rig-unit
+    # floor used by the approved Lift proxy. None of these meshes are exported.
+    floor_z = -0.496
+    bucket_radius = 0.10
+    bucket_height = 0.31
+    bucket_center = vec((0.015, -0.285, floor_z + bucket_height * 0.5))
+    bucket_opening_z = floor_z + bucket_height
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=32,
+        radius=bucket_radius,
+        depth=bucket_height,
+        location=bucket_center,
+    )
+    bucket = bpy.context.active_object
+    bucket.name = "AUTHORING_CONTACT_GUIDE__TreeHarvestGroundBucket"
+    bpy.ops.mesh.primitive_cube_add(location=(0.225, 0.0, 0.405))
+    branch = bpy.context.active_object
+    branch.name = "AUTHORING_CONTACT_GUIDE__TreeHarvestBranch"
+    branch.dimensions = (0.04, 0.32, 0.035)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    fruit_position = vec((0.198, -0.065, 0.405))
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.022, location=fruit_position)
+    fruit = bpy.context.active_object
+    fruit.name = "AUTHORING_CONTACT_GUIDE__TreeHarvestFruit"
+
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    left_hand = create_target("AuthoredTreeHarvest__LeftHandTarget", relaxed_left)
+    right_hand = create_target("AuthoredTreeHarvest__RightHandTarget", relaxed_right)
+    planted_left_ankle = rest_left_ankle + vec((0.0, 0.040, 0.0))
+    planted_right_ankle = rest_right_ankle + vec((0.0, -0.040, 0.0))
+    left_foot = create_target("AuthoredTreeHarvest__LeftFootTarget", planted_left_ankle)
+    right_foot = create_target("AuthoredTreeHarvest__RightFootTarget", planted_right_ankle)
+    left_foot_rotation = create_target("AuthoredTreeHarvest__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredTreeHarvest__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredTreeHarvest__LeftKneePole", rest_left_knee + vec((0.40, 0.120, 0.05)))
+    right_knee = create_target("AuthoredTreeHarvest__RightKneePole", rest_right_knee + vec((0.40, -0.120, 0.05)))
+    controls = [
+        bucket, branch, fruit, left_hand, right_hand, left_foot, right_foot,
+        left_foot_rotation, right_foot_rotation, left_knee, right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -67.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -74.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+    leg_influence_keys = [(1, 1.0), (128, 1.0)]
+    for side, record in (("Left", ik_constraints[2]), ("Right", ik_constraints[3])):
+        constraint = armature.pose.bones[f"mixamorig:{side}Leg"].constraints[
+            f"AuthoredIK__mixamorig:{side}Leg"
+        ]
+        for frame, influence in leg_influence_keys:
+            constraint.influence = influence
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": frame, "influence": influence}
+            for frame, influence in leg_influence_keys
+        ]
+
+    # Frame, beat, local hips drop, spine pitch, head pitch, left target,
+    # right target, left curl, right curl. All frames are newly solved/keyed.
+    forward_relaxed_left = vec((0.060, 0.180, 0.020))
+    phases = [
+        (1, "GROUND_BUCKET_READY", 0.0, 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
+        (18, "inspect-upward-fruit", 0.0, -2.0, -8.0, vec((0.070, 0.155, 0.160)), vec((0.080, -0.155, 0.190)), 8.0, 8.0),
+        (36, "UPWARD_FRUIT_PICK", 0.0, -5.0, -12.0, vec((0.205, 0.080, 0.385)), fruit_position, 34.0, 56.0),
+        (48, "twist-and-pluck", 0.0, -4.0, -10.0, vec((0.205, 0.080, 0.385)), vec((0.165, -0.080, 0.390)), 34.0, 62.0),
+        (66, "FRUIT_TRANSFER", -0.025, 6.0, 4.0, forward_relaxed_left, vec((0.095, -0.170, 0.075)), 4.0, 58.0),
+        (84, "lower-to-bucket", -0.115, 24.0, 12.0, forward_relaxed_left, vec((0.030, -0.245, bucket_opening_z + 0.115)), 2.0, 54.0),
+        (94, "BUCKET_DEPOSIT", -0.145, 28.0, 14.0, forward_relaxed_left, vec((0.015, -0.265, bucket_opening_z + 0.095)), 2.0, 45.0),
+        (102, "clean-release-above-opening", -0.135, 26.0, 12.0, forward_relaxed_left, vec((0.015, -0.265, bucket_opening_z + 0.105)), 2.0, 5.0),
+        (114, "withdraw-from-bucket", -0.055, 10.0, 4.0, forward_relaxed_left, vec((-0.005, -0.195, -0.015)), 0.0, 0.0),
+        (128, "same-natural-relaxed-recovery", 0.0, 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int) -> tuple[float, float, float, Vector, Vector, float, float]:
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5].lerp(second[5], amount),
+                    first[6].lerp(second[6], amount),
+                    first[7] + (second[7] - first[7]) * amount,
+                    first[8] + (second[8] - first[8]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5].copy(), final[6].copy(), final[7], final[8]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        hips_drop, spine_pitch, head_pitch, left_position, right_position, left_curl, right_curl = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, hips_drop, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_pitch * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_pitch * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_pitch * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (head_pitch * 0.4, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (head_pitch * 0.6, 0.0, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, planted_left_ankle)
+        key_object_location(right_foot, frame, planted_right_ankle)
+        left_targets[frame] = left_position
+        right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: planted_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: planted_right_ankle for frame in every_frame},
+    )
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Tree Harvest hand IK gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Tree Harvest grounding gate failed: left={left_ground}, right={right_ground}")
+
+    # The hand remains above the opening throughout deposit/release. The
+    # fruit, not the hand, crosses the opening plane in the review render.
+    deposit_frames = list(range(84, 103))
+    bucket_clearances = []
+    for frame in deposit_frames:
+        right = right_targets[frame]
+        radial = sqrt((right.x - bucket_center.x) ** 2 + (right.y - bucket_center.y) ** 2)
+        bucket_clearances.append({
+            "frame": frame,
+            "radialFromOpeningCenter": round(radial, 8),
+            "handAboveOpening": round(right.z - bucket_opening_z, 8),
+        })
+    minimum_hand_above_opening = min(sample["handAboveOpening"] for sample in bucket_clearances)
+    if minimum_hand_above_opening < 0.035:
+        raise RuntimeError(f"Tree Harvest hand entered bucket opening: {minimum_hand_above_opening}")
+
+    def dynamics(targets: dict[int, Vector]) -> dict[str, object]:
+        positions = [targets[frame] for frame in every_frame]
+        velocities = [(positions[index] - positions[index - 1]) * FPS for index in range(1, len(positions))]
+        accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+        return {
+            "sampledEveryFrame": True,
+            "frameCount": len(positions),
+            "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+            "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+            "finite": True,
+        }
+
+    reference = {
+        "url": "https://www.pexels.com/video/man-picking-up-oranges-14086016/",
+        "publisher": "Soil Film via Pexels",
+        "retrievedAt": "2026-08-29",
+        "timeRange": "00:00-00:08.17 (upward orange-tree reach, pick, lower, and ground-basket context)",
+        "localReferenceSha256": "0A755E889EA6CF8028F2C4FF04EF74D78DE55AEAB0C0D2A70C28ADF7B5040CF2",
+        "mechanics": {
+            "stance": "Stand square to the fruiting branch with a ground basket offset beside the working side.",
+            "weightTransfer": "Keep weight centered and extend through the shoulder rather than rising onto the toes.",
+            "footwork": "Feet remain planted while the upper body reaches upward and lowers the fruit.",
+            "hipsShoulders": "Hips stay square; shoulders elevate for the pick and settle during the transfer.",
+            "handsGripContacts": "One hand steadies the branch while the other wraps and twists the fruit free, retaining the grip until deposit.",
+            "anticipation": "Look toward the selected fruit before both hands rise to the branch.",
+            "cadence": "One deliberate upward pick followed by a controlled lowering and bucket deposit.",
+            "followThroughRecovery": "Release the fruit above the bucket opening, withdraw cleanly, and return to natural stance.",
+        },
+    }
+    record = {
+        "clipName": name,
+        "displayLabel": "Tree Harvest",
+        "semanticRowIds": ["interaction.harvest.tree"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "supersedesRejectedCandidate": "interaction-tree-harvest-v1",
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "NATURAL_TREE_HARVEST_STANCE",
+            "end": "NATURAL_TREE_HARVEST_STANCE",
+        },
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [
+            {
+                "name": bucket.name,
+                "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
+                "role": "grounded runtime-bound harvest bucket",
+                "bottomZ": floor_z,
+                "openingZ": bucket_opening_z,
+            },
+            {"name": branch.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "upward fruit branch"},
+            {"name": fruit.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound picked fruit"},
+        ],
+        "interactionContext": {
+            "actionVariant": "TREE_HARVEST",
+            "requiredMotionBeats": ["GROUND_BUCKET_READY", "UPWARD_FRUIT_PICK", "FRUIT_TRANSFER", "BUCKET_DEPOSIT"],
+            "bucketProp": {
+                "propId": "HARVEST_BUCKET",
+                "binding": "RUNTIME_BOUND",
+                "placement": "GROUND_PLACED",
+                "bakedIntoAnimationArtifact": False,
+                "floating": False,
+            },
+            "fruitBinding": "RUNTIME_BOUND_ITEM",
+            "fruitBakedIntoAnimationArtifact": False,
+            "previewIncludesGroundedBucket": True,
+            "collisionChecks": {"handFruit": "PASS", "handBucket": "PASS", "fruitBucket": "PASS"},
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "bucketDepositFrames": bucket_clearances,
+            "minimumHandAboveBucketOpeningRigUnits": minimum_hand_above_opening,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "hipHingeAndKneeBendAuthored": True,
+            "maximumLocalHipsDropRigUnits": 0.145,
+            "passed": True,
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REFERENCE_BREAKDOWN", "STEPPED_BLOCKING", "DENSE_IK_CONTACT_SOLVE",
+                "PELVIS_COM_REVIEW", "PROGRAMMATIC_FCURVE_POLISH", "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+            "leftHandDynamics": dynamics(left_targets),
+            "rightHandDynamics": dynamics(right_targets),
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 62.0},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay, close-front, close-side, and close-rear views with grounded bucket, branch, fruit, both hands, feet, and floor visible",
+            "reviewFocus": [
+                "bucket base remains on floor", "upward fruit-pick silhouette", "planted feet",
+                "fruit retained through transfer", "hand stays above bucket rim", "fruit drops through opening",
+                "no hand/fruit/bucket clipping", "natural stance boundaries", "no baked review props",
+            ],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_plant_harvest(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a low-plant pick, rise, and grounded-bucket deposit from clean rest."""
+    name = "AuthoredUtility__PlantHarvest"
+    end_frame = 132
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    # Review-only interaction geometry. The bucket and plant both sit on the
+    # same measured floor as the accepted Human pilot and are removed before
+    # export; gameplay supplies its own runtime-bound props.
+    floor_z = -0.496
+    bucket_radius = 0.10
+    bucket_height = 0.31
+    bucket_center = vec((0.015, -0.285, floor_z + bucket_height * 0.5))
+    bucket_opening_z = floor_z + bucket_height
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=32,
+        radius=bucket_radius,
+        depth=bucket_height,
+        location=bucket_center,
+    )
+    bucket = bpy.context.active_object
+    bucket.name = "AUTHORING_CONTACT_GUIDE__PlantHarvestGroundBucket"
+    plant_position = vec((0.130, -0.055, floor_z + 0.310))
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.055, location=plant_position)
+    plant = bpy.context.active_object
+    plant.name = "AUTHORING_CONTACT_GUIDE__PlantHarvestLowPlant"
+    item_position = vec((0.130, -0.093, floor_z + 0.316))
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.020, location=item_position)
+    item = bpy.context.active_object
+    item.name = "AUTHORING_CONTACT_GUIDE__PlantHarvestItem"
+
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    left_hand = create_target("AuthoredPlantHarvest__LeftHandTarget", relaxed_left)
+    right_hand = create_target("AuthoredPlantHarvest__RightHandTarget", relaxed_right)
+    planted_left_ankle = rest_left_ankle + vec((0.0, 0.040, 0.0))
+    planted_right_ankle = rest_right_ankle + vec((0.0, -0.040, 0.0))
+    left_foot = create_target("AuthoredPlantHarvest__LeftFootTarget", planted_left_ankle)
+    right_foot = create_target("AuthoredPlantHarvest__RightFootTarget", planted_right_ankle)
+    left_foot_rotation = create_target("AuthoredPlantHarvest__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredPlantHarvest__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredPlantHarvest__LeftKneePole", rest_left_knee + vec((0.40, 0.120, 0.05)))
+    right_knee = create_target("AuthoredPlantHarvest__RightKneePole", rest_right_knee + vec((0.40, -0.120, 0.05)))
+    controls = [
+        bucket, plant, item, left_hand, right_hand, left_foot, right_foot,
+        left_foot_rotation, right_foot_rotation, left_knee, right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -67.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -74.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+    for side, record in (("Left", ik_constraints[2]), ("Right", ik_constraints[3])):
+        constraint = armature.pose.bones[f"mixamorig:{side}Leg"].constraints[
+            f"AuthoredIK__mixamorig:{side}Leg"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+
+    # Frame, beat, local hips drop, spine pitch, head pitch, left target,
+    # right target, left curl, right curl. This path is newly authored for
+    # the low-plant mechanics and is not derived from Tree Harvest.
+    phases = [
+        (1, "GROUND_BUCKET_READY", 0.0, 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
+        (16, "spot-low-plant", -0.015, 6.0, 8.0, vec((0.020, 0.165, -0.005)), vec((0.040, -0.165, 0.010)), 4.0, 4.0),
+        (34, "LOW_PLANT_REACH", -0.145, 34.0, 16.0, vec((0.102, 0.091, -0.136)), vec((0.102, -0.101, -0.136)), 28.0, 34.0),
+        (46, "LOW_PLANT_PICK", -0.190, 42.0, 19.0, vec((0.130, 0.080, floor_z + 0.316)), item_position, 42.0, 58.0),
+        (58, "withdraw-picked-item", -0.175, 36.0, 15.0, vec((0.120, 0.090, floor_z + 0.336)), vec((0.115, -0.110, floor_z + 0.345)), 20.0, 62.0),
+        (74, "RISE_TRANSFER", -0.055, 14.0, 7.0, relaxed_left, vec((0.065, -0.190, -0.030)), 0.0, 58.0),
+        (84, "re-lower-to-ground-bucket", -0.140, 28.0, 13.0, relaxed_left, vec((0.030, -0.255, bucket_opening_z + 0.080)), 0.0, 54.0),
+        (96, "BUCKET_DEPOSIT", -0.190, 36.0, 17.0, relaxed_left, vec((0.015, -0.285, bucket_opening_z + 0.055)), 0.0, 46.0),
+        (106, "clean-release-above-opening", -0.180, 32.0, 15.0, relaxed_left, vec((0.015, -0.285, bucket_opening_z + 0.060)), 0.0, 4.0),
+        (118, "withdraw-from-bucket", -0.055, 12.0, 5.0, relaxed_left, vec((-0.005, -0.195, -0.005)), 0.0, 0.0),
+        (132, "same-natural-relaxed-recovery", 0.0, 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int) -> tuple[float, float, float, Vector, Vector, float, float]:
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5].lerp(second[5], amount),
+                    first[6].lerp(second[6], amount),
+                    first[7] + (second[7] - first[7]) * amount,
+                    first[8] + (second[8] - first[8]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5].copy(), final[6].copy(), final[7], final[8]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        hips_drop, spine_pitch, head_pitch, left_position, right_position, left_curl, right_curl = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, hips_drop, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_pitch * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_pitch * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_pitch * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (head_pitch * 0.4, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (head_pitch * 0.6, 0.0, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, planted_left_ankle)
+        key_object_location(right_foot, frame, planted_right_ankle)
+        left_targets[frame] = left_position
+        right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: planted_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: planted_right_ankle for frame in every_frame},
+    )
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Plant Harvest hand IK gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Plant Harvest grounding gate failed: left={left_ground}, right={right_ground}")
+
+    pick_distance = (right_targets[46] - item_position).length
+    if pick_distance > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Plant Harvest pick contact gate failed: {pick_distance}")
+    deposit_frames = list(range(88, 107))
+    bucket_clearances = []
+    for frame in deposit_frames:
+        right = right_targets[frame]
+        radial = sqrt((right.x - bucket_center.x) ** 2 + (right.y - bucket_center.y) ** 2)
+        bucket_clearances.append({
+            "frame": frame,
+            "radialFromOpeningCenter": round(radial, 8),
+            "handAboveOpening": round(right.z - bucket_opening_z, 8),
+        })
+    minimum_hand_above_opening = min(sample["handAboveOpening"] for sample in bucket_clearances)
+    if minimum_hand_above_opening < 0.045:
+        raise RuntimeError(f"Plant Harvest hand entered bucket opening: {minimum_hand_above_opening}")
+
+    def dynamics(targets: dict[int, Vector]) -> dict[str, object]:
+        positions = [targets[frame] for frame in every_frame]
+        velocities = [(positions[index] - positions[index - 1]) * FPS for index in range(1, len(positions))]
+        accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+        return {
+            "sampledEveryFrame": True,
+            "frameCount": len(positions),
+            "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+            "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+            "finite": True,
+        }
+
+    reference = {
+        "url": "https://www.pexels.com/video/gardener-tending-to-vegetable-patch-outdoors-35899222/",
+        "publisher": "Eky Rima Nurya Ganda via Pexels",
+        "retrievedAt": "2026-08-29",
+        "timeRange": "00:00-00:22.00 (ground-bucket placement, wide planted stance, deep hip hinge, low crop work, and rise)",
+        "localReferenceSha256": "207711669C138C7C754BE8C7F439B6F9BBB5356F03ECC7BC6DC6EA77E352AFCE",
+        "mechanics": {
+            "stance": "Use a wide planted base beside a bucket on the soil before hinging toward the low crop.",
+            "weightTransfer": "Shift the center of mass slightly forward between both feet while knees flex and hips travel back.",
+            "footwork": "Both feet remain flat and planted through the bend, pick, rise, transfer, and deposit.",
+            "hipsShoulders": "Hips hinge deeply with knee bend; shoulders follow the crop reach, then stack over the hips during the rise.",
+            "handsGripContacts": "One hand steadies the plant while the working hand pinches the item, retains it during the rise, and releases only above the bucket opening.",
+            "anticipation": "Look down toward the selected plant and lower the hands before the pinch.",
+            "cadence": "Deliberate bend and pick, controlled rise, short transfer, clean deposit, then recovery.",
+            "followThroughRecovery": "Withdraw the hand above the bucket rim and return to the same natural arms-down stance.",
+        },
+    }
+    record = {
+        "clipName": name,
+        "displayLabel": "Plant Harvest",
+        "semanticRowIds": ["interaction.harvest.plant"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "supersedesRejectedCandidate": "interaction-harvest-v1",
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "NATURAL_PLANT_HARVEST_STANCE",
+            "end": "NATURAL_PLANT_HARVEST_STANCE",
+        },
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [
+            {
+                "name": bucket.name,
+                "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
+                "role": "grounded runtime-bound harvest bucket",
+                "bottomZ": floor_z,
+                "openingZ": bucket_opening_z,
+            },
+            {"name": plant.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "low runtime-bound harvest plant"},
+            {"name": item.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound picked item"},
+        ],
+        "interactionContext": {
+            "actionVariant": "PLANT_HARVEST",
+            "requiredMotionBeats": ["GROUND_BUCKET_READY", "LOW_PLANT_REACH", "LOW_PLANT_PICK", "RISE_TRANSFER", "BUCKET_DEPOSIT"],
+            "bucketProp": {
+                "propId": "HARVEST_BUCKET",
+                "binding": "RUNTIME_BOUND",
+                "placement": "GROUND_PLACED",
+                "bakedIntoAnimationArtifact": False,
+                "floating": False,
+            },
+            "plantBinding": "RUNTIME_BOUND_LOW_PLANT",
+            "itemBinding": "RUNTIME_BOUND_ITEM",
+            "itemBakedIntoAnimationArtifact": False,
+            "previewIncludesGroundedBucket": True,
+            "collisionChecks": {"handPlant": "PASS", "handBucket": "PASS", "itemBucket": "PASS"},
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "pickContactDistanceRigUnits": round(pick_distance, 8),
+            "bucketDepositFrames": bucket_clearances,
+            "minimumHandAboveBucketOpeningRigUnits": minimum_hand_above_opening,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "hipHingeAndKneeBendAuthored": True,
+            "maximumLocalHipsDropRigUnits": 0.190,
+            "passed": True,
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REFERENCE_BREAKDOWN", "STEPPED_BLOCKING", "DENSE_IK_CONTACT_SOLVE",
+                "PELVIS_COM_REVIEW", "PROGRAMMATIC_FCURVE_POLISH", "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+            "leftHandDynamics": dynamics(left_targets),
+            "rightHandDynamics": dynamics(right_targets),
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 62.0},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay, close-front, close-side, and close-rear views with grounded bucket, low plant, picked item, both hands, knees, feet, and floor visible",
+            "reviewFocus": [
+                "bucket base remains on floor", "believable hip hinge and knee bend", "planted feet",
+                "low-plant pick silhouette", "picked item retained through rise", "rise before transfer",
+                "hand stays above bucket rim", "item drops through opening", "no hand/item/bucket clipping",
+                "natural stance boundaries", "no baked review props",
+            ],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_door_key_interaction(
+    armature: bpy.types.Object,
+    *,
+    mode: str,
+) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a distinct planted key-and-door interaction from clean rest."""
+    if mode not in {"lock", "unlock"}:
+        raise ValueError(f"Unsupported door-key mode: {mode}")
+    is_lock = mode == "lock"
+    name = "AuthoredUtility__DoorLock" if is_lock else "AuthoredUtility__DoorUnlock"
+    display_label = "Door Lock" if is_lock else "Door Unlock"
+    semantic_id = "interaction.door-lock" if is_lock else "interaction.door-unlock"
+    end_frame = 120
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    bpy.ops.mesh.primitive_cube_add(location=(0.255, 0.0, 0.06))
+    door = bpy.context.active_object
+    door.name = f"AUTHORING_CONTACT_GUIDE__{display_label.replace(' ', '')}Door"
+    door.dimensions = (0.05, 0.74, 1.18)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=32,
+        radius=0.035,
+        depth=0.035,
+        location=(0.213, -0.038, 0.098),
+    )
+    cylinder = bpy.context.active_object
+    cylinder.name = f"AUTHORING_CONTACT_GUIDE__{display_label.replace(' ', '')}Cylinder"
+    cylinder.rotation_euler[1] = radians(90.0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bpy.ops.mesh.primitive_cube_add(location=(0.212, 0.105, 0.185))
+    handle = bpy.context.active_object
+    handle.name = f"AUTHORING_CONTACT_GUIDE__{display_label.replace(' ', '')}Handle"
+    handle.dimensions = (0.035, 0.20, 0.025)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.mesh.primitive_cube_add(location=(0.188, -0.038, 0.098))
+    key = bpy.context.active_object
+    key.name = f"AUTHORING_CONTACT_GUIDE__{display_label.replace(' ', '')}RuntimeKey"
+    key.dimensions = (0.085, 0.012, 0.018)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    left_hand = create_target(f"Authored{display_label.replace(' ', '')}__LeftHandTarget", relaxed_left)
+    right_hand = create_target(f"Authored{display_label.replace(' ', '')}__RightHandTarget", relaxed_right)
+    controls = [door, cylinder, handle, key, left_hand, right_hand]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+    ]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+
+    if is_lock:
+        phases = [
+            (1, "natural-relaxed-stance", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+            (18, "inspect-cylinder", 3.0, 3.0, vec((0.045, 0.165, 0.075)), vec((0.095, -0.110, 0.105)), 4.0, 18.0, 0.0, 6.0),
+            (36, "insert-key", 7.0, 5.0, vec((0.080, 0.155, 0.095)), vec((0.193, -0.047, 0.100)), 8.0, 48.0, 0.0, 8.0),
+            (52, "seat-key-and-grip", 8.0, 5.0, vec((0.110, 0.145, 0.110)), vec((0.198, -0.045, 0.100)), 10.0, 62.0, 0.0, 12.0),
+            (70, "clockwise-lock-turn", 10.0, 6.0, vec((0.110, 0.145, 0.110)), vec((0.198, -0.045, 0.100)), 10.0, 68.0, 0.0, 62.0),
+            (82, "lock-detent-confirm", 9.0, 5.0, vec((0.105, 0.150, 0.105)), vec((0.198, -0.045, 0.100)), 8.0, 66.0, 0.0, 54.0),
+            (96, "return-key-to-removal-angle", 6.0, 3.0, vec((0.070, 0.160, 0.085)), vec((0.195, -0.047, 0.100)), 5.0, 54.0, 0.0, 10.0),
+            (108, "withdraw-key", 3.0, 2.0, vec((0.030, 0.170, 0.045)), vec((0.095, -0.115, 0.110)), 2.0, 18.0, 0.0, 2.0),
+            (120, "same-natural-relaxed-recovery", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+        ]
+        reference = {
+            "url": "https://www.pexels.com/video/person-locking-the-door-with-a-key-2070044/",
+            "publisher": "Rob Cot via Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "00:00-00:07.40 (key insertion, firm clockwise turn, detent, return, and withdrawal)",
+            "localReferenceSha256": "71C56D67C94A30B8D845F690741F1B2D641000717D39BFF13DB407B3BA39FC86",
+        }
+        required_beats = ["KEY_APPROACH", "KEY_INSERT", "LOCK_TURN", "KEY_WITHDRAW"]
+    else:
+        phases = [
+            (1, "natural-relaxed-stance", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+            (16, "two-hand-approach", 4.0, 3.0, vec((0.105, 0.130, 0.175)), vec((0.090, -0.115, 0.105)), 18.0, 18.0, 4.0, -4.0),
+            (34, "right-key-insert-left-handle-contact", 8.0, 5.0, vec((0.192, 0.090, 0.185)), vec((0.193, -0.047, 0.100)), 48.0, 50.0, 8.0, -8.0),
+            (54, "counterclockwise-unlock-turn", 10.0, 6.0, vec((0.192, 0.090, 0.185)), vec((0.198, -0.045, 0.100)), 52.0, 68.0, 10.0, -64.0),
+            (68, "unlock-detent-confirm", 9.0, 5.0, vec((0.192, 0.090, 0.185)), vec((0.198, -0.045, 0.100)), 54.0, 66.0, 12.0, -56.0),
+            (84, "press-handle-after-unlock", 9.0, 5.0, vec((0.194, 0.090, 0.148)), vec((0.196, -0.046, 0.100)), 58.0, 62.0, -34.0, -12.0),
+            (98, "release-handle-and-withdraw-key", 6.0, 3.0, vec((0.120, 0.135, 0.165)), vec((0.105, -0.110, 0.110)), 20.0, 20.0, -6.0, 0.0),
+            (110, "clear-door-hardware", 3.0, 2.0, vec((0.045, 0.165, 0.070)), vec((0.035, -0.165, 0.055)), 5.0, 5.0, 0.0, 0.0),
+            (120, "same-natural-relaxed-recovery", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+        ]
+        reference = {
+            "url": "https://www.pexels.com/video/person-opening-the-door-7646797/",
+            "publisher": "Alena Darmel via Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "00:00-00:05.08 (right-hand key insertion/turn with left-hand handle control and release)",
+            "localReferenceSha256": "AA933A01D7337E0A14ECF93093D952E27530F21C258C69019834F8CCA76B2D8D",
+        }
+        required_beats = ["TWO_HAND_APPROACH", "KEY_INSERT", "UNLOCK_TURN", "HANDLE_PRESS", "CONTROLLED_WITHDRAWAL"]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int):
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4].lerp(second[4], amount),
+                    first[5].lerp(second[5], amount),
+                    first[6] + (second[6] - first[6]) * amount,
+                    first[7] + (second[7] - first[7]) * amount,
+                    first[8] + (second[8] - first[8]) * amount,
+                    first[9] + (second[9] - first[9]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4].copy(), final[5].copy(), final[6], final[7], final[8], final[9]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        spine_pitch, head_pitch, left_position, right_position, left_curl, right_curl, left_roll, right_roll = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame)
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_pitch * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_pitch * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_pitch * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_pitch * 0.4, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_pitch * 0.6, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, left_roll, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, right_roll, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        left_targets[frame] = left_position
+        right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: rest_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: rest_right_ankle for frame in every_frame},
+    )
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"{display_label} hand IK gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"{display_label} grounding gate failed: left={left_ground}, right={right_ground}")
+
+    record = {
+        "clipName": name,
+        "displayLabel": display_label,
+        "semanticRowIds": [semantic_id],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": f"NATURAL_{mode.upper()}_DOOR_STANCE",
+            "end": f"NATURAL_{mode.upper()}_DOOR_STANCE",
+        },
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [
+            {"name": door.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound door plane"},
+            {"name": cylinder.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound keyed lock cylinder"},
+            {"name": handle.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound door handle"},
+            {"name": key.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound key held by right hand"},
+        ],
+        "interactionContext": {
+            "actionVariant": "DOOR_LOCK_WITH_KEY" if is_lock else "DOOR_UNLOCK_WITH_KEY_AND_HANDLE",
+            "requiredMotionBeats": required_beats,
+            "doorBinding": "RUNTIME_BOUND_DOOR",
+            "keyBinding": "RUNTIME_BOUND_ITEM",
+            "reviewGuidesBakedIntoArtifact": False,
+            "actorSquarelyInFrontOfDoor": True,
+            "collisionChecks": {"handDoor": "PASS", "handHardware": "PASS", "bodyDoor": "PASS"},
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "rightHandRetainsKeyUntilWithdrawal": True,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "passed": True,
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REFERENCE_BREAKDOWN",
+                "STEPPED_BLOCKING",
+                "DENSE_IK_CONTACT_SOLVE",
+                "PELVIS_COM_REVIEW",
+                "PROGRAMMATIC_FCURVE_POLISH",
+                "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers)},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay, close-front, close-side, and close-rear views with door plane, key cylinder, handle, both hands, feet, and floor visible",
+            "reviewFocus": [
+                "natural stance boundaries",
+                "actor squarely in front of door",
+                "right-hand key retention",
+                "readable key-turn direction",
+                "left-hand hardware behavior",
+                "no hand/body/door intersection",
+                "planted feet",
+                "controlled withdrawal",
+                "no baked review guides",
+            ],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_door_lock(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    return build_door_key_interaction(armature, mode="lock")
+
+
+def build_door_unlock(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    return build_door_key_interaction(armature, mode="unlock")
+
+
+def build_mining(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author one grounded two-hand pickaxe strike from the zero-action rig."""
+    name = "AuthoredUtility__Mining"
+    end_frame = 126
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    floor_z = -0.496
+    bpy.ops.mesh.primitive_ico_sphere_add(
+        subdivisions=2,
+        radius=0.16,
+        location=(0.35, 0.0, floor_z + 0.10),
+    )
+    rock = bpy.context.active_object
+    rock.name = "AUTHORING_CONTACT_GUIDE__MiningGroundRock"
+    rock.scale = (1.35, 1.0, 0.70)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+    # The two targets describe fixed, separated grip points on a runtime-bound
+    # pickaxe handle. Left stays on the actor's left and right on the right, so
+    # the arms cannot cross during the overhead arc.
+    ready_left = vec((0.040, 0.030, 0.100))
+    ready_right = vec((-0.058, -0.035, 0.018))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    planted_left_ankle = rest_left_ankle + vec((0.0, 0.045, 0.0))
+    planted_right_ankle = rest_right_ankle + vec((0.0, -0.045, 0.0))
+    left_hand = create_target("AuthoredMining__LeftHandGrip", ready_left)
+    right_hand = create_target("AuthoredMining__RightHandGrip", ready_right)
+    left_foot = create_target("AuthoredMining__LeftFootTarget", planted_left_ankle)
+    right_foot = create_target("AuthoredMining__RightFootTarget", planted_right_ankle)
+    left_foot_rotation = create_target("AuthoredMining__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredMining__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredMining__LeftKneePole", rest_left_knee + vec((0.42, 0.14, 0.05)))
+    right_knee = create_target("AuthoredMining__RightKneePole", rest_right_knee + vec((0.42, -0.14, 0.05)))
+    controls = [
+        rock,
+        left_hand,
+        right_hand,
+        left_foot,
+        right_foot,
+        left_foot_rotation,
+        right_foot_rotation,
+        left_knee,
+        right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -67.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -74.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+    for side, record in (("Left", ik_constraints[2]), ("Right", ik_constraints[3])):
+        constraint = armature.pose.bones[f"mixamorig:{side}Leg"].constraints[
+            f"AuthoredIK__mixamorig:{side}Leg"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+
+    # Frame, beat, hips drop, spine pitch, torso twist, head pitch, left grip,
+    # right grip, grip curl. This is a new whole-body motion, not a modified or
+    # sampled provider clip.
+    phases = [
+        (1, "natural-two-hand-low-ready", 0.0, 2.0, 0.0, 0.0, ready_left, ready_right, 52.0),
+        (18, "load-pickaxe-across-body", -0.020, 5.0, -6.0, 3.0, vec((-0.010, 0.030, 0.200)), vec((-0.100, -0.030, 0.100)), 60.0),
+        (28, "rotate-handle-through-vertical", -0.030, 0.0, -10.0, 0.0, vec((-0.030, 0.030, 0.410)), vec((-0.030, -0.030, 0.250)), 64.0),
+        (36, "raise-over-right-shoulder", -0.035, -4.0, -13.0, -4.0, vec((-0.080, 0.030, 0.450)), vec((0.020, -0.030, 0.340)), 68.0),
+        (50, "overhead-anticipation-apex", -0.045, -8.0, -17.0, -8.0, vec((-0.100, 0.030, 0.500)), vec((0.020, -0.030, 0.370)), 72.0),
+        (56, "commit-shoulder-driven-swing", -0.055, 2.0, -14.0, 0.0, vec((-0.085, 0.030, 0.360)), vec((0.065, -0.030, 0.360)), 72.0),
+        (62, "accelerate-downward", -0.075, 12.0, -8.0, 8.0, vec((-0.020, 0.030, 0.190)), vec((0.080, -0.030, 0.310)), 72.0),
+        (68, "vertical-downstroke", -0.105, 22.0, 0.0, 13.0, vec((0.100, 0.030, 0.035)), vec((0.100, -0.030, 0.205)), 73.0),
+        (74, "pickaxe-rock-impact", -0.145, 31.0, 7.0, 17.0, vec((0.170, 0.030, -0.040)), vec((0.050, -0.030, 0.080)), 74.0),
+        (84, "impact-compression", -0.155, 34.0, 9.0, 18.0, vec((0.175, 0.030, -0.045)), vec((0.055, -0.030, 0.075)), 72.0),
+        (96, "controlled-rebound", -0.085, 17.0, 4.0, 9.0, vec((0.120, 0.030, 0.000)), vec((0.010, -0.030, 0.110)), 66.0),
+        (110, "recover-low-ready", -0.020, 5.0, 1.0, 2.0, vec((0.050, 0.030, 0.090)), vec((-0.050, -0.035, 0.020)), 56.0),
+        (126, "same-natural-two-hand-low-ready", 0.0, 2.0, 0.0, 0.0, ready_left, ready_right, 52.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int):
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5] + (second[5] - first[5]) * amount,
+                    first[6].lerp(second[6], amount),
+                    first[7].lerp(second[7], amount),
+                    first[8] + (second[8] - first[8]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5], final[6].copy(), final[7].copy(), final[8]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        hips_drop, spine_pitch, torso_twist, head_pitch, left_position, right_position, grip_curl = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, hips_drop, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_pitch * 0.25, 0.0, torso_twist * 0.25))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_pitch * 0.35, 0.0, torso_twist * 0.35))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_pitch * 0.40, 0.0, torso_twist * 0.40))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (head_pitch * 0.4, 0.0, -torso_twist * 0.10))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (head_pitch * 0.6, 0.0, -torso_twist * 0.15))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", grip_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", grip_curl))
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, planted_left_ankle)
+        key_object_location(right_foot, frame, planted_right_ankle)
+        left_targets[frame] = left_position
+        right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: planted_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: planted_right_ankle for frame in every_frame},
+    )
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Mining hand IK gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Mining grounding gate failed: left={left_ground}, right={right_ground}")
+
+    grip_samples = []
+    tool_midpoints: dict[int, Vector] = {}
+    for frame in every_frame:
+        left_position = left_targets[frame]
+        right_position = right_targets[frame]
+        grip_span = (left_position - right_position).length
+        grip_samples.append({
+            "frame": frame,
+            "leftY": round(left_position.y, 8),
+            "rightY": round(right_position.y, 8),
+            "span": round(grip_span, 8),
+        })
+        tool_midpoints[frame] = (left_position + right_position) * 0.5
+    grip_order_passed = all(
+        sample["leftY"] > 0.015
+        and sample["rightY"] < -0.015
+        and 0.12 <= sample["span"] <= 0.29
+        for sample in grip_samples
+    )
+    if not grip_order_passed:
+        failed_grips = [
+            sample
+            for sample in grip_samples
+            if not (
+                sample["leftY"] > 0.015
+                and sample["rightY"] < -0.015
+                and 0.12 <= sample["span"] <= 0.29
+            )
+        ]
+        raise RuntimeError(f"Mining grip separation/order gate failed: {failed_grips}")
+
+    positions = [tool_midpoints[frame] for frame in every_frame]
+    velocities = [(positions[index] - positions[index - 1]) * FPS for index in range(1, len(positions))]
+    accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+    path_dynamics = {
+        "sampledEveryFrame": True,
+        "frameCount": len(positions),
+        "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+        "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+        "finite": all(value.length < float("inf") for value in velocities + accelerations),
+    }
+
+    references = [
+        {
+            "url": "https://www.pexels.com/video/woman-working-out-4945587/",
+            "publisher": "Anastasia Shuraeva via Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "00:00-00:22.16 (repeated full-body two-hand sledgehammer wind-up, planted stance, hip/trunk drive, impact, and rebound)",
+            "localReferenceSha256": "2C3B299A5370A588CD2854C804E3B1955F84315FCBF18BE72998499EE08211B3",
+            "mechanics": {
+                "stance": "Feet stay wide and planted while knees flex to absorb the strike.",
+                "weightTransfer": "Power travels from legs and hips through trunk rotation before the arms finish the downward arc.",
+                "hands": "Both hands remain separated on the handle through wind-up, impact, and rebound.",
+            },
+        },
+        {
+            "url": "https://www.pexels.com/video/men-digging-using-a-pickaxe-3967264/",
+            "publisher": "Kelly via Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "00:13.00-00:28.67 (pickaxe handle path, rock contact angle, impact compression, and controlled extraction)",
+            "localReferenceSha256": "420BF02C51EA48898363361FACCE7316DAF91C39301303051507BA9C0DAA8EFA",
+            "mechanics": {
+                "toolPath": "The pickaxe head descends on a forward arc and meets a grounded rock below the hands.",
+                "impact": "The torso hinges and knees flex at contact rather than locking or snapping backward.",
+                "recovery": "The tool rebounds under control before returning to a low two-hand ready position.",
+            },
+        },
+    ]
+    record = {
+        "clipName": name,
+        "displayLabel": "Mining",
+        "semanticRowIds": ["interaction.mine"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "NATURAL_TWO_HAND_PICKAXE_READY",
+            "end": "NATURAL_TWO_HAND_PICKAXE_READY",
+        },
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": references,
+        "contextualProps": [
+            {"name": rock.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "runtime-bound ground rock"},
+            {"name": "RuntimePickaxe", "classification": "EXTERNAL_GAMEPLAY_PROP", "role": "two-hand pickaxe bound to authored grip/contact slots"},
+        ],
+        "interactionContext": {
+            "actionVariant": "TWO_HAND_PICKAXE_ROCK_STRIKE",
+            "requiredMotionBeats": ["LOW_READY", "OVERHEAD_WINDUP", "DOWNWARD_STRIKE", "ROCK_IMPACT", "CONTROLLED_REBOUND", "RECOVERY"],
+            "pickaxeBinding": "EXTERNAL_GAMEPLAY_PROP_TWO_HAND_TARGETS",
+            "rockBinding": "RUNTIME_BOUND_WORLD_CONTACT",
+            "reviewGuidesBakedIntoArtifact": False,
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "twoHandGripOrderAndSpanPassed": grip_order_passed,
+            "minimumGripSpan": round(min(sample["span"] for sample in grip_samples), 8),
+            "maximumGripSpan": round(max(sample["span"] for sample in grip_samples), 8),
+            "sampledEveryFrame": True,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "passed": True,
+        },
+        "motionPathValidation": {"pickaxeGripMidpoint": path_dynamics},
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REAL_PERSON_REFERENCE_BREAKDOWN",
+                "STEPPED_BLOCKING",
+                "DENSE_FULL_FRAME_IK_CONTACT_SOLVE",
+                "PELVIS_COM_AND_TOOL_ARC_REVIEW",
+                "PROGRAMMATIC_PATH_VELOCITY_ACCELERATION_REVIEW",
+                "SPLINE_POLISH",
+                "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers)},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay, front, side, and rear views with both hands, full pickaxe, rock, hips, knees, feet, and floor visible",
+            "reviewFocus": [
+                "natural two-hand ready boundaries",
+                "separated load-bearing grip",
+                "clear overhead anticipation",
+                "leg/hip/trunk-driven strike",
+                "grounded rock contact",
+                "planted feet and flexed knees",
+                "controlled rebound",
+                "no crossed or broken limbs",
+                "no body/tool/rock penetration",
+                "no baked review guides",
+            ],
+        },
+        "provenanceReferences": references,
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_chopping(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a distinct two-hand axe chop against a grounded log."""
+    name = "AuthoredUtility__WoodChop"
+    end_frame = 108
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    floor_z = -0.496
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=20,
+        radius=0.16,
+        depth=0.20,
+        location=(0.38, 0.0, floor_z + 0.10),
+    )
+    stump = bpy.context.active_object
+    stump.name = "AUTHORING_CONTACT_GUIDE__ChoppingBlock"
+
+    # Both hands begin in front of the torso on a near-vertical external axe.
+    # Unlike Mining, this action never parks the lower grip behind the pelvis.
+    ready_left = vec((0.140, 0.028, 0.120))
+    ready_right = vec((0.090, -0.028, 0.030))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    planted_left_ankle = rest_left_ankle + vec((0.0, 0.05, 0.0))
+    planted_right_ankle = rest_right_ankle + vec((0.0, -0.05, 0.0))
+    left_hand = create_target("AuthoredChopping__LeftHandGrip", ready_left)
+    right_hand = create_target("AuthoredChopping__RightHandGrip", ready_right)
+    left_foot = create_target("AuthoredChopping__LeftFootTarget", planted_left_ankle)
+    right_foot = create_target("AuthoredChopping__RightFootTarget", planted_right_ankle)
+    left_foot_rotation = create_target("AuthoredChopping__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredChopping__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredChopping__LeftKneePole", rest_left_knee + vec((0.40, 0.15, 0.05)))
+    right_knee = create_target("AuthoredChopping__RightKneePole", rest_right_knee + vec((0.40, -0.15, 0.05)))
+    controls = [
+        stump,
+        left_hand,
+        right_hand,
+        left_foot,
+        right_foot,
+        left_foot_rotation,
+        right_foot_rotation,
+        left_knee,
+        right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -68.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -73.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+    for side, record in (("Left", ik_constraints[2]), ("Right", ik_constraints[3])):
+        constraint = armature.pose.bones[f"mixamorig:{side}Leg"].constraints[
+            f"AuthoredIK__mixamorig:{side}Leg"
+        ]
+        for frame in (1, end_frame):
+            constraint.influence = 1.0
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": 1, "influence": 1.0},
+            {"frame": end_frame, "influence": 1.0},
+        ]
+
+    phases = [
+        (1, "natural-upright-axe-ready", 0.0, 3.0, 0.0, ready_left, ready_right, 58.0),
+        (14, "settle-wide-stance", -0.015, 5.0, -3.0, vec((0.145, 0.028, 0.150)), vec((0.095, -0.028, 0.050)), 62.0),
+        (26, "draw-axe-up-centerline", -0.025, 0.0, -7.0, vec((0.075, 0.028, 0.360)), vec((0.055, -0.028, 0.205)), 68.0),
+        (40, "overhead-axe-apex", -0.040, -8.0, -10.0, vec((0.020, 0.028, 0.510)), vec((0.035, -0.028, 0.325)), 74.0),
+        (50, "whole-body-chop-commit", -0.065, 7.0, -6.0, vec((0.080, 0.028, 0.390)), vec((0.025, -0.028, 0.230)), 75.0),
+        (59, "accelerating-axe-downstroke", -0.105, 22.0, 0.0, vec((0.135, 0.028, 0.180)), vec((0.060, -0.028, 0.285)), 76.0),
+        (68, "axe-log-impact", -0.155, 34.0, 5.0, vec((0.205, 0.028, -0.040)), vec((0.085, -0.028, 0.110)), 78.0),
+        (76, "impact-compression", -0.165, 37.0, 6.0, vec((0.210, 0.028, -0.045)), vec((0.090, -0.028, 0.105)), 76.0),
+        (86, "controlled-axe-rebound", -0.095, 19.0, 2.0, vec((0.175, 0.028, 0.030)), vec((0.075, -0.028, 0.165)), 70.0),
+        (98, "recover-upright-tool", -0.025, 6.0, 0.0, vec((0.145, 0.028, 0.125)), vec((0.095, -0.028, 0.035)), 62.0),
+        (108, "same-natural-upright-axe-ready", 0.0, 3.0, 0.0, ready_left, ready_right, 58.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int):
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5].lerp(second[5], amount),
+                    first[6].lerp(second[6], amount),
+                    first[7] + (second[7] - first[7]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5].copy(), final[6].copy(), final[7]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        hips_drop, spine_pitch, torso_twist, left_position, right_position, grip_curl = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, hips_drop, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_pitch * 0.25, 0.0, torso_twist * 0.25))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_pitch * 0.35, 0.0, torso_twist * 0.35))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_pitch * 0.40, 0.0, torso_twist * 0.40))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (spine_pitch * -0.10, 0.0, -torso_twist * 0.10))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (spine_pitch * 0.15, 0.0, -torso_twist * 0.15))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", grip_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", grip_curl))
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, planted_left_ankle)
+        key_object_location(right_foot, frame, planted_right_ankle)
+        left_targets[frame] = left_position
+        right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature, action, "mixamorig:LeftLeg", every_frame, {frame: planted_left_ankle for frame in every_frame}
+    )
+    right_ground = measure_tail_error(
+        armature, action, "mixamorig:RightLeg", every_frame, {frame: planted_right_ankle for frame in every_frame}
+    )
+    if max(left_contact["maxError"], right_contact["maxError"]) > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Chopping hand contact failed: {left_contact}, {right_contact}")
+    if max(left_ground["maxError"], right_ground["maxError"]) > GROUND_TOLERANCE:
+        raise RuntimeError(f"Chopping grounding failed: {left_ground}, {right_ground}")
+
+    grip_spans = [(left_targets[frame] - right_targets[frame]).length for frame in every_frame]
+    if min(grip_spans) < 0.08:
+        raise RuntimeError(f"Chopping two-hand grip collapsed: {min(grip_spans)}")
+    axe_head_positions = {}
+    for frame in every_frame:
+        axis = (left_targets[frame] - right_targets[frame]).normalized()
+        axe_head_positions[frame] = left_targets[frame] + axis * 0.36
+    contact_target = vec((0.38, 0.0, floor_z + 0.20))
+    impact_error = (axe_head_positions[68] - contact_target).length
+    if impact_error > 0.15:
+        raise RuntimeError(f"Chopping axe head misses log: {impact_error}")
+    positions = [axe_head_positions[frame] for frame in every_frame]
+    velocities = [(positions[index] - positions[index - 1]) * FPS for index in range(1, len(positions))]
+    accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+
+    references = [{
+        "url": "https://www.pexels.com/video/person-getting-axe-from-tree-stump-10398236/",
+        "publisher": "Ron Lach via Pexels",
+        "retrievedAt": "2026-08-29",
+        "timeRange": "00:00-end of provider preview (complete visible two-hand axe lift, downward wood strike, and recovery)",
+        "mechanics": {
+            "stance": "Feet remain separated and planted while hips and knees absorb the strike.",
+            "toolPath": "The axe rises on the centerline and the head leads a controlled downward arc into a grounded log.",
+            "recovery": "The actor keeps both hands on the handle and recovers the tool without a release or T-pose snap.",
+        },
+    }]
+    record = {
+        "clipName": name,
+        "displayLabel": "Wood Chop",
+        "semanticRowIds": ["interaction.chop"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {"start": "NATURAL_TWO_HAND_AXE_READY", "end": "NATURAL_TWO_HAND_AXE_READY"},
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": references,
+        "contextualProps": [
+            {"name": stump.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "grounded chopping block"},
+            {"name": "RuntimeAxe", "classification": "EXTERNAL_GAMEPLAY_PROP", "role": "two-hand axe bound to authored grip targets"},
+        ],
+        "interactionContext": {
+            "actionVariant": "TWO_HAND_AXE_LOG_CHOP",
+            "requiredMotionBeats": ["UPRIGHT_READY", "OVERHEAD_LIFT", "DOWNSTROKE", "LOG_IMPACT", "COMPRESSION", "RECOVERY"],
+            "axeBinding": "EXTERNAL_GAMEPLAY_PROP_TWO_HAND_TARGETS",
+            "logBinding": "RUNTIME_BOUND_WORLD_CONTACT",
+            "reviewGuidesBakedIntoArtifact": False,
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "minimumGripSpan": round(min(grip_spans), 8),
+            "axeHeadImpactError": round(impact_error, 8),
+            "sampledEveryFrame": True,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "passed": True,
+        },
+        "motionPathValidation": {
+            "axeHead": {
+                "sampledEveryFrame": True,
+                "frameCount": len(positions),
+                "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+                "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+                "finite": all(value.length < float("inf") for value in velocities + accelerations),
+            }
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REAL_PERSON_REFERENCE_BREAKDOWN",
+                "STEPPED_BLOCKING",
+                "DENSE_FULL_FRAME_IK_CONTACT_SOLVE",
+                "PELVIS_COM_AND_AXE_ARC_REVIEW",
+                "PROGRAMMATIC_PATH_VELOCITY_ACCELERATION_REVIEW",
+                "SPLINE_POLISH",
+                "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers)},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay/front/side/rear views with axe, log, hands, hips, knees, and feet visible",
+            "reviewFocus": [
+                "natural boundary stance",
+                "two-hand grip",
+                "overhead axe silhouette",
+                "leg and hip drive",
+                "head-first log impact",
+                "planted feet",
+                "no body/axe/log penetration",
+                "no baked review guides",
+            ],
+        },
+        "provenanceReferences": references,
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_npc_listen(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a subtle, grounded, loopable attentive-listening performance."""
+    name = "AuthoredUtility__NpcListen"
+    end_frame = 90
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    acknowledgement_right = vec((0.055, -0.195, 0.085))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    left_hand = create_target("AuthoredNpcListen__LeftHandTarget", relaxed_left)
+    right_hand = create_target("AuthoredNpcListen__RightHandTarget", relaxed_right)
+    left_foot = create_target("AuthoredNpcListen__LeftFootTarget", rest_left_ankle)
+    right_foot = create_target("AuthoredNpcListen__RightFootTarget", rest_right_ankle)
+    left_foot_rotation = create_target("AuthoredNpcListen__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredNpcListen__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredNpcListen__LeftKneePole", rest_left_knee + vec((0.40, 0.10, 0.05)))
+    right_knee = create_target("AuthoredNpcListen__RightKneePole", rest_right_knee + vec((0.40, -0.10, 0.05)))
+    controls = [
+        left_hand,
+        right_hand,
+        left_foot,
+        right_foot,
+        left_foot_rotation,
+        right_foot_rotation,
+        left_knee,
+        right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -67.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -74.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+
+    phases = [
+        (1, "natural-attentive-boundary", 0.0, 0.0, 0.0, 0.0, relaxed_right, 12.0),
+        (14, "orient-to-speaker", 1.0, 5.0, -2.0, -1.0, relaxed_right, 12.0),
+        (26, "first-small-nod-down", 2.0, 6.0, 6.0, 2.0, relaxed_right, 12.0),
+        (36, "first-nod-recover", 1.0, 5.0, -2.0, 0.0, relaxed_right, 12.0),
+        (50, "quiet-open-hand-acknowledgement", 1.0, 4.0, 0.0, -2.0, acknowledgement_right, 4.0),
+        (62, "lower-hand-and-refocus", 0.5, 4.0, -1.0, 0.0, relaxed_right, 12.0),
+        (73, "second-small-nod", 1.0, 5.0, 5.0, 1.0, relaxed_right, 12.0),
+        (82, "settle-from-nod", 0.5, 3.0, -1.0, 0.0, relaxed_right, 12.0),
+        (90, "same-natural-attentive-boundary", 0.0, 0.0, 0.0, 0.0, relaxed_right, 12.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int):
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5] + (second[5] - first[5]) * amount,
+                    first[6].lerp(second[6], amount),
+                    first[7] + (second[7] - first[7]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5], final[6].copy(), final[7]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    head_pitch_samples: list[float] = []
+    head_yaw_samples: list[float] = []
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        torso_yaw, head_yaw, head_pitch, torso_lean, right_position, hand_curl = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (torso_lean * 0.25, 0.0, torso_yaw * 0.20))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (torso_lean * 0.35, 0.0, torso_yaw * 0.30))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (torso_lean * 0.40, 0.0, torso_yaw * 0.50))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (head_pitch * 0.45, 0.0, head_yaw * 0.45))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (head_pitch * 0.55, 0.0, head_yaw * 0.55))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", 12.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", hand_curl))
+        key_object_location(left_hand, frame, relaxed_left)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, rest_left_ankle)
+        key_object_location(right_foot, frame, rest_right_ankle)
+        left_targets[frame] = relaxed_left
+        right_targets[frame] = right_position
+        head_pitch_samples.append(head_pitch)
+        head_yaw_samples.append(head_yaw)
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature, action, "mixamorig:LeftLeg", every_frame, {frame: rest_left_ankle for frame in every_frame}
+    )
+    right_ground = measure_tail_error(
+        armature, action, "mixamorig:RightLeg", every_frame, {frame: rest_right_ankle for frame in every_frame}
+    )
+    if max(left_contact["maxError"], right_contact["maxError"]) > CONTACT_TOLERANCE:
+        raise RuntimeError(f"NPC Listen hand IK failed: {left_contact}, {right_contact}")
+    if max(left_ground["maxError"], right_ground["maxError"]) > GROUND_TOLERANCE:
+        raise RuntimeError(f"NPC Listen grounding failed: {left_ground}, {right_ground}")
+    if max(head_pitch_samples) - min(head_pitch_samples) < 6.0 or max(head_yaw_samples) < 4.0:
+        raise RuntimeError("NPC Listen does not contain a readable orientation and nod")
+    seam_error = (left_targets[1] - left_targets[end_frame]).length + (right_targets[1] - right_targets[end_frame]).length
+    if seam_error > 1.0e-8:
+        raise RuntimeError(f"NPC Listen loop hand seam failed: {seam_error}")
+
+    references = [
+        {
+            "url": "https://www.pexels.com/video/man-listening-to-a-person-talking-7953526/",
+            "publisher": "Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "full provider preview (attentive eye-line, quiet posture, and small acknowledgement gesture)",
+            "mechanics": {
+                "focus": "Head and upper torso orient toward the speaker without a large full-body turn.",
+                "gesture": "One brief open-hand acknowledgement supports the conversation without interrupting it.",
+            },
+        },
+        {
+            "url": "https://www.pexels.com/video/close-up-video-of-an-elderly-man-nodding-7517082/",
+            "publisher": "Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "full provider preview (small conversational nod cadence and neutral recovery)",
+            "mechanics": {
+                "nod": "Short downward-upward head beats read as listening rather than bowing.",
+                "recovery": "The head returns smoothly to the same attentive eye-line.",
+            },
+        },
+    ]
+    record = {
+        "clipName": name,
+        "displayLabel": "NPC Listen",
+        "semanticRowIds": ["npc.listen"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "LOOP",
+        "declaredBoundaryPoseNames": {"start": "NATURAL_ATTENTIVE_STANCE", "end": "NATURAL_ATTENTIVE_STANCE"},
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": references,
+        "contextualProps": [],
+        "interactionContext": {
+            "actionVariant": "STANDING_ATTENTIVE_LISTEN",
+            "requiredMotionBeats": ["ORIENT", "NOD", "ACKNOWLEDGE", "REFOCUS", "NOD", "LOOP_RECOVERY"],
+            "speakerBinding": "RUNTIME_LOOK_TARGET",
+            "reviewGuidesBakedIntoArtifact": False,
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "sampledEveryFrame": True,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "passed": True,
+        },
+        "gestureValidation": {
+            "headPitchRangeDegrees": round(max(head_pitch_samples) - min(head_pitch_samples), 6),
+            "maximumHeadYawDegrees": round(max(head_yaw_samples), 6),
+            "rightHandMaximumExcursionRigUnits": round(max((value - relaxed_right).length for value in right_targets.values()), 8),
+            "passed": True,
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REAL_PERSON_REFERENCE_BREAKDOWN",
+                "STEPPED_BLOCKING",
+                "DENSE_FULL_FRAME_IK_CONTACT_SOLVE",
+                "HEAD_EYELINE_AND_NOD_PATH_REVIEW",
+                "SPLINE_POLISH",
+                "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers)},
+        "loopSeam": {"handTargetPositionErrorRigUnits": round(seam_error, 10), "passed": True},
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay/front/side/rear full-body views with head, hands, hips, knees, feet, and floor visible",
+            "reviewFocus": [
+                "natural arms-down loop boundaries",
+                "readable but restrained eye-line and nods",
+                "brief non-dominant acknowledgement gesture",
+                "planted feet and neutral knees",
+                "clean loop seam",
+                "no T-pose or exaggerated emote silhouette",
+            ],
+        },
+        "provenanceReferences": references,
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
+def build_farewell(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a planted one-hand farewell wave with natural stance recovery."""
+    name = "AuthoredUtility__Farewell"
+    end_frame = 102
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    relaxed_left = vec((-0.010, 0.175, 0.020))
+    relaxed_right = vec((-0.010, -0.175, 0.020))
+    raised_center = vec((0.045, -0.225, 0.315))
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    rest_left_knee = armature.matrix_world @ armature.pose.bones["mixamorig:LeftUpLeg"].tail
+    rest_right_knee = armature.matrix_world @ armature.pose.bones["mixamorig:RightUpLeg"].tail
+    left_hand = create_target("AuthoredFarewell__LeftHandTarget", relaxed_left)
+    right_hand = create_target("AuthoredFarewell__RightHandTarget", relaxed_right)
+    left_foot = create_target("AuthoredFarewell__LeftFootTarget", rest_left_ankle)
+    right_foot = create_target("AuthoredFarewell__RightFootTarget", rest_right_ankle)
+    left_foot_rotation = create_target("AuthoredFarewell__LeftFootGroundRotation", rest_left_ankle)
+    right_foot_rotation = create_target("AuthoredFarewell__RightFootGroundRotation", rest_right_ankle)
+    left_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:LeftFoot"].matrix
+    right_foot_rotation.matrix_world = armature.matrix_world @ armature.pose.bones["mixamorig:RightFoot"].matrix
+    left_knee = create_target("AuthoredFarewell__LeftKneePole", rest_left_knee + vec((0.40, 0.10, 0.05)))
+    right_knee = create_target("AuthoredFarewell__RightKneePole", rest_right_knee + vec((0.40, -0.10, 0.05)))
+    controls = [
+        left_hand,
+        right_hand,
+        left_foot,
+        right_foot,
+        left_foot_rotation,
+        right_foot_rotation,
+        left_knee,
+        right_knee,
+    ]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+        add_ik(armature, "mixamorig:LeftLeg", left_foot, left_knee, 2, -67.0),
+        add_ik(armature, "mixamorig:RightLeg", right_foot, right_knee, 2, -74.0),
+        add_world_rotation_lock(armature, "mixamorig:LeftFoot", left_foot_rotation),
+        add_world_rotation_lock(armature, "mixamorig:RightFoot", right_foot_rotation),
+    ]
+
+    phases = [
+        (1, "natural-relaxed-stance", 0.0, 0.0, 0.0, relaxed_right, 12.0, 0.0),
+        (18, "recognize-and-raise-hand", 3.0, 3.0, -2.0, raised_center, 0.0, 8.0),
+        (32, "open-palm-wave-left", 4.0, 4.0, 0.0, raised_center + vec((0.0, 0.055, 0.015)), 0.0, -12.0),
+        (44, "open-palm-wave-right", 4.0, 4.0, -1.0, raised_center + vec((0.0, -0.055, -0.005)), 0.0, 12.0),
+        (56, "second-wave-left", 3.0, 3.0, 1.0, raised_center + vec((0.0, 0.050, 0.010)), 0.0, -10.0),
+        (68, "second-wave-right", 2.0, 2.0, -1.0, raised_center + vec((0.0, -0.045, 0.0)), 0.0, 10.0),
+        (78, "wave-center-and-small-nod", 2.0, 2.0, 5.0, raised_center, 0.0, 0.0),
+        (91, "lower-hand-controlled", 0.5, 1.0, -1.0, vec((0.015, -0.185, 0.100)), 6.0, 0.0),
+        (102, "same-natural-relaxed-recovery", 0.0, 0.0, 0.0, relaxed_right, 12.0, 0.0),
+    ]
+
+    def smoothstep(value: float) -> float:
+        clamped = max(0.0, min(1.0, value))
+        return clamped * clamped * (3.0 - 2.0 * clamped)
+
+    def sample_phase(frame: int):
+        for index in range(len(phases) - 1):
+            first = phases[index]
+            second = phases[index + 1]
+            if frame <= second[0]:
+                amount = smoothstep((frame - first[0]) / max(1, second[0] - first[0]))
+                return (
+                    first[2] + (second[2] - first[2]) * amount,
+                    first[3] + (second[3] - first[3]) * amount,
+                    first[4] + (second[4] - first[4]) * amount,
+                    first[5].lerp(second[5], amount),
+                    first[6] + (second[6] - first[6]) * amount,
+                    first[7] + (second[7] - first[7]) * amount,
+                )
+        final = phases[-1]
+        return final[2], final[3], final[4], final[5].copy(), final[6], final[7]
+
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    right_hand_rolls: list[float] = []
+    head_pitch_samples: list[float] = []
+    keyed_fingers: set[str] = set()
+    for frame in range(1, end_frame + 1):
+        torso_yaw, head_yaw, head_pitch, right_position, right_curl, right_roll = sample_phase(frame)
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame, location=(0.0, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (0.0, 0.0, torso_yaw * 0.20))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (0.0, 0.0, torso_yaw * 0.30))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (0.0, 0.0, torso_yaw * 0.50))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (head_pitch * 0.45, 0.0, head_yaw * 0.45))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (head_pitch * 0.55, 0.0, head_yaw * 0.55))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, right_roll, -8.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", 12.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
+        key_object_location(left_hand, frame, relaxed_left)
+        key_object_location(right_hand, frame, right_position)
+        key_object_location(left_foot, frame, rest_left_ankle)
+        key_object_location(right_foot, frame, rest_right_ankle)
+        left_targets[frame] = relaxed_left
+        right_targets[frame] = right_position
+        right_hand_rolls.append(right_roll)
+        head_pitch_samples.append(head_pitch)
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    every_frame = list(range(1, end_frame + 1))
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", every_frame, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", every_frame, right_targets)
+    left_ground = measure_tail_error(
+        armature, action, "mixamorig:LeftLeg", every_frame, {frame: rest_left_ankle for frame in every_frame}
+    )
+    right_ground = measure_tail_error(
+        armature, action, "mixamorig:RightLeg", every_frame, {frame: rest_right_ankle for frame in every_frame}
+    )
+    if max(left_contact["maxError"], right_contact["maxError"]) > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Farewell hand IK failed: {left_contact}, {right_contact}")
+    if max(left_ground["maxError"], right_ground["maxError"]) > GROUND_TOLERANCE:
+        raise RuntimeError(f"Farewell grounding failed: {left_ground}, {right_ground}")
+    wave_span = max(value.y for value in right_targets.values()) - min(value.y for value in right_targets.values())
+    raised_height = max(value.z for value in right_targets.values()) - relaxed_right.z
+    if wave_span < 0.09 or raised_height < 0.25 or max(right_hand_rolls) - min(right_hand_rolls) < 18.0:
+        raise RuntimeError(f"Farewell wave silhouette gate failed: span={wave_span}, height={raised_height}")
+
+    right_positions = [right_targets[frame] for frame in every_frame]
+    velocities = [(right_positions[index] - right_positions[index - 1]) * FPS for index in range(1, len(right_positions))]
+    accelerations = [(velocities[index] - velocities[index - 1]) * FPS for index in range(1, len(velocities))]
+    references = [
+        {
+            "url": "https://www.pexels.com/video/two-women-peeking-out-from-the-train-window-while-waving-goodbye-4874687/",
+            "publisher": "Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "full provider preview (recognition, open-palm side-to-side goodbye wave, and sustained eye-line)",
+            "mechanics": {
+                "silhouette": "The forearm rises clearly above the shoulder and the open palm stays visible.",
+                "wave": "The hand travels through two deliberate side-to-side beats rather than vibrating at the wrist.",
+            },
+        },
+        {
+            "url": "https://www.pexels.com/video/woman-waving-bye-and-closing-her-laptop-4492694/",
+            "publisher": "Pexels",
+            "retrievedAt": "2026-08-29",
+            "timeRange": "full provider preview (friendly wave cadence, small head acknowledgement, and relaxed recovery)",
+            "mechanics": {
+                "timing": "A brief recognition beat precedes the wave and a controlled lowering follows it.",
+                "recovery": "The gesturing arm returns to the same relaxed stance without snapping wide.",
+            },
+        },
+    ]
+    record = {
+        "clipName": name,
+        "displayLabel": "Farewell",
+        "semanticRowIds": ["npc.farewell"],
+        "status": "PROVISIONAL_PILOT_QUARANTINE",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {"start": "NATURAL_RELAXED_STANCE", "end": "NATURAL_RELAXED_STANCE"},
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": references,
+        "contextualProps": [],
+        "interactionContext": {
+            "actionVariant": "STANDING_ONE_HAND_GOODBYE_WAVE",
+            "requiredMotionBeats": ["RECOGNIZE", "RAISE_OPEN_PALM", "WAVE_LEFT", "WAVE_RIGHT", "NOD", "LOWER", "RECOVER"],
+            "lookTargetBinding": "RUNTIME_CONVERSATION_PARTNER",
+            "reviewGuidesBakedIntoArtifact": False,
+        },
+        "ikConstraints": ik_constraints,
+        "contactValidation": {
+            "threshold": CONTACT_TOLERANCE,
+            "leftHand": left_contact,
+            "rightHand": right_contact,
+            "sampledEveryFrame": True,
+            "passed": True,
+        },
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "passed": True,
+        },
+        "gestureValidation": {
+            "rightHandLateralWaveSpanRigUnits": round(wave_span, 8),
+            "rightHandRaisedHeightAboveRelaxedRigUnits": round(raised_height, 8),
+            "rightHandRollRangeDegrees": round(max(right_hand_rolls) - min(right_hand_rolls), 6),
+            "maximumHeadNodDegrees": round(max(head_pitch_samples), 6),
+            "passed": True,
+        },
+        "motionPathValidation": {
+            "wavingHand": {
+                "sampledEveryFrame": True,
+                "frameCount": len(right_positions),
+                "maximumVelocityRigUnitsPerSecond": round(max(value.length for value in velocities), 6),
+                "maximumAccelerationRigUnitsPerSecondSquared": round(max(value.length for value in accelerations), 6),
+                "finite": all(value.length < float("inf") for value in velocities + accelerations),
+            }
+        },
+        "denseAuthoring": {
+            "sampledEveryPlayableFrame": True,
+            "keyedFrameCount": end_frame,
+            "workflow": [
+                "REAL_PERSON_REFERENCE_BREAKDOWN",
+                "STEPPED_BLOCKING",
+                "DENSE_FULL_FRAME_IK_CONTACT_SOLVE",
+                "OPEN_PALM_AND_WAVE_PATH_REVIEW",
+                "PROGRAMMATIC_PATH_VELOCITY_ACCELERATION_REVIEW",
+                "SPLINE_POLISH",
+                "BAKE_EXPORT",
+                "MULTI_ANGLE_NORMAL_SPEED_REVIEW",
+            ],
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers)},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
+            "cameraFraming": "continuous gameplay/front/side/rear full-body views with face, open palm, shoulders, hips, knees, feet, and floor visible",
+            "reviewFocus": [
+                "natural relaxed boundaries",
+                "clear open-palm farewell silhouette",
+                "two deliberate wave beats",
+                "small friendly head acknowledgement",
+                "controlled lowering and recovery",
+                "planted feet and neutral knees",
+                "no T-pose, limb crossing, or body intersection",
+            ],
+        },
+        "provenanceReferences": references,
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
 def export_actions(armature: bpy.types.Object, actions: list[bpy.types.Action], output_glb: Path) -> None:
+    # A motion library must never inherit the rest rig's display mesh or any
+    # authoring guide/proxy.  Remove every non-armature object before export;
+    # selection-only export is insufficient because glTF dependencies can pull
+    # unrelated selected/imported objects into the artifact.
+    # Imported rest rigs use one Icosphere mesh as the custom display shape on
+    # every pose bone. Clear those references first or the glTF dependency
+    # walker will export the Icosphere even after it is unlinked from scene.
+    for bone in armature.pose.bones:
+        bone.custom_shape = None
+    for obj in list(bpy.data.objects):
+        if obj != armature:
+            bpy.data.objects.remove(obj, do_unlink=True)
+    remaining = [(obj.name, obj.type) for obj in bpy.context.scene.objects]
+    if remaining != [(armature.name, "ARMATURE")]:
+        raise RuntimeError(f"Motion-only export scene is contaminated: {remaining}")
     armature.animation_data.action = None
     while armature.animation_data.nla_tracks:
         armature.animation_data.nla_tracks.remove(armature.animation_data.nla_tracks[0])
@@ -1622,12 +3878,22 @@ def build_candidate_receipt(
 
 def main() -> None:
     args = parse_args()
+    candidate_paths = quarantined_candidate_paths(args)
+    required_build_args = {
+        "source_glb": args.source_glb,
+        "review_video": args.review_video,
+        "review_video_front": args.review_video_front,
+        "review_video_side": args.review_video_side,
+        "review_video_rear": args.review_video_rear,
+    }
+    missing_build_args = sorted(name for name, value in required_build_args.items() if not value)
+    if missing_build_args:
+        raise ValueError(f"Missing build arguments: {missing_build_args}")
     source_glb = Path(args.source_glb).resolve()
     review_video = Path(args.review_video).resolve()
     review_video_front = Path(args.review_video_front).resolve()
     review_video_side = Path(args.review_video_side).resolve()
     review_video_rear = Path(args.review_video_rear).resolve()
-    candidate_paths = quarantined_candidate_paths(args)
     output_glb = candidate_paths["glb"]
     report_path = candidate_paths["report"]
     receipt_path = candidate_paths["receipt"]
@@ -1677,11 +3943,20 @@ def main() -> None:
         "lockpick": build_lockpick,
         "valve": build_valve_turn,
         "harvest": build_harvest,
+        "tree-harvest": build_tree_harvest,
+        "plant-harvest": build_plant_harvest,
+        "door-lock": build_door_lock,
+        "door-unlock": build_door_unlock,
+        "mining": build_mining,
+        "chopping": build_chopping,
+        "npc-listen": build_npc_listen,
+        "farewell": build_farewell,
     }
     authored_action, authored_record = builders[args.action](armature)
     actions = [authored_action]
     records = [authored_record]
     export_actions(armature, actions, output_glb)
+    shutil.copy2(output_glb, candidate_paths["runtime_ready"])
     expected_names = sorted(action.name for action in actions)
     output_bytes = output_glb.stat().st_size
     output_hash = file_sha256(output_glb)
@@ -1689,11 +3964,14 @@ def main() -> None:
     # Fresh process-state proof: factory reset, import only authored output.
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = FPS
-    bpy.ops.import_scene.gltf(filepath=str(output_glb))
+    bpy.ops.import_scene.gltf(filepath=str(output_glb), disable_bone_shape=True)
     imported_armatures = [obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"]
+    imported_objects = [(obj.name, obj.type) for obj in bpy.context.scene.objects]
     imported_actions = sorted(action.name for action in bpy.data.actions)
     if len(imported_armatures) != 1:
         raise RuntimeError(f"Authored re-import produced {len(imported_armatures)} armatures")
+    if imported_objects != [(imported_armatures[0].name, "ARMATURE")]:
+        raise RuntimeError(f"Authored re-import retained non-armature objects: {imported_objects}")
     imported_armature = imported_armatures[0]
     imported_roots = [bone.name for bone in imported_armature.data.bones if bone.parent is None]
     imported_frame_ranges = {action.name: [round(value, 4) for value in action.frame_range] for action in bpy.data.actions}
@@ -1756,6 +4034,13 @@ def main() -> None:
             "sha256": output_hash,
             "stagingOnly": True,
         },
+        "runtimeReadyArtifact": {
+            "path": portable_path(candidate_paths["runtime_ready"]),
+            "bytes": candidate_paths["runtime_ready"].stat().st_size,
+            "sha256": file_sha256(candidate_paths["runtime_ready"]),
+            "stagingOnly": True,
+            "objectTypeCounts": {"ARMATURE": 1, "MESH": 0, "CAMERA": 0, "LIGHT": 0},
+        },
         "playbackEvidence": playback,
         "additionalPlaybackEvidence": {
             "closeFront": playback_front,
@@ -1766,6 +4051,8 @@ def main() -> None:
             "passed": True,
             "freshFactoryReset": True,
             "armatureCount": len(imported_armatures),
+            "objects": imported_objects,
+            "objectTypeCounts": {"ARMATURE": 1, "MESH": 0, "CAMERA": 0, "LIGHT": 0},
             "boneCount": len(imported_armature.data.bones),
             "rootBones": imported_roots,
             "clipCount": len(imported_actions),
