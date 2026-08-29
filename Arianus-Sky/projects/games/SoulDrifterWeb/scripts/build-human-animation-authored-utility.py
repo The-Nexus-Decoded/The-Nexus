@@ -25,7 +25,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
-from math import radians
+from math import degrees, radians, sqrt
 from pathlib import Path
 import re
 import shutil
@@ -54,6 +54,22 @@ SOURCE_REST_RIG_REPO_PATH = (
     "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/"
     "human-foundation-pilot/human-foundation-pilot-runtime-4k.glb"
 )
+BOUNDARY_POSE_BONES = (
+    "mixamorig:Spine",
+    "mixamorig:Spine1",
+    "mixamorig:Spine2",
+    "mixamorig:Neck",
+    "mixamorig:Head",
+    "mixamorig:LeftShoulder",
+    "mixamorig:LeftArm",
+    "mixamorig:LeftForeArm",
+    "mixamorig:LeftHand",
+    "mixamorig:RightShoulder",
+    "mixamorig:RightArm",
+    "mixamorig:RightForeArm",
+    "mixamorig:RightHand",
+)
+BOUNDARY_POSE_METHOD = "FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE"
 
 
 def parse_args() -> argparse.Namespace:
@@ -159,6 +175,110 @@ def reset_pose(armature: bpy.types.Object) -> None:
         bone.location = (0.0, 0.0, 0.0)
         bone.rotation_quaternion = Quaternion()
         bone.scale = (1.0, 1.0, 1.0)
+
+
+def canonical_quaternion_values(value: Quaternion) -> list[float]:
+    """Return one deterministic WXYZ representation for a bone rotation."""
+    normalized = value.normalized()
+    if normalized.w < 0.0:
+        normalized.negate()
+    return [round(component, 9) for component in normalized]
+
+
+def capture_boundary_pose_sample(
+    armature: bpy.types.Object,
+    action: bpy.types.Action | None,
+    frame: int,
+) -> dict[str, object]:
+    """Hash real local bone quaternions and measure the live arms-wide score."""
+    armature.animation_data.action = action
+    if action is None:
+        reset_pose(armature)
+    bpy.context.scene.frame_set(frame)
+    bpy.context.view_layer.update()
+    rotations = {
+        bone_name: canonical_quaternion_values(armature.pose.bones[bone_name].rotation_quaternion)
+        for bone_name in BOUNDARY_POSE_BONES
+    }
+    serialized = json.dumps(rotations, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    wide_scores: list[float] = []
+    for bone_name in ("mixamorig:LeftArm", "mixamorig:RightArm"):
+        bone = armature.pose.bones[bone_name]
+        head = armature.matrix_world @ bone.head
+        tail = armature.matrix_world @ bone.tail
+        length = max((tail - head).length, 1.0e-9)
+        vertical_fraction = min(abs(tail.z - head.z) / length, 1.0)
+        wide_scores.append(1.0 - vertical_fraction)
+    return {
+        "frame": frame,
+        "rotations": rotations,
+        "sha256": sha256(serialized).hexdigest().upper(),
+        "armsWideScore": round(sum(wide_scores) / len(wide_scores), 8),
+    }
+
+
+def quaternion_rms_degrees(
+    first: dict[str, list[float]],
+    second: dict[str, list[float]],
+) -> float:
+    angular_errors = []
+    for bone_name in BOUNDARY_POSE_BONES:
+        first_quaternion = Quaternion(first[bone_name])
+        second_quaternion = Quaternion(second[bone_name])
+        angular_errors.append(degrees(first_quaternion.rotation_difference(second_quaternion).angle))
+    return sqrt(sum(value * value for value in angular_errors) / len(angular_errors))
+
+
+def build_boundary_pose_evidence(
+    source_bind: dict[str, object],
+    start_pose: dict[str, object],
+    end_pose: dict[str, object],
+    record: dict[str, object],
+) -> dict[str, object]:
+    """Prove one-shot boundaries are authored gameplay poses, never bind/T poses."""
+    start_from_bind = quaternion_rms_degrees(source_bind["rotations"], start_pose["rotations"])
+    end_from_bind = quaternion_rms_degrees(source_bind["rotations"], end_pose["rotations"])
+    start_to_declared = quaternion_rms_degrees(start_pose["rotations"], start_pose["rotations"])
+    end_to_declared = quaternion_rms_degrees(end_pose["rotations"], end_pose["rotations"])
+    minimum_bind_separation = 12.0
+    maximum_arms_wide_score = 0.35
+    if min(start_from_bind, end_from_bind) < minimum_bind_separation:
+        raise RuntimeError(
+            "Authored one-shot boundary is too close to the source bind pose: "
+            f"start={start_from_bind:.6f}, end={end_from_bind:.6f}"
+        )
+    if max(start_pose["armsWideScore"], end_pose["armsWideScore"]) > maximum_arms_wide_score:
+        raise RuntimeError(
+            "Authored one-shot boundary still reads arms-wide: "
+            f"start={start_pose['armsWideScore']}, end={end_pose['armsWideScore']}"
+        )
+    pose_names = record.get("declaredBoundaryPoseNames", {})
+    return {
+        "method": BOUNDARY_POSE_METHOD,
+        "naturalGameplayStanceRequired": True,
+        "declaredStartPose": pose_names.get("start", "NATURAL_GAMEPLAY_STANCE_START"),
+        "declaredEndPose": pose_names.get("end", "NATURAL_GAMEPLAY_STANCE_END"),
+        "startFrame": start_pose["frame"],
+        "endFrame": end_pose["frame"],
+        "sourceBindPoseSampleSha256": source_bind["sha256"],
+        "declaredStartPoseSampleSha256": start_pose["sha256"],
+        "declaredEndPoseSampleSha256": end_pose["sha256"],
+        "startPoseSampleSha256": start_pose["sha256"],
+        "endPoseSampleSha256": end_pose["sha256"],
+        "sampledUpperBodyBoneCount": len(BOUNDARY_POSE_BONES),
+        "sampledUpperBodyBones": list(BOUNDARY_POSE_BONES),
+        "maximumDeclaredPoseRmsErrorDegrees": 5.0,
+        "startPoseRmsAngularErrorToDeclaredDegrees": round(start_to_declared, 8),
+        "endPoseRmsAngularErrorToDeclaredDegrees": round(end_to_declared, 8),
+        "minimumBindPoseRmsSeparationDegrees": minimum_bind_separation,
+        "startPoseRmsAngularDistanceFromBindDegrees": round(start_from_bind, 8),
+        "endPoseRmsAngularDistanceFromBindDegrees": round(end_from_bind, 8),
+        "maximumArmsWideScore": maximum_arms_wide_score,
+        "startArmsWideScore": start_pose["armsWideScore"],
+        "endArmsWideScore": end_pose["armsWideScore"],
+        "armsWideScoreDefinition": "mean(1 - abs(upper-arm world vertical displacement) / upper-arm length)",
+        "bindOrTPoseAtBoundary": False,
+    }
 
 
 def strip_imported_animation(armature: bpy.types.Object) -> tuple[int, int]:
@@ -587,6 +707,10 @@ def build_lift(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, 
         "frameRange": [1, end_frame],
         "durationSeconds": round((end_frame - 1) / FPS, 3),
         "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "NATURAL_PRE_LIFT_STANCE",
+            "end": "STABLE_HELD_LOAD_STANCE",
+        },
         "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
         "referenceFootage": [{
             "url": "https://www.youtube.com/watch?v=6ah4yixGWc4&t=241s",
@@ -852,6 +976,10 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         "frameRange": [1, end_frame],
         "durationSeconds": round((end_frame - 1) / FPS, 3),
         "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "RELAXED_ARMS_DOWN_LOCKPICK_STANCE",
+            "end": "RELAXED_ARMS_DOWN_LOCKPICK_STANCE",
+        },
         "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
         "referenceFootage": [reference],
         "contextualProps": [
@@ -896,9 +1024,9 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
 
 
 def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
-    """Author a two-hand, half-turn vertical handwheel operation."""
+    """Author v2 as a slow two-hand handwheel turn with relaxed boundaries."""
     name = "AuthoredUtility__ValveTurn"
-    end_frame = 116
+    end_frame = 156
     if armature.animation_data is None:
         armature.animation_data_create()
     action = bpy.data.actions.new(name)
@@ -933,7 +1061,9 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
         add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
     ]
-    influence_keys = [(1, 0.0), (12, 1.0), (102, 1.0), (116, 0.0)]
+    # Keep arm IK active across the whole playable clip so neither boundary
+    # leaks the zero-rest arms-wide pose into gameplay transitions.
+    influence_keys = [(1, 1.0), (156, 1.0)]
     for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
         constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
             f"AuthoredIK__mixamorig:{side}ForeArm"
@@ -946,26 +1076,33 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
             for frame, influence in influence_keys
         ]
 
+    relaxed_left = (-0.010, 0.175, 0.020)
+    relaxed_right = (-0.010, -0.175, 0.020)
+    # Each row is a new authored whole-body intent key. One hand stays loaded
+    # on the rim while the other deliberately releases and repositions; the
+    # two hands never spin the wheel together at an implausible speed.
     phases = [
-        (1, "neutral", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
-        (16, "reach-handwheel", 5.0, 2.0, (0.145, 0.135, 0.205), (0.145, -0.135, 0.205), 25.0, 24.0),
-        (30, "bilateral-grip", 8.0, 3.0, (0.170, 0.115, 0.200), (0.170, -0.115, 0.200), 62.0, 55.0),
-        (46, "quarter-turn", 9.0, 3.0, (0.170, 0.010, 0.315), (0.170, -0.010, 0.085), 64.0, 62.0),
-        (58, "controlled-regrip", 8.0, 2.0, (0.168, -0.055, 0.285), (0.168, 0.055, 0.115), 58.0, 48.0),
-        (76, "half-turn-drive", 10.0, 3.0, (0.170, -0.115, 0.200), (0.170, 0.115, 0.200), 66.0, 65.0),
-        (90, "resistance-settle", 9.0, 3.0, (0.170, -0.105, 0.190), (0.170, 0.105, 0.210), 68.0, 68.0),
-        (102, "release-handwheel", 5.0, 2.0, (0.140, -0.135, 0.215), (0.140, 0.135, 0.225), 24.0, 22.0),
-        (116, "neutral-recovery", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+        (1, "natural-relaxed-stance", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
+        (18, "approach-and-reach", 4.0, 2.0, (0.135, 0.110, 0.250), (0.135, -0.110, 0.250), 18.0, 18.0, 12.0, 12.0),
+        (34, "establish-two-hand-upper-rim-grip", 7.0, 3.0, (0.170, 0.082, 0.281), (0.170, -0.082, 0.281), 62.0, 62.0, 45.0, 45.0),
+        (54, "first-loaded-pull", 10.0, 4.0, (0.170, 0.115, 0.200), (0.170, -0.015, 0.086), 66.0, 66.0, 58.0, 58.0),
+        (66, "right-hand-anchors-left-repositions", 9.0, 3.0, (0.145, -0.070, 0.305), (0.170, -0.015, 0.086), 18.0, 66.0, 18.0, 58.0),
+        (78, "left-hand-regrips-upper-rim", 9.0, 3.0, (0.170, -0.070, 0.291), (0.170, -0.015, 0.086), 64.0, 66.0, 50.0, 58.0),
+        (98, "left-hand-pulls-right-repositions", 11.0, 4.0, (0.170, -0.115, 0.200), (0.145, 0.072, 0.305), 66.0, 18.0, 60.0, 18.0),
+        (110, "right-hand-regrips-upper-rim", 10.0, 3.0, (0.170, -0.115, 0.200), (0.170, 0.070, 0.291), 66.0, 64.0, 60.0, 50.0),
+        (130, "final-two-hand-drive", 12.0, 4.0, (0.170, -0.020, 0.087), (0.170, 0.115, 0.200), 68.0, 68.0, 62.0, 62.0),
+        (140, "resistance-settle", 10.0, 3.0, (0.170, -0.018, 0.088), (0.170, 0.112, 0.195), 68.0, 68.0, 60.0, 60.0),
+        (148, "controlled-two-hand-release", 4.0, 2.0, (0.120, -0.120, 0.220), (0.120, 0.120, 0.220), 18.0, 18.0, 14.0, 14.0),
+        (156, "same-natural-relaxed-recovery", 0.0, 0.0, relaxed_left, relaxed_right, 0.0, 0.0, 0.0, 0.0),
     ]
-    contact_frames = [30, 46, 58, 76, 90]
+    left_contact_frames = [34, 54, 78, 98, 110, 130, 140]
+    right_contact_frames = [34, 54, 66, 78, 110, 130, 140]
     left_targets: dict[int, Vector] = {}
     right_targets: dict[int, Vector] = {}
     rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
     rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
-    left_ground_targets: dict[int, Vector] = {}
-    right_ground_targets: dict[int, Vector] = {}
     keyed_fingers: set[str] = set()
-    for frame, _, spine_x, head_x, left_pos, right_pos, curl, hand_roll in phases:
+    for frame, _, spine_x, head_x, left_pos, right_pos, left_curl, right_curl, left_roll, right_roll in phases:
         reset_pose(armature)
         key_bone(armature.pose.bones[ROOT], frame)
         key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_x * 0.25, 0.0, 0.0))
@@ -973,20 +1110,20 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_x * 0.40, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_x, 0.0, 0.0))
         key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_x * 0.65, 0.0, 0.0))
-        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -hand_roll, 0.0))
-        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, hand_roll, 0.0))
-        keyed_fingers.update(curl_fingers(armature, frame, curl))
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -left_roll, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, right_roll, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
         left_position = vec(left_pos)
         right_position = vec(right_pos)
         key_object_location(left_hand, frame, left_position)
         key_object_location(right_hand, frame, right_position)
-        left_ground_targets[frame] = rest_left_ankle
-        right_ground_targets[frame] = rest_right_ankle
-        if frame in contact_frames:
+        if frame in left_contact_frames:
             left_targets[frame] = left_position
+        if frame in right_contact_frames:
             right_targets[frame] = right_position
 
-    for frame, angle_degrees in ((1, 0.0), (30, 0.0), (46, 90.0), (58, 125.0), (76, 180.0), (90, 190.0), (116, 190.0)):
+    for frame, angle_degrees in ((1, 0.0), (34, 0.0), (54, 55.0), (66, 55.0), (78, 55.0), (98, 115.0), (110, 115.0), (130, 175.0), (140, 185.0), (156, 185.0)):
         wheel.rotation_mode = "XYZ"
         wheel.rotation_euler = (radians(angle_degrees), radians(90.0), 0.0)
         wheel.keyframe_insert("rotation_euler", frame=frame)
@@ -996,30 +1133,80 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
     action = bake_authored_constraints(armature, action, 1, end_frame)
     action.name = name
     action.use_fake_user = True
-    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", contact_frames, left_targets)
-    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", contact_frames, right_targets)
-    phase_frames = [phase[0] for phase in phases]
-    left_ground = measure_tail_error(armature, action, "mixamorig:LeftLeg", phase_frames, left_ground_targets)
-    right_ground = measure_tail_error(armature, action, "mixamorig:RightLeg", phase_frames, right_ground_targets)
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", left_contact_frames, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", right_contact_frames, right_targets)
+    every_frame = list(range(1, end_frame + 1))
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: rest_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: rest_right_ankle for frame in every_frame},
+    )
+    leg_neutrality = measure_neutral_bones(
+        armature,
+        action,
+        [
+            "mixamorig:LeftUpLeg",
+            "mixamorig:LeftLeg",
+            "mixamorig:LeftFoot",
+            "mixamorig:LeftToeBase",
+            "mixamorig:RightUpLeg",
+            "mixamorig:RightLeg",
+            "mixamorig:RightFoot",
+            "mixamorig:RightToeBase",
+        ],
+        every_frame,
+    )
+    boundary_frames = [1, end_frame]
+    left_boundary = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftForeArm",
+        boundary_frames,
+        {frame: vec(relaxed_left) for frame in boundary_frames},
+    )
+    right_boundary = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightForeArm",
+        boundary_frames,
+        {frame: vec(relaxed_right) for frame in boundary_frames},
+    )
     if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
         raise RuntimeError(f"Valve hand contact gate failed: left={left_contact}, right={right_contact}")
     if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
         raise RuntimeError(f"Valve grounding gate failed: left={left_ground}, right={right_ground}")
+    if left_boundary["maxError"] > CONTACT_TOLERANCE or right_boundary["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Valve natural-boundary gate failed: left={left_boundary}, right={right_boundary}")
+    if (
+        leg_neutrality["maximumLocationErrorRigUnits"] > 0.001
+        or leg_neutrality["maximumRotationErrorDegrees"] > 1.0
+        or leg_neutrality["maximumScaleError"] > 0.001
+    ):
+        raise RuntimeError(f"Valve lower-body neutral-pose gate failed: {leg_neutrality}")
 
     reference = {
         "url": "https://elements.envato.com/male-with-gloves-opens-or-closes-valve-for-entry-o-XG2HEVE",
         "publisher": "MilkImage-aFilms via Envato Elements",
-        "retrievedAt": "2026-08-28",
+        "retrievedAt": "2026-08-29",
         "timeRange": "00:00-00:20 (full real-worker handwheel clip)",
         "mechanics": {
             "stance": "Stand close and square to the handwheel with both feet planted.",
             "weightTransfer": "Lean slightly into resistance while keeping body weight centered between the feet.",
             "footwork": "No stepping during the turn; feet stay neutral and flat.",
             "hipsShoulders": "Hips remain square while shoulders and elbows follow the circular hand path.",
-            "handsGripContacts": "Use bilateral rim grips, rotate through a quarter turn, deliberately regrip, then drive through the remaining half turn.",
+            "handsGripContacts": "Use bilateral rim grips, keep one hand loaded while the other releases and repositions, then alternate the anchor hand before the final drive.",
             "anticipation": "Reach to opposite sides of the wheel and establish both grips before applying torque.",
             "cadence": "Continuous loaded rotation with a brief regrip and a slower resistance settle near the stop.",
-            "followThroughRecovery": "Settle against resistance, release the rim, and return to a balanced neutral posture.",
+            "followThroughRecovery": "Settle against resistance, release both hands under control, and return to the exact same natural arms-down posture.",
         },
     }
     record = {
@@ -1031,10 +1218,15 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         "sourceClipReuse": False,
         "sourceActionNames": [],
         "sourceAnimationsSampled": False,
+        "supersedesRejectedCandidate": "interaction-valve-turn-v1",
         "fps": FPS,
         "frameRange": [1, end_frame],
         "durationSeconds": round((end_frame - 1) / FPS, 3),
         "playbackIntent": "ONE_SHOT",
+        "declaredBoundaryPoseNames": {
+            "start": "RELAXED_ARMS_DOWN_VALVE_STANCE",
+            "end": "RELAXED_ARMS_DOWN_VALVE_STANCE",
+        },
         "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
         "referenceFootage": [reference],
         "contextualProps": [{
@@ -1047,14 +1239,31 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
         }],
         "ikConstraints": ik_constraints,
         "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftHand": left_contact, "rightHand": right_contact, "passed": True},
-        "groundingValidation": {"threshold": GROUND_TOLERANCE, "leftFoot": left_ground, "rightFoot": right_ground, "passed": True},
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftFoot": left_ground,
+            "rightFoot": right_ground,
+            "neutralLegAndFootTransforms": leg_neutrality,
+            "persistentKneeFlex": False,
+            "heelLift": False,
+            "passed": True,
+        },
+        "naturalBoundaryValidation": {
+            "frames": boundary_frames,
+            "leftArm": left_boundary,
+            "rightArm": right_boundary,
+            "identicalRelaxedStartEnd": True,
+            "tPosePlayableFrames": 0,
+            "passed": True,
+        },
         "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
         "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 68.0},
         "loopSeam": None,
         "recommendedPreview": {
-            "durationSeconds": 4.5,
+            "durationSeconds": round((end_frame - 1) / FPS, 3),
             "cameraFraming": "continuous close-front, close-side, close-rear, and gameplay views with the full handwheel, both hands, elbows, spine, feet, and floor visible",
-            "reviewFocus": ["two-hand rim contact", "circular hand path", "deliberate regrip", "loaded resistance", "neutral wrists", "planted feet", "clean release"],
+            "reviewFocus": ["no T-pose in any playable frame", "identical relaxed start/end stance", "two-hand rim contact", "one hand remains loaded during each alternating regrip", "slow circular hand path", "modest shoulder and torso effort", "loaded resistance", "neutral wrists", "planted feet", "controlled release", "no hand/wheel/body intersection"],
         },
         "provenanceReferences": [reference],
     }
@@ -1340,6 +1549,7 @@ def build_candidate_receipt(
             "version": candidate_version,
             "authorId": "codex-animation-gap-lane",
             "authoringLane": "BLENDER",
+            "playIntent": record["playbackIntent"],
         },
         "candidateArtifact": {
             "path": portable_path(output_glb),
@@ -1372,6 +1582,9 @@ def build_candidate_receipt(
                 "contacts": "PASS",
                 "duration": "PASS",
                 "semantic": "REWORK",
+            },
+            "evidence": {
+                "boundaryPose": record["boundaryPoseValidation"],
             },
         },
         "playbackEvidence": {
@@ -1457,6 +1670,7 @@ def main() -> None:
         raise RuntimeError(f"Rest-rig strip gate failed: before={before_strip}, after={after_strip}")
     if armature.animation_data is None:
         armature.animation_data_create()
+    source_bind_pose = capture_boundary_pose_sample(armature, None, 1)
 
     builders = {
         "lift": build_lift,
@@ -1492,6 +1706,17 @@ def main() -> None:
         raise RuntimeError(
             f"Authored {authored_record['clipName']} re-import frame range changed: {imported_frame_ranges}"
         )
+    imported_action = bpy.data.actions.get(authored_record["clipName"])
+    if imported_action is None:
+        raise RuntimeError(f"Authored re-import action missing: {authored_record['clipName']}")
+    start_pose = capture_boundary_pose_sample(imported_armature, imported_action, int(expected_frame_range[0]))
+    end_pose = capture_boundary_pose_sample(imported_armature, imported_action, int(expected_frame_range[1]))
+    authored_record["boundaryPoseValidation"] = build_boundary_pose_evidence(
+        source_bind_pose,
+        start_pose,
+        end_pose,
+        authored_record,
+    )
 
     report = {
         "schemaVersion": 1,
