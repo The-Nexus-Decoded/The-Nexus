@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -14,7 +15,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--prefix", required=True)
-    parser.add_argument("--group-size", type=int, default=16)
+    parser.add_argument("--receipt", action="append", required=True, type=Path)
+    parser.add_argument("--group-size", type=int, default=1)
     return parser.parse_args()
 
 
@@ -22,18 +24,69 @@ def quote_concat_path(path: Path) -> str:
     return "file '" + path.resolve().as_posix().replace("'", "'\\''") + "'"
 
 
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest().upper()
+
+
+def validate_receipt(receipt_path: Path) -> dict[str, object]:
+    node = shutil.which("node")
+    if node is None:
+        raise RuntimeError("node is required to validate animation candidate receipts")
+    validator = Path(__file__).with_name("validate-human-animation-candidate.mjs")
+    result = subprocess.run(
+        [node, str(validator), "--gate", "owner-review", str(receipt_path)],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"Candidate receipt failed owner-review gate: {receipt_path}\n{details}")
+    return json.loads(receipt_path.read_text(encoding="utf-8"))
+
+
 def main() -> None:
     args = parse_args()
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
         raise RuntimeError("ffmpeg is required to assemble preview reels")
-    if args.group_size < 1:
-        raise ValueError("--group-size must be at least 1")
+    if args.group_size != 1:
+        raise ValueError("Issue #487 owner review is one candidate at a time; --group-size must equal 1")
+
+    receipts: dict[str, tuple[Path, dict[str, object]]] = {}
+    for receipt_path in args.receipt:
+        resolved_receipt = receipt_path.resolve()
+        receipt = validate_receipt(resolved_receipt)
+        clip_name = receipt["candidate"]["clipName"]
+        if clip_name in receipts:
+            raise RuntimeError(f"Duplicate candidate receipt for {clip_name}")
+        receipts[clip_name] = (resolved_receipt, receipt)
 
     source_manifest = args.input / "preview-render-manifest.json"
     source = json.loads(source_manifest.read_text(encoding="utf-8"))["clips"]
     if not source:
         raise RuntimeError(f"No preview clips found in {source_manifest}")
+    missing_receipts = [item["clipName"] for item in source if item["clipName"] not in receipts]
+    if missing_receipts:
+        raise RuntimeError(f"Missing passing owner-review receipts for: {missing_receipts}")
+
+    for item in source:
+        receipt_path, receipt = receipts[item["clipName"]]
+        preview_path = Path(item["path"]).resolve()
+        receipt_preview = Path(receipt["playbackEvidence"]["normalSpeed"]["path"]).resolve()
+        if preview_path != receipt_preview:
+            raise RuntimeError(
+                f"Preview path for {item['clipName']} does not match its reviewed receipt: "
+                f"{preview_path} != {receipt_preview}"
+            )
+        item["candidateReceipt"] = str(receipt_path)
+        item["candidateReceiptSha256"] = sha256(receipt_path)
+        item["candidateArtifactSha256"] = receipt["candidateArtifact"]["sha256"]
+        item["ownerReviewGate"] = "PASS"
 
     args.output.mkdir(parents=True, exist_ok=True)
     reels: list[dict[str, object]] = []
@@ -81,6 +134,7 @@ def main() -> None:
                 "firstIndex": group[0]["index"],
                 "lastIndex": group[-1]["index"],
                 "clips": group,
+                "reviewMode": "ONE_CANDIDATE_Y_N_CHANGE",
             }
         )
 

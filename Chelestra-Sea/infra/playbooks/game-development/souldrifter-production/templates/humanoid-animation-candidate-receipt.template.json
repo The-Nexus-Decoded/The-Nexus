@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "candidate": {
+    "id": "semantic-id-v1",
+    "semanticId": "master.list.semantic-id",
+    "clipName": "AuthoredFamily__Action",
+    "version": 1,
+    "authorId": "authoring-agent-or-artist",
+    "authoringLane": "BLENDER"
+  },
+  "candidateArtifact": {
+    "path": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/semantic-id-v1/candidate.glb",
+    "bytes": 1,
+    "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+    "stagingOnly": true
+  },
+  "sourceRestRig": {
+    "path": "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "bytes": 2404872,
+    "sha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81",
+    "importedActionCount": 0,
+    "boneCount": 65,
+    "rootBone": "mixamorig:Hips"
+  },
+  "provenance": {
+    "route": "ORIGINAL_TIER_3",
+    "authoredFromZeroActionRestRig": true,
+    "sourceAnimationsSampled": false,
+    "forbiddenOperationsUsed": [],
+    "realPersonReferences": [
+      {
+        "url": "https://replace-with-reviewed-video",
+        "publisher": "REPLACE",
+        "retrievedAt": "YYYY-MM-DD",
+        "timeRange": "MM:SS-MM:SS",
+        "mechanics": {
+          "stance": "REPLACE",
+          "weightTransfer": "REPLACE",
+          "footwork": "REPLACE",
+          "hipsShoulders": "REPLACE",
+          "handsGripContacts": "REPLACE",
+          "anticipation": "REPLACE",
+          "cadence": "REPLACE",
+          "followThroughRecovery": "REPLACE"
+        }
+      }
+    ]
+  },
+  "technicalReview": {
+    "status": "REWORK",
+    "checks": {
+      "freshImport": "REWORK",
+      "canonicalSkeleton": "REWORK",
+      "rootMotion": "REWORK",
+      "grounding": "REWORK",
+      "contacts": "REWORK",
+      "duration": "REWORK",
+      "semantic": "REWORK"
+    }
+  },
+  "playbackEvidence": {
+    "normalSpeed": {
+      "path": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/semantic-id-v1/normal-speed.mp4",
+      "bytes": 1,
+      "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+      "width": 1280,
+      "height": 960,
+      "fps": 30,
+      "frameCount": 1,
+      "durationSeconds": 1,
+      "playbackRate": 1,
+      "fullDecodePassed": false
+    }
+  },
+  "independentVisualReview": {
+    "status": "REWORK",
+    "reviewerId": "independent-coordinator",
+    "reviewerRole": "INDEPENDENT_COORDINATOR",
+    "watchedEntireNormalSpeed": false,
+    "playbackSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+    "checklist": {
+      "windUp": "REWORK",
+      "semanticReadability": "REWORK",
+      "fullBodyMechanics": "REWORK",
+      "balanceWeightTransfer": "REWORK",
+      "feetKneesHipsPelvis": "REWORK",
+      "spineShouldersElbowsHands": "REWORK",
+      "propSurfaceContacts": "REWORK",
+      "cadence": "REWORK",
+      "followThroughRecovery": "REWORK",
+      "groundingRootMotion": "REWORK",
+      "gameplayCamera": "REWORK"
+    },
+    "blockingFindings": ["Replace with findings, or use an empty array only after every check passes."]
+  },
+  "ownerReview": {
+    "status": "NOT_PRESENTED"
+  },
+  "promotion": {
+    "status": "QUARANTINED",
+    "runtimeInstalled": false
+  }
+}
