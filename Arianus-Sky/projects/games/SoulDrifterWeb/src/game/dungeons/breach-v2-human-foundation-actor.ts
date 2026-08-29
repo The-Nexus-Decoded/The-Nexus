@@ -53,6 +53,8 @@ const LOCOMOTION_ACTIONS: ReadonlySet<string> = new Set([
 ]);
 const CROSSFADE_SECONDS = 0.18;
 const LIVE_POSE_CALIBRATION_FRAME = 3;
+const DRAW_SWORD_SOCKET_TRANSFER_NORMALIZED_TIME = 0.9;
+const SHEATHE_SWORD_SOCKET_TRANSFER_NORMALIZED_TIME = 0.74;
 
 export interface BreachV2HumanFoundationSnapshot {
   animation: string;
@@ -166,7 +168,7 @@ function createFoundationWeaponPresentation(
 
   const hipSocket = new THREE.Group();
   hipSocket.name = "weapon-socket-hip-l";
-  hipSocket.position.set(0.28, -0.18, 0.08);
+  hipSocket.position.set(0.09056, 0.1034, 0.07796);
   hipSocket.rotation.set(0.08, -0.12, 2.95);
   const hipVisual = sourceWeapon.clone(true);
   hipVisual.name = "weapon-sword-longsword-starter-v001-hip";
@@ -251,11 +253,17 @@ export function createBreachV2HumanFoundationActor(
     const progress = THREE.MathUtils.clamp(normalizedTime, 0, 1);
     if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword
       || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawGreatsword) {
-      setFoundationWeaponState(weapon, progress < 0.52 ? "sheathed" : "drawn");
+      setFoundationWeaponState(
+        weapon,
+        progress < DRAW_SWORD_SOCKET_TRANSFER_NORMALIZED_TIME ? "sheathed" : "drawn",
+      );
       return;
     }
     if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.sheatheSword) {
-      setFoundationWeaponState(weapon, progress < 0.52 ? "drawn" : "sheathed");
+      setFoundationWeaponState(
+        weapon,
+        progress < SHEATHE_SWORD_SOCKET_TRANSFER_NORMALIZED_TIME ? "drawn" : "sheathed",
+      );
       return;
     }
     if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordCombatIdle

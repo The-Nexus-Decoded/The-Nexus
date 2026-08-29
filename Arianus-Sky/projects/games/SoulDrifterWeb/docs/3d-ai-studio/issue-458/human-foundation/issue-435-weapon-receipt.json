@@ -16,14 +16,50 @@
     "texture": "2K WebP runtime derivative of preserved 8K source",
     "canonicalLengthMeters": 1.05,
     "origin": "grip-center-at-local-zero",
-    "runtimeAxes": "guard +X, blade +Y, thickness -Z"
+    "runtimeAxes": "guard +X, blade +Y, thickness -Z",
+    "sourceFbx": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/sources/weapon-sword-longsword-starter-v001__43f259b7-32b5-40e7-a030-38f6e88f6d88.fbx",
+    "sourceFbxSha256": "EDA7C629BC10B53BF9CA3E03C0D882C22C2F4004C3CD9419386979631B0B9A48",
+    "sourceBlend": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/issue-435-longsword-source.blend",
+    "boundsMeters": {
+      "min": [-0.11976, -0.15659, -0.05487],
+      "max": [0.12179, 0.893409, 0.05943],
+      "dimensions": [0.24155, 1.05, 0.1143]
+    },
+    "runtimeScale": [1, 1, 1]
   },
   "animationOwnership": {
     "ownerIssue": 458,
     "states": ["sheathed", "drawn"],
     "transitions": ["drawSword", "swordAttack", "sheatheSword"],
-    "socketPolicy": "right hand while drawn; left hip while sheathed"
+    "socketPolicy": "right hand while drawn; left hip while sheathed",
+    "socketProfile": {
+      "characterRig": "Human Foundation V2 Mixamo",
+      "handBone": "mixamorigRightHand",
+      "handSocket": "weapon-socket-hand-r",
+      "handLocalPosition": [0, 0, 0],
+      "handLocalEulerRadians": [0, 0, 0],
+      "hipBone": "mixamorigHips",
+      "hipSocket": "weapon-socket-hip-l",
+      "hipLocalPosition": [0.09056, 0.1034, 0.07796],
+      "hipLocalEulerRadians": [0.08, -0.12, 2.95],
+      "drawTransferMarkerNormalizedTime": 0.9,
+      "sheatheTransferMarkerNormalizedTime": 0.74,
+      "runtimeWorldScaleInvariant": [1, 1, 1]
+    },
+    "verification": {
+      "runtimeProof": "H:/CodexData/.codex/visualizations/2026/08/29/01a04b65-b2db-7312-8bb0-35ced29d45ff/runtime-proof/human-longsword-runtime-proof.json",
+      "transferProof": "H:/CodexData/.codex/visualizations/2026/08/29/01a04b65-b2db-7312-8bb0-35ced29d45ff/runtime-proof/weapon-fit/candidate-fit.json",
+      "measuredRuntimeLengthMeters": [1.07, 1.09],
+      "drawTransferSocketSeparationMeters": 0.0281,
+      "sheatheTransferSocketSeparationMeters": 0.0342,
+      "gripGuardClearance": "accepted in sheathed, draw, attack, and sheathe front/gameplay poses",
+      "meshCorrectionRequest": "none"
+    }
   },
+  "separateModularAssetsRequired": [
+    "left-hip scabbard",
+    "diagonal upper-back sheath harness"
+  ],
   "notImported": [
     "issue 435 branch runtime",
     "issue 435 camera or preview code",

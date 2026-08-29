@@ -86,9 +86,13 @@ describe("BREACH-V2 Human Foundation actor", () => {
     expect(actor.snapshot().weaponState).toBe("drawn");
     actor.play(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword);
     expect(actor.snapshot().weaponState).toBe("sheathed");
-    actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword, 0.75);
+    actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword, 0.89);
+    expect(actor.snapshot().weaponState).toBe("sheathed");
+    actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword, 0.91);
     expect(actor.snapshot().weaponState).toBe("drawn");
     actor.play(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.sheatheSword);
+    expect(actor.snapshot().weaponState).toBe("drawn");
+    actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.sheatheSword, 0.73);
     expect(actor.snapshot().weaponState).toBe("drawn");
     actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.sheatheSword, 0.75);
     expect(actor.snapshot().weaponState).toBe("sheathed");
