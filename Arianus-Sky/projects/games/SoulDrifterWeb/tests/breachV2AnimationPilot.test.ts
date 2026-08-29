@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBreachV2AnimationPilot } from "../src/game/dungeons/breach-v2-animation-pilot";
+import { HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE } from "../src/game/humanFoundationRuntimeReviewQueue";
 import {
   validatePilotAnimationCatalog,
   type PilotAnimationCatalog,
@@ -103,6 +104,9 @@ describe("Breach V2 Human animation pilot grounding", () => {
     const pilot = await createBreachV2AnimationPilot(loader);
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
     expect(bridge.reviewAnimations()).toHaveLength(404);
+    expect(bridge.reviewAnimations().slice(0, HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE.length)).toEqual(
+      HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE.map((entry) => entry.clipName),
+    );
     expect(bridge.reviewAnimations()).toContain("AuthoredReaction__SpellImpactKnockbackAndFall");
     expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls.flat())
       .not.toContain("/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb");

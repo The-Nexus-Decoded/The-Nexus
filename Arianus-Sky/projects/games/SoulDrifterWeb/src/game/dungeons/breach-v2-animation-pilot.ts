@@ -8,6 +8,10 @@ import {
 } from "../animationPacks";
 import { HUMAN_FOUNDATION_APPROVED_ANIMATIONS } from "../humanFoundationApprovedAnimations";
 import {
+  HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE,
+  resolveHumanFoundationRuntimeReviewQueue,
+} from "../humanFoundationRuntimeReviewQueue";
+import {
   loadPilotAnimationCatalog,
   PilotAnimationCatalogLoader,
 } from "../pilotAnimationCatalog";
@@ -74,6 +78,13 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     if (/armature$/i.test(node.name)) armatureRestPositions.set(node.name, node.position.clone());
   });
   const approvedSpecs = new Map(HUMAN_FOUNDATION_APPROVED_ANIMATIONS.map((spec) => [spec.semanticClipName, spec]));
+  const runtimeReviewSpecs = new Map<string, (typeof HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE)[number]>(
+    HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE.map((spec) => [spec.clipName, spec] as const),
+  );
+  const allowsAirborneClearance = (name: string): boolean => (
+    runtimeReviewSpecs.get(name)?.allowsAirborneClearance
+      ?? /jump|fall|airborne|climb|vault|dive|leap|hop|swim/i.test(name)
+  );
   const approvedGroundedRootPositions = new Map<string, THREE.Vector3>();
   for (const spec of HUMAN_FOUNDATION_APPROVED_ANIMATIONS) {
     const referenceSource = await catalogLoader.loadClip(spec.groundedReferenceClipName);
@@ -133,8 +144,9 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     const sourceRootTrack = bound.tracks.find((track) => (
       track.name === `${boundRoot}.position` && track.getValueSize() >= 3
     ));
-    const airborneClip = /jump|fall|airborne|climb|vault|dive|leap|hop|swim/i.test(name);
-    const preserveAuthoredRoot = approvedSpec?.rootPolicy === "authored";
+    const airborneClip = allowsAirborneClearance(name);
+    const preserveAuthoredRoot = approvedSpec?.rootPolicy === "authored"
+      || runtimeReviewSpecs.get(name)?.preserveAuthoredTravel === true;
     const normalized = normalizeAnimationPackRootMotion(
       bound,
       boundRoot,
@@ -155,7 +167,12 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     };
   };
 
-  const reviewNames = catalogLoader.reviewAnimations();
+  const queuedReviewNames = resolveHumanFoundationRuntimeReviewQueue(catalog);
+  const queuedReviewSet = new Set(queuedReviewNames);
+  const reviewNames = [
+    ...queuedReviewNames,
+    ...catalogLoader.reviewAnimations().filter((name) => !queuedReviewSet.has(name)),
+  ];
   const calibrationClipName = reviewNames.find(
     (name) => name.toLowerCase() === GROUND_CALIBRATION_CLIP.toLowerCase(),
   );
@@ -204,7 +221,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       ? model.getObjectByName(contract.rootNodeName)?.position.y ?? contract.targetRootRestY
       : 0;
     const authoredRootDeltaY = currentRootY - (contract?.targetRootRestY ?? currentRootY);
-    const airborneClip = /jump|fall|airborne|climb|vault|dive|leap|hop|swim/i.test(currentClip);
+    const airborneClip = allowsAirborneClearance(currentClip);
     const measurement = measureAnimatedPoseGrounding(root, model);
     const airborneClearanceAllowed = airborneClip && (
       authoredRootDeltaY > FLOOR_TOLERANCE_METERS
