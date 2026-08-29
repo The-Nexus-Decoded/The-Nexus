@@ -9,16 +9,18 @@ Record a clean, owner-visible account of the real Tripo Studio production path s
 
 ## Browser and session boundary
 
-Use only the already open, signed-in **Tripo Studio tab inside the Codex in-app browser**. Keep the work visible in that existing tab while operating it.
+Use only one signed-in **Tripo Studio tab inside the Codex in-app browser**. Keep the work visible in that tab while operating it.
 
 - Do not launch a fresh Chrome, Edge, Playwright, Selenium, or other controlled browser profile.
-- Do not open a second Tripo login session.
+- Do not keep a second Tripo login session open.
 - Do not attempt to defeat or automate around Cloudflare, CAPTCHA, bot detection, or human verification.
 - Do not copy cookies, session storage, passwords, or authentication tokens into another browser or tool.
 - Do not navigate through login, account-security, billing, payment-method, or identity screens while recording.
 - If the signed-in in-app tab expires or requires verification, stop. Let the owner restore that same tab before resuming.
 
-The tab visible to the owner is the production session of record. A separate automation browser reaching Tripo is not equivalent evidence.
+If the one allowed tab hits a WebGL initialization/context-loss failure, a persistent blank 3D viewport, or a provider HTTP 500 response, do not keep retrying inside that broken page state. Preserve any non-secret task ID or receipt already visible, close or release the failed tab, and then open exactly one clean replacement Tripo tab in the Codex in-app browser. Reuse the same signed-in account and task; do not resubmit a paid operation, create a second simultaneous Tripo session, open an external automation browser, or leave the failed GPU scene resident. Record the recovery and whether the clean replacement restored the viewport in the session receipt.
+
+The single tab visible to the owner is the production session of record, including a clean replacement opened under the recovery rule above. A separate automation browser reaching Tripo is not equivalent evidence.
 
 ## Spend and repository boundaries
 
@@ -209,7 +211,14 @@ Each recording receipt must be machine-readable JSON with at least these fields:
   "schemaVersion": 1,
   "issue": 487,
   "assetId": "human-masculine-athletic-muscular",
-  "browserBoundary": "EXISTING_SIGNED_IN_CODEX_IN_APP_TRIPO_TAB",
+  "browserBoundary": "SINGLE_SIGNED_IN_CODEX_IN_APP_TRIPO_TAB",
+  "browserRecovery": {
+    "required": false,
+    "failure": "NONE | WEBGL_INIT | WEBGL_CONTEXT_LOST | BLANK_VIEWPORT | HTTP_500",
+    "failedTabReleasedBeforeReplacement": true,
+    "simultaneousTripoTabs": 1,
+    "replacementRestoredViewport": true
+  },
   "recording": {
     "externalMp4Path": "<absolute external path>",
     "sha256": "<sha256>",
@@ -312,7 +321,7 @@ Use the feminine pilot asset ID for its receipt. Replace zeros and placeholders 
 
 A pilot recording passes only when:
 
-- it comes from the existing signed-in Codex in-app Tripo tab;
+- it comes from the single signed-in Codex in-app Tripo tab, with any failed tab released before one clean replacement was opened;
 - the MP4 is readable, 30fps, externally stored, hashed, and paired with a complete receipt;
 - no login, password, 2FA, payment data, token, private message, microphone audio, or other secret is visible;
 - the exact live Smart Mesh version, Quad Face selection, 8,000 target, current balance, exact cost, approval, single task ID, and untouched download hash are legible;
