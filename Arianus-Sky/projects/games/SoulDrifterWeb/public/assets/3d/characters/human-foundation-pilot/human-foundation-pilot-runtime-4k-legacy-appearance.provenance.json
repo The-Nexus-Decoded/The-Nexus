@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "status": "PROVISIONAL_PILOT",
+  "ownerReviewStatus": "OWNER_QA_PENDING",
+  "provenance": {
+    "pilotRigBodyAuthority": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "pilotRigBodySha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81",
+    "legacyAppearanceSource": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-shadowknight/human-shadowknight.glb",
+    "legacyAppearanceSourceSha256": "970FF14D5C2A43833F892EC3A6B34CBA0AEFEF280ED9D8FBDCEC1CA1833031E6",
+    "legacySourceLicense": "CC0-1.0",
+    "legacySourcePublisher": "Quaternius",
+    "route": "EXISTING_REPO_INVENTORY_REUSE",
+    "paidProviderOperation": false
+  },
+  "toolchain": {
+    "application": "Blender",
+    "version": "5.2.1 LTS",
+    "buildHash": "9e2066aef7ef",
+    "cachedReceiptUsed": true
+  },
+  "output": {
+    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k-legacy-appearance.glb",
+    "bytes": 8598196,
+    "sha256": "363003DDC20434686E0024B421E1D6966FFB9C4F91681EF201D08E015475E9A2",
+    "embeddedActionCount": 0
+  },
+  "conform": {
+    "method": "SOURCE_HEAD_BIND_BOUNDS_TO_PILOT_HEAD_BIND_BOUNDS_AFFINE",
+    "sourceHeadLocalBounds": {
+      "minimum": [
+        -0.09063515,
+        -0.0207395,
+        -0.09247238
+      ],
+      "maximum": [
+        0.09063515,
+        0.21061035,
+        0.13085875
+      ],
+      "extent": [
+        0.1812703,
+        0.23134984,
+        0.22333112
+      ],
+      "center": [
+        0.0,
+        0.09493542,
+        0.01919318
+      ]
+    },
+    "targetHeadLocalBounds": {
+      "minimum": [
+        -0.05151368,
+        -0.01788497,
+        -0.03963388
+      ],
+      "maximum": [
+        0.05151367,
+        0.12274009,
+        0.08634269
+      ],
+      "extent": [
+        0.10302734,
+        0.14062506,
+        0.12597658
+      ],
+      "center": [
+        -0.0,
+        0.05242756,
+        0.02335441
+      ]
+    },
+    "pieces": [
+      {
+        "name": "SK_Hair_Buzzed",
+        "vertices": 466,
+        "triangles": 830,
+        "materials": [
+          "SK_hair_silver.001"
+        ],
+        "sourceCoverageFit": {
+          "scale": 1.12,
+          "offset": [
+            0.0,
+            -0.004,
+            -0.004
+          ]
+        },
+        "headSpaceAxisScale": [
+          0.56836307,
+          0.6078459,
+          0.56407982
+        ],
+        "attachmentBone": "mixamorig:Head",
+        "weight": 1.0
+      },
+      {
+        "name": "SK_Hair_Parted",
+        "vertices": 757,
+        "triangles": 1301,
+        "materials": [
+          "SK_hair_silver.001"
+        ],
+        "sourceCoverageFit": {
+          "scale": 1.1,
+          "offset": [
+            0.0,
+            -0.004,
+            -0.005
+          ]
+        },
+        "headSpaceAxisScale": [
+          0.56836307,
+          0.6078459,
+          0.56407982
+        ],
+        "attachmentBone": "mixamorig:Head",
+        "weight": 1.0
+      },
+      {
+        "name": "SK_Hair_Long",
+        "vertices": 3080,
+        "triangles": 2906,
+        "materials": [
+          "SK_hair_silver.001"
+        ],
+        "sourceCoverageFit": null,
+        "headSpaceAxisScale": [
+          0.56836307,
+          0.6078459,
+          0.56407982
+        ],
+        "attachmentBone": "mixamorig:Head",
+        "weight": 1.0
+      },
+      {
+        "name": "SK_Beard_Full",
+        "vertices": 596,
+        "triangles": 1034,
+        "materials": [
+          "SK_hair_silver.001"
+        ],
+        "sourceCoverageFit": null,
+        "headSpaceAxisScale": [
+          0.56836307,
+          0.6078459,
+          0.56407982
+        ],
+        "attachmentBone": "mixamorig:Head",
+        "weight": 1.0
+      }
+    ]
+  },
+  "validation": {
+    "armature": "HumanFoundation_Armature",
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ],
+    "meshNames": [
+      "HumanFoundation_Body",
+      "SK_Beard_Full",
+      "SK_Hair_Buzzed",
+      "SK_Hair_Long",
+      "SK_Hair_Parted"
+    ],
+    "ignoredImporterHelpers": [
+      "Icosphere"
+    ],
+    "actionCount": 0,
+    "bodyVertexCount": 15342,
+    "bodyPolygonCount": 15894,
+    "bodyMaterials": [
+      "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6"
+    ],
+    "appearanceHeadLocalBounds": {
+      "SK_Hair_Buzzed": {
+        "minimum": [
+          -0.04920358,
+          0.01259604,
+          -0.04412152
+        ],
+        "maximum": [
+          0.04920359,
+          0.12930053,
+          0.07573482
+        ],
+        "extent": [
+          0.09840717,
+          0.1167045,
+          0.11985634
+        ],
+        "center": [
+          0.0,
+          0.07094829,
+          0.01580665
+        ]
+      },
+      "SK_Hair_Parted": {
+        "minimum": [
+          -0.05340762,
+          0.0241371,
+          -0.0435154
+        ],
+        "maximum": [
+          0.0562657,
+          0.14619303,
+          0.0716966
+        ],
+        "extent": [
+          0.10967331,
+          0.12205593,
+          0.11521199
+        ],
+        "center": [
+          0.00142904,
+          0.08516507,
+          0.0140906
+        ]
+      },
+      "SK_Hair_Long": {
+        "minimum": [
+          -0.06954222,
+          -0.04577217,
+          -0.06742779
+        ],
+        "maximum": [
+          0.06954224,
+          0.12382042,
+          0.0826017
+        ],
+        "extent": [
+          0.13908446,
+          0.16959259,
+          0.15002948
+        ],
+        "center": [
+          1e-08,
+          0.03902413,
+          0.00758695
+        ]
+      },
+      "SK_Beard_Full": {
+        "minimum": [
+          -0.04589703,
+          -0.03263279,
+          0.01780383
+        ],
+        "maximum": [
+          0.04589708,
+          0.05135415,
+          0.07682092
+        ],
+        "extent": [
+          0.09179411,
+          0.08398694,
+          0.0590171
+        ],
+        "center": [
+          2e-08,
+          0.00936068,
+          0.04731238
+        ]
+      }
+    },
+    "surfaceFit": {
+      "SK_Hair_Buzzed": {
+        "sampledVertices": 466,
+        "nearestSurfaceDistanceMinimum": 6.296e-05,
+        "nearestSurfaceDistanceMaximum": 0.01350858,
+        "signedDistanceMinimum": -0.0059809,
+        "signedDistanceMaximum": 0.01348268,
+        "deepPenetrationThreshold": 0.015,
+        "deepPenetrationVertexCount": 0,
+        "deepPenetrationRatio": 0.0,
+        "status": "PASS"
+      },
+      "SK_Hair_Parted": {
+        "sampledVertices": 757,
+        "nearestSurfaceDistanceMinimum": 1.444e-05,
+        "nearestSurfaceDistanceMaximum": 0.0303974,
+        "signedDistanceMinimum": -0.00792731,
+        "signedDistanceMaximum": 0.0303974,
+        "deepPenetrationThreshold": 0.015,
+        "deepPenetrationVertexCount": 0,
+        "deepPenetrationRatio": 0.0,
+        "status": "PASS"
+      },
+      "SK_Hair_Long": {
+        "sampledVertices": 3080,
+        "nearestSurfaceDistanceMinimum": 1.409e-05,
+        "nearestSurfaceDistanceMaximum": 0.03865103,
+        "signedDistanceMinimum": -0.02054002,
+        "signedDistanceMaximum": 0.03862472,
+        "deepPenetrationThreshold": 0.015,
+        "deepPenetrationVertexCount": 34,
+        "deepPenetrationRatio": 0.01103896,
+        "status": "PASS"
+      },
+      "SK_Beard_Full": {
+        "sampledVertices": 596,
+        "nearestSurfaceDistanceMinimum": 4.6e-07,
+        "nearestSurfaceDistanceMaximum": 0.02831304,
+        "signedDistanceMinimum": -0.0056436,
+        "signedDistanceMaximum": 0.02736997,
+        "deepPenetrationThreshold": 0.015,
+        "deepPenetrationVertexCount": 0,
+        "deepPenetrationRatio": 0.0,
+        "status": "PASS"
+      }
+    },
+    "headRotationAttachment": {
+      "yaw_positive_20": {
+        "anglesDegrees": [
+          0.0,
+          20.0,
+          0.0
+        ],
+        "maximumAttachmentError": 8.95e-08,
+        "perMeshError": {
+          "SK_Hair_Buzzed": 8.95e-08,
+          "SK_Hair_Parted": 8.95e-08,
+          "SK_Hair_Long": 5.97e-08,
+          "SK_Beard_Full": 8.95e-08
+        },
+        "perMeshSampleVertexDisplacement": {
+          "SK_Hair_Buzzed": 0.0189271,
+          "SK_Hair_Parted": 0.02071919,
+          "SK_Hair_Long": 0.01586359,
+          "SK_Beard_Full": 0.01681455
+        },
+        "status": "PASS"
+      },
+      "pitch_negative_15": {
+        "anglesDegrees": [
+          -15.0,
+          0.0,
+          0.0
+        ],
+        "maximumAttachmentError": 1.198e-07,
+        "perMeshError": {
+          "SK_Hair_Buzzed": 1.198e-07,
+          "SK_Hair_Parted": 9.07e-08,
+          "SK_Hair_Long": 6.08e-08,
+          "SK_Beard_Full": 9.06e-08
+        },
+        "perMeshSampleVertexDisplacement": {
+          "SK_Hair_Buzzed": 0.01365068,
+          "SK_Hair_Parted": 0.01556381,
+          "SK_Hair_Long": 0.00975553,
+          "SK_Beard_Full": 0.01468035
+        },
+        "status": "PASS"
+      },
+      "roll_positive_12": {
+        "anglesDegrees": [
+          0.0,
+          0.0,
+          12.0
+        ],
+        "maximumAttachmentError": 8.96e-08,
+        "perMeshError": {
+          "SK_Hair_Buzzed": 8.95e-08,
+          "SK_Hair_Parted": 8.95e-08,
+          "SK_Hair_Long": 5.97e-08,
+          "SK_Beard_Full": 8.96e-08
+        },
+        "perMeshSampleVertexDisplacement": {
+          "SK_Hair_Buzzed": 0.01280709,
+          "SK_Hair_Parted": 0.01365355,
+          "SK_Hair_Long": 0.01200769,
+          "SK_Beard_Full": 0.01326901
+        },
+        "status": "PASS"
+      }
+    },
+    "status": "PASS"
+  },
+  "bodyRigIntegrity": {
+    "bodyGeometryModifiedByBuilder": false,
+    "bodyMaterialModifiedByBuilder": false,
+    "armatureRestRigModifiedByBuilder": false,
+    "embeddedActionsAdded": false,
+    "onlyAddedMeshNames": [
+      "SK_Hair_Buzzed",
+      "SK_Hair_Parted",
+      "SK_Hair_Long",
+      "SK_Beard_Full"
+    ],
+    "status": "PASS"
+  },
+  "previewEvidence": {
+    "SK_Hair_Buzzed": {
+      "front": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Buzzed-front.png",
+        "bytes": 815152,
+        "sha256": "0AC37EDD87CA2F1648AC378D78139AC0B29D9BF5F39918AD356259739164B72C",
+        "width": 800,
+        "height": 800
+      },
+      "side": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Buzzed-side.png",
+        "bytes": 816756,
+        "sha256": "C3A9D95EB985A1725804B4886D616DA0409FA483F35A3A30A3D7B94CEE90EBD4",
+        "width": 800,
+        "height": 800
+      }
+    },
+    "SK_Hair_Parted": {
+      "front": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Parted-front.png",
+        "bytes": 793492,
+        "sha256": "B22F6BB36A52EE575E87DFFB5EB2A34CA29605C151C28D95283435B77DDF897B",
+        "width": 800,
+        "height": 800
+      },
+      "side": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Parted-side.png",
+        "bytes": 715134,
+        "sha256": "04A57A5D4FF27E0B7B7C39E7E5407B13687359EA54711E6D7BC1BD956039FF7A",
+        "width": 800,
+        "height": 800
+      }
+    },
+    "SK_Hair_Long": {
+      "front": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Long-front.png",
+        "bytes": 761674,
+        "sha256": "4D7E0AB2F245AF39BE8397FDFA65BBC2340D816FB82B5A3194B932A2DD02EA4A",
+        "width": 800,
+        "height": 800
+      },
+      "side": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Hair_Long-side.png",
+        "bytes": 687533,
+        "sha256": "13FEBF041166F2644A06D8D7274B38F74D8544BB3A3E1C86C8C183E2BBBC258A",
+        "width": 800,
+        "height": 800
+      }
+    },
+    "SK_Beard_Full": {
+      "front": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Beard_Full-front.png",
+        "bytes": 619791,
+        "sha256": "CA91A8B7CA318799AA006851A670274F16B82FC99418B42C11C7F4D7F5CB1B08",
+        "width": 800,
+        "height": 800
+      },
+      "side": {
+        "path": "H:/CodexData/souldrifter-toolchain/evidence/487/appearance-pack/legacy-human-foundation-v1/SK_Beard_Full-side.png",
+        "bytes": 696032,
+        "sha256": "3A917B406099FA6DA592530C51EA27CAD367006B6E48D590767503E5841BB851",
+        "width": 800,
+        "height": 800
+      }
+    }
+  },
+  "limitations": [
+    "Temporary reuse fit, not final bespoke Human pilot hair topology.",
+    "Owner evidence review found Buzzed helmet-like and Long affected by crown gaps and face obstruction; Parted and Beard are usable only as provisional pilot pieces.",
+    "All four appearance meshes are rigidly weighted to the head bone; long hair and beard have no secondary-motion bones or simulation.",
+    "Legacy hair materials are preserved and are not final 8K strand/card PBR assets.",
+    "Runtime must toggle the separate existing mesh names; this script does not edit TypeScript or install UI behavior.",
+    "Fresh-import technical checks passed, but owner visual QA and BREACH-V2 runtime integration remain separate gates."
+  ]
+}

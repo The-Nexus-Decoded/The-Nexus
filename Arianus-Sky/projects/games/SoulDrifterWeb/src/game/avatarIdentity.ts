@@ -23,7 +23,7 @@ interface PlayerAvatarManifest {
   animationPacks: readonly AnimationPackSpec[];
 }
 
-export const HUMAN_FOUNDATION_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
+export const HUMAN_FOUNDATION_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k-legacy-appearance.glb";
 
 const HUMAN_FOUNDATION_AVATAR: PlayerAvatarManifest = {
   modelPath: HUMAN_FOUNDATION_MODEL_PATH,
