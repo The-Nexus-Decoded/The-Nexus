@@ -21,6 +21,7 @@ The purpose of this pipeline is to prevent animation work from becoming a long s
 10. **Acquire coherent combat families, not random isolated attacks.** A weapon family must share a believable combat idle, guard, locomotion, basic attack, signature cuts, impact reactions, and recoveries. Do not combine unrelated mocap clips merely because each result contains the word `sword`.
 11. **Every weapon family has an unarmed failure state.** If no usable weapon is equipped, durability reaches zero, or a disarm effect succeeds, weapon-only actions cannot swing an invisible prop. The basic action switches to the actor's unarmed family (combat idle, jab/cross, front kick, block, impact, recovery); weapon-required skills are disabled or replaced by an explicitly designed class fallback.
 12. **Motion complexity cannot exceed the skill tier.** A downloaded combo, flourish, spin, aerial attack, or multi-hit sequence is never substituted for a beginner basic merely because it looks polished. The First Breach Weapon Strike remains one compact thrust; Siphon Cleave remains one readable outward cut. `One Hand Sword Combo` is retained only as a future multi-hit unlock candidate and is forbidden from both starter bindings.
+13. **Real-person video reference comes before animation creation.** Before selecting, deriving, generating, retargeting, or hand-authoring any humanoid action, search YouTube or another video source for a real person performing that specific action. Record the reference and observed body mechanics. A provider label or remembered idea of the motion is not a sufficient reference.
 
 ## Mixamo acquisition and local reuse boundary
 
@@ -98,6 +99,19 @@ Write a short action brief:
 Lock the correct motion family before selecting mocap or posing the rig. Do not turn a simple beginner action into a more advanced technique because a dramatic source clip is available. For example, the starter Shadowknight Weapon Strike is a compact one-handed stab: blade-forward guard, short controlled thrust with modest knee/hip/shoulder drive, then quick recovery. It is not an overhead chop, two-handed power cut, dash, flourish, or magical rune attack. Siphon Cleave is a separate one-handed sweeping/draining action and must have a different silhouette.
 
 Low-level SoulDrifter actions use mortal weapon technique, wizardry, necromancy, breath, posture, and restrained effects. They do not use visible Sartan/Patryn runes, high-level probability magic, or advanced class regalia unless the skill's progression tier explicitly unlocks them.
+
+### 1A. Research real-person motion before creating a candidate
+
+This is a hard pre-generation gate for every humanoid animation, including locomotion, traversal, swimming, interactions, trades, combat, reactions, deaths, gestures, and spellcasting.
+
+1. Search YouTube or another video index for at least one real person performing the exact action. Prefer multiple angles or a second reference when hand contacts, equipment, impacts, or unusual body mechanics matter.
+2. Record the source URL, publisher, retrieval date, and exact time range used.
+3. Extract the observable mechanics: starting stance, balance and weight transfer, foot placement, hip and shoulder sequencing, hand placement and grip, contact points, anticipation, action duration, follow-through, and recovery.
+4. For fantasy actions without a literal real-world performance, document the closest physical analogue for every component. For example, a spell blowback may combine a staged impact reaction and controlled fall; magical gestures still require believable balance, shoulder, elbow, wrist, and finger behavior.
+5. Write these observations into the candidate brief and provenance before opening Mixamo, Blender, Houdini, or another generation route.
+6. Reject a candidate that contradicts the recorded reference mechanics even if it is technically valid, visually polished, or named correctly by a provider.
+
+Do not copy one reference performance mechanically without judgment. The reference establishes believable human movement; SoulDrifter timing, readability, class identity, and gameplay constraints still control the final animation.
 
 ### 2. Choose a licensed human-motion foundation
 

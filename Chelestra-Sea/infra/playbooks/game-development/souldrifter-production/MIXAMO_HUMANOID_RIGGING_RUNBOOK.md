@@ -132,6 +132,12 @@ Reconcile the full master list and fill the current-scope gaps before presenting
 
 The first Human pilot review is exhaustive. Its accepted semantic names, provider selections, loop/transition decisions, contact and weapon rules, root-motion rules, and owner rejections become the reusable canonical decision set for later bodies. Later bodies reuse those decisions and cached sources, but still require their own proportion-correct retarget, bake, grounding/contact repair, and deformation/runtime QA.
 
+### Real-person video reference gate
+
+Before searching Mixamo or creating a replacement in Blender/Houdini, search YouTube or another video source for a real person performing the exact humanoid action. Save the URL, publisher, retrieval date, exact time range, and a short mechanics brief covering stance, balance, weight transfer, footwork, hip/shoulder sequencing, hand placement or grip, contacts, anticipation, duration, follow-through, and recovery.
+
+A provider title or remembered movement is not adequate evidence. Fantasy actions require recorded real-world analogues for each physical component. Do not generate, derive, retarget, or hand-author a candidate until the reference packet exists and is linked in candidate provenance. Reject or rework technically valid clips that do not match those observed mechanics.
+
 ### Candidate preview and owner-verdict gate
 
 Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:

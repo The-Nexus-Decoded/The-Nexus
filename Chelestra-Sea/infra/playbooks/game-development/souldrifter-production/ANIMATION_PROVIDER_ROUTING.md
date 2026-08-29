@@ -71,6 +71,12 @@ A Mixamo in-app Download click is not source acceptance. Require a browser compl
 
 The exhaustive first-pilot decisions become the canonical semantic names, provider choices, transition/loop rules, contact/weapon rules, root-motion policy, and owner acceptance baseline for later foundation bodies. Those bodies reuse the decisions and source clips, then receive their own proportion-specific retarget, floor/contact correction, bake, and deformation/runtime QA.
 
+### Real-person video reference gate
+
+Before acquiring or creating any humanoid animation, search YouTube or another video source for a real person performing that exact action. Record the URL, publisher, retrieval date, time range, and observed mechanics: stance, balance, weight transfer, feet, hips, shoulders, hands or grip, contacts, anticipation, duration, follow-through, and recovery. Provider names and memory are not references.
+
+If an exact fantasy action does not exist, build and record a reference packet from the closest real physical components. No Mixamo selection, derived edit, Blender/Houdini authoring, or procedural generation may begin until this packet exists. The candidate provenance must link back to it, and any candidate that contradicts it returns to `REWORK` or `REJECTED` before owner preview.
+
 ### Candidate preview and owner-verdict gate
 
 Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:
