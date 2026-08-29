@@ -36,6 +36,14 @@ import {
   setupBreachV2CreatureReview,
   type BreachV2CreatureReview,
 } from "./breach-v2-creature-review.ts";
+import {
+  createBreachV2WardenRuntime,
+  type BreachV2WardenRuntime,
+} from "./breach-v2-wardens.ts";
+import {
+  setupBreachV2WardenReview,
+  type BreachV2WardenReview,
+} from "./breach-v2-warden-review.ts";
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import {
@@ -145,6 +153,13 @@ interface PreviewHooks {
     play: BreachV2BreachlingRuntime["play"];
     pose: BreachV2BreachlingRuntime["pose"];
     pause: BreachV2BreachlingRuntime["pause"];
+  };
+  __dungeonWarden: {
+    snapshots: BreachV2WardenRuntime["snapshots"];
+    play: BreachV2WardenRuntime["play"];
+    pose: BreachV2WardenRuntime["pose"];
+    pause: BreachV2WardenRuntime["pause"];
+    setDamageFraction: BreachV2WardenRuntime["setDamageFraction"];
   };
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonCanStandAt: (x: number, z: number) => boolean;
@@ -4030,6 +4045,7 @@ export async function startDungeonPreview(
   const previewUrl = new URL(window.location.href);
   const animationReviewEnabled = previewUrl.searchParams.get("animationReview") === "1";
   const creatureReviewEnabled = previewUrl.searchParams.get("creatureReview") === "1";
+  const wardenReviewEnabled = previewUrl.searchParams.get("wardenReview") === "1";
   clearBreachV2LegacySpatialStateForExplicitUrl(previewUrl, window.sessionStorage);
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
@@ -4384,6 +4400,17 @@ export async function startDungeonPreview(
   if (creatureReviewEnabled) {
     creatureAnimationReview = setupBreachV2CreatureReview(container, breachlingRuntime);
   }
+  const wardenRuntime = createBreachV2WardenRuntime(
+    scene,
+    layout,
+    gltfLoader,
+    options.path,
+  );
+  await wardenRuntime.warmAt(playerPos.x, playerPos.z);
+  let wardenAnimationReview: BreachV2WardenReview | null = null;
+  if (wardenReviewEnabled) {
+    wardenAnimationReview = setupBreachV2WardenReview(container, wardenRuntime);
+  }
   let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
   let camPitch = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
@@ -4691,6 +4718,13 @@ export async function startDungeonPreview(
     play: breachlingRuntime.play,
     pose: breachlingRuntime.pose,
     pause: breachlingRuntime.pause,
+  };
+  hooks.__dungeonWarden = {
+    snapshots: wardenRuntime.snapshots,
+    play: wardenRuntime.play,
+    pose: wardenRuntime.pose,
+    pause: wardenRuntime.pause,
+    setDamageFraction: wardenRuntime.setDamageFraction,
   };
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
@@ -5080,6 +5114,8 @@ export async function startDungeonPreview(
       }
       breachlingRuntime.update(playerPos.x, playerPos.z, delta);
       creatureAnimationReview?.update();
+      wardenRuntime.update(playerPos.x, playerPos.z, delta);
+      wardenAnimationReview?.update();
       const currentRoom = layout.rooms.find((room) => (
         playerPos.x >= room.x
         && playerPos.x <= room.x + room.w
