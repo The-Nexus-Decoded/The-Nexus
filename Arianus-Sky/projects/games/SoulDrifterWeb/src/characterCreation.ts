@@ -5,19 +5,26 @@ import {
   deriveCharacter,
   FACIAL_HAIR_STYLES,
   FACE_TYPES,
+  HAIR_COLORS,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
   normalizeLegacyCharacterProfile,
   RACES,
   raceCallingBonus,
   raceCallingEligibility,
+  resolveCharacterAppearance,
   SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
   type CharacterDraft,
   type CharacterProfile,
+  type ResolvedCharacterAppearance,
 } from "./game/character";
-import { CreationAvatarPreview } from "./creationPreview";
+import {
+  CreationAvatarPreview,
+  EMPTY_CREATION_PREVIEW_AVAILABILITY,
+  type CreationPreviewAvailability,
+} from "./creationPreview";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -40,6 +47,28 @@ function requiredElement<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+export type AppearanceAgeStage = "Young Adult" | "Middle-Aged" | "Elder";
+
+export function appearanceAgeStage(age: number): AppearanceAgeStage {
+  const normalized = Math.min(1, Math.max(0, Number.isFinite(age) ? age : 0));
+  if (normalized < 1 / 3) return "Young Adult";
+  if (normalized < 2 / 3) return "Middle-Aged";
+  return "Elder";
+}
+
+export function appearanceControlPercent(value: number): number {
+  return Math.round(Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0)) * 100);
+}
+
+export function isCreatorAppearanceSelectionAvailable(
+  appearance: ResolvedCharacterAppearance,
+  availability: CreationPreviewAvailability,
+): boolean {
+  return availability.hairStyles.includes(appearance.hairStyle)
+    && availability.facialHair.includes(appearance.facialHair)
+    && (appearance.age === 0 || availability.ageMorphsAvailable);
+}
+
 export class CharacterCreation {
   private readonly root = requiredElement<HTMLElement>("character-creation");
   private readonly stage = requiredElement<HTMLElement>("creation-stage");
@@ -52,9 +81,13 @@ export class CharacterCreation {
     appearance: {
       bodyType: "foundation",
       faceType: "foundation",
-      hairStyle: "shaved",
+      hairStyle: "shaved-buzzed",
       skinTone: "ashen",
       facialHair: "none",
+      hairColor: "dark-brown",
+      age: 0,
+      hairGreying: 0,
+      facialHairGreying: 0,
     },
     answers: {},
   };
@@ -62,6 +95,7 @@ export class CharacterCreation {
   private memoryIndex = 0;
   private appearanceEditProfile: CharacterProfile | null = null;
   private appearancePreview: CreationAvatarPreview | null = null;
+  private appearanceAvailability: CreationPreviewAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
@@ -227,23 +261,33 @@ export class CharacterCreation {
   }
 
   private renderAppearance(): void {
+    this.draft.appearance = resolveCharacterAppearance(this.draft.appearance);
+    this.appearanceAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
+    const appearance = resolveCharacterAppearance(this.draft.appearance);
     this.stage.innerHTML = `
       <div class="creation-heading">
-        <p class="eyebrow">The returned body</p>
+        <p class="eyebrow">The returned body · Human foundation</p>
         <h2>Which face did the Soul Well remember?</h2>
-        <p>Hair and skin are modular appearance choices. Armor and weapons attach to the same rig later.</p>
+        <p>Set the living pattern now. Canonical hair modules are fitted to this rig; unavailable families remain sealed until their provider asset passes inspection.</p>
       </div>
       <div class="appearance-builder">
         <div class="appearance-preview">
-          <canvas id="appearance-preview-canvas" aria-label="Live preview of your returned body. Drag to rotate."></canvas>
-          <small>Live preview · drag to turn</small>
+          <div class="appearance-preview__viewport">
+            <canvas id="appearance-preview-canvas" aria-label="Live preview of your returned body. Drag to rotate."></canvas>
+            <span class="appearance-preview__sigil" aria-hidden="true">◇</span>
+          </div>
+          <div class="appearance-preview__readout" aria-live="polite">
+            <span>Live soul assay · drag to turn</span>
+            <strong id="appearance-preview-asset-status">Scalp-ready · provider scan in progress</strong>
+            <small id="appearance-preview-age-status">Young Adult · 0% greying</small>
+          </div>
         </div>
         <div class="appearance-builder__options">
         <section>
           <h3>Body type</h3>
           <div class="appearance-options">
             ${BODY_TYPES.map((body) => `
-              <button class="appearance-option ${(this.draft.appearance.bodyType ?? "foundation") === body.id ? "is-selected" : ""}" data-body-type="${body.id}" type="button">
+              <button class="appearance-option ${(this.draft.appearance.bodyType ?? "foundation") === body.id ? "is-selected" : ""}" data-body-type="${body.id}" type="button" aria-pressed="${(this.draft.appearance.bodyType ?? "foundation") === body.id}">
                 <strong>${body.name}</strong><small>${body.description}</small>
               </button>`).join("")}
           </div>
@@ -252,7 +296,7 @@ export class CharacterCreation {
           <h3>Face</h3>
           <div class="appearance-options">
             ${FACE_TYPES.map((face) => `
-              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""}" data-face-type="${face.id}" type="button">
+              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""}" data-face-type="${face.id}" type="button" aria-pressed="${(this.draft.appearance.faceType ?? "foundation") === face.id}">
                 <strong>${face.name}</strong><small>${face.description}</small>
               </button>`).join("")}
           </div>
@@ -261,7 +305,7 @@ export class CharacterCreation {
           <h3>Skin tone</h3>
           <div class="appearance-options appearance-options--skin">
             ${Object.entries(SKIN_TONES).map(([id, tone]) => `
-              <button class="appearance-option ${this.draft.appearance.skinTone === id ? "is-selected" : ""}" data-skin-tone="${id}" type="button">
+              <button class="appearance-option ${this.draft.appearance.skinTone === id ? "is-selected" : ""}" data-skin-tone="${id}" type="button" aria-pressed="${this.draft.appearance.skinTone === id}">
                 <span class="appearance-swatch" style="--swatch:#${tone.color.toString(16).padStart(6, "0")}"></span>
                 <strong>${tone.name}</strong>
               </button>`).join("")}
@@ -271,8 +315,18 @@ export class CharacterCreation {
           <h3>Hair</h3>
           <div class="appearance-options appearance-options--hair">
             ${HAIR_STYLES.map((style) => `
-              <button class="appearance-option ${this.draft.appearance.hairStyle === style.id ? "is-selected" : ""}" data-hair-style="${style.id}" type="button">
+              <button class="appearance-option ${appearance.hairStyle === style.id ? "is-selected" : ""} ${style.id === "shaved-buzzed" ? "is-provider-ready" : "is-provider-pending"}" data-hair-style="${style.id}" type="button" aria-pressed="${appearance.hairStyle === style.id}" ${style.id === "shaved-buzzed" ? "" : "disabled aria-disabled=\"true\""}>
                 <strong>${style.name}</strong><small>${style.description}</small>
+                <em class="appearance-option__availability">${style.id === "shaved-buzzed" ? "Scalp-ready" : "Awaiting canonical asset"}</em>
+              </button>`).join("")}
+          </div>
+        </section>
+        <section>
+          <h3>Natural hair color</h3>
+          <div class="appearance-colors" role="group" aria-label="Natural hair color">
+            ${(Object.entries(HAIR_COLORS) as [keyof typeof HAIR_COLORS, (typeof HAIR_COLORS)[keyof typeof HAIR_COLORS]][]).map(([id, color]) => `
+              <button class="appearance-color ${appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-label="${color.name}" aria-pressed="${appearance.hairColor === id}" title="${color.name}">
+                <span style="--hair-swatch:#${color.color.toString(16).padStart(6, "0")}"></span><small>${color.name}</small>
               </button>`).join("")}
           </div>
         </section>
@@ -280,10 +334,30 @@ export class CharacterCreation {
           <h3>Facial hair</h3>
           <div class="appearance-options appearance-options--beard">
             ${FACIAL_HAIR_STYLES.map((style) => `
-              <button class="appearance-option ${(this.draft.appearance.facialHair ?? "none") === style.id ? "is-selected" : ""}" data-facial-hair="${style.id}" type="button">
+              <button class="appearance-option ${appearance.facialHair === style.id ? "is-selected" : ""} ${style.id === "none" ? "is-provider-ready" : "is-provider-pending"}" data-facial-hair="${style.id}" type="button" aria-pressed="${appearance.facialHair === style.id}" ${style.id === "none" ? "" : "disabled aria-disabled=\"true\""}>
                 <strong>${style.name}</strong><small>${style.description}</small>
+                <em class="appearance-option__availability">${style.id === "none" ? "Face-ready" : "Awaiting canonical asset"}</em>
               </button>`).join("")}
           </div>
+        </section>
+        <section class="appearance-assay" aria-labelledby="appearance-age-heading">
+          <div class="appearance-assay__heading">
+            <h3 id="appearance-age-heading">Age &amp; greying</h3>
+            <span id="appearance-morph-status" class="appearance-provider-status">Age morph scan pending</span>
+          </div>
+          <label class="appearance-range">
+            <span><strong>Adult age</strong><output id="appearance-age-output">${appearanceAgeStage(appearance.age)}</output></span>
+            <input id="appearance-age" type="range" min="0" max="1" step="0.01" value="${appearance.age}" aria-describedby="appearance-age-stages appearance-morph-status" />
+            <small id="appearance-age-stages"><span>Young Adult</span><span>Middle-Aged</span><span>Elder</span></small>
+          </label>
+          <label class="appearance-range">
+            <span><strong>Hair greying</strong><output id="appearance-hair-greying-output">${appearanceControlPercent(appearance.hairGreying)}%</output></span>
+            <input id="appearance-hair-greying" type="range" min="0" max="1" step="0.01" value="${appearance.hairGreying}" />
+          </label>
+          <label class="appearance-range">
+            <span><strong>Facial-hair greying</strong><output id="appearance-facial-greying-output">${appearanceControlPercent(appearance.facialHairGreying)}%</output></span>
+            <input id="appearance-facial-greying" type="range" min="0" max="1" step="0.01" value="${appearance.facialHairGreying}" />
+          </label>
         </section>
         </div>
       </div>
@@ -294,7 +368,11 @@ export class CharacterCreation {
       skinTone: this.draft.appearance.skinTone,
       raceId: this.draft.raceId || "human",
       facialHair: this.draft.appearance.facialHair,
-    });
+      hairColor: this.draft.appearance.hairColor,
+      age: this.draft.appearance.age,
+      hairGreying: this.draft.appearance.hairGreying,
+      facialHairGreying: this.draft.appearance.facialHairGreying,
+    }, (availability) => this.updateAppearanceAvailability(availability));
     this.bindChoices("button[data-body-type]", "bodyType", (id) => {
       this.draft.appearance.bodyType = id as CharacterDraft["appearance"]["bodyType"];
     });
@@ -308,11 +386,21 @@ export class CharacterCreation {
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
       this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateAppearanceReadout();
+    });
+    this.bindChoices("button[data-hair-color]", "hairColor", (id) => {
+      this.draft.appearance.hairColor = id as CharacterDraft["appearance"]["hairColor"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateAppearanceReadout();
     });
     this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
       this.draft.appearance.facialHair = id as CharacterDraft["appearance"]["facialHair"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateAppearanceReadout();
     });
+    this.bindAppearanceRange("appearance-age", "age", "appearance-age-output", (value) => appearanceAgeStage(value));
+    this.bindAppearanceRange("appearance-hair-greying", "hairGreying", "appearance-hair-greying-output", (value) => `${appearanceControlPercent(value)}%`);
+    this.bindAppearanceRange("appearance-facial-greying", "facialHairGreying", "appearance-facial-greying-output", (value) => `${appearanceControlPercent(value)}%`);
     this.bindNavigation(() => {
       if (this.appearanceEditProfile) {
         this.appearanceEditProfile = null;
@@ -321,6 +409,12 @@ export class CharacterCreation {
       }
       this.navigateBack("race");
     }, () => {
+      const resolved = resolveCharacterAppearance(this.draft.appearance);
+      if (!isCreatorAppearanceSelectionAvailable(resolved, this.appearanceAvailability)) {
+        return this.fail(resolved.age > 0 && !this.appearanceAvailability.ageMorphsAvailable
+          ? "This age pattern is awaiting the canonical facial morph asset. Return the age control to Young Adult or wait for provider approval."
+          : "That hair pattern is awaiting its canonical provider asset. Choose a ready option before binding this body.");
+      }
       if (this.appearanceEditProfile) {
         const updated: CharacterProfile = {
           ...this.appearanceEditProfile,
@@ -469,8 +563,13 @@ export class CharacterCreation {
     profile.appearance ??= {
       bodyType: "foundation",
       faceType: "foundation",
-      hairStyle: "shaved",
+      hairStyle: "shaved-buzzed",
       skinTone: "ashen",
+      facialHair: "none",
+      hairColor: "dark-brown",
+      age: 0,
+      hairGreying: 0,
+      facialHairGreying: 0,
     };
     this.root.classList.add("is-dissolving");
     window.setTimeout(() => {
@@ -498,10 +597,70 @@ export class CharacterCreation {
         const id = button.dataset[dataKey];
         if (!id) return;
         select(id);
-        this.stage.querySelectorAll(selector).forEach((candidate) => candidate.classList.remove("is-selected"));
+        this.stage.querySelectorAll<HTMLElement>(selector).forEach((candidate) => {
+          candidate.classList.remove("is-selected");
+          candidate.setAttribute("aria-pressed", "false");
+        });
         button.classList.add("is-selected");
+        button.setAttribute("aria-pressed", "true");
       });
     });
+  }
+
+  private bindAppearanceRange(
+    inputId: string,
+    key: "age" | "hairGreying" | "facialHairGreying",
+    outputId: string,
+    format: (value: number) => string,
+  ): void {
+    const input = requiredElement<HTMLInputElement>(inputId);
+    const output = requiredElement<HTMLOutputElement>(outputId);
+    input.addEventListener("input", () => {
+      const value = Math.min(1, Math.max(0, Number(input.value)));
+      this.draft.appearance[key] = value;
+      output.value = format(value);
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateAppearanceReadout();
+    });
+  }
+
+  private updateAppearanceAvailability(availability: CreationPreviewAvailability): void {
+    this.appearanceAvailability = availability;
+    const setAvailability = (selector: string, availableIds: readonly string[], dataKey: string): void => {
+      this.stage.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
+        const available = availableIds.includes(button.dataset[dataKey] ?? "");
+        button.disabled = !available;
+        button.setAttribute("aria-disabled", String(!available));
+        button.classList.toggle("is-provider-ready", available);
+        button.classList.toggle("is-provider-pending", !available);
+        const status = button.querySelector<HTMLElement>(".appearance-option__availability");
+        if (status) status.textContent = available
+          ? button.dataset[dataKey] === "shaved-buzzed" ? "Scalp-ready" : "Canonical module ready"
+          : "Awaiting canonical asset";
+      });
+    };
+    setAvailability("button[data-hair-style]", availability.hairStyles, "hairStyle");
+    setAvailability("button[data-facial-hair]", availability.facialHair, "facialHair");
+    const morphStatus = this.stage.querySelector<HTMLElement>("#appearance-morph-status");
+    if (morphStatus) {
+      morphStatus.textContent = availability.ageMorphsAvailable ? "Canonical age morphs ready" : "Awaiting canonical facial morphs";
+      morphStatus.classList.toggle("is-ready", availability.ageMorphsAvailable);
+    }
+    this.updateAppearanceReadout();
+  }
+
+  private updateAppearanceReadout(): void {
+    const appearance = resolveCharacterAppearance(this.draft.appearance);
+    const ready = isCreatorAppearanceSelectionAvailable(appearance, this.appearanceAvailability);
+    const assetStatus = this.stage.querySelector<HTMLElement>("#appearance-preview-asset-status");
+    const ageStatus = this.stage.querySelector<HTMLElement>("#appearance-preview-age-status");
+    if (assetStatus) {
+      assetStatus.textContent = ready ? "Selected pattern ready" : "Selected pattern awaiting canonical asset";
+      assetStatus.classList.toggle("is-pending", !ready);
+    }
+    if (ageStatus) {
+      ageStatus.textContent = `${appearanceAgeStage(appearance.age)} · ${appearanceControlPercent(appearance.hairGreying)}% hair greying · ${appearanceControlPercent(appearance.facialHairGreying)}% facial greying`;
+    }
   }
 
   private fail(message: string): void {

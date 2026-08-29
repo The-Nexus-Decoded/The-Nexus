@@ -1,9 +1,23 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { SKIN_TONES, type FacialHairId, type HairStyleId, type SkinToneId } from "./game/character";
+import {
+  SKIN_TONES,
+  type CanonicalHairStyleId,
+  type FacialHairId,
+  type HairColorId,
+  type HairStyleId,
+  type SkinToneId,
+} from "./game/character";
 import { HUMAN_FOUNDATION_MODEL_PATH } from "./game/avatarIdentity";
-import { applyModularAppearance, cloneActorMaterial, isActorSkinSurface, raceAvatarShape } from "./game/presentation";
+import {
+  applyModularAppearance,
+  cloneActorMaterial,
+  isActorSkinSurface,
+  MODULAR_APPEARANCE_PROVIDER_APPROVED,
+  MODULAR_APPEARANCE_PROVIDER_STATUS_KEY,
+  raceAvatarShape,
+} from "./game/presentation";
 
 const PREVIEW_MODEL_LEGACY_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
 const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
@@ -15,6 +29,80 @@ export interface CreationPreviewAppearance {
   skinTone: SkinToneId;
   raceId: string;
   facialHair?: FacialHairId;
+  hairColor?: HairColorId;
+  age?: number;
+  hairGreying?: number;
+  facialHairGreying?: number;
+}
+
+export interface CreationPreviewAvailability {
+  hairStyles: readonly CanonicalHairStyleId[];
+  facialHair: readonly FacialHairId[];
+  ageMorphsAvailable: boolean;
+}
+
+export const EMPTY_CREATION_PREVIEW_AVAILABILITY: CreationPreviewAvailability = Object.freeze({
+  hairStyles: Object.freeze(["shaved-buzzed"] as CanonicalHairStyleId[]),
+  facialHair: Object.freeze(["none"] as FacialHairId[]),
+  ageMorphsAvailable: false,
+});
+
+const PREVIEW_HAIR_MODULES: Readonly<Record<CanonicalHairStyleId, string>> = {
+  "shaved-buzzed": "SK_Hair_Buzzed",
+  cropped: "SK_Hair_Cropped",
+  parted: "SK_Hair_Parted",
+  "curly-coiled": "SK_Hair_CurlyCoiled",
+  long: "SK_Hair_Long",
+  "tied-back": "SK_Hair_TiedBack",
+  braided: "SK_Hair_Braided",
+};
+
+const PREVIEW_FACIAL_HAIR_MODULES: Readonly<Record<Exclude<FacialHairId, "none">, string>> = {
+  stubble: "SK_FacialHair_Stubble",
+  moustache: "SK_FacialHair_Moustache",
+  goatee: "SK_FacialHair_Goatee",
+  "short-beard": "SK_FacialHair_ShortBeard",
+  "full-beard": "SK_FacialHair_FullBeard",
+};
+
+function hasApprovedProviderAncestor(module: THREE.Object3D, model: THREE.Object3D): boolean {
+  let current: THREE.Object3D | null = module;
+  while (current) {
+    if (current.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] === MODULAR_APPEARANCE_PROVIDER_APPROVED) {
+      return true;
+    }
+    if (current === model) return false;
+    current = current.parent;
+  }
+  return false;
+}
+
+function hasApprovedModule(model: THREE.Object3D, name: string): boolean {
+  let available = false;
+  model.traverse((child) => {
+    available ||= child.name.toLowerCase() === name.toLowerCase()
+      && hasApprovedProviderAncestor(child, model);
+  });
+  return available;
+}
+
+/** Discovers only approved provider modules; rejected legacy meshes never become creator choices. */
+export function inspectCreationPreviewAvailability(model: THREE.Object3D): CreationPreviewAvailability {
+  const hairStyles = (Object.entries(PREVIEW_HAIR_MODULES) as [CanonicalHairStyleId, string][])
+    .filter(([id, name]) => id === "shaved-buzzed" || hasApprovedModule(model, name))
+    .map(([id]) => id);
+  const facialHair = ["none" as FacialHairId];
+  for (const [id, name] of Object.entries(PREVIEW_FACIAL_HAIR_MODULES) as [Exclude<FacialHairId, "none">, string][]) {
+    if (hasApprovedModule(model, name)) facialHair.push(id);
+  }
+  let hasMiddle = false;
+  let hasElder = false;
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh) || !child.morphTargetDictionary) return;
+    hasMiddle ||= child.morphTargetDictionary.Age_Middle !== undefined;
+    hasElder ||= child.morphTargetDictionary.Age_Elder !== undefined;
+  });
+  return { hairStyles, facialHair, ageMorphsAvailable: hasMiddle && hasElder };
 }
 
 const gltfCache = new Map<string, Promise<GLTF>>();
@@ -57,6 +145,7 @@ export class CreationAvatarPreview {
   public constructor(
     private readonly canvas: HTMLCanvasElement,
     appearance: CreationPreviewAppearance,
+    private readonly onAvailabilityChange?: (availability: CreationPreviewAvailability) => void,
   ) {
     this.appearance = { ...appearance };
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -87,6 +176,7 @@ export class CreationAvatarPreview {
     const url = previewModelUrl(raceId);
     if (url === this.modelUrl && this.model) return;
     this.modelUrl = url;
+    this.onAvailabilityChange?.(EMPTY_CREATION_PREVIEW_AVAILABILITY);
     void loadPreviewModel(url)
       .then((gltf) => {
         if (this.disposed || this.modelUrl !== url) return;
@@ -117,9 +207,13 @@ export class CreationAvatarPreview {
         helpers.forEach((helper) => helper.removeFromParent());
         this.model = model;
         this.scene.add(model);
+        this.onAvailabilityChange?.(inspectCreationPreviewAvailability(model));
         this.applyAppearance();
       })
-      .catch((error) => console.warn("Creation avatar preview failed to load.", error));
+      .catch((error) => {
+        this.onAvailabilityChange?.(EMPTY_CREATION_PREVIEW_AVAILABILITY);
+        console.warn("Creation avatar preview failed to load.", error);
+      });
   }
 
   public setAppearance(appearance: CreationPreviewAppearance): void {
@@ -162,6 +256,10 @@ export class CreationAvatarPreview {
       hairStyle: this.appearance.hairStyle,
       raceId: (this.appearance.raceId || "human") as "human" | "elf" | "dwarf" | "halfling",
       facialHair: this.appearance.facialHair ?? "none",
+      hairColor: this.appearance.hairColor,
+      age: this.appearance.age,
+      hairGreying: this.appearance.hairGreying,
+      facialHairGreying: this.appearance.facialHairGreying,
     });
     const shape = raceAvatarShape(this.appearance.raceId);
     this.model.scale.set(shape.width, 1, shape.depth);
