@@ -1,0 +1,65 @@
+{
+  "issue": 458,
+  "source_issue": 487,
+  "source_commit": "87601e62a36b70c13f790f8350a95f10c27b0483",
+  "source_parent": "7666af63bac70f8d48c864b4a85122975bdaa4cb",
+  "intake_policy": "exact-content donor copy; no merge or cherry-pick",
+  "model": {
+    "path": "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "sha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81",
+    "bytes": 2404872,
+    "vertices": 15342,
+    "triangles": 15894,
+    "skin_joints": 65,
+    "skeleton_root": "mixamorig:Hips",
+    "embedded_texture": "4096x4096",
+    "target_height_m": 2.06
+  },
+  "animation_library": {
+    "path": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "sha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "bytes": 32441884,
+    "clips": 400,
+    "meshless": true,
+    "development_review_only": true
+  },
+  "core_action_candidates": {
+    "idle": "MaleLocomotion__Idle",
+    "walk": "MaleLocomotion__Walking",
+    "run": "MaleLocomotion__StandardRun",
+    "draw": "ProSwordAndShield__DrawSword1",
+    "attack": "ProSwordAndShield__SwordAndShieldAttack",
+    "sheathe": "ProSwordAndShield__SheathSword1"
+  },
+  "weapon_family_candidates": {
+    "greatsword": [
+      "GreatSword__DrawAGreatSword1",
+      "GreatSword__GreatSwordAttack",
+      "GreatSword__GreatSwordWalk",
+      "GreatSword__GreatSwordRun"
+    ],
+    "staff": [
+      "Interactions__HumanMasculineAthleticMuscularStaffButtSmash"
+    ],
+    "bow": [
+      "ProLongbow__StandingEquipBow",
+      "ProLongbow__StandingDrawArrow",
+      "ProLongbow__StandingAimRecoil",
+      "ProLongbow__StandingDisarmBow"
+    ]
+  },
+  "runtime_requirements": [
+    "evaluated-pose grounding",
+    "horizontal root-motion removal for gameplay locomotion",
+    "visible mesh separate from capsule collision",
+    "fail-closed 65-joint compatibility validation",
+    "lazy review-library loading",
+    "production core-action extraction"
+  ],
+  "excluded": [
+    "Quaternius fallback body",
+    "modular appearance and skin-preset code",
+    "character-creation changes",
+    "PR 491 runtime history"
+  ]
+}
