@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "receiptId": "issue-487-human-provider-breach-v2-runtime-acceptance-v1",
+  "recordedAt": "2026-08-29T06:11:53-05:00",
+  "status": "PASS_RUNTIME_SMOKE",
+  "scope": "Seven independently reviewed provider clips queued by the Human foundation pilot",
+  "runtimeIntegration": {
+    "commit": "6a469d31e004a2f961226c8c678c6fb7677f8a5b",
+    "queueModule": "src/game/humanFoundationRuntimeReviewQueue.ts",
+    "breachRuntime": "src/game/dungeons/breach-v2-animation-pilot.ts",
+    "exactReviewedPack": {
+      "id": "pro-longbow-01",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-longbow-01.glb",
+      "sha256": "A6445533656EA8D7A2FF73E9F3B809C1609470CAAA378BD081555E7017BDD6DE",
+      "bytes": 1874128,
+      "boneCount": 65
+    }
+  },
+  "browserGate": {
+    "environment": "BREACH_V2",
+    "url": "http://127.0.0.1:5176/?dungeonPreview=breach-v2&seed=4182&path=wayfarer&cam=walk&dev=1&animationReview=1",
+    "browserPolicy": "EXISTING_CODEX_IN_APP_TAB_ONLY",
+    "newWindowOpened": false,
+    "newTabOpened": false,
+    "evidenceStrength": "SAMPLED_RUNTIME_PLAYBACK_WITH_REPRESENTATIVE_VISUAL_CONFIRMATION",
+    "floorToleranceMeters": 0.01,
+    "consoleWarningsDuringCleanGate": 0,
+    "consoleErrorsDuringCleanGate": 0,
+    "clipSwitchReset": "PASS",
+    "visualConfirmation": {
+      "fallLoop": "PASS_REAL_DUNGEON_SCREENSHOT_OBSERVED",
+      "fallLandToRunForward": "PASS_REAL_DUNGEON_SCREENSHOT_OBSERVED",
+      "standingBlockGrounding": "PASS_DIRECT_OBSERVATION",
+      "screenshotFilesAttached": false
+    }
+  },
+  "clips": [
+    {
+      "semanticId": "locomotion.fall.loop",
+      "clipName": "ProLongbow__FallALoop",
+      "catalogFingerprint": "5CBF329D0273A15B49B76A39E105D8C52614250FD05A927B3388977CD542BE78",
+      "sampledLowerBoundMeters": { "min": 0.078, "max": 0.094 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "AIRBORNE_CLEARANCE_ALLOWED",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "locomotion.land.running",
+      "clipName": "ProLongbow__FallALandToRunForward",
+      "catalogFingerprint": "B757BB2A802E8A9315ACC6A700D7BBAC206C96A68EDDE110238F5DDA69F1D062",
+      "sampledLowerBoundMeters": { "min": -0.003, "max": 0.003 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "AIRBORNE_CLEARANCE_ALLOWED_DURING_TRANSITION",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "locomotion.dodge.directional",
+      "clipName": "ProLongbow__StandingDodgeForward",
+      "catalogFingerprint": "A03E5BE1E0D87CA3E5687F9A3F8F72872FE72088EFBC6AA580A4751D171E578B",
+      "sampledLowerBoundMeters": { "min": -0.005, "max": 0.068 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "DIRECTIONAL_HOP_CLEARANCE_ALLOWED",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "locomotion.dodge.directional",
+      "clipName": "ProLongbow__StandingDodgeBackward",
+      "catalogFingerprint": "4C9C11B9A96C85345BDA557F6839F2EE0F2AE8DDB3A9C026D951C4E9B4BCB41F",
+      "sampledLowerBoundMeters": { "min": -0.004, "max": 0.015 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "DIRECTIONAL_HOP_CLEARANCE_ALLOWED",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "locomotion.dodge.directional",
+      "clipName": "ProLongbow__StandingDodgeLeft",
+      "catalogFingerprint": "940D9688C87E11C41523DC7F632CCC19FD5C88020E0EF65DFC796B6C24EBE544",
+      "sampledLowerBoundMeters": { "min": -0.004, "max": 0.175 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "DIRECTIONAL_HOP_CLEARANCE_ALLOWED",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "locomotion.dodge.directional",
+      "clipName": "ProLongbow__StandingDodgeRight",
+      "catalogFingerprint": "9E5F5BDD06F21CA208B36468C5EC9D1F600217B9C579A63C8951272998458365",
+      "sampledLowerBoundMeters": { "min": -0.007, "max": 0.038 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "DIRECTIONAL_HOP_CLEARANCE_ALLOWED",
+      "status": "PASS"
+    },
+    {
+      "semanticId": "combat.unarmed.block",
+      "clipName": "ProLongbow__StandingBlock",
+      "catalogFingerprint": "6B4B325CDF88D9D1BCC14E24A5F5E9F2657C57DA88346EACE6FC11CE39820B3A",
+      "sampledLowerBoundMeters": { "min": -0.004, "max": -0.004 },
+      "floorCorrectionMeters": 0.005,
+      "groundingExpectation": "GROUNDED",
+      "status": "PASS"
+    }
+  ],
+  "postGateBrowserIncident": {
+    "occurredAfterAcceptanceSampling": true,
+    "signal": "GL_CONTEXT_LOST",
+    "attribution": "UNATTRIBUTED_NOT_CLIP_SPECIFIC",
+    "acceptanceImpact": "NONE",
+    "recovery": {
+      "failedPageReleasedTo": "about:blank",
+      "sameTabReplacementOpened": true,
+      "replacementConsoleWarnings": 0,
+      "replacementConsoleErrors": 0
+    }
+  },
+  "exclusions": {
+    "authoredQuarantineCandidatesInstalled": false,
+    "rejectedCandidatesInstalled": false,
+    "coverageLedgerUpdate": "DEFERRED_TO_PIPELINE_RULES_LANE"
+  }
+}
