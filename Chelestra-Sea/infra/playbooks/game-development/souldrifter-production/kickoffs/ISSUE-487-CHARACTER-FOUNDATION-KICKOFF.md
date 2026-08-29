@@ -218,6 +218,7 @@ animation clips
 
 ## Head contract
 
+- read and enforce `../HUMANOID_FACIAL_FIT_PIPELINE.md`; it is the reusable per-head fitting, standardized-control, stripping, and acceptance contract for issue #487 and later compatible adult humanoid heads;
 - complete humanoid generation may use a temporary neutral head;
 - issue #487 uses a Human vertical-slice sequence: prove one complete Human body, Mixamo rig, animation family, modular head/facial contract, and live dialogue presentation before scaling the proven body pipeline to the remaining Human foundations;
 - facial likeness on a body-source image is a replaceable placeholder and must not delay an otherwise accepted body, pose, anatomy, or topology result;
@@ -344,7 +345,9 @@ locked brief
 -> refreshed exact Tripo mesh-segmentation price and action-time owner approval for the exact accepted body
 -> one body-matched head segmentation; untouched result and per-part hashes
 -> preserve body scale/rest rig/head-neck bone hierarchy and transforms
--> Blender facial topology, ordered vertices, shape keys, visemes, blink, gaze, jaw/eye controls, and expressions
+-> deterministic per-head landmark/surface registration and temporary Rigify face fit under `HUMANOID_FACIAL_FIT_PIPELINE.md`
+-> bake the complete 52-name ARKit/MediaPipe-compatible facial contract and 15-name Meta-style speech-viseme contract to the exact Smart Mesh head
+-> strip temporary facial rigs and fresh-import proof of the unchanged body-owned 65-bone runtime skeleton
 -> same canonical head proof in world, creator, NPC close-up, quest, and dialogue
 -> topology-compatible Young Adult, Middle-Aged, and Elder presets from that one head
 -> modular hair/facial hair and material-driven skin-tone proof
