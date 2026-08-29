@@ -226,7 +226,10 @@
               </footer>
             </section>
             <section id="dialogue-panel" class="dialogue-panel" aria-label="Conversation" hidden>
-              <img id="dialogue-portrait" alt="" />
+              <div id="dialogue-portrait-stage" class="dialogue-panel__portrait" data-portrait-mode="sprite">
+                <img id="dialogue-portrait" alt="" />
+                <canvas id="dialogue-portrait-canvas" aria-label="Animated three-dimensional character portrait" hidden></canvas>
+              </div>
               <div class="dialogue-panel__content">
                 <p id="dialogue-role" class="eyebrow">Guide</p>
                 <h2 id="dialogue-speaker">Speaker</h2>

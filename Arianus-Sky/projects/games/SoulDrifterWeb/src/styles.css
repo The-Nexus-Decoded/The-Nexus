@@ -1539,16 +1539,32 @@ h3 {
   from { opacity: 0; transform: translateY(15px); }
 }
 
-.dialogue-panel > img {
+.dialogue-panel__portrait {
+  position: relative;
   width: 100%;
   height: 100%;
   max-height: 285px;
   align-self: end;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 70%, rgba(98, 230, 219, 0.12), transparent 55%);
+}
+
+.dialogue-panel__portrait > img,
+.dialogue-panel__portrait > canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dialogue-panel__portrait > img {
   object-fit: contain;
   object-position: center bottom;
-  background: radial-gradient(circle at 50% 70%, rgba(98, 230, 219, 0.12), transparent 55%);
   filter: drop-shadow(12px 10px 12px rgba(0, 0, 0, 0.7));
 }
+
+.dialogue-panel__portrait > [hidden] { display: none; }
 
 .dialogue-panel__content { padding: 22px 24px 18px; }
 .dialogue-panel__content h2 { margin-bottom: 10px; font-size: 25px; }

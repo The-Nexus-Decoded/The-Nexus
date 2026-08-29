@@ -114,7 +114,14 @@ import {
 } from "./pilotAnimationCatalog";
 import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
 import { FacialAnimationDriver, type FacialAnimationCapabilityStatus } from "./facialAnimationDriver";
-import { hydrateHumanAppearanceModules } from "./humanAppearanceAssembly";
+import {
+  createHumanAppearancePortraitController,
+  hydrateHumanAppearanceModules,
+} from "./humanAppearanceAssembly";
+import {
+  bindHumanDialoguePortraitRenderer,
+  type HumanDialoguePortraitRenderer,
+} from "./humanDialoguePortrait";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -405,6 +412,7 @@ export class World3D {
   private readonly camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 320);
   private readonly renderer: THREE.WebGLRenderer;
   private readonly paperRenderer: THREE.WebGLRenderer;
+  private readonly dialoguePortrait: HumanDialoguePortraitRenderer;
   private readonly paperCamera = new THREE.PerspectiveCamera(28, 0.72, 0.1, 80);
   private readonly clock = new THREE.Timer();
   private readonly loader = new GLTFLoader();
@@ -530,6 +538,7 @@ export class World3D {
     this.paperRenderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.paperRenderer.toneMappingExposure = this.lighting.paperDollExposure;
     this.paperRenderer.setClearColor(0x000000, 0);
+    this.dialoguePortrait = bindHumanDialoguePortraitRenderer();
   }
 
   public async start(): Promise<void> {
@@ -563,6 +572,7 @@ export class World3D {
 
   public destroy(): void {
     this.disposed = true;
+    this.dialoguePortrait.destroy();
     this.npcFacialDrivers.forEach((driver) => driver.closeDialogue());
     this.npcFacialDrivers.clear();
     this.pilotReviewRequest += 1;
@@ -2489,9 +2499,16 @@ export class World3D {
       this.faceActorTowards(npc, this.player.root.position);
       this.faceActorTowards(this.player, npc.root.position);
     }
-    facialDriver?.beginDialogue(dialogue.lines.join(" "), this.clock.getElapsed());
+    const dialogueText = dialogue.lines.join(" ");
+    const dialogueElapsed = this.clock.getElapsed();
+    const portraitController = npc
+      ? createHumanAppearancePortraitController(npc.root, `${npcId}:${dialogue.id}`)
+      : null;
+    facialDriver?.beginDialogue(dialogueText, dialogueElapsed);
     this.ui.openDialogue(dialogue, (choice) => {
-      facialDriver?.speakLine(choice.response, this.clock.getElapsed());
+      const responseElapsed = this.clock.getElapsed();
+      facialDriver?.speakLine(choice.response, responseElapsed);
+      this.dialoguePortrait.speakLine(choice.response, responseElapsed);
       void storyDatabase.recordDialogue(npcId, dialogue.id, choice.id);
       void storyDatabase.reachCheckpoint(choice.checkpoint, npcId);
       this.ui.addLog(`${dialogue.speaker}: ${choice.label}`);
@@ -2505,6 +2522,7 @@ export class World3D {
       }
     }, (choice) => {
       facialDriver?.closeDialogue();
+      this.dialoguePortrait.showFallback();
       if (npcId !== "ilyra") return;
       if (!this.profile.onboarding?.storybookCompleted) {
         this.ui.openStorybook(
@@ -2517,6 +2535,8 @@ export class World3D {
         else this.ui.openStorybook(this.profile, () => undefined, () => undefined);
       }
     });
+    if (portraitController) this.dialoguePortrait.mountActor(portraitController, dialogueText, dialogueElapsed);
+    else this.dialoguePortrait.showFallback();
   }
 
   private rememberIlyraChroniclePage(pageIndex: number): void {
@@ -2605,6 +2625,7 @@ export class World3D {
         { id: "decline-trial", label: "Step away for now", response: "The paired portcullises quiet, but neither choice is lost.", checkpoint: "trial-declined" },
       ],
     };
+    this.dialoguePortrait.showFallback();
     this.ui.openDialogue(scene, (choice) => {
       if (choice.id === "choose-wayfarer") void this.selectTrial("wayfarer");
       else if (choice.id === "choose-oathbreaker") void this.selectTrial("oathbreaker");
@@ -4288,6 +4309,7 @@ export class World3D {
     this.updateStabilityRecovery(delta);
     this.environmentAnimators.forEach((animate) => animate(elapsed, delta));
     this.npcFacialDrivers.forEach((driver) => driver.update(elapsed));
+    this.dialoguePortrait.frame(elapsed);
     this.updateEnemyAttackPhaseVisual(elapsed, delta);
     this.storyObjects.forEach((object) => {
       const animated = object.root.userData.animatedOrb as THREE.Object3D | undefined;
