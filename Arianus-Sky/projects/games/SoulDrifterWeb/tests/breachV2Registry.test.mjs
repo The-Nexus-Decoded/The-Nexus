@@ -175,13 +175,34 @@ describe("BREACH-V2 registry (flat-map derived)", () => {
     }
   });
 
-  it("places all 38 dungeon-kit assets somewhere in the zone", () => {
+  it("keeps wall-mounted dressing seated against a room perimeter", () => {
+    for (const room of [...R.fixedRooms, ...allPoolRooms]) {
+      for (const placement of room.placements.filter((entry) => entry.placement === "wall")) {
+        const distanceToWall = Math.min(
+          placement.x,
+          room.w - placement.x,
+          placement.y,
+          room.h - placement.y,
+        );
+        expect(
+          distanceToWall,
+          `${room.id}:${placement.asset}@${placement.x},${placement.y} is detached from every wall`,
+        ).toBeLessThanOrEqual(1.5);
+      }
+    }
+  });
+
+  it("places every dressing asset while leaving portcullises to the portal system", () => {
     const used = new Set();
     for (const room of [...R.fixedRooms, ...allPoolRooms]) {
       for (const p of room.placements) used.add(p.asset);
     }
-    const missing = DUNGEON_PROP_ASSET_IDS.filter((id) => !used.has(id));
+    const runtimePortalAssets = new Set(["rusted-portcullis"]);
+    const missing = DUNGEON_PROP_ASSET_IDS.filter((id) => (
+      !used.has(id) && !runtimePortalAssets.has(id)
+    ));
     expect(missing).toEqual([]);
+    expect(used.has("rusted-portcullis")).toBe(false);
   });
 
   it("registry footprint/height mirror the prop catalog 1:1 (§6 metadata)", () => {

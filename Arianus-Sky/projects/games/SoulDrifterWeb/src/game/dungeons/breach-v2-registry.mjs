@@ -4516,7 +4516,7 @@ export const BREACH_V2_REGISTRY = {
         "pool": "hard",
         "w": 14.0,
         "h": 10.0,
-        "flavor": "portcullis pair; toll cache",
+        "flavor": "toll cache; portal-owned checkpoint",
         "doors": [
           {
             "side": "W",
@@ -4544,18 +4544,6 @@ export const BREACH_V2_REGISTRY = {
           }
         ],
         "placements": [
-          {
-            "asset": "rusted-portcullis",
-            "x": 7.0,
-            "y": 6.4,
-            "placement": "wall",
-            "group": "structure",
-            "facing": "north",
-            "height": 3.05,
-            "footprint": 2.75,
-            "blocking": true,
-            "role": "dressing"
-          },
           {
             "asset": "weapon-armor-heap",
             "x": 11.5,

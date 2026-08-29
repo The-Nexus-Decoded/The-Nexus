@@ -136,7 +136,7 @@ HARD_POOL = [
     dict(id="H-06", name="Breachling Warren", w=12.0, h=11.0, sockets=["W", "E", "N"],
          spawns=4, props=5, loot=1, flavor="burrowed wall breaches"),
     dict(id="H-07", name="The Toll Gate", w=14.0, h=10.0, sockets=["W", "E"],
-         spawns=3, props=5, loot=2, flavor="portcullis pair; toll cache"),
+         spawns=3, props=5, loot=2, flavor="toll cache; portal-owned checkpoint"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -321,7 +321,10 @@ DRESSING = {
              ("floor-brazier", 2.0, 2.0),
              ("cocooned-remains-web-mass", 11.5, 8.5), ("storage-chest", 10.0, 2.0),
              ("storage-barrel", 10.0, 9.0), ("reinforced-crate", 8.5, 9.0)],
-    "H-07": [("rusted-portcullis", 7.0, 6.4), ("weapon-armor-heap", 11.5, 7.5),
+    # Section portals own their fitted door/gate meshes. Do not place a second
+    # decorative portcullis inside the chamber; the former (7.0, 6.4) entry
+    # stood 3.6 m from every wall and blocked the Toll Gate floor.
+    "H-07": [("weapon-armor-heap", 11.5, 7.5),
              ("floor-brazier", 7.0, 8.5), ("supply-pile", 2.5, 8.0),
              ("storage-chest", 12.5, 2.2), ("storage-chest", 2.2, 2.0),
              ("storage-barrel", 2.5, 7.5), ("reinforced-crate", 4.0, 7.5)],
