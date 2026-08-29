@@ -13,10 +13,7 @@
     "lore-atlas/assets/P-*_painted.png",
     "lore-atlas/assets/maps/*.svg"
   ],
-  "developmentOnlyGlobs": [
-    "assets/3d/animations/human-foundation-pilot/**",
-    "assets/3d/characters/human-foundation-pilot/**"
-  ],
+  "developmentOnlyGlobs": [],
   "protectedPaths": [
     "assets/generated/first-breach-environment-v1.png",
     "assets/generated/action-icons/basic-weapon-strike.svg",
@@ -25,6 +22,9 @@
     "assets/generated/characters/human-shadowknight-highlevel.png",
     "assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
     "assets/3d/characters/human-shadowknight/human-shadowknight.glb",
+    "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
     "assets/3d/characters/enemy-breachling.gltf",
     "lore-atlas/assets/M-001_painted_cosmology.png",
     "lore-atlas/assets/M-003_painted_atlas.png",
