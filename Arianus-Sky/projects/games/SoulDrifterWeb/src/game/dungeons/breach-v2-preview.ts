@@ -4247,6 +4247,11 @@ async function placeBreachlingPreviewActors(
 
     const root = new THREE.Group();
     root.name = placement.id;
+    // The dungeon performs an all-room GPU warm-up before the first frame.
+    // Keep creature textures and skinned shaders out of that whole-zone pass;
+    // the normal proximity culler will reveal only the review room afterward.
+    root.visible = false;
+    root.userData.deferGpuWarmup = true;
     root.position.set(placement.x, placement.floorElevation, placement.z);
     root.rotation.y = placement.yaw;
     root.add(model);
@@ -4998,6 +5003,9 @@ export async function startDungeonPreview(
     // dungeon gameplay-canvas render while the loading screen owns the transition.
     const sceneTextures = new Set<THREE.Texture>();
     scene.traverse((object) => {
+      for (let ancestor: THREE.Object3D | null = object; ancestor; ancestor = ancestor.parent) {
+        if (!ancestor.visible || ancestor.userData.deferGpuWarmup === true) return;
+      }
       if (!(
         object instanceof THREE.Mesh
         || object instanceof THREE.Line
@@ -5039,6 +5047,7 @@ export async function startDungeonPreview(
   } catch (error) {
     console.warn("BREACH-V2 GPU resource warm-up was unavailable; continuing with lazy initialization", error);
   }
+  breachlingPreview.roots.forEach((root) => { root.visible = true; });
   loading.remove();
 
   const hooks = window as unknown as PreviewHooks;
