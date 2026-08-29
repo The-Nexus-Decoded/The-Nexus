@@ -140,7 +140,7 @@ A provider title or remembered movement is not adequate evidence. Fantasy action
 
 Preview each candidate at its intended in-game speed. Compare and record reference duration, candidate duration, and playback rate. Never accelerate a deliberate interaction merely to shorten acquisition or review; rushed motions return to `REWORK` even when their poses are otherwise usable.
 
-Preview object- and surface-dependent actions with a correctly scaled proxy prop or contact surface. Body-only miming cannot prove hand placement, leverage, contact timing, clearance, or object motion and therefore cannot pass the owner gate for lifts, carries, placement, doors, locks, valves, mining, chopping, climbing, or similar interactions.
+Preview object- and surface-dependent actions with a correctly scaled proxy prop or contact surface. Body-only miming cannot prove hand placement, leverage, contact timing, clearance, or object motion and therefore cannot pass the owner gate for lifts, carries, placement, doors, locks, valves, mining, chopping, climbing, or similar interactions. Keep the proxy strictly review-only: never bake or export it with the animation or character. Runtime objects remain separate entities bound through the approved sockets and contact markers.
 
 ### Candidate preview and owner-verdict gate
 

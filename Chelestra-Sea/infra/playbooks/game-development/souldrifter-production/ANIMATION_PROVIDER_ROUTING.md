@@ -79,7 +79,7 @@ If an exact fantasy action does not exist, build and record a reference packet f
 
 Preview at the intended game rate and compare candidate duration with the real-person reference. Do not time-compress deliberate interactions to make the preview shorter. Record source duration, candidate duration, and playback rate; rushed or unnaturally fast candidates return to `REWORK`.
 
-For any object- or surface-dependent action, include a correctly scaled proxy object or environment contact in the neutral-body preview. Hand placement, leverage, contact timing, clearance, and object response must be visible. A body-only mime does not pass the owner-preview gate for lift, carry, place, doors, locks, valves, mining, chopping, climbing, or comparable interactions.
+For any object- or surface-dependent action, include a correctly scaled proxy object or environment contact in the neutral-body preview. Hand placement, leverage, contact timing, clearance, and object response must be visible. A body-only mime does not pass the owner-preview gate for lift, carry, place, doors, locks, valves, mining, chopping, climbing, or comparable interactions. This proxy exists only for QA and is never exported or baked into the animation/character; the actual runtime item is a separate entity attached through declared sockets and contact markers.
 
 ### Candidate preview and owner-verdict gate
 
