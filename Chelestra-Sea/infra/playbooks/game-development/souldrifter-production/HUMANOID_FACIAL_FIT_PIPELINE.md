@@ -63,6 +63,12 @@ Create a versioned correspondence record between the standardized source neutral
 
 Use a symmetry-constrained, versioned neutral warp such as thin-plate spline or equivalent RBF registration. Find and persist each target vertex's source surface correspondence once. Reuse that same correspondence for all expression targets. Broad distance masks, Gaussian whole-face deltas, nearest-delta copying, and per-expression remapping are prohibited.
 
+Every semantic transfer neighborhood must be topology/geodesic rather than an axis-aligned coordinate window. It must contain at least four non-coplanar correspondences and span all three dimensions. Eye neighborhoods must include ordered eyelid rings plus brow, socket, and cheek depth anchors; aperture landmarks alone are not a valid 3D fit. Derive and receipt-lock anatomical scale measurements such as interocular distance once, then reuse the same measurement in source validation, registration, transfer, and acceptance checks.
+
+Before transferring any target, analytically evaluate the neutral warp derivative at semantic controls, support vertices, transfer samples, and adaptively sampled source triangles. The determinant must remain positive everywhere. Central finite differences are retained only as an automated convergence check against the analytic derivative. A reflection, fold, rank-deficient neighborhood, non-finite derivative, or unbounded condition number invalidates the registration rather than widening a tolerance.
+
+Cross-validate each local semantic map by leaving each control out, rebuilding the map, and recording held-out positional error normalized by local target-landmark spacing. Expression transfer must preserve orientation and movement direction and must agree with its leave-one-out maps within twice the measured held-out positional error. The factor of two accounts for subtracting the two mapped positions that form a finite expression displacement; it is not a per-head tuning value.
+
 ### 3. Fit the temporary Rigify authoring rig
 
 - Place `face.skin_eye` roots at measured eyeball centers with optical-axis vectors, then sample the exact ordered upper/lower eyelid curves into the required mirrored connected chains.
@@ -76,7 +82,7 @@ Use a symmetry-constrained, versioned neutral warp such as thin-plate spline or 
 For each of the 52 exact ARKit-compatible source targets:
 
 1. apply only the source target's differential from its neutral;
-2. carry that differential through the locked neutral registration and stored same-region barycentric surface map;
+2. carry that differential through the locked neutral registration and stored same-region barycentric surface map by evaluating the exact finite secant `W(source + differential) - W(source)`, never only the first-order approximation `J(W) * differential`;
 3. add the differential to the untouched target `Basis` rather than replacing the target neutral;
 4. pin the full neck seam and unaffected regions;
 5. move coordinate-duplicate vertices identically;
@@ -112,6 +118,8 @@ The clean import must contain exactly one accepted 65-bone armature with the rec
 - source repository, commit, pack, license, exact target count/names, per-file hashes, and aggregate hash match the receipt;
 - neutral `Basis`, UV, material, normal, seam, scale, and skeleton signatures are unchanged;
 - every target vertex is mapped once, barycentric weights sum within `1e-6`, and no semantic region crosses its boundary;
+- every semantic neighborhood is full-rank and topology/geodesic, every sampled neutral-warp derivative has a positive determinant, and analytic derivatives pass the versioned central-difference convergence check;
+- leave-one-out local-map receipts prove normalized held-out error, orientation, and movement-direction agreement for every affected transfer sample;
 - all neck-seam vertices move no more than `1e-6` in every face, viseme, age, and identity target;
 - no NaN/Inf values, unexplained left/right crossover, coordinate-duplicate split, triangle inversion, open tear, or disallowed self-intersection;
 - all 52 exact ARKit-compatible names and all 14 non-silent direct Meta-style viseme names exist, while `viseme_sil` remains a zero-weight runtime state; and
