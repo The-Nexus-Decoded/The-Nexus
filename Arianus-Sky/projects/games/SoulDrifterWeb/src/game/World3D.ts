@@ -15,7 +15,6 @@ import {
   generateSoulwellDungeon,
   roomContains,
   type DungeonEnemy,
-  type DungeonNpc,
   type DungeonProp,
   type DungeonRoomKind,
   type DungeonZoneId,
