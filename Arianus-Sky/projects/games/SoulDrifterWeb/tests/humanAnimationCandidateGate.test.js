@@ -95,7 +95,36 @@ function validate(receipt, gate = "owner-review") {
   }).errors;
 }
 
+function quarantinedReceipt() {
+  const receipt = passingReceipt();
+  receipt.technicalReview.status = "REWORK";
+  receipt.technicalReview.checks.semantic = "REWORK";
+  receipt.independentVisualReview = {
+    status: "REWORK",
+    reviewerId: "root-coordinator-pending",
+    reviewerRole: "INDEPENDENT_COORDINATOR",
+    watchedEntireNormalSpeed: false,
+    playbackSha256: hash,
+    checklist: Object.fromEntries(REQUIRED_VISUAL_CHECKS.map((key) => [key, "REWORK"])),
+    blockingFindings: ["Independent continuous review is pending."],
+  };
+  receipt.promotion = { status: "QUARANTINED", runtimeInstalled: false };
+  return receipt;
+}
+
 describe("issue #487 animation candidate gate", () => {
+  it("accepts a complete authoring handoff only in quarantine state", () => {
+    expect(validate(quarantinedReceipt(), "quarantine")).toEqual([]);
+  });
+
+  it("rejects an authoring handoff that claims independent visual PASS", () => {
+    const receipt = quarantinedReceipt();
+    receipt.independentVisualReview.status = "PASS";
+    expect(validate(receipt, "quarantine")).toContain(
+      "independentVisualReview.status must equal REWORK at quarantine",
+    );
+  });
+
   it("accepts a complete independently reviewed original candidate receipt", () => {
     expect(validate(passingReceipt())).toEqual([]);
   });

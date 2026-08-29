@@ -256,9 +256,20 @@ export function validateCandidateReceipt(
   }
 
   const technical = receipt.technicalReview;
-  if (technical?.status !== "PASS") errors.push("technicalReview.status must equal PASS");
-  for (const key of REQUIRED_TECHNICAL_CHECKS) {
-    if (technical?.checks?.[key] !== "PASS") errors.push(`technicalReview.checks.${key} must equal PASS`);
+  if (gate === "quarantine") {
+    if (!["PASS", "REWORK"].includes(technical?.status)) {
+      errors.push("technicalReview.status must equal PASS or REWORK at quarantine");
+    }
+    for (const key of REQUIRED_TECHNICAL_CHECKS) {
+      if (!["PASS", "REWORK"].includes(technical?.checks?.[key])) {
+        errors.push(`technicalReview.checks.${key} must equal PASS or REWORK at quarantine`);
+      }
+    }
+  } else {
+    if (technical?.status !== "PASS") errors.push("technicalReview.status must equal PASS");
+    for (const key of REQUIRED_TECHNICAL_CHECKS) {
+      if (technical?.checks?.[key] !== "PASS") errors.push(`technicalReview.checks.${key} must equal PASS`);
+    }
   }
 
   const normalSpeed = receipt.playbackEvidence?.normalSpeed;
@@ -280,7 +291,6 @@ export function validateCandidateReceipt(
   if (verifyMedia) probeAndDecodeVideo(errors, normalSpeed, videoPath);
 
   const visual = receipt.independentVisualReview;
-  if (visual?.status !== "PASS") errors.push("independentVisualReview.status must equal PASS");
   if (visual?.reviewerRole !== "INDEPENDENT_COORDINATOR") {
     errors.push("independentVisualReview.reviewerRole must equal INDEPENDENT_COORDINATOR");
   }
@@ -288,20 +298,46 @@ export function validateCandidateReceipt(
   if (visual?.reviewerId && visual.reviewerId === candidate?.authorId) {
     errors.push("independentVisualReview.reviewerId must differ from candidate.authorId");
   }
-  if (visual?.watchedEntireNormalSpeed !== true) {
-    errors.push("independentVisualReview.watchedEntireNormalSpeed must be true");
-  }
   if (normalizedSha(visual?.playbackSha256) !== normalizedSha(normalSpeed?.sha256)) {
     errors.push("independentVisualReview.playbackSha256 must match playbackEvidence.normalSpeed.sha256");
   }
-  for (const key of REQUIRED_VISUAL_CHECKS) {
-    if (visual?.checklist?.[key] !== "PASS") errors.push(`independentVisualReview.checklist.${key} must equal PASS`);
-  }
-  if (!Array.isArray(visual?.blockingFindings) || visual.blockingFindings.length !== 0) {
-    errors.push("independentVisualReview.blockingFindings must be an empty array");
+  if (gate === "quarantine") {
+    if (visual?.status !== "REWORK") errors.push("independentVisualReview.status must equal REWORK at quarantine");
+    if (visual?.watchedEntireNormalSpeed !== false) {
+      errors.push("independentVisualReview.watchedEntireNormalSpeed must remain false at quarantine");
+    }
+    for (const key of REQUIRED_VISUAL_CHECKS) {
+      if (visual?.checklist?.[key] !== "REWORK") {
+        errors.push(`independentVisualReview.checklist.${key} must remain REWORK at quarantine`);
+      }
+    }
+    if (!Array.isArray(visual?.blockingFindings) || visual.blockingFindings.length === 0) {
+      errors.push("independentVisualReview.blockingFindings must describe the pending review at quarantine");
+    }
+  } else {
+    if (visual?.status !== "PASS") errors.push("independentVisualReview.status must equal PASS");
+    if (visual?.watchedEntireNormalSpeed !== true) {
+      errors.push("independentVisualReview.watchedEntireNormalSpeed must be true");
+    }
+    for (const key of REQUIRED_VISUAL_CHECKS) {
+      if (visual?.checklist?.[key] !== "PASS") errors.push(`independentVisualReview.checklist.${key} must equal PASS`);
+    }
+    if (!Array.isArray(visual?.blockingFindings) || visual.blockingFindings.length !== 0) {
+      errors.push("independentVisualReview.blockingFindings must be an empty array");
+    }
   }
 
-  if (gate === "owner-review") {
+  if (gate === "quarantine") {
+    if (receipt.ownerReview?.status !== "NOT_PRESENTED") {
+      errors.push("ownerReview.status must equal NOT_PRESENTED at quarantine");
+    }
+    if (receipt.promotion?.status !== "QUARANTINED") {
+      errors.push("promotion.status must equal QUARANTINED");
+    }
+    if (receipt.promotion?.runtimeInstalled !== false) {
+      errors.push("promotion.runtimeInstalled must be false at quarantine");
+    }
+  } else if (gate === "owner-review") {
     if (receipt.ownerReview?.status !== "NOT_PRESENTED") {
       errors.push("ownerReview.status must equal NOT_PRESENTED before export to owner review");
     }
@@ -340,7 +376,7 @@ export function validateCandidateReceipt(
         errors.push(`runtimeVerification.${key} must equal PASS`);
       }
     }
-  } else if (gate !== "authoring") {
+  } else {
     errors.push(`unsupported gate: ${gate}`);
   }
 
@@ -360,7 +396,7 @@ function parseCli(argv) {
     else if (!args.receiptPath) args.receiptPath = argv[index];
     else throw new Error(`Unexpected argument: ${argv[index]}`);
   }
-  if (!args.receiptPath) throw new Error("Usage: node validate-human-animation-candidate.mjs [--gate owner-review|runtime-install|shipping] <receipt.json>");
+  if (!args.receiptPath) throw new Error("Usage: node validate-human-animation-candidate.mjs [--gate quarantine|owner-review|runtime-install|shipping] <receipt.json>");
   return args;
 }
 
