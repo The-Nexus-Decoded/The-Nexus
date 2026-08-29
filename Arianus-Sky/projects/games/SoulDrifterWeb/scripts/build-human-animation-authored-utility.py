@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--review-video-rear", required=True, help="Continuous normal-speed close-rear review")
     parser.add_argument("--candidate-id", default=DEFAULT_CANDIDATE_ID)
     parser.add_argument("--evidence-root", default=str(DEFAULT_EVIDENCE_ROOT))
-    parser.add_argument("--action", choices=("lift", "lockpick"), default="lift")
+    parser.add_argument("--action", choices=("lift", "lockpick", "valve"), default="lift")
     return parser.parse_args(values)
 
 
@@ -762,6 +762,174 @@ def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
     return action, record
 
 
+def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a two-hand, half-turn vertical handwheel operation."""
+    name = "AuthoredUtility__ValveTurn"
+    end_frame = 116
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    wheel_center = vec((0.190, 0.0, 0.200))
+    wheel_radius = 0.115
+    bpy.ops.mesh.primitive_torus_add(
+        major_radius=wheel_radius,
+        minor_radius=0.012,
+        major_segments=32,
+        minor_segments=10,
+        location=wheel_center,
+        rotation=(0.0, radians(90.0), 0.0),
+    )
+    wheel = bpy.context.active_object
+    wheel.name = "AUTHORING_CONTACT_GUIDE__ValveHandwheel"
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=24,
+        radius=0.025,
+        depth=0.070,
+        location=wheel_center + vec((0.035, 0.0, 0.0)),
+        rotation=(0.0, radians(90.0), 0.0),
+    )
+    hub = bpy.context.active_object
+    hub.name = "AUTHORING_CONTACT_GUIDE__ValveHub"
+    left_hand = create_target("AuthoredValve__LeftHandTarget", vec((0.170, wheel_radius, 0.200)))
+    right_hand = create_target("AuthoredValve__RightHandTarget", vec((0.170, -wheel_radius, 0.200)))
+    controls = [wheel, hub, left_hand, right_hand]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+    ]
+    influence_keys = [(1, 0.0), (12, 1.0), (102, 1.0), (116, 0.0)]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame, influence in influence_keys:
+            constraint.influence = influence
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": frame, "influence": influence}
+            for frame, influence in influence_keys
+        ]
+
+    phases = [
+        (1, "neutral", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+        (16, "reach-handwheel", 5.0, 2.0, (0.145, 0.135, 0.205), (0.145, -0.135, 0.205), 25.0, 24.0),
+        (30, "bilateral-grip", 8.0, 3.0, (0.170, 0.115, 0.200), (0.170, -0.115, 0.200), 62.0, 55.0),
+        (46, "quarter-turn", 9.0, 3.0, (0.170, 0.010, 0.315), (0.170, -0.010, 0.085), 64.0, 62.0),
+        (58, "controlled-regrip", 8.0, 2.0, (0.168, -0.055, 0.285), (0.168, 0.055, 0.115), 58.0, 48.0),
+        (76, "half-turn-drive", 10.0, 3.0, (0.170, -0.115, 0.200), (0.170, 0.115, 0.200), 66.0, 65.0),
+        (90, "resistance-settle", 9.0, 3.0, (0.170, -0.105, 0.190), (0.170, 0.105, 0.210), 68.0, 68.0),
+        (102, "release-handwheel", 5.0, 2.0, (0.140, -0.135, 0.215), (0.140, 0.135, 0.225), 24.0, 22.0),
+        (116, "neutral-recovery", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+    ]
+    contact_frames = [30, 46, 58, 76, 90]
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    left_ground_targets: dict[int, Vector] = {}
+    right_ground_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame, _, spine_x, head_x, left_pos, right_pos, curl, hand_roll in phases:
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame)
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_x * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_x * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_x * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_x, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_x * 0.65, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -hand_roll, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, hand_roll, 0.0))
+        keyed_fingers.update(curl_fingers(armature, frame, curl))
+        left_position = vec(left_pos)
+        right_position = vec(right_pos)
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        left_ground_targets[frame] = rest_left_ankle
+        right_ground_targets[frame] = rest_right_ankle
+        if frame in contact_frames:
+            left_targets[frame] = left_position
+            right_targets[frame] = right_position
+
+    for frame, angle_degrees in ((1, 0.0), (30, 0.0), (46, 90.0), (58, 125.0), (76, 180.0), (90, 190.0), (116, 190.0)):
+        wheel.rotation_mode = "XYZ"
+        wheel.rotation_euler = (radians(angle_degrees), radians(90.0), 0.0)
+        wheel.keyframe_insert("rotation_euler", frame=frame)
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", contact_frames, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", contact_frames, right_targets)
+    phase_frames = [phase[0] for phase in phases]
+    left_ground = measure_tail_error(armature, action, "mixamorig:LeftLeg", phase_frames, left_ground_targets)
+    right_ground = measure_tail_error(armature, action, "mixamorig:RightLeg", phase_frames, right_ground_targets)
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Valve hand contact gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Valve grounding gate failed: left={left_ground}, right={right_ground}")
+
+    reference = {
+        "url": "https://elements.envato.com/male-with-gloves-opens-or-closes-valve-for-entry-o-XG2HEVE",
+        "publisher": "MilkImage-aFilms via Envato Elements",
+        "retrievedAt": "2026-08-28",
+        "timeRange": "00:00-00:20 (full real-worker handwheel clip)",
+        "mechanics": {
+            "stance": "Stand close and square to the handwheel with both feet planted.",
+            "weightTransfer": "Lean slightly into resistance while keeping body weight centered between the feet.",
+            "footwork": "No stepping during the turn; feet stay neutral and flat.",
+            "hipsShoulders": "Hips remain square while shoulders and elbows follow the circular hand path.",
+            "handsGripContacts": "Use bilateral rim grips, rotate through a quarter turn, deliberately regrip, then drive through the remaining half turn.",
+            "anticipation": "Reach to opposite sides of the wheel and establish both grips before applying torque.",
+            "cadence": "Continuous loaded rotation with a brief regrip and a slower resistance settle near the stop.",
+            "followThroughRecovery": "Settle against resistance, release the rim, and return to a balanced neutral posture.",
+        },
+    }
+    record = {
+        "clipName": name,
+        "displayLabel": "Valve Turn",
+        "semanticRowIds": ["interaction.valve-turn"],
+        "status": "NEWLY_AUTHORED_VISUAL_REVIEW_REQUIRED",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [{
+            "name": wheel.name,
+            "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET",
+            "centerRigUnitsWorldXYZ": rounded_vector(wheel_center),
+            "diameterRigUnits": round(wheel_radius * 2.0, 3),
+            "diameterMeters": round(wheel_radius * 2.0 * METERS_PER_RIG_UNIT, 3),
+            "rotationDegrees": 190.0,
+        }],
+        "ikConstraints": ik_constraints,
+        "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftHand": left_contact, "rightHand": right_contact, "passed": True},
+        "groundingValidation": {"threshold": GROUND_TOLERANCE, "leftFoot": left_ground, "rightFoot": right_ground, "passed": True},
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 68.0},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": 4.5,
+            "cameraFraming": "continuous close-front, close-side, close-rear, and gameplay views with the full handwheel, both hands, elbows, spine, feet, and floor visible",
+            "reviewFocus": ["two-hand rim contact", "circular hand path", "deliberate regrip", "loaded resistance", "neutral wrists", "planted feet", "clean release"],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
 def export_actions(armature: bpy.types.Object, actions: list[bpy.types.Action], output_glb: Path) -> None:
     armature.animation_data.action = None
     while armature.animation_data.nla_tracks:
@@ -946,9 +1114,12 @@ def main() -> None:
     if armature.animation_data is None:
         armature.animation_data_create()
 
-    authored_action, authored_record = (
-        build_lockpick(armature) if args.action == "lockpick" else build_lift(armature)
-    )
+    builders = {
+        "lift": build_lift,
+        "lockpick": build_lockpick,
+        "valve": build_valve_turn,
+    }
+    authored_action, authored_record = builders[args.action](armature)
     actions = [authored_action]
     records = [authored_record]
     export_actions(armature, actions, output_glb)
