@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 2,
+  "issue": 487,
+  "status": "LOCAL_PARTIAL_MODULAR_APPEARANCE_AUTHORED",
+  "ownerReviewStatus": "PARTIAL_VISUAL_QA_ACCEPTED",
+  "route": "OFFICIAL_MAKEHUMAN_CC0_MESH_ADAPTATION_AND_EXACT_HEAD_FITTED_STRAND_CARDS",
+  "legacyPackPolicy": "REFERENCE_ONLY_NOT_IMPORTED",
+  "toolchain": {
+    "binary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/blender.exe",
+    "blenderVersion": "5.2.1 LTS"
+  },
+  "source": {
+    "exactHead": {
+      "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-head-base.glb",
+      "sha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8"
+    },
+    "makeHumanSystemPack": {
+      "officialPage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+      "license": "CC0-1.0",
+      "archivePath": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/makehuman_system_assets_cc0.zip",
+      "archiveSha256": "B542127A8E25547C7C29C19F2D1D2ADB9A664C80396ECD694095DBC8028A0107",
+      "hairAssets": {
+        "SK_Hair_Cropped": {
+          "asset": "short03",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short03/short03.obj",
+              "sha256": "4A9FC385718F2C46FB328AB99D33E3A946CECDB717987C8B324CF2466B59BD9C"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short03/short03.mhclo",
+              "sha256": "D80BBB8FD9B06721C481756FB3E1D6DCE04FCFC9CA8A379EDD4EA3C0D81ED17F"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short03/short03.mhmat",
+              "sha256": "8DCF42B677301AB6A66F96FF41751ECF88FBA6C6CD7C564E6953F9C78E40A8FD"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short03/short03_diffuse.png",
+              "sha256": "FE6ED0BB14498A48A2E8FC07E80E2A6F62C8B67686FCD0A7A570D345FAEC97DA"
+            }
+          }
+        },
+        "SK_Hair_Parted": {
+          "asset": "short04",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04.obj",
+              "sha256": "676964A133EE35FFCEA1195382BF75542DA7A298931E4001BC7B0D7B707225DE"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04.mhclo",
+              "sha256": "D60640AA4C4FFCE1AA269647BA436B6EE0BB21BB948F927B84E27A48D2107157"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04.mhmat",
+              "sha256": "7A3AC74DB8478AA0AFDB8A596C6FE3997D1A8A09D12211D70E8F1E9F0B7E0E97"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04_diffuse.png",
+              "sha256": "0BEF7FC0E403DB5A40FABB2111EBFA6F7E8158E204C6E56B8DA98E9EF527846E"
+            }
+          }
+        },
+        "SK_Hair_CurlyCoiled": {
+          "asset": "afro01",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/afro01/afro01.obj",
+              "sha256": "8344FFFEF15120A05A89219F31184CA2958537223FA885C885137AD1E97EDCB8"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/afro01/afro01.mhclo",
+              "sha256": "9977BD4507E2DD1408504B7A39A6F585FFA2D3BA3AA40AD4BDC2844884BBEBB5"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/afro01/afro01.mhmat",
+              "sha256": "6DA1C6778DF2450B135009274ED0145DC2DFFBC5D8E287FC1D4C69BA539B483C"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/afro01/afro_diffuse.png",
+              "sha256": "DC0DB7DD8A13802F02303CA7E49844B219E09DB134471B7061538A8AF8F7C7FB"
+            }
+          }
+        },
+        "SK_Hair_Long": {
+          "asset": "long01",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/long01/long01.obj",
+              "sha256": "7F1D6DADBDF9E96435251955D6657E77EA5433C9BC7C85A5C5F5E4EAE0CB9A8C"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/long01/long01.mhclo",
+              "sha256": "94ECBEBFD834DA2CBEE2CE90B730972590EB22A252ECD9592038EA736E063646"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/long01/long01.mhmat",
+              "sha256": "74EC88267E679D316F8037A074511FFC887B27E198EA381D0AE4A3F180F96760"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/long01/long01_diffuse.png",
+              "sha256": "E8DC25D90F8F62467E8630420E1240A400D070054FB7C3F1D3F7BF3E457D6C2C"
+            }
+          }
+        },
+        "SK_Hair_TiedBack": {
+          "asset": "ponytail01",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/ponytail01/ponytail01.obj",
+              "sha256": "D9F5FE96FBEDBC8006220D87AAD0E4A33D15286EB6B21F5929661CDC490EBF5A"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/ponytail01/ponytail01.mhclo",
+              "sha256": "97FC50B12BCB3B1C7B33EDDDD8D427A2604FFB06FE79B31132BF47F82D7AFBAC"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/ponytail01/ponytail01.mhmat",
+              "sha256": "B145F5A7C9606859AD523F5113482A1CF989CF0E26DCCC2EA95C377CB1C2557F"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/ponytail01/ponytail01_diffuse.png",
+              "sha256": "DCB364300CAC06CE8BEF91B2F7C0970BAF310898BBDD06B0C6B884EE9306EB97"
+            }
+          }
+        },
+        "SK_Hair_Braided": {
+          "asset": "braid01",
+          "license": "CC0-1.0",
+          "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "files": {
+            "obj": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/braid01/braid01.obj",
+              "sha256": "AD0B449C80244452BC8D437F5D59C25EC2AC17B2EB35E1AE2D9531FC00B73B0A"
+            },
+            "mapping": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/braid01/braid01.mhclo",
+              "sha256": "E350614DAB32230C47D67E7747079B89859D36E62A890CA47890F068ECA4F7A9"
+            },
+            "material": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/braid01/braid01.mhmat",
+              "sha256": "C8FDC8452C94715E9BF8FC194C82DC1E53124475B0665058D31B142BF0F3F762"
+            },
+            "diffuse": {
+              "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/braid01/braid01_diffuse.png",
+              "sha256": "24C0D2A639F04704734C3E38AF97D110777C1B203E5A10C66A5C89563643A018"
+            }
+          }
+        }
+      }
+    }
+  },
+  "contract": {
+    "headBone": "mixamorig:Head",
+    "rootBone": "mixamorig:Hips",
+    "boneCount": 65,
+    "materialFamily": "MAT_HumanHair_Tintable",
+    "moduleNames": [
+      "SK_Hair_Parted",
+      "SK_Hair_TiedBack",
+      "SK_Hair_Braided",
+      "SK_FacialHair_Moustache"
+    ],
+    "requiredModuleNames": [
+      "SK_Hair_Cropped",
+      "SK_Hair_Parted",
+      "SK_Hair_CurlyCoiled",
+      "SK_Hair_Long",
+      "SK_Hair_TiedBack",
+      "SK_Hair_Braided",
+      "SK_FacialHair_Stubble",
+      "SK_FacialHair_Moustache",
+      "SK_FacialHair_Goatee",
+      "SK_FacialHair_ShortBeard",
+      "SK_FacialHair_FullBeard"
+    ],
+    "withheldModules": {
+      "SK_Hair_Cropped": "front-left source seam remains visibly open",
+      "SK_Hair_CurlyCoiled": "source cards expose glossy scalp patches",
+      "SK_Hair_Long": "source part exposes a visible scalp strip",
+      "SK_FacialHair_Stubble": "candidate reads as patchy bulk instead of surface stubble",
+      "SK_FacialHair_Goatee": "candidate projects as a detached chin shelf",
+      "SK_FacialHair_ShortBeard": "candidate does not yet follow the jaw silhouette",
+      "SK_FacialHair_FullBeard": "candidate does not yet follow the jaw silhouette"
+    },
+    "hairStyles": [
+      "shaved-buzzed",
+      "cropped",
+      "parted",
+      "curly-coiled",
+      "long",
+      "tied-back",
+      "braided"
+    ],
+    "facialHairStyles": [
+      "none",
+      "stubble",
+      "moustache",
+      "goatee",
+      "short-beard",
+      "full-beard"
+    ]
+  },
+  "modules": {
+    "SK_Hair_Parted": {
+      "vertices": 865,
+      "triangles": 1050,
+      "materials": [
+        "MAT_HumanHair_Tintable_Parted"
+      ],
+      "bounds": {
+        "min": [
+          -0.054134,
+          0.425988,
+          -0.042914
+        ],
+        "max": [
+          0.043891,
+          0.512,
+          0.042358
+        ]
+      },
+      "headWeightVertexCount": 865
+    },
+    "SK_Hair_TiedBack": {
+      "vertices": 3718,
+      "triangles": 5352,
+      "materials": [
+        "MAT_HumanHair_Tintable_TiedBack"
+      ],
+      "bounds": {
+        "min": [
+          -0.099321,
+          0.315203,
+          -0.042672
+        ],
+        "max": [
+          0.038014,
+          0.515,
+          0.041513
+        ]
+      },
+      "headWeightVertexCount": 3718
+    },
+    "SK_Hair_Braided": {
+      "vertices": 4493,
+      "triangles": 5518,
+      "materials": [
+        "MAT_HumanHair_Tintable_Braided"
+      ],
+      "bounds": {
+        "min": [
+          -0.09012,
+          0.186073,
+          -0.052601
+        ],
+        "max": [
+          0.052064,
+          0.515,
+          0.051374
+        ]
+      },
+      "headWeightVertexCount": 4493
+    },
+    "SK_FacialHair_Moustache": {
+      "vertices": 342,
+      "triangles": 228,
+      "materials": [
+        "MAT_HumanHair_Tintable_Facial_Moustache"
+      ],
+      "bounds": {
+        "min": [
+          0.046906,
+          0.394508,
+          -0.024084
+        ],
+        "max": [
+          0.063479,
+          0.405,
+          0.024084
+        ]
+      },
+      "headWeightVertexCount": 342
+    }
+  },
+  "validation": {
+    "status": "PASS",
+    "moduleNamesExact": true,
+    "officialCc0HairSources": true,
+    "legacyGeometryImported": false,
+    "separateTintableMaterials": true,
+    "allVerticesHeadWeighted": true,
+    "permanentFusion": false,
+    "visualGate": "PASS_FAIL_CLOSED_PER_MODULE",
+    "withheldModulesExcluded": true
+  },
+  "freshImport": {
+    "status": "PASS",
+    "meshCount": 4,
+    "moduleNames": [
+      "SK_FacialHair_Moustache",
+      "SK_Hair_Braided",
+      "SK_Hair_Parted",
+      "SK_Hair_TiedBack"
+    ],
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ],
+    "embeddedActionCount": 0,
+    "approvalMetadataRoundTrips": true
+  },
+  "evidence": {
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial",
+    "smoke": false,
+    "modules": {
+      "SK_Hair_Parted": {
+        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/front.png",
+        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/side.png",
+        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/rear.png",
+        "turntableFrameCount": 12,
+        "turntableFrames": [
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-00.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-01.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-02.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-03.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-04.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-05.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-06.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-07.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-08.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-09.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-10.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Parted/turntable/frame-11.png"
+        ]
+      },
+      "SK_Hair_TiedBack": {
+        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/front.png",
+        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/side.png",
+        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/rear.png",
+        "turntableFrameCount": 12,
+        "turntableFrames": [
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-00.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-01.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-02.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-03.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-04.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-05.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-06.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-07.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-08.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-09.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-10.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_TiedBack/turntable/frame-11.png"
+        ]
+      },
+      "SK_Hair_Braided": {
+        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/front.png",
+        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/side.png",
+        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/rear.png",
+        "turntableFrameCount": 12,
+        "turntableFrames": [
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-00.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-01.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-02.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-03.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-04.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-05.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-06.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-07.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-08.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-09.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-10.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_Hair_Braided/turntable/frame-11.png"
+        ]
+      },
+      "SK_FacialHair_Moustache": {
+        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/front.png",
+        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/side.png",
+        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/rear.png",
+        "turntableFrameCount": 12,
+        "turntableFrames": [
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-00.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-01.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-02.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-03.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-04.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-05.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-06.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-07.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-08.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-09.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-10.png",
+          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v16-approved-partial/SK_FacialHair_Moustache/turntable/frame-11.png"
+        ]
+      }
+    }
+  },
+  "output": {
+    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
+    "bytes": 9468176,
+    "sha256": "998085ADE63E255EF9CC4907454A6E2CAEF6DA54B7EA7EB06D2DAFE8A8DCDCA8"
+  },
+  "runtimeNotes": [
+    "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
+    "All modules remain separate from skin and carry tintable material metadata.",
+    "All vertices are rigidly weighted to mixamorig:Head on the canonical 65-bone pilot.",
+    "Long, tied-back, and braided secondary motion remains a runtime spring-bone follow-up.",
+    "Only individually visual-QA-cleared modules are embedded; rejected candidates fail closed.",
+    "SK_Hair_Parted currently reads as a slicked-back short style and should use that creator label."
+  ]
+}
