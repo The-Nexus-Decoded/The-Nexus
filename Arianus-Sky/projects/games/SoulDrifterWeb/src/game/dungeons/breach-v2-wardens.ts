@@ -269,6 +269,9 @@ export function createBreachV2WardenRuntime(
     runtimeActor.currentAction = action;
     runtimeActor.currentClip = clipName;
     runtimeActor.effectFired = false;
+    runtimeActor.groundingStatus = "pending";
+    runtimeActor.groundingFrames = 0;
+    runtimeActor.groundingClearanceMeters = null;
     return action.getClip().duration;
   };
   const detachStage = (runtimeActor: RuntimeActor, stage: number): void => {

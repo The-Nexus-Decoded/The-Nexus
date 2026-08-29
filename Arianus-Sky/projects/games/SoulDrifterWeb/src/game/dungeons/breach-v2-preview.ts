@@ -4292,7 +4292,7 @@ export async function startDungeonPreview(
     if (placement.placement !== "floor") return true;
     const clearance = (placement.footprint ?? 0.8) / 2 + 0.55;
     return Math.hypot(x - placement.x, z - placement.z) >= clearance;
-  });
+  }) && Math.hypot(x - layout.boss.x, z - layout.boss.z) >= 3;
   const nearestWalkable = (
     x: number,
     z: number,
