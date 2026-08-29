@@ -39,6 +39,16 @@ function animationLibrary(): readonly THREE.AnimationClip[] {
   ];
 }
 
+function approvedClipNameForUrl(url: string): string | null {
+  if (url.includes("authored-lockpick")) return "AuthoredUtility__Lockpick";
+  if (url.includes("authored-spell-impact-knockback-fall")) {
+    return "AuthoredReaction__SpellImpactKnockbackAndFall";
+  }
+  if (url.includes("authored-npc-listen")) return "AuthoredUtility__NpcListen";
+  if (url.includes("authored-farewell")) return "AuthoredUtility__Farewell";
+  return null;
+}
+
 const importNodeModule = (specifier: string) => import(specifier);
 const nodeProcess = (globalThis as typeof globalThis & { process: { cwd: () => string } }).process;
 
@@ -62,13 +72,12 @@ describe("Breach V2 Human animation pilot grounding", () => {
     const body = bodyScene();
     const animations = animationLibrary();
     const loader = {
-      loadAsync: vi.fn(async (url: string) => (
-        url.includes("runtime-4k")
-          ? { scene: body, animations: [] }
-          : url.includes("authored-lockpick")
-            ? { scene: new THREE.Group(), animations: [clip("AuthoredUtility__Lockpick")] }
-            : { scene: new THREE.Group(), animations }
-      )),
+      loadAsync: vi.fn(async (url: string) => {
+        if (url.includes("runtime-4k")) return { scene: body, animations: [] };
+        const approvedClipName = approvedClipNameForUrl(url);
+        if (approvedClipName) return { scene: new THREE.Group(), animations: [clip(approvedClipName)] };
+        return { scene: new THREE.Group(), animations };
+      }),
     } as unknown as GLTFLoader;
 
     const pilot = await createBreachV2AnimationPilot(loader);
@@ -122,10 +131,13 @@ describe("Breach V2 Human animation pilot grounding", () => {
     vi.stubGlobal("window", {});
     vi.stubGlobal("self", globalThis);
     const textureWarning = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const [body, library, lockpick] = await Promise.all([
+    const [body, library, lockpick, spellImpact, npcListen, farewell] = await Promise.all([
       loadRealGlb("public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb"),
       loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb"),
       loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-lockpick.glb"),
+      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb"),
+      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb"),
+      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb"),
     ]);
     textureWarning.mockRestore();
 
@@ -150,14 +162,18 @@ describe("Breach V2 Human animation pilot grounding", () => {
       values: Array.from(track.values),
     })));
 
+    const approvedLibraries = new Map<string, GLTF>([
+      ["AuthoredUtility__Lockpick", lockpick],
+      ["AuthoredReaction__SpellImpactKnockbackAndFall", spellImpact],
+      ["AuthoredUtility__NpcListen", npcListen],
+      ["AuthoredUtility__Farewell", farewell],
+    ]);
     const loader = {
-      loadAsync: vi.fn(async (url: string) => (
-        url.includes("runtime-4k")
-          ? body
-          : url.includes("authored-lockpick")
-            ? lockpick
-            : library
-      )),
+      loadAsync: vi.fn(async (url: string) => {
+        if (url.includes("runtime-4k")) return body;
+        const approvedClipName = approvedClipNameForUrl(url);
+        return approvedClipName ? approvedLibraries.get(approvedClipName)! : library;
+      }),
     } as unknown as GLTFLoader;
     const pilot = await createBreachV2AnimationPilot(loader);
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;

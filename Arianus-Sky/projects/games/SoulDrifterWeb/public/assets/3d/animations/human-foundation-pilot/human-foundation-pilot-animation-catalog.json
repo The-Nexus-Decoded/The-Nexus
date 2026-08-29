@@ -1,0 +1,3095 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "catalogId": "human-foundation-pilot-lazy-review-v1",
+  "source": {
+    "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "sha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "bytes": 32441884,
+    "clipCount": 400
+  },
+  "packPolicy": {
+    "maxClipCount": 24,
+    "maxBytes": 4194304,
+    "creationMethod": "RAW_GLB_ACCESSOR_COPY_NO_RESAMPLING",
+    "exactAccessorPayloadBytes": true
+  },
+  "packs": [
+    {
+      "id": "basic-locomotion-01",
+      "prefix": "BasicLocomotion",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-basic-locomotion-01.glb",
+      "sha256": "9EEB4B58A274CB6EEF3638C68E4132F8417E8060A58BF26353352217013289D6",
+      "bytes": 608340,
+      "clipCount": 7,
+      "clipNames": [
+        "BasicLocomotion__Idle",
+        "BasicLocomotion__Jump",
+        "BasicLocomotion__LeftStrafeWalking",
+        "BasicLocomotion__LeftTurn90",
+        "BasicLocomotion__RightStrafeWalking",
+        "BasicLocomotion__RightTurn90",
+        "BasicLocomotion__Walking"
+      ]
+    },
+    {
+      "id": "basic-shooter-01",
+      "prefix": "BasicShooter",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-basic-shooter-01.glb",
+      "sha256": "7C946DDEB05C465D2AC8DAD2ECFE45F2D370D20578619D52643AB800D049B116",
+      "bytes": 1215912,
+      "clipCount": 16,
+      "clipNames": [
+        "BasicShooter__FiringRifle",
+        "BasicShooter__HitReaction",
+        "BasicShooter__Reloading",
+        "BasicShooter__RifleAimingIdle",
+        "BasicShooter__RifleJump",
+        "BasicShooter__RifleRun",
+        "BasicShooter__RunBackwards",
+        "BasicShooter__Strafe",
+        "BasicShooter__Strafe2",
+        "BasicShooter__StrafeLeft",
+        "BasicShooter__StrafeRight",
+        "BasicShooter__TossGrenade",
+        "BasicShooter__TurningRight45Degrees",
+        "BasicShooter__TurnLeft",
+        "BasicShooter__Walking",
+        "BasicShooter__WalkingBackwards"
+      ]
+    },
+    {
+      "id": "great-sword-01",
+      "prefix": "GreatSword",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-great-sword-01.glb",
+      "sha256": "2660F763C45EE04C1A7E83D8A8E28B5E6FDEF2B484B582B8B77F8A035E72937C",
+      "bytes": 1780564,
+      "clipCount": 24,
+      "clipNames": [
+        "GreatSword__DrawAGreatSword1",
+        "GreatSword__DrawAGreatSword2",
+        "GreatSword__GreatSword180Turn",
+        "GreatSword__GreatSword180Turn2",
+        "GreatSword__GreatSwordAttack",
+        "GreatSword__GreatSwordBlocking",
+        "GreatSword__GreatSwordBlocking2",
+        "GreatSword__GreatSwordBlocking3",
+        "GreatSword__GreatSwordCasting",
+        "GreatSword__GreatSwordCrouching",
+        "GreatSword__GreatSwordCrouching2",
+        "GreatSword__GreatSwordCrouching3",
+        "GreatSword__GreatSwordCrouching4",
+        "GreatSword__GreatSwordCrouching5",
+        "GreatSword__GreatSwordCrouching6",
+        "GreatSword__GreatSwordHighSpinAttack",
+        "GreatSword__GreatSwordIdle",
+        "GreatSword__GreatSwordIdle2",
+        "GreatSword__GreatSwordIdle3",
+        "GreatSword__GreatSwordIdle4",
+        "GreatSword__GreatSwordIdle5",
+        "GreatSword__GreatSwordImpact",
+        "GreatSword__GreatSwordImpact2",
+        "GreatSword__GreatSwordImpact3"
+      ]
+    },
+    {
+      "id": "great-sword-02",
+      "prefix": "GreatSword",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-great-sword-02.glb",
+      "sha256": "D3D498FD1F6904CEDC40997EB06328343FA426C9E7480BCEC0DB178E7095F903",
+      "bytes": 1569904,
+      "clipCount": 24,
+      "clipNames": [
+        "GreatSword__GreatSwordImpact4",
+        "GreatSword__GreatSwordImpact5",
+        "GreatSword__GreatSwordJump",
+        "GreatSword__GreatSwordJump2",
+        "GreatSword__GreatSwordJumpAttack",
+        "GreatSword__GreatSwordKick",
+        "GreatSword__GreatSwordKick2",
+        "GreatSword__GreatSwordPowerUp",
+        "GreatSword__GreatSwordRun",
+        "GreatSword__GreatSwordRun2",
+        "GreatSword__GreatSwordSlash",
+        "GreatSword__GreatSwordSlash2",
+        "GreatSword__GreatSwordSlash3",
+        "GreatSword__GreatSwordSlash4",
+        "GreatSword__GreatSwordSlash5",
+        "GreatSword__GreatSwordSlideAttack",
+        "GreatSword__GreatSwordStrafe",
+        "GreatSword__GreatSwordStrafe2",
+        "GreatSword__GreatSwordStrafe3",
+        "GreatSword__GreatSwordStrafe4",
+        "GreatSword__GreatSwordTurn",
+        "GreatSword__GreatSwordTurn2",
+        "GreatSword__GreatSwordWalk",
+        "GreatSword__GreatSwordWalk2"
+      ]
+    },
+    {
+      "id": "great-sword-03",
+      "prefix": "GreatSword",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-great-sword-03.glb",
+      "sha256": "68C6B5E02D4AC96416A25DF0B82E7B927DD0B5796EB3E27530AFC3C23B4E6D9C",
+      "bytes": 299536,
+      "clipCount": 3,
+      "clipNames": [
+        "GreatSword__SpellCast",
+        "GreatSword__TwoHandedSwordDeath",
+        "GreatSword__TwoHandedSwordDeath2"
+      ]
+    },
+    {
+      "id": "interactions-01",
+      "prefix": "Interactions",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-interactions-01.glb",
+      "sha256": "9AF9654FB4F788A2E86CFF14A7821C33F13EC1367D677131FBC0BD2BF3331148",
+      "bytes": 2839448,
+      "clipCount": 24,
+      "clipNames": [
+        "Interactions__HumanMasculineAthleticMuscularBeckon",
+        "Interactions__HumanMasculineAthleticMuscularBowDrawArrow",
+        "Interactions__HumanMasculineAthleticMuscularBowEquipFromBack",
+        "Interactions__HumanMasculineAthleticMuscularBowInformal",
+        "Interactions__HumanMasculineAthleticMuscularBowShoot",
+        "Interactions__HumanMasculineAthleticMuscularBowStowToBack",
+        "Interactions__HumanMasculineAthleticMuscularClimbBracedHangToCr",
+        "Interactions__HumanMasculineAthleticMuscularClimbFreehangToStan",
+        "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop",
+        "Interactions__HumanMasculineAthleticMuscularClimbLadderStart",
+        "Interactions__HumanMasculineAthleticMuscularClimbLadderToStandi",
+        "Interactions__HumanMasculineAthleticMuscularClimbLedgePullup",
+        "Interactions__HumanMasculineAthleticMuscularClimbRopeArmsOnly",
+        "Interactions__HumanMasculineAthleticMuscularClimbRopeHands",
+        "Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet",
+        "Interactions__HumanMasculineAthleticMuscularClimbWallDown",
+        "Interactions__HumanMasculineAthleticMuscularClimbWallUp",
+        "Interactions__HumanMasculineAthleticMuscularCloseDoor",
+        "Interactions__HumanMasculineAthleticMuscularContainerOpenClose",
+        "Interactions__HumanMasculineAthleticMuscularDeathBack",
+        "Interactions__HumanMasculineAthleticMuscularDeathFrontSwordShie",
+        "Interactions__HumanMasculineAthleticMuscularDeathLeft",
+        "Interactions__HumanMasculineAthleticMuscularDeathRightMirrored",
+        "Interactions__HumanMasculineAthleticMuscularGreetStanding"
+      ]
+    },
+    {
+      "id": "interactions-02",
+      "prefix": "Interactions",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-interactions-02.glb",
+      "sha256": "5FA39679542ECAA6BABED07912BD41B3A85D22DB5ADFE79E7D751CCA7AAFFBA6",
+      "bytes": 2804780,
+      "clipCount": 24,
+      "clipNames": [
+        "Interactions__HumanMasculineAthleticMuscularHarvest",
+        "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful",
+        "Interactions__HumanMasculineAthleticMuscularHeadNodYes",
+        "Interactions__HumanMasculineAthleticMuscularHeadShakeNo",
+        "Interactions__HumanMasculineAthleticMuscularIdleSitting",
+        "Interactions__HumanMasculineAthleticMuscularIdleSittingPose",
+        "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+        "Interactions__HumanMasculineAthleticMuscularOpenChestLid",
+        "Interactions__HumanMasculineAthleticMuscularOpenDoorInward",
+        "Interactions__HumanMasculineAthleticMuscularOpenDoorOutward",
+        "Interactions__HumanMasculineAthleticMuscularPickupItem",
+        "Interactions__HumanMasculineAthleticMuscularPickupObject",
+        "Interactions__HumanMasculineAthleticMuscularPointForward",
+        "Interactions__HumanMasculineAthleticMuscularPointGesture",
+        "Interactions__HumanMasculineAthleticMuscularPullHeavyLoop",
+        "Interactions__HumanMasculineAthleticMuscularPullHeavyStart",
+        "Interactions__HumanMasculineAthleticMuscularPullHeavyStop",
+        "Interactions__HumanMasculineAthleticMuscularPullLever",
+        "Interactions__HumanMasculineAthleticMuscularPushButton",
+        "Interactions__HumanMasculineAthleticMuscularPushHeavyLoop",
+        "Interactions__HumanMasculineAthleticMuscularPushHeavyStart",
+        "Interactions__HumanMasculineAthleticMuscularPushHeavyStop",
+        "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+        "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop"
+      ]
+    },
+    {
+      "id": "interactions-03",
+      "prefix": "Interactions",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-interactions-03.glb",
+      "sha256": "AD7C7BE3634FF3C1A2999CAB208AF607B619C08E50E2071013C96CF6B2DDE4CD",
+      "bytes": 2329072,
+      "clipCount": 11,
+      "clipNames": [
+        "Interactions__HumanMasculineAthleticMuscularSwimIdleTread",
+        "Interactions__HumanMasculineAthleticMuscularSwimToEdge",
+        "Interactions__HumanMasculineAthleticMuscularSwordShieldBlock",
+        "Interactions__HumanMasculineAthleticMuscularSwordShieldSlashCom",
+        "Interactions__HumanMasculineAthleticMuscularTalkEmphasis",
+        "Interactions__HumanMasculineAthleticMuscularTalkMedium",
+        "Interactions__HumanMasculineAthleticMuscularTalkSitting",
+        "Interactions__HumanMasculineAthleticMuscularTalkSmall",
+        "Interactions__HumanMasculineAthleticMuscularThink",
+        "Interactions__HumanMasculineAthleticMuscularWalkInPlace",
+        "Interactions__HumanMasculineAthleticMuscularWaveGreeting"
+      ]
+    },
+    {
+      "id": "male-locomotion-01",
+      "prefix": "MaleLocomotion",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-male-locomotion-01.glb",
+      "sha256": "3D816C74D69488F243135A38EDFF05FBE649EAA3E329B3DE3A96E723CCE1B109",
+      "bytes": 797224,
+      "clipCount": 10,
+      "clipNames": [
+        "MaleLocomotion__Idle",
+        "MaleLocomotion__Jump",
+        "MaleLocomotion__LeftStrafe",
+        "MaleLocomotion__LeftStrafeWalking",
+        "MaleLocomotion__LeftTurn90",
+        "MaleLocomotion__RightStrafe",
+        "MaleLocomotion__RightStrafeWalking",
+        "MaleLocomotion__RightTurn90",
+        "MaleLocomotion__StandardRun",
+        "MaleLocomotion__Walking"
+      ]
+    },
+    {
+      "id": "pro-longbow-01",
+      "prefix": "ProLongbow",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-longbow-01.glb",
+      "sha256": "A6445533656EA8D7A2FF73E9F3B809C1609470CAAA378BD081555E7017BDD6DE",
+      "bytes": 1874128,
+      "clipCount": 24,
+      "clipNames": [
+        "ProLongbow__FallALandToRunForward",
+        "ProLongbow__FallALandToStandingIdle01",
+        "ProLongbow__FallALoop",
+        "ProLongbow__StandingAimOverdraw",
+        "ProLongbow__StandingAimRecoil",
+        "ProLongbow__StandingAimWalkBack",
+        "ProLongbow__StandingAimWalkForward",
+        "ProLongbow__StandingAimWalkLeft",
+        "ProLongbow__StandingAimWalkRight",
+        "ProLongbow__StandingBlock",
+        "ProLongbow__StandingDeathBackward01",
+        "ProLongbow__StandingDeathForward01",
+        "ProLongbow__StandingDisarmBow",
+        "ProLongbow__StandingDiveForward",
+        "ProLongbow__StandingDodgeBackward",
+        "ProLongbow__StandingDodgeForward",
+        "ProLongbow__StandingDodgeLeft",
+        "ProLongbow__StandingDodgeRight",
+        "ProLongbow__StandingDrawArrow",
+        "ProLongbow__StandingEquipBow",
+        "ProLongbow__StandingIdle01",
+        "ProLongbow__StandingIdle02Looking",
+        "ProLongbow__StandingIdle03Examine",
+        "ProLongbow__StandingMeleeKick"
+      ]
+    },
+    {
+      "id": "pro-longbow-02",
+      "prefix": "ProLongbow",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-longbow-02.glb",
+      "sha256": "58B5B795B0167FBAD541A8477DB1994E0F19ECF29E6DB5B8F9122B64A27CE06E",
+      "bytes": 1092604,
+      "clipCount": 15,
+      "clipNames": [
+        "ProLongbow__StandingMeleePunch",
+        "ProLongbow__StandingReactSmallFromFront",
+        "ProLongbow__StandingReactSmallFromHeadshot",
+        "ProLongbow__StandingRunBack",
+        "ProLongbow__StandingRunForward",
+        "ProLongbow__StandingRunForwardStop",
+        "ProLongbow__StandingRunLeft",
+        "ProLongbow__StandingRunRight",
+        "ProLongbow__StandingTurn90Left",
+        "ProLongbow__StandingTurn90Right",
+        "ProLongbow__StandingWalkBack",
+        "ProLongbow__StandingWalkForward",
+        "ProLongbow__StandingWalkLeft",
+        "ProLongbow__StandingWalkRight",
+        "ProLongbow__UnarmedIdle01"
+      ]
+    },
+    {
+      "id": "pro-magic-01",
+      "prefix": "ProMagic",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-magic-01.glb",
+      "sha256": "BDFBB1C6C72BBAB0D6FC856F9732F5EE47D3080AB7CE58DC72E6D9B7BDF06E65",
+      "bytes": 2334280,
+      "clipCount": 24,
+      "clipNames": [
+        "ProMagic__CrouchIdle",
+        "ProMagic__CrouchToStandingIdle",
+        "ProMagic__CrouchTurnLeft90",
+        "ProMagic__CrouchTurnRight90",
+        "ProMagic__CrouchWalkBack",
+        "ProMagic__CrouchWalkForward",
+        "ProMagic__CrouchWalkLeft",
+        "ProMagic__CrouchWalkRight",
+        "ProMagic__Standing1HCastSpell01",
+        "ProMagic__Standing1HMagicAttack01",
+        "ProMagic__Standing1HMagicAttack02",
+        "ProMagic__Standing1HMagicAttack03",
+        "ProMagic__Standing2HCastSpell01",
+        "ProMagic__Standing2HMagicAreaAttack01",
+        "ProMagic__Standing2HMagicAreaAttack02",
+        "ProMagic__Standing2HMagicAttack01",
+        "ProMagic__Standing2HMagicAttack02",
+        "ProMagic__Standing2HMagicAttack03",
+        "ProMagic__Standing2HMagicAttack04",
+        "ProMagic__Standing2HMagicAttack05",
+        "ProMagic__StandingBlockEnd",
+        "ProMagic__StandingBlockIdle",
+        "ProMagic__StandingBlockReactLarge",
+        "ProMagic__StandingBlockStart"
+      ]
+    },
+    {
+      "id": "pro-magic-02",
+      "prefix": "ProMagic",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-magic-02.glb",
+      "sha256": "AD3D353FC4F026FEC88C1630B14B74E3AC904A79179495A545876BE805B71B19",
+      "bytes": 2648368,
+      "clipCount": 24,
+      "clipNames": [
+        "ProMagic__StandingIdle",
+        "ProMagic__StandingIdle02",
+        "ProMagic__StandingIdle03",
+        "ProMagic__StandingIdle04",
+        "ProMagic__StandingIdleToCrouch",
+        "ProMagic__StandingJump",
+        "ProMagic__StandingJumpRunning",
+        "ProMagic__StandingJumpRunningLanding",
+        "ProMagic__StandingLandToStandingIdle",
+        "ProMagic__StandingReactDeathBackward",
+        "ProMagic__StandingReactDeathForward",
+        "ProMagic__StandingReactDeathLeft",
+        "ProMagic__StandingReactDeathRight",
+        "ProMagic__StandingReactLargeFromBack",
+        "ProMagic__StandingReactLargeFromFront",
+        "ProMagic__StandingReactLargeFromLeft",
+        "ProMagic__StandingReactLargeFromRight",
+        "ProMagic__StandingReactSmallFromBack",
+        "ProMagic__StandingReactSmallFromFront",
+        "ProMagic__StandingReactSmallFromLeft",
+        "ProMagic__StandingReactSmallFromRight",
+        "ProMagic__StandingRunBack",
+        "ProMagic__StandingRunForward",
+        "ProMagic__StandingRunLeft"
+      ]
+    },
+    {
+      "id": "pro-magic-03",
+      "prefix": "ProMagic",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-magic-03.glb",
+      "sha256": "FFFBADF7D3691094F4EEB0879BBC867B6B6C4ACB47E122D0939DF9C5FCB3989B",
+      "bytes": 630684,
+      "clipCount": 8,
+      "clipNames": [
+        "ProMagic__StandingRunRight",
+        "ProMagic__StandingSprintForward",
+        "ProMagic__StandingTurnLeft90",
+        "ProMagic__StandingTurnRight90",
+        "ProMagic__StandingWalkBack",
+        "ProMagic__StandingWalkForward",
+        "ProMagic__StandingWalkLeft",
+        "ProMagic__StandingWalkRight"
+      ]
+    },
+    {
+      "id": "pro-melee-axe-01",
+      "prefix": "ProMeleeAxe",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-melee-axe-01.glb",
+      "sha256": "8422899D94BB92AB45C05363593BAE860177DDB20541BC61C231A7A9716315D9",
+      "bytes": 2379596,
+      "clipCount": 24,
+      "clipNames": [
+        "ProMeleeAxe__CrouchIdle",
+        "ProMeleeAxe__CrouchToStandingIdle",
+        "ProMeleeAxe__StandingBlockIdle",
+        "ProMeleeAxe__StandingBlockReactLarge",
+        "ProMeleeAxe__StandingDisarmOverShoulder",
+        "ProMeleeAxe__StandingDisarmUnderarm",
+        "ProMeleeAxe__StandingIdle",
+        "ProMeleeAxe__StandingIdleLookingVer1",
+        "ProMeleeAxe__StandingIdleLookingVer2",
+        "ProMeleeAxe__StandingJump",
+        "ProMeleeAxe__StandingMeleeAttack360High",
+        "ProMeleeAxe__StandingMeleeAttack360Low",
+        "ProMeleeAxe__StandingMeleeAttackBackhand",
+        "ProMeleeAxe__StandingMeleeAttackDownward",
+        "ProMeleeAxe__StandingMeleeAttackHorizontal",
+        "ProMeleeAxe__StandingMeleeAttackKickVer1",
+        "ProMeleeAxe__StandingMeleeAttackKickVer2",
+        "ProMeleeAxe__StandingMeleeComboAttackVer1",
+        "ProMeleeAxe__StandingMeleeComboAttackVer2",
+        "ProMeleeAxe__StandingMeleeComboAttackVer3",
+        "ProMeleeAxe__StandingMeleeRunJumpAttack",
+        "ProMeleeAxe__StandingReactLargeFromLeft",
+        "ProMeleeAxe__StandingReactLargeFromRight",
+        "ProMeleeAxe__StandingReactLargeGut"
+      ]
+    },
+    {
+      "id": "pro-melee-axe-02",
+      "prefix": "ProMeleeAxe",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-melee-axe-02.glb",
+      "sha256": "5441F34638392ED070B5ADB1AEEEA0E95E2E9CA348FD1546B6125385CF2E25F2",
+      "bytes": 2203308,
+      "clipCount": 23,
+      "clipNames": [
+        "ProMeleeAxe__StandingRunBack",
+        "ProMeleeAxe__StandingRunForward",
+        "ProMeleeAxe__StandingTauntBattlecry",
+        "ProMeleeAxe__StandingTauntChestThump",
+        "ProMeleeAxe__StandingTurnLeft90",
+        "ProMeleeAxe__StandingTurnRight90",
+        "ProMeleeAxe__StandingWalkBack",
+        "ProMeleeAxe__StandingWalkForward",
+        "ProMeleeAxe__StandingWalkLeft",
+        "ProMeleeAxe__StandingWalkRight",
+        "ProMeleeAxe__UnarmedEquipOverShoulder",
+        "ProMeleeAxe__UnarmedEquipUnderarm",
+        "ProMeleeAxe__UnarmedIdle",
+        "ProMeleeAxe__UnarmedIdleLookingVer1",
+        "ProMeleeAxe__UnarmedIdleLookingVer2",
+        "ProMeleeAxe__UnarmedJump",
+        "ProMeleeAxe__UnarmedJumpRunning",
+        "ProMeleeAxe__UnarmedRunBack",
+        "ProMeleeAxe__UnarmedRunForward",
+        "ProMeleeAxe__UnarmedTurnLeft90",
+        "ProMeleeAxe__UnarmedTurnRight90",
+        "ProMeleeAxe__UnarmedWalkBack",
+        "ProMeleeAxe__UnarmedWalkForward"
+      ]
+    },
+    {
+      "id": "pro-rifle-01",
+      "prefix": "ProRifle",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-rifle-01.glb",
+      "sha256": "9C3A2FF9A2672398DEA09BD4807C6BF7FD115A641822CAAA64F2E0C87937FC37",
+      "bytes": 1625088,
+      "clipCount": 24,
+      "clipNames": [
+        "ProRifle__CrouchingTurn90Left",
+        "ProRifle__CrouchingTurn90Right",
+        "ProRifle__DeathCrouchingHeadshotFront",
+        "ProRifle__DeathFromBackHeadshot",
+        "ProRifle__DeathFromFrontHeadshot",
+        "ProRifle__DeathFromRight",
+        "ProRifle__DeathFromTheBack",
+        "ProRifle__DeathFromTheFront",
+        "ProRifle__Idle",
+        "ProRifle__IdleAiming",
+        "ProRifle__IdleCrouching",
+        "ProRifle__IdleCrouchingAiming",
+        "ProRifle__JumpDown",
+        "ProRifle__JumpLoop",
+        "ProRifle__JumpUp",
+        "ProRifle__RunBackward",
+        "ProRifle__RunBackwardLeft",
+        "ProRifle__RunBackwardRight",
+        "ProRifle__RunForward",
+        "ProRifle__RunForwardLeft",
+        "ProRifle__RunForwardRight",
+        "ProRifle__RunLeft",
+        "ProRifle__RunRight",
+        "ProRifle__SprintBackward"
+      ]
+    },
+    {
+      "id": "pro-rifle-02",
+      "prefix": "ProRifle",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-rifle-02.glb",
+      "sha256": "9E530F62640BA125059DEDA205E07A87F3817064E355A5ABFAD0E87E120624EF",
+      "bytes": 1331720,
+      "clipCount": 24,
+      "clipNames": [
+        "ProRifle__SprintBackwardLeft",
+        "ProRifle__SprintBackwardRight",
+        "ProRifle__SprintForward",
+        "ProRifle__SprintForwardLeft",
+        "ProRifle__SprintForwardRight",
+        "ProRifle__SprintLeft",
+        "ProRifle__SprintRight",
+        "ProRifle__Turn90Left",
+        "ProRifle__Turn90Right",
+        "ProRifle__WalkBackward",
+        "ProRifle__WalkBackwardLeft",
+        "ProRifle__WalkBackwardRight",
+        "ProRifle__WalkCrouchingBackward",
+        "ProRifle__WalkCrouchingBackwardLeft",
+        "ProRifle__WalkCrouchingBackwardRight",
+        "ProRifle__WalkCrouchingForward",
+        "ProRifle__WalkCrouchingForwardLeft",
+        "ProRifle__WalkCrouchingForwardRight",
+        "ProRifle__WalkCrouchingLeft",
+        "ProRifle__WalkCrouchingRight",
+        "ProRifle__WalkForward",
+        "ProRifle__WalkForwardLeft",
+        "ProRifle__WalkForwardRight",
+        "ProRifle__WalkLeft"
+      ]
+    },
+    {
+      "id": "pro-rifle-03",
+      "prefix": "ProRifle",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-rifle-03.glb",
+      "sha256": "593807FB8C4C4A39A84CA054CB04A65A5A25CA173AC87E3C7DA5ED2851B9E09F",
+      "bytes": 78240,
+      "clipCount": 1,
+      "clipNames": [
+        "ProRifle__WalkRight"
+      ]
+    },
+    {
+      "id": "pro-sword-and-shield-01",
+      "prefix": "ProSwordAndShield",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-sword-and-shield-01.glb",
+      "sha256": "6F759271086D820CDA670811D8C881EC9ADAAF547942FCB7AE40F140D32E06D6",
+      "bytes": 1529360,
+      "clipCount": 24,
+      "clipNames": [
+        "ProSwordAndShield__DrawSword1",
+        "ProSwordAndShield__DrawSword2",
+        "ProSwordAndShield__SheathSword1",
+        "ProSwordAndShield__SheathSword2",
+        "ProSwordAndShield__SwordAndShield180Turn",
+        "ProSwordAndShield__SwordAndShield180Turn2",
+        "ProSwordAndShield__SwordAndShieldAttack",
+        "ProSwordAndShield__SwordAndShieldAttack2",
+        "ProSwordAndShield__SwordAndShieldAttack3",
+        "ProSwordAndShield__SwordAndShieldAttack4",
+        "ProSwordAndShield__SwordAndShieldBlock",
+        "ProSwordAndShield__SwordAndShieldBlock2",
+        "ProSwordAndShield__SwordAndShieldBlockIdle",
+        "ProSwordAndShield__SwordAndShieldCasting",
+        "ProSwordAndShield__SwordAndShieldCasting2",
+        "ProSwordAndShield__SwordAndShieldCrouch",
+        "ProSwordAndShield__SwordAndShieldCrouchBlock",
+        "ProSwordAndShield__SwordAndShieldCrouchBlock2",
+        "ProSwordAndShield__SwordAndShieldCrouchBlockIdle",
+        "ProSwordAndShield__SwordAndShieldCrouchIdle",
+        "ProSwordAndShield__SwordAndShieldCrouching",
+        "ProSwordAndShield__SwordAndShieldCrouching2",
+        "ProSwordAndShield__SwordAndShieldCrouching3",
+        "ProSwordAndShield__SwordAndShieldDeath"
+      ]
+    },
+    {
+      "id": "pro-sword-and-shield-02",
+      "prefix": "ProSwordAndShield",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-sword-and-shield-02.glb",
+      "sha256": "75D41278561BC3452AA6DC97CF8C54B89F452F83D22D5284EED93424876715D9",
+      "bytes": 1785004,
+      "clipCount": 24,
+      "clipNames": [
+        "ProSwordAndShield__SwordAndShieldDeath2",
+        "ProSwordAndShield__SwordAndShieldIdle",
+        "ProSwordAndShield__SwordAndShieldIdle2",
+        "ProSwordAndShield__SwordAndShieldIdle3",
+        "ProSwordAndShield__SwordAndShieldIdle4",
+        "ProSwordAndShield__SwordAndShieldImpact",
+        "ProSwordAndShield__SwordAndShieldImpact2",
+        "ProSwordAndShield__SwordAndShieldImpact3",
+        "ProSwordAndShield__SwordAndShieldJump",
+        "ProSwordAndShield__SwordAndShieldJump2",
+        "ProSwordAndShield__SwordAndShieldKick",
+        "ProSwordAndShield__SwordAndShieldPowerUp",
+        "ProSwordAndShield__SwordAndShieldRun",
+        "ProSwordAndShield__SwordAndShieldRun2",
+        "ProSwordAndShield__SwordAndShieldSlash",
+        "ProSwordAndShield__SwordAndShieldSlash2",
+        "ProSwordAndShield__SwordAndShieldSlash3",
+        "ProSwordAndShield__SwordAndShieldSlash4",
+        "ProSwordAndShield__SwordAndShieldSlash5",
+        "ProSwordAndShield__SwordAndShieldStrafe",
+        "ProSwordAndShield__SwordAndShieldStrafe2",
+        "ProSwordAndShield__SwordAndShieldStrafe3",
+        "ProSwordAndShield__SwordAndShieldStrafe4",
+        "ProSwordAndShield__SwordAndShieldTurn"
+      ]
+    },
+    {
+      "id": "pro-sword-and-shield-03",
+      "prefix": "ProSwordAndShield",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-pro-sword-and-shield-03.glb",
+      "sha256": "7E38D0CBFDEB39041283AB7FE4E2F3E83479EEF1431D2BCD8F449999D69F8A70",
+      "bytes": 210620,
+      "clipCount": 3,
+      "clipNames": [
+        "ProSwordAndShield__SwordAndShieldTurn2",
+        "ProSwordAndShield__SwordAndShieldWalk",
+        "ProSwordAndShield__SwordAndShieldWalk2"
+      ]
+    },
+    {
+      "id": "shooter-01",
+      "prefix": "Shooter",
+      "url": "/assets/3d/animations/human-foundation-pilot/review-packs/human-foundation-pilot-review-shooter-01.glb",
+      "sha256": "E0FEF84C628F417BF28E01FE8C98024F83B0DF59D5140035703D7296C6E918C4",
+      "bytes": 1161636,
+      "clipCount": 15,
+      "clipNames": [
+        "Shooter__FiringRifle",
+        "Shooter__JumpBackward",
+        "Shooter__JumpForward",
+        "Shooter__RifleAimingIdle",
+        "Shooter__RifleRun",
+        "Shooter__RunBackwards",
+        "Shooter__StartWalking",
+        "Shooter__StartWalkingBackwards",
+        "Shooter__StopWalking",
+        "Shooter__Strafe",
+        "Shooter__Strafe2",
+        "Shooter__WalkBackwardsStop",
+        "Shooter__Walking",
+        "Shooter__WalkingBackwards",
+        "Shooter__WalkingToDying"
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "name": "BasicLocomotion__Idle",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "D92044FB1026E75C4399CF249225E240ABC3115D607634D07CE05D30DD1A77FA"
+    },
+    {
+      "name": "BasicLocomotion__Jump",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "7A05F5C20C0585A824878ABE42C6AF5A6DE33AEF15E256DA5A1EABA90E6F1CAF"
+    },
+    {
+      "name": "BasicLocomotion__LeftStrafeWalking",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "A32EB487BC806872D23D4B9D7BE570A20FC9E5996E601E0A88A1CBDA2B0E6E89"
+    },
+    {
+      "name": "BasicLocomotion__LeftTurn90",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "629CFAD9F16176F664B141211818C9BE47176AC5CE9EF7716E7D9B0E76A8C6FA"
+    },
+    {
+      "name": "BasicLocomotion__RightStrafeWalking",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "756BFBD76215908B751677AD348921B5BC279E0F9785FF66BE60F4FDC49BEA4B"
+    },
+    {
+      "name": "BasicLocomotion__RightTurn90",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "D64ED37B3B71287F8A467D98064A1D776590E2E658246BB34235B5AA1EE2F8F6"
+    },
+    {
+      "name": "BasicLocomotion__Walking",
+      "kind": "pack",
+      "packId": "basic-locomotion-01",
+      "fingerprint": "38A84BEF133D2618B2753708D1A6A0C24175B50F92AA6CD16CE87EF3EC0187A2"
+    },
+    {
+      "name": "BasicShooter__FiringRifle",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "94D18D64D94C5AE224742DC136C8E713CFA54063D903EE3CDD2EB00C013435F5"
+    },
+    {
+      "name": "BasicShooter__HitReaction",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "E9FD139DF35A794AB0AC0C04504E445638DBE732513D75BA993D9404512488B8"
+    },
+    {
+      "name": "BasicShooter__Reloading",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "D2E6AE79869BAD429814739BD6E6983F31BFD8428872825ABF8E61BF71ED241C"
+    },
+    {
+      "name": "BasicShooter__RifleAimingIdle",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "51773E9DCD62BC775B40088D353C7FDAB8CCF77316D0332D0FC88303D4C95810"
+    },
+    {
+      "name": "BasicShooter__RifleJump",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "9A859C6C089802FCF8A7341D73B6536F533D77F3CF6E89E549D93FEF06A089B0"
+    },
+    {
+      "name": "BasicShooter__RifleRun",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "16B1E8BCAC5738AEF2491F1A601F3C53D9B8D9E192CA890C520FEE587DED571F"
+    },
+    {
+      "name": "BasicShooter__RunBackwards",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "DCF35B4342ED55EAFCAC6FF9639DBE2562777CC7FFCEA0359332500D89FFA3BC"
+    },
+    {
+      "name": "BasicShooter__Strafe",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "F98CDD7859C87CD5793B0D6C31BA47BD96EBA8055099FEB28146617BBF8A1F4B"
+    },
+    {
+      "name": "BasicShooter__Strafe2",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "8EDECE95ED0ECBCFC39A0C9A2F412D1529E3BCF1055B19F87DEB27F4DEEA7403"
+    },
+    {
+      "name": "BasicShooter__StrafeLeft",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "C2F9D5111BAFC754AF0859C29157F4322B8F76A79ADABE320E6666A3EDF3CD9D"
+    },
+    {
+      "name": "BasicShooter__StrafeRight",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "35FB8442A54EE030CB7CD5D8A36D775FC5B2F07E6DBB1D18C44DDC7164077A43"
+    },
+    {
+      "name": "BasicShooter__TossGrenade",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "50B844129390A088C2B694947127B6A369655AA5A8ED8D81DE75016EC1AF2F0F"
+    },
+    {
+      "name": "BasicShooter__TurningRight45Degrees",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "EF258C9335B3B54C3F8158F116D800B43D94B45A6AFB89F059F8DE83C287FE7B"
+    },
+    {
+      "name": "BasicShooter__TurnLeft",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "E6F6C012F70AF259CBD816682E9573F5B51C0BD412D8481A4A4A9A65C244D9CF"
+    },
+    {
+      "name": "BasicShooter__Walking",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "B5492E931D7B33A9A9127F0A14F2B94012E88946CCFD7652F6763C861EBAC8B8"
+    },
+    {
+      "name": "BasicShooter__WalkingBackwards",
+      "kind": "pack",
+      "packId": "basic-shooter-01",
+      "fingerprint": "57DA5CAAAF87B999C967EC2105C6D3457D0F30D350ED361E940297AF2F97241B"
+    },
+    {
+      "name": "GreatSword__DrawAGreatSword1",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "D38286E67E91B66101BD83F3B3335A4134A263FA38BCD223EE36A786812D2B1E"
+    },
+    {
+      "name": "GreatSword__DrawAGreatSword2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "75C24E1097D29ADD208EC1FEFA54AF57853D7BFC16981FE2C56538CB5FB8E45F"
+    },
+    {
+      "name": "GreatSword__GreatSword180Turn",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "A83472167779FDCDBB29219D7E8CBA58BED0784790D48C42BEE4E29CB6562CD0"
+    },
+    {
+      "name": "GreatSword__GreatSword180Turn2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "412BBA31429365246B02B967C42101B148F789059BB28B7ED5C3326C6C309049"
+    },
+    {
+      "name": "GreatSword__GreatSwordAttack",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "EDF9953F6C919226335810F87735B073DBA57720186A3DCF37465289555CEEF1"
+    },
+    {
+      "name": "GreatSword__GreatSwordBlocking",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "39279664D684D65DCBE49EFCAFB2EDB324431F6D92F0F4943B24F7F80D08F57C"
+    },
+    {
+      "name": "GreatSword__GreatSwordBlocking2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "CC5162699FAB7534B3318AF2783024ECF43F596F13085F751C375787A8532E16"
+    },
+    {
+      "name": "GreatSword__GreatSwordBlocking3",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "5251C12A777C2558BE693713BE073EFEC3C8706FC2DC2FFF168F95B47232F689"
+    },
+    {
+      "name": "GreatSword__GreatSwordCasting",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "5C4F8D550938648E43AACCA6C4F3B25CE08523781145FE290B6EBBE232FEFD9E"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "4FC744854C617737F62DA8BCF08AED8BD56D57BD90B40EADF2729846B15093C8"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "102738ED1218D46B94BD7619F059DD073F38327117E3DFA321C2701EC99341C0"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching3",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "809FCFB53C098FB207DF16E76E13C27CFFD3FC756044AEDB1EB4AB40E06A6861"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching4",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "587250D3D257D4496E486F076F9398D9FAE75A4C04EE96410A83447ADAB38AB7"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching5",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "68A9AFEF4C39E3107A9BDD0EA94C73DD738312D5FBCBD9DD0E6EBCE8B6B72AF1"
+    },
+    {
+      "name": "GreatSword__GreatSwordCrouching6",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "7BDA5AEA9617C0CF7D8A76C9D829E7ABD3178AB5146892DF9DAA21F494559970"
+    },
+    {
+      "name": "GreatSword__GreatSwordHighSpinAttack",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "10E4DD1B87923886AA30AA805702186BA5A79C5EE8A3A4F034CA58711C449F18"
+    },
+    {
+      "name": "GreatSword__GreatSwordIdle",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "995B4B40A5C148E7D50F55DF9D82558F59677458E3E4EE9E901368B1B506E0FC"
+    },
+    {
+      "name": "GreatSword__GreatSwordIdle2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "040A01EC00983E7F517DA4EE680B84F6FA430DA0C6E8D608D68154F486768C49"
+    },
+    {
+      "name": "GreatSword__GreatSwordIdle3",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "A2910E31F581E17F19005B0F2B8B3C0B12F90497ACD9576CD8A2DF5F3FED5F52"
+    },
+    {
+      "name": "GreatSword__GreatSwordIdle4",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "189134D10BC57FD2F6AB4FFAB33429EBBF192633385C9DBE625DE15EF2495A3E"
+    },
+    {
+      "name": "GreatSword__GreatSwordIdle5",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "23F759F51821FD199F3F7E0EC62BA66F2D2959C3867136159528A512223C21CB"
+    },
+    {
+      "name": "GreatSword__GreatSwordImpact",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "9C0D4826064A93928F2EFB2E75B8D067FB6F78165899C1A2ACB6FD4B8C505EDA"
+    },
+    {
+      "name": "GreatSword__GreatSwordImpact2",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "B12505F57C2681B5EAFD308FA44C410DF9033DF9B915A4E60EA7A3B6EE5454D5"
+    },
+    {
+      "name": "GreatSword__GreatSwordImpact3",
+      "kind": "pack",
+      "packId": "great-sword-01",
+      "fingerprint": "CF36FF8B89AD9571391E4D18890985413D0A819676CE56852F73B938A0610EB1"
+    },
+    {
+      "name": "GreatSword__GreatSwordImpact4",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "E9A1A00B9003C901DD08ECC4BEDB2BECCB3B07D86BF34B575444C58FAAD86FE5"
+    },
+    {
+      "name": "GreatSword__GreatSwordImpact5",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "94122A5988EF4B9588E5D5FF31BBE3953EAA46414C9347F289074D5080ED4FA6"
+    },
+    {
+      "name": "GreatSword__GreatSwordJump",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "00CB40F818E712063F01787A46C32C8334790C5EF20124600515CE413C0D002D"
+    },
+    {
+      "name": "GreatSword__GreatSwordJump2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "5701892CC562B4AB87C2DF3D3F13BD1E3D1124B3B9C8D18C4222227261156663"
+    },
+    {
+      "name": "GreatSword__GreatSwordJumpAttack",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "8F281B0301C0A7E915C687F4F9592F2183524F00DB8FC5835D382B9F56EC8578"
+    },
+    {
+      "name": "GreatSword__GreatSwordKick",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "1B28067D8B1AAD9F384EBE5D7A43C086B74CC3492ACCD00A535DB6CF3E55201E"
+    },
+    {
+      "name": "GreatSword__GreatSwordKick2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "2B3B88D912745D14BA750893223DAB8130102D593C67EBD4373CA3F10758D59B"
+    },
+    {
+      "name": "GreatSword__GreatSwordPowerUp",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "90C08B4622A582FB83177EAA772D0BC87985926921797FDF4D8B71DB243947B6"
+    },
+    {
+      "name": "GreatSword__GreatSwordRun",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "D11C28619902952A3D0CEA9888E4F25D0B4F266EF8C0104C3029CD1ACE7BCECA"
+    },
+    {
+      "name": "GreatSword__GreatSwordRun2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "63D1069007A3BCA614E6B71525E867D4D0A582F2C9A248477027C895807E3C31"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlash",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "1C894AE8659E72906EF9EAC962888C617AC6CCD59AA2486273369EA4DEFC252C"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlash2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "2412BBEF8DA2EA6333EEDB7396C0B3D36FC0ED32DD19DA98162D643998D3DC5E"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlash3",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "5D4C12A08C5C273C8F33E6E28AF20AC2DBEE17C662870AFFA3F70280956B2BA0"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlash4",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "712C7FE59071F5FB89EFA02536CCD6E038122EFEEBB734C8D5B100F660FE669A"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlash5",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "3FB5AE6F7E7B68EE8665AE824D5292F5663E55611926E763586F2966684E475B"
+    },
+    {
+      "name": "GreatSword__GreatSwordSlideAttack",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "143B53F8B913A0363B749EC249F4A803D93D165655E0B0E4D5A81CE027D66489"
+    },
+    {
+      "name": "GreatSword__GreatSwordStrafe",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "89684197D343230082C72F004A79979F18AB637DAB21B1AAA49EE9BFDA3ECF63"
+    },
+    {
+      "name": "GreatSword__GreatSwordStrafe2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "D4A97DE1EF70B8604EC2ED7D6FC78BC9FE4A7900A0016B0643FD58183E10F4DB"
+    },
+    {
+      "name": "GreatSword__GreatSwordStrafe3",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "0E3EBD8DFF9053B5E789421DED0A61F3D80BDB59CD102B16F421C8305FC1C10D"
+    },
+    {
+      "name": "GreatSword__GreatSwordStrafe4",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "F60C743AD56CF0AFC19C6B34D5EF35DB31AA7F07673F1C4945CEA9E6B4113601"
+    },
+    {
+      "name": "GreatSword__GreatSwordTurn",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "14D8E26D6F41D17EADD72E6037B379FBCB3CEFCD8F7B49E97A47A0205452ABBC"
+    },
+    {
+      "name": "GreatSword__GreatSwordTurn2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "8BDD13238F395FB5F685F2C65787E3BC535EC5545AF6A9258825D02E6D9793BC"
+    },
+    {
+      "name": "GreatSword__GreatSwordWalk",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "A9BDE33CD360CE4BBD22F1BC095FA279D372873213321D1A75DB047A904C0D3F"
+    },
+    {
+      "name": "GreatSword__GreatSwordWalk2",
+      "kind": "pack",
+      "packId": "great-sword-02",
+      "fingerprint": "73510E3A624F6636C0CDC6ED7B1E1CB076D001563ADFCF049E80D566A7ADB079"
+    },
+    {
+      "name": "GreatSword__SpellCast",
+      "kind": "pack",
+      "packId": "great-sword-03",
+      "fingerprint": "C218F0E65F3D493132CD6A52B7BE3C3091C523478512493569C766FEB1183C47"
+    },
+    {
+      "name": "GreatSword__TwoHandedSwordDeath",
+      "kind": "pack",
+      "packId": "great-sword-03",
+      "fingerprint": "25F159FF56D875AA68BE4B09DA4DFEADD0DFCB8D44DB32827C9546DDA29A7EB2"
+    },
+    {
+      "name": "GreatSword__TwoHandedSwordDeath2",
+      "kind": "pack",
+      "packId": "great-sword-03",
+      "fingerprint": "6948DC9B80298759AECC1B63DDA00B03232E30CB8B24480B5697D0A26B5702C1"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBeckon",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "79311334E367488B305503BB82E7AEB80171B6509FA0189B4FBA689950798091"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBowDrawArrow",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "851F8272748EE7359A76785A9CAE2456F8B468675A89ECBA7F487B8C901894F2"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBowEquipFromBack",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "8D4AA4D97CD78914B88C2AE8BDFE01AD1544C97CE33C4D794AEB6946BCCE0688"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBowInformal",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "97484FD0C72813CDAC6AB82CAC0B1C31FC8EEA899A809EA6B587BE6E9B86D9F4"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBowShoot",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "31C1DB3A56B4173E704135B20BD7E91119159C633364108A162DB34B86C9884B"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularBowStowToBack",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "C7D52D87EBC2875C31FAA9FA85BC89D7744B464525BCB364690DA0D7A92A3353"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbBracedHangToCr",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "031567283E340B73FF12C4B557EB81F255DA650BA7CD845454DCFD8CEF15A137"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbFreehangToStan",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "FA47089A6D4C706B8D9DE21333E85A65D7CC74C790FA93C143EE97D0C5304FCC"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbLadderLoop",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "A1C5991CEC67BF088C9E2AE927BE926304F49C325C03332D73FCCCC2CFA32F4B"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbLadderStart",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "F76CFDD6CF96D9782D171207158A48C50593CD6BC39792F1D92F09390FD6CD06"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbLadderToStandi",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "023334A4F24096AD346CF078C15E145FDECB69811415B49DCCC63C0840253DE1"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbLedgePullup",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "8D0FB1ED132CE35AE6003B53359B56520FF4C89FB1A2C817AA9F6A540E739EF3"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbRopeArmsOnly",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "023F8D26A265B2697398E289CEAC1D47335278F70FE3244E43FD7764476C06A6"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbRopeHands",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "D5F8884063EFB726C781AB16BD91D8F831ED31F0435127DF0B07F685F3AF0359"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "F7B72F94F20081F3DEB626D8D01E15FB2702867B959DA251359C26ADED125C18"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbWallDown",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "35D2C63F5E3C782E3780882B4F7FD290A187D193E0F1F07FCBC5836B9FF8F7CA"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularClimbWallUp",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "BF0811A5678CF475FAD2DE3428CA46DBB0988E95F58514962A1127DE4312E3DC"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularCloseDoor",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "9FE040CC174972DA00B885E3AF04B4B64D0DA48F3D7738BE8027A60DF191EF72"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularContainerOpenClose",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "BB4440E552BDB28C673199D31EBC7B96D13058F1668788DC0AE3DE1A2B46E032"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularDeathBack",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "F7285E6196222E49ED0FC511EDA1F042B2927F44F31C924B4D9CEA7916A950E0"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularDeathFrontSwordShie",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "B96AD5621231CF012168D2E9C5E5B0D32BF5FCD58FDAFE6544077FDA0562B5E0"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularDeathLeft",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "7AFD8E3DA0730E02FC51AEC1ECE3B29A1831433FF171AAC7E3BBD2F262C1C29C"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularDeathRightMirrored",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "9E025D17313567BC718B0D70839F044939EAC63F532E3C0BECAA570029B27521"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularGreetStanding",
+      "kind": "pack",
+      "packId": "interactions-01",
+      "fingerprint": "088C14F938352DCE4C2D6856F4B5445F713D92E6D86403A84131E3D78F2BED46"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularHarvest",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "B11F1E5C3C0B2D169257D768E99C506C4A45012FBC2C637B900C446B9928B611"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "52903E1157D539D57D2278416C833FCFA152229F2A008706E3FF01FF628742F9"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularHeadNodYes",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "61A68849F0CD1FF2D7CFD4A9DEF926B939C9C9CEDBC6783F2900DC21E71FD6A5"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularHeadShakeNo",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "8EDFF0F59DB99CC7631DF0D8C323EF4D9E27D9E93159293024C6BC63DA965E17"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularIdleSitting",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "12A96F8A0E4664A7D20862685A2936D844FB91907A8A5CC0F8F0C511086656A3"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularIdleSittingPose",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "3E1651175A8A13ADF98A2F7C08D4A2719C9DC3AA656DBDC0DEEAA612C1CC4433"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "D750CA894BC505F12282331756F2E123A7EA18FDCAEC991F124ECF1A1DB373E8"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularOpenChestLid",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "997264AA1E5CA0562046109613653FE93BEF61D00A303995AA3505B0981CEE1C"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularOpenDoorInward",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "EF37E2E7DDD0897401E8363FFEA785AE60B0EB4E100A9541E20D53A660352FDF"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularOpenDoorOutward",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "0C2D225A54C7EF82C1BD3100E903640A59AE3705DC592BCACB26687628942DCB"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPickupItem",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "11E186D73036C0F6E656D2EC438B48CE186EE1F4B2034FCD72D032E56F88BD5D"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPickupObject",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "2A8F98A70454C4EE687230B91A2AF80BB3880C66571149F4F46ACFAE4A3146A8"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPointForward",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "5CA7FCE7FCF9AD3E67DC5BBB33D0CE94E7AB58445D216BACA31493D05075D80E"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPointGesture",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "AE406E0EF5263B3B473A491BF4E7F0CD6E286D28138FACA904750FE32B97657F"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPullHeavyLoop",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "7C0495A2DE305B87FF9A7AAB41CF19FBE8F2EEA99E8E78D0C73F9362BD2D9AF4"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPullHeavyStart",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "35C66F5B648EC37C473CA642CA6E10059DAF94AB4424CDBD325C740891246C3A"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPullHeavyStop",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "EAB423735FC52764C856456C6D5FCCEA66900BC97B11DB1C1391F26F547709DB"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPullLever",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "E533871F424CCA153C95266411DDC8A1491B2B968F255D3F67CA4935E553C1CA"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPushButton",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "AA3399A7761319A062D66A07FF2AB772E1E6163310020714C5DDB9CCEC023596"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPushHeavyLoop",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "21C2D7A64E77707614021A3B17E839BBA060CDDB614544991927225A8B769EBC"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPushHeavyStart",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "901044AB8F75C32BE6025E6D064E74D4509FDFE8133AFC62CEF9E6BD6EC2F620"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularPushHeavyStop",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "D5D3032689987FE85336A73FAB8A11BDF1FB34BA198FC7329FA0ED5D963A1C83"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "B4C410D108CA6BB53ACBA733BD71C0D314DF04701D8AB2DDF467564F8212531E"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+      "kind": "pack",
+      "packId": "interactions-02",
+      "fingerprint": "961A53D66E6CAA45E968B8AAFBD351B226105177BA95EBCE5BF6DFC88CDAF29A"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularSwimIdleTread",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "14C444616131EE7397D2BFB0D57655C74F81BE270A5C0B6C6C9B90294EDE338A"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularSwimToEdge",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "1AB51655983D02E2FDB325F3533496F63359D41E57021B4F731CABF6F474CF1A"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularSwordShieldBlock",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "E37FE7654356A1FCFF89BECF958D4010DF61D051BCE3DACF84AF7564A94B23C7"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularSwordShieldSlashCom",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "B85D539663FE467F387DC5AC6A2F07669883DB2866DF4EF8D29FF229AF3981C5"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularTalkEmphasis",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "88C0CFD5085C188237F835439AB0B7A4B40389E0E4EEA8C4CDCFB2F29C104596"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularTalkMedium",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "AE37397C90114AC251CC22718356A6DD9EEF76642B614428FF92B91D785EA8EF"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularTalkSitting",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "BB67344FA4A8877E40750A39C272FA04CE94F7ADCC388AF544E810697F8D428A"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularTalkSmall",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "90F796959A445F5D54EB9A072AF4498CEFAF312E7F92CBDB1F017FF88AD39424"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularThink",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "8F4347C14383E0A7490A4E94B056E22B5253FA78A5D35CE854EBC956A6397602"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularWalkInPlace",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "56B10A2088B4B16CE20DC0AB45BBE3AD492CAC3B19CB380A9DF5B275BDC47456"
+    },
+    {
+      "name": "Interactions__HumanMasculineAthleticMuscularWaveGreeting",
+      "kind": "pack",
+      "packId": "interactions-03",
+      "fingerprint": "E8CBE2757FDC9004450EFB9DDF8AFA7BA32F86C2AACF5A3EE96C4DDBA1C95B19"
+    },
+    {
+      "name": "MaleLocomotion__Idle",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "86CFDC59D70CAA593288A6E0FEB7FD5D7D717653847E426702E8C286459D815F"
+    },
+    {
+      "name": "MaleLocomotion__Jump",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "677D0BA53CE3D0C83DF7F8CD56859F5DCCA6ADF56EAED74F9F67604BCEA03A70"
+    },
+    {
+      "name": "MaleLocomotion__LeftStrafe",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "89E2A5667ED891C6738FDE756501EA4190B6895F98C72AC61C19C0955B38CC66"
+    },
+    {
+      "name": "MaleLocomotion__LeftStrafeWalking",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "1F7CA6F590452CC4533E61EDAED92891AF3D5FBFC6C8A5E53C3382073CF6D7A2"
+    },
+    {
+      "name": "MaleLocomotion__LeftTurn90",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "5F23D91A4B040ADD42306C5995854C9983E097966880D9094C04B7B449CFA4AD"
+    },
+    {
+      "name": "MaleLocomotion__RightStrafe",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "4509A28096B4AA07F0FE029CBC9F6C2BD229660660563F69BB37A2A8C64D7C5A"
+    },
+    {
+      "name": "MaleLocomotion__RightStrafeWalking",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "D89ED40CBD99832EA0D7F2FE8432AE52089C3657372B294FA0050AAF592F6D9D"
+    },
+    {
+      "name": "MaleLocomotion__RightTurn90",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "54D5E3C0F9DE93E72C4044B5C3CF0A48D2FCDD5CA2A313AA6128B3A783ABD511"
+    },
+    {
+      "name": "MaleLocomotion__StandardRun",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "5972F976866B7E13529D9264684D363E98C7D37227E0B04E6DC972D00EBFF8E9"
+    },
+    {
+      "name": "MaleLocomotion__Walking",
+      "kind": "pack",
+      "packId": "male-locomotion-01",
+      "fingerprint": "62B74CD1D1C68A82DB047C0F4D8C7EB0D2D752ADC7B430F67151E408A410134F"
+    },
+    {
+      "name": "ProLongbow__FallALandToRunForward",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "B757BB2A802E8A9315ACC6A700D7BBAC206C96A68EDDE110238F5DDA69F1D062"
+    },
+    {
+      "name": "ProLongbow__FallALandToStandingIdle01",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "9CBB1DA6F789B82D7851CBF3C141908306157A68F6377A6C4888B44A0B2E59F8"
+    },
+    {
+      "name": "ProLongbow__FallALoop",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "5CBF329D0273A15B49B76A39E105D8C52614250FD05A927B3388977CD542BE78"
+    },
+    {
+      "name": "ProLongbow__StandingAimOverdraw",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "887B49DC1B89DC12E45F493DCA1D4A5368B7135076282F950CA2177BDC797849"
+    },
+    {
+      "name": "ProLongbow__StandingAimRecoil",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "38B3E2B3A324E26D12C62A0ED643470A5CC9C61F9683F0C9D0E38B81D6A0BB25"
+    },
+    {
+      "name": "ProLongbow__StandingAimWalkBack",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "E127B93ACC64B4C16292D8BDC0868EF4BC4BB4CB973DFAC6C3D904B4207E78C2"
+    },
+    {
+      "name": "ProLongbow__StandingAimWalkForward",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "0A0830139B575AEACA05711F8DC9BC6FD5BFA79056C755B3B36565B6C68CEB0F"
+    },
+    {
+      "name": "ProLongbow__StandingAimWalkLeft",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "74E10720ED6C8A4376A16F900CFFDFE725CE43E95B78BA1C578E63AB2389EFC3"
+    },
+    {
+      "name": "ProLongbow__StandingAimWalkRight",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "AAE75C64930B6D057C0D97D7C6D91F46540C3D22B41FF591638AF44E9FC175D9"
+    },
+    {
+      "name": "ProLongbow__StandingBlock",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "6B4B325CDF88D9D1BCC14E24A5F5E9F2657C57DA88346EACE6FC11CE39820B3A"
+    },
+    {
+      "name": "ProLongbow__StandingDeathBackward01",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "BC36923DAD0E86CB1475B5EE1986D1C3CBA9276AB73AEC56D05FE85E7648B5F2"
+    },
+    {
+      "name": "ProLongbow__StandingDeathForward01",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "80D7A5104067FC702B02E7B23E6D20316E1247514DAE67E53D948C958D63663A"
+    },
+    {
+      "name": "ProLongbow__StandingDisarmBow",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "0B7170FC6EF6ABF1F92826CF2C9A14BF6E4156B4F45CA576B665517BF6BAAC0E"
+    },
+    {
+      "name": "ProLongbow__StandingDiveForward",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "58BB3BC795A6D0C1DBB43C47221A85B6BD367E4709D3FF682932B3D6CF0D5729"
+    },
+    {
+      "name": "ProLongbow__StandingDodgeBackward",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "4C9C11B9A96C85345BDA557F6839F2EE0F2AE8DDB3A9C026D951C4E9B4BCB41F"
+    },
+    {
+      "name": "ProLongbow__StandingDodgeForward",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "A03E5BE1E0D87CA3E5687F9A3F8F72872FE72088EFBC6AA580A4751D171E578B"
+    },
+    {
+      "name": "ProLongbow__StandingDodgeLeft",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "940D9688C87E11C41523DC7F632CCC19FD5C88020E0EF65DFC796B6C24EBE544"
+    },
+    {
+      "name": "ProLongbow__StandingDodgeRight",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "9E5F5BDD06F21CA208B36468C5EC9D1F600217B9C579A63C8951272998458365"
+    },
+    {
+      "name": "ProLongbow__StandingDrawArrow",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "2B48F70DF54299E0C154BD906B90B6951831F48EFDF83804A4ADAA9E0325995D"
+    },
+    {
+      "name": "ProLongbow__StandingEquipBow",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "1507D95B76738B8930A9611D52F340DDA967F5B0C18DC1BFE4273E4B59510F75"
+    },
+    {
+      "name": "ProLongbow__StandingIdle01",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "0D178AA442AA4DCB4BA0DA85CE0AA0C1E4538E70277197FBCA29AF147B652D57"
+    },
+    {
+      "name": "ProLongbow__StandingIdle02Looking",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "E945C0E4ECFAFC76059BAE33D0B030B11CD992B814BC1A2579C777FEA1D7A903"
+    },
+    {
+      "name": "ProLongbow__StandingIdle03Examine",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "354E173608B702D9B848689568A3FAB1742C5BFD1041418CB0F85F9AE7F981E9"
+    },
+    {
+      "name": "ProLongbow__StandingMeleeKick",
+      "kind": "pack",
+      "packId": "pro-longbow-01",
+      "fingerprint": "145EAE719DBC6C7AE40E64C67B861ECD659F4391EFCC04BE9FF9F24D2BD5004D"
+    },
+    {
+      "name": "ProLongbow__StandingMeleePunch",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "08EA9D0F421A3250E2359EFBA156242F7443470FF4F4A824D48BADD0A91F2292"
+    },
+    {
+      "name": "ProLongbow__StandingReactSmallFromFront",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "97B6844A0F2CF192B5229DE2AD4E39AE6B34CF0C60EC8730E8959D4E22B3F0DB"
+    },
+    {
+      "name": "ProLongbow__StandingReactSmallFromHeadshot",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "D7CC2303587BFF072907CD656E17DCC276AC1DA0D4E03E19B674C101FA7D84CD"
+    },
+    {
+      "name": "ProLongbow__StandingRunBack",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "7E68495A57AB077A7B6A9E9A7443DD2E7D3C6B54487E43EC4E0A7AEEE19F8C0A"
+    },
+    {
+      "name": "ProLongbow__StandingRunForward",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "7D67B863E794367ACA8BEC1F9F4E6EF017FC8B44E2435192E499642A44475D15"
+    },
+    {
+      "name": "ProLongbow__StandingRunForwardStop",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "28F883BFB7C5555905CF882011E559A8EF4C1FACAF279DDE68A07FDB15E0DB50"
+    },
+    {
+      "name": "ProLongbow__StandingRunLeft",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "0BA54BF5132F87F9AD5848DD3ECD02FEF34F3271AE3D59D5E4BDBEA2AFD7C0A7"
+    },
+    {
+      "name": "ProLongbow__StandingRunRight",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "7A55E6987BEE3B4D3956B7EF6EAB540B8F59597F8D4410B9A25E0C6090ADDEFC"
+    },
+    {
+      "name": "ProLongbow__StandingTurn90Left",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "9D9C6E1A46CE672E60B68CADF66F45B400A081ADF3C56CECFB93F0C86D397B8A"
+    },
+    {
+      "name": "ProLongbow__StandingTurn90Right",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "2C1DEF3E260BA78CE35476D47575053A717752172D0E792738B21B2A0C7EA645"
+    },
+    {
+      "name": "ProLongbow__StandingWalkBack",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "640915E6486EE309214CF7AB6C024615CC7DA3B9B6E455F6291E2B88CC4EF435"
+    },
+    {
+      "name": "ProLongbow__StandingWalkForward",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "33323EC1A6002AC48FB128B2AA3A72F554533A72ACEA28881C32237866875DB4"
+    },
+    {
+      "name": "ProLongbow__StandingWalkLeft",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "09FB6ACD6979C84F5135B65EB4048D443268FAA85B61995AE273B716E313DF74"
+    },
+    {
+      "name": "ProLongbow__StandingWalkRight",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "F8D213363751B90AF16166DFA2461228AA549A7AAA9D27AC6C4A35A95928FCFC"
+    },
+    {
+      "name": "ProLongbow__UnarmedIdle01",
+      "kind": "pack",
+      "packId": "pro-longbow-02",
+      "fingerprint": "35B90B8FE10DBEA8F4E1677BE7F3779AC140ADBADEE35B99C6FB6AE3C5C06504"
+    },
+    {
+      "name": "ProMagic__CrouchIdle",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "11B1C0A3207DF8CD1F480E1BB9EB094A18CF089A9714F6511DE5B5E368137F02"
+    },
+    {
+      "name": "ProMagic__CrouchToStandingIdle",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "54649E062C9886A280A22616A132B0E14A6C51472FA6893FB49D1890F2B1B232"
+    },
+    {
+      "name": "ProMagic__CrouchTurnLeft90",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "392D191E7E787AE2575AF3F3A6AF57A3BD2FC8A791414718E1508A71E4227D4C"
+    },
+    {
+      "name": "ProMagic__CrouchTurnRight90",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "6DB5989085A2DD9966F110F1FABD1E2C39D01C5493C5EFCB9BB8D088843E2E1A"
+    },
+    {
+      "name": "ProMagic__CrouchWalkBack",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "1C3F7FDFFA1CD4EB1AE78DCBDA93A239F791FFC35BD886DFDACC18431087C460"
+    },
+    {
+      "name": "ProMagic__CrouchWalkForward",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "9D6F1F75342A137158262C25378E7B60BEAED8D3E5099C4874DFE1E4C3549E86"
+    },
+    {
+      "name": "ProMagic__CrouchWalkLeft",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "9EDA3E569B8DB03084D90F41495F981EDC7EBDF6548669ADE47B519C86DCD537"
+    },
+    {
+      "name": "ProMagic__CrouchWalkRight",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "F36E94A58760CCD1A63836A158303E87648506E6783C8EF44020EC5C60E0657C"
+    },
+    {
+      "name": "ProMagic__Standing1HCastSpell01",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "AEC1AEEC4A451B6761FA67775C668A6A18D27420564F4E3941822DA8B90175AE"
+    },
+    {
+      "name": "ProMagic__Standing1HMagicAttack01",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "B14A82D0BB93125A0AC7BCFFFDE8BBC78EE05D31DD2E67AC771F25611F938D90"
+    },
+    {
+      "name": "ProMagic__Standing1HMagicAttack02",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "B9EDC21BC7C67BC8591B6DB6698B22775C208677E0BC6C4445578DEDCC55A244"
+    },
+    {
+      "name": "ProMagic__Standing1HMagicAttack03",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "CABAE43015C74FBD00793E896921255C8611363B1FAFE5CA2F91FEFA9E37820F"
+    },
+    {
+      "name": "ProMagic__Standing2HCastSpell01",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "A66C16463C6C3D5B00B25EA3613F821DA55E58696A98F2E8B3B7C9590A7C1FAC"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAreaAttack01",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "8B5F03CA985E228141329286B09C1807EA7ECD3374C9C5403223C58D925A8A61"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAreaAttack02",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "5F9F5540BAB169F9C7BE6B64640CEDFD73EE8A4C39BE7ACB9AB0C49ED826624A"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAttack01",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "A127D15E5A77F820EA3B1CABDF897B6E14DD9D5C391B7239D2594C1DA08A7728"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAttack02",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "760C1C95017A560761CCB10194BEE1093AF99B6FA8E1A41690CF995D09DFFFD7"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAttack03",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "A8A8F388D4D7D1A8C65D93129241006412E051F00D63B2D75B2A497FEC4B63CB"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAttack04",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "F12DE209B26EC0E4E84C4EDCB2F3257D4E2C6C4E8645E20B2E493F1E97A55B48"
+    },
+    {
+      "name": "ProMagic__Standing2HMagicAttack05",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "EC0186CC6D84698AAF866647CFE147F35DBEF8EE805A898B4E47389DD57ABCDE"
+    },
+    {
+      "name": "ProMagic__StandingBlockEnd",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "5A0F269CB4D2BE142D75471FB8F5F5D20BE4F2A5705B5EAF46BBA71D998C6022"
+    },
+    {
+      "name": "ProMagic__StandingBlockIdle",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "8E54F5E130F9635E38041023116387FB7F0D5FB0D291C4A794A13222069A95E7"
+    },
+    {
+      "name": "ProMagic__StandingBlockReactLarge",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "39567C7B1F84B3F5F9B934FC760FD6709360B80EB1865C1C91FEB866E19E1484"
+    },
+    {
+      "name": "ProMagic__StandingBlockStart",
+      "kind": "pack",
+      "packId": "pro-magic-01",
+      "fingerprint": "2274246F78D1FDCD6DCD70475EBD1C192D26913CCEEDBD9A2D80FF8E66971954"
+    },
+    {
+      "name": "ProMagic__StandingIdle",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "C20CE91966EDC1EEE2F2902400B0F69A205CF55B80BE41113853AC36562637E6"
+    },
+    {
+      "name": "ProMagic__StandingIdle02",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "E77A18ACA8278CCA6B16566F3264A055BCB11708744CD4CFE38752E4C17CFFBA"
+    },
+    {
+      "name": "ProMagic__StandingIdle03",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "031FAF83019E4FA99B9CF5B4CF06B2CB64B8B2160C68F362B197F593D0428DD3"
+    },
+    {
+      "name": "ProMagic__StandingIdle04",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "74E57A5A03EEA92F1E2A970595FD28FA973DFF0171288C287D8CA489B061D4C8"
+    },
+    {
+      "name": "ProMagic__StandingIdleToCrouch",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "8F1699AC735D68790F77D05C9537F150BE52F841CF490CC52513257B8B65D316"
+    },
+    {
+      "name": "ProMagic__StandingJump",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "8E932C2AAAE6E8C4604D834AE94A4735848BDB13EEAA7DDC9F8000B480AFE39F"
+    },
+    {
+      "name": "ProMagic__StandingJumpRunning",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "78E87A5F4ECFAF9E280278472B2603435FA603CC82D3C5396B83198A425716BF"
+    },
+    {
+      "name": "ProMagic__StandingJumpRunningLanding",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "A28D3A9B1B2599D15838FACE075B02F301BC96379A00A423BB018E7AE21144F9"
+    },
+    {
+      "name": "ProMagic__StandingLandToStandingIdle",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "F8594DB299018B91D5B6EE4D7D9C20CD7B421FD2B7E7135F12DA6AAAE318A919"
+    },
+    {
+      "name": "ProMagic__StandingReactDeathBackward",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "C73AA11059529BDBC35483A27A0EE6CED3B99AF6BECD208522A97E2A9B452EEC"
+    },
+    {
+      "name": "ProMagic__StandingReactDeathForward",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "CA86FC3FE74C24CB8824C2B5059CDAB51C9DEB38C542FFED0BF5B823423986A2"
+    },
+    {
+      "name": "ProMagic__StandingReactDeathLeft",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "C9D7BE50489BC3A9C9D0669C96BCDB8A5619AABE82CDF33FC45BF996450BAECD"
+    },
+    {
+      "name": "ProMagic__StandingReactDeathRight",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "2E5463D571B7DF815BEFE408040B4398EDAB1DA55FBAF7DD59F623B871299D2B"
+    },
+    {
+      "name": "ProMagic__StandingReactLargeFromBack",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "17E9F2629FE52AC53CD18AB9A4E97DC67E3910EA0246582AC2550DD736447B1A"
+    },
+    {
+      "name": "ProMagic__StandingReactLargeFromFront",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "60403261838710E7976D1C2C3162101F7B4354101DC6F375033FF3C8849D2F16"
+    },
+    {
+      "name": "ProMagic__StandingReactLargeFromLeft",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "D2988D4A2939E88307C61331326C57246D5D5D9194BA08C4023565C70731EB1B"
+    },
+    {
+      "name": "ProMagic__StandingReactLargeFromRight",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "48231C586F3F72DDF4954B55BE8ED7F7EE174BE9EE354A1EDE62F475CEE1BD3F"
+    },
+    {
+      "name": "ProMagic__StandingReactSmallFromBack",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "6CAC7C67CE1E073E7BEFCECC44F2ADB438380AC72C7D4DA92B45B24B57E21274"
+    },
+    {
+      "name": "ProMagic__StandingReactSmallFromFront",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "FE021A4416CBA0D9472C4CDBF80CC037225B368B97222CAD4128B67E51B770A4"
+    },
+    {
+      "name": "ProMagic__StandingReactSmallFromLeft",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "EAE3CB63C5475957B33D228D0981A1ECE1A8BE1311A5A09C3952DAEE3D4F1A91"
+    },
+    {
+      "name": "ProMagic__StandingReactSmallFromRight",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "9D2A5502E81E846B15F95C06730AB57D2631F413F0B356288CCF62668374C3CD"
+    },
+    {
+      "name": "ProMagic__StandingRunBack",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "0BA6320E941D0168D12186C4FBA6C0FF5A82385CC7C15056AF31B79AB163A90F"
+    },
+    {
+      "name": "ProMagic__StandingRunForward",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "7684D9FDD8EF5973BFF349E80265025EB4140164F18C510B2AF4B7186D579353"
+    },
+    {
+      "name": "ProMagic__StandingRunLeft",
+      "kind": "pack",
+      "packId": "pro-magic-02",
+      "fingerprint": "16FD387F2FA1B4C5CA158436EC57AE16F4E5A2BAF17D51BA2E88EC71C6268DB6"
+    },
+    {
+      "name": "ProMagic__StandingRunRight",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "BA1ACE1B383E5A3B20E7FE9973D78B615F0859AA2054831000DD0D8D79F06FD9"
+    },
+    {
+      "name": "ProMagic__StandingSprintForward",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "C41B7A72F7D38C9D7F53DADBD55E0FFDDB6CFF04E34C960C09CE2E9FF699ED47"
+    },
+    {
+      "name": "ProMagic__StandingTurnLeft90",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "F10EAB232D82D8D8EA479FFDA2745934E74BDB2D81FF405673E5D4D6840A80DA"
+    },
+    {
+      "name": "ProMagic__StandingTurnRight90",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "DFC36BECD21020326B92E83FABADC62ACAD51CABCFF7A09BA6571609B6844387"
+    },
+    {
+      "name": "ProMagic__StandingWalkBack",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "EDD148A5E484D3B9DC5AA6EA62041D691AD1B1E98D78523BC70D266A124B77AA"
+    },
+    {
+      "name": "ProMagic__StandingWalkForward",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "A2058DCADF0B0A282DB735CC16BA63911A265E909260F56A69676C72C00AE993"
+    },
+    {
+      "name": "ProMagic__StandingWalkLeft",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "AC8D217F92276E7A926C6582FC3318BD033E734506E109BF75FE4752D470305D"
+    },
+    {
+      "name": "ProMagic__StandingWalkRight",
+      "kind": "pack",
+      "packId": "pro-magic-03",
+      "fingerprint": "DB57E56F625B90D3A85C239EA11C2800C82AF910CE5A8B63992A4C8162224F64"
+    },
+    {
+      "name": "ProMeleeAxe__CrouchIdle",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "E5A7BE61F3B0A3DEB61873C2BCEDD11B1E824ACAC35E3D45AAECEA7DB278EE35"
+    },
+    {
+      "name": "ProMeleeAxe__CrouchToStandingIdle",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "920CC0A2CC9F32676C1BFE716BD17AD578460378EE4BF55DF18B20CE1DFB7AE2"
+    },
+    {
+      "name": "ProMeleeAxe__StandingBlockIdle",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "2749F7705089E81EA51CA99722A0378F64F3BC83ECD1676C4C5BCD0E9E9E7B43"
+    },
+    {
+      "name": "ProMeleeAxe__StandingBlockReactLarge",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "C1A02E52B432BE8D081309395F426DD19CEB2CC88C8351E4643C103C43D33F7F"
+    },
+    {
+      "name": "ProMeleeAxe__StandingDisarmOverShoulder",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "F1651188AFDA168329D07C2CA9A116226F8D64AD1C9E2F9E261F5277A2D445D9"
+    },
+    {
+      "name": "ProMeleeAxe__StandingDisarmUnderarm",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "53B64D268814F49C328514AD7148259E8CCC94D19412327DFD4A1569B15C1005"
+    },
+    {
+      "name": "ProMeleeAxe__StandingIdle",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "3630B57631AC938D4AC0C61F032BE42559D2591AE8ED33892F17758667DDDF98"
+    },
+    {
+      "name": "ProMeleeAxe__StandingIdleLookingVer1",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "79D8940F748899D4004BFD33C568F06456A6A02A51000DEDC69AF16B2BC68B26"
+    },
+    {
+      "name": "ProMeleeAxe__StandingIdleLookingVer2",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "2732726A0445248A94EC44A77D479C9B0B2030E35EB9B5B27FA46B2CADDCB9C8"
+    },
+    {
+      "name": "ProMeleeAxe__StandingJump",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "93107D2E461BAF452A609D9BA0A57E3BCEB1BC5030BB90F1AD30FFD8D7018376"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttack360High",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "16AEE8EF1C48FA1C1F0BEBA8759C2F0637A9589B8435050908B6DFE18F747B95"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttack360Low",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "5E8E79BA8D1DDFE1D06C53751C48DC22D83FD7B6688E5E243AA283F66D6BCB08"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttackBackhand",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "2C2623BF702B0621DCC2CF5D500D192CCE958E0848DD953CB7917EBD8D900D40"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttackDownward",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "7E2D29AA33C47453C28AEB15C5B93DC0B7A965EE27260DCE2E31C40FEFD6A91C"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttackHorizontal",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "B89BF4A441423EFD6072F35CF1AAEA09A6F7066539236939D0D12FD07D44D5CA"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttackKickVer1",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "A11CAA2469CF5F29487F1DBDBD0E18CEF7ACAA6AF82B3AB9E22C5B7CCA0CAA05"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeAttackKickVer2",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "E4867E59AAF58D2510845F2949EFC5D735D753A0032A2AEC05A386A6EFA57AEE"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeComboAttackVer1",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "63D6C43E7BD7AC62B0484A928DA955296654DF4BD4F1DCB214E8BEBAFE1709E3"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeComboAttackVer2",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "C864446B55607C9F250939883F8C5C3A8C04106732AF283D0160E1C3535EA248"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeComboAttackVer3",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "3DD02B3A8E1198D6A5915D3CC4E7075D55137F08DDF9A6CACB32BF22F156BA31"
+    },
+    {
+      "name": "ProMeleeAxe__StandingMeleeRunJumpAttack",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "083B3B7BF23456B5AC949FAA872F95748345FF4CCD29DE8943943080AEFE9C2B"
+    },
+    {
+      "name": "ProMeleeAxe__StandingReactLargeFromLeft",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "6EC171E0439AB07C4851C775639C03A89E9396E40F740683510DF7E8816DE688"
+    },
+    {
+      "name": "ProMeleeAxe__StandingReactLargeFromRight",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "F60F1BCEAF7270D48FB8373C344476A711FD74AF8606BB2FC025236ECCA2DFCF"
+    },
+    {
+      "name": "ProMeleeAxe__StandingReactLargeGut",
+      "kind": "pack",
+      "packId": "pro-melee-axe-01",
+      "fingerprint": "FF9838D65688A6AD8D07A5B4436FAA275A1F26867B9430E409D7305FCE21D9BF"
+    },
+    {
+      "name": "ProMeleeAxe__StandingRunBack",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "1BD279E54D5EE0C6766C7BA941F960F0FEFF6438CFFA2E0A807D1A8B1FB471D6"
+    },
+    {
+      "name": "ProMeleeAxe__StandingRunForward",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "2DBCA068D3ED7CD05C493ED4C1683DBE2944ACA55CEF9380CD44AE568A4E36FE"
+    },
+    {
+      "name": "ProMeleeAxe__StandingTauntBattlecry",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "12034A0AF5F892708EAA9169F635A20663E033343F473836CBE78248D5E68485"
+    },
+    {
+      "name": "ProMeleeAxe__StandingTauntChestThump",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "E1D011E383F5FC1929A59DBB9B282D6B1A70878DCBEBE4F12396628C6AF20F54"
+    },
+    {
+      "name": "ProMeleeAxe__StandingTurnLeft90",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "E270755F36387591A0873360C7308FD008930141B601A400D258280B2DD31BCB"
+    },
+    {
+      "name": "ProMeleeAxe__StandingTurnRight90",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "A89252E32832B38D84997E475C683E8BBEF8F8ED0DC84C64062DFB0EF4EC1080"
+    },
+    {
+      "name": "ProMeleeAxe__StandingWalkBack",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "A2E828498ACC25CCD9132C014E090E87057449802A4362AE04E84A9F31083CB9"
+    },
+    {
+      "name": "ProMeleeAxe__StandingWalkForward",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "7DAE21B75A7BDA3AA4EB9E7C6B3A40EC0DCB74D0F3E4524AABE664A4256AE1BE"
+    },
+    {
+      "name": "ProMeleeAxe__StandingWalkLeft",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "FCC7E92B5BCD6A04B3442481263F9BD9A16CE74044B7176AEDFEC47FBF753FC2"
+    },
+    {
+      "name": "ProMeleeAxe__StandingWalkRight",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "29C46D4B2D3EBEC8346764100FDE5CC28D74FFB095BE02913CBC6DC15F4178F3"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedEquipOverShoulder",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "EBF7BB674A9F8E7EB23C3B43F3D0BCA73930DEAC678866A32A01AE0152C9E7AF"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedEquipUnderarm",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "BD36F0C5F6B43254FA44B6097840F137EB937CFA35BB62C4990556987B4B0277"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedIdle",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "C39C5A2D9100D71110761F86B3F5FAF9676FF260531BDD5645F142761AD8B9F0"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedIdleLookingVer1",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "F07411ECEB845B18748F7C9D0F2BAB0AFDC4CB61D33B14E325E374B10609E083"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedIdleLookingVer2",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "4AE8AA43C61168E25A478BB428611C6DBF4114B7150E0AE00CFA5C5A13C3BCC6"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedJump",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "453567469197F13759B7B5126A6E1664FB001ECC24355837DC83FF383C4EBCD7"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedJumpRunning",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "A848B3969B238E98B3F674D6BA2F9F49898312C24FC7BFC06ECA43852098F51A"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedRunBack",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "A1B1B28D9DA1F30DDC76A2BF54EEFBC197E60FE5EC54713D511E505A3983792C"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedRunForward",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "AA0F1A50F9590612032040DC938245A5990DC619DDBCC3BAB5E8132FD0E7D698"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedTurnLeft90",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "0965323956C792D4BC27F65A115C11C4D15C073B005F0200E5650F873F79D01F"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedTurnRight90",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "5F054B465E2A7F3539EC41C2837E02CAAA442C1263AAB2B6D860765CF89C3824"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedWalkBack",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "2216CCFE0F9CCBD091D700C201D46BFEDDB7983D5CC269FC4536B9161A168B36"
+    },
+    {
+      "name": "ProMeleeAxe__UnarmedWalkForward",
+      "kind": "pack",
+      "packId": "pro-melee-axe-02",
+      "fingerprint": "4270A6603106963B686044114BC3F14816634AE6E6B00617044F14737454CB64"
+    },
+    {
+      "name": "ProRifle__CrouchingTurn90Left",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "86FE81F48DCACBEE07E3561F8E1F3A4751B2AB4730029549E4245278D7B44BBB"
+    },
+    {
+      "name": "ProRifle__CrouchingTurn90Right",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "2EF496D586863C80DB08E766C6034A4C8DA209FD7A4816D8FAC24ED45C728957"
+    },
+    {
+      "name": "ProRifle__DeathCrouchingHeadshotFront",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "A30A02336EF80F4AB5CAE1C4FBA4E69CF39D66A7FF248A6F6DACA8DB3E6AFFDA"
+    },
+    {
+      "name": "ProRifle__DeathFromBackHeadshot",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "12DBBEC781369350C06BC2A9C1BD04C647EF7198A4E974A51C50E5B154F68F55"
+    },
+    {
+      "name": "ProRifle__DeathFromFrontHeadshot",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "A589F549B4DF0E1B5E1B7F3920FA00ED3E8CA63E91540E57906D73B82DD0C170"
+    },
+    {
+      "name": "ProRifle__DeathFromRight",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "A45B2C3671E94719C1FC6497287E33D69B74B774A9F7FAB82442D70C4C6F80CA"
+    },
+    {
+      "name": "ProRifle__DeathFromTheBack",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "3945C1B4CBE3B8AE7A46D9BBF455B44B52B345B838EEFD3B20473360E5B04212"
+    },
+    {
+      "name": "ProRifle__DeathFromTheFront",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "5D84B28579ACCC718A97E5D2847100EBF85E2A132BD17A576C56BFB6916DE6A1"
+    },
+    {
+      "name": "ProRifle__Idle",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "32D95826E7349CE7C7024B3CCC2ADD249E0D9F402A610470F8E049D73B91ACFF"
+    },
+    {
+      "name": "ProRifle__IdleAiming",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "647E08160D181B5B2F1D44923CC36E24C2E6B0A37DB96AEE20355ACBF5C38881"
+    },
+    {
+      "name": "ProRifle__IdleCrouching",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "66080F82A843661AB0C99059581463106A2F0B8C6B2CC97F022A8AEB5F090823"
+    },
+    {
+      "name": "ProRifle__IdleCrouchingAiming",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "55B38C8CFF28C524D4DFB87F06B41A6AB893DE18DAF9909D9CFDDDC4714ECAE2"
+    },
+    {
+      "name": "ProRifle__JumpDown",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "76392C7C2BE1055C469FD9C7D0F770BDDE2F0BE8F54395DA1C53D84C556C4F20"
+    },
+    {
+      "name": "ProRifle__JumpLoop",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "262D29A53380FB74366FF013A5185D8FCC82A9F6D17B1F14457CA46BC14C9CDD"
+    },
+    {
+      "name": "ProRifle__JumpUp",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "819BDD6A95191CE9DEC59DF08B8FEA637F6D45EB7E5376E995D315B202149EB3"
+    },
+    {
+      "name": "ProRifle__RunBackward",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "83F8272FE9E614C8C5BB42AC936BDF9F423041B3BAEC7ACCD10942D96E476E42"
+    },
+    {
+      "name": "ProRifle__RunBackwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "2C158A5EE0FDDA71467C1E5640DFF07382BF8E3DB33F3E22FB1D3BF0CC103059"
+    },
+    {
+      "name": "ProRifle__RunBackwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "8CA46979F3BB42D6A363805A66AB0275C388E1A0E99F88958673E08252A36E0C"
+    },
+    {
+      "name": "ProRifle__RunForward",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "B5D99F0BCF0CEABC241F5FCF652158137A85EB52777221EC425BA234C69F03D8"
+    },
+    {
+      "name": "ProRifle__RunForwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "BCEA192FA19CD4F9EAF845E422553ED5E8000D364B8E9DC4889E03A848919161"
+    },
+    {
+      "name": "ProRifle__RunForwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "AC92511C8E6343229634BFC9F58A967DE0ED622557064E61D8172B56C1B9F417"
+    },
+    {
+      "name": "ProRifle__RunLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "0E14E8ED40B35E71F168CF3152FCD8F3DE8706DF7285DB6B7CD9C2A4B1924876"
+    },
+    {
+      "name": "ProRifle__RunRight",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "CF897AAA1C77BF76A8A8AEEEE1391EE9317290523EF4D379E0171A8CBF340378"
+    },
+    {
+      "name": "ProRifle__SprintBackward",
+      "kind": "pack",
+      "packId": "pro-rifle-01",
+      "fingerprint": "FA1D0D8DAB55D09D39A4E1A27F97DE24B752E3A372D9B0B38B742B1D462482C4"
+    },
+    {
+      "name": "ProRifle__SprintBackwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "9C3CAFD0467828533922822969F17AA8B23C427C5861680F0F60784937AF64FC"
+    },
+    {
+      "name": "ProRifle__SprintBackwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "FD7FB99EA0BAF891B5CDDC16A4DA0E6BE7CB8B95283E77AE808DF7EDC61FA01E"
+    },
+    {
+      "name": "ProRifle__SprintForward",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "A6DB34696F46DB76B30D2CE4063D46CD9C8A91A21AB545E34CD17D0B594BD15D"
+    },
+    {
+      "name": "ProRifle__SprintForwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "B0183639328C48C39B3F4DEEA2DB6C41C3FEB8167861B1720DAE184CF07712DD"
+    },
+    {
+      "name": "ProRifle__SprintForwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "8A9C622A6D89C94FC36C50416AC7551729812329B59CE944BEE3D3FCA0A6DB87"
+    },
+    {
+      "name": "ProRifle__SprintLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "6324A0CAC3FBE39010F0D840A18A937C545F3959F25F65C7FFAAAA226B4C7ED6"
+    },
+    {
+      "name": "ProRifle__SprintRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "535E0ADD7F78E6427B4A4497749A5FFB654343509E37C2586DB2A0958BE6A13B"
+    },
+    {
+      "name": "ProRifle__Turn90Left",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "07EBF7765DBA54847FB04A94299C1BF2E88DAC2A15D660640D4AFAF43182E3E4"
+    },
+    {
+      "name": "ProRifle__Turn90Right",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "7E6557155B9022AF00114C21D2638BD821665195D7C23A19B3F1490706AB868E"
+    },
+    {
+      "name": "ProRifle__WalkBackward",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "9BDD410A93A657C8F77A9230990E423C80DBDACDCDD8631196D57448E325527A"
+    },
+    {
+      "name": "ProRifle__WalkBackwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "D378254778130E7A6CBE31EBADC0D46A2A072490812DBE229C18B955273FCD71"
+    },
+    {
+      "name": "ProRifle__WalkBackwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "81423FCF25C1C2B7001498CBB98AEE5C7EB83AEE4A82C6129C7D9204FCE99DF4"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingBackward",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "6E21289EE4CEA8851770482D13A9F3608AEE905B7250583F6D8D220D58357092"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingBackwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "38195C97AC2C93B8A4D99B567704FD51BDF9F79363C383C723B6078CDB6946D6"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingBackwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "B1D2BB87966D1C53A52FEE088264CF7A6A12CDDBFDAD6F6D55285B3A84A9E4AE"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingForward",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "0FC1F082A1EC430B8EF395E16AC77A917BC372575CE67265D4C704CED57F4388"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingForwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "34A2CC26E753D4A94536E558866B901BFDC3A974E12AAAE538C7B55E86045E17"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingForwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "C36CD4BA326A83C0DB90A999656DA88910C434BC92772D21AA9FCBA6BBC6D770"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "6014D81DEA8758CE13105D75B9F993395D41573DD187C74D1D7B057D092AB692"
+    },
+    {
+      "name": "ProRifle__WalkCrouchingRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "E7AE436A91C718254527A80A814957FDB51BA0BF9CCDC774C9FCFC86AB627C43"
+    },
+    {
+      "name": "ProRifle__WalkForward",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "02F2BA6A5462C97ACF190380C7D64D6B1416C02C562F8704A2973ED32C4B69F8"
+    },
+    {
+      "name": "ProRifle__WalkForwardLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "C9939BCC466A7EAB38B0AF3C96972EBE9E27BE521DAC527337389CB57CA26455"
+    },
+    {
+      "name": "ProRifle__WalkForwardRight",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "184A0282B3F1F46B6D72E7B204B004C75DD467703E5CB6311C16CB9966CF28EC"
+    },
+    {
+      "name": "ProRifle__WalkLeft",
+      "kind": "pack",
+      "packId": "pro-rifle-02",
+      "fingerprint": "E4611D468B36F97E0C6A559B3584BD155D4AE941F767886BDAAE1293C954E078"
+    },
+    {
+      "name": "ProRifle__WalkRight",
+      "kind": "pack",
+      "packId": "pro-rifle-03",
+      "fingerprint": "333088F893DD6DE22CCD3CD0345A3B2A128FCE7EC907048B18BB2BCF0E444C48"
+    },
+    {
+      "name": "ProSwordAndShield__DrawSword1",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "C64D8D627B08CE540B18849432524B9BB4AA5D2F475E2106EE88A671DF3284BE"
+    },
+    {
+      "name": "ProSwordAndShield__DrawSword2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "818D6D3A9ECB0AFA84A83B45F84B89FCAEFA7020068F2D14079C88DBDEAE4AD7"
+    },
+    {
+      "name": "ProSwordAndShield__SheathSword1",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "E5BF05CA618132B82DAFEE02E7AFC4CB74950201C0A7985AE8CEFFBF903D292D"
+    },
+    {
+      "name": "ProSwordAndShield__SheathSword2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "18AE41BC5292605EF8C4F66FBC8CD108523120A3C53991813462B7B9F2793D7E"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShield180Turn",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "3E1DE434F139510AF2B5E9D6DB97AFE502DE5E7B0A0A924CDC25E62CFDA60343"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShield180Turn2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "7BE4DF27604B421F98EA707BE876EB07AB26F47661606B86579DA5BF12AD946E"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldAttack",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "099E900662F9D7B3E0EA2F4F880D400DA5E1DEE4E094FE058AAF2FB04A5D9A05"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldAttack2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "F01F8C5706D24D17BA896C311A3F16460C95B38FB6893235FE77133882C0C396"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldAttack3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "8DA13D072F5BF51F9287E88952FB90D08F9EAC0C72696826C1C9EF2E72DB356F"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldAttack4",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "454F223A4D875C67852B1D259EFD9AD9BE9DB8A7BDE7E2A3F9D77E0ACF7F1CAC"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldBlock",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "B14F53B91201E74F9712D42F244E38E77428D256941FDDFC8A6801C64D04792F"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldBlock2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "95A0F84DCDD6472FB22D668312453B9C91EE72BE7561B0E3C0935A76C54627C9"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldBlockIdle",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "B3755323A76370B5FD64EAE29195735459AB7E70CE7DBCB0BE107AD023048D06"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCasting",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "2351F2D02D252E20F6D1ABADF5038FBC38C284114427B93C11A7670594D1776A"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCasting2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "9AC7EFFCC792310CA76AF44AE21C2C122D89D93158AFCFA83A4B32350D4356A0"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouch",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "AC1645DB66BC82EA39243DD502BDDCCAC8E536DF2B2C5C31FB0D6FA187617C94"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouchBlock",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "B634BC8A3BAD22D715E8A66B30CC021DEDB9DB4BC510B378656A03AFAA59E853"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouchBlock2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "C77CA8A9F9A118809F22A4B2EAD3183E009960F333F42BFF55E22FCCC455AFDC"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouchBlockIdle",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "B9330EF4AB3A1F4037DB456D917E8C7EA9F0B39BE578B4AEA80EE7F937689CEB"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouchIdle",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "87F4AA99ED9DB62C04FB498D46145A77C4AFBDFB5DB9861F8AABE1CEB84C1D44"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouching",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "B05A42B2EDE84EAB5912AC05593FFB79D939CAE8B333B1BDA7E12DDCA6AFCD80"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouching2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "1D07C33588BE285C72ACE1F284DE46EDDFAEFE7F77BDDB24593BA294C6EE33DA"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldCrouching3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "69A072759963D0A98430FACA05AF7DC7BCBE4875577E7AD719C45CF7C2792EFA"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldDeath",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-01",
+      "fingerprint": "78A0AEECFC82F425614295624ABC5854AC36BCC953520C24F1000019215F918B"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldDeath2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "C0575C7B4A431DD5E1A276D8DFBD6DE3C18496CD01DB42E654BC2E1D2ADCFF29"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldIdle",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "38461195F5617F66D0026BEC26F2C110A9B98A31F81355D3D3E00AF6A104DD8B"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldIdle2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "A51A17D2B690E47696B5D5CC7C97F29AE16B66BF607F8A38300B97261089569A"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldIdle3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "558FE0510A89CCDB470EFFC656CDC1D08F2648180B19B17A2D1B2CF66C1829DC"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldIdle4",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "73FA4987ADA517A0E93ADC946DE2094315B79E352420A5184599A756D190C9E3"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldImpact",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "A55686E434F7B4693FCBF5CE648DB80E83E9EB1A19AF640B8BFA62ACD8BFDAAD"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldImpact2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "E8B135A93111BE5096DA36A74A34303550B4DFC91AB091A2DB3CA8A3A07A8F0C"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldImpact3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "C324ADEB4C39D94D541ADC79B274D332D4826BF6E237BFAF7A6143ED19EB1842"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldJump",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "C1DA5F9D97B0848433D174412595AB12DFC328D380953AEA4745E009DA90ECBD"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldJump2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "C213931357D83B658F977B009A61D8E91385D7058DCACB3DF2AA7D47E26405D7"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldKick",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "D57D187F1C4559EFCD13F6A62D1928E34BDCE3E740B97F336E26613DE2840643"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldPowerUp",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "0FDC2427101ED6670B11B7DF4BC6B7ED0F301BBF207AC5E7587FED6176D7E190"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldRun",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "95F091E3943A0514D4A6C5FD1D8A43F514737967BDE63BAF6D7E9C1EAECAC9FB"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldRun2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "92AF2F0D94A1E02E08D6276547EB9CAE6693F71A06174D37DC8BD7D6C06E7F23"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldSlash",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "933DA9DE9DD3CEC8E8286BD45F0F0B84C14371B67B3F566393CFCE91A0C003FD"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldSlash2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "59C44073E309128F474F06093A635202BED74AF5020D2A09CE3C35FE7D1B2E8A"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldSlash3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "45AF9EBA2553C7BD0CA7E13E7FE52801B9E067D252F6FAA44B9F1607FC79FF82"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldSlash4",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "B217B442BBAA67EC836F82201B13E98BDF8CDA046429E5062547097B1D884956"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldSlash5",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "B6760B2D40BABAAD225928CC76FDA92E145C8EE43C491F93FE1DC0476BB23386"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldStrafe",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "080EE15E84486D2B7B9B5F20019697F9FE78EF37DDEFC26E32666AC200EF65A1"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldStrafe2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "F73736F09294A153DC849472C270018415A93258D1979EEDA17378E120CA6830"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldStrafe3",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "591FB69F1196E4A7172F0E583F52CEBD1354A19DC7D1EC2395C2C12A4919D745"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldStrafe4",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "03458B77A7FF3B63FF1F909433F1408274488D4B10D8F62802A08F2DAC2061E8"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldTurn",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-02",
+      "fingerprint": "004841B9A7EA96B48DB6495B0B565E522BCCB118A1CDD60FE71B0D2863CFEBD7"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldTurn2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-03",
+      "fingerprint": "EC7B062F3BFCCA4D31737C232D44491F49025DDF725E31F5688FB94CDDFAB688"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldWalk",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-03",
+      "fingerprint": "D00DD01F1837DDC9F38B75744AD14D5C73A4C02A5047C382E6C115FB8E743F7F"
+    },
+    {
+      "name": "ProSwordAndShield__SwordAndShieldWalk2",
+      "kind": "pack",
+      "packId": "pro-sword-and-shield-03",
+      "fingerprint": "4DBF7E42F0ED207A9A7564D2A58FCD7B0000009B2B4B18FD52004896CFE0AF54"
+    },
+    {
+      "name": "Shooter__FiringRifle",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "1D9F28708D2AB302AEBBDF53EBF9A4A76CEA1EC06A5D1990DAF1E8E8C855F8EB"
+    },
+    {
+      "name": "Shooter__JumpBackward",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "C4FF79D5D8BAF2E1A9C3DDB1E9AD0B5D72ED2AB1898DA54DDA1AA230C99C80D7"
+    },
+    {
+      "name": "Shooter__JumpForward",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "6FCDEFA8E1BDE701855878C364DAEBF6F07B022917F2776E4FBA5063D48AE183"
+    },
+    {
+      "name": "Shooter__RifleAimingIdle",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "56807DBD048AD02DEBD0E978FB790A960F03B818FA8C6CD3CA280882468B56A2"
+    },
+    {
+      "name": "Shooter__RifleRun",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "06889BC5F3BF2374F89995E65F78C577A07448D9863D75DA50849AC7D15869D0"
+    },
+    {
+      "name": "Shooter__RunBackwards",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "42B726C2795CB01C57A4A6B815FAEE0BEBBD9E2C407A654B75A1BA0DB364D013"
+    },
+    {
+      "name": "Shooter__StartWalking",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "9BF12B0741DA5E3868167384FEF7B3A714B0AC033DE75E82A32AABAA17772482"
+    },
+    {
+      "name": "Shooter__StartWalkingBackwards",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "0EF376FAB14CA6C99DDF102157F60BE412171BD1ADA40CC51F75943768F7697F"
+    },
+    {
+      "name": "Shooter__StopWalking",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "400B8CB5501B69FBDA5FFB5D7DBE19719AC7B1FA792FEE943522EDFC4C2E5100"
+    },
+    {
+      "name": "Shooter__Strafe",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "F8B1CECB65F988EF0896DEC1E9ECE5D7497D3B3182EC5EBEEF7342AAEC28E044"
+    },
+    {
+      "name": "Shooter__Strafe2",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "299AADEDF6B7D256D32258EAEEA6ADC572D2D9E7942311F3603622D16426FE7B"
+    },
+    {
+      "name": "Shooter__WalkBackwardsStop",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "D594BD17C0BB85418E4E607127B5C0BBE61BE994FABF214FA41CCBF3ACDABC7D"
+    },
+    {
+      "name": "Shooter__Walking",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "8AE649CB544E2545336BCCC57D1D95DE093B51D5FEA61AEF12CF7C0914D8C0B3"
+    },
+    {
+      "name": "Shooter__WalkingBackwards",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "5BBFF1E8655A2C524E4ED03B2D150C692DEF6228F9EADCF1C3CCDAD0CB763DB1"
+    },
+    {
+      "name": "Shooter__WalkingToDying",
+      "kind": "pack",
+      "packId": "shooter-01",
+      "fingerprint": "59C8F3DC70DD67477C6B5A34CA7163F57D805F8C8984E5501041962F06B390D5"
+    }
+  ],
+  "standaloneApprovedClips": [
+    {
+      "name": "AuthoredUtility__Lockpick",
+      "kind": "standalone",
+      "sourceClipName": "AuthoredUtility__Lockpick",
+      "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-lockpick.glb",
+      "sha256": "2AB154B7E9F58419A15D6F7C33557CFE77413F8B7448D507F1304DD06F84255A",
+      "bytes": 153172,
+      "reviewStatus": "OWNER_APPROVED"
+    },
+    {
+      "name": "AuthoredReaction__SpellImpactKnockbackAndFall",
+      "kind": "standalone",
+      "sourceClipName": "AuthoredReaction__SpellImpactKnockbackAndFall",
+      "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb",
+      "sha256": "6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E",
+      "bytes": 95720,
+      "reviewStatus": "IN_GAME_QA_ACCEPTED"
+    },
+    {
+      "name": "AuthoredUtility__NpcListen",
+      "kind": "standalone",
+      "sourceClipName": "AuthoredUtility__NpcListen",
+      "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
+      "sha256": "23615F625DC7C095D5BABF1358075060A6B69CC93FC7453AEDE88A8595F61DD6",
+      "bytes": 101864,
+      "reviewStatus": "IN_GAME_QA_ACCEPTED"
+    },
+    {
+      "name": "AuthoredUtility__Farewell",
+      "kind": "standalone",
+      "sourceClipName": "AuthoredUtility__Farewell",
+      "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+      "sha256": "760C60A83805918CB4034279998EC85F6A1D41E773F69DF850223DBF013E7F28",
+      "bytes": 108332,
+      "reviewStatus": "IN_GAME_QA_ACCEPTED"
+    }
+  ],
+  "canonicalClipCount": 400,
+  "reviewClipCount": 404,
+  "builder": {
+    "path": "scripts/build-human-animation-review-packs.mjs",
+    "sha256": "B4836E08B27B44F604630BB86FCCF28A6193B658977BB86FD4CD2590E676F0DC"
+  }
+}
