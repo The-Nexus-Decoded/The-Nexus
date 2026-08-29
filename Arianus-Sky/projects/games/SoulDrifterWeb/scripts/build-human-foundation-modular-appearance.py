@@ -900,7 +900,7 @@ def fresh_import_validation(output: Path) -> dict[str, object]:
     if bpy.data.actions:
         raise RuntimeError("Appearance pack unexpectedly contains animation")
     for name, obj in modules.items():
-        if obj.get("souldrifterApprovalStatus") != "LOCAL_VISUAL_QA_ACCEPTED":
+        if obj.get("souldrifterApprovalStatus") != "LOCAL_AUTHORING_VALIDATED":
             raise RuntimeError(f"{name} lost approval metadata")
         if obj.get("souldrifterFusedToHead") is not False:
             raise RuntimeError(f"{name} lost modularity metadata")
@@ -961,7 +961,7 @@ def build() -> dict[str, object]:
         raise RuntimeError("One or more approved appearance modules were not authored")
     for obj in modules:
         obj["souldrifterApprovalStatus"] = (
-            "LOCAL_VISUAL_QA_ACCEPTED"
+            "LOCAL_AUTHORING_VALIDATED"
             if obj.name in APPROVED_MODULE_NAMES
             else "WITHHELD_VISUAL_QA"
         )

@@ -54,7 +54,7 @@ describe("Human foundation modular appearance partial pack", () => {
     expect(json.animations ?? []).toHaveLength(0);
     expect(modules.every((node) => node.skin === 0)).toBe(true);
     expect(modules.every((node) => (
-      node.extras?.souldrifterApprovalStatus === "LOCAL_VISUAL_QA_ACCEPTED"
+      node.extras?.souldrifterApprovalStatus === "LOCAL_AUTHORING_VALIDATED"
       && node.extras?.souldrifterHeadBone === "mixamorig:Head"
       && node.extras?.souldrifterTintable === true
       && node.extras?.souldrifterFusedToHead === false
