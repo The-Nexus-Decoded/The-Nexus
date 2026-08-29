@@ -19,8 +19,26 @@
     "MISSING": "No clip in the 400-clip library satisfies the required semantic without substantial new motion production.",
     "DEFERRED_HIGHER_LEVEL": "Distinct higher-level class or spell-signature choreography is explicitly outside the current pilot gate."
   },
+  "runtimeAcceptanceContract": {
+    "COVERED": "An authored standalone runtime asset has passed independent review and is installed with exact-byte provenance.",
+    "COVERED_SHARED": "The same accepted authored clip legitimately satisfies this semantic row without relabeling or weakening its motion contract.",
+    "PARTIAL": "An accepted authored clip satisfies only a named part of the row; the remaining part still requires accepted motion.",
+    "MISSING": "No accepted authored runtime motion currently satisfies this row."
+  },
   "acceptanceState": "UNREVIEWED_CANDIDATE_LIBRARY",
+  "runtimeAcceptanceState": "PARTIAL_AUTHORED_RECONCILIATION",
   "reviewGate": "FROZEN_UNTIL_REQUIRED_NOW_PARTIAL_AND_MISSING_ROWS_HAVE_ACCEPTED_MOTION_CANDIDATES",
+  "excludedCoverageSources": [
+    {
+      "id": "death-derived-reversal-gap-combat-candidates",
+      "path": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-gap-combat-candidates.glb",
+      "sha256": "36545DA597E49F24AC24349F3B9CDB28216A15F4146D7AABD276C67BEABAFD0C",
+      "candidateState": "UNREVIEWED_SOURCE_DERIVED_CANDIDATES",
+      "acceptanceState": "REJECTED_METHOD",
+      "coverageContribution": "ZERO",
+      "reason": "Its knockdown, blowback, and get-up candidates derive from Mixamo death actions or reversed death segments. The owner rejected source-derived death/reversal reuse for custom gaps."
+    }
+  ],
   "requiredNow": [
     { "id": "locomotion.idle.standing", "category": "locomotion", "motion": "neutral living standing idle", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__Idle", "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed"] },
     { "id": "locomotion.walk.forward", "category": "locomotion", "motion": "walk forward", "coverage": "COVERED_NOW", "candidates": ["MaleLocomotion__Walking", "BasicLocomotion__Walking"] },
@@ -41,7 +59,31 @@
     { "id": "locomotion.land.standing", "category": "locomotion", "motion": "land and recover to standing idle", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingLandToStandingIdle"] },
     { "id": "locomotion.land.running", "category": "locomotion", "motion": "land and continue into forward run", "coverage": "PARTIAL", "candidates": ["ProLongbow__FallALandToRunForward", "ProMagic__StandingJumpRunningLanding"], "gap": "Candidates require equipment-neutral entry and exit pose normalization." },
     { "id": "locomotion.dodge.directional", "category": "locomotion", "motion": "forward, backward, left, and right combat dodge", "coverage": "PARTIAL", "candidates": ["ProLongbow__StandingDodgeForward", "ProLongbow__StandingDodgeBackward", "ProLongbow__StandingDodgeLeft", "ProLongbow__StandingDodgeRight"], "gap": "The only complete directional family is bow-authored and needs an equipment-neutral derivative." },
-    { "id": "locomotion.knockdown.get-up", "category": "locomotion", "motion": "nonterminal knockdown to prone and grounded get-up recovery", "coverage": "MISSING", "candidates": [], "gap": "No nonterminal fall-and-get-up pair exists." },
+    {
+      "id": "locomotion.knockdown.get-up",
+      "category": "locomotion",
+      "motion": "nonterminal knockdown to prone and grounded get-up recovery",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "PARTIAL",
+      "runtimeAcceptance": {
+        "coveredPart": {
+          "semantic": "nonterminal knockdown",
+          "sharedWith": "reaction.spell.knockdown",
+          "reviewStatus": "IN_GAME_QA_ACCEPTED",
+          "assetPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb",
+          "clipName": "AuthoredReaction__SpellImpactKnockbackAndFall",
+          "bytes": 95720,
+          "sha256": "6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E"
+        },
+        "missingPart": {
+          "semantic": "grounded get-up recovery",
+          "status": "MISSING",
+          "requiredMotion": "One generic authored get-up starting from the accepted knockdown terminal pose and returning to the natural standing gameplay stance."
+        }
+      },
+      "gap": "The accepted spell-impact clip supplies the nonterminal knockdown half. One exact-rest-rig generic get-up remains missing and may also satisfy reaction.spell.get-up after terminal/start-pose continuity and BREACH-V2 grounding validation."
+    },
     { "id": "locomotion.stairs", "category": "traversal", "motion": "stair ascent and descent with step contacts", "coverage": "PARTIAL", "candidates": ["MaleLocomotion__Walking"], "gap": "Flat-ground walking is only a timing base; authored stair foot contacts and vertical root motion are absent." },
     { "id": "locomotion.shimmy", "category": "traversal", "motion": "ledge or wall shimmy left and right", "coverage": "MISSING", "candidates": [], "gap": "No lateral hang or shimmy motion exists." },
 
@@ -89,9 +131,70 @@
     { "id": "combat.magic.interrupt-cancel", "category": "shared-magic", "motion": "cast interruption and balanced cancel recovery", "coverage": "MISSING", "candidates": [], "gap": "No explicit interrupted-cast or cancel-recovery clip exists." },
     { "id": "reaction.spell.small-directional", "category": "damage-reaction", "motion": "small spell-damage reactions from front, back, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingReactSmallFromFront", "ProMagic__StandingReactSmallFromBack", "ProMagic__StandingReactSmallFromLeft", "ProMagic__StandingReactSmallFromRight"] },
     { "id": "reaction.spell.large-directional", "category": "damage-reaction", "motion": "large spell-damage reactions from front, back, left, and right", "coverage": "COVERED_NOW", "candidates": ["ProMagic__StandingReactLargeFromFront", "ProMagic__StandingReactLargeFromBack", "ProMagic__StandingReactLargeFromLeft", "ProMagic__StandingReactLargeFromRight"] },
-    { "id": "reaction.spell.blowback", "category": "damage-reaction", "motion": "nonterminal spell-impact blowback with authored displacement and fall", "coverage": "MISSING", "candidates": [], "gap": "Directional reactions do not include the required knockback travel, fall, and recoverable terminal pose." },
-    { "id": "reaction.spell.knockdown", "category": "damage-reaction", "motion": "spell-damage knockdown without death", "coverage": "MISSING", "candidates": [], "gap": "Directional death clips cannot substitute for a recoverable knockdown." },
-    { "id": "reaction.spell.get-up", "category": "damage-reaction", "motion": "grounded recovery after spell knockdown", "coverage": "MISSING", "candidates": [], "gap": "No prone-to-standing recovery exists." },
+    {
+      "id": "reaction.spell.blowback",
+      "category": "damage-reaction",
+      "motion": "nonterminal spell-impact blowback with authored displacement and fall",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "COVERED",
+      "runtimeAcceptance": {
+        "reviewStatus": "IN_GAME_QA_ACCEPTED",
+        "assetPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb",
+        "clipName": "AuthoredReaction__SpellImpactKnockbackAndFall",
+        "bytes": 95720,
+        "sha256": "6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E",
+        "technicalContract": {
+          "skeletonFamily": "mixamo-standard-65",
+          "boneCount": 65,
+          "rootBone": "mixamorig:Hips",
+          "sourceRestPoseSha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81"
+        },
+        "evidence": {
+          "externalRoot": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/traversal/spell-impact-knockback-fall-v2",
+          "normalSpeedViews": [
+            { "view": "side", "sha256": "2AD98F3EB6FEBB5B24F8A6F6E9FF366029B47EC95E28C81746C1907ACB54215F" },
+            { "view": "three-quarter", "sha256": "025C6B3EF848EBEE47FC7820243EEE23AA089171B17EDF9F95AFF30412B02FC8" }
+          ],
+          "missingRequestedViews": ["gameplay", "front", "rear"],
+          "reconciliationNote": "Existing installed acceptance is preserved; this reconciliation does not claim a new four-view promotion."
+        }
+      },
+      "gap": "The immutable 400-clip source library has no exact clip. The accepted standalone authored asset now covers this row."
+    },
+    {
+      "id": "reaction.spell.knockdown",
+      "category": "damage-reaction",
+      "motion": "spell-damage knockdown without death",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "COVERED_SHARED",
+      "runtimeAcceptance": {
+        "sharedWith": "reaction.spell.blowback",
+        "sharedSemantic": "The accepted blowback visibly ends in a recoverable nonterminal grounded knockdown without death or automatic recovery.",
+        "reviewStatus": "IN_GAME_QA_ACCEPTED",
+        "assetPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb",
+        "clipName": "AuthoredReaction__SpellImpactKnockbackAndFall",
+        "bytes": 95720,
+        "sha256": "6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E"
+      },
+      "gap": "The immutable 400-clip source library has no exact clip. The accepted blowback clip legitimately shares this nonterminal knockdown semantic."
+    },
+    {
+      "id": "reaction.spell.get-up",
+      "category": "damage-reaction",
+      "motion": "grounded recovery after spell knockdown",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "MISSING",
+      "runtimeAcceptance": {
+        "requiredMotion": "One newly authored generic grounded get-up from the accepted spell-knockdown terminal pose to the natural standing gameplay stance.",
+        "shareTarget": "locomotion.knockdown.get-up",
+        "continuityGate": "The first pose must match the accepted knockdown terminal pose; exact 65-bone rest-rig, grounding, and BREACH-V2 start/mid/end runtime validation are required.",
+        "forbiddenSource": "Death-derived or reversed-death motion."
+      },
+      "gap": "No accepted grounded get-up exists. One generic authored recovery can close this row and the remaining half of locomotion.knockdown.get-up."
+    },
     { "id": "reaction.stagger", "category": "damage-reaction", "motion": "short, large, and block staggers with recovery", "coverage": "COVERED_NOW", "candidates": ["BasicShooter__HitReaction", "ProMeleeAxe__StandingReactLargeGut", "ProMagic__StandingBlockReactLarge"] },
 
     { "id": "combat.staff.grip-idle", "category": "staff", "motion": "two-handed staff grip and ready idle", "coverage": "MISSING", "candidates": [], "gap": "No clip preserves a physically valid two-hand practice-staff grip." },
@@ -139,14 +242,64 @@
     { "id": "interaction.lift-carry-place", "category": "interaction", "motion": "lift heavy object, carry loop, and place object", "coverage": "MISSING", "candidates": [], "gap": "No complete lift-carry-place sequence exists." },
 
     { "id": "npc.idle-rest", "category": "npc-social", "motion": "standing idle, sitting idle, and resting pose", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed", "Interactions__HumanMasculineAthleticMuscularIdleSitting", "Interactions__HumanMasculineAthleticMuscularIdleSittingPose"] },
-    { "id": "npc.listen", "category": "npc-social", "motion": "attentive listening loop with subtle acknowledgement", "coverage": "MISSING", "candidates": [], "gap": "Talk and nod clips do not provide a neutral seamless listen loop." },
+    {
+      "id": "npc.listen",
+      "category": "npc-social",
+      "motion": "attentive listening loop with subtle acknowledgement",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "COVERED",
+      "runtimeAcceptance": {
+        "reviewStatus": "IN_GAME_QA_ACCEPTED",
+        "assetPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
+        "clipName": "AuthoredUtility__NpcListen",
+        "bytes": 101864,
+        "sha256": "23615F625DC7C095D5BABF1358075060A6B69CC93FC7453AEDE88A8595F61DD6",
+        "technicalContract": { "skeletonFamily": "mixamo-standard-65", "boneCount": 65, "rootBone": "mixamorig:Hips", "sourceRestPoseSha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81" },
+        "evidence": {
+          "externalRoot": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/utility/interaction-npc-listen-v1",
+          "normalSpeedViews": [
+            { "view": "gameplay", "sha256": "B0F5DAB4F12B3F56C38A2CD578A446D905AD2325D0370BE1915088A319CE4A18" },
+            { "view": "front", "sha256": "2B567F94AA10129491A4C68A44D685FE9FE8A691A0E7EE711C817C6CCF6CC2B3" },
+            { "view": "side", "sha256": "56FD8686465359327FA4461680FABCB0DF805878F192E8760CE5984D4454DD3D" },
+            { "view": "rear", "sha256": "85F58CE4389C1E5F6E91D976B905225142A007365F0C578F9687F920BEF4AEB9" }
+          ]
+        }
+      },
+      "gap": "The immutable 400-clip source library has no exact clip. The accepted standalone authored asset now covers this row."
+    },
     { "id": "npc.think", "category": "npc-social", "motion": "thinking loop and thoughtful nod", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularThink", "Interactions__HumanMasculineAthleticMuscularHeadNodThoughtful"] },
     { "id": "npc.talk", "category": "npc-social", "motion": "small, medium, emphatic, and seated talk variants", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularTalkSmall", "Interactions__HumanMasculineAthleticMuscularTalkMedium", "Interactions__HumanMasculineAthleticMuscularTalkEmphasis", "Interactions__HumanMasculineAthleticMuscularTalkSitting"] },
     { "id": "npc.point", "category": "npc-social", "motion": "point forward and directional point gesture", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularPointForward", "Interactions__HumanMasculineAthleticMuscularPointGesture"] },
     { "id": "npc.wave-greeting", "category": "npc-social", "motion": "wave and standing greeting", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularWaveGreeting", "Interactions__HumanMasculineAthleticMuscularGreetStanding"] },
     { "id": "npc.nod-yes-no", "category": "npc-social", "motion": "nod yes and shake no", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularHeadNodYes", "Interactions__HumanMasculineAthleticMuscularHeadShakeNo"] },
     { "id": "npc.beckon", "category": "npc-social", "motion": "beckon another actor closer", "coverage": "COVERED_NOW", "candidates": ["Interactions__HumanMasculineAthleticMuscularBeckon"] },
-    { "id": "npc.farewell", "category": "npc-social", "motion": "distinct farewell gesture and return to idle", "coverage": "MISSING", "candidates": [], "gap": "Greeting and wave candidates do not establish a distinct farewell contract." }
+    {
+      "id": "npc.farewell",
+      "category": "npc-social",
+      "motion": "distinct farewell gesture and return to idle",
+      "coverage": "MISSING",
+      "candidates": [],
+      "acceptedCoverage": "COVERED",
+      "runtimeAcceptance": {
+        "reviewStatus": "IN_GAME_QA_ACCEPTED",
+        "assetPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+        "clipName": "AuthoredUtility__Farewell",
+        "bytes": 108332,
+        "sha256": "760C60A83805918CB4034279998EC85F6A1D41E773F69DF850223DBF013E7F28",
+        "technicalContract": { "skeletonFamily": "mixamo-standard-65", "boneCount": 65, "rootBone": "mixamorig:Hips", "sourceRestPoseSha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81" },
+        "evidence": {
+          "externalRoot": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/utility/interaction-farewell-v1",
+          "normalSpeedViews": [
+            { "view": "gameplay", "sha256": "F854157578F5789C17139F90890FE0C245D6ACF2C05BFC0806F159F62A5B0D2A" },
+            { "view": "front", "sha256": "E8B80D0E577001970F7A42DDA45C5ABF1033AE3E46414F7129C350F072A4C92B" },
+            { "view": "side", "sha256": "6F42994C9B5A87DE3B2427D6F52F536FC3A5DEBE2C24092AC65F271F04699351" },
+            { "view": "rear", "sha256": "DDF2B939AF448788B87CE6EF86F22168B7BC6A7658A9FFA720F20BA0CEEE212F" }
+          ]
+        }
+      },
+      "gap": "The immutable 400-clip source library has no exact clip. The accepted standalone authored asset now covers this row."
+    }
   ],
   "deferredHigherLevel": [
     {

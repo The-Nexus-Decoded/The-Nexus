@@ -1,6 +1,6 @@
 # Issue #487 Human Animation Gap Audit
 
-This audit compares the shared lower-level Human motion master list against the immutable 400-clip pilot library. It records source coverage only; `COVERED_NOW` does not mean a clip has passed visual, contact, deformation, root-motion, transition, equipment, or owner acceptance.
+This audit compares the shared lower-level Human motion master list against the immutable 400-clip pilot library and records later accepted standalone authored assets separately. Candidate-library `coverage` remains historical source provenance; `acceptedCoverage` records accepted runtime motion without rewriting that intake history. `COVERED_NOW` alone does not mean a library clip has passed visual, contact, deformation, root-motion, transition, equipment, or owner acceptance.
 
 Machine-readable implementation record: `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-coverage.json`. The 2026-08-29 owner-locked harvest split is synchronized there: generic Harvest is retired and the Tree Harvest and Plant Harvest gaps are separate required-now rows.
 
@@ -15,7 +15,24 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - Deferred higher-level/future-setting families: **5**
 - Candidate library: **400 clips**, SHA-256 `6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793`
 
-## Missing now
+These totals describe the immutable candidate library. They do not subtract later standalone authored acceptances.
+
+## Accepted standalone authored reconciliation
+
+| Required row | Accepted coverage | Installed asset and clip | Remaining requirement |
+|---|---|---|---|
+| `reaction.spell.blowback` | `COVERED` / `IN_GAME_QA_ACCEPTED` | `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb` · `AuthoredReaction__SpellImpactKnockbackAndFall` · SHA-256 `6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E` | None for this semantic. Existing side and three-quarter evidence preserves the installed acceptance; gameplay/front/rear evidence is not present, so this reconciliation does not claim a new four-view promotion. |
+| `reaction.spell.knockdown` | `COVERED_SHARED` / `IN_GAME_QA_ACCEPTED` | Same exact accepted Spell Impact asset, clip, and SHA-256 `6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E` | None. Sharing is legitimate because the clip visibly ends in a recoverable nonterminal grounded knockdown without death or automatic recovery. |
+| `reaction.spell.get-up` | `MISSING` | No accepted asset | Author one generic grounded get-up whose first pose matches the accepted Spell Impact terminal pose and whose last pose is the natural standing gameplay stance. |
+| `locomotion.knockdown.get-up` | `PARTIAL` | Knockdown half uses the same accepted Spell Impact asset, clip, and SHA-256 `6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E` | The same generic get-up may close this row and `reaction.spell.get-up` only after exact terminal/start-pose continuity, 65-bone rest-rig, grounding, and BREACH-V2 start/mid/end runtime validation. |
+| `npc.listen` | `COVERED` / `IN_GAME_QA_ACCEPTED` | `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb` · `AuthoredUtility__NpcListen` · SHA-256 `23615F625DC7C095D5BABF1358075060A6B69CC93FC7453AEDE88A8595F61DD6` | None. Complete normal-speed gameplay/front/side/rear evidence was independently reviewed. |
+| `npc.farewell` | `COVERED` / `IN_GAME_QA_ACCEPTED` | `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb` · `AuthoredUtility__Farewell` · SHA-256 `760C60A83805918CB4034279998EC85F6A1D41E773F69DF850223DBF013E7F28` | None. Complete normal-speed gameplay/front/side/rear evidence was independently reviewed. |
+
+The accepted assets above retain the exact 65-bone `mixamo-standard-65` rest-rig contract with root `mixamorig:Hips` and zero-action source-rest SHA-256 `B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81`. Exact evidence roots and normal-speed video hashes are stored on the corresponding machine rows.
+
+The source-derived pack `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-gap-combat-candidates.glb`, SHA-256 `36545DA597E49F24AC24349F3B9CDB28216A15F4146D7AABD276C67BEABAFD0C`, contributes **zero coverage**. Its relevant clips derive from Mixamo death actions or reversed death segments, and the owner rejected that method. No death-derived or reversal candidate may substitute for the missing get-up.
+
+## Missing in the immutable candidate library
 
 - `locomotion.knockdown.get-up` — nonterminal knockdown to prone and grounded get-up recovery
 - `locomotion.shimmy` — ledge or wall shimmy left and right
@@ -51,7 +68,7 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - `npc.listen` — attentive listening loop with subtle acknowledgement
 - `npc.farewell` — distinct farewell gesture and return to idle
 
-## Partial, requiring cleanup or derivation
+## Partial in the immutable candidate library, requiring cleanup or derivation
 
 - `locomotion.start-stop` — generic walk start and stop transitions
 - `locomotion.fall.loop` — equipment-neutral airborne fall loop
@@ -69,7 +86,7 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - `combat.rod.lower-level` — binding-rod grip, command, summon release, channel, interruption, and recovery
 - `interaction.loot-inspect` — loot and inspect object at waist or ground height
 
-## Covered now by exact library candidates
+## Covered by exact immutable-library candidates
 
 - `locomotion.idle.standing` — neutral living standing idle
 - `locomotion.walk.forward` — walk forward
@@ -137,7 +154,7 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 
 The generic `interaction.harvest` row and Harvest v1 candidate are `CHANGE/REWORK` and do not count as coverage. Tree Harvest and Plant Harvest are separate current-core requirements. For both, the bucket is a grounded runtime-bound prop, fruit is a runtime-bound item, neither is baked into the animation, and hand/fruit/bucket paths must be collision-free.
 
-Exact candidate clip IDs and every partial/missing reason are synchronized into the machine-readable manifest. Its executable validator proves the canonical totals of 111 required-now rows: 63 covered source candidates, 15 partial rows, and 33 missing rows. All 63 covered rows remain `UNREVIEWED_CANDIDATE_LIBRARY` until the runtime visual gate passes.
+Exact candidate clip IDs and every source-library partial/missing reason remain synchronized into the machine-readable manifest. Its executable validator proves the immutable-library totals of 111 required-now rows: 63 covered source candidates, 15 partial rows, and 33 missing rows. Runtime-authored acceptance is recorded independently on reconciled rows so candidate-library provenance and later runtime decisions remain auditable.
 
 ## Deferred higher-level or future-setting motion
 
