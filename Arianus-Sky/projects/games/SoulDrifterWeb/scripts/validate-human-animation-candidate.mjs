@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -30,6 +30,7 @@ export const REQUIRED_VISUAL_CHECKS = [
 
 const SHA256_PATTERN = /^[A-F0-9]{64}$/;
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+const shippingAssetRoot = resolve(projectRoot, "public/assets");
 
 function normalizedSha(value) {
   return typeof value === "string" ? value.toUpperCase() : "";
@@ -48,6 +49,12 @@ function resolveEvidencePath(value, receiptPath) {
 function isShippingAssetPath(value) {
   if (typeof value !== "string") return false;
   return value.replaceAll("\\", "/").toLowerCase().includes("public/assets/");
+}
+
+function isWithin(root, value) {
+  if (!value) return false;
+  const relativePath = relative(root, resolve(value));
+  return relativePath.length > 0 && !relativePath.startsWith("..") && !isAbsolute(relativePath);
 }
 
 function requireString(errors, value, path) {
@@ -310,8 +317,10 @@ export function validateCandidateReceipt(
     if (receipt.promotion?.status !== "RUNTIME_INSTALLED") errors.push("promotion.status must equal RUNTIME_INSTALLED");
     if (receipt.promotion?.runtimeInstalled !== true) errors.push("promotion.runtimeInstalled must equal true");
     const installed = receipt.promotion?.installedAsset;
-    if (verifyFiles) validateHashedFile(errors, installed, "promotion.installedAsset", receiptPath);
-    if (!isShippingAssetPath(installed?.path)) {
+    const installedPath = verifyFiles
+      ? validateHashedFile(errors, installed, "promotion.installedAsset", receiptPath)
+      : resolveEvidencePath(installed?.path, receiptPath);
+    if (!isWithin(shippingAssetRoot, installedPath)) {
       errors.push("promotion.installedAsset.path must be inside public/assets");
     }
     if (normalizedSha(installed?.sha256) !== normalizedSha(artifact?.sha256)) {

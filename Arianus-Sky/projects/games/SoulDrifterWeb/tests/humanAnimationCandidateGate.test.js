@@ -180,4 +180,27 @@ describe("issue #487 animation candidate gate", () => {
       "runtimeVerification.breachV2BrowserSmoke must equal PASS",
     ]));
   });
+
+  it("rejects an installed asset outside the app even if its path contains public/assets", () => {
+    const receipt = passingReceipt();
+    receipt.ownerReview = { status: "APPROVED", selectedCandidateSha256: hash };
+    receipt.promotion = {
+      status: "RUNTIME_INSTALLED",
+      runtimeInstalled: true,
+      installedAsset: {
+        path: "H:/CodexData/temp/public/assets/lift.glb",
+        bytes: 123,
+        sha256: hash,
+      },
+    };
+    receipt.runtimeVerification = {
+      typecheck: "PASS",
+      tests: "PASS",
+      build: "PASS",
+      breachV2BrowserSmoke: "PASS",
+    };
+    expect(validate(receipt, "shipping")).toContain(
+      "promotion.installedAsset.path must be inside public/assets",
+    );
+  });
 });

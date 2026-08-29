@@ -4,7 +4,6 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  renameSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
@@ -90,9 +89,7 @@ function main() {
     build: "PENDING",
     breachV2BrowserSmoke: "PENDING",
   };
-  const temporaryReceipt = `${receiptPath}.tmp`;
-  writeFileSync(temporaryReceipt, `${JSON.stringify(result.receipt, null, 2)}\n`, "utf8");
-  renameSync(temporaryReceipt, receiptPath);
+  writeFileSync(receiptPath, `${JSON.stringify(result.receipt, null, 2)}\n`, "utf8");
   console.log(JSON.stringify({
     status: "RUNTIME_INSTALLED_VERIFICATION_REQUIRED",
     candidateId: result.receipt.candidate.id,
