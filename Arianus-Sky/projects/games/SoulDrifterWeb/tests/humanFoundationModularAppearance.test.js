@@ -13,15 +13,15 @@ const provenanceUrl = new URL(
 );
 
 const approvedModules = [
+  "SK_Hair_Cropped",
   "SK_Hair_Parted",
+  "SK_Hair_CurlyCoiled",
   "SK_Hair_TiedBack",
   "SK_Hair_Braided",
   "SK_FacialHair_Moustache",
 ];
 
 const withheldModules = [
-  "SK_Hair_Cropped",
-  "SK_Hair_CurlyCoiled",
   "SK_Hair_Long",
   "SK_FacialHair_Stubble",
   "SK_FacialHair_Goatee",
@@ -64,6 +64,25 @@ describe("Human foundation modular appearance partial pack", () => {
       material.extras?.souldrifterTintable === true
       && material.extras?.souldrifterSeparateFromSkin === true
     ))).toBe(true);
+    const curlyNode = modules.find((node) => node.name === "SK_Hair_CurlyCoiled");
+    const curlyMaterials = json.meshes[curlyNode.mesh].primitives
+      .map((primitive) => json.materials[primitive.material]);
+    expect(curlyMaterials).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        extras: expect.objectContaining({
+          souldrifterMaterialFamily: "MAT_HumanHair_Tintable",
+          souldrifterTintMode: "MULTIPLY_SOURCE_ALBEDO",
+        }),
+      }),
+      expect.objectContaining({
+        name: "MAT_HumanScalp_Underlay_Tintable",
+        extras: expect.objectContaining({
+          souldrifterMaterialFamily: "MAT_HumanSkin_Tintable",
+          souldrifterTintChannel: "SKIN",
+          souldrifterTintMode: "MATCH_RUNTIME_SKIN_TONE",
+        }),
+      }),
+    ]));
   });
 
   it("records exact source/toolchain provenance and fail-closed dispositions", () => {
@@ -100,7 +119,7 @@ describe("Human foundation modular appearance partial pack", () => {
       },
       freshImport: {
         status: "PASS",
-        meshCount: 4,
+        meshCount: 6,
         boneCount: 65,
         embeddedActionCount: 0,
         approvalMetadataRoundTrips: true,

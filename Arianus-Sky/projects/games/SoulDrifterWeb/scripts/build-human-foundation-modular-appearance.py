@@ -20,6 +20,7 @@ from math import cos, pi, sin
 from pathlib import Path
 import sys
 import bpy
+import bmesh
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
@@ -43,6 +44,29 @@ HAIR_SOURCES = {
     "SK_Hair_Long": "long01",
     "SK_Hair_TiedBack": "ponytail01",
     "SK_Hair_Braided": "braid01",
+}
+ISSUE448_HAIR_SOURCES = {
+    "SK_Hair_Cropped": {
+        "assetId": "masc-cropped-fade",
+        "filename": "sd-hair-masc-cropped-fade-technicalized-v001.glb",
+        "providerTaskId": "e87f2c75",
+        "sha256": "4D2327890673B3C70A6D2674D5D588CF81D9035601B97A7BADACCC48C7CF0491",
+        "fit": (0.120, 0.105, 0.130, 0.516),
+    },
+    "SK_Hair_CurlyCoiled": {
+        "assetId": "masc-short-curly",
+        "filename": "sd-hair-masc-short-curly-technicalized-v001.glb",
+        "providerTaskId": "50cd06bd",
+        "sha256": "95C7B060DC5B4836E2501084518FE3480AE5AE889573534D3558165B015693AD",
+        "fit": (0.118, 0.105, 0.120, 0.522),
+    },
+    "SK_Hair_Long": {
+        "assetId": "masc-shoulder-loose",
+        "filename": "sd-hair-masc-shoulder-loose-technicalized-v001.glb",
+        "providerTaskId": "fae1622b",
+        "sha256": "416F65B4D0EA1F13635B42F51ECE8E615A2AB3548E07F088BD2E5495DAC74393",
+        "fit": (0.105, 0.130, 0.300, 0.520),
+    },
 }
 HAIR_VERTICAL_FIT = {
     "SK_Hair_Cropped": (0.040, 0.509),
@@ -69,14 +93,14 @@ FACIAL_HAIR_NAMES = (
 )
 MODULE_NAMES = tuple(HAIR_SOURCES) + FACIAL_HAIR_NAMES
 APPROVED_MODULE_NAMES = (
+    "SK_Hair_Cropped",
     "SK_Hair_Parted",
+    "SK_Hair_CurlyCoiled",
     "SK_Hair_TiedBack",
     "SK_Hair_Braided",
     "SK_FacialHair_Moustache",
 )
 WITHHELD_MODULES = {
-    "SK_Hair_Cropped": "front-left source seam remains visibly open",
-    "SK_Hair_CurlyCoiled": "source cards expose glossy scalp patches",
     "SK_Hair_Long": "source part exposes a visible scalp strip",
     "SK_FacialHair_Stubble": "candidate reads as patchy bulk instead of surface stubble",
     "SK_FacialHair_Goatee": "candidate projects as a detached chin shelf",
@@ -117,6 +141,13 @@ def parse_args() -> argparse.Namespace:
         default=(
             "H:/CodexData/souldrifter-toolchain/sources/"
             "makehuman-system-assets/makehuman_system_assets_cc0.zip"
+        ),
+    )
+    parser.add_argument(
+        "--issue448-hair-root",
+        default=(
+            "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/"
+            "SoulDrifter/issue-448/technicalized-pilots/hair-library-v001"
         ),
     )
     parser.add_argument(
@@ -206,6 +237,176 @@ def make_textured_hair_material(
         material.blend_method = "HASHED"
     material.use_backface_culling = False
     return material
+
+
+def normalize_imported_hair_materials(
+    obj: bpy.types.Object,
+    module_name: str,
+) -> None:
+    """Keep issue448 baked detail while exposing an independent tint contract."""
+    if not obj.data.materials:
+        material = bpy.data.materials.new(
+            f"{MATERIAL_PREFIX}_{module_name.removeprefix('SK_Hair_')}"
+        )
+        material.use_nodes = True
+        shader = material.node_tree.nodes.get("Principled BSDF")
+        shader.inputs["Base Color"].default_value = (0.09, 0.025, 0.012, 1.0)
+        shader.inputs["Roughness"].default_value = 0.78
+        obj.data.materials.append(material)
+    for index, material in enumerate(obj.data.materials):
+        if material is None:
+            continue
+        suffix = module_name.removeprefix("SK_Hair_")
+        material.name = f"{MATERIAL_PREFIX}_{suffix}_{index:02d}"
+        material["souldrifterTintable"] = True
+        material["souldrifterMaterialFamily"] = MATERIAL_PREFIX
+        material["souldrifterSeparateFromSkin"] = True
+        material["souldrifterSourceTexturePreserved"] = True
+        material["souldrifterTintMode"] = "MULTIPLY_SOURCE_ALBEDO"
+        material["souldrifterTintPreservesSourceTextureContrast"] = True
+        if material.use_nodes:
+            shader = material.node_tree.nodes.get("Principled BSDF")
+            if shader:
+                shader.inputs["Roughness"].default_value = 0.78
+                if shader.inputs.get("Specular IOR Level"):
+                    shader.inputs["Specular IOR Level"].default_value = 0.25
+                if shader.inputs.get("Anisotropic IOR Level"):
+                    shader.inputs["Anisotropic IOR Level"].default_value = 0.20
+
+
+def trim_curly_fade_clusters(obj: bpy.types.Object) -> int:
+    """Remove only detached low curl clusters below a shaped high-fade line.
+
+    The technicalized coiled source intentionally consists of thousands of
+    disconnected curl clumps. A few low clumps sit below the coherent cap and
+    read as floating debris on the temple and occipital scalp. Cluster-centroid
+    trimming preserves each retained curl intact instead of slicing polygons.
+    """
+    mesh = obj.data
+    adjacency = [set() for _ in mesh.vertices]
+    for edge in mesh.edges:
+        a, b = edge.vertices
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+
+    seen: set[int] = set()
+    rejected_indices: set[int] = set()
+    for start in range(len(mesh.vertices)):
+        if start in seen:
+            continue
+        stack = [start]
+        seen.add(start)
+        component: list[int] = []
+        while stack:
+            index = stack.pop()
+            component.append(index)
+            for neighbor in adjacency[index]:
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    stack.append(neighbor)
+        center = sum((mesh.vertices[index].co for index in component), Vector()) / len(
+            component
+        )
+        # +X faces forward. Preserve a slightly lower natural fringe in front,
+        # while the temple/rear line rises into a clean cropped fade.
+        boundary = 0.442 - 0.18 * center.x + 0.045 * max(0.0, abs(center.z) - 0.032)
+        if center.y < boundary:
+            rejected_indices.update(component)
+
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    rejected = [bm.verts[index] for index in sorted(rejected_indices)]
+    if rejected:
+        bmesh.ops.delete(bm, geom=rejected, context="VERTS")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return len(rejected_indices)
+
+
+def make_curly_root_material() -> bpy.types.Material:
+    material = bpy.data.materials.new("MAT_HumanScalp_Underlay_Tintable")
+    material.use_nodes = True
+    material.diffuse_color = (0.33, 0.19, 0.12, 1.0)
+    material["souldrifterTintable"] = True
+    material["souldrifterMaterialFamily"] = "MAT_HumanSkin_Tintable"
+    material["souldrifterTintChannel"] = "SKIN"
+    material["souldrifterSeparateFromSkin"] = True
+    material["souldrifterSourceTexturePreserved"] = False
+    material["souldrifterTintMode"] = "MATCH_RUNTIME_SKIN_TONE"
+    shader = material.node_tree.nodes.get("Principled BSDF")
+    shader.inputs["Base Color"].default_value = (0.33, 0.19, 0.12, 1.0)
+    shader.inputs["Roughness"].default_value = 0.92
+    if shader.inputs.get("Specular IOR Level"):
+        shader.inputs["Specular IOR Level"].default_value = 0.12
+    return material
+
+
+def build_curly_inner_scalp_cap(
+    reference_head: bpy.types.Object,
+) -> bpy.types.Object:
+    """Create a thin exact-head root shell beneath the outer curl volume."""
+    surface = exact_head_surface(reference_head)
+    segments = 64
+    rings = 12
+    top_ring_y = 0.494
+    vertices: list[tuple[float, float, float]] = []
+    faces: list[tuple[int, ...]] = []
+
+    for ring in range(rings):
+        amount = ring / (rings - 1)
+        eased = sin(amount * pi * 0.5)
+        for segment in range(segments):
+            angle = 2.0 * pi * segment / segments
+            direction = Vector((cos(angle), 0.0, sin(angle)))
+            front = max(0.0, direction.x)
+            side = abs(direction.z)
+            contour = 0.0008 * sin(5.0 * angle) + 0.0005 * sin(11.0 * angle)
+            bottom_y = 0.456 + 0.008 * front + 0.002 * side + contour
+            y = bottom_y + (top_ring_y - bottom_y) * eased
+            location, normal, _, _ = surface.ray_cast(
+                Vector((0.0, y, 0.0)), direction
+            )
+            if location is None or normal is None:
+                raise RuntimeError(
+                    f"Exact-head scalp cap ray miss at ring={ring} segment={segment}"
+                )
+            point = location + normal.normalized() * 0.0007
+            vertices.append(tuple(point))
+
+    for ring in range(rings - 1):
+        for segment in range(segments):
+            next_segment = (segment + 1) % segments
+            a = ring * segments + segment
+            b = ring * segments + next_segment
+            c = (ring + 1) * segments + next_segment
+            d = (ring + 1) * segments + segment
+            faces.append((a, b, c, d))
+
+    apex, apex_normal, _, _ = surface.find_nearest(Vector((0.0, 0.500, 0.0)))
+    if apex is None or apex_normal is None:
+        raise RuntimeError("Exact-head scalp cap apex lookup failed")
+    apex_index = len(vertices)
+    vertices.append(tuple(apex + apex_normal.normalized() * 0.0007))
+    last_ring = (rings - 1) * segments
+    for segment in range(segments):
+        faces.append(
+            (
+                last_ring + segment,
+                last_ring + (segment + 1) % segments,
+                apex_index,
+            )
+        )
+
+    mesh = bpy.data.meshes.new("SK_Hair_CurlyCoiled_RootCapMesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.append(make_curly_root_material())
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+    cap = bpy.data.objects.new("SK_Hair_CurlyCoiled_RootCap", mesh)
+    bpy.context.collection.objects.link(cap)
+    return cap
 
 
 def make_facial_hair_material(module_name: str, kind: str) -> bpy.types.Material:
@@ -391,6 +592,77 @@ def build_official_hair(
                 "sha256": file_sha256(path),
             }
             for key, path in paths.items()
+        },
+    }
+
+
+def build_issue448_hair(
+    module_name: str,
+    source_root: Path,
+    reference_head: bpy.types.Object,
+    armature: bpy.types.Object,
+) -> tuple[bpy.types.Object, dict[str, object]]:
+    """Refit project-generated issue448 source geometry to the exact #487 head.
+
+    The old issue448 head-fit outputs are never imported because their manifest
+    marks them non-promotable. Each #487 candidate begins from the hashed
+    technicalized source mesh and receives an independently derived fit.
+    """
+    source = ISSUE448_HAIR_SOURCES[module_name]
+    path = source_root / str(source["filename"])
+    if not path.is_file() or file_sha256(path) != source["sha256"]:
+        raise RuntimeError(f"Issue448 source/hash contract changed: {path}")
+    obj = join_imported_meshes(imported_glb_objects(path), module_name)
+    coordinates = [vertex.co.copy() for vertex in obj.data.vertices]
+    minimum = Vector(tuple(min(point[axis] for point in coordinates) for axis in range(3)))
+    maximum = Vector(tuple(max(point[axis] for point in coordinates) for axis in range(3)))
+    center = (minimum + maximum) * 0.5
+    lateral_scale, depth_scale, vertical_scale, target_top = source["fit"]
+    for vertex in obj.data.vertices:
+        source_co = vertex.co.copy()
+        vertex.co = Vector(
+            (
+                TARGET_HEAD_CENTER.x - (source_co.y - center.y) * depth_scale,
+                target_top + (source_co.z - maximum.z) * vertical_scale,
+                TARGET_HEAD_CENTER.z + (source_co.x - center.x) * lateral_scale,
+            )
+        )
+    obj.matrix_world = Matrix.Identity(4)
+    obj.data.update()
+    trimmed_vertex_count = (
+        trim_curly_fade_clusters(obj)
+        if module_name == "SK_Hair_CurlyCoiled"
+        else 0
+    )
+    normalize_imported_hair_materials(obj, module_name)
+    if module_name == "SK_Hair_CurlyCoiled":
+        obj = join_imported_meshes(
+            [obj, build_curly_inner_scalp_cap(reference_head)], module_name
+        )
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
+    add_module_contract(obj, armature, "hair", "ISSUE448_PROJECT_GENERATED_SOURCE")
+    obj["souldrifterUpstreamIssue"] = 448
+    obj["souldrifterUpstreamAsset"] = source["assetId"]
+    obj["souldrifterProviderTaskId"] = source["providerTaskId"]
+    obj["souldrifterUpstreamLicense"] = "NOT_RECORDED_DO_NOT_INFER"
+    obj["souldrifterOldHeadFitImported"] = False
+    return obj, {
+        "route": "ISSUE448_PROJECT_GENERATED_TECHNICALIZED_SOURCE",
+        "issue": 448,
+        "assetId": source["assetId"],
+        "providerTaskId": source["providerTaskId"],
+        "path": str(path).replace("\\", "/"),
+        "sha256": file_sha256(path),
+        "license": "NOT_RECORDED_DO_NOT_INFER",
+        "oldHeadFitPolicy": "NON_PROMOTABLE_NOT_IMPORTED",
+        "trimmedDetachedLowVertexCount": trimmed_vertex_count,
+        "newFit": {
+            "lateralScale": lateral_scale,
+            "depthScale": depth_scale,
+            "verticalScale": vertical_scale,
+            "targetTop": target_top,
+            "depthAxisReversed": True,
         },
     }
 
@@ -920,6 +1192,7 @@ def build() -> dict[str, object]:
     source = Path(args.source_head).resolve()
     makehuman_root = Path(args.makehuman_root).resolve()
     archive = Path(args.makehuman_archive).resolve()
+    issue448_hair_root = Path(args.issue448_hair_root).resolve()
     output = Path(args.output_glb).resolve()
     report_path = Path(args.report).resolve()
     evidence_dir = Path(args.evidence_dir).resolve()
@@ -944,9 +1217,17 @@ def build() -> dict[str, object]:
     modules = []
     upstream = {}
     for module_name, asset in HAIR_SOURCES.items():
-        module, provenance = build_official_hair(
-            module_name, asset, makehuman_root, reference_head, armature
-        )
+        if module_name in ISSUE448_HAIR_SOURCES:
+            module, provenance = build_issue448_hair(
+                module_name,
+                issue448_hair_root,
+                reference_head,
+                armature,
+            )
+        else:
+            module, provenance = build_official_hair(
+                module_name, asset, makehuman_root, reference_head, armature
+            )
         modules.append(module)
         upstream[module_name] = provenance
     for name, kind in zip(
@@ -996,7 +1277,7 @@ def build() -> dict[str, object]:
         "issue": ISSUE,
         "status": "LOCAL_PARTIAL_MODULAR_APPEARANCE_AUTHORED",
         "ownerReviewStatus": "PARTIAL_VISUAL_QA_ACCEPTED",
-        "route": "OFFICIAL_MAKEHUMAN_CC0_MESH_ADAPTATION_AND_EXACT_HEAD_FITTED_STRAND_CARDS",
+        "route": "MIXED_VERIFIED_SOURCE_REFIT_AND_EXACT_HEAD_FITTED_STRAND_CARDS",
         "legacyPackPolicy": "REFERENCE_ONLY_NOT_IMPORTED",
         "toolchain": {
             "binary": str(Path(bpy.app.binary_path).resolve()).replace("\\", "/"),
@@ -1012,7 +1293,21 @@ def build() -> dict[str, object]:
                 "license": MAKEHUMAN_LICENSE,
                 "archivePath": str(archive).replace("\\", "/"),
                 "archiveSha256": file_sha256(archive),
-                "hairAssets": upstream,
+                "hairAssets": {
+                    name: record
+                    for name, record in upstream.items()
+                    if name not in ISSUE448_HAIR_SOURCES
+                },
+            },
+            "issue448ProjectHair": {
+                "rightsRecord": "NOT_RECORDED_DO_NOT_INFER",
+                "reuseAuthorization": "EXISTING_PROJECT_GENERATED_WORK",
+                "oldHeadFitPolicy": "NON_PROMOTABLE_NOT_IMPORTED",
+                "hairAssets": {
+                    name: record
+                    for name, record in upstream.items()
+                    if name in ISSUE448_HAIR_SOURCES
+                },
             },
         },
         "contract": {
@@ -1056,6 +1351,8 @@ def build() -> dict[str, object]:
             "All vertices are rigidly weighted to mixamorig:Head on the canonical 65-bone pilot.",
             "Long, tied-back, and braided secondary motion remains a runtime spring-bone follow-up.",
             "Only individually visual-QA-cleared modules are embedded; rejected candidates fail closed.",
+            "Cropped and CurlyCoiled use independently refitted issue448 technicalized source geometry.",
+            "CurlyCoiled includes a skin-tint-channel scalp underlay beneath the retained source curl clumps.",
             "SK_Hair_Parted currently reads as a slicked-back short style and should use that creator label.",
         ],
     }
