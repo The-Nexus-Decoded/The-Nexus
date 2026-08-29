@@ -297,17 +297,26 @@ Rules:
 
 1. Builders write unapproved GLBs, reports, and videos beneath `H:\CodexData\souldrifter-toolchain\evidence\<issue>\animation-candidates\<family>\<candidate-id>\`. They must not write candidate output into `public/assets`.
 2. The authoring lane may fill provenance and technical results but must leave `independentVisualReview` in `REWORK`, `ownerReview.status` as `NOT_PRESENTED`, and promotion as `QUARANTINED`. It cannot review or approve its own motion.
-3. An independent coordinator reviews the complete intended-rate playback, records every checklist field, and changes promotion to `OWNER_REVIEW_READY` only when every visual field passes and `blockingFindings` is empty.
-4. Validate before owner export:
+3. Validate the authoring handoff before independent review:
+
+   ```powershell
+   node scripts/validate-human-animation-candidate.mjs --gate quarantine <candidate-receipt.json>
+   ```
+
+   This gate hashes and decodes the candidate evidence, verifies the canonical
+   zero-action rig and provenance, and rejects any authoring handoff that claims
+   independent `PASS`, owner presentation, or runtime promotion.
+4. An independent coordinator reviews the complete intended-rate playback, records every checklist field, and changes promotion to `OWNER_REVIEW_READY` only when every visual field passes and `blockingFindings` is empty.
+5. Validate before owner export:
 
    ```powershell
    node scripts/validate-human-animation-candidate.mjs --gate owner-review <candidate-receipt.json>
    ```
 
    The command verifies the candidate, rest rig, and video byte lengths/hashes, performs a real full video decode, confirms the zero-action 65-bone rest rig, rejects forbidden source reuse, rejects author self-approval, and rejects any incomplete technical or visual field.
-5. Owner review is strictly one candidate per file and one `Y`, `N`, or `CHANGE` decision. `assemble-human-animation-preview-reels.py` requires one or more passing receipts, forces `--group-size 1`, and refuses to export a candidate whose reviewed video path differs from the render manifest.
-6. Any edit to animation keys, rig, proxy context, camera, timing, encode, candidate GLB, or receipt invalidates the old hashes and the old visual verdict. The changed candidate returns to `QUARANTINED` and repeats every gate.
-7. After owner approval, record the exact selected candidate SHA-256 and run the
+6. Owner review is strictly one candidate per file and one `Y`, `N`, or `CHANGE` decision. `assemble-human-animation-preview-reels.py` requires one or more passing receipts, forces `--group-size 1`, and refuses to export a candidate whose reviewed video path differs from the render manifest.
+7. Any edit to animation keys, rig, proxy context, camera, timing, encode, candidate GLB, or receipt invalidates the old hashes and the old visual verdict. The changed candidate returns to `QUARANTINED` and repeats every gate.
+8. After owner approval, record the exact selected candidate SHA-256 and run the
    promotion command. The command runs the runtime-install gate itself and is
    the only supported way to copy a candidate into the runtime tree:
 
@@ -319,7 +328,7 @@ Rules:
    outside `public/assets/3d/animations`, refuses to overwrite different bytes,
    copies only the owner-selected bytes, and resets every runtime verification
    field to `PENDING`.
-8. Wire the installed asset into BREACH-V2; run typecheck, the complete test
+9. Wire the installed asset into BREACH-V2; run typecheck, the complete test
    suite, the production build, and a real BREACH-V2 browser smoke; record each
    result as `PASS` in the same receipt; then run:
 

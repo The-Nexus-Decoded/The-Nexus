@@ -118,6 +118,16 @@ whole-body mechanics, balance and weight transfer, feet/knees/hips/pelvis,
 spine/shoulders/elbows/hands, prop or surface contacts, cadence,
 follow-through/recovery, grounding/root motion, and gameplay-camera readability.
 
+Before that independent review begins, require a valid quarantine handoff:
+
+```powershell
+node Arianus-Sky/projects/games/SoulDrifterWeb/scripts/validate-human-animation-candidate.mjs --gate quarantine <candidate-receipt.json>
+```
+
+This gate rejects missing or undecodable evidence, noncanonical rest rigs,
+source-derived provenance, and any authoring lane that prematurely claims an
+independent visual pass, owner presentation, or runtime promotion.
+
 Before a candidate can be shown to the owner, run:
 
 ```powershell
