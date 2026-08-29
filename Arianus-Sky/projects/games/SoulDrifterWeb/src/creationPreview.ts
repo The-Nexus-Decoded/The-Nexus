@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { SKIN_TONES, type FacialHairId, type HairStyleId, type SkinToneId } from "./game/character";
-import { applyModularAppearance, cloneActorMaterial, raceAvatarShape } from "./game/presentation";
+import { HUMAN_FOUNDATION_MODEL_PATH } from "./game/avatarIdentity";
+import { applyModularAppearance, cloneActorMaterial, isActorSkinSurface, raceAvatarShape } from "./game/presentation";
 
-const PREVIEW_MODEL_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
+const PREVIEW_MODEL_LEGACY_HUMAN = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
 const PREVIEW_MODEL_ELF = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
 const STARTER_SWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Guard|Pommel)(?:_Mesh)?$/i;
+const FOUNDATION_HELPER = /^(?:Camera|Cube|Icosphere|Light)$/i;
 
 export interface CreationPreviewAppearance {
   hairStyle: HairStyleId;
@@ -29,7 +31,8 @@ function loadPreviewModel(url: string): Promise<GLTF> {
 }
 
 function previewModelUrl(raceId: string): string {
-  return raceId === "elf" ? PREVIEW_MODEL_ELF : PREVIEW_MODEL_HUMAN;
+  if (!raceId || raceId === "human") return HUMAN_FOUNDATION_MODEL_PATH;
+  return raceId === "elf" ? PREVIEW_MODEL_ELF : PREVIEW_MODEL_LEGACY_HUMAN;
 }
 
 /**
@@ -89,8 +92,14 @@ export class CreationAvatarPreview {
         if (this.disposed || this.modelUrl !== url) return;
         if (this.model) this.scene.remove(this.model);
         const model = cloneSkeleton(gltf.scene);
+        const helpers: THREE.Object3D[] = [];
         model.traverse((child) => {
           if (STARTER_SWORD_PART.test(child.name)) child.visible = false;
+          if (child instanceof THREE.Camera || child instanceof THREE.Light
+            || (FOUNDATION_HELPER.test(child.name) && !(child instanceof THREE.SkinnedMesh))) {
+            helpers.push(child);
+            return;
+          }
           if (child instanceof THREE.Mesh) {
             const materials = Array.isArray(child.material) ? child.material : [child.material];
             const customized = materials.map((source) => {
@@ -105,6 +114,7 @@ export class CreationAvatarPreview {
             child.material = Array.isArray(child.material) ? customized : customized[0]!;
           }
         });
+        helpers.forEach((helper) => helper.removeFromParent());
         this.model = model;
         this.scene.add(model);
         this.applyAppearance();
@@ -141,7 +151,8 @@ export class CreationAvatarPreview {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((material) => {
           const base = material.userData.authoredColor as THREE.Color | undefined;
-          if (material instanceof THREE.MeshStandardMaterial && base && /skin|face|ear|nose|brow|jaw|head/i.test(material.name)) {
+          if (material instanceof THREE.MeshStandardMaterial && base
+            && isActorSkinSurface(`${child.name} ${material.name}`)) {
             material.color.copy(base).lerp(skin, 0.62);
           }
         });

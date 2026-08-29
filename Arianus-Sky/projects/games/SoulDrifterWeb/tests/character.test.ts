@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import npcData from "../public/data/npcs.json";
 import {
+  BODY_TYPES,
   CALLINGS,
   deriveCharacter,
+  FACE_TYPES,
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
@@ -51,6 +53,13 @@ describe("character weaving", () => {
         expect(`/assets/generated/characters/${race.id}-${calling.id}.png`).toMatch(/\.png$/);
       }
     }
+  });
+
+  it("normalizes the current Human pilot body and modular head contract", () => {
+    const human = deriveCharacter(completeDraft("human", "warrior"));
+    expect(BODY_TYPES.map((body) => body.id)).toEqual(["foundation"]);
+    expect(FACE_TYPES.map((face) => face.id)).toEqual(["foundation"]);
+    expect(human.appearance).toMatchObject({ bodyType: "foundation", faceType: "foundation" });
   });
 
   it("locks the owner-approved forbidden and rare ancestry paths", () => {
@@ -124,7 +133,13 @@ describe("character weaving", () => {
       raceName: "Elf",
       callingId: "shadowknight",
       callingName: "Shadowknight",
-      appearance: { hairStyle: "shaved", skinTone: "ashen" },
+      appearance: {
+        hairStyle: "shaved",
+        skinTone: "ashen",
+        facialHair: "none",
+        bodyType: "foundation",
+        faceType: "foundation",
+      },
       appearanceNeedsReview: true,
       onboarding: legacy.onboarding,
     });

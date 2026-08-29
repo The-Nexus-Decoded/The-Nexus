@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { deriveCharacter, MEMORY_QUESTIONS, type CharacterDraft } from "../src/game/character";
 import {
+  HUMAN_FOUNDATION_MODEL_PATH,
   resolveCharacterIdentity,
   resolvePlayerAvatarManifest,
   resolvePlayerModelPath,
@@ -34,19 +35,26 @@ describe("canonical avatar identity", () => {
     });
   });
 
-  it("routes current and legacy Shadowknight identities through their compatible rigs", () => {
+  it("routes every Human calling through the accepted foundation while preserving legacy non-Human saves", () => {
     const elf = elfShadowknight();
     const human = { ...elf, raceId: "human", raceName: "Human" };
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
     const halfling = { ...elf, raceId: "halfling", raceName: "Halfling" };
     expect(resolvePlayerModelPath(elf)).toBe("/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb");
-    expect(resolvePlayerModelPath(human)).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
-    expect(resolvePlayerModelPath(dwarf)).toBe(resolvePlayerModelPath(human));
-    expect(resolvePlayerModelPath(halfling)).toBe(resolvePlayerModelPath(human));
+    expect(resolvePlayerModelPath(human)).toBe(HUMAN_FOUNDATION_MODEL_PATH);
+    expect(resolvePlayerModelPath(dwarf)).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+    expect(resolvePlayerModelPath(halfling)).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+
+    const humanMage = { ...human, callingId: "mage" as const, callingName: "Mage" };
+    expect(resolvePlayerAvatarManifest(humanMage)).toEqual({
+      modelPath: HUMAN_FOUNDATION_MODEL_PATH,
+      animationPacks: HUMANOID_ACTIVE_ANIMATION_PACKS,
+    });
   });
 
   it("keeps model and optional same-rig animation packs on one identity manifest", () => {
     const elf = elfShadowknight();
+    const human = { ...elf, raceId: "human", raceName: "Human" };
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
 
     const animationPacks = [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK];
@@ -59,6 +67,10 @@ describe("canonical avatar identity", () => {
       animationPacks: [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK],
     };
     expect(resolvePlayerAvatarManifest(elf)).toEqual(elfExpected);
+    expect(resolvePlayerAvatarManifest(human)).toEqual({
+      modelPath: HUMAN_FOUNDATION_MODEL_PATH,
+      animationPacks,
+    });
     expect(resolvePlayerAvatarManifest(dwarf)).toEqual(legacyExpected);
 
     const dwarfWarrior = { ...dwarf, callingId: "warrior" as const, callingName: "Warrior" };

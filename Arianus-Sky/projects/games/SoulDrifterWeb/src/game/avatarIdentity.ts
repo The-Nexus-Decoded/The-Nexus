@@ -23,6 +23,22 @@ interface PlayerAvatarManifest {
   animationPacks: readonly AnimationPackSpec[];
 }
 
+export const HUMAN_FOUNDATION_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
+
+const HUMAN_FOUNDATION_AVATAR: PlayerAvatarManifest = {
+  modelPath: HUMAN_FOUNDATION_MODEL_PATH,
+  animationPacks: HUMANOID_ACTIVE_ANIMATION_PACKS,
+};
+
+const HUMAN_FOUNDATION_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
+  modelPath: HUMAN_FOUNDATION_MODEL_PATH,
+  animationPacks: [
+    ...HUMANOID_ACTIVE_ANIMATION_PACKS,
+    SIPHON_CLEAVE_PACK,
+    WEAPON_STRIKE_PACK,
+  ],
+};
+
 const HUMANOID_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
   modelPath: "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
   animationPacks: [
@@ -32,7 +48,7 @@ const HUMANOID_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
   ],
 };
 
-const HUMAN_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
+const LEGACY_HUMAN_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
   modelPath: "/assets/3d/characters/human-shadowknight/human-shadowknight.glb",
   animationPacks: [
     ...HUMANOID_ACTIVE_ANIMATION_PACKS,
@@ -42,10 +58,9 @@ const HUMAN_SHADOWKNIGHT_AVATAR: PlayerAvatarManifest = {
 };
 
 const PLAYER_AVATAR_BY_IDENTITY: Readonly<Record<string, PlayerAvatarManifest>> = {
-  "human:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
   "elf:shadowknight": HUMANOID_SHADOWKNIGHT_AVATAR,
-  "dwarf:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
-  "halfling:shadowknight": HUMAN_SHADOWKNIGHT_AVATAR,
+  "dwarf:shadowknight": LEGACY_HUMAN_SHADOWKNIGHT_AVATAR,
+  "halfling:shadowknight": LEGACY_HUMAN_SHADOWKNIGHT_AVATAR,
 };
 
 export function resolveCharacterIdentity(profile: Pick<CharacterProfile, "raceId" | "callingId">) {
@@ -64,6 +79,11 @@ export function resolvePlayerAvatarManifest(
   profile: Pick<CharacterProfile, "raceId" | "callingId">,
 ): PlayerAvatarManifest {
   const identity = resolveCharacterIdentity(profile);
+  if (identity.raceId === "human") {
+    return identity.callingId === "shadowknight"
+      ? HUMAN_FOUNDATION_SHADOWKNIGHT_AVATAR
+      : HUMAN_FOUNDATION_AVATAR;
+  }
   return PLAYER_AVATAR_BY_IDENTITY[`${identity.raceId}:${identity.callingId}`]
     ?? { modelPath: PLAYER_MODEL_BY_CALLING[identity.callingId], animationPacks: [] };
 }

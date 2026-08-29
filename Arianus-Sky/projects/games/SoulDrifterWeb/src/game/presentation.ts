@@ -31,6 +31,11 @@ function isGroundingAttackTarget(target: string): boolean {
     || /(?:left|right)(?:upleg|leg|foot|toebase|toe)$/.test(normalized);
 }
 
+/** Foundation pilot keeps its skin under provider-authored names. */
+export function isActorSkinSurface(name: string): boolean {
+  return /skin|face|ear|nose|brow|jaw|head|humanfoundation_body|tripo_079291c6/i.test(name);
+}
+
 export function cloneActorMaterial(
   source: THREE.Material,
   tint: number,
@@ -41,7 +46,7 @@ export function cloneActorMaterial(
   if (!(material instanceof THREE.MeshStandardMaterial)) return material;
 
   if (preserveAuthoredPalette) {
-    if (skinTone !== undefined && /skin|face|ear|nose|brow|jaw|head/i.test(`${source.name} ${material.name}`)) {
+    if (skinTone !== undefined && isActorSkinSurface(`${source.name} ${material.name}`)) {
       material.color.lerp(new THREE.Color(skinTone), 0.62);
       material.roughness = Math.max(material.roughness, 0.5);
     }

@@ -1,8 +1,10 @@
 import {
+  BODY_TYPES,
   CALLINGS,
   callingById,
   deriveCharacter,
   FACIAL_HAIR_STYLES,
+  FACE_TYPES,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
   normalizeLegacyCharacterProfile,
@@ -45,9 +47,15 @@ export class CharacterCreation {
   private readonly error = requiredElement<HTMLParagraphElement>("creation-error");
   private readonly draft: CharacterDraft = {
     name: "",
-    raceId: "",
+    raceId: "human",
     callingId: "",
-    appearance: { hairStyle: "shaved", skinTone: "ashen", facialHair: "none" },
+    appearance: {
+      bodyType: "foundation",
+      faceType: "foundation",
+      hairStyle: "shaved",
+      skinTone: "ashen",
+      facialHair: "none",
+    },
     answers: {},
   };
   private step: CreationStep = "name";
@@ -192,14 +200,18 @@ export class CharacterCreation {
         <p>Ancestry grants an affinity, never a class or morality.</p>
       </div>
       <div class="choice-grid choice-grid--races">
-        ${RACES.map((race) => `
-          <button class="choice-card ${this.draft.raceId === race.id ? "is-selected" : ""}" data-race="${race.id}" type="button">
+        ${RACES.map((race) => {
+          const available = race.id === "human";
+          return `
+          <button class="choice-card ${this.draft.raceId === race.id ? "is-selected" : ""} ${available ? "" : "is-forbidden"}" data-race="${race.id}" type="button" ${available ? "" : "disabled aria-disabled=\"true\""}>
             <img class="choice-card__portrait" src="/assets/generated/characters/${race.id}-warrior.png" alt="" />
             <span class="choice-card__glyph">${race.glyph}</span>
             <span class="choice-card__title">${race.name}</span>
             <span class="choice-card__body">${race.identity}</span>
             <span class="choice-card__affinity">${race.talent}</span>
-          </button>`).join("")}
+            ${available ? "" : "<span class=\"choice-card__eligibility choice-card__eligibility--forbidden\"><strong>Foundation pending</strong>Existing saves remain preserved.</span>"}
+          </button>`;
+        }).join("")}
       </div>
       ${this.navigation("Return to name", "Choose ancestry")}`;
     this.bindChoices("button[data-race]", "race", (id) => {
@@ -227,6 +239,24 @@ export class CharacterCreation {
           <small>Live preview · drag to turn</small>
         </div>
         <div class="appearance-builder__options">
+        <section>
+          <h3>Body type</h3>
+          <div class="appearance-options">
+            ${BODY_TYPES.map((body) => `
+              <button class="appearance-option ${(this.draft.appearance.bodyType ?? "foundation") === body.id ? "is-selected" : ""}" data-body-type="${body.id}" type="button">
+                <strong>${body.name}</strong><small>${body.description}</small>
+              </button>`).join("")}
+          </div>
+        </section>
+        <section>
+          <h3>Face</h3>
+          <div class="appearance-options">
+            ${FACE_TYPES.map((face) => `
+              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""}" data-face-type="${face.id}" type="button">
+                <strong>${face.name}</strong><small>${face.description}</small>
+              </button>`).join("")}
+          </div>
+        </section>
         <section>
           <h3>Skin tone</h3>
           <div class="appearance-options appearance-options--skin">
@@ -263,6 +293,13 @@ export class CharacterCreation {
       hairStyle: this.draft.appearance.hairStyle,
       skinTone: this.draft.appearance.skinTone,
       raceId: this.draft.raceId || "human",
+      facialHair: this.draft.appearance.facialHair,
+    });
+    this.bindChoices("button[data-body-type]", "bodyType", (id) => {
+      this.draft.appearance.bodyType = id as CharacterDraft["appearance"]["bodyType"];
+    });
+    this.bindChoices("button[data-face-type]", "faceType", (id) => {
+      this.draft.appearance.faceType = id as CharacterDraft["appearance"]["faceType"];
     });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
@@ -429,7 +466,12 @@ export class CharacterCreation {
   }
 
   private complete(profile: CharacterProfile, resumeSavedSoul = false): void {
-    profile.appearance ??= { hairStyle: "shaved", skinTone: "ashen" };
+    profile.appearance ??= {
+      bodyType: "foundation",
+      faceType: "foundation",
+      hairStyle: "shaved",
+      skinTone: "ashen",
+    };
     this.root.classList.add("is-dissolving");
     window.setTimeout(() => {
       this.root.hidden = true;

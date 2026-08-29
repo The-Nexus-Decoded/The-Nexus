@@ -81,21 +81,36 @@ export interface CharacterDraft {
 }
 
 export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
-export type SkinToneId = "ashen" | "umber" | "copper" | "deep";
+export type SkinToneId = "light" | "ashen" | "golden" | "olive" | "umber" | "copper" | "deep";
 export type FacialHairId = "none" | "full-beard";
+export type BodyTypeId = "foundation";
+export type FaceTypeId = "foundation";
 
 export interface CharacterAppearance {
   hairStyle: HairStyleId;
   skinTone: SkinToneId;
   facialHair?: FacialHairId;
+  bodyType?: BodyTypeId;
+  faceType?: FaceTypeId;
 }
 
 export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: number }>> = {
-  ashen: { name: "Ashen", color: 0xa88476 },
-  umber: { name: "Umber", color: 0x765044 },
+  light: { name: "Light", color: 0xd8aa92 },
+  ashen: { name: "Fair", color: 0xa88476 },
+  golden: { name: "Golden", color: 0xbb8060 },
+  olive: { name: "Olive", color: 0x96705c },
   copper: { name: "Copper", color: 0xb87556 },
+  umber: { name: "Brown", color: 0x765044 },
   deep: { name: "Deep", color: 0x4a302a },
 };
+
+export const BODY_TYPES: ReadonlyArray<{ id: BodyTypeId; name: string; description: string }> = [
+  { id: "foundation", name: "Athletic foundation", description: "The accepted Human pilot body and canonical animation rig." },
+];
+
+export const FACE_TYPES: ReadonlyArray<{ id: FaceTypeId; name: string; description: string }> = [
+  { id: "foundation", name: "Foundation face", description: "The first modular Human head; additional faces remain a later asset pass." },
+];
 
 export const HAIR_STYLES: ReadonlyArray<{ id: HairStyleId; name: string; description: string }> = [
   { id: "shaved", name: "Shaved", description: "Clean head silhouette; no helmet-like hair shell." },
@@ -503,7 +518,11 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
     raceGlyph: race.glyph,
     callingId: calling.id,
     callingName: calling.name,
-    appearance: draft.appearance,
+    appearance: {
+      ...draft.appearance,
+      bodyType: draft.appearance.bodyType ?? "foundation",
+      faceType: draft.appearance.faceType ?? "foundation",
+    },
     stats,
     skills: [...new Set(skills)],
     memoryConsequences,
@@ -531,13 +550,16 @@ export function normalizeLegacyCharacterProfile(profile: CharacterProfile): Char
   const facialHair = legacyAppearance?.facialHair && FACIAL_HAIR_STYLES.some((style) => style.id === legacyAppearance.facialHair)
     ? legacyAppearance.facialHair
     : "none";
-  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.skinTone;
+  const bodyType = legacyAppearance?.bodyType === "foundation" ? legacyAppearance.bodyType : "foundation";
+  const faceType = legacyAppearance?.faceType === "foundation" ? legacyAppearance.faceType : "foundation";
+  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.skinTone
+    || !legacyAppearance?.bodyType || !legacyAppearance?.faceType;
   return {
     ...profile,
     raceName: race.name,
     raceGlyph: race.glyph,
     callingName: calling.name,
-    appearance: { hairStyle, skinTone, facialHair },
+    appearance: { hairStyle, skinTone, facialHair, bodyType, faceType },
     appearanceNeedsReview: profile.appearanceNeedsReview ?? usedAppearanceDefault,
   };
 }
