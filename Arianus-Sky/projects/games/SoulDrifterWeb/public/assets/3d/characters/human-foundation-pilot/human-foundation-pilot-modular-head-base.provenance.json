@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "issue": 487,
+  "status": "HEAD_FOUNDATION_EXTRACTED",
+  "ownerReviewStatus": "OWNER_QA_PENDING",
+  "route": "BLENDER_QUAD_EXACT_BODY_BISECT",
+  "providerConstraint": "Tripo Studio reports Quad models do not support segmentation.",
+  "source": {
+    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+    "sha256": "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81",
+    "taskId": "4a5ad734-7dcc-4184-a0c0-ccfc8a79f15f"
+  },
+  "seam": {
+    "version": "human-masculine-athletic-neck-v1",
+    "axis": "source mesh local +Y",
+    "position": 0.35728401,
+    "derivation": "midpoint(mixamorig:Neck.head_local.y, mixamorig:Head.head_local.y)",
+    "bodyAndHeadSignaturesMatch": true
+  },
+  "sourceContract": {
+    "boneCount": 65,
+    "rootBone": "mixamorig:Hips",
+    "materials": [
+      "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6"
+    ],
+    "uvLayers": [
+      "UVMap"
+    ]
+  },
+  "generated": {
+    "body": {
+      "vertices": 4931,
+      "polygons": 9726,
+      "minimumY": -0.49975589,
+      "maximumY": 0.35728401,
+      "seamVertexCount": 64
+    },
+    "head": {
+      "vertices": 3214,
+      "polygons": 6232,
+      "minimumY": 0.35728401,
+      "maximumY": 0.49975595,
+      "seamVertexCount": 64
+    }
+  },
+  "output": {
+    "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-head-base.glb",
+    "bytes": 2414528,
+    "sha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8"
+  },
+  "validation": {
+    "boneCount": 65,
+    "rootBones": [
+      "mixamorig:Hips"
+    ],
+    "embeddedActionCount": 0,
+    "meshes": {
+      "HumanFoundation_BodyNoHead": {
+        "vertices": 9458,
+        "polygons": 9758,
+        "materials": [
+          "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6"
+        ],
+        "uvLayers": [
+          "UVMap"
+        ],
+        "seamVertexCount": 75
+      },
+      "HumanFoundation_HeadBase": {
+        "vertices": 6025,
+        "polygons": 6264,
+        "materials": [
+          "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6"
+        ],
+        "uvLayers": [
+          "UVMap"
+        ],
+        "seamVertexCount": 75
+      }
+    },
+    "ignoredBlenderImporterHelpers": [
+      "Icosphere"
+    ],
+    "ignoredHelperReason": "Blender glTF importer creates the Icosphere as an unweighted bone display helper; it is not an exported runtime primitive.",
+    "seamSignaturesMatch": true,
+    "status": "PASS"
+  },
+  "nextGate": "Author and visually validate facial topology, mouth interior, blink, visemes, and expression morphs on HumanFoundation_HeadBase."
+}

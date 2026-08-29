@@ -109,9 +109,14 @@ At the start of every recorded submission:
 
 If the label is no longer `P2.0 - Preview`, or the controls do not prove native-quad Smart Mesh generation, stop before upload or submission. Perform an issue-linked capability audit confirming native quad output, rig/animation suitability, topology control, and target-face behavior. Record the changed label and audit evidence. Do not silently substitute HD Model, assume compatibility, or submit while the audit is unresolved.
 
-## Paid mesh segmentation and head-extraction gate
+## Topology-routed head-extraction gate
 
-The accepted Tripo body is the proportion authority for its body type. Create a matching base head only by segmenting that exact accepted body at its recorded, versioned neck seam. Preserve the accepted body scale, axes, origin, rest rig, and head/neck bone names, hierarchy, and rest transforms. A head from a visually similar body is not interchangeable evidence.
+The accepted Tripo body is the proportion authority for its body type. Create a matching base head only from that exact accepted body at its recorded, versioned neck seam. Preserve the accepted body scale, axes, origin, rest rig, UVs, materials, skin weights, and head/neck bone names, hierarchy, and rest transforms. A head from a visually similar body is not interchangeable evidence.
+
+Route by the accepted mesh's proven topology before attempting any provider operation:
+
+- **Quad Smart Mesh:** Tripo Studio's live segmentation control reported `Quad models don't support segmentation yet` on 2026-08-29. Do not click repeatedly, spend credits, convert to HD, remesh, or generate a replacement body. Use the cached Blender toolchain to bisect the exact canonical GLB at the versioned rest-rig neck plane. Emit a body-without-head and matching head, then fail closed unless fresh import proves the source SHA, 65-bone/root contract, UV/material identity, zero embedded actions, and identical body/head seam signatures. The reusable issue #487 builder is `scripts/build-human-foundation-modular-head.py`.
+- **Non-Quad mesh with live segmentation support:** use the paid Tripo segmentation gate below. Do not assume support from an older observation; verify the live control first.
 
 Tripo's official billing table observed on **2026-08-29** lists **Mesh Segmentation at 40 credits**. Treat this as current provider evidence, not a permanent price pin or standing spend authorization. Immediately before the operation, refresh the live/official price and return the exact body asset ID, source task/model ID, source SHA-256, operation, expected credits, maximum approved credits, current balance, projected remaining balance, and action-time owner approval. Submit exactly one approved segmentation task and never auto-retry it. This runbook update does not authorize any paid action.
 
@@ -120,7 +125,7 @@ Official references:
 - [Tripo billing](https://platform.tripo3d.ai/docs/billing)
 - [Tripo model editing and mesh segmentation](https://platform.tripo3d.ai/docs/editing)
 
-Capture and hash the untouched segmented result and each returned part. Record the body type, seam version, scale/axis/origin contract, part names, bytes, and SHA-256 values. Segmentation proves geometry separation only. It does not create facial edge flow, shape keys, visemes, blink, gaze, jaw controls, expressions, or an animation-ready head; those are separately authored and validated in Blender.
+For a supported Tripo result, capture and hash the untouched segmented result and each returned part. For the Quad Blender route, hash the canonical source, builder, emitted modular GLB, provenance receipt, and front/side/separated-seam evidence. Record the body type, seam version, scale/axis/origin contract, part names, bytes, and SHA-256 values. Either route proves geometry separation only. It does not create facial edge flow, shape keys, visemes, blink, gaze, jaw controls, expressions, or an animation-ready head; those are separately authored and validated in Blender.
 
 ## Required visible capture sequence
 
@@ -168,14 +173,15 @@ Keep one continuous 30fps pilot recording when practical. If a provider wait mak
 - Download the untouched source result once. Do not overwrite or edit it.
 - Show the untouched filename, byte size, and SHA-256 in a sanitized receipt view without revealing unrelated local paths or shell history.
 
-### 5A. Body-matched head segmentation when separately approved
+### 5A. Body-matched head extraction
 
 - Show the exact accepted body task/model ID, source SHA-256, body type, and versioned neck seam.
-- Show the refreshed Mesh Segmentation price, current balance, projected balance, and exact action-time owner approval for this one operation.
+- Show the accepted topology and route decision. For Quad, show the live unsupported verdict once and continue with the no-spend Blender route. For a supported non-Quad mesh, show the refreshed Mesh Segmentation price, current balance, projected balance, and exact action-time owner approval for this one operation.
 - Show that the selected source is the exact accepted body, not a similar duplicate or later remesh.
-- Perform one approved segmentation task, capture its task ID and submission time, and poll that task without submitting a retry.
-- Show the returned head/body parts and confirm the accepted scale, axes, origin, rest rig, and head/neck bone contract remain unchanged.
-- Download once, then record the untouched output and per-part filenames, byte counts, and SHA-256 values.
+- For a supported non-Quad mesh, perform one approved segmentation task, capture its task ID and submission time, and poll that task without submitting a retry.
+- For Quad, run the cached exact-body Blender builder once, record its versioned neck plane, and require matching fresh-import seam signatures before review.
+- Show the returned or locally emitted head/body parts and confirm the accepted scale, axes, origin, rest rig, UV/material identity, and head/neck bone contract remain unchanged.
+- Download or emit once, then record the untouched output and per-part filenames, byte counts, and SHA-256 values.
 - Label this capture `GEOMETRY_SEPARATION_ONLY`; do not claim facial-control or animation readiness.
 
 ### 6. T-pose rig and calibration proof
@@ -260,7 +266,9 @@ Each recording receipt must be machine-readable JSON with at least these fields:
     "bodyAuthoritySha256": "<sha256>",
     "neckSeamVersion": "<version>",
     "segmentation": {
-      "operation": "TRIPO_MESH_SEGMENTATION",
+      "operation": "TRIPO_MESH_SEGMENTATION | BLENDER_QUAD_EXACT_BODY_BISECT",
+      "topologyRoute": "SUPPORTED_NON_QUAD_TRIPO | QUAD_BLENDER",
+      "providerConstraint": "<live verdict or NOT_APPLICABLE>",
       "officialPriceObservedCredits": 40,
       "officialPriceObservedAt": "2026-08-29",
       "officialPriceSource": "https://platform.tripo3d.ai/docs/billing",
@@ -271,7 +279,8 @@ Each recording receipt must be machine-readable JSON with at least these fields:
       "automaticRetry": false,
       "untouchedOutputSha256": "<sha256>",
       "returnedParts": [],
-      "claimBoundary": "GEOMETRY_SEPARATION_ONLY"
+      "claimBoundary": "GEOMETRY_SEPARATION_ONLY",
+      "bodyAndHeadSeamSignaturesMatch": false
     },
     "bodyScaleAxesOriginPreserved": false,
     "restRigAndHeadNeckHierarchyPreserved": false
@@ -325,8 +334,9 @@ A pilot recording passes only when:
 - the MP4 is readable, 30fps, externally stored, hashed, and paired with a complete receipt;
 - no login, password, 2FA, payment data, token, private message, microphone audio, or other secret is visible;
 - the exact live Smart Mesh version, Quad Face selection, 8,000 target, current balance, exact cost, approval, single task ID, and untouched download hash are legible;
-- when head segmentation is part of the take, the refreshed exact Mesh Segmentation cost, action-time approval, exact accepted-body source binding, one-task/no-auto-retry proof, preserved coordinate/rig contract, and untouched per-part hashes are legible;
-- no segmentation receipt is presented as facial topology, facial controls, or animation-readiness evidence;
+- when supported non-Quad head segmentation is part of the take, the refreshed exact Mesh Segmentation cost, action-time approval, exact accepted-body source binding, one-task/no-auto-retry proof, preserved coordinate/rig contract, and untouched per-part hashes are legible;
+- when the accepted body is Quad, the unsupported segmentation verdict, no-spend route, exact canonical source SHA, versioned Blender seam, matching body/head seam signatures, preserved coordinate/rig/UV/material contract, and emitted artifact hashes are legible;
+- no extraction receipt is presented as facial topology, facial controls, or animation-readiness evidence;
 - T-pose calibration and same-mesh/same-rig A-pose derivation are both demonstrated;
 - normal-speed and slow deformation review are both present; and
 - no paid retry, batch generation, PR #460 change, merge, deployment, or release action occurred.
