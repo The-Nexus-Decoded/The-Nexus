@@ -2816,12 +2816,19 @@ def build_mining(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str
         {frame: planted_right_ankle for frame in every_frame},
     )
     if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
-        raise RuntimeError(f"Mining hand IK gate failed: left={left_contact}, right={right_contact}")
+        left_worst = max(left_contact["samples"], key=lambda sample: sample["error"])
+        right_worst = max(right_contact["samples"], key=lambda sample: sample["error"])
+        raise RuntimeError(
+            "Mining hand IK gate failed: "
+            f"left={left_worst}; right={right_worst}; tolerance={CONTACT_TOLERANCE}"
+        )
     if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
         raise RuntimeError(f"Mining grounding gate failed: left={left_ground}, right={right_ground}")
 
     grip_samples = []
     tool_midpoints: dict[int, Vector] = {}
+    pickaxe_head_positions: dict[int, Vector] = {}
+    handle_segments: dict[int, tuple[Vector, Vector]] = {}
     for frame in every_frame:
         left_position = left_targets[frame]
         right_position = right_targets[frame]
@@ -2833,6 +2840,13 @@ def build_mining(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str
             "span": round(grip_span, 8),
         })
         tool_midpoints[frame] = (left_position + right_position) * 0.5
+        axis = (left_position - right_position).normalized()
+        # Include the physical handle behind the lower grip so clearance is
+        # measured against the complete runtime-bound tool, not only the span
+        # between the two authored hand targets.
+        lower_handle = right_position - axis * 0.12
+        pickaxe_head_positions[frame] = left_position + axis * 0.36
+        handle_segments[frame] = (lower_handle, pickaxe_head_positions[frame])
     grip_order_passed = all(
         sample["leftY"] > 0.015
         and sample["rightY"] < -0.015
@@ -2850,6 +2864,50 @@ def build_mining(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str
             )
         ]
         raise RuntimeError(f"Mining grip separation/order gate failed: {failed_grips}")
+
+    def point_segment_distance(point: Vector, start: Vector, end: Vector) -> float:
+        segment = end - start
+        if segment.length_squared <= 1e-12:
+            return (point - start).length
+        amount = max(0.0, min(1.0, (point - start).dot(segment) / segment.length_squared))
+        return (point - (start + segment * amount)).length
+
+    body_clearance_centers = {
+        "neck": vec((0.0, 0.0, 0.405)),
+        "upperTorso": vec((0.0, 0.0, 0.245)),
+        "lowerTorso": vec((0.0, 0.0, 0.075)),
+    }
+    handle_clearance_frames = {
+        label: min(
+            every_frame,
+            key=lambda frame: point_segment_distance(center, *handle_segments[frame]),
+        )
+        for label, center in body_clearance_centers.items()
+    }
+    handle_clearances = {
+        label: point_segment_distance(
+            center,
+            *handle_segments[handle_clearance_frames[label]],
+        )
+        for label, center in body_clearance_centers.items()
+    }
+    minimum_body_clearance = min(handle_clearances.values())
+    if minimum_body_clearance < 0.11:
+        raise RuntimeError(
+            f"Mining handle/body clearance failed: {handle_clearances}; "
+            f"frames={handle_clearance_frames}"
+        )
+
+    rock_surface_target = vec((0.37, 0.12, floor_z + 0.21))
+    rock_contact_error = (pickaxe_head_positions[74] - rock_surface_target).length
+    rock_surface_z = floor_z + 0.21
+    contact_penetration = max(0.0, rock_surface_z - pickaxe_head_positions[74].z)
+    if rock_contact_error > 0.06 or contact_penetration > 0.02:
+        raise RuntimeError(
+            "Mining rock surface contact failed: "
+            f"error={rock_contact_error}; penetration={contact_penetration}; "
+            f"head={list(pickaxe_head_positions[74])}; target={list(rock_surface_target)}"
+        )
 
     positions = [tool_midpoints[frame] for frame in every_frame]
     velocities = [(positions[index] - positions[index - 1]) * FPS for index in range(1, len(positions))]
@@ -2926,6 +2984,14 @@ def build_mining(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str
             "twoHandGripOrderAndSpanPassed": grip_order_passed,
             "minimumGripSpan": round(min(sample["span"] for sample in grip_samples), 8),
             "maximumGripSpan": round(max(sample["span"] for sample in grip_samples), 8),
+            "minimumHandleBodyClearanceMeters": round(minimum_body_clearance, 8),
+            "handleBodyClearanceByRegionMeters": {
+                label: round(value, 8) for label, value in handle_clearances.items()
+            },
+            "handleBodyClearanceFrames": handle_clearance_frames,
+            "rockSurfaceContactErrorMeters": round(rock_contact_error, 8),
+            "contactPenetrationMeters": round(contact_penetration, 8),
+            "pickaxeHeadFrame74": rounded_vector(pickaxe_head_positions[74]),
             "sampledEveryFrame": True,
             "passed": True,
         },
@@ -3130,7 +3196,12 @@ def build_chopping(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
         armature, action, "mixamorig:RightLeg", every_frame, {frame: planted_right_ankle for frame in every_frame}
     )
     if max(left_contact["maxError"], right_contact["maxError"]) > CONTACT_TOLERANCE:
-        raise RuntimeError(f"Chopping hand contact failed: {left_contact}, {right_contact}")
+        left_worst = max(left_contact["samples"], key=lambda sample: sample["error"])
+        right_worst = max(right_contact["samples"], key=lambda sample: sample["error"])
+        raise RuntimeError(
+            "Chopping hand contact failed: "
+            f"left={left_worst}; right={right_worst}; tolerance={CONTACT_TOLERANCE}"
+        )
     if max(left_ground["maxError"], right_ground["maxError"]) > GROUND_TOLERANCE:
         raise RuntimeError(f"Chopping grounding failed: {left_ground}, {right_ground}")
 
@@ -3138,9 +3209,47 @@ def build_chopping(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
     if min(grip_spans) < 0.08:
         raise RuntimeError(f"Chopping two-hand grip collapsed: {min(grip_spans)}")
     axe_head_positions = {}
+    handle_segments = {}
     for frame in every_frame:
         axis = (left_targets[frame] - right_targets[frame]).normalized()
         axe_head_positions[frame] = left_targets[frame] + axis * 0.36
+        handle_segments[frame] = (
+            right_targets[frame] - axis * 0.12,
+            axe_head_positions[frame],
+        )
+
+    def point_segment_distance(point: Vector, start: Vector, end: Vector) -> float:
+        segment = end - start
+        if segment.length_squared <= 1e-12:
+            return (point - start).length
+        amount = max(0.0, min(1.0, (point - start).dot(segment) / segment.length_squared))
+        return (point - (start + segment * amount)).length
+
+    body_clearance_centers = {
+        "neck": vec((0.0, 0.0, 0.405)),
+        "upperTorso": vec((0.0, 0.0, 0.245)),
+        "lowerTorso": vec((0.0, 0.0, 0.075)),
+    }
+    handle_clearance_frames = {
+        label: min(
+            every_frame,
+            key=lambda frame: point_segment_distance(center, *handle_segments[frame]),
+        )
+        for label, center in body_clearance_centers.items()
+    }
+    handle_clearances = {
+        label: point_segment_distance(
+            center,
+            *handle_segments[handle_clearance_frames[label]],
+        )
+        for label, center in body_clearance_centers.items()
+    }
+    minimum_body_clearance = min(handle_clearances.values())
+    if minimum_body_clearance < 0.075:
+        raise RuntimeError(
+            f"Chopping handle/body clearance failed: {handle_clearances}; "
+            f"frames={handle_clearance_frames}"
+        )
     contact_target = vec((0.38, 0.0, floor_z + 0.20))
     impact_error = (axe_head_positions[68] - contact_target).length
     if impact_error > 0.15:
@@ -3194,6 +3303,10 @@ def build_chopping(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[s
             "rightHand": right_contact,
             "minimumGripSpan": round(min(grip_spans), 8),
             "axeHeadImpactError": round(impact_error, 8),
+            "minimumHandleBodyClearanceMeters": round(minimum_body_clearance, 8),
+            "handleBodyClearanceByRegionMeters": {
+                label: round(value, 8) for label, value in handle_clearances.items()
+            },
             "sampledEveryFrame": True,
             "passed": True,
         },
