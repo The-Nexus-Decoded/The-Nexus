@@ -2,6 +2,10 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBreachV2AnimationPilot } from "../src/game/dungeons/breach-v2-animation-pilot";
+import {
+  validatePilotAnimationCatalog,
+  type PilotAnimationCatalog,
+} from "../src/game/pilotAnimationCatalog";
 
 function bodyScene(): THREE.Group {
   const model = new THREE.Group();
@@ -31,24 +35,6 @@ function clip(name: string, airborne = false): THREE.AnimationClip {
   ]);
 }
 
-function animationLibrary(): readonly THREE.AnimationClip[] {
-  return [
-    clip("MaleLocomotion__Idle"),
-    clip("BasicLocomotion__Jump", true),
-    ...Array.from({ length: 398 }, (_, index) => clip(`Coverage__${index.toString().padStart(3, "0")}`)),
-  ];
-}
-
-function approvedClipNameForUrl(url: string): string | null {
-  if (url.includes("authored-lockpick")) return "AuthoredUtility__Lockpick";
-  if (url.includes("authored-spell-impact-knockback-fall")) {
-    return "AuthoredReaction__SpellImpactKnockbackAndFall";
-  }
-  if (url.includes("authored-npc-listen")) return "AuthoredUtility__NpcListen";
-  if (url.includes("authored-farewell")) return "AuthoredUtility__Farewell";
-  return null;
-}
-
 const importNodeModule = (specifier: string) => import(specifier);
 const nodeProcess = (globalThis as typeof globalThis & { process: { cwd: () => string } }).process;
 
@@ -62,26 +48,64 @@ async function loadRealGlb(path: string): Promise<GLTF> {
   return new GLTFLoader().parseAsync(buffer, "");
 }
 
+async function loadTestCatalog(): Promise<PilotAnimationCatalog> {
+  const [{ readFile }, { default: nodePath }] = await Promise.all([
+    importNodeModule("node:fs/promises"),
+    importNodeModule("node:path"),
+  ]);
+  const path = nodePath.resolve(
+    nodeProcess.cwd(),
+    "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-catalog.json",
+  );
+  return validatePilotAnimationCatalog(JSON.parse(await readFile(path, "utf8")));
+}
+
+function stubCatalogRequest(catalog: PilotAnimationCatalog): void {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(catalog), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  })));
+}
+
+function syntheticCatalogLoader(catalog: PilotAnimationCatalog, body: THREE.Group): GLTFLoader {
+  const packs = new Map(catalog.packs.map((pack) => [pack.url, pack]));
+  const standalone = new Map(catalog.standaloneApprovedClips.map((entry) => [entry.url, entry]));
+  return {
+    loadAsync: vi.fn(async (url: string) => {
+      if (url.includes("runtime-4k")) return { scene: body, animations: [] };
+      const pack = packs.get(url);
+      if (pack) {
+        return {
+          scene: new THREE.Group(),
+          animations: pack.clipNames.map((name) => clip(name, /jump|fall|dive|airborne/i.test(name))),
+        };
+      }
+      const approved = standalone.get(url);
+      if (approved) return { scene: new THREE.Group(), animations: [clip(approved.sourceClipName)] };
+      throw new Error(`Unexpected pilot animation request ${url}`);
+    }),
+  } as unknown as GLTFLoader;
+}
+
 describe("Breach V2 Human animation pilot grounding", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
   it("keeps one calibrated pivot through grounded rest, bone-driven jump, landing, replay, and clip switches", async () => {
     vi.stubGlobal("window", {});
     const body = bodyScene();
-    const animations = animationLibrary();
-    const loader = {
-      loadAsync: vi.fn(async (url: string) => {
-        if (url.includes("runtime-4k")) return { scene: body, animations: [] };
-        const approvedClipName = approvedClipNameForUrl(url);
-        if (approvedClipName) return { scene: new THREE.Group(), animations: [clip(approvedClipName)] };
-        return { scene: new THREE.Group(), animations };
-      }),
-    } as unknown as GLTFLoader;
+    const catalog = await loadTestCatalog();
+    stubCatalogRequest(catalog);
+    const loader = syntheticCatalogLoader(catalog, body);
 
     const pilot = await createBreachV2AnimationPilot(loader);
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
+    expect(bridge.reviewAnimations()).toHaveLength(404);
+    expect(bridge.reviewAnimations()).toContain("AuthoredReaction__SpellImpactKnockbackAndFall");
+    expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls.flat())
+      .not.toContain("/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb");
     const pivot = pilot.root.getObjectByName("issue-487-human-pilot-grounding-pivot")!;
     const fixedPivotY = pivot.position.y;
 
@@ -90,7 +114,7 @@ describe("Breach V2 Human animation pilot grounding", () => {
     expect(rest.clearanceMeters).toBeCloseTo(0, 9);
     expect(rest.appliedGroundingOffsetMeters).toBe(fixedPivotY);
 
-    bridge.playReview("BasicLocomotion__Jump", false);
+    await bridge.playReview("BasicLocomotion__Jump", false);
     pilot.update(0.5);
     const apex = bridge.snapshot().grounding!;
     expect(apex.currentRootY).toBeCloseTo(apex.targetRootRestY, 9);
@@ -107,12 +131,12 @@ describe("Breach V2 Human animation pilot grounding", () => {
     expect(pivot.position.y).toBe(fixedPivotY);
 
     for (let replay = 0; replay < 25; replay += 1) {
-      bridge.playReview("MaleLocomotion__Idle", true);
+      await bridge.playReview("MaleLocomotion__Idle", true);
       pilot.update(0.25);
       expect(bridge.snapshot().grounding!.clearanceMeters).toBeCloseTo(0, 9);
       expect(pivot.position.y).toBe(fixedPivotY);
 
-      bridge.playReview("BasicLocomotion__Jump", false);
+      await bridge.playReview("BasicLocomotion__Jump", false);
       pilot.update(0.5);
       expect(bridge.snapshot().grounding!.clearanceMeters).toBeGreaterThan(1);
       expect(pivot.position.y).toBe(fixedPivotY);
@@ -127,30 +151,34 @@ describe("Breach V2 Human animation pilot grounding", () => {
     });
   });
 
-  it("proves fixed-pivot grounding against the real zero-action body and 400-clip library", async () => {
+  it("proves lazy fixed-pivot grounding against the real body, review packs, and approved standalone", async () => {
     vi.stubGlobal("window", {});
     vi.stubGlobal("self", globalThis);
     const textureWarning = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const [body, library, lockpick, spellImpact, npcListen, farewell] = await Promise.all([
+    const [body, catalog] = await Promise.all([
       loadRealGlb("public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb"),
-      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb"),
-      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-lockpick.glb"),
-      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb"),
-      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb"),
-      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb"),
+      loadTestCatalog(),
     ]);
-    textureWarning.mockRestore();
-
-    expect(library.animations).toHaveLength(400);
-    expect(library.animations.filter((candidate) => (
-      candidate.tracks.some((track) => track.name === "mixamorigHips.position")
-    ))).toHaveLength(400);
-    expect(library.animations.filter((candidate) => (
-      candidate.tracks.some((track) => /Armature\.position$/i.test(track.name))
-    ))).toHaveLength(0);
-
-    const maleJump = library.animations.find((candidate) => candidate.name === "MaleLocomotion__Jump")!;
-    const basicJump = library.animations.find((candidate) => candidate.name === "BasicLocomotion__Jump")!;
+    stubCatalogRequest(catalog);
+    const assetCache = new Map<string, Promise<GLTF>>();
+    const loadAsset = (url: string): Promise<GLTF> => {
+      const cached = assetCache.get(url);
+      if (cached) return cached;
+      const loaded = loadRealGlb(`public${url}`);
+      assetCache.set(url, loaded);
+      return loaded;
+    };
+    const sourceClip = async (name: string): Promise<THREE.AnimationClip> => {
+      const entry = catalog.clips.find((candidate) => candidate.name === name);
+      if (!entry) throw new Error(`Missing real catalog clip ${name}`);
+      const pack = catalog.packs.find((candidate) => candidate.id === entry.packId)!;
+      const gltf = await loadAsset(pack.url);
+      return gltf.animations.find((candidate) => candidate.name === name)!;
+    };
+    const [maleJump, basicJump] = await Promise.all([
+      sourceClip("MaleLocomotion__Jump"),
+      sourceClip("BasicLocomotion__Jump"),
+    ]);
     expect(basicJump.duration).toBe(maleJump.duration);
     expect(basicJump.tracks.map((track) => ({
       name: track.name,
@@ -162,43 +190,42 @@ describe("Breach V2 Human animation pilot grounding", () => {
       values: Array.from(track.values),
     })));
 
-    const approvedLibraries = new Map<string, GLTF>([
-      ["AuthoredUtility__Lockpick", lockpick],
-      ["AuthoredReaction__SpellImpactKnockbackAndFall", spellImpact],
-      ["AuthoredUtility__NpcListen", npcListen],
-      ["AuthoredUtility__Farewell", farewell],
-    ]);
     const loader = {
       loadAsync: vi.fn(async (url: string) => {
         if (url.includes("runtime-4k")) return body;
-        const approvedClipName = approvedClipNameForUrl(url);
-        return approvedClipName ? approvedLibraries.get(approvedClipName)! : library;
+        return loadAsset(url);
       }),
     } as unknown as GLTFLoader;
     const pilot = await createBreachV2AnimationPilot(loader);
+    textureWarning.mockRestore();
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
+    expect(bridge.reviewAnimations()).toHaveLength(404);
     expect(bridge.reviewAnimations()).toContain("AuthoredUtility__Lockpick");
+    expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls.flat().join("\n"))
+      .not.toContain("human-foundation-pilot-animation-library.glb");
     const pivot = pilot.root.getObjectByName("issue-487-human-pilot-grounding-pivot")!;
     const fixedPivotY = pivot.position.y;
-    const sample = (name: string, timeSeconds: number) => {
-      bridge.playReview(name, false);
+    const sample = async (name: string, timeSeconds: number) => {
+      await bridge.playReview(name, false);
       pilot.update(timeSeconds);
       expect(pivot.position.y).toBe(fixedPivotY);
       return bridge.snapshot().grounding!;
     };
 
-    const idle = sample("MaleLocomotion__Idle", 0);
+    const idle = await sample("MaleLocomotion__Idle", 0);
     expect(Math.abs(idle.clearanceMeters)).toBeLessThanOrEqual(0.01);
-    const maleStart = sample("MaleLocomotion__Jump", 0);
-    const maleApex = sample("MaleLocomotion__Jump", maleJump.duration / 2);
-    const maleLanding = sample("MaleLocomotion__Jump", maleJump.duration);
-    const basicStart = sample("BasicLocomotion__Jump", 0);
-    const basicApex = sample("BasicLocomotion__Jump", basicJump.duration / 2);
-    const basicLanding = sample("BasicLocomotion__Jump", basicJump.duration);
-    const lockpickClip = lockpick.animations.find((candidate) => candidate.name === "AuthoredUtility__Lockpick")!;
-    const lockpickStart = sample("AuthoredUtility__Lockpick", 0);
-    const lockpickMidpoint = sample("AuthoredUtility__Lockpick", lockpickClip.duration / 2);
-    const lockpickEnd = sample("AuthoredUtility__Lockpick", lockpickClip.duration);
+    const maleStart = await sample("MaleLocomotion__Jump", 0);
+    const maleApex = await sample("MaleLocomotion__Jump", maleJump.duration / 2);
+    const maleLanding = await sample("MaleLocomotion__Jump", maleJump.duration);
+    const basicStart = await sample("BasicLocomotion__Jump", 0);
+    const basicApex = await sample("BasicLocomotion__Jump", basicJump.duration / 2);
+    const basicLanding = await sample("BasicLocomotion__Jump", basicJump.duration);
+    const lockpickEntry = catalog.standaloneApprovedClips.find((entry) => entry.name === "AuthoredUtility__Lockpick")!;
+    const lockpick = await loadAsset(lockpickEntry.url);
+    const lockpickClip = lockpick.animations.find((candidate) => candidate.name === lockpickEntry.sourceClipName)!;
+    const lockpickStart = await sample("AuthoredUtility__Lockpick", 0);
+    const lockpickMidpoint = await sample("AuthoredUtility__Lockpick", lockpickClip.duration / 2);
+    const lockpickEnd = await sample("AuthoredUtility__Lockpick", lockpickClip.duration);
 
     expect(Math.abs(maleStart.clearanceMeters)).toBeLessThanOrEqual(0.01);
     expect(maleApex.clearanceMeters).toBeGreaterThan(0.25);
@@ -209,9 +236,73 @@ describe("Breach V2 Human animation pilot grounding", () => {
     expect(Math.abs(lockpickStart.clearanceMeters)).toBeLessThanOrEqual(0.01);
     expect(Math.abs(lockpickMidpoint.clearanceMeters)).toBeLessThanOrEqual(0.01);
     expect(Math.abs(lockpickEnd.clearanceMeters)).toBeLessThanOrEqual(0.01);
+    expect(bridge.reviewResidency().residentAssetIds.length).toBeLessThanOrEqual(2);
+    expect(bridge.reviewResidency().residentBoundClipNames.length).toBeLessThanOrEqual(2);
 
     pilot.dispose();
     body.scene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.geometry.dispose();
+      if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose());
+      else object.material.dispose();
+    });
+  });
+
+  it("rejects stale async selections and evicts mixer clips beyond the two-clip boundary", async () => {
+    vi.stubGlobal("window", {});
+    const body = bodyScene();
+    const catalog = await loadTestCatalog();
+    stubCatalogRequest(catalog);
+    const idleEntry = catalog.clips.find((entry) => entry.name === "MaleLocomotion__Idle")!;
+    const candidatePacks = catalog.packs.filter((pack) => pack.id !== idleEntry.packId).slice(0, 3);
+    const [slowPack, fastPack, thirdPack] = candidatePacks;
+    const packs = new Map(catalog.packs.map((pack) => [pack.url, pack]));
+    const standalone = new Map(catalog.standaloneApprovedClips.map((entry) => [entry.url, entry]));
+    let delaySlowPack = false;
+    let releaseSlowPack: (() => void) | undefined;
+    const slowGate = new Promise<void>((resolve) => { releaseSlowPack = resolve; });
+    const loader = {
+      loadAsync: vi.fn(async (url: string) => {
+        if (url.includes("runtime-4k")) return { scene: body, animations: [] };
+        const pack = packs.get(url);
+        if (pack) {
+          if (delaySlowPack && pack.id === slowPack!.id) await slowGate;
+          return {
+            scene: new THREE.Group(),
+            animations: pack.clipNames.map((name) => clip(name, /jump|fall|dive|airborne/i.test(name))),
+          };
+        }
+        const approved = standalone.get(url);
+        if (approved) return { scene: new THREE.Group(), animations: [clip(approved.sourceClipName)] };
+        throw new Error(`Unexpected pilot animation request ${url}`);
+      }),
+    } as unknown as GLTFLoader;
+    const uncacheClip = vi.spyOn(THREE.AnimationMixer.prototype, "uncacheClip");
+    const pilot = await createBreachV2AnimationPilot(loader);
+    const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
+    delaySlowPack = true;
+    const slowName = slowPack!.clipNames[0]!;
+    const fastName = fastPack!.clipNames[0]!;
+    const thirdName = thirdPack!.clipNames[0]!;
+
+    const staleSelection = bridge.playReview(slowName, false);
+    const winningSelection = bridge.playReview(fastName, false);
+    await winningSelection;
+    expect(bridge.snapshot().playerAnimation).toBe(fastName);
+    releaseSlowPack!();
+    expect(await staleSelection).toBe(0);
+    expect(bridge.snapshot().playerAnimation).toBe(fastName);
+
+    await bridge.playReview(thirdName, false);
+    expect(bridge.snapshot().playerAnimation).toBe(thirdName);
+    expect(bridge.reviewResidency().residentAssetIds.length).toBeLessThanOrEqual(2);
+    expect(bridge.reviewResidency().residentBoundClipNames.length).toBeLessThanOrEqual(2);
+    expect(uncacheClip).toHaveBeenCalled();
+    expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls.flat().join("\n"))
+      .not.toContain("human-foundation-pilot-animation-library.glb");
+
+    pilot.dispose();
+    body.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
       object.geometry.dispose();
       if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose());

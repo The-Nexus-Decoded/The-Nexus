@@ -107,6 +107,11 @@ import {
 import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 import { markAtlasPoi } from "./atlasSync";
+import { HUMAN_FOUNDATION_APPROVED_ANIMATIONS } from "./humanFoundationApprovedAnimations";
+import {
+  loadPilotAnimationCatalog,
+  PilotAnimationCatalogLoader,
+} from "./pilotAnimationCatalog";
 import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
 
 const TILE_SIZE = 1.75;
@@ -119,7 +124,8 @@ const STABILITY_REGEN_INTERVAL_SECONDS = 1.5;
 const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
 const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
 const PILOT_REVIEW_MODEL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
-const PILOT_REVIEW_LIBRARY = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
+const MAX_RESIDENT_PILOT_REVIEW_ASSETS = 2;
+const MAX_RESIDENT_PILOT_BOUND_CLIPS = 2;
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -289,10 +295,17 @@ interface DebugBridge {
   action(action: ActionName): Promise<void>;
   setCombatStyle(style: CombatStyle): void;
   activeBlock(): void;
-  pose(animation: string, normalizedTime: number): void;
+  pose(animation: string, normalizedTime: number): Promise<void>;
   reviewAnimations(): readonly string[];
   reviewAncestry(): string;
-  playReview(animation: string, loop: boolean): number;
+  playReview(animation: string, loop: boolean): Promise<number>;
+  reviewResidency(): {
+    residentAssetIds: readonly string[];
+    residentPackIds: readonly string[];
+    residentRawClipCount: number;
+    residentBoundClipNames: readonly string[];
+    pendingAssetIds: readonly string[];
+  };
   pauseReview(paused: boolean): void;
   setReviewSkin(preset: PilotSkinPresetId): Promise<{ applied: boolean; materialCount: number; reason?: string }>;
   weapon(state: WeaponVisualState): void;
@@ -397,7 +410,9 @@ export class World3D {
   private readonly animationPackCache = new Map<string, Promise<readonly THREE.AnimationClip[]>>();
   private readonly pilotReviewEnabled = import.meta.env.DEV
     && new URL(window.location.href).searchParams.get("animationReview") === "1";
-  private readonly pilotReviewSources = new Map<string, THREE.AnimationClip>();
+  private pilotReviewCatalog: PilotAnimationCatalogLoader | null = null;
+  private readonly pilotReviewBoundClips = new Map<string, THREE.AnimationClip>();
+  private pilotReviewRequest = 0;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -545,6 +560,13 @@ export class World3D {
 
   public destroy(): void {
     this.disposed = true;
+    this.pilotReviewRequest += 1;
+    if (this.player) {
+      this.pilotReviewBoundClips.forEach((clip) => this.player.mixer.uncacheClip(clip));
+    }
+    this.pilotReviewBoundClips.clear();
+    this.pilotReviewCatalog?.clear();
+    this.pilotReviewCatalog = null;
     this.clearEnemyAttackPhase();
     cancelAnimationFrame(this.animationFrame);
     window.removeEventListener("resize", this.resize);
@@ -1319,38 +1341,66 @@ export class World3D {
   }
 
   private async loadPilotReviewAnimationLibrary(actor: AnimatedActor): Promise<void> {
-    const gltf = await this.loadModel(PILOT_REVIEW_LIBRARY);
-    if (gltf.animations.length !== 400) {
-      throw new Error(`Issue #487 pilot library expected 400 clips, got ${gltf.animations.length}.`);
-    }
-    this.pilotReviewSources.clear();
-    gltf.animations.forEach((clip) => this.pilotReviewSources.set(clip.name, clip));
-    const defaultClip = [...this.pilotReviewSources.keys()]
+    const catalog = await loadPilotAnimationCatalog();
+    this.pilotReviewCatalog = new PilotAnimationCatalogLoader(
+      catalog,
+      this.loader,
+      MAX_RESIDENT_PILOT_REVIEW_ASSETS,
+    );
+    const defaultClip = this.pilotReviewCatalog.reviewAnimations()
       .find((name) => name.toLowerCase() === "malelocomotion__idle");
-    if (defaultClip) this.playPilotReviewAnimation(actor, defaultClip, true);
+    if (defaultClip) await this.playPilotReviewAnimation(actor, defaultClip, true);
   }
 
-  private pilotReviewClip(actor: AnimatedActor, name: string): THREE.AnimationClip | null {
-    const existing = actor.clips.get(name);
-    if (existing) return existing;
-    const source = this.pilotReviewSources.get(name);
-    if (!source) return null;
+  private async preparePilotReviewClip(actor: AnimatedActor, name: string): Promise<THREE.AnimationClip> {
+    const existing = this.pilotReviewBoundClips.get(name);
+    if (existing) {
+      this.pilotReviewBoundClips.delete(name);
+      this.pilotReviewBoundClips.set(name, existing);
+      return existing;
+    }
+    if (!this.pilotReviewCatalog) throw new Error("Issue #487 pilot animation catalog is not initialized.");
+    const source = await this.pilotReviewCatalog.loadClip(name);
     const bound = bindOptionalCompatibleAnimationClip(source, actor.model, source.name);
     if (!bound) throw new Error(`Issue #487 pilot clip ${name} is incompatible with the accepted body rig.`);
-    const boundRoot = bound.tracks
+    const approvedSpec = HUMAN_FOUNDATION_APPROVED_ANIMATIONS.find((spec) => spec.semanticClipName === name);
+    const boundRoot = approvedSpec?.rootNodeName ?? bound.tracks
       .map((track) => track.name.slice(0, track.name.lastIndexOf(".")))
       .find((node) => /armature$/i.test(node)) ?? "HumanFoundation_Armature";
-    const normalized = normalizeAnimationPackRootMotion(bound, boundRoot);
-    actor.clips.set(name, normalized);
-    return normalized;
+    return approvedSpec?.rootPolicy === "authored"
+      ? bound
+      : normalizeAnimationPackRootMotion(bound, boundRoot);
   }
 
-  private playPilotReviewAnimation(actor: AnimatedActor, name: string, loop: boolean): number {
-    const clip = this.pilotReviewClip(actor, name);
-    if (!clip) throw new Error(`Unknown issue #487 pilot animation: ${name}`);
+  private retainPilotReviewBoundClip(actor: AnimatedActor, name: string, clip: THREE.AnimationClip): void {
+    this.pilotReviewBoundClips.delete(name);
+    this.pilotReviewBoundClips.set(name, clip);
+    actor.clips.set(name, clip);
+    while (this.pilotReviewBoundClips.size > MAX_RESIDENT_PILOT_BOUND_CLIPS) {
+      const oldestName = this.pilotReviewBoundClips.keys().next().value as string | undefined;
+      if (!oldestName) break;
+      const evicted = this.pilotReviewBoundClips.get(oldestName);
+      this.pilotReviewBoundClips.delete(oldestName);
+      if (actor.clips.get(oldestName) === evicted) actor.clips.delete(oldestName);
+      if (evicted) actor.mixer.uncacheClip(evicted);
+    }
+  }
+
+  private async activatePilotReviewClip(actor: AnimatedActor, name: string): Promise<THREE.AnimationClip | null> {
+    const request = ++this.pilotReviewRequest;
+    const clip = await this.preparePilotReviewClip(actor, name);
+    if (request !== this.pilotReviewRequest || this.disposed) return null;
     actor.motion.complete();
     this.updateActorDeathPresentation(actor);
     actor.mixer.stopAllAction();
+    actor.currentAction = undefined;
+    this.retainPilotReviewBoundClip(actor, name, clip);
+    return clip;
+  }
+
+  private async playPilotReviewAnimation(actor: AnimatedActor, name: string, loop: boolean): Promise<number> {
+    const clip = await this.activatePilotReviewClip(actor, name);
+    if (!clip) return 0;
     const action = actor.mixer.clipAction(clip);
     action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
     action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Number.POSITIVE_INFINITY : 1);
@@ -1358,6 +1408,40 @@ export class World3D {
     action.play();
     actor.currentAction = action;
     return clip.duration;
+  }
+
+  private async posePilotReviewAnimation(
+    actor: AnimatedActor,
+    name: string,
+    normalizedTime: number,
+  ): Promise<void> {
+    const clip = await this.activatePilotReviewClip(actor, name);
+    if (!clip) return;
+    if (name.toLowerCase() === "deathbaseline") actor.motion.beginDeath();
+    else actor.motion.complete();
+    const action = actor.mixer.clipAction(clip);
+    action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    action.paused = false;
+    actor.mixer.setTime(clip.duration * THREE.MathUtils.clamp(normalizedTime, 0, 1));
+    action.paused = true;
+    actor.currentAction = action;
+    this.updateActorDeathPresentation(actor);
+    actor.model.updateMatrixWorld(true);
+    this.groundActor(actor);
+  }
+
+  private pilotReviewResidency(): ReturnType<DebugBridge["reviewResidency"]> {
+    const raw = this.pilotReviewCatalog?.residency();
+    return {
+      residentAssetIds: raw?.residentAssetIds ?? [],
+      residentPackIds: raw?.residentPackIds ?? [],
+      residentRawClipCount: raw?.residentClipCount ?? 0,
+      residentBoundClipNames: [...this.pilotReviewBoundClips.keys()],
+      pendingAssetIds: raw?.pendingAssetIds ?? [],
+    };
   }
 
   /** Loads raw same-rig clips once, then validates and binds them per cloned actor. */
@@ -3821,8 +3905,11 @@ export class World3D {
         const prompt = requiredElement<HTMLElement>("reaction-prompt");
         if (!prompt.hidden) prompt.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       },
-      pose: (animation, normalizedTime) => {
-        if (this.pilotReviewEnabled) this.pilotReviewClip(this.player, animation);
+      pose: (animation, normalizedTime) => (async () => {
+        if (this.pilotReviewEnabled) {
+          await this.posePilotReviewAnimation(this.player, animation, normalizedTime);
+          return;
+        }
         const clipName = [...this.player.clips.keys()]
           .find((name) => name.toLowerCase() === animation.toLowerCase());
         if (!clipName) throw new Error(`Unknown player animation: ${animation}`);
@@ -3842,10 +3929,11 @@ export class World3D {
         this.updateActorDeathPresentation(this.player);
         this.player.model.updateMatrixWorld(true);
         this.groundActor(this.player);
-      },
-      reviewAnimations: () => [...this.pilotReviewSources.keys()].sort(),
+      })(),
+      reviewAnimations: () => this.pilotReviewCatalog?.reviewAnimations() ?? [],
       reviewAncestry: () => "human",
       playReview: (animation, loop) => this.playPilotReviewAnimation(this.player, animation, loop),
+      reviewResidency: () => this.pilotReviewResidency(),
       pauseReview: (paused) => {
         if (this.player.currentAction) this.player.currentAction.paused = paused;
       },
@@ -3956,7 +4044,9 @@ export class World3D {
       else if (command.type === "action" && command.action) void bridge.action(command.action).then(finish);
       else if (command.type === "style" && command.style) { bridge.setCombatStyle(command.style); publish(); }
       else if (command.type === "block") { bridge.activeBlock(); publish(); }
-      else if (command.type === "pose" && command.animation) { bridge.pose(command.animation, command.normalizedTime ?? 0); publish(); }
+      else if (command.type === "pose" && command.animation) {
+        void bridge.pose(command.animation, command.normalizedTime ?? 0).then(finish);
+      }
       else if (command.type === "weapon" && command.weaponState) { bridge.weapon(command.weaponState); publish(); }
       else if (command.type === "weapon-socket" && command.position && command.rotation) {
         bridge.weaponSocket(command.position, command.rotation);

@@ -21,6 +21,8 @@ const assetRoot = join(projectRoot, "public", "assets", "3d", "animations", "hum
 const sourcePath = join(assetRoot, "human-foundation-pilot-animation-library.glb");
 const catalogPath = join(assetRoot, "human-foundation-pilot-animation-catalog.json");
 const builderPath = join(projectRoot, "scripts", "build-human-animation-review-packs.mjs");
+const worldRuntimePath = join(projectRoot, "src", "game", "World3D.ts");
+const breachRuntimePath = join(projectRoot, "src", "game", "dungeons", "breach-v2-animation-pilot.ts");
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex").toUpperCase();
@@ -187,5 +189,15 @@ describe("issue #487 lazy Human animation review catalog", () => {
     expect((await loader.loadClip(approved.name)).name).toBe(approved.name);
     expect(loader.residency().residentAssetIds).toEqual([firstThreePacks[0].id, `standalone:${approved.name}`]);
     expect(loader.residency().residentClipCount).toBe(firstThreePacks[0].clipCount + 1);
+  });
+
+  it("keeps the 400-clip monolith out of both runtime review loading paths", () => {
+    const monolithUrl = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
+    for (const path of [worldRuntimePath, breachRuntimePath]) {
+      const source = readFileSync(path, "utf8");
+      expect(source, path).not.toContain(monolithUrl);
+      expect(source, path).toContain("PilotAnimationCatalogLoader");
+      expect(source, path).toContain("reviewResidency");
+    }
   });
 });

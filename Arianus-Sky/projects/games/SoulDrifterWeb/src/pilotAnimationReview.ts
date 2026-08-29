@@ -11,9 +11,16 @@ interface ReviewRecord {
 export interface PilotAnimationReviewBridge {
   reviewAnimations(): readonly string[];
   reviewAncestry(): string;
-  playReview(animation: string, loop: boolean): number;
+  playReview(animation: string, loop: boolean): Promise<number>;
   pauseReview(paused: boolean): void;
-  pose(animation: string, normalizedTime: number): void;
+  pose(animation: string, normalizedTime: number): Promise<void>;
+  reviewResidency(): {
+    residentAssetIds: readonly string[];
+    residentPackIds: readonly string[];
+    residentRawClipCount: number;
+    residentBoundClipNames: readonly string[];
+    pendingAssetIds: readonly string[];
+  };
   setReviewSkin(preset: PilotSkinPresetId): Promise<{ applied: boolean; materialCount: number; reason?: string }>;
   snapshot(): {
     playerAnimation: string;
@@ -154,6 +161,7 @@ export function installPilotAnimationReview(): void {
     const skin = required<HTMLSelectElement>(panel, "[data-skin]");
     let active = clips[0] ?? "";
     let autoAdvancedClip = "";
+    let selectionRequest = 0;
 
     const categories = ["All", ...new Set(clips.map((clip) => clip.split("__")[0]!))];
     category.replaceChildren(...categories.map((name) => new Option(name, name)));
@@ -167,42 +175,99 @@ export function installPilotAnimationReview(): void {
       const values = Object.values(decisions);
       count.textContent = `${values.filter((item) => item.decision === "approved").length} approved · ${values.length}/${clips.length} reviewed`;
     };
-    const select = (name: string, pose = true): void => {
+    const selectionStatus = (name: string): string => {
+      const saved = decisions[name];
+      return saved ? `${saved.decision}: ${name}` : `Unreviewed: ${name}`;
+    };
+    const errorText = (error: unknown): string => error instanceof Error ? error.message : String(error);
+    const select = async (name: string, pose = true): Promise<void> => {
+      const request = ++selectionRequest;
       active = name;
       clipList.value = name;
       const saved = decisions[name];
       note.value = saved?.note ?? "";
-      status.textContent = saved ? `${saved.decision}: ${name}` : `Unreviewed: ${name}`;
       scrub.value = "0";
-      if (pose) bridge.pose(name, 0);
+      if (!pose || !name) {
+        panel.dataset.loading = "false";
+        panel.dataset.error = "";
+        status.textContent = name ? selectionStatus(name) : "No matching animations";
+        return;
+      }
+      panel.dataset.loading = "true";
+      panel.dataset.error = "";
+      status.textContent = `Loading ${name}…`;
+      try {
+        await bridge.pose(name, 0);
+        if (request !== selectionRequest) return;
+        panel.dataset.loading = "false";
+        status.textContent = selectionStatus(name);
+      } catch (error: unknown) {
+        if (request !== selectionRequest) return;
+        panel.dataset.loading = "false";
+        panel.dataset.error = errorText(error);
+        status.textContent = `Could not load ${name}: ${errorText(error)}`;
+      }
     };
     const refresh = (): void => {
       const query = search.value.trim().toLowerCase();
       const visible = clips.filter((clip) => (category.value === "All" || clip.startsWith(`${category.value}__`)) && clip.toLowerCase().includes(query));
       clipList.replaceChildren(...visible.map((clip) => new Option(clip.replace("__", " · "), clip)));
-      select(visible.includes(active) ? active : visible[0] ?? "", Boolean(visible.length));
+      void select(visible.includes(active) ? active : visible[0] ?? "", Boolean(visible.length));
     };
-    const move = (offset: number): void => {
+    const move = async (offset: number): Promise<void> => {
       const options = [...clipList.options];
       if (!options.length) return;
       const index = Math.max(0, options.findIndex((option) => option.value === active));
-      select(options[(index + offset + options.length) % options.length]!.value);
+      await select(options[(index + offset + options.length) % options.length]!.value);
     };
-    const play = (): void => {
+    const play = async (): Promise<void> => {
       if (!active) return;
-      const duration = bridge.playReview(active, loop.checked);
-      autoAdvancedClip = "";
-      status.textContent = `Playing ${active} · ${duration.toFixed(2)}s`;
+      const requestedClip = active;
+      const request = ++selectionRequest;
+      panel.dataset.loading = "true";
+      panel.dataset.error = "";
+      status.textContent = `Loading ${requestedClip}…`;
+      try {
+        const duration = await bridge.playReview(requestedClip, loop.checked);
+        if (request !== selectionRequest || active !== requestedClip) return;
+        panel.dataset.loading = "false";
+        autoAdvancedClip = "";
+        status.textContent = `Playing ${requestedClip} · ${duration.toFixed(2)}s`;
+      } catch (error: unknown) {
+        if (request !== selectionRequest) return;
+        panel.dataset.loading = "false";
+        panel.dataset.error = errorText(error);
+        status.textContent = `Could not load ${requestedClip}: ${errorText(error)}`;
+      }
+    };
+    const poseAt = async (normalizedTime: number): Promise<void> => {
+      if (!active) return;
+      const requestedClip = active;
+      const request = ++selectionRequest;
+      panel.dataset.loading = "true";
+      panel.dataset.error = "";
+      status.textContent = `Loading ${requestedClip}…`;
+      try {
+        await bridge.pose(requestedClip, normalizedTime);
+        if (request !== selectionRequest || active !== requestedClip) return;
+        panel.dataset.loading = "false";
+        status.textContent = `Paused ${requestedClip} · ${(normalizedTime * 100).toFixed(1)}%`;
+      } catch (error: unknown) {
+        if (request !== selectionRequest) return;
+        panel.dataset.loading = "false";
+        panel.dataset.error = errorText(error);
+        status.textContent = `Could not load ${requestedClip}: ${errorText(error)}`;
+      }
     };
 
     category.addEventListener("change", refresh);
     search.addEventListener("input", refresh);
-    clipList.addEventListener("change", () => select(clipList.value));
-    required(panel, "[data-prev]").addEventListener("click", () => move(-1));
-    required(panel, "[data-next]").addEventListener("click", () => move(1));
-    required(panel, "[data-play]").addEventListener("click", play);
+    clipList.addEventListener("change", () => { void select(clipList.value); });
+    required(panel, "[data-prev]").addEventListener("click", () => { void move(-1); });
+    required(panel, "[data-next]").addEventListener("click", () => { void move(1); });
+    required(panel, "[data-play]").addEventListener("click", () => { void play(); });
     required(panel, "[data-pause]").addEventListener("click", () => bridge.pauseReview(true));
-    scrub.addEventListener("input", () => bridge.pose(active, Number(scrub.value) / 1000));
+    scrub.addEventListener("input", () => { void poseAt(Number(scrub.value) / 1000); });
     skin.addEventListener("change", () => {
       status.textContent = `Applying ${skin.selectedOptions[0]?.textContent ?? "skin"}…`;
       void bridge.setReviewSkin(skin.value as PilotSkinPresetId).then((result) => {
@@ -218,8 +283,8 @@ export function installPilotAnimationReview(): void {
         };
         saveDecisions(decisions);
         updateCount();
-        select(active, false);
-        if (auto.checked) { move(1); play(); }
+        void select(active, false);
+        if (auto.checked) void move(1).then(play);
       });
     });
     required(panel, "[data-export]").addEventListener("click", () => downloadReview(decisions, clips));
@@ -247,8 +312,7 @@ export function installPilotAnimationReview(): void {
         scrub.value = String(Math.round(snapshot.playerAnimationTime / snapshot.playerAnimationDuration * 1000));
         if (auto.checked && !loop.checked && snapshot.playerAnimationTime >= snapshot.playerAnimationDuration - 0.03 && autoAdvancedClip !== active) {
           autoAdvancedClip = active;
-          move(1);
-          play();
+          void move(1).then(play);
         }
       }
     }, 100);

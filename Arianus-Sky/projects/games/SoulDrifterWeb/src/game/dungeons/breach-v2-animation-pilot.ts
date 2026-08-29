@@ -6,19 +6,32 @@ import {
   measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
 } from "../animationPacks";
+import { HUMAN_FOUNDATION_APPROVED_ANIMATIONS } from "../humanFoundationApprovedAnimations";
 import {
-  HUMAN_FOUNDATION_APPROVED_ANIMATIONS,
-  selectApprovedAnimationSource,
-} from "../humanFoundationApprovedAnimations";
+  loadPilotAnimationCatalog,
+  PilotAnimationCatalogLoader,
+} from "../pilotAnimationCatalog";
 import { applyPilotSkinPreset } from "../pilotSkinReview";
 import type { PilotAnimationReviewBridge } from "../../pilotAnimationReview";
 
 const PILOT_MODEL_URL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
-const PILOT_LIBRARY_URL = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
 const PILOT_HEIGHT_METERS = 2.06;
-const PILOT_CLIP_COUNT = 400;
 const FLOOR_TOLERANCE_METERS = 0.01;
 const GROUND_CALIBRATION_CLIP = "MaleLocomotion__Idle";
+const MAX_RESIDENT_RAW_ASSETS = 2;
+const MAX_RESIDENT_BOUND_CLIPS = 2;
+
+interface RootContract {
+  rootNodeName: string;
+  sourceRootBaselineY: number;
+  targetRootRestY: number;
+  normalizedRootStartY: number;
+}
+
+interface PreparedClip {
+  clip: THREE.AnimationClip;
+  rootContract: RootContract;
+}
 
 export interface BreachV2AnimationPilot {
   root: THREE.Group;
@@ -27,14 +40,11 @@ export interface BreachV2AnimationPilot {
 }
 
 export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<BreachV2AnimationPilot> {
-  const [body, library, approvedLibraries] = await Promise.all([
+  const [body, catalog] = await Promise.all([
     loader.loadAsync(PILOT_MODEL_URL),
-    loader.loadAsync(PILOT_LIBRARY_URL),
-    Promise.all(HUMAN_FOUNDATION_APPROVED_ANIMATIONS.map((spec) => loader.loadAsync(spec.url))),
+    loadPilotAnimationCatalog(),
   ]);
-  if (library.animations.length !== PILOT_CLIP_COUNT) {
-    throw new Error(`Issue #487 pilot library expected ${PILOT_CLIP_COUNT} clips, got ${library.animations.length}.`);
-  }
+  const catalogLoader = new PilotAnimationCatalogLoader(catalog, loader, MAX_RESIDENT_RAW_ASSETS);
 
   const model = body.scene;
   model.name = "issue-487-human-pilot-model";
@@ -63,23 +73,10 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
   model.traverse((node) => {
     if (/armature$/i.test(node.name)) armatureRestPositions.set(node.name, node.position.clone());
   });
-  const sources = new Map(library.animations.map((clip) => [clip.name, clip]));
   const approvedSpecs = new Map(HUMAN_FOUNDATION_APPROVED_ANIMATIONS.map((spec) => [spec.semanticClipName, spec]));
-  HUMAN_FOUNDATION_APPROVED_ANIMATIONS.forEach((spec, index) => {
-    if (sources.has(spec.semanticClipName)) {
-      throw new Error(`Approved issue #487 animation duplicates ${spec.semanticClipName}.`);
-    }
-    const source = selectApprovedAnimationSource(spec, approvedLibraries[index]!.animations);
-    const semantic = source.clone();
-    semantic.name = spec.semanticClipName;
-    sources.set(semantic.name, semantic);
-  });
   const approvedGroundedRootPositions = new Map<string, THREE.Vector3>();
-  HUMAN_FOUNDATION_APPROVED_ANIMATIONS.forEach((spec) => {
-    const referenceSource = sources.get(spec.groundedReferenceClipName);
-    if (!referenceSource) {
-      throw new Error(`Approved issue #487 animation ${spec.semanticClipName} is missing grounded reference ${spec.groundedReferenceClipName}.`);
-    }
+  for (const spec of HUMAN_FOUNDATION_APPROVED_ANIMATIONS) {
+    const referenceSource = await catalogLoader.loadClip(spec.groundedReferenceClipName);
     const reference = bindOptionalCompatibleAnimationClip(referenceSource, model, referenceSource.name);
     const referenceTrack = reference?.tracks.find((track) => (
       track.name === `${spec.rootNodeName}.position` && track.getValueSize() >= 3
@@ -92,19 +89,35 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       referenceTrack.values[1] ?? 0,
       referenceTrack.values[2] ?? 0,
     ));
-  });
+  }
+
   const boundClips = new Map<string, THREE.AnimationClip>();
-  const rootContracts = new Map<string, {
-    rootNodeName: string;
-    sourceRootBaselineY: number;
-    targetRootRestY: number;
-    normalizedRootStartY: number;
-  }>();
-  const resolveClip = (name: string): THREE.AnimationClip => {
+  const rootContracts = new Map<string, RootContract>();
+  const touchBoundClip = (name: string, clip: THREE.AnimationClip, contract: RootContract): void => {
+    boundClips.delete(name);
+    rootContracts.delete(name);
+    boundClips.set(name, clip);
+    rootContracts.set(name, contract);
+  };
+  const retainBoundClip = (name: string, prepared: PreparedClip): void => {
+    touchBoundClip(name, prepared.clip, prepared.rootContract);
+    while (boundClips.size > MAX_RESIDENT_BOUND_CLIPS) {
+      const oldestName = boundClips.keys().next().value as string | undefined;
+      if (!oldestName) break;
+      const evicted = boundClips.get(oldestName);
+      boundClips.delete(oldestName);
+      rootContracts.delete(oldestName);
+      if (evicted) mixer.uncacheClip(evicted);
+    }
+  };
+  const prepareClip = async (name: string): Promise<PreparedClip> => {
     const cached = boundClips.get(name);
-    if (cached) return cached;
-    const source = sources.get(name);
-    if (!source) throw new Error(`Unknown issue #487 pilot animation: ${name}`);
+    const cachedContract = rootContracts.get(name);
+    if (cached && cachedContract) {
+      touchBoundClip(name, cached, cachedContract);
+      return { clip: cached, rootContract: cachedContract };
+    }
+    const source = await catalogLoader.loadClip(name);
     const bound = bindOptionalCompatibleAnimationClip(source, model, source.name);
     if (!bound) throw new Error(`Issue #487 pilot clip ${name} is incompatible with the accepted body rig.`);
     const approvedSpec = approvedSpecs.get(name);
@@ -131,26 +144,27 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     const normalizedRootTrack = normalized.tracks.find((track) => (
       track.name === `${boundRoot}.position` && track.getValueSize() >= 3
     ));
-    rootContracts.set(name, {
-      rootNodeName: boundRoot,
-      sourceRootBaselineY: sourceRootTrack?.values[1] ?? targetRestPosition.y,
-      targetRootRestY: targetRestPosition.y,
-      normalizedRootStartY: normalizedRootTrack?.values[1] ?? targetRestPosition.y,
-    });
-    boundClips.set(name, normalized);
-    return normalized;
+    return {
+      clip: normalized,
+      rootContract: {
+        rootNodeName: boundRoot,
+        sourceRootBaselineY: sourceRootTrack?.values[1] ?? targetRestPosition.y,
+        targetRootRestY: targetRestPosition.y,
+        normalizedRootStartY: normalizedRootTrack?.values[1] ?? targetRestPosition.y,
+      },
+    };
   };
 
-  // Raw GLB bind pose is not a grounded animation pose on this model. Seat the
-  // parent from an explicit canonical contact clip at frame zero, then freeze
-  // that one correction through every later clip and playback frame.
-  const calibrationClipName = [...sources.keys()].find(
+  const reviewNames = catalogLoader.reviewAnimations();
+  const calibrationClipName = reviewNames.find(
     (name) => name.toLowerCase() === GROUND_CALIBRATION_CLIP.toLowerCase(),
   );
   if (!calibrationClipName) {
     throw new Error(`Issue #487 pilot is missing grounded calibration clip ${GROUND_CALIBRATION_CLIP}.`);
   }
-  const calibrationAction = mixer.clipAction(resolveClip(calibrationClipName));
+  const calibrationPrepared = await prepareClip(calibrationClipName);
+  retainBoundClip(calibrationClipName, calibrationPrepared);
+  const calibrationAction = mixer.clipAction(calibrationPrepared.clip);
   calibrationAction.reset().setEffectiveWeight(1).setEffectiveTimeScale(1).play();
   mixer.update(0);
   const groundCalibration = calibrateAnimatedPoseOnFloor(
@@ -164,6 +178,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
 
   let currentAction: THREE.AnimationAction | null = null;
   let currentClip = "";
+  let selectionRequest = 0;
   let currentGrounding = {
     floorWorldY: groundCalibration.floorWorldY,
     lowerBoundWorldY: groundCalibration.lowerBoundWorldY,
@@ -217,10 +232,17 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     };
   };
 
-  const beginAction = (name: string, loop: boolean): { action: THREE.AnimationAction; clip: THREE.AnimationClip } => {
-    const clip = resolveClip(name);
+  const beginAction = async (
+    name: string,
+    loop: boolean,
+  ): Promise<{ action: THREE.AnimationAction; clip: THREE.AnimationClip } | null> => {
+    const request = ++selectionRequest;
+    const prepared = await prepareClip(name);
+    if (request !== selectionRequest) return null;
     mixer.stopAllAction();
-    currentAction = mixer.clipAction(clip);
+    currentAction = null;
+    retainBoundClip(name, prepared);
+    currentAction = mixer.clipAction(prepared.clip);
     currentAction.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
     currentAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Number.POSITIVE_INFINITY : 1);
     currentAction.clampWhenFinished = true;
@@ -228,27 +250,33 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     mixer.update(0);
     currentClip = name;
     reconcileGrounding();
-    return { action: currentAction, clip };
-  };
-
-  const play = (name: string, loop: boolean): number => {
-    const { clip } = beginAction(name, loop);
-    return clip.duration;
+    return { action: currentAction, clip: prepared.clip };
   };
 
   const bridge: PilotAnimationReviewBridge = {
-    reviewAnimations: () => [...sources.keys()].sort(),
+    reviewAnimations: () => reviewNames,
     reviewAncestry: () => "human",
-    playReview: play,
+    playReview: async (name, loop) => (await beginAction(name, loop))?.clip.duration ?? 0,
     pauseReview: (paused) => {
       if (currentAction) currentAction.paused = paused;
     },
-    pose: (name, normalizedTime) => {
-      const { action, clip } = beginAction(name, false);
-      action.paused = true;
-      action.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * clip.duration;
+    pose: async (name, normalizedTime) => {
+      const selected = await beginAction(name, false);
+      if (!selected) return;
+      selected.action.paused = true;
+      selected.action.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * selected.clip.duration;
       mixer.update(0);
       reconcileGrounding();
+    },
+    reviewResidency: () => {
+      const raw = catalogLoader.residency();
+      return {
+        residentAssetIds: raw.residentAssetIds,
+        residentPackIds: raw.residentPackIds,
+        residentRawClipCount: raw.residentClipCount,
+        residentBoundClipNames: [...boundClips.keys()],
+        pendingAssetIds: raw.pendingAssetIds,
+      };
     },
     setReviewSkin: (preset) => applyPilotSkinPreset(model, preset, "human"),
     snapshot: () => ({
@@ -260,9 +288,9 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
   };
   window.__SOULDRIFTER_PILOT_REVIEW__ = bridge;
 
-  const defaultClip = [...sources.keys()].find((name) => name.toLowerCase() === "malelocomotion__idle")
-    ?? [...sources.keys()][0];
-  if (defaultClip) play(defaultClip, true);
+  const defaultClip = reviewNames.find((name) => name.toLowerCase() === "malelocomotion__idle")
+    ?? reviewNames[0];
+  if (defaultClip) await bridge.playReview(defaultClip, true);
 
   return {
     root,
@@ -271,7 +299,12 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       reconcileGrounding();
     },
     dispose: () => {
+      selectionRequest += 1;
       mixer.stopAllAction();
+      boundClips.forEach((clip) => mixer.uncacheClip(clip));
+      boundClips.clear();
+      rootContracts.clear();
+      catalogLoader.clear();
       root.removeFromParent();
       if (window.__SOULDRIFTER_PILOT_REVIEW__ === bridge) delete window.__SOULDRIFTER_PILOT_REVIEW__;
     },
