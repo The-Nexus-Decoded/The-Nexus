@@ -203,6 +203,10 @@ Do not assume an Elf, Dwarf, or Halfling passes because a Human passed. Shorter 
 - Use the accepted Tripo body as the proportion authority and create one matching base head per body type by segmenting that exact body at its stable, versioned neck seam.
 - Preserve body scale/coordinate frame, the accepted rest rig, and the head/neck bone names, hierarchy, and rest transforms. Reject a head extracted from a merely similar body.
 - In Blender, establish compatible facial topology and ordered vertices, then author and validate jaw/eye rigging, facial shape keys, visemes, blink, gaze, and expression blending. A Tripo segmentation success is not evidence for these controls.
+- Before authoring or revising any facial motion, create a real-performance reference packet. Use real actor footage, facial-motion-capture footage, or authoritative training material; record the publisher, URL, retrieval date, exact video time ranges, camera view, and observed eyelid, eyeball, brow, cheek, jaw, lip, teeth, and tongue mechanics. Memory, a verbal label, and an isolated sculpt pose are not reference evidence.
+- Use [Epic's official MetaHuman performance-capture video](https://www.youtube.com/watch?v=d3k9rfA9xjs), [Epic's video-capture guidelines](https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine), [Epic's identity-take guidelines](https://dev.epicgames.com/documentation/metahuman/metahuman-animator-identity-take-guidelines-in-unreal-engine), [Epic's expression-calibration examples](https://dev.epicgames.com/documentation/en-us/metahuman/expressions-for-likeness-calibration), and [Faceware's recommended range-of-motion shapes](https://support.facewaretech.com/faceware-recommended-rom-shape-list) as the minimum current facial-reference baseline. A later implementation may replace or extend these only with an issue-linked reference receipt.
+- Compare neutral, half/full blink, eight-direction gaze, jaw open, lips part, and every speech viseme at normal speed from front, profile, and three-quarter views. Blink must produce a complete clean lid seal without squinting or eyeball deformation; lip separation and jaw drop must remain independently controllable; the jaw, chin, lower lip, cheeks, mouth cavity, teeth, and tongue must deform coherently without tearing or penetration.
+- Self-reject a facial candidate that fails the reference comparison before owner review. A technically exported shape key, a still image, or a single camera angle is not facial-motion acceptance evidence.
 - Derive face variants from this compatible topology. Skin tone stays material-driven; hair and facial hair stay separate, named, toggleable geometry.
 - Use the same canonical animated 3D head in the world, player creator, NPC close-up, quest, and dialogue presentation. Do not ship a disconnected portrait or dialogue-only head.
 - Derive `YOUNG_ADULT`, `MIDDLE_AGED`, and `ELDER` from the one body-matched base head in Blender. Use topology-preserving morph targets, age skin maps for wrinkles/folds/spots/roughness, and modular hair/facial-hair greying while preserving vertex order, seam, scale, jaw/eye rig, visemes, and expressions. Do not generate separate Tripo heads for adult ages.
@@ -267,6 +271,12 @@ Every body manifest records at least:
     },
     "rest_rig_and_head_neck_hierarchy_preserved": true,
     "facial_topology_and_controls": "pass|fail",
+    "facial_performance_reference": {
+      "sources": [],
+      "time_ranges_and_observations": "path",
+      "normal_speed_multi_angle_evidence": [],
+      "self_review": "pass|fail"
+    },
     "same_head_world_creator_npc_quest_dialogue": true,
     "adult_age_presets": ["YOUNG_ADULT", "MIDDLE_AGED", "ELDER"]
   },
@@ -335,6 +345,7 @@ Stop and repair before continuing when any of these occur:
 - a body-matched head segmented from any source other than the exact accepted body at its recorded seam;
 - changed body scale/rest rig or changed head/neck bone names, hierarchy, or transforms during head attachment;
 - treating Tripo segmentation as facial-control evidence, or missing Blender topology, shape-key, viseme, blink, gaze, jaw, or expression validation;
+- authoring or presenting facial motion without a real-performance reference packet, recorded mechanics, normal-speed multi-angle comparison, and self-review pass;
 - a separate portrait/dialogue head rather than the canonical animated head;
 - an adult age preset produced by a separate Tripo generation, or a child produced by shrinking/age-morphing the adult mesh;
 - promoting the legacy appearance pack beyond `PROVISIONAL_PILOT / OWNER_QA_PENDING` without owner QA;

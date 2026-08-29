@@ -41,6 +41,10 @@ The accepted Tripo body is the proportion authority. A generated body's face is 
 
 Tripo mesh segmentation only separates geometry. It does not provide facial topology, facial rigging, shape keys, visemes, blink, gaze, jaw motion, or expressions. After segmentation, Blender must establish and validate compatible facial edge flow, ordered vertices, jaw and eye rigging, phoneme/viseme shapes, blink and gaze controls, and expression blending before the head is animation-ready. Face variants derive from this compatible topology; they do not introduce incompatible vertex order, neck seams, or alternate facial-control systems.
 
+Facial motion is reference-driven, not guessed. Before sculpting or revising blink, gaze, jaw, lip, viseme, speech, or expression motion, build a real-performance packet from real actor footage, facial-motion-capture footage, or authoritative training material. Record publisher, URL, retrieval date, exact video time ranges, view, and observed eyelid, eye, brow, cheek, jaw, lip, teeth, and tongue mechanics. The current minimum baseline is [Epic's official MetaHuman performance-capture video](https://www.youtube.com/watch?v=d3k9rfA9xjs), [Epic's video-capture guidelines](https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine), [Epic's identity-take guidelines](https://dev.epicgames.com/documentation/metahuman/metahuman-animator-identity-take-guidelines-in-unreal-engine), [Epic's expression-calibration examples](https://dev.epicgames.com/documentation/en-us/metahuman/expressions-for-likeness-calibration), and [Faceware's recommended range-of-motion shapes](https://support.facewaretech.com/faceware-recommended-rom-shape-list).
+
+The facial self-review gate compares neutral, half/full blink, eight-direction gaze, jaw open, lips part, and every speech viseme at normal speed from front, profile, and three-quarter views. Blink must close cleanly without squinting or deforming the eyeball. Lip separation and jaw drop remain independently controllable. Jaw, chin, lower lip, cheeks, mouth cavity, teeth, and tongue move coherently without tearing or penetration. Reject the candidate before owner review when the reference comparison fails; an exported shape key, one still, or one camera angle is not acceptance proof.
+
 The same canonical animated 3D head must appear on the body in the world, character creator, NPC close-up, quest UI, and dialogue UI. Do not author a second portrait-only or dialogue-only face, head mesh, skeleton, or facial-animation library. An isolated UI presentation instance is allowed only when it references the same canonical body-matched head, materials, skeleton, facial controls, and animation assets. Hair and facial hair remain separate toggleable geometry, and skin tone remains a material-driven variant rather than a separately generated head.
 
 Adult age presentation is also derived from the one body-matched base head. Blender creates topology-compatible `YOUNG_ADULT`, `MIDDLE_AGED`, and `ELDER` morph presets plus age-specific skin maps for wrinkles, folds, spots, and roughness, with modular hair and facial-hair greying. Every preset preserves vertex order, the versioned neck seam, body scale, jaw/eye rig, visemes, expressions, and the same world/NPC/dialogue identity. Do not buy or generate separate Tripo heads for adult age presets.
@@ -264,7 +268,13 @@ Each humanoid ledger entry must include:
       "jawEyeRig": "PENDING | PASS | FAIL",
       "visemes": "PENDING | PASS | FAIL",
       "blinkGaze": "PENDING | PASS | FAIL",
-      "expressions": "PENDING | PASS | FAIL"
+      "expressions": "PENDING | PASS | FAIL",
+      "performanceReference": {
+        "sources": [],
+        "timeRangesAndObservedMechanics": "path",
+        "normalSpeedMultiAngleEvidence": [],
+        "selfReview": "PENDING | PASS | FAIL"
+      }
     },
     "adultAgePresets": ["YOUNG_ADULT", "MIDDLE_AGED", "ELDER"],
     "sameHeadEverywhereVerified": false,
@@ -364,6 +374,7 @@ The doubled pose-artifact count does not authorize doubled paid 3D generation.
 - Do not texture or rig the production body before Quad Face topology and the final face target are accepted.
 - Do not submit Tripo mesh segmentation without a refreshed exact price and action-time owner approval tied to the exact accepted body; the current observed price is 40 credits, not standing authorization.
 - Do not treat segmentation as facial-control authoring or accept a head before the Blender topology, shape-key, viseme, blink, gaze, jaw, and expression contract passes.
+- Do not author or present facial motion without a real-performance reference packet, recorded mechanics, normal-speed multi-angle comparison, and self-review pass.
 - Do not substitute a portrait-only or dialogue-only head for the canonical body-matched animated head.
 - Do not generate separate Tripo heads for Young Adult, Middle-Aged, or Elder presets.
 - Do not create a child by shrinking or morphing an adult body; children use a separate NPC-only family contract.
