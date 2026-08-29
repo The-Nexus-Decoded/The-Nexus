@@ -4,6 +4,7 @@ import {
   ONE_SHOT_BOUNDARY_POSE_CONTRACT,
   REQUIRED_TECHNICAL_CHECKS,
   REQUIRED_VISUAL_CHECKS,
+  VALVE_INTERACTION_CONTRACT,
   validateCandidateReceipt,
 } from "../scripts/validate-human-animation-candidate.mjs";
 
@@ -147,6 +148,48 @@ function harvestInteractionContext(semanticId) {
   };
 }
 
+function valveInteractionContext() {
+  return {
+    actionVariant: VALVE_INTERACTION_CONTRACT.actionVariant,
+    mountedValveProp: {
+      propId: "MOUNTED_VALVE",
+      binding: "RUNTIME_BOUND",
+      reviewProxyIncluded: true,
+      bakedIntoAnimationArtifact: false,
+    },
+    actorPlacement: {
+      valvePlaneNormalConvention: "OUTWARD_FROM_MOUNTING_SURFACE",
+      signedActorCenterDistanceFromValvePlaneMeters: 0.55,
+      actorForwardTowardValveDot: 0.97,
+      lateralOffsetFromValveCenterMeters: 0.02,
+      squarelyInFrontOfValve: true,
+    },
+    handMechanics: {
+      twoHandsControlAtAllTimesExceptDeclaredRegripFrames: true,
+      minimumLeftHandValveLocalXMeters: 0.05,
+      maximumRightHandValveLocalXMeters: -0.05,
+      minimumLeftMinusRightValveLocalXMeters: 0.1,
+      minimumInterHandClearanceMeters: 0.08,
+      bodyMidlineCrossingCount: 0,
+      interArmCrossingCount: 0,
+      handWorkingSideOrderPreserved: true,
+      regripFrames: [36, 72],
+      crossingFrames: [],
+      regripBeforePotentialCrossing: true,
+      maximumSingleHandRegripGapFrames: 4,
+    },
+    cadence: {
+      classification: "SLOW_DELIBERATE",
+      durationSeconds: 3.6,
+    },
+    collisionChecks: {
+      handValve: "PASS",
+      armTorso: "PASS",
+      interArm: "PASS",
+    },
+  };
+}
+
 function quarantinedReceipt() {
   const receipt = passingReceipt();
   receipt.technicalReview.status = "REWORK";
@@ -237,6 +280,55 @@ describe("issue #487 animation candidate gate", () => {
     expect(validate(receipt)).toEqual(expect.arrayContaining([
       "technicalReview.evidence.interactionContext.bucketProp.floating must equal false",
       "technicalReview.evidence.interactionContext.collisionChecks.fruitBucket must equal PASS",
+    ]));
+  });
+
+  it("requires signed square-on placement and a slow two-hand valve interaction contract", () => {
+    const receipt = passingReceipt();
+    receipt.candidate.semanticId = "interaction.valve";
+    expect(validate(receipt)).toContain(
+      "technicalReview.evidence.valveInteraction must be an object for interaction.valve",
+    );
+
+    receipt.technicalReview.evidence.valveInteraction = valveInteractionContext();
+    expect(validate(receipt)).toEqual([]);
+  });
+
+  it("rejects a valve candidate behind/off-axis to the prop or with crossing hands and rushed cadence", () => {
+    const receipt = passingReceipt();
+    receipt.candidate.semanticId = "interaction.valve";
+    const context = valveInteractionContext();
+    context.actorPlacement.signedActorCenterDistanceFromValvePlaneMeters = -0.2;
+    context.actorPlacement.actorForwardTowardValveDot = 0.3;
+    context.actorPlacement.lateralOffsetFromValveCenterMeters = 0.3;
+    context.handMechanics.minimumLeftHandValveLocalXMeters = -0.02;
+    context.handMechanics.maximumRightHandValveLocalXMeters = 0.03;
+    context.handMechanics.minimumLeftMinusRightValveLocalXMeters = -0.05;
+    context.handMechanics.bodyMidlineCrossingCount = 1;
+    context.handMechanics.interArmCrossingCount = 1;
+    context.handMechanics.handWorkingSideOrderPreserved = false;
+    context.handMechanics.regripFrames = [];
+    context.handMechanics.crossingFrames = [28];
+    context.handMechanics.regripBeforePotentialCrossing = false;
+    context.cadence.classification = "RUSHED";
+    context.cadence.durationSeconds = 0.8;
+    receipt.technicalReview.evidence.valveInteraction = context;
+
+    expect(validate(receipt)).toEqual(expect.arrayContaining([
+      "technicalReview.evidence.valveInteraction.actorPlacement.signedActorCenterDistanceFromValvePlaneMeters must be positive/front-side and between 0.25 and 1.1",
+      "technicalReview.evidence.valveInteraction.actorPlacement.actorForwardTowardValveDot must be at least 0.9",
+      "technicalReview.evidence.valveInteraction.actorPlacement.lateralOffsetFromValveCenterMeters absolute value must be at most 0.15",
+      "technicalReview.evidence.valveInteraction.handMechanics.minimumLeftHandValveLocalXMeters must be at least 0",
+      "technicalReview.evidence.valveInteraction.handMechanics.maximumRightHandValveLocalXMeters must be at most 0",
+      "technicalReview.evidence.valveInteraction.handMechanics.minimumLeftMinusRightValveLocalXMeters must be at least 0.08",
+      "technicalReview.evidence.valveInteraction.handMechanics.bodyMidlineCrossingCount must equal 0",
+      "technicalReview.evidence.valveInteraction.handMechanics.interArmCrossingCount must equal 0",
+      "technicalReview.evidence.valveInteraction.handMechanics.handWorkingSideOrderPreserved must equal true",
+      "technicalReview.evidence.valveInteraction.handMechanics.regripFrames must contain non-negative integer frame numbers",
+      "technicalReview.evidence.valveInteraction.handMechanics.crossingFrames must be an empty array",
+      "technicalReview.evidence.valveInteraction.handMechanics.regripBeforePotentialCrossing must equal true",
+      "technicalReview.evidence.valveInteraction.cadence.classification must equal SLOW_DELIBERATE",
+      "technicalReview.evidence.valveInteraction.cadence.durationSeconds must be at least 2",
     ]));
   });
 

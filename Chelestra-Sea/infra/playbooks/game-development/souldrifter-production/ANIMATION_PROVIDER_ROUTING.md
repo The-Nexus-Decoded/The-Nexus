@@ -120,6 +120,16 @@ The generic `interaction.harvest` semantic and its Harvest v1 candidate are reti
 
 The bucket is a separate `HARVEST_BUCKET` entity with `RUNTIME_BOUND` binding and `GROUND_PLACED` placement. Fruit is a separate `RUNTIME_BOUND_ITEM`. Neither bucket nor fruit may be baked into the character or animation artifact, and the bucket may never float or follow a hand socket. The neutral-body preview must include the grounded bucket and prove clean hand-to-fruit, hand-to-bucket, and fruit-to-bucket paths with no visible collision. Receipts for either harvest semantic record the exact canonical beat order plus `bucketProp`, fruit binding, grounded preview, and all three collision checks under `technicalReview.evidence.interactionContext`; the executable candidate gate rejects incomplete or generic harvest receipts.
 
+### Mounted-valve placement, grip, and regrip gate
+
+Valve v2 is owner `CHANGE/REJECTED`: it does not establish the canonical `interaction.valve` motion. Every replacement uses a correctly scaled mounted-valve proxy and a slow, deliberate two-hand turn. The actor stands squarely on the front side of the valve plane and faces the valve; a side-on, behind-plane, or materially off-center placement fails even when the hand path looks plausible from one camera.
+
+Use the mounted surface's outward normal as the signed-plane convention. Record `signedActorCenterDistanceFromValvePlaneMeters` in the positive front-side range `0.25` to `1.1`, `actorForwardTowardValveDot` at or above `0.9`, and absolute lateral offset from the valve center at or below `0.15m`. These are measured in the proxy's coordinate frame, not inferred from screenshots.
+
+Hands keep ordered working sides in valve-local X: the left-hand minimum remains at or above zero, the right-hand maximum remains at or below zero, and left-minus-right separation never falls below `0.08m`. Minimum inter-hand clearance is `0.05m`; body-midline and inter-arm crossing counts are both zero. Before continued rotation would cross the hands or arms, one hand releases and regrips on its own side while the other hand controls the wheel. Receipts list the exact regrip frames, keep `crossingFrames` empty, and limit a single-hand regrip gap to six frames. Both hands otherwise remain engaged. A rushed gesture, unmarked release, hand/valve miss, arm/torso collision, or inter-arm collision fails closed.
+
+Record the prop binding, signed placement/facing measurements, framewise side-order and clearance extrema, regrip/crossing frames, duration/cadence, and collision checks under `technicalReview.evidence.valveInteraction`. The executable candidate gate requires `MOUNTED_VALVE_TWO_HAND_TURN`, a `RUNTIME_BOUND` review proxy that is not baked into the animation artifact, `SLOW_DELIBERATE` cadence of at least two seconds, and all numeric/contact fields before quarantine or owner review can pass.
+
 ### Executable quarantine and promotion contract
 
 All humanoid authoring lanes use the receipt template at

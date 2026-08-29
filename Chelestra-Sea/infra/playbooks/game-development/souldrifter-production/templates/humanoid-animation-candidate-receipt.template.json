@@ -83,6 +83,45 @@
         "startArmsWideScore": 0,
         "endArmsWideScore": 0,
         "bindOrTPoseAtBoundary": false
+      },
+      "valveInteraction": {
+        "actionVariant": "MOUNTED_VALVE_TWO_HAND_TURN",
+        "mountedValveProp": {
+          "propId": "MOUNTED_VALVE",
+          "binding": "RUNTIME_BOUND",
+          "reviewProxyIncluded": true,
+          "bakedIntoAnimationArtifact": false
+        },
+        "actorPlacement": {
+          "valvePlaneNormalConvention": "OUTWARD_FROM_MOUNTING_SURFACE",
+          "signedActorCenterDistanceFromValvePlaneMeters": 0.55,
+          "actorForwardTowardValveDot": 0.97,
+          "lateralOffsetFromValveCenterMeters": 0.02,
+          "squarelyInFrontOfValve": true
+        },
+        "handMechanics": {
+          "twoHandsControlAtAllTimesExceptDeclaredRegripFrames": true,
+          "minimumLeftHandValveLocalXMeters": 0.05,
+          "maximumRightHandValveLocalXMeters": -0.05,
+          "minimumLeftMinusRightValveLocalXMeters": 0.1,
+          "minimumInterHandClearanceMeters": 0.08,
+          "bodyMidlineCrossingCount": 0,
+          "interArmCrossingCount": 0,
+          "handWorkingSideOrderPreserved": true,
+          "regripFrames": [36, 72],
+          "crossingFrames": [],
+          "regripBeforePotentialCrossing": true,
+          "maximumSingleHandRegripGapFrames": 4
+        },
+        "cadence": {
+          "classification": "SLOW_DELIBERATE",
+          "durationSeconds": 3.6
+        },
+        "collisionChecks": {
+          "handValve": "PASS",
+          "armTorso": "PASS",
+          "interArm": "PASS"
+        }
       }
     }
   },

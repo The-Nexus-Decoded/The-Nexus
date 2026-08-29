@@ -57,6 +57,19 @@ export const HARVEST_INTERACTION_CONTRACTS = Object.freeze({
   }),
 });
 
+export const VALVE_INTERACTION_CONTRACT = Object.freeze({
+  semanticId: "interaction.valve",
+  actionVariant: "MOUNTED_VALVE_TWO_HAND_TURN",
+  minimumSignedActorPlaneDistanceMeters: 0.25,
+  maximumSignedActorPlaneDistanceMeters: 1.1,
+  minimumActorForwardTowardValveDot: 0.9,
+  maximumLateralOffsetFromValveCenterMeters: 0.15,
+  minimumLeftRightSideSeparationMeters: 0.08,
+  minimumInterHandClearanceMeters: 0.05,
+  minimumDurationSeconds: 2,
+  maximumSingleHandRegripGapFrames: 6,
+});
+
 const SHA256_PATTERN = /^[A-F0-9]{64}$/;
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const repositoryRoot = resolve(projectRoot, "../../../..");
@@ -278,6 +291,166 @@ function validateHarvestInteractionContext(errors, candidate, technical) {
   }
 }
 
+function validateValveInteractionContext(errors, candidate, technical) {
+  if (candidate?.semanticId !== VALVE_INTERACTION_CONTRACT.semanticId) return;
+
+  const path = "technicalReview.evidence.valveInteraction";
+  const context = technical?.evidence?.valveInteraction;
+  if (!context || typeof context !== "object") {
+    errors.push(`${path} must be an object for ${VALVE_INTERACTION_CONTRACT.semanticId}`);
+    return;
+  }
+  if (context.actionVariant !== VALVE_INTERACTION_CONTRACT.actionVariant) {
+    errors.push(`${path}.actionVariant must equal ${VALVE_INTERACTION_CONTRACT.actionVariant}`);
+  }
+
+  const prop = context.mountedValveProp;
+  if (!prop || typeof prop !== "object") {
+    errors.push(`${path}.mountedValveProp must be an object`);
+  } else {
+    if (prop.propId !== "MOUNTED_VALVE") errors.push(`${path}.mountedValveProp.propId must equal MOUNTED_VALVE`);
+    if (prop.binding !== "RUNTIME_BOUND") errors.push(`${path}.mountedValveProp.binding must equal RUNTIME_BOUND`);
+    if (prop.reviewProxyIncluded !== true) errors.push(`${path}.mountedValveProp.reviewProxyIncluded must equal true`);
+    if (prop.bakedIntoAnimationArtifact !== false) {
+      errors.push(`${path}.mountedValveProp.bakedIntoAnimationArtifact must equal false`);
+    }
+  }
+
+  const placement = context.actorPlacement;
+  if (!placement || typeof placement !== "object") {
+    errors.push(`${path}.actorPlacement must be an object`);
+  } else {
+    if (placement.valvePlaneNormalConvention !== "OUTWARD_FROM_MOUNTING_SURFACE") {
+      errors.push(`${path}.actorPlacement.valvePlaneNormalConvention must equal OUTWARD_FROM_MOUNTING_SURFACE`);
+    }
+    const signedDistance = requireFiniteNumber(
+      errors,
+      placement.signedActorCenterDistanceFromValvePlaneMeters,
+      `${path}.actorPlacement.signedActorCenterDistanceFromValvePlaneMeters`,
+    );
+    if (signedDistance !== null
+      && (signedDistance < VALVE_INTERACTION_CONTRACT.minimumSignedActorPlaneDistanceMeters
+        || signedDistance > VALVE_INTERACTION_CONTRACT.maximumSignedActorPlaneDistanceMeters)) {
+      errors.push(
+        `${path}.actorPlacement.signedActorCenterDistanceFromValvePlaneMeters must be positive/front-side and between ${VALVE_INTERACTION_CONTRACT.minimumSignedActorPlaneDistanceMeters} and ${VALVE_INTERACTION_CONTRACT.maximumSignedActorPlaneDistanceMeters}`,
+      );
+    }
+    const facingDot = requireFiniteNumber(
+      errors,
+      placement.actorForwardTowardValveDot,
+      `${path}.actorPlacement.actorForwardTowardValveDot`,
+    );
+    if (facingDot !== null && facingDot < VALVE_INTERACTION_CONTRACT.minimumActorForwardTowardValveDot) {
+      errors.push(
+        `${path}.actorPlacement.actorForwardTowardValveDot must be at least ${VALVE_INTERACTION_CONTRACT.minimumActorForwardTowardValveDot}`,
+      );
+    }
+    const lateralOffset = requireFiniteNumber(
+      errors,
+      placement.lateralOffsetFromValveCenterMeters,
+      `${path}.actorPlacement.lateralOffsetFromValveCenterMeters`,
+    );
+    if (lateralOffset !== null
+      && Math.abs(lateralOffset) > VALVE_INTERACTION_CONTRACT.maximumLateralOffsetFromValveCenterMeters) {
+      errors.push(
+        `${path}.actorPlacement.lateralOffsetFromValveCenterMeters absolute value must be at most ${VALVE_INTERACTION_CONTRACT.maximumLateralOffsetFromValveCenterMeters}`,
+      );
+    }
+    if (placement.squarelyInFrontOfValve !== true) {
+      errors.push(`${path}.actorPlacement.squarelyInFrontOfValve must equal true`);
+    }
+  }
+
+  const hands = context.handMechanics;
+  if (!hands || typeof hands !== "object") {
+    errors.push(`${path}.handMechanics must be an object`);
+  } else {
+    if (hands.twoHandsControlAtAllTimesExceptDeclaredRegripFrames !== true) {
+      errors.push(`${path}.handMechanics.twoHandsControlAtAllTimesExceptDeclaredRegripFrames must equal true`);
+    }
+    const minimumLeft = requireFiniteNumber(
+      errors,
+      hands.minimumLeftHandValveLocalXMeters,
+      `${path}.handMechanics.minimumLeftHandValveLocalXMeters`,
+    );
+    if (minimumLeft !== null && minimumLeft < 0) {
+      errors.push(`${path}.handMechanics.minimumLeftHandValveLocalXMeters must be at least 0`);
+    }
+    const maximumRight = requireFiniteNumber(
+      errors,
+      hands.maximumRightHandValveLocalXMeters,
+      `${path}.handMechanics.maximumRightHandValveLocalXMeters`,
+    );
+    if (maximumRight !== null && maximumRight > 0) {
+      errors.push(`${path}.handMechanics.maximumRightHandValveLocalXMeters must be at most 0`);
+    }
+    const sideSeparation = requireFiniteNumber(
+      errors,
+      hands.minimumLeftMinusRightValveLocalXMeters,
+      `${path}.handMechanics.minimumLeftMinusRightValveLocalXMeters`,
+    );
+    if (sideSeparation !== null
+      && sideSeparation < VALVE_INTERACTION_CONTRACT.minimumLeftRightSideSeparationMeters) {
+      errors.push(
+        `${path}.handMechanics.minimumLeftMinusRightValveLocalXMeters must be at least ${VALVE_INTERACTION_CONTRACT.minimumLeftRightSideSeparationMeters}`,
+      );
+    }
+    const clearance = requireFiniteNumber(
+      errors,
+      hands.minimumInterHandClearanceMeters,
+      `${path}.handMechanics.minimumInterHandClearanceMeters`,
+    );
+    if (clearance !== null && clearance < VALVE_INTERACTION_CONTRACT.minimumInterHandClearanceMeters) {
+      errors.push(
+        `${path}.handMechanics.minimumInterHandClearanceMeters must be at least ${VALVE_INTERACTION_CONTRACT.minimumInterHandClearanceMeters}`,
+      );
+    }
+    for (const key of ["bodyMidlineCrossingCount", "interArmCrossingCount"]) {
+      if (!Number.isInteger(hands[key]) || hands[key] !== 0) {
+        errors.push(`${path}.handMechanics.${key} must equal 0`);
+      }
+    }
+    if (hands.handWorkingSideOrderPreserved !== true) {
+      errors.push(`${path}.handMechanics.handWorkingSideOrderPreserved must equal true`);
+    }
+    if (!Array.isArray(hands.regripFrames) || hands.regripFrames.length === 0
+      || hands.regripFrames.some((frame) => !Number.isInteger(frame) || frame < 0)) {
+      errors.push(`${path}.handMechanics.regripFrames must contain non-negative integer frame numbers`);
+    }
+    if (!Array.isArray(hands.crossingFrames) || hands.crossingFrames.length !== 0) {
+      errors.push(`${path}.handMechanics.crossingFrames must be an empty array`);
+    }
+    if (hands.regripBeforePotentialCrossing !== true) {
+      errors.push(`${path}.handMechanics.regripBeforePotentialCrossing must equal true`);
+    }
+    const maximumRegripGap = requireFiniteNumber(
+      errors,
+      hands.maximumSingleHandRegripGapFrames,
+      `${path}.handMechanics.maximumSingleHandRegripGapFrames`,
+    );
+    if (maximumRegripGap !== null
+      && (maximumRegripGap < 0
+        || maximumRegripGap > VALVE_INTERACTION_CONTRACT.maximumSingleHandRegripGapFrames)) {
+      errors.push(
+        `${path}.handMechanics.maximumSingleHandRegripGapFrames must be between 0 and ${VALVE_INTERACTION_CONTRACT.maximumSingleHandRegripGapFrames}`,
+      );
+    }
+  }
+
+  if (context.cadence?.classification !== "SLOW_DELIBERATE") {
+    errors.push(`${path}.cadence.classification must equal SLOW_DELIBERATE`);
+  }
+  const duration = requireFiniteNumber(errors, context.cadence?.durationSeconds, `${path}.cadence.durationSeconds`);
+  if (duration !== null && duration < VALVE_INTERACTION_CONTRACT.minimumDurationSeconds) {
+    errors.push(`${path}.cadence.durationSeconds must be at least ${VALVE_INTERACTION_CONTRACT.minimumDurationSeconds}`);
+  }
+  for (const key of ["handValve", "armTorso", "interArm"]) {
+    if (context.collisionChecks?.[key] !== "PASS") {
+      errors.push(`${path}.collisionChecks.${key} must equal PASS`);
+    }
+  }
+}
+
 function validateHashedFile(errors, descriptor, path, receiptPath, pathResolver = resolveEvidencePath) {
   if (!descriptor || typeof descriptor !== "object") {
     errors.push(`${path} must be an object`);
@@ -464,6 +637,7 @@ export function validateCandidateReceipt(
   const technical = receipt.technicalReview;
   validateOneShotBoundaryPose(errors, candidate, technical);
   validateHarvestInteractionContext(errors, candidate, technical);
+  validateValveInteractionContext(errors, candidate, technical);
   if (gate === "quarantine") {
     if (!["PASS", "REWORK"].includes(technical?.status)) {
       errors.push("technicalReview.status must equal PASS or REWORK at quarantine");
