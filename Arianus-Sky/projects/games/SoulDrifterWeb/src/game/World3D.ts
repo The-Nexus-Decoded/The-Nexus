@@ -1186,12 +1186,32 @@ export class World3D {
     const appearance = id === "player" && !this.pilotReviewEnabled
       ? this.profile.appearance
       : NPC_APPEARANCES[id];
+    model.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      const hadMaterialArray = Array.isArray(child.material);
+      const materials: THREE.Material[] = hadMaterialArray
+        ? [...child.material]
+        : [child.material];
+      const skinTone = appearance
+        ? SKIN_TONES[appearance.skinTone ?? "ashen"].color
+        : undefined;
+      const customized = materials.map((source: THREE.Material) => (
+        cloneActorMaterial(source, tint, appearance !== undefined, skinTone)
+      ));
+      child.material = hadMaterialArray ? customized : customized[0]!;
+    });
     if (appearance) applyModularAppearance(model, {
-      hairStyle: appearance.hairStyle ?? "shaved",
+      hairStyle: appearance.hairStyle ?? "shaved-buzzed",
       raceId: id === "player"
         ? this.profile.raceId as "human" | "elf" | "dwarf" | "halfling"
         : "human",
       facialHair: appearance.facialHair ?? "none",
+      hairColor: appearance.hairColor,
+      age: appearance.age,
+      hairGreying: appearance.hairGreying,
+      facialHairGreying: appearance.facialHairGreying,
     });
     model.updateMatrixWorld(true);
     const initialBox = actorBodyBounds(model);
@@ -1202,21 +1222,6 @@ export class World3D {
     model.updateMatrixWorld(true);
     const scaledBox = actorBodyBounds(model);
     model.position.y -= scaledBox.min.y;
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        const hadMaterialArray = Array.isArray(child.material);
-        const materials: THREE.Material[] = hadMaterialArray
-          ? [...child.material]
-          : [child.material];
-        const skinTone = appearance
-          ? SKIN_TONES[appearance.skinTone ?? "ashen"].color
-          : undefined;
-        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, appearance !== undefined, skinTone));
-        child.material = hadMaterialArray ? customized : customized[0]!;
-      }
-    });
     model.userData.actorBaseQuaternion = model.quaternion.clone();
 
     const root = new THREE.Group();

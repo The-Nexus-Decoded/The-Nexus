@@ -80,18 +80,41 @@ export interface CharacterDraft {
   answers: Record<string, string>;
 }
 
-export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
+export type CanonicalHairStyleId = "shaved-buzzed" | "cropped" | "parted" | "curly-coiled" | "long" | "tied-back" | "braided";
+export type LegacyHairStyleId = "shaved" | "silver-sweep";
+/** UI/save compatibility input; runtime and persisted profiles resolve to CanonicalHairStyleId. */
+export type HairStyleId = CanonicalHairStyleId | LegacyHairStyleId;
+export type HairStyleSelectionId = HairStyleId;
 export type SkinToneId = "light" | "ashen" | "golden" | "olive" | "umber" | "copper" | "deep";
-export type FacialHairId = "none" | "full-beard";
+export type FacialHairId = "none" | "stubble" | "moustache" | "goatee" | "short-beard" | "full-beard";
+export type HairColorId = "black" | "dark-brown" | "medium-brown" | "light-brown" | "auburn" | "copper-red" | "golden-blonde" | "ash-blonde" | "grey" | "white";
 export type BodyTypeId = "foundation";
 export type FaceTypeId = "foundation";
 
 export interface CharacterAppearance {
-  hairStyle: HairStyleId;
+  /** Legacy aliases are accepted only at the save/draft boundary and resolve to a canonical family. */
+  hairStyle: HairStyleSelectionId;
   skinTone: SkinToneId;
   facialHair?: FacialHairId;
+  hairColor?: HairColorId;
+  /** Continuous adult age: 0 young adult, 0.5 middle aged, 1 elder. */
+  age?: number;
+  hairGreying?: number;
+  facialHairGreying?: number;
   bodyType?: BodyTypeId;
   faceType?: FaceTypeId;
+}
+
+export interface ResolvedCharacterAppearance {
+  hairStyle: CanonicalHairStyleId;
+  skinTone: SkinToneId;
+  facialHair: FacialHairId;
+  hairColor: HairColorId;
+  age: number;
+  hairGreying: number;
+  facialHairGreying: number;
+  bodyType: BodyTypeId;
+  faceType: FaceTypeId;
 }
 
 export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: number }>> = {
@@ -104,6 +127,19 @@ export const SKIN_TONES: Readonly<Record<SkinToneId, { name: string; color: numb
   deep: { name: "Deep", color: 0x4a302a },
 };
 
+export const HAIR_COLORS: Readonly<Record<HairColorId, { name: string; color: number }>> = {
+  black: { name: "Black", color: 0x171412 },
+  "dark-brown": { name: "Dark brown", color: 0x2f211a },
+  "medium-brown": { name: "Medium brown", color: 0x51382a },
+  "light-brown": { name: "Light brown", color: 0x76563d },
+  auburn: { name: "Auburn", color: 0x6d3327 },
+  "copper-red": { name: "Copper red", color: 0x934b2f },
+  "golden-blonde": { name: "Golden blonde", color: 0xc59a5d },
+  "ash-blonde": { name: "Ash blonde", color: 0xb4a58c },
+  grey: { name: "Grey", color: 0x77736e },
+  white: { name: "White", color: 0xd7d3ca },
+};
+
 export const BODY_TYPES: ReadonlyArray<{ id: BodyTypeId; name: string; description: string }> = [
   { id: "foundation", name: "Athletic foundation", description: "The accepted Human pilot body and canonical animation rig." },
 ];
@@ -112,17 +148,63 @@ export const FACE_TYPES: ReadonlyArray<{ id: FaceTypeId; name: string; descripti
   { id: "foundation", name: "Foundation face", description: "The first modular Human head; additional faces remain a later asset pass." },
 ];
 
-export const HAIR_STYLES: ReadonlyArray<{ id: HairStyleId; name: string; description: string }> = [
-  { id: "shaved", name: "Shaved", description: "Clean head silhouette; no helmet-like hair shell." },
-  { id: "cropped", name: "Close-cropped", description: "Short silver crown kept clear of collars and weapons." },
-  { id: "parted", name: "Swept back", description: "A swept-back silver style for a soul that remembers discipline." },
-  { id: "silver-sweep", name: "Silver sweep", description: "Longer Patryn-blooded sweep for an older soul." },
+export const HAIR_STYLES: ReadonlyArray<{ id: CanonicalHairStyleId; name: string; description: string }> = [
+  { id: "shaved-buzzed", name: "Shaved or buzzed", description: "Clean close crown with visible scalp and no helmet-like shell." },
+  { id: "cropped", name: "Cropped", description: "Short layered cut kept clear of ears, collar, and brow." },
+  { id: "parted", name: "Parted", description: "Controlled side part with readable strand flow." },
+  { id: "curly-coiled", name: "Curly or coiled", description: "Compact natural coils with full scalp coverage." },
+  { id: "long", name: "Long", description: "Shoulder-length silhouette with face and weapon clearance." },
+  { id: "tied-back", name: "Tied back", description: "Secured tail or bun kept clear of the neck seam and back sockets." },
+  { id: "braided", name: "Braided", description: "Readable restrained braids suitable for game runtime." },
 ];
 
 export const FACIAL_HAIR_STYLES: ReadonlyArray<{ id: FacialHairId; name: string; description: string }> = [
   { id: "none", name: "Clean-shaven", description: "The Well returned the face bare." },
-  { id: "full-beard", name: "Full beard", description: "A full silver beard earned in an earlier life." },
+  { id: "stubble", name: "Stubble", description: "Close facial stubble that preserves lip readability." },
+  { id: "moustache", name: "Moustache", description: "A separate fitted moustache clear of the lips." },
+  { id: "goatee", name: "Goatee", description: "A fitted goatee following jaw and mouth deformation." },
+  { id: "short-beard", name: "Short beard", description: "A restrained short beard clear of the neck seam." },
+  { id: "full-beard", name: "Full beard", description: "A full fitted beard preserving jaw and viseme motion." },
 ];
+
+function normalizedAppearanceControl(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(1, Math.max(0, value))
+    : fallback;
+}
+
+function canonicalHairStyle(value: unknown): CanonicalHairStyleId {
+  if (value === "shaved") return "shaved-buzzed";
+  if (value === "silver-sweep") return "long";
+  return HAIR_STYLES.some((style) => style.id === value) ? value as CanonicalHairStyleId : "shaved-buzzed";
+}
+
+/** Produces the canonical persisted/runtime appearance without mutating a legacy save or draft. */
+export function resolveCharacterAppearance(
+  appearance: Partial<CharacterAppearance> | undefined,
+): ResolvedCharacterAppearance {
+  const skinTone = appearance?.skinTone && appearance.skinTone in SKIN_TONES
+    ? appearance.skinTone
+    : "ashen";
+  const facialHair = appearance?.facialHair
+    && FACIAL_HAIR_STYLES.some((style) => style.id === appearance.facialHair)
+    ? appearance.facialHair
+    : "none";
+  const hairColor = appearance?.hairColor && appearance.hairColor in HAIR_COLORS
+    ? appearance.hairColor
+    : "dark-brown";
+  return {
+    hairStyle: canonicalHairStyle(appearance?.hairStyle),
+    skinTone,
+    facialHair,
+    hairColor,
+    age: normalizedAppearanceControl(appearance?.age),
+    hairGreying: normalizedAppearanceControl(appearance?.hairGreying),
+    facialHairGreying: normalizedAppearanceControl(appearance?.facialHairGreying),
+    bodyType: appearance?.bodyType === "foundation" ? appearance.bodyType : "foundation",
+    faceType: appearance?.faceType === "foundation" ? appearance.faceType : "foundation",
+  };
+}
 
 export interface CharacterProfile {
   name: string;
@@ -518,11 +600,7 @@ export function deriveCharacter(draft: CharacterDraft): CharacterProfile {
     raceGlyph: race.glyph,
     callingId: calling.id,
     callingName: calling.name,
-    appearance: {
-      ...draft.appearance,
-      bodyType: draft.appearance.bodyType ?? "foundation",
-      faceType: draft.appearance.faceType ?? "foundation",
-    },
+    appearance: resolveCharacterAppearance(draft.appearance),
     stats,
     skills: [...new Set(skills)],
     memoryConsequences,
@@ -541,26 +619,24 @@ export function normalizeLegacyCharacterProfile(profile: CharacterProfile): Char
   const calling = callingById(profile.callingId);
   assertRaceCallingEligibility(race.id, calling.id);
   const legacyAppearance = profile.appearance as Partial<CharacterAppearance> | undefined;
-  const hairStyle = legacyAppearance?.hairStyle && HAIR_STYLES.some((style) => style.id === legacyAppearance.hairStyle)
-    ? legacyAppearance.hairStyle
-    : "shaved";
-  const skinTone = legacyAppearance?.skinTone && legacyAppearance.skinTone in SKIN_TONES
-    ? legacyAppearance.skinTone
-    : "ashen";
-  const facialHair = legacyAppearance?.facialHair && FACIAL_HAIR_STYLES.some((style) => style.id === legacyAppearance.facialHair)
-    ? legacyAppearance.facialHair
-    : "none";
-  const bodyType = legacyAppearance?.bodyType === "foundation" ? legacyAppearance.bodyType : "foundation";
-  const faceType = legacyAppearance?.faceType === "foundation" ? legacyAppearance.faceType : "foundation";
-  const usedAppearanceDefault = !legacyAppearance?.hairStyle || !legacyAppearance?.skinTone
-    || !legacyAppearance?.bodyType || !legacyAppearance?.faceType;
+  const appearance = resolveCharacterAppearance(legacyAppearance);
+  const usedAppearanceDefault = !legacyAppearance
+    || legacyAppearance.hairStyle !== appearance.hairStyle
+    || legacyAppearance.skinTone !== appearance.skinTone
+    || legacyAppearance.facialHair !== appearance.facialHair
+    || legacyAppearance.hairColor !== appearance.hairColor
+    || legacyAppearance.age !== appearance.age
+    || legacyAppearance.hairGreying !== appearance.hairGreying
+    || legacyAppearance.facialHairGreying !== appearance.facialHairGreying
+    || legacyAppearance.bodyType !== appearance.bodyType
+    || legacyAppearance.faceType !== appearance.faceType;
   return {
     ...profile,
     raceName: race.name,
     raceGlyph: race.glyph,
     callingName: calling.name,
-    appearance: { hairStyle, skinTone, facialHair, bodyType, faceType },
-    appearanceNeedsReview: profile.appearanceNeedsReview ?? usedAppearanceDefault,
+    appearance,
+    appearanceNeedsReview: profile.appearanceNeedsReview === true || usedAppearanceDefault,
   };
 }
 

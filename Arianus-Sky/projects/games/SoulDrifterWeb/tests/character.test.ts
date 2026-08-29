@@ -5,11 +5,15 @@ import {
   CALLINGS,
   deriveCharacter,
   FACE_TYPES,
+  FACIAL_HAIR_STYLES,
+  HAIR_COLORS,
+  HAIR_STYLES,
   MEMORY_QUESTIONS,
   RACES,
   raceCallingBonus,
   raceCallingEligibility,
   normalizeLegacyCharacterProfile,
+  resolveCharacterAppearance,
   type CharacterDraft,
 } from "../src/game/character";
 import { buildDialogue, type NpcDatabase, type NpcStoryOverride } from "../src/game/npc";
@@ -59,7 +63,51 @@ describe("character weaving", () => {
     const human = deriveCharacter(completeDraft("human", "warrior"));
     expect(BODY_TYPES.map((body) => body.id)).toEqual(["foundation"]);
     expect(FACE_TYPES.map((face) => face.id)).toEqual(["foundation"]);
-    expect(human.appearance).toMatchObject({ bodyType: "foundation", faceType: "foundation" });
+    expect(HAIR_STYLES.map((style) => style.id)).toEqual([
+      "shaved-buzzed", "cropped", "parted", "curly-coiled", "long", "tied-back", "braided",
+    ]);
+    expect(FACIAL_HAIR_STYLES.map((style) => style.id)).toEqual([
+      "none", "stubble", "moustache", "goatee", "short-beard", "full-beard",
+    ]);
+    expect(Object.keys(HAIR_COLORS)).toEqual([
+      "black", "dark-brown", "medium-brown", "light-brown", "auburn", "copper-red",
+      "golden-blonde", "ash-blonde", "grey", "white",
+    ]);
+    expect(human.appearance).toMatchObject({
+      hairStyle: "shaved-buzzed",
+      skinTone: "ashen",
+      facialHair: "none",
+      hairColor: "dark-brown",
+      age: 0,
+      hairGreying: 0,
+      facialHairGreying: 0,
+      bodyType: "foundation",
+      faceType: "foundation",
+    });
+  });
+
+  it("preserves skin tone while canonicalizing aliases and clamping adult appearance controls", () => {
+    const resolved = resolveCharacterAppearance({
+      hairStyle: "silver-sweep",
+      skinTone: "deep",
+      facialHair: "short-beard",
+      hairColor: "auburn",
+      age: 1.7,
+      hairGreying: -0.4,
+      facialHairGreying: 0.65,
+    });
+
+    expect(resolved).toEqual({
+      hairStyle: "long",
+      skinTone: "deep",
+      facialHair: "short-beard",
+      hairColor: "auburn",
+      age: 1,
+      hairGreying: 0,
+      facialHairGreying: 0.65,
+      bodyType: "foundation",
+      faceType: "foundation",
+    });
   });
 
   it("locks the owner-approved forbidden and rare ancestry paths", () => {
@@ -123,6 +171,7 @@ describe("character weaving", () => {
       raceName: "Human",
       callingName: "Warrior",
       appearance: undefined,
+      appearanceNeedsReview: false,
       onboarding: { ilyraAnswered: true, storybookCompleted: true, storybookPage: 7 },
     } as unknown as typeof current;
     const normalized = normalizeLegacyCharacterProfile(legacy);
@@ -134,9 +183,13 @@ describe("character weaving", () => {
       callingId: "shadowknight",
       callingName: "Shadowknight",
       appearance: {
-        hairStyle: "shaved",
+        hairStyle: "shaved-buzzed",
         skinTone: "ashen",
         facialHair: "none",
+        hairColor: "dark-brown",
+        age: 0,
+        hairGreying: 0,
+        facialHairGreying: 0,
         bodyType: "foundation",
         faceType: "foundation",
       },

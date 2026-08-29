@@ -1,4 +1,11 @@
 import * as THREE from "three";
+import {
+  HAIR_COLORS,
+  resolveCharacterAppearance,
+  type FacialHairId,
+  type HairColorId,
+  type HairStyleSelectionId,
+} from "./character";
 
 export interface PointerHitCandidate<TTile> {
   enemyId?: string;
@@ -176,15 +183,31 @@ export function setWeaponVisualState(presentation: WeaponPresentation, state: We
   presentation.hipSocket.visible = state === "sheathed";
 }
 
-export type HairStyleId = "shaved" | "cropped" | "parted" | "silver-sweep";
-export type FacialHairId = "none" | "full-beard";
 export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 
 export interface ModularAppearance {
-  hairStyle: HairStyleId;
+  hairStyle: HairStyleSelectionId;
   raceId: HumanoidRaceId;
   facialHair?: FacialHairId;
+  hairColor?: HairColorId;
+  age?: number;
+  hairGreying?: number;
+  facialHairGreying?: number;
 }
+
+export type ModularAssetApplication = "applied" | "none" | "missing-provider-asset";
+
+export interface ModularAppearanceResult {
+  hair: ModularAssetApplication;
+  facialHair: ModularAssetApplication;
+  ageMorphsApplied: readonly string[];
+  tintedMaterials: number;
+  missingProviderAssets: readonly string[];
+}
+
+/** glTF extras contract required on an approved provider module or its containing scene. */
+export const MODULAR_APPEARANCE_PROVIDER_STATUS_KEY = "souldrifterAppearanceAssetStatus";
+export const MODULAR_APPEARANCE_PROVIDER_APPROVED = "PROVIDER_APPROVED";
 
 /**
  * The head texture paints the crown silver so short styles read as stubble.
@@ -229,8 +252,8 @@ function swapScalpMaterial(material: THREE.Material, shaved: boolean, texture: T
   }
 }
 
-function applyScalpVariant(model: THREE.Object3D, hairStyle: HairStyleId): void {
-  const shaved = hairStyle === "shaved";
+function applyScalpVariant(model: THREE.Object3D, hairStyle: HairStyleSelectionId): void {
+  const shaved = hairStyle === "shaved" || hairStyle === "shaved-buzzed";
   model.userData.scalpShaved = shaved;
   const apply = (texture: THREE.Texture | null): void => {
     model.traverse((child) => {
@@ -262,73 +285,160 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
   return RACE_AVATAR_SHAPES[raceId as HumanoidRaceId] ?? RACE_AVATAR_SHAPES.human;
 }
 
-/**
- * The authored buzzed/parted shells stop short of the nape and sit narrow on
- * the skull, leaving a jagged bald patch on the lower back of the head. They
- * are skinned meshes (node transforms are ignored), so coverage is fixed by
- * expanding their bind-space vertices about the head center once per geometry
- * (geometries are shared across SkeletonUtils clones).
- */
-const HAIR_COVERAGE_FIT: Readonly<Record<string, { s: number; dy: number; dz: number }>> = {
-  SK_Hair_Buzzed: { s: 1.12, dy: -0.004, dz: -0.004 },
-  SK_Hair_Parted: { s: 1.10, dy: -0.004, dz: -0.005 },
+const HAIR_MODULE_NAMES = {
+  "shaved-buzzed": "SK_Hair_Buzzed",
+  cropped: "SK_Hair_Cropped",
+  parted: "SK_Hair_Parted",
+  "curly-coiled": "SK_Hair_CurlyCoiled",
+  long: "SK_Hair_Long",
+  "tied-back": "SK_Hair_TiedBack",
+  braided: "SK_Hair_Braided",
+} as const;
+
+const FACIAL_HAIR_MODULE_NAMES: Readonly<Record<Exclude<FacialHairId, "none">, string>> = {
+  stubble: "SK_FacialHair_Stubble",
+  moustache: "SK_FacialHair_Moustache",
+  goatee: "SK_FacialHair_Goatee",
+  "short-beard": "SK_FacialHair_ShortBeard",
+  "full-beard": "SK_FacialHair_FullBeard",
 };
 
-function fitHairCoverage(model: THREE.Object3D): void {
-  const head = model.getObjectByName("SK_HumanHead") as THREE.Mesh | undefined;
-  if (!head?.geometry) return;
-  head.geometry.computeBoundingBox();
-  const center = head.geometry.boundingBox!.getCenter(new THREE.Vector3());
-  model.traverse((child) => {
-    if (!(child instanceof THREE.Mesh)) return;
-    const fit = HAIR_COVERAGE_FIT[child.name];
-    if (!fit || child.geometry.userData.coverageFit === 1) return;
-    child.geometry.userData.coverageFit = 1;
-    const pos = child.geometry.attributes.position;
-    for (let i = 0; i < pos.count; i += 1) {
-      pos.setXYZ(
-        i,
-        center.x + (pos.getX(i) - center.x) * fit.s,
-        center.y + (pos.getY(i) - center.y) * fit.s + fit.dy,
-        center.z + (pos.getZ(i) - center.z) * fit.s + fit.dz,
-      );
+function hasProviderApproval(module: THREE.Object3D, model: THREE.Object3D): boolean {
+  let current: THREE.Object3D | null = module;
+  while (current) {
+    if (current.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] === MODULAR_APPEARANCE_PROVIDER_APPROVED) {
+      return true;
     }
-    pos.needsUpdate = true;
-    child.geometry.computeBoundingBox();
-    child.geometry.computeBoundingSphere();
+    if (current === model) return false;
+    current = current.parent;
+  }
+  return false;
+}
+
+function findApprovedModule(model: THREE.Object3D, name: string): THREE.Object3D | undefined {
+  let match: THREE.Object3D | undefined;
+  model.traverse((child) => {
+    if (!match && child.name.toLowerCase() === name.toLowerCase() && hasProviderApproval(child, model)) {
+      match = child;
+    }
+  });
+  return match;
+}
+
+function hideAppearanceModules(model: THREE.Object3D): void {
+  model.traverse((child) => {
+    if (/^SK_Hair_(?:Buzzed|Cropped|Parted|CurlyCoiled|Long|TiedBack|Braided)$/i.test(child.name)
+      || /^SK_HairScalp$/i.test(child.name)
+      || /^SK_SilverHairClump/i.test(child.name)
+      || /^SK_FacialHair_(?:Stubble|Moustache|Goatee|ShortBeard|FullBeard)$/i.test(child.name)
+      || /^SK_Beard_Full$/i.test(child.name)) {
+      child.visible = false;
+    }
   });
 }
 
-export function applyModularAppearance(model: THREE.Object3D, appearance: ModularAppearance): void {
-  fitHairCoverage(model);
-  // Legacy elf model: fixed hair clumps + pointed ears (guarded — absent on the human model).
-  const hair = model.children.filter((child) => /SK_SilverHairClump/i.test(child.name));
-  if (hair.length === 0) {
-    model.traverse((child) => {
-      if (/SK_SilverHairClump/i.test(child.name)) hair.push(child);
+const GREYING_COLOR = new THREE.Color(0xa8a39b);
+
+function tintMaterial(material: THREE.Material, color: THREE.Color): boolean {
+  if (!(material instanceof THREE.MeshStandardMaterial)) return false;
+  material.color.copy(color);
+  material.needsUpdate = true;
+  return true;
+}
+
+function tintObject(object: THREE.Object3D, color: THREE.Color): number {
+  let count = 0;
+  object.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (tintMaterial(material, color)) count += 1;
     });
-  }
-  hair.forEach((strand, index) => {
-    strand.visible = appearance.hairStyle === "silver-sweep"
-      || ((appearance.hairStyle === "cropped" || appearance.hairStyle === "parted") && index < 3);
   });
+  return count;
+}
+
+function tintBrows(model: THREE.Object3D, color: THREE.Color): number {
+  let count = 0;
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (/brow/i.test(`${child.name} ${material.name}`) && tintMaterial(material, color)) count += 1;
+    });
+  });
+  return count;
+}
+
+function applyAgeMorphs(model: THREE.Object3D, age: number): string[] {
+  const applied = new Set<string>();
+  const middleWeight = age <= 0.5 ? age * 2 : (1 - age) * 2;
+  const elderWeight = age <= 0.5 ? 0 : (age - 0.5) * 2;
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh) || !child.morphTargetDictionary || !child.morphTargetInfluences) return;
+    for (const [name, weight] of [["Age_Middle", middleWeight], ["Age_Elder", elderWeight]] as const) {
+      const index = child.morphTargetDictionary[name];
+      if (index === undefined) continue;
+      child.morphTargetInfluences[index] = weight;
+      applied.add(name);
+    }
+  });
+  return [...applied];
+}
+
+export function applyModularAppearance(
+  model: THREE.Object3D,
+  appearance: ModularAppearance,
+): ModularAppearanceResult {
+  const resolved = resolveCharacterAppearance({
+    ...appearance,
+    skinTone: "ashen",
+  });
+  hideAppearanceModules(model);
   model.traverse((child) => {
     if (/SK_PointEar_(?:L|R)/i.test(child.name)) child.visible = appearance.raceId === "elf";
   });
 
-  // Human model: real hairstyle meshes, scalp underlay, and facial hair.
-  const show = (pattern: RegExp, visible: boolean): void => {
-    model.traverse((child) => {
-      if (pattern.test(child.name)) child.visible = visible;
-    });
-  };
-  show(/^SK_Hair_Long$/i, appearance.hairStyle === "silver-sweep");
-  show(/^SK_HairScalp$/i, appearance.hairStyle === "silver-sweep");
-  show(/^SK_Hair_Parted$/i, appearance.hairStyle === "parted");
-  show(/^SK_Hair_Buzzed$/i, appearance.hairStyle === "cropped");
-  show(/^SK_Beard_Full$/i, appearance.facialHair === "full-beard");
+  const missingProviderAssets: string[] = [];
+  const hairName = HAIR_MODULE_NAMES[resolved.hairStyle];
+  const hairModule = findApprovedModule(model, hairName);
+  let hair: ModularAssetApplication = "applied";
+  if (hairModule) hairModule.visible = true;
+  else if (resolved.hairStyle === "shaved-buzzed") hair = "none";
+  else {
+    hair = "missing-provider-asset";
+    missingProviderAssets.push(hairName);
+  }
 
-  applyScalpVariant(model, appearance.hairStyle);
+  const facialHairName = resolved.facialHair === "none"
+    ? undefined
+    : FACIAL_HAIR_MODULE_NAMES[resolved.facialHair];
+  const facialHairModule = facialHairName ? findApprovedModule(model, facialHairName) : undefined;
+  let facialHair: ModularAssetApplication = resolved.facialHair === "none" ? "none" : "applied";
+  if (facialHairModule) facialHairModule.visible = true;
+  else if (facialHairName) {
+    facialHair = "missing-provider-asset";
+    missingProviderAssets.push(facialHairName);
+  }
+
+  const baseHairColor = new THREE.Color(HAIR_COLORS[resolved.hairColor].color);
+  const hairColor = baseHairColor.clone().lerp(GREYING_COLOR, resolved.hairGreying);
+  const facialHairColor = baseHairColor.clone().lerp(GREYING_COLOR, resolved.facialHairGreying);
+  let tintedMaterials = tintBrows(model, hairColor);
+  if (hairModule) tintedMaterials += tintObject(hairModule, hairColor);
+  if (facialHairModule) tintedMaterials += tintObject(facialHairModule, facialHairColor);
+
+  const result: ModularAppearanceResult = {
+    hair,
+    facialHair,
+    ageMorphsApplied: applyAgeMorphs(model, resolved.age),
+    tintedMaterials,
+    missingProviderAssets,
+  };
+  model.userData.modularAppearanceResult = result;
+
+  applyScalpVariant(model, resolved.hairStyle);
+  return result;
 }
 
 export function screenPanToWorld(

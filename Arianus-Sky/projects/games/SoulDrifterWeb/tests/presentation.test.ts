@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import {
+  applyModularAppearance,
   cameraFollowStep,
   cameraPanBounds,
   cameraTileEnvelope,
@@ -8,12 +9,15 @@ import {
   createTerminalDeathClip,
   deathBodyTilt,
   createStarterLongswordPresentation,
+  MODULAR_APPEARANCE_PROVIDER_APPROVED,
+  MODULAR_APPEARANCE_PROVIDER_STATUS_KEY,
   occlusionSampleHeights,
   resolvePointerHitIntent,
   screenPanToWorld,
   sanitizeAttackClip,
   setWeaponVisualState,
 } from "../src/game/presentation";
+import { HAIR_COLORS } from "../src/game/character";
 import { generateSoulwellDungeon } from "../src/game/dungeon";
 
 describe("actor presentation boundaries", () => {
@@ -67,6 +71,91 @@ describe("actor presentation boundaries", () => {
     expect(material.emissiveIntensity).toBe(source.emissiveIntensity);
     expect(material.roughness).toBe(source.roughness);
     expect(material.metalness).toBe(source.metalness);
+  });
+
+  it("fails closed instead of showing unapproved or legacy modular hair geometry", () => {
+    const model = new THREE.Group();
+    const unapprovedHair = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    unapprovedHair.name = "SK_Hair_Long";
+    const legacyHair = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    legacyHair.name = "SK_SilverHairClump_01";
+    const legacyBeard = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    legacyBeard.name = "SK_Beard_Full";
+    const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x845a48 });
+    skinMaterial.name = "Human_Skin";
+    const skin = new THREE.Mesh(new THREE.BoxGeometry(), skinMaterial);
+    skin.name = "SK_HumanHead";
+    model.add(unapprovedHair, legacyHair, legacyBeard, skin);
+
+    const result = applyModularAppearance(model, {
+      hairStyle: "long",
+      raceId: "human",
+      facialHair: "full-beard",
+      hairColor: "black",
+    });
+
+    expect(result.hair).toBe("missing-provider-asset");
+    expect(result.facialHair).toBe("missing-provider-asset");
+    expect(result.missingProviderAssets).toEqual(["SK_Hair_Long", "SK_FacialHair_FullBeard"]);
+    expect(unapprovedHair.visible).toBe(false);
+    expect(legacyHair.visible).toBe(false);
+    expect(legacyBeard.visible).toBe(false);
+    expect(skinMaterial.color.getHex()).toBe(0x845a48);
+    expect(model.userData.modularAppearanceResult).toEqual(result);
+  });
+
+  it("applies approved modules, independent greying, and continuous adult age morphs", () => {
+    const model = new THREE.Group();
+    const approvedModule = (name: string): THREE.Mesh => {
+      const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      material.name = `${name}_Tint`;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);
+      mesh.name = name;
+      mesh.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
+      return mesh;
+    };
+    const hair = approvedModule("SK_Hair_Cropped");
+    const beard = approvedModule("SK_FacialHair_ShortBeard");
+    const browMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    browMaterial.name = "Brow_Tint";
+    const brows = new THREE.Mesh(new THREE.BoxGeometry(), browMaterial);
+    brows.name = "SK_Brows";
+    const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x5f3c31 });
+    skinMaterial.name = "Human_Skin";
+    const head = new THREE.Mesh(new THREE.BoxGeometry(), skinMaterial);
+    head.name = "SK_HumanHead";
+    head.morphTargetDictionary = { Age_Middle: 0, Age_Elder: 1 };
+    head.morphTargetInfluences = [0, 0];
+    model.add(hair, beard, brows, head);
+
+    const result = applyModularAppearance(model, {
+      hairStyle: "cropped",
+      raceId: "human",
+      facialHair: "short-beard",
+      hairColor: "copper-red",
+      age: 0.75,
+      hairGreying: 0.25,
+      facialHairGreying: 0.75,
+    });
+
+    const base = new THREE.Color(HAIR_COLORS["copper-red"].color);
+    const grey = new THREE.Color(0xa8a39b);
+    expect(result).toMatchObject({
+      hair: "applied",
+      facialHair: "applied",
+      ageMorphsApplied: ["Age_Middle", "Age_Elder"],
+      tintedMaterials: 3,
+      missingProviderAssets: [],
+    });
+    expect(hair.visible).toBe(true);
+    expect(beard.visible).toBe(true);
+    expect((hair.material as THREE.MeshStandardMaterial).color.getHex())
+      .toBe(base.clone().lerp(grey, 0.25).getHex());
+    expect((beard.material as THREE.MeshStandardMaterial).color.getHex())
+      .toBe(base.clone().lerp(grey, 0.75).getHex());
+    expect(browMaterial.color.getHex()).toBe(base.clone().lerp(grey, 0.25).getHex());
+    expect(head.morphTargetInfluences).toEqual([0.5, 0.5]);
+    expect(skinMaterial.color.getHex()).toBe(0x5f3c31);
   });
 
   it("anchors the root, hips, and lower body without discarding attack choreography", () => {
