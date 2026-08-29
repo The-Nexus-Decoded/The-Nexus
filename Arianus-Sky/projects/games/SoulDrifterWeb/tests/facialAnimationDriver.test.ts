@@ -214,14 +214,21 @@ describe("standardized fail-closed NPC facial animation driver", () => {
     expect(influence(missingSpeech.mesh, missingSpeech.index, "viseme_aa")).toBe(0);
   });
 
-  it("keeps text conversion as compatibility-only direct-viseme playback", () => {
+  it("keeps deprecated text-only paths neutral while timed cues still drive speech", () => {
     const { root, mesh, index } = morphRoot();
-    const driver = new FacialAnimationDriver(root, "approximate-compatibility");
-    driver.beginDialogue("M", 0);
-    driver.update(0.1225);
-    expect(influence(mesh, index, "viseme_PP")).toBeGreaterThan(0);
-    expect(influence(mesh, index, "jawOpen")).toBe(0);
-    expect(driver.capabilityStatus().status).toBe("READY");
+    const driver = new FacialAnimationDriver(root, "fail-closed-text-compatibility");
+
+    driver.beginDialogue("This text has no trusted viseme timing.", 0);
+    driver.update(0.1);
+    BAKED_META_VISEME_MORPH_NAMES.forEach((name) => expect(influence(mesh, index, name)).toBe(0));
+
+    driver.speakVisemeCues([directCue("viseme_PP")], 1);
+    driver.update(1.1);
+    expect(influence(mesh, index, "viseme_PP")).toBe(1);
+
+    driver.speakLine("A replacement text line must also fail closed.", 2);
+    driver.update(2.1);
+    BAKED_META_VISEME_MORPH_NAMES.forEach((name) => expect(influence(mesh, index, name)).toBe(0));
   });
 
   it("reports unavailable controls and never changes bones or substitutes geometry", () => {

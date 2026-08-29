@@ -172,7 +172,6 @@ const BLINK_CLOSE_SECONDS = 0.08;
 const BLINK_HOLD_SECONDS = 0.025;
 const BLINK_OPEN_SECONDS = 0.16;
 const BLINK_TOTAL_SECONDS = BLINK_CLOSE_SECONDS + BLINK_HOLD_SECONDS + BLINK_OPEN_SECONDS;
-const APPROXIMATE_CUE_SECONDS = 0.115;
 
 function clampWeight(value: number): number {
   return THREE.MathUtils.clamp(value, 0, 1);
@@ -238,60 +237,6 @@ function cueWeight(cue: ValidatedSpeechCue, localSeconds: number): number {
   return (1 - smoothUnitInterval(
     (localSeconds - cue.peakAtSeconds) / (cue.endsAtSeconds - cue.peakAtSeconds),
   )) * cue.weight;
-}
-
-function approximateVisemeForCharacter(character: string): MetaVisemeName | null {
-  if (/[MBP]/u.test(character)) return "viseme_PP";
-  if (/[FV]/u.test(character)) return "viseme_FF";
-  if (/[TD]/u.test(character)) return "viseme_DD";
-  if (/[KG]/u.test(character)) return "viseme_kk";
-  if (/[CJ]/u.test(character)) return "viseme_CH";
-  if (/[SZ]/u.test(character)) return "viseme_SS";
-  if (/[NL]/u.test(character)) return "viseme_nn";
-  if (character === "R") return "viseme_RR";
-  if (character === "A") return "viseme_aa";
-  if (character === "E") return "viseme_E";
-  if (/[IY]/u.test(character)) return "viseme_I";
-  if (character === "O") return "viseme_O";
-  if (/[UQW]/u.test(character)) return "viseme_U";
-  if (character === "H") return "viseme_TH";
-  return null;
-}
-
-/**
- * Temporary compatibility only for dialogue call sites that do not yet supply
- * timed speech-analysis output. This letter heuristic is not canonical input,
- * is not evidence of speech readiness, and must not be used for asset approval.
- */
-function approximateTextFallback(text: string): TimedMetaVisemeCue[] {
-  const cues: TimedMetaVisemeCue[] = [];
-  let cursor = 0.065;
-  for (const character of text.toUpperCase()) {
-    if (/\s/u.test(character)) {
-      cursor += 0.055;
-      continue;
-    }
-    if (/[.!?]/u.test(character)) {
-      cursor += 0.22;
-      continue;
-    }
-    if (/[,;:]/u.test(character)) {
-      cursor += 0.12;
-      continue;
-    }
-    const viseme = approximateVisemeForCharacter(character);
-    if (viseme) {
-      cues.push({
-        viseme,
-        startsAtSeconds: Math.max(0, cursor - 0.03),
-        peakAtSeconds: cursor + APPROXIMATE_CUE_SECONDS * 0.5,
-        endsAtSeconds: cursor + APPROXIMATE_CUE_SECONDS + 0.035,
-        weight: 0.8,
-      });
-    }
-    cursor += APPROXIMATE_CUE_SECONDS;
-  }
-  return cues;
 }
 
 /**
@@ -383,14 +328,16 @@ export class FacialAnimationDriver {
     );
   }
 
-  /** @deprecated Compatibility only. Supply timed Meta visemes for approval-quality playback. */
+  /** @deprecated Compatibility only. Text has no proven timing, so speech fails closed. */
   public beginDialogue(text: string, elapsedSeconds: number): void {
-    this.beginDialogueWithVisemes(approximateTextFallback(text), elapsedSeconds);
+    void text;
+    this.beginDialogueWithVisemes([], elapsedSeconds);
   }
 
-  /** @deprecated Compatibility only. Supply timed Meta visemes for approval-quality playback. */
+  /** @deprecated Compatibility only. Text has no proven timing, so speech fails closed. */
   public speakLine(text: string, elapsedSeconds: number): void {
-    this.speakVisemeCues(approximateTextFallback(text), elapsedSeconds);
+    void text;
+    this.speakVisemeCues([], elapsedSeconds);
   }
 
   public closeDialogue(): void {
