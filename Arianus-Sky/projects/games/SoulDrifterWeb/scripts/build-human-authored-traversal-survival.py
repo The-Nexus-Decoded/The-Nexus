@@ -5,12 +5,13 @@ creates original Blender pose keys, and exports a separate action pack. It never
 loads, samples, reverses, splices, overlays, relabels, or otherwise derives motion
 from the canonical Mixamo animation library or the rejected gap-candidate packs.
 
-Run with the cached Blender 5.2.1 LTS binary:
+Run with the cached Blender 5.2.1 LTS binary. Unapproved candidates are
+written only to the issue evidence quarantine, never to public/assets:
 
     blender --background --python scripts/build-human-authored-traversal-survival.py -- \
       --rest-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb \
-      --output-glb public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-traversal-survival.glb \
-      --report public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-traversal-survival-report.json
+      --candidate-id water-dive-v3 \
+      --only AuthoredSurvival__WaterDive
 """
 
 from __future__ import annotations
@@ -35,6 +36,9 @@ EXPECTED_BONES = 65
 EXPECTED_ROOTS = [ROOT]
 EXPECTED_REST_SHA256 = "B86F7378ADA29FF11E0FBC030D438FE241B8D4A74C47AFD37CC8ACED28C5FF81"
 REFERENCE_PACKET = "docs/HUMAN_AUTHORED_TRAVERSAL_SURVIVAL_REFERENCE_PACKET.md"
+CANDIDATE_STAGING_ROOT = Path(
+    "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/traversal"
+)
 
 
 @dataclass(frozen=True)
@@ -55,8 +59,7 @@ def parse_args() -> argparse.Namespace:
     values = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--rest-glb", required=True, type=Path)
-    parser.add_argument("--output-glb", required=True, type=Path)
-    parser.add_argument("--report", required=True, type=Path)
+    parser.add_argument("--candidate-id", required=True)
     parser.add_argument("--only", action="append", default=[])
     return parser.parse_args(values)
 
@@ -86,45 +89,135 @@ def degrees(x: float, y: float, z: float) -> tuple[float, float, float]:
     return (x * pi / 180.0, y * pi / 180.0, z * pi / 180.0)
 
 
-def water_dive_pose(t: float) -> dict[str, object]:
-    """Approach, two-foot launch, long streamline, entry, submerged recovery."""
-    approach = ease_between(t, 0.00, 0.24)
-    launch = bell(t, 0.16, 0.30, 0.46)
-    streamline = ease_between(t, 0.23, 0.50)
-    entry = ease_between(t, 0.42, 0.76)
-    recover = ease_between(t, 0.78, 1.00)
-    stride = sin(t * 4.0 * pi) * (1.0 - streamline)
+def water_dive_v3_pose(t: float) -> dict[str, object]:
+    """Fresh v3: four running footfalls, hurdle plant, explosive dive."""
+    approach_end = 0.42
+    approach_phase = min(1.0, t / approach_end)
+    run_cycle = sin(4.0 * pi * approach_phase)
+    approach_release = 1.0 - ease_between(t, 0.37, 0.46)
+    stride = run_cycle * approach_release
+    run_flight = max(0.0, -cos(4.0 * pi * approach_phase)) * approach_release
+    final_plant = bell(t, 0.39, 0.47, 0.55)
+    hurdle_knee = bell(t, 0.42, 0.50, 0.61)
+    arm_drive_back = bell(t, 0.35, 0.45, 0.53)
+    arm_drive_forward = ease_between(t, 0.46, 0.59)
+    takeoff = ease_between(t, 0.47, 0.61)
+    launch_arc = bell(t, 0.47, 0.64, 0.82)
+    torso_rotation = ease_between(t, 0.54, 0.79)
+    leg_extension = ease_between(t, 0.58, 0.72)
+    water_entry = ease_between(t, 0.76, 0.96)
+    continuation = ease_between(t, 0.92, 1.00)
 
-    root_x = 0.42 * approach + 1.20 * ease_between(t, 0.22, 0.78) + 0.55 * recover
-    root_y = 0.18 * approach + 0.66 * launch - 0.98 * entry - 0.22 * recover
-    root_pitch = -8.0 * approach - 72.0 * streamline + 12.0 * recover
+    # Root progression never pauses during the arm drive. The approach covers
+    # four visible footfalls before a short hurdle plant and immediate takeoff.
+    root_x = (
+        2.16 * ease_between(t, 0.00, 0.47)
+        + 1.42 * ease_between(t, 0.47, 0.72)
+        + 1.05 * ease_between(t, 0.72, 1.00)
+    )
+    root_y = (
+        0.085 * run_flight
+        - 0.15 * final_plant
+        + 0.88 * launch_arc
+        - 1.28 * water_entry
+        - 0.24 * continuation
+    )
+    run_lean = ease_between(t, 0.02, 0.15) * (1.0 - takeoff)
+    root_pitch = (
+        -10.0 * run_lean
+        - 15.0 * takeoff
+        - 52.0 * torso_rotation
+        - 4.0 * water_entry
+    )
 
     rotations = {
         ROOT: degrees(0.0, 0.0, root_pitch),
-        "mixamorig:Spine": degrees(0.0, 0.0, -5.0 * approach - 10.0 * streamline + 7.0 * recover),
-        "mixamorig:Spine1": degrees(0.0, 0.0, -4.0 * streamline + 4.0 * recover),
-        "mixamorig:Spine2": degrees(0.0, 0.0, -7.0 * streamline + 7.0 * recover),
-        "mixamorig:Neck": degrees(0.0, 0.0, 18.0 * streamline - 8.0 * recover),
-        "mixamorig:Head": degrees(0.0, 0.0, 10.0 * streamline - 5.0 * recover),
-        "mixamorig:LeftUpLeg": degrees(0.0, 0.0, 28.0 * stride - 28.0 * launch + 7.0 * streamline),
-        "mixamorig:RightUpLeg": degrees(0.0, 0.0, -28.0 * stride - 28.0 * launch + 7.0 * streamline),
-        "mixamorig:LeftLeg": degrees(0.0, 0.0, 42.0 * abs(stride) + 54.0 * launch - 12.0 * streamline),
-        "mixamorig:RightLeg": degrees(0.0, 0.0, 42.0 * abs(stride) + 54.0 * launch - 12.0 * streamline),
-        "mixamorig:LeftFoot": degrees(0.0, 0.0, -18.0 * launch + 26.0 * streamline - 12.0 * recover),
-        "mixamorig:RightFoot": degrees(0.0, 0.0, -18.0 * launch + 26.0 * streamline - 12.0 * recover),
+        "mixamorig:Spine": degrees(
+            0.0,
+            0.0,
+            -6.0 * run_lean
+            + 15.0 * final_plant
+            - 16.0 * takeoff
+            - 7.0 * torso_rotation,
+        ),
+        "mixamorig:Spine1": degrees(
+            0.0,
+            0.0,
+            8.0 * final_plant - 8.0 * takeoff - 5.0 * torso_rotation,
+        ),
+        "mixamorig:Spine2": degrees(
+            0.0,
+            0.0,
+            6.0 * final_plant - 6.0 * takeoff - 4.0 * torso_rotation,
+        ),
+        "mixamorig:Neck": degrees(0.0, 0.0, 15.0 * torso_rotation),
+        "mixamorig:Head": degrees(0.0, 0.0, 8.0 * torso_rotation),
+        # All leg rotations remain sagittal. The left leg absorbs the final
+        # plant while the right knee drives through; both then extend and close
+        # into the trailing streamline without any sideways hip/knee splay.
+        "mixamorig:LeftUpLeg": degrees(
+            0.0,
+            0.0,
+            35.0 * stride - 34.0 * final_plant + 8.0 * leg_extension,
+        ),
+        "mixamorig:RightUpLeg": degrees(
+            0.0,
+            0.0,
+            -35.0 * stride - 44.0 * hurdle_knee + 8.0 * leg_extension,
+        ),
+        "mixamorig:LeftLeg": degrees(
+            0.0,
+            0.0,
+            52.0 * max(0.0, -stride)
+            + 58.0 * final_plant
+            - 12.0 * leg_extension,
+        ),
+        "mixamorig:RightLeg": degrees(
+            0.0,
+            0.0,
+            52.0 * max(0.0, stride)
+            + 72.0 * hurdle_knee
+            - 12.0 * leg_extension,
+        ),
+        "mixamorig:LeftFoot": degrees(
+            0.0,
+            0.0,
+            -18.0 * final_plant + 30.0 * leg_extension,
+        ),
+        "mixamorig:RightFoot": degrees(
+            0.0,
+            0.0,
+            -10.0 * hurdle_knee + 30.0 * leg_extension,
+        ),
     }
-    # IK endpoints are expressed in armature space. The targets progress from a
-    # natural approach swing to hands joined beyond the crown for water entry.
-    left_hand = Vector((
-        -0.02 + 0.58 * streamline + 0.20 * recover,
-        0.12 + 0.35 * streamline - 0.05 * recover,
-        -0.17 + 0.12 * streamline,
-    ))
-    right_hand = Vector((
-        0.04 + 0.58 * streamline + 0.20 * recover,
-        0.14 + 0.35 * streamline - 0.05 * recover,
-        0.17 - 0.12 * streamline,
-    ))
+
+    # Alternating running swing transitions directly into the plant backswing;
+    # the overhead drive completes in 0.13 normalized seconds with no upright
+    # arm-raise hold before launch.
+    left_hand = Vector(
+        (
+            -0.04
+            - 0.21 * stride * (1.0 - arm_drive_forward)
+            - 0.39 * arm_drive_back * (1.0 - arm_drive_forward)
+            + 0.82 * arm_drive_forward,
+            0.13
+            - 0.08 * arm_drive_back * (1.0 - arm_drive_forward)
+            + 0.49 * arm_drive_forward,
+            -0.18 + 0.145 * leg_extension,
+        )
+    )
+    right_hand = Vector(
+        (
+            -0.04
+            + 0.21 * stride * (1.0 - arm_drive_forward)
+            - 0.39 * arm_drive_back * (1.0 - arm_drive_forward)
+            + 0.82 * arm_drive_forward,
+            0.13
+            - 0.08 * arm_drive_back * (1.0 - arm_drive_forward)
+            + 0.49 * arm_drive_forward,
+            0.18 - 0.145 * leg_extension,
+        )
+    )
     return {
         "root": (root_x, root_y, 0.0),
         "rotations": rotations,
@@ -477,18 +570,19 @@ def authored_clips() -> list[AuthoredClip]:
             name="AuthoredSurvival__WaterDive",
             label="Water Dive",
             requirement="water.dive",
-            frames=61,
+            frames=97,
             loop=False,
             airborne=True,
             root_policy="AUTHORED_FORWARD_AND_VERTICAL_ENTRY",
             reference_ids=("water-head-first-dive", "water-jump-submerge-resurface"),
             mechanics=(
-                "short approach and balanced two-foot launch",
-                "arms reach beyond the crown before the head-first entry",
-                "hips and legs lengthen into a narrow streamline",
-                "entry carries forward/downward momentum into a submerged recovery",
+                "four forward running footfalls lead directly into a hurdle plant",
+                "plant leg and hips compress while the opposite knee drives through",
+                "alternating arm swing becomes a rapid back-to-overhead launch drive",
+                "hips knees and feet close into a trailing streamline without lateral splay",
+                "hands and head cross the surface before the torso and legs",
             ),
-            pose=water_dive_pose,
+            pose=water_dive_v3_pose,
         ),
         AuthoredClip("AuthoredSurvival__UnderwaterSwim", "Underwater Swim", "water.underwater-swim", 73, True, True, "FORWARD_ROOT_MOTION_SUBMERGED", ("water-dolphin-kick",), ("head-spine-hip streamline", "synchronous dolphin kick", "arms sweep out and recover forward", "small depth undulation"), underwater_swim_pose),
         AuthoredClip("AuthoredSurvival__OpenWaterSurface", "Open Water Surface", "water.surface.open", 61, False, True, "VERTICAL_ROOT_MOTION_TO_WATERLINE", ("water-sesa", "water-jump-submerge-resurface"), ("upward body angle", "arms press water down and outward", "alternating kick", "torso returns upright at surface"), open_water_surface_pose),
@@ -573,7 +667,10 @@ def skinned_meshes_for(armature: bpy.types.Object) -> list[bpy.types.Object]:
 def grounding_target(clip: AuthoredClip, t: float, rest_lower: float) -> float | None:
     """Return the authored contact surface for this normalized-time pose."""
     if clip.name == "AuthoredSurvival__WaterDive":
-        return rest_lower if t <= 0.20 else None
+        approach_contacts = (0.00, 0.10, 0.20, 0.30)
+        running_contact = any(abs(t - center) <= 0.025 for center in approach_contacts)
+        final_plant_contact = 0.405 <= t <= 0.49
+        return rest_lower if running_contact or final_plant_contact else None
     if clip.name == "AuthoredTraversal__NeutralLandToRun":
         return rest_lower if t >= 0.36 else None
     if clip.name == "AuthoredTraversal__StairsAscend":
@@ -1042,8 +1139,20 @@ def main() -> None:
     args = parse_args()
     root_dir = Path.cwd().resolve()
     rest_glb = args.rest_glb.resolve()
-    output_glb = args.output_glb.resolve()
-    report_path = args.report.resolve()
+    candidate_id = args.candidate_id.strip()
+    if not candidate_id or any(
+        character not in "abcdefghijklmnopqrstuvwxyz0123456789-"
+        for character in candidate_id
+    ):
+        raise RuntimeError(
+            "--candidate-id must contain only lowercase letters, digits, and hyphens"
+        )
+    staging_root = CANDIDATE_STAGING_ROOT.resolve()
+    candidate_dir = (staging_root / candidate_id).resolve()
+    if candidate_dir.parent != staging_root:
+        raise RuntimeError("Candidate directory escaped the issue #487 staging root")
+    output_glb = candidate_dir / "candidate.glb"
+    report_path = candidate_dir / "technical-report.json"
     script_path = Path(__file__).resolve()
     reference_path = (root_dir / REFERENCE_PACKET).resolve()
     if file_sha256(rest_glb) != EXPECTED_REST_SHA256:
@@ -1069,11 +1178,14 @@ def main() -> None:
     vertical_response = measure_root_vertical_response(armature, accepted_meshes)
 
     clips = authored_clips()
-    if args.only:
-        allowed = set(args.only)
-        clips = [clip for clip in clips if clip.name in allowed or clip.label in allowed]
-    if not clips:
-        raise RuntimeError("No authored clips matched --only")
+    if len(args.only) != 1:
+        raise RuntimeError(
+            "Quarantined candidate authoring requires exactly one --only action"
+        )
+    allowed = set(args.only)
+    clips = [clip for clip in clips if clip.name in allowed or clip.label in allowed]
+    if len(clips) != 1:
+        raise RuntimeError("Exactly one authored clip must match --only")
 
     targets = create_ik_targets(armature)
     generated: list[bpy.types.Action] = []
@@ -1124,6 +1236,10 @@ def main() -> None:
                 "playbackIntent": "LOOP" if clip.loop else "ONE_SHOT",
                 "rootPolicy": clip.root_policy,
                 "airborne": clip.airborne,
+                "authoringRevision": (
+                    3 if clip.name == "AuthoredSurvival__WaterDive" else 1
+                ),
+                "rejectedRevisionKeyReuse": False,
                 "groundingBake": grounding_bake,
                 "channelCount": action_channel_count(action),
                 "preExportPoseSha256": pose_digest(armature, action),
@@ -1255,9 +1371,11 @@ def main() -> None:
     report = {
         "schemaVersion": 1,
         "issue": 487,
+        "candidateId": candidate_id,
         "creationMethod": "ORIGINAL_KEYFRAMED_MOTION",
-        "status": "UNREVIEWED_ORIGINAL_BLENDER_AUTHORING",
+        "status": "QUARANTINED_UNREVIEWED_ORIGINAL_BLENDER_AUTHORING",
         "productionApproval": False,
+        "stagingOnly": True,
         "referencePacket": REFERENCE_PACKET,
         "referencePacketReceipt": {
             "path": relative_path(reference_path, root_dir),
@@ -1305,9 +1423,14 @@ def main() -> None:
         },
         "remainingGates": [
             "NORMAL_SPEED_TEXTURED_PREVIEW",
+            "INDEPENDENT_CONTINUOUS_PLAYBACK_REVIEW",
             "BREACH_V2_REAL_GAME_REVIEW",
             "OWNER_ACCEPTANCE",
         ],
+        "promotion": {
+            "status": "QUARANTINED",
+            "runtimeInstalled": False,
+        },
     }
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print("ISSUE_487_AUTHORED_TRAVERSAL_SURVIVAL=" + json.dumps(output_receipt, sort_keys=True))
