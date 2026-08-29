@@ -16,6 +16,47 @@ export type HumanPilotWeaponId =
 export type HumanPilotWeaponSocket = "right-hand" | "left-hand" | "hips";
 export type HumanPilotWeaponPose = "drawn" | "carried";
 
+export const HUMAN_PILOT_SOCKET_BONES: Readonly<Record<HumanPilotWeaponSocket, string>> = {
+  "right-hand": "mixamorigRightHand",
+  "left-hand": "mixamorigLeftHand",
+  hips: "mixamorigHips",
+};
+
+export interface HumanPilotWeaponGripProfile {
+  rig: "Human Foundation V2 Mixamo";
+  socketName: "weapon-socket-hand-r";
+  socketBone: "mixamorigRightHand";
+  additiveSpace: "post-authored-bone-local";
+  fingerCurlLocalXRadians: Readonly<{
+    index: number;
+    middle: number;
+    ring: number;
+    pinky: number;
+  }>;
+  thumb: "authored-animation-unchanged";
+  validatedActions: readonly {
+    clip: string;
+    normalizedTime: number;
+  }[];
+  measuredFourFingerBoneCenterRadialMeters: readonly [number, number];
+  meshCorrection: Readonly<{
+    operation: "radial-grip-reduction";
+    radialScale: number;
+    blenderAxis: "+Z";
+    runtimeAxis: "+Y";
+    blenderRangeMeters: readonly [number, number];
+    transitionMeters: number;
+    originChanged: false;
+    overallLengthChanged: false;
+    sourceRuntimeSha256: string;
+    correctedRuntimeSha256: string;
+  }>;
+  verification: Readonly<{
+    issue458Commit: "23b203e9";
+    result: "implemented-unverified-runtime-integration";
+  }>;
+}
+
 export interface HumanPilotWeaponFitSpec {
   id: HumanPilotWeaponId;
   label: string;
@@ -24,6 +65,7 @@ export interface HumanPilotWeaponFitSpec {
   sourceOrigin: string;
   sourceAxes: string;
   collisionEnvelopeMeters: readonly [number, number, number];
+  gripProfile?: HumanPilotWeaponGripProfile;
   drawn: {
     socket: HumanPilotWeaponSocket;
     positionMeters: readonly [number, number, number];
@@ -49,7 +91,38 @@ export const HUMAN_PILOT_WEAPON_FIT_SPECS: readonly HumanPilotWeaponFitSpec[] = 
     sourceOrigin: "grip center at local zero",
     sourceAxes: "guard +X, blade +Y, thickness -Z",
     collisionEnvelopeMeters: [0.23, 1.05, 0.08],
-    drawn: { socket: "right-hand", positionMeters: [0, 0, 0], rotationRadians: [0, 0, 0] },
+    gripProfile: {
+      rig: "Human Foundation V2 Mixamo",
+      socketName: "weapon-socket-hand-r",
+      socketBone: "mixamorigRightHand",
+      additiveSpace: "post-authored-bone-local",
+      fingerCurlLocalXRadians: { index: 0.8, middle: 0.625, ring: 0.6, pinky: 0 },
+      thumb: "authored-animation-unchanged",
+      validatedActions: [
+        { clip: "ProSwordAndShield__SwordAndShieldIdle", normalizedTime: 0.5 },
+        { clip: "ProSwordAndShield__SwordAndShieldAttack", normalizedTime: 0.5 },
+        { clip: "ProSwordAndShield__DrawSword1", normalizedTime: 0.95 },
+        { clip: "ProSwordAndShield__SheathSword1", normalizedTime: 0.7 },
+      ],
+      measuredFourFingerBoneCenterRadialMeters: [0.026748962, 0.027655218],
+      meshCorrection: {
+        operation: "radial-grip-reduction",
+        radialScale: 0.65,
+        blenderAxis: "+Z",
+        runtimeAxis: "+Y",
+        blenderRangeMeters: [-0.104, 0.106],
+        transitionMeters: 0.018,
+        originChanged: false,
+        overallLengthChanged: false,
+        sourceRuntimeSha256: "b6783c90db54f5dd70dd68362eb0b2796a8df1c25c0c34f41779a1a59ad2389d",
+        correctedRuntimeSha256: "20f5f964405699065d77769bc86fa796d791ddf8144793f93c06066b0fb2b984",
+      },
+      verification: {
+        issue458Commit: "23b203e9",
+        result: "implemented-unverified-runtime-integration",
+      },
+    },
+    drawn: { socket: "right-hand", positionMeters: [0, 0, 0], rotationRadians: [0, 0, -Math.PI / 2] },
     carried: { socket: "hips", positionMeters: [0.25, 0.02, -0.03], rotationRadians: [0.08, -0.12, 2.1] },
   }),
   spec({
@@ -214,6 +287,7 @@ export function attachHumanPilotWeapon(
   root.userData.collisionEnvelopeMeters = [...weapon.collisionEnvelopeMeters];
   root.userData.sourceOrigin = weapon.sourceOrigin;
   root.userData.sourceAxes = weapon.sourceAxes;
+  root.userData.gripProfile = weapon.gripProfile;
 
   const offset = new THREE.Group();
   offset.name = `human-pilot-${weapon.id}-${pose}-offset`;
