@@ -5,6 +5,10 @@ import {
   normalizeAnimationPackRootMotion,
   placeAnimatedPoseOnFloor,
 } from "../animationPacks";
+import {
+  HUMAN_FOUNDATION_APPROVED_ANIMATIONS,
+  selectApprovedAnimationSource,
+} from "../humanFoundationApprovedAnimations";
 import { applyPilotSkinPreset } from "../pilotSkinReview";
 import type { PilotAnimationReviewBridge } from "../../pilotAnimationReview";
 
@@ -21,9 +25,10 @@ export interface BreachV2AnimationPilot {
 }
 
 export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<BreachV2AnimationPilot> {
-  const [body, library] = await Promise.all([
+  const [body, library, approvedLibraries] = await Promise.all([
     loader.loadAsync(PILOT_MODEL_URL),
     loader.loadAsync(PILOT_LIBRARY_URL),
+    Promise.all(HUMAN_FOUNDATION_APPROVED_ANIMATIONS.map((spec) => loader.loadAsync(spec.url))),
   ]);
   if (library.animations.length !== PILOT_CLIP_COUNT) {
     throw new Error(`Issue #487 pilot library expected ${PILOT_CLIP_COUNT} clips, got ${library.animations.length}.`);
@@ -57,6 +62,17 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     if (/armature$/i.test(node.name)) armatureRestPositions.set(node.name, node.position.clone());
   });
   const sources = new Map(library.animations.map((clip) => [clip.name, clip]));
+  const approvedRootPolicies = new Map<string, "in-place" | "authored">();
+  HUMAN_FOUNDATION_APPROVED_ANIMATIONS.forEach((spec, index) => {
+    if (sources.has(spec.semanticClipName)) {
+      throw new Error(`Approved issue #487 animation duplicates ${spec.semanticClipName}.`);
+    }
+    const source = selectApprovedAnimationSource(spec, approvedLibraries[index]!.animations);
+    const semantic = source.clone();
+    semantic.name = spec.semanticClipName;
+    sources.set(semantic.name, semantic);
+    approvedRootPolicies.set(semantic.name, spec.rootPolicy);
+  });
   const boundClips = new Map<string, THREE.AnimationClip>();
   const rootContracts = new Map<string, {
     rootNodeName: string;
@@ -103,11 +119,12 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       track.name === `${boundRoot}.position` && track.getValueSize() >= 3
     ));
     const airborneClip = /jump|fall|airborne|climb|vault|dive|leap|hop|swim/i.test(name);
+    const preserveAuthoredRoot = approvedRootPolicies.get(name) === "authored";
     const normalized = normalizeAnimationPackRootMotion(
       bound,
       boundRoot,
       targetRestPosition,
-      airborneClip ? "preserve" : "lock-to-rest",
+      airborneClip || preserveAuthoredRoot ? "preserve" : "lock-to-rest",
     );
     const normalizedRootTrack = normalized.tracks.find((track) => (
       track.name === `${boundRoot}.position` && track.getValueSize() >= 3
