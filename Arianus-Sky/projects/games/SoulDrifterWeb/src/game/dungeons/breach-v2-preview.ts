@@ -18,6 +18,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { createBreachV2AnimationPilot, type BreachV2AnimationPilot } from "./breach-v2-animation-pilot";
+import {
+  createBreachV2HumanFoundationActorFactory,
+  type BreachV2HumanFoundationActor,
+} from "./breach-v2-human-foundation-actors";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
@@ -3379,29 +3383,13 @@ function buildLandmarks(scene: THREE.Scene, layout: BreachV2Layout): ((elapsed: 
     });
   });
 
-  // #448/#449 own the real characters/monsters. Placeholder markers stay off
-  // in normal review/mobile builds and can be explicitly enabled for socket QA.
+  // Human NPC actors are installed asynchronously from the accepted foundation
+  // after landmarks are built. Enemy markers remain opt-in socket QA only.
   const markersHidden = new URL(window.location.href).searchParams.get("markers") !== "1";
   const markerMat = (color: number) => new THREE.MeshStandardMaterial({
     color, roughness: 0.5, emissive: color, emissiveIntensity: 0.18,
     transparent: true, opacity: 0.42,
   });
-  for (const [id, pos, color, h] of [
-    ["ilyra", lm.ilyra, 0x66e080, 1.5], ["orren", lm.orren, 0x66cc73, 1.5],
-    ["brannoc", lm.brannoc, 0x80bf60, 1.5],
-  ] as const) {
-    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, h, 16), markerMat(color));
-    marker.name = `debug-actor-marker-${id}`;
-    marker.position.set(pos.x, h / 2, pos.z);
-    marker.visible = !markersHidden;
-    setSpatialContract(marker, {
-      spatialOwnerId: `debug:actor-marker:${id}`,
-      collisionMode: "debug-marker",
-      blocksMovement: false,
-      blocksLineOfSight: false,
-    });
-    group.add(marker);
-  }
   for (const enemy of layout.enemies) {
     const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12), markerMat(0xbf4030));
     marker.name = `debug-enemy-marker-${enemy.id}`;
@@ -4075,6 +4063,7 @@ export async function startDungeonPreview(
   const texLoader = new THREE.TextureLoader();
   const gltfLoader = new GLTFLoader();
   gltfLoader.setMeshoptDecoder(MeshoptDecoder); // kit GLBs are meshopt-compressed
+  const humanFoundationFactoryPromise = createBreachV2HumanFoundationActorFactory(gltfLoader);
 
   const materials = loadShellTextures(texLoader);
   const shellGroup = buildShell(layout, materials);
@@ -4122,6 +4111,30 @@ export async function startDungeonPreview(
     () => playerPositionForPortalSafety,
   );
   const landmarkTickables = buildLandmarks(scene, layout);
+  const humanFoundationFactory = await humanFoundationFactoryPromise;
+  const landmarkGroup = scene.getObjectByName("breach-v2-landmarks");
+  if (!(landmarkGroup instanceof THREE.Group)) throw new Error("BREACH-V2 landmark group is missing.");
+  const npcFoundationActors = [
+    { id: "ilyra", position: layout.landmarks.ilyra, heightMeters: 1.98 },
+    { id: "orren", position: layout.landmarks.orren, heightMeters: 1.94 },
+    { id: "brannoc", position: layout.landmarks.brannoc, heightMeters: 2.12 },
+  ].map((definition) => {
+    const actor = humanFoundationFactory.createActor({
+      id: definition.id,
+      heightMeters: definition.heightMeters,
+      role: "npc",
+    });
+    actor.root.position.set(definition.position.x, definition.position.elevation, definition.position.z);
+    const facing = definition.id === "ilyra"
+      ? layout.landmarks.playerStart
+      : {
+          x: (layout.landmarks.doorWayfarer.x + layout.landmarks.doorOathbreaker.x) / 2,
+          z: (layout.landmarks.doorWayfarer.z + layout.landmarks.doorOathbreaker.z) / 2,
+        };
+    actor.root.rotation.y = Math.atan2(facing.x - definition.position.x, facing.z - definition.position.z);
+    landmarkGroup.add(actor.root);
+    return actor;
+  });
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
   setupLights(scene, layout);
@@ -4344,9 +4357,9 @@ export async function startDungeonPreview(
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
   let player: THREE.Object3D | null = null;
-  let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
   let animationPilot: BreachV2AnimationPilot | null = null;
-  const playerRenderYOffset = pilotReviewEnabled ? 0 : 0.85;
+  let foundationPlayerActor: BreachV2HumanFoundationActor | null = null;
+  const playerRenderYOffset = 0;
   setupBreachV2MobileMovementPad({
     container,
     keys,
@@ -4368,18 +4381,12 @@ export async function startDungeonPreview(
       animationPilot = await createBreachV2AnimationPilot(gltfLoader);
       player = animationPilot.root;
     } else {
-      playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
-        color: 0x8fd8e8,
-        roughness: 0.5,
-        emissive: 0x2a6a78,
-        emissiveIntensity: 0.35,
-        transparent: true,
+      foundationPlayerActor = humanFoundationFactory.createActor({
+        id: "player",
+        heightMeters: 2.06,
+        role: "player",
       });
-      player = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-        playerPlaceholderMaterial,
-      );
-      player.castShadow = true;
+      player = foundationPlayerActor.root;
     }
     player.visible = !firstPersonMode;
     player.userData.spatialAuditExcluded = "runtime-player-avatar";
@@ -4936,6 +4943,7 @@ export async function startDungeonPreview(
         refreshHud = true;
       }
       for (const tick of tickables) tick(elapsed);
+      npcFoundationActors.forEach((actor) => actor.update(delta));
       if (debrisCleanupDeadlineMs > 0 && frameMs >= debrisCleanupDeadlineMs) {
         gameplay.cleanupEnvironmentDebris();
       }
@@ -4945,6 +4953,8 @@ export async function startDungeonPreview(
         runtimeCollisionRefreshRequested = false;
       }
       if (walkMode && player) {
+        const frameStartX = playerPos.x;
+        const frameStartZ = playerPos.z;
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
         // A thin portal must never be skipped by one long low-FPS movement
@@ -5012,6 +5022,8 @@ export async function startDungeonPreview(
           player.rotation.y = Math.atan2(dx, dz);
         }
         player.position.set(playerPos.x, playerPos.y + playerRenderYOffset, playerPos.z);
+        foundationPlayerActor?.setMoving(Math.hypot(playerPos.x - frameStartX, playerPos.z - frameStartZ) > 0.0001);
+        foundationPlayerActor?.update(delta);
         animationPilot?.update(delta);
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
@@ -5045,18 +5057,7 @@ export async function startDungeonPreview(
             runtimeCollisionBlockers = getRuntimeCollisionBlockers();
             hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
           }
-          const resolvedCameraDistance = resolveCameraAgainstScene(cameraTarget, desiredCamera);
-          if (playerPlaceholderMaterial) {
-            const targetOpacity = isometricMode
-              ? 1
-              : resolveBreachV2PlaceholderAvatarOpacity(resolvedCameraDistance);
-            playerPlaceholderMaterial.opacity = THREE.MathUtils.damp(
-              playerPlaceholderMaterial.opacity,
-              targetOpacity,
-              12,
-              delta,
-            );
-          }
+          resolveCameraAgainstScene(cameraTarget, desiredCamera);
           camera.lookAt(cameraTarget);
         }
         hooks.__dungeonPlayer.x = playerPos.x;
