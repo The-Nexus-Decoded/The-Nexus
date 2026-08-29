@@ -249,7 +249,7 @@ function loadScalpSkinTexture(): Promise<THREE.Texture | null> {
   return scalpSkinPromise;
 }
 
-function swapScalpMaterial(material: THREE.Material, shaved: boolean, texture: THREE.Texture | null): void {
+function swapScalpMaterial(material: THREE.Material, useSkinTexture: boolean, texture: THREE.Texture | null): void {
   if (!(material instanceof THREE.MeshStandardMaterial)) return;
   const map = material.map;
   const isScalpSkin = /human_skin/i.test(material.name ?? "") || /ScalpSilver/i.test(map?.name ?? "");
@@ -257,32 +257,51 @@ function swapScalpMaterial(material: THREE.Material, shaved: boolean, texture: T
   if (!silver && map && isScalpSkin) material.userData.silverScalpMap = map;
   const silverMap = material.userData.silverScalpMap as THREE.Texture | undefined;
   if (!silverMap) return;
-  const next = shaved && texture ? texture : silverMap;
+  const next = useSkinTexture && texture ? texture : silverMap;
   if (material.map !== next) {
     material.map = next;
     material.needsUpdate = true;
   }
 }
 
-function applyScalpVariant(model: THREE.Object3D, hairStyle: HairStyleSelectionId): void {
+function moduleHasSkinMatchedUnderlay(module: THREE.Object3D | undefined): boolean {
+  let matched = false;
+  module?.traverse((child) => {
+    if (matched || !(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    matched = materials.some((material) => (
+      material.userData.souldrifterTintChannel === "SKIN"
+      && material.userData.souldrifterTintMode === "MATCH_RUNTIME_SKIN_TONE"
+    ));
+  });
+  return matched;
+}
+
+function applyScalpVariant(
+  model: THREE.Object3D,
+  hairStyle: HairStyleSelectionId,
+  skinMatchedUnderlay: boolean,
+): void {
   const shaved = hairStyle === "shaved" || hairStyle === "shaved-buzzed";
+  const useSkinTexture = shaved || skinMatchedUnderlay;
   model.userData.scalpShaved = shaved;
+  model.userData.scalpUsesSkinTexture = useSkinTexture;
   const apply = (texture: THREE.Texture | null): void => {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
-        materials.forEach((material) => swapScalpMaterial(material, shaved, texture));
+        materials.forEach((material) => swapScalpMaterial(material, useSkinTexture, texture));
       }
     });
   };
-  if (!shaved) {
+  if (!useSkinTexture) {
     apply(scalpSkinTexture);
     return;
   }
   if (scalpSkinTexture) apply(scalpSkinTexture);
   else void loadScalpSkinTexture().then((texture) => {
     // The player may have switched styles while the texture streamed in.
-    if (texture && model.userData.scalpShaved === true) apply(texture);
+    if (texture && model.userData.scalpUsesSkinTexture === true) apply(texture);
   });
 }
 
@@ -460,7 +479,7 @@ export function applyModularAppearance(
   };
   model.userData.modularAppearanceResult = result;
 
-  applyScalpVariant(model, resolved.hairStyle);
+  applyScalpVariant(model, resolved.hairStyle, moduleHasSkinMatchedUnderlay(hairModule));
   return result;
 }
 

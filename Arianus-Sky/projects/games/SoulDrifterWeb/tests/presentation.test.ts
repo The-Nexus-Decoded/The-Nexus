@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 import {
   applyModularAppearance,
@@ -158,10 +158,21 @@ describe("actor presentation boundaries", () => {
     expect(skinMaterial.color.getHex()).toBe(0x5f3c31);
   });
 
-  it("routes explicit hair and skin tint channels without recoloring unknown materials", () => {
+  it("routes explicit hair and skin tint channels and replaces the legacy scalp map", async () => {
     const model = new THREE.Group();
     const detailMap = new THREE.Texture();
     const normalMap = new THREE.Texture();
+    const silverScalpMap = new THREE.Texture();
+    silverScalpMap.name = "ScalpSilver";
+    const skinScalpMap = new THREE.Texture<HTMLImageElement>();
+    skinScalpMap.name = "ScalpSkin";
+    const loadSpy = vi.spyOn(THREE.TextureLoader.prototype, "load").mockImplementation((
+      _url,
+      onLoad,
+    ) => {
+      onLoad?.(skinScalpMap);
+      return skinScalpMap;
+    });
     const hairMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: detailMap, normalMap });
     hairMaterial.name = "MAT_HumanHair_Tintable";
     hairMaterial.userData.souldrifterTintChannel = "HAIR";
@@ -181,7 +192,7 @@ describe("actor presentation boundaries", () => {
     hair.name = "SK_Hair_CurlyCoiled";
     hair.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
 
-    const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x684338 });
+    const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x684338, map: silverScalpMap });
     skinMaterial.name = "Human_Skin";
     const head = new THREE.Mesh(new THREE.BoxGeometry(), skinMaterial);
     head.name = "SK_HumanHead";
@@ -195,6 +206,7 @@ describe("actor presentation boundaries", () => {
       hairGreying: 0.5,
       skinTone: "deep",
     });
+    await Promise.resolve();
 
     const resolvedHair = new THREE.Color(HAIR_COLORS["copper-red"].color)
       .lerp(new THREE.Color(0xa8a39b), 0.5);
@@ -207,6 +219,59 @@ describe("actor presentation boundaries", () => {
     expect(hairMaterial.normalMap).toBe(normalMap);
     expect(scalpMaterial.map).toBe(detailMap);
     expect(scalpMaterial.normalMap).toBe(normalMap);
+    expect(skinMaterial.map).toBe(skinScalpMap);
+    expect(model.userData.scalpShaved).toBe(false);
+    expect(model.userData.scalpUsesSkinTexture).toBe(true);
+    expect(loadSpy).toHaveBeenCalledOnce();
+    loadSpy.mockRestore();
+  });
+
+  it("preserves legacy non-shaved scalp maps and the shaved skin-scalp baseline", () => {
+    const createModel = (moduleName: string | null): {
+      model: THREE.Group;
+      skinMaterial: THREE.MeshStandardMaterial;
+      silverScalpMap: THREE.Texture;
+    } => {
+      const model = new THREE.Group();
+      const silverScalpMap = new THREE.Texture();
+      silverScalpMap.name = "ScalpSilver";
+      const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x684338, map: silverScalpMap });
+      skinMaterial.name = "Human_Skin";
+      const head = new THREE.Mesh(new THREE.BoxGeometry(), skinMaterial);
+      head.name = "SK_HumanHead";
+      model.add(head);
+      if (moduleName) {
+        const hairMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const hair = new THREE.Mesh(new THREE.BoxGeometry(), hairMaterial);
+        hair.name = moduleName;
+        hair.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
+        model.add(hair);
+      }
+      return { model, skinMaterial, silverScalpMap };
+    };
+
+    const legacy = createModel("SK_Hair_TiedBack");
+    applyModularAppearance(legacy.model, {
+      hairStyle: "tied-back",
+      raceId: "human",
+      facialHair: "none",
+      skinTone: "deep",
+    });
+    expect(legacy.skinMaterial.map).toBe(legacy.silverScalpMap);
+    expect(legacy.model.userData.scalpShaved).toBe(false);
+    expect(legacy.model.userData.scalpUsesSkinTexture).toBe(false);
+
+    const shaved = createModel(null);
+    applyModularAppearance(shaved.model, {
+      hairStyle: "shaved-buzzed",
+      raceId: "human",
+      facialHair: "none",
+      skinTone: "deep",
+    });
+    expect(shaved.skinMaterial.map).not.toBe(shaved.silverScalpMap);
+    expect(shaved.skinMaterial.map?.name).toBe("ScalpSkin");
+    expect(shaved.model.userData.scalpShaved).toBe(true);
+    expect(shaved.model.userData.scalpUsesSkinTexture).toBe(true);
   });
 
   it("anchors the root, hips, and lower body without discarding attack choreography", () => {
