@@ -94,11 +94,14 @@ For any object- or surface-dependent action, include a correctly scaled proxy ob
 Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:
 
 1. generate the candidate and record its source, transform, hashes, semantic row, loop/one-shot intent, and preview contract;
-2. render the candidate on the neutral accepted body and post the labeled preview in the active Codex chat;
-3. record the owner's `APPROVE`, `REJECT`, or `CHANGE` verdict for that exact candidate and hash; and
-4. queue only owner-approved candidates for the BREACH-V2 exhaustive runtime review.
+2. render the complete candidate on the neutral accepted body at the intended normal gameplay rate with any required prop, surface, or weapon context;
+3. require an independent root-lane reviewer to watch the entire continuous playback and explicitly check anticipation or wind-up, feet, knees, hips, pelvis, spine, shoulders, elbows, hands, prop contacts, action cadence, follow-through, and recovery;
+4. reject or return the candidate internally when any visible mechanic fails, even when numeric validation, fresh import, static phase frames, contact sheets, or the authoring agent's self-review pass;
+5. post the labeled normal-speed preview in the active Codex chat only after that independent continuous-playback gate passes;
+6. record the owner's `APPROVE`, `REJECT`, or `CHANGE` verdict for that exact candidate and hash; and
+7. queue only owner-approved candidates for the BREACH-V2 exhaustive runtime review.
 
-A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the neutral-body chat preview and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
+A contact sheet, phase-image set, numeric report, agent-authored `PASS` label, or valid GLB is supporting evidence only; none can substitute for watching the complete normal-speed motion. The authoring agent may report technical results but cannot self-approve its animation for owner review. A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the independent continuous-playback review, neutral-body chat preview, and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
 
 ## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
 
