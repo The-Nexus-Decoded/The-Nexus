@@ -60,6 +60,10 @@ export function appearanceControlPercent(value: number): number {
   return Math.round(Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0)) * 100);
 }
 
+export function resetCreationStageScroll(stage: { scrollTop: number }): void {
+  stage.scrollTop = 0;
+}
+
 export function isCreatorAppearanceSelectionAvailable(
   appearance: ResolvedCharacterAppearance,
   availability: CreationPreviewAvailability,
@@ -168,6 +172,8 @@ export class CharacterCreation {
     else if (this.step === "calling") this.renderCalling();
     else if (this.step === "memory") this.renderMemory();
     else this.renderReview();
+
+    resetCreationStageScroll(this.stage);
   }
 
   private renderProgress(): void {

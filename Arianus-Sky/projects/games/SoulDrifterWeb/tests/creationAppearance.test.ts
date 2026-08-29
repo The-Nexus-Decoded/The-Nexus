@@ -4,6 +4,7 @@ import {
   appearanceAgeStage,
   appearanceControlPercent,
   isCreatorAppearanceSelectionAvailable,
+  resetCreationStageScroll,
 } from "../src/characterCreation";
 import {
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
@@ -75,5 +76,13 @@ describe("character-creator modular appearance contract", () => {
     expect(appearanceControlPercent(-0.2)).toBe(0);
     expect(appearanceControlPercent(0.486)).toBe(49);
     expect(appearanceControlPercent(3)).toBe(100);
+  });
+
+  it("resets inherited stage scroll after rendering a new creation step", () => {
+    const stage = { scrollTop: 497, focusOwner: "appearance-heading" };
+
+    resetCreationStageScroll(stage);
+
+    expect(stage).toEqual({ scrollTop: 0, focusOwner: "appearance-heading" });
   });
 });
