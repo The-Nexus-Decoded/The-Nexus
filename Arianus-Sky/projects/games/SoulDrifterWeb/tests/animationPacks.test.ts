@@ -6,7 +6,9 @@ import {
   HUMANOID_ACTIVE_ANIMATION_PACKS,
   bindOptionalCompatibleAnimationClip,
   bindCompatibleAnimationClip,
+  calibrateAnimatedPoseOnFloor,
   loadCachedAnimationPack,
+  measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
   trimAnimationPackClipEnvelope,
   validateAnimationClipCompatibility,
@@ -134,7 +136,11 @@ describe("external animation packs", () => {
     }
     const source = new THREE.AnimationClip("raw", 1, tracks);
     const bound = bindCompatibleAnimationClip(source, target, "SiphonCleaveBaseline");
-    const normalized = normalizeAnimationPackRootMotion(bound, "ElfShadowknight_Armature");
+    const normalized = normalizeAnimationPackRootMotion(
+      bound,
+      "ElfShadowknight_Armature",
+      new THREE.Vector3(7, 1.25, -3),
+    );
     const authored = bound.tracks.filter((track) => !track.name.startsWith("ElfShadowknight_Armature."));
 
     expect(authored).toHaveLength(195);
@@ -149,7 +155,66 @@ describe("external animation packs", () => {
     expect(Array.from(normalized.tracks.find((track) => track.name.endsWith(".scale"))!.values))
       .toEqual(Array.from(bound.tracks.find((track) => track.name.endsWith(".scale"))!.values));
     expect(Array.from(normalized.tracks.find((track) => track.name.endsWith(".position"))!.values))
-      .toEqual([0, 0, 0, 0, 2, 0]);
+      .toEqual([7, 1.25, -3, 7, 3.25, -3]);
+  });
+
+  it("preserves authored airborne Y deltas while removing source-rig baselines", () => {
+    const source = new THREE.AnimationClip("jump-and-fall", 2, [
+      new THREE.VectorKeyframeTrack("Rig_Armature.position", [0, 1, 2], [2, 96, -5, 8, 99.5, 4, 11, 95.25, 9]),
+    ]);
+    const normalized = normalizeAnimationPackRootMotion(
+      source,
+      "Rig_Armature",
+      new THREE.Vector3(0, 0.5, 0),
+    );
+
+    expect(Array.from(normalized.tracks[0]!.values)).toEqual([
+      0, 0.5, 0,
+      0, 4, 0,
+      0, -0.25, 0,
+    ]);
+  });
+
+  it("locks grounded root Y to the target rest position", () => {
+    const source = new THREE.AnimationClip("idle-with-source-drift", 2, [
+      new THREE.VectorKeyframeTrack("Rig_Armature.position", [0, 1, 2], [2, 96, -5, 8, 99.5, 4, 11, 95.25, 9]),
+    ]);
+    const normalized = normalizeAnimationPackRootMotion(
+      source,
+      "Rig_Armature",
+      new THREE.Vector3(0, 0.5, 0),
+      "lock-to-rest",
+    );
+
+    expect(Array.from(normalized.tracks[0]!.values)).toEqual([
+      0, 0.5, 0,
+      0, 0.5, 0,
+      0, 0.5, 0,
+    ]);
+  });
+
+  it("calibrates a fixed grounding pivot without mutating later animated poses", () => {
+    const actorRoot = new THREE.Group();
+    actorRoot.position.y = 4;
+    const pivot = new THREE.Group();
+    const model = new THREE.Group();
+    model.position.y = 1;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial());
+    model.add(body);
+    pivot.add(model);
+    actorRoot.add(pivot);
+
+    const calibration = calibrateAnimatedPoseOnFloor(actorRoot, model, pivot, 0);
+    const fixedPivotY = pivot.position.y;
+    model.position.y += 0.75;
+    const airborne = measureAnimatedPoseGrounding(actorRoot, model);
+
+    expect(calibration.clearanceMeters).toBeCloseTo(0, 9);
+    expect(airborne.clearanceMeters).toBeCloseTo(0.75, 9);
+    expect(pivot.position.y).toBe(fixedPivotY);
+
+    body.geometry.dispose();
+    (body.material as THREE.Material).dispose();
   });
 
   it("trims a nondestructive frame envelope without resampling skeletal values", () => {
