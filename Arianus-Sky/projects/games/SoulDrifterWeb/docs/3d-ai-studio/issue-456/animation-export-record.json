@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "issue": 456,
   "recordedAt": "2026-08-29",
-  "status": "complete",
+  "status": "owner-rejected-v1-do-not-integrate",
+  "integrationAllowed": false,
   "blender": {
     "version": "5.2.1 LTS",
     "buildHash": "9e2066aef7ef",
@@ -20,6 +21,28 @@
     "exportFormat": "GLB",
     "exportScope": "one creature, one armature, one render mesh, only that creature's actions"
   },
+  "ownerReview": {
+    "result": "rejected",
+    "rejectedAt": "2026-08-29",
+    "scope": "all twenty v1 animation previews and exports",
+    "defects": [
+      "isolated limb motion without coordinated torso, shoulder, hip, pelvis, spine, or center-of-mass movement",
+      "forbidden platform or ground geometry in the Duskcoat and Root-Gnawer packages",
+      "insufficient real-animal reference for gait and attack motion"
+    ],
+    "requiredCorrection": "Rebuild from real-animal video reference with overlapping deformation weights, planted-foot checks, whole-body gait mechanics, and platform-free sources."
+  },
+  "platformCleanup": {
+    "status": "source-derivatives-cleaned-v2-rerig-pending",
+    "auditedSourceCount": 20,
+    "violatingSourceCount": 2,
+    "cleanedSlugs": [
+      "duskcoat",
+      "root-gnawer"
+    ],
+    "cleanupRecord": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife/platform-cleanup-record.json",
+    "originalTripoSourcesPreserved": true
+  },
   "audit": {
     "assetCount": 20,
     "sourceMeshCount": 20,
@@ -32,7 +55,8 @@
     "roundTripImportCount": 20,
     "roundTripErrors": 0,
     "presentationObjectCount": 0,
-    "duplicateOrUnexpectedActionCount": 0
+    "duplicateOrUnexpectedActionCount": 0,
+    "qualityDisposition": "Structural package audit only; not evidence of animation quality or owner approval."
   },
   "assets": [
     {
@@ -511,4 +535,3 @@
     }
   ]
 }
-

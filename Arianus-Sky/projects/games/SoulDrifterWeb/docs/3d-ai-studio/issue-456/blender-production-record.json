@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "issue": 456,
   "recordedAt": "2026-08-29",
-  "status": "twenty-animated-packages-complete-and-roundtrip-verified",
+  "status": "animation-v1-owner-rejected-v2-research-and-rebuild-in-progress",
+  "integrationAllowed": false,
   "artifactRoot": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife",
   "tripo": {
     "liveBalanceAtExportAudit": 12990,
@@ -31,6 +32,32 @@
     "tripoRigOrAnimationPurchases": 0,
     "localPipelineDecision": "Use unrigged Tripo Smart Mesh sources, then build species-appropriate local Blender quadruped rigs and actions. Never use humanoid T or A poses for animals."
   },
+  "platformCleanup": {
+    "policy": "No platforms, pedestals, floor slabs, ground patches, shadows, lights, cameras, or scenery may be present in a creature mesh or exported package.",
+    "sourceAuditFile": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife/source-component-audit.json",
+    "sourceAuditSha256": "19E7A6F8B3DAF3E2330C712CB1D5A9BA4D25EA43C6F0A16056EEE3AB7CE4E324",
+    "auditedSourceCount": 20,
+    "clearSourceCount": 18,
+    "violatingSourceCount": 2,
+    "originalSourcesPreserved": true,
+    "cleanupRecordFile": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife/platform-cleanup-record.json",
+    "cleanupRecordSha256": "1BD5BE7079E923F5F2864E9324363B880CD1E047C2FC73FF9054A43520AC6647",
+    "cleanedDerivatives": [
+      {
+        "slug": "duskcoat",
+        "file": "cleaned-sources/issue456_duskcoat__996a5130-028f-4fea-8965-c709fac4ec4e__platform-free.glb",
+        "sha256": "0B1F9E8FB3ABC6BA3CA4504F0C70298B5E390A9DA5943E6F277353098FDC9E9F",
+        "removed": "one large fused ground quad"
+      },
+      {
+        "slug": "root-gnawer",
+        "file": "cleaned-sources/issue456_root_gnawer__1da2e4ef-34c5-4305-8229-a9feac94c934__platform-free.glb",
+        "sha256": "9532D86714A1BEEF874F8AE3E34C0D1B40030649703607BF9C7E0E8C5FCF877E",
+        "removed": "three large ground triangles and 716 disconnected ground-detail islands"
+      }
+    ],
+    "verification": "Both cleaned derivatives re-imported in Blender 5.2.1 with zero platform-face candidates and passed no-floor visual proof renders."
+  },
   "sources": [
     {"slug":"horse","modelId":"ee83fb87-3ca7-4e89-998a-7beee007019e","file":"sources/issue456_horse__ee83fb87-3ca7-4e89-998a-7beee007019e.glb","bytes":14727584,"sha256":"14A3F63847F60BB84C9ACF703E511DBE6267497B37B84DAEF23B023B04DF28A2"},
     {"slug":"leopard","modelId":"4513bf50-ae8a-4e1a-af29-cc58d97716cf","file":"sources/issue456_leopard__4513bf50-ae8a-4e1a-af29-cc58d97716cf.glb","bytes":25638024,"sha256":"21E8FC309519ADD03D564EA4D01F89C9C0DE27B4E3F0A7BBD39EB9E430013477"},
@@ -55,20 +82,30 @@
   ],
   "animation": {
     "started": true,
-    "completed": true,
-    "completedAssetCount": 20,
-    "remainingAssetCount": 0,
-    "rigCount": 20,
-    "totalBoneCount": 380,
-    "actionCount": 174,
-    "minimumSkinWeightCoverage": 1.0,
-    "animatedExportCount": 20,
-    "animatedExportBytes": 385667348,
-    "roundTripVerifiedExportCount": 20,
-    "roundTripErrors": 0,
-    "duplicateOrUnexpectedActionCount": 0,
-    "presentationObjectsRemaining": 0,
-    "exportRecord": "animation-export-record.json",
-    "nextPass": "Integrate the verified per-creature animated GLB packages into the game runtime and tune motion timing in-engine if required."
+    "completed": false,
+    "ownerReview": "rejected",
+    "approvedAnimatedAssetCount": 0,
+    "remainingAssetCount": 20,
+    "integrationAllowed": false,
+    "blockingDefects": [
+      "limbs move independently while shoulder, hip, spine, pelvis, and center of mass remain visually disconnected",
+      "Duskcoat and Root-Gnawer v1 packages contain forbidden ground or platform geometry",
+      "motion was authored without sufficient real-animal video reference"
+    ],
+    "rejectedV1StructuralAudit": {
+      "rigCount": 20,
+      "totalBoneCount": 380,
+      "actionCount": 174,
+      "minimumSkinWeightCoverage": 1.0,
+      "animatedExportCount": 20,
+      "animatedExportBytes": 385667348,
+      "roundTripVerifiedExportCount": 20,
+      "roundTripErrors": 0,
+      "duplicateOrUnexpectedActionCount": 0,
+      "presentationObjectsRemaining": 0,
+      "qualityDisposition": "Structural checks only; they did not establish believable animation quality and must not be used as approval evidence."
+    },
+    "rejectedV1ExportRecord": "animation-export-record.json",
+    "nextPass": "Build an exact real-animal video reference matrix by body family, rerig with overlapping shoulder, hip, chest, spine, and pelvis deformation, then produce new side-profile planted-foot review clips before any package is approved."
   }
 }
