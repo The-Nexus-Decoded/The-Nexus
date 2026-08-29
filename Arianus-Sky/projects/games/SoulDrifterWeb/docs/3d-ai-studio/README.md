@@ -249,12 +249,15 @@ Do not install or substitute another Blender version without owner direction.
 
 1. Import the untouched candidate into a clean Blender scene.
 2. Confirm meter scale, ground contact, orientation, transform application, normals, manifold state, material slots, UVs, and texture color spaces.
-3. Remove accidental internal surfaces and disconnected generation debris without erasing source provenance.
-4. Create deformation-friendly quad topology for bodies and soft garments. A generated dense or irregular mesh is not accepted merely because it looks correct while static.
-5. Preserve facial, shoulder, elbow, hand, pelvis, knee, and ankle loops needed for animation.
-6. Bake the approved PBR appearance from the source mesh onto the production topology.
-7. Keep rigid armor and weapons mechanically clean. Do not add unnecessary bones to a non-articulated weapon.
-8. Use the existing validated Elf Shadowknight as the scale/orientation comparison until a versioned asset manifest replaces that baseline.
+3. Treat every platform, pedestal, floor slab, ground patch, root mat, shadow catcher, light, camera, and piece of scenery as a hard failure. This rule applies even when the geometry is fused into the creature or prop mesh.
+4. Run a connected-component audit and a large floor-aligned-face audit before rigging. Preserve the untouched provider source, create a separately hashed cleaned derivative, and remove every detected presentation component from the derivative.
+5. Render the cleaned derivative in a scene with no floor or shadow catcher. A visible base, ground patch, or unexplained geometry under the asset fails the proof even when the automated detector reports zero candidates.
+6. Remove accidental internal surfaces and disconnected generation debris without erasing source provenance.
+7. Create deformation-friendly quad topology for bodies and soft garments. A generated dense or irregular mesh is not accepted merely because it looks correct while static.
+8. Preserve facial, shoulder, elbow, hand, pelvis, knee, and ankle loops needed for animation.
+9. Bake the approved PBR appearance from the source mesh onto the production topology.
+10. Keep rigid armor and weapons mechanically clean. Do not add unnecessary bones to a non-articulated weapon.
+11. Use the existing validated Elf Shadowknight as the scale/orientation comparison until a versioned asset manifest replaces that baseline.
 
 ### Phase 4: canonical rig compatibility proof
 
@@ -317,6 +320,18 @@ The weapon remains a separate GLB. The animation may use a linked reference copy
 7. Capture idle, walk, run, turn, hit, death, draw, sheath, class signature, defense, and one weapon action where applicable.
 8. Review normal-speed gameplay-camera video before close-up or slow-motion polish.
 9. Reuse the same animation pack for compatible assembled characters; do not download motion again because clothing, armor, race, or weapon finish changed.
+
+For quadrupeds and nonhumanoid creatures, recorded package structure is not animation
+quality evidence. Before authoring, select real-video references for the exact species or
+the closest defensible body family. Every quadruped set must study ordinary rest and
+breathing, alert head and ear tracking, weight shifts, walking, a faster gait, and the
+species-appropriate feeding, sniffing, grooming, digging, or grazing behavior. Predators
+and combat creatures also require real-reference anticipation, whole-body drive, contact,
+and recovery for each attack. Do not animate a limb against a frozen torso: scapular slide,
+shoulder mass, chest, spine, pelvis, hip mass, center-of-mass travel, foot plants, head,
+neck, and tail counterbalance must read as one animal. Record the exact video title,
+channel, URL, observed time range, and motion notes in the ticket reference matrix before
+the action is eligible for review.
 
 ## File and naming contract
 
@@ -417,10 +432,12 @@ Stop and request owner review when:
 - [ ] Paid plan and MCP connection verified without exposing credentials.
 - [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
+- [ ] Automated geometry audit and a no-floor proof render confirm there is no platform, pedestal, floor slab, ground patch, root mat, shadow catcher, light, camera, or scenery in the package.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Topology, UV, PBR bake, scale, ground, orientation, and bounds pass.
 - [ ] Skeleton identity or retarget profile is proven rather than assumed.
 - [ ] Existing baseline animation pack passes on the clean body.
+- [ ] Every quadruped action has recorded real-video species/body-family reference and moves the torso, shoulder/hip masses, spine, pelvis, center of mass, head/neck, and planted feet as a connected animal.
 - [ ] Clothing/armor is modular, weighted correctly, and has coverage metadata.
 - [ ] Weapon is separate and has grip/socket metadata.
 - [ ] Empty-hand interaction and draw/sheath transitions pass.
