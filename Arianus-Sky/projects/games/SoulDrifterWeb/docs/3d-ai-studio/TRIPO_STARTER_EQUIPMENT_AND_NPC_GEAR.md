@@ -1,7 +1,9 @@
 # Tripo Starter Equipment and First Breach NPC Gear
 
-Issue: `The-Nexus #435`  
-Related production acceptance: `The-Nexus #448`  
+Issue: `The-Nexus #435`
+
+Related production acceptance: `The-Nexus #448`
+
 Generation date: 2026-08-29
 
 ## Locked art and asset contract
