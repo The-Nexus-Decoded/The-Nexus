@@ -9,7 +9,7 @@ function bodyScene(): THREE.Group {
   const hips = new THREE.Bone();
   const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial());
   armature.name = "HumanFoundation_Armature";
-  hips.name = "hips";
+  hips.name = "mixamorigHips";
   hips.position.y = -2;
   body.name = "HumanFoundation_BodyMesh";
   body.position.y = 1;
@@ -22,7 +22,7 @@ function bodyScene(): THREE.Group {
 function clip(name: string, airborne = false): THREE.AnimationClip {
   return new THREE.AnimationClip(name, 1, [
     new THREE.VectorKeyframeTrack(
-      "hips.position",
+      "mixamorigHips.position",
       [0, 0.5, 1],
       airborne
         ? [0, 0, 0, 0, 1.25, 0, 0, 0, 0]
@@ -65,7 +65,9 @@ describe("Breach V2 Human animation pilot grounding", () => {
       loadAsync: vi.fn(async (url: string) => (
         url.includes("runtime-4k")
           ? { scene: body, animations: [] }
-          : { scene: new THREE.Group(), animations }
+          : url.includes("authored-lockpick")
+            ? { scene: new THREE.Group(), animations: [clip("AuthoredUtility__Lockpick")] }
+            : { scene: new THREE.Group(), animations }
       )),
     } as unknown as GLTFLoader;
 
@@ -120,9 +122,10 @@ describe("Breach V2 Human animation pilot grounding", () => {
     vi.stubGlobal("window", {});
     vi.stubGlobal("self", globalThis);
     const textureWarning = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const [body, library] = await Promise.all([
+    const [body, library, lockpick] = await Promise.all([
       loadRealGlb("public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb"),
       loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb"),
+      loadRealGlb("public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-lockpick.glb"),
     ]);
     textureWarning.mockRestore();
 
@@ -149,11 +152,16 @@ describe("Breach V2 Human animation pilot grounding", () => {
 
     const loader = {
       loadAsync: vi.fn(async (url: string) => (
-        url.includes("runtime-4k") ? body : library
+        url.includes("runtime-4k")
+          ? body
+          : url.includes("authored-lockpick")
+            ? lockpick
+            : library
       )),
     } as unknown as GLTFLoader;
     const pilot = await createBreachV2AnimationPilot(loader);
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
+    expect(bridge.reviewAnimations()).toContain("AuthoredUtility__Lockpick");
     const pivot = pilot.root.getObjectByName("issue-487-human-pilot-grounding-pivot")!;
     const fixedPivotY = pivot.position.y;
     const sample = (name: string, timeSeconds: number) => {
@@ -171,6 +179,10 @@ describe("Breach V2 Human animation pilot grounding", () => {
     const basicStart = sample("BasicLocomotion__Jump", 0);
     const basicApex = sample("BasicLocomotion__Jump", basicJump.duration / 2);
     const basicLanding = sample("BasicLocomotion__Jump", basicJump.duration);
+    const lockpickClip = lockpick.animations.find((candidate) => candidate.name === "AuthoredUtility__Lockpick")!;
+    const lockpickStart = sample("AuthoredUtility__Lockpick", 0);
+    const lockpickMidpoint = sample("AuthoredUtility__Lockpick", lockpickClip.duration / 2);
+    const lockpickEnd = sample("AuthoredUtility__Lockpick", lockpickClip.duration);
 
     expect(Math.abs(maleStart.clearanceMeters)).toBeLessThanOrEqual(0.01);
     expect(maleApex.clearanceMeters).toBeGreaterThan(0.25);
@@ -178,6 +190,9 @@ describe("Breach V2 Human animation pilot grounding", () => {
     expect(basicStart.clearanceMeters).toBeCloseTo(maleStart.clearanceMeters, 9);
     expect(basicApex.clearanceMeters).toBeCloseTo(maleApex.clearanceMeters, 9);
     expect(basicLanding.clearanceMeters).toBeCloseTo(maleLanding.clearanceMeters, 9);
+    expect(Math.abs(lockpickStart.clearanceMeters)).toBeLessThanOrEqual(0.01);
+    expect(Math.abs(lockpickMidpoint.clearanceMeters)).toBeLessThanOrEqual(0.01);
+    expect(Math.abs(lockpickEnd.clearanceMeters)).toBeLessThanOrEqual(0.01);
 
     pilot.dispose();
     body.scene.traverse((object) => {
