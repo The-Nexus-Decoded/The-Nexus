@@ -20,7 +20,6 @@ from math import cos, pi, sin
 from pathlib import Path
 import sys
 import bpy
-import bmesh
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
@@ -209,43 +208,6 @@ def make_textured_hair_material(
     return material
 
 
-def make_cropped_seam_material() -> bpy.types.Material:
-    material = bpy.data.materials.new(f"{MATERIAL_PREFIX}_Cropped_SeamBlend")
-    material.use_nodes = True
-    material.diffuse_color = (0.16, 0.052, 0.018, 1.0)
-    material["souldrifterTintable"] = True
-    material["souldrifterMaterialFamily"] = MATERIAL_PREFIX
-    material["souldrifterSeparateFromSkin"] = True
-    material["souldrifterHairTextureKind"] = "CROPPED_DIRECTIONAL_SEAM_BLEND"
-    size = 96
-    image = bpy.data.images.new(
-        "TX_HumanHair_Cropped_SeamBlend",
-        width=size,
-        height=size,
-        alpha=False,
-    )
-    pixels: list[float] = []
-    for y in range(size):
-        for x in range(size):
-            strand = 0.5 + 0.5 * cos((x * 0.42) - (y * 0.30))
-            shade = 0.67 + strand * 0.33
-            pixels.extend((0.17 * shade, 0.055 * shade, 0.018 * shade, 1.0))
-    image.pixels.foreach_set(pixels)
-    image.pack()
-    nodes = material.node_tree.nodes
-    nodes.clear()
-    output = nodes.new("ShaderNodeOutputMaterial")
-    shader = nodes.new("ShaderNodeBsdfPrincipled")
-    texture = nodes.new("ShaderNodeTexImage")
-    texture.image = image
-    material.node_tree.links.new(texture.outputs["Color"], shader.inputs["Base Color"])
-    material.node_tree.links.new(shader.outputs["BSDF"], output.inputs["Surface"])
-    shader.inputs["Roughness"].default_value = 0.68
-    if shader.inputs.get("Anisotropic IOR Level"):
-        shader.inputs["Anisotropic IOR Level"].default_value = 0.44
-    return material
-
-
 def make_facial_hair_material(module_name: str, kind: str) -> bpy.types.Material:
     """Create a packed tintable strand/stubble map for the fitted cards."""
     suffix = module_name.removeprefix("SK_FacialHair_")
@@ -380,57 +342,6 @@ def map_makehuman_vertex(
     )
 
 
-def fill_cropped_hairline_gap(obj: bpy.types.Object) -> None:
-    """Close short03's small source hairline opening using its own boundary.
-
-    A separately authored patch produced a visible floating spike in evidence.
-    Filling the source boundary keeps every new face coplanar with the existing
-    fitted cards and cannot turn into a detached scalp cap or toupee layer.
-    """
-    mesh = obj.data
-    working = bmesh.new()
-    working.from_mesh(mesh)
-    boundary = [
-        edge
-        for edge in working.edges
-        if edge.is_boundary
-        and all(
-            0.006 <= vertex.co.x <= 0.060
-            and 0.470 <= vertex.co.y <= 0.512
-            and 0.014 <= vertex.co.z <= 0.036
-            for vertex in edge.verts
-        )
-    ]
-    prepared = bmesh.ops.edgenet_prepare(working, edges=boundary).get("edges", [])
-    network = list({*boundary, *prepared})
-    result = bmesh.ops.edgenet_fill(working, edges=network)
-    faces = result.get("faces", [])
-    if not faces:
-        working.free()
-        raise RuntimeError("Cropped source hairline boundary could not be closed")
-    obj.data.materials.append(make_cropped_seam_material())
-    material_index = len(obj.data.materials) - 1
-    for face in faces:
-        face.material_index = material_index
-    print(
-        "CROPPED_SOURCE_GAP_FILL "
-        f"edges={len(boundary)} prepared={len(prepared)} faces={len(faces)}"
-    )
-    working.to_mesh(mesh)
-    working.free()
-    uv_layer = mesh.uv_layers.active or mesh.uv_layers.new(name="UVMap")
-    for polygon in mesh.polygons:
-        if polygon.material_index != material_index:
-            continue
-        for loop_index in polygon.loop_indices:
-            co = mesh.vertices[mesh.loops[loop_index].vertex_index].co
-            uv_layer.data[loop_index].uv = (
-                (co.y - 0.470) / 0.042,
-                (co.z - 0.014) / 0.022,
-            )
-    mesh.update()
-
-
 def build_official_hair(
     module_name: str,
     asset: str,
@@ -465,8 +376,6 @@ def build_official_hair(
     for material in list(obj.data.materials):
         obj.data.materials.pop(index=0)
     obj.data.materials.append(make_textured_hair_material(module_name, paths["diffuse"]))
-    if module_name == "SK_Hair_Cropped":
-        fill_cropped_hairline_gap(obj)
     for polygon in obj.data.polygons:
         polygon.use_smooth = True
     add_module_contract(obj, armature, "hair", "MAKEHUMAN_SYSTEM_ASSET_CC0")
