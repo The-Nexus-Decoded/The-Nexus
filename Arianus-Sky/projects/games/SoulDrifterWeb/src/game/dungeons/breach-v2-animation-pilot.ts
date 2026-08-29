@@ -2,8 +2,9 @@ import * as THREE from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   bindOptionalCompatibleAnimationClip,
+  calibrateAnimatedPoseOnFloor,
+  measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
-  placeAnimatedPoseOnFloor,
 } from "../animationPacks";
 import { applyPilotSkinPreset } from "../pilotSkinReview";
 import type { PilotAnimationReviewBridge } from "../../pilotAnimationReview";
@@ -13,6 +14,7 @@ const PILOT_LIBRARY_URL = "/assets/3d/animations/human-foundation-pilot/human-fo
 const PILOT_HEIGHT_METERS = 2.06;
 const PILOT_CLIP_COUNT = 400;
 const FLOOR_TOLERANCE_METERS = 0.01;
+const GROUND_CALIBRATION_CLIP = "MaleLocomotion__Idle";
 
 export interface BreachV2AnimationPilot {
   root: THREE.Group;
@@ -51,7 +53,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
   root.add(groundingPivot);
 
   const mixer = new THREE.AnimationMixer(model);
-  const groundedPivotY = groundingPivot.position.y;
+  const uncalibratedPivotY = groundingPivot.position.y;
   const armatureRestPositions = new Map<string, THREE.Vector3>();
   model.traverse((node) => {
     if (/armature$/i.test(node.name)) armatureRestPositions.set(node.name, node.position.clone());
@@ -64,27 +66,6 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     targetRootRestY: number;
     normalizedRootStartY: number;
   }>();
-  let currentAction: THREE.AnimationAction | null = null;
-  let currentClip = "";
-  let currentGrounding = {
-    floorWorldY: 0,
-    lowerBoundWorldY: 0,
-    clearanceMeters: 0,
-    floorCorrectionMeters: 0,
-    baseGroundingOffsetMeters: groundedPivotY,
-    appliedGroundingOffsetMeters: groundedPivotY,
-    penetrationLiftMeters: 0,
-    pivotResponseMetersPerMeter: 0,
-    toleranceMeters: FLOOR_TOLERANCE_METERS,
-    sourceRootBaselineY: 0,
-    targetRootRestY: 0,
-    normalizedRootStartY: 0,
-    currentRootY: 0,
-    authoredRootDeltaY: 0,
-    airborneClearanceAllowed: false,
-    pass: false,
-  };
-
   const resolveClip = (name: string): THREE.AnimationClip => {
     const cached = boundClips.get(name);
     if (cached) return cached;
@@ -122,6 +103,48 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     return normalized;
   };
 
+  // Raw GLB bind pose is not a grounded animation pose on this model. Seat the
+  // parent from an explicit canonical contact clip at frame zero, then freeze
+  // that one correction through every later clip and playback frame.
+  const calibrationClipName = [...sources.keys()].find(
+    (name) => name.toLowerCase() === GROUND_CALIBRATION_CLIP.toLowerCase(),
+  );
+  if (!calibrationClipName) {
+    throw new Error(`Issue #487 pilot is missing grounded calibration clip ${GROUND_CALIBRATION_CLIP}.`);
+  }
+  const calibrationAction = mixer.clipAction(resolveClip(calibrationClipName));
+  calibrationAction.reset().setEffectiveWeight(1).setEffectiveTimeScale(1).play();
+  mixer.update(0);
+  const groundCalibration = calibrateAnimatedPoseOnFloor(
+    root,
+    model,
+    groundingPivot,
+    uncalibratedPivotY,
+  );
+  const groundedPivotY = groundCalibration.appliedPivotY;
+  mixer.stopAllAction();
+
+  let currentAction: THREE.AnimationAction | null = null;
+  let currentClip = "";
+  let currentGrounding = {
+    floorWorldY: groundCalibration.floorWorldY,
+    lowerBoundWorldY: groundCalibration.lowerBoundWorldY,
+    clearanceMeters: groundCalibration.clearanceMeters,
+    floorCorrectionMeters: groundCalibration.floorCorrectionMeters,
+    baseGroundingOffsetMeters: groundCalibration.basePivotY,
+    appliedGroundingOffsetMeters: groundedPivotY,
+    penetrationLiftMeters: groundCalibration.penetrationLiftMeters,
+    pivotResponseMetersPerMeter: groundCalibration.pivotResponseMetersPerMeter,
+    toleranceMeters: FLOOR_TOLERANCE_METERS,
+    sourceRootBaselineY: 0,
+    targetRootRestY: 0,
+    normalizedRootStartY: 0,
+    currentRootY: 0,
+    authoredRootDeltaY: 0,
+    airborneClearanceAllowed: false,
+    pass: Math.abs(groundCalibration.clearanceMeters) <= FLOOR_TOLERANCE_METERS,
+  };
+
   const reconcileGrounding = (): void => {
     const contract = rootContracts.get(currentClip);
     const currentRootY = contract
@@ -129,23 +152,20 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       : 0;
     const authoredRootDeltaY = currentRootY - (contract?.targetRootRestY ?? currentRootY);
     const airborneClip = /jump|fall|airborne|climb|vault|dive|leap|hop|swim/i.test(currentClip);
-    const airborneClearanceAllowed = airborneClip && authoredRootDeltaY > FLOOR_TOLERANCE_METERS;
-    const placement = placeAnimatedPoseOnFloor(
-      root,
-      model,
-      groundingPivot,
-      groundedPivotY,
-      airborneClearanceAllowed,
+    const measurement = measureAnimatedPoseGrounding(root, model);
+    const airborneClearanceAllowed = airborneClip && (
+      authoredRootDeltaY > FLOOR_TOLERANCE_METERS
+      || measurement.clearanceMeters > FLOOR_TOLERANCE_METERS
     );
     currentGrounding = {
-      floorWorldY: placement.floorWorldY,
-      lowerBoundWorldY: placement.lowerBoundWorldY,
-      clearanceMeters: placement.clearanceMeters,
-      floorCorrectionMeters: placement.floorCorrectionMeters,
-      baseGroundingOffsetMeters: placement.basePivotY,
-      appliedGroundingOffsetMeters: placement.appliedPivotY,
-      penetrationLiftMeters: placement.penetrationLiftMeters,
-      pivotResponseMetersPerMeter: placement.pivotResponseMetersPerMeter,
+      floorWorldY: measurement.floorWorldY,
+      lowerBoundWorldY: measurement.lowerBoundWorldY,
+      clearanceMeters: measurement.clearanceMeters,
+      floorCorrectionMeters: groundCalibration.floorCorrectionMeters,
+      baseGroundingOffsetMeters: groundCalibration.basePivotY,
+      appliedGroundingOffsetMeters: groundedPivotY,
+      penetrationLiftMeters: groundCalibration.penetrationLiftMeters,
+      pivotResponseMetersPerMeter: groundCalibration.pivotResponseMetersPerMeter,
       toleranceMeters: FLOOR_TOLERANCE_METERS,
       sourceRootBaselineY: contract?.sourceRootBaselineY ?? 0,
       targetRootRestY: contract?.targetRootRestY ?? 0,
@@ -153,9 +173,9 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       currentRootY,
       authoredRootDeltaY,
       airborneClearanceAllowed,
-      pass: airborneClearanceAllowed
-        ? placement.clearanceMeters >= -FLOOR_TOLERANCE_METERS
-        : Math.abs(placement.clearanceMeters) <= FLOOR_TOLERANCE_METERS,
+      pass: airborneClip
+        ? measurement.clearanceMeters >= -FLOOR_TOLERANCE_METERS
+        : Math.abs(measurement.clearanceMeters) <= FLOOR_TOLERANCE_METERS,
     };
   };
 

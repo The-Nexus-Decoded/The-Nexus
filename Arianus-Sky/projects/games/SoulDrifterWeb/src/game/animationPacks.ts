@@ -235,7 +235,7 @@ export interface AnimatedPoseGroundingMeasurement {
   clearanceMeters: number;
 }
 
-export interface AnimatedPoseFloorPlacement extends AnimatedPoseGroundingMeasurement {
+export interface AnimatedPoseGroundingCalibration extends AnimatedPoseGroundingMeasurement {
   basePivotY: number;
   appliedPivotY: number;
   floorCorrectionMeters: number;
@@ -244,10 +244,6 @@ export interface AnimatedPoseFloorPlacement extends AnimatedPoseGroundingMeasure
 }
 
 const GROUNDING_RESPONSE_PROBE_METERS = 0.25;
-const groundingPivotResponseCache = new WeakMap<THREE.Object3D, {
-  animatedModel: THREE.Object3D;
-  responseMetersPerMeter: number;
-}>();
 
 /** Measures the live, skinned lower bound against a feet-origin actor root. */
 export function measureAnimatedPoseGrounding(
@@ -271,44 +267,36 @@ export function measureAnimatedPoseGrounding(
 }
 
 /**
- * Places a stable parent pivot from an immutable baseline. The animated model
- * is never translated here: moving a skinned model's own transform can feed
- * back through its attached bind matrix and accumulate an unbounded offset.
+ * Calibrates a stable parent pivot once from a known grounded rest/contact
+ * pose. The returned pivot must remain fixed for the lifetime of playback;
+ * later frames are measured, never re-seated. That preserves authored root-
+ * and bone-driven vertical travel for jumps, falls, dives, and knockback.
+ *
+ * The animated model is never translated here: moving a skinned model's own
+ * transform can feed back through its attached bind matrix and accumulate an
+ * unbounded offset.
  */
-export function placeAnimatedPoseOnFloor(
+export function calibrateAnimatedPoseOnFloor(
   actorRoot: THREE.Object3D,
   animatedModel: THREE.Object3D,
   groundingPivot: THREE.Object3D,
   basePivotY: number,
-  airborneClearanceAllowed = false,
-): AnimatedPoseFloorPlacement {
-  // Always reset to the immutable accepted baseline before reading skinned
-  // bounds. A previous correction must never participate in the next frame's
-  // measurement, otherwise parent/world matrices make the lift accumulate.
+): AnimatedPoseGroundingCalibration {
   groundingPivot.position.y = basePivotY;
   groundingPivot.updateWorldMatrix(true, true);
   const measured = measureAnimatedPoseGrounding(actorRoot, animatedModel);
 
-  let pivotResponseMetersPerMeter = groundingPivotResponseCache.get(groundingPivot)?.animatedModel === animatedModel
-    ? groundingPivotResponseCache.get(groundingPivot)!.responseMetersPerMeter
-    : 0;
-  if (!(pivotResponseMetersPerMeter > 0)) {
-    groundingPivot.position.y = basePivotY + GROUNDING_RESPONSE_PROBE_METERS;
-    groundingPivot.updateWorldMatrix(true, true);
-    const probe = measureAnimatedPoseGrounding(actorRoot, animatedModel);
-    pivotResponseMetersPerMeter = (
-      probe.lowerBoundWorldY - measured.lowerBoundWorldY
-    ) / GROUNDING_RESPONSE_PROBE_METERS;
-    if (!(pivotResponseMetersPerMeter > 1e-6) || !Number.isFinite(pivotResponseMetersPerMeter)) {
-      throw new Error("Animated actor grounding pivot has no finite positive world-space response.");
-    }
-    groundingPivotResponseCache.set(groundingPivot, { animatedModel, responseMetersPerMeter: pivotResponseMetersPerMeter });
+  groundingPivot.position.y = basePivotY + GROUNDING_RESPONSE_PROBE_METERS;
+  groundingPivot.updateWorldMatrix(true, true);
+  const probe = measureAnimatedPoseGrounding(actorRoot, animatedModel);
+  const pivotResponseMetersPerMeter = (
+    probe.lowerBoundWorldY - measured.lowerBoundWorldY
+  ) / GROUNDING_RESPONSE_PROBE_METERS;
+  if (!(pivotResponseMetersPerMeter > 1e-6) || !Number.isFinite(pivotResponseMetersPerMeter)) {
+    throw new Error("Animated actor grounding pivot has no finite positive world-space response.");
   }
 
-  const signedCorrection = -measured.clearanceMeters / pivotResponseMetersPerMeter;
-  const floorCorrectionMeters = airborneClearanceAllowed
-    ? Math.max(0, signedCorrection)
-    : signedCorrection;
+  const floorCorrectionMeters = -measured.clearanceMeters / pivotResponseMetersPerMeter;
 
   groundingPivot.position.y = basePivotY + floorCorrectionMeters;
   groundingPivot.updateWorldMatrix(true, true);

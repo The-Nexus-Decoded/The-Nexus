@@ -6,10 +6,10 @@ import {
   HUMANOID_ACTIVE_ANIMATION_PACKS,
   bindOptionalCompatibleAnimationClip,
   bindCompatibleAnimationClip,
+  calibrateAnimatedPoseOnFloor,
   loadCachedAnimationPack,
   measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
-  placeAnimatedPoseOnFloor,
   trimAnimationPackClipEnvelope,
   validateAnimationClipCompatibility,
 } from "../src/game/animationPacks";
@@ -207,7 +207,7 @@ describe("external animation packs", () => {
     ]);
   });
 
-  it("resets a skinned hierarchy before every precise bound and never accumulates across thousands of frames", () => {
+  it("calibrates a skinned grounded rest pose once and never accumulates across later measurements", () => {
     const actorRoot = new THREE.Group();
     actorRoot.position.y = 4;
     const pivot = new THREE.Group();
@@ -248,26 +248,117 @@ describe("external animation packs", () => {
     skinnedMesh.bind(new THREE.Skeleton([rootBone]));
 
     const basePivotY = -1;
-    const placements = Array.from({ length: 2_000 }, () => (
-      placeAnimatedPoseOnFloor(actorRoot, model, pivot, basePivotY)
+    const calibration = calibrateAnimatedPoseOnFloor(actorRoot, model, pivot, basePivotY);
+    const fixedPivotY = pivot.position.y;
+    const measurements = Array.from({ length: 2_000 }, () => (
+      measureAnimatedPoseGrounding(actorRoot, model)
     ));
 
-    const first = placements[0]!;
-    expect(new Set(placements.map((placement) => placement.appliedPivotY))).toEqual(new Set([first.appliedPivotY]));
-    expect(new Set(placements.map((placement) => placement.floorCorrectionMeters)))
-      .toEqual(new Set([first.floorCorrectionMeters]));
-    expect(first.pivotResponseMetersPerMeter).toBeGreaterThan(1);
-    expect(first.appliedPivotY).toBe(basePivotY + first.floorCorrectionMeters);
-    expect(new Set(placements.map((placement) => placement.clearanceMeters)))
-      .toEqual(new Set([first.clearanceMeters]));
-    expect(Math.abs(first.clearanceMeters)).toBeLessThan(1e-9);
-    expect(pivot.position.y).toBe(first.appliedPivotY);
+    expect(calibration.pivotResponseMetersPerMeter).toBeGreaterThan(1);
+    expect(calibration.appliedPivotY).toBe(basePivotY + calibration.floorCorrectionMeters);
+    expect(Math.abs(calibration.clearanceMeters)).toBeLessThan(1e-9);
+    expect(new Set(measurements.map((measurement) => measurement.clearanceMeters)))
+      .toEqual(new Set([calibration.clearanceMeters]));
+    expect(pivot.position.y).toBe(fixedPivotY);
     actorRoot.updateWorldMatrix(true, true);
     skinnedMesh.skeleton.update();
-    expect(new THREE.Box3().setFromObject(model, true).min.y).toBeCloseTo(first.lowerBoundWorldY, 9);
+    expect(new THREE.Box3().setFromObject(model, true).min.y).toBeCloseTo(calibration.lowerBoundWorldY, 9);
 
     geometry.dispose();
     material.dispose();
+  });
+
+  it("preserves bone-driven jump clearance with a fixed pivot and returns to the floor", () => {
+    const actorRoot = new THREE.Group();
+    const pivot = new THREE.Group();
+    const model = new THREE.Group();
+    const armature = new THREE.Group();
+    armature.name = "Rig_Armature";
+    const hips = new THREE.Bone();
+    hips.name = "hips";
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial());
+    body.position.y = 1;
+    hips.add(body);
+    armature.add(hips);
+    model.add(armature);
+    pivot.add(model);
+    actorRoot.add(pivot);
+
+    const calibration = calibrateAnimatedPoseOnFloor(actorRoot, model, pivot, 0);
+    const fixedPivotY = pivot.position.y;
+    const jump = new THREE.AnimationClip("BasicLocomotion__Jump", 1, [
+      new THREE.VectorKeyframeTrack("hips.position", [0, 0.5, 1], [0, 0, 0, 0, 1.25, 0, 0, 0, 0]),
+    ]);
+    const idle = new THREE.AnimationClip("MaleLocomotion__Idle", 1, [
+      new THREE.VectorKeyframeTrack("hips.position", [0, 1], [0, 0, 0, 0, 0, 0]),
+    ]);
+    const mixer = new THREE.AnimationMixer(model);
+
+    const pose = (clip: THREE.AnimationClip, time: number) => {
+      mixer.stopAllAction();
+      const action = mixer.clipAction(clip).reset();
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      action.play();
+      action.time = time;
+      mixer.update(0);
+      return measureAnimatedPoseGrounding(actorRoot, model);
+    };
+
+    expect(calibration.clearanceMeters).toBeCloseTo(0, 9);
+    expect(pose(jump, 0).clearanceMeters).toBeCloseTo(0, 9);
+    expect(pose(jump, 0.5).clearanceMeters).toBeCloseTo(1.25, 9);
+    expect(pose(jump, 1).clearanceMeters).toBeCloseTo(0, 9);
+    for (let replay = 0; replay < 100; replay += 1) {
+      expect(pose(replay % 2 === 0 ? idle : jump, replay % 2 === 0 ? 0 : 0.5).clearanceMeters)
+        .toBeCloseTo(replay % 2 === 0 ? 0 : 1.25, 9);
+      expect(pivot.position.y).toBe(fixedPivotY);
+    }
+
+    body.geometry.dispose();
+    (body.material as THREE.Material).dispose();
+  });
+
+  it("does not alter authored crouch or lift joint transforms while validating grounding", () => {
+    const actorRoot = new THREE.Group();
+    const pivot = new THREE.Group();
+    const model = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial());
+    body.position.y = 1;
+    const hips = new THREE.Bone();
+    const spine = new THREE.Bone();
+    const leftHand = new THREE.Bone();
+    hips.name = "hips";
+    spine.name = "spine";
+    leftHand.name = "leftHand";
+    hips.add(spine);
+    spine.add(leftHand);
+    model.add(body, hips);
+    pivot.add(model);
+    actorRoot.add(pivot);
+
+    calibrateAnimatedPoseOnFloor(actorRoot, model, pivot, 0);
+    hips.position.set(0, -0.32, 0.08);
+    hips.rotation.set(0.18, 0.04, -0.03);
+    spine.rotation.set(-0.28, 0.06, 0.02);
+    leftHand.rotation.set(0.12, -0.35, 0.48);
+    const before = [hips, spine, leftHand].map((joint) => ({
+      position: joint.position.toArray(),
+      quaternion: joint.quaternion.toArray(),
+      scale: joint.scale.toArray(),
+    }));
+
+    measureAnimatedPoseGrounding(actorRoot, model);
+    measureAnimatedPoseGrounding(actorRoot, model);
+
+    expect([hips, spine, leftHand].map((joint) => ({
+      position: joint.position.toArray(),
+      quaternion: joint.quaternion.toArray(),
+      scale: joint.scale.toArray(),
+    }))).toEqual(before);
+
+    body.geometry.dispose();
+    (body.material as THREE.Material).dispose();
   });
 
   it("trims a nondestructive frame envelope without resampling skeletal values", () => {
