@@ -146,6 +146,32 @@ describe("actor presentation boundaries", () => {
     expect(weapon?.handSocket.visible).toBe(true);
     expect(weapon?.hipSocket.visible).toBe(false);
   });
+
+  it("mounts a separate starter weapon source without requiring baked actor meshes", () => {
+    const model = new THREE.Group();
+    const pelvis = new THREE.Bone();
+    pelvis.name = "pelvis";
+    const hand = new THREE.Bone();
+    hand.name = "hand_r";
+    model.add(pelvis, hand);
+
+    const source = new THREE.Group();
+    source.name = "weapon-sword-longsword-starter-v001";
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.03));
+    mesh.name = "longsword-mesh";
+    source.add(mesh);
+
+    const weapon = createStarterLongswordPresentation(model, source);
+
+    expect(weapon).toBeDefined();
+    expect(weapon?.handSocket.parent).toBe(hand);
+    expect(weapon?.hipSocket.parent).toBe(pelvis);
+    expect(weapon?.handSocket.getObjectByName("longsword-mesh")).toBeDefined();
+    expect(weapon?.hipSocket.getObjectByName("longsword-mesh")).toBeDefined();
+    expect(weapon?.handSocket.getObjectByName("longsword-mesh")).not.toBe(
+      weapon?.hipSocket.getObjectByName("longsword-mesh"),
+    );
+  });
 });
 
 describe("camera pan boundaries", () => {

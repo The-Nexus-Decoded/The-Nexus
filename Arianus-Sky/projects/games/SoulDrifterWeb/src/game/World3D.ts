@@ -120,6 +120,7 @@ const FALLBACK_WARRIOR_MODEL = "/assets/3d/characters/warrior.gltf";
 const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
 const PILOT_REVIEW_MODEL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
 const PILOT_REVIEW_LIBRARY = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
+const STARTER_LONGSWORD_MODEL = "/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb";
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -1223,7 +1224,16 @@ export class World3D {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh && /boot|feet|shoe/i.test(child.name)) groundingMeshes.push(child);
     });
-    const weapon = id === "player" ? createStarterLongswordPresentation(model) : undefined;
+    let weapon: WeaponPresentation | undefined;
+    if (id === "player") {
+      try {
+        const weaponGltf = await this.loadModel(STARTER_LONGSWORD_MODEL);
+        weapon = createStarterLongswordPresentation(model, weaponGltf.scene);
+      } catch (error) {
+        console.warn("The modular starter longsword could not be loaded; using the embedded pilot fallback.", error);
+        weapon = createStarterLongswordPresentation(model);
+      }
+    }
     if (weapon) setWeaponVisualState(weapon, equippedUsableWeapon(this.inventory) ? "sheathed" : "hidden");
     const motion = new AvatarMotionController();
     motion.setWeapon(weapon?.state ?? "hidden");

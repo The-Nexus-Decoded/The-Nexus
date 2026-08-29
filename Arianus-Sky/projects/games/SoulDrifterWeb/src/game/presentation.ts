@@ -134,22 +134,33 @@ const STARTER_LONGSWORD_PART = /^SK_Starter(?:Long|Short)sword_(?:Blade|Grip|Gua
  * driven by the same skeleton, so armor/skin changes never require re-rigging
  * the animation library.
  */
-export function createStarterLongswordPresentation(model: THREE.Object3D): WeaponPresentation | undefined {
+export function createStarterLongswordPresentation(
+  model: THREE.Object3D,
+  externalWeapon?: THREE.Object3D,
+): WeaponPresentation | undefined {
   const parts: THREE.Object3D[] = [];
-  model.traverse((child) => {
-    if (STARTER_LONGSWORD_PART.test(child.name)) parts.push(child);
-  });
-  if (parts.length === 0) return undefined;
+  if (!externalWeapon) {
+    model.traverse((child) => {
+      if (STARTER_LONGSWORD_PART.test(child.name)) parts.push(child);
+    });
+    if (parts.length === 0) return undefined;
+  }
 
-  const handBone = model.getObjectByName("hand_r") ?? parts[0]!.parent;
+  const handBone = model.getObjectByName("hand_r") ?? parts[0]?.parent;
   const hipBone = model.getObjectByName("pelvis") ?? model.getObjectByName("spine_01");
   if (!handBone || !hipBone) return undefined;
 
   const handSocket = new THREE.Group();
   handSocket.name = "weapon-socket-hand-r";
   handBone.add(handSocket);
-  model.updateMatrixWorld(true);
-  parts.forEach((part) => handSocket.attach(part));
+  if (externalWeapon) {
+    const handVisual = externalWeapon.clone(true);
+    handVisual.name = "weapon-visual-longsword-hand";
+    handSocket.add(handVisual);
+  } else {
+    model.updateMatrixWorld(true);
+    parts.forEach((part) => handSocket.attach(part));
+  }
 
   const hipSocket = handSocket.clone(true);
   hipSocket.name = "weapon-socket-hip-l";
