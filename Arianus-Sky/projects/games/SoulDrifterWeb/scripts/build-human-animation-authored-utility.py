@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--review-video-rear", required=True, help="Continuous normal-speed close-rear review")
     parser.add_argument("--candidate-id", default=DEFAULT_CANDIDATE_ID)
     parser.add_argument("--evidence-root", default=str(DEFAULT_EVIDENCE_ROOT))
-    parser.add_argument("--action", choices=("lift", "lockpick", "valve"), default="lift")
+    parser.add_argument("--action", choices=("lift", "lockpick", "valve", "harvest"), default="lift")
     return parser.parse_args(values)
 
 
@@ -354,6 +354,69 @@ def measure_tail_error(
         "samples": samples,
         "maxError": max(sample["error"] for sample in samples),
     }
+
+
+def measure_neutral_bones(
+    armature: bpy.types.Object,
+    action: bpy.types.Action,
+    bone_names: list[str],
+    frames: list[int],
+) -> dict[str, object]:
+    """Prove specified joints retain their zero-rest local transforms."""
+    bones: dict[str, dict[str, float]] = {}
+    for bone_name in bone_names:
+        maximum_location_error = 0.0
+        maximum_rotation_error_degrees = 0.0
+        maximum_scale_error = 0.0
+        for frame in frames:
+            armature.animation_data.action = action
+            bpy.context.scene.frame_set(frame)
+            bpy.context.view_layer.update()
+            bone = armature.pose.bones[bone_name]
+            maximum_location_error = max(maximum_location_error, bone.location.length)
+            maximum_rotation_error_degrees = max(
+                maximum_rotation_error_degrees,
+                bone.rotation_quaternion.rotation_difference(Quaternion()).angle * 180.0 / 3.141592653589793,
+            )
+            maximum_scale_error = max(
+                maximum_scale_error,
+                max(abs(component - 1.0) for component in bone.scale),
+            )
+        bones[bone_name] = {
+            "maximumLocationErrorRigUnits": round(maximum_location_error, 8),
+            "maximumRotationErrorDegrees": round(maximum_rotation_error_degrees, 6),
+            "maximumScaleError": round(maximum_scale_error, 8),
+        }
+    return {
+        "sampledEveryFrame": True,
+        "frameCount": len(frames),
+        "bones": bones,
+        "maximumLocationErrorRigUnits": max(value["maximumLocationErrorRigUnits"] for value in bones.values()),
+        "maximumRotationErrorDegrees": max(value["maximumRotationErrorDegrees"] for value in bones.values()),
+        "maximumScaleError": max(value["maximumScaleError"] for value in bones.values()),
+    }
+
+
+def curl_one_hand(armature: bpy.types.Object, frame: int, side: str, amount: float) -> list[str]:
+    """Key an original relaxed-to-pinch hand pose for a single side."""
+    keyed: list[str] = []
+    direction = -1.0 if side == "Left" else 1.0
+    for finger, strength in (("Index", 0.95), ("Middle", 0.52), ("Ring", 0.60), ("Pinky", 0.68)):
+        for segment, factor in (("1", 0.45), ("2", 0.88), ("3", 0.76)):
+            name = f"mixamorig:{side}Hand{finger}{segment}"
+            bone = armature.pose.bones.get(name)
+            if bone is None:
+                continue
+            key_bone(bone, frame, (0.0, 0.0, direction * amount * strength * factor))
+            keyed.append(name)
+    for segment, flex, opposition in (("1", 0.28, 0.26), ("2", 0.46, 0.38), ("3", 0.62, 0.44)):
+        name = f"mixamorig:{side}HandThumb{segment}"
+        bone = armature.pose.bones.get(name)
+        if bone is None:
+            continue
+        key_bone(bone, frame, (amount * flex, 0.0, direction * amount * opposition))
+        keyed.append(name)
+    return keyed
 
 
 def build_lift(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
@@ -930,6 +993,217 @@ def build_valve_turn(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict
     return action, record
 
 
+def build_harvest(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a planted two-pass hand harvest from the zero-action rest rig."""
+    name = "AuthoredUtility__Harvest"
+    end_frame = 108
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    # A waist-height berry branch and hip basket make the hand contacts and
+    # deposit path unambiguous. They are authoring guides only and are removed
+    # before export.
+    bpy.ops.mesh.primitive_cube_add(location=(0.220, 0.0, 0.185))
+    branch = bpy.context.active_object
+    branch.name = "AUTHORING_CONTACT_GUIDE__HarvestBranch"
+    branch.dimensions = (0.045, 0.30, 0.035)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    berries: list[bpy.types.Object] = []
+    for index, position in enumerate(((0.195, -0.082, 0.178), (0.195, -0.018, 0.238)), start=1):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.018, location=position)
+        berry = bpy.context.active_object
+        berry.name = f"AUTHORING_CONTACT_GUIDE__HarvestBerry{index}"
+        berries.append(berry)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.085, depth=0.16, location=(-0.015, -0.245, 0.015))
+    basket = bpy.context.active_object
+    basket.name = "AUTHORING_CONTACT_GUIDE__HarvestBasket"
+
+    left_hand = create_target("AuthoredHarvest__LeftHandTarget", vec((0.205, 0.092, 0.185)))
+    right_hand = create_target("AuthoredHarvest__RightHandTarget", vec((0.195, -0.082, 0.178)))
+    controls = [branch, basket, left_hand, right_hand, *berries]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+    ]
+    # Keep IK active through the entire playable range so frame 1 and the
+    # terminal recovery are the same relaxed arms-down stance, never the
+    # source rig's arms-wide rest pose.
+    influence_keys = [(1, 1.0), (108, 1.0)]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame, influence in influence_keys:
+            constraint.influence = influence
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": frame, "influence": influence}
+            for frame, influence in influence_keys
+        ]
+
+    phases = [
+        (1, "natural-relaxed-stance", 0.0, 0.0, (-0.010, 0.175, 0.020), (-0.010, -0.175, 0.020), 0.0, 0.0, 0.0),
+        (14, "inspect-branch", 3.0, 2.0, (0.150, 0.135, 0.205), (0.155, -0.135, 0.205), 12.0, 12.0, 10.0),
+        (26, "support-branch-first-pinch", 6.0, 3.0, (0.205, 0.092, 0.185), (0.195, -0.082, 0.178), 38.0, 50.0, 20.0),
+        (36, "pluck-first-berry", 6.0, 3.0, (0.205, 0.092, 0.185), (0.160, -0.092, 0.180), 38.0, 54.0, 24.0),
+        (48, "deposit-first-berry", 3.0, 2.0, (0.180, 0.105, 0.190), (0.015, -0.245, 0.065), 30.0, 48.0, 18.0),
+        (60, "support-branch-second-pinch", 6.0, 3.0, (0.205, 0.060, 0.225), (0.195, -0.018, 0.238), 38.0, 50.0, 22.0),
+        (72, "pluck-second-berry", 6.0, 3.0, (0.205, 0.060, 0.225), (0.160, -0.030, 0.240), 38.0, 54.0, 26.0),
+        (84, "deposit-second-berry", 3.0, 2.0, (0.180, 0.090, 0.205), (0.015, -0.245, 0.065), 28.0, 48.0, 18.0),
+        (96, "release-branch", 2.0, 1.0, (0.140, 0.140, 0.220), (0.120, -0.150, 0.205), 12.0, 12.0, 8.0),
+        (108, "same-natural-relaxed-recovery", 0.0, 0.0, (-0.010, 0.175, 0.020), (-0.010, -0.175, 0.020), 0.0, 0.0, 0.0),
+    ]
+    branch_contact_frames = [26, 36, 60, 72]
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame, _, spine_x, head_x, left_pos, right_pos, left_curl, right_curl, hand_roll in phases:
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame)
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_x * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_x * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_x * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_x, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_x * 0.65, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -hand_roll, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, hand_roll, 0.0))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Left", left_curl))
+        keyed_fingers.update(curl_one_hand(armature, frame, "Right", right_curl))
+        left_position = vec(left_pos)
+        right_position = vec(right_pos)
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        if frame in branch_contact_frames:
+            left_targets[frame] = left_position
+            right_targets[frame] = right_position
+
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", branch_contact_frames, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", branch_contact_frames, right_targets)
+    every_frame = list(range(1, end_frame + 1))
+    # The action contains no leg IK or authored lower-body offsets. Validate
+    # the entire sequence, not only representative phase keys, because the
+    # rejected provider Harvest showed persistent knee flex and heel lift.
+    reset_pose(armature)
+    bpy.context.view_layer.update()
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    left_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:LeftLeg",
+        every_frame,
+        {frame: rest_left_ankle for frame in every_frame},
+    )
+    right_ground = measure_tail_error(
+        armature,
+        action,
+        "mixamorig:RightLeg",
+        every_frame,
+        {frame: rest_right_ankle for frame in every_frame},
+    )
+    leg_neutrality = measure_neutral_bones(
+        armature,
+        action,
+        [
+            "mixamorig:LeftUpLeg",
+            "mixamorig:LeftLeg",
+            "mixamorig:LeftFoot",
+            "mixamorig:LeftToeBase",
+            "mixamorig:RightUpLeg",
+            "mixamorig:RightLeg",
+            "mixamorig:RightFoot",
+            "mixamorig:RightToeBase",
+        ],
+        every_frame,
+    )
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Harvest hand contact gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Harvest grounding gate failed: left={left_ground['maxError']}, right={right_ground['maxError']}")
+    if (
+        leg_neutrality["maximumLocationErrorRigUnits"] > 0.001
+        or leg_neutrality["maximumRotationErrorDegrees"] > 1.0
+        or leg_neutrality["maximumScaleError"] > 0.001
+    ):
+        raise RuntimeError(f"Harvest lower-body neutral-pose gate failed: {leg_neutrality}")
+
+    reference = {
+        "url": "https://www.pbs.org/video/late-spring-harvesting-and-chores-lq1unt/",
+        "publisher": "PBS / The Home-Scale Forest Garden",
+        "publishedAt": "2026-04-06",
+        "retrievedAt": "2026-08-29",
+        "timeRange": "07:04-07:40 (real-person hand-picking honeyberries)",
+        "mechanics": {
+            "stance": "Stand close to the bush with both feet flat and knees neutral rather than holding a squat.",
+            "weightTransfer": "Keep weight centered while a small upper-body hinge brings the hands to the branch.",
+            "footwork": "No steps or heel lift during the two harvest passes.",
+            "hipsShoulders": "Hips remain square; shoulders follow two short reaches without rotating the pelvis.",
+            "handsGripContacts": "One hand parts or steadies the branch while the other uses a controlled finger-and-thumb pinch, withdraws the berry, and deposits it into a hip basket.",
+            "anticipation": "Inspect the branch, establish support-hand contact, then pinch the selected berry.",
+            "cadence": "Two deliberate pick-and-deposit passes with a readable pause at each pinch.",
+            "followThroughRecovery": "Release the branch and return both hands and upper body to the identical natural arms-down stance.",
+        },
+    }
+    record = {
+        "clipName": name,
+        "displayLabel": "Harvest",
+        "semanticRowIds": ["interaction.harvest"],
+        "status": "NEWLY_AUTHORED_VISUAL_REVIEW_REQUIRED",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "supersedesRejectedCandidate": "Interactions__HumanMasculineAthleticMuscularHarvest",
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [
+            {"name": branch.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "waist-height berry branch"},
+            {"name": basket.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "hip harvest basket"},
+            *[
+                {"name": berry.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "role": "pinch target"}
+                for berry in berries
+            ],
+        ],
+        "ikConstraints": ik_constraints,
+        "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftSupportHand": left_contact, "rightPinchHand": right_contact, "passed": True},
+        "groundingValidation": {
+            "threshold": GROUND_TOLERANCE,
+            "sampledEveryFrame": True,
+            "leftAnkle": left_ground,
+            "rightAnkle": right_ground,
+            "neutralLegAndFootTransforms": leg_neutrality,
+            "persistentKneeFlex": False,
+            "heelLift": False,
+            "passed": True,
+        },
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 54.0},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": 4.25,
+            "cameraFraming": "continuous gameplay, close-front, close-side, and close-rear views with the branch, berries, basket, both hands, knees, heels, toes, and floor visible",
+            "reviewFocus": ["no T-pose in any playable frame", "identical relaxed start/end stance", "branch support", "finger-and-thumb pinch", "berry withdrawal", "basket deposit", "neutral knees", "flat heels", "neutral ankles", "planted feet across every frame", "clean neutral recovery"],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
 def export_actions(armature: bpy.types.Object, actions: list[bpy.types.Action], output_glb: Path) -> None:
     armature.animation_data.action = None
     while armature.animation_data.nla_tracks:
@@ -1118,6 +1392,7 @@ def main() -> None:
         "lift": build_lift,
         "lockpick": build_lockpick,
         "valve": build_valve_turn,
+        "harvest": build_harvest,
     }
     authored_action, authored_record = builders[args.action](armature)
     actions = [authored_action]
