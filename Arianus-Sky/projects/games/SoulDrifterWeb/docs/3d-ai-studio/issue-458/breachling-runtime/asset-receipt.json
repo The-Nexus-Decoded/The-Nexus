@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "purpose": "Known-good baseline intake of the locally rigged Breachling runtime family",
+  "sourceWorktree": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures",
+  "runtimePolicy": {
+    "placement": "two creatures per non-fixed Wayfarer room; three per non-fixed Oathbreaker room",
+    "loading": "active-room proximity only; no whole-dungeon creature warm-up",
+    "scaleRuling": "half of the rejected boss-sized preview presentation",
+    "animationSource": "local Blender 4.5 LTS quadruped rigs; no Tripo animation"
+  },
+  "assets": [
+    {
+      "tier": "base",
+      "tripoModelId": "bacf8bed-a798-4ffd-b98b-76e09a0e7b89",
+      "path": "public/assets/3d/characters/breachlings/breachling-base.glb",
+      "bytes": 3496996,
+      "sha256": "B3316A69B77DA207F885293DE3512BE1206499EF40A76DEF0CDFD42BF4FCCAD8",
+      "targetHeightMeters": 1.025
+    },
+    {
+      "tier": "stalker",
+      "tripoModelId": "f346efc2-559a-4bbc-b665-40476546893b",
+      "path": "public/assets/3d/characters/breachlings/breachling-stalker.glb",
+      "bytes": 3636724,
+      "sha256": "255427D45D5DF7C5F070EDF189A25CF4AB042708CD1E32FB8BE2D45B561F1FAC",
+      "targetHeightMeters": 1.075
+    },
+    {
+      "tier": "oathbound",
+      "tripoModelId": "f93d8ae9-863a-4746-b223-c6186f8d3520",
+      "path": "public/assets/3d/characters/breachlings/oathbound-breachling.glb",
+      "bytes": 3962240,
+      "sha256": "5F025355F6A8C4335486143274B02A2E3D1D58F46AB4BC1A314FDB3071B7786A",
+      "targetHeightMeters": 1.2
+    },
+    {
+      "tier": "ravager",
+      "tripoModelId": "345cd816-480c-442e-a3a6-acfef94a34f5",
+      "path": "public/assets/3d/characters/breachlings/breachling-ravager.glb",
+      "bytes": 3608704,
+      "sha256": "0E398288A26AEF45B23F5E55AF642B47F7E661226F37F1EDEA518F920D3C2D0A",
+      "targetHeightMeters": 1.325
+    }
+  ]
+}
