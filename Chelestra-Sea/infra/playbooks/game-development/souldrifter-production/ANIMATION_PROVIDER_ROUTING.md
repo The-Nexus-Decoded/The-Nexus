@@ -77,6 +77,8 @@ Before acquiring or creating any humanoid animation, search YouTube or another v
 
 If an exact fantasy action does not exist, build and record a reference packet from the closest real physical components. No Mixamo selection, derived edit, Blender/Houdini authoring, or procedural generation may begin until this packet exists. The candidate provenance must link back to it, and any candidate that contradicts it returns to `REWORK` or `REJECTED` before owner preview.
 
+Preview at the intended game rate and compare candidate duration with the real-person reference. Do not time-compress deliberate interactions to make the preview shorter. Record source duration, candidate duration, and playback rate; rushed or unnaturally fast candidates return to `REWORK`.
+
 ### Candidate preview and owner-verdict gate
 
 Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:

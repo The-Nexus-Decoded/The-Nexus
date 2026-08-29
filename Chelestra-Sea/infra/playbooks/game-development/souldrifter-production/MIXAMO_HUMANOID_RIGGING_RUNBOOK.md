@@ -138,6 +138,8 @@ Before searching Mixamo or creating a replacement in Blender/Houdini, search You
 
 A provider title or remembered movement is not adequate evidence. Fantasy actions require recorded real-world analogues for each physical component. Do not generate, derive, retarget, or hand-author a candidate until the reference packet exists and is linked in candidate provenance. Reject or rework technically valid clips that do not match those observed mechanics.
 
+Preview each candidate at its intended in-game speed. Compare and record reference duration, candidate duration, and playback rate. Never accelerate a deliberate interaction merely to shorten acquisition or review; rushed motions return to `REWORK` even when their poses are otherwise usable.
+
 ### Candidate preview and owner-verdict gate
 
 Every newly generated, provider-derived, DCC-derived, custom, or procedural animation candidate follows this order:

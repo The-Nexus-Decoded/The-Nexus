@@ -113,6 +113,10 @@ This is a hard pre-generation gate for every humanoid animation, including locom
 
 Do not copy one reference performance mechanically without judgment. The reference establishes believable human movement; SoulDrifter timing, readability, class identity, and gameplay constraints still control the final animation.
 
+### 1B. Match believable real-world cadence
+
+Preview every candidate at its intended in-game playback rate and compare its duration to the recorded real-person reference. Do not accelerate an interaction merely to shorten the review clip. Deliberate actions such as lockpicking, valve turning, lifting, mining, chopping, opening, closing, and manipulating equipment must preserve believable preparation, sustained effort or controlled hand work, and completion. Record source duration, candidate duration, and playback-rate changes in provenance. An action that reads correctly only in slow motion, or becomes a rushed gesture at normal speed, returns to `REWORK`.
+
 ### 2. Choose a licensed human-motion foundation
 
 Prefer a human motion-capture or recorded-performance reference for mechanics. Project-authored stylization may change timing, hand contacts, weapon path, silhouette, and class personality, but it must retain believable loading, balance, and recovery.
