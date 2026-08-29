@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "issue": 451,
+  "commit": "8b6b28bf66be9e531df1e5d94013375109e6a2ef",
+  "generatedAt": "2026-08-24T21:09:27-05:00",
+  "policy": {
+    "freshAfterImplementationCommitRequired": true,
+    "coordinatesDoNotReplaceVisualProof": true,
+    "screenshotsDoNotReplaceTraversal": true,
+    "independentVerifierRequired": true,
+    "softwareRendererRejected": true
+  },
+  "evidence": [],
+  "priorEvidence": [
+    {
+      "source": "issue and PR comments through 2026-08-25 kickoff",
+      "status": "NEEDS_FRESH_EVIDENCE",
+      "notes": "Prior producer evidence explains the baseline but cannot verify the next implementation commit under the v3 harness."
+    }
+  ]
+}

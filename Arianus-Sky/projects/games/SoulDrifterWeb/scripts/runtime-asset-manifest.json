@@ -1,6 +1,6 @@
 {
-  "maxBytes": 150000000,
-  "preferredMaxBytes": 140000000,
+  "maxBytes": 500000000,
+  "preferredMaxBytes": 475000000,
   "excludeGlobs": [
     "assets/generated/*-class-atlas-*-v1.png",
     "assets/generated/*-starter-atlas-*-v1.png",

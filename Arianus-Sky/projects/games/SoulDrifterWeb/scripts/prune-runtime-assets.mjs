@@ -146,7 +146,9 @@ export async function pruneRuntimeAssets(root = projectRoot) {
     const budgetRoot = resolve(root, normalizeAssetPath(target.budgetRoot));
     const bytes = await directoryBytes(budgetRoot);
     if (bytes > manifest.maxBytes) {
-      throw new Error(`${target.budgetRoot} is ${bytes} bytes, exceeding the ${manifest.maxBytes}-byte runtime budget.`);
+      throw new Error(
+        `${target.budgetRoot} is ${bytes} bytes, exceeding the permanent ${manifest.maxBytes}-byte QA/production ceiling.`,
+      );
     }
     results.push({
       target: target.budgetRoot,

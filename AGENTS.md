@@ -1,5 +1,10 @@
 # Roland Discord Bridge Instructions
 
+> **Working on the SoulDrifter game (Arianus-Sky/projects/games/SoulDrifterWeb)?**
+> Read `Arianus-Sky/projects/games/SoulDrifterWeb/AGENTS.md` FIRST — the
+> SoulDrifter agent bible (quality bar, workflow, work locations, never-do
+> rules). It is the canonical contract for all game work.
+
 This file exists for the `cc-connect` Discord-to-Codex bridge tracked in issue `The-Nexus #283`.
 
 It is intentionally narrow. It does not replace repo policy files or the broader planning docs. It defines how the live Discord bridge should behave.

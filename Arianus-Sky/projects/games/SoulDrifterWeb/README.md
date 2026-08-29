@@ -1,5 +1,9 @@
 # SoulDrifter Web
 
+> **Agents: read [`AGENTS.md`](AGENTS.md) in this directory FIRST — it is the
+> canonical quality bar, workflow, work-location, and never-do contract for
+> all SoulDrifter work.**
+
 An original browser-native isometric RPG prototype built from the SoulDrifter world bible.
 
 The authoritative browser-specific direction is in [`docs/BROWSER_GAME_DESIGN.md`](docs/BROWSER_GAME_DESIGN.md). Character and living-story rules are in [`docs/CHARACTER_AND_STORY_SYSTEM.md`](docs/CHARACTER_AND_STORY_SYSTEM.md), class/rune progression is in [`docs/CLASS_PROGRESSION_CODEX.md`](docs/CLASS_PROGRESSION_CODEX.md), and the paid generation, modular equipment, and intake contract is in [`docs/3d-ai-studio/README.md`](docs/3d-ai-studio/README.md). The mandatory repeatable workflow for every weapon, spell, summon, buff, skill, race, class, player, and NPC animation is in [`docs/ANIMATION_PRODUCTION_PIPELINE.md`](docs/ANIMATION_PRODUCTION_PIPELINE.md), and weapon work must pass the source-backed stance gate in [`docs/WEAPON_MOTION_REFERENCE_INDEX.md`](docs/WEAPON_MOTION_REFERENCE_INDEX.md). The full inherited world and content canon is preserved in [`docs/GAME_BIBLE.md`](docs/GAME_BIBLE.md).
