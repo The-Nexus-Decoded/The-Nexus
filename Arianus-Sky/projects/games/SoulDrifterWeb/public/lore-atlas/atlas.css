@@ -114,7 +114,9 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 3;
 }
-/* landmass zoom targets — faint rings over small isles / beast-cities */
+/* landmass zoom targets — no ring at rest; the clickable section shows a
+   hard crisp outline and lights up only while hovered. Landmasses with a
+   traced `shape` light their true painted silhouette via the SVG layer. */
 .landmass-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .landmass-hit {
   position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1;
@@ -123,13 +125,26 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
 }
 .lm-ring {
   position: absolute; inset: 0; border-radius: 50%;
-  border: 2px dashed rgba(235, 225, 195, 0.30);
-  transition: border-color .2s, box-shadow .2s, background .2s;
+  border: 2px solid transparent;
+  transition: border-color .2s, box-shadow .2s, background .2s, transform .2s;
 }
 .landmass-hit:hover .lm-ring, .landmass-hit:focus-visible .lm-ring {
   border-color: rgba(240, 230, 200, 0.9);
-  background: rgba(120, 200, 190, 0.10);
-  box-shadow: inset 0 0 26px rgba(120, 200, 190, 0.30);
+  background: radial-gradient(circle, rgba(255, 238, 196, 0.18) 0%, rgba(120, 200, 190, 0.09) 60%, transparent 75%);
+  box-shadow: 0 0 0 1px rgba(40, 28, 12, 0.65), inset 0 0 0 1px rgba(40, 28, 12, 0.35), inset 0 0 30px rgba(255, 238, 196, 0.22);
+  transform: scale(1.04);
+}
+/* traced silhouettes replace the circle entirely for shaped landmasses;
+   the SVG sits under the fog canvas (z2 < fog z3) so sealed/fogged views
+   dim outline and feature together — the highlight never floats "off" the
+   part of the painting the fog still hides */
+.landmass-hit.has-shape .lm-ring { display: none; }
+.lm-shapes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.lm-shape polygon { fill: transparent; stroke: transparent; transition: stroke .2s, fill .2s; }
+.lm-shape.lit .lm-key { stroke: rgba(40, 28, 12, 0.8); stroke-width: 5px; }
+.lm-shape.lit .lm-edge {
+  stroke: rgba(240, 230, 200, 0.95); stroke-width: 2px;
+  fill: rgba(255, 238, 196, 0.14);
 }
 .lm-name {
   position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
@@ -144,6 +159,16 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--parch
   padding: 6px 12px; border-radius: 4px; font-family: var(--serif); font-size: 13px; cursor: pointer;
 }
 .zoom-reset:hover { color: var(--gold); border-color: var(--gold); }
+/* detail plate — full 2K painted plate crossfading over the realm map,
+   under the fog canvas (z3) so sealed realms stay veiled */
+.map-plate {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  z-index: 2; opacity: 0; transition: opacity .45s ease; pointer-events: none;
+}
+.map-plate.show { opacity: 1; }
+.map-stage.plate-active .landmass-layer,
+.map-stage.plate-active .lm-shapes,
+.map-stage.plate-active .marker-layer { display: none; }
 .map-hint {
   position: absolute; left: 10px; bottom: 10px; z-index: 10; pointer-events: none;
   font-size: 11px; color: var(--parchment-dim); background: #14100ca8;

@@ -12,6 +12,7 @@ import {
   lightingTuningRegistry,
   loadLightingTuningDocument,
 } from "./game/lightingTuning";
+import { startBreachV2PreviewRoute } from "./game/dungeons/breach-v2-startup.ts";
 
 let activeWorld: World3D | null = null;
 
@@ -49,6 +50,15 @@ async function launchGame(profile: CharacterProfile, resumeSavedSoul: boolean): 
     throw error;
   }
 }
+
+void (async () => {
+  // Dungeon preview branch: ?dungeonPreview=breach-v2 renders the BREACH-V2
+  // starting zone straight from the seeded generator, bypassing character
+  // creation. Used by the visual review gate (DUNGEON_BUILD_RUNBOOK §5.5) —
+  // Level 01 (World3D) is untouched.
+  if (await startBreachV2PreviewRoute()) return;
+  await bootstrap();
+})();
 
 async function bootstrap(): Promise<void> {
   const tuningUrl = import.meta.env.VITE_ANIMATION_TUNING_URL || "/config/animation-tuning.json";
@@ -90,5 +100,3 @@ async function bootstrap(): Promise<void> {
     if (creationError) creationError.textContent = `${savedProfileError} The original save remains preserved; weave a permitted soul to continue.`;
   }
 }
-
-void bootstrap();
