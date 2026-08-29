@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "createdAt": "2026-08-28",
+  "creatureFamily": "Breachling",
+  "classification": "regular-mob-lineage",
+  "boss": false,
+  "sourceReference": {
+    "path": "../breachling-base-bakeoff/midjourney-v8.2-base-winner.png",
+    "sha256": "1183040586097FF097B2BCD2E1A5389430A6FF430FC0117BBEE1301D46D7EF89",
+    "provider": "Tripo Studio",
+    "model": "Midjourney v8.2",
+    "jobId": "240895da-ed14-4495-98ac-f84072d8a674",
+    "nativeBatchIndex": 1
+  },
+  "generation": {
+    "allowance": "Tripo Studio Free image allowance",
+    "actualCreditCostPerBatch": 0,
+    "freeCounterBefore": 27,
+    "freeCounterAfter": 39,
+    "limit": 1000,
+    "threeDCreditsUsed": 0,
+    "smartMeshesCreated": false,
+    "texturesCreated": false,
+    "rigsCreated": false,
+    "animationsCreated": false
+  },
+  "poseContract": "topology-appropriate neutral four-foot rig-ready stance; no T-pose or A-pose",
+  "variants": [
+    {
+      "variantId": "BREACHLING_STALKER",
+      "model": "Midjourney v8.2",
+      "jobId": "38cb2e36-9ee2-47b9-ac30-e22a600e596c",
+      "promptSha256": "6EB22634D312AFD23C58E00F8F686DBA064D5916AF2FD7C6BE645DFE0972EFF2",
+      "prompt": "Use the supplied image as the canonical Base Breachling species reference. Generate the Breachling Stalker higher-level lineage variant as the exact same creature family, not a different species. Preserve its narrow skull, swept ear fins, enormous hinged maw, amber eyes, hunched four-foot anatomy, exactly two long forelimbs and two digitigrade hind limbs, one continuous counterbalance tail, overall facial identity, practical-maquette realism, neutral light-gray studio setting, three-quarter full-body composition, and readable rig-ready joint separation. The Stalker is leaner, faster, more sinewy, and more deadly: reduce bulk through torso and limbs, deepen the stalking crouch slightly while keeping all four feet planted and separated, lengthen the claws and teeth within believable anatomy, sharpen the natural spinal/shoulder scutes, and use rust-red to deep crimson living scales with charcoal mottling and dark keratin tips. Keep the skin slick and reptilian with physically plausible roughness, layered micro-scales, and no baked glow. Show exactly one complete creature per image, entire tail and every extremity fully inside frame with generous margin. Neutral topology-appropriate four-foot rig-ready stance, not a T-pose or A-pose. Nonsexual and non-NSFW; continuous hide fully covers underside, pelvis, groin, and rear. No genital or breast anatomy, buttock emphasis, gore, or exposed viscera. No manufactured armor, clothing, weapon, wings, extra limbs, extra digits, duplicate parts, extra tail, fused claws, pedestal, scenery, text, logo, UI, watermark, collage, turnaround, or inset.",
+      "outputs": [
+        { "index": 0, "path": "midjourney-v8.2/stalker/stalker-0.png", "bytes": 1242925, "sha256": "BA71F66FCC4D388FAF5FC5AABA4C5345DD84DECD596F68D3C1A732A989FE35D1", "status": "owner-selected" },
+        { "index": 1, "path": "midjourney-v8.2/stalker/stalker-1.png", "bytes": 1142710, "sha256": "AE5FBCCA5FA41BE33D6780B7A96C6E08A7C546FAED80D493F537E4F2A9616B88", "status": "not-selected" },
+        { "index": 2, "path": "midjourney-v8.2/stalker/stalker-2.png", "bytes": 1251794, "sha256": "D26CEFEBBFEFD252A1F9F453007C6FBADFB03A5B49164134BC27D6BD392B0A60", "status": "not-selected" },
+        { "index": 3, "path": "midjourney-v8.2/stalker/stalker-3.png", "bytes": 1129157, "sha256": "AAC9696714A7599AAB86422279CB8161B929991541FD12B981BA7F7DC28E8ABF", "status": "not-selected" }
+      ],
+      "selectedPath": "selected/breachling-stalker-selected.png"
+    },
+    {
+      "variantId": "OATHBOUND_BREACHLING",
+      "model": "Midjourney v8.2",
+      "jobId": "15fba6fc-5858-4ca5-b015-0d259dfdcbf2",
+      "promptSha256": "EB69F79651D17D9CEB3918EB167987B9BCF33FE0A24CF2E3C9A905493B758CC7",
+      "prompt": "Use the supplied image as the canonical Base Breachling species reference. Generate the Oathbound Breachling higher-level lineage variant as the exact same creature family, not a different species. Preserve its narrow predatory skull, swept ear fins, enormous hinged maw, amber eyes, permanent low hunched four-foot anatomy, exactly two long forelimbs and two digitigrade hind limbs, one continuous counterbalance tail, overall facial identity, practical-maquette realism, neutral light-gray studio setting, three-quarter full-body composition, and readable rig-ready joint separation. The Oathbound is heavier, tougher, and more lethal than the base: broaden shoulders and ribcage, thicken the neck, limbs, tail root, claws, and jaw, while keeping the animal mobile and all joints visually clear. Cover shoulders, upper back, flanks, hips, and tail root with grown overlapping natural keratin scutes and mineralized osteoderms that emerge organically from the hide; leave bending joints and underside unobstructed. Use deep moss-green living scales, aged verdigris mineral staining, dark olive shadows, and bone-charcoal keratin tips with controlled oily highlights and physically plausible roughness. No manufactured armor. Show exactly one complete creature per image, entire tail and every extremity fully inside frame with generous margin. Neutral topology-appropriate four-foot rig-ready stance, not a T-pose or A-pose. Nonsexual and non-NSFW; continuous hide and plates fully cover underside, pelvis, groin, and rear. No genital or breast anatomy, buttock emphasis, gore, or exposed viscera. No clothing, weapon, wings, extra limbs, extra digits, duplicate parts, extra tail, fused claws, pedestal, scenery, text, logo, UI, watermark, collage, turnaround, or inset.",
+      "outputs": [
+        { "index": 0, "path": "midjourney-v8.2/oathbound/oathbound-0.png", "bytes": 1347636, "sha256": "40DD1877BD7477C4627DA963F113756BC03A91777D4F4DEA3875225333BA0802", "status": "not-selected" },
+        { "index": 1, "path": "midjourney-v8.2/oathbound/oathbound-1.png", "bytes": 1351794, "sha256": "25F16BFB9981D511F80550312A830985F95E61145F699B38271851A8EA7A652D", "status": "not-selected" },
+        { "index": 2, "path": "midjourney-v8.2/oathbound/oathbound-2.png", "bytes": 1206817, "sha256": "A15CA5985C7FE6C95C144E87EB0AF0FD2B31F84014B5766F0C6C04B8EB087421", "status": "not-selected" },
+        { "index": 3, "path": "midjourney-v8.2/oathbound/oathbound-3.png", "bytes": 991524, "sha256": "0B809B1BAB954E04065A7118D5E69887C94606E25107135BA9E2D90F42093025", "status": "owner-selected" }
+      ],
+      "selectedPath": "selected/oathbound-breachling-selected.png"
+    },
+    {
+      "variantId": "BREACHLING_RAVAGER",
+      "model": "Midjourney v8.2",
+      "jobId": "1d917470-e80f-4077-a394-c3934910dbdd",
+      "promptSha256": "ABDBFDC9679E6CCB96D518E2A3FFB85396368847EA2359A824EEB5AA70C712E1",
+      "prompt": "Use the supplied image as the canonical Base Breachling species reference. Generate the Breachling Ravager apex lineage variant as the exact same creature family, not a different species. Preserve its narrow predatory skull, swept ear fins, enormous hinged maw, amber-to-ember eyes, permanent low hunched four-foot anatomy, exactly two long forelimbs and two powerful digitigrade hind limbs, one continuous counterbalance tail, recognizable facial identity, practical-maquette realism, neutral light-gray studio setting, three-quarter full-body composition, and readable rig-ready joint separation. The Ravager is the largest, heaviest, and deadliest Breachling tier: massive shoulders and chest, thick neck and tail root, larger jaw, denser musculature, longer black claws and teeth, and an intimidating but still mobile silhouette. Grow dense natural armor directly from the hide: overlapping obsidian osteoderms, blackened-cinder plates, heavy shoulder and spinal ridges, swept cranial horns, tail spines, and reinforced limb scutes, while keeping elbows, wrists, hips, knees, hocks, underside, and tail articulation clear. Use blackened-cinder and glossy-matte obsidian surfaces with subtle ember-red mineral fissure accents and deep charcoal keratin; the red is material color only, not baked light or magical glow. No manufactured armor. Show exactly one complete creature per image, entire tail, horns, spikes, and every extremity fully inside frame with generous margin. Neutral topology-appropriate four-foot rig-ready stance, not a T-pose or A-pose. Nonsexual and non-NSFW; continuous hide and plates fully cover underside, pelvis, groin, and rear. No genital or breast anatomy, buttock emphasis, gore, or exposed viscera. No clothing, weapon, wings, extra limbs, extra digits, duplicate parts, extra tail, fused claws, pedestal, scenery, text, logo, UI, watermark, collage, turnaround, or inset.",
+      "outputs": [
+        { "index": 0, "path": "midjourney-v8.2/ravager/ravager-0.png", "bytes": 1512381, "sha256": "5A9A0D4C5ED6558FCF52A0837FC9A0E73108C4E6F999A29BC00548AD3B608D7D", "status": "not-selected" },
+        { "index": 1, "path": "midjourney-v8.2/ravager/ravager-1.png", "bytes": 1098493, "sha256": "77D4DA0612C97EE5DBE3CAC2AC8455112A63031BC43B7CDF07F3FA123CD576F2", "status": "not-selected" },
+        { "index": 2, "path": "midjourney-v8.2/ravager/ravager-2.png", "bytes": 1432568, "sha256": "6D068D52940B2ED745177CFF36959CCE88EEB6FC1B20C9EA621FDAD83958B34D", "status": "not-selected" },
+        { "index": 3, "path": "midjourney-v8.2/ravager/ravager-3.png", "bytes": 1450771, "sha256": "CF39ECDB17B4B595A1F89137F87784EB804E86D4830F387623BCE318755F972E", "status": "owner-selected" }
+      ],
+      "selectedPath": "selected/breachling-ravager-selected.png"
+    }
+  ],
+  "ownerSelection": {
+    "status": "approved",
+    "selectedAt": "2026-08-28",
+    "nextProductionGate": "finish image roster before Smart Mesh, per-variant textures, shared family rig, or animation"
+  },
+  "bossClarification": {
+    "lastRoomBoss": "Cinderbound Guardian",
+    "breachlingsAre": "regular mobs"
+  }
+}

@@ -6,7 +6,7 @@
   "primary3DSource": true,
   "fullAssetRequired": true,
   "ownerSelectionRequired": true,
-  "phase": "phase-1-openai-candidates",
+  "phase": "phase-2-tripo-studio-bakeoff-selected",
   "baseline": {
     "qaCommit": "2157dcd8ba485e9c558ca1c75e53051f2dd4277d",
     "existingIssue448AssetsAre": "canon-and-comparison-reference-only",
@@ -47,20 +47,20 @@
   },
   "candidateLanes": [
     {
-      "lane": "TRIPO_STUDIO_NANO_BANANA",
-      "status": "pending-authenticated-studio-allowance-check"
+      "lane": "TRIPO_STUDIO_GPT_IMAGE_2",
+      "status": "generated-not-selected"
     },
     {
       "lane": "TRIPO_STUDIO_NANO_BANANA_PRO",
-      "status": "pending-authenticated-studio-allowance-check"
+      "status": "generated-not-selected"
     },
     {
-      "lane": "CHATGPT_OPENAI_A",
-      "status": "generated-preliminary-pass"
+      "lane": "TRIPO_STUDIO_NANO_BANANA_2",
+      "status": "generated-not-selected"
     },
     {
-      "lane": "CHATGPT_OPENAI_B",
-      "status": "generated-v1-rejected-v2-preliminary-pass"
+      "lane": "TRIPO_STUDIO_MIDJOURNEY_V8_2",
+      "status": "owner-selected"
     }
   ],
   "candidates": [
@@ -75,12 +75,12 @@
       "fullAssetPass": true,
       "safetyPass": true,
       "anatomyPass": true,
-      "status": "preliminary-finalist",
+      "status": "excluded-noncompliant-generation-lane",
       "notes": [
         "strong established Breachling family read",
         "pale scaled hide and restrained teal mottling are readable",
         "tail is fully visible and clear of the legs",
-        "valid for comparison only until the complete four-lane owner review"
+        "excluded because it was produced by the Codex image tool rather than the approved Tripo Studio allowance"
       ]
     },
     {
@@ -111,7 +111,7 @@
       "fullAssetPass": true,
       "safetyPass": true,
       "anatomyPass": true,
-      "status": "preliminary-finalist",
+      "status": "excluded-noncompliant-generation-lane",
       "derivedFrom": "OPENAI_B_V1",
       "corrections": [
         "exactly four digits per hand",
@@ -121,25 +121,77 @@
       "notes": [
         "strongest slick and slithery wet-skin material read",
         "cleaner multiview reconstruction silhouette after correction",
-        "valid for comparison only until the complete four-lane owner review"
+        "excluded because it was produced by the Codex image tool rather than the approved Tripo Studio allowance"
       ]
+    },
+    {
+      "candidateId": "TRIPO_STUDIO_GPT_IMAGE_2",
+      "provider": "TRIPO_STUDIO",
+      "modelVersion": "GPT Image 2",
+      "jobId": "67d957f9-0623-46da-bd23-8f47aa72eea8",
+      "path": "tripo-studio-gpt-image-2.png",
+      "bytes": 1415723,
+      "sha256": "39109964420F86EC90E15F79A0B383C1A23C7F12C666C68602CC4318EA2C6619",
+      "allowance": "Tripo Studio Free image allowance",
+      "status": "generated-not-selected"
+    },
+    {
+      "candidateId": "TRIPO_STUDIO_NANO_BANANA_PRO",
+      "provider": "TRIPO_STUDIO",
+      "modelVersion": "Nano Banana Pro",
+      "jobId": "91b1f3b6-c5dd-4889-84bd-e1649a709c31",
+      "path": "tripo-studio-nano-banana-pro.png",
+      "bytes": 1261573,
+      "sha256": "44F9F91759170609EA744069D2B91ABD098C05759F18D8AB42045C7DB5831097",
+      "allowance": "Tripo Studio Free image allowance",
+      "status": "generated-not-selected"
+    },
+    {
+      "candidateId": "TRIPO_STUDIO_NANO_BANANA_2",
+      "provider": "TRIPO_STUDIO",
+      "modelVersion": "Nano Banana 2",
+      "jobId": "26469022-bf18-4355-87b7-dffaf62254ad",
+      "path": "tripo-studio-nano-banana-2.png",
+      "bytes": 1240980,
+      "sha256": "78AA5179F000AFA33E9147E0424582A0C125C28321D9BAF742EA588C954B20EF",
+      "allowance": "Tripo Studio Free image allowance",
+      "status": "generated-not-selected"
+    },
+    {
+      "candidateId": "TRIPO_STUDIO_MIDJOURNEY_V8_2_IMAGE_1",
+      "provider": "TRIPO_STUDIO",
+      "modelVersion": "Midjourney v8.2",
+      "jobId": "240895da-ed14-4495-98ac-f84072d8a674",
+      "nativeBatchIndex": 1,
+      "path": "midjourney-v8.2-base-winner.png",
+      "bytes": 1083511,
+      "sha256": "1183040586097FF097B2BCD2E1A5389430A6FF430FC0117BBEE1301D46D7EF89",
+      "allowance": "Tripo Studio Free image allowance",
+      "status": "owner-selected"
     }
   ],
   "selection": {
-    "selectedCandidate": null,
-    "ownerApproval": "PENDING_FOUR_LANE_COMPARISON",
+    "selectedCandidate": "TRIPO_STUDIO_MIDJOURNEY_V8_2_IMAGE_1",
+    "ownerApproval": "APPROVED_2026-08-28",
     "tripo3DTaskAuthorized": false,
     "tripoRigOrAnimationAuthorized": false
   },
+  "allowanceUsage": {
+    "start": 20,
+    "afterBaseBakeoff": 27,
+    "afterLineageVariants": 39,
+    "limit": 1000,
+    "threeDCreditsUsed": 0
+  },
   "nextGate": {
-    "phase": "phase-2-studio-candidates",
+    "phase": "distinct-creature-four-model-bakeoff",
     "requirements": [
-      "reuse one authenticated Tripo Studio browser session",
-      "verify current Studio image allowance and model labels",
-      "generate Nano Banana and Nano Banana Pro candidates from the locked brief",
-      "record originals and hashes",
-      "blind-score all four valid candidates",
-      "present finalists for owner selection"
+      "treat Base, Stalker, Oathbound, and Ravager Breachlings as regular mob tiers, never bosses",
+      "start each next distinct Zone 1 or Zone 2 mob or animal family from a fresh four-model Tripo Studio bakeoff",
+      "select that creature family winner before generating its lineage variants",
+      "repeat the bakeoff-then-lineage workflow for every required Zone 1 and Zone 2 animal or monster",
+      "run a separate four-model bakeoff for the Cinderbound Guardian, the last-room boss, when its turn is reached",
+      "do not create Smart Meshes, textures, rigs, or animations until the image roster is selected"
     ]
   }
 }
