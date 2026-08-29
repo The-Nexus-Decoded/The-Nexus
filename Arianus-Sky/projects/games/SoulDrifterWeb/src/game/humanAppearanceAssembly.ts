@@ -8,8 +8,10 @@ import type {
   FacialHairId,
 } from "./character";
 import {
+  DIALOGUE_FACIAL_MORPH_NAMES,
   FacialAnimationDriver,
   type FacialAnimationCapabilityStatus,
+  type TimedMetaVisemeCue,
 } from "./facialAnimationDriver";
 
 export const HUMAN_MODULAR_APPEARANCE_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb";
@@ -27,24 +29,7 @@ export const HUMAN_FACE_MORPH_BY_TYPE: Readonly<Record<Exclude<FaceTypeId, "foun
   "broad-strong": "Face_BroadStrong",
 };
 
-export const HUMAN_DIALOGUE_MORPH_NAMES = [
-  "Blink_L",
-  "Blink_R",
-  "JawOpen",
-  "Smile",
-  "Frown",
-  "Viseme_AA",
-  "Viseme_EE",
-  "Viseme_OH",
-  "Viseme_MBP",
-  "Gaze_Left",
-  "Gaze_Right",
-  "Gaze_Up",
-  "Gaze_Down",
-  "Brow_Raise",
-  "Brow_Lower",
-  "LipSeal",
-] as const;
+export const HUMAN_DIALOGUE_MORPH_NAMES = DIALOGUE_FACIAL_MORPH_NAMES;
 
 export const HUMAN_HAIR_MODULE_NAMES: Readonly<Record<Exclude<CanonicalHairStyleId, "shaved-buzzed">, string>> = {
   cropped: "SK_Hair_Cropped",
@@ -278,7 +263,11 @@ export async function hydrateHumanAppearanceModules(target: THREE.Object3D): Pro
 export interface HumanAppearancePortraitController {
   readonly model: THREE.Object3D;
   readonly capability: FacialAnimationCapabilityStatus;
+  beginDialogueWithVisemes(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number): void;
+  speakVisemeCues(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number): void;
+  /** @deprecated Compatibility only; timed Meta viseme cues are canonical. */
   beginDialogue(text: string, elapsedSeconds: number): void;
+  /** @deprecated Compatibility only; timed Meta viseme cues are canonical. */
   speakLine(text: string, elapsedSeconds: number): void;
   update(elapsedSeconds: number): void;
   closeDialogue(): void;
@@ -299,6 +288,8 @@ export function createHumanAppearancePortraitController(
   return {
     model,
     capability: facialAnimation.capabilityStatus(),
+    beginDialogueWithVisemes: (cues, elapsedSeconds) => facialAnimation.beginDialogueWithVisemes(cues, elapsedSeconds),
+    speakVisemeCues: (cues, elapsedSeconds) => facialAnimation.speakVisemeCues(cues, elapsedSeconds),
     beginDialogue: (text, elapsedSeconds) => facialAnimation.beginDialogue(text, elapsedSeconds),
     speakLine: (text, elapsedSeconds) => facialAnimation.speakLine(text, elapsedSeconds),
     update: (elapsedSeconds) => facialAnimation.update(elapsedSeconds),

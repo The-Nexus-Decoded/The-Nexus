@@ -1,28 +1,119 @@
 import * as THREE from "three";
 
+/** Apple ARKit's complete 52-blendshape vocabulary, with exact lower-camel names. */
+export const ARKIT_FACIAL_MORPH_NAMES = [
+  "browDownLeft",
+  "browDownRight",
+  "browInnerUp",
+  "browOuterUpLeft",
+  "browOuterUpRight",
+  "cheekPuff",
+  "cheekSquintLeft",
+  "cheekSquintRight",
+  "eyeBlinkLeft",
+  "eyeBlinkRight",
+  "eyeLookDownLeft",
+  "eyeLookDownRight",
+  "eyeLookInLeft",
+  "eyeLookInRight",
+  "eyeLookOutLeft",
+  "eyeLookOutRight",
+  "eyeLookUpLeft",
+  "eyeLookUpRight",
+  "eyeSquintLeft",
+  "eyeSquintRight",
+  "eyeWideLeft",
+  "eyeWideRight",
+  "jawForward",
+  "jawLeft",
+  "jawOpen",
+  "jawRight",
+  "mouthClose",
+  "mouthDimpleLeft",
+  "mouthDimpleRight",
+  "mouthFrownLeft",
+  "mouthFrownRight",
+  "mouthFunnel",
+  "mouthLeft",
+  "mouthLowerDownLeft",
+  "mouthLowerDownRight",
+  "mouthPressLeft",
+  "mouthPressRight",
+  "mouthPucker",
+  "mouthRight",
+  "mouthRollLower",
+  "mouthRollUpper",
+  "mouthShrugLower",
+  "mouthShrugUpper",
+  "mouthSmileLeft",
+  "mouthSmileRight",
+  "mouthStretchLeft",
+  "mouthStretchRight",
+  "mouthUpperUpLeft",
+  "mouthUpperUpRight",
+  "noseSneerLeft",
+  "noseSneerRight",
+  "tongueOut",
+] as const;
+
+/** Exact semantic names from the locked Meta-style visemes02 source pack. */
+export const META_VISEME_NAMES = [
+  "viseme_sil",
+  "viseme_PP",
+  "viseme_FF",
+  "viseme_TH",
+  "viseme_DD",
+  "viseme_kk",
+  "viseme_CH",
+  "viseme_SS",
+  "viseme_nn",
+  "viseme_RR",
+  "viseme_aa",
+  "viseme_E",
+  "viseme_I",
+  "viseme_O",
+  "viseme_U",
+] as const;
+
+/** Silence is a zero-weight state; only these 14 direct visemes are baked into geometry. */
+export const BAKED_META_VISEME_MORPH_NAMES = [
+  "viseme_PP",
+  "viseme_FF",
+  "viseme_TH",
+  "viseme_DD",
+  "viseme_kk",
+  "viseme_CH",
+  "viseme_SS",
+  "viseme_nn",
+  "viseme_RR",
+  "viseme_aa",
+  "viseme_E",
+  "viseme_I",
+  "viseme_O",
+  "viseme_U",
+] as const;
+
 export const DIALOGUE_FACIAL_MORPH_NAMES = [
-  "Blink_L",
-  "Blink_R",
-  "JawOpen",
-  "Smile",
-  "Frown",
-  "Viseme_AA",
-  "Viseme_EE",
-  "Viseme_OH",
-  "Viseme_MBP",
-  "Gaze_Left",
-  "Gaze_Right",
-  "Gaze_Up",
-  "Gaze_Down",
-  "Brow_Raise",
-  "Brow_Lower",
-  "LipSeal",
+  ...ARKIT_FACIAL_MORPH_NAMES,
+  ...BAKED_META_VISEME_MORPH_NAMES,
 ] as const;
 
 export const AGE_FACIAL_MORPH_NAMES = ["Age_Middle", "Age_Elder"] as const;
 
+export type ArkitFacialMorphName = typeof ARKIT_FACIAL_MORPH_NAMES[number];
+export type MetaVisemeName = typeof META_VISEME_NAMES[number];
+export type BakedMetaVisemeMorphName = typeof BAKED_META_VISEME_MORPH_NAMES[number];
 export type DialogueFacialMorphName = typeof DIALOGUE_FACIAL_MORPH_NAMES[number];
 export type AgeFacialMorphName = typeof AGE_FACIAL_MORPH_NAMES[number];
+
+/** A source-produced cue relative to the supplied line start time. */
+export interface TimedMetaVisemeCue {
+  readonly viseme: MetaVisemeName;
+  readonly startsAtSeconds: number;
+  readonly endsAtSeconds: number;
+  readonly peakAtSeconds?: number;
+  readonly weight?: number;
+}
 
 export interface FacialAnimationCapabilityStatus {
   status: "READY" | "PARTIAL" | "MORPH_TARGETS_UNAVAILABLE";
@@ -42,16 +133,46 @@ interface MorphBinding {
   index: number;
 }
 
-const SPEECH_MORPHS = [
-  "JawOpen",
-  "Viseme_AA",
-  "Viseme_EE",
-  "Viseme_OH",
-  "Viseme_MBP",
-  "LipSeal",
-] as const satisfies readonly DialogueFacialMorphName[];
+interface ValidatedSpeechCue {
+  endsAtSeconds: number;
+  peakAtSeconds: number;
+  startsAtSeconds: number;
+  viseme: MetaVisemeName;
+  weight: number;
+}
 
-const GAZE_MORPHS = ["Gaze_Left", "Gaze_Right", "Gaze_Up", "Gaze_Down"] as const;
+interface GazeTarget {
+  horizontal: number;
+  vertical: number;
+}
+
+const BLINK_MORPHS = ["eyeBlinkLeft", "eyeBlinkRight"] as const;
+const GAZE_MORPHS = [
+  "eyeLookDownLeft",
+  "eyeLookDownRight",
+  "eyeLookInLeft",
+  "eyeLookInRight",
+  "eyeLookOutLeft",
+  "eyeLookOutRight",
+  "eyeLookUpLeft",
+  "eyeLookUpRight",
+] as const;
+
+/*
+ * The driver consumes exact asset-authored channels. Its three subsystem sets
+ * are deliberately narrow: blink owns only the two blink channels, gaze owns
+ * only the eight paired eye-look channels, and speech owns only the 14 direct
+ * Meta visemes. It never writes another ARKit expression, Age_*, or Face_*.
+ *
+ * Blink is a brief asymmetric-speed close/hold/open motion, but no unverified
+ * millisecond measurement is treated as a production contract. Deformation is
+ * asset-authored and must pass the project's reference-driven visual gates.
+ */
+const BLINK_CLOSE_SECONDS = 0.08;
+const BLINK_HOLD_SECONDS = 0.025;
+const BLINK_OPEN_SECONDS = 0.16;
+const BLINK_TOTAL_SECONDS = BLINK_CLOSE_SECONDS + BLINK_HOLD_SECONDS + BLINK_OPEN_SECONDS;
+const APPROXIMATE_CUE_SECONDS = 0.115;
 
 function clampWeight(value: number): number {
   return THREE.MathUtils.clamp(value, 0, 1);
@@ -66,37 +187,127 @@ function stableUnitInterval(seed: string): number {
   return (hash >>> 0) / 4294967295;
 }
 
-function speechDurationSeconds(text: string): number {
-  const words = text.trim().split(/\s+/u).filter(Boolean).length;
-  const characters = text.replace(/\s/gu, "").length;
-  return THREE.MathUtils.clamp(0.45 + words * 0.3 + characters * 0.012, 0.8, 8);
+function smoothUnitInterval(value: number): number {
+  const clamped = clampWeight(value);
+  return clamped * clamped * (3 - 2 * clamped);
 }
 
-function speechUnits(text: string): string[] {
-  const units = text.toUpperCase().match(/[A-Z]/gu);
-  return units && units.length > 0 ? units : ["A"];
+function validateSpeechCues(cues: readonly TimedMetaVisemeCue[]): ValidatedSpeechCue[] {
+  return cues.flatMap((cue) => {
+    const startsAtSeconds = Math.max(0, cue.startsAtSeconds);
+    const endsAtSeconds = cue.endsAtSeconds;
+    if (!Number.isFinite(startsAtSeconds)
+      || !Number.isFinite(endsAtSeconds)
+      || endsAtSeconds <= startsAtSeconds
+      || !META_VISEME_NAMES.includes(cue.viseme)) {
+      return [];
+    }
+    const requestedPeak = cue.peakAtSeconds ?? (startsAtSeconds + endsAtSeconds) * 0.5;
+    const peakAtSeconds = THREE.MathUtils.clamp(
+      Number.isFinite(requestedPeak) ? requestedPeak : (startsAtSeconds + endsAtSeconds) * 0.5,
+      startsAtSeconds,
+      endsAtSeconds,
+    );
+    return [{
+      viseme: cue.viseme,
+      startsAtSeconds,
+      peakAtSeconds,
+      endsAtSeconds,
+      weight: clampWeight(cue.weight ?? 1),
+    }];
+  });
 }
 
-function visemeForCharacter(character: string): "Viseme_AA" | "Viseme_EE" | "Viseme_OH" | "Viseme_MBP" {
-  if (/[MBP]/u.test(character)) return "Viseme_MBP";
-  if (/[OUWQ]/u.test(character)) return "Viseme_OH";
-  if (/[EIY]/u.test(character)) return "Viseme_EE";
-  return "Viseme_AA";
+function cueWeight(cue: ValidatedSpeechCue, localSeconds: number): number {
+  if (localSeconds < cue.startsAtSeconds || localSeconds > cue.endsAtSeconds) return 0;
+  if (cue.peakAtSeconds <= cue.startsAtSeconds) {
+    return (1 - smoothUnitInterval(
+      (localSeconds - cue.startsAtSeconds) / (cue.endsAtSeconds - cue.startsAtSeconds),
+    )) * cue.weight;
+  }
+  if (cue.peakAtSeconds >= cue.endsAtSeconds) {
+    return smoothUnitInterval(
+      (localSeconds - cue.startsAtSeconds) / (cue.endsAtSeconds - cue.startsAtSeconds),
+    ) * cue.weight;
+  }
+  if (localSeconds <= cue.peakAtSeconds) {
+    return smoothUnitInterval(
+      (localSeconds - cue.startsAtSeconds) / (cue.peakAtSeconds - cue.startsAtSeconds),
+    ) * cue.weight;
+  }
+  return (1 - smoothUnitInterval(
+    (localSeconds - cue.peakAtSeconds) / (cue.endsAtSeconds - cue.peakAtSeconds),
+  )) * cue.weight;
+}
+
+function approximateVisemeForCharacter(character: string): MetaVisemeName | null {
+  if (/[MBP]/u.test(character)) return "viseme_PP";
+  if (/[FV]/u.test(character)) return "viseme_FF";
+  if (/[TD]/u.test(character)) return "viseme_DD";
+  if (/[KG]/u.test(character)) return "viseme_kk";
+  if (/[CJ]/u.test(character)) return "viseme_CH";
+  if (/[SZ]/u.test(character)) return "viseme_SS";
+  if (/[NL]/u.test(character)) return "viseme_nn";
+  if (character === "R") return "viseme_RR";
+  if (character === "A") return "viseme_aa";
+  if (character === "E") return "viseme_E";
+  if (/[IY]/u.test(character)) return "viseme_I";
+  if (character === "O") return "viseme_O";
+  if (/[UQW]/u.test(character)) return "viseme_U";
+  if (character === "H") return "viseme_TH";
+  return null;
 }
 
 /**
- * Drives only exact, already-authored facial morph targets on a live model.
- * Missing controls are ignored; bones and geometry are never modified.
+ * Temporary compatibility only for dialogue call sites that do not yet supply
+ * timed speech-analysis output. This letter heuristic is not canonical input,
+ * is not evidence of speech readiness, and must not be used for asset approval.
+ */
+function approximateTextFallback(text: string): TimedMetaVisemeCue[] {
+  const cues: TimedMetaVisemeCue[] = [];
+  let cursor = 0.065;
+  for (const character of text.toUpperCase()) {
+    if (/\s/u.test(character)) {
+      cursor += 0.055;
+      continue;
+    }
+    if (/[.!?]/u.test(character)) {
+      cursor += 0.22;
+      continue;
+    }
+    if (/[,;:]/u.test(character)) {
+      cursor += 0.12;
+      continue;
+    }
+    const viseme = approximateVisemeForCharacter(character);
+    if (viseme) {
+      cues.push({
+        viseme,
+        startsAtSeconds: Math.max(0, cursor - 0.03),
+        peakAtSeconds: cursor + APPROXIMATE_CUE_SECONDS * 0.5,
+        endsAtSeconds: cursor + APPROXIMATE_CUE_SECONDS + 0.035,
+        weight: 0.8,
+      });
+    }
+    cursor += APPROXIMATE_CUE_SECONDS;
+  }
+  return cues;
+}
+
+/**
+ * Drives exact, already-authored facial morph targets on a live model. Missing
+ * subsystem controls fail closed; bones and geometry are never modified.
  */
 export class FacialAnimationDriver {
   private readonly bindings = new Map<DialogueFacialMorphName, MorphBinding[]>();
   private readonly capability: FacialAnimationCapabilityStatus;
+  private readonly deterministicSeed: string;
   private readonly phaseOffset: number;
   private dialogueActive = false;
   private dialogueStartedAt = 0;
   private speechStartedAt = 0;
   private speechEndsAt = 0;
-  private activeSpeechUnits: string[] = ["A"];
+  private activeSpeechCues: readonly ValidatedSpeechCue[] = [];
 
   public constructor(root: THREE.Object3D, deterministicSeed: string) {
     const boundMeshIds = new Set<number>();
@@ -131,13 +342,14 @@ export class FacialAnimationDriver {
       missingMorphs,
       availableAgeMorphs: AGE_FACIAL_MORPH_NAMES.filter((name) => availableAgeMorphs.has(name)),
       capabilities: {
-        blink: this.hasAll(["Blink_L", "Blink_R"]),
+        blink: this.hasAll(BLINK_MORPHS),
         gaze: this.hasAll(GAZE_MORPHS),
-        speech: this.hasAll(SPEECH_MORPHS),
+        speech: this.hasAll(BAKED_META_VISEME_MORPH_NAMES),
       },
     };
+    this.deterministicSeed = deterministicSeed;
     this.phaseOffset = stableUnitInterval(deterministicSeed);
-    this.writeNeutral();
+    this.clearOwnedChannels();
   }
 
   public capabilityStatus(): FacialAnimationCapabilityStatus {
@@ -150,35 +362,61 @@ export class FacialAnimationDriver {
     };
   }
 
-  public beginDialogue(text: string, elapsedSeconds: number): void {
+  /** Starts dialogue using canonical, analyzer-produced Meta viseme cues. */
+  public beginDialogueWithVisemes(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number): void {
     if (this.capability.status === "MORPH_TARGETS_UNAVAILABLE") return;
     this.dialogueActive = true;
     this.dialogueStartedAt = elapsedSeconds;
-    this.speakLine(text, elapsedSeconds);
+    this.speakVisemeCues(cues, elapsedSeconds);
   }
 
-  public speakLine(text: string, elapsedSeconds: number): void {
+  /** Replaces the active line using canonical, analyzer-produced Meta viseme cues. */
+  public speakVisemeCues(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number): void {
     if (this.capability.status === "MORPH_TARGETS_UNAVAILABLE") return;
-    this.writeNeutral();
+    this.clearSpeechChannels();
     this.dialogueActive = true;
     this.speechStartedAt = elapsedSeconds;
-    this.speechEndsAt = elapsedSeconds + speechDurationSeconds(text);
-    this.activeSpeechUnits = speechUnits(text);
+    this.activeSpeechCues = validateSpeechCues(cues);
+    this.speechEndsAt = elapsedSeconds + this.activeSpeechCues.reduce(
+      (maximum, cue) => Math.max(maximum, cue.endsAtSeconds),
+      0,
+    );
+  }
+
+  /** @deprecated Compatibility only. Supply timed Meta visemes for approval-quality playback. */
+  public beginDialogue(text: string, elapsedSeconds: number): void {
+    this.beginDialogueWithVisemes(approximateTextFallback(text), elapsedSeconds);
+  }
+
+  /** @deprecated Compatibility only. Supply timed Meta visemes for approval-quality playback. */
+  public speakLine(text: string, elapsedSeconds: number): void {
+    this.speakVisemeCues(approximateTextFallback(text), elapsedSeconds);
   }
 
   public closeDialogue(): void {
     this.dialogueActive = false;
     this.speechEndsAt = 0;
-    this.writeNeutral();
+    this.activeSpeechCues = [];
+    this.clearOwnedChannels();
   }
 
   public update(elapsedSeconds: number): void {
     if (!this.dialogueActive || this.capability.status === "MORPH_TARGETS_UNAVAILABLE") return;
-    const weights = new Map<DialogueFacialMorphName, number>();
-    this.addIdleBlink(weights, elapsedSeconds);
-    this.addIdleGaze(weights, elapsedSeconds);
-    if (elapsedSeconds < this.speechEndsAt) this.addSpeech(weights, elapsedSeconds);
-    this.writeWeights(weights);
+    if (this.capability.capabilities.blink) {
+      const blinkWeights = new Map<DialogueFacialMorphName, number>();
+      this.addIdleBlink(blinkWeights, elapsedSeconds);
+      this.writeChannels(BLINK_MORPHS, blinkWeights);
+    }
+    if (this.capability.capabilities.gaze) {
+      const gazeWeights = new Map<DialogueFacialMorphName, number>();
+      this.addIdleGaze(gazeWeights, elapsedSeconds);
+      this.writeChannels(GAZE_MORPHS, gazeWeights);
+    }
+    if (this.capability.capabilities.speech) {
+      const speechWeights = new Map<DialogueFacialMorphName, number>();
+      if (elapsedSeconds <= this.speechEndsAt) this.addSpeech(speechWeights, elapsedSeconds);
+      this.writeChannels(BAKED_META_VISEME_MORPH_NAMES, speechWeights);
+    }
   }
 
   private hasAll(names: readonly DialogueFacialMorphName[]): boolean {
@@ -187,62 +425,130 @@ export class FacialAnimationDriver {
 
   private addIdleBlink(weights: Map<DialogueFacialMorphName, number>, elapsedSeconds: number): void {
     const local = elapsedSeconds - this.dialogueStartedAt;
-    const initialDelay = 1.6 + this.phaseOffset * 1.4;
-    if (local < initialDelay) return;
-    const interval = 3.1 + this.phaseOffset * 1.2;
-    const phase = (local - initialDelay) % interval;
-    const blink = phase < 0.075
-      ? phase / 0.075
-      : phase < 0.19 ? 1 - (phase - 0.075) / 0.115 : 0;
+    let blinkStartsAt = 1.25 + this.phaseOffset * 1.25;
+    let blinkIndex = 0;
+    while (local > blinkStartsAt + BLINK_TOTAL_SECONDS && blinkIndex < 512) {
+      blinkStartsAt += BLINK_TOTAL_SECONDS
+        + 2.7
+        + stableUnitInterval(`${this.deterministicSeed}:blink-gap:${blinkIndex}`) * 3.1;
+      blinkIndex += 1;
+    }
+
+    const phase = local - blinkStartsAt;
+    if (phase < 0 || phase >= BLINK_TOTAL_SECONDS) return;
+    const blink = phase < BLINK_CLOSE_SECONDS
+      ? smoothUnitInterval(phase / BLINK_CLOSE_SECONDS)
+      : phase < BLINK_CLOSE_SECONDS + BLINK_HOLD_SECONDS
+        ? 1
+        : 1 - smoothUnitInterval(
+          (phase - BLINK_CLOSE_SECONDS - BLINK_HOLD_SECONDS) / BLINK_OPEN_SECONDS,
+        );
     if (blink <= 0) return;
-    weights.set("Blink_L", clampWeight(blink));
-    weights.set("Blink_R", clampWeight(blink * 0.97));
+    weights.set("eyeBlinkLeft", clampWeight(blink));
+    weights.set("eyeBlinkRight", clampWeight(blink));
   }
 
   private addIdleGaze(weights: Map<DialogueFacialMorphName, number>, elapsedSeconds: number): void {
-    const local = elapsedSeconds - this.dialogueStartedAt;
-    const horizontal = Math.sin(local * 0.62 + this.phaseOffset * Math.PI * 2) * 0.2;
-    const vertical = Math.sin(local * 0.37 + this.phaseOffset * Math.PI) * 0.1;
-    weights.set(horizontal >= 0 ? "Gaze_Right" : "Gaze_Left", Math.abs(horizontal));
-    weights.set(vertical >= 0 ? "Gaze_Up" : "Gaze_Down", Math.abs(vertical));
+    const local = Math.max(0, elapsedSeconds - this.dialogueStartedAt);
+    let segmentStartsAt = 0;
+    let segmentIndex = 0;
+    let segmentDuration = this.gazeHoldSeconds(segmentIndex);
+    while (local >= segmentStartsAt + segmentDuration && segmentIndex < 512) {
+      segmentStartsAt += segmentDuration;
+      segmentIndex += 1;
+      segmentDuration = this.gazeHoldSeconds(segmentIndex);
+    }
+
+    const previous = segmentIndex === 0 ? { horizontal: 0, vertical: 0 } : this.gazeTarget(segmentIndex - 1);
+    const target = this.gazeTarget(segmentIndex);
+    const transition = smoothUnitInterval((local - segmentStartsAt) / 0.14);
+    const horizontal = THREE.MathUtils.lerp(previous.horizontal, target.horizontal, transition);
+    const vertical = THREE.MathUtils.lerp(previous.vertical, target.vertical, transition);
+    if (horizontal < 0) {
+      weights.set("eyeLookOutLeft", Math.abs(horizontal));
+      weights.set("eyeLookInRight", Math.abs(horizontal));
+    } else if (horizontal > 0) {
+      weights.set("eyeLookInLeft", horizontal);
+      weights.set("eyeLookOutRight", horizontal);
+    }
+    if (vertical < 0) {
+      weights.set("eyeLookDownLeft", Math.abs(vertical));
+      weights.set("eyeLookDownRight", Math.abs(vertical));
+    } else if (vertical > 0) {
+      weights.set("eyeLookUpLeft", vertical);
+      weights.set("eyeLookUpRight", vertical);
+    }
+  }
+
+  private gazeHoldSeconds(segmentIndex: number): number {
+    return 2.2 + stableUnitInterval(`${this.deterministicSeed}:gaze-hold:${segmentIndex}`) * 2.4;
+  }
+
+  private gazeTarget(segmentIndex: number): GazeTarget {
+    const directionIndex = Math.floor(
+      stableUnitInterval(`${this.deterministicSeed}:gaze-direction:${segmentIndex}`) * 9,
+    );
+    const directions: readonly GazeTarget[] = [
+      { horizontal: 0, vertical: 0 },
+      { horizontal: -1, vertical: 0 },
+      { horizontal: 1, vertical: 0 },
+      { horizontal: 0, vertical: 1 },
+      { horizontal: 0, vertical: -1 },
+      { horizontal: -0.8, vertical: 0.6 },
+      { horizontal: 0.8, vertical: 0.6 },
+      { horizontal: -0.8, vertical: -0.6 },
+      { horizontal: 0.8, vertical: -0.6 },
+    ];
+    const direction = directions[directionIndex] ?? directions[0]!;
+    const horizontalAmplitude = 0.08
+      + stableUnitInterval(`${this.deterministicSeed}:gaze-horizontal:${segmentIndex}`) * 0.1;
+    const verticalAmplitude = 0.04
+      + stableUnitInterval(`${this.deterministicSeed}:gaze-vertical:${segmentIndex}`) * 0.07;
+    return {
+      horizontal: direction.horizontal * horizontalAmplitude,
+      vertical: direction.vertical * verticalAmplitude,
+    };
   }
 
   private addSpeech(weights: Map<DialogueFacialMorphName, number>, elapsedSeconds: number): void {
     const local = Math.max(0, elapsedSeconds - this.speechStartedAt);
-    const remaining = Math.max(0, this.speechEndsAt - elapsedSeconds);
-    const envelope = Math.min(1, local / 0.1, remaining / 0.16);
-    const unitPosition = local * 8;
-    const unitIndex = Math.floor(unitPosition);
-    const blend = unitPosition - unitIndex;
-    const current = this.activeSpeechUnits[unitIndex % this.activeSpeechUnits.length]!;
-    const next = this.activeSpeechUnits[(unitIndex + 1) % this.activeSpeechUnits.length]!;
-    this.addViseme(weights, visemeForCharacter(current), (1 - blend) * envelope);
-    this.addViseme(weights, visemeForCharacter(next), blend * envelope);
+    const silenceActive = this.activeSpeechCues.some(
+      (cue) => cue.viseme === "viseme_sil"
+        && local >= cue.startsAtSeconds
+        && local <= cue.endsAtSeconds,
+    );
+    if (silenceActive) return;
+
+    this.activeSpeechCues.forEach((cue) => {
+      if (cue.viseme === "viseme_sil") return;
+      const articulation = cueWeight(cue, local);
+      if (articulation <= 0) return;
+      weights.set(cue.viseme, (weights.get(cue.viseme) ?? 0) + articulation);
+    });
+    const total = [...weights.values()].reduce((sum, weight) => sum + weight, 0);
+    const normalization = total > 1 ? 1 / total : 1;
+    weights.forEach((weight, name) => weights.set(name, clampWeight(weight * normalization)));
   }
 
-  private addViseme(
-    weights: Map<DialogueFacialMorphName, number>,
-    viseme: "Viseme_AA" | "Viseme_EE" | "Viseme_OH" | "Viseme_MBP",
-    weight: number,
-  ): void {
-    const strength = clampWeight(weight * 0.82);
-    weights.set(viseme, clampWeight((weights.get(viseme) ?? 0) + strength));
-    if (viseme === "Viseme_MBP") {
-      weights.set("LipSeal", clampWeight((weights.get("LipSeal") ?? 0) + strength * 0.92));
-      return;
+  private clearOwnedChannels(): void {
+    if (this.capability.capabilities.blink) this.writeChannels(BLINK_MORPHS, new Map());
+    if (this.capability.capabilities.gaze) this.writeChannels(GAZE_MORPHS, new Map());
+    if (this.capability.capabilities.speech) this.clearSpeechChannels();
+  }
+
+  private clearSpeechChannels(): void {
+    if (this.capability.capabilities.speech) {
+      this.writeChannels(BAKED_META_VISEME_MORPH_NAMES, new Map());
     }
-    const jawScale = viseme === "Viseme_OH" ? 0.66 : viseme === "Viseme_AA" ? 0.72 : 0.46;
-    weights.set("JawOpen", clampWeight((weights.get("JawOpen") ?? 0) + strength * jawScale));
   }
 
-  private writeNeutral(): void {
-    this.writeWeights(new Map());
-  }
-
-  private writeWeights(weights: ReadonlyMap<DialogueFacialMorphName, number>): void {
-    this.bindings.forEach((bindings, name) => {
+  private writeChannels(
+    names: readonly DialogueFacialMorphName[],
+    weights: ReadonlyMap<DialogueFacialMorphName, number>,
+  ): void {
+    names.forEach((name) => {
       const weight = clampWeight(weights.get(name) ?? 0);
-      bindings.forEach(({ influences, index }) => { influences[index] = weight; });
+      this.bindings.get(name)?.forEach(({ influences, index }) => { influences[index] = weight; });
     });
   }
 }

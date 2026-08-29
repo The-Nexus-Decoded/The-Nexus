@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it, vi } from "vitest";
 
+import type { TimedMetaVisemeCue } from "../src/game/facialAnimationDriver";
 import type { HumanAppearancePortraitController } from "../src/game/humanAppearanceAssembly";
 import {
   HumanDialoguePortraitRenderer,
@@ -30,6 +31,8 @@ function portraitController(id: string) {
       availableAgeMorphs: [],
       capabilities: { blink: true, gaze: true, speech: true },
     },
+    beginDialogueWithVisemes: vi.fn<(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number) => void>(),
+    speakVisemeCues: vi.fn<(cues: readonly TimedMetaVisemeCue[], elapsedSeconds: number) => void>(),
     beginDialogue: vi.fn<(text: string, elapsedSeconds: number) => void>(),
     speakLine: vi.fn<(text: string, elapsedSeconds: number) => void>(),
     update: vi.fn<(elapsedSeconds: number) => void>(),
