@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import {
   HAIR_COLORS,
+  SKIN_TONES,
   resolveCharacterAppearance,
   type FaceTypeId,
   type FacialHairId,
   type HairColorId,
   type HairStyleSelectionId,
+  type SkinToneId,
 } from "./character";
 import {
   applyHumanFaceType,
@@ -198,6 +200,7 @@ export interface ModularAppearance {
   faceType?: FaceTypeId;
   facialHair?: FacialHairId;
   hairColor?: HairColorId;
+  skinTone?: SkinToneId;
   age?: number;
   hairGreying?: number;
   facialHairGreying?: number;
@@ -336,13 +339,41 @@ function tintMaterial(material: THREE.Material, color: THREE.Color): boolean {
   return true;
 }
 
-function tintObject(object: THREE.Object3D, color: THREE.Color): number {
+function resolvedActorSkinColor(model: THREE.Object3D, fallback: THREE.Color): THREE.Color {
+  let skin: THREE.Color | undefined;
+  model.traverse((child) => {
+    if (skin || !(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (skin || !(material instanceof THREE.MeshStandardMaterial)) return;
+      const surfaceName = `${child.name} ${material.name}`;
+      const excludedAccessory = /hair|brow|lash|eye|tooth|teeth|mouth|tongue|scalp/i.test(surfaceName);
+      if (!excludedAccessory && isActorSkinSurface(surfaceName)) skin = material.color.clone();
+    });
+  });
+  return skin ?? fallback;
+}
+
+function tintAppearanceModule(
+  object: THREE.Object3D,
+  hairColor: THREE.Color,
+  skinColor: THREE.Color,
+): number {
   let count = 0;
   object.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
     const materials = Array.isArray(child.material) ? child.material : [child.material];
     materials.forEach((material) => {
-      if (tintMaterial(material, color)) count += 1;
+      const channel = material.userData.souldrifterTintChannel as unknown;
+      const mode = material.userData.souldrifterTintMode as unknown;
+      // Missing channels are the approved legacy all-hair contract. Any new,
+      // explicit unknown channel fails closed instead of receiving hair dye.
+      const tint = channel === undefined || channel === "HAIR"
+        ? hairColor
+        : channel === "SKIN" && mode === "MATCH_RUNTIME_SKIN_TONE"
+          ? skinColor
+          : null;
+      if (tint && tintMaterial(material, tint)) count += 1;
     });
   });
   return count;
@@ -382,7 +413,7 @@ export function applyModularAppearance(
 ): ModularAppearanceResult {
   const resolved = resolveCharacterAppearance({
     ...appearance,
-    skinTone: "ashen",
+    skinTone: appearance.skinTone ?? "ashen",
   });
   hideAppearanceModules(model);
   model.traverse((child) => {
@@ -414,9 +445,10 @@ export function applyModularAppearance(
   const baseHairColor = new THREE.Color(HAIR_COLORS[resolved.hairColor].color);
   const hairColor = baseHairColor.clone().lerp(GREYING_COLOR, resolved.hairGreying);
   const facialHairColor = baseHairColor.clone().lerp(GREYING_COLOR, resolved.facialHairGreying);
+  const skinColor = resolvedActorSkinColor(model, new THREE.Color(SKIN_TONES[resolved.skinTone].color));
   let tintedMaterials = tintBrows(model, hairColor);
-  if (hairModule) tintedMaterials += tintObject(hairModule, hairColor);
-  if (facialHairModule) tintedMaterials += tintObject(facialHairModule, facialHairColor);
+  if (hairModule) tintedMaterials += tintAppearanceModule(hairModule, hairColor, skinColor);
+  if (facialHairModule) tintedMaterials += tintAppearanceModule(facialHairModule, facialHairColor, skinColor);
 
   const result: ModularAppearanceResult = {
     hair,

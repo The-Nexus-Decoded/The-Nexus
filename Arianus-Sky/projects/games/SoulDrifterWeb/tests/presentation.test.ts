@@ -158,6 +158,57 @@ describe("actor presentation boundaries", () => {
     expect(skinMaterial.color.getHex()).toBe(0x5f3c31);
   });
 
+  it("routes explicit hair and skin tint channels without recoloring unknown materials", () => {
+    const model = new THREE.Group();
+    const detailMap = new THREE.Texture();
+    const normalMap = new THREE.Texture();
+    const hairMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: detailMap, normalMap });
+    hairMaterial.name = "MAT_HumanHair_Tintable";
+    hairMaterial.userData.souldrifterTintChannel = "HAIR";
+    const scalpMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: detailMap, normalMap });
+    scalpMaterial.name = "MAT_HumanScalp_Underlay_Tintable";
+    scalpMaterial.userData.souldrifterTintChannel = "SKIN";
+    scalpMaterial.userData.souldrifterTintMode = "MATCH_RUNTIME_SKIN_TONE";
+    const legacyHairMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    legacyHairMaterial.name = "MAT_LegacyHair_NoChannel";
+    const unknownMaterial = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
+    unknownMaterial.name = "MAT_UnknownTintChannel";
+    unknownMaterial.userData.souldrifterTintChannel = "CLOTH";
+    const hair = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      [hairMaterial, scalpMaterial, legacyHairMaterial, unknownMaterial],
+    );
+    hair.name = "SK_Hair_CurlyCoiled";
+    hair.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] = MODULAR_APPEARANCE_PROVIDER_APPROVED;
+
+    const skinMaterial = new THREE.MeshStandardMaterial({ color: 0x684338 });
+    skinMaterial.name = "Human_Skin";
+    const head = new THREE.Mesh(new THREE.BoxGeometry(), skinMaterial);
+    head.name = "SK_HumanHead";
+    model.add(hair, head);
+
+    const result = applyModularAppearance(model, {
+      hairStyle: "curly-coiled",
+      raceId: "human",
+      facialHair: "none",
+      hairColor: "copper-red",
+      hairGreying: 0.5,
+      skinTone: "deep",
+    });
+
+    const resolvedHair = new THREE.Color(HAIR_COLORS["copper-red"].color)
+      .lerp(new THREE.Color(0xa8a39b), 0.5);
+    expect(result.tintedMaterials).toBe(3);
+    expect(hairMaterial.color.getHex()).toBe(resolvedHair.getHex());
+    expect(legacyHairMaterial.color.getHex()).toBe(resolvedHair.getHex());
+    expect(scalpMaterial.color.getHex()).toBe(skinMaterial.color.getHex());
+    expect(unknownMaterial.color.getHex()).toBe(0x2e8b57);
+    expect(hairMaterial.map).toBe(detailMap);
+    expect(hairMaterial.normalMap).toBe(normalMap);
+    expect(scalpMaterial.map).toBe(detailMap);
+    expect(scalpMaterial.normalMap).toBe(normalMap);
+  });
+
   it("anchors the root, hips, and lower body without discarding attack choreography", () => {
     const times = [0, 1];
     const positions = [0, 0, 0, 0.25, 0.1, -0.4];
