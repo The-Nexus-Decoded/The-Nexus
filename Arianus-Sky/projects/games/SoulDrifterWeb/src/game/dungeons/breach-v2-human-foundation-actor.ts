@@ -44,6 +44,11 @@ const LOOPING_ACTIONS: ReadonlySet<string> = new Set([
   BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordRun,
   BREACH_V2_HUMAN_FOUNDATION_ACTIONS.bowCombatIdle,
 ]);
+const LOCOMOTION_ACTIONS: ReadonlySet<string> = new Set([
+  BREACH_V2_HUMAN_FOUNDATION_ACTIONS.idle,
+  BREACH_V2_HUMAN_FOUNDATION_ACTIONS.walk,
+  BREACH_V2_HUMAN_FOUNDATION_ACTIONS.run,
+]);
 const CROSSFADE_SECONDS = 0.18;
 const LIVE_POSE_CALIBRATION_FRAME = 3;
 
@@ -194,7 +199,7 @@ export function createBreachV2HumanFoundationActor(
       locomotionName = moving
         ? running ? BREACH_V2_HUMAN_FOUNDATION_ACTIONS.run : BREACH_V2_HUMAN_FOUNDATION_ACTIONS.walk
         : BREACH_V2_HUMAN_FOUNDATION_ACTIONS.idle;
-      transitionTo(locomotionName, true);
+      if (LOCOMOTION_ACTIONS.has(currentName)) transitionTo(locomotionName, true);
     },
     play: (name, loop = LOOPING_ACTIONS.has(name)) => {
       const action = transitionTo(name, loop);

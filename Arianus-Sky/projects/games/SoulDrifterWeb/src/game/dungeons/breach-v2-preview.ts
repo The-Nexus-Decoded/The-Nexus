@@ -20,6 +20,15 @@ import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
+import {
+  createBreachV2HumanFoundationActorFactory,
+  type BreachV2HumanFoundationActor,
+} from "./breach-v2-human-foundation-actor.ts";
+import {
+  setupBreachV2HumanFoundationReview,
+  type BreachV2HumanFoundationReview,
+} from "./breach-v2-human-foundation-review.ts";
+
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import {
   BREACH_V2_DEFAULT_APERTURE_CLEAR_HEIGHT,
@@ -116,6 +125,13 @@ interface PreviewHooks {
     roomStates: Record<string, BreachV2FogState>;
   };
   __dungeonPlayer: { x: number; y: number; z: number };
+  __dungeonHumanFoundation: {
+    animationNames: () => readonly string[];
+    snapshot: BreachV2HumanFoundationActor["snapshot"];
+    play: BreachV2HumanFoundationActor["play"];
+    pose: BreachV2HumanFoundationActor["pose"];
+    pause: BreachV2HumanFoundationActor["pause"];
+  } | null;
   __dungeonWalkTo: (x: number, z: number) => boolean;
   __dungeonCanStandAt: (x: number, z: number) => boolean;
   __dungeonNavigateTo: (x: number, z: number) => boolean;
@@ -3998,6 +4014,7 @@ export async function startDungeonPreview(
   let syncEnvironmentState: ((state: BreachV2EnvironmentState) => void) | null = null;
   const runId = `breach-v2:${options.seed}:${options.path}`;
   const previewUrl = new URL(window.location.href);
+  const animationReviewEnabled = previewUrl.searchParams.get("animationReview") === "1";
   clearBreachV2LegacySpatialStateForExplicitUrl(previewUrl, window.sessionStorage);
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
@@ -4346,8 +4363,9 @@ export async function startDungeonPreview(
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
-  let player: THREE.Mesh | null = null;
-  let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
+  let player: THREE.Object3D | null = null;
+  let foundationPlayerActor: BreachV2HumanFoundationActor | null = null;
+  let foundationAnimationReview: BreachV2HumanFoundationReview | null = null;
   setupBreachV2MobileMovementPad({
     container,
     keys,
@@ -4365,22 +4383,17 @@ export async function startDungeonPreview(
   });
   if (walkMode) {
     controls.enabled = false;
-    playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8fd8e8,
-      roughness: 0.5,
-      emissive: 0x2a6a78,
-      emissiveIntensity: 0.35,
-      transparent: true,
-    });
-    player = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-      playerPlaceholderMaterial,
-    );
-    player.castShadow = true;
+    loading.textContent = "Loading Human Foundation player…";
+    const humanFoundationFactory = await createBreachV2HumanFoundationActorFactory(gltfLoader);
+    foundationPlayerActor = humanFoundationFactory.createPlayer();
+    player = foundationPlayerActor.root;
     player.visible = !firstPersonMode;
     player.userData.spatialAuditExcluded = "runtime-player-avatar";
     scene.add(player);
-    player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+    player.position.set(playerPos.x, playerPos.y, playerPos.z);
+    if (animationReviewEnabled) {
+      foundationAnimationReview = setupBreachV2HumanFoundationReview(container, foundationPlayerActor);
+    }
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
@@ -4639,6 +4652,13 @@ export async function startDungeonPreview(
   hooks.__dungeonCameraYaw = () => camYaw;
   hooks.__dungeonFogOfWar = () => fogOfWar.snapshot();
   hooks.__dungeonPlayer = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
+  hooks.__dungeonHumanFoundation = foundationPlayerActor ? {
+    animationNames: foundationPlayerActor.animationNames,
+    snapshot: foundationPlayerActor.snapshot,
+    play: foundationPlayerActor.play,
+    pose: foundationPlayerActor.pose,
+    pause: foundationPlayerActor.pause,
+  } : null;
   hooks.__dungeonWalkTo = (x, z) => {
     if (!walkMode || !isWalkable(x, z)) return false;
     setPlayerPosition(x, z);
@@ -4895,6 +4915,8 @@ export async function startDungeonPreview(
         runtimeCollisionRefreshRequested = false;
       }
       if (walkMode && player) {
+        const frameStartX = playerPos.x;
+        const frameStartZ = playerPos.z;
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
         // A thin portal must never be skipped by one long low-FPS movement
@@ -4961,7 +4983,14 @@ export async function startDungeonPreview(
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
-        player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+        player.position.set(playerPos.x, playerPos.y, playerPos.z);
+        const playerMoved = Math.hypot(
+          playerPos.x - frameStartX,
+          playerPos.z - frameStartZ,
+        ) > 0.0001;
+        foundationPlayerActor?.setMoving(playerMoved, playerMoved && run);
+        foundationPlayerActor?.update(delta);
+        foundationAnimationReview?.update();
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
           cameraTarget.set(
@@ -4994,18 +5023,7 @@ export async function startDungeonPreview(
             runtimeCollisionBlockers = getRuntimeCollisionBlockers();
             hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
           }
-          const resolvedCameraDistance = resolveCameraAgainstScene(cameraTarget, desiredCamera);
-          if (playerPlaceholderMaterial) {
-            const targetOpacity = isometricMode
-              ? 1
-              : resolveBreachV2PlaceholderAvatarOpacity(resolvedCameraDistance);
-            playerPlaceholderMaterial.opacity = THREE.MathUtils.damp(
-              playerPlaceholderMaterial.opacity,
-              targetOpacity,
-              12,
-              delta,
-            );
-          }
+          resolveCameraAgainstScene(cameraTarget, desiredCamera);
           camera.lookAt(cameraTarget);
         }
         hooks.__dungeonPlayer.x = playerPos.x;

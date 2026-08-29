@@ -45,6 +45,8 @@ describe("BREACH-V2 Human Foundation actor", () => {
     actor.setMoving(true, true);
     expect(actor.snapshot().animation).toBe(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.run);
     expect(actor.play(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordAttack)).toBe(1);
+    actor.setMoving(false);
+    expect(actor.snapshot().animation).toBe(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordAttack);
     actor.pose(BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordAttack, 0.5);
     expect(actor.snapshot().timeSeconds).toBeCloseTo(0.5, 6);
     actor.dispose();
