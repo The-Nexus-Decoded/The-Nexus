@@ -38,7 +38,6 @@ The source-derived pack `public/assets/3d/animations/human-foundation-pilot/huma
 - `locomotion.shimmy` — ledge or wall shimmy left and right
 - `combat.unarmed.block` — empty-hand guard and block
 - `combat.sword-one-hand.guard-idle` — one-handed sword guard with visible free offhand
-- `combat.sword-one-hand.thrust` — compact beginner one-handed thrust with free-hand balance
 - `combat.sword-one-hand.horizontal-cut` — one-handed horizontal outward cut with free-hand balance
 - `combat.sword-shield.shield-bash` — explicit shield bash with shield-face contact
 - `combat.bow.cancel` — safely cancel a drawn bow and return the arrow

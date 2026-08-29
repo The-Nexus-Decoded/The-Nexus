@@ -44,7 +44,7 @@ These are accepted only as exact provider-level sub-action matches. They are not
 | Requirement | Best provider evidence | Classification | Contract decision | Current authored/quarantine state |
 | --- | --- | --- | --- | --- |
 | `combat.sword-one-hand.guard-idle` | `ProSwordAndShield__SwordAndShieldIdle` (`pro-sword-and-shield-02`) | Reference only | Shield posture violates the visible free-offhand contract. | `combat-one-hand-sword-guard-v1` is `PASS_PROVISIONAL_QUARANTINED`; real BREACH-V2 and owner review remain pending. |
-| `combat.sword-one-hand.thrust` | `ProSwordAndShield__SwordAndShieldAttack3` (`pro-sword-and-shield-01`) | Reference only | Shield mechanics and offhand posture cannot become the starter free-hand thrust by relabeling or neutralizing one arm. | Authored v1 self-review rejected it because the sword never becomes a point-led thrust and the body does not form a compact lunge. Reauthor. |
+| `combat.sword-one-hand.thrust` | `ProSwordAndShield__SwordAndShieldAttack3` (`pro-sword-and-shield-01`) | Direct provider coverage | Owner correction confirms the downloaded Mixamo thrust is the canonical core sword motion. Preserve its shield-hand posture for shield loadouts; non-shield loadouts use the runtime equipment/offhand layer rather than a replacement animation. | `COVERED_NOW`; the rejected custom-authored replacement is retired and must not re-enter the review queue. |
 | `combat.sword-one-hand.horizontal-cut` | `ProMeleeAxe__StandingMeleeAttackHorizontal` (`pro-melee-axe-01`) | Reference only | Axe balance and impact path do not satisfy the one-hand sword cut. | Authored v1 independent review rejected its diagonal/overhead read and head/neck crowding. Reauthor. |
 | `combat.sword-one-hand.draw-sheath` | `ProSwordAndShield__DrawSword1`, `ProSwordAndShield__SheathSword1` (`pro-sword-and-shield-01`) | Reference only / partial provider basis | Shield-arm posture violates the free-offhand row; exact hip-socket release, alignment, insertion, and grip markers remain required. | Authored draw and sheath v1 were self-review rejected because the scabbard axis crossed the waist and torso. Reauthor or rebuild the socket path. |
 | `combat.sword-shield.shield-bash` | `ProSwordAndShield__SwordAndShieldImpact` (`pro-sword-and-shield-02`) | Rejected substitution | An equipped impact/reaction does not prove a shield-led attack or shield-face contact. | The pack-level original candidate is `REWORK / NOT_PRESENTED / QUARANTINED`. Original bash authoring and prop-contact proof remain required. |
@@ -93,6 +93,6 @@ No individual result promotes the remaining actions in its weapon-family row.
 
 1. Present the already independently passed Staff Thrust v8 to the owner without installing it.
 2. Use the provisional Sword Guard v1 only as the next isolated review candidate; do not treat it as accepted yet.
-3. Reauthor the rejected sword thrust, horizontal cut, draw, and sheath from their locked real-person and socket contracts.
+3. Retain the accepted Mixamo sword thrust; reauthor only the rejected horizontal cut, draw, and sheath from their locked real-person and socket contracts.
 4. Author the missing greatsword stow and the remaining staff family as whole-body actions.
 5. Complete weapon-specific reference packets before mace, rod, knife, or paired-dagger authoring proceeds.

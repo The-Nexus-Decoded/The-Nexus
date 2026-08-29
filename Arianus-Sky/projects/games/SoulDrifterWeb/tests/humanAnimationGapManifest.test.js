@@ -21,9 +21,9 @@ describe("issue 487 Human animation coverage manifest", () => {
     expect(result.errors).toEqual([]);
     expect(result.summary).toMatchObject({
       requiredNow: 111,
-      COVERED_NOW: 63,
+      COVERED_NOW: 64,
       PARTIAL: 15,
-      MISSING: 33,
+      MISSING: 32,
       deferredHigherLevel: 5,
       candidateLibraryClips: 400,
       libraryBytes: 32_441_884,
@@ -116,7 +116,11 @@ describe("issue 487 Human animation coverage manifest", () => {
   });
 
   it("does not disguise missing lower-level weapon families as generic substitutes", () => {
-    expect(byId.get("combat.sword-one-hand.thrust")).toMatchObject({ coverage: "MISSING", candidates: [] });
+    expect(byId.get("combat.sword-one-hand.thrust")).toMatchObject({
+      coverage: "COVERED_NOW",
+      candidates: ["ProSwordAndShield__SwordAndShieldAttack3"],
+      equipmentPolicy: expect.stringContaining("shield-hand posture"),
+    });
     expect(byId.get("combat.mace.lower-level")).toMatchObject({ coverage: "MISSING", candidates: [] });
     expect(byId.get("combat.knife.lower-level")).toMatchObject({ coverage: "MISSING", candidates: [] });
     expect(byId.get("combat.daggers.paired")).toMatchObject({ coverage: "MISSING", candidates: [] });
