@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "createdAt": "2026-08-29",
+  "phase": "base-breachling-rig-and-animation-prototype",
+  "scope": {
+    "completed": "Base Breachling only",
+    "pendingOwnerGate": [
+      "apply the shared rig and clips to Stalker",
+      "apply the shared rig and clips to Oathbound",
+      "apply the shared rig and clips to Ravager",
+      "integrate the approved animated GLBs into runtime",
+      "begin either Warden rig"
+    ],
+    "wardensTouched": false
+  },
+  "source": {
+    "tripoAssetId": "bacf8bed-a798-4ffd-b98b-76e09a0e7b89",
+    "path": "exports/souldrifter-breachling-base-source.blend",
+    "sha256": "8e93840c31cbd3c3da9165474f0bfa1340866a0783af91405e72ad0773d84c8b",
+    "tripoRigOrAnimationUsed": false
+  },
+  "authoring": {
+    "blender": "4.5.12 LTS",
+    "script": {
+      "path": "../../../../scripts/rig-breachling.py",
+      "bytes": 12732,
+      "sha256": "2c814fa7bec174690c0d966b4b4e8a3f262414715e559642810b2410b22f1263"
+    },
+    "armature": "Breachling_Rig",
+    "bones": 24,
+    "deformBones": 23,
+    "bind": {
+      "vertices": 16632,
+      "unweightedVertices": 0,
+      "maximumInfluencesPerVertex": 4,
+      "leftRightRule": "Positive-Y limbs use .L groups and negative-Y limbs use .R groups; cross-side influences are removed before normalization.",
+      "preserveVolume": true
+    }
+  },
+  "clips": [
+    { "name": "Idle", "frames": 120, "seconds": 3.967, "loop": true },
+    { "name": "Walk", "frames": 33, "seconds": 1.067, "loop": true },
+    { "name": "Run", "frames": 25, "seconds": 0.8, "loop": true },
+    { "name": "BiteAttack", "frames": 34, "seconds": 1.1, "loop": false },
+    { "name": "SwordSlashOutward", "frames": 34, "seconds": 1.1, "loop": false, "purpose": "runtime-compatible alias of BiteAttack until creature-specific motion routing lands" },
+    { "name": "ClawAttack", "frames": 34, "seconds": 1.1, "loop": false },
+    { "name": "TailWhip", "frames": 46, "seconds": 1.5, "loop": false },
+    { "name": "RecieveHit", "frames": 24, "seconds": 0.767, "loop": false, "purpose": "matches the existing runtime spelling" },
+    { "name": "Death", "frames": 55, "seconds": 1.8, "loop": false }
+  ],
+  "outputs": {
+    "blend": {
+      "path": "rigged/souldrifter-breachling-base-rigged.blend",
+      "bytes": 16770255,
+      "sha256": "e7ac21bd64ecf4d1ebaf4caefca0bcae9152a023accc5e84195ee7e9fcae5b2d",
+      "actionsPersistAfterReopen": 9
+    },
+    "glb": {
+      "path": "rigged/souldrifter-breachling-base-rigged.glb",
+      "bytes": 17479896,
+      "sha256": "eaa9c4edc1535c5b2ee1bd20f4d762c4afaf2a6af8de067dbe4660126987bf42",
+      "meshes": 1,
+      "materials": 1,
+      "skins": 1,
+      "animations": 9,
+      "texture": "embedded"
+    }
+  },
+  "visualQa": {
+    "passed": true,
+    "checks": [
+      "front limbs deform and move independently",
+      "rear limbs deform and move independently",
+      "diagonal walk pairs alternate without joined-leg deformation",
+      "jaw opens independently for the bite contact pose",
+      "claw strike uses an independently posed forelimb",
+      "tail whip was widened after the first contact pose curled too tightly over the body",
+      "hit reaction and terminal death poses remain skinned without mesh explosions"
+    ],
+    "remainingPolish": [
+      "validate foot contact and playback timing in the Three.js runtime",
+      "tune per-variant weights around heavier armor plates after owner approval"
+    ]
+  },
+  "safety": "nonsexual; non-NSFW; anatomy-safe"
+}
