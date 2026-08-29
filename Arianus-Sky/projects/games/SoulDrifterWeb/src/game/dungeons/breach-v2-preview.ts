@@ -60,6 +60,7 @@ import {
   setupBreachV2GameplayUi,
   type BreachV2EnvironmentUiTarget,
 } from "./breach-v2-gameplay-ui";
+import { createBreachV2PlayerAvatar } from "./breach-v2-player-avatar";
 import { storyDatabase } from "../persistence";
 import { DUNGEON_PROP_ASSETS } from "../environment/DungeonPropCatalog";
 import { instantiateDungeonProp, createDungeonFireEffect } from "../environment/DungeonPropKit";
@@ -1207,10 +1208,6 @@ export function resolveBreachV2CameraFloorY(
   return Math.max(requestedY, floorY + Math.max(0, cameraRadius));
 }
 
-export function resolveBreachV2PlaceholderAvatarOpacity(cameraDistance: number): number {
-  return THREE.MathUtils.smoothstep(Math.max(0, cameraDistance), 0.85, 1.75);
-}
-
 export type BreachV2CeilingCameraMode = "firstperson" | "thirdperson" | "isometric" | "overview" | "orbit";
 
 export function resolveBreachV2CeilingVisibility(
@@ -1265,8 +1262,12 @@ export function doesBreachV2PortalBlockAperture(
 }
 
 export function resolveBreachV2CameraDistanceForMode(
-  requestedDistance: number, hitFraction: number | null, _isometric: boolean,
+  requestedDistance: number, hitFraction: number | null, isometric: boolean,
 ): number {
+  // BREACH-V2's isometric camera sits above the cutaway shell. A doorway or
+  // wall between that camera and the look-ahead point must never dolly the
+  // camera down into first-person range.
+  if (isometric) return requestedDistance;
   return resolveBreachV2CameraDistance(requestedDistance, hitFraction);
 }
 
@@ -4112,18 +4113,7 @@ const BREACHLING_PREVIEW_ASSETS: Record<
   },
 };
 
-const BREACHLING_PREVIEW_CLIP_ORDER = [
-  "Idle",
-  "CombatIdle",
-  "Walk",
-  "Run",
-  "BiteAttack",
-  "ClawAttack",
-  "TailWhip",
-  "SpitAttack",
-  "RecieveHit",
-  "Death",
-] as const;
+const BREACHLING_PREVIEW_CLIP_ORDER = ["Idle"] as const;
 
 const BREACHLING_LOOP_CLIPS = new Set(["Idle", "CombatIdle", "Walk", "Run"]);
 const BREACHLING_ROOM_OFFSETS: readonly (readonly [number, number])[] = [
@@ -4269,10 +4259,7 @@ async function placeBreachlingPreviewActors(
 
     const mixer = new THREE.AnimationMixer(model);
     const actions = new Map(source.animations.map((clip) => [clip.name, mixer.clipAction(clip)]));
-    const supportsSpit = placement.tier === "oathbound" || placement.tier === "ravager";
-    const sequence = BREACHLING_PREVIEW_CLIP_ORDER.filter((clipName) => (
-      actions.has(clipName) && (clipName !== "SpitAttack" || supportsSpit)
-    ));
+    const sequence = BREACHLING_PREVIEW_CLIP_ORDER.filter((clipName) => actions.has(clipName));
     const actor: BreachlingPreviewActor = {
       id: placement.id,
       tier: placement.tier,
@@ -4695,7 +4682,7 @@ export async function startDungeonPreview(
   });
   const restoredCamera = restoredSpatialState
     && walkMode
-    && ["walk", "firstperson", "isometric"].includes(restoredSpatialState.cameraMode)
+    && restoredSpatialState.cameraMode === activeCameraMode
     ? restoredSpatialState.camera
     : null;
   let camYaw = restoredCamera
@@ -4720,8 +4707,8 @@ export async function startDungeonPreview(
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
-  let player: THREE.Mesh | null = null;
-  let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
+  const playerAvatar = walkMode ? await createBreachV2PlayerAvatar(gltfLoader) : null;
+  let player: THREE.Object3D | null = null;
   setupBreachV2MobileMovementPad({
     container,
     keys,
@@ -4740,22 +4727,11 @@ export async function startDungeonPreview(
   });
   if (walkMode) {
     controls.enabled = false;
-    playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8fd8e8,
-      roughness: 0.5,
-      emissive: 0x2a6a78,
-      emissiveIntensity: 0.35,
-      transparent: true,
-    });
-    player = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-      playerPlaceholderMaterial,
-    );
-    player.castShadow = true;
+    if (!playerAvatar) throw new Error("The player avatar could not be initialized.");
+    player = playerAvatar.root;
     player.visible = !firstPersonMode;
-    player.userData.spatialAuditExcluded = "runtime-player-avatar";
     scene.add(player);
-    player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+    player.position.set(playerPos.x, playerPos.y, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
@@ -5355,6 +5331,7 @@ export async function startDungeonPreview(
       if (walkMode && player) {
         // movement relative to the camera's ground forward
         const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
+        let playerIsMoving = false;
         // A thin portal must never be skipped by one long low-FPS movement
         // sample. The cap stays above normal 45 fps travel but below the
         // closed-door collision band, so keyboard and click travel remain
@@ -5373,6 +5350,7 @@ export async function startDungeonPreview(
         if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
         if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
         if (mx !== 0 || mz !== 0) {
+          playerIsMoving = true;
           clickPath.length = 0;
           const move = movementForward
             .multiplyScalar(mz)
@@ -5395,6 +5373,7 @@ export async function startDungeonPreview(
           }
           player.rotation.y = Math.atan2(move.x, move.z);
         } else if (clickPath.length > 0) {
+          playerIsMoving = true;
           const target = clickPath[0]!;
           const dx = target.x - playerPos.x;
           const dz = target.z - playerPos.z;
@@ -5419,7 +5398,9 @@ export async function startDungeonPreview(
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
-        player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+        playerAvatar?.setMoving(playerIsMoving);
+        playerAvatar?.update(delta);
+        player.position.set(playerPos.x, playerPos.y, playerPos.z);
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
           cameraTarget.set(
@@ -5452,18 +5433,7 @@ export async function startDungeonPreview(
             runtimeCollisionBlockers = getRuntimeCollisionBlockers();
             hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
           }
-          const resolvedCameraDistance = resolveCameraAgainstScene(cameraTarget, desiredCamera);
-          if (playerPlaceholderMaterial) {
-            const targetOpacity = isometricMode
-              ? 1
-              : resolveBreachV2PlaceholderAvatarOpacity(resolvedCameraDistance);
-            playerPlaceholderMaterial.opacity = THREE.MathUtils.damp(
-              playerPlaceholderMaterial.opacity,
-              targetOpacity,
-              12,
-              delta,
-            );
-          }
+          resolveCameraAgainstScene(cameraTarget, desiredCamera);
           camera.lookAt(cameraTarget);
         }
         hooks.__dungeonPlayer.x = playerPos.x;

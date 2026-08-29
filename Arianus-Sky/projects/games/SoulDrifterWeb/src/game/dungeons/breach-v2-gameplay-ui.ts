@@ -134,8 +134,7 @@ export function setupBreachV2GameplayUi(options: {
   container.appendChild(panel);
 
   let collapsedViewport = shouldCollapseBreachV2GameplayUi(window.innerWidth);
-  let expanded = !collapsedViewport;
-  let userChoseExpansion = false;
+  let expanded = false;
   let restoreFocus: HTMLElement | null = null;
   const updateExpandedState = (): void => {
     panel.hidden = !expanded;
@@ -160,7 +159,6 @@ export function setupBreachV2GameplayUi(options: {
     collapseButton.style.backdropFilter = "none";
   };
   collapseButton.addEventListener("click", () => {
-    userChoseExpansion = true;
     expanded = !expanded;
     updateExpandedState();
     if (expanded) {
@@ -179,7 +177,6 @@ export function setupBreachV2GameplayUi(options: {
     if (breachV2PanelId(event) !== "combat") return;
     const detail = (event as CustomEvent<BreachV2PanelRequestDetail>).detail;
     restoreFocus = typeof detail === "object" ? detail.origin : null;
-    userChoseExpansion = true;
     expanded = true;
     updateExpandedState();
     window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "combat" }));
@@ -189,7 +186,6 @@ export function setupBreachV2GameplayUi(options: {
     if (event.key !== "Escape" || !expanded) return;
     event.preventDefault();
     expanded = false;
-    userChoseExpansion = true;
     updateExpandedState();
     if (restoreFocus?.isConnected) restoreFocus.focus();
     restoreFocus = null;
@@ -198,9 +194,6 @@ export function setupBreachV2GameplayUi(options: {
     const nextCollapsedViewport = shouldCollapseBreachV2GameplayUi(window.innerWidth);
     if (nextCollapsedViewport === collapsedViewport) return;
     collapsedViewport = nextCollapsedViewport;
-    if (userChoseExpansion) return;
-    expanded = !collapsedViewport;
-    updateExpandedState();
   };
   window.addEventListener(BREACH_V2_PANEL_EVENT, closeForOtherPanel);
   window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, openFromControlCenter);

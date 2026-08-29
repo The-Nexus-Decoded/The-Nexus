@@ -24,7 +24,6 @@ import {
   resolveBreachV2CameraDistanceForMode,
   resolveBreachV2CameraFloorY,
   resolveBreachV2CeilingVisibility,
-  resolveBreachV2PlaceholderAvatarOpacity,
   type BreachV2PlanarCollider,
   writeBreachV2IsometricCameraPose,
 } from "../src/game/dungeons/breach-v2-preview";
@@ -142,9 +141,9 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(resolved).toBeGreaterThanOrEqual(0);
   });
 
-  it("resolves visible wall collision in both isometric and third-person modes", () => {
+  it("keeps isometric distance stable while resolving third-person wall collision", () => {
     expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, true))
-      .toBeLessThan(1);
+      .toBe(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
     expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, 0.01, false))
       .toBeLessThan(1);
     expect(resolveBreachV2CameraDistanceForMode(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE, null, true))
@@ -230,14 +229,6 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(resolveBreachV2CameraFloorY(-2.5, 0, 8, 0.24)).toBe(0.24);
     expect(resolveBreachV2CameraFloorY(-2.5, null, 8, 0.24)).toBe(8.24);
     expect(resolveBreachV2CameraFloorY(10, 0, 8, 0.24)).toBe(10);
-  });
-
-  it("fades only the temporary avatar when camera collision compresses third-person distance", () => {
-    expect(resolveBreachV2PlaceholderAvatarOpacity(0)).toBe(0);
-    expect(resolveBreachV2PlaceholderAvatarOpacity(0.85)).toBe(0);
-    expect(resolveBreachV2PlaceholderAvatarOpacity(1.3)).toBeCloseTo(0.5);
-    expect(resolveBreachV2PlaceholderAvatarOpacity(1.75)).toBe(1);
-    expect(resolveBreachV2PlaceholderAvatarOpacity(5)).toBe(1);
   });
 
   it("keeps the vestibule review orbit outside the close-camera failure band", () => {

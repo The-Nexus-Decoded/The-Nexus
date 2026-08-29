@@ -130,14 +130,14 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
 });
 
 describe("BREACH-V2 responsive control center DOM", () => {
-  it("shows gameplay controls above 640px and collapses them at 640px", () => {
+  it("keeps gameplay controls behind Settings at every viewport width", () => {
     const desktopContainer = document.body.appendChild(document.createElement("main"));
     setViewportWidth(641);
     const desktop = mountGameplay(desktopContainer);
     const desktopPanel = desktopContainer.querySelector<HTMLElement>("[data-testid='breach-v2-gameplay-panel']");
     const desktopToggle = desktopContainer.querySelector<HTMLButtonElement>("[aria-controls='breach-v2-gameplay-controls-body']");
-    expect(desktopPanel?.hidden).toBe(false);
-    expect(desktopToggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(desktopPanel?.hidden).toBe(true);
+    expect(desktopToggle?.getAttribute("aria-expanded")).toBe("false");
     desktop.destroy();
 
     const mobileContainer = document.body.appendChild(document.createElement("main"));
@@ -150,24 +150,19 @@ describe("BREACH-V2 responsive control center DOM", () => {
     mobile.destroy();
   });
 
-  it("follows breakpoint changes until the player explicitly chooses a panel state", () => {
+  it("does not auto-open gameplay controls when the viewport breakpoint changes", () => {
     const container = document.body.appendChild(document.createElement("main"));
     setViewportWidth(641);
     const gameplay = mountGameplay(container);
     const panel = container.querySelector<HTMLElement>("[data-testid='breach-v2-gameplay-panel']")!;
-    const toggle = container.querySelector<HTMLButtonElement>("[aria-controls='breach-v2-gameplay-controls-body']")!;
 
     setViewportWidth(640);
     window.dispatchEvent(new Event("resize"));
     expect(panel.hidden).toBe(true);
 
-    toggle.click();
-    expect(panel.hidden).toBe(false);
     setViewportWidth(641);
     window.dispatchEvent(new Event("resize"));
-    setViewportWidth(640);
-    window.dispatchEvent(new Event("resize"));
-    expect(panel.hidden).toBe(false);
+    expect(panel.hidden).toBe(true);
     gameplay.destroy();
   });
 
