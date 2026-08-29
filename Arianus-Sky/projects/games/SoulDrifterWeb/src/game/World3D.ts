@@ -113,6 +113,7 @@ import {
   PilotAnimationCatalogLoader,
 } from "./pilotAnimationCatalog";
 import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
+import { FacialAnimationDriver, type FacialAnimationCapabilityStatus } from "./facialAnimationDriver";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -216,7 +217,7 @@ interface DebugSnapshot {
     animationTime: number;
     screen: { x: number; y: number };
   }>;
-  npcs: Array<GridPoint & { id: string }>;
+  npcs: Array<GridPoint & { id: string; facialAnimation: FacialAnimationCapabilityStatus | null }>;
   objects: Array<GridPoint & {
     id: string;
     kind: StoryObject["kind"];
@@ -423,6 +424,7 @@ export class World3D {
   private readonly occluders: THREE.Mesh[] = [];
   private readonly storyObjects = new Map<string, StoryObject>();
   private readonly npcs = new Map<string, AnimatedActor>();
+  private readonly npcFacialDrivers = new Map<string, FacialAnimationDriver>();
   private readonly enemies = new Map<string, EnemyRuntime>();
   private readonly environmentAnimators: Array<(elapsed: number, delta: number) => void> = [];
   private readonly environmentDisposers: Array<() => void> = [];
@@ -560,6 +562,8 @@ export class World3D {
 
   public destroy(): void {
     this.disposed = true;
+    this.npcFacialDrivers.forEach((driver) => driver.closeDialogue());
+    this.npcFacialDrivers.clear();
     this.pilotReviewRequest += 1;
     if (this.player) {
       this.pilotReviewBoundClips.forEach((clip) => this.player.mixer.uncacheClip(clip));
@@ -1118,6 +1122,9 @@ export class World3D {
       this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
       this.addInteractionMarker(actor.root, 0x62e6db, false);
       this.npcs.set(npc.id, actor);
+      const facialDriver = new FacialAnimationDriver(actor.model, npc.id);
+      this.npcFacialDrivers.set(npc.id, facialDriver);
+      actor.root.userData.facialAnimationCapability = facialDriver.capabilityStatus();
       const zoneId = this.tileMap.get(dungeonTileKey(npc))?.zoneId ?? "training";
       this.zoneGroups.get(zoneId)!.add(actor.root);
     }));
@@ -2472,7 +2479,16 @@ export class World3D {
   private async openNpcDialogue(npcId: string): Promise<void> {
     const override = await storyDatabase.getNpcStoryOverride<NpcStoryOverride>(npcId);
     const dialogue = buildDialogue(this.npcDatabase, npcId, this.profile, override);
+    const npc = this.npcs.get(npcId);
+    const facialDriver = this.npcFacialDrivers.get(npcId);
+    this.npcFacialDrivers.forEach((driver) => driver.closeDialogue());
+    if (npc) {
+      this.faceActorTowards(npc, this.player.root.position);
+      this.faceActorTowards(this.player, npc.root.position);
+    }
+    facialDriver?.beginDialogue(dialogue.lines.join(" "), this.clock.getElapsed());
     this.ui.openDialogue(dialogue, (choice) => {
+      facialDriver?.speakLine(choice.response, this.clock.getElapsed());
       void storyDatabase.recordDialogue(npcId, dialogue.id, choice.id);
       void storyDatabase.reachCheckpoint(choice.checkpoint, npcId);
       this.ui.addLog(`${dialogue.speaker}: ${choice.label}`);
@@ -2485,6 +2501,7 @@ export class World3D {
         this.ui.setObjective("Cross the threshold and clear the creatures waiting in the Fractured Galleries.");
       }
     }, (choice) => {
+      facialDriver?.closeDialogue();
       if (npcId !== "ilyra") return;
       if (!this.profile.onboarding?.storybookCompleted) {
         this.ui.openStorybook(
@@ -4114,7 +4131,11 @@ export class World3D {
           screen: { x: Number(screen.x.toFixed(4)), y: Number(screen.y.toFixed(4)) },
         };
       }),
-      npcs: [...this.npcs.values()].map((npc) => ({ id: npc.id, ...npc.grid })),
+      npcs: [...this.npcs.values()].map((npc) => ({
+        id: npc.id,
+        ...npc.grid,
+        facialAnimation: this.npcFacialDrivers.get(npc.id)?.capabilityStatus() ?? null,
+      })),
       objects: [...this.storyObjects.values()].map((object) => ({
         id: object.id,
         kind: object.kind,
@@ -4263,6 +4284,7 @@ export class World3D {
     });
     this.updateStabilityRecovery(delta);
     this.environmentAnimators.forEach((animate) => animate(elapsed, delta));
+    this.npcFacialDrivers.forEach((driver) => driver.update(elapsed));
     this.updateEnemyAttackPhaseVisual(elapsed, delta);
     this.storyObjects.forEach((object) => {
       const animated = object.root.userData.animatedOrb as THREE.Object3D | undefined;
