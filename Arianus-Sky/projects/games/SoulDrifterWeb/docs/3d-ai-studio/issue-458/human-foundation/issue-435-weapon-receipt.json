@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "sourceIssue": 435,
+  "sourceWorktree": "H:/CodexData/.codex/worktrees/435-v2/The-Nexus-tripo-modular-character-foundation",
+  "sourceBranch": "codex/435-tripo-modular-character-foundation-v2",
+  "sourceCommit": "a6608fea44439fcc5498e7d7dd7089daa3d7fef9",
+  "intakePolicy": "exact-content donor copy; no merge or cherry-pick",
+  "weapon": {
+    "id": "iron_longsword",
+    "tripoModelId": "43f259b7-32b5-40e7-a030-38f6e88f6d88",
+    "path": "public/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
+    "bytes": 762276,
+    "sha256": "B6783C90DB54F5DD70DD68362EB0B2796A8DF1C25C0C34F41779A1A59AD2389D",
+    "topology": "Smart Mesh P2 quad; 5000 target polycount",
+    "texture": "2K WebP runtime derivative of preserved 8K source",
+    "canonicalLengthMeters": 1.05,
+    "origin": "grip-center-at-local-zero",
+    "runtimeAxes": "guard +X, blade +Y, thickness -Z"
+  },
+  "animationOwnership": {
+    "ownerIssue": 458,
+    "states": ["sheathed", "drawn"],
+    "transitions": ["drawSword", "swordAttack", "sheatheSword"],
+    "socketPolicy": "right hand while drawn; left hip while sheathed"
+  },
+  "notImported": [
+    "issue 435 branch runtime",
+    "issue 435 camera or preview code",
+    "unfinished clothing and armor candidates",
+    "unexported weapon candidates"
+  ]
+}

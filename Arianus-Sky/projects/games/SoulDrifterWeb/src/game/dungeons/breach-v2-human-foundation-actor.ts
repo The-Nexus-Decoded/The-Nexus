@@ -12,6 +12,8 @@ export const BREACH_V2_HUMAN_FOUNDATION_MODEL_URL =
   "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
 export const BREACH_V2_HUMAN_FOUNDATION_CORE_ACTIONS_URL =
   "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-core-actions.glb";
+export const BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL =
+  "/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb";
 
 export const BREACH_V2_HUMAN_FOUNDATION_ACTIONS = Object.freeze({
   idle: "MaleLocomotion__Idle",
@@ -57,6 +59,8 @@ export interface BreachV2HumanFoundationSnapshot {
   timeSeconds: number;
   durationSeconds: number;
   groundingStatus: string;
+  weaponState: "unavailable" | "sheathed" | "drawn";
+  weaponSource?: string;
   grounding?: {
     floorWorldY: number;
     lowerBoundWorldY: number;
@@ -116,11 +120,78 @@ function prepareClip(source: THREE.AnimationClip, model: THREE.Object3D): THREE.
   return normalizeAnimationPackRootMotion(bound, rootName, targetRoot.position, "preserve");
 }
 
+interface FoundationWeaponPresentation {
+  handSocket: THREE.Group;
+  hipSocket: THREE.Group;
+  state: "sheathed" | "drawn";
+}
+
+function findFoundationSocketBone(
+  model: THREE.Object3D,
+  candidates: readonly string[],
+): THREE.Object3D | null {
+  const normalizedCandidates = new Set(
+    candidates.map((candidate) => candidate.toLowerCase().replace(/[^a-z0-9]/g, "")),
+  );
+  const matches: THREE.Object3D[] = [];
+  model.traverse((object) => {
+    if (!(object instanceof THREE.Bone)) return;
+    const normalizedName = object.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalizedCandidates.has(normalizedName)) matches.push(object);
+  });
+  if (matches.length > 1) {
+    throw new Error(`Human Foundation starter longsword socket is ambiguous: ${matches.map(({ name }) => name).join(", ")}.`);
+  }
+  return matches[0] ?? null;
+}
+
+function createFoundationWeaponPresentation(
+  model: THREE.Object3D,
+  sourceWeapon?: THREE.Object3D,
+): FoundationWeaponPresentation | null {
+  if (!sourceWeapon) return null;
+  const handBone = findFoundationSocketBone(model, ["mixamorig:RightHand", "hand_r"]);
+  const hipBone = findFoundationSocketBone(model, ["mixamorig:Hips", "pelvis"]);
+  if (!handBone || !hipBone) {
+    throw new Error("Human Foundation starter longsword requires right-hand and hip sockets.");
+  }
+  const inverseModelScale = 1 / model.scale.x;
+  const handSocket = new THREE.Group();
+  handSocket.name = "weapon-socket-hand-r";
+  const handVisual = sourceWeapon.clone(true);
+  handVisual.name = "weapon-sword-longsword-starter-v001-hand";
+  handVisual.scale.multiplyScalar(inverseModelScale);
+  handSocket.add(handVisual);
+  handBone.add(handSocket);
+
+  const hipSocket = new THREE.Group();
+  hipSocket.name = "weapon-socket-hip-l";
+  hipSocket.position.set(0.28, -0.18, 0.08);
+  hipSocket.rotation.set(0.08, -0.12, 2.95);
+  const hipVisual = sourceWeapon.clone(true);
+  hipVisual.name = "weapon-sword-longsword-starter-v001-hip";
+  hipVisual.scale.multiplyScalar(inverseModelScale);
+  hipSocket.add(hipVisual);
+  hipBone.add(hipSocket);
+  return { handSocket, hipSocket, state: "sheathed" };
+}
+
+function setFoundationWeaponState(
+  weapon: FoundationWeaponPresentation | null,
+  state: "sheathed" | "drawn",
+): void {
+  if (!weapon) return;
+  weapon.state = state;
+  weapon.handSocket.visible = state === "drawn";
+  weapon.hipSocket.visible = state === "sheathed";
+}
+
 export function createBreachV2HumanFoundationActor(
   sourceModel: THREE.Object3D,
   sourceAnimations: readonly THREE.AnimationClip[],
   id = "player",
   heightMeters = 2.06,
+  sourceWeapon?: THREE.Object3D,
 ): BreachV2HumanFoundationActor {
   const model = cloneSkeleton(sourceModel);
   model.name = `breach-v2-human-foundation-${id}-model`;
@@ -144,6 +215,9 @@ export function createBreachV2HumanFoundationActor(
   groundingPivot.name = `${root.name}-grounding-pivot`;
   groundingPivot.add(model);
   root.add(groundingPivot);
+  const weapon = createFoundationWeaponPresentation(model, sourceWeapon);
+  setFoundationWeaponState(weapon, "sheathed");
+  if (weapon) root.userData.weaponSource = BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL;
 
   const clips = new Map(sourceAnimations.map((source) => {
     const prepared = prepareClip(source, model);
@@ -173,8 +247,46 @@ export function createBreachV2HumanFoundationActor(
   currentAction.play();
   root.userData.groundingStatus = "pending-first-evaluated-frame";
 
+  const syncWeaponForAction = (name: string, normalizedTime: number): void => {
+    const progress = THREE.MathUtils.clamp(normalizedTime, 0, 1);
+    if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawGreatsword) {
+      setFoundationWeaponState(weapon, progress < 0.52 ? "sheathed" : "drawn");
+      return;
+    }
+    if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.sheatheSword) {
+      setFoundationWeaponState(weapon, progress < 0.52 ? "drawn" : "sheathed");
+      return;
+    }
+    if (name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordCombatIdle
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordAttack
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordCombatIdle
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordAttack
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordWalk
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordRun) {
+      setFoundationWeaponState(weapon, "drawn");
+      return;
+    }
+    setFoundationWeaponState(weapon, "sheathed");
+  };
+
+  const recoveryFor = (name: string): string => {
+    const preferred = name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawSword
+      || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordAttack
+      ? BREACH_V2_HUMAN_FOUNDATION_ACTIONS.swordCombatIdle
+      : name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawGreatsword
+        || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordAttack
+        ? BREACH_V2_HUMAN_FOUNDATION_ACTIONS.greatswordCombatIdle
+        : name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.equipBow
+          || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.drawArrow
+          || name === BREACH_V2_HUMAN_FOUNDATION_ACTIONS.releaseArrow
+          ? BREACH_V2_HUMAN_FOUNDATION_ACTIONS.bowCombatIdle
+          : locomotionName;
+    return clips.has(preferred) ? preferred : locomotionName;
+  };
+
   const transitionTo = (name: string, loop: boolean): THREE.AnimationAction => {
-    if (name === currentName && currentAction.isRunning()) return currentAction;
+    if (name === currentName) return currentAction;
     const next = actionFor(name);
     next.reset();
     next.enabled = true;
@@ -185,10 +297,13 @@ export function createBreachV2HumanFoundationActor(
     currentAction.fadeOut(CROSSFADE_SECONDS);
     currentName = name;
     currentAction = next;
+    syncWeaponForAction(name, 0);
     return next;
   };
-  mixer.addEventListener("finished", () => {
-    if (!LOOPING_ACTIONS.has(currentName)) transitionTo(locomotionName, true);
+  mixer.addEventListener("finished", (event) => {
+    if (event.action !== currentAction || LOOPING_ACTIONS.has(currentName)) return;
+    const recovery = recoveryFor(currentName);
+    transitionTo(recovery, LOOPING_ACTIONS.has(recovery));
   });
 
   return {
@@ -202,7 +317,17 @@ export function createBreachV2HumanFoundationActor(
       if (LOCOMOTION_ACTIONS.has(currentName)) transitionTo(locomotionName, true);
     },
     play: (name, loop = LOOPING_ACTIONS.has(name)) => {
+      const restartCurrent = name === currentName;
       const action = transitionTo(name, loop);
+      if (restartCurrent) {
+        action.reset();
+        action.enabled = true;
+        action.paused = false;
+        action.clampWhenFinished = !loop;
+        action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+        action.play();
+        syncWeaponForAction(name, 0);
+      }
       return action.getClip().duration;
     },
     pose: (name, normalizedTime) => {
@@ -210,6 +335,7 @@ export function createBreachV2HumanFoundationActor(
       action.paused = true;
       action.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * action.getClip().duration;
       mixer.update(0);
+      syncWeaponForAction(name, normalizedTime);
     },
     pause: (paused) => { currentAction.paused = paused; },
     snapshot: () => ({
@@ -217,10 +343,18 @@ export function createBreachV2HumanFoundationActor(
       timeSeconds: currentAction.time,
       durationSeconds: currentAction.getClip().duration,
       groundingStatus: String(root.userData.groundingStatus),
+      weaponState: weapon?.state ?? "unavailable",
+      weaponSource: weapon ? BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL : undefined,
       grounding: root.userData.grounding,
     }),
     update: (deltaSeconds) => {
       mixer.update(deltaSeconds);
+      syncWeaponForAction(
+        currentName,
+        currentAction.getClip().duration > 0
+          ? currentAction.time / currentAction.getClip().duration
+          : 0,
+      );
       evaluatedFrames += 1;
       if (grounded || evaluatedFrames < LIVE_POSE_CALIBRATION_FRAME) return;
       const grounding = calibrateAnimatedPoseOnFloor(root, model, groundingPivot, 0);
@@ -249,14 +383,15 @@ export function createBreachV2HumanFoundationActor(
 export async function createBreachV2HumanFoundationActorFactory(
   loader: Pick<GLTFLoader, "loadAsync">,
 ): Promise<BreachV2HumanFoundationActorFactory> {
-  const [body, core] = await Promise.all([
+  const [body, core, weapon] = await Promise.all([
     loader.loadAsync(BREACH_V2_HUMAN_FOUNDATION_MODEL_URL),
     loader.loadAsync(BREACH_V2_HUMAN_FOUNDATION_CORE_ACTIONS_URL),
+    loader.loadAsync(BREACH_V2_HUMAN_FOUNDATION_STARTER_LONGSWORD_URL),
   ]);
   const actors = new Set<BreachV2HumanFoundationActor>();
   return {
     createPlayer: (id = "player") => {
-      const actor = createBreachV2HumanFoundationActor(body.scene, core.animations, id);
+      const actor = createBreachV2HumanFoundationActor(body.scene, core.animations, id, 2.06, weapon.scene);
       actors.add(actor);
       return actor;
     },
