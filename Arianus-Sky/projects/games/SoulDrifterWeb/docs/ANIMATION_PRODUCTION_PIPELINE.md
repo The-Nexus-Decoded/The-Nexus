@@ -307,13 +307,29 @@ Rules:
    The command verifies the candidate, rest rig, and video byte lengths/hashes, performs a real full video decode, confirms the zero-action 65-bone rest rig, rejects forbidden source reuse, rejects author self-approval, and rejects any incomplete technical or visual field.
 5. Owner review is strictly one candidate per file and one `Y`, `N`, or `CHANGE` decision. `assemble-human-animation-preview-reels.py` requires one or more passing receipts, forces `--group-size 1`, and refuses to export a candidate whose reviewed video path differs from the render manifest.
 6. Any edit to animation keys, rig, proxy context, camera, timing, encode, candidate GLB, or receipt invalidates the old hashes and the old visual verdict. The changed candidate returns to `QUARANTINED` and repeats every gate.
-7. After owner approval, record the exact selected candidate SHA-256 and run:
+7. After owner approval, record the exact selected candidate SHA-256 and run the
+   promotion command. The command runs the runtime-install gate itself and is
+   the only supported way to copy a candidate into the runtime tree:
 
    ```powershell
-   node scripts/validate-human-animation-candidate.mjs --gate runtime-install <candidate-receipt.json>
+   node scripts/promote-human-animation-candidate.mjs --receipt <candidate-receipt.json> --destination public/assets/3d/animations/human-foundation-pilot/<semantic-name>.glb
    ```
 
-   The runtime-install gate refuses approval for a different hash. Only then may the exact approved bytes be copied into `public/assets`, wired into BREACH-V2, and subjected to full runtime, typecheck, test, build, and browser verification.
+   The promotion command refuses a different hash, refuses a destination
+   outside `public/assets/3d/animations`, refuses to overwrite different bytes,
+   copies only the owner-selected bytes, and resets every runtime verification
+   field to `PENDING`.
+8. Wire the installed asset into BREACH-V2; run typecheck, the complete test
+   suite, the production build, and a real BREACH-V2 browser smoke; record each
+   result as `PASS` in the same receipt; then run:
+
+   ```powershell
+   node scripts/validate-human-animation-candidate.mjs --gate shipping <candidate-receipt.json>
+   ```
+
+   The shipping gate re-hashes the installed asset, requires exact equality
+   with the owner-approved candidate, and fails if any runtime check is missing
+   or not `PASS`.
 
 Failed candidates remain external provenance. A failed pack is never a fallback, never counts as coverage, and never remains in the shipping asset tree.
 

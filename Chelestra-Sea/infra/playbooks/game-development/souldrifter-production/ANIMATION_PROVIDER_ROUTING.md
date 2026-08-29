@@ -131,9 +131,25 @@ hashes in that receipt. Any regenerated key, export, camera, prop context, or
 video invalidates the verdict and returns the candidate to quarantine.
 
 Before copying approved bytes into a runtime asset directory, record the exact
-owner-selected SHA-256, change promotion to `OWNER_APPROVED`, and run the same
-validator with `--gate runtime-install`. A hash mismatch or missing owner verdict
-blocks installation. Only the approved bytes then enter BREACH-V2 runtime QA.
+owner-selected SHA-256 and change promotion to `OWNER_APPROVED`. Do not copy the
+file manually. Use the fail-closed promoter:
+
+```powershell
+node Arianus-Sky/projects/games/SoulDrifterWeb/scripts/promote-human-animation-candidate.mjs --receipt <candidate-receipt.json> --destination public/assets/3d/animations/human-foundation-pilot/<semantic-name>.glb
+```
+
+The promoter runs the runtime-install gate, rejects a hash mismatch or missing
+owner verdict, refuses any destination outside the runtime animation tree, and
+sets runtime verification back to `PENDING`. After BREACH-V2 integration, run
+typecheck, the complete test suite, the production build, and a real BREACH-V2
+browser smoke. Record all four results as `PASS`, then require:
+
+```powershell
+node Arianus-Sky/projects/games/SoulDrifterWeb/scripts/validate-human-animation-candidate.mjs --gate shipping <candidate-receipt.json>
+```
+
+Only a receipt that re-hashes to the exact approved and installed bytes and has
+all runtime checks at `PASS` reaches `SHIPPING_VERIFIED`.
 
 ## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
 
