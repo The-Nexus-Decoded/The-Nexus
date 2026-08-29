@@ -10,7 +10,7 @@ written only to the issue evidence quarantine, never to public/assets:
 
     blender --background --python scripts/build-human-authored-traversal-survival.py -- \
       --rest-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb \
-      --candidate-id water-dive-v5 \
+      --candidate-id water-dive-v6 \
       --only AuthoredSurvival__WaterDive
 """
 
@@ -89,7 +89,7 @@ def degrees(x: float, y: float, z: float) -> tuple[float, float, float]:
     return (x * pi / 180.0, y * pi / 180.0, z * pi / 180.0)
 
 
-def water_dive_v5_key(
+def water_dive_v6_key(
     time: float,
     root: tuple[float, float, float],
     torso: tuple[float, float, float, float, float, float],
@@ -98,7 +98,7 @@ def water_dive_v5_key(
     hands: tuple[tuple[float, float, float], tuple[float, float, float]],
     leg_join: float = 0.0,
 ) -> dict[str, object]:
-    """Declare one independently authored v5 whole-body milestone."""
+    """Declare one independently authored v6 whole-body milestone."""
     root_pitch, spine, spine1, spine2, neck, head = torso
     left_up, right_up, left_knee, right_knee = legs
     left_foot, right_foot, left_toe, right_toe = feet
@@ -106,18 +106,18 @@ def water_dive_v5_key(
         "time": time,
         "root": root,
         "angles": {
-            # Axis-probed on the canonical rest rig: local X is the sagittal
-            # plane for Hips, torso, and legs; local Z is leg adduction.
-            ROOT: (-root_pitch, 0.0, 0.0),
-            "mixamorig:Spine": (-spine, 0.0, 0.0),
-            "mixamorig:Spine1": (-spine1, 0.0, 0.0),
-            "mixamorig:Spine2": (-spine2, 0.0, 0.0),
-            "mixamorig:Neck": (-neck, 0.0, 0.0),
-            "mixamorig:Head": (-head, 0.0, 0.0),
-            "mixamorig:LeftUpLeg": (-left_up, 0.0, -leg_join),
-            "mixamorig:RightUpLeg": (-right_up, 0.0, leg_join),
-            "mixamorig:LeftLeg": (-left_knee, 0.0, 0.0),
-            "mixamorig:RightLeg": (-right_knee, 0.0, 0.0),
+            # Measured canonical-rest-rig axes: local X is sagittal for Hips,
+            # torso, and legs; local Z carries symmetric leg adduction.
+            ROOT: (root_pitch, 0.0, 0.0),
+            "mixamorig:Spine": (spine, 0.0, 0.0),
+            "mixamorig:Spine1": (spine1, 0.0, 0.0),
+            "mixamorig:Spine2": (spine2, 0.0, 0.0),
+            "mixamorig:Neck": (neck, 0.0, 0.0),
+            "mixamorig:Head": (head, 0.0, 0.0),
+            "mixamorig:LeftUpLeg": (left_up, 0.0, -leg_join),
+            "mixamorig:RightUpLeg": (right_up, 0.0, leg_join),
+            "mixamorig:LeftLeg": (left_knee, 0.0, 0.0),
+            "mixamorig:RightLeg": (right_knee, 0.0, 0.0),
             "mixamorig:LeftFoot": (left_foot, 0.0, 0.0),
             "mixamorig:RightFoot": (right_foot, 0.0, 0.0),
             "mixamorig:LeftToeBase": (left_toe, 0.0, 0.0),
@@ -127,42 +127,40 @@ def water_dive_v5_key(
     }
 
 
-# Water Dive v5 is a new, compact milestone set authored from the zero-action
-# rest pose. It does not evaluate, read, transform, or interpolate any v1-v4
-# pose data. Times are normalized across a 2.5-second action.
-WATER_DIVE_V5_KEYS = (
-    # Three crisp sprint strides with close, opposing bent-arm drive.
-    water_dive_v5_key(0.000, (0.00, 0.00, 0.0), (-17, -7, 2, -2, 7, 3), (22, -42, 30, 20), (10, -14, -4, 4), ((0.16, 0.22, -0.11), (-0.13, 0.18, 0.11))),
-    water_dive_v5_key(0.075, (0.30, 0.045, 0.0), (-18, -8, 2, -2, 7, 3), (-58, 24, 74, 32), (-12, 16, 3, -5), ((-0.13, 0.18, -0.11), (0.17, 0.23, 0.11))),
-    water_dive_v5_key(0.160, (0.78, 0.00, 0.0), (-18, -8, 2, -2, 7, 3), (-34, 34, 20, 48), (-12, 13, 3, -5), ((-0.12, 0.18, -0.11), (0.16, 0.22, 0.11))),
-    water_dive_v5_key(0.235, (1.28, 0.050, 0.0), (-19, -8, 2, -2, 7, 3), (24, -60, 34, 76), (17, -12, -5, 3), ((0.17, 0.23, -0.11), (-0.13, 0.18, 0.11))),
-    water_dive_v5_key(0.315, (1.83, 0.00, 0.0), (-19, -8, 2, -2, 7, 3), (35, -36, 50, 20), (14, -13, -5, 3), ((0.16, 0.22, -0.11), (-0.12, 0.18, 0.11))),
-    water_dive_v5_key(0.390, (2.42, 0.055, 0.0), (-20, -8, 2, -2, 7, 3), (-62, 25, 78, 34), (-13, 18, 3, -5), ((-0.13, 0.18, -0.11), (0.18, 0.24, 0.11))),
-    water_dive_v5_key(0.460, (3.04, 0.00, 0.0), (-20, -8, 2, -2, 7, 3), (-36, 38, 20, 54), (-13, 15, 3, -5), ((-0.12, 0.18, -0.11), (0.16, 0.22, 0.11))),
-    # Penultimate one-foot hurdle and opposite-knee lift.
-    water_dive_v5_key(0.505, (3.46, 0.12, 0.0), (-16, -6, 1, -1, 5, 2), (12, -72, 12, 92), (24, -12, 12, -4), ((-0.12, 0.18, -0.11), (-0.12, 0.18, 0.11))),
-    water_dive_v5_key(0.535, (3.76, 0.32, 0.0), (-14, -5, 1, -1, 5, 2), (16, -76, 8, 96), (30, -12, 15, -4), ((-0.17, 0.16, -0.11), (-0.17, 0.16, 0.11))),
-    # Four-to-six-frame loaded two-foot plant: hips back, knees/ankles flexed,
-    # arms swept behind the torso before the immediate spear and takeoff.
-    water_dive_v5_key(0.565, (4.00, -0.30, 0.0), (-24, -10, 4, -3, 8, 4), (-54, -54, 84, 84), (-28, -28, -12, -12), ((-0.20, 0.16, -0.11), (-0.20, 0.16, 0.11))),
-    water_dive_v5_key(0.595, (4.24, -0.22, 0.0), (-27, -10, 3, -3, 7, 3), (-42, -42, 66, 66), (-18, -18, -8, -8), ((0.04, 0.45, -0.05), (0.04, 0.45, 0.05))),
-    # Explosive triple extension and immediate joined-arm spear.
-    water_dive_v5_key(0.625, (4.54, 0.34, 0.0), (-34, -6, 1, -1, 5, 1), (0, 0, -4, -4), (-48, -48, 0, 0), ((0.00, 0.76, -0.004), (0.00, 0.76, 0.004)), leg_join=7.0),
-    water_dive_v5_key(0.690, (5.22, 0.86, 0.0), (-49, -3, 0, 0, 3, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, -0.002), (0.00, 0.78, 0.002)), leg_join=9.0),
-    # Ballistic apex, straight joined streamline, and head-first descent.
-    water_dive_v5_key(0.755, (6.02, 1.08, 0.0), (-63, -2, 0, 0, 2, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
-    water_dive_v5_key(0.830, (6.98, 0.92, 0.0), (-76, -1, 0, 0, 1, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
-    water_dive_v5_key(0.900, (7.86, 0.48, 0.0), (-90, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
-    water_dive_v5_key(0.945, (8.40, 0.04, 0.0), (-104, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
-    water_dive_v5_key(1.000, (9.00, -1.20, 0.0), (-116, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.76, 0.0), (0.00, 0.76, 0.0)), leg_join=10.0),
+# Water Dive v6 is a wholly new 2.4-second performance from the zero-action
+# rest rig. It does not inspect or transform any v1-v5 key. The run-up is
+# surface-constrained by named support foot until the edge plant is complete.
+WATER_DIVE_V6_KEYS = (
+    water_dive_v6_key(0.000, (0.00, 0.00, 0.0), (14, 5, 1, 1, -5, -2), (-32, 20, -42, -18), (-5, 8, 0, 0), ((0.14, 0.23, -0.11), (-0.13, 0.18, 0.11))),
+    water_dive_v6_key(0.075, (0.22, 0.00, 0.0), (16, 6, 1, 1, -6, -2), (58, -10, -72, -12), (-10, 12, 0, 0), ((-0.13, 0.18, -0.11), (0.15, 0.23, 0.11))),
+    water_dive_v6_key(0.155, (0.49, 0.00, 0.0), (15, 5, 1, 1, -5, -2), (22, -38, -18, -48), (-7, 11, 0, 0), ((-0.12, 0.18, -0.11), (0.14, 0.22, 0.11))),
+    water_dive_v6_key(0.235, (0.78, 0.00, 0.0), (17, 6, 1, 1, -6, -2), (-10, 60, -12, -74), (12, -10, 0, 0), ((0.16, 0.24, -0.11), (-0.13, 0.18, 0.11))),
+    water_dive_v6_key(0.315, (1.08, 0.00, 0.0), (16, 6, 1, 1, -6, -2), (-40, 22, -50, -18), (11, -7, 0, 0), ((0.15, 0.23, -0.11), (-0.12, 0.18, 0.11))),
+    water_dive_v6_key(0.395, (1.42, 0.00, 0.0), (18, 7, 1, 1, -6, -2), (62, -12, -76, -13), (-11, 13, 0, 0), ((-0.13, 0.18, -0.11), (0.17, 0.24, 0.11))),
+    water_dive_v6_key(0.475, (1.78, 0.00, 0.0), (16, 6, 1, 1, -5, -2), (24, -42, -18, -52), (-8, 12, 0, 0), ((-0.12, 0.18, -0.11), (0.15, 0.23, 0.11))),
+    # Penultimate left-foot hurdle with a fast right-knee drive.
+    water_dive_v6_key(0.525, (2.00, 0.12, 0.0), (12, 4, 1, 1, -4, -1), (-5, 76, -12, -92), (20, -12, 8, -4), ((-0.15, 0.17, -0.11), (-0.15, 0.17, 0.11))),
+    water_dive_v6_key(0.555, (2.18, 0.26, 0.0), (10, 3, 1, 1, -3, -1), (-8, 80, -10, -96), (28, -12, 12, -4), ((-0.18, 0.16, -0.11), (-0.18, 0.16, 0.11))),
+    # Edge plant spans five authored frames: two feet load, deepen, and start
+    # triple extension while both arms sweep behind then forward.
+    water_dive_v6_key(0.585, (2.27, -0.28, 0.0), (20, 8, 2, 1, -6, -2), (54, 54, -84, -84), (-28, -28, -10, -10), ((-0.20, 0.16, -0.11), (-0.20, 0.16, 0.11))),
+    water_dive_v6_key(0.625, (2.37, -0.34, 0.0), (24, 9, 2, 1, -7, -2), (60, 60, -94, -94), (-32, -32, -12, -12), ((-0.19, 0.17, -0.10), (-0.19, 0.17, 0.10))),
+    water_dive_v6_key(0.650, (2.45, -0.20, 0.0), (28, 7, 1, 1, -6, -2), (34, 34, -58, -58), (-22, -22, -8, -8), ((0.05, 0.46, -0.04), (0.05, 0.46, 0.04))),
+    # Ballistic motion begins only after the edge plant has completed.
+    water_dive_v6_key(0.680, (2.58, 0.28, 0.0), (36, 4, 1, 0, -4, -1), (0, 0, -4, -4), (-48, -48, 0, 0), ((0.00, 0.77, -0.003), (0.00, 0.77, 0.003)), leg_join=7.0),
+    water_dive_v6_key(0.750, (2.87, 0.68, 0.0), (51, 2, 0, 0, -2, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.79, -0.001), (0.00, 0.79, 0.001)), leg_join=9.0),
+    water_dive_v6_key(0.820, (3.08, 0.82, 0.0), (65, 1, 0, 0, -1, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.79, 0.0), (0.00, 0.79, 0.0)), leg_join=10.0),
+    water_dive_v6_key(0.890, (3.36, 0.60, 0.0), (80, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.79, 0.0), (0.00, 0.79, 0.0)), leg_join=10.0),
+    water_dive_v6_key(0.940, (3.56, 0.12, 0.0), (101, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.79, 0.0), (0.00, 0.79, 0.0)), leg_join=10.0),
+    water_dive_v6_key(1.000, (3.84, -0.85, 0.0), (118, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.77, 0.0), (0.00, 0.77, 0.0)), leg_join=10.0),
 )
 
 
-def water_dive_v5_pose(t: float) -> dict[str, object]:
-    """Interpolate only the independently declared v5 milestone keys."""
-    lower = WATER_DIVE_V5_KEYS[0]
-    upper = WATER_DIVE_V5_KEYS[-1]
-    for candidate in WATER_DIVE_V5_KEYS[1:]:
+def water_dive_v6_pose(t: float) -> dict[str, object]:
+    """Interpolate only the independently declared v6 milestone keys."""
+    lower = WATER_DIVE_V6_KEYS[0]
+    upper = WATER_DIVE_V6_KEYS[-1]
+    for candidate in WATER_DIVE_V6_KEYS[1:]:
         if t <= candidate["time"]:
             upper = candidate
             break
@@ -171,14 +169,19 @@ def water_dive_v5_pose(t: float) -> dict[str, object]:
     raw_blend = max(0.0, min(1.0, (t - float(lower["time"])) / span))
     pose_blend = smoothstep(raw_blend)
 
-    # Root X uses direct interpolation so the actor never decelerates to zero
-    # at a contact pose. Vertical/root-pose channels ease through the authored
-    # compression, extension, and airborne-arc milestones.
-    root = (
+    # Authored forward distance uses direct interpolation so the actor never
+    # decelerates to zero at a contact pose. Vertical/root-pose channels ease
+    # through the compression, extension, and airborne-arc milestones.
+    authored_root = (
         float(lower["root"][0]) + (float(upper["root"][0]) - float(lower["root"][0])) * raw_blend,
         float(lower["root"][1]) + (float(upper["root"][1]) - float(lower["root"][1])) * pose_blend,
         0.0,
     )
+    # Canonical Mixamo import basis: Hips local Z maps to the actor's world-X
+    # facing/forward axis, while local Y maps to world height. Keeping authored
+    # milestones in (forward, vertical, lateral) form makes the biomechanics
+    # legible and prevents the old sideways run trajectory.
+    root = (authored_root[2], authored_root[1], authored_root[0])
     rotations = {}
     for bone_name, lower_angles in lower["angles"].items():
         upper_angles = upper["angles"][bone_name]
@@ -542,10 +545,10 @@ def authored_clips() -> list[AuthoredClip]:
             name="AuthoredSurvival__WaterDive",
             label="Water Dive",
             requirement="water.dive",
-            frames=76,
+            frames=73,
             loop=False,
             airborne=True,
-            root_policy="AUTHORED_FORWARD_AND_VERTICAL_ENTRY",
+            root_policy="AUTHORED_FORWARD_LOCAL_Z_AND_VERTICAL_ENTRY",
             reference_ids=(
                 "springboard-full-approach-hurdle",
                 "world-aquatics-running-approach",
@@ -560,7 +563,7 @@ def authored_clips() -> list[AuthoredClip]:
                 "straight joined trailing legs and pointed feet follow a clear airborne arc",
                 "hands and head cross the surface before the torso hips and feet",
             ),
-            pose=water_dive_v5_pose,
+            pose=water_dive_v6_pose,
         ),
         AuthoredClip("AuthoredSurvival__UnderwaterSwim", "Underwater Swim", "water.underwater-swim", 73, True, True, "FORWARD_ROOT_MOTION_SUBMERGED", ("water-dolphin-kick",), ("head-spine-hip streamline", "synchronous dolphin kick", "arms sweep out and recover forward", "small depth undulation"), underwater_swim_pose),
         AuthoredClip("AuthoredSurvival__OpenWaterSurface", "Open Water Surface", "water.surface.open", 61, False, True, "VERTICAL_ROOT_MOTION_TO_WATERLINE", ("water-sesa", "water-jump-submerge-resurface"), ("upward body angle", "arms press water down and outward", "alternating kick", "torso returns upright at surface"), open_water_surface_pose),
@@ -625,6 +628,63 @@ def skinned_mesh_lower_world(meshes: list[bpy.types.Object]) -> float:
     return lower
 
 
+def skinned_group_lower_world(
+    meshes: list[bpy.types.Object],
+    bone_names: tuple[str, ...],
+    minimum_weight: float = 0.02,
+) -> float:
+    """Return the evaluated lower bound of vertices influenced by named bones.
+
+    The accepted rig has no topology-changing modifiers, so evaluated vertex
+    indices remain aligned with the source mesh vertex-group assignments. This
+    lets the contact bake measure the actual deformed support foot instead of
+    grounding whichever unrelated body vertex happens to be lowest.
+    """
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    lower = float("inf")
+    matched_vertices = 0
+    for mesh_object in meshes:
+        wanted_group_indices = {
+            group.index
+            for group in mesh_object.vertex_groups
+            if group.name in bone_names
+        }
+        if not wanted_group_indices:
+            continue
+        evaluated = mesh_object.evaluated_get(depsgraph)
+        evaluated_mesh = evaluated.to_mesh()
+        try:
+            if len(evaluated_mesh.vertices) != len(mesh_object.data.vertices):
+                raise RuntimeError(
+                    f"{mesh_object.name}: evaluated topology changed; precise support-foot "
+                    "contact cannot be proven"
+                )
+            world = evaluated.matrix_world
+            for source_vertex, evaluated_vertex in zip(
+                mesh_object.data.vertices,
+                evaluated_mesh.vertices,
+                strict=True,
+            ):
+                if any(
+                    assignment.group in wanted_group_indices
+                    and assignment.weight >= minimum_weight
+                    for assignment in source_vertex.groups
+                ):
+                    lower = min(lower, (world @ evaluated_vertex.co).z)
+                    matched_vertices += 1
+        finally:
+            evaluated.to_mesh_clear()
+    if lower == float("inf"):
+        raise RuntimeError(
+            f"No evaluated vertices were influenced by support groups {bone_names}"
+        )
+    if matched_vertices < 3:
+        raise RuntimeError(
+            f"Support groups {bone_names} matched only {matched_vertices} vertices"
+        )
+    return lower
+
+
 def skinned_meshes_for(armature: bpy.types.Object) -> list[bpy.types.Object]:
     meshes = [
         obj
@@ -642,13 +702,32 @@ def skinned_meshes_for(armature: bpy.types.Object) -> list[bpy.types.Object]:
     return meshes
 
 
+WATER_DIVE_FINAL_PLANT_START = 0.58
+WATER_DIVE_TAKEOFF = 0.68
+WATER_DIVE_WATER_ENTRY = 0.94
+LEFT_FOOT_GROUPS = ("mixamorig:LeftFoot", "mixamorig:LeftToeBase")
+RIGHT_FOOT_GROUPS = ("mixamorig:RightFoot", "mixamorig:RightToeBase")
+
+
+def water_dive_support_groups(t: float) -> tuple[tuple[str, ...], ...]:
+    """Declare every pre-takeoff support foot, including the edge plant."""
+    if t < 0.11:
+        return (RIGHT_FOOT_GROUPS,)
+    if t < 0.27:
+        return (LEFT_FOOT_GROUPS,)
+    if t < 0.43:
+        return (RIGHT_FOOT_GROUPS,)
+    if t < WATER_DIVE_FINAL_PLANT_START:
+        return (LEFT_FOOT_GROUPS,)
+    if t < WATER_DIVE_TAKEOFF:
+        return (LEFT_FOOT_GROUPS, RIGHT_FOOT_GROUPS)
+    return ()
+
+
 def grounding_target(clip: AuthoredClip, t: float, rest_lower: float) -> float | None:
     """Return the authored contact surface for this normalized-time pose."""
     if clip.name == "AuthoredSurvival__WaterDive":
-        approach_contacts = (0.00, 0.16, 0.315, 0.46)
-        running_contact = any(abs(t - center) <= 0.025 for center in approach_contacts)
-        final_plant_contact = 0.555 <= t <= 0.605
-        return rest_lower if running_contact or final_plant_contact else None
+        return rest_lower if water_dive_support_groups(t) else None
     if clip.name == "AuthoredTraversal__NeutralLandToRun":
         return rest_lower if t >= 0.36 else None
     if clip.name == "AuthoredTraversal__StairsAscend":
@@ -706,7 +785,16 @@ def ground_authored_contacts(
             continue
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
-        lower = skinned_mesh_lower_world(meshes)
+        support_groups = (
+            water_dive_support_groups(t)
+            if clip.name == "AuthoredSurvival__WaterDive"
+            else ()
+        )
+        lower = (
+            min(skinned_group_lower_world(meshes, groups) for groups in support_groups)
+            if support_groups
+            else skinned_mesh_lower_world(meshes)
+        )
         correction = (target - lower) / vertical_response
         root.location.y += correction
         root.keyframe_insert("location", frame=frame, group=ROOT)
@@ -714,7 +802,11 @@ def ground_authored_contacts(
         corrections.append(correction)
         contact_frames += 1
     return {
-        "method": "PRE_EXPORT_PRECISE_SKINNED_MESH_CONTACT_BAKE",
+        "method": (
+            "PRE_EXPORT_NAMED_SUPPORT_FOOT_SKINNED_CONTACT_BAKE"
+            if clip.name == "AuthoredSurvival__WaterDive"
+            else "PRE_EXPORT_PRECISE_SKINNED_MESH_CONTACT_BAKE"
+        ),
         "contactFrameCount": contact_frames,
         "rootLocalYToWorldZResponse": vertical_response,
         "maximumAbsoluteRootCorrectionMeters": max(
@@ -725,7 +817,7 @@ def ground_authored_contacts(
 
 def expected_speed_range(clip: AuthoredClip) -> tuple[float, float]:
     if clip.name == "AuthoredSurvival__WaterDive":
-        return (2.50, 4.25)
+        return (1.25, 2.50)
     if clip.root_policy.startswith("IN_PLACE"):
         return (0.0, 0.15)
     if clip.name == "AuthoredNpc__Farewell":
@@ -737,6 +829,8 @@ def expected_speed_range(clip: AuthoredClip) -> tuple[float, float]:
 
 def root_policy_passed(clip: AuthoredClip, delta: Vector) -> bool:
     policy = clip.root_policy
+    if clip.name == "AuthoredSurvival__WaterDive":
+        return delta.z > 3.50 and delta.y < -0.20 and abs(delta.x) < 0.10
     if policy.startswith("IN_PLACE"):
         return delta.length <= 0.15
     if "BACKWARD" in policy:
@@ -758,6 +852,133 @@ def root_policy_passed(clip: AuthoredClip, delta: Vector) -> bool:
     if "VERTICAL_ROOT_MOTION" in policy:
         return delta.y > 0.20
     return delta.length < 5.0
+
+
+def validate_water_dive_framewise(
+    armature: bpy.types.Object,
+    meshes: list[bpy.types.Object],
+    start: int,
+    end: int,
+    runway_surface: float,
+    contact_tolerance: float,
+) -> dict[str, object]:
+    """Fail closed on V6 support, takeoff ordering, and airborne leg state."""
+    support_samples: list[dict[str, object]] = []
+    plant_frames: list[int] = []
+    airborne_frames: list[int] = []
+    post_takeoff_minimum_clearance = float("inf")
+    post_takeoff_maximum_sagittal_asymmetry = 0.0
+    clearance_threshold = 0.015
+    sagittal_asymmetry_tolerance = 3.0 * pi / 180.0
+
+    for frame in range(start, end + 1):
+        t = (frame - start) / max(1, end - start)
+        bpy.context.scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        support_groups = water_dive_support_groups(t)
+        if support_groups:
+            errors = [
+                skinned_group_lower_world(meshes, groups) - runway_surface
+                for groups in support_groups
+            ]
+            support_samples.append(
+                {
+                    "frame": frame,
+                    "normalizedTime": t,
+                    "supportFeet": [
+                        "LEFT" if groups == LEFT_FOOT_GROUPS else "RIGHT"
+                        for groups in support_groups
+                    ],
+                    "lowerBoundErrorsMeters": errors,
+                }
+            )
+            if t >= WATER_DIVE_FINAL_PLANT_START:
+                plant_frames.append(frame)
+            continue
+
+        if t < WATER_DIVE_WATER_ENTRY:
+            airborne_frames.append(frame)
+            left_clearance = (
+                skinned_group_lower_world(meshes, LEFT_FOOT_GROUPS) - runway_surface
+            )
+            right_clearance = (
+                skinned_group_lower_world(meshes, RIGHT_FOOT_GROUPS) - runway_surface
+            )
+            post_takeoff_minimum_clearance = min(
+                post_takeoff_minimum_clearance,
+                left_clearance,
+                right_clearance,
+            )
+            left_up = armature.pose.bones["mixamorig:LeftUpLeg"].matrix_basis.to_euler("XYZ").x
+            right_up = armature.pose.bones["mixamorig:RightUpLeg"].matrix_basis.to_euler("XYZ").x
+            left_knee = armature.pose.bones["mixamorig:LeftLeg"].matrix_basis.to_euler("XYZ").x
+            right_knee = armature.pose.bones["mixamorig:RightLeg"].matrix_basis.to_euler("XYZ").x
+            post_takeoff_maximum_sagittal_asymmetry = max(
+                post_takeoff_maximum_sagittal_asymmetry,
+                abs(left_up - right_up),
+                abs(left_knee - right_knee),
+            )
+
+    support_maximum_error = max(
+        (
+            abs(error)
+            for sample in support_samples
+            for error in sample["lowerBoundErrorsMeters"]
+        ),
+        default=float("inf"),
+    )
+    support_passed = (
+        bool(support_samples)
+        and support_samples[0]["frame"] == start
+        and all(
+            sample["frame"] == start + index
+            for index, sample in enumerate(support_samples)
+        )
+        and support_maximum_error <= contact_tolerance
+    )
+    expected_first_airborne_frame = next(
+        frame
+        for frame in range(start, end + 1)
+        if (frame - start) / max(1, end - start) >= WATER_DIVE_TAKEOFF
+    )
+    plant_precedes_takeoff = (
+        bool(plant_frames)
+        and bool(airborne_frames)
+        and max(plant_frames) < min(airborne_frames)
+        and min(airborne_frames) == expected_first_airborne_frame
+    )
+    airborne_passed = (
+        bool(airborne_frames)
+        and post_takeoff_minimum_clearance > clearance_threshold
+        and post_takeoff_maximum_sagittal_asymmetry <= sagittal_asymmetry_tolerance
+    )
+    passed = support_passed and plant_precedes_takeoff and airborne_passed
+    return {
+        "passed": passed,
+        "preTakeoffSupportFootAtRunway": {
+            "passed": support_passed,
+            "testedFrameCount": len(support_samples),
+            "firstFrame": support_samples[0]["frame"] if support_samples else None,
+            "lastFrame": support_samples[-1]["frame"] if support_samples else None,
+            "maximumAbsoluteLowerBoundErrorMeters": support_maximum_error,
+            "toleranceMeters": contact_tolerance,
+            "samples": support_samples,
+        },
+        "finalPlantPrecedesTakeoff": {
+            "passed": plant_precedes_takeoff,
+            "plantFrames": plant_frames,
+            "firstAirborneFrame": min(airborne_frames) if airborne_frames else None,
+            "declaredTakeoffNormalizedTime": WATER_DIVE_TAKEOFF,
+        },
+        "postTakeoffNoRunCycleFootContact": {
+            "passed": airborne_passed,
+            "testedFrames": airborne_frames,
+            "minimumFootClearanceAboveRunwayMeters": post_takeoff_minimum_clearance,
+            "minimumRequiredClearanceMeters": clearance_threshold,
+            "maximumLeftRightSagittalLegAsymmetryRadians": post_takeoff_maximum_sagittal_asymmetry,
+            "sagittalLegAsymmetryToleranceRadians": sagittal_asymmetry_tolerance,
+        },
+    }
 
 
 def validate_runtime_action(
@@ -797,7 +1018,18 @@ def validate_runtime_action(
             continue
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
-        contact_errors.append(skinned_mesh_lower_world(meshes) - target)
+        support_groups = (
+            water_dive_support_groups(t)
+            if clip.name == "AuthoredSurvival__WaterDive"
+            else ()
+        )
+        if support_groups:
+            contact_errors.extend(
+                skinned_group_lower_world(meshes, groups) - target
+                for groups in support_groups
+            )
+        else:
+            contact_errors.append(skinned_mesh_lower_world(meshes) - target)
         tested_contact_frames.append(frame)
     contact_tolerance = 0.0075
     maximum_contact_error = max(
@@ -840,7 +1072,25 @@ def validate_runtime_action(
     root_passed = root_policy_passed(clip, root_delta)
     speed_passed = speed_minimum <= average_speed <= speed_maximum
     contact_passed = maximum_contact_error <= contact_tolerance
-    passed = root_passed and speed_passed and contact_passed and loop_passed
+    water_dive_framewise = (
+        validate_water_dive_framewise(
+            armature,
+            meshes,
+            start,
+            end,
+            rest_lower,
+            contact_tolerance,
+        )
+        if clip.name == "AuthoredSurvival__WaterDive"
+        else None
+    )
+    passed = (
+        root_passed
+        and speed_passed
+        and contact_passed
+        and loop_passed
+        and (water_dive_framewise is None or water_dive_framewise["passed"])
+    )
     return {
         "passed": passed,
         "freshAcceptedTexturedRestRig": True,
@@ -862,6 +1112,7 @@ def validate_runtime_action(
             "maximumAbsoluteLowerBoundErrorMeters": maximum_contact_error,
             "toleranceMeters": contact_tolerance,
         },
+        "waterDiveFramewiseAssertions": water_dive_framewise,
         "loop": {
             "applicable": clip.loop,
             "passed": loop_passed,
@@ -1217,7 +1468,7 @@ def main() -> None:
                 "rootPolicy": clip.root_policy,
                 "airborne": clip.airborne,
                 "authoringRevision": (
-                    5 if clip.name == "AuthoredSurvival__WaterDive" else 1
+                    6 if clip.name == "AuthoredSurvival__WaterDive" else 1
                 ),
                 "rejectedRevisionKeyReuse": False,
                 "groundingBake": grounding_bake,

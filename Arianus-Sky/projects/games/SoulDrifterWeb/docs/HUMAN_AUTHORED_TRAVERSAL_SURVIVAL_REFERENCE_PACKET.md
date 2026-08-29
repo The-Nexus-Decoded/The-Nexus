@@ -30,7 +30,7 @@ current command is:
 ```powershell
 blender --background --python scripts/build-human-authored-traversal-survival.py -- `
   --rest-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb `
-  --candidate-id water-dive-v5 `
+  --candidate-id water-dive-v6 `
   --only AuthoredSurvival__WaterDive
 ```
 
@@ -65,7 +65,7 @@ poses, transforms, timing curves, or motion capture are imported from it.
 |---|---|---|
 | Shimmy Left | `AuthoredTraversal__ShimmyLeft` | `hang-traverse` |
 | Shimmy Right | `AuthoredTraversal__ShimmyRight` | `hang-traverse` |
-| Water Dive v5 | `AuthoredSurvival__WaterDive` | `springboard-full-approach-hurdle`, `world-aquatics-running-approach`, `water-head-first-dive`, `water-jump-submerge-resurface` |
+| Water Dive v6 | `AuthoredSurvival__WaterDive` | `springboard-full-approach-hurdle`, `world-aquatics-running-approach`, `water-head-first-dive`, `water-jump-submerge-resurface` |
 | Underwater Swim | `AuthoredSurvival__UnderwaterSwim` | `water-dolphin-kick` |
 | Open Water Surface | `AuthoredSurvival__OpenWaterSurface` | `water-sesa`, `water-jump-submerge-resurface` |
 | Drowning | `AuthoredSurvival__Drowning` | `water-tired-swimmer` |
@@ -106,16 +106,23 @@ the trailing legs stayed bent and split; and the path read as a slow diagonal
 fall instead of a ballistic hands-first entry. Its receipt remains `REWORK`,
 `NOT_PRESENTED`, and `QUARANTINED`.
 
-Version 5 is an entirely new 2.5-second milestone set authored from the
+Water Dive v5 was rejected after all 76 frames in both views were reviewed. The
+character was already suspended in empty space on frame one; the approach read
+as repeated air-running with no visible runway or foot contacts; and the runway
+edge appeared only near entry. The result pitched into the water instead of
+showing a grounded run-up, loaded plant, explosive launch, and dive. Its receipt
+remains `REWORK`, `NOT_PRESENTED`, and `QUARANTINED`.
+
+Version 6 is an entirely new 2.4-second milestone set authored from the
 zero-action rest rig without reading, copying, transforming, or interpolating
-any v1-v4 keys. It uses three compact accelerating sprint strides with close
-opposing arm drive, a one-foot hurdle and opposite-knee lift, a five-frame
-two-foot compression plant, and a five-frame triple-extension launch with the
-arms spearing together immediately. The airborne section contains a discrete
-apex, joined straight legs, pointed feet, hands together beyond the crown, and
-a hands/head-first waterline crossing. Only sprint strikes and the final loaded
-plant are contact-baked. V5 remains quarantined pending independent continuous
-playback review. The other nineteen
+any v1-v5 keys. It declares three alternating sprint support phases, a one-foot
+hurdle, and a two-foot edge plant before the first ballistic frame. Named
+support-foot vertex groups are baked and checked on every pre-takeoff frame.
+The build fails if either planted foot leaves the runway tolerance, if takeoff
+occurs before the final plant, or if post-takeoff feet contact the runway or
+resume an alternating run cycle. The side and three-quarter review set must
+keep the solid runway, its edge, and the waterline visible for the entire clip.
+V6 remains quarantined pending independent continuous playback review. The other nineteen
 actions must not be expanded until the independent coordinator passes this
 exemplar.
 
