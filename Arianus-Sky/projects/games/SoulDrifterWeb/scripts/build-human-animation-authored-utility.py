@@ -16,7 +16,8 @@ Run with cached Blender 5.2.1:
       --source-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb \
       --review-video H:/path/to/normal-speed-gameplay.mp4 \
       --review-video-front H:/path/to/normal-speed-close-front.mp4 \
-      --review-video-side H:/path/to/normal-speed-close-side.mp4
+      --review-video-side H:/path/to/normal-speed-close-side.mp4 \
+      --review-video-rear H:/path/to/normal-speed-close-rear.mp4
 """
 
 from __future__ import annotations
@@ -62,8 +63,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--review-video", required=True, help="Continuous normal-speed gameplay-camera review")
     parser.add_argument("--review-video-front", required=True, help="Continuous normal-speed close-front review")
     parser.add_argument("--review-video-side", required=True, help="Continuous normal-speed close-side review")
+    parser.add_argument("--review-video-rear", required=True, help="Continuous normal-speed close-rear review")
     parser.add_argument("--candidate-id", default=DEFAULT_CANDIDATE_ID)
     parser.add_argument("--evidence-root", default=str(DEFAULT_EVIDENCE_ROOT))
+    parser.add_argument("--action", choices=("lift", "lockpick"), default="lift")
     return parser.parse_args(values)
 
 
@@ -92,6 +95,7 @@ def quarantined_candidate_paths(args: argparse.Namespace) -> dict[str, Path]:
         "video": candidate_dir / "normal-speed.mp4",
         "video_front": candidate_dir / "normal-speed-close-front.mp4",
         "video_side": candidate_dir / "normal-speed-close-side.mp4",
+        "video_rear": candidate_dir / "normal-speed-close-rear.mp4",
     }
 
 
@@ -584,6 +588,180 @@ def build_lift(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, 
     return action, record
 
 
+def build_lockpick(armature: bpy.types.Object) -> tuple[bpy.types.Action, dict[str, object]]:
+    """Author a planted two-tool pin-tumbler lockpick from the rest pose."""
+    name = "AuthoredUtility__Lockpick"
+    end_frame = 132
+    if armature.animation_data is None:
+        armature.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    armature.animation_data.action = action
+
+    # Adult-scale door and waist-height cylinder. These meshes are contact
+    # guides for authoring/review only and are removed before candidate export.
+    bpy.ops.mesh.primitive_cube_add(location=(0.255, 0.0, 0.06))
+    door = bpy.context.active_object
+    door.name = "AUTHORING_CONTACT_GUIDE__LockpickDoor"
+    door.dimensions = (0.05, 0.74, 1.18)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.035, depth=0.035, location=(0.213, 0.0, 0.098))
+    cylinder = bpy.context.active_object
+    cylinder.name = "AUTHORING_CONTACT_GUIDE__PinTumblerCylinder"
+    cylinder.rotation_euler[1] = radians(90.0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bpy.ops.mesh.primitive_cube_add(location=(0.190, 0.014, 0.094))
+    tension_wrench = bpy.context.active_object
+    tension_wrench.name = "AUTHORING_CONTACT_GUIDE__TensionWrench"
+    tension_wrench.dimensions = (0.075, 0.006, 0.006)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.mesh.primitive_cube_add(location=(0.190, -0.014, 0.108))
+    pick = bpy.context.active_object
+    pick.name = "AUTHORING_CONTACT_GUIDE__HookPick"
+    pick.dimensions = (0.095, 0.005, 0.005)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+    rest_left_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:LeftLeg"].tail
+    rest_right_ankle = armature.matrix_world @ armature.pose.bones["mixamorig:RightLeg"].tail
+    left_hand = create_target("AuthoredLockpick__LeftHandTarget", vec((0.192, 0.052, 0.096)))
+    right_hand = create_target("AuthoredLockpick__RightHandTarget", vec((0.195, -0.052, 0.110)))
+    controls = [door, cylinder, tension_wrench, pick, left_hand, right_hand]
+    ik_constraints = [
+        add_ik(armature, "mixamorig:LeftForeArm", left_hand, None, 2),
+        add_ik(armature, "mixamorig:RightForeArm", right_hand, None, 2),
+    ]
+    influence_keys = [(1, 0.0), (12, 1.0), (120, 1.0), (132, 0.0)]
+    for side, record in (("Left", ik_constraints[0]), ("Right", ik_constraints[1])):
+        constraint = armature.pose.bones[f"mixamorig:{side}ForeArm"].constraints[
+            f"AuthoredIK__mixamorig:{side}ForeArm"
+        ]
+        for frame, influence in influence_keys:
+            constraint.influence = influence
+            constraint.keyframe_insert("influence", frame=frame)
+        record["influenceKeyframes"] = [
+            {"frame": frame, "influence": influence}
+            for frame, influence in influence_keys
+        ]
+
+    # Left hand maintains light cylinder torque while the right hook probes
+    # and lifts discrete pin stacks. The last deliberate motion turns the
+    # cylinder, then both hands withdraw before the neutral recovery.
+    phases = [
+        (1, "neutral", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+        (16, "reach", 6.0, 3.0, (0.160, 0.078, 0.130), (0.160, -0.085, 0.145), 25.0, 25.0),
+        (32, "place-tension-wrench-and-pick", 10.0, 5.0, (0.192, 0.052, 0.096), (0.195, -0.052, 0.110), 50.0, 42.0),
+        (44, "set-light-torque", 10.0, 5.0, (0.192, 0.052, 0.096), (0.198, -0.052, 0.111), 54.0, 45.0),
+        (56, "probe-pin-stack-one", 11.0, 5.0, (0.192, 0.052, 0.096), (0.205, -0.051, 0.118), 55.0, 46.0),
+        (68, "set-pin-stack-one", 10.0, 4.0, (0.192, 0.052, 0.096), (0.191, -0.051, 0.104), 55.0, 48.0),
+        (80, "probe-pin-stack-two", 11.0, 5.0, (0.192, 0.052, 0.096), (0.208, -0.050, 0.121), 56.0, 46.0),
+        (92, "reset-pick-depth", 10.0, 4.0, (0.192, 0.052, 0.096), (0.194, -0.052, 0.108), 56.0, 47.0),
+        (104, "set-final-pin-stack", 11.0, 5.0, (0.192, 0.052, 0.096), (0.206, -0.049, 0.123), 57.0, 48.0),
+        (116, "turn-cylinder", 8.0, 3.0, (0.190, 0.044, 0.089), (0.198, -0.048, 0.112), 58.0, 58.0),
+        (124, "withdraw-tools", 4.0, 2.0, (0.150, 0.080, 0.135), (0.145, -0.090, 0.150), 25.0, 20.0),
+        (132, "neutral-recovery", 0.0, 0.0, (-0.013, 0.406, 0.267), (-0.013, -0.406, 0.267), 0.0, 0.0),
+    ]
+    contact_frames = [32, 44, 56, 68, 80, 92, 104, 116]
+    left_targets: dict[int, Vector] = {}
+    right_targets: dict[int, Vector] = {}
+    left_ground_targets: dict[int, Vector] = {}
+    right_ground_targets: dict[int, Vector] = {}
+    keyed_fingers: set[str] = set()
+    for frame, _, spine_x, head_x, left_pos, right_pos, curl, hand_roll in phases:
+        reset_pose(armature)
+        key_bone(armature.pose.bones[ROOT], frame)
+        key_bone(armature.pose.bones["mixamorig:Spine"], frame, (spine_x * 0.25, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine1"], frame, (spine_x * 0.35, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Spine2"], frame, (spine_x * 0.40, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Neck"], frame, (-head_x, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:Head"], frame, (-head_x * 0.65, 0.0, 0.0))
+        key_bone(armature.pose.bones["mixamorig:LeftHand"], frame, (0.0, -hand_roll, 0.0))
+        key_bone(armature.pose.bones["mixamorig:RightHand"], frame, (0.0, hand_roll, 0.0))
+        keyed_fingers.update(curl_fingers(armature, frame, curl))
+        left_position = vec(left_pos)
+        right_position = vec(right_pos)
+        key_object_location(left_hand, frame, left_position)
+        key_object_location(right_hand, frame, right_position)
+        left_ground_targets[frame] = rest_left_ankle
+        right_ground_targets[frame] = rest_right_ankle
+        if frame in contact_frames:
+            left_targets[frame] = left_position
+            right_targets[frame] = right_position
+
+    set_constant_interpolation(action)
+    for target in (left_hand, right_hand):
+        if target.animation_data and target.animation_data.action:
+            set_constant_interpolation(target.animation_data.action)
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = end_frame
+    action = bake_authored_constraints(armature, action, 1, end_frame)
+    action.name = name
+    action.use_fake_user = True
+
+    left_contact = measure_tail_error(armature, action, "mixamorig:LeftForeArm", contact_frames, left_targets)
+    right_contact = measure_tail_error(armature, action, "mixamorig:RightForeArm", contact_frames, right_targets)
+    phase_frames = [phase[0] for phase in phases]
+    left_ground = measure_tail_error(armature, action, "mixamorig:LeftLeg", phase_frames, left_ground_targets)
+    right_ground = measure_tail_error(armature, action, "mixamorig:RightLeg", phase_frames, right_ground_targets)
+    if left_contact["maxError"] > CONTACT_TOLERANCE or right_contact["maxError"] > CONTACT_TOLERANCE:
+        raise RuntimeError(f"Lockpick hand contact gate failed: left={left_contact}, right={right_contact}")
+    if left_ground["maxError"] > GROUND_TOLERANCE or right_ground["maxError"] > GROUND_TOLERANCE:
+        raise RuntimeError(f"Lockpick grounding gate failed: left={left_ground}, right={right_ground}")
+
+    reference = {
+        "url": "https://www.youtube.com/watch?v=ayzTwjLLXNI",
+        "publisher": "ITS Tactical / Imminent Threat Solutions",
+        "retrievedAt": "2026-08-28",
+        "timeRange": "00:00-01:00 (full real-person demonstration)",
+        "mechanics": {
+            "stance": "Stand square to the lock with a small forward lean and both feet planted.",
+            "weightTransfer": "Keep weight centered; the operation is driven by shoulders, elbows, wrists, and fingers rather than whole-body sway.",
+            "footwork": "No steps after tool contact; feet remain neutral and flat.",
+            "hipsShoulders": "Hips remain square while shoulders close toward the waist-height cylinder.",
+            "handsGripContacts": "Left hand maintains light tension-wrench torque; right hand inserts the hook pick and probes/lifts pins with short controlled strokes.",
+            "anticipation": "Reach, place both tools, then settle into stable bilateral contact before probing.",
+            "cadence": "Slow tension setup followed by several small probe/set strokes and a readable cylinder turn.",
+            "followThroughRecovery": "Turn the cylinder, withdraw both tools, and return to a neutral ready posture.",
+        },
+    }
+    record = {
+        "clipName": name,
+        "displayLabel": "Lockpick",
+        "semanticRowIds": ["interaction.lockpick"],
+        "status": "NEWLY_AUTHORED_VISUAL_REVIEW_REQUIRED",
+        "authoredFromRestPose": True,
+        "sourceClipReuse": False,
+        "sourceActionNames": [],
+        "sourceAnimationsSampled": False,
+        "fps": FPS,
+        "frameRange": [1, end_frame],
+        "durationSeconds": round((end_frame - 1) / FPS, 3),
+        "playbackIntent": "ONE_SHOT",
+        "timingPhases": [{"frame": frame, "label": label} for frame, label, *_ in phases],
+        "referenceFootage": [reference],
+        "contextualProps": [
+            {"name": door.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "dimensionsRigUnitsWorldXYZ": [0.05, 0.74, 1.18]},
+            {"name": cylinder.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "centerRigUnitsWorldXYZ": [0.213, 0.0, 0.098], "diameterMeters": round(0.07 * METERS_PER_RIG_UNIT, 3)},
+            {"name": tension_wrench.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "hand": "LEFT"},
+            {"name": pick.name, "classification": "AUTHORING_CONTACT_GUIDE_NOT_GAME_ASSET", "hand": "RIGHT"},
+        ],
+        "ikConstraints": ik_constraints,
+        "contactValidation": {"threshold": CONTACT_TOLERANCE, "leftTensionHand": left_contact, "rightPickHand": right_contact, "passed": True},
+        "groundingValidation": {"threshold": GROUND_TOLERANCE, "leftFoot": left_ground, "rightFoot": right_ground, "passed": True},
+        "rootMotion": {"inPlace": True, "horizontalDisplacement": 0.0},
+        "fingerCurl": {"keyedBoneCount": len(keyed_fingers), "keyedBones": sorted(keyed_fingers), "maximumCurlDegrees": 58.0},
+        "loopSeam": None,
+        "recommendedPreview": {
+            "durationSeconds": 5.0,
+            "cameraFraming": "continuous close-front, close-side, close-rear, and gameplay views with the cylinder, both tools, hands, elbows, spine, feet, and floor visible",
+            "reviewFocus": ["steady left-hand torque", "short right-hand pin strokes", "tool/keyway contact", "neutral wrists", "planted feet", "readable cylinder turn", "clean withdrawal"],
+        },
+        "provenanceReferences": [reference],
+    }
+    remove_controls(controls)
+    armature.animation_data.action = action
+    return action, record
+
+
 def export_actions(armature: bpy.types.Object, actions: list[bpy.types.Action], output_glb: Path) -> None:
     armature.animation_data.action = None
     while armature.animation_data.nla_tracks:
@@ -618,12 +796,15 @@ def export_actions(armature: bpy.types.Object, actions: list[bpy.types.Action], 
 
 def build_candidate_receipt(
     candidate_id: str,
+    record: dict[str, object],
     output_glb: Path,
     output_bytes: int,
     output_hash: str,
     source_rest_rig_bytes: int,
     playback: dict[str, object],
 ) -> dict[str, object]:
+    version_match = re.search(r"-v(\d+)$", candidate_id)
+    candidate_version = int(version_match.group(1)) if version_match else 1
     review_rework = {
         "windUp": "REWORK",
         "semanticReadability": "REWORK",
@@ -642,9 +823,9 @@ def build_candidate_receipt(
         "issue": 487,
         "candidate": {
             "id": candidate_id,
-            "semanticId": "interaction.lift-carry-place",
-            "clipName": "AuthoredUtility__Lift",
-            "version": 3,
+            "semanticId": record["semanticRowIds"][0],
+            "clipName": record["clipName"],
+            "version": candidate_version,
             "authorId": "codex-animation-gap-lane",
             "authoringLane": "BLENDER",
         },
@@ -667,22 +848,7 @@ def build_candidate_receipt(
             "authoredFromZeroActionRestRig": True,
             "sourceAnimationsSampled": False,
             "forbiddenOperationsUsed": [],
-            "realPersonReferences": [{
-                "url": "https://www.youtube.com/watch?v=6ah4yixGWc4&t=241s",
-                "publisher": "YouTube; channel publisher not recorded during authoring",
-                "retrievedAt": "2026-08-28",
-                "timeRange": "04:01-04:30",
-                "mechanics": {
-                    "stance": "Set a balanced shoulder-width base, then widen before loading the crate.",
-                    "weightTransfer": "Lower through hips and knees, brace, then drive upward through both legs.",
-                    "footwork": "Keep both feet planted and flat during contact, brace, and leg drive.",
-                    "hipsShoulders": "Hinge at the hips with a braced spine and keep shoulders over the load.",
-                    "handsGripContacts": "Establish bilateral contact on the crate before upward movement.",
-                    "anticipation": "Approach, widen the base, hinge, and settle into two-hand contact.",
-                    "cadence": "Deliberate setup and brace followed by a controlled continuous lift.",
-                    "followThroughRecovery": "Finish upright with the crate close to the torso and stable balance.",
-                },
-            }],
+            "realPersonReferences": record.get("provenanceReferences", record["referenceFootage"]),
         },
         "technicalReview": {
             "status": "REWORK",
@@ -735,6 +901,7 @@ def main() -> None:
     review_video = Path(args.review_video).resolve()
     review_video_front = Path(args.review_video_front).resolve()
     review_video_side = Path(args.review_video_side).resolve()
+    review_video_rear = Path(args.review_video_rear).resolve()
     candidate_paths = quarantined_candidate_paths(args)
     output_glb = candidate_paths["glb"]
     report_path = candidate_paths["report"]
@@ -742,7 +909,7 @@ def main() -> None:
     script_path = Path(__file__).resolve()
     if not source_glb.is_file():
         raise FileNotFoundError(source_glb)
-    for video in (review_video, review_video_front, review_video_side):
+    for video in (review_video, review_video_front, review_video_side, review_video_rear):
         if not video.is_file():
             raise FileNotFoundError(video)
     if file_sha256(source_glb) != SOURCE_REST_RIG_SHA256:
@@ -754,9 +921,12 @@ def main() -> None:
         shutil.copy2(review_video_front, candidate_paths["video_front"])
     if review_video_side != candidate_paths["video_side"]:
         shutil.copy2(review_video_side, candidate_paths["video_side"])
+    if review_video_rear != candidate_paths["video_rear"]:
+        shutil.copy2(review_video_rear, candidate_paths["video_rear"])
     playback = verify_review_video(candidate_paths["video"])
     playback_front = verify_review_video(candidate_paths["video_front"])
     playback_side = verify_review_video(candidate_paths["video_side"])
+    playback_rear = verify_review_video(candidate_paths["video_rear"])
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(source_glb))
@@ -776,9 +946,11 @@ def main() -> None:
     if armature.animation_data is None:
         armature.animation_data_create()
 
-    lift_action, lift_record = build_lift(armature)
-    actions = [lift_action]
-    records = [lift_record]
+    authored_action, authored_record = (
+        build_lockpick(armature) if args.action == "lockpick" else build_lift(armature)
+    )
+    actions = [authored_action]
+    records = [authored_record]
     export_actions(armature, actions, output_glb)
     expected_names = sorted(action.name for action in actions)
     output_bytes = output_glb.stat().st_size
@@ -799,8 +971,11 @@ def main() -> None:
         raise RuntimeError("Authored re-import failed canonical skeleton gate")
     if imported_actions != expected_names:
         raise RuntimeError(f"Authored re-import actions differ: {imported_actions} != {expected_names}")
-    if imported_frame_ranges.get("AuthoredUtility__Lift") != [1.0, 84.0]:
-        raise RuntimeError(f"Authored Lift re-import frame range changed: {imported_frame_ranges}")
+    expected_frame_range = [float(value) for value in authored_record["frameRange"]]
+    if imported_frame_ranges.get(authored_record["clipName"]) != expected_frame_range:
+        raise RuntimeError(
+            f"Authored {authored_record['clipName']} re-import frame range changed: {imported_frame_ranges}"
+        )
 
     report = {
         "schemaVersion": 1,
@@ -844,6 +1019,7 @@ def main() -> None:
         "additionalPlaybackEvidence": {
             "closeFront": playback_front,
             "closeSide": playback_side,
+            "closeRear": playback_rear,
         },
         "reimportValidation": {
             "passed": True,
@@ -859,6 +1035,7 @@ def main() -> None:
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     receipt = build_candidate_receipt(
         args.candidate_id,
+        authored_record,
         output_glb,
         output_bytes,
         output_hash,
@@ -878,6 +1055,7 @@ def main() -> None:
         "normalSpeedVideo": playback,
         "normalSpeedCloseFrontVideo": playback_front,
         "normalSpeedCloseSideVideo": playback_side,
+        "normalSpeedCloseRearVideo": playback_rear,
         "reimportBoneCount": len(imported_armature.data.bones),
         "sourceAnimationsSampled": False,
         "independentVisualReview": "REWORK",
