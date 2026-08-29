@@ -173,25 +173,27 @@
   "selection": {
     "selectedCandidate": "TRIPO_STUDIO_MIDJOURNEY_V8_2_IMAGE_1",
     "ownerApproval": "APPROVED_2026-08-28",
-    "tripo3DTaskAuthorized": false,
-    "tripoRigOrAnimationAuthorized": false
+    "tripo3DTaskAuthorized": true,
+    "tripoRigOrAnimationAccepted": false,
+    "productionRecord": "../breachling-3d/export-record.json"
   },
   "allowanceUsage": {
     "start": 20,
     "afterBaseBakeoff": 27,
     "afterLineageVariants": 39,
     "limit": 1000,
-    "threeDCreditsUsed": 0
+    "threeDCreditsUsed": 0,
+    "scope": "image-bakeoff allowance only; paid 3D work is recorded separately"
   },
   "nextGate": {
-    "phase": "distinct-creature-four-model-bakeoff",
+    "phase": "local-cleanup-rigging-and-animation",
     "requirements": [
       "treat Base, Stalker, Oathbound, and Ravager Breachlings as regular mob tiers, never bosses",
-      "start each next distinct Zone 1 or Zone 2 mob or animal family from a fresh four-model Tripo Studio bakeoff",
-      "select that creature family winner before generating its lineage variants",
-      "repeat the bakeoff-then-lineage workflow for every required Zone 1 and Zone 2 animal or monster",
-      "run a separate four-model bakeoff for the Cinderbound Guardian, the last-room boss, when its turn is reached",
-      "do not create Smart Meshes, textures, rigs, or animations until the image roster is selected"
+      "use the four stripped source packages recorded in ../breachling-3d/export-record.json",
+      "remove identified generated geometry defects before local rigging",
+      "build a species-correct quadruped skeleton and independent limb weighting locally",
+      "author locomotion, normal attacks, and the special tail-whip attack locally",
+      "continue a fresh four-model Tripo Studio bakeoff for every distinct Zone 1 or Zone 2 creature family"
     ]
   }
 }

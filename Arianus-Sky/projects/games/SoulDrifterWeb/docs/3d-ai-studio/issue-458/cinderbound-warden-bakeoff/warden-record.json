@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "createdAt": "2026-08-29",
+  "classification": "two-path-last-room-bosses",
+  "decision": {
+    "oathbreakerPath": "Greater Cinderbound Warden",
+    "wayfarerPath": "Cinderbound Warden",
+    "reason": "The owner selected both distinct designs and assigned one destructible Warden to each path."
+  },
+  "runtimeContract": {
+    "scale": "approximately twice human height; apply game-world scaling at runtime rather than baking twelve-foot scale into generation",
+    "damageState": "shed selected armor and mechanism sections at approximately 30 percent cumulative damage milestones",
+    "defeatState": "fully collapse into authored destructible sections",
+    "rangedAttack": "furnace-fire blast from the palm aperture",
+    "rigging": "local mechanical rig; Tripo rigging and animation rejected",
+    "segmentation": "author destructible sections locally"
+  },
+  "tripo": {
+    "meshModel": "P2 Preview Smart Mesh",
+    "targetPolygons": 25000,
+    "topology": "Quad",
+    "textureResolution": "8K",
+    "knownCostPerWarden": { "smartMeshCredits": 65, "textureCredits": 30 },
+    "observedBalanceAfterIssue458Exports": 24210
+  },
+  "wardens": [
+    {
+      "assetId": "OATHBREAKER_GREATER_CINDERBOUND_WARDEN",
+      "displayName": "Greater Cinderbound Warden",
+      "path": "Oathbreaker",
+      "selectedImage": {
+        "provider": "Tripo Studio",
+        "model": "Midjourney v8.2",
+        "jobId": "9e6b82cb-61f7-4b12-aa23-af2d21e6ec2e",
+        "nativeBatchFile": "image_2.png",
+        "path": "selected/oathbreaker-greater-cinderbound-warden-midjourney-v8.2-selected.png",
+        "bytes": 1557863,
+        "sha256": "3b53b46214983415021095577a0cc51beb0ec869ae932e37e26e0b32a4fe06fe"
+      },
+      "tripoAssetId": "248467bb-1824-46d1-9d2a-5d8a1d3147cf",
+      "faces": 29838,
+      "vertices": 26512,
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-oathbreaker-greater-cinderbound-warden-source.fbx", "bytes": 16115804, "sha256": "fc57e58eda6c6d382ddf374eb334fcb4817ca15405eaf53dbccbb41ca838968d" },
+        "blend": { "path": "exports/souldrifter-oathbreaker-greater-cinderbound-warden-source.blend", "bytes": 16260390, "sha256": "7041c53cd3943234c72fcb939c9fd550c7fb705ec0114b848580c2f82e4bcc5f" },
+        "glb": { "path": "exports/souldrifter-oathbreaker-greater-cinderbound-warden-source.glb", "bytes": 16831188, "sha256": "08067e65782de77b749202ae692dbce5b2ab6631879478584da120e6fb45c758", "embeddedImageBytes": 14451659 },
+        "diagnosticTexture": { "path": "exports/textures/souldrifter-oathbreaker-greater-cinderbound-warden-basecolor.jpg", "bytes": 14451659, "sha256": "ed3c7043b06d734f82617c782759d80290ad8c09442b32252c05607abb1ab9fc" }
+      },
+      "cleanupFlags": [
+        "Remove the generated ground slab or pedestal.",
+        "Separate authored breakaway plates and mechanical sections before rigging."
+      ]
+    },
+    {
+      "assetId": "WAYFARER_CINDERBOUND_WARDEN",
+      "displayName": "Cinderbound Warden",
+      "path": "Wayfarer",
+      "designReference": {
+        "provider": "Tripo Studio",
+        "model": "GPT Image 2",
+        "jobId": "68d00eac-f3f7-456c-a4af-d775828d1788",
+        "nativeBatchFile": "image_2.png",
+        "path": "selected/wayfarer-cinderbound-warden-gpt-image-2-design-reference.png",
+        "bytes": 1582876,
+        "sha256": "6d6be3c5a44f5850be43d3e74fe20a11e8e465e55a21ebaa0fa27d627e50a859"
+      },
+      "selectedImage": {
+        "provider": "Tripo Studio Edit Image",
+        "jobId": "c8bac4d8-d270-46c5-99bc-ec017bcf73c0",
+        "nativeBatchFile": "image.png",
+        "path": "selected/wayfarer-cinderbound-warden-clean-mesh-source.png",
+        "bytes": 1231973,
+        "sha256": "63eab869078e1250b99ffdb265f7f5c6be294c14dc46c54800cea39390054bb6",
+        "creditCost": 0
+      },
+      "tripoAssetId": "c609af31-3f47-450b-be5e-664d78ad36af",
+      "faces": 30351,
+      "vertices": 27108,
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-wayfarer-cinderbound-warden-source.fbx", "bytes": 13899212, "sha256": "889355fc537d1046f148438a14060b70c1ef215a2d0703b94405871bfe90302b" },
+        "blend": { "path": "exports/souldrifter-wayfarer-cinderbound-warden-source.blend", "bytes": 14039474, "sha256": "d161092635a2c642fa4b853680a77a8d4a6e5aa505b62a85b9a06b3142784155" },
+        "glb": { "path": "exports/souldrifter-wayfarer-cinderbound-warden-source.glb", "bytes": 15029040, "sha256": "180b3fe5113fac2aedd95cfc6da95b60251de13e95f85f7641284d7b23a9d374", "embeddedImageBytes": 12157424 }
+      },
+      "cleanupFlags": [
+        "Remove any generated ground geometry.",
+        "Preserve the halo, furnace cage, integrated blade, and open palm mechanism while separating destructible sections."
+      ]
+    }
+  ],
+  "segmentationAttempt": {
+    "mode": "Detailed",
+    "displayedCredits": { "original": 40, "effective": 0 },
+    "result": "rejected-before-job",
+    "message": "Quad models don't support segmentation yet",
+    "creditsCharged": 0,
+    "resolution": "Segment both Wardens locally in Blender."
+  },
+  "bridgeAndPackaging": {
+    "addon": "Tripo3D Blender Bridge 1.0.32",
+    "blender": "4.5 LTS",
+    "uiResult": "Tripo's DCC Bridge control remained stuck on Connecting.",
+    "transportProof": "The local bridge protocol successfully imported both Warden FBX files.",
+    "durablePackaging": "Final Blender and GLB packages were rebuilt sequentially in isolated headless Blender processes.",
+    "glbAudit": { "meshes": 1, "materials": 1, "skins": 0, "animations": 0, "textureEmbedding": "passed for both Wardens" }
+  },
+  "safety": "nonsexual; non-NSFW; anatomy-safe"
+}

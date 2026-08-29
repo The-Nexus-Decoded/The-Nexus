@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "createdAt": "2026-08-29",
+  "creatureFamily": "Breachling",
+  "classification": "regular-mob-lineage",
+  "poseContract": "topology-appropriate neutral four-foot rig-ready stance; no T-pose or A-pose",
+  "productionPolicy": {
+    "tripoRiggingAccepted": false,
+    "tripoAnimationAccepted": false,
+    "sourcePackaging": "The latest FBX exposed by each accepted Tripo asset was preserved as provenance, then every armature, action, ARMATURE modifier, vertex group, skin, and animation was removed from the durable Blender and GLB packages.",
+    "futureWork": "Perform cleanup, species-correct quadruped rigging, skinning, and animation locally. Include normal attacks and the special tail-whip attack."
+  },
+  "tripo": {
+    "observedBalanceAfterIssue458Exports": 24210,
+    "balanceObservationNote": "This is an observation, not a reconstructed issue total; other Tripo jobs can change the live balance.",
+    "meshModel": "P2 Preview Smart Mesh",
+    "textureResolution": "8K",
+    "topology": "Quad"
+  },
+  "assets": [
+    {
+      "assetId": "BREACHLING_BASE",
+      "tripoAssetId": "bacf8bed-a798-4ffd-b98b-76e09a0e7b89",
+      "faces": 19362,
+      "vertices": 16632,
+      "tripoSourceAsset": "tripo_rigging_6e0a10d0-06db-4cb6-9013-3fda99fe4c36.fbx",
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-breachling-base-source.fbx", "bytes": 16818572, "sha256": "d401d9abb094f18b0a54ab6aea0cf86f876335ab065b9df1c619d097153eb0fa" },
+        "blend": { "path": "exports/souldrifter-breachling-base-source.blend", "bytes": 16437964, "sha256": "8e93840c31cbd3c3da9165474f0bfa1340866a0783af91405e72ad0773d84c8b" },
+        "glb": { "path": "exports/souldrifter-breachling-base-source.glb", "bytes": 16602200, "sha256": "3f927e655dcb3fa56ecff70949371a749054e004821f3a3ee6db8d03a44ffbfc", "embeddedImageBytes": 15236706 }
+      },
+      "cleanupFlags": [
+        "Inspect and remove or remodel the tongue/drool-like mouth geometry before rigging.",
+        "Validate claw separation and mouth interior under deformation."
+      ]
+    },
+    {
+      "assetId": "BREACHLING_STALKER",
+      "tripoAssetId": "f346efc2-559a-4bbc-b665-40476546893b",
+      "faces": 20626,
+      "vertices": 17719,
+      "tripoSourceAsset": "tripo_rigging_06e33d7c-411d-4b71-9ce1-5ebfd897c137.fbx",
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-breachling-stalker-source.fbx", "bytes": 15193964, "sha256": "26417575a549564f63b05903a9af7da85a4c0e0fffbb7c1f1320ffb7ce1a0b08" },
+        "blend": { "path": "exports/souldrifter-breachling-stalker-source.blend", "bytes": 14760065, "sha256": "3d6ef9895249fbed991345d38d368d1b99b0a7d44b471d238bf3a2af442bd7a6" },
+        "glb": { "path": "exports/souldrifter-breachling-stalker-source.glb", "bytes": 15010352, "sha256": "fd56704f4a83cb76c020399e3910bd61577ee1636ffe5c9cf6616294ac90ae69", "embeddedImageBytes": 13477191 }
+      },
+      "cleanupFlags": [
+        "Validate independent front-leg weighting after the local rig is built."
+      ]
+    },
+    {
+      "assetId": "OATHBOUND_BREACHLING",
+      "tripoAssetId": "f93d8ae9-863a-4746-b223-c6186f8d3520",
+      "faces": 21050,
+      "vertices": 17679,
+      "tripoSourceAsset": "tripo_rigging_016900e1-ee43-4c1d-8be8-71ad634482f5.fbx",
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-oathbound-breachling-source.fbx", "bytes": 18304140, "sha256": "0bdb97caa17d292e0f2e93d6ceba2456e5d5d247782ffc11b46eaa1bf176c85b" },
+        "blend": { "path": "exports/souldrifter-oathbound-breachling-source.blend", "bytes": 17996223, "sha256": "b01fe773d4a97417bdf96e2ee21082881c14530da381c242f99fce3dbdf14602" },
+        "glb": { "path": "exports/souldrifter-oathbound-breachling-source.glb", "bytes": 18267760, "sha256": "8b8b4114dc16a83c9176514a24606a5307c02004ffa24e0790e792e6316dace7", "embeddedImageBytes": 16695430 }
+      },
+      "cleanupFlags": [
+        "Remove the generated ground line or contact artifact before rigging."
+      ]
+    },
+    {
+      "assetId": "BREACHLING_RAVAGER",
+      "tripoAssetId": "345cd816-480c-442e-a3a6-acfef94a34f5",
+      "faces": 19196,
+      "vertices": 17647,
+      "tripoSourceAsset": "tripo_rigging_c7ff6fba-ac19-4c92-927a-4305b7105d32.fbx",
+      "exports": {
+        "fbx": { "path": "exports/souldrifter-breachling-ravager-source.fbx", "bytes": 18617548, "sha256": "0db44eaae7b78ab3f924f63215134c24b702022e5d033a6a6b95c5e8c7daca95" },
+        "blend": { "path": "exports/souldrifter-breachling-ravager-source.blend", "bytes": 18213297, "sha256": "1c4c1755dcbf6344b7c39d97e0b38bdc11bb40ae724dc2c0ae57815bb833d37a" },
+        "glb": { "path": "exports/souldrifter-breachling-ravager-source.glb", "bytes": 18398364, "sha256": "451c83d42a6ddd9d542e35ac8ec0f36185a1ba333ff934cd37bbe6bf4b65f4dd", "embeddedImageBytes": 16995318 }
+      },
+      "cleanupFlags": [
+        "Validate plate clearance at shoulders, hips, and tail root before skinning."
+      ]
+    }
+  ],
+  "excludedAssets": [
+    {
+      "purpose": "incorrect Stalker attempt",
+      "tripoAssetId": "aea67363-a289-40e1-a8fd-d705dcf469ab",
+      "status": "excluded"
+    }
+  ],
+  "glbAudit": {
+    "passed": true,
+    "expectedPerAsset": { "meshes": 1, "materials": 1, "skins": 0, "animations": 0 },
+    "textureEmbedding": "passed for all four GLBs",
+    "blenderProcessPolicy": "Final durable packages were rebuilt sequentially, one headless Blender 4.5 LTS process at a time."
+  },
+  "safety": "nonsexual; non-NSFW; anatomy-safe"
+}

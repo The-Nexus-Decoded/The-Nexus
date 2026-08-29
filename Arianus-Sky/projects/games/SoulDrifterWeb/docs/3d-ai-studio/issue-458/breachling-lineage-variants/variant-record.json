@@ -20,10 +20,11 @@
     "freeCounterAfter": 39,
     "limit": 1000,
     "threeDCreditsUsed": 0,
-    "smartMeshesCreated": false,
-    "texturesCreated": false,
-    "rigsCreated": false,
-    "animationsCreated": false
+    "threeDCreditScope": "image generation only; see ../breachling-3d/export-record.json for 3D asset receipts",
+    "smartMeshesCreated": true,
+    "texturesCreated": true,
+    "tripoRigOrAnimationAccepted": false,
+    "productionRecord": "../breachling-3d/export-record.json"
   },
   "poseContract": "topology-appropriate neutral four-foot rig-ready stance; no T-pose or A-pose",
   "variants": [
@@ -73,10 +74,14 @@
   "ownerSelection": {
     "status": "approved",
     "selectedAt": "2026-08-28",
-    "nextProductionGate": "finish image roster before Smart Mesh, per-variant textures, shared family rig, or animation"
+    "nextProductionGate": "clean the four stripped source meshes, then rig and animate the Breachling family locally"
   },
   "bossClarification": {
-    "lastRoomBoss": "Cinderbound Guardian",
+    "pathBosses": {
+      "Oathbreaker": "Greater Cinderbound Warden",
+      "Wayfarer": "Cinderbound Warden"
+    },
+    "wardenRecord": "../cinderbound-warden-bakeoff/warden-record.json",
     "breachlingsAre": "regular mobs"
   }
 }
