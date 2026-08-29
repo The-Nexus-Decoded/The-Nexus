@@ -302,6 +302,26 @@ export function validateCandidateReceipt(
     }
     if (receipt.promotion?.status !== "OWNER_APPROVED") errors.push("promotion.status must equal OWNER_APPROVED");
     if (receipt.promotion?.runtimeInstalled !== false) errors.push("promotion.runtimeInstalled must remain false before installation");
+  } else if (gate === "shipping") {
+    if (receipt.ownerReview?.status !== "APPROVED") errors.push("ownerReview.status must equal APPROVED");
+    if (normalizedSha(receipt.ownerReview?.selectedCandidateSha256) !== normalizedSha(artifact?.sha256)) {
+      errors.push("ownerReview.selectedCandidateSha256 must match candidateArtifact.sha256");
+    }
+    if (receipt.promotion?.status !== "RUNTIME_INSTALLED") errors.push("promotion.status must equal RUNTIME_INSTALLED");
+    if (receipt.promotion?.runtimeInstalled !== true) errors.push("promotion.runtimeInstalled must equal true");
+    const installed = receipt.promotion?.installedAsset;
+    if (verifyFiles) validateHashedFile(errors, installed, "promotion.installedAsset", receiptPath);
+    if (!isShippingAssetPath(installed?.path)) {
+      errors.push("promotion.installedAsset.path must be inside public/assets");
+    }
+    if (normalizedSha(installed?.sha256) !== normalizedSha(artifact?.sha256)) {
+      errors.push("promotion.installedAsset.sha256 must match candidateArtifact.sha256");
+    }
+    for (const key of ["typecheck", "tests", "build", "breachV2BrowserSmoke"]) {
+      if (receipt.runtimeVerification?.[key] !== "PASS") {
+        errors.push(`runtimeVerification.${key} must equal PASS`);
+      }
+    }
   } else if (gate !== "authoring") {
     errors.push(`unsupported gate: ${gate}`);
   }
@@ -322,7 +342,7 @@ function parseCli(argv) {
     else if (!args.receiptPath) args.receiptPath = argv[index];
     else throw new Error(`Unexpected argument: ${argv[index]}`);
   }
-  if (!args.receiptPath) throw new Error("Usage: node validate-human-animation-candidate.mjs [--gate owner-review|runtime-install] <receipt.json>");
+  if (!args.receiptPath) throw new Error("Usage: node validate-human-animation-candidate.mjs [--gate owner-review|runtime-install|shipping] <receipt.json>");
   return args;
 }
 

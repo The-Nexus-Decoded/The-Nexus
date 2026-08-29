@@ -156,4 +156,28 @@ describe("issue #487 animation candidate gate", () => {
       "provenance.realPersonReferences must contain at least one reference",
     );
   });
+
+  it("blocks shipping until exact installed bytes and all runtime checks pass", () => {
+    const receipt = passingReceipt();
+    receipt.ownerReview = { status: "APPROVED", selectedCandidateSha256: hash };
+    receipt.promotion = {
+      status: "RUNTIME_INSTALLED",
+      runtimeInstalled: true,
+      installedAsset: {
+        path: "public/assets/3d/animations/human-foundation-pilot/lift.glb",
+        bytes: 123,
+        sha256: hash,
+      },
+    };
+    receipt.runtimeVerification = {
+      typecheck: "PASS",
+      tests: "PASS",
+      build: "PENDING",
+      breachV2BrowserSmoke: "PENDING",
+    };
+    expect(validate(receipt, "shipping")).toEqual(expect.arrayContaining([
+      "runtimeVerification.build must equal PASS",
+      "runtimeVerification.breachV2BrowserSmoke must equal PASS",
+    ]));
+  });
 });
