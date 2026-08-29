@@ -195,27 +195,113 @@ export function bindOptionalCompatibleAnimationClip(
 }
 
 /**
- * Anchors only horizontal travel on the imported armature object. Every
- * skeletal curve plus authored armature Y/orientation stays intact; world/grid
- * movement must never rewrite pelvis, legs, or feet at this boundary.
+ * Retargets an imported armature-position track around the target armature's
+ * rest position. Horizontal travel remains in-place for world navigation;
+ * authored vertical deltas can be preserved for airborne actions or locked
+ * for grounded locomotion.
  */
 export function normalizeAnimationPackRootMotion(
   source: THREE.AnimationClip,
   rootNodeName: string,
+  targetRestPosition?: THREE.Vector3,
+  verticalRootMotion: "preserve" | "lock-to-rest" = "preserve",
 ): THREE.AnimationClip {
   const tracks = source.tracks.map((track) => {
     const clone = track.clone();
     const parsed = splitTrackName(track.name);
     if (parsed?.node !== rootNodeName || parsed.property !== "position" || clone.getValueSize() < 3) return clone;
     const anchorX = clone.values[0] ?? 0;
+    const anchorY = clone.values[1] ?? 0;
     const anchorZ = clone.values[2] ?? 0;
+    const restX = targetRestPosition?.x ?? anchorX;
+    const restY = targetRestPosition?.y ?? anchorY;
+    const restZ = targetRestPosition?.z ?? anchorZ;
     for (let index = 0; index < clone.values.length; index += clone.getValueSize()) {
-      clone.values[index] = anchorX;
-      clone.values[index + 2] = anchorZ;
+      clone.values[index] = restX;
+      clone.values[index + 1] = verticalRootMotion === "preserve"
+        ? restY + ((clone.values[index + 1] ?? anchorY) - anchorY)
+        : restY;
+      clone.values[index + 2] = restZ;
     }
     return clone;
   });
   return new THREE.AnimationClip(source.name, source.duration, tracks, source.blendMode);
+}
+
+export interface AnimatedPoseGroundingMeasurement {
+  floorWorldY: number;
+  lowerBoundWorldY: number;
+  clearanceMeters: number;
+}
+
+export interface AnimatedPoseGroundingCalibration extends AnimatedPoseGroundingMeasurement {
+  basePivotY: number;
+  appliedPivotY: number;
+  floorCorrectionMeters: number;
+  penetrationLiftMeters: number;
+  pivotResponseMetersPerMeter: number;
+}
+
+const GROUNDING_RESPONSE_PROBE_METERS = 0.25;
+
+/** Measures the evaluated lower bound against a feet-origin actor root. */
+export function measureAnimatedPoseGrounding(
+  actorRoot: THREE.Object3D,
+  animatedModel: THREE.Object3D,
+): AnimatedPoseGroundingMeasurement {
+  actorRoot.updateWorldMatrix(true, true);
+  animatedModel.traverse((object) => {
+    if (object instanceof THREE.SkinnedMesh) object.skeleton.update();
+  });
+  const floorWorldY = actorRoot.getWorldPosition(new THREE.Vector3()).y;
+  const posedBounds = new THREE.Box3().setFromObject(animatedModel, true);
+  if (posedBounds.isEmpty() || !Number.isFinite(posedBounds.min.y)) {
+    throw new Error("Animated actor has no finite skinned bounds for floor measurement.");
+  }
+  return {
+    floorWorldY,
+    lowerBoundWorldY: posedBounds.min.y,
+    clearanceMeters: posedBounds.min.y - floorWorldY,
+  };
+}
+
+/**
+ * Seats a stable parent pivot from one evaluated grounded pose. Callers keep
+ * that pivot fixed during playback so jumps, falls, and reactions retain
+ * their authored vertical motion.
+ */
+export function calibrateAnimatedPoseOnFloor(
+  actorRoot: THREE.Object3D,
+  animatedModel: THREE.Object3D,
+  groundingPivot: THREE.Object3D,
+  basePivotY: number,
+): AnimatedPoseGroundingCalibration {
+  groundingPivot.position.y = basePivotY;
+  groundingPivot.updateWorldMatrix(true, true);
+  const measured = measureAnimatedPoseGrounding(actorRoot, animatedModel);
+
+  groundingPivot.position.y = basePivotY + GROUNDING_RESPONSE_PROBE_METERS;
+  groundingPivot.updateWorldMatrix(true, true);
+  const probe = measureAnimatedPoseGrounding(actorRoot, animatedModel);
+  const pivotResponseMetersPerMeter = (
+    probe.lowerBoundWorldY - measured.lowerBoundWorldY
+  ) / GROUNDING_RESPONSE_PROBE_METERS;
+  if (!(pivotResponseMetersPerMeter > 1e-6) || !Number.isFinite(pivotResponseMetersPerMeter)) {
+    throw new Error("Animated actor grounding pivot has no finite positive world-space response.");
+  }
+
+  const floorCorrectionMeters = -measured.clearanceMeters / pivotResponseMetersPerMeter;
+  groundingPivot.position.y = basePivotY + floorCorrectionMeters;
+  groundingPivot.updateWorldMatrix(true, true);
+  const finalMeasurement = measureAnimatedPoseGrounding(actorRoot, animatedModel);
+  return {
+    ...finalMeasurement,
+    basePivotY,
+    appliedPivotY: groundingPivot.position.y,
+    floorCorrectionMeters,
+    penetrationLiftMeters: Math.max(0, floorCorrectionMeters),
+    pivotResponseMetersPerMeter,
+  };
 }
 
 /** Keeps only authored keys inside an exact source-frame envelope. */
