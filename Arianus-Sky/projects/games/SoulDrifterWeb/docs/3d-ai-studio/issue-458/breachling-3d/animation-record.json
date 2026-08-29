@@ -2,86 +2,138 @@
   "schemaVersion": 1,
   "issue": 458,
   "createdAt": "2026-08-29",
-  "phase": "base-breachling-rig-and-animation-prototype",
+  "phase": "breachling-family-rig-and-animation",
   "scope": {
-    "completed": "Base Breachling only",
-    "pendingOwnerGate": [
-      "apply the shared rig and clips to Stalker",
-      "apply the shared rig and clips to Oathbound",
-      "apply the shared rig and clips to Ravager",
-      "integrate the approved animated GLBs into runtime",
-      "begin either Warden rig"
+    "completed": [
+      "Base Breachling",
+      "Breachling Stalker",
+      "Oathbound Breachling",
+      "Breachling Ravager"
+    ],
+    "pending": [
+      "integrate the animated GLBs into the SoulDrifter runtime",
+      "build the two mechanical Warden rigs and authored animation sets"
     ],
     "wardensTouched": false
   },
-  "source": {
-    "tripoAssetId": "bacf8bed-a798-4ffd-b98b-76e09a0e7b89",
-    "path": "exports/souldrifter-breachling-base-source.blend",
-    "sha256": "8e93840c31cbd3c3da9165474f0bfa1340866a0783af91405e72ad0773d84c8b",
-    "tripoRigOrAnimationUsed": false
-  },
+  "sources": [
+    {
+      "assetId": "BREACHLING_BASE",
+      "tripoAssetId": "bacf8bed-a798-4ffd-b98b-76e09a0e7b89",
+      "path": "exports/souldrifter-breachling-base-source.blend",
+      "sha256": "8e93840c31cbd3c3da9165474f0bfa1340866a0783af91405e72ad0773d84c8b"
+    },
+    {
+      "assetId": "BREACHLING_STALKER",
+      "tripoAssetId": "f346efc2-559a-4bbc-b665-40476546893b",
+      "path": "exports/souldrifter-breachling-stalker-source.blend",
+      "sha256": "3d6ef9895249fbed991345d38d368d1b99b0a7d44b471d238bf3a2af442bd7a6"
+    },
+    {
+      "assetId": "OATHBOUND_BREACHLING",
+      "tripoAssetId": "f93d8ae9-863a-4746-b223-c6186f8d3520",
+      "path": "exports/souldrifter-oathbound-breachling-source.blend",
+      "sha256": "b01fe773d4a97417bdf96e2ee21082881c14530da381c242f99fce3dbdf14602"
+    },
+    {
+      "assetId": "BREACHLING_RAVAGER",
+      "tripoAssetId": "345cd816-480c-442e-a3a6-acfef94a34f5",
+      "path": "exports/souldrifter-breachling-ravager-source.blend",
+      "sha256": "1c4c1755dcbf6344b7c39d97e0b38bdc11bb40ae724dc2c0ae57815bb833d37a"
+    }
+  ],
   "authoring": {
     "blender": "4.5.12 LTS",
+    "tripoRigOrAnimationUsed": false,
     "script": {
       "path": "../../../../scripts/rig-breachling.py",
-      "bytes": 12732,
-      "sha256": "2c814fa7bec174690c0d966b4b4e8a3f262414715e559642810b2410b22f1263"
+      "bytes": 18691,
+      "sha256": "8118ea0f6bf8fd72b7f6448e73aa8f6f75bbf6c5e26bb0f1d081c07cae56fdd2"
     },
     "armature": "Breachling_Rig",
     "bones": 24,
     "deformBones": 23,
-    "bind": {
-      "vertices": 16632,
-      "unweightedVertices": 0,
+    "bindPolicy": {
+      "unweightedVerticesPerAsset": 0,
       "maximumInfluencesPerVertex": 4,
       "leftRightRule": "Positive-Y limbs use .L groups and negative-Y limbs use .R groups; cross-side influences are removed before normalization.",
+      "jawRule": "Jaw overrides are restricted to the head volume so front paws cannot inherit jaw motion.",
+      "morphologyRule": "The canonical quadruped armature is calibrated independently to each source mesh bounds.",
+      "ravagerTailRule": "The tail chain follows the Ravager's lateral hook to prevent the tail fin from inheriting rear-leg weights.",
+      "idleTailRule": "Idle and CombatIdle sweep the full tail chain gently from side to side without crossing the hind legs.",
       "preserveVolume": true
     }
   },
   "clips": [
-    { "name": "Idle", "frames": 120, "seconds": 3.967, "loop": true },
+    { "name": "Idle", "frames": 120, "seconds": 3.967, "loop": true, "purpose": "rest breathing with a visible side-to-side tail sweep" },
+    { "name": "CombatIdle", "frames": 90, "seconds": 2.967, "loop": true, "purpose": "alert combat-ready posture with restrained head tracking and tail motion" },
     { "name": "Walk", "frames": 33, "seconds": 1.067, "loop": true },
     { "name": "Run", "frames": 25, "seconds": 0.8, "loop": true },
     { "name": "BiteAttack", "frames": 34, "seconds": 1.1, "loop": false },
     { "name": "SwordSlashOutward", "frames": 34, "seconds": 1.1, "loop": false, "purpose": "runtime-compatible alias of BiteAttack until creature-specific motion routing lands" },
     { "name": "ClawAttack", "frames": 34, "seconds": 1.1, "loop": false },
-    { "name": "TailWhip", "frames": 46, "seconds": 1.5, "loop": false },
+    { "name": "TailWhip", "frames": 46, "seconds": 1.5, "loop": false, "purpose": "all tiers; Oathbound and Ravager gain longer effective reach from their longer source tails" },
     { "name": "RecieveHit", "frames": 24, "seconds": 0.767, "loop": false, "purpose": "matches the existing runtime spelling" },
-    { "name": "Death", "frames": 55, "seconds": 1.8, "loop": false }
+    { "name": "Death", "frames": 55, "seconds": 1.8, "loop": false },
+    { "name": "SpitAttack", "frames": 42, "seconds": 1.367, "loop": false, "tiers": ["OATHBOUND_BREACHLING", "BREACHLING_RAVAGER"], "purpose": "windup, jaw release, and recoil for the poison ranged attack; the projectile and poison VFX spawn from the mouth in the runtime" }
   ],
-  "outputs": {
-    "blend": {
-      "path": "rigged/souldrifter-breachling-base-rigged.blend",
-      "bytes": 16770255,
-      "sha256": "e7ac21bd64ecf4d1ebaf4caefca0bcae9152a023accc5e84195ee7e9fcae5b2d",
-      "actionsPersistAfterReopen": 9
+  "variants": [
+    {
+      "assetId": "BREACHLING_BASE",
+      "morphologyScale": [1.0, 1.0, 1.0],
+      "bind": { "vertices": 16632, "polygons": 19362, "repairedUnweightedVertices": 0, "removedSmallIslandVertices": 0 },
+      "outputs": {
+        "blend": { "path": "rigged/souldrifter-breachling-base-rigged.blend", "bytes": 16777517, "sha256": "4a9375ef91ae9f7bd024025de5a60162b8f2994e570832e11afd03068bc2215f", "actionsPersistAfterReopen": 10 },
+        "glb": { "path": "rigged/souldrifter-breachling-base-rigged.glb", "bytes": 17507856, "sha256": "c8b5839d32bef8c4d4b75aefc1743c608003842cac6192e898aa897f01aadf5e", "meshes": 1, "materials": 1, "skins": 1, "animations": 10, "embeddedImages": 1 }
+      }
     },
-    "glb": {
-      "path": "rigged/souldrifter-breachling-base-rigged.glb",
-      "bytes": 17479896,
-      "sha256": "eaa9c4edc1535c5b2ee1bd20f4d762c4afaf2a6af8de067dbe4660126987bf42",
-      "meshes": 1,
-      "materials": 1,
-      "skins": 1,
-      "animations": 9,
-      "texture": "embedded"
+    {
+      "assetId": "BREACHLING_STALKER",
+      "morphologyScale": [1.0, 0.653949, 0.824472],
+      "bind": { "vertices": 17719, "polygons": 20626, "repairedUnweightedVertices": 11, "removedSmallIslandVertices": 0 },
+      "outputs": {
+        "blend": { "path": "rigged/souldrifter-breachling-stalker-rigged.blend", "bytes": 15071413, "sha256": "ac58e3c3b21b66d9ad4eea079504fbf8de1640d751e76d0bc8b9014e202d9bab", "actionsPersistAfterReopen": 10 },
+        "glb": { "path": "rigged/souldrifter-breachling-stalker-rigged.glb", "bytes": 16012112, "sha256": "a4559c5ea8ba48f47816a85511eacbfe9c1fa94bdd0b95135a1bfdbf242aefa5", "meshes": 1, "materials": 1, "skins": 1, "animations": 10, "embeddedImages": 1 }
+      }
+    },
+    {
+      "assetId": "OATHBOUND_BREACHLING",
+      "morphologyScale": [1.0, 1.094055, 1.008439],
+      "bind": { "vertices": 17679, "polygons": 21050, "repairedUnweightedVertices": 0, "removedSmallIslandVertices": 0 },
+      "outputs": {
+        "blend": { "path": "rigged/souldrifter-oathbound-breachling-rigged.blend", "bytes": 18350149, "sha256": "c6f1f8938a004852f5d3c02e9d5aa2e7b5fabc0455f5b199762ab2a084a3e64f", "actionsPersistAfterReopen": 11 },
+        "glb": { "path": "rigged/souldrifter-oathbound-breachling-rigged.glb", "bytes": 19304968, "sha256": "4ab80d27c56249f52538f36a4966b4b086c16433829f2db024546733704a385a", "meshes": 1, "materials": 1, "skins": 1, "animations": 11, "embeddedImages": 1 }
+      }
+    },
+    {
+      "assetId": "BREACHLING_RAVAGER",
+      "morphologyScale": [1.0, 1.777285, 1.406751],
+      "bind": { "sourceVertices": 17647, "vertices": 17460, "polygons": 19007, "repairedUnweightedVertices": 0, "removedSmallIslandVertices": 187 },
+      "cleanup": "Removed two small disconnected source islands and calibrated a curved tail chain before binding.",
+      "outputs": {
+        "blend": { "path": "rigged/souldrifter-breachling-ravager-rigged.blend", "bytes": 18532568, "sha256": "313f5f3979ca7558f681f517f7086b2f6825ca07795d89f18d0bc5102841499f", "actionsPersistAfterReopen": 11 },
+        "glb": { "path": "rigged/souldrifter-breachling-ravager-rigged.glb", "bytes": 19309656, "sha256": "eb58d280249f64d7dc8bbfc3eb0c893d64f89612a6156d171c989814269d28fe", "meshes": 1, "materials": 1, "skins": 1, "animations": 11, "embeddedImages": 1 }
+      }
     }
-  },
+  ],
   "visualQa": {
     "passed": true,
     "checks": [
-      "front limbs deform and move independently",
-      "rear limbs deform and move independently",
+      "front and rear limbs move independently on all four variants",
       "diagonal walk pairs alternate without joined-leg deformation",
-      "jaw opens independently for the bite contact pose",
-      "claw strike uses an independently posed forelimb",
-      "tail whip was widened after the first contact pose curled too tightly over the body",
-      "hit reaction and terminal death poses remain skinned without mesh explosions"
+      "jaw motion remains isolated from the front paws during bite and claw poses",
+      "Ravager tail fin remains continuous through idle, walk, tail-whip, and death",
+      "Idle frames 30 and 90 place the tail on visibly opposite sides without intersecting the hind legs",
+      "CombatIdle remains loop-safe and preserves clear four-foot combat posture",
+      "Oathbound and Ravager SpitAttack poses provide readable windup, open-jaw release, and recovery without mesh pulls",
+      "bite, claw, tail-whip, hit, and death poses remain skinned without mesh explosions"
     ],
-    "remainingPolish": [
-      "validate foot contact and playback timing in the Three.js runtime",
-      "tune per-variant weights around heavier armor plates after owner approval"
+    "remainingRuntimePolish": [
+      "validate foot contact, root motion, and playback timing in the Three.js runtime",
+      "bind the poison projectile and poison VFX spawn to the upper-tier mouth socket at SpitAttack release",
+      "replace the temporary SwordSlashOutward alias when creature-specific motion routing lands"
     ]
   },
+  "processPolicy": "All durable rigs, exports, reopen audits, and visual checks were run sequentially with one headless Blender 4.5 LTS process at a time.",
   "safety": "nonsexual; non-NSFW; anatomy-safe"
 }

@@ -7,6 +7,7 @@ import math
 import sys
 from pathlib import Path
 
+import bmesh
 import bpy
 from mathutils import Quaternion, Vector
 
@@ -40,7 +41,66 @@ def prepare_mesh() -> bpy.types.Object:
     return mesh
 
 
-def create_armature() -> bpy.types.Object:
+def morphology_mapper(mesh: bpy.types.Object):
+    coordinates = [vertex.co for vertex in mesh.data.vertices]
+    minimum = Vector(tuple(min(coordinate[axis] for coordinate in coordinates) for axis in range(3)))
+    maximum = Vector(tuple(max(coordinate[axis] for coordinate in coordinates) for axis in range(3)))
+    dimensions = maximum - minimum
+    canonical_dimensions = Vector((0.9995116889, 0.5502929688, 0.5786133124))
+    scale = Vector(tuple(dimensions[axis] / canonical_dimensions[axis] for axis in range(3)))
+    center = (minimum + maximum) * 0.5
+
+    def point(value: tuple[float, float, float]) -> Vector:
+        return Vector((
+            center.x + value[0] * scale.x,
+            center.y + value[1] * scale.y,
+            minimum.z + value[2] * scale.z,
+        ))
+
+    report = {
+        "minimum": [round(value, 6) for value in minimum],
+        "maximum": [round(value, 6) for value in maximum],
+        "dimensions": [round(value, 6) for value in dimensions],
+        "canonicalScale": [round(value, 6) for value in scale],
+    }
+    return point, scale, report
+
+
+def remove_small_islands(mesh: bpy.types.Object, maximum_vertices: int = 256) -> int:
+    working = bmesh.new()
+    working.from_mesh(mesh.data)
+    remaining = set(working.verts)
+    components: list[list[bmesh.types.BMVert]] = []
+    while remaining:
+        seed = remaining.pop()
+        stack = [seed]
+        component = [seed]
+        while stack:
+            current = stack.pop()
+            connected = {
+                edge.other_vert(current) for edge in current.link_edges
+                if edge.other_vert(current) in remaining
+            }
+            remaining.difference_update(connected)
+            stack.extend(connected)
+            component.extend(connected)
+        components.append(component)
+
+    largest = max(components, key=len)
+    removable = [
+        vertex for component in components
+        if component is not largest and len(component) <= maximum_vertices
+        for vertex in component
+    ]
+    if removable:
+        bmesh.ops.delete(working, geom=removable, context="VERTS")
+        working.to_mesh(mesh.data)
+        mesh.data.update()
+    working.free()
+    return len(removable)
+
+
+def create_armature(point, scale: Vector) -> bpy.types.Object:
     data = bpy.data.armatures.new("Breachling_Rig")
     rig = bpy.data.objects.new("Breachling_Rig", data)
     bpy.context.scene.collection.objects.link(rig)
@@ -50,8 +110,8 @@ def create_armature() -> bpy.types.Object:
 
     def bone(name: str, head: tuple[float, float, float], tail: tuple[float, float, float], parent: str | None = None, deform: bool = True) -> None:
         edit = data.edit_bones.new(name)
-        edit.head = head
-        edit.tail = tail
+        edit.head = point(head)
+        edit.tail = point(tail)
         edit.use_deform = deform
         if parent:
             edit.parent = data.edit_bones[parent]
@@ -64,10 +124,18 @@ def create_armature() -> bpy.types.Object:
     bone("head", (0.41, 0.0, 0.32), (0.49, 0.0, 0.29), "neck")
     bone("jaw", (0.405, 0.0, 0.285), (0.49, 0.0, 0.235), "head")
 
-    tail_points = [
-        (-0.04, 0.0, 0.28), (-0.15, 0.0, 0.25), (-0.26, 0.0, 0.19),
-        (-0.36, 0.0, 0.13), (-0.45, 0.0, 0.095), (-0.50, 0.0, 0.115),
-    ]
+    if scale.y > 1.5:
+        # The Ravager source has a pronounced lateral hook. Following that
+        # centerline keeps its continuous tail fin away from the rear legs.
+        tail_points = [
+            (-0.04, 0.0, 0.28), (-0.15, -0.03, 0.25), (-0.26, -0.06, 0.15),
+            (-0.35, 0.06, 0.10), (-0.43, 0.20, 0.115), (-0.47, 0.265, 0.155),
+        ]
+    else:
+        tail_points = [
+            (-0.04, 0.0, 0.28), (-0.15, 0.0, 0.25), (-0.26, 0.0, 0.19),
+            (-0.36, 0.0, 0.13), (-0.45, 0.0, 0.095), (-0.50, 0.0, 0.115),
+        ]
     parent = "pelvis"
     for index in range(len(tail_points) - 1):
         name = f"tail.{index + 1:03d}"
@@ -87,7 +155,7 @@ def create_armature() -> bpy.types.Object:
     return rig
 
 
-def bind_mesh(mesh: bpy.types.Object, rig: bpy.types.Object) -> dict[str, int | float]:
+def bind_mesh(mesh: bpy.types.Object, rig: bpy.types.Object, point, scale: Vector) -> dict[str, int | float]:
     bpy.ops.object.select_all(action="DESELECT")
     mesh.select_set(True)
     rig.select_set(True)
@@ -97,20 +165,51 @@ def bind_mesh(mesh: bpy.types.Object, rig: bpy.types.Object) -> dict[str, int | 
     groups = {group.name: group for group in mesh.vertex_groups}
     left_groups = [group for name, group in groups.items() if name.endswith(".L")]
     right_groups = [group for name, group in groups.items() if name.endswith(".R")]
+    side_dead_zone = 0.018 * scale.y
     for vertex in mesh.data.vertices:
-        if vertex.co.y > 0.018:
+        if vertex.co.y > side_dead_zone:
             for group in right_groups:
                 group.remove([vertex.index])
-        elif vertex.co.y < -0.018:
+        elif vertex.co.y < -side_dead_zone:
             for group in left_groups:
                 group.remove([vertex.index])
 
     jaw = groups["jaw"]
     head = groups["head"]
+    jaw_boundary = point((0.405, 0.0, 0.285))
+    jaw_floor = point((0.0, 0.0, 0.15)).z
+    jaw_half_width = 0.11 * scale.y
     for vertex in mesh.data.vertices:
-        if vertex.co.x > 0.405 and vertex.co.z < 0.285:
+        if (
+            vertex.co.x > jaw_boundary.x
+            and jaw_floor < vertex.co.z < jaw_boundary.z
+            and abs(vertex.co.y - jaw_boundary.y) < jaw_half_width
+        ):
             jaw.add([vertex.index], 0.88, "REPLACE")
             head.add([vertex.index], 0.12, "REPLACE")
+
+    def distance_to_bone(vertex: Vector, bone: bpy.types.Bone) -> float:
+        head_position = bone.head_local
+        segment = bone.tail_local - head_position
+        length_squared = segment.length_squared
+        if length_squared == 0:
+            return (vertex - head_position).length
+        factor = max(0.0, min(1.0, (vertex - head_position).dot(segment) / length_squared))
+        return (vertex - (head_position + segment * factor)).length
+
+    repaired_unweighted = 0
+    deform_bones = [bone for bone in rig.data.bones if bone.use_deform]
+    for vertex in mesh.data.vertices:
+        if any(item.weight > 0.0001 for item in vertex.groups):
+            continue
+        candidates = [
+            bone for bone in deform_bones
+            if not (vertex.co.y > side_dead_zone and bone.name.endswith(".R"))
+            and not (vertex.co.y < -side_dead_zone and bone.name.endswith(".L"))
+        ]
+        nearest = min(candidates, key=lambda bone: distance_to_bone(vertex.co, bone))
+        groups[nearest.name].add([vertex.index], 1.0, "REPLACE")
+        repaired_unweighted += 1
 
     bpy.context.view_layer.objects.active = mesh
     bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=4)
@@ -125,14 +224,17 @@ def bind_mesh(mesh: bpy.types.Object, rig: bpy.types.Object) -> dict[str, int | 
         maximum_influences = max(maximum_influences, influence_count)
         if influence_count == 0:
             unweighted += 1
-    return {"vertices": len(mesh.data.vertices), "unweighted": unweighted, "maxInfluences": maximum_influences}
+    return {
+        "vertices": len(mesh.data.vertices), "unweighted": unweighted,
+        "repairedUnweighted": repaired_unweighted, "maxInfluences": maximum_influences,
+    }
 
 
 def local_axis(pose_bone: bpy.types.PoseBone, global_axis: tuple[float, float, float]) -> Vector:
     return (pose_bone.bone.matrix_local.to_3x3().inverted() @ Vector(global_axis)).normalized()
 
 
-def author_actions(rig: bpy.types.Object) -> list[dict[str, int | float | str]]:
+def author_actions(rig: bpy.types.Object, scale: Vector) -> list[dict[str, int | float | str]]:
     scene = bpy.context.scene
     scene.render.fps = 30
     rest_locations = {bone.name: bone.location.copy() for bone in rig.pose.bones}
@@ -181,8 +283,38 @@ def author_actions(rig: bpy.types.Object) -> list[dict[str, int | float | str]]:
         }
 
     idle = {
-        1: {}, 30: {"spine.001": {"pitch": 2}, "neck": {"pitch": -2}, "tail.003": {"yaw": 5}, "tail.004": {"yaw": 8}},
-        60: {}, 90: {"spine.001": {"pitch": -1.5}, "head": {"yaw": 2}, "tail.003": {"yaw": -5}, "tail.004": {"yaw": -8}}, 120: {},
+        1: {},
+        30: {
+            "spine.001": {"pitch": 2}, "neck": {"pitch": -2},
+            "tail.001": {"yaw": 2}, "tail.002": {"yaw": 4}, "tail.003": {"yaw": 6},
+            "tail.004": {"yaw": 8}, "tail.005": {"yaw": 10},
+        },
+        60: {},
+        90: {
+            "spine.001": {"pitch": -1.5}, "head": {"yaw": 2},
+            "tail.001": {"yaw": -2}, "tail.002": {"yaw": -4}, "tail.003": {"yaw": -6},
+            "tail.004": {"yaw": -8}, "tail.005": {"yaw": -10},
+        },
+        120: {},
+    }
+    combat_idle_base = {
+        "spine.001": {"pitch": -3}, "spine.002": {"pitch": 2},
+        "neck": {"pitch": 5}, "head": {"pitch": -2},
+    }
+    combat_idle = {
+        1: combat_idle_base,
+        23: {
+            **combat_idle_base, "head": {"pitch": -2, "yaw": 3},
+            "tail.001": {"yaw": 2}, "tail.002": {"yaw": 4}, "tail.003": {"yaw": 6},
+            "tail.004": {"yaw": 8}, "tail.005": {"yaw": 10},
+        },
+        45: combat_idle_base,
+        68: {
+            **combat_idle_base, "head": {"pitch": -2, "yaw": -3},
+            "tail.001": {"yaw": -2}, "tail.002": {"yaw": -4}, "tail.003": {"yaw": -6},
+            "tail.004": {"yaw": -8}, "tail.005": {"yaw": -10},
+        },
+        90: combat_idle_base,
     }
     walk = {1: gait(1, 1, 16), 9: {}, 17: gait(17, -1, 16), 25: {}, 33: gait(33, 1, 16)}
     run = {1: gait(1, 1, 27, True), 7: {}, 13: gait(13, -1, 27, True), 19: {}, 25: gait(25, 1, 27, True)}
@@ -200,6 +332,13 @@ def author_actions(rig: bpy.types.Object) -> list[dict[str, int | float | str]]:
         20: {"pelvis": {"yaw": -10}, "tail.001": {"yaw": -18}, "tail.002": {"yaw": -24}, "tail.003": {"yaw": -28}, "tail.004": {"yaw": -32}, "tail.005": {"yaw": -36}},
         28: {"tail.001": {"yaw": 6}, "tail.002": {"yaw": 10}, "tail.003": {"yaw": 14}}, 46: {},
     }
+    spit = {
+        1: {},
+        9: {"spine.002": {"pitch": -6}, "neck": {"pitch": -12}, "head": {"pitch": 8}, "jaw": {"pitch": -4}},
+        18: {"spine.002": {"pitch": 5}, "neck": {"pitch": 18}, "head": {"pitch": -15}, "jaw": {"pitch": 26}},
+        24: {"neck": {"pitch": 8}, "head": {"pitch": -6}, "jaw": {"pitch": 12}},
+        42: {},
+    }
     hit = {1: {}, 5: {"spine.001": {"pitch": -14}, "neck": {"pitch": -18}, "head": {"pitch": 10}}, 13: {"spine.001": {"pitch": 6}}, 24: {}}
     death = {
         1: {}, 12: {"root": {"roll": 20}, "pelvis": {"pitch": -20}, "front_upper.L": {"roll": 25}, "rear_thigh.L": {"roll": 22}},
@@ -208,11 +347,14 @@ def author_actions(rig: bpy.types.Object) -> list[dict[str, int | float | str]]:
     }
 
     specifications = [
-        ("Idle", 120, idle, True), ("Walk", 33, walk, True), ("Run", 25, run, True),
+        ("Idle", 120, idle, True), ("CombatIdle", 90, combat_idle, True),
+        ("Walk", 33, walk, True), ("Run", 25, run, True),
         ("BiteAttack", 34, bite, False), ("SwordSlashOutward", 34, bite, False),
         ("ClawAttack", 34, claw, False), ("TailWhip", 46, tail_whip, False),
         ("RecieveHit", 24, hit, False), ("Death", 55, death, False),
     ]
+    if scale.y > 1.05:
+        specifications.append(("SpitAttack", 42, spit, False))
     for name, frames, poses, loop in specifications:
         add_action(name, frames, poses, loop)
     rig.animation_data.action = bpy.data.actions["Idle"]
@@ -225,6 +367,7 @@ def save_and_export(mesh: bpy.types.Object, rig: bpy.types.Object, blend_path: P
     bpy.context.scene["issue"] = 458
     bpy.context.scene["asset_family"] = "Breachling"
     bpy.context.scene["rig_policy"] = "local-species-correct-quadruped"
+    bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.file.pack_all()
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), compress=True)
     bpy.ops.object.select_all(action="DESELECT")
@@ -241,13 +384,16 @@ def save_and_export(mesh: bpy.types.Object, rig: bpy.types.Object, blend_path: P
 def main() -> None:
     blend_path, glb_path = script_args()
     mesh = prepare_mesh()
-    rig = create_armature()
-    bind_report = bind_mesh(mesh, rig)
-    actions = author_actions(rig)
+    point, scale, morphology = morphology_mapper(mesh)
+    removed_islands = remove_small_islands(mesh) if scale.y > 1.5 else 0
+    morphology["removedSmallIslandVertices"] = removed_islands
+    rig = create_armature(point, scale)
+    bind_report = bind_mesh(mesh, rig, point, scale)
+    actions = author_actions(rig, scale)
     save_and_export(mesh, rig, blend_path, glb_path)
     report = {
         "blend": str(blend_path), "glb": str(glb_path), "bones": len(rig.data.bones),
-        "bind": bind_report, "actions": actions,
+        "morphology": morphology, "bind": bind_report, "actions": actions,
     }
     print("BREACHLING_RIG_REPORT=" + json.dumps(report, separators=(",", ":")))
 
