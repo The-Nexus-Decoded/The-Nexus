@@ -81,10 +81,12 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    session reviews your fresh renders against the review checklist
    (`docs/REVIEW-2026-08-20-heartvale-hv1-v2.md` is the model). You are the
    builder, not the reviewer.
-6. **Style direction (owner ruling V15): true 3D** — the Heartvale outdoor
-   build is the visual benchmark: Three.js perspective camera, PBR
-   materials, real-time lighting + AO, gameplay grid hidden under continuous
-   geometry. Isometric framing is dropped.
+6. **Style direction (owner ruling, 2026-08-29): true 3D** — the Heartvale
+   outdoor build is the visual benchmark for Three.js perspective rendering,
+   PBR materials, real-time lighting + AO, and continuous geometry. SoulDrifter
+   starts in isometric gameplay by default; players may zoom, rotate, or
+   explicitly select another camera mode, but runtime navigation must never
+   switch away from isometric on its own.
 
 ## 4. Never-do rules (hard stops)
 
