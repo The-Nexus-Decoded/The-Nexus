@@ -346,7 +346,7 @@ locked brief
 -> one body-matched head segmentation; untouched result and per-part hashes
 -> preserve body scale/rest rig/head-neck bone hierarchy and transforms
 -> deterministic per-head landmark/surface registration and temporary Rigify face fit under `HUMANOID_FACIAL_FIT_PIPELINE.md`
--> bake the complete 52-name ARKit/MediaPipe-compatible facial contract and 15-name Meta-style speech-viseme contract to the exact Smart Mesh head
+-> bake the complete 52-name ARKit/MediaPipe-compatible facial contract and 14 non-silent direct Meta-style speech-viseme targets to the exact Smart Mesh head; `viseme_sil` is a zero-weight runtime state
 -> strip temporary facial rigs and fresh-import proof of the unchanged body-owned 65-bone runtime skeleton
 -> same canonical head proof in world, creator, NPC close-up, quest, and dialogue
 -> topology-compatible Young Adult, Middle-Aged, and Elder presets from that one head
