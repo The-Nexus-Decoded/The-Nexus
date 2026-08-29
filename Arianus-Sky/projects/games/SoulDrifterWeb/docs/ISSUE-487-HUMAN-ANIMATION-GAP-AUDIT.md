@@ -2,7 +2,7 @@
 
 This audit compares the shared lower-level Human motion master list against the immutable 400-clip pilot library. It records source coverage only; `COVERED_NOW` does not mean a clip has passed visual, contact, deformation, root-motion, transition, equipment, or owner acceptance.
 
-Machine-readable implementation record: `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-coverage.json`. The 2026-08-29 owner-locked harvest split below supersedes its generic harvest row; the manifest must be synchronized before the gap audit can close.
+Machine-readable implementation record: `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-coverage.json`. The 2026-08-29 owner-locked harvest split is synchronized there: generic Harvest is retired and the Tree Harvest and Plant Harvest gaps are separate required-now rows.
 
 Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 
@@ -137,7 +137,7 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 
 The generic `interaction.harvest` row and Harvest v1 candidate are `CHANGE/REWORK` and do not count as coverage. Tree Harvest and Plant Harvest are separate current-core requirements. For both, the bucket is a grounded runtime-bound prop, fruit is a runtime-bound item, neither is baked into the animation, and hand/fruit/bucket paths must be collision-free.
 
-Exact candidate clip IDs and every partial/missing reason must be synchronized into the machine-readable manifest. All 63 covered rows remain `UNREVIEWED_CANDIDATE_LIBRARY` until the runtime visual gate passes.
+Exact candidate clip IDs and every partial/missing reason are synchronized into the machine-readable manifest. Its executable validator proves the canonical totals of 111 required-now rows: 63 covered source candidates, 15 partial rows, and 33 missing rows. All 63 covered rows remain `UNREVIEWED_CANDIDATE_LIBRARY` until the runtime visual gate passes.
 
 ## Deferred higher-level or future-setting motion
 

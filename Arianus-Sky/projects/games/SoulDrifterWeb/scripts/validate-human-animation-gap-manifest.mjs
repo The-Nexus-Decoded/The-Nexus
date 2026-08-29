@@ -24,6 +24,8 @@ const REQUIRED_GAP_IDS = [
   "combat.staff.channel-cast",
   "combat.staff.draw-stow",
   "interaction.lockpick",
+  "interaction.harvest.tree",
+  "interaction.harvest.plant",
   "interaction.mine",
   "interaction.chop",
   "npc.farewell",
@@ -131,6 +133,11 @@ export function validateManifest({
   for (const requiredId of REQUIRED_GAP_IDS) {
     requireCondition(requirementIds.has(requiredId), `mandatory gap row is absent: ${requiredId}`, errors);
   }
+  requireCondition(
+    !requirementIds.has("interaction.harvest"),
+    "retired generic requirement id is still present: interaction.harvest",
+    errors,
+  );
 
   const deferredIds = new Set();
   for (const deferred of manifest.deferredHigherLevel ?? []) {

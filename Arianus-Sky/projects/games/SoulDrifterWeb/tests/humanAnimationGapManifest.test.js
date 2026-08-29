@@ -14,10 +14,10 @@ describe("issue 487 Human animation coverage manifest", () => {
     const result = validateManifest();
     expect(result.errors).toEqual([]);
     expect(result.summary).toMatchObject({
-      requiredNow: 110,
-      COVERED_NOW: 64,
+      requiredNow: 111,
+      COVERED_NOW: 63,
       PARTIAL: 15,
-      MISSING: 31,
+      MISSING: 33,
       deferredHigherLevel: 5,
       candidateLibraryClips: 400,
       libraryBytes: 32_441_884,
@@ -44,6 +44,12 @@ describe("issue 487 Human animation coverage manifest", () => {
     expect(byId.get("combat.knife.lower-level")).toMatchObject({ coverage: "MISSING", candidates: [] });
     expect(byId.get("combat.daggers.paired")).toMatchObject({ coverage: "MISSING", candidates: [] });
     expect(byId.get("combat.rod.lower-level")).toMatchObject({ coverage: "PARTIAL" });
+  });
+
+  it("retires generic harvest and keeps tree and plant harvest as separate required gaps", () => {
+    expect(byId.has("interaction.harvest")).toBe(false);
+    expect(byId.get("interaction.harvest.tree")).toMatchObject({ coverage: "MISSING", candidates: [] });
+    expect(byId.get("interaction.harvest.plant")).toMatchObject({ coverage: "MISSING", candidates: [] });
   });
 
   it("keeps future class signatures out of the issue 487 blocking list", () => {
