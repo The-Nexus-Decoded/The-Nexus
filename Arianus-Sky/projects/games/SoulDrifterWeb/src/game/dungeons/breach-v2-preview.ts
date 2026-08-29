@@ -19,6 +19,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import { buildBreachV2Layout, type BreachV2Layout } from "./breach-v2-layout.ts";
 import {
@@ -226,6 +227,15 @@ interface PreviewHooks {
     cleanupDebris: (targetId?: string) => void;
     activeDebrisCount: () => number;
   };
+  __dungeonCreatures: () => {
+    id: string;
+    tier: BreachlingPreviewTier;
+    roomId: string;
+    currentClip: string;
+    x: number;
+    y: number;
+    z: number;
+  }[];
 }
 
 interface BreachV2RuntimeEnvironmentObject extends BreachV2EnvironmentObjectConfig {
@@ -4044,6 +4054,251 @@ function setupHud(container: HTMLElement): HTMLDivElement {
   return hud;
 }
 
+type BreachlingPreviewTier = "base" | "stalker" | "oathbound" | "ravager";
+
+interface BreachlingPreviewPlacement {
+  id: string;
+  tier: BreachlingPreviewTier;
+  roomId: string;
+  x: number;
+  z: number;
+  floorElevation: number;
+  yaw: number;
+}
+
+interface BreachlingPreviewActor {
+  id: string;
+  tier: BreachlingPreviewTier;
+  roomId: string;
+  root: THREE.Group;
+  mixer: THREE.AnimationMixer;
+  actions: Map<string, THREE.AnimationAction>;
+  sequence: string[];
+  currentAction: THREE.AnimationAction | null;
+  currentClip: string;
+  sequenceIndex: number;
+  nextClipAt: number;
+}
+
+interface BreachlingPreviewSet {
+  actors: BreachlingPreviewActor[];
+  roots: THREE.Group[];
+  tickables: ((elapsed: number) => void)[];
+}
+
+const BREACHLING_PREVIEW_ASSETS: Record<
+  BreachlingPreviewTier,
+  { label: string; url: string; targetHeight: number }
+> = {
+  base: {
+    label: "Base Breachling",
+    url: "/assets/3d/characters/breachlings/breachling-base.glb",
+    targetHeight: 2.05,
+  },
+  stalker: {
+    label: "Breachling Stalker",
+    url: "/assets/3d/characters/breachlings/breachling-stalker.glb",
+    targetHeight: 2.15,
+  },
+  oathbound: {
+    label: "Oathbound Breachling",
+    url: "/assets/3d/characters/breachlings/oathbound-breachling.glb",
+    targetHeight: 2.4,
+  },
+  ravager: {
+    label: "Breachling Ravager",
+    url: "/assets/3d/characters/breachlings/breachling-ravager.glb",
+    targetHeight: 2.65,
+  },
+};
+
+const BREACHLING_PREVIEW_CLIP_ORDER = [
+  "Idle",
+  "CombatIdle",
+  "Walk",
+  "Run",
+  "BiteAttack",
+  "ClawAttack",
+  "TailWhip",
+  "SpitAttack",
+  "RecieveHit",
+  "Death",
+] as const;
+
+const BREACHLING_LOOP_CLIPS = new Set(["Idle", "CombatIdle", "Walk", "Run"]);
+const BREACHLING_ROOM_OFFSETS: readonly (readonly [number, number])[] = [
+  [-0.23, -0.2],
+  [0.23, 0.18],
+  [0.04, -0.27],
+  [-0.24, 0.22],
+  [0.25, -0.16],
+  [0.02, 0.26],
+];
+
+function buildBreachlingPreviewPlacements(
+  layout: BreachV2Layout,
+  path: "wayfarer" | "oathbreaker",
+): BreachlingPreviewPlacement[] {
+  const rooms = layout.rooms.filter((room) => !room.fixed);
+  const actorsPerRoom = path === "oathbreaker" ? 3 : 2;
+  const tiers: readonly BreachlingPreviewTier[] = ["base", "stalker", "oathbound", "ravager"];
+  const placements: BreachlingPreviewPlacement[] = [];
+
+  rooms.forEach((room, roomIndex) => {
+    const roomProps = layout.placements.filter((placement) => (
+      placement.roomId === room.id && placement.placement === "floor"
+    ));
+    const roomActors: BreachlingPreviewPlacement[] = [];
+    const roomCenterX = room.x + room.w / 2;
+    const roomCenterZ = room.z + room.h / 2;
+
+    for (let actorIndex = 0; actorIndex < actorsPerRoom; actorIndex += 1) {
+      const progression = rooms.length <= 1
+        ? actorIndex / Math.max(1, actorsPerRoom - 1)
+        : (roomIndex + actorIndex / actorsPerRoom * 0.45) / (rooms.length - 0.55);
+      const tier = tiers[Math.min(tiers.length - 1, Math.floor(progression * tiers.length))]!;
+      const startOffset = (roomIndex * actorsPerRoom + actorIndex) % BREACHLING_ROOM_OFFSETS.length;
+      let chosen: [number, number] | null = null;
+
+      for (let attempt = 0; attempt < BREACHLING_ROOM_OFFSETS.length; attempt += 1) {
+        const [offsetX, offsetZ] = BREACHLING_ROOM_OFFSETS[(startOffset + attempt) % BREACHLING_ROOM_OFFSETS.length]!;
+        const x = THREE.MathUtils.clamp(roomCenterX + room.w * offsetX, room.x + 1.5, room.x + room.w - 1.5);
+        const z = THREE.MathUtils.clamp(roomCenterZ + room.h * offsetZ, room.z + 1.5, room.z + room.h - 1.5);
+        const clearsProps = roomProps.every((placement) => (
+          Math.hypot(x - placement.x, z - placement.z) >= (placement.footprint ?? 0.8) / 2 + 1.15
+        ));
+        const clearsCreatures = roomActors.every((placement) => (
+          Math.hypot(x - placement.x, z - placement.z) >= 2.25
+        ));
+        if (clearsProps && clearsCreatures) {
+          chosen = [x, z];
+          break;
+        }
+      }
+
+      const [x, z] = chosen ?? [
+        roomCenterX + (actorIndex - (actorsPerRoom - 1) / 2) * 2.35,
+        roomCenterZ,
+      ];
+      const placement: BreachlingPreviewPlacement = {
+        id: `breachling-preview:${room.id}:${actorIndex + 1}`,
+        tier,
+        roomId: room.id,
+        x,
+        z,
+        floorElevation: room.floorElevation,
+        yaw: Math.atan2(-(roomCenterZ - z), roomCenterX - x),
+      };
+      roomActors.push(placement);
+      placements.push(placement);
+    }
+  });
+
+  return placements;
+}
+
+function playBreachlingPreviewClip(actor: BreachlingPreviewActor, elapsed: number): void {
+  if (actor.sequence.length === 0) return;
+  const clipName = actor.sequence[actor.sequenceIndex % actor.sequence.length]!;
+  const action = actor.actions.get(clipName);
+  if (!action) return;
+  const loops = BREACHLING_LOOP_CLIPS.has(clipName);
+  if (actor.currentAction && actor.currentAction !== action) actor.currentAction.fadeOut(0.18);
+  action.reset();
+  action.enabled = true;
+  action.clampWhenFinished = !loops;
+  action.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
+  action.fadeIn(0.18).play();
+  actor.currentAction = action;
+  actor.currentClip = clipName;
+  actor.nextClipAt = elapsed + (loops ? 2.4 : action.getClip().duration + 0.35);
+  actor.sequenceIndex = (actor.sequenceIndex + 1) % actor.sequence.length;
+}
+
+async function placeBreachlingPreviewActors(
+  scene: THREE.Scene,
+  layout: BreachV2Layout,
+  loader: GLTFLoader,
+  path: "wayfarer" | "oathbreaker",
+): Promise<BreachlingPreviewSet> {
+  const placements = buildBreachlingPreviewPlacements(layout, path);
+  const requiredTiers = [...new Set(placements.map((placement) => placement.tier))];
+  const sources = new Map<BreachlingPreviewTier, GLTF>();
+  await Promise.all(requiredTiers.map(async (tier) => {
+    sources.set(tier, await loader.loadAsync(BREACHLING_PREVIEW_ASSETS[tier].url));
+  }));
+
+  const actors = placements.map((placement, actorIndex): BreachlingPreviewActor => {
+    const source = sources.get(placement.tier)!;
+    const model = cloneSkeleton(source.scene) as THREE.Group;
+    model.name = `${BREACHLING_PREVIEW_ASSETS[placement.tier].label} model`;
+    model.updateMatrixWorld(true);
+    const sourceBounds = new THREE.Box3().setFromObject(model);
+    const sourceHeight = Math.max(0.001, sourceBounds.getSize(new THREE.Vector3()).y);
+    model.scale.setScalar(BREACHLING_PREVIEW_ASSETS[placement.tier].targetHeight / sourceHeight);
+    model.updateMatrixWorld(true);
+    const fittedBounds = new THREE.Box3().setFromObject(model);
+    model.position.y -= fittedBounds.min.y;
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+
+    const root = new THREE.Group();
+    root.name = placement.id;
+    root.position.set(placement.x, placement.floorElevation, placement.z);
+    root.rotation.y = placement.yaw;
+    root.add(model);
+    setSpatialContract(root, {
+      spatialOwnerId: placement.id,
+      collisionMode: "animated-creature-review-nonblocking",
+      blocksMovement: false,
+      blocksLineOfSight: false,
+      blocksCamera: false,
+      contractReason: "Issue #458 animated creature review actors must not alter the approved BREACH-V2 traversal contract.",
+    });
+    root.userData.creatureTier = placement.tier;
+    root.userData.roomId = placement.roomId;
+    scene.add(root);
+
+    const mixer = new THREE.AnimationMixer(model);
+    const actions = new Map(source.animations.map((clip) => [clip.name, mixer.clipAction(clip)]));
+    const supportsSpit = placement.tier === "oathbound" || placement.tier === "ravager";
+    const sequence = BREACHLING_PREVIEW_CLIP_ORDER.filter((clipName) => (
+      actions.has(clipName) && (clipName !== "SpitAttack" || supportsSpit)
+    ));
+    const actor: BreachlingPreviewActor = {
+      id: placement.id,
+      tier: placement.tier,
+      roomId: placement.roomId,
+      root,
+      mixer,
+      actions,
+      sequence,
+      currentAction: null,
+      currentClip: "",
+      sequenceIndex: actorIndex % Math.max(1, sequence.length),
+      nextClipAt: 0,
+    };
+    playBreachlingPreviewClip(actor, 0);
+    actor.nextClipAt += (actorIndex % 6) * 0.32;
+    return actor;
+  });
+
+  let previousElapsed = 0;
+  const tick = (elapsed: number): void => {
+    const delta = THREE.MathUtils.clamp(elapsed - previousElapsed, 0, 0.1);
+    previousElapsed = elapsed;
+    actors.forEach((actor) => {
+      actor.mixer.update(delta);
+      if (elapsed >= actor.nextClipAt) playBreachlingPreviewClip(actor, elapsed);
+    });
+  };
+
+  return { actors, roots: actors.map((actor) => actor.root), tickables: [tick] };
+}
+
 export async function startDungeonPreview(
   container: HTMLElement,
   options: { seed: number; path: "wayfarer" | "oathbreaker"; cam: string },
@@ -4198,6 +4453,7 @@ export async function startDungeonPreview(
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
   setupLights(scene, layout);
+  const breachlingPreview = await placeBreachlingPreviewActors(scene, layout, gltfLoader, options.path);
   if (activeCameraMode === "overview") {
     // Survey mode is an architectural QA view, so the whole shell must remain
     // legible at once instead of depending on local sconces hundreds of metres
@@ -4867,6 +5123,15 @@ export async function startDungeonPreview(
     cleanupDebris: (targetId) => gameplay.cleanupEnvironmentDebris(targetId),
     activeDebrisCount: () => gameplay.snapshot().environment.debrisObjectIds.length,
   };
+  hooks.__dungeonCreatures = () => breachlingPreview.actors.map((actor) => ({
+    id: actor.id,
+    tier: actor.tier,
+    roomId: actor.roomId,
+    currentClip: actor.currentClip,
+    x: actor.root.position.x,
+    y: actor.root.position.y,
+    z: actor.root.position.z,
+  }));
 
   const warp = (roomId: string, x: number, z: number): boolean => {
     const destinationRoom = layout.rooms.find((room) => room.id === roomId);
@@ -4976,10 +5241,16 @@ export async function startDungeonPreview(
   const gpuName = debugRendererInfo
     ? String(renderer.getContext().getParameter(debugRendererInfo.UNMASKED_RENDERER_WEBGL))
     : "WebGL renderer";
-  const tickables = [...propPlacement.tickables, ...sectionDoors.tickables, ...landmarkTickables];
+  const tickables = [
+    ...propPlacement.tickables,
+    ...sectionDoors.tickables,
+    ...landmarkTickables,
+    ...breachlingPreview.tickables,
+  ];
   const detailCullables: THREE.Object3D[] = [
     ...propPlacement.cullables,
     ...sectionDoors.cullables,
+    ...breachlingPreview.roots,
   ];
   for (const groupName of [
     "breach-v2-architectural-polish",
