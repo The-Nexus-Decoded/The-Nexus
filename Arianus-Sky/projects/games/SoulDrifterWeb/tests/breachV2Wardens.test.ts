@@ -94,6 +94,8 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     runtime.setDamageFraction(1);
     expect(runtime.snapshots()[0]?.currentClip).toBe("DeathCollapse");
     expect(runtime.snapshots()[0]?.detachedStages).toEqual([30, 60, 90]);
+    for (let index = 0; index < 6; index += 1) runtime.update(placement.x, placement.z, 1 / 60);
+    expect(Math.abs(runtime.snapshots()[0]?.groundingClearanceMeters ?? 1)).toBeLessThan(0.002);
     runtime.setDamageFraction(0);
     expect(runtime.snapshots()[0]?.healthPercent).toBe(100);
     expect(runtime.snapshots()[0]?.detachedStages).toEqual([]);

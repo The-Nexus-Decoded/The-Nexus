@@ -495,15 +495,24 @@ export function createBreachV2WardenRuntime(
         const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
         actor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow;
         actor.groundingFrames += 1;
+        let calibratedThisFrame = false;
         if (actor.groundingStatus === "pending" && actor.groundingFrames >= 3) {
           const grounding = calibrateAnimatedPoseOnFloor(actor.root, actor.model, actor.pivot, 0);
           actor.groundingClearanceMeters = grounding.clearanceMeters;
           actor.groundingStatus = "calibrated-live-pose";
+          calibratedThisFrame = true;
         }
-        if (actor.currentClip === "DeathCollapse" && actor.groundingStatus !== "pending") {
+        if (actor.currentClip === "DeathCollapse"
+          && actor.groundingStatus !== "pending"
+          && !calibratedThisFrame) {
           const grounding = measureAnimatedPoseGrounding(actor.root, actor.model);
-          if (Math.abs(grounding.clearanceMeters) > 0.002) actor.pivot.position.y -= grounding.clearanceMeters;
-          actor.groundingClearanceMeters = measureAnimatedPoseGrounding(actor.root, actor.model).clearanceMeters;
+          if (Math.abs(grounding.clearanceMeters) > 0.002) {
+            actor.pivot.position.y -= grounding.clearanceMeters;
+            actor.pivot.updateWorldMatrix(true, true);
+            actor.groundingClearanceMeters = 0;
+          } else {
+            actor.groundingClearanceMeters = grounding.clearanceMeters;
+          }
         }
         const effectActions = new Set(["AshCall", "CinderSweep", "PalmFire"]);
         if (!actor.effectFired && effectActions.has(actor.currentClip)
