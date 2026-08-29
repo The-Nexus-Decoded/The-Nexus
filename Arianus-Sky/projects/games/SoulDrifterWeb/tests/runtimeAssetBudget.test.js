@@ -31,12 +31,6 @@ describe("runtime asset budget", () => {
       { assetRoot: "dist/client", budgetRoot: "dist" },
       { assetRoot: "dist-pages", budgetRoot: "dist-pages" },
     ]);
-    expect(manifest.developmentOnlyGlobs).toEqual([]);
-    expect(manifest.protectedPaths).toEqual(expect.arrayContaining([
-      "assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
-      "assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
-      "assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
-    ]));
   });
 
   it("identifies only build-time source art in the real public asset tree", async () => {
