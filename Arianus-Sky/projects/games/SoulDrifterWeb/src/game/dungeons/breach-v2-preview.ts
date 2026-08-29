@@ -70,6 +70,7 @@ import {
   type BreachV2GraphicsQuality,
   resolveBreachV2CameraStep,
   resolveBreachV2AutoGraphicsQuality,
+  resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchDistance,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
@@ -1250,18 +1251,20 @@ export function writeBreachV2IsometricCameraPose(
   distance: number,
   target: THREE.Vector3,
   position: THREE.Vector3,
+  profile?: { minimumPitch: number; lookAhead: number },
 ): void {
   const resolvedPitch = THREE.MathUtils.clamp(
     pitch,
-    BREACH_V2_ISOMETRIC_MIN_PITCH,
+    profile?.minimumPitch ?? BREACH_V2_ISOMETRIC_MIN_PITCH,
     BREACH_V2_ISOMETRIC_MAX_PITCH,
   );
+  const lookAhead = profile?.lookAhead ?? BREACH_V2_ISOMETRIC_LOOK_AHEAD;
   const forwardX = -Math.sin(yaw);
   const forwardZ = -Math.cos(yaw);
   target.set(
-    playerPosition.x + forwardX * BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+    playerPosition.x + forwardX * lookAhead,
     playerPosition.y + 1.4,
-    playerPosition.z + forwardZ * BREACH_V2_ISOMETRIC_LOOK_AHEAD,
+    playerPosition.z + forwardZ * lookAhead,
   );
   const horizontalDistance = Math.cos(resolvedPitch) * distance;
   position.set(
@@ -4076,6 +4079,13 @@ export async function startDungeonPreview(
   });
 
   const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const visualWidth = window.visualViewport?.width ?? window.innerWidth;
+  const visualHeight = window.visualViewport?.height ?? window.innerHeight;
+  let isometricCameraProfile = resolveBreachV2IsometricCameraProfile({
+    coarsePointer,
+    viewportWidth: visualWidth,
+    viewportHeight: visualHeight,
+  });
   const storedGraphicsMode = window.localStorage.getItem("breach-v2-graphics-mode");
   let graphicsMode: BreachV2GraphicsMode = storedGraphicsMode === "low"
     || storedGraphicsMode === "standard"
@@ -4412,8 +4422,8 @@ export async function startDungeonPreview(
     wardenAnimationReview = setupBreachV2WardenReview(container, wardenRuntime);
   }
   let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
-  let camPitch = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_PITCH : 0.24;
-  let camDist = firstPersonMode ? 0 : isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE : 4.4;
+  let camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
+  let camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
@@ -4429,6 +4439,12 @@ export async function startDungeonPreview(
       const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
       const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
       camDist = resolveBreachV2CameraStep(camDist, delta, minDistance, maxDistance);
+    },
+    resetCamera: () => {
+      if (!isometricMode) return;
+      camYaw = BREACH_V2_ISOMETRIC_DEFAULT_YAW;
+      camPitch = isometricCameraProfile.defaultPitch;
+      camDist = isometricCameraProfile.defaultDistance;
     },
   });
   setupBreachV2MobileLandscapeGate({
@@ -4609,7 +4625,7 @@ export async function startDungeonPreview(
           if (isometricMode) {
             camPitch = THREE.MathUtils.clamp(
               camPitch + movementY * 0.004,
-              BREACH_V2_ISOMETRIC_MIN_PITCH,
+              isometricCameraProfile.minimumPitch,
               BREACH_V2_ISOMETRIC_MAX_PITCH,
             );
           }
@@ -5075,6 +5091,7 @@ export async function startDungeonPreview(
               camDist,
               cameraTarget,
               desiredCamera,
+              isometricCameraProfile,
             );
           } else {
             const cp = Math.cos(camPitch);
@@ -5159,11 +5176,35 @@ export async function startDungeonPreview(
     }
   });
 
-  window.addEventListener("resize", () => {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+  let compactLandscape = isometricCameraProfile.compactLandscape;
+  const syncViewport = (): void => {
+    const bounds = container.getBoundingClientRect();
+    const w = Math.max(1, bounds.width || container.clientWidth);
+    const h = Math.max(1, bounds.height || container.clientHeight);
+    const nextProfile = resolveBreachV2IsometricCameraProfile({
+      coarsePointer,
+      viewportWidth: window.visualViewport?.width ?? w,
+      viewportHeight: window.visualViewport?.height ?? h,
+    });
+    if (isometricMode && nextProfile.compactLandscape && !compactLandscape) {
+      camPitch = nextProfile.defaultPitch;
+      camDist = nextProfile.defaultDistance;
+    } else if (isometricMode) {
+      camPitch = THREE.MathUtils.clamp(
+        camPitch,
+        nextProfile.minimumPitch,
+        BREACH_V2_ISOMETRIC_MAX_PITCH,
+      );
+    }
+    compactLandscape = nextProfile.compactLandscape;
+    isometricCameraProfile = nextProfile;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
-  });
+  };
+  window.addEventListener("resize", syncViewport);
+  window.visualViewport?.addEventListener("resize", syncViewport);
+  const viewportObserver = new ResizeObserver(syncViewport);
+  viewportObserver.observe(container);
+  syncViewport();
 }

@@ -6,6 +6,7 @@ import {
   BREACH_V2_MOBILE_ZOOM_STEP,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
   resolveBreachV2CameraStep,
+  resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchDistance,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
@@ -34,6 +35,28 @@ describe("BREACH-V2 mobile camera pinch", () => {
 });
 
 describe("BREACH-V2 mobile camera buttons and orientation", () => {
+  it("uses a more top-down, centered isometric profile on compact landscape touch screens", () => {
+    const mobile = resolveBreachV2IsometricCameraProfile({
+      coarsePointer: true,
+      viewportWidth: 844,
+      viewportHeight: 390,
+    });
+    expect(mobile.compactLandscape).toBe(true);
+    expect(mobile.defaultPitch * 180 / Math.PI).toBeCloseTo(45);
+    expect(mobile.minimumPitch * 180 / Math.PI).toBeCloseTo(36);
+    expect(mobile.lookAhead).toBe(2.25);
+
+    const desktop = resolveBreachV2IsometricCameraProfile({
+      coarsePointer: false,
+      viewportWidth: 1440,
+      viewportHeight: 900,
+    });
+    expect(desktop.compactLandscape).toBe(false);
+    expect(desktop.defaultPitch * 180 / Math.PI).toBeCloseTo(30);
+    expect(desktop.minimumPitch * 180 / Math.PI).toBeCloseTo(8);
+    expect(desktop.lookAhead).toBe(4.25);
+  });
+
   it("uses equal zoom steps and respects camera limits", () => {
     expect(resolveBreachV2CameraStep(14.5, -BREACH_V2_MOBILE_ZOOM_STEP)).toBe(11);
     expect(resolveBreachV2CameraStep(14.5, BREACH_V2_MOBILE_ZOOM_STEP)).toBe(18);

@@ -8,6 +8,40 @@ export const BREACH_V2_PANEL_REQUEST_EVENT = "breach-v2-panel-requested";
 export type BreachV2GraphicsMode = "auto" | "low" | "standard" | "high";
 export type BreachV2GraphicsQuality = Exclude<BreachV2GraphicsMode, "auto">;
 
+export interface BreachV2IsometricCameraProfile {
+  compactLandscape: boolean;
+  defaultPitch: number;
+  minimumPitch: number;
+  defaultDistance: number;
+  lookAhead: number;
+}
+
+export function resolveBreachV2IsometricCameraProfile(options: {
+  coarsePointer: boolean;
+  viewportWidth: number;
+  viewportHeight: number;
+}): BreachV2IsometricCameraProfile {
+  const { coarsePointer, viewportWidth, viewportHeight } = options;
+  const compactLandscape = coarsePointer
+    && viewportWidth > viewportHeight
+    && viewportHeight <= 500;
+  return compactLandscape
+    ? {
+      compactLandscape,
+      defaultPitch: Math.PI / 4,
+      minimumPitch: Math.PI / 5,
+      defaultDistance: 18.5,
+      lookAhead: 2.25,
+    }
+    : {
+      compactLandscape,
+      defaultPitch: Math.PI / 6,
+      minimumPitch: Math.PI * 8 / 180,
+      defaultDistance: 18.5,
+      lookAhead: 4.25,
+    };
+}
+
 export function resolveBreachV2AutoGraphicsQuality(options: {
   coarsePointer: boolean;
   hardwareConcurrency: number;
@@ -274,8 +308,9 @@ export function setupBreachV2MobileMovementPad(options: {
   keys: Set<string>;
   enabled: boolean;
   adjustCameraDistance: (delta: number) => void;
+  resetCamera: () => void;
 }): MobileMovementPad {
-  const { container, keys, enabled, adjustCameraDistance } = options;
+  const { container, keys, enabled, adjustCameraDistance, resetCamera } = options;
   if (!enabled) return { destroy: () => undefined };
 
   const root = document.createElement("div");
@@ -287,14 +322,22 @@ export function setupBreachV2MobileMovementPad(options: {
     "width:204px", "height:146px", "pointer-events:none", "touch-action:none",
   ].join(";");
 
-  const center = document.createElement("div");
-  center.setAttribute("aria-hidden", "true");
+  const center = document.createElement("button");
+  center.type = "button";
+  center.dataset.testid = "breach-v2-reset-camera";
+  center.setAttribute("aria-label", "Reset isometric camera");
   center.textContent = "✦";
   center.style.cssText = [
-    "grid-area:2 / 2", "display:grid", "place-items:center", "border-radius:50%",
+    "grid-area:2 / 2", "display:grid", "place-items:center", "padding:0", "border-radius:50%",
+    "pointer-events:auto", "touch-action:manipulation", "cursor:pointer",
     "color:rgba(159,234,255,.72)", "background:rgba(7,11,16,.45)",
     "border:1px solid rgba(127,232,255,.18)", "font:16px Georgia,serif",
   ].join(";");
+  center.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    resetCamera();
+  });
   root.appendChild(center);
 
   const zoomRail = document.createElement("div");
