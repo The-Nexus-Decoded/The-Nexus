@@ -17,6 +17,7 @@ export interface HumanFoundationApprovedAnimationSpec {
   sourceClipName: string;
   semanticClipName: string;
   sourceSha256: string;
+  reviewStatus: "OWNER_APPROVED" | "IN_GAME_QA_ACCEPTED";
   rootPolicy: "in-place" | "authored";
   rootNodeName: string;
   groundedReferenceClipName: string;
@@ -29,6 +30,7 @@ export const HUMAN_FOUNDATION_APPROVED_ANIMATIONS: readonly HumanFoundationAppro
     sourceClipName: "AuthoredUtility__Lockpick",
     semanticClipName: "AuthoredUtility__Lockpick",
     sourceSha256: "2AB154B7E9F58419A15D6F7C33557CFE77413F8B7448D507F1304DD06F84255A",
+    reviewStatus: "OWNER_APPROVED",
     rootPolicy: "in-place",
     rootNodeName: "mixamorigHips",
     groundedReferenceClipName: "MaleLocomotion__Idle",
@@ -45,6 +47,36 @@ export const HUMAN_FOUNDATION_APPROVED_ANIMATIONS: readonly HumanFoundationAppro
       requiredToolRoles: ["TENSION_WRENCH", "HOOK_PICK"],
       authoringProxyIncluded: false,
     },
+  },
+  {
+    url: "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-spell-impact-knockback-fall.glb",
+    sourceClipName: "AuthoredReaction__SpellImpactKnockbackAndFall",
+    semanticClipName: "AuthoredReaction__SpellImpactKnockbackAndFall",
+    sourceSha256: "6AA99EB932D8DF5FD9A7DF9326482F412863AF86815DC25584292C5DB28C661E",
+    reviewStatus: "IN_GAME_QA_ACCEPTED",
+    rootPolicy: "authored",
+    rootNodeName: "mixamorigHips",
+    groundedReferenceClipName: "MaleLocomotion__Idle",
+  },
+  {
+    url: "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-npc-listen.glb",
+    sourceClipName: "AuthoredUtility__NpcListen",
+    semanticClipName: "AuthoredUtility__NpcListen",
+    sourceSha256: "23615F625DC7C095D5BABF1358075060A6B69CC93FC7453AEDE88A8595F61DD6",
+    reviewStatus: "IN_GAME_QA_ACCEPTED",
+    rootPolicy: "in-place",
+    rootNodeName: "mixamorigHips",
+    groundedReferenceClipName: "MaleLocomotion__Idle",
+  },
+  {
+    url: "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-authored-farewell.glb",
+    sourceClipName: "AuthoredUtility__Farewell",
+    semanticClipName: "AuthoredUtility__Farewell",
+    sourceSha256: "760C60A83805918CB4034279998EC85F6A1D41E773F69DF850223DBF013E7F28",
+    reviewStatus: "IN_GAME_QA_ACCEPTED",
+    rootPolicy: "in-place",
+    rootNodeName: "mixamorigHips",
+    groundedReferenceClipName: "MaleLocomotion__Idle",
   },
 ];
 
