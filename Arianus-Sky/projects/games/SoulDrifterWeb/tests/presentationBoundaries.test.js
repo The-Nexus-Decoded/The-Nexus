@@ -232,6 +232,13 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(world).toMatch(/Promise\.all\(animationPacks\.map\(async \(spec\)[\s\S]*await this\.loadExternalAnimationPack\(spec, model\)[\s\S]*if \(externalClip\) clips\.set\(externalClip\.name/s);
   });
 
+  it("uses the Human foundation rig for every current First Breach NPC without imported helper geometry", () => {
+    expect(world).toMatch(/const NPC_MODEL_PATHS[\s\S]*ilyra: HUMAN_FOUNDATION_MODEL_PATH[\s\S]*orren: HUMAN_FOUNDATION_MODEL_PATH[\s\S]*brannoc: HUMAN_FOUNDATION_MODEL_PATH/s);
+    expect(world).toMatch(/const NPC_APPEARANCES[\s\S]*ilyra:[\s\S]*orren:[\s\S]*brannoc:/s);
+    expect(world).toMatch(/NPC_MODEL_PATHS\[npc\.id\][\s\S]*HUMANOID_ACTIVE_ANIMATION_PACKS/s);
+    expect(world).toMatch(/importedHelpers[\s\S]*\^\(\?:Cube\|Icosphere\)\$[\s\S]*removeFromParent/s);
+  });
+
   it("resolves every played clip through the versioned animation tuning boundary", () => {
     expect(main).toMatch(/loadAnimationTuningDocument\(tuningUrl\)[\s\S]*animationTuningRegistry\.replace\(animationTuning\)/s);
     expect(world).toMatch(/private playAnimation\([\s\S]*animationTuningRegistry\.resolve\(this\.combatSpeed \* speedMultiplier, tuningScope\)/s);

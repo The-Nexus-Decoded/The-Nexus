@@ -3,6 +3,7 @@ import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
   bindOptionalCompatibleAnimationClip,
+  HUMANOID_ACTIVE_ANIMATION_PACKS,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
   trimAnimationPackClipEnvelope,
@@ -98,7 +99,7 @@ import {
   type WeaponPresentation,
   type WeaponVisualState,
 } from "./presentation";
-import { resolvePlayerAvatarManifest } from "./avatarIdentity";
+import { HUMAN_FOUNDATION_MODEL_PATH, resolvePlayerAvatarManifest } from "./avatarIdentity";
 import {
   AvatarMotionController,
   type AvatarMotionDecision,
@@ -131,9 +132,14 @@ const IN_PLACE_ANIMATION_NAMES = new Set([
   "siphoncleavebaselinecandidate", "siphoncleavebaseline",
 ]);
 const NPC_MODEL_PATHS: Record<string, string> = {
-  ilyra: "/assets/3d/characters/npc-ilyra.gltf",
-  orren: "/assets/3d/characters/npc-orren.gltf",
-  brannoc: "/assets/3d/characters/npc-brannoc.gltf",
+  ilyra: HUMAN_FOUNDATION_MODEL_PATH,
+  orren: HUMAN_FOUNDATION_MODEL_PATH,
+  brannoc: HUMAN_FOUNDATION_MODEL_PATH,
+};
+const NPC_APPEARANCES: Readonly<Record<string, CharacterProfile["appearance"]>> = {
+  ilyra: { bodyType: "foundation", faceType: "foundation", hairStyle: "parted", skinTone: "light", facialHair: "none" },
+  orren: { bodyType: "foundation", faceType: "foundation", hairStyle: "parted", skinTone: "olive", facialHair: "none" },
+  brannoc: { bodyType: "foundation", faceType: "foundation", hairStyle: "cropped", skinTone: "deep", facialHair: "full-beard" },
 };
 
 interface AnimatedActor {
@@ -1078,7 +1084,15 @@ export class World3D {
     const npcHeights: Record<string, number> = { ilyra: 1.98, orren: 1.94, brannoc: 2.12 };
     const npcNames: Record<string, string> = { ilyra: "Wellkeeper Ilyra", orren: "Breach Scout Orren", brannoc: "Arena Warden Brannoc" };
     await Promise.all(this.dungeon.npcs.map(async (npc) => {
-      const actor = await this.createActor(npc.id, NPC_MODEL_PATHS[npc.id]!, npc, npcHeights[npc.id]!, 0xc59b62, npcNames[npc.id] ?? npc.id);
+      const actor = await this.createActor(
+        npc.id,
+        NPC_MODEL_PATHS[npc.id]!,
+        npc,
+        npcHeights[npc.id]!,
+        0xc59b62,
+        npcNames[npc.id] ?? npc.id,
+        HUMANOID_ACTIVE_ANIMATION_PACKS,
+      );
       actor.root.traverse((child) => { child.userData.interactId = npc.id; });
       this.createSemanticProxy(actor.root, actor.model, "interactId", npc.id);
       this.addInteractionMarker(actor.root, 0x62e6db, false);
@@ -1140,6 +1154,24 @@ export class World3D {
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
+    const importedHelpers: THREE.Object3D[] = [];
+    model.traverse((child) => {
+      if (child instanceof THREE.Camera || child instanceof THREE.Light
+        || (/^(?:Cube|Icosphere)$/i.test(child.name) && !(child instanceof THREE.SkinnedMesh))) {
+        importedHelpers.push(child);
+      }
+    });
+    importedHelpers.forEach((helper) => helper.removeFromParent());
+    const appearance = id === "player" && !this.pilotReviewEnabled
+      ? this.profile.appearance
+      : NPC_APPEARANCES[id];
+    if (appearance) applyModularAppearance(model, {
+      hairStyle: appearance.hairStyle ?? "shaved",
+      raceId: id === "player"
+        ? this.profile.raceId as "human" | "elf" | "dwarf" | "halfling"
+        : "human",
+      facialHair: appearance.facialHair ?? "none",
+    });
     model.updateMatrixWorld(true);
     const initialBox = actorBodyBounds(model);
     const sourceHeight = Math.max(0.01, initialBox.max.y - initialBox.min.y);
@@ -1150,24 +1182,19 @@ export class World3D {
     const scaledBox = actorBodyBounds(model);
     model.position.y -= scaledBox.min.y;
     model.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
+      if (child instanceof THREE.Mesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         const hadMaterialArray = Array.isArray(child.material);
         const materials: THREE.Material[] = hadMaterialArray
           ? [...child.material]
           : [child.material];
-        const skinTone = id === "player"
-          ? SKIN_TONES[this.profile.appearance?.skinTone ?? "ashen"].color
+        const skinTone = appearance
+          ? SKIN_TONES[appearance.skinTone ?? "ashen"].color
           : undefined;
-        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, id === "player", skinTone));
+        const customized = materials.map((source: THREE.Material) => cloneActorMaterial(source, tint, appearance !== undefined, skinTone));
         child.material = hadMaterialArray ? customized : customized[0]!;
       }
-    });
-    if (id === "player" && !this.pilotReviewEnabled) applyModularAppearance(model, {
-      hairStyle: this.profile.appearance?.hairStyle ?? "shaved",
-      raceId: this.profile.raceId as "human" | "elf" | "dwarf" | "halfling",
-      facialHair: this.profile.appearance?.facialHair ?? "none",
     });
     model.userData.actorBaseQuaternion = model.quaternion.clone();
 
