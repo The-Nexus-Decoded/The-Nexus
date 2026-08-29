@@ -103,6 +103,23 @@ Every newly generated, provider-derived, DCC-derived, custom, or procedural anim
 
 A contact sheet, phase-image set, numeric report, agent-authored `PASS` label, or valid GLB is supporting evidence only; none can substitute for watching the complete normal-speed motion. The authoring agent may report technical results but cannot self-approve its animation for owner review. A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the independent continuous-playback review, neutral-body chat preview, and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
 
+### One-shot natural boundary-pose gate
+
+Every one-shot clip must begin in its declared natural gameplay stance, perform the complete action, and end in its declared natural recovery or ready stance. A source bind pose, arms-wide T-pose, or interpolation through either state is not a playable boundary and fails the candidate before preview. The generated receipt must declare `candidate.playIntent: ONE_SHOT`, name the start and end gameplay stances, hash the source-bind, declared-stance, and exported boundary samples, and record a numeric boundary comparison over at least eight upper-body bones.
+
+Use `FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE`. Both exported boundaries must remain within 5 degrees RMS of their declared gameplay stance, at least 12 degrees RMS away from the source bind pose, and at or below a `0.35` arms-wide score. Record the sampled frames, bone count, threshold values, measured values, and `bindOrTPoseAtBoundary: false` under `technicalReview.evidence.boundaryPose`. The candidate validator rejects missing metadata, weakened thresholds, bind/T-pose stance labels, an arms-wide score above the limit, or a boundary too close to bind. Loops still declare `candidate.playIntent: LOOP`; their seam and cycle-pose checks remain governed by the loop contract rather than this one-shot stance gate.
+
+Treat the numeric gate as a fail-closed preflight, not visual acceptance. The independent reviewer still watches every normal-speed frame to catch single-frame bind-pose flashes, bad interpolation, or a technically separated pose that does not read as the declared gameplay stance.
+
+### Tree and plant harvest interaction gate
+
+The generic `interaction.harvest` semantic and its Harvest v1 candidate are retired as `CHANGE/REWORK`. Harvest is two required current-core actions:
+
+- `interaction.harvest.tree`: a ground bucket is ready, the actor makes a clearly upward tree-fruit pick, transfers the fruit, and deposits it into the bucket;
+- `interaction.harvest.plant`: a ground bucket is ready, the actor uses a natural low bend or hip hinge to pick from the plant, rises, transfers the fruit, and deposits it into the bucket.
+
+The bucket is a separate `HARVEST_BUCKET` entity with `RUNTIME_BOUND` binding and `GROUND_PLACED` placement. Fruit is a separate `RUNTIME_BOUND_ITEM`. Neither bucket nor fruit may be baked into the character or animation artifact, and the bucket may never float or follow a hand socket. The neutral-body preview must include the grounded bucket and prove clean hand-to-fruit, hand-to-bucket, and fruit-to-bucket paths with no visible collision. Receipts for either harvest semantic record the exact canonical beat order plus `bucketProp`, fruit binding, grounded preview, and all three collision checks under `technicalReview.evidence.interactionContext`; the executable candidate gate rejects incomplete or generic harvest receipts.
+
 ### Executable quarantine and promotion contract
 
 All humanoid authoring lanes use the receipt template at

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  HARVEST_INTERACTION_CONTRACTS,
+  ONE_SHOT_BOUNDARY_POSE_CONTRACT,
   REQUIRED_TECHNICAL_CHECKS,
   REQUIRED_VISUAL_CHECKS,
   validateCandidateReceipt,
@@ -18,6 +20,7 @@ function passingReceipt() {
       version: 1,
       authorId: "animation-gap-lane",
       authoringLane: "BLENDER",
+      playIntent: "ONE_SHOT",
     },
     candidateArtifact: {
       path: "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/lift-v1.glb",
@@ -58,6 +61,32 @@ function passingReceipt() {
     technicalReview: {
       status: "PASS",
       checks: Object.fromEntries(REQUIRED_TECHNICAL_CHECKS.map((key) => [key, "PASS"])),
+      evidence: {
+        boundaryPose: {
+          method: ONE_SHOT_BOUNDARY_POSE_CONTRACT.method,
+          naturalGameplayStanceRequired: true,
+          declaredStartPose: "NATURAL_LIFT_READY",
+          declaredEndPose: "NATURAL_LIFT_RECOVERY",
+          startFrame: 1,
+          endFrame: 84,
+          sourceBindPoseSampleSha256: "B".repeat(64),
+          declaredStartPoseSampleSha256: "C".repeat(64),
+          declaredEndPoseSampleSha256: "D".repeat(64),
+          startPoseSampleSha256: "E".repeat(64),
+          endPoseSampleSha256: "F".repeat(64),
+          sampledUpperBodyBoneCount: 12,
+          maximumDeclaredPoseRmsErrorDegrees: 5,
+          startPoseRmsAngularErrorToDeclaredDegrees: 0.8,
+          endPoseRmsAngularErrorToDeclaredDegrees: 1.1,
+          minimumBindPoseRmsSeparationDegrees: 12,
+          startPoseRmsAngularDistanceFromBindDegrees: 31,
+          endPoseRmsAngularDistanceFromBindDegrees: 28,
+          maximumArmsWideScore: 0.35,
+          startArmsWideScore: 0.08,
+          endArmsWideScore: 0.1,
+          bindOrTPoseAtBoundary: false,
+        },
+      },
     },
     playbackEvidence: {
       normalSpeed: {
@@ -95,6 +124,29 @@ function validate(receipt, gate = "owner-review") {
   }).errors;
 }
 
+function harvestInteractionContext(semanticId) {
+  const contract = HARVEST_INTERACTION_CONTRACTS[semanticId];
+  return {
+    actionVariant: contract.actionVariant,
+    requiredMotionBeats: [...contract.requiredMotionBeats],
+    bucketProp: {
+      propId: "HARVEST_BUCKET",
+      binding: "RUNTIME_BOUND",
+      placement: "GROUND_PLACED",
+      bakedIntoAnimationArtifact: false,
+      floating: false,
+    },
+    fruitBinding: "RUNTIME_BOUND_ITEM",
+    fruitBakedIntoAnimationArtifact: false,
+    previewIncludesGroundedBucket: true,
+    collisionChecks: {
+      handFruit: "PASS",
+      handBucket: "PASS",
+      fruitBucket: "PASS",
+    },
+  };
+}
+
 function quarantinedReceipt() {
   const receipt = passingReceipt();
   receipt.technicalReview.status = "REWORK";
@@ -127,6 +179,65 @@ describe("issue #487 animation candidate gate", () => {
 
   it("accepts a complete independently reviewed original candidate receipt", () => {
     expect(validate(passingReceipt())).toEqual([]);
+  });
+
+  it("requires numeric natural-stance boundary evidence for one-shot clips", () => {
+    const receipt = passingReceipt();
+    delete receipt.technicalReview.evidence.boundaryPose;
+    expect(validate(receipt)).toContain(
+      "technicalReview.evidence.boundaryPose must be an object for ONE_SHOT candidates",
+    );
+  });
+
+  it("rejects one-shot boundaries that numerically collapse toward bind or T-pose", () => {
+    const receipt = passingReceipt();
+    const boundary = receipt.technicalReview.evidence.boundaryPose;
+    boundary.declaredEndPose = "SOURCE_BIND_POSE";
+    boundary.endPoseRmsAngularDistanceFromBindDegrees = 2;
+    boundary.endArmsWideScore = 0.92;
+    boundary.bindOrTPoseAtBoundary = true;
+    expect(validate(receipt)).toEqual(expect.arrayContaining([
+      "technicalReview.evidence.boundaryPose.declaredEndPose must name a natural gameplay stance, not a bind or T-pose",
+      "technicalReview.evidence.boundaryPose.endPoseRmsAngularDistanceFromBindDegrees must be at least minimumBindPoseRmsSeparationDegrees",
+      "technicalReview.evidence.boundaryPose.endArmsWideScore must be between 0 and maximumArmsWideScore",
+      "technicalReview.evidence.boundaryPose.bindOrTPoseAtBoundary must equal false",
+    ]));
+  });
+
+  it("does not require one-shot stance boundaries for a declared loop", () => {
+    const receipt = passingReceipt();
+    receipt.candidate.playIntent = "LOOP";
+    delete receipt.technicalReview.evidence.boundaryPose;
+    expect(validate(receipt)).toEqual([]);
+  });
+
+  it("retires generic harvest in favor of distinct tree and plant semantics", () => {
+    const receipt = passingReceipt();
+    receipt.candidate.semanticId = "interaction.harvest";
+    expect(validate(receipt)).toContain(
+      "candidate.semanticId interaction.harvest is retired; use interaction.harvest.tree or interaction.harvest.plant",
+    );
+  });
+
+  it.each([
+    "interaction.harvest.tree",
+    "interaction.harvest.plant",
+  ])("requires the grounded runtime bucket and collision-safe beat contract for %s", (semanticId) => {
+    const receipt = passingReceipt();
+    receipt.candidate.semanticId = semanticId;
+    expect(validate(receipt)).toContain(
+      `technicalReview.evidence.interactionContext must be an object for ${semanticId}`,
+    );
+
+    receipt.technicalReview.evidence.interactionContext = harvestInteractionContext(semanticId);
+    expect(validate(receipt)).toEqual([]);
+
+    receipt.technicalReview.evidence.interactionContext.bucketProp.floating = true;
+    receipt.technicalReview.evidence.interactionContext.collisionChecks.fruitBucket = "REWORK";
+    expect(validate(receipt)).toEqual(expect.arrayContaining([
+      "technicalReview.evidence.interactionContext.bucketProp.floating must equal false",
+      "technicalReview.evidence.interactionContext.collisionChecks.fruitBucket must equal PASS",
+    ]));
   });
 
   it("rejects candidates staged in the shipping asset tree", () => {

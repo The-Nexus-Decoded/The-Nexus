@@ -28,6 +28,35 @@ export const REQUIRED_VISUAL_CHECKS = [
   "gameplayCamera",
 ];
 
+export const ONE_SHOT_BOUNDARY_POSE_CONTRACT = Object.freeze({
+  method: "FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE",
+  minimumSampledUpperBodyBoneCount: 8,
+  maximumDeclaredPoseRmsErrorDegrees: 5,
+  minimumBindPoseRmsSeparationDegrees: 12,
+  maximumArmsWideScore: 0.35,
+});
+
+export const HARVEST_INTERACTION_CONTRACTS = Object.freeze({
+  "interaction.harvest.tree": Object.freeze({
+    actionVariant: "TREE_HARVEST",
+    requiredMotionBeats: Object.freeze([
+      "GROUND_BUCKET_READY",
+      "UPWARD_FRUIT_PICK",
+      "FRUIT_TRANSFER",
+      "BUCKET_DEPOSIT",
+    ]),
+  }),
+  "interaction.harvest.plant": Object.freeze({
+    actionVariant: "PLANT_HARVEST",
+    requiredMotionBeats: Object.freeze([
+      "GROUND_BUCKET_READY",
+      "LOW_BEND_HINGE_PLANT_PICK",
+      "RISE_AND_TRANSFER",
+      "BUCKET_DEPOSIT",
+    ]),
+  }),
+});
+
 const SHA256_PATTERN = /^[A-F0-9]{64}$/;
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const repositoryRoot = resolve(projectRoot, "../../../..");
@@ -69,6 +98,183 @@ function isWithin(root, value) {
 function requireString(errors, value, path) {
   if (typeof value !== "string" || value.trim().length === 0) {
     errors.push(`${path} must be a non-empty string`);
+  }
+}
+
+function requireFiniteNumber(errors, value, path) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    errors.push(`${path} must be a finite number`);
+    return null;
+  }
+  return value;
+}
+
+function validateOneShotBoundaryPose(errors, candidate, technical) {
+  if (!candidate || typeof candidate !== "object") return;
+  if (!["ONE_SHOT", "LOOP"].includes(candidate.playIntent)) {
+    errors.push("candidate.playIntent must equal ONE_SHOT or LOOP");
+    return;
+  }
+  if (candidate.playIntent !== "ONE_SHOT") return;
+
+  const path = "technicalReview.evidence.boundaryPose";
+  const boundary = technical?.evidence?.boundaryPose;
+  if (!boundary || typeof boundary !== "object") {
+    errors.push(`${path} must be an object for ONE_SHOT candidates`);
+    return;
+  }
+
+  if (boundary.method !== ONE_SHOT_BOUNDARY_POSE_CONTRACT.method) {
+    errors.push(`${path}.method must equal ${ONE_SHOT_BOUNDARY_POSE_CONTRACT.method}`);
+  }
+  if (boundary.naturalGameplayStanceRequired !== true) {
+    errors.push(`${path}.naturalGameplayStanceRequired must equal true`);
+  }
+  for (const key of ["declaredStartPose", "declaredEndPose"]) {
+    requireString(errors, boundary[key], `${path}.${key}`);
+    if (typeof boundary[key] === "string" && /(?:^|[ _-])(?:T[ _-]?POSE|BIND[ _-]?POSE)(?:$|[ _-])/i.test(boundary[key])) {
+      errors.push(`${path}.${key} must name a natural gameplay stance, not a bind or T-pose`);
+    }
+  }
+  if (!Number.isInteger(boundary.startFrame) || boundary.startFrame < 0) {
+    errors.push(`${path}.startFrame must be a non-negative integer`);
+  }
+  if (!Number.isInteger(boundary.endFrame) || boundary.endFrame <= boundary.startFrame) {
+    errors.push(`${path}.endFrame must be an integer greater than startFrame`);
+  }
+  for (const key of [
+    "sourceBindPoseSampleSha256",
+    "declaredStartPoseSampleSha256",
+    "declaredEndPoseSampleSha256",
+    "startPoseSampleSha256",
+    "endPoseSampleSha256",
+  ]) {
+    if (!SHA256_PATTERN.test(normalizedSha(boundary[key]))) {
+      errors.push(`${path}.${key} must be a 64-character SHA-256`);
+    }
+  }
+  if (!Number.isInteger(boundary.sampledUpperBodyBoneCount)
+    || boundary.sampledUpperBodyBoneCount < ONE_SHOT_BOUNDARY_POSE_CONTRACT.minimumSampledUpperBodyBoneCount) {
+    errors.push(
+      `${path}.sampledUpperBodyBoneCount must be at least ${ONE_SHOT_BOUNDARY_POSE_CONTRACT.minimumSampledUpperBodyBoneCount}`,
+    );
+  }
+
+  const maximumDeclaredError = requireFiniteNumber(
+    errors,
+    boundary.maximumDeclaredPoseRmsErrorDegrees,
+    `${path}.maximumDeclaredPoseRmsErrorDegrees`,
+  );
+  if (maximumDeclaredError !== null
+    && (maximumDeclaredError <= 0
+      || maximumDeclaredError > ONE_SHOT_BOUNDARY_POSE_CONTRACT.maximumDeclaredPoseRmsErrorDegrees)) {
+    errors.push(
+      `${path}.maximumDeclaredPoseRmsErrorDegrees must be greater than 0 and at most ${ONE_SHOT_BOUNDARY_POSE_CONTRACT.maximumDeclaredPoseRmsErrorDegrees}`,
+    );
+  }
+  for (const key of [
+    "startPoseRmsAngularErrorToDeclaredDegrees",
+    "endPoseRmsAngularErrorToDeclaredDegrees",
+  ]) {
+    const value = requireFiniteNumber(errors, boundary[key], `${path}.${key}`);
+    if (value !== null && (value < 0 || maximumDeclaredError === null || value > maximumDeclaredError)) {
+      errors.push(`${path}.${key} must be between 0 and maximumDeclaredPoseRmsErrorDegrees`);
+    }
+  }
+
+  const minimumBindSeparation = requireFiniteNumber(
+    errors,
+    boundary.minimumBindPoseRmsSeparationDegrees,
+    `${path}.minimumBindPoseRmsSeparationDegrees`,
+  );
+  if (minimumBindSeparation !== null
+    && minimumBindSeparation < ONE_SHOT_BOUNDARY_POSE_CONTRACT.minimumBindPoseRmsSeparationDegrees) {
+    errors.push(
+      `${path}.minimumBindPoseRmsSeparationDegrees must be at least ${ONE_SHOT_BOUNDARY_POSE_CONTRACT.minimumBindPoseRmsSeparationDegrees}`,
+    );
+  }
+  for (const key of [
+    "startPoseRmsAngularDistanceFromBindDegrees",
+    "endPoseRmsAngularDistanceFromBindDegrees",
+  ]) {
+    const value = requireFiniteNumber(errors, boundary[key], `${path}.${key}`);
+    if (value !== null && (minimumBindSeparation === null || value < minimumBindSeparation)) {
+      errors.push(`${path}.${key} must be at least minimumBindPoseRmsSeparationDegrees`);
+    }
+  }
+
+  const maximumArmsWideScore = requireFiniteNumber(
+    errors,
+    boundary.maximumArmsWideScore,
+    `${path}.maximumArmsWideScore`,
+  );
+  if (maximumArmsWideScore !== null
+    && (maximumArmsWideScore < 0 || maximumArmsWideScore > ONE_SHOT_BOUNDARY_POSE_CONTRACT.maximumArmsWideScore)) {
+    errors.push(
+      `${path}.maximumArmsWideScore must be between 0 and ${ONE_SHOT_BOUNDARY_POSE_CONTRACT.maximumArmsWideScore}`,
+    );
+  }
+  for (const key of ["startArmsWideScore", "endArmsWideScore"]) {
+    const value = requireFiniteNumber(errors, boundary[key], `${path}.${key}`);
+    if (value !== null && (value < 0 || maximumArmsWideScore === null || value > maximumArmsWideScore)) {
+      errors.push(`${path}.${key} must be between 0 and maximumArmsWideScore`);
+    }
+  }
+  if (boundary.bindOrTPoseAtBoundary !== false) {
+    errors.push(`${path}.bindOrTPoseAtBoundary must equal false`);
+  }
+}
+
+function validateHarvestInteractionContext(errors, candidate, technical) {
+  if (candidate?.semanticId === "interaction.harvest") {
+    errors.push(
+      "candidate.semanticId interaction.harvest is retired; use interaction.harvest.tree or interaction.harvest.plant",
+    );
+    return;
+  }
+  const contract = HARVEST_INTERACTION_CONTRACTS[candidate?.semanticId];
+  if (!contract) return;
+
+  const path = "technicalReview.evidence.interactionContext";
+  const context = technical?.evidence?.interactionContext;
+  if (!context || typeof context !== "object") {
+    errors.push(`${path} must be an object for ${candidate.semanticId}`);
+    return;
+  }
+  if (context.actionVariant !== contract.actionVariant) {
+    errors.push(`${path}.actionVariant must equal ${contract.actionVariant}`);
+  }
+  if (!Array.isArray(context.requiredMotionBeats)
+    || context.requiredMotionBeats.length !== contract.requiredMotionBeats.length
+    || context.requiredMotionBeats.some((beat, index) => beat !== contract.requiredMotionBeats[index])) {
+    errors.push(`${path}.requiredMotionBeats must match the canonical ${contract.actionVariant} beat order`);
+  }
+
+  const bucket = context.bucketProp;
+  if (!bucket || typeof bucket !== "object") {
+    errors.push(`${path}.bucketProp must be an object`);
+  } else {
+    if (bucket.propId !== "HARVEST_BUCKET") errors.push(`${path}.bucketProp.propId must equal HARVEST_BUCKET`);
+    if (bucket.binding !== "RUNTIME_BOUND") errors.push(`${path}.bucketProp.binding must equal RUNTIME_BOUND`);
+    if (bucket.placement !== "GROUND_PLACED") errors.push(`${path}.bucketProp.placement must equal GROUND_PLACED`);
+    if (bucket.bakedIntoAnimationArtifact !== false) {
+      errors.push(`${path}.bucketProp.bakedIntoAnimationArtifact must equal false`);
+    }
+    if (bucket.floating !== false) errors.push(`${path}.bucketProp.floating must equal false`);
+  }
+  if (context.fruitBinding !== "RUNTIME_BOUND_ITEM") {
+    errors.push(`${path}.fruitBinding must equal RUNTIME_BOUND_ITEM`);
+  }
+  if (context.fruitBakedIntoAnimationArtifact !== false) {
+    errors.push(`${path}.fruitBakedIntoAnimationArtifact must equal false`);
+  }
+  if (context.previewIncludesGroundedBucket !== true) {
+    errors.push(`${path}.previewIncludesGroundedBucket must equal true`);
+  }
+  for (const key of ["handFruit", "handBucket", "fruitBucket"]) {
+    if (context.collisionChecks?.[key] !== "PASS") {
+      errors.push(`${path}.collisionChecks.${key} must equal PASS`);
+    }
   }
 }
 
@@ -256,6 +462,8 @@ export function validateCandidateReceipt(
   }
 
   const technical = receipt.technicalReview;
+  validateOneShotBoundaryPose(errors, candidate, technical);
+  validateHarvestInteractionContext(errors, candidate, technical);
   if (gate === "quarantine") {
     if (!["PASS", "REWORK"].includes(technical?.status)) {
       errors.push("technicalReview.status must equal PASS or REWORK at quarantine");

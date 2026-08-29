@@ -2,16 +2,16 @@
 
 This audit compares the shared lower-level Human motion master list against the immutable 400-clip pilot library. It records source coverage only; `COVERED_NOW` does not mean a clip has passed visual, contact, deformation, root-motion, transition, equipment, or owner acceptance.
 
-Machine-readable authority: `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-coverage.json`
+Machine-readable implementation record: `public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-coverage.json`. The 2026-08-29 owner-locked harvest split below supersedes its generic harvest row; the manifest must be synchronized before the gap audit can close.
 
 Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 
 ## Totals
 
-- Required now: **110**
-- Covered now by exact candidates: **64**
+- Required now: **111**
+- Covered now by exact candidates: **63**
 - Partial and needing cleanup or derivation: **15**
-- Missing now: **31**
+- Missing now: **33**
 - Deferred higher-level/future-setting families: **5**
 - Candidate library: **400 clips**, SHA-256 `6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793`
 
@@ -46,6 +46,8 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - `interaction.mine` — pickaxe mining loop with contact and recovery
 - `interaction.chop` — tool-based wood-chop loop with contact and recovery
 - `interaction.lift-carry-place` — lift heavy object, carry loop, and place object
+- `interaction.harvest.tree` — ground bucket ready, upward tree-fruit pick, transfer, and collision-free bucket deposit
+- `interaction.harvest.plant` — ground bucket ready, natural low bend or hip-hinge plant pick, rise, transfer, and collision-free bucket deposit
 - `npc.listen` — attentive listening loop with subtle acknowledgement
 - `npc.farewell` — distinct farewell gesture and return to idle
 
@@ -123,7 +125,6 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - `interaction.chest-container` — open chest and open or close container
 - `interaction.lever-button` — pull lever and press button
 - `interaction.pickup` — pick up small item and larger object
-- `interaction.harvest` — generic hand harvest
 - `interaction.push` — heavy push start, loop, and stop
 - `interaction.pull` — heavy pull start, loop, and stop
 - `npc.idle-rest` — standing idle, sitting idle, and resting pose
@@ -134,7 +135,9 @@ Validation command: `node scripts/validate-human-animation-gap-manifest.mjs`
 - `npc.nod-yes-no` — nod yes and shake no
 - `npc.beckon` — beckon another actor closer
 
-Exact candidate clip IDs and every partial/missing reason are in the machine-readable manifest. All 64 covered rows remain `UNREVIEWED_CANDIDATE_LIBRARY` until the runtime visual gate passes.
+The generic `interaction.harvest` row and Harvest v1 candidate are `CHANGE/REWORK` and do not count as coverage. Tree Harvest and Plant Harvest are separate current-core requirements. For both, the bucket is a grounded runtime-bound prop, fruit is a runtime-bound item, neither is baked into the animation, and hand/fruit/bucket paths must be collision-free.
+
+Exact candidate clip IDs and every partial/missing reason must be synchronized into the machine-readable manifest. All 63 covered rows remain `UNREVIEWED_CANDIDATE_LIBRARY` until the runtime visual gate passes.
 
 ## Deferred higher-level or future-setting motion
 

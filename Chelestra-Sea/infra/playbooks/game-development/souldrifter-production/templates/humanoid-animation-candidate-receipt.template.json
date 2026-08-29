@@ -7,7 +7,8 @@
     "clipName": "AuthoredFamily__Action",
     "version": 1,
     "authorId": "authoring-agent-or-artist",
-    "authoringLane": "BLENDER"
+    "authoringLane": "BLENDER",
+    "playIntent": "ONE_SHOT"
   },
   "candidateArtifact": {
     "path": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/semantic-id-v1/candidate.glb",
@@ -57,6 +58,32 @@
       "contacts": "REWORK",
       "duration": "REWORK",
       "semantic": "REWORK"
+    },
+    "evidence": {
+      "boundaryPose": {
+        "method": "FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE",
+        "naturalGameplayStanceRequired": true,
+        "declaredStartPose": "NATURAL_GAMEPLAY_STANCE_NAME",
+        "declaredEndPose": "NATURAL_GAMEPLAY_STANCE_NAME",
+        "startFrame": 1,
+        "endFrame": 2,
+        "sourceBindPoseSampleSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+        "declaredStartPoseSampleSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+        "declaredEndPoseSampleSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+        "startPoseSampleSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+        "endPoseSampleSha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+        "sampledUpperBodyBoneCount": 8,
+        "maximumDeclaredPoseRmsErrorDegrees": 5,
+        "startPoseRmsAngularErrorToDeclaredDegrees": 0,
+        "endPoseRmsAngularErrorToDeclaredDegrees": 0,
+        "minimumBindPoseRmsSeparationDegrees": 12,
+        "startPoseRmsAngularDistanceFromBindDegrees": 12,
+        "endPoseRmsAngularDistanceFromBindDegrees": 12,
+        "maximumArmsWideScore": 0.35,
+        "startArmsWideScore": 0,
+        "endArmsWideScore": 0,
+        "bindOrTPoseAtBoundary": false
+      }
     }
   },
   "playbackEvidence": {
