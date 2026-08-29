@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "riggingPolicy": "local mechanical rigid rig; no Tripo rig or animation purchase",
+  "serialization": {
+    "blenderVersion": "4.5.12 LTS",
+    "singleProcess": true,
+    "standPolicy": "no stand, pedestal, plinth, or presentation base in runtime meshes"
+  },
+  "wardens": [
+    {
+      "kind": "wayfarer",
+      "name": "Cinderbound Warden",
+      "tripoModelId": "c609af31-3f47-450b-be5e-664d78ad36af",
+      "sourceSha256": "180B3FE5113FAC2AEDD95CFC6DA95B60251DE13E95F85F7641284D7B23A9D374",
+      "runtimePath": "public/assets/3d/creatures/cinderbound-wardens/cinderbound-warden.glb",
+      "runtimeBytes": 16289808,
+      "runtimeSha256": "8D511CDA894B174BDB0777C51C8F9FCDF9D96B0BAAF8FB347BB7676CFA18A196",
+      "blendPath": "docs/3d-ai-studio/issue-458/cinderbound-warden-rigging/cinderbound-warden-rigged.blend",
+      "blendBytes": 22483768,
+      "blendSha256": "35CFB4623D62CC2917BAC62A20563A068392F5216A74F7B20CF42B353AA69C39",
+      "embeddedBaseColor": {
+        "bytes": 12157424,
+        "sha256": "2EFFBF8463377EA05B794480FCEB66F61D0FA8FA8C29296A88009445F3FC883E",
+        "sourceAndRuntimeByteIdentical": true
+      },
+      "removedPresentationPlinthVertices": 27
+    },
+    {
+      "kind": "oathbreaker",
+      "name": "Greater Cinderbound Warden",
+      "tripoModelId": "248467bb-1824-46d1-9d2a-5d8a1d3147cf",
+      "sourceSha256": "08067E65782DE77B749202AE692DBCE5B2AB6631879478584DA120E6FB45C758",
+      "runtimePath": "public/assets/3d/creatures/cinderbound-wardens/greater-cinderbound-warden.glb",
+      "runtimeBytes": 18296196,
+      "runtimeSha256": "244CEFB9E478C8CE561722E479A2CAFCE9FB5C91C4EE42477C893EE8F91A5A3D",
+      "blendPath": "docs/3d-ai-studio/issue-458/cinderbound-warden-rigging/greater-cinderbound-warden-rigged.blend",
+      "blendBytes": 24301153,
+      "blendSha256": "AAA0C4582DB5EECE19A1352FC7D8D72A4EE70D68C9BD771A026A99ED0B940E15",
+      "embeddedBaseColor": {
+        "bytes": 14451659,
+        "sha256": "ED3C7043B06D734F82617C782759D80290AD8C09442B32252C05607ABB1AB9FC",
+        "sourceAndRuntimeByteIdentical": true
+      },
+      "removedPresentationPlinthVertices": 146
+    }
+  ],
+  "runtimeMeshNames": [
+    "Cinderbound_Warden_Body",
+    "Greater_Cinderbound_Warden_Body",
+    "Breakoff_30_Shoulders",
+    "Breakoff_60_Forearms",
+    "Breakoff_90_Thighs"
+  ],
+  "runtimePresentation": {
+    "profile": "dark-iron-ember-v2",
+    "authoredBaseColorPreserved": true,
+    "selectiveEmberEmission": true,
+    "pulsingFurnaceLight": true,
+    "floorRuneOwnership": "dungeon boss-room marker; not part of either Warden model"
+  }
+}

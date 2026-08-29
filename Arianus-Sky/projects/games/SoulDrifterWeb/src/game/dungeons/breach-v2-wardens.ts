@@ -121,6 +121,9 @@ interface RuntimeActor {
   breakoffMeshes: Map<number, THREE.Object3D>;
   detachedStages: Set<number>;
   debris: BreakoffDebris[];
+  presentationMaterials: THREE.Material[];
+  furnaceLight: THREE.PointLight;
+  furnacePhaseSeconds: number;
 }
 
 interface RuntimeEffect {
@@ -160,6 +163,54 @@ function roomIdAt(layout: BreachV2Layout, x: number, z: number): string | null {
   return layout.rooms.find((room) => (
     x >= room.x && x <= room.x + room.w && z >= room.z && z <= room.z + room.h
   ))?.id ?? null;
+}
+
+function prepareCinderboundWardenMaterials(
+  model: THREE.Object3D,
+  kind: CinderboundWardenKind,
+): THREE.Material[] {
+  const clonedMaterials = new Map<THREE.Material, THREE.Material>();
+  model.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const cloneMaterial = (source: THREE.Material): THREE.Material => {
+      const existing = clonedMaterials.get(source);
+      if (existing) return existing;
+      const clone = source.clone();
+      if (clone instanceof THREE.MeshStandardMaterial) {
+        // Preserve the authored albedo instead of multiplying it by another dark
+        // tint. A restrained neutral self-light keeps the bronze and iron detail
+        // readable in the dungeon without turning the entire machine emissive.
+        clone.color.setHex(0xffffff);
+        clone.metalness = kind === "oathbreaker" ? 0.48 : 0.42;
+        clone.roughness = kind === "oathbreaker" ? 0.66 : 0.7;
+        clone.emissive.setHex(0x201815);
+        clone.emissiveMap = clone.map;
+        clone.emissiveIntensity = kind === "oathbreaker" ? 0.38 : 0.33;
+        clone.userData.cinderboundPresentation = "dark-iron-ember-v2";
+        clone.onBeforeCompile = (shader) => {
+          shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <emissivemap_fragment>",
+            [
+              "#include <emissivemap_fragment>",
+              "#ifdef USE_MAP",
+              "  float cinderWarmDominance = diffuseColor.r - max(diffuseColor.g * 1.35, diffuseColor.b * 2.2);",
+              "  float cinderHeatMask = smoothstep(0.14, 0.42, cinderWarmDominance)",
+              "    * smoothstep(0.24, 0.64, diffuseColor.r);",
+              "  totalEmissiveRadiance += vec3(1.0, 0.16, 0.025) * cinderHeatMask * 1.65;",
+              "#endif",
+            ].join("\n"),
+          );
+        };
+        clone.customProgramCacheKey = () => "cinderbound-dark-iron-ember-v2";
+      }
+      clonedMaterials.set(source, clone);
+      return clone;
+    };
+    object.material = Array.isArray(object.material)
+      ? object.material.map(cloneMaterial)
+      : cloneMaterial(object.material);
+  });
+  return [...clonedMaterials.values()];
 }
 
 function snapshotBreakoffGeometry(source: THREE.Object3D): {
@@ -226,6 +277,7 @@ export function createBreachV2WardenRuntime(
 ): BreachV2WardenRuntime {
   const placement = buildCinderboundWardenPlacement(layout, path);
   const asset = CINDERBOUND_WARDEN_ASSETS[path];
+  const furnaceLightBaseIntensity = path === "oathbreaker" ? 3.2 : 2.8;
   let sourcePromise: Promise<GLTF> | null = null;
   let actor: RuntimeActor | null = null;
   let desiredRoomId: string | null = null;
@@ -253,6 +305,7 @@ export function createBreachV2WardenRuntime(
     actor.mixer.stopAllAction();
     clearDebris(actor);
     actor.root.removeFromParent();
+    actor.presentationMaterials.forEach((material) => material.dispose());
     actor = null;
   };
   const playActor = (runtimeActor: RuntimeActor, clipName: string): number => {
@@ -338,6 +391,7 @@ export function createBreachV2WardenRuntime(
   const createActor = (source: GLTF): RuntimeActor => {
     const model = cloneSkeleton(source.scene);
     model.name = `${asset.label} model`;
+    const presentationMaterials = prepareCinderboundWardenMaterials(model, path);
     model.updateMatrixWorld(true);
     const sourceHeight = new THREE.Box3().setFromObject(model, true).getSize(new THREE.Vector3()).y;
     if (!(sourceHeight > 0)) throw new Error(`${asset.label} has no finite height.`);
@@ -359,6 +413,15 @@ export function createBreachV2WardenRuntime(
     root.userData.blocksMovement = false;
     root.userData.blocksLineOfSight = false;
     root.userData.blocksCamera = false;
+    const furnaceLight = new THREE.PointLight(
+      0xff6326,
+      furnaceLightBaseIntensity,
+      asset.targetHeightMeters * 1.45,
+      2,
+    );
+    furnaceLight.name = `${placement.id}:furnace-light`;
+    furnaceLight.position.set(0, asset.targetHeightMeters * 0.6, asset.targetHeightMeters * 0.06);
+    root.add(furnaceLight);
     pivot.add(model);
     root.add(pivot);
     scene.add(root);
@@ -391,6 +454,9 @@ export function createBreachV2WardenRuntime(
       breakoffMeshes,
       detachedStages: new Set(),
       debris: [],
+      presentationMaterials,
+      furnaceLight,
+      furnacePhaseSeconds: 0,
     };
     mixer.addEventListener("finished", (event) => {
       if (event.action !== runtimeActor.currentAction) return;
@@ -424,6 +490,10 @@ export function createBreachV2WardenRuntime(
       });
       if (actor) {
         actor.mixer.update(deltaSeconds);
+        actor.furnacePhaseSeconds += deltaSeconds;
+        const pulse = 0.9 + Math.sin(actor.furnacePhaseSeconds * 4.2) * 0.1;
+        const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
+        actor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow;
         actor.groundingFrames += 1;
         if (actor.groundingStatus === "pending" && actor.groundingFrames >= 3) {
           const grounding = calibrateAnimatedPoseOnFloor(actor.root, actor.model, actor.pivot, 0);

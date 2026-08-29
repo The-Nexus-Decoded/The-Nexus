@@ -15,7 +15,7 @@ import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog"
 
 function source(): GLTF {
   const scene = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 1.2), new THREE.MeshBasicMaterial());
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 1.2), new THREE.MeshStandardMaterial());
   body.name = "Cinderbound_Warden_Body";
   body.position.y = 1.75;
   const shoulder = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.55, 1.25), new THREE.MeshBasicMaterial());
@@ -71,6 +71,14 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     expect(loadAsync).toHaveBeenCalledTimes(1);
     expect(runtime.snapshots()).toHaveLength(1);
     expect(runtime.snapshots()[0]?.roomId).toBe(placement.roomId);
+    const wardenMaterial = (scene.getObjectByName("Cinderbound_Warden_Body") as THREE.Mesh)
+      .material as THREE.MeshStandardMaterial;
+    expect(wardenMaterial).toBeInstanceOf(THREE.MeshStandardMaterial);
+    expect(wardenMaterial.color.getHex()).toBe(0xffffff);
+    expect(wardenMaterial.metalness).toBe(0.48);
+    expect(wardenMaterial.emissive.getHex()).toBe(0x201815);
+    expect(wardenMaterial.userData.cinderboundPresentation).toBe("dark-iron-ember-v2");
+    expect(scene.getObjectByName(`${placement.id}:furnace-light`)).toBeInstanceOf(THREE.PointLight);
     for (let index = 0; index < 3; index += 1) runtime.update(placement.x, placement.z, 1 / 60);
     expect(runtime.snapshots()[0]?.groundingStatus).toBe("calibrated-live-pose");
     expect(Math.abs(runtime.snapshots()[0]?.groundingClearanceMeters ?? 1)).toBeLessThan(0.002);
