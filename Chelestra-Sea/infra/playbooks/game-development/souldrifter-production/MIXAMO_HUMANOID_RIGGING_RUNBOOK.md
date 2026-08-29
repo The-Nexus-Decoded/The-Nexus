@@ -76,10 +76,15 @@ Female bodies use the Mixamo female locomotion pack as their locomotion baseline
 - Use Smart Mesh and Quad for the canonical game body.
 - Preserve realistic anatomy, neutral underwear, clean neck region, full body, and the locked rejection prompt.
 - Generate one body only. The A-pose is not a second body generation.
+- Treat the exact accepted Tripo body as the proportion authority for its body type. Define and version the neck seam before head extraction.
+- After a refreshed price check and exact-cost action-time owner approval, create one matching base head by Tripo mesh segmentation of that exact accepted body. Preserve the source body ID/task, SHA-256, scale, axes, origin, and untouched segmented-output hash.
+- Tripo's official billing table observed on 2026-08-29 lists Mesh Segmentation at 40 credits. This is a refresh-required observation, not standing approval or a permanent price pin. Never auto-retry a paid segmentation task.
 - Capture the topology, UV, material, PBR-map, texture-resolution, and provider provenance receipts.
 - Preserve the highest-resolution texture set as the offline master; derive runtime mips and material parameters later.
 
 Hard gate: a geometry-only FBX with no UV layer is not the texture master. Obtain and audit the textured/UV-preserving Tripo package before material finalization.
+
+Hard gate: mesh segmentation separates geometry only. It does not supply facial topology, shape keys, visemes, blink, gaze, jaw controls, expressions, or an animation-ready head.
 
 ### 4. Mixamo marker placement and rig
 
@@ -87,6 +92,7 @@ Hard gate: a geometry-only FBX with no UV layer is not the texture master. Obtai
 - Place and visually verify chin, wrists, elbows, knees, and groin before confirming auto-rigging.
 - Use the full finger-capable standard skeleton unless a recorded runtime/LOD exception is approved.
 - The accepted skeleton contract is currently 65 bones with `mixamorig:Hips` as the root.
+- Preserve the accepted rest rig and the head/neck bone names, hierarchy, rest transforms, and body scale while attaching or replacing the body-matched head.
 - Verify front-facing pelvis/groin alignment, centered root, straight spine, shoulders, upper arms, elbows, wrists, fingers, hips, knees, ankles, and feet.
 - Reject sideways, twisted, skewed, or asymmetrical auto-rigs and correct the markers before rerigging.
 
@@ -194,10 +200,15 @@ Do not assume an Elf, Dwarf, or Halfling passes because a Human passed. Shorter 
 ### 9. Modular head and facial system
 
 - Finish body foundations before the dedicated head library unless the issue explicitly changes the order.
-- Use one stable versioned neck/head seam per compatible body family.
-- Heads require facial deformation targets/bones for speech and expression; the generated body-source face is temporary.
-- Dialogue uses the same live 3D NPC head/shoulders in the conversation UI, not a disconnected portrait render.
-- Validate neck seam, jaw, lips, cheeks, eyelids, eyes, brows, speech shapes, and expression blending.
+- Use the accepted Tripo body as the proportion authority and create one matching base head per body type by segmenting that exact body at its stable, versioned neck seam.
+- Preserve body scale/coordinate frame, the accepted rest rig, and the head/neck bone names, hierarchy, and rest transforms. Reject a head extracted from a merely similar body.
+- In Blender, establish compatible facial topology and ordered vertices, then author and validate jaw/eye rigging, facial shape keys, visemes, blink, gaze, and expression blending. A Tripo segmentation success is not evidence for these controls.
+- Derive face variants from this compatible topology. Skin tone stays material-driven; hair and facial hair stay separate, named, toggleable geometry.
+- Use the same canonical animated 3D head in the world, player creator, NPC close-up, quest, and dialogue presentation. Do not ship a disconnected portrait or dialogue-only head.
+- Derive `YOUNG_ADULT`, `MIDDLE_AGED`, and `ELDER` from the one body-matched base head in Blender. Use topology-preserving morph targets, age skin maps for wrinkles/folds/spots/roughness, and modular hair/facial-hair greying while preserving vertex order, seam, scale, jaw/eye rig, visemes, and expressions. Do not generate separate Tripo heads for adult ages.
+- Treat children as a separate NPC-only family outside the current player creator. A child requires child body proportions, a matching Tripo-derived head/seam, a child-safe rig, independent clothing fit, camera/collision framing, and restricted age-appropriate animations. Retarget suitable adult motions only after child-rig validation; never shrink or age-morph the adult mesh into a child.
+- Keep the legacy `SK_Hair_Buzzed`, `SK_Hair_Parted`, `SK_Hair_Long`, and `SK_Beard_Full` extraction pack at `PROVISIONAL_PILOT / OWNER_QA_PENDING`; it is temporary review material, not canonical appearance production.
+- Validate the neck seam, jaw, lips, cheeks, eyelids, eyes, brows, speech shapes, expression blending, all adult age presets, modular hair/facial-hair clearances, and every required runtime presentation.
 
 ### 10. Runtime export and QA dungeon gate
 
@@ -237,6 +248,37 @@ Every body manifest records at least:
   "poses": {
     "t_pose": { "path": "path", "sha256": "sha256" },
     "a_pose": { "path": "path", "sha256": "sha256" }
+  },
+  "body_matched_head": {
+    "body_authority_sha256": "sha256",
+    "body_type": "ancestry-sex-build",
+    "neck_seam_version": "version",
+    "segmentation": {
+      "operation": "TRIPO_MESH_SEGMENTATION",
+      "official_price_observed_credits": 40,
+      "official_price_observed_at": "2026-08-29",
+      "price_source": "https://platform.tripo3d.ai/docs/billing",
+      "refreshed_expected_credits": 0,
+      "maximum_approved_credits": 0,
+      "owner_approval_receipt": "path",
+      "source_task_or_model_id": "provider-id",
+      "untouched_output_sha256": "sha256",
+      "automatic_retry": false
+    },
+    "rest_rig_and_head_neck_hierarchy_preserved": true,
+    "facial_topology_and_controls": "pass|fail",
+    "same_head_world_creator_npc_quest_dialogue": true,
+    "adult_age_presets": ["YOUNG_ADULT", "MIDDLE_AGED", "ELDER"]
+  },
+  "appearance": {
+    "hair_and_facial_hair": "MODULAR",
+    "skin_tone": "MATERIAL_DRIVEN",
+    "legacy_pack_status": "PROVISIONAL_PILOT|OWNER_QA_PENDING"
+  },
+  "child_family": {
+    "player_creator_enabled": false,
+    "separate_body_head_rig_required": true,
+    "adult_resize_or_age_morph_allowed": false
   },
   "animation_inventory": {
     "candidate_count": 400,
@@ -290,6 +332,13 @@ Stop and repair before continuing when any of these occur:
 - skewed marker placement or skeleton;
 - nonstandard/reduced skeleton without an approved exception;
 - zero-UV mesh being treated as the texture master;
+- a body-matched head segmented from any source other than the exact accepted body at its recorded seam;
+- changed body scale/rest rig or changed head/neck bone names, hierarchy, or transforms during head attachment;
+- treating Tripo segmentation as facial-control evidence, or missing Blender topology, shape-key, viseme, blink, gaze, jaw, or expression validation;
+- a separate portrait/dialogue head rather than the canonical animated head;
+- an adult age preset produced by a separate Tripo generation, or a child produced by shrinking/age-morphing the adult mesh;
+- promoting the legacy appearance pack beyond `PROVISIONAL_PILOT / OWNER_QA_PENDING` without owner QA;
+- a paid segmentation attempt without a refreshed exact price, action-time owner approval, or a one-task/no-auto-retry receipt;
 - uncorrected foot sliding, root drift, penetration, or joint inversion;
 - frame-zero floating, floor penetration, root/pelvis discontinuity, or a clip requiring a scene-specific Y-offset;
 - treating the 400-clip candidate intake as a complete or approved animation matrix while required semantics remain missing, rework, or rejected;

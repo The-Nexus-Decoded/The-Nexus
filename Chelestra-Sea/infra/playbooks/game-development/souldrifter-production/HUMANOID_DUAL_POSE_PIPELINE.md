@@ -37,9 +37,17 @@ The canonical Human source remains bald or close-scalp, gearless, and clothed on
 
 ## Body-first modular-head boundary
 
-Complete and validate the Human body foundations before beginning the dedicated facial/head library. A generated body's face is a temporary neutral placeholder; body-source acceptance prioritizes the approved body silhouette, proportions, anatomy, strict palms-down T-pose, clean neck region, and rigging readability. Technicalization later creates the stable versioned neck/head seam used by the modular head system.
+The accepted Tripo body is the proportion authority. A generated body's face is a temporary neutral placeholder while body-source acceptance prioritizes the approved silhouette, anatomy, strict palms-down T-pose, clean neck region, and rigging readability. After the body is accepted, create exactly one matching base head for each body type by segmenting that exact Tripo body at a recorded, versioned neck seam. Preserve the body's accepted scale and coordinate frame, rest rig, and head/neck bone names, hierarchy, rest transforms, and skinning boundaries.
 
-The later facial phase must reuse one compatible gaze, jaw, blink, expression, and viseme contract across the modular head families. NPC dialogue, quest, and conversation UI present a live head-and-shoulders view of the same fully animated 3D NPC asset already used in the world. Do not author a second dialogue-only face, head mesh, skeleton, or facial-animation library. An isolated UI presentation instance is allowed only when it references the same canonical mesh, materials, skeleton, facial controls, and animation assets.
+Tripo mesh segmentation only separates geometry. It does not provide facial topology, facial rigging, shape keys, visemes, blink, gaze, jaw motion, or expressions. After segmentation, Blender must establish and validate compatible facial edge flow, ordered vertices, jaw and eye rigging, phoneme/viseme shapes, blink and gaze controls, and expression blending before the head is animation-ready. Face variants derive from this compatible topology; they do not introduce incompatible vertex order, neck seams, or alternate facial-control systems.
+
+The same canonical animated 3D head must appear on the body in the world, character creator, NPC close-up, quest UI, and dialogue UI. Do not author a second portrait-only or dialogue-only face, head mesh, skeleton, or facial-animation library. An isolated UI presentation instance is allowed only when it references the same canonical body-matched head, materials, skeleton, facial controls, and animation assets. Hair and facial hair remain separate toggleable geometry, and skin tone remains a material-driven variant rather than a separately generated head.
+
+Adult age presentation is also derived from the one body-matched base head. Blender creates topology-compatible `YOUNG_ADULT`, `MIDDLE_AGED`, and `ELDER` morph presets plus age-specific skin maps for wrinkles, folds, spots, and roughness, with modular hair and facial-hair greying. Every preset preserves vertex order, the versioned neck seam, body scale, jaw/eye rig, visemes, expressions, and the same world/NPC/dialogue identity. Do not buy or generate separate Tripo heads for adult age presets.
+
+A true child is not an adult age preset. Children are a separate NPC-only character family and are not exposed in the current player creator. They require child body proportions, a matching Tripo-derived head and versioned seam, a child-safe rig, independent clothing fit, camera/collision framing, and a restricted age-appropriate animation set. Suitable adult motions may be retargeted only after the child rig passes its own validation. Never shrink the adult mesh or morph the adult age slider into a child.
+
+The legacy `SK_Hair_Buzzed`, `SK_Hair_Parted`, `SK_Hair_Long`, and `SK_Beard_Full` appearance extraction pack is `PROVISIONAL_PILOT / OWNER_QA_PENDING`. It may support temporary pilot review, but it is not canonical head or appearance production evidence.
 
 ## Owner-locked humanoid provider route
 
@@ -132,6 +140,17 @@ The current Human pilot target is **8,000 quad faces**, with an allowed intake r
 
 Smart Mesh is a required starting topology and production accelerator, not an automatic acceptance verdict. Hero-character edge flow still must pass dual-pose deformation, modular-fit, runtime triangle, and visual inspection. Tripo's official current guidance documents Smart Mesh as native quad topology for editing/rigging/animation and recommends the order `Smart Mesh -> Retopology -> PBR -> Rig` for animated real-time assets.
 
+## Paid mesh-segmentation gate for the body-matched head
+
+Tripo's official billing table observed on **2026-08-29** lists **Mesh Segmentation at 40 credits**. This is current provider evidence, not a permanent price pin. Refresh the visible or official price immediately before the action, return the exact-cost receipt, and obtain action-time owner approval for that exact body, operation, and maximum charge. Submit one segmentation task only; never auto-retry, silently duplicate, or segment a merely similar body. This policy update does not authorize any paid operation.
+
+Official references:
+
+- [Tripo billing](https://platform.tripo3d.ai/docs/billing)
+- [Tripo model editing and mesh segmentation](https://platform.tripo3d.ai/docs/editing)
+
+The request and receipt must bind the operation to the accepted body's asset ID, source task/model ID, SHA-256, body type, scale/axis/origin contract, and neck-seam version. Preserve and hash the untouched segmented output and every returned part. A successful segmentation receipt proves geometry separation only; it cannot be used as facial-control or animation-readiness evidence.
+
 ## Mandatory production order
 
 ```text
@@ -147,6 +166,14 @@ locked humanoid identity/body brief
 -> Quad Face retopology to the recorded budget plus required manual hero-loop repair
 -> geometry cleanup, part separation, UV/PBR work
 -> scale/origin/axis/pivot and modular-seam normalization
+-> define and record the body type's versioned neck seam
+-> refresh the live Tripo mesh-segmentation price and obtain exact-cost action-time owner approval
+-> segment the exact accepted Tripo body once; hash the untouched output and returned parts
+-> preserve the accepted body scale/coordinate frame, rest rig, and head/neck bone hierarchy and transforms
+-> establish compatible Blender facial topology, jaw/eye rigging, shape keys, visemes, blink, gaze, and expressions
+-> validate one canonical body-matched animated head in world, creator, NPC close-up, quest, and dialogue presentations
+-> derive Young Adult, Middle-Aged, and Elder presets from that head without changing vertex order or seam
+-> keep hair/facial hair modular and skin tone material-driven
 -> export one clean centered skeleton-free T-pose for Mixamo
 -> place and capture Mixamo chin/wrist/elbow/knee/groin markers
 -> choose the full finger-capable standard skeleton
@@ -208,6 +235,51 @@ Each humanoid ledger entry must include:
     "settingsEvidencePath": "",
     "status": "PENDING | PASS | FAIL"
   },
+  "bodyMatchedHead": {
+    "bodyType": "",
+    "bodyProportionAuthoritySha256": "",
+    "neckSeamVersion": "",
+    "segmentation": {
+      "providerOperation": "TRIPO_MESH_SEGMENTATION",
+      "officialPriceObservedCredits": 40,
+      "priceObservedAt": "2026-08-29",
+      "priceSource": "https://platform.tripo3d.ai/docs/billing",
+      "refreshedExpectedCredits": 0,
+      "maximumApprovedCredits": 0,
+      "ownerApprovalReceipt": "",
+      "sourceTaskOrModelId": "",
+      "sourceSha256": "",
+      "untouchedOutputSha256": "",
+      "automaticRetry": false,
+      "status": "PENDING | PASS | FAIL"
+    },
+    "preservedRig": {
+      "bodyScaleAndCoordinateFrame": false,
+      "restRig": false,
+      "headNeckBoneHierarchyAndTransforms": false
+    },
+    "facialControls": {
+      "authoringTool": "BLENDER",
+      "compatibleVertexOrder": false,
+      "jawEyeRig": "PENDING | PASS | FAIL",
+      "visemes": "PENDING | PASS | FAIL",
+      "blinkGaze": "PENDING | PASS | FAIL",
+      "expressions": "PENDING | PASS | FAIL"
+    },
+    "adultAgePresets": ["YOUNG_ADULT", "MIDDLE_AGED", "ELDER"],
+    "sameHeadEverywhereVerified": false,
+    "status": "PENDING | PASS | FAIL"
+  },
+  "appearance": {
+    "hairAndFacialHair": "MODULAR",
+    "skinTone": "MATERIAL_DRIVEN",
+    "legacyAppearancePack": "PROVISIONAL_PILOT | OWNER_QA_PENDING"
+  },
+  "childFamily": {
+    "playerCreatorEnabled": false,
+    "separateNpcBodyHeadContractRequired": true,
+    "adultScaleOrAgeMorphAllowed": false
+  },
   "topologyFingerprint": "",
   "vertexCount": 0,
   "uvLayoutVersion": "",
@@ -251,6 +323,11 @@ The humanoid fails until both pose states pass.
 - Mixamo chin, wrist, elbow, knee, and groin markers are visibly placed and valid;
 - the selected Mixamo skeleton is the full finger-capable standard skeleton unless an approved LOD exception is recorded;
 - the resulting root, pelvis, spine, head, shoulder, upper-arm, elbow, wrist, finger, hip, knee, ankle, and foot chains pass front, side, and deformation inspection.
+- the head is segmented from the exact accepted body at the recorded seam, and body scale, rest rig, and head/neck bone hierarchy/transforms remain unchanged;
+- the same canonical animated head is proven in world, creator, NPC close-up, quest, and dialogue views;
+- facial topology, jaw/eye rigging, visemes, blink, gaze, and expression blending pass independently of the segmentation receipt;
+- adult age presets preserve vertex order, seam, scale, rig, visemes, and expressions; and
+- any child character uses its own NPC-only body/head/rig contract rather than an adult resize or age morph.
 
 ### A-pose proof
 
@@ -285,6 +362,12 @@ The doubled pose-artifact count does not authorize doubled paid 3D generation.
 - Do not upload or submit a humanoid to Smart Mesh before all four standard source candidates are posted in the active Codex thread and the owner selects an exact technically passing candidate ID and SHA-256.
 - Do not submit a Tripo humanoid with Smart Mesh disabled or unproven.
 - Do not texture or rig the production body before Quad Face topology and the final face target are accepted.
+- Do not submit Tripo mesh segmentation without a refreshed exact price and action-time owner approval tied to the exact accepted body; the current observed price is 40 credits, not standing authorization.
+- Do not treat segmentation as facial-control authoring or accept a head before the Blender topology, shape-key, viseme, blink, gaze, jaw, and expression contract passes.
+- Do not substitute a portrait-only or dialogue-only head for the canonical body-matched animated head.
+- Do not generate separate Tripo heads for Young Adult, Middle-Aged, or Elder presets.
+- Do not create a child by shrinking or morphing an adult body; children use a separate NPC-only family contract.
+- Do not promote the legacy appearance extraction pack beyond `PROVISIONAL_PILOT / OWNER_QA_PENDING` without owner QA.
 - Do not accept a pose-only lookalike as proof of the same identity.
 - Do not allow an image model to invent clothing, gear, props, supports, or anatomy that becomes fused source geometry.
 - Do not use an A-pose render to hide a failed T-pose rig or a T-pose render to skip A-pose deformation review.

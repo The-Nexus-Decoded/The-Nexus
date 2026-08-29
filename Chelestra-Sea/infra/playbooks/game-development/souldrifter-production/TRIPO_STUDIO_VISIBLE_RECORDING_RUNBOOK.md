@@ -107,6 +107,19 @@ At the start of every recorded submission:
 
 If the label is no longer `P2.0 - Preview`, or the controls do not prove native-quad Smart Mesh generation, stop before upload or submission. Perform an issue-linked capability audit confirming native quad output, rig/animation suitability, topology control, and target-face behavior. Record the changed label and audit evidence. Do not silently substitute HD Model, assume compatibility, or submit while the audit is unresolved.
 
+## Paid mesh segmentation and head-extraction gate
+
+The accepted Tripo body is the proportion authority for its body type. Create a matching base head only by segmenting that exact accepted body at its recorded, versioned neck seam. Preserve the accepted body scale, axes, origin, rest rig, and head/neck bone names, hierarchy, and rest transforms. A head from a visually similar body is not interchangeable evidence.
+
+Tripo's official billing table observed on **2026-08-29** lists **Mesh Segmentation at 40 credits**. Treat this as current provider evidence, not a permanent price pin or standing spend authorization. Immediately before the operation, refresh the live/official price and return the exact body asset ID, source task/model ID, source SHA-256, operation, expected credits, maximum approved credits, current balance, projected remaining balance, and action-time owner approval. Submit exactly one approved segmentation task and never auto-retry it. This runbook update does not authorize any paid action.
+
+Official references:
+
+- [Tripo billing](https://platform.tripo3d.ai/docs/billing)
+- [Tripo model editing and mesh segmentation](https://platform.tripo3d.ai/docs/editing)
+
+Capture and hash the untouched segmented result and each returned part. Record the body type, seam version, scale/axis/origin contract, part names, bytes, and SHA-256 values. Segmentation proves geometry separation only. It does not create facial edge flow, shape keys, visemes, blink, gaze, jaw controls, expressions, or an animation-ready head; those are separately authored and validated in Blender.
+
 ## Required visible capture sequence
 
 Keep one continuous 30fps pilot recording when practical. If a provider wait makes a continuous take unreasonable, use explicitly numbered segments under the same evidence directory and record every segment hash and time range in one receipt. Do not omit a charged action or splice it in a way that hides the submission count.
@@ -152,6 +165,16 @@ Keep one continuous 30fps pilot recording when practical. If a provider wait mak
 - Show the visible topology/statistics view proving Quad Face output and record the returned face/triangle counts.
 - Download the untouched source result once. Do not overwrite or edit it.
 - Show the untouched filename, byte size, and SHA-256 in a sanitized receipt view without revealing unrelated local paths or shell history.
+
+### 5A. Body-matched head segmentation when separately approved
+
+- Show the exact accepted body task/model ID, source SHA-256, body type, and versioned neck seam.
+- Show the refreshed Mesh Segmentation price, current balance, projected balance, and exact action-time owner approval for this one operation.
+- Show that the selected source is the exact accepted body, not a similar duplicate or later remesh.
+- Perform one approved segmentation task, capture its task ID and submission time, and poll that task without submitting a retry.
+- Show the returned head/body parts and confirm the accepted scale, axes, origin, rest rig, and head/neck bone contract remain unchanged.
+- Download once, then record the untouched output and per-part filenames, byte counts, and SHA-256 values.
+- Label this capture `GEOMETRY_SEPARATION_ONLY`; do not claim facial-control or animation readiness.
 
 ### 6. T-pose rig and calibration proof
 
@@ -221,6 +244,29 @@ Each recording receipt must be machine-readable JSON with at least these fields:
     "untouchedDownloadPath": "<absolute external path>",
     "untouchedDownloadSha256": "<sha256>"
   },
+  "bodyMatchedHead": {
+    "requiredForThisTake": false,
+    "bodyType": "<ancestry-sex-build>",
+    "bodyAuthorityTaskOrModelId": "<provider id>",
+    "bodyAuthoritySha256": "<sha256>",
+    "neckSeamVersion": "<version>",
+    "segmentation": {
+      "operation": "TRIPO_MESH_SEGMENTATION",
+      "officialPriceObservedCredits": 40,
+      "officialPriceObservedAt": "2026-08-29",
+      "officialPriceSource": "https://platform.tripo3d.ai/docs/billing",
+      "refreshedExpectedCredits": 0,
+      "maximumApprovedCredits": 0,
+      "ownerApprovalReceipt": "<issue-linked receipt>",
+      "taskId": "<task id>",
+      "automaticRetry": false,
+      "untouchedOutputSha256": "<sha256>",
+      "returnedParts": [],
+      "claimBoundary": "GEOMETRY_SEPARATION_ONLY"
+    },
+    "bodyScaleAxesOriginPreserved": false,
+    "restRigAndHeadNeckHierarchyPreserved": false
+  },
   "spendGate": {
     "balanceBefore": 0,
     "expectedCredits": 0,
@@ -245,6 +291,7 @@ Each recording receipt must be machine-readable JSON with at least these fields:
     "balanceCostAndApproval": "PASS",
     "singleSubmissionAndTaskId": "PASS",
     "untouchedDownloadAndHash": "PASS",
+    "bodyMatchedHeadSegmentation": "NOT_REQUIRED | PASS | FAIL",
     "tPoseCalibration": "PASS",
     "sameRigAPoseDerivation": "PASS",
     "normalAndSlowDeformation": "PASS"
@@ -269,6 +316,8 @@ A pilot recording passes only when:
 - the MP4 is readable, 30fps, externally stored, hashed, and paired with a complete receipt;
 - no login, password, 2FA, payment data, token, private message, microphone audio, or other secret is visible;
 - the exact live Smart Mesh version, Quad Face selection, 8,000 target, current balance, exact cost, approval, single task ID, and untouched download hash are legible;
+- when head segmentation is part of the take, the refreshed exact Mesh Segmentation cost, action-time approval, exact accepted-body source binding, one-task/no-auto-retry proof, preserved coordinate/rig contract, and untouched per-part hashes are legible;
+- no segmentation receipt is presented as facial topology, facial controls, or animation-readiness evidence;
 - T-pose calibration and same-mesh/same-rig A-pose derivation are both demonstrated;
 - normal-speed and slow deformation review are both present; and
 - no paid retry, batch generation, PR #460 change, merge, deployment, or release action occurred.

@@ -221,13 +221,18 @@ animation clips
 - complete humanoid generation may use a temporary neutral head;
 - issue #487 uses a Human vertical-slice sequence: prove one complete Human body, Mixamo rig, animation family, modular head/facial contract, and live dialogue presentation before scaling the proven body pipeline to the remaining Human foundations;
 - facial likeness on a body-source image is a replaceable placeholder and must not delay an otherwise accepted body, pose, anatomy, or topology result;
-- technicalization creates a stable versioned head seam;
-- modular heads share compatible topology, seam, scale, head bone, gaze, jaw, blink, expression, and viseme contracts;
+- the accepted Tripo body is the proportion authority; create one matching base head per body type by segmenting that exact body at a stable versioned neck seam while preserving body scale/coordinate frame, the accepted rest rig, and head/neck bone names, hierarchy, and rest transforms;
+- Tripo mesh segmentation separates geometry only. After segmentation, Blender must create and validate compatible facial topology and vertex order, facial shape keys, visemes, blink, gaze, jaw/eye controls, and expression blending;
+- face variants derive from that compatible base topology and preserve seam, scale, head/neck rig, and facial-control compatibility;
 - skin tones are primarily material families, not duplicated complete bodies;
+- hair and facial hair are separate modular geometry, never fused to the base head;
 - the Dark Elf blue-white/blue-gray skin family is Elf-only: all non-Elf creator/review surfaces hide or disable it and the runtime material boundary rejects it when ancestry validation is bypassed;
 - deep/dark Human skin remains a separate normal Human palette and must not be labeled or implemented as Dark Elf skin;
-- dialogue, quest, and conversation UI use a live head-and-shoulders view of the same fully animated 3D NPC used in the world;
+- the same canonical animated 3D head appears in the world, player creator, NPC close-up, quest, and dialogue UI;
 - do not author a separate dialogue-only face, head mesh, skeleton, or facial-animation set; an isolated UI presentation instance may exist only as another runtime presentation of the same canonical NPC assets and controls; and
+- derive `YOUNG_ADULT`, `MIDDLE_AGED`, and `ELDER` from the one body-matched base head in Blender using topology-preserving morph targets, age-specific wrinkle/fold/spot/roughness maps, and modular hair/facial-hair greying. Preserve vertex order, seam, scale, jaw/eye rig, visemes, expressions, and the same NPC/dialogue identity; do not generate separate Tripo heads for adult ages;
+- children are a separate NPC-only family, not an adult age preset and not exposed in the current player creator. Require child proportions, a matching Tripo-derived head/seam, a child-safe rig, independent clothing fit, camera/collision framing, and restricted age-appropriate animations. Retarget suitable adult motions only after child-rig validation; never shrink or age-morph the adult body into a child;
+- the legacy `SK_Hair_Buzzed`, `SK_Hair_Parted`, `SK_Hair_Long`, and `SK_Beard_Full` extraction pack remains `PROVISIONAL_PILOT / OWNER_QA_PENDING`, not canonical; and
 - dedicated playable-race facial/head production begins only after the ordered body/race foundation pass unless the owner explicitly changes that priority.
 
 ## Hair contract
@@ -313,6 +318,8 @@ owner approval state
 
 No automatic charged retries.
 
+Tripo's official billing table observed on 2026-08-29 lists Mesh Segmentation at **40 credits**. This is current evidence, not standing approval or a permanent price pin. Before segmenting a body-matched head, refresh the exact price and return the source body asset/task ID, source SHA-256, seam version, expected and maximum credits, balance, projected balance, and action-time owner approval. Submit one task only, preserve and hash the untouched result and every part, and record that segmentation proves geometry separation rather than facial controls. Official references: [billing](https://platform.tripo3d.ai/docs/billing) and [model editing/mesh segmentation](https://platform.tripo3d.ai/docs/editing).
+
 ---
 
 # 9. First two Human pilot pipeline
@@ -334,6 +341,13 @@ locked brief
 -> UV/PBR bake and material validation after topology acceptance
 -> scale/origin/axis/pivot normalization
 -> versioned head seam
+-> refreshed exact Tripo mesh-segmentation price and action-time owner approval for the exact accepted body
+-> one body-matched head segmentation; untouched result and per-part hashes
+-> preserve body scale/rest rig/head-neck bone hierarchy and transforms
+-> Blender facial topology, ordered vertices, shape keys, visemes, blink, gaze, jaw/eye controls, and expressions
+-> same canonical head proof in world, creator, NPC close-up, quest, and dialogue
+-> topology-compatible Young Adult, Middle-Aged, and Elder presets from that one head
+-> modular hair/facial hair and material-driven skin-tone proof
 -> export a clean centered skeleton-free T-pose using Tripo's Mixamo FBX preset
 -> Mixamo chin/wrist/elbow/knee/groin marker placement receipt
 -> full finger-capable Mixamo standard skeleton unless an approved LOD exception is recorded
@@ -540,6 +554,12 @@ Before making changes, the new session must return:
 - no unsupported fourth ancestry batch;
 - no Tripo humanoid submission with Smart Mesh disabled, unproven, or outside the recorded face/triangle budget;
 - no production PBR or rig pass before Quad Face topology acceptance;
+- no Tripo mesh segmentation before a refreshed exact price and action-time owner approval tied to the exact accepted body; the observed 40-credit price is not standing authorization;
+- no claim that Tripo segmentation supplies facial topology, shape keys, visemes, blink, gaze, jaw/eye controls, expressions, or animation readiness;
+- no head from a merely similar body, changed body scale/rest rig/head-neck hierarchy, or alternate portrait/dialogue head;
+- no separate Tripo head generation for Young Adult, Middle-Aged, or Elder presets;
+- no child made by shrinking or age-morphing an adult body, and no child exposed in the current player creator;
+- no promotion of the legacy appearance pack beyond `PROVISIONAL_PILOT / OWNER_QA_PENDING` without owner QA;
 - no merge or deployment;
 - no edit to PR #460;
 - no claim that a structural test alone proves visual/runtime acceptance.
