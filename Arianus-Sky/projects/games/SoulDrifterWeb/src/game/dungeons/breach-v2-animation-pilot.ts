@@ -16,6 +16,7 @@ import {
   PilotAnimationCatalogLoader,
 } from "../pilotAnimationCatalog";
 import { applyPilotSkinPreset } from "../pilotSkinReview";
+import { createHumanFacialReview } from "../humanFacialReview";
 import type { PilotAnimationReviewBridge } from "../../pilotAnimationReview";
 
 const PILOT_MODEL_URL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
@@ -43,9 +44,17 @@ export interface BreachV2AnimationPilot {
   dispose(): void;
 }
 
-export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<BreachV2AnimationPilot> {
+export interface BreachV2AnimationPilotOptions {
+  /** Accepted actor asset handoff; defaults to the currently accepted body. */
+  acceptedActorUrl?: string;
+}
+
+export async function createBreachV2AnimationPilot(
+  loader: GLTFLoader,
+  options: BreachV2AnimationPilotOptions = {},
+): Promise<BreachV2AnimationPilot> {
   const [body, catalog] = await Promise.all([
-    loader.loadAsync(PILOT_MODEL_URL),
+    loader.loadAsync(options.acceptedActorUrl ?? PILOT_MODEL_URL),
     loadPilotAnimationCatalog(),
   ]);
   const catalogLoader = new PilotAnimationCatalogLoader(catalog, loader, MAX_RESIDENT_RAW_ASSETS);
@@ -62,6 +71,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     object.castShadow = true;
     object.receiveShadow = true;
   });
+  const facialReview = createHumanFacialReview(model);
 
   const root = new THREE.Group();
   root.name = "issue-487-human-animation-pilot";
@@ -195,6 +205,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
 
   let currentAction: THREE.AnimationAction | null = null;
   let currentClip = "";
+  let currentReviewName = "";
   let selectionRequest = 0;
   let currentGrounding = {
     floorWorldY: groundCalibration.floorWorldY,
@@ -270,21 +281,52 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     return { action: currentAction, clip: prepared.clip };
   };
 
+  const allReviewNames = [...reviewNames, ...facialReview.entries()];
+  const playBodyReview = async (name: string, loop: boolean): Promise<number> => {
+    facialReview.reset();
+    const selected = await beginAction(name, loop);
+    if (!selected) return 0;
+    currentReviewName = name;
+    return selected.clip.duration;
+  };
+  const playFacialReview = async (name: string, loop: boolean): Promise<number> => {
+    const selected = await beginAction(calibrationClipName, true);
+    if (!selected) return 0;
+    const duration = facialReview.play(name, loop);
+    currentReviewName = name;
+    return duration;
+  };
+  const poseBodyReview = async (name: string, normalizedTime: number): Promise<void> => {
+    facialReview.reset();
+    const selected = await beginAction(name, false);
+    if (!selected) return;
+    selected.action.paused = true;
+    selected.action.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * selected.clip.duration;
+    mixer.update(0);
+    currentReviewName = name;
+    reconcileGrounding();
+  };
+  const poseFacialReview = async (name: string, normalizedTime: number): Promise<void> => {
+    const selected = await beginAction(calibrationClipName, true);
+    if (!selected) return;
+    facialReview.pose(name, normalizedTime);
+    currentReviewName = name;
+    reconcileGrounding();
+  };
+
   const bridge: PilotAnimationReviewBridge = {
-    reviewAnimations: () => reviewNames,
+    reviewAnimations: () => allReviewNames,
     reviewAncestry: () => "human",
-    playReview: async (name, loop) => (await beginAction(name, loop))?.clip.duration ?? 0,
+    playReview: (name, loop) => facialReview.isEntry(name)
+      ? playFacialReview(name, loop)
+      : playBodyReview(name, loop),
     pauseReview: (paused) => {
       if (currentAction) currentAction.paused = paused;
+      facialReview.pause(paused);
     },
-    pose: async (name, normalizedTime) => {
-      const selected = await beginAction(name, false);
-      if (!selected) return;
-      selected.action.paused = true;
-      selected.action.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * selected.clip.duration;
-      mixer.update(0);
-      reconcileGrounding();
-    },
+    pose: (name, normalizedTime) => facialReview.isEntry(name)
+      ? poseFacialReview(name, normalizedTime)
+      : poseBodyReview(name, normalizedTime),
     reviewResidency: () => {
       const raw = catalogLoader.residency();
       return {
@@ -296,12 +338,18 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       };
     },
     setReviewSkin: (preset) => applyPilotSkinPreset(model, preset, "human"),
-    snapshot: () => ({
-      playerAnimation: currentClip,
-      playerAnimationTime: currentAction?.time ?? 0,
-      playerAnimationDuration: currentAction?.getClip().duration ?? 0,
-      grounding: { ...currentGrounding },
-    }),
+    snapshot: () => {
+      const facialSnapshot = facialReview.snapshot();
+      const facialActive = facialReview.isEntry(currentReviewName);
+      return {
+        playerAnimation: currentReviewName || currentClip,
+        playerAnimationTime: facialActive ? facialSnapshot.timeSeconds : currentAction?.time ?? 0,
+        playerAnimationDuration: facialActive
+          ? facialSnapshot.durationSeconds
+          : currentAction?.getClip().duration ?? 0,
+        grounding: { ...currentGrounding },
+      };
+    },
   };
   window.__SOULDRIFTER_PILOT_REVIEW__ = bridge;
 
@@ -313,6 +361,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
     root,
     update: (deltaSeconds) => {
       mixer.update(deltaSeconds);
+      facialReview.update(deltaSeconds);
       reconcileGrounding();
     },
     dispose: () => {
@@ -322,6 +371,7 @@ export async function createBreachV2AnimationPilot(loader: GLTFLoader): Promise<
       boundClips.clear();
       rootContracts.clear();
       catalogLoader.clear();
+      facialReview.dispose();
       root.removeFromParent();
       if (window.__SOULDRIFTER_PILOT_REVIEW__ === bridge) delete window.__SOULDRIFTER_PILOT_REVIEW__;
     },

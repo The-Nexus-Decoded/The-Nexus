@@ -2,6 +2,15 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBreachV2AnimationPilot } from "../src/game/dungeons/breach-v2-animation-pilot";
+import {
+  ARKIT_FACIAL_MORPH_NAMES,
+  BAKED_META_VISEME_MORPH_NAMES,
+} from "../src/game/facialAnimationDriver";
+import {
+  FACIAL_REVIEW_NEUTRAL_ENTRY,
+  FACIAL_REVIEW_TIMED_SPEECH_ENTRY,
+  FACIAL_REVIEW_UNAVAILABLE_ENTRY,
+} from "../src/game/humanFacialReview";
 import { HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE } from "../src/game/humanFoundationRuntimeReviewQueue";
 import {
   validatePilotAnimationCatalog,
@@ -68,12 +77,16 @@ function stubCatalogRequest(catalog: PilotAnimationCatalog): void {
   })));
 }
 
-function syntheticCatalogLoader(catalog: PilotAnimationCatalog, body: THREE.Group): GLTFLoader {
+function syntheticCatalogLoader(
+  catalog: PilotAnimationCatalog,
+  body: THREE.Group,
+  acceptedActorUrl = "runtime-4k",
+): GLTFLoader {
   const packs = new Map(catalog.packs.map((pack) => [pack.url, pack]));
   const standalone = new Map(catalog.standaloneApprovedClips.map((entry) => [entry.url, entry]));
   return {
     loadAsync: vi.fn(async (url: string) => {
-      if (url.includes("runtime-4k")) return { scene: body, animations: [] };
+      if (url.includes(acceptedActorUrl)) return { scene: body, animations: [] };
       const pack = packs.get(url);
       if (pack) {
         return {
@@ -103,7 +116,18 @@ describe("Breach V2 Human animation pilot grounding", () => {
 
     const pilot = await createBreachV2AnimationPilot(loader);
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
-    expect(bridge.reviewAnimations()).toHaveLength(404);
+    expect(bridge.reviewAnimations()).toHaveLength(405);
+    expect(bridge.reviewAnimations()).toContain(FACIAL_REVIEW_UNAVAILABLE_ENTRY);
+    expect(await bridge.playReview(FACIAL_REVIEW_UNAVAILABLE_ENTRY, false)).toBe(0);
+    expect(bridge.snapshot()).toMatchObject({
+      playerAnimation: FACIAL_REVIEW_UNAVAILABLE_ENTRY,
+      playerAnimationDuration: 0,
+      grounding: { pass: true },
+    });
+    expect(body.userData.humanFacialReview).toMatchObject({
+      status: "MORPH_TARGETS_UNAVAILABLE",
+      targetCount: 0,
+    });
     expect(bridge.reviewAnimations().slice(0, HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE.length)).toEqual(
       HUMAN_FOUNDATION_RUNTIME_REVIEW_QUEUE.map((entry) => entry.clipName),
     );
@@ -203,7 +227,8 @@ describe("Breach V2 Human animation pilot grounding", () => {
     const pilot = await createBreachV2AnimationPilot(loader);
     textureWarning.mockRestore();
     const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
-    expect(bridge.reviewAnimations()).toHaveLength(404);
+    expect(bridge.reviewAnimations()).toHaveLength(405);
+    expect(bridge.reviewAnimations()).toContain(FACIAL_REVIEW_UNAVAILABLE_ENTRY);
     expect(bridge.reviewAnimations()).toContain("AuthoredUtility__Lockpick");
     expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls.flat().join("\n"))
       .not.toContain("human-foundation-pilot-animation-library.glb");
@@ -312,5 +337,77 @@ describe("Breach V2 Human animation pilot grounding", () => {
       if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose());
       else object.material.dispose();
     });
+  });
+
+  it("discovers facial targets from an injected accepted actor and reviews them over grounded idle", async () => {
+    vi.stubGlobal("window", {});
+    const acceptedActorUrl = "/assets/3d/characters/human-foundation-pilot/accepted-exact-head.glb";
+    const body = bodyScene();
+    const face = body.getObjectByName("HumanFoundation_BodyMesh") as THREE.Mesh;
+    const armature = body.getObjectByName("HumanFoundation_Armature")!;
+    const material = face.material;
+    const geometry = face.geometry;
+    const parent = face.parent;
+    const armaturePosition = armature.position.clone();
+    const targets = [...ARKIT_FACIAL_MORPH_NAMES, ...BAKED_META_VISEME_MORPH_NAMES];
+    face.morphTargetDictionary = Object.fromEntries(targets.map((name, index) => [name, index]));
+    face.morphTargetInfluences = targets.map(() => 0);
+    const influence = (name: typeof targets[number]): number => (
+      face.morphTargetInfluences?.[face.morphTargetDictionary?.[name] ?? -1] ?? 0
+    );
+    const catalog = await loadTestCatalog();
+    stubCatalogRequest(catalog);
+    const loader = syntheticCatalogLoader(catalog, body, acceptedActorUrl);
+
+    const pilot = await createBreachV2AnimationPilot(loader, { acceptedActorUrl });
+    const bridge = window.__SOULDRIFTER_PILOT_REVIEW__!;
+    expect((loader.loadAsync as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]).toBe(acceptedActorUrl);
+    expect(bridge.reviewAnimations()).toContain(FACIAL_REVIEW_NEUTRAL_ENTRY);
+    expect(bridge.reviewAnimations()).toContain("Face__eyeBlinkLeft");
+    expect(bridge.reviewAnimations()).toContain("Face__eyeBlinkRight");
+    expect(bridge.reviewAnimations()).toContain("Face__jawOpen");
+    expect(bridge.reviewAnimations()).toContain("Viseme__viseme_PP");
+    expect(bridge.reviewAnimations()).toContain(FACIAL_REVIEW_TIMED_SPEECH_ENTRY);
+    expect(bridge.reviewAnimations()).not.toContain(FACIAL_REVIEW_UNAVAILABLE_ENTRY);
+
+    await bridge.pose("Face__jawOpen", 0);
+    expect(influence("jawOpen")).toBe(1);
+    expect(influence("eyeBlinkLeft")).toBe(0);
+    expect(influence("viseme_PP")).toBe(0);
+    expect(bridge.snapshot()).toMatchObject({
+      playerAnimation: "Face__jawOpen",
+      playerAnimationDuration: 2,
+      grounding: { pass: true },
+    });
+
+    await bridge.pose("Face__eyeBlinkLeft", 0.5);
+    expect(influence("eyeBlinkLeft")).toBe(1);
+    expect(influence("eyeBlinkRight")).toBe(0);
+    expect(influence("jawOpen")).toBe(0);
+
+    await bridge.pose(FACIAL_REVIEW_NEUTRAL_ENTRY, 0);
+    expect(face.morphTargetInfluences?.every((weight) => weight === 0)).toBe(true);
+
+    await bridge.playReview(FACIAL_REVIEW_TIMED_SPEECH_ENTRY, false);
+    pilot.update(0.46);
+    expect(influence("viseme_aa")).toBeGreaterThan(0.95);
+    expect(bridge.snapshot()).toMatchObject({
+      playerAnimation: FACIAL_REVIEW_TIMED_SPEECH_ENTRY,
+      playerAnimationTime: 0.46,
+      playerAnimationDuration: 2.4,
+      grounding: { pass: true },
+    });
+
+    await bridge.playReview("BasicLocomotion__Jump", false);
+    expect(face.morphTargetInfluences?.every((weight) => weight === 0)).toBe(true);
+    expect(face.material).toBe(material);
+    expect(face.geometry).toBe(geometry);
+    expect(face.parent).toBe(parent);
+    expect(armature.position).toEqual(armaturePosition);
+
+    pilot.dispose();
+    face.geometry.dispose();
+    if (Array.isArray(face.material)) face.material.forEach((item) => item.dispose());
+    else face.material.dispose();
   });
 });
