@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "source": {
+    "path": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+    "sha256": "6B06FCF070E5A282055F4CEE8F406F0DC4D5B0FF3D275DA4BD9D74DAA7C3D793",
+    "clipCount": 400
+  },
+  "output": {
+    "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-core-actions.glb",
+    "path": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-core-actions.glb",
+    "sha256": "FD7CD93F9BDDB0ABC883D6128346A64C87FF671566D40734DC043533DF943A0A",
+    "bytes": 1374608,
+    "clipCount": 18,
+    "clips": [
+      "MaleLocomotion__Idle",
+      "MaleLocomotion__Walking",
+      "MaleLocomotion__StandardRun",
+      "ProSwordAndShield__DrawSword1",
+      "ProSwordAndShield__SwordAndShieldIdle",
+      "ProSwordAndShield__SwordAndShieldAttack",
+      "ProSwordAndShield__SheathSword1",
+      "GreatSword__DrawAGreatSword1",
+      "GreatSword__GreatSwordIdle",
+      "GreatSword__GreatSwordAttack",
+      "GreatSword__GreatSwordWalk",
+      "GreatSword__GreatSwordRun",
+      "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+      "ProLongbow__StandingEquipBow",
+      "ProLongbow__StandingIdle01",
+      "ProLongbow__StandingDrawArrow",
+      "ProLongbow__StandingAimRecoil",
+      "ProLongbow__StandingDisarmBow"
+    ]
+  },
+  "creationMethod": "RAW_GLB_ACCESSOR_COPY_NO_RESAMPLING",
+  "builder": "scripts/build-human-foundation-core-pack.mjs"
+}
