@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "issue": 456,
+  "briefVersion": "2026-08-29.2",
+  "scope": "free concept bakeoff only; no paid conversion authorization",
+  "providers": [
+    "GPT Image 2",
+    "Nano Banana Pro",
+    "Nano Banana 2",
+    "Midjourney v8.2"
+  ],
+  "poseRule": "species-appropriate neutral four-foot rig-ready pose; never humanoid T/A pose",
+  "assets": [
+    {
+      "assetId": "heartvale-loamling-source-v001",
+      "slug": "loamling",
+      "name": "Heartvale Loamling",
+      "paidConversionAuthorized": false,
+      "promptSha256": "47C2FE14DA28E877B31DFAA78BC4124D9AB3BC050F6D7D78E4BDB31A1C38AF79",
+      "prompt": "Use case: production 3D source concept for SoulDrifter Heartvale wildlife\nAsset ID: heartvale-loamling-source-v001\nPrimary request: Create exactly one completely original Loamling, a small badger-sized four-foot earth elemental native to Heartvale's ordinary meadow, orchard, and woodland-edge soils. This is a clean image-to-3D source, not an illustration or presentation sheet.\nSubject: a low, sturdy nonhumanoid quadruped with a clearly readable animal-like head, compact torso, four short separated legs, broad stone-claw feet, and a small root-fiber tail. Its continuous body is naturally formed from packed brown loam, rounded river stones, fine roots, and sparse living moss; it is an elemental creature, not an ordinary animal wearing armor.\nMaterials: physically plausible damp soil, worn stone, fibrous roots, and restrained moss with dense natural surface detail. No metal, manufactured armor, carved symbols, runes, glow, crystal, fire, lava, smoke, lightning, ice, or magical aura.\nPose: neutral symmetric four-foot rig-ready standing pose. All four feet planted naturally on one ground plane; left and right limbs separated from the torso and each other; shoulders, elbows, wrists, hips, knees, ankles, neck, jaw, and tail root clearly readable. Head level and forward, mouth closed, eyes open, tail visible and separated from the hind legs. Natural quadruped stance only, never humanoid T-pose or A-pose, never rearing, sitting, lying, running, attacking, stalking, jumping, or turning.\nComposition: one complete full-body subject in a front three-quarter orthographic-style studio view, centered, entire silhouette and every extremity fully inside frame with generous empty margin, seamless neutral light-gray background and a soft contact shadow only.\nSafety: explicitly nonsexual and non-NSFW. Continuous natural elemental material fully covers chest, underside, pelvis, groin, and rear. No visible genitals, sexual anatomy, gore, wounds, blood, exposed flesh, or viscera.\nConstraints: exactly one subject; no rider, handler, clothing, jewelry, weapon, wings, extra limbs, duplicate parts, extra tail, fused feet, malformed digits, floating pieces, pedestal, scenery, vegetation, text, label, logo, UI, watermark, collage, turnaround, inset, secondary view, or cropping."
+    },
+    {
+      "assetId": "heartvale-rillwisp-source-v001",
+      "slug": "rillwisp",
+      "name": "Heartvale Rillwisp",
+      "paidConversionAuthorized": false,
+      "promptSha256": "04A69AA86F905906069B6595410D3061419B95FE36429576289AB2C2C6C11274",
+      "prompt": "Use case: production 3D source concept for SoulDrifter Heartvale wildlife\nAsset ID: heartvale-rillwisp-source-v001\nPrimary request: Create exactly one completely original Rillwisp, a small otter-sized four-foot water elemental native to Heartvale's ordinary brooks, millraces, ponds, and rain-fed ditches. This is a clean image-to-3D source, not an illustration or presentation sheet.\nSubject: a sleek, low nonhumanoid quadruped with a clearly readable animal-like head, streamlined torso, four separated legs with simple webbed stone-edged feet, and a long gently tapered tail. Its continuous body is naturally formed from clear flowing water and fine silver mist held around a smooth pale river-stone core; it is an elemental creature, not an ordinary animal wearing armor.\nMaterials: physically plausible clear water, subtle internal ripples, wet pale stone, and restrained translucent mist with readable solid silhouette and dense natural surface detail. No fire, lava, smoke, lightning, ice spikes, glow, runes, crystal, metal, manufactured armor, or magical aura.\nPose: neutral symmetric four-foot rig-ready standing pose. All four feet planted naturally on one ground plane; left and right limbs separated from the torso and each other; shoulders, elbows, wrists, hips, knees, ankles, neck, jaw, and tail root clearly readable. Head level and forward, mouth closed, eyes open, tail fully visible and separated from the hind legs. Natural quadruped stance only, never humanoid T-pose or A-pose, never rearing, sitting, lying, swimming, running, attacking, stalking, jumping, or turning.\nComposition: one complete full-body subject in a front three-quarter orthographic-style studio view, centered, entire silhouette and every extremity fully inside frame with generous empty margin, seamless neutral light-gray background and a soft contact shadow only.\nSafety: explicitly nonsexual and non-NSFW. Continuous natural elemental material fully covers chest, underside, pelvis, groin, and rear. No visible genitals, sexual anatomy, gore, wounds, blood, exposed flesh, or viscera.\nConstraints: exactly one subject; no rider, handler, clothing, jewelry, weapon, wings, extra limbs, duplicate parts, extra tail, fused feet, malformed digits, floating droplets detached from the silhouette, pedestal, scenery, vegetation, text, label, logo, UI, watermark, collage, turnaround, inset, secondary view, or cropping."
+    }
+  ]
+}

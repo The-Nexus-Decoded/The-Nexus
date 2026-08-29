@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "issue": 456,
+  "recordedAt": "2026-08-29",
+  "status": "twenty-smart-mesh-sources-imported-horse-animation-started",
+  "artifactRoot": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife",
+  "tripo": {
+    "liveBalanceAtExportAudit": 12990,
+    "minimumAllowedBalance": 10000,
+    "newPaidOperationsDuringExportImport": 0,
+    "smartMeshCreditsPerAsset": 65,
+    "baseTextureCreditsPerAsset": 30,
+    "sourceAssetCount": 20,
+    "dedupeResult": "twenty unique model IDs and twenty unique canonical source files"
+  },
+  "blender": {
+    "executable": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/blender.exe",
+    "version": "5.2.1 LTS",
+    "buildHash": "9e2066aef7ef",
+    "bridgePluginVersion": "1.0.32",
+    "bridgePort": 60600,
+    "blendFile": "blender/issue-456-heartvale-wildlife-source.blend",
+    "blendSha256": "38F2D75955EF77C7EB4F2C1F283031202D71C99A25224F7FB00EDC08840573A4",
+    "sourceMeshCount": 20,
+    "presentationObjectsRemoved": [
+      "Camera",
+      "Cube",
+      "Light"
+    ],
+    "presentationObjectsRemaining": 0,
+    "tripoRigOrAnimationPurchases": 0,
+    "localPipelineDecision": "Use unrigged Tripo Smart Mesh sources, then build species-appropriate local Blender quadruped rigs and actions. Never use humanoid T or A poses for animals."
+  },
+  "sources": [
+    {"slug":"horse","modelId":"ee83fb87-3ca7-4e89-998a-7beee007019e","file":"sources/issue456_horse__ee83fb87-3ca7-4e89-998a-7beee007019e.glb","bytes":14727584,"sha256":"14A3F63847F60BB84C9ACF703E511DBE6267497B37B84DAEF23B023B04DF28A2"},
+    {"slug":"leopard","modelId":"4513bf50-ae8a-4e1a-af29-cc58d97716cf","file":"sources/issue456_leopard__4513bf50-ae8a-4e1a-af29-cc58d97716cf.glb","bytes":25638024,"sha256":"21E8FC309519ADD03D564EA4D01F89C9C0DE27B4E3F0A7BBD39EB9E430013477"},
+    {"slug":"forkstripe-violet","modelId":"f3dcb60d-ea2f-48d7-8c77-f1deb9a9f812","file":"sources/issue456_forkstripe_violet__f3dcb60d-ea2f-48d7-8c77-f1deb9a9f812.glb","bytes":14804948,"sha256":"20CA1DCEC1B3BA2ECEB8EDB9D51A48202F78F332E0FB795D614C8567E030F7E5"},
+    {"slug":"cat","modelId":"ce2e4fa2-b856-48a7-8ee4-ffe638ccaf20","file":"sources/issue456_cat__ce2e4fa2-b856-48a7-8ee4-ffe638ccaf20.glb","bytes":19929404,"sha256":"D7EB7F018947B84BE7EEFEBAD9ED3870ACC1A8B228F51A083F448E0E9DE8EF19"},
+    {"slug":"fox","modelId":"541c26ea-1f05-47d6-8051-df45759c0515","file":"sources/issue456_fox__541c26ea-1f05-47d6-8051-df45759c0515.glb","bytes":20082544,"sha256":"3CEBC8E0490A64D34F2C316E340516EFEF9BE84A49225A0D6566BC6A74369279"},
+    {"slug":"forkstripe-bristled","modelId":"f4507a21-1dd9-412f-8419-b7c2ed31d009","file":"sources/issue456_forkstripe_bristled__f4507a21-1dd9-412f-8419-b7c2ed31d009.glb","bytes":18270044,"sha256":"0358EA7B3D64835AAA2170DDEC52132195A06C578801D54D12C6A4946338C4DC"},
+    {"slug":"root-gnawer","modelId":"1da2e4ef-34c5-4305-8229-a9feac94c934","file":"sources/issue456_root_gnawer__1da2e4ef-34c5-4305-8229-a9feac94c934.glb","bytes":17910064,"sha256":"9FB902A341FB4661FF58DE41EF9FE4DFB168CC2A2931C4A255149C3EE8431BAB"},
+    {"slug":"rillwisp","modelId":"8cf669b1-e1ac-4cc3-92c7-0554bdaa7a16","file":"sources/issue456_rillwisp__8cf669b1-e1ac-4cc3-92c7-0554bdaa7a16.glb","bytes":14673332,"sha256":"C4367C057AE15DCED645521EFC9AC5881C981A36820218AEBAEB0D4394FD6892"},
+    {"slug":"cow","modelId":"c94848ad-4fae-4d48-a778-9737cade2fae","file":"sources/issue456_cow__c94848ad-4fae-4d48-a778-9737cade2fae.fbx","bytes":17280988,"sha256":"DA483C1865C16B235083CC7294FEB6A85B58D3DB53B2D10EEA686EF138B6D014"},
+    {"slug":"wolf","modelId":"606a4d67-551a-4c86-b8a2-c8dbdef8d41d","file":"sources/issue456_wolf__606a4d67-551a-4c86-b8a2-c8dbdef8d41d.fbx","bytes":19314220,"sha256":"AAB190CC8EB8DA48A3B1639248F9830948AA7112956A4ADD3805FEDF9C561937"},
+    {"slug":"duskcoat","modelId":"996a5130-028f-4fea-8965-c709fac4ec4e","file":"sources/issue456_duskcoat__996a5130-028f-4fea-8965-c709fac4ec4e.fbx","bytes":18461580,"sha256":"05E675BD188CD089B0DF13CF89A6E72448804E0F446F86D7F48FBAC5A256C176"},
+    {"slug":"loamling","modelId":"3e68a3b3-647d-4449-84a6-7cea26a76329","file":"sources/issue456_loamling__3e68a3b3-647d-4449-84a6-7cea26a76329.fbx","bytes":19253676,"sha256":"F24FDC3D26395982EC3E8DDF996698292AC76E63ED0BE3F85980E66C773D12DC"},
+    {"slug":"thornback-boar","modelId":"ffbad9e6-4f27-478f-9ec9-4b2e1cf42863","file":"sources/issue456_thornback_boar__ffbad9e6-4f27-478f-9ec9-4b2e1cf42863.fbx","bytes":20036028,"sha256":"ED583A6E9EC52B87B30C56058FD75F87E49C1EFDC7AD34BCE800EA4E8520B01E"},
+    {"slug":"lioness","modelId":"7b152bc1-0e92-441b-90eb-63119457a9d2","file":"sources/issue456_lioness__7b152bc1-0e92-441b-90eb-63119457a9d2.fbx","bytes":20405516,"sha256":"D4A2E7B482B03EEDC756BDA3E83291E07A5DFAB5D2DD87FD4C8FADD6929167BC"},
+    {"slug":"forkstripe-orange","modelId":"28bac2bc-9feb-4bf6-8b71-9ce55e008c84","file":"sources/issue456_forkstripe_orange__28bac2bc-9feb-4bf6-8b71-9ce55e008c84.fbx","bytes":17078428,"sha256":"69363E68CAD1A9B94BF3DF7422017F0DEC235417F398E345C6B9FEF92EC9C3C1"},
+    {"slug":"dog","modelId":"53a4845c-e26b-49d8-9157-38fb74ea1174","file":"sources/issue456_dog__53a4845c-e26b-49d8-9157-38fb74ea1174.fbx","bytes":20713132,"sha256":"A7B209E6D9D57F3A8921FCDA90AC9690F772DD211F6349909B78235D467DAB23"},
+    {"slug":"upland-alpaca-goat","modelId":"3f963484-f5e0-4fd4-b842-b4937faf7066","file":"sources/issue456_upland_alpaca_goat__3f963484-f5e0-4fd4-b842-b4937faf7066.fbx","bytes":19623212,"sha256":"8C07B8E208AF00697A459311E8E973CF0FA5E6D0E779CE278A118C6205962930"},
+    {"slug":"deer","modelId":"dfa5488b-defd-4e9a-aa83-88a3c8237d63","file":"sources/issue456_deer__dfa5488b-defd-4e9a-aa83-88a3c8237d63.fbx","bytes":19465900,"sha256":"1BF185D8EBDB5981D927014C8DFD9A41FA5B566ECCC6CF74F6C77645789F3189"},
+    {"slug":"stag","modelId":"c72ec9f2-d177-4d9d-a81f-9c38b37147cb","file":"sources/issue456_stag__c72ec9f2-d177-4d9d-a81f-9c38b37147cb.fbx","bytes":20345596,"sha256":"4F83FE1B5C0604EEB755437B7878ECAC6C6D3F5D7DD9523B1FDF2BF9378EEC3D"},
+    {"slug":"lion","modelId":"115ccb7b-c46e-4b81-9495-95ace25e463e","file":"sources/issue456_lion__115ccb7b-c46e-4b81-9495-95ace25e463e.fbx","bytes":20654828,"sha256":"6BAB6FECC63784C03643F318A78876B02823AC504E3F2F406AECD8C518C9B2C8"}
+  ],
+  "animation": {
+    "started": true,
+    "completedAssets": [
+      {
+        "slug": "horse",
+        "modelId": "ee83fb87-3ca7-4e89-998a-7beee007019e",
+        "rigObject": "issue456_horse_rig_ee83fb87",
+        "boneCount": 19,
+        "skinWeightMethod": "deterministic_anatomical_regions_v1",
+        "skinWeightCoverage": 1.0,
+        "actions": [
+          {"name":"issue456_horse_idle_breathe","frameRange":[1,49],"deformationVerified":true},
+          {"name":"issue456_horse_walk","frameRange":[1,25],"looping":true,"deformationVerified":true},
+          {"name":"issue456_horse_graze","frameRange":[1,97],"deformationVerified":true}
+        ]
+      }
+    ],
+    "remainingAssetCount": 19,
+    "nextPass": "Normalize each remaining mesh orientation, then build species-family quadruped rigs and species-appropriate idle, locomotion, feeding or combat actions."
+  }
+}
