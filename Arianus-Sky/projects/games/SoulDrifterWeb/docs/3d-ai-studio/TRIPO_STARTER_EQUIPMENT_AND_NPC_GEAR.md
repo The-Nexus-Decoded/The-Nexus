@@ -82,6 +82,14 @@ The live Level 1 content defines three named NPCs. The Sentinel is a construct, 
 - warden belt and pouch assembly
 - blunt training baton/staff
 
+## Reusable NPC stash templates
+
+Named NPC sources remain `npc_gear`, but the same meshes may seed stronger or killable NPC loadouts through separately named runtime/template instances. Use this export pattern:
+
+`NPC_Stash_HighTier_{Npc}_{Asset}`
+
+For example, Ilyra's source robe remains associated with Ilyra and keeps its Tripo provenance, while a reusable test/template instance is named `NPC_Stash_HighTier_Ilyra_Robe`. Do not silently convert the named NPC source into player starter loot; duplicate or instance it under the stash/template role.
+
 ## Fit strategy for body sizes
 
 One universal clothing mesh must not be uniformly scaled across Human, Elf, Dwarf, and Halfling bodies. Uniform scaling changes garment thickness, joint clearance, hem length, and belt/weapon placement.
@@ -108,7 +116,7 @@ The serialized Blender/runtime pass owns:
 - clothing skinning, coverage masks, and NPC assembly;
 - normal-speed gameplay-camera and close-up clipping proof.
 
-This task must not launch Blender, start the DCC bridge, import/export meshes, rig assets, or author animations.
+The owner later authorized issue #435 to reuse the installed Blender/DCC Bridge for the textured asset intake, provided only one Blender instance is used and it is closed when the transfer is finished. Issue #435 still does not rig assets or author animations.
 
 ## 2026-08-29 paid batch receipt and recovery state
 
@@ -117,12 +125,14 @@ This task must not launch Blender, start the DCC bridge, import/export meshes, r
 - Verified texture operation: 30 credits per asset.
 - Approved maximum: 42 assets x 95 credits = 3,990 credits.
 - Projected full-batch floor: 17,750 credits.
-- Submitted Smart Mesh jobs: 22.
-- Unsubmitted Smart Mesh jobs: 20.
+- Submitted Smart Mesh jobs represented in the canonical ledger: 42.
+- Unsubmitted Smart Mesh jobs: 0.
 - Texture jobs submitted: 0.
-- Live balance after the 22 mesh charges: 20,310 credits.
+- Incorrect retained-reference duplicate jobs pending owner-confirmed deletion: 19.
 
-The in-app Tripo model workspace then returned `500 Internal Server Error: Error creating WebGL context` even after all Tripo tabs were closed, the queue was allowed to drain, and one clean in-app tab was reopened. No provider API, external Chrome, Playwright process, Blender process, retry mesh, rig, animation, segmentation, or upscale was used. Resume only after the in-app browser's WebGL process is restarted; recheck the live balance and both displayed costs before the next charge.
+The first recovery mesh was correct, but Tripo retained that scabbard image in client state while later file chooser operations appeared to accept different files. Those 19 resulting duplicates are isolated in the ledger and are not canonical assets. The corrected queue used a full Image-to-Model workspace reset, single upload, staged-preview verification, and 8K-enabled submission for every source.
+
+Texture generation is still blocked: Tripo selects the requested model and shows 8K pressed, but the WebGL model canvas remains blank and `Generate Texture` stays disabled. Resume only after fully closing and reopening the in-app browser process, then enter Texture through the working Image workspace and verify that the actual model is visible before submitting a texture job.
 
 The exact selected sources, SHA-256 hashes, model IDs, and remaining queue are recorded in `tripo-starter-equipment-ledger.json`. Untouched source images are preserved outside the shipping tree at:
 
