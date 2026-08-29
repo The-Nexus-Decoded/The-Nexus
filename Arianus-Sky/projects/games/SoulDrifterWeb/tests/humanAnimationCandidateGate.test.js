@@ -108,6 +108,12 @@ describe("issue #487 animation candidate gate", () => {
     );
   });
 
+  it("uses the canonical repository-relative rest-rig path", () => {
+    const receipt = passingReceipt();
+    receipt.sourceRestRig.path = "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
+    expect(validate(receipt)).toEqual([]);
+  });
+
   it("rejects source-derived shortcuts for a missing semantic", () => {
     const receipt = passingReceipt();
     receipt.provenance.sourceAnimationsSampled = true;

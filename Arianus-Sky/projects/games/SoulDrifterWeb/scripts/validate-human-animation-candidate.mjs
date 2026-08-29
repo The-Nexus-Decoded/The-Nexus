@@ -30,6 +30,7 @@ export const REQUIRED_VISUAL_CHECKS = [
 
 const SHA256_PATTERN = /^[A-F0-9]{64}$/;
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+const repositoryRoot = resolve(projectRoot, "../../../..");
 const shippingAssetRoot = resolve(projectRoot, "public/assets");
 
 function normalizedSha(value) {
@@ -44,6 +45,14 @@ function resolveEvidencePath(value, receiptPath) {
   if (typeof value !== "string" || value.length === 0) return null;
   if (isAbsolute(value)) return resolve(value);
   return resolve(receiptPath ? resolve(receiptPath, "..") : projectRoot, value);
+}
+
+function resolveProjectPath(value) {
+  if (typeof value !== "string" || value.length === 0) return null;
+  if (isAbsolute(value)) return resolve(value);
+  const repositoryRelative = resolve(repositoryRoot, value);
+  if (existsSync(repositoryRelative)) return repositoryRelative;
+  return resolve(projectRoot, value);
 }
 
 function isShippingAssetPath(value) {
@@ -63,7 +72,7 @@ function requireString(errors, value, path) {
   }
 }
 
-function validateHashedFile(errors, descriptor, path, receiptPath) {
+function validateHashedFile(errors, descriptor, path, receiptPath, pathResolver = resolveEvidencePath) {
   if (!descriptor || typeof descriptor !== "object") {
     errors.push(`${path} must be an object`);
     return null;
@@ -76,7 +85,7 @@ function validateHashedFile(errors, descriptor, path, receiptPath) {
   if (!SHA256_PATTERN.test(expectedHash)) {
     errors.push(`${path}.sha256 must be a 64-character SHA-256`);
   }
-  const resolvedPath = resolveEvidencePath(descriptor.path, receiptPath);
+  const resolvedPath = pathResolver(descriptor.path, receiptPath);
   if (!resolvedPath || !existsSync(resolvedPath)) {
     errors.push(`${path}.path does not exist: ${descriptor.path ?? "<missing>"}`);
     return resolvedPath;
@@ -211,7 +220,7 @@ export function validateCandidateReceipt(
   if (!sourceRig || typeof sourceRig !== "object") {
     errors.push("sourceRestRig must be an object");
   } else {
-    if (verifyFiles) validateHashedFile(errors, sourceRig, "sourceRestRig", null);
+    if (verifyFiles) validateHashedFile(errors, sourceRig, "sourceRestRig", null, resolveProjectPath);
     if (sourceRig.importedActionCount !== 0) errors.push("sourceRestRig.importedActionCount must equal 0");
     if (sourceRig.boneCount !== 65) errors.push("sourceRestRig.boneCount must equal 65");
     if (sourceRig.rootBone !== "mixamorig:Hips") errors.push("sourceRestRig.rootBone must equal mixamorig:Hips");
