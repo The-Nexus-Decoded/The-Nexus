@@ -257,7 +257,9 @@ Do not install or substitute another Blender version without owner direction.
 8. Preserve facial, shoulder, elbow, hand, pelvis, knee, and ankle loops needed for animation.
 9. Bake the approved PBR appearance from the source mesh onto the production topology.
 10. Keep rigid armor and weapons mechanically clean. Do not add unnecessary bones to a non-articulated weapon.
-11. Use the existing validated Elf Shadowknight as the scale/orientation comparison until a versioned asset manifest replaces that baseline.
+11. Before every export, purge unlinked/orphan object and mesh data-blocks, rebuild the export selection from an explicit allowlist, and verify that the selection contains only the intended production meshes and armature. Temporary primitives created by remesh, weighting, modifiers, add-ons, or helper scripts are hard failures even when they are absent from the visible scene collection.
+12. Round-trip re-import every exported GLB/FBX into a factory-empty scene with the approved Blender version. Audit the raw package node/mesh/skin inventory before import; require every package mesh to bind to the one expected armature (or be an explicitly declared rigid attachment), reject unskinned or unexplained package meshes, and rerun the no-platform/camera/light audit. If the importer itself creates a helper that is absent from the raw package, record and purge it from the inspection scene before any save or later export. A clean source `.blend` does not waive this exported-package gate.
+13. Use the existing validated Elf Shadowknight as the scale/orientation comparison until a versioned asset manifest replaces that baseline.
 
 ### Phase 4: canonical rig compatibility proof
 
@@ -433,6 +435,7 @@ Stop and request owner review when:
 - [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Automated geometry audit and a no-floor proof render confirm there is no platform, pedestal, floor slab, ground patch, root mat, shadow catcher, light, camera, or scenery in the package.
+- [ ] Export selection was rebuilt from an explicit allowlist after orphan/helper purge, and a factory-empty round trip confirms that every imported mesh is expected and correctly skinned or declared rigid.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Topology, UV, PBR bake, scale, ground, orientation, and bounds pass.
 - [ ] Skeleton identity or retarget profile is proven rather than assumed.
