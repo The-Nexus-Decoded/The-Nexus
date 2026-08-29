@@ -30,7 +30,7 @@ current command is:
 ```powershell
 blender --background --python scripts/build-human-authored-traversal-survival.py -- `
   --rest-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb `
-  --candidate-id water-dive-v3 `
+  --candidate-id water-dive-v5 `
   --only AuthoredSurvival__WaterDive
 ```
 
@@ -42,6 +42,8 @@ poses, transforms, timing curves, or motion capture are imported from it.
 | ID | Publisher and footage | Reviewed range | Mechanics extracted |
 |---|---|---:|---|
 | `hang-traverse` | [London Parkour — Hang Traverse](https://londonparkour.com/tutorial/hang-traverse/) | `00:10–01:45` | Straight-arm hang; swing leads the reaching hand; the following hand closes the gap; feet remain clear. |
+| `springboard-full-approach-hurdle` | [Vision Dive — Full Approach / Hurdle](https://www.youtube.com/watch?v=i203fVs0TjM) | `00:00–04:40` | Three or more continuous approach steps; arm swing stays timed to the footwork; a one-foot hurdle raises the opposite knee; both feet return together into a compressed final plant. |
+| `world-aquatics-running-approach` | [World Aquatics — Diving Officials Manual](https://resources.fina.org/fina/document/2021/03/02/57dafac3-31f3-4935-927c-826dbbced46e/2020-09-24-FINA-Diving-Officials-Manual-2017-2021.pdf) | `p. 32, figures 6.6–6.7` | The running approach must remain continuous; the hurdle leaves one foot, raises the opposite knee, and returns both feet simultaneously before takeoff. |
 | `water-head-first-dive` | [MIT OpenCourseWare SCUBA — head-first surface dive](https://archive.org/download/MITPE.210S07/ocw-pe.210-surface_dive-head_first-220k.mp4) | `00:00–00:13.37` | Balanced launch; hands extend beyond the crown; head enters first; hips and legs narrow into streamline. |
 | `water-dolphin-kick` | [MIT OpenCourseWare SCUBA — dolphin kick](https://archive.org/download/MITPE.210S07/ocw-pe.210-dolphin-kick-220k.mp4) | `00:00–00:13.37` | Head-spine-hip streamline; synchronous leg wave; small depth undulation. |
 | `water-sesa` | [MIT OpenCourseWare SCUBA — swimming emergency ascent](https://archive.org/download/MITPE.210S07/ocw-pe.210-sesa-220k.mp4) | `00:00–00:20.06` | Upward body angle; water is pressed down/out; kick continues through surfacing; torso becomes upright at the surface. |
@@ -63,7 +65,7 @@ poses, transforms, timing curves, or motion capture are imported from it.
 |---|---|---|
 | Shimmy Left | `AuthoredTraversal__ShimmyLeft` | `hang-traverse` |
 | Shimmy Right | `AuthoredTraversal__ShimmyRight` | `hang-traverse` |
-| Water Dive v3 | `AuthoredSurvival__WaterDive` | `water-head-first-dive`, `water-jump-submerge-resurface` |
+| Water Dive v5 | `AuthoredSurvival__WaterDive` | `springboard-full-approach-hurdle`, `world-aquatics-running-approach`, `water-head-first-dive`, `water-jump-submerge-resurface` |
 | Underwater Swim | `AuthoredSurvival__UnderwaterSwim` | `water-dolphin-kick` |
 | Open Water Surface | `AuthoredSurvival__OpenWaterSurface` | `water-sesa`, `water-jump-submerge-resurface` |
 | Drowning | `AuthoredSurvival__Drowning` | `water-tired-swimmer` |
@@ -90,15 +92,30 @@ trajectories to the authored actions. It then factory-resets again, imports the
 accepted textured zero-action rig, imports the action pack separately, removes
 the pack skeleton, and plays every action on the accepted rig.
 
-Water Dive v1 and v2 were rejected after normal-speed playback review. Version
-3 was authored again from the zero-action rest rig without reading, copying, or
-editing either rejected revision's keys. Its timing contract is four forward
-running footfalls, a short asymmetric hurdle plant, fast hip/knee compression,
-an immediate back-to-overhead arm drive, explosive forward/upward takeoff,
-rapid trailing-leg extension, and hands/head-first entry. Contact baking is
-limited to actual footfall windows and the final plant so running flight is not
-pinned to the floor. Version 3 remains quarantined with independent review
-status `REWORK`; it is not owner-presented or approved. The other nineteen
+Water Dive v1, v2, and v3 were rejected after full normal-speed playback. V3
+still read as a prancing jog followed by a slow ankle-driven fall: it lacked
+forward acceleration, a decisive compression and launch, joined overhead
+hands, head-between-arms alignment, straight joined legs, and pointed feet.
+Its receipt remains `REWORK`, `NOT_PRESENTED`, and `QUARANTINED`.
+
+Water Dive v4 was also rejected after all 97 frames were reviewed. Its approach
+still read as prancing with wide arms; the middle became a long upright balance;
+the final plant did not load or explode through the hips, knees, and ankles; the
+hands stayed separate with bent elbows; the head stayed outside the upper arms;
+the trailing legs stayed bent and split; and the path read as a slow diagonal
+fall instead of a ballistic hands-first entry. Its receipt remains `REWORK`,
+`NOT_PRESENTED`, and `QUARANTINED`.
+
+Version 5 is an entirely new 2.5-second milestone set authored from the
+zero-action rest rig without reading, copying, transforming, or interpolating
+any v1-v4 keys. It uses three compact accelerating sprint strides with close
+opposing arm drive, a one-foot hurdle and opposite-knee lift, a five-frame
+two-foot compression plant, and a five-frame triple-extension launch with the
+arms spearing together immediately. The airborne section contains a discrete
+apex, joined straight legs, pointed feet, hands together beyond the crown, and
+a hands/head-first waterline crossing. Only sprint strikes and the final loaded
+plant are contact-baked. V5 remains quarantined pending independent continuous
+playback review. The other nineteen
 actions must not be expanded until the independent coordinator passes this
 exemplar.
 

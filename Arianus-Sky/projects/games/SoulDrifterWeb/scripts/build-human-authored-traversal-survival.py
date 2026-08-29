@@ -10,7 +10,7 @@ written only to the issue evidence quarantine, never to public/assets:
 
     blender --background --python scripts/build-human-authored-traversal-survival.py -- \
       --rest-glb public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb \
-      --candidate-id water-dive-v3 \
+      --candidate-id water-dive-v5 \
       --only AuthoredSurvival__WaterDive
 """
 
@@ -89,143 +89,115 @@ def degrees(x: float, y: float, z: float) -> tuple[float, float, float]:
     return (x * pi / 180.0, y * pi / 180.0, z * pi / 180.0)
 
 
-def water_dive_v3_pose(t: float) -> dict[str, object]:
-    """Fresh v3: four running footfalls, hurdle plant, explosive dive."""
-    approach_end = 0.42
-    approach_phase = min(1.0, t / approach_end)
-    run_cycle = sin(4.0 * pi * approach_phase)
-    approach_release = 1.0 - ease_between(t, 0.37, 0.46)
-    stride = run_cycle * approach_release
-    run_flight = max(0.0, -cos(4.0 * pi * approach_phase)) * approach_release
-    final_plant = bell(t, 0.39, 0.47, 0.55)
-    hurdle_knee = bell(t, 0.42, 0.50, 0.61)
-    arm_drive_back = bell(t, 0.35, 0.45, 0.53)
-    arm_drive_forward = ease_between(t, 0.46, 0.59)
-    takeoff = ease_between(t, 0.47, 0.61)
-    launch_arc = bell(t, 0.47, 0.64, 0.82)
-    torso_rotation = ease_between(t, 0.54, 0.79)
-    leg_extension = ease_between(t, 0.58, 0.72)
-    water_entry = ease_between(t, 0.76, 0.96)
-    continuation = ease_between(t, 0.92, 1.00)
-
-    # Root progression never pauses during the arm drive. The approach covers
-    # four visible footfalls before a short hurdle plant and immediate takeoff.
-    root_x = (
-        2.16 * ease_between(t, 0.00, 0.47)
-        + 1.42 * ease_between(t, 0.47, 0.72)
-        + 1.05 * ease_between(t, 0.72, 1.00)
-    )
-    root_y = (
-        0.085 * run_flight
-        - 0.15 * final_plant
-        + 0.88 * launch_arc
-        - 1.28 * water_entry
-        - 0.24 * continuation
-    )
-    run_lean = ease_between(t, 0.02, 0.15) * (1.0 - takeoff)
-    root_pitch = (
-        -10.0 * run_lean
-        - 15.0 * takeoff
-        - 52.0 * torso_rotation
-        - 4.0 * water_entry
-    )
-
-    rotations = {
-        ROOT: degrees(0.0, 0.0, root_pitch),
-        "mixamorig:Spine": degrees(
-            0.0,
-            0.0,
-            -6.0 * run_lean
-            + 15.0 * final_plant
-            - 16.0 * takeoff
-            - 7.0 * torso_rotation,
-        ),
-        "mixamorig:Spine1": degrees(
-            0.0,
-            0.0,
-            8.0 * final_plant - 8.0 * takeoff - 5.0 * torso_rotation,
-        ),
-        "mixamorig:Spine2": degrees(
-            0.0,
-            0.0,
-            6.0 * final_plant - 6.0 * takeoff - 4.0 * torso_rotation,
-        ),
-        "mixamorig:Neck": degrees(0.0, 0.0, 15.0 * torso_rotation),
-        "mixamorig:Head": degrees(0.0, 0.0, 8.0 * torso_rotation),
-        # All leg rotations remain sagittal. The left leg absorbs the final
-        # plant while the right knee drives through; both then extend and close
-        # into the trailing streamline without any sideways hip/knee splay.
-        "mixamorig:LeftUpLeg": degrees(
-            0.0,
-            0.0,
-            35.0 * stride - 34.0 * final_plant + 8.0 * leg_extension,
-        ),
-        "mixamorig:RightUpLeg": degrees(
-            0.0,
-            0.0,
-            -35.0 * stride - 44.0 * hurdle_knee + 8.0 * leg_extension,
-        ),
-        "mixamorig:LeftLeg": degrees(
-            0.0,
-            0.0,
-            52.0 * max(0.0, -stride)
-            + 58.0 * final_plant
-            - 12.0 * leg_extension,
-        ),
-        "mixamorig:RightLeg": degrees(
-            0.0,
-            0.0,
-            52.0 * max(0.0, stride)
-            + 72.0 * hurdle_knee
-            - 12.0 * leg_extension,
-        ),
-        "mixamorig:LeftFoot": degrees(
-            0.0,
-            0.0,
-            -18.0 * final_plant + 30.0 * leg_extension,
-        ),
-        "mixamorig:RightFoot": degrees(
-            0.0,
-            0.0,
-            -10.0 * hurdle_knee + 30.0 * leg_extension,
-        ),
-    }
-
-    # Alternating running swing transitions directly into the plant backswing;
-    # the overhead drive completes in 0.13 normalized seconds with no upright
-    # arm-raise hold before launch.
-    left_hand = Vector(
-        (
-            -0.04
-            - 0.21 * stride * (1.0 - arm_drive_forward)
-            - 0.39 * arm_drive_back * (1.0 - arm_drive_forward)
-            + 0.82 * arm_drive_forward,
-            0.13
-            - 0.08 * arm_drive_back * (1.0 - arm_drive_forward)
-            + 0.49 * arm_drive_forward,
-            -0.18 + 0.145 * leg_extension,
-        )
-    )
-    right_hand = Vector(
-        (
-            -0.04
-            + 0.21 * stride * (1.0 - arm_drive_forward)
-            - 0.39 * arm_drive_back * (1.0 - arm_drive_forward)
-            + 0.82 * arm_drive_forward,
-            0.13
-            - 0.08 * arm_drive_back * (1.0 - arm_drive_forward)
-            + 0.49 * arm_drive_forward,
-            0.18 - 0.145 * leg_extension,
-        )
-    )
+def water_dive_v5_key(
+    time: float,
+    root: tuple[float, float, float],
+    torso: tuple[float, float, float, float, float, float],
+    legs: tuple[float, float, float, float],
+    feet: tuple[float, float, float, float],
+    hands: tuple[tuple[float, float, float], tuple[float, float, float]],
+    leg_join: float = 0.0,
+) -> dict[str, object]:
+    """Declare one independently authored v5 whole-body milestone."""
+    root_pitch, spine, spine1, spine2, neck, head = torso
+    left_up, right_up, left_knee, right_knee = legs
+    left_foot, right_foot, left_toe, right_toe = feet
     return {
-        "root": (root_x, root_y, 0.0),
-        "rotations": rotations,
-        "handTargets": {
-            "mixamorig:LeftHand": left_hand,
-            "mixamorig:RightHand": right_hand,
+        "time": time,
+        "root": root,
+        "angles": {
+            # Axis-probed on the canonical rest rig: local X is the sagittal
+            # plane for Hips, torso, and legs; local Z is leg adduction.
+            ROOT: (-root_pitch, 0.0, 0.0),
+            "mixamorig:Spine": (-spine, 0.0, 0.0),
+            "mixamorig:Spine1": (-spine1, 0.0, 0.0),
+            "mixamorig:Spine2": (-spine2, 0.0, 0.0),
+            "mixamorig:Neck": (-neck, 0.0, 0.0),
+            "mixamorig:Head": (-head, 0.0, 0.0),
+            "mixamorig:LeftUpLeg": (-left_up, 0.0, -leg_join),
+            "mixamorig:RightUpLeg": (-right_up, 0.0, leg_join),
+            "mixamorig:LeftLeg": (-left_knee, 0.0, 0.0),
+            "mixamorig:RightLeg": (-right_knee, 0.0, 0.0),
+            "mixamorig:LeftFoot": (left_foot, 0.0, 0.0),
+            "mixamorig:RightFoot": (right_foot, 0.0, 0.0),
+            "mixamorig:LeftToeBase": (left_toe, 0.0, 0.0),
+            "mixamorig:RightToeBase": (right_toe, 0.0, 0.0),
         },
+        "hands": hands,
     }
+
+
+# Water Dive v5 is a new, compact milestone set authored from the zero-action
+# rest pose. It does not evaluate, read, transform, or interpolate any v1-v4
+# pose data. Times are normalized across a 2.5-second action.
+WATER_DIVE_V5_KEYS = (
+    # Three crisp sprint strides with close, opposing bent-arm drive.
+    water_dive_v5_key(0.000, (0.00, 0.00, 0.0), (-17, -7, 2, -2, 7, 3), (22, -42, 30, 20), (10, -14, -4, 4), ((0.16, 0.22, -0.11), (-0.13, 0.18, 0.11))),
+    water_dive_v5_key(0.075, (0.30, 0.045, 0.0), (-18, -8, 2, -2, 7, 3), (-58, 24, 74, 32), (-12, 16, 3, -5), ((-0.13, 0.18, -0.11), (0.17, 0.23, 0.11))),
+    water_dive_v5_key(0.160, (0.78, 0.00, 0.0), (-18, -8, 2, -2, 7, 3), (-34, 34, 20, 48), (-12, 13, 3, -5), ((-0.12, 0.18, -0.11), (0.16, 0.22, 0.11))),
+    water_dive_v5_key(0.235, (1.28, 0.050, 0.0), (-19, -8, 2, -2, 7, 3), (24, -60, 34, 76), (17, -12, -5, 3), ((0.17, 0.23, -0.11), (-0.13, 0.18, 0.11))),
+    water_dive_v5_key(0.315, (1.83, 0.00, 0.0), (-19, -8, 2, -2, 7, 3), (35, -36, 50, 20), (14, -13, -5, 3), ((0.16, 0.22, -0.11), (-0.12, 0.18, 0.11))),
+    water_dive_v5_key(0.390, (2.42, 0.055, 0.0), (-20, -8, 2, -2, 7, 3), (-62, 25, 78, 34), (-13, 18, 3, -5), ((-0.13, 0.18, -0.11), (0.18, 0.24, 0.11))),
+    water_dive_v5_key(0.460, (3.04, 0.00, 0.0), (-20, -8, 2, -2, 7, 3), (-36, 38, 20, 54), (-13, 15, 3, -5), ((-0.12, 0.18, -0.11), (0.16, 0.22, 0.11))),
+    # Penultimate one-foot hurdle and opposite-knee lift.
+    water_dive_v5_key(0.505, (3.46, 0.12, 0.0), (-16, -6, 1, -1, 5, 2), (12, -72, 12, 92), (24, -12, 12, -4), ((-0.12, 0.18, -0.11), (-0.12, 0.18, 0.11))),
+    water_dive_v5_key(0.535, (3.76, 0.32, 0.0), (-14, -5, 1, -1, 5, 2), (16, -76, 8, 96), (30, -12, 15, -4), ((-0.17, 0.16, -0.11), (-0.17, 0.16, 0.11))),
+    # Four-to-six-frame loaded two-foot plant: hips back, knees/ankles flexed,
+    # arms swept behind the torso before the immediate spear and takeoff.
+    water_dive_v5_key(0.565, (4.00, -0.30, 0.0), (-24, -10, 4, -3, 8, 4), (-54, -54, 84, 84), (-28, -28, -12, -12), ((-0.20, 0.16, -0.11), (-0.20, 0.16, 0.11))),
+    water_dive_v5_key(0.595, (4.24, -0.22, 0.0), (-27, -10, 3, -3, 7, 3), (-42, -42, 66, 66), (-18, -18, -8, -8), ((0.04, 0.45, -0.05), (0.04, 0.45, 0.05))),
+    # Explosive triple extension and immediate joined-arm spear.
+    water_dive_v5_key(0.625, (4.54, 0.34, 0.0), (-34, -6, 1, -1, 5, 1), (0, 0, -4, -4), (-48, -48, 0, 0), ((0.00, 0.76, -0.004), (0.00, 0.76, 0.004)), leg_join=7.0),
+    water_dive_v5_key(0.690, (5.22, 0.86, 0.0), (-49, -3, 0, 0, 3, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, -0.002), (0.00, 0.78, 0.002)), leg_join=9.0),
+    # Ballistic apex, straight joined streamline, and head-first descent.
+    water_dive_v5_key(0.755, (6.02, 1.08, 0.0), (-63, -2, 0, 0, 2, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
+    water_dive_v5_key(0.830, (6.98, 0.92, 0.0), (-76, -1, 0, 0, 1, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
+    water_dive_v5_key(0.900, (7.86, 0.48, 0.0), (-90, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
+    water_dive_v5_key(0.945, (8.40, 0.04, 0.0), (-104, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.78, 0.0), (0.00, 0.78, 0.0)), leg_join=10.0),
+    water_dive_v5_key(1.000, (9.00, -1.20, 0.0), (-116, 0, 0, 0, 0, 0), (0, 0, -6, -6), (-50, -50, 0, 0), ((0.00, 0.76, 0.0), (0.00, 0.76, 0.0)), leg_join=10.0),
+)
+
+
+def water_dive_v5_pose(t: float) -> dict[str, object]:
+    """Interpolate only the independently declared v5 milestone keys."""
+    lower = WATER_DIVE_V5_KEYS[0]
+    upper = WATER_DIVE_V5_KEYS[-1]
+    for candidate in WATER_DIVE_V5_KEYS[1:]:
+        if t <= candidate["time"]:
+            upper = candidate
+            break
+        lower = candidate
+    span = max(1e-6, float(upper["time"]) - float(lower["time"]))
+    raw_blend = max(0.0, min(1.0, (t - float(lower["time"])) / span))
+    pose_blend = smoothstep(raw_blend)
+
+    # Root X uses direct interpolation so the actor never decelerates to zero
+    # at a contact pose. Vertical/root-pose channels ease through the authored
+    # compression, extension, and airborne-arc milestones.
+    root = (
+        float(lower["root"][0]) + (float(upper["root"][0]) - float(lower["root"][0])) * raw_blend,
+        float(lower["root"][1]) + (float(upper["root"][1]) - float(lower["root"][1])) * pose_blend,
+        0.0,
+    )
+    rotations = {}
+    for bone_name, lower_angles in lower["angles"].items():
+        upper_angles = upper["angles"][bone_name]
+        interpolated = tuple(
+            float(start) + (float(end) - float(start)) * pose_blend
+            for start, end in zip(lower_angles, upper_angles, strict=True)
+        )
+        rotations[bone_name] = degrees(*interpolated)
+    hand_targets = {}
+    for index, bone_name in enumerate(("mixamorig:LeftHand", "mixamorig:RightHand")):
+        start = lower["hands"][index]
+        end = upper["hands"][index]
+        hand_targets[bone_name] = Vector(
+            tuple(
+                float(left) + (float(right) - float(left)) * pose_blend
+                for left, right in zip(start, end, strict=True)
+            )
+        )
+    return {"root": root, "rotations": rotations, "handTargets": hand_targets}
 
 
 def natural_hands(swing: float = 0.0) -> dict[str, Vector]:
@@ -570,19 +542,25 @@ def authored_clips() -> list[AuthoredClip]:
             name="AuthoredSurvival__WaterDive",
             label="Water Dive",
             requirement="water.dive",
-            frames=97,
+            frames=76,
             loop=False,
             airborne=True,
             root_policy="AUTHORED_FORWARD_AND_VERTICAL_ENTRY",
-            reference_ids=("water-head-first-dive", "water-jump-submerge-resurface"),
-            mechanics=(
-                "four forward running footfalls lead directly into a hurdle plant",
-                "plant leg and hips compress while the opposite knee drives through",
-                "alternating arm swing becomes a rapid back-to-overhead launch drive",
-                "hips knees and feet close into a trailing streamline without lateral splay",
-                "hands and head cross the surface before the torso and legs",
+            reference_ids=(
+                "springboard-full-approach-hurdle",
+                "world-aquatics-running-approach",
+                "water-head-first-dive",
+                "water-jump-submerge-resurface",
             ),
-            pose=water_dive_v3_pose,
+            mechanics=(
+                "three accelerating sprint strides remain forward and rhythmically continuous",
+                "penultimate step becomes a one-foot hurdle and two-foot compression plant",
+                "hips knees and ankles extend explosively with the arm drive",
+                "hands meet overhead with the head tucked between the upper arms",
+                "straight joined trailing legs and pointed feet follow a clear airborne arc",
+                "hands and head cross the surface before the torso hips and feet",
+            ),
+            pose=water_dive_v5_pose,
         ),
         AuthoredClip("AuthoredSurvival__UnderwaterSwim", "Underwater Swim", "water.underwater-swim", 73, True, True, "FORWARD_ROOT_MOTION_SUBMERGED", ("water-dolphin-kick",), ("head-spine-hip streamline", "synchronous dolphin kick", "arms sweep out and recover forward", "small depth undulation"), underwater_swim_pose),
         AuthoredClip("AuthoredSurvival__OpenWaterSurface", "Open Water Surface", "water.surface.open", 61, False, True, "VERTICAL_ROOT_MOTION_TO_WATERLINE", ("water-sesa", "water-jump-submerge-resurface"), ("upward body angle", "arms press water down and outward", "alternating kick", "torso returns upright at surface"), open_water_surface_pose),
@@ -667,9 +645,9 @@ def skinned_meshes_for(armature: bpy.types.Object) -> list[bpy.types.Object]:
 def grounding_target(clip: AuthoredClip, t: float, rest_lower: float) -> float | None:
     """Return the authored contact surface for this normalized-time pose."""
     if clip.name == "AuthoredSurvival__WaterDive":
-        approach_contacts = (0.00, 0.10, 0.20, 0.30)
+        approach_contacts = (0.00, 0.16, 0.315, 0.46)
         running_contact = any(abs(t - center) <= 0.025 for center in approach_contacts)
-        final_plant_contact = 0.405 <= t <= 0.49
+        final_plant_contact = 0.555 <= t <= 0.605
         return rest_lower if running_contact or final_plant_contact else None
     if clip.name == "AuthoredTraversal__NeutralLandToRun":
         return rest_lower if t >= 0.36 else None
@@ -746,6 +724,8 @@ def ground_authored_contacts(
 
 
 def expected_speed_range(clip: AuthoredClip) -> tuple[float, float]:
+    if clip.name == "AuthoredSurvival__WaterDive":
+        return (2.50, 4.25)
     if clip.root_policy.startswith("IN_PLACE"):
         return (0.0, 0.15)
     if clip.name == "AuthoredNpc__Farewell":
@@ -1237,7 +1217,7 @@ def main() -> None:
                 "rootPolicy": clip.root_policy,
                 "airborne": clip.airborne,
                 "authoringRevision": (
-                    3 if clip.name == "AuthoredSurvival__WaterDive" else 1
+                    5 if clip.name == "AuthoredSurvival__WaterDive" else 1
                 ),
                 "rejectedRevisionKeyReuse": False,
                 "groundingBake": grounding_bake,
