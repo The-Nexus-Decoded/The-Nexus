@@ -274,6 +274,49 @@ Only after those checks and human visual approval:
 4. rerun the full test, typecheck, build, and runtime capture suite;
 5. commit the exact approved source, contract, asset, tests, and concise evidence.
 
+### Machine-enforced candidate state gate
+
+The prose checklist above is enforced by one candidate receipt and one fail-closed validator. Use
+[`../scripts/validate-human-animation-candidate.mjs`](../scripts/validate-human-animation-candidate.mjs)
+with the canonical template at
+`Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/templates/humanoid-animation-candidate-receipt.template.json`.
+
+The required state path is:
+
+```text
+AUTHORING
+  -> QUARANTINED
+  -> TECHNICAL_PASS_VISUAL_REVIEW_REQUIRED
+  -> OWNER_REVIEW_READY
+  -> OWNER_APPROVED
+  -> RUNTIME_INSTALL
+  -> SHIPPING_VERIFIED
+```
+
+Rules:
+
+1. Builders write unapproved GLBs, reports, and videos beneath `H:\CodexData\souldrifter-toolchain\evidence\<issue>\animation-candidates\<family>\<candidate-id>\`. They must not write candidate output into `public/assets`.
+2. The authoring lane may fill provenance and technical results but must leave `independentVisualReview` in `REWORK`, `ownerReview.status` as `NOT_PRESENTED`, and promotion as `QUARANTINED`. It cannot review or approve its own motion.
+3. An independent coordinator reviews the complete intended-rate playback, records every checklist field, and changes promotion to `OWNER_REVIEW_READY` only when every visual field passes and `blockingFindings` is empty.
+4. Validate before owner export:
+
+   ```powershell
+   node scripts/validate-human-animation-candidate.mjs --gate owner-review <candidate-receipt.json>
+   ```
+
+   The command verifies the candidate, rest rig, and video byte lengths/hashes, performs a real full video decode, confirms the zero-action 65-bone rest rig, rejects forbidden source reuse, rejects author self-approval, and rejects any incomplete technical or visual field.
+5. Owner review is strictly one candidate per file and one `Y`, `N`, or `CHANGE` decision. `assemble-human-animation-preview-reels.py` requires one or more passing receipts, forces `--group-size 1`, and refuses to export a candidate whose reviewed video path differs from the render manifest.
+6. Any edit to animation keys, rig, proxy context, camera, timing, encode, candidate GLB, or receipt invalidates the old hashes and the old visual verdict. The changed candidate returns to `QUARANTINED` and repeats every gate.
+7. After owner approval, record the exact selected candidate SHA-256 and run:
+
+   ```powershell
+   node scripts/validate-human-animation-candidate.mjs --gate runtime-install <candidate-receipt.json>
+   ```
+
+   The runtime-install gate refuses approval for a different hash. Only then may the exact approved bytes be copied into `public/assets`, wired into BREACH-V2, and subjected to full runtime, typecheck, test, build, and browser verification.
+
+Failed candidates remain external provenance. A failed pack is never a fallback, never counts as coverage, and never remains in the shipping asset tree.
+
 ## Required evidence package
 
 Use a stable per-skill layout such as:

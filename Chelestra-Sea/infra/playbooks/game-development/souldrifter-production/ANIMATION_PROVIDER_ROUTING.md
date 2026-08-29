@@ -103,6 +103,38 @@ Every newly generated, provider-derived, DCC-derived, custom, or procedural anim
 
 A contact sheet, phase-image set, numeric report, agent-authored `PASS` label, or valid GLB is supporting evidence only; none can substitute for watching the complete normal-speed motion. The authoring agent may report technical results but cannot self-approve its animation for owner review. A generated or structurally valid GLB is not accepted coverage and must not enter the BREACH-V2 queue before the independent continuous-playback review, neutral-body chat preview, and owner verdict exist. Rejected candidates remain preserved as provenance. Changed candidates return to generation and repeat the gate.
 
+### Executable quarantine and promotion contract
+
+All humanoid authoring lanes use the receipt template at
+`templates/humanoid-animation-candidate-receipt.template.json`. Provisional GLBs,
+technical reports, and review videos live under
+`H:\CodexData\souldrifter-toolchain\evidence\<issue>\animation-candidates\` and
+never under a runtime `public/assets` directory.
+
+The authoring lane stops at `QUARANTINED`; it cannot set its own independent
+visual verdict to `PASS`. The root coordinator must review the exact hashed
+normal-speed playback and explicitly pass wind-up, semantic readability,
+whole-body mechanics, balance and weight transfer, feet/knees/hips/pelvis,
+spine/shoulders/elbows/hands, prop or surface contacts, cadence,
+follow-through/recovery, grounding/root motion, and gameplay-camera readability.
+
+Before a candidate can be shown to the owner, run:
+
+```powershell
+node Arianus-Sky/projects/games/SoulDrifterWeb/scripts/validate-human-animation-candidate.mjs --gate owner-review <candidate-receipt.json>
+```
+
+The owner-review exporter accepts only a passing receipt and produces one
+candidate per file. It cannot merge multiple motions into a review reel. The
+owner's `Y`, `N`, or `CHANGE` applies only to the exact candidate and playback
+hashes in that receipt. Any regenerated key, export, camera, prop context, or
+video invalidates the verdict and returns the candidate to quarantine.
+
+Before copying approved bytes into a runtime asset directory, record the exact
+owner-selected SHA-256, change promotion to `OWNER_APPROVED`, and run the same
+validator with `--gate runtime-install`. A hash mismatch or missing owner verdict
+blocks installation. Only the approved bytes then enter BREACH-V2 runtime QA.
+
 ## Tier 1B — Tripo creature preset retarget: default non-humanoid lane
 
 Use Tripo for animals, non-humanoid monsters, and creature body plans for:
