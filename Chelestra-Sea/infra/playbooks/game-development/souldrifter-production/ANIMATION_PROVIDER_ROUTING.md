@@ -63,6 +63,14 @@ Provider downloads and bulk exports are candidates, not accepted semantics. The 
 
 Keep missing requirements explicit. At minimum, preserve separate gap rows for spell-damage blowback/falls, complete staff combat/channel/draw/stow coverage, water surface/drowning, lockpicking, mining, chopping, farewell, special reactions, and damage-specific deaths until a direct-provider, derived, custom, or procedural result passes. A near-match remains a candidate; it does not silently close the required semantic.
 
+### Owner-locked original gap-authoring rule
+
+When the master demand matrix marks a humanoid motion `MISSING`, create a new motion for that semantic from the accepted rest rig. Do not fill the row by reversing, mirroring, renaming, trimming, splicing, crossfading, pose-copying, or combining existing clips or body regions. In particular, an existing pickup played backward is not a place animation, and a pickup upper body layered over walking legs is not a carry animation.
+
+The new motion must be authored as one coherent whole-body performance using explicit Blender/DCC keyframes, IK, pole targets, object or weapon constraints, contact and release markers, and the recorded real-person reference. A direct provider clip may satisfy a row only when it already performs the exact required action and passes the full owner gate. Derived transformations remain allowed for variations of an already covered and approved motion, but never as a substitute for original gap authoring.
+
+All issue #487 `SOURCE_DERIVED_VISUAL_REVIEW_REQUIRED` utility and combat gap packs produced before this rule are rejected process evidence. They must not be reviewed further, promoted, bound in runtime, or counted as coverage. Their replacement reports must declare `ORIGINAL_KEYFRAMED_MOTION`, contain no source-action recipe, and prove fresh rest-rig authorship.
+
 Complete the full master-list audit and current-scope gap fill before presenting the review UI as exhaustive. Classify core and lower-level pilot requirements as `CURRENT_487_CORE`; search Mixamo first for every humanoid row, then use Blender only for verified provider gaps, derived variants, cleanup, contacts, transitions, or game-specific motion. Every current-core row needs a valid ingested candidate or explicit blocker before exhaustive review begins.
 
 Future class-specific spellcasting identities are `DEFERRED_HIGHER_LEVEL` and do not block issue #487. Shared Mixamo magic variants can serve as generic pilot candidates, but they do not close future class-identity rows.
@@ -126,6 +134,8 @@ A direct creature Tripo preset that passes the full technical, runtime, gameplay
 ## Tier 2 — Derived custom variants from provider presets
 
 Use Houdini KineFX, Blender, or another approved DCC automation layer to derive additional game-specific clips from a Mixamo humanoid base motion or Tripo creature base motion.
+
+This tier may vary an already covered and owner-approved semantic; it may not close a master-list `MISSING` row. Missing humanoid actions route directly to original Tier 3 authoring under the owner-locked rule above.
 
 Allowed transformations include:
 
