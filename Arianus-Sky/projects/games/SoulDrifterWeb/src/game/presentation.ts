@@ -2,10 +2,17 @@ import * as THREE from "three";
 import {
   HAIR_COLORS,
   resolveCharacterAppearance,
+  type FaceTypeId,
   type FacialHairId,
   type HairColorId,
   type HairStyleSelectionId,
 } from "./character";
+import {
+  applyHumanFaceType,
+  hasValidatedAppearanceAncestor,
+  HUMAN_FACIAL_HAIR_MODULE_NAMES,
+  HUMAN_HAIR_MODULE_NAMES,
+} from "./humanAppearanceAssembly";
 
 export interface PointerHitCandidate<TTile> {
   enemyId?: string;
@@ -188,6 +195,7 @@ export type HumanoidRaceId = "human" | "elf" | "dwarf" | "halfling";
 export interface ModularAppearance {
   hairStyle: HairStyleSelectionId;
   raceId: HumanoidRaceId;
+  faceType?: FaceTypeId;
   facialHair?: FacialHairId;
   hairColor?: HairColorId;
   age?: number;
@@ -200,6 +208,7 @@ export type ModularAssetApplication = "applied" | "none" | "missing-provider-ass
 export interface ModularAppearanceResult {
   hair: ModularAssetApplication;
   facialHair: ModularAssetApplication;
+  faceMorphApplied: string | null;
   ageMorphsApplied: readonly string[];
   tintedMaterials: number;
   missingProviderAssets: readonly string[];
@@ -287,32 +296,13 @@ export function raceAvatarShape(raceId: string): { width: number; depth: number 
 
 const HAIR_MODULE_NAMES = {
   "shaved-buzzed": "SK_Hair_Buzzed",
-  cropped: "SK_Hair_Cropped",
-  parted: "SK_Hair_Parted",
-  "curly-coiled": "SK_Hair_CurlyCoiled",
-  long: "SK_Hair_Long",
-  "tied-back": "SK_Hair_TiedBack",
-  braided: "SK_Hair_Braided",
+  ...HUMAN_HAIR_MODULE_NAMES,
 } as const;
 
-const FACIAL_HAIR_MODULE_NAMES: Readonly<Record<Exclude<FacialHairId, "none">, string>> = {
-  stubble: "SK_FacialHair_Stubble",
-  moustache: "SK_FacialHair_Moustache",
-  goatee: "SK_FacialHair_Goatee",
-  "short-beard": "SK_FacialHair_ShortBeard",
-  "full-beard": "SK_FacialHair_FullBeard",
-};
+const FACIAL_HAIR_MODULE_NAMES = HUMAN_FACIAL_HAIR_MODULE_NAMES;
 
 function hasProviderApproval(module: THREE.Object3D, model: THREE.Object3D): boolean {
-  let current: THREE.Object3D | null = module;
-  while (current) {
-    if (current.userData[MODULAR_APPEARANCE_PROVIDER_STATUS_KEY] === MODULAR_APPEARANCE_PROVIDER_APPROVED) {
-      return true;
-    }
-    if (current === model) return false;
-    current = current.parent;
-  }
-  return false;
+  return hasValidatedAppearanceAncestor(module, model);
 }
 
 function findApprovedModule(model: THREE.Object3D, name: string): THREE.Object3D | undefined {
@@ -431,6 +421,7 @@ export function applyModularAppearance(
   const result: ModularAppearanceResult = {
     hair,
     facialHair,
+    faceMorphApplied: applyHumanFaceType(model, resolved.faceType),
     ageMorphsApplied: applyAgeMorphs(model, resolved.age),
     tintedMaterials,
     missingProviderAssets,

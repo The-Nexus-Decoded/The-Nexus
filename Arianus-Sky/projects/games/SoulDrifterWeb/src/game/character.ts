@@ -89,7 +89,7 @@ export type SkinToneId = "light" | "ashen" | "golden" | "olive" | "umber" | "cop
 export type FacialHairId = "none" | "stubble" | "moustache" | "goatee" | "short-beard" | "full-beard";
 export type HairColorId = "black" | "dark-brown" | "medium-brown" | "light-brown" | "auburn" | "copper-red" | "golden-blonde" | "ash-blonde" | "grey" | "white";
 export type BodyTypeId = "foundation";
-export type FaceTypeId = "foundation";
+export type FaceTypeId = "foundation" | "soft-round" | "angular-high-cheek" | "broad-strong";
 
 export interface CharacterAppearance {
   /** Legacy aliases are accepted only at the save/draft boundary and resolve to a canonical family. */
@@ -179,6 +179,12 @@ function canonicalHairStyle(value: unknown): CanonicalHairStyleId {
   return HAIR_STYLES.some((style) => style.id === value) ? value as CanonicalHairStyleId : "shaved-buzzed";
 }
 
+function canonicalFaceType(value: unknown): FaceTypeId {
+  return ["foundation", "soft-round", "angular-high-cheek", "broad-strong"].includes(String(value))
+    ? value as FaceTypeId
+    : "foundation";
+}
+
 /** Produces the canonical persisted/runtime appearance without mutating a legacy save or draft. */
 export function resolveCharacterAppearance(
   appearance: Partial<CharacterAppearance> | undefined,
@@ -202,7 +208,7 @@ export function resolveCharacterAppearance(
     hairGreying: normalizedAppearanceControl(appearance?.hairGreying),
     facialHairGreying: normalizedAppearanceControl(appearance?.facialHairGreying),
     bodyType: appearance?.bodyType === "foundation" ? appearance.bodyType : "foundation",
-    faceType: appearance?.faceType === "foundation" ? appearance.faceType : "foundation",
+    faceType: canonicalFaceType(appearance?.faceType),
   };
 }
 

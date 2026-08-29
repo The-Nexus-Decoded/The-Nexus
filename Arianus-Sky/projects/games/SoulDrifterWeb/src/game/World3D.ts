@@ -114,6 +114,7 @@ import {
 } from "./pilotAnimationCatalog";
 import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
 import { FacialAnimationDriver, type FacialAnimationCapabilityStatus } from "./facialAnimationDriver";
+import { hydrateHumanAppearanceModules } from "./humanAppearanceAssembly";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -143,9 +144,9 @@ const NPC_MODEL_PATHS: Record<string, string> = {
   brannoc: HUMAN_FOUNDATION_MODEL_PATH,
 };
 const NPC_APPEARANCES: Readonly<Record<string, CharacterProfile["appearance"]>> = {
-  ilyra: { bodyType: "foundation", faceType: "foundation", hairStyle: "parted", skinTone: "light", facialHair: "none" },
-  orren: { bodyType: "foundation", faceType: "foundation", hairStyle: "parted", skinTone: "olive", facialHair: "none" },
-  brannoc: { bodyType: "foundation", faceType: "foundation", hairStyle: "cropped", skinTone: "deep", facialHair: "full-beard" },
+  ilyra: { bodyType: "foundation", faceType: "soft-round", hairStyle: "parted", skinTone: "light", facialHair: "none" },
+  orren: { bodyType: "foundation", faceType: "angular-high-cheek", hairStyle: "parted", skinTone: "olive", facialHair: "none" },
+  brannoc: { bodyType: "foundation", faceType: "broad-strong", hairStyle: "cropped", skinTone: "deep", facialHair: "full-beard" },
 };
 
 interface AnimatedActor {
@@ -1182,6 +1183,10 @@ export class World3D {
   ): Promise<AnimatedActor> {
     const gltf = await this.loadModel(path);
     const model = cloneSkeleton(gltf.scene);
+    const appearance = id === "player" && !this.pilotReviewEnabled
+      ? this.profile.appearance
+      : NPC_APPEARANCES[id];
+    if (appearance && path === HUMAN_FOUNDATION_MODEL_PATH) await hydrateHumanAppearanceModules(model);
     const importedHelpers: THREE.Object3D[] = [];
     model.traverse((child) => {
       if (child instanceof THREE.Camera || child instanceof THREE.Light
@@ -1190,9 +1195,6 @@ export class World3D {
       }
     });
     importedHelpers.forEach((helper) => helper.removeFromParent());
-    const appearance = id === "player" && !this.pilotReviewEnabled
-      ? this.profile.appearance
-      : NPC_APPEARANCES[id];
     model.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return;
       child.castShadow = true;
@@ -1219,6 +1221,7 @@ export class World3D {
       age: appearance.age,
       hairGreying: appearance.hairGreying,
       facialHairGreying: appearance.facialHairGreying,
+      faceType: appearance.faceType,
     });
     model.updateMatrixWorld(true);
     const initialBox = actorBodyBounds(model);

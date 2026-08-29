@@ -4,7 +4,6 @@ import {
   callingById,
   deriveCharacter,
   FACIAL_HAIR_STYLES,
-  FACE_TYPES,
   HAIR_COLORS,
   HAIR_STYLES,
   MEMORY_QUESTIONS,
@@ -25,6 +24,7 @@ import {
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   type CreationPreviewAvailability,
 } from "./creationPreview";
+import { HUMAN_FACE_TYPES } from "./game/humanAppearanceAssembly";
 
 export function characterPortraitPath(raceId: string, callingId: string): string {
   if (callingId === "shadowknight") {
@@ -69,6 +69,7 @@ export function isCreatorAppearanceSelectionAvailable(
   availability: CreationPreviewAvailability,
 ): boolean {
   return availability.hairStyles.includes(appearance.hairStyle)
+    && availability.faceTypes.includes(appearance.faceType)
     && availability.facialHair.includes(appearance.facialHair)
     && (appearance.age === 0 || availability.ageMorphsAvailable);
 }
@@ -301,9 +302,10 @@ export class CharacterCreation {
         <section>
           <h3>Face</h3>
           <div class="appearance-options">
-            ${FACE_TYPES.map((face) => `
-              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""}" data-face-type="${face.id}" type="button" aria-pressed="${(this.draft.appearance.faceType ?? "foundation") === face.id}">
+            ${HUMAN_FACE_TYPES.map((face) => `
+              <button class="appearance-option ${(this.draft.appearance.faceType ?? "foundation") === face.id ? "is-selected" : ""} ${face.id === "foundation" ? "is-provider-ready" : "is-provider-pending"}" data-face-type="${face.id}" type="button" aria-pressed="${(this.draft.appearance.faceType ?? "foundation") === face.id}" ${face.id === "foundation" ? "" : "disabled aria-disabled=\"true\""}>
                 <strong>${face.name}</strong><small>${face.description}</small>
+                <em class="appearance-option__availability">${face.id === "foundation" ? "Foundation ready" : "Awaiting canonical morph"}</em>
               </button>`).join("")}
           </div>
         </section>
@@ -378,12 +380,15 @@ export class CharacterCreation {
       age: this.draft.appearance.age,
       hairGreying: this.draft.appearance.hairGreying,
       facialHairGreying: this.draft.appearance.facialHairGreying,
+      faceType: this.draft.appearance.faceType,
     }, (availability) => this.updateAppearanceAvailability(availability));
     this.bindChoices("button[data-body-type]", "bodyType", (id) => {
       this.draft.appearance.bodyType = id as CharacterDraft["appearance"]["bodyType"];
     });
     this.bindChoices("button[data-face-type]", "faceType", (id) => {
       this.draft.appearance.faceType = id as CharacterDraft["appearance"]["faceType"];
+      this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateAppearanceReadout();
     });
     this.bindChoices("button[data-skin-tone]", "skinTone", (id) => {
       this.draft.appearance.skinTone = id as CharacterDraft["appearance"]["skinTone"];
@@ -417,9 +422,11 @@ export class CharacterCreation {
     }, () => {
       const resolved = resolveCharacterAppearance(this.draft.appearance);
       if (!isCreatorAppearanceSelectionAvailable(resolved, this.appearanceAvailability)) {
-        return this.fail(resolved.age > 0 && !this.appearanceAvailability.ageMorphsAvailable
-          ? "This age pattern is awaiting the canonical facial morph asset. Return the age control to Young Adult or wait for provider approval."
-          : "That hair pattern is awaiting its canonical provider asset. Choose a ready option before binding this body.");
+        return this.fail(!this.appearanceAvailability.faceTypes.includes(resolved.faceType)
+          ? "That face family is awaiting its canonical validated morph. Choose a ready face before binding this body."
+          : resolved.age > 0 && !this.appearanceAvailability.ageMorphsAvailable
+            ? "This age pattern is awaiting the canonical facial morph asset. Return the age control to Young Adult or wait for validation."
+            : "That hair pattern is awaiting its canonical validated asset. Choose a ready option before binding this body.");
       }
       if (this.appearanceEditProfile) {
         const updated: CharacterProfile = {
@@ -647,6 +654,7 @@ export class CharacterCreation {
     };
     setAvailability("button[data-hair-style]", availability.hairStyles, "hairStyle");
     setAvailability("button[data-facial-hair]", availability.facialHair, "facialHair");
+    setAvailability("button[data-face-type]", availability.faceTypes, "faceType");
     const morphStatus = this.stage.querySelector<HTMLElement>("#appearance-morph-status");
     if (morphStatus) {
       morphStatus.textContent = availability.ageMorphsAvailable ? "Canonical age morphs ready" : "Awaiting canonical facial morphs";
