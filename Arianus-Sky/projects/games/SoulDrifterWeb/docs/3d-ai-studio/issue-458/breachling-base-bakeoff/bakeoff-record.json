@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "issue": 458,
+  "assetId": "sd-creature-breachling-base-rebuild-v001",
+  "briefVersion": "2026-08-28.1",
+  "primary3DSource": true,
+  "fullAssetRequired": true,
+  "ownerSelectionRequired": true,
+  "phase": "phase-1-openai-candidates",
+  "baseline": {
+    "qaCommit": "2157dcd8ba485e9c558ca1c75e53051f2dd4277d",
+    "existingIssue448AssetsAre": "canon-and-comparison-reference-only",
+    "freshProductionMeshRequired": true
+  },
+  "designContract": {
+    "identity": "original SoulDrifter Level 1 base Breachling",
+    "silhouette": "compact four-foot predator with a permanent low stalking hunch, forward high shoulder arch, projecting neck, low angular head, long forearms, short digitigrade hind legs, broad feet, and one long tail rooted continuously at the sacrum",
+    "anatomy": {
+      "heads": 1,
+      "arms": 2,
+      "fingersPerHand": 4,
+      "legs": 2,
+      "toesPerFoot": 4,
+      "tails": 1,
+      "rigClearance": "limbs separated, hands off floor, readable joints, planted feet, tail clear of legs"
+    },
+    "face": "narrow nonhuman skull, swept-back ear fins, amber eyes, deep hinged maw, irregular layered teeth, and visible tongue",
+    "material": "pale ash-gray living scales and slick pebbled hide with muted teal mottling, charcoal ridge and claw tips, controlled wet highlights, micro-normal detail, and physically coherent roughness variation",
+    "sourceQuality": "high-density sculpt reference with 8K-source PBR intent; runtime output must use optimized LOD and platform texture tiers",
+    "safety": {
+      "classification": "non-sexual-non-nsfw",
+      "required": [
+        "continuous neutral scaled coverage across chest, pelvis, groin, underside, and rear",
+        "neutral animation-source pose",
+        "no gore or exposed viscera"
+      ],
+      "forbidden": [
+        "visible genitals",
+        "sexual organs",
+        "nipples",
+        "breasts",
+        "buttock emphasis",
+        "suggestive anatomy",
+        "sexualized pose"
+      ]
+    }
+  },
+  "candidateLanes": [
+    {
+      "lane": "TRIPO_STUDIO_NANO_BANANA",
+      "status": "pending-authenticated-studio-allowance-check"
+    },
+    {
+      "lane": "TRIPO_STUDIO_NANO_BANANA_PRO",
+      "status": "pending-authenticated-studio-allowance-check"
+    },
+    {
+      "lane": "CHATGPT_OPENAI_A",
+      "status": "generated-preliminary-pass"
+    },
+    {
+      "lane": "CHATGPT_OPENAI_B",
+      "status": "generated-v1-rejected-v2-preliminary-pass"
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "OPENAI_A_V1",
+      "provider": "CHATGPT_IMAGE",
+      "modelVersion": "builtin-imagegen-version-not-exposed",
+      "path": "openai-candidate-a-v1.png",
+      "bytes": 1593434,
+      "sha256": "BE034288D73E511EA7DBBBB946D02765566DD4F531C9E7B3E4DECD5E9BDA42D6",
+      "cost": "not-exposed-by-builtin-tool",
+      "fullAssetPass": true,
+      "safetyPass": true,
+      "anatomyPass": true,
+      "status": "preliminary-finalist",
+      "notes": [
+        "strong established Breachling family read",
+        "pale scaled hide and restrained teal mottling are readable",
+        "tail is fully visible and clear of the legs",
+        "valid for comparison only until the complete four-lane owner review"
+      ]
+    },
+    {
+      "candidateId": "OPENAI_B_V1",
+      "provider": "CHATGPT_IMAGE",
+      "modelVersion": "builtin-imagegen-version-not-exposed",
+      "path": "openai-candidate-b-v1-rejected.png",
+      "bytes": 2025297,
+      "sha256": "9AF29443FE298634086BC45A70B81D2752498B042E68887675CCAFE1E5C10461",
+      "cost": "not-exposed-by-builtin-tool",
+      "fullAssetPass": true,
+      "safetyPass": true,
+      "anatomyPass": false,
+      "status": "rejected-before-3d",
+      "rejectionReasons": [
+        "hand digit count drifted beyond the four-digit species contract",
+        "tail looped above and across the body, reducing multiview reconstruction clarity"
+      ]
+    },
+    {
+      "candidateId": "OPENAI_B_V2",
+      "provider": "CHATGPT_IMAGE",
+      "modelVersion": "builtin-imagegen-version-not-exposed",
+      "path": "openai-candidate-b-v2.png",
+      "bytes": 1921333,
+      "sha256": "09B3C3925202F475335B1372444159E6781407CEE4F19DF03DBE6350F8D53F34",
+      "cost": "not-exposed-by-builtin-tool",
+      "fullAssetPass": true,
+      "safetyPass": true,
+      "anatomyPass": true,
+      "status": "preliminary-finalist",
+      "derivedFrom": "OPENAI_B_V1",
+      "corrections": [
+        "exactly four digits per hand",
+        "exactly four toes per foot",
+        "single low lateral tail curve fully clear of the legs and torso"
+      ],
+      "notes": [
+        "strongest slick and slithery wet-skin material read",
+        "cleaner multiview reconstruction silhouette after correction",
+        "valid for comparison only until the complete four-lane owner review"
+      ]
+    }
+  ],
+  "selection": {
+    "selectedCandidate": null,
+    "ownerApproval": "PENDING_FOUR_LANE_COMPARISON",
+    "tripo3DTaskAuthorized": false,
+    "tripoRigOrAnimationAuthorized": false
+  },
+  "nextGate": {
+    "phase": "phase-2-studio-candidates",
+    "requirements": [
+      "reuse one authenticated Tripo Studio browser session",
+      "verify current Studio image allowance and model labels",
+      "generate Nano Banana and Nano Banana Pro candidates from the locked brief",
+      "record originals and hashes",
+      "blind-score all four valid candidates",
+      "present finalists for owner selection"
+    ]
+  }
+}
