@@ -66,6 +66,7 @@ import {
   HEAVY_DUNGEON_DOOR_FRAME_LIMITS,
   partitionHeavyDungeonDoor,
 } from "../environment/HeavyDungeonDoor";
+import { loadBreachV2PreviewAvatar } from "./breach-v2-avatar";
 
 const TEX_ROOT = "/assets/textures/environment/first-breach";
 const ART_ROOT = "/assets/textures/environment/breach-v2/art";
@@ -4341,7 +4342,9 @@ export async function startDungeonPreview(
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
-  let player: THREE.Mesh | null = null;
+  let player: THREE.Object3D | null = null;
+  let playerMixer: THREE.AnimationMixer | null = null;
+  let playerVerticalOffset = 0;
   let playerPlaceholderMaterial: THREE.MeshStandardMaterial | null = null;
   setupBreachV2MobileMovementPad({
     container,
@@ -4360,22 +4363,30 @@ export async function startDungeonPreview(
   });
   if (walkMode) {
     controls.enabled = false;
-    playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8fd8e8,
-      roughness: 0.5,
-      emissive: 0x2a6a78,
-      emissiveIntensity: 0.35,
-      transparent: true,
-    });
-    player = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
-      playerPlaceholderMaterial,
-    );
+    try {
+      const avatar = await loadBreachV2PreviewAvatar(gltfLoader);
+      player = avatar.root;
+      playerMixer = avatar.mixer;
+    } catch (error) {
+      console.warn("BREACH-V2 modular pilot could not be loaded; using the diagnostic capsule.", error);
+      playerPlaceholderMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8fd8e8,
+        roughness: 0.5,
+        emissive: 0x2a6a78,
+        emissiveIntensity: 0.35,
+        transparent: true,
+      });
+      player = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.32, 1.05, 4, 12),
+        playerPlaceholderMaterial,
+      );
+      playerVerticalOffset = 0.85;
+    }
     player.castShadow = true;
     player.visible = !firstPersonMode;
     player.userData.spatialAuditExcluded = "runtime-player-avatar";
     scene.add(player);
-    player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+    player.position.set(playerPos.x, playerPos.y + playerVerticalOffset, playerPos.z);
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
@@ -4884,6 +4895,7 @@ export async function startDungeonPreview(
       timer.update(frameMs);
       const delta = timer.getDelta();
       const elapsed = timer.getElapsed();
+      playerMixer?.update(delta);
       const frameDurationMs = delta * 1000;
       fpsAccum += delta;
       fpsFrames += 1;
@@ -5002,7 +5014,7 @@ export async function startDungeonPreview(
           }
           player.rotation.y = Math.atan2(dx, dz);
         }
-        player.position.set(playerPos.x, playerPos.y + 0.85, playerPos.z);
+        player.position.set(playerPos.x, playerPos.y + playerVerticalOffset, playerPos.z);
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
           cameraTarget.set(
