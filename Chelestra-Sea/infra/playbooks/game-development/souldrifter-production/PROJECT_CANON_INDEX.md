@@ -31,12 +31,14 @@ A lower-priority source never silently overrides a higher-priority source.
 - `BROWSER_RUNTIME_ROADMAP.md`
 - `ANIMATION_PROVIDER_ROUTING.md`
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
+- `QUEST_DIALOGUE_VIDEO_POLICY.md`
 - `config/onboarding-cache-policy.json`
 - `config/tripo-provider.json`
 - `config/zone-environment-completion-policy.json`
 - `config/dungeon-topology-policy.json`
 - `config/spatial-connection-policy.json`
 - `config/animation-bakeoff-policy.json`
+- `config/quest-dialogue-video-policy.json`
 - matching record templates
 - `WORKFLOW.md`
 - `ARCHITECTURE_DECISION.md`
@@ -292,6 +294,17 @@ Do not place independently sealed modules and connect them after rendering. Plac
 - Accepted direct presets do not require duplicate DCC work.
 - Substantial custom motions receive Houdini KineFX and Blender candidates under identical inputs, blinded AI review and blinded owner selection.
 - No pipeline retires automatically.
+
+# Quest dialogue video
+
+- Every production quest requires a video introduction or cutscene narrative beat.
+- Quest, dialogue and population workers must read `QUEST_DIALOGUE_VIDEO_POLICY.md` plus its config and record template.
+- MiniMax H3 is the default lane for flashbacks, memories, chronicles, story exposition, visions, quest transitions and later cinematics.
+- Full video payloads remain outside the zone package and base application bundle; the game stores a versioned manifest and lazy-loads external media.
+- Video failure never blocks quest progression; captions, text fallback, skip and replay are required.
+- Visible speaking-NPC videos require a controlled bakeoff between a provider avatar generated from canonical NPC references and an in-house render of the actual approved 3D NPC.
+- Stock/preset avatars may not replace canonical named NPC identity.
+- The owner-selected bakeoff winner becomes the recurring named-NPC default; the losing lane remains an allowed fallback.
 
 # Houdini
 

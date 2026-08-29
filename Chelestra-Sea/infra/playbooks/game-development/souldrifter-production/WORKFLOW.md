@@ -28,6 +28,8 @@ For every zone/environment ticket, load:
 - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`;
 - the zone completion config/template.
 
+For every quest/dialogue ticket, load `QUEST_DIALOGUE_VIDEO_POLICY.md`, `config/quest-dialogue-video-policy.json` and `templates/quest-dialogue-video-record.template.json`.
+
 ## Phase 2 — Requirement expansion
 
 Expand hidden dependencies into explicit testable rows.
@@ -48,6 +50,7 @@ Examples:
 - **Population readiness:** final spawn envelopes -> patrol/leash -> actor-size routes -> encounter/cover/LOS -> quest/cinematic/drop anchors -> stable socket manifest.
 - **Generated asset:** provider lane -> quote/approval -> source/provenance -> controlled download -> geometry processing before rig -> deformation -> animation -> runtime -> performance -> rollback.
 - **Custom animation:** Tripo preset search -> Houdini KineFX + Blender candidates when required -> blind AI review -> owner verdict -> winner integration -> experiment record.
+- **Quest/dialogue video:** quest and narrative-beat IDs -> required intro video/cutscene -> H3 story lane -> external media manifest -> lazy desktop/mobile delivery -> captions/skip/replay -> failure fallback -> persistence -> bundle exclusion -> evidence; when the NPC is visibly speaking, provider-avatar-from-canonical-reference vs actual-3D-NPC bakeoff -> blind owner verdict -> default/fallback record.
 
 ---
 
@@ -179,7 +182,7 @@ For animation bakeoffs, Houdini and Blender producers work in isolated source ar
 
 ### Later zone population/gameplay
 
-`verified environment dependency commit + stable sockets -> NPC/monster spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> production loot/drop tables -> population persistence -> combat/gameplay verification`
+`verified environment dependency commit + stable sockets -> NPC/monster spawns -> patrols/AI -> encounters/random encounters -> quests/dialogue/objectives -> required external quest video beats -> talking-NPC bakeoff when applicable -> production loot/drop tables -> population persistence -> combat/gameplay verification`
 
 ### Character/animated asset
 
