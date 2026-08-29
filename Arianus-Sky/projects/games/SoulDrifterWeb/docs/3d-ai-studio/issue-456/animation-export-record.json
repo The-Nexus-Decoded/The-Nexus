@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "issue": 456,
+  "recordedAt": "2026-08-29",
+  "status": "complete",
+  "blender": {
+    "version": "5.2.1 LTS",
+    "buildHash": "9e2066aef7ef",
+    "masterBlend": {
+      "file": "blender/issue-456-heartvale-wildlife-source.blend",
+      "bytes": 379469060,
+      "sha256": "5A767DA9848368D6616B1CB1699BF0314365A727671E9F141D7073B8FBE18676"
+    }
+  },
+  "pipeline": {
+    "source": "twenty unique unrigged Tripo Smart Mesh assets",
+    "rig": "local species-appropriate quadruped rigs",
+    "paidRigOrAnimationOperations": 0,
+    "normalization": "PCA length-height-ground-head normalization for noncanonical source axes",
+    "exportFormat": "GLB",
+    "exportScope": "one creature, one armature, one render mesh, only that creature's actions"
+  },
+  "audit": {
+    "assetCount": 20,
+    "sourceMeshCount": 20,
+    "rigCount": 20,
+    "totalBoneCount": 380,
+    "actionCount": 174,
+    "minimumSkinWeightCoverage": 1,
+    "animatedExportCount": 20,
+    "totalExportBytes": 385667348,
+    "roundTripImportCount": 20,
+    "roundTripErrors": 0,
+    "presentationObjectCount": 0,
+    "duplicateOrUnexpectedActionCount": 0
+  },
+  "assets": [
+    {
+      "slug": "horse",
+      "modelId": "ee83fb87-3ca7-4e89-998a-7beee007019e",
+      "rigObject": "issue456_horse_rig_ee83fb87",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_horse_idle_breathe",
+        "issue456_horse_walk",
+        "issue456_horse_run",
+        "issue456_horse_hit_react",
+        "issue456_horse_grounded_death",
+        "issue456_horse_graze",
+        "issue456_horse_rear_kick"
+      ],
+      "export": {
+        "file": "animated/issue456_horse__ee83fb87-3ca7-4e89-998a-7beee007019e__animated.glb",
+        "bytes": 14959440,
+        "sha256": "C6ACF90FDB1671C76F7F6CFF94C91B34592C8AA38FBF089BB420FA9B9DC7DE77"
+      }
+    },
+    {
+      "slug": "cow",
+      "modelId": "c94848ad-4fae-4d48-a778-9737cade2fae",
+      "rigObject": "issue456_cow_rig_c94848ad",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_cow_idle_breathe",
+        "issue456_cow_walk",
+        "issue456_cow_run",
+        "issue456_cow_hit_react",
+        "issue456_cow_grounded_death",
+        "issue456_cow_graze",
+        "issue456_cow_chew_head_sweep"
+      ],
+      "export": {
+        "file": "animated/issue456_cow__c94848ad-4fae-4d48-a778-9737cade2fae__animated.glb",
+        "bytes": 17591168,
+        "sha256": "EEE754F410FAF058680C62AD49C560E8FB4EFB360C4550897C47E10F52957F27"
+      }
+    },
+    {
+      "slug": "dog",
+      "modelId": "53a4845c-e26b-49d8-9157-38fb74ea1174",
+      "rigObject": "issue456_dog_rig_53a4845c",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_dog_idle_breathe",
+        "issue456_dog_walk",
+        "issue456_dog_run",
+        "issue456_dog_hit_react",
+        "issue456_dog_grounded_death",
+        "issue456_dog_sniff",
+        "issue456_dog_jump",
+        "issue456_dog_bite"
+      ],
+      "export": {
+        "file": "animated/issue456_dog__53a4845c-e26b-49d8-9157-38fb74ea1174__animated.glb",
+        "bytes": 21211632,
+        "sha256": "4CE87E3D0FD2C9F3732DF019677499D76F96406CD32B3764EA334F2B0138AE0D"
+      }
+    },
+    {
+      "slug": "cat",
+      "modelId": "ce2e4fa2-b856-48a7-8ee4-ffe638ccaf20",
+      "rigObject": "issue456_cat_rig_ce2e4fa2",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_cat_idle_breathe",
+        "issue456_cat_walk",
+        "issue456_cat_run",
+        "issue456_cat_hit_react",
+        "issue456_cat_grounded_death",
+        "issue456_cat_groom",
+        "issue456_cat_pounce",
+        "issue456_cat_bite",
+        "issue456_cat_claw_left",
+        "issue456_cat_claw_right"
+      ],
+      "export": {
+        "file": "animated/issue456_cat__ce2e4fa2-b856-48a7-8ee4-ffe638ccaf20__animated.glb",
+        "bytes": 20163276,
+        "sha256": "C6372BA507947DFB156BE2091F6EBBE2EBD696C08188F4CDCD617529ACF724A1"
+      }
+    },
+    {
+      "slug": "deer",
+      "modelId": "dfa5488b-defd-4e9a-aa83-88a3c8237d63",
+      "rigObject": "issue456_deer_rig_dfa5488b",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_deer_idle_breathe",
+        "issue456_deer_walk",
+        "issue456_deer_run",
+        "issue456_deer_hit_react",
+        "issue456_deer_grounded_death",
+        "issue456_deer_graze",
+        "issue456_deer_alert",
+        "issue456_deer_leap"
+      ],
+      "export": {
+        "file": "animated/issue456_deer__dfa5488b-defd-4e9a-aa83-88a3c8237d63__animated.glb",
+        "bytes": 19794172,
+        "sha256": "6CE7467D05992EBD30871E5A62339C2BF377AE19A7FC01E1F3B25F2AAF0BCEBC"
+      }
+    },
+    {
+      "slug": "stag",
+      "modelId": "c72ec9f2-d177-4d9d-a81f-9c38b37147cb",
+      "rigObject": "issue456_stag_rig_c72ec9f2",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_stag_idle_breathe",
+        "issue456_stag_walk",
+        "issue456_stag_run",
+        "issue456_stag_hit_react",
+        "issue456_stag_grounded_death",
+        "issue456_stag_graze",
+        "issue456_stag_alert",
+        "issue456_stag_leap",
+        "issue456_stag_antler_gore"
+      ],
+      "export": {
+        "file": "animated/issue456_stag__c72ec9f2-d177-4d9d-a81f-9c38b37147cb__animated.glb",
+        "bytes": 20730668,
+        "sha256": "1ED5F81A8EB3DDE1D2EEDE2E5D8946D686B265D4E5F642A58F1D84BC531FFBC4"
+      }
+    },
+    {
+      "slug": "wolf",
+      "modelId": "606a4d67-551a-4c86-b8a2-c8dbdef8d41d",
+      "rigObject": "issue456_wolf_rig_606a4d67",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_wolf_idle_breathe",
+        "issue456_wolf_walk",
+        "issue456_wolf_run",
+        "issue456_wolf_hit_react",
+        "issue456_wolf_grounded_death",
+        "issue456_wolf_threat",
+        "issue456_wolf_pounce",
+        "issue456_wolf_bite"
+      ],
+      "export": {
+        "file": "animated/issue456_wolf__606a4d67-551a-4c86-b8a2-c8dbdef8d41d__animated.glb",
+        "bytes": 19706620,
+        "sha256": "D63B11817A4E302CFCE371558C84C65FDFAFA32DBAA82C21BF6F2008143611C9"
+      }
+    },
+    {
+      "slug": "fox",
+      "modelId": "541c26ea-1f05-47d6-8051-df45759c0515",
+      "rigObject": "issue456_fox_rig_541c26ea",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_fox_idle_breathe",
+        "issue456_fox_walk",
+        "issue456_fox_run",
+        "issue456_fox_hit_react",
+        "issue456_fox_grounded_death",
+        "issue456_fox_sniff",
+        "issue456_fox_pounce",
+        "issue456_fox_bite"
+      ],
+      "export": {
+        "file": "animated/issue456_fox__541c26ea-1f05-47d6-8051-df45759c0515__animated.glb",
+        "bytes": 20363476,
+        "sha256": "A65A367F116C84D567724607A5BF55A92FEFBD659C87FB4AD84A03F36DCF7370"
+      }
+    },
+    {
+      "slug": "upland-alpaca-goat",
+      "modelId": "3f963484-f5e0-4fd4-b842-b4937faf7066",
+      "rigObject": "issue456_upland_alpaca_goat_rig_3f963484",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_upland_alpaca_goat_idle_breathe",
+        "issue456_upland_alpaca_goat_walk",
+        "issue456_upland_alpaca_goat_run",
+        "issue456_upland_alpaca_goat_hit_react",
+        "issue456_upland_alpaca_goat_grounded_death",
+        "issue456_upland_alpaca_goat_graze",
+        "issue456_upland_alpaca_goat_hop",
+        "issue456_upland_alpaca_goat_headbutt"
+      ],
+      "export": {
+        "file": "animated/issue456_upland_alpaca_goat__3f963484-f5e0-4fd4-b842-b4937faf7066__animated.glb",
+        "bytes": 20038200,
+        "sha256": "BD88ABECA4E46A87DE235AB86684E22A8A2B213162258D455A285B59AA251526"
+      }
+    },
+    {
+      "slug": "lion",
+      "modelId": "115ccb7b-c46e-4b81-9495-95ace25e463e",
+      "rigObject": "issue456_lion_rig_115ccb7b",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_lion_idle_breathe",
+        "issue456_lion_walk",
+        "issue456_lion_run",
+        "issue456_lion_hit_react",
+        "issue456_lion_grounded_death",
+        "issue456_lion_combat_idle",
+        "issue456_lion_pounce",
+        "issue456_lion_bite",
+        "issue456_lion_claw_left",
+        "issue456_lion_claw_right",
+        "issue456_lion_roar_heavy_swipe"
+      ],
+      "export": {
+        "file": "animated/issue456_lion__115ccb7b-c46e-4b81-9495-95ace25e463e__animated.glb",
+        "bytes": 21072360,
+        "sha256": "4C174C44C2F558F831A29C7F58831BAEF2E6A3C5F2398E5EFE81FD814EDA51B9"
+      }
+    },
+    {
+      "slug": "lioness",
+      "modelId": "7b152bc1-0e92-441b-90eb-63119457a9d2",
+      "rigObject": "issue456_lioness_rig_7b152bc1",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_lioness_idle_breathe",
+        "issue456_lioness_walk",
+        "issue456_lioness_run",
+        "issue456_lioness_hit_react",
+        "issue456_lioness_grounded_death",
+        "issue456_lioness_combat_idle",
+        "issue456_lioness_stalk_pounce",
+        "issue456_lioness_bite",
+        "issue456_lioness_claw_left",
+        "issue456_lioness_claw_right"
+      ],
+      "export": {
+        "file": "animated/issue456_lioness__7b152bc1-0e92-441b-90eb-63119457a9d2__animated.glb",
+        "bytes": 20802424,
+        "sha256": "38FD29E8A71BC26758407322F2822761C771E025CCBABA732D7103005D4BDF9D"
+      }
+    },
+    {
+      "slug": "leopard",
+      "modelId": "4513bf50-ae8a-4e1a-af29-cc58d97716cf",
+      "rigObject": "issue456_leopard_rig_4513bf50",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_leopard_idle_breathe",
+        "issue456_leopard_walk",
+        "issue456_leopard_run",
+        "issue456_leopard_hit_react",
+        "issue456_leopard_grounded_death",
+        "issue456_leopard_combat_idle",
+        "issue456_leopard_agile_pounce",
+        "issue456_leopard_bite",
+        "issue456_leopard_claw_left",
+        "issue456_leopard_claw_right",
+        "issue456_leopard_rake_leap"
+      ],
+      "export": {
+        "file": "animated/issue456_leopard__4513bf50-ae8a-4e1a-af29-cc58d97716cf__animated.glb",
+        "bytes": 25930556,
+        "sha256": "F64313F5E33EE594C5586EE525A5FA208D7E0E85BBA63004A03330E0D065475C"
+      }
+    },
+    {
+      "slug": "duskcoat",
+      "modelId": "996a5130-028f-4fea-8965-c709fac4ec4e",
+      "rigObject": "issue456_duskcoat_rig_996a5130",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_duskcoat_idle_breathe",
+        "issue456_duskcoat_walk",
+        "issue456_duskcoat_run",
+        "issue456_duskcoat_hit_react",
+        "issue456_duskcoat_grounded_death",
+        "issue456_duskcoat_combat_idle",
+        "issue456_duskcoat_feint_pounce",
+        "issue456_duskcoat_bite",
+        "issue456_duskcoat_cross_claw"
+      ],
+      "export": {
+        "file": "animated/issue456_duskcoat__996a5130-028f-4fea-8965-c709fac4ec4e__animated.glb",
+        "bytes": 18848828,
+        "sha256": "EDA273C7B83F109575B069B20B53B86083D5865B8596199CED0CDA509C46008B"
+      }
+    },
+    {
+      "slug": "forkstripe-orange",
+      "modelId": "28bac2bc-9feb-4bf6-8b71-9ce55e008c84",
+      "rigObject": "issue456_forkstripe_orange_rig_28bac2bc",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_forkstripe_orange_idle_breathe",
+        "issue456_forkstripe_orange_walk",
+        "issue456_forkstripe_orange_run",
+        "issue456_forkstripe_orange_hit_react",
+        "issue456_forkstripe_orange_grounded_death",
+        "issue456_forkstripe_orange_combat_idle",
+        "issue456_forkstripe_orange_pounce",
+        "issue456_forkstripe_orange_bite",
+        "issue456_forkstripe_orange_ravener_lunge"
+      ],
+      "export": {
+        "file": "animated/issue456_forkstripe_orange__28bac2bc-9feb-4bf6-8b71-9ce55e008c84__animated.glb",
+        "bytes": 17473236,
+        "sha256": "AA3DD8FA9084FEC730862144072C49AAC6BC6405100A8DDAE8ACBCCED73EDD86"
+      }
+    },
+    {
+      "slug": "forkstripe-violet",
+      "modelId": "f3dcb60d-ea2f-48d7-8c77-f1deb9a9f812",
+      "rigObject": "issue456_forkstripe_violet_rig_f3dcb60d",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_forkstripe_violet_idle_breathe",
+        "issue456_forkstripe_violet_walk",
+        "issue456_forkstripe_violet_run",
+        "issue456_forkstripe_violet_hit_react",
+        "issue456_forkstripe_violet_grounded_death",
+        "issue456_forkstripe_violet_combat_idle",
+        "issue456_forkstripe_violet_pounce",
+        "issue456_forkstripe_violet_bite",
+        "issue456_forkstripe_violet_phase_pounce"
+      ],
+      "export": {
+        "file": "animated/issue456_forkstripe_violet__f3dcb60d-ea2f-48d7-8c77-f1deb9a9f812__animated.glb",
+        "bytes": 15089264,
+        "sha256": "33E7EAD33CF16267E78B4255D84331418AEAD41F96CEA855424D487BCE90B4EA"
+      }
+    },
+    {
+      "slug": "forkstripe-bristled",
+      "modelId": "f4507a21-1dd9-412f-8419-b7c2ed31d009",
+      "rigObject": "issue456_forkstripe_bristled_rig_f4507a21",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_forkstripe_bristled_idle_breathe",
+        "issue456_forkstripe_bristled_walk",
+        "issue456_forkstripe_bristled_run",
+        "issue456_forkstripe_bristled_hit_react",
+        "issue456_forkstripe_bristled_grounded_death",
+        "issue456_forkstripe_bristled_combat_idle",
+        "issue456_forkstripe_bristled_bite",
+        "issue456_forkstripe_bristled_bristle_slam"
+      ],
+      "export": {
+        "file": "animated/issue456_forkstripe_bristled__f4507a21-1dd9-412f-8419-b7c2ed31d009__animated.glb",
+        "bytes": 18544896,
+        "sha256": "2980F23ADEC7462BB7449F6391D6A98313BB2D30C65E0A94EFA58980DD9D032C"
+      }
+    },
+    {
+      "slug": "root-gnawer",
+      "modelId": "1da2e4ef-34c5-4305-8229-a9feac94c934",
+      "rigObject": "issue456_root_gnawer_rig_1da2e4ef",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_root_gnawer_idle_breathe",
+        "issue456_root_gnawer_walk",
+        "issue456_root_gnawer_run",
+        "issue456_root_gnawer_hit_react",
+        "issue456_root_gnawer_grounded_death",
+        "issue456_root_gnawer_sniff",
+        "issue456_root_gnawer_dig",
+        "issue456_root_gnawer_claw_left",
+        "issue456_root_gnawer_claw_right",
+        "issue456_root_gnawer_bite"
+      ],
+      "export": {
+        "file": "animated/issue456_root_gnawer__1da2e4ef-34c5-4305-8229-a9feac94c934__animated.glb",
+        "bytes": 18220828,
+        "sha256": "49C5D21240B44B3574B1F745983A4565BDA9E7F12DB59ECF6698A0794ECCBAB0"
+      }
+    },
+    {
+      "slug": "rillwisp",
+      "modelId": "8cf669b1-e1ac-4cc3-92c7-0554bdaa7a16",
+      "rigObject": "issue456_rillwisp_rig_8cf669b1",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_rillwisp_idle_breathe",
+        "issue456_rillwisp_walk",
+        "issue456_rillwisp_run",
+        "issue456_rillwisp_hit_react",
+        "issue456_rillwisp_grounded_death",
+        "issue456_rillwisp_combat_idle",
+        "issue456_rillwisp_pounce",
+        "issue456_rillwisp_rillwave_lunge"
+      ],
+      "export": {
+        "file": "animated/issue456_rillwisp__8cf669b1-e1ac-4cc3-92c7-0554bdaa7a16__animated.glb",
+        "bytes": 14967884,
+        "sha256": "CCE222EFEBA227BE69B64D94E179F8502A831BA1A47C8C2A22E926F02592B41F"
+      }
+    },
+    {
+      "slug": "loamling",
+      "modelId": "3e68a3b3-647d-4449-84a6-7cea26a76329",
+      "rigObject": "issue456_loamling_rig_3e68a3b3",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_loamling_idle_breathe",
+        "issue456_loamling_walk",
+        "issue456_loamling_run",
+        "issue456_loamling_hit_react",
+        "issue456_loamling_grounded_death",
+        "issue456_loamling_combat_idle",
+        "issue456_loamling_loam_slam",
+        "issue456_loamling_lunge"
+      ],
+      "export": {
+        "file": "animated/issue456_loamling__3e68a3b3-647d-4449-84a6-7cea26a76329__animated.glb",
+        "bytes": 19676152,
+        "sha256": "8866BA1C3D962DEB120A3D9C65B701C4505519EF4EFEA1D0202D77F06694289D"
+      }
+    },
+    {
+      "slug": "thornback-boar",
+      "modelId": "ffbad9e6-4f27-478f-9ec9-4b2e1cf42863",
+      "rigObject": "issue456_thornback_boar_rig_ffbad9e6",
+      "boneCount": 19,
+      "skinWeightMethod": "deterministic_anatomical_regions_v2",
+      "skinWeightCoverage": 1,
+      "actions": [
+        "issue456_thornback_boar_idle_breathe",
+        "issue456_thornback_boar_walk",
+        "issue456_thornback_boar_run",
+        "issue456_thornback_boar_hit_react",
+        "issue456_thornback_boar_grounded_death",
+        "issue456_thornback_boar_root_feed",
+        "issue456_thornback_boar_charge",
+        "issue456_thornback_boar_tusk_gore"
+      ],
+      "export": {
+        "file": "animated/issue456_thornback_boar__ffbad9e6-4f27-478f-9ec9-4b2e1cf42863__animated.glb",
+        "bytes": 20482268,
+        "sha256": "1DC639F463F8330E90EEF7DAEC8095AB93E3CC90237620A21AC0864D77EFD0C3"
+      }
+    }
+  ]
+}
+

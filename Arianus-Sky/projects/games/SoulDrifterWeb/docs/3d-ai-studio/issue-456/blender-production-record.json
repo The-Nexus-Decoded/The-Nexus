@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "issue": 456,
   "recordedAt": "2026-08-29",
-  "status": "twenty-smart-mesh-sources-imported-horse-animation-started",
+  "status": "twenty-animated-packages-complete-and-roundtrip-verified",
   "artifactRoot": "H:/CodexData/.codex/artifacts/issue-456-heartvale-wildlife",
   "tripo": {
     "liveBalanceAtExportAudit": 12990,
@@ -20,7 +20,7 @@
     "bridgePluginVersion": "1.0.32",
     "bridgePort": 60600,
     "blendFile": "blender/issue-456-heartvale-wildlife-source.blend",
-    "blendSha256": "38F2D75955EF77C7EB4F2C1F283031202D71C99A25224F7FB00EDC08840573A4",
+    "blendSha256": "5A767DA9848368D6616B1CB1699BF0314365A727671E9F141D7073B8FBE18676",
     "sourceMeshCount": 20,
     "presentationObjectsRemoved": [
       "Camera",
@@ -55,22 +55,20 @@
   ],
   "animation": {
     "started": true,
-    "completedAssets": [
-      {
-        "slug": "horse",
-        "modelId": "ee83fb87-3ca7-4e89-998a-7beee007019e",
-        "rigObject": "issue456_horse_rig_ee83fb87",
-        "boneCount": 19,
-        "skinWeightMethod": "deterministic_anatomical_regions_v1",
-        "skinWeightCoverage": 1.0,
-        "actions": [
-          {"name":"issue456_horse_idle_breathe","frameRange":[1,49],"deformationVerified":true},
-          {"name":"issue456_horse_walk","frameRange":[1,25],"looping":true,"deformationVerified":true},
-          {"name":"issue456_horse_graze","frameRange":[1,97],"deformationVerified":true}
-        ]
-      }
-    ],
-    "remainingAssetCount": 19,
-    "nextPass": "Normalize each remaining mesh orientation, then build species-family quadruped rigs and species-appropriate idle, locomotion, feeding or combat actions."
+    "completed": true,
+    "completedAssetCount": 20,
+    "remainingAssetCount": 0,
+    "rigCount": 20,
+    "totalBoneCount": 380,
+    "actionCount": 174,
+    "minimumSkinWeightCoverage": 1.0,
+    "animatedExportCount": 20,
+    "animatedExportBytes": 385667348,
+    "roundTripVerifiedExportCount": 20,
+    "roundTripErrors": 0,
+    "duplicateOrUnexpectedActionCount": 0,
+    "presentationObjectsRemaining": 0,
+    "exportRecord": "animation-export-record.json",
+    "nextPass": "Integrate the verified per-creature animated GLB packages into the game runtime and tune motion timing in-engine if required."
   }
 }
