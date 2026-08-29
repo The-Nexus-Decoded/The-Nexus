@@ -79,6 +79,36 @@ A Mixamo in-app Download click is not source acceptance. Require a browser compl
 
 The exhaustive first-pilot decisions become the canonical semantic names, provider choices, transition/loop rules, contact/weapon rules, root-motion policy, and owner acceptance baseline for later foundation bodies. Those bodies reuse the decisions and source clips, then receive their own proportion-specific retarget, floor/contact correction, bake, and deformation/runtime QA.
 
+### Organic custom-authoring gate
+
+The accepted 65-bone zero-action T-pose is the authoritative humanoid **rig and rest reference only**. It defines skeleton identity, hierarchy, bone/rest transforms, scale, and the clean no-action import boundary. It is not a playable stance, an animation performance, a pose library, or evidence that body mechanics were authored. A custom gap must begin and end in its declared natural gameplay stance; it must never interpolate into the source T-pose.
+
+Sparse scripted pose synthesis is forbidden as the sole authoring method for organic humanoid mechanics. Scripts may establish the rig, cameras, helpers, constraints, evidence capture, bake/export, and validation, but a handful of numerically plausible poses joined by interpolation does not prove loading, weight transfer, contact, impact, follow-through, or recovery. A technically valid export, low error metric, clean contact sheet, or generated `PASS` flag cannot promote a clip that looks physically wrong in continuous playback.
+
+Every `ORIGINAL_TIER_3` gap must complete and receipt this sequence:
+
+1. analyze the recorded real-person reference and the exact SoulDrifter semantic/contact brief;
+2. create natural guard/ready boundaries and block the complete action in stepped/Constant interpolation, including anticipation, contact or release, follow-through, and recovery;
+3. author the body mechanics densely and evaluate IK, pole, hand/foot, prop, weapon, and surface constraints on every frame of every required contact interval; bake at a one-frame sample step so sparse milestone interpolation cannot masquerade as a finished performance;
+4. review pelvis and center-of-mass travel, support changes, feet, hip/shoulder sequencing, and weight transfer rather than judging arms alone;
+5. calculate and review motion paths for the pelvis, hands, feet, and relevant weapon/prop controls, then programmatically inspect sampled transform curves plus linear and angular velocity for unexplained spikes;
+6. convert the accepted blocking pass to purposeful spline/F-Curve motion, polish timing and spacing, and remove overshoot, Euler/quaternion flips, grip drift, foot slide, and one-frame discontinuities; the Blender GUI/Graph Editor is preferred for this pass but a recorded programmatic F-Curve/velocity workflow is valid and is not blocked by GUI access;
+7. bake evaluated constraints onto the canonical rig, export, and fresh-reimport the exact hashed artifact; and
+8. watch the entire action at normal gameplay speed from separate side and three-quarter cameras with the whole body and required prop/weapon path visible.
+
+The receipt records hashes for blocking, dense/full-frame constraints, center-of-mass, motion-path/curve/velocity inspection, curve polish, export, and both normal-speed views under `technicalReview.evidence.organicAuthoringWorkflow`. The author must clear visible blockers before quarantine handoff, but this self-review never replaces the independent continuous-playback review or the owner's verdict.
+
+`PROVISIONAL_PILOT` is a throughput status for explicitly documented **minor** contact, easing, or curve-polish deviations that do not change the action, break anatomy, penetrate the floor/prop/body, lose a required grip/contact, or violate provenance/lifecycle state. After the first full-motion review finds only minor deviations, make one corrective build, repeat the two-angle normal-speed self-review, record every remaining item in `polishNotes`, and move on as `PROVISIONAL_PILOT` instead of looping on polish. The exact candidate may enter independent/owner review and, after explicit owner approval, the BREACH-V2 pilot queue. Wrong-action semantics, source-rig drift, broken or snapping limbs, T/bind-pose boundaries, floor or prop penetration, missing required contacts, root/grounding failure, catastrophic motion discontinuities, missing evidence, hash mismatch, and unauthorized promotion remain hard failures and can never be relabeled provisional. A provisional candidate cannot reach `SHIPPING_VERIFIED`; it must be polished and revalidated as full `PASS` first.
+
+Blender's official documentation is the implementation baseline:
+
+- [Motion Paths](https://docs.blender.org/manual/en/latest/animation/motion_paths.html) for framewise bone/control trajectories;
+- [Inverse Kinematics Constraint](https://docs.blender.org/manual/en/latest/animation/constraints/tracking/ik_solver.html) for target, pole, and chain control;
+- [F-Curve Properties](https://docs.blender.org/manual/en/4.5/editors/graph_editor/fcurves/properties.html) for Constant blocking, Bezier polish, handle smoothing, and overshoot control; and
+- [glTF Animation Bake and Merge](https://docs.blender.org/manual/en/dev/addons/scene_gltf2.html) for evaluated animation export behavior.
+
+The owner selected the current `BLENDER_DENSE_FULL_FRAME` route for issue #487. Cascadeur and video-mocap drafting are deferred and must be recorded as `DEFERRED_NOT_USED`; they are not fallback blockers and are not authorized for this pass. A later owner-approved evaluation may consider Cascadeur's official [Physics](https://cascadeur.com/help/animation/physics) and [Mocap (Alpha)](https://cascadeur.com/help/category/203) tools, but it must preserve the same provenance, Blender cleanup, constraints, bake, fresh-import, two-angle normal-speed, independent-review, and owner-approval gates. No subscription, provider charge, or tool installation is authorized by this future option.
+
 ### Real-person video reference gate
 
 Before acquiring or creating any humanoid animation, search YouTube or another video source for a real person performing that exact action. Record the URL, publisher, retrieval date, time range, and observed mechanics: stance, balance, weight transfer, feet, hips, shoulders, hands or grip, contacts, anticipation, duration, follow-through, and recovery. Provider names and memory are not references.

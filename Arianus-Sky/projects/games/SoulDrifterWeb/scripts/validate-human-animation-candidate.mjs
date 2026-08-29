@@ -70,6 +70,20 @@ export const VALVE_INTERACTION_CONTRACT = Object.freeze({
   maximumSingleHandRegripGapFrames: 6,
 });
 
+export const ORGANIC_AUTHORING_WORKFLOW_CONTRACT = Object.freeze({
+  sourceRestRigUse: "REST_RIG_AUTHORITY_ONLY",
+  blockingInterpolation: "CONSTANT",
+  authoringRoute: "BLENDER_DENSE_FULL_FRAME",
+  polishMethods: Object.freeze([
+    "BLENDER_GRAPH_EDITOR",
+    "PROGRAMMATIC_FCURVE_POLISH",
+    "PURPOSEFUL_MIX",
+  ]),
+  minimumReviewWidth: 960,
+  minimumReviewHeight: 720,
+  cascadeurStatus: "DEFERRED_NOT_USED",
+});
+
 const SHA256_PATTERN = /^[A-F0-9]{64}$/;
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const repositoryRoot = resolve(projectRoot, "../../../..");
@@ -120,6 +134,15 @@ function requireFiniteNumber(errors, value, path) {
     return null;
   }
   return value;
+}
+
+function validatePolishNotes(errors, notes, path, required) {
+  if (!Array.isArray(notes) || notes.some((note) => typeof note !== "string" || note.trim().length === 0)) {
+    errors.push(`${path} must be an array of non-empty strings`);
+    return;
+  }
+  if (required && notes.length === 0) errors.push(`${path} must describe every accepted minor deviation`);
+  if (!required && notes.length !== 0) errors.push(`${path} must be empty unless status is PROVISIONAL_PILOT`);
 }
 
 function validateOneShotBoundaryPose(errors, candidate, technical) {
@@ -480,7 +503,7 @@ function validateHashedFile(errors, descriptor, path, receiptPath, pathResolver 
   return resolvedPath;
 }
 
-function probeAndDecodeVideo(errors, normalSpeed, videoPath) {
+function probeAndDecodeVideo(errors, normalSpeed, videoPath, path = "playbackEvidence.normalSpeed") {
   if (!videoPath) return;
   const probe = spawnSync(
     "ffprobe",
@@ -495,14 +518,14 @@ function probeAndDecodeVideo(errors, normalSpeed, videoPath) {
     { encoding: "utf8" },
   );
   if (probe.error || probe.status !== 0) {
-    errors.push(`playbackEvidence.normalSpeed could not be probed: ${probe.stderr || probe.error}`);
+    errors.push(`${path} could not be probed: ${probe.stderr || probe.error}`);
     return;
   }
   let payload;
   try {
     payload = JSON.parse(probe.stdout);
   } catch {
-    errors.push("playbackEvidence.normalSpeed ffprobe output was not valid JSON");
+    errors.push(`${path} ffprobe output was not valid JSON`);
     return;
   }
   const stream = payload.streams?.[0];
@@ -513,16 +536,16 @@ function probeAndDecodeVideo(errors, normalSpeed, videoPath) {
     .map(Number);
   const fps = fpsDenominator ? fpsNumerator / fpsDenominator : 0;
   if (stream?.width !== normalSpeed.width || stream?.height !== normalSpeed.height) {
-    errors.push("playbackEvidence.normalSpeed dimensions do not match the decoded video");
+    errors.push(`${path} dimensions do not match the decoded video`);
   }
   if (frameCount !== normalSpeed.frameCount) {
-    errors.push(`playbackEvidence.normalSpeed.frameCount ${normalSpeed.frameCount} does not match decoded ${frameCount}`);
+    errors.push(`${path}.frameCount ${normalSpeed.frameCount} does not match decoded ${frameCount}`);
   }
   if (Math.abs(fps - normalSpeed.fps) > 0.01) {
-    errors.push(`playbackEvidence.normalSpeed.fps ${normalSpeed.fps} does not match decoded ${fps}`);
+    errors.push(`${path}.fps ${normalSpeed.fps} does not match decoded ${fps}`);
   }
   if (Math.abs(duration - normalSpeed.durationSeconds) > 0.05) {
-    errors.push(`playbackEvidence.normalSpeed.durationSeconds ${normalSpeed.durationSeconds} does not match decoded ${duration}`);
+    errors.push(`${path}.durationSeconds ${normalSpeed.durationSeconds} does not match decoded ${duration}`);
   }
   const decode = spawnSync(
     "ffmpeg",
@@ -530,7 +553,7 @@ function probeAndDecodeVideo(errors, normalSpeed, videoPath) {
     { encoding: "utf8" },
   );
   if (decode.error || decode.status !== 0) {
-    errors.push(`playbackEvidence.normalSpeed full decode failed: ${decode.stderr || decode.error}`);
+    errors.push(`${path} full decode failed: ${decode.stderr || decode.error}`);
   }
 }
 
@@ -563,6 +586,226 @@ function validateReferences(errors, references) {
       requireString(errors, mechanics[key], `${prefix}.mechanics.${key}`);
     }
   });
+}
+
+function validateOrganicReviewVideo(errors, descriptor, path, receiptPath, verifyFiles, verifyMedia) {
+  let videoPath = null;
+  if (verifyFiles) videoPath = validateHashedFile(errors, descriptor, path, receiptPath);
+  else if (!descriptor || typeof descriptor !== "object") errors.push(`${path} must be an object`);
+  if (!descriptor || typeof descriptor !== "object") return;
+
+  if (!verifyFiles) {
+    requireString(errors, descriptor.path, `${path}.path`);
+    if (!Number.isInteger(descriptor.bytes) || descriptor.bytes <= 0) {
+      errors.push(`${path}.bytes must be a positive integer`);
+    }
+    if (!SHA256_PATTERN.test(normalizedSha(descriptor.sha256))) {
+      errors.push(`${path}.sha256 must be a 64-character SHA-256`);
+    }
+  }
+  if (descriptor.playbackRate !== 1) errors.push(`${path}.playbackRate must equal 1`);
+  if (descriptor.width < ORGANIC_AUTHORING_WORKFLOW_CONTRACT.minimumReviewWidth
+    || descriptor.height < ORGANIC_AUTHORING_WORKFLOW_CONTRACT.minimumReviewHeight) {
+    errors.push(
+      `${path} must be at least ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.minimumReviewWidth}x${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.minimumReviewHeight}`,
+    );
+  }
+  if (descriptor.fps < 24) errors.push(`${path}.fps must be at least 24`);
+  if (!Number.isInteger(descriptor.frameCount) || descriptor.frameCount <= 0) {
+    errors.push(`${path}.frameCount must be a positive integer`);
+  }
+  if (!(descriptor.durationSeconds > 0)) errors.push(`${path}.durationSeconds must be positive`);
+  if (descriptor.fullMotion !== true) errors.push(`${path}.fullMotion must equal true`);
+  if (descriptor.fullDecodePassed !== true) errors.push(`${path}.fullDecodePassed must equal true`);
+  if (verifyMedia) probeAndDecodeVideo(errors, descriptor, videoPath, path);
+}
+
+function validateOrganicAuthoringWorkflow(
+  errors,
+  provenance,
+  technical,
+  artifact,
+  receiptPath,
+  verifyFiles,
+  verifyMedia,
+) {
+  if (provenance?.route !== "ORIGINAL_TIER_3") return;
+
+  const path = "technicalReview.evidence.organicAuthoringWorkflow";
+  const workflow = technical?.evidence?.organicAuthoringWorkflow;
+  if (!workflow || typeof workflow !== "object") {
+    errors.push(`${path} must be an object for ORIGINAL_TIER_3 candidates`);
+    return;
+  }
+  const provisional = workflow.status === "PROVISIONAL_PILOT";
+  if (!provisional && workflow.status !== "PASS") {
+    errors.push(`${path}.status must equal PASS or PROVISIONAL_PILOT`);
+  }
+  if (workflow.sourceRestRigUse !== ORGANIC_AUTHORING_WORKFLOW_CONTRACT.sourceRestRigUse) {
+    errors.push(`${path}.sourceRestRigUse must equal ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.sourceRestRigUse}`);
+  }
+  if (workflow.sourceRestRigUsedAsMotionSource !== false) {
+    errors.push(`${path}.sourceRestRigUsedAsMotionSource must equal false`);
+  }
+  if (workflow.sparseScriptedPoseSynthesisOnly !== false) {
+    errors.push(`${path}.sparseScriptedPoseSynthesisOnly must equal false`);
+  }
+  if (workflow.realPersonReferenceAnalysis !== "PASS") {
+    errors.push(`${path}.realPersonReferenceAnalysis must equal PASS`);
+  }
+
+  const stages = [
+    ["steppedBlocking", "blockingEvidenceSha256"],
+    ["ikContactConstraints", "constraintEvidenceSha256"],
+    ["pelvisCenterOfMassReview", "centerOfMassEvidenceSha256"],
+    ["motionPathCurveVelocityReview", "motionCurveVelocityEvidenceSha256"],
+  ];
+  for (const [stageKey, evidenceKey] of stages) {
+    const stage = workflow[stageKey];
+    if (!stage || typeof stage !== "object") {
+      errors.push(`${path}.${stageKey} must be an object`);
+      continue;
+    }
+    if (stage.status !== "PASS") errors.push(`${path}.${stageKey}.status must equal PASS`);
+    if (!SHA256_PATTERN.test(normalizedSha(stage[evidenceKey]))) {
+      errors.push(`${path}.${stageKey}.${evidenceKey} must be a 64-character SHA-256`);
+    }
+  }
+  const curvePolish = workflow.curvePolish;
+  if (!curvePolish || typeof curvePolish !== "object") {
+    errors.push(`${path}.curvePolish must be an object`);
+  } else {
+    if (curvePolish.status !== "PASS" && !(provisional && curvePolish.status === "PROVISIONAL_PILOT")) {
+      errors.push(`${path}.curvePolish.status must equal PASS${provisional ? " or PROVISIONAL_PILOT" : ""}`);
+    }
+    if (!SHA256_PATTERN.test(normalizedSha(curvePolish.curvePolishEvidenceSha256))) {
+      errors.push(`${path}.curvePolish.curvePolishEvidenceSha256 must be a 64-character SHA-256`);
+    }
+  }
+  if (workflow.steppedBlocking?.interpolation !== ORGANIC_AUTHORING_WORKFLOW_CONTRACT.blockingInterpolation) {
+    errors.push(
+      `${path}.steppedBlocking.interpolation must equal ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.blockingInterpolation}`,
+    );
+  }
+  if (workflow.ikContactConstraints?.handFootPropConstraintsAuthored !== true) {
+    errors.push(`${path}.ikContactConstraints.handFootPropConstraintsAuthored must equal true`);
+  }
+  if (workflow.ikContactConstraints?.denseBodyMechanicsAuthoredEveryFrame !== true) {
+    errors.push(`${path}.ikContactConstraints.denseBodyMechanicsAuthoredEveryFrame must equal true`);
+  }
+  if (workflow.ikContactConstraints?.contactConstraintsEvaluatedEveryFrame !== true) {
+    errors.push(`${path}.ikContactConstraints.contactConstraintsEvaluatedEveryFrame must equal true`);
+  }
+  if (workflow.ikContactConstraints?.bakedSampleStepFrames !== 1) {
+    errors.push(`${path}.ikContactConstraints.bakedSampleStepFrames must equal 1`);
+  }
+  if (!Number.isInteger(workflow.ikContactConstraints?.minorContactDeviationCount)
+    || workflow.ikContactConstraints.minorContactDeviationCount < 0) {
+    errors.push(`${path}.ikContactConstraints.minorContactDeviationCount must be a non-negative integer`);
+  }
+  if (workflow.ikContactConstraints?.catastrophicContactFailureCount !== 0) {
+    errors.push(`${path}.ikContactConstraints.catastrophicContactFailureCount must equal 0`);
+  }
+  if (workflow.pelvisCenterOfMassReview?.supportAndWeightTransferReviewed !== true) {
+    errors.push(`${path}.pelvisCenterOfMassReview.supportAndWeightTransferReviewed must equal true`);
+  }
+  if (workflow.motionPathCurveVelocityReview?.pelvisHandsFeetAndPropPathsReviewed !== true) {
+    errors.push(`${path}.motionPathCurveVelocityReview.pelvisHandsFeetAndPropPathsReviewed must equal true`);
+  }
+  if (workflow.motionPathCurveVelocityReview?.linearVelocityContinuityReviewed !== true) {
+    errors.push(`${path}.motionPathCurveVelocityReview.linearVelocityContinuityReviewed must equal true`);
+  }
+  if (workflow.motionPathCurveVelocityReview?.angularVelocityContinuityReviewed !== true) {
+    errors.push(`${path}.motionPathCurveVelocityReview.angularVelocityContinuityReviewed must equal true`);
+  }
+  const velocitySpikes = workflow.motionPathCurveVelocityReview?.unexplainedVelocitySpikeCount;
+  if (!Number.isInteger(velocitySpikes) || velocitySpikes < 0) {
+    errors.push(`${path}.motionPathCurveVelocityReview.unexplainedVelocitySpikeCount must be a non-negative integer`);
+  } else if (velocitySpikes > 0 && !provisional) {
+    errors.push(`${path}.motionPathCurveVelocityReview.unexplainedVelocitySpikeCount must equal 0 unless status is PROVISIONAL_PILOT`);
+  }
+  if (workflow.motionPathCurveVelocityReview?.catastrophicMotionDiscontinuityCount !== 0) {
+    errors.push(`${path}.motionPathCurveVelocityReview.catastrophicMotionDiscontinuityCount must equal 0`);
+  }
+  if (!ORGANIC_AUTHORING_WORKFLOW_CONTRACT.polishMethods.includes(workflow.curvePolish?.polishMethod)) {
+    errors.push(
+      `${path}.curvePolish.polishMethod must equal ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.polishMethods.join(", ")}`,
+    );
+  }
+  if (workflow.curvePolish?.curveContinuityAndOvershootReviewed !== true) {
+    errors.push(`${path}.curvePolish.curveContinuityAndOvershootReviewed must equal true`);
+  }
+  if (!Number.isInteger(workflow.curvePolish?.minorCurveDeviationCount)
+    || workflow.curvePolish.minorCurveDeviationCount < 0) {
+    errors.push(`${path}.curvePolish.minorCurveDeviationCount must be a non-negative integer`);
+  }
+
+  const bake = workflow.bakeExport;
+  if (!bake || typeof bake !== "object") {
+    errors.push(`${path}.bakeExport must be an object`);
+  } else {
+    if (bake.status !== "PASS") errors.push(`${path}.bakeExport.status must equal PASS`);
+    if (bake.constraintsBakedBeforeExport !== true) {
+      errors.push(`${path}.bakeExport.constraintsBakedBeforeExport must equal true`);
+    }
+    if (normalizedSha(bake.exportedArtifactSha256) !== normalizedSha(artifact?.sha256)) {
+      errors.push(`${path}.bakeExport.exportedArtifactSha256 must match candidateArtifact.sha256`);
+    }
+  }
+
+  const selfReview = workflow.normalSpeedSelfReview;
+  if (!selfReview || typeof selfReview !== "object") {
+    errors.push(`${path}.normalSpeedSelfReview must be an object`);
+  } else {
+    if (selfReview.status !== "PASS" && !(provisional && selfReview.status === "PROVISIONAL_PILOT")) {
+      errors.push(`${path}.normalSpeedSelfReview.status must equal PASS${provisional ? " or PROVISIONAL_PILOT" : ""}`);
+    }
+    if (selfReview.watchedEntireSideAndThreeQuarter !== true) {
+      errors.push(`${path}.normalSpeedSelfReview.watchedEntireSideAndThreeQuarter must equal true`);
+    }
+    validateOrganicReviewVideo(
+      errors,
+      selfReview.sideView,
+      `${path}.normalSpeedSelfReview.sideView`,
+      receiptPath,
+      verifyFiles,
+      verifyMedia,
+    );
+    validateOrganicReviewVideo(
+      errors,
+      selfReview.threeQuarterView,
+      `${path}.normalSpeedSelfReview.threeQuarterView`,
+      receiptPath,
+      verifyFiles,
+      verifyMedia,
+    );
+    if (normalizedSha(selfReview.sideView?.sha256)
+      === normalizedSha(selfReview.threeQuarterView?.sha256)) {
+      errors.push(`${path}.normalSpeedSelfReview side and three-quarter videos must have different SHA-256 values`);
+    }
+    if (!Array.isArray(selfReview.blockingFindings) || selfReview.blockingFindings.length !== 0) {
+      errors.push(`${path}.normalSpeedSelfReview.blockingFindings must be an empty array`);
+    }
+  }
+  const minorDeviationCount = (workflow.ikContactConstraints?.minorContactDeviationCount ?? 0)
+    + (workflow.motionPathCurveVelocityReview?.unexplainedVelocitySpikeCount ?? 0)
+    + (workflow.curvePolish?.minorCurveDeviationCount ?? 0);
+  if (minorDeviationCount > 0 && !provisional) {
+    errors.push(`${path}.status must equal PROVISIONAL_PILOT when minor deviations remain`);
+  }
+  validatePolishNotes(errors, workflow.polishNotes, `${path}.polishNotes`, provisional);
+  if (workflow.technicalMetricsAloneCanPromote !== false) {
+    errors.push(`${path}.technicalMetricsAloneCanPromote must equal false`);
+  }
+  if (workflow.visiblyBadClipRejected !== true) {
+    errors.push(`${path}.visiblyBadClipRejected must equal true`);
+  }
+  if (workflow.authoringRoute !== ORGANIC_AUTHORING_WORKFLOW_CONTRACT.authoringRoute) {
+    errors.push(`${path}.authoringRoute must equal ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.authoringRoute}`);
+  }
+  if (workflow.cascadeurStatus !== ORGANIC_AUTHORING_WORKFLOW_CONTRACT.cascadeurStatus) {
+    errors.push(`${path}.cascadeurStatus must equal ${ORGANIC_AUTHORING_WORKFLOW_CONTRACT.cascadeurStatus}`);
+  }
 }
 
 export function validateCandidateReceipt(
@@ -638,9 +881,19 @@ export function validateCandidateReceipt(
   validateOneShotBoundaryPose(errors, candidate, technical);
   validateHarvestInteractionContext(errors, candidate, technical);
   validateValveInteractionContext(errors, candidate, technical);
+  validateOrganicAuthoringWorkflow(
+    errors,
+    provenance,
+    technical,
+    artifact,
+    receiptPath,
+    verifyFiles,
+    verifyMedia,
+  );
+  const provisionalAllowed = gate !== "shipping";
   if (gate === "quarantine") {
-    if (!["PASS", "REWORK"].includes(technical?.status)) {
-      errors.push("technicalReview.status must equal PASS or REWORK at quarantine");
+    if (!["PASS", "REWORK", "PROVISIONAL_PILOT"].includes(technical?.status)) {
+      errors.push("technicalReview.status must equal PASS, REWORK, or PROVISIONAL_PILOT at quarantine");
     }
     for (const key of REQUIRED_TECHNICAL_CHECKS) {
       if (!["PASS", "REWORK"].includes(technical?.checks?.[key])) {
@@ -648,7 +901,13 @@ export function validateCandidateReceipt(
       }
     }
   } else {
-    if (technical?.status !== "PASS") errors.push("technicalReview.status must equal PASS");
+    if (technical?.status !== "PASS" && !(provisionalAllowed && technical?.status === "PROVISIONAL_PILOT")) {
+      errors.push(`technicalReview.status must equal PASS${provisionalAllowed ? " or PROVISIONAL_PILOT" : ""}`);
+    }
+    if (provenance?.route === "ORIGINAL_TIER_3"
+      && technical?.evidence?.organicAuthoringWorkflow?.status !== technical?.status) {
+      errors.push("technicalReview.evidence.organicAuthoringWorkflow.status must match technicalReview.status");
+    }
     for (const key of REQUIRED_TECHNICAL_CHECKS) {
       if (technical?.checks?.[key] !== "PASS") errors.push(`technicalReview.checks.${key} must equal PASS`);
     }
@@ -697,7 +956,10 @@ export function validateCandidateReceipt(
       errors.push("independentVisualReview.blockingFindings must describe the pending review at quarantine");
     }
   } else {
-    if (visual?.status !== "PASS") errors.push("independentVisualReview.status must equal PASS");
+    const visualProvisional = visual?.status === "PROVISIONAL_PILOT";
+    if (visual?.status !== "PASS" && !(provisionalAllowed && visualProvisional)) {
+      errors.push(`independentVisualReview.status must equal PASS${provisionalAllowed ? " or PROVISIONAL_PILOT" : ""}`);
+    }
     if (visual?.watchedEntireNormalSpeed !== true) {
       errors.push("independentVisualReview.watchedEntireNormalSpeed must be true");
     }
@@ -707,6 +969,12 @@ export function validateCandidateReceipt(
     if (!Array.isArray(visual?.blockingFindings) || visual.blockingFindings.length !== 0) {
       errors.push("independentVisualReview.blockingFindings must be an empty array");
     }
+    validatePolishNotes(
+      errors,
+      visual?.polishNotes,
+      "independentVisualReview.polishNotes",
+      visualProvisional,
+    );
   }
 
   if (gate === "quarantine") {

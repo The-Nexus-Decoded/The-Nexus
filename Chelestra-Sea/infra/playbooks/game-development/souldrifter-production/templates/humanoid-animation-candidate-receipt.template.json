@@ -60,6 +60,90 @@
       "semantic": "REWORK"
     },
     "evidence": {
+      "organicAuthoringWorkflow": {
+        "status": "REWORK",
+        "sourceRestRigUse": "REST_RIG_AUTHORITY_ONLY",
+        "sourceRestRigUsedAsMotionSource": false,
+        "sparseScriptedPoseSynthesisOnly": false,
+        "realPersonReferenceAnalysis": "REWORK",
+        "steppedBlocking": {
+          "status": "REWORK",
+          "interpolation": "CONSTANT",
+          "blockingEvidenceSha256": "REPLACE_WITH_64_CHARACTER_SHA256"
+        },
+        "ikContactConstraints": {
+          "status": "REWORK",
+          "handFootPropConstraintsAuthored": false,
+          "denseBodyMechanicsAuthoredEveryFrame": false,
+          "contactConstraintsEvaluatedEveryFrame": false,
+          "bakedSampleStepFrames": 1,
+          "minorContactDeviationCount": 0,
+          "catastrophicContactFailureCount": 0,
+          "constraintEvidenceSha256": "REPLACE_WITH_64_CHARACTER_SHA256"
+        },
+        "pelvisCenterOfMassReview": {
+          "status": "REWORK",
+          "supportAndWeightTransferReviewed": false,
+          "centerOfMassEvidenceSha256": "REPLACE_WITH_64_CHARACTER_SHA256"
+        },
+        "motionPathCurveVelocityReview": {
+          "status": "REWORK",
+          "pelvisHandsFeetAndPropPathsReviewed": false,
+          "linearVelocityContinuityReviewed": false,
+          "angularVelocityContinuityReviewed": false,
+          "unexplainedVelocitySpikeCount": 1,
+          "catastrophicMotionDiscontinuityCount": 0,
+          "motionCurveVelocityEvidenceSha256": "REPLACE_WITH_64_CHARACTER_SHA256"
+        },
+        "curvePolish": {
+          "status": "REWORK",
+          "polishMethod": "PROGRAMMATIC_FCURVE_POLISH",
+          "curveContinuityAndOvershootReviewed": false,
+          "minorCurveDeviationCount": 0,
+          "curvePolishEvidenceSha256": "REPLACE_WITH_64_CHARACTER_SHA256"
+        },
+        "bakeExport": {
+          "status": "REWORK",
+          "constraintsBakedBeforeExport": false,
+          "exportedArtifactSha256": "REPLACE_WITH_CANDIDATE_ARTIFACT_SHA256"
+        },
+        "normalSpeedSelfReview": {
+          "status": "REWORK",
+          "watchedEntireSideAndThreeQuarter": false,
+          "sideView": {
+            "path": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/semantic-id-v1/normal-speed-side.mp4",
+            "bytes": 1,
+            "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+            "width": 1280,
+            "height": 960,
+            "fps": 30,
+            "frameCount": 1,
+            "durationSeconds": 1,
+            "playbackRate": 1,
+            "fullMotion": true,
+            "fullDecodePassed": false
+          },
+          "threeQuarterView": {
+            "path": "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/semantic-id-v1/normal-speed-three-quarter.mp4",
+            "bytes": 1,
+            "sha256": "REPLACE_WITH_DISTINCT_64_CHARACTER_SHA256",
+            "width": 1280,
+            "height": 960,
+            "fps": 30,
+            "frameCount": 1,
+            "durationSeconds": 1,
+            "playbackRate": 1,
+            "fullMotion": true,
+            "fullDecodePassed": false
+          },
+          "blockingFindings": ["Replace with findings, or use an empty array only after watching both complete normal-speed views."]
+        },
+        "technicalMetricsAloneCanPromote": false,
+        "visiblyBadClipRejected": false,
+        "polishNotes": ["Required only for PROVISIONAL_PILOT; use an empty array for PASS."],
+        "authoringRoute": "BLENDER_DENSE_FULL_FRAME",
+        "cascadeurStatus": "DEFERRED_NOT_USED"
+      },
       "boundaryPose": {
         "method": "FRAMEWISE_BONE_QUATERNION_RMS_PLUS_ARMS_WIDE_SCORE",
         "naturalGameplayStanceRequired": true,
@@ -158,7 +242,8 @@
       "groundingRootMotion": "REWORK",
       "gameplayCamera": "REWORK"
     },
-    "blockingFindings": ["Replace with findings, or use an empty array only after every check passes."]
+    "blockingFindings": ["Replace with findings, or use an empty array only after every check passes."],
+    "polishNotes": ["Required only for PROVISIONAL_PILOT; use an empty array for PASS."]
   },
   "ownerReview": {
     "status": "NOT_PRESENTED"

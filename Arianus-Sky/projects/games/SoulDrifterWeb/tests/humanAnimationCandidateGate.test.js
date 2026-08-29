@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   HARVEST_INTERACTION_CONTRACTS,
+  ORGANIC_AUTHORING_WORKFLOW_CONTRACT,
   ONE_SHOT_BOUNDARY_POSE_CONTRACT,
   REQUIRED_TECHNICAL_CHECKS,
   REQUIRED_VISUAL_CHECKS,
@@ -9,6 +10,93 @@ import {
 } from "../scripts/validate-human-animation-candidate.mjs";
 
 const hash = "A".repeat(64);
+
+function organicAuthoringWorkflow() {
+  return {
+    status: "PASS",
+    sourceRestRigUse: ORGANIC_AUTHORING_WORKFLOW_CONTRACT.sourceRestRigUse,
+    sourceRestRigUsedAsMotionSource: false,
+    sparseScriptedPoseSynthesisOnly: false,
+    realPersonReferenceAnalysis: "PASS",
+    steppedBlocking: {
+      status: "PASS",
+      interpolation: ORGANIC_AUTHORING_WORKFLOW_CONTRACT.blockingInterpolation,
+      blockingEvidenceSha256: "1".repeat(64),
+    },
+    ikContactConstraints: {
+      status: "PASS",
+      handFootPropConstraintsAuthored: true,
+      denseBodyMechanicsAuthoredEveryFrame: true,
+      contactConstraintsEvaluatedEveryFrame: true,
+      bakedSampleStepFrames: 1,
+      minorContactDeviationCount: 0,
+      catastrophicContactFailureCount: 0,
+      constraintEvidenceSha256: "2".repeat(64),
+    },
+    pelvisCenterOfMassReview: {
+      status: "PASS",
+      supportAndWeightTransferReviewed: true,
+      centerOfMassEvidenceSha256: "3".repeat(64),
+    },
+    motionPathCurveVelocityReview: {
+      status: "PASS",
+      pelvisHandsFeetAndPropPathsReviewed: true,
+      linearVelocityContinuityReviewed: true,
+      angularVelocityContinuityReviewed: true,
+      unexplainedVelocitySpikeCount: 0,
+      catastrophicMotionDiscontinuityCount: 0,
+      motionCurveVelocityEvidenceSha256: "4".repeat(64),
+    },
+    curvePolish: {
+      status: "PASS",
+      polishMethod: "PROGRAMMATIC_FCURVE_POLISH",
+      curveContinuityAndOvershootReviewed: true,
+      minorCurveDeviationCount: 0,
+      curvePolishEvidenceSha256: "5".repeat(64),
+    },
+    bakeExport: {
+      status: "PASS",
+      constraintsBakedBeforeExport: true,
+      exportedArtifactSha256: hash,
+    },
+    normalSpeedSelfReview: {
+      status: "PASS",
+      watchedEntireSideAndThreeQuarter: true,
+      sideView: {
+        path: "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/lift-v1-side.mp4",
+        bytes: 456,
+        sha256: "6".repeat(64),
+        width: 1280,
+        height: 960,
+        fps: 30,
+        frameCount: 84,
+        durationSeconds: 2.8,
+        playbackRate: 1,
+        fullMotion: true,
+        fullDecodePassed: true,
+      },
+      threeQuarterView: {
+        path: "H:/CodexData/souldrifter-toolchain/evidence/487/animation-candidates/lift-v1-three-quarter.mp4",
+        bytes: 456,
+        sha256: "7".repeat(64),
+        width: 1280,
+        height: 960,
+        fps: 30,
+        frameCount: 84,
+        durationSeconds: 2.8,
+        playbackRate: 1,
+        fullMotion: true,
+        fullDecodePassed: true,
+      },
+      blockingFindings: [],
+    },
+    technicalMetricsAloneCanPromote: false,
+    visiblyBadClipRejected: true,
+    polishNotes: [],
+    authoringRoute: ORGANIC_AUTHORING_WORKFLOW_CONTRACT.authoringRoute,
+    cascadeurStatus: ORGANIC_AUTHORING_WORKFLOW_CONTRACT.cascadeurStatus,
+  };
+}
 
 function passingReceipt() {
   return {
@@ -63,6 +151,7 @@ function passingReceipt() {
       status: "PASS",
       checks: Object.fromEntries(REQUIRED_TECHNICAL_CHECKS.map((key) => [key, "PASS"])),
       evidence: {
+        organicAuthoringWorkflow: organicAuthoringWorkflow(),
         boundaryPose: {
           method: ONE_SHOT_BOUNDARY_POSE_CONTRACT.method,
           naturalGameplayStanceRequired: true,
@@ -111,6 +200,7 @@ function passingReceipt() {
       playbackSha256: hash,
       checklist: Object.fromEntries(REQUIRED_VISUAL_CHECKS.map((key) => [key, "PASS"])),
       blockingFindings: [],
+      polishNotes: [],
     },
     ownerReview: { status: "NOT_PRESENTED" },
     promotion: { status: "OWNER_REVIEW_READY", runtimeInstalled: false },
@@ -222,6 +312,81 @@ describe("issue #487 animation candidate gate", () => {
 
   it("accepts a complete independently reviewed original candidate receipt", () => {
     expect(validate(passingReceipt())).toEqual([]);
+  });
+
+  it("requires the reference-blocking-IK-polish workflow for original custom gaps", () => {
+    const receipt = passingReceipt();
+    delete receipt.technicalReview.evidence.organicAuthoringWorkflow;
+    expect(validate(receipt)).toContain(
+      "technicalReview.evidence.organicAuthoringWorkflow must be an object for ORIGINAL_TIER_3 candidates",
+    );
+  });
+
+  it("rejects sparse scripted pose synthesis and metrics-only promotion", () => {
+    const receipt = passingReceipt();
+    const workflow = receipt.technicalReview.evidence.organicAuthoringWorkflow;
+    workflow.sourceRestRigUsedAsMotionSource = true;
+    workflow.sparseScriptedPoseSynthesisOnly = true;
+    workflow.steppedBlocking.interpolation = "BEZIER";
+    workflow.ikContactConstraints.denseBodyMechanicsAuthoredEveryFrame = false;
+    workflow.ikContactConstraints.bakedSampleStepFrames = 4;
+    workflow.pelvisCenterOfMassReview.supportAndWeightTransferReviewed = false;
+    workflow.motionPathCurveVelocityReview.unexplainedVelocitySpikeCount = 2;
+    workflow.normalSpeedSelfReview.threeQuarterView.sha256 = workflow.normalSpeedSelfReview.sideView.sha256;
+    workflow.technicalMetricsAloneCanPromote = true;
+    workflow.visiblyBadClipRejected = false;
+
+    expect(validate(receipt)).toEqual(expect.arrayContaining([
+      "technicalReview.evidence.organicAuthoringWorkflow.sourceRestRigUsedAsMotionSource must equal false",
+      "technicalReview.evidence.organicAuthoringWorkflow.sparseScriptedPoseSynthesisOnly must equal false",
+      "technicalReview.evidence.organicAuthoringWorkflow.steppedBlocking.interpolation must equal CONSTANT",
+      "technicalReview.evidence.organicAuthoringWorkflow.ikContactConstraints.denseBodyMechanicsAuthoredEveryFrame must equal true",
+      "technicalReview.evidence.organicAuthoringWorkflow.ikContactConstraints.bakedSampleStepFrames must equal 1",
+      "technicalReview.evidence.organicAuthoringWorkflow.pelvisCenterOfMassReview.supportAndWeightTransferReviewed must equal true",
+      "technicalReview.evidence.organicAuthoringWorkflow.motionPathCurveVelocityReview.unexplainedVelocitySpikeCount must equal 0 unless status is PROVISIONAL_PILOT",
+      "technicalReview.evidence.organicAuthoringWorkflow.normalSpeedSelfReview side and three-quarter videos must have different SHA-256 values",
+      "technicalReview.evidence.organicAuthoringWorkflow.technicalMetricsAloneCanPromote must equal false",
+      "technicalReview.evidence.organicAuthoringWorkflow.visiblyBadClipRejected must equal true",
+    ]));
+  });
+
+  it("allows explicitly noted minor polish deviations only as PROVISIONAL_PILOT", () => {
+    const receipt = passingReceipt();
+    const workflow = receipt.technicalReview.evidence.organicAuthoringWorkflow;
+    receipt.technicalReview.status = "PROVISIONAL_PILOT";
+    workflow.status = "PROVISIONAL_PILOT";
+    workflow.ikContactConstraints.minorContactDeviationCount = 1;
+    workflow.motionPathCurveVelocityReview.unexplainedVelocitySpikeCount = 1;
+    workflow.curvePolish.status = "PROVISIONAL_PILOT";
+    workflow.curvePolish.minorCurveDeviationCount = 1;
+    workflow.normalSpeedSelfReview.status = "PROVISIONAL_PILOT";
+    workflow.polishNotes = [
+      "Minor wrist contact offset remains below the catastrophic contact threshold.",
+      "One low-severity curve-velocity wobble remains visible only in close inspection.",
+    ];
+    receipt.independentVisualReview.status = "PROVISIONAL_PILOT";
+    receipt.independentVisualReview.polishNotes = [
+      "Acceptable for the pilot queue; wrist and easing cleanup remains before shipping.",
+    ];
+
+    expect(validate(receipt)).toEqual([]);
+  });
+
+  it("never downgrades catastrophic contact or motion discontinuities to provisional polish", () => {
+    const receipt = passingReceipt();
+    const workflow = receipt.technicalReview.evidence.organicAuthoringWorkflow;
+    receipt.technicalReview.status = "PROVISIONAL_PILOT";
+    workflow.status = "PROVISIONAL_PILOT";
+    workflow.ikContactConstraints.catastrophicContactFailureCount = 1;
+    workflow.motionPathCurveVelocityReview.catastrophicMotionDiscontinuityCount = 1;
+    workflow.polishNotes = ["This note cannot waive a catastrophic defect."];
+    receipt.independentVisualReview.status = "PROVISIONAL_PILOT";
+    receipt.independentVisualReview.polishNotes = ["Catastrophic defects remain blocked."];
+
+    expect(validate(receipt)).toEqual(expect.arrayContaining([
+      "technicalReview.evidence.organicAuthoringWorkflow.ikContactConstraints.catastrophicContactFailureCount must equal 0",
+      "technicalReview.evidence.organicAuthoringWorkflow.motionPathCurveVelocityReview.catastrophicMotionDiscontinuityCount must equal 0",
+    ]));
   });
 
   it("requires numeric natural-stance boundary evidence for one-shot clips", () => {
