@@ -146,12 +146,8 @@ export function createStarterLongswordPresentation(
     if (parts.length === 0) return undefined;
   }
 
-  const handBone = model.getObjectByName("hand_r")
-    ?? model.getObjectByName("mixamorig:RightHand")
-    ?? parts[0]?.parent;
-  const hipBone = model.getObjectByName("pelvis")
-    ?? model.getObjectByName("spine_01")
-    ?? model.getObjectByName("mixamorig:Hips");
+  const handBone = model.getObjectByName("hand_r") ?? parts[0]?.parent;
+  const hipBone = model.getObjectByName("pelvis") ?? model.getObjectByName("spine_01");
   if (!handBone || !hipBone) return undefined;
 
   const handSocket = new THREE.Group();

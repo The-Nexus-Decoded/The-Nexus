@@ -172,23 +172,6 @@ describe("actor presentation boundaries", () => {
       weapon?.hipSocket.getObjectByName("longsword-mesh"),
     );
   });
-
-  it("mounts the separate starter weapon on the Mixamo pilot skeleton", () => {
-    const model = new THREE.Group();
-    const hips = new THREE.Bone();
-    hips.name = "mixamorig:Hips";
-    const hand = new THREE.Bone();
-    hand.name = "mixamorig:RightHand";
-    model.add(hips, hand);
-
-    const source = new THREE.Group();
-    source.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.05, 0.03)));
-
-    const weapon = createStarterLongswordPresentation(model, source);
-
-    expect(weapon?.handSocket.parent).toBe(hand);
-    expect(weapon?.hipSocket.parent).toBe(hips);
-  });
 });
 
 describe("camera pan boundaries", () => {
