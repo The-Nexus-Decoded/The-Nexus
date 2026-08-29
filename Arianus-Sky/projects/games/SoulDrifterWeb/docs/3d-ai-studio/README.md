@@ -97,6 +97,55 @@ This creates eight initial weapon packages rather than nine unrelated weapons:
 
 The owner approves one assembled calling view for each of the nine callings. Those review assemblies may use representative ancestries for variety, but they do not create ancestry/calling restrictions.
 
+## Mandatory visual style gate: art, not pictures
+
+SoulDrifter uses authored semi-realistic fantasy RPG art. The target is not
+automatically exaggerated, heavily stylized, cartoon, or low-detail. Anatomy,
+movement, construction, grounding, and environmental logic remain believable,
+but normal game assets must never look like photographs, live-action captures,
+wildlife photography, photogrammetry, or cinematic product shots. This gate
+applies to characters, creatures, animals, elementals, weapons, armor, clothing,
+props, buildings, and environment pieces.
+
+Every generation prompt must include this positive style block:
+
+```text
+Render as an original SoulDrifter semi-realistic fantasy RPG game asset.
+Preserve believable anatomy, natural proportions, construction, mature physical scale,
+and an appropriate level of detail, but make it unmistakably authored game art rather
+than a photograph. Use artist-directed form definition, a strong readable silhouette,
+clear material separation, controlled painted color variation, and source-quality game
+PBR with restrained microdetail. Fur, feathers, hair, fibers, grain, corrosion, and wear
+must read as coherent artist-authored material treatment at gameplay distance, not
+photographic surface noise or individually simulated strands.
+The asset must remain legible at the normal gameplay camera and cohesive with the
+existing SoulDrifter protagonists, creatures, equipment, and Heartvale environment.
+```
+
+Every generation prompt must also include this negative style block:
+
+```text
+Not a photograph, wildlife photograph, live-action capture, documentary image,
+photogrammetry scan, hyperreal render, cinematic product shot, physically simulated
+fur study, or reflection-heavy HDRI showcase. No individual fur-strand grooming,
+skin pores, photographic microtexture, depth of field, bokeh, lens artifacts, or
+camera-real surface noise. Also no chibi proportions, mascot design, oversized head
+or eyes, children's-cartoon styling, cel-shaded anime, voxel treatment, toy, or plush.
+```
+
+Style approval happens on the free reference image before any paid mesh, texture,
+rig, animation, segmentation, or upscale operation. A candidate fails if a reviewer
+could reasonably mistake it for a photograph or live-action render, even when its
+anatomy and topology source silhouette are otherwise good. Do not try to repair a
+photoreal candidate with later texturing; reject it and correct the reference prompt.
+
+For quadrupeds, keep species-appropriate neutral four-foot anatomy and rig clearance;
+never force a humanoid T-pose or A-pose. For elementals, use solid graphic volumes and
+designed shape language rather than physically simulated particles, loose soil,
+detached droplets, glass-water realism, or photographic moss. For weapons and armor,
+retain believable thickness, grip, attachment, and wear while simplifying shapes and
+painting material breakup for gameplay readability.
+
 ## Source-image and prompt gate
 
 Image-to-3D is the preferred character path. Text-to-3D may be used for rough props, but it is not the approval path for a hero body.
@@ -117,12 +166,14 @@ Before a paid 3D request, prepare a consistent multi-view sheet:
 ```text
 Create a production reference sheet for an original SoulDrifter [ANCESTRY] adult humanoid.
 Show the exact same character from front, left, back, and right views in a neutral A-pose.
-Use grounded realistic-fantasy proportions and an adult face. The character wears a fitted,
-opaque, seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair,
-jewelry, particles, glow, text, pedestal, or environment. Keep both hands, all fingers, both
-feet, ears, and the complete silhouette clearly visible. Use a clean plain background and
+Use believable mature proportions and an adult face expressed through clear artist-directed
+form definition and hand-authored material separation. The character wears a fitted, opaque,
+seam-simple neutral underlayer. No weapon, shield, armor, cape, robe, large hair, jewelry,
+particles, glow, text, pedestal, or environment. Keep both hands, all fingers, both feet,
+ears, and the complete silhouette clearly visible. Use a clean plain background and
 consistent neutral lighting. The views must agree exactly in anatomy, face, proportions,
-materials, and garment boundaries. This is a modular game-character base, not concept art.
+materials, and garment boundaries. Append the mandatory positive and negative style blocks.
+This is a modular game-character base, not a photograph or a free-form concept painting.
 ```
 
 Append only ancestry-specific requirements that have already been approved. Do not place calling identity, morality, high-level magic, or advanced rune traditions into a base ancestry body.
@@ -135,7 +186,10 @@ It is a worn C-tier mortal implement made from [MATERIALS], with believable cons
 grip dimensions, thickness, and weight. No hand, character, sheath, floating particles,
 runes, relic glow, text, environment, or display stand. Center the entire object on a clean
 plain background and provide consistent front, side, and rear reference views. Preserve a
-clear unobstructed primary grip and a silhouette readable from an elevated isometric camera.
+clear unobstructed primary grip and a silhouette readable from the normal gameplay camera.
+Use believable geometry, strong authored edge shapes, clear painted material separation,
+and restrained wear. Append the mandatory positive and negative style
+blocks. It must look like a SoulDrifter RPG weapon asset, never a product photograph.
 ```
 
 ### Clothing or armor prompt template
@@ -147,7 +201,10 @@ back, and right views. The piece is worn, practical, low-level, and construction
 believable. No weapon, advanced rune language, relic glow, cape, unrelated accessories,
 body redesign, action pose, or environment. Keep seams, openings, thickness, attachment
 points, and body coverage clearly visible. This output is a conforming source for a separate
-game-equipment mesh, not a permanently fused character.
+game-equipment mesh, not a permanently fused character. Use believable artist-directed
+forms, clear painted material separation, and restrained authored wear. Append the mandatory
+positive and negative style blocks; the result must never resemble fashion photography,
+museum photography, photogrammetry, or a cinematic product render.
 ```
 
 ## Generation and intake sequence
@@ -178,6 +235,17 @@ game-equipment mesh, not a permanently fused character.
 6. Add the provider-generated asset and its ownership/license record to `third-party-assets.json` before promotion, following the existing asset policy.
 
 ### Phase 3: Blender cleanup and retopology
+
+Version preflight is mandatory. Use the owner-designated current production
+release, presently the newest verified Blender 5.2 patch (**Blender 5.2.1 LTS**
+on the production workstation). Do not use an older 5.2 patch when the verified
+current patch is available. Run the exact executable with `--version` and
+record the result before opening a scene or invoking the DCC Bridge. Do not use
+Blender 4.5 or another older installation as an automatic fallback, even when it
+already contains the Tripo add-on or recent project files. If the verified current
+5.2 patch or its required Bridge integration is unavailable, stop at the preflight
+and report the blocker.
+Do not install or substitute another Blender version without owner direction.
 
 1. Import the untouched candidate into a clean Blender scene.
 2. Confirm meter scale, ground contact, orientation, transform application, normals, manifold state, material slots, UVs, and texture color spaces.
@@ -311,6 +379,8 @@ Every 3D AI Studio artifact records:
 - generation date, credit cost, owner account, and commercial-use status;
 - untouched source filename, format, byte size, and SHA-256;
 - Blender version and cleanup/retopo/bake notes;
+- exact Blender executable path and captured `--version` output, proving the
+  owner-designated current production release was used;
 - rig source, skeleton comparison result, and retarget profile;
 - mesh, triangle, bone, material, texture, and animation counts;
 - meter scale, orientation, pivot, bounds, sockets, and coverage masks;

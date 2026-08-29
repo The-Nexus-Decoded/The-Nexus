@@ -41,6 +41,16 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    48-line diffs; that is why this rule exists.
 6. **It must read at gameplay distance AND at zoom.** Review-gate evidence
    includes street-level/close-up renders, not just beauty shots.
+7. **Art, not pictures.** Every character, creature, weapon, armor piece, prop,
+   and environment asset must read as authored SoulDrifter game art: believable
+   anatomy and construction expressed through artist-directed rendering, strong
+   silhouettes, clear material separation, restrained surface detail, and
+   hand-authored texture treatment. The target is semi-realistic RPG art, not
+   automatically exaggerated, heavily stylized, cartoon, or low-detail. Photoreal,
+   live-action, wildlife-photo,
+   photogrammetry, product-photography, cinematic-lens, or individual-fur-strand
+   results are hard rejects before any paid 3D conversion. Realistic movement,
+   animation, and physical grounding do not authorize photographic rendering.
 
 ## 2. Work locations (owner directive — binding)
 
@@ -78,6 +88,19 @@ to EVERY zone, dungeon, village, prop, and scene you build:
    build is the visual benchmark: Three.js perspective camera, PBR
    materials, real-time lighting + AO, gameplay grid hidden under continuous
    geometry. Isometric framing is dropped.
+7. **Blender version gate (owner ruling 2026-08-29): use the current approved
+   production release, presently the newest verified Blender 5.2 patch
+   (Blender 5.2.1 LTS on the production workstation).** Do not use an older
+   5.2 patch when the verified current patch is available. Never silently fall back to
+   Blender 4.5 or another older installation because it is already configured,
+   appears in recent-file metadata, or has a working add-on. Before any Blender,
+   DCC Bridge, rigging, animation, bake, import, or export operation, resolve the
+   exact executable and record `blender --version` in the ticket evidence. If
+   the verified current Blender 5.2 patch is unavailable, stop and report the
+   missing executable instead of
+   launching an older version. A later version becomes the production version
+   only after the owner designates it as the new current version and the required
+   bridge/add-ons are verified there.
 
 ## 4. Never-do rules (hard stops)
 
