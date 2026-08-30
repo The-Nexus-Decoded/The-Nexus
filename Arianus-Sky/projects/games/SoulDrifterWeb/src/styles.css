@@ -1069,6 +1069,7 @@ h3 {
 .paper-slot--feet { top: 262px; left: 4%; }
 .paper-slot--main { top: 104px; right: 4%; }
 .paper-slot--off { top: 183px; right: 4%; }
+.paper-slot--back { top: 25px; right: 4%; }
 
 .paper-doll__identity {
   position: absolute;

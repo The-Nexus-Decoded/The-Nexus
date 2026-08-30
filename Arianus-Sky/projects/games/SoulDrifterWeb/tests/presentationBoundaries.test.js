@@ -26,6 +26,15 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(ui).not.toContain('requiredElement<HTMLImageElement>("paper-doll-image").src');
   });
 
+  it("shows the equipped back quiver with live contained arrow count and selected type", () => {
+    expect(html).toContain('id="slot-back"');
+    expect(ui).toContain('"mainHand", "offHand", "back"');
+    expect(ui).toContain("item.containerId === equipped.id && item.arrowType");
+    expect(ui).toContain("loadedArrowCount");
+    expect(ui).toContain("equipped.selectedArrowType");
+    expect(styles).toMatch(/\.paper-slot--back\s*\{[^}]*right:\s*4%/s);
+  });
+
   it("persists the live idle paper-doll snapshot for the saved-soul selector", () => {
     expect(persistence).toContain('"avatarPreviews"');
     expect(persistence).toContain("loadAvatarPreview()");

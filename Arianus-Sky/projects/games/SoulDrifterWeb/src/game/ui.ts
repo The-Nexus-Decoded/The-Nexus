@@ -797,12 +797,21 @@ export class GameUI {
       this.paperPack.append(emptySlot);
     }
 
-    const slots: EquipmentSlot[] = ["head", "body", "legs", "feet", "mainHand", "offHand"];
+    const slots: EquipmentSlot[] = ["head", "body", "legs", "feet", "mainHand", "offHand", "back"];
     slots.forEach((slot) => {
       const equipped = equippedItem(items, slot);
       const container = requiredElement<HTMLElement>(`slot-${slot}`);
       container.classList.toggle("is-equipped", Boolean(equipped));
-      container.querySelector("strong")!.textContent = equipped?.name ?? "Empty";
+      const containedArrows = equipped?.quiverCapacity
+        ? items.filter((item) => item.containerId === equipped.id && item.arrowType)
+        : [];
+      const loadedArrowCount = containedArrows.reduce((total, item) => total + (item.quantity ?? 0), 0);
+      const selectedArrowLabel = equipped?.selectedArrowType
+        ? `${equipped.selectedArrowType[0]!.toUpperCase()}${equipped.selectedArrowType.slice(1)}`
+        : "Standard";
+      container.querySelector("strong")!.textContent = equipped?.quiverCapacity
+        ? `${equipped.name} · ${loadedArrowCount} / ${equipped.quiverCapacity} · ${selectedArrowLabel}`
+        : equipped?.name ?? "Empty";
       container.title = equipped?.description ?? `${slot} slot is empty`;
       if (equipped) {
         container.dataset.equipmentItem = equipped.id;
