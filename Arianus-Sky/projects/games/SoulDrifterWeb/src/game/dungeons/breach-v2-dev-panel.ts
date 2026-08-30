@@ -15,6 +15,10 @@ interface BreachV2DevPanelOptions {
   setAllDoorsOpen: (open: boolean) => void;
 }
 
+export interface BreachV2DevPanel {
+  destroy(): void;
+}
+
 const CAMERA_MODES = [
   ["isometric", "Isometric gameplay (default)"],
   ["walk", "Third-person walk"],
@@ -57,7 +61,7 @@ function replacePreviewParams(values: Record<string, string | null>): void {
   window.location.assign(url);
 }
 
-export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
+export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): BreachV2DevPanel {
   const compactViewport = window.innerWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
   const panel = document.createElement("aside");
   panel.dataset.testid = "breach-v2-dev-panel";
@@ -126,20 +130,23 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
     if (open) window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
   };
   header.addEventListener("click", toggle);
-  window.addEventListener("keydown", (event) => {
+  const handleKeyDown = (event: KeyboardEvent): void => {
     if ((event.key === "`" || event.key === "~") && !(event.target instanceof HTMLInputElement)) toggle();
-  });
-  window.addEventListener(BREACH_V2_PANEL_EVENT, (event) => {
+  };
+  const handlePanelOpened = (event: Event): void => {
     if ((event as CustomEvent<string>).detail === "navigation" || !open) return;
     open = false;
     syncOpen();
-  });
-  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, (event) => {
+  };
+  const handlePanelRequested = (event: Event): void => {
     if ((event as CustomEvent<string>).detail !== "navigation") return;
     open = true;
     syncOpen();
     window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "navigation" }));
-  });
+  };
+  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener(BREACH_V2_PANEL_EVENT, handlePanelOpened);
+  window.addEventListener(BREACH_V2_PANEL_REQUEST_EVENT, handlePanelRequested);
 
   const section = (label: string): HTMLDivElement => {
     const heading = document.createElement("div");
@@ -247,4 +254,13 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   options.container.appendChild(panel);
   syncOpen();
+  return {
+    destroy: () => {
+      header.removeEventListener("click", toggle);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(BREACH_V2_PANEL_EVENT, handlePanelOpened);
+      window.removeEventListener(BREACH_V2_PANEL_REQUEST_EVENT, handlePanelRequested);
+      panel.remove();
+    },
+  };
 }

@@ -186,6 +186,7 @@ export const BREACH_V2_HEAVY_DOOR_FITTED_BOUNDS = Object.freeze({
 });
 
 interface PreviewHooks {
+  __dungeonDispose?: () => void;
   __dungeonScene: THREE.Scene;
   __dungeonLayout: BreachV2Layout;
   __dungeonRenderer: THREE.WebGLRenderer;
@@ -4096,6 +4097,7 @@ export async function startDungeonPreview(
   container: HTMLElement,
   options: { seed: number; path: "wayfarer" | "oathbreaker"; cam: string },
 ): Promise<void> {
+  (window as unknown as Partial<PreviewHooks>).__dungeonDispose?.();
   container.style.cssText = "position:fixed;inset:0;overflow:hidden;background:#0b0d10;";
   const loading = document.createElement("div");
   loading.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e0d8c0;font:14px monospace;";
@@ -4529,6 +4531,7 @@ export async function startDungeonPreview(
   let player: THREE.Object3D | null = null;
   let foundationPlayerActor: BreachV2HumanFoundationActor | null = null;
   let foundationAnimationReview: BreachV2HumanFoundationReview | null = null;
+  let handleReviewPanelOpened: ((event: Event) => void) | null = null;
   let inspectionFocus: THREE.Vector3 | null = null;
   const clearInspectionFocus = (): void => { inspectionFocus = null; };
   const applyInspectionZoom = (zoom: { distance: number; magnification: number }): void => {
@@ -4536,7 +4539,7 @@ export async function startDungeonPreview(
     camera.zoom = zoom.magnification;
     camera.updateProjectionMatrix();
   };
-  setupBreachV2MobileMovementPad({
+  const mobileMovementPad = setupBreachV2MobileMovementPad({
     container,
     keys,
     enabled: coarsePointer && walkMode,
@@ -4579,7 +4582,7 @@ export async function startDungeonPreview(
       camera.updateProjectionMatrix();
     },
   });
-  setupBreachV2MobileLandscapeGate({
+  const mobileLandscapeGate = setupBreachV2MobileLandscapeGate({
     container,
     enabled: coarsePointer && walkMode,
   });
@@ -4630,9 +4633,10 @@ export async function startDungeonPreview(
         if (reviewPanel) reviewPanel.hidden = true;
       }
     };
-    window.addEventListener(BREACH_V2_PANEL_EVENT, (event) => {
+    handleReviewPanelOpened = (event: Event): void => {
       if ((event as CustomEvent<string>).detail !== "animation-review") hideReviewPanels();
-    });
+    };
+    window.addEventListener(BREACH_V2_PANEL_EVENT, handleReviewPanelOpened);
     const showReviewPanel = (selection: BreachV2ReviewActorSelection): boolean => {
       const selectedPanel = reviewPanels[selection.kind];
       if (!selectedPanel) return false;
@@ -5108,7 +5112,7 @@ export async function startDungeonPreview(
     // isometric gameplay. Moving only an orbit camera left no avatar to continue with.
     return false;
   };
-  setupBreachV2DevPanel({
+  const devPanel = setupBreachV2DevPanel({
     container,
     layout,
     seed: options.seed,
@@ -5571,7 +5575,28 @@ export async function startDungeonPreview(
   const viewportObserver = new ResizeObserver(syncViewport);
   viewportObserver.observe(container);
   syncViewport();
-  if (diagnostics) {
-    window.addEventListener("pagehide", () => diagnostics.dispose(), { once: true });
-  }
+  let disposed = false;
+  const teardown = (): void => {
+    if (disposed) return;
+    disposed = true;
+    renderer.setAnimationLoop(null);
+    timer.disconnect();
+    window.removeEventListener("pagehide", teardown);
+    window.removeEventListener("resize", syncViewport);
+    window.visualViewport?.removeEventListener("resize", syncViewport);
+    viewportObserver.disconnect();
+    if (handleReviewPanelOpened) {
+      window.removeEventListener(BREACH_V2_PANEL_EVENT, handleReviewPanelOpened);
+    }
+    foundationAnimationReview?.dispose();
+    creatureAnimationReview?.dispose();
+    wardenAnimationReview?.dispose();
+    settingsPanel.destroy();
+    devPanel.destroy();
+    mobileMovementPad.destroy();
+    mobileLandscapeGate.destroy();
+    diagnostics?.dispose();
+  };
+  hooks.__dungeonDispose = teardown;
+  window.addEventListener("pagehide", teardown, { once: true });
 }
