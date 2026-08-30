@@ -1,7 +1,10 @@
 export const BREACH_V2_ISOMETRIC_MIN_DISTANCE = 6;
 export const BREACH_V2_ISOMETRIC_MAX_DISTANCE = 36;
-export const BREACH_V2_MOBILE_ZOOM_STEP = 3.5;
+export const BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE = 2.75;
+export const BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE = 1.2;
+export const BREACH_V2_MOBILE_ZOOM_STEP = 1.5;
 export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
+export const BREACH_V2_TOUCH_PITCH_SENSITIVITY = 0.002;
 export const BREACH_V2_PANEL_EVENT = "breach-v2-panel-opened";
 export const BREACH_V2_PANEL_REQUEST_EVENT = "breach-v2-panel-requested";
 
@@ -10,9 +13,11 @@ export type BreachV2GraphicsQuality = Exclude<BreachV2GraphicsMode, "auto">;
 
 export interface BreachV2IsometricCameraProfile {
   compactLandscape: boolean;
+  closeInspection: boolean;
   defaultPitch: number;
   minimumPitch: number;
   defaultDistance: number;
+  minimumDistance: number;
   lookAhead: number;
 }
 
@@ -28,16 +33,22 @@ export function resolveBreachV2IsometricCameraProfile(options: {
   return compactLandscape
     ? {
       compactLandscape,
+      closeInspection: true,
       defaultPitch: Math.PI / 4,
-      minimumPitch: Math.PI / 5,
+      minimumPitch: Math.PI / 10,
       defaultDistance: 18.5,
+      minimumDistance: BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
       lookAhead: 2.25,
     }
     : {
       compactLandscape,
+      closeInspection: coarsePointer,
       defaultPitch: Math.PI / 6,
       minimumPitch: Math.PI * 8 / 180,
       defaultDistance: 18.5,
+      minimumDistance: coarsePointer
+        ? BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE
+        : BREACH_V2_ISOMETRIC_MIN_DISTANCE,
       lookAhead: 4.25,
     };
 }
@@ -62,6 +73,58 @@ export function resolveBreachV2TouchYaw(
   sensitivity = 0.0075,
 ): number {
   return currentYaw - horizontalDelta * sensitivity;
+}
+
+export function resolveBreachV2TouchPitch(
+  currentPitch: number,
+  verticalDelta: number,
+  minimumPitch: number,
+  maximumPitch: number,
+  sensitivity = BREACH_V2_TOUCH_PITCH_SENSITIVITY,
+): number {
+  return Math.min(
+    maximumPitch,
+    Math.max(minimumPitch, currentPitch + verticalDelta * sensitivity),
+  );
+}
+
+export function resolveBreachV2InspectionMinimumDistance(options: {
+  coarsePointer: boolean;
+  isometric: boolean;
+}): number {
+  if (!options.coarsePointer) {
+    return options.isometric ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+  }
+  return options.isometric
+    ? BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE
+    : BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE;
+}
+
+export function resolveBreachV2CameraTargetHeight(options: {
+  distance: number;
+  actorHeight?: number;
+  defaultHeight?: number;
+  closeDistance?: number;
+  wideDistance?: number;
+}): number {
+  const actorHeight = options.actorHeight ?? 1.69;
+  const defaultHeight = options.defaultHeight ?? 1.4;
+  const closeDistance = options.closeDistance ?? BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE;
+  const wideDistance = options.wideDistance ?? BREACH_V2_ISOMETRIC_MIN_DISTANCE;
+  if (wideDistance <= closeDistance) return defaultHeight;
+  const blend = Math.min(1, Math.max(
+    0,
+    (options.distance - closeDistance) / (wideDistance - closeDistance),
+  ));
+  const closeHeight = Math.max(0.2, actorHeight * 0.5);
+  return closeHeight + (defaultHeight - closeHeight) * blend;
+}
+
+export function resolveBreachV2CameraLookAhead(
+  preferredLookAhead: number,
+  horizontalDistance: number,
+): number {
+  return Math.min(preferredLookAhead, Math.max(0, horizontalDistance * 0.6));
 }
 
 export function resolveBreachV2CameraStep(

@@ -27,6 +27,9 @@ import {
   writeBreachV2IsometricCameraPose,
 } from "../src/game/dungeons/breach-v2-preview";
 import { splitBreachV2Boundary } from "../src/game/dungeons/breach-v2-topology";
+import {
+  resolveBreachV2IsometricCameraProfile,
+} from "../src/game/dungeons/breach-v2-mobile-controls";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
 
 const layout = buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS);
@@ -168,6 +171,36 @@ describe("BREACH-V2 camera-only overhead collision", () => {
     expect(position.y).toBeGreaterThan(10.5);
     expect(position.y).toBeLessThan(10.8);
     expect(position.distanceTo(target)).toBeCloseTo(BREACH_V2_ISOMETRIC_DEFAULT_DISTANCE);
+  });
+
+  it.each([
+    { label: "compact phone", coarsePointer: true, viewportWidth: 844, viewportHeight: 390 },
+    { label: "coarse tablet", coarsePointer: true, viewportWidth: 1024, viewportHeight: 768 },
+    { label: "desktop", coarsePointer: false, viewportWidth: 1440, viewportHeight: 900 },
+  ])("keeps the $label close isometric camera behind the player", (viewport) => {
+    const profile = resolveBreachV2IsometricCameraProfile(viewport);
+    const target = new THREE.Vector3();
+    const position = new THREE.Vector3();
+    const yaw = BREACH_V2_ISOMETRIC_DEFAULT_YAW;
+    writeBreachV2IsometricCameraPose(
+      { x: 0, y: 0, z: 0 },
+      yaw,
+      Math.max(profile.minimumPitch, BREACH_V2_ISOMETRIC_DEFAULT_PITCH),
+      profile.minimumDistance,
+      target,
+      position,
+      profile,
+    );
+
+    const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+    const cameraDepth = new THREE.Vector3(position.x, 0, position.z).dot(forward);
+    expect(cameraDepth).toBeLessThan(0);
+    expect(position.distanceTo(target)).toBeCloseTo(profile.minimumDistance);
+    if (profile.closeInspection) {
+      expect(target.y).toBeCloseTo(0.845);
+    } else {
+      expect(target.y).toBeCloseTo(1.4);
+    }
   });
 
   it("waits for the animated portal leaf to clear the player capsule", () => {

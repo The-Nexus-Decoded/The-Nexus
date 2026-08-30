@@ -68,10 +68,14 @@ import {
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
   type BreachV2GraphicsMode,
   type BreachV2GraphicsQuality,
+  resolveBreachV2CameraLookAhead,
   resolveBreachV2CameraStep,
+  resolveBreachV2CameraTargetHeight,
   resolveBreachV2AutoGraphicsQuality,
+  resolveBreachV2InspectionMinimumDistance,
   resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchDistance,
+  resolveBreachV2TouchPitch,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
   setupBreachV2MobileLandscapeGate,
@@ -1251,22 +1255,29 @@ export function writeBreachV2IsometricCameraPose(
   distance: number,
   target: THREE.Vector3,
   position: THREE.Vector3,
-  profile?: { minimumPitch: number; lookAhead: number },
+  profile?: { closeInspection?: boolean; minimumPitch: number; lookAhead: number },
 ): void {
   const resolvedPitch = THREE.MathUtils.clamp(
     pitch,
     profile?.minimumPitch ?? BREACH_V2_ISOMETRIC_MIN_PITCH,
     BREACH_V2_ISOMETRIC_MAX_PITCH,
   );
-  const lookAhead = profile?.lookAhead ?? BREACH_V2_ISOMETRIC_LOOK_AHEAD;
+  const preferredLookAhead = profile?.lookAhead ?? BREACH_V2_ISOMETRIC_LOOK_AHEAD;
   const forwardX = -Math.sin(yaw);
   const forwardZ = -Math.cos(yaw);
+  const horizontalDistance = Math.cos(resolvedPitch) * distance;
+  const closeInspection = profile?.closeInspection === true;
+  const lookAhead = closeInspection
+    ? resolveBreachV2CameraLookAhead(preferredLookAhead, horizontalDistance)
+    : preferredLookAhead;
+  const targetHeight = closeInspection
+    ? resolveBreachV2CameraTargetHeight({ distance })
+    : 1.4;
   target.set(
     playerPosition.x + forwardX * lookAhead,
-    playerPosition.y + 1.4,
+    playerPosition.y + targetHeight,
     playerPosition.z + forwardZ * lookAhead,
   );
-  const horizontalDistance = Math.cos(resolvedPitch) * distance;
   position.set(
     target.x - forwardX * horizontalDistance,
     target.y + Math.sin(resolvedPitch) * distance,
@@ -4436,7 +4447,10 @@ export async function startDungeonPreview(
     enabled: coarsePointer && walkMode,
     adjustCameraDistance: (delta) => {
       if (firstPersonMode) return;
-      const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+      const minDistance = resolveBreachV2InspectionMinimumDistance({
+        coarsePointer,
+        isometric: isometricMode,
+      });
       const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
       camDist = resolveBreachV2CameraStep(camDist, delta, minDistance, maxDistance);
     },
@@ -4598,7 +4612,10 @@ export async function startDungeonPreview(
         e.preventDefault();
         const nextSpan = activePointerSpan();
         if (pinchSpan !== null && nextSpan !== null) {
-          const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+          const minDistance = resolveBreachV2InspectionMinimumDistance({
+            coarsePointer,
+            isometric: isometricMode,
+          });
           const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
           camDist = resolveBreachV2PinchDistance(
             camDist,
@@ -4622,13 +4639,18 @@ export async function startDungeonPreview(
         if (pointerTravel >= BREACH_V2_TOUCH_ROTATE_THRESHOLD) {
           pointerRotated = true;
           camYaw = resolveBreachV2TouchYaw(camYaw, movementX);
-          if (isometricMode) {
-            camPitch = THREE.MathUtils.clamp(
-              camPitch + movementY * 0.004,
-              isometricCameraProfile.minimumPitch,
-              BREACH_V2_ISOMETRIC_MAX_PITCH,
-            );
-          }
+          const minimumPitch = isometricMode
+            ? isometricCameraProfile.minimumPitch
+            : -Math.PI / 3;
+          const maximumPitch = isometricMode
+            ? BREACH_V2_ISOMETRIC_MAX_PITCH
+            : Math.PI / 3;
+          camPitch = resolveBreachV2TouchPitch(
+            camPitch,
+            movementY,
+            minimumPitch,
+            maximumPitch,
+          );
         }
         return;
       }
@@ -4649,7 +4671,10 @@ export async function startDungeonPreview(
     });
     renderer.domElement.addEventListener("wheel", (e) => {
       if (!firstPersonMode) {
-        const minDistance = isometricMode ? BREACH_V2_ISOMETRIC_MIN_DISTANCE : 2.4;
+        const minDistance = resolveBreachV2InspectionMinimumDistance({
+          coarsePointer,
+          isometric: isometricMode,
+        });
         const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
         camDist = Math.min(maxDistance, Math.max(minDistance, camDist + e.deltaY * 0.008));
       }
@@ -5095,12 +5120,15 @@ export async function startDungeonPreview(
             );
           } else {
             const cp = Math.cos(camPitch);
+            const targetHeight = coarsePointer
+              ? resolveBreachV2CameraTargetHeight({ distance: camDist })
+              : 1.4;
             desiredCamera.set(
               playerPos.x + Math.sin(camYaw) * camDist * cp,
-              playerPos.y + 1.4 + Math.sin(camPitch) * camDist,
+              playerPos.y + targetHeight + Math.sin(camPitch) * camDist,
               playerPos.z + Math.cos(camYaw) * camDist * cp,
             );
-            cameraTarget.set(playerPos.x, playerPos.y + 1.4, playerPos.z);
+            cameraTarget.set(playerPos.x, playerPos.y + targetHeight, playerPos.z);
           }
           clampDesiredCameraAboveFloor(desiredCamera, playerPos.y);
           if (updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z)) {

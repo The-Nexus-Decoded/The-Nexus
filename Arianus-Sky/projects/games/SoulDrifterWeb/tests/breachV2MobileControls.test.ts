@@ -3,11 +3,17 @@ import { describe, expect, it } from "vitest";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
+  BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+  BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE,
   BREACH_V2_MOBILE_ZOOM_STEP,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
+  resolveBreachV2CameraLookAhead,
   resolveBreachV2CameraStep,
+  resolveBreachV2CameraTargetHeight,
+  resolveBreachV2InspectionMinimumDistance,
   resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchDistance,
+  resolveBreachV2TouchPitch,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
   shouldRequireBreachV2Landscape,
@@ -31,6 +37,12 @@ describe("BREACH-V2 mobile camera pinch", () => {
     expect(resolveBreachV2PinchDistance(14.5, 120, 120)).toBe(14.5);
     expect(resolveBreachV2PinchDistance(35, 160, 40)).toBe(BREACH_V2_ISOMETRIC_MAX_DISTANCE);
     expect(resolveBreachV2PinchDistance(7, 40, 160)).toBe(BREACH_V2_ISOMETRIC_MIN_DISTANCE);
+    expect(resolveBreachV2PinchDistance(
+      3,
+      40,
+      160,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+    )).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
   });
 });
 
@@ -42,9 +54,20 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
       viewportHeight: 390,
     });
     expect(mobile.compactLandscape).toBe(true);
+    expect(mobile.closeInspection).toBe(true);
     expect(mobile.defaultPitch * 180 / Math.PI).toBeCloseTo(45);
-    expect(mobile.minimumPitch * 180 / Math.PI).toBeCloseTo(36);
+    expect(mobile.minimumPitch * 180 / Math.PI).toBeCloseTo(18);
+    expect(mobile.minimumDistance).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
     expect(mobile.lookAhead).toBe(2.25);
+
+    const tablet = resolveBreachV2IsometricCameraProfile({
+      coarsePointer: true,
+      viewportWidth: 1024,
+      viewportHeight: 768,
+    });
+    expect(tablet.compactLandscape).toBe(false);
+    expect(tablet.closeInspection).toBe(true);
+    expect(tablet.minimumDistance).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
 
     const desktop = resolveBreachV2IsometricCameraProfile({
       coarsePointer: false,
@@ -52,15 +75,21 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
       viewportHeight: 900,
     });
     expect(desktop.compactLandscape).toBe(false);
+    expect(desktop.closeInspection).toBe(false);
     expect(desktop.defaultPitch * 180 / Math.PI).toBeCloseTo(30);
     expect(desktop.minimumPitch * 180 / Math.PI).toBeCloseTo(8);
+    expect(desktop.minimumDistance).toBe(BREACH_V2_ISOMETRIC_MIN_DISTANCE);
     expect(desktop.lookAhead).toBe(4.25);
   });
 
   it("uses equal zoom steps and respects camera limits", () => {
-    expect(resolveBreachV2CameraStep(14.5, -BREACH_V2_MOBILE_ZOOM_STEP)).toBe(11);
-    expect(resolveBreachV2CameraStep(14.5, BREACH_V2_MOBILE_ZOOM_STEP)).toBe(18);
-    expect(resolveBreachV2CameraStep(7, -BREACH_V2_MOBILE_ZOOM_STEP)).toBe(BREACH_V2_ISOMETRIC_MIN_DISTANCE);
+    expect(resolveBreachV2CameraStep(14.5, -BREACH_V2_MOBILE_ZOOM_STEP)).toBe(13);
+    expect(resolveBreachV2CameraStep(14.5, BREACH_V2_MOBILE_ZOOM_STEP)).toBe(16);
+    expect(resolveBreachV2CameraStep(
+      3,
+      -BREACH_V2_MOBILE_ZOOM_STEP,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+    )).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
     expect(resolveBreachV2CameraStep(35, BREACH_V2_MOBILE_ZOOM_STEP)).toBe(BREACH_V2_ISOMETRIC_MAX_DISTANCE);
   });
 
@@ -80,6 +109,51 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
     expect(BREACH_V2_TOUCH_ROTATE_THRESHOLD).toBe(12);
     expect(resolveBreachV2TouchYaw(Math.PI / 4, 40)).toBeCloseTo(Math.PI / 4 - 0.3);
     expect(resolveBreachV2TouchYaw(Math.PI / 4, -40)).toBeCloseTo(Math.PI / 4 + 0.3);
+  });
+
+  it("allows a deliberate low inspection angle without collapsing on a short drag", () => {
+    const minimumPitch = Math.PI / 10;
+    const maximumPitch = Math.PI * 58 / 180;
+    expect(resolveBreachV2TouchPitch(
+      Math.PI / 4,
+      -40,
+      minimumPitch,
+      maximumPitch,
+    ) * 180 / Math.PI).toBeCloseTo(40.42, 1);
+    expect(resolveBreachV2TouchPitch(
+      Math.PI / 4,
+      -400,
+      minimumPitch,
+      maximumPitch,
+    )).toBeCloseTo(minimumPitch);
+    expect(resolveBreachV2TouchPitch(
+      0,
+      1000,
+      -Math.PI / 3,
+      Math.PI / 3,
+    )).toBeCloseTo(Math.PI / 3);
+  });
+
+  it("uses mobile-only close inspection distances while preserving desktop limits", () => {
+    expect(resolveBreachV2InspectionMinimumDistance({ coarsePointer: true, isometric: true }))
+      .toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
+    expect(resolveBreachV2InspectionMinimumDistance({ coarsePointer: true, isometric: false }))
+      .toBe(BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE);
+    expect(resolveBreachV2InspectionMinimumDistance({ coarsePointer: false, isometric: true }))
+      .toBe(BREACH_V2_ISOMETRIC_MIN_DISTANCE);
+    expect(resolveBreachV2InspectionMinimumDistance({ coarsePointer: false, isometric: false }))
+      .toBe(2.4);
+  });
+
+  it("lowers and recenters close-range framing without crossing the subject", () => {
+    expect(resolveBreachV2CameraTargetHeight({
+      distance: BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      actorHeight: 1.69,
+    })).toBeCloseTo(0.845);
+    expect(resolveBreachV2CameraTargetHeight({ distance: BREACH_V2_ISOMETRIC_MIN_DISTANCE }))
+      .toBeCloseTo(1.4);
+    expect(resolveBreachV2CameraLookAhead(2.25, 1.5)).toBeCloseTo(0.9);
+    expect(resolveBreachV2CameraLookAhead(2.25, 10)).toBeCloseTo(2.25);
   });
 });
 
