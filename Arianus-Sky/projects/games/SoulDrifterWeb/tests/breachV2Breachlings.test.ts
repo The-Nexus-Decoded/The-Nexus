@@ -20,11 +20,19 @@ function source(): GLTF {
   const jaw = new THREE.Group();
   jaw.name = "jaw";
   jaw.position.set(0, 0.8, 0.7);
-  scene.add(body, jaw);
+  const animationProbe = new THREE.Group();
+  animationProbe.name = "animation_probe";
+  scene.add(body, jaw, animationProbe);
   return {
     scene,
     scenes: [scene],
-    animations: BREACHLING_UPPER_ACTIONS.map((name) => new THREE.AnimationClip(name, 1, [])),
+    animations: BREACHLING_UPPER_ACTIONS.map((name) => new THREE.AnimationClip(
+      name,
+      1,
+      name === "ClawAttack"
+        ? [new THREE.NumberKeyframeTrack("animation_probe.position[x]", [0, 1], [0, 2])]
+        : [],
+    )),
     cameras: [],
     asset: {},
     parser: {} as GLTF["parser"],
@@ -69,6 +77,10 @@ describe("BREACH-V2 Breachling runtime", () => {
     expect(runtime.snapshots().every((actor) => actor.groundingStatus === "calibrated-live-pose")).toBe(true);
     expect(runtime.snapshots().every((actor) => Math.abs(actor.groundingClearanceMeters ?? 1) < 0.002)).toBe(true);
     const upperActor = runtime.snapshots().find((actor) => actor.actionNames.includes("SpitAttack"))!;
+    runtime.pose(upperActor.id, "ClawAttack", 0.5);
+    expect(runtime.snapshots().find((actor) => actor.id === upperActor.id)?.currentClip).toBe("ClawAttack");
+    expect(runtime.snapshots().find((actor) => actor.id === upperActor.id)?.groundingStatus).toBe("pending");
+    expect(scene.getObjectByName(upperActor.id)?.getObjectByName("animation_probe")?.position.x).toBeCloseTo(1);
     runtime.play(upperActor.id, "SpitAttack");
     runtime.update(room.x + room.w / 2, room.z + room.h / 2, 0.6);
     expect(scene.getObjectByName(`${upperActor.id}:poison-spit`)).toBeTruthy();

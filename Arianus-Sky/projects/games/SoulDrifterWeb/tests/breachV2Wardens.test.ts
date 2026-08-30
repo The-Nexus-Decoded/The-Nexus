@@ -69,11 +69,19 @@ function source(): GLTF {
   const hand = new THREE.Group();
   hand.name = "hand_L";
   hand.position.set(1.3, 1.9, 0.3);
-  scene.add(body, shoulder, forearms, thighs, hand);
+  const animationProbe = new THREE.Group();
+  animationProbe.name = "animation_probe";
+  scene.add(body, shoulder, forearms, thighs, hand, animationProbe);
   return {
     scene,
     scenes: [scene],
-    animations: CINDERBOUND_WARDEN_ACTIONS.map((name) => new THREE.AnimationClip(name, 1, [])),
+    animations: CINDERBOUND_WARDEN_ACTIONS.map((name) => new THREE.AnimationClip(
+      name,
+      1,
+      name === "BladeSweep"
+        ? [new THREE.NumberKeyframeTrack("animation_probe.position[x]", [0, 1], [0, 2])]
+        : [],
+    )),
     cameras: [],
     asset: {},
     parser: {} as GLTF["parser"],
@@ -382,6 +390,11 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     for (let index = 0; index < 3; index += 1) runtime.update(placement.x, placement.z, 1 / 60);
     expect(runtime.snapshots()[0]?.groundingStatus).toBe("calibrated-live-pose");
     expect(Math.abs(runtime.snapshots()[0]?.groundingClearanceMeters ?? 1)).toBeLessThan(0.002);
+
+    runtime.pose("BladeSweep", 0.5);
+    expect(runtime.snapshots()[0]?.currentClip).toBe("BladeSweep");
+    expect(runtime.snapshots()[0]?.groundingStatus).toBe("pending");
+    expect(scene.getObjectByName(placement.id)?.getObjectByName("animation_probe")?.position.x).toBeCloseTo(1);
 
     runtime.setDamageFraction(0.61);
     expect(runtime.snapshots()[0]?.detachedStages).toEqual([30, 60]);

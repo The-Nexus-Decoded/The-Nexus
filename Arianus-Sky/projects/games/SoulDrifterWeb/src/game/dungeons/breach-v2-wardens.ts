@@ -68,6 +68,7 @@ export const CINDERBOUND_BREAKOFF_STAGES = Object.freeze([
 const LOOPING_ACTIONS: ReadonlySet<string> = new Set([
   "CombatIdle", "HeadLook", "HeavyRun", "HeavyWalk", "Idle",
 ]);
+const ACTION_TRANSITION_SECONDS = 0.32;
 
 export interface CinderboundWardenPlacement {
   id: string;
@@ -404,17 +405,24 @@ export function createBreachV2WardenRuntime(
     actor.presentationMaterials.forEach((material) => material.dispose());
     actor = null;
   };
-  const playActor = (runtimeActor: RuntimeActor, clipName: string): number => {
+  const playActor = (runtimeActor: RuntimeActor, clipName: string, immediate = false): number => {
     const action = runtimeActor.actions.get(clipName);
     if (!action) throw new Error(`${asset.label} does not provide ${clipName}.`);
     const loops = LOOPING_ACTIONS.has(clipName);
-    if (runtimeActor.currentAction !== action) runtimeActor.currentAction.fadeOut(0.16);
-    action.reset();
+    if (immediate) {
+      runtimeActor.mixer.stopAllAction();
+    } else if (runtimeActor.currentAction !== action) {
+      runtimeActor.currentAction.fadeOut(ACTION_TRANSITION_SECONDS);
+    }
+    action.reset().stopFading().stopWarping();
     action.enabled = true;
     action.paused = false;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(1);
     action.clampWhenFinished = !loops;
     action.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
-    action.fadeIn(0.16).play();
+    if (!immediate && runtimeActor.currentAction !== action) action.fadeIn(ACTION_TRANSITION_SECONDS);
+    action.play();
     runtimeActor.currentAction = action;
     runtimeActor.currentClip = clipName;
     runtimeActor.effectFired = false;
@@ -701,7 +709,7 @@ export function createBreachV2WardenRuntime(
     play: (clipName) => playActor(actor ?? (() => { throw new Error("The Warden is not loaded."); })(), clipName),
     pose: (clipName, normalizedTime) => {
       if (!actor) throw new Error("The Warden is not loaded.");
-      const duration = playActor(actor, clipName);
+      const duration = playActor(actor, clipName, true);
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
       actor.mixer.update(0);

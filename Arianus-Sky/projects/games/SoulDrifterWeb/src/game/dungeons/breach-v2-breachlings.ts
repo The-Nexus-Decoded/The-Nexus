@@ -49,6 +49,7 @@ export const BREACHLING_UPPER_ACTIONS = Object.freeze([
   "SpitAttack",
 ]);
 const LOOPING_ACTIONS: ReadonlySet<string> = new Set(["Idle", "CombatIdle", "Walk", "Run"]);
+const ACTION_TRANSITION_SECONDS = 0.28;
 const UPPER_TIERS: ReadonlySet<BreachlingTier> = new Set(["oathbound", "ravager"]);
 const ROOM_OFFSETS: readonly (readonly [number, number])[] = [
   [-0.23, -0.2], [0.23, 0.18], [0.04, -0.27], [-0.24, 0.22], [0.25, -0.16], [0.02, 0.26],
@@ -293,19 +294,29 @@ export function createBreachV2BreachlingRuntime(
     });
     actors.clear();
   };
-  const playActor = (actor: RuntimeActor, clipName: string): number => {
+  const playActor = (actor: RuntimeActor, clipName: string, immediate = false): number => {
     const action = actor.actions.get(clipName);
     if (!action) throw new Error(`${actor.placement.id} does not provide ${clipName}.`);
     const loops = LOOPING_ACTIONS.has(clipName);
-    if (actor.currentAction !== action) actor.currentAction.fadeOut(0.18);
-    action.reset();
+    if (immediate) {
+      actor.mixer.stopAllAction();
+    } else if (actor.currentAction !== action) {
+      actor.currentAction.fadeOut(ACTION_TRANSITION_SECONDS);
+    }
+    action.reset().stopFading().stopWarping();
     action.enabled = true;
     action.paused = false;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(1);
     action.clampWhenFinished = !loops;
     action.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
-    action.fadeIn(0.18).play();
+    if (!immediate && actor.currentAction !== action) action.fadeIn(ACTION_TRANSITION_SECONDS);
+    action.play();
     actor.currentAction = action;
     actor.currentClip = clipName;
+    actor.groundingStatus = "pending";
+    actor.groundingFrames = 0;
+    actor.groundingClearanceMeters = null;
     actor.spitFired = false;
     return action.getClip().duration;
   };
@@ -347,7 +358,8 @@ export function createBreachV2BreachlingRuntime(
       currentAction: idle, currentClip: "Idle", groundingStatus: "pending", groundingFrames: 0,
       groundingClearanceMeters: null, spitFired: false,
     };
-    mixer.addEventListener("finished", () => {
+    mixer.addEventListener("finished", (event) => {
+      if (event.action !== actor.currentAction) return;
       if (actor.currentClip !== "Death") playActor(actor, "CombatIdle");
     });
     playActor(actor, "Idle");
@@ -436,7 +448,7 @@ export function createBreachV2BreachlingRuntime(
     pose: (actorId, clipName, normalizedTime) => {
       const actor = actors.get(actorId);
       if (!actor) throw new Error(`Unknown Breachling ${actorId}.`);
-      const duration = playActor(actor, clipName);
+      const duration = playActor(actor, clipName, true);
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
       actor.mixer.update(0);
