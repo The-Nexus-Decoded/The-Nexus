@@ -129,6 +129,19 @@ export interface BreachV2ReviewActorSelection {
   actorId: string;
 }
 
+export type BreachV2PreviewCameraMode = BreachV2GameplayCameraMode | "overview";
+
+export function resolveBreachV2PreviewCameraMode(
+  requestedMode: string,
+  legacyLandmarkRoomId: string | null,
+): BreachV2PreviewCameraMode {
+  if (legacyLandmarkRoomId) return "isometric";
+  if (requestedMode === "walk" || requestedMode === "firstperson" || requestedMode === "overview") {
+    return requestedMode;
+  }
+  return "isometric";
+}
+
 export interface BreachV2ReviewActorHit extends BreachV2ReviewActorSelection {
   focus: THREE.Vector3;
 }
@@ -181,7 +194,7 @@ interface PreviewHooks {
   __dungeonFrames: number;
   __dungeonLoopError: string | null;
   __dungeonStats: { calls: number; triangles: number; geometries: number; textures: number };
-  __dungeonMode: string;
+  __dungeonMode: BreachV2PreviewCameraMode;
   __dungeonCameraDistance: () => number;
   __dungeonCameraYaw: () => number;
   __dungeonFogOfWar: () => {
@@ -4091,7 +4104,7 @@ export async function startDungeonPreview(
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
   const legacyLandmarkRoomId = resolveBreachV2LegacyLandmarkRoomId(options.cam, layout.rooms);
-  let activeCameraMode = legacyLandmarkRoomId ? "isometric" : options.cam;
+  let activeCameraMode = resolveBreachV2PreviewCameraMode(options.cam, legacyLandmarkRoomId);
   const environmentConfigs = buildBreachV2EnvironmentObjectConfigs(layout);
   const cofferObjectId = environmentConfigs.find((config) => (
     config.destructionClass === "INTERACTABLE_CONTAINER"
@@ -4981,7 +4994,7 @@ export async function startDungeonPreview(
   hooks.__dungeonFrames = 0;
   hooks.__dungeonLoopError = null;
   hooks.__dungeonStats = { calls: 0, triangles: 0, geometries: 0, textures: 0 };
-  hooks.__dungeonMode = walkMode ? "walk" : "orbit";
+  hooks.__dungeonMode = activeCameraMode;
   hooks.__dungeonCameraDistance = () => camDist;
   hooks.__dungeonCameraYaw = () => camYaw;
   hooks.__dungeonFogOfWar = () => fogOfWar.snapshot();

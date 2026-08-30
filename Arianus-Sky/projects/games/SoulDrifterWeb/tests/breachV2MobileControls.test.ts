@@ -34,6 +34,7 @@ import {
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
 import {
   applyBreachV2InspectionFocus,
+  resolveBreachV2PreviewCameraMode,
   resolveBreachV2ReviewActorSelection,
 } from "../src/game/dungeons/breach-v2-preview";
 import {
@@ -411,5 +412,14 @@ describe("BREACH-V2 preview landmark navigation", () => {
     expect(resolveBreachV2LegacyLandmarkRoomId("exit", rooms)).toBe("exit-connector");
     expect(resolveBreachV2LegacyLandmarkRoomId("isometric", rooms)).toBeNull();
     expect(resolveBreachV2LegacyLandmarkRoomId("overview", rooms)).toBeNull();
+  });
+
+  it("reports the same canonical camera mode before and after transitions", () => {
+    expect(resolveBreachV2PreviewCameraMode("isometric", null)).toBe("isometric");
+    expect(resolveBreachV2PreviewCameraMode("walk", null)).toBe("walk");
+    expect(resolveBreachV2PreviewCameraMode("firstperson", null)).toBe("firstperson");
+    expect(resolveBreachV2PreviewCameraMode("overview", null)).toBe("overview");
+    expect(resolveBreachV2PreviewCameraMode("boss", "ashen-lock")).toBe("isometric");
+    expect(resolveBreachV2PreviewCameraMode("unknown", null)).toBe("isometric");
   });
 });
