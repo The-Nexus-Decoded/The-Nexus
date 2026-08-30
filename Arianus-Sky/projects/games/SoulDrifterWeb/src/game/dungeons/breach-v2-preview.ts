@@ -63,6 +63,7 @@ import {
   consumeBreachV2CameraSwitchPosition,
   saveBreachV2CameraSwitchPosition,
 } from "./breach-v2-startup-safety.ts";
+import { createBreachV2RuntimeDiagnostics } from "./breach-v2-runtime-diagnostics.ts";
 import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
@@ -4133,6 +4134,17 @@ export async function startDungeonPreview(
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d10);
   scene.fog = new THREE.FogExp2(0x0d0f14, 0.0055);
+  const diagnostics = previewUrl.searchParams.get("diagnostics") === "1"
+    ? createBreachV2RuntimeDiagnostics({
+      container,
+      renderer,
+      scene,
+      cameraMode: activeCameraMode,
+      seed: options.seed,
+      path: options.path,
+      revision: previewUrl.searchParams.get("rev") ?? "working-tree",
+    })
+    : null;
 
   const applyGraphicsQuality = (quality: BreachV2GraphicsQuality): void => {
     graphicsQuality = quality;
@@ -4151,8 +4163,12 @@ export async function startDungeonPreview(
   controls.dampingFactor = 0.08;
   controls.maxDistance = 180;
 
-  const texLoader = new THREE.TextureLoader();
-  const gltfLoader = new GLTFLoader();
+  const loadingManager = new THREE.LoadingManager();
+  loadingManager.onStart = (url, loaded, total) => diagnostics?.record("asset-batch-start", { url, loaded, total });
+  loadingManager.onLoad = () => diagnostics?.record("asset-batch-complete", {});
+  loadingManager.onError = (url) => diagnostics?.record("asset-load-failure", { url });
+  const texLoader = new THREE.TextureLoader(loadingManager);
+  const gltfLoader = new GLTFLoader(loadingManager);
   gltfLoader.setMeshoptDecoder(MeshoptDecoder); // kit GLBs are meshopt-compressed
 
   const materials = loadShellTextures(texLoader);
@@ -4435,6 +4451,7 @@ export async function startDungeonPreview(
     layout,
     gltfLoader,
     options.path,
+    diagnostics ?? undefined,
   );
   await wardenRuntime.warmAt(playerPos.x, playerPos.z);
   let wardenAnimationReview: BreachV2WardenReview | null = null;
@@ -4786,6 +4803,10 @@ export async function startDungeonPreview(
     await compileBreachV2StartupShaders(renderer, scene, camera);
     scene.userData.gpuWarmup = { mode: "shaders-only" };
   } catch (error) {
+    diagnostics?.record("shader-warmup-failure", {
+      cameraMode: activeCameraMode,
+      error: error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error),
+    });
     console.warn("BREACH-V2 shader compilation was unavailable; continuing with lazy initialization", error);
   }
   loading.remove();
@@ -4919,7 +4940,13 @@ export async function startDungeonPreview(
     seed: options.seed,
     path: options.path,
     cam: activeCameraMode,
-    beforeCameraModeChange: () => {
+    beforeCameraModeChange: (nextCameraMode) => {
+      diagnostics?.record("camera-mode-transition", {
+        from: activeCameraMode,
+        to: nextCameraMode,
+        player: { x: playerPos.x, y: playerPos.y, z: playerPos.z },
+        behavior: "full-page-reload",
+      });
       saveBreachV2CameraSwitchPosition(window.sessionStorage, {
         seed: options.seed,
         path: options.path,
@@ -5029,6 +5056,9 @@ export async function startDungeonPreview(
   };
   updateDetailVisibility();
   let cullFrames = 0;
+  const frameLoopFailureHistory = new Map<string, { lastRecordedAtMs: number; suppressed: number }>();
+  let frameLoopFailureWindowStartedAtMs = Number.NEGATIVE_INFINITY;
+  let frameLoopFailureRecordsInWindow = 0;
 
   renderer.setAnimationLoop((frameMs) => {
     const targetFps = graphicsQuality === "low" ? 30 : graphicsQuality === "standard" ? 45 : 60;
@@ -5239,6 +5269,11 @@ export async function startDungeonPreview(
       cullFrames += 1;
       if (cullFrames % 20 === 0) updateDetailVisibility();
       renderer.render(scene, camera);
+      diagnostics?.sample(delta, {
+        cameraMode: activeCameraMode,
+        camera,
+        player: playerPos,
+      });
       hooks.__dungeonFrames += 1;
       hooks.__dungeonStats = {
         calls: renderer.info.render.calls,
@@ -5265,7 +5300,35 @@ export async function startDungeonPreview(
       }
     } catch (error) {
       hooks.__dungeonLoopError = error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error);
-      console.error("dungeon preview loop error", error);
+      if (frameMs - frameLoopFailureWindowStartedAtMs >= 5_000) {
+        frameLoopFailureWindowStartedAtMs = frameMs;
+        frameLoopFailureRecordsInWindow = 0;
+      }
+      let failureState = frameLoopFailureHistory.get(hooks.__dungeonLoopError);
+      if (!failureState) {
+        if (frameLoopFailureHistory.size >= 8) {
+          const oldest = [...frameLoopFailureHistory.entries()]
+            .sort((left, right) => left[1].lastRecordedAtMs - right[1].lastRecordedAtMs)[0];
+          if (oldest) frameLoopFailureHistory.delete(oldest[0]);
+        }
+        failureState = { lastRecordedAtMs: Number.NEGATIVE_INFINITY, suppressed: 0 };
+        frameLoopFailureHistory.set(hooks.__dungeonLoopError, failureState);
+      }
+      const signatureIsDue = frameMs - failureState.lastRecordedAtMs >= 5_000;
+      if (signatureIsDue && frameLoopFailureRecordsInWindow < 8) {
+        diagnostics?.record("frame-loop-failure", {
+          cameraMode: activeCameraMode,
+          frame: hooks.__dungeonFrames,
+          error: hooks.__dungeonLoopError,
+          suppressedRepeats: failureState.suppressed,
+        });
+        console.error("dungeon preview loop error", error);
+        failureState.lastRecordedAtMs = frameMs;
+        failureState.suppressed = 0;
+        frameLoopFailureRecordsInWindow += 1;
+      } else {
+        failureState.suppressed += 1;
+      }
     }
   });
 
@@ -5300,4 +5363,7 @@ export async function startDungeonPreview(
   const viewportObserver = new ResizeObserver(syncViewport);
   viewportObserver.observe(container);
   syncViewport();
+  if (diagnostics) {
+    window.addEventListener("pagehide", () => diagnostics.dispose(), { once: true });
+  }
 }

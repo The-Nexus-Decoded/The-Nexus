@@ -9,22 +9,56 @@ import {
   CINDERBOUND_WARDEN_ASSETS,
   buildCinderboundWardenPlacement,
   createBreachV2WardenRuntime,
+  inspectCinderboundWardenMaterialReadiness,
 } from "../src/game/dungeons/breach-v2-wardens";
 import { buildBreachV2Layout } from "../src/game/dungeons/breach-v2-layout";
 import { DUNGEON_PROP_ASSETS } from "../src/game/environment/DungeonPropCatalog";
+import {
+  BREACH_V2_RUNTIME_DIAGNOSTICS_STORAGE_KEY,
+  appendBreachV2RuntimeDiagnostic,
+  readBreachV2RuntimeDiagnostics,
+  type BreachV2RuntimeDiagnosticRecord,
+} from "../src/game/dungeons/breach-v2-runtime-diagnostics";
+
+function createDiagnosticStorage(initial?: string, failWrites = false) {
+  const entries = new Map<string, string>();
+  if (initial !== undefined) entries.set(BREACH_V2_RUNTIME_DIAGNOSTICS_STORAGE_KEY, initial);
+  return {
+    getItem: (key: string) => entries.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      if (failWrites) throw new Error("storage blocked");
+      entries.set(key, value);
+    },
+  };
+}
+
+function diagnosticRecord(index: number): BreachV2RuntimeDiagnosticRecord {
+  return {
+    timestamp: `2026-08-30T01:00:0${index}.000Z`,
+    sessionId: "test-session",
+    event: `event-${index}`,
+    data: { index },
+  };
+}
 
 function source(): GLTF {
   const scene = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 1.2), new THREE.MeshStandardMaterial());
+  const map = new THREE.Texture();
+  map.image = { width: 8192, height: 8192 };
+  const material = new THREE.MeshStandardMaterial({ map });
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, 3.5, 1.2),
+    material,
+  );
   body.name = "Cinderbound_Warden_Body";
   body.position.y = 1.75;
-  const shoulder = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.55, 1.25), new THREE.MeshBasicMaterial());
+  const shoulder = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.55, 1.25), material);
   shoulder.name = "Breakoff_30_Shoulders";
   shoulder.position.y = 2.8;
-  const forearms = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.65, 0.65), new THREE.MeshBasicMaterial());
+  const forearms = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.65, 0.65), material);
   forearms.name = "Breakoff_60_Forearms";
   forearms.position.y = 1.85;
-  const thighs = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 0.75), new THREE.MeshBasicMaterial());
+  const thighs = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 0.75), material);
   thighs.name = "Breakoff_90_Thighs";
   thighs.position.y = 0.85;
   const hand = new THREE.Group();
@@ -43,6 +77,69 @@ function source(): GLTF {
 }
 
 describe("BREACH-V2 Cinderbound Warden runtime", () => {
+  it("keeps a bounded persistent diagnostic ring and recovers malformed storage", () => {
+    const storage = createDiagnosticStorage();
+    for (let index = 0; index < 5; index += 1) {
+      appendBreachV2RuntimeDiagnostic(storage, diagnosticRecord(index), 3);
+    }
+    expect(readBreachV2RuntimeDiagnostics(storage).map((entry) => entry.event))
+      .toEqual(["event-2", "event-3", "event-4"]);
+
+    const malformed = createDiagnosticStorage("not-json");
+    expect(readBreachV2RuntimeDiagnostics(malformed)).toEqual([]);
+    appendBreachV2RuntimeDiagnostic(malformed, diagnosticRecord(1));
+    expect(readBreachV2RuntimeDiagnostics(malformed)).toEqual([diagnosticRecord(1)]);
+
+    const blocked = createDiagnosticStorage(undefined, true);
+    let inMemory: BreachV2RuntimeDiagnosticRecord[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      inMemory = appendBreachV2RuntimeDiagnostic(blocked, diagnosticRecord(index), 3, inMemory);
+    }
+    expect(inMemory.map((entry) => entry.event)).toEqual(["event-2", "event-3", "event-4"]);
+    expect(readBreachV2RuntimeDiagnostics(blocked)).toEqual([]);
+  });
+
+  it("audits every renderable material slot and counts a shared decoded map once", () => {
+    const readyImage = { width: 8192, height: 8192 };
+    const sharedMap = new THREE.Texture();
+    sharedMap.image = readyImage;
+    const valid = new THREE.Group();
+    valid.add(
+      new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial({ map: sharedMap })),
+      new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial({ map: sharedMap })),
+    );
+    expect(inspectCinderboundWardenMaterialReadiness(valid)).toEqual(expect.objectContaining({
+      ready: true,
+      materialCount: 2,
+      standardMaterialCount: 2,
+      mappedMaterialCount: 2,
+      readyMapCount: 2,
+      estimatedDecodedRgbaBytes: 268435456,
+    }));
+
+    const missing = new THREE.Group();
+    missing.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()));
+    expect(inspectCinderboundWardenMaterialReadiness(missing)).toEqual(expect.objectContaining({
+      ready: false,
+      missingMapMaterials: expect.arrayContaining([expect.any(String)]),
+    }));
+
+    const pendingMap = new THREE.Texture();
+    const pending = new THREE.Group();
+    pending.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial({ map: pendingMap })));
+    expect(inspectCinderboundWardenMaterialReadiness(pending)).toEqual(expect.objectContaining({
+      ready: false,
+      unreadyMapMaterials: expect.arrayContaining([expect.any(String)]),
+    }));
+
+    const unsupported = new THREE.Group();
+    unsupported.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({ map: sharedMap })));
+    expect(inspectCinderboundWardenMaterialReadiness(unsupported)).toEqual(expect.objectContaining({
+      ready: false,
+      unsupportedMaterialTypes: ["MeshBasicMaterial"],
+    }));
+  });
+
   it("preserves the two selected source identities, local actions, and damage stages", () => {
     expect(CINDERBOUND_WARDEN_ASSETS.wayfarer.tripoModelId).toBe("c609af31-3f47-450b-be5e-664d78ad36af");
     expect(CINDERBOUND_WARDEN_ASSETS.oathbreaker.tripoModelId).toBe("248467bb-1824-46d1-9d2a-5d8a1d3147cf");
@@ -55,13 +152,41 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     expect(filterWardenActions(CINDERBOUND_WARDEN_ACTIONS, "palm fire")).toEqual(["PalmFire"]);
   });
 
+  it("records a caught room-activation failure instead of leaving it only in the console", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildCinderboundWardenPlacement(layout, "oathbreaker");
+    const diagnosticEvents: { event: string; data?: Record<string, unknown> }[] = [];
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const runtime = createBreachV2WardenRuntime(
+      new THREE.Scene(),
+      layout,
+      { loadAsync: vi.fn(async () => { throw new Error("texture upload failed"); }) },
+      "oathbreaker",
+      { record: (event, data) => diagnosticEvents.push({ event, data }) },
+    );
+
+    runtime.update(placement.x, placement.z, 1 / 60);
+    await vi.waitFor(() => {
+      expect(diagnosticEvents).toContainEqual(expect.objectContaining({
+        event: "warden-runtime-activation-failure",
+        data: expect.objectContaining({ error: expect.stringContaining("texture upload failed") }),
+      }));
+    });
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+    runtime.dispose();
+  });
+
   it("loads only in the boss room, fires from the palm, and drops staged sections", async () => {
     const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
     const placement = buildCinderboundWardenPlacement(layout, "oathbreaker");
     const start = layout.landmarks.playerStart;
     const loadAsync = vi.fn(async () => source());
+    const diagnosticEvents: { event: string; data?: Record<string, unknown> }[] = [];
     const scene = new THREE.Scene();
-    const runtime = createBreachV2WardenRuntime(scene, layout, { loadAsync }, "oathbreaker");
+    const runtime = createBreachV2WardenRuntime(scene, layout, { loadAsync }, "oathbreaker", {
+      record: (event, data) => diagnosticEvents.push({ event, data }),
+    });
 
     await runtime.warmAt(start.x, start.z);
     expect(runtime.snapshots()).toEqual([]);
@@ -78,6 +203,15 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     expect(wardenMaterial.metalness).toBe(0.48);
     expect(wardenMaterial.emissive.getHex()).toBe(0x201815);
     expect(wardenMaterial.userData.cinderboundPresentation).toBe("dark-iron-ember-v2");
+    expect(inspectCinderboundWardenMaterialReadiness(scene).ready).toBe(true);
+    expect(diagnosticEvents).toContainEqual(expect.objectContaining({
+      event: "warden-material-readiness",
+      data: expect.objectContaining({
+        ready: true,
+        maxTextureDimension: 8192,
+        estimatedDecodedRgbaBytes: 268435456,
+      }),
+    }));
     expect(scene.getObjectByName(`${placement.id}:furnace-light`)).toBeInstanceOf(THREE.PointLight);
     for (let index = 0; index < 3; index += 1) runtime.update(placement.x, placement.z, 1 / 60);
     expect(runtime.snapshots()[0]?.groundingStatus).toBe("calibrated-live-pose");

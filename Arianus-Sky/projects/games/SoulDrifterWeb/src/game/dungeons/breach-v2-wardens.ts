@@ -7,6 +7,7 @@ import {
   measureAnimatedPoseGrounding,
 } from "../animationPacks";
 import type { BreachV2Layout } from "./breach-v2-layout";
+import type { BreachV2RuntimeDiagnosticSink } from "./breach-v2-runtime-diagnostics";
 
 export type CinderboundWardenKind = "wayfarer" | "oathbreaker";
 
@@ -133,6 +134,87 @@ interface RuntimeEffect {
   ageSeconds: number;
   lifetimeSeconds: number;
   material?: THREE.MeshBasicMaterial;
+}
+
+export interface CinderboundWardenMaterialReadiness {
+  ready: boolean;
+  meshCount: number;
+  materialCount: number;
+  standardMaterialCount: number;
+  mappedMaterialCount: number;
+  readyMapCount: number;
+  missingMapMaterials: string[];
+  unreadyMapMaterials: string[];
+  unsupportedMaterialTypes: string[];
+  maxTextureDimension: number;
+  estimatedDecodedRgbaBytes: number;
+}
+
+export function inspectCinderboundWardenMaterialReadiness(
+  model: THREE.Object3D,
+): CinderboundWardenMaterialReadiness {
+  const materials = new Map<string, THREE.Material>();
+  const standardMaterials = new Map<string, THREE.MeshStandardMaterial>();
+  let meshCount = 0;
+  model.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    meshCount += 1;
+    const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
+    meshMaterials.forEach((material) => {
+      materials.set(material.uuid, material);
+      if (material instanceof THREE.MeshStandardMaterial) standardMaterials.set(material.uuid, material);
+    });
+  });
+  const missingMapMaterials: string[] = [];
+  const unreadyMapMaterials: string[] = [];
+  const unsupportedMaterialTypes = new Set<string>();
+  const images = new Map<unknown, { width: number; height: number }>();
+  let mappedMaterialCount = 0;
+  let readyMapCount = 0;
+  for (const material of materials.values()) {
+    const label = material.name || material.uuid;
+    if (!(material instanceof THREE.MeshStandardMaterial)) unsupportedMaterialTypes.add(material.type);
+    const map = "map" in material && material.map instanceof THREE.Texture ? material.map : null;
+    if (!map) {
+      missingMapMaterials.push(label);
+      continue;
+    }
+    mappedMaterialCount += 1;
+    const image = map.image as { width?: number; height?: number; complete?: boolean } | undefined;
+    const width = Number(image?.width ?? 0);
+    const height = Number(image?.height ?? 0);
+    if (!(width > 0) || !(height > 0) || image?.complete === false) {
+      unreadyMapMaterials.push(label);
+      continue;
+    }
+    readyMapCount += 1;
+    images.set(image, { width, height });
+  }
+  const imageSizes = [...images.values()];
+  const maxTextureDimension = imageSizes.reduce(
+    (maximum, image) => Math.max(maximum, image.width, image.height),
+    0,
+  );
+  const estimatedDecodedRgbaBytes = imageSizes.reduce(
+    (total, image) => total + image.width * image.height * 4,
+    0,
+  );
+  return {
+    ready: materials.size > 0
+      && standardMaterials.size === materials.size
+      && mappedMaterialCount === materials.size
+      && readyMapCount === mappedMaterialCount,
+    meshCount,
+    materialCount: materials.size,
+    standardMaterialCount: standardMaterials.size,
+    mappedMaterialCount,
+    readyMapCount,
+    missingMapMaterials,
+    unreadyMapMaterials,
+    unsupportedMaterialTypes: [...unsupportedMaterialTypes].sort(),
+    maxTextureDimension,
+    estimatedDecodedRgbaBytes,
+  };
 }
 
 export function buildCinderboundWardenPlacement(
@@ -274,6 +356,7 @@ export function createBreachV2WardenRuntime(
   layout: BreachV2Layout,
   loader: Pick<GLTFLoader, "loadAsync">,
   path: CinderboundWardenKind,
+  diagnostics?: BreachV2RuntimeDiagnosticSink,
 ): BreachV2WardenRuntime {
   const placement = buildCinderboundWardenPlacement(layout, path);
   const asset = CINDERBOUND_WARDEN_ASSETS[path];
@@ -392,6 +475,11 @@ export function createBreachV2WardenRuntime(
     const model = cloneSkeleton(source.scene);
     model.name = `${asset.label} model`;
     const presentationMaterials = prepareCinderboundWardenMaterials(model, path);
+    diagnostics?.record("warden-material-readiness", {
+      label: asset.label,
+      url: asset.url,
+      ...inspectCinderboundWardenMaterialReadiness(model),
+    });
     model.updateMatrixWorld(true);
     const sourceHeight = new THREE.Box3().setFromObject(model, true).getSize(new THREE.Vector3()).y;
     if (!(sourceHeight > 0)) throw new Error(`${asset.label} has no finite height.`);
@@ -474,7 +562,24 @@ export function createBreachV2WardenRuntime(
       clearActor();
       return;
     }
-    sourcePromise ??= loader.loadAsync(asset.url);
+    sourcePromise ??= (() => {
+      diagnostics?.record("warden-asset-load-start", { label: asset.label, url: asset.url });
+      return loader.loadAsync(asset.url).then((source) => {
+        diagnostics?.record("warden-asset-load-success", {
+          label: asset.label,
+          url: asset.url,
+          animations: source.animations.length,
+        });
+        return source;
+      }).catch((error: unknown) => {
+        diagnostics?.record("warden-asset-load-failure", {
+          label: asset.label,
+          url: asset.url,
+          error: error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error),
+        });
+        throw error;
+      });
+    })();
     const source = await sourcePromise;
     if (token !== activationToken) return;
     clearActor();
@@ -486,6 +591,11 @@ export function createBreachV2WardenRuntime(
     update: (playerX, playerZ, deltaSeconds) => {
       latestPlayer.set(playerX, placement.floorElevation, playerZ);
       void activateRoom(roomIdAt(layout, playerX, playerZ)).catch((error) => {
+        diagnostics?.record("warden-runtime-activation-failure", {
+          label: asset.label,
+          url: asset.url,
+          error: error instanceof Error ? `${error.message}\n${error.stack ?? ""}` : String(error),
+        });
         console.error("Cinderbound Warden room activation failed", error);
       });
       if (actor) {
