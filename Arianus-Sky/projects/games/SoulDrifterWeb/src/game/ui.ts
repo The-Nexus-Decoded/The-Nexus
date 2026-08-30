@@ -14,6 +14,7 @@ import { prologuePages } from "./prologue";
 import { callingPerkOptions, type ImprintOption, type StarterImprintSelection } from "./tutorialChoices";
 import { resolveCharacterIdentity } from "./avatarIdentity";
 import type { LocomotionPreference } from "./avatarMotionController";
+import type { ArrowType } from "./archery/archeryInventory";
 
 export type ActionName = "move" | "basic" | "signature" | "guard" | "wait";
 
@@ -77,12 +78,14 @@ export class GameUI {
   private readonly reactionDetail = requiredElement<HTMLElement>("reaction-detail");
   private readonly reactionFill = requiredElement<HTMLElement>("reaction-fill");
   private readonly mechanicTooltip = requiredElement<HTMLDivElement>("mechanic-tooltip");
+  private readonly quiverArrowSelector = requiredElement<HTMLElement>("quiver-arrow-selector");
   private actionHandler: ((action: ActionName) => void) | null = null;
   private speedHandler: ((speed: number) => void) | null = null;
   private combatStyleHandler: ((style: CombatStyle) => void) | null = null;
   private equipmentHandler: ((itemId: string) => void) | null = null;
   private equipmentVisibilityHandler: ((visible: boolean) => void) | null = null;
   private locomotionPreferenceHandler: ((preference: LocomotionPreference) => void) | null = null;
+  private arrowTypeHandler: ((type: ArrowType) => void) | null = null;
   private interactionConfirmHandler: (() => void) | null = null;
   private activeReactionCancel: (() => void) | null = null;
   private currentCallingId = "";
@@ -113,6 +116,12 @@ export class GameUI {
       button.addEventListener("click", () => {
         const preference = button.dataset.locomotionPreference as LocomotionPreference | undefined;
         if (preference) this.setLocomotionPreference(preference);
+      });
+    });
+    this.quiverArrowSelector.querySelectorAll<HTMLButtonElement>("button[data-arrow-type]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = button.dataset.arrowType as ArrowType | undefined;
+        if (type && !button.disabled) this.arrowTypeHandler?.(type);
       });
     });
 
@@ -229,6 +238,10 @@ export class GameUI {
   public onLocomotionPreferenceChange(handler: (preference: LocomotionPreference) => void): void {
     this.locomotionPreferenceHandler = handler;
     handler(this.locomotionMode);
+  }
+
+  public onArrowTypeChange(handler: (type: ArrowType) => void): void {
+    this.arrowTypeHandler = handler;
   }
 
   public onInteractionConfirm(handler: () => void): void {
@@ -824,6 +837,20 @@ export class GameUI {
         container.removeAttribute("role");
         container.removeAttribute("aria-label");
       }
+    });
+    const quiver = equippedItem(items, "back");
+    this.quiverArrowSelector.hidden = !quiver?.quiverCapacity;
+    this.quiverArrowSelector.querySelectorAll<HTMLButtonElement>("button[data-arrow-type]").forEach((button) => {
+      const type = button.dataset.arrowType as ArrowType;
+      const count = items
+        .filter((item) => item.containerId === quiver?.id && item.arrowType === type)
+        .reduce((total, item) => total + (item.quantity ?? 0), 0);
+      button.querySelector("small")!.textContent = String(count);
+      button.disabled = count <= 0;
+      const selected = type === quiver?.selectedArrowType;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+      button.title = count > 0 ? `Select ${type} arrows (${count} available)` : `No ${type} arrows available`;
     });
   }
 

@@ -35,6 +35,18 @@ describe("screen-space HUD and live paper-doll boundaries", () => {
     expect(styles).toMatch(/\.paper-slot--back\s*\{[^}]*right:\s*4%/s);
   });
 
+  it("provides a persisted standard, fire, ice, and poison arrow selector", () => {
+    expect(html).toContain('id="quiver-arrow-selector"');
+    ["standard", "fire", "ice", "poison"].forEach((type) => {
+      expect(html).toContain(`data-arrow-type="${type}"`);
+    });
+    expect(ui).toContain("onArrowTypeChange");
+    expect(ui).toContain("button.disabled = count <= 0");
+    expect(world).toContain("selectArrowType(this.quiverInventory, type)");
+    expect(world).toMatch(/selectArrowType[\s\S]*refreshEquipmentUi\(\)/s);
+    expect(styles).toMatch(/\.quiver-arrow-selector button\.is-selected/);
+  });
+
   it("persists the live idle paper-doll snapshot for the saved-soul selector", () => {
     expect(persistence).toContain('"avatarPreviews"');
     expect(persistence).toContain("loadAvatarPreview()");

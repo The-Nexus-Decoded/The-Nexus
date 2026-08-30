@@ -111,7 +111,7 @@ import {
   quiverInventoryFromItems,
   syncQuiverInventoryToItems,
 } from "./archery/archeryInventoryAdapter";
-import type { QuiverInventoryState } from "./archery/archeryInventory";
+import { selectArrowType, type QuiverInventoryState } from "./archery/archeryInventory";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -1693,6 +1693,19 @@ export class World3D {
     document.getElementById("paper-rotate-right")?.addEventListener("click", () => this.rotatePaperDoll(-Math.PI / 4));
     this.ui.onLocomotionPreferenceChange((preference) => {
       this.locomotionPreference = preference;
+    });
+    this.ui.onArrowTypeChange((type) => {
+      if (!this.quiverInventory) return;
+      if (this.encounter !== "none") {
+        this.ui.setMessage("Arrow type cannot be changed while hostile combat is active.");
+        return;
+      }
+      if (!selectArrowType(this.quiverInventory, type)) {
+        this.ui.setMessage(`No ${type} arrows remain in the equipped quiver.`);
+        return;
+      }
+      this.refreshEquipmentUi();
+      this.ui.setMessage(`${type[0]!.toUpperCase()}${type.slice(1)} arrows selected.`);
     });
     this.ui.onInteractionConfirm(() => { void this.confirmPendingInteraction(); });
     this.ui.onSpeedChange((speed) => {
