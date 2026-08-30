@@ -34,6 +34,8 @@ import {
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
 import {
   applyBreachV2InspectionFocus,
+  createBreachV2PreviewDisposer,
+  disposeBreachV2SceneResources,
   resolveBreachV2PreviewCameraMode,
   resolveBreachV2ReviewActorSelection,
 } from "../src/game/dungeons/breach-v2-preview";
@@ -421,5 +423,68 @@ describe("BREACH-V2 preview landmark navigation", () => {
     expect(resolveBreachV2PreviewCameraMode("overview", null)).toBe("overview");
     expect(resolveBreachV2PreviewCameraMode("boss", "ashen-lock")).toBe("isometric");
     expect(resolveBreachV2PreviewCameraMode("unknown", null)).toBe("isometric");
+  });
+});
+
+describe("BREACH-V2 preview lifecycle", () => {
+  it("disposes an old preview once before a same-document restart installs new input", () => {
+    const input = new EventTarget();
+    const oldInput = { calls: 0 };
+    const newInput = { calls: 0 };
+    const destroyed = { ui: 0, controls: 0, renderer: 0, canvas: 0 };
+    const handleOldInput = () => { oldInput.calls += 1; };
+    input.addEventListener("keydown", handleOldInput);
+    const disposeOldPreview = createBreachV2PreviewDisposer([
+      () => input.removeEventListener("keydown", handleOldInput),
+      () => { destroyed.ui += 1; },
+      () => { destroyed.controls += 1; },
+      () => { destroyed.canvas += 1; },
+      () => { destroyed.renderer += 1; },
+    ]);
+
+    input.dispatchEvent(new Event("keydown"));
+    disposeOldPreview();
+    disposeOldPreview();
+    const handleNewInput = () => { newInput.calls += 1; };
+    input.addEventListener("keydown", handleNewInput);
+    input.dispatchEvent(new Event("keydown"));
+
+    expect(oldInput.calls).toBe(1);
+    expect(newInput.calls).toBe(1);
+    expect(destroyed).toEqual({ ui: 1, controls: 1, renderer: 1, canvas: 1 });
+    input.removeEventListener("keydown", handleNewInput);
+  });
+
+  it("continues cleanup after one controller fails", () => {
+    const completed: string[] = [];
+    const errors: unknown[] = [];
+    const dispose = createBreachV2PreviewDisposer([
+      () => { completed.push("input"); },
+      () => { throw new Error("controller teardown failed"); },
+      () => { completed.push("renderer"); },
+    ], (error) => { errors.push(error); });
+
+    dispose();
+
+    expect(completed).toEqual(["input", "renderer"]);
+    expect(errors).toHaveLength(1);
+  });
+
+  it("releases unique scene geometry, materials, and textures before clearing the scene", () => {
+    const scene = new THREE.Scene();
+    const texture = new THREE.Texture();
+    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    scene.add(new THREE.Mesh(geometry, material), new THREE.Mesh(geometry, material));
+    const disposed = { texture: 0, material: 0, geometry: 0 };
+    texture.addEventListener("dispose", () => { disposed.texture += 1; });
+    material.addEventListener("dispose", () => { disposed.material += 1; });
+    geometry.addEventListener("dispose", () => { disposed.geometry += 1; });
+
+    const counts = disposeBreachV2SceneResources(scene);
+
+    expect(counts).toEqual({ geometries: 1, materials: 1, textures: 1 });
+    expect(disposed).toEqual({ texture: 1, material: 1, geometry: 1 });
+    expect(scene.children).toHaveLength(0);
   });
 });
