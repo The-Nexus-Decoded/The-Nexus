@@ -129,6 +129,20 @@ export interface BreachV2ReviewActorSelection {
   actorId: string;
 }
 
+export interface BreachV2ReviewActorHit extends BreachV2ReviewActorSelection {
+  focus: THREE.Vector3;
+}
+
+export function applyBreachV2InspectionFocus(
+  target: THREE.Vector3,
+  position: THREE.Vector3,
+  focus: THREE.Vector3 | null,
+): void {
+  if (!focus) return;
+  position.add(focus).sub(target);
+  target.copy(focus);
+}
+
 export function resolveBreachV2ReviewActorSelection(
   object: THREE.Object3D | null,
 ): BreachV2ReviewActorSelection | null {
@@ -4502,6 +4516,8 @@ export async function startDungeonPreview(
   let player: THREE.Object3D | null = null;
   let foundationPlayerActor: BreachV2HumanFoundationActor | null = null;
   let foundationAnimationReview: BreachV2HumanFoundationReview | null = null;
+  let inspectionFocus: THREE.Vector3 | null = null;
+  const clearInspectionFocus = (): void => { inspectionFocus = null; };
   const applyInspectionZoom = (zoom: { distance: number; magnification: number }): void => {
     camDist = zoom.distance;
     camera.zoom = zoom.magnification;
@@ -4539,6 +4555,7 @@ export async function startDungeonPreview(
       ));
     },
     resetCamera: () => {
+      clearInspectionFocus();
       const resetMode = activeCameraMode as BreachV2GameplayCameraMode;
       const resetState = defaultCameraState(resetMode);
       camYaw = resetState.yaw;
@@ -4588,10 +4605,14 @@ export async function startDungeonPreview(
         "position:sticky", "top:0", "float:right", "z-index:1", "margin:0 0 6px 8px", "padding:5px 8px",
         "border:1px solid rgba(228,185,103,.5)", "background:#171411", "color:#ead9bd", "cursor:pointer",
       ].join(";");
-      dismiss.addEventListener("click", () => { reviewPanel.hidden = true; });
+      dismiss.addEventListener("click", () => {
+        reviewPanel.hidden = true;
+        clearInspectionFocus();
+      });
       reviewPanel.prepend(dismiss);
     }
     const hideReviewPanels = (): void => {
+      clearInspectionFocus();
       for (const reviewPanel of Object.values(reviewPanels)) {
         if (reviewPanel) reviewPanel.hidden = true;
       }
@@ -4645,7 +4666,7 @@ export async function startDungeonPreview(
       );
       pointerRaycaster.setFromCamera(pointerNdc, camera);
     };
-    const pickReviewActor = (): BreachV2ReviewActorSelection | null => {
+    const pickReviewActor = (): BreachV2ReviewActorHit | null => {
       const intersections = pointerRaycaster.intersectObjects(scene.children, true);
       const actorHit = intersections.find((intersection) => (
         resolveBreachV2ReviewActorSelection(intersection.object) !== null
@@ -4663,7 +4684,9 @@ export async function startDungeonPreview(
         }
         return false;
       });
-      return !occluder || actorHit.distance <= occluder.distance + 0.02 ? selection : null;
+      return !occluder || actorHit.distance <= occluder.distance + 0.02
+        ? { ...selection, focus: actorHit.point.clone() }
+        : null;
     };
     const pickDoorObject = (): THREE.Object3D | null => {
       const doorHit = pointerRaycaster.intersectObjects(sectionDoors.interactionRoots, true)[0];
@@ -4753,7 +4776,10 @@ export async function startDungeonPreview(
       if (shouldTap) {
         setPointerRay(e.clientX, e.clientY);
         const reviewActor = pickReviewActor();
-        if (!reviewActor || !showReviewPanel(reviewActor)) {
+        if (reviewActor && showReviewPanel(reviewActor)) {
+          inspectionFocus = reviewActor.focus.clone();
+        } else {
+          clearInspectionFocus();
           const hitDoor = pickDoorObject();
           const toggledDoor = hitDoor
             ? sectionDoors.toggleHit(playerPos.x, playerPos.z, hitDoor)
@@ -5355,16 +5381,20 @@ export async function startDungeonPreview(
           playerPos.x - frameStartX,
           playerPos.z - frameStartZ,
         ) > 0.0001;
+        if (playerMoved) clearInspectionFocus();
         foundationPlayerActor?.setMoving(playerMoved, playerMoved && run);
         foundationPlayerActor?.update(delta);
         foundationAnimationReview?.update();
         if (firstPersonMode) {
           camera.position.set(playerPos.x, playerPos.y + 1.62, playerPos.z);
-          cameraTarget.set(
-            playerPos.x - Math.sin(camYaw) * Math.cos(camPitch),
-            playerPos.y + 1.62 - Math.sin(camPitch),
-            playerPos.z - Math.cos(camYaw) * Math.cos(camPitch),
-          );
+          if (inspectionFocus) cameraTarget.copy(inspectionFocus);
+          else {
+            cameraTarget.set(
+              playerPos.x - Math.sin(camYaw) * Math.cos(camPitch),
+              playerPos.y + 1.62 - Math.sin(camPitch),
+              playerPos.z - Math.cos(camYaw) * Math.cos(camPitch),
+            );
+          }
           camera.lookAt(cameraTarget);
         } else {
           if (isometricMode) {
@@ -5389,6 +5419,7 @@ export async function startDungeonPreview(
             );
             cameraTarget.set(playerPos.x, playerPos.y + targetHeight, playerPos.z);
           }
+          applyBreachV2InspectionFocus(cameraTarget, desiredCamera, inspectionFocus);
           clampDesiredCameraAboveFloor(desiredCamera, playerPos.y);
           if (updateCeilingState(desiredCamera.y, cameraTarget.x, cameraTarget.z)) {
             runtimeCollisionBlockers = getRuntimeCollisionBlockers();

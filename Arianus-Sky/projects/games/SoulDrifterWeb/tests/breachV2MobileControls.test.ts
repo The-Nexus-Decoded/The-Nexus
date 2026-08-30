@@ -32,7 +32,10 @@ import {
   saveBreachV2CameraSwitchPosition,
 } from "../src/game/dungeons/breach-v2-startup-safety";
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
-import { resolveBreachV2ReviewActorSelection } from "../src/game/dungeons/breach-v2-preview";
+import {
+  applyBreachV2InspectionFocus,
+  resolveBreachV2ReviewActorSelection,
+} from "../src/game/dungeons/breach-v2-preview";
 import {
   findBreachV2RoomAt,
   resolveBreachV2FogState,
@@ -345,6 +348,23 @@ describe("BREACH-V2 contextual animation actor selection", () => {
       actorId: "cinderbound-warden:oathbreaker",
     });
     expect(resolveBreachV2ReviewActorSelection(new THREE.Object3D())).toBeNull();
+  });
+
+  it("centers inspection on the selected hit point and clears back to player framing", () => {
+    const target = new THREE.Vector3(5, 1.4, 8);
+    const position = new THREE.Vector3(11, 7, 14);
+    const originalOffset = position.clone().sub(target);
+    const actorHit = new THREE.Vector3(21, 2.6, 34);
+
+    applyBreachV2InspectionFocus(target, position, actorHit);
+    expect(target).toEqual(actorHit);
+    expect(position.clone().sub(target)).toEqual(originalOffset);
+
+    const playerTarget = new THREE.Vector3(6, 1.4, 9);
+    const playerPosition = new THREE.Vector3(12, 7, 15);
+    applyBreachV2InspectionFocus(playerTarget, playerPosition, null);
+    expect(playerTarget).toEqual(new THREE.Vector3(6, 1.4, 9));
+    expect(playerPosition).toEqual(new THREE.Vector3(12, 7, 15));
   });
 });
 
