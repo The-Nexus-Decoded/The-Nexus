@@ -69,6 +69,7 @@ import {
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
   BREACH_V2_PANEL_EVENT,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
+  type BreachV2CameraModeState,
   type BreachV2GameplayCameraMode,
   type BreachV2GraphicsMode,
   type BreachV2GraphicsQuality,
@@ -86,6 +87,7 @@ import {
   setupBreachV2MobileLandscapeGate,
   setupBreachV2MobileMovementPad,
   setupBreachV2SettingsPanel,
+  transitionBreachV2CameraModeState,
 } from "./breach-v2-mobile-controls.ts";
 import {
   createBreachV2RunController,
@@ -4485,6 +4487,15 @@ export async function startDungeonPreview(
   let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
   let camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
   let camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
+  const defaultCameraState = (mode: BreachV2GameplayCameraMode): BreachV2CameraModeState => ({
+    yaw: mode === "isometric" ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08,
+    pitch: mode === "isometric" ? isometricCameraProfile.defaultPitch : 0.24,
+    distance: mode === "firstperson" ? 0 : mode === "isometric"
+      ? isometricCameraProfile.defaultDistance
+      : 4.4,
+    zoom: 1,
+  });
+  const cameraModeStates = new Map<BreachV2GameplayCameraMode, BreachV2CameraModeState>();
   const keys = new Set<string>();
   const clickPath: THREE.Vector3[] = [];
   let queueClickDestination: ((x: number, z: number) => boolean) | null = null;
@@ -4528,10 +4539,13 @@ export async function startDungeonPreview(
       ));
     },
     resetCamera: () => {
-      camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
-      camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
-      camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
-      camera.zoom = 1;
+      const resetMode = activeCameraMode as BreachV2GameplayCameraMode;
+      const resetState = defaultCameraState(resetMode);
+      camYaw = resetState.yaw;
+      camPitch = resetState.pitch;
+      camDist = resetState.distance;
+      camera.zoom = resetState.zoom;
+      cameraModeStates.set(resetMode, { ...resetState });
       camera.updateProjectionMatrix();
     },
   });
@@ -5064,6 +5078,18 @@ export async function startDungeonPreview(
     requestCameraModeChange: (nextCameraMode) => {
       if (!isBreachV2InPlaceCameraTransition(activeCameraMode, nextCameraMode)) return false;
       const previousCameraMode = activeCameraMode;
+      const nextState = transitionBreachV2CameraModeState({
+        states: cameraModeStates,
+        currentMode: previousCameraMode as BreachV2GameplayCameraMode,
+        nextMode: nextCameraMode,
+        currentState: {
+          yaw: camYaw,
+          pitch: camPitch,
+          distance: camDist,
+          zoom: camera.zoom,
+        },
+        defaultNextState: defaultCameraState(nextCameraMode),
+      });
       activeCameraMode = nextCameraMode;
       firstPersonMode = nextCameraMode === "firstperson";
       isometricMode = nextCameraMode === "isometric";
@@ -5076,9 +5102,10 @@ export async function startDungeonPreview(
       hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
       hooks.__dungeonMode = nextCameraMode;
       if (player) player.visible = !firstPersonMode;
-      camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
-      camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
-      camera.zoom = 1;
+      camYaw = nextState.yaw;
+      camPitch = nextState.pitch;
+      camDist = nextState.distance;
+      camera.zoom = nextState.zoom;
       camera.updateProjectionMatrix();
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.set("cam", nextCameraMode);

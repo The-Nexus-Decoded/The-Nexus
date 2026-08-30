@@ -28,6 +28,24 @@ export function isBreachV2InPlaceCameraTransition(
     && BREACH_V2_GAMEPLAY_CAMERA_MODES.has(nextMode);
 }
 
+export interface BreachV2CameraModeState {
+  yaw: number;
+  pitch: number;
+  distance: number;
+  zoom: number;
+}
+
+export function transitionBreachV2CameraModeState(options: {
+  states: Map<BreachV2GameplayCameraMode, BreachV2CameraModeState>;
+  currentMode: BreachV2GameplayCameraMode;
+  nextMode: BreachV2GameplayCameraMode;
+  currentState: BreachV2CameraModeState;
+  defaultNextState: BreachV2CameraModeState;
+}): BreachV2CameraModeState {
+  options.states.set(options.currentMode, { ...options.currentState });
+  return { ...(options.states.get(options.nextMode) ?? options.defaultNextState) };
+}
+
 export interface BreachV2IsometricCameraProfile {
   compactLandscape: boolean;
   closeInspection: boolean;

@@ -24,6 +24,7 @@ import {
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
   shouldRequireBreachV2Landscape,
+  transitionBreachV2CameraModeState,
 } from "../src/game/dungeons/breach-v2-mobile-controls";
 import {
   BREACH_V2_CAMERA_SWITCH_SESSION_KEY,
@@ -236,6 +237,34 @@ describe("BREACH-V2 camera mode position continuity", () => {
       expect(isBreachV2InPlaceCameraTransition(current, "overview")).toBe(false);
     }
     expect(isBreachV2InPlaceCameraTransition("overview", "isometric")).toBe(false);
+  });
+
+  it("restores each gameplay mode's complete pose without changing runtime identity", () => {
+    const states = new Map();
+    const scene = {};
+    const renderer = {};
+    const player = { x: 72.25, y: 0.3, z: 41.75 };
+    const isometricState = { yaw: 1.1, pitch: 0.72, distance: 6.5, zoom: 16 };
+    const firstPersonState = transitionBreachV2CameraModeState({
+      states,
+      currentMode: "isometric",
+      nextMode: "firstperson",
+      currentState: isometricState,
+      defaultNextState: { yaw: 0.08, pitch: 0.24, distance: 0, zoom: 1 },
+    });
+    expect(firstPersonState).toEqual({ yaw: 0.08, pitch: 0.24, distance: 0, zoom: 1 });
+
+    const restoredIsometric = transitionBreachV2CameraModeState({
+      states,
+      currentMode: "firstperson",
+      nextMode: "isometric",
+      currentState: { yaw: -0.4, pitch: -0.15, distance: 0, zoom: 4 },
+      defaultNextState: { yaw: 0.2, pitch: 0.5, distance: 18.5, zoom: 1 },
+    });
+    expect(restoredIsometric).toEqual(isometricState);
+    expect(player).toEqual({ x: 72.25, y: 0.3, z: 41.75 });
+    expect(scene).toBe(scene);
+    expect(renderer).toBe(renderer);
   });
 
   const createStorage = () => {
