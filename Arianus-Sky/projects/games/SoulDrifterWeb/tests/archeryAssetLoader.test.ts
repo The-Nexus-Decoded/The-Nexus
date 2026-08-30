@@ -7,6 +7,7 @@ import {
 } from "../src/game/archery/archeryAssetContract";
 import {
   loadValidatedArcheryAssets,
+  parseArcheryAssetManifest,
   type ArcheryAssetManifest,
 } from "../src/game/archery/archeryAssetLoader";
 
@@ -56,6 +57,27 @@ function assetMap(): Map<string, Object3D> {
 }
 
 describe("archery asset loader", () => {
+  it("parses the public array manifest into the six runtime roles", () => {
+    const assets = ROLES.map((role) => {
+      const { pbrMaterialCount: _runtimeOnly, ...entry } = manifestEntry(role);
+      return entry;
+    });
+
+    const manifest = parseArcheryAssetManifest({ version: 1, assets });
+
+    expect(Object.keys(manifest)).toEqual(ROLES);
+    expect(manifest["arrow-fire"].sourceModelId).toBe("tripo-arrow-fire");
+    expect(manifest.quiver.pbrMaterialCount).toBe(0);
+  });
+
+  it("rejects duplicate and incomplete intake roles", () => {
+    const assets = ROLES.map(manifestEntry);
+    expect(() => parseArcheryAssetManifest({ version: 1, assets: [...assets, assets[0]] }))
+      .toThrow(/duplicate role quiver/i);
+    expect(() => parseArcheryAssetManifest({ version: 1, assets: assets.slice(1) }))
+      .toThrow(/missing roles: quiver/i);
+  });
+
   it("loads six independent Tripo roots and maps them to presentation roles", async () => {
     const assetsByPath = assetMap();
     const load = vi.fn(async (path: string) => assetsByPath.get(path)!);

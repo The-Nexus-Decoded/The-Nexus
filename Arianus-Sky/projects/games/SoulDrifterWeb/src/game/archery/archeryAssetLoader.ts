@@ -14,6 +14,44 @@ export type ArcheryAssetManifest = Readonly<Record<ArcheryAssetRole, ArcheryAsse
 
 const ARCHERY_ASSET_ROLES = Object.freeze(Object.keys(ARCHERY_ASSET_PATHS) as ArcheryAssetRole[]);
 
+interface ArcheryAssetManifestDocument {
+  version: number;
+  assets: ArcheryAssetMetrics[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isArcheryAssetRole(value: unknown): value is ArcheryAssetRole {
+  return typeof value === "string" && ARCHERY_ASSET_ROLES.includes(value as ArcheryAssetRole);
+}
+
+export function parseArcheryAssetManifest(value: unknown): ArcheryAssetManifest {
+  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.assets)) {
+    throw new Error("Archery asset manifest must be a version 1 document with an assets array.");
+  }
+
+  const document = value as unknown as ArcheryAssetManifestDocument;
+  const byRole = new Map<ArcheryAssetRole, ArcheryAssetMetrics>();
+  for (const candidate of document.assets) {
+    if (!isRecord(candidate) || !isArcheryAssetRole(candidate.role)) {
+      throw new Error("Archery asset manifest contains an unknown or malformed role.");
+    }
+    if (byRole.has(candidate.role)) {
+      throw new Error(`Archery asset manifest contains duplicate role ${candidate.role}.`);
+    }
+    byRole.set(candidate.role, {
+      ...(candidate as unknown as ArcheryAssetMetrics),
+      pbrMaterialCount: typeof candidate.pbrMaterialCount === "number" ? candidate.pbrMaterialCount : 0,
+    });
+  }
+
+  const missing = ARCHERY_ASSET_ROLES.filter((role) => !byRole.has(role));
+  if (missing.length > 0) throw new Error(`Archery asset manifest is missing roles: ${missing.join(", ")}.`);
+  return Object.fromEntries(ARCHERY_ASSET_ROLES.map((role) => [role, byRole.get(role)!])) as ArcheryAssetManifest;
+}
+
 interface RuntimePbrEvidence {
   materialCount: number;
   textureChannels: ArcheryPbrTextureChannel[];

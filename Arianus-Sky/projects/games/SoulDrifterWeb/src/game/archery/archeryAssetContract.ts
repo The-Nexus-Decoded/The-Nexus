@@ -3,6 +3,7 @@ import type { ArrowType } from "./archeryInventory";
 export const CANONICAL_ARROW_LENGTH_METERS = 0.94;
 export const MAXIMUM_ARROW_SHAFT_RADIUS_METERS = 0.0055;
 export const CANONICAL_QUIVER_LENGTH_METERS = 0.64;
+export const ARCHERY_ASSET_MANIFEST_PATH = "/assets/3d/archery/archery-asset-intake-v001.json";
 
 export type ArcheryAssetRole = "quiver" | "harness" | `arrow-${ArrowType}`;
 export type ArcheryAssetSourceProvider = "tripo3d" | "local-procedural" | "unknown";
