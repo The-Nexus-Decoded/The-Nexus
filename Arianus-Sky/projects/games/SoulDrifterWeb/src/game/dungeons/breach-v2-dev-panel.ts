@@ -108,6 +108,7 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): BreachV
     if (!open) return;
     panel.style.top = "calc(max(12px,env(safe-area-inset-top)) + 52px)";
     panel.style.bottom = "auto";
+    panel.style.maxHeight = "calc(100dvh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)) - 52px)";
     panel.style.width = "min(310px,calc(100vw - 24px))";
     panel.style.padding = "12px";
     panel.style.border = "1px solid rgba(190,145,76,.58)";
