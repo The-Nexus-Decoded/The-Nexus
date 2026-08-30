@@ -103,7 +103,11 @@ describe("archery asset acceptance contract", () => {
       rearAxis: "-Y",
       bakedArrowCount: 0,
       pbrMaterialCount: 2,
+      pbrTextureChannels: ["baseColor", "normal", "roughness", "ao"],
       rootObjectCount: 1,
+      sourceProvider: "tripo3d",
+      sourceModelId: "tripo-fire-arrow-model",
+      placeholder: false,
     })).toEqual({ accepted: true, failures: [] });
   });
 
@@ -116,8 +120,18 @@ describe("archery asset acceptance contract", () => {
       rearAxis: "-Y",
       bakedArrowCount: 0,
       pbrMaterialCount: 1,
+      pbrTextureChannels: ["baseColor"],
       rootObjectCount: 1,
-    }).failures).toEqual(expect.arrayContaining([expect.stringMatching(/0\.94m/), expect.stringMatching(/too thick/i)]));
+      sourceProvider: "local-procedural",
+      sourceModelId: "",
+      placeholder: true,
+    }).failures).toEqual(expect.arrayContaining([
+      expect.stringMatching(/0\.94m/),
+      expect.stringMatching(/too thick/i),
+      expect.stringMatching(/Tripo model provenance/i),
+      expect.stringMatching(/placeholder/i),
+      expect.stringMatching(/normal PBR texture/i),
+    ]));
 
     expect(validateArcheryAssetMetrics({
       role: "quiver",
@@ -126,7 +140,11 @@ describe("archery asset acceptance contract", () => {
       rearAxis: "-Y",
       bakedArrowCount: 10,
       pbrMaterialCount: 1,
+      pbrTextureChannels: ["baseColor", "normal", "roughness", "ao"],
       rootObjectCount: 2,
+      sourceProvider: "tripo3d",
+      sourceModelId: "tripo-quiver-model",
+      placeholder: false,
     }).failures).toEqual(expect.arrayContaining([
       expect.stringMatching(/independent root/i),
       expect.stringMatching(/must not contain baked arrows/i),
