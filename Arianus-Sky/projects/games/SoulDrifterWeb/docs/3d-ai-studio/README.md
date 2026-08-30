@@ -335,6 +335,28 @@ neck, and tail counterbalance must read as one animal. Record the exact video ti
 channel, URL, observed time range, and motion notes in the ticket reference matrix before
 the action is eligible for review.
 
+For production quadrupeds, a licensed, species-matched authored motion source is the
+default starting point. Import and render that donor rig and clip before fitting the target
+mesh. Preserve the donor hierarchy, rest matrices, bone rolls, control/pole relationships,
+contact sequence, and curve timing through retarget and bake. Bounding-box joint placement,
+sine-wave hoof paths, or independently solved per-frame poses are not an acceptable primary
+gait source. Procedural tools may clean foot plants after retargeting; they must not invent
+the gait or overwrite the donor's joint sequence. A clip named `Run` is not a trot until its
+diagonal two-beat contacts and suspension are visually verified.
+
+Rigging must not silently redesign accepted art. Keep the approved target topology, UVs,
+material slots, texture/image hashes, and silhouette unchanged unless the owner separately
+approves a visual revision. Do not voxel-remesh, coordinate-paint, or replace image textures
+with viewport colors as an animation-preparation shortcut. Automatic weights may seed a
+skin, but they are never the final quadruped weight pass: manually protect the head and
+neck, same-side shoulder and hip masses, rigid distal segments, hooves or paws, and zero
+contralateral or torso-to-distal bleed before applying the final influence limit.
+
+Before a species batch, prove one ordinary Walk. The internal gate compares the unmodified
+donor and retarget at the same normalized frames, in side and three-quarter views, with
+foot-contact markers and texture/material round-trip evidence. Only owner acceptance of
+that single pilot authorizes additional gaits or reuse across related creatures.
+
 ## File and naming contract
 
 Untouched downloads and Blender working files remain in a backed-up non-shipping intake root. Only approved runtime assets, concise diagnostics, previews, manifests, and required provenance enter the game tree.
@@ -439,8 +461,12 @@ Stop and request owner review when:
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
 - [ ] Topology, UV, PBR bake, scale, ground, orientation, and bounds pass.
 - [ ] Skeleton identity or retarget profile is proven rather than assumed.
+- [ ] The licensed quadruped motion donor was imported and rendered before retargeting; its hierarchy, rest matrices, pole/control relationships, contact order, and timing are recorded.
+- [ ] Accepted target topology, UVs, material slots, embedded image/texture hashes, and silhouette survived rigging and export unchanged, or an owner-approved visual revision is recorded.
+- [ ] Quadruped weights passed manual same-side shoulder/hip, head/neck, rigid distal-segment, hoof/paw, torso-distal, and contralateral-bleed checks before the final influence limit.
 - [ ] Existing baseline animation pack passes on the clean body.
 - [ ] Every quadruped action has recorded real-video species/body-family reference and moves the torso, shoulder/hip masses, spine, pelvis, center of mass, head/neck, and planted feet as a connected animal.
+- [ ] Source and retarget contact sheets match at normalized frames; no filename-based gait relabeling, per-frame pose discontinuity, hyperextension, inversion, or stance-foot slide is accepted.
 - [ ] Clothing/armor is modular, weighted correctly, and has coverage metadata.
 - [ ] Weapon is separate and has grip/socket metadata.
 - [ ] Empty-hand interaction and draw/sheath transitions pass.

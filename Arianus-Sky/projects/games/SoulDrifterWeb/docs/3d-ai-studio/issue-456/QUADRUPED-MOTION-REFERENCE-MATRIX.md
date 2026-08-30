@@ -13,6 +13,9 @@ This matrix is the binding motion-reference gate for the Heartvale wildlife and 
 - Attacks require anticipation, whole-body drive, contact, and recovery. A foreleg swipe or bite against a frozen torso fails.
 - Feet must remain planted during stance. Sliding, popping, limb separation, collapsing joints, and floating fail.
 - A structural export or round-trip test never substitutes for motion-quality review.
+- Import, hash, and render the licensed species/body-family motion donor before retargeting. Preserve its rest matrices, bone rolls, poles/controls, contact order, and curve timing; procedural foot cleanup may not invent or replace the gait.
+- Preserve the owner-approved target topology, UVs, material slots, embedded texture/image hashes, and silhouette through rigging. Voxel remeshes, coordinate-painted replacement materials, and viewport-only colors require a separate owner-approved visual revision.
+- Automatic weights are only a seed. The final skin must prove weighted shoulder and hip masses, protected head/neck and distal segments, zero torso-to-distal contamination, and zero contralateral limb bleed before the top-four influence trim.
 
 ## Reference families
 
@@ -176,6 +179,13 @@ Observation focus:
 - Rillwave lunge must remain a solid quadruped action: compress, hind drive, spine extension, forelimb reach, landing, and recovery, without detached or floating body parts.
 
 ## Review sequence
+
+The first proof for each new body family is one ordinary Walk only. Internally compare the
+unmodified donor and retarget at identical normalized frames in side and three-quarter
+views, record foot contacts and joint loading, and verify the target texture/material hash
+after GLB round trip. Do not batch faster gaits, feeding, attacks, or related species until
+the owner accepts that pilot. A donor clip called `Run` remains `Run` unless its observed
+contacts prove the requested trot, canter, gallop, or bound.
 
 For every asset, review in this order:
 

@@ -334,6 +334,24 @@
       "source": "https://polyhaven.com/a/brown_mud",
       "license": "CC0-1.0",
       "use": "Splat channel 4: wet bank mud / shoreline"
+    },
+    {
+      "id": "quaternius-ultimate-animated-animal-pack-motion-reference",
+      "name": "Ultimate Animated Animal Pack",
+      "url": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "usage": "Issue #456 horse/cow rig and authored-motion donor intake; donor art is comparison-only and is not yet promoted to public/assets",
+      "license": "CC0-1.0",
+      "bundled": false,
+      "notes": "License text verified locally. Horse FBX SHA-256 BABB40391B8C3E217BE2BB9C1F7C4D21910E943C28840363509DDE7E88B54CBA; Cow FBX SHA-256 097BA8D23692D901A9F821D569DE579032AEB43B9E52D89E73D0999387337D74. Local intake remains outside the shipping tree."
+    },
+    {
+      "id": "quaternius-farm-animal-pack-motion-reference",
+      "name": "Farm Animal Pack",
+      "url": "https://quaternius.com/packs/farmanimal.html",
+      "usage": "Issue #456 horse/cow alternate authored-motion donor intake; WalkSlow and Run remain semantically unapproved until contact review",
+      "license": "CC0-1.0",
+      "bundled": false,
+      "notes": "License text verified locally. Horse FBX SHA-256 6DB270DDC7591E9A013F96EAB445031381FA6D5D68D2FEBA567F964E0FE68D90; Cow FBX SHA-256 0202789CAD8C1DEBB8AE5B4A47D1A5D2E5F93A0875878BC0B05A80E42AE37E8D. Local intake remains outside the shipping tree."
     }
   ],
   "researchReferences": [
