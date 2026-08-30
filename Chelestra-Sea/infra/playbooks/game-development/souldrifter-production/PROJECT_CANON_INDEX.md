@@ -32,6 +32,7 @@ A lower-priority source never silently overrides a higher-priority source.
 - `ANIMATION_PROVIDER_ROUTING.md`
 - `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md`
 - `QUEST_DIALOGUE_VIDEO_POLICY.md`
+- `kickoffs/FIRST-BREACH-QUEST-DIALOGUE-VIDEO-BAKEOFF-RUNBOOK.md`
 - `config/onboarding-cache-policy.json`
 - `config/tripo-provider.json`
 - `config/zone-environment-completion-policy.json`

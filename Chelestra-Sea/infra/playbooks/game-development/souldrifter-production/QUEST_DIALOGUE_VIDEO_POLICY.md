@@ -14,6 +14,8 @@ This policy also defines the required pilot for choosing how a visible speaking 
 
 The two paths must be tested against the same locked inputs before either becomes the default.
 
+For the First Breach/Soul Well implementation, follow `kickoffs/FIRST-BREACH-QUEST-DIALOGUE-VIDEO-BAKEOFF-RUNBOOK.md`. It converts this policy into the issue-#428 pilot, integration proof, blinded decision and level-wide rollout sequence.
+
 ## Hard quest contract
 
 `EVERY_PRODUCTION_QUEST_REQUIRES_VIDEO_INTRO_OR_CUTSCENE` is true.
