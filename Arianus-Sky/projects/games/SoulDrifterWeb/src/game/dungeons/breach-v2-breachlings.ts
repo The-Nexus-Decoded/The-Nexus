@@ -173,18 +173,65 @@ export function createBreachV2BreachlingRuntime(
 ): BreachV2BreachlingRuntime {
   const placements = buildBreachlingPlacements(layout, path);
   const sourcePromises = new Map<BreachlingTier, Promise<GLTF>>();
+  const resolvedSources = new Set<GLTF>();
   const actors = new Map<string, RuntimeActor>();
   const projectiles: PoisonProjectile[] = [];
   const projectileGeometry = new THREE.SphereGeometry(0.08, 8, 6);
   const projectileMaterial = new THREE.MeshStandardMaterial({ color: 0x82d94d, emissive: 0x2f8f28, emissiveIntensity: 2 });
   let desiredRoomId: string | null = null;
   let activationToken = 0;
+  let disposed = false;
   let latestPlayer = new THREE.Vector3();
 
+  const disposedGeometries = new Set<THREE.BufferGeometry>();
+  const disposedMaterials = new Set<THREE.Material>();
+  const disposedTextures = new Set<THREE.Texture>();
+  const disposeSource = (source: GLTF): void => {
+    source.scene.traverse((object) => {
+      const renderable = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+        skeleton?: THREE.Skeleton;
+      };
+      if (renderable.geometry && !disposedGeometries.has(renderable.geometry)) {
+        disposedGeometries.add(renderable.geometry);
+        renderable.geometry.dispose();
+      }
+      const materials = renderable.material
+        ? Array.isArray(renderable.material) ? renderable.material : [renderable.material]
+        : [];
+      materials.forEach((material) => {
+        for (const value of Object.values(material)) {
+          if (value instanceof THREE.Texture && !disposedTextures.has(value)) {
+            disposedTextures.add(value);
+            value.dispose();
+          }
+        }
+        if (!disposedMaterials.has(material)) {
+          disposedMaterials.add(material);
+          material.dispose();
+        }
+      });
+      const boneTexture = renderable.skeleton?.boneTexture;
+      if (boneTexture && !disposedTextures.has(boneTexture)) {
+        disposedTextures.add(boneTexture);
+        boneTexture.dispose();
+      }
+    });
+  };
+
   const sourceFor = (tier: BreachlingTier): Promise<GLTF> => {
+    if (disposed) return Promise.reject(new Error("Breachling runtime is disposed."));
     let promise = sourcePromises.get(tier);
     if (!promise) {
-      promise = loader.loadAsync(BREACHLING_RUNTIME_ASSETS[tier].url);
+      promise = loader.loadAsync(BREACHLING_RUNTIME_ASSETS[tier].url).then((source) => {
+        if (disposed) {
+          disposeSource(source);
+        } else {
+          resolvedSources.add(source);
+        }
+        return source;
+      });
       sourcePromises.set(tier, promise);
     }
     return promise;
@@ -257,6 +304,7 @@ export function createBreachV2BreachlingRuntime(
     return actor;
   };
   const activateRoom = async (roomId: string | null): Promise<void> => {
+    if (disposed) return;
     if (roomId === desiredRoomId) return;
     desiredRoomId = roomId;
     const token = ++activationToken;
@@ -269,9 +317,12 @@ export function createBreachV2BreachlingRuntime(
     await Promise.all([...new Set(requested.map((placement) => placement.tier))].map(async (tier) => {
       sources.set(tier, await sourceFor(tier));
     }));
-    if (token !== activationToken) return;
+    if (disposed || token !== activationToken) return;
     clearActors();
-    requested.forEach((placement) => actors.set(placement.id, createActor(placement, sources.get(placement.tier)!)));
+    for (const placement of requested) {
+      if (disposed || token !== activationToken) return;
+      actors.set(placement.id, createActor(placement, sources.get(placement.tier)!));
+    }
   };
   const spawnPoison = (actor: RuntimeActor): void => {
     const mouth = actor.model.getObjectByName("jaw") ?? actor.model.getObjectByName("head") ?? actor.model;
@@ -286,8 +337,12 @@ export function createBreachV2BreachlingRuntime(
   };
 
   return {
-    warmAt: async (x, z) => activateRoom(roomIdAt(layout, x, z)),
+    warmAt: async (x, z) => {
+      if (disposed) return;
+      await activateRoom(roomIdAt(layout, x, z));
+    },
     update: (playerX, playerZ, deltaSeconds) => {
+      if (disposed) return;
       latestPlayer.set(playerX, 0, playerZ);
       void activateRoom(roomIdAt(layout, playerX, playerZ)).catch((error) => console.error("Breachling room activation failed", error));
       actors.forEach((actor) => {
@@ -342,8 +397,15 @@ export function createBreachV2BreachlingRuntime(
       actor.currentAction.paused = paused;
     },
     dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      activationToken += 1;
+      desiredRoomId = null;
       clearActors();
       projectiles.forEach((projectile) => projectile.root.removeFromParent());
+      projectiles.length = 0;
+      resolvedSources.forEach(disposeSource);
+      resolvedSources.clear();
       projectileGeometry.dispose();
       projectileMaterial.dispose();
     },

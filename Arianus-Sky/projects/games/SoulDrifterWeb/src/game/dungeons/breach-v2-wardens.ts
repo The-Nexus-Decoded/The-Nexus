@@ -362,9 +362,11 @@ export function createBreachV2WardenRuntime(
   const asset = CINDERBOUND_WARDEN_ASSETS[path];
   const furnaceLightBaseIntensity = path === "oathbreaker" ? 3.2 : 2.8;
   let sourcePromise: Promise<GLTF> | null = null;
+  let resolvedSource: GLTF | null = null;
   let actor: RuntimeActor | null = null;
   let desiredRoomId: string | null = null;
   let activationToken = 0;
+  let disposed = false;
   let damageFraction = 0;
   const effects: RuntimeEffect[] = [];
   const latestPlayer = new THREE.Vector3();
@@ -375,6 +377,42 @@ export function createBreachV2WardenRuntime(
     emissiveIntensity: 3.2,
   });
   const ringGeometry = new THREE.RingGeometry(0.58, 0.76, 40);
+  const disposedGeometries = new Set<THREE.BufferGeometry>();
+  const disposedMaterials = new Set<THREE.Material>();
+  const disposedTextures = new Set<THREE.Texture>();
+  const disposeSource = (source: GLTF): void => {
+    source.scene.traverse((object) => {
+      const renderable = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+        skeleton?: THREE.Skeleton;
+      };
+      if (renderable.geometry && !disposedGeometries.has(renderable.geometry)) {
+        disposedGeometries.add(renderable.geometry);
+        renderable.geometry.dispose();
+      }
+      const materials = renderable.material
+        ? Array.isArray(renderable.material) ? renderable.material : [renderable.material]
+        : [];
+      materials.forEach((material) => {
+        for (const value of Object.values(material)) {
+          if (value instanceof THREE.Texture && !disposedTextures.has(value)) {
+            disposedTextures.add(value);
+            value.dispose();
+          }
+        }
+        if (!disposedMaterials.has(material)) {
+          disposedMaterials.add(material);
+          material.dispose();
+        }
+      });
+      const boneTexture = renderable.skeleton?.boneTexture;
+      if (boneTexture && !disposedTextures.has(boneTexture)) {
+        disposedTextures.add(boneTexture);
+        boneTexture.dispose();
+      }
+    });
+  };
 
   const clearDebris = (runtimeActor: RuntimeActor): void => {
     runtimeActor.debris.forEach((debris) => {
@@ -555,6 +593,7 @@ export function createBreachV2WardenRuntime(
     return runtimeActor;
   };
   const activateRoom = async (roomId: string | null): Promise<void> => {
+    if (disposed) return;
     if (roomId === desiredRoomId) return;
     desiredRoomId = roomId;
     const token = ++activationToken;
@@ -570,6 +609,11 @@ export function createBreachV2WardenRuntime(
           url: asset.url,
           animations: source.animations.length,
         });
+        if (disposed) {
+          disposeSource(source);
+        } else {
+          resolvedSource = source;
+        }
         return source;
       }).catch((error: unknown) => {
         diagnostics?.record("warden-asset-load-failure", {
@@ -581,14 +625,19 @@ export function createBreachV2WardenRuntime(
       });
     })();
     const source = await sourcePromise;
-    if (token !== activationToken) return;
+    if (disposed || token !== activationToken) return;
     clearActor();
+    if (disposed || token !== activationToken) return;
     actor = createActor(source);
   };
 
   return {
-    warmAt: async (x, z) => activateRoom(roomIdAt(layout, x, z)),
+    warmAt: async (x, z) => {
+      if (disposed) return;
+      await activateRoom(roomIdAt(layout, x, z));
+    },
     update: (playerX, playerZ, deltaSeconds) => {
+      if (disposed) return;
       latestPlayer.set(playerX, placement.floorElevation, playerZ);
       void activateRoom(roomIdAt(layout, playerX, playerZ)).catch((error) => {
         diagnostics?.record("warden-runtime-activation-failure", {
@@ -697,12 +746,18 @@ export function createBreachV2WardenRuntime(
       else if (previous >= 1 || damageFraction === 0) playActor(actor, "CombatIdle");
     },
     dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      activationToken += 1;
+      desiredRoomId = null;
       clearActor();
       effects.forEach((effect) => {
         effect.root.removeFromParent();
         effect.material?.dispose();
       });
       effects.length = 0;
+      if (resolvedSource) disposeSource(resolvedSource);
+      resolvedSource = null;
       fireGeometry.dispose();
       fireMaterial.dispose();
       ringGeometry.dispose();

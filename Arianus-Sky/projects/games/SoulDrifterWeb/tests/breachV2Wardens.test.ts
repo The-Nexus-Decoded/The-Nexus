@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { filterWardenActions } from "../src/game/dungeons/breach-v2-warden-review";
 import {
+  BREACHLING_UPPER_ACTIONS,
+  buildBreachlingPlacements,
+  createBreachV2BreachlingRuntime,
+} from "../src/game/dungeons/breach-v2-breachlings";
+import {
   CINDERBOUND_BREAKOFF_STAGES,
   CINDERBOUND_WARDEN_ACTIONS,
   CINDERBOUND_WARDEN_ASSETS,
@@ -76,7 +81,78 @@ function source(): GLTF {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => { resolve = next; });
+  return { promise, resolve };
+}
+
+function trackedSource(actionNames: readonly string[]): {
+  source: GLTF;
+  disposalCounts: { geometry: number; material: number; texture: number };
+} {
+  const gltf = source();
+  gltf.animations = actionNames.map((name) => new THREE.AnimationClip(name, 1, []));
+  const mesh = gltf.scene.getObjectByName("Cinderbound_Warden_Body") as THREE.Mesh;
+  const geometry = mesh.geometry;
+  const material = mesh.material as THREE.MeshStandardMaterial;
+  const texture = material.map!;
+  const disposalCounts = { geometry: 0, material: 0, texture: 0 };
+  geometry.addEventListener("dispose", () => { disposalCounts.geometry += 1; });
+  material.addEventListener("dispose", () => { disposalCounts.material += 1; });
+  texture.addEventListener("dispose", () => { disposalCounts.texture += 1; });
+  return { source: gltf, disposalCounts };
+}
+
 describe("BREACH-V2 Cinderbound Warden runtime", () => {
+  it("does not create Breachlings when a deferred source resolves after disposal", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildBreachlingPlacements(layout, "oathbreaker")[0]!;
+    const pending = deferred<GLTF>();
+    const loadAsync = vi.fn(() => pending.promise);
+    const scene = new THREE.Scene();
+    const runtime = createBreachV2BreachlingRuntime(scene, layout, { loadAsync }, "oathbreaker");
+    const activation = runtime.warmAt(placement.x, placement.z);
+    await vi.waitFor(() => expect(loadAsync).toHaveBeenCalled());
+
+    runtime.dispose();
+    const tracked = trackedSource(BREACHLING_UPPER_ACTIONS);
+    pending.resolve(tracked.source);
+    await activation;
+    await runtime.warmAt(placement.x, placement.z);
+    runtime.update(placement.x, placement.z, 1 / 60);
+    runtime.dispose();
+
+    expect(runtime.snapshots()).toEqual([]);
+    expect(scene.children).toHaveLength(0);
+    expect(loadAsync).toHaveBeenCalledTimes(1);
+    expect(tracked.disposalCounts).toEqual({ geometry: 1, material: 1, texture: 1 });
+  });
+
+  it("does not create a Warden when its deferred source resolves after disposal", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildCinderboundWardenPlacement(layout, "oathbreaker");
+    const pending = deferred<GLTF>();
+    const loadAsync = vi.fn(() => pending.promise);
+    const scene = new THREE.Scene();
+    const runtime = createBreachV2WardenRuntime(scene, layout, { loadAsync }, "oathbreaker");
+    const activation = runtime.warmAt(placement.x, placement.z);
+    await vi.waitFor(() => expect(loadAsync).toHaveBeenCalled());
+
+    runtime.dispose();
+    const tracked = trackedSource(CINDERBOUND_WARDEN_ACTIONS);
+    pending.resolve(tracked.source);
+    await activation;
+    await runtime.warmAt(placement.x, placement.z);
+    runtime.update(placement.x, placement.z, 1 / 60);
+    runtime.dispose();
+
+    expect(runtime.snapshots()).toEqual([]);
+    expect(scene.children).toHaveLength(0);
+    expect(loadAsync).toHaveBeenCalledTimes(1);
+    expect(tracked.disposalCounts).toEqual({ geometry: 1, material: 1, texture: 1 });
+  });
+
   it("keeps a bounded persistent diagnostic ring and recovers malformed storage", () => {
     const storage = createDiagnosticStorage();
     for (let index = 0; index < 5; index += 1) {
