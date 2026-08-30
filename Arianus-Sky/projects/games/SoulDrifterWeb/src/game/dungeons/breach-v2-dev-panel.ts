@@ -10,6 +10,7 @@ interface BreachV2DevPanelOptions {
   seed: number;
   path: "wayfarer" | "oathbreaker";
   cam: string;
+  beforeCameraModeChange: () => void;
   warp: (roomId: string, x: number, z: number) => boolean;
   setAllDoorsOpen: (open: boolean) => void;
 }
@@ -195,7 +196,11 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
 
   section("Camera mode");
   for (const [id, label] of CAMERA_MODES) {
-    button(label, () => replacePreviewParams({ cam: id }), options.cam === id);
+    button(label, () => {
+      if (options.cam === id) return;
+      options.beforeCameraModeChange();
+      replacePreviewParams({ cam: id });
+    }, options.cam === id);
   }
 
   section("Warp to section");

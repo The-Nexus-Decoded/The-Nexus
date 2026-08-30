@@ -1,23 +1,33 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BREACH_V2_CAMERA_RESET_LABEL,
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
   BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
   BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE,
+  BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
   BREACH_V2_MOBILE_ZOOM_STEP,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
   resolveBreachV2CameraLookAhead,
   resolveBreachV2CameraStep,
   resolveBreachV2CameraTargetHeight,
   resolveBreachV2InspectionMinimumDistance,
+  resolveBreachV2InspectionZoomStep,
   resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchDistance,
+  resolveBreachV2PinchInspectionZoom,
+  resolveBreachV2PinchMagnification,
   resolveBreachV2TouchPitch,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
   shouldRequireBreachV2Landscape,
 } from "../src/game/dungeons/breach-v2-mobile-controls";
+import {
+  BREACH_V2_CAMERA_SWITCH_SESSION_KEY,
+  consumeBreachV2CameraSwitchPosition,
+  saveBreachV2CameraSwitchPosition,
+} from "../src/game/dungeons/breach-v2-startup-safety";
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
 import {
   findBreachV2RoomAt,
@@ -44,9 +54,55 @@ describe("BREACH-V2 mobile camera pinch", () => {
       BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
     )).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
   });
+
+  it("reverses cleanly after close inspection reaches the physical distance clamp", () => {
+    const close = resolveBreachV2PinchInspectionZoom(
+      3,
+      1,
+      100,
+      400,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+    );
+    expect(close.distance).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
+    expect(close.magnification).toBeCloseTo(3.6667, 3);
+    expect(resolveBreachV2PinchInspectionZoom(
+      3,
+      1,
+      100,
+      100,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+    )).toEqual({ distance: 3, magnification: 1 });
+  });
+
+  it("supports eye-detail magnification and unwinds it before increasing camera distance", () => {
+    const maximumClose = resolveBreachV2InspectionZoomStep(
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      1,
+      -BREACH_V2_MOBILE_ZOOM_STEP * 2,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+    );
+    expect(maximumClose.distance).toBe(BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE);
+    expect(maximumClose.magnification).toBe(BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM);
+    const unwind = resolveBreachV2InspectionZoomStep(
+      maximumClose.distance,
+      maximumClose.magnification,
+      BREACH_V2_MOBILE_ZOOM_STEP,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+    );
+    expect(unwind.magnification).toBeCloseTo(1.2571, 3);
+    expect(resolveBreachV2PinchMagnification(1, 100, 500))
+      .toBe(BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM);
+  });
 });
 
 describe("BREACH-V2 mobile camera buttons and orientation", () => {
+  it("exposes an explicit camera reset label", () => {
+    expect(BREACH_V2_CAMERA_RESET_LABEL).toBe("Camera Reset");
+  });
   it("uses a more top-down, centered isometric profile on compact landscape touch screens", () => {
     const mobile = resolveBreachV2IsometricCameraProfile({
       coarsePointer: true,
@@ -154,6 +210,53 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
       .toBeCloseTo(1.4);
     expect(resolveBreachV2CameraLookAhead(2.25, 1.5)).toBeCloseTo(0.9);
     expect(resolveBreachV2CameraLookAhead(2.25, 10)).toBeCloseTo(2.25);
+  });
+});
+
+describe("BREACH-V2 camera mode position continuity", () => {
+  const createStorage = () => {
+    const entries = new Map<string, string>();
+    return {
+      entries,
+      storage: {
+        getItem: (key: string) => entries.get(key) ?? null,
+        setItem: (key: string, value: string) => { entries.set(key, value); },
+        removeItem: (key: string) => { entries.delete(key); },
+      },
+    };
+  };
+
+  it("restores the exact player position once when only the camera mode reloads", () => {
+    const { entries, storage } = createStorage();
+    expect(saveBreachV2CameraSwitchPosition(storage, {
+      seed: 4182,
+      path: "oathbreaker",
+      x: 72.25,
+      z: 41.75,
+    })).toBe(true);
+    expect(entries.has(BREACH_V2_CAMERA_SWITCH_SESSION_KEY)).toBe(true);
+    expect(consumeBreachV2CameraSwitchPosition(storage, {
+      seed: 4182,
+      path: "oathbreaker",
+    })).toEqual({ x: 72.25, z: 41.75 });
+    expect(consumeBreachV2CameraSwitchPosition(storage, {
+      seed: 4182,
+      path: "oathbreaker",
+    })).toBeNull();
+  });
+
+  it("rejects a saved position from a different route", () => {
+    const { storage } = createStorage();
+    saveBreachV2CameraSwitchPosition(storage, {
+      seed: 4182,
+      path: "wayfarer",
+      x: 20,
+      z: 12,
+    });
+    expect(consumeBreachV2CameraSwitchPosition(storage, {
+      seed: 4182,
+      path: "oathbreaker",
+    })).toBeNull();
   });
 });
 

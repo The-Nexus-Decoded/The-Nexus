@@ -3,6 +3,8 @@ export const BREACH_V2_ISOMETRIC_MAX_DISTANCE = 36;
 export const BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE = 2.75;
 export const BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE = 1.2;
 export const BREACH_V2_MOBILE_ZOOM_STEP = 1.5;
+export const BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM = 4;
+export const BREACH_V2_CAMERA_RESET_LABEL = "Camera Reset";
 export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
 export const BREACH_V2_TOUCH_PITCH_SENSITIVITY = 0.002;
 export const BREACH_V2_PANEL_EVENT = "breach-v2-panel-opened";
@@ -163,6 +165,85 @@ export function resolveBreachV2PinchDistance(
     minDistance,
     currentDistance * (previousSpan / currentSpan),
   ));
+}
+
+export interface BreachV2InspectionZoom {
+  distance: number;
+  magnification: number;
+}
+
+function resolveBreachV2InspectionZoomFromEffectiveDistance(
+  effectiveDistance: number,
+  minDistance: number,
+  maxDistance: number,
+  maxMagnification: number,
+): BreachV2InspectionZoom {
+  const safeMinimum = Math.max(0.01, minDistance);
+  const safeMaximum = Math.max(safeMinimum, maxDistance);
+  const safeMagnification = Math.max(1, maxMagnification);
+  const minimumEffectiveDistance = safeMinimum / safeMagnification;
+  const clampedEffectiveDistance = Math.min(
+    safeMaximum,
+    Math.max(minimumEffectiveDistance, effectiveDistance),
+  );
+  if (clampedEffectiveDistance < safeMinimum) {
+    return {
+      distance: safeMinimum,
+      magnification: Math.min(safeMagnification, safeMinimum / clampedEffectiveDistance),
+    };
+  }
+  return { distance: clampedEffectiveDistance, magnification: 1 };
+}
+
+export function resolveBreachV2PinchInspectionZoom(
+  startDistance: number,
+  startMagnification: number,
+  startSpan: number,
+  currentSpan: number,
+  minDistance: number,
+  maxDistance: number,
+  maxMagnification = BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
+): BreachV2InspectionZoom {
+  if (startSpan <= 0 || currentSpan <= 0) {
+    return { distance: startDistance, magnification: startMagnification };
+  }
+  const startEffectiveDistance = startDistance / Math.max(1, startMagnification);
+  return resolveBreachV2InspectionZoomFromEffectiveDistance(
+    startEffectiveDistance * (startSpan / currentSpan),
+    minDistance,
+    maxDistance,
+    maxMagnification,
+  );
+}
+
+export function resolveBreachV2InspectionZoomStep(
+  currentDistance: number,
+  currentMagnification: number,
+  delta: number,
+  minDistance: number,
+  maxDistance: number,
+  maxMagnification = BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
+): BreachV2InspectionZoom {
+  const effectiveDistance = currentDistance / Math.max(1, currentMagnification);
+  return resolveBreachV2InspectionZoomFromEffectiveDistance(
+    effectiveDistance + delta,
+    minDistance,
+    maxDistance,
+    maxMagnification,
+  );
+}
+
+export function resolveBreachV2PinchMagnification(
+  startMagnification: number,
+  startSpan: number,
+  currentSpan: number,
+  maxMagnification = BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
+): number {
+  if (startSpan <= 0 || currentSpan <= 0) return startMagnification;
+  return Math.min(
+    Math.max(1, maxMagnification),
+    Math.max(1, startMagnification * (currentSpan / startSpan)),
+  );
 }
 
 interface MobileMovementPad {
@@ -385,29 +466,11 @@ export function setupBreachV2MobileMovementPad(options: {
     "width:204px", "height:146px", "pointer-events:none", "touch-action:none",
   ].join(";");
 
-  const center = document.createElement("button");
-  center.type = "button";
-  center.dataset.testid = "breach-v2-reset-camera";
-  center.setAttribute("aria-label", "Reset isometric camera");
-  center.textContent = "✦";
-  center.style.cssText = [
-    "grid-area:2 / 2", "display:grid", "place-items:center", "padding:0", "border-radius:50%",
-    "pointer-events:auto", "touch-action:manipulation", "cursor:pointer",
-    "color:rgba(159,234,255,.72)", "background:rgba(7,11,16,.45)",
-    "border:1px solid rgba(127,232,255,.18)", "font:16px Georgia,serif",
-  ].join(";");
-  center.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    resetCamera();
-  });
-  root.appendChild(center);
-
   const zoomRail = document.createElement("div");
-  zoomRail.setAttribute("aria-label", "Camera zoom controls");
+  zoomRail.setAttribute("aria-label", "Camera controls");
   zoomRail.style.cssText = [
     "position:absolute", "left:168px", "bottom:calc(max(18px,env(safe-area-inset-bottom)) + 80px)",
-    "z-index:25", "display:grid", "grid-auto-flow:column", "gap:8px", "width:92px", "height:42px",
+    "z-index:25", "display:grid", "grid-template-columns:42px 42px 78px", "gap:8px", "width:178px", "height:42px",
     "pointer-events:none", "touch-action:none",
   ].join(";");
   const zoomControls = [
@@ -437,6 +500,23 @@ export function setupBreachV2MobileMovementPad(options: {
     control.addEventListener("pointercancel", release);
     zoomRail.appendChild(control);
   }
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.dataset.testid = "breach-v2-reset-camera";
+  reset.setAttribute("aria-label", "Reset camera view");
+  reset.textContent = BREACH_V2_CAMERA_RESET_LABEL;
+  reset.style.cssText = [
+    "width:78px", "height:42px", "padding:0 8px", "pointer-events:auto", "touch-action:manipulation",
+    "border-radius:999px", "border:1px solid rgba(127,232,255,.5)", "background:rgba(7,11,16,.82)",
+    "color:#c9f7ff", "box-shadow:0 6px 18px rgba(0,0,0,.34)", "backdrop-filter:blur(7px)",
+    "font:700 9px/1.1 Georgia,serif", "letter-spacing:.06em", "text-transform:uppercase", "cursor:pointer",
+  ].join(";");
+  reset.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    resetCamera();
+  });
+  zoomRail.appendChild(reset);
   for (const direction of DIRECTIONS) {
     const control = document.createElement("button");
     control.type = "button";

@@ -60,6 +60,8 @@ import {
 import {
   clearBreachV2LegacySpatialStateForExplicitUrl,
   compileBreachV2StartupShaders,
+  consumeBreachV2CameraSwitchPosition,
+  saveBreachV2CameraSwitchPosition,
 } from "./breach-v2-startup-safety.ts";
 import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
@@ -69,12 +71,13 @@ import {
   type BreachV2GraphicsMode,
   type BreachV2GraphicsQuality,
   resolveBreachV2CameraLookAhead,
-  resolveBreachV2CameraStep,
   resolveBreachV2CameraTargetHeight,
   resolveBreachV2AutoGraphicsQuality,
   resolveBreachV2InspectionMinimumDistance,
+  resolveBreachV2InspectionZoomStep,
   resolveBreachV2IsometricCameraProfile,
-  resolveBreachV2PinchDistance,
+  resolveBreachV2PinchInspectionZoom,
+  resolveBreachV2PinchMagnification,
   resolveBreachV2TouchPitch,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
@@ -4061,6 +4064,10 @@ export async function startDungeonPreview(
   const creatureReviewEnabled = previewUrl.searchParams.get("creatureReview") === "1";
   const wardenReviewEnabled = previewUrl.searchParams.get("wardenReview") === "1";
   clearBreachV2LegacySpatialStateForExplicitUrl(previewUrl, window.sessionStorage);
+  const cameraSwitchPosition = consumeBreachV2CameraSwitchPosition(
+    window.sessionStorage,
+    { seed: options.seed, path: options.path },
+  );
   // The preview is a production-zone test harness: active-route doors are
   // unlocked by default so reviewers can traverse every section. Add
   // `gates=on` only when explicitly validating the campaign progression locks.
@@ -4351,7 +4358,9 @@ export async function startDungeonPreview(
     }
     return [layout.landmarks.playerStart.x, layout.landmarks.playerStart.z];
   };
-  const requestedPosition = requestedRoom && requestedRoom.id !== "vestibule"
+  const requestedPosition = cameraSwitchPosition
+    ? nearestWalkable(cameraSwitchPosition.x, cameraSwitchPosition.z)
+    : requestedRoom && requestedRoom.id !== "vestibule"
     ? nearestWalkable(
       requestedRoom.x + requestedRoom.w / 2,
       requestedRoom.z + requestedRoom.h / 2,
@@ -4441,24 +4450,44 @@ export async function startDungeonPreview(
   let player: THREE.Object3D | null = null;
   let foundationPlayerActor: BreachV2HumanFoundationActor | null = null;
   let foundationAnimationReview: BreachV2HumanFoundationReview | null = null;
+  const applyInspectionZoom = (zoom: { distance: number; magnification: number }): void => {
+    camDist = zoom.distance;
+    camera.zoom = zoom.magnification;
+    camera.updateProjectionMatrix();
+  };
   setupBreachV2MobileMovementPad({
     container,
     keys,
     enabled: coarsePointer && walkMode,
     adjustCameraDistance: (delta) => {
-      if (firstPersonMode) return;
+      if (firstPersonMode) {
+        camera.zoom = THREE.MathUtils.clamp(
+          camera.zoom - delta * 0.4,
+          1,
+          4,
+        );
+        camera.updateProjectionMatrix();
+        return;
+      }
       const minDistance = resolveBreachV2InspectionMinimumDistance({
         coarsePointer,
         isometric: isometricMode,
       });
       const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
-      camDist = resolveBreachV2CameraStep(camDist, delta, minDistance, maxDistance);
+      applyInspectionZoom(resolveBreachV2InspectionZoomStep(
+        camDist,
+        camera.zoom,
+        delta,
+        minDistance,
+        maxDistance,
+      ));
     },
     resetCamera: () => {
-      if (!isometricMode) return;
-      camYaw = BREACH_V2_ISOMETRIC_DEFAULT_YAW;
-      camPitch = isometricCameraProfile.defaultPitch;
-      camDist = isometricCameraProfile.defaultDistance;
+      camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
+      camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
+      camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
     },
   });
   setupBreachV2MobileLandscapeGate({
@@ -4481,7 +4510,9 @@ export async function startDungeonPreview(
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
-    let pinchSpan: number | null = null;
+    let pinchStartSpan: number | null = null;
+    let pinchStartDistance = camDist;
+    let pinchStartMagnification = camera.zoom;
     let pointerWasPinch = false;
     let pointerRotated = false;
     const activePointers = new Map<number, { x: number; y: number; pointerType: string }>();
@@ -4491,6 +4522,11 @@ export async function startDungeonPreview(
       const points = [...activePointers.values()];
       if (points.length < 2) return null;
       return Math.hypot(points[0]!.x - points[1]!.x, points[0]!.y - points[1]!.y);
+    };
+    const clearPinchGesture = (): void => {
+      pinchStartSpan = null;
+      pinchStartDistance = camDist;
+      pinchStartMagnification = camera.zoom;
     };
     const setPointerRay = (clientX: number, clientY: number): void => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -4565,7 +4601,9 @@ export async function startDungeonPreview(
       renderer.domElement.setPointerCapture(e.pointerId);
       if (e.pointerType === "touch" && activePointers.size >= 2) {
         pointerWasPinch = true;
-        pinchSpan = activePointerSpan();
+        pinchStartSpan = activePointerSpan();
+        pinchStartDistance = camDist;
+        pinchStartMagnification = camera.zoom;
         dragging = false;
         pointerTravel = Number.POSITIVE_INFINITY;
         return;
@@ -4596,7 +4634,7 @@ export async function startDungeonPreview(
       if (renderer.domElement.hasPointerCapture(e.pointerId)) {
         renderer.domElement.releasePointerCapture(e.pointerId);
       }
-      if (activePointers.size < 2) pinchSpan = null;
+      if (activePointers.size < 2) clearPinchGesture();
       if (activePointers.size === 0) {
         dragging = false;
         primaryPointerId = null;
@@ -4608,24 +4646,33 @@ export async function startDungeonPreview(
       const previous = activePointers.get(e.pointerId);
       if (!previous) return;
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
-      if (e.pointerType === "touch" && activePointers.size >= 2 && !firstPersonMode) {
+      if (e.pointerType === "touch" && activePointers.size >= 2) {
         e.preventDefault();
         const nextSpan = activePointerSpan();
-        if (pinchSpan !== null && nextSpan !== null) {
-          const minDistance = resolveBreachV2InspectionMinimumDistance({
-            coarsePointer,
-            isometric: isometricMode,
-          });
-          const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
-          camDist = resolveBreachV2PinchDistance(
-            camDist,
-            pinchSpan,
-            nextSpan,
-            minDistance,
-            maxDistance,
-          );
+        if (pinchStartSpan !== null && nextSpan !== null) {
+          if (firstPersonMode) {
+            camera.zoom = resolveBreachV2PinchMagnification(
+              pinchStartMagnification,
+              pinchStartSpan,
+              nextSpan,
+            );
+            camera.updateProjectionMatrix();
+          } else {
+            const minDistance = resolveBreachV2InspectionMinimumDistance({
+              coarsePointer,
+              isometric: isometricMode,
+            });
+            const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
+            applyInspectionZoom(resolveBreachV2PinchInspectionZoom(
+              pinchStartDistance,
+              pinchStartMagnification,
+              pinchStartSpan,
+              nextSpan,
+              minDistance,
+              maxDistance,
+            ));
+          }
         }
-        pinchSpan = nextSpan;
         return;
       }
       if (!dragging || primaryPointerId !== e.pointerId) return;
@@ -4661,10 +4708,20 @@ export async function startDungeonPreview(
     });
     renderer.domElement.addEventListener("pointercancel", (e) => {
       activePointers.delete(e.pointerId);
+      if (activePointers.size < 2) clearPinchGesture();
       if (activePointers.size === 0) {
         dragging = false;
         primaryPointerId = null;
-        pinchSpan = null;
+        pointerWasPinch = false;
+        pointerRotated = false;
+      }
+    });
+    renderer.domElement.addEventListener("lostpointercapture", (e) => {
+      activePointers.delete(e.pointerId);
+      if (activePointers.size < 2) clearPinchGesture();
+      if (activePointers.size === 0) {
+        dragging = false;
+        primaryPointerId = null;
         pointerWasPinch = false;
         pointerRotated = false;
       }
@@ -4862,6 +4919,14 @@ export async function startDungeonPreview(
     seed: options.seed,
     path: options.path,
     cam: activeCameraMode,
+    beforeCameraModeChange: () => {
+      saveBreachV2CameraSwitchPosition(window.sessionStorage, {
+        seed: options.seed,
+        path: options.path,
+        x: playerPos.x,
+        z: playerPos.z,
+      });
+    },
     warp,
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),
   });
