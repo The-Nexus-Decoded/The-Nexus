@@ -7,6 +7,7 @@ import {
   HUMAN_PILOT_WEAPON_FIT_SPECS,
   humanPilotWeaponFitSpec,
 } from "../src/game/humanPilotWeaponFit";
+import { ARCHERY_ASSET_PATHS } from "../src/game/archery/archeryAssetContract";
 
 describe("Human Foundation V2 weapon-fit metadata", () => {
   it("keeps one unique source identity and runtime path per starter weapon", () => {
@@ -59,6 +60,24 @@ describe("Human Foundation V2 weapon-fit metadata", () => {
       "ProSwordAndShield__DrawSword1",
       "ProSwordAndShield__SheathSword1",
     ]);
+  });
+
+  it("uses the approved independent Tripo arrow and empty quiver instead of v1 placeholders", () => {
+    const arrow = humanPilotWeaponFitSpec("arrow");
+    const quiver = humanPilotWeaponFitSpec("quiver");
+
+    expect(arrow).toMatchObject({
+      tripoModelId: "cb10eebf-92de-4eff-95b0-541bdff9131a",
+      runtimeUrl: ARCHERY_ASSET_PATHS["arrow-standard"],
+      collisionEnvelopeMeters: [0.011, 0.94, 0.011],
+    });
+    expect(quiver).toMatchObject({
+      tripoModelId: "7e65366b-7043-4776-ae77-6a8cb67be007",
+      runtimeUrl: ARCHERY_ASSET_PATHS.quiver,
+      collisionEnvelopeMeters: [0.24, 0.64, 0.2],
+    });
+    expect(arrow.runtimeUrl).not.toMatch(/v001\.glb$/);
+    expect(quiver.runtimeUrl).not.toMatch(/v001\.glb$/);
   });
 
   it("attaches the corrected longsword transform without inheriting actor height scale", () => {

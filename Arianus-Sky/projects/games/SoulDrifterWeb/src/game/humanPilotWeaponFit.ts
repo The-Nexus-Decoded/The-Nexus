@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { ARCHERY_ASSET_PATHS } from "./archery/archeryAssetContract";
 
 export type HumanPilotWeaponId =
   | "iron_longsword"
@@ -160,23 +161,23 @@ export const HUMAN_PILOT_WEAPON_FIT_SPECS: readonly HumanPilotWeaponFitSpec[] = 
   }),
   spec({
     id: "arrow",
-    label: "Separate arrow",
-    tripoModelId: "c3dd1796-872c-4c92-89fd-42ee7ac2745b",
-    runtimeUrl: "/assets/3d/weapons/bow/weapon-arrow-starter-v001.glb",
+    label: "Separate Tripo arrow",
+    tripoModelId: "cb10eebf-92de-4eff-95b0-541bdff9131a",
+    runtimeUrl: ARCHERY_ASSET_PATHS["arrow-standard"],
     sourceOrigin: "shaft grip point at local zero",
     sourceAxes: "arrowhead +Y, fletching -Y",
-    collisionEnvelopeMeters: [0.04, 0.78, 0.04],
+    collisionEnvelopeMeters: [0.011, 0.94, 0.011],
     drawn: { socket: "right-hand", positionMeters: [0, 0, 0], rotationRadians: [0, 0, 0] },
     carried: { socket: "hips", positionMeters: [-0.18, 0.48, -0.2], rotationRadians: [0.08, 0, 0] },
   }),
   spec({
     id: "quiver",
-    label: "Arrow quiver",
-    tripoModelId: "0835a993-b483-4b03-a21a-5d15f2f443bc",
-    runtimeUrl: "/assets/3d/weapons/bow/weapon-quiver-starter-v001.glb",
+    label: "Independent Tripo arrow quiver",
+    tripoModelId: "7e65366b-7043-4776-ae77-6a8cb67be007",
+    runtimeUrl: ARCHERY_ASSET_PATHS.quiver,
     sourceOrigin: "back mounting center at local zero",
     sourceAxes: "opening +Y, back contact +Z",
-    collisionEnvelopeMeters: [0.24, 0.76, 0.2],
+    collisionEnvelopeMeters: [0.24, 0.64, 0.2],
     drawn: { socket: "hips", positionMeters: [-0.2, 0.5, -0.17], rotationRadians: [0.08, 0, -0.18] },
     carried: { socket: "hips", positionMeters: [-0.2, 0.5, -0.17], rotationRadians: [0.08, 0, -0.18] },
   }),
