@@ -38,6 +38,8 @@ import {
 } from "../src/game/dungeons/breach-v2-breachlings";
 import {
   applyBreachV2InspectionFocus,
+  BreachV2PreviewSupersededError,
+  createBreachV2IncrementalPreviewLifecycle,
   createBreachV2PreviewDisposer,
   disposeBreachV2SceneResources,
   resolveBreachV2PreviewCameraMode,
@@ -431,6 +433,49 @@ describe("BREACH-V2 preview landmark navigation", () => {
 });
 
 describe("BREACH-V2 preview lifecycle", () => {
+  it("supersedes an overlapping async startup before old resources can resume", async () => {
+    const hooks: { dispose?: () => void } = {};
+    const canvases = new Set<string>();
+    const animationLoops = new Set<string>();
+    const input = new EventTarget();
+    const inputCalls = { first: 0, second: 0 };
+    let releaseFirst!: () => void;
+    const firstAwait = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const first = createBreachV2IncrementalPreviewLifecycle();
+    hooks.dispose = first.dispose;
+    canvases.add("first");
+    animationLoops.add("first");
+    const firstInput = () => { inputCalls.first += 1; };
+    input.addEventListener("keydown", firstInput);
+    first.add(() => input.removeEventListener("keydown", firstInput));
+    first.add(() => animationLoops.delete("first"));
+    first.add(() => canvases.delete("first"));
+    const firstContinuation = (async () => {
+      await firstAwait;
+      expect(() => first.throwIfDisposed()).toThrow(BreachV2PreviewSupersededError);
+    })();
+
+    hooks.dispose?.();
+    const second = createBreachV2IncrementalPreviewLifecycle();
+    hooks.dispose = second.dispose;
+    canvases.add("second");
+    animationLoops.add("second");
+    const secondInput = () => { inputCalls.second += 1; };
+    input.addEventListener("keydown", secondInput);
+    second.add(() => input.removeEventListener("keydown", secondInput));
+    second.add(() => animationLoops.delete("second"));
+    second.add(() => canvases.delete("second"));
+    releaseFirst();
+    await firstContinuation;
+    input.dispatchEvent(new Event("keydown"));
+
+    expect(canvases).toEqual(new Set(["second"]));
+    expect(animationLoops).toEqual(new Set(["second"]));
+    expect(inputCalls).toEqual({ first: 0, second: 1 });
+    expect(hooks.dispose).toBe(second.dispose);
+    second.dispose();
+  });
+
   it("disposes an old preview once before a same-document restart installs new input", () => {
     const input = new EventTarget();
     const oldInput = { calls: 0 };

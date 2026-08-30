@@ -190,6 +190,7 @@ export const BREACH_V2_HEAVY_DOOR_FITTED_BOUNDS = Object.freeze({
 
 interface PreviewHooks {
   __dungeonDispose?: () => void;
+  __dungeonGeneration?: symbol;
   __dungeonScene: THREE.Scene;
   __dungeonLayout: BreachV2Layout;
   __dungeonRenderer: THREE.WebGLRenderer;
@@ -280,6 +281,7 @@ interface PreviewHooks {
 
 const BREACH_V2_PREVIEW_HOOK_KEYS = [
   "__dungeonDispose",
+  "__dungeonGeneration",
   "__dungeonScene",
   "__dungeonLayout",
   "__dungeonRenderer",
@@ -334,6 +336,57 @@ export function createBreachV2PreviewDisposer(
         reportError(error);
       }
     }
+  };
+}
+
+export class BreachV2PreviewSupersededError extends Error {
+  constructor() {
+    super("BREACH-V2 preview startup was superseded.");
+    this.name = "BreachV2PreviewSupersededError";
+  }
+}
+
+export interface BreachV2IncrementalPreviewLifecycle {
+  readonly disposed: boolean;
+  add(cleanup: () => void): void;
+  dispose(): void;
+  throwIfDisposed(): void;
+}
+
+export function createBreachV2IncrementalPreviewLifecycle(
+  reportError: (error: unknown) => void = (error) => {
+    console.error("BREACH-V2 preview cleanup failed", error);
+  },
+): BreachV2IncrementalPreviewLifecycle {
+  const cleanupSteps: (() => void)[] = [];
+  let disposed = false;
+  const runCleanup = (cleanup: () => void): void => {
+    try {
+      cleanup();
+    } catch (error) {
+      reportError(error);
+    }
+  };
+  return {
+    get disposed() { return disposed; },
+    add: (cleanup) => {
+      if (disposed) {
+        runCleanup(cleanup);
+        return;
+      }
+      cleanupSteps.push(cleanup);
+    },
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      for (let index = cleanupSteps.length - 1; index >= 0; index -= 1) {
+        runCleanup(cleanupSteps[index]!);
+      }
+      cleanupSteps.length = 0;
+    },
+    throwIfDisposed: () => {
+      if (disposed) throw new BreachV2PreviewSupersededError();
+    },
   };
 }
 
@@ -4178,12 +4231,30 @@ export async function startDungeonPreview(
   container: HTMLElement,
   options: { seed: number; path: "wayfarer" | "oathbreaker"; cam: string },
 ): Promise<void> {
-  (window as unknown as Partial<PreviewHooks>).__dungeonDispose?.();
+  const hooks = window as unknown as PreviewHooks;
+  hooks.__dungeonDispose?.();
+  const generation = Symbol("breach-v2-preview-generation");
+  const lifecycle = createBreachV2IncrementalPreviewLifecycle();
+  hooks.__dungeonGeneration = generation;
+  hooks.__dungeonDispose = lifecycle.dispose;
+  let disposeLateSceneResources: (() => void) | null = null;
+  const guardCurrentGeneration = (): void => {
+    if (hooks.__dungeonGeneration !== generation && !lifecycle.disposed) lifecycle.dispose();
+    if (lifecycle.disposed) disposeLateSceneResources?.();
+    lifecycle.throwIfDisposed();
+  };
+  lifecycle.add(() => {
+    if (hooks.__dungeonGeneration !== generation) return;
+    const hookRecord = hooks as unknown as Record<string, unknown>;
+    BREACH_V2_PREVIEW_HOOK_KEYS.forEach((key) => { delete hookRecord[key]; });
+  });
+  try {
   container.style.cssText = "position:fixed;inset:0;overflow:hidden;background:#0b0d10;";
   const loading = document.createElement("div");
   loading.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e0d8c0;font:14px monospace;";
   loading.textContent = `Assembling BREACH-V2 — seed ${options.seed} · ${options.path}…`;
   container.appendChild(loading);
+  lifecycle.add(() => loading.remove());
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
   const legacyLandmarkRoomId = resolveBreachV2LegacyLandmarkRoomId(options.cam, layout.rooms);
@@ -4211,10 +4282,12 @@ export async function startDungeonPreview(
   const progressionGatesEnabled = previewUrl.searchParams.get("gates") === "on";
   if (previewUrl.searchParams.get("fresh") === "1") {
     await storyDatabase.clearDungeonRun(runId);
+    guardCurrentGeneration();
     previewUrl.searchParams.delete("fresh");
     window.history.replaceState(null, "", previewUrl);
   }
   const savedState = await storyDatabase.loadDungeonRun<BreachV2RunState>(runId);
+  guardCurrentGeneration();
   const gameplay = createBreachV2RunController({
     seed: options.seed,
     path: options.path,
@@ -4266,8 +4339,19 @@ export async function startDungeonPreview(
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   container.appendChild(renderer.domElement);
+  lifecycle.add(() => {
+    renderer.setAnimationLoop(null);
+    renderer.domElement.remove();
+    renderer.renderLists.dispose();
+    renderer.dispose();
+  });
 
+  const resourceDisposalRegistry = createBreachV2ResourceDisposalRegistry();
   const scene = new THREE.Scene();
+  disposeLateSceneResources = () => {
+    disposeBreachV2SceneResources(scene, resourceDisposalRegistry);
+  };
+  lifecycle.add(disposeLateSceneResources);
   scene.background = new THREE.Color(0x0b0d10);
   scene.fog = new THREE.FogExp2(0x0d0f14, 0.0055);
   const diagnostics = previewUrl.searchParams.get("diagnostics") === "1"
@@ -4281,6 +4365,7 @@ export async function startDungeonPreview(
       revision: previewUrl.searchParams.get("rev") ?? "working-tree",
     })
     : null;
+  lifecycle.add(() => diagnostics?.dispose());
 
   const applyGraphicsQuality = (quality: BreachV2GraphicsQuality): void => {
     graphicsQuality = quality;
@@ -4298,11 +4383,17 @@ export async function startDungeonPreview(
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.maxDistance = 180;
+  lifecycle.add(() => controls.dispose());
 
   const loadingManager = new THREE.LoadingManager();
   loadingManager.onStart = (url, loaded, total) => diagnostics?.record("asset-batch-start", { url, loaded, total });
   loadingManager.onLoad = () => diagnostics?.record("asset-batch-complete", {});
   loadingManager.onError = (url) => diagnostics?.record("asset-load-failure", { url });
+  lifecycle.add(() => {
+    loadingManager.onStart = () => undefined;
+    loadingManager.onLoad = () => undefined;
+    loadingManager.onError = () => undefined;
+  });
   const texLoader = new THREE.TextureLoader(loadingManager);
   const gltfLoader = new GLTFLoader(loadingManager);
   gltfLoader.setMeshoptDecoder(MeshoptDecoder); // kit GLBs are meshopt-compressed
@@ -4313,6 +4404,7 @@ export async function startDungeonPreview(
   const architecturalEnvironmentObjects = buildArchitecturalPolish(scene, layout, materials);
   const ceilings = shellGroup.getObjectByName("shell-ceilings");
   const propPlacement = await placeKitProps(scene, layout, gltfLoader);
+  guardCurrentGeneration();
   const environmentObjects = [
     ...architecturalEnvironmentObjects,
     ...propPlacement.environmentObjects,
@@ -4352,6 +4444,7 @@ export async function startDungeonPreview(
     (doorId) => !progressionGatesEnabled || gameplay.requestDoor(doorId).allowed,
     () => playerPositionForPortalSafety,
   );
+  guardCurrentGeneration();
   const landmarkTickables = buildLandmarks(scene, layout);
   buildWallArtAndBooks(scene, layout, texLoader);
   buildCorruption(scene, layout);
@@ -4531,6 +4624,7 @@ export async function startDungeonPreview(
     initialX: playerPos.x,
     initialZ: playerPos.z,
   });
+  lifecycle.add(() => fogOfWar.destroy());
   playerPositionForPortalSafety = playerPos;
   const setPlayerPosition = (x: number, z: number): void => {
     playerPos.set(x, floorElevationAt(layout, x, z), z);
@@ -4570,7 +4664,7 @@ export async function startDungeonPreview(
       isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
     ),
   });
-  const resourceDisposalRegistry = createBreachV2ResourceDisposalRegistry();
+  lifecycle.add(() => gameplayUi.destroy());
   loading.textContent = "Loading creatures for the active room…";
   const breachlingRuntime = createBreachV2BreachlingRuntime(
     scene,
@@ -4579,10 +4673,13 @@ export async function startDungeonPreview(
     options.path,
     resourceDisposalRegistry,
   );
+  lifecycle.add(() => breachlingRuntime.dispose());
   await breachlingRuntime.warmAt(playerPos.x, playerPos.z);
+  guardCurrentGeneration();
   let creatureAnimationReview: BreachV2CreatureReview | null = null;
   if (creatureReviewEnabled) {
     creatureAnimationReview = setupBreachV2CreatureReview(container, breachlingRuntime);
+    lifecycle.add(() => creatureAnimationReview?.dispose());
   }
   const wardenRuntime = createBreachV2WardenRuntime(
     scene,
@@ -4592,10 +4689,13 @@ export async function startDungeonPreview(
     diagnostics ?? undefined,
     resourceDisposalRegistry,
   );
+  lifecycle.add(() => wardenRuntime.dispose());
   await wardenRuntime.warmAt(playerPos.x, playerPos.z);
+  guardCurrentGeneration();
   let wardenAnimationReview: BreachV2WardenReview | null = null;
   if (wardenReviewEnabled) {
     wardenAnimationReview = setupBreachV2WardenReview(container, wardenRuntime);
+    lifecycle.add(() => wardenAnimationReview?.dispose());
   }
   let camYaw = isometricMode ? BREACH_V2_ISOMETRIC_DEFAULT_YAW : 0.08;
   let camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
@@ -4674,14 +4774,23 @@ export async function startDungeonPreview(
       camera.updateProjectionMatrix();
     },
   });
+  lifecycle.add(() => mobileMovementPad.destroy());
   const mobileLandscapeGate = setupBreachV2MobileLandscapeGate({
     container,
     enabled: coarsePointer && walkMode,
   });
+  lifecycle.add(() => mobileLandscapeGate.destroy());
   if (walkMode) {
     controls.enabled = false;
     loading.textContent = "Loading Human Foundation player…";
     const humanFoundationFactory = await createBreachV2HumanFoundationActorFactory(gltfLoader);
+    lifecycle.add(() => {
+      if (foundationPlayerActor) {
+        disposeBreachV2ObjectResources(foundationPlayerActor.root, resourceDisposalRegistry);
+      }
+      humanFoundationFactory.dispose();
+    });
+    guardCurrentGeneration();
     foundationPlayerActor = humanFoundationFactory.createPlayer();
     player = foundationPlayerActor.root;
     player.visible = !firstPersonMode;
@@ -4690,6 +4799,7 @@ export async function startDungeonPreview(
     player.position.set(playerPos.x, playerPos.y, playerPos.z);
     if (animationReviewEnabled) {
       foundationAnimationReview = setupBreachV2HumanFoundationReview(container, foundationPlayerActor);
+      lifecycle.add(() => foundationAnimationReview?.dispose());
     }
     const reviewPanels: Record<BreachV2ReviewActorSelection["kind"], HTMLElement | null> = {
       human: foundationAnimationReview?.root ?? null,
@@ -4729,6 +4839,11 @@ export async function startDungeonPreview(
       if ((event as CustomEvent<string>).detail !== "animation-review") hideReviewPanels();
     };
     window.addEventListener(BREACH_V2_PANEL_EVENT, handleReviewPanelOpened);
+    lifecycle.add(() => {
+      if (handleReviewPanelOpened) {
+        window.removeEventListener(BREACH_V2_PANEL_EVENT, handleReviewPanelOpened);
+      }
+    });
     const showReviewPanel = (selection: BreachV2ReviewActorSelection): boolean => {
       const selectedPanel = reviewPanels[selection.kind];
       if (!selectedPanel) return false;
@@ -5041,6 +5156,19 @@ export async function startDungeonPreview(
     window.addEventListener("keydown", handleKeyDown);
     handleKeyUp = (e) => keys.delete(e.code);
     window.addEventListener("keyup", handleKeyUp);
+    lifecycle.add(() => {
+      if (handlePointerDown) renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      if (handlePointerUp) renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      if (handlePointerMove) renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+      if (handlePointerCancel) renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
+      if (handleLostPointerCapture) {
+        renderer.domElement.removeEventListener("lostpointercapture", handleLostPointerCapture);
+      }
+      if (handleWheel) renderer.domElement.removeEventListener("wheel", handleWheel);
+      if (handleKeyDown) window.removeEventListener("keydown", handleKeyDown);
+      if (handleKeyUp) window.removeEventListener("keyup", handleKeyUp);
+      keys.clear();
+    });
   }
 
   const preset = presets[activeCameraMode] ?? presets.vestibule!;
@@ -5055,6 +5183,7 @@ export async function startDungeonPreview(
   }
 
   const hud = setupHud(container);
+  lifecycle.add(() => hud.remove());
   let statsVisible = window.localStorage.getItem("breach-v2-performance-details") === "1";
   hud.hidden = !statsVisible;
   const settingsPanel = setupBreachV2SettingsPanel({
@@ -5076,6 +5205,7 @@ export async function startDungeonPreview(
       window.localStorage.setItem("breach-v2-performance-details", visible ? "1" : "0");
     },
   });
+  lifecycle.add(() => settingsPanel.destroy());
   loading.textContent = "Compiling dungeon shaders…";
   try {
     await compileBreachV2StartupShaders(renderer, scene, camera);
@@ -5087,9 +5217,9 @@ export async function startDungeonPreview(
     });
     console.warn("BREACH-V2 shader compilation was unavailable; continuing with lazy initialization", error);
   }
+  guardCurrentGeneration();
   loading.remove();
 
-  const hooks = window as unknown as PreviewHooks;
   hooks.__dungeonScene = scene;
   hooks.__dungeonLayout = layout;
   hooks.__dungeonRenderer = renderer;
@@ -5264,9 +5394,11 @@ export async function startDungeonPreview(
     warp,
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),
   });
+  lifecycle.add(() => devPanel.destroy());
 
   const timer = new THREE.Timer();
   timer.connect(document);
+  lifecycle.add(() => timer.disconnect());
   const cameraTarget = new THREE.Vector3();
   const desiredCamera = new THREE.Vector3();
   const cameraDirection = new THREE.Vector3();
@@ -5674,63 +5806,19 @@ export async function startDungeonPreview(
   window.visualViewport?.addEventListener("resize", syncViewport);
   const viewportObserver = new ResizeObserver(syncViewport);
   viewportObserver.observe(container);
+  lifecycle.add(() => {
+    window.removeEventListener("resize", syncViewport);
+    window.visualViewport?.removeEventListener("resize", syncViewport);
+    viewportObserver.disconnect();
+  });
   syncViewport();
-  let teardown: () => void = () => undefined;
-  teardown = createBreachV2PreviewDisposer([
-    () => renderer.setAnimationLoop(null),
-    () => timer.disconnect(),
-    () => window.removeEventListener("pagehide", teardown),
-    () => window.removeEventListener("resize", syncViewport),
-    () => window.visualViewport?.removeEventListener("resize", syncViewport),
-    () => viewportObserver.disconnect(),
-    () => {
-      if (handleReviewPanelOpened) {
-        window.removeEventListener(BREACH_V2_PANEL_EVENT, handleReviewPanelOpened);
-      }
-    },
-    () => {
-      if (handlePointerDown) renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-      if (handlePointerUp) renderer.domElement.removeEventListener("pointerup", handlePointerUp);
-      if (handlePointerMove) renderer.domElement.removeEventListener("pointermove", handlePointerMove);
-      if (handlePointerCancel) renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
-      if (handleLostPointerCapture) {
-        renderer.domElement.removeEventListener("lostpointercapture", handleLostPointerCapture);
-      }
-      if (handleWheel) renderer.domElement.removeEventListener("wheel", handleWheel);
-      if (handleKeyDown) window.removeEventListener("keydown", handleKeyDown);
-      if (handleKeyUp) window.removeEventListener("keyup", handleKeyUp);
-      keys.clear();
-    },
-    () => foundationAnimationReview?.dispose(),
-    () => creatureAnimationReview?.dispose(),
-    () => wardenAnimationReview?.dispose(),
-    () => gameplayUi.destroy(),
-    () => settingsPanel.destroy(),
-    () => devPanel.destroy(),
-    () => mobileMovementPad.destroy(),
-    () => mobileLandscapeGate.destroy(),
-    () => controls.dispose(),
-    () => diagnostics?.dispose(),
-    () => foundationPlayerActor?.dispose(),
-    () => breachlingRuntime.dispose(),
-    () => wardenRuntime.dispose(),
-    () => fogOfWar.destroy(),
-    () => disposeBreachV2SceneResources(scene, resourceDisposalRegistry),
-    () => hud.remove(),
-    () => {
-      loadingManager.onStart = () => undefined;
-      loadingManager.onLoad = () => undefined;
-      loadingManager.onError = () => undefined;
-    },
-    () => renderer.domElement.remove(),
-    () => renderer.renderLists.dispose(),
-    () => renderer.dispose(),
-    () => {
-      if (hooks.__dungeonDispose !== teardown) return;
-      const hookRecord = hooks as unknown as Record<string, unknown>;
-      BREACH_V2_PREVIEW_HOOK_KEYS.forEach((key) => { delete hookRecord[key]; });
-    },
-  ]);
-  hooks.__dungeonDispose = teardown;
+  const teardown = lifecycle.dispose;
   window.addEventListener("pagehide", teardown, { once: true });
+  lifecycle.add(() => window.removeEventListener("pagehide", teardown));
+  guardCurrentGeneration();
+  } catch (error) {
+    lifecycle.dispose();
+    if (error instanceof BreachV2PreviewSupersededError) return;
+    throw error;
+  }
 }
