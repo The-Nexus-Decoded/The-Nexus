@@ -93,10 +93,15 @@ describe("production archery scene assembly", () => {
     expect(assembly.roots.quiverBack).not.toBe(assembly.roots.harnessTorso);
     expect(assembly.roots.quiverBack.scale.x).toBeCloseTo(0.5);
     expect(assembly.roots.harnessTorso.scale.x).toBeCloseTo(0.41);
+    expect(assembly.state).toBe("sheathed");
 
-    assembly.setBowCarryState("hand");
+    assembly.setVisibleState("drawn");
+    expect(assembly.state).toBe("drawn");
     expect(leftHand.getObjectByName("bow-visual")).toBeDefined();
     expect(spine.getObjectByName("archery-bow-back")?.getObjectByName("bow-visual")).toBeUndefined();
+    assembly.setVisibleState("hidden");
+    expect(assembly.roots.quiverBack.visible).toBe(false);
+    expect(assembly.roots.harnessTorso.visible).toBe(false);
     assembly.dispose();
     expect(leftHand.getObjectByName("archery-bow-hand")).toBeUndefined();
     expect(spine.getObjectByName("archery-quiver-back")).toBeUndefined();
@@ -123,6 +128,29 @@ describe("production archery scene assembly", () => {
     expect(loaded.quiver.parent).toBeNull();
     expect(loaded.harness.parent).toBeNull();
     expect(Object.keys(loaded.arrows)).toEqual(["standard", "fire", "ice", "poison"]);
+  });
+
+  it("mounts to the production sharpshooter Fist and Torso bone aliases", () => {
+    const model = new Group();
+    const leftHand = Object.assign(new Group(), { name: "Fist.L" });
+    const rightHand = Object.assign(new Group(), { name: "Fist.R" });
+    const torso = Object.assign(new Group(), { name: "Torso" });
+    model.add(leftHand, rightHand, torso);
+
+    const assembly = createArcherySceneAssembly({
+      model,
+      projectileWorld: new Group(),
+      actorScale: 1,
+      inventory: createQuiverInventory({ standard: 10 }),
+      assets: assets(),
+      applyBowStringDraw: vi.fn(),
+    });
+
+    expect(leftHand.getObjectByName("archery-bow-hand")).toBeDefined();
+    expect(rightHand.getObjectByName("archery-arrow-hand")).toBeDefined();
+    expect(torso.getObjectByName("archery-quiver-back")).toBeDefined();
+    expect(torso.getObjectByName("archery-harness-torso")).toBeDefined();
+    assembly.dispose();
   });
 
   it("rejects rigs that would silently fall back to a shared or wrong socket", () => {

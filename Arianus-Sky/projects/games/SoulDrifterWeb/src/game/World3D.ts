@@ -112,6 +112,16 @@ import {
   syncQuiverInventoryToItems,
 } from "./archery/archeryInventoryAdapter";
 import { selectArrowType, type QuiverInventoryState } from "./archery/archeryInventory";
+import {
+  ARCHERY_RETRIEVAL_MARKERS,
+  bowRangeDecision,
+  type ArcheryAction,
+} from "./archery/archeryActions";
+import {
+  createArcherySceneAssembly,
+  loadArcherySceneAssets,
+  type ArcherySceneAssembly,
+} from "./archery/archerySceneAssembly";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -125,6 +135,17 @@ const FALLBACK_PALADIN_MODEL = "/assets/3d/characters/paladin.gltf";
 const PILOT_REVIEW_MODEL = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
 const PILOT_REVIEW_LIBRARY = "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb";
 const STARTER_LONGSWORD_MODEL = "/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb";
+const BOW_BASIC_ATTACK_RANGE_TILES = 6;
+const BOW_RUNTIME_CLIPS = [
+  "Interactions__HumanMasculineAthleticMuscularBowDrawArrow",
+  "Interactions__HumanMasculineAthleticMuscularBowEquipFromBack",
+  "Interactions__HumanMasculineAthleticMuscularBowShoot",
+  "Interactions__HumanMasculineAthleticMuscularBowStowToBack",
+  "Interactions__HumanMasculineAthleticMuscularStaffButtSmash",
+  "ProLongbow__StandingIdle01",
+  "ProLongbow__StandingWalkForward",
+  "ProLongbow__StandingRunForward",
+] as const;
 const IN_PLACE_ANIMATION_NAMES = new Set([
   "idlerelaxed", "walkbaseline", "runbaseline",
   "swordslash", "siphoncleave", "shoot_onehanded", "punch", "basicthrust",
@@ -150,6 +171,7 @@ interface AnimatedActor {
   motion: AvatarMotionController;
   currentAction?: THREE.AnimationAction;
   weapon?: WeaponPresentation;
+  archery?: ArcherySceneAssembly;
   groundingMeshes: THREE.Mesh[];
   grid: GridPoint;
   label?: THREE.Sprite;
@@ -245,6 +267,14 @@ interface DebugSnapshot {
   playerAnimationDuration: number;
   playerWeaponState: WeaponVisualState | "none";
   playerWeaponEnchantActive: boolean;
+  playerArchery?: {
+    state: WeaponVisualState;
+    quiverArrowCount: number;
+    handArrowCount: number;
+    bowStringNockDepthMeters: number;
+    activeProjectileCount: number;
+    rootBounds: Record<string, { min: [number, number, number]; max: [number, number, number] }>;
+  };
   playerHipSocket?: {
     position: [number, number, number];
     rotation: [number, number, number];
@@ -1231,7 +1261,30 @@ export class World3D {
       if (child instanceof THREE.Mesh && /boot|feet|shoe/i.test(child.name)) groundingMeshes.push(child);
     });
     let weapon: WeaponPresentation | undefined;
-    if (id === "player") {
+    let archery: ArcherySceneAssembly | undefined;
+    const equippedWeapon = id === "player" ? equippedUsableWeapon(this.inventory) : undefined;
+    if (id === "player" && equippedWeapon?.weaponFamily === "bow" && this.quiverInventory) {
+      try {
+        const assets = await loadArcherySceneAssets({
+          loadAsset: async (path) => (await this.loadModel(path)).scene,
+          loadManifest: async (path) => {
+            const response = await fetch(path);
+            if (!response.ok) throw new Error(`Archery manifest request failed with ${response.status}.`);
+            return response.json() as Promise<unknown>;
+          },
+        });
+        archery = createArcherySceneAssembly({
+          model,
+          projectileWorld: this.scene,
+          actorScale: model.scale.x,
+          inventory: this.quiverInventory,
+          assets,
+          applyBowStringDraw: () => undefined,
+        });
+      } catch (error) {
+        console.warn("The validated Tripo archery loadout could not be mounted.", error);
+      }
+    } else if (id === "player") {
       try {
         const weaponGltf = await this.loadModel(STARTER_LONGSWORD_MODEL);
         weapon = createStarterLongswordPresentation(model, weaponGltf.scene);
@@ -1240,9 +1293,10 @@ export class World3D {
         weapon = createStarterLongswordPresentation(model);
       }
     }
-    if (weapon) setWeaponVisualState(weapon, equippedUsableWeapon(this.inventory) ? "sheathed" : "hidden");
+    if (weapon) setWeaponVisualState(weapon, equippedWeapon ? "sheathed" : "hidden");
+    if (archery) archery.setVisibleState(equippedWeapon ? "sheathed" : "hidden");
     const motion = new AvatarMotionController();
-    motion.setWeapon(weapon?.state ?? "hidden");
+    motion.setWeapon(archery?.state ?? weapon?.state ?? "hidden");
     const actor: AnimatedActor = {
       id,
       root,
@@ -1254,7 +1308,12 @@ export class World3D {
       grid: { x: grid.x, y: grid.y },
       label,
       weapon,
+      archery,
     };
+    if (archery) {
+      await this.loadPilotReviewAnimationLibrary(actor, false);
+      BOW_RUNTIME_CLIPS.forEach((clipName) => this.pilotReviewClip(actor, clipName));
+    }
     this.playMotionDecision(actor, motion.idle());
     if (id === "player") model.traverse((child) => child.layers.set(1));
     this.groundActor(actor);
@@ -1308,7 +1367,7 @@ export class World3D {
     return promise;
   }
 
-  private async loadPilotReviewAnimationLibrary(actor: AnimatedActor): Promise<void> {
+  private async loadPilotReviewAnimationLibrary(actor: AnimatedActor, playDefault = true): Promise<void> {
     const gltf = await this.loadModel(PILOT_REVIEW_LIBRARY);
     if (gltf.animations.length !== 400) {
       throw new Error(`Issue #487 pilot library expected 400 clips, got ${gltf.animations.length}.`);
@@ -1317,7 +1376,7 @@ export class World3D {
     gltf.animations.forEach((clip) => this.pilotReviewSources.set(clip.name, clip));
     const defaultClip = [...this.pilotReviewSources.keys()]
       .find((name) => name.toLowerCase() === "malelocomotion__idle");
-    if (defaultClip) this.playPilotReviewAnimation(actor, defaultClip, true);
+    if (playDefault && defaultClip) this.playPilotReviewAnimation(actor, defaultClip, true);
   }
 
   private pilotReviewClip(actor: AnimatedActor, name: string): THREE.AnimationClip | null {
@@ -1326,7 +1385,7 @@ export class World3D {
     const source = this.pilotReviewSources.get(name);
     if (!source) return null;
     const bound = bindOptionalCompatibleAnimationClip(source, actor.model, source.name);
-    if (!bound) throw new Error(`Issue #487 pilot clip ${name} is incompatible with the accepted body rig.`);
+    if (!bound) return null;
     const boundRoot = bound.tracks
       .map((track) => track.name.slice(0, track.name.lastIndexOf(".")))
       .find((node) => /armature$/i.test(node)) ?? "HumanFoundation_Armature";
@@ -1429,12 +1488,20 @@ export class World3D {
   }
 
   private playMotionDecision(actor: AnimatedActor, decision: AvatarMotionDecision): number {
-    if (actor.weapon && actor.weapon.state !== decision.weapon) {
-      setWeaponVisualState(actor.weapon, decision.weapon);
-    }
+    if (actor.archery && actor.archery.state !== decision.weapon) actor.archery.setVisibleState(decision.weapon);
+    else if (actor.weapon && actor.weapon.state !== decision.weapon) setWeaponVisualState(actor.weapon, decision.weapon);
+    const clipNames = actor.archery && decision.weapon === "drawn"
+      ? decision.phase === "idle"
+        ? ["ProLongbow__StandingIdle01"]
+        : decision.phase === "locomotion"
+          ? [decision.clipNames.some((name) => /run/i.test(name))
+            ? "ProLongbow__StandingRunForward"
+            : "ProLongbow__StandingWalkForward"]
+          : decision.clipNames
+      : decision.clipNames;
     return this.playFirstAvailableAnimation(
       actor,
-      decision.clipNames,
+      clipNames,
       decision.once,
       decision.playbackRate,
       decision.blendSeconds,
@@ -1484,25 +1551,34 @@ export class World3D {
   }
 
   private setWeaponState(actor: AnimatedActor, state: WeaponVisualState): void {
-    if (actor.weapon) setWeaponVisualState(actor.weapon, state);
+    if (actor.archery) actor.archery.setVisibleState(state);
+    else if (actor.weapon) setWeaponVisualState(actor.weapon, state);
     actor.motion.setWeapon(state);
   }
 
+  private actorWeaponState(actor: AnimatedActor): WeaponVisualState {
+    return actor.archery?.state ?? actor.weapon?.state ?? "hidden";
+  }
+
   private async transitionWeapon(actor: AnimatedActor, target: "drawn" | "sheathed"): Promise<void> {
-    const weapon = actor.weapon;
-    if (!weapon || weapon.state === target) return;
-    if (weapon.state === "hidden") {
+    const currentState = this.actorWeaponState(actor);
+    if ((!actor.weapon && !actor.archery) || currentState === target) return;
+    if (currentState === "hidden") {
       this.setWeaponState(actor, target);
       return;
     }
 
-    const clipNames = target === "drawn" ? ["DrawSword"] : ["SheatheSword"];
+    const clipNames = actor.archery
+      ? target === "drawn"
+        ? ["Interactions__HumanMasculineAthleticMuscularBowEquipFromBack"]
+        : ["Interactions__HumanMasculineAthleticMuscularBowStowToBack"]
+      : target === "drawn" ? ["DrawSword"] : ["SheatheSword"];
     if (!this.hasAnimation(actor, clipNames)) {
       this.setWeaponState(actor, target);
       return;
     }
     const durationMs = this.playGenericActorAction(actor, clipNames, target === "drawn" ? 1.2 : 1.65, 0.08);
-    const transferAt = target === "drawn" ? 0.58 : 0.64;
+    const transferAt = actor.archery ? (target === "drawn" ? 0.33 : 0.4) : (target === "drawn" ? 0.58 : 0.64);
     await this.delay(durationMs * transferAt);
     this.setWeaponState(actor, target);
     await this.delay(Math.max(0, durationMs * (1 - transferAt)));
@@ -1514,18 +1590,17 @@ export class World3D {
       this.ui.setMessage("Equip a usable main-hand weapon in the paper doll before using this skill.");
       return false;
     }
-    const weapon = this.player.weapon;
-    if (!weapon) return false;
-    if (weapon.state === "hidden") {
+    if (!this.player.weapon && !this.player.archery) return false;
+    if (this.actorWeaponState(this.player) === "hidden") {
       this.setWeaponState(this.player, "sheathed");
     }
     await this.transitionWeapon(this.player, "drawn");
-    return weapon.state === "drawn";
+    return this.actorWeaponState(this.player) === "drawn";
   }
 
   private async ensurePlayerWeaponSheathed(): Promise<void> {
-    const weapon = this.player.weapon;
-    if (!weapon || weapon.state === "hidden" || weapon.state === "sheathed") return;
+    const state = this.actorWeaponState(this.player);
+    if ((!this.player.weapon && !this.player.archery) || state === "hidden" || state === "sheathed") return;
     await this.transitionWeapon(this.player, "sheathed");
   }
 
@@ -1555,14 +1630,14 @@ export class World3D {
     onEvent: () => void | Promise<void>,
     redraw = false,
   ): Promise<void> {
-    const beganDrawn = this.player.weapon?.state === "drawn";
+    const beganDrawn = this.actorWeaponState(this.player) === "drawn";
     if (beganDrawn) await this.transitionWeapon(this.player, "sheathed");
 
     // Doors, pickups, and levers bend the torso far enough that a hip-sheathed
     // blade sweeps through the legs. Hide the visual for the interaction only;
     // the motion controller keeps the true equipped state for the recovery.
-    const hideForInteraction = Boolean(this.player.weapon && this.player.weapon.state === "sheathed");
-    if (this.player.weapon && hideForInteraction) setWeaponVisualState(this.player.weapon, "hidden");
+    const hideForInteraction = this.actorWeaponState(this.player) === "sheathed";
+    if (hideForInteraction) this.setWeaponState(this.player, "hidden");
 
     const hasClip = this.hasAnimation(this.player, contract.clipNames);
     this.player.motion.beginInteraction(contract.clipNames);
@@ -1574,7 +1649,7 @@ export class World3D {
     await onEvent();
     if (durationMs > eventMs) await this.delay(durationMs - eventMs);
 
-    if (this.player.weapon && hideForInteraction) setWeaponVisualState(this.player.weapon, "sheathed");
+    if (hideForInteraction) this.setWeaponState(this.player, "sheathed");
     if (beganDrawn && redraw) await this.transitionWeapon(this.player, "drawn");
     else this.playActorIdle(this.player);
   }
@@ -1617,13 +1692,12 @@ export class World3D {
 
   private async togglePlayerWeapon(): Promise<void> {
     await this.runPlayerAction(async () => {
-      const weapon = this.player.weapon;
       const equipped = equippedUsableWeapon(this.inventory);
-      if (!weapon || !equipped) {
+      if ((!this.player.weapon && !this.player.archery) || !equipped) {
         this.ui.setMessage("No usable main-hand weapon is equipped. Open the paper doll and equip one; basic attacks use the unarmed fallback meanwhile.");
         return;
       }
-      const target = weapon.state === "drawn" ? "sheathed" : "drawn";
+      const target = this.actorWeaponState(this.player) === "drawn" ? "sheathed" : "drawn";
       await this.transitionWeapon(this.player, target);
       this.playActorIdle(this.player);
       this.ui.setMessage(target === "drawn"
@@ -1757,7 +1831,7 @@ export class World3D {
       this.ui.setMessage("The 30-slot backpack is full. Free a slot before unequipping this item.");
       return;
     }
-    if (!equipping && item.slot === "mainHand" && this.player.weapon?.state === "drawn") {
+    if (!equipping && item.slot === "mainHand" && this.actorWeaponState(this.player) === "drawn") {
       await this.transitionWeapon(this.player, "sheathed");
     }
     setItemEquipped(this.inventory, itemId, equipping);
@@ -2088,7 +2162,7 @@ export class World3D {
       if (manhattan(this.player.grid, npc.grid) === 1) {
         this.actionBusy = true;
         try {
-          if (this.player.weapon?.state === "drawn") await this.transitionWeapon(this.player, "sheathed");
+          if (this.actorWeaponState(this.player) === "drawn") await this.transitionWeapon(this.player, "sheathed");
           await this.openNpcDialogue(id);
         } finally {
           this.actionBusy = false;
@@ -2768,23 +2842,172 @@ export class World3D {
     else this.ui.setMessage(`${enemy.definition.name} targeted. Use Weapon Strike, ${this.calling.signatureSkill}, or reposition.`);
   }
 
+  private async playArcheryShot(target: EnemyRuntime, action: ArcheryAction): Promise<boolean> {
+    const archery = this.player.archery;
+    if (!archery || !this.quiverInventory) return false;
+    try {
+      archery.runtime.begin(action);
+    } catch (error) {
+      this.ui.setMessage(error instanceof Error ? error.message : "The bow cannot begin another shot yet.");
+      return false;
+    }
+
+    const drawDurationMs = this.playFirstAvailableAnimation(
+      this.player,
+      ["Interactions__HumanMasculineAthleticMuscularBowDrawArrow", "PickUp", "Shoot_OneHanded"],
+      true,
+      1,
+      0.1,
+    );
+    const markers = [
+      ARCHERY_RETRIEVAL_MARKERS.reachStart,
+      ARCHERY_RETRIEVAL_MARKERS.featherGrip,
+      ARCHERY_RETRIEVAL_MARKERS.fullyExtracted,
+      ARCHERY_RETRIEVAL_MARKERS.overhead,
+      ARCHERY_RETRIEVAL_MARKERS.forwardStaged,
+      ARCHERY_RETRIEVAL_MARKERS.nocked,
+    ];
+    let previous = 0;
+    for (const marker of markers) {
+      await this.delay(drawDurationMs * (marker - previous));
+      archery.runtime.setRetrievalTime(marker);
+      previous = marker;
+    }
+    await this.delay(drawDurationMs * (1 - previous));
+    archery.runtime.draw();
+
+    const shootDurationMs = this.playFirstAvailableAnimation(
+      this.player,
+      ["Interactions__HumanMasculineAthleticMuscularBowShoot", "Shoot_OneHanded"],
+      true,
+      1,
+      0.08,
+    );
+    const releaseAt = 0.3;
+    await this.delay(shootDurationMs * releaseAt);
+    this.player.root.updateMatrixWorld(true);
+    const origin = archery.roots.arrowHand.getWorldPosition(new THREE.Vector3());
+    const center = target.root.position.clone().setY(0.88);
+    const forward = center.clone().sub(origin).setY(0).normalize();
+    const lateral = new THREE.Vector3(-forward.z, 0, forward.x);
+    const targetPoints = action === "multishot"
+      ? [-0.34, 0, 0.34].map((spread) => center.clone().addScaledVector(lateral, spread).toArray() as [number, number, number])
+      : [center.toArray() as [number, number, number]];
+    const released = archery.runtime.release(origin.toArray(), targetPoints);
+    if (!released.release.released) {
+      archery.runtime.cancel();
+      this.ui.setMessage(action === "multishot"
+        ? "Three arrows of the selected type are required for multishot."
+        : "No selected arrows remain in the equipped quiver.");
+      this.playActorIdle(this.player);
+      return false;
+    }
+    syncQuiverInventoryToItems(this.inventory, this.quiverInventory);
+    this.refreshEquipmentUi();
+    await this.delay(shootDurationMs * (1 - releaseAt));
+    return true;
+  }
+
+  private async performBowBasicAttack(target: EnemyRuntime, now: number): Promise<void> {
+    if (this.combatStyle === "real-time" && now < this.basicReadyAt) {
+      this.ui.setMessage("Basic attack is still recovering.");
+      return;
+    }
+    if (!(await this.ensurePlayerWeaponDrawn())) return;
+    this.combatState = "resolution";
+    this.ui.setMode("resolution", this.combatStyle);
+    this.ui.animateAction("basic", BASIC_ATTACK.cooldownMs);
+    const distanceMeters = this.player.root.position.distanceTo(target.root.position);
+    const closeRange = bowRangeDecision(distanceMeters) === "bow-strike";
+    if (closeRange) {
+      const durationMs = this.playFirstAvailableAnimation(
+        this.player,
+        ["Interactions__HumanMasculineAthleticMuscularStaffButtSmash", "SwordSlash", "Punch"],
+        true,
+        1,
+        0.08,
+      );
+      await this.delay(durationMs * 0.52);
+      await this.playBasicStrikeEffectAt(target.root.position.clone().add(new THREE.Vector3(0, 0.88, 0)), false);
+      await this.delay(durationMs * 0.48);
+    } else if (!(await this.playArcheryShot(target, "single-shot"))) {
+      return;
+    }
+    const damage = basicAttackDamage(this.profile.stats.might, this.profile.stats.finesse);
+    target.hp = Math.max(0, target.hp - damage);
+    this.playActorIdle(this.player);
+    if (target.hp === 0) await this.defeatEnemy(target);
+    else this.playActorHit(target);
+    this.ui.addLog(`${closeRange ? "Bow Strike" : "Arrow Shot"} hits ${target.definition.name} for ${damage}.`);
+    this.refreshStats();
+    this.refreshTarget();
+    this.basicReadyAt = now + BASIC_ATTACK.cooldownMs;
+    this.selectedAction = null;
+    if (this.activeEnemies().length === 0) {
+      this.finishEncounter();
+      return;
+    }
+    if (this.combatStyle === "turn-based") await this.finishPlayerTurn();
+    else this.ui.setMode("resolution", this.combatStyle);
+  }
+
+  private async performBowSignature(target: EnemyRuntime, now: number): Promise<void> {
+    const selected = this.quiverInventory?.selectedType;
+    if (!selected || (this.quiverInventory?.arrows[selected] ?? 0) < 3) {
+      this.ui.setMessage("Three arrows of the selected type are required for multishot.");
+      return;
+    }
+    if (!(await this.ensurePlayerWeaponDrawn())) return;
+    this.combatState = "resolution";
+    this.ui.setMode("resolution", this.combatStyle);
+    this.ui.animateAction("signature", 1200);
+    this.stability = Math.max(0, this.stability - SIGNATURE_STABILITY_COST);
+    this.lastStabilitySpendAt = now;
+    this.resource = Math.min(100, this.resource + 15);
+    if (!(await this.playArcheryShot(target, "multishot"))) return;
+    const damage = this.calling.signatureDamage + (this.resource >= 60 ? 2 : 0);
+    target.hp = Math.max(0, target.hp - damage);
+    this.playActorIdle(this.player);
+    if (target.hp === 0) await this.defeatEnemy(target);
+    else this.playActorHit(target);
+    this.ui.addLog(`Three-arrow multishot hits ${target.definition.name} for ${damage}.`);
+    this.refreshStats();
+    this.refreshTarget();
+    this.signatureReadyAt = now + 1200;
+    if (this.activeEnemies().length === 0) {
+      this.finishEncounter();
+      return;
+    }
+    if (this.combatStyle === "turn-based") await this.finishPlayerTurn();
+    else this.ui.setMode("resolution", this.combatStyle);
+  }
+
   private async performBasicAttack(): Promise<void> {
     const active = this.activeEnemies();
     const selected = this.selectedTargetId ? this.enemies.get(this.selectedTargetId) : undefined;
     const selectedOrFirst = selected?.alive && selected.definition.roomId === this.encounter ? selected : active[0];
-    const target = resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, BASIC_ATTACK.range)
-      ?? selectedOrFirst;
+    const usingBow = Boolean(this.player.archery && equippedUsableWeapon(this.inventory)?.weaponFamily === "bow");
+    const target = usingBow
+      ? selectedOrFirst
+      : resolveMeleeTarget(this.player.grid, this.selectedTargetId, active, BASIC_ATTACK.range) ?? selectedOrFirst;
     if (!target) {
       await this.previewBasicAttack();
       return;
     }
     this.selectEnemyTarget(target.id);
     this.faceActorTowards(this.player, target.root.position);
-    if (manhattan(this.player.grid, target.grid) > BASIC_ATTACK.range) {
-      await this.previewBasicAttack(target.root.position, "Out of range (1 tile required)");
+    if (manhattan(this.player.grid, target.grid) > (usingBow ? BOW_BASIC_ATTACK_RANGE_TILES : BASIC_ATTACK.range)) {
+      await this.previewBasicAttack(
+        target.root.position,
+        `Out of range (${usingBow ? BOW_BASIC_ATTACK_RANGE_TILES : BASIC_ATTACK.range} tile limit)`,
+      );
       return;
     }
     const now = performance.now();
+    if (usingBow) {
+      await this.performBowBasicAttack(target, now);
+      return;
+    }
     if (this.combatStyle === "real-time" && now < this.basicReadyAt) {
       this.ui.setMessage("Basic attack is still recovering.");
       return;
@@ -2839,6 +3062,10 @@ export class World3D {
     const now = performance.now();
     if (this.combatStyle === "real-time" && now < this.signatureReadyAt) {
       this.ui.setMessage(`${this.calling.signatureSkill} is still recovering.`);
+      return;
+    }
+    if (this.player.archery) {
+      await this.performBowSignature(target, now);
       return;
     }
     if (!(await this.ensurePlayerWeaponDrawn())) return;
@@ -4063,6 +4290,23 @@ export class World3D {
       playerAnimationDuration: Number((this.player.currentAction?.getClip().duration ?? 0).toFixed(3)),
       playerWeaponState: this.player.weapon?.state ?? "none",
       playerWeaponEnchantActive: Boolean(this.player.weapon?.handSocket.getObjectByName("cinder-guard-weapon-enchant")),
+      playerArchery: this.player.archery ? (() => {
+        const rootBounds = Object.fromEntries(Object.entries(this.player.archery!.roots).map(([name, root]) => {
+          const rootBox = new THREE.Box3().setFromObject(root);
+          return [name, {
+            min: [rootBox.min.x, rootBox.min.y, rootBox.min.z] as [number, number, number],
+            max: [rootBox.max.x, rootBox.max.y, rootBox.max.z] as [number, number, number],
+          }];
+        }));
+        return {
+          state: this.player.archery.state,
+          quiverArrowCount: this.player.archery.presentation.quiverArrowInstanceCount(),
+          handArrowCount: this.player.archery.presentation.handArrowInstanceCount(),
+          bowStringNockDepthMeters: this.player.archery.presentation.bowStringNockDepthMeters(),
+          activeProjectileCount: this.player.archery.runtime.activeProjectiles().length,
+          rootBounds,
+        };
+      })() : undefined,
       playerRigProbe: {
         pelvis: probePlayerBone("pelvis"),
         spine_01: probePlayerBone("spine_01"),
@@ -4152,6 +4396,13 @@ export class World3D {
     this.player?.mixer.update(animationDelta);
     this.npcs.forEach((actor) => actor.mixer.update(animationDelta));
     this.enemies.forEach((actor) => actor.mixer.update(animationDelta));
+    if (this.player?.archery) {
+      this.player.archery.runtime.step(delta, this.activeEnemies().map((enemy) => ({
+        id: enemy.id,
+        center: [enemy.root.position.x, 0.88, enemy.root.position.z] as [number, number, number],
+        radiusMeters: 0.5,
+      })));
+    }
     if (this.player) this.updateActorDeathPresentation(this.player);
     this.npcs.forEach((actor) => this.updateActorDeathPresentation(actor));
     this.enemies.forEach((actor) => this.updateActorDeathPresentation(actor));

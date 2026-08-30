@@ -1,4 +1,4 @@
-import { Group, Object3D } from "three";
+import { BufferGeometry, Group, Line, LineBasicMaterial, MathUtils, Object3D, Vector3 } from "three";
 import { displayedQuiverCount, type ArcheryActionState } from "./archeryActions";
 import { ARROW_TYPES, type ArrowType, type QuiverInventoryState } from "./archeryInventory";
 
@@ -55,6 +55,9 @@ export class ArcheryPresentation {
   private readonly harnessVisual: Object3D;
   private readonly quiverArrows = new Group();
   private readonly handArrows = new Group();
+  private readonly bowStringUpper: Line;
+  private readonly bowStringLower: Line;
+  private bowStringNockDepth = 0;
   private readonly assets: ArcheryPresentationAssets;
   private readonly roots: ArcheryPresentationRoots;
   private readonly callbacks: ArcheryPresentationCallbacks;
@@ -71,6 +74,13 @@ export class ArcheryPresentation {
     this.quiverArrows.name = "quiver-arrow-instances";
     this.handArrows.name = "hand-arrow-instances";
     this.bowVisual = cloneAsset(assets.bow, "bow-visual");
+    const stringMaterial = new LineBasicMaterial({ color: 0x5a3a22 });
+    this.bowStringUpper = new Line(new BufferGeometry(), stringMaterial);
+    this.bowStringLower = new Line(new BufferGeometry(), stringMaterial.clone());
+    this.bowStringUpper.name = "bow-string-upper-dynamic";
+    this.bowStringLower.name = "bow-string-lower-dynamic";
+    this.bowVisual.add(this.bowStringUpper, this.bowStringLower);
+    this.applyBowStringDraw(0);
     this.quiverVisual = cloneAsset(assets.quiver, "quiver-visual-empty");
     this.harnessVisual = cloneAsset(assets.harness, "quiver-harness-visual");
     roots.bowBack.add(this.bowVisual);
@@ -107,7 +117,7 @@ export class ArcheryPresentation {
         this.handArrows.add(arrow);
       }
     }
-    this.callbacks.applyBowStringDraw(state?.stringDraw ?? 0);
+    this.applyBowStringDraw(state?.stringDraw ?? 0);
   }
 
   public spawnProjectile(type: ArrowType, id: string): Object3D {
@@ -122,5 +132,18 @@ export class ArcheryPresentation {
 
   public handArrowInstanceCount(): number {
     return this.handArrows.children.length;
+  }
+
+  public bowStringNockDepthMeters(): number {
+    return this.bowStringNockDepth;
+  }
+
+  private applyBowStringDraw(draw: number): void {
+    const normalizedDraw = MathUtils.clamp(draw, 0, 1);
+    this.bowStringNockDepth = normalizedDraw * 0.48;
+    const nock = new Vector3(0, 0, -this.bowStringNockDepth);
+    this.bowStringUpper.geometry.setFromPoints([new Vector3(0, 0.59, 0), nock]);
+    this.bowStringLower.geometry.setFromPoints([nock, new Vector3(0, -0.59, 0)]);
+    this.callbacks.applyBowStringDraw(normalizedDraw);
   }
 }

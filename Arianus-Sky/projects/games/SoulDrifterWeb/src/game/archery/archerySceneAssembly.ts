@@ -51,7 +51,9 @@ export interface ArcherySceneAssembly {
   readonly roots: ArcheryPresentationRoots;
   readonly presentation: ArcheryPresentation;
   readonly runtime: ArcheryRuntimeController;
+  readonly state: "drawn" | "sheathed" | "hidden";
   setBowCarryState(state: "hand" | "back"): void;
+  setVisibleState(state: "drawn" | "sheathed" | "hidden"): void;
   dispose(): void;
 }
 
@@ -74,12 +76,16 @@ function normalizedBoneName(name: string): string {
 }
 
 function requiredBone(model: Object3D, role: "LeftHand" | "RightHand" | "Spine2"): Object3D {
-  const suffix = role.toLowerCase();
+  const aliases: Record<typeof role, readonly string[]> = {
+    LeftHand: ["lefthand", "handl", "fistl"],
+    RightHand: ["righthand", "handr", "fistr"],
+    Spine2: ["spine2", "spine02", "torso"],
+  };
   let match: Object3D | undefined;
   model.traverse((object) => {
     if (match) return;
     const candidate = normalizedBoneName(object.name);
-    if (candidate === suffix || candidate.endsWith(suffix)) match = object;
+    if (aliases[role].some((alias) => candidate === alias || candidate.endsWith(alias))) match = object;
   });
   if (!match) throw new Error(`Human archery assembly requires the ${role} rig bone.`);
   return match;
@@ -144,11 +150,24 @@ export function createArcherySceneAssembly(
   });
   presentation.setBowCarryState("back");
   const runtime = new ArcheryRuntimeController(options.inventory, presentation);
+  let state: "drawn" | "sheathed" | "hidden" = "sheathed";
+  const setVisibleState = (next: "drawn" | "sheathed" | "hidden") => {
+    state = next;
+    const visible = next !== "hidden";
+    roots.bowHand.visible = visible;
+    roots.bowBack.visible = visible;
+    roots.quiverBack.visible = visible;
+    roots.harnessTorso.visible = visible;
+    roots.arrowHand.visible = visible;
+    if (visible) presentation.setBowCarryState(next === "drawn" ? "hand" : "back");
+  };
   return {
     roots,
     presentation,
     runtime,
-    setBowCarryState: (state) => presentation.setBowCarryState(state),
+    get state() { return state; },
+    setBowCarryState: (carryState) => presentation.setBowCarryState(carryState),
+    setVisibleState,
     dispose: () => {
       roots.bowHand.removeFromParent();
       roots.bowBack.removeFromParent();

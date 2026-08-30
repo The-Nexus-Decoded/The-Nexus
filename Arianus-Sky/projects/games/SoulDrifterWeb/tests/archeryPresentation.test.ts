@@ -68,10 +68,12 @@ describe("archery presentation ownership", () => {
     }
     presentation.sync(inventory, state);
     expect(applyBowStringDraw).toHaveBeenLastCalledWith(1);
+    expect(presentation.bowStringNockDepthMeters()).toBeCloseTo(0.48);
 
     const released = commitArcheryRelease(inventory, state).state;
     presentation.sync(inventory, released);
     expect(applyBowStringDraw).toHaveBeenLastCalledWith(0);
+    expect(presentation.bowStringNockDepthMeters()).toBe(0);
     expect(presentation.handArrowInstanceCount()).toBe(0);
     expect(presentation.quiverArrowInstanceCount()).toBe(9);
   });
