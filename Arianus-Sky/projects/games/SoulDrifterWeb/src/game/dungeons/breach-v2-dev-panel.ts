@@ -10,7 +10,7 @@ interface BreachV2DevPanelOptions {
   seed: number;
   path: "wayfarer" | "oathbreaker";
   cam: string;
-  beforeCameraModeChange: (nextCameraMode: string) => void;
+  requestCameraModeChange: (nextCameraMode: string) => boolean;
   warp: (roomId: string, x: number, z: number) => boolean;
   setAllDoorsOpen: (open: boolean) => void;
 }
@@ -195,13 +195,29 @@ export function setupBreachV2DevPanel(options: BreachV2DevPanelOptions): void {
   body.appendChild(seedRow);
 
   section("Camera mode");
+  let currentCameraMode = options.cam;
+  const cameraButtons = new Map<string, HTMLButtonElement>();
+  const syncCameraButtons = (): void => {
+    for (const [id, cameraButton] of cameraButtons) {
+      const active = id === currentCameraMode;
+      cameraButton.setAttribute("aria-pressed", String(active));
+      cameraButton.style.background = active ? "rgba(155,95,38,.42)" : "rgba(34,38,34,.78)";
+      cameraButton.style.borderColor = active ? "#c9954b" : "rgba(112,103,78,.48)";
+    }
+  };
   for (const [id, label] of CAMERA_MODES) {
-    button(label, () => {
-      if (options.cam === id) return;
-      options.beforeCameraModeChange(id);
+    const cameraButton = button(label, () => {
+      if (currentCameraMode === id) return;
+      if (options.requestCameraModeChange(id)) {
+        currentCameraMode = id;
+        syncCameraButtons();
+        return;
+      }
       replacePreviewParams({ cam: id });
-    }, options.cam === id);
+    }, currentCameraMode === id);
+    cameraButtons.set(id, cameraButton);
   }
+  syncCameraButtons();
 
   section("Warp to section");
   for (const room of options.layout.rooms) {

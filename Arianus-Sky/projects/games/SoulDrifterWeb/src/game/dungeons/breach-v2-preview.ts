@@ -61,16 +61,18 @@ import {
   clearBreachV2LegacySpatialStateForExplicitUrl,
   compileBreachV2StartupShaders,
   consumeBreachV2CameraSwitchPosition,
-  saveBreachV2CameraSwitchPosition,
 } from "./breach-v2-startup-safety.ts";
 import { createBreachV2RuntimeDiagnostics } from "./breach-v2-runtime-diagnostics.ts";
 import { setupBreachV2FogOfWar, type BreachV2FogState } from "./breach-v2-fog-of-war.ts";
 import {
   BREACH_V2_ISOMETRIC_MAX_DISTANCE,
   BREACH_V2_ISOMETRIC_MIN_DISTANCE,
+  BREACH_V2_PANEL_EVENT,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
+  type BreachV2GameplayCameraMode,
   type BreachV2GraphicsMode,
   type BreachV2GraphicsQuality,
+  isBreachV2InPlaceCameraTransition,
   resolveBreachV2CameraLookAhead,
   resolveBreachV2CameraTargetHeight,
   resolveBreachV2AutoGraphicsQuality,
@@ -78,7 +80,6 @@ import {
   resolveBreachV2InspectionZoomStep,
   resolveBreachV2IsometricCameraProfile,
   resolveBreachV2PinchInspectionZoom,
-  resolveBreachV2PinchMagnification,
   resolveBreachV2TouchPitch,
   resolveBreachV2TouchYaw,
   shouldDockBreachV2PerformanceDetails,
@@ -120,6 +121,29 @@ const PLAYER_CAPSULE_CLEARANCE = 0.04;
 const CAMERA_COLLISION_RADIUS = 0.24;
 const CAMERA_COLLISION_SKIN = 0.02;
 const CEILING_CUTAWAY_HYSTERESIS = 0.3;
+
+export interface BreachV2ReviewActorSelection {
+  kind: "human" | "creature" | "warden";
+  actorId: string;
+}
+
+export function resolveBreachV2ReviewActorSelection(
+  object: THREE.Object3D | null,
+): BreachV2ReviewActorSelection | null {
+  let cursor = object;
+  while (cursor && !(cursor instanceof THREE.Scene)) {
+    if (cursor.userData.actorRole === "player" && typeof cursor.userData.actorId === "string") {
+      return { kind: "human", actorId: cursor.userData.actorId };
+    }
+    const ownerId = cursor.userData.spatialOwnerId;
+    if (typeof ownerId === "string") {
+      if (ownerId.startsWith("breachling:")) return { kind: "creature", actorId: ownerId };
+      if (ownerId.startsWith("cinderbound-warden:")) return { kind: "warden", actorId: ownerId };
+    }
+    cursor = cursor.parent;
+  }
+  return null;
+}
 
 export const BREACH_V2_HEAVY_DOOR_SOURCE_BOUNDS = Object.freeze({
   thickness: 0.245622262358666,
@@ -4051,7 +4075,7 @@ export async function startDungeonPreview(
 
   const layout = buildBreachV2Layout(options.seed, options.path, DUNGEON_PROP_ASSETS);
   const legacyLandmarkRoomId = resolveBreachV2LegacyLandmarkRoomId(options.cam, layout.rooms);
-  const activeCameraMode = legacyLandmarkRoomId ? "isometric" : options.cam;
+  let activeCameraMode = legacyLandmarkRoomId ? "isometric" : options.cam;
   const environmentConfigs = buildBreachV2EnvironmentObjectConfigs(layout);
   const cofferObjectId = environmentConfigs.find((config) => (
     config.destructionClass === "INTERACTABLE_CONTAINER"
@@ -4239,10 +4263,10 @@ export async function startDungeonPreview(
 
   // ---- walk mode: WASD on the hidden nav grid (collision from the generator's
   // own walkable cells — the same data the invariant suite proves reachable)
-  const firstPersonMode = activeCameraMode === "firstperson";
-  const isometricMode = activeCameraMode === "isometric";
+  let firstPersonMode = activeCameraMode === "firstperson";
+  let isometricMode = activeCameraMode === "isometric";
   const walkMode = activeCameraMode === "walk" || firstPersonMode || isometricMode;
-  const ceilingCameraMode: BreachV2CeilingCameraMode = firstPersonMode
+  let ceilingCameraMode: BreachV2CeilingCameraMode = firstPersonMode
     ? "firstperson"
     : isometricMode
       ? "isometric"
@@ -4476,13 +4500,17 @@ export async function startDungeonPreview(
     container,
     keys,
     enabled: coarsePointer && walkMode,
+    cameraControlsEnabled: walkMode,
     adjustCameraDistance: (delta) => {
       if (firstPersonMode) {
-        camera.zoom = THREE.MathUtils.clamp(
-          camera.zoom - delta * 0.4,
+        const opticalZoom = resolveBreachV2InspectionZoomStep(
           1,
-          4,
+          camera.zoom,
+          delta,
+          1,
+          1,
         );
+        camera.zoom = opticalZoom.magnification;
         camera.updateProjectionMatrix();
         return;
       }
@@ -4524,6 +4552,56 @@ export async function startDungeonPreview(
     if (animationReviewEnabled) {
       foundationAnimationReview = setupBreachV2HumanFoundationReview(container, foundationPlayerActor);
     }
+    const reviewPanels: Record<BreachV2ReviewActorSelection["kind"], HTMLElement | null> = {
+      human: foundationAnimationReview?.root ?? null,
+      creature: container.querySelector<HTMLElement>('[data-testid="breachling-animation-review"]'),
+      warden: container.querySelector<HTMLElement>('[data-testid="cinderbound-warden-review"]'),
+    };
+    const compactReviewLayout = coarsePointer || window.innerWidth < 760;
+    for (const reviewPanel of Object.values(reviewPanels)) {
+      if (!reviewPanel) continue;
+      reviewPanel.hidden = true;
+      reviewPanel.style.left = "max(12px,env(safe-area-inset-left))";
+      reviewPanel.style.top = "max(12px,env(safe-area-inset-top))";
+      reviewPanel.style.right = "auto";
+      reviewPanel.style.bottom = "auto";
+      reviewPanel.style.maxHeight = compactReviewLayout ? "min(58dvh,280px)" : "calc(100dvh - 24px)";
+      const dismiss = document.createElement("button");
+      dismiss.type = "button";
+      dismiss.textContent = "Close";
+      dismiss.setAttribute("aria-label", "Close animation inspector");
+      dismiss.style.cssText = [
+        "position:sticky", "top:0", "float:right", "z-index:1", "margin:0 0 6px 8px", "padding:5px 8px",
+        "border:1px solid rgba(228,185,103,.5)", "background:#171411", "color:#ead9bd", "cursor:pointer",
+      ].join(";");
+      dismiss.addEventListener("click", () => { reviewPanel.hidden = true; });
+      reviewPanel.prepend(dismiss);
+    }
+    const hideReviewPanels = (): void => {
+      for (const reviewPanel of Object.values(reviewPanels)) {
+        if (reviewPanel) reviewPanel.hidden = true;
+      }
+    };
+    window.addEventListener(BREACH_V2_PANEL_EVENT, (event) => {
+      if ((event as CustomEvent<string>).detail !== "animation-review") hideReviewPanels();
+    });
+    const showReviewPanel = (selection: BreachV2ReviewActorSelection): boolean => {
+      const selectedPanel = reviewPanels[selection.kind];
+      if (!selectedPanel) return false;
+      for (const reviewPanel of Object.values(reviewPanels)) {
+        if (reviewPanel) reviewPanel.hidden = reviewPanel !== selectedPanel;
+      }
+      if (selection.kind === "creature") {
+        const actorSelect = selectedPanel.querySelector<HTMLSelectElement>('[aria-label="Breachling actor"]');
+        if (actorSelect && actorSelect.value !== selection.actorId) {
+          actorSelect.value = selection.actorId;
+          actorSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+      selectedPanel.hidden = false;
+      window.dispatchEvent(new CustomEvent(BREACH_V2_PANEL_EVENT, { detail: "animation-review" }));
+      return true;
+    };
     let dragging = false;
     let pointerTravel = 0;
     let primaryPointerId: number | null = null;
@@ -4552,6 +4630,26 @@ export async function startDungeonPreview(
         -((clientY - rect.top) / rect.height) * 2 + 1,
       );
       pointerRaycaster.setFromCamera(pointerNdc, camera);
+    };
+    const pickReviewActor = (): BreachV2ReviewActorSelection | null => {
+      const intersections = pointerRaycaster.intersectObjects(scene.children, true);
+      const actorHit = intersections.find((intersection) => (
+        resolveBreachV2ReviewActorSelection(intersection.object) !== null
+      ));
+      if (!actorHit) return null;
+      const selection = resolveBreachV2ReviewActorSelection(actorHit.object);
+      if (!selection || !reviewPanels[selection.kind]) return null;
+      const occluder = intersections.find((intersection) => {
+        let cursor: THREE.Object3D | null = intersection.object;
+        while (cursor && !(cursor instanceof THREE.Scene)) {
+          if (cursor.userData.blocksMovement === true || cursor.userData.blocksLineOfSight === true) {
+            return true;
+          }
+          cursor = cursor.parent;
+        }
+        return false;
+      });
+      return !occluder || actorHit.distance <= occluder.distance + 0.02 ? selection : null;
     };
     const pickDoorObject = (): THREE.Object3D | null => {
       const doorHit = pointerRaycaster.intersectObjects(sectionDoors.interactionRoots, true)[0];
@@ -4640,12 +4738,15 @@ export async function startDungeonPreview(
         && pointerTravel < tapThreshold;
       if (shouldTap) {
         setPointerRay(e.clientX, e.clientY);
-        const hitDoor = pickDoorObject();
-        const toggledDoor = hitDoor
-          ? sectionDoors.toggleHit(playerPos.x, playerPos.z, hitDoor)
-          : null;
-        const target = pickWalkPoint();
-        if (!toggledDoor && target) setClickDestination(target);
+        const reviewActor = pickReviewActor();
+        if (!reviewActor || !showReviewPanel(reviewActor)) {
+          const hitDoor = pickDoorObject();
+          const toggledDoor = hitDoor
+            ? sectionDoors.toggleHit(playerPos.x, playerPos.z, hitDoor)
+            : null;
+          const target = pickWalkPoint();
+          if (!toggledDoor && target) setClickDestination(target);
+        }
       }
       activePointers.delete(e.pointerId);
       if (renderer.domElement.hasPointerCapture(e.pointerId)) {
@@ -4668,11 +4769,14 @@ export async function startDungeonPreview(
         const nextSpan = activePointerSpan();
         if (pinchStartSpan !== null && nextSpan !== null) {
           if (firstPersonMode) {
-            camera.zoom = resolveBreachV2PinchMagnification(
+            camera.zoom = resolveBreachV2PinchInspectionZoom(
+              1,
               pinchStartMagnification,
               pinchStartSpan,
               nextSpan,
-            );
+              1,
+              1,
+            ).magnification;
             camera.updateProjectionMatrix();
           } else {
             const minDistance = resolveBreachV2InspectionMinimumDistance({
@@ -4744,15 +4848,32 @@ export async function startDungeonPreview(
       }
     });
     renderer.domElement.addEventListener("wheel", (e) => {
-      if (!firstPersonMode) {
-        const minDistance = resolveBreachV2InspectionMinimumDistance({
-          coarsePointer,
-          isometric: isometricMode,
-        });
-        const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
-        camDist = Math.min(maxDistance, Math.max(minDistance, camDist + e.deltaY * 0.008));
+      e.preventDefault();
+      const delta = e.deltaY * 0.008;
+      if (firstPersonMode) {
+        camera.zoom = resolveBreachV2InspectionZoomStep(
+          1,
+          camera.zoom,
+          delta,
+          1,
+          1,
+        ).magnification;
+        camera.updateProjectionMatrix();
+        return;
       }
-    }, { passive: true });
+      const minDistance = resolveBreachV2InspectionMinimumDistance({
+        coarsePointer,
+        isometric: isometricMode,
+      });
+      const maxDistance = isometricMode ? BREACH_V2_ISOMETRIC_MAX_DISTANCE : 10;
+      applyInspectionZoom(resolveBreachV2InspectionZoomStep(
+        camDist,
+        camera.zoom,
+        delta,
+        minDistance,
+        maxDistance,
+      ));
+    }, { passive: false });
     window.addEventListener("keydown", (e) => {
       keys.add(e.code);
       if (e.code === "KeyF" && !e.repeat) sectionDoors.toggleNearest(playerPos.x, playerPos.z);
@@ -4940,19 +5061,35 @@ export async function startDungeonPreview(
     seed: options.seed,
     path: options.path,
     cam: activeCameraMode,
-    beforeCameraModeChange: (nextCameraMode) => {
+    requestCameraModeChange: (nextCameraMode) => {
+      if (!isBreachV2InPlaceCameraTransition(activeCameraMode, nextCameraMode)) return false;
+      const previousCameraMode = activeCameraMode;
+      activeCameraMode = nextCameraMode;
+      firstPersonMode = nextCameraMode === "firstperson";
+      isometricMode = nextCameraMode === "isometric";
+      ceilingCameraMode = firstPersonMode
+        ? "firstperson"
+        : isometricMode ? "isometric" : "thirdperson";
+      ceilingsVisible = !isometricMode;
+      syncCeilingRenderState();
+      runtimeCollisionBlockers = getRuntimeCollisionBlockers();
+      hooks.__dungeonCollisionBlockers = runtimeCollisionBlockers;
+      hooks.__dungeonMode = nextCameraMode;
+      if (player) player.visible = !firstPersonMode;
+      camPitch = isometricMode ? isometricCameraProfile.defaultPitch : 0.24;
+      camDist = firstPersonMode ? 0 : isometricMode ? isometricCameraProfile.defaultDistance : 4.4;
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("cam", nextCameraMode);
+      window.history.replaceState(null, "", nextUrl);
       diagnostics?.record("camera-mode-transition", {
-        from: activeCameraMode,
+        from: previousCameraMode,
         to: nextCameraMode,
         player: { x: playerPos.x, y: playerPos.y, z: playerPos.z },
-        behavior: "full-page-reload",
+        behavior: "in-place",
       });
-      saveBreachV2CameraSwitchPosition(window.sessionStorage, {
-        seed: options.seed,
-        path: options.path,
-        x: playerPos.x,
-        z: playerPos.z,
-      });
+      return true;
     },
     warp,
     setAllDoorsOpen: (open) => sectionDoors.setAllOpen(open),

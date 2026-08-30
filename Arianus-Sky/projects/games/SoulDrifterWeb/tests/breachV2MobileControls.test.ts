@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 
 import {
   BREACH_V2_CAMERA_RESET_LABEL,
@@ -9,6 +10,7 @@ import {
   BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
   BREACH_V2_MOBILE_ZOOM_STEP,
   BREACH_V2_TOUCH_ROTATE_THRESHOLD,
+  isBreachV2InPlaceCameraTransition,
   resolveBreachV2CameraLookAhead,
   resolveBreachV2CameraStep,
   resolveBreachV2CameraTargetHeight,
@@ -29,6 +31,7 @@ import {
   saveBreachV2CameraSwitchPosition,
 } from "../src/game/dungeons/breach-v2-startup-safety";
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
+import { resolveBreachV2ReviewActorSelection } from "../src/game/dungeons/breach-v2-preview";
 import {
   findBreachV2RoomAt,
   resolveBreachV2FogState,
@@ -80,7 +83,7 @@ describe("BREACH-V2 mobile camera pinch", () => {
     const maximumClose = resolveBreachV2InspectionZoomStep(
       BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
       1,
-      -BREACH_V2_MOBILE_ZOOM_STEP * 2,
+      -BREACH_V2_MOBILE_ZOOM_STEP * 12,
       BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
       BREACH_V2_ISOMETRIC_MAX_DISTANCE,
     );
@@ -93,8 +96,19 @@ describe("BREACH-V2 mobile camera pinch", () => {
       BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
       BREACH_V2_ISOMETRIC_MAX_DISTANCE,
     );
-    expect(unwind.magnification).toBeCloseTo(1.2571, 3);
-    expect(resolveBreachV2PinchMagnification(1, 100, 500))
+    expect(unwind.magnification).toBeCloseTo(45.2548, 3);
+    const restored = resolveBreachV2InspectionZoomStep(
+      maximumClose.distance,
+      maximumClose.magnification,
+      BREACH_V2_MOBILE_ZOOM_STEP * 12,
+      BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      BREACH_V2_ISOMETRIC_MAX_DISTANCE,
+    );
+    expect(restored).toEqual({
+      distance: BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE,
+      magnification: 1,
+    });
+    expect(resolveBreachV2PinchMagnification(1, 100, 6_400))
       .toBe(BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM);
   });
 });
@@ -214,6 +228,16 @@ describe("BREACH-V2 mobile camera buttons and orientation", () => {
 });
 
 describe("BREACH-V2 camera mode position continuity", () => {
+  it("keeps every gameplay-camera transition in place and reloads overview only", () => {
+    for (const current of ["isometric", "walk", "firstperson"]) {
+      for (const next of ["isometric", "walk", "firstperson"]) {
+        expect(isBreachV2InPlaceCameraTransition(current, next)).toBe(true);
+      }
+      expect(isBreachV2InPlaceCameraTransition(current, "overview")).toBe(false);
+    }
+    expect(isBreachV2InPlaceCameraTransition("overview", "isometric")).toBe(false);
+  });
+
   const createStorage = () => {
     const entries = new Map<string, string>();
     return {
@@ -257,6 +281,41 @@ describe("BREACH-V2 camera mode position continuity", () => {
       seed: 4182,
       path: "oathbreaker",
     })).toBeNull();
+  });
+});
+
+describe("BREACH-V2 contextual animation actor selection", () => {
+  const nestedChild = (root: THREE.Object3D): THREE.Object3D => {
+    const middle = new THREE.Group();
+    const child = new THREE.Object3D();
+    root.add(middle);
+    middle.add(child);
+    return child;
+  };
+
+  it("resolves the exact Human, Breachling, and Warden identity through nested meshes", () => {
+    const human = new THREE.Group();
+    human.userData.actorRole = "player";
+    human.userData.actorId = "male-v2";
+    expect(resolveBreachV2ReviewActorSelection(nestedChild(human))).toEqual({
+      kind: "human",
+      actorId: "male-v2",
+    });
+
+    const creature = new THREE.Group();
+    creature.userData.spatialOwnerId = "breachling:E-04:2";
+    expect(resolveBreachV2ReviewActorSelection(nestedChild(creature))).toEqual({
+      kind: "creature",
+      actorId: "breachling:E-04:2",
+    });
+
+    const warden = new THREE.Group();
+    warden.userData.spatialOwnerId = "cinderbound-warden:oathbreaker";
+    expect(resolveBreachV2ReviewActorSelection(nestedChild(warden))).toEqual({
+      kind: "warden",
+      actorId: "cinderbound-warden:oathbreaker",
+    });
+    expect(resolveBreachV2ReviewActorSelection(new THREE.Object3D())).toBeNull();
   });
 });
 

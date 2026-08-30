@@ -3,7 +3,7 @@ export const BREACH_V2_ISOMETRIC_MAX_DISTANCE = 36;
 export const BREACH_V2_MOBILE_ISOMETRIC_MIN_DISTANCE = 2.75;
 export const BREACH_V2_MOBILE_THIRD_PERSON_MIN_DISTANCE = 1.2;
 export const BREACH_V2_MOBILE_ZOOM_STEP = 1.5;
-export const BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM = 4;
+export const BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM = 64;
 export const BREACH_V2_CAMERA_RESET_LABEL = "Camera Reset";
 export const BREACH_V2_TOUCH_ROTATE_THRESHOLD = 12;
 export const BREACH_V2_TOUCH_PITCH_SENSITIVITY = 0.002;
@@ -12,6 +12,21 @@ export const BREACH_V2_PANEL_REQUEST_EVENT = "breach-v2-panel-requested";
 
 export type BreachV2GraphicsMode = "auto" | "low" | "standard" | "high";
 export type BreachV2GraphicsQuality = Exclude<BreachV2GraphicsMode, "auto">;
+export type BreachV2GameplayCameraMode = "isometric" | "walk" | "firstperson";
+
+const BREACH_V2_GAMEPLAY_CAMERA_MODES: ReadonlySet<string> = new Set([
+  "isometric",
+  "walk",
+  "firstperson",
+]);
+
+export function isBreachV2InPlaceCameraTransition(
+  currentMode: string,
+  nextMode: string,
+): nextMode is BreachV2GameplayCameraMode {
+  return BREACH_V2_GAMEPLAY_CAMERA_MODES.has(currentMode)
+    && BREACH_V2_GAMEPLAY_CAMERA_MODES.has(nextMode);
+}
 
 export interface BreachV2IsometricCameraProfile {
   compactLandscape: boolean;
@@ -225,8 +240,9 @@ export function resolveBreachV2InspectionZoomStep(
   maxMagnification = BREACH_V2_MOBILE_MAX_INSPECTION_ZOOM,
 ): BreachV2InspectionZoom {
   const effectiveDistance = currentDistance / Math.max(1, currentMagnification);
+  const halfStops = delta / (BREACH_V2_MOBILE_ZOOM_STEP * 2);
   return resolveBreachV2InspectionZoomFromEffectiveDistance(
-    effectiveDistance + delta,
+    effectiveDistance * (2 ** halfStops),
     minDistance,
     maxDistance,
     maxMagnification,
@@ -451,11 +467,19 @@ export function setupBreachV2MobileMovementPad(options: {
   container: HTMLElement;
   keys: Set<string>;
   enabled: boolean;
+  cameraControlsEnabled?: boolean;
   adjustCameraDistance: (delta: number) => void;
   resetCamera: () => void;
 }): MobileMovementPad {
-  const { container, keys, enabled, adjustCameraDistance, resetCamera } = options;
-  if (!enabled) return { destroy: () => undefined };
+  const {
+    container,
+    keys,
+    enabled,
+    cameraControlsEnabled = enabled,
+    adjustCameraDistance,
+    resetCamera,
+  } = options;
+  if (!enabled && !cameraControlsEnabled) return { destroy: () => undefined };
 
   const root = document.createElement("div");
   root.dataset.testid = "breach-v2-mobile-dpad";
@@ -511,6 +535,7 @@ export function setupBreachV2MobileMovementPad(options: {
     "color:#c9f7ff", "box-shadow:0 6px 18px rgba(0,0,0,.34)", "backdrop-filter:blur(7px)",
     "font:700 9px/1.1 Georgia,serif", "letter-spacing:.06em", "text-transform:uppercase", "cursor:pointer",
   ].join(";");
+  root.hidden = !enabled;
   reset.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -549,6 +574,7 @@ export function setupBreachV2MobileMovementPad(options: {
     root.appendChild(control);
   }
 
+  zoomRail.hidden = !cameraControlsEnabled;
   container.append(root, zoomRail);
   return {
     destroy: () => {
