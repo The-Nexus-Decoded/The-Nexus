@@ -5,6 +5,7 @@ import {
   bindOptionalCompatibleAnimationClip,
   loadCachedAnimationPack,
   normalizeAnimationPackRootMotion,
+  retargetMixamoClipToCompactHumanoid,
   trimAnimationPackClipEnvelope,
   type AnimationPackSpec,
 } from "./animationPacks";
@@ -273,6 +274,7 @@ interface DebugSnapshot {
     handArrowCount: number;
     bowStringNockDepthMeters: number;
     activeProjectileCount: number;
+    loadedClipNames: string[];
     rootBounds: Record<string, { min: [number, number, number]; max: [number, number, number] }>;
   };
   playerHipSocket?: {
@@ -428,6 +430,7 @@ export class World3D {
   private readonly pilotReviewEnabled = import.meta.env.DEV
     && new URL(window.location.href).searchParams.get("animationReview") === "1";
   private readonly pilotReviewSources = new Map<string, THREE.AnimationClip>();
+  private pilotReviewRig: THREE.Object3D | null = null;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -1373,6 +1376,7 @@ export class World3D {
       throw new Error(`Issue #487 pilot library expected 400 clips, got ${gltf.animations.length}.`);
     }
     this.pilotReviewSources.clear();
+    this.pilotReviewRig = gltf.scene;
     gltf.animations.forEach((clip) => this.pilotReviewSources.set(clip.name, clip));
     const defaultClip = [...this.pilotReviewSources.keys()]
       .find((name) => name.toLowerCase() === "malelocomotion__idle");
@@ -1384,11 +1388,14 @@ export class World3D {
     if (existing) return existing;
     const source = this.pilotReviewSources.get(name);
     if (!source) return null;
-    const bound = bindOptionalCompatibleAnimationClip(source, actor.model, source.name);
+    const bound = bindOptionalCompatibleAnimationClip(source, actor.model, source.name)
+      ?? (this.pilotReviewRig
+        ? retargetMixamoClipToCompactHumanoid(source, this.pilotReviewRig, actor.model, source.name)
+        : null);
     if (!bound) return null;
     const boundRoot = bound.tracks
       .map((track) => track.name.slice(0, track.name.lastIndexOf(".")))
-      .find((node) => /armature$/i.test(node)) ?? "HumanFoundation_Armature";
+      .find((node) => /armature$|hips$/i.test(node)) ?? "HumanFoundation_Armature";
     const normalized = normalizeAnimationPackRootMotion(bound, boundRoot);
     actor.clips.set(name, normalized);
     return normalized;
@@ -4304,6 +4311,7 @@ export class World3D {
           handArrowCount: this.player.archery.presentation.handArrowInstanceCount(),
           bowStringNockDepthMeters: this.player.archery.presentation.bowStringNockDepthMeters(),
           activeProjectileCount: this.player.archery.runtime.activeProjectiles().length,
+          loadedClipNames: BOW_RUNTIME_CLIPS.filter((name) => this.player.clips.has(name)),
           rootBounds,
         };
       })() : undefined,

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { retargetClip as retargetSkeletonClip } from "three/addons/utils/SkeletonUtils.js";
 
 export interface AnimationPackSpec {
   url: string;
@@ -192,6 +193,128 @@ export function bindOptionalCompatibleAnimationClip(
     return clone;
   });
   return new THREE.AnimationClip(semanticName, source.duration, tracks, source.blendMode);
+}
+
+const COMPACT_HUMANOID_BONE_ROLES: Readonly<Record<string, string>> = {
+  Hips: "Hips",
+  UpperLegL: "LeftUpLeg",
+  "UpperLeg.L": "LeftUpLeg",
+  LowerLegL: "LeftLeg",
+  "LowerLeg.L": "LeftLeg",
+  FootL: "LeftFoot",
+  "Foot.L": "LeftFoot",
+  UpperLegR: "RightUpLeg",
+  "UpperLeg.R": "RightUpLeg",
+  LowerLegR: "RightLeg",
+  "LowerLeg.R": "RightLeg",
+  FootR: "RightFoot",
+  "Foot.R": "RightFoot",
+  Abdomen: "Spine",
+  Torso: "Spine2",
+  ShoulderL: "LeftShoulder",
+  "Shoulder.L": "LeftShoulder",
+  UpperArmL: "LeftArm",
+  "UpperArm.L": "LeftArm",
+  LowerArmL: "LeftForeArm",
+  "LowerArm.L": "LeftForeArm",
+  FistL: "LeftHand",
+  "Fist.L": "LeftHand",
+  ShoulderR: "RightShoulder",
+  "Shoulder.R": "RightShoulder",
+  UpperArmR: "RightArm",
+  "UpperArm.R": "RightArm",
+  LowerArmR: "RightForeArm",
+  "LowerArm.R": "RightForeArm",
+  FistR: "RightHand",
+  "Fist.R": "RightHand",
+  Neck: "Neck",
+  Head: "Head",
+};
+
+function firstSkinnedMesh(root: THREE.Object3D): THREE.SkinnedMesh | null {
+  let result: THREE.SkinnedMesh | null = null;
+  root.traverse((object) => {
+    if (!result && object instanceof THREE.SkinnedMesh) result = object;
+  });
+  return result;
+}
+
+function animationSourceSkeleton(root: THREE.Object3D): THREE.Skeleton | null {
+  const mesh = firstSkinnedMesh(root);
+  if (mesh) return mesh.skeleton;
+  const bones: THREE.Bone[] = [];
+  root.traverse((object) => {
+    if (object instanceof THREE.Bone) bones.push(object);
+  });
+  return bones.length > 0 ? new THREE.Skeleton(bones) : null;
+}
+
+function compactHumanoidToMixamoBones(sourceBoneNames: ReadonlySet<string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(COMPACT_HUMANOID_BONE_ROLES).flatMap(([target, role]) => {
+    const compact = `mixamorig${role}`;
+    const namespaced = `mixamorig:${role}`;
+    if (sourceBoneNames.has(compact)) return [[target, compact]];
+    if (sourceBoneNames.has(namespaced)) return [[target, namespaced]];
+    return [];
+  }));
+}
+
+/**
+ * Rest-pose-aware bridge from the 400-clip Mixamo library to the compact live
+ * SoulDrifter humanoid rig. Finger and toe-end tracks are intentionally not
+ * synthesized: the compact rig has no corresponding bones, while every body,
+ * shoulder, arm, hand, neck, and head track is solved through SkeletonUtils.
+ */
+export function retargetMixamoClipToCompactHumanoid(
+  source: THREE.AnimationClip,
+  sourceRig: THREE.Object3D,
+  targetRig: THREE.Object3D,
+  semanticName: string,
+): THREE.AnimationClip | null {
+  const sourceSkeleton = animationSourceSkeleton(sourceRig);
+  const targetMesh = firstSkinnedMesh(targetRig);
+  if (!sourceSkeleton || !targetMesh) return null;
+  const restPose = targetMesh.skeleton.bones.map((bone) => ({
+    bone,
+    position: bone.position.clone(),
+    quaternion: bone.quaternion.clone(),
+    scale: bone.scale.clone(),
+  }));
+  try {
+    const sourceBoneNames = new Set(sourceSkeleton.bones.map((bone) => bone.name));
+    const bindableSource = new THREE.AnimationClip(semanticName, source.duration, source.tracks.map((track) => {
+      const clone = track.clone();
+      const parsed = splitTrackName(track.name);
+      if (parsed && sourceBoneNames.has(parsed.node)) clone.name = `.bones[${parsed.node}].${parsed.property}`;
+      return clone;
+    }), source.blendMode);
+    const boneNames = compactHumanoidToMixamoBones(sourceBoneNames);
+    const hipName = boneNames.Hips;
+    if (!hipName) return null;
+    const retargeted = retargetSkeletonClip(targetMesh, sourceSkeleton, bindableSource, {
+      names: boneNames,
+      hip: hipName,
+      hipInfluence: new THREE.Vector3(0, 1, 0),
+      preserveHipPosition: false,
+      preserveBoneMatrix: true,
+      useFirstFramePosition: true,
+    });
+    const tracks = retargeted.tracks.map((track) => {
+      const clone = track.clone();
+      clone.name = clone.name.replace(/^\.bones\[([^\]]+)\]\./, "$1.");
+      return clone;
+    });
+    return tracks.length > 0
+      ? new THREE.AnimationClip(semanticName, retargeted.duration, tracks, source.blendMode)
+      : null;
+  } finally {
+    restPose.forEach(({ bone, position, quaternion, scale }) => {
+      bone.position.copy(position);
+      bone.quaternion.copy(quaternion);
+      bone.scale.copy(scale);
+    });
+    targetRig.updateMatrixWorld(true);
+  }
 }
 
 /**

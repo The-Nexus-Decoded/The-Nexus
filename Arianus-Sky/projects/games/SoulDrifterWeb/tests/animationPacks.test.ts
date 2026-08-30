@@ -10,6 +10,7 @@ import {
   loadCachedAnimationPack,
   measureAnimatedPoseGrounding,
   normalizeAnimationPackRootMotion,
+  retargetMixamoClipToCompactHumanoid,
   trimAnimationPackClipEnvelope,
   validateAnimationClipCompatibility,
 } from "../src/game/animationPacks";
@@ -31,6 +32,27 @@ function sourceClip(): THREE.AnimationClip {
     new THREE.QuaternionKeyframeTrack("hand_r.quaternion", [0, 2], [0, 0, 0, 1, 0, 0.5, 0, 0.866]),
     new THREE.QuaternionKeyframeTrack("mixamorig:hand_l.quaternion", [0, 2], [0, 0, 0, 1, 0.2, 0, 0, 0.98]),
   ]);
+}
+
+function skinnedRig(names: readonly string[]): { root: THREE.Group; bones: THREE.Bone[] } {
+  const root = new THREE.Group();
+  const bones = names.map((name) => Object.assign(new THREE.Bone(), { name }));
+  bones.slice(1).forEach((bone) => bones[0]!.add(bone));
+  const mesh = new THREE.SkinnedMesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
+  mesh.add(bones[0]!);
+  mesh.bind(new THREE.Skeleton(bones));
+  root.add(mesh);
+  root.updateMatrixWorld(true);
+  return { root, bones };
+}
+
+function boneOnlyRig(names: readonly string[]): { root: THREE.Group; bones: THREE.Bone[] } {
+  const root = new THREE.Group();
+  const bones = names.map((name) => Object.assign(new THREE.Bone(), { name }));
+  bones.slice(1).forEach((bone) => bones[0]!.add(bone));
+  root.add(bones[0]!);
+  root.updateMatrixWorld(true);
+  return { root, bones };
 }
 
 describe("external animation packs", () => {
@@ -156,6 +178,27 @@ describe("external animation packs", () => {
       .toEqual(Array.from(bound.tracks.find((track) => track.name.endsWith(".scale"))!.values));
     expect(Array.from(normalized.tracks.find((track) => track.name.endsWith(".position"))!.values))
       .toEqual([7, 1.25, -3, 7, 3.25, -3]);
+  });
+
+  it("retargets the meshless production Mixamo library through the live compact humanoid rest pose", () => {
+    const sourceRig = boneOnlyRig(["mixamorigHips", "mixamorigLeftHand"]);
+    const targetRig = skinnedRig(["Hips", "FistL"]);
+    const targetRest = targetRig.bones.map((bone) => bone.quaternion.clone());
+    const clip = new THREE.AnimationClip("BowDraw", 1, [
+      new THREE.VectorKeyframeTrack("mixamorigHips.position", [0, 1], [0, 1, 0, 0.2, 1.1, 0.1]),
+      new THREE.QuaternionKeyframeTrack("mixamorigHips.quaternion", [0, 1], [0, 0, 0, 1, 0, 0.1, 0, 0.995]),
+      new THREE.QuaternionKeyframeTrack("mixamorigLeftHand.quaternion", [0, 1], [0, 0, 0, 1, 0.2, 0, 0, 0.98]),
+    ]);
+
+    const retargeted = retargetMixamoClipToCompactHumanoid(clip, sourceRig.root, targetRig.root, "BowDrawLive");
+
+    expect(retargeted?.name).toBe("BowDrawLive");
+    expect(retargeted?.tracks.map((track) => track.name)).toEqual(expect.arrayContaining([
+      "Hips.position",
+      "Hips.quaternion",
+      "FistL.quaternion",
+    ]));
+    targetRig.bones.forEach((bone, index) => expect(bone.quaternion.equals(targetRest[index]!)).toBe(true));
   });
 
   it("preserves authored airborne Y deltas while removing source-rig baselines", () => {

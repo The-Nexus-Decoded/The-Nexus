@@ -7,7 +7,9 @@ import {
   type QuiverInventoryState,
 } from "./archeryInventory";
 
-export const MINIMUM_BOW_RANGE_METERS = 1.5;
+// One SoulDrifter grid step is 1.75m. The minimum must exceed that distance so
+// an enemy occupying the adjacent melee tile actually routes to bow strike.
+export const MINIMUM_BOW_RANGE_METERS = 2;
 
 export type ArcheryAction = "single-shot" | "multishot";
 export type ArcheryArrowPhase =

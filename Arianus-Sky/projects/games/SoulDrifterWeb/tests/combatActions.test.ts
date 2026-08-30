@@ -20,11 +20,13 @@ describe("basic weapon attack", () => {
 
   it("gives bows a real ranged profile and a close-range bow strike", () => {
     expect(basicAttackProfileForWeapon("bow")).toEqual({
-      minimumRangeMeters: 1.5,
+      minimumRangeMeters: 2,
       maximumRangeMeters: 8,
       closeRangeDecision: "bow-strike",
     });
     expect(basicAttackDecision("bow", 0.5)).toBe("bow-strike");
+    expect(basicAttackDecision("bow", 1.75)).toBe("bow-strike");
+    expect(basicAttackDecision("bow", 2)).toBe("shoot");
     expect(basicAttackDecision("bow", 4)).toBe("shoot");
   });
 
