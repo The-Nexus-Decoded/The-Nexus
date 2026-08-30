@@ -1,4 +1,5 @@
 import type { CallingId } from "./character";
+import type { ArrowType } from "./archery/archeryInventory";
 
 export type WeaponFamily = "sword" | "axe" | "hammer" | "staff" | "bow" | "dagger" | "spear" | "focus";
 export type WeaponTraining = "untrained" | "trained" | "specialized";
@@ -33,8 +34,8 @@ export interface StarterLoadout {
   offhand?: string;
 }
 
-export type EquipmentSlot = "head" | "body" | "legs" | "feet" | "mainHand" | "offHand";
-export type InventoryItemKind = "equipment" | "consumable" | "quest" | "material";
+export type EquipmentSlot = "head" | "body" | "legs" | "feet" | "mainHand" | "offHand" | "back";
+export type InventoryItemKind = "equipment" | "consumable" | "quest" | "material" | "ammunition";
 
 export const STARTER_BACKPACK_SLOTS = 30;
 
@@ -60,6 +61,10 @@ export interface InventoryItem {
   maxDurability?: number;
   quantity?: number;
   stackLimit?: number;
+  containerId?: string;
+  quiverCapacity?: number;
+  arrowType?: ArrowType;
+  selectedArrowType?: ArrowType;
   description: string;
 }
 
@@ -91,7 +96,7 @@ export function totalBackpackSlots(capacity: BackpackCapacity): number {
 }
 
 export function backpackItems(items: readonly InventoryItem[]): readonly InventoryItem[] {
-  return items.filter((item) => !item.equipped);
+  return items.filter((item) => !item.equipped && !item.containerId);
 }
 
 export function backpackSlotsUsed(items: readonly InventoryItem[]): number {
@@ -118,7 +123,7 @@ export function addInventoryItem(
     existing.stackLimit = stackLimit;
     return { added: true, stacked: true };
   }
-  if (!canMoveToBackpack(items, capacity)) return { added: false, stacked: false, reason: "full" };
+  if (!item.containerId && !canMoveToBackpack(items, capacity)) return { added: false, stacked: false, reason: "full" };
   items.push({ ...item, quantity: item.quantity ?? 1, equipped: false });
   return { added: true, stacked: false };
 }
@@ -191,6 +196,33 @@ export function createStarterInventory(callingId: CallingId): InventoryItem[] {
       maxDurability: 32,
       description: "A basic off-hand implement with no magical properties.",
     });
+  }
+  if (callingId === "sharpshooter") {
+    items.push(
+      {
+        id: "starter-quiver",
+        name: "Worn leather quiver",
+        kind: "equipment",
+        slot: "back",
+        equipped: true,
+        quiverCapacity: 100,
+        selectedArrowType: "standard",
+        durability: 36,
+        maxDurability: 36,
+        description: "A fitted back quiver with a separate cross-body harness and room for one hundred arrows.",
+      },
+      {
+        id: "starter-arrows-standard",
+        name: "Plain hunting arrows",
+        kind: "ammunition",
+        equipped: false,
+        containerId: "starter-quiver",
+        arrowType: "standard",
+        quantity: 10,
+        stackLimit: 100,
+        description: "Thin, full-length arrows stored independently inside the equipped quiver.",
+      },
+    );
   }
   return items;
 }

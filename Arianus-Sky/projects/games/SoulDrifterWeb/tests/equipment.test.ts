@@ -65,6 +65,25 @@ describe("universal weapons and starter loadouts", () => {
     }
   });
 
+  it("gives the sharpshooter an equipped empty-mesh quiver and separately contained arrows", () => {
+    const inventory = createStarterInventory("sharpshooter");
+    const quiver = inventory.find((item) => item.slot === "back");
+    const arrows = inventory.find((item) => item.arrowType === "standard");
+    expect(quiver).toMatchObject({
+      id: "starter-quiver",
+      equipped: true,
+      quiverCapacity: 100,
+      selectedArrowType: "standard",
+    });
+    expect(arrows).toMatchObject({
+      kind: "ammunition",
+      containerId: "starter-quiver",
+      quantity: 10,
+      arrowType: "standard",
+    });
+    expect(backpackSlotsUsed(inventory)).toBe(0);
+  });
+
   it("starts with a separate expandable 30-slot backpack", () => {
     const capacity = createStarterBackpackCapacity();
     const inventory = createStarterInventory("shadowknight");
