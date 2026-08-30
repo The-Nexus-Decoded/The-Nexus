@@ -8,6 +8,11 @@ import {
 } from "../animationPacks";
 import type { BreachV2Layout } from "./breach-v2-layout";
 import type { BreachV2RuntimeDiagnosticSink } from "./breach-v2-runtime-diagnostics";
+import {
+  createBreachV2ResourceDisposalRegistry,
+  disposeBreachV2ObjectResources,
+  type BreachV2ResourceDisposalRegistry,
+} from "./breach-v2-breachlings";
 
 export type CinderboundWardenKind = "wayfarer" | "oathbreaker";
 
@@ -357,6 +362,7 @@ export function createBreachV2WardenRuntime(
   loader: Pick<GLTFLoader, "loadAsync">,
   path: CinderboundWardenKind,
   diagnostics?: BreachV2RuntimeDiagnosticSink,
+  resourceDisposalRegistry: BreachV2ResourceDisposalRegistry = createBreachV2ResourceDisposalRegistry(),
 ): BreachV2WardenRuntime {
   const placement = buildCinderboundWardenPlacement(layout, path);
   const asset = CINDERBOUND_WARDEN_ASSETS[path];
@@ -377,41 +383,8 @@ export function createBreachV2WardenRuntime(
     emissiveIntensity: 3.2,
   });
   const ringGeometry = new THREE.RingGeometry(0.58, 0.76, 40);
-  const disposedGeometries = new Set<THREE.BufferGeometry>();
-  const disposedMaterials = new Set<THREE.Material>();
-  const disposedTextures = new Set<THREE.Texture>();
   const disposeSource = (source: GLTF): void => {
-    source.scene.traverse((object) => {
-      const renderable = object as THREE.Object3D & {
-        geometry?: THREE.BufferGeometry;
-        material?: THREE.Material | THREE.Material[];
-        skeleton?: THREE.Skeleton;
-      };
-      if (renderable.geometry && !disposedGeometries.has(renderable.geometry)) {
-        disposedGeometries.add(renderable.geometry);
-        renderable.geometry.dispose();
-      }
-      const materials = renderable.material
-        ? Array.isArray(renderable.material) ? renderable.material : [renderable.material]
-        : [];
-      materials.forEach((material) => {
-        for (const value of Object.values(material)) {
-          if (value instanceof THREE.Texture && !disposedTextures.has(value)) {
-            disposedTextures.add(value);
-            value.dispose();
-          }
-        }
-        if (!disposedMaterials.has(material)) {
-          disposedMaterials.add(material);
-          material.dispose();
-        }
-      });
-      const boneTexture = renderable.skeleton?.boneTexture;
-      if (boneTexture && !disposedTextures.has(boneTexture)) {
-        disposedTextures.add(boneTexture);
-        boneTexture.dispose();
-      }
-    });
+    disposeBreachV2ObjectResources(source.scene, resourceDisposalRegistry);
   };
 
   const clearDebris = (runtimeActor: RuntimeActor): void => {

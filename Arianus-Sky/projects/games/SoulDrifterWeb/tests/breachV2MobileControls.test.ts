@@ -33,6 +33,10 @@ import {
 } from "../src/game/dungeons/breach-v2-startup-safety";
 import { resolveBreachV2LegacyLandmarkRoomId } from "../src/game/dungeons/breach-v2-dev-panel";
 import {
+  createBreachV2ResourceDisposalRegistry,
+  disposeBreachV2ObjectResources,
+} from "../src/game/dungeons/breach-v2-breachlings";
+import {
   applyBreachV2InspectionFocus,
   createBreachV2PreviewDisposer,
   disposeBreachV2SceneResources,
@@ -484,6 +488,32 @@ describe("BREACH-V2 preview lifecycle", () => {
     const counts = disposeBreachV2SceneResources(scene);
 
     expect(counts).toEqual({ geometries: 1, materials: 1, textures: 1 });
+    expect(disposed).toEqual({ texture: 1, material: 1, geometry: 1 });
+    expect(scene.children).toHaveLength(0);
+  });
+
+  it("disposes shared runtime and environment GPU resources exactly once across teardown owners", () => {
+    const scene = new THREE.Scene();
+    const registry = createBreachV2ResourceDisposalRegistry();
+    const texture = new THREE.Texture();
+    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const runtimeRoot = new THREE.Group();
+    runtimeRoot.add(new THREE.Mesh(geometry, material));
+    const environmentRoot = new THREE.Group();
+    environmentRoot.add(new THREE.Mesh(geometry, material));
+    scene.add(runtimeRoot, environmentRoot);
+    const disposed = { texture: 0, material: 0, geometry: 0 };
+    texture.addEventListener("dispose", () => { disposed.texture += 1; });
+    material.addEventListener("dispose", () => { disposed.material += 1; });
+    geometry.addEventListener("dispose", () => { disposed.geometry += 1; });
+
+    runtimeRoot.removeFromParent();
+    expect(disposeBreachV2ObjectResources(runtimeRoot, registry))
+      .toEqual({ geometries: 1, materials: 1, textures: 1 });
+    expect(disposeBreachV2SceneResources(scene, registry))
+      .toEqual({ geometries: 0, materials: 0, textures: 0 });
+
     expect(disposed).toEqual({ texture: 1, material: 1, geometry: 1 });
     expect(scene.children).toHaveLength(0);
   });

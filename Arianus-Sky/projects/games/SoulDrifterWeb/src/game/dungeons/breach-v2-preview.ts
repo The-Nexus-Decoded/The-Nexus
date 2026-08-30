@@ -29,8 +29,11 @@ import {
   type BreachV2HumanFoundationReview,
 } from "./breach-v2-human-foundation-review.ts";
 import {
+  createBreachV2ResourceDisposalRegistry,
   createBreachV2BreachlingRuntime,
+  disposeBreachV2ObjectResources,
   type BreachV2BreachlingRuntime,
+  type BreachV2ResourceDisposalRegistry,
 } from "./breach-v2-breachlings.ts";
 import {
   setupBreachV2CreatureReview,
@@ -334,46 +337,23 @@ export function createBreachV2PreviewDisposer(
   };
 }
 
-export function disposeBreachV2SceneResources(scene: THREE.Scene): {
+export function disposeBreachV2SceneResources(
+  scene: THREE.Scene,
+  registry: BreachV2ResourceDisposalRegistry = createBreachV2ResourceDisposalRegistry(),
+): {
   geometries: number;
   materials: number;
   textures: number;
 } {
-  const geometries = new Set<THREE.BufferGeometry>();
-  const materials = new Set<THREE.Material>();
-  const textures = new Set<THREE.Texture>();
-  const collectMaterial = (material: THREE.Material): void => {
-    materials.add(material);
-    for (const value of Object.values(material)) {
-      if (value instanceof THREE.Texture) textures.add(value);
-    }
-  };
-  scene.traverse((object) => {
-    const renderable = object as THREE.Object3D & {
-      geometry?: THREE.BufferGeometry;
-      material?: THREE.Material | THREE.Material[];
-      skeleton?: THREE.Skeleton;
-    };
-    if (renderable.geometry) geometries.add(renderable.geometry);
-    if (renderable.material) {
-      const objectMaterials = Array.isArray(renderable.material)
-        ? renderable.material
-        : [renderable.material];
-      objectMaterials.forEach(collectMaterial);
-    }
-    if (renderable.skeleton?.boneTexture) textures.add(renderable.skeleton.boneTexture);
-  });
-  if (scene.background instanceof THREE.Texture) textures.add(scene.background);
-  if (scene.environment instanceof THREE.Texture) textures.add(scene.environment);
-  textures.forEach((texture) => texture.dispose());
-  materials.forEach((material) => material.dispose());
-  geometries.forEach((geometry) => geometry.dispose());
+  const counts = disposeBreachV2ObjectResources(scene, registry);
+  for (const texture of [scene.background, scene.environment]) {
+    if (!(texture instanceof THREE.Texture) || registry.textures.has(texture)) continue;
+    registry.textures.add(texture);
+    texture.dispose();
+    counts.textures += 1;
+  }
   scene.clear();
-  return {
-    geometries: geometries.size,
-    materials: materials.size,
-    textures: textures.size,
-  };
+  return counts;
 }
 
 interface BreachV2RuntimeEnvironmentObject extends BreachV2EnvironmentObjectConfig {
@@ -4590,12 +4570,14 @@ export async function startDungeonPreview(
       isBreachV2LineOfSightBlocked(runtimeCollisionBlockers, start, end)
     ),
   });
+  const resourceDisposalRegistry = createBreachV2ResourceDisposalRegistry();
   loading.textContent = "Loading creatures for the active room…";
   const breachlingRuntime = createBreachV2BreachlingRuntime(
     scene,
     layout,
     gltfLoader,
     options.path,
+    resourceDisposalRegistry,
   );
   await breachlingRuntime.warmAt(playerPos.x, playerPos.z);
   let creatureAnimationReview: BreachV2CreatureReview | null = null;
@@ -4608,6 +4590,7 @@ export async function startDungeonPreview(
     gltfLoader,
     options.path,
     diagnostics ?? undefined,
+    resourceDisposalRegistry,
   );
   await wardenRuntime.warmAt(playerPos.x, playerPos.z);
   let wardenAnimationReview: BreachV2WardenReview | null = null;
@@ -5728,11 +5711,11 @@ export async function startDungeonPreview(
     () => mobileLandscapeGate.destroy(),
     () => controls.dispose(),
     () => diagnostics?.dispose(),
-    () => disposeBreachV2SceneResources(scene),
     () => foundationPlayerActor?.dispose(),
     () => breachlingRuntime.dispose(),
     () => wardenRuntime.dispose(),
     () => fogOfWar.destroy(),
+    () => disposeBreachV2SceneResources(scene, resourceDisposalRegistry),
     () => hud.remove(),
     () => {
       loadingManager.onStart = () => undefined;

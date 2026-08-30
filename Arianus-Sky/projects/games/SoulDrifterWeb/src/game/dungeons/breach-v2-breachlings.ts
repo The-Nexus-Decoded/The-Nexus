@@ -82,6 +82,65 @@ export interface BreachV2BreachlingRuntime {
   dispose(): void;
 }
 
+export interface BreachV2ResourceDisposalRegistry {
+  geometries: Set<THREE.BufferGeometry>;
+  materials: Set<THREE.Material>;
+  textures: Set<THREE.Texture>;
+}
+
+export function createBreachV2ResourceDisposalRegistry(): BreachV2ResourceDisposalRegistry {
+  return {
+    geometries: new Set<THREE.BufferGeometry>(),
+    materials: new Set<THREE.Material>(),
+    textures: new Set<THREE.Texture>(),
+  };
+}
+
+export function disposeBreachV2ObjectResources(
+  root: THREE.Object3D,
+  registry: BreachV2ResourceDisposalRegistry,
+): { geometries: number; materials: number; textures: number } {
+  let geometries = 0;
+  let materials = 0;
+  let textures = 0;
+  root.traverse((object) => {
+    const renderable = object as THREE.Object3D & {
+      geometry?: THREE.BufferGeometry;
+      material?: THREE.Material | THREE.Material[];
+      skeleton?: THREE.Skeleton;
+    };
+    if (renderable.geometry && !registry.geometries.has(renderable.geometry)) {
+      registry.geometries.add(renderable.geometry);
+      renderable.geometry.dispose();
+      geometries += 1;
+    }
+    const objectMaterials = renderable.material
+      ? Array.isArray(renderable.material) ? renderable.material : [renderable.material]
+      : [];
+    objectMaterials.forEach((material) => {
+      for (const value of Object.values(material)) {
+        if (value instanceof THREE.Texture && !registry.textures.has(value)) {
+          registry.textures.add(value);
+          value.dispose();
+          textures += 1;
+        }
+      }
+      if (!registry.materials.has(material)) {
+        registry.materials.add(material);
+        material.dispose();
+        materials += 1;
+      }
+    });
+    const boneTexture = renderable.skeleton?.boneTexture;
+    if (boneTexture && !registry.textures.has(boneTexture)) {
+      registry.textures.add(boneTexture);
+      boneTexture.dispose();
+      textures += 1;
+    }
+  });
+  return { geometries, materials, textures };
+}
+
 interface RuntimeActor {
   placement: BreachlingPlacement;
   root: THREE.Group;
@@ -170,6 +229,7 @@ export function createBreachV2BreachlingRuntime(
   layout: BreachV2Layout,
   loader: Pick<GLTFLoader, "loadAsync">,
   path: "wayfarer" | "oathbreaker",
+  resourceDisposalRegistry = createBreachV2ResourceDisposalRegistry(),
 ): BreachV2BreachlingRuntime {
   const placements = buildBreachlingPlacements(layout, path);
   const sourcePromises = new Map<BreachlingTier, Promise<GLTF>>();
@@ -183,41 +243,8 @@ export function createBreachV2BreachlingRuntime(
   let disposed = false;
   let latestPlayer = new THREE.Vector3();
 
-  const disposedGeometries = new Set<THREE.BufferGeometry>();
-  const disposedMaterials = new Set<THREE.Material>();
-  const disposedTextures = new Set<THREE.Texture>();
   const disposeSource = (source: GLTF): void => {
-    source.scene.traverse((object) => {
-      const renderable = object as THREE.Object3D & {
-        geometry?: THREE.BufferGeometry;
-        material?: THREE.Material | THREE.Material[];
-        skeleton?: THREE.Skeleton;
-      };
-      if (renderable.geometry && !disposedGeometries.has(renderable.geometry)) {
-        disposedGeometries.add(renderable.geometry);
-        renderable.geometry.dispose();
-      }
-      const materials = renderable.material
-        ? Array.isArray(renderable.material) ? renderable.material : [renderable.material]
-        : [];
-      materials.forEach((material) => {
-        for (const value of Object.values(material)) {
-          if (value instanceof THREE.Texture && !disposedTextures.has(value)) {
-            disposedTextures.add(value);
-            value.dispose();
-          }
-        }
-        if (!disposedMaterials.has(material)) {
-          disposedMaterials.add(material);
-          material.dispose();
-        }
-      });
-      const boneTexture = renderable.skeleton?.boneTexture;
-      if (boneTexture && !disposedTextures.has(boneTexture)) {
-        disposedTextures.add(boneTexture);
-        boneTexture.dispose();
-      }
-    });
+    disposeBreachV2ObjectResources(source.scene, resourceDisposalRegistry);
   };
 
   const sourceFor = (tier: BreachlingTier): Promise<GLTF> => {
