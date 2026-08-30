@@ -15,6 +15,8 @@ export type ArcheryArrowPhase =
   | "reaching"
   | "gripped"
   | "extracted"
+  | "overhead"
+  | "forward-staged"
   | "nocked"
   | "drawn"
   | "released"
@@ -35,12 +37,36 @@ const NEXT_PHASE: Readonly<Partial<Record<ArcheryArrowPhase, ArcheryArrowPhase>>
   stored: "reaching",
   reaching: "gripped",
   gripped: "extracted",
-  extracted: "nocked",
+  extracted: "overhead",
+  overhead: "forward-staged",
+  "forward-staged": "nocked",
   nocked: "drawn",
   drawn: "released",
   released: "projectile",
   projectile: "recovered",
 };
+
+export const ARCHERY_RETRIEVAL_MARKERS = Object.freeze({
+  reachStart: 0.06,
+  featherGrip: 0.22,
+  fullyExtracted: 0.5,
+  overhead: 0.66,
+  forwardStaged: 0.82,
+  nocked: 0.94,
+});
+
+export function archeryRetrievalPhaseAt(normalizedTime: number): ArcheryArrowPhase {
+  if (!Number.isFinite(normalizedTime) || normalizedTime < 0 || normalizedTime > 1) {
+    throw new Error("Archery retrieval time must be a finite normalized value from 0 to 1.");
+  }
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.reachStart) return "stored";
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.featherGrip) return "reaching";
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.fullyExtracted) return "gripped";
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.overhead) return "extracted";
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.forwardStaged) return "overhead";
+  if (normalizedTime < ARCHERY_RETRIEVAL_MARKERS.nocked) return "forward-staged";
+  return "nocked";
+}
 
 export function beginArcheryAction(inventory: QuiverInventoryState, action: ArcheryAction): ArcheryActionState {
   return {
@@ -63,7 +89,7 @@ export function advanceArcheryPhase(state: ArcheryActionState, expectedPhase: Ar
 }
 
 export function displayedQuiverCount(inventory: QuiverInventoryState, state?: ArcheryActionState): number {
-  const reserved = state && ["gripped", "extracted", "nocked", "drawn"].includes(state.phase)
+  const reserved = state && ["gripped", "extracted", "overhead", "forward-staged", "nocked", "drawn"].includes(state.phase)
     ? state.heldArrowCount
     : 0;
   return Math.max(0, visibleQuiverArrowCount(inventory) - reserved);

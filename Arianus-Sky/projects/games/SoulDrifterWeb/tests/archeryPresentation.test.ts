@@ -55,7 +55,15 @@ describe("archery presentation ownership", () => {
     const { presentation, applyBowStringDraw } = fixture();
     const inventory = createQuiverInventory({ standard: 10 });
     let state = beginArcheryAction(inventory, "single-shot");
-    for (const phase of ["reaching", "gripped", "extracted", "nocked", "drawn"] as const) {
+    for (const phase of [
+      "reaching",
+      "gripped",
+      "extracted",
+      "overhead",
+      "forward-staged",
+      "nocked",
+      "drawn",
+    ] as const) {
       state = advanceArcheryPhase(state, phase);
     }
     presentation.sync(inventory, state);

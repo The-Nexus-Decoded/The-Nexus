@@ -98,7 +98,8 @@ export class ArcheryPresentation {
         index += 1;
       }
     }
-    const showInHand = state && ["gripped", "extracted", "nocked", "drawn"].includes(state.phase);
+    const showInHand = state
+      && ["gripped", "extracted", "overhead", "forward-staged", "nocked", "drawn"].includes(state.phase);
     if (showInHand) {
       for (let held = 0; held < state.heldArrowCount; held += 1) {
         const arrow = cloneAsset(this.assets.arrows[state.arrowType], `hand-arrow-${state.arrowType}-${held}`);

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARCHERY_RETRIEVAL_MARKERS,
   advanceArcheryPhase,
+  archeryRetrievalPhaseAt,
   beginArcheryAction,
   bowRangeDecision,
   cancelArcheryAction,
@@ -19,6 +21,8 @@ function reachFullDraw(action: ReturnType<typeof beginArcheryAction>) {
   let state = advanceArcheryPhase(action, "reaching");
   state = advanceArcheryPhase(state, "gripped");
   state = advanceArcheryPhase(state, "extracted");
+  state = advanceArcheryPhase(state, "overhead");
+  state = advanceArcheryPhase(state, "forward-staged");
   state = advanceArcheryPhase(state, "nocked");
   return advanceArcheryPhase(state, "drawn");
 }
@@ -32,6 +36,8 @@ describe("archery action ownership", () => {
     state = advanceArcheryPhase(state, "gripped");
     expect(displayedQuiverCount(inventory, state)).toBe(9);
     state = advanceArcheryPhase(state, "extracted");
+    state = advanceArcheryPhase(state, "overhead");
+    state = advanceArcheryPhase(state, "forward-staged");
     state = advanceArcheryPhase(state, "nocked");
     state = advanceArcheryPhase(state, "drawn");
     expect(state.stringDraw).toBe(1);
@@ -63,6 +69,15 @@ describe("archery action ownership", () => {
     expect(bowRangeDecision(0.5)).toBe("bow-strike");
     expect(bowRangeDecision(0.5, false)).toBe("switch-to-melee");
     expect(bowRangeDecision(4)).toBe("shoot");
+  });
+
+  it("keeps feather grip, overhead carry, forward staging, and nocking as distinct timed phases", () => {
+    expect(archeryRetrievalPhaseAt(ARCHERY_RETRIEVAL_MARKERS.featherGrip)).toBe("gripped");
+    expect(archeryRetrievalPhaseAt(ARCHERY_RETRIEVAL_MARKERS.fullyExtracted)).toBe("extracted");
+    expect(archeryRetrievalPhaseAt(ARCHERY_RETRIEVAL_MARKERS.overhead)).toBe("overhead");
+    expect(archeryRetrievalPhaseAt(ARCHERY_RETRIEVAL_MARKERS.forwardStaged)).toBe("forward-staged");
+    expect(archeryRetrievalPhaseAt(ARCHERY_RETRIEVAL_MARKERS.nocked)).toBe("nocked");
+    expect(() => archeryRetrievalPhaseAt(1.01)).toThrow(/normalized value/i);
   });
 });
 
