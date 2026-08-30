@@ -10,6 +10,7 @@ import type { BreachV2Layout } from "./breach-v2-layout";
 import type { BreachV2RuntimeDiagnosticSink } from "./breach-v2-runtime-diagnostics";
 import {
   createBreachV2ResourceDisposalRegistry,
+  disposeBreachV2ActorSkeletons,
   disposeBreachV2ObjectResources,
   type BreachV2ResourceDisposalRegistry,
 } from "./breach-v2-breachlings";
@@ -398,6 +399,7 @@ export function createBreachV2WardenRuntime(
     if (!actor) return;
     actor.mixer.stopAllAction();
     clearDebris(actor);
+    disposeBreachV2ActorSkeletons(actor.model, resourceDisposalRegistry);
     actor.root.removeFromParent();
     actor.presentationMaterials.forEach((material) => material.dispose());
     actor = null;

@@ -104,7 +104,97 @@ function trackedSource(actionNames: readonly string[]): {
   return { source: gltf, disposalCounts };
 }
 
+function skinnedSource(actionNames: readonly string[]): GLTF {
+  const gltf = source();
+  gltf.animations = actionNames.map((name) => new THREE.AnimationClip(name, 1, []));
+  const original = gltf.scene.getObjectByName("Cinderbound_Warden_Body") as THREE.Mesh;
+  const vertexCount = original.geometry.getAttribute("position").count;
+  const skinIndices = new Uint16Array(vertexCount * 4);
+  const skinWeights = new Float32Array(vertexCount * 4);
+  for (let index = 0; index < vertexCount; index += 1) skinWeights[index * 4] = 1;
+  original.geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
+  original.geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeights, 4));
+  const bone = new THREE.Bone();
+  bone.name = "root_bone";
+  const body = new THREE.SkinnedMesh(original.geometry, original.material);
+  body.name = original.name;
+  body.position.copy(original.position);
+  body.add(bone);
+  body.bind(new THREE.Skeleton([bone]));
+  original.removeFromParent();
+  gltf.scene.add(body);
+  return gltf;
+}
+
+function trackCloneBoneTexture(root: THREE.Object3D): { count: () => number } {
+  const body = root.getObjectByName("Cinderbound_Warden_Body");
+  if (!(body instanceof THREE.SkinnedMesh)) throw new Error("Expected a cloned skinned body.");
+  const texture = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
+  let disposeCount = 0;
+  texture.addEventListener("dispose", () => { disposeCount += 1; });
+  body.skeleton.boneTexture = texture;
+  return { count: () => disposeCount };
+}
+
 describe("BREACH-V2 Cinderbound Warden runtime", () => {
+  it("disposes each Breachling clone skeleton once across room churn and repeated teardown", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildBreachlingPlacements(layout, "oathbreaker")[0]!;
+    const start = layout.landmarks.playerStart;
+    const creatureSource = skinnedSource(BREACHLING_UPPER_ACTIONS);
+    const scene = new THREE.Scene();
+    const runtime = createBreachV2BreachlingRuntime(
+      scene,
+      layout,
+      { loadAsync: vi.fn(async () => creatureSource) },
+      "oathbreaker",
+    );
+
+    await runtime.warmAt(placement.x, placement.z);
+    const first = trackCloneBoneTexture(scene.getObjectByName(placement.id)!);
+    await runtime.warmAt(start.x, start.z);
+    expect(first.count()).toBe(1);
+
+    await runtime.warmAt(placement.x, placement.z);
+    const second = trackCloneBoneTexture(scene.getObjectByName(placement.id)!);
+    await runtime.warmAt(start.x, start.z);
+    runtime.dispose();
+    runtime.dispose();
+
+    expect(first.count()).toBe(1);
+    expect(second.count()).toBe(1);
+    expect(scene.children).toHaveLength(0);
+  });
+
+  it("disposes each Warden clone skeleton once across room churn and repeated teardown", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildCinderboundWardenPlacement(layout, "oathbreaker");
+    const start = layout.landmarks.playerStart;
+    const wardenSource = skinnedSource(CINDERBOUND_WARDEN_ACTIONS);
+    const scene = new THREE.Scene();
+    const runtime = createBreachV2WardenRuntime(
+      scene,
+      layout,
+      { loadAsync: vi.fn(async () => wardenSource) },
+      "oathbreaker",
+    );
+
+    await runtime.warmAt(placement.x, placement.z);
+    const first = trackCloneBoneTexture(scene.getObjectByName(placement.id)!);
+    await runtime.warmAt(start.x, start.z);
+    expect(first.count()).toBe(1);
+
+    await runtime.warmAt(placement.x, placement.z);
+    const second = trackCloneBoneTexture(scene.getObjectByName(placement.id)!);
+    await runtime.warmAt(start.x, start.z);
+    runtime.dispose();
+    runtime.dispose();
+
+    expect(first.count()).toBe(1);
+    expect(second.count()).toBe(1);
+    expect(scene.children).toHaveLength(0);
+  });
+
   it("does not create Breachlings when a deferred source resolves after disposal", async () => {
     const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
     const placement = buildBreachlingPlacements(layout, "oathbreaker")[0]!;

@@ -85,6 +85,7 @@ export interface BreachV2BreachlingRuntime {
 export interface BreachV2ResourceDisposalRegistry {
   geometries: Set<THREE.BufferGeometry>;
   materials: Set<THREE.Material>;
+  skeletons: WeakSet<THREE.Skeleton>;
   textures: Set<THREE.Texture>;
 }
 
@@ -92,8 +93,35 @@ export function createBreachV2ResourceDisposalRegistry(): BreachV2ResourceDispos
   return {
     geometries: new Set<THREE.BufferGeometry>(),
     materials: new Set<THREE.Material>(),
+    skeletons: new WeakSet<THREE.Skeleton>(),
     textures: new Set<THREE.Texture>(),
   };
+}
+
+export function disposeBreachV2ActorSkeletons(
+  root: THREE.Object3D,
+  registry: BreachV2ResourceDisposalRegistry,
+): { skeletons: number; textures: number } {
+  let skeletons = 0;
+  let textures = 0;
+  root.traverse((object) => {
+    if (!(object instanceof THREE.SkinnedMesh)) return;
+    const { skeleton } = object;
+    if (registry.skeletons.has(skeleton)) return;
+    registry.skeletons.add(skeleton);
+    const boneTexture = skeleton.boneTexture;
+    if (boneTexture) {
+      if (registry.textures.has(boneTexture)) {
+        skeleton.boneTexture = null;
+      } else {
+        registry.textures.add(boneTexture);
+        textures += 1;
+      }
+    }
+    skeleton.dispose();
+    skeletons += 1;
+  });
+  return { skeletons, textures };
 }
 
 export function disposeBreachV2ObjectResources(
@@ -107,7 +135,6 @@ export function disposeBreachV2ObjectResources(
     const renderable = object as THREE.Object3D & {
       geometry?: THREE.BufferGeometry;
       material?: THREE.Material | THREE.Material[];
-      skeleton?: THREE.Skeleton;
     };
     if (renderable.geometry && !registry.geometries.has(renderable.geometry)) {
       registry.geometries.add(renderable.geometry);
@@ -131,13 +158,8 @@ export function disposeBreachV2ObjectResources(
         materials += 1;
       }
     });
-    const boneTexture = renderable.skeleton?.boneTexture;
-    if (boneTexture && !registry.textures.has(boneTexture)) {
-      registry.textures.add(boneTexture);
-      boneTexture.dispose();
-      textures += 1;
-    }
   });
+  textures += disposeBreachV2ActorSkeletons(root, registry).textures;
   return { geometries, materials, textures };
 }
 
@@ -266,6 +288,7 @@ export function createBreachV2BreachlingRuntime(
   const clearActors = (): void => {
     actors.forEach((actor) => {
       actor.mixer.stopAllAction();
+      disposeBreachV2ActorSkeletons(actor.model, resourceDisposalRegistry);
       actor.root.removeFromParent();
     });
     actors.clear();
