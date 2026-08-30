@@ -5,6 +5,18 @@ Scope: paid 3D AI Studio intake, base ancestry bodies, starter calling kits, sep
 
 This document defines how SoulDrifter uses 3D AI Studio without generating a fused character for every ancestry/calling combination. It complements [`ANIMATION_PRODUCTION_PIPELINE.md`](../ANIMATION_PRODUCTION_PIPELINE.md), [`WEAPON_MOTION_REFERENCE_INDEX.md`](../WEAPON_MOTION_REFERENCE_INDEX.md), [`CHARACTER_AND_STORY_SYSTEM.md`](../CHARACTER_AND_STORY_SYSTEM.md), and [`ASSET_AND_LICENSE_POLICY.md`](../ASSET_AND_LICENSE_POLICY.md).
 
+## Authenticated provider browser rule
+
+All work in Tripo or any other application that requires account authentication, Google sign-in, credits, purchases, or access to private projects must use the **Codex in-app browser**.
+
+1. Reuse the owner's existing signed-in in-app tab and session whenever one is available.
+2. Never open, launch, or navigate Tripo or another authenticated provider in a separate Chrome window, an external browser, or an external automation browser.
+3. External browser automation is permitted only for public, unauthenticated pages and only when the owner explicitly requests it.
+4. If the in-app session expires or a sign-in, CAPTCHA, security check, or consent screen blocks progress, pause and ask the owner to complete that step in the in-app browser. Do not work around the gate in another browser.
+5. Before any paid provider action, visibly verify the active account, task settings, estimated charge, and remaining credit or point balance in the in-app browser.
+6. Tripo generation must preserve the owner's minimum reserve of **10,000 points**. Do not submit a task that could reduce the balance below that floor.
+7. Keep provider work in the already-open in-app tab unless a second in-app tab is genuinely required for the same workflow. Do not create duplicate external sessions.
+
 ## Locked production decision
 
 SoulDrifter does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
