@@ -3,6 +3,8 @@ import type { ArrowType } from "./archeryInventory";
 export const CANONICAL_ARROW_LENGTH_METERS = 0.94;
 export const MAXIMUM_ARROW_SHAFT_RADIUS_METERS = 0.0055;
 export const CANONICAL_QUIVER_LENGTH_METERS = 0.64;
+export const CANONICAL_BOW_LENGTH_METERS = 1.18;
+export const ARCHERY_BOW_ASSET_PATH = "/assets/3d/weapons/bow/weapon-bow-short-starter-v001.glb";
 export const ARCHERY_ASSET_MANIFEST_PATH = "/assets/3d/archery/archery-asset-intake-v001.json";
 
 export type ArcheryAssetRole = "quiver" | "harness" | `arrow-${ArrowType}`;
