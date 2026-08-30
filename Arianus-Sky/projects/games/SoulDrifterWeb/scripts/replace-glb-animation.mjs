@@ -56,8 +56,10 @@ function requireArg(name) {
 const targetPath = path.resolve(requireArg("--target"));
 const sourcePath = path.resolve(requireArg("--source"));
 const outputPath = path.resolve(requireArg("--output"));
-const animationName = requireArg("--animation");
+const replaceAllAnimations = process.argv.includes("--all-animations");
+const animationName = replaceAllAnimations ? null : requireArg("--animation");
 const appendIfMissing = process.argv.includes("--append-if-missing");
+const orientForwardPlusXToPlusZ = process.argv.includes("--orient-forward-plus-x-to-plus-z");
 
 const target = parseGlb(targetPath);
 const source = parseGlb(sourcePath);
@@ -67,10 +69,12 @@ if (JSON.stringify(targetNodeNames) !== JSON.stringify(sourceNodeNames)) {
   throw new Error("Source and target GLBs do not have the same indexed skeleton/scene nodes.");
 }
 
-const sourceAnimation = (source.json.animations ?? []).find((animation) => animation.name === animationName);
-const targetAnimationIndex = (target.json.animations ?? []).findIndex((animation) => animation.name === animationName);
-if (!sourceAnimation) throw new Error(`Source animation ${animationName} was not found.`);
-if (targetAnimationIndex < 0 && !appendIfMissing) throw new Error(`Target animation ${animationName} was not found.`);
+const sourceAnimations = replaceAllAnimations
+  ? (source.json.animations ?? [])
+  : (source.json.animations ?? []).filter((animation) => animation.name === animationName);
+if (sourceAnimations.length === 0) {
+  throw new Error(replaceAllAnimations ? "Source GLB has no animations." : `Source animation ${animationName} was not found.`);
+}
 
 target.json.bufferViews ??= [];
 target.json.accessors ??= [];
@@ -107,26 +111,52 @@ function copyAccessor(sourceIndex) {
   return targetIndex;
 }
 
-const copiedAnimation = structuredClone(sourceAnimation);
-copiedAnimation.samplers = copiedAnimation.samplers.map((sampler) => ({
-  ...sampler,
-  input: copyAccessor(sampler.input),
-  output: copyAccessor(sampler.output),
-}));
-if (targetAnimationIndex < 0) target.json.animations.push(copiedAnimation);
-else target.json.animations[targetAnimationIndex] = copiedAnimation;
+target.json.animations ??= [];
+let appendedAnimations = 0;
+let replacedAnimations = 0;
+for (const sourceAnimation of sourceAnimations) {
+  const targetAnimationIndex = target.json.animations.findIndex((animation) => animation.name === sourceAnimation.name);
+  if (targetAnimationIndex < 0 && !appendIfMissing) {
+    throw new Error(`Target animation ${sourceAnimation.name} was not found.`);
+  }
+  const copiedAnimation = structuredClone(sourceAnimation);
+  copiedAnimation.samplers = copiedAnimation.samplers.map((sampler) => ({
+    ...sampler,
+    input: copyAccessor(sampler.input),
+    output: copyAccessor(sampler.output),
+  }));
+  if (targetAnimationIndex < 0) {
+    target.json.animations.push(copiedAnimation);
+    appendedAnimations += 1;
+  } else {
+    target.json.animations[targetAnimationIndex] = copiedAnimation;
+    replacedAnimations += 1;
+  }
+}
+if (orientForwardPlusXToPlusZ) {
+  const activeScene = target.json.scenes?.[target.json.scene ?? 0];
+  if (!activeScene || activeScene.nodes?.length !== 1) {
+    throw new Error("Forward-axis correction requires exactly one active scene root node.");
+  }
+  const rootNode = target.json.nodes?.[activeScene.nodes[0]];
+  if (!rootNode) throw new Error("Forward-axis correction could not resolve the active scene root node.");
+  rootNode.rotation = [0, -Math.SQRT1_2, 0, Math.SQRT1_2];
+}
 target.json.buffers[0].byteLength = pad4(targetBin, 0).length;
 
 const encoded = encodeGlb(target.json, targetBin);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, encoded);
 process.stdout.write(JSON.stringify({
-  status: targetAnimationIndex < 0 ? "animation_appended" : "animation_replaced",
-  animation: animationName,
+  status: replaceAllAnimations ? "animations_replaced" : appendedAnimations ? "animation_appended" : "animation_replaced",
+  animations: sourceAnimations.map((animation) => animation.name),
   target: targetPath,
   source: sourcePath,
   output: outputPath,
   bytes: encoded.length,
+  appendedAnimations,
+  replacedAnimations,
   copiedAccessors: accessorMap.size,
   copiedBufferViews: bufferViewMap.size,
+  orientedForwardPlusXToPlusZ: orientForwardPlusXToPlusZ,
 }, null, 2));
