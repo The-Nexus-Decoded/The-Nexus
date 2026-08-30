@@ -107,6 +107,11 @@ import { animationTuningRegistry } from "./animationTuning";
 import { lightingTuningRegistry } from "./lightingTuning";
 import { markAtlasPoi } from "./atlasSync";
 import { applyPilotSkinPreset, type PilotSkinPresetId } from "./pilotSkinReview";
+import {
+  quiverInventoryFromItems,
+  syncQuiverInventoryToItems,
+} from "./archery/archeryInventoryAdapter";
+import type { QuiverInventoryState } from "./archery/archeryInventory";
 
 const TILE_SIZE = 1.75;
 const PAPER_DOLL_UP = new THREE.Vector3(0, 1, 0);
@@ -409,6 +414,7 @@ export class World3D {
   private readonly revealedRooms = new Set<DungeonRoomKind>();
   private readonly completedEncounters = new Set<"skirmish" | "boss">();
   private readonly inventory: InventoryItem[];
+  private readonly quiverInventory: QuiverInventoryState | undefined;
   private readonly backpackCapacity: BackpackCapacity;
   private player!: AnimatedActor;
   private currentRoom: DungeonRoomKind = "training";
@@ -477,6 +483,7 @@ export class World3D {
   ) {
     this.calling = callingById(profile.callingId);
     this.inventory = savedInventory?.items.map((item) => ({ ...item })) ?? createStarterInventory(profile.callingId);
+    this.quiverInventory = quiverInventoryFromItems(this.inventory);
     this.backpackCapacity = savedInventory
       ? { ...savedInventory.capacity }
       : createStarterBackpackCapacity();
@@ -1710,6 +1717,7 @@ export class World3D {
   }
 
   private refreshEquipmentUi(): void {
+    if (this.quiverInventory) syncQuiverInventoryToItems(this.inventory, this.quiverInventory);
     this.ui.setInventory(this.inventory, this.backpackCapacity);
     this.ui.setWeaponAvailability(equippedUsableWeapon(this.inventory)?.name ?? null);
     void storyDatabase.saveInventory({ items: this.inventory, capacity: this.backpackCapacity });
