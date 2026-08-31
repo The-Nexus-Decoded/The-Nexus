@@ -28,6 +28,34 @@ export interface ReviewPoseSample {
   readonly weight: number;
 }
 
+/** Sampled source capability, not foot-lock, anatomical or gameplay approval. */
+export interface ReviewLocomotionCapability {
+  readonly actorId: string;
+  readonly definitionId: string;
+  readonly actionId: string;
+  readonly durationSeconds: number;
+  readonly status: "authored-forward" | "authored-backward" | "in-place" | "unavailable";
+  /** Reusing authored displacement is distinct from inventing an in-place stride. */
+  readonly canRepeatAuthoredTravel: boolean;
+  readonly sourceToken: string;
+  readonly anchorName: string | null;
+  /** Metres in the placed actor's yaw frame; scene translation is excluded. */
+  readonly cycleDisplacement: readonly [number, number, number];
+  readonly samples: readonly { readonly timeSeconds: number; readonly anchor: readonly [number, number, number] }[];
+  readonly limbs: readonly {
+    readonly id: string;
+    readonly bones: readonly string[];
+    readonly rotationSpansRadians: readonly number[];
+    /** Direct distal skin only; ancestors may deform their weighted descendants. */
+    readonly distalSkinInfluence: { readonly minimumWeight: number; readonly vertexCount: number; readonly maxWeight: number; readonly totalWeight: number };
+  }[];
+  readonly loopPositionResidualMeters: number | null;
+  readonly loopRotationResidualRadians: number | null;
+  readonly supportStatus: "unmeasured";
+  readonly evidence: string;
+  readonly unavailableReason?: string;
+}
+
 /** Resources may be cached; skeletons, mixers, props and calibration must not be shared. */
 export interface ReviewActorAdapter {
   readonly instanceId: string;
