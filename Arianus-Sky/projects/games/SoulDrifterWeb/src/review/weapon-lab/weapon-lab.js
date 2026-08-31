@@ -9,6 +9,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { staffUsesSupportHand } from "./staff-grip.js";
 import { MobsPanel } from "./mobs-panel.ts";
 import { createCombatReviewStudio } from "./combat-review-studio.js";
+import { createReviewShadowRig } from "./review-shadow-rig.ts";
 
 const LIVE_CALIBRATION_URL = "./assets/weapon-lab/live-calibration.json";
 const LIVE_CALIBRATION_ENABLED = import.meta.env.DEV
@@ -208,7 +209,6 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1;
-renderer.shadowMap.enabled = false;
 renderer.domElement.addEventListener("webglcontextlost", (event) => {
   event.preventDefault();
   status.textContent = "WEBGL CONTEXT LOST\nClose the other 3D preview tab, then reload this page.";
@@ -220,13 +220,13 @@ scene.background = new THREE.Color(0x11151b);
 scene.add(new THREE.HemisphereLight(0xc8ddff, 0x1e1813, 2.2));
 const keyLight = new THREE.DirectionalLight(0xffe6ca, 5.2);
 keyLight.position.set(2.5, 4.5, 4);
-keyLight.castShadow = true;
-scene.add(keyLight);
+const shadowRig = createReviewShadowRig(renderer, keyLight);
+scene.add(keyLight, keyLight.target);
 const rimLight = new THREE.DirectionalLight(0x86b6ff, 3.1);
 rimLight.position.set(-4, 2, -3);
 scene.add(rimLight);
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(9, 6),
+  new THREE.PlaneGeometry(48, 48),
   new THREE.MeshStandardMaterial({ color: 0x20262f, roughness: 0.94 }),
 );
 ground.rotation.x = -Math.PI / 2;
@@ -1169,6 +1169,7 @@ staffGripSelect.addEventListener("change", () => {
 });
 renderer.setAnimationLoop(() => {
   const delta = Math.min(clock.getDelta(), 0.05);
+  shadowRig.follow(controls.target);
   if (isCombatMode()) {
     combatStudio?.update(delta);
     controls.update();
@@ -1228,6 +1229,9 @@ function releaseRenderer() {
   combatStudio?.dispose();
   mobsPanel?.dispose();
   humanFactory.dispose();
+  shadowRig.dispose();
+  ground.geometry.dispose();
+  ground.material.dispose();
   renderer.dispose();
 }
 addEventListener("beforeunload", releaseRenderer, { once: true });
