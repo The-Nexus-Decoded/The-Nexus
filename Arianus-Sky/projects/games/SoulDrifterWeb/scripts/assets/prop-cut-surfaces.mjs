@@ -1,4 +1,4 @@
-import { ShapeUtils, Vector2 } from "three";
+import { ShapeUtils, Vector2, Vector3 } from "three";
 import { splitPolygon } from "../../src/game/geometry/clipPropPolygon.ts";
 
 const position = (v) => v.attributes.position;
@@ -38,20 +38,35 @@ function traceLoops(segments) {
 export function sectionProp(polygons, plane) {
   if (![0, 1, 2].includes(plane.axis) || !Number.isFinite(plane.boundary) || typeof plane.keepGreater !== "boolean") throw new Error("Invalid cut plane");
   const inside = [], outside = [], segments = [];
+  let hasLess = false, hasGreater = false;
+  const hasArea = (polygon) => {
+    if (polygon.length < 3) return false;
+    const origin = new Vector3(...position(polygon[0]));
+    for (let i = 1; i + 1 < polygon.length; i++) {
+      const a = new Vector3(...position(polygon[i])).sub(origin), b = new Vector3(...position(polygon[i + 1])).sub(origin);
+      if (a.cross(b).lengthSq() > 1e-24) return true;
+    }
+    return false;
+  };
   for (const polygon of polygons) {
     const cut = splitPolygon(polygon, plane);
-    if (cut.inside.length >= 3) inside.push(cut.inside);
-    if (cut.outside.length >= 3) outside.push(cut.outside);
+    if (hasArea(cut.inside)) inside.push(cut.inside);
+    if (hasArea(cut.outside)) outside.push(cut.outside);
     const coordinates = polygon.map((v) => position(v)[plane.axis]);
-    if (Math.min(...coordinates) >= plane.boundary || Math.max(...coordinates) <= plane.boundary) continue;
-    const ends = cut.inside.map(position).filter((p) => Math.abs(p[plane.axis] - plane.boundary) < 1e-9);
+    hasLess ||= Math.min(...coordinates) < plane.boundary;
+    hasGreater ||= Math.max(...coordinates) > plane.boundary;
+    // Faces on either side contribute an existing exact-edge section too.
+    // Entirely coplanar faces are not section edges; a tangent-only plane below
+    // returns no caps rather than duplicating an existing exterior face.
+    if (coordinates.every((value) => value === plane.boundary)) continue;
+    const ends = [...cut.inside, ...cut.outside].map(position).filter((p) => Math.abs(p[plane.axis] - plane.boundary) < 1e-9);
     let best = [], max = 0;
     for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) {
       const d = distance2(ends[i], ends[j]); if (d > max) { max = d; best = [ends[i], ends[j]]; }
     }
     if (best.length) segments.push(best);
   }
-  return { inside, outside, loops: traceLoops(segments) };
+  return { inside, outside, loops: hasLess && hasGreater ? traceLoops(segments) : [] };
 }
 
 /** A real, UV-mapped cut face, optionally around an open container aperture.

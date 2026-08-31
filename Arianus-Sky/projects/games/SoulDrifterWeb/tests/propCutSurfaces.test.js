@@ -6,6 +6,22 @@ const chest = fileURLToPath(new URL("../docs/3d-ai-studio/source-models/environm
 const sha = "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56";
 const uv = [.235, .137, .326, .199];
 describe("real prop cut surfaces", () => {
+  it("caps an exact existing edge ring without retaining degenerate surfaces", () => {
+    const ring = [[-1,0,-1],[1,0,-1],[1,0,1],[-1,0,1]], polygons = [];
+    for (let i=0;i<4;i++) for (const y of [-1,1]) polygons.push([ring[i], ring[(i+1)%4], [0,y,0]].map((p) => ({attributes:{position:p,normal:[0,1,0],uv:[0,0]}})));
+    const result = splitClosedProp(polygons, {axis:1,boundary:0,keepGreater:false}, uv);
+    expect(result.loops).toHaveLength(1); expect(result.loops[0]).toHaveLength(4);
+    expect(result.inside).toHaveLength(6); expect(result.outside).toHaveLength(6);
+    for(const half of [result.inside,result.outside]) {
+      const caps = half.filter((face) => face.every((v) => v.attributes.position[1] === 0));
+      const area = caps.reduce((sum, face) => {
+        const [a,b,c] = face.map((v) => v.attributes.position);
+        return sum + Math.abs((b[2]-a[2])*(c[0]-a[0])-(b[0]-a[0])*(c[2]-a[2]))/2;
+      },0); expect(area).toBe(4);
+    }
+    const tangent = splitClosedProp(polygons, {axis:1,boundary:1,keepGreater:false},uv);
+    expect(tangent.loops).toEqual([]); expect(tangent.outside).toEqual([]); expect(tangent.inside).toHaveLength(8);
+  });
   it("finds the original chest seam and leaves the source untouched", () => {
     const source = readStaticProp(chest, sha), before = JSON.stringify(source.polygons);
     const result = sectionProp(source.polygons, { axis: 1, boundary: .122, keepGreater: false });
