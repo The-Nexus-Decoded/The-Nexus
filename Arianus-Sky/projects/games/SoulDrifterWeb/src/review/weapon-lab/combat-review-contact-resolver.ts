@@ -84,6 +84,7 @@ export async function resolveReviewContact(options: {
       ...(projectiles ? { projectileId: projectiles.projectileIdForProbe(probeId),
         damageType: profile.surface.kind === "projectile" && profile.surface.emitter === "base-spit" ? "poison" as const : "physical" as const } : {}),
       position: contact.point.toArray(), normal: contact.normal.toArray(),
+      ...(contact.surfaceAnchor ? { surfaceAnchor: contact.surfaceAnchor } : {}),
       evidence: `${profile.evidence}; sequence:${sequence.id}; ${contact.evidence}; probe:${probeId}; confirmed-time:${time}`,
     });
   try {

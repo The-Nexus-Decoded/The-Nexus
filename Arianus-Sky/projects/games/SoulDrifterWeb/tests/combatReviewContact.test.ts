@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CINDERBOUND_WARDEN_ASSETS } from "../src/game/dungeons/breach-v2-wardens";
 import { REVIEWED_BASE_MOB_URL } from "../src/review/weapon-lab/reviewed-mob-receipt";
-import { ReviewContactSurface, sampleReviewMeshVertices } from "../src/review/weapon-lab/combat-review-contact";
+import { ReviewContactSurface, reviewRenderedTriangleIndices, reviewRenderedVertexIndices, sampleReviewMeshVertices } from "../src/review/weapon-lab/combat-review-contact";
 
 function mesh(): THREE.Mesh {
   const geometry = new THREE.BufferGeometry();
@@ -40,6 +40,54 @@ describe("Combat Review deformed triangle contact", () => {
     expect(surface.segment(new THREE.Vector3(4, 0, 0), new THREE.Vector3(4, 0, 0))).not.toBeNull();
   });
 
+  it("owns immutable original-triangle barycentrics and the contact-time world frame", () => {
+    const subject = mesh(), surface = new ReviewContactSurface(subject); surface.update();
+    const hit = surface.closest(new THREE.Vector3(0, 0, 0.01), 0.02)!, anchor = hit.surfaceAnchor!;
+    expect(anchor).toEqual({ meshId: subject.uuid, geometryId: subject.geometry.uuid, triangleOffset: 0,
+      vertexIndices: [0, 1, 2], barycentric: [0.25, 0.25, 0.5], worldTriangle: [[-1, -1, 0], [1, -1, 0], [0, 1, 0]] });
+    const rebuilt = new THREE.Vector3();
+    anchor.worldTriangle.forEach((point, corner) => rebuilt.addScaledVector(new THREE.Vector3().fromArray(point), anchor.barycentric[corner]!));
+    expect(rebuilt.distanceTo(hit.point)).toBeLessThan(1e-12);
+    expect(Object.isFrozen(anchor)).toBe(true); expect(Object.isFrozen(anchor.worldTriangle[0])).toBe(true);
+    const saved = JSON.stringify(anchor); subject.position.set(0, 0, 4); surface.update();
+    expect(surface.closest(new THREE.Vector3(0, 0, 4.01), 0.02)!.surfaceAnchor!.worldTriangle[0][2]).toBe(4);
+    expect(JSON.stringify(anchor)).toBe(saved); surface.dispose();
+  });
+
+  it("retains exact nonaligned draw offsets and nonindexed source triangles", () => {
+    const subject = mesh(); subject.geometry.setIndex([5, 0, 1, 2]); subject.geometry.setDrawRange(1, 3);
+    const surface = new ReviewContactSurface(subject); surface.update();
+    const anchor = surface.closest(new THREE.Vector3(0, 0, 0.01), 0.02)!.surfaceAnchor!;
+    expect(anchor.triangleOffset).toBe(1); expect(anchor.vertexIndices).toEqual([0, 1, 2]);
+    expect(reviewRenderedTriangleIndices(subject, 1)).toEqual([0, 1, 2]); expect(reviewRenderedTriangleIndices(subject, 0)).toBeNull();
+    subject.geometry.setIndex(null); subject.geometry.setDrawRange(3, 3); surface.update();
+    expect(surface.closest(new THREE.Vector3(4, 0, 0.01), 0.02)!.surfaceAnchor).toMatchObject({ triangleOffset: 3, vertexIndices: [3, 4, 5] });
+    expect(reviewRenderedTriangleIndices(subject, 3)).toEqual([3, 4, 5]); surface.dispose();
+  });
+
+  it("rejects the excluded triangle even if every one of its vertices is still rendered elsewhere", () => {
+    const subject = mesh(), parent = new THREE.Group(); parent.add(subject);
+    subject.geometry.setIndex([0, 1, 2, 0, 2, 1]); subject.geometry.addGroup(0, 3, 0); subject.geometry.addGroup(3, 3, 1);
+    const materials = [new THREE.MeshBasicMaterial({ visible: false }), new THREE.MeshBasicMaterial()]; subject.material = materials;
+    expect(new Set(reviewRenderedVertexIndices(subject))).toEqual(new Set([0, 1, 2]));
+    expect(reviewRenderedTriangleIndices(subject, 0)).toBeNull(); expect(reviewRenderedTriangleIndices(subject, 3)).toEqual([0, 2, 1]);
+    materials[0]!.visible = true; subject.geometry.setDrawRange(3, 3);
+    expect(reviewRenderedTriangleIndices(subject, 0)).toBeNull();
+    parent.visible = false; expect(reviewRenderedTriangleIndices(subject, 3)).toBeNull(); parent.visible = true;
+    subject.geometry.setIndex([0, 1, 2, 1, 1, 2]); expect(reviewRenderedTriangleIndices(subject, 3)).toBeNull();
+    expect(reviewRenderedTriangleIndices(subject, NaN)).toBeNull(); expect(reviewRenderedTriangleIndices(subject, -1)).toBeNull();
+    const instances = new THREE.InstancedMesh(mesh().geometry, new THREE.MeshBasicMaterial(), 2);
+    expect(reviewRenderedTriangleIndices(instances, 0)).toBeNull();
+  });
+
+  it("does not create an attachment frame for a collapsed surface triangle", () => {
+    const subject = mesh(); subject.geometry.setIndex([0, 1, 2]);
+    const positions = subject.geometry.getAttribute("position"); for (let vertex = 0; vertex < 3; vertex++) positions.setXYZ(vertex, 0, 0, 0);
+    const surface = new ReviewContactSurface(subject); surface.update();
+    const hit = surface.closest(new THREE.Vector3(0, 0, 0.01), 0.02);
+    expect(hit).not.toBeNull(); expect(hit!.surfaceAnchor).toBeUndefined(); surface.dispose();
+  });
+
   it("refits in world space under independent scaled and rotated actor roots", () => {
     const subject = mesh();
     const root = new THREE.Group();
@@ -73,7 +121,9 @@ describe("Combat Review deformed triangle contact", () => {
     surface.update();
     bone.position.z = 2;
     surface.update();
-    expect(surface.closest(new THREE.Vector3(0, 0, 2.01), 0.02)!.distance).toBeCloseTo(0.01);
+    const contact = surface.closest(new THREE.Vector3(0, 0, 2.01), 0.02)!;
+    expect(contact.distance).toBeCloseTo(0.01);
+    expect(contact.surfaceAnchor!.worldTriangle).toEqual([[-1, -1, 2], [1, -1, 2], [0, 1, 2]]);
     expect(sampleReviewMeshVertices(subject, [0])[0]!.toArray()).toEqual([-1, -1, 2]);
     expect(Array.from(geometry.getAttribute("position").array)).toEqual(original);
     expect(subject.skeleton.boneInverses[0]!.equals(inverse)).toBe(true);
@@ -102,7 +152,9 @@ describe("Combat Review deformed triangle contact", () => {
     surface.update();
     subject.morphTargetInfluences![0] = 0.5;
     surface.update();
-    expect(surface.closest(new THREE.Vector3(0, 0, 1.02), 0.03)!.distance).toBeCloseTo(0.02);
+    const contact = surface.closest(new THREE.Vector3(0, 0, 1.02), 0.03)!;
+    expect(contact.distance).toBeCloseTo(0.02);
+    expect(contact.surfaceAnchor!.worldTriangle).toEqual([[-1, -1, 1], [1, -1, 1], [0, 1, 1]]);
   });
 
   it("refreshes sibling skeleton bones even when the contact root is only the mesh", () => {
@@ -256,7 +308,13 @@ describe("Combat Review deformed triangle contact", () => {
       expect(summary.unsupportedMeshIds).toEqual([]);
       const vertex = sampledSkin.geometry.index?.getX(0) ?? 0;
       const point = sampleReviewMeshVertices(sampledSkin, [vertex])[0]!;
-      expect(surface.closest(point, 0.0001)!.distance).toBeLessThan(0.00001);
+      const contact = surface.closest(point, 0.0001)!; expect(contact.distance).toBeLessThan(0.00001);
+      const anchor = contact.surfaceAnchor!, hitMesh = subject.getObjectByProperty("uuid", anchor.meshId) as THREE.Mesh;
+      expect(anchor.geometryId).toBe(hitMesh.geometry.uuid);
+      expect(reviewRenderedTriangleIndices(hitMesh, anchor.triangleOffset)).toEqual(anchor.vertexIndices);
+      sampleReviewMeshVertices(hitMesh, anchor.vertexIndices).forEach((value, corner) => {
+        expect(value.distanceTo(new THREE.Vector3().fromArray(anchor.worldTriangle[corner]!))).toBeLessThan(1e-6);
+      });
     }
     expect(Array.from(sampledSkin.geometry.getAttribute("position").array)).toEqual(sourcePositions);
     surface.dispose();

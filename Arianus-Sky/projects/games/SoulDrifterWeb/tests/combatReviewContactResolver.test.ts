@@ -80,6 +80,8 @@ describe("explicit active-window surface resolution", () => {
     expect(result.event).toMatchObject({ kind: "contact", result: "hit", actorId: "attacker", targetId: "target" });
     expect(result.event!.timeSeconds).toBeCloseTo(0.5, 5);
     expect(result.event!.position).toEqual([0, 1, 1]); expect(result.event!.evidence).toContain("deformed-triangle:");
+    expect(result.event!.surfaceAnchor).toMatchObject({ meshId: input.target.mesh.uuid, geometryId: input.target.mesh.geometry.uuid,
+      triangleOffset: 0, vertexIndices: [0, 1, 2], barycentric: [0, 0, 1], worldTriangle: [[-1, -1, 1], [1, -1, 1], [0, 1, 1]] });
     expect(result.event!.evidence).toContain(`probe:${input.attacker.mesh.uuid}:2`);
     expect(restore).toHaveBeenCalled(); expect(input.attacker.bone.position.z).toBe(0);
     expect(Array.from(input.attacker.mesh.geometry.getAttribute("position").array)).toEqual(original);
@@ -91,6 +93,22 @@ describe("explicit active-window surface resolution", () => {
     expect((await resolveReviewContact({ ...input, profile: null })).status).toBe("unavailable");
     await expect(resolveReviewContact({ ...input, profile: { ...input.profile, actionId: "idle" } })).rejects.toThrow(/melee/);
     await expect(resolveReviewContact({ ...input, profile: { ...input.profile, actionId: "cast" } })).rejects.toThrow(/melee/);
+  });
+
+  it("captures the moving target's confirmed triangle before restoring a later live pose", async () => {
+    const input = setup((time) => time * 0.5);
+    const result = await resolveReviewContact({ ...input, toleranceMeters: 0.001,
+      restore: () => input.target.actor.sample("idle", 0.9) });
+    expect(result.status).toBe("contact");
+    // This is the existing sampled 1 mm proximity contract, not analytical CCD.
+    expect(Math.abs(1.5 * result.event!.timeSeconds - 1)).toBeLessThanOrEqual(0.001);
+    const anchor = result.event!.surfaceAnchor!, confirmedZ = 1 + result.event!.timeSeconds * 0.5;
+    expect(anchor.worldTriangle[0][2]).toBeCloseTo(confirmedZ, 6);
+    expect(input.target.bone.position.z).toBeCloseTo(0.45);
+    expect(Object.isFrozen(anchor.worldTriangle[0])).toBe(true);
+    const prepared = prepareReviewSequence({ ...input.sequence, events: [result.event!] });
+    expect(prepared.events[0]!.surfaceAnchor).toEqual(anchor);
+    expect(Object.isFrozen(prepared.events[0]!.surfaceAnchor!.vertexIndices)).toBe(true);
   });
 
   it("re-samples both moving actors before accepting a sweep against the end-frame target", async () => {
@@ -166,6 +184,8 @@ describe("shared melee/ranged sampling loop", () => {
     expect(result.status).toBe("contact"); expect(result.event!.timeSeconds).toBeCloseTo(0.65, 5);
     expect(result.flights).toHaveLength(1);
     expect(result.event).toMatchObject({ projectileId: result.flights![0]!.id, damageType: "physical" });
+    expect(result.event!.surfaceAnchor).toMatchObject({ meshId: input.target.mesh.uuid, geometryId: input.target.mesh.geometry.uuid,
+      triangleOffset: 0, vertexIndices: [0, 1, 2] });
     expect(result.releaseEvents).toMatchObject([{ kind: "release", result: "unmeasured", timeSeconds: 0.3,
       projectileId: result.event!.projectileId }]);
     expect(Array.from(input.arrow.geometry.getAttribute("position").array)).toEqual(original);

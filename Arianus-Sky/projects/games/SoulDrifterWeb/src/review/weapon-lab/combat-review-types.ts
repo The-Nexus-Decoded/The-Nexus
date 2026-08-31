@@ -104,6 +104,19 @@ export interface ReviewProjectileFlight {
   readonly evidence: string;
 }
 
+/** Exact rendered target triangle at the confirmed contact time, not an aim target.
+ * IDs are scoped to this loaded actor instance; this is not a portable asset receipt.
+ */
+export interface ReviewSurfaceAnchor {
+  readonly meshId: string;
+  readonly geometryId: string;
+  /** Index-buffer offset (or position offset for a nonindexed mesh). */
+  readonly triangleOffset: number;
+  readonly vertexIndices: readonly [number, number, number];
+  readonly barycentric: readonly [number, number, number];
+  readonly worldTriangle: readonly [readonly [number, number, number], readonly [number, number, number], readonly [number, number, number]];
+}
+
 export interface ReviewEvent {
   readonly id: string;
   readonly timeSeconds: number;
@@ -116,6 +129,8 @@ export interface ReviewEvent {
   readonly damageType?: ReviewDamageType;
   readonly position?: readonly [number, number, number];
   readonly normal?: readonly [number, number, number];
+  /** Present only for a nondegenerate measured surface; never synthesized by a timer. */
+  readonly surfaceAnchor?: ReviewSurfaceAnchor;
   readonly state?: string;
   /** Measured contact is supplied by the spatial sampler, never by this clock. */
   readonly evidence?: string;

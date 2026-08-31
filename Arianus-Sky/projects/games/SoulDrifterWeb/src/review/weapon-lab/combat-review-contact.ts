@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
+import type { ReviewSurfaceAnchor } from "./combat-review-types";
 
 export interface ReviewSurfaceContact {
   readonly meshId: string;
@@ -11,6 +12,7 @@ export interface ReviewSurfaceContact {
   readonly distance: number;
   readonly sampleRevision: number;
   readonly evidence: string;
+  readonly surfaceAnchor?: ReviewSurfaceAnchor;
 }
 
 export interface ReviewSurfaceSnapshot {
@@ -27,7 +29,7 @@ interface Surface {
   signature: string;
   geometry: THREE.BufferGeometry;
   bvh: MeshBVH;
-  sourceFaces: number[];
+  sourceOffsets: number[];
   usedVertices: number[];
 }
 
@@ -84,7 +86,7 @@ function createSurface(source: THREE.Mesh, signature: string, ranges: { start: n
     throw new Error(`Invalid contact topology: ${source.name || source.uuid}`);
   }
   geometry.setIndex(indices);
-  const surface = { source, sourceIndex: source.geometry.index, signature, geometry, sourceFaces: offsets.map((offset) => Math.floor(offset / 3)),
+  const surface = { source, sourceIndex: source.geometry.index, signature, geometry, sourceOffsets: offsets,
     usedVertices: [...new Set(indices)] };
   updatePositions(surface);
   return { ...surface, bvh: new MeshBVH(geometry, { indirect: true, targetLeafSize: 8 }) };
@@ -143,7 +145,7 @@ export class ReviewContactSurface {
         surface.bvh.refit();
       }
       seen.add(mesh.uuid);
-      triangles += surface.sourceFaces.length;
+      triangles += surface.sourceOffsets.length;
     });
     for (const [id, surface] of this.surfaces) if (!seen.has(id)) {
       surface.geometry.dispose();
@@ -211,28 +213,38 @@ export class ReviewContactSurface {
     const geometry = surface.geometry;
     const position = geometry.getAttribute("position");
     const index = geometry.index!;
-    const triangle = new THREE.Triangle(...[0, 1, 2].map((corner) =>
-      new THREE.Vector3().fromBufferAttribute(position, index.getX(faceIndex * 3 + corner))) as [THREE.Vector3, THREE.Vector3, THREE.Vector3]);
-    const sourceFace = surface.sourceFaces[faceIndex]!;
+    const vertexIndices = [0, 1, 2].map((corner) => index.getX(faceIndex * 3 + corner)) as [number, number, number];
+    const triangle = new THREE.Triangle(...vertexIndices.map((vertex) =>
+      new THREE.Vector3().fromBufferAttribute(position, vertex)) as [THREE.Vector3, THREE.Vector3, THREE.Vector3]);
+    const triangleOffset = surface.sourceOffsets[faceIndex]!, sourceFace = Math.floor(triangleOffset / 3);
+    const barycentric = triangle.getBarycoord(point, new THREE.Vector3());
+    const tuple = (value: THREE.Vector3) => Object.freeze(value.toArray()) as readonly [number, number, number];
+    const surfaceAnchor: ReviewSurfaceAnchor | undefined = barycentric && triangle.getArea() > 1e-14
+      && barycentric.toArray().every((value) => Number.isFinite(value) && value >= -1e-6 && value <= 1 + 1e-6)
+      ? Object.freeze({ meshId: surface.source.uuid, geometryId: surface.source.geometry.uuid, triangleOffset,
+        vertexIndices: Object.freeze(vertexIndices), barycentric: tuple(barycentric),
+        worldTriangle: Object.freeze([tuple(triangle.a), tuple(triangle.b), tuple(triangle.c)]) as ReviewSurfaceAnchor["worldTriangle"] }) : undefined;
     return { meshId: surface.source.uuid, meshName: surface.source.name, faceIndex: sourceFace,
       point: point.clone(), normal: triangle.getNormal(new THREE.Vector3()), distance, sampleRevision: this.revision,
+      ...(surfaceAnchor ? { surfaceAnchor } : {}),
       evidence: `deformed-triangle:${surface.source.uuid}:${sourceFace}:sample-${this.revision}` };
   }
 }
 
 const probeTopology = new WeakMap<THREE.Mesh, {
-  signature: string; index: THREE.BufferAttribute | null; vertices: Set<number>; indices: readonly number[];
+  signature: string; index: THREE.BufferAttribute | null; vertices: Set<number>; indices: readonly number[]; triangleOffsets: Set<number>;
 }>();
 
 function renderedTopology(mesh: THREE.Mesh) {
   const { signature, ranges } = topology(mesh);
   let cached = probeTopology.get(mesh);
   if (!cached || cached.signature !== signature || cached.index !== mesh.geometry.index) {
-    const vertices = new Set<number>();
+    const vertices = new Set<number>(), triangleOffsets = new Set<number>();
     for (const range of ranges) for (let offset = range.start; offset + 2 < range.start + range.count; offset += 3) {
+      triangleOffsets.add(offset);
       for (let corner = 0; corner < 3; corner++) vertices.add(mesh.geometry.index?.getX(offset + corner) ?? offset + corner);
     }
-    cached = { signature, index: mesh.geometry.index, vertices, indices: Object.freeze([...vertices]) };
+    cached = { signature, index: mesh.geometry.index, vertices, indices: Object.freeze([...vertices]), triangleOffsets };
     probeTopology.set(mesh, cached);
   }
   return cached;
@@ -243,6 +255,18 @@ export function reviewRenderedVertexIndices(mesh: THREE.Mesh): readonly number[]
   for (let node: THREE.Object3D | null = mesh; node; node = node.parent) if (!node.visible) return [];
   if (!mesh.geometry.getAttribute("position")) return [];
   return renderedTopology(mesh).indices;
+}
+
+/** Validate the exact draw call triangle, not three vertices that may survive in other faces. */
+export function reviewRenderedTriangleIndices(mesh: THREE.Mesh, triangleOffset: number): readonly [number, number, number] | null {
+  for (let node: THREE.Object3D | null = mesh; node; node = node.parent) if (!node.visible) return null;
+  const count = mesh.geometry.getAttribute("position")?.count ?? 0;
+  if (!count || !Number.isInteger(triangleOffset) || triangleOffset < 0
+    || (mesh as THREE.InstancedMesh).isInstancedMesh || (mesh as THREE.BatchedMesh).isBatchedMesh
+    || !renderedTopology(mesh).triangleOffsets.has(triangleOffset)) return null;
+  const indices = [0, 1, 2].map((corner) => mesh.geometry.index?.getX(triangleOffset + corner) ?? triangleOffset + corner);
+  if (indices.some((index) => !Number.isInteger(index) || index < 0 || index >= count) || new Set(indices).size !== 3) return null;
+  return Object.freeze(indices) as readonly [number, number, number];
 }
 
 /** Model-specific probes must name rendered vertices, not unreferenced export debris. */
