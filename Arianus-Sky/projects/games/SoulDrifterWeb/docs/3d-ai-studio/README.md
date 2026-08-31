@@ -33,6 +33,21 @@ Drakkin is approved world canon but is not in the current playable runtime regis
 9. No generated artifact enters `public/assets` until its source, ownership, task ID, settings, hashes, diagnostics, and review status are recorded.
 10. Paid batch generation stops immediately when a body, topology, rig, scale, or material gate fails.
 
+## DRY reuse policy
+
+Owner requirement recorded under [The-Nexus #458](https://github.com/The-Nexus-Decoded/The-Nexus/issues/458), 2026-08-31: **reuse what already works across models, scripts, tasks, code, and processes; do not maintain duplicate implementations or repeat paid work.** This policy applies to humans, creatures, bosses, equipment, animation tooling, and their review pipelines.
+
+1. **Check existing work first.** Search the asset registry, scripts, shared modules, runbooks, issue history, and active task handoffs before creating another asset, utility, ticket, or parallel assignment. Reuse the existing owner and task ID when the work is already in progress; poll that task instead of submitting it again.
+2. **Keep one implementation of common behavior.** Rig loading, immutable pose reset, skeletal-chain solving, contact checks, mesh/index validation, rendering, sheet assembly, export, and provenance checks belong in reusable tools. Pass an explicit model/action profile rather than copying a script and changing hard-coded paths or bone names.
+3. **Separate mechanism from model data.** Store skeleton mappings, rest transforms, scale, contact regions, joint limits, equipment sockets, action parameters, and reference hashes in versioned profiles. Share choreography only across verified compatible rigs; use rest-relative retargeting when their bone axes differ. An anatomy-specific adapter is appropriate where the common mechanism genuinely does not fit.
+4. **Reuse immutable resources, not mutable calibration state.** Compatible models may reference the same accepted motion source, mesh, material base, and configuration defaults. Each actor and calibration identity owns its mutable playback state and overrides. Editing one model, action, or loadout must not mutate another. Reuse never transfers visual approval to a different body or asset revision.
+5. **Use variants instead of duplicate production assets where practical.** A skin, damage value, elemental effect, or equipment finish should use material/effect/gameplay data over a compatible shared asset. Do not regenerate geometry or redownload an animation solely for a cosmetic or stat variation. Preserve licensed originals and hash-addressed provenance.
+6. **Keep one documented workflow.** Link to the canonical procedure from tickets, handoffs, and specialized runbooks instead of maintaining copied instructions. Give parallel agents distinct ownership; share their results rather than assigning duplicate investigations.
+7. **Consolidate before promotion.** Bounded experiments may remain separately labeled, non-shipping evidence. Once a solution is selected, move its reusable behavior into the shared pipeline and retain only necessary model/action data. Do not promote a collection of near-identical probe scripts as separate production processes. Any necessary exception records its anatomical or behavioral reason in the existing ticket.
+8. **Verify reuse without weakening acceptance.** Run shared, parameterized checks for every affected model/action profile and test state isolation. Keep exact-source hashes, indexed visible-surface contact checks, rig-specific wide/close visual review, and per-identity acceptance. Do not force an incompatible skeleton into a shared animation just to avoid a small adapter, or perform an unrelated refactor during an approval pass.
+
+The [calibration runbook](HUMANOID_ANIMATION_CALIBRATION_RUNBOOK.md) defines the independent acceptance records; it does not require duplicate code, source geometry, or animation files.
+
 ## Paid plan and MCP preflight
 
 The owner performs the account-only steps:

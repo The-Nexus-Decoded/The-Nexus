@@ -5,6 +5,34 @@ Date: 2026-08-31. Ticket: The-Nexus #458. Preview-only work on
 
 ## Current direction
 
+**The owner approved revised static neutral V3 ("yeah better"):** the
+forepaws must support the chest farther forward, the hind supports must move
+farther back, and the body must sit lower in a longer, comfortable all-fours
+stance. Old stance-v4 grounding checks remain useful measurements, but do not
+make its upright/cramped silhouette acceptable. Build the five attack pose
+studies on this exact approved neutral. Approval is for the static foundation,
+not new Idle motion or any attack. A static posture comparison is not an eight-pose
+action sheet. Preserve the old candidates as evidence rather than installing them.
+
+Approved static foundation: `neutral-stance-proposal/neutral-candidate-v3.json`,
+SHA-256 `9e35a85e1036ab0b8feba0b1eaee299fcd2d0c353a918924303434716939a998`.
+Body is 100mm lower; actual weighted front contact centers move about 118/138mm
+forward and both hind contact centers about 120mm back. Selected-point target
+offsets are not the same as actual skin-contact movement. All bone lengths,
+source geometry, skin weights, materials, and source clips remain unchanged.
+V1's visible hind-knee pinch and V2's asymmetric optimizer result were rejected.
+V3 uses mirrored hind-pole/paw-angle changes and comparable hind joint angles
+(130.57/126.42 degrees), with no new weights or mesh reshaping. Its six fixed
+views pass independent **static visual presentation** review: the knee's rounded
+volume is restored while the lower/longer posture is retained. CPU/Blender skin
+parity is within 0.000001m and the whole-mesh floor clearance is positive. This
+is the owner-approved neutral pose, not approved Idle, attack, transition, or runtime motion.
+
+The owner also requires DRY reuse across models, scripts, tasks, code, and
+processes. Follow the canonical [DRY reuse policy](README.md#dry-reuse-policy).
+Shared tools and immutable assets do not require duplicate implementations;
+model-specific mutable calibration and visual acceptance remain independent.
+
 The owner paused broader dungeon integration to repair the **base Breachling
 first**. Historical phase-2 review is not approval of the currently rejected
 mouth, floating front claws, death, lunge, swipe, or jumping bite. This first
@@ -101,7 +129,8 @@ approve the existing attack motion, every possible collision, or a live preview.
 
 Stance candidate v4 (`base-idle-stance-candidate-v4.glb`), SHA-256
 `60f2649dfe8c95c94948ac46912a18cf56336ab6bbab70e1a2344ba8a1f7c164`,
-passes the bounded static-planning gate. Only 24 limb rotation tracks change:
+previously passed the bounded static-planning gate; its posture is now owner
+rejected as too upright and cramped. Only 24 limb rotation tracks change:
 12 limb bones each in Idle and CombatIdle. Geometry/weights/rest/binds, other
 tracks, and all other ten clips remain exact. Dense export-reloaded checks
 (241 samples per clip) find a minimum whole-mesh clearance of +0.906mm and no
@@ -135,7 +164,12 @@ Three-way comparison confirms only jaw weights differ from stance v4 and only
 the 24 allowed limb tracks differ from jaw v1. It retains all 12 source actions;
 combining safe weights and stance does not repair the remaining bad attacks.
 
-### Short grounded bite: static proposal v2, awaiting owner approval
+### Short grounded bite: historical static proposal v2, now superseded
+
+The owner accepted this short-bite direction, then required actual contact in
+the adjacent square and rejected the neutral stance. Rebuild the attack review
+around the revised neutral and real target. Do not promote this short static
+proposal to a completed adjacent-square attack.
 
 `base-grounded-bite-static-proposal-v2.png` contains exactly eight full-body,
 fixed-camera/floor target poses: ready -> load -> brace/open -> head snap -> bite
@@ -146,8 +180,12 @@ rendered in solid shading, not generated concept art.
 The first proposal was rejected: its muzzle moved mostly upward (178mm up /
 17mm forward from load to contact). V2 retracts the existing neck chain, then
 returns toward its neutral reach while counter-rotating the head. Independent
-actual-GLB replay measures 24mm forward / 6mm up at snap and 29mm forward / 4mm
-up at contact. This is deliberately a **short bite**, not a long reach or lunge.
+transform replay measured 24mm forward / 6mm up at snap and 29mm forward / 4mm
+up at contact. A later indexed-geometry audit found that the old mouth markers
+22510/22511 are orphan vertices: no rendered triangle references them. Those
+travel numbers are historical transform diagnostics, **not visible muzzle or
+tooth-contact proof**. The new review uses indexed upper fang 22577 instead.
+This historical study was a short bite, not a long reach or lunge.
 All bone-local translations/scales stay unchanged, with zero root movement.
 All eight poses reproduce all 36,387 vertices exactly in independent replay;
 whole-mesh clearance remains at least +0.956mm, contact-patch XZ flex at most
@@ -156,9 +194,86 @@ Fresh eight-panel and enlarged front/side load/snap/contact views pass bounded
 numeric and visual review for owner presentation only.
 
 The quadruped-animation-sheets workflow requires per-asset/action owner approval
-before final animation authoring. No final BiteAttack curves have been created,
+before final animation authoring. No final replacement BiteAttack curves have been created,
 installed, or accepted. The static sheet does not prove interpolation, real-time
 fluidity, collision safety at every frame, hit timing, or native preview quality.
+
+## Adjacent-square contact and the next review phase
+
+The owner wants all attacks reviewed together. Bite, claw, lunge, and tail must
+reach the adversary in the next square in front; spit is ranged and can cross
+multiple squares. Tail contact requires a body turn initiated through pelvis and
+spine plus articulated tail motion, not a tail bend behind a stationary body.
+Root motion may support genuine steps, loading, and recovery; never stretch
+bones or slide planted paws to manufacture range.
+
+Read-only measurement confirms the V2 navigation cell is 1.75m. The approved
+Human Foundation idle mesh, facing the attacker at the adjacent center, is the
+contact reference. Its actual skin is not the 0.35m navigation radius. From the
+initial cell center, a short all-four-paws-fixed bite alone cannot bridge the
+gap to the visible leg surface. The current tooth-contact study needs about
+0.697m of articulated approach before the short bite. Stepping/weight-transfer
+breakdowns are needed before a grounded head/neck bite. A snout touching skin
+is not proof of tooth/jaw contact. Root containment is not whole-mesh containment.
+
+Earlier external claw, lunge, tail, and stepping-bite experiments used the
+now-rejected neutral foundation. Keep them separate from the current
+`approved-neutral-attacks/` studies below. None is a final clip or approved
+animation. Versioned JSON hashes must match render manifests; static poses do
+not establish interpolated foot locks or motion quality.
+
+### Current five-action pose review
+
+All five current studies restore exact approved-neutral local transforms at
+panels 1 and 8. Each contains eight ordered, actual-rig poses at fixed camera,
+scale, and floor. The reusable `verify-review-bundle.mjs` checks their explicit
+input map: 40 keys, matching source/neutral/render hashes, ordered times, and
+80 decoded nonblank full-body PNGs. That integrity pass is not anatomical or
+animation acceptance. Independent wide/close review receipts remain separate.
+
+| Action | Current pose payload in its action folder | Contact and motion intent |
+| --- | --- | --- |
+| Bite | `bite-static-proposal-v5.json` | Grounded approach; four supports during neck/head/jaw snap; indexed upper fang 22577 reaches actual human skin within 0.992mm. |
+| Claw | `claw-approved-neutral-poses-v2.json` | Three planted paws during the right-forelimb strike; actual claw contact within 0.879mm; shorter recovery step. |
+| Lunge | `lunge-static-draft-v8.json` | Haunch load, hind push, flight, two-claw contact within 1mm, front landing, recovery hop; no limb scaling. |
+| Tail | `tail-approved-neutral-poses-v2.json` | Turning steps, pelvis/spine counterturn and five-joint tail wave; indexed tail tip reaches the front neighboring target within 3mm; lower turning-step lift. |
+| Spit | `spit-approved-neutral-poses-v3.json` | Four supports, restrained neck loading and jaw release; target is two 1.75m cells away. Green line is an offline aim guide, not a game projectile. |
+
+Bite's 6.30-second proposed review sequence includes approach and reset. Its
+brace-to-contact snap is 0.31 seconds; do not interpret the review sequence as
+a six-second attack cooldown. Its 318 planning samples pass bounded support,
+segment-length and skin checks, but are not a baked clip. Turning/approach
+footfalls, continuous transitions, impact timing, and normal/slow-speed review
+still require animation authoring after per-action owner pose approval.
+
+All five selected versions pass independent wide/close **static presentation**
+review. The per-action receipts are linked from the external
+`approved-neutral-attacks/REVIEW-INDEX.md`. Bite's broader 3mm support band reaches
+6.447mm drift during the retreat planning samples; the narrower band's 0.927mm
+result is not a whole-paw lock claim. Tail V2 relieves the over-compressed lifted
+knee, but a small angular inner crease remains in close views. Explicit turning
+footfalls and review of intermediate deformation are still required; neither
+the numerical checks nor these static passes establish finished motion.
+
+These are non-shipping experiments, not five separate production pipelines.
+The selected mechanisms must be consolidated into shared tools with explicit
+model/action profiles before promotion, preserving these immutable receipts.
+
+After this attack pass, add **Combat Review** to the existing studio, not a
+separate replacement tool. Independently select attacker and defender for human
+versus mob, mob versus human, and mob versus mob review. Preserve current solo
+review. Show controls appropriate to each rig and action. Review attacks,
+defense, arrows, spells, and command-triggered actions on a shared timeline;
+expose spacing, facing, impact timing/location/direction/type, and an appropriate
+reaction selection or tuning. Do not substitute one universal flinch for every
+impact or invent finger controls where the creature has no finger bones.
+
+Integration findings are recorded for that later phase, not silently fixed now:
+V2 gameplay currently applies aggregate damage and timed enemy damage without
+linking them to measured animated contact; spit VFX is visual-only and lacks
+projectile collision/damage. HP loss or a visual projectile therefore cannot
+serve as proof that these animations hit a target. Dungeon integration remains
+paused until every mob and both bosses pass review.
 
 ## Roster-wide follow-up and recovered boss references
 
@@ -230,6 +345,11 @@ record the corrected stance checks; earlier renderer directories are invalid.
 `base-grounded-bite-static-proposal-v2.png`, and `bite-static-side-v2/` preserve
 the proposed poses, exact identities, independent replay, and enlarged views.
 `boss-reference-map.md` records both bosses and the recovered design references.
+`approved-neutral-attacks/review-bundle-integrity.json` records the current
+five-action payload/render identities and reusable verifier inputs. Each action
+folder holds its eight-pose sheet, fixed-camera views, diagnostics, and independent
+review receipt. Those files supersede old-stance proposals for this owner review;
+they do not change the installed GLB or original animation sources.
 `baseline-side/` and `baseline-bite-sheet.png` depict the **rejected existing**
 motions, not improvements. Preserve original editable sources under
 `issue-458-body-motion-phase-2/` unchanged.

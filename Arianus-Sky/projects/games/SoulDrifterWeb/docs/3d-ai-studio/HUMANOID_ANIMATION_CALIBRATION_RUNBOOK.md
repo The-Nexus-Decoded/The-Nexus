@@ -8,7 +8,7 @@ Applies to: playable characters, NPCs, humanoid monsters, creatures, weapons, sh
 
 Every accepted animation calibration is unique to the complete character-and-equipment combination being tested. A passing human greatsword grip is not evidence for an elf, dwarf, halfling, zombie, mummy, lich, large-body human, another weapon, or even another greatsword mesh.
 
-Shared data may be used only as a copied starting estimate. It must never remain a live shared mutable object, and it must never receive `accepted` status until the exact combination completes its own visual regression pass.
+Follow the canonical [DRY reuse policy](README.md#dry-reuse-policy): reuse shared tools and immutable source resources, while keeping mutable calibration state and acceptance independent. Reusing a clip or default profile does not give a new character-and-equipment combination `accepted` status; that exact combination still requires its own visual regression pass.
 
 ## Calibration identity
 
@@ -30,9 +30,9 @@ species/body-archetype/rig-revision/clip-revision/equipment-combination/asset-re
 
 Changing any component creates a new calibration identity. Never silently fall back to another identity.
 
-## What must be unique
+## What must be independently calibrated
 
-- Body motion and timing for each species, creature family, and body archetype.
+- Body-motion selection and timing for each species, creature family, and body archetype, including compatibility checks for any shared clip.
 - Right-hand and left-hand finger curls for each exact clip.
 - Weapon socket position, rotation, and scale for each exact asset.
 - Two-hand IK target and wrist correction for each exact clip and weapon.
@@ -41,7 +41,7 @@ Changing any component creates a new calibration identity. Never silently fall b
 - Hip, back, and sheath transforms for each asset, clip, and body archetype.
 - Root-motion handling and review-camera framing for each clip.
 
-Do not share one mutable grip, socket, IK, or sheath state across different clips or loadouts. Templates must be deep-copied into a new unapproved calibration record.
+Independent calibration means separately keyed values and evidence, not duplicated scripts, algorithms, meshes, or animation source files. Do not share one mutable grip, socket, IK, or sheath state across different clips or loadouts. Deep-copy mutable settings when creating a new unapproved calibration record; immutable resources may remain shared by reference.
 
 ## Weapon-specific requirements
 
