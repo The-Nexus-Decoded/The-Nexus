@@ -12,7 +12,7 @@ import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
 import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-asset-loader";
-import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
+import { REVIEWED_MOB_RECEIPTS, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
 
 export interface MobDefinition {
   id: string;
@@ -30,7 +30,7 @@ export interface MobDefinition {
 }
 
 // Original dungeon receipts remain intact; an explicit lab intake may replace
-// only the base review entry below, without mutating the runtime catalog.
+// only its explicitly keyed review entry, without mutating the runtime catalog.
 const BREACHLING_RECEIPTS = {
   base: [6429716, "00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7"],
   stalker: [5974384, "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641"],
@@ -42,16 +42,21 @@ const WARDEN_RECEIPTS = {
   oathbreaker: [18296196, "244cefb9e478c8ce561722e479a2cafce9fb5c91c4ee42477c893ee8f91a5a3d"],
 } as const;
 export const MOB_CATALOG: readonly MobDefinition[] = Object.freeze([
-  ...(Object.keys(BREACHLING_RECEIPTS) as BreachlingTier[]).map((variant) => Object.freeze({
-    id: `breachling-${variant}`, family: "breachling" as const, variant,
-    ...BREACHLING_RUNTIME_ASSETS[variant], bytes: BREACHLING_RECEIPTS[variant][0], sha256: BREACHLING_RECEIPTS[variant][1],
-    runtimeUrl: BREACHLING_RUNTIME_ASSETS[variant].url,
-    ...(variant === "base" && REVIEWED_BASE_MOB_RECEIPT ? {
-      label: "Base Breachling · revised attacks", url: REVIEWED_BASE_MOB_URL,
-      bytes: REVIEWED_BASE_MOB_RECEIPT.bytes, sha256: REVIEWED_BASE_MOB_RECEIPT.sha256,
-      reviewedMotion: REVIEWED_BASE_MOB_RECEIPT,
-    } : {}),
-  })),
+  ...(Object.keys(BREACHLING_RECEIPTS) as BreachlingTier[]).map((variant) => {
+    const reviewed = REVIEWED_MOB_RECEIPTS[variant];
+    if (reviewed && reviewed.runtimeSourceSha256 !== BREACHLING_RECEIPTS[variant][1]) {
+      throw new Error(`Reviewed ${variant} receipt has the wrong dungeon-source lineage.`);
+    }
+    return Object.freeze({
+      id: `breachling-${variant}`, family: "breachling" as const, variant,
+      ...BREACHLING_RUNTIME_ASSETS[variant], bytes: BREACHLING_RECEIPTS[variant][0], sha256: BREACHLING_RECEIPTS[variant][1],
+      runtimeUrl: BREACHLING_RUNTIME_ASSETS[variant].url,
+      ...(reviewed ? {
+        label: `${BREACHLING_RUNTIME_ASSETS[variant].label} · revised ${reviewed.actions.length && reviewed.actions.every((name) => /Attack|Whip/.test(name)) ? "attacks" : "motions"}`,
+        url: reviewed.url, bytes: reviewed.bytes, sha256: reviewed.sha256, reviewedMotion: reviewed,
+      } : {}),
+    });
+  }),
   ...(Object.keys(WARDEN_RECEIPTS) as CinderboundWardenKind[]).map((variant) => Object.freeze({
     id: `warden-${variant}`, family: "warden" as const, variant,
     ...CINDERBOUND_WARDEN_ASSETS[variant], bytes: WARDEN_RECEIPTS[variant][0], sha256: WARDEN_RECEIPTS[variant][1],
@@ -86,9 +91,14 @@ class PinnedMobLoader extends GLTFLoader {
   override async loadAsync(url: string) {
     if (url !== this.definition.runtimeUrl) throw new Error(`Unexpected mob asset: ${url}`);
     const reviewed = this.definition.reviewedMotion;
-    if (reviewed && (this.definition.id !== "breachling-base"
-      || url !== BREACHLING_RUNTIME_ASSETS.base.url || this.definition.url !== REVIEWED_BASE_MOB_URL)) {
-      throw new Error("Unapproved review-only mob asset override.");
+    if (reviewed) {
+      const variant = this.definition.variant as BreachlingTier;
+      const approved = REVIEWED_MOB_RECEIPTS[variant];
+      if (this.definition.family !== "breachling" || this.definition.id !== `breachling-${variant}`
+        || reviewed !== approved || reviewed.variant !== variant || url !== BREACHLING_RUNTIME_ASSETS[variant]?.url
+        || this.definition.url !== reviewed.url || this.definition.bytes !== reviewed.bytes || this.definition.sha256 !== reviewed.sha256) {
+        throw new Error("Unapproved review-only mob asset override.");
+      }
     }
     if (!reviewed && this.definition.url !== url) throw new Error("Mob asset override requires a reviewed intake receipt.");
     if (reviewed && !globalThis.crypto?.subtle) {
@@ -173,6 +183,8 @@ export class MobsStage {
       if (definition.reviewedMotion && actor.model.scale.toArray().some((scale) => (
         Math.abs(scale - definition.reviewedMotion!.runtimeScale) > 1e-6
       ))) throw new Error("Reviewed mob runtime scale differs from the approved raw-rig export.");
+      if (definition.reviewedMotion && [...definition.reviewedMotion.actions, ...definition.reviewedMotion.neutralHolds]
+        .some((name) => !adapter.snapshot()?.actionNames.includes(name))) throw new Error("Reviewed mob receipt names a missing source clip.");
       this.overlay = createMobPoseOverlay(actor.model, definition.family);
       // Restore this actor's initial clip before selecting the review default;
       // otherwise setAction would overwrite an existing Idle draft with zeros.
@@ -203,7 +215,7 @@ export class MobsStage {
     const revised = this.definition?.reviewedMotion;
     const reviewLabel = revised?.actions.includes(name)
       ? `${label} · revised motion${name === "SpitAttack" ? " · projectile pending" : " · review"}`
-      : revised && ["Idle", "CombatIdle"].includes(name) ? `${label} · approved neutral hold`
+      : revised?.neutralHolds.includes(name) ? `${label} · approved neutral hold`
         : revised ? `${label} · source · not revised` : label;
     const supported = this.definition?.family !== "breachling"
       || breachlingActionNames(this.definition.variant as BreachlingTier).includes(name);
@@ -291,8 +303,8 @@ export class MobsStage {
     // The solo stage has no combat target. The inherited projectile aims at
     // its actor origin, not the reviewed three-cell target; keep it invisible
     // for this motion intake while retaining the controller's normal cleanup.
-    if (this.definition?.reviewedMotion) this.stageRoot?.children.forEach((object) => {
-      if (object.name === "studio:breachling-base:poison-spit") object.visible = false;
+    if (this.definition?.reviewedMotion?.actions.includes("SpitAttack")) this.stageRoot?.children.forEach((object) => {
+      if (object.name === `studio:${this.definition!.id}:poison-spit`) object.visible = false;
     });
   }
   clear() {

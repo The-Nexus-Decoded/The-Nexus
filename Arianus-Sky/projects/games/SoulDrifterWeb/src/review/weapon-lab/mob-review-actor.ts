@@ -66,7 +66,7 @@ export async function createMobReviewActor(options: {
       actions.push(Object.freeze({ id: name, label: stage.actionLabel(name), clipName: name,
         durationSeconds: stage.snapshot()!.durationSeconds, semantic: semantic(name),
         approvalStatus: definition.reviewedMotion?.actions.includes(name) ? "continuous-reviewed"
-          : definition.reviewedMotion && /^(Combat)?Idle$/.test(name) ? "pose-approved" : "source",
+          : definition.reviewedMotion?.neutralHolds.includes(name) ? "pose-approved" : "source",
         rootPolicy: "authored-displacement", facing: "locked" }));
     }
     stage.setAction(initialAction);

@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breachlings";
 import { CINDERBOUND_WARDEN_ACTIONS, CINDERBOUND_WARDEN_ASSETS } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
-import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL } from "../src/review/weapon-lab/reviewed-mob-receipt";
+import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, REVIEWED_MOB_RECEIPTS,
+  prepareReviewedMobReceipts, reviewedMobNote, type ReviewedMobReceipt } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { createReviewMeshProbe } from "../src/review/weapon-lab/combat-review-probes";
 import { sampleReviewPoses, measureReviewMotionBounds } from "../src/review/weapon-lab/combat-review-posing";
@@ -229,9 +230,10 @@ describe("Mobs stage exact installed asset contract", () => {
         : CINDERBOUND_WARDEN_ASSETS[definition.variant as keyof typeof CINDERBOUND_WARDEN_ASSETS];
       expect(definition).toMatchObject({ runtimeUrl: catalog.url, targetHeightMeters: catalog.targetHeightMeters });
       if (definition.reviewedMotion) {
-        expect(definition.id).toBe("breachling-base");
-        expect(definition.label).toBe("Base Breachling · revised attacks");
-        expect(definition.url).toBe(REVIEWED_BASE_MOB_URL);
+        expect(definition.family).toBe("breachling");
+        expect(definition.reviewedMotion).toBe(REVIEWED_MOB_RECEIPTS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS]);
+        expect(definition.label).toContain(`${catalog.label} · revised `);
+        expect(definition.url).toBe(definition.reviewedMotion.url);
       } else expect(definition).toMatchObject({ label: catalog.label, url: catalog.url });
       const header = glbHeader(definition);
       expect(header.skins).toHaveLength(1);
@@ -248,9 +250,11 @@ describe("Mobs stage exact installed asset contract", () => {
     expect(value.checksumVerified).toBe(true);
     const actor = value.actor()!;
     expect(actor.root.name).toBe(`studio:${definition.id}`);
-    expect(actor.model.name).toBe(`${definition.reviewedMotion ? BREACHLING_RUNTIME_ASSETS.base.label : definition.label} model`);
+    expect(actor.model.name).toBe(`${definition.reviewedMotion
+      ? BREACHLING_RUNTIME_ASSETS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS].label : definition.label} model`);
     if (definition.reviewedMotion) expect(actor.model.scale.toArray()).toEqual([
-      expect.closeTo(1.7714769640700978, 6), expect.closeTo(1.7714769640700978, 6), expect.closeTo(1.7714769640700978, 6),
+      expect.closeTo(definition.reviewedMotion.runtimeScale, 6), expect.closeTo(definition.reviewedMotion.runtimeScale, 6),
+      expect.closeTo(definition.reviewedMotion.runtimeScale, 6),
     ]);
     expect(actor.root.userData.spatialOwnerId).toBe(`studio:${definition.id}`);
     expect(actor.root.userData[definition.family === "breachling" ? "creatureTier" : "wardenKind"]).toBe(definition.variant);
@@ -550,4 +554,95 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
       expect(rotationDifference(bone.quaternion, looped.get(key)!.quaternion)).toBeLessThan(1e-5);
     }
   }, 20_000);
+});
+
+describe("Per-variant review-only receipt intake", () => {
+  type Variant = keyof typeof BREACHLING_RUNTIME_ASSETS;
+  // Test-only replay of each original GLB through a candidate receipt. It is NOT
+  // a newly approved motion asset and no public file/catalog is written.
+  async function withReceipt(variant: Variant, patch: Partial<ReviewedMobReceipt>, run: (context: {
+    receipt: ReviewedMobReceipt; source: MobDefinition; stageModule: typeof import("../src/review/weapon-lab/mobs-stage");
+  }) => Promise<void>) {
+    const source = MOB_CATALOG.find((entry) => entry.id === `breachling-${variant}`)!;
+    const baseline = stage().stage; await baseline.select(source.id);
+    const runtimeScale = baseline.actor()!.model.scale.x; baseline.dispose();
+    const receipt: ReviewedMobReceipt = { variant, url: `/assets/weapon-lab/mobs/breachling-${variant}-intake-test.glb`,
+      runtimeSourceSha256: source.sha256, bytes: source.bytes, sha256: source.sha256, runtimeScale,
+      actions: ["ClawAttack", "LungeAttack"], neutralHolds: [], ...patch };
+    const registry = prepareReviewedMobReceipts({ ...REVIEWED_MOB_RECEIPTS, [variant]: receipt });
+    vi.resetModules();
+    vi.doMock("../src/review/weapon-lab/reviewed-mob-receipt", async (original) => ({
+      ...await original<typeof import("../src/review/weapon-lab/reviewed-mob-receipt")>(), REVIEWED_MOB_RECEIPTS: registry,
+    }));
+    vi.stubGlobal("fetch", vi.fn(async () => responseFor(source)));
+    try { await run({ receipt, source, stageModule: await import("../src/review/weapon-lab/mobs-stage") }); }
+    finally { vi.doUnmock("../src/review/weapon-lab/reviewed-mob-receipt"); vi.resetModules(); }
+  }
+
+  it("retains the sole installed base intake and rejects variant/url/hash/schema mismatches", () => {
+    expect(Object.keys(REVIEWED_MOB_RECEIPTS)).toEqual(["base"]);
+    expect(REVIEWED_MOB_RECEIPTS.base).toBe(REVIEWED_BASE_MOB_RECEIPT);
+    expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
+      sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
+    for (const patch of [
+      { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },
+      { url: "/assets/weapon-lab/mobs/breachling-stalker-approved.glb" },
+      { url: "/assets/weapon-lab/mobs/../breachling-base-approved.glb" },
+      { url: "/assets/weapon-lab/mobs/breachling-base-approved.glb?other" },
+      { sha256: "wrong" }, { runtimeSourceSha256: "wrong" }, { bytes: 0 }, { bytes: 1.5 }, { runtimeScale: NaN },
+      { actions: [] , neutralHolds: [] }, { actions: ["ClawAttack", "ClawAttack"] },
+      { actions: ["Idle"], neutralHolds: [] }, { actions: ["CombatIdle"], neutralHolds: [] },
+      { actions: ["Idle"], neutralHolds: ["Idle"] },
+      { neutralHolds: ["Walk"] },
+    ]) expect(() => prepareReviewedMobReceipts({ base: { ...REVIEWED_BASE_MOB_RECEIPT, ...patch } as ReviewedMobReceipt })).toThrow(/Invalid reviewed/);
+    expect(() => prepareReviewedMobReceipts({ boss: REVIEWED_BASE_MOB_RECEIPT } as never)).toThrow(/Invalid reviewed/);
+    const input = { ...REVIEWED_BASE_MOB_RECEIPT, actions: ["ClawAttack"], neutralHolds: [] };
+    const frozen = prepareReviewedMobReceipts({ base: input }); input.actions.push("SpitAttack");
+    expect(frozen.base!.actions).toEqual(["ClawAttack"]); expect(Object.isFrozen(frozen.base!.actions)).toBe(true);
+    expect(reviewedMobNote(frozen.base!)).toContain("Revised motions: ClawAttack. Approved neutral holds: none.");
+    expect(reviewedMobNote(frozen.base!)).not.toContain("SpitAttack");
+  });
+
+  it.each(["stalker", "oathbound", "ravager"] as const)("routes a test-only %s receipt without changing its dungeon source or unrelated approvals", async (variant) => {
+    const runtimeBefore = JSON.stringify(BREACHLING_RUNTIME_ASSETS);
+    await withReceipt(variant, {}, async ({ receipt, source, stageModule }) => {
+      const scene = new THREE.Scene(), value = new stageModule.MobsStage(scene); stages.add(value);
+      expect(await value.select(source.id)).toBe(true);
+      expect(String(vi.mocked(fetch).mock.calls[0]![0])).toBe(`http://localhost:5179${receipt.url}`);
+      expect(value.definition!.runtimeUrl).toBe(BREACHLING_RUNTIME_ASSETS[variant].url);
+      expect(value.draft().assetSha256).toBe(source.sha256); expect(value.checksumVerified).toBe(true);
+      expect(value.actionLabel("ClawAttack")).toContain("revised motion");
+      for (const name of ["Idle", "CombatIdle", "SpitAttack", "Death"]) expect(value.actionLabel(name)).toContain("source · not revised");
+      value.setAction("SpitAttack"); value.pose(0.5); value.update(0);
+      if (["oathbound", "ravager"].includes(variant)) {
+        expect(scene.getObjectByName(`studio:${source.id}:poison-spit`)?.visible).toBe(true);
+      }
+      const { createMobReviewActor: create } = await import("../src/review/weapon-lab/mob-review-actor");
+      const actor = await create({ instanceId: `receipt-test-${variant}`, definitionId: source.id }); reviewActors.add(actor);
+      expect(actor.actions().filter((action) => action.approvalStatus === "continuous-reviewed").map((action) => action.id).sort())
+        .toEqual(["ClawAttack", "LungeAttack"]);
+      expect(actor.actions().find((action) => action.id === "Idle")!.approvalStatus).toBe("source");
+      // @ts-expect-error Existing JS studio catalog; only its immutable definition note is read.
+      const { COMBAT_REVIEW_DEFINITIONS } = await import("../src/review/weapon-lab/combat-review-studio.js");
+      const note = COMBAT_REVIEW_DEFINITIONS.find((entry: { id: string }) => entry.id === source.id).note;
+      expect(note).toContain("Revised motions: ClawAttack, LungeAttack. Approved neutral holds: none.");
+      expect(note).not.toContain("five attacks"); expect(note).not.toContain("SpitAttack");
+    });
+    expect(JSON.stringify(BREACHLING_RUNTIME_ASSETS)).toBe(runtimeBefore);
+  }, 30_000);
+
+  it("fails closed on a valid-looking wrong SHA, byte count, runtime scale, missing clip or source lineage", async () => {
+    for (const [patch, error] of [
+      [{ sha256: "0".repeat(64) }, /SHA-256/], [{ bytes: 1 }, /asset changed/], [{ runtimeScale: 99 }, /runtime scale/],
+      [{ actions: ["MissingClip"] }, /missing source clip/],
+    ] as const) await withReceipt("oathbound", patch, async ({ source, stageModule }) => {
+      const scene = new THREE.Scene(), value = new stageModule.MobsStage(scene); stages.add(value);
+      await expect(value.select(source.id)).rejects.toThrow(error); expect(value.ready).toBe(false); expect(scene.children).toHaveLength(0);
+    });
+    await expect(withReceipt("oathbound", { runtimeSourceSha256: "0".repeat(64) }, async () => {})).rejects.toThrow(/source lineage/);
+    await withReceipt("oathbound", {}, async ({ source, stageModule }) => {
+      vi.stubGlobal("crypto", undefined); const value = new stageModule.MobsStage(new THREE.Scene()); stages.add(value);
+      await expect(value.select(source.id)).rejects.toThrow(/require SHA-256/); expect(fetch).not.toHaveBeenCalled();
+    });
+  }, 30_000);
 });

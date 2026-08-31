@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { LOADOUTS } from "./human-review-catalog.js";
 import { MOB_CATALOG } from "./mobs-stage.ts";
+import { reviewedMobNote } from "./reviewed-mob-receipt.ts";
 import { createMobReviewActor } from "./mob-review-actor.ts";
 import { CombatReviewController } from "./combat-review-controller.ts";
 import { CombatReviewPanel } from "./combat-review-panel.ts";
@@ -14,7 +15,7 @@ export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
     label: `Human · ${loadout.label}`, note: "Full Human Foundation rig · source response candidates have unverified equipment suitability. Source clips and drafts are labeled individually." })),
   ENVIRONMENT_REVIEW_DEFINITION,
   ...MOB_CATALOG.map((definition) => Object.freeze({ id: definition.id, family: definition.family, label: definition.label,
-    note: definition.reviewedMotion ? "Revised five attacks + approved neutral holds. Other motions remain source; Spit has a new review-only fixed flight, not gameplay damage."
+    note: definition.reviewedMotion ? reviewedMobNote(definition.reviewedMotion)
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
 ]);
 
