@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "role": "quiver",
+      "sourceModelId": "7e65366b-7043-4776-ae77-6a8cb67be007",
+      "rawFile": "tripo-quiver-harness-human-masculine-v001.glb",
+      "rawSha256": "6B67F1C27859EC129F71A918D9467AED2504DAA24F1F09C1F68C744070470451",
+      "outputFile": "weapon-quiver-starter-v002.glb",
+      "outputSha256": "7BB892241BD06795CD59DDEADB029ECE7EC95169ADA69ED56AC65071B5FDC904",
+      "lengthMeters": 0.64,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    },
+    {
+      "role": "harness",
+      "sourceModelId": "7e65366b-7043-4776-ae77-6a8cb67be007",
+      "rawFile": "tripo-quiver-harness-human-masculine-v001.glb",
+      "rawSha256": "6B67F1C27859EC129F71A918D9467AED2504DAA24F1F09C1F68C744070470451",
+      "outputFile": "gear-quiver-harness-human-masculine-v001.glb",
+      "outputSha256": "CE7A4F546808BF56F0FFC315F2089646C2A34A460464F992704734CE049F722E",
+      "lengthMeters": 0.479746,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    },
+    {
+      "role": "arrow-standard",
+      "sourceModelId": "cb10eebf-92de-4eff-95b0-541bdff9131a",
+      "rawFile": "tripo-arrow-standard-v001.glb",
+      "rawSha256": "15712E6504202A8116848D5C11D444BC038CAC0BE99D42FD34E085A1FA7AF559",
+      "outputFile": "weapon-arrow-starter-v002.glb",
+      "outputSha256": "6630B9FC18E098B034DC70B4FCB6033CA8D6A5B30F398615034500EC52861153",
+      "lengthMeters": 0.94,
+      "shaftRadiusMeters": 0.0045,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    },
+    {
+      "role": "arrow-fire",
+      "sourceModelId": "35d26946-d794-46e0-9ee4-938241072377",
+      "rawFile": "tripo-arrow-fire-v001.glb",
+      "rawSha256": "F7ABBC951AF0FD38A40CC5CAC78B1CA0A7CE756593D57FAC18CAFE417404F650",
+      "outputFile": "weapon-arrow-fire-v001.glb",
+      "outputSha256": "B571B3198586B6E89B57DEE5BBF567C591C9E15D579905DC9ED1208F8C05AC09",
+      "lengthMeters": 0.942,
+      "shaftRadiusMeters": 0.0045,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    },
+    {
+      "role": "arrow-ice",
+      "sourceModelId": "886afde4-86f9-4c92-98cc-dee557e6a9f4",
+      "rawFile": "tripo-arrow-ice-v001.glb",
+      "rawSha256": "EE75AF22478A15FB6408D5028A3D16297811A734903C7A08E4AA420056A23555",
+      "outputFile": "weapon-arrow-ice-v001.glb",
+      "outputSha256": "3533C5D47CAAF9B203C29933E3E0BDE66BEBE3CB94FE920E934A1D8DD1934044",
+      "lengthMeters": 0.942,
+      "shaftRadiusMeters": 0.0045,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    },
+    {
+      "role": "arrow-poison",
+      "sourceModelId": "1fa56db7-b646-428d-900d-e8511c4212aa",
+      "rawFile": "tripo-arrow-poison-v001.glb",
+      "rawSha256": "A942E6335BE15AF51E1F61588A65E3E6245FDE43244BA7823CFFB04910757099",
+      "outputFile": "weapon-arrow-poison-v001.glb",
+      "outputSha256": "18EFF5EC9FE6168A5FC0C78D30AC8C6A14E79ABC66F36C17A9D9E3E3B2D4C9E9",
+      "lengthMeters": 0.942,
+      "shaftRadiusMeters": 0.0045,
+      "forwardAxis": "+Y",
+      "rearAxis": "-Y",
+      "rootObjectCount": 1,
+      "bakedArrowCount": 0,
+      "pbrTextureChannels": [
+        "baseColor",
+        "normal",
+        "roughness",
+        "ao"
+      ],
+      "sourceProvider": "tripo3d",
+      "placeholder": false
+    }
+  ]
+}

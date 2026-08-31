@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BREACH-V2 Human Animation and Weapon Lab</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #101215; }
+      canvas { display: block; width: 100%; height: 100%; }
+      .panel { position: fixed; z-index: 3; top: 12px; right: 12px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 10px; border: 1px solid #4b5361; border-radius: 12px; background: rgba(15, 18, 23, .94); box-shadow: 0 10px 34px #0009; }
+      .panel[hidden] { display: none !important; }
+      label[hidden] { display: none !important; }
+      h1 { margin: 0 0 9px; font-size: 16px; }
+      .sub { color: #aeb8c7; font-size: 12px; line-height: 1.45; }
+      h2 { margin: 13px 0 5px; padding-top: 9px; border-top: 1px solid #38414e; color: #8ff0cf; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+      label { display: grid; grid-template-columns: 92px 1fr 44px; gap: 6px; align-items: center; margin-top: 6px; font-size: 11px; }
+      select, button, input { width: 100%; }
+      button, select { padding: 7px 8px; color: #edf2f7; background: #282f39; border: 1px solid #596576; border-radius: 7px; }
+      button { cursor: pointer; }
+      button.active { border-color: #4dd2a5; color: #8ff0cf; }
+      .buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }
+      .check { grid-template-columns: 92px 20px 1fr; }
+      .check input { width: auto; }
+      .hint { margin-top: 8px; color: #8592a3; font-size: 11px; line-height: 1.4; }
+      #status { margin-top: 10px; padding-top: 9px; border-top: 1px solid #38414e; color: #b9c4d3; font: 11px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Issues #435 + #458 — BREACH-V2 human animation and weapon lab</h1>
+      <div class="sub">Review the BREACH-V2 Human Foundation character with 400 preserved source clips plus 5 new Mixamo locomotion clips, or test the approved Tripo equipment. Find Injured Run, Slow Run, Leaning Run, and stair movements under Human animations → Basic locomotion. Stair source travel is retained; dungeon stair matching still needs integration. Authored gap drafts remain separate.</div>
+      <p class="sub"><a href="./asset-review.html" style="color:#8ff0cf">Review separate archery assets</a></p>
+      <h2>Loadout and animation</h2>
+      <label><span>Review mode</span><select id="reviewMode"><option value="weapons">Human weapons</option><option value="catalog">Human animations</option></select><span></span></label>
+      <label id="weaponSetRow"><span>Weapon set</span><select id="weaponSet"></select><span></span></label>
+      <label id="catalogActivityRow" hidden><span>Activity</span><select id="catalogActivity"></select><span></span></label>
+      <label id="catalogLocomotionRow" hidden><span>Movement</span><select id="catalogLocomotion"></select><span></span></label>
+      <label id="catalogWeaponRow" hidden><span>Weapon type</span><select id="catalogWeapon"></select><span></span></label>
+      <label id="catalogActionTypeRow" hidden><span>Action type</span><select id="catalogActionType"></select><span></span></label>
+      <label><span id="actionLabel">Action</span><select id="action"></select><span></span></label>
+      <label id="staffGripRow" hidden><span>Staff grip</span><select id="staffGripStyle"><option value="palm">Palm-side grip</option><option value="wide">Wide palm-side grip</option><option value="reverse">Reverse-side grip</option></select><span></span></label>
+      <label><span>Arrow inventory</span><input id="arrowCount" type="range" min="0" max="100" step="1" value="10"/><output id="arrowCountOut">10 / 100</output></label>
+      <label><span>Min bow range</span><input id="minimumBowRange" type="range" min="0.5" max="4" step="0.1" value="1.5"/><output id="minimumBowRangeOut">1.5m</output></label>
+      <label><span>Timeline</span><input id="time" type="range" min="0" max="1" step="0.001" value="0"/><output id="timeOut">0.000</output></label>
+      <label><span>Playback speed</span><input id="speed" type="range" min="0.1" max="1.5" step="0.1" value="0.6"/><output id="speedOut">0.6x</output></label>
+      <label class="check"><span>Loop action</span><input id="loop" type="checkbox" checked/><span></span></label>
+      <div class="buttons"><button id="play" class="active">Pause</button><button id="restart">Restart</button><button id="fullView">Full body</button><button id="actionView">Action view</button><button id="handView">Grip view</button><button id="backView">Back view</button></div>
+
+      <h2>Right-hand grip overlay</h2>
+      <label><span>Index curl</span><input id="indexCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="indexCurlOut">0.500</output></label>
+      <label><span>Middle curl</span><input id="middleCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="middleCurlOut">0.500</output></label>
+      <label><span>Ring curl</span><input id="ringCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="ringCurlOut">0.500</output></label>
+      <label><span>Pinky curl</span><input id="pinkyCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="pinkyCurlOut">0.500</output></label>
+      <label><span>Thumb oppose</span><input id="thumb" type="range" min="-0.6" max="0.8" step="0.025" value="0.1"/><output id="thumbOut">0.100</output></label>
+
+      <h2>Left-hand pommel grip</h2>
+      <label><span>Index curl</span><input id="leftIndexCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftIndexCurlOut">0.500</output></label>
+      <label><span>Middle curl</span><input id="leftMiddleCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftMiddleCurlOut">0.500</output></label>
+      <label><span>Ring curl</span><input id="leftRingCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftRingCurlOut">0.500</output></label>
+      <label><span>Pinky curl</span><input id="leftPinkyCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftPinkyCurlOut">0.500</output></label>
+      <label><span>Thumb oppose</span><input id="leftThumb" type="range" min="-0.8" max="0.8" step="0.025" value="0.1"/><output id="leftThumbOut">0.100</output></label>
+
+      <h2>Two-hand lock</h2>
+      <label class="check"><span>IK enabled</span><input id="twoHandEnabled" type="checkbox" checked/><span></span></label>
+      <label><span>Target X</span><input id="twoHandTargetX" type="range" min="-0.16" max="0.16" step="0.002" value="-0.024"/><output id="twoHandTargetXOut">-0.024</output></label>
+      <label><span>Target Y</span><input id="twoHandTargetY" type="range" min="-0.18" max="0.5" step="0.002" value="-0.090"/><output id="twoHandTargetYOut">-0.090</output></label>
+      <label><span>Target Z</span><input id="twoHandTargetZ" type="range" min="-0.16" max="0.16" step="0.002" value="0.016"/><output id="twoHandTargetZOut">0.016</output></label>
+      <label><span>Wrist X</span><input id="twoHandWristX" type="range" min="-3.142" max="3.142" step="0.001" value="0.400"/><output id="twoHandWristXOut">0.400</output></label>
+      <label><span>Wrist Y</span><input id="twoHandWristY" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="twoHandWristYOut">0.000</output></label>
+      <label><span>Wrist Z</span><input id="twoHandWristZ" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="twoHandWristZOut">0.000</output></label>
+
+      <h2>Primary weapon socket</h2>
+      <label><span>Position X</span><input id="socketX" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketXOut">0.000</output></label>
+      <label><span>Position Y</span><input id="socketY" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketYOut">0.000</output></label>
+      <label><span>Position Z</span><input id="socketZ" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketZOut">0.000</output></label>
+      <label><span>Rotation X</span><input id="rotationX" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="rotationXOut">0.000</output></label>
+      <label><span>Rotation Y</span><input id="rotationY" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="rotationYOut">0.000</output></label>
+      <label><span>Rotation Z</span><input id="rotationZ" type="range" min="-3.142" max="3.142" step="0.001" value="-1.571"/><output id="rotationZOut">-1.571</output></label>
+      <label><span>Weapon scale</span><input id="weaponScale" type="range" min="0.6" max="1.4" step="0.01" value="1"/><output id="weaponScaleOut">1.00</output></label>
+      <div class="buttons"><button id="resetGrip">Reset grip</button><button id="resetSocket">Reset socket</button><button id="hide">Hide UI (H)</button></div>
+      <div class="hint">Catalog mode separates unarmed basic locomotion from weapon movement, then narrows locomotion into walking, running, jumping, strafing, turning, or crouching. Draft gap clips remain visibly labeled. Weapon mode requires textured source assets, uses the real arrow mesh in the quiver, and separates body release animation from projectile flight. Inside the configured minimum bow range, combat should select Bow Strike or swap to a melee weapon instead of firing.</div>
+      <div id="status">Loading canonical assets…</div>
+    </div>
+    <script type="module" src="./src/review/weapon-lab/weapon-lab.js"></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Issue 435 Tripo Archery Asset Review</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0e1116; }
+      canvas { display: block; width: 100%; height: 100%; }
+      .panel { position: fixed; z-index: 2; top: 16px; left: 16px; width: min(360px, calc(100vw - 32px)); padding: 14px; border: 1px solid #435063; border-radius: 12px; background: rgba(14, 17, 22, .94); box-shadow: 0 12px 40px #000a; }
+      h1 { margin: 0 0 8px; font-size: 17px; }
+      p { margin: 0 0 12px; color: #aeb8c7; font-size: 12px; line-height: 1.45; }
+      label { display: grid; grid-template-columns: 95px 1fr; gap: 8px; align-items: center; font-size: 12px; }
+      select, button { width: 100%; padding: 8px; color: #eef5ff; background: #252d38; border: 1px solid #526176; border-radius: 7px; }
+      .buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+      #status { margin-top: 10px; color: #8ff0cf; font: 11px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <section class="panel">
+      <h1>Approved Tripo archery batch</h1>
+      <p><a href="./weapon-lab.html" style="color:#8ff0cf">Human animation and weapon lab</a></p>
+      <p>These are the processed Tripo meshes, not Blender placeholders. Drag to rotate, wheel to zoom, and choose each independent asset below.</p>
+      <label><span>Asset</span><select id="asset"></select></label>
+      <div class="buttons"><button id="front">Front</button><button id="side">Side</button><button id="rear">Rear</button></div>
+      <div id="status">Loading…</div>
+    </section>
+    <script type="module" src="./src/review/weapon-lab/tripo-asset-review.js"></script>
+  </body>
+</html>
