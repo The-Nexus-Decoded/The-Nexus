@@ -89,10 +89,13 @@ describe("review prop ownership and real contact surfaces", () => {
   });
 });
 
-it("loads the actual pinned tree and measures only its 48k bark triangles", async () => {
+it.each([
+  { id: "tree-small-02", meshes: 2, triangles: 48000, minHeight: 4, maxHeight: 5 },
+  { id: "iron-bound-chest-draft", meshes: 3, triangles: 7774, minHeight: .98, maxHeight: .99 },
+])("loads the actual pinned $id with original PBR and real selected triangles", async ({ id, meshes, triangles, minHeight, maxHeight }) => {
   const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
   const { readFileSync } = await importHost<{ readFileSync(path: URL): Uint8Array }>("node:fs");
-  const definition = REVIEW_PROP_DEFINITIONS[0]!, bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
+  const definition = REVIEW_PROP_DEFINITIONS.find((entry) => entry.id === id)!, bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
   vi.stubGlobal("document", { baseURI: "http://localhost/weapon-lab.html" });
   vi.stubGlobal("fetch", async () => new Response(bytes));
   const loader = configureReviewAssetLoader(new GLTFLoader());
@@ -103,11 +106,11 @@ it("loads the actual pinned tree and measures only its 48k bark triangles", asyn
   } }));
   const factory = createReviewPropFactory({ loader });
   try {
-    const tree = await factory.create({ definitionId: definition.id, instanceId: "actual-tree" });
-    expect(tree.contactSurface.snapshot()).toMatchObject({ meshes: 2, triangles: 48000 });
-    expect(tree.bounds().min.y).toBeCloseTo(0); expect(tree.bounds().max.y).toBeGreaterThan(4);
-    expect(tree.bounds().max.y).toBeLessThan(5);
-    tree.place([2, 0, -3], Math.PI / 3);
-    expect(tree.contactSurface.snapshot().unsupportedMeshIds).toEqual([]);
+    const prop = await factory.create({ definitionId: definition.id, instanceId: "actual-prop" });
+    expect(prop.contactSurface.snapshot()).toMatchObject({ meshes, triangles });
+    expect(prop.bounds().min.y).toBeCloseTo(0); expect(prop.bounds().max.y).toBeGreaterThan(minHeight);
+    expect(prop.bounds().max.y).toBeLessThan(maxHeight);
+    prop.place([2, 0, -3], Math.PI / 3);
+    expect(prop.contactSurface.snapshot().unsupportedMeshIds).toEqual([]);
   } finally { factory.dispose(); }
 }, 20_000);

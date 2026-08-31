@@ -23,6 +23,32 @@
       "approvalStatus": "static-reviewed",
       "remainingGates": ["native material and performance check", "climbing support fit", "damage and fracture review"],
       "preparation": "Houdini material-local reduction: branches 24000, leaves 350000, trunk 24000 triangles. Material-selected UVs preserved; invalid VEC3 tangents removed; no rescale. Independent wide/close source-comparison gate passed; lossy geometry, not exact equivalence."
+    },
+    {
+      "id": "iron-bound-chest-draft",
+      "label": "Iron-bound chest · opening draft",
+      "kind": "chest",
+      "url": "/assets/weapon-lab/props/storage-chest-review-draft-v1.glb",
+      "bytes": 1904064,
+      "sha256": "f4f889c01e0719b10f4e109c2f939ba2c7ddce525c99fb83f2fb7cae4634f4e9",
+      "sourceUrl": "https://tripo3d.ai/",
+      "sourcePath": "docs/3d-ai-studio/source-models/environment/dungeon-kit/storage-chest.glb",
+      "sourceSha256": "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56",
+      "license": "Existing project source; original account receipt not recovered. Local inspection only, not distribution clearance.",
+      "licenseUrl": "",
+      "author": "Existing Tripo-header project import; locally authored source-preserving derivative",
+      "unitScale": 1.65,
+      "triangleCount": 7774,
+      "contactMeshes": ["chest-body", "chest-lid", "chest-hasp"],
+      "armMaterials": ["tripo_material_e0b88d98-2de4-4017-956a-549ba911422a"],
+      "materialPolicy": "Original 2K Color, ORM and NormalGL image bytes unchanged. New interior and cut surfaces use inspected wood/iron atlas regions. ORM red is bound as AO at runtime.",
+      "approvalStatus": "inspection-draft",
+      "remainingGates": ["native closed/open/interior/hasp and backside review", "hinge collision and fracture verification", "actor hand interaction fit", "original provider account receipt"],
+      "joints": [
+        {"id":"lid", "label":"Lid opening", "node":"chest-lid-hinge", "axis":"z", "min":0, "max":105},
+        {"id":"hasp", "label":"Latch release", "node":"chest-hasp-hinge", "axis":"z", "min":0, "max":60}
+      ],
+      "preparation": "scripts/assets/prepare-chest-review.mjs: true source lid/body/hasp split at measured Y=.122 seam; hollow body, inward walls, backed plank floor and real cut surfaces. Original source GLB is untouched. Candidate is for inspection, not an accepted interaction."
     }
   ]
 }

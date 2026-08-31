@@ -1,5 +1,18 @@
 {
   "schemaVersion": 1,
+  "localReviewCandidates": [
+    {
+      "id": "issue-458-chest-opening-draft",
+      "name": "Iron-bound chest: local opening inspection draft",
+      "sourcePath": "docs/3d-ai-studio/source-models/environment/dungeon-kit/storage-chest.glb",
+      "sourceSha256": "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56",
+      "path": "public/assets/weapon-lab/props/storage-chest-review-draft-v1.glb",
+      "sha256": "f4f889c01e0719b10f4e109c2f939ba2c7ddce525c99fb83f2fb7cae4634f4e9",
+      "license": "Existing project source; Tripo generator header, but original account/plan receipt not independently recovered. Not CC0 or cleared for a new distribution.",
+      "usage": "Local Motion Studio inspection only. No source dungeon replacement or production promotion.",
+      "notes": "Original 2K embedded image buffers remain byte-exact. Added real lid/hasp partitions and textured interior via shared cut helpers; art, hinge clearance, actor interaction and source receipt remain separate gates. No paid operation."
+    }
+  ],
   "shippingAssets": [
     {
       "id": "issue-458-review-tree-small-02",
