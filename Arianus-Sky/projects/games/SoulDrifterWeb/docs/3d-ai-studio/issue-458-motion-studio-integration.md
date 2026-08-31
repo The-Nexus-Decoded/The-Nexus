@@ -1,5 +1,38 @@
 # #458 — Motion Studio integration checkpoint
 
+## Current review-system extension — 2026-08-31, work continues
+
+Combat Review now has source-bound visible arrow and poison-spit flights on the
+same clock as attacker motion, actual moving-surface contact and the selected
+response. Native checks covered bow release, flight, contact and response;
+three-arrow multishot shows all three actual arrow meshes and one measured stop.
+The arrows are still world-fixed after impact and poison-spit trail/splash art is
+still provisional. Those limits are not presented as final VFX acceptance.
+
+The prop workspace now loads a source-preserving chest inspection candidate with
+a hollow interior, backed floor and lid lining, real lid/hasp subsets, named live
+joint controls, and two locally authored rear hinges with plates, knuckles and
+rivets. The original embedded PBR image/material bytes and source GLB remain
+unchanged. Its original Tripo account receipt was not recovered, so the ledger
+keeps it out of cleared shipping assets. Native open/closed controls and separate
+offline PBR interior/side views pass their narrow inspection; character hand fit,
+collision, fracture and art approval remain open.
+
+An unarmed **Human · Environmental interactions** subject is being added to the
+shared actor clock. It filters the existing 405-clip Human Foundation catalog via
+the shared locomotion/object predicates and exposes 61 real source actions,
+including chest/door opening, climbing and swimming. It does not duplicate or
+change source clips and does not expose irrelevant weapon/finger calibration.
+An actual-GLB CPU audit sampled 181 frames of each initial interaction path and
+confirmed both protected Human Foundation GLBs remained byte-identical. Source
+motion availability is not prop contact, climb support, water or physics approval.
+
+Source locomotion capability measurement is also in independent review. It reports
+actual authored-forward, authored-backward, in-place or unavailable travel rather
+than sliding an in-place creature by a guessed speed. Weighted support remains
+unmeasured; no new transport behavior is implied yet. The four creature variants
+and both bosses still require their own continuous exports and runtime installation.
+
 ## Measured contact and spawnable props — 2026-08-31, work continues
 
 `7e197357` and `8f4d2ce3` connect the shared actual-surface melee scan and its UI.
