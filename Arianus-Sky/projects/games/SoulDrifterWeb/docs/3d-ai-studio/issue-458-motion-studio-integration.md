@@ -1,5 +1,43 @@
 # #458 — Motion Studio integration checkpoint
 
+## Live Combat Review checkpoint — 2026-08-31, work continues
+
+The studio now exposes **Combat Review** with independent A/B choices across all
+ten human loadouts and six existing creature definitions, shared playback,
+scrubbing, spacing/facing, per-actor calibration and motion framing. Commits
+`870801c7` and `1cf621bb` install the controller/panel and native studio glue;
+`77570a22` adds explicitly labeled source hit/death candidates only to combat
+actors. Solo human actions, equipment and raw motion mode remain unchanged.
+Responses are currently **manual timing cues, not measured hits**. Measured
+contact, projectile/spell trajectories, approach/recovery and prop interactions
+are subsequent unfinished phases, not features implied by the selector.
+
+Independent review caught and verified fixes for Play being cancelled by an
+aborted camera survey and omitted two-hand constraints during framing.
+`1f68c327` makes numeric placement update immediately without duplicate blur
+commits. `d1246586` shares native image decoding across review loaders after the
+actual in-app GLTF bitmap/blob path failed for both original 8192-pixel boss
+textures. Texture bytes are unchanged; missing declared textures now fail the
+load before creating a misleading untextured actor. This policy is for current
+embedded/same-origin assets, not a custom-header authentication guarantee.
+
+Fresh checks: 74 loader/actual-mob/human tests plus typecheck; build and release
+verification pass. The prior full-suite checkpoint was 52 files / 451 tests;
+it predates the last response/loader additions and is not presented as their
+full-suite result. No ESLint configuration exists. Native review verified both
+textured bosses together, immediate 3.85 m separation and facing edits, and
+Frame-motion cancellation followed by playback advancing to its terminal frame.
+No new error was logged after the corrected build. Boss source rig/grounding/
+choreography defects remain visible and unapproved.
+
+The base pilot is still the only newly installed creature animation export.
+Oathbound anatomy-specific arm-pivot/skin correction, the remaining variants and
+both bosses remain in the independent repair loop. `19deb972` adds reusable
+licensed prop intake tooling; an external Tree V3 candidate fixes reduced-mesh
+fork cracks but has not been installed or accepted for climbing. Source foliage
+fidelity and real interaction behavior remain to be checked. No paid operation,
+dungeon promotion, push, merge, deployment or issue closure occurred.
+
 ## Active owner goal — expanded 2026-08-31
 
 The owner has requested continued implementation, not a stop after the base
