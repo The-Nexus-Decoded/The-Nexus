@@ -5,6 +5,7 @@ import { resolveReviewContact, type ReviewContactResolution } from "./combat-rev
 import { reviewContactProfile, type ReviewContactProfile } from "./combat-review-contact-profiles";
 import { ReviewContactSurface } from "./combat-review-contact";
 import { createReviewProjectiles, reviewProjectileBinding, type ReviewProjectiles } from "./combat-review-projectiles";
+import { validateReviewImpactSurface } from "./combat-review-impact-anchor";
 import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewEvent, ReviewProjectileFlight, ReviewSequence, ReviewTrack } from "./combat-review-types";
 
 export type CombatSlot = "a" | "b";
@@ -192,6 +193,9 @@ export class CombatReviewController {
           && result.event!.timeSeconds >= flight.releaseSeconds && result.event!.timeSeconds <= flight.endSeconds)) {
           throw new Error("Measured projectile emission does not match the current visible flight.");
         }
+        if (result.status === "contact" && result.event) {
+          validateReviewImpactSurface(this.actor(opposite(this.attacker))!, result.event);
+        }
       }
       this.contactResult = structuredClone(result);
       if (result.status === "contact" && result.event) {
@@ -375,7 +379,8 @@ export class CombatReviewController {
     if (binding) {
       try {
         sampleReviewPoses(attackSlot.handle!.actor, [{ actionId: attack.id, timeSeconds: binding.releaseSeconds, weight: 1 }], attackSlot.handle!.settleConstraints);
-        this.projectiles = createReviewProjectiles(attackSlot.handle!.actor, attack.id, binding);
+        this.projectiles = createReviewProjectiles(attackSlot.handle!.actor, attack.id, binding,
+          { target: defenderSlot.handle!.actor, impacts: events });
         this.projectileError = this.projectiles.probe.unavailableReason ?? null;
         // The group contains only owned fluid VFX, never borrowed arrow assets.
         if (this.projectiles.root.children.length) this.root.add(this.projectiles.root);

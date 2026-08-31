@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { BOW_PROJECTILE_MOTION } from "./human-review-catalog.js";
 import { createReviewMeshProbe, type ReviewMeshProbe } from "./combat-review-probes";
 import { reviewRenderedVertexIndices, sampleReviewMeshVertices } from "./combat-review-contact";
+import { createReviewImpactAttachment, type ReviewImpactAttachment } from "./combat-review-impact-anchor";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./combat-review-types";
 
 export const REVIEWED_BASE_SHA = "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217";
@@ -70,11 +71,18 @@ export interface ReviewProjectiles {
   projectileIdForProbe(probeId: string): string | undefined;
   dispose(): void;
 }
-interface VisualFlight { flight: ReviewProjectileFlight; visual: THREE.Object3D; quaternion: THREE.Quaternion; probe: ReviewMeshProbe }
+interface VisualFlight {
+  flight: ReviewProjectileFlight; visual: THREE.Object3D; quaternion: THREE.Quaternion; probe: ReviewMeshProbe;
+  impact?: ReviewEvent; impactSeconds?: number; attachment?: ReviewImpactAttachment; attachmentError?: string;
+}
 
 /** Call after the shared clock samples the exact emission pose. No asset loader or actor copy. */
 export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: string,
-  timing: { releaseSeconds: number; endSeconds: number }): ReviewProjectiles {
+  timing: { releaseSeconds: number; endSeconds: number }, context?: {
+    target: ReviewActorAdapter;
+    /** Immutable-at-construction measured events; later update arguments cannot redirect an attachment. */
+    impacts: readonly ReviewEvent[];
+  }): ReviewProjectiles {
   const binding = reviewProjectileBinding(actor, actionId), root = new THREE.Group();
   root.name = `review-projectiles:${actor.instanceId}`;
   const rows: VisualFlight[] = [], resources: Array<{ dispose(): void }> = [];
@@ -131,6 +139,27 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       } else reason = "Spit requires a forward-facing emission and uniform actor scale; not a miss.";
     } else reason = "Pinned visible mouth vertices or head are missing; not a miss.";
   }
+  if (context) for (const row of rows) {
+    const hits = context.impacts.filter((event) => event.kind === "contact" && event.result === "hit"
+      && event.projectileId === row.flight.id);
+    if (!hits.length) continue;
+    const candidate = hits[0]!;
+    row.impact = structuredClone(candidate);
+    const timeInFlight = Number.isFinite(candidate.timeSeconds) && candidate.timeSeconds >= row.flight.releaseSeconds
+      && candidate.timeSeconds <= row.flight.endSeconds;
+    // Invalid receipts become visible failures at release without perturbing
+    // the authored pre-release projectile pose.
+    row.impactSeconds = timeInFlight ? candidate.timeSeconds : row.flight.releaseSeconds;
+    try {
+      if (hits.length !== 1 || candidate.actorId !== row.flight.actorId || !timeInFlight) {
+        throw new Error("Measured projectile impact is ambiguous or outside its fixed flight.");
+      }
+      row.attachment = createReviewImpactAttachment({ target: context.target, event: candidate,
+        projectilePosition: sampleReviewProjectileFlight(row.flight, candidate.timeSeconds),
+        projectileQuaternion: row.quaternion });
+      row.impact = row.attachment.event;
+    } catch (error) { row.attachmentError = error instanceof Error ? error.message : String(error); }
+  }
   const flights = Object.freeze(rows.map((row) => row.flight));
   const probe: ReviewMeshProbe = { vertexCount: rows.reduce((sum, row) => sum + row.probe.vertexCount, 0),
     unavailableReason: rows.length ? undefined : reason,
@@ -148,16 +177,29 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
         if (!valid) throw new DOMException("Borrowed arrow emission changed during contact sampling", "AbortError");
       }
       for (const row of rows) {
-        const impact = impacts.filter((event) => event.kind === "contact" && event.result === "hit" && event.projectileId === row.flight.id
-          && event.timeSeconds >= row.flight.releaseSeconds && event.timeSeconds <= timeSeconds).sort((a, b) => a.timeSeconds - b.timeSeconds)[0];
-        row.visual.visible = timeSeconds >= row.flight.releaseSeconds && timeSeconds <= row.flight.endSeconds;
-        const world = sampleReviewProjectileFlight(row.flight, impact?.timeSeconds ?? timeSeconds);
-        row.visual.position.copy(row.visual.parent ? row.visual.parent.worldToLocal(world) : world);
+        const impact = context ? row.impact : impacts.filter((event) => event.kind === "contact" && event.result === "hit"
+          && event.projectileId === row.flight.id && event.timeSeconds >= row.flight.releaseSeconds
+          && event.timeSeconds <= timeSeconds).sort((a, b) => a.timeSeconds - b.timeSeconds)[0];
+        const impacted = Boolean(impact && timeSeconds >= (context ? row.impactSeconds! : impact.timeSeconds));
+        row.visual.visible = timeSeconds >= row.flight.releaseSeconds && (timeSeconds <= row.flight.endSeconds || impacted);
+        if (impacted && row.attachmentError) {
+          row.visual.visible = false;
+          throw new Error(`Projectile attachment unavailable: ${row.attachmentError}`);
+        }
+        let world = sampleReviewProjectileFlight(row.flight, impacted ? impact!.timeSeconds : timeSeconds);
+        let worldQuaternion = row.quaternion;
+        if (impacted && row.attachment) {
+          try {
+            const pose = row.attachment.sample(); world = pose.position; worldQuaternion = pose.quaternion;
+          } catch (error) { row.visual.visible = false; throw error; }
+        }
+        row.visual.position.copy(row.visual.parent ? row.visual.parent.worldToLocal(world.clone()) : world);
         const parentQ = row.visual.parent?.getWorldQuaternion(new THREE.Quaternion()).invert() ?? new THREE.Quaternion();
-        row.visual.quaternion.copy(parentQ.multiply(row.quaternion)); row.visual.updateMatrixWorld(true);
+        row.visual.quaternion.copy(parentQ.multiply(worldQuaternion)); row.visual.updateMatrixWorld(true);
       }
     },
     projectileIdForProbe: (id) => rows.find((row) => id.startsWith(row.flight.id + "|"))?.flight.id,
-    dispose() { if (disposed) return; disposed = true; root.removeFromParent(); root.clear(); resources.forEach((resource) => resource.dispose()); },
+    dispose() { if (disposed) return; disposed = true; rows.forEach((row) => row.attachment?.dispose());
+      root.removeFromParent(); root.clear(); resources.forEach((resource) => resource.dispose()); },
   };
 }

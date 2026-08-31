@@ -8,6 +8,7 @@ import type { ReviewAction, ReviewActorAdapter } from "../src/review/weapon-lab/
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
 import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
+import { sampleReviewMeshVertices } from "../src/review/weapon-lab/combat-review-contact";
 import type { ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
 import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 // @ts-expect-error Real public-source JS factory; image decoding alone is stubbed below.
@@ -546,11 +547,28 @@ describe("Combat Review visible ranged sequence", () => {
     expect(result?.status, result?.evidence).toBe("contact");
     const event = result!.event!, after = (event.timeSeconds + flights[0]!.endSeconds) / 2;
     expect(event.projectileId).toBeTruthy(); expect(value.snapshot().contact.response).toBe("reaction");
+    const hitIndex = flights.findIndex((flight) => flight.id === event.projectileId);
+    expect(hitIndex).toBeGreaterThanOrEqual(0); expect(event.surfaceAnchor).toBeTruthy();
+    const anchor = event.surfaceAnchor!, target = value.actor("b")!;
+    const targetMesh = target.model.getObjectByProperty("uuid", anchor.meshId) as THREE.Mesh;
+    value.seek(event.timeSeconds);
+    const fixedImpact = sampleReviewProjectileFlight(flights[hitIndex]!, event.timeSeconds);
+    const impactWorld = actor.projectile.visuals[hitIndex]!.getWorldPosition(new THREE.Vector3());
+    // The deformed-triangle replay differs from the resolver's fixed-flight
+    // sample only by float32 skinning noise at the exact impact frame.
+    expect(impactWorld.distanceTo(fixedImpact)).toBeLessThan(1e-5);
+    const rigidOffset = impactWorld.distanceTo(new THREE.Vector3().fromArray(event.position!));
     value.seek(after);
     flights.forEach((flight, index) => {
-      const expected = sampleReviewProjectileFlight(flight, flight.id === event.projectileId ? event.timeSeconds : after);
+      if (index === hitIndex) return;
+      const expected = sampleReviewProjectileFlight(flight, after);
       expect(actor.projectile.visuals[index]!.getWorldPosition(new THREE.Vector3()).distanceTo(expected)).toBeLessThan(1e-7);
     });
+    const movedImpact = actor.projectile.visuals[hitIndex]!.getWorldPosition(new THREE.Vector3());
+    const currentTriangle = sampleReviewMeshVertices(targetMesh, anchor.vertexIndices), currentAnchor = new THREE.Vector3();
+    currentTriangle.forEach((point, corner) => currentAnchor.addScaledVector(point, anchor.barycentric[corner]!));
+    expect(movedImpact.distanceTo(currentAnchor)).toBeCloseTo(rigidOffset, 6);
+    expect(movedImpact.distanceTo(fixedImpact)).toBeGreaterThan(1e-4);
     const beforeHit = (flights[0]!.releaseSeconds + event.timeSeconds) / 2;
     value.seek(beforeHit);
     flights.forEach((flight, index) => expect(actor.projectile.visuals[index]!.getWorldPosition(new THREE.Vector3())
@@ -568,6 +586,26 @@ describe("Combat Review visible ranged sequence", () => {
     expect(value.sequence()!.events.every((entry) => entry.kind === "release" && entry.result === "unmeasured")).toBe(true);
     value.setAction("a", "action", value.snapshot().slots[0]!.selected.ready);
     expect(dispose).not.toHaveBeenCalled(); expect(value.snapshot().projectiles.bound).toBe(false);
+  }, 30_000);
+
+  it.each(["missing", "topology"] as const)("rejects a current-flight contact with an invalid %s surface receipt before response scheduling", async (corruption) => {
+    const factory = realHumanFactory();
+    const value = controller(async ({ instanceId, definition }) => ({ actor: await factory.create({ instanceId,
+      loadoutId: definition.id === "human-sword" ? "bow" : "longswordTwoHand", includeSourceResponses: true }) }),
+    undefined, async (request) => {
+      const measured = await resolveReviewContact(request);
+      expect(measured.status, measured.evidence).toBe("contact");
+      const event = corruption === "missing"
+        ? { ...measured.event!, surfaceAnchor: undefined }
+        : { ...measured.event!, surfaceAnchor: { ...measured.event!.surfaceAnchor!, geometryId: "wrong-current-geometry" } };
+      return { ...measured, event };
+    });
+    await value.enter(); value.setPlacement({ separationMeters: 3 }); value.setAction("a", "action", BOW_RELEASE_NAME);
+    const result = await value.resolveContact({ response: "reaction" });
+    expect(result?.status).toBe("unavailable");
+    expect(result?.evidence).toMatch(corruption === "missing" ? /surface anchor/ : /mesh or geometry/);
+    expect(value.snapshot().contact.response).toBe("none");
+    expect(value.sequence()!.events.every((event) => event.kind === "release" && event.result === "unmeasured")).toBe(true);
   }, 30_000);
 
   it("recaptures real emission after per-actor calibration and ignores a stale pending scan", async () => {
