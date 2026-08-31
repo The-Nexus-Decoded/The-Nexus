@@ -5,21 +5,47 @@ import { describe, expect, it } from "vitest";
 import { parseGlb } from "../scripts/replace-glb-animation.mjs";
 
 const catalog = JSON.parse(readFileSync(new URL("../src/review/weapon-lab/review-prop-catalog.json", import.meta.url)));
-const licenses = JSON.parse(readFileSync(new URL("../third-party-assets.json", import.meta.url))).shippingAssets;
+const ledger = JSON.parse(readFileSync(new URL("../third-party-assets.json", import.meta.url)));
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 describe("actual reviewed interaction prop intake", () => {
-  it("pins every local-only asset and ties its identity to licensed provenance", () => {
+  it("pins every asset and separates licensed intake from uncleared local inspection candidates", () => {
     expect(catalog.scope).toContain("not interaction or dungeon approval");
     for (const asset of catalog.assets) {
       expect(asset.url).toMatch(/^\/assets\/weapon-lab\/props\/[\w-]+\.glb$/);
       const file = new URL(`../public${asset.url}`, import.meta.url), bytes = readFileSync(file);
       expect(bytes.length).toBe(asset.bytes); expect(hash(bytes)).toBe(asset.sha256);
-      expect(licenses.find((entry) => entry.path === `public${asset.url}`)).toMatchObject({
-        sha256: asset.sha256, license: asset.license, licenseUrl: asset.licenseUrl, author: asset.author,
-      });
-      expect(asset.approvalStatus).toBe("static-reviewed"); expect(asset.remainingGates.length).toBeGreaterThan(0);
+      const path = `public${asset.url}`, licensed = ledger.shippingAssets.find((entry) => entry.path === path);
+      const candidate = ledger.localReviewCandidates.find((entry) => entry.path === path);
+      if (asset.approvalStatus === "inspection-draft") {
+        expect(licensed).toBeUndefined();
+        expect(candidate).toMatchObject({sha256:asset.sha256,sourcePath:asset.sourcePath,sourceSha256:asset.sourceSha256});
+        expect(candidate.usage).toContain("Local Motion Studio inspection only");
+        expect(candidate.license).toContain("not independently recovered");
+        expect(asset.license).toContain("not distribution clearance");expect(asset.licenseUrl).toBe("");
+        expect(asset.remainingGates).toContain("original provider account receipt");
+        const source = readFileSync(new URL(`../${asset.sourcePath}`,import.meta.url));
+        expect(hash(source)).toBe(asset.sourceSha256);
+      } else {
+        expect(candidate).toBeUndefined();expect(asset.approvalStatus).toBe("static-reviewed");
+        expect(licensed).toMatchObject({sha256:asset.sha256,license:asset.license,licenseUrl:asset.licenseUrl,author:asset.author});
+      }
+      expect(asset.remainingGates.length).toBeGreaterThan(0);
     }
+  });
+  it("keeps the original chest source and embedded PBR bytes while articulating real source subsets", () => {
+    const asset=catalog.assets.find((entry)=>entry.id==="iron-bound-chest-draft");
+    const source=parseGlb(fileURLToPath(new URL(`../${asset.sourcePath}`,import.meta.url)));
+    const candidate=parseGlb(fileURLToPath(new URL(`../public${asset.url}`,import.meta.url)));
+    expect(candidate.bin.subarray(0,source.bin.length).equals(source.bin)).toBe(true);
+    for(const key of ["images","textures","samplers","materials"]) expect(candidate.json[key]).toEqual(source.json[key]);
+    expect(candidate.json.meshes.map((mesh)=>mesh.name)).toEqual(["chest-body","chest-lid","chest-hasp"]);
+    expect(candidate.json.animations??[]).toEqual([]);expect(candidate.json.skins??[]).toEqual([]);
+    const triangles=candidate.json.meshes.flatMap((mesh)=>mesh.primitives).reduce((total,p)=>total+candidate.json.accessors[p.indices??p.attributes.POSITION].count/3,0);
+    expect(triangles).toBe(8482);expect(triangles).toBe(asset.triangleCount);
+    for(const joint of asset.joints) expect(candidate.json.nodes.filter((node)=>node.name===joint.node)).toHaveLength(1);
+    expect(candidate.json.nodes.find((node)=>node.name==="chest-lid-hinge").children).toHaveLength(2);
+    expect(candidate.json.nodes.find((node)=>node.name==="chest-hasp-hinge").children).toHaveLength(1);
   });
   it("retains the real tree geometry, complete embedded PBR sets and original cutout foliage bytes", () => {
     const asset = catalog.assets.find((entry) => entry.id === "tree-small-02");
