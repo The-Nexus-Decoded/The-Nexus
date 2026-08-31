@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { splitPolygon, type ClipPlane, type PolygonVertex } from "../geometry/clipPropPolygon.ts";
 
 export const HEAVY_DUNGEON_DOOR_FRAME_LIMITS = Object.freeze({
   side: 0.84,
@@ -40,16 +41,6 @@ export function isHeavyDungeonDoorFrameTriangle(
     || y <= HEAVY_DUNGEON_DOOR_FRAME_LIMITS.bottom;
 }
 
-interface PolygonVertex {
-  attributes: Record<string, number[]>;
-}
-
-interface ClipPlane {
-  axis: 1 | 2;
-  boundary: number;
-  keepGreater: boolean;
-}
-
 interface GeometryBuilder {
   values: Record<string, number[]>;
   groups: GeometryGroupRange[];
@@ -66,44 +57,6 @@ function attributeComponent(
   if (component === 2) return attribute.getZ(index);
   if (component === 3) return attribute.getW(index);
   throw new Error(`Unsupported heavy dungeon door attribute width ${attribute.itemSize}`);
-}
-
-function interpolateVertex(left: PolygonVertex, right: PolygonVertex, alpha: number): PolygonVertex {
-  const attributes: Record<string, number[]> = {};
-  Object.entries(left.attributes).forEach(([name, leftValues]) => {
-    const rightValues = right.attributes[name]!;
-    attributes[name] = leftValues.map((value, index) => (
-      THREE.MathUtils.lerp(value, rightValues[index]!, alpha)
-    ));
-  });
-  return { attributes };
-}
-
-function splitPolygon(
-  polygon: PolygonVertex[],
-  plane: ClipPlane,
-): { inside: PolygonVertex[]; outside: PolygonVertex[] } {
-  const inside: PolygonVertex[] = [];
-  const outside: PolygonVertex[] = [];
-  const coordinate = (vertex: PolygonVertex): number => vertex.attributes.position![plane.axis]!;
-  const isInside = (value: number): boolean => (
-    plane.keepGreater ? value >= plane.boundary : value <= plane.boundary
-  );
-  for (let index = 0; index < polygon.length; index += 1) {
-    const current = polygon[index]!;
-    const next = polygon[(index + 1) % polygon.length]!;
-    const currentCoordinate = coordinate(current);
-    const nextCoordinate = coordinate(next);
-    const currentInside = isInside(currentCoordinate);
-    const nextInside = isInside(nextCoordinate);
-    (currentInside ? inside : outside).push(current);
-    if (currentInside === nextInside) continue;
-    const alpha = (plane.boundary - currentCoordinate) / (nextCoordinate - currentCoordinate);
-    const intersection = interpolateVertex(current, next, alpha);
-    inside.push(intersection);
-    outside.push(intersection);
-  }
-  return { inside, outside };
 }
 
 function normalizeCleanedDoorVertex(
