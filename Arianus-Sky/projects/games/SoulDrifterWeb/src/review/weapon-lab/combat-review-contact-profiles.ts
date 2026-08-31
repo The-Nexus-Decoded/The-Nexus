@@ -4,6 +4,7 @@ import { reviewRenderedVertexIndices, sampleReviewMeshVertices } from "./combat-
 import type { ReviewActorAdapter } from "./combat-review-types";
 import { REVIEWED_BASE_SHA as BASE_SHA, reviewActorSourceSha as sourceSha, reviewProjectileBinding,
   type ReviewProjectileEmitter } from "./combat-review-projectiles";
+import { REVIEWED_MOB_RECEIPTS } from "./reviewed-mob-receipt";
 
 export type ReviewStrikeSurface =
   | { readonly kind: "indexed"; readonly meshName: string; readonly vertices: readonly number[] }
@@ -32,19 +33,26 @@ const BASE_STRIKES = {
   TailWhip: { start: 2.90, end: 3.85, vertices: [36325], phase: "tail load → followthrough" },
 } as const;
 
+const REVIEWED_STRIKE_SOURCES = {
+  "breachling-base": { sha256: BASE_SHA, revision: "base-continuous-v5", strikes: BASE_STRIKES },
+  "breachling-oathbound": { sha256: REVIEWED_MOB_RECEIPTS.oathbound!.sha256, revision: "oathbound-lunge-v1",
+    strikes: { LungeAttack: { start: 0.52, end: 0.66, vertices: [12002, 1], phase: "airborne reach → both-claw contact" } } },
+} as const;
+
 export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string, options: { projectiles?: boolean } = {}): ReviewContactProfile | null {
   const projectile = options.projectiles ? reviewProjectileBinding(actor, actionId) : null;
   if (projectile) return { id: `${projectile.emitter}:${actionId}`, actionId,
     startSeconds: projectile.releaseSeconds, endSeconds: projectile.endSeconds,
     surface: { kind: "projectile", emitter: projectile.emitter }, evidence: projectile.evidence,
     definitionId: actor.definitionId, assetSha256: sourceSha(actor) };
-  if (actor.definitionId !== "breachling-base" || sourceSha(actor) !== BASE_SHA) return null;
-  const strike = BASE_STRIKES[actionId as keyof typeof BASE_STRIKES];
+  const source = REVIEWED_STRIKE_SOURCES[actor.definitionId as keyof typeof REVIEWED_STRIKE_SOURCES];
+  if (!source || sourceSha(actor) !== source.sha256) return null;
+  const strike = (source.strikes as Partial<Record<string, { start: number; end: number; vertices: readonly number[]; phase: string }>>)[actionId];
   if (!strike) return null;
-  return { id: `base-continuous-v5:${actionId}`, actionId, startSeconds: strike.start, endSeconds: strike.end,
-    definitionId: actor.definitionId, assetSha256: BASE_SHA,
+  return { id: `${source.revision}:${actionId}`, actionId, startSeconds: strike.start, endSeconds: strike.end,
+    definitionId: actor.definitionId, assetSha256: source.sha256,
     surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [...strike.vertices] },
-    evidence: `continuous-v5 1ddbd4e5 author key interval: ${strike.phase}; sampled mesh contact required` };
+    evidence: `${source.revision} ${source.sha256.slice(0, 8)} author key interval: ${strike.phase}; sampled mesh contact required` };
 }
 
 export function validateReviewContactProfile(actor: ReviewActorAdapter, profile: ReviewContactProfile): void {
