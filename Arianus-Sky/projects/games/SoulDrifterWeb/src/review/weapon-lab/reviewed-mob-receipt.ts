@@ -54,12 +54,12 @@ export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
     neutralHolds: ["Idle", "CombatIdle"],
   },
   oathbound: {
-    variant: "oathbound", url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-v1.glb",
+    variant: "oathbound", url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-v1.glb",
     runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
-    bytes: 10739716,
-    sha256: "c16472e5c0c7c084b90a04359717f77913c783a0d7537c6fb6b60adf740ef8d8",
+    bytes: 10818268,
+    sha256: "32e4875b377bddb03cc4fb0fb20d0215c0174c549f4033d7ff3b3186b09b13b4",
     runtimeScale: 2.05656927752596,
-    actions: ["LungeAttack"],
+    actions: ["LungeAttack", "SpitAttack"],
     neutralHolds: ["Idle", "CombatIdle"],
   },
 });

@@ -464,7 +464,7 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.checksumVerified).toBe(false);
   }, 20_000);
 
-  it("distinguishes neutral holds, revised motion and untouched source clips, and hides only the revised solo-stage spit projectile", async () => {
+  it("distinguishes neutral holds, revised motion and untouched source clips, and hides revised solo-stage spit projectiles", async () => {
     const { stage: value, scene } = stage();
     await value.select("breachling-base");
     expect(value.actionLabel("Idle")).toContain("approved neutral hold");
@@ -488,11 +488,11 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.actionLabel("LungeAttack")).toContain("revised motion");
     expect(value.actionLabel("Walk")).toContain("source · not revised");
     expect(value.actionLabel("RecieveHit")).toContain("source · not revised");
-    expect(value.actionLabel("SpitAttack")).toContain("source · not revised");
+    expect(value.actionLabel("SpitAttack")).toContain("revised motion · projectile pending");
     value.setAction("SpitAttack");
     value.pose(0.5);
     value.update(0);
-    expect(scene.getObjectByName("studio:breachling-oathbound:poison-spit")?.visible).toBe(true);
+    expect(scene.getObjectByName("studio:breachling-oathbound:poison-spit")?.visible).toBe(false);
   }, 20_000);
 
   it.each([
@@ -590,12 +590,12 @@ describe("Per-variant review-only receipt intake", () => {
     expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
       sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
     expect(REVIEWED_MOB_RECEIPTS.oathbound).toMatchObject({
-      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-v1.glb",
+      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-v1.glb",
       runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
-      bytes: 10739716,
-      sha256: "c16472e5c0c7c084b90a04359717f77913c783a0d7537c6fb6b60adf740ef8d8",
+      bytes: 10818268,
+      sha256: "32e4875b377bddb03cc4fb0fb20d0215c0174c549f4033d7ff3b3186b09b13b4",
       runtimeScale: 2.05656927752596,
-      actions: ["LungeAttack"], neutralHolds: ["Idle", "CombatIdle"],
+      actions: ["LungeAttack", "SpitAttack"], neutralHolds: ["Idle", "CombatIdle"],
     });
     for (const patch of [
       { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },
