@@ -9,8 +9,6 @@
 .combat-review .select-field { grid-template-columns: 74px minmax(0, 1fr); }
 .combat-review select { width: 100%; min-width: 0; text-overflow: ellipsis; }
 .combat-review .combat-number { display: grid; grid-template-columns: 89px minmax(0, 1fr) 44px; gap: 8px; align-items: center; }
-.combat-review input[type="number"] { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px;
-  color: var(--studio-ink, #eee9dd); background: var(--studio-input, #242a30); border: 1px solid var(--studio-line, #394047); border-radius: 4px; }
 .combat-review output { overflow-wrap: anywhere; }
 .combat-review .combat-check { display: flex; gap: 9px; align-items: center; min-height: 36px; }
 .combat-review .combat-check input { width: 16px; height: 16px; margin: 0; }

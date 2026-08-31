@@ -38,6 +38,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 }
 input[type="range"] { min-height: 36px; margin: 0; accent-color: var(--studio-copper); cursor: pointer; }
 input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--studio-mint); cursor: pointer; }
+.panel input[type="number"] { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px;
+  color: var(--studio-ink); background: var(--studio-input); border: 1px solid var(--studio-line); border-radius: 4px; }
 output { color: var(--studio-copper); text-align: right; font: 11px/1.2 Consolas, monospace; font-variant-numeric: tabular-nums; }
 a { color: var(--studio-copper); text-underline-offset: 3px; }
 kbd { color: var(--studio-muted); font: 10px Consolas, monospace; border: 1px solid var(--studio-line); border-radius: 3px; padding: 1px 4px; }
@@ -127,7 +129,7 @@ summary::marker { color: var(--studio-copper); font-size: 10px; }
   .studio-subtitle { display: none; }
   .studio-card { margin: 0 8px 8px; }
   .studio-footer { padding-right: 14px; padding-left: 14px; }
-  select { font-size: 16px; }
+  select, .panel input[type="number"] { font-size: 16px; }
   .show-studio { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); right: 12px; }
   .show-studio kbd, .quiet-button kbd { display: none; }
 }

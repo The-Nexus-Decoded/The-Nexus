@@ -10,6 +10,7 @@ import { staffUsesSupportHand } from "./staff-grip.js";
 import { MobsPanel } from "./mobs-panel.ts";
 import { createCombatReviewStudio } from "./combat-review-studio.js";
 import { createReviewShadowRig } from "./review-shadow-rig.ts";
+import { ReviewPropsPanel } from "./review-props-panel.ts";
 
 const LIVE_CALIBRATION_URL = "./assets/weapon-lab/live-calibration.json";
 const LIVE_CALIBRATION_ENABLED = import.meta.env.DEV
@@ -167,6 +168,7 @@ function updateReviewControls() {
   document.querySelector("#studioPlayback").hidden = combatMode;
   document.querySelector("#studioSelectionSummary").hidden = combatMode;
   document.querySelector("#combatReview").hidden = !combatMode;
+  document.querySelector("#reviewProps").hidden = !combatMode;
   catalogActivityRow.hidden = !catalogMode;
   catalogLocomotionRow.hidden = !locomotionCatalog;
   catalogWeaponRow.hidden = !weaponCatalog;
@@ -250,6 +252,7 @@ let actor;
 const humanFactory = createHumanReviewActorFactory({ maxAnisotropy: renderer.capabilities.getMaxAnisotropy() });
 let mobsPanel = null;
 let combatStudio = null;
+let propsPanel = null;
 let humanActionBeforeMobs = null;
 let playing = true;
 let loadoutRevision = 0;
@@ -995,6 +998,7 @@ function rebuildWithErrorBoundary() {
 
 async function changeReviewMode() {
   updateReviewControls();
+  propsPanel?.setActive(isCombatMode());
   if (isMobsMode() || isCombatMode()) {
     if (!mobsPanel?.active && !combatStudio?.active) {
       humanActionBeforeMobs = actor?.action?.getClip().name;
@@ -1023,7 +1027,7 @@ async function changeReviewMode() {
             usableHeight: panel.hidden || !bottomSheet ? innerHeight : Math.max(180, rect.top - 16) };
         }, onSnapshot: (snapshot) => {
           if (!isCombatMode()) return;
-          status.textContent = ["Combat Review · manual timing, not measured contact",
+          status.textContent = ["Combat Review · shared timeline, measured contact and explicit manual cues",
             ...snapshot.slots.map((slot) => `${slot.slot.toUpperCase()}: ${slot.definitionId} · ${slot.status}${slot.error ? ` · ${slot.error}` : ""}`),
             `time=${(snapshot.frame?.timeSeconds ?? 0).toFixed(2)} / ${snapshot.durationSeconds.toFixed(2)}s`,
             "No gameplay damage, loot or target reactions are inferred from a timer.", snapshot.error ?? ""].filter(Boolean).join("\n");
@@ -1031,6 +1035,11 @@ async function changeReviewMode() {
           window.__combatReview = combatStudio;
         }, onError: (error) => { status.textContent = `COMBAT REVIEW ERROR\n${String(error)}`; },
       });
+      if (!propsPanel) {
+        propsPanel = new ReviewPropsPanel({ onFrameBounds: (bounds) => combatStudio.frameBounds(bounds) });
+        scene.add(propsPanel.root); document.querySelector("#reviewProps").append(propsPanel.element);
+      }
+      propsPanel.setActive(true);
       await combatStudio.enter();
     } else {
       combatStudio?.leave(); ground.scale.set(1, 1, 1); controls.maxDistance = 14; camera.far = 40;
@@ -1227,6 +1236,7 @@ function releaseRenderer() {
   renderer.setAnimationLoop(null);
   studioResizeObserver.disconnect();
   combatStudio?.dispose();
+  propsPanel?.dispose();
   mobsPanel?.dispose();
   humanFactory.dispose();
   shadowRig.dispose();

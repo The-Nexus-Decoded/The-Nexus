@@ -24,7 +24,7 @@ const selectorNames = ["actionSelect", "weaponSetSelect", "reviewModeSelect", "c
 function element() {
   const listeners = new Map();
   return { hidden: false, disabled: false, value: "", textContent: "", options: [], listeners,
-    classList: { toggle: vi.fn() }, addEventListener: (type, listener) => listeners.set(type, listener) };
+    append: vi.fn(), classList: { toggle: vi.fn() }, addEventListener: (type, listener) => listeners.set(type, listener) };
 }
 
 function modeHarness() {
@@ -41,7 +41,7 @@ function modeHarness() {
     ...Object.fromEntries(selectorNames.map((name) => [name, element()])),
     scene, camera: {}, controls: {}, status: element(), playButton: element(),
     ground: { scale: new THREE.Vector3(1, 1, 1) }, humanFactory: {}, document: { querySelector: () => element() },
-    combatStudio: null, window: {},
+    combatStudio: null, propsPanel: null, window: {},
     actor: { root: humanRoot, model, action: { paused: false, getClip: () => ({ name: "BowEquipFromBack" }) },
       sockets: [{ socket: attachedSocket }, { socket: transferSocket }], projectile: { visuals: [projectile] } },
     humanActionBeforeMobs: null, loadoutRevision: 0, playing: false, followGrip: true, followFullBody: true,
@@ -54,8 +54,12 @@ function modeHarness() {
   context.isMobsMode = () => context.reviewModeSelect.value === "mobs";
   context.isCombatMode = () => context.reviewModeSelect.value === "combat";
   context.createCombatReviewStudio = vi.fn(() => ({ active: false,
+    frameBounds: vi.fn(),
     enter: vi.fn(async () => { context.combatStudio.active = true; }),
     leave: vi.fn(() => { context.combatStudio.active = false; }) }));
+  context.ReviewPropsPanel = vi.fn(function () {
+    return { root: new THREE.Group(), element: element(), setActive: vi.fn() };
+  });
   context.mobsPanel = { active: false,
     enter: vi.fn(async () => { context.mobsPanel.active = true; }),
     leave: vi.fn(() => { context.mobsPanel.active = false; }) };
@@ -69,15 +73,24 @@ describe("Motion Studio workspace lifecycle", () => {
     context.reviewModeSelect.value = "combat"; await change();
     expect(context.createCombatReviewStudio).toHaveBeenCalledOnce();
     expect(context.createCombatReviewStudio.mock.calls[0][0].humanFactory).toBe(context.humanFactory);
+    expect(context.ReviewPropsPanel).toHaveBeenCalledOnce();
+    expect(context.propsPanel.setActive).toHaveBeenLastCalledWith(true);
+    const bounds = new THREE.Box3();
+    context.ReviewPropsPanel.mock.calls[0][0].onFrameBounds(bounds);
+    expect(context.combatStudio.frameBounds).toHaveBeenCalledWith(bounds);
     expect(context.combatStudio.enter).toHaveBeenCalledOnce(); expect(context.mobsPanel.leave).toHaveBeenCalledOnce();
     expect(context.actor.root.visible).toBe(false); expect(context.ground.scale.toArray()).toEqual([2, 3, 1]);
     context.reviewModeSelect.value = "mobs"; await change();
     expect(context.combatStudio.leave).toHaveBeenCalledOnce(); expect(context.mobsPanel.enter).toHaveBeenCalledOnce();
+    expect(context.propsPanel.setActive).toHaveBeenLastCalledWith(false);
     expect(context.captureActiveActionCalibration).toHaveBeenCalledOnce();
     context.reviewModeSelect.value = "weapons"; await change();
     expect(context.actor.root.visible).toBe(true); expect(context.ground.scale.toArray()).toEqual([1, 1, 1]);
     expect(context.activateAction).toHaveBeenCalledWith("BowEquipFromBack");
     expect(context.controls.maxDistance).toBe(14); expect(context.camera.far).toBe(40);
+    context.reviewModeSelect.value = "combat"; await change();
+    expect(context.ReviewPropsPanel).toHaveBeenCalledOnce();
+    expect(context.propsPanel.setActive).toHaveBeenLastCalledWith(true);
   });
 
   it("hides detached human transfer sockets and released arrows as well as the model on mob entry", async () => {
@@ -171,10 +184,12 @@ describe("Motion Studio context-specific controls", () => {
       expect(node(id).hidden, id).toBe(true);
     }
     expect(node("combatReview").hidden).toBe(false); expect(context.weaponSetSelect.value).toBe("bow");
+    expect(node("reviewProps").hidden).toBe(false);
     expect(node("studioHint").textContent).toMatch(/not measured contact/);
     context.reviewModeSelect.value = "weapons"; refresh();
     expect(node("studioPlayback").hidden).toBe(false); expect(node("soloActionRow").hidden).toBe(false);
     expect(node("combatReview").hidden).toBe(true); expect(node("bowControls").hidden).toBe(false);
+    expect(node("reviewProps").hidden).toBe(true);
   });
 
   it("hides every human tuning section in mobs mode and exposes only creature tools", () => {
