@@ -1,4 +1,4 @@
-import { CombatReviewController, type CombatActionRole, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot } from "./combat-review-controller";
+import { CombatReviewController, type CombatActionRole, type CombatContactSnapshot, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot } from "./combat-review-controller";
 import type { ReviewAction } from "./combat-review-types";
 
 interface ActorFields {
@@ -31,14 +31,26 @@ export class CombatReviewPanel {
   private readonly loop: HTMLInputElement;
   private readonly durationNote: HTMLElement;
   private readonly evidence: HTMLElement;
+  private readonly measuredResponse: HTMLSelectElement;
+  private readonly measuredClip: HTMLSelectElement;
+  private readonly measuredClipRow: HTMLElement;
+  private readonly contactBinding: HTMLElement;
+  private readonly contactStatus: HTMLElement;
+  private readonly contactDetails: HTMLElement;
+  private readonly contactEvidence: HTMLElement;
+  private readonly scan: HTMLButtonElement;
+  private readonly jump: HTMLButtonElement;
+  private readonly scanContact: (response: CombatContactSnapshot["response"]) => Promise<unknown>;
   private readonly error: HTMLElement;
   private readonly unsubscribe: () => void;
   private lastRevision = -1;
 
   constructor(private readonly controller: CombatReviewController, options: {
     document?: Document; onFrameActors?: () => void; onFrameAction?: () => void;
+    onScanContact?: (response: CombatContactSnapshot["response"]) => Promise<unknown>;
   } = {}) {
     this.doc = options.document ?? document;
+    this.scanContact = options.onScanContact ?? ((response) => controller.resolveContact({ response }));
     this.element = this.node("section", "combat-review");
     this.element.setAttribute("aria-label", "Combat Review");
     const intro = this.node("p", "context-note", "Two independent actors · one review timeline. Source motions are not gameplay approval.");
@@ -49,7 +61,19 @@ export class CombatReviewPanel {
     this.options(this.attacker, [{ id: "a", label: "Actor A → Actor B" }, { id: "b", label: "Actor B → Actor A" }]);
     this.action = this.selectField(sequence, "Action", "action");
     this.durationNote = this.node("p", "context-note"); sequence.append(this.durationNote);
-    this.cue = this.selectField(sequence, "Response", "cue");
+    const contact = this.node("div", "combat-contact"); sequence.append(contact);
+    contact.append(this.node("h3", "", "Measured surface contact"));
+    this.contactBinding = this.node("p", "context-note"); contact.append(this.contactBinding);
+    this.measuredResponse = this.selectField(contact, "Next response", "contact-response");
+    this.measuredClip = this.selectField(contact, "Response clip", "contact-clip"); this.measuredClipRow = this.measuredClip.closest("label")!;
+    const contactButtons = this.node("div", "buttons");
+    this.scan = this.button("Scan contact", "contact-scan"); this.jump = this.button("Go to contact", "contact-jump");
+    contactButtons.append(this.scan, this.jump); contact.append(contactButtons);
+    this.contactStatus = this.node("p", "combat-evidence"); this.contactStatus.setAttribute("role", "status");
+    this.contactStatus.setAttribute("aria-live", "polite"); contact.append(this.contactStatus);
+    this.contactDetails = this.node("details"); this.contactDetails.append(this.node("summary", "", "Measurement details"));
+    this.contactEvidence = this.node("p", "context-note"); this.contactDetails.append(this.contactEvidence); contact.append(this.contactDetails);
+    this.cue = this.selectField(sequence, "Manual cue", "cue");
     this.response = this.selectField(sequence, "Clip", "response"); this.responseRow = this.response.closest("label")!;
     this.cueTimeRow = this.numberField(sequence, "Cue time", "cue-time", 0, 120, 0.01, "s");
     this.cueBlendRow = this.numberField(sequence, "Blend in", "cue-blend", 0, 1, 0.01, "s");
@@ -124,6 +148,15 @@ export class CombatReviewPanel {
       case "action": this.controller.setAction(snapshot.attacker, "action", value); break;
       case "cue": this.controller.setManualCue({ kind: value as CombatReviewSnapshot["cue"]["kind"] }); break;
       case "response": this.controller.setAction(defender, snapshot.cue.kind as CombatActionRole, value); break;
+      case "contact-response": this.renderContact(snapshot); break;
+      case "contact-clip": this.controller.setAction(defender, this.measuredResponse.value as CombatActionRole, value); break;
+      case "contact-scan":
+        if (snapshot.contact.status === "scanning") this.controller.setPlaying(false);
+        else void this.scanContact(this.measuredResponse.value as CombatContactSnapshot["response"]).catch((error) => {
+          if (!this.abort.signal.aborted) this.error.textContent = error instanceof Error ? error.message : String(error);
+        });
+        break;
+      case "contact-jump": if (snapshot.contact.result?.event) this.controller.seek(snapshot.contact.result.event.timeSeconds); break;
       case "cue-time": this.controller.setManualCue({ atSeconds: Number(value) }); break;
       case "cue-blend": this.controller.setManualCue({ blendSeconds: Number(value) }); break;
       case "separation": this.controller.setPlacement({ separationMeters: Number(value) }); break;
@@ -154,18 +187,21 @@ export class CombatReviewPanel {
       this.options(this.cue, [{ id: "none", label: "None · inspect motion only" },
         { id: "reaction", label: defender.selected.reaction ? "Reaction · manual cue" : "Reaction unavailable for this binding", disabled: !defender.selected.reaction },
         { id: "death", label: defender.selected.death ? "Death · manual cue" : "Death unavailable for this binding", disabled: !defender.selected.death }]);
-      this.cue.value = snapshot.cue.kind; this.cue.disabled = !snapshot.ready;
-      const hasCue = snapshot.cue.kind !== "none";
+      const hasCue = snapshot.cue.kind !== "none" && snapshot.contact.response === "none";
+      this.cue.value = hasCue ? snapshot.cue.kind : "none"; this.cue.disabled = !snapshot.ready;
       this.responseRow.hidden = this.cueTimeRow.hidden = this.cueBlendRow.hidden = !hasCue;
       this.actionOptions(this.response, defender.actions.filter((entry) => entry.semantic === snapshot.cue.kind),
         hasCue ? defender.selected[snapshot.cue.kind as "reaction" | "death"] : "");
       this.setNumber("cue-time", snapshot.cue.atSeconds); this.setNumber("cue-blend", snapshot.cue.blendSeconds);
       this.setNumber("separation", snapshot.placement.separationMeters);
       this.setNumber("yaw-a", snapshot.placement.yawADegrees); this.setNumber("yaw-b", snapshot.placement.yawBDegrees);
-      this.evidence.textContent = hasCue ? "Manual cue · not measured contact. This response previews timing only; it does not establish a hit, damage or gameplay synchronization."
-        : "No response cue. Contact is not measured in this sequence.";
       this.error.textContent = snapshot.error ?? "";
     } else for (const value of snapshot.slots) this.renderActor(value, true);
+    this.renderContact(snapshot);
+    this.evidence.textContent = snapshot.contact.response !== "none"
+      ? `Measured ${snapshot.contact.response} · begins at confirmed surface contact with a preserving blend. Review response only; no damage or health simulation.`
+      : snapshot.cue.kind !== "none" ? "Manual cue · not measured contact. This response previews timing only; it does not establish a hit, damage or gameplay synchronization."
+      : "No response cue. Scanning only schedules a response when one is explicitly selected and contact is confirmed.";
     this.play.disabled = this.restart.disabled = this.timeline.disabled = !snapshot.ready;
     this.play.textContent = snapshot.frame?.playing ? "Pause" : "Play";
     this.timeline.value = String(snapshot.frame?.normalizedTime ?? 0);
@@ -174,6 +210,34 @@ export class CombatReviewPanel {
     this.loop.checked = snapshot.frame?.loop ?? false;
     this.setNumber("speed", snapshot.frame?.speed ?? 1);
     if (snapshot.error) this.error.textContent = snapshot.error;
+  }
+  private renderContact(snapshot: CombatReviewSnapshot): void {
+    const defender = snapshot.slots.find((entry) => entry.slot !== snapshot.attacker)!;
+    const next = this.measuredResponse.value || "none";
+    this.options(this.measuredResponse, [{ id: "none", label: "None · measure only" },
+      { id: "reaction", label: defender.selected.reaction ? "Reaction on measured contact" : "Reaction clip unavailable", disabled: !defender.selected.reaction },
+      { id: "death", label: defender.selected.death ? "Death on measured contact · review only" : "Death clip unavailable", disabled: !defender.selected.death }]);
+    const kind = (next === "reaction" || next === "death") && defender.selected[next] ? next : "none";
+    this.measuredResponse.value = kind; this.measuredResponse.disabled = !snapshot.ready;
+    this.measuredClipRow.hidden = kind === "none";
+    this.actionOptions(this.measuredClip, defender.actions.filter((entry) => entry.semantic === kind), kind === "none" ? "" : defender.selected[kind]);
+    this.measuredClip.disabled = !snapshot.ready;
+    const profile = this.controller.contactProfile();
+    this.contactBinding.textContent = profile
+      ? `${profile.startSeconds.toFixed(3)}–${profile.endSeconds.toFixed(3)} s strike window · source-pinned visible strike points against actual target skin. Blocking equipment is not measured.`
+      : "No strike surface/window is bound to this action. Its motion remains available; ranged projectile and unbound source-action contact are not yet measured.";
+    const { status, result } = snapshot.contact;
+    const message = status === "scanning" ? "Scanning current poses… Pause, seek or change an actor setting to cancel."
+      : status === "contact" ? `Measured contact · ${result!.event!.timeSeconds.toFixed(3)} s · ${snapshot.contact.response === "none" ? "no response requested" : snapshot.contact.response + " scheduled"}.`
+      : status === "miss" ? "Measured miss · no eligible strike point reached target skin in the bound window. No response scheduled."
+      : status === "unavailable" ? `Contact unavailable · ${result!.evidence}`
+      : "Not measured · scan the current spacing, facing, ready pose and calibration. No hit is assumed.";
+    if (this.contactStatus.textContent !== message) this.contactStatus.textContent = message;
+    this.contactStatus.dataset.state = status;
+    this.scan.textContent = status === "scanning" ? "Cancel scan" : "Scan contact";
+    this.scan.disabled = !snapshot.ready; this.scan.setAttribute("aria-busy", String(status === "scanning"));
+    this.jump.disabled = status !== "contact"; this.contactDetails.hidden = !result;
+    this.contactEvidence.textContent = result ? `${result.evidence} ${result.event?.evidence ?? ""} ${result.samples} pose samples; ${result.sampleRate} Hz; ${(result.toleranceMeters * 1000).toFixed(1)} mm tolerance. Not gameplay approval.` : "";
   }
   private renderActor(value: CombatSlotSnapshot, calibrationOnly = false): void {
     const fields = this.actorFields[value.slot];

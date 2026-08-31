@@ -18,6 +18,11 @@
   color: var(--studio-muted, #aeb3b5); font-size: 11px; line-height: 1.55; background: rgb(164 212 189 / 4%); }
 .combat-review .combat-error { color: #ffb39b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .combat-review .combat-error:empty { display: none; }
+.combat-review .combat-contact { margin: 12px 0; padding: 10px 0; border-block: 1px solid var(--studio-line, #394047); }
+.combat-review .combat-contact h3 { margin: 0 0 8px; color: var(--combat-b); font-size: 12px; letter-spacing: 0.025em; }
+.combat-review .combat-contact .context-note { overflow-wrap: anywhere; }
+.combat-review .combat-contact [data-state="contact"] { color: var(--combat-b); }
+.combat-review .combat-contact [data-state="miss"], .combat-review .combat-contact [data-state="unavailable"] { border-left-color: var(--combat-a); }
 .combat-review .combat-calibration { margin-top: 8px; border-top: 1px solid var(--studio-line, #394047); }
 .combat-review .combat-calibration-group { padding: 0 3px 7px; }
 .combat-review .combat-calibration .combat-number { grid-template-columns: 99px minmax(0, 1fr) 40px; }

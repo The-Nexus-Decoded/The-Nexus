@@ -355,6 +355,78 @@ function domFixture() {
     } };
 }
 describe("Combat Review panel wiring", () => {
+  it("shows scan state, explicitly selected measured response and actual contact time without calling it manual", async () => {
+    const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
+    const value = controller(undefined, undefined, async (input) => { request = input; return task.promise; });
+    const onScanContact = vi.fn((response: "none" | "reaction" | "death") => value.resolveContact({ profile: contactProfile(), response }));
+    const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document, onScanContact });
+    await value.enter(); const root = panel.element as unknown as DomNode;
+    const control = (command: string) => root.find((node) => node.dataset.command === command)!;
+    const status = () => root.find((node) => Boolean(node.dataset.state))!;
+    expect(control("contact-response").value).toBe("none"); expect(control("contact-jump").disabled).toBe(true);
+    const response = control("contact-response"); response.value = "reaction"; root.emit("change", response);
+    expect(control("contact-clip").parentElement!.hidden).toBe(false);
+    expect(control("contact-clip").value).toBe("flinch");
+    root.emit("click", control("contact-scan"));
+    expect(onScanContact).toHaveBeenCalledWith("reaction"); expect(status().dataset.state).toBe("scanning");
+    expect(control("contact-scan").textContent).toBe("Cancel scan"); expect(status().attributes["aria-live"]).toBe("polite");
+    task.resolve(contactResult(request)); await vi.waitFor(() => expect(status().dataset.state).toBe("contact"));
+    expect(status().textContent).toContain("0.600 s"); expect(status().textContent).toContain("reaction scheduled");
+    expect(control("cue").value).toBe("none"); expect(control("cue-time").parentElement!.hidden).toBe(true);
+    expect(root.find((node) => node.textContent.startsWith("Measured reaction ·"))).not.toBeNull();
+    expect(control("contact-jump").disabled).toBe(false); root.emit("click", control("contact-jump"));
+    expect(value.snapshot().frame!.timeSeconds).toBe(0.6); expect(value.snapshot().frame!.crossedEvents).toEqual([]);
+    const manual = control("cue"); manual.value = "reaction"; root.emit("change", manual);
+    expect(status().dataset.state).toBe("unmeasured"); expect(control("contact-jump").disabled).toBe(true);
+    expect(root.find((node) => node.textContent.startsWith("Manual cue · not measured contact"))).not.toBeNull();
+    panel.dispose();
+  });
+
+  it("presents measured miss separately from unavailable with no invented response or contact jump", async () => {
+    for (const state of ["miss", "unavailable"] as const) {
+      const value = controller(undefined, undefined, async (request) => ({ ...contactResult(request, state), evidence: "No eligible fixture contact" }));
+      const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document,
+        onScanContact: (response) => value.resolveContact({ profile: contactProfile(), response }) });
+      await value.enter(); const root = panel.element as unknown as DomNode;
+      root.emit("click", root.find((node) => node.dataset.command === "contact-scan")!);
+      await vi.waitFor(() => expect(root.find((node) => node.dataset.state === state)).not.toBeNull());
+      const text = root.find((node) => node.dataset.state === state)!.textContent;
+      expect(text).toContain(state === "miss" ? "Measured miss" : "Contact unavailable");
+      if (state === "unavailable") expect(text).toContain("No eligible fixture contact");
+      expect(value.sequence()!.events).toEqual([]);
+      expect(root.find((node) => node.dataset.command === "contact-jump")!.disabled).toBe(true); panel.dispose();
+    }
+  });
+
+  it("cancels a scan immediately without waiting for a revision change or accepting its late result", async () => {
+    const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
+    const value = controller(undefined, undefined, async (input) => { request = input; return task.promise; });
+    const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document,
+      onScanContact: (response) => value.resolveContact({ profile: contactProfile(), response }) });
+    await value.enter(); const root = panel.element as unknown as DomNode;
+    const scan = root.find((node) => node.dataset.command === "contact-scan")!;
+    root.emit("click", scan); const revision = value.snapshot().revision;
+    expect(scan.textContent).toBe("Cancel scan"); root.emit("click", scan);
+    expect(request.signal!.aborted).toBe(true); expect(value.snapshot().revision).toBe(revision);
+    expect(scan.textContent).toBe("Scan contact"); expect(root.find((node) => node.dataset.state === "unmeasured")).not.toBeNull();
+    task.resolve(contactResult(request)); await Promise.resolve(); await Promise.resolve();
+    expect(value.snapshot().contact.status).toBe("unmeasured"); panel.dispose();
+  });
+
+  it("keeps missing source responses disabled and reports asynchronous scan errors accessibly", async () => {
+    const value = controller(async (request) => actorFixture(request, [action("idle", "idle"), action("strike", "attack")]));
+    const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document,
+      onScanContact: async () => { throw new Error("Contact source changed"); } });
+    await value.enter(); const root = panel.element as unknown as DomNode;
+    const response = root.find((node) => node.dataset.command === "contact-response")!;
+    expect(response.children.find((node) => node.value === "reaction")!.disabled).toBe(true);
+    expect(response.children.find((node) => node.value === "death")!.disabled).toBe(true);
+    expect(root.find((node) => node.textContent.startsWith("No strike surface/window"))).not.toBeNull();
+    root.emit("click", root.find((node) => node.dataset.command === "contact-scan")!);
+    await vi.waitFor(() => expect(root.find((node) => node.attributes.role === "alert")!.textContent).toBe("Contact source changed"));
+    panel.dispose();
+  });
+
   it("refreshes sampled-action calibration on seek and playback without a structural revision", async () => {
     const value = controller(async (request) => {
       const fixture = actorFixture(request);

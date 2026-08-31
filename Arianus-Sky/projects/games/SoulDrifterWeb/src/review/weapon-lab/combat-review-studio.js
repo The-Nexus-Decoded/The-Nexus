@@ -89,7 +89,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
   scene.add(controller.root);
   let measurement = null, disposed = false, loadedIdentity = "";
   function fitBounds(bounds) {
-    if (bounds.isEmpty()) return false;
+    if (disposed || bounds.isEmpty()) return false;
     const center = bounds.getCenter(new THREE.Vector3()), radius = Math.max(0.25, bounds.getSize(new THREE.Vector3()).length() / 2);
     const area = viewport();
     const vertical = Math.tan(THREE.MathUtils.degToRad(44) / 2);
@@ -142,7 +142,14 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
       }
     }
   }
-  const panel = panelFactory(controller, { document: doc, onFrameActors: frameActors, onFrameAction: () => { void frameMotion(); } });
+  async function scanContact(response = "none") {
+    // Retire the old survey before starting contact sampling: its finally must
+    // not seek the controller and cancel the newer contact job.
+    measurement?.abort.abort(); measurement = null;
+    return controller.resolveContact({ response });
+  }
+  const panel = panelFactory(controller, { document: doc, onFrameActors: frameActors,
+    onFrameAction: () => { void frameMotion(); }, onScanContact: scanContact });
   host.append(panel.element);
   const unsubscribe = controller.subscribe((snapshot) => {
     if (measurement && (snapshot.revision !== measurement.revision || snapshot.frame?.timeSeconds !== measurement.time
@@ -153,7 +160,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
     onSnapshot(snapshot);
   });
   return {
-    controller, panel, frameActors, frameMotion,
+    controller, panel, frameActors, frameMotion, scanContact, frameBounds: fitBounds,
     get active() { return controller.snapshot().active; },
     enter: () => controller.enter(),
     leave() { measurement?.abort.abort(); loadedIdentity = ""; controller.leave(); },

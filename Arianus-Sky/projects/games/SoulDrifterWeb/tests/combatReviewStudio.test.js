@@ -117,6 +117,21 @@ describe("Combat Review studio composition", () => {
     expect(studio.controller.snapshot().frame.timeSeconds).toBe(0.3); expect(errors).toEqual([]);
   });
 
+  it("reuses the shared bounds framing for props without sampling or moving actors", async () => {
+    const { studio, orbit } = studioFixture(); await studio.enter(); studio.controller.seek(0.3);
+    const actors = [studio.controller.actor("a"), studio.controller.actor("b")];
+    const poses = actors.map((actor) => actor.model.matrixWorld.toArray());
+    const snapshot = studio.controller.snapshot();
+    for (const actor of actors) actor.sample.mockClear();
+    const bounds = new THREE.Box3(new THREE.Vector3(-2, 0, 1), new THREE.Vector3(2, 5, 3));
+    expect(studio.frameBounds(bounds)).toBe(true); expect(orbit.target.toArray()).toEqual([0, 2.5, 2]);
+    expect(studio.controller.snapshot()).toEqual(snapshot);
+    actors.forEach((actor, index) => { expect(actor.sample).not.toHaveBeenCalled();
+      expect(actor.model.matrixWorld.toArray()).toEqual(poses[index]); });
+    expect(studio.frameBounds(new THREE.Box3())).toBe(false);
+    studio.dispose(); expect(studio.frameBounds(bounds)).toBe(false);
+  });
+
   it("cancels a motion survey on a new actor and on workspace exit without applying stale framing", async () => {
     const { studio, errors } = studioFixture(); await studio.enter();
     const survey = studio.frameMotion(); await studio.controller.selectActor("b", "warden-wayfarer");
@@ -136,6 +151,21 @@ describe("Combat Review studio composition", () => {
     expect(await survey).toBe(false);
     expect(studio.controller.snapshot().frame).toMatchObject({ playing: true, timeSeconds: 0.316 });
     studio.update(0.016); expect(studio.controller.snapshot().frame.timeSeconds).toBeCloseTo(0.332);
+    expect(errors).toEqual([]);
+  });
+
+  it("retires a pending motion survey before contact scan so its finally cannot cancel newer sampling", async () => {
+    let callbacks;
+    const { studio, errors } = studioFixture({ panelFactory: (_controller, options) => {
+      callbacks = options; return { element: {}, dispose() {} };
+    } });
+    await studio.enter(); studio.controller.seek(0.3);
+    const survey = studio.frameMotion();
+    const seek = vi.spyOn(studio.controller, "seek"), resolve = vi.spyOn(studio.controller, "resolveContact");
+    const scan = callbacks.onScanContact("none"); studio.update(0.016);
+    expect(await survey).toBe(false); expect((await scan).status).toBe("unavailable");
+    expect(resolve).toHaveBeenCalledWith({ response: "none" });
+    expect(seek).not.toHaveBeenCalled(); expect(studio.controller.snapshot().frame.timeSeconds).toBe(0.3);
     expect(errors).toEqual([]);
   });
 
