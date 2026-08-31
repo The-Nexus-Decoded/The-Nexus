@@ -80,7 +80,9 @@ export function setupBreachV2CreatureReview(
   };
   const play = (): void => {
     if (!actorId || !actionName) return;
-    runtime.play(actorId, actionName);
+    // Explicit inspection must start from the selected pose, not blend a
+    // terminal corpse into a standing attack through the floor.
+    runtime.play(actorId, actionName, { immediate: true });
     runtime.pause(actorId, false);
     paused = false;
   };
