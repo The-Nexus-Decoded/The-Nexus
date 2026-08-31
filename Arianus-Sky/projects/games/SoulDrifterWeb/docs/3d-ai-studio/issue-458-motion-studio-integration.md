@@ -77,6 +77,33 @@ The expanded goal is **not complete**. All dungeon
 creature assets, accepted human animations, and the existing local server remain
 protected; local lab testing is not production or owner animation acceptance.
 
+### Shared actor and contact checkpoint — 2026-08-31
+
+- `dd62534d` extracts the existing human actor/catalog into reusable factories,
+  retaining all 405 source clips, ten equipment loadouts, accepted grip/IK and
+  authored moves. Two actors have separate skeletons, mixers, materials and
+  calibration; raw motion mode no longer inherits equipment finger offsets.
+  `d51da61c` updates only the staff verifier's source locations after extraction.
+- `d6f18bfc` adds independent mob adapters around the existing MobsStage runtime,
+  not a second creature controller. Same-model instances and both boss families
+  preserve per-instance placement, sampling, calibration and disposal.
+- `ac0d92ec`, `75675dde`, and `ef6636ed` add rendered/deformed-triangle contact
+  surfaces, model-specific weighted contact probes, deterministic pose blending,
+  and sampled-motion camera bounds. Sibling bones are refreshed and unindexed or
+  hidden vertices cannot masquerade as visible contact points. These are shared
+  helpers; a sampled probe is not a full continuous two-body physics solver.
+- Focused latest verification: 51 tests across actual mob adapters, contact and
+  posing pass; typecheck passes. Human extraction's earlier full suite passed
+  48 files / 403 tests; subsequent independent actor/contact checks passed 55.
+  Staff verification retains all 2,111 sampled frames and six authored moves.
+  No ESLint pipeline is configured. No new combined build/native UI acceptance
+  is claimed: Combat Review controller/panel integration is still in progress.
+- Oathbound adaptation is external-only while its own jaw range and contact
+  placement are reviewed. The inherited boss source has confirmed axis, armor
+  separation and death-collapse defects; those clips are not called repaired.
+  No variant/boss candidate, prop scene, or dungeon update has been installed by
+  this checkpoint. The active expanded goal remains unfinished.
+
 ## Earlier integration checkpoint — historical evidence
 
 Date: 2026-08-31. Status: local studio and starter-player integration verified; #458 remains OPEN and owner QA pending.
