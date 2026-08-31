@@ -41,6 +41,8 @@ const REVIEWED_STRIKE_SOURCES = {
         revision: "oathbound-lunge-v1" },
       ClawAttack: { start: 2.30, end: 2.67, vertices: [1], phase: "claw windup → indexed tip contact → followthrough",
         revision: "oathbound-claw-v7" },
+      BiteAttack: { start: 3.05, end: 3.36, vertices: [17599], phase: "bite brace → indexed fang contact",
+        revision: "oathbound-bite-v1" },
     } },
 } as const;
 

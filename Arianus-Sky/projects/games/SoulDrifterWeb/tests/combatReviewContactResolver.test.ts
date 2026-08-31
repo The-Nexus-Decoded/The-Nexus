@@ -258,7 +258,7 @@ it("binds the four frozen base profiles to actual indexed installed GLB skin, wi
   } finally { actor.dispose(); }
 }, 30_000);
 
-it("binds the frozen Oathbound Lunge and Claw profiles to their actual installed indexed tips", async () => {
+it("binds the frozen Oathbound Lunge, Claw and Bite profiles to their actual installed indexed tips", async () => {
   const definition = MOB_CATALOG.find((entry) => entry.id === "breachling-oathbound")!;
   const bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
   vi.stubGlobal("document", { baseURI: "http://localhost:5179/weapon-lab.html" }); vi.stubGlobal("crypto", webcrypto);
@@ -280,14 +280,18 @@ it("binds the frozen Oathbound Lunge and Claw profiles to their actual installed
     expect(claw).toMatchObject({ id: "oathbound-claw-v7:ClawAttack", startSeconds: 2.30, endSeconds: 2.67,
       definitionId: "breachling-oathbound", assetSha256: definition.sha256,
       surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [1] } });
-    for (const binding of [lunge, claw]) {
+    const bite = reviewContactProfile(actor, "BiteAttack")!;
+    expect(bite).toMatchObject({ id: "oathbound-bite-v1:BiteAttack", startSeconds: 3.05, endSeconds: 3.36,
+      definitionId: "breachling-oathbound", assetSha256: definition.sha256,
+      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [17599] } });
+    for (const binding of [lunge, claw, bite]) {
       actor.sample(binding.actionId, binding.startSeconds); const probe = createReviewStrikeProbe(actor, binding), start = probe.sample();
       actor.sample(binding.actionId, binding.endSeconds); const end = probe.sample();
       expect(probe.vertexCount).toBe(binding.actionId === "LungeAttack" ? 2 : 1);
       expect(end).toHaveLength(probe.vertexCount);
       expect(end.every((point, index) => point.position.distanceTo(start[index]!.position) > 0.001)).toBe(true);
     }
-    for (const action of ["BiteAttack", "SpitAttack", "TailWhip"]) expect(reviewContactProfile(actor, action)).toBeNull();
+    for (const action of ["SpitAttack", "TailWhip"]) expect(reviewContactProfile(actor, action)).toBeNull();
     expect(reviewContactProfile({ ...actor, definition: { sha256: "wrong" } } as typeof actor, "LungeAttack")).toBeNull();
   } finally { actor.dispose(); }
 }, 30_000);
