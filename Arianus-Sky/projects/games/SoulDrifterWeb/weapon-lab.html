@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#15191d" />
+    <title>SoulDrifter Motion Studio</title>
+    <link rel="stylesheet" href="./src/review/weapon-lab/motion-studio.css" />
+  </head>
+  <body>
+    <aside class="panel" aria-label="Motion Studio controls">
+      <header class="studio-header">
+        <div class="studio-wordmark"><span class="eyebrow">SoulDrifter</span><h1>Motion Studio</h1></div>
+        <button id="hide" class="quiet-button" title="Hide controls (H)" aria-label="Hide controls">Hide <kbd>H</kbd></button>
+        <p class="studio-subtitle">Animation, equipment &amp; rig calibration</p>
+      </header>
+
+      <section id="studioSelection" class="studio-card" aria-labelledby="selectionHeading">
+        <h2 id="selectionHeading"><span class="section-number" aria-hidden="true">01</span> Subject &amp; action</h2>
+        <label class="select-field primary-field"><span>Review mode</span><select id="reviewMode"><option value="weapons">Human weapons</option><option value="catalog">Human motions</option><option value="mobs">Mobs &amp; bosses</option></select><span></span></label>
+        <div id="humanSelection">
+          <label id="weaponSetRow" class="select-field"><span>Weapon set</span><select id="weaponSet"></select><span></span></label>
+          <label id="catalogActivityRow" class="select-field" hidden><span>Activity</span><select id="catalogActivity"></select><span></span></label>
+          <label id="catalogLocomotionRow" class="select-field" hidden><span>Movement</span><select id="catalogLocomotion"></select><span></span></label>
+          <label id="catalogWeaponRow" class="select-field" hidden><span>Weapon type</span><select id="catalogWeapon"></select><span></span></label>
+          <label id="catalogActionTypeRow" class="select-field" hidden><span>Action type</span><select id="catalogActionType"></select><span></span></label>
+        </div>
+        <div id="mobSelection" hidden>
+          <label class="select-field"><span>Creature</span><select id="mobModel"></select><span></span></label>
+          <p id="mobContext" class="context-note"></p>
+        </div>
+        <label class="select-field"><span id="actionLabel">Action</span><select id="action"></select><span></span></label>
+        <label id="staffGripRow" class="select-field" hidden><span>Staff grip</span><select id="staffGripStyle"><option value="palm">Palm-side grip</option><option value="wide">Wide palm-side grip</option><option value="reverse">Reverse-side grip</option></select><span></span></label>
+        <p id="studioSelectionSummary" class="selection-summary" aria-live="polite"></p>
+      </section>
+
+      <section id="studioPlayback" class="studio-card" aria-labelledby="playbackHeading">
+        <h2 id="playbackHeading"><span class="section-number" aria-hidden="true">02</span> Playback &amp; camera</h2>
+        <label class="timeline-field"><span>Timeline</span><input id="time" type="range" min="0" max="1" step="0.001" value="0"/><output id="timeOut">0.000</output></label>
+        <div class="buttons transport"><button id="play" class="active">Pause</button><button id="restart">Restart</button></div>
+        <label><span>Playback speed</span><input id="speed" type="range" min="0.1" max="1.5" step="0.1" value="0.6"/><output id="speedOut">0.6x</output></label>
+        <label class="check"><span>Loop action</span><input id="loop" type="checkbox" checked/><span></span></label>
+        <div class="buttons views" aria-label="Camera presets"><button id="fullView">Full body</button><button id="actionView">Action view</button><button id="handView">Grip view</button><button id="backView">Back view</button></div>
+      </section>
+
+      <section id="bowControls" class="studio-card" aria-labelledby="bowHeading" hidden>
+        <h2 id="bowHeading">Bow setup</h2>
+        <label><span>Arrow inventory</span><input id="arrowCount" type="range" min="0" max="100" step="1" value="10"/><output id="arrowCountOut">10 / 100</output></label>
+        <label><span>Min bow range</span><input id="minimumBowRange" type="range" min="0.5" max="4" step="0.1" value="1.5"/><output id="minimumBowRangeOut">1.5m</output></label>
+      </section>
+
+      <section id="humanCalibration" class="studio-card" aria-labelledby="calibrationHeading">
+      <h2 id="calibrationHeading"><span class="section-number" aria-hidden="true">03</span> Pose adjustments</h2>
+      <details id="rightHandSection" class="tuning-section" open>
+      <summary>Right-hand grip <span class="summary-meta">overlay</span></summary>
+      <div class="tuning-content">
+      <label><span>Index curl</span><input id="indexCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="indexCurlOut">0.500</output></label>
+      <label><span>Middle curl</span><input id="middleCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="middleCurlOut">0.500</output></label>
+      <label><span>Ring curl</span><input id="ringCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="ringCurlOut">0.500</output></label>
+      <label><span>Pinky curl</span><input id="pinkyCurl" type="range" min="-0.2" max="1.2" step="0.025" value="0.5"/><output id="pinkyCurlOut">0.500</output></label>
+      <label><span>Thumb oppose</span><input id="thumb" type="range" min="-0.6" max="0.8" step="0.025" value="0.1"/><output id="thumbOut">0.100</output></label>
+
+      </div>
+      </details>
+
+      <details id="leftHandSection" class="tuning-section">
+      <summary>Left-hand grip <span class="summary-meta">overlay</span></summary>
+      <div class="tuning-content">
+      <label><span>Index curl</span><input id="leftIndexCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftIndexCurlOut">0.500</output></label>
+      <label><span>Middle curl</span><input id="leftMiddleCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftMiddleCurlOut">0.500</output></label>
+      <label><span>Ring curl</span><input id="leftRingCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftRingCurlOut">0.500</output></label>
+      <label><span>Pinky curl</span><input id="leftPinkyCurl" type="range" min="-1.2" max="1.2" step="0.025" value="0.5"/><output id="leftPinkyCurlOut">0.500</output></label>
+      <label><span>Thumb oppose</span><input id="leftThumb" type="range" min="-0.8" max="0.8" step="0.025" value="0.1"/><output id="leftThumbOut">0.100</output></label>
+
+      </div>
+      </details>
+
+      <details id="twoHandSection" class="tuning-section">
+      <summary>Two-hand lock <span class="summary-meta">IK</span></summary>
+      <div class="tuning-content">
+      <label class="check"><span>IK enabled</span><input id="twoHandEnabled" type="checkbox" checked/><span></span></label>
+      <label><span>Target X</span><input id="twoHandTargetX" type="range" min="-0.16" max="0.16" step="0.002" value="-0.024"/><output id="twoHandTargetXOut">-0.024</output></label>
+      <label><span>Target Y</span><input id="twoHandTargetY" type="range" min="-0.18" max="0.5" step="0.002" value="-0.090"/><output id="twoHandTargetYOut">-0.090</output></label>
+      <label><span>Target Z</span><input id="twoHandTargetZ" type="range" min="-0.16" max="0.16" step="0.002" value="0.016"/><output id="twoHandTargetZOut">0.016</output></label>
+      <label><span>Wrist X</span><input id="twoHandWristX" type="range" min="-3.142" max="3.142" step="0.001" value="0.400"/><output id="twoHandWristXOut">0.400</output></label>
+      <label><span>Wrist Y</span><input id="twoHandWristY" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="twoHandWristYOut">0.000</output></label>
+      <label><span>Wrist Z</span><input id="twoHandWristZ" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="twoHandWristZOut">0.000</output></label>
+
+      </div>
+      </details>
+
+      <details id="socketSection" class="tuning-section">
+      <summary>Weapon attachment <span class="summary-meta">socket</span></summary>
+      <div class="tuning-content">
+      <label><span>Position X</span><input id="socketX" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketXOut">0.000</output></label>
+      <label><span>Position Y</span><input id="socketY" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketYOut">0.000</output></label>
+      <label><span>Position Z</span><input id="socketZ" type="range" min="-0.12" max="0.12" step="0.002" value="0"/><output id="socketZOut">0.000</output></label>
+      <label><span>Rotation X</span><input id="rotationX" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="rotationXOut">0.000</output></label>
+      <label><span>Rotation Y</span><input id="rotationY" type="range" min="-3.142" max="3.142" step="0.001" value="0"/><output id="rotationYOut">0.000</output></label>
+      <label><span>Rotation Z</span><input id="rotationZ" type="range" min="-3.142" max="3.142" step="0.001" value="-1.571"/><output id="rotationZOut">-1.571</output></label>
+      <label><span>Weapon scale</span><input id="weaponScale" type="range" min="0.6" max="1.4" step="0.01" value="1"/><output id="weaponScaleOut">1.00</output></label>
+      <button id="resetSocket" class="section-reset">Reset socket</button>
+      </div>
+      </details>
+      <button id="resetGrip" class="section-reset">Reset grip</button>
+      </section>
+
+      <section id="mobTuning" class="studio-card" aria-label="Creature pose adjustments" hidden></section>
+      <section id="mobTools" class="studio-card" aria-labelledby="mobToolsHeading" hidden>
+        <h2 id="mobToolsHeading">Creature review tools</h2>
+        <label class="check"><span>Show skeleton</span><input id="mobSkeleton" type="checkbox"/><span></span></label>
+        <div class="buttons"><button id="mobMeasure">Measure contact</button><button id="mobReset">Reset pose</button><button id="mobExport">Export draft</button><button id="mobImport">Import draft</button></div>
+        <input id="mobImportFile" type="file" accept="application/json,.json" hidden aria-label="Import creature pose draft"/>
+      </section>
+
+      <footer class="studio-footer">
+        <p id="studioHint" class="hint">Choose a subject and action, then pause or scrub to inspect a pose. Adjustments are shown only for the selected rig and equipment.</p>
+        <details class="diagnostics"><summary>Rig &amp; source diagnostics</summary><div id="status">Loading canonical assets…</div></details>
+        <a href="./asset-review.html" class="asset-link">Archery asset library <span aria-hidden="true">↗</span></a>
+      </footer>
+    </aside>
+    <button id="showStudio" class="show-studio" hidden>Show controls <kbd>H</kbd></button>
+    <script type="module" src="./src/review/weapon-lab/weapon-lab.js"></script>
+  </body>
+</html>

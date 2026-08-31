@@ -3,6 +3,18 @@ import type { GLTF, GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
 import { measureAnimatedPoseGrounding } from "../animationPacks";
+import {
+  breachV2AnimationReviewSnapshot,
+  configureBreachV2AnimationReview,
+  createBreachV2AnimationReviewState,
+  evaluateBreachV2AnimationReviewPose,
+  setBreachV2AnimationReviewPoseHooks,
+  type BreachV2AnimationReviewActor,
+  type BreachV2AnimationReviewPlayback,
+  type BreachV2AnimationReviewPoseHooks,
+  type BreachV2AnimationReviewSnapshot,
+  type BreachV2AnimationReviewState,
+} from "./breach-v2-animation-review";
 import type { BreachV2Layout } from "./breach-v2-layout";
 
 export type BreachlingTier = "base" | "stalker" | "oathbound" | "ravager";
@@ -62,7 +74,7 @@ export interface BreachlingPlacement {
   yaw: number;
 }
 
-export interface BreachlingRuntimeSnapshot extends BreachlingPlacement {
+export interface BreachlingRuntimeSnapshot extends BreachlingPlacement, BreachV2AnimationReviewSnapshot {
   currentClip: string;
   actionNames: string[];
   targetHeightMeters: number;
@@ -74,10 +86,18 @@ export interface BreachV2BreachlingRuntime {
   warmAt(x: number, z: number): Promise<void>;
   update(playerX: number, playerZ: number, deltaSeconds: number): void;
   snapshots(): BreachlingRuntimeSnapshot[];
-  play(actorId: string, clipName: string): number;
+  play(actorId: string, clipName: string, options?: { immediate?: boolean }): number;
   pose(actorId: string, clipName: string, normalizedTime: number): void;
   pause(actorId: string, paused: boolean): void;
+  reviewActor(actorId: string): BreachV2AnimationReviewActor | null;
+  setReviewPlayback(actorId: string, playback: BreachV2AnimationReviewPlayback): void;
+  setReviewPoseHooks(actorId: string, hooks: BreachV2AnimationReviewPoseHooks | null): void;
   dispose(): void;
+}
+
+export interface BreachV2BreachlingRuntimeOptions {
+  /** A lab stage may load one real tier; dungeon placements remain the default. */
+  reviewPlacements?: readonly BreachlingPlacement[];
 }
 
 export interface BreachV2ResourceDisposalRegistry {
@@ -178,6 +198,7 @@ interface RuntimeActor {
   groundingTargetY: number;
   groundingBlendSeconds: number;
   spitFired: boolean;
+  review: BreachV2AnimationReviewState;
 }
 
 interface PoisonProjectile {
@@ -254,8 +275,9 @@ export function createBreachV2BreachlingRuntime(
   loader: Pick<GLTFLoader, "loadAsync">,
   path: "wayfarer" | "oathbreaker",
   resourceDisposalRegistry = createBreachV2ResourceDisposalRegistry(),
+  options: BreachV2BreachlingRuntimeOptions = {},
 ): BreachV2BreachlingRuntime {
-  const placements = buildBreachlingPlacements(layout, path);
+  const placements = options.reviewPlacements ?? buildBreachlingPlacements(layout, path);
   const sourcePromises = new Map<BreachlingTier, Promise<GLTF>>();
   const resolvedSources = new Set<GLTF>();
   const actors = new Map<string, RuntimeActor>();
@@ -289,6 +311,7 @@ export function createBreachV2BreachlingRuntime(
   };
   const clearActors = (): void => {
     actors.forEach((actor) => {
+      setBreachV2AnimationReviewPoseHooks(actor.review, null);
       actor.mixer.stopAllAction();
       disposeBreachV2ActorSkeletons(actor.model, resourceDisposalRegistry);
       actor.root.removeFromParent();
@@ -298,7 +321,8 @@ export function createBreachV2BreachlingRuntime(
   const playActor = (actor: RuntimeActor, clipName: string, immediate = false): number => {
     const action = actor.actions.get(clipName);
     if (!action) throw new Error(`${actor.placement.id} does not provide ${clipName}.`);
-    const loops = LOOPING_ACTIONS.has(clipName);
+    actor.review.hooks?.restore();
+    const loops = actor.review.loop ?? LOOPING_ACTIONS.has(clipName);
     if (immediate) {
       actor.mixer.stopAllAction();
     } else if (actor.currentAction !== action) {
@@ -323,6 +347,7 @@ export function createBreachV2BreachlingRuntime(
     actor.groundingFrames = 0;
     actor.groundingClearanceMeters = null;
     actor.spitFired = false;
+    if (immediate) evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, 0, true);
     return action.getClip().duration;
   };
   const createActor = (placement: BreachlingPlacement, source: GLTF): RuntimeActor => {
@@ -381,9 +406,11 @@ export function createBreachV2BreachlingRuntime(
       groundingClearanceMeters: null, spitFired: false,
       groundingOffsets, groundingFromY: pivot.position.y, groundingTargetY: pivot.position.y,
       groundingBlendSeconds: ACTION_TRANSITION_SECONDS,
+      review: createBreachV2AnimationReviewState(),
     };
     mixer.addEventListener("finished", (event) => {
       if (event.action !== actor.currentAction) return;
+      if (actor.review.loop !== null) return;
       if (actor.currentClip !== "Death") playActor(actor, "CombatIdle");
     });
     playActor(actor, "Idle");
@@ -432,8 +459,8 @@ export function createBreachV2BreachlingRuntime(
       latestPlayer.set(playerX, 0, playerZ);
       void activateRoom(roomIdAt(layout, playerX, playerZ)).catch((error) => console.error("Breachling room activation failed", error));
       actors.forEach((actor) => {
-        actor.mixer.update(deltaSeconds);
-        actor.groundingBlendSeconds = Math.min(ACTION_TRANSITION_SECONDS, actor.groundingBlendSeconds + deltaSeconds);
+        evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, deltaSeconds);
+        actor.groundingBlendSeconds = Math.min(ACTION_TRANSITION_SECONDS, actor.groundingBlendSeconds + deltaSeconds * actor.review.speed);
         actor.pivot.position.y = THREE.MathUtils.lerp(
           actor.groundingFromY, actor.groundingTargetY,
           actor.groundingBlendSeconds / ACTION_TRANSITION_SECONDS,
@@ -463,25 +490,43 @@ export function createBreachV2BreachlingRuntime(
     },
     snapshots: () => [...actors.values()].map((actor) => ({
       ...actor.placement,
+      ...breachV2AnimationReviewSnapshot(actor.review, actor.currentAction),
       currentClip: actor.currentClip,
       actionNames: [...actor.actions.keys()].filter((name) => name !== "SwordSlashOutward").sort(),
       targetHeightMeters: BREACHLING_RUNTIME_ASSETS[actor.placement.tier].targetHeightMeters,
       groundingStatus: actor.groundingStatus,
       groundingClearanceMeters: actor.groundingClearanceMeters,
     })),
-    play: (actorId, clipName) => playActor(actors.get(actorId) ?? (() => { throw new Error(`Unknown Breachling ${actorId}.`); })(), clipName),
+    play: (actorId, clipName, playOptions) => playActor(actors.get(actorId) ?? (() => { throw new Error(`Unknown Breachling ${actorId}.`); })(), clipName, playOptions?.immediate),
     pose: (actorId, clipName, normalizedTime) => {
       const actor = actors.get(actorId);
       if (!actor) throw new Error(`Unknown Breachling ${actorId}.`);
       const duration = playActor(actor, clipName, true);
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
-      actor.mixer.update(0);
+      evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, 0);
     },
     pause: (actorId, paused) => {
       const actor = actors.get(actorId);
       if (!actor) throw new Error(`Unknown Breachling ${actorId}.`);
       actor.currentAction.paused = paused;
+    },
+    reviewActor: (actorId) => {
+      const actor = actors.get(actorId);
+      return actor ? { root: actor.root, model: actor.model } : null;
+    },
+    setReviewPlayback: (actorId, playback) => {
+      const actor = actors.get(actorId);
+      if (!actor) throw new Error(`Unknown Breachling ${actorId}.`);
+      configureBreachV2AnimationReview(actor.review, playback);
+      const loops = actor.review.loop ?? LOOPING_ACTIONS.has(actor.currentClip);
+      actor.currentAction.clampWhenFinished = !loops;
+      actor.currentAction.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
+    },
+    setReviewPoseHooks: (actorId, hooks) => {
+      const actor = actors.get(actorId);
+      if (!actor) throw new Error(`Unknown Breachling ${actorId}.`);
+      setBreachV2AnimationReviewPoseHooks(actor.review, hooks);
     },
     dispose: () => {
       if (disposed) return;

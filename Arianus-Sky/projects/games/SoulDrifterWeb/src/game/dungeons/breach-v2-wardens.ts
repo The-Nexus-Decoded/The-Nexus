@@ -9,6 +9,18 @@ import {
 import type { BreachV2Layout } from "./breach-v2-layout";
 import type { BreachV2RuntimeDiagnosticSink } from "./breach-v2-runtime-diagnostics";
 import {
+  breachV2AnimationReviewSnapshot,
+  configureBreachV2AnimationReview,
+  createBreachV2AnimationReviewState,
+  evaluateBreachV2AnimationReviewPose,
+  setBreachV2AnimationReviewPoseHooks,
+  type BreachV2AnimationReviewActor,
+  type BreachV2AnimationReviewPlayback,
+  type BreachV2AnimationReviewPoseHooks,
+  type BreachV2AnimationReviewSnapshot,
+  type BreachV2AnimationReviewState,
+} from "./breach-v2-animation-review";
+import {
   createBreachV2ResourceDisposalRegistry,
   disposeBreachV2ActorSkeletons,
   disposeBreachV2ObjectResources,
@@ -80,7 +92,7 @@ export interface CinderboundWardenPlacement {
   yaw: number;
 }
 
-export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement {
+export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, BreachV2AnimationReviewSnapshot {
   label: string;
   currentClip: string;
   actionNames: string[];
@@ -96,11 +108,19 @@ export interface BreachV2WardenRuntime {
   warmAt(x: number, z: number): Promise<void>;
   update(playerX: number, playerZ: number, deltaSeconds: number): void;
   snapshots(): CinderboundWardenSnapshot[];
-  play(clipName: string): number;
+  play(clipName: string, options?: { immediate?: boolean }): number;
   pose(clipName: string, normalizedTime: number): void;
   pause(paused: boolean): void;
+  reviewActor(): BreachV2AnimationReviewActor | null;
+  setReviewPlayback(playback: BreachV2AnimationReviewPlayback): void;
+  setReviewPoseHooks(hooks: BreachV2AnimationReviewPoseHooks | null): void;
   setDamageFraction(damageFraction: number): void;
   dispose(): void;
+}
+
+export interface BreachV2WardenRuntimeOptions {
+  /** The review stage uses the real actor/controller at a neutral lab origin. */
+  reviewPlacement?: CinderboundWardenPlacement;
 }
 
 interface BreakoffDebris {
@@ -132,6 +152,7 @@ interface RuntimeActor {
   presentationMaterials: THREE.Material[];
   furnaceLight: THREE.PointLight;
   furnacePhaseSeconds: number;
+  review: BreachV2AnimationReviewState;
 }
 
 interface RuntimeEffect {
@@ -365,8 +386,9 @@ export function createBreachV2WardenRuntime(
   path: CinderboundWardenKind,
   diagnostics?: BreachV2RuntimeDiagnosticSink,
   resourceDisposalRegistry: BreachV2ResourceDisposalRegistry = createBreachV2ResourceDisposalRegistry(),
+  options: BreachV2WardenRuntimeOptions = {},
 ): BreachV2WardenRuntime {
-  const placement = buildCinderboundWardenPlacement(layout, path);
+  const placement = options.reviewPlacement ?? buildCinderboundWardenPlacement(layout, path);
   const asset = CINDERBOUND_WARDEN_ASSETS[path];
   const furnaceLightBaseIntensity = path === "oathbreaker" ? 3.2 : 2.8;
   let sourcePromise: Promise<GLTF> | null = null;
@@ -398,6 +420,7 @@ export function createBreachV2WardenRuntime(
   };
   const clearActor = (): void => {
     if (!actor) return;
+    setBreachV2AnimationReviewPoseHooks(actor.review, null);
     actor.mixer.stopAllAction();
     clearDebris(actor);
     disposeBreachV2ActorSkeletons(actor.model, resourceDisposalRegistry);
@@ -408,7 +431,8 @@ export function createBreachV2WardenRuntime(
   const playActor = (runtimeActor: RuntimeActor, clipName: string, immediate = false): number => {
     const action = runtimeActor.actions.get(clipName);
     if (!action) throw new Error(`${asset.label} does not provide ${clipName}.`);
-    const loops = LOOPING_ACTIONS.has(clipName);
+    runtimeActor.review.hooks?.restore();
+    const loops = runtimeActor.review.loop ?? LOOPING_ACTIONS.has(clipName);
     if (immediate) {
       runtimeActor.mixer.stopAllAction();
     } else if (runtimeActor.currentAction !== action) {
@@ -429,6 +453,7 @@ export function createBreachV2WardenRuntime(
     runtimeActor.groundingStatus = "pending";
     runtimeActor.groundingFrames = 0;
     runtimeActor.groundingClearanceMeters = null;
+    if (immediate) evaluateBreachV2AnimationReviewPose(runtimeActor.review, runtimeActor.mixer, 0, true);
     return action.getClip().duration;
   };
   const detachStage = (runtimeActor: RuntimeActor, stage: number): void => {
@@ -566,9 +591,11 @@ export function createBreachV2WardenRuntime(
       presentationMaterials,
       furnaceLight,
       furnacePhaseSeconds: 0,
+      review: createBreachV2AnimationReviewState(),
     };
     mixer.addEventListener("finished", (event) => {
       if (event.action !== runtimeActor.currentAction) return;
+      if (runtimeActor.review.loop !== null) return;
       if (runtimeActor.currentClip !== "DeathCollapse") playActor(runtimeActor, "CombatIdle");
     });
     playActor(runtimeActor, damageFraction >= 1 ? "DeathCollapse" : "Idle");
@@ -631,13 +658,19 @@ export function createBreachV2WardenRuntime(
         console.error("Cinderbound Warden room activation failed", error);
       });
       if (actor) {
-        actor.mixer.update(deltaSeconds);
+        evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, deltaSeconds);
         actor.furnacePhaseSeconds += deltaSeconds;
         const pulse = 0.9 + Math.sin(actor.furnacePhaseSeconds * 4.2) * 0.1;
         const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
         actor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow;
         actor.groundingFrames += 1;
         let calibratedThisFrame = false;
+        // Review offsets must remain visible defects/adjustments, never become
+        // the runtime's floor-reference correction or its corpse correction.
+        if (actor.review.hooks) {
+          actor.review.hooks.restore();
+          actor.root.updateMatrixWorld(true);
+        }
         if (actor.groundingStatus === "pending" && actor.groundingFrames >= 3) {
           const grounding = calibrateAnimatedPoseOnFloor(actor.root, actor.model, actor.pivot, 0);
           actor.groundingClearanceMeters = grounding.clearanceMeters;
@@ -655,6 +688,10 @@ export function createBreachV2WardenRuntime(
           } else {
             actor.groundingClearanceMeters = grounding.clearanceMeters;
           }
+        }
+        if (actor.review.hooks) {
+          actor.review.hooks.apply();
+          actor.root.updateMatrixWorld(true);
         }
         const effectActions = new Set(["AshCall", "CinderSweep", "PalmFire"]);
         if (!actor.effectFired && effectActions.has(actor.currentClip)
@@ -696,6 +733,7 @@ export function createBreachV2WardenRuntime(
     },
     snapshots: () => actor ? [{
       ...actor.placement,
+      ...breachV2AnimationReviewSnapshot(actor.review, actor.currentAction),
       label: asset.label,
       currentClip: actor.currentClip,
       actionNames: [...actor.actions.keys()].sort(),
@@ -706,17 +744,29 @@ export function createBreachV2WardenRuntime(
       groundingStatus: actor.groundingStatus,
       groundingClearanceMeters: actor.groundingClearanceMeters,
     }] : [],
-    play: (clipName) => playActor(actor ?? (() => { throw new Error("The Warden is not loaded."); })(), clipName),
+    play: (clipName, playOptions) => playActor(actor ?? (() => { throw new Error("The Warden is not loaded."); })(), clipName, playOptions?.immediate),
     pose: (clipName, normalizedTime) => {
       if (!actor) throw new Error("The Warden is not loaded.");
       const duration = playActor(actor, clipName, true);
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
-      actor.mixer.update(0);
+      evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, 0);
     },
     pause: (paused) => {
       if (!actor) throw new Error("The Warden is not loaded.");
       actor.currentAction.paused = paused;
+    },
+    reviewActor: () => actor ? { root: actor.root, model: actor.model } : null,
+    setReviewPlayback: (playback) => {
+      if (!actor) throw new Error("The Warden is not loaded.");
+      configureBreachV2AnimationReview(actor.review, playback);
+      const loops = actor.review.loop ?? LOOPING_ACTIONS.has(actor.currentClip);
+      actor.currentAction.clampWhenFinished = !loops;
+      actor.currentAction.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
+    },
+    setReviewPoseHooks: (hooks) => {
+      if (!actor) throw new Error("The Warden is not loaded.");
+      setBreachV2AnimationReviewPoseHooks(actor.review, hooks);
     },
     setDamageFraction: (nextDamageFraction) => {
       const previous = damageFraction;

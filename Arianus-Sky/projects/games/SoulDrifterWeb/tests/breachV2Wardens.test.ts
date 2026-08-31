@@ -145,6 +145,111 @@ function trackCloneBoneTexture(root: THREE.Object3D): { count: () => number } {
 }
 
 describe("BREACH-V2 Cinderbound Warden runtime", () => {
+  it("stages a selected boss with deterministic speed, loop and terminal hold without changing gameplay defaults", async () => {
+    const layout = buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS);
+    const room = layout.rooms[0]!;
+    const placement = {
+      ...buildCinderboundWardenPlacement(layout, "wayfarer"),
+      id: "review-warden", roomId: room.id, x: room.x + room.w / 2, z: room.z + room.h / 2,
+      floorElevation: room.floorElevation, yaw: 0,
+    };
+    const runtime = createBreachV2WardenRuntime(new THREE.Scene(), layout, { loadAsync: async () => source() }, "wayfarer", undefined, undefined, {
+      reviewPlacement: placement,
+    });
+    await runtime.warmAt(placement.x, placement.z);
+    expect(runtime.reviewActor()?.root.name).toBe("review-warden");
+    runtime.setReviewPlayback({ speed: 0.5, loop: true });
+    runtime.play("BladeSweep", { immediate: true });
+    runtime.update(placement.x, placement.z, 0.5);
+    expect(runtime.snapshots()[0]).toMatchObject({
+      currentClip: "BladeSweep", timeSeconds: 0.25, normalizedTime: 0.25,
+      durationSeconds: 1, playbackSpeed: 0.5, reviewLoop: true, paused: false,
+    });
+    runtime.play("BladeSweep", { immediate: true });
+    expect(runtime.snapshots()[0]?.timeSeconds).toBe(0);
+    runtime.update(placement.x, placement.z, 2.2);
+    expect(runtime.snapshots()[0]?.timeSeconds).toBeCloseTo(0.1);
+    runtime.setReviewPlayback({ loop: false });
+    runtime.play("BladeSweep", { immediate: true });
+    runtime.update(placement.x, placement.z, 2.2);
+    expect(runtime.snapshots()[0]).toMatchObject({ currentClip: "BladeSweep", timeSeconds: 1, paused: true });
+    runtime.setReviewPlayback({ speed: 1, loop: null });
+    runtime.play("BladeSweep", { immediate: true });
+    runtime.update(placement.x, placement.z, 1.1);
+    expect(runtime.snapshots()[0]?.currentClip).toBe("CombatIdle");
+    runtime.dispose();
+    expect(runtime.reviewActor()).toBeNull();
+  });
+
+  it("does not accumulate tracked or missing-track boss overlays and restores them on teardown", async () => {
+    const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
+    const placement = buildCinderboundWardenPlacement(layout, "oathbreaker");
+    const runtime = createBreachV2WardenRuntime(new THREE.Scene(), layout, { loadAsync: async () => source() }, "oathbreaker");
+    await runtime.warmAt(placement.x, placement.z);
+    const actor = runtime.reviewActor()!;
+    const probe = actor.model.getObjectByName("animation_probe")!;
+    const untracked = new THREE.Bone();
+    actor.model.add(untracked);
+    const basePosition = probe.position.clone();
+    const baseRotation = untracked.quaternion.clone();
+    const restore = vi.fn(() => {
+      probe.position.copy(basePosition);
+      untracked.quaternion.copy(baseRotation);
+    });
+    runtime.setReviewPoseHooks({
+      restore,
+      apply: () => {
+        basePosition.copy(probe.position);
+        baseRotation.copy(untracked.quaternion);
+        probe.position.x += 0.3;
+        untracked.rotateZ(0.2);
+      },
+    });
+    for (let pass = 0; pass < 20; pass += 1) {
+      runtime.pose("BladeSweep", 0.5);
+      runtime.update(placement.x, placement.z, 0);
+      expect(probe.position.x).toBeCloseTo(1.3);
+      expect(untracked.rotation.z).toBeCloseTo(0.2);
+    }
+    runtime.pose("Idle", 0.5);
+    for (let pass = 0; pass < 20; pass += 1) runtime.update(placement.x, placement.z, 0);
+    expect(probe.position.x).toBeCloseTo(0.3);
+    expect(untracked.rotation.z).toBeCloseTo(0.2);
+    const beforeClear = restore.mock.calls.length;
+    runtime.dispose();
+    runtime.dispose();
+    expect(restore).toHaveBeenCalledTimes(beforeClear + 1);
+    expect(untracked.rotation.z).toBeCloseTo(0);
+    expect(runtime.reviewActor()).toBeNull();
+  });
+
+  it("never bakes an active review overlay into the boss floor reference", async () => {
+    const layout = buildBreachV2Layout(4182, "wayfarer", DUNGEON_PROP_ASSETS);
+    const placement = buildCinderboundWardenPlacement(layout, "wayfarer");
+    const runtime = createBreachV2WardenRuntime(new THREE.Scene(), layout, { loadAsync: async () => source() }, "wayfarer");
+    await runtime.warmAt(placement.x, placement.z);
+    runtime.pose("Idle", 0.5);
+    for (let frame = 0; frame < 3; frame += 1) runtime.update(placement.x, placement.z, 0);
+    const { model } = runtime.reviewActor()!;
+    const pivot = model.parent!;
+    const rawFloorReference = pivot.position.y;
+    const rawPosition = model.position.clone();
+    runtime.setReviewPoseHooks({
+      restore: () => model.position.copy(rawPosition),
+      apply: () => {
+        rawPosition.copy(model.position);
+        model.position.y += 0.4;
+      },
+    });
+    runtime.pose("Idle", 0.5);
+    for (let frame = 0; frame < 12; frame += 1) runtime.update(placement.x, placement.z, 0);
+    expect(pivot.position.y).toBeCloseTo(rawFloorReference, 8);
+    expect(model.position.y).toBeCloseTo(rawPosition.y + 0.4, 8);
+    runtime.setReviewPoseHooks(null);
+    expect(model.position.y).toBeCloseTo(rawPosition.y, 8);
+    runtime.dispose();
+  });
+
   it("disposes each Breachling clone skeleton once across room churn and repeated teardown", async () => {
     const layout = buildBreachV2Layout(4182, "oathbreaker", DUNGEON_PROP_ASSETS);
     const placement = buildBreachlingPlacements(layout, "oathbreaker")[0]!;

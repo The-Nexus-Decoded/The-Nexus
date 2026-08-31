@@ -1,4 +1,5 @@
 import { access, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -33,10 +34,36 @@ await Promise.all([
   access(resolve(sitesRoot, "client/lore-atlas/index.html")),
 ]);
 
+const reviewPages = ["weapon-lab.html", "asset-review.html"];
+const reviewAssetMap = JSON.parse(await readFile(
+  resolve(projectRoot, "docs/3d-ai-studio/issue-435-lab-asset-map.json"), "utf8",
+));
+for (const clientRoot of [pagesRoot, resolve(sitesRoot, "client")]) {
+  for (const page of reviewPages) {
+    const html = await readFile(resolve(clientRoot, page), "utf8");
+    const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/g)];
+    requireCondition(scripts.length > 0, `${page} has no built JavaScript entry.`);
+    for (const [, scriptUrl] of scripts) {
+      requireCondition(!/^(?:[a-z]+:|\/\/)/i.test(scriptUrl), `${page} requires an external script.`);
+      const pathname = new URL(scriptUrl, "https://review.invalid/").pathname;
+      requireCondition(!pathname.startsWith("/src/") && !pathname.startsWith("/@fs/"), `${page} still references development source.`);
+      await access(resolve(clientRoot, `.${pathname}`));
+    }
+  }
+  for (const asset of reviewAssetMap.assets) {
+    requireCondition(/^\/assets\//.test(asset.url) && !asset.url.includes(".."), `Invalid review asset URL: ${asset.url}`);
+    const bytes = await readFile(resolve(clientRoot, `.${asset.url}`));
+    requireCondition(bytes.length === asset.bytes, `Review asset size changed: ${asset.url}`);
+    requireCondition(createHash("sha256").update(bytes).digest("hex") === asset.sha256, `Review asset SHA-256 changed: ${asset.url}`);
+  }
+}
+
 process.stdout.write(`${JSON.stringify({
   ok: true,
   sourceCommit: pagesRelease.sourceCommit,
   releaseId: pagesRelease.releaseId,
   pages: "dist-pages/",
   sites: "dist/",
+  reviewPages,
+  verifiedReviewAssetsPerTarget: reviewAssetMap.assets.length,
 }, null, 2)}\n`);

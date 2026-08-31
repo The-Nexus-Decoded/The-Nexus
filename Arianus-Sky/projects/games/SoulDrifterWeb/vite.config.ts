@@ -6,5 +6,12 @@ export default defineConfig({
     outDir: "dist/client",
     target: "es2022",
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        game: "index.html",
+        weaponLab: "weapon-lab.html",
+        assetReview: "asset-review.html",
+      },
+    },
   },
 });
