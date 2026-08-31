@@ -38,6 +38,10 @@ const reviewPages = ["weapon-lab.html", "asset-review.html"];
 const reviewAssetMap = JSON.parse(await readFile(
   resolve(projectRoot, "docs/3d-ai-studio/issue-435-lab-asset-map.json"), "utf8",
 ));
+const reviewPropCatalog = JSON.parse(await readFile(
+  resolve(projectRoot, "src/review/weapon-lab/review-prop-catalog.json"), "utf8",
+));
+const reviewAssets = [...reviewAssetMap.assets, ...reviewPropCatalog.assets];
 for (const clientRoot of [pagesRoot, resolve(sitesRoot, "client")]) {
   for (const page of reviewPages) {
     const html = await readFile(resolve(clientRoot, page), "utf8");
@@ -50,7 +54,7 @@ for (const clientRoot of [pagesRoot, resolve(sitesRoot, "client")]) {
       await access(resolve(clientRoot, `.${pathname}`));
     }
   }
-  for (const asset of reviewAssetMap.assets) {
+  for (const asset of reviewAssets) {
     requireCondition(/^\/assets\//.test(asset.url) && !asset.url.includes(".."), `Invalid review asset URL: ${asset.url}`);
     const bytes = await readFile(resolve(clientRoot, `.${asset.url}`));
     requireCondition(bytes.length === asset.bytes, `Review asset size changed: ${asset.url}`);
@@ -65,5 +69,5 @@ process.stdout.write(`${JSON.stringify({
   pages: "dist-pages/",
   sites: "dist/",
   reviewPages,
-  verifiedReviewAssetsPerTarget: reviewAssetMap.assets.length,
+  verifiedReviewAssetsPerTarget: reviewAssets.length,
 }, null, 2)}\n`);

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "scope": "Motion Studio only. Static prop intake is not interaction or dungeon approval.",
+  "assets": [
+    {
+      "id": "tree-small-02",
+      "label": "Branching tree",
+      "kind": "tree",
+      "url": "/assets/weapon-lab/props/tree-small-02-review-v1.glb",
+      "bytes": 26630592,
+      "sha256": "131d80fff7c6093076089b519878668d223868ee3119b14738ce631f1ef7c0c4",
+      "sourceUrl": "https://polyhaven.com/a/tree_small_02",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "author": "Rico Cilliers",
+      "sourceGltfSha256": "5e2f02db826dd0b6242c7644aebd6aa501a04689161f2385b5f0c233400f58e5",
+      "sourceBufferSha256": "8da6c3c389ad8748286d1b7488cd827f75ebdad9d8f59ef7dfb0916df5edc634",
+      "unitScale": 1,
+      "triangleCount": 398000,
+      "contactMeshes": ["tree_small_02_trunk", "tree_small_02_branches"],
+      "armMaterials": ["tree_small_02_branches", "tree_small_02_leaves", "tree_small_02_trunk"],
+      "materialPolicy": "Original diffuse, normal and packed ARM bytes. Explicit ARM materials also use the packed red channel for AO at runtime; source glTF omitted that binding. Existing RGBA leaf map, no generated imagery.",
+      "approvalStatus": "static-reviewed",
+      "remainingGates": ["native material and performance check", "climbing support fit", "damage and fracture review"],
+      "preparation": "Houdini material-local reduction: branches 24000, leaves 350000, trunk 24000 triangles. Material-selected UVs preserved; invalid VEC3 tangents removed; no rescale. Independent wide/close source-comparison gate passed; lossy geometry, not exact equivalence."
+    }
+  ]
+}

@@ -2,6 +2,19 @@
   "schemaVersion": 1,
   "shippingAssets": [
     {
+      "id": "issue-458-review-tree-small-02",
+      "name": "Motion Studio branching tree",
+      "url": "https://polyhaven.com/a/tree_small_02",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "author": "Rico Cilliers",
+      "usage": "Isolated Motion Studio interaction asset. Static intake only; no dungeon or interaction acceptance implied.",
+      "bundled": true,
+      "path": "public/assets/weapon-lab/props/tree-small-02-review-v1.glb",
+      "sha256": "131d80fff7c6093076089b519878668d223868ee3119b14738ce631f1ef7c0c4",
+      "notes": "Reuses the licensed project source. Material-local Houdini reduction from 2062487 to 398000 triangles; original texture bytes, existing RGBA foliage map, corrected material UV selection. Source hashes, runtime material policy and incomplete interaction gates are in src/review/weapon-lab/review-prop-catalog.json. No paid operation."
+    },
+    {
       "id": "issue-458-base-reviewed-attacks-v1",
       "name": "Base Breachling: revised five-attack studio pilot",
       "url": "https://studio.tripo3d.ai/",
