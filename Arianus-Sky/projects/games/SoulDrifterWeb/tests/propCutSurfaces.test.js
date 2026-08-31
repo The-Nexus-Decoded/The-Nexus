@@ -6,6 +6,24 @@ const chest = fileURLToPath(new URL("../docs/3d-ai-studio/source-models/environm
 const sha = "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56";
 const uv = [.235, .137, .326, .199];
 describe("real prop cut surfaces", () => {
+  it.each([-1, 1])("does not cap or duplicate a disconnected tangent component on side %s", (side) => {
+    const box = (x, y) => [0, 1, 2].flatMap((axis) => [-1, 1].flatMap((sign) => {
+      const u = (axis + 1) % 3, v = (axis + 2) % 3, center = [x, y, 0];
+      const contour = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b]) => {
+        const p = [...center]; p[axis] += sign; p[u] += a; p[v] += b; return p;
+      });
+      return propCutFace(contour, [], axis, sign, uv);
+    }));
+    for (const keepGreater of [false, true]) {
+      const result = splitClosedProp([...box(-3, side), ...box(3, 0)], {axis:1,boundary:0,keepGreater}, uv);
+      expect(result.loops).toHaveLength(1);
+      expect(result.loops[0].every((p) => p[0] >= 2)).toBe(true);
+      const tangentInside = result.inside.filter((face) => face.every((v) => v.attributes.position[0] < 0));
+      const tangentOutside = result.outside.filter((face) => face.every((v) => v.attributes.position[0] < 0));
+      expect(tangentInside).toHaveLength((side > 0) === keepGreater ? 12 : 0);
+      expect(tangentOutside).toHaveLength((side > 0) === keepGreater ? 0 : 12);
+    }
+  });
   it("caps an exact existing edge ring without retaining degenerate surfaces", () => {
     const ring = [[-1,0,-1],[1,0,-1],[1,0,1],[-1,0,1]], polygons = [];
     for (let i=0;i<4;i++) for (const y of [-1,1]) polygons.push([ring[i], ring[(i+1)%4], [0,y,0]].map((p) => ({attributes:{position:p,normal:[0,1,0],uv:[0,0]}})));

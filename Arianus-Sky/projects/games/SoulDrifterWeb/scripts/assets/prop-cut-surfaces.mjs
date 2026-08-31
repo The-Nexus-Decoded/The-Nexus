@@ -37,8 +37,7 @@ function traceLoops(segments) {
 /** Same UV-preserving split used by the runtime door, plus exact cut contours. */
 export function sectionProp(polygons, plane) {
   if (![0, 1, 2].includes(plane.axis) || !Number.isFinite(plane.boundary) || typeof plane.keepGreater !== "boolean") throw new Error("Invalid cut plane");
-  const inside = [], outside = [], segments = [];
-  let hasLess = false, hasGreater = false;
+  const inside = [], outside = [], segments = new Map();
   const hasArea = (polygon) => {
     if (polygon.length < 3) return false;
     const origin = new Vector3(...position(polygon[0]));
@@ -49,24 +48,35 @@ export function sectionProp(polygons, plane) {
     return false;
   };
   for (const polygon of polygons) {
+    const coordinates = polygon.map((v) => position(v)[plane.axis]);
+    if (coordinates.every((value) => value === plane.boundary)) {
+      // An existing outward surface belongs to the solid behind it, including
+      // disconnected components tangent to this plane. Never copy a ghost face
+      // into the empty half just because boundary points are inclusive.
+      if (!hasArea(polygon)) continue;
+      const origin = new Vector3(...position(polygon[0])), normal = new Vector3();
+      for (let i = 1; i + 1 < polygon.length; i++) normal.add(new Vector3(...position(polygon[i])).sub(origin).cross(new Vector3(...position(polygon[i + 1])).sub(origin)));
+      const belongsGreater = normal.getComponent(plane.axis) < 0;
+      (belongsGreater === plane.keepGreater ? inside : outside).push(polygon);
+      continue;
+    }
     const cut = splitPolygon(polygon, plane);
     if (hasArea(cut.inside)) inside.push(cut.inside);
     if (hasArea(cut.outside)) outside.push(cut.outside);
-    const coordinates = polygon.map((v) => position(v)[plane.axis]);
-    hasLess ||= Math.min(...coordinates) < plane.boundary;
-    hasGreater ||= Math.max(...coordinates) > plane.boundary;
-    // Faces on either side contribute an existing exact-edge section too.
-    // Entirely coplanar faces are not section edges; a tangent-only plane below
-    // returns no caps rather than duplicating an existing exterior face.
-    if (coordinates.every((value) => value === plane.boundary)) continue;
+    const sideMask = (Math.min(...coordinates) < plane.boundary ? 1 : 0) | (Math.max(...coordinates) > plane.boundary ? 2 : 0);
     const ends = [...cut.inside, ...cut.outside].map(position).filter((p) => Math.abs(p[plane.axis] - plane.boundary) < 1e-9);
     let best = [], max = 0;
     for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) {
       const d = distance2(ends[i], ends[j]); if (d > max) { max = d; best = [ends[i], ends[j]]; }
     }
-    if (best.length) segments.push(best);
+    if (best.length) {
+      const edge = best.map(key).sort().join("|"), previous = segments.get(edge);
+      segments.set(edge, { points: best, sides: sideMask | (previous?.sides ?? 0) });
+    }
   }
-  return { inside, outside, loops: hasLess && hasGreater ? traceLoops(segments) : [] };
+  // Each section edge needs real solid on both sides. Global bounds alone
+  // cannot distinguish a cut component from a separate tangent component.
+  return { inside, outside, loops: traceLoops([...segments.values()].filter((edge) => edge.sides === 3).map((edge) => edge.points)) };
 }
 
 /** A real, UV-mapped cut face, optionally around an open container aperture.
