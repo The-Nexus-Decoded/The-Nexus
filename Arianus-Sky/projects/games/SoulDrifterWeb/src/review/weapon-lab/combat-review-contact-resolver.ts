@@ -5,7 +5,8 @@ import { sampleReviewPoses } from "./combat-review-posing";
 import { prepareReviewSequence, sampleReviewSequence } from "./combat-review-timeline";
 import { createReviewStrikeProbe, reviewContactSourceToken, validateReviewContactProfile,
   type ReviewContactProfile } from "./combat-review-contact-profiles";
-import type { ReviewActorAdapter, ReviewEvent, ReviewSequence } from "./combat-review-types";
+import { createReviewProjectiles, type ReviewProjectiles } from "./combat-review-projectiles";
+import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight, ReviewSequence } from "./combat-review-types";
 
 export interface ReviewContactActor { readonly actor: ReviewActorAdapter; readonly settleConstraints?: () => void }
 export interface ReviewContactResolution {
@@ -17,6 +18,8 @@ export interface ReviewContactResolution {
   readonly toleranceMeters: number;
   readonly evidence: string;
   readonly event?: ReviewEvent;
+  readonly flights?: readonly ReviewProjectileFlight[];
+  readonly releaseEvents?: readonly ReviewEvent[];
 }
 
 /** One confirmed surface event per action, with no live damage/loot or fallback hit. */
@@ -31,9 +34,14 @@ export async function resolveReviewContact(options: {
   const profile = options.profile ? structuredClone(options.profile) : null;
   const sampleRate = options.sampleRate ?? 120, tolerance = options.toleranceMeters ?? 0.008;
   let samples = 0;
+  let projectiles: ReviewProjectiles | undefined;
   const result = (status: ReviewContactResolution["status"], evidence: string, event?: ReviewEvent): ReviewContactResolution => ({
     status, evidence, event, sequenceId: sequence.id, profileId: profile?.id ?? null,
     samples, sampleRate, toleranceMeters: tolerance,
+    ...(projectiles ? { flights: projectiles.flights, releaseEvents: projectiles.flights.map((flight): ReviewEvent => ({
+      id: `release:${flight.id}`, actorId: flight.actorId, kind: "release", timeSeconds: flight.releaseSeconds,
+      projectileId: flight.id, position: flight.origin, result: "unmeasured", evidence: flight.evidence,
+    })) } : {}),
   });
   if (!Number.isInteger(sampleRate) || sampleRate < 30 || sampleRate > 240
     || !Number.isFinite(tolerance) || tolerance < 0 || tolerance > 0.05) throw new Error("Invalid contact sampling resolution or tolerance.");
@@ -66,18 +74,25 @@ export async function resolveReviewContact(options: {
       if (!pose) throw new Error("An actor has no pose at the contact sample time.");
       sampleReviewPoses(binding.actor, pose.poses, binding.settleConstraints);
     }
+    projectiles?.update(time, [], true);
     samples++; return surface.update();
   };
   const hit = (contact: ReviewSurfaceContact, probeId: string, time: number) => result("contact",
     `Confirmed sampled strike surface within ${tolerance} m; not gameplay damage or continuous-collision certification.`, {
       id: `measured-contact:${attacker.actor.instanceId}:${target.actor.instanceId}`, kind: "contact", result: "hit",
       actorId: attacker.actor.instanceId, targetId: target.actor.instanceId, timeSeconds: time,
+      ...(projectiles ? { projectileId: projectiles.projectileIdForProbe(probeId),
+        damageType: profile.surface.kind === "projectile" && profile.surface.emitter === "base-spit" ? "poison" as const : "physical" as const } : {}),
       position: contact.point.toArray(), normal: contact.normal.toArray(),
       evidence: `${profile.evidence}; sequence:${sequence.id}; ${contact.evidence}; probe:${probeId}; confirmed-time:${time}`,
     });
   try {
     sample(start);
-    const probe = createReviewStrikeProbe(attacker.actor, profile);
+    if (profile.surface.kind === "projectile") {
+      projectiles = createReviewProjectiles(attacker.actor, profile.actionId, { releaseSeconds: start, endSeconds: end });
+      projectiles.update(start);
+    }
+    const probe = projectiles?.probe ?? createReviewStrikeProbe(attacker.actor, profile);
     if (!probe.vertexCount) return result("unavailable", probe.unavailableReason ?? "No eligible rendered strike vertices; not a miss.");
     let previous: readonly ReviewProbePoint[] = [], previousTime = start;
     for (let index = 0; index <= count; index++) {
@@ -106,5 +121,5 @@ export async function resolveReviewContact(options: {
     }
     check();
     return result("miss", `No sampled eligible strike surface reached the rendered target within ${tolerance} m at ${sampleRate} Hz in the explicit active interval.`);
-  } finally { surface.dispose(); options.restore?.(); }
+  } finally { projectiles?.dispose(); surface.dispose(); options.restore?.(); }
 }

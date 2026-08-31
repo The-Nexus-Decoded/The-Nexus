@@ -45,6 +45,29 @@ function setup(targetMovement?: (time: number) => number) {
   target.actor.root.position.z = 1; target.actor.root.updateMatrixWorld(true);
   return { attacker, target, sequence: sequence(attacker, target), profile: profile() };
 }
+
+function rangedSetup(targetMovement?: (time: number) => number) {
+  const input = setup(targetMovement), actionId = "GapAuthored__BowReleaseFromNock";
+  // Triangle is a deterministic CPU trajectory fixture; actual GLB arrow fidelity
+  // and ownership are checked separately in combatReviewProjectiles.test.ts.
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute("position", new THREE.Float32BufferAttribute([-0.01, 0, 0, 0.01, 0, 0, 0, 0.01, 0], 3));
+  geometry.setIndex([0, 1, 2]);
+  const arrow = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial()); input.attacker.actor.root.add(arrow);
+  let ammo = true;
+  const actor = Object.assign(input.attacker.actor, { definitionId: "human-foundation-pilot",
+    snapshot: () => ({ loadoutId: "bow", mode: "equipment", actionId }),
+    projectile: { visuals: [arrow], captured: false, startPosition: new THREE.Vector3(), direction: new THREE.Vector3(0, 0, 1) },
+  });
+  actor.actions = () => [{ id: actionId, clipName: actionId, label: "Bow release", durationSeconds: 1,
+    semantic: "interaction", approvalStatus: "draft", rootPolicy: "authored-displacement" }];
+  actor.sample.mockImplementation((_id, time) => { actor.projectile.captured = time >= 0.3 && ammo;
+    arrow.visible = actor.projectile.captured; actor.root.updateMatrixWorld(true); });
+  input.target.actor.root.position.z = 3;
+  return { ...input, attacker: { ...input.attacker, actor }, arrow, setAmmo: (value: boolean) => { ammo = value; },
+    sequence: { ...input.sequence, tracks: input.sequence.tracks.map((track, index) => index === 0 ? { ...track, actionId } : track) },
+    profile: reviewContactProfile(actor, actionId, { projectiles: true })!,
+  };
+}
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("explicit active-window surface resolution", () => {
@@ -133,6 +156,54 @@ describe("explicit active-window surface resolution", () => {
     const partial = { ...input.sequence, tracks: input.sequence.tracks.map((track, index) => index ? track : { ...track, durationSeconds: 0.5 }) };
     expect((await resolveReviewContact({ ...input, sequence: partial })).status).toBe("unavailable");
     await expect(resolveReviewContact({ ...input, sampleRate: 0 })).rejects.toThrow(/resolution/);
+  });
+});
+
+describe("shared melee/ranged sampling loop", () => {
+  it("measures emitted geometry and returns one identified hit plus an unmeasured release event", async () => {
+    const input = rangedSetup(), original = Array.from(input.arrow.geometry.getAttribute("position").array);
+    const result = await resolveReviewContact({ ...input, toleranceMeters: 0.001 });
+    expect(result.status).toBe("contact"); expect(result.event!.timeSeconds).toBeCloseTo(0.65, 5);
+    expect(result.flights).toHaveLength(1);
+    expect(result.event).toMatchObject({ projectileId: result.flights![0]!.id, damageType: "physical" });
+    expect(result.releaseEvents).toMatchObject([{ kind: "release", result: "unmeasured", timeSeconds: 0.3,
+      projectileId: result.event!.projectileId }]);
+    expect(Array.from(input.arrow.geometry.getAttribute("position").array)).toEqual(original);
+    expect(input.arrow.parent).toBe(input.attacker.actor.root);
+    expect(reviewContactProfile(input.attacker.actor, input.profile.actionId)).toBeNull(); // activation remains explicit
+  });
+
+  it("uses the actual moving target at confirmation time, without homing or a release-time hit", async () => {
+    const input = rangedSetup((time) => (time - 0.3) / 0.7 * 6 - 0.02);
+    input.target.actor.root.position.z = 0;
+    const result = await resolveReviewContact({ ...input, sampleRate: 30, toleranceMeters: 0.001 });
+    expect(result.status).toBe("miss"); expect(result.event).toBeUndefined();
+    expect(result.flights![0]!.direction).toEqual([0, 0, 1]); expect(result.releaseEvents).toHaveLength(1);
+    expect(result.samples).toBeGreaterThan(22);
+  });
+
+  it("distinguishes empty emission from a miss and invalidates replaced arrow geometry or inventory", async () => {
+    const empty = rangedSetup(); empty.setAmmo(false);
+    expect((await resolveReviewContact(empty)).status).toBe("unavailable");
+    for (const mutate of [
+      (input: ReturnType<typeof rangedSetup>) => input.arrow.geometry.setAttribute("position", input.arrow.geometry.getAttribute("position").clone()),
+      (input: ReturnType<typeof rangedSetup>) => input.setAmmo(false),
+    ]) {
+      const input = rangedSetup(); input.target.actor.root.position.z = 8;
+      const restore = vi.fn(() => mutate(input));
+      await expect(resolveReviewContact({ ...input, restore })).rejects.toMatchObject({ name: "AbortError" });
+      expect(restore).toHaveBeenCalled();
+    }
+  });
+
+  it("requires the exact bound release interval and preserves rate-adjusted event time", async () => {
+    const input = rangedSetup();
+    expect(() => validateReviewContactProfile(input.attacker.actor, { ...input.profile, startSeconds: 0.1 })).toThrow(/source-bound/);
+    const fast = { ...input.sequence, tracks: input.sequence.tracks.map((track, index) => index === 0
+      ? { ...track, durationSeconds: 0.5, rate: 2 } : track) };
+    const result = await resolveReviewContact({ ...input, sequence: fast, toleranceMeters: 0.001 });
+    expect(result.status).toBe("contact"); expect(result.event!.timeSeconds).toBeCloseTo(0.325, 5);
+    expect(result.releaseEvents![0]!.timeSeconds).toBe(0.15);
   });
 });
 
