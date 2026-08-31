@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { ReviewClock, type ReviewClockFrame } from "./combat-review-timeline";
 import { sampleReviewPoses } from "./combat-review-posing";
+import { resolveReviewContact, type ReviewContactResolution } from "./combat-review-contact-resolver";
+import { reviewContactProfile, type ReviewContactProfile } from "./combat-review-contact-profiles";
 import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewEvent, ReviewSequence, ReviewTrack } from "./combat-review-types";
 
 export type CombatSlot = "a" | "b";
@@ -52,6 +54,12 @@ export interface CombatReviewSnapshot {
   readonly durationSeconds: number;
   readonly frame: ReviewClockFrame | null;
   readonly error: string | null;
+  readonly contact: CombatContactSnapshot;
+}
+export interface CombatContactSnapshot {
+  readonly status: "unmeasured" | "scanning" | ReviewContactResolution["status"];
+  readonly result: ReviewContactResolution | null;
+  readonly response: "none" | "reaction" | "death";
 }
 interface SlotState {
   definitionId: string; status: CombatSlotSnapshot["status"]; error: string | null;
@@ -82,13 +90,16 @@ export class CombatReviewController {
   private speed = 1;
   private loop = false;
   private error: string | null = null;
+  private contactResult: ReviewContactResolution | null = null;
+  private contactResponse: CombatContactSnapshot["response"] = "none";
+  private contactJob: { abort: AbortController; revision: number; sequenceId: string } | null = null;
   private cue: { kind: "none" | "reaction" | "death"; atSeconds: number; blendSeconds: number } = {
     kind: "none", atSeconds: 0.5, blendSeconds: 0.1,
   };
   private placement = { separationMeters: 1.75, yawADegrees: 0, yawBDegrees: 180 };
 
   constructor(private readonly options: { definitions: readonly CombatActorDefinition[]; loadActor: CombatActorLoader;
-    initial?: Readonly<{ a: string; b: string }>; instancePrefix?: string }) {
+    initial?: Readonly<{ a: string; b: string }>; instancePrefix?: string; contactResolver?: typeof resolveReviewContact }) {
     if (!options.definitions.length || options.definitions.some((entry) => !entry.id.trim() || !entry.label.trim())
       || new Set(options.definitions.map((entry) => entry.id)).size !== options.definitions.length) throw new Error("Actor definitions require unique IDs and labels.");
     this.definitions = Object.freeze(options.definitions.map((entry) => Object.freeze({ ...entry })));
@@ -109,10 +120,65 @@ export class CombatReviewController {
         status: value.status, error: value.error, actions: value.actions, selected: { ...value.selected },
         calibration: value.handle?.calibration?.controls().map((control) => ({ ...control })) ?? [] }; }),
       cue: { ...this.cue }, placement: { ...this.placement }, durationSeconds: this.clock?.sequence.durationSeconds ?? 0,
-      frame: this.clock?.snapshot() ?? null, error: this.error };
+      frame: this.clock?.snapshot() ?? null, error: this.error,
+      contact: { status: this.contactJob ? "scanning" : this.contactResult?.status ?? "unmeasured",
+        result: this.contactResult ? structuredClone(this.contactResult) : null, response: this.contactResponse } };
   }
   actor(slot: CombatSlot): ReviewActorAdapter | null { return this.slots[slot].handle?.actor ?? null; }
   sequence(): ReviewSequence | null { return this.clock?.sequence ?? null; }
+
+  contactProfile(): ReviewContactProfile | null {
+    const actor = this.actor(this.attacker);
+    return actor ? reviewContactProfile(actor, this.slots[this.attacker].selected.action) : null;
+  }
+  async resolveContact(options: { profile?: ReviewContactProfile | null; response?: CombatContactSnapshot["response"] } = {}): Promise<ReviewContactResolution | null> {
+    this.assertLive();
+    if (!this.clock || !this.active) throw new Error("Both actors must be ready before contact review.");
+    const response = options.response ?? "none";
+    if (!["none", "reaction", "death"].includes(response)) throw new Error("Unknown measured response kind.");
+    if (response !== "none") this.requireAction(opposite(this.attacker), this.slots[opposite(this.attacker)].selected[response]);
+    const profile = options.profile === undefined ? this.contactProfile() : options.profile;
+    if (profile && profile.actionId !== this.slots[this.attacker].selected.action) throw new Error("Contact profile must match the selected attacker action.");
+    const heldTime = this.clock.snapshot().timeSeconds;
+    this.invalidateContact(); this.cue.kind = "none"; this.recompose();
+    this.clock!.seek(heldTime); this.applyFrame(); this.changed();
+    const sequence = this.clock!.sequence;
+    const job = { abort: new AbortController(), revision: this.revision, sequenceId: sequence.id };
+    this.contactJob = job; this.emit();
+    try {
+      const result = await (this.options.contactResolver ?? resolveReviewContact)({ sequence,
+        attacker: this.slots[this.attacker].handle!, target: this.slots[opposite(this.attacker)].handle!,
+        profile, signal: job.abort.signal, restore: () => { if (!this.disposed) this.applyFrame(); } });
+      if (this.contactJob !== job || job.abort.signal.aborted || this.revision !== job.revision || this.clock?.sequence.id !== job.sequenceId) return null;
+      if (result.sequenceId !== sequence.id || result.profileId !== (profile?.id ?? null)) throw new Error("Contact result belongs to a different sequence or profile.");
+      if (result.status === "contact" && (!result.event || result.event.kind !== "contact" || result.event.result !== "hit"
+        || result.event.actorId !== this.actor(this.attacker)!.instanceId || result.event.targetId !== this.actor(opposite(this.attacker))!.instanceId
+        || !Number.isFinite(result.event.timeSeconds) || result.event.timeSeconds < 0 || result.event.timeSeconds > sequence.durationSeconds
+        || !result.event.evidence?.trim())) throw new Error("Contact result has no valid current-sequence surface event.");
+      this.contactResult = structuredClone(result);
+      if (result.status === "contact" && result.event) {
+        this.contactResponse = response;
+        // Preserve the sampled target pose at impact, even if the last manual
+        // cue used an immediate cut. A zero-time hit needs an initial ready track.
+        if (response !== "none") this.cue = { kind: response, atSeconds: Math.max(1e-6, result.event.timeSeconds),
+          blendSeconds: Math.max(1 / 120, this.cue.blendSeconds) };
+        const time = this.clock.snapshot().timeSeconds;
+        this.recompose(); this.clock!.seek(time); this.applyFrame();
+        // The only post-scan sequence change is the causal response at contact;
+        // the target's pre-contact ready trajectory remains exactly the scanned one.
+        this.contactResult = structuredClone({ ...result, sequenceId: this.clock!.sequence.id });
+      }
+      this.contactJob = null; this.revision++; this.emit(); return structuredClone(this.contactResult);
+    } catch (error) {
+      if (this.contactJob !== job) return null;
+      this.contactJob = null;
+      if (!job.abort.signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) {
+        this.contactResult = { status: "unavailable", sequenceId: sequence.id, profileId: profile?.id ?? null,
+          samples: 0, sampleRate: 120, toleranceMeters: 0.008, evidence: error instanceof Error ? error.message : String(error) };
+      }
+      this.emit(); return this.contactResult ? structuredClone(this.contactResult) : null;
+    } finally { if (!this.disposed) this.applyFrame(); }
+  }
 
   async enter(): Promise<void> {
     this.assertLive();
@@ -191,7 +257,7 @@ export class CombatReviewController {
     if (!["none", "reaction", "death"].includes(next.kind)) throw new Error("Unknown cue kind.");
     finite(next.atSeconds, "Cue time", 0, 120); finite(next.blendSeconds, "Cue blend", 0, 1);
     if (next.kind !== "none") this.requireAction(opposite(this.attacker), this.slots[opposite(this.attacker)].selected[next.kind]);
-    this.cue = next; this.recompose(); this.changed();
+    this.invalidateContact(); this.cue = next; this.recompose(); this.changed();
   }
   setPlacement(patch: Partial<CombatReviewSnapshot["placement"]>): void {
     this.assertLive(); const next = { ...this.placement, ...patch };
@@ -210,15 +276,17 @@ export class CombatReviewController {
   }
   setPlaying(playing: boolean): void {
     this.assertLive();
+    this.cancelContactScan();
     if (playing && this.clock?.snapshot().timeSeconds === this.clock?.sequence.durationSeconds) this.clock?.restart(true);
     else this.clock?.setPlaying(playing);
     this.applyFrame(); this.emit();
   }
   restart(playing = this.clock?.snapshot().playing ?? false): void {
-    this.assertLive(); this.clock?.restart(playing); this.applyFrame(); this.emit();
+    this.assertLive(); this.cancelContactScan(); this.clock?.restart(playing); this.applyFrame(); this.emit();
   }
   seek(timeSeconds: number): void {
     this.assertLive(); finite(timeSeconds, "Seek time", 0, Number.MAX_VALUE);
+    this.cancelContactScan();
     this.clock?.setPlaying(false); this.clock?.seek(timeSeconds); this.applyFrame(); this.emit();
   }
   setSpeed(speed: number): void {
@@ -228,7 +296,7 @@ export class CombatReviewController {
   advance(deltaSeconds: number): void {
     this.assertLive(); finite(deltaSeconds, "Frame delta", 0, Number.MAX_VALUE);
     if (!this.active || !this.clock?.snapshot().playing) return;
-    const frame = this.clock.advance(deltaSeconds); this.applyFrame(frame); this.emit();
+    const frame = this.clock.advance(deltaSeconds); this.applyFrame(frame); this.emit(frame);
   }
 
   private recompose(): void {
@@ -257,10 +325,13 @@ export class CombatReviewController {
         this.cue.atSeconds > 0 ? this.cue.blendSeconds : 0);
       if (response.semantic !== "death") track("defender-recover", defenderId, guard, this.cue.atSeconds + response.durationSeconds,
         duration - this.cue.atSeconds - response.durationSeconds, guard.semantic !== "death", 0.12);
-      events.push({ id: "manual-response", actorId: defenderId, targetId: attackerId, timeSeconds: this.cue.atSeconds,
-        kind: response.semantic === "death" ? "death" : "reaction", result: "unmeasured",
-        evidence: "Manual review cue; not measured contact, damage or gameplay approval." });
+      const measured = this.contactResponse !== "none" && this.contactResult?.event;
+      events.push({ id: measured ? "measured-response" : "manual-response", actorId: defenderId, targetId: attackerId, timeSeconds: this.cue.atSeconds,
+        kind: response.semantic === "death" ? "death" : "reaction", result: measured ? "hit" : "unmeasured",
+        evidence: measured ? `Sandbox response to ${measured.id}; ${measured.evidence}`
+          : "Manual review cue; not measured contact, damage or gameplay approval." });
     } else track("defender-ready", defenderId, guard, 0, duration, guard.semantic !== "death");
+    if (this.contactResult?.status === "contact" && this.contactResult.event) events.push(this.contactResult.event);
     try {
       this.clock = new ReviewClock({ id: `${this.root.name}:${++this.sequenceRevision}`, durationSeconds: duration,
         actorIds: [this.slots.a.handle!.actor.instanceId, this.slots.b.handle!.actor.instanceId], tracks, events });
@@ -302,6 +373,23 @@ export class CombatReviewController {
     return result;
   }
   private assertLive(): void { if (this.disposed) throw new Error("Combat Review has been disposed."); }
-  private changed(): void { this.revision++; this.emit(); }
-  private emit(): void { const snapshot = this.snapshot(); for (const listener of this.listeners) listener(snapshot); }
+  private cancelContactScan(): void { this.contactJob?.abort.abort(); this.contactJob = null; }
+  private invalidateContact(): void {
+    this.cancelContactScan();
+    const hadContact = this.contactResult?.status === "contact", hadResponse = this.contactResponse !== "none";
+    this.contactResult = null; this.contactResponse = "none";
+    if (hadResponse) this.cue.kind = "none";
+    if (hadContact) {
+      const held = this.clock?.snapshot(); this.recompose();
+      if (held && this.clock && !hadResponse) { this.clock.seek(held.timeSeconds); this.clock.setPlaying(held.playing); this.applyFrame(); }
+    }
+  }
+  private changed(): void { this.invalidateContact(); this.revision++; this.emit(); }
+  private emit(frame?: ReviewClockFrame): void {
+    const snapshot = this.snapshot();
+    // Occurrences belong only to this advance notification. Ordinary snapshots
+    // and seeks reconstruct state without re-emitting historical contacts.
+    const notification = frame ? { ...snapshot, frame } : snapshot;
+    for (const listener of this.listeners) listener(notification);
+  }
 }

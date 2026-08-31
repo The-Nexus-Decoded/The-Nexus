@@ -7,6 +7,8 @@ import { CombatReviewPanel } from "../src/review/weapon-lab/combat-review-panel"
 import type { ReviewAction } from "../src/review/weapon-lab/combat-review-types";
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
+import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
+import type { ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
 
 // Browser tsconfig has no ambient Node types; limit host declarations to this test.
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -43,8 +45,9 @@ function actorFixture(request: CombatActorRequest, actions = [action("idle", "id
   return { ...handle, actor, bone };
 }
 const controllers = new Set<CombatReviewController>();
-function controller(loadActor: CombatActorLoader = async (request) => actorFixture(request), initial?: { a: string; b: string }) {
-  const value = new CombatReviewController({ definitions, loadActor, initial }); controllers.add(value); return value;
+function controller(loadActor: CombatActorLoader = async (request) => actorFixture(request), initial?: { a: string; b: string },
+  contactResolver?: typeof resolveReviewContact) {
+  const value = new CombatReviewController({ definitions, loadActor, initial, contactResolver }); controllers.add(value); return value;
 }
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (error: Error) => void;
@@ -198,6 +201,119 @@ describe("Combat Review actor ownership and deterministic composition", () => {
     expect(Object.isFrozen(value.sequence())).toBe(true);
     const updates: number[] = []; const stop = value.subscribe((snapshot) => updates.push(snapshot.revision));
     value.setAttacker("b"); const count = updates.length; stop(); value.restart(); expect(updates).toHaveLength(count);
+  });
+});
+
+type ContactRequest = Parameters<typeof resolveReviewContact>[0];
+const contactProfile = (): ReviewContactProfile => ({ id: "explicit-test-surface", actionId: "strike", startSeconds: 0.2,
+  endSeconds: 1.2, surface: { kind: "bones", names: ["test-hand"] }, evidence: "Test surface fixture" });
+function contactResult(request: ContactRequest, status: ReviewContactResolution["status"] = "contact"): ReviewContactResolution {
+  return { status, sequenceId: request.sequence.id, profileId: request.profile?.id ?? null, samples: 48, sampleRate: 120,
+    toleranceMeters: 0.008, evidence: "Injected unit-test resolver; real geometry is covered by resolver tests",
+    event: status === "contact" ? { id: "test-contact", kind: "contact", result: "hit", actorId: request.attacker.actor.instanceId,
+      targetId: request.target.actor.instanceId, timeSeconds: 0.6, position: [0, 0.5, 1], normal: [0, 0, -1],
+      evidence: "deformed-triangle:test-fixture:0:sample-48" } : undefined };
+}
+describe("Combat Review measured-contact ownership", () => {
+  it("uses one current-sequence surface event for an explicit response; seeking never emits a historical hit", async () => {
+    const value = controller(undefined, undefined, async (request) => contactResult(request)); await value.enter();
+    value.seek(0.3); const priorTarget = bonePose(value, "b");
+    const result = await value.resolveContact({ profile: contactProfile(), response: "reaction" });
+    expect(result!.status).toBe("contact"); expect(result!.sequenceId).toBe(value.sequence()!.id);
+    expect(value.snapshot().contact).toMatchObject({ status: "contact", response: "reaction" });
+    expect(value.sequence()!.events).toHaveLength(2);
+    expect(value.sequence()!.events.filter((event) => event.kind === "contact")).toHaveLength(1);
+    expect(value.sequence()!.events.find((event) => event.kind === "reaction")).toMatchObject({ timeSeconds: 0.6, result: "hit" });
+    expect(bonePose(value, "b")).toEqual(priorTarget);
+    value.seek(1.9); expect(value.snapshot().frame!.crossedEvents).toEqual([]);
+    const crossed: string[] = [];
+    value.subscribe((snapshot) => crossed.push(...snapshot.frame?.crossedEvents.map((entry) => entry.event.kind) ?? []));
+    value.restart(true); value.advance(0.61);
+    expect(crossed.filter((kind) => kind === "contact")).toHaveLength(1);
+    value.advance(0.1); expect(crossed.filter((kind) => kind === "contact")).toHaveLength(1);
+  });
+
+  it("retains the measured target pose at impact even after a zero-blend manual cue", async () => {
+    const value = controller(undefined, undefined, async (request) => contactResult(request)); await value.enter();
+    value.seek(0.6); const expected = bonePose(value, "b");
+    value.setManualCue({ kind: "none", blendSeconds: 0 });
+    await value.resolveContact({ profile: contactProfile(), response: "reaction" }); value.seek(0.6);
+    expect(bonePose(value, "b")).toEqual(expected); expect(value.snapshot().cue.blendSeconds).toBeGreaterThan(0);
+  });
+
+  it("records contact without inventing a reaction when none is requested, and preserves caller isolation", async () => {
+    let supplied: ReviewContactResolution | undefined;
+    const value = controller(undefined, undefined, async (request) => (supplied = contactResult(request))); await value.enter();
+    const result = await value.resolveContact({ profile: contactProfile() });
+    expect(value.sequence()!.events.map((event) => event.kind)).toEqual(["contact"]);
+    expect(value.snapshot().cue.kind).toBe("none");
+    (result!.event as { evidence: string }).evidence = "mutated-return";
+    (supplied!.event as { evidence: string }).evidence = "mutated-resolver";
+    const snapshot = value.snapshot(); (snapshot.contact.result!.event as { evidence: string }).evidence = "mutated-snapshot";
+    expect(value.snapshot().contact.result!.event!.evidence).toContain("deformed-triangle:");
+    expect(value.sequence()!.events[0]!.evidence).toContain("deformed-triangle:");
+  });
+
+  it("keeps miss and unavailable distinct and schedules neither a hit nor a response", async () => {
+    for (const status of ["miss", "unavailable"] as const) {
+      const value = controller(undefined, undefined, async (request) => contactResult(request, status)); await value.enter();
+      await value.resolveContact({ profile: contactProfile(), response: "death" });
+      expect(value.snapshot().contact.status).toBe(status); expect(value.snapshot().cue.kind).toBe("none");
+      expect(value.sequence()!.events).toEqual([]);
+    }
+    const unbound = controller(); await unbound.enter();
+    expect(unbound.contactProfile()).toBeNull(); expect((await unbound.resolveContact())!.status).toBe("unavailable");
+  });
+
+  it("cancels stale work on actor/action/ready/placement/calibration changes and leave", async () => {
+    const changes: Array<(value: CombatReviewController) => unknown> = [
+      (value) => value.setAction("a", "action", "idle"), (value) => value.setAction("b", "ready", "strike"),
+      (value) => value.setAttacker("b"), (value) => value.setPlacement({ separationMeters: 3 }),
+      (value) => value.setCalibration("b", "joint", 0.2), (value) => value.resetCalibration("a"),
+      (value) => value.selectActor("b", "boss"), (value) => value.leave(),
+    ];
+    for (const change of changes) {
+      const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
+      const value = controller(undefined, undefined, async (input) => { request = input; return task.promise; }); await value.enter();
+      const pending = value.resolveContact({ profile: contactProfile(), response: "reaction" });
+      expect(value.snapshot().contact.status).toBe("scanning"); await change(value);
+      expect(request.signal!.aborted).toBe(true); task.resolve(contactResult(request));
+      expect(await pending).toBeNull(); expect(value.snapshot().contact.status).toBe("unmeasured");
+      expect(value.sequence()?.events.some((event) => event.result === "hit") ?? false).toBe(false);
+    }
+  });
+
+  it("keeps newer Play or seek intent when an aborted scan finally restores the clock pose", async () => {
+    for (const play of [true, false]) {
+      const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
+      const value = controller(undefined, undefined, async (input) => { request = input; return task.promise; }); await value.enter();
+      const pending = value.resolveContact({ profile: contactProfile() });
+      if (play) { value.setPlaying(true); value.advance(0.2); } else value.seek(0.4);
+      const expected = bonePose(value, "a"); request.restore!(); task.resolve(contactResult(request)); await pending;
+      expect(value.snapshot().frame!.playing).toBe(play); expect(bonePose(value, "a")).toEqual(expected);
+      expect(value.snapshot().frame!.timeSeconds).toBeCloseTo(play ? 0.2 : 0.4);
+      expect(value.snapshot().contact.status).toBe("unmeasured");
+    }
+  });
+
+  it("invalidates resolved evidence and its derived response while preserving honest manual cues", async () => {
+    const value = controller(undefined, undefined, async (request) => contactResult(request)); await value.enter();
+    await value.resolveContact({ profile: contactProfile(), response: "death" });
+    value.seek(1.9); expect(value.snapshot().frame!.actors[1]!.terminal).toBe("held");
+    value.restart(); expect(value.snapshot().frame!.actors[1]!.terminal).toBe("none");
+    value.setPlacement({ separationMeters: 4 });
+    expect(value.snapshot().contact.status).toBe("unmeasured"); expect(value.sequence()!.events).toEqual([]);
+    expect(value.snapshot().cue.kind).toBe("none");
+    await value.resolveContact({ profile: contactProfile(), response: "reaction" });
+    value.setManualCue({ kind: "reaction", atSeconds: 0.3 });
+    expect(value.sequence()!.events).toEqual([expect.objectContaining({ id: "manual-response", result: "unmeasured", timeSeconds: 0.3 })]);
+  });
+
+  it("rejects foreign results and mismatched profiles instead of fabricating a current hit", async () => {
+    const value = controller(undefined, undefined, async (request) => ({ ...contactResult(request), sequenceId: "stale-other-sequence" }));
+    await value.enter(); expect((await value.resolveContact({ profile: contactProfile() }))!.status).toBe("unavailable");
+    expect(value.sequence()!.events).toEqual([]);
+    await expect(value.resolveContact({ profile: { ...contactProfile(), actionId: "idle" } })).rejects.toThrow(/selected/);
   });
 });
 
