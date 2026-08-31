@@ -1,11 +1,25 @@
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
+import { encodeGlb } from "../scripts/replace-glb-animation.mjs";
 import { splitPolygon } from "../src/game/geometry/clipPropPolygon.ts";
 import { readStaticProp, encodeStaticPropParts } from "../scripts/assets/static-prop-mesh.mjs";
 
 const chest = fileURLToPath(new URL("../docs/3d-ai-studio/source-models/environment/dungeon-kit/storage-chest.glb", import.meta.url));
 const sha = "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56";
 describe("static prop source-preserving authoring", () => {
+  it.each(["targets", "meshWeights", "nodeWeights"])("refuses %s instead of dropping a deformed source shape", (kind) => {
+    const source = readStaticProp(chest, sha), json = structuredClone(source.json);
+    if (kind === "targets") json.meshes[0].primitives[0].targets = [{ POSITION: 0 }];
+    if (kind === "meshWeights") json.meshes[0].weights = [1];
+    if (kind === "nodeWeights") json.nodes[0].weights = [1];
+    const bytes = encodeGlb(json, source.bin), pin = createHash("sha256").update(bytes).digest("hex");
+    const spy = vi.spyOn(fs, "readFileSync").mockReturnValue(bytes);
+    try { expect(() => readStaticProp("synthetic-morph-source.glb", pin)).toThrow("morph targets/weights"); }
+    finally { spy.mockRestore(); }
+  });
+
   it("reads the actual 2K original chest and rejects an unpinned source", () => {
     expect(() => readStaticProp(chest)).toThrow("pinned");
     expect(() => readStaticProp(chest, "0".repeat(64))).toThrow("pinned");

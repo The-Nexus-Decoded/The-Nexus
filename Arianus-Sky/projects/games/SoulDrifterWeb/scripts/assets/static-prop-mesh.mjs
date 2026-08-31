@@ -36,8 +36,9 @@ export function readStaticProp(sourcePath, expectedSha256) {
   const j = source.json, node = j.nodes?.[0], primitive = j.meshes?.[0]?.primitives?.[0];
   if (!node || !primitive?.attributes || j.nodes?.length !== 1 || j.meshes?.length !== 1 || j.meshes[0].primitives.length !== 1 || node.mesh !== 0
     || node.matrix || node.translation || node.rotation || node.scale || node.children?.length || j.skins?.length || j.animations?.length
+    || primitive.targets || node.weights || j.meshes[0].weights
     || (primitive.mode ?? 4) !== 4 || Object.keys(primitive.attributes).some((key) => !semantics[key])) {
-    throw new Error("Static prop requires one identity-transform mesh with no rig, animation or unknown attributes");
+    throw new Error("Static prop requires one identity-transform mesh with no rig, animation, morph targets/weights or unknown attributes");
   }
   const values = Object.fromEntries(Object.entries(primitive.attributes).map(([key, id]) => [semantics[key], accessor(source, id)]));
   if (!values.position || !values.normal || !values.uv || new Set(Object.values(values).map((a) => a.length)).size !== 1) {
