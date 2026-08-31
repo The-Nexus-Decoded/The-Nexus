@@ -486,6 +486,7 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.actionLabel("Idle")).toContain("approved neutral hold");
     expect(value.actionLabel("CombatIdle")).toContain("approved neutral hold");
     expect(value.actionLabel("LungeAttack")).toContain("revised motion");
+    expect(value.actionLabel("ClawAttack")).toContain("revised motion");
     expect(value.actionLabel("Walk")).toContain("source · not revised");
     expect(value.actionLabel("RecieveHit")).toContain("source · not revised");
     expect(value.actionLabel("SpitAttack")).toContain("revised motion · projectile pending");
@@ -590,12 +591,12 @@ describe("Per-variant review-only receipt intake", () => {
     expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
       sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
     expect(REVIEWED_MOB_RECEIPTS.oathbound).toMatchObject({
-      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-v1.glb",
+      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-spit-claw-v1.glb",
       runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
-      bytes: 10818268,
-      sha256: "32e4875b377bddb03cc4fb0fb20d0215c0174c549f4033d7ff3b3186b09b13b4",
+      bytes: 11096468,
+      sha256: "1da76bcb7d7b93cec0246fd7d6064a651aea6bcb43092ee314dc1be3bc0a5cbd",
       runtimeScale: 2.05656927752596,
-      actions: ["LungeAttack", "SpitAttack"], neutralHolds: ["Idle", "CombatIdle"],
+      actions: ["LungeAttack", "SpitAttack", "ClawAttack"], neutralHolds: ["Idle", "CombatIdle"],
     });
     for (const patch of [
       { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },
