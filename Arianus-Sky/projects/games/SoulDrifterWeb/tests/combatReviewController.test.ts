@@ -294,9 +294,27 @@ describe("Combat Review panel wiring", () => {
     const cue = root.find((node) => node.dataset.command === "cue")!;
     expect(cue.children.find((node) => node.value === "reaction")!.disabled).toBe(true);
     const separation = root.find((node) => node.dataset.command === "separation")!;
-    separation.value = "-2"; root.emit("change", separation);
+    separation.value = "-2"; root.emit("input", separation);
     expect(root.find((node) => node.attributes.role === "alert")!.textContent).toMatch(/Separation/);
     expect(value.snapshot().placement.separationMeters).toBe(1.75); panel.dispose();
+  });
+
+  it("previews numeric spacing and facing on input without waiting for blur or repeating on change", async () => {
+    const value = controller(), doc = domFixture();
+    const panel = new CombatReviewPanel(value, { document: doc as unknown as Document });
+    await value.enter(); const root = panel.element as unknown as DomNode;
+    const separation = root.find((node) => node.dataset.command === "separation")!;
+    doc.activeElement = separation; separation.value = "3.85"; root.emit("input", separation);
+    expect(value.snapshot().placement.separationMeters).toBe(3.85);
+    expect(value.actor("b")!.root.position.z).toBe(3.85);
+    const revision = value.snapshot().revision;
+    root.emit("change", separation); expect(value.snapshot().revision).toBe(revision);
+    separation.value = ""; root.emit("input", separation);
+    expect(value.snapshot().placement.separationMeters).toBe(3.85);
+    const yaw = root.find((node) => node.dataset.command === "yaw-a")!;
+    yaw.value = "-90"; root.emit("input", yaw);
+    expect(value.actor("a")!.root.rotation.y).toBeCloseTo(-Math.PI / 2);
+    panel.dispose();
   });
 });
 

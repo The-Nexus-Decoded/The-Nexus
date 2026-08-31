@@ -90,9 +90,13 @@ export class CombatReviewPanel {
       const command = control.dataset.command;
       const isButton = control.tagName === "BUTTON";
       if ((isButton && event.type !== "click") || (!isButton && event.type === "click")) return;
-      // Sliders sample while dragging. Selects/numbers commit once on change.
-      if (event.type === "input" && (control as HTMLInputElement).type !== "range") return;
-      if (event.type === "change" && (control as HTMLInputElement).type === "range") return;
+      // Numeric placement and sliders preview immediately; blur must not replay
+      // the same edit or restart the shared timeline a second time.
+      const inputType = (control as HTMLInputElement).type;
+      const liveInput = inputType === "range" || inputType === "number";
+      if (event.type === "input" && !liveInput) return;
+      if (event.type === "change" && liveInput) return;
+      if (inputType === "number" && !(control as HTMLInputElement).value.trim()) return;
       event.stopPropagation();
       this.error.textContent = "";
       try {
