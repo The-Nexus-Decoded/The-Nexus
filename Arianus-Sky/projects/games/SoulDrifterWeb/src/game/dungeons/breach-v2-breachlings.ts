@@ -2,10 +2,7 @@ import * as THREE from "three";
 import type { GLTF, GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
-import {
-  calibrateAnimatedPoseOnFloor,
-  measureAnimatedPoseGrounding,
-} from "../animationPacks";
+import { measureAnimatedPoseGrounding } from "../animationPacks";
 import type { BreachV2Layout } from "./breach-v2-layout";
 
 export type BreachlingTier = "base" | "stalker" | "oathbound" | "ravager";
@@ -176,6 +173,10 @@ interface RuntimeActor {
   groundingStatus: string;
   groundingFrames: number;
   groundingClearanceMeters: number | null;
+  groundingOffsets: Map<string, number>;
+  groundingFromY: number;
+  groundingTargetY: number;
+  groundingBlendSeconds: number;
   spitFired: boolean;
 }
 
@@ -314,6 +315,10 @@ export function createBreachV2BreachlingRuntime(
     action.play();
     actor.currentAction = action;
     actor.currentClip = clipName;
+    actor.groundingFromY = actor.pivot.position.y;
+    actor.groundingTargetY = actor.groundingOffsets.get(clipName)!;
+    actor.groundingBlendSeconds = immediate ? ACTION_TRANSITION_SECONDS : 0;
+    if (immediate) actor.pivot.position.y = actor.groundingTargetY;
     actor.groundingStatus = "pending";
     actor.groundingFrames = 0;
     actor.groundingClearanceMeters = null;
@@ -353,10 +358,29 @@ export function createBreachV2BreachlingRuntime(
       if (!actions.has(required)) throw new Error(`${placement.tier} Breachling is missing ${required}.`);
     }
     const idle = actions.get("Idle")!;
+    // Reference each clip's grounded first pose, never the current scrub time
+    // or a partially blended attack. Cache once and preserve airborne motion.
+    const groundingOffsets = new Map<string, number>();
+    for (const [name, action] of actions) {
+      mixer.stopAllAction();
+      action.reset().play();
+      mixer.update(0);
+      root.updateWorldMatrix(true, false);
+      // SkinnedMesh.updateMatrixWorld also refreshes its attached inverse bind;
+      // updateWorldMatrix alone leaves it stale after changing a parent pivot.
+      root.updateMatrixWorld(true);
+      const response = root.matrixWorld.elements[5]!;
+      if (!(response > 1e-6)) throw new Error("Breachling floor reference must have a positive up axis.");
+      groundingOffsets.set(name, -measureAnimatedPoseGrounding(root, model).clearanceMeters / response);
+    }
+    mixer.stopAllAction();
+    pivot.position.y = groundingOffsets.get("Idle")!;
     const actor: RuntimeActor = {
       placement, root, pivot, model, mixer, actions,
       currentAction: idle, currentClip: "Idle", groundingStatus: "pending", groundingFrames: 0,
       groundingClearanceMeters: null, spitFired: false,
+      groundingOffsets, groundingFromY: pivot.position.y, groundingTargetY: pivot.position.y,
+      groundingBlendSeconds: ACTION_TRANSITION_SECONDS,
     };
     mixer.addEventListener("finished", (event) => {
       if (event.action !== actor.currentAction) return;
@@ -409,16 +433,17 @@ export function createBreachV2BreachlingRuntime(
       void activateRoom(roomIdAt(layout, playerX, playerZ)).catch((error) => console.error("Breachling room activation failed", error));
       actors.forEach((actor) => {
         actor.mixer.update(deltaSeconds);
+        actor.groundingBlendSeconds = Math.min(ACTION_TRANSITION_SECONDS, actor.groundingBlendSeconds + deltaSeconds);
+        actor.pivot.position.y = THREE.MathUtils.lerp(
+          actor.groundingFromY, actor.groundingTargetY,
+          actor.groundingBlendSeconds / ACTION_TRANSITION_SECONDS,
+        );
         actor.groundingFrames += 1;
         if (actor.groundingStatus === "pending" && actor.groundingFrames >= 3) {
-          const grounding = calibrateAnimatedPoseOnFloor(actor.root, actor.model, actor.pivot, 0);
+          actor.root.updateMatrixWorld(true);
+          const grounding = measureAnimatedPoseGrounding(actor.root, actor.model);
           actor.groundingClearanceMeters = grounding.clearanceMeters;
           actor.groundingStatus = "calibrated-live-pose";
-        }
-        if (actor.currentClip === "Death" && actor.groundingStatus !== "pending") {
-          const grounding = measureAnimatedPoseGrounding(actor.root, actor.model);
-          if (Math.abs(grounding.clearanceMeters) > 0.002) actor.pivot.position.y -= grounding.clearanceMeters;
-          actor.groundingClearanceMeters = measureAnimatedPoseGrounding(actor.root, actor.model).clearanceMeters;
         }
         if (actor.currentClip === "SpitAttack" && !actor.spitFired
           && actor.currentAction.time >= actor.currentAction.getClip().duration * 0.46) {
