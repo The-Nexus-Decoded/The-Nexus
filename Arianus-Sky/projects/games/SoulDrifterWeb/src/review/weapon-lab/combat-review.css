@@ -1,0 +1,31 @@
+/* Combat Review shares the studio palette; all additions stay inside its panel. */
+.combat-review { --combat-a: var(--studio-copper, #d7a47e); --combat-b: var(--studio-mint, #a4d4bd); }
+.combat-review[hidden], .combat-review [hidden] { display: none !important; }
+.combat-review > .context-note { padding: 0 2px; }
+.combat-review .combat-actor { border-left: 3px solid var(--combat-a); }
+.combat-review .combat-actor-b { border-left-color: var(--combat-b); }
+.combat-review .combat-actor-a h2 { color: var(--combat-a); }
+.combat-review .combat-actor-b h2 { color: var(--combat-b); }
+.combat-review .select-field { grid-template-columns: 74px minmax(0, 1fr); }
+.combat-review select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.combat-review .combat-number { display: grid; grid-template-columns: 89px minmax(0, 1fr) 44px; gap: 8px; align-items: center; }
+.combat-review input[type="number"] { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px;
+  color: var(--studio-ink, #eee9dd); background: var(--studio-input, #242a30); border: 1px solid var(--studio-line, #394047); border-radius: 4px; }
+.combat-review output { overflow-wrap: anywhere; }
+.combat-review .combat-check { display: flex; gap: 9px; align-items: center; min-height: 36px; }
+.combat-review .combat-check input { width: 16px; height: 16px; margin: 0; }
+.combat-review .combat-evidence { margin: 10px 0 0; padding: 9px 10px; border-left: 2px solid var(--combat-b);
+  color: var(--studio-muted, #aeb3b5); font-size: 11px; line-height: 1.55; background: rgb(164 212 189 / 4%); }
+.combat-review .combat-error { color: #ffb39b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.combat-review .combat-error:empty { display: none; }
+.combat-review .combat-calibration { margin-top: 8px; border-top: 1px solid var(--studio-line, #394047); }
+.combat-review .combat-calibration-group { padding: 0 3px 7px; }
+.combat-review .combat-calibration .combat-number { grid-template-columns: 99px minmax(0, 1fr) 40px; }
+.combat-review .combat-calibration button { width: 100%; margin-top: 8px; }
+.combat-review button:disabled, .combat-review select:disabled { opacity: 0.5; cursor: not-allowed; }
+.combat-review :is(button, input, select):focus-visible { outline: 2px solid var(--combat-a); outline-offset: 3px; }
+@media (max-width: 700px) and (orientation: portrait) {
+  .combat-review input[type="number"], .combat-review select { font-size: 16px; }
+  .combat-review .studio-card { padding: 10px; }
+  .combat-review .combat-number { grid-template-columns: 80px minmax(0, 1fr) 38px; gap: 6px; }
+}
