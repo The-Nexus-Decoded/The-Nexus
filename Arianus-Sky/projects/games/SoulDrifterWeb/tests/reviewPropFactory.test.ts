@@ -112,5 +112,23 @@ it.each([
     expect(prop.bounds().max.y).toBeLessThan(maxHeight);
     prop.place([2, 0, -3], Math.PI / 3);
     expect(prop.contactSurface.snapshot().unsupportedMeshIds).toEqual([]);
+    const peer = await factory.create({ definitionId: definition.id, instanceId: "independent-prop" });
+    if (id === "iron-bound-chest-draft") {
+      const lid = prop.model.getObjectByName("chest-lid-hinge")!, original = lid.quaternion.clone();
+      const body = prop.model.getObjectByName("chest-body")!, matrix = body.matrixWorld.clone();
+      const geometry = (prop.model.getObjectByName("chest-lid") as THREE.Mesh).geometry;
+      const positions = geometry.getAttribute("position").array.slice();
+      const closed = prop.bounds().clone(); prop.setJoint("hasp", 60); prop.setJoint("lid", 105);
+      expect(prop.bounds().max.y).toBeGreaterThan(closed.max.y + .2);
+      expect(body.matrixWorld.elements).toEqual(matrix.elements); expect(geometry.getAttribute("position").array).toEqual(positions);
+      expect(peer.joints().map((joint) => joint.value)).toEqual([0, 0]);
+      expect(prop.contactSurface.bounds().max.y).toBeCloseTo(prop.bounds().max.y);
+      expect(() => prop.setJoint("lid", NaN)).toThrow("Invalid"); expect(() => prop.setJoint("lid", 106)).toThrow("Invalid");
+      expect(() => prop.setJoint("wrong-joint", 0)).toThrow("Invalid");
+      prop.resetJoints(); expect(lid.quaternion.equals(original)).toBe(true);
+      expect(prop.bounds().min.distanceTo(closed.min)).toBeLessThan(1e-12);
+      expect(prop.bounds().max.distanceTo(closed.max)).toBeLessThan(1e-12);
+      prop.dispose(); expect(() => prop.setJoint("lid", 2)).toThrow("disposed");
+    } else expect(prop.joints()).toEqual([]);
   } finally { factory.dispose(); }
 }, 20_000);

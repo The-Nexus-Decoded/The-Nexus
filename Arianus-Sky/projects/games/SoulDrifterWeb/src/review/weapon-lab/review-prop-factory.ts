@@ -9,23 +9,30 @@ export const REVIEW_PROP_LIMIT = 6;
 export const REVIEW_PROP_DEFINITIONS = Object.freeze(catalog.assets.map((entry) => Object.freeze({ ...entry,
   contactMeshes: Object.freeze([...entry.contactMeshes]), armMaterials: Object.freeze([...entry.armMaterials]),
   remainingGates: Object.freeze([...entry.remainingGates]),
+  joints: Object.freeze((entry.joints ?? []).map((joint) => Object.freeze({ ...joint }))),
 })));
 export type ReviewPropDefinition = typeof REVIEW_PROP_DEFINITIONS[number];
+export interface ReviewPropJointControl { readonly id: string; readonly label: string; readonly min: number; readonly max: number; readonly value: number }
 export interface ReviewPropInstance {
   readonly instanceId: string; readonly definition: ReviewPropDefinition;
   readonly root: THREE.Group; readonly model: THREE.Object3D; readonly contactSurface: ReviewContactSurface;
   bounds(): THREE.Box3;
   place(position: readonly [number, number, number], yawRadians: number): void;
+  joints(): readonly ReviewPropJointControl[];
+  setJoint(id: string, degrees: number): void;
+  resetJoints(): void;
   dispose(): void;
 }
 
-function renderedBounds(root: THREE.Object3D): THREE.Box3 {
+function renderedBounds(root: THREE.Object3D, local = false): THREE.Box3 {
   root.updateWorldMatrix(true, true);
+  const inverse = local ? root.matrixWorld.clone().invert() : null;
   const box = new THREE.Box3(), point = new THREE.Vector3();
   root.traverseVisible((object) => {
     if (!(object instanceof THREE.Mesh)) return;
     for (const index of reviewRenderedVertexIndices(object)) {
       object.getVertexPosition(index, point).applyMatrix4(object.matrixWorld);
+      if (inverse) point.applyMatrix4(inverse);
       if (![point.x, point.y, point.z].every(Number.isFinite)) throw new Error("Nonfinite prop geometry");
       box.expandByPoint(point);
     }
@@ -96,18 +103,44 @@ export function createReviewPropFactory(options: {
         });
         if (definition.contactMeshes.some((name) => !found.has(name))) throw new Error("Reviewed prop contact mesh missing");
         if (definition.armMaterials.some((name) => !foundMaterials.has(name))) throw new Error("Reviewed prop PBR material missing");
+        const joints = definition.joints.map((profile) => {
+          const matches: THREE.Object3D[] = []; model.traverse((node) => { if (node.name === profile.node) matches.push(node); });
+          if (matches.length !== 1 || matches[0] === model || !["x", "y", "z"].includes(profile.axis)
+            || !profile.id || ![profile.min, profile.max].every(Number.isFinite) || profile.min > 0 || profile.max < 0 || profile.min >= profile.max) {
+            throw new Error("Invalid or missing reviewed prop joint");
+          }
+          const node = matches[0]!, axis = new THREE.Vector3(profile.axis === "x" ? 1 : 0, profile.axis === "y" ? 1 : 0, profile.axis === "z" ? 1 : 0);
+          return { profile, node, axis, rest: node.quaternion.clone(), value: 0 };
+        });
+        if (new Set(joints.map(({ profile }) => profile.id)).size !== joints.length
+          || new Set(joints.map(({ node }) => node)).size !== joints.length) throw new Error("Duplicate reviewed prop joint");
         // Keep the authored X/Z origin and scale; only seat the measured base.
         const localBounds = renderedBounds(root), floorOffset = -localBounds.min.y;
         model.position.y += floorOffset; localBounds.translate(new THREE.Vector3(0, floorOffset, 0));
         contactSurface = new ReviewContactSurface(root, (mesh) => definition.contactMeshes.includes(mesh.name));
         contactSurface.update();
         let released = false;
+        const refreshPose = () => { contactSurface!.update(); localBounds.copy(renderedBounds(root, true)); };
         const instance: ReviewPropInstance = { instanceId, definition, root, model, contactSurface,
           bounds() { root.updateWorldMatrix(true, true); return localBounds.clone().applyMatrix4(root.matrixWorld); },
           place(position, yaw) {
             if (released) throw new Error("Review prop disposed");
             if (![...position, yaw].every(Number.isFinite)) throw new Error("Prop placement must be finite");
             root.position.fromArray(position); root.rotation.y = yaw; contactSurface!.update();
+          },
+          joints() { return joints.map(({ profile, value }) => ({ id: profile.id, label: profile.label, min: profile.min, max: profile.max, value })); },
+          setJoint(id, degrees) {
+            if (released) throw new Error("Review prop disposed");
+            const joint = joints.find(({ profile }) => profile.id === id);
+            if (!joint || !Number.isFinite(degrees) || degrees < joint.profile.min || degrees > joint.profile.max) throw new Error("Invalid prop joint angle");
+            joint.value = degrees;
+            joint.node.quaternion.copy(joint.rest).multiply(new THREE.Quaternion().setFromAxisAngle(joint.axis, THREE.MathUtils.degToRad(degrees)));
+            refreshPose();
+          },
+          resetJoints() {
+            if (released) throw new Error("Review prop disposed");
+            for (const joint of joints) { joint.value = 0; joint.node.quaternion.copy(joint.rest); }
+            refreshPose();
           },
           dispose() {
             if (released) return; released = true; root.removeFromParent(); contactSurface!.dispose();

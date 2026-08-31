@@ -6,9 +6,14 @@ import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 
 function fixture() {
   const instances: ReviewPropInstance[] = [];
-  const create = vi.fn(async ({ instanceId }: { definitionId: string; instanceId: string; signal?: AbortSignal }) => {
+  const create = vi.fn(async ({ instanceId, definitionId }: { definitionId: string; instanceId: string; signal?: AbortSignal }) => {
     const root = new THREE.Group();
-    const instance = { instanceId, definition: REVIEW_PROP_DEFINITIONS[0]!, root,
+    const definition = REVIEW_PROP_DEFINITIONS.find((entry) => entry.id === definitionId)!;
+    const joints = definition.joints.map((profile) => ({ ...profile, value: 0 }));
+    const instance = { instanceId, definition, root,
+      joints: () => joints,
+      setJoint: vi.fn((id: string, value: number) => { joints.find((joint) => joint.id === id)!.value = value; }),
+      resetJoints: vi.fn(() => joints.forEach((joint) => { joint.value = 0; })),
       bounds: () => new THREE.Box3(root.position.clone(), root.position.clone().addScalar(2)),
       place: vi.fn((position: readonly [number, number, number], yaw: number) => { root.position.fromArray(position); root.rotation.y = yaw; }),
       dispose: vi.fn(() => root.removeFromParent()) } as unknown as ReviewPropInstance;
@@ -26,6 +31,17 @@ function fixture() {
 }
 
 describe("review prop panel", () => {
+  it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {
+    const f = fixture(); f.panel.setActive(true); f.control("asset").value = "iron-bound-chest-draft";
+    f.emit("spawn"); await vi.waitFor(() => expect(f.control("spawn").disabled).toBe(false));
+    const lid = f.input("Lid opening"), chest = f.instances[0]!, home = chest.root.position.clone();
+    lid.value = "38"; f.doc.activeElement = lid; f.element.emit("input", lid);
+    expect(chest.setJoint).toHaveBeenCalledWith("lid", 38); expect(f.input("Lid opening")).toBe(lid);
+    expect(chest.root.position.equals(home)).toBe(true); f.emit("reset-joints"); expect(lid.value).toBe("0");
+    f.control("asset").value = "tree-small-02"; f.emit("spawn"); await vi.waitFor(() => expect(f.instances).toHaveLength(2));
+    expect(f.input("Lid opening")).toBeNull(); f.control("selected").value = "prop-1"; f.emit("selected", "change");
+    expect(f.input("Lid opening").value).toBe("0"); f.panel.dispose();
+  });
   it("spawns a real factory instance, edits placement immediately and frames without touching other scene actors", async () => {
     const f = fixture(), scene = new THREE.Scene(), actor = new THREE.Group();
     actor.position.set(1, 2, 3); scene.add(actor, f.panel.root);

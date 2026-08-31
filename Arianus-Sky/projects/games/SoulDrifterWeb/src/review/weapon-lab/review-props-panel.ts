@@ -12,6 +12,9 @@ export class ReviewPropsPanel {
   private readonly asset: HTMLSelectElement;
   private readonly placed: HTMLSelectElement;
   private readonly placement: HTMLElement;
+  private readonly articulation: HTMLElement;
+  private readonly jointFields = new Map<string, { input: HTMLInputElement; output: HTMLElement }>();
+  private jointKey = "";
   private readonly fields: HTMLInputElement[] = [];
   private readonly spawn: HTMLButtonElement;
   private readonly status: HTMLElement;
@@ -59,10 +62,11 @@ export class ReviewPropsPanel {
     const buttons = node("div"); buttons.className = "buttons";
     button(buttons, "Frame prop", "frame"); button(buttons, "Reset placement", "reset");
     button(buttons, "Remove prop", "remove"); this.placement.append(buttons);
+    this.articulation = node("div"); this.placement.append(this.articulation);
     this.status = node("p"); this.status.className = "context-note";
     this.status.setAttribute("role", "status"); this.status.setAttribute("aria-live", "polite");
     this.error = node("p"); this.error.setAttribute("role", "alert");
-    const note = node("p", "Static placements only. Climbing, opening and breaking require their own interaction setup; spawning a prop does not imply those actions work.");
+    const note = node("p", "Placement and named prop joints are inspection controls, not a completed actor interaction. Climbing, hand contact, opening sequences and breaking require their own verification.");
     note.className = "context-note"; this.element.append(this.status, this.error, note);
     const handle = (event: Event) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-command]");
@@ -74,10 +78,19 @@ export class ReviewPropsPanel {
         else if (selected && command === "frame") options.onFrameBounds?.(selected.instance.bounds());
         else if (selected && command === "reset") {
           this.home(selected.instance, selected.home); this.refresh(true);
+        } else if (selected && command === "reset-joints") {
+          selected.instance.resetJoints(); this.refresh(true);
         } else if (selected && command === "remove") {
           selected.instance.dispose(); this.items.delete(selected.instance.instanceId); this.populate(); this.refresh(true);
         }
       } else if (command === "selected" && event.type === "change") this.refresh(true);
+      else if (command === "joint" && selected) {
+        const input = target as HTMLInputElement, value = Number(input.value);
+        try {
+          if (input.value.trim() === "") throw new Error("Enter a joint angle within its shown range.");
+          selected.instance.setJoint(input.dataset.joint!, value); this.refresh();
+        } catch (error) { this.error.textContent = String(error); this.refresh(true); }
+      }
       else if (command === "placement" && selected) {
         const values = this.fields.map((field) => Number(field.value));
         const valid = this.fields.every((field, index) => field.value.trim() !== "" && Number.isFinite(values[index])
@@ -112,8 +125,29 @@ export class ReviewPropsPanel {
     this.spawn.textContent = this.pending ? "Loading prop…" : "Spawn prop";
     this.placement.hidden = !selected;
     this.status.textContent = this.pending ? "Verifying source bytes and loading original materials…"
-      : selected ? `${this.items.size} / ${REVIEW_PROP_LIMIT} props · ${selected.definition.triangleCount.toLocaleString("en-US")} triangles · ${selected.definition.contactMeshes.length} solid contact meshes. Placement does not enable gameplay collision.`
+      : selected ? `${this.items.size} / ${REVIEW_PROP_LIMIT} props · ${selected.definition.triangleCount.toLocaleString("en-US")} triangles · ${selected.definition.contactMeshes.length} solid contact meshes. ${selected.definition.approvalStatus}. Placement does not enable gameplay collision.`
         : "No props placed. Choose an asset to add it beside the actors.";
+    const joints = selected?.joints() ?? [], jointKey = `${selected?.instanceId ?? ""}:${joints.map((joint) => joint.id).join(",")}`;
+    this.articulation.hidden = !joints.length;
+    if (jointKey !== this.jointKey) {
+      this.jointKey = jointKey; this.articulation.replaceChildren(); this.jointFields.clear();
+      for (const joint of joints) {
+        const row = this.doc.createElement("label"), label = this.doc.createElement("span"); label.textContent = joint.label;
+        const input = this.doc.createElement("input"), output = this.doc.createElement("span");
+        input.type = "range"; input.min = String(joint.min); input.max = String(joint.max); input.step = "1";
+        input.dataset.command = "joint"; input.dataset.joint = joint.id; input.setAttribute("aria-label", joint.label);
+        row.append(label, input, output); this.articulation.append(row); this.jointFields.set(joint.id, { input, output });
+      }
+      if (joints.length) {
+        const button = this.doc.createElement("button"); button.type = "button"; button.dataset.command = "reset-joints";
+        button.textContent = "Reset prop joints"; this.articulation.append(button);
+      }
+    }
+    for (const joint of joints) {
+      const field = this.jointFields.get(joint.id)!;
+      if (force || this.doc.activeElement !== field.input) field.input.value = String(joint.value);
+      field.output.textContent = `${Number(joint.value.toFixed(1))}°`;
+    }
     if (selected) [selected.root.position.x, selected.root.position.z, THREE.MathUtils.radToDeg(selected.root.rotation.y)]
       .forEach((value, index) => {
         const field = this.fields[index]!;
