@@ -1,6 +1,59 @@
 # #458 — Motion Studio integration checkpoint
 
-## Live Combat Review checkpoint — 2026-08-31, work continues
+## Measured contact and spawnable props — 2026-08-31, work continues
+
+`7e197357` and `8f4d2ce3` connect the shared actual-surface melee scan and its UI.
+The four revised base melee attacks have explicit source-pinned strike points
+and active windows. A confirmed moving-target contact can opt into a selected
+reaction/death clip; miss, unavailable, manual cue and measured response remain
+distinct. Calibration/spacing/action changes invalidate the measurement. Blocking
+equipment is not yet measured and this is not gameplay damage or full physics.
+Native base Claw at 1.75 m contacted the human at 2.448 s; its selected reaction
+played afterward. At 4 m the same strike reports a miss and schedules no response.
+The fully framed native miss capture includes both actors and the result.
+
+`4f889a3b` adds a shared bounded shadow rig and larger review floor without changing
+actor poses. `7c7a9afd` installs the separately licensed Poly Haven tree V4 static
+review derivative (398,000 triangles, 26,630,592 bytes, SHA
+`131d80fff7c6093076089b519878668d223868ee3119b14738ce631f1ef7c0c4`).
+The source's original PBR/leaf image bytes and separate trunk/branch/leaf geometry
+are retained; this is a documented lossy mesh reduction, not a Tripo generation.
+`9a81ea0b` shares pinned byte/hash verification with creature loading and provides
+cached source geometry plus independent prop placements/materials/contact surfaces.
+`16f369e1`/`9e67af53` expose spawn/select/position/facing/reset/remove in Combat Review,
+reuse the same camera fit and DOM test fixture, and share numeric-input styling.
+Up to six props can be placed; hiding combat cancels pending creation and hides
+props without losing completed placements. Only named solid meshes are contact
+geometry; foliage is excluded. Placement is not gameplay collision or climbing.
+
+Native checks used the existing in-app static server on port 5179: original tree
+materials/shadows, live 5.2 m / 90-degree edits without advancing the actor clock,
+human-mode hide, restored placement on return, six-instance limit and complete
+removal all worked. The latest styled build emitted no new browser errors.
+Evidence is under `combat-native-v1` within the external base-repair audit folder.
+The source-comparison, package, factory and controls each have separate independent
+receipts. Native close-up, performance and complete interaction quality are not
+inferred from a static tree screenshot or successful placement test.
+
+Focused checks: factory/loader/intake/mob stages 46 tests independently passed;
+prop controls/factory/controller 40 passed; studio wiring/shadows/controls 35 passed.
+Typecheck, build and 25-asset release verification pass. The latest served Pages
+artifact is 413,354,070 bytes. Its stamp is `16f369e1`, plus the then-uncommitted
+five-file hook now committed as `9e67af53`; it is not a clean-stamp build claim.
+The earlier full suite was 55 files / 490 tests and predates these final prop and
+ranged-metadata additions. No ESLint configuration exists.
+
+The accepted base remains the only newly installed creature animation export.
+Both boss shoulder-attachment prototypes passed their narrow external assembly
+gate, not overall motion/grounding approval. Oathbound own-arm/contact repair and
+Stalker/Ravager own-jaw checks continue externally. `bcfd126d` shares the unchanged
+human bow emission constants; ranged simulation activation is still in progress.
+The original chest/door audit found fused meshes requiring real articulated parts,
+interiors/cut caps and original provider-receipt follow-up. No fake duplicate-lid
+or placeholder interaction is accepted. No paid operation, dungeon replacement,
+push, merge, deployment or issue closure occurred.
+
+## Earlier manual-cue Combat Review checkpoint — 2026-08-31
 
 The studio now exposes **Combat Review** with independent A/B choices across all
 ten human loadouts and six existing creature definitions, shared playback,
