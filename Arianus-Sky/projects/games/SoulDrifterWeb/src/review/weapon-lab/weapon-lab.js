@@ -1886,8 +1886,6 @@ const BOW_TIMING = {
   tripleArrowPickup: 0.28,
   tripleArrowNocked: 0.56,
   tripleRelease: 0.58,
-  equipTransfer: 0.33,
-  stowTransfer: 0.4,
 };
 
 const BOW_DRAW_TIMING = {
