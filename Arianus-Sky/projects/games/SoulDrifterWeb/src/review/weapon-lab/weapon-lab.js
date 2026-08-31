@@ -1027,6 +1027,7 @@ async function changeReviewMode() {
             usableHeight: panel.hidden || !bottomSheet ? innerHeight : Math.max(180, rect.top - 16) };
         }, onSnapshot: (snapshot) => {
           if (!isCombatMode()) return;
+          propsPanel?.syncInteraction(snapshot);
           status.textContent = ["Combat Review · shared timeline, measured contact and explicit manual cues",
             ...snapshot.slots.map((slot) => `${slot.slot.toUpperCase()}: ${slot.definitionId} · ${slot.status}${slot.error ? ` · ${slot.error}` : ""}`),
             `time=${(snapshot.frame?.timeSeconds ?? 0).toFixed(2)} / ${snapshot.durationSeconds.toFixed(2)}s`,

@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, REVIEW_PROP_LIMIT, type ReviewPropInstance } from "./review-prop-factory";
+import { reviewPropInteractionFrame } from "./review-prop-interactions";
+import type { CombatReviewSnapshot } from "./combat-review-controller";
 
 /** Review-only prop placements. Never changes actors, their clock or dungeon state. */
 export class ReviewPropsPanel {
@@ -19,6 +21,7 @@ export class ReviewPropsPanel {
   private readonly spawn: HTMLButtonElement;
   private readonly status: HTMLElement;
   private readonly error: HTMLElement;
+  private interactionNote = "";
   private pending: { abort: AbortController } | null = null;
   private serial = 0;
   private active = false;
@@ -127,6 +130,7 @@ export class ReviewPropsPanel {
     this.status.textContent = this.pending ? "Verifying source bytes and loading original materials…"
       : selected ? `${this.items.size} / ${REVIEW_PROP_LIMIT} props · ${selected.definition.triangleCount.toLocaleString("en-US")} triangles · ${selected.definition.contactMeshes.length} solid contact meshes. ${selected.definition.approvalStatus}. Placement does not enable gameplay collision.`
         : "No props placed. Choose an asset to add it beside the actors.";
+    if (selected && this.interactionNote) this.status.textContent += ` ${this.interactionNote}`;
     const joints = selected?.joints() ?? [], jointKey = `${selected?.instanceId ?? ""}:${joints.map((joint) => joint.id).join(",")}`;
     this.articulation.hidden = !joints.length;
     if (jointKey !== this.jointKey) {
@@ -173,6 +177,17 @@ export class ReviewPropsPanel {
     if (this.disposed) return;
     this.active = active;
     if (!active) { this.pending?.abort.abort(); this.pending = null; }
+    this.refresh();
+  }
+  syncInteraction(snapshot: CombatReviewSnapshot) {
+    if (!this.active || this.disposed) return;
+    const selected = this.items.get(this.placed.value)?.instance;
+    const frame = selected ? reviewPropInteractionFrame(selected.definition.kind, snapshot) : null;
+    this.interactionNote = frame?.note ?? "";
+    if (selected && frame) {
+      const values = new Map(selected.joints().map((joint) => [joint.id, joint.value]));
+      for (const [id, value] of Object.entries(frame.joints)) if (Math.abs((values.get(id) ?? NaN) - value) > 1e-6) selected.setJoint(id, value);
+    }
     this.refresh();
   }
   dispose() {

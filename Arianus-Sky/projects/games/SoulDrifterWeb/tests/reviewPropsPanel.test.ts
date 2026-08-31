@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ReviewPropsPanel } from "../src/review/weapon-lab/review-props-panel";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, type ReviewPropInstance } from "../src/review/weapon-lab/review-prop-factory";
 import { DomNode, domFixture } from "./helpers/reviewDomFixture";
+import { reviewPropInteractionFrame } from "../src/review/weapon-lab/review-prop-interactions";
 
 function fixture() {
   const instances: ReviewPropInstance[] = [];
@@ -31,6 +32,21 @@ function fixture() {
 }
 
 describe("review prop panel", () => {
+  it("maps the actual chest source phases without pretending a contact solve", async () => {
+    const f=fixture();f.panel.setActive(true);f.control("asset").value="iron-bound-chest-draft";f.emit("spawn");
+    await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    const snapshot=(phase:number,action="Interactions__HumanMasculineAthleticMuscularOpenChestLid")=>({active:true,ready:true,
+      frame:{timeSeconds:phase*10},slots:[{definitionId:"human:environment",selected:{action},actions:[{id:action,durationSeconds:10}]}]}) as never;
+    expect(reviewPropInteractionFrame("tree",snapshot(.5))).toBeNull();
+    f.panel.syncInteraction(snapshot(.18));expect(f.instances[0]!.setJoint).not.toHaveBeenCalled();
+    f.panel.syncInteraction(snapshot(.235));expect((f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.lastCall).toEqual(["hasp",expect.closeTo(30,8)]);
+    f.panel.syncInteraction(snapshot(.49));expect((f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.lastCall).toEqual(["lid",expect.closeTo(52.5,8)]);
+    f.panel.syncInteraction(snapshot(.7));expect(f.input("Lid opening").value).toBe("105");
+    expect(f.element.find((node)=>node.attributes.role==="status")!.textContent).toContain("hand contact");
+    const calls=(f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.calls.length;f.panel.syncInteraction(snapshot(.7));
+    expect(f.instances[0]!.setJoint).toHaveBeenCalledTimes(calls);f.panel.syncInteraction(snapshot(.7,"idle"));
+    expect(f.element.find((node)=>node.attributes.role==="status")!.textContent).not.toContain("hand contact");f.panel.dispose();
+  });
   it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {
     const f = fixture(); f.panel.setActive(true); f.control("asset").value = "iron-bound-chest-draft";
     f.emit("spawn"); await vi.waitFor(() => expect(f.control("spawn").disabled).toBe(false));
