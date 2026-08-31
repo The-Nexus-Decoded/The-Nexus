@@ -1,5 +1,84 @@
 # #458 — Motion Studio integration checkpoint
 
+## Active owner goal — expanded 2026-08-31
+
+The owner has requested continued implementation, not a stop after the base
+pilot: put the revised animations into the lab for the current creature roster,
+review both bosses, and add a full combat and environmental-interaction review
+mode. This supersedes the older checkpoint's narrower next-step order below.
+Work remains on the existing #458 issue branch; #435 supplies the accepted human
+and equipment foundation, and #439 records related combat-presentation contracts.
+No new ticket, paid generation, dungeon promotion, or live deployment is implied.
+
+The later owner goal adds parallel builders, a harsh independent visual critic,
+and repeated reference-based refinement of animation, contact/physics, materials,
+lighting, NPCs, furniture and built review scenes. Apply the building/interior/
+street quality wording to the scoped interaction scenes, not as permission to
+overwrite other agents' Heartvale or dungeon work. "AAA" is a quality aspiration,
+not a certification conferred by test counts, self-review, or a manufactured
+"perfect" verdict. Record actual defects and comparisons, including unfavorable
+results. Anonymous A/B frames may reduce label bias; recognizable sources and
+reviewer familiarity must be disclosed rather than called fully blind.
+
+Primary reference candidates, verified 2026-08-31: [Bruno Simon's live Three.js
+portfolio](https://bruno-simon.com/) and its [source](https://github.com/brunosimon/folio-2025)
+for browser lighting, interaction and scene coherence; [Rockstar's official GTA VI
+media](https://www.rockstargames.com/VI/media) for a separate commercial visual
+benchmark, **not** a claimed Three.js game. No comparison result exists yet.
+Reference imagery is for analysis, not permission to import game assets.
+
+Implementation proceeds in bounded, tested, committed phases:
+
+1. Install the independently reviewed five-attack base pilot as a separate,
+   hash-pinned lab asset. Preserve the forty approved keys, the approved neutral
+   holds, and honest labels for untouched source clips and remaining review flags.
+2. Adapt the shared authoring/validation pipeline to Stalker, Oathbound, and
+   Ravager, and review both Cinderbound Wardens. Verify each actual skeleton,
+   rest basis, skin weights, proportions, contacts, and action semantics; a base
+   pass or common bone names do not certify another model. Preserve path-specific
+   boss skins/powers and the established attack repertoire.
+3. Add **Combat Review inside Motion Studio**, retaining solo review. Select
+   attacker and defender independently from the human/monster/boss roster,
+   including same-family and same-model pairings. Share one deterministic
+   timeline for approach, facing, attack, projectile/spell flight, contact,
+   reaction, recovery, and defeat. Expose spacing, playback, appropriate rig
+   controls, reaction choice, and impact timing/location/direction/type; do not
+   turn every hit into one generic flinch or report timer-only damage as contact.
+4. Add a reusable spawnable-prop and interaction layer for real textured trees,
+   chests, doors, water, and destructible objects. Test opening, breaking,
+   climbing, swimming, and other available interactions through actor/prop
+   capabilities. Reuse cleared assets and existing clips first. Unsupported
+   anatomy or missing source assets must be identified honestly, not replaced
+   silently with a fake clip or primitive content asset. Debug collision shapes
+   remain explicitly diagnostic, not rendered substitutes for real props.
+5. Verify the full pair-selection matrix, deterministic replay/reset, concurrent
+   actor isolation, hit/reaction timing, prop state transitions, resource cleanup,
+   source-asset preservation, desktop/phone controls, and the built local page.
+   Fresh wide/close independent visual review complements automated checks.
+
+Current scope is the six creatures already in the lab and the accepted Human
+Foundation/loadouts. Registries and capability profiles must support extension
+without copying model-specific controllers, scripts, UI workflows, or tasks.
+Use the canonical [DRY reuse policy](README.md#dry-reuse-policy). Broad Heartvale
+wildlife work owned by other tickets is not silently absorbed into this branch.
+
+The base export is installed as a separate hash-pinned studio asset. Pilot
+typecheck, 356 tests (zero skips), build/release and native playback/scrubbing
+checks passed; an independent reviewer cleared ten refitted native wide/side
+frames. The detailed repair runbook retains numeric and presentation limitations.
+The first shared combat-clock phase is implemented but not yet connected to UI:
+absolute actor/prop sampling, eased pose transitions, deterministic loop events,
+seek without repeated effects, and terminal death holding. Nine focused tests
+pass, including all nine actor-family pair combinations; the combined suite
+passes 46 files / 365 tests. These are clock-contract tests, not rendered combat
+or spatial-contact acceptance. Human factory extraction, variant retargeting,
+boss review, real props and full combat presentation continue in parallel.
+The expanded goal is **not complete**. All dungeon
+creature assets, accepted human animations, and the existing local server remain
+protected; local lab testing is not production or owner animation acceptance.
+
+## Earlier integration checkpoint — historical evidence
+
 Date: 2026-08-31. Status: local studio and starter-player integration verified; #458 remains OPEN and owner QA pending.
 
 ## Scope and source identity
