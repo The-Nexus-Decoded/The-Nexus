@@ -7,10 +7,10 @@
       "sourcePath": "docs/3d-ai-studio/source-models/environment/dungeon-kit/storage-chest.glb",
       "sourceSha256": "8cc7d2c791614661e6997e9ea0632dbdbf8cd706b81dea5a45031921ffe4dc56",
       "path": "public/assets/weapon-lab/props/storage-chest-review-draft-v1.glb",
-      "sha256": "f4f889c01e0719b10f4e109c2f939ba2c7ddce525c99fb83f2fb7cae4634f4e9",
+      "sha256": "72be669ae0aea4afe1b8890ebcd2fe9ea69c3db1be91076d2228f3d6206eb2c3",
       "license": "Existing project source; Tripo generator header, but original account/plan receipt not independently recovered. Not CC0 or cleared for a new distribution.",
       "usage": "Local Motion Studio inspection only. No source dungeon replacement or production promotion.",
-      "notes": "Original 2K embedded image buffers remain byte-exact. Added real lid/hasp partitions and textured interior via shared cut helpers; art, hinge clearance, actor interaction and source receipt remain separate gates. No paid operation."
+      "notes": "Candidate v3: original 2K embedded image buffers remain byte-exact. Added real lid/hasp partitions, textured interior and backed lid lining via shared cut helpers, plus two locally authored rear iron hinges with mounting plates, knuckles and rivets. These additions are not a new Tripo generation. Art, hinge clearance, actor interaction and source receipt remain separate gates. No paid operation."
     }
   ],
   "shippingAssets": [

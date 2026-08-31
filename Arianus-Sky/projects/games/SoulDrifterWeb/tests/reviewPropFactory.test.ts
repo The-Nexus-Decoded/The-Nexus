@@ -91,7 +91,7 @@ describe("review prop ownership and real contact surfaces", () => {
 
 it.each([
   { id: "tree-small-02", meshes: 2, triangles: 48000, minHeight: 4, maxHeight: 5 },
-  { id: "iron-bound-chest-draft", meshes: 3, triangles: 7774, minHeight: .98, maxHeight: .99 },
+  { id: "iron-bound-chest-draft", meshes: 3, triangles: 8482, minHeight: .98, maxHeight: .99 },
 ])("loads the actual pinned $id with original PBR and real selected triangles", async ({ id, meshes, triangles, minHeight, maxHeight }) => {
   const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
   const { readFileSync } = await importHost<{ readFileSync(path: URL): Uint8Array }>("node:fs");
