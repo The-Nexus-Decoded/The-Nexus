@@ -5,6 +5,7 @@ import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breach
 import { CINDERBOUND_WARDEN_ACTIONS, CINDERBOUND_WARDEN_ASSETS } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL } from "../src/review/weapon-lab/reviewed-mob-receipt";
+import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 
 // This browser project deliberately does not include ambient Node types.
 // Keep the narrow CPU-test host contract local, as the topology tests do.
@@ -17,6 +18,7 @@ const { createHash, webcrypto } = await importNodeModule<{
 
 const nativeParseAsync = GLTFLoader.prototype.parseAsync;
 const stages = new Set<MobsStage>();
+const reviewActors = new Set<MobReviewActor>();
 const installedBytes = new Map<string, Uint8Array<ArrayBuffer>>();
 
 function bytesFor(definition: MobDefinition): Uint8Array<ArrayBuffer> {
@@ -87,11 +89,100 @@ beforeEach(() => {
 afterEach(() => {
   try {
     for (const value of stages) value.dispose();
+    for (const value of reviewActors) value.dispose();
   } finally {
     stages.clear();
+    reviewActors.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   }
+});
+
+describe("Independent creatures on the shared combat clock", () => {
+  async function actor(definitionId: string, instanceId = definitionId) {
+    const value = await createMobReviewActor({ definitionId, instanceId });
+    reviewActors.add(value);
+    return value;
+  }
+  function pose(value: MobReviewActor) {
+    value.root.updateWorldMatrix(true, true);
+    const result: number[] = [];
+    value.model.traverse((object) => {
+      if (object instanceof THREE.Bone) result.push(...object.position.toArray(), ...object.quaternion.toArray(), ...object.scale.toArray());
+    });
+    return result;
+  }
+
+  it.each(MOB_CATALOG.map((entry) => entry.id))("samples every actual %s action deterministically", async (id) => {
+    const value = await actor(id);
+    expect(value.checksumVerified).toBe(true);
+    expect(value.actions().length).toBeGreaterThan(10);
+    expect(value.actions().some((action) => action.semantic === "death")).toBe(true);
+    expect(value.actions().some((action) => action.semantic === "reaction")).toBe(true);
+    for (const action of value.actions()) {
+      value.sample(action.id, action.durationSeconds * 0.37);
+      const expected = pose(value);
+      value.sample(action.id, action.durationSeconds * 0.91);
+      value.sample(action.id, action.durationSeconds * 0.37);
+      expect(pose(value), action.id).toEqual(expected);
+      expect(value.snapshot()!.paused).toBe(true);
+      expect(value.snapshot()!.normalizedTime).toBeCloseTo(0.37, 6);
+      expect(action.approvalStatus).not.toBe("runtime-approved");
+    }
+    value.reset();
+    expect(value.snapshot()!.timeSeconds).toBe(0);
+    expect(() => value.sample("made-up-move", 0)).toThrow(/does not provide/);
+    expect(() => value.sample(value.actions()[0]!.id, NaN)).toThrow(/finite/);
+    expect(value.socketWorld("human-pinky", new THREE.Vector3())).toBe(false);
+  }, 30_000);
+
+  it.each(["breachling-base", "warden-wayfarer"])("isolates same-model %s pairs, calibration, transforms and disposal", async (id) => {
+    const first = await actor(id, "attacker");
+    const second = await actor(id, "defender");
+    const scene = new THREE.Scene();
+    scene.add(first.root, second.root);
+    const action = first.actions().find((entry) => entry.semantic === "attack")!;
+    first.sample(action.id, action.durationSeconds * 0.37);
+    second.sample(action.id, action.durationSeconds * 0.37);
+    expect(pose(first)).toEqual(pose(second));
+    const secondPose = pose(second);
+    const control = first.controls[0]!;
+    first.setControl(control.id, 5);
+    first.sample(action.id, action.durationSeconds * 0.37);
+    expect(pose(second)).toEqual(secondPose);
+    expect(first.calibration().controls[control.id]).toBe(5);
+    expect(second.calibration().controls[control.id]).toBe(0);
+    first.clearCalibration();
+    first.sample(action.id, action.durationSeconds * 0.37);
+    expect(pose(first)).toEqual(secondPose);
+    const socket = first.controls[0]!.bone;
+    const before = new THREE.Vector3();
+    expect(first.socketWorld(socket, before)).toBe(true);
+    first.root.position.set(4, 0, 3);
+    first.root.rotation.y = 0.85;
+    first.sample(action.id, action.durationSeconds * 0.37);
+    const moved = new THREE.Vector3();
+    first.socketWorld(socket, moved);
+    expect(moved.distanceTo(before.applyMatrix4(first.root.matrixWorld))).toBeLessThan(1e-6);
+    expect(pose(second)).toEqual(secondPose);
+    first.dispose(); first.dispose();
+    expect(scene.children).toEqual([second.root]);
+    second.sample(action.id, action.durationSeconds * 0.37);
+    expect(pose(second)).toEqual(secondPose);
+    expect(() => first.sample(action.id, 0)).toThrow(/disposed/);
+  }, 30_000);
+
+  it("cancels late creature creation without returning a hidden live actor", async () => {
+    const pending = deferred<Response>();
+    vi.stubGlobal("fetch", vi.fn(() => pending.promise));
+    const abort = new AbortController();
+    const result = createMobReviewActor({ instanceId: "cancelled", definitionId: "breachling-base", signal: abort.signal });
+    const assertion = expect(result).rejects.toThrow(/cancelled/);
+    abort.abort();
+    pending.resolve(responseFor(MOB_CATALOG[0]!));
+    await assertion;
+    await expect(createMobReviewActor({ instanceId: "", definitionId: "breachling-base" })).rejects.toThrow(/instance ID/);
+  });
 });
 
 describe("Mobs stage exact installed asset contract", () => {
