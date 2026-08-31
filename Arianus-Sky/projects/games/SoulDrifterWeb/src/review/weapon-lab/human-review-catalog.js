@@ -32,6 +32,16 @@ export const BOW_RELEASE_NAME = "GapAuthored__BowReleaseFromNock";
 export const BOW_STRIKE_NAME = "GapAuthored__BowCloseRangeStrike";
 export const GREATSWORD_TWO_HAND_SHEATHE_NAME = "GapAuthored__GreatswordTwoHandSheathe";
 
+/** Existing solo-arrow choreography, shared with contact review without retiming it. */
+export const BOW_PROJECTILE_MOTION = Object.freeze({
+  releasePhaseByAction: Object.freeze({ [BOW_RELEASE_NAME]: 0.3, [BOW_TRIPLE_SHOT_NAME]: 0.58 }),
+  rangeMeters: 6,
+  dropMeters: 0.65,
+  spreadRadiansByCount: Object.freeze({
+    1: Object.freeze([0]), 2: Object.freeze([-0.045, 0.045]), 3: Object.freeze([-0.075, 0, 0.075]),
+  }),
+});
+
 export const ACTIONS = {
   twoHandSword: [
     ["Greatsword two-hand guard", "GreatSword__GreatSwordIdle"],

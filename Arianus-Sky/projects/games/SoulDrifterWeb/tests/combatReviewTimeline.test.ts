@@ -87,6 +87,20 @@ describe("deterministic shared Combat Review clock", () => {
     expect(clock.advance(0.1).crossedEvents).toHaveLength(1);
   });
 
+  it("preserves the specific projectile identity without turning seek into an impact callback", () => {
+    const source = fixture();
+    const events = source.events.map((event) => event.kind === "contact" ? { ...event, projectileId: "attacker/arrow/2" } : event);
+    const clock = new ReviewClock({ ...source, events });
+    events[1] = { ...events[1]!, projectileId: "attacker/arrow/1" };
+    clock.setPlaying(true);
+    const impact = clock.advance(1).crossedEvents.find(({ event }) => event.kind === "contact")!.event;
+    expect(impact.projectileId).toBe("attacker/arrow/2"); expect(Object.isFrozen(impact)).toBe(true);
+    expect(clock.seek(0.5).crossedEvents).toEqual([]);
+    const held = clock.seek(1.2);
+    expect(held.crossedEvents).toEqual([]);
+    expect(held.elapsedEvents.find((event) => event.kind === "contact")!.projectileId).toBe("attacker/arrow/2");
+  });
+
   it("emits each event once per cycle including exact zero/end boundaries", () => {
     const clock = new ReviewClock(fixture());
     clock.setLoop(true); clock.setPlaying(true);

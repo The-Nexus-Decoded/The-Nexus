@@ -11,7 +11,7 @@ import { locomotionActions, buildCarryLocomotionClips } from "./weapon-locomotio
 import { applyAdditiveHumanHandGrip, solveGreatswordSupportGrip } from "../../game/humanWeaponCalibration.ts";
 import {
   URLS, BOW_TRIPLE_SHOT_NAME, BOW_AIM_RUN_NAME, BOW_QUIVER_DRAW_NAME, BOW_RELEASE_NAME,
-  BOW_STRIKE_NAME, GREATSWORD_TWO_HAND_SHEATHE_NAME, ACTIONS, GREATSWORD_BACK_TRANSITIONS,
+  BOW_STRIKE_NAME, BOW_PROJECTILE_MOTION, GREATSWORD_TWO_HAND_SHEATHE_NAME, ACTIONS, GREATSWORD_BACK_TRANSITIONS,
   ACTION_PRESETS, ASSET_SPECS, LOADOUTS, OPEN_GRIP, FITTED_HAND_GRIP, FITTED_GRIP_LOADOUTS,
   LOADOUT_GRIP_PRESETS, PREVIEW_TEXTURE_URLS, REQUIRED_PREVIEW_TEXTURE_ASSETS,
   RUN_DIVE_GAP_NAME, AUTHORED_GAP_LABELS, CATALOG_LOADOUT, TARGET_HEIGHT_METERS,
@@ -1372,7 +1372,7 @@ export function createHumanReviewActorFactory({
     const BOW_TIMING = {
       tripleArrowPickup: 0.28,
       tripleArrowNocked: 0.56,
-      tripleRelease: 0.58,
+      tripleRelease: BOW_PROJECTILE_MOTION.releasePhaseByAction[BOW_TRIPLE_SHOT_NAME],
     };
 
     const BOW_DRAW_TIMING = {
@@ -1385,7 +1385,7 @@ export function createHumanReviewActorFactory({
       nocked: 0.92,
     };
 
-    const BOW_RELEASE_TIMING = { release: 0.3 };
+    const BOW_RELEASE_TIMING = { release: BOW_PROJECTILE_MOTION.releasePhaseByAction[BOW_RELEASE_NAME] };
     const BOW_STRIKE_TIMING = { windupEnd: 0.28, contact: 0.52, recoverStart: 0.66 };
 
     function applyAttachmentPose(record, poseName) {
@@ -1834,15 +1834,15 @@ export function createHumanReviewActorFactory({
         projectile.captured = true;
       }
       const phase = THREE.MathUtils.clamp((normalizedTime - releaseTime) / (1 - releaseTime), 0, 1);
-      projectile.distanceMeters = phase * 6;
+      projectile.distanceMeters = phase * BOW_PROJECTILE_MOTION.rangeMeters;
       const projectileCount = isTripleShot ? state.firedArrowCount : 1;
-      const spreads = projectileCount === 3 ? [-0.075, 0, 0.075] : projectileCount === 2 ? [-0.045, 0.045] : [0];
+      const spreads = BOW_PROJECTILE_MOTION.spreadRadiansByCount[projectileCount];
       projectile.visuals.forEach((visual, index) => {
         visual.visible = index < projectileCount;
         if (!visual.visible) return;
         const direction = projectile.direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), spreads[index]);
         visual.position.copy(projectile.startPosition).addScaledVector(direction, projectile.distanceMeters);
-        visual.position.y -= phase * phase * 0.65;
+        visual.position.y -= phase * phase * BOW_PROJECTILE_MOTION.dropMeters;
         visual.quaternion.copy(arrowWorldQuaternion(direction));
         localizeWorldTransform(visual);
         visual.updateMatrixWorld(true);

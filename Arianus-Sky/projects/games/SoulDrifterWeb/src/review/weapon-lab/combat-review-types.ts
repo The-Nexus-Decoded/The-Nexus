@@ -58,12 +58,32 @@ export interface ReviewTrack {
 export type ReviewImpactResult = "hit" | "miss" | "blocked" | "unmeasured";
 export type ReviewDamageType = "physical" | "fire" | "ice" | "poison" | "arcane";
 
+/** Fixed emission in world space; the contact sampler validates and freezes it.
+ * Position is origin + direction * phase * range, minus phase² * drop on world Y.
+ * It never follows a later target pose. Times are absolute sequence seconds.
+ */
+export interface ReviewProjectileFlight {
+  readonly id: string;
+  readonly actorId: string;
+  readonly actionId: string;
+  readonly visualKind: "arrow" | "poison-spit";
+  readonly releaseSeconds: number;
+  readonly endSeconds: number;
+  readonly origin: readonly [number, number, number];
+  readonly direction: readonly [number, number, number];
+  readonly rangeMeters: number;
+  readonly dropMeters: number;
+  readonly evidence: string;
+}
+
 export interface ReviewEvent {
   readonly id: string;
   readonly timeSeconds: number;
   readonly kind: "release" | "contact" | "reaction" | "death" | "prop-state";
   readonly actorId: string;
   readonly targetId?: string;
+  /** A contact stops this projectile only, not every arrow in a multishot. */
+  readonly projectileId?: string;
   readonly result?: ReviewImpactResult;
   readonly damageType?: ReviewDamageType;
   readonly position?: readonly [number, number, number];

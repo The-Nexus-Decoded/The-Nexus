@@ -5,7 +5,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createHumanReviewActorFactory, findBone } from "../src/review/weapon-lab/human-review-actor.js";
-import { LOADOUTS, URLS, BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME, GREATSWORD_TWO_HAND_SHEATHE_NAME, sourceResponseActions } from "../src/review/weapon-lab/human-review-catalog.js";
+import { LOADOUTS, URLS, BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME, BOW_PROJECTILE_MOTION,
+  GREATSWORD_TWO_HAND_SHEATHE_NAME, sourceResponseActions } from "../src/review/weapon-lab/human-review-catalog.js";
 
 function clipsDigest(clips) {
   const hash = createHash("sha256");
@@ -267,6 +268,48 @@ describe("Full Human Foundation review factory", () => {
     expect(second.primary.poses.hand.position).toEqual(original);
     expect(LOADOUTS.bow.attachments[0].poses.hand.position).toEqual(original);
   }, 30_000);
+
+  it("shares frozen bow emission metadata without changing the existing two authored release bindings", () => {
+    expect(BOW_PROJECTILE_MOTION).toEqual({
+      releasePhaseByAction: { [BOW_RELEASE_NAME]: 0.3, [BOW_TRIPLE_SHOT_NAME]: 0.58 },
+      rangeMeters: 6, dropMeters: 0.65,
+      spreadRadiansByCount: { 1: [0], 2: [-0.045, 0.045], 3: [-0.075, 0, 0.075] },
+    });
+    expect(Object.isFrozen(BOW_PROJECTILE_MOTION)).toBe(true);
+    expect(Object.isFrozen(BOW_PROJECTILE_MOTION.releasePhaseByAction)).toBe(true);
+    expect(Object.isFrozen(BOW_PROJECTILE_MOTION.spreadRadiansByCount)).toBe(true);
+    Object.values(BOW_PROJECTILE_MOTION.spreadRadiansByCount).forEach((spreads) => expect(Object.isFrozen(spreads)).toBe(true));
+  });
+
+  it.each([[BOW_RELEASE_NAME, 0.3], [BOW_TRIPLE_SHOT_NAME, 0.58]])(
+    "preserves actual %s arrow visuals against the pre-extraction trajectory equation", async (actionId, release) => {
+      const actor = await create({ loadoutId: "bow" });
+      actor.root.position.set(2.7, 0.4, -1.2); actor.root.rotation.y = 0.73;
+      const duration = actor.clips.get(actionId).duration;
+      for (const inventory of [0, 1, 2, 3]) {
+        actor.updateSettings({ arrowCount: inventory });
+        const count = inventory === 0 ? 0 : actionId === BOW_RELEASE_NAME ? 1 : inventory;
+        const spreads = count === 3 ? [-0.075, 0, 0.075] : count === 2 ? [-0.045, 0.045] : [0];
+        for (const normalized of [release - 0.001, release, release + 0.05, 0.91, 1, release + 0.05]) {
+          actor.sample(actionId, duration * normalized);
+          const projectile = actor.projectile;
+          const phase = THREE.MathUtils.clamp((actor.snapshot().normalizedTime - release) / (1 - release), 0, 1);
+          const released = actor.snapshot().normalizedTime >= release && count > 0;
+          expect(projectile.visuals.filter((visual) => visual.visible)).toHaveLength(released ? count : 0);
+          expect(projectile.distanceMeters).toBe(released ? phase * 6 : 0);
+          if (!released) continue;
+          for (let index = 0; index < count; index++) {
+            const direction = projectile.direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), spreads[index]);
+            const expected = projectile.startPosition.clone().addScaledVector(direction, phase * 6);
+            expected.y -= phase * phase * 0.65;
+            expect(projectile.visuals[index].getWorldPosition(new THREE.Vector3()).distanceTo(expected)).toBeLessThan(1e-10);
+          }
+        }
+      }
+      actor.sample("ProLongbow__StandingIdle01", 0.2);
+      expect(actor.projectile.visuals.every((visual) => !visual.visible)).toBe(true);
+      expect(actor.projectile.captured).toBe(false);
+    }, 30_000);
 
   it("advances at exact speed, holds pause, and loops without accumulating pose/root offsets", async () => {
     const actor = await create({ mode: "catalog" });
