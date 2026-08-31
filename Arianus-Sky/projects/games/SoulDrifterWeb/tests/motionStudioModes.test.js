@@ -107,8 +107,7 @@ describe("Motion Studio workspace lifecycle", () => {
     const { context, change } = modeHarness();
     context.actor = undefined;
     context.window = {};
-    context.URLS = { body: "body.glb", animations: "animations.glb", locomotionExtras: "extras.glb" };
-    context.loader = { loadAsync: vi.fn(async () => { throw new Error("human body unavailable"); }) };
+    context.humanFactory = { create: vi.fn(async () => { throw new Error("human body unavailable"); }) };
     await runInNewContext(`(async () => { ${bootstrapSource} })()`, context);
     expect(context.reviewModeSelect.disabled).toBe(false);
     expect(context.window.__weaponLab.ready).toBe(false);
