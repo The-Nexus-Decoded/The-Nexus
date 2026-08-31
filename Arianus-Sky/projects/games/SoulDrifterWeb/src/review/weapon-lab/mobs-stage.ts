@@ -11,6 +11,7 @@ import {
 import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
+import { configureReviewAssetLoader } from "./review-asset-loader";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
 
 export interface MobDefinition {
@@ -78,7 +79,10 @@ export function mobCalibrationKey(definition: MobDefinition, clip: string): stri
 
 class PinnedMobLoader extends GLTFLoader {
   checksumVerified = false;
-  constructor(private definition: MobDefinition, private signal: AbortSignal) { super(); }
+  constructor(private definition: MobDefinition, private signal: AbortSignal) {
+    super();
+    configureReviewAssetLoader(this);
+  }
   override async loadAsync(url: string) {
     if (url !== this.definition.runtimeUrl) throw new Error(`Unexpected mob asset: ${url}`);
     const reviewed = this.definition.reviewedMotion;

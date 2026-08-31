@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { configureReviewAssetLoader } from "./review-asset-loader.ts";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import {
   centerStaffVisual, fitStaffToSourceHands, staffUsesSupportHand,
@@ -40,7 +41,7 @@ export function findBone(bones, suffix) {
  * explicitly labeled source response candidates, never equipment/contact approval.
  */
 export function createHumanReviewActorFactory({
-  loader = new GLTFLoader(), textureLoader = new THREE.TextureLoader(), maxAnisotropy = 1,
+  loader = configureReviewAssetLoader(new GLTFLoader()), textureLoader = new THREE.TextureLoader(), maxAnisotropy = 1,
 } = {}) {
   const models = new Map();
   const textures = new Map();
