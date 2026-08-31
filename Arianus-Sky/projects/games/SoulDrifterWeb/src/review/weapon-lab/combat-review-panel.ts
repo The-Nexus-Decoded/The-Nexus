@@ -40,13 +40,18 @@ export class CombatReviewPanel {
   private readonly contactEvidence: HTMLElement;
   private readonly scan: HTMLButtonElement;
   private readonly jump: HTMLButtonElement;
+  private readonly release: HTMLButtonElement;
+  private readonly projectileStatus: HTMLElement;
   private readonly scanContact: (response: CombatContactSnapshot["response"]) => Promise<unknown>;
   private readonly error: HTMLElement;
   private readonly unsubscribe: () => void;
+  private readonly frameButtons: HTMLButtonElement[] = [];
+  private frameStatus: HTMLElement | null = null;
+  private framing = false;
   private lastRevision = -1;
 
   constructor(private readonly controller: CombatReviewController, options: {
-    document?: Document; onFrameActors?: () => void; onFrameAction?: () => void;
+    document?: Document; onFrameActors?: () => void; onFrameAction?: () => void | boolean | Promise<void | boolean>;
     onScanContact?: (response: CombatContactSnapshot["response"]) => Promise<unknown>;
   } = {}) {
     this.doc = options.document ?? document;
@@ -68,7 +73,10 @@ export class CombatReviewPanel {
     this.measuredClip = this.selectField(contact, "Response clip", "contact-clip"); this.measuredClipRow = this.measuredClip.closest("label")!;
     const contactButtons = this.node("div", "buttons");
     this.scan = this.button("Scan contact", "contact-scan"); this.jump = this.button("Go to contact", "contact-jump");
-    contactButtons.append(this.scan, this.jump); contact.append(contactButtons);
+    this.release = this.button("Go to release", "projectile-release");
+    contactButtons.append(this.scan, this.jump, this.release); contact.append(contactButtons);
+    this.projectileStatus = this.node("p", "context-note"); this.projectileStatus.dataset.projectileStatus = "true";
+    contact.append(this.projectileStatus);
     this.contactStatus = this.node("p", "combat-evidence"); this.contactStatus.setAttribute("role", "status");
     this.contactStatus.setAttribute("aria-live", "polite"); contact.append(this.contactStatus);
     this.contactDetails = this.node("details"); this.contactDetails.append(this.node("summary", "", "Measurement details"));
@@ -101,9 +109,13 @@ export class CombatReviewPanel {
     loopRow.append(this.loop, this.node("span", "", "Loop the complete sequence")); transport.append(loopRow);
     if (options.onFrameActors || options.onFrameAction) {
       const views = this.node("div", "buttons");
-      if (options.onFrameActors) views.append(this.button("Frame actors", "frame-actors"));
-      if (options.onFrameAction) views.append(this.button("Frame motion", "frame-action"));
+      if (options.onFrameActors) this.frameButtons.push(this.button("Frame actors", "frame-actors"));
+      if (options.onFrameAction) this.frameButtons.push(this.button("Frame motion", "frame-action"));
+      views.append(...this.frameButtons);
       transport.append(views);
+      this.frameStatus = this.node("p", "context-note"); this.frameStatus.dataset.frameStatus = "true";
+      this.frameStatus.setAttribute("role", "status"); this.frameStatus.setAttribute("aria-live", "polite");
+      this.frameStatus.hidden = true; transport.append(this.frameStatus);
     }
     this.error = this.node("p", "combat-error"); this.error.setAttribute("role", "alert"); this.element.append(this.error);
     const handle = (event: Event) => {
@@ -113,6 +125,7 @@ export class CombatReviewPanel {
       if (!control || !this.element.contains(control)) return;
       const command = control.dataset.command;
       const isButton = control.tagName === "BUTTON";
+      if (isButton && (control as HTMLButtonElement).disabled) return;
       if ((isButton && event.type !== "click") || (!isButton && event.type === "click")) return;
       // Numeric placement and sliders preview immediately; blur must not replay
       // the same edit or restart the shared timeline a second time.
@@ -125,7 +138,7 @@ export class CombatReviewPanel {
       this.error.textContent = "";
       try {
         if (command === "frame-actors") options.onFrameActors?.();
-        else if (command === "frame-action") options.onFrameAction?.();
+        else if (command === "frame-action") void this.frameMotion(options.onFrameAction);
         else this.command(control);
       } catch (error) { this.error.textContent = error instanceof Error ? error.message : String(error); }
     };
@@ -134,6 +147,24 @@ export class CombatReviewPanel {
   }
 
   dispose(): void { this.abort.abort(); this.unsubscribe(); this.element.remove(); }
+
+  private async frameMotion(run?: () => void | boolean | Promise<void | boolean>): Promise<void> {
+    if (!run || this.framing || !this.frameStatus) return;
+    this.framing = true; this.frameStatus.hidden = false;
+    this.frameStatus.textContent = "Framing motion… wait for completion before seeking or playing. Pose edits cancel this survey.";
+    this.render(this.controller.snapshot());
+    try {
+      const completed = await run();
+      if (!this.abort.signal.aborted) this.frameStatus.textContent = completed === false
+        ? "Motion framing cancelled or unavailable. Previous camera retained; frame again after pose edits."
+        : "Motion framing complete. Both actors and the bound flight fit this view.";
+    } catch (error) {
+      if (!this.abort.signal.aborted) this.frameStatus.textContent = `Motion framing failed: ${error instanceof Error ? error.message : String(error)}`;
+    } finally {
+      this.framing = false;
+      if (!this.abort.signal.aborted) this.render(this.controller.snapshot());
+    }
+  }
 
   private command(control: HTMLElement): void {
     const snapshot = this.controller.snapshot();
@@ -157,6 +188,7 @@ export class CombatReviewPanel {
         });
         break;
       case "contact-jump": if (snapshot.contact.result?.event) this.controller.seek(snapshot.contact.result.event.timeSeconds); break;
+      case "projectile-release": if (snapshot.projectiles.flights[0]) this.controller.seek(snapshot.projectiles.flights[0].releaseSeconds); break;
       case "cue-time": this.controller.setManualCue({ atSeconds: Number(value) }); break;
       case "cue-blend": this.controller.setManualCue({ blendSeconds: Number(value) }); break;
       case "separation": this.controller.setPlacement({ separationMeters: Number(value) }); break;
@@ -203,6 +235,13 @@ export class CombatReviewPanel {
       : snapshot.cue.kind !== "none" ? "Manual cue · not measured contact. This response previews timing only; it does not establish a hit, damage or gameplay synchronization."
       : "No response cue. Scanning only schedules a response when one is explicitly selected and contact is confirmed.";
     this.play.disabled = this.restart.disabled = this.timeline.disabled = !snapshot.ready;
+    for (const button of this.frameButtons) {
+      button.disabled = this.framing || !snapshot.ready;
+      if (button.dataset.command === "frame-action") {
+        button.textContent = this.framing ? "Framing…" : "Frame motion";
+        button.setAttribute("aria-busy", String(this.framing));
+      }
+    }
     this.play.textContent = snapshot.frame?.playing ? "Pause" : "Play";
     this.timeline.value = String(snapshot.frame?.normalizedTime ?? 0);
     this.time.value = `${(snapshot.frame?.timeSeconds ?? 0).toFixed(2)} / ${snapshot.durationSeconds.toFixed(2)} s`;
@@ -223,13 +262,23 @@ export class CombatReviewPanel {
     this.actionOptions(this.measuredClip, defender.actions.filter((entry) => entry.semantic === kind), kind === "none" ? "" : defender.selected[kind]);
     this.measuredClip.disabled = !snapshot.ready;
     const profile = this.controller.contactProfile();
+    const ranged = profile?.surface.kind === "projectile";
     this.contactBinding.textContent = profile
-      ? `${profile.startSeconds.toFixed(3)}–${profile.endSeconds.toFixed(3)} s strike window · source-pinned visible strike points against actual target skin. Blocking equipment is not measured.`
-      : "No strike surface/window is bound to this action. Its motion remains available; ranged projectile and unbound source-action contact are not yet measured.";
+      ? ranged ? `${profile.startSeconds.toFixed(3)} s release → ${profile.endSeconds.toFixed(3)} s flight end · fixed emitted geometry against actual moving target skin. No homing; equipment and props do not block this scan.`
+        : `${profile.startSeconds.toFixed(3)}–${profile.endSeconds.toFixed(3)} s strike window · source-pinned visible strike points against actual target skin. Blocking equipment is not measured.`
+      : "No strike surface/window is bound to this action. Its motion remains available; unbound source actions and spell emissions are not measured.";
+    const { flights, bound, unavailableReason } = snapshot.projectiles, now = snapshot.frame?.timeSeconds ?? 0;
+    this.release.hidden = this.projectileStatus.hidden = !bound; this.release.disabled = !flights.length;
+    const stopped = flights.filter((flight) => snapshot.frame?.elapsedEvents.some((event) => event.kind === "contact"
+      && event.result === "hit" && event.projectileId === flight.id)).length;
+    const flight = flights[0];
+    this.projectileStatus.textContent = unavailableReason ? `Emission unavailable · ${unavailableReason}` : flight
+      ? `${flights.length} ${flight.visualKind === "arrow" ? "arrow" : "fluid"} projectile${flights.length === 1 ? "" : "s"} · ${now < flight.releaseSeconds ? "before release" : now > flight.endSeconds ? "flight ended" : stopped ? `${stopped} stopped at measured contact` : "in flight; no hit assumed"}. Release ${flight.releaseSeconds.toFixed(3)} s; flight ${(flight.endSeconds - flight.releaseSeconds).toFixed(3)} s. ${flight.evidence}.`
+      : "No eligible emitted geometry. This is unavailable, not a miss.";
     const { status, result } = snapshot.contact;
     const message = status === "scanning" ? "Scanning current poses… Pause, seek or change an actor setting to cancel."
       : status === "contact" ? `Measured contact · ${result!.event!.timeSeconds.toFixed(3)} s · ${snapshot.contact.response === "none" ? "no response requested" : snapshot.contact.response + " scheduled"}.`
-      : status === "miss" ? "Measured miss · no eligible strike point reached target skin in the bound window. No response scheduled."
+      : status === "miss" ? `Measured miss · no eligible ${ranged ? "projectile surface" : "strike point"} reached target skin in the bound window. No response scheduled.`
       : status === "unavailable" ? `Contact unavailable · ${result!.evidence}`
       : "Not measured · scan the current spacing, facing, ready pose and calibration. No hit is assumed.";
     if (this.contactStatus.textContent !== message) this.contactStatus.textContent = message;

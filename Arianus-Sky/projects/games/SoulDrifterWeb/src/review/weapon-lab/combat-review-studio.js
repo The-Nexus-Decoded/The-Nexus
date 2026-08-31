@@ -12,7 +12,7 @@ export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
   ...Object.entries(LOADOUTS).map(([id, loadout]) => Object.freeze({ id: `human:${id}`, family: "human",
     label: `Human · ${loadout.label}`, note: "Full Human Foundation rig · source response candidates have unverified equipment suitability. Source clips and drafts are labeled individually." })),
   ...MOB_CATALOG.map((definition) => Object.freeze({ id: definition.id, family: definition.family, label: definition.label,
-    note: definition.reviewedMotion ? "Revised five attacks + approved neutral holds. Other motions remain source; spit projectile pending."
+    note: definition.reviewedMotion ? "Revised five attacks + approved neutral holds. Other motions remain source; Spit has a new review-only fixed flight, not gameplay damage."
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
 ]);
 
@@ -127,6 +127,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
           settleConstraints: actorConstraints.get(actor) }));
       }
       if (measurement !== job || job.abort.signal.aborted) return false;
+      bounds.union(controller.projectileMotionBounds());
       return fitBounds(bounds);
     } catch (error) {
       if (!job.abort.signal.aborted) onError(error);
@@ -149,7 +150,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
     return controller.resolveContact({ response });
   }
   const panel = panelFactory(controller, { document: doc, onFrameActors: frameActors,
-    onFrameAction: () => { void frameMotion(); }, onScanContact: scanContact });
+    onFrameAction: frameMotion, onScanContact: scanContact });
   host.append(panel.element);
   const unsubscribe = controller.subscribe((snapshot) => {
     if (measurement && (snapshot.revision !== measurement.revision || snapshot.frame?.timeSeconds !== measurement.time

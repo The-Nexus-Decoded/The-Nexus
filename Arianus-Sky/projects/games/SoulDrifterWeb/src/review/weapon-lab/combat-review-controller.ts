@@ -3,7 +3,9 @@ import { ReviewClock, type ReviewClockFrame } from "./combat-review-timeline";
 import { sampleReviewPoses } from "./combat-review-posing";
 import { resolveReviewContact, type ReviewContactResolution } from "./combat-review-contact-resolver";
 import { reviewContactProfile, type ReviewContactProfile } from "./combat-review-contact-profiles";
-import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewEvent, ReviewSequence, ReviewTrack } from "./combat-review-types";
+import { ReviewContactSurface } from "./combat-review-contact";
+import { createReviewProjectiles, reviewProjectileBinding, type ReviewProjectiles } from "./combat-review-projectiles";
+import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewEvent, ReviewProjectileFlight, ReviewSequence, ReviewTrack } from "./combat-review-types";
 
 export type CombatSlot = "a" | "b";
 export type CombatActionRole = "action" | "ready" | "reaction" | "death";
@@ -55,6 +57,7 @@ export interface CombatReviewSnapshot {
   readonly frame: ReviewClockFrame | null;
   readonly error: string | null;
   readonly contact: CombatContactSnapshot;
+  readonly projectiles: Readonly<{ bound: boolean; flights: readonly ReviewProjectileFlight[]; unavailableReason: string | null }>;
 }
 export interface CombatContactSnapshot {
   readonly status: "unmeasured" | "scanning" | ReviewContactResolution["status"];
@@ -93,6 +96,9 @@ export class CombatReviewController {
   private contactResult: ReviewContactResolution | null = null;
   private contactResponse: CombatContactSnapshot["response"] = "none";
   private contactJob: { abort: AbortController; revision: number; sequenceId: string } | null = null;
+  private projectiles: ReviewProjectiles | null = null;
+  private projectileBound = false;
+  private projectileError: string | null = null;
   private cue: { kind: "none" | "reaction" | "death"; atSeconds: number; blendSeconds: number } = {
     kind: "none", atSeconds: 0.5, blendSeconds: 0.1,
   };
@@ -121,6 +127,7 @@ export class CombatReviewController {
         calibration: value.handle?.calibration?.controls().map((control) => ({ ...control })) ?? [] }; }),
       cue: { ...this.cue }, placement: { ...this.placement }, durationSeconds: this.clock?.sequence.durationSeconds ?? 0,
       frame: this.clock?.snapshot() ?? null, error: this.error,
+      projectiles: { bound: this.projectileBound, flights: this.projectiles?.flights ?? [], unavailableReason: this.projectileError },
       contact: { status: this.contactJob ? "scanning" : this.contactResult?.status ?? "unmeasured",
         result: this.contactResult ? structuredClone(this.contactResult) : null, response: this.contactResponse } };
   }
@@ -129,7 +136,23 @@ export class CombatReviewController {
 
   contactProfile(): ReviewContactProfile | null {
     const actor = this.actor(this.attacker);
-    return actor ? reviewContactProfile(actor, this.slots[this.attacker].selected.action) : null;
+    return actor ? reviewContactProfile(actor, this.slots[this.attacker].selected.action, { projectiles: true }) : null;
+  }
+
+  /** Existing actor surveys include bow arrows; add only independently owned fluid geometry. */
+  projectileMotionBounds(): THREE.Box3 {
+    this.assertLive(); const bounds = new THREE.Box3(), projectiles = this.projectiles;
+    if (!this.clock || !projectiles?.root.children.length) return bounds;
+    const surface = new ReviewContactSurface(projectiles.root), times = new Set<number>();
+    for (const flight of projectiles.flights) {
+      times.add(flight.releaseSeconds); times.add(flight.endSeconds);
+      const apex = flight.dropMeters > 0 ? flight.direction[1] * flight.rangeMeters / (2 * flight.dropMeters) : 0;
+      if (apex > 0 && apex < 1) times.add(flight.releaseSeconds + apex * (flight.endSeconds - flight.releaseSeconds));
+    }
+    try {
+      for (const time of times) { projectiles.update(time, this.clock.sequence.events); surface.update(); bounds.union(surface.bounds()); }
+      return bounds;
+    } finally { surface.dispose(); projectiles.update(this.clock.snapshot().timeSeconds, this.clock.sequence.events); }
   }
   async resolveContact(options: { profile?: ReviewContactProfile | null; response?: CombatContactSnapshot["response"] } = {}): Promise<ReviewContactResolution | null> {
     this.assertLive();
@@ -155,6 +178,21 @@ export class CombatReviewController {
         || result.event.actorId !== this.actor(this.attacker)!.instanceId || result.event.targetId !== this.actor(opposite(this.attacker))!.instanceId
         || !Number.isFinite(result.event.timeSeconds) || result.event.timeSeconds < 0 || result.event.timeSeconds > sequence.durationSeconds
         || !result.event.evidence?.trim())) throw new Error("Contact result has no valid current-sequence surface event.");
+      if (profile?.surface.kind === "projectile" && result.status !== "unavailable") {
+        const live = this.projectiles?.flights ?? [];
+        const matches = result.flights?.length === live.length && live.length > 0 && live.every((flight, index) => {
+          const measured = result.flights![index]!;
+          return ["id", "actorId", "actionId", "visualKind", "evidence"].every((key) => flight[key as keyof ReviewProjectileFlight] === measured[key as keyof ReviewProjectileFlight])
+            && [flight.releaseSeconds - measured.releaseSeconds, flight.endSeconds - measured.endSeconds,
+              flight.rangeMeters - measured.rangeMeters, flight.dropMeters - measured.dropMeters,
+              ...flight.origin.map((value, axis) => value - measured.origin[axis]!),
+              ...flight.direction.map((value, axis) => value - measured.direction[axis]!)].every((delta) => Math.abs(delta) < 1e-7);
+        });
+        if (!matches || result.event && !live.some((flight) => flight.id === result.event!.projectileId
+          && result.event!.timeSeconds >= flight.releaseSeconds && result.event!.timeSeconds <= flight.endSeconds)) {
+          throw new Error("Measured projectile emission does not match the current visible flight.");
+        }
+      }
       this.contactResult = structuredClone(result);
       if (result.status === "contact" && result.event) {
         this.contactResponse = response;
@@ -263,16 +301,16 @@ export class CombatReviewController {
     this.assertLive(); const next = { ...this.placement, ...patch };
     finite(next.separationMeters, "Separation", 0, 20);
     finite(next.yawADegrees, "A facing", -360, 360); finite(next.yawBDegrees, "B facing", -360, 360);
-    this.placement = next; this.placeActors(); this.applyFrame(); this.changed();
+    this.placement = next; this.placeActors(); this.applyFrame(); this.changed(true);
   }
   setCalibration(slot: CombatSlot, id: string, value: number): void {
     this.assertLive(); const binding = this.slots[slot].handle?.calibration;
     const control = binding?.controls().find((entry) => entry.id === id);
     if (!binding || !control) throw new Error("Calibration is unavailable for this actor.");
-    finite(value, control.label, control.min, control.max); binding.set(id, value); this.applyFrame(); this.changed();
+    finite(value, control.label, control.min, control.max); binding.set(id, value); this.applyFrame(); this.changed(true);
   }
   resetCalibration(slot: CombatSlot): void {
-    this.assertLive(); this.slots[slot].handle?.calibration?.reset(); this.applyFrame(); this.changed();
+    this.assertLive(); this.slots[slot].handle?.calibration?.reset(); this.applyFrame(); this.changed(true);
   }
   setPlaying(playing: boolean): void {
     this.assertLive();
@@ -300,7 +338,7 @@ export class CombatReviewController {
   }
 
   private recompose(): void {
-    this.clock = null; this.error = null;
+    this.clock = null; this.error = null; this.releaseProjectiles();
     if (!SLOTS.every((slot) => this.slots[slot].status === "ready")) return;
     const attackSlot = this.slots[this.attacker], defenderSlot = this.slots[opposite(this.attacker)];
     const attack = this.requireAction(this.attacker, attackSlot.selected.action);
@@ -332,6 +370,20 @@ export class CombatReviewController {
           : "Manual review cue; not measured contact, damage or gameplay approval." });
     } else track("defender-ready", defenderId, guard, 0, duration, guard.semantic !== "death");
     if (this.contactResult?.status === "contact" && this.contactResult.event) events.push(this.contactResult.event);
+    const binding = reviewProjectileBinding(attackSlot.handle!.actor, attack.id);
+    this.projectileBound = Boolean(binding);
+    if (binding) {
+      try {
+        sampleReviewPoses(attackSlot.handle!.actor, [{ actionId: attack.id, timeSeconds: binding.releaseSeconds, weight: 1 }], attackSlot.handle!.settleConstraints);
+        this.projectiles = createReviewProjectiles(attackSlot.handle!.actor, attack.id, binding);
+        this.projectileError = this.projectiles.probe.unavailableReason ?? null;
+        // The group contains only owned fluid VFX, never borrowed arrow assets.
+        if (this.projectiles.root.children.length) this.root.add(this.projectiles.root);
+        for (const flight of this.projectiles.flights) events.push({ id: `release:${flight.id}`, actorId: flight.actorId,
+          kind: "release", timeSeconds: flight.releaseSeconds, projectileId: flight.id,
+          position: flight.origin, result: "unmeasured", evidence: flight.evidence });
+      } catch (error) { this.projectileError = error instanceof Error ? error.message : String(error); }
+    }
     try {
       this.clock = new ReviewClock({ id: `${this.root.name}:${++this.sequenceRevision}`, durationSeconds: duration,
         actorIds: [this.slots.a.handle!.actor.instanceId, this.slots.b.handle!.actor.instanceId], tracks, events });
@@ -345,6 +397,9 @@ export class CombatReviewController {
         const handle = SLOTS.map((slot) => this.slots[slot].handle).find((entry) => entry?.actor.instanceId === pose.actorId);
         if (handle) sampleReviewPoses(handle.actor, pose.poses, handle.settleConstraints);
       }
+      // Pose-dependent equipment updates run first; the same fixed flight then
+      // stops only its identified measured projectile, without target homing.
+      this.projectiles?.update(frame.timeSeconds, this.clock?.sequence.events);
     } catch (error) { this.clock?.setPlaying(false); this.error = error instanceof Error ? error.message : String(error); }
   }
   private placeActors(): void {
@@ -357,6 +412,7 @@ export class CombatReviewController {
     }
   }
   private releaseSlot(slot: CombatSlot): void {
+    this.releaseProjectiles();
     const value = this.slots[slot]; value.revision++; value.abort?.abort(); value.abort = undefined;
     value.handle?.actor.root.removeFromParent(); value.handle?.actor.dispose(); value.handle = undefined;
     value.actions = []; value.status = "empty"; value.error = null;
@@ -373,6 +429,9 @@ export class CombatReviewController {
     return result;
   }
   private assertLive(): void { if (this.disposed) throw new Error("Combat Review has been disposed."); }
+  private releaseProjectiles(): void {
+    this.projectiles?.dispose(); this.projectiles = null; this.projectileBound = false; this.projectileError = null;
+  }
   private cancelContactScan(): void { this.contactJob?.abort.abort(); this.contactJob = null; }
   private invalidateContact(): void {
     this.cancelContactScan();
@@ -384,7 +443,14 @@ export class CombatReviewController {
       if (held && this.clock && !hadResponse) { this.clock.seek(held.timeSeconds); this.clock.setPlaying(held.playing); this.applyFrame(); }
     }
   }
-  private changed(): void { this.invalidateContact(); this.revision++; this.emit(); }
+  private changed(refreshEmission = false): void {
+    this.invalidateContact();
+    if (refreshEmission && this.clock) {
+      const held = this.clock.snapshot(); this.recompose();
+      if (this.clock) { this.clock.seek(held.timeSeconds); this.clock.setPlaying(held.playing); this.applyFrame(); }
+    }
+    this.revision++; this.emit();
+  }
   private emit(frame?: ReviewClockFrame): void {
     const snapshot = this.snapshot();
     // Occurrences belong only to this advance notification. Ordinary snapshots

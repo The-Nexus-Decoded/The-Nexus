@@ -4,12 +4,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CombatReviewController, type CombatActorDefinition, type CombatActorHandle, type CombatActorLoader,
   type CombatActorRequest, type CombatSlot } from "../src/review/weapon-lab/combat-review-controller";
 import { CombatReviewPanel } from "../src/review/weapon-lab/combat-review-panel";
-import type { ReviewAction } from "../src/review/weapon-lab/combat-review-types";
+import type { ReviewAction, ReviewActorAdapter } from "../src/review/weapon-lab/combat-review-types";
 import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
 import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
 import type { ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
 import { DomNode, domFixture } from "./helpers/reviewDomFixture";
+// @ts-expect-error Real public-source JS factory; image decoding alone is stubbed below.
+import { createHumanReviewActorFactory } from "../src/review/weapon-lab/human-review-actor.js";
+// @ts-expect-error Existing immutable shared bow action catalog.
+import { BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME } from "../src/review/weapon-lab/human-review-catalog.js";
+import { sampleReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-projectiles";
 
 // Browser tsconfig has no ambient Node types; limit host declarations to this test.
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -46,6 +51,17 @@ function actorFixture(request: CombatActorRequest, actions = [action("idle", "id
   return { ...handle, actor, bone };
 }
 const controllers = new Set<CombatReviewController>();
+const factories = new Set<{ dispose(): void }>();
+function realHumanFactory() {
+  const factory = createHumanReviewActorFactory({ loader: { loadAsync: async (url: string) => {
+    const bytes = Uint8Array.from(readFileSync(new URL(`../public/${url.replace(/^\.\//, "")}`, import.meta.url)));
+    const loader = new GLTFLoader(), decode = async () => new THREE.Texture();
+    loader.register(() => ({ name: "TEST_IMAGE_DECODE_ONLY", loadTexture: decode }));
+    loader.register(() => ({ name: "EXT_texture_webp", loadTexture: decode }));
+    return loader.parseAsync(bytes.buffer, "");
+  } }, textureLoader: { loadAsync: async () => new THREE.Texture() } });
+  factories.add(factory); return factory;
+}
 function controller(loadActor: CombatActorLoader = async (request) => actorFixture(request), initial?: { a: string; b: string },
   contactResolver?: typeof resolveReviewContact) {
   const value = new CombatReviewController({ definitions, loadActor, initial, contactResolver }); controllers.add(value); return value;
@@ -59,7 +75,8 @@ function bonePose(value: CombatReviewController, slot: CombatSlot) {
   value.actor(slot)!.model.traverse((node) => values.push(...node.position.toArray(), ...node.quaternion.toArray(), ...node.scale.toArray()));
   return values;
 }
-afterEach(() => { for (const value of controllers) value.dispose(); controllers.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { for (const value of controllers) value.dispose(); controllers.clear();
+  for (const factory of factories) factory.dispose(); factories.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Combat Review actor ownership and deterministic composition", () => {
   it("supports arbitrary families and same-definition actors with independent instance IDs", async () => {
@@ -319,6 +336,45 @@ describe("Combat Review measured-contact ownership", () => {
 });
 
 describe("Combat Review panel wiring", () => {
+  it("shows asynchronous framing progress and cancellation without blocking pose edits or repeating the request", async () => {
+    const value = controller(), task = deferred<boolean>();
+    const onFrameAction = vi.fn(() => task.promise), onFrameActors = vi.fn();
+    const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document, onFrameAction, onFrameActors });
+    await value.enter(); const root = panel.element as unknown as DomNode;
+    const control = (command: string) => root.find((node) => node.dataset.command === command)!;
+    const status = root.find((node) => node.dataset.frameStatus === "true")!;
+    expect(status.hidden).toBe(true); root.emit("click", control("frame-action"));
+    expect(status.hidden).toBe(false); expect(status.textContent).toContain("wait for completion");
+    expect(status.attributes["aria-live"]).toBe("polite");
+    expect(control("frame-action").attributes["aria-busy"]).toBe("true");
+    expect(control("frame-action").disabled).toBe(true); expect(control("frame-actors").disabled).toBe(true);
+    root.emit("click", control("frame-action")); root.emit("click", control("frame-actors"));
+    expect(onFrameAction).toHaveBeenCalledOnce(); expect(onFrameActors).not.toHaveBeenCalled();
+    const time = control("time"); expect(time.disabled).toBe(false);
+    time.value = "0.4"; root.emit("input", time); expect(value.snapshot().frame!.normalizedTime).toBe(0.4);
+    task.resolve(false); await vi.waitFor(() => expect(status.textContent).toContain("cancelled or unavailable"));
+    expect(control("frame-action").attributes["aria-busy"]).toBe("false");
+    expect(control("frame-action").disabled).toBe(false); expect(control("frame-actors").disabled).toBe(false);
+    expect(value.snapshot().frame!.normalizedTime).toBe(0.4); panel.dispose();
+  });
+
+  it("reports framing completion or failure, and never updates a disposed panel from a late survey", async () => {
+    for (const outcome of ["complete", "failure", "dispose"] as const) {
+      const value = controller(), task = deferred<boolean>();
+      const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document, onFrameAction: () => task.promise });
+      await value.enter(); const root = panel.element as unknown as DomNode;
+      const frame = root.find((node) => node.dataset.command === "frame-action")!;
+      const status = root.find((node) => node.dataset.frameStatus === "true")!;
+      root.emit("click", frame); const pendingText = status.textContent;
+      if (outcome === "dispose") panel.dispose();
+      if (outcome === "failure") task.reject(new Error("Source changed")); else task.resolve(true);
+      await Promise.resolve(); await Promise.resolve();
+      expect(status.textContent).toBe(outcome === "dispose" ? pendingText : outcome === "failure"
+        ? "Motion framing failed: Source changed" : "Motion framing complete. Both actors and the bound flight fit this view.");
+      if (outcome !== "dispose") { expect(frame.disabled).toBe(false); panel.dispose(); }
+    }
+  });
+
   it("shows scan state, explicitly selected measured response and actual contact time without calling it manual", async () => {
     const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
     const value = controller(undefined, undefined, async (input) => { request = input; return task.promise; });
@@ -470,6 +526,101 @@ describe("Combat Review panel wiring", () => {
   });
 });
 
+describe("Combat Review visible ranged sequence", () => {
+  it.each([BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME])("keeps real %s emission, contact, response and rewinding on one clock", async (actionId) => {
+    const factory = realHumanFactory();
+    const value = controller(async ({ instanceId, definition }) => ({ actor: await factory.create({ instanceId,
+      loadoutId: definition.id === "human-sword" ? "bow" : "longswordTwoHand", includeSourceResponses: true }) }));
+    await value.enter(); value.setPlacement({ separationMeters: 3 }); value.setAction("a", "action", actionId);
+    expect(value.contactProfile()!.surface.kind).toBe("projectile");
+    const flights = value.snapshot().projectiles.flights;
+    const actor = value.actor("a") as ReviewActorAdapter & { projectile: { visuals: THREE.Object3D[] } };
+    expect(flights).toHaveLength(actionId === BOW_RELEASE_NAME ? 1 : 3);
+    expect(value.sequence()!.events).toHaveLength(flights.length);
+    expect(value.sequence()!.events.every((event) => event.kind === "release" && event.result === "unmeasured")).toBe(true);
+    const visual = actor.projectile.visuals[0] as THREE.Object3D, meshes: THREE.Mesh[] = [];
+    visual.traverse((node) => { if ((node as THREE.Mesh).isMesh) meshes.push(node as THREE.Mesh); });
+    const dispose = vi.spyOn(meshes[0]!.geometry, "dispose");
+    value.seek(flights[0]!.releaseSeconds - 0.001); expect(visual.visible).toBe(false);
+    const result = await value.resolveContact({ response: "reaction" });
+    expect(result?.status, result?.evidence).toBe("contact");
+    const event = result!.event!, after = (event.timeSeconds + flights[0]!.endSeconds) / 2;
+    expect(event.projectileId).toBeTruthy(); expect(value.snapshot().contact.response).toBe("reaction");
+    value.seek(after);
+    flights.forEach((flight, index) => {
+      const expected = sampleReviewProjectileFlight(flight, flight.id === event.projectileId ? event.timeSeconds : after);
+      expect(actor.projectile.visuals[index]!.getWorldPosition(new THREE.Vector3()).distanceTo(expected)).toBeLessThan(1e-7);
+    });
+    const beforeHit = (flights[0]!.releaseSeconds + event.timeSeconds) / 2;
+    value.seek(beforeHit);
+    flights.forEach((flight, index) => expect(actor.projectile.visuals[index]!.getWorldPosition(new THREE.Vector3())
+      .distanceTo(sampleReviewProjectileFlight(flight, beforeHit))).toBeLessThan(1e-7));
+    expect(value.snapshot().frame!.crossedEvents).toEqual([]);
+    const crossed: string[] = []; const stop = value.subscribe((snapshot) => crossed.push(...snapshot.frame!.crossedEvents.map((entry) => entry.event.kind)));
+    value.restart(true); value.setSpeed(0.5); value.advance((event.timeSeconds + 0.01) * 2);
+    expect(crossed.filter((kind) => kind === "release")).toHaveLength(flights.length);
+    expect(crossed.filter((kind) => kind === "contact")).toHaveLength(1); stop();
+    value.setLoop(true); value.restart(true); value.advance((value.snapshot().durationSeconds + beforeHit) * 2);
+    expect(value.snapshot().frame!.timeSeconds).toBeCloseTo(beforeHit);
+    value.setPlacement({ separationMeters: 8 }); expect(value.snapshot().contact.status).toBe("unmeasured");
+    const miss = await value.resolveContact({ response: "death" }); expect(miss?.status, miss?.evidence).toBe("miss");
+    expect(value.snapshot().contact.response).toBe("none");
+    expect(value.sequence()!.events.every((entry) => entry.kind === "release" && entry.result === "unmeasured")).toBe(true);
+    value.setAction("a", "action", value.snapshot().slots[0]!.selected.ready);
+    expect(dispose).not.toHaveBeenCalled(); expect(value.snapshot().projectiles.bound).toBe(false);
+  }, 30_000);
+
+  it("recaptures real emission after per-actor calibration and ignores a stale pending scan", async () => {
+    const factory = realHumanFactory(), task = deferred<ReviewContactResolution>(); let pending!: ContactRequest;
+    const value = controller(async (request) => {
+      if (request.definition.id !== "human-sword") return actorFixture(request);
+      const actor = await factory.create({ instanceId: request.instanceId, loadoutId: "bow" });
+      return { actor, calibration: {
+        controls: () => [{ id: "socket-x", label: "Socket X", group: "Equipment", min: -0.1, max: 0.1, step: 0.001, value: actor.getCalibration().socket.x }],
+        set: (_id, x) => { const state = actor.getCalibration(); state.socket.x = x; actor.setCalibration(state); },
+        reset: () => actor.clearActionCalibration(),
+      } };
+    }, undefined, (request) => { pending = request; return task.promise; });
+    await value.enter(); value.setAction("a", "action", BOW_RELEASE_NAME); value.seek(0.4);
+    const original = value.snapshot().projectiles.flights[0]!, scan = value.resolveContact();
+    value.setCalibration("a", "socket-x", 0.025);
+    const revised = value.snapshot().projectiles.flights[0]!;
+    expect(revised).not.toBe(original);
+    // Primary bow attachment calibration does not move the separately held
+    // release arrow; rebuilding must retain that actual hand-emission origin.
+    expect(revised.origin).toEqual(original.origin);
+    expect(value.snapshot().slots[0]!.calibration[0]!.value).toBe(0.025);
+    expect(pending.signal!.aborted).toBe(true); expect(value.snapshot().frame!.timeSeconds).toBe(0.4);
+    value.setPlaying(true); value.advance(0.02); const pose = bonePose(value, "a");
+    pending.restore!(); task.resolve(contactResult(pending)); expect(await scan).toBeNull();
+    expect(value.snapshot().frame!.playing).toBe(true); expect(value.snapshot().frame!.timeSeconds).toBeCloseTo(0.42);
+    expect(bonePose(value, "a")).toEqual(pose); expect(value.snapshot().contact.status).toBe("unmeasured");
+    expect(value.snapshot().projectiles.flights[0]).toEqual(revised);
+  }, 30_000);
+
+  it("shows release controls and honest zero-ammo state without accepting a foreign measured flight", async () => {
+    const factory = realHumanFactory();
+    const value = controller(async ({ instanceId }) => ({ actor: await factory.create({ instanceId, loadoutId: "bow", includeSourceResponses: true }) }),
+      undefined, async (request) => ({ ...contactResult(request), flights: [], event: { ...contactResult(request).event!, projectileId: "foreign-arrow" } }));
+    await value.enter(); value.setAction("a", "action", BOW_RELEASE_NAME);
+    const panel = new CombatReviewPanel(value, { document: domFixture() as unknown as Document });
+    const root = panel.element as unknown as DomNode, release = root.find((node) => node.dataset.command === "projectile-release")!;
+    const status = () => root.find((node) => node.dataset.projectileStatus === "true")!;
+    expect(release.hidden).toBe(false); expect(release.disabled).toBe(false);
+    expect(status().textContent).toContain("before release"); root.emit("click", release);
+    expect(value.snapshot().frame!.timeSeconds).toBe(value.snapshot().projectiles.flights[0]!.releaseSeconds);
+    expect(status().textContent).toContain("in flight; no hit assumed");
+    expect((await value.resolveContact())!.status).toBe("unavailable");
+    expect(value.snapshot().contact.result!.evidence).toContain("current visible flight");
+    expect(value.sequence()!.events.some((event) => event.result === "hit")).toBe(false);
+    const actor = value.actor("a") as { updateSettings(value: { arrowCount: number }): void } & NonNullable<ReturnType<typeof value.actor>>;
+    actor.updateSettings({ arrowCount: 0 }); value.setAction("a", "action", BOW_TRIPLE_SHOT_NAME);
+    expect(release.disabled).toBe(true); expect(status().textContent).toContain("Emission unavailable");
+    expect(value.snapshot().projectiles.flights).toEqual([]); expect(value.sequence()!.events).toEqual([]);
+    panel.dispose();
+  }, 30_000);
+});
+
 it("replays actual pinned base GLB attack and source reaction/death on the same controller clock", async () => {
   const definition = MOB_CATALOG.find((entry) => entry.id === "breachling-base")!;
   const bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
@@ -498,4 +649,22 @@ it("replays actual pinned base GLB attack and source reaction/death on the same 
   expect(dead.poses[0]!.actionId).toBe("Death");
   expect(value.sequence()!.events.every((event) => event.result === "unmeasured")).toBe(true);
   value.restart(); expect(value.snapshot().frame!.actors[1]!.terminal).toBe("none");
+  value.setManualCue({ kind: "none" }); value.setAction("a", "action", "SpitAttack");
+  const flight = value.snapshot().projectiles.flights[0]!;
+  expect(flight.releaseSeconds).toBe(0.64); expect(flight.endSeconds).toBeCloseTo(1.44);
+  expect(value.sequence()!.events).toEqual([expect.objectContaining({ kind: "release", result: "unmeasured" })]);
+  const fluid = value.root.getObjectByName("review-poison-fluid") as THREE.Mesh;
+  const dispose = vi.spyOn(fluid.geometry, "dispose"); expect(fluid.visible).toBe(false);
+  value.seek(1.2); const held = fluid.getWorldPosition(new THREE.Vector3());
+  expect(held.distanceTo(sampleReviewProjectileFlight(flight, 1.2))).toBeLessThan(1e-10);
+  const bounds = value.projectileMotionBounds();
+  expect(bounds.containsPoint(sampleReviewProjectileFlight(flight, flight.endSeconds))).toBe(true);
+  expect(fluid.getWorldPosition(new THREE.Vector3()).distanceTo(held)).toBeLessThan(1e-10);
+  expect(value.snapshot().frame!.timeSeconds).toBe(1.2);
+  value.setPlacement({ separationMeters: 8 }); expect(dispose).toHaveBeenCalledOnce();
+  expect(value.snapshot().projectiles.flights[0]!.direction).toEqual(flight.direction);
+  expect(value.snapshot().projectiles.flights[0]!.origin).toEqual(flight.origin);
+  value.setPlacement({ yawADegrees: 90 });
+  expect(value.snapshot().projectiles.flights[0]!.direction[0]).toBeCloseTo(Math.cos(8 * Math.PI / 180), 5);
+  value.setAction("a", "action", "Idle"); expect(value.root.getObjectByName("review-poison-fluid")).toBeUndefined();
 }, 30_000);

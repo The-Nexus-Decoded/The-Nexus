@@ -132,6 +132,16 @@ describe("Combat Review studio composition", () => {
     studio.dispose(); expect(studio.frameBounds(bounds)).toBe(false);
   });
 
+  it("unions owned fluid flight geometry into the same actor motion framing and restores playback time", async () => {
+    const { studio, orbit, errors } = studioFixture(); await studio.enter(); studio.controller.seek(0.3);
+    const geometryBounds = new THREE.Box3(new THREE.Vector3(-0.02, 0.5, 0.8), new THREE.Vector3(0.02, 1.2, 5.26));
+    const bounds = vi.spyOn(studio.controller, "projectileMotionBounds").mockReturnValue(geometryBounds);
+    expect(await studio.frameMotion()).toBe(true); expect(bounds).toHaveBeenCalledOnce();
+    expect(orbit.target.z).toBeGreaterThan(2.5);
+    expect(studio.controller.snapshot().frame.timeSeconds).toBe(0.3);
+    expect(errors).toEqual([]);
+  });
+
   it("cancels a motion survey on a new actor and on workspace exit without applying stale framing", async () => {
     const { studio, errors } = studioFixture(); await studio.enter();
     const survey = studio.frameMotion(); await studio.controller.selectActor("b", "warden-wayfarer");
@@ -142,9 +152,13 @@ describe("Combat Review studio composition", () => {
   });
 
   it("preserves newer Play intent while an aborted motion survey is still pending", async () => {
-    const { studio, errors } = studioFixture(); await studio.enter();
+    let callbacks;
+    const { studio, errors } = studioFixture({ panelFactory: (_controller, options) => {
+      callbacks = options; return { element: {}, dispose() {} };
+    } }); await studio.enter();
     studio.controller.seek(0.3);
-    const survey = studio.frameMotion(); studio.controller.setPlaying(true);
+    const survey = callbacks.onFrameAction(); expect(survey).toBeInstanceOf(Promise);
+    studio.controller.setPlaying(true);
     expect(studio.controller.snapshot().frame.playing).toBe(true);
     studio.update(0.016);
     expect(studio.controller.snapshot().frame).toMatchObject({ playing: true, timeSeconds: 0.316 });
