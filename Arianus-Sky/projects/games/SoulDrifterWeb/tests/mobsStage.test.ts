@@ -483,8 +483,12 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     value.update(1.5);
     expect(scene.getObjectByName(projectile!.name)).toBeUndefined();
     await value.select("breachling-oathbound");
-    expect(value.actionLabel("Walk")).toBe("Walk");
-    expect(value.actionLabel("RecieveHit")).toBe("Receive hit");
+    expect(value.actionLabel("Idle")).toContain("approved neutral hold");
+    expect(value.actionLabel("CombatIdle")).toContain("approved neutral hold");
+    expect(value.actionLabel("LungeAttack")).toContain("revised motion");
+    expect(value.actionLabel("Walk")).toContain("source · not revised");
+    expect(value.actionLabel("RecieveHit")).toContain("source · not revised");
+    expect(value.actionLabel("SpitAttack")).toContain("source · not revised");
     value.setAction("SpitAttack");
     value.pose(0.5);
     value.update(0);
@@ -558,8 +562,8 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
 
 describe("Per-variant review-only receipt intake", () => {
   type Variant = keyof typeof BREACHLING_RUNTIME_ASSETS;
-  // Test-only replay of each original GLB through a candidate receipt. It is NOT
-  // a newly approved motion asset and no public file/catalog is written.
+  // Test-only replay of each current review GLB through an override receipt. It
+  // is NOT a newly approved motion asset and no public file/catalog is written.
   async function withReceipt(variant: Variant, patch: Partial<ReviewedMobReceipt>, run: (context: {
     receipt: ReviewedMobReceipt; source: MobDefinition; stageModule: typeof import("../src/review/weapon-lab/mobs-stage");
   }) => Promise<void>) {
@@ -567,7 +571,8 @@ describe("Per-variant review-only receipt intake", () => {
     const baseline = stage().stage; await baseline.select(source.id);
     const runtimeScale = baseline.actor()!.model.scale.x; baseline.dispose();
     const receipt: ReviewedMobReceipt = { variant, url: `/assets/weapon-lab/mobs/breachling-${variant}-intake-test.glb`,
-      runtimeSourceSha256: source.sha256, bytes: source.bytes, sha256: source.sha256, runtimeScale,
+      runtimeSourceSha256: REVIEWED_MOB_RECEIPTS[variant]?.runtimeSourceSha256 ?? source.sha256,
+      bytes: source.bytes, sha256: source.sha256, runtimeScale,
       actions: ["ClawAttack", "LungeAttack"], neutralHolds: [], ...patch };
     const registry = prepareReviewedMobReceipts({ ...REVIEWED_MOB_RECEIPTS, [variant]: receipt });
     vi.resetModules();
@@ -579,11 +584,19 @@ describe("Per-variant review-only receipt intake", () => {
     finally { vi.doUnmock("../src/review/weapon-lab/reviewed-mob-receipt"); vi.resetModules(); }
   }
 
-  it("retains the sole installed base intake and rejects variant/url/hash/schema mismatches", () => {
-    expect(Object.keys(REVIEWED_MOB_RECEIPTS)).toEqual(["base"]);
+  it("retains only the exact installed review intakes and rejects variant/url/hash/schema mismatches", () => {
+    expect(Object.keys(REVIEWED_MOB_RECEIPTS)).toEqual(["base", "oathbound"]);
     expect(REVIEWED_MOB_RECEIPTS.base).toBe(REVIEWED_BASE_MOB_RECEIPT);
     expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
       sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
+    expect(REVIEWED_MOB_RECEIPTS.oathbound).toMatchObject({
+      url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-v1.glb",
+      runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
+      bytes: 10739716,
+      sha256: "c16472e5c0c7c084b90a04359717f77913c783a0d7537c6fb6b60adf740ef8d8",
+      runtimeScale: 2.05656927752596,
+      actions: ["LungeAttack"], neutralHolds: ["Idle", "CombatIdle"],
+    });
     for (const patch of [
       { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },
       { url: "/assets/weapon-lab/mobs/breachling-stalker-approved.glb" },

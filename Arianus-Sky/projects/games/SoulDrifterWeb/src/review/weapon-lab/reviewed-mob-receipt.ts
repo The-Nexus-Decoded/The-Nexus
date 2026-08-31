@@ -41,8 +41,8 @@ export function reviewedMobNote(receipt: ReviewedMobReceipt): string {
     + "All remaining clips are source, not revised. Motion intake only; gameplay and projectile acceptance are separate.";
 }
 
-// Exact continuous-v5 export authorized for isolated Motion Studio review.
-// Other variants remain absent until their exact frozen exports clear QA.
+// Exact frozen exports authorized for isolated Motion Forge review.
+// Each variant/action remains absent until that exact export clears QA.
 export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
   base: {
     variant: "base", url: "/assets/weapon-lab/mobs/breachling-base-approved-attacks-v1.glb",
@@ -51,6 +51,15 @@ export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
     sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217",
     runtimeScale: 1.7714769640700978,
     actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"],
+    neutralHolds: ["Idle", "CombatIdle"],
+  },
+  oathbound: {
+    variant: "oathbound", url: "/assets/weapon-lab/mobs/breachling-oathbound-approved-lunge-v1.glb",
+    runtimeSourceSha256: "077e130cd8a9fa0a755aed1c1efe1f268f8ef08470762adead1b7bf0e2948939",
+    bytes: 10739716,
+    sha256: "c16472e5c0c7c084b90a04359717f77913c783a0d7537c6fb6b60adf740ef8d8",
+    runtimeScale: 2.05656927752596,
+    actions: ["LungeAttack"],
     neutralHolds: ["Idle", "CombatIdle"],
   },
 });
