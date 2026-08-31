@@ -58,7 +58,8 @@ describe("Combat Review studio composition", () => {
       const handle = await loader({ definition, instanceId: definition.id, signal: abort.signal });
       if (definition.family === "human") {
         expect(factory.create).toHaveBeenLastCalledWith({ instanceId: definition.id,
-          loadoutId: definition.id.slice(6), mode: "equipment" });
+          loadoutId: definition.id.slice(6), mode: "equipment", includeSourceResponses: true });
+        expect(definition.note).toContain("unverified equipment suitability");
       } else { expect(handle.calibration.controls()[0].value).toBe(3); handle.calibration.set("jaw", 4);
         expect(handle.actor.setControl).toHaveBeenCalledWith("jaw", 4); }
       handle.actor.dispose();

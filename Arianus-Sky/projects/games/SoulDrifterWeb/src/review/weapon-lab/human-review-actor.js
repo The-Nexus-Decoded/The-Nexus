@@ -15,7 +15,7 @@ import {
   LOADOUT_GRIP_PRESETS, PREVIEW_TEXTURE_URLS, REQUIRED_PREVIEW_TEXTURE_ASSETS,
   RUN_DIVE_GAP_NAME, AUTHORED_GAP_LABELS, CATALOG_LOADOUT, TARGET_HEIGHT_METERS,
   sourcePrefix, clipActionName, isAttackClip, isDefenseClip, isLocomotionClip,
-  isMagicClip, isReactionClip, isDeathClip, isIdleClip,
+  isMagicClip, isReactionClip, isDeathClip, isIdleClip, sourceResponseActions,
 } from "./human-review-catalog.js";
 
 function normalizeBoneName(name) {
@@ -36,7 +36,8 @@ export function findBone(bones, suffix) {
  *
  * create({ instanceId, loadoutId, mode: "equipment" | "catalog" }) needs no DOM.
  * sample(id, clipSeconds) is absolute and repeatable; update(delta) is the solo
- * player's optional clock. Catalog availability is not equipment/contact approval.
+ * player's optional clock. includeSourceResponses opts equipment actors into
+ * explicitly labeled source response candidates, never equipment/contact approval.
  */
 export function createHumanReviewActorFactory({
   loader = new GLTFLoader(), textureLoader = new THREE.TextureLoader(), maxAnisotropy = 1,
@@ -92,6 +93,7 @@ export function createHumanReviewActorFactory({
     if (factoryDisposed) throw new Error("Human review factory is disposed.");
     if (!options.instanceId) throw new Error("Human review actors require an instanceId.");
     if (options.mode !== undefined && options.mode !== "equipment" && options.mode !== "catalog") throw new Error("Unknown human review mode.");
+    if (options.includeSourceResponses !== undefined && typeof options.includeSourceResponses !== "boolean") throw new Error("Source response review must be explicitly enabled or disabled.");
     if (!LOADOUTS[options.loadoutId ?? "longswordTwoHand"]) throw new Error(`Unknown human loadout: ${options.loadoutId}`);
     const [body, library, extras] = await Promise.all([
       loadModel(URLS.body), loadModel(URLS.animations), loadModel(URLS.locomotionExtras),
@@ -120,6 +122,7 @@ export function createHumanReviewActorFactory({
     models.clear(); textures.clear();
   }
   function createInstance(bodySource, sourceClips, options) {
+    const includeSourceResponses = options.includeSourceResponses === true;
     const scene = new THREE.Group();
     scene.name = `human-review:${options.instanceId}`;
     const settings = {
@@ -2475,8 +2478,8 @@ export function createHumanReviewActorFactory({
     }
     function actionSemantic(name) {
       if (isDeathClip(name)) return "death";
-      if (isReactionClip(name)) return "reaction";
       if (isDefenseClip(name)) return "block";
+      if (isReactionClip(name)) return "reaction";
       const attack = isAttackClip(name);
       // A moving attack remains an attack. A whole source-family prefix such
       // as ProMagic is a catalog filter, not proof that every clip is a cast.
@@ -2490,7 +2493,8 @@ export function createHumanReviewActorFactory({
     function actions() {
       const rows = settings.mode === "catalog"
         ? [...actor.clips.keys()].map((name) => [AUTHORED_GAP_LABELS.get(name) ?? `${sourcePrefix(name)} — ${clipActionName(name)}`, name])
-        : [...ACTIONS[LOADOUTS[settings.loadoutId].actionFamily], ...locomotionActions(settings.loadoutId, actor.clips)];
+        : [...ACTIONS[LOADOUTS[settings.loadoutId].actionFamily], ...locomotionActions(settings.loadoutId, actor.clips),
+          ...(includeSourceResponses ? sourceResponseActions(settings.loadoutId, actor.clips) : [])];
       const seen = new Set();
       return rows.filter(([, name]) => actor.clips.has(name) && !seen.has(name) && seen.add(name)).map(([label, name]) => ({
         id: name, label, clipName: name, durationSeconds: actor.clips.get(name).duration,

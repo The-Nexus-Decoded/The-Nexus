@@ -107,6 +107,55 @@ export const ACTIONS = {
   ],
 };
 
+// Explicit review bindings, not a promise that source equipment fits a loadout.
+// These names point at unchanged library clips; no name-based fallback is used.
+const SOURCE_RESPONSE_GROUPS = Object.freeze({
+  greatsword: Object.freeze([
+    "GreatSword__GreatSwordImpact", "GreatSword__GreatSwordImpact2", "GreatSword__GreatSwordImpact3",
+    "GreatSword__GreatSwordImpact4", "GreatSword__GreatSwordImpact5",
+    "GreatSword__TwoHandedSwordDeath", "GreatSword__TwoHandedSwordDeath2",
+  ]),
+  bow: Object.freeze([
+    "ProLongbow__StandingReactSmallFromFront", "ProLongbow__StandingReactSmallFromHeadshot",
+    "ProLongbow__StandingDeathBackward01", "ProLongbow__StandingDeathForward01",
+  ]),
+  caster: Object.freeze([
+    "ProMagic__StandingReactSmallFromFront", "ProMagic__StandingReactSmallFromBack",
+    "ProMagic__StandingReactSmallFromLeft", "ProMagic__StandingReactSmallFromRight",
+    "ProMagic__StandingReactLargeFromFront", "ProMagic__StandingReactLargeFromBack",
+    "ProMagic__StandingReactLargeFromLeft", "ProMagic__StandingReactLargeFromRight",
+    "ProMagic__StandingReactDeathBackward", "ProMagic__StandingReactDeathForward",
+    "ProMagic__StandingReactDeathLeft", "ProMagic__StandingReactDeathRight",
+  ]),
+  oneHand: Object.freeze([
+    "ProMeleeAxe__StandingReactLargeGut", "ProMeleeAxe__StandingReactLargeFromLeft",
+    "ProMeleeAxe__StandingReactLargeFromRight",
+  ]),
+  // The axe family contains no death. These are explicitly generic candidates,
+  // not silent sword/shield or shooter substitutions and not equipment-approved.
+  genericDeath: Object.freeze([
+    "Interactions__HumanMasculineAthleticMuscularDeathBack",
+    "Interactions__HumanMasculineAthleticMuscularDeathLeft",
+    "Interactions__HumanMasculineAthleticMuscularDeathRightMirrored",
+  ]),
+});
+const SOURCE_RESPONSE_BINDINGS = Object.freeze({
+  twoHandSword: Object.freeze(["greatsword"]), bow: Object.freeze(["bow"]),
+  magic: Object.freeze(["caster"]), unarmedMagic: Object.freeze(["caster"]),
+  staff: Object.freeze(["caster", "oneHand"]),
+  oneHandMeleeProxy: Object.freeze(["oneHand", "genericDeath"]),
+  dagger: Object.freeze(["oneHand", "genericDeath"]),
+});
+
+/** Opt-in equipment review candidates; the solo curated catalog stays unchanged. */
+export function sourceResponseActions(loadoutId, clips) {
+  const family = LOADOUTS[loadoutId]?.actionFamily;
+  if (!family) throw new Error(`Unknown human response binding: ${loadoutId}`);
+  return SOURCE_RESPONSE_BINDINGS[family].flatMap((group) => SOURCE_RESPONSE_GROUPS[group]
+    .filter((name) => clips.has(name))
+    .map((name) => [`${group === "genericDeath" ? "Generic source candidate" : `${sourcePrefix(name)} source candidate`} · ${clipActionName(name)} · equipment suitability unverified`, name]));
+}
+
 export const GREATSWORD_BACK_TRANSITIONS = new Set([
   "GreatSword__DrawAGreatSword1",
   "GreatSword__DrawAGreatSword2",

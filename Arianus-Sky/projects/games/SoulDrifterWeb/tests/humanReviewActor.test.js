@@ -5,7 +5,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { createHumanReviewActorFactory, findBone } from "../src/review/weapon-lab/human-review-actor.js";
-import { LOADOUTS, URLS, BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME, GREATSWORD_TWO_HAND_SHEATHE_NAME } from "../src/review/weapon-lab/human-review-catalog.js";
+import { LOADOUTS, URLS, BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME, GREATSWORD_TWO_HAND_SHEATHE_NAME, sourceResponseActions } from "../src/review/weapon-lab/human-review-catalog.js";
 
 function clipsDigest(clips) {
   const hash = createHash("sha256");
@@ -117,6 +117,8 @@ describe("Full Human Foundation review factory", () => {
     for (const [name, semantic] of Object.entries({
       ProMagic__StandingWalkForward: "walk", ProMagic__StandingRunForward: "run",
       ProMagic__StandingIdle: "idle", ProMagic__StandingBlockIdle: "block",
+      ProMagic__StandingBlockReactLarge: "block", ProMeleeAxe__StandingBlockReactLarge: "block",
+      ProMagic__StandingReactDeathForward: "death", ProMagic__StandingReactSmallFromFront: "reaction",
       ProMagic__Standing1HCastSpell01: "cast", ProMagic__Standing1HMagicAttack01: "attack",
       ProMeleeAxe__StandingMeleeRunJumpAttack: "attack",
       CarryLayer__StaffWalk: "walk", CarryLayer__StaffRun: "run",
@@ -171,6 +173,46 @@ describe("Full Human Foundation review factory", () => {
     expect(actor.socketWorld("RightHand", point)).toBe(true);
     expect(point.toArray().every(Number.isFinite)).toBe(true);
     expect(actor.socketWorld("missing-contact", point)).toBe(false);
+  }, 30_000);
+
+  it.each(Object.keys(LOADOUTS))("opts %s into actual source responses without changing the solo catalog or clips", async (loadoutId) => {
+    const solo = await create({ loadoutId }), reviewed = await create({ loadoutId, includeSourceResponses: true });
+    const original = solo.actions(), rows = sourceResponseActions(loadoutId, reviewed.clips);
+    const responses = reviewed.actions().filter(({ id }) => rows.some(([, name]) => id === name));
+    expect(responses.length).toBe(rows.length);
+    expect(reviewed.actions().slice(0, original.length)).toEqual(original);
+    expect(responses.some(({ semantic }) => semantic === "reaction")).toBe(true);
+    expect(responses.some(({ semantic }) => semantic === "death")).toBe(true);
+    expect(responses.every(({ semantic }) => semantic === "reaction" || semantic === "death")).toBe(true);
+    expect(responses.every(({ id }) => !/SwordAndShield|SwordShie|Shooter|ProRifle|BlockReact/.test(id))).toBe(true);
+    for (const action of responses) {
+      expect(action.approvalStatus).toBe("source"); expect(action.label).toContain("equipment suitability unverified");
+      expect(reviewed.clips.get(action.id)).toBe(solo.clips.get(action.id));
+      expect(reviewed.clips.get(action.id).duration).toBe(action.durationSeconds);
+      reviewed.sample(action.id, action.durationSeconds * 0.37);
+      const expected = pose(reviewed); expect(expected.every(Number.isFinite)).toBe(true);
+      reviewed.sample(action.id, action.durationSeconds);
+      reviewed.sample(original[0].id, 0);
+      reviewed.sample(action.id, action.durationSeconds * 0.37);
+      expectSamePose(pose(reviewed), expected);
+      if (action.id.startsWith("Interactions__")) expect(action.label).toContain("Generic source candidate");
+    }
+    expect(solo.actions()).toEqual(original);
+    expect(clipsDigest(loader.loaded.get(URLS.animations).animations)).toBe(loader.sourceDigests.get(URLS.animations));
+  }, 30_000);
+
+  it("keeps response bindings explicit, fresh and loadout-specific without inventing a missing clip", async () => {
+    expect(sourceResponseActions("mace", new Map([["ProSwordAndShield__SwordAndShieldDeath", true]]))).toEqual([]);
+    expect(() => sourceResponseActions("invented", new Map())).toThrow("Unknown human response binding");
+    const actor = await create({ loadoutId: "longswordTwoHand", includeSourceResponses: true });
+    const original = sourceResponseActions("longswordTwoHand", actor.clips);
+    original[0][0] = "changed outside the shared catalog";
+    expect(sourceResponseActions("longswordTwoHand", actor.clips)[0][0]).not.toBe(original[0][0]);
+    await actor.setLoadout("bow");
+    expect(actor.actions().filter(({ semantic }) => semantic === "death").every(({ id }) => id.startsWith("ProLongbow__"))).toBe(true);
+    await actor.setLoadout("bow", { mode: "catalog" });
+    const raw = await create({ mode: "catalog" }); expect(actor.actions()).toEqual(raw.actions());
+    await expect(create({ includeSourceResponses: "yes" })).rejects.toThrow("explicitly enabled or disabled");
   }, 30_000);
 
   it("isolates materials, grips, calibration history and source resource lifetime", async () => {

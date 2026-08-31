@@ -10,7 +10,7 @@ import { sampleReviewSequence } from "./combat-review-timeline.ts";
 
 export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
   ...Object.entries(LOADOUTS).map(([id, loadout]) => Object.freeze({ id: `human:${id}`, family: "human",
-    label: `Human · ${loadout.label}`, note: "Full Human Foundation rig · equipment review binding. Source clips and drafts are labeled individually." })),
+    label: `Human · ${loadout.label}`, note: "Full Human Foundation rig · source response candidates have unverified equipment suitability. Source clips and drafts are labeled individually." })),
   ...MOB_CATALOG.map((definition) => Object.freeze({ id: definition.id, family: definition.family, label: definition.label,
     note: definition.reviewedMotion ? "Revised five attacks + approved neutral holds. Other motions remain source; spit projectile pending."
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
@@ -59,7 +59,7 @@ export function createCombatReviewActorLoader(humanFactory, mobLoader = createMo
     if (definition.family === "human") {
       const loadoutId = definition.id.slice("human:".length);
       if (!LOADOUTS[loadoutId]) throw new Error("Unknown human review binding.");
-      const actor = await humanFactory.create({ instanceId, loadoutId, mode: "equipment" });
+      const actor = await humanFactory.create({ instanceId, loadoutId, mode: "equipment", includeSourceResponses: true });
       if (signal.aborted) { actor.dispose(); throw new DOMException("Actor loading cancelled", "AbortError"); }
       return { actor, calibration: humanCalibration(actor),
         settleConstraints: () => actor.reviewTools.applyTwoHandIK(actor) };
