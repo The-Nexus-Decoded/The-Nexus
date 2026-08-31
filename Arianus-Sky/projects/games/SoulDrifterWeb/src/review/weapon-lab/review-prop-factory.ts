@@ -5,6 +5,7 @@ import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-ass
 import { ReviewContactSurface, reviewRenderedVertexIndices } from "./combat-review-contact";
 import { createBreachV2ResourceDisposalRegistry, disposeBreachV2ObjectResources } from "../../game/dungeons/breach-v2-breachlings";
 
+export const REVIEW_PROP_LIMIT = 6;
 export const REVIEW_PROP_DEFINITIONS = Object.freeze(catalog.assets.map((entry) => Object.freeze({ ...entry,
   contactMeshes: Object.freeze([...entry.contactMeshes]), armMaterials: Object.freeze([...entry.armMaterials]),
   remainingGates: Object.freeze([...entry.remainingGates]),
@@ -43,7 +44,7 @@ export function createReviewPropFactory(options: {
   const loader = options.loader ?? configureReviewAssetLoader(new GLTFLoader());
   const fetchAsset = options.fetchAsset ?? fetchPinnedReviewAsset;
   const definitions = options.definitions ?? REVIEW_PROP_DEFINITIONS;
-  const maxInstances = options.maxInstances ?? 6;
+  const maxInstances = options.maxInstances ?? REVIEW_PROP_LIMIT;
   if (!Number.isInteger(maxInstances) || maxInstances < 1 || maxInstances > 32) throw new Error("Invalid review prop limit");
   const lifetime = new AbortController(), cache = new Map<string, Promise<GLTF>>();
   const pending = new Set<string>(), instances = new Set<ReviewPropInstance>();

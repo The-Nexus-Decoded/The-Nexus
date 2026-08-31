@@ -9,6 +9,7 @@ import { createMobReviewActor } from "../src/review/weapon-lab/mob-review-actor"
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
 import { resolveReviewContact, type ReviewContactResolution } from "../src/review/weapon-lab/combat-review-contact-resolver";
 import type { ReviewContactProfile } from "../src/review/weapon-lab/combat-review-contact-profiles";
+import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 
 // Browser tsconfig has no ambient Node types; limit host declarations to this test.
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -317,43 +318,6 @@ describe("Combat Review measured-contact ownership", () => {
   });
 });
 
-// Small DOM contract host: exercises panel controls without adding a browser
-// emulator dependency. It does not claim layout, WebGL or native-browser QA.
-class DomNode {
-  parentElement: DomNode | null = null; children: DomNode[] = []; dataset: Record<string, string> = {};
-  attributes: Record<string, string> = {}; className = ""; textContent = ""; id = ""; value = ""; type = "";
-  hidden = false; disabled = false; checked = false; min = ""; max = ""; step = ""; htmlFor = "";
-  listeners = new Map<string, Array<(event: Event) => void>>();
-  classList = { add: (...names: string[]) => { this.className += " " + names.join(" "); },
-    toggle: (_name: string, _enabled: boolean) => {} };
-  constructor(readonly tagName: string) {}
-  append(...nodes: DomNode[]) { for (const node of nodes) { node.parentElement = this; this.children.push(node); } }
-  replaceChildren(...nodes: DomNode[]) { this.children.forEach((node) => { node.parentElement = null; }); this.children = []; this.append(...nodes); }
-  remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter((node) => node !== this); this.parentElement = null; }
-  setAttribute(name: string, value: string) { this.attributes[name] = value; }
-  contains(node: DomNode): boolean { return node === this || this.children.some((child) => child.contains(node)); }
-  closest(selector: string): DomNode | null {
-    if ((selector === "label" && this.tagName === "LABEL") || (selector === "[data-command]" && this.dataset.command)) return this;
-    return this.parentElement?.closest(selector) ?? null;
-  }
-  querySelector(selector: string): DomNode | null { return this.find((node) => node.tagName === selector.toUpperCase()); }
-  find(predicate: (node: DomNode) => boolean): DomNode | null {
-    for (const child of this.children) { if (predicate(child)) return child; const found = child.find(predicate); if (found) return found; } return null;
-  }
-  addEventListener(type: string, handler: (event: Event) => void, options?: { signal: AbortSignal }) {
-    const handlers = this.listeners.get(type) ?? []; handlers.push(handler); this.listeners.set(type, handlers);
-    options?.signal.addEventListener("abort", () => this.listeners.delete(type));
-  }
-  emit(type: string, target: DomNode) {
-    for (const handler of this.listeners.get(type) ?? []) handler({ type, target, stopPropagation: () => {} } as unknown as Event);
-  }
-}
-function domFixture() {
-  return { activeElement: null as DomNode | null,
-    createElement: (tag: string) => new DomNode(tag.toUpperCase()), createTextNode: (text: string) => {
-      const node = new DomNode("#TEXT"); node.textContent = text; return node;
-    } };
-}
 describe("Combat Review panel wiring", () => {
   it("shows scan state, explicitly selected measured response and actual contact time without calling it manual", async () => {
     const task = deferred<ReviewContactResolution>(); let request!: ContactRequest;
