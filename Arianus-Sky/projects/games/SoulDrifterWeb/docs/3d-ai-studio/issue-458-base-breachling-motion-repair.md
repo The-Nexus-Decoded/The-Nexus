@@ -239,9 +239,53 @@ Keep support paws grounded and do not fake head motion with a rigid whole-mesh
 slide or extreme neck deformation. No final clip or projectile mechanic is
 approved by this feedback.
 
-### Revised lunge and spit pose studies
+### Forelegs move with the action: current Spit V9
 
-The current replacements are **Lunge V10** and **Spit V8**. Both use the unchanged
+The owner clarified that the front legs must move with the action rather than
+remain in the same footprints throughout. **Contact locking is phase-specific:**
+lift and swing the moving paw, plant it in the new footprint, accept weight,
+then lift again before moving it back. Do not confuse an intentional airborne
+step with sliding while planted. This supersedes Spit V8's four-paw lock for the
+entire action; preserve V8 as historical contact-solver evidence.
+
+Current `spit/spit-approved-neutral-poses-v9.json`, SHA256
+`f93676f3caf48f6a3f8b0610b451313aefe86665b1dd2696e5d9e307f1adf64e`,
+uses alternating forepaw steps: left lifts 70mm and plants 100mm forward; right
+lifts 60mm and plants 75mm forward. Both support the forward release, then right
+and left lift back in turn to the exact approved neutral. At least three paws
+support every sampled pose. The actual skin, not only the bone endpoint, is
+checked against these explicitly shifted fixed-point anchors.
+
+Independent phase-aware replay measures at most 0.187mm same-plant skin motion,
+0.201mm error against planned shifted contact points, and 0.022mm lift/plant
+clearance error. No contact anchor changes between adjacent samples without an
+explicit lift. Head/neck/jaw articulation and the three-cell target remain:
+head advances 69.2mm from load to release, including 55mm supported root advance.
+This is an eight-pose proposal, not proof of continuous stepping, physical
+balance, final motion, projectile collision or damage. Add the weight-transfer
+and contact-switch breakdowns before final animation review.
+
+Lunge V10 stays unchanged after a fresh independent forelimb check. Its front
+paw skin already advances 190/349mm relative to the chest (removing chest
+translation and rotation), and lands about 580mm forward in new footprints.
+`lunge/independent-lunge-v10-forelimb-travel-review.md` records the exact measures.
+Do not freeze these forelimbs while interpolating the root later. Claw V2 and
+Tail V2 retain their owner-approved pose hashes; Bite V5 remains owner-pending.
+
+The existing builder, shared contact helper, surface audit and independent
+reviewer accept explicit per-phase paw offsets/support state rather than
+introducing another animation pipeline. Existing zero-offset behavior remains.
+The current five-action mechanical receipt is
+`review-bundle-integrity-owner-revision-v3.json`: 40 keys / 80 full-body images.
+Fresh wide/close review passed V9 for static owner presentation, recorded in
+`spit/independent-spit-v9-review.md`; no measured mass/center-of-mass or at-speed
+balance claim is made. `yarn typecheck` and all 45 files / 348 tests passed again
+for this checkpoint; no ESLint configuration/script exists. No runtime, source
+GLB, material, geometry, weight, human or dungeon changes were made.
+
+### Previous airborne-lunge and fixed-support-spit checkpoint
+
+That checkpoint used **Lunge V10** and **Spit V8**. Both use the unchanged
 combined source GLB (`011c7ead...aa8fd3`) and approved neutral V3. They are external
 eight-key studies, not installed animation clips. Claw V2 and Tail V2 retain
 their exact approved payload hashes; Bite V5 remains owner-pose-pending.
@@ -418,7 +462,7 @@ record the corrected stance checks; earlier renderer directories are invalid.
 `base-grounded-bite-static-proposal-v2.png`, and `bite-static-side-v2/` preserve
 the proposed poses, exact identities, independent replay, and enlarged views.
 `boss-reference-map.md` records both bosses and the recovered design references.
-`approved-neutral-attacks/review-bundle-integrity-owner-revision-v2.json` records
+`approved-neutral-attacks/review-bundle-integrity-owner-revision-v3.json` records
 the current five-action payload/render identities and reusable verifier inputs;
 the original `review-bundle-integrity.json` is historical. Each action
 folder holds its eight-pose sheet, fixed-camera views, diagnostics, and independent
