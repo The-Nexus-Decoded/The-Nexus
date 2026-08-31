@@ -5,6 +5,71 @@ Date: 2026-08-31. Ticket: The-Nexus #458. Preview-only work on
 
 ## Current direction
 
+### Continuous pilot intake — 2026-08-31
+
+The five-attack V5 export has **qualified independent clearance for local
+real-time iteration**, not final animation/contact acceptance. It is copied to
+`public/assets/weapon-lab/mobs/breachling-base-approved-attacks-v1.glb` for the
+isolated studio intake: 8,823,468 bytes, SHA-256
+`1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217`.
+Receipt activation is complete. The built existing local lab serves the exact
+same bytes, verified independently in public, both build outputs, and HTTP.
+The dungeon's canonical base GLB remains unchanged at SHA-256
+`00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7`.
+
+Pilot application gates: `yarn typecheck`, all 45 test files / 356 tests (zero
+skips), `yarn build`, and `yarn verify:release` passed. Build size is 386,036,973
+bytes for Sites and 386,026,536 for Pages, below both budget ceilings. No ESLint
+script/config is present. The existing Python server on port 5179 is preserved;
+this is a local static build, not a QA merge or live deployment.
+
+Native in-app checks selected and scrubbed all five revised clips, exercised
+1.0x playback and 0.2x slow inspection, verified Lunge one-shot terminal hold and
+restart/repeat, and changed/reset a real shoulder control. The page reports
+`served SHA-256 verified`; no browser errors were captured. Fresh native files
+are under `continuous-v1/native-lab-v5/`; `*-mid-refit-*` frames refit the camera
+after scrubbing. The old preset fits one pose, not the swept action: framing an
+approach at its initial pose can crop the later strike. Swept-action framing and
+stronger floor/contact-shadow readability remain studio presentation work.
+An independent reviewer opened all ten refitted native wide/side frames and
+cleared their full-body framing for local iteration; this is a still-frame gate.
+These checks are playback evidence, not a claim of completed owner cadence QA.
+
+The external `approved-neutral-attacks/continuous-v1/` evidence includes
+`independent-continuous-v5-qualified-intake.md`, the frozen V5 GLB and author
+manifest, independent 60 Hz/union-timestamp replay, byte comparisons, normal and
+quarter-speed videos, and source-PBR close-ups. It verifies all forty exact
+approved keys, twenty-four bones, one skinned mesh, twelve clip identities,
+finite values, unchanged limb lengths and sampled floor clearance. Five attacks
+and two explicitly labeled approved-neutral holds replace their source clips;
+Death, RecieveHit, Run, SwordSlashOutward and Walk remain byte-identical source
+motion, not newly approved actions. Source geometry, weights, binds and materials
+are protected relative to the previously reviewed combined jaw/stance asset.
+
+| Clip | Inspection duration | Boundary |
+| --- | ---: | --- |
+| BiteAttack | 6.30 s | Includes approach/reset; short-step cadence still needs owner at-speed judgment. |
+| ClawAttack | 4.57 s | Includes approach and articulated claw return; wrist/spur floor-band movement is retained as a review note. |
+| LungeAttack | 1.48 s | Articulated push, airborne two-claw attack, landing and retreat; strict independent contact diagnostics pass. |
+| TailWhip | 7.15 s | Added a real turning step; keys at 0, 0.90, 2.30, 2.90, 3.60, 3.85, 5.65, 7.15 s. |
+| SpitAttack | 1.48 s | Forepaw steps and head/neck/jaw release; targeted projectile/reaction belongs to Combat Review. |
+
+These inspection durations are not gameplay cooldowns. V5 changes only TailWhip
+relative to frozen continuous V1; independent accessor-byte comparisons link the
+unchanged four attack curves to their fresh earlier renders and the new Tail
+curve to its exact rendered V5 probe. No claim of watching videos is substituted
+for the actual documented frame/temporal review method.
+
+The raw broad-band replay remains `numericPass: false` with 594 conservative
+flags. The former approximately 53 mm rigid rear-paw slide and gross intermediate
+knee fold are corrected. Small pad rolls, a real approximately 42.65 mm low
+outer-wrist/claw sweep during Tail, Claw's returning wrist/spur motion, and Bite's
+59–92 ms short swings are **not hidden or certified perfect**. Qualified local
+intake allows owner iteration; it does not claim universal zero-slip contact,
+production combat, other variants or boss acceptance. The expanded active goal
+and shared combat/prop roadmap live in
+[the existing integration runbook](issue-458-motion-studio-integration.md#active-owner-goal--expanded-2026-08-31).
+
 **Latest owner approval, 2026-08-31:** all five current pose sequences are
 approved for continuous animation authoring and real-time testing in Motion
 Studio: Bite V5, Claw V2, Lunge V10, Tail V2, and Spit V9. This supersedes the

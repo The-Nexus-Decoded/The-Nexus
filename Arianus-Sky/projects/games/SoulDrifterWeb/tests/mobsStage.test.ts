@@ -323,9 +323,8 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(MOB_CATALOG[0]!.runtimeUrl).toBe(canonical.url);
   });
 
-  // These are explicitly pending while the external bake is unfinished; once
-  // the real receipt is populated they exercise that exact public GLB.
-  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT)("fetches only the reviewed base URL and fails closed without SHA-256", async () => {
+  // These exercise the exact public GLB authorized for isolated review.
+  it("fetches only the reviewed base URL and fails closed without SHA-256", async () => {
     const { stage: value, scene } = stage();
     await value.select("breachling-base");
     expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
@@ -341,7 +340,7 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(value.checksumVerified).toBe(false);
   }, 20_000);
 
-  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT)("distinguishes neutral holds, revised motion and untouched source clips, and hides only the revised solo-stage spit projectile", async () => {
+  it("distinguishes neutral holds, revised motion and untouched source clips, and hides only the revised solo-stage spit projectile", async () => {
     const { stage: value, scene } = stage();
     await value.select("breachling-base");
     expect(value.actionLabel("Idle")).toContain("approved neutral hold");
@@ -368,7 +367,7 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     expect(scene.getObjectByName("studio:breachling-oathbound:poison-spit")?.visible).toBe(true);
   }, 20_000);
 
-  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT).each([
+  it.each([
     { name: "BiteAttack", chains: [["spine001", "spine002"], ["neck"], ["head"], ["jaw"]] },
     { name: "ClawAttack", chains: [["front_upperR"], ["front_lowerR"], ["front_handR"], ["pelvis", "spine001", "spine002"]] },
     { name: "LungeAttack", chains: [

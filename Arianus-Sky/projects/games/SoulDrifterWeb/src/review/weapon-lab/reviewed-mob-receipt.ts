@@ -8,6 +8,11 @@ export interface ReviewedMobReceipt {
   readonly actions: readonly string[];
 }
 
-// Inactive until the actual continuous export has passed its intake and the
-// owner-authorized review asset is present. Never invent a pending export hash.
-export const REVIEWED_BASE_MOB_RECEIPT: ReviewedMobReceipt | null = null;
+// Exact continuous-v5 export authorized for isolated Motion Studio review.
+// This is a motion intake, not gameplay/contact/projectile acceptance.
+export const REVIEWED_BASE_MOB_RECEIPT: ReviewedMobReceipt | null = {
+  bytes: 8823468,
+  sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217",
+  runtimeScale: 1.7714769640700978,
+  actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"],
+};

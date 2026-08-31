@@ -2,6 +2,17 @@
   "schemaVersion": 1,
   "shippingAssets": [
     {
+      "id": "issue-458-base-reviewed-attacks-v1",
+      "name": "Base Breachling: revised five-attack studio pilot",
+      "url": "https://studio.tripo3d.ai/",
+      "license": "Project-owned Tripo source with locally authored skeletal motion; existing issue-458 provenance. Not CC0.",
+      "usage": "Isolated Motion Studio review. Does not replace the canonical dungeon asset or approve gameplay contact.",
+      "bundled": true,
+      "path": "public/assets/weapon-lab/mobs/breachling-base-approved-attacks-v1.glb",
+      "sha256": "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217",
+      "notes": "Source geometry/materials and reviewed jaw/stance rig preserved; five attacks and two approved-neutral holds revised. Detailed source chain, independent review, remaining flags and original-asset hash in docs/3d-ai-studio/issue-458-base-breachling-motion-repair.md. No paid generation in this intake."
+    },
+    {
       "id": "issue-435-lab-body",
       "name": "Human weapon lab: body",
       "url": "https://www.mixamo.com/",
