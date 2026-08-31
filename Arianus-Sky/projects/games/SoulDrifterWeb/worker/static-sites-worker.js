@@ -3,6 +3,7 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
 const SESSION_PURPOSE = "souldrifter-beta-access-v1";
 const encoder = new TextEncoder();
 const EMBEDDED_GAME_HTML = null;
+const REVIEW_PAGE_PATHS = new Set(["/weapon-lab.html", "/asset-review.html"]);
 
 function htmlResponse(body, status = 200, headers = {}) {
   return new Response(body, {
@@ -167,7 +168,8 @@ const worker = {
     if (url.pathname === "/beta-login") return Response.redirect(new URL("/play", request.url), 303);
 
     const acceptsHtml = (request.headers.get("accept") ?? "").includes("text/html");
-    if (request.method === "GET" && (url.pathname === "/play" || acceptsHtml)) {
+    const isReviewPage = REVIEW_PAGE_PATHS.has(url.pathname);
+    if (!isReviewPage && request.method === "GET" && (url.pathname === "/play" || acceptsHtml)) {
       const game = protectedGameResponse();
       if (game) return game;
     }
@@ -177,7 +179,8 @@ const worker = {
     }
 
     const response = await env.ASSETS.fetch(request);
-    if (response.status !== 404 || request.method !== "GET") return protectedAssetResponse(response);
+    // A missing review build is a real error, not a request for the game shell.
+    if (isReviewPage || response.status !== 404 || request.method !== "GET") return protectedAssetResponse(response);
 
     if (!acceptsHtml) return protectedAssetResponse(response);
 
