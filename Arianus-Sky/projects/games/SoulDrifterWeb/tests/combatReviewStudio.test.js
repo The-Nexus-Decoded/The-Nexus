@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { COMBAT_REVIEW_DEFINITIONS, createCombatReviewActorLoader, createCombatReviewStudio } from "../src/review/weapon-lab/combat-review-studio.js";
 import { LOADOUTS } from "../src/review/weapon-lab/human-review-catalog.js";
 import { MOB_CATALOG } from "../src/review/weapon-lab/mobs-stage";
+import { ENVIRONMENT_REVIEW_DEFINITION, createHumanEnvironmentReviewAdapter, environmentReviewActions } from "../src/review/weapon-lab/human-environment-review.js";
 
 // Primitive geometry is only a CPU composition fixture, never displayed content.
 function actorFixture(instanceId, definitionId = "test") {
@@ -42,7 +43,7 @@ function studioFixture(overrides = {}) {
 
 describe("Combat Review studio composition", () => {
   it("uses all existing ten human loadouts and six creatures without inventing source approval", async () => {
-    expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "human").map((entry) => entry.id))
+    expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "human" && entry.id !== ENVIRONMENT_REVIEW_DEFINITION.id).map((entry) => entry.id))
       .toEqual(Object.keys(LOADOUTS).map((id) => `human:${id}`));
     expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family !== "human").map((entry) => entry.id))
       .toEqual(MOB_CATALOG.map((entry) => entry.id));
@@ -54,6 +55,7 @@ describe("Combat Review studio composition", () => {
     }));
     const loader = createCombatReviewActorLoader(factory, mobLoader);
     for (const definition of COMBAT_REVIEW_DEFINITIONS) {
+      if (definition.id === ENVIRONMENT_REVIEW_DEFINITION.id) continue; // separate source-catalog contract below
       const abort = new AbortController();
       const handle = await loader({ definition, instanceId: definition.id, signal: abort.signal });
       if (definition.family === "human") {
@@ -66,6 +68,38 @@ describe("Combat Review studio composition", () => {
     }
     expect(factory.create).toHaveBeenCalledTimes(10); expect(mobLoader).toHaveBeenCalledTimes(6);
     expect(factory.dispose).not.toHaveBeenCalled();
+  });
+
+  it("reuses an unarmed catalog actor for environment motions without removing its source library", async () => {
+    const names = ["Interactions__HumanMasculineAthleticMuscularOpenChestLid", "Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",
+      "Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet", "Interactions__HumanMasculineAthleticMuscularIdleStandingRelaxed",
+      "Interactions__HumanMasculineAthleticMuscularWave", "GreatSword__GreatSwordSlash", "ProMeleeAxe__StandingTauntChestThump"];
+    const source = actorFixture("environment"), rows = names.map((name) => ({id:name,clipName:name,label:name,
+      semantic:name.endsWith("Relaxed")?"idle":"interaction",approvalStatus:"source",durationSeconds:3,rootPolicy:"authored-displacement"}));
+    source.primary = null; source.actions = () => rows; source.snapshot = () => ({mode:"catalog"});
+    const factory = {create:vi.fn(async()=>source)}, loader = createCombatReviewActorLoader(factory);
+    const handle = await loader({definition:ENVIRONMENT_REVIEW_DEFINITION,instanceId:"environment",signal:new AbortController().signal});
+    expect(factory.create).toHaveBeenCalledWith({instanceId:"environment",mode:"catalog"});
+    expect(handle.actor.root).toBe(source.root);expect(handle.actor.model).toBe(source.model);
+    expect(handle.actor.actions()).toHaveLength(4);expect(handle.actor.actions()[0].semantic).toBe("idle");
+    expect(source.actions()).toHaveLength(7);expect(handle.calibration.controls()).toEqual([]);
+    expect(handle.actor).not.toHaveProperty("setLoadout");expect(handle.actor).not.toHaveProperty("reviewTools");
+    expect(handle.actor).not.toHaveProperty("getCalibration");expect(handle.actor).not.toHaveProperty("snapshot");
+    handle.actor.sample(names[0],1);expect(source.sample).toHaveBeenLastCalledWith(names[0],1);
+    expect(()=>handle.actor.sample(names[5],0)).toThrow("outside");
+    handle.actor.reset();expect(source.sample).toHaveBeenLastCalledWith(names[3],0);
+    handle.actor.dispose();expect(source.dispose).toHaveBeenCalledOnce();
+    expect(environmentReviewActions(rows).every(Object.isFrozen)).toBe(true);
+    expect(()=>createHumanEnvironmentReviewAdapter({...source,snapshot:()=>({mode:"equipment"})})).toThrow("unarmed");
+  });
+
+  it("disposes an environmental source when cancelled or no relevant clips exist", async () => {
+    for (const cancel of [false,true]) {
+      const source = actorFixture("environment"), abort = new AbortController();source.snapshot=()=>({mode:"catalog"});
+      const loader = createCombatReviewActorLoader({create:async()=>{if(cancel)abort.abort();return source;}});
+      await expect(loader({definition:ENVIRONMENT_REVIEW_DEFINITION,instanceId:"environment",signal:abort.signal})).rejects.toThrow();
+      expect(source.dispose).toHaveBeenCalledOnce();
+    }
   });
 
   it("bridges grip/socket/support calibration without sharing mutable state or additive overlay", async () => {

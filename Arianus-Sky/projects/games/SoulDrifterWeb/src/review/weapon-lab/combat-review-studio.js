@@ -7,10 +7,12 @@ import { CombatReviewPanel } from "./combat-review-panel.ts";
 import { ReviewContactSurface } from "./combat-review-contact.ts";
 import { measureReviewMotionBounds } from "./combat-review-posing.ts";
 import { sampleReviewSequence } from "./combat-review-timeline.ts";
+import { ENVIRONMENT_REVIEW_DEFINITION, createHumanEnvironmentReviewAdapter } from "./human-environment-review.js";
 
 export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
   ...Object.entries(LOADOUTS).map(([id, loadout]) => Object.freeze({ id: `human:${id}`, family: "human",
     label: `Human · ${loadout.label}`, note: "Full Human Foundation rig · source response candidates have unverified equipment suitability. Source clips and drafts are labeled individually." })),
+  ENVIRONMENT_REVIEW_DEFINITION,
   ...MOB_CATALOG.map((definition) => Object.freeze({ id: definition.id, family: definition.family, label: definition.label,
     note: definition.reviewedMotion ? "Revised five attacks + approved neutral holds. Other motions remain source; Spit has a new review-only fixed flight, not gameplay damage."
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
@@ -57,6 +59,14 @@ export function createCombatReviewActorLoader(humanFactory, mobLoader = createMo
   return async ({ definition, instanceId, signal }) => {
     if (signal.aborted) throw new DOMException("Actor loading cancelled", "AbortError");
     if (definition.family === "human") {
+      if (definition.id === ENVIRONMENT_REVIEW_DEFINITION.id) {
+        const source = await humanFactory.create({ instanceId, mode: "catalog" });
+        try {
+          signal.throwIfAborted();
+          return { actor: createHumanEnvironmentReviewAdapter(source),
+            calibration: { controls: () => [], set() { throw new Error("No equipment calibration in environmental review"); }, reset() {} } };
+        } catch (error) { source.dispose(); throw error; }
+      }
       const loadoutId = definition.id.slice("human:".length);
       if (!LOADOUTS[loadoutId]) throw new Error("Unknown human review binding.");
       const actor = await humanFactory.create({ instanceId, loadoutId, mode: "equipment", includeSourceResponses: true });
