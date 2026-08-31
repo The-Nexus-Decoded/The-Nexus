@@ -1,7 +1,9 @@
 import { LoadingManager, TextureLoader } from "three";
 import { GLTFLoader, type GLTFParser } from "three/addons/loaders/GLTFLoader.js";
-import { describe, expect, it, vi } from "vitest";
-import { configureReviewAssetLoader } from "../src/review/weapon-lab/review-asset-loader";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "../src/review/weapon-lab/review-asset-loader";
+
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("shared review image decoding", () => {
   it("configures each loader only once without changing other loader plugins", () => {
@@ -42,5 +44,38 @@ describe("shared review image decoding", () => {
     const plugin = register.mock.calls[0]![0](parser);
     await expect(plugin.beforeRoot!()).rejects.toThrow(/Original review asset textures failed/);
     expect(parser.getDependencies).toHaveBeenCalledWith("texture");
+  });
+});
+
+describe("shared pinned review downloads", () => {
+  const asset = { url: "/assets/review/asset.glb", bytes: 3,
+    sha256: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" };
+  const options = { baseURI: "http://localhost/project/weapon-lab.html" };
+  it("verifies exact bytes and preserves the project-relative path", async () => {
+    const request = vi.fn<typeof fetch>(async () => new Response("abc")); vi.stubGlobal("fetch", request);
+    const value = await fetchPinnedReviewAsset(asset, options);
+    expect(value.checksumVerified).toBe(true); expect(value.bytes.byteLength).toBe(3);
+    expect(String(request.mock.calls[0]![0])).toBe("http://localhost/project/assets/review/asset.glb");
+    expect(value.resourcePath).toBe("http://localhost/project/assets/review/");
+  });
+  it("rejects altered content, incorrect length, failed HTTP and unsafe receipts", async () => {
+    vi.stubGlobal("fetch", async () => new Response("abd"));
+    await expect(fetchPinnedReviewAsset(asset, options)).rejects.toThrow("SHA-256");
+    vi.stubGlobal("fetch", async () => new Response("abcd"));
+    await expect(fetchPinnedReviewAsset(asset, options)).rejects.toThrow("asset changed");
+    vi.stubGlobal("fetch", async () => new Response("bad", { status: 503 }));
+    await expect(fetchPinnedReviewAsset(asset, options)).rejects.toThrow("HTTP 503");
+    for (const url of ["https://external.invalid/asset.glb", "/assets/../secret", "/assets/%2e%2e/secret"]) {
+      await expect(fetchPinnedReviewAsset({ ...asset, url }, options)).rejects.toThrow("receipt");
+    }
+  });
+  it("requires a digest unless explicitly retaining a legacy source, and honors cancellation", async () => {
+    const request = vi.fn<typeof fetch>(async () => new Response("abc")); vi.stubGlobal("fetch", request);
+    vi.stubGlobal("crypto", undefined);
+    await expect(fetchPinnedReviewAsset(asset, options)).rejects.toThrow("require SHA-256"); expect(request).not.toHaveBeenCalled();
+    expect((await fetchPinnedReviewAsset(asset, { ...options, requireChecksum: false })).checksumVerified).toBe(false);
+    const abort = new AbortController(); abort.abort(); request.mockClear();
+    await expect(fetchPinnedReviewAsset(asset, { ...options, signal: abort.signal })).rejects.toMatchObject({ name: "AbortError" });
+    expect(request).not.toHaveBeenCalled();
   });
 });

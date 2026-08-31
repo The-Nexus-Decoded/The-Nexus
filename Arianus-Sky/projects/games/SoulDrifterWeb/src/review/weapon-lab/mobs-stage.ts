@@ -11,7 +11,7 @@ import {
 import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
-import { configureReviewAssetLoader } from "./review-asset-loader";
+import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-asset-loader";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
 
 export interface MobDefinition {
@@ -94,18 +94,9 @@ class PinnedMobLoader extends GLTFLoader {
     if (reviewed && !globalThis.crypto?.subtle) {
       throw new Error("Revised mob animations require SHA-256 verification. Open Motion Studio in a secure context.");
     }
-    const resolved = new URL(`.${this.definition.url}`, document.baseURI);
-    const response = await fetch(resolved, { signal: this.signal, cache: "no-cache" });
-    if (!response.ok) throw new Error(`Mob download failed: HTTP ${response.status}`);
-    const bytes = await response.arrayBuffer();
-    if (bytes.byteLength !== this.definition.bytes) throw new Error("Mob asset changed; update its reviewed intake receipt first.");
-    if (globalThis.crypto?.subtle) {
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      const hash = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
-      if (hash !== this.definition.sha256) throw new Error("Mob asset SHA-256 does not match the pinned #458 export.");
-      this.checksumVerified = true;
-    }
-    return this.parseAsync(bytes, new URL(".", resolved).href);
+    const verified = await fetchPinnedReviewAsset(this.definition, { signal: this.signal, requireChecksum: !!reviewed });
+    this.checksumVerified = verified.checksumVerified;
+    return this.parseAsync(verified.bytes, verified.resourcePath);
   }
 }
 
