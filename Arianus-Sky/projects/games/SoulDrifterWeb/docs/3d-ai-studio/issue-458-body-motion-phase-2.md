@@ -6,9 +6,38 @@ Date: 2026-08-30. Baseline: `d9953f17`. Owner approved this phase.
 
 The base Breachling's three requested motions passed independent source/contact
 and native-browser review. Its exact reviewed asset is installed and live locally.
-The other three variants are not complete: Stalker needs proximal hind-leg
-rig confirmation, and Oathbound/Ravager need anatomical bind/weight correction.
+All four source skeletons now passed independent anatomical bind/weight review.
+The other three runtime variants are not complete: Stalker's motion articulation
+passed, but native playback and scrubbing exposed floor-contact problems.
+Oathbound/Ravager have new body-motion candidates; their death contacts and tail
+settlement still need correction and independent gameplay review.
 Do not describe this checkpoint as a completed roster or production approval.
+
+### Remaining-variant review, 2026-08-30
+
+- `skin/SOURCE-HANDOFF.md` records the accepted source-rig identities and
+  reproducible calibration. Original geometry, UVs, image/material bytes, and
+  protected head/jaw weights are preserved. Refitted joint origins require
+  matching translation/rotation basis calibration in the existing clips;
+  those eight source-calibrated clips are not byte-identical to the old clips.
+- Stalker candidate v4, SHA-256
+  `443be985493d864c8a66f941d2d976fb6b46d75dd185db5f22cbe15a57ed8d2e`,
+  has independent motion-articulation PASS, full-grounding HOLD. Native live
+  swipe penetrates about 5–14 mm; bite scrubbing at 70% penetrates about 76 mm.
+  Death settles, but runtime supplies transient downward correction. The
+  preserved separate LungeAttack also failed its contact sanity check.
+  Evidence: `browser-review-stalker/REVIEW.md`.
+- The inspector calls `playActor` on each scrub. This resets calibration to
+  pending, and the runtime calibrates the sampled airborne pose after three
+  updates instead of retaining a stable reference floor. This is a separate
+  runtime defect, not a missing jaw or limb animation.
+- Fixing `src/game/dungeons/breach-v2-breachlings.ts` alongside four assets
+  and this receipt would exceed the owner's five-file phase limit. Permission
+  for that sixth file was requested; it has not been edited in this phase.
+- Current Oathbound/Ravager candidates are external artifacts only and are
+  not owner-ready. Their geometry/texture preservation audits pass, which
+  does not substitute for action/contact approval. No rejected candidate was
+  installed in the live build.
 
 ## Base changes
 
