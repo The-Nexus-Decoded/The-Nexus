@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#15191d" />
     <title>SoulDrifter Motion Studio</title>
     <link rel="stylesheet" href="./src/review/weapon-lab/motion-studio.css" />
+    <link rel="stylesheet" href="./src/review/weapon-lab/combat-review.css" />
   </head>
   <body>
     <aside class="panel" aria-label="Motion Studio controls">
@@ -17,7 +18,7 @@
 
       <section id="studioSelection" class="studio-card" aria-labelledby="selectionHeading">
         <h2 id="selectionHeading"><span class="section-number" aria-hidden="true">01</span> Subject &amp; action</h2>
-        <label class="select-field primary-field"><span>Review mode</span><select id="reviewMode"><option value="weapons">Human weapons</option><option value="catalog">Human motions</option><option value="mobs">Mobs &amp; bosses</option></select><span></span></label>
+        <label class="select-field primary-field"><span>Review mode</span><select id="reviewMode"><option value="weapons">Human weapons</option><option value="catalog">Human motions</option><option value="mobs">Mobs &amp; bosses</option><option value="combat">Combat Review</option></select><span></span></label>
         <div id="humanSelection">
           <label id="weaponSetRow" class="select-field"><span>Weapon set</span><select id="weaponSet"></select><span></span></label>
           <label id="catalogActivityRow" class="select-field" hidden><span>Activity</span><select id="catalogActivity"></select><span></span></label>
@@ -29,10 +30,12 @@
           <label class="select-field"><span>Creature</span><select id="mobModel"></select><span></span></label>
           <p id="mobContext" class="context-note"></p>
         </div>
-        <label class="select-field"><span id="actionLabel">Action</span><select id="action"></select><span></span></label>
+        <label id="soloActionRow" class="select-field"><span id="actionLabel">Action</span><select id="action"></select><span></span></label>
         <label id="staffGripRow" class="select-field" hidden><span>Staff grip</span><select id="staffGripStyle"><option value="palm">Palm-side grip</option><option value="wide">Wide palm-side grip</option><option value="reverse">Reverse-side grip</option></select><span></span></label>
         <p id="studioSelectionSummary" class="selection-summary" aria-live="polite"></p>
       </section>
+
+      <div id="combatReview" hidden></div>
 
       <section id="studioPlayback" class="studio-card" aria-labelledby="playbackHeading">
         <h2 id="playbackHeading"><span class="section-number" aria-hidden="true">02</span> Playback &amp; camera</h2>

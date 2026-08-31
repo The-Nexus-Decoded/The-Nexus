@@ -35,11 +35,14 @@ function modeHarness() {
   const projectile = new THREE.Group(); projectile.name = "bow-arrow-projectile-1";
   const stage = new THREE.Group(); stage.name = "mob-stage";
   model.add(attachedSocket);
-  scene.add(model, transferSocket, projectile, stage);
+  const humanRoot = new THREE.Group(); humanRoot.add(model);
+  scene.add(humanRoot, transferSocket, projectile, stage);
   const context = {
     ...Object.fromEntries(selectorNames.map((name) => [name, element()])),
     scene, camera: {}, controls: {}, status: element(), playButton: element(),
-    actor: { model, action: { paused: false, getClip: () => ({ name: "BowEquipFromBack" }) },
+    ground: { scale: new THREE.Vector3(1, 1, 1) }, humanFactory: {}, document: { querySelector: () => element() },
+    combatStudio: null, window: {},
+    actor: { root: humanRoot, model, action: { paused: false, getClip: () => ({ name: "BowEquipFromBack" }) },
       sockets: [{ socket: attachedSocket }, { socket: transferSocket }], projectile: { visuals: [projectile] } },
     humanActionBeforeMobs: null, loadoutRevision: 0, playing: false, followGrip: true, followFullBody: true,
     updateReviewControls: vi.fn(), captureActiveActionCalibration: vi.fn(),
@@ -49,6 +52,10 @@ function modeHarness() {
   context.reviewModeSelect.value = "mobs";
   context.actionSelect.options = [{ value: "BowEquipFromBack" }];
   context.isMobsMode = () => context.reviewModeSelect.value === "mobs";
+  context.isCombatMode = () => context.reviewModeSelect.value === "combat";
+  context.createCombatReviewStudio = vi.fn(() => ({ active: false,
+    enter: vi.fn(async () => { context.combatStudio.active = true; }),
+    leave: vi.fn(() => { context.combatStudio.active = false; }) }));
   context.mobsPanel = { active: false,
     enter: vi.fn(async () => { context.mobsPanel.active = true; }),
     leave: vi.fn(() => { context.mobsPanel.active = false; }) };
@@ -57,6 +64,22 @@ function modeHarness() {
 }
 
 describe("Motion Studio workspace lifecycle", () => {
+  it("enters paired review independently and restores solo actions, floor and controls on exit", async () => {
+    const { context, change } = modeHarness();
+    context.reviewModeSelect.value = "combat"; await change();
+    expect(context.createCombatReviewStudio).toHaveBeenCalledOnce();
+    expect(context.createCombatReviewStudio.mock.calls[0][0].humanFactory).toBe(context.humanFactory);
+    expect(context.combatStudio.enter).toHaveBeenCalledOnce(); expect(context.mobsPanel.leave).toHaveBeenCalledOnce();
+    expect(context.actor.root.visible).toBe(false); expect(context.ground.scale.toArray()).toEqual([2, 3, 1]);
+    context.reviewModeSelect.value = "mobs"; await change();
+    expect(context.combatStudio.leave).toHaveBeenCalledOnce(); expect(context.mobsPanel.enter).toHaveBeenCalledOnce();
+    expect(context.captureActiveActionCalibration).toHaveBeenCalledOnce();
+    context.reviewModeSelect.value = "weapons"; await change();
+    expect(context.actor.root.visible).toBe(true); expect(context.ground.scale.toArray()).toEqual([1, 1, 1]);
+    expect(context.activateAction).toHaveBeenCalledWith("BowEquipFromBack");
+    expect(context.controls.maxDistance).toBe(14); expect(context.camera.far).toBe(40);
+  });
+
   it("hides detached human transfer sockets and released arrows as well as the model on mob entry", async () => {
     const { context, scene, change } = modeHarness();
     await change();
@@ -133,6 +156,7 @@ function controlsHarness() {
   };
   context.isCatalogMode = () => context.reviewModeSelect.value === "catalog";
   context.isMobsMode = () => context.reviewModeSelect.value === "mobs";
+  context.isCombatMode = () => context.reviewModeSelect.value === "combat";
   context.twoHandIKAllowed = () => ["greatsword", "staff"].includes(context.weaponSetSelect.value);
   context.staffUsesSupportHand = () => context.actionSelect.value === "StaffAttack";
   runInNewContext(controlSource, context);
@@ -140,6 +164,19 @@ function controlsHarness() {
 }
 
 describe("Motion Studio context-specific controls", () => {
+  it("exposes only the paired panel in Combat Review, preserving solo control state", () => {
+    const { context, node, refresh } = controlsHarness();
+    context.reviewModeSelect.value = "combat"; context.weaponSetSelect.value = "bow"; refresh();
+    for (const id of ["humanSelection", "soloActionRow", "studioPlayback", "humanCalibration", "bowControls", "mobSelection", "mobTools", "mobTuning"]) {
+      expect(node(id).hidden, id).toBe(true);
+    }
+    expect(node("combatReview").hidden).toBe(false); expect(context.weaponSetSelect.value).toBe("bow");
+    expect(node("studioHint").textContent).toMatch(/not measured contact/);
+    context.reviewModeSelect.value = "weapons"; refresh();
+    expect(node("studioPlayback").hidden).toBe(false); expect(node("soloActionRow").hidden).toBe(false);
+    expect(node("combatReview").hidden).toBe(true); expect(node("bowControls").hidden).toBe(false);
+  });
+
   it("hides every human tuning section in mobs mode and exposes only creature tools", () => {
     const { context, node, refresh } = controlsHarness();
     context.reviewModeSelect.value = "mobs";

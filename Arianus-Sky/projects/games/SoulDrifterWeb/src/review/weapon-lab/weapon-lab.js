@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { staffUsesSupportHand } from "./staff-grip.js";
 import { MobsPanel } from "./mobs-panel.ts";
+import { createCombatReviewStudio } from "./combat-review-studio.js";
 
 const LIVE_CALIBRATION_URL = "./assets/weapon-lab/live-calibration.json";
 const LIVE_CALIBRATION_ENABLED = import.meta.env.DEV
@@ -86,6 +87,10 @@ function isMobsMode() {
   return reviewModeSelect.value === "mobs";
 }
 
+function isCombatMode() {
+  return reviewModeSelect.value === "combat";
+}
+
 function activeLoadout() {
   return isCatalogMode() ? CATALOG_LOADOUT : LOADOUTS[weaponSetSelect.value];
 }
@@ -148,13 +153,19 @@ function populateCatalogFilters() {
 function updateReviewControls() {
   const catalogMode = isCatalogMode();
   const mobsMode = isMobsMode();
-  const weaponMode = !catalogMode && !mobsMode;
+  const combatMode = isCombatMode();
+  const weaponMode = !catalogMode && !mobsMode && !combatMode;
   const bow = weaponMode && weaponSetSelect.value === "bow";
   const hasEquipment = weaponMode && Boolean(LOADOUTS[weaponSetSelect.value]?.attachments.length);
   const supportHand = weaponMode && twoHandIKAllowed();
   const weaponCatalog = catalogMode && catalogActivitySelect.value === "weapons";
   const locomotionCatalog = catalogMode && catalogActivitySelect.value === "locomotion";
   weaponSetRow.hidden = !weaponMode;
+  document.querySelector("#humanSelection").hidden = !weaponMode && !catalogMode;
+  document.querySelector("#soloActionRow").hidden = combatMode;
+  document.querySelector("#studioPlayback").hidden = combatMode;
+  document.querySelector("#studioSelectionSummary").hidden = combatMode;
+  document.querySelector("#combatReview").hidden = !combatMode;
   catalogActivityRow.hidden = !catalogMode;
   catalogLocomotionRow.hidden = !locomotionCatalog;
   catalogWeaponRow.hidden = !weaponCatalog;
@@ -170,7 +181,9 @@ function updateReviewControls() {
   for (const id of ["mobSelection", "mobTuning", "mobTools"]) document.querySelector(`#${id}`).hidden = !mobsMode;
   document.querySelector("#actionView").textContent = mobsMode ? "Side view" : "Action view";
   document.querySelector("#handView").textContent = mobsMode ? "Joint view" : "Grip view";
-  document.querySelector("#studioHint").textContent = mobsMode
+  document.querySelector("#studioHint").textContent = combatMode
+    ? "Independent actors share one timeline. Manual response cues are not measured contact. Source motions and unreviewed bindings remain explicitly labeled."
+    : mobsMode
     ? "Inspect the current dungeon creatures using their real rigs. Pose offsets are isolated per model and action, and remain drafts until reviewed."
     : catalogMode
       ? "Unmodified human motion library. Choose an activity, then an action. Equipment and grip tuning are hidden in this workspace."
@@ -236,6 +249,7 @@ controls.target.set(0, 1.05, 0);
 let actor;
 const humanFactory = createHumanReviewActorFactory({ maxAnisotropy: renderer.capabilities.getMaxAnisotropy() });
 let mobsPanel = null;
+let combatStudio = null;
 let humanActionBeforeMobs = null;
 let playing = true;
 let loadoutRevision = 0;
@@ -380,7 +394,7 @@ function updateOutputs() {
 }
 
 function updateStatus() {
-  if (isMobsMode()) return;
+  if (isMobsMode() || isCombatMode()) return;
   if (!actor?.action) return;
   const loadout = activeLoadout();
   const selectionSummary = document.querySelector("#studioSelectionSummary");
@@ -853,6 +867,7 @@ function actionView() {
 }
 
 function setPlaying(next) {
+  if (isCombatMode()) { combatStudio?.setPlaying(next); return; }
   if (isMobsMode()) { mobsPanel?.setPlaying(next); return; }
   playing = next;
   if (playing) (isCatalogMode() ? fullView() : actionView());
@@ -953,7 +968,7 @@ async function applyLiveCalibration(calibration) {
 }
 
 async function pollLiveCalibration() {
-  if (!LIVE_CALIBRATION_ENABLED || applyingCalibration || isMobsMode()) return;
+  if (!LIVE_CALIBRATION_ENABLED || applyingCalibration || isMobsMode() || isCombatMode()) return;
   try {
     const response = await fetch(`${LIVE_CALIBRATION_URL}?t=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) return;
@@ -980,14 +995,15 @@ function rebuildWithErrorBoundary() {
 
 async function changeReviewMode() {
   updateReviewControls();
-  if (isMobsMode()) {
-    if (!mobsPanel?.active) {
+  if (isMobsMode() || isCombatMode()) {
+    if (!mobsPanel?.active && !combatStudio?.active) {
       humanActionBeforeMobs = actor?.action?.getClip().name;
       captureActiveActionCalibration();
     }
     loadoutRevision += 1;
     actor?.cancelPendingLoadout?.();
     if (actor) {
+      actor.root.visible = false;
       actor.model.visible = false;
       if (actor.action) actor.action.paused = true;
       // Transfers and released arrows can be world children, not model children.
@@ -995,11 +1011,37 @@ async function changeReviewMode() {
       for (const visual of actor.projectile?.visuals ?? []) visual.visible = false;
     }
     followGrip = false; followFullBody = false;
-    mobsPanel ??= new MobsPanel(scene, camera, controls);
-    await mobsPanel.enter();
+    if (isCombatMode()) {
+      mobsPanel?.leave();
+      ground.scale.set(2, 3, 1);
+      combatStudio ??= createCombatReviewStudio({ scene, camera, orbit: controls, humanFactory,
+        host: document.querySelector("#combatReview"), viewport: () => {
+          const panel = document.querySelector(".panel"), rect = panel.getBoundingClientRect();
+          const bottomSheet = innerWidth <= 700 && innerHeight > innerWidth;
+          return { width: innerWidth, height: innerHeight,
+            usableWidth: panel.hidden || bottomSheet ? innerWidth : Math.max(180, rect.left - 16),
+            usableHeight: panel.hidden || !bottomSheet ? innerHeight : Math.max(180, rect.top - 16) };
+        }, onSnapshot: (snapshot) => {
+          if (!isCombatMode()) return;
+          status.textContent = ["Combat Review · manual timing, not measured contact",
+            ...snapshot.slots.map((slot) => `${slot.slot.toUpperCase()}: ${slot.definitionId} · ${slot.status}${slot.error ? ` · ${slot.error}` : ""}`),
+            `time=${(snapshot.frame?.timeSeconds ?? 0).toFixed(2)} / ${snapshot.durationSeconds.toFixed(2)}s`,
+            "No gameplay damage, loot or target reactions are inferred from a timer.", snapshot.error ?? ""].filter(Boolean).join("\n");
+          window.__weaponLab = { ready: snapshot.ready, reviewMode: "combat", getCombatSnapshot: () => combatStudio.controller.snapshot() };
+          window.__combatReview = combatStudio;
+        }, onError: (error) => { status.textContent = `COMBAT REVIEW ERROR\n${String(error)}`; },
+      });
+      await combatStudio.enter();
+    } else {
+      combatStudio?.leave(); ground.scale.set(1, 1, 1); controls.maxDistance = 14; camera.far = 40;
+      mobsPanel ??= new MobsPanel(scene, camera, controls);
+      await mobsPanel.enter();
+    }
   } else {
+    combatStudio?.leave(); ground.scale.set(1, 1, 1); controls.maxDistance = 14; camera.far = 40;
     mobsPanel?.leave();
     if (actor) {
+      actor.root.visible = true;
       actor.model.visible = true;
       await rebuildLoadout();
       if ([...actionSelect.options].some(({ value }) => value === humanActionBeforeMobs)) {
@@ -1090,7 +1132,8 @@ addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "h" && !["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) setStudioVisible(document.querySelector(".panel").hidden);
   if (event.code === "Space" && event.target === document.body) {
     event.preventDefault();
-    setPlaying(isMobsMode() ? Boolean(mobsPanel?.stage.snapshot()?.paused) : !playing);
+    setPlaying(isCombatMode() ? !combatStudio?.controller.snapshot().frame?.playing
+      : isMobsMode() ? Boolean(mobsPanel?.stage.snapshot()?.paused) : !playing);
   }
 });
 
@@ -1126,6 +1169,12 @@ staffGripSelect.addEventListener("change", () => {
 });
 renderer.setAnimationLoop(() => {
   const delta = Math.min(clock.getDelta(), 0.05);
+  if (isCombatMode()) {
+    combatStudio?.update(delta);
+    controls.update();
+    renderer.render(scene, camera);
+    return;
+  }
   if (isMobsMode()) {
     mobsPanel?.update(delta);
     controls.update();
@@ -1169,12 +1218,14 @@ addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   fitStudioViewport();
   renderer.setSize(innerWidth, innerHeight);
-  if (isMobsMode() && mobsPanel?.stage.ready) mobsPanel.view("full");
+  if (isCombatMode()) combatStudio?.frameActors();
+  else if (isMobsMode() && mobsPanel?.stage.ready) mobsPanel.view("full");
 });
 
 function releaseRenderer() {
   renderer.setAnimationLoop(null);
   studioResizeObserver.disconnect();
+  combatStudio?.dispose();
   mobsPanel?.dispose();
   humanFactory.dispose();
   renderer.dispose();
