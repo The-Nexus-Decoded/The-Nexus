@@ -54,6 +54,15 @@ Movement requests retain the same repeating action while walking/running continu
 
 Real 65-bone tests sample more than three cycles of all four armed/unarmed gaits. Maximum seam translations are 1.67 mm (walk), 1.21 mm (run), 2.23 mm (greatsword walk), and 0.38 mm (greatsword run); maximum angular step is below 0.045 radians. These numerical checks complement native dungeon inspection and do not certify all future movement speeds or monster gaits.
 
+### Follow-up: running slowdown / stop transition
+
+Owner request, 2026-08-31: a fast run should finish with a natural slowdown sequence, not switch straight into a stationary pose. This is a requested first-level integration follow-up, **not implemented by this checkpoint**.
+
+- Keep the running cycle continuous while running is requested. On a normal stop, chain **run -> deceleration / run-stop -> idle or armed guard**; settle into walking instead if walking is still requested.
+- Match movement speed to the transition so the feet do not slide while the animation brakes. Check stopping distance at navigation destinations, and allow renewed movement to interrupt the stop smoothly.
+- First audit the accepted source library and locomotion extras for a usable slowdown/run-stop clip. Availability has not yet been verified; do not claim the existing looping fix provides this separate sequence.
+- Verify armed and unarmed stopping in the actual first level, keeping attacks one-shot. This belongs to the first-level movement acceptance checklist, not a separate studio redesign.
+
 ## Verification at this checkpoint
 
 - `yarn typecheck`: PASS. No ESLint pipeline is configured for this game package.
