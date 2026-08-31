@@ -105,6 +105,37 @@ describe("Combat Review deformed triangle contact", () => {
     expect(surface.closest(new THREE.Vector3(0, 0, 1.02), 0.03)!.distance).toBeCloseTo(0.02);
   });
 
+  it("refreshes sibling skeleton bones even when the contact root is only the mesh", () => {
+    const geometry = mesh().geometry;
+    geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(new Uint16Array(24), 4));
+    const weights = new Float32Array(24);
+    for (let i = 0; i < 6; i++) weights[i * 4] = 1;
+    geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(weights, 4));
+    const subject = new THREE.SkinnedMesh(geometry, new THREE.MeshBasicMaterial());
+    const bone = new THREE.Bone();
+    const root = new THREE.Group();
+    root.add(subject, bone);
+    root.updateMatrixWorld(true);
+    subject.bind(new THREE.Skeleton([bone]));
+    const surface = new ReviewContactSurface(subject);
+    surface.update();
+    bone.position.z = 2;
+    surface.update();
+    expect(surface.closest(new THREE.Vector3(0, 0, 2.01), 0.02)!.distance).toBeCloseTo(0.01);
+  });
+
+  it("rejects orphan, hidden and draw-range-excluded contact probes", () => {
+    const subject = mesh();
+    subject.geometry.setIndex([0, 1, 2]);
+    expect(() => sampleReviewMeshVertices(subject, [3])).toThrow(/rendered triangle/);
+    subject.geometry.setIndex([0, 1, 2, 3, 4, 5]);
+    expect(sampleReviewMeshVertices(subject, [3])).toHaveLength(1);
+    subject.geometry.setDrawRange(0, 3);
+    expect(() => sampleReviewMeshVertices(subject, [3])).toThrow(/rendered triangle/);
+    subject.visible = false;
+    expect(() => sampleReviewMeshVertices(subject, [0])).toThrow(/visible mesh/);
+  });
+
   it("obeys draw ranges, visible material groups, and hidden parent/break-off parts", () => {
     const subject = mesh();
     subject.geometry.addGroup(0, 3, 0);

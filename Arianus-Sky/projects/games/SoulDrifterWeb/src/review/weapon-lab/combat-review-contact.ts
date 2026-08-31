@@ -39,6 +39,20 @@ function materialVisible(material: THREE.Material | undefined): boolean {
   return !!material && material.visible && !(material.transparent && material.opacity === 0);
 }
 
+function updateReviewWorld(root: THREE.Object3D): void {
+  root.updateWorldMatrix(true, true);
+  const bones = new Set<THREE.Bone>();
+  root.traverse((object) => {
+    if ((object as THREE.SkinnedMesh).isSkinnedMesh) {
+      for (const bone of (object as THREE.SkinnedMesh).skeleton.bones) bones.add(bone);
+    }
+  });
+  // GLTF bones may be siblings of a supplied mesh rather than its descendants.
+  for (const bone of bones) bone.updateWorldMatrix(true, false);
+  // Attached SkinnedMesh refreshes bindMatrixInverse in this renderer override.
+  root.updateMatrixWorld(true);
+}
+
 function topology(mesh: THREE.Mesh): { signature: string; ranges: { start: number; count: number }[] } {
   const geometry = mesh.geometry;
   const position = geometry.getAttribute("position");
@@ -104,10 +118,7 @@ export class ReviewContactSurface {
 
   update(): ReviewSurfaceSnapshot {
     this.assertLive();
-    this.root.updateWorldMatrix(true, true);
-    // Attached SkinnedMesh refreshes bindMatrixInverse in this override, not in
-    // updateWorldMatrix. Match the renderer after moving/scaling an actor root.
-    this.root.updateMatrixWorld(true);
+    updateReviewWorld(this.root);
     const seen = new Set<string>();
     const unsupported: string[] = [];
     let triangles = 0;
@@ -202,16 +213,30 @@ export class ReviewContactSurface {
   }
 }
 
-/** Model-specific tip/claw/weapon probes must name vertices from that exact mesh. */
+const probeTopology = new WeakMap<THREE.Mesh, {
+  signature: string; index: THREE.BufferAttribute | null; vertices: Set<number>;
+}>();
+
+/** Model-specific probes must name rendered vertices, not unreferenced export debris. */
 export function sampleReviewMeshVertices(mesh: THREE.Mesh, indices: readonly number[]): THREE.Vector3[] {
-  mesh.updateWorldMatrix(true, true);
-  mesh.updateMatrixWorld(true);
-  if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) {
-    for (const bone of (mesh as THREE.SkinnedMesh).skeleton.bones) bone.updateWorldMatrix(true, false);
+  updateReviewWorld(mesh);
+  for (let node: THREE.Object3D | null = mesh; node; node = node.parent) {
+    if (!node.visible) throw new Error("Contact probes require a visible mesh");
+  }
+  const { signature, ranges } = topology(mesh);
+  let cached = probeTopology.get(mesh);
+  if (!cached || cached.signature !== signature || cached.index !== mesh.geometry.index) {
+    const vertices = new Set<number>();
+    for (const range of ranges) for (let offset = range.start; offset + 2 < range.start + range.count; offset += 3) {
+      for (let corner = 0; corner < 3; corner++) vertices.add(mesh.geometry.index?.getX(offset + corner) ?? offset + corner);
+    }
+    cached = { signature, index: mesh.geometry.index, vertices };
+    probeTopology.set(mesh, cached);
   }
   const count = mesh.geometry.getAttribute("position")?.count ?? 0;
   return indices.map((index) => {
     if (!Number.isInteger(index) || index < 0 || index >= count) throw new Error("Contact probe vertex is outside this mesh");
+    if (!cached.vertices.has(index)) throw new Error("Contact probe vertex is not in a rendered triangle");
     const point = mesh.getVertexPosition(index, new THREE.Vector3()).applyMatrix4(mesh.matrixWorld);
     finitePoint(point);
     return point;
