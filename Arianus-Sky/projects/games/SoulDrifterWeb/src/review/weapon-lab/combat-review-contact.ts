@@ -157,6 +157,13 @@ export class ReviewContactSurface {
 
   snapshot(): ReviewSurfaceSnapshot { return this.summary; }
 
+  bounds(target = new THREE.Box3()): THREE.Box3 {
+    this.assertLive();
+    target.makeEmpty();
+    for (const surface of this.surfaces.values()) target.union(surface.bvh.getBoundingBox(new THREE.Box3()));
+    return target;
+  }
+
   closest(point: THREE.Vector3, maxDistance = Infinity): ReviewSurfaceContact | null {
     this.assertLive();
     finitePoint(point);
@@ -214,15 +221,10 @@ export class ReviewContactSurface {
 }
 
 const probeTopology = new WeakMap<THREE.Mesh, {
-  signature: string; index: THREE.BufferAttribute | null; vertices: Set<number>;
+  signature: string; index: THREE.BufferAttribute | null; vertices: Set<number>; indices: readonly number[];
 }>();
 
-/** Model-specific probes must name rendered vertices, not unreferenced export debris. */
-export function sampleReviewMeshVertices(mesh: THREE.Mesh, indices: readonly number[]): THREE.Vector3[] {
-  updateReviewWorld(mesh);
-  for (let node: THREE.Object3D | null = mesh; node; node = node.parent) {
-    if (!node.visible) throw new Error("Contact probes require a visible mesh");
-  }
+function renderedTopology(mesh: THREE.Mesh) {
   const { signature, ranges } = topology(mesh);
   let cached = probeTopology.get(mesh);
   if (!cached || cached.signature !== signature || cached.index !== mesh.geometry.index) {
@@ -230,9 +232,26 @@ export function sampleReviewMeshVertices(mesh: THREE.Mesh, indices: readonly num
     for (const range of ranges) for (let offset = range.start; offset + 2 < range.start + range.count; offset += 3) {
       for (let corner = 0; corner < 3; corner++) vertices.add(mesh.geometry.index?.getX(offset + corner) ?? offset + corner);
     }
-    cached = { signature, index: mesh.geometry.index, vertices };
+    cached = { signature, index: mesh.geometry.index, vertices, indices: Object.freeze([...vertices]) };
     probeTopology.set(mesh, cached);
   }
+  return cached;
+}
+
+/** Shared topology for probes and camera bounds; excludes unused export vertices. */
+export function reviewRenderedVertexIndices(mesh: THREE.Mesh): readonly number[] {
+  for (let node: THREE.Object3D | null = mesh; node; node = node.parent) if (!node.visible) return [];
+  if (!mesh.geometry.getAttribute("position")) return [];
+  return renderedTopology(mesh).indices;
+}
+
+/** Model-specific probes must name rendered vertices, not unreferenced export debris. */
+export function sampleReviewMeshVertices(mesh: THREE.Mesh, indices: readonly number[]): THREE.Vector3[] {
+  updateReviewWorld(mesh);
+  for (let node: THREE.Object3D | null = mesh; node; node = node.parent) {
+    if (!node.visible) throw new Error("Contact probes require a visible mesh");
+  }
+  const cached = renderedTopology(mesh);
   const count = mesh.geometry.getAttribute("position")?.count ?? 0;
   return indices.map((index) => {
     if (!Number.isInteger(index) || index < 0 || index >= count) throw new Error("Contact probe vertex is outside this mesh");

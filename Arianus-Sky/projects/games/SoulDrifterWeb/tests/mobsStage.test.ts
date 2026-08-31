@@ -6,6 +6,8 @@ import { CINDERBOUND_WARDEN_ACTIONS, CINDERBOUND_WARDEN_ASSETS } from "../src/ga
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL } from "../src/review/weapon-lab/reviewed-mob-receipt";
 import { createMobReviewActor, type MobReviewActor } from "../src/review/weapon-lab/mob-review-actor";
+import { createReviewMeshProbe } from "../src/review/weapon-lab/combat-review-probes";
+import { sampleReviewPoses, measureReviewMotionBounds } from "../src/review/weapon-lab/combat-review-posing";
 
 // This browser project deliberately does not include ambient Node types.
 // Keep the narrow CPU-test host contract local, as the topology tests do.
@@ -170,6 +172,33 @@ describe("Independent creatures on the shared combat clock", () => {
     second.sample(action.id, action.durationSeconds * 0.37);
     expect(pose(second)).toEqual(secondPose);
     expect(() => first.sample(action.id, 0)).toThrow(/disposed/);
+  }, 30_000);
+
+  it.each([
+    { id: "breachling-base", action: "LungeAttack", bones: ["front_hand.R", "front_hand.L"] },
+    { id: "warden-wayfarer", action: "BladeSweep", bones: ["lower_arm_R"] },
+  ])("uses real $id contact parts and deterministic blend/swept framing", async ({ id, action, bones }) => {
+    const value = await actor(id);
+    const clip = value.actions().find((entry) => entry.id === action)!;
+    const probe = createReviewMeshProbe(value.model, { bones, maximumVertices: 24 });
+    expect(probe.vertexCount).toBe(24);
+    expect(probe.unavailableReason).toBeUndefined();
+    const samples = [{ actionId: "CombatIdle", timeSeconds: 0.1, weight: 0.4 },
+      { actionId: action, timeSeconds: clip.durationSeconds * 0.5, weight: 0.6 }];
+    sampleReviewPoses(value, samples);
+    const first = pose(value);
+    const points = probe.sample().map((point) => point.position.clone());
+    expect(points.every((point) => [point.x, point.y, point.z].every(Number.isFinite))).toBe(true);
+    value.sample(action, clip.durationSeconds);
+    sampleReviewPoses(value, samples);
+    expect(pose(value)).toEqual(first);
+    const bounds = await measureReviewMotionBounds(value, [0, 0.25, 0.5, 0.75, 1].map((time) => [
+      { actionId: action, timeSeconds: time * clip.durationSeconds, weight: 1 },
+    ]), { restore: samples });
+    expect(bounds.isEmpty()).toBe(false);
+    expect(bounds.getSize(new THREE.Vector3()).length()).toBeGreaterThan(1);
+    expect(pose(value)).toEqual(first);
+    if (id === "warden-wayfarer") expect(createReviewMeshProbe(value.model, { bones: ["hand_R"] }).vertexCount).toBe(0);
   }, 30_000);
 
   it("cancels late creature creation without returning a hidden live actor", async () => {
