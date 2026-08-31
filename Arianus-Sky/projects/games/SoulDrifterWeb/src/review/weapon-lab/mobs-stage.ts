@@ -11,19 +11,25 @@ import {
 import { buildBreachV2Layout } from "../../game/dungeons/breach-v2-layout";
 import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, BreachV2AnimationReviewPoseHooks } from "../../game/dungeons/breach-v2-animation-review";
 import { createMobPoseOverlay } from "./mob-pose-overlay";
+import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
 
 export interface MobDefinition {
   id: string;
   family: "breachling" | "warden";
   variant: BreachlingTier | CinderboundWardenKind;
   label: string;
+  /** Canonical request emitted by the shared dungeon controller. */
+  runtimeUrl: string;
+  /** Bytes fetched only by this isolated review stage. */
   url: string;
   targetHeightMeters: number;
   sha256: string;
   bytes: number;
+  reviewedMotion?: ReviewedMobReceipt;
 }
 
-// Installed #458 exports, not the unapproved external refit candidates.
+// Original dungeon receipts remain intact; an explicit lab intake may replace
+// only the base review entry below, without mutating the runtime catalog.
 const BREACHLING_RECEIPTS = {
   base: [6429716, "00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7"],
   stalker: [5974384, "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641"],
@@ -38,10 +44,17 @@ export const MOB_CATALOG: readonly MobDefinition[] = Object.freeze([
   ...(Object.keys(BREACHLING_RECEIPTS) as BreachlingTier[]).map((variant) => Object.freeze({
     id: `breachling-${variant}`, family: "breachling" as const, variant,
     ...BREACHLING_RUNTIME_ASSETS[variant], bytes: BREACHLING_RECEIPTS[variant][0], sha256: BREACHLING_RECEIPTS[variant][1],
+    runtimeUrl: BREACHLING_RUNTIME_ASSETS[variant].url,
+    ...(variant === "base" && REVIEWED_BASE_MOB_RECEIPT ? {
+      label: "Base Breachling · revised attacks", url: REVIEWED_BASE_MOB_URL,
+      bytes: REVIEWED_BASE_MOB_RECEIPT.bytes, sha256: REVIEWED_BASE_MOB_RECEIPT.sha256,
+      reviewedMotion: REVIEWED_BASE_MOB_RECEIPT,
+    } : {}),
   })),
   ...(Object.keys(WARDEN_RECEIPTS) as CinderboundWardenKind[]).map((variant) => Object.freeze({
     id: `warden-${variant}`, family: "warden" as const, variant,
     ...CINDERBOUND_WARDEN_ASSETS[variant], bytes: WARDEN_RECEIPTS[variant][0], sha256: WARDEN_RECEIPTS[variant][1],
+    runtimeUrl: CINDERBOUND_WARDEN_ASSETS[variant].url,
   })),
 ]);
 
@@ -67,8 +80,17 @@ class PinnedMobLoader extends GLTFLoader {
   checksumVerified = false;
   constructor(private definition: MobDefinition, private signal: AbortSignal) { super(); }
   override async loadAsync(url: string) {
-    if (url !== this.definition.url) throw new Error(`Unexpected mob asset: ${url}`);
-    const resolved = new URL(`.${url}`, document.baseURI);
+    if (url !== this.definition.runtimeUrl) throw new Error(`Unexpected mob asset: ${url}`);
+    const reviewed = this.definition.reviewedMotion;
+    if (reviewed && (this.definition.id !== "breachling-base"
+      || url !== BREACHLING_RUNTIME_ASSETS.base.url || this.definition.url !== REVIEWED_BASE_MOB_URL)) {
+      throw new Error("Unapproved review-only mob asset override.");
+    }
+    if (!reviewed && this.definition.url !== url) throw new Error("Mob asset override requires a reviewed intake receipt.");
+    if (reviewed && !globalThis.crypto?.subtle) {
+      throw new Error("Revised mob animations require SHA-256 verification. Open Motion Studio in a secure context.");
+    }
+    const resolved = new URL(`.${this.definition.url}`, document.baseURI);
     const response = await fetch(resolved, { signal: this.signal, cache: "no-cache" });
     if (!response.ok) throw new Error(`Mob download failed: HTTP ${response.status}`);
     const bytes = await response.arrayBuffer();
@@ -153,6 +175,9 @@ export class MobsStage {
       if (revision !== this.revision) return false;
       const actor = adapter.actor();
       if (!actor) throw new Error(`The real ${definition.label} rig did not load. No placeholder was substituted.`);
+      if (definition.reviewedMotion && actor.model.scale.toArray().some((scale) => (
+        Math.abs(scale - definition.reviewedMotion!.runtimeScale) > 1e-6
+      ))) throw new Error("Reviewed mob runtime scale differs from the approved raw-rig export.");
       this.overlay = createMobPoseOverlay(actor.model, definition.family);
       // Restore this actor's initial clip before selecting the review default;
       // otherwise setAction would overwrite an existing Idle draft with zeros.
@@ -180,9 +205,14 @@ export class MobsStage {
   actions() { return this.snapshot()?.actionNames ?? []; }
   actionLabel(name: string) {
     const label = name === "RecieveHit" ? "Receive hit" : name.replace(/([a-z])([A-Z])/g, "$1 $2");
+    const revised = this.definition?.reviewedMotion;
+    const reviewLabel = revised?.actions.includes(name)
+      ? `${label} · revised motion${name === "SpitAttack" ? " · projectile pending" : " · review"}`
+      : revised && ["Idle", "CombatIdle"].includes(name) ? `${label} · approved neutral hold`
+        : revised ? `${label} · source · not revised` : label;
     const supported = this.definition?.family !== "breachling"
       || breachlingActionNames(this.definition.variant as BreachlingTier).includes(name);
-    return supported ? label : `${label} · inspection only`;
+    return supported ? reviewLabel : `${reviewLabel} · inspection only`;
   }
   private saveCurrentDraft() {
     const clip = this.snapshot()?.currentClip;
@@ -260,7 +290,16 @@ export class MobsStage {
     return bounds ? { minimumSurfaceMeters: bounds.min.y, floorMeters: 0, time: this.snapshot()?.normalizedTime,
       warning: "Current whole-mesh sample only. A zero minimum does not prove all paws, limbs, or the body have correct contact." } : null;
   }
-  update(deltaSeconds: number) { if (this.ready) this.runtime?.update(0, 0, deltaSeconds); }
+  update(deltaSeconds: number) {
+    if (!this.ready) return;
+    this.runtime?.update(0, 0, deltaSeconds);
+    // The solo stage has no combat target. The inherited projectile aims at
+    // its actor origin, not the reviewed three-cell target; keep it invisible
+    // for this motion intake while retaining the controller's normal cleanup.
+    if (this.definition?.reviewedMotion) this.stageRoot?.children.forEach((object) => {
+      if (object.name === "studio:breachling-base:poison-spit") object.visible = false;
+    });
+  }
   clear() {
     this.saveCurrentDraft();
     this.revision += 1;

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breachlings";
 import { CINDERBOUND_WARDEN_ACTIONS, CINDERBOUND_WARDEN_ASSETS } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
+import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL } from "../src/review/weapon-lab/reviewed-mob-receipt";
 
 // This browser project deliberately does not include ambient Node types.
 // Keep the narrow CPU-test host contract local, as the topology tests do.
@@ -106,7 +107,12 @@ describe("Mobs stage exact installed asset contract", () => {
       const catalog = definition.family === "breachling"
         ? BREACHLING_RUNTIME_ASSETS[definition.variant as keyof typeof BREACHLING_RUNTIME_ASSETS]
         : CINDERBOUND_WARDEN_ASSETS[definition.variant as keyof typeof CINDERBOUND_WARDEN_ASSETS];
-      expect(definition).toMatchObject({ label: catalog.label, url: catalog.url, targetHeightMeters: catalog.targetHeightMeters });
+      expect(definition).toMatchObject({ runtimeUrl: catalog.url, targetHeightMeters: catalog.targetHeightMeters });
+      if (definition.reviewedMotion) {
+        expect(definition.id).toBe("breachling-base");
+        expect(definition.label).toBe("Base Breachling · revised attacks");
+        expect(definition.url).toBe(REVIEWED_BASE_MOB_URL);
+      } else expect(definition).toMatchObject({ label: catalog.label, url: catalog.url });
       const header = glbHeader(definition);
       expect(header.skins).toHaveLength(1);
       expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? 24 : 18);
@@ -122,7 +128,10 @@ describe("Mobs stage exact installed asset contract", () => {
     expect(value.checksumVerified).toBe(true);
     const actor = value.actor()!;
     expect(actor.root.name).toBe(`studio:${definition.id}`);
-    expect(actor.model.name).toBe(`${definition.label} model`);
+    expect(actor.model.name).toBe(`${definition.reviewedMotion ? BREACHLING_RUNTIME_ASSETS.base.label : definition.label} model`);
+    if (definition.reviewedMotion) expect(actor.model.scale.toArray()).toEqual([
+      expect.closeTo(1.7714769640700978, 6), expect.closeTo(1.7714769640700978, 6), expect.closeTo(1.7714769640700978, 6),
+    ]);
     expect(actor.root.userData.spatialOwnerId).toBe(`studio:${definition.id}`);
     expect(actor.root.userData[definition.family === "breachling" ? "creatureTier" : "wardenKind"]).toBe(definition.variant);
     expect(value.actions()).toEqual(glbHeader(definition).animations.map((clip) => clip.name)
@@ -136,7 +145,7 @@ describe("Mobs stage exact installed asset contract", () => {
       expect(audit.availableControls).toEqual(expect.arrayContaining(["rightPawPitch", "leftPawPitch", "jawOpen", "tail5Sweep"]));
       expect(value.actionLabel("LungeAttack")).toContain("inspection only");
       expect(value.actionLabel("SpitAttack").includes("inspection only")).toBe(["base", "stalker"].includes(definition.variant));
-      expect(value.actionLabel("RecieveHit")).toBe("Receive hit");
+      expect(value.actionLabel("RecieveHit")).toBe(definition.reviewedMotion ? "Receive hit · source · not revised" : "Receive hit");
     } else {
       expect(value.actions()).toEqual([...CINDERBOUND_WARDEN_ACTIONS].sort());
       expect(audit.availableControls).toContain("rightBladeAngle");
@@ -255,7 +264,7 @@ describe("Mobs stage asynchronous lifecycle and intake failure", () => {
     const pending = deferred<Response>();
     let firstSignal: AbortSignal | null | undefined;
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, options?: RequestInit) => {
-      if (String(input).endsWith(BREACHLING_RUNTIME_ASSETS.base.url)) {
+      if (String(input).endsWith(MOB_CATALOG[0]!.url)) {
         firstSignal = options?.signal;
         return pending.promise;
       }
@@ -300,4 +309,126 @@ describe("Mobs stage asynchronous lifecycle and intake failure", () => {
     expect(scene.children).toHaveLength(0);
     expect(value.ready).toBe(false);
   });
+});
+
+describe("Motion Studio base intake remains separate from the dungeon", () => {
+  it("keeps the canonical dungeon source URL and original GLB bytes unchanged", () => {
+    const canonical = BREACHLING_RUNTIME_ASSETS.base;
+    expect(canonical.url).toBe("/assets/3d/characters/breachlings/breachling-base.glb");
+    expect(canonical.label).toBe("Base Breachling");
+    const bytes = readFileSync(new URL(`../public${canonical.url}`, import.meta.url));
+    expect(bytes.byteLength).toBe(6429716);
+    expect(createHash("sha256").update(bytes).digest("hex"))
+      .toBe("00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7");
+    expect(MOB_CATALOG[0]!.runtimeUrl).toBe(canonical.url);
+  });
+
+  // These are explicitly pending while the external bake is unfinished; once
+  // the real receipt is populated they exercise that exact public GLB.
+  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT)("fetches only the reviewed base URL and fails closed without SHA-256", async () => {
+    const { stage: value, scene } = stage();
+    await value.select("breachling-base");
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
+    expect(String(vi.mocked(fetch).mock.calls[0]![0])).toBe(`http://localhost:5179${REVIEWED_BASE_MOB_URL}`);
+    expect(value.draft().assetSha256).toBe(REVIEWED_BASE_MOB_RECEIPT!.sha256);
+    vi.mocked(fetch).mockClear();
+    vi.stubGlobal("crypto", undefined);
+    await expect(value.select("breachling-base")).rejects.toThrow("require SHA-256");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(scene.children).toHaveLength(0);
+    // Legacy variants retain their pre-existing insecure-context behavior.
+    await expect(value.select("breachling-stalker")).resolves.toBe(true);
+    expect(value.checksumVerified).toBe(false);
+  }, 20_000);
+
+  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT)("distinguishes neutral holds, revised motion and untouched source clips, and hides only the revised solo-stage spit projectile", async () => {
+    const { stage: value, scene } = stage();
+    await value.select("breachling-base");
+    expect(value.actionLabel("Idle")).toContain("approved neutral hold");
+    expect(value.actionLabel("CombatIdle")).toContain("approved neutral hold");
+    expect(value.actionLabel("SpitAttack")).toContain("projectile pending");
+    for (const clip of ["Walk", "Run", "Death", "RecieveHit"]) {
+      expect(value.actionLabel(clip)).toContain("source · not revised");
+    }
+    expect(value.actions()).not.toContain("SwordSlashOutward");
+    value.setAction("SpitAttack");
+    value.pose(0.5);
+    value.update(0);
+    const projectile = scene.getObjectByName("studio:breachling-base:poison-spit");
+    expect(projectile).toBeInstanceOf(THREE.Mesh);
+    expect(projectile!.visible).toBe(false);
+    value.update(1.5);
+    expect(scene.getObjectByName(projectile!.name)).toBeUndefined();
+    await value.select("breachling-oathbound");
+    expect(value.actionLabel("Walk")).toBe("Walk");
+    expect(value.actionLabel("RecieveHit")).toBe("Receive hit");
+    value.setAction("SpitAttack");
+    value.pose(0.5);
+    value.update(0);
+    expect(scene.getObjectByName("studio:breachling-oathbound:poison-spit")?.visible).toBe(true);
+  }, 20_000);
+
+  it.skipIf(!REVIEWED_BASE_MOB_RECEIPT).each([
+    { name: "BiteAttack", chains: [["spine001", "spine002"], ["neck"], ["head"], ["jaw"]] },
+    { name: "ClawAttack", chains: [["front_upperR"], ["front_lowerR"], ["front_handR"], ["pelvis", "spine001", "spine002"]] },
+    { name: "LungeAttack", chains: [
+      ["front_upperL"], ["front_lowerL"], ["front_handL"], ["front_upperR"], ["front_lowerR"], ["front_handR"],
+      ["rear_thighL"], ["rear_shinL"], ["rear_thighR"], ["rear_shinR"],
+    ] },
+    { name: "TailWhip", chains: [["pelvis"], ["spine001", "spine002"], ["tail001"], ["tail002"], ["tail003"], ["tail004"], ["tail005"]] },
+    { name: "SpitAttack", chains: [["spine001", "spine002"], ["neck"], ["head"], ["jaw"]] },
+  ])("plays actual revised $name joint chains, scrubs, pauses, and repeats without root accumulation", async ({ name, chains }) => {
+    const { stage: value } = stage();
+    await value.select("breachling-base");
+    expect(REVIEWED_BASE_MOB_RECEIPT!.actions).toContain(name);
+    expect(value.actionLabel(name)).toContain("revised motion");
+    value.setPlayback(1, false);
+    value.setAction(name);
+    const model = value.actor()!.model;
+    const bones = new Map<string, THREE.Bone>();
+    model.traverse((object) => { if (object instanceof THREE.Bone) bones.set(object.name, object); });
+    const initial = new Map([...bones].map(([key, bone]) => [key, {
+      position: bone.position.clone(), quaternion: bone.quaternion.clone(), scale: bone.scale.clone(),
+    }]));
+    // Float32 GLB quaternions can be microscopically non-unit even at identical
+    // keys. Compare orientation, not that harmless serialization norm error.
+    const rotationDifference = (a: THREE.Quaternion, b: THREE.Quaternion) => a.clone().normalize().angleTo(b.clone().normalize());
+    const variation = new Map([...bones.keys()].map((key) => [key, 0]));
+    let maximumVisibleFloorGap = -Infinity;
+    for (let sample = 1; sample <= 40; sample += 1) {
+      value.pose(sample / 40);
+      for (const [key, bone] of bones) {
+        const first = initial.get(key)!;
+        variation.set(key, Math.max(variation.get(key)!, rotationDifference(bone.quaternion, first.quaternion)));
+        if (key !== "root") expect(bone.position.distanceTo(first.position), `${name}/${key} has no bone stretching`).toBeLessThan(1e-6);
+        expect(bone.scale.distanceTo(first.scale), `${name}/${key} has no animated scale`).toBeLessThan(1e-6);
+      }
+      if (name === "LungeAttack") maximumVisibleFloorGap = Math.max(maximumVisibleFloorGap, value.measureContact()!.minimumSurfaceMeters);
+    }
+    for (const chain of chains) {
+      expect(Math.max(...chain.map((key) => variation.get(key) ?? 0)), `${name}/${chain.join("+")} articulates locally`).toBeGreaterThan(0.001);
+    }
+    if (name === "LungeAttack") expect(maximumVisibleFloorGap).toBeGreaterThan(0.3);
+    for (const [key, bone] of bones) {
+      expect(bone.position.distanceTo(initial.get(key)!.position), `${name}/${key} returns to approved neutral`).toBeLessThan(1e-6);
+      expect(rotationDifference(bone.quaternion, initial.get(key)!.quaternion)).toBeLessThan(1e-5);
+    }
+    const duration = value.snapshot()!.durationSeconds;
+    value.setPlayback(1, true);
+    value.setPlaying(true);
+    value.restart();
+    value.update(duration * 2.37);
+    expect(value.snapshot()!.normalizedTime).toBeCloseTo(0.37, 6);
+    const looped = new Map([...bones].map(([key, bone]) => [key, {
+      position: bone.position.clone(), quaternion: bone.quaternion.clone(),
+    }]));
+    value.pose(0.37);
+    value.update(duration);
+    expect(value.snapshot()!.paused).toBe(true);
+    expect(value.snapshot()!.normalizedTime).toBeCloseTo(0.37, 6);
+    for (const [key, bone] of bones) {
+      expect(bone.position.distanceTo(looped.get(key)!.position), `${name}/${key} repeat matches direct sampling`).toBeLessThan(1e-6);
+      expect(rotationDifference(bone.quaternion, looped.get(key)!.quaternion)).toBeLessThan(1e-5);
+    }
+  }, 20_000);
 });

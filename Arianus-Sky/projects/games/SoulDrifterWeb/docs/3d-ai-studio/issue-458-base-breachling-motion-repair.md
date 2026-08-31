@@ -5,6 +5,16 @@ Date: 2026-08-31. Ticket: The-Nexus #458. Preview-only work on
 
 ## Current direction
 
+**Latest owner approval, 2026-08-31:** all five current pose sequences are
+approved for continuous animation authoring and real-time testing in Motion
+Studio: Bite V5, Claw V2, Lunge V10, Tail V2, and Spit V9. This supersedes the
+per-action pose-pending statements in the historical checkpoints below.
+Preserve the exact pose payloads and add articulated lift/plant breakdowns,
+phase-specific foot contact, and smooth recovery. A separate, hash-pinned
+lab-only export must leave the dungeon's original creature assets and the
+other models unchanged. Continuous-motion owner acceptance remains pending;
+pose approval is not approval to deploy or resume dungeon integration.
+
 **The owner approved revised static neutral V3 ("yeah better"):** the
 forepaws must support the chest farther forward, the hind supports must move
 farther back, and the body must sit lower in a longer, comfortable all-fours
