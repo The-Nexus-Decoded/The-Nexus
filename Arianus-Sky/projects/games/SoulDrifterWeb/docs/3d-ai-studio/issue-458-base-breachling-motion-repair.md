@@ -222,16 +222,89 @@ now-rejected neutral foundation. Keep them separate from the current
 animation. Versioned JSON hashes must match render manifests; static poses do
 not establish interpolated foot locks or motion quality.
 
-### Current five-action pose review
+### Latest owner action review
 
-All five current studies restore exact approved-neutral local transforms at
+The owner approved the claw V2 and tail-whip V2 pose directions; preserve those
+exact candidates. This is pose approval, not final-motion or runtime acceptance.
+Bite V5 was not discussed in that response and remains pending owner approval.
+
+Lunge V8 needs a clearer airborne attack: launch off the ground, jump toward the
+adjacent adversary, strike with both claws, then retreat. Keep articulated hind
+push, actual suspension, two-claw contact, landing, and a distinct return.
+
+Spit V3 is rejected as too static. Show a visible draw-back, forward head/neck
+thrust and jaw release, then recovery; the ranged target is **three 1.75m cells
+away (5.25m center-to-center)**. The two-cell V3 review below is historical.
+Keep support paws grounded and do not fake head motion with a rigid whole-mesh
+slide or extreme neck deformation. No final clip or projectile mechanic is
+approved by this feedback.
+
+### Revised lunge and spit pose studies
+
+The current replacements are **Lunge V10** and **Spit V8**. Both use the unchanged
+combined source GLB (`011c7ead...aa8fd3`) and approved neutral V3. They are external
+eight-key studies, not installed animation clips. Claw V2 and Tail V2 retain
+their exact approved payload hashes; Bite V5 remains owner-pose-pending.
+
+- `lunge/lunge-static-draft-v10.json`, SHA256
+  `98b7c6a0233b41798a03aa1f6248e7256fe2305ca25fe5735c2bbf9dc8c1469d`:
+  haunch load, articulated hind push, airborne approach, **both claws striking
+  while airborne**, four-paw landing, backward bound, exact neutral return.
+  Whole visible mesh clearance is 321mm during approach and 351mm at contact.
+  Actual indexed left/right claws reach the adjacent human skin within
+  0.993/0.851mm, with no observed creature/target triangle-edge crossings.
+  The skull remains 81mm behind the target front surface. The retreat key is
+  an airborne backward bound, not a grounded sliding reset.
+- `spit/spit-approved-neutral-poses-v8.json`, SHA256
+  `58e59b22fa61bf2dd47d39848f909e7a1d784ddd6489880b126d03061c611d2f`:
+  draw back, inhale/load, coordinated head/neck extension and jaw opening,
+  forward release, follow-through, recoil and exact neutral return. From load
+  to release, the head advances 79.2mm, the visible fang 71.7mm, and the root
+  65mm; this is supported weight transfer plus articulation, not 79mm of
+  isolated neck motion. The mouth reaches Z=0.8741m near its cell edge at
+  Z=0.875m. The offline aim ray reaches the real human at a **three-cell,
+  5.25m center distance**; it is not a shipped projectile or damage event.
+
+Spit V7 was rejected during independent review: an actual grounded rear-left
+skin point slid 13.76mm while the changing lowest-band centroid appeared fixed.
+The shared pose solver now offers an explicit fixed-visible-point contact mode,
+capturing the same indexed neutral surface points before posing. Existing
+default behavior is unchanged. Spit V8's independent replay measures at most
+0.138mm horizontal drift for persistent support points and 0.572mm across the
+broader union of near-ground points. The original centroid-only V8 audit is
+retained as superseded evidence; `spit-surface-audit-v8-fixed-anchor.json`
+replays the new contact contract rather than weakening its thresholds.
+
+Both studies replay all 36,387 stored vertices exactly, preserve local scale
+and non-root translations, and return to exact approved neutral endpoints.
+The reusable `review-bundle-integrity-owner-revision-v2.json` verifies the
+current five-action set: 40 ordered keys and 80 decoded full-body PNGs.
+Fresh independent wide/close review passed both exact studies for owner pose
+presentation; `lunge/independent-lunge-v10-review.md` and
+`spit/independent-spit-v8-review.md` retain the evidence and limits separately
+from this mechanical gate. Neither grants final-motion or runtime approval.
+The right lunge shoulder still has diagnostic edge strain up to 2.400x bind;
+this is disclosed, not labeled a universal anatomical pass. Continuous launch,
+landing, recoil, support transitions, swept contact and normal/slow playback
+remain required after owner pose approval. No source GLB, runtime/public asset,
+human animation, weapon grip, UI, or dungeon file changed in this revision.
+
+This checkpoint reran `yarn typecheck` and the full
+`yarn test --maxWorkers=4` suite: **45 files / 348 tests pass**. No ESLint
+configuration/script exists. Shared authoring helpers pass Node syntax checks;
+the offline renderer passes Python syntax parsing. Build/release results below
+belong to the earlier code fix, not this external pose/documentation revision.
+
+### Five-action pose bundle before that feedback
+
+All five prior studies restore exact approved-neutral local transforms at
 panels 1 and 8. Each contains eight ordered, actual-rig poses at fixed camera,
 scale, and floor. The reusable `verify-review-bundle.mjs` checks their explicit
 input map: 40 keys, matching source/neutral/render hashes, ordered times, and
 80 decoded nonblank full-body PNGs. That integrity pass is not anatomical or
 animation acceptance. Independent wide/close review receipts remain separate.
 
-| Action | Current pose payload in its action folder | Contact and motion intent |
+| Action | Prior pose payload in its action folder | Contact and motion intent |
 | --- | --- | --- |
 | Bite | `bite-static-proposal-v5.json` | Grounded approach; four supports during neck/head/jaw snap; indexed upper fang 22577 reaches actual human skin within 0.992mm. |
 | Claw | `claw-approved-neutral-poses-v2.json` | Three planted paws during the right-forelimb strike; actual claw contact within 0.879mm; shorter recovery step. |
@@ -345,8 +418,9 @@ record the corrected stance checks; earlier renderer directories are invalid.
 `base-grounded-bite-static-proposal-v2.png`, and `bite-static-side-v2/` preserve
 the proposed poses, exact identities, independent replay, and enlarged views.
 `boss-reference-map.md` records both bosses and the recovered design references.
-`approved-neutral-attacks/review-bundle-integrity.json` records the current
-five-action payload/render identities and reusable verifier inputs. Each action
+`approved-neutral-attacks/review-bundle-integrity-owner-revision-v2.json` records
+the current five-action payload/render identities and reusable verifier inputs;
+the original `review-bundle-integrity.json` is historical. Each action
 folder holds its eight-pose sheet, fixed-camera views, diagnostics, and independent
 review receipt. Those files supersede old-stance proposals for this owner review;
 they do not change the installed GLB or original animation sources.
