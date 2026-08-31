@@ -35,8 +35,13 @@ const BASE_STRIKES = {
 
 const REVIEWED_STRIKE_SOURCES = {
   "breachling-base": { sha256: BASE_SHA, revision: "base-continuous-v5", strikes: BASE_STRIKES },
-  "breachling-oathbound": { sha256: REVIEWED_MOB_RECEIPTS.oathbound!.sha256, revision: "oathbound-lunge-v1",
-    strikes: { LungeAttack: { start: 0.52, end: 0.66, vertices: [12002, 1], phase: "airborne reach → both-claw contact" } } },
+  "breachling-oathbound": { sha256: REVIEWED_MOB_RECEIPTS.oathbound!.sha256,
+    strikes: {
+      LungeAttack: { start: 0.52, end: 0.66, vertices: [12002, 1], phase: "airborne reach → both-claw contact",
+        revision: "oathbound-lunge-v1" },
+      ClawAttack: { start: 2.30, end: 2.67, vertices: [1], phase: "claw windup → indexed tip contact → followthrough",
+        revision: "oathbound-claw-v7" },
+    } },
 } as const;
 
 export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string, options: { projectiles?: boolean } = {}): ReviewContactProfile | null {
@@ -47,12 +52,15 @@ export function reviewContactProfile(actor: ReviewActorAdapter, actionId: string
     definitionId: actor.definitionId, assetSha256: sourceSha(actor) };
   const source = REVIEWED_STRIKE_SOURCES[actor.definitionId as keyof typeof REVIEWED_STRIKE_SOURCES];
   if (!source || sourceSha(actor) !== source.sha256) return null;
-  const strike = (source.strikes as Partial<Record<string, { start: number; end: number; vertices: readonly number[]; phase: string }>>)[actionId];
+  const strike = (source.strikes as Partial<Record<string, { start: number; end: number; vertices: readonly number[];
+    phase: string; revision?: string }>>)[actionId];
   if (!strike) return null;
-  return { id: `${source.revision}:${actionId}`, actionId, startSeconds: strike.start, endSeconds: strike.end,
+  const revision = strike.revision ?? ("revision" in source ? source.revision : null);
+  if (!revision) return null;
+  return { id: `${revision}:${actionId}`, actionId, startSeconds: strike.start, endSeconds: strike.end,
     definitionId: actor.definitionId, assetSha256: source.sha256,
     surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [...strike.vertices] },
-    evidence: `${source.revision} ${source.sha256.slice(0, 8)} author key interval: ${strike.phase}; sampled mesh contact required` };
+    evidence: `${revision} ${source.sha256.slice(0, 8)} author key interval: ${strike.phase}; sampled mesh contact required` };
 }
 
 export function validateReviewContactProfile(actor: ReviewActorAdapter, profile: ReviewContactProfile): void {

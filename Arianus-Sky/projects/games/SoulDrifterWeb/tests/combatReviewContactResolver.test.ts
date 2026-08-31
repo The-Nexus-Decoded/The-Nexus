@@ -258,7 +258,7 @@ it("binds the four frozen base profiles to actual indexed installed GLB skin, wi
   } finally { actor.dispose(); }
 }, 30_000);
 
-it("binds only the frozen Oathbound Lunge profile to its actual installed dual-claw vertices", async () => {
+it("binds the frozen Oathbound Lunge and Claw profiles to their actual installed indexed tips", async () => {
   const definition = MOB_CATALOG.find((entry) => entry.id === "breachling-oathbound")!;
   const bytes = Uint8Array.from(readFileSync(new URL(`../public${definition.url}`, import.meta.url)));
   vi.stubGlobal("document", { baseURI: "http://localhost:5179/weapon-lab.html" }); vi.stubGlobal("crypto", webcrypto);
@@ -270,17 +270,24 @@ it("binds only the frozen Oathbound Lunge profile to its actual installed dual-c
     } }));
     return parse.call(this, data, path);
   });
-  const actor = await createMobReviewActor({ instanceId: "exact-oathbound-lunge-probes", definitionId: definition.id });
+  const actor = await createMobReviewActor({ instanceId: "exact-oathbound-strike-probes", definitionId: definition.id });
   try {
-    const binding = reviewContactProfile(actor, "LungeAttack")!;
-    expect(binding).toMatchObject({ id: "oathbound-lunge-v1:LungeAttack", startSeconds: 0.52, endSeconds: 0.66,
+    const lunge = reviewContactProfile(actor, "LungeAttack")!;
+    expect(lunge).toMatchObject({ id: "oathbound-lunge-v1:LungeAttack", startSeconds: 0.52, endSeconds: 0.66,
       definitionId: "breachling-oathbound", assetSha256: definition.sha256,
       surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [12002, 1] } });
-    actor.sample("LungeAttack", binding.startSeconds); const probe = createReviewStrikeProbe(actor, binding), start = probe.sample();
-    actor.sample("LungeAttack", binding.endSeconds); const end = probe.sample();
-    expect(probe.vertexCount).toBe(2); expect(start).toHaveLength(2); expect(end).toHaveLength(2);
-    expect(end.every((point, index) => point.position.distanceTo(start[index]!.position) > 0.001)).toBe(true);
-    for (const action of ["BiteAttack", "ClawAttack", "SpitAttack", "TailWhip"]) expect(reviewContactProfile(actor, action)).toBeNull();
+    const claw = reviewContactProfile(actor, "ClawAttack")!;
+    expect(claw).toMatchObject({ id: "oathbound-claw-v7:ClawAttack", startSeconds: 2.30, endSeconds: 2.67,
+      definitionId: "breachling-oathbound", assetSha256: definition.sha256,
+      surface: { kind: "indexed", meshName: "Breachling_Mesh", vertices: [1] } });
+    for (const binding of [lunge, claw]) {
+      actor.sample(binding.actionId, binding.startSeconds); const probe = createReviewStrikeProbe(actor, binding), start = probe.sample();
+      actor.sample(binding.actionId, binding.endSeconds); const end = probe.sample();
+      expect(probe.vertexCount).toBe(binding.actionId === "LungeAttack" ? 2 : 1);
+      expect(end).toHaveLength(probe.vertexCount);
+      expect(end.every((point, index) => point.position.distanceTo(start[index]!.position) > 0.001)).toBe(true);
+    }
+    for (const action of ["BiteAttack", "SpitAttack", "TailWhip"]) expect(reviewContactProfile(actor, action)).toBeNull();
     expect(reviewContactProfile({ ...actor, definition: { sha256: "wrong" } } as typeof actor, "LungeAttack")).toBeNull();
   } finally { actor.dispose(); }
 }, 30_000);
