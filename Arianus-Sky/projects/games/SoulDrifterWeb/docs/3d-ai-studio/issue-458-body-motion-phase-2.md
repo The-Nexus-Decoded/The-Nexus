@@ -2,6 +2,22 @@
 
 Date: 2026-08-30. Baseline: `d9953f17`. Owner approved this phase.
 
+## Later takeover checkpoint — read first
+
+The detailed current state is in
+[the animation-agent handoff](issue-458-animation-owner-handoff.md).
+Runtime commit `3a8c345c` now fixes repeated-scrub floor-offset drift using
+cached clip references, with independent native desktop/mobile-emulation proof.
+The earlier permission/pending-runtime statements below describe the preceding
+checkpoint, not the current source. No further creature asset was installed.
+
+This does **not** finish authored contacts: base CombatIdle front paws float,
+terminal Death-to-Bite blending has a transient intersection, and old Stalker
+motions expose substantial floor penetration without runtime pinning. The
+new source was built separately; owner preview 4180 remains unchanged.
+The successor must replace rejected human playback with the accepted human lab,
+refine retained creatures/bosses, and complete the documented walkthrough gates.
+
 ## Scope and progress
 
 The base Breachling's three requested motions passed independent source/contact
