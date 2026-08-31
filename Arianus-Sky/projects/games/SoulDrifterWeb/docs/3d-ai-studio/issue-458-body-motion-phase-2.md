@@ -2,6 +2,17 @@
 
 Date: 2026-08-30. Baseline: `d9953f17`. Owner approved this phase.
 
+## Owner correction, 2026-08-31 — current status
+
+The owner subsequently rejected the base jaw/stance and the bite, lunge, swipe,
+and death motion quality. In particular, Bite must now be a grounded head/neck
+snap, not the previously approved lunge-derived bite. Historical passes below
+are not current owner acceptance. See the
+[base Breachling repair record](issue-458-base-breachling-motion-repair.md)
+for verified faults, real-animal references, bounded candidates, and remaining
+pose/visual gates. Base repair comes first; broader integration remains paused
+until all four Breachlings and both path bosses pass animation review.
+
 ## Later takeover checkpoint — read first
 
 The detailed current state is in
