@@ -11,7 +11,8 @@ import { ReviewContactSurface, reviewRenderedVertexIndices, sampleReviewMeshVert
 import { reviewContactProfile, reviewContactSourceToken } from "../src/review/weapon-lab/combat-review-contact-profiles";
 import { resolveReviewContact } from "../src/review/weapon-lab/combat-review-contact-resolver";
 import { createReviewProjectiles, prepareReviewProjectileFlight, reviewProjectileBinding,
-  sampleReviewProjectileFlight, type ReviewProjectiles } from "../src/review/weapon-lab/combat-review-projectiles";
+  sampleReviewProjectileFlight, FIRE_WAND_RELEASE_PHASES,
+  type ReviewProjectiles } from "../src/review/weapon-lab/combat-review-projectiles";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "../src/review/weapon-lab/combat-review-types";
 
 const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
@@ -94,13 +95,30 @@ describe("fixed review projectile paths and actual emitted visuals", () => {
     set.dispose(); expect(dispose).not.toHaveBeenCalled(); expect(actor.projectile.visuals[0].parent).toBe(actor.root);
   });
 
-  it("keeps zero ammo, raw catalog and unbound source casting unavailable rather than a miss", async () => {
+  it("keeps zero ammo and raw catalog unavailable, and binds only the three actual fire-wand casts", async () => {
     const { actor, actionId } = await bow(0), set = projectiles(actor, actionId);
     expect(set.flights).toEqual([]); expect(set.probe.unavailableReason).toContain("not a miss");
     expect(reviewProjectileBinding(actor, "ProLongbow__StandingAimRecoil")).toBeNull();
     await actor.setLoadout("bow", { mode: "catalog" }); expect(reviewProjectileBinding(actor, actionId)).toBeNull();
-    await actor.setLoadout("rod"); expect(reviewProjectileBinding(actor, "ProMagic__Standing1HCastSpell01")).toBeNull();
-  });
+    await actor.setLoadout("rod");
+    for (const [castId, phase] of Object.entries(FIRE_WAND_RELEASE_PHASES)) {
+      const binding = reviewProjectileBinding(actor, castId)!;
+      expect(binding).toMatchObject({ emitter: "wand-fire",
+        endSeconds: actor.actions().find((row: { id: string; durationSeconds: number }) => row.id === castId)!.durationSeconds });
+      expect(binding.releaseSeconds / binding.endSeconds).toBeCloseTo(phase, 10);
+      actor.sample(castId, binding.releaseSeconds);
+      const fire = projectiles(actor, castId), emitted = fire.flights[0]!;
+      expect(emitted.visualKind).toBe("fire-spell"); expect(emitted.evidence).toContain("no target tracking");
+      expect(fire.root.getObjectByName("review-fire-wand-core")).toBeInstanceOf(THREE.Mesh);
+      expect(fire.root.getObjectByName("review-fire-wand-aura")).toBeInstanceOf(THREE.Mesh);
+      expect(fire.probe.vertexCount).toBeGreaterThan(0);
+      const start = new THREE.Vector3().fromArray(emitted.origin), end = sampleReviewProjectileFlight(emitted, binding.endSeconds);
+      expect(end.distanceTo(start)).toBeGreaterThan(5.9);
+    }
+    expect(reviewProjectileBinding(actor, "ProMagic__StandingIdle")).toBeNull();
+    await actor.setLoadout("rod", { mode: "catalog" });
+    expect(reviewProjectileBinding(actor, "ProMagic__Standing1HCastSpell01")).toBeNull();
+  }, 30_000);
 
   it.each([BOW_RELEASE_NAME, BOW_TRIPLE_SHOT_NAME])("scans real %s without mistaking a rebuilt harness for changed source geometry", async (actionId) => {
     const { actor, binding } = await bow(3, actionId), duration = binding.endSeconds;

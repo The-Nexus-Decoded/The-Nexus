@@ -272,8 +272,10 @@ export class CombatReviewPanel {
     const stopped = flights.filter((flight) => snapshot.frame?.elapsedEvents.some((event) => event.kind === "contact"
       && event.result === "hit" && event.projectileId === flight.id)).length;
     const flight = flights[0];
+    const projectileLabel = flight?.visualKind === "arrow" ? "arrow"
+      : flight?.visualKind === "fire-spell" ? "fire spell" : "poison fluid";
     this.projectileStatus.textContent = unavailableReason ? `Emission unavailable · ${unavailableReason}` : flight
-      ? `${flights.length} ${flight.visualKind === "arrow" ? "arrow" : "fluid"} projectile${flights.length === 1 ? "" : "s"} · ${now < flight.releaseSeconds ? "before release" : now > flight.endSeconds ? "flight ended" : stopped ? `${stopped} stopped at measured contact` : "in flight; no hit assumed"}. Release ${flight.releaseSeconds.toFixed(3)} s; flight ${(flight.endSeconds - flight.releaseSeconds).toFixed(3)} s. ${flight.evidence}.`
+      ? `${flights.length} ${projectileLabel} projectile${flights.length === 1 ? "" : "s"} · ${now < flight.releaseSeconds ? "before release" : now > flight.endSeconds ? "flight ended" : stopped ? `${stopped} stopped at measured contact` : "in flight; no hit assumed"}. Release ${flight.releaseSeconds.toFixed(3)} s; flight ${(flight.endSeconds - flight.releaseSeconds).toFixed(3)} s. ${flight.evidence}.`
       : "No eligible emitted geometry. This is unavailable, not a miss.";
     const { status, result } = snapshot.contact;
     const message = status === "scanning" ? "Scanning current poses… Pause, seek or change an actor setting to cancel."

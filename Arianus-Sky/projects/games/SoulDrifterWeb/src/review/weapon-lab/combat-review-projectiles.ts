@@ -8,7 +8,12 @@ import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./
 
 export const REVIEWED_BASE_SHA = "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217";
 export const SPIT_PROJECTILE_MOTION = Object.freeze({ releaseSeconds: 0.64, flightSeconds: 0.8, rangePlaneMeters: 5.25 });
-export type ReviewProjectileEmitter = "bow" | "base-spit";
+export const FIRE_WAND_RELEASE_PHASES = Object.freeze({
+  ProMagic__Standing1HCastSpell01: 0.66,
+  ProMagic__Standing1HMagicAttack01: 0.29,
+  ProMagic__Standing1HMagicAttack02: 0.2,
+} as const);
+export type ReviewProjectileEmitter = "bow" | "base-spit" | "wand-fire";
 export interface ReviewProjectileBinding {
   readonly emitter: ReviewProjectileEmitter;
   readonly releaseSeconds: number;
@@ -19,12 +24,19 @@ interface BowActor extends ReviewActorAdapter {
   snapshot?(): { loadoutId?: string; mode?: string; actionId?: string };
   projectile?: { visuals: THREE.Object3D[]; captured: boolean; startPosition: THREE.Vector3; direction: THREE.Vector3 } | null;
 }
+interface FireWandActor extends BowActor {
+  primary?: {
+    asset?: string;
+    visual: THREE.Object3D;
+    prepared?: { normalizedBounds?: THREE.Box3 };
+  } | null;
+}
 
 export function reviewActorSourceSha(actor: ReviewActorAdapter): string | undefined {
   return (actor as ReviewActorAdapter & { definition?: { sha256?: string } }).definition?.sha256;
 }
 
-/** Only the two real bow releases and the pinned base Spit have emission bindings. */
+/** Explicit source-bound bow, fire-wand and pinned base-Spit review emissions. */
 export function reviewProjectileBinding(actor: ReviewActorAdapter, actionId: string): ReviewProjectileBinding | null {
   const action = actor.actions().find((entry) => entry.id === actionId);
   if (!action || action.unavailableReason) return null;
@@ -33,6 +45,10 @@ export function reviewProjectileBinding(actor: ReviewActorAdapter, actionId: str
   if (actor.definitionId === "human-foundation-pilot" && state?.loadoutId === "bow" && state.mode === "equipment"
     && release !== undefined) return { emitter: "bow", releaseSeconds: action.durationSeconds * release,
     endSeconds: action.durationSeconds, evidence: "Existing authored bow visual: normalized release " + release + "; 6 m flight / 0.65 m quadratic drop; actual equipped arrow geometry" };
+  const wandRelease = FIRE_WAND_RELEASE_PHASES[actionId as keyof typeof FIRE_WAND_RELEASE_PHASES];
+  if (actor.definitionId === "human-foundation-pilot" && state?.loadoutId === "rod" && state.mode === "equipment"
+    && wandRelease !== undefined) return { emitter: "wand-fire", releaseSeconds: action.durationSeconds * wandRelease,
+    endSeconds: action.durationSeconds, evidence: `Existing Tripo fire wand tip and source cast pose at normalized release ${wandRelease}; review-only fixed fire VFX, no target tracking` };
   if (actor.definitionId === "breachling-base" && reviewActorSourceSha(actor) === REVIEWED_BASE_SHA && actionId === "SpitAttack") {
     return { emitter: "base-spit", releaseSeconds: SPIT_PROJECTILE_MOTION.releaseSeconds,
       endSeconds: SPIT_PROJECTILE_MOTION.releaseSeconds + SPIT_PROJECTILE_MOTION.flightSeconds,
@@ -43,7 +59,7 @@ export function reviewProjectileBinding(actor: ReviewActorAdapter, actionId: str
 
 export function prepareReviewProjectileFlight(value: ReviewProjectileFlight): ReviewProjectileFlight {
   if (![value.id, value.actorId, value.actionId, value.evidence].every((entry) => typeof entry === "string" && entry.trim())
-    || !["arrow", "poison-spit"].includes(value.visualKind)
+    || !["arrow", "poison-spit", "fire-spell"].includes(value.visualKind)
     || ![value.releaseSeconds, value.endSeconds, value.rangeMeters, value.dropMeters].every(Number.isFinite)
     || value.releaseSeconds < 0 || value.endSeconds <= value.releaseSeconds || value.rangeMeters <= 0
     || value.rangeMeters > 40 || value.dropMeters < 0 || value.dropMeters > 10
@@ -109,6 +125,29 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
         BOW_PROJECTILE_MOTION.rangeMeters, BOW_PROJECTILE_MOTION.dropMeters), visual));
       if (rows.length !== visuals.length) { rows.length = 0; reason = "An emitted arrow has no eligible rendered geometry; not a miss."; }
     }
+  } else if (binding?.emitter === "wand-fire") {
+    const primary = (actor as FireWandActor).primary, bounds = primary?.prepared?.normalizedBounds;
+    if (primary?.asset === "rod" && bounds && !bounds.isEmpty()) {
+      const center = bounds.getCenter(new THREE.Vector3());
+      const origin = primary.visual.localToWorld(new THREE.Vector3(center.x, bounds.max.y, center.z));
+      const base = primary.visual.localToWorld(new THREE.Vector3(center.x, bounds.min.y, center.z));
+      const direction = origin.clone().sub(base).normalize();
+      const forward = new THREE.Vector3(0, 0, 1).transformDirection(actor.root.matrixWorld);
+      if (direction.dot(forward) > 0.1) {
+        const description = flight(0, "fire-spell", origin, direction, 6, 0.08);
+        const visual = new THREE.Group(); visual.name = "review-fire-wand-projectile";
+        const coreGeometry = new THREE.IcosahedronGeometry(0.075, 2);
+        const coreMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff7a20, emissive: 0xff2b00,
+          emissiveIntensity: 3.5, roughness: 0.22, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.16 });
+        const auraGeometry = new THREE.SphereGeometry(0.115, 16, 10);
+        const auraMaterial = new THREE.MeshBasicMaterial({ color: 0xffb347, transparent: true, opacity: 0.28,
+          blending: THREE.AdditiveBlending, depthWrite: false });
+        const core = new THREE.Mesh(coreGeometry, coreMaterial); core.name = "review-fire-wand-core";
+        const aura = new THREE.Mesh(auraGeometry, auraMaterial); aura.name = "review-fire-wand-aura";
+        visual.add(core, aura); root.add(visual); resources.push(coreGeometry, coreMaterial, auraGeometry, auraMaterial);
+        add(description, visual);
+      } else reason = "The actual wand tip does not face forward at the registered release pose; not a miss.";
+    } else reason = "The actual equipped fire wand or its fitted bounds are unavailable; not a miss.";
   } else if (binding?.emitter === "base-spit") {
     const mesh = actor.model.getObjectByName("Breachling_Mesh") as THREE.Mesh | undefined;
     const head = actor.model.getObjectByName("head");

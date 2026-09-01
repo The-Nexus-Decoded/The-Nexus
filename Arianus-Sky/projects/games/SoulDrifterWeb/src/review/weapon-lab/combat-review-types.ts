@@ -94,7 +94,7 @@ export interface ReviewProjectileFlight {
   readonly id: string;
   readonly actorId: string;
   readonly actionId: string;
-  readonly visualKind: "arrow" | "poison-spit";
+  readonly visualKind: "arrow" | "poison-spit" | "fire-spell";
   readonly releaseSeconds: number;
   readonly endSeconds: number;
   readonly origin: readonly [number, number, number];

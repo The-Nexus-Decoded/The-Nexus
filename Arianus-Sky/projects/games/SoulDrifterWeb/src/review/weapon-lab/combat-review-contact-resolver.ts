@@ -82,7 +82,8 @@ export async function resolveReviewContact(options: {
       id: `measured-contact:${attacker.actor.instanceId}:${target.actor.instanceId}`, kind: "contact", result: "hit",
       actorId: attacker.actor.instanceId, targetId: target.actor.instanceId, timeSeconds: time,
       ...(projectiles ? { projectileId: projectiles.projectileIdForProbe(probeId),
-        damageType: profile.surface.kind === "projectile" && profile.surface.emitter === "base-spit" ? "poison" as const : "physical" as const } : {}),
+        damageType: profile.surface.kind === "projectile" && profile.surface.emitter === "base-spit" ? "poison" as const
+          : profile.surface.kind === "projectile" && profile.surface.emitter === "wand-fire" ? "fire" as const : "physical" as const } : {}),
       position: contact.point.toArray(), normal: contact.normal.toArray(),
       ...(contact.surfaceAnchor ? { surfaceAnchor: contact.surfaceAnchor } : {}),
       evidence: `${profile.evidence}; sequence:${sequence.id}; ${contact.evidence}; probe:${probeId}; confirmed-time:${time}`,
