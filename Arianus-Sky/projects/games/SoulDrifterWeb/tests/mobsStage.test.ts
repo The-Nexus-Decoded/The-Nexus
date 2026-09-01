@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BREACHLING_RUNTIME_ASSETS } from "../src/game/dungeons/breach-v2-breachlings";
-import { CINDERBOUND_WARDEN_ACTIONS, CINDERBOUND_WARDEN_ASSETS } from "../src/game/dungeons/breach-v2-wardens";
+import { CINDERBOUND_WARDEN_ASSETS,
+  cinderboundWardenActionNames } from "../src/game/dungeons/breach-v2-wardens";
 import { MOB_CATALOG, MobsStage, mobCalibrationKey, type MobDefinition } from "../src/review/weapon-lab/mobs-stage";
 import { REVIEWED_BASE_MOB_RECEIPT, REVIEWED_BASE_MOB_URL, REVIEWED_MOB_RECEIPTS,
   prepareReviewedMobReceipts, reviewedMobNote, type ReviewedMobReceipt } from "../src/review/weapon-lab/reviewed-mob-receipt";
@@ -239,7 +240,8 @@ describe("Mobs stage exact installed asset contract", () => {
       expect(header.skins).toHaveLength(1);
       expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? 24 : 18);
       expect(header.meshes).toHaveLength(definition.family === "breachling" ? 1 : 4);
-      expect(header.animations).toHaveLength(definition.family === "breachling" ? 12 : 13);
+      expect(header.animations).toHaveLength(definition.family === "breachling"
+        ? 12 : cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
     }
   });
 
@@ -271,7 +273,9 @@ describe("Mobs stage exact installed asset contract", () => {
       expect(value.actionLabel("SpitAttack").includes("inspection only")).toBe(["base", "stalker"].includes(definition.variant));
       expect(value.actionLabel("RecieveHit")).toBe(definition.reviewedMotion ? "Receive hit · source · not revised" : "Receive hit");
     } else {
-      expect(value.actions()).toEqual([...CINDERBOUND_WARDEN_ACTIONS].sort());
+      expect(value.actions()).toEqual([...cinderboundWardenActionNames(
+        definition.variant as "wayfarer" | "oathbreaker",
+      )].sort());
       expect(audit.availableControls).toContain("rightBladeAngle");
       expect(audit.availableControls).not.toContain("rightHandPitch");
       expect(audit.bones.find((bone) => bone.name === "hand_R")?.directWeightedVertices).toBe(0);

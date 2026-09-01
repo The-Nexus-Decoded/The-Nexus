@@ -13,6 +13,7 @@ import {
   CINDERBOUND_WARDEN_ACTIONS,
   CINDERBOUND_WARDEN_ASSETS,
   buildCinderboundWardenPlacement,
+  cinderboundWardenActionNames,
   createBreachV2WardenRuntime,
   inspectCinderboundWardenMaterialReadiness,
 } from "../src/game/dungeons/breach-v2-wardens";
@@ -425,10 +426,16 @@ describe("BREACH-V2 Cinderbound Warden runtime", () => {
     expect(CINDERBOUND_WARDEN_ASSETS.wayfarer.targetHeightMeters).toBe(3.6);
     expect(CINDERBOUND_WARDEN_ASSETS.oathbreaker.targetHeightMeters).toBe(3.9);
     expect(CINDERBOUND_WARDEN_ACTIONS).toEqual(expect.arrayContaining([
-      "BladeSweep", "CinderSweep", "PalmFire", "AshCall", "DeathCollapse",
+      "BladeSweep", "CinderSweep", "PalmFire", "AshCall", "SoulTax", "FurnaceShutdown", "DeathCollapse",
     ]));
+    expect(cinderboundWardenActionNames("wayfarer")).toHaveLength(15);
+    expect(cinderboundWardenActionNames("oathbreaker")).toHaveLength(13);
+    expect(cinderboundWardenActionNames("oathbreaker"))
+      .not.toEqual(expect.arrayContaining(["SoulTax", "FurnaceShutdown"]));
     expect(CINDERBOUND_BREAKOFF_STAGES.map((stage) => stage.damageFraction)).toEqual([0.3, 0.6, 0.9]);
     expect(filterWardenActions(CINDERBOUND_WARDEN_ACTIONS, "palm fire")).toEqual(["PalmFire"]);
+    expect(filterWardenActions(CINDERBOUND_WARDEN_ACTIONS, "soul tax")).toEqual(["SoulTax"]);
+    expect(filterWardenActions(CINDERBOUND_WARDEN_ACTIONS, "shutdown")).toEqual(["FurnaceShutdown"]);
   });
 
   it("records a caught room-activation failure instead of leaving it only in the console", async () => {

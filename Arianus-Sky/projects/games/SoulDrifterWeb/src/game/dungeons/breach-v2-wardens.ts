@@ -61,15 +61,25 @@ export const CINDERBOUND_WARDEN_ACTIONS = Object.freeze([
   "CinderSweep",
   "CombatIdle",
   "DeathCollapse",
+  "FurnaceShutdown",
   "HeadLook",
   "HeavyRun",
   "HeavyWalk",
   "HitReact",
   "Idle",
   "PalmFire",
+  "SoulTax",
   "TurnLeft",
   "TurnRight",
 ]);
+
+const CINDERBOUND_WARDEN_LEGACY_ACTIONS = Object.freeze(
+  CINDERBOUND_WARDEN_ACTIONS.filter((name) => name !== "FurnaceShutdown" && name !== "SoulTax"),
+);
+
+export function cinderboundWardenActionNames(kind: CinderboundWardenKind): readonly string[] {
+  return kind === "wayfarer" ? CINDERBOUND_WARDEN_ACTIONS : CINDERBOUND_WARDEN_LEGACY_ACTIONS;
+}
 
 export const CINDERBOUND_BREAKOFF_STAGES = Object.freeze([
   { meshName: "Breakoff_30_Shoulders", damageFraction: 0.3 },
@@ -562,7 +572,7 @@ export function createBreachV2WardenRuntime(
     root.updateMatrixWorld(true);
     const mixer = new THREE.AnimationMixer(model);
     const actions = new Map(source.animations.map((clip) => [clip.name, mixer.clipAction(clip)]));
-    CINDERBOUND_WARDEN_ACTIONS.forEach((required) => {
+    cinderboundWardenActionNames(path).forEach((required) => {
       if (!actions.has(required)) throw new Error(`${asset.label} is missing ${required}.`);
     });
     const breakoffMeshes = new Map<number, THREE.Object3D>();

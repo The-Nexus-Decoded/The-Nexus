@@ -38,7 +38,7 @@ const BREACHLING_RECEIPTS = {
   ravager: [5759384, "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c"],
 } as const;
 const WARDEN_RECEIPTS = {
-  wayfarer: [16289808, "8d511cda894b174bdb0777c51c8f9fcdf9d96b0baaf8fb347bb7676cfa18a196"],
+  wayfarer: [19992260, "6653370bbd3f057dce8602de257cdcc60163fd012589bb76ed5983d1d03ca387"],
   oathbreaker: [18296196, "244cefb9e478c8ce561722e479a2cafce9fb5c91c4ee42477c893ee8f91a5a3d"],
 } as const;
 export const MOB_CATALOG: readonly MobDefinition[] = Object.freeze([
