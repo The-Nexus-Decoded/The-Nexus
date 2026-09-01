@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, REVIEW_PROP_LIMIT, type ReviewPropInstance } from "./review-prop-factory";
 import { measureReviewPropInteraction, prepareReviewPropInteractionActor, reviewPropInteractionFrame,
   type ReviewPropInteractionDiagnostic } from "./review-prop-interactions";
+import { createReviewSwimVolume, measureReviewSwimPose, reviewSwimFrame, surveyReviewSwim,
+  type ReviewSwimFrame, type ReviewSwimPoseDiagnostic, type ReviewSwimSurvey } from "./review-swim-diagnostics";
 import type { CombatReviewSnapshot, CombatSlot } from "./combat-review-controller";
 import type { ReviewActorAdapter } from "./combat-review-types";
 
@@ -24,9 +26,19 @@ export class ReviewPropsPanel {
   private readonly status: HTMLElement;
   private readonly error: HTMLElement;
   private readonly diagnostic: HTMLElement;
+  private readonly swimSection: HTMLElement;
+  private readonly swimDiagnostic: HTMLElement;
+  private readonly swimVolume = createReviewSwimVolume();
+  private readonly onFrameBounds?: (bounds: THREE.Box3) => void;
   private readonly actorForSlot: (slot: CombatSlot) => ReviewActorAdapter | null;
   private latestSnapshot: CombatReviewSnapshot | null = null;
   private interactionDiagnostic: ReviewPropInteractionDiagnostic | null = null;
+  private swimFrame: ReviewSwimFrame | null = null;
+  private swimCurrent: ReviewSwimPoseDiagnostic | null = null;
+  private swimSurvey: ReviewSwimSurvey | null = null;
+  private swimSurveyError = "";
+  private swimKey = "";
+  private swimJob: { abort: AbortController; key: string } | null = null;
   private pending: { abort: AbortController } | null = null;
   private serial = 0;
   private active = false;
@@ -37,6 +49,7 @@ export class ReviewPropsPanel {
     actorForSlot?: (slot: CombatSlot) => ReviewActorAdapter | null } = {}) {
     this.doc = options.document ?? document;
     this.factory = options.factory ?? createReviewPropFactory();
+    this.onFrameBounds = options.onFrameBounds;
     this.actorForSlot = options.actorForSlot ?? (() => null);
     this.root.name = "motion-studio-review-props"; this.root.visible = false;
     const node = <K extends keyof HTMLElementTagNameMap>(tag: K, text = "") => {
@@ -78,8 +91,13 @@ export class ReviewPropsPanel {
     this.error = node("p"); this.error.setAttribute("role", "alert");
     this.diagnostic = node("p"); this.diagnostic.className = "context-note";
     this.diagnostic.dataset.interactionState = "unavailable";
+    this.swimSection = node("section"); this.swimSection.className = "review-diagnostic-section";
+    this.swimSection.append(node("h3", "Diagnostic swim volume"));
+    this.swimDiagnostic = node("p"); this.swimDiagnostic.className = "context-note";
+    this.swimDiagnostic.dataset.swimState = "unavailable";
+    this.swimSection.append(this.swimDiagnostic); button(this.swimSection, "Frame diagnostic water volume", "frame-water");
     const note = node("p", "Placement and named prop joints are inspection controls, not a completed actor interaction. Climbing, hand contact, opening sequences and breaking require their own verification.");
-    note.className = "context-note"; this.element.append(this.status, this.error, this.diagnostic, note);
+    note.className = "context-note"; this.element.append(this.status, this.error, this.diagnostic, this.swimSection, note);
     const handle = (event: Event) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-command]");
       if (!target || !this.element.contains(target) || !this.active || this.disposed) return;
@@ -87,6 +105,7 @@ export class ReviewPropsPanel {
       const command = target.dataset.command, selected = this.items.get(this.placed.value);
       if (event.type === "click") {
         if (command === "spawn") void this.add(options.onFrameBounds);
+        else if (command === "frame-water" && this.swimFrame) this.onFrameBounds?.(this.swimVolume.bounds());
         else if (selected && command === "frame") options.onFrameBounds?.(selected.instance.bounds());
         else if (selected && command === "reset") {
           this.home(selected.instance, selected.home); this.syncSelectedInteraction(true);
@@ -143,6 +162,14 @@ export class ReviewPropsPanel {
     this.diagnostic.hidden = !selected || !["chest", "door", "tree"].includes(selected.definition.kind);
     this.diagnostic.dataset.interactionState = this.interactionDiagnostic?.state ?? "unavailable";
     this.diagnostic.textContent = this.interactionDiagnostic?.label ?? "Interaction diagnostic UNAVAILABLE — select an interactive prop and matching source action on the shared timeline.";
+    this.swimSection.hidden = !this.active || !this.swimFrame;
+    this.swimVolume.root.visible = this.active && !!this.swimFrame;
+    this.swimDiagnostic.dataset.swimState = this.swimCurrent?.state ?? "unavailable";
+    const survey = this.swimSurvey;
+    const crossing = (value: number | null, label: string) => value == null ? `${label} not measured` : `${label} ${Number(value.toFixed(3))} s`;
+    const surveyLabel = survey ? ` 30 Hz full-clip survey: ${crossing(survey.firstVolumeSeconds, "first sampled-volume entry")}; ${crossing(survey.firstWaterlineSeconds, "first Hips waterline crossing")}; ${crossing(survey.firstEndPlaneSeconds, "end-plane crossing")}; reverse travel ${Number(survey.reverseTravelMeters.toFixed(3))} m; start/end Hips seam ${Number(survey.loopSeamResidualMeters.toFixed(3))} m; maximum sampled occupancy ${survey.maximumInside}/${survey.sampledTotal}. ${this.swimFrame?.approval === "draft" && survey.reverseTravelMeters > .05 ? "DRAFT BACKTRACK DETECTED. " : ""}This is diagnostic geometry, not a water asset or exit approval.`
+      : this.swimFrame ? this.swimSurveyError ? ` Survey UNAVAILABLE — ${this.swimSurveyError}` : " Full-clip 30 Hz survey running…" : "";
+    this.swimDiagnostic.textContent = (this.swimCurrent?.label ?? "Swim diagnostic UNAVAILABLE — select Human · Environmental interactions and a registered swim action.") + surveyLabel;
     const joints = selected?.joints() ?? [], jointKey = `${selected?.instanceId ?? ""}:${joints.map((joint) => joint.id).join(",")}`;
     this.articulation.hidden = !joints.length;
     if (jointKey !== this.jointKey) {
@@ -188,7 +215,7 @@ export class ReviewPropsPanel {
   setActive(active: boolean) {
     if (this.disposed) return;
     this.active = active;
-    if (!active) { this.pending?.abort.abort(); this.pending = null; }
+    if (!active) { this.pending?.abort.abort(); this.pending = null; this.clearSwim(); }
     this.refresh();
   }
   syncInteraction(snapshot: CombatReviewSnapshot) {
@@ -200,7 +227,43 @@ export class ReviewPropsPanel {
       const actor = this.actorForSlot(frame.slot);
       if (actor?.instanceId === frame.actorId) prepareReviewPropInteractionActor(actor, frame.contactParts);
     }
+    this.syncSwim(snapshot);
     this.syncSelectedInteraction();
+  }
+  private clearSwim() {
+    this.swimJob?.abort.abort(); this.swimJob = null; this.swimKey = ""; this.swimFrame = null;
+    this.swimCurrent = null; this.swimSurvey = null; this.swimSurveyError = "";
+    this.swimVolume.root.removeFromParent(); this.swimVolume.root.visible = false;
+  }
+  private syncSwim(snapshot: CombatReviewSnapshot) {
+    const frame = reviewSwimFrame(snapshot);
+    if (!frame) { this.clearSwim(); return; }
+    const actor = this.actorForSlot(frame.slot);
+    if (!actor || actor.instanceId !== frame.actorId) { this.clearSwim(); return; }
+    if (this.swimFrame?.actorId !== frame.actorId) this.swimVolume.recenter(actor);
+    if (!this.swimVolume.root.parent) this.root.add(this.swimVolume.root);
+    const current = measureReviewSwimPose(actor, frame, this.swimVolume);
+    const key = `${frame.actorId}:${frame.actionId}:${current.sourceToken}`;
+    this.swimFrame = frame; this.swimCurrent = current;
+    if (current.state === "unavailable") { this.swimJob?.abort.abort(); this.swimJob = null; this.swimKey = key;
+      this.swimSurvey = null; this.swimSurveyError = current.label; return; }
+    if (key === this.swimKey) return;
+    this.swimJob?.abort.abort(); this.swimSurvey = null; this.swimSurveyError = ""; this.swimKey = key;
+    const job = { abort: new AbortController(), key }; this.swimJob = job;
+    const restore = () => {
+      const latest = this.latestSnapshot && reviewSwimFrame(this.latestSnapshot);
+      const latestActor = latest ? this.actorForSlot(latest.slot) : null;
+      if (latest && latestActor === actor && latest.actorId === frame.actorId && latest.actionId === frame.actionId) {
+        actor.sample(latest.actionId, latest.timeSeconds);
+      }
+    };
+    void surveyReviewSwim(actor, frame, this.swimVolume, { restore, signal: job.abort.signal }).then((result) => {
+      if (this.swimJob !== job || job.abort.signal.aborted || this.disposed) return;
+      this.swimJob = null; this.swimSurvey = result; this.swimCurrent = measureReviewSwimPose(actor, frame, this.swimVolume); this.refresh();
+    }).catch((error) => {
+      if (this.swimJob !== job || job.abort.signal.aborted || this.disposed) return;
+      this.swimJob = null; this.swimSurveyError = error instanceof Error ? error.message : String(error); this.refresh();
+    });
   }
   private syncSelectedInteraction(force = false) {
     const selected = this.items.get(this.placed.value)?.instance;
@@ -216,6 +279,6 @@ export class ReviewPropsPanel {
   dispose() {
     if (this.disposed) return; this.disposed = true; this.active = false;
     this.pending?.abort.abort(); this.pending = null; this.abort.abort();
-    this.factory.dispose(); this.items.clear(); this.root.removeFromParent(); this.element.remove();
+    this.clearSwim(); this.swimVolume.dispose(); this.factory.dispose(); this.items.clear(); this.root.removeFromParent(); this.element.remove();
   }
 }

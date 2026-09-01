@@ -4,10 +4,11 @@ import { ReviewPropsPanel } from "../src/review/weapon-lab/review-props-panel";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, type ReviewPropInstance } from "../src/review/weapon-lab/review-prop-factory";
 import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 import { reviewPropInteractionFrame } from "../src/review/weapon-lab/review-prop-interactions";
+import { REVIEW_SWIM_ACTIONS } from "../src/review/weapon-lab/review-swim-diagnostics";
 import { ReviewContactSurface } from "../src/review/weapon-lab/combat-review-contact";
 import type { ReviewActorAdapter } from "../src/review/weapon-lab/combat-review-types";
 
-function handActor(): ReviewActorAdapter {
+function handActor(): ReviewActorAdapter & { sample: ReturnType<typeof vi.fn> } {
   const root = new THREE.Group(), model = new THREE.Group(); root.add(model);
   const geometry = new THREE.BoxGeometry(.1, .1, .1), count = geometry.getAttribute("position").count;
   geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(new Array(count * 4).fill(0), 4));
@@ -15,8 +16,14 @@ function handActor(): ReviewActorAdapter {
   geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(weights, 4));
   const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshBasicMaterial()), hand = new THREE.Bone();
   hand.name = "mixamorigLeftHand"; mesh.add(hand); mesh.bind(new THREE.Skeleton([hand])); model.add(mesh);
+  const actions = Object.entries(REVIEW_SWIM_ACTIONS).map(([id, value]) => ({ id, clipName: id, label: value.role,
+    semantic: "interaction" as const, approvalStatus: value.approval, durationSeconds: value.durationSeconds,
+    rootPolicy: "authored-displacement" as const }));
+  const sample = vi.fn((_action: string, seconds: number) => { model.position.z = seconds * .1; root.updateMatrixWorld(true); });
   return { instanceId: "actor-a", definitionId: "human-foundation-pilot", root, model,
-    actions: () => [], sample() {}, reset() {}, dispose() { geometry.dispose(); mesh.material.dispose(); } };
+    actions: () => actions, sample, reset() {}, socketWorld(name, target) { if (name !== "Hips") return false;
+      target.copy(model.localToWorld(new THREE.Vector3(0, .5, 0))); return true; },
+    dispose() { geometry.dispose(); mesh.material.dispose(); } };
 }
 
 function fixture() {
@@ -46,7 +53,7 @@ function fixture() {
   const control = (command: string) => element.find((node) => node.dataset.command === command)!;
   const input = (label: string) => element.find((node) => node.attributes["aria-label"] === label)!;
   const emit = (command: string, type = "click") => element.emit(type, control(command));
-  return { panel, element, doc, instances, factory, frame, control, input, emit };
+  return { panel, element, doc, instances, factory, frame, control, input, emit, actor };
 }
 
 describe("review prop panel", () => {
@@ -107,6 +114,20 @@ describe("review prop panel", () => {
     expect(diagnostic.dataset.interactionState).toBe("clear");expect(diagnostic.textContent).toContain("50%, alternating climb");
     expect(diagnostic.textContent).toContain("nearest rendered hand/foot skin");expect(f.instances[0]!.setJoint).not.toHaveBeenCalled();
     f.panel.dispose();
+  });
+  it("shows a fail-closed swim volume only for exact swim actions, surveys without changing shared-clock intent and cancels stale work", async () => {
+    const f=fixture(),action="Interactions__HumanMasculineAthleticMuscularSwimForwardLoop",duration=4.566667,time=2.283333;
+    const snapshot=(selected=action)=>({active:true,ready:true,frame:{timeSeconds:time,actors:[{actorId:"actor-a"}]},
+      slots:[{slot:"a",definitionId:"human:environment",selected:{action:selected},actions:[{id:selected,durationSeconds:selected===action?duration:1}]}]}) as never;
+    f.panel.setActive(true);f.actor.sample(action,time);f.panel.syncInteraction(snapshot());
+    const diagnostic=f.element.find((node)=>node.dataset.swimState!==undefined)!;
+    expect(diagnostic.parentElement!.hidden).toBe(false);expect(diagnostic.dataset.swimState).not.toBe("unavailable");
+    expect(diagnostic.textContent).toContain("sampled vertices inside diagnostic volume");expect(diagnostic.textContent).toContain("no body percentage, buoyancy, collision, water physics, exit or gameplay approval");
+    expect(f.panel.root.getObjectByName("diagnostic-swim-volume")).toBeTruthy();f.emit("frame-water");expect(f.frame).toHaveBeenCalledOnce();
+    await vi.waitFor(()=>expect(diagnostic.textContent).toContain("30 Hz full-clip survey:"));
+    expect(diagnostic.textContent).toContain("start/end Hips seam");expect(f.actor.model.position.z).toBeCloseTo(time*.1,5);
+    f.panel.syncInteraction(snapshot("idle"));expect(diagnostic.parentElement!.hidden).toBe(true);
+    expect(f.panel.root.getObjectByName("diagnostic-swim-volume")).toBeUndefined();f.panel.dispose();
   });
   it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {
     const f = fixture(); f.panel.setActive(true); f.control("asset").value = "iron-bound-chest-draft";
