@@ -34,10 +34,21 @@ const unavailable = (reason: string): ReviewPropInteractionDiagnostic => ({ stat
   label: `Interaction diagnostic UNAVAILABLE — ${reason} No actor contact, gameplay, damage, climbing or destruction approval is inferred.`,
   handClearanceMeters: null, rootClearanceMeters: null, facingErrorDegrees: null, evidence: null });
 const fixed = (value: number, digits = 3) => Number(value.toFixed(digits));
+const handBoneNames = (root: THREE.Object3D): readonly string[] => {
+  const names: string[] = [];
+  root.traverse((object) => {
+    if (!(object as THREE.Bone).isBone) return;
+    const normalized = object.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalized.endsWith("lefthand") || normalized.endsWith("righthand")) names.push(object.name);
+  });
+  return Object.freeze(names);
+};
 const reviewHandProbe = (actor: ReviewActorAdapter): ReviewMeshProbe => {
   let probe = handProbes.get(actor);
   if (!probe) {
-    probe = createReviewMeshProbe(actor.model, { bones: ["LeftHand", "RightHand"], minimumWeight: .25, maximumVertices: 96 });
+    // Bind the actual terminal hand bones without assuming a rig prefix such as
+    // Mixamo's `mixamorig`, while excluding all descendant finger joints.
+    probe = createReviewMeshProbe(actor.model, { bones: handBoneNames(actor.model), minimumWeight: .25, maximumVertices: 96 });
     handProbes.set(actor, probe);
   }
   return probe;

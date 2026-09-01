@@ -14,7 +14,7 @@ function handActor(): ReviewActorAdapter {
   const weights = new Float32Array(count * 4); for (let index = 0; index < count; index++) weights[index * 4] = 1;
   geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(weights, 4));
   const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshBasicMaterial()), hand = new THREE.Bone();
-  hand.name = "LeftHand"; mesh.add(hand); mesh.bind(new THREE.Skeleton([hand])); model.add(mesh);
+  hand.name = "mixamorigLeftHand"; mesh.add(hand); mesh.bind(new THREE.Skeleton([hand])); model.add(mesh);
   return { instanceId: "actor-a", definitionId: "human-foundation-pilot", root, model,
     actions: () => [], sample() {}, reset() {}, dispose() { geometry.dispose(); mesh.material.dispose(); } };
 }
