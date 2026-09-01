@@ -1037,7 +1037,8 @@ async function changeReviewMode() {
         }, onError: (error) => { status.textContent = `COMBAT REVIEW ERROR\n${String(error)}`; },
       });
       if (!propsPanel) {
-        propsPanel = new ReviewPropsPanel({ onFrameBounds: (bounds) => combatStudio.frameBounds(bounds) });
+        propsPanel = new ReviewPropsPanel({ onFrameBounds: (bounds) => combatStudio.frameBounds(bounds),
+          actorForSlot: (slot) => combatStudio.controller.actor(slot) });
         scene.add(propsPanel.root); document.querySelector("#reviewProps").append(propsPanel.element);
       }
       propsPanel.setActive(true);

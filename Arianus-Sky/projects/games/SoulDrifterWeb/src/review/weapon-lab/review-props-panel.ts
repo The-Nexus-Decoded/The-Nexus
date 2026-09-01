@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, REVIEW_PROP_LIMIT, type ReviewPropInstance } from "./review-prop-factory";
-import { reviewPropInteractionFrame } from "./review-prop-interactions";
-import type { CombatReviewSnapshot } from "./combat-review-controller";
+import { measureReviewPropInteraction, prepareReviewPropInteractionActor, reviewPropInteractionFrame,
+  type ReviewPropInteractionDiagnostic } from "./review-prop-interactions";
+import type { CombatReviewSnapshot, CombatSlot } from "./combat-review-controller";
+import type { ReviewActorAdapter } from "./combat-review-types";
 
 /** Review-only prop placements. Never changes actors, their clock or dungeon state. */
 export class ReviewPropsPanel {
@@ -21,16 +23,21 @@ export class ReviewPropsPanel {
   private readonly spawn: HTMLButtonElement;
   private readonly status: HTMLElement;
   private readonly error: HTMLElement;
-  private interactionNote = "";
+  private readonly diagnostic: HTMLElement;
+  private readonly actorForSlot: (slot: CombatSlot) => ReviewActorAdapter | null;
+  private latestSnapshot: CombatReviewSnapshot | null = null;
+  private interactionDiagnostic: ReviewPropInteractionDiagnostic | null = null;
   private pending: { abort: AbortController } | null = null;
   private serial = 0;
   private active = false;
   private disposed = false;
 
   constructor(options: { document?: Document; factory?: ReturnType<typeof createReviewPropFactory>;
-    onFrameBounds?: (bounds: THREE.Box3) => void } = {}) {
+    onFrameBounds?: (bounds: THREE.Box3) => void;
+    actorForSlot?: (slot: CombatSlot) => ReviewActorAdapter | null } = {}) {
     this.doc = options.document ?? document;
     this.factory = options.factory ?? createReviewPropFactory();
+    this.actorForSlot = options.actorForSlot ?? (() => null);
     this.root.name = "motion-studio-review-props"; this.root.visible = false;
     const node = <K extends keyof HTMLElementTagNameMap>(tag: K, text = "") => {
       const value = this.doc.createElement(tag); value.textContent = text; return value;
@@ -69,8 +76,10 @@ export class ReviewPropsPanel {
     this.status = node("p"); this.status.className = "context-note";
     this.status.setAttribute("role", "status"); this.status.setAttribute("aria-live", "polite");
     this.error = node("p"); this.error.setAttribute("role", "alert");
+    this.diagnostic = node("p"); this.diagnostic.className = "context-note";
+    this.diagnostic.dataset.interactionState = "unavailable";
     const note = node("p", "Placement and named prop joints are inspection controls, not a completed actor interaction. Climbing, hand contact, opening sequences and breaking require their own verification.");
-    note.className = "context-note"; this.element.append(this.status, this.error, note);
+    note.className = "context-note"; this.element.append(this.status, this.error, this.diagnostic, note);
     const handle = (event: Event) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-command]");
       if (!target || !this.element.contains(target) || !this.active || this.disposed) return;
@@ -80,18 +89,18 @@ export class ReviewPropsPanel {
         if (command === "spawn") void this.add(options.onFrameBounds);
         else if (selected && command === "frame") options.onFrameBounds?.(selected.instance.bounds());
         else if (selected && command === "reset") {
-          this.home(selected.instance, selected.home); this.refresh(true);
+          this.home(selected.instance, selected.home); this.syncSelectedInteraction(true);
         } else if (selected && command === "reset-joints") {
-          selected.instance.resetJoints(); this.refresh(true);
+          selected.instance.resetJoints(); this.syncSelectedInteraction(true);
         } else if (selected && command === "remove") {
-          selected.instance.dispose(); this.items.delete(selected.instance.instanceId); this.populate(); this.refresh(true);
+          selected.instance.dispose(); this.items.delete(selected.instance.instanceId); this.populate(); this.syncSelectedInteraction(true);
         }
-      } else if (command === "selected" && event.type === "change") this.refresh(true);
+      } else if (command === "selected" && event.type === "change") this.syncSelectedInteraction(true);
       else if (command === "joint" && selected) {
         const input = target as HTMLInputElement, value = Number(input.value);
         try {
           if (input.value.trim() === "") throw new Error("Enter a joint angle within its shown range.");
-          selected.instance.setJoint(input.dataset.joint!, value); this.refresh();
+          selected.instance.setJoint(input.dataset.joint!, value); this.syncSelectedInteraction();
         } catch (error) { this.error.textContent = String(error); this.refresh(true); }
       }
       else if (command === "placement" && selected) {
@@ -100,6 +109,7 @@ export class ReviewPropsPanel {
           && values[index]! >= Number(field.min) && values[index]! <= Number(field.max));
         if (valid) {
           selected.instance.place([values[0]!, 0, values[1]!], THREE.MathUtils.degToRad(values[2]!));
+          this.syncSelectedInteraction();
         } else if (event.type === "change") {
           this.error.textContent = "Use positions between −20 and 20 m and facing between −360° and 360°.";
           this.refresh(true);
@@ -130,7 +140,9 @@ export class ReviewPropsPanel {
     this.status.textContent = this.pending ? "Verifying source bytes and loading original materials…"
       : selected ? `${this.items.size} / ${REVIEW_PROP_LIMIT} props · ${selected.definition.triangleCount.toLocaleString("en-US")} triangles · ${selected.definition.contactMeshes.length} solid contact meshes. ${selected.definition.approvalStatus}. Placement does not enable gameplay collision.`
         : "No props placed. Choose an asset to add it beside the actors.";
-    if (selected && this.interactionNote) this.status.textContent += ` ${this.interactionNote}`;
+    this.diagnostic.hidden = !selected || selected.definition.kind !== "chest";
+    this.diagnostic.dataset.interactionState = this.interactionDiagnostic?.state ?? "unavailable";
+    this.diagnostic.textContent = this.interactionDiagnostic?.label ?? "Interaction diagnostic UNAVAILABLE — select a chest and a source interaction on the shared timeline.";
     const joints = selected?.joints() ?? [], jointKey = `${selected?.instanceId ?? ""}:${joints.map((joint) => joint.id).join(",")}`;
     this.articulation.hidden = !joints.length;
     if (jointKey !== this.jointKey) {
@@ -168,7 +180,7 @@ export class ReviewPropsPanel {
       const occupied = new Set([...this.items.values()].map((entry) => entry.home));
       const home = Array.from({ length: REVIEW_PROP_LIMIT }, (_, index) => index).find((value) => !occupied.has(value))!;
       this.home(instance, home); this.items.set(instance.instanceId, { instance, home }); this.root.add(instance.root);
-      this.populate(instance.instanceId); this.refresh(true); frame?.(instance.bounds());
+      this.populate(instance.instanceId); this.syncSelectedInteraction(true); frame?.(instance.bounds());
     } catch (error) {
       if (!job.abort.signal.aborted && !this.disposed && this.pending === job) this.error.textContent = String(error);
     } finally { if (this.pending === job) { this.pending = null; this.refresh(); } }
@@ -181,14 +193,24 @@ export class ReviewPropsPanel {
   }
   syncInteraction(snapshot: CombatReviewSnapshot) {
     if (!this.active || this.disposed) return;
+    this.latestSnapshot = snapshot;
+    const frame = reviewPropInteractionFrame("chest", snapshot);
+    if (frame) {
+      const actor = this.actorForSlot(frame.slot);
+      if (actor?.instanceId === frame.actorId) prepareReviewPropInteractionActor(actor);
+    }
+    this.syncSelectedInteraction();
+  }
+  private syncSelectedInteraction(force = false) {
     const selected = this.items.get(this.placed.value)?.instance;
-    const frame = selected ? reviewPropInteractionFrame(selected.definition.kind, snapshot) : null;
-    this.interactionNote = frame?.note ?? "";
+    const frame = selected && this.latestSnapshot ? reviewPropInteractionFrame(selected.definition.kind, this.latestSnapshot) : null;
     if (selected && frame) {
       const values = new Map(selected.joints().map((joint) => [joint.id, joint.value]));
       for (const [id, value] of Object.entries(frame.joints)) if (Math.abs((values.get(id) ?? NaN) - value) > 1e-6) selected.setJoint(id, value);
     }
-    this.refresh();
+    this.interactionDiagnostic = selected?.definition.kind === "chest"
+      ? measureReviewPropInteraction(selected, frame ? this.actorForSlot(frame.slot) : null, frame) : null;
+    this.refresh(force);
   }
   dispose() {
     if (this.disposed) return; this.disposed = true; this.active = false;

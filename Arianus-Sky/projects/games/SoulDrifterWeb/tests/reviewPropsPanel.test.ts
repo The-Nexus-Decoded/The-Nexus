@@ -4,26 +4,44 @@ import { ReviewPropsPanel } from "../src/review/weapon-lab/review-props-panel";
 import { createReviewPropFactory, REVIEW_PROP_DEFINITIONS, type ReviewPropInstance } from "../src/review/weapon-lab/review-prop-factory";
 import { DomNode, domFixture } from "./helpers/reviewDomFixture";
 import { reviewPropInteractionFrame } from "../src/review/weapon-lab/review-prop-interactions";
+import { ReviewContactSurface } from "../src/review/weapon-lab/combat-review-contact";
+import type { ReviewActorAdapter } from "../src/review/weapon-lab/combat-review-types";
+
+function handActor(): ReviewActorAdapter {
+  const root = new THREE.Group(), model = new THREE.Group(); root.add(model);
+  const geometry = new THREE.BoxGeometry(.1, .1, .1), count = geometry.getAttribute("position").count;
+  geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(new Array(count * 4).fill(0), 4));
+  const weights = new Float32Array(count * 4); for (let index = 0; index < count; index++) weights[index * 4] = 1;
+  geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(weights, 4));
+  const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshBasicMaterial()), hand = new THREE.Bone();
+  hand.name = "LeftHand"; mesh.add(hand); mesh.bind(new THREE.Skeleton([hand])); model.add(mesh);
+  return { instanceId: "actor-a", definitionId: "human-foundation-pilot", root, model,
+    actions: () => [], sample() {}, reset() {}, dispose() { geometry.dispose(); mesh.material.dispose(); } };
+}
 
 function fixture() {
   const instances: ReviewPropInstance[] = [];
+  const actor = handActor();
   const create = vi.fn(async ({ instanceId, definitionId }: { definitionId: string; instanceId: string; signal?: AbortSignal }) => {
     const root = new THREE.Group();
+    const geometry = new THREE.BoxGeometry(1, 1, 1), material = new THREE.MeshBasicMaterial();
+    const model = new THREE.Mesh(geometry, material); model.position.y = .5; root.add(model);
+    const contactSurface = new ReviewContactSurface(root); contactSurface.update();
     const definition = REVIEW_PROP_DEFINITIONS.find((entry) => entry.id === definitionId)!;
     const joints = definition.joints.map((profile) => ({ ...profile, value: 0 }));
-    const instance = { instanceId, definition, root,
+    const instance = { instanceId, definition, root, model, contactSurface,
       joints: () => joints,
       setJoint: vi.fn((id: string, value: number) => { joints.find((joint) => joint.id === id)!.value = value; }),
       resetJoints: vi.fn(() => joints.forEach((joint) => { joint.value = 0; })),
-      bounds: () => new THREE.Box3(root.position.clone(), root.position.clone().addScalar(2)),
+      bounds: () => new THREE.Box3().setFromObject(root),
       place: vi.fn((position: readonly [number, number, number], yaw: number) => { root.position.fromArray(position); root.rotation.y = yaw; }),
-      dispose: vi.fn(() => root.removeFromParent()) } as unknown as ReviewPropInstance;
+      dispose: vi.fn(() => { root.removeFromParent(); contactSurface.dispose(); geometry.dispose(); material.dispose(); }) } as unknown as ReviewPropInstance;
     instances.push(instance); return instance;
   });
   const factory = { create, dispose: vi.fn(() => instances.forEach((instance) => instance.dispose())) };
   const doc = domFixture(), frame = vi.fn();
   const panel = new ReviewPropsPanel({ document: doc as unknown as Document,
-    factory: factory as ReturnType<typeof createReviewPropFactory>, onFrameBounds: frame });
+    factory: factory as ReturnType<typeof createReviewPropFactory>, onFrameBounds: frame, actorForSlot: () => actor });
   const element = panel.element as unknown as DomNode;
   const control = (command: string) => element.find((node) => node.dataset.command === command)!;
   const input = (label: string) => element.find((node) => node.attributes["aria-label"] === label)!;
@@ -36,16 +54,34 @@ describe("review prop panel", () => {
     const f=fixture();f.panel.setActive(true);f.control("asset").value="iron-bound-chest-draft";f.emit("spawn");
     await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
     const snapshot=(phase:number,action="Interactions__HumanMasculineAthleticMuscularOpenChestLid")=>({active:true,ready:true,
-      frame:{timeSeconds:phase*10},slots:[{definitionId:"human:environment",selected:{action},actions:[{id:action,durationSeconds:10}]}]}) as never;
+      frame:{timeSeconds:phase*10,actors:[{actorId:"actor-a"}]},slots:[{slot:"a",definitionId:"human:environment",
+        selected:{action},actions:[{id:action,durationSeconds:10}]}]}) as never;
     expect(reviewPropInteractionFrame("tree",snapshot(.5))).toBeNull();
     f.panel.syncInteraction(snapshot(.18));expect(f.instances[0]!.setJoint).not.toHaveBeenCalled();
     f.panel.syncInteraction(snapshot(.235));expect((f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.lastCall).toEqual(["hasp",expect.closeTo(30,8)]);
     f.panel.syncInteraction(snapshot(.49));expect((f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.lastCall).toEqual(["lid",expect.closeTo(52.5,8)]);
     f.panel.syncInteraction(snapshot(.7));expect(f.input("Lid opening").value).toBe("105");
-    expect(f.element.find((node)=>node.attributes.role==="status")!.textContent).toContain("hand contact");
+    const diagnostic=()=>f.element.find((node)=>node.dataset.interactionState!==undefined)!;
+    expect(diagnostic().dataset.interactionState).toBe("clear");
+    expect(diagnostic().textContent).toContain("NO CONTACT");expect(diagnostic().textContent).toContain("shared time 7 s (70%, open hold)");
+    expect(diagnostic().textContent).toContain("no continuous hand-contact");expect(diagnostic().textContent).toContain("no continuous hand-contact, gameplay, damage, climbing or destruction approval");
     const calls=(f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.calls.length;f.panel.syncInteraction(snapshot(.7));
     expect(f.instances[0]!.setJoint).toHaveBeenCalledTimes(calls);f.panel.syncInteraction(snapshot(.7,"idle"));
-    expect(f.element.find((node)=>node.attributes.role==="status")!.textContent).not.toContain("hand contact");f.panel.dispose();
+    expect(diagnostic().dataset.interactionState).toBe("unavailable");expect(diagnostic().textContent).toContain("UNAVAILABLE");f.panel.dispose();
+  });
+
+  it("recomputes deterministic actor-to-prop contact, placement and timing labels when the chest moves", async () => {
+    const f=fixture(),action="Interactions__HumanMasculineAthleticMuscularOpenChestLid";f.panel.setActive(true);
+    f.control("asset").value="iron-bound-chest-draft";f.emit("spawn");await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    f.panel.syncInteraction({active:true,ready:true,frame:{timeSeconds:4.9,actors:[{actorId:"actor-a"}]},
+      slots:[{slot:"a",definitionId:"human:environment",selected:{action},actions:[{id:action,durationSeconds:10}]}]} as never);
+    const diagnostic=()=>f.element.find((node)=>node.dataset.interactionState!==undefined)!;
+    const x=f.input("Prop X"),z=f.input("Prop Z");x.value="0";f.element.emit("input",x);z.value="0.55";f.element.emit("input",z);
+    expect(diagnostic().dataset.interactionState).toBe("contact");expect(diagnostic().textContent).toContain("CONTACT SAMPLE ≤ 8 mm");
+    expect(diagnostic().textContent).toContain("Actor A → prop-1");expect(diagnostic().textContent).toContain("49%, lid rotation");
+    expect(diagnostic().textContent).toContain("root-to-solid");expect(diagnostic().textContent).toContain("facing error 0°");
+    z.value="3";f.element.emit("input",z);expect(diagnostic().dataset.interactionState).toBe("clear");
+    expect(diagnostic().textContent).toContain("NO CONTACT at 8 mm tolerance");f.panel.dispose();
   });
   it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {
     const f = fixture(); f.panel.setActive(true); f.control("asset").value = "iron-bound-chest-draft";
