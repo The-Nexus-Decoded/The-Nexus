@@ -140,7 +140,7 @@ export class ReviewPropsPanel {
     this.status.textContent = this.pending ? "Verifying source bytes and loading original materials…"
       : selected ? `${this.items.size} / ${REVIEW_PROP_LIMIT} props · ${selected.definition.triangleCount.toLocaleString("en-US")} triangles · ${selected.definition.contactMeshes.length} solid contact meshes. ${selected.definition.approvalStatus}. Placement does not enable gameplay collision.`
         : "No props placed. Choose an asset to add it beside the actors.";
-    this.diagnostic.hidden = !selected || !["chest", "door"].includes(selected.definition.kind);
+    this.diagnostic.hidden = !selected || !["chest", "door", "tree"].includes(selected.definition.kind);
     this.diagnostic.dataset.interactionState = this.interactionDiagnostic?.state ?? "unavailable";
     this.diagnostic.textContent = this.interactionDiagnostic?.label ?? "Interaction diagnostic UNAVAILABLE — select an interactive prop and matching source action on the shared timeline.";
     const joints = selected?.joints() ?? [], jointKey = `${selected?.instanceId ?? ""}:${joints.map((joint) => joint.id).join(",")}`;
@@ -198,7 +198,7 @@ export class ReviewPropsPanel {
     const frame = selected ? reviewPropInteractionFrame(selected.definition.kind, snapshot) : null;
     if (frame) {
       const actor = this.actorForSlot(frame.slot);
-      if (actor?.instanceId === frame.actorId) prepareReviewPropInteractionActor(actor);
+      if (actor?.instanceId === frame.actorId) prepareReviewPropInteractionActor(actor, frame.contactParts);
     }
     this.syncSelectedInteraction();
   }
@@ -209,7 +209,7 @@ export class ReviewPropsPanel {
       const values = new Map(selected.joints().map((joint) => [joint.id, joint.value]));
       for (const [id, value] of Object.entries(frame.joints)) if (Math.abs((values.get(id) ?? NaN) - value) > 1e-6) selected.setJoint(id, value);
     }
-    this.interactionDiagnostic = selected && ["chest", "door"].includes(selected.definition.kind)
+    this.interactionDiagnostic = selected && ["chest", "door", "tree"].includes(selected.definition.kind)
       ? measureReviewPropInteraction(selected, frame ? this.actorForSlot(frame.slot) : null, frame) : null;
     this.refresh(force);
   }

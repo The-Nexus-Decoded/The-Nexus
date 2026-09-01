@@ -64,7 +64,7 @@ describe("review prop panel", () => {
     const diagnostic=()=>f.element.find((node)=>node.dataset.interactionState!==undefined)!;
     expect(diagnostic().dataset.interactionState).toBe("clear");
     expect(diagnostic().textContent).toContain("NO CONTACT");expect(diagnostic().textContent).toContain("shared time 7 s (70%, open hold)");
-    expect(diagnostic().textContent).toContain("no continuous hand-contact");expect(diagnostic().textContent).toContain("no continuous hand-contact, gameplay, damage, climbing or destruction approval");
+    expect(diagnostic().textContent).toContain("no continuous contact");expect(diagnostic().textContent).toContain("no continuous contact, gameplay, damage, climbing or destruction approval");
     const calls=(f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.calls.length;f.panel.syncInteraction(snapshot(.7));
     expect(f.instances[0]!.setJoint).toHaveBeenCalledTimes(calls);f.panel.syncInteraction(snapshot(.7,"idle"));
     expect(diagnostic().dataset.interactionState).toBe("unavailable");expect(diagnostic().textContent).toContain("UNAVAILABLE");f.panel.dispose();
@@ -95,7 +95,17 @@ describe("review prop panel", () => {
     expect(diagnostic().dataset.interactionState).toBe("clear");expect(diagnostic().textContent).toContain("58%, leaf rotation");
     f.panel.syncInteraction(snapshot(.8));expect(f.input("Door opening").value).toBe("110");
     f.panel.syncInteraction(snapshot(.8,"Interactions__HumanMasculineAthleticMuscularOpenDoorOutward"));
-    expect(f.input("Door opening").value).toBe("-110");expect(diagnostic().textContent).toContain("no continuous hand-contact, gameplay, damage, climbing or destruction approval");
+    expect(f.input("Door opening").value).toBe("-110");expect(diagnostic().textContent).toContain("no continuous contact, gameplay, damage, climbing or destruction approval");
+    f.panel.dispose();
+  });
+  it("reuses the source hands-and-feet rope climb to inspect tree support without inventing a tree animation", async () => {
+    const f=fixture(),action="Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet";
+    f.panel.setActive(true);f.control("asset").value="tree-small-02";f.emit("spawn");await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    f.panel.syncInteraction({active:true,ready:true,frame:{timeSeconds:1.3,actors:[{actorId:"actor-a"}]},
+      slots:[{slot:"a",definitionId:"human:environment",selected:{action},actions:[{id:action,durationSeconds:2.6}]}]} as never);
+    const diagnostic=f.element.find((node)=>node.dataset.interactionState!==undefined)!;
+    expect(diagnostic.dataset.interactionState).toBe("clear");expect(diagnostic.textContent).toContain("50%, alternating climb");
+    expect(diagnostic.textContent).toContain("nearest rendered hand/foot skin");expect(f.instances[0]!.setJoint).not.toHaveBeenCalled();
     f.panel.dispose();
   });
   it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {

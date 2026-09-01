@@ -13,50 +13,56 @@ export interface ReviewPropInteractionFrame {
   readonly timeSeconds: number;
   readonly phase: number;
   readonly phaseLabel: "before hasp" | "hasp rotation" | "between joints" | "lid rotation" | "approach"
-    | "handle reach" | "leaf rotation" | "open hold";
+    | "handle reach" | "leaf rotation" | "open hold" | "initial grip" | "alternating climb" | "settle";
+  readonly contactParts: "hands" | "hands-feet";
   readonly joints: Readonly<Record<string, number>>;
 }
 
 export interface ReviewPropInteractionDiagnostic {
   readonly state: "contact" | "clear" | "unavailable";
   readonly label: string;
-  readonly handClearanceMeters: number | null;
+  readonly contactClearanceMeters: number | null;
   readonly rootClearanceMeters: number | null;
   readonly facingErrorDegrees: number | null;
   readonly evidence: string | null;
 }
 
 const handProbes = new WeakMap<ReviewActorAdapter, ReviewMeshProbe>();
+const climbProbes = new WeakMap<ReviewActorAdapter, ReviewMeshProbe>();
 const smoothstep = (phase: number, start: number, end: number): number => {
   const value = Math.max(0, Math.min(1, (phase - start) / (end - start)));
   return value * value * (3 - 2 * value);
 };
 const unavailable = (reason: string): ReviewPropInteractionDiagnostic => ({ state: "unavailable",
   label: `Interaction diagnostic UNAVAILABLE — ${reason} No actor contact, gameplay, damage, climbing or destruction approval is inferred.`,
-  handClearanceMeters: null, rootClearanceMeters: null, facingErrorDegrees: null, evidence: null });
+  contactClearanceMeters: null, rootClearanceMeters: null, facingErrorDegrees: null, evidence: null });
 const fixed = (value: number, digits = 3) => Number(value.toFixed(digits));
-const handBoneNames = (root: THREE.Object3D): readonly string[] => {
+const terminalBoneNames = (root: THREE.Object3D, suffixes: readonly string[]): readonly string[] => {
   const names: string[] = [];
   root.traverse((object) => {
     if (!(object as THREE.Bone).isBone) return;
     const normalized = object.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (normalized.endsWith("lefthand") || normalized.endsWith("righthand")) names.push(object.name);
+    if (suffixes.some((suffix) => normalized.endsWith(suffix))) names.push(object.name);
   });
   return Object.freeze(names);
 };
-const reviewHandProbe = (actor: ReviewActorAdapter): ReviewMeshProbe => {
-  let probe = handProbes.get(actor);
+const reviewContactProbe = (actor: ReviewActorAdapter, parts: ReviewPropInteractionFrame["contactParts"]): ReviewMeshProbe => {
+  const cache = parts === "hands-feet" ? climbProbes : handProbes;
+  let probe = cache.get(actor);
   if (!probe) {
     // Bind the actual terminal hand bones without assuming a rig prefix such as
     // Mixamo's `mixamorig`, while excluding all descendant finger joints.
-    probe = createReviewMeshProbe(actor.model, { bones: handBoneNames(actor.model), minimumWeight: .25, maximumVertices: 96 });
-    handProbes.set(actor, probe);
+    const suffixes = parts === "hands-feet" ? ["lefthand", "righthand", "leftfoot", "rightfoot"] : ["lefthand", "righthand"];
+    probe = createReviewMeshProbe(actor.model, { bones: terminalBoneNames(actor.model, suffixes), minimumWeight: .25,
+      maximumVertices: parts === "hands-feet" ? 128 : 96 });
+    cache.set(actor, probe);
   }
   return probe;
 };
 const matchesInteraction = (propKind: string, actionId: string): boolean => propKind === "chest"
   ? actionId.endsWith("OpenChestLid")
-  : propKind === "door" && (actionId.endsWith("OpenDoorInward") || actionId.endsWith("OpenDoorOutward"));
+  : propKind === "door" ? actionId.endsWith("OpenDoorInward") || actionId.endsWith("OpenDoorOutward")
+    : propKind === "tree" && actionId.endsWith("ClimbRopeHandsFeet");
 
 /** Source-timed prop pose on the controller's shared clock. It is not hand IK,
  * collision response or gameplay state. The actor ID is taken from the same
@@ -73,23 +79,29 @@ export function reviewPropInteractionFrame(propKind: string, snapshot: CombatRev
   if (!action || action.durationSeconds <= 0 || !actorId) return null;
   const timeSeconds = Math.min(snapshot.frame.timeSeconds, action.durationSeconds);
   const phase = Math.max(0, Math.min(1, timeSeconds / action.durationSeconds));
+  if (propKind === "tree") {
+    const phaseLabel = phase < .18 ? "initial grip" : phase < .82 ? "alternating climb" : "settle";
+    return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel,
+      contactParts: "hands-feet", joints: Object.freeze({}) };
+  }
   if (propKind === "door") {
     const phaseLabel = phase < .22 ? "approach" : phase < .42 ? "handle reach" : phase < .74 ? "leaf rotation" : "open hold";
     const direction = action.id.endsWith("OpenDoorOutward") ? -1 : 1;
-    return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel,
+    return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel, contactParts: "hands",
       joints: Object.freeze({ leaf: direction * 110 * smoothstep(phase, .42, .74) }) };
   }
   const phaseLabel = phase < .19 ? "before hasp" : phase < .28 ? "hasp rotation" : phase < .32
     ? "between joints" : phase < .66 ? "lid rotation" : "open hold";
-  return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel,
+  return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel, contactParts: "hands",
     joints: Object.freeze({ hasp: 60 * smoothstep(phase, .19, .28), lid: 105 * smoothstep(phase, .32, .66) }) };
 }
 
 /** Bind the source-topology hand selection when the controller first emits the
  * interaction sequence (normally time zero), independent of later prop spawn.
  */
-export function prepareReviewPropInteractionActor(actor: ReviewActorAdapter): string | null {
-  try { return reviewHandProbe(actor).unavailableReason ?? null; }
+export function prepareReviewPropInteractionActor(actor: ReviewActorAdapter,
+  parts: ReviewPropInteractionFrame["contactParts"] = "hands"): string | null {
+  try { return reviewContactProbe(actor, parts).unavailableReason ?? null; }
   catch (error) { return error instanceof Error ? error.message : String(error); }
 }
 
@@ -100,10 +112,10 @@ export function prepareReviewPropInteractionActor(actor: ReviewActorAdapter): st
 export function measureReviewPropInteraction(prop: ReviewPropInstance, actor: ReviewActorAdapter | null,
   frame: ReviewPropInteractionFrame | null): ReviewPropInteractionDiagnostic {
   if (!frame) return unavailable(`Select Human · Environmental interactions and a source ${prop.definition.kind === "door"
-    ? "Open door inward/outward" : "Open chest lid"} action.`);
+    ? "Open door inward/outward" : prop.definition.kind === "tree" ? "Climb rope hands/feet" : "Open chest lid"} action.`);
   if (!actor || actor.instanceId !== frame.actorId) return unavailable(`Actor ${frame.slot.toUpperCase()} is not available for this shared-clock sample.`);
   try {
-    const probe = reviewHandProbe(actor);
+    const probe = reviewContactProbe(actor, frame.contactParts);
     if (probe.unavailableReason) return unavailable(probe.unavailableReason);
     const surface = prop.contactSurface, surfaceState = surface.update();
     if (!surfaceState.meshes || surfaceState.unsupportedMeshIds.length) {
@@ -125,11 +137,12 @@ export function measureReviewPropInteraction(prop: ReviewPropInstance, actor: Re
     const state = contact ? "contact" : "clear";
     const contactLabel = contact ? `CONTACT SAMPLE ≤ ${REVIEW_PROP_CONTACT_TOLERANCE_METERS * 1000} mm`
       : `NO CONTACT at ${REVIEW_PROP_CONTACT_TOLERANCE_METERS * 1000} mm tolerance`;
+    const skinLabel = frame.contactParts === "hands-feet" ? "rendered hand/foot skin" : "rendered hand skin";
     const rootLabel = rootClearance == null ? "root-to-solid unavailable" : `root-to-solid ${fixed(rootClearance)} m`;
     const facingLabel = facingError == null ? "facing unavailable" : `facing error ${fixed(facingError, 1)}°`;
-    return { state, handClearanceMeters: nearest, rootClearanceMeters: rootClearance,
+    return { state, contactClearanceMeters: nearest, rootClearanceMeters: rootClearance,
       facingErrorDegrees: facingError, evidence: contact?.contact.evidence ?? null,
-      label: `${contactLabel} · Actor ${frame.slot.toUpperCase()} → ${prop.instanceId} · shared time ${fixed(frame.timeSeconds)} s (${fixed(frame.phase * 100, 1)}%, ${frame.phaseLabel}) · nearest rendered hand skin ${fixed(nearest * 1000, 1)} mm · ${rootLabel} · ${facingLabel}. Single-pose deformed-triangle evidence only; no continuous hand-contact, gameplay, damage, climbing or destruction approval.` };
+      label: `${contactLabel} · Actor ${frame.slot.toUpperCase()} → ${prop.instanceId} · shared time ${fixed(frame.timeSeconds)} s (${fixed(frame.phase * 100, 1)}%, ${frame.phaseLabel}) · nearest ${skinLabel} ${fixed(nearest * 1000, 1)} mm · ${rootLabel} · ${facingLabel}. Single-pose deformed-triangle evidence only; no continuous contact, gameplay, damage, climbing or destruction approval.` };
   } catch (error) {
     return unavailable(error instanceof Error ? error.message : String(error));
   }
