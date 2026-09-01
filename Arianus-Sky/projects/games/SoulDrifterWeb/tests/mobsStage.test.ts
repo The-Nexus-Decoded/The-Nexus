@@ -463,8 +463,10 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     await expect(value.select("breachling-base")).rejects.toThrow("require SHA-256");
     expect(fetch).not.toHaveBeenCalled();
     expect(scene.children).toHaveLength(0);
-    // Legacy variants retain their pre-existing insecure-context behavior.
-    await expect(value.select("breachling-stalker")).resolves.toBe(true);
+    // Every installed review pack fails closed rather than falling back to its
+    // legacy source when the secure-context checksum API is unavailable.
+    await expect(value.select("breachling-stalker")).rejects.toThrow("require SHA-256");
+    expect(fetch).not.toHaveBeenCalled();
     expect(value.checksumVerified).toBe(false);
   }, 20_000);
 
@@ -591,7 +593,7 @@ describe("Per-variant review-only receipt intake", () => {
   }
 
   it("retains only the exact installed review intakes and rejects variant/url/hash/schema mismatches", () => {
-    expect(Object.keys(REVIEWED_MOB_RECEIPTS)).toEqual(["base", "oathbound"]);
+    expect(Object.keys(REVIEWED_MOB_RECEIPTS).sort()).toEqual(["base", "oathbound", "ravager", "stalker"]);
     expect(REVIEWED_MOB_RECEIPTS.base).toBe(REVIEWED_BASE_MOB_RECEIPT);
     expect(REVIEWED_BASE_MOB_RECEIPT).toMatchObject({ url: REVIEWED_BASE_MOB_URL, bytes: 8823468,
       sha256: "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217", neutralHolds: ["Idle", "CombatIdle"] });
@@ -602,6 +604,22 @@ describe("Per-variant review-only receipt intake", () => {
       sha256: "b4039fcd931dcb2dadd48a2a9ee6eea2b123d3c1ddd0a85cc439cacc2f777747",
       runtimeScale: 2.05656927752596,
       actions: ["LungeAttack", "SpitAttack", "ClawAttack", "BiteAttack"], neutralHolds: ["Idle", "CombatIdle"],
+    });
+    expect(REVIEWED_MOB_RECEIPTS.stalker).toMatchObject({
+      url: "/assets/weapon-lab/mobs/breachling-stalker-approved-attacks-v1.glb",
+      runtimeSourceSha256: "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641",
+      bytes: 9764884,
+      sha256: "068d46cc64c17b7480870f8fa836602a2042ae32b7e6c338747f923d5efdca42",
+      runtimeScale: 2.253428958684859,
+      actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [],
+    });
+    expect(REVIEWED_MOB_RECEIPTS.ravager).toMatchObject({
+      url: "/assets/weapon-lab/mobs/breachling-ravager-approved-attacks-v1.glb",
+      runtimeSourceSha256: "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c",
+      bytes: 8606112,
+      sha256: "11f567a98d810001d262315bb97f7ec56789f502c2fe5e4fd6732966e147d97d",
+      runtimeScale: 1.6278343683021053,
+      actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"], neutralHolds: [],
     });
     for (const patch of [
       { variant: "stalker" }, { url: BREACHLING_RUNTIME_ASSETS.base.url },

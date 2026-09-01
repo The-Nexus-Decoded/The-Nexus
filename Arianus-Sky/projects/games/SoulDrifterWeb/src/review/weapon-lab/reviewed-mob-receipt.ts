@@ -62,6 +62,24 @@ export const REVIEWED_MOB_RECEIPTS = prepareReviewedMobReceipts({
     actions: ["LungeAttack", "SpitAttack", "ClawAttack", "BiteAttack"],
     neutralHolds: ["Idle", "CombatIdle"],
   },
+  stalker: {
+    variant: "stalker", url: "/assets/weapon-lab/mobs/breachling-stalker-approved-attacks-v1.glb",
+    runtimeSourceSha256: "1f61df8716b60dd376959dbff1295c708f770d3601cf9781263d1996f808a641",
+    bytes: 9764884,
+    sha256: "068d46cc64c17b7480870f8fa836602a2042ae32b7e6c338747f923d5efdca42",
+    runtimeScale: 2.253428958684859,
+    actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"],
+    neutralHolds: [],
+  },
+  ravager: {
+    variant: "ravager", url: "/assets/weapon-lab/mobs/breachling-ravager-approved-attacks-v1.glb",
+    runtimeSourceSha256: "cd8fa4f5daf6f789e80322fad2ed7df15cb7b6dcea0dec19c0d869478f08e22c",
+    bytes: 8606112,
+    sha256: "11f567a98d810001d262315bb97f7ec56789f502c2fe5e4fd6732966e147d97d",
+    runtimeScale: 1.6278343683021053,
+    actions: ["BiteAttack", "ClawAttack", "LungeAttack", "TailWhip", "SpitAttack"],
+    neutralHolds: [],
+  },
 });
 // Existing base-specific contact/provenance consumers retain their exact intake.
 export const REVIEWED_BASE_MOB_RECEIPT = REVIEWED_MOB_RECEIPTS.base!;
