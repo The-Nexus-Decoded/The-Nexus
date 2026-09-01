@@ -35,6 +35,11 @@ describe("review prop ownership and real contact surfaces", () => {
     expect(am.geometry).toBe(geometry); expect(am.material).not.toBe(bm.material);
     expect(am.material.map).toBe(sm.material.map); expect(am.material.aoMap).toBe(am.material.roughnessMap); expect(sm.material.aoMap).toBeNull();
     expect(a.contactSurface.snapshot()).toMatchObject({ meshes: 2, triangles: 2 }); // no foliage collider
+    expect(a.destroyed()).toBe(false); a.setDestroyed(true);
+    expect(a.destroyed()).toBe(true); expect(a.model.visible).toBe(false);
+    expect(a.contactSurface.snapshot()).toMatchObject({ meshes: 0, triangles: 0 });
+    expect(a.bounds().isEmpty()).toBe(false); a.setDestroyed(false);
+    expect(a.contactSurface.snapshot()).toMatchObject({ meshes: 2, triangles: 2 });
     a.place([5, 0, 3], Math.PI / 2); expect(b.root.position.toArray()).toEqual([0, 0, 0]);
     expect(a.contactSurface.bounds().getCenter(new THREE.Vector3()).x).toBeCloseTo(5);
     const releaseGeometry = vi.spyOn(geometry, "dispose"); a.dispose(); a.dispose();
@@ -130,6 +135,10 @@ it.each([
       prop.resetJoints(); expect(lid.quaternion.equals(original)).toBe(true);
       expect(prop.bounds().min.distanceTo(closed.min)).toBeLessThan(1e-12);
       expect(prop.bounds().max.distanceTo(closed.max)).toBeLessThan(1e-12);
+      prop.setDestroyed(true); expect(prop.destroyed()).toBe(true);
+      expect(prop.contactSurface.snapshot()).toMatchObject({ meshes: 0, triangles: 0 });
+      expect(prop.root.getObjectByName("actual-prop-diagnostic-debris")?.visible).toBe(true);
+      prop.setDestroyed(false); expect(prop.contactSurface.snapshot()).toMatchObject({ meshes: 3, triangles: 8482 });
       prop.dispose(); expect(() => prop.setJoint("lid", 2)).toThrow("disposed");
     } else if (id === "heavy-dungeon-door-review") {
       const hinge = prop.model.getObjectByName("heavy-door-hinge")!, frame = prop.model.getObjectByName("review-heavy-door-frame-0")!;

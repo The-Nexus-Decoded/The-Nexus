@@ -40,6 +40,8 @@ function fixture() {
       joints: () => joints,
       setJoint: vi.fn((id: string, value: number) => { joints.find((joint) => joint.id === id)!.value = value; }),
       resetJoints: vi.fn(() => joints.forEach((joint) => { joint.value = 0; })),
+      destroyed: vi.fn(() => !model.visible),
+      setDestroyed: vi.fn((value: boolean) => { model.visible = !value; contactSurface.update(); }),
       bounds: () => new THREE.Box3().setFromObject(root),
       place: vi.fn((position: readonly [number, number, number], yaw: number) => { root.position.fromArray(position); root.rotation.y = yaw; }),
       dispose: vi.fn(() => { root.removeFromParent(); contactSurface.dispose(); geometry.dispose(); material.dispose(); }) } as unknown as ReviewPropInstance;
@@ -104,6 +106,26 @@ describe("review prop panel", () => {
     f.panel.syncInteraction(snapshot(.8,"Interactions__HumanMasculineAthleticMuscularOpenDoorOutward"));
     expect(f.input("Door opening").value).toBe("-110");expect(diagnostic().textContent).toContain("no continuous contact, gameplay, damage, climbing or destruction approval");
     f.panel.dispose();
+  });
+  it("reuses shared runtime damage rules and removes destroyed chest contact without claiming final fracture approval", async () => {
+    const f=fixture();f.panel.setActive(true);f.control("asset").value="iron-bound-chest-draft";f.emit("spawn");
+    await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    const status=()=>f.element.find((node)=>node.textContent.includes("integrity")||node.textContent.includes("Destroyed"))!;
+    expect(status().textContent).toContain("10 / 10 integrity");
+    f.emit("damage");expect(status().textContent).toContain("6 / 10 integrity");
+    f.emit("damage");expect(status().textContent).toContain("2 / 10 integrity");
+    f.emit("damage");expect(f.instances[0]!.setDestroyed).toHaveBeenLastCalledWith(true);
+    expect(status().textContent).toContain("Destroyed · 0 / 10 integrity");
+    expect(status().textContent).toContain("no production fracture");expect(f.control("damage").disabled).toBe(true);
+    f.emit("reset-destruction");expect(f.instances[0]!.setDestroyed).toHaveBeenLastCalledWith(false);
+    expect(status().textContent).toContain("10 / 10 integrity");f.panel.dispose();
+  });
+  it("exposes the shared protected-door contract without enabling destructive damage", async () => {
+    const f=fixture();f.panel.setActive(true);f.control("asset").value="heavy-dungeon-door-review";f.emit("spawn");
+    await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    expect(f.control("damage").disabled).toBe(true);
+    expect(f.element.find((node)=>node.textContent.includes("Protected"))!.textContent).toContain("quest-critical");
+    f.emit("damage");expect(f.instances[0]!.setDestroyed).toHaveBeenLastCalledWith(false);f.panel.dispose();
   });
   it("reuses the source hands-and-feet rope climb to inspect tree support without inventing a tree animation", async () => {
     const f=fixture(),action="Interactions__HumanMasculineAthleticMuscularClimbRopeHandsFeet";

@@ -6,6 +6,13 @@ import { createReviewSwimVolume, measureReviewSwimPose, reviewSwimFrame, surveyR
   type ReviewSwimFrame, type ReviewSwimPoseDiagnostic, type ReviewSwimSurvey } from "./review-swim-diagnostics";
 import type { CombatReviewSnapshot, CombatSlot } from "./combat-review-controller";
 import type { ReviewActorAdapter } from "./combat-review-types";
+import { applyDestructibleHit, interactionCapability, type InteractiveKind } from "../../game/interactionFlow";
+
+function reviewDestructionKind(kind: string): InteractiveKind | null {
+  if (kind === "chest") return "chest";
+  if (kind === "door") return "gate";
+  return null;
+}
 
 /** Review-only prop placements. Never changes actors, their clock or dungeon state. */
 export class ReviewPropsPanel {
@@ -14,11 +21,15 @@ export class ReviewPropsPanel {
   private readonly doc: Document;
   private readonly factory: ReturnType<typeof createReviewPropFactory>;
   private readonly abort = new AbortController();
-  private readonly items = new Map<string, { instance: ReviewPropInstance; home: number }>();
+  private readonly items = new Map<string, { instance: ReviewPropInstance; home: number; hp: number; seed: number }>();
   private readonly asset: HTMLSelectElement;
   private readonly placed: HTMLSelectElement;
   private readonly placement: HTMLElement;
   private readonly articulation: HTMLElement;
+  private readonly destruction: HTMLElement;
+  private readonly destructionStatus: HTMLElement;
+  private readonly damage: HTMLButtonElement;
+  private readonly resetDestruction: HTMLButtonElement;
   private readonly jointFields = new Map<string, { input: HTMLInputElement; output: HTMLElement }>();
   private jointKey = "";
   private readonly fields: HTMLInputElement[] = [];
@@ -86,6 +97,13 @@ export class ReviewPropsPanel {
     button(buttons, "Frame prop", "frame"); button(buttons, "Reset placement", "reset");
     button(buttons, "Remove prop", "remove"); this.placement.append(buttons);
     this.articulation = node("div"); this.placement.append(this.articulation);
+    this.destruction = node("section"); this.destruction.className = "review-diagnostic-section";
+    this.destruction.append(node("h3", "Destruction diagnostic"));
+    this.destructionStatus = node("p"); this.destructionStatus.className = "context-note";
+    const destructionButtons = node("div"); destructionButtons.className = "buttons";
+    this.damage = button(destructionButtons, "Apply 4 damage", "damage");
+    this.resetDestruction = button(destructionButtons, "Reset integrity", "reset-destruction");
+    this.destruction.append(this.destructionStatus, destructionButtons); this.placement.append(this.destruction);
     this.status = node("p"); this.status.className = "context-note";
     this.status.setAttribute("role", "status"); this.status.setAttribute("aria-live", "polite");
     this.error = node("p"); this.error.setAttribute("role", "alert");
@@ -111,6 +129,15 @@ export class ReviewPropsPanel {
           this.home(selected.instance, selected.home); this.syncSelectedInteraction(true);
         } else if (selected && command === "reset-joints") {
           selected.instance.resetJoints(); this.syncSelectedInteraction(true);
+        } else if (selected && command === "damage") {
+          const kind = reviewDestructionKind(selected.instance.definition.kind);
+          if (kind) {
+            const result = applyDestructibleHit({ kind, hp: selected.hp, damage: 4, seed: selected.seed });
+            selected.hp = result.hp; selected.instance.setDestroyed(result.destroyed); this.syncSelectedInteraction(true);
+          }
+        } else if (selected && command === "reset-destruction") {
+          const kind = reviewDestructionKind(selected.instance.definition.kind), capability = kind && interactionCapability(kind);
+          selected.hp = capability?.maxHp ?? 0; selected.instance.setDestroyed(false); this.syncSelectedInteraction(true);
         } else if (selected && command === "remove") {
           selected.instance.dispose(); this.items.delete(selected.instance.instanceId); this.populate(); this.syncSelectedInteraction(true);
         }
@@ -151,7 +178,7 @@ export class ReviewPropsPanel {
     this.placed.value = this.items.has(selected) ? selected : this.items.keys().next().value ?? "";
   }
   private refresh(force = false) {
-    const selected = this.items.get(this.placed.value)?.instance;
+    const selectedEntry = this.items.get(this.placed.value), selected = selectedEntry?.instance;
     this.element.hidden = !this.active; this.root.visible = this.active;
     this.spawn.disabled = !this.active || !!this.pending || this.items.size >= REVIEW_PROP_LIMIT;
     this.spawn.textContent = this.pending ? "Loading prop…" : "Spawn prop";
@@ -162,6 +189,17 @@ export class ReviewPropsPanel {
     this.diagnostic.hidden = !selected || !["chest", "door", "tree"].includes(selected.definition.kind);
     this.diagnostic.dataset.interactionState = this.interactionDiagnostic?.state ?? "unavailable";
     this.diagnostic.textContent = this.interactionDiagnostic?.label ?? "Interaction diagnostic UNAVAILABLE — select an interactive prop and matching source action on the shared timeline.";
+    const destructionKind = selected ? reviewDestructionKind(selected.definition.kind) : null;
+    const capability = destructionKind ? interactionCapability(destructionKind) : null;
+    this.destruction.hidden = !selected || !capability;
+    this.damage.disabled = !capability?.destructible || !!selected?.destroyed();
+    this.resetDestruction.disabled = !capability?.destructible || (!selected?.destroyed() && selectedEntry?.hp === capability?.maxHp);
+    this.destructionStatus.textContent = !capability ? ""
+      : capability.destructible
+        ? selected?.destroyed()
+          ? `Destroyed · 0 / ${capability.maxHp} integrity. Rendered contact geometry is removed and deterministic PBR debris is shown. Diagnostic only; no production fracture, drop or gameplay approval.`
+          : `${selectedEntry?.hp ?? capability.maxHp} / ${capability.maxHp} integrity. Damage uses the shared runtime destruction rule; the intact source mesh remains authoritative until zero.`
+        : `Protected · ${capability.protectionReason ?? "structural or progression authority"}`;
     this.swimSection.hidden = !this.active || !this.swimFrame;
     this.swimVolume.root.visible = this.active && !!this.swimFrame;
     this.swimDiagnostic.dataset.swimState = this.swimCurrent?.state ?? "unavailable";
@@ -206,7 +244,9 @@ export class ReviewPropsPanel {
       if (this.disposed || this.pending !== job || job.abort.signal.aborted || !this.active) { instance.dispose(); return; }
       const occupied = new Set([...this.items.values()].map((entry) => entry.home));
       const home = Array.from({ length: REVIEW_PROP_LIMIT }, (_, index) => index).find((value) => !occupied.has(value))!;
-      this.home(instance, home); this.items.set(instance.instanceId, { instance, home }); this.root.add(instance.root);
+      const kind = reviewDestructionKind(instance.definition.kind), capability = kind ? interactionCapability(kind) : null;
+      this.home(instance, home); this.items.set(instance.instanceId, { instance, home,
+        hp: capability?.maxHp ?? 0, seed: this.serial * 31 }); this.root.add(instance.root);
       this.populate(instance.instanceId); this.syncSelectedInteraction(true); frame?.(instance.bounds());
     } catch (error) {
       if (!job.abort.signal.aborted && !this.disposed && this.pending === job) this.error.textContent = String(error);

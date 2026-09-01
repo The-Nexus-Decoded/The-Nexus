@@ -22,6 +22,8 @@ export interface ReviewPropInstance {
   joints(): readonly ReviewPropJointControl[];
   setJoint(id: string, degrees: number): void;
   resetJoints(): void;
+  destroyed(): boolean;
+  setDestroyed(value: boolean): void;
   dispose(): void;
 }
 
@@ -78,6 +80,7 @@ export function createReviewPropFactory(options: {
       pending.add(instanceId);
       const materials = new Set<THREE.Material>();
       const ownedGeometries = new Set<THREE.BufferGeometry>();
+      let debrisMaterial: THREE.MeshStandardMaterial | null = null;
       let contactSurface: ReviewContactSurface | undefined;
       try {
         const gltf = await source(definition);
@@ -115,6 +118,7 @@ export function createReviewPropFactory(options: {
           const clones = (Array.isArray(object.material) ? object.material : [object.material]).map((sourceMaterial) => {
             const material = sourceMaterial.clone(); materials.add(material);
             foundMaterials.add(material.name);
+            if (!debrisMaterial && material instanceof THREE.MeshStandardMaterial) debrisMaterial = material;
             if (definition.armMaterials.includes(material.name)) {
               if (!(material instanceof THREE.MeshStandardMaterial) || !material.map || !material.normalMap || !material.roughnessMap) {
                 throw new Error("Reviewed prop is missing original PBR maps");
@@ -141,9 +145,27 @@ export function createReviewPropFactory(options: {
         // Keep the authored X/Z origin and scale; only seat the measured base.
         const localBounds = renderedBounds(root), floorOffset = -localBounds.min.y;
         model.position.y += floorOffset; localBounds.translate(new THREE.Vector3(0, floorOffset, 0));
+        if (!debrisMaterial) throw new Error("Reviewed prop has no PBR material for destruction diagnostics");
+        const debris = new THREE.Group(); debris.name = `${instanceId}-diagnostic-debris`; debris.visible = false;
+        const size = localBounds.getSize(new THREE.Vector3()), center = localBounds.getCenter(new THREE.Vector3());
+        const debrisGeometry = new THREE.BoxGeometry(
+          Math.max(.035, size.x * .16), Math.max(.035, size.y * .12), Math.max(.035, size.z * .16));
+        ownedGeometries.add(debrisGeometry);
+        for (let index = 0; index < 9; index++) {
+          const piece = new THREE.Mesh(debrisGeometry, debrisMaterial);
+          const angle = (index / 9) * Math.PI * 2, radius = .18 + (index % 3) * .11;
+          piece.name = `${instanceId}-diagnostic-debris-${index + 1}`;
+          piece.position.set(center.x + Math.cos(angle) * size.x * radius,
+            Math.max(size.y * .05, size.y * (.06 + (index % 3) * .045)),
+            center.z + Math.sin(angle) * size.z * radius);
+          piece.rotation.set((index % 2 ? 1 : -1) * .24, angle, (index % 3 - 1) * .31);
+          piece.scale.set(1 + (index % 2) * .35, 1 + ((index + 1) % 3) * .22, 1 + (index % 3) * .18);
+          piece.castShadow = true; piece.receiveShadow = true; debris.add(piece);
+        }
+        root.add(debris);
         contactSurface = new ReviewContactSurface(root, (mesh) => definition.contactMeshes.includes(mesh.name));
         contactSurface.update();
-        let released = false;
+        let released = false, isDestroyed = false;
         const refreshPose = () => { contactSurface!.update(); localBounds.copy(renderedBounds(root, true)); };
         const instance: ReviewPropInstance = { instanceId, definition, root, model, contactSurface,
           bounds() { root.updateWorldMatrix(true, true); return localBounds.clone().applyMatrix4(root.matrixWorld); },
@@ -165,6 +187,11 @@ export function createReviewPropFactory(options: {
             if (released) throw new Error("Review prop disposed");
             for (const joint of joints) { joint.value = 0; joint.node.quaternion.copy(joint.rest); }
             refreshPose();
+          },
+          destroyed() { return isDestroyed; },
+          setDestroyed(value) {
+            if (released) throw new Error("Review prop disposed");
+            isDestroyed = Boolean(value); model.visible = !isDestroyed; debris.visible = isDestroyed; refreshPose();
           },
           dispose() {
             if (released) return; released = true; root.removeFromParent(); contactSurface!.dispose();
