@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "status": "new-source-grounded-proposal-not-motion-approval",
+  "fps": 30,
+  "designReference": {
+    "path": "docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/wayfarer-cinderbound-warden-gpt-image-2-design-reference.png",
+    "sha256": "6d6be3c5a44f5850be43d3e74fe20a11e8e465e55a21ebaa0fa27d627e50a859",
+    "mechanics": ["CINDER-SWEEP","ASH-CALL","SOUL-TAX","FURNACE SHUTDOWN"]
+  },
+  "boneContract": ["root","pelvis","spine","chest","neck","head","upper_arm_L","lower_arm_L","hand_L","upper_arm_R","lower_arm_R","hand_R","thigh_L","lower_leg_L","foot_L","thigh_R","lower_leg_R","foot_R"],
+  "rules": {
+    "phaseCount": 8,
+    "poseSpace": "rest-relative-local-euler-degrees",
+    "rootLocationSpace": "Imported root-bone local meters; X is forward and Y is vertical for these owned authoring rigs",
+    "handTargetSpace": "Root-head-relative Blender world meters; X is forward, Y is lateral, and Z is vertical",
+    "surfaceGrounding": "Generator bakes actual four-mesh surface contact at 30 Hz; no runtime grounding",
+    "sharedMotion": "One recipe, evaluated separately against each model's own bind/rest/PBR/weights",
+    "forbiddenClaims": ["recovered approved eight-pose sheet","contact approval","damage timing approval","gameplay approval"]
+  },
+  "clips": [
+    {
+      "name": "BladeSweep", "label": "Quick integrated-blade sweep", "semantic": "melee", "loop": false, "durationFrames": 60,
+      "phases": [
+        {"id":"guard","frame":1,"bones":{"spine":{"rotation":[4,0,-4]},"upper_arm_R":{"rotation":[-10,0,-8]},"lower_arm_R":{"rotation":[10,0,0]},"thigh_L":{"rotation":[5,0,0]},"thigh_R":{"rotation":[-5,0,0]}}},
+        {"id":"anticipation","frame":8,"bones":{"root":{"location":[-0.03,0,0]},"pelvis":{"rotation":[0,0,-6]},"spine":{"rotation":[6,0,-14]},"upper_arm_R":{"rotation":[-22,0,12]},"lower_arm_R":{"rotation":[18,0,8]},"upper_arm_L":{"rotation":[-8,0,-8]}}},
+        {"id":"load","frame":15,"bones":{"root":{"location":[-0.08,0,0]},"pelvis":{"rotation":[0,0,-10]},"spine":{"rotation":[8,0,-24]},"chest":{"rotation":[0,0,-10]},"upper_arm_R":{"rotation":[-34,0,22]},"lower_arm_R":{"rotation":[24,0,12]},"thigh_R":{"rotation":[10,0,0]},"lower_leg_R":{"rotation":[-12,0,0]}}},
+        {"id":"step","frame":22,"bones":{"root":{"location":[0.12,0,0]},"pelvis":{"rotation":[0,0,-3]},"spine":{"rotation":[8,0,-10]},"upper_arm_R":{"rotation":[-18,0,12]},"lower_arm_R":{"rotation":[12,0,4]},"thigh_L":{"rotation":[-10,0,0]},"thigh_R":{"rotation":[14,0,0]}}},
+        {"id":"contact","frame":31,"bones":{"root":{"location":[0.38,0,0]},"pelvis":{"rotation":[0,0,14]},"spine":{"rotation":[10,0,36]},"chest":{"rotation":[0,0,12]},"upper_arm_R":{"rotation":[34,0,-30]},"lower_arm_R":{"rotation":[-16,0,-12]},"upper_arm_L":{"rotation":[-18,0,-14]},"thigh_L":{"rotation":[-16,0,0]},"lower_leg_L":{"rotation":[-14,0,0]}}},
+        {"id":"follow-through","frame":40,"bones":{"root":{"location":[0.44,0,0]},"pelvis":{"rotation":[0,0,18]},"spine":{"rotation":[8,0,42]},"upper_arm_R":{"rotation":[42,0,-34]},"lower_arm_R":{"rotation":[-22,0,-14]},"head":{"rotation":[0,0,-10]}}},
+        {"id":"recenter","frame":50,"bones":{"root":{"location":[0.18,0,0]},"pelvis":{"rotation":[0,0,5]},"spine":{"rotation":[5,0,12]},"upper_arm_R":{"rotation":[8,0,-12]},"lower_arm_R":{"rotation":[6,0,0]}}},
+        {"id":"guard-return","frame":60,"bones":{"spine":{"rotation":[4,0,-4]},"upper_arm_R":{"rotation":[-10,0,-8]},"lower_arm_R":{"rotation":[10,0,0]},"thigh_L":{"rotation":[5,0,0]},"thigh_R":{"rotation":[-5,0,0]}}}
+      ]
+    },
+    {
+      "name": "CinderSweep", "label": "Heavy next-square cinder sweep", "semantic": "melee", "loop": false, "durationFrames": 84,
+      "phases": [
+        {"id":"guard","frame":1,"bones":{"spine":{"rotation":[6,0,-5]},"upper_arm_R":{"rotation":[-14,0,-10]},"lower_arm_R":{"rotation":[12,0,0]}}},
+        {"id":"sink","frame":12,"bones":{"root":{"location":[-0.04,0,0]},"pelvis":{"rotation":[8,0,-6]},"spine":{"rotation":[10,0,-14]},"thigh_L":{"rotation":[14,0,0]},"thigh_R":{"rotation":[14,0,0]},"lower_leg_L":{"rotation":[-16,0,0]},"lower_leg_R":{"rotation":[-16,0,0]}}},
+        {"id":"full-load","frame":24,"bones":{"root":{"location":[-0.14,0,0]},"pelvis":{"rotation":[8,0,-14]},"spine":{"rotation":[12,0,-34]},"chest":{"rotation":[0,0,-12]},"upper_arm_R":{"rotation":[-42,0,30]},"lower_arm_R":{"rotation":[28,0,14]},"upper_arm_L":{"rotation":[-14,0,-12]},"head":{"rotation":[0,0,12]}}},
+        {"id":"driving-step","frame":36,"bones":{"root":{"location":[0.18,0,0]},"pelvis":{"rotation":[4,0,-5]},"spine":{"rotation":[12,0,-12]},"upper_arm_R":{"rotation":[-24,0,18]},"lower_arm_R":{"rotation":[14,0,6]},"thigh_L":{"rotation":[-18,0,0]},"thigh_R":{"rotation":[20,0,0]},"lower_leg_L":{"rotation":[-12,0,0]}}},
+        {"id":"next-square-contact","frame":48,"bones":{"root":{"location":[0.62,0,0]},"pelvis":{"rotation":[0,0,20]},"spine":{"rotation":[12,0,48]},"chest":{"rotation":[0,0,16]},"upper_arm_R":{"rotation":[42,0,-38]},"lower_arm_R":{"rotation":[-20,0,-16]},"upper_arm_L":{"rotation":[-24,0,-18]},"thigh_L":{"rotation":[-22,0,0]},"lower_leg_L":{"rotation":[-16,0,0]}}},
+        {"id":"powered-follow-through","frame":60,"bones":{"root":{"location":[0.72,0,0]},"pelvis":{"rotation":[0,0,24]},"spine":{"rotation":[8,0,56]},"upper_arm_R":{"rotation":[50,0,-44]},"lower_arm_R":{"rotation":[-26,0,-20]},"head":{"rotation":[0,0,-16]}}},
+        {"id":"recovery","frame":72,"bones":{"root":{"location":[0.28,0,0]},"pelvis":{"rotation":[2,0,8]},"spine":{"rotation":[6,0,16]},"upper_arm_R":{"rotation":[12,0,-14]},"lower_arm_R":{"rotation":[8,0,0]}}},
+        {"id":"guard-return","frame":84,"bones":{"spine":{"rotation":[6,0,-5]},"upper_arm_R":{"rotation":[-14,0,-10]},"lower_arm_R":{"rotation":[12,0,0]}}}
+      ]
+    },
+    {
+      "name": "PalmFire", "label": "Left-aperture fire projection", "semantic": "ranged", "loop": false, "durationFrames": 90,
+      "phases": [
+        {"id":"guard","frame":1,"bones":{"spine":{"rotation":[5,0,4]},"upper_arm_L":{"rotation":[-12,0,8]},"lower_arm_L":{"rotation":[18,0,0]}}},
+        {"id":"target-acquisition","frame":12,"bones":{"pelvis":{"rotation":[0,0,5]},"spine":{"rotation":[7,0,10]},"neck":{"rotation":[0,0,-6]},"head":{"rotation":[0,0,-10]},"upper_arm_L":{"rotation":[-24,0,-8]},"lower_arm_L":{"rotation":[34,0,4]}},"handTargets":{"hand_L":[0.18,0.34,0.50]}},
+        {"id":"aperture-raise","frame":24,"bones":{"root":{"location":[-0.03,0,0]},"spine":{"rotation":[10,0,12]},"upper_arm_L":{"rotation":[-42,0,-18]},"lower_arm_L":{"rotation":[48,0,8]},"hand_L":{"rotation":[-10,0,0]},"upper_arm_R":{"rotation":[-10,0,12]}},"handTargets":{"hand_L":[0.28,0.32,0.58]}},
+        {"id":"brace","frame":40,"bones":{"root":{"location":[-0.08,0,0]},"pelvis":{"rotation":[6,0,8]},"spine":{"rotation":[12,0,14]},"upper_arm_L":{"rotation":[-56,0,-22]},"lower_arm_L":{"rotation":[62,0,10]},"hand_L":{"rotation":[-16,0,0]},"thigh_L":{"rotation":[10,0,0]},"thigh_R":{"rotation":[10,0,0]}},"handTargets":{"hand_L":[0.245,0.30,0.55]}},
+        {"id":"fire-release","frame":52,"bones":{"root":{"location":[0.12,0,0]},"pelvis":{"rotation":[4,0,6]},"spine":{"rotation":[14,0,8]},"upper_arm_L":{"rotation":[-66,0,-16]},"lower_arm_L":{"rotation":[72,0,4]},"hand_L":{"rotation":[-20,0,0]},"upper_arm_R":{"rotation":[-18,0,16]}},"handTargets":{"hand_L":[0.238,0.27,0.528]}},
+        {"id":"recoil","frame":66,"bones":{"root":{"location":[-0.04,0,0]},"spine":{"rotation":[4,0,10]},"upper_arm_L":{"rotation":[-48,0,-18]},"lower_arm_L":{"rotation":[54,0,8]},"head":{"rotation":[-6,0,-8]}},"handTargets":{"hand_L":[0.24,0.31,0.54]}},
+        {"id":"lower-aperture","frame":78,"bones":{"spine":{"rotation":[6,0,6]},"upper_arm_L":{"rotation":[-26,0,-8]},"lower_arm_L":{"rotation":[30,0,2]}},"handTargets":{"hand_L":[0.14,0.35,0.49]}},
+        {"id":"guard-return","frame":90,"bones":{"spine":{"rotation":[5,0,4]},"upper_arm_L":{"rotation":[-12,0,8]},"lower_arm_L":{"rotation":[18,0,0]}}}
+      ]
+    },
+    {
+      "name": "AshCall", "label": "Furnace vent and ash expulsion", "semantic": "area", "loop": false, "durationFrames": 108,
+      "phases": [
+        {"id":"sealed","frame":1,"bones":{"spine":{"rotation":[3,0,0]},"upper_arm_L":{"rotation":[-8,0,-6]},"upper_arm_R":{"rotation":[-8,0,6]}}},
+        {"id":"sink-and-inhale","frame":14,"bones":{"root":{"location":[0,0,0]},"pelvis":{"rotation":[8,0,0]},"spine":{"rotation":[-8,0,0]},"head":{"rotation":[-10,0,0]},"thigh_L":{"rotation":[14,0,0]},"thigh_R":{"rotation":[14,0,0]},"lower_leg_L":{"rotation":[-16,0,0]},"lower_leg_R":{"rotation":[-16,0,0]}}},
+        {"id":"vent-open","frame":30,"bones":{"root":{"location":[0,0,0]},"pelvis":{"rotation":[6,0,0]},"spine":{"rotation":[-16,0,0]},"chest":{"rotation":[-10,0,0]},"upper_arm_L":{"rotation":[-34,0,-22]},"lower_arm_L":{"rotation":[22,0,-10]},"upper_arm_R":{"rotation":[-34,0,22]},"lower_arm_R":{"rotation":[22,0,10]},"head":{"rotation":[-18,0,0]}}},
+        {"id":"frame-wide-draw","frame":46,"bones":{"root":{"location":[0,0,0]},"spine":{"rotation":[-20,0,0]},"chest":{"rotation":[-14,0,0]},"upper_arm_L":{"rotation":[-52,0,-34]},"lower_arm_L":{"rotation":[12,0,-18]},"upper_arm_R":{"rotation":[-52,0,34]},"lower_arm_R":{"rotation":[12,0,18]},"head":{"rotation":[-22,0,0]}}},
+        {"id":"ash-expulsion","frame":62,"bones":{"root":{"location":[0.08,0,0]},"pelvis":{"rotation":[0,0,0]},"spine":{"rotation":[12,0,0]},"chest":{"rotation":[8,0,0]},"upper_arm_L":{"rotation":[-66,0,-42]},"lower_arm_L":{"rotation":[-8,0,-22]},"upper_arm_R":{"rotation":[-66,0,42]},"lower_arm_R":{"rotation":[-8,0,22]},"head":{"rotation":[12,0,0]}}},
+        {"id":"vent-hold","frame":78,"bones":{"root":{"location":[0.05,0,0]},"spine":{"rotation":[8,0,0]},"upper_arm_L":{"rotation":[-58,0,-38]},"lower_arm_L":{"rotation":[0,0,-18]},"upper_arm_R":{"rotation":[-58,0,38]},"lower_arm_R":{"rotation":[0,0,18]}}},
+        {"id":"vent-close","frame":94,"bones":{"spine":{"rotation":[2,0,0]},"upper_arm_L":{"rotation":[-26,0,-14]},"lower_arm_L":{"rotation":[16,0,-6]},"upper_arm_R":{"rotation":[-26,0,14]},"lower_arm_R":{"rotation":[16,0,6]}}},
+        {"id":"sealed-return","frame":108,"bones":{"spine":{"rotation":[3,0,0]},"upper_arm_L":{"rotation":[-8,0,-6]},"upper_arm_R":{"rotation":[-8,0,6]}}}
+      ]
+    },
+    {
+      "name": "SoulTax", "label": "Left-palm siphon and slowing hold", "semantic": "siphon", "loop": false, "durationFrames": 120,
+      "phases": [
+        {"id":"guard","frame":1,"bones":{"spine":{"rotation":[5,0,4]},"upper_arm_L":{"rotation":[-12,0,8]},"lower_arm_L":{"rotation":[18,0,0]}}},
+        {"id":"lock-target","frame":16,"bones":{"pelvis":{"rotation":[0,0,6]},"spine":{"rotation":[8,0,12]},"neck":{"rotation":[0,0,-8]},"head":{"rotation":[0,0,-12]},"upper_arm_L":{"rotation":[-26,0,-10]},"lower_arm_L":{"rotation":[38,0,5]}}},
+        {"id":"open-palm","frame":34,"bones":{"root":{"location":[0.02,0,0]},"spine":{"rotation":[10,0,14]},"upper_arm_L":{"rotation":[-48,0,-20]},"lower_arm_L":{"rotation":[58,0,8]},"hand_L":{"rotation":[-18,0,0]},"upper_arm_R":{"rotation":[-16,0,14]}},"handTargets":{"hand_L":[0.26,0.32,0.52]}},
+        {"id":"ring-convergence","frame":52,"bones":{"root":{"location":[0.1,0,0]},"pelvis":{"rotation":[5,0,8]},"spine":{"rotation":[14,0,12]},"upper_arm_L":{"rotation":[-62,0,-18]},"lower_arm_L":{"rotation":[70,0,4]},"hand_L":{"rotation":[-24,0,0]},"thigh_L":{"rotation":[10,0,0]},"thigh_R":{"rotation":[10,0,0]}},"handTargets":{"hand_L":[0.25,0.28,0.528]}},
+        {"id":"siphon-hold","frame":70,"bones":{"root":{"location":[0.16,0,0]},"pelvis":{"rotation":[5,0,6]},"spine":{"rotation":[16,0,10]},"upper_arm_L":{"rotation":[-68,0,-14]},"lower_arm_L":{"rotation":[76,0,2]},"hand_L":{"rotation":[-28,0,0]},"upper_arm_R":{"rotation":[-24,0,18]},"head":{"rotation":[4,0,-8]}},"handTargets":{"hand_L":[0.265,0.263,0.526]}},
+        {"id":"drain-pulse","frame":88,"bones":{"root":{"location":[0.18,0,0]},"spine":{"rotation":[18,0,8]},"upper_arm_L":{"rotation":[-72,0,-12]},"lower_arm_L":{"rotation":[80,0,0]},"hand_L":{"rotation":[-30,0,0]},"upper_arm_R":{"rotation":[-28,0,20]}},"handTargets":{"hand_L":[0.29,0.26,0.50]}},
+        {"id":"release","frame":104,"bones":{"root":{"location":[0.04,0,0]},"spine":{"rotation":[8,0,8]},"upper_arm_L":{"rotation":[-34,0,-12]},"lower_arm_L":{"rotation":[42,0,4]},"head":{"rotation":[-4,0,-4]}},"handTargets":{"hand_L":[0.20,0.33,0.51]}},
+        {"id":"guard-return","frame":120,"bones":{"spine":{"rotation":[5,0,4]},"upper_arm_L":{"rotation":[-12,0,8]},"lower_arm_L":{"rotation":[18,0,0]}}}
+      ]
+    },
+    {
+      "name": "FurnaceShutdown", "label": "Interrupted shutdown vulnerability", "semantic": "vulnerability", "loop": false, "durationFrames": 120,
+      "phases": [
+        {"id":"powered","frame":1,"bones":{"spine":{"rotation":[4,0,0]},"upper_arm_L":{"rotation":[-10,0,-6]},"upper_arm_R":{"rotation":[-10,0,6]}}},
+        {"id":"interruption","frame":18,"bones":{"root":{"location":[-0.03,0,0],"rotation":[0,0,-2]},"spine":{"rotation":[0,0,-4]},"head":{"rotation":[0,0,3]},"upper_arm_L":{"rotation":[16,0,-10]},"upper_arm_R":{"rotation":[16,0,10]}}},
+        {"id":"valves-expose","frame":36,"bones":{"root":{"location":[-0.05,0,0],"rotation":[0,0,-3]},"pelvis":{"rotation":[0,0,-4]},"spine":{"rotation":[0,0,-6]},"chest":{"rotation":[0,0,-4]},"upper_arm_L":{"rotation":[28,0,-22]},"lower_arm_L":{"rotation":[-28,0,-10]},"upper_arm_R":{"rotation":[28,0,22]},"lower_arm_R":{"rotation":[-28,0,10]},"thigh_L":{"rotation":[0,0,-24]},"thigh_R":{"rotation":[0,0,-24]},"lower_leg_L":{"rotation":[0,0,38]},"lower_leg_R":{"rotation":[0,0,38]}}},
+        {"id":"kneel","frame":54,"bones":{"root":{"location":[-0.06,0,0],"rotation":[0,0,-4]},"pelvis":{"rotation":[0,0,-8]},"spine":{"rotation":[0,0,-12]},"chest":{"rotation":[0,0,-6]},"upper_arm_L":{"rotation":[38,0,-30]},"lower_arm_L":{"rotation":[-36,0,-12]},"upper_arm_R":{"rotation":[38,0,30]},"lower_arm_R":{"rotation":[-36,0,12]},"head":{"rotation":[0,0,7]},"thigh_L":{"rotation":[0,0,-42]},"thigh_R":{"rotation":[0,0,-42]},"lower_leg_L":{"rotation":[0,0,70]},"lower_leg_R":{"rotation":[0,0,70]}}},
+        {"id":"vulnerable-hold","frame":72,"bones":{"root":{"location":[-0.06,0,0],"rotation":[0,0,-4]},"pelvis":{"rotation":[0,0,-8]},"spine":{"rotation":[0,0,-14]},"chest":{"rotation":[0,0,-8]},"upper_arm_L":{"rotation":[42,0,-34]},"lower_arm_L":{"rotation":[-40,0,-14]},"upper_arm_R":{"rotation":[42,0,34]},"lower_arm_R":{"rotation":[-40,0,14]},"head":{"rotation":[0,0,8]},"thigh_L":{"rotation":[0,0,-44]},"thigh_R":{"rotation":[0,0,-44]},"lower_leg_L":{"rotation":[0,0,72]},"lower_leg_R":{"rotation":[0,0,72]}}},
+        {"id":"reignite","frame":88,"bones":{"root":{"location":[-0.04,0,0],"rotation":[0,0,-3]},"pelvis":{"rotation":[0,0,-5]},"spine":{"rotation":[0,0,-8]},"upper_arm_L":{"rotation":[26,0,-20]},"upper_arm_R":{"rotation":[26,0,20]},"thigh_L":{"rotation":[0,0,-28]},"thigh_R":{"rotation":[0,0,-28]},"lower_leg_L":{"rotation":[0,0,46]},"lower_leg_R":{"rotation":[0,0,46]}}},
+        {"id":"rise","frame":104,"bones":{"root":{"location":[-0.01,0,0],"rotation":[0,0,-1]},"spine":{"rotation":[0,0,-3]},"upper_arm_L":{"rotation":[4,0,-8]},"upper_arm_R":{"rotation":[4,0,8]},"thigh_L":{"rotation":[0,0,-10]},"thigh_R":{"rotation":[0,0,-10]},"lower_leg_L":{"rotation":[0,0,14]},"lower_leg_R":{"rotation":[0,0,14]}}},
+        {"id":"powered-return","frame":120,"bones":{"spine":{"rotation":[4,0,0]},"upper_arm_L":{"rotation":[-10,0,-6]},"upper_arm_R":{"rotation":[-10,0,6]}}}
+      ]
+    },
+    {
+      "name": "DeathCollapse", "label": "Staged mechanical collapse", "semantic": "death", "loop": false, "durationFrames": 108,
+      "phases": [
+        {"id":"fatal-hit","frame":1,"bones":{"spine":{"rotation":[4,0,0]},"upper_arm_L":{"rotation":[-10,0,-6]},"upper_arm_R":{"rotation":[-10,0,6]}}},
+        {"id":"core-failure","frame":16,"bones":{"root":{"location":[-0.02,0,0],"rotation":[8,0,-4]},"spine":{"rotation":[6,0,-4]},"head":{"rotation":[-4,0,4]},"upper_arm_L":{"rotation":[20,0,-18]},"upper_arm_R":{"rotation":[-16,0,20]}}},
+        {"id":"left-knee-buckle","frame":32,"bones":{"root":{"location":[-0.03,0,0],"rotation":[12,0,-6]},"pelvis":{"rotation":[4,0,-4]},"spine":{"rotation":[6,0,-6]},"thigh_L":{"rotation":[0,0,-34]},"lower_leg_L":{"rotation":[0,0,48]},"thigh_R":{"rotation":[0,0,-14]},"lower_leg_R":{"rotation":[0,0,20]},"upper_arm_L":{"rotation":[32,0,-28]},"upper_arm_R":{"rotation":[-24,0,24]}}},
+        {"id":"both-knees-down","frame":48,"bones":{"root":{"location":[0,0,0],"rotation":[25,0,-8]},"pelvis":{"rotation":[5,0,-6]},"spine":{"rotation":[8,0,-8]},"thigh_L":{"rotation":[0,0,-44]},"lower_leg_L":{"rotation":[0,0,62]},"thigh_R":{"rotation":[0,0,-40]},"lower_leg_R":{"rotation":[0,0,58]},"upper_arm_L":{"rotation":[42,0,-34]},"upper_arm_R":{"rotation":[-32,0,30]},"head":{"rotation":[-6,0,8]}}},
+        {"id":"hands-brace","frame":64,"bones":{"root":{"location":[0.06,0,0],"rotation":[45,0,-10]},"pelvis":{"rotation":[6,0,-8]},"spine":{"rotation":[10,0,-10]},"upper_arm_L":{"rotation":[-56,0,-34]},"lower_arm_L":{"rotation":[70,0,-10]},"upper_arm_R":{"rotation":[-52,0,34]},"lower_arm_R":{"rotation":[66,0,10]},"thigh_L":{"rotation":[0,0,-48]},"lower_leg_L":{"rotation":[0,0,66]},"thigh_R":{"rotation":[0,0,-46]},"lower_leg_R":{"rotation":[0,0,64]},"head":{"rotation":[-8,0,10]}}},
+        {"id":"torso-collapse","frame":80,"bones":{"root":{"location":[0.14,0,0],"rotation":[85,0,-12]},"pelvis":{"rotation":[6,0,-10]},"spine":{"rotation":[10,0,-12]},"chest":{"rotation":[3,0,-6]},"upper_arm_L":{"rotation":[-68,0,-28]},"lower_arm_L":{"rotation":[82,0,-6]},"upper_arm_R":{"rotation":[-30,0,28]},"lower_arm_R":{"rotation":[45,0,6]},"thigh_L":{"rotation":[0,0,-52]},"lower_leg_L":{"rotation":[0,0,70]},"thigh_R":{"rotation":[0,0,-50]},"lower_leg_R":{"rotation":[0,0,68]},"head":{"rotation":[-4,0,12]}}},
+        {"id":"impact-settle","frame":96,"bones":{"root":{"location":[0.18,0,0],"rotation":[110,0,-14]},"pelvis":{"rotation":[4,0,-12]},"spine":{"rotation":[5,0,-14]},"chest":{"rotation":[2,0,-8]},"upper_arm_L":{"rotation":[-74,0,-20]},"lower_arm_L":{"rotation":[88,0,0]},"upper_arm_R":{"rotation":[-10,0,20]},"lower_arm_R":{"rotation":[30,0,0]},"thigh_L":{"rotation":[0,0,-54]},"lower_leg_L":{"rotation":[0,0,72]},"thigh_R":{"rotation":[0,0,-52]},"lower_leg_R":{"rotation":[0,0,70]},"head":{"rotation":[8,0,14]}}},
+        {"id":"final-rest","frame":108,"bones":{"root":{"location":[0.18,0,0],"rotation":[122,0,-15]},"pelvis":{"rotation":[2,0,-12]},"spine":{"rotation":[2,0,-14]},"chest":{"rotation":[0,0,-8]},"upper_arm_L":{"rotation":[-76,0,-18]},"lower_arm_L":{"rotation":[90,0,0]},"upper_arm_R":{"rotation":[0,0,18]},"lower_arm_R":{"rotation":[28,0,0]},"thigh_L":{"rotation":[0,0,-54]},"lower_leg_L":{"rotation":[0,0,72]},"thigh_R":{"rotation":[0,0,-52]},"lower_leg_R":{"rotation":[0,0,70]},"head":{"rotation":[12,0,15]}}}
+      ]
+    }
+  ]
+}
