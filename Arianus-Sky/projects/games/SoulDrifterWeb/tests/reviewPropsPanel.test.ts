@@ -83,6 +83,21 @@ describe("review prop panel", () => {
     z.value="3";f.element.emit("input",z);expect(diagnostic().dataset.interactionState).toBe("clear");
     expect(diagnostic().textContent).toContain("NO CONTACT at 8 mm tolerance");f.panel.dispose();
   });
+  it("maps inward and outward source door clips to one shared-clock hinge without claiming gameplay", async () => {
+    const f=fixture(),inward="Interactions__HumanMasculineAthleticMuscularOpenDoorInward";
+    f.panel.setActive(true);f.control("asset").value="heavy-dungeon-door-review";f.emit("spawn");
+    await vi.waitFor(()=>expect(f.instances).toHaveLength(1));
+    const snapshot=(phase:number,action=inward)=>({active:true,ready:true,frame:{timeSeconds:phase*10,actors:[{actorId:"actor-a"}]},
+      slots:[{slot:"a",definitionId:"human:environment",selected:{action},actions:[{id:action,durationSeconds:10}]}]}) as never;
+    f.panel.syncInteraction(snapshot(.41));expect(f.instances[0]!.setJoint).not.toHaveBeenCalled();
+    f.panel.syncInteraction(snapshot(.58));expect((f.instances[0]!.setJoint as ReturnType<typeof vi.fn>).mock.lastCall).toEqual(["leaf",expect.closeTo(55,8)]);
+    const diagnostic=()=>f.element.find((node)=>node.dataset.interactionState!==undefined)!;
+    expect(diagnostic().dataset.interactionState).toBe("clear");expect(diagnostic().textContent).toContain("58%, leaf rotation");
+    f.panel.syncInteraction(snapshot(.8));expect(f.input("Door opening").value).toBe("110");
+    f.panel.syncInteraction(snapshot(.8,"Interactions__HumanMasculineAthleticMuscularOpenDoorOutward"));
+    expect(f.input("Door opening").value).toBe("-110");expect(diagnostic().textContent).toContain("no continuous hand-contact, gameplay, damage, climbing or destruction approval");
+    f.panel.dispose();
+  });
   it("only exposes the selected prop's named joints and keeps them independent of placement", async () => {
     const f = fixture(); f.panel.setActive(true); f.control("asset").value = "iron-bound-chest-draft";
     f.emit("spawn"); await vi.waitFor(() => expect(f.control("spawn").disabled).toBe(false));

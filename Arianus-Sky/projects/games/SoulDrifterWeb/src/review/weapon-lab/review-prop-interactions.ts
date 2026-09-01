@@ -12,7 +12,8 @@ export interface ReviewPropInteractionFrame {
   readonly slot: CombatSlot;
   readonly timeSeconds: number;
   readonly phase: number;
-  readonly phaseLabel: "before hasp" | "hasp rotation" | "between joints" | "lid rotation" | "open hold";
+  readonly phaseLabel: "before hasp" | "hasp rotation" | "between joints" | "lid rotation" | "approach"
+    | "handle reach" | "leaf rotation" | "open hold";
   readonly joints: Readonly<Record<string, number>>;
 }
 
@@ -53,15 +54,18 @@ const reviewHandProbe = (actor: ReviewActorAdapter): ReviewMeshProbe => {
   }
   return probe;
 };
+const matchesInteraction = (propKind: string, actionId: string): boolean => propKind === "chest"
+  ? actionId.endsWith("OpenChestLid")
+  : propKind === "door" && (actionId.endsWith("OpenDoorInward") || actionId.endsWith("OpenDoorOutward"));
 
 /** Source-timed prop pose on the controller's shared clock. It is not hand IK,
  * collision response or gameplay state. The actor ID is taken from the same
  * actor-frame ordering that the controller samples, never from a second timer.
  */
 export function reviewPropInteractionFrame(propKind: string, snapshot: CombatReviewSnapshot): ReviewPropInteractionFrame | null {
-  if (propKind !== "chest" || !snapshot.active || !snapshot.ready || !snapshot.frame) return null;
+  if (!snapshot.active || !snapshot.ready || !snapshot.frame) return null;
   const slotIndex = snapshot.slots.findIndex((entry) => entry.definitionId === "human:environment"
-    && entry.selected.action.endsWith("OpenChestLid"));
+    && matchesInteraction(propKind, entry.selected.action));
   if (slotIndex < 0) return null;
   const slot = snapshot.slots[slotIndex]!;
   const action = slot.actions.find((entry) => entry.id === slot.selected.action);
@@ -69,6 +73,12 @@ export function reviewPropInteractionFrame(propKind: string, snapshot: CombatRev
   if (!action || action.durationSeconds <= 0 || !actorId) return null;
   const timeSeconds = Math.min(snapshot.frame.timeSeconds, action.durationSeconds);
   const phase = Math.max(0, Math.min(1, timeSeconds / action.durationSeconds));
+  if (propKind === "door") {
+    const phaseLabel = phase < .22 ? "approach" : phase < .42 ? "handle reach" : phase < .74 ? "leaf rotation" : "open hold";
+    const direction = action.id.endsWith("OpenDoorOutward") ? -1 : 1;
+    return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel,
+      joints: Object.freeze({ leaf: direction * 110 * smoothstep(phase, .42, .74) }) };
+  }
   const phaseLabel = phase < .19 ? "before hasp" : phase < .28 ? "hasp rotation" : phase < .32
     ? "between joints" : phase < .66 ? "lid rotation" : "open hold";
   return { actorId, actionId: action.id, slot: slot.slot, timeSeconds, phase, phaseLabel,
@@ -89,7 +99,8 @@ export function prepareReviewPropInteractionActor(actor: ReviewActorAdapter): st
  */
 export function measureReviewPropInteraction(prop: ReviewPropInstance, actor: ReviewActorAdapter | null,
   frame: ReviewPropInteractionFrame | null): ReviewPropInteractionDiagnostic {
-  if (!frame) return unavailable("Select Human · Environmental interactions and the source Open chest lid action.");
+  if (!frame) return unavailable(`Select Human · Environmental interactions and a source ${prop.definition.kind === "door"
+    ? "Open door inward/outward" : "Open chest lid"} action.`);
   if (!actor || actor.instanceId !== frame.actorId) return unavailable(`Actor ${frame.slot.toUpperCase()} is not available for this shared-clock sample.`);
   try {
     const probe = reviewHandProbe(actor);
