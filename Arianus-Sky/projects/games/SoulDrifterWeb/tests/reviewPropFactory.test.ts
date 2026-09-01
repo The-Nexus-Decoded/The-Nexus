@@ -92,6 +92,7 @@ describe("review prop ownership and real contact surfaces", () => {
 it.each([
   { id: "tree-small-02", meshes: 2, triangles: 48000, minHeight: 4, maxHeight: 5 },
   { id: "iron-bound-chest-draft", meshes: 3, triangles: 8482, minHeight: .98, maxHeight: .99 },
+  { id: "heavy-dungeon-door-review", meshes: 3, triangles: 5434, minHeight: 2.99, maxHeight: 3.01 },
 ])("loads the actual pinned $id with original PBR and real selected triangles", async ({ id, meshes, triangles, minHeight, maxHeight }) => {
   const importHost = <T>(name: string): Promise<T> => import(/* @vite-ignore */ name);
   const { readFileSync } = await importHost<{ readFileSync(path: URL): Uint8Array }>("node:fs");
@@ -107,7 +108,8 @@ it.each([
   const factory = createReviewPropFactory({ loader });
   try {
     const prop = await factory.create({ definitionId: definition.id, instanceId: "actual-prop" });
-    expect(prop.contactSurface.snapshot()).toMatchObject({ meshes, triangles });
+    expect(prop.contactSurface.snapshot()).toMatchObject({ meshes });
+    expect(prop.contactSurface.snapshot().triangles).toBe(triangles);
     expect(prop.bounds().min.y).toBeCloseTo(0); expect(prop.bounds().max.y).toBeGreaterThan(minHeight);
     expect(prop.bounds().max.y).toBeLessThan(maxHeight);
     prop.place([2, 0, -3], Math.PI / 3);
@@ -129,6 +131,12 @@ it.each([
       expect(prop.bounds().min.distanceTo(closed.min)).toBeLessThan(1e-12);
       expect(prop.bounds().max.distanceTo(closed.max)).toBeLessThan(1e-12);
       prop.dispose(); expect(() => prop.setJoint("lid", 2)).toThrow("disposed");
+    } else if (id === "heavy-dungeon-door-review") {
+      const hinge = prop.model.getObjectByName("heavy-door-hinge")!, frame = prop.model.getObjectByName("review-heavy-door-frame-0")!;
+      const closed = prop.bounds().clone(), frameMatrix = frame.matrixWorld.clone(); prop.setJoint("leaf", 90);
+      expect(hinge.rotation.y).toBeCloseTo(Math.PI / 2); expect(frame.matrixWorld.elements).toEqual(frameMatrix.elements);
+      expect(prop.bounds().getSize(new THREE.Vector3()).x).toBeGreaterThan(closed.getSize(new THREE.Vector3()).x + .5);
+      expect(peer.joints()[0]!.value).toBe(0); prop.resetJoints(); expect(hinge.rotation.y).toBeCloseTo(0);
     } else expect(prop.joints()).toEqual([]);
   } finally { factory.dispose(); }
 }, 20_000);

@@ -49,6 +49,31 @@
         {"id":"hasp", "label":"Latch release", "node":"chest-hasp-hinge", "axis":"z", "min":0, "max":60}
       ],
       "preparation": "scripts/assets/prepare-chest-review.mjs, candidate v3: true source lid/body/hasp split at measured Y=.122 seam; hollow body, inward walls, backed floor/lid lining and real cut surfaces. Two locally authored rear iron hinges include mounting plates, knuckles and rivets. Original source GLB is untouched. Candidate is for inspection, not an accepted interaction."
+    },
+    {
+      "id": "heavy-dungeon-door-review",
+      "label": "Heavy dungeon door · opening review",
+      "kind": "door",
+      "url": "/assets/3d/environment/dungeon-kit/heavy-door.glb",
+      "bytes": 968988,
+      "sha256": "34f0b4acf5a5a6da6da659177a02adb3f8510599decc6600044eee6230862576",
+      "sourceUrl": "https://tripo3d.ai/",
+      "sourcePath": "docs/3d-ai-studio/source-models/environment/dungeon-kit/heavy-door.glb",
+      "sourceSha256": "34f0b4acf5a5a6da6da659177a02adb3f8510599decc6600044eee6230862576",
+      "license": "Existing project source; original account receipt not recovered. Local inspection only, not distribution clearance.",
+      "licenseUrl": "",
+      "author": "Existing Tripo-header project import; runtime partition reused for review",
+      "unitScale": 3,
+      "triangleCount": 5434,
+      "contactMeshes": ["review-heavy-door-frame-0", "review-heavy-door-leaf-0", "review-heavy-door-top-rail"],
+      "armMaterials": ["tripo_material_4392f8c6-333b-4802-a6be-eec18d6b9229"],
+      "materialPolicy": "Original 2K Color, ORM and NormalGL image bytes unchanged. Runtime reuses the BREACH-V2 topology partition; the clean top rail shares the original PBR material. ORM red is bound as AO during review intake.",
+      "approvalStatus": "inspection-draft",
+      "remainingGates": ["native closed/open/backside review", "actor reach and hand-contact sequence", "gameplay collision and navigation", "original provider account receipt"],
+      "joints": [
+        {"id":"leaf", "label":"Door opening", "node":"heavy-door-hinge", "axis":"y", "min":-110, "max":110}
+      ],
+      "preparation": "Reuses partitionHeavyDungeonDoor from the BREACH-V2 runtime to split the connected Tripo source into stationary frame and hinged leaf. Review-only articulation; no dungeon state, collision, pathing, latch or interaction approval."
     }
   ]
 }

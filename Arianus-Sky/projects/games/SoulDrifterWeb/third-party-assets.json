@@ -11,6 +11,17 @@
       "license": "Existing project source; Tripo generator header, but original account/plan receipt not independently recovered. Not CC0 or cleared for a new distribution.",
       "usage": "Local Motion Studio inspection only. No source dungeon replacement or production promotion.",
       "notes": "Candidate v3: original 2K embedded image buffers remain byte-exact. Added real lid/hasp partitions, textured interior and backed lid lining via shared cut helpers, plus two locally authored rear iron hinges with mounting plates, knuckles and rivets. These additions are not a new Tripo generation. Art, hinge clearance, actor interaction and source receipt remain separate gates. No paid operation."
+    },
+    {
+      "id": "issue-458-heavy-door-opening-review",
+      "name": "Heavy dungeon door: local opening inspection",
+      "sourcePath": "docs/3d-ai-studio/source-models/environment/dungeon-kit/heavy-door.glb",
+      "sourceSha256": "34f0b4acf5a5a6da6da659177a02adb3f8510599decc6600044eee6230862576",
+      "path": "public/assets/3d/environment/dungeon-kit/heavy-door.glb",
+      "sha256": "34f0b4acf5a5a6da6da659177a02adb3f8510599decc6600044eee6230862576",
+      "license": "Existing project source; Tripo generator header, but original account/plan receipt not independently recovered. Not CC0 or cleared for a new distribution.",
+      "usage": "Local Motion Studio inspection only. No source dungeon replacement or production promotion.",
+      "notes": "Reuses the existing byte-exact runtime asset and BREACH-V2 frame/leaf topology partition. Motion Studio adds only an in-memory review hinge and contact surface; it does not duplicate or rewrite the GLB. Visual finish, actor contact, gameplay collision, navigation and provider receipt remain separate gates. No paid operation."
     }
   ],
   "shippingAssets": [

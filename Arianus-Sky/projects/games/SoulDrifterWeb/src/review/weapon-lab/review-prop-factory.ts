@@ -4,6 +4,7 @@ import catalog from "./review-prop-catalog.json";
 import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-asset-loader";
 import { ReviewContactSurface, reviewRenderedVertexIndices } from "./combat-review-contact";
 import { createBreachV2ResourceDisposalRegistry, disposeBreachV2ObjectResources } from "../../game/dungeons/breach-v2-breachlings";
+import { HEAVY_DUNGEON_DOOR_FRAME_LIMITS, partitionHeavyDungeonDoor } from "../../game/environment/HeavyDungeonDoor";
 
 export const REVIEW_PROP_LIMIT = 6;
 export const REVIEW_PROP_DEFINITIONS = Object.freeze(catalog.assets.map((entry) => Object.freeze({ ...entry,
@@ -76,6 +77,7 @@ export function createReviewPropFactory(options: {
       if (pending.size + instances.size >= maxInstances) throw new Error(`Review supports at most ${maxInstances} props`);
       pending.add(instanceId);
       const materials = new Set<THREE.Material>();
+      const ownedGeometries = new Set<THREE.BufferGeometry>();
       let contactSurface: ReviewContactSurface | undefined;
       try {
         const gltf = await source(definition);
@@ -83,6 +85,28 @@ export function createReviewPropFactory(options: {
         if (disposed) throw new DOMException("Prop loading cancelled", "AbortError");
         const root = new THREE.Group(), model = gltf.scene.clone(true);
         root.name = instanceId; root.add(model); model.scale.multiplyScalar(definition.unitScale);
+        if (definition.kind === "door") {
+          const partition = partitionHeavyDungeonDoor(model), size = partition.fullBounds.getSize(new THREE.Vector3());
+          const center = partition.fullBounds.getCenter(new THREE.Vector3()), leafCenter = partition.leafBounds.getCenter(new THREE.Vector3());
+          const hinge = new THREE.Group(); hinge.name = "heavy-door-hinge";
+          hinge.position.set(leafCenter.x, 0, partition.leafBounds.min.z);
+          partition.leaf.position.sub(hinge.position); hinge.add(partition.leaf);
+          let frameMaterial: THREE.Material | null = null, frameIndex = 0, leafIndex = 0;
+          partition.frame.traverse((node) => { if (node instanceof THREE.Mesh) {
+            node.name = `review-heavy-door-frame-${frameIndex++}`; ownedGeometries.add(node.geometry);
+            const material = Array.isArray(node.material) ? node.material[0] : node.material; frameMaterial ??= material ?? null;
+          } });
+          partition.leaf.traverse((node) => { if (node instanceof THREE.Mesh) {
+            node.name = `review-heavy-door-leaf-${leafIndex++}`; ownedGeometries.add(node.geometry);
+          } });
+          if (!frameMaterial || frameIndex !== 1 || leafIndex !== 1) throw new Error("Reviewed heavy door partition has an unexpected mesh layout");
+          const railHeight = size.y * (1 - HEAVY_DUNGEON_DOOR_FRAME_LIMITS.top) / 2;
+          const railGeometry = new THREE.BoxGeometry(Math.min(.22, size.x * .55), railHeight, size.z);
+          const rail = new THREE.Mesh(railGeometry, frameMaterial); rail.name = "review-heavy-door-top-rail";
+          rail.position.set(center.x, partition.fullBounds.max.y - railHeight / 2, center.z);
+          rail.castShadow = true; rail.receiveShadow = true; ownedGeometries.add(railGeometry);
+          model.clear(); model.scale.set(1, 1, 1); model.add(partition.frame, rail, hinge);
+        }
         const found = new Set<string>(), foundMaterials = new Set<string>();
         model.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -144,12 +168,12 @@ export function createReviewPropFactory(options: {
           },
           dispose() {
             if (released) return; released = true; root.removeFromParent(); contactSurface!.dispose();
-            materials.forEach((material) => material.dispose()); instances.delete(instance);
+            materials.forEach((material) => material.dispose()); ownedGeometries.forEach((geometry) => geometry.dispose()); instances.delete(instance);
           },
         };
         instances.add(instance); return instance;
       } catch (error) {
-        contactSurface?.dispose(); materials.forEach((material) => material.dispose()); throw error;
+        contactSurface?.dispose(); materials.forEach((material) => material.dispose()); ownedGeometries.forEach((geometry) => geometry.dispose()); throw error;
       } finally { pending.delete(instanceId); }
     },
     dispose() {

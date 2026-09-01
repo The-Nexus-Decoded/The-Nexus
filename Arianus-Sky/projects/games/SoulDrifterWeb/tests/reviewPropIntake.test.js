@@ -12,7 +12,7 @@ describe("actual reviewed interaction prop intake", () => {
   it("pins every asset and separates licensed intake from uncleared local inspection candidates", () => {
     expect(catalog.scope).toContain("not interaction or dungeon approval");
     for (const asset of catalog.assets) {
-      expect(asset.url).toMatch(/^\/assets\/weapon-lab\/props\/[\w-]+\.glb$/);
+      expect(asset.url).toMatch(/^\/assets\/(?:weapon-lab\/props|3d\/environment\/dungeon-kit)\/[\w-]+\.glb$/);
       const file = new URL(`../public${asset.url}`, import.meta.url), bytes = readFileSync(file);
       expect(bytes.length).toBe(asset.bytes); expect(hash(bytes)).toBe(asset.sha256);
       const path = `public${asset.url}`, licensed = ledger.shippingAssets.find((entry) => entry.path === path);
