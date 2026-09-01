@@ -100,6 +100,7 @@ export class CombatReviewController {
   private projectiles: ReviewProjectiles | null = null;
   private projectileBound = false;
   private projectileError: string | null = null;
+  private autoPlacement = true;
   private cue: { kind: "none" | "reaction" | "death"; atSeconds: number; blendSeconds: number } = {
     kind: "none", atSeconds: 0.5, blendSeconds: 0.1,
   };
@@ -242,6 +243,7 @@ export class CombatReviewController {
   async selectActor(slot: CombatSlot, definitionId: string): Promise<boolean> {
     this.assertLive(); const definition = this.definition(definitionId);
     if (!this.active) throw new Error("Enter Combat Review before loading actors.");
+    this.autoPlacement = true;
     this.releaseSlot(slot); this.clock = null; this.error = null;
     const value = this.slots[slot], revision = value.revision;
     value.definitionId = definitionId; value.status = "loading";
@@ -274,6 +276,7 @@ export class CombatReviewController {
       value.handle = loaded; value.status = "ready"; value.error = null;
       this.root.add(loaded.actor.root); this.placeActors();
       loaded.actor.sample(value.selected.ready, 0);
+      if (this.autoPlacement) this.fitPlacementToActorBounds();
       this.recompose(); this.changed(); return true;
     } catch (error) {
       if (loaded) { loaded.actor.root.removeFromParent(); loaded.actor.dispose(); }
@@ -305,6 +308,7 @@ export class CombatReviewController {
     this.assertLive(); const next = { ...this.placement, ...patch };
     finite(next.separationMeters, "Separation", 0, 20);
     finite(next.yawADegrees, "A facing", -360, 360); finite(next.yawBDegrees, "B facing", -360, 360);
+    if (patch.separationMeters !== undefined) this.autoPlacement = false;
     this.placement = next; this.placeActors(); this.applyFrame(); this.changed(true);
   }
   setCalibration(slot: CombatSlot, id: string, value: number): void {
@@ -415,6 +419,24 @@ export class CombatReviewController {
       actor.root.rotation.set(0, THREE.MathUtils.degToRad(slot === "a" ? this.placement.yawADegrees : this.placement.yawBDegrees), 0);
       actor.root.updateMatrixWorld(true);
     }
+  }
+  private fitPlacementToActorBounds(): boolean {
+    const actors = SLOTS.map((slot) => this.slots[slot].handle?.actor);
+    if (actors.some((actor) => !actor)) return false;
+    this.placeActors();
+    const depth = (actor: ReviewActorAdapter) => {
+      actor.root.updateWorldMatrix(true, true);
+      const bounds = new THREE.Box3().setFromObject(actor.root, true);
+      if (bounds.isEmpty()) return null;
+      const origin = actor.root.getWorldPosition(new THREE.Vector3());
+      return Math.max(Math.abs(bounds.min.z - origin.z), Math.abs(bounds.max.z - origin.z));
+    };
+    const a = depth(actors[0]!), b = depth(actors[1]!);
+    if (a == null || b == null || ![a, b].every(Number.isFinite)) return false;
+    const required = Number((a + b + .35).toFixed(6));
+    const separationMeters = Math.min(20, Math.max(1.75, Math.ceil(required * 20) / 20));
+    if (Math.abs(separationMeters - this.placement.separationMeters) < 1e-8) return false;
+    this.placement = { ...this.placement, separationMeters }; this.placeActors(); return true;
   }
   private releaseSlot(slot: CombatSlot): void {
     this.releaseProjectiles();

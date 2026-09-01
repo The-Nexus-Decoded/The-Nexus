@@ -131,6 +131,8 @@ describe("Combat Review studio composition", () => {
     expect(host.append).toHaveBeenCalledWith(panel.element); await studio.enter();
     expect(studio.controller.snapshot().ready).toBe(true); expect(camera.position.length()).toBeGreaterThan(3);
     expect(studio.frameActors()).toBe(true); expect(orbit.target.z).toBeCloseTo(0.875);
+    const combatView = camera.position.clone().sub(orbit.target);
+    expect(Math.abs(combatView.x)).toBeGreaterThan(Math.abs(combatView.z) * 4);
     studio.leave(); expect(studio.controller.root.children).toHaveLength(0); expect(studio.frameActors()).toBe(false);
     expect(scene.children).toContain(studio.controller.root); studio.dispose();
     expect(scene.children).not.toContain(studio.controller.root); expect(panel.dispose).toHaveBeenCalledOnce();

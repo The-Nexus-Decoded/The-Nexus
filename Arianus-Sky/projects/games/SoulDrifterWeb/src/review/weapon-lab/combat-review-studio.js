@@ -18,6 +18,7 @@ export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
     note: definition.reviewedMotion ? reviewedMobNote(definition.reviewedMotion)
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
 ]);
+const COMBAT_REVIEW_CAMERA_DIRECTION = new THREE.Vector3(1.8, 0.48, 0.35).normalize();
 
 function humanCalibration(actor) {
   function controls() {
@@ -99,7 +100,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
     initial: { a: "human:longswordTwoHand", b: "breachling-base" } });
   scene.add(controller.root);
   let measurement = null, disposed = false, loadedIdentity = "";
-  function fitBounds(bounds) {
+  function fitBounds(bounds, direction = new THREE.Vector3(1.25, 0.48, 1.8).normalize()) {
     if (disposed || bounds.isEmpty()) return false;
     const center = bounds.getCenter(new THREE.Vector3()), radius = Math.max(0.25, bounds.getSize(new THREE.Vector3()).length() / 2);
     const area = viewport();
@@ -108,7 +109,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
       vertical * camera.aspect * area.usableWidth / area.width));
     const distance = radius / Math.sin(Math.atan(usableTan)) * 1.08;
     orbit.target.copy(center);
-    camera.position.copy(center).add(new THREE.Vector3(1.25, 0.48, 1.8).normalize().multiplyScalar(distance));
+    camera.position.copy(center).add(direction.clone().multiplyScalar(distance));
     camera.fov = 44; camera.far = Math.max(40, distance + radius * 4);
     orbit.maxDistance = Math.max(14, distance * 2); camera.updateProjectionMatrix(); orbit.update();
     return true;
@@ -116,7 +117,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
   function frameActors() {
     if (disposed || !controller.snapshot().active) return false;
     const surface = new ReviewContactSurface(controller.root);
-    try { surface.update(); return fitBounds(surface.bounds()); } finally { surface.dispose(); }
+    try { surface.update(); return fitBounds(surface.bounds(), COMBAT_REVIEW_CAMERA_DIRECTION); } finally { surface.dispose(); }
   }
   async function frameMotion() {
     measurement?.abort.abort();
@@ -139,7 +140,7 @@ export function createCombatReviewStudio({ scene, camera, orbit, humanFactory, h
       }
       if (measurement !== job || job.abort.signal.aborted) return false;
       bounds.union(controller.projectileMotionBounds());
-      return fitBounds(bounds);
+      return fitBounds(bounds, COMBAT_REVIEW_CAMERA_DIRECTION);
     } catch (error) {
       if (!job.abort.signal.aborted) onError(error);
       return false;
