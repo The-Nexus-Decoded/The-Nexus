@@ -1,6 +1,6 @@
 # #458 — Motion Studio integration checkpoint
 
-## Resume checkpoint — 2026-09-01, asset repair gates remain open
+## Resume checkpoint — 2026-09-01, asset repair terminal blockers
 
 Motion Forge now contains the full independent combat-pair matrix, measured
 surface contact and selected reactions, projectile/poison/fire-spell review,
@@ -14,19 +14,33 @@ remaining. Combat placement now fits rendered bounds rather than guessed actor
 centres, including human/human, human/mob, mob/human, mob/mob, human/boss,
 boss/mob and boss/boss combinations.
 
-The current clean verification checkpoint is 68 test files / 614 tests, both
-TypeScript checks, production build and release-target verification. The built
-`bab7ca4d` release verifies both review pages and 27 review assets per target;
-`dist` and `dist-pages` remain within their preferred size budget. The existing
-large Three.js chunk warning remains. No ESLint configuration exists.
+The clean verification checkpoint is 68 test files / 614 tests, both TypeScript
+checks, production build and release-target verification. The release verifies
+both review pages and 27 review assets per target; `dist` and `dist-pages` remain
+within their preferred size budget. The existing large Three.js chunk warning
+remains. No ESLint configuration exists.
 
-Two animation assets are still correctly held outside acceptance. Oathbound has
-four accepted attacks, but Tail Whip has not found a connected route that passes
-whole-creature actual and swept collision, planted support, floor, half-space,
-front-cell reach and exact-eight gates. Greater Warden deformation passes its
-strict numeric audit, but the current shell candidate still exposes a central
-slot, rear zig-zag seam, plate-like panels and detached leaf ends in colored
-views. Neither failing candidate is registered or promoted.
+Two assets are correctly frozen outside acceptance. Oathbound has four accepted
+attacks, but Tail Whip exhausted four materially different elevated detours and
+then two narrow rig-clearance repair classes. The frame-98 wall is localized to
+23 distal-tail triangles / 35 vertices owned only by `tail003`–`tail005` against
+nine human-body triangles. The only all-clear weight transfer moved the wall
+patch 18.2166 mm and approved endpoints 6.4039 mm; all topology-preserving local
+offsets cleared zero of four witness states. The source stayed unchanged and no
+candidate was emitted. The frozen blocker receipt is SHA-256
+`9f7726981702486e1e5bb6ae9c7ca125b695faa94c7120ed0322381937b61dac`.
+
+Greater Warden likewise has no promotable candidate. Strictly valid caps/cuffs,
+real source-loop collars and exact pivot correction each failed colored PBR
+review. Source-exact rest views prove the immutable model lacks finished exterior
+interstitial elbow armor: recessed surfaces sit 0.1413373151 m left and
+0.2827544706 m right behind the intended closure plane. The surrounding islands
+already have rigid one-bone ownership and move coherently after pivot correction;
+the missing geometry requires manual artist reconstruction as a two-piece
+telescoping cuff or authored bellows/gusset, followed by the full strict,
+three-angle PBR and independent-critic gates. The no-promotion blocker receipt is
+SHA-256 `38846b4cd3d2513386ec33e4ad08800fb04040c7fc0769468376081e077d3ce0`.
+Neither blocker is registered or promoted.
 
 Read-only code review found one must-fix-before-merge major issue: the Wayfarer
 Warden authoring plan/verifier describe a proposal/review-only output, while
