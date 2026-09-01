@@ -1,5 +1,40 @@
 # #458 — Motion Studio integration checkpoint
 
+## Resume checkpoint — 2026-09-01, asset repair gates remain open
+
+Motion Forge now contains the full independent combat-pair matrix, measured
+surface contact and selected reactions, projectile/poison/fire-spell review,
+spawnable interaction props, shared chest destruction, and the current human,
+mob and boss roster. `c1fdbc9a` installs hash-pinned five-action Stalker and
+Ravager packs. `bab7ca4d` adds a source-bound fire-wand release from the actual
+wand tip; native 120 Hz review measured contact at about 0.81231 seconds and
+played the selected large-front reaction. Independent visual review accepted
+that capture as review-tool evidence, with only framing/VFX-occlusion polish
+remaining. Combat placement now fits rendered bounds rather than guessed actor
+centres, including human/human, human/mob, mob/human, mob/mob, human/boss,
+boss/mob and boss/boss combinations.
+
+The current clean verification checkpoint is 68 test files / 614 tests, both
+TypeScript checks, production build and release-target verification. The built
+`bab7ca4d` release verifies both review pages and 27 review assets per target;
+`dist` and `dist-pages` remain within their preferred size budget. The existing
+large Three.js chunk warning remains. No ESLint configuration exists.
+
+Two animation assets are still correctly held outside acceptance. Oathbound has
+four accepted attacks, but Tail Whip has not found a connected route that passes
+whole-creature actual and swept collision, planted support, floor, half-space,
+front-cell reach and exact-eight gates. Greater Warden deformation passes its
+strict numeric audit, but the current shell candidate still exposes a central
+slot, rear zig-zag seam, plate-like panels and detached leaf ends in colored
+views. Neither failing candidate is registered or promoted.
+
+Read-only code review found one must-fix-before-merge major issue: the Wayfarer
+Warden authoring plan/verifier describe a proposal/review-only output, while
+`2609d4a8` replaced the canonical dungeon asset and runtime preview consumes it.
+Per the owner's instruction for this review pass, this finding is documented but
+not changed here. No push, merge, deployment, dungeon promotion, paid operation
+or issue closure occurred.
+
 ## Current review-system extension — 2026-08-31, work continues
 
 Combat Review now has source-bound visible arrow and poison-spit flights on the
