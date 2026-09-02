@@ -1,0 +1,185 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-02T00:21:23-05:00",
+  "phase": "458",
+  "phase_name": "Motion Forge boss animation repair and First Breach integration",
+  "phase_dir": "Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio",
+  "plan": 1,
+  "task": 4,
+  "total_tasks": 10,
+  "status": "paused",
+  "ticket": {
+    "number": 458,
+    "url": "https://github.com/The-Nexus-Decoded/The-Nexus/issues/458",
+    "state": "OPEN",
+    "owner_qa": "pending"
+  },
+  "repository": {
+    "worktree": "H:/CodexData/.codex/worktrees/458-pre-codex-fixes-validation/The-Nexus",
+    "branch": "codex/458-pre-codex-fixes-validation",
+    "pause_parent": "13c6f16b8d20ce27dc6a3e6b135f0a8474baf44f",
+    "handoff_commit": "self: the commit containing this file",
+    "merge_or_deploy_performed": false
+  },
+  "primary_handoff": "Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458-claude-fable-full-handoff.md",
+  "verbatim_request_ledger": "Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458-verbatim-request-ledger.md",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Integrate the Motion Forge human, mob, boss, combat, projectile, reaction and prop review system",
+      "status": "done",
+      "commit": "12596d11"
+    },
+    {
+      "id": 2,
+      "name": "Repair the Greater Warden elbow joint with source-preserving C20 bind compensation",
+      "status": "done_external_not_promoted",
+      "artifact": "H:/CodexData/.codex/artifacts/issue-458-base-repair-audit-20260831/approved-neutral-attacks/variants-v1/bosses/warden-v2-diagnostics/authoring-rigs-v5/greater-manual-joint-insert-v2/greater-warden-manual-joint-insert-v2-c20.glb",
+      "sha256": "88a63f30f4f7ca5ff7ae232fb0a09af931c486ae1c91455a0f16e8f0a1b0354e"
+    },
+    {
+      "id": 3,
+      "name": "Author and structurally prove Wayfarer BladeSweep V12",
+      "status": "done_external_not_promoted",
+      "artifact": "H:/CodexData/.codex/artifacts/issue-458-base-repair-audit-20260831/approved-neutral-attacks/variants-v1/bosses/warden-v2-diagnostics/authoring-rigs-v5/wayfarer-manual-reconstruction-v1/cinderbound-wayfarer-bladesweep-phase1-v12-candidate.glb",
+      "sha256": "7488d97f0d99ee6f1e3bbdef598d1015c47e5fabc8ef6aea2ba5d625f75b48c4"
+    },
+    {
+      "id": 4,
+      "name": "Author Wayfarer CinderSweep as a distinct full-body adjacent-square attack",
+      "status": "in_progress",
+      "progress": "Baseline, eight-phase contract and authoring script exist. The last trial was corrected and rerunning when interrupted. No candidate GLB was emitted."
+    },
+    {
+      "id": 5,
+      "name": "Author Greater Warden BladeSweep against the C20 rest basis",
+      "status": "in_progress",
+      "progress": "V4 in-memory solve passes every structural build gate. No donor animation, source-preserving GLB-surgery candidate or proof media was emitted."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 4,
+      "name": "Finish Wayfarer CinderSweep trial, fresh-import audit, media and independent visual gate",
+      "status": "in_progress"
+    },
+    {
+      "id": 5,
+      "name": "Build and prove Greater Warden BladeSweep from the frozen V4 solve",
+      "status": "in_progress"
+    },
+    {
+      "id": 6,
+      "name": "Persist final independent receipts for C20 and Wayfarer V12",
+      "status": "not_started"
+    },
+    {
+      "id": 7,
+      "name": "Resolve Oathbound TailWhip with a materially new topology or rig strategy",
+      "status": "not_started"
+    },
+    {
+      "id": 8,
+      "name": "Register only accepted outputs into Motion Forge review paths with exact receipts",
+      "status": "not_started"
+    },
+    {
+      "id": 9,
+      "name": "Review every mob and boss action together in real time",
+      "status": "not_started"
+    },
+    {
+      "id": 10,
+      "name": "Complete both-path, every-loadout First Breach gameplay integration and acceptance",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "The owner explicitly paused the work for a Claude Fable handoff.",
+      "type": "human_action",
+      "workaround": "None. Wait for an explicit resume order."
+    },
+    {
+      "description": "Wayfarer CinderSweep and Greater BladeSweep have no candidate GLB at the pause boundary.",
+      "type": "technical",
+      "workaround": "Resume from the frozen non-promoting CinderSweep trial and Greater V4 in-memory solve documented in the primary handoff."
+    },
+    {
+      "description": "C20 and Wayfarer V12 on-disk visual receipts still say pending independent review even though the critics reported PASS in agent mailboxes.",
+      "type": "technical",
+      "workaround": "Repeat or persist an independent review receipt before promotion; do not rewrite existing receipts."
+    },
+    {
+      "description": "Oathbound TailWhip exhausted repeated topology-preserving repair classes and remains fail-closed.",
+      "type": "technical",
+      "workaround": "Use a materially new explicit topology or rig strategy; do not repeat the failed elevated-detour, weight-transfer or local-offset iterations."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Tell Claude Fable to resume issue #458 from this checkpoint.",
+      "context": "The current owner order is to pause, not continue.",
+      "blocking": true
+    },
+    {
+      "action": "Reconcile any future paid Tripo operation with the exact-cost rule and the 10,000-credit reserve.",
+      "context": "The last observed balance was 12,255 but is potentially stale; this handoff authorizes no new charge.",
+      "blocking": true
+    },
+    {
+      "action": "Approve promotion, merge and deployment only after full visual and gameplay acceptance.",
+      "context": "Issue #458 acceptance explicitly forbids automatic promotion or closure.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Use Motion Forge as the shared human, mob, boss, combat and interaction review surface.",
+      "rationale": "It keeps actor catalogs, timing, contact and reactions shared instead of building disconnected preview tools.",
+      "phase": "458"
+    },
+    {
+      "decision": "Use capability-driven controls and DRY shared infrastructure with actor-specific calibration.",
+      "rationale": "Irrelevant controls must disappear while skeleton, weapon and creature-specific contacts remain correct.",
+      "phase": "458"
+    },
+    {
+      "decision": "Use source-preserving GLB surgery for strict boss repairs.",
+      "rationale": "Full-scene Blender export and shared-joint donor skins changed protected data and caused deterministic review failures.",
+      "phase": "458"
+    },
+    {
+      "decision": "Do not start dungeon integration until all mobs and bosses pass the review tool.",
+      "rationale": "The owner explicitly ordered full mob completion and boss review before dungeon integration.",
+      "phase": "458"
+    }
+  ],
+  "infrastructure_state": {
+    "blender_processes_running": false,
+    "animation_workers_running": false,
+    "dev_server_intentionally_left_running": false,
+    "tripo_balance_last_observed": 12255,
+    "tripo_balance_fresh": false,
+    "tripo_minimum_reserve": 10000,
+    "greater_warden_segmentation_id": "62f8d6ca-5429-40ad-9f6c-e240504e35b0",
+    "wayfarer_warden_segmentation_id": "b63499e5-c576-409d-867a-51511668cc3c"
+  },
+  "uncommitted_files": [
+    ".planning/debug/camera-zoom-review-panels-CLEAN-ROOM-REVIEW-FIX.md",
+    ".planning/debug/camera-zoom-review-panels-CLEAN-ROOM-REVIEW.md",
+    ".planning/debug/camera-zoom-review-panels-FINAL-REVIEW-FIX.md",
+    ".planning/debug/camera-zoom-review-panels-FINAL-REVIEW.md",
+    ".planning/debug/camera-zoom-review-panels-RELEASE-REVIEW-FIX.md",
+    ".planning/debug/camera-zoom-review-panels-RELEASE-REVIEW.md",
+    ".planning/debug/camera-zoom-review-panels-REVIEW-FIX.md",
+    ".planning/debug/camera-zoom-review-panels-REVIEW.md",
+    ".planning/debug/camera-zoom-review-panels-SHIP-REVIEW.md",
+    ".planning/debug/camera-zoom-review-panels.md",
+    ".planning/debug/desktop-webgl-tdr-startup.md",
+    ".planning/debug/monster-warden-animation-quality.md"
+  ],
+  "uncommitted_file_note": "All listed files pre-dated this pause task and were deliberately left untouched and untracked; they are not part of the Claude handoff commit.",
+  "next_action": "After explicit owner resume, verify branch/head/status and artifact hashes, then run the Wayfarer CinderSweep authoring script with --trial only; do not promote output.",
+  "context_notes": "The work stopped between design/preflight and candidate emission. Preserve C20, Wayfarer V12 and all failed versions. The Greater BladeSweep V4 solve is build-allowed but has no candidate. The current Codex goal badge is stale/blocked and must not be treated as completion. Read the primary handoff and verbatim ledger before acting."
+}
