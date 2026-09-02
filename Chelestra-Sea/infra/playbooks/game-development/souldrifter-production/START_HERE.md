@@ -1,6 +1,6 @@
 # SoulDrifter Multi-LLM Master Harness — START HERE
 
-**Context version:** `2026-08-25-master-v14`
+**Context version:** `2026-09-02-master-v15`
 
 Mandatory entry point for M3, Claude Code, ChatGPT/Codex and future SoulDrifter workers.
 
@@ -41,41 +41,47 @@ Identify the active Tripo lane, refresh live balance/pricing/allowance and obtai
 1. Auto-discover/reuse the ticket worktree through `AUTO_DISCOVER_WORKSPACE.md`.
 2. Load persistent toolchain/provider receipts.
 3. Run full `ONBOARDING.md` + `PRODUCTION_TOOLCHAIN_PREFLIGHT.md` only when required.
-4. For every zone/environment ticket, read:
+4. Claude/Claude Code sessions must also read:
+   - `handoffs/CLAUDE-GAME-RESEARCH-TRANSITION.md`
+   - repository bridge `.claude/handoffs/souldrifter-game-research-transition.md`
+   - root `CLAUDE.md`
+   Ticket-specific SoulDrifter base/branch/worktree instructions override the generic root `CLAUDE.md` branch convention when they conflict.
+5. For every zone/environment ticket, read:
    - `ZONE_ENVIRONMENT_COMPLETION_PIPELINE.md`
    - `ZONE_PRODUCTION_QUALITY_GATES.md`
    - `ENVIRONMENT_STAGING_PROP_PLACEMENT_POLICY.md`
    - `COLLISION_INTERACTION_DESTRUCTION_POLICY.md`
    - `config/zone-environment-completion-policy.json`
    - `templates/zone-environment-completion-record.template.json`
-5. For every imported 3D asset, and every controlled threshold that stages one, read:
+6. For every imported 3D asset, and every controlled threshold that stages one, read:
    - [`IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md`](../universal-game-production/IMPORTED_ASSET_RUNTIME_PRESENTATION_GATE.md)
    - [`templates/imported-asset-runtime-presentation-record.template.json`](../universal-game-production/templates/imported-asset-runtime-presentation-record.template.json)
-6. For procedural/randomized or traversal-heavy levels, also read:
+7. For procedural/randomized or traversal-heavy levels, also read:
    - `PROCEDURAL_DUNGEON_TOPOLOGY_POLICY.md`
    - `SPATIAL_CONNECTION_TRAVERSAL_CATALOG.md`
    - `config/dungeon-topology-policy.json`
    - `config/spatial-connection-policy.json`
    - `templates/dungeon-topology-record.template.json`
    - `templates/spatial-connection-record.template.json`
-7. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
-8. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
-9. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
-10. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
-11. Read repository `AGENTS.md`.
-12. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
-13. Read the assigned issue and every current comment.
-14. Read related PR(s), all comments/reviews and live head.
-15. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
-16. Read the ticket kickoff under `kickoffs/` when one exists.
-17. Inspect actual worktree/branch/recent commits.
-18. Return Session + Context Receipts before editing.
+8. For primary 3D-source images, read `IMAGE_REFERENCE_BAKEOFF_POLICY.md`.
+9. For playable humanoid body generation, technicalization or rigging, read `HUMANOID_BASE_BODY_POSE_POLICY.md`.
+10. For Houdini work, read `HOUDINI_APPRENTICE_POC_POLICY.md`.
+11. For animation/rigging, read `ANIMATION_PROVIDER_ROUTING.md`; for custom motions also read `CUSTOM_ANIMATION_DUAL_PIPELINE_BAKEOFF.md` and its policy/template.
+12. For runtime/portability decisions, read `BROWSER_RUNTIME_ROADMAP.md`.
+13. Read repository `AGENTS.md`.
+14. Read this file, `PROJECT_CANON_INDEX.md` and `WORKFLOW.md`.
+15. Read the assigned issue and every current comment.
+16. Read related PR(s), all comments/reviews and live head.
+17. Read `.agent-state/<issue>/ticket-contract.json`, `completion-ledger.json`, `evidence-manifest.json` and `handoff.json` when present.
+18. Read the ticket kickoff under `kickoffs/` when one exists.
+19. Inspect actual worktree/branch/recent commits.
+20. Return Session + Context Receipts before editing.
 
 ## Session Receipt — every chat
 
 ```text
 SOULDRIFTER SESSION RECEIPT
-contextVersion: 2026-08-25-master-v14
+contextVersion: 2026-09-02-master-v15
 platform: <M3|Claude Code|ChatGPT/Codex|other>
 ticket: <issue>
 branch: <branch>
@@ -86,6 +92,7 @@ toolchainReceiptId: <id>
 toolchainReceiptStatus: CACHED_PASS | REFRESH_REQUIRED | BLOCKED
 projectUsageMode: NONCOMMERCIAL_POC | COMMERCIAL | UNKNOWN
 requiredLanes:
+  claudeTransition: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   zoneEnvironmentPipeline: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   zoneQualityGates: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   environmentStaging: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
@@ -94,6 +101,7 @@ requiredLanes:
   proceduralTopology: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   spatialTraversalContracts: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   imageReferenceBakeoff: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
+  humanoidDualPose: CACHED_PASS | REFRESH_REQUIRED | NOT_REQUIRED
   tripoStudio: CACHED_PASS | LIVE_REFRESH_PASS | NOT_REQUIRED
   tripoApiSdk: CACHED_PASS | UNFUNDED | UNAVAILABLE | NOT_REQUIRED
   tripoOfficialCli: CACHED_PASS | UNFUNDED | NOT_EXPOSED | NOT_REQUIRED
@@ -110,9 +118,9 @@ blockingIssues: []
 
 ```text
 CONTEXT RECEIPT
-contextVersion: 2026-08-25-master-v14
+contextVersion: 2026-09-02-master-v15
 model: <m3|claude|chatgpt-codex|other>
-role: <orchestrator|requirement-compiler|worker|verifier|performance-verifier>
+role: <research|orchestrator|requirement-compiler|worker|verifier|performance-verifier>
 ticket: #<number or GLOBAL-AUDIT>
 branch: <branch>
 localHead: <sha>
@@ -121,6 +129,7 @@ worktree: <absolute path>
 gameRoot: Arianus-Sky/projects/games/SoulDrifterWeb
 sessionReceipt: PASS/BLOCKED
 cachedToolchainReceipt: PASS/REFRESH_REQUIRED/BLOCKED
+claudeTransitionLoaded: yes/no/not-required
 zoneEnvironmentPipelineLoaded: yes/no/not-required
 zoneQualityGatesLoaded: yes/no/not-required
 environmentStagingPolicyLoaded: yes/no/not-required
@@ -129,6 +138,7 @@ importedAssetPresentationGateLoaded: yes/no/not-required
 proceduralTopologyPolicyLoaded: yes/no/not-required
 spatialConnectionCatalogLoaded: yes/no/not-required
 imagePolicyLoaded: yes/no/not-required
+humanoidDualPosePolicyLoaded: yes/no/not-required
 houdiniPocPolicyLoaded: yes/no/not-required
 animationRoutingLoaded: yes/no/not-required
 browserRuntimeRoadmapLoaded: yes/no/not-required
@@ -219,6 +229,17 @@ For important 3D-source references, use the four-candidate bakeoff when live lan
 
 Verify live model labels/allowance. Every primary source shows the **entire asset in frame**, including supports and attachments. Cropped images are supplemental `DETAIL_REFERENCE_ONLY`.
 
+# Humanoid T-pose and A-pose policy
+
+For the first Human masculine and feminine #487 POC pilots, and later body families unless explicitly exempted, require both:
+
+- strict T-pose source/reference and 3D proof;
+- relaxed A-pose source/reference and 3D proof.
+
+Both must use the same canonical body identity, mesh, proportions, materials, head seam and rig. The strict T-pose uses horizontal arms, forearm roll and neutral inline wrists—not stop-sign wrist bending—to expose readable separated fingers. The relaxed A-pose proves natural shoulders, armpits, clothing fit and production-rest deformation.
+
+A-pose-only or T-pose-only acceptance is forbidden. This does not automatically authorize a second paid generation; the default is one canonical body/rig demonstrated in both poses.
+
 # Tripo 3D policy
 
 Studio browser, API/SDK and official CLI are separate lanes with potentially different credentials/credits.
@@ -263,9 +284,10 @@ SoulDrifter remains browser-first and mobile-browser compatible.
 
 # Roles and completion
 
-- Orchestrator routes and cannot self-verify implementation.
-- Worker owns one ticket/worktree and stops at `IMPLEMENTED_UNVERIFIED`.
-- Verifier independently re-derives requirements and alone may mark `VERIFIED`.
+- Research analysts classify sources and proposals but do not silently canonize them.
+- Orchestrators route and cannot self-verify implementation.
+- Workers own one ticket/worktree and stop at `IMPLEMENTED_UNVERIFIED`.
+- Verifiers independently re-derive requirements and alone may mark `VERIFIED`.
 
 ## Conflict rule
 
