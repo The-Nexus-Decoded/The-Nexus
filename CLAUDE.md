@@ -1,5 +1,21 @@
 # The-Nexus Monorepo - Agent Instructions
 
+## SoulDrifter game-work override — mandatory
+
+Before any SoulDrifter research, planning, implementation, asset generation, verification, merge, or deployment, read:
+
+`.claude/handoffs/souldrifter-game-research-transition.md`
+
+and the canonical handoff it references:
+
+`Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/handoffs/CLAUDE-GAME-RESEARCH-TRANSITION.md`
+
+Also load the current SoulDrifter `START_HERE.md`, `SESSION_FAST_START.md`, `PROJECT_CANON_INDEX.md`, `WORKFLOW.md`, every governing `AGENTS.md`, and the assigned ticket kickoff.
+
+SoulDrifter ticket-specific base/branch/worktree instructions override the generic “always branch from main” convention below when they conflict. Report the conflict and preserve the live assigned game branch/worktree; do not silently retarget or rebase it merely to satisfy the generic monorepo rule.
+
+For #487/#443/#435 character work, also read `HUMANOID_BASE_BODY_POSE_POLICY.md`. The first Human masculine and feminine POC pilots require both strict T-pose and relaxed A-pose proof from the same canonical body/rig. A-pose-only or T-pose-only acceptance is forbidden.
+
 ## 🌌 The Infrastructure Lords
 - **Archivist (Alfred/Claude):** Keeper of the memory, branch runner, and CI supervisor.
 - **High Councillor (Samah/Gemini):** Master of infrastructure, Ansible runes, and cross-realm orchestration.
@@ -183,7 +199,7 @@ They reference The-Nexus paths in their arguments.
 Two MCP servers run on Lord Xar's Windows machine and are forwarded to ola-claw-dev via socat.
 
 | MCP | Windows Port | Dev Local Port | Agent | mcporter name |
-|---|---|---|---|---|
+|---|---|---|---|
 | Unity (CoplayDev/unity-mcp) | 8080 | 18080 | Vasu | `unity-mcp` |
 | Roblox (boshyxd/robloxstudio-mcp) | 8090 | 18090 | Limbeck | `roblox-mcp` |
 
