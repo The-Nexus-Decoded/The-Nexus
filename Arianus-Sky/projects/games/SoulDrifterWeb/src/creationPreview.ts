@@ -55,6 +55,52 @@ const CREATOR_IDLE_STABLE_HEAD_BONES = boneNameVariants(
 );
 const CREATOR_HEAD_BONES = boneNameVariants("mixamorig:Head", "Head");
 
+/**
+ * Additive breathing.
+ *
+ * The approved creator idle is effectively static - measured across its 8.37 s
+ * loop it carries 1.32 deg on Spine, 0.39 deg on Spine1/Spine2 and 6.5 mm of
+ * hip travel, and normalizeAnimationPackRootMotion(..., "lock-to-rest") removes
+ * the hip travel outright. Played alone it reads as a statue, which is the
+ * other half of the owner's "relaxed breathing idle" requirement.
+ *
+ * ANIMATION_PROVIDER_ROUTING.md sanctions additive breathing as a procedural
+ * runtime layer, so the motion is generated here rather than by swapping in an
+ * unreviewed clip. Amplitudes are deliberately small: this should register only
+ * as the figure being alive, never as a performance.
+ */
+const CREATOR_BREATH_PERIOD_SECONDS = 4.6; // ~13 breaths/minute, resting adult
+const CREATOR_BREATH_INHALE_FRACTION = 0.42; // the inhale is quicker than the release
+
+interface CreatorBreathJoint {
+  readonly bone: THREE.Object3D;
+  /** Pose captured once the mixer has settled, so the layer can never accumulate. */
+  readonly base: THREE.Quaternion;
+  readonly axis: THREE.Vector3;
+  readonly radians: number;
+}
+
+const CREATOR_BREATH_JOINTS: ReadonlyArray<{
+  names: ReadonlySet<string>;
+  axis: readonly [number, number, number];
+  degrees: number;
+}> = [
+  { names: boneNameVariants("mixamorig:Spine1", "Spine1"), axis: [1, 0, 0], degrees: -0.55 },
+  { names: boneNameVariants("mixamorig:Spine2", "Spine2"), axis: [1, 0, 0], degrees: -0.85 },
+  { names: boneNameVariants("mixamorig:LeftShoulder", "LeftShoulder"), axis: [0, 0, 1], degrees: 0.7 },
+  { names: boneNameVariants("mixamorig:RightShoulder", "RightShoulder"), axis: [0, 0, 1], degrees: -0.7 },
+];
+
+/** 0..1 breath envelope: a quicker inhale and a slower release, not a plain sine. */
+export function creatorBreathEnvelope(elapsedSeconds: number): number {
+  const phase = (((elapsedSeconds / CREATOR_BREATH_PERIOD_SECONDS) % 1) + 1) % 1;
+  if (phase < CREATOR_BREATH_INHALE_FRACTION) {
+    return Math.sin((phase / CREATOR_BREATH_INHALE_FRACTION) * Math.PI * 0.5);
+  }
+  const release = (phase - CREATOR_BREATH_INHALE_FRACTION) / (1 - CREATOR_BREATH_INHALE_FRACTION);
+  return Math.cos(release * Math.PI * 0.5);
+}
+
 /** Strips the trailing `.property` (or `.property[i]`) from an animation track name. */
 function trackNodeName(trackName: string): string {
   const cut = trackName.lastIndexOf(".");
@@ -155,6 +201,8 @@ export function stabilizeCreatorRelaxedIdle(clip: THREE.AnimationClip): THREE.An
   return new THREE.AnimationClip(`${clip.name}_StableHead`, clip.duration, tracks, clip.blendMode);
 }
 
+const CREATOR_BREATH_SCRATCH = new THREE.Quaternion();
+
 const gltfCache = new Map<string, Promise<GLTF>>();
 
 function loadPreviewModel(url: string): Promise<GLTF> {
@@ -198,6 +246,11 @@ export class CreationAvatarPreview {
   private mixer: THREE.AnimationMixer | null = null;
   private motionRequest = 0;
   private framing: CreationPreviewFraming | null = null;
+  private breathJoints: CreatorBreathJoint[] = [];
+  private breathSeconds = 0;
+  private cssWidth = 0;
+  private cssHeight = 0;
+  private appliedPixelRatio = 0;
 
   public constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -229,6 +282,10 @@ export class CreationAvatarPreview {
     canvas.addEventListener("pointerdown", this.onPointerDown);
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onPointerUp);
+    // A cancelled touch - an incoming call, a gesture takeover - never fires
+    // pointerup, which would leave `dragging` true and kill manual rotation.
+    window.addEventListener("pointercancel", this.onPointerUp);
+    canvas.addEventListener("lostpointercapture", this.onPointerUp);
 
     this.loadModelForRace(this.appearance.raceId);
     this.frame = requestAnimationFrame(() => this.render());
@@ -326,12 +383,72 @@ export class CreationAvatarPreview {
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerUp);
+    this.canvas.removeEventListener("lostpointercapture", this.onPointerUp);
     this.stopPreviewMotion();
-    if (this.model) this.rotationPivot.remove(this.model);
+    if (this.model) {
+      // Only the per-instance material clones are ours to release. Geometries
+      // and textures still belong to the cached source GLTF that the next
+      // preview clones from, so disposing those would break re-entry.
+      this.model.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => material.dispose());
+      });
+      this.rotationPivot.remove(this.model);
+    }
     this.renderer.dispose();
+    // The creator rebuilds this preview on every step change; without an
+    // explicit context loss mobile Safari drops the oldest context and the
+    // canvas goes blank after a handful of switches.
+    this.renderer.forceContextLoss();
+  }
+
+  private captureBreathJoints(model: THREE.Object3D): void {
+    const joints: CreatorBreathJoint[] = [];
+    model.traverse((node) => {
+      for (const spec of CREATOR_BREATH_JOINTS) {
+        if (!spec.names.has(node.name.toLowerCase())) continue;
+        joints.push({
+          bone: node,
+          base: node.quaternion.clone(),
+          axis: new THREE.Vector3(spec.axis[0], spec.axis[1], spec.axis[2]).normalize(),
+          radians: THREE.MathUtils.degToRad(spec.degrees),
+        });
+      }
+    });
+    this.breathJoints = joints;
+    // The head-bone matchers in this file were dead for a whole release because
+    // nothing checked that they resolved. Fail loudly instead of silently
+    // animating nothing.
+    if (joints.length !== CREATOR_BREATH_JOINTS.length) {
+      console.warn(
+        `Creator breathing resolved ${joints.length} of ${CREATOR_BREATH_JOINTS.length} joints; `
+        + "the additive breathing layer is degraded or inert.",
+      );
+    } else if (import.meta.env.DEV) {
+      console.info(`Creator breathing bound ${joints.length} joints.`);
+    }
+  }
+
+  /**
+   * Re-derives each joint from its captured base every frame rather than
+   * multiplying into the live quaternion, so the layer cannot integrate and
+   * drift if a clip ever stops writing one of these tracks.
+   */
+  private applyBreath(deltaSeconds: number): void {
+    if (this.breathJoints.length === 0) return;
+    this.breathSeconds += deltaSeconds;
+    const envelope = creatorBreathEnvelope(this.breathSeconds);
+    for (const joint of this.breathJoints) {
+      joint.bone.quaternion
+        .copy(joint.base)
+        .multiply(CREATOR_BREATH_SCRATCH.setFromAxisAngle(joint.axis, joint.radians * envelope));
+    }
   }
 
   private stopPreviewMotion(resetPose = false): void {
+    this.breathJoints = [];
     if (this.mixer && this.model) {
       this.mixer.stopAllAction();
       this.mixer.uncacheRoot(this.model);
@@ -379,6 +496,7 @@ export class CreationAvatarPreview {
         // would render the figure tiny and then jump on the next re-frame.
         this.mixer.update(0);
         model.updateMatrixWorld(true);
+        this.captureBreathJoints(model);
         this.updatePreviewFraming();
       })
       .catch((error) => console.warn("Creator relaxed-idle preview failed to load.", error));
@@ -470,11 +588,22 @@ export class CreationAvatarPreview {
     const deltaSeconds = Math.min(0.05, Math.max(0, (now - this.lastFrameAt) / 1000));
     this.lastFrameAt = now;
     this.mixer?.update(deltaSeconds);
+    this.applyBreath(deltaSeconds);
     const width = Math.max(1, Math.round(this.canvas.clientWidth));
     const height = Math.max(1, Math.round(this.canvas.clientHeight));
-    if (this.canvas.width !== width || this.canvas.height !== height) this.renderer.setSize(width, height, false);
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    // Compare CSS pixels against CSS pixels. `canvas.width` becomes a device
+    // pixel value once a pixel ratio is set, so the old comparison could never
+    // match again and setSize ran on every frame.
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    if (width !== this.cssWidth || height !== this.cssHeight || pixelRatio !== this.appliedPixelRatio) {
+      this.cssWidth = width;
+      this.cssHeight = height;
+      this.appliedPixelRatio = pixelRatio;
+      this.renderer.setPixelRatio(pixelRatio);
+      this.renderer.setSize(width, height, false);
+      this.camera.aspect = width / height;
+      this.camera.updateProjectionMatrix();
+    }
 
     if (this.autoRotate && !this.dragging && now - this.lastInteractionAt > 2200) this.targetYaw += 0.0035;
     this.yaw += (this.targetYaw - this.yaw) * 0.12;

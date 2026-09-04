@@ -12,6 +12,7 @@ import {
   CREATOR_RELAXED_IDLE_PACK,
   EMPTY_CREATION_PREVIEW_AVAILABILITY,
   inspectCreationPreviewAvailability,
+  creatorBreathEnvelope,
   stabilizeCreatorRelaxedIdle,
 } from "../src/creationPreview";
 import { resolveCharacterAppearance } from "../src/game/character";
@@ -566,6 +567,39 @@ describe("character-creator modular appearance contract", () => {
     );
     expect(Array.from(headTop.values.slice(3))).not.toEqual(Array.from(headTop.values.slice(0, 3)));
     expect(Array.from(stabilized.tracks[2]!.values)).toEqual(Array.from(spine.values));
+  });
+
+  // These pin the SHAPE of the breath curve, not its amplitude. Amplitude is a
+  // visual judgement and is signed off from a render, never from a number - the
+  // previous pass was rejected precisely because numeric gates stood in for
+  // looking at the screen.
+  it("shapes breathing as a quicker inhale and a slower release", () => {
+    const period = 4.6;
+    const inhale = 0.42;
+
+    // Rests empty, fills to a single peak at the top of the inhale.
+    expect(creatorBreathEnvelope(0)).toBeCloseTo(0, 6);
+    expect(creatorBreathEnvelope(period * inhale)).toBeCloseTo(1, 6);
+
+    // The release occupies more of the cycle than the inhale, so at the
+    // midpoint of each the release is still fuller than the inhale was.
+    expect(creatorBreathEnvelope(period * inhale * 0.5)).toBeLessThan(
+      creatorBreathEnvelope(period * (inhale + (1 - inhale) * 0.5)),
+    );
+
+    // Never leaves 0..1, so amplitude stays exactly what the caller asked for.
+    for (let step = 0; step <= 64; step += 1) {
+      const value = creatorBreathEnvelope((period * step) / 64);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("keeps breathing periodic and defined for long-running and negative time", () => {
+    const period = 4.6;
+    expect(creatorBreathEnvelope(1.7)).toBeCloseTo(creatorBreathEnvelope(1.7 + period * 50), 6);
+    expect(Number.isFinite(creatorBreathEnvelope(-3.2))).toBe(true);
+    expect(creatorBreathEnvelope(-3.2)).toBeGreaterThanOrEqual(0);
   });
 
   it("resets inherited stage scroll after rendering a new creation step", () => {
