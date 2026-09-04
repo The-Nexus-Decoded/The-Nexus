@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "policyId": "souldrifter-heartvale-levels-2-10-v1",
   "chapterId": "heartvale-first-wound",
   "ownerDirectionDate": "2026-09-04",
@@ -10,8 +10,8 @@
     "loreWorldState": 428,
     "researchClassification": 429,
     "realmContinuity": 430,
-    "inventoryRuntime": "DEDICATED_CHILD_TICKET",
-    "factionReadinessRuntime": "DEDICATED_CHILD_TICKET"
+    "inventoryRuntime": 499,
+    "factionReadinessRuntime": 500
   },
   "questCounts": {
     "main": 10,
@@ -73,12 +73,21 @@
     "protectedDialogueSceneCharacterCopyingAllowed": false
   },
   "population": {
-    "confirmedPeoples": ["HUMAN", "DRAKKIN"],
-    "additionalPeopleSlots": 2,
-    "additionalPeopleStatus": "OWNER_DECISION_REQUIRED",
-    "elfAutomaticallyAssumed": false,
+    "populationMode": "HUMAN_ONLY",
+    "confirmedPeoples": ["HUMAN"],
+    "allowedSocialNpcPeoples": ["HUMAN"],
+    "additionalPeopleSlots": 0,
+    "additionalPeopleStatus": "NOT_ALLOWED_IN_CURRENT_HEARTVALE_CHAPTER",
+    "drakkinPresent": false,
+    "drakkinIntroduction": "LATER_LOCATIONS",
+    "elfPresent": false,
+    "dwarfPresent": false,
+    "halflingPresent": false,
+    "dragonOrDragonkinCameosAllowed": false,
+    "hostileWildlifeAndBreachCreaturesAllowed": true,
     "factionCountMinimum": 3,
     "factionCountMaximum": 4,
+    "allHeartvaleFactionsHuman": true,
     "raceEqualsSingleFaction": false,
     "permanentEarlyLockoutAllowed": false
   },
@@ -133,6 +142,8 @@
     "baseInventoryCompletesMainPath": true,
     "questItemsCannotSoftLockCapacity": true,
     "factionStateVisibleAndPersisted": true,
+    "heartvaleSocialPopulationHumanOnly": true,
+    "drakkinAndOtherPeoplesDeferredToLaterLocations": true,
     "desktopAndMobile": true,
     "bothCombatModes": true,
     "saveReloadAndReentry": true,
