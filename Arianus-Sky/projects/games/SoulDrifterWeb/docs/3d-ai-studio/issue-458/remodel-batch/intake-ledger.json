@@ -346,5 +346,10 @@
         }
       ]
     }
-  ]
+  ],
+  "ownerReview": {
+    "at": "2026-09-04 02:55",
+    "verdict": "quads look good",
+    "scope": "the four four-view Breachling bodies (base4v v8, stalker4v v5, oathbound4v q4, ravager4v v4) reviewed in Motion Forge; Wardens not covered (Mixamo route recommended)"
+  }
 }
