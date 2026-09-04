@@ -114,6 +114,8 @@ export type CreationPreviewView = "body" | "face";
 export interface CreationPreviewOptions {
   view?: CreationPreviewView;
   autoRotate?: boolean;
+  /** Called with a human-readable reason whenever the model or its idle cannot be shown. */
+  onLoadFailure?: (reason: string) => void;
 }
 
 interface CreationPreviewFraming {
@@ -246,6 +248,7 @@ export class CreationAvatarPreview {
   private mixer: THREE.AnimationMixer | null = null;
   private motionRequest = 0;
   private framing: CreationPreviewFraming | null = null;
+  private readonly onLoadFailure: ((reason: string) => void) | undefined;
   private breathJoints: CreatorBreathJoint[] = [];
   private breathSeconds = 0;
   private cssWidth = 0;
@@ -263,6 +266,7 @@ export class CreationAvatarPreview {
     this.yaw = this.frontYaw();
     this.targetYaw = this.yaw;
     this.autoRotate = options.autoRotate ?? false;
+    this.onLoadFailure = options.onLoadFailure;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -339,6 +343,7 @@ export class CreationAvatarPreview {
       .catch((error) => {
         this.onAvailabilityChange?.(EMPTY_CREATION_PREVIEW_AVAILABILITY);
         console.warn("Creation avatar preview failed to load.", error);
+        this.onLoadFailure?.("the returned body could not be loaded");
       });
   }
 
@@ -475,11 +480,13 @@ export class CreationAvatarPreview {
         const source = gltf.animations.find((clip) => clip.name === CREATOR_RELAXED_IDLE_PACK.sourceClipName);
         if (!source) {
           console.warn(`Creator relaxed-idle clip is unavailable: ${CREATOR_RELAXED_IDLE_PACK.sourceClipName}`);
+          this.onLoadFailure?.("the relaxed idle is missing, so the body is shown in its bind pose");
           return;
         }
         const bound = bindOptionalCompatibleAnimationClip(source, model, "CreatorIdleRelaxed");
         if (!bound) {
           console.warn("Creator relaxed-idle preview is incompatible with the Human foundation rig.");
+          this.onLoadFailure?.("the relaxed idle does not fit this rig, so the body is shown in its bind pose");
           return;
         }
         const rootTrack = bound.tracks.find((track) => /(?:armature|hips)[^.]*\.position$/i.test(track.name));
@@ -499,7 +506,10 @@ export class CreationAvatarPreview {
         this.captureBreathJoints(model);
         this.updatePreviewFraming();
       })
-      .catch((error) => console.warn("Creator relaxed-idle preview failed to load.", error));
+      .catch((error) => {
+        console.warn("Creator relaxed-idle preview failed to load.", error);
+        this.onLoadFailure?.("the relaxed idle could not be loaded, so the body is shown in its bind pose");
+      });
   }
 
   private currentSkinColor(): number {

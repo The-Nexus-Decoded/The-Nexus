@@ -84,6 +84,23 @@ export function isCreatorAppearanceSelectionAvailable(
     && (appearance.age === 0 || availability.ageMorphsAvailable);
 }
 
+const APPEARANCE_PANEL_COPY = {
+  body: {
+    eyebrow: "The returned body · Human foundation · Body",
+    title: "Which body did the Soul Well return?",
+    lede: "The Well returned one body. Turn it and look it over; the face waits in its own close-up.",
+    canvas: "Full-body preview of the returned body. Drag to rotate manually.",
+    mode: "Body · relaxed idle · drag to turn",
+  },
+  face: {
+    eyebrow: "The returned body · Human foundation · Face & features",
+    title: "Shape the face the world will meet.",
+    lede: "Inspect the head at conversation distance and choose a complexion. Further features are offered only once their canonical assets pass review.",
+    canvas: "Close-up preview of your face. Drag to rotate manually.",
+    mode: "Face inspection · relaxed idle · drag to turn",
+  },
+} as const;
+
 export class CharacterCreation {
   private readonly root = requiredElement<HTMLElement>("character-creation");
   private readonly stage = requiredElement<HTMLElement>("creation-stage");
@@ -286,13 +303,12 @@ export class CharacterCreation {
     this.appearanceAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
     const appearance = resolveCharacterAppearance(this.draft.appearance);
     const facePanel = this.appearancePanel === "face";
+    const copy = APPEARANCE_PANEL_COPY[this.appearancePanel];
     this.stage.innerHTML = `
       <div class="creation-heading">
-        <p class="eyebrow">The returned body · Human foundation · ${facePanel ? "Face & features" : "Body"}</p>
-        <h2>${facePanel ? "Shape the face the world will meet." : "Which body did the Soul Well return?"}</h2>
-        <p>${facePanel
-          ? "Inspect the head at conversation distance and choose a complexion. Further features are offered only once their canonical assets pass review."
-          : "The Well returned one body. Turn it and look it over; the face waits in its own close-up."}</p>
+        <p class="eyebrow" id="appearance-eyebrow">${copy.eyebrow}</p>
+        <h2 id="appearance-title">${copy.title}</h2>
+        <p id="appearance-lede">${copy.lede}</p>
       </div>
       <div class="appearance-workflow" role="tablist" aria-label="Appearance setup">
         <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}">
@@ -306,7 +322,7 @@ export class CharacterCreation {
       <div class="appearance-builder appearance-builder--${this.appearancePanel}">
         <div class="appearance-preview appearance-preview--${this.appearancePanel}">
           <div class="appearance-preview__viewport appearance-preview__viewport--${this.appearancePanel}">
-            <canvas id="appearance-preview-canvas" aria-label="${facePanel ? "Close-up preview of your face" : "Full-body preview of the returned body"}. Drag to rotate manually."></canvas>
+            <canvas id="appearance-preview-canvas" aria-label="${copy.canvas}"></canvas>
           </div>
           <div class="appearance-preview__controls">
             <label class="appearance-rotation-toggle">
@@ -316,16 +332,16 @@ export class CharacterCreation {
             <button id="appearance-front-view" type="button">Front view</button>
           </div>
           <div class="appearance-preview__readout" aria-live="polite">
-            <span>${facePanel ? "Face inspection · relaxed idle · drag to turn" : "Body · relaxed idle · drag to turn"}</span>
+            <span id="appearance-preview-mode">${copy.mode}</span>
             <strong id="appearance-preview-status">Loading the returned body…</strong>
           </div>
         </div>
         <div class="appearance-builder__options">
-        <section ${facePanel ? "hidden" : ""}>
+        <section data-appearance-section="body" ${facePanel ? "hidden" : ""}>
           <h3>Body</h3>
           <p class="appearance-note">The Human foundation, athletic build. Other builds arrive with their own canonical bodies; none is offered here before it exists.</p>
         </section>
-        <section ${facePanel ? "" : "hidden"}>
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
           <h3>Skin tone</h3>
           <div class="appearance-options appearance-options--skin">
             ${Object.entries(SKIN_TONES).map(([id, tone]) => `
@@ -335,7 +351,7 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section ${facePanel ? "" : "hidden"}>
+        <section data-appearance-section="face" ${facePanel ? "" : "hidden"}>
           <h3>Withheld</h3>
           <p class="appearance-note">Face shape, hair, facial hair, complexion detail and age are withheld until their canonical assets pass review. The creator never offers a control that cannot change what you see.</p>
         </section>
@@ -361,13 +377,13 @@ export class CharacterCreation {
     }, (availability) => this.updateAppearanceAvailability(availability), {
       view: this.appearancePanel,
       autoRotate: this.appearanceAutoRotate,
+      onLoadFailure: (reason) => this.showAppearanceLoadFailure(reason),
     });
     this.stage.querySelectorAll<HTMLButtonElement>("button[data-appearance-panel]").forEach((button) => {
       button.addEventListener("click", () => {
         const panel = button.dataset.appearancePanel;
         if (panel !== "body" && panel !== "face") return;
-        this.appearancePanel = panel;
-        this.render();
+        this.switchAppearancePanel(panel);
       });
     });
     requiredElement<HTMLInputElement>("appearance-auto-rotate").addEventListener("change", (event) => {
@@ -410,19 +426,79 @@ export class CharacterCreation {
       }
       this.navigate("calling");
     };
-    if (facePanel) {
-      this.bindNavigation(this.appearanceEditProfile
-        ? leaveAppearance
-        : () => {
-            this.appearancePanel = "body";
-            this.render();
-          }, acceptAppearance);
-    } else {
-      this.bindNavigation(leaveAppearance, () => {
-        this.appearancePanel = "face";
-        this.render();
-      });
+    // The handlers read the live panel so a body<->face switch can update the
+    // labels in place without re-binding (and stacking) listeners.
+    this.bindNavigation(
+      () => {
+        if (this.appearancePanel === "face" && !this.appearanceEditProfile) this.switchAppearancePanel("body");
+        else leaveAppearance();
+      },
+      () => {
+        if (this.appearancePanel === "face") acceptAppearance();
+        else this.switchAppearancePanel("face");
+      },
+    );
+  }
+
+  /**
+   * Switches between the body and face stations without rebuilding the stage.
+   * Rebuilding destroyed the canvas and its WebGL context on every tab click,
+   * re-fetched the idle pack, and painted the bind pose until it rebound - the
+   * pose snap the owner saw. The preview instance, its context and its
+   * animation survive; only the copy, the section visibility and the camera
+   * station change.
+   */
+  private switchAppearancePanel(panel: "body" | "face"): void {
+    if (this.appearancePanel === panel) return;
+    this.appearancePanel = panel;
+    const copy = APPEARANCE_PANEL_COPY[panel];
+    const facePanel = panel === "face";
+    this.error.textContent = "";
+    this.stage.querySelectorAll<HTMLButtonElement>("button[data-appearance-panel]").forEach((button) => {
+      const selected = button.dataset.appearancePanel === panel;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-selected", String(selected));
+    });
+    for (const [selector, base] of [
+      [".appearance-builder", "appearance-builder"],
+      [".appearance-preview", "appearance-preview"],
+      [".appearance-preview__viewport", "appearance-preview__viewport"],
+    ] as const) {
+      const element = this.stage.querySelector<HTMLElement>(selector);
+      if (!element) continue;
+      element.classList.remove(`${base}--body`, `${base}--face`);
+      element.classList.add(`${base}--${panel}`);
     }
+    this.stage.querySelectorAll<HTMLElement>("[data-appearance-section]").forEach((section) => {
+      section.hidden = section.dataset.appearanceSection !== panel;
+    });
+    const setText = (id: string, text: string): void => {
+      const element = this.stage.querySelector<HTMLElement>(`#${id}`);
+      if (element) element.textContent = text;
+    };
+    setText("appearance-eyebrow", copy.eyebrow);
+    setText("appearance-title", copy.title);
+    setText("appearance-lede", copy.lede);
+    setText("appearance-preview-mode", copy.mode);
+    this.stage.querySelector<HTMLCanvasElement>("#appearance-preview-canvas")?.setAttribute("aria-label", copy.canvas);
+    const back = this.stage.querySelector<HTMLButtonElement>("#creation-back");
+    const next = this.stage.querySelector<HTMLButtonElement>("#creation-next");
+    if (back) back.innerHTML = `← ${this.escape(this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body" : "Return to ancestry")}`;
+    if (next) {
+      next.innerHTML = `${this.escape(this.appearanceEditProfile
+        ? facePanel ? "Save appearance" : "Review face & features"
+        : facePanel ? "Choose calling" : "Continue to face & features")} <span>→</span>`;
+    }
+    this.appearancePreview?.setView(panel);
+    this.updateAppearanceReadout();
+    resetCreationStageScroll(this.stage);
+  }
+
+  private showAppearanceLoadFailure(reason: string): void {
+    const status = this.stage.querySelector<HTMLElement>("#appearance-preview-status");
+    if (!status) return;
+    status.textContent = `Preview unavailable: ${reason}.`;
+    status.classList.add("is-failed");
   }
 
   private renderCalling(): void {
@@ -612,7 +688,7 @@ export class CharacterCreation {
 
   private updateAppearanceReadout(): void {
     const status = this.stage.querySelector<HTMLElement>("#appearance-preview-status");
-    if (!status) return;
+    if (!status || status.classList.contains("is-failed")) return;
     const appearance = resolveCharacterAppearance(this.draft.appearance);
     const tone = SKIN_TONES[appearance.skinTone]?.name ?? appearance.skinTone;
     status.textContent = `Human foundation · ${tone}`;

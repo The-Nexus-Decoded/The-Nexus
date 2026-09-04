@@ -510,6 +510,7 @@ button {
 }
 .appearance-preview__readout strong { color: #badfd9; font: 700 10px/1.35 "Soul HUD", sans-serif; letter-spacing: 0.05em; }
 .appearance-preview__readout small { color: #75867f; letter-spacing: 0.04em; }
+.appearance-preview__readout strong.is-failed { color: #e08a7a; }
 .appearance-builder h3 { margin: 0 0 10px; color: var(--bronze); font: 700 10px/1 "Soul HUD", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
 .appearance-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .appearance-builder--body .appearance-options { grid-template-columns: minmax(0, 1fr); }
