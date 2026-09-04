@@ -619,10 +619,17 @@ export class CreationAvatarPreview {
       const { center, boundsSize, bodyHeight, headY } = framing;
       if (this.previewView === "face") {
         this.camera.up.set(0, 1, 0);
-        const portraitSpan = bodyHeight * 0.32;
-        const portraitTargetY = headY - bodyHeight * 0.04;
-        const distance = (portraitSpan / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)))) * 1.05;
-        this.camera.position.set(center.x, portraitTargetY + portraitSpan * 0.04, center.z + distance);
+        // Head-and-shoulders portrait. `headY` is the Head bone (skull base,
+        // 0.377 on the 0.9995-unit pilot); the crown sits ~0.12 above it and
+        // the chin ~0.03 below. A 0.20 x bodyHeight span centred 0.035 above
+        // the bone puts the chin ~19% up the frame, the crown ~94% up and the
+        // eyes just above centre, with the neck and collar still visible. The
+        // previous 0.32 span aimed at the neck framed a chest-up medium shot
+        // in which hairline, ears and skin could not be judged.
+        const portraitSpan = bodyHeight * 0.20;
+        const portraitTargetY = headY + bodyHeight * 0.035;
+        const distance = portraitSpan / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)));
+        this.camera.position.set(center.x, portraitTargetY, center.z + distance);
         this.camera.lookAt(center.x, portraitTargetY, center.z);
       } else {
         // The figure is upright once the idle clip drives the rig, so the
