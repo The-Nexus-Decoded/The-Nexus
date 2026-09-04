@@ -257,7 +257,7 @@
     },
     {
       "assetId": "wayfarer-cinderbound-warden",
-      "status": "four-view model + Tripo humanoid rig in intake; follow-ups: retarget onto the game warden skeleton (18 bones, blade forearm), break-off parts (segment an unrigged copy or split in Blender), Greater (Oathbreaker) Warden not started",
+      "status": "own warden skeleton rigged (no animations yet); composer lane L2 authoring clips; effects lane L3",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/wayfarer-cinderbound-warden-gpt-image-2-design-reference.png",
         "origin": "GPT Image 2 design reference"
@@ -304,11 +304,17 @@
         "attempt": "Tripo Segment (Balanced, 6-15 parts, 40 credits, trial x1) on the rigged Warden",
         "at": "2026-09-04 01:55",
         "result": "refused: 'Rigged models don't support segmentation yet' - Tripo segmentation must run on the unrigged model BEFORE Auto Rig. Break-off damage parts therefore need either a second unrigged Warden generation segmented first, or a Blender split of the rigged mesh (preferred: we choose the plates, cap the cuts, keep the skin weights per part)."
+      },
+      "ownRig": {
+        "at": "2026-09-04 03:55",
+        "tool": "Blender 4.5 (lane L1, tools/rig-warden-fourview.py)",
+        "result": "game 18-bone warden skeleton built on the four-view mesh (Tripo joints as position hints only), heat weights solved on a watertight voxel proxy and transferred back, blade folded into lower_arm_R, Breakoff_30_Shoulders/60_Forearms/90_Thighs as duplicated plate shells; 0 unweighted vertices, limb isolation probes under 2 mm; report intake/warden-rig-report.md",
+        "path": "intake/warden-wayfarer/rigged/wayfarer-cinderbound-warden-fourview-rigged.glb"
       }
     },
     {
       "assetId": "oathbreaker-greater-cinderbound-warden",
-      "status": "four-view model: unrigged raw + Tripo humanoid rig in intake; follow-ups: segmentation/Blender break-off plates, retarget onto the game warden skeleton",
+      "status": "own warden skeleton rigged (no animations yet); composer lane L2 authoring clips; effects lane L3",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/oathbreaker-greater-cinderbound-warden-midjourney-v8.2-selected.png",
         "origin": "Midjourney v8.2 selected"
@@ -344,12 +350,43 @@
           "balanceAfter": 10000,
           "result": "rigged; exported with skeleton -> intake/warden-oathbreaker/raw/oathbreaker-greater-cinderbound-warden-fourview-tripo-rig.glb (82552368 bytes) sha256 a6fa01b05b778e5983cd6d4669fb923245c9ddb157fbaf00cab97140644ac028"
         }
-      ]
+      ],
+      "ownRig": {
+        "at": "2026-09-04 03:55",
+        "tool": "Blender 4.5 (lane L1, tools/rig-warden-fourview.py)",
+        "result": "game 18-bone warden skeleton built on the four-view mesh (Tripo joints as position hints only), heat weights solved on a watertight voxel proxy and transferred back, blade folded into lower_arm_R, Breakoff_30_Shoulders/60_Forearms/90_Thighs as duplicated plate shells; 0 unweighted vertices, limb isolation probes under 2 mm; report intake/warden-rig-report.md",
+        "path": "intake/warden-oathbreaker/rigged/oathbreaker-greater-cinderbound-warden-fourview-rigged.glb"
+      }
     }
   ],
   "ownerReview": {
     "at": "2026-09-04 02:55",
     "verdict": "quads look good",
     "scope": "the four four-view Breachling bodies (base4v v8, stalker4v v5, oathbound4v q4, ravager4v v4) reviewed in Motion Forge; Wardens not covered (Mixamo route recommended)"
+  },
+  "wardenEffects": {
+    "commit": "ce1124fd5",
+    "at": "2026-09-04 04:20",
+    "summary": "lane L3: procedural warden effects (src/game/vfx/cinderbound-warden-vfx.ts) and clip-relative effect timelines (src/game/dungeons/breach-v2-warden-effects.ts): PalmFire solid beam from hand_L with telegraph and locked aim, CinderSweep fire wave + scorch, AshCall telegraph ring + burst, SoulTax siphon, FurnaceShutdown, break-off ember burst/scorch/exposed core; tests/breachV2WardenEffects.test.ts (10) green; doc remodel-batch/warden-effects.md",
+    "verifiedInMotionForge": "PalmFire beam seen on the legacy Wayfarer body 2026-09-04 04:25 (held-beam window)"
+  },
+  "wardenRebuild": {
+    "at": "2026-09-04",
+    "wayfarer": {
+      "pack": "wayfarer-cinderbound-warden-fourview-v8.glb",
+      "sha256": "3478250e32077a60e69efcf367011089279fc58ca9d336bf0c3609a256e90f60",
+      "gates": "15/15",
+      "entry": "warden-wayfarer-4v"
+    },
+    "oathbreaker": {
+      "pack": "oathbreaker-greater-cinderbound-warden-fourview-v3.glb",
+      "sha256": "716ec29751baff93df4d8cf641ccc53619dfd8bca091d1c82cb5f23012fceb5b",
+      "gates": "13/13",
+      "entry": "warden-oathbreaker-4v",
+      "rig": "oathbreaker-greater-cinderbound-warden-fourview-rigged-v2.glb"
+    },
+    "greaterRigDefect": "182 sole vertices carried a lower_leg/foot weight split of 0.65/0.35, one hundredth under the composer's 0.35 foot-region threshold, so the toe read as a shin plate on the floor and vetoed the stance sink. Knees held at 163 deg, sink capacity 0, left planted reach 0. Fixed by handing skin below the ankle to the foot plus a 0.005-unit pelvis drop on pinned ankles. Knees now 139 deg against the wayfarer's 137-142.",
+    "landingRule": "Both packs install under /assets/weapon-lab/wardens/ as their own review entries. The shipped Warden GLBs are byte and checksum pinned and are never overwritten.",
+    "turnHeading": "Rebuilt turns bake 90 deg into the root bone; the runtime now folds that onto the actor as the clip finishes while the pivot cancels what the fading action still poses. Shipped clips encode no turn and are skipped by measurement, not by name."
   }
 }
