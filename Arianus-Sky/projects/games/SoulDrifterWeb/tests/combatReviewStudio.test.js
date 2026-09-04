@@ -42,12 +42,17 @@ function studioFixture(overrides = {}) {
 }
 
 describe("Combat Review studio composition", () => {
-  it("uses all existing ten human loadouts and six creatures without inventing source approval", async () => {
+  it("uses all existing ten human loadouts and every catalogued creature without inventing source approval", async () => {
     expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "human" && entry.id !== ENVIRONMENT_REVIEW_DEFINITION.id).map((entry) => entry.id))
       .toEqual(Object.keys(LOADOUTS).map((id) => `human:${id}`));
     expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family !== "human").map((entry) => entry.id))
       .toEqual(MOB_CATALOG.map((entry) => entry.id));
-    expect(COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "warden").every((entry) => entry.note.includes("not revised"))).toBe(true);
+    const wardens = COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "warden");
+    const shipped = wardens.filter((entry) => !entry.id.endsWith("-4v"));
+    const rebuilt = wardens.filter((entry) => entry.id.endsWith("-4v"));
+    expect(shipped.length).toBeGreaterThan(0);
+    expect(shipped.every((entry) => entry.note.includes("not revised"))).toBe(true);
+    expect(rebuilt.every((entry) => entry.note.includes("clips authored") && !entry.note.includes("not revised"))).toBe(true);
     const factory = { create: vi.fn(async ({ instanceId, loadoutId }) => actorFixture(instanceId, loadoutId)), dispose: vi.fn() };
     const mobLoader = vi.fn(async ({ instanceId, definitionId }) => Object.assign(actorFixture(instanceId, definitionId), {
       controls: [{ id: "jaw", label: "Jaw", group: "Head", min: -20, max: 20, step: 1 }],
@@ -66,7 +71,7 @@ describe("Combat Review studio composition", () => {
         expect(handle.actor.setControl).toHaveBeenCalledWith("jaw", 4); }
       handle.actor.dispose();
     }
-    expect(factory.create).toHaveBeenCalledTimes(10); expect(mobLoader).toHaveBeenCalledTimes(6);
+    expect(factory.create).toHaveBeenCalledTimes(10); expect(mobLoader).toHaveBeenCalledTimes(MOB_CATALOG.length);
     expect(factory.dispose).not.toHaveBeenCalled();
   });
 

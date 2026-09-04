@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { LOADOUTS } from "./human-review-catalog.js";
 import { MOB_CATALOG } from "./mobs-stage.ts";
 import { reviewedMobNote } from "./reviewed-mob-receipt.ts";
+import { reviewedWardenNote } from "./reviewed-warden-receipt.ts";
 import { createMobReviewActor } from "./mob-review-actor.ts";
 import { CombatReviewController } from "./combat-review-controller.ts";
 import { CombatReviewPanel } from "./combat-review-panel.ts";
@@ -16,6 +17,7 @@ export const COMBAT_REVIEW_DEFINITIONS = Object.freeze([
   ENVIRONMENT_REVIEW_DEFINITION,
   ...MOB_CATALOG.map((definition) => Object.freeze({ id: definition.id, family: definition.family, label: definition.label,
     note: definition.reviewedMotion ? reviewedMobNote(definition.reviewedMotion)
+      : definition.reviewedWardenMotion ? reviewedWardenNote(definition.reviewedWardenMotion)
       : "Original source creature · motions not revised. Visible source rig defects remain under review." })),
 ]);
 const COMBAT_REVIEW_CAMERA_DIRECTION = new THREE.Vector3(1.8, 0.48, 0.35).normalize();
