@@ -14,6 +14,7 @@ import type { BreachV2AnimationReviewActor, BreachV2AnimationReviewPlayback, Bre
 import { createMobPoseOverlay } from "./mob-pose-overlay";
 import { configureReviewAssetLoader, fetchPinnedReviewAsset } from "./review-asset-loader";
 import { REVIEWED_FOURVIEW_MOB_RECEIPTS, REVIEWED_MOB_RECEIPTS, type ReviewedMobReceipt } from "./reviewed-mob-receipt";
+import { REVIEWED_FOURVIEW_WARDEN_RECEIPTS, type ReviewedWardenReceipt } from "./reviewed-warden-receipt";
 import { FOURVIEW_DEFINITION_SUFFIX } from "./composer-pack-lookup";
 
 export interface MobDefinition {
@@ -29,6 +30,8 @@ export interface MobDefinition {
   sha256: string;
   bytes: number;
   reviewedMotion?: ReviewedMobReceipt;
+  /** Rebuilt Warden body intake; never set at the same time as reviewedMotion. */
+  reviewedWardenMotion?: ReviewedWardenReceipt;
 }
 
 // Original dungeon receipts remain intact; an explicit lab intake may replace
@@ -79,6 +82,22 @@ export const MOB_CATALOG: readonly MobDefinition[] = Object.freeze([
     ...CINDERBOUND_WARDEN_ASSETS[variant], bytes: WARDEN_RECEIPTS[variant][0], sha256: WARDEN_RECEIPTS[variant][1],
     runtimeUrl: CINDERBOUND_WARDEN_ASSETS[variant].url,
   })),
+  // Rebuilt four-view Warden bodies: same kind and lineage, a different reviewed mesh.
+  // The shipped GLB is byte-pinned above and is never overwritten by one of these.
+  ...(Object.keys(WARDEN_RECEIPTS) as CinderboundWardenKind[]).flatMap((variant) => {
+    const reviewed = REVIEWED_FOURVIEW_WARDEN_RECEIPTS[variant];
+    if (!reviewed) return [];
+    if (reviewed.runtimeSourceSha256 !== WARDEN_RECEIPTS[variant][1]) {
+      throw new Error(`Reviewed four-view ${variant} Warden receipt has the wrong shipped-source lineage.`);
+    }
+    return [Object.freeze({
+      id: `warden-${variant}${FOURVIEW_DEFINITION_SUFFIX}`, family: "warden" as const, variant,
+      ...CINDERBOUND_WARDEN_ASSETS[variant],
+      label: `${CINDERBOUND_WARDEN_ASSETS[variant].label} · four-view body`,
+      runtimeUrl: CINDERBOUND_WARDEN_ASSETS[variant].url,
+      url: reviewed.url, bytes: reviewed.bytes, sha256: reviewed.sha256, reviewedWardenMotion: reviewed,
+    })];
+  }),
 ]);
 
 type Snapshot = BreachlingRuntimeSnapshot | CinderboundWardenSnapshot;
@@ -125,11 +144,24 @@ class PinnedMobLoader extends GLTFLoader {
         throw new Error("Unapproved review-only mob asset override.");
       }
     }
-    if (!reviewed && this.definition.url !== url) throw new Error("Mob asset override requires a reviewed intake receipt.");
-    if (reviewed && !globalThis.crypto?.subtle) {
+    const reviewedWarden = this.definition.reviewedWardenMotion;
+    if (reviewedWarden) {
+      const kind = this.definition.variant as CinderboundWardenKind;
+      if (reviewed || this.definition.family !== "warden"
+        || this.definition.id !== `warden-${kind}${FOURVIEW_DEFINITION_SUFFIX}`
+        || reviewedWarden !== REVIEWED_FOURVIEW_WARDEN_RECEIPTS[kind] || reviewedWarden.kind !== kind
+        || url !== CINDERBOUND_WARDEN_ASSETS[kind]?.url
+        || this.definition.url !== reviewedWarden.url || this.definition.bytes !== reviewedWarden.bytes
+        || this.definition.sha256 !== reviewedWarden.sha256) {
+        throw new Error("Unapproved review-only Warden asset override.");
+      }
+    }
+    const intake = reviewed ?? reviewedWarden;
+    if (!intake && this.definition.url !== url) throw new Error("Mob asset override requires a reviewed intake receipt.");
+    if (intake && !globalThis.crypto?.subtle) {
       throw new Error("Revised mob animations require SHA-256 verification. Open Motion Studio in a secure context.");
     }
-    const verified = await fetchPinnedReviewAsset(this.definition, { signal: this.signal, requireChecksum: !!reviewed });
+    const verified = await fetchPinnedReviewAsset(this.definition, { signal: this.signal, requireChecksum: !!intake });
     this.checksumVerified = verified.checksumVerified;
     return this.parseAsync(verified.bytes, verified.resourcePath);
   }
