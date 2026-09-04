@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  enemyDefeatVisibilityMs,
   planPursuitPath,
   planSoulwellRespawn,
   resolveMeleeTarget,
@@ -7,6 +8,12 @@ import {
 } from "../src/game/combatFlow";
 
 describe("shared combat-flow boundaries", () => {
+  it("keeps a defeated actor visible for its effective death clip plus a terminal hold", () => {
+    expect(enemyDefeatVisibilityMs(2_292)).toBe(2_512);
+    expect(enemyDefeatVisibilityMs(2_292, 0)).toBe(2_292);
+    expect(enemyDefeatVisibilityMs(-100)).toBe(220);
+  });
+
   it("uses an adjacent selected target, otherwise the nearest eligible adjacent target", () => {
     const targets = [
       { id: "selected-far", grid: { x: 4, y: 0 }, alive: true },

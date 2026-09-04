@@ -34,17 +34,15 @@ describe("canonical avatar identity", () => {
     });
   });
 
-  it("routes Shadowknight races through their lineage rigs (elf v2 / human)", () => {
+  it("routes current and legacy Shadowknight identities through their compatible rigs", () => {
     const elf = elfShadowknight();
     const human = { ...elf, raceId: "human", raceName: "Human" };
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
     const halfling = { ...elf, raceId: "halfling", raceName: "Halfling" };
-    const elfPath = "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb";
-    const humanPath = "/assets/3d/characters/human-shadowknight/human-shadowknight.glb";
-    expect(resolvePlayerModelPath(elf)).toBe(elfPath);
-    expect(resolvePlayerModelPath(human)).toBe(humanPath);
-    expect(resolvePlayerModelPath(dwarf)).toBe(humanPath);
-    expect(resolvePlayerModelPath(halfling)).toBe(humanPath);
+    expect(resolvePlayerModelPath(elf)).toBe("/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb");
+    expect(resolvePlayerModelPath(human)).toBe("/assets/3d/characters/human-shadowknight/human-shadowknight.glb");
+    expect(resolvePlayerModelPath(dwarf)).toBe(resolvePlayerModelPath(human));
+    expect(resolvePlayerModelPath(halfling)).toBe(resolvePlayerModelPath(human));
   });
 
   it("keeps model and optional same-rig animation packs on one identity manifest", () => {
@@ -52,14 +50,16 @@ describe("canonical avatar identity", () => {
     const dwarf = { ...elf, raceId: "dwarf", raceName: "Dwarf" };
 
     const animationPacks = [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK];
-    expect(resolvePlayerAvatarManifest(elf)).toEqual({
+    const elfExpected = {
       modelPath: "/assets/3d/characters/elf-shadowknight-v2/elf-shadowknight-v2.glb",
       animationPacks,
-    });
-    expect(resolvePlayerAvatarManifest(dwarf)).toEqual({
+    };
+    const legacyExpected = {
       modelPath: "/assets/3d/characters/human-shadowknight/human-shadowknight.glb",
-      animationPacks,
-    });
+      animationPacks: [...HUMANOID_ACTIVE_ANIMATION_PACKS, SIPHON_CLEAVE_PACK, WEAPON_STRIKE_PACK],
+    };
+    expect(resolvePlayerAvatarManifest(elf)).toEqual(elfExpected);
+    expect(resolvePlayerAvatarManifest(dwarf)).toEqual(legacyExpected);
 
     const dwarfWarrior = { ...dwarf, callingId: "warrior" as const, callingName: "Warrior" };
     expect(resolvePlayerAvatarManifest(dwarfWarrior)).toEqual({

@@ -5,16 +5,16 @@ Scope: character creation, starter presentation, NPC dialogue, tutorials, and st
 
 ## Character contract
 
-Every playable character is the combination of an ancestry, a calling, and four recovered memories. Ancestry never locks a class or morality.
+Every playable character is the combination of an ancestry, a calling, and four recovered memories. Ancestry never determines morality. The canonical eligibility contract may forbid a biologically or metaphysically incompatible calling and may mark culturally unusual paths as Rare without hidden penalties.
 
 ### Ancestries
 
 | Ancestry | Identity | Starting talent | Attribute direction |
 | --- | --- | --- | --- |
-| Human | adaptable survivors carrying several realm echoes | Versatile Training | Insight and Will |
-| Elf | long memory and precision across broken worlds | Long Memory | Finesse and Insight |
-| Dwarf | forge culture, anchors, stone, and conduits | Stone Anchor | Might and Vitality |
-| Halfling | improvisation and hidden-route wayfinding | Hidden Route | Finesse and Will |
+| Human | adaptable survivors carrying several realm echoes | Versatile Training | no raw ancestry bonus; visible flexible training benefit |
+| Elf | long memory and precision across broken worlds | Long Memory | +2 Insight, +1 Finesse |
+| Dwarf | forge culture, ancestors, oaths, and conduits | Stone Anchor | +2 Will, +1 Vitality |
+| Halfling | improvisation and hidden-route wayfinding | Hidden Route | +2 Finesse, +1 Will |
 
 ### Callings
 
@@ -30,13 +30,15 @@ Every playable character is the combination of an ancestry, a calling, and four 
 | Slayer | Backstab | Shadowstep | flanks, poison, execution |
 | Shadowknight | Siphon Cleave | Cinder Guard | drain tank, curses, Fire-Realm lich survival |
 
+Slayer is the Lifepaper rogue/execution calling. Stalker is reserved beneath it as a later specialization, but its mechanics remain undefined until the coordinated class review; it is not selectable as a separate base calling.
+
 The four memory questions are diegetic stat and skill creation. Their answers modify Might, Finesse, Insight, Will, Vitality, and Resonance; grant four remembered skills; and become story facts that later NPCs and quests can inspect.
 
-The implementation supports all `4 × 9 = 36` ancestry/calling combinations. Each combination has its own original starter sprite.
+The registry contains four ancestries and nine base callings. Thirty-two combinations are selectable: Dwarf and Halfling cannot select Mage or Shadowknight; Dwarf Sharpshooter remains allowed. Rare combinations remain selectable with cultural context and no hidden numerical penalty.
 
-Monk is recorded as a planned tenth calling for a later class-design and asset pass. It is not yet part of the playable registry, the 36 current combinations, character creation, starter balance, or the production asset count.
+Monk is recorded as a planned tenth calling for a later class-design and asset pass. It is not yet part of the playable registry, the 32 currently selectable combinations, character creation, starter balance, or the production asset count.
 
-Favored ancestry/calling pairings grant a named resonance passive and one additional attribute point. They create meaningful optimization without locking any combination. The full progression ladder, mutually exclusive rune traditions, and specialization rules are in `CLASS_PROGRESSION_CODEX.md`.
+Favored ancestry/calling pairings grant a named resonance passive and one additional attribute point. They create meaningful optimization without turning favored paths into requirements. The full progression ladder, mutually exclusive rune traditions, and specialization rules are in `CLASS_PROGRESSION_CODEX.md`.
 
 ### Ilyra's starter refinement
 

@@ -1,7 +1,10 @@
 node_modules/
 dist/
+dist-pages/
 coverage/
 *.log
+# Houdini derived texture cache — regenerable, never the source of truth
+source-assets/houdini/.cache/
 
 
 # Houdini blockout OBJ (Houdini-side artifact; runtime uses the raw/json exports)

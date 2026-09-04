@@ -8,6 +8,7 @@ import {
   normalizeLegacyCharacterProfile,
   RACES,
   raceCallingBonus,
+  raceCallingEligibility,
   SKIN_TONES,
   STAT_KEYS,
   STAT_LABELS,
@@ -201,7 +202,12 @@ export class CharacterCreation {
           </button>`).join("")}
       </div>
       ${this.navigation("Return to name", "Choose ancestry")}`;
-    this.bindChoices("button[data-race]", "race", (id) => { this.draft.raceId = id; });
+    this.bindChoices("button[data-race]", "race", (id) => {
+      this.draft.raceId = id;
+      if (this.draft.callingId && raceCallingEligibility(id, this.draft.callingId).status === "forbidden") {
+        this.draft.callingId = "";
+      }
+    });
     this.bindNavigation(() => this.navigateBack("name"), () => {
       if (!this.draft.raceId) return this.fail("Choose the ancestry carried by this soul.");
       this.navigate("appearance");
@@ -293,17 +299,22 @@ export class CharacterCreation {
   }
 
   private renderCalling(): void {
+    if (this.draft.callingId && raceCallingEligibility(this.draft.raceId, this.draft.callingId).status === "forbidden") {
+      this.draft.callingId = "";
+    }
     this.stage.innerHTML = `
       <div class="creation-heading">
         <p class="eyebrow">The soul's calling</p>
         <h2>How did you survive the broken worlds?</h2>
-        <p>Your calling grants its signature and defensive skill. Race never restricts this choice.</p>
+        <p>Ancestry shapes the paths available to this returned body. Rare callings remain possible and carry cultural context.</p>
       </div>
       <div class="choice-grid choice-grid--callings">
         ${CALLINGS.map((calling) => {
           const resonance = raceCallingBonus(this.draft.raceId, calling.id);
+          const eligibility = raceCallingEligibility(this.draft.raceId, calling.id);
+          const forbidden = eligibility.status === "forbidden";
           return `
-          <button class="choice-card choice-card--calling ${this.draft.callingId === calling.id ? "is-selected" : ""} ${resonance ? "has-ancestry-bonus" : ""}" data-calling="${calling.id}" type="button">
+          <button class="choice-card choice-card--calling ${this.draft.callingId === calling.id ? "is-selected" : ""} ${resonance ? "has-ancestry-bonus" : ""} ${eligibility.status === "rare" ? "is-rare" : ""} ${forbidden ? "is-forbidden" : ""}" data-calling="${calling.id}" type="button" ${forbidden ? "disabled aria-disabled=\"true\"" : ""}>
             <img class="choice-card__portrait" src="${characterPortraitPath(this.draft.raceId, calling.id)}" alt="" />
             <span class="choice-card__glyph">${calling.glyph}</span>
             <span class="choice-card__title">${calling.name}</span>
@@ -311,6 +322,7 @@ export class CharacterCreation {
             <span class="choice-card__affinity">${calling.signatureSkill} · ${calling.defensiveSkill}</span>
             <span class="choice-card__job">${calling.tacticalJob}</span>
             <span class="choice-card__difficulty">${calling.learningCurve} start · ${calling.lateGameCeiling} ceiling</span>
+            ${eligibility.status !== "allowed" ? `<span class="choice-card__eligibility choice-card__eligibility--${eligibility.status}"><strong>${eligibility.status}</strong>${this.escape(eligibility.reason ?? "")}</span>` : ""}
             ${resonance ? `<span class="choice-card__resonance">Ancestry resonance · ${resonance.name}</span>` : ""}
           </button>`;
         }).join("")}
@@ -319,6 +331,10 @@ export class CharacterCreation {
     this.bindChoices("button[data-calling]", "calling", (id) => { this.draft.callingId = id; });
     this.bindNavigation(() => this.navigateBack("appearance"), () => {
       if (!this.draft.callingId) return this.fail("Choose the calling that first answered the breach.");
+      if (raceCallingEligibility(this.draft.raceId, this.draft.callingId).status === "forbidden") {
+        this.draft.callingId = "";
+        return this.fail("That ancestry cannot bind to this calling. Choose another path.");
+      }
       this.navigate("memory", 0);
     });
   }

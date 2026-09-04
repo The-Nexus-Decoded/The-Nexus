@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/maps/make_breach_v2_flatmap.py",
+  "toolchain": {
+    "pillow": "11.2.1",
+    "freetype": "2.13.3",
+    "webp": "1.5.0"
+  },
+  "inputs": {
+    "scripts/maps/make_breach_v2_flatmap.py": "5e1c17efb14be6aed359a9caf3e35a8fc90e031030d55758b49a0b27de5e9b9d",
+    "scripts/maps/breach_v2_design.py": "53d55801479bb5c94c1558269fa65580cbedc20a75164a385de76f0ca7e7a778",
+    "public/assets/fonts/Alegreya-Variable.ttf": "ba5564634b93a8f8ba57b48cd4f1ae7417d2b4656fbac779028679b00de3cf12",
+    "public/assets/fonts/Cinzel-Variable.ttf": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "public/assets/fonts/OFL-Alegreya.txt": "0383de94cd3effe8202205a5bc0b541b0c6f882192507e58145dcf882d2ac298",
+    "public/assets/fonts/OFL-Cinzel.txt": "7f697b85bfc1926ca58321fde712c31dab831a47376ba2650148348b21e56a4e",
+    "scripts/maps/requirements-flatmap.txt": "91479c3a6f15a6895a3cb1543ef75a17d86899b818ecb22f799af9eda0e66228"
+  },
+  "outputs": {
+    "externalMaster": {
+      "format": "PNG",
+      "width": 3400,
+      "height": 2560,
+      "bytes": 1190266,
+      "sha256": "ad5504f538e8884a9923184d5a2e2bdb75413c9344cb02c18b91228ee884fa3d",
+      "pixelSha256": "70f9e6ff17e4478cbb91ff002f6dbdca67c97495622583147b2c2d157e5d1104"
+    },
+    "docs/maps/breach-v2/breach-v2-flatmap-1600.webp": {
+      "format": "WEBP",
+      "quality": 75,
+      "method": 6,
+      "width": 1600,
+      "height": 1205,
+      "bytes": 180412,
+      "sha256": "d4639b399dec75eb43c692bac7dfbb3f5c4eb406d0e26cb36e43d11de41b0f46",
+      "pixelSha256": "d9a98219675fadb6dcc0c149e832dfb1c248cdc2ba77a2cf164529b6ba5235dd"
+    }
+  }
+}

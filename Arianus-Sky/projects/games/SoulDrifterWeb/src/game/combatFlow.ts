@@ -9,6 +9,13 @@ export interface CombatTargetLike {
   alive: boolean;
 }
 
+/** Keeps the defeated actor visible through its effective clip and final pose. */
+export function enemyDefeatVisibilityMs(deathDurationMs: number, terminalHoldMs = 220): number {
+  const clipDuration = Number.isFinite(deathDurationMs) ? Math.max(0, deathDurationMs) : 0;
+  const terminalHold = Number.isFinite(terminalHoldMs) ? Math.max(0, terminalHoldMs) : 0;
+  return clipDuration + terminalHold;
+}
+
 function distance(a: GridPoint, b: GridPoint): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }

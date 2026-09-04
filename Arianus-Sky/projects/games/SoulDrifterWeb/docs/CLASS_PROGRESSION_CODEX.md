@@ -84,6 +84,10 @@ Paladins are Aether-Scribed-only. Their oath orders treat writing coercive power
 
 Each class receives a separate skill-list and specialization pass before production balance is locked. The current proof implements only two starter actions per class so combat is playable while the full trees remain designable.
 
+### Reserved Slayer advancement: Stalker
+
+The taxonomy decision is locked: Stalker belongs under Slayer and is not a tenth base calling. Its role, skills, unlock level, balance, gear additions, and ancestry affinities remain deliberately undefined until every base calling and specialization family receives one coordinated review. No Stalker runtime unlock or paid specialization asset should be implemented before that review.
+
 ### Planned expansion: Monk
 
 Monk is the planned tenth base class, not a replacement or rename for any current calling. Its working space is mortal body discipline, breath, footwork, unarmed/hand-wrap technique, simple staff use, counters, and mobile control. It must receive a dedicated class pass before implementation to define its original SoulDrifter identity, resources, two level-one proof skills, armor rules, weapon interactions, and later specializations without becoming a generic martial-arts stereotype.

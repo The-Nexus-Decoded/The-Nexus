@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "issue": "https://github.com/The-Nexus-Decoded/The-Nexus/issues/435",
+  "packagedOn": "2026-08-30",
+  "scope": "Immutable assets actually used by the approved human weapon lab and modular archery asset review. QA review package, not dungeon integration or blanket production acceptance.",
+  "newAssetBytes": 81996694,
+  "newAssetCount": 15,
+  "allReferencedAssetBytes": 157307338,
+  "excluded": [
+    "Rejected axe-like binding rod",
+    "Unused frost and lightning wand drafts",
+    "Scratch screenshots and contact sheets",
+    "Original 8K extraction JPEGs not requested by the lab",
+    "Unused browser-derivative GLBs",
+    "Old static tripo-archery-fit placement page"
+  ],
+  "packagingPolicy": "Existing identical repository assets are reused. New binary assets are copied byte-for-byte; no topology, material, animation, texture or approved grip changes are made by packaging.",
+  "deploymentPolicy": "Keep all mapped URLs reachable in the QA review build; actual output must pass permanent 500000000-byte limit (preferred 475000000). Review asset inclusion does not deploy or integrate into dungeon gameplay.",
+  "sourceNotes": [
+    "Absolute source paths below are archival provenance only; browser runtime must use the repository-relative public URLs.",
+    "Canonical body and 400-clip library in issue-435 were SHA-256 identical to the files loaded from issue-458. No file in issue-458 was changed.",
+    "All 18 GLBs were inspected: no external buffer or image URI dependencies. The source library has 400 animation clips and no meshes; the addendum has 5 clips and no meshes.",
+    "Archery Tripo model IDs and source hashes are corroborated by public/assets/3d/archery/archery-asset-intake-v001.json.",
+    "Tripo starter generation task IDs are corroborated by docs/3d-ai-studio/tripo-starter-equipment-ledger.json. Its selected-image hash is not the final exported GLB hash.",
+    "Tripo project-owned generation is not CC0. Adobe Mixamo animation use is subject to Adobe terms, not CC0. Register both source families in third-party-assets.json; do not treat this provenance map as a grant of unrestricted redistribution rights."
+  ],
+  "materialAudit": {
+    "archery": "Quiver, harness and all four arrows include base-color, normal and metallic-roughness textures.",
+    "otherApprovedMeshes": "Canonical body, longsword, six raw starter weapons, shield and fire wand have embedded base-color textures but no normal/metallic-roughness textures in the GLB. Packaging preserves the reviewed appearance and does not falsely classify these as complete PBR.",
+    "productionGate": "Full material acceptance remains separate from this QA animation/grip package."
+  },
+  "locomotionIntake": {
+    "source": "https://www.mixamo.com/",
+    "sourceCharacter": "output_mesh_079291c6-872f-4a79-8d7e-51aedb0891a6",
+    "downloadedOn": "2026-08-30",
+    "format": "FBX Binary 2019; Without Skin; 30 fps; no keyframe reduction",
+    "controls": "Full trim, Mirror off, Overdrive 50, Character Arm-Space 50; other exposed controls default50",
+    "sourceDir": "H:/CodexData/.codex/artifacts/issue-435-locomotion-extras-20260830/source",
+    "conversionReport": "H:/CodexData/.codex/artifacts/issue-435-locomotion-extras-20260830/conversion-report.json",
+    "converter": "scripts/build-mixamo-animation-library.py from issue-487 human-animation-pilot worktree",
+    "bones": 65,
+    "exactNodeHierarchyAndRestTransformMatch": true,
+    "clips": [
+      {
+        "name": "MaleLocomotion__InjuredRun",
+        "sourceTitle": "Injured Run",
+        "inPlace": true
+      },
+      {
+        "name": "MaleLocomotion__SlowRun",
+        "sourceTitle": "Slow Run",
+        "inPlace": true
+      },
+      {
+        "name": "MaleLocomotion__RunningLeaningBackOrForth",
+        "sourceTitle": "Running",
+        "description": "Running Leaning Back Or Forth",
+        "inPlace": true
+      },
+      {
+        "name": "MaleLocomotion__RunningUpStairs",
+        "sourceTitle": "Running Up Stairs",
+        "inPlace": true,
+        "note": "Upward travel remains despite In Place; dungeon must handle stair root motion."
+      },
+      {
+        "name": "MaleLocomotion__WalkingUpTheStairs",
+        "sourceTitle": "Walking Up The Stairs",
+        "inPlace": null,
+        "note": "Source has no In Place control; travel retained."
+      }
+    ]
+  },
+  "wandProvenance": {
+    "providerModelId": "5a661457-e460-4fd0-90f5-9c9eb7359171",
+    "sourceSha256": "afe4710fe692e5860fa246b94d9955f0fb2779b268ca359c47dd18091db204d5",
+    "receiptSource": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/wands/tripo-fire-wand-receipt.json",
+    "lengthMeters": 0.38,
+    "gripFromBaseMeters": 0.055,
+    "triangles": 11113,
+    "textureResolution": [
+      2048,
+      2048
+    ],
+    "modifications": "Provider topology and UVs retained; lateral tip-fin compression into a small collar, metre scaling, grip-origin translation, texture downsampling.",
+    "scope": "Only the one approved fire wand; unused frost/lightning drafts excluded."
+  },
+  "assets": [
+    {
+      "key": "body",
+      "url": "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+      "repositoryPath": "public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+      "sourcePath": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb",
+      "provider": "Tripo + Adobe Mixamo",
+      "providerModelId": null,
+      "sourceUrl": "https://www.mixamo.com/",
+      "sha256": "b86f7378ada29ff11e0fbc030d438fe241b8d4a74c47afd37cc8aced28c5ff81",
+      "bytes": 2404872,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "animations",
+      "url": "/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+      "repositoryPath": "public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+      "sourcePath": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/animations/human-foundation-pilot/human-foundation-pilot-animation-library.glb",
+      "provider": "Adobe Mixamo",
+      "providerModelId": null,
+      "sourceUrl": "https://www.mixamo.com/",
+      "sha256": "6b06fcf070e5a282055f4cee8f406f0dc4d5b0ff3d275da4bd9d74daa7c3d793",
+      "bytes": 32441884,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": []
+    },
+    {
+      "key": "longsword",
+      "url": "/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
+      "repositoryPath": "public/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/worktrees/435-v2/The-Nexus-tripo-modular-character-foundation/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/weapons/sword/weapon-sword-longsword-starter-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": null,
+      "sourceUrl": null,
+      "sha256": "20f5f964405699065d77769bc86fa796d791ddf8144793f93c06066b0fb2b984",
+      "bytes": 762360,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "shortsword",
+      "url": "/assets/weapon-lab/weapons/weapon-sword-shortsword-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-sword-shortsword-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-sword-shortsword-starter-v001__tripo-561cf46d-c0c7-434c-b0ae-e49d8a986d4f.glb",
+      "provider": "Tripo",
+      "providerModelId": "561cf46d-c0c7-434c-b0ae-e49d8a986d4f",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/561cf46d-c0c7-434c-b0ae-e49d8a986d4f",
+      "sha256": "6218d52a347f6e672626c43fa78ed8137e254992aa1e3564e8c7e4de491f9a9b",
+      "bytes": 14968848,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "shortswordPreviewTexture",
+      "url": "/assets/weapon-lab/textures/shortsword-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/shortsword-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/shortsword-embedded-basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "561cf46d-c0c7-434c-b0ae-e49d8a986d4f",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/561cf46d-c0c7-434c-b0ae-e49d8a986d4f",
+      "sha256": "64f441bca135b7b1d5d53b4000503df538ae6477332b59ef18f7b0971df73dc8",
+      "bytes": 989274,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "staff",
+      "url": "/assets/weapon-lab/weapons/weapon-staff-ashwood-practice-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-staff-ashwood-practice-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-staff-ashwood-practice-v001__tripo-4273209e-d3a5-44a0-bcc9-330382235e35.glb",
+      "provider": "Tripo",
+      "providerModelId": "4273209e-d3a5-44a0-bcc9-330382235e35",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/4273209e-d3a5-44a0-bcc9-330382235e35",
+      "sha256": "2e587af505c4f6a6b5257d60bd232911cf1a83a32942f22a4652c37288c65539",
+      "bytes": 7454476,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "staffPreviewTexture",
+      "url": "/assets/weapon-lab/textures/staff-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/staff-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/browser-derivatives/staff/basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "4273209e-d3a5-44a0-bcc9-330382235e35",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/4273209e-d3a5-44a0-bcc9-330382235e35",
+      "sha256": "5f3cd3709389b9af575d52ff3ac6281254f35e0b29a9b95f2e1bf2b3510d42d4",
+      "bytes": 438808,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "mace",
+      "url": "/assets/weapon-lab/weapons/weapon-mace-wooden-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-mace-wooden-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-mace-wooden-starter-v001__tripo-46083d4e-9b58-40df-a74a-fb74aecd21e1.glb",
+      "provider": "Tripo",
+      "providerModelId": "46083d4e-9b58-40df-a74a-fb74aecd21e1",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/46083d4e-9b58-40df-a74a-fb74aecd21e1",
+      "sha256": "fbac09e26882cf6b2c1571a651cd82a3a05b9fd768fcf61ee1de6323d38bcdd6",
+      "bytes": 12857360,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "macePreviewTexture",
+      "url": "/assets/weapon-lab/textures/mace-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/mace-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/mace-embedded-basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "46083d4e-9b58-40df-a74a-fb74aecd21e1",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/46083d4e-9b58-40df-a74a-fb74aecd21e1",
+      "sha256": "83bd1ba05118819617d78307878e9f72059deb6d4279d0ffa410210853688227",
+      "bytes": 894767,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "bow",
+      "url": "/assets/weapon-lab/weapons/weapon-bow-short-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-bow-short-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-bow-short-starter-v001__tripo-ffb009a6-1005-4ddb-aaa4-c61cf06b42f3.glb",
+      "provider": "Tripo",
+      "providerModelId": "ffb009a6-1005-4ddb-aaa4-c61cf06b42f3",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/ffb009a6-1005-4ddb-aaa4-c61cf06b42f3",
+      "sha256": "5ac97df6edbb2415556d35b34790abc55a3530b23f9aa00295669b15f6252480",
+      "bytes": 8905220,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "bowPreviewTexture",
+      "url": "/assets/weapon-lab/textures/bow-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/bow-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/browser-derivatives/bow/basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "ffb009a6-1005-4ddb-aaa4-c61cf06b42f3",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/ffb009a6-1005-4ddb-aaa4-c61cf06b42f3",
+      "sha256": "f379c3aa9eafde0a40e526b6a479d626c2e2e603dbf5079a1d5dcbfeda86e0ec",
+      "bytes": 558377,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "knife",
+      "url": "/assets/weapon-lab/weapons/weapon-knife-ritual-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-knife-ritual-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-knife-ritual-starter-v001__tripo-00fac652-fc7e-46a9-9a5d-e56a6a6cf00a.glb",
+      "provider": "Tripo",
+      "providerModelId": "00fac652-fc7e-46a9-9a5d-e56a6a6cf00a",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/00fac652-fc7e-46a9-9a5d-e56a6a6cf00a",
+      "sha256": "5184732a71aa5333c140354403df9dbe3920d18c4670058adc7a03a80cfa8b82",
+      "bytes": 12688048,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "knifePreviewTexture",
+      "url": "/assets/weapon-lab/textures/knife-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/knife-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/knife-embedded-basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "00fac652-fc7e-46a9-9a5d-e56a6a6cf00a",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/00fac652-fc7e-46a9-9a5d-e56a6a6cf00a",
+      "sha256": "f301637a5bc243d07b6f14bd83205ca77dbedd315e0899d36831bd3123287a3c",
+      "bytes": 473209,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "dagger",
+      "url": "/assets/weapon-lab/weapons/weapon-dagger-worn-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-dagger-worn-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/artifacts/issue-435-tripo-modular-character-foundation/blender/tripo-source-packages/weapon-dagger-worn-starter-v001__tripo-f634644b-c50c-453e-bc84-7af8101fad43.glb",
+      "provider": "Tripo",
+      "providerModelId": "f634644b-c50c-453e-bc84-7af8101fad43",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/f634644b-c50c-453e-bc84-7af8101fad43",
+      "sha256": "3342a28363fe9fbe6e0a4360c40fa0e8f18eb8d0d96ddc04789131df2788cfa2",
+      "bytes": 14217668,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "daggerPreviewTexture",
+      "url": "/assets/weapon-lab/textures/dagger-basecolor-2k.jpg",
+      "repositoryPath": "public/assets/weapon-lab/textures/dagger-basecolor-2k.jpg",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/dagger-embedded-basecolor-2k.jpg",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "f634644b-c50c-453e-bc84-7af8101fad43",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/f634644b-c50c-453e-bc84-7af8101fad43",
+      "sha256": "3d4f735a0eab0b0d4ce97c08925a69f6559d4a2e259c94d969fbdd9f2f66ff30",
+      "bytes": 600163,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "shield",
+      "url": "/assets/weapon-lab/weapons/weapon-shield-wooden-starter-v001-2k.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-shield-wooden-starter-v001-2k.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/weapon-shield-wooden-starter-v001-2k.glb",
+      "provider": "Tripo texture derivative",
+      "providerModelId": "3afa7ddb-be71-4ed8-b1e5-987c819e84d8",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/3afa7ddb-be71-4ed8-b1e5-987c819e84d8",
+      "sha256": "7e34349ec1ec78ce8a1ba1533248391072d701b64c75e2bfa8b9f17b24e7d059",
+      "bytes": 1119720,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "rod",
+      "url": "/assets/weapon-lab/weapons/weapon-wand-fire-starter-v001.glb",
+      "repositoryPath": "public/assets/weapon-lab/weapons/weapon-wand-fire-starter-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/wands/weapon-wand-fire-starter-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": "5a661457-e460-4fd0-90f5-9c9eb7359171",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/5a661457-e460-4fd0-90f5-9c9eb7359171",
+      "sha256": "78ee343ff3cbadbdd4dc00eff65473cd03f8400a70dccaa9dcedec022980d166",
+      "bytes": 5503700,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor"
+      ]
+    },
+    {
+      "key": "locomotionExtras",
+      "url": "/assets/weapon-lab/locomotion-extras/locomotion-extras.glb",
+      "repositoryPath": "public/assets/weapon-lab/locomotion-extras/locomotion-extras.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/assets/locomotion-extras/locomotion-extras.glb",
+      "provider": "Adobe Mixamo",
+      "providerModelId": null,
+      "sourceUrl": "https://www.mixamo.com/",
+      "sha256": "3ca731c2be5f27ef424341dc0e55c4cf80657fbfe70bc4c26209982119997400",
+      "bytes": 327056,
+      "action": "copy-byte-for-byte",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": []
+    },
+    {
+      "key": "quiver",
+      "url": "/assets/3d/weapons/bow/weapon-quiver-starter-v002.glb",
+      "repositoryPath": "public/assets/3d/weapons/bow/weapon-quiver-starter-v002.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/weapon-quiver-starter-v002.glb",
+      "provider": "Tripo",
+      "providerModelId": "7e65366b-7043-4776-ae77-6a8cb67be007",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/7e65366b-7043-4776-ae77-6a8cb67be007",
+      "sha256": "7bb892241bd06795cd59ddeadb029ece7ec95169ada69ed56ac65071b5fdc904",
+      "bytes": 4043492,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    },
+    {
+      "key": "arrow",
+      "url": "/assets/3d/weapons/bow/weapon-arrow-starter-v002.glb",
+      "repositoryPath": "public/assets/3d/weapons/bow/weapon-arrow-starter-v002.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/weapon-arrow-starter-v002.glb",
+      "provider": "Tripo",
+      "providerModelId": "cb10eebf-92de-4eff-95b0-541bdff9131a",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/cb10eebf-92de-4eff-95b0-541bdff9131a",
+      "sha256": "6630b9fc18e098b034dc70b4fcb6033ca8d6a5b30f398615034500ec52861153",
+      "bytes": 4616972,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    },
+    {
+      "key": "fireArrow",
+      "url": "/assets/3d/weapons/bow/weapon-arrow-fire-v001.glb",
+      "repositoryPath": "public/assets/3d/weapons/bow/weapon-arrow-fire-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/weapon-arrow-fire-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": "35d26946-d794-46e0-9ee4-938241072377",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/35d26946-d794-46e0-9ee4-938241072377",
+      "sha256": "b571b3198586b6e89b57dee5bbf567c591c9e15d579905dc9ed1208f8c05ac09",
+      "bytes": 8626860,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    },
+    {
+      "key": "iceArrow",
+      "url": "/assets/3d/weapons/bow/weapon-arrow-ice-v001.glb",
+      "repositoryPath": "public/assets/3d/weapons/bow/weapon-arrow-ice-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/weapon-arrow-ice-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": "886afde4-86f9-4c92-98cc-dee557e6a9f4",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/886afde4-86f9-4c92-98cc-dee557e6a9f4",
+      "sha256": "3533c5d47caaf9b203c29933e3e0bde66bebe3cb94fe920e934a1d8dd1934044",
+      "bytes": 9206308,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    },
+    {
+      "key": "poisonArrow",
+      "url": "/assets/3d/weapons/bow/weapon-arrow-poison-v001.glb",
+      "repositoryPath": "public/assets/3d/weapons/bow/weapon-arrow-poison-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/weapon-arrow-poison-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": "1fa56db7-b646-428d-900d-e8511c4212aa",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/1fa56db7-b646-428d-900d-e8511c4212aa",
+      "sha256": "18eff5ec9fe6168a5fc0c78d30ac8c6a14e79abc66f36c17a9d9e3e3b2d4c9e9",
+      "bytes": 9165400,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    },
+    {
+      "key": "harness",
+      "url": "/assets/3d/gear/gear-quiver-harness-human-masculine-v001.glb",
+      "repositoryPath": "public/assets/3d/gear/gear-quiver-harness-human-masculine-v001.glb",
+      "sourcePath": "H:/CodexData/.codex/visualizations/2026/08/29/01a04c37-0734-7361-bb0a-45a35626ef6b/grip-lab/tripo-review-assets/gear-quiver-harness-human-masculine-v001.glb",
+      "provider": "Tripo",
+      "providerModelId": "7e65366b-7043-4776-ae77-6a8cb67be007",
+      "sourceUrl": "https://studio.tripo3d.ai/workspace/generate/7e65366b-7043-4776-ae77-6a8cb67be007",
+      "sha256": "ce7a4f546808bf56f0ffc315f2089646c2a34a460464f992704734ce049f722e",
+      "bytes": 4042496,
+      "action": "reuse-identical-repository-file",
+      "sourceStatus": "Owner-reviewed lab asset; production/integration acceptance remains scoped separately",
+      "materialChannels": [
+        "baseColor",
+        "normal",
+        "metallicRoughness"
+      ]
+    }
+  ]
+}

@@ -7,7 +7,7 @@ This document defines how SoulDrifter uses 3D AI Studio without generating a fus
 
 ## Locked production decision
 
-SoulDrifter does **not** purchase or maintain 36 independent ancestry/calling character models. The production set is assembled from reusable layers:
+SoulDrifter does **not** purchase or maintain an independent model for every ancestry/calling/appearance combination. The production set is assembled from reusable layers:
 
 - four current playable ancestry body archetypes: Human, Elf, Dwarf, and Halfling;
 - one shared C-tier starter clothing family, conformed to each body archetype;
@@ -16,7 +16,7 @@ SoulDrifter does **not** purchase or maintain 36 independent ancestry/calling ch
 - one canonical humanoid animation contract plus documented race/body retarget profiles;
 - separate hair, facial-detail, sheath, harness, rune/sigil, and effect layers.
 
-Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Ancestry never locks a calling or equipment family.
+Every calling receives an assembled review character, but its body, clothing, armor, and weapon remain independent production assets. Calling eligibility follows the canonical ancestry contract; equipment families remain broadly usable through training rather than hard model locks.
 
 Drakkin is approved world canon but is not in the current playable runtime registry. Do not spend generation credits on a playable Drakkin body until its character-creation and body-contract ticket is approved.
 
@@ -66,7 +66,26 @@ If MCP is unavailable, the same pipeline may use the documented REST API or an o
 | 3 | Dwarf | compact adult body, broad grounded frame, non-cartoon proportions | generate after shared clothing proof |
 | 4 | Halfling | small adult body, readable hands/feet/face, never childlike or chibi | generate after small-body retarget proof |
 
-The current runtime has no body-type or sex selector. The first pass therefore proves one approved adult body archetype per ancestry. A second body-type family requires an explicit appearance/runtime contract before batch generation.
+The current runtime does not yet expose the full appearance selector. The long-term production contract includes adult masculine and adult feminine body families for every playable ancestry, but only one owner-approved Human body is generated for the first paid rig proof. Its counterpart and later ancestry bodies require separate credit approvals after the skeleton, head seam, clothing, and animation gates pass.
+
+### Modular head, skin, hair, and facial-detail contract
+
+Appearance variety is assembled from reusable parts and materials. It must not multiply paid body generation by every possible face, skin tone, hairstyle, or adornment combination.
+
+| Layer | Minimum production target | Boundary |
+| --- | --- | --- |
+| Adult body families | masculine and feminine for Human, Elf, Dwarf, and Halfling | same gameplay stats; anatomy and clothing-conform profiles remain separate assets |
+| Facial structures | three readable adult face families per compatible head topology | soft/round, angular/high-cheek, and broad/strong are shape guides, never personality, morality, or ethnicity labels |
+| Skin tones | at least six equally canonical tones | deep, dark, medium-deep, medium, tan/olive, and light/pale coverage; implemented as approved texture/material variants, not duplicate body geometry |
+| Hair | at least six masculine-presenting and six feminine-presenting fitted styles | separate meshes; every style may be offered across presentation categories when head fit and clipping QA pass |
+| Facial details | modular brows, facial hair, sideburns, scars, tattoos/paint, nose rings/studs, and earrings | texture masks/decals when flat; separate socketed meshes when dimensional; never baked permanently into the base head |
+| Headshots | standardized local portrait renders of accepted assembled heads | render from the shipping head/material/hair/adornment assembly; do not buy a separate 3D generation for each portrait |
+
+Initial hair coverage should include shaved/buzzed, short coils or waves, cropped/side-parted, short locs, shoulder-length locs, and a tied-back option for the masculine-presenting set; and cropped coils, braids, bob/shoulder cut, long locs, braided crown, and tied-back/ponytail options for the feminine-presenting set. These are production coverage groups, not gender locks.
+
+The canonical head is proved with the body first. After the body rig passes, Blender establishes a versioned neck seam, head origin, material slots, face topology, hair-cap boundary, ear placement, and sockets for left/right ear, nose, and facial-hair pieces. Floating paid head variants are prohibited until that seam contract passes. Face families should share deformation landmarks and expression compatibility; if a generated face cannot conform without breaking identity or animation, it remains a non-shipping concept.
+
+Skin tone, facial structure, hair, tattoos, scars, piercings, facial hair, and sideburns never change ancestry stats, class eligibility, morality, rarity, or power. Ancestry-specific ears and approved physiology remain readable without turning one appearance into the canonical or superior version.
 
 ### Starter calling kits and shared weapons
 
@@ -257,8 +276,14 @@ Untouched downloads and Blender working files remain in a backed-up non-shipping
 Proposed stable IDs:
 
 ```text
-body-human-a-v001
-body-elf-a-v001
+body-human-masculine-a-v001
+body-human-feminine-a-v001
+body-elf-masculine-a-v001
+body-elf-feminine-a-v001
+head-human-face-angular-v001
+material-skin-human-deep-v001
+hair-coils-short-fit-human-v001
+adornment-earring-hoop-small-left-v001
 gear-starter-tunic-human-v001
 gear-warrior-bracer-human-v001
 weapon-sword-longsword-starter-v001
@@ -272,6 +297,11 @@ Proposed shipping layout after runtime support is approved:
 
 ```text
 public/assets/3d/characters/bodies/<ancestry>/
+public/assets/3d/characters/heads/<ancestry>/
+public/assets/3d/characters/hair/<fit-profile>/
+public/assets/3d/characters/adornments/<socket-or-mask-family>/
+public/assets/3d/characters/materials/skin/<ancestry>/
+public/assets/generated/characters/portraits/<ancestry>/
 public/assets/3d/equipment/starter/<body-archetype>/
 public/assets/3d/equipment/callings/<calling>/<body-archetype>/
 public/assets/3d/weapons/<family>/
@@ -321,15 +351,17 @@ Every 3D AI Studio artifact records:
 
 The first paid sequence is deliberately narrow:
 
-1. Generate and approve the Human multi-view source sheet.
-2. Generate one Human body candidate.
+1. Prepare and approve masculine and feminine Human multi-view source sheets without submitting either generation.
+2. With a separate exact-cost approval, generate one owner-selected Human body candidate only.
 3. Clean, retopologize, bake, and compare the Prism rig to the current skeleton contract.
 4. Prove existing idle/walk/run/unarmed animation compatibility.
 5. Produce one shared starter tunic, one modest rigid Warrior guard, and one separate starter longsword.
 6. Assemble a Human Warrior review character without fusing the layers.
 7. Prove draw, sheath, empty-hand interaction, and one-handed guard behavior.
-8. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
-9. Only after the pilot passes, generate remaining ancestry bodies, calling layers, and shared weapon packages.
+8. Lock the neck seam, three-face-family topology target, six-tone material palette, hair-cap boundary, and adornment sockets on the approved Human pilot.
+9. With a separate approval, prove the counterpart Human body family and shared appearance layers before expanding ancestry bodies.
+10. Test the starter clothing contract on the existing Elf body or an approved Elf pilot before generating Dwarf and Halfling.
+11. Only after those gates pass, generate remaining ancestry bodies, calling layers, and shared weapon packages in separately approved batches.
 
 Stop and request owner review when:
 
@@ -348,6 +380,12 @@ Stop and request owner review when:
 - [ ] Asset ticket, prompt, source sheet, model/version, and expected credits approved.
 - [ ] Untouched source and task provenance preserved outside the shipping tree.
 - [ ] Base body contains no weapon, shield, class armor, cape, or large rig-obscuring hair.
+- [ ] Masculine/feminine body-family coverage and clothing-conform profile are recorded without changing gameplay stats.
+- [ ] Three facial structures share approved expression/deformation landmarks and the versioned neck seam.
+- [ ] At least six skin tones render consistently and carry no stat, morality, rarity, or class meaning.
+- [ ] At least six masculine-presenting and six feminine-presenting hair fits pass skull, ear, shoulder, and helmet clipping checks.
+- [ ] Tattoos/paint use masks or decals; piercings and dimensional facial details use declared sockets; facial hair and sideburns remain modular.
+- [ ] Headshots are locally rendered from the reviewed shipping assembly rather than purchased as duplicate 3D generations.
 - [ ] Topology, UV, PBR bake, scale, ground, orientation, and bounds pass.
 - [ ] Skeleton identity or retarget profile is proven rather than assumed.
 - [ ] Existing baseline animation pack passes on the clean body.

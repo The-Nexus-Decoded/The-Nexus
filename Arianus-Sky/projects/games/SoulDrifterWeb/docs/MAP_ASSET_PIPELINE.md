@@ -1,8 +1,9 @@
 # Map & Art Asset Delivery Convention
 
-Hard-won rule — following it keeps the runtime under the **150 MB build
-budget** (`scripts/runtime-asset-manifest.json`). The budget was ~97% full
-before the flat travel maps landed; raw PNG art will fail the build gate.
+Hard-won rule — keep the runtime lean (`scripts/runtime-asset-manifest.json`
+enforces a permanent 500,000,000-byte QA/production ceiling and a
+475,000,000-byte preferred ceiling — owner ruling 2026-08-21). Raw PNG art
+bloats the build for no visual gain.
 
 ## The pipeline
 
@@ -18,7 +19,7 @@ before the flat travel maps landed; raw PNG art will fail the build gate.
    referenced from `detail:` fields in `public/lore-atlas/data.js`.
 4. **Never commit "preservation copies"** of superseded art into `public/`.
    Old versions are recoverable from git history; doubled asset trees are
-   what broke the budget in the first place.
+   what bloated the build in the first place.
 
 ## Why
 
@@ -34,5 +35,5 @@ before the flat travel maps landed; raw PNG art will fail the build gate.
 - [ ] Master saved to workspace (not the repo)
 - [ ] Export: 1600×900 WebP q75 (or smaller if the display slot allows)
 - [ ] Copied to the correct `assets/` path; data reference updated
-- [ ] `npm run build` passes (budget JSON prints `ok: true`)
+- [ ] `npm run build` passes (prune step reports dist size)
 - [ ] Total added weight < 1 MB unless the manifest maintainers approve more

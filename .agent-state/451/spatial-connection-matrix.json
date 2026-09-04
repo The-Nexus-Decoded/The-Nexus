@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "issue": 451,
+  "sourceMap": "Arianus-Sky/projects/games/SoulDrifterWeb/docs/maps/breach-v2/breach-v2-flatmap-1600.webp",
+  "baselineCommit": "8b6b28bf66be9e531df1e5d94013375109e6a2ef",
+  "statusPolicy": "Producer state may not exceed IMPLEMENTED_UNVERIFIED; only an independent verifier may mark VERIFIED.",
+  "routeOrder": [
+    "Realm-Lock Vestibule",
+    "Plaza Link",
+    "Threshold Plaza",
+    "selected Wayfarer or Oathbreaker gallery chain",
+    "Convergence Gallery",
+    "Ashen Threshold",
+    "Ashen Lock / Cinderbound Warden",
+    "First Memory Vault",
+    "Way Upward",
+    "Heartvale hv-1 connector"
+  ],
+  "edges": [
+    {
+      "id": "451-EDGE-01",
+      "from": "Realm-Lock Vestibule",
+      "to": "Plaza Link",
+      "required": ["source aperture", "heavy door", "synchronized collision", "continuous shell", "destination aperture", "WASD", "click-to-move", "both-side visual proof"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "Existing fixed-room adjacency and runtime door require fresh traversal and visual evidence."
+    },
+    {
+      "id": "451-EDGE-02",
+      "from": "Plaza Link",
+      "to": "Threshold Plaza",
+      "required": ["source aperture", "heavy door", "continuous shell", "destination aperture", "collision/nav", "WASD", "click-to-move"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "No fresh v3-harness evidence."
+    },
+    {
+      "id": "451-EDGE-03-W",
+      "from": "Threshold Plaza Wayfarer portal",
+      "to": "Wayfarer chamber 1",
+      "required": ["real east-wall aperture", "seated imported portcullis", "open/closed collision", "route mist", "continuous corridor floor/walls/ceiling", "destination aperture", "capsule clearance", "WASD", "click-to-move", "reverse view"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The selected route corridor now receives a generated ceiling cap with its floor and side walls; portal state and both-direction traversal still require independent proof."
+    },
+    {
+      "id": "451-EDGE-03-O",
+      "from": "Threshold Plaza Oathbreaker portal",
+      "to": "Oathbreaker chamber 1",
+      "required": ["real east-wall aperture", "seated imported portcullis", "open/closed collision", "route mist", "continuous corridor floor/walls/ceiling", "destination aperture", "capsule clearance", "WASD", "click-to-move", "reverse view"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The selected route corridor now receives a generated ceiling cap with its floor and side walls; inactive sealing and both-direction traversal still require independent proof."
+    },
+    {
+      "id": "451-EDGE-04",
+      "from": "selected chamber 1",
+      "to": "selected chambers 2-5",
+      "required": ["3-5 unique legal rooms", "each source aperture", "each corridor shell", "each destination aperture", "collision/nav", "WASD", "click-to-move", "room-by-room visual matrix"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "Every generated gallery connector now has floor, walls and a ceiling cap; automated geometry does not replace physical room-by-room traversal."
+    },
+    {
+      "id": "451-EDGE-05",
+      "from": "selected final gallery",
+      "to": "Convergence Gallery",
+      "required": ["source aperture", "continuous corridor", "destination aperture", "collision/nav", "both movement systems", "both-side visual proof"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The final gallery connector now has a complete generated shell and must be proven independently for both path layouts."
+    },
+    {
+      "id": "451-EDGE-06",
+      "from": "Convergence Gallery",
+      "to": "Ashen Threshold",
+      "required": ["source aperture", "portal", "continuous corridor", "destination aperture", "collision/nav", "both movement systems"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The fixed connector now renders floor, walls and ceiling; traversable continuity remains unverified."
+    },
+    {
+      "id": "451-EDGE-07",
+      "from": "Ashen Threshold",
+      "to": "Ashen Lock / Cinderbound Warden",
+      "required": ["ante-room aperture", "boss-lock portcullis", "state-synchronized collision", "boss-room aperture", "continuous shell", "player traversal"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "Must include closed pre-boss and open post-unlock states."
+    },
+    {
+      "id": "451-EDGE-08",
+      "from": "Ashen Lock / Cinderbound Warden",
+      "to": "First Memory Vault",
+      "required": ["boss-defeat unlock", "source aperture", "door", "continuous corridor", "vault aperture", "collision/nav", "First Memory reachable once"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The boss-vault connector participates in the sequential post-boss graph and now renders a complete shell; defeat-state runtime proof remains outstanding."
+    },
+    {
+      "id": "451-EDGE-09",
+      "from": "First Memory Vault",
+      "to": "Way Upward",
+      "required": ["memory completion unlock", "vault source aperture", "door", "continuous corridor or shared opening", "Way Upward destination aperture", "collision/nav", "WASD", "click-to-move"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The vault-exit connector joins the vault south aperture to the Way Upward north aperture with a complete shell; runtime traversal remains unverified."
+    },
+    {
+      "id": "451-EDGE-10",
+      "from": "Way Upward",
+      "to": "Heartvale hv-1 threshold",
+      "required": ["source aperture", "continuous exit shell", "Heartvale threshold aperture", "collision/nav", "daylight/material continuity", "player traversal", "save/reload exit state"],
+      "producerStatus": "IMPLEMENTED_UNVERIFIED",
+      "verifierStatus": "NOT_RUN",
+      "notes": "The heartvale-exit connector continues east through the Heartvale threshold with a complete shell; transition and save/reload remain unverified."
+    }
+  ],
+  "requiredRouteRuns": [
+    { "path": "wayfarer", "seed": 4182, "movement": ["WASD", "click-to-move"], "status": "NOT_RUN" },
+    { "path": "oathbreaker", "seed": 4182, "movement": ["WASD", "click-to-move"], "status": "NOT_RUN" },
+    { "path": "both", "seeds": [7, 1, 2], "purpose": "sparse/median/dense representative coverage", "status": "NOT_RUN" }
+  ]
+}
