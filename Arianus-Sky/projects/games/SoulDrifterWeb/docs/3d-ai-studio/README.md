@@ -431,6 +431,62 @@ Stop and request owner review when:
 
 No batch generation begins while any pilot-critical item remains unchecked.
 
+## Creature remodel batch (issue #458, owner request 2026-09-05)
+
+Owner decision: every current monster and boss is regenerated from a four-view
+sheet. The single-view sources are the root of the rig defects the animation
+pass had to work around (Ravager right rear leg pivots 25 cm behind the mesh
+leg, twisted jaw hinges, Wardens modelled facing +X). The motion composer lane
+is rig-driven, so a remodelled body re-enters the same pipeline: toe-rig
+surgery, neutral re-solve, the 15-clip pack, gates, critic, Motion Forge.
+
+| Subject | Asset ID | Category | Notes carried into the sheet |
+| --- | --- | --- | --- |
+| Base Breachling | `breachling-base` | quadruped creature body | 1.025 m at the shoulder, four front / three rear claws, long tail, jaw hinge on the lateral axis |
+| Breachling Stalker | `breachling-stalker` | quadruped creature body | 1.075 m, leaner, wider footing than the current source |
+| Oathbound Breachling | `breachling-oathbound` | quadruped creature body | 1.2 m, heavier chest |
+| Breachling Ravager | `breachling-ravager` | quadruped creature body | 1.325 m; head and right rear leg are the known defects; frame yaw of the old source must not be repeated |
+| Cinderbound Warden | `warden-wayfarer` | biped boss body | 3.6 m, furnace chest, blade forearm; break-off sections at 30/60/90 % must stay separable meshes |
+| Greater Cinderbound Warden | `warden-oathbreaker` | biped boss body | 3.9 m, same break-off contract |
+
+Sequence per subject (all owner-gated by the phases above):
+
+1. Four-view sheet from the creature prompt template below; silhouette agreement
+   checked front/left/back/right before any paid 3D request; four image hashes
+   in the ledger.
+2. One image-to-3D task (multi-view), textured and clay inspection, reject on
+   asymmetry, fused claws, melted jaw, or a body that faces anything but +Z.
+3. Export untouched to the intake area; record bytes, SHA-256, task ID, seed,
+   model version, credit charge.
+4. Rig proof: the canonical Breachling / Warden bone names, jaw hinge on the
+   lateral axis, all four legs' pivots inside the mesh legs (mirror check),
+   +Z forward. Then toe-rig surgery and a motion pack through the composer lane.
+5. Motion Forge review of the new body against the old one before the old asset
+   is retired.
+
+### Creature prompt template (four views)
+
+```text
+Create a production reference sheet for an original SoulDrifter [CREATURE], a [SIZE]
+quadruped predator. Show the exact same creature from front, left, back, and right views
+in a neutral standing pose, all four paws flat on the ground, legs separated from the body,
+tail extended straight back, mouth closed. Use grounded realistic-fantasy anatomy: a clear
+jaw hinge, four clawed toes on each front paw and three on each rear paw, visible elbow and
+knee joints, symmetric left and right sides. No rider, weapon, particles, glow, text,
+pedestal, or environment. Clean plain background, consistent neutral lighting. The views
+must agree exactly in anatomy, proportions, skin detail, and colour. This is a rigging
+reference, not concept art.
+```
+
+Boss bodies use the same template with "[SIZE] armoured biped boss" and the
+break-off sections named explicitly (shoulder plates, forearm plates, thigh
+plates) so they read as separable shells.
+
+Credit reserve: never below the owner's 5,000-credit floor (lowered from
+10,000 on 2026-09-05 so the creature remodel batch has room); every charge is
+approved per subject in Phase 0. Account sign-in happens in the owner's
+browser session; the assistant never handles credentials.
+
 ## Vendor references
 
 - [3D AI Studio recommended workflow](https://docs.3daistudio.com/3d-generation/recommended-workflow)
