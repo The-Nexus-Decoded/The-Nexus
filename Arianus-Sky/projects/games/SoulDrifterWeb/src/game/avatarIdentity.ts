@@ -23,7 +23,14 @@ interface PlayerAvatarManifest {
   animationPacks: readonly AnimationPackSpec[];
 }
 
-export const HUMAN_FOUNDATION_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k-legacy-appearance.glb";
+// The clean canonical body. The 8.60 MB `-legacy-appearance` variant carried the
+// owner-rejected appearance pack - SK_Hair_Long, plus SK_Hair_Parted (a Plane),
+// SK_Hair_Buzzed (a Cylinder) and SK_Beard_Full (a Plane) - and its two 2048px
+// PNG hair textures accounted for 5.90 MB of the 6.19 MB difference. The body
+// basecolor is the same 4096px JPEG in both files, so nothing visible is lost.
+// The bald state is unaffected: SK_Hair_Buzzed carried no approval status, so
+// `findApprovedModule` already resolved "shaved-buzzed" to the no-module state.
+export const HUMAN_FOUNDATION_MODEL_PATH = "/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-runtime-4k.glb";
 
 const HUMAN_FOUNDATION_AVATAR: PlayerAvatarManifest = {
   modelPath: HUMAN_FOUNDATION_MODEL_PATH,
