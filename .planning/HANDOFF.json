@@ -1,0 +1,162 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-04T10:13:15.5976652-05:00",
+  "phase": "issue-487",
+  "phase_name": "human-character-creation-hair-takeover",
+  "phase_dir": ".planning",
+  "plan": 1,
+  "task": 1,
+  "total_tasks": 5,
+  "status": "paused",
+  "checkpoint_commit": "cdd45ae48a7a6836863277bfcedf63086d219c69",
+  "branch": "codex/487-human-animation-pilot",
+  "worktree": "H:\\CodexData\\.codex\\worktrees\\487\\The-Nexus-human-animation-pilot",
+  "owner_qa": "rejected",
+  "approved_production_counts": {
+    "hair_meshes": 0,
+    "facial_hair_meshes": 0,
+    "age_morph_sets": 0,
+    "identity_morph_sets": 0,
+    "facial_animation_sources": 0,
+    "end_to_end_character_creators": 0
+  },
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Preserve exact-head and runtime contracts",
+      "status": "done",
+      "commit": "cdd45ae48"
+    },
+    {
+      "id": 2,
+      "name": "Create fail-closed creator and appearance scaffolding",
+      "status": "done",
+      "commit": "cdd45ae48"
+    },
+    {
+      "id": 3,
+      "name": "Attempt procedural hair and facial proofs",
+      "status": "failed",
+      "progress": "All visible candidates rejected; evidence and builders preserved"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 1,
+      "name": "Stabilize bald creator presentation and skin material",
+      "status": "not_started"
+    },
+    {
+      "id": 2,
+      "name": "Prove one professionally authored exact-head hairstyle",
+      "status": "not_started"
+    },
+    {
+      "id": 3,
+      "name": "Promote one textured facial source with mouth, eyes, jaw, blink, gaze, and viseme proof",
+      "status": "not_started"
+    },
+    {
+      "id": 4,
+      "name": "Add approved age, face-family, and facial-hair options",
+      "status": "not_started"
+    },
+    {
+      "id": 5,
+      "name": "Run end-to-end desktop/mobile creator, world, NPC, dialogue, paper-doll, and save validation",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "All six procedural hairstyle candidates were rejected by the owner",
+      "type": "technical",
+      "workaround": "Use one professionally authored hair-card proof and require visual approval before batching"
+    },
+    {
+      "description": "Raw Tripo Smart Mesh oral topology cannot produce a clean jaw opening",
+      "type": "technical",
+      "workaround": "Prove minimal local mouth/eyelid retopology while preserving identity, neck seam, and texture"
+    },
+    {
+      "description": "Surgical mouth proof has a rejected corrupted lower-face UV baseline",
+      "type": "technical",
+      "workaround": "Require a new neutral textured head SHA and zero-mask/base-texture equivalence"
+    },
+    {
+      "description": "Hair Tool 4.6 was recommended but was not installed or downloaded",
+      "type": "human_action",
+      "workaround": "Owner may separately authorize/acquire it, or Claude must use another proven licensed authored-card workflow"
+    },
+    {
+      "description": "Final six-versus-seven hairstyle catalog is unresolved",
+      "type": "human_action",
+      "workaround": "Present a concise catalog reconciliation for owner approval before batching"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Approve the exact final Human hairstyle catalog",
+      "context": "User named roughly six styles while code/provenance currently lists seven",
+      "blocking": false
+    },
+    {
+      "action": "Approve any paid hair tool or provider operation at action time",
+      "context": "No purchase or paid provider action is authorized by this handoff",
+      "blocking": true
+    },
+    {
+      "action": "Visually approve one short/parted creator proof before the remaining styles",
+      "context": "Batching before a pilot caused the previous failure",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Quarantine every procedural hair candidate",
+      "rationale": "Owner rejected the visible quality",
+      "phase": "issue-487"
+    },
+    {
+      "decision": "Keep the exact Tripo head as visible identity and seam source",
+      "rationale": "It matches the accepted body proportions; donor transfer drifted",
+      "phase": "issue-487"
+    },
+    {
+      "decision": "Block age, identity, facial hair, and speech work until a promoted textured facial source exists",
+      "rationale": "Current mouth topology and surgical-source UV baseline failed",
+      "phase": "issue-487"
+    },
+    {
+      "decision": "Prove one hairstyle in the real creator before batching",
+      "rationale": "The previous six-style batch created extensive rejected work",
+      "phase": "issue-487"
+    },
+    {
+      "decision": "Keep the scope Human-only and exclude issue #458",
+      "rationale": "Owner explicitly stopped monster-animation scope and deferred Dark Elf to Elf work",
+      "phase": "issue-487"
+    }
+  ],
+  "uncommitted_files": [],
+  "verification": {
+    "python_compile": "PASS",
+    "typecheck": "PASS",
+    "test_files": 54,
+    "tests": 374,
+    "tests_status": "PASS",
+    "eslint": "NOT_CONFIGURED",
+    "visual_qa": "FAIL_OWNER_REJECTED"
+  },
+  "critical_artifacts": {
+    "durable_handoff": "Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/handoffs/CLAUDE-ISSUE-487-CHARACTER-CREATION-HAIR-HANDOFF.md",
+    "exact_head": "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-head-base.glb",
+    "exact_head_sha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+    "fail_closed_appearance_glb": "Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
+    "fail_closed_appearance_bytes": 21816,
+    "rejected_catalog_manifest": "H:\\CodexData\\souldrifter-toolchain\\evidence\\487\\human-hair-catalog-canonical.json",
+    "evidence_root": "H:\\CodexData\\souldrifter-toolchain\\evidence\\487"
+  },
+  "next_action": "Read the durable handoff and live #487/#497 comments, verify checkpoint and hashes, return Claude Session/Context Receipts, then establish a bald creator visual baseline before authoring one short/parted hair-card proof.",
+  "context_notes": "Previous work produced extensive scaffolding and forensic evidence but zero approved visible appearance assets. Do not resume the procedural batch. Require one professional exact-head proof and independent visual review before owner review."
+}
