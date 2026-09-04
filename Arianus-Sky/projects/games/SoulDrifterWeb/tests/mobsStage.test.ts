@@ -256,10 +256,14 @@ describe("Mobs stage exact installed asset contract", () => {
       const composer = definition.family === "breachling" ? composerPackForDefinition(definition.id) : undefined;
       // composer packs add toe bones (legacy rigs: 4 front + 3 rear per side; four-view bodies: whatever Tripo found) and appended reaction clips
       expect(header.skins[0]?.joints).toHaveLength(definition.family === "breachling" ? (composer ? 24 + composer.toeBones.length : 24) : 18);
-      expect(header.meshes).toHaveLength(definition.family === "breachling" ? 1 : 4);
+      // A Warden ships the intact body, three break-off shells, and on a fractured
+      // pack the shatter chunks as well; the receipt pins how many of those there are.
+      const chunks = definition.reviewedWardenMotion?.shatterChunks ?? 0;
+      expect(header.meshes).toHaveLength(definition.family === "breachling" ? 1 : 4 + chunks);
       expect(header.animations).toHaveLength(definition.family === "breachling"
         ? (composer ? (composer.body === "fourview" ? 0 : 1) + composer.actions.length + composer.neutralHolds.length : 12)
-        : cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
+        : definition.reviewedWardenMotion?.clips.length
+          ?? cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker").length);
     }
   });
 
@@ -285,7 +289,8 @@ describe("Mobs stage exact installed asset contract", () => {
     const audit = value.overlay!.audit();
     const composerPack = definition.family === "breachling" ? composerPackForDefinition(definition.id) : undefined;
     expect(audit.bones).toHaveLength(definition.family === "breachling" ? (composerPack ? 24 + composerPack.toeBones.length : 24) : 18);
-    expect(audit.skinnedMeshCount).toBe(definition.family === "breachling" ? 1 : 4);
+    expect(audit.skinnedMeshCount).toBe(definition.family === "breachling"
+      ? 1 : 4 + (definition.reviewedWardenMotion?.shatterChunks ?? 0));
     if (definition.family === "breachling") {
       expect(actor.model.getObjectByName("front_handR")).toBeInstanceOf(THREE.Bone);
       expect(audit.availableControls).toEqual(expect.arrayContaining(["rightPawPitch", "leftPawPitch", "jawOpen", "tail5Sweep"]));
@@ -295,9 +300,8 @@ describe("Mobs stage exact installed asset contract", () => {
         ? (definition.reviewedMotion.actions.includes("RecieveHit") ? "Receive hit · revised motion · review" : "Receive hit · source · not revised")
         : "Receive hit");
     } else {
-      expect(value.actions()).toEqual([...cinderboundWardenActionNames(
-        definition.variant as "wayfarer" | "oathbreaker",
-      )].sort());
+      expect(value.actions()).toEqual([...(definition.reviewedWardenMotion?.clips
+        ?? cinderboundWardenActionNames(definition.variant as "wayfarer" | "oathbreaker"))].sort());
       expect(audit.availableControls).toContain("rightBladeAngle");
       expect(audit.availableControls).not.toContain("rightHandPitch");
       expect(audit.bones.find((bone) => bone.name === "hand_R")?.directWeightedVertices).toBe(0);
@@ -506,11 +510,14 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     value.setAction("SpitAttack");
     value.pose(0.5);
     value.update(0);
-    const projectile = scene.getObjectByName("studio:breachling-base:poison-spit");
-    expect(projectile).toBeInstanceOf(THREE.Mesh);
-    expect(projectile!.visible).toBe(false);
+    const gob = scene.getObjectByName("studio:breachling-base:acid-spit:head");
+    const trail = scene.getObjectByName("studio:breachling-base:acid-spit:trail");
+    expect(gob).toBeInstanceOf(THREE.Mesh);
+    expect(gob!.visible).toBe(false);
+    expect(trail!.visible).toBe(false);
     value.update(1.5);
-    expect(scene.getObjectByName(projectile!.name)).toBeUndefined();
+    expect(scene.getObjectByName(gob!.name)).toBeUndefined();
+    expect(scene.getObjectByName(trail!.name)).toBeUndefined();
     await value.select("breachling-oathbound");
     expect(value.actionLabel("Idle")).toContain("approved neutral hold");
     expect(value.actionLabel("CombatIdle")).toContain("approved neutral hold");
@@ -525,7 +532,8 @@ describe("Motion Studio base intake remains separate from the dungeon", () => {
     value.setAction("SpitAttack");
     value.pose(0.5);
     value.update(0);
-    expect(scene.getObjectByName("studio:breachling-oathbound:poison-spit")?.visible).toBe(false);
+    expect(scene.getObjectByName("studio:breachling-oathbound:acid-spit:head")?.visible).toBe(false);
+    expect(scene.getObjectByName("studio:breachling-oathbound:acid-spit:trail")?.visible).toBe(false);
   }, 20_000);
 
   it.each([
@@ -677,7 +685,7 @@ describe("Per-variant review-only receipt intake", () => {
       for (const name of ["Idle", "CombatIdle", "SpitAttack", "Death"]) expect(value.actionLabel(name)).toContain("source · not revised");
       value.setAction("SpitAttack"); value.pose(0.5); value.update(0);
       if (["oathbound", "ravager"].includes(variant)) {
-        expect(scene.getObjectByName(`studio:${source.id}:poison-spit`)?.visible).toBe(true);
+        expect(scene.getObjectByName(`studio:${source.id}:acid-spit:head`)?.visible).toBe(true);
       }
       const { createMobReviewActor: create } = await import("../src/review/weapon-lab/mob-review-actor");
       const actor = await create({ instanceId: `receipt-test-${variant}`, definitionId: source.id }); reviewActors.add(actor);

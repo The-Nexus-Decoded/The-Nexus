@@ -28,8 +28,15 @@ import {
  */
 export const CINDERBOUND_WARDEN_EFFECT_FPS = 30;
 
-export type CinderboundWardenEffectClip = "PalmFire" | "CinderSweep" | "AshCall" | "SoulTax" | "FurnaceShutdown" | "BladeSweep";
-export type CinderboundWardenEffectId = "palm-fire" | "cinder-sweep" | "ash-call" | "soul-tax" | "furnace-shutdown" | "blade-sweep";
+export type CinderboundWardenEffectClip = "PalmFire" | "CinderSweep" | "AshCall" | "SoulTax" | "FurnaceShutdown" | "BladeSweep" | "DeathShatter";
+export type CinderboundWardenEffectId = "palm-fire" | "cinder-sweep" | "ash-call" | "soul-tax" | "furnace-shutdown" | "blade-sweep" | "death-shatter";
+
+/**
+ * The shatter death. Its own clip, alongside DeathCollapse: the collapse is the
+ * staged mechanical fall, this one bursts the shell apart on the frame the
+ * furnace lets go.
+ */
+export const CINDERBOUND_WARDEN_SHATTER_CLIP = "DeathShatter";
 export type CinderboundWardenEffectPhase = "telegraph" | "active" | "recovery";
 export type CinderboundWardenEffectEventPhase = CinderboundWardenEffectPhase | "impact" | "end";
 
@@ -115,6 +122,24 @@ export const CINDERBOUND_WARDEN_EFFECT_TIMELINES: Readonly<Record<CinderboundWar
     active: { from: "valves-expose", startFrame: 36, until: "reignite", endFrame: 88 },
     impactFrame: 88,
     recovery: { from: "reignite", startFrame: 88, until: "powered-return", endFrame: 120 },
+    lingerSeconds: 0,
+  },
+  /**
+   * Shatter death. Authored against the same 30 fps phase grid as the other
+   * clips: 96 frames from the fatal overload to the ash rest, with the shell
+   * letting go on `seam-rupture`. Every window is rescaled to the runtime clip's
+   * real duration like the rest, so a shorter export bursts on the same phase of
+   * the motion rather than on a fixed fraction of it.
+   */
+  DeathShatter: {
+    clip: "DeathShatter",
+    effect: "death-shatter",
+    specFrames: 96,
+    telegraph: { from: "core-overload", startFrame: 10, until: "seam-rupture", endFrame: 34 },
+    active: { from: "seam-rupture", startFrame: 34, until: "shell-scatter", endFrame: 62 },
+    /** The shatter frame: the intact body is swapped for the chunks here. */
+    impactFrame: 34,
+    recovery: { from: "shell-scatter", startFrame: 62, until: "ash-rest", endFrame: 96 },
     lingerSeconds: 0,
   },
 });
@@ -400,6 +425,9 @@ export function createCinderboundWardenEffectSystem(
       case "soul-tax":
         return distance <= CINDERBOUND_WARDEN_SOUL_TAX_RANGE_METERS * scale;
       case "furnace-shutdown":
+      case "death-shatter":
+        // Neither costs the player anything: one is the boss's own vulnerability
+        // window, the other is it dying.
         return false;
     }
   };
@@ -415,7 +443,9 @@ export function createCinderboundWardenEffectSystem(
       case "cinder-sweep": sweep?.hide(); break;
       case "ash-call": ashRing?.hide(); break;
       case "soul-tax": soulTax?.hide(); break;
-      case "furnace-shutdown": furnace?.hide(); break;
+      // The shatter death drives the same chest-furnace visual as the shutdown:
+      // one gutters and relights, the other blows the furnace out for good.
+      case "furnace-shutdown": case "death-shatter": furnace?.hide(); break;
     }
   };
 
@@ -650,6 +680,46 @@ export function createCinderboundWardenEffectSystem(
     };
   };
 
+  const evaluateDeathShatter = (state: ClipState, frame: CinderboundWardenEffectFrame, seconds: CinderboundWardenEffectSeconds): void => {
+    // The chest furnace over-pressures through the telegraph, lets go on the
+    // shatter frame and never relights. The chunk bodies themselves belong to the
+    // warden runtime (they need the skinned nodes); this drives the furnace.
+    const visual = furnaceVisual();
+    const now = frame.clipTimeSeconds;
+    chestPoint(scratch.chest);
+    actorFloor(scratch.floor);
+    visual.setChest(scratch.chest);
+    visual.setFloor(scratch.floor);
+    visual.setTime(wallSeconds);
+    const telegraphProgress = windowProgress(now, seconds.telegraph);
+    const activeProgress = windowProgress(now, seconds.active);
+    const recoveryProgress = windowProgress(now, seconds.recovery);
+    const overload = now < seconds.telegraph[0] ? 0 : now < seconds.active[0] ? telegraphProgress : 0;
+    // The split seams flare on the shatter frame and cool through the scatter.
+    const split = now < seconds.active[0] ? overload * 0.4 : Math.max(0, 1 - activeProgress * 1.6);
+    visual.setVent(overload);
+    visual.setValves(split);
+    visual.setVulnerability(now < seconds.active[0] ? 0 : Math.max(0, 1 - recoveryProgress));
+    // Nothing reignites: this is the death, not the shutdown.
+    visual.setReignite(0);
+    furnaceFactor = now < seconds.telegraph[0] ? 1
+      : now < seconds.active[0] ? 1 + overload * 1.4
+        : 0;
+    if (crossed(state, seconds.telegraph[0], now, frame)) emit(state, "telegraph", frame, scratch.chest, false);
+    if (crossed(state, seconds.active[0], now, frame)) emit(state, "active", frame, scratch.chest, false);
+    if (crossed(state, seconds.impact, now, frame)) emit(state, "impact", frame, scratch.chest, false);
+    if (crossed(state, seconds.recovery[1], now, frame)) emit(state, "end", frame, scratch.chest, false);
+    current = {
+      effect: "death-shatter",
+      clip: state.clip,
+      phase: now < seconds.active[0] ? "telegraph" : now < seconds.active[1] ? "active" : "recovery",
+      progress: now < seconds.active[0] ? telegraphProgress : now < seconds.active[1] ? activeProgress : recoveryProgress,
+      origin: toTuple(scratch.chest),
+      end: toTuple(scratch.floor),
+      lingering: false,
+    };
+  };
+
   const evaluateLingers = (deltaSeconds: number): CinderboundWardenEffectStatus[] => {
     const statuses: CinderboundWardenEffectStatus[] = [];
     lingers = lingers.filter((linger) => {
@@ -742,6 +812,7 @@ export function createCinderboundWardenEffectSystem(
         case "AshCall": evaluateAshCall(clipState, frame, seconds); break;
         case "SoulTax": evaluateSoulTax(clipState, frame, seconds); break;
         case "FurnaceShutdown": evaluateFurnaceShutdown(clipState, frame, seconds); break;
+        case "DeathShatter": evaluateDeathShatter(clipState, frame, seconds); break;
       }
       clipState.lastTime = frame.clipTimeSeconds;
     },

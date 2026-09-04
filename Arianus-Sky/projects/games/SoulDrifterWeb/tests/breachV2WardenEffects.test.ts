@@ -3,6 +3,7 @@ import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { describe, expect, it } from "vitest";
 
 import {
+  CINDERBOUND_WARDEN_EFFECT_FPS,
   CINDERBOUND_WARDEN_EFFECT_TIMELINES,
   cinderboundWardenEffectSeconds,
   isCinderboundWardenEffectClip,
@@ -121,6 +122,33 @@ describe("Cinderbound Warden attack effects", () => {
     expect(isCinderboundWardenEffectClip("BladeSweep")).toBe(true);
     expect(isCinderboundWardenEffectClip("HeavyWalk")).toBe(false);
     expect(() => cinderboundWardenEffectSeconds("PalmFire", 0)).toThrow();
+  });
+
+  it("gives the shatter death real windows off its own clip length, not a fixed fraction", () => {
+    const timeline = CINDERBOUND_WARDEN_EFFECT_TIMELINES.DeathShatter;
+    expect(timeline).toMatchObject({
+      effect: "death-shatter", specFrames: 96, impactFrame: 34, lingerSeconds: 0,
+    });
+    expect(timeline.telegraph).toEqual({ from: "core-overload", startFrame: 10, until: "seam-rupture", endFrame: 34 });
+    expect(timeline.active).toEqual({ from: "seam-rupture", startFrame: 34, until: "shell-scatter", endFrame: 62 });
+    expect(timeline.recovery).toEqual({ from: "shell-scatter", startFrame: 62, until: "ash-rest", endFrame: 96 });
+    // 96 frames at 30 fps is the authored 3.2s clip.
+    const authored = cinderboundWardenEffectSeconds("DeathShatter", 96 / CINDERBOUND_WARDEN_EFFECT_FPS);
+    expect(authored.telegraph[0]).toBeCloseTo(10 / 30, 6);
+    expect(authored.active[0]).toBeCloseTo(34 / 30, 6);
+    // The shell lets go exactly on the phase frame, not at the window's middle.
+    expect(authored.impact).toBeCloseTo(authored.active[0], 12);
+    expect(authored.active[1]).toBeCloseTo(62 / 30, 6);
+    expect(authored.recovery[1]).toBeCloseTo(96 / 30, 6);
+    // A shorter export bursts on the same phase of the motion, rescaled.
+    const short = cinderboundWardenEffectSeconds("DeathShatter", 2);
+    expect(short.impact).toBeCloseTo((34 / 96) * 2, 6);
+    expect(short.impact / 2).toBeCloseTo(authored.impact / (96 / 30), 12);
+    expect(short.recovery[1]).toBeCloseTo(2, 6);
+    // And it is its own phase, not the collapse's or a blanket 0.48 of the clip.
+    expect(timeline.impactFrame / timeline.specFrames).toBeCloseTo(0.354166, 5);
+    expect(isCinderboundWardenEffectClip("DeathShatter")).toBe(true);
+    expect(isCinderboundWardenEffectClip("DeathCollapse")).toBe(false);
   });
 
   it("fires a solid beam from the left palm to the target on the fire-release frame and locks its aim during the hold", async () => {

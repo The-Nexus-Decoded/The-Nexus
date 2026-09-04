@@ -27,6 +27,8 @@ import {
   type BreachV2ResourceDisposalRegistry,
 } from "./breach-v2-breachlings";
 import {
+  CINDERBOUND_WARDEN_SHATTER_CLIP,
+  cinderboundWardenEffectSeconds,
   createCinderboundWardenEffectSystem,
   type CinderboundWardenEffectListener,
   type CinderboundWardenEffectStatus,
@@ -34,6 +36,7 @@ import {
 } from "./breach-v2-warden-effects";
 import {
   CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS,
+  mulberry32,
   createWardenEmberBurstVisual,
   createWardenExposedCoreVisual,
   createWardenScorchMarkVisual,
@@ -72,12 +75,22 @@ export const CINDERBOUND_WARDEN_ASSETS: Readonly<Record<
   },
 });
 
+/**
+ * Every clip a Warden pack may author, both deaths included.
+ *
+ * DeathShatter sits alongside DeathCollapse rather than replacing it: the staged
+ * mechanical collapse and the shell bursting apart are two separate deaths. It is
+ * the one clip a pack may legitimately not carry yet — see
+ * CINDERBOUND_WARDEN_OPTIONAL_ACTIONS — because it only means anything on a body
+ * that also ships fractured chunk nodes.
+ */
 export const CINDERBOUND_WARDEN_ACTIONS = Object.freeze([
   "AshCall",
   "BladeSweep",
   "CinderSweep",
   "CombatIdle",
   "DeathCollapse",
+  "DeathShatter",
   "FurnaceShutdown",
   "HeadLook",
   "HeavyRun",
@@ -90,12 +103,49 @@ export const CINDERBOUND_WARDEN_ACTIONS = Object.freeze([
   "TurnRight",
 ]);
 
+export const CINDERBOUND_WARDEN_COLLAPSE_CLIP = "DeathCollapse";
+export const CINDERBOUND_WARDEN_DEATH_CLIPS = Object.freeze([
+  "DeathCollapse", "DeathShatter",
+] as const);
+export type CinderboundWardenDeathClip = (typeof CINDERBOUND_WARDEN_DEATH_CLIPS)[number];
+
+/**
+ * Clips the loader accepts as absent. Only the shatter death: a pack without
+ * fractured geometry has nothing for it to break, so it falls back to
+ * DeathCollapse instead of failing to load. A pack that *does* ship chunks and
+ * omits the clip is rejected outright — see createActor.
+ */
+export const CINDERBOUND_WARDEN_OPTIONAL_ACTIONS: readonly string[] = Object.freeze([
+  CINDERBOUND_WARDEN_SHATTER_CLIP,
+]);
+
+const isCinderboundWardenDeathClip = (clipName: string): clipName is CinderboundWardenDeathClip =>
+  (CINDERBOUND_WARDEN_DEATH_CLIPS as readonly string[]).includes(clipName);
+
+/** Node prefix of the fractured pieces; zero padded and contiguous from 00. */
+export const CINDERBOUND_WARDEN_SHATTER_CHUNK_PREFIX = "Shatter_Chunk_";
+
+/** Intact body node of each kind; it keeps every face it has for the other clips. */
+export const CINDERBOUND_WARDEN_BODY_NODES: Readonly<Record<CinderboundWardenKind, string>> = Object.freeze({
+  wayfarer: "Cinderbound_Warden_Body",
+  oathbreaker: "Greater_Cinderbound_Warden_Body",
+});
+
+const CINDERBOUND_WARDEN_REQUIRED_ACTIONS = Object.freeze(
+  CINDERBOUND_WARDEN_ACTIONS.filter((name) => !CINDERBOUND_WARDEN_OPTIONAL_ACTIONS.includes(name)),
+);
 const CINDERBOUND_WARDEN_LEGACY_ACTIONS = Object.freeze(
-  CINDERBOUND_WARDEN_ACTIONS.filter((name) => name !== "FurnaceShutdown" && name !== "SoulTax"),
+  CINDERBOUND_WARDEN_REQUIRED_ACTIONS.filter((name) => name !== "FurnaceShutdown" && name !== "SoulTax"),
 );
 
+/** Clips a pack of this kind must author; the loader throws on a missing one. */
 export function cinderboundWardenActionNames(kind: CinderboundWardenKind): readonly string[] {
-  return kind === "wayfarer" ? CINDERBOUND_WARDEN_ACTIONS : CINDERBOUND_WARDEN_LEGACY_ACTIONS;
+  return kind === "wayfarer" ? CINDERBOUND_WARDEN_REQUIRED_ACTIONS : CINDERBOUND_WARDEN_LEGACY_ACTIONS;
+}
+
+/** Required clips plus the optional shatter death: the full set a pack may carry. */
+export function cinderboundWardenClipSet(kind: CinderboundWardenKind): readonly string[] {
+  return Object.freeze([...cinderboundWardenActionNames(kind), ...CINDERBOUND_WARDEN_OPTIONAL_ACTIONS]);
 }
 
 /** Source meshes face +X; rotate them onto the +Z forward convention (radians). */
@@ -186,6 +236,21 @@ export interface CinderboundWardenBreakoffSnapshot {
   exposedCore: boolean;
 }
 
+export interface CinderboundWardenShatterSnapshot {
+  /** The loaded body carries fractured chunks and the DeathShatter clip. */
+  available: boolean;
+  /** Fractured pieces the body ships (0 on every pack without the fracture). */
+  chunkCount: number;
+  /** The body has been swapped for its chunks. */
+  active: boolean;
+  /** Chunks currently in flight or resting on the floor. */
+  releasedChunks: number;
+  settledChunks: number;
+  scorchMarks: number;
+  /** The chest furnace has gone out for good. */
+  furnaceBlownOut: boolean;
+}
+
 export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, BreachV2AnimationReviewSnapshot {
   label: string;
   currentClip: string;
@@ -195,6 +260,7 @@ export interface CinderboundWardenSnapshot extends CinderboundWardenPlacement, B
   healthPercent: number;
   detachedStages: number[];
   breakoff: CinderboundWardenBreakoffSnapshot[];
+  shatter: CinderboundWardenShatterSnapshot;
   activeEffects: CinderboundWardenEffectStatus[];
   groundingStatus: string;
   groundingClearanceMeters: number | null;
@@ -217,7 +283,11 @@ export interface BreachV2WardenRuntime {
   reviewActor(): BreachV2AnimationReviewActor | null;
   setReviewPlayback(playback: BreachV2AnimationReviewPlayback): void;
   setReviewPoseHooks(hooks: BreachV2AnimationReviewPoseHooks | null): void;
-  setDamageFraction(damageFraction: number): void;
+  /**
+   * `death` picks which death plays when the fraction reaches 1. DeathShatter
+   * falls back to DeathCollapse on a body with no fractured chunks.
+   */
+  setDamageFraction(damageFraction: number, death?: CinderboundWardenDeathClip): void;
   /**
    * Attack effect events (telegraph, active, impact, end) with a geometric hit
    * test. Damage itself stays with the run controller; the listener lets the
@@ -233,6 +303,9 @@ export interface BreachV2WardenRuntimeOptions {
 }
 
 interface BreakoffDebris {
+  /** Which pass created it: a damage shell tearing off, or the shatter death. */
+  kind: "breakoff" | "shatter";
+  /** Damage stage for a shell (30/60/90), chunk index for a shatter piece. */
   stage: number;
   root: THREE.Group;
   geometries: THREE.BufferGeometry[];
@@ -240,13 +313,21 @@ interface BreakoffDebris {
   angularVelocity: THREE.Vector3;
   floorY: number;
   restingCenterY: number;
+  /**
+   * Half extents of the piece around its own origin. Present on shatter chunks,
+   * whose tumble is clamped against the rotated half height so no corner of a
+   * piece can dip through the floor; null on shells, which rest on the fixed
+   * `restingCenterY` they were snapshotted with.
+   */
+  halfExtents: THREE.Vector3 | null;
   footprintRadius: number;
   settled: boolean;
   settledSeconds: number;
   ageSeconds: number;
   embers: WardenEmberBurstVisual | null;
   scorch: WardenScorchMarkVisual | null;
-  exposedCore: WardenExposedCoreVisual;
+  /** Only a torn-off shell leaves an exposed core behind; a shatter chunk does not. */
+  exposedCore: WardenExposedCoreVisual | null;
 }
 
 interface RuntimeActor {
@@ -264,6 +345,22 @@ interface RuntimeActor {
   breakoffMeshes: Map<number, THREE.Object3D>;
   detachedStages: Set<number>;
   debris: BreakoffDebris[];
+  /** Intact body node. Hidden while the shatter debris stands in for it. */
+  bodyMesh: THREE.Object3D | null;
+  /** Fractured pieces, index order, hidden until the shatter reveals them. */
+  shatterChunks: THREE.Object3D[];
+  /** The pack carries both the chunks and the DeathShatter clip. */
+  shatterAvailable: boolean;
+  shattered: boolean;
+  /** The single ember burst thrown at the break. */
+  shatterEmbers: WardenEmberBurstVisual | null;
+  shatterEmberSeconds: number;
+  /**
+   * Corpse floor correction this death has pushed onto the grounding pivot.
+   * Undone whenever another clip starts, so one death never hands its offset to
+   * the other.
+   */
+  corpseCorrectionMeters: number;
   presentationMaterials: THREE.Material[];
   furnaceLight: THREE.PointLight;
   furnacePhaseSeconds: number;
@@ -455,6 +552,7 @@ function snapshotBreakoffGeometry(source: THREE.Object3D): {
   root: THREE.Group;
   geometries: THREE.BufferGeometry[];
   restingCenterY: number;
+  halfExtents: THREE.Vector3;
   footprintRadius: number;
   center: THREE.Vector3;
 } {
@@ -507,9 +605,102 @@ function snapshotBreakoffGeometry(source: THREE.Object3D): {
     root,
     geometries,
     restingCenterY: center.y - worldBounds.min.y,
+    halfExtents: size.clone().multiplyScalar(0.5),
     footprintRadius: Math.max(0.2, Math.max(size.x, size.z) * 0.45),
     center,
   };
+}
+
+/**
+ * Fractured pieces of a shatter-capable body, in index order.
+ *
+ * The contract is exact and every deviation is an error rather than a silently
+ * dropped piece: `Shatter_Chunk_NN`, zero padded, contiguous from 00, each
+ * carrying `extras.shatterChunk === true` (glTF extras land on `userData`).
+ * Returns an empty list for a body that ships no chunks at all.
+ */
+export function collectCinderboundWardenShatterChunks(
+  model: THREE.Object3D,
+  label: string,
+): THREE.Object3D[] {
+  const prefix = CINDERBOUND_WARDEN_SHATTER_CHUNK_PREFIX;
+  const indexed = new Map<number, THREE.Object3D>();
+  const malformed: string[] = [];
+  const unflagged: string[] = [];
+  model.traverse((object) => {
+    if (!object.name.startsWith(prefix)) return;
+    const suffix = object.name.slice(prefix.length);
+    const index = Number(suffix);
+    if (!/^\d{2,}$/.test(suffix) || !Number.isSafeInteger(index)
+      || suffix !== String(index).padStart(2, "0") || indexed.has(index)) {
+      malformed.push(object.name);
+      return;
+    }
+    if (object.userData.shatterChunk !== true) {
+      unflagged.push(object.name);
+      return;
+    }
+    indexed.set(index, object);
+  });
+  if (malformed.length > 0) {
+    throw new Error(`${label} has malformed shatter chunk nodes: ${[...malformed].sort().join(", ")}.`);
+  }
+  if (unflagged.length > 0) {
+    throw new Error(`${label} shatter chunk nodes are missing extras.shatterChunk: ${[...unflagged].sort().join(", ")}.`);
+  }
+  const chunks: THREE.Object3D[] = [];
+  for (let index = 0; index < indexed.size; index += 1) {
+    const chunk = indexed.get(index);
+    if (!chunk) {
+      throw new Error(`${label} shatter chunks are not contiguous from 00: ${prefix}${String(index).padStart(2, "0")} is missing.`);
+    }
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+/**
+ * The bone carrying the most skin weight in a chunk — the limb it broke off.
+ * Null for a chunk that is not skinned, which simply loses the bone bias.
+ */
+export function dominantCinderboundWardenChunkBone(chunk: THREE.Object3D): THREE.Object3D | null {
+  if (!(chunk instanceof THREE.SkinnedMesh)) return null;
+  const skinIndex = chunk.geometry.getAttribute("skinIndex");
+  const skinWeight = chunk.geometry.getAttribute("skinWeight");
+  if (!skinIndex || !skinWeight) return null;
+  const totals = new Map<number, number>();
+  const slots = Math.min(skinIndex.itemSize, skinWeight.itemSize);
+  for (let vertex = 0; vertex < skinIndex.count; vertex += 1) {
+    for (let slot = 0; slot < slots; slot += 1) {
+      const weight = skinWeight.getComponent(vertex, slot);
+      if (!(weight > 0)) continue;
+      const bone = skinIndex.getComponent(vertex, slot);
+      totals.set(bone, (totals.get(bone) ?? 0) + weight);
+    }
+  }
+  let bestBone = -1;
+  let bestWeight = 0;
+  totals.forEach((weight, bone) => {
+    if (weight > bestWeight) {
+      bestWeight = weight;
+      bestBone = bone;
+    }
+  });
+  return bestBone >= 0 ? chunk.skeleton.bones[bestBone] ?? null : null;
+}
+
+const SHATTER_ROTATION_MATRIX = new THREE.Matrix4();
+
+/**
+ * Half height of a tumbling piece's bounding box in world space. Clamping the
+ * piece's centre against this is what stops a corner dipping through the floor
+ * mid-tumble.
+ */
+export function rotatedHalfHeight(rotation: THREE.Euler, halfExtents: THREE.Vector3): number {
+  const elements = SHATTER_ROTATION_MATRIX.makeRotationFromEuler(rotation).elements;
+  return Math.abs(elements[1]!) * halfExtents.x
+    + Math.abs(elements[5]!) * halfExtents.y
+    + Math.abs(elements[9]!) * halfExtents.z;
 }
 
 function nearestAttachment(model: THREE.Object3D, point: THREE.Vector3): THREE.Object3D {
@@ -546,6 +737,11 @@ export function createBreachV2WardenRuntime(
   let activationToken = 0;
   let disposed = false;
   let damageFraction = 0;
+  /**
+   * Which death the next kill plays. DeathCollapse unless a caller asks for the
+   * shatter, so nothing changes for a body that has no fractured pieces.
+   */
+  let deathClip: CinderboundWardenDeathClip = CINDERBOUND_WARDEN_COLLAPSE_CLIP;
   let effectListener: CinderboundWardenEffectListener | null = null;
   const vfxScale = asset.targetHeightMeters / CINDERBOUND_WARDEN_VFX_REFERENCE_HEIGHT_METERS;
   const latestPlayer = new THREE.Vector3();
@@ -553,15 +749,37 @@ export function createBreachV2WardenRuntime(
     disposeBreachV2ObjectResources(source.scene, resourceDisposalRegistry);
   };
 
+  const disposeDebris = (debris: BreakoffDebris): void => {
+    debris.root.removeFromParent();
+    debris.geometries.forEach((geometry) => geometry.dispose());
+    debris.embers?.dispose();
+    debris.scorch?.dispose();
+    debris.exposedCore?.dispose();
+  };
+  /**
+   * Puts the body back together: the shatter pieces, their embers and the blown
+   * furnace all go, and the intact node is visible again. Called by every play,
+   * so replaying a death — or switching to the other one — never starts on the
+   * previous death's debris.
+   */
+  const restoreIntactBody = (runtimeActor: RuntimeActor): void => {
+    for (let index = runtimeActor.debris.length - 1; index >= 0; index -= 1) {
+      const debris = runtimeActor.debris[index]!;
+      if (debris.kind !== "shatter") continue;
+      disposeDebris(debris);
+      runtimeActor.debris.splice(index, 1);
+    }
+    runtimeActor.shatterEmbers?.dispose();
+    runtimeActor.shatterEmbers = null;
+    runtimeActor.shatterEmberSeconds = 0;
+    runtimeActor.shattered = false;
+    if (runtimeActor.bodyMesh) runtimeActor.bodyMesh.visible = true;
+    runtimeActor.furnaceLight.visible = true;
+  };
   const clearDebris = (runtimeActor: RuntimeActor): void => {
-    runtimeActor.debris.forEach((debris) => {
-      debris.root.removeFromParent();
-      debris.geometries.forEach((geometry) => geometry.dispose());
-      debris.embers?.dispose();
-      debris.scorch?.dispose();
-      debris.exposedCore.dispose();
-    });
+    runtimeActor.debris.forEach(disposeDebris);
     runtimeActor.debris.length = 0;
+    restoreIntactBody(runtimeActor);
   };
   const clearActor = (): void => {
     if (!actor) return;
@@ -605,9 +823,27 @@ export function createBreachV2WardenRuntime(
     runtimeActor.headingSettles.push({ action, headingRadians });
     settleTurnHeading(runtimeActor);
   };
-  const playActor = (runtimeActor: RuntimeActor, clipName: string, immediate = false): number => {
+  /**
+   * A body with no fractured chunks does not offer the shatter at all: the
+   * request resolves to the collapse instead of throwing on a clip the pack
+   * either lacks or has nothing to break with.
+   */
+  const resolveClipName = (runtimeActor: RuntimeActor, clipName: string): string => (
+    clipName === CINDERBOUND_WARDEN_SHATTER_CLIP && !runtimeActor.shatterAvailable
+      ? CINDERBOUND_WARDEN_COLLAPSE_CLIP
+      : clipName
+  );
+  const playActor = (runtimeActor: RuntimeActor, requestedClip: string, immediate = false): number => {
+    const clipName = resolveClipName(runtimeActor, requestedClip);
     const action = runtimeActor.actions.get(clipName);
     if (!action) throw new Error(`${asset.label} does not provide ${clipName}.`);
+    // Whatever plays next starts on an intact body, and on the grounding pivot the
+    // last death left rather than the corpse offset it drifted to.
+    restoreIntactBody(runtimeActor);
+    if (runtimeActor.corpseCorrectionMeters !== 0) {
+      runtimeActor.pivot.position.y -= runtimeActor.corpseCorrectionMeters;
+      runtimeActor.corpseCorrectionMeters = 0;
+    }
     runtimeActor.playId += 1;
     // A settle cancels a heading the bones are still posing while the finished action
     // fades. Both paths below end that pose: stopAllAction drops its weight, and a
@@ -686,10 +922,12 @@ export function createBreachV2WardenRuntime(
     exposedCore.setPulse(runtimeActor.furnacePhaseSeconds, damageFraction);
     attachment.add(exposedCore.root);
     runtimeActor.debris.push({
+      kind: "breakoff",
       stage,
       root: snapshot.root,
       geometries: snapshot.geometries,
       restingCenterY: snapshot.restingCenterY,
+      halfExtents: null,
       footprintRadius: snapshot.footprintRadius,
       velocity: new THREE.Vector3(direction * 0.7, 1.4 + stage / 100, (stage === 60 ? -1 : 1) * 0.55),
       angularVelocity: new THREE.Vector3(0.9 + stage / 160, direction * 1.1, 0.7),
@@ -702,6 +940,95 @@ export function createBreachV2WardenRuntime(
       exposedCore,
     });
     runtimeActor.detachedStages.add(stage);
+  };
+  /**
+   * The shatter frame. The intact body is swapped for its fractured pieces: each
+   * chunk node is snapshotted in the pose it is holding and handed to the same
+   * debris pass the torn-off shells use, so it tumbles, settles and burns its
+   * scorch mark into the floor exactly as they do. A single ember burst is thrown
+   * at the break, and the chest furnace goes out for good.
+   */
+  const shatterBody = (runtimeActor: RuntimeActor): void => {
+    const body = runtimeActor.bodyMesh;
+    if (runtimeActor.shattered || !runtimeActor.shatterAvailable || !body) return;
+    body.updateWorldMatrix(true, true);
+    const bodyBounds = new THREE.Box3().setFromObject(body, true);
+    const bodyCenter = bodyBounds.getCenter(new THREE.Vector3());
+    const bodyHalfHeight = Math.max(0.05, bodyBounds.getSize(new THREE.Vector3()).y * 0.5);
+    const chunkCount = runtimeActor.shatterChunks.length;
+    // Deterministic tumble: the same body always breaks the same way, so a review
+    // pass and the dungeon show the same death.
+    const random = mulberry32(0x5a77e2 + chunkCount);
+    const boneProbe = new THREE.Vector3();
+    runtimeActor.shatterChunks.forEach((chunk, index) => {
+      const snapshot = snapshotBreakoffGeometry(chunk);
+      snapshot.root.userData.shatterChunkIndex = index;
+      scene.add(snapshot.root);
+      const offset = snapshot.center.clone().sub(bodyCenter);
+      const direction = new THREE.Vector3(offset.x, 0, offset.z);
+      if (direction.lengthSq() < 1e-8) {
+        // A piece sitting on the body axis has no outward direction of its own;
+        // fan those out evenly instead of dropping them straight down.
+        const angle = (index / Math.max(1, chunkCount)) * Math.PI * 2;
+        direction.set(Math.sin(angle), 0, Math.cos(angle));
+      }
+      direction.normalize();
+      const bone = dominantCinderboundWardenChunkBone(chunk);
+      if (bone) {
+        // Bias along the limb the piece is weighted to: an arm chunk is thrown
+        // out along the arm rather than straight away from the body centre.
+        const boneOffset = bone.getWorldPosition(boneProbe).sub(bodyCenter).setY(0);
+        if (boneOffset.lengthSq() > 1e-8) direction.addScaledVector(boneOffset.normalize(), 0.55).normalize();
+      }
+      // Gravity bias: a piece high on the body is thrown further and higher, a
+      // piece at the feet barely leaves the floor.
+      const height = THREE.MathUtils.clamp(offset.y / bodyHalfHeight, -1, 1);
+      const speed = 2.1 + 0.9 * (height * 0.5 + 0.5);
+      const debrisVelocity = direction.multiplyScalar(speed);
+      debrisVelocity.y = Math.max(0.35, 2.4 + height * 1.6);
+      runtimeActor.debris.push({
+        kind: "shatter",
+        stage: index,
+        root: snapshot.root,
+        geometries: snapshot.geometries,
+        restingCenterY: snapshot.restingCenterY,
+        halfExtents: snapshot.halfExtents,
+        footprintRadius: snapshot.footprintRadius,
+        velocity: debrisVelocity,
+        angularVelocity: new THREE.Vector3(
+          (random() * 2 - 1) * 3.4, (random() * 2 - 1) * 3.4, (random() * 2 - 1) * 3.4,
+        ),
+        floorY: runtimeActor.placement.floorElevation,
+        settled: false,
+        settledSeconds: 0,
+        ageSeconds: 0,
+        embers: null,
+        scorch: null,
+        exposedCore: null,
+      });
+    });
+    body.visible = false;
+    const embers = createWardenEmberBurstVisual(
+      runtimeActor.vfxResources, vfxScale, bodyCenter, `${runtimeActor.placement.id}:shatter:embers`,
+    );
+    embers.update(0);
+    scene.add(embers.root);
+    runtimeActor.shatterEmbers = embers;
+    runtimeActor.shatterEmberSeconds = 0;
+    runtimeActor.furnaceLight.visible = false;
+    runtimeActor.shattered = true;
+  };
+  /**
+   * Keeps the body's broken/intact state on the clip time, in both directions, so
+   * a scrubbed review frame before the shatter shows the body whole again.
+   */
+  const syncShatterState = (runtimeActor: RuntimeActor): void => {
+    if (runtimeActor.currentClip !== CINDERBOUND_WARDEN_SHATTER_CLIP) return;
+    const duration = runtimeActor.currentAction.getClip().duration;
+    if (!(duration > 0)) return;
+    const shatterSeconds = cinderboundWardenEffectSeconds(CINDERBOUND_WARDEN_SHATTER_CLIP, duration).impact;
+    if (runtimeActor.currentAction.time >= shatterSeconds) shatterBody(runtimeActor);
+    else if (runtimeActor.shattered) restoreIntactBody(runtimeActor);
   };
   const resetDamageVisuals = (runtimeActor: RuntimeActor): void => {
     clearDebris(runtimeActor);
@@ -772,6 +1099,30 @@ export function createBreachV2WardenRuntime(
       if (!section) throw new Error(`${asset.label} is missing ${stage.meshName}.`);
       breakoffMeshes.set(stage.damageFraction * 100, section);
     });
+    const bodyNodeName = CINDERBOUND_WARDEN_BODY_NODES[path];
+    const bodyMesh = model.getObjectByName(bodyNodeName) ?? null;
+    // The fractured pieces ride the skeleton hidden until the shatter reveals
+    // them; nothing else in the pack changes because they exist.
+    const shatterChunks = collectCinderboundWardenShatterChunks(model, asset.label);
+    shatterChunks.forEach((chunk) => { chunk.visible = false; });
+    const hasShatterClip = actions.has(CINDERBOUND_WARDEN_SHATTER_CLIP);
+    if (shatterChunks.length > 0 && !hasShatterClip) {
+      throw new Error(
+        `${asset.label} ships ${shatterChunks.length} shatter chunks but no ${CINDERBOUND_WARDEN_SHATTER_CLIP} clip.`,
+      );
+    }
+    // A fractured pack must still carry the intact body under its contract name:
+    // every other clip poses it, and the shatter is the only thing that hides it.
+    if (shatterChunks.length > 0 && !bodyMesh) throw new Error(`${asset.label} is missing ${bodyNodeName}.`);
+    const shatterAvailable = shatterChunks.length > 0 && hasShatterClip && bodyMesh !== null;
+    diagnostics?.record("warden-shatter-readiness", {
+      label: asset.label,
+      url: asset.url,
+      bodyNode: bodyNodeName,
+      chunkCount: shatterChunks.length,
+      clip: hasShatterClip,
+      available: shatterAvailable,
+    });
     // Which turns actually carry a heading is a property of the loaded pack, not of the
     // clip name: the shipped bodies author TurnLeft/TurnRight with a root track that
     // starts and ends at yaw 0, so they hand over nothing and are skipped outright.
@@ -814,6 +1165,13 @@ export function createBreachV2WardenRuntime(
       breakoffMeshes,
       detachedStages: new Set(),
       debris: [],
+      bodyMesh,
+      shatterChunks,
+      shatterAvailable,
+      shattered: false,
+      shatterEmbers: null,
+      shatterEmberSeconds: 0,
+      corpseCorrectionMeters: 0,
       presentationMaterials,
       furnaceLight,
       furnacePhaseSeconds: 0,
@@ -832,9 +1190,10 @@ export function createBreachV2WardenRuntime(
       // stage does next, so the dungeon and the Motion Forge end up facing the same way.
       commitTurnHeading(runtimeActor, event.action);
       if (runtimeActor.review.loop !== null) return;
-      if (runtimeActor.currentClip !== "DeathCollapse") playActor(runtimeActor, "CombatIdle");
+      // Either death holds its last frame; everything else returns to guard.
+      if (!isCinderboundWardenDeathClip(runtimeActor.currentClip)) playActor(runtimeActor, "CombatIdle");
     });
-    playActor(runtimeActor, damageFraction >= 1 ? "DeathCollapse" : "Idle");
+    playActor(runtimeActor, damageFraction >= 1 ? deathClip : "Idle");
     applyDamageVisuals(runtimeActor);
     return runtimeActor;
   };
@@ -914,14 +1273,22 @@ export function createBreachV2WardenRuntime(
           const grounding = calibrateAnimatedPoseOnFloor(actor.root, actor.model, actor.pivot, 0);
           actor.groundingClearanceMeters = grounding.clearanceMeters;
           actor.groundingStatus = "calibrated-live-pose";
+          // The calibration writes the pivot absolutely, so any corpse drift it
+          // replaced is gone and must not be unwound again on the next play.
+          actor.corpseCorrectionMeters = 0;
           calibratedThisFrame = true;
         }
-        if (actor.currentClip === "DeathCollapse"
+        // Corpse correction, for whichever death is playing. It stops once the
+        // shell has burst: from there the pieces are free debris with their own
+        // floor, and the hidden body is no longer the thing standing on it.
+        if (isCinderboundWardenDeathClip(actor.currentClip)
+          && !actor.shattered
           && actor.groundingStatus !== "pending"
           && !calibratedThisFrame) {
           const grounding = measureAnimatedPoseGrounding(actor.root, actor.model);
           if (Math.abs(grounding.clearanceMeters) > 0.002) {
             actor.pivot.position.y -= grounding.clearanceMeters;
+            actor.corpseCorrectionMeters -= grounding.clearanceMeters;
             actor.pivot.updateWorldMatrix(true, true);
             actor.groundingClearanceMeters = 0;
           } else {
@@ -941,18 +1308,31 @@ export function createBreachV2WardenRuntime(
           advancing: deltaSeconds > 0 && !runtimeActor.currentAction.paused,
           target: latestPlayer,
         });
+        // The shatter frame is a clip time, so the swap is decided here, after the
+        // mixer and the effect windows have both moved.
+        syncShatterState(runtimeActor);
         // The chest furnace follows this frame's effect state: PalmFire surges it,
-        // FurnaceShutdown gutters it, death leaves only a dull glow.
+        // FurnaceShutdown gutters it, death leaves only a dull glow — and the
+        // shatter blows it out entirely.
         const pulse = 0.9 + Math.sin(runtimeActor.furnacePhaseSeconds * 4.2) * 0.1;
         const healthGlow = damageFraction >= 1 ? 0.18 : 1 - damageFraction * 0.32;
-        runtimeActor.furnaceLight.intensity = furnaceLightBaseIntensity * pulse * healthGlow * runtimeActor.effects.furnaceLightFactor();
+        runtimeActor.furnaceLight.intensity = runtimeActor.shattered
+          ? 0
+          : furnaceLightBaseIntensity * pulse * healthGlow * runtimeActor.effects.furnaceLightFactor();
+        if (runtimeActor.shatterEmbers) {
+          runtimeActor.shatterEmberSeconds += deltaSeconds;
+          if (!runtimeActor.shatterEmbers.update(runtimeActor.shatterEmberSeconds)) {
+            runtimeActor.shatterEmbers.dispose();
+            runtimeActor.shatterEmbers = null;
+          }
+        }
         runtimeActor.debris.forEach((debris) => {
           debris.ageSeconds += deltaSeconds;
           if (debris.embers && !debris.embers.update(debris.ageSeconds)) {
             debris.embers.dispose();
             debris.embers = null;
           }
-          debris.exposedCore.setPulse(runtimeActor.furnacePhaseSeconds, damageFraction);
+          debris.exposedCore?.setPulse(runtimeActor.furnacePhaseSeconds, damageFraction);
           if (debris.settled) {
             debris.settledSeconds += deltaSeconds;
             debris.scorch?.setStrength(
@@ -966,16 +1346,20 @@ export function createBreachV2WardenRuntime(
           debris.root.rotation.x += debris.angularVelocity.x * deltaSeconds;
           debris.root.rotation.y += debris.angularVelocity.y * deltaSeconds;
           debris.root.rotation.z += debris.angularVelocity.z * deltaSeconds;
-          const restingY = debris.floorY + debris.restingCenterY;
+          // A tumbling shatter chunk rests on whichever corner is lowest at that
+          // rotation, so no piece can dip through the floor while it spins.
+          const restingY = debris.floorY + (debris.halfExtents
+            ? rotatedHalfHeight(debris.root.rotation, debris.halfExtents)
+            : debris.restingCenterY);
           if (debris.root.position.y <= restingY) {
             debris.root.position.y = restingY;
             debris.settled = true;
-            // The still-molten shell burns its outline into the floor where it lands.
+            // The still-molten piece burns its outline into the floor where it lands.
             const scorch = createWardenScorchMarkVisual(
               runtimeActor.vfxResources,
               debris.footprintRadius,
               new THREE.Vector3(debris.root.position.x, debris.floorY + 0.012, debris.root.position.z),
-              `${runtimeActor.placement.id}:breakoff-${debris.stage}:scorch`,
+              `${runtimeActor.placement.id}:${debris.kind === "shatter" ? "shatter-chunk" : "breakoff"}-${debris.stage}:scorch`,
             );
             scorch.setStrength(0, 1);
             scene.add(scorch.root);
@@ -989,17 +1373,29 @@ export function createBreachV2WardenRuntime(
       ...breachV2AnimationReviewSnapshot(actor.review, actor.currentAction),
       label: asset.label,
       currentClip: actor.currentClip,
-      actionNames: [...actor.actions.keys()].sort(),
+      // A body with no fractured pieces does not offer the shatter at all.
+      actionNames: [...actor.actions.keys()]
+        .filter((name) => actor!.shatterAvailable || name !== CINDERBOUND_WARDEN_SHATTER_CLIP)
+        .sort(),
       targetHeightMeters: asset.targetHeightMeters,
       damageFraction,
       healthPercent: Math.round((1 - damageFraction) * 100),
       detachedStages: [...actor.detachedStages].sort((left, right) => left - right),
-      breakoff: actor.debris.map((debris) => ({
+      breakoff: actor.debris.filter((debris) => debris.kind === "breakoff").map((debris) => ({
         stage: debris.stage,
         settled: debris.settled,
         scorchMark: debris.scorch !== null,
-        exposedCore: debris.exposedCore.root.parent !== null,
+        exposedCore: debris.exposedCore?.root.parent != null,
       })),
+      shatter: {
+        available: actor.shatterAvailable,
+        chunkCount: actor.shatterChunks.length,
+        active: actor.shattered,
+        releasedChunks: actor.debris.filter((debris) => debris.kind === "shatter").length,
+        settledChunks: actor.debris.filter((debris) => debris.kind === "shatter" && debris.settled).length,
+        scorchMarks: actor.debris.filter((debris) => debris.kind === "shatter" && debris.scorch !== null).length,
+        furnaceBlownOut: actor.shattered,
+      },
       activeEffects: actor.effects.status(),
       groundingStatus: actor.groundingStatus,
       groundingClearanceMeters: actor.groundingClearanceMeters,
@@ -1013,6 +1409,9 @@ export function createBreachV2WardenRuntime(
       actor.currentAction.paused = true;
       actor.currentAction.time = THREE.MathUtils.clamp(normalizedTime, 0, 1) * duration;
       evaluateBreachV2AnimationReviewPose(actor.review, actor.mixer, 0);
+      // A scrubbed frame either side of the shatter shows the matching body, so
+      // the review can step back and forth across the break.
+      syncShatterState(actor);
       // A scrubbed turn never finishes, so it hands over no heading: the scrubbed root
       // track is already showing the turn, and the pivot must stay on its correction.
       settleTurnHeading(actor);
@@ -1033,13 +1432,14 @@ export function createBreachV2WardenRuntime(
       if (!actor) throw new Error("The Warden is not loaded.");
       setBreachV2AnimationReviewPoseHooks(actor.review, hooks);
     },
-    setDamageFraction: (nextDamageFraction) => {
+    setDamageFraction: (nextDamageFraction, death = CINDERBOUND_WARDEN_COLLAPSE_CLIP) => {
       const previous = damageFraction;
       damageFraction = THREE.MathUtils.clamp(nextDamageFraction, 0, 1);
+      deathClip = death;
       if (!actor) return;
       if (damageFraction < previous) resetDamageVisuals(actor);
       applyDamageVisuals(actor);
-      if (damageFraction >= 1) playActor(actor, "DeathCollapse");
+      if (damageFraction >= 1) playActor(actor, deathClip);
       else if (damageFraction > previous) playActor(actor, "HitReact");
       else if (previous >= 1 || damageFraction === 0) playActor(actor, "CombatIdle");
     },

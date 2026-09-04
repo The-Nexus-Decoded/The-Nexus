@@ -365,10 +365,13 @@ export function createWardenFireBeamVisual(
     spanCylinder(sheath, origin, end, 0.27 * scale);
     spanCylinder(haze, origin, end, 0.46 * scale);
     spanCylinder(aimThread, origin, end, 0.02 * scale);
-    palmGlow.position.copy(origin).addScaledVector(palmForward, 0.08 * scale);
-    palmRing.position.copy(origin).addScaledVector(palmForward, 0.1 * scale);
-    palmRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), palmForward);
-    palmLight.position.copy(origin).addScaledVector(palmForward, 0.2 * scale);
+    // The muzzle sits on the beam, not on the forearm. The clip aims the arm at a
+    // target 4.5 m ahead, but the beam spans the hand to wherever the player actually
+    // is, so hanging the glow off the forearm axis only lines up at that one range.
+    palmGlow.position.copy(origin).addScaledVector(direction, 0.08 * scale);
+    palmRing.position.copy(origin).addScaledVector(direction, 0.1 * scale);
+    palmRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+    palmLight.position.copy(origin).addScaledVector(direction, 0.2 * scale);
     impactFlare.position.copy(end);
     impactRing.position.copy(end).addScaledVector(direction, -0.05);
     impactRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction.clone().negate());

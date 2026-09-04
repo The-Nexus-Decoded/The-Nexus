@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cinderboundWardenActionNames } from "../src/game/dungeons/breach-v2-wardens";
+import { cinderboundWardenActionNames, cinderboundWardenClipSet } from "../src/game/dungeons/breach-v2-wardens";
 import {
   prepareReviewedWardenReceipts, REVIEWED_FOURVIEW_WARDEN_RECEIPTS, reviewedWardenNote,
   type ReviewedWardenReceipt,
@@ -67,6 +67,51 @@ describe("Rebuilt Warden review intake", () => {
     }).oathbreaker!;
     expect(oathbreaker.clips).not.toContain("FurnaceShutdown");
     expect(oathbreaker.clips.length).toBeLessThan(cinderboundWardenActionNames("wayfarer").length);
+  });
+
+  it("accepts a fractured pack with both deaths and pins its chunk count", () => {
+    const fractured = prepareReviewedWardenReceipts({
+      wayfarer: wayfarer({
+        clips: [...cinderboundWardenClipSet("wayfarer")],
+        shatterChunks: 14,
+      }),
+    }).wayfarer!;
+    expect(fractured.clips).toContain("DeathShatter");
+    expect(fractured.clips).toContain("DeathCollapse");
+    expect(fractured.clips).toHaveLength(cinderboundWardenActionNames("wayfarer").length + 1);
+    expect(fractured.shatterChunks).toBe(14);
+    expect(reviewedWardenNote(fractured)).toContain("14-piece DeathShatter");
+    // The bodies installed today carry both, and their counts are pinned.
+    for (const kind of ["wayfarer", "oathbreaker"] as const) {
+      const shipped = REVIEWED_FOURVIEW_WARDEN_RECEIPTS[kind]!;
+      expect(shipped.clips, kind).toContain("DeathShatter");
+      expect(shipped.clips, kind).toContain("DeathCollapse");
+      expect(shipped.shatterChunks, kind).toBe(22);
+    }
+    expect(reviewedWardenNote(REVIEWED_FOURVIEW_WARDEN_RECEIPTS.wayfarer!)).toContain("22-piece DeathShatter");
+  });
+
+  it("rejects a pack that claims one half of the shatter without the other", () => {
+    const halves: Partial<ReviewedWardenReceipt>[] = [
+      // chunks without the clip
+      { shatterChunks: 12 },
+      // the clip without the chunks
+      { clips: [...cinderboundWardenClipSet("wayfarer")] },
+      // a chunk count that is not a real count
+      { clips: [...cinderboundWardenClipSet("wayfarer")], shatterChunks: 0 },
+      { clips: [...cinderboundWardenClipSet("wayfarer")], shatterChunks: 2.5 },
+      { clips: [...cinderboundWardenClipSet("wayfarer")], shatterChunks: -3 },
+    ];
+    for (const overrides of halves) {
+      expect(() => prepareReviewedWardenReceipts({ wayfarer: wayfarer(overrides) }), JSON.stringify(overrides))
+        .toThrow(/Invalid reviewed Warden receipt/);
+    }
+  });
+
+  it("rejects a clip no Warden pack authors", () => {
+    expect(() => prepareReviewedWardenReceipts({
+      wayfarer: wayfarer({ clips: [...cinderboundWardenActionNames("wayfarer"), "DeathDissolve"] }),
+    })).toThrow(/Invalid reviewed Warden receipt/);
   });
 
   it("rejects a pack that is missing any clip the runtime enumerates", () => {

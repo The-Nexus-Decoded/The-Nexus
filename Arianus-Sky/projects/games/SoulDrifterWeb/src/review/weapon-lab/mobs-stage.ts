@@ -377,12 +377,16 @@ export class MobsStage {
   update(deltaSeconds: number) {
     if (!this.ready) return;
     this.runtime?.update(this.effectTarget?.x ?? 0, this.effectTarget?.z ?? 0, deltaSeconds);
-    // The solo stage has no combat target. The inherited projectile aims at
-    // its actor origin, not the reviewed three-cell target; keep it invisible
-    // for this motion intake while retaining the controller's normal cleanup.
-    if (this.definition?.reviewedMotion?.actions.includes("SpitAttack")) this.stageRoot?.children.forEach((object) => {
-      if (object.name === `studio:${this.definition!.id}:poison-spit`) object.visible = false;
-    });
+    // The solo stage has no combat target. The inherited acid spit aims at its
+    // actor origin, not the reviewed three-cell target; keep the whole stream,
+    // its splash and its ground pool invisible for this motion intake while
+    // retaining the controller's normal cleanup.
+    if (this.definition?.reviewedMotion?.actions.includes("SpitAttack")) {
+      const prefix = `studio:${this.definition.id}:acid-`;
+      this.stageRoot?.children.forEach((object) => {
+        if (object.name.startsWith(prefix)) object.visible = false;
+      });
+    }
   }
   clear() {
     this.saveCurrentDraft();
