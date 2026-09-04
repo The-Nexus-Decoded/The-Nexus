@@ -104,4 +104,18 @@ export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPac
     toeBones: ["rear_toe1L","rear_toe1R"],
     body: "fourview",
   }),
+  base: Object.freeze({
+    variant: "base", url: "/assets/weapon-lab/mobs/breachling-base-fourview-composer-v8.glb", bytes: 16111960, sha256: "625055eef3c3a8cd755f343aedfd70e0ecb4310a953ad60b39430be455c2b9c0",
+    runtimeSourceSha256: "00921227fb9a2c3049363c1a8bda35bb8acf20a73811e3ad86c6256bd91b0cc7", runtimeScale: 1.306614490956487,
+    actions: ["Walk","Run","BiteAttack","ClawAttack","LungeAttack","TailWhip","SpitAttack","RecieveHit","RecieveHitHeavy","RecieveHitLeft","RecieveHitRight","RecieveHitBack","Death"], neutralHolds: ["Idle","CombatIdle"], revision: "composer-v8",
+    strikes: Object.freeze({
+      BiteAttack: { start: 0.4233, end: 0.5833, vertices: [20325,20292,19681], phase: "BiteAttack contact 0.4833s via head+jaw", revision: "composer-v8" },
+      ClawAttack: { start: 0.3233, end: 0.4833, vertices: [11669,11591,11560], phase: "ClawAttack contact 0.3833s via front_handR", revision: "composer-v8" },
+      LungeAttack: { start: 0.39, end: 0.55, vertices: [16424,16337,16143], phase: "LungeAttack contact 0.45s via front_handL+front_handR", revision: "composer-v8" },
+      TailWhip: { start: 0.7567, end: 0.9167, vertices: [28815,28823,28817], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v8" },
+    }),
+    spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe1R","front_toe2R","front_toe3R"],
+    body: "fourview",
+  }),
 });

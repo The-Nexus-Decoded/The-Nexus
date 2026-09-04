@@ -223,7 +223,7 @@ describe("Mobs stage exact installed asset contract", () => {
   it("pins all four current Breachlings and both Wardens to real source bytes and runtime catalogs", () => {
     expect(MOB_CATALOG.map((definition) => definition.id)).toEqual([
       "breachling-base", "breachling-stalker", "breachling-oathbound", "breachling-ravager",
-      "breachling-stalker-4v", "breachling-ravager-4v",
+      "breachling-base-4v", "breachling-stalker-4v", "breachling-ravager-4v",
       "warden-wayfarer", "warden-oathbreaker",
     ]);
     for (const definition of MOB_CATALOG) {

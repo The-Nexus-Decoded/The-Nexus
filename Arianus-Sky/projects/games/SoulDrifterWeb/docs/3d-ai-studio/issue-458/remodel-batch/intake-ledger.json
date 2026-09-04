@@ -190,7 +190,7 @@
     },
     {
       "assetId": "oathbound-breachling",
-      "status": "humanoid tripo rig in intake; canonical conversion pending",
+      "status": "quadruped tripo rig converted (canon q1); composer pack building",
       "originalConcept": {
         "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/breachling-lineage-variants/selected/oathbound-breachling-selected.png",
         "origin": "Midjourney v8.2 selected lineage variant"
@@ -225,6 +225,64 @@
           "credits": 20,
           "balanceAfter": 10220,
           "result": "classified Humanoid despite the four-legged pose (41 joints); right rear leg joints sit near the midline (R_Thigh x -0.02 vs L_Thigh x 0.11) -> mirrored from the left during the canonical conversion; exported GLB with skeleton -> intake/oathbound/raw/breachling-oathbound-fourview-tripo-rig.glb sha256 578f55e1b5ed4b676897d65b2c273807c8966b64d33d64240e4e134f10bd50b9"
+        },
+        {
+          "step": "canonical conversion of the humanoid rig (mirrored right limbs + mirrored/geometric right-side weights)",
+          "at": "2026-09-04 00:50",
+          "result": "rejected: the humanoid template misplaced the right limbs and its weights followed them; pack oathbound4v v2 solved only 5/15"
+        },
+        {
+          "step": "Tripo Auto Rig retry",
+          "at": "2026-09-04 01:35",
+          "credits": 20,
+          "balanceAfter": 10105,
+          "result": "classified Quadruped (83 joints: 4 front toes + 3 rear toes per side, 12 tail segments, a lower-jaw joint); exported -> intake/oathbound/raw/breachling-oathbound-fourview-tripo-rig-quad.glb sha256 c91b709fbf074ecf566da32932da7ec23f2fcdc69bbef9bce521e52ee12a1c38; mapping mappings/oathbound-fourview-tripo-quad.json; Idle solves (floor 1 mm); full pack q1 building"
+        }
+      ]
+    },
+    {
+      "assetId": "wayfarer-cinderbound-warden",
+      "status": "3d-generated and Tripo-rigged (humanoid); raw + rig exports pending download; segmentation for break-off parts and retarget to the warden skeleton are follow-ups",
+      "originalConcept": {
+        "path": "H:/CodexData/.codex/worktrees/458/The-Nexus-first-breach-creatures/Arianus-Sky/projects/games/SoulDrifterWeb/docs/3d-ai-studio/issue-458/cinderbound-warden-bakeoff/selected/wayfarer-cinderbound-warden-gpt-image-2-design-reference.png",
+        "origin": "GPT Image 2 design reference"
+      },
+      "imageSteps": [
+        {
+          "step": "front view A-pose from the design reference",
+          "model": "Nano Banana 2",
+          "at": "2026-09-04 01:25",
+          "result": "both candidates put blades on both arms - rejected (owner: one blade arm, the other hand is the ranged hand)"
+        },
+        {
+          "step": "front view A-pose, explicit single RIGHT blade forearm and open LEFT casting hand",
+          "model": "Nano Banana 2",
+          "at": "2026-09-04 01:30",
+          "result": "candidate 1 selected (one blade, open hand); candidate 2 was an annotated sheet"
+        },
+        {
+          "step": "Generate Multi-Views",
+          "at": "2026-09-04 01:34",
+          "result": "consistent biped set, blade on one arm in every view"
+        }
+      ],
+      "modelSteps": [
+        {
+          "step": "Multi-View to 3D, HD Model, 8K texture, v3.1",
+          "taskId": "bc789193-51b9-4ccd-bce1-f563d9e904dd",
+          "at": "2026-09-04 01:38",
+          "credits": 65,
+          "balanceAfter": 10125,
+          "result": "done"
+        }
+      ],
+      "riggingSteps": [
+        {
+          "step": "Tripo Auto Rig v2.5 (Humanoid)",
+          "at": "2026-09-04 01:47",
+          "credits": 20,
+          "balanceAfter": 10085,
+          "result": "rigged; export requested"
         }
       ]
     }
