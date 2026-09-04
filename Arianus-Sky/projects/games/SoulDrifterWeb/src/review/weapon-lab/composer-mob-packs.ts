@@ -4,12 +4,25 @@
 // indexed tip vertices of the striking region at that frame (Breachling_Mesh).
 
 export interface ComposerStrike { readonly start: number; readonly end: number; readonly vertices: readonly number[]; readonly phase: string; readonly revision: string; }
+/** Authored spit emission measured from the body's own jaw (measure-spit-mouth.mjs). */
+export interface ComposerSpitMouth {
+  readonly meshName: string;
+  /** [lower-jaw tip, cranial tip] bounding the open aperture at the release frame; their midpoint is the emission origin. */
+  readonly vertices: readonly number[];
+  /** Body forward and body right at the held neutral, expressed in the head bone frame; the animated head aims them. */
+  readonly directionHeadLocal: readonly number[];
+  readonly rightHeadLocal: readonly number[];
+  /** Aperture width at release, metres at the pack scale. Sizes the stream. */
+  readonly gapeMeters: number;
+  readonly evidence: string;
+}
 export interface ComposerMobPack {
   readonly variant: "base" | "stalker" | "oathbound" | "ravager";
   readonly url: string; readonly bytes: number; readonly sha256: string; readonly runtimeSourceSha256: string;
   readonly runtimeScale: number; readonly actions: readonly string[]; readonly neutralHolds: readonly string[];
   readonly revision: string; readonly strikes: Readonly<Record<string, ComposerStrike>>;
   readonly spit: { readonly releaseSeconds: number; readonly endSeconds: number } | null;
+  readonly spitMouth: ComposerSpitMouth | null; // authored mouth origin and aim; null until measured
   readonly toeBones: readonly string[]; // toe-rig bones appended to the source skeleton (empty for legacy rigs)
   readonly body: "legacy" | "fourview"; // legacy single-view Tripo body or the four-view remodel (issue 458, 2026-09-05 owner decision)
 }
@@ -27,6 +40,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [35354,35353,35350], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v95" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: null,
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "legacy",
   }),
@@ -41,6 +55,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [35131,35130,35129], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v20" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: null,
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "legacy",
   }),
@@ -55,6 +70,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [13640,13639,13641], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v24" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: null,
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "legacy",
   }),
@@ -69,6 +85,7 @@ export const COMPOSER_MOB_PACKS: Readonly<Partial<Record<ComposerMobPack["varian
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [35169,35168,35261], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v14" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: null,
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "legacy",
   }),
@@ -87,6 +104,7 @@ export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPac
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [28214,28219,28216], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v4" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: Object.freeze({ meshName: "Breachling_Mesh", vertices: [16206,16064], directionHeadLocal: [0.7739518949730726,0.6332378203284225,-0.0028856841993870814], rightHeadLocal: [0.003728690701519322,-2.5755713637457996e-7,0.9999930484086308], gapeMeters: 0.0505, evidence: "composer-v4 mouth aperture measured on ravager4v-toes-v3.glb: lower-jaw vertex 16206 and cranial vertex 16064 at the 0.45 s jaw-wide frame (0.0505 m gape); head-local emission basis from the held neutral (forward projection 0.9659, 15 deg rise)" }),
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe1R","front_toe2R","front_toe3R","rear_toe1L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "fourview",
   }),
@@ -101,6 +119,7 @@ export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPac
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [28054,28051,28047], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v5" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: Object.freeze({ meshName: "Breachling_Mesh", vertices: [20543,20686], directionHeadLocal: [0.0035119219348539927,0.8810728064525131,-0.47296762694101613], rightHeadLocal: [-0.9999920557276888,0.00398603580912989,1.9815686135907237e-7], gapeMeters: 0.0548, evidence: "composer-v5 mouth aperture measured on stalker4v-toes-v4.glb: lower-jaw vertex 20543 and cranial vertex 20686 at the 0.45 s jaw-wide frame (0.0548 m gape); head-local emission basis from the held neutral (forward projection 0.9659, 15 deg rise)" }),
     toeBones: ["rear_toe1L","rear_toe1R"],
     body: "fourview",
   }),
@@ -115,6 +134,7 @@ export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPac
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [28815,28823,28817], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-v8" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: Object.freeze({ meshName: "Breachling_Mesh", vertices: [20325,17682], directionHeadLocal: [-0.361056413370502,0.8191536879423557,0.44567421048840944], rightHeadLocal: [-0.7765203393248611,0.0005470072400599504,-0.6300919483677616], gapeMeters: 0.2238, evidence: "composer-v8 mouth aperture measured on base4v-toes-v3.glb: lower-jaw vertex 20325 and cranial vertex 17682 at the 0.45 s jaw-wide frame (0.2238 m gape); head-local emission basis from the held neutral (forward projection 0.9659, 15 deg rise)" }),
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe1R","front_toe2R","front_toe3R"],
     body: "fourview",
   }),
@@ -129,6 +149,7 @@ export const COMPOSER_MOB_PACKS_FOURVIEW: Readonly<Partial<Record<ComposerMobPac
       TailWhip: { start: 0.7567, end: 0.9167, vertices: [27789,27752,27826], phase: "TailWhip contact 0.8167s via tail003+tail004+tail005", revision: "composer-q4" },
     }),
     spit: { releaseSeconds: 0.45, endSeconds: 1.2 },
+    spitMouth: Object.freeze({ meshName: "Breachling_Mesh", vertices: [14754,16285], directionHeadLocal: [0.6178200873306953,0.7863182302090762,-0.001407313596351148], rightHeadLocal: [0.0022781400181721345,-2.1711382183621258e-7,0.9999974050356385], gapeMeters: 0.194, evidence: "composer-q4 mouth aperture measured on oathbound4v-toes-q1.glb: lower-jaw vertex 14754 and cranial vertex 16285 at the 0.45 s jaw-wide frame (0.194 m gape); head-local emission basis from the held neutral (forward projection 0.9659, 15 deg rise)" }),
     toeBones: ["front_toe1L","front_toe2L","front_toe3L","front_toe4L","front_toe1R","front_toe2R","front_toe3R","front_toe4R","rear_toe1L","rear_toe2L","rear_toe3L","rear_toe1R","rear_toe2R","rear_toe3R"],
     body: "fourview",
   }),

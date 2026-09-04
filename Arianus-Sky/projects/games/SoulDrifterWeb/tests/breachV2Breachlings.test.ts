@@ -82,9 +82,20 @@ describe("BREACH-V2 Breachling runtime", () => {
     expect(runtime.snapshots().find((actor) => actor.id === upperActor.id)?.groundingStatus).toBe("pending");
     expect(scene.getObjectByName(upperActor.id)?.getObjectByName("animation_probe")?.position.x).toBeCloseTo(1);
     runtime.play(upperActor.id, "SpitAttack");
-    runtime.update(room.x + room.w / 2, room.z + room.h / 2, 0.6);
-    expect(scene.getObjectByName(`${upperActor.id}:poison-spit`)).toBeTruthy();
+    // The gob is now a ballistic acid stream: step the clip past its 0.46 trigger
+    // in small frames so the head and its trail are still in flight.
+    for (let frame = 0; frame < 34; frame += 1) runtime.update(room.x + room.w / 2, room.z + room.h / 2, 1 / 60);
+    const head = scene.getObjectByName(`${upperActor.id}:acid-spit:head`);
+    const trail = scene.getObjectByName(`${upperActor.id}:acid-spit:trail`);
+    expect(head, "acid gob in flight").toBeTruthy();
+    expect(trail, "viscous trail behind it").toBeTruthy();
+    // The trail rides behind the head, never under it, so a contact probe only
+    // ever sees one body.
+    expect(head!.parent).toBe(scene);
+    expect(trail!.children.length).toBeGreaterThan(0);
+    expect(trail!.getObjectByName(`${upperActor.id}:acid-spit:head`)).toBeUndefined();
     runtime.dispose();
+    expect(scene.getObjectByName(`${upperActor.id}:acid-spit:head`)).toBeUndefined();
   });
 
   it("stages one real tier and exposes speed, explicit loop, terminal hold, and deterministic restart", async () => {

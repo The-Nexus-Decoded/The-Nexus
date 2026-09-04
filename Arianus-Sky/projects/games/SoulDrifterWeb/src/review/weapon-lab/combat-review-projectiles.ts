@@ -1,14 +1,51 @@
 import * as THREE from "three";
 // @ts-expect-error Existing shared JS catalog is verified by the real-asset factory suite.
-import { BOW_PROJECTILE_MOTION } from "./human-review-catalog.js";
+import { BOW_PROJECTILE_MOTION, LOADOUTS } from "./human-review-catalog.js";
 import { createReviewMeshProbe, type ReviewMeshProbe } from "./combat-review-probes";
 import { reviewRenderedVertexIndices, sampleReviewMeshVertices } from "./combat-review-contact";
 import { createReviewImpactAttachment, type ReviewImpactAttachment } from "./combat-review-impact-anchor";
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./combat-review-types";
 import { composerPackForDefinition } from "./composer-pack-lookup";
+import type { ComposerSpitMouth } from "./composer-mob-packs";
+import { createBreachlingAcidResources, createBreachlingAcidSplash, createBreachlingAcidStream,
+  createBreachlingAcidPool, type BreachlingAcidResources, type BreachlingAcidPool,
+  type BreachlingAcidSplash, type BreachlingAcidStream } from "../../game/vfx/breachling-acid-vfx";
+import { acidResponsePlan, createAcidVictimMark, type AcidResponsePlan,
+  type AcidVictimMark } from "../../game/combat/acid-response";
 
 export const REVIEWED_BASE_SHA = "1ddbd4e5ac46e9c3b53379d94e27038d1fbfb8faf9b575b5947cf835bed43217";
 export const SPIT_PROJECTILE_MOTION = Object.freeze({ releaseSeconds: 0.64, flightSeconds: 0.8, rangePlaneMeters: 5.25 });
+/** Standard gravity; the four-view acid arc is derived from it, never dialled by eye. */
+export const SPIT_GRAVITY_METERS_PER_SECOND_SQUARED = 9.80665;
+/**
+ * Pinned held-neutral mouth of the legacy 1ddbd4 body, in the same shape a
+ * four-view pack now measures for itself. probe-mouth.mjs reproduces this basis
+ * from the legacy rig to 8 decimal places, which is what confirms the measured
+ * four-view bases are constructed the same way.
+ */
+export const LEGACY_SPIT_MOUTH: ComposerSpitMouth = Object.freeze({
+  meshName: "Breachling_Mesh",
+  vertices: Object.freeze([22577, 2004]),
+  directionHeadLocal: Object.freeze([0.09298344261520167, 0.9642988771254712, 0.24795516806381246]),
+  rightHeadLocal: Object.freeze([-0.936329205897425, 2.5637924103150134e-7, 0.3511234041607836]),
+  gapeMeters: 0.1612,
+  evidence: "Pinned continuous-v5 mouth basis of the legacy 1ddbd4 body; 0.1612 m gape measured at the 0.45 s jaw-wide frame",
+});
+
+/** Read a frozen triple without copying it into a mutable array. */
+function vectorFrom(values: readonly number[]): THREE.Vector3 {
+  return new THREE.Vector3(values[0] ?? 0, values[1] ?? 0, values[2] ?? 0);
+}
+
+/** Deterministic per-instance seed so a review run lays the same gobs out every time. */
+function reviewAcidSeed(instanceId: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < instanceId.length; index += 1) {
+    hash ^= instanceId.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
 export const FIRE_WAND_RELEASE_PHASES = Object.freeze({
   ProMagic__Standing1HCastSpell01: 0.66,
   ProMagic__Standing1HMagicAttack01: 0.29,
@@ -92,6 +129,12 @@ export interface ReviewProjectiles {
   /** Owned procedural VFX only. Bow meshes remain in their existing actor. */
   readonly root: THREE.Group;
   readonly probe: ReviewMeshProbe;
+  /**
+   * Acid response the measured contact asks of the victim, present only for a
+   * four-view Breachling spit that actually connected. `playable` is false and
+   * `blockedReason` names the missing Mixamo asset while no burn clip exists.
+   */
+  readonly acidResponse?: AcidResponsePlan;
   update(timeSeconds: number, impacts?: readonly ReviewEvent[], validateBorrowedEmission?: boolean): void;
   projectileIdForProbe(probeId: string): string | undefined;
   dispose(): void;
@@ -111,6 +154,14 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
   const binding = reviewProjectileBinding(actor, actionId), root = new THREE.Group();
   root.name = `review-projectiles:${actor.instanceId}`;
   const rows: VisualFlight[] = [], resources: Array<{ dispose(): void }> = [];
+  // Four-view acid presentation. Built only on the `context` path; the headless
+  // contact sweep never allocates a trail, splash or pool.
+  const streams: { stream: BreachlingAcidStream; flight: ReviewProjectileFlight }[] = [];
+  let acidResources: BreachlingAcidResources | undefined;
+  let acidSplash: BreachlingAcidSplash | undefined;
+  let acidPool: BreachlingAcidPool | undefined;
+  let acidMark: AcidVictimMark | undefined;
+  let acidPlan: AcidResponsePlan | undefined;
   const borrowed = (actor as BowActor).projectile;
   const borrowedDirection = borrowed?.direction.clone();
   let reason = binding ? "No actual emitted projectile mesh is available; not a miss." : "No explicit projectile binding; not a miss.";
@@ -161,16 +212,23 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
     const mesh = actor.model.getObjectByName("Breachling_Mesh") as THREE.Mesh | undefined;
     const head = actor.model.getObjectByName("head");
     const eligible = mesh?.isMesh ? new Set(reviewRenderedVertexIndices(mesh)) : new Set<number>();
-    if (composerPackForDefinition(actor.definitionId)?.body === "fourview") {
-      // The remodelled mesh shares neither the pinned mouth vertex IDs nor the
-      // legacy head basis below; emitting from them would be a silent wrong aim.
-      reason = "The four-view body has no authored spit mouth vertices or aim; the pinned legacy mouth basis is not reused; not a miss.";
-    } else if (mesh && head && [22577, 2004].every((id) => eligible.has(id))) {
-      // Exact held-neutral head basis from pinned 1ddbd4 GLB, not a humanoid or variant assumption.
+    const pack = composerPackForDefinition(actor.definitionId);
+    // Legacy bodies keep their pinned 1ddbd4 basis byte for byte. Four-view bodies
+    // use the mouth their own composer pack measured (measure-spit-mouth.mjs):
+    // same construction, per-body numbers, so no basis is ever borrowed.
+    const authored = pack?.body === "fourview" ? pack.spitMouth : LEGACY_SPIT_MOUTH;
+    const flightSeconds = timing.endSeconds - timing.releaseSeconds;
+    // Legacy rows stay on their pinned flat flight. The four-view acid falls under
+    // real gravity over its own flight window: y drops 1/2 g t^2 at the end of it.
+    const dropMeters = pack?.body === "fourview"
+      ? 0.5 * SPIT_GRAVITY_METERS_PER_SECOND_SQUARED * flightSeconds * flightSeconds : 0;
+    if (!authored) {
+      reason = "This four-view pack carries no measured spit mouth; the pinned legacy mouth basis is not reused; not a miss.";
+    } else if (mesh && head && authored.vertices.every((id) => eligible.has(id))) {
       const headQ = head.getWorldQuaternion(new THREE.Quaternion());
-      const direction = new THREE.Vector3(0.09298344261520167, 0.9642988771254712, 0.24795516806381246).applyQuaternion(headQ).normalize();
-      const right = new THREE.Vector3(-0.936329205897425, 2.5637924103150134e-7, 0.3511234041607836).applyQuaternion(headQ).normalize();
-      const points = sampleReviewMeshVertices(mesh, [22577, 2004]);
+      const direction = vectorFrom(authored.directionHeadLocal).applyQuaternion(headQ).normalize();
+      const right = vectorFrom(authored.rightHeadLocal).applyQuaternion(headQ).normalize();
+      const points = sampleReviewMeshVertices(mesh, authored.vertices);
       const origin = points[0]!.clone().lerp(points[1]!, 0.5), headPosition = head.getWorldPosition(new THREE.Vector3());
       origin.addScaledVector(right, -origin.clone().sub(headPosition).dot(right));
       const localOrigin = actor.root.worldToLocal(origin.clone());
@@ -179,17 +237,37 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       const projection = direction.dot(forwardWorld);
       if (projection > 0.1 && Math.max(scale.x, scale.y, scale.z) - Math.min(scale.x, scale.y, scale.z) < 1e-6) {
         const range = (SPIT_PROJECTILE_MOTION.rangePlaneMeters - localOrigin.z) * scale.z / projection;
-        const description = flight(0, "poison-spit", origin, direction, range, 0);
-        // Procedural wet-fluid VFX; the mouth aperture bounds its initial size.
-        const geometry = new THREE.SphereGeometry(0.008, 12, 8);
-        const material = new THREE.MeshPhysicalMaterial({ color: 0xa7cd42, roughness: 0.16, metalness: 0,
-          transparent: true, opacity: 0.92, clearcoat: 1, clearcoatRoughness: 0.1 });
-        const visual = new THREE.Mesh(geometry, material); visual.name = "review-poison-fluid"; visual.scale.set(0.85, 0.85, 1.6);
-        visual.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction); root.add(visual);
-        resources.push(geometry, material);
-        add(description, visual, visual.quaternion.clone());
+        const description = flight(0, "poison-spit", origin, direction, range, dropMeters);
+        if (pack?.body === "fourview") {
+          // Viscous acid stream: the measured aperture sizes the gob, the trail
+          // rides the same arc, and the splash/pool are built by the caller-facing
+          // presentation path only (see `context` below), never by the headless
+          // contact sweep the resolver runs thousands of times.
+          // `gapeMeters` was measured at the pack's own normalised height, so it is
+          // already in world metres here and carries the body size on its own.
+          acidResources ??= createBreachlingAcidResources();
+          const stream = createBreachlingAcidStream({ resources: acidResources, scale: 1,
+            gapeMeters: authored.gapeMeters, seed: reviewAcidSeed(actor.instanceId),
+            name: `review-acid-spit:${actor.definitionId}` });
+          const visual = stream.head;
+          visual.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
+          root.add(visual);
+          streams.push({ stream, flight: description });
+          resources.push(stream);
+          if (context) root.add(stream.root);
+          add(description, visual, visual.quaternion.clone());
+        } else {
+          // Procedural wet-fluid VFX; the mouth aperture bounds its initial size.
+          const geometry = new THREE.SphereGeometry(0.008, 12, 8);
+          const material = new THREE.MeshPhysicalMaterial({ color: 0xa7cd42, roughness: 0.16, metalness: 0,
+            transparent: true, opacity: 0.92, clearcoat: 1, clearcoatRoughness: 0.1 });
+          const visual = new THREE.Mesh(geometry, material); visual.name = "review-poison-fluid"; visual.scale.set(0.85, 0.85, 1.6);
+          visual.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction); root.add(visual);
+          resources.push(geometry, material);
+          add(description, visual, visual.quaternion.clone());
+        }
       } else reason = "Spit requires a forward-facing emission and uniform actor scale; not a miss.";
-    } else reason = "Pinned visible mouth vertices or head are missing; not a miss.";
+    } else reason = "Authored visible mouth vertices or head are missing; not a miss.";
   }
   if (context) for (const row of rows) {
     const hits = context.impacts.filter((event) => event.kind === "contact" && event.result === "hit"
@@ -212,12 +290,56 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       row.impact = row.attachment.event;
     } catch (error) { row.attachmentError = error instanceof Error ? error.message : String(error); }
   }
+  // Where the acid lands: a splash at the measured impact, and a pool wherever
+  // the arc first crosses the attacker's own floor plane inside the flight window.
+  let acidSplashSeconds = Number.POSITIVE_INFINITY, acidPoolSeconds = Number.POSITIVE_INFINITY;
+  if (context && streams.length) {
+    const entry = streams[0]!, row = rows.find((candidate) => candidate.flight === entry.flight);
+    acidResources ??= createBreachlingAcidResources();
+    const span = entry.flight.endSeconds - entry.flight.releaseSeconds;
+    if (row?.impact && row.impactSeconds !== undefined && !row.attachmentError) {
+      acidSplashSeconds = row.impactSeconds;
+      // What the victim owes for this hit. The clip half is blocked on a Mixamo
+      // burn loop (acid-response.ts); the acid itself is built and rides the skin.
+      // Response family, not loadout id: acid-response.ts binds clips per family
+      // (human-review-catalog.js actionFamily), the same key reaction clips use.
+      const victim = context.target as ReviewActorAdapter & { snapshot?(): { loadoutId?: string } };
+      const loadoutId = victim.snapshot?.().loadoutId;
+      const catalog = LOADOUTS as Readonly<Record<string, { actionFamily?: string }>>;
+      const family = (loadoutId && catalog[loadoutId]?.actionFamily) || victim.definitionId;
+      acidPlan = acidResponsePlan(family, row.impactSeconds);
+      acidMark = createAcidVictimMark({ resources: acidResources, plan: acidPlan,
+        headRadiusMeters: entry.stream.headRadiusMeters, seed: reviewAcidSeed(actor.instanceId + ":mark") });
+      root.add(acidMark.root);
+      const normal = row.impact.normal
+        ? vectorFrom(row.impact.normal)
+        : vectorFrom(entry.flight.direction).negate();
+      acidSplash = createBreachlingAcidSplash({ resources: acidResources, scale: 1,
+        headRadiusMeters: entry.stream.headRadiusMeters, normal, seed: reviewAcidSeed(actor.instanceId + ":splash") });
+      acidSplash.root.position.copy(sampleReviewProjectileFlight(entry.flight, acidSplashSeconds));
+      root.add(acidSplash.root);
+    }
+    const floorY = actor.root.getWorldPosition(new THREE.Vector3()).y;
+    const point = new THREE.Vector3();
+    for (let step = 1; step <= 96 && acidPoolSeconds === Number.POSITIVE_INFINITY; step += 1) {
+      const seconds = entry.flight.releaseSeconds + span * (step / 96);
+      if (seconds >= acidSplashSeconds) break;
+      if (sampleReviewProjectileFlight(entry.flight, seconds, point).y <= floorY) {
+        acidPoolSeconds = seconds;
+        acidPool = createBreachlingAcidPool({ resources: acidResources,
+          scale: Math.max(1e-3, entry.stream.headRadiusMeters / 0.03),
+          seed: reviewAcidSeed(actor.instanceId + ":pool") });
+        acidPool.root.position.set(point.x, floorY, point.z);
+        root.add(acidPool.root);
+      }
+    }
+  }
   const flights = Object.freeze(rows.map((row) => row.flight));
   const probe: ReviewMeshProbe = { vertexCount: rows.reduce((sum, row) => sum + row.probe.vertexCount, 0),
     unavailableReason: rows.length ? undefined : reason,
     sample: () => disposed ? [] : rows.flatMap((row) => row.probe.sample().map((point) => ({ ...point, id: row.flight.id + "|" + point.id }))),
   };
-  return { root, flights, probe,
+  return { root, flights, probe, acidResponse: acidPlan,
     update(timeSeconds, impacts = [], validateBorrowedEmission = false) {
       if (disposed) throw new Error("Projectile review has been disposed.");
       if (!Number.isFinite(timeSeconds)) throw new Error("Projectile sample time must be finite.");
@@ -248,10 +370,43 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
         row.visual.position.copy(row.visual.parent ? row.visual.parent.worldToLocal(world.clone()) : world);
         const parentQ = row.visual.parent?.getWorldQuaternion(new THREE.Quaternion()).invert() ?? new THREE.Quaternion();
         row.visual.quaternion.copy(parentQ.multiply(worldQuaternion)); row.visual.updateMatrixWorld(true);
+        // Covered in acid: the coating sits on the anchored impact point, so it
+        // rides the victim's deformed skin rather than floating in world space.
+        if (acidMark && impacted) {
+          acidMark.root.position.copy(acidMark.root.parent ? acidMark.root.parent.worldToLocal(world.clone()) : world);
+          acidMark.root.quaternion.copy(parentQ.clone().multiply(worldQuaternion));
+        }
+        // The acid trail rides the same sampled arc one step behind the head and
+        // stops dead at the impact, where the splash takes over.
+        // Presentation only: the headless contact sweep resamples this up to
+        // 3600 times per resolution and never renders the trail.
+        const entry = context ? streams.find((candidate) => candidate.flight === row.flight) : undefined;
+        if (entry) {
+          const span = row.flight.endSeconds - row.flight.releaseSeconds;
+          const headTime = impacted ? row.impactSeconds ?? impact!.timeSeconds : timeSeconds;
+          entry.stream.setVisible(row.visual.visible && !impacted);
+          if (row.visual.visible && !impacted) {
+            entry.stream.setTrail(Math.max(0, Math.min(1, (headTime - row.flight.releaseSeconds) / span)),
+              (u) => sampleReviewProjectileFlight(row.flight, row.flight.releaseSeconds + u * span));
+          }
+        }
       }
+      if (acidSplash) {
+        const elapsed = timeSeconds - acidSplashSeconds;
+        acidSplash.root.visible = elapsed >= 0;
+        if (elapsed >= 0) acidSplash.update(elapsed);
+      }
+      if (acidPool) {
+        const elapsed = timeSeconds - acidPoolSeconds;
+        acidPool.root.visible = elapsed >= 0;
+        if (elapsed >= 0) acidPool.update(elapsed);
+      }
+      acidMark?.update(timeSeconds);
     },
     projectileIdForProbe: (id) => rows.find((row) => id.startsWith(row.flight.id + "|"))?.flight.id,
     dispose() { if (disposed) return; disposed = true; rows.forEach((row) => row.attachment?.dispose());
-      root.removeFromParent(); root.clear(); resources.forEach((resource) => resource.dispose()); },
+      acidSplash?.dispose(); acidPool?.dispose(); acidMark?.dispose();
+      root.removeFromParent(); root.clear(); resources.forEach((resource) => resource.dispose());
+      acidResources?.dispose(); },
   };
 }

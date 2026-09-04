@@ -16,6 +16,24 @@ import {
   type BreachV2AnimationReviewState,
 } from "./breach-v2-animation-review";
 import type { BreachV2Layout } from "./breach-v2-layout";
+import {
+  BREACHLING_RUNTIME_MOUTHS,
+  BREACHLING_SPIT_GRAVITY,
+  BREACHLING_SPIT_PLAYER_HEIGHT_METERS,
+  BREACHLING_SPIT_PLAYER_RADIUS_METERS,
+  BREACHLING_SPIT_TARGET_HEIGHT_METERS,
+  solveBreachlingSpitVelocity,
+} from "./breach-v2-breachling-mouths";
+import {
+  createBreachlingAcidPool,
+  createBreachlingAcidResources,
+  createBreachlingAcidSplash,
+  createBreachlingAcidStream,
+  type BreachlingAcidPool,
+  type BreachlingAcidSplash,
+  type BreachlingAcidStream,
+} from "../vfx/breachling-acid-vfx";
+import { acidResponsePlan, type AcidResponsePlan } from "../combat/acid-response";
 
 export type BreachlingTier = "base" | "stalker" | "oathbound" | "ravager";
 
@@ -98,6 +116,15 @@ export interface BreachV2BreachlingRuntime {
 export interface BreachV2BreachlingRuntimeOptions {
   /** A lab stage may load one real tier; dungeon placements remain the default. */
   reviewPlacements?: readonly BreachlingPlacement[];
+  /**
+   * Called when a spit gob reaches the player capsule. THE RECEIVING-SIDE HOOK:
+   * Breach v2 has no human reaction path yet, so nothing is played here — the
+   * contact carries an acidResponsePlan whose `blockedReason` names the exact
+   * Mixamo clip the response still needs.
+   */
+  onAcidContact?(contact: BreachV2AcidContact): void;
+  /** Family key the response plan is looked up under. Defaults to "twoHandSword". */
+  playerResponseFamily?: string;
 }
 
 export interface BreachV2ResourceDisposalRegistry {
@@ -201,10 +228,44 @@ interface RuntimeActor {
   review: BreachV2AnimationReviewState;
 }
 
-interface PoisonProjectile {
-  root: THREE.Mesh;
+/**
+ * One gob of acid in flight. The head is a real ballistic body under gravity;
+ * the trail rides the path behind it, so the spit reads as a viscous stream
+ * rather than the flat 6.5 m/s sphere this used to be.
+ */
+interface AcidProjectile {
+  stream: BreachlingAcidStream;
+  origin: THREE.Vector3;
   velocity: THREE.Vector3;
+  position: THREE.Vector3;
+  elapsedSeconds: number;
   remainingSeconds: number;
+  floorY: number;
+  gobRadius: number;
+  actorId: string;
+  tier: BreachlingTier;
+  landed: boolean;
+}
+
+/** Where acid has landed and is still working. */
+interface AcidResidue {
+  splash: BreachlingAcidSplash;
+  pool: BreachlingAcidPool | null;
+  elapsedSeconds: number;
+}
+
+/** A measured acid hit on the player, handed to the host so it can respond. */
+export interface BreachV2AcidContact {
+  readonly actorId: string;
+  readonly tier: BreachlingTier;
+  /** World point on the player capsule the gob reached. */
+  readonly position: readonly [number, number, number];
+  readonly flightSeconds: number;
+  /**
+   * The response the player owes. `playable` is false while no acid or burning
+   * clip exists in this project; `blockedReason` names the missing asset.
+   */
+  readonly response: AcidResponsePlan;
 }
 
 export function breachlingActionNames(tier: BreachlingTier): readonly string[] {
@@ -281,9 +342,10 @@ export function createBreachV2BreachlingRuntime(
   const sourcePromises = new Map<BreachlingTier, Promise<GLTF>>();
   const resolvedSources = new Set<GLTF>();
   const actors = new Map<string, RuntimeActor>();
-  const projectiles: PoisonProjectile[] = [];
-  const projectileGeometry = new THREE.SphereGeometry(0.08, 8, 6);
-  const projectileMaterial = new THREE.MeshStandardMaterial({ color: 0x82d94d, emissive: 0x2f8f28, emissiveIntensity: 2 });
+  const projectiles: AcidProjectile[] = [];
+  const residues: AcidResidue[] = [];
+  const acidResources = createBreachlingAcidResources();
+  const playerResponseFamily = options.playerResponseFamily ?? "twoHandSword";
   let desiredRoomId: string | null = null;
   let activationToken = 0;
   let disposed = false;
@@ -437,16 +499,81 @@ export function createBreachV2BreachlingRuntime(
       actors.set(placement.id, createActor(placement, sources.get(placement.tier)!));
     }
   };
-  const spawnPoison = (actor: RuntimeActor): void => {
-    const mouth = actor.model.getObjectByName("jaw") ?? actor.model.getObjectByName("head") ?? actor.model;
-    const origin = mouth.getWorldPosition(new THREE.Vector3());
-    const target = latestPlayer.clone().setY(latestPlayer.y + 0.8);
-    const velocity = target.sub(origin).normalize().multiplyScalar(6.5);
-    const root = new THREE.Mesh(projectileGeometry, projectileMaterial);
-    root.name = `${actor.placement.id}:poison-spit`;
-    root.position.copy(origin);
-    scene.add(root);
-    projectiles.push({ root, velocity, remainingSeconds: 1.4 });
+  /**
+   * Emission point: the middle of the open mouth, from the two rendered vertices
+   * probe-runtime-mouth.mjs measured on this exact body, projected onto the
+   * head's own sagittal plane. Falls back to the jaw bone pivot only when the
+   * mesh or those vertices are not present on the loaded asset.
+   */
+  const spitOrigin = (actor: RuntimeActor): THREE.Vector3 => {
+    const mouth = BREACHLING_RUNTIME_MOUTHS[actor.placement.tier];
+    const mesh = actor.model.getObjectByName(mouth.meshName) as THREE.Mesh | undefined;
+    const head = actor.model.getObjectByName("head");
+    const count = mesh?.geometry?.getAttribute("position")?.count ?? 0;
+    if (!mesh?.isMesh || !head || mouth.vertices.some((index) => index >= count)) {
+      const bone = actor.model.getObjectByName("jaw") ?? head ?? actor.model;
+      return bone.getWorldPosition(new THREE.Vector3());
+    }
+    actor.root.updateMatrixWorld(true);
+    const points = mouth.vertices.map((index) => mesh.getVertexPosition(index, new THREE.Vector3()).applyMatrix4(mesh.matrixWorld));
+    const origin = points[0]!.clone().lerp(points[1]!, 0.5);
+    const headQuaternion = head.getWorldQuaternion(new THREE.Quaternion());
+    const right = new THREE.Vector3(mouth.rightHeadLocal[0], mouth.rightHeadLocal[1], mouth.rightHeadLocal[2])
+      .applyQuaternion(headQuaternion).normalize();
+    const headPosition = head.getWorldPosition(new THREE.Vector3());
+    origin.addScaledVector(right, -origin.clone().sub(headPosition).dot(right));
+    return origin;
+  };
+
+  const spawnAcid = (actor: RuntimeActor): void => {
+    const mouth = BREACHLING_RUNTIME_MOUTHS[actor.placement.tier];
+    const origin = spitOrigin(actor);
+    const floorY = actor.placement.floorElevation;
+    const target = new THREE.Vector3(latestPlayer.x, floorY + BREACHLING_SPIT_TARGET_HEIGHT_METERS, latestPlayer.z);
+    const velocity = new THREE.Vector3();
+    solveBreachlingSpitVelocity(origin, target, velocity);
+    const stream = createBreachlingAcidStream({
+      resources: acidResources, scale: 1, gapeMeters: mouth.gapeMeters,
+      seed: actor.placement.id.length * 2654435761 + projectiles.length,
+      name: actor.placement.id + ":acid-spit",
+    });
+    stream.head.position.copy(origin);
+    scene.add(stream.head);
+    scene.add(stream.root);
+    projectiles.push({
+      stream, origin: origin.clone(), velocity, position: origin.clone(),
+      elapsedSeconds: 0, remainingSeconds: 3, floorY, gobRadius: stream.headRadiusMeters,
+      actorId: actor.placement.id, tier: actor.placement.tier, landed: false,
+    });
+  };
+
+  /** Ballistic sample of a gob's own arc, shared by the head and its trail. */
+  const acidPointAt = (projectile: AcidProjectile, seconds: number, out = new THREE.Vector3()): THREE.Vector3 => {
+    out.copy(projectile.origin).addScaledVector(projectile.velocity, seconds);
+    out.y -= 0.5 * BREACHLING_SPIT_GRAVITY * seconds * seconds;
+    return out;
+  };
+
+  const landAcid = (projectile: AcidProjectile, normal: THREE.Vector3, onFloor: boolean): void => {
+    projectile.landed = true;
+    const splash = createBreachlingAcidSplash({
+      resources: acidResources, scale: 1, headRadiusMeters: projectile.gobRadius, normal,
+      seed: projectile.actorId.length * 40503 + residues.length,
+    });
+    splash.root.name = projectile.actorId + ":acid-splash";
+    splash.root.position.copy(projectile.position);
+    scene.add(splash.root);
+    let pool: BreachlingAcidPool | null = null;
+    if (onFloor) {
+      pool = createBreachlingAcidPool({
+        resources: acidResources, scale: Math.max(1e-3, projectile.gobRadius / 0.03),
+        seed: projectile.actorId.length * 2246822519 + residues.length,
+      });
+      pool.root.name = projectile.actorId + ":acid-pool";
+      pool.root.position.set(projectile.position.x, projectile.floorY, projectile.position.z);
+      scene.add(pool.root);
+    }
+    residues.push({ splash, pool, elapsedSeconds: 0 });
   };
 
   return {
@@ -475,16 +602,60 @@ export function createBreachV2BreachlingRuntime(
         if (actor.currentClip === "SpitAttack" && !actor.spitFired
           && actor.currentAction.time >= actor.currentAction.getClip().duration * 0.46) {
           actor.spitFired = true;
-          spawnPoison(actor);
+          spawnAcid(actor);
         }
       });
       for (let index = projectiles.length - 1; index >= 0; index -= 1) {
         const projectile = projectiles[index]!;
-        projectile.root.position.addScaledVector(projectile.velocity, deltaSeconds);
+        projectile.elapsedSeconds += deltaSeconds;
         projectile.remainingSeconds -= deltaSeconds;
-        if (projectile.remainingSeconds <= 0) {
-          projectile.root.removeFromParent();
+        acidPointAt(projectile, projectile.elapsedSeconds, projectile.position);
+        projectile.stream.head.position.copy(projectile.position);
+        // Point the stretched gob down its own velocity so the stream stays viscous.
+        const heading = projectile.velocity.clone();
+        heading.y -= BREACHLING_SPIT_GRAVITY * projectile.elapsedSeconds;
+        if (heading.lengthSq() > 1e-9) {
+          projectile.stream.head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), heading.normalize());
+        }
+        // The trail samples the same arc a fixed step behind, in seconds.
+        const trailSpan = Math.max(0.28, projectile.elapsedSeconds);
+        projectile.stream.setTrail(projectile.elapsedSeconds / trailSpan,
+          (u) => acidPointAt(projectile, u * trailSpan));
+        const playerDistance = Math.hypot(projectile.position.x - latestPlayer.x, projectile.position.z - latestPlayer.z);
+        const withinPlayerSpan = projectile.position.y >= projectile.floorY
+          && projectile.position.y <= projectile.floorY + BREACHLING_SPIT_PLAYER_HEIGHT_METERS;
+        if (playerDistance <= BREACHLING_SPIT_PLAYER_RADIUS_METERS + projectile.gobRadius && withinPlayerSpan) {
+          // Covered in acid: the splash sticks where it struck, and the response
+          // the player owes is handed out with its blocked clip named.
+          const normal = new THREE.Vector3(projectile.position.x - latestPlayer.x, 0, projectile.position.z - latestPlayer.z);
+          if (normal.lengthSq() < 1e-9) normal.copy(projectile.velocity).multiplyScalar(-1);
+          landAcid(projectile, normal.normalize(), false);
+          options.onAcidContact?.({
+            actorId: projectile.actorId, tier: projectile.tier,
+            position: [projectile.position.x, projectile.position.y, projectile.position.z],
+            flightSeconds: projectile.elapsedSeconds,
+            response: acidResponsePlan(playerResponseFamily, 0),
+          });
+        } else if (projectile.position.y <= projectile.floorY + projectile.gobRadius) {
+          landAcid(projectile, new THREE.Vector3(0, 1, 0), true);
+        }
+        if (projectile.landed || projectile.remainingSeconds <= 0) {
+          projectile.stream.dispose();
           projectiles.splice(index, 1);
+        }
+      }
+      for (let index = residues.length - 1; index >= 0; index -= 1) {
+        const residue = residues[index]!;
+        residue.elapsedSeconds += deltaSeconds;
+        residue.splash.update(residue.elapsedSeconds);
+        residue.splash.root.visible = !residue.splash.finished(residue.elapsedSeconds);
+        residue.pool?.update(residue.elapsedSeconds);
+        const done = residue.splash.finished(residue.elapsedSeconds)
+          && (!residue.pool || residue.pool.finished(residue.elapsedSeconds));
+        if (done) {
+          residue.splash.dispose();
+          residue.pool?.dispose();
+          residues.splice(index, 1);
         }
       }
     },
@@ -534,12 +705,13 @@ export function createBreachV2BreachlingRuntime(
       activationToken += 1;
       desiredRoomId = null;
       clearActors();
-      projectiles.forEach((projectile) => projectile.root.removeFromParent());
+      projectiles.forEach((projectile) => projectile.stream.dispose());
       projectiles.length = 0;
+      residues.forEach((residue) => { residue.splash.dispose(); residue.pool?.dispose(); });
+      residues.length = 0;
       resolvedSources.forEach(disposeSource);
       resolvedSources.clear();
-      projectileGeometry.dispose();
-      projectileMaterial.dispose();
+      acidResources.dispose();
     },
   };
 }
