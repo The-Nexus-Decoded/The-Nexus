@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("C:/nvm4w/nodejs/node_modules/openclaw/node_modules/playwright-core");
 const outputDir = "H:/Projects/AI_Tools_And_Information/The-Nexus-souldrifter-browser/.planning/debug/artifacts/mobile-hud-avatar-regressions/character-imprint-e2e";
 mkdirSync(outputDir, { recursive: true });
-const baseUrl = "http://127.0.0.1:5174/?debugSeed=2215682322";
+const baseUrl = process.env.SOULDRIFTER_BASE_URL ?? "http://127.0.0.1:5176/?debugSeed=2215682322";
 
 const browser = await chromium.launch({
   executablePath: "C:/Users/olawal/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe",
@@ -21,6 +21,49 @@ function watch(page, label) {
   page.on("requestfailed", (request) => failedRequests.push({ label, url: request.url(), failure: request.failure()?.errorText }));
 }
 
+async function assertAppearancePanel(page, expectedPanel) {
+  await page.waitForSelector(`.appearance-builder--${expectedPanel}`);
+  const state = await page.evaluate((panel) => {
+    const bodyTab = document.querySelector('button[data-appearance-panel="body"]');
+    const faceTab = document.querySelector('button[data-appearance-panel="face"]');
+    const sectionHidden = (selector) => document.querySelector(selector)?.closest("section")?.hidden ?? null;
+    const normalizeText = (selector) => document.querySelector(selector)?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    const autoRotate = document.querySelector("#appearance-auto-rotate");
+    return {
+      panel,
+      heading: normalizeText(".creation-heading .eyebrow"),
+      bodyTabSelected: bodyTab?.getAttribute("aria-selected") === "true",
+      faceTabSelected: faceTab?.getAttribute("aria-selected") === "true",
+      bodyControlsHidden: sectionHidden("button[data-body-type]"),
+      faceControlsHidden: sectionHidden("button[data-face-type]"),
+      skinControlsHidden: sectionHidden("button[data-skin-tone]"),
+      hairControlsHidden: sectionHidden("button[data-hair-style]"),
+      previewLabel: document.querySelector("#appearance-preview-canvas")?.getAttribute("aria-label") ?? "",
+      autoRotateChecked: autoRotate instanceof HTMLInputElement ? autoRotate.checked : null,
+      ageDisabled: document.querySelector("#appearance-age")?.disabled ?? null,
+      hairColorControlsDisabled: [...document.querySelectorAll("button[data-hair-color]")]
+        .every((button) => button.disabled),
+      hairGreyingDisabled: document.querySelector("#appearance-hair-greying")?.disabled ?? null,
+      facialGreyingDisabled: document.querySelector("#appearance-facial-greying")?.disabled ?? null,
+      nextLabel: normalizeText("#creation-next"),
+    };
+  }, expectedPanel);
+  const facePanel = expectedPanel === "face";
+  const failures = [];
+  if (state.bodyTabSelected !== !facePanel || state.faceTabSelected !== facePanel) failures.push("workflow tab selection");
+  if (state.bodyControlsHidden !== facePanel) failures.push("body-control visibility");
+  if (state.faceControlsHidden !== !facePanel || state.skinControlsHidden !== !facePanel || state.hairControlsHidden !== !facePanel) failures.push("face-control visibility");
+  if (!state.previewLabel.includes(facePanel ? "Close-up preview of your face" : "Full-body preview of your selected body type")) failures.push("preview framing label");
+  if (!state.nextLabel.includes(facePanel ? "Choose calling" : "Continue to face & features")) failures.push("forward action label");
+  if (state.autoRotateChecked !== false) failures.push("auto-rotate default");
+  if (facePanel && (!state.ageDisabled || !state.hairColorControlsDisabled
+    || !state.hairGreyingDisabled || !state.facialGreyingDisabled)) {
+    failures.push("unavailable age/hair material controls did not fail closed");
+  }
+  if (failures.length > 0) throw new Error(`${expectedPanel} appearance panel failed: ${failures.join(", ")}. State: ${JSON.stringify(state)}`);
+  return state;
+}
+
 async function completeHumanShadowknight(page) {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.locator("#character-name-input").fill("Marvell Mobile");
@@ -31,9 +74,31 @@ async function completeHumanShadowknight(page) {
   await page.locator("#creation-next").click();
   await page.locator('button[data-race="human"]').click();
   await page.locator("#creation-next").click();
-  await page.locator('button[data-skin-tone="deep"]').click();
-  await page.locator('button[data-hair-style="cropped"]').click();
+  const bodyPanel = await assertAppearancePanel(page, "body");
+  await page.locator('button[data-body-type]:not([disabled])').first().click();
   await page.locator("#creation-next").click();
+  const facePanel = await assertAppearancePanel(page, "face");
+  await page.waitForFunction(() => document.querySelector("#appearance-preview-asset-status")?.textContent === "Selected pattern ready", null, { timeout: 120_000 });
+  const preferredSkin = page.locator('button[data-skin-tone="deep"]:not([disabled])');
+  const skinOption = await preferredSkin.count() ? preferredSkin.first() : page.locator('button[data-skin-tone]:not([disabled])').first();
+  await skinOption.click();
+  const availableHair = page.locator('button[data-hair-style]:not([disabled])');
+  if (!(await availableHair.count())) throw new Error("Face & Features exposed no available hair option.");
+  let hairOption = availableHair.first();
+  for (let index = 0; index < await availableHair.count(); index += 1) {
+    if (await availableHair.nth(index).getAttribute("aria-pressed") !== "true") {
+      hairOption = availableHair.nth(index);
+      break;
+    }
+  }
+  await hairOption.click();
+  const selectedSkin = await skinOption.getAttribute("data-skin-tone");
+  const selectedHair = await hairOption.getAttribute("data-hair-style");
+  if (await skinOption.getAttribute("aria-pressed") !== "true") throw new Error(`Available skin tone did not select: ${selectedSkin}`);
+  if (await hairOption.getAttribute("aria-pressed") !== "true") throw new Error(`Available hair style did not select: ${selectedHair}`);
+  await page.waitForFunction(() => document.querySelector("#appearance-preview-asset-status")?.textContent === "Selected pattern ready", null, { timeout: 120_000 });
+  await page.locator("#creation-next").click();
+  await page.waitForSelector('button[data-calling="shadowknight"]');
   const selectionPortrait = await page.locator('button[data-calling="shadowknight"] img').getAttribute("src");
   if (selectionPortrait !== "/assets/generated/characters/human-shadowknight-highlevel.png") {
     throw new Error(`Human Shadowknight selection portrait is wrong: ${selectionPortrait}`);
@@ -47,6 +112,7 @@ async function completeHumanShadowknight(page) {
   }
   await page.locator("#creation-confirm").click();
   await page.waitForFunction(() => Boolean(window.__SOULDRIFTER_DEBUG__), null, { timeout: 120_000 });
+  return { bodyPanel, facePanel, selectedSkin, selectedHair };
 }
 
 async function completeIlyraAndImprint(page) {
@@ -164,7 +230,7 @@ async function mobileFlow() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   const page = await context.newPage();
   watch(page, "mobile");
-  await completeHumanShadowknight(page);
+  const appearance = await completeHumanShadowknight(page);
   const imprint = await completeIlyraAndImprint(page);
   await waitForPreview(page);
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -179,7 +245,7 @@ async function mobileFlow() {
   await page.screenshot({ path: join(outputDir, "06-mobile-cinematic-lighting.jpg"), type: "jpeg", quality: 88 });
   const resumed = await page.evaluate(() => window.__SOULDRIFTER_DEBUG__.snapshot());
   await context.close();
-  return { imprint, savedImagePrefix: savedImage.slice(0, 32), resumedAnimation: resumed.playerAnimation };
+  return { appearance, imprint, savedImagePrefix: savedImage.slice(0, 32), resumedAnimation: resumed.playerAnimation };
 }
 
 async function desktopLegacyFlow() {
@@ -253,6 +319,10 @@ try {
       currentSavedResume: Boolean(mobile.resumedAnimation),
       legacySavedResume: Boolean(desktopLegacy.animation),
       liveSavedAvatar: mobile.savedImagePrefix.startsWith("data:image/webp"),
+      appearanceBodyStep: mobile.appearance.bodyPanel.bodyTabSelected && mobile.appearance.bodyPanel.faceControlsHidden,
+      appearanceFaceStep: mobile.appearance.facePanel.faceTabSelected && mobile.appearance.facePanel.bodyControlsHidden,
+      appearanceAutoRotateDefaultsOff: !mobile.appearance.bodyPanel.autoRotateChecked && !mobile.appearance.facePanel.autoRotateChecked,
+      appearanceReadySelections: Boolean(mobile.appearance.selectedSkin && mobile.appearance.selectedHair),
       mobileImprintUnblocked: mobile.imprint.modalState.hudVisibility === "hidden",
       passiveBuffVisible: /passive/i.test(mobile.imprint.perkState.buffLabel),
       classActionVisible: mobile.imprint.perkState.skillName === "Grave-Iron Discipline",

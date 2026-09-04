@@ -185,6 +185,15 @@ function containsSkinnedMesh(module: THREE.Object3D): boolean {
   return skinned;
 }
 
+function isolateAppearanceModuleMaterials(module: THREE.Object3D): void {
+  module.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    const isolated = materials.map((material) => material.clone());
+    child.material = Array.isArray(child.material) ? isolated : isolated[0]!;
+  });
+}
+
 /**
  * Attaches only the locked, locally validated modular meshes. The source
  * armature never enters the runtime scene; skinned modules are rebound to the
@@ -216,6 +225,10 @@ export function attachValidatedHumanAppearanceModules(
       missingModules.push(name);
       continue;
     }
+    // SkeletonUtils intentionally shares material references. Each actor must
+    // own its hair tint and shader state so a creator preview or portrait
+    // cannot recolor another live actor.
+    isolateAppearanceModuleMaterials(module);
     module.userData.souldrifterAppearanceAssetStatus = LOCAL_AUTHORING_VALIDATED;
     anchor.attach(module);
     module.visible = false;

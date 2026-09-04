@@ -60,6 +60,21 @@ export function appearanceControlPercent(value: number): number {
   return Math.round(Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0)) * 100);
 }
 
+export function appearanceDependentControls(
+  appearance: Pick<ResolvedCharacterAppearance, "hairStyle" | "facialHair">,
+  availability: Pick<CreationPreviewAvailability, "hairStyles" | "facialHair">,
+): { hairColor: boolean; hairGreying: boolean; facialHairGreying: boolean } {
+  const hairReady = appearance.hairStyle !== "shaved-buzzed"
+    && availability.hairStyles.includes(appearance.hairStyle);
+  const facialHairReady = appearance.facialHair !== "none"
+    && availability.facialHair.includes(appearance.facialHair);
+  return {
+    hairColor: hairReady,
+    hairGreying: hairReady,
+    facialHairGreying: facialHairReady,
+  };
+}
+
 export function resetCreationStageScroll(stage: { scrollTop: number }): void {
   stage.scrollTop = 0;
 }
@@ -101,6 +116,8 @@ export class CharacterCreation {
   private appearanceEditProfile: CharacterProfile | null = null;
   private appearancePreview: CreationAvatarPreview | null = null;
   private appearanceAvailability: CreationPreviewAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
+  private appearancePanel: "body" | "face" = "body";
+  private appearanceAutoRotate = false;
 
   public constructor(
     private readonly onComplete: (profile: CharacterProfile, resumeSavedSoul: boolean) => void,
@@ -154,6 +171,7 @@ export class CharacterCreation {
     this.draft.raceId = normalized.raceId;
     this.draft.callingId = normalized.callingId;
     this.draft.appearance = { ...normalized.appearance };
+    this.appearancePanel = "face";
     this.step = "appearance";
     this.root.classList.remove("is-dissolving");
     this.root.hidden = false;
@@ -263,6 +281,7 @@ export class CharacterCreation {
     });
     this.bindNavigation(() => this.navigateBack("name"), () => {
       if (!this.draft.raceId) return this.fail("Choose the ancestry carried by this soul.");
+      this.appearancePanel = "body";
       this.navigate("appearance");
     });
   }
@@ -271,26 +290,45 @@ export class CharacterCreation {
     this.draft.appearance = resolveCharacterAppearance(this.draft.appearance);
     this.appearanceAvailability = EMPTY_CREATION_PREVIEW_AVAILABILITY;
     const appearance = resolveCharacterAppearance(this.draft.appearance);
+    const facePanel = this.appearancePanel === "face";
     this.stage.innerHTML = `
       <div class="creation-heading">
-        <p class="eyebrow">The returned body · Human foundation</p>
-        <h2>Which face did the Soul Well remember?</h2>
-        <p>Set the living pattern now. Canonical hair modules are fitted to this rig; unavailable families remain sealed until their provider asset passes inspection.</p>
+        <p class="eyebrow">The returned body · Human foundation · ${facePanel ? "Face & features" : "Body type"}</p>
+        <h2>${facePanel ? "Shape the face the world will meet." : "Which body did the Soul Well return?"}</h2>
+        <p>${facePanel
+          ? "Inspect the head at conversation distance. Choose a face, complexion, hair, and age without losing sight of the details."
+          : "Choose the foundation body from a neutral rigging view. Face and hair decisions follow in their own close-up."}</p>
       </div>
-      <div class="appearance-builder">
-        <div class="appearance-preview">
-          <div class="appearance-preview__viewport">
-            <canvas id="appearance-preview-canvas" aria-label="Live preview of your returned body. Drag to rotate."></canvas>
+      <div class="appearance-workflow" role="tablist" aria-label="Appearance setup">
+        <button class="appearance-workflow__tab ${facePanel ? "" : "is-selected"}" data-appearance-panel="body" type="button" role="tab" aria-selected="${!facePanel}">
+          <span>01</span><strong>Body type</strong><small>Full-body rigging view</small>
+        </button>
+        <span class="appearance-workflow__path" aria-hidden="true">→</span>
+        <button class="appearance-workflow__tab ${facePanel ? "is-selected" : ""}" data-appearance-panel="face" type="button" role="tab" aria-selected="${facePanel}">
+          <span>02</span><strong>Face &amp; features</strong><small>Conversation close-up</small>
+        </button>
+      </div>
+      <div class="appearance-builder appearance-builder--${this.appearancePanel}">
+        <div class="appearance-preview appearance-preview--${this.appearancePanel}">
+          <div class="appearance-preview__viewport appearance-preview__viewport--${this.appearancePanel}">
+            <canvas id="appearance-preview-canvas" aria-label="${facePanel ? "Close-up preview of your face" : "Full-body preview of your selected body type"}. Drag to rotate manually."></canvas>
             <span class="appearance-preview__sigil" aria-hidden="true">◇</span>
           </div>
+          <div class="appearance-preview__controls">
+            <label class="appearance-rotation-toggle">
+              <input id="appearance-auto-rotate" type="checkbox" ${this.appearanceAutoRotate ? "checked" : ""} />
+              <span>Rotate automatically</span>
+            </label>
+            <button id="appearance-front-view" type="button">Front view</button>
+          </div>
           <div class="appearance-preview__readout" aria-live="polite">
-            <span>Live soul assay · drag to turn</span>
+            <span>${facePanel ? "Face inspection · idle stance · drag to turn" : "Body assay · neutral rigging stance · drag to turn"}</span>
             <strong id="appearance-preview-asset-status">Scalp-ready · provider scan in progress</strong>
             <small id="appearance-preview-age-status">Young Adult · 0% greying</small>
           </div>
         </div>
         <div class="appearance-builder__options">
-        <section>
+        <section ${facePanel ? "hidden" : ""}>
           <h3>Body type</h3>
           <div class="appearance-options">
             ${BODY_TYPES.map((body) => `
@@ -299,7 +337,7 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section>
+        <section ${facePanel ? "" : "hidden"}>
           <h3>Face</h3>
           <div class="appearance-options">
             ${HUMAN_FACE_TYPES.map((face) => `
@@ -309,7 +347,7 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section>
+        <section ${facePanel ? "" : "hidden"}>
           <h3>Skin tone</h3>
           <div class="appearance-options appearance-options--skin">
             ${Object.entries(SKIN_TONES).map(([id, tone]) => `
@@ -319,7 +357,7 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section>
+        <section ${facePanel ? "" : "hidden"}>
           <h3>Hair</h3>
           <div class="appearance-options appearance-options--hair">
             ${HAIR_STYLES.map((style) => `
@@ -329,16 +367,16 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section>
+        <section ${facePanel ? "" : "hidden"}>
           <h3>Natural hair color</h3>
           <div class="appearance-colors" role="group" aria-label="Natural hair color">
             ${(Object.entries(HAIR_COLORS) as [keyof typeof HAIR_COLORS, (typeof HAIR_COLORS)[keyof typeof HAIR_COLORS]][]).map(([id, color]) => `
-              <button class="appearance-color ${appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-label="${color.name}" aria-pressed="${appearance.hairColor === id}" title="${color.name}">
+              <button class="appearance-color ${appearance.hairColor === id ? "is-selected" : ""}" data-hair-color="${id}" type="button" aria-label="${color.name}" aria-pressed="${appearance.hairColor === id}" title="${color.name}" disabled aria-disabled="true">
                 <span style="--hair-swatch:#${color.color.toString(16).padStart(6, "0")}"></span><small>${color.name}</small>
               </button>`).join("")}
           </div>
         </section>
-        <section>
+        <section ${facePanel ? "" : "hidden"}>
           <h3>Facial hair</h3>
           <div class="appearance-options appearance-options--beard">
             ${FACIAL_HAIR_STYLES.map((style) => `
@@ -348,28 +386,42 @@ export class CharacterCreation {
               </button>`).join("")}
           </div>
         </section>
-        <section class="appearance-assay" aria-labelledby="appearance-age-heading">
+        <section ${facePanel ? "" : "hidden"}>
+          <h3>Complexion details</h3>
+          <div class="appearance-options">
+            <button class="appearance-option is-provider-pending" type="button" disabled aria-disabled="true">
+              <strong>Freckles</strong><small>The creator requires the validated spot/freckle texture mask before this slider can alter the production skin.</small>
+              <em class="appearance-option__availability">Awaiting canonical complexion mask</em>
+            </button>
+          </div>
+        </section>
+        <section class="appearance-assay" aria-labelledby="appearance-age-heading" ${facePanel ? "" : "hidden"}>
           <div class="appearance-assay__heading">
             <h3 id="appearance-age-heading">Age &amp; greying</h3>
             <span id="appearance-morph-status" class="appearance-provider-status">Age morph scan pending</span>
           </div>
           <label class="appearance-range">
             <span><strong>Adult age</strong><output id="appearance-age-output">${appearanceAgeStage(appearance.age)}</output></span>
-            <input id="appearance-age" type="range" min="0" max="1" step="0.01" value="${appearance.age}" aria-describedby="appearance-age-stages appearance-morph-status" />
+            <input id="appearance-age" type="range" min="0" max="1" step="0.01" value="${appearance.age}" disabled aria-disabled="true" aria-describedby="appearance-age-stages appearance-morph-status" />
             <small id="appearance-age-stages"><span>Young Adult</span><span>Middle-Aged</span><span>Elder</span></small>
           </label>
           <label class="appearance-range">
             <span><strong>Hair greying</strong><output id="appearance-hair-greying-output">${appearanceControlPercent(appearance.hairGreying)}%</output></span>
-            <input id="appearance-hair-greying" type="range" min="0" max="1" step="0.01" value="${appearance.hairGreying}" />
+            <input id="appearance-hair-greying" type="range" min="0" max="1" step="0.01" value="${appearance.hairGreying}" disabled aria-disabled="true" />
           </label>
           <label class="appearance-range">
             <span><strong>Facial-hair greying</strong><output id="appearance-facial-greying-output">${appearanceControlPercent(appearance.facialHairGreying)}%</output></span>
-            <input id="appearance-facial-greying" type="range" min="0" max="1" step="0.01" value="${appearance.facialHairGreying}" />
+            <input id="appearance-facial-greying" type="range" min="0" max="1" step="0.01" value="${appearance.facialHairGreying}" disabled aria-disabled="true" />
           </label>
         </section>
         </div>
       </div>
-      ${this.navigation(this.appearanceEditProfile ? "Cancel" : "Return to ancestry", this.appearanceEditProfile ? "Save appearance" : "Choose calling")}`;
+      ${this.navigation(
+        this.appearanceEditProfile ? "Cancel" : facePanel ? "Return to body type" : "Return to ancestry",
+        this.appearanceEditProfile
+          ? facePanel ? "Save appearance" : "Review face & features"
+          : facePanel ? "Choose calling" : "Continue to face & features",
+      )}`;
     const previewCanvas = requiredElement<HTMLCanvasElement>("appearance-preview-canvas");
     this.appearancePreview = new CreationAvatarPreview(previewCanvas, {
       hairStyle: this.draft.appearance.hairStyle,
@@ -381,7 +433,25 @@ export class CharacterCreation {
       hairGreying: this.draft.appearance.hairGreying,
       facialHairGreying: this.draft.appearance.facialHairGreying,
       faceType: this.draft.appearance.faceType,
-    }, (availability) => this.updateAppearanceAvailability(availability));
+    }, (availability) => this.updateAppearanceAvailability(availability), {
+      view: this.appearancePanel,
+      autoRotate: this.appearanceAutoRotate,
+    });
+    this.stage.querySelectorAll<HTMLButtonElement>("button[data-appearance-panel]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const panel = button.dataset.appearancePanel;
+        if (panel !== "body" && panel !== "face") return;
+        this.appearancePanel = panel;
+        this.render();
+      });
+    });
+    requiredElement<HTMLInputElement>("appearance-auto-rotate").addEventListener("change", (event) => {
+      this.appearanceAutoRotate = (event.currentTarget as HTMLInputElement).checked;
+      this.appearancePreview?.setAutoRotate(this.appearanceAutoRotate);
+    });
+    requiredElement<HTMLButtonElement>("appearance-front-view").addEventListener("click", () => {
+      this.appearancePreview?.resetFacing();
+    });
     this.bindChoices("button[data-body-type]", "bodyType", (id) => {
       this.draft.appearance.bodyType = id as CharacterDraft["appearance"]["bodyType"];
     });
@@ -397,6 +467,7 @@ export class CharacterCreation {
     this.bindChoices("button[data-hair-style]", "hairStyle", (id) => {
       this.draft.appearance.hairStyle = id as CharacterDraft["appearance"]["hairStyle"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateDependentAppearanceControls();
       this.updateAppearanceReadout();
     });
     this.bindChoices("button[data-hair-color]", "hairColor", (id) => {
@@ -407,19 +478,21 @@ export class CharacterCreation {
     this.bindChoices("button[data-facial-hair]", "facialHair", (id) => {
       this.draft.appearance.facialHair = id as CharacterDraft["appearance"]["facialHair"];
       this.appearancePreview?.setAppearance({ ...this.draft.appearance, raceId: this.draft.raceId || "human" });
+      this.updateDependentAppearanceControls();
       this.updateAppearanceReadout();
     });
     this.bindAppearanceRange("appearance-age", "age", "appearance-age-output", (value) => appearanceAgeStage(value));
     this.bindAppearanceRange("appearance-hair-greying", "hairGreying", "appearance-hair-greying-output", (value) => `${appearanceControlPercent(value)}%`);
     this.bindAppearanceRange("appearance-facial-greying", "facialHairGreying", "appearance-facial-greying-output", (value) => `${appearanceControlPercent(value)}%`);
-    this.bindNavigation(() => {
+    const leaveAppearance = (): void => {
       if (this.appearanceEditProfile) {
         this.appearanceEditProfile = null;
         this.root.hidden = true;
         return;
       }
       this.navigateBack("race");
-    }, () => {
+    };
+    const acceptAppearance = (): void => {
       const resolved = resolveCharacterAppearance(this.draft.appearance);
       if (!isCreatorAppearanceSelectionAvailable(resolved, this.appearanceAvailability)) {
         return this.fail(!this.appearanceAvailability.faceTypes.includes(resolved.faceType)
@@ -439,7 +512,20 @@ export class CharacterCreation {
         return;
       }
       this.navigate("calling");
-    });
+    };
+    if (facePanel) {
+      this.bindNavigation(this.appearanceEditProfile
+        ? leaveAppearance
+        : () => {
+            this.appearancePanel = "body";
+            this.render();
+          }, acceptAppearance);
+    } else {
+      this.bindNavigation(leaveAppearance, () => {
+        this.appearancePanel = "face";
+        this.render();
+      });
+    }
   }
 
   private renderCalling(): void {
@@ -660,7 +746,34 @@ export class CharacterCreation {
       morphStatus.textContent = availability.ageMorphsAvailable ? "Canonical age morphs ready" : "Awaiting canonical facial morphs";
       morphStatus.classList.toggle("is-ready", availability.ageMorphsAvailable);
     }
+    const ageInput = this.stage.querySelector<HTMLInputElement>("#appearance-age");
+    if (ageInput) {
+      ageInput.disabled = !availability.ageMorphsAvailable;
+      ageInput.setAttribute("aria-disabled", String(!availability.ageMorphsAvailable));
+    }
+    this.updateDependentAppearanceControls();
     this.updateAppearanceReadout();
+  }
+
+  private updateDependentAppearanceControls(): void {
+    const readiness = appearanceDependentControls(
+      resolveCharacterAppearance(this.draft.appearance),
+      this.appearanceAvailability,
+    );
+    this.stage.querySelectorAll<HTMLButtonElement>("button[data-hair-color]").forEach((button) => {
+      button.disabled = !readiness.hairColor;
+      button.setAttribute("aria-disabled", String(!readiness.hairColor));
+    });
+    const hairGreying = this.stage.querySelector<HTMLInputElement>("#appearance-hair-greying");
+    if (hairGreying) {
+      hairGreying.disabled = !readiness.hairGreying;
+      hairGreying.setAttribute("aria-disabled", String(!readiness.hairGreying));
+    }
+    const facialGreying = this.stage.querySelector<HTMLInputElement>("#appearance-facial-greying");
+    if (facialGreying) {
+      facialGreying.disabled = !readiness.facialHairGreying;
+      facialGreying.setAttribute("aria-disabled", String(!readiness.facialHairGreying));
+    }
   }
 
   private updateAppearanceReadout(): void {

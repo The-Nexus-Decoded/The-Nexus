@@ -51,7 +51,7 @@ Adult age presentation is also derived from the one body-matched base head. Blen
 
 A true child is not an adult age preset. Children are a separate NPC-only character family and are not exposed in the current player creator. They require child body proportions, a matching Tripo-derived head and versioned seam, a child-safe rig, independent clothing fit, camera/collision framing, and a restricted age-appropriate animation set. Suitable adult motions may be retargeted only after the child rig passes its own validation. Never shrink the adult mesh or morph the adult age slider into a child.
 
-The legacy `SK_Hair_Buzzed`, `SK_Hair_Parted`, `SK_Hair_Long`, and `SK_Beard_Full` appearance extraction pack is `PROVISIONAL_PILOT / OWNER_QA_PENDING`. It may support temporary pilot review, but it is not canonical head or appearance production evidence.
+The legacy appearance extraction pack and the issue #487 cap/shell candidates shown in the 2026-08-29 live review are `OWNER_REJECTED / QUARANTINED`. Their rigid scalp caps, exposed bands, floating facial hair, missing strand response, and ear/neck/torso intersections make them invalid even for temporary owner review. Their geometry must remain absent from the runtime provider GLB and creator discovery. Rebuild hair and facial hair against the exact canonical head using the modular-appearance gate in `HUMANOID_FACIAL_FIT_PIPELINE.md`; a clean-shaven/bald fail-closed creator is the required interim state.
 
 ## Owner-locked humanoid provider route
 
@@ -378,7 +378,7 @@ The doubled pose-artifact count does not authorize doubled paid 3D generation.
 - Do not substitute a portrait-only or dialogue-only head for the canonical body-matched animated head.
 - Do not generate separate Tripo heads for Young Adult, Middle-Aged, or Elder presets.
 - Do not create a child by shrinking or morphing an adult body; children use a separate NPC-only family contract.
-- Do not promote the legacy appearance extraction pack beyond `PROVISIONAL_PILOT / OWNER_QA_PENDING` without owner QA.
+- Do not restore or relabel the owner-rejected appearance extraction pack. Only a fresh exact-head rebuild with new multi-angle, motion, collision, tint, greying, fresh-import, and owner-review evidence may enter the runtime provider GLB.
 - Do not accept a pose-only lookalike as proof of the same identity.
 - Do not allow an image model to invent clothing, gear, props, supports, or anatomy that becomes fused source geometry.
 - Do not use an A-pose render to hide a failed T-pose rig or a T-pose render to skip A-pose deformation review.

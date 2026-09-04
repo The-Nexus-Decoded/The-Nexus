@@ -158,7 +158,7 @@ describe("actor presentation boundaries", () => {
     expect(skinMaterial.color.getHex()).toBe(0x5f3c31);
   });
 
-  it("routes explicit hair and skin tint channels and replaces the legacy scalp map", async () => {
+  it("routes explicit hair and skin tint channels without reintroducing a scalp underlay", async () => {
     const model = new THREE.Group();
     const detailMap = new THREE.Texture();
     const normalMap = new THREE.Texture();
@@ -219,14 +219,14 @@ describe("actor presentation boundaries", () => {
     expect(hairMaterial.normalMap).toBe(normalMap);
     expect(scalpMaterial.map).toBe(detailMap);
     expect(scalpMaterial.normalMap).toBe(normalMap);
-    expect(skinMaterial.map).toBe(skinScalpMap);
+    expect(skinMaterial.map).toBe(silverScalpMap);
     expect(model.userData.scalpShaved).toBe(false);
-    expect(model.userData.scalpUsesSkinTexture).toBe(true);
-    expect(loadSpy).toHaveBeenCalledOnce();
+    expect(model.userData.scalpUsesSkinTexture).toBe(false);
+    expect(loadSpy).not.toHaveBeenCalled();
     loadSpy.mockRestore();
   });
 
-  it("preserves legacy non-shaved scalp maps and the shaved skin-scalp baseline", () => {
+  it("preserves legacy non-shaved scalp maps and the shaved skin-scalp baseline", async () => {
     const createModel = (moduleName: string | null): {
       model: THREE.Group;
       skinMaterial: THREE.MeshStandardMaterial;
@@ -261,6 +261,15 @@ describe("actor presentation boundaries", () => {
     expect(legacy.model.userData.scalpShaved).toBe(false);
     expect(legacy.model.userData.scalpUsesSkinTexture).toBe(false);
 
+    const skinScalpMap = new THREE.Texture<HTMLImageElement>();
+    skinScalpMap.name = "ScalpSkin";
+    const loadSpy = vi.spyOn(THREE.TextureLoader.prototype, "load").mockImplementation((
+      _url,
+      onLoad,
+    ) => {
+      onLoad?.(skinScalpMap);
+      return skinScalpMap;
+    });
     const shaved = createModel(null);
     applyModularAppearance(shaved.model, {
       hairStyle: "shaved-buzzed",
@@ -268,10 +277,13 @@ describe("actor presentation boundaries", () => {
       facialHair: "none",
       skinTone: "deep",
     });
+    await Promise.resolve();
     expect(shaved.skinMaterial.map).not.toBe(shaved.silverScalpMap);
     expect(shaved.skinMaterial.map?.name).toBe("ScalpSkin");
     expect(shaved.model.userData.scalpShaved).toBe(true);
     expect(shaved.model.userData.scalpUsesSkinTexture).toBe(true);
+    expect(loadSpy).toHaveBeenCalledOnce();
+    loadSpy.mockRestore();
   });
 
   it("anchors the root, hips, and lower body without discarding attack choreography", () => {

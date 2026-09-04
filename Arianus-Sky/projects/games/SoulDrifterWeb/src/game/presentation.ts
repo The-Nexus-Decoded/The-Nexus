@@ -221,6 +221,280 @@ export interface ModularAppearanceResult {
 export const MODULAR_APPEARANCE_PROVIDER_STATUS_KEY = "souldrifterAppearanceAssetStatus";
 export const MODULAR_APPEARANCE_PROVIDER_APPROVED = "PROVIDER_APPROVED";
 
+export const HUMAN_SCALP_FOLLICLE_MASK_STATUS_KEY = "souldrifterFollicleMaskStatus";
+export const HUMAN_SCALP_FOLLICLE_MASK_URL_KEY = "souldrifterFollicleMaskUrl";
+export const HUMAN_SCALP_FOLLICLE_MASK_SHA256_KEY = "souldrifterFollicleMaskSha256";
+export const HUMAN_SCALP_FOLLICLE_MASK_UV_SET_KEY = "souldrifterFollicleMaskUvSet";
+export const HUMAN_SCALP_FOLLICLE_MASK_SOURCE_HEAD_SHA256_KEY = "souldrifterFollicleMaskSourceHeadSha256";
+export const HUMAN_SCALP_FOLLICLE_UNDERCOAT_STRENGTH_KEY = "souldrifterFollicleUndercoatStrength";
+
+const HUMAN_SCALP_FOLLICLE_MASK_APPROVED = "LOCAL_AUTHORING_VALIDATED";
+const HUMAN_SCALP_FOLLICLE_SOURCE_HEAD_SHA256 = "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8";
+const HUMAN_SCALP_FOLLICLE_MATERIAL = "tripo_079291c6_872f_4a79_8d7e_51aedb0891a6";
+const HUMAN_SCALP_FOLLICLE_MAX_STRENGTH = 0.30;
+const HUMAN_SCALP_FOLLICLE_SHADER_KEY = "souldrifter-scalp-follicle-undercoat-v2";
+const HUMAN_SCALP_FOLLICLE_STATE_KEY = "souldrifterScalpFollicleUniformState";
+const HUMAN_SCALP_FOLLICLE_ISOLATION_KEY = "souldrifterScalpFollicleMaterialOwner";
+const HUMAN_SCALP_FOLLICLE_REQUEST_KEY = "souldrifterScalpFollicleRequest";
+const HUMAN_SCALP_FOLLICLE_MODEL_STATE_KEY = "souldrifterScalpFollicleUndercoat";
+const HUMAN_SCALP_FOLLICLE_TARGET = /^(?:HumanFoundation_Body|HumanFoundation_HeadBase)$/;
+const HUMAN_SCALP_FOLLICLE_MASK_URL = /^\/assets\/3d\/characters\/human-foundation-pilot\/follicle-masks\/[a-z0-9][a-z0-9._-]*\.png$/;
+
+interface HumanScalpFollicleUniformState {
+  mask: { value: THREE.Texture | null };
+  tint: { value: THREE.Color };
+  strength: { value: number };
+  url: string | null;
+}
+
+interface HumanScalpFollicleMaskContract {
+  url: string;
+  strength: number;
+}
+
+export type HumanScalpFollicleMaskLoader = (url: string) => Promise<THREE.Texture | null>;
+
+const humanScalpFollicleMaskPromises = new Map<string, Promise<THREE.Texture | null>>();
+
+function defaultHumanScalpFollicleMaskLoader(url: string): Promise<THREE.Texture | null> {
+  return new Promise((resolve) => {
+    new THREE.TextureLoader().load(url, resolve, undefined, () => resolve(null));
+  });
+}
+
+function loadHumanScalpFollicleMask(
+  url: string,
+  loader: HumanScalpFollicleMaskLoader,
+): Promise<THREE.Texture | null> {
+  let cached = humanScalpFollicleMaskPromises.get(url);
+  if (!cached) {
+    try {
+      cached = loader(url)
+        .then((texture) => {
+          if (!texture) return null;
+          texture.flipY = false;
+          texture.colorSpace = THREE.NoColorSpace;
+          return texture;
+        })
+        .catch(() => null);
+    } catch {
+      cached = Promise.resolve(null);
+    }
+    humanScalpFollicleMaskPromises.set(url, cached);
+  }
+  return cached;
+}
+
+function moduleHasForbiddenScalpUnderlay(module: THREE.Object3D): boolean {
+  let forbidden = false;
+  module.traverse((child) => {
+    if (forbidden) return;
+    if (child !== module && /(?:scalp|rootcap|undercoat|underlay)/i.test(child.name)) {
+      forbidden = true;
+      return;
+    }
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    forbidden = materials.some((material) => material.userData.souldrifterTintChannel === "SKIN");
+  });
+  return forbidden;
+}
+
+function readHumanScalpFollicleMaskContract(
+  model: THREE.Object3D,
+  hairModule: THREE.Object3D | undefined,
+): HumanScalpFollicleMaskContract | null {
+  if (!hairModule || hairModule.visible === false || !hasProviderApproval(hairModule, model)) return null;
+  if (moduleHasForbiddenScalpUnderlay(hairModule)) return null;
+  const metadata = hairModule.userData;
+  const url = metadata[HUMAN_SCALP_FOLLICLE_MASK_URL_KEY] as unknown;
+  const sha256 = metadata[HUMAN_SCALP_FOLLICLE_MASK_SHA256_KEY] as unknown;
+  const strength = metadata[HUMAN_SCALP_FOLLICLE_UNDERCOAT_STRENGTH_KEY] as unknown;
+  if (metadata[HUMAN_SCALP_FOLLICLE_MASK_STATUS_KEY] !== HUMAN_SCALP_FOLLICLE_MASK_APPROVED
+    || typeof url !== "string" || !HUMAN_SCALP_FOLLICLE_MASK_URL.test(url)
+    || typeof sha256 !== "string" || !/^[A-F0-9]{64}$/.test(sha256)
+    || metadata[HUMAN_SCALP_FOLLICLE_MASK_UV_SET_KEY] !== "UVMap"
+    || metadata[HUMAN_SCALP_FOLLICLE_MASK_SOURCE_HEAD_SHA256_KEY] !== HUMAN_SCALP_FOLLICLE_SOURCE_HEAD_SHA256
+    || typeof strength !== "number" || !Number.isFinite(strength)
+    || strength <= 0 || strength > HUMAN_SCALP_FOLLICLE_MAX_STRENGTH) {
+    return null;
+  }
+  return { url, strength };
+}
+
+function isolateHumanScalpFollicleTargets(model: THREE.Object3D): THREE.MeshStandardMaterial[] {
+  const targets: THREE.MeshStandardMaterial[] = [];
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh) || !HUMAN_SCALP_FOLLICLE_TARGET.test(child.name)) return;
+    const sourceMaterials = Array.isArray(child.material) ? child.material : [child.material];
+    let changed = false;
+    const materials = sourceMaterials.map((source) => {
+      if (!(source instanceof THREE.MeshStandardMaterial)
+        || source.name !== HUMAN_SCALP_FOLLICLE_MATERIAL || !source.map) return source;
+      let material = source;
+      if (source.userData[HUMAN_SCALP_FOLLICLE_ISOLATION_KEY] !== child.uuid) {
+        material = source.clone();
+        material.onBeforeCompile = source.onBeforeCompile;
+        material.customProgramCacheKey = source.customProgramCacheKey;
+        material.userData[HUMAN_SCALP_FOLLICLE_ISOLATION_KEY] = child.uuid;
+        changed = true;
+      }
+      targets.push(material);
+      return material;
+    });
+    if (changed) child.material = Array.isArray(child.material) ? materials : materials[0]!;
+  });
+  return targets;
+}
+
+function existingHumanScalpFollicleTargets(model: THREE.Object3D): THREE.MeshStandardMaterial[] {
+  const targets: THREE.MeshStandardMaterial[] = [];
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh) || !HUMAN_SCALP_FOLLICLE_TARGET.test(child.name)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      if (material instanceof THREE.MeshStandardMaterial
+        && material.name === HUMAN_SCALP_FOLLICLE_MATERIAL && material.map) targets.push(material);
+    });
+  });
+  return targets;
+}
+
+function humanScalpFollicleUniformState(
+  material: THREE.MeshStandardMaterial,
+): HumanScalpFollicleUniformState {
+  const existing = material.userData[HUMAN_SCALP_FOLLICLE_STATE_KEY] as HumanScalpFollicleUniformState | undefined;
+  if (existing) return existing;
+  const state: HumanScalpFollicleUniformState = {
+    mask: { value: null },
+    tint: { value: new THREE.Color() },
+    strength: { value: 0 },
+    url: null,
+  };
+  const previousCompile = material.onBeforeCompile.bind(material);
+  const previousCacheKey = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    previousCompile(shader, renderer);
+    shader.uniforms.souldrifterFollicleMask = state.mask;
+    shader.uniforms.souldrifterFollicleTint = state.tint;
+    shader.uniforms.souldrifterFollicleStrength = state.strength;
+    shader.fragmentShader = `
+uniform sampler2D souldrifterFollicleMask;
+uniform vec3 souldrifterFollicleTint;
+uniform float souldrifterFollicleStrength;
+${shader.fragmentShader.replace("#include <map_fragment>", `
+#include <map_fragment>
+#ifdef USE_MAP
+  float souldrifterFollicleDensity = texture2D( souldrifterFollicleMask, vMapUv ).r;
+  float souldrifterFollicleInfluence = clamp(
+    souldrifterFollicleDensity * souldrifterFollicleStrength,
+    0.0,
+    ${HUMAN_SCALP_FOLLICLE_MAX_STRENGTH.toFixed(2)}
+  );
+  float souldrifterFollicleTintLuma = max(
+    dot( souldrifterFollicleTint, vec3( 0.2126, 0.7152, 0.0722 ) ),
+    0.04
+  );
+  vec3 souldrifterFollicleTintChroma = clamp(
+    souldrifterFollicleTint / souldrifterFollicleTintLuma,
+    vec3( 0.55 ),
+    vec3( 1.45 )
+  );
+  float souldrifterFollicleRootShadow = mix( 1.0, 0.55, souldrifterFollicleInfluence );
+  vec3 souldrifterFollicleChromaModulation = mix(
+    vec3( 1.0 ),
+    souldrifterFollicleTintChroma,
+    souldrifterFollicleInfluence
+  );
+  diffuseColor.rgb *= souldrifterFollicleRootShadow * souldrifterFollicleChromaModulation;
+#endif
+`)}`;
+  };
+  material.customProgramCacheKey = () => `${previousCacheKey()}|${HUMAN_SCALP_FOLLICLE_SHADER_KEY}`;
+  material.userData[HUMAN_SCALP_FOLLICLE_STATE_KEY] = state;
+  material.userData.souldrifterScalpFollicleRuntime = HUMAN_SCALP_FOLLICLE_SHADER_KEY;
+  material.needsUpdate = true;
+  return state;
+}
+
+function disableHumanScalpFollicleUndercoat(
+  model: THREE.Object3D,
+  targets: readonly THREE.MeshStandardMaterial[],
+  reason: string,
+): void {
+  targets.forEach((material) => {
+    const state = material.userData[HUMAN_SCALP_FOLLICLE_STATE_KEY] as HumanScalpFollicleUniformState | undefined;
+    if (!state) return;
+    state.mask.value = null;
+    state.strength.value = 0;
+    state.url = null;
+  });
+  model.userData[HUMAN_SCALP_FOLLICLE_MODEL_STATE_KEY] = { status: "DISABLED", reason };
+}
+
+/**
+ * Adds a density-mask follicle transition directly to the exact Tripo skin.
+ * It never accepts a scalp shell or skin-tinted hair underlay, and it leaves
+ * the actor's authored 4K map, normal map, and roughness channels untouched.
+ */
+export function setHumanScalpFollicleUndercoat(
+  model: THREE.Object3D,
+  hairModule: THREE.Object3D | undefined,
+  hairTint: THREE.Color,
+  loader: HumanScalpFollicleMaskLoader = defaultHumanScalpFollicleMaskLoader,
+): void {
+  const previousRequest = Number(model.userData[HUMAN_SCALP_FOLLICLE_REQUEST_KEY] ?? 0);
+  const request = Number.isFinite(previousRequest) ? previousRequest + 1 : 1;
+  model.userData[HUMAN_SCALP_FOLLICLE_REQUEST_KEY] = request;
+  const existingTargets = existingHumanScalpFollicleTargets(model);
+  const contract = readHumanScalpFollicleMaskContract(model, hairModule);
+  if (!contract) {
+    disableHumanScalpFollicleUndercoat(model, existingTargets, "missing-or-invalid-approved-mask");
+    return;
+  }
+  const targets = isolateHumanScalpFollicleTargets(model);
+  if (targets.length === 0) {
+    disableHumanScalpFollicleUndercoat(model, existingTargets, "exact-tripo-scalp-target-missing");
+    return;
+  }
+  const states = targets.map((material) => humanScalpFollicleUniformState(material));
+  states.forEach((state) => state.tint.value.copy(hairTint));
+  const alreadyActive = states.every((state) => state.url === contract.url && state.mask.value);
+  if (alreadyActive) {
+    states.forEach((state) => { state.strength.value = contract.strength; });
+    model.userData[HUMAN_SCALP_FOLLICLE_MODEL_STATE_KEY] = {
+      status: "ACTIVE",
+      url: contract.url,
+      strength: contract.strength,
+    };
+    return;
+  }
+  states.forEach((state) => {
+    state.mask.value = null;
+    state.strength.value = 0;
+    state.url = contract.url;
+  });
+  model.userData[HUMAN_SCALP_FOLLICLE_MODEL_STATE_KEY] = { status: "LOADING", url: contract.url };
+  void loadHumanScalpFollicleMask(contract.url, loader).then((texture) => {
+    if (model.userData[HUMAN_SCALP_FOLLICLE_REQUEST_KEY] !== request) return;
+    if (!texture) {
+      disableHumanScalpFollicleUndercoat(model, targets, "mask-load-failed");
+      return;
+    }
+    states.forEach((state) => {
+      state.mask.value = texture;
+      state.tint.value.copy(hairTint);
+      state.strength.value = contract.strength;
+      state.url = contract.url;
+    });
+    model.userData[HUMAN_SCALP_FOLLICLE_MODEL_STATE_KEY] = {
+      status: "ACTIVE",
+      url: contract.url,
+      strength: contract.strength,
+    };
+  });
+}
+
 /**
  * The head texture paints the crown silver so short styles read as stubble.
  * For "shaved" that paint becomes a bald-cap, so we swap in a skin-toned scalp
@@ -264,26 +538,12 @@ function swapScalpMaterial(material: THREE.Material, useSkinTexture: boolean, te
   }
 }
 
-function moduleHasSkinMatchedUnderlay(module: THREE.Object3D | undefined): boolean {
-  let matched = false;
-  module?.traverse((child) => {
-    if (matched || !(child instanceof THREE.Mesh)) return;
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    matched = materials.some((material) => (
-      material.userData.souldrifterTintChannel === "SKIN"
-      && material.userData.souldrifterTintMode === "MATCH_RUNTIME_SKIN_TONE"
-    ));
-  });
-  return matched;
-}
-
 function applyScalpVariant(
   model: THREE.Object3D,
   hairStyle: HairStyleSelectionId,
-  skinMatchedUnderlay: boolean,
 ): void {
   const shaved = hairStyle === "shaved" || hairStyle === "shaved-buzzed";
-  const useSkinTexture = shaved || skinMatchedUnderlay;
+  const useSkinTexture = shaved;
   model.userData.scalpShaved = shaved;
   model.userData.scalpUsesSkinTexture = useSkinTexture;
   const apply = (texture: THREE.Texture | null): void => {
@@ -350,9 +610,52 @@ function hideAppearanceModules(model: THREE.Object3D): void {
 }
 
 const GREYING_COLOR = new THREE.Color(0xa8a39b);
+const HAIR_MAP_RECOLOR_KEY = "souldrifter-hair-map-recolor-v2";
 
-function tintMaterial(material: THREE.Material, color: THREE.Color): boolean {
+function enableHairMapRecolor(material: THREE.MeshStandardMaterial): void {
+  if (!material.map || material.userData.souldrifterHairMapRecolor === HAIR_MAP_RECOLOR_KEY) return;
+  // Runtime hair is delivered as layered cards. Every SoulDrifter renderer
+  // enables MSAA but does not run a temporal resolve, so alpha-to-coverage is
+  // stable where alpha hashing would introduce visible grain and shimmer.
+  // Keep depth writes on to avoid order-dependent transparent-card seams and
+  // render both sides so back-facing cards remain visible during head turns.
+  material.transparent = false;
+  material.alphaHash = false;
+  material.alphaTest = Math.max(0.35, material.alphaTest);
+  material.alphaToCoverage = true;
+  material.depthWrite = true;
+  material.side = THREE.DoubleSide;
+  material.metalness = 0;
+  material.roughness = Math.max(0.58, material.roughness);
+  if (material instanceof THREE.MeshPhysicalMaterial) {
+    material.anisotropy = Math.max(0.45, material.anisotropy);
+  }
+  const previousCompile = material.onBeforeCompile.bind(material);
+  const previousCacheKey = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    previousCompile(shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <map_fragment>", `
+#ifdef USE_MAP
+  vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+  #ifdef DECODE_VIDEO_TEXTURE
+    sampledDiffuseColor = sRGBTransferEOTF( sampledDiffuseColor );
+  #endif
+  float souldrifterHairLuma = dot( sampledDiffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
+  // Preserve the authored strand variation without letting a near-black baked
+  // diffuse map swallow blonde, grey, or white creator selections.
+  float souldrifterStrandValue = mix( 0.72, 1.18, smoothstep( 0.01, 0.65, souldrifterHairLuma ) );
+  diffuseColor *= vec4( vec3( souldrifterStrandValue ), sampledDiffuseColor.a );
+#endif
+`);
+  };
+  material.customProgramCacheKey = () => `${previousCacheKey()}|${HAIR_MAP_RECOLOR_KEY}`;
+  material.userData.souldrifterHairMapRecolor = HAIR_MAP_RECOLOR_KEY;
+  material.userData.souldrifterHairRuntimeMaterial = "alpha-tested-msaa-anisotropic-cards-v2";
+}
+
+function tintMaterial(material: THREE.Material, color: THREE.Color, recolorTexturedHair = false): boolean {
   if (!(material instanceof THREE.MeshStandardMaterial)) return false;
+  if (recolorTexturedHair) enableHairMapRecolor(material);
   material.color.copy(color);
   material.needsUpdate = true;
   return true;
@@ -392,7 +695,8 @@ function tintAppearanceModule(
         : channel === "SKIN" && mode === "MATCH_RUNTIME_SKIN_TONE"
           ? skinColor
           : null;
-      if (tint && tintMaterial(material, tint)) count += 1;
+      const texturedHair = tint === hairColor && (channel === "HAIR" || channel === undefined);
+      if (tint && tintMaterial(material, tint, texturedHair)) count += 1;
     });
   });
   return count;
@@ -404,7 +708,7 @@ function tintBrows(model: THREE.Object3D, color: THREE.Color): number {
     if (!(child instanceof THREE.Mesh)) return;
     const materials = Array.isArray(child.material) ? child.material : [child.material];
     materials.forEach((material) => {
-      if (/brow/i.test(`${child.name} ${material.name}`) && tintMaterial(material, color)) count += 1;
+      if (/brow/i.test(`${child.name} ${material.name}`) && tintMaterial(material, color, true)) count += 1;
     });
   });
   return count;
@@ -479,7 +783,12 @@ export function applyModularAppearance(
   };
   model.userData.modularAppearanceResult = result;
 
-  applyScalpVariant(model, resolved.hairStyle, moduleHasSkinMatchedUnderlay(hairModule));
+  applyScalpVariant(model, resolved.hairStyle);
+  setHumanScalpFollicleUndercoat(
+    model,
+    resolved.hairStyle === "shaved-buzzed" ? undefined : hairModule,
+    hairColor,
+  );
   return result;
 }
 

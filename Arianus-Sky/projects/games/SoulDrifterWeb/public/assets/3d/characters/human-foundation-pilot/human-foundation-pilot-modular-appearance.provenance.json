@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "issue": 487,
-  "status": "LOCAL_PARTIAL_MODULAR_APPEARANCE_AUTHORED",
-  "ownerReviewStatus": "PARTIAL_VISUAL_QA_ACCEPTED",
-  "route": "MIXED_VERIFIED_SOURCE_REFIT_AND_EXACT_HEAD_FITTED_STRAND_CARDS",
+  "status": "LOCAL_MODULAR_APPEARANCE_QUARANTINED",
+  "ownerReviewStatus": "OWNER_LIVE_REJECTION_RECORDED",
+  "route": "FAIL_CLOSED_REBUILD_IN_PROGRESS",
   "legacyPackPolicy": "REFERENCE_ONLY_NOT_IMPORTED",
   "toolchain": {
     "binary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/blender.exe",
@@ -24,6 +24,9 @@
           "asset": "short04",
           "license": "CC0-1.0",
           "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "removedCoincidentFaces": 0,
+          "flippedInwardFaces": 0,
+          "outerSurfaceConsolidation": null,
           "files": {
             "obj": {
               "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/short04/short04.obj",
@@ -47,6 +50,9 @@
           "asset": "ponytail01",
           "license": "CC0-1.0",
           "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "removedCoincidentFaces": 0,
+          "flippedInwardFaces": 0,
+          "outerSurfaceConsolidation": null,
           "files": {
             "obj": {
               "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/ponytail01/ponytail01.obj",
@@ -70,6 +76,9 @@
           "asset": "braid01",
           "license": "CC0-1.0",
           "packUrl": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+          "removedCoincidentFaces": 0,
+          "flippedInwardFaces": 0,
+          "outerSurfaceConsolidation": null,
           "files": {
             "obj": {
               "path": "H:/CodexData/souldrifter-toolchain/sources/makehuman-system-assets/extracted/hair/braid01/braid01.obj",
@@ -97,21 +106,390 @@
       "oldHeadFitPolicy": "NON_PROMOTABLE_NOT_IMPORTED",
       "hairAssets": {
         "SK_Hair_Cropped": {
-          "route": "ISSUE448_PROJECT_GENERATED_TECHNICALIZED_SOURCE",
+          "route": "PROJECT_AUTHORED_EXACT_HEAD_ZONED_CROPPED_OFFICIAL_BLENDER_HAIR_ASSETS",
           "issue": 448,
           "assetId": "masc-cropped-fade",
           "providerTaskId": "e87f2c75",
           "path": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/technicalized-pilots/hair-library-v001/sd-hair-masc-cropped-fade-technicalized-v001.glb",
           "sha256": "4D2327890673B3C70A6D2674D5D588CF81D9035601B97A7BADACCC48C7CF0491",
           "license": "NOT_RECORDED_DO_NOT_INFER",
+          "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+          "geometryPolicy": "EXACT_HEAD_UV_ATTACHED_DISTINCT_GUIDE_FAMILIES_INTERPOLATED_CLUMPED_AND_BAKED",
           "oldHeadFitPolicy": "NON_PROMOTABLE_NOT_IMPORTED",
-          "trimmedDetachedLowVertexCount": 0,
-          "newFit": {
-            "lateralScale": 0.12,
-            "depthScale": 0.105,
-            "verticalScale": 0.13,
-            "targetTop": 0.516,
-            "depthAxisReversed": true
+          "authoredGuideCount": 1222,
+          "guideFamilies": {
+            "Undercoat": 792,
+            "HairlineFibers": 52,
+            "HeroClumps": 294,
+            "CrownWhorl": 84
+          },
+          "controlPointsPerGuide": 7,
+          "guideLengthMeters": {
+            "min": 0.0043,
+            "max": 0.030369565217391307
+          },
+          "skippedSurfaceRays": 0,
+          "proceduralNodeOrder": [
+            "Attach Hair Curves to Surface",
+            "Interpolate Curves",
+            "Clump Hair Curves",
+            "Frizz Hair Curves",
+            "Hair Curves Noise",
+            "Set Hair Curve Profile",
+            "Runtime Alpha Card Bake"
+          ],
+          "secondaryMotionContract": {
+            "cropped": "HEAD_WEIGHTED_SHORT_LENGTH_NO_SECONDARY_BONES_REQUIRED",
+            "futureLongStyleBoneSlots": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          "material": {
+            "sourceGeometryPolicy": "DISCARDED_NOT_IMPORTED",
+            "sourceTexturePolicy": "HASH_LOCKED_PACKED_PBR_MAPS_PRESERVED",
+            "sourceAlphaChannel": "ABSENT_OPAQUE_SOURCE",
+            "runtimeAlphaMask": "PACKED_ALPHA_FEATHERED_SHORT_FIBERS",
+            "runtimeAlphaResolution": [
+              64,
+              128
+            ],
+            "sourceTextureInventory": [
+              {
+                "name": "Image_3",
+                "width": 1024,
+                "height": 1024,
+                "colorspace": "sRGB"
+              },
+              {
+                "name": "SD_HairNeutral_Image_0",
+                "width": 1024,
+                "height": 1024,
+                "colorspace": "sRGB"
+              },
+              {
+                "name": "Image_1",
+                "width": 1024,
+                "height": 1024,
+                "colorspace": "Non-Color"
+              },
+              {
+                "name": "Image_2",
+                "width": 1024,
+                "height": 1024,
+                "colorspace": "Non-Color"
+              }
+            ]
+          },
+          "groomFamilies": {
+            "Undercoat": {
+              "authoringSystem": "BLENDER_SURFACE_ATTACHED_HAIR_CURVES",
+              "nodeAssetPath": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "nodeAssetSha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "surfaceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+              "surfaceUvMap": "UVMap",
+              "rootAttachment": "ATTACH_HAIR_CURVES_TO_SURFACE_SNAP_AND_ALIGN",
+              "guideCount": 792,
+              "guidePointCountMin": 7,
+              "childRootCount": 792,
+              "interpolatedCurveCount": 792,
+              "interpolatedPointCountMin": 7,
+              "interpolationEngine": "BLENDER_GEOMETRY_NODE_INTERPOLATE_CURVES",
+              "officialProceduralHairAssetLibrary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "officialProceduralHairAssetLibrarySha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "officialProceduralHairNodeSettings": {
+                "Clump Hair Curves": {
+                  "factor": 0.08,
+                  "shape": 0.62,
+                  "tipSpread": 0.00018,
+                  "clumpOffset": 0.00018,
+                  "distanceFalloff": 0.004,
+                  "distanceThreshold": 0.012,
+                  "seed": 4871,
+                  "preserveLength": true,
+                  "guideDistance": 0.006,
+                  "guideMask": 1.0,
+                  "existingGuideMap": false
+                },
+                "Frizz Hair Curves": {
+                  "cumulativeOffset": true,
+                  "factor": 0.05,
+                  "distance": 0.0002,
+                  "shape": 0.58,
+                  "seed": 4872,
+                  "preserveLength": true
+                },
+                "Hair Curves Noise": {
+                  "cumulativeOffset": true,
+                  "factor": 0.04,
+                  "distance": 0.00016,
+                  "shape": 0.56,
+                  "scale": 38.0,
+                  "scaleAlongCurve": 2.2,
+                  "offsetPerCurve": 0.35,
+                  "seed": 4873,
+                  "preserveLength": true
+                },
+                "Set Hair Curve Profile": {
+                  "replaceRadius": false,
+                  "radius": 1.0,
+                  "shape": 0.58,
+                  "factorMin": 0.86,
+                  "factorMax": 0.14
+                }
+              },
+              "authoredRadiusAttributePreserved": true,
+              "childrenPerGuide": 1,
+              "rootJitterRadius": 0.00045,
+              "rootClearance": 0.0008,
+              "strandRadius": 5e-05,
+              "runtimeGeometryType": "SURFACE_ORIENTED_TAPERED_HAIR_CARDS",
+              "runtimeCardCount": 792,
+              "crossCardLayers": 1,
+              "rootUnderlayerCardCount": 0,
+              "rootUnderlayerRows": 0,
+              "rootUnderlayerSegments": 0,
+              "rootUnderlayerPolicy": "OMITTED_DENSE_GUIDE_FIELD_OWNS_SCALP_COVERAGE",
+              "runtimeCardHalfWidthMin": 1.1181041747331621e-06,
+              "runtimeCardHalfWidthMax": 0.0002334457581914045,
+              "runtimeTipWidthRatio": 0.13,
+              "runtimeTipTaperExponent": 0.58,
+              "runtimeRootWidthRatio": 0.06,
+              "runtimeRootTaperLength": 0.26,
+              "runtimeTriangleCount": 9504,
+              "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
+            },
+            "HairlineFibers": {
+              "authoringSystem": "BLENDER_SURFACE_ATTACHED_HAIR_CURVES",
+              "nodeAssetPath": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "nodeAssetSha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "surfaceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+              "surfaceUvMap": "UVMap",
+              "rootAttachment": "ATTACH_HAIR_CURVES_TO_SURFACE_SNAP_AND_ALIGN",
+              "guideCount": 52,
+              "guidePointCountMin": 7,
+              "childRootCount": 52,
+              "interpolatedCurveCount": 52,
+              "interpolatedPointCountMin": 7,
+              "interpolationEngine": "BLENDER_GEOMETRY_NODE_INTERPOLATE_CURVES",
+              "officialProceduralHairAssetLibrary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "officialProceduralHairAssetLibrarySha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "officialProceduralHairNodeSettings": {
+                "Clump Hair Curves": {
+                  "factor": 0.06,
+                  "shape": 0.58,
+                  "tipSpread": 0.0002,
+                  "clumpOffset": 0.00012,
+                  "distanceFalloff": 0.003,
+                  "distanceThreshold": 0.009,
+                  "seed": 4874,
+                  "preserveLength": true,
+                  "guideDistance": 0.005,
+                  "guideMask": 1.0,
+                  "existingGuideMap": false
+                },
+                "Frizz Hair Curves": {
+                  "cumulativeOffset": true,
+                  "factor": 0.08,
+                  "distance": 0.00024,
+                  "shape": 0.54,
+                  "seed": 4875,
+                  "preserveLength": true
+                },
+                "Hair Curves Noise": {
+                  "cumulativeOffset": true,
+                  "factor": 0.06,
+                  "distance": 0.0002,
+                  "shape": 0.5,
+                  "scale": 42.0,
+                  "scaleAlongCurve": 2.6,
+                  "offsetPerCurve": 0.42,
+                  "seed": 4876,
+                  "preserveLength": true
+                },
+                "Set Hair Curve Profile": {
+                  "replaceRadius": false,
+                  "radius": 1.0,
+                  "shape": 0.58,
+                  "factorMin": 0.86,
+                  "factorMax": 0.14
+                }
+              },
+              "authoredRadiusAttributePreserved": true,
+              "childrenPerGuide": 1,
+              "rootJitterRadius": 0.00022,
+              "rootClearance": 0.0008,
+              "strandRadius": 4e-05,
+              "runtimeGeometryType": "SURFACE_ORIENTED_TAPERED_HAIR_CARDS",
+              "runtimeCardCount": 52,
+              "crossCardLayers": 1,
+              "rootUnderlayerCardCount": 0,
+              "rootUnderlayerRows": 0,
+              "rootUnderlayerSegments": 0,
+              "rootUnderlayerPolicy": "OMITTED_DENSE_GUIDE_FIELD_OWNS_SCALP_COVERAGE",
+              "runtimeCardHalfWidthMin": 3.675000000000001e-07,
+              "runtimeCardHalfWidthMax": 0.0001267424677442056,
+              "runtimeTipWidthRatio": 0.13,
+              "runtimeTipTaperExponent": 0.58,
+              "runtimeRootWidthRatio": 0.025,
+              "runtimeRootTaperLength": 0.3,
+              "runtimeTriangleCount": 624,
+              "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
+            },
+            "HeroClumps": {
+              "authoringSystem": "BLENDER_SURFACE_ATTACHED_HAIR_CURVES",
+              "nodeAssetPath": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "nodeAssetSha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "surfaceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+              "surfaceUvMap": "UVMap",
+              "rootAttachment": "ATTACH_HAIR_CURVES_TO_SURFACE_SNAP_AND_ALIGN",
+              "guideCount": 294,
+              "guidePointCountMin": 7,
+              "childRootCount": 588,
+              "interpolatedCurveCount": 588,
+              "interpolatedPointCountMin": 7,
+              "interpolationEngine": "BLENDER_GEOMETRY_NODE_INTERPOLATE_CURVES",
+              "officialProceduralHairAssetLibrary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "officialProceduralHairAssetLibrarySha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "officialProceduralHairNodeSettings": {
+                "Clump Hair Curves": {
+                  "factor": 0.2,
+                  "shape": 0.66,
+                  "tipSpread": 0.0007,
+                  "clumpOffset": 0.0005,
+                  "distanceFalloff": 0.006,
+                  "distanceThreshold": 0.02,
+                  "seed": 4877,
+                  "preserveLength": true,
+                  "guideDistance": 0.011,
+                  "guideMask": 1.0,
+                  "existingGuideMap": false
+                },
+                "Frizz Hair Curves": {
+                  "cumulativeOffset": true,
+                  "factor": 0.1,
+                  "distance": 0.00042,
+                  "shape": 0.56,
+                  "seed": 4878,
+                  "preserveLength": true
+                },
+                "Hair Curves Noise": {
+                  "cumulativeOffset": true,
+                  "factor": 0.07,
+                  "distance": 0.00032,
+                  "shape": 0.52,
+                  "scale": 28.0,
+                  "scaleAlongCurve": 2.1,
+                  "offsetPerCurve": 0.38,
+                  "seed": 4879,
+                  "preserveLength": true
+                },
+                "Set Hair Curve Profile": {
+                  "replaceRadius": false,
+                  "radius": 1.0,
+                  "shape": 0.58,
+                  "factorMin": 0.86,
+                  "factorMax": 0.14
+                }
+              },
+              "authoredRadiusAttributePreserved": true,
+              "childrenPerGuide": 2,
+              "rootJitterRadius": 0.00085,
+              "rootClearance": 0.0008,
+              "strandRadius": 0.000118,
+              "runtimeGeometryType": "SURFACE_ORIENTED_TAPERED_HAIR_CARDS",
+              "runtimeCardCount": 1176,
+              "crossCardLayers": 2,
+              "rootUnderlayerCardCount": 0,
+              "rootUnderlayerRows": 0,
+              "rootUnderlayerSegments": 0,
+              "rootUnderlayerPolicy": "OMITTED_DENSE_GUIDE_FIELD_OWNS_SCALP_COVERAGE",
+              "runtimeCardHalfWidthMin": 3.122563322197779e-06,
+              "runtimeCardHalfWidthMax": 0.000780885339043677,
+              "runtimeTipWidthRatio": 0.13,
+              "runtimeTipTaperExponent": 0.58,
+              "runtimeRootWidthRatio": 0.05,
+              "runtimeRootTaperLength": 0.24,
+              "runtimeTriangleCount": 14112,
+              "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
+            },
+            "CrownWhorl": {
+              "authoringSystem": "BLENDER_SURFACE_ATTACHED_HAIR_CURVES",
+              "nodeAssetPath": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "nodeAssetSha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "surfaceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+              "surfaceUvMap": "UVMap",
+              "rootAttachment": "ATTACH_HAIR_CURVES_TO_SURFACE_SNAP_AND_ALIGN",
+              "guideCount": 84,
+              "guidePointCountMin": 7,
+              "childRootCount": 168,
+              "interpolatedCurveCount": 168,
+              "interpolatedPointCountMin": 7,
+              "interpolationEngine": "BLENDER_GEOMETRY_NODE_INTERPOLATE_CURVES",
+              "officialProceduralHairAssetLibrary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+              "officialProceduralHairAssetLibrarySha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+              "officialProceduralHairNodeSettings": {
+                "Clump Hair Curves": {
+                  "factor": 0.17,
+                  "shape": 0.64,
+                  "tipSpread": 0.00058,
+                  "clumpOffset": 0.00042,
+                  "distanceFalloff": 0.006,
+                  "distanceThreshold": 0.018,
+                  "seed": 4880,
+                  "preserveLength": true,
+                  "guideDistance": 0.01,
+                  "guideMask": 1.0,
+                  "existingGuideMap": false
+                },
+                "Frizz Hair Curves": {
+                  "cumulativeOffset": true,
+                  "factor": 0.08,
+                  "distance": 0.00034,
+                  "shape": 0.56,
+                  "seed": 4881,
+                  "preserveLength": true
+                },
+                "Hair Curves Noise": {
+                  "cumulativeOffset": true,
+                  "factor": 0.06,
+                  "distance": 0.00028,
+                  "shape": 0.52,
+                  "scale": 30.0,
+                  "scaleAlongCurve": 2.0,
+                  "offsetPerCurve": 0.32,
+                  "seed": 4882,
+                  "preserveLength": true
+                },
+                "Set Hair Curve Profile": {
+                  "replaceRadius": false,
+                  "radius": 1.0,
+                  "shape": 0.58,
+                  "factorMin": 0.86,
+                  "factorMax": 0.14
+                }
+              },
+              "authoredRadiusAttributePreserved": true,
+              "childrenPerGuide": 2,
+              "rootJitterRadius": 0.00072,
+              "rootClearance": 0.0008,
+              "strandRadius": 0.00011,
+              "runtimeGeometryType": "SURFACE_ORIENTED_TAPERED_HAIR_CARDS",
+              "runtimeCardCount": 336,
+              "crossCardLayers": 2,
+              "rootUnderlayerCardCount": 0,
+              "rootUnderlayerRows": 0,
+              "rootUnderlayerSegments": 0,
+              "rootUnderlayerPolicy": "OMITTED_DENSE_GUIDE_FIELD_OWNS_SCALP_COVERAGE",
+              "runtimeCardHalfWidthMin": 2.8511798614636066e-06,
+              "runtimeCardHalfWidthMax": 0.000669907054412212,
+              "runtimeTipWidthRatio": 0.13,
+              "runtimeTipTaperExponent": 0.58,
+              "runtimeRootWidthRatio": 0.05,
+              "runtimeRootTaperLength": 0.24,
+              "runtimeTriangleCount": 4032,
+              "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
+            }
           }
         },
         "SK_Hair_CurlyCoiled": {
@@ -131,24 +509,119 @@
             "targetTop": 0.522,
             "depthAxisReversed": true
           }
+        }
+      }
+    },
+    "localAuthoredHair": {
+      "SK_Hair_Long": {
+        "route": "PROJECT_AUTHORED_EXACT_HEAD_TAPERED_STRANDS",
+        "sourceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+        "license": "PROJECT_ORIGINAL",
+        "geometryPolicy": "EXACT_HEAD_UV_ATTACHED_GUIDES_INTERPOLATED_AND_BAKED",
+        "authoredGuideCount": 2338,
+        "guideFamilies": {
+          "hairline": 102,
+          "crown": 2230,
+          "partBridge": 108,
+          "behindEarTransition": 1190,
+          "rearLength": 1040
         },
-        "SK_Hair_Long": {
-          "route": "ISSUE448_PROJECT_GENERATED_TECHNICALIZED_SOURCE",
-          "issue": 448,
-          "assetId": "masc-shoulder-loose",
-          "providerTaskId": "fae1622b",
-          "path": "H:/Projects/AI_Tools_And_Information/The-Nexus-asset-intake/SoulDrifter/issue-448/technicalized-pilots/hair-library-v001/sd-hair-masc-shoulder-loose-technicalized-v001.glb",
-          "sha256": "416F65B4D0EA1F13635B42F51ECE8E615A2AB3548E07F088BD2E5495DAC74393",
-          "license": "NOT_RECORDED_DO_NOT_INFER",
-          "oldHeadFitPolicy": "NON_PROMOTABLE_NOT_IMPORTED",
-          "trimmedDetachedLowVertexCount": 0,
-          "newFit": {
-            "lateralScale": 0.105,
-            "depthScale": 0.13,
-            "verticalScale": 0.3,
-            "targetTop": 0.52,
-            "depthAxisReversed": true
-          }
+        "partHalfWidthDegrees": 1.6071428571428572,
+        "rootGrid": {
+          "rings": 20,
+          "segments": 112
+        },
+        "skippedPartRoots": 0,
+        "skippedHairlineRoots": 10,
+        "skippedSurfaceRays": 0,
+        "runtimeMaterial": "MAT_HumanHair_Tintable_Long",
+        "visualReferencePacket": {
+          "lockedAt": "2026-08-29",
+          "usage": "VISUAL_PROPORTION_REFERENCE_ONLY_NOT_DERIVATIVE_TEXTURE_OR_GEOMETRY",
+          "licenseNote": "Reference pixels are not packed into or copied by the runtime asset.",
+          "targets": [
+            {
+              "view": "FRONT_NEAR_ORTHOGRAPHIC",
+              "author": "Vanessa Pozos",
+              "sourcePage": "https://www.pexels.com/photo/portrait-of-a-woman-with-straight-black-hair-14939174/",
+              "directUrl": "https://images.pexels.com/photos/14939174/pexels-photo-14939174.jpeg?auto=compress&dpr=1&h=1800&w=1800",
+              "license": "Pexels License",
+              "licenseUrl": "https://www.pexels.com/license/",
+              "localEvidence": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-reference-packet-v001/front-pexels-14939174.jpg",
+              "sha256": "CB3F976D0AD35A14FC557EF1B7E5A3334BE8052D1ABD82604CE0A6DE38BF3BAA",
+              "designRead": "hair-thin slightly irregular centre part; softly rounded hairline; temple layers clear the eyes and cheeks"
+            },
+            {
+              "view": "PROFILE",
+              "author": "VladislaVa Petihachna",
+              "sourcePage": "https://www.pexels.com/photo/portrait-of-young-woman-with-long-hair-in-studio-30637384/",
+              "directUrl": "https://images.pexels.com/photos/30637384/pexels-photo-30637384.jpeg?auto=compress&dpr=1&h=1800&w=1800",
+              "license": "Pexels License",
+              "licenseUrl": "https://www.pexels.com/license/",
+              "localEvidence": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-reference-packet-v001/profile-pexels-30637384.jpg",
+              "sha256": "6B8B79ABFA770CA846721176340DB5F7E17C25C8FAF938B5F01051992914CB68",
+              "designRead": "rounded crown volume; layered temple flow behind the cheek; free length clears the neck before falling"
+            },
+            {
+              "view": "REAR",
+              "author": "Alex Neman",
+              "sourcePage": "https://commons.wikimedia.org/wiki/File:Woman_with_long,_straight_light_brown_hair_from_behind.jpg",
+              "directUrl": "https://upload.wikimedia.org/wikipedia/commons/4/41/Woman_with_long%2C_straight_light_brown_hair_from_behind.jpg",
+              "license": "CC BY-SA 4.0",
+              "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "localEvidence": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-reference-packet-v001/rear-wikimedia-alex-neman.jpg",
+              "sha256": "E47062CD223172431ED5A1DE35F7C0696D440594BD45EF7C346F94846F92DA87",
+              "designRead": "continuous rear crown coverage; overlapping vertical layers; softly varied tapered hem rather than a blunt curtain"
+            },
+            {
+              "view": "SUPPLEMENTAL_THREE_QUARTER_HAIRLINE",
+              "author": "Ketut Subiyanto",
+              "sourcePage": "https://www.pexels.com/photo/portrait-of-woman-4584062/",
+              "directUrl": "https://images.pexels.com/photos/4584062/pexels-photo-4584062.jpeg?auto=compress&dpr=1&h=1800&w=1800",
+              "license": "Pexels License",
+              "licenseUrl": "https://www.pexels.com/license/",
+              "localEvidence": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-reference-packet-v001/supplemental-three-quarter-pexels-4584062.jpg",
+              "sha256": "DE314A89DBD7101D1E9E08FF703293C132EE9BB62EC07BB9AADD03AB293930FB",
+              "designRead": "irregular baby-hair edge; narrow part; ear-visible temple clearance; natural asymmetric strand grouping"
+            }
+          ]
+        },
+        "groom": {
+          "authoringSystem": "BLENDER_SURFACE_ATTACHED_HAIR_CURVES",
+          "nodeAssetPath": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+          "nodeAssetSha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+          "surfaceHeadSha256": "5DB5DB3B28802F604E87449CF41B5852F3454800E1520CB1C3685836796242B8",
+          "surfaceUvMap": "UVMap",
+          "rootAttachment": "ATTACH_HAIR_CURVES_TO_SURFACE_SNAP_AND_ALIGN",
+          "guideCount": 2338,
+          "guidePointCountMin": 8,
+          "childRootCount": 7010,
+          "interpolatedCurveCount": 7010,
+          "interpolatedPointCountMin": 8,
+          "interpolationEngine": "BLENDER_GEOMETRY_NODE_INTERPOLATE_CURVES",
+          "officialProceduralHairAssetLibrary": "H:/CodexData/souldrifter-toolchain/blender/blender-5.2.1-windows-x64/5.2/datafiles/assets/nodes/procedural_hair_node_assets.blend",
+          "officialProceduralHairAssetLibrarySha256": "B69D8BD8975B9DB7F89693F8F19DD7FCB241F5A3786D2EDFB0A243E91C1109BB",
+          "officialProceduralHairNodeSettings": {},
+          "authoredRadiusAttributePreserved": true,
+          "childrenPerGuide": 3,
+          "rootJitterRadius": 0.0017,
+          "rootClearance": 0.0008,
+          "strandRadius": 0.000115,
+          "runtimeGeometryType": "SURFACE_ORIENTED_TAPERED_HAIR_CARDS",
+          "runtimeCardCount": 7010,
+          "crossCardLayers": 1,
+          "rootUnderlayerCardCount": 0,
+          "rootUnderlayerRows": 0,
+          "rootUnderlayerSegments": 0,
+          "rootUnderlayerPolicy": "OMITTED_DENSE_GUIDE_FIELD_OWNS_SCALP_COVERAGE",
+          "runtimeCardHalfWidthMin": 1.9018125000000002e-06,
+          "runtimeCardHalfWidthMax": 0.0022201438679957243,
+          "runtimeTipWidthRatio": 0.045,
+          "runtimeTipTaperExponent": 0.62,
+          "runtimeRootWidthRatio": 0.58,
+          "runtimeRootTaperLength": 0.16,
+          "runtimeTriangleCount": 116834,
+          "conversionStep": "EVALUATED_INTERPOLATED_HAIR_CURVES_TO_SURFACE_ORIENTED_RUNTIME_CARDS"
         }
       }
     }
@@ -158,14 +631,7 @@
     "rootBone": "mixamorig:Hips",
     "boneCount": 65,
     "materialFamily": "MAT_HumanHair_Tintable",
-    "moduleNames": [
-      "SK_Hair_Cropped",
-      "SK_Hair_Parted",
-      "SK_Hair_CurlyCoiled",
-      "SK_Hair_TiedBack",
-      "SK_Hair_Braided",
-      "SK_FacialHair_Moustache"
-    ],
+    "moduleNames": [],
     "requiredModuleNames": [
       "SK_Hair_Cropped",
       "SK_Hair_Parted",
@@ -180,8 +646,14 @@
       "SK_FacialHair_FullBeard"
     ],
     "withheldModules": {
-      "SK_Hair_Long": "source part exposes a visible scalp strip",
+      "SK_Hair_Cropped": "owner live review revoked the prior approval; source fit/material must be rebuilt and re-proven against the exact head",
+      "SK_Hair_Parted": "owner live review revoked the prior approval; current rigid cap/hairline fit is not production acceptable",
+      "SK_Hair_CurlyCoiled": "owner live review found a bright exposed forehead band and underlay seam",
+      "SK_Hair_Long": "new exact-head strand candidate remains under front/side/rear/collision QA",
+      "SK_Hair_TiedBack": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
+      "SK_Hair_Braided": "owner live review found a glossy rigid cap plus ear/neck/body penetration",
       "SK_FacialHair_Stubble": "candidate reads as patchy bulk instead of surface stubble",
+      "SK_FacialHair_Moustache": "owner live review found the prior moustache floating and misfitted",
       "SK_FacialHair_Goatee": "candidate projects as a detached chin shelf",
       "SK_FacialHair_ShortBeard": "candidate does not yet follow the jaw silhouette",
       "SK_FacialHair_FullBeard": "candidate does not yet follow the jaw silhouette"
@@ -204,129 +676,7 @@
       "full-beard"
     ]
   },
-  "modules": {
-    "SK_Hair_Cropped": {
-      "vertices": 10504,
-      "triangles": 6000,
-      "materials": [
-        "MAT_HumanHair_Tintable_Cropped_00"
-      ],
-      "bounds": {
-        "min": [
-          -0.051943,
-          0.4156,
-          -0.049661
-        ],
-        "max": [
-          0.055943,
-          0.516,
-          0.049661
-        ]
-      },
-      "headWeightVertexCount": 10504
-    },
-    "SK_Hair_Parted": {
-      "vertices": 865,
-      "triangles": 1050,
-      "materials": [
-        "MAT_HumanHair_Tintable_Parted"
-      ],
-      "bounds": {
-        "min": [
-          -0.054134,
-          0.425988,
-          -0.042914
-        ],
-        "max": [
-          0.043891,
-          0.512,
-          0.042358
-        ]
-      },
-      "headWeightVertexCount": 865
-    },
-    "SK_Hair_CurlyCoiled": {
-      "vertices": 12973,
-      "triangles": 7023,
-      "materials": [
-        "MAT_HumanHair_Tintable_CurlyCoiled_00",
-        "MAT_HumanScalp_Underlay_Tintable"
-      ],
-      "bounds": {
-        "min": [
-          -0.053518,
-          0.415544,
-          -0.053407
-        ],
-        "max": [
-          0.056019,
-          0.522,
-          0.053407
-        ]
-      },
-      "headWeightVertexCount": 12973
-    },
-    "SK_Hair_TiedBack": {
-      "vertices": 3718,
-      "triangles": 5352,
-      "materials": [
-        "MAT_HumanHair_Tintable_TiedBack"
-      ],
-      "bounds": {
-        "min": [
-          -0.099321,
-          0.315203,
-          -0.042672
-        ],
-        "max": [
-          0.038014,
-          0.515,
-          0.041513
-        ]
-      },
-      "headWeightVertexCount": 3718
-    },
-    "SK_Hair_Braided": {
-      "vertices": 4493,
-      "triangles": 5518,
-      "materials": [
-        "MAT_HumanHair_Tintable_Braided"
-      ],
-      "bounds": {
-        "min": [
-          -0.09012,
-          0.186073,
-          -0.052601
-        ],
-        "max": [
-          0.052064,
-          0.515,
-          0.051374
-        ]
-      },
-      "headWeightVertexCount": 4493
-    },
-    "SK_FacialHair_Moustache": {
-      "vertices": 342,
-      "triangles": 228,
-      "materials": [
-        "MAT_HumanHair_Tintable_Facial_Moustache"
-      ],
-      "bounds": {
-        "min": [
-          0.046906,
-          0.394508,
-          -0.024084
-        ],
-        "max": [
-          0.063479,
-          0.405,
-          0.024084
-        ]
-      },
-      "headWeightVertexCount": 342
-    }
-  },
+  "modules": {},
   "validation": {
     "status": "PASS",
     "moduleNamesExact": true,
@@ -340,15 +690,8 @@
   },
   "freshImport": {
     "status": "PASS",
-    "meshCount": 6,
-    "moduleNames": [
-      "SK_FacialHair_Moustache",
-      "SK_Hair_Braided",
-      "SK_Hair_Cropped",
-      "SK_Hair_CurlyCoiled",
-      "SK_Hair_Parted",
-      "SK_Hair_TiedBack"
-    ],
+    "meshCount": 0,
+    "moduleNames": [],
     "boneCount": 65,
     "rootBones": [
       "mixamorig:Hips"
@@ -357,144 +700,34 @@
     "approvalMetadataRoundTrips": true
   },
   "evidence": {
-    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six",
-    "smoke": false,
+    "root": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close",
+    "smoke": true,
+    "hairTint": "dark",
+    "clay": false,
+    "workbenchMaterial": false,
+    "skinPreviewMode": "IMPORTED_SOURCE_PBR_MATERIAL_UNCHANGED",
+    "view": "crown-hairline-close",
     "modules": {
       "SK_Hair_Cropped": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Cropped/turntable/frame-11.png"
-        ]
-      },
-      "SK_Hair_Parted": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Parted/turntable/frame-11.png"
-        ]
-      },
-      "SK_Hair_CurlyCoiled": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_CurlyCoiled/turntable/frame-11.png"
-        ]
-      },
-      "SK_Hair_TiedBack": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_TiedBack/turntable/frame-11.png"
-        ]
-      },
-      "SK_Hair_Braided": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_Hair_Braided/turntable/frame-11.png"
-        ]
-      },
-      "SK_FacialHair_Moustache": {
-        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/front.png",
-        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/side.png",
-        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/rear.png",
-        "turntableFrameCount": 12,
-        "turntableFrames": [
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-00.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-01.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-02.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-03.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-04.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-05.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-06.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-07.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-08.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-09.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-10.png",
-          "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v28-approved-six/SK_FacialHair_Moustache/turntable/frame-11.png"
-        ]
+        "front": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/front.png",
+        "side": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/side.png",
+        "rear": "H:/CodexData/souldrifter-toolchain/evidence/487/modular-appearance-v212-cropped-official-zones-close/SK_Hair_Cropped/rear.png",
+        "turntableFrameCount": 0,
+        "turntableFrames": []
       }
     }
   },
   "output": {
     "path": "H:/CodexData/.codex/worktrees/487/The-Nexus-human-animation-pilot/Arianus-Sky/projects/games/SoulDrifterWeb/public/assets/3d/characters/human-foundation-pilot/human-foundation-pilot-modular-appearance.glb",
-    "bytes": 17181616,
-    "sha256": "0AFE36C4C710BB93EA082E1257816F15F559D42A5BBAA12ED0E2D1999E08CF65"
+    "bytes": 21816,
+    "sha256": "A9D1EAEB6D2489138B49C90A2BC87DF9AE9C2818A42A1FF3F18069E37802DE6A"
   },
   "runtimeNotes": [
     "Shaved-buzzed remains the zero-volume baseline and is not duplicated.",
-    "All modules remain separate from skin and carry tintable material metadata.",
-    "All vertices are rigidly weighted to mixamorig:Head on the canonical 65-bone pilot.",
-    "Long, tied-back, and braided secondary motion remains a runtime spring-bone follow-up.",
-    "Only individually visual-QA-cleared modules are embedded; rejected candidates fail closed.",
-    "Cropped and CurlyCoiled use independently refitted issue448 technicalized source geometry.",
-    "CurlyCoiled includes a skin-tint-channel scalp underlay beneath the retained source curl clumps.",
-    "SK_Hair_Parted currently reads as a slicked-back short style and should use that creator label."
+    "Clean-shaven remains the zero-volume facial-hair baseline and is not duplicated.",
+    "No modular appearance mesh is embedded while the owner-rejected set is quarantined.",
+    "The canonical 65-bone armature is retained so the fail-closed artifact preserves its runtime contract.",
+    "Replacement candidates must pass exact-head fit, material, tint, greying, collision, and deformation QA before promotion.",
+    "Hair and facial-hair candidates remain separate from skin and are not creator-selectable until promoted."
   ]
 }
