@@ -25,6 +25,7 @@ import {
   solveBreachlingSpitVelocity,
 } from "./breach-v2-breachling-mouths";
 import {
+  acidPoolScaleForGob,
   createBreachlingAcidPool,
   createBreachlingAcidResources,
   createBreachlingAcidSplash,
@@ -241,7 +242,10 @@ interface AcidProjectile {
   elapsedSeconds: number;
   remainingSeconds: number;
   floorY: number;
+  /** Contact body radius: what the player-capsule and floor tests sweep. */
   gobRadius: number;
+  /** Visible rope calibre: what the splash and pool are sized off. */
+  ropeRadius: number;
   actorId: string;
   tier: BreachlingTier;
   landed: boolean;
@@ -536,13 +540,18 @@ export function createBreachV2BreachlingRuntime(
       resources: acidResources, scale: 1, gapeMeters: mouth.gapeMeters,
       seed: actor.placement.id.length * 2654435761 + projectiles.length,
       name: actor.placement.id + ":acid-spit",
+      // Strands that let go of the rope land on this room's own floor.
+      floorMeters: floorY,
+      gravityMetersPerSecondSquared: BREACHLING_SPIT_GRAVITY,
     });
     stream.head.position.copy(origin);
     scene.add(stream.head);
     scene.add(stream.root);
+    scene.add(stream.drips);
     projectiles.push({
       stream, origin: origin.clone(), velocity, position: origin.clone(),
-      elapsedSeconds: 0, remainingSeconds: 3, floorY, gobRadius: stream.headRadiusMeters,
+      elapsedSeconds: 0, remainingSeconds: 3, floorY,
+      gobRadius: stream.headRadiusMeters, ropeRadius: stream.ropeRadiusMeters,
       actorId: actor.placement.id, tier: actor.placement.tier, landed: false,
     });
   };
@@ -566,7 +575,7 @@ export function createBreachV2BreachlingRuntime(
     let pool: BreachlingAcidPool | null = null;
     if (onFloor) {
       pool = createBreachlingAcidPool({
-        resources: acidResources, scale: Math.max(1e-3, projectile.gobRadius / 0.03),
+        resources: acidResources, scale: acidPoolScaleForGob(projectile.gobRadius),
         seed: projectile.actorId.length * 2246822519 + residues.length,
       });
       pool.root.name = projectile.actorId + ":acid-pool";
@@ -620,7 +629,7 @@ export function createBreachV2BreachlingRuntime(
         // The trail samples the same arc a fixed step behind, in seconds.
         const trailSpan = Math.max(0.28, projectile.elapsedSeconds);
         projectile.stream.setTrail(projectile.elapsedSeconds / trailSpan,
-          (u) => acidPointAt(projectile, u * trailSpan));
+          (u) => acidPointAt(projectile, u * trailSpan), projectile.elapsedSeconds);
         const playerDistance = Math.hypot(projectile.position.x - latestPlayer.x, projectile.position.z - latestPlayer.z);
         const withinPlayerSpan = projectile.position.y >= projectile.floorY
           && projectile.position.y <= projectile.floorY + BREACHLING_SPIT_PLAYER_HEIGHT_METERS;

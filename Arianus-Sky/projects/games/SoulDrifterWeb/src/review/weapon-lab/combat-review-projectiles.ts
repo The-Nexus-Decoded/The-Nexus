@@ -7,7 +7,7 @@ import { createReviewImpactAttachment, type ReviewImpactAttachment } from "./com
 import type { ReviewActorAdapter, ReviewEvent, ReviewProjectileFlight } from "./combat-review-types";
 import { composerPackForDefinition } from "./composer-pack-lookup";
 import type { ComposerSpitMouth } from "./composer-mob-packs";
-import { createBreachlingAcidResources, createBreachlingAcidSplash, createBreachlingAcidStream,
+import { acidPoolScaleForGob, createBreachlingAcidResources, createBreachlingAcidSplash, createBreachlingAcidStream,
   createBreachlingAcidPool, type BreachlingAcidResources, type BreachlingAcidPool,
   type BreachlingAcidSplash, type BreachlingAcidStream } from "../../game/vfx/breachling-acid-vfx";
 import { acidResponsePlan, createAcidVictimMark, type AcidResponsePlan,
@@ -248,13 +248,18 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
           acidResources ??= createBreachlingAcidResources();
           const stream = createBreachlingAcidStream({ resources: acidResources, scale: 1,
             gapeMeters: authored.gapeMeters, seed: reviewAcidSeed(actor.instanceId),
-            name: `review-acid-spit:${actor.definitionId}` });
+            name: `review-acid-spit:${actor.definitionId}`,
+            // Strands that sag off the rope and let go land on the attacker's own
+            // floor plane, the same plane the pool below is placed on.
+            floorMeters: actor.root.getWorldPosition(new THREE.Vector3()).y,
+            gravityMetersPerSecondSquared: SPIT_GRAVITY_METERS_PER_SECOND_SQUARED });
           const visual = stream.head;
           visual.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
           root.add(visual);
           streams.push({ stream, flight: description });
           resources.push(stream);
-          if (context) root.add(stream.root);
+          // Trail and drips are presentation only; the headless sweep gets neither.
+          if (context) { root.add(stream.root); root.add(stream.drips); }
           add(description, visual, visual.quaternion.clone());
         } else {
           // Procedural wet-fluid VFX; the mouth aperture bounds its initial size.
@@ -327,7 +332,7 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
       if (sampleReviewProjectileFlight(entry.flight, seconds, point).y <= floorY) {
         acidPoolSeconds = seconds;
         acidPool = createBreachlingAcidPool({ resources: acidResources,
-          scale: Math.max(1e-3, entry.stream.headRadiusMeters / 0.03),
+          scale: acidPoolScaleForGob(entry.stream.headRadiusMeters),
           seed: reviewAcidSeed(actor.instanceId + ":pool") });
         acidPool.root.position.set(point.x, floorY, point.z);
         root.add(acidPool.root);
@@ -387,7 +392,8 @@ export function createReviewProjectiles(actor: ReviewActorAdapter, actionId: str
           entry.stream.setVisible(row.visual.visible && !impacted);
           if (row.visual.visible && !impacted) {
             entry.stream.setTrail(Math.max(0, Math.min(1, (headTime - row.flight.releaseSeconds) / span)),
-              (u) => sampleReviewProjectileFlight(row.flight, row.flight.releaseSeconds + u * span));
+              (u) => sampleReviewProjectileFlight(row.flight, row.flight.releaseSeconds + u * span),
+              Math.max(0, headTime - row.flight.releaseSeconds));
           }
         }
       }
