@@ -112,9 +112,14 @@ describe("Cinderbound Warden attack effects", () => {
     // Never the old fixed 0.48 fraction for every clip.
     const fractions = Object.values(CINDERBOUND_WARDEN_EFFECT_TIMELINES).map((timeline) => timeline.impactFrame / timeline.specFrames);
     expect(new Set(fractions.map((fraction) => fraction.toFixed(3))).size).toBeGreaterThan(1);
-    expect(fractions.every((fraction) => Math.abs(fraction - 0.48) > 0.05)).toBe(true);
+    // (BladeSweep contacts at plan frame 31 of 60, which happens to sit near 0.48; the guard is
+    // that the fractions are not one blanket value, not that every clip avoids that number)
+    expect(fractions.filter((fraction) => Math.abs(fraction - 0.48) <= 0.05).length).toBeLessThanOrEqual(1);
+    expect(CINDERBOUND_WARDEN_EFFECT_TIMELINES.BladeSweep.impactFrame).toBe(31);
+    expect(CINDERBOUND_WARDEN_EFFECT_TIMELINES.BladeSweep.recovery.until).toBe("guard-return");
     expect(isCinderboundWardenEffectClip("PalmFire")).toBe(true);
-    expect(isCinderboundWardenEffectClip("BladeSweep")).toBe(false);
+    expect(isCinderboundWardenEffectClip("BladeSweep")).toBe(true);
+    expect(isCinderboundWardenEffectClip("HeavyWalk")).toBe(false);
     expect(() => cinderboundWardenEffectSeconds("PalmFire", 0)).toThrow();
   });
 

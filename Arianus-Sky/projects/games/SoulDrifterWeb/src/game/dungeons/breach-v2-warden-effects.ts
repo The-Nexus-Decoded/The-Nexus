@@ -28,8 +28,8 @@ import {
  */
 export const CINDERBOUND_WARDEN_EFFECT_FPS = 30;
 
-export type CinderboundWardenEffectClip = "PalmFire" | "CinderSweep" | "AshCall" | "SoulTax" | "FurnaceShutdown";
-export type CinderboundWardenEffectId = "palm-fire" | "cinder-sweep" | "ash-call" | "soul-tax" | "furnace-shutdown";
+export type CinderboundWardenEffectClip = "PalmFire" | "CinderSweep" | "AshCall" | "SoulTax" | "FurnaceShutdown" | "BladeSweep";
+export type CinderboundWardenEffectId = "palm-fire" | "cinder-sweep" | "ash-call" | "soul-tax" | "furnace-shutdown" | "blade-sweep";
 export type CinderboundWardenEffectPhase = "telegraph" | "active" | "recovery";
 export type CinderboundWardenEffectEventPhase = CinderboundWardenEffectPhase | "impact" | "end";
 
@@ -65,6 +65,16 @@ export const CINDERBOUND_WARDEN_EFFECT_TIMELINES: Readonly<Record<CinderboundWar
     active: { from: "fire-release", startFrame: 52, until: "lower-aperture", endFrame: 78 },
     impactFrame: 52,
     recovery: { from: "lower-aperture", startFrame: 78, until: "guard-return", endFrame: 90 },
+    lingerSeconds: 0,
+  },
+  BladeSweep: {
+    clip: "BladeSweep",
+    effect: "blade-sweep",
+    specFrames: 60,
+    telegraph: { from: "anticipation", startFrame: 8, until: "step", endFrame: 22 },
+    active: { from: "step", startFrame: 22, until: "follow-through", endFrame: 40 },
+    impactFrame: 31,
+    recovery: { from: "follow-through", startFrame: 40, until: "guard-return", endFrame: 60 },
     lingerSeconds: 0,
   },
   CinderSweep: {
@@ -378,6 +388,13 @@ export function createCinderboundWardenEffectSystem(
         const angle = Math.acos(THREE.MathUtils.clamp(scratch.delta.divideScalar(distance).dot(forward), -1, 1));
         return angle <= CINDERBOUND_WARDEN_SWEEP_HALF_ARC_RADIANS;
       }
+      case "blade-sweep": {
+        // quick melee: blade reach in front of the boss, a narrower arc than the cinder wave
+        if (distance < 0.05 || distance > 2.4 * scale) return false;
+        const forward = actorForward(scratch.forward);
+        const angle = Math.acos(THREE.MathUtils.clamp(scratch.delta.divideScalar(distance).dot(forward), -1, 1));
+        return angle <= THREE.MathUtils.degToRad(50);
+      }
       case "ash-call":
         return distance <= ashVisual().burstRadiusMeters;
       case "soul-tax":
@@ -461,9 +478,15 @@ export function createCinderboundWardenEffectSystem(
     // Keep the arc growing in the sweep direction (never fold back past the start).
     while (endAngle < startAngle - Math.PI) endAngle += Math.PI * 2;
     while (endAngle > startAngle + Math.PI) endAngle -= Math.PI * 2;
-    if (Math.abs(endAngle - startAngle) < 0.08) endAngle = startAngle + 0.08 * Math.sign(endAngle - startAngle || 1);
     const telegraph = inWindow(now, seconds.telegraph) ? windowProgress(now, seconds.telegraph) : 0;
     const activeProgress = windowProgress(now, seconds.active);
+    // The wave always covers at least the authored sweep arc for the elapsed part of
+    // the window, so a clip whose blade lags (or a scrubbed frame) still shows the
+    // area the attack claims; a faster blade extends it further.
+    const authoredSpan = 2 * CINDERBOUND_WARDEN_SWEEP_HALF_ARC_RADIANS * Math.min(1, activeProgress * 1.35);
+    const sweepDirection = Math.sign(endAngle - startAngle || 1);
+    if (Math.abs(endAngle - startAngle) < authoredSpan) endAngle = startAngle + authoredSpan * sweepDirection;
+    if (Math.abs(endAngle - startAngle) < 0.08) endAngle = startAngle + 0.08 * sweepDirection;
     const wave = inWindow(now, seconds.active) ? Math.min(1, activeProgress * 4) * (1 - Math.max(0, activeProgress - 0.7) / 0.3) : 0;
     const scorchProgress = now >= seconds.impact ? 1 : 0;
     visual.setArc(scratch.floor, startAngle, endAngle);
@@ -478,6 +501,38 @@ export function createCinderboundWardenEffectSystem(
     if (crossed(state, seconds.active[1], now, frame)) emit(state, "end", frame, scratch.tip, false);
     current = {
       effect: "cinder-sweep",
+      clip: state.clip,
+      phase: now < seconds.active[0] ? "telegraph" : now < seconds.active[1] ? "active" : "recovery",
+      progress: now < seconds.active[0] ? telegraph : now < seconds.active[1] ? activeProgress : windowProgress(now, seconds.recovery),
+      origin: toTuple(scratch.tip),
+      end: toTuple(scratch.floor),
+      lingering: false,
+    };
+  };
+
+  const evaluateBladeSweep = (state: ClipState, frame: CinderboundWardenEffectFrame, seconds: CinderboundWardenEffectSeconds): void => {
+    // Quick melee: the blade heats through the wind-up and trails fire through the
+    // swing; no ground wave (that is CinderSweep) and no scorch residue.
+    const visual = sweepVisual();
+    const now = frame.clipTimeSeconds;
+    actorFloor(scratch.floor);
+    bladeTip(scratch.tip);
+    const facing = Math.atan2(actorForward(scratch.forward).x, scratch.forward.z);
+    const telegraph = inWindow(now, seconds.telegraph) ? 0.3 + 0.7 * windowProgress(now, seconds.telegraph) : 0;
+    const activeProgress = windowProgress(now, seconds.active);
+    const swing = inWindow(now, seconds.active) ? 1 - Math.max(0, activeProgress - 0.75) / 0.25 : 0;
+    visual.setArc(scratch.floor, facing, facing + 0.08);
+    visual.setBladeGlow(scratch.tip, Math.max(telegraph, swing));
+    visual.setWave(0);
+    visual.setScorch(0, 0);
+    visual.setTime(wallSeconds);
+    furnaceFactor = 1 + telegraph * 0.2;
+    if (crossed(state, seconds.telegraph[0], now, frame)) emit(state, "telegraph", frame, scratch.tip, false);
+    if (crossed(state, seconds.active[0], now, frame)) emit(state, "active", frame, scratch.tip, false);
+    if (crossed(state, seconds.impact, now, frame)) emit(state, "impact", frame, scratch.tip, hitTest("blade-sweep", frame, scratch.tip));
+    if (crossed(state, seconds.active[1], now, frame)) emit(state, "end", frame, scratch.tip, false);
+    current = {
+      effect: "blade-sweep",
       clip: state.clip,
       phase: now < seconds.active[0] ? "telegraph" : now < seconds.active[1] ? "active" : "recovery",
       progress: now < seconds.active[0] ? telegraph : now < seconds.active[1] ? activeProgress : windowProgress(now, seconds.recovery),
@@ -683,6 +738,7 @@ export function createCinderboundWardenEffectSystem(
       switch (clipState.clip) {
         case "PalmFire": evaluatePalmFire(clipState, frame, seconds); break;
         case "CinderSweep": evaluateCinderSweep(clipState, frame, seconds); break;
+        case "BladeSweep": evaluateBladeSweep(clipState, frame, seconds); break;
         case "AshCall": evaluateAshCall(clipState, frame, seconds); break;
         case "SoulTax": evaluateSoulTax(clipState, frame, seconds); break;
         case "FurnaceShutdown": evaluateFurnaceShutdown(clipState, frame, seconds); break;

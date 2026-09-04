@@ -737,7 +737,8 @@ export function createWardenAshRingVisual(
     burstRing.position.copy(center).setY(center.y + 0.05);
     burstRing.scale.setScalar(radius);
     burstRing.visible = burst > 0.001;
-    const wallHeight = (0.35 + 0.45 * (1 - burstProgress)) * scale;
+    // a 3.6 m boss needs a wall the player reads at a glance: shin-to-hip height that settles as the burst spreads
+    const wallHeight = (0.9 + 0.9 * (1 - burstProgress)) * scale;
     wall.position.copy(center).setY(center.y + wallHeight / 2);
     wall.scale.set(radius, wallHeight, radius);
     setUniform(wallMaterial, "uStrength", burst * 0.8);
