@@ -57,9 +57,28 @@ Spec: attack-plan `PalmFire` "Left-aperture fire projection", `handTargets.hand_
 on frames 12 to 78; owner: "there is supposed to be graphics and fire effects
 from things like the hand attack; it should be a SOLID BEAM".
 
-* Origin: `hand_L` world position. Palm forward axis = normalize(`hand_L` −
-  `lower_arm_L`); it orients the palm ring and the palm light. If the rig has no
-  hand the body centre and facing are used.
+* Origin: the emitter port at the palm centre, a constant in the `hand_L` bone
+  local frame (`CINDERBOUND_WARDEN_PALM_RIGS`), pushed clear of the palm surface
+  so the beam is born outside the shell. Forward axis = the measured PALM NORMAL
+  in that same frame, not the forearm. If the rig has no hand the body centre
+  and facing are used.
+* Repulsor geometry (owner: "his palm goes up so you see the hole where the fire
+  comes from then it fires off so it does not go through his fingers"). This
+  used to aim `normalize(hand_L − lower_arm_L)`, which is the hand bone's own +Y
+  finger axis, so the beam left through the Warden's own hand: 1267 of 4458
+  hand-weighted vertices inside the core at 12 mm clearance on the Wayfarer,
+  1170 of 2984 at 11 mm on the Oathbreaker, on every frame. The bind pose is
+  pronated — the palm faces ACROSS the arm, 91.44° / 90.00° off the forearm —
+  so aiming the arm could never aim the palm.
+* The beam therefore leaves in TWO spans. A fixed 0.34 m muzzle span exits square
+  to the palm normal, then the steering span runs from that muzzle point to the
+  locked target. The pose is baked into the clip while the runtime aims at the
+  live player, so a single port-to-player span swings back across the fingers as
+  the player moves off the review position. The muzzle span is longer than either
+  pack's hand reaches from the port, so the steering span always starts clear.
+* A visible bore sells it: an unlit recess disc behind the port plane, a bright
+  bore in front of it, a machined rim ring and a flare, all coplanar and facing
+  along the palm normal, charging through the telegraph before anything fires.
 * Telegraph (frames 24 → 52): palm glow sprite grows in, a ring tightens onto the
   palm, a thin additive "aim thread" runs from the palm to the current target
   (chest height, floor + 0.85 m) and a palm light rises. The aim tracks the
@@ -75,7 +94,24 @@ from things like the hand attack; it should be a SOLID BEAM".
   The chest furnace light surges 1.4× while the beam is on.
 * Impact event on frame 52 with `hit` = target within 0.9 m (× boss scale) of the
   locked end point.
+* Clearance gate: `tools/measure-palm-repulsor-sweep.mjs` sweeps the target over
+  6 ranges (1.2–12 m) × 5 lateral offsets (±2.2 m) × 3 heights (crouch, chest,
+  jump) on 7 frames of the active window — 630 target positions per clip — and
+  measures both beams as FINITE spans. Result below. The single-span column is
+  what shipped before this pass, and it is the reason the two-span beam exists.
 * Damage: applied through the existing run-controller path (see "Damage").
+
+### Repulsor clearance sweep (630 targets per clip, hand-dominant vertices)
+
+| pack | clip | worst palm-vs-target | single span: verts in core / clearance | two span: verts in core / clearance |
+| --- | --- | --- | --- | --- |
+| Wayfarer v12 | PalmFire | 91.4° | 161 / 0.0011 m | 0 / 0.1203 m |
+| Wayfarer v12 | SoulTax | 104.4° | 218 / 0.0021 m | 0 / 0.1203 m |
+| Oathbreaker v7 | PalmFire | 92.6° | 74 / 0.0438 m | 0 / 0.1919 m |
+
+Worst single-span cases are all at point-blank range with the player jumping:
+1.2 m out, 1.75 m up. That is the geometry that forces the beam widest off the
+palm normal, and it is exactly where a single span cuts through the hand.
 
 ### CinderSweep: arc-shaped fire wave that follows the blade
 
