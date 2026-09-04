@@ -1,166 +1,145 @@
-# SoulDrifter #501 — Full Quest and Progression Framework Kickoff
+# SoulDrifter #501 — Astra-led Heartvale Rework and Quest Framework Kickoff
 
-## Mission
+Version: 2026-09-04 / environment-first-v2
 
-Build the reusable quest and leveling framework before the owner approves the final Heartvale quest names, scripts, details and reward numbers.
+## Mission and latest ordering
+
+Deliver an actual 3D overhaul of the currently mapped Heartvale outdoor section, populate it with fresh Tripo Human quest NPCs and usable existing #456 creature meshes, and implement a small provisional quest loop. Then broaden/harden the reusable quest and leveling framework.
 
 ```text
-framework
--> four-quest Heartvale proof
--> owner content approval
+current-state recovery and spatial plan
+-> #509 outdoor environment reconstruction
+-> #510 new Tripo Human cast + #495 existing creature placement
+-> #459 provisional in-world quest loop using minimum #502/#503/#507 interfaces
+-> integrated 3D review
+-> full reusable quest/progression framework
+-> owner approves final content
 -> full 30-quest Heartvale rollout
 ```
 
-Final content is not required to begin framework implementation. Use generic fixtures and temporary localization keys.
+This supersedes the former framework-first schedule. Final quest names, dialogue and numbers are not blockers. Do not interpret this as permission to create a throwaway duplicate quest engine, overwrite another worker, or mark static meshes as fully animated.
 
----
+## 1. Mandatory catch-up
 
-# 1. Mandatory reading and live state
-
-Use cached fast-start. Read:
+Use cached fast-start; do not reinstall tools merely because the chat is new. Read:
 
 1. `../START_HERE.md`
 2. `../SESSION_FAST_START.md`
 3. `../PROJECT_CANON_INDEX.md`
 4. `../WORKFLOW.md`
-5. `../QUEST_AND_PROGRESSION_FRAMEWORK_RUNBOOK.md`
-6. `../config/quest-progression-framework-policy.json`
-7. `../templates/quest-definition.template.json`
-8. `../templates/quest-instance.template.json`
-9. `../HEARTVALE_LEVELS_2_10_CAMPAIGN_RUNBOOK.md`
-10. `../QUEST_DIALOGUE_VIDEO_POLICY.md`
-11. every governing `AGENTS.md`
-12. root `CLAUDE.md` and Claude transition handoff when using Claude.
+5. `../HEARTVALE_ENVIRONMENT_FIRST_HANDOFF.md` — current production sequencing and source map
+6. `../QUEST_AND_PROGRESSION_FRAMEWORK_RUNBOOK.md`
+7. `../config/quest-progression-framework-policy.json`
+8. `../templates/quest-definition.template.json`
+9. `../templates/quest-instance.template.json`
+10. `../HEARTVALE_LEVELS_2_10_CAMPAIGN_RUNBOOK.md`
+11. `../QUEST_DIALOGUE_VIDEO_POLICY.md`
+12. current zone, topology, staging, collision/interaction/destruction and asset-intake policies
+13. current image/Tripo/animation routing and provenance/spend policies
+14. every governing `AGENTS.md`; root `CLAUDE.md` and Claude transition handoff for Claude workers.
 
-Fetch every current comment and linked PR state for:
+Fetch live issues, all current comments, linked PRs/reviews/heads and affected files for:
 
 ```text
-#501 #502 #503 #504 #505 #506
-#442 #507 #508
+#501 #509 #510
+#452 #453 #454 #455
+#456 #492 #493 #494 #495
 #459 #498 #499 #500
-#443 #451 and PR #460
+#502 #503 #504 #505 #506 #442 #507 #508
+#443 #487 #451 / PR #460
 ```
 
-Inspect actual current First Breach/Heartvale quest-like, tutorial, dialogue, interaction, combat, save, inventory, map, marker, progression and character-sheet code/tests.
+Use role-scoped deep reads after loading the common constraints. Do not omit later owner corrections because an issue body is older. Recover actual local worktree/receipt state, including `.agent-state` or `.planning` where present; do not assume a locally mentioned file was pushed.
 
-Do not trust remembered branches. Discover the current accepted base and each ticket worktree.
+## 2. Find the actual outdoor build
 
----
+Historical source branch: `codex/heartvale-outdoor`.
 
-# 2. Required first response
+Game-root `docs/HEARTVALE_ZONE_TICKETS.md` contains `ZONE-HV-1 — Soul Well Basin` and `ZONE-HV-2 — Anwel & Lockroot Reach`, followed by the other mapped Heartvale subzones. These are named document tasks. Do not invent a numbered original outdoor issue/PR or mistake indoor PR #460 for it.
 
-Before editing, return:
+Read current applicable versions of `server/sections.mjs`, `public/data/zones/heartvale/layout.json`, NPC/creature manifests, `docs/THALENYR_SCALE_AND_SECTIONS.md`, `docs/ZONE_BUILD_RUNBOOK.md` and `docs/REVIEW-2026-08-20-heartvale-hv1-v2.md`. Historical checkpoint `43876e05` is a reference, not a rollback instruction.
 
-1. Session Receipt and Context Receipt.
-2. Current issue/PR/base/branch/worktree/head map.
-3. Existing implementation inventory classified as `REUSE`, `REFACTOR_BEHIND_INTERFACE`, `MIGRATE_CONTENT_ONLY`, `LEGACY_REFERENCE`, `REJECT`, or `OWNER_DECISION_REQUIRED`.
-4. Shared type/interface package proposal.
-5. File-collision and serialization map.
-6. Canonical event catalog.
-7. Quest definition and expression contract.
-8. Runtime lifecycle and objective graph contract.
-9. Award transaction contract with #507.
-10. Persistence/idempotency/migration approach.
-11. Inventory and faction gateway contracts.
-12. UX projection/command contract.
-13. Test/simulation/independent-verification plan.
-14. Exact work that can begin before final Heartvale content approval.
-15. Owner decisions that are truly required now.
+Discover the latest accepted integration base and preserve the old renderable section, all source assets and active branches/worktrees. Verify historical defects against fresh runtime views before claiming they remain unfixed.
 
-No valid receipts means no implementation.
+## 3. Lead model and worker boundaries
 
----
+Requested lead: GPT-6 Astra (`gpt-6-astra`) with `max` reasoning where the host exposes it. Verify actual session/account availability and record the model/effort. A prompt does not set the model. Three.js/browser/mobile remains the runtime.
 
-# 3. Parallel execution plan
+First work sessions:
 
-## Start immediately after interface review
+- #501: lead design/integration orchestration and acceptance.
+- #509: outdoor section reconstruction; reconcile #452–#455 instead of duplicating their work.
+- #510: fresh Human Tripo NPC production, complete quest-cast coverage and placement.
 
-### Lane A — #502
+#495 owns staged existing-creature integration using #492 population and #493 legal sockets; #494 adds verified behavior/motion. #456 remains the producing asset lane and #487 remains the playable-character lane. Do not reset or commandeer either.
 
-Quest definitions, safe expressions, DAG compiler and content lint.
+#502/#503/#507 keep their generic compiler/runtime/reward ownership. Their initial thin interfaces support the early playable loop; their broad implementation follows the environment-first milestone. One worker/concern/worktree/PR; define a serialization owner for shared renderer/map/types.
 
-### Lane B — #503
+## 4. Required first response, then actual work
 
-Runtime lifecycle, quest instances, event router and condition evaluator. Use test doubles until #502 types are accepted.
+Return a bounded Session/Context Receipt containing:
 
-### Lane C — #507
+- actual model/effort and role;
+- repository/base/head/branch/worktree and preservation plan;
+- newest owner direction and policies loaded;
+- current outdoor implementation and historical-vs-current defect ledger;
+- exact #456 mesh/material/rig/clip availability and rejection table with paths/hashes;
+- spatial plan and stable quest/NPC/encounter/cinematic/habitat socket contract;
+- first new Tripo NPC batch and full draft-cast coverage plan;
+- initial provisional quest loop and minimum compiler/state/reward seams;
+- file ownership, verification plan and genuine owner/spend blockers.
 
-Progression kernel, XP curves, atomic award transaction, idempotency and migration.
+After that receipt, proceed with authorized local implementation. Do not stop at documentation or wait for final names, story details or every creature animation. Hold only affected work at genuine access, unresolved destructive changes, missing source or paid-operation gates.
 
-These lanes may run in separate chats/worktrees after the orchestrator publishes the shared contract and confirms nonoverlapping files.
+## 5. Non-negotiable environment and population requirements
 
-## Start second
+- Rework the entire currently authored Heartvale section coherently; build/review Basin -> road/ford -> Anwel -> nearby fields/river first, then remaining mapped section work. Do not silently call the first loop the whole completed section.
+- One accepted master map/world frame; top-down layout and gameplay routes before detailed geometry.
+- Keep the Basin treeless grassland and the Soul Well a shallow silvery machine-like liquid pool, distinct from ordinary river water.
+- Fix actual building/street/landscape/water defects; props before collision walkthrough; population after valid area sockets; recheck collision/nav after population.
+- All local social NPCs/factions are Human. Drakkin/other peoples belong later; player ancestry eligibility is a separate contract.
+- Fresh Tripo visual identity for every distinct quest NPC; recurring actors share their identity, object-only quests need no invented giver. No stock model/capsule delivered as new production cast.
+- Good existing creature meshes may be used as `MESH_ONLY_PREVIEW` without complete motion. Do not use rejected/quarantined assets, restore rejected clips, or claim static placement as full combat/escort readiness.
+- Working First Breach, stable IDs, sources, rollback, browser/mobile and accessible alternate routes are preserved.
 
-- #504 objective adapters
-- #505 persistence/simulator/debug tools
-- #499 inventory reservations/claims
+## 6. Provisional gameplay before broad framework rollout
 
-## Start third
+#459 must put four representative quests into the reconstructed map: rescue/combat, dialogue/map orientation, travel/exploration, and one side task using creatures/gathering/interaction.
 
-- #506 quest UX
-- #508 level-up/character-sheet UX
-- #500 faction/readiness
+Use current usable runtime systems and minimal real #502/#503/#507 contracts, stable IDs, localization keys and isolated test saves. No renderer/UI direct XP mutation, parallel temporary quest engine, or final-canon claim. Required objectives need real completion/retry and one-time reward behavior even when animation polish is limited.
 
-## Integration proof
+The complete framework still requires definition validation, deterministic lifecycle/branching, adapters, coordinated awards, migrations, inventory/claims, factions/readiness, journal/map/dialogue UX, both combat modes, simulations and independent verification. It remains reusable outside Heartvale.
 
-Use #459 only after foundation interfaces pass. Prove four representative quests; do not author all #498 content.
+## 7. Provider and completion gates
 
----
+Verify Studio/API/CLI separately and use the current functioning authorized lane. Read live balances and current exact/scoped approvals. No other ticket's balance snapshot or budget is an automatic spending grant. Serialize provider access, verify staged source/task IDs, reconcile deductions, and stop on unknown charges. No automatic paid retry, credit purchase or subscription change.
 
-# 4. Content-independent requirements
+Required evidence: fresh before/after views, real controller routes, building/water close-ups, terrain/collision/socket overlays, placed models with status ledger, working provisional quest loop, desktop/mobile performance and First Breach regression. Independent producer/verifier sessions; no merge or deployment without owner approval.
 
-- No Heartvale-specific logic in framework classes.
-- Names, prose and localization are data keys.
-- Objective/reward/faction/inventory/map/media references use stable IDs.
-- Both combat modes emit the same quest events.
-- Quest completion does not directly mutate rewards.
-- Every meaningful transition and reward is idempotent.
-- Save definition and mutable instance state separately.
-- Structural content changes require migration rather than silent reset.
-- Full inventory cannot lose or duplicate required items/rewards.
-- UI consumes canonical projections and dispatches validated commands.
-- Debug tools use real runtime APIs and are disabled in production.
-- Future party/server authority seams are specified without delaying the local POC.
-
----
-
-# 5. Hard stops
-
-- Do not wait for final quest names/details to build framework code.
-- Do not hard-code temporary Heartvale prose into services/components.
-- Do not load all 30 Heartvale quests into #459.
-- Do not combine every framework lane into one giant PR.
-- Do not edit another ticket's active worktree.
-- Do not merge or deploy.
-- Do not self-verify producer work.
-- No paid provider task is required or authorized for this framework.
-
----
-
-# 6. Copy/paste orchestrator prompt
+## 8. Copy/paste start
 
 ```text
-Start SoulDrifter issue #501 using:
+Start SoulDrifter #501, environment-first revision.
 
+Load this kickoff from infra/game-production-playbooks:
 Chelestra-Sea/infra/playbooks/game-development/souldrifter-production/
 kickoffs/ISSUE-501-QUEST-PROGRESSION-FRAMEWORK-KICKOFF.md
 
-Read it completely and follow its mandatory live-state list.
-Use cached fast-start and discover the current accepted game base and all
-existing ticket branches/worktrees.
+Read HEARTVALE_ENVIRONMENT_FIRST_HANDOFF.md and follow the live-state list.
+Verify the selected Astra/highest-reasoning setting; do not assume this
+prompt changes the model. Keep Three.js/browser/mobile.
 
-Return the Session Receipt, Context Receipt, implementation audit,
-shared-interface contract, file-collision map, execution lanes and test
-plan before editing.
+Recover codex/heartvale-outdoor, ZONE-HV-1/HV-2 and the complete mapped
+Heartvale section. Coordinate #509 environment, #510 new Human Tripo NPCs,
+and #495 creature integration from the latest usable #456 asset versions.
+Read #452–#455 and #492–#494 before duplicating or replacing any work.
 
-The owner will approve Heartvale quest names, prose and details later.
-Build a content-agnostic, data-driven framework now.
+First deliver the 3D map/building/landscape/water rework, proper placement,
+and a small provisional in-game quest loop. Mesh-only creature previews
+are allowed; rejected assets and fake animation claims are not.
+Use minimum #502/#503/#507 interfaces, then harden the full framework.
 
-First parallel implementation lanes after contract review:
-- #502 quest definition/compiler
-- #503 quest runtime/event engine
-- #507 progression/award kernel
-
-Do not spend, merge, deploy, self-verify or put all 30 Heartvale quests
-into the old #459 branch.
+Return the catch-up receipt and then proceed with authorized local work.
+Final names/story details remain for later owner review.
+No blind resets, unapproved spending, merge or deployment.
 ```
