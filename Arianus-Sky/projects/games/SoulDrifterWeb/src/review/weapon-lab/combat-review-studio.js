@@ -73,7 +73,10 @@ export function createCombatReviewActorLoader(humanFactory, mobLoader = createMo
       }
       const loadoutId = definition.id.slice("human:".length);
       if (!LOADOUTS[loadoutId]) throw new Error("Unknown human review binding.");
-      const actor = await humanFactory.create({ instanceId, loadoutId, mode: "equipment", includeSourceResponses: true });
+      // A special attack lands on the body, so the reaction pack is bound for
+      // every loadout, not per weapon family.
+      const actor = await humanFactory.create({ instanceId, loadoutId, mode: "equipment", includeSourceResponses: true,
+        includeReactionPack: humanFactory.reactionPackAvailable === true });
       if (signal.aborted) { actor.dispose(); throw new DOMException("Actor loading cancelled", "AbortError"); }
       return { actor, calibration: humanCalibration(actor),
         settleConstraints: () => actor.reviewTools.applyTwoHandIK(actor) };

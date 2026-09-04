@@ -6,7 +6,11 @@ import { reviewContactProfile, type ReviewContactProfile } from "./combat-review
 import { ReviewContactSurface } from "./combat-review-contact";
 import { createReviewProjectiles, reviewProjectileBinding, type ReviewProjectiles } from "./combat-review-projectiles";
 import { validateReviewImpactSurface } from "./combat-review-impact-anchor";
-import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewEvent, ReviewProjectileFlight, ReviewSequence, ReviewTrack } from "./combat-review-types";
+import { applyReactionHit, reactionArchetypeForFamily, reactionSetForContact, reactionTimelineEnd,
+  reactionTimelinePhases, retimeReactionPlan, REACTION_SETS,
+  type PlacedReactionPhase, type ReactionSetId, type ReactionTimeline } from "./reaction-contract";
+import { reactionSetDurations } from "./reaction-pack-loader";
+import type { ReviewAction, ReviewActorAdapter, ReviewActorFamily, ReviewDamageType, ReviewEvent, ReviewProjectileFlight, ReviewSequence, ReviewTrack } from "./combat-review-types";
 
 export type CombatSlot = "a" | "b";
 export type CombatActionRole = "action" | "ready" | "reaction" | "death";
@@ -59,6 +63,7 @@ export interface CombatReviewSnapshot {
   readonly error: string | null;
   readonly contact: CombatContactSnapshot;
   readonly reactionPolicy: CombatReactionPolicy;
+  readonly reaction: CombatReactionSnapshot;
   readonly spar: CombatSparSnapshot;
   readonly projectiles: Readonly<{ bound: boolean; flights: readonly ReviewProjectileFlight[]; unavailableReason: string | null }>;
 }
@@ -74,6 +79,20 @@ export interface CombatContactSnapshot {
   readonly severity: CombatContactSeverity | null;
 }
 export type CombatReactionPolicy = "auto" | "manual";
+/**
+ * The defender's live special-reaction state.
+ *
+ * `effectSeconds` is how long the effect lasts, supplied by the caller — a 0.867 s
+ * held beam and a 2.5 s ground residue drive the same asset for different
+ * durations. `timeline` is null whenever the ordinary directional flinch picker
+ * is in charge; `phases` is the timeline already cut for the current cue, so a
+ * panel never has to re-derive it.
+ */
+export interface CombatReactionSnapshot {
+  readonly effectSeconds: number;
+  readonly timeline: ReactionTimeline | null;
+  readonly phases: readonly PlacedReactionPhase[];
+}
 export interface CombatSparRow {
   readonly actionId: string;
   readonly label: string;
@@ -131,6 +150,10 @@ export class CombatReviewController {
   private contactDirection: CombatContactDirection | null = null;
   private contactSeverity: CombatContactSeverity | null = null;
   private reactionPolicy: CombatReactionPolicy = "auto";
+  private reactionTimeline: ReactionTimeline | null = null;
+  // Zero means "one period": the shortest honest hold for an effect whose duration
+  // the caller has not stated. It is never read as "no loop".
+  private effectSeconds = 0;
   private spar: { running: boolean; token: number; attackerDefinitionId: string; defenderDefinitionId: string; rows: CombatSparRow[] } =
     { running: false, token: 0, attackerDefinitionId: "", defenderDefinitionId: "", rows: [] };
   private contactJob: { abort: AbortController; revision: number; sequenceId: string } | null = null;
@@ -171,6 +194,8 @@ export class CombatReviewController {
         result: this.contactResult ? structuredClone(this.contactResult) : null, response: this.contactResponse,
         direction: this.contactDirection, severity: this.contactSeverity },
       reactionPolicy: this.reactionPolicy,
+      reaction: { effectSeconds: this.effectSeconds, timeline: this.reactionTimeline,
+        phases: this.reactionPhases() },
       spar: { running: this.spar.running, attackerDefinitionId: this.spar.attackerDefinitionId,
         defenderDefinitionId: this.spar.defenderDefinitionId, rows: this.spar.rows.map((row) => ({ ...row })) } };
   }
@@ -205,10 +230,86 @@ export class CombatReviewController {
     if (severity === "heavy") { const heavy = sided(/heavy|big|large|strong/i); if (heavy) return heavy; }
     return reactions.find((action) => !/left|right|back|behind|heavy|big|large|strong/i.test(name(action)))?.id ?? reactions[0]!.id;
   }
+  /** Special-reaction set for a measured contact, or null to use the flinch picker. */
+  static reactionSetForContact(damageType: ReviewDamageType | null, severity: CombatContactSeverity | null): ReactionSetId | null {
+    return reactionSetForContact({ damageType, severity });
+  }
   setReactionPolicy(policy: CombatReactionPolicy): void {
     this.assertLive();
     if (policy !== "auto" && policy !== "manual") throw new Error("Unknown reaction policy.");
     this.reactionPolicy = policy; this.revision++; this.emit();
+  }
+  /**
+   * How long the effect lasts, which is what drives the loop — not the clip
+   * length. A live plan is re-quantised in place, so the impact is not replayed
+   * when a reviewer drags the duration.
+   */
+  setEffectSeconds(seconds: number): void {
+    this.assertLive(); finite(seconds, "Effect duration", 0, 120);
+    this.effectSeconds = seconds;
+    if (this.reactionTimeline?.plans.length) {
+      const plans = [...this.reactionTimeline.plans];
+      plans[plans.length - 1] = retimeReactionPlan(plans[plans.length - 1]!, seconds);
+      this.reactionTimeline = { ...this.reactionTimeline, plans: Object.freeze(plans) };
+    }
+    this.recomposeHoldingTime(); this.revision++; this.emit();
+  }
+  /**
+   * Fold another measured hit into the live reaction. The set's own precedence
+   * decides what happens: the same set re-arms without replaying its impact, a
+   * higher one preempts from its own impact, a lower one is absorbed and recorded.
+   */
+  recordReactionHit(hit: { setId: ReactionSetId; atSeconds: number; effectSeconds?: number }): ReactionTimeline {
+    this.assertLive();
+    if (!this.reactionTimeline) throw new Error("No reaction is running; a hit needs a measured contact first.");
+    if (!REACTION_SETS[hit.setId]) throw new Error(`Unknown reaction set: ${hit.setId}`);
+    finite(hit.atSeconds, "Reaction time", 0, 120);
+    const effectSeconds = hit.effectSeconds ?? this.effectSeconds;
+    finite(effectSeconds, "Effect duration", 0, 120);
+    const defenderSlot = this.slots[opposite(this.attacker)];
+    const durations = this.reactionDurations(defenderSlot, hit.setId);
+    if (!durations) throw new Error(`The defender has no installed ${hit.setId} reaction set.`);
+    this.reactionTimeline = applyReactionHit(this.reactionTimeline,
+      { setId: hit.setId, atSeconds: hit.atSeconds, effectSeconds, durations }, this.reactionTimeline.archetype);
+    const active = this.reactionTimeline.plans[this.reactionTimeline.plans.length - 1]!;
+    defenderSlot.selected.reaction = REACTION_SETS[active.setId].clips.impact;
+    this.recomposeHoldingTime(); this.revision++; this.emit();
+    return this.reactionTimeline;
+  }
+  /**
+   * The defender dies mid-reaction. The reaction is cut at `atSeconds` rather
+   * than erased, and the death runs from there as a terminal track, so nothing
+   * resumes behind it.
+   */
+  cutReactionToDeath(atSeconds: number): void {
+    this.assertLive(); finite(atSeconds, "Death time", 0, 120);
+    if (!this.reactionTimeline) throw new Error("No reaction is running to cut.");
+    const defenderSlot = this.slots[opposite(this.attacker)];
+    this.requireAction(opposite(this.attacker), defenderSlot.selected.death);
+    if (atSeconds < this.reactionTimeline.plans[0]!.atSeconds) throw new Error("A death before the reaction is not a cut; clear the reaction instead.");
+    this.cue = { kind: "death", atSeconds, blendSeconds: Math.max(1 / 120, this.cue.blendSeconds) };
+    this.recomposeHoldingTime(); this.revision++; this.emit();
+  }
+  /** Drop the special reaction and hand the defender back to the flinch picker. */
+  clearReactionTimeline(): void {
+    this.assertLive();
+    if (!this.reactionTimeline) return;
+    this.reactionTimeline = null; this.recomposeHoldingTime(); this.revision++; this.emit();
+  }
+  /** Clip durations for a set, read off the defender's own installed actions. */
+  private reactionDurations(slot: SlotState, setId: ReactionSetId) {
+    return reactionSetDurations(setId, (clipName) => slot.actions
+      .find((action) => action.id === clipName && action.semantic === "reaction" && !action.unavailableReason)?.durationSeconds);
+  }
+  /** The live timeline, already cut by a death cue; empty when no set is running. */
+  private reactionPhases(): readonly PlacedReactionPhase[] {
+    if (!this.reactionTimeline || this.cue.kind === "none") return [];
+    const defenderSlot = this.slots[opposite(this.attacker)];
+    const resolves = this.reactionTimeline.plans.every((plan) => plan.phases.every((phase) => defenderSlot.actions
+      .some((action) => action.id === phase.clipName && action.semantic === "reaction" && !action.unavailableReason)));
+    if (!resolves) return [];
+    return reactionTimelinePhases(this.reactionTimeline,
+      this.cue.kind === "death" ? this.cue.atSeconds : Number.POSITIVE_INFINITY);
   }
   actor(slot: CombatSlot): ReviewActorAdapter | null { return this.slots[slot].handle?.actor ?? null; }
   sequence(): ReviewSequence | null { return this.clock?.sequence ?? null; }
@@ -282,10 +383,22 @@ export class CombatReviewController {
         this.contactSeverity = CombatReviewController.classifyAttackSeverity(attack);
         this.contactDirection = result.event.position
           ? CombatReviewController.classifyContactDirection(this.actor(opposite(this.attacker))!, result.event.position) : null;
-        if (response === "reaction" && this.reactionPolicy === "auto" && this.contactDirection) {
+        if (response === "reaction" && this.reactionPolicy === "auto") {
           const defenderSlot = this.slots[opposite(this.attacker)];
-          const pick = CombatReviewController.pickReactionClip(defenderSlot.actions, this.contactDirection, this.contactSeverity);
-          if (pick) defenderSlot.selected.reaction = pick;
+          // A special damage type, or a heavy strike, takes the body over with an
+          // authored set. Neither needs a contact direction: the poison covers the
+          // whole body and a knockdown leaves the feet whatever side it came from.
+          const setId = reactionSetForContact({ damageType: result.event.damageType ?? null, severity: this.contactSeverity });
+          const durations = setId ? this.reactionDurations(defenderSlot, setId) : null;
+          if (setId && durations) {
+            const archetype = reactionArchetypeForFamily(this.definition(defenderSlot.definitionId).family);
+            this.reactionTimeline = applyReactionHit(null, { setId, effectSeconds: this.effectSeconds, durations,
+              atSeconds: Math.max(1e-6, result.event.timeSeconds) }, archetype);
+            defenderSlot.selected.reaction = REACTION_SETS[setId].clips.impact;
+          } else if (this.contactDirection) {
+            const pick = CombatReviewController.pickReactionClip(defenderSlot.actions, this.contactDirection, this.contactSeverity);
+            if (pick) defenderSlot.selected.reaction = pick;
+          }
         }
         // Preserve the sampled target pose at impact, even if the last manual
         // cue used an immediate cut. A zero-time hit needs an initial ready track.
@@ -381,6 +494,13 @@ export class CombatReviewController {
     this.assertLive(); const action = this.requireAction(slot, actionId);
     if (role === "ready" && action.semantic === "death") throw new Error("A terminal death cannot be a looping ready pose.");
     if ((role === "reaction" || role === "death") && action.semantic !== role) throw new Error(`Choose a real ${role} action.`);
+    // Choosing a reaction by hand is an override of the whole set, not of its
+    // first clip: a lone PoisonLoop with no impact and no recovery is not a thing
+    // the reviewer can have asked for.
+    if (role === "reaction" && slot === opposite(this.attacker) && this.reactionTimeline
+      && actionId !== REACTION_SETS[this.reactionTimeline.plans[this.reactionTimeline.plans.length - 1]!.setId].clips.impact) {
+      this.reactionTimeline = null;
+    }
     this.slots[slot].selected[role] = actionId; this.recompose(); this.changed();
   }
   setManualCue(patch: Partial<CombatReviewSnapshot["cue"]>): void {
@@ -512,7 +632,15 @@ export class CombatReviewController {
     const response = this.cue.kind === "none" ? undefined : defenderSlot.actions.find((action) => action.id === defenderSlot.selected[this.cue.kind as "reaction" | "death"]);
     // Changing an actor never silently substitutes a different semantic response.
     if (this.cue.kind !== "none" && !response) this.cue.kind = "none";
-    const duration = Math.max(attack.durationSeconds, response ? this.cue.atSeconds + response.durationSeconds + 0.25 : 0);
+    // A special reaction replaces the single flinch track with impact → a loop
+    // held for the effect → recovery. Every phase is an explicit track over one
+    // clock, so seeking anywhere reproduces exactly what playing there would.
+    const reactionPhases = response ? this.reactionPhases() : [];
+    const last = reactionPhases[reactionPhases.length - 1];
+    const reactionEnd = last ? last.startSeconds + last.durationSeconds : 0;
+    const duration = Math.max(attack.durationSeconds,
+      response ? this.cue.atSeconds + response.durationSeconds + 0.25 : 0,
+      reactionPhases.length && this.cue.kind === "reaction" ? reactionEnd + 0.25 : 0);
     const attackerId = attackSlot.handle!.actor.instanceId, defenderId = defenderSlot.handle!.actor.instanceId;
     const tracks: ReviewTrack[] = [], events: ReviewEvent[] = [];
     const track = (id: string, actorId: string, action: ReviewAction, start: number, length: number, loop = false, blend = 0) => {
@@ -523,11 +651,45 @@ export class CombatReviewController {
     if (attack.semantic !== "death") track("attacker-ready", attackerId, ready, attack.durationSeconds,
       duration - attack.durationSeconds, ready.semantic !== "death", 0.12);
     if (response) {
-      track("defender-ready", defenderId, guard, 0, this.cue.atSeconds, guard.semantic !== "death");
-      track("defender-response", defenderId, response, this.cue.atSeconds, response.durationSeconds, false,
-        this.cue.atSeconds > 0 ? this.cue.blendSeconds : 0);
-      if (response.semantic !== "death") track("defender-recover", defenderId, guard, this.cue.atSeconds + response.durationSeconds,
-        duration - this.cue.atSeconds - response.durationSeconds, guard.semantic !== "death", 0.12);
+      const reactionStart = reactionPhases.length ? reactionPhases[0]!.startSeconds : this.cue.atSeconds;
+      track("defender-ready", defenderId, guard, 0, reactionPhases.length ? reactionStart : this.cue.atSeconds, guard.semantic !== "death");
+      for (const [index, phase] of reactionPhases.entries()) {
+        track(`defender-reaction-${index}-${phase.role}`, defenderId,
+          this.requireAction(opposite(this.attacker), phase.clipName), phase.startSeconds, phase.durationSeconds,
+          phase.loop, index === 0 && reactionStart > 0 ? this.cue.blendSeconds : 0);
+      }
+      // Death wins over a running reaction at any phase: the reaction is cut at
+      // the death cue above and the terminal track starts there, so nothing can
+      // resume behind it. A reaction that finished before the death still hands
+      // back to the guard for the gap between them.
+      if (this.cue.kind === "death") {
+        if (reactionPhases.length && reactionEnd < this.cue.atSeconds - 1e-9) {
+          track("defender-recover", defenderId, guard, reactionEnd, this.cue.atSeconds - reactionEnd, guard.semantic !== "death", 0.12);
+        }
+        track("defender-response", defenderId, response, this.cue.atSeconds, response.durationSeconds, false,
+          this.cue.atSeconds > 0 ? this.cue.blendSeconds : 0);
+      } else {
+        // Hand control back to whatever the actor was doing, exactly once, after
+        // whichever response actually ran.
+        if (!reactionPhases.length) {
+          track("defender-response", defenderId, response, this.cue.atSeconds, response.durationSeconds, false,
+            this.cue.atSeconds > 0 ? this.cue.blendSeconds : 0);
+        }
+        const resumeAt = reactionPhases.length ? reactionEnd : this.cue.atSeconds + response.durationSeconds;
+        track("defender-recover", defenderId, guard, resumeAt, duration - resumeAt, guard.semantic !== "death", 0.12);
+      }
+      for (const [index, plan] of (this.cue.kind === "reaction" ? this.reactionTimeline?.plans ?? [] : []).entries()) {
+        if (!index || !reactionPhases.some((phase) => phase.planIndex === index)) continue;
+        events.push({ id: `reaction-preempt-${index}`, actorId: defenderId, targetId: attackerId, timeSeconds: plan.atSeconds,
+          kind: "reaction", result: "unmeasured", state: plan.setId,
+          evidence: `${REACTION_SETS[plan.setId].label} preempts the running set; the cut set is truncated here, not replayed.` });
+      }
+      for (const [index, absorbed] of (this.cue.kind === "reaction" ? this.reactionTimeline?.absorbed ?? [] : []).entries()) {
+        if (absorbed.atSeconds > duration) continue;
+        events.push({ id: `reaction-absorbed-${index}`, actorId: defenderId, targetId: attackerId, timeSeconds: absorbed.atSeconds,
+          kind: "reaction", result: "unmeasured", state: absorbed.setId,
+          evidence: `Hit absorbed by the running reaction (${absorbed.reason}); the impact is not replayed.` });
+      }
       const measured = this.contactResponse !== "none" && this.contactResult?.event;
       events.push({ id: measured ? "measured-response" : "manual-response", actorId: defenderId, targetId: attackerId, timeSeconds: this.cue.atSeconds,
         kind: response.semantic === "death" ? "death" : "reaction", result: measured ? "hit" : "unmeasured",
@@ -612,6 +774,19 @@ export class CombatReviewController {
     if (!result || result.unavailableReason) throw new Error("Action is unavailable for actor " + slot.toUpperCase() + ": " + id);
     return result;
   }
+  /**
+   * Rebuild the sequence without moving the playhead or discarding the measured
+   * contact. Dragging the effect duration must not throw the reviewer back to
+   * zero, and must not silently unmeasure the hit that caused the reaction.
+   */
+  private recomposeHoldingTime(): void {
+    const held = this.clock?.snapshot();
+    this.recompose();
+    if (held && this.clock) {
+      this.clock.seek(Math.min(held.timeSeconds, this.clock.sequence.durationSeconds));
+      this.clock.setPlaying(held.playing); this.applyFrame();
+    }
+  }
   private assertLive(): void { if (this.disposed) throw new Error("Combat Review has been disposed."); }
   private releaseProjectiles(): void {
     this.projectiles?.dispose(); this.projectiles = null; this.projectileBound = false; this.projectileError = null;
@@ -621,7 +796,10 @@ export class CombatReviewController {
     this.cancelContactScan();
     const hadContact = this.contactResult?.status === "contact", hadResponse = this.contactResponse !== "none";
     this.contactResult = null; this.contactResponse = "none"; this.contactDirection = null; this.contactSeverity = null;
-    if (hadResponse) this.cue.kind = "none";
+    // The reaction timeline is the measured contact's consequence and shares its
+    // lifetime: nothing keeps a poison loop alive once the hit that caused it is
+    // no longer measured.
+    if (hadResponse) { this.cue.kind = "none"; this.reactionTimeline = null; }
     if (hadContact) {
       const held = this.clock?.snapshot(); this.recompose();
       if (held && this.clock && !hadResponse) { this.clock.seek(held.timeSeconds); this.clock.setPlaying(held.playing); this.applyFrame(); }

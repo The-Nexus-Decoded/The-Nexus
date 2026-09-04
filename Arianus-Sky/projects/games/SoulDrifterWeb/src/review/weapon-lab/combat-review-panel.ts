@@ -1,4 +1,5 @@
 import { CombatReviewController, type CombatActionRole, type CombatContactSnapshot, type CombatReviewSnapshot, type CombatSlot, type CombatSlotSnapshot, type CombatSparRow } from "./combat-review-controller";
+import { REACTION_SETS } from "./reaction-contract";
 import type { ReviewAction } from "./combat-review-types";
 
 interface ActorFields {
@@ -24,6 +25,8 @@ export class CombatReviewPanel {
   private readonly responseRow: HTMLElement;
   private readonly cueTimeRow: HTMLElement;
   private readonly cueBlendRow: HTMLElement;
+  private readonly effectRow: HTMLElement;
+  private readonly reactionPlan: HTMLElement;
   private readonly play: HTMLButtonElement;
   private readonly restart: HTMLButtonElement;
   private readonly timeline: HTMLInputElement;
@@ -95,6 +98,11 @@ export class CombatReviewPanel {
     this.response = this.selectField(sequence, "Clip", "response"); this.responseRow = this.response.closest("label")!;
     this.cueTimeRow = this.numberField(sequence, "Cue time", "cue-time", 0, 120, 0.01, "s");
     this.cueBlendRow = this.numberField(sequence, "Blend in", "cue-blend", 0, 1, 0.01, "s");
+    // How long the effect lasts, which is what the loop is held for. One asset
+    // serves a 0.867 s held beam and a 2.5 s ground residue.
+    this.effectRow = this.numberField(sequence, "Effect duration", "effect-seconds", 0, 120, 0.1, "s");
+    this.reactionPlan = this.node("p", "context-note"); this.reactionPlan.dataset.reactionPlan = "true";
+    sequence.append(this.reactionPlan);
     this.evidence = this.node("p", "combat-evidence", "No response cue. Contact is not measured in this sequence.");
     sequence.append(this.evidence);
     const placement = this.card("04", "Spacing & facing");
@@ -216,6 +224,7 @@ export class CombatReviewPanel {
       case "projectile-release": if (snapshot.projectiles.flights[0]) this.controller.seek(snapshot.projectiles.flights[0].releaseSeconds); break;
       case "cue-time": this.controller.setManualCue({ atSeconds: Number(value) }); break;
       case "cue-blend": this.controller.setManualCue({ blendSeconds: Number(value) }); break;
+      case "effect-seconds": this.controller.setEffectSeconds(Number(value)); break;
       case "separation": this.controller.setPlacement({ separationMeters: Number(value) }); break;
       case "yaw-a": this.controller.setPlacement({ yawADegrees: Number(value) }); break;
       case "yaw-b": this.controller.setPlacement({ yawBDegrees: Number(value) }); break;
@@ -250,12 +259,14 @@ export class CombatReviewPanel {
       this.actionOptions(this.response, defender.actions.filter((entry) => entry.semantic === snapshot.cue.kind),
         hasCue ? defender.selected[snapshot.cue.kind as "reaction" | "death"] : "");
       this.setNumber("cue-time", snapshot.cue.atSeconds); this.setNumber("cue-blend", snapshot.cue.blendSeconds);
+      this.setNumber("effect-seconds", snapshot.reaction.effectSeconds);
       this.setNumber("separation", snapshot.placement.separationMeters);
       this.setNumber("yaw-a", snapshot.placement.yawADegrees); this.setNumber("yaw-b", snapshot.placement.yawBDegrees);
       this.error.textContent = snapshot.error ?? "";
     } else for (const value of snapshot.slots) this.renderActor(value, true);
     this.renderContact(snapshot);
     this.renderSpar(snapshot);
+    this.renderReactionPlan(snapshot);
     this.evidence.textContent = snapshot.contact.response !== "none"
       ? `Measured ${snapshot.contact.response} · begins at confirmed surface contact with a preserving blend. Review response only; no damage or health simulation.`
       : snapshot.cue.kind !== "none" ? "Manual cue · not measured contact. This response previews timing only; it does not establish a hit, damage or gameplay synchronization."
@@ -275,6 +286,28 @@ export class CombatReviewPanel {
     this.loop.checked = snapshot.frame?.loop ?? false;
     this.setNumber("speed", snapshot.frame?.speed ?? 1);
     if (snapshot.error) this.error.textContent = snapshot.error;
+  }
+  /** What the special reaction is actually doing, in the reviewer's own numbers. */
+  private renderReactionPlan(snapshot: CombatReviewSnapshot): void {
+    this.effectRow.hidden = !snapshot.ready;
+    const timeline = snapshot.reaction.timeline;
+    const active = timeline?.plans[timeline.plans.length - 1];
+    if (!active || !snapshot.reaction.phases.length) {
+      this.reactionPlan.textContent = snapshot.ready
+        ? "No special reaction. An ordinary contact uses the directional flinch set; a special damage type or a heavy strike replaces it with an authored impact, held loop and recovery."
+        : "";
+      return;
+    }
+    const quantized = Math.abs(active.quantizationSeconds) > 1e-6
+      ? ` · loop quantized to whole periods, ${active.quantizationSeconds > 0 ? "+" : ""}${active.quantizationSeconds.toFixed(3)} s against the effect`
+      : " · loop lands exactly on the effect";
+    const cut = snapshot.reaction.phases.some((phase) => phase.truncated) ? " · cut by a later cue" : "";
+    const absorbed = timeline!.absorbed.length ? ` · ${timeline!.absorbed.length} later hit(s) absorbed without replaying the impact` : "";
+    const preempted = timeline!.plans.length > 1 ? ` · ${timeline!.plans.length - 1} preemption(s)` : "";
+    this.reactionPlan.textContent = `${REACTION_SETS[active.setId].label} · ${timeline!.archetype} archetype · impact at `
+      + `${active.atSeconds.toFixed(3)} s, ${active.loopPeriods} × ${active.phases[1]!.clipDurationSeconds.toFixed(3)} s loop `
+      + `= ${active.holdSeconds.toFixed(3)} s held for a ${active.requestedHoldSeconds.toFixed(3)} s effect${quantized}`
+      + `, then recovery and back to the ready pose${cut}${absorbed}${preempted}.`;
   }
   private renderContact(snapshot: CombatReviewSnapshot): void {
     const defender = snapshot.slots.find((entry) => entry.slot !== snapshot.attacker)!;

@@ -9,6 +9,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { staffUsesSupportHand } from "./staff-grip.js";
 import { MobsPanel } from "./mobs-panel.ts";
 import { createCombatReviewStudio } from "./combat-review-studio.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { configureReviewAssetLoader } from "./review-asset-loader.ts";
+import { loadReactionPacks, reactionPackClips } from "./reaction-pack-loader.ts";
 import { createReviewShadowRig } from "./review-shadow-rig.ts";
 import { ReviewPropsPanel } from "./review-props-panel.ts";
 
@@ -249,7 +252,14 @@ controls.target.set(0, 1.05, 0);
 
 
 let actor;
-const humanFactory = createHumanReviewActorFactory({ maxAnisotropy: renderer.capabilities.getMaxAnisotropy() });
+// The pinned special-attack reaction pack is fetched, checksum-verified and
+// clip-list-enforced here, then installed beside the animation library. The
+// library GLB is never rewritten.
+const reactionPackLoader = configureReviewAssetLoader(new GLTFLoader());
+const humanFactory = createHumanReviewActorFactory({
+  maxAnisotropy: renderer.capabilities.getMaxAnisotropy(),
+  loadReactionClips: async () => reactionPackClips(await loadReactionPacks("humanoid", { parser: reactionPackLoader })),
+});
 let mobsPanel = null;
 let combatStudio = null;
 let propsPanel = null;

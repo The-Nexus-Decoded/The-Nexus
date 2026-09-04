@@ -64,8 +64,10 @@ describe("Combat Review studio composition", () => {
       const abort = new AbortController();
       const handle = await loader({ definition, instanceId: definition.id, signal: abort.signal });
       if (definition.family === "human") {
+        // A factory with no pinned reaction-pack loader is never asked for one:
+        // source clips are not silently substituted for the authored set.
         expect(factory.create).toHaveBeenLastCalledWith({ instanceId: definition.id,
-          loadoutId: definition.id.slice(6), mode: "equipment", includeSourceResponses: true });
+          loadoutId: definition.id.slice(6), mode: "equipment", includeSourceResponses: true, includeReactionPack: false });
         expect(definition.note).toContain("unverified equipment suitability");
       } else { expect(handle.calibration.controls()[0].value).toBe(3); handle.calibration.set("jaw", 4);
         expect(handle.actor.setControl).toHaveBeenCalledWith("jaw", 4); }
@@ -73,6 +75,20 @@ describe("Combat Review studio composition", () => {
     }
     expect(factory.create).toHaveBeenCalledTimes(10); expect(mobLoader).toHaveBeenCalledTimes(MOB_CATALOG.length);
     expect(factory.dispose).not.toHaveBeenCalled();
+
+    // A factory that does carry the pinned pack binds it for every loadout: a
+    // special attack lands on the body, not on the weapon.
+    const packed = { create: vi.fn(async ({ instanceId, loadoutId }) => actorFixture(instanceId, loadoutId)),
+      dispose: vi.fn(), reactionPackAvailable: true };
+    const packedLoader = createCombatReviewActorLoader(packed, mobLoader);
+    const human = COMBAT_REVIEW_DEFINITIONS.filter((entry) => entry.family === "human" && entry.id !== ENVIRONMENT_REVIEW_DEFINITION.id);
+    for (const definition of human) {
+      const handle = await packedLoader({ definition, instanceId: definition.id, signal: new AbortController().signal });
+      expect(packed.create).toHaveBeenLastCalledWith({ instanceId: definition.id,
+        loadoutId: definition.id.slice(6), mode: "equipment", includeSourceResponses: true, includeReactionPack: true });
+      handle.actor.dispose();
+    }
+    expect(packed.create).toHaveBeenCalledTimes(human.length);
   });
 
   it("reuses an unarmed catalog actor for environment motions without removing its source library", async () => {

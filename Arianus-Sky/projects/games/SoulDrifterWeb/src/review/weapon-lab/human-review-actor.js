@@ -9,6 +9,8 @@ import {
 import { buildStaffFightingClips } from "./staff-moves.js";
 import { locomotionActions, buildCarryLocomotionClips } from "./weapon-locomotion.js";
 import { applyAdditiveHumanHandGrip, solveGreatswordSupportGrip } from "../../game/humanWeaponCalibration.ts";
+import { assertReactionClipsBind } from "./reaction-pack-loader.ts";
+import { REACTION_PHASE_ROLES, REACTION_SETS } from "./reaction-contract.ts";
 import {
   URLS, BOW_TRIPLE_SHOT_NAME, BOW_AIM_RUN_NAME, BOW_QUIVER_DRAW_NAME, BOW_RELEASE_NAME,
   BOW_STRIKE_NAME, BOW_PROJECTILE_MOTION, GREATSWORD_TWO_HAND_SHEATHE_NAME, ACTIONS, GREATSWORD_BACK_TRANSITIONS,
@@ -42,8 +44,10 @@ export function findBone(bones, suffix) {
  */
 export function createHumanReviewActorFactory({
   loader = configureReviewAssetLoader(new GLTFLoader()), textureLoader = new THREE.TextureLoader(), maxAnisotropy = 1,
+  loadReactionClips = null,
 } = {}) {
   const models = new Map();
+  let reactionClipsPending = null;
   const textures = new Map();
   const cachedResources = new Set();
   const releasedCacheResources = new Set();
@@ -95,16 +99,25 @@ export function createHumanReviewActorFactory({
     if (!options.instanceId) throw new Error("Human review actors require an instanceId.");
     if (options.mode !== undefined && options.mode !== "equipment" && options.mode !== "catalog") throw new Error("Unknown human review mode.");
     if (options.includeSourceResponses !== undefined && typeof options.includeSourceResponses !== "boolean") throw new Error("Source response review must be explicitly enabled or disabled.");
+    if (options.includeReactionPack !== undefined && typeof options.includeReactionPack !== "boolean") throw new Error("Reaction pack review must be explicitly enabled or disabled.");
+    if (options.includeReactionPack && !loadReactionClips) throw new Error("No reaction pack loader is configured on this human review factory.");
     if (!LOADOUTS[options.loadoutId ?? "longswordTwoHand"]) throw new Error(`Unknown human loadout: ${options.loadoutId}`);
-    const [body, library, extras] = await Promise.all([
+    // The pinned pack is fetched once per factory and shared read-only; every
+    // actor still installs its own clip references into its own map.
+    if (options.includeReactionPack && !reactionClipsPending) {
+      reactionClipsPending = Promise.resolve().then(loadReactionClips);
+      reactionClipsPending.catch(() => { reactionClipsPending = null; });
+    }
+    const [body, library, extras, reactionClips] = await Promise.all([
       loadModel(URLS.body), loadModel(URLS.animations), loadModel(URLS.locomotionExtras),
+      options.includeReactionPack ? reactionClipsPending : Promise.resolve([]),
     ]);
     if (factoryDisposed) throw new Error("Human review factory was disposed during loading.");
     const sourceClips = [...library.animations, ...extras.animations];
     if (new Set(sourceClips.map((clip) => clip.name)).size !== sourceClips.length) {
       throw new Error("Duplicate source animation names in locomotion addendum");
     }
-    const actor = createInstance(body.scene, sourceClips, options);
+    const actor = createInstance(body.scene, sourceClips, { ...options, reactionClips: reactionClips ?? [] });
     instances.add(actor);
     try {
       if (!options.deferLoadout) await actor.setLoadout(options.loadoutId ?? "longswordTwoHand", { mode: options.mode ?? "equipment" });
@@ -2334,6 +2347,18 @@ export function createHumanReviewActorFactory({
       sharedAuthoredCount = actor.authoredGapCount;
     }
     actor.authoredGapCount = sharedAuthoredCount;
+    // Reaction packs are installed BESIDE the library, per instance and after the
+    // shared snapshot, so an actor created without the pack never sees its clips
+    // and the library map is never rewritten.
+    const reactionClipNames = new Set();
+    if (options.reactionClips?.length) {
+      assertReactionClipsBind(options.reactionClips, actor.bones.keys());
+      for (const clip of options.reactionClips) {
+        if (actor.clips.has(clip.name)) throw new Error(`Reaction pack clip ${clip.name} collides with a source clip.`);
+        actor.clips.set(clip.name, clip);
+        reactionClipNames.add(clip.name);
+      }
+    }
     const sourceNames = new Set(sourceClips.map((clip) => clip.name));
     const sourceBonePose = [...actor.bones.values()].map((bone) => ({
       bone, position: bone.position.clone(), quaternion: bone.quaternion.clone(), scale: bone.scale.clone(),
@@ -2478,6 +2503,9 @@ export function createHumanReviewActorFactory({
       }
     }
     function actionSemantic(name) {
+      // A pack clip is a reaction by contract, not by regex: PoisonLoop, GetUp and
+      // ProneHold carry no token any of the source classifiers look for.
+      if (reactionClipNames.has(name)) return "reaction";
       if (isDeathClip(name)) return "death";
       if (isDefenseClip(name)) return "block";
       if (isReactionClip(name)) return "reaction";
@@ -2491,11 +2519,25 @@ export function createHumanReviewActorFactory({
       return "interaction";
     }
     /** @returns {readonly import("./combat-review-types").ReviewAction[]} */
+    function reactionPackLabel(name) {
+      for (const set of Object.values(REACTION_SETS)) {
+        for (const role of REACTION_PHASE_ROLES) {
+          if (set.clips[role] === name) return `${set.label} · ${role} · authored reaction pack`;
+        }
+      }
+      return `Authored reaction pack · ${name}`;
+    }
+    /** The pack is bound to every loadout: a special attack lands on the body, not on the weapon. */
+    function reactionPackActions() {
+      return [...reactionClipNames].map((name) => [reactionPackLabel(name), name]);
+    }
     function actions() {
       const rows = settings.mode === "catalog"
-        ? [...actor.clips.keys()].map((name) => [AUTHORED_GAP_LABELS.get(name) ?? `${sourcePrefix(name)} — ${clipActionName(name)}`, name])
+        ? [...actor.clips.keys()].map((name) => [reactionClipNames.has(name) ? reactionPackLabel(name)
+          : AUTHORED_GAP_LABELS.get(name) ?? `${sourcePrefix(name)} — ${clipActionName(name)}`, name])
         : [...ACTIONS[LOADOUTS[settings.loadoutId].actionFamily], ...locomotionActions(settings.loadoutId, actor.clips),
-          ...(includeSourceResponses ? sourceResponseActions(settings.loadoutId, actor.clips) : [])];
+          ...(includeSourceResponses ? sourceResponseActions(settings.loadoutId, actor.clips) : []),
+          ...reactionPackActions()];
       const seen = new Set();
       return rows.filter(([, name]) => actor.clips.has(name) && !seen.has(name) && seen.add(name)).map(([label, name]) => ({
         id: name, label, clipName: name, durationSeconds: actor.clips.get(name).duration,
@@ -2631,5 +2673,7 @@ export function createHumanReviewActorFactory({
     });
     return actor;
   }
-  return { create, dispose };
+  // Callers opt in per actor, but only where a pinned pack loader was configured;
+  // a factory without one is not silently given source clips instead.
+  return { create, dispose, reactionPackAvailable: Boolean(loadReactionClips) };
 }
